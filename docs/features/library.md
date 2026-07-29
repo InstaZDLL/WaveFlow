@@ -32,10 +32,12 @@ A tag edit that rewrites the audio file is normally detected, since it moves tha
 
 A **deep rescan** bypasses `(mtime, size)` entirely and re-hashes + re-reads every file. It is the escape hatch for exactly the case above, and it is opt-in because it costs a full re-read of the library.
 
-Two entry points, both in **My music → Folders**:
+Two entry points, in different places:
 
-- **per folder** — the magnifier button on a folder row (`scan_folder` with `deep: true`);
-- **whole library** — the second button next to Rescan in the header (`rescan_library` with `deep: true`), added in issue #457. Until then the bypass existed per folder only, so the library-wide button users actually reach for could never see mtime-preserving edits.
+- **per folder** — the magnifier button on a folder row, under **My music → Folders** (`scan_folder` with `deep: true`). Appears on row hover;
+- **whole library** — the second button next to Rescan in the **My music header**, so it is reachable from any tab, not just Folders (`rescan_library` with `deep: true`). Added in issue #457: until then the bypass existed per folder only, so the library-wide button users actually reach for could never see mtime-preserving edits.
+
+Both are mutually exclusive with each other and with a plain rescan — `scan_folder_inner` writes, and SQLite takes one writer at a time.
 
 Note the interaction with **Split this artist** below: a deep rescan re-reads tags authoritatively and will undo an in-place split, since it no longer sees the split as deliberate.
 

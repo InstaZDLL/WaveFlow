@@ -159,6 +159,14 @@ export function LibraryView({
   const [deepRescanFolderId, setDeepRescanFolderId] = useState<number | null>(
     null,
   );
+
+  // Any scan in flight, whichever control started it. `scan_folder_inner`
+  // is a writer and SQLite takes one writer at a time, so a folder-level
+  // deep pass and a library-wide one must not overlap — before this, the
+  // global buttons only guarded against each other and left the
+  // per-folder button free to start a second concurrent scan.
+  const isAnyRescanActive =
+    isRescanning || isDeepRescanning || deepRescanFolderId != null;
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
   // When the create-playlist modal is opened from a popover's "+ New
@@ -439,36 +447,50 @@ export function LibraryView({
     // Same rationale (issue #457): the normal pass trusts (mtime, size)
     // and therefore cannot see tags an external editor rewrote while
     // preserving mtime.
-    if (isRescanning || isDeepRescanning) return;
+    if (isAnyRescanActive) return;
     setIsDeepRescanning(true);
     try {
+      // Per-library error handling: one unreadable library (a drive
+      // that went away, a permission change) must not strand the ones
+      // after it — the user asked for a full pass.
       for (const lib of libraries) {
-        await rescanLibrary(lib.id, true);
+        try {
+          await rescanLibrary(lib.id, true);
+        } catch (err) {
+          console.error(
+            `[LibraryView] deep rescan failed for library ${lib.id}`,
+            err,
+          );
+        }
       }
-    } catch (err) {
-      console.error("[LibraryView] deep rescan (library) failed", err);
     } finally {
       setIsDeepRescanning(false);
     }
   };
 
   const handleRescan = async () => {
-    if (isRescanning) return;
+    if (isAnyRescanActive) return;
     setIsRescanning(true);
     try {
-      // Rescan every library the profile owns.
+      // Rescan every library the profile owns, one failure at a time —
+      // same reasoning as the deep pass above.
       for (const lib of libraries) {
-        await rescanLibrary(lib.id);
+        try {
+          await rescanLibrary(lib.id);
+        } catch (err) {
+          console.error(
+            `[LibraryView] rescan failed for library ${lib.id}`,
+            err,
+          );
+        }
       }
-    } catch (err) {
-      console.error("[LibraryView] rescan failed", err);
     } finally {
       setIsRescanning(false);
     }
   };
 
   const handleDeepRescanFolder = async (folderId: number) => {
-    if (deepRescanFolderId != null) return;
+    if (isAnyRescanActive) return;
     setDeepRescanFolderId(folderId);
     try {
       await scanFolder(folderId, true);
@@ -533,9 +555,7 @@ export function LibraryView({
               <button
                 type="button"
                 onClick={handleRescan}
-                disabled={
-                  libraries.length === 0 || isRescanning || isDeepRescanning
-                }
+                disabled={libraries.length === 0 || isAnyRescanActive}
                 aria-label={t("library.actions.rescan")}
                 aria-busy={isRescanning}
                 className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
@@ -560,9 +580,7 @@ export function LibraryView({
               <button
                 type="button"
                 onClick={handleDeepRescanLibrary}
-                disabled={
-                  libraries.length === 0 || isRescanning || isDeepRescanning
-                }
+                disabled={libraries.length === 0 || isAnyRescanActive}
                 aria-label={t("library.actions.deepRescan")}
                 aria-busy={isDeepRescanning}
                 className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
@@ -815,6 +833,7 @@ export function LibraryView({
               }}
               onDeepRescan={handleDeepRescanFolder}
               deepRescanFolderId={deepRescanFolderId}
+              isAnyRescanActive={isAnyRescanActive}
               onToggleWatched={(folderId, enable) => {
                 // Optimistic flip — the watcher hookup is fire-and-
                 // forget on the backend so the UI shouldn't block on it.
@@ -2295,6 +2314,10 @@ interface FolderListProps {
   onDeepRescan: (folderId: number) => void;
   /** The folder a deep rescan is currently running against, if any. */
   deepRescanFolderId: number | null;
+  /** True while ANY scan is running — a library-wide pass included, not
+   *  just a folder one. SQLite takes a single writer, so this row's
+   *  button has to stand down for the global controls too. */
+  isAnyRescanActive: boolean;
 }
 
 function FolderList({
@@ -2308,6 +2331,7 @@ function FolderList({
   onRemove,
   onDeepRescan,
   deepRescanFolderId,
+  isAnyRescanActive,
 }: FolderListProps) {
   const [openMenuFolderId, setOpenMenuFolderId] = useState<number | null>(null);
   // Two-step delete: first click arms the confirm state, second click
@@ -2443,7 +2467,7 @@ function FolderList({
                   e.stopPropagation();
                   onDeepRescan(folder.id);
                 }}
-                disabled={deepRescanFolderId != null}
+                disabled={isAnyRescanActive}
                 aria-label={t("library.folderList.deepRescan")}
                 aria-busy={deepRescanFolderId === folder.id}
                 className={`p-1.5 rounded-full transition-colors text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50 ${
