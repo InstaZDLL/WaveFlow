@@ -1982,7 +1982,9 @@
     "runningSubtitle": "{{current}} / {{total}} dosya",
     "doneTitle": "Tarama tamamlandı",
     "doneSubtitle": "{{added}} eklendi · {{updated}} güncellendi · {{skipped}} atlandı",
-    "scanningIn": "Taranıyor: {{dir}}"
+    "scanningIn": "Taranıyor: {{dir}}",
+    "doneErrors_one": "{{count}} dosya başarısız",
+    "doneErrors_other": "{{count}} dosya başarısız"
   },
   "system": {
     "tray": {

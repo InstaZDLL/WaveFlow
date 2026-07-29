@@ -1968,7 +1968,9 @@
     "runningSubtitle": "{{current}} / {{total}} ファイル",
     "doneTitle": "スキャン完了",
     "doneSubtitle": "{{added}} 追加 · {{updated}} 更新 · {{skipped}} スキップ",
-    "scanningIn": "{{dir}} をスキャン中"
+    "scanningIn": "{{dir}} をスキャン中",
+    "doneErrors_one": "{{count}} 件のファイルが失敗",
+    "doneErrors_other": "{{count}} 件のファイルが失敗"
   },
   "system": {
     "tray": {

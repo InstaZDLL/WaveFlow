@@ -1982,7 +1982,9 @@
     "runningSubtitle": "{{current}} / {{total}}개 파일",
     "doneTitle": "스캔 완료",
     "doneSubtitle": "{{added}}개 추가 · {{updated}}개 업데이트 · {{skipped}}개 건너뜀",
-    "scanningIn": "{{dir}} 스캔 중"
+    "scanningIn": "{{dir}} 스캔 중",
+    "doneErrors_one": "{{count}}개 파일 실패",
+    "doneErrors_other": "{{count}}개 파일 실패"
   },
   "system": {
     "tray": {

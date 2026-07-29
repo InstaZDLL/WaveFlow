@@ -453,15 +453,27 @@ export function LibraryView({
       // Per-library error handling: one unreadable library (a drive
       // that went away, a permission change) must not strand the ones
       // after it — the user asked for a full pass.
+      //
+      // A rejected promise is only half the story: `rescan_library`
+      // swallows per-folder failures into `summary.errors` and still
+      // resolves, so a partially failed pass looks identical to a clean
+      // one unless the summary is inspected.
+      let failedFolders = 0;
       for (const lib of libraries) {
         try {
-          await rescanLibrary(lib.id, true);
+          const summary = await rescanLibrary(lib.id, true);
+          failedFolders += summary.errors;
         } catch (err) {
           console.error(
             `[LibraryView] deep rescan failed for library ${lib.id}`,
             err,
           );
         }
+      }
+      if (failedFolders > 0) {
+        console.warn(
+          `[LibraryView] deep rescan finished with ${failedFolders} folder error(s)`,
+        );
       }
     } finally {
       setIsDeepRescanning(false);
@@ -473,16 +485,24 @@ export function LibraryView({
     setIsRescanning(true);
     try {
       // Rescan every library the profile owns, one failure at a time —
-      // same reasoning as the deep pass above.
+      // same reasoning, and the same summary caveat, as the deep pass
+      // above.
+      let failedFolders = 0;
       for (const lib of libraries) {
         try {
-          await rescanLibrary(lib.id);
+          const summary = await rescanLibrary(lib.id);
+          failedFolders += summary.errors;
         } catch (err) {
           console.error(
             `[LibraryView] rescan failed for library ${lib.id}`,
             err,
           );
         }
+      }
+      if (failedFolders > 0) {
+        console.warn(
+          `[LibraryView] rescan finished with ${failedFolders} folder error(s)`,
+        );
       }
     } finally {
       setIsRescanning(false);

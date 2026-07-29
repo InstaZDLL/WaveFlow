@@ -1982,7 +1982,9 @@
     "runningSubtitle": "{{current}} / {{total}} Dateien",
     "doneTitle": "Scan abgeschlossen",
     "doneSubtitle": "{{added}} hinzugefügt · {{updated}} aktualisiert · {{skipped}} übersprungen",
-    "scanningIn": "Durchsuche {{dir}}"
+    "scanningIn": "Durchsuche {{dir}}",
+    "doneErrors_one": "{{count}} Datei fehlgeschlagen",
+    "doneErrors_other": "{{count}} Dateien fehlgeschlagen"
   },
   "system": {
     "tray": {

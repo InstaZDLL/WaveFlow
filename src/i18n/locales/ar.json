@@ -2131,7 +2131,13 @@
     "runningSubtitle": "{{current}} / {{total}} ملف",
     "doneTitle": "اكتمل الفحص",
     "doneSubtitle": "{{added}} مضاف · {{updated}} محدّث · {{skipped}} متخطّى",
-    "scanningIn": "جارٍ فحص {{dir}}"
+    "scanningIn": "جارٍ فحص {{dir}}",
+    "doneErrors_zero": "لم يفشل أي ملف",
+    "doneErrors_one": "فشل ملف واحد",
+    "doneErrors_two": "فشل ملفان",
+    "doneErrors_few": "فشل {{count}} ملفات",
+    "doneErrors_many": "فشل {{count}} ملفًا",
+    "doneErrors_other": "فشل {{count}} ملف"
   },
   "system": {
     "tray": {

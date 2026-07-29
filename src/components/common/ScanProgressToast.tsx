@@ -64,7 +64,7 @@ export function ScanProgressToast() {
 
   if (progress == null || dismissed) return null;
 
-  const { current, total, added, updated, skipped, done, current_dir } =
+  const { current, total, added, updated, skipped, errors, done, current_dir } =
     progress;
   const percent =
     total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
@@ -109,6 +109,14 @@ export function ScanProgressToast() {
                   total,
                 })}
           </div>
+          {/* The backend counts per-file failures and still reports the
+              scan as complete, so without this line a partially failed
+              scan is indistinguishable from a clean one. */}
+          {done && errors > 0 && (
+            <div className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">
+              {t("scanProgress.doneErrors", { count: errors })}
+            </div>
+          )}
           {!done && (
             <div className="mt-2 h-1.5 w-full rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
               <div

@@ -1982,7 +1982,9 @@
     "runningSubtitle": "{{current}} / {{total}} berkas",
     "doneTitle": "Pemindaian selesai",
     "doneSubtitle": "{{added}} ditambahkan · {{updated}} diperbarui · {{skipped}} dilewati",
-    "scanningIn": "Memindai {{dir}}"
+    "scanningIn": "Memindai {{dir}}",
+    "doneErrors_one": "{{count}} berkas gagal",
+    "doneErrors_other": "{{count}} berkas gagal"
   },
   "system": {
     "tray": {

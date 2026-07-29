@@ -1982,7 +1982,9 @@
     "runningSubtitle": "{{current}} / {{total}} ficheiros",
     "doneTitle": "Análise concluída",
     "doneSubtitle": "{{added}} adicionados · {{updated}} atualizados · {{skipped}} ignorados",
-    "scanningIn": "A analisar {{dir}}"
+    "scanningIn": "A analisar {{dir}}",
+    "doneErrors_one": "{{count}} ficheiro falhou",
+    "doneErrors_other": "{{count}} ficheiros falharam"
   },
   "system": {
     "tray": {

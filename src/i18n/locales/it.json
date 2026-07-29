@@ -1982,7 +1982,9 @@
     "runningSubtitle": "{{current}} / {{total}} file",
     "doneTitle": "Scansione completata",
     "doneSubtitle": "{{added}} aggiunti · {{updated}} aggiornati · {{skipped}} saltati",
-    "scanningIn": "Scansione di {{dir}}"
+    "scanningIn": "Scansione di {{dir}}",
+    "doneErrors_one": "{{count}} file non riuscito",
+    "doneErrors_other": "{{count}} file non riusciti"
   },
   "system": {
     "tray": {
