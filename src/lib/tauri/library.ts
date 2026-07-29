@@ -81,8 +81,19 @@ export function deleteLibrary(libraryId: number): Promise<void> {
   return invoke<void>("delete_library", { libraryId });
 }
 
-export function rescanLibrary(libraryId: number): Promise<RescanSummary> {
-  return invoke<RescanSummary>("rescan_library", { libraryId });
+/**
+ * Rescan every folder of a library.
+ *
+ * `deep` bypasses the `(mtime, size)` fast path so every file is
+ * re-hashed and re-read. Needed when an external tagger rewrote tags
+ * while preserving mtime — Mp3tag does that by default — which the
+ * normal pass cannot see (issue #457). Slower, so it stays opt-in.
+ */
+export function rescanLibrary(
+  libraryId: number,
+  deep = false,
+): Promise<RescanSummary> {
+  return invoke<RescanSummary>("rescan_library", { libraryId, deep });
 }
 
 export function addFolderToLibrary(

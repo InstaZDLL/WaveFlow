@@ -389,7 +389,9 @@
       "edit": "Editar a biblioteca",
       "delete": "Excluir a biblioteca",
       "deleteConfirm": "Clique novamente para confirmar",
-      "importing": "Importando…"
+      "importing": "Importando…",
+      "deepRescan": "Reescaneamento profundo (relê todos os arquivos, mais lento)",
+      "deepRescanning": "Reescaneamento profundo em andamento…"
     },
     "changeCover": "Trocar a capa",
     "searchDeezer": "Pesquisar no Deezer",

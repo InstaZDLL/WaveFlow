@@ -389,7 +389,9 @@
       "edit": "编辑音乐库",
       "delete": "删除音乐库",
       "deleteConfirm": "再次点击以确认",
-      "importing": "正在导入…"
+      "importing": "正在导入…",
+      "deepRescan": "深度重新扫描（重新读取每个文件，较慢）",
+      "deepRescanning": "正在深度重新扫描…"
     },
     "changeCover": "更换封面",
     "searchDeezer": "搜索 Deezer",

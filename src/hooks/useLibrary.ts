@@ -38,7 +38,9 @@ interface LibraryContextValue {
   /** Permanently delete a library and everything it owns. */
   deleteLibrary: (libraryId: number) => Promise<void>;
   /** Re-walk every folder of the library and sync the DB with disk. */
-  rescanLibrary: (libraryId: number) => Promise<RescanSummary>;
+  /** `deep` re-reads every file instead of trusting the (mtime, size)
+   *  fast path — see `rescanLibrary` in `lib/tauri/library`. */
+  rescanLibrary: (libraryId: number, deep?: boolean) => Promise<RescanSummary>;
   /**
    * Register a folder inside a library and immediately scan it. Returns the
    * summary so the UI can surface counts to the user.

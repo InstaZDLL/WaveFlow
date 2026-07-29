@@ -389,7 +389,9 @@
       "edit": "ライブラリを変更する",
       "delete": "ライブラリを削除する",
       "deleteConfirm": "もう一度クリックして確認してください",
-      "importing": "インポート中…"
+      "importing": "インポート中…",
+      "deepRescan": "詳細再スキャン（全ファイルを読み直すため低速）",
+      "deepRescanning": "詳細再スキャン中…"
     },
     "changeCover": "ジャケットを変更する",
     "searchDeezer": "Deezerの検索",

@@ -389,7 +389,9 @@
       "edit": "Bibliotheek bewerken",
       "delete": "Bibliotheek verwijderen",
       "deleteConfirm": "Klik nogmaals om te bevestigen",
-      "importing": "Importeren…"
+      "importing": "Importeren…",
+      "deepRescan": "Diepe herscan (leest elk bestand opnieuw, trager)",
+      "deepRescanning": "Diepe herscan bezig…"
     },
     "changeCover": "Albumhoes wijzigen",
     "searchDeezer": "Zoeken op Deezer",

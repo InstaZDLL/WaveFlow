@@ -389,7 +389,9 @@
       "changeArtwork": "Changer la pochette (bientôt)",
       "edit": "Modifier la bibliothèque",
       "delete": "Supprimer la bibliothèque",
-      "deleteConfirm": "Cliquez à nouveau pour confirmer"
+      "deleteConfirm": "Cliquez à nouveau pour confirmer",
+      "deepRescan": "Rescan approfondi (relit tous les fichiers, plus lent)",
+      "deepRescanning": "Rescan approfondi en cours…"
     },
     "changeCover": "Changer la pochette",
     "searchDeezer": "Recherche Deezer",

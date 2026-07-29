@@ -430,7 +430,9 @@
       "edit": "تعديل المكتبة",
       "delete": "حذف المكتبة",
       "deleteConfirm": "انقر مرة أخرى للتأكيد",
-      "importing": "جارٍ الاستيراد…"
+      "importing": "جارٍ الاستيراد…",
+      "deepRescan": "فحص عميق (يعيد قراءة كل ملف، أبطأ)",
+      "deepRescanning": "جارٍ الفحص العميق…"
     },
     "changeCover": "تغيير الغلاف",
     "searchDeezer": "البحث في Deezer",

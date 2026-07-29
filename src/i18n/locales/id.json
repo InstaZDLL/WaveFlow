@@ -389,7 +389,9 @@
       "edit": "Sunting pustaka",
       "delete": "Hapus pustaka",
       "deleteConfirm": "Klik lagi untuk konfirmasi",
-      "importing": "Mengimpor…"
+      "importing": "Mengimpor…",
+      "deepRescan": "Pemindaian mendalam (membaca ulang semua berkas, lebih lambat)",
+      "deepRescanning": "Pemindaian mendalam berlangsung…"
     },
     "changeCover": "Ganti sampul",
     "searchDeezer": "Cari di Deezer",

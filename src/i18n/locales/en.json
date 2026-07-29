@@ -389,7 +389,9 @@
       "edit": "Edit the library",
       "delete": "Delete the library",
       "deleteConfirm": "Click again to confirm",
-      "importing": "Importing…"
+      "importing": "Importing…",
+      "deepRescan": "Deep rescan (re-reads every file, slower)",
+      "deepRescanning": "Deep rescan in progress…"
     },
     "changeCover": "Change cover",
     "searchDeezer": "Search Deezer",

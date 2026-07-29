@@ -14,6 +14,7 @@ import {
   Tags,
   Folder,
   RefreshCcw,
+  FileSearch,
   Clock,
   LayoutList,
   AlignJustify,
@@ -149,6 +150,9 @@ export function LibraryView({
   } = usePlaylist();
   const [isImporting, setIsImporting] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
+  // Separate from `isRescanning` so the two buttons disable each other
+  // without either claiming the other's spinner.
+  const [isDeepRescanning, setIsDeepRescanning] = useState(false);
   // Which folder a deep rescan (issue #366) is currently running against,
   // if any — drives the spinner on that row's action only, since it's a
   // per-folder action rather than the global "Rescan" button above.
@@ -430,6 +434,24 @@ export function LibraryView({
     }
   };
 
+  const handleDeepRescanLibrary = async () => {
+    // Whole-library counterpart of the per-folder deep rescan below.
+    // Same rationale (issue #457): the normal pass trusts (mtime, size)
+    // and therefore cannot see tags an external editor rewrote while
+    // preserving mtime.
+    if (isRescanning || isDeepRescanning) return;
+    setIsDeepRescanning(true);
+    try {
+      for (const lib of libraries) {
+        await rescanLibrary(lib.id, true);
+      }
+    } catch (err) {
+      console.error("[LibraryView] deep rescan (library) failed", err);
+    } finally {
+      setIsDeepRescanning(false);
+    }
+  };
+
   const handleRescan = async () => {
     if (isRescanning) return;
     setIsRescanning(true);
@@ -511,7 +533,9 @@ export function LibraryView({
               <button
                 type="button"
                 onClick={handleRescan}
-                disabled={libraries.length === 0 || isRescanning}
+                disabled={
+                  libraries.length === 0 || isRescanning || isDeepRescanning
+                }
                 aria-label={t("library.actions.rescan")}
                 aria-busy={isRescanning}
                 className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
@@ -519,6 +543,33 @@ export function LibraryView({
                 <RefreshCcw
                   size={18}
                   className={isRescanning ? "animate-spin" : ""}
+                />
+              </button>
+            </Tooltip>
+            {/* Deep pass, mirroring the per-folder button in the folder
+                list. Separate control rather than a modifier on the one
+                above: it is markedly slower, so it should be chosen, not
+                triggered by accident. */}
+            <Tooltip
+              label={
+                isDeepRescanning
+                  ? t("library.actions.deepRescanning")
+                  : t("library.actions.deepRescan")
+              }
+            >
+              <button
+                type="button"
+                onClick={handleDeepRescanLibrary}
+                disabled={
+                  libraries.length === 0 || isRescanning || isDeepRescanning
+                }
+                aria-label={t("library.actions.deepRescan")}
+                aria-busy={isDeepRescanning}
+                className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FileSearch
+                  size={18}
+                  className={isDeepRescanning ? "animate-pulse" : ""}
                 />
               </button>
             </Tooltip>

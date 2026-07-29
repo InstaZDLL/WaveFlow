@@ -389,7 +389,9 @@
       "edit": "Kütüphaneyi düzenle",
       "delete": "Kütüphaneyi sil",
       "deleteConfirm": "Onaylamak için tekrar tıkla",
-      "importing": "İçe aktarılıyor…"
+      "importing": "İçe aktarılıyor…",
+      "deepRescan": "Derin tarama (her dosyayı yeniden okur, daha yavaş)",
+      "deepRescanning": "Derin tarama sürüyor…"
     },
     "changeCover": "Kapağı değiştir",
     "searchDeezer": "Deezer'da ara",
