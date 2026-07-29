@@ -19,6 +19,19 @@ export interface AlbumTrack {
   bit_depth: number | null;
   sample_rate: number | null;
   codec: string | null;
+  /** Carried so AlbumDetailView can build a complete `Track` for the
+   *  context menu — the Properties modal reads these, and anything
+   *  missing here used to be hard-coded to null there (issue #458). */
+  year: number | null;
+  bitrate: number | null;
+  channels: number | null;
+  musical_key: string | null;
+  file_size: number;
+  added_at: number;
+  /** Half-star rating. The context menu's rating submenu is on by
+   *  default, so a placeholder here made a rated track read as
+   *  unrated on the album page. */
+  rating: number | null;
 }
 
 export interface AlbumDetail {
