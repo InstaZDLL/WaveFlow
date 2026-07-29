@@ -55,6 +55,18 @@ const USER_AGENT: &str = concat!("WaveFlow/Web-Radio/", env!("CARGO_PKG_VERSION"
 /// to drop stations the federated bot has flagged as unreachable.
 const PAGE_LIMIT: u32 = 50;
 
+/// Query params shared by every "list stations" endpoint (`bytag`,
+/// `bycountrycodeexact`, `search`): most-voted first, and let the
+/// federated bot's reachability flag filter out dead streams.
+///
+/// One constant rather than three copies — they must stay identical
+/// for the three category kinds to rank consistently, and a future
+/// tweak (a different `order`, say) would otherwise have to be
+/// remembered in three places. `topvote` / `lastchange` are NOT in
+/// this set: they carry their ordering in the endpoint name and take
+/// the limit as a path segment.
+const LIST_PARAMS: &str = "order=votes&reverse=true&hidebroken=true";
+
 struct WebRadio;
 
 impl Guest for WebRadio {
@@ -151,7 +163,7 @@ fn build_path(query: &str) -> Result<String, String> {
             return Err("empty tag".into());
         }
         return Ok(format!(
-            "/json/stations/bytag/{tag}?limit={PAGE_LIMIT}&order=votes&reverse=true&hidebroken=true"
+            "/json/stations/bytag/{tag}?limit={PAGE_LIMIT}&{LIST_PARAMS}"
         ));
     }
     // `country:<ISO2>` → stations in one country, by ISO 3166-1
@@ -168,7 +180,7 @@ fn build_path(query: &str) -> Result<String, String> {
         }
         let code = code.to_ascii_uppercase();
         return Ok(format!(
-            "/json/stations/bycountrycodeexact/{code}?limit={PAGE_LIMIT}&order=votes&reverse=true&hidebroken=true"
+            "/json/stations/bycountrycodeexact/{code}?limit={PAGE_LIMIT}&{LIST_PARAMS}"
         ));
     }
     // Both the explicit `search:` form and the free-text fallback
@@ -181,7 +193,7 @@ fn build_path(query: &str) -> Result<String, String> {
         return Err("empty search term".into());
     }
     Ok(format!(
-        "/json/stations/search?name={term}&limit={PAGE_LIMIT}&order=votes&reverse=true&hidebroken=true"
+        "/json/stations/search?name={term}&limit={PAGE_LIMIT}&{LIST_PARAMS}"
     ))
 }
 
