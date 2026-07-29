@@ -94,9 +94,19 @@ impl Guest for WebRadio {
         ])
     }
 
-    /// Translate an entry token (or a free-form search string from
-    /// the host's search box) into a list of tracks. Limited to
-    /// [`PAGE_LIMIT`] per call — the UI paginates from there.
+    /// Resolves an entry token or free-form search term into playable radio tracks.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the query is invalid, the radio-browser request fails, or
+    /// the response cannot be parsed.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// let tracks = WebRadio::resolve("top".to_owned())?;
+    /// # Ok::<(), String>(())
+    /// ```
     fn resolve(query: String) -> Result<Vec<Track>, String> {
         log::emit(Level::Debug, &format!("web-radio resolve: {query}"));
         let path = build_path(&query)?;
@@ -122,6 +132,15 @@ impl Guest for WebRadio {
 
 bindings::export!(WebRadio with_types_in bindings);
 
+/// Creates an entry with the given display label and query token.
+///
+/// # Examples
+///
+/// ```
+/// let item = entry("Top stations", "top");
+/// assert_eq!(item.label, "Top stations");
+/// assert_eq!(item.query, "top");
+/// ```
 fn entry(label: &str, query: &str) -> Entry {
     Entry {
         label: label.to_string(),
@@ -130,18 +149,19 @@ fn entry(label: &str, query: &str) -> Entry {
     }
 }
 
-/// Decode the entry / search token into a **host-relative**
-/// radio-browser API path — [`fetch_json`] prefixes whichever host in
-/// [`HOSTS`] answers, so the path must not carry one.
-/// Tokens we understand:
+/// Converts a category or search token into a host-relative radio-browser API path.
 ///
-/// - `top` → top-voted stations
-/// - `trending` → most-recently-updated stations
-/// - `tag:<name>` → stations tagged `<name>`, ordered by votes
-/// - `search:<term>` → explicit name search prefix
-/// - anything else non-empty → treated as a free-text search term
-///   (the host's search box hands its raw input here and expects
-///   matches against station names)
+/// Empty queries and malformed country tokens return an error. Unprefixed non-empty
+/// tokens are treated as station-name searches.
+///
+/// # Examples
+///
+/// ```
+/// assert_eq!(
+///     build_path("top").unwrap(),
+///     "/json/stations/topvote/50?hidebroken=true"
+/// );
+/// ```
 fn build_path(query: &str) -> Result<String, String> {
     let trimmed = query.trim();
     if trimmed.is_empty() {
@@ -197,25 +217,47 @@ fn build_path(query: &str) -> Result<String, String> {
     ))
 }
 
-/// Issue a GET for `path` against each host in [`HOSTS`] until one
-/// answers, and surface the body bytes.
+/// Fetches JSON response bytes from the first available radio-browser host.
+
 ///
-/// The host enforces the manifest's HTTP allowlist + the 10 MB
-/// response cap + the offline short-circuit, so failure modes here
-/// are limited to network errors and non-2xx HTTP statuses.
+
+/// Client errors other than HTTP 429 are returned immediately. Transport
+
+/// failures, HTTP 429 responses, and other non-success responses are retried
+
+/// against subsequent hosts.
+
 ///
-/// **What is and isn't retried.** A transport failure or a 5xx means
-/// "this node couldn't serve it" — worth asking the next one. A 4xx
-/// is the API rejecting the request itself (bad tag, malformed
-/// query); every node would answer the same way, so it returns
-/// immediately rather than burning a second round-trip to be told
-/// the same thing twice.
+
+/// # Examples
+
 ///
-/// Offline mode surfaces as the host's `503` sentinel. It is left in
-/// the retry path deliberately: it costs one extra no-op call (the
-/// host short-circuits before touching the network), and special-
-/// casing the value here would couple the guest to a host
-/// implementation detail it has no contract for.
+
+/// ```no_run
+
+/// let body = fetch_json("/json/stations/topvote/50?hidebroken=true")?;
+
+/// # Ok::<(), String>(())
+
+/// ```
+
+///
+
+/// # Errors
+
+///
+
+/// Returns an error when the request receives a non-retriable client status
+
+/// or when every host fails.
+
+///
+
+/// # Arguments
+
+///
+
+/// * `path` - Host-relative API path to request.
 fn fetch_json(path: &str) -> Result<Vec<u8>, String> {
     let mut last_err = String::from("no radio-browser host reachable");
     for host in HOSTS {

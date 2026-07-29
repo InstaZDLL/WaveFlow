@@ -332,18 +332,17 @@ fn sum_state_dir_bytes(
 
 // ----- waveflow:host/http -------------------------------------------------
 
-/// Render an error *with its cause chain* for a guest to surface.
+/// Formats an error and its cause chain for display to a guest.
 ///
-/// `reqwest::Error`'s `Display` stops at the outermost layer — a
-/// failed request reads only "error sending request for url (…)",
-/// which says the transport failed but never says why. The reason
-/// (DNS lookup, connection refused, timeout, TLS handshake) lives in
-/// `source()`, and the frontend shows this string verbatim, so
-/// without unwinding it a bug report arrives with no way to tell
-/// those cases apart. That is exactly what happened in issue #452.
+/// Repeated adjacent cause messages are omitted, and excessively deep cause
+/// chains are truncated with an ellipsis.
 ///
-/// The chain is depth-capped: `source()` is author-controlled and
-/// nothing forbids a cyclic or absurdly deep implementation.
+/// # Examples
+///
+/// ```
+/// let error = std::io::Error::other("connection refused");
+/// assert_eq!(describe_error(&error), "connection refused");
+/// ```
 fn describe_error(err: &dyn std::error::Error) -> String {
     const MAX_DEPTH: usize = 8;
     let mut out = err.to_string();
@@ -377,6 +376,18 @@ fn describe_error(err: &dyn std::error::Error) -> String {
 }
 
 impl wit_host::http::Host for HostCtx {
+    /// Sends an HTTP request subject to offline-mode and URL permission checks.
+    ///
+    /// Offline mode produces an empty `503` response. Denied URLs, invalid methods,
+    /// transport failures, read failures, and oversized response bodies are returned
+    /// as error strings.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let response = host.send(request)?;
+    /// assert_eq!(response.status, 200);
+    /// ```
     fn send(
         &mut self,
         req: wit_host::http::Request,
@@ -849,6 +860,17 @@ mod tests {
     }
 
     impl std::error::Error for Chained {
+        /// Provides the wrapped error as the cause, when one is present.
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// use std::error::Error;
+        ///
+        /// let cause = std::io::Error::other("cause");
+        /// let wrapped: Box<dyn Error> = Box::new(cause);
+        /// assert_eq!(wrapped.to_string(), "cause");
+        /// ```
         fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
             self.source
                 .as_deref()
