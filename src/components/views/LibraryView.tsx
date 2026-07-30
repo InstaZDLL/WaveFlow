@@ -561,7 +561,13 @@ export function LibraryView({
     (activeTab === "albums" && albums.length > 0) ||
     (activeTab === "artistes" && artists.length > 0) ||
     (activeTab === "genres" && genres.length > 0) ||
-    (activeTab === "playlists" && userPlaylists.length > 0) ||
+    // Playlists is renderable even when empty: `PlaylistGrid` owns its
+    // own empty state ("playlists you create appear here"), which is the
+    // right message. The generic one below is built for a library with
+    // no music — it offers "Import a folder", which doesn't create a
+    // playlist — and it reads `library.empty.<tab>.*`, keys this tab
+    // deliberately doesn't define.
+    activeTab === "playlists" ||
     (activeTab === "dossiers" && folders.length > 0);
 
   return (
@@ -861,14 +867,16 @@ export function LibraryView({
           )}
           {activeTab === "playlists" && (
             <>
-              <div className="flex items-center justify-end space-x-3 -mt-4">
-                <SortDropdown
-                  options={playlistSortOptions(t)}
-                  current={playlistsSort.sort}
-                  onChange={playlistsSort.setSort}
-                  t={t}
-                />
-              </div>
+              {userPlaylists.length > 0 && (
+                <div className="flex items-center justify-end space-x-3 -mt-4">
+                  <SortDropdown
+                    options={playlistSortOptions(t)}
+                    current={playlistsSort.sort}
+                    onChange={playlistsSort.setSort}
+                    t={t}
+                  />
+                </div>
+              )}
               <PlaylistGrid
                 playlists={userPlaylists}
                 sort={playlistsSort.sort}
