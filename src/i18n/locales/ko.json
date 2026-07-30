@@ -389,7 +389,9 @@
       "edit": "라이브러리 수정",
       "delete": "라이브러리 삭제",
       "deleteConfirm": "확인을 위해 다시 클릭하세요",
-      "importing": "가져오는 중…"
+      "importing": "가져오는 중…",
+      "deepRescan": "정밀 재검색 (모든 파일을 다시 읽으므로 느림)",
+      "deepRescanning": "정밀 재검색 중…"
     },
     "changeCover": "앨범 아트 변경",
     "searchDeezer": "Deezer 검색",
@@ -1980,7 +1982,9 @@
     "runningSubtitle": "{{current}} / {{total}}개 파일",
     "doneTitle": "스캔 완료",
     "doneSubtitle": "{{added}}개 추가 · {{updated}}개 업데이트 · {{skipped}}개 건너뜀",
-    "scanningIn": "{{dir}} 스캔 중"
+    "scanningIn": "{{dir}} 스캔 중",
+    "doneErrors_one": "{{count}}개 파일 실패",
+    "doneErrors_other": "{{count}}개 파일 실패"
   },
   "system": {
     "tray": {

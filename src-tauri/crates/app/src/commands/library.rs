@@ -320,7 +320,17 @@ pub async fn rescan_library(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     library_id: i64,
+    // Same escape hatch `scan_folder` has carried since issue #366:
+    // an external tagger can rewrite tags while preserving the file's
+    // mtime (Mp3tag's "preserve modification time" is on by default),
+    // and the `(mtime, size)` fast path then skips the file forever.
+    // Until this existed the bypass was reachable per folder only, so
+    // the library-wide button users actually reach for could never see
+    // those edits (issue #457). Opt-in: a deep pass re-hashes and
+    // re-reads every file.
+    deep: Option<bool>,
 ) -> AppResult<RescanSummary> {
+    let deep = deep.unwrap_or(false);
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
@@ -334,7 +344,7 @@ pub async fn rescan_library(
     };
 
     for folder_id in folder_ids {
-        match scan_folder_inner(&pool, &artwork_dir, folder_id, Some(&app), false).await {
+        match scan_folder_inner(&pool, &artwork_dir, folder_id, Some(&app), deep).await {
             Ok(summary) => {
                 total.folders += 1;
                 let ScanSummary {

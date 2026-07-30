@@ -191,8 +191,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   );
 
   const rescanLibrary = useCallback(
-    async (libraryId: number) => {
-      const summary = await apiRescanLibrary(libraryId);
+    async (libraryId: number, deep = false) => {
+      const summary = await apiRescanLibrary(libraryId, deep);
       await refresh();
       return summary;
     },

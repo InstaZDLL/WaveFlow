@@ -389,7 +389,9 @@
       "edit": "Edit the library",
       "delete": "Delete the library",
       "deleteConfirm": "Click again to confirm",
-      "importing": "Importing…"
+      "importing": "Importing…",
+      "deepRescan": "Deep rescan (re-reads every file, slower)",
+      "deepRescanning": "Deep rescan in progress…"
     },
     "changeCover": "Change cover",
     "searchDeezer": "Search Deezer",
@@ -1980,7 +1982,9 @@
     "runningSubtitle": "{{current}} / {{total}} files",
     "doneTitle": "Scan complete",
     "doneSubtitle": "{{added}} added · {{updated}} updated · {{skipped}} skipped",
-    "scanningIn": "Scanning {{dir}}"
+    "scanningIn": "Scanning {{dir}}",
+    "doneErrors_one": "{{count}} file failed",
+    "doneErrors_other": "{{count}} files failed"
   },
   "system": {
     "tray": {

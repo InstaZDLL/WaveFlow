@@ -430,7 +430,9 @@
       "edit": "تعديل المكتبة",
       "delete": "حذف المكتبة",
       "deleteConfirm": "انقر مرة أخرى للتأكيد",
-      "importing": "جارٍ الاستيراد…"
+      "importing": "جارٍ الاستيراد…",
+      "deepRescan": "فحص عميق (يعيد قراءة كل ملف، أبطأ)",
+      "deepRescanning": "جارٍ الفحص العميق…"
     },
     "changeCover": "تغيير الغلاف",
     "searchDeezer": "البحث في Deezer",
@@ -2129,7 +2131,13 @@
     "runningSubtitle": "{{current}} / {{total}} ملف",
     "doneTitle": "اكتمل الفحص",
     "doneSubtitle": "{{added}} مضاف · {{updated}} محدّث · {{skipped}} متخطّى",
-    "scanningIn": "جارٍ فحص {{dir}}"
+    "scanningIn": "جارٍ فحص {{dir}}",
+    "doneErrors_zero": "لم يفشل أي ملف",
+    "doneErrors_one": "فشل ملف واحد",
+    "doneErrors_two": "فشل ملفان",
+    "doneErrors_few": "فشل {{count}} ملفات",
+    "doneErrors_many": "فشل {{count}} ملفًا",
+    "doneErrors_other": "فشل {{count}} ملف"
   },
   "system": {
     "tray": {

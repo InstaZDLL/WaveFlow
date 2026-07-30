@@ -389,7 +389,9 @@
       "edit": "Sunting pustaka",
       "delete": "Hapus pustaka",
       "deleteConfirm": "Klik lagi untuk konfirmasi",
-      "importing": "Mengimpor…"
+      "importing": "Mengimpor…",
+      "deepRescan": "Pemindaian mendalam (membaca ulang semua berkas, lebih lambat)",
+      "deepRescanning": "Pemindaian mendalam berlangsung…"
     },
     "changeCover": "Ganti sampul",
     "searchDeezer": "Cari di Deezer",
@@ -1980,7 +1982,9 @@
     "runningSubtitle": "{{current}} / {{total}} berkas",
     "doneTitle": "Pemindaian selesai",
     "doneSubtitle": "{{added}} ditambahkan · {{updated}} diperbarui · {{skipped}} dilewati",
-    "scanningIn": "Memindai {{dir}}"
+    "scanningIn": "Memindai {{dir}}",
+    "doneErrors_one": "{{count}} berkas gagal",
+    "doneErrors_other": "{{count}} berkas gagal"
   },
   "system": {
     "tray": {

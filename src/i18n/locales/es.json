@@ -389,7 +389,9 @@
       "edit": "Editar la biblioteca",
       "delete": "Eliminar la biblioteca",
       "deleteConfirm": "Haz clic de nuevo para confirmar",
-      "importing": "Importando…"
+      "importing": "Importando…",
+      "deepRescan": "Reanálisis profundo (relee todos los archivos, más lento)",
+      "deepRescanning": "Reanálisis profundo en curso…"
     },
     "changeCover": "Cambiar portada",
     "searchDeezer": "Buscar en Deezer",
@@ -1980,7 +1982,9 @@
     "runningSubtitle": "{{current}} / {{total}} archivos",
     "doneTitle": "Escaneo completado",
     "doneSubtitle": "{{added}} añadidos · {{updated}} actualizados · {{skipped}} omitidos",
-    "scanningIn": "Analizando {{dir}}"
+    "scanningIn": "Analizando {{dir}}",
+    "doneErrors_one": "{{count}} archivo con error",
+    "doneErrors_other": "{{count}} archivos con error"
   },
   "system": {
     "tray": {

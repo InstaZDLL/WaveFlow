@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
-import { FolderSearch, X, CheckCircle2 } from "lucide-react";
+import { FolderSearch, X, CheckCircle2, AlertTriangle } from "lucide-react";
 
 interface ScanProgress {
   folder_id: number;
@@ -64,10 +64,13 @@ export function ScanProgressToast() {
 
   if (progress == null || dismissed) return null;
 
-  const { current, total, added, updated, skipped, done, current_dir } =
+  const { current, total, added, updated, skipped, errors, done, current_dir } =
     progress;
   const percent =
     total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+  // A finished scan that hit per-file failures. The backend reports it
+  // as done regardless, so this is the only signal the user gets.
+  const partial = done && errors > 0;
   // Show the last two path segments (…/Parent/Album) so the user sees the
   // scan walking through folders without the toast overflowing on a deep
   // absolute path; the full path rides in the title tooltip. (#430)
@@ -84,22 +87,39 @@ export function ScanProgressToast() {
       <div className="flex items-start gap-3">
         <div
           className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${
-            done
-              ? "bg-emerald-500/15 text-emerald-500"
-              : "bg-emerald-500/10 text-emerald-500"
+            partial
+              ? "bg-amber-500/15 text-amber-500"
+              : done
+                ? "bg-emerald-500/15 text-emerald-500"
+                : "bg-emerald-500/10 text-emerald-500"
           }`}
         >
-          {done ? (
+          {partial ? (
+            <AlertTriangle size={18} />
+          ) : done ? (
             <CheckCircle2 size={18} />
           ) : (
             <FolderSearch size={18} className="animate-pulse" />
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            {done
-              ? t("scanProgress.doneTitle")
-              : t("scanProgress.runningTitle")}
+          {/* A scan that hit errors must not read as a plain success:
+              the backend reports it as complete either way, so the
+              failure count takes the headline (and the icon goes amber)
+              rather than trailing a green "Scan complete". The
+              added/updated/skipped line stays below as context. */}
+          <div
+            className={`text-sm font-semibold ${
+              partial
+                ? "text-amber-700 dark:text-amber-500"
+                : "text-zinc-900 dark:text-zinc-100"
+            }`}
+          >
+            {partial
+              ? t("scanProgress.doneErrors", { count: errors })
+              : done
+                ? t("scanProgress.doneTitle")
+                : t("scanProgress.runningTitle")}
           </div>
           <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
             {done

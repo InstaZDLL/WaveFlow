@@ -389,7 +389,9 @@
       "edit": "Kütüphaneyi düzenle",
       "delete": "Kütüphaneyi sil",
       "deleteConfirm": "Onaylamak için tekrar tıkla",
-      "importing": "İçe aktarılıyor…"
+      "importing": "İçe aktarılıyor…",
+      "deepRescan": "Derin tarama (her dosyayı yeniden okur, daha yavaş)",
+      "deepRescanning": "Derin tarama sürüyor…"
     },
     "changeCover": "Kapağı değiştir",
     "searchDeezer": "Deezer'da ara",
@@ -1980,7 +1982,9 @@
     "runningSubtitle": "{{current}} / {{total}} dosya",
     "doneTitle": "Tarama tamamlandı",
     "doneSubtitle": "{{added}} eklendi · {{updated}} güncellendi · {{skipped}} atlandı",
-    "scanningIn": "Taranıyor: {{dir}}"
+    "scanningIn": "Taranıyor: {{dir}}",
+    "doneErrors_one": "{{count}} dosya başarısız",
+    "doneErrors_other": "{{count}} dosya başarısız"
   },
   "system": {
     "tray": {

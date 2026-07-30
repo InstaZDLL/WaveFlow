@@ -389,7 +389,9 @@
       "edit": "लाइब्रेरी संपादित करें",
       "delete": "लाइब्रेरी हटाएँ",
       "deleteConfirm": "पुष्टि करने के लिए फिर से क्लिक करें",
-      "importing": "इम्पोर्ट हो रहा है…"
+      "importing": "इम्पोर्ट हो रहा है…",
+      "deepRescan": "गहन पुनःस्कैन (हर फ़ाइल दोबारा पढ़ता है, धीमा)",
+      "deepRescanning": "गहन पुनःस्कैन जारी…"
     },
     "changeCover": "कवर बदलें",
     "searchDeezer": "Deezer में खोजें",
@@ -1980,7 +1982,9 @@
     "runningSubtitle": "{{current}} / {{total}} फ़ाइलें",
     "doneTitle": "स्कैन पूर्ण",
     "doneSubtitle": "{{added}} जोड़े · {{updated}} अपडेट · {{skipped}} छोड़े",
-    "scanningIn": "{{dir}} स्कैन हो रहा है"
+    "scanningIn": "{{dir}} स्कैन हो रहा है",
+    "doneErrors_one": "{{count}} फ़ाइल विफल",
+    "doneErrors_other": "{{count}} फ़ाइलें विफल"
   },
   "system": {
     "tray": {

@@ -389,7 +389,9 @@
       "edit": "Bibliotheek bewerken",
       "delete": "Bibliotheek verwijderen",
       "deleteConfirm": "Klik nogmaals om te bevestigen",
-      "importing": "Importeren…"
+      "importing": "Importeren…",
+      "deepRescan": "Diepe herscan (leest elk bestand opnieuw, trager)",
+      "deepRescanning": "Diepe herscan bezig…"
     },
     "changeCover": "Albumhoes wijzigen",
     "searchDeezer": "Zoeken op Deezer",
@@ -1980,7 +1982,9 @@
     "runningSubtitle": "{{current}} / {{total}} bestanden",
     "doneTitle": "Scan voltooid",
     "doneSubtitle": "{{added}} toegevoegd · {{updated}} bijgewerkt · {{skipped}} overgeslagen",
-    "scanningIn": "Bezig met {{dir}}"
+    "scanningIn": "Bezig met {{dir}}",
+    "doneErrors_one": "{{count}} bestand mislukt",
+    "doneErrors_other": "{{count}} bestanden mislukt"
   },
   "system": {
     "tray": {

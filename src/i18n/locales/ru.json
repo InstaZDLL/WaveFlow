@@ -415,7 +415,9 @@
       "edit": "Изменить библиотеку",
       "delete": "Удалить библиотеку",
       "deleteConfirm": "Нажмите ещё раз для подтверждения",
-      "importing": "Импорт…"
+      "importing": "Импорт…",
+      "deepRescan": "Глубокое сканирование (перечитывает все файлы, медленнее)",
+      "deepRescanning": "Идёт глубокое сканирование…"
     },
     "changeCover": "Сменить обложку",
     "searchDeezer": "Поиск в Deezer",
@@ -2072,7 +2074,11 @@
     "runningSubtitle": "{{current}} / {{total}} файлов",
     "doneTitle": "Сканирование завершено",
     "doneSubtitle": "Добавлено: {{added}} · Обновлено: {{updated}} · Пропущено: {{skipped}}",
-    "scanningIn": "Сканирование {{dir}}"
+    "scanningIn": "Сканирование {{dir}}",
+    "doneErrors_one": "{{count}} файл не удалось обработать",
+    "doneErrors_few": "{{count}} файла не удалось обработать",
+    "doneErrors_many": "{{count}} файлов не удалось обработать",
+    "doneErrors_other": "{{count}} файлов не удалось обработать"
   },
   "system": {
     "tray": {

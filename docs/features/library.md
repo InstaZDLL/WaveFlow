@@ -26,7 +26,20 @@ Directory resolution (`read_dir` + read + blake3 per directory, potentially hund
 
 Because that walk can take seconds, the candidate list is a snapshot that may be stale by the time it is written. The update is therefore a compare-and-swap that also re-asserts the source allowlist (`link_folder_cover_if_eligible`): an album whose cover changed mid-walk — the user uploaded one, or a concurrent scan resolved a fresher sidecar — is left alone, and the count of refreshed covers comes from `rows_affected` so a skipped album never inflates the scan summary.
 
-A tag edit that rewrites the audio file _is_ already detected, since it moves that file's mtime — this pass is specifically about the sidecar case.
+A tag edit that rewrites the audio file is normally detected, since it moves that file's mtime — this pass is specifically about the sidecar case. **But that is not guaranteed**: taggers commonly offer to preserve the modification date (Mp3tag ships that behaviour), and an ID3 rewrite often fits in the existing padding, so `size` doesn't move either. The file then looks untouched to the fast path and its new tags are never read — reported as issue #457 for a batch of genre edits.
+
+### Deep rescan
+
+A **deep rescan** bypasses `(mtime, size)` entirely and re-hashes + re-reads every file. It is the escape hatch for exactly the case above, and it is opt-in because it costs a full re-read of the library.
+
+Two entry points, in different places:
+
+- **per folder** — the magnifier button on a folder row, under **My music → Folders** (`scan_folder` with `deep: true`). Appears on row hover;
+- **whole library** — the second button next to Rescan in the **My music header**, so it is reachable from any tab, not just Folders (`rescan_library` with `deep: true`). Added in issue #457: until then the bypass existed per folder only, so the library-wide button users actually reach for could never see mtime-preserving edits.
+
+Both are mutually exclusive with each other and with a plain rescan — `scan_folder_inner` writes, and SQLite takes one writer at a time.
+
+Note the interaction with **Split this artist** below: a deep rescan re-reads tags authoritatively and will undo an in-place split, since it no longer sees the split as deliberate.
 
 ## Audio analysis
 
