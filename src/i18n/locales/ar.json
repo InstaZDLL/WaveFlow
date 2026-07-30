@@ -388,7 +388,13 @@
         "genres_many": "{{count}} نوعًا",
         "morceaux_two": "مقطعان",
         "morceaux_few": "{{count}} مقاطع",
-        "morceaux_many": "{{count}} مقطعًا"
+        "morceaux_many": "{{count}} مقطعًا",
+        "playlists_zero": "0 قائمة تشغيل",
+        "playlists_one": "قائمة تشغيل واحدة",
+        "playlists_two": "قائمتا تشغيل",
+        "playlists_few": "{{count}} قوائم تشغيل",
+        "playlists_many": "{{count}} قائمة تشغيل",
+        "playlists_other": "{{count}} قائمة تشغيل"
       }
     },
     "tabs": {
@@ -396,7 +402,8 @@
       "albums": "الألبومات",
       "artistes": "الفنانون",
       "genres": "الأنواع",
-      "dossiers": "المجلدات"
+      "dossiers": "المجلدات",
+      "playlists": "قوائم التشغيل"
     },
     "empty": {
       "morceaux": {
@@ -507,7 +514,17 @@
       "removeConfirmWithPlays_many": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ بـ {{count}} استماعًا وإعادة ربطها في الفحص التالي.",
       "removeConfirmWithPlays_other": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ بـ {{count}} استماع وإعادة ربطها في الفحص التالي."
     },
-    "skeletonAriaLabel": "جارٍ تحميل {{name}}…"
+    "skeletonAriaLabel": "جارٍ تحميل {{name}}…",
+    "playlistsGrid": {
+      "emptyTitle": "لا توجد قوائم تشغيل بعد",
+      "emptyHint": "ستظهر قوائم التشغيل التي تنشئها هنا في شكل شبكة.",
+      "meta_zero": "0 مقطع · {{duration}}",
+      "meta_one": "مقطع واحد · {{duration}}",
+      "meta_two": "مقطعان · {{duration}}",
+      "meta_few": "{{count}} مقاطع · {{duration}}",
+      "meta_many": "{{count}} مقطعًا · {{duration}}",
+      "meta_other": "{{count}} مقطع · {{duration}}"
+    }
   },
   "liked": {
     "badge": "المجموعة",
@@ -1434,7 +1451,8 @@
     "tracksCount": "عدد المقاطع",
     "ascending": "تصاعدي",
     "descending": "تنازلي",
-    "filename": "اسم الملف"
+    "filename": "اسم الملف",
+    "updatedAt": "المحدَّثة حديثًا"
   },
   "editorial": {
     "masthead": {

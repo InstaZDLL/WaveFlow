@@ -347,7 +347,10 @@
         "genres_other": "{{count}} 種曲風",
         "dossiers_zero": "0 個資料夾",
         "dossiers_one": "{{count}} 個資料夾",
-        "dossiers_other": "{{count}} 個資料夾"
+        "dossiers_other": "{{count}} 個資料夾",
+        "playlists_zero": "0 個播放清單",
+        "playlists_one": "{{count}} 個播放清單",
+        "playlists_other": "{{count}} 個播放清單"
       }
     },
     "tabs": {
@@ -355,7 +358,8 @@
       "albums": "專輯",
       "artistes": "藝人",
       "genres": "曲風",
-      "dossiers": "資料夾"
+      "dossiers": "資料夾",
+      "playlists": "播放清單"
     },
     "empty": {
       "morceaux": {
@@ -448,7 +452,14 @@
       "removeConfirmWithPlays_one": "再次點擊以確認。{{count}} 筆播放記錄將被保留，並在下次掃描時重新關聯。",
       "removeConfirmWithPlays_other": "再次點擊以確認。{{count}} 筆播放記錄將被保留，並在下次掃描時重新關聯。"
     },
-    "skeletonAriaLabel": "正在載入{{name}}…"
+    "skeletonAriaLabel": "正在載入{{name}}…",
+    "playlistsGrid": {
+      "emptyTitle": "尚無播放清單",
+      "emptyHint": "你建立的播放清單會以格狀顯示於此。",
+      "meta_zero": "0 首 · {{duration}}",
+      "meta_one": "{{count}} 首 · {{duration}}",
+      "meta_other": "{{count}} 首 · {{duration}}"
+    }
   },
   "liked": {
     "badge": "收藏",
@@ -1305,7 +1316,8 @@
     "filename": "檔案名稱",
     "customOrder": "自訂順序",
     "recentlyAdded": "最近新增",
-    "menuTitle": "排序方式"
+    "menuTitle": "排序方式",
+    "updatedAt": "最近更新"
   },
   "editorial": {
     "masthead": {

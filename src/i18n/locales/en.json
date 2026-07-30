@@ -347,7 +347,10 @@
         "genres_other": "{{count}} genres",
         "dossiers_zero": "0 folders",
         "dossiers_one": "{{count}} folder",
-        "dossiers_other": "{{count}} folders"
+        "dossiers_other": "{{count}} folders",
+        "playlists_zero": "0 playlists",
+        "playlists_one": "{{count}} playlist",
+        "playlists_other": "{{count}} playlists"
       }
     },
     "tabs": {
@@ -355,7 +358,8 @@
       "albums": "Albums",
       "artistes": "Artists",
       "genres": "Genres",
-      "dossiers": "Folders"
+      "dossiers": "Folders",
+      "playlists": "Playlists"
     },
     "empty": {
       "morceaux": {
@@ -448,7 +452,14 @@
       "removeConfirmWithPlays_one": "Click again to confirm. {{count}} play will be kept and re-attached on the next scan.",
       "removeConfirmWithPlays_other": "Click again to confirm. {{count}} plays will be kept and re-attached on the next scan."
     },
-    "skeletonAriaLabel": "Loading {{name}}…"
+    "skeletonAriaLabel": "Loading {{name}}…",
+    "playlistsGrid": {
+      "emptyTitle": "No playlists yet",
+      "emptyHint": "Playlists you create appear here as a grid.",
+      "meta_zero": "0 tracks · {{duration}}",
+      "meta_one": "{{count}} track · {{duration}}",
+      "meta_other": "{{count}} tracks · {{duration}}"
+    }
   },
   "liked": {
     "badge": "Collection",
@@ -1305,7 +1316,8 @@
     "tracksCount": "Number of tracks",
     "ascending": "Ascending",
     "descending": "Descending",
-    "filename": "Filename"
+    "filename": "Filename",
+    "updatedAt": "Recently updated"
   },
   "editorial": {
     "masthead": {

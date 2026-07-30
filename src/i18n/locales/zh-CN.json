@@ -347,7 +347,10 @@
         "genres_other": "{{count}} 类型",
         "dossiers_zero": "0 个文件夹",
         "dossiers_one": "{{count}} 个文件夹",
-        "dossiers_other": "{{count}} 个文件夹"
+        "dossiers_other": "{{count}} 个文件夹",
+        "playlists_zero": "0 个播放列表",
+        "playlists_one": "{{count}} 个播放列表",
+        "playlists_other": "{{count}} 个播放列表"
       }
     },
     "tabs": {
@@ -355,7 +358,8 @@
       "albums": "专辑",
       "artistes": "艺人",
       "genres": "类型",
-      "dossiers": "文件夹"
+      "dossiers": "文件夹",
+      "playlists": "播放列表"
     },
     "empty": {
       "morceaux": {
@@ -448,7 +452,14 @@
       "removeConfirmWithPlays_one": "再次点击以确认。{{count}} 条播放记录将被保留，并在下次扫描时重新关联。",
       "removeConfirmWithPlays_other": "再次点击以确认。{{count}} 条播放记录将被保留，并在下次扫描时重新关联。"
     },
-    "skeletonAriaLabel": "正在加载{{name}}…"
+    "skeletonAriaLabel": "正在加载{{name}}…",
+    "playlistsGrid": {
+      "emptyTitle": "暂无播放列表",
+      "emptyHint": "你创建的播放列表会以网格形式显示在这里。",
+      "meta_zero": "0 首 · {{duration}}",
+      "meta_one": "{{count}} 首 · {{duration}}",
+      "meta_other": "{{count}} 首 · {{duration}}"
+    }
   },
   "liked": {
     "badge": "收藏",
@@ -1305,7 +1316,8 @@
     "filename": "文件名",
     "customOrder": "自定义顺序",
     "recentlyAdded": "最近添加",
-    "menuTitle": "排序方式"
+    "menuTitle": "排序方式",
+    "updatedAt": "最近更新"
   },
   "editorial": {
     "masthead": {

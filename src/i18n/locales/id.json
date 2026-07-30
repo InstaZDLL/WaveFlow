@@ -347,7 +347,10 @@
         "genres_other": "{{count}} genre",
         "dossiers_zero": "0 folder",
         "dossiers_one": "{{count}} folder",
-        "dossiers_other": "{{count}} folder"
+        "dossiers_other": "{{count}} folder",
+        "playlists_zero": "0 playlist",
+        "playlists_one": "{{count}} playlist",
+        "playlists_other": "{{count}} playlist"
       }
     },
     "tabs": {
@@ -355,7 +358,8 @@
       "albums": "Album",
       "artistes": "Artis",
       "genres": "Genre",
-      "dossiers": "Folder"
+      "dossiers": "Folder",
+      "playlists": "Playlist"
     },
     "empty": {
       "morceaux": {
@@ -448,7 +452,14 @@
       "removeConfirmWithPlays_one": "Klik lagi untuk mengonfirmasi. {{count}} pemutaran akan disimpan dan dihubungkan kembali pada pemindaian berikutnya.",
       "removeConfirmWithPlays_other": "Klik lagi untuk mengonfirmasi. {{count}} pemutaran akan disimpan dan dihubungkan kembali pada pemindaian berikutnya."
     },
-    "skeletonAriaLabel": "Memuat {{name}}…"
+    "skeletonAriaLabel": "Memuat {{name}}…",
+    "playlistsGrid": {
+      "emptyTitle": "Belum ada playlist",
+      "emptyHint": "Playlist yang kamu buat muncul di sini sebagai kisi.",
+      "meta_zero": "0 lagu · {{duration}}",
+      "meta_one": "{{count}} lagu · {{duration}}",
+      "meta_other": "{{count}} lagu · {{duration}}"
+    }
   },
   "liked": {
     "badge": "Koleksi",
@@ -1305,7 +1316,8 @@
     "tracksCount": "Jumlah lagu",
     "ascending": "Menaik",
     "descending": "Menurun",
-    "filename": "Nama berkas"
+    "filename": "Nama berkas",
+    "updatedAt": "Baru diperbarui"
   },
   "editorial": {
     "masthead": {

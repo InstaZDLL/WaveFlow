@@ -18,7 +18,7 @@ export type ViewId =
   | "web-radio";
 
 export type LibraryTab =
-  "morceaux" | "albums" | "artistes" | "genres" | "dossiers";
+  "morceaux" | "albums" | "artistes" | "genres" | "playlists" | "dossiers";
 
 export interface NavItemProps {
   icon?: ReactNode;

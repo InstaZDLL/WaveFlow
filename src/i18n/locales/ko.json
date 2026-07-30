@@ -347,7 +347,10 @@
         "genres_other": "장르 {{count}}개",
         "dossiers_zero": "폴더 0개",
         "dossiers_one": "폴더 {{count}}개",
-        "dossiers_other": "폴더 {{count}}개"
+        "dossiers_other": "폴더 {{count}}개",
+        "playlists_zero": "플레이리스트 0개",
+        "playlists_one": "플레이리스트 {{count}}개",
+        "playlists_other": "플레이리스트 {{count}}개"
       }
     },
     "tabs": {
@@ -355,7 +358,8 @@
       "albums": "앨범",
       "artistes": "아티스트",
       "genres": "장르",
-      "dossiers": "폴더"
+      "dossiers": "폴더",
+      "playlists": "플레이리스트"
     },
     "empty": {
       "morceaux": {
@@ -448,7 +452,14 @@
       "removeConfirmWithPlays_one": "다시 클릭하여 확인하세요. 재생 기록 {{count}}개가 유지되며 다음 검사에서 다시 연결됩니다.",
       "removeConfirmWithPlays_other": "다시 클릭하여 확인하세요. 재생 기록 {{count}}개가 유지되며 다음 검사에서 다시 연결됩니다."
     },
-    "skeletonAriaLabel": "{{name}} 불러오는 중…"
+    "skeletonAriaLabel": "{{name}} 불러오는 중…",
+    "playlistsGrid": {
+      "emptyTitle": "플레이리스트가 없습니다",
+      "emptyHint": "만든 플레이리스트가 여기에 그리드로 표시됩니다.",
+      "meta_zero": "0곡 · {{duration}}",
+      "meta_one": "{{count}}곡 · {{duration}}",
+      "meta_other": "{{count}}곡 · {{duration}}"
+    }
   },
   "liked": {
     "badge": "컬렉션",
@@ -1305,7 +1316,8 @@
     "tracksCount": "곡 수",
     "ascending": "오름차순",
     "descending": "내림차순",
-    "filename": "파일 이름"
+    "filename": "파일 이름",
+    "updatedAt": "최근 업데이트"
   },
   "editorial": {
     "masthead": {

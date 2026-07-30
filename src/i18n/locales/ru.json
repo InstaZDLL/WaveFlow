@@ -373,7 +373,12 @@
         "albums_many": "{{count}} альбомов",
         "artistes_many": "{{count}} исполнителей",
         "genres_many": "{{count}} жанров",
-        "dossiers_many": "{{count}} папок"
+        "dossiers_many": "{{count}} папок",
+        "playlists_zero": "0 плейлистов",
+        "playlists_one": "{{count}} плейлист",
+        "playlists_few": "{{count}} плейлиста",
+        "playlists_many": "{{count}} плейлистов",
+        "playlists_other": "{{count}} плейлистов"
       }
     },
     "tabs": {
@@ -381,7 +386,8 @@
       "albums": "Альбомы",
       "artistes": "Исполнители",
       "genres": "Жанры",
-      "dossiers": "Папки"
+      "dossiers": "Папки",
+      "playlists": "Плейлисты"
     },
     "empty": {
       "morceaux": {
@@ -486,7 +492,16 @@
       "removeConfirmWithPlays_many": "Нажмите ещё раз для подтверждения. {{count}} прослушиваний будут сохранены и восстановлены при следующем сканировании.",
       "removeConfirmWithPlays_other": "Нажмите ещё раз для подтверждения. {{count}} прослушиваний будут сохранены и восстановлены при следующем сканировании."
     },
-    "skeletonAriaLabel": "Загрузка {{name}}…"
+    "skeletonAriaLabel": "Загрузка {{name}}…",
+    "playlistsGrid": {
+      "emptyTitle": "Плейлистов пока нет",
+      "emptyHint": "Созданные вами плейлисты появятся здесь в виде сетки.",
+      "meta_zero": "0 треков · {{duration}}",
+      "meta_one": "{{count}} трек · {{duration}}",
+      "meta_few": "{{count}} трека · {{duration}}",
+      "meta_many": "{{count}} треков · {{duration}}",
+      "meta_other": "{{count}} треков · {{duration}}"
+    }
   },
   "liked": {
     "badge": "Коллекция",
@@ -1387,7 +1402,8 @@
     "tracksCount": "Количество треков",
     "ascending": "По возрастанию",
     "descending": "По убыванию",
-    "filename": "Имя файла"
+    "filename": "Имя файла",
+    "updatedAt": "Недавно изменённые"
   },
   "editorial": {
     "masthead": {

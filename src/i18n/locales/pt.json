@@ -347,7 +347,10 @@
         "genres_other": "{{count}} géneros",
         "dossiers_zero": "0 pastas",
         "dossiers_one": "{{count}} pasta",
-        "dossiers_other": "{{count}} pastas"
+        "dossiers_other": "{{count}} pastas",
+        "playlists_zero": "0 playlists",
+        "playlists_one": "{{count}} playlist",
+        "playlists_other": "{{count}} playlists"
       }
     },
     "tabs": {
@@ -355,7 +358,8 @@
       "albums": "Álbuns",
       "artistes": "Artistas",
       "genres": "Géneros",
-      "dossiers": "Pastas"
+      "dossiers": "Pastas",
+      "playlists": "Playlists"
     },
     "empty": {
       "morceaux": {
@@ -448,7 +452,14 @@
       "removeConfirmWithPlays_one": "Clica novamente para confirmar. {{count}} reprodução será mantida e reassociada na próxima análise.",
       "removeConfirmWithPlays_other": "Clica novamente para confirmar. {{count}} reproduções serão mantidas e reassociadas na próxima análise."
     },
-    "skeletonAriaLabel": "A carregar {{name}}…"
+    "skeletonAriaLabel": "A carregar {{name}}…",
+    "playlistsGrid": {
+      "emptyTitle": "Ainda sem playlists",
+      "emptyHint": "As playlists que criar aparecem aqui numa grelha.",
+      "meta_zero": "0 faixas · {{duration}}",
+      "meta_one": "{{count}} faixa · {{duration}}",
+      "meta_other": "{{count}} faixas · {{duration}}"
+    }
   },
   "liked": {
     "badge": "Coleção",
@@ -1305,7 +1316,8 @@
     "tracksCount": "N.º de faixas",
     "ascending": "Crescente",
     "descending": "Decrescente",
-    "filename": "Nome do ficheiro"
+    "filename": "Nome do ficheiro",
+    "updatedAt": "Atualizada recentemente"
   },
   "editorial": {
     "masthead": {

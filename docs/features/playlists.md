@@ -2,6 +2,8 @@
 
 User-curated playlists live in the per-profile `playlist` table alongside the auto-generated [smart playlists](smart-playlists.md). The `is_smart` flag is the only thing distinguishing them in the schema — the UI filters on it to render the two groups in their own sections.
 
+**Where they surface.** The sidebar list is the primary entry point, plus a **grid tab** under My music → Playlists ([`PlaylistGrid`](../../src/components/views/library/PlaylistGrid.tsx), issue #461) for browsing them all at once the way the Albums tab does — a user who curates their own playlists reads them as albums, not as a one-at-a-time list. The grid reads `PlaylistContext` rather than issuing its own query, so it costs no round-trip; it renders `is_smart === 0` only.
+
 ## CRUD
 
 [`commands/playlist.rs`](../../src-tauri/crates/app/src/commands/playlist.rs) exposes:
