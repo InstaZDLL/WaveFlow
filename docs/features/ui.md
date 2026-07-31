@@ -34,6 +34,16 @@ Per-view data fetches initialise their `isLoading` state to `true` (not `false`)
 
 - [`NowPlayingPanel`](../../src/components/layout/NowPlayingPanel.tsx) — large artwork, clickable artists, "About the artist" section populated from the Deezer + Last.fm caches, and a "Next in queue" teaser with an "Open queue" link that hands the right slot off to `QueuePanel`. Lightbox on cover click.
 - [`QueuePanel`](../../src/components/layout/QueuePanel.tsx) — current queue with drag reorder, jump-to-track, clear queue. Right-clicking a queue row opens the same track context menu the list views have (Show in Explorer, Properties, play-next / add-to-queue, like, rating…) via [`usePlayerTrackContextMenu`](../../src/hooks/usePlayerTrackContextMenu.tsx) — the player-surface wrapper that supplies the liked-ids lookup + create-playlist modal the base [`useTrackContextMenu`](../../src/hooks/useTrackContextMenu.tsx) needs. Radio/stream rows (negative sentinel id, no local file) are skipped. Payload→`Track` widening is the shared [`queuePayloadToTrack`](../../src/lib/queueTrack.ts). Same menu is reachable by right-clicking the title in [`ImmersiveNowPlaying`](../../src/components/player/ImmersiveNowPlaying.tsx) (library tracks only). Reporter request.
+
+### Opening the track menu from the keyboard
+
+Right-click has no keyboard equivalent unless one is wired by hand, so every surface that shows a track menu answers the same two keys on the focused row — **Menu** (the application key) and **Shift+F10**, its stand-in on keyboards without it. The detection and the anchor live in [`contextMenuKeys.ts`](../../src/lib/contextMenuKeys.ts) and are surfaced as `openFromKeyboard` on [`useTrackContextMenu`](../../src/hooks/useTrackContextMenu.tsx) (forwarded by the player wrapper), rather than reimplemented per view — issue #436 exists precisely because fixing one surface would have produced the inconsistency it set out to remove.
+
+`openFromKeyboard` returns `true` when it opened a menu, so a row's existing `onKeyDown` early-returns instead of re-deriving the condition, and Enter / Space keep playing the track. A keyboard-opened menu anchors just inside the row's bottom-left corner (no pointer to place it at); `ContextMenu` still flips it when it would overflow the viewport.
+
+Once open, [`ContextMenu`](../../src/components/common/ContextMenu.tsx) focuses its first item, moves with Up/Down/Home/End (wrapping), closes on Escape **and Tab** — a menu is not a tab stop, and letting Tab escape behind an open menu is worse than dismissing it — and **restores focus to the element that opened it** on unmount, guarded on `isConnected` for the case where the action just taken removed that row.
+
+Two surfaces needed more than a key handler: history rows had no `tabIndex` at all (unreachable by keyboard, menu or not) and are now focusable with Enter/Space playing the row, and the immersive title takes `tabIndex` + `aria-haspopup="menu"` only while a menu is available — deliberately not `role="button"`, since it opens a menu but remains the heading.
 - [`LyricsPanel`](../../src/components/layout/LyricsPanel.tsx) — synced or static lyrics with auto-scroll.
 - [`NowPlayingChevronTab`](../../src/components/layout/NowPlayingChevronTab.tsx) — right-edge floating tab visible only when no panel is open.
 

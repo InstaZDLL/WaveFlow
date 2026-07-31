@@ -167,6 +167,7 @@ export function LikedView({
                     // fired from nested buttons / links would otherwise
                     // bubble here and double-fire playback.
                     if (e.target !== e.currentTarget) return;
+                    if (trackContextMenu.openFromKeyboard(e, track)) return;
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
                       playTracks(tracks, index, { type: "liked", id: null });

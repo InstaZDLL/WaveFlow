@@ -1,6 +1,7 @@
 import {
   useCallback,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import {
@@ -10,6 +11,7 @@ import {
 import { TrackPropertiesModal } from "../components/common/TrackPropertiesModal";
 import { BatchTagEditModal } from "../components/common/BatchTagEditModal";
 import type { Track } from "../lib/tauri/track";
+import { isContextMenuKey, menuAnchorForElement } from "../lib/contextMenuKeys";
 import { setTrackRating, toggleLikeTrack } from "../lib/tauri/track";
 import {
   playerAddToQueue,
@@ -91,6 +93,39 @@ export function useTrackContextMenu({
       track,
     });
   }, []);
+
+  /**
+   * Keyboard counterpart of {@link open}: answers the Menu key and
+   * Shift+F10 on a focused row, anchoring the menu to that row since
+   * there is no pointer to place it at.
+   *
+   * Returns `true` when it handled the event, so a caller's existing
+   * `onKeyDown` can early-return instead of re-deriving the condition:
+   *
+   * ```tsx
+   * onKeyDown={(e) => {
+   *   if (openFromKeyboard(e, track)) return;
+   *   // …existing Enter/Space activation
+   * }}
+   * ```
+   *
+   * The `e.target !== e.currentTarget` guard stays the caller's job —
+   * each surface already applies it so a keystroke inside a row's own
+   * action button doesn't act on the row.
+   */
+  const openFromKeyboard = useCallback(
+    (event: ReactKeyboardEvent, track: Track): boolean => {
+      if (!isContextMenuKey(event)) return false;
+      event.preventDefault();
+      event.stopPropagation();
+      setState({
+        point: menuAnchorForElement(event.currentTarget as HTMLElement),
+        track,
+      });
+      return true;
+    },
+    [],
+  );
 
   const close = useCallback(() => setState(null), []);
 
@@ -226,5 +261,5 @@ export function useTrackContextMenu({
     closeBatchEdit,
   ]);
 
-  return { open, close, render };
+  return { open, openFromKeyboard, close, render };
 }

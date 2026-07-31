@@ -223,6 +223,7 @@ export function GenreDetailView({
           onNavigateToAlbum={onNavigateToAlbum}
           onNavigateToArtist={onNavigateToArtist}
           onContextMenuRow={trackContextMenu.open}
+          onRowMenuKey={trackContextMenu.openFromKeyboard}
           t={t}
         />
       ) : (
@@ -277,6 +278,7 @@ function GenreTrackTable({
   onNavigateToAlbum,
   onNavigateToArtist,
   onContextMenuRow,
+  onRowMenuKey,
   t,
 }: {
   tracks: Track[];
@@ -289,6 +291,9 @@ function GenreTrackTable({
   onNavigateToAlbum: (albumId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
   onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
+  /** Keyboard equivalent (Menu / Shift+F10). Returns `true` when it
+   *  opened the menu, so the row's own key handling can stand down. */
+  onRowMenuKey: (event: React.KeyboardEvent, track: Track) => boolean;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
   const gridCols = "grid-cols-[3rem_2.75rem_1.5fr_1fr_1fr_5rem_2rem]";
@@ -330,6 +335,7 @@ function GenreTrackTable({
               onKeyDown={(e) => {
                 // Only play when the row itself is focused — see LibraryView.
                 if (e.target !== e.currentTarget) return;
+                if (onRowMenuKey(e, tracks[index])) return;
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   onPlayTrack(index);

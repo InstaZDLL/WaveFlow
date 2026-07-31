@@ -379,6 +379,7 @@ export function PlaylistView({
     selectedTrackIds: [...selection.selectedIds],
   });
   const onContextMenuRow = trackContextMenu.open;
+  const onRowMenuKey = trackContextMenu.openFromKeyboard;
 
   // Fetch playlist + its tracks whenever the focused id changes. Also
   // re-runs when the playlist list itself updates (e.g. after rename via
@@ -727,6 +728,7 @@ export function PlaylistView({
           likeLabel={likeLabel}
           unlikeLabel={unlikeLabel}
           onContextMenuRow={onContextMenuRow}
+          onRowMenuKey={onRowMenuKey}
           onReorder={handleReorder}
           isSelected={selection.isSelected}
           onRowSelect={handleRowSelect}
@@ -829,6 +831,9 @@ interface PlaylistTrackTableProps {
   likeLabel: string;
   unlikeLabel: string;
   onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
+  /** Keyboard equivalent (Menu / Shift+F10). Returns `true` when it
+   *  opened the menu, so the row's own key handling can stand down. */
+  onRowMenuKey: (event: React.KeyboardEvent, track: Track) => boolean;
   onReorder: (fromIndex: number, toIndex: number) => void;
   isSelected: (id: number) => boolean;
   onRowSelect: (track: Track, e: React.MouseEvent) => void;
@@ -858,6 +863,7 @@ function PlaylistTrackTable({
   likeLabel,
   unlikeLabel,
   onContextMenuRow,
+  onRowMenuKey,
   onReorder,
   isSelected,
   onRowSelect,
@@ -996,6 +1002,7 @@ function PlaylistTrackTable({
                   unknownLabel={unknownLabel}
                   onPlayTrack={onPlayTrack}
                   onContextMenuRow={onContextMenuRow}
+                  onRowMenuKey={onRowMenuKey}
                   onToggleLike={onToggleLike}
                   onNavigateToAlbum={onNavigateToAlbum}
                   onNavigateToArtist={onNavigateToArtist}
@@ -1073,6 +1080,9 @@ interface SortablePlaylistRowProps {
   unknownLabel: string;
   onPlayTrack: (index: number) => void;
   onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
+  /** Keyboard equivalent (Menu / Shift+F10). Returns `true` when it
+   *  opened the menu, so the row's own key handling can stand down. */
+  onRowMenuKey: (event: React.KeyboardEvent, track: Track) => boolean;
   onToggleLike: (trackId: number) => void;
   onNavigateToAlbum: (albumId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
@@ -1099,6 +1109,7 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
   unknownLabel,
   onPlayTrack,
   onContextMenuRow,
+  onRowMenuKey,
   onToggleLike,
   onNavigateToAlbum,
   onNavigateToArtist,
@@ -1155,6 +1166,7 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
       onKeyDown={(e) => {
         // Only play when the row itself is focused — see LibraryView.
         if (e.target !== e.currentTarget) return;
+        if (onRowMenuKey(e, track)) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onPlayTrack(index);

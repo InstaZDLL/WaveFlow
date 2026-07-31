@@ -767,6 +767,7 @@ export function LibraryView({
                 onNavigateToAlbum={onNavigateToAlbum}
                 onNavigateToArtist={onNavigateToArtist}
                 onContextMenuRow={trackContextMenu.open}
+                onRowMenuKey={trackContextMenu.openFromKeyboard}
                 isSelected={selection.isSelected}
                 onRowSelect={(track, e) => {
                   // Modifier-driven selection always wins so multi-select
@@ -1204,6 +1205,9 @@ interface TrackTableProps {
   onNavigateToAlbum: (albumId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
   onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
+  /** Keyboard equivalent (Menu / Shift+F10). Returns `true` when it
+   *  opened the menu, so the row's own key handling can stand down. */
+  onRowMenuKey: (event: React.KeyboardEvent, track: Track) => boolean;
   isSelected: (id: number) => boolean;
   onRowSelect: (track: Track, e: React.MouseEvent) => void;
 }
@@ -1225,6 +1229,7 @@ function TrackTable({
   onNavigateToAlbum,
   onNavigateToArtist,
   onContextMenuRow,
+  onRowMenuKey,
   isSelected,
   onRowSelect,
 }: TrackTableProps) {
@@ -1349,6 +1354,7 @@ function TrackTable({
                 // double-fires playback alongside the button's own
                 // action.
                 if (e.target !== e.currentTarget) return;
+                if (onRowMenuKey(e, track)) return;
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   onPlayTrack(index);

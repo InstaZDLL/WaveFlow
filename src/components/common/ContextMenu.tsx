@@ -98,9 +98,80 @@ export function ContextMenu({
     setPos({ top, left, position: "fixed", width });
   }, [point.x, point.y, width]);
 
+  // Focus management. A menu opened from the keyboard is useless if the
+  // keyboard can't then reach its items, and a menu opened by mouse is
+  // no worse off for being focusable (issue #436).
+  //
+  // The opener is captured on mount and refocused on unmount, so
+  // dismissing the menu returns the caret to the row it came from
+  // rather than dropping focus to <body> — which would send the next
+  // Tab back to the top of the page.
+  const openerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    openerRef.current = document.activeElement as HTMLElement | null;
+    return () => {
+      // `isConnected` guards the case where the opener itself went away
+      // while the menu was open (a row removed by the action just taken).
+      const opener = openerRef.current;
+      if (opener?.isConnected) opener.focus();
+    };
+  }, []);
+
+  const menuItems = useCallback((): HTMLElement[] => {
+    const el = ref.current;
+    if (!el) return [];
+    return Array.from(
+      el.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])'),
+    );
+  }, []);
+
+  // Focus the first item once the menu is positioned. Deferred to an
+  // effect (not the layout pass) so the entry animation has its element
+  // in place; focusing a not-yet-positioned menu makes the browser
+  // scroll the page to -9999px.
+  useEffect(() => {
+    const items = menuItems();
+    items[0]?.focus();
+  }, [menuItems]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      // Arrow / Home / End move between items and wrap, which is what a
+      // `role="menu"` is expected to do. Tab closes: menus are not tab
+      // stops, and letting Tab escape into the page behind an open menu
+      // is worse than dismissing it.
+      const items = menuItems();
+      if (items.length === 0) return;
+      const current = items.indexOf(document.activeElement as HTMLElement);
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          items[(current + 1 + items.length) % items.length]?.focus();
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          items[(current - 1 + items.length) % items.length]?.focus();
+          break;
+        case "Home":
+          e.preventDefault();
+          items[0]?.focus();
+          break;
+        case "End":
+          e.preventDefault();
+          items[items.length - 1]?.focus();
+          break;
+        case "Tab":
+          e.preventDefault();
+          onClose();
+          break;
+        default:
+          break;
+      }
     };
     const onMouseDown = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
@@ -121,7 +192,7 @@ export function ContextMenu({
       window.removeEventListener("scroll", onClose, true);
       window.removeEventListener("resize", onClose);
     };
-  }, [onClose]);
+  }, [onClose, menuItems]);
 
   return createPortal(
     <motion.div
