@@ -1,15 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, PanelRight, Mic2 } from "lucide-react";
+import { X, PanelRight, Mic2, MoreHorizontal } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useTrackLyrics } from "../../hooks/useTrackLyrics";
 import { useImmersivePrefs } from "../../hooks/useImmersivePrefs";
+import { useTrackCanvas } from "../../hooks/useTrackCanvas";
+import { useCanvasEnabled, setCanvasEnabled } from "../../hooks/useCanvasEnabled";
+import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
+import { isRadioTrack } from "../../lib/playerSources";
 import { Artwork } from "../common/Artwork";
 import { ImmersiveNowPlaying } from "./ImmersiveNowPlaying";
 import { ImmersiveSidePanel, type ImmersiveTab } from "./ImmersiveSidePanel";
 import { ImmersiveLyricsColumn } from "./ImmersiveLyricsColumn";
 import { ImmersiveShareButton } from "./ImmersiveShareButton";
+import { CanvasToggleButton } from "./CanvasToggleButton";
+import { CanvasPickerModal } from "../common/CanvasPickerModal";
 
 /** Below this width the dual-column layout collapses to a single column
  *  with a now-playing ⇄ panel toggle — two columns only make sense at
@@ -57,13 +63,39 @@ export function ImmersiveView({
   onToggleLike,
 }: ImmersiveViewProps) {
   const { t } = useTranslation();
-  const { currentTrack } = usePlayer();
+  const { currentTrack, activeProvider } = usePlayer();
   const {
     mergedLyrics,
     useNativeFullscreen,
     loaded: prefsLoaded,
   } = useImmersivePrefs();
   const lyrics = useTrackLyrics();
+
+  // Per-track Canvas (issue #442). Only a real library track can carry one
+  // (radio uses a negative sentinel id, Spotify has no local row), so the
+  // toggle + set/remove entry gate on that. The toggle only shows when the
+  // track actually has a Canvas and motion isn't reduced — never a dead
+  // control; the "⋯" set/remove entry shows for any eligible track.
+  const canvasEnabled = useCanvasEnabled();
+  const reducedMotion = usePrefersReducedMotion();
+  const canvasPath = useTrackCanvas(currentTrack?.id);
+  const [canvasPickerOpen, setCanvasPickerOpen] = useState(false);
+  // Freeze the target track + its Canvas state when the picker opens, so an
+  // auto-advance to the next track mid-dialog can't redirect a set/remove
+  // onto the wrong track. Kept after close for the exit animation; the next
+  // open overwrites it with a fresh snapshot.
+  const [canvasPickerTarget, setCanvasPickerTarget] = useState<{
+    trackId: number;
+    hasCanvas: boolean;
+  } | null>(null);
+  const canvasTrack =
+    currentTrack &&
+    activeProvider !== "spotify" &&
+    !isRadioTrack(currentTrack) &&
+    currentTrack.id >= 0
+      ? currentTrack
+      : null;
+  const canvasAvailable = !!canvasPath && !reducedMotion;
 
   // Escape close + focus trap. Only mounted while open → pass `true`.
   const dialogRef = useModalA11y<HTMLDivElement>(true, onClose);
@@ -235,6 +267,37 @@ export function ImmersiveView({
                 <Mic2 size={22} />
               </button>
             ))}
+          {/* Show Canvas toggle — only when the current track has a Canvas
+              and motion isn't reduced (never a dead control). */}
+          {canvasTrack && canvasAvailable && (
+            <CanvasToggleButton
+              enabled={canvasEnabled}
+              onToggle={() => setCanvasEnabled(!canvasEnabled)}
+              className={`p-2.5 rounded-full transition-colors ${
+                canvasEnabled
+                  ? "bg-white/25 text-white"
+                  : "bg-white/10 hover:bg-white/20 text-white/80"
+              }`}
+            />
+          )}
+          {/* Set / remove the track's Canvas — the immersive "⋯". */}
+          {canvasTrack && (
+            <button
+              type="button"
+              onClick={() => {
+                setCanvasPickerTarget({
+                  trackId: canvasTrack.id,
+                  hasCanvas: !!canvasPath,
+                });
+                setCanvasPickerOpen(true);
+              }}
+              aria-label={t("canvas.setTitle")}
+              title={t("canvas.setTitle")}
+              className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80 transition-colors"
+            >
+              <MoreHorizontal size={22} />
+            </button>
+          )}
           {currentTrack && <ImmersiveShareButton track={currentTrack} />}
           <button
             type="button"
@@ -292,6 +355,19 @@ export function ImmersiveView({
           )}
         </div>
       </div>
+
+      {canvasPickerTarget && (
+        <CanvasPickerModal
+          trackId={canvasPickerTarget.trackId}
+          hasCanvas={canvasPickerTarget.hasCanvas}
+          isOpen={canvasPickerOpen}
+          onClose={() => setCanvasPickerOpen(false)}
+          onSuccess={() => {
+            /* invalidateTrackCanvas already ran in the modal; the hooks
+               re-resolve on the next render tick. */
+          }}
+        />
+      )}
     </div>
   );
 }

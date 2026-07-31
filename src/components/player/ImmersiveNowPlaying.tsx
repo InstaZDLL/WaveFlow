@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Heart, Star, Radio } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { MotionCoverOverlay } from "./MotionCoverOverlay";
+import { CanvasStage } from "./CanvasStage";
 import { ArtistLink } from "../common/ArtistLink";
 import { MarqueeText } from "../common/MarqueeText";
 import { PlaybackControls } from "./PlaybackControls";
@@ -11,6 +12,9 @@ import { SpectrumVisualizer } from "./SpectrumVisualizer";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
 import { usePlayerTrackContextMenu } from "../../hooks/usePlayerTrackContextMenu";
+import { useTrackCanvas } from "../../hooks/useTrackCanvas";
+import { useCanvasEnabled } from "../../hooks/useCanvasEnabled";
+import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { isRadioTrack } from "../../lib/playerSources";
 
 interface ImmersiveNowPlayingProps {
@@ -61,6 +65,14 @@ export function ImmersiveNowPlaying({
     currentRadioStation != null &&
     radioFavorites.isFavorite(currentRadioStation.id);
 
+  // Per-track Canvas (issue #442) — a looping clip replaces the static cover
+  // when one is set, the global toggle is on, and motion isn't reduced. It
+  // takes precedence over the plugin motion cover (Canvas > motion > cover).
+  const canvasEnabled = useCanvasEnabled();
+  const reducedMotion = usePrefersReducedMotion();
+  const canvasPath = useTrackCanvas(currentTrack?.id);
+  const canvasActive = canvasEnabled && !reducedMotion && !!canvasPath;
+
   const title = currentTrack?.title ?? t("player.noTrack");
   const album = currentTrack?.album_title;
 
@@ -82,10 +94,18 @@ export function ImmersiveNowPlaying({
           alt={title}
           rounded="2xl"
         />
-        <MotionCoverOverlay
-          artist={currentTrack?.artist_name}
-          album={currentTrack?.album_title}
-          albumId={currentTrack?.album_id}
+        {!canvasActive && (
+          <MotionCoverOverlay
+            artist={currentTrack?.artist_name}
+            album={currentTrack?.album_title}
+            albumId={currentTrack?.album_id}
+            rounded="2xl"
+            className="shadow-2xl"
+          />
+        )}
+        <CanvasStage
+          path={canvasPath}
+          enabled={canvasEnabled && !reducedMotion}
           rounded="2xl"
           className="shadow-2xl"
         />

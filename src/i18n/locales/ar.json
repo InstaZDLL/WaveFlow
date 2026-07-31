@@ -1130,6 +1130,17 @@
     "pickFile": "اختيار ملف MP4",
     "removeAction": "إزالة الغلاف المتحرك"
   },
+  "canvas": {
+    "show": "إظهار Canvas",
+    "hide": "إخفاء Canvas",
+    "setTitle": "تعيين Canvas"
+  },
+  "canvasPicker": {
+    "title": "Canvas المقطع",
+    "subtitle": "اختر مقطع MP4 محليًا قصيرًا. يُشغَّل بشكل متكرر خلف التشغيل بدلاً من الغلاف.",
+    "pickFile": "اختيار ملف MP4",
+    "removeAction": "إزالة Canvas"
+  },
   "genreDetail": {
     "badge": "النوع",
     "playAll": "تشغيل الكل",

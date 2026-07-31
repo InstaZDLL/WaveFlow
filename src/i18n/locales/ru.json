@@ -1086,6 +1086,17 @@
     "pickFile": "Выбрать файл MP4",
     "removeAction": "Удалить анимированную обложку"
   },
+  "canvas": {
+    "show": "Показать Canvas",
+    "hide": "Скрыть Canvas",
+    "setTitle": "Задать Canvas"
+  },
+  "canvasPicker": {
+    "title": "Canvas трека",
+    "subtitle": "Выберите короткое локальное видео MP4. Оно циклически воспроизводится позади проигрывания вместо обложки.",
+    "pickFile": "Выбрать файл MP4",
+    "removeAction": "Удалить Canvas"
+  },
   "genreDetail": {
     "badge": "Жанр",
     "playAll": "Воспроизвести всё",

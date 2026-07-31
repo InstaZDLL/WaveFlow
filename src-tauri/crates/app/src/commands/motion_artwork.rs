@@ -255,14 +255,6 @@ async fn manual_motion_artwork(
     }))
 }
 
-/// First box of an ISO base media file (mp4/mov) is required to be `ftyp`
-/// when present, which in practice means always for a real-world mp4 —
-/// the same "check the magic bytes, don't fully parse" approach
-/// `detect_image_format` (`deezer.rs`) uses for jpg/png/webp.
-fn is_mp4(bytes: &[u8]) -> bool {
-    bytes.len() >= 8 && &bytes[4..8] == b"ftyp"
-}
-
 /// Set `album_id`'s manual motion cover from a local mp4 file, replacing
 /// any previous one. Validated by magic bytes (rejecting at pick time
 /// beats rendering a black rectangle) and size-capped, then hash-addressed
@@ -281,29 +273,10 @@ pub async fn set_album_motion_artwork_from_file(
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let motion_dir = state.paths.profile_motion_dir(profile_id);
-    tokio::fs::create_dir_all(&motion_dir).await?;
 
-    // A motion cover can be up to MAX_MANUAL_MP4_BYTES (64 MiB) — an order
-    // of magnitude past the static-cover uploads this command's shape is
-    // otherwise modelled on, so the blocking read/write is routed through
-    // `tokio::fs` (spawn_blocking under the hood) instead of `std::fs`
-    // directly, unlike those smaller precedents.
-    let bytes = tokio::fs::read(&file_path).await?;
-    if bytes.len() as u64 > MAX_MANUAL_MP4_BYTES {
-        return Err(AppError::Other(format!(
-            "file too large: {} bytes (max {MAX_MANUAL_MP4_BYTES})",
-            bytes.len()
-        )));
-    }
-    if !is_mp4(&bytes) {
-        return Err(AppError::Other("unsupported format (expected mp4)".into()));
-    }
-
-    let hash = blake3::hash(&bytes).to_hex().to_string();
-    let target = motion_dir.join(format!("{hash}.mp4"));
-    if !tokio::fs::try_exists(&target).await? {
-        tokio::fs::write(&target, &bytes).await?;
-    }
+    let hash =
+        super::media_file::store_hash_addressed_mp4(&motion_dir, &file_path, MAX_MANUAL_MP4_BYTES)
+            .await?;
 
     sqlx::query(
         "INSERT INTO album_motion_artwork (album_id, hash, format, created_at)

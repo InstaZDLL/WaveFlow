@@ -1008,6 +1008,17 @@
     "pickFile": "Elegir un archivo MP4",
     "removeAction": "Quitar la portada animada"
   },
+  "canvas": {
+    "show": "Mostrar Canvas",
+    "hide": "Ocultar Canvas",
+    "setTitle": "Definir un Canvas"
+  },
+  "canvasPicker": {
+    "title": "Canvas de la pista",
+    "subtitle": "Elige un vídeo MP4 local y corto. Se reproduce en bucle detrás de la reproducción, en lugar de la portada.",
+    "pickFile": "Elegir un archivo MP4",
+    "removeAction": "Quitar el Canvas"
+  },
   "genreDetail": {
     "badge": "Género",
     "playAll": "Reproducir todo",

@@ -1008,6 +1008,17 @@
     "pickFile": "Bir MP4 dosyası seç",
     "removeAction": "Hareketli kapağı kaldır"
   },
+  "canvas": {
+    "show": "Canvas'ı göster",
+    "hide": "Canvas'ı gizle",
+    "setTitle": "Canvas belirle"
+  },
+  "canvasPicker": {
+    "title": "Parça Canvas'ı",
+    "subtitle": "Kısa bir yerel MP4 videosu seçin. Kapak yerine, çalma sırasında arkada döngüyle oynatılır.",
+    "pickFile": "MP4 dosyası seç",
+    "removeAction": "Canvas'ı kaldır"
+  },
   "genreDetail": {
     "badge": "Tür",
     "playAll": "Tümünü çal",

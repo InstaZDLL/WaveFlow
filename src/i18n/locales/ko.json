@@ -1008,6 +1008,17 @@
     "pickFile": "MP4 파일 선택",
     "removeAction": "모션 커버 제거"
   },
+  "canvas": {
+    "show": "Canvas 표시",
+    "hide": "Canvas 숨기기",
+    "setTitle": "Canvas 설정"
+  },
+  "canvasPicker": {
+    "title": "트랙 Canvas",
+    "subtitle": "짧은 로컬 MP4 영상을 선택하세요. 커버 대신 재생 뒤에서 반복 재생됩니다.",
+    "pickFile": "MP4 파일 선택",
+    "removeAction": "Canvas 제거"
+  },
   "genreDetail": {
     "badge": "장르",
     "playAll": "모두 재생",
