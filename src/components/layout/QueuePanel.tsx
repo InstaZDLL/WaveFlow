@@ -182,7 +182,7 @@ export function QueuePanel() {
   const handleRowContextMenu = useCallback(
     (event: ReactMouseEvent, item: QueueTrackPayload) => {
       event.preventDefault();
-      if (item.id < 0 || !item.file_path) return;
+      if (!hasTrackMenu(item)) return;
       trackMenu.open(event, queuePayloadToTrack(item));
     },
     [trackMenu],
@@ -194,7 +194,7 @@ export function QueuePanel() {
   // the rows this skips.
   const handleRowMenuKey = useCallback(
     (event: ReactKeyboardEvent, item: QueueTrackPayload): boolean => {
-      if (item.id < 0 || !item.file_path) return false;
+      if (!hasTrackMenu(item)) return false;
       return trackMenu.openFromKeyboard(event, queuePayloadToTrack(item));
     },
     [trackMenu],
@@ -275,7 +275,11 @@ export function QueuePanel() {
                   item={nowPlaying}
                   isCurrent
                   onContextMenu={(e) => handleRowContextMenu(e, nowPlaying)}
-                  onMenuKey={(e) => handleRowMenuKey(e, nowPlaying)}
+                  onMenuKey={
+                    hasTrackMenu(nowPlaying)
+                      ? (e) => handleRowMenuKey(e, nowPlaying)
+                      : undefined
+                  }
                 />
               </section>
             )}
@@ -299,6 +303,15 @@ export function QueuePanel() {
       </div>
     </motion.aside>
   );
+}
+
+/**
+ * Whether a queue row has a track menu at all. Radio / stream rows carry
+ * a negative sentinel id and no local file, so there is nothing for the
+ * menu to act on — and nothing to make the row focusable for.
+ */
+function hasTrackMenu(item: QueueTrackPayload): boolean {
+  return item.id >= 0 && Boolean(item.file_path);
 }
 
 function QueueRow({

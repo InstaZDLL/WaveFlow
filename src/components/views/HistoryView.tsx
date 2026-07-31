@@ -469,12 +469,18 @@ function DayGroup({
           return (
             <li
               key={row.event_id}
-              // Focusable like every other track row (issue #436): the
-              // context menu has to be reachable without a mouse, and a
-              // row nobody can focus can't receive the Menu key. Enter /
-              // Space play, matching the double-click already wired.
+              // Focusable so the context menu is reachable without a
+              // mouse (issue #436) — a row nobody can focus can't
+              // receive the Menu key.
+              //
+              // Deliberately NOT `role="button"`: this row contains an
+              // ArtistLink, and a screen reader can't reliably expose an
+              // interactive link inside a button. `aria-haspopup` is the
+              // honest description instead — it announces the menu
+              // without claiming the row is something it isn't. Enter /
+              // Space still play, mirroring the double-click.
               tabIndex={0}
-              role="button"
+              aria-haspopup="menu"
               onContextMenu={(e) => onContextMenu(e, row)}
               onDoubleClick={() => onPlay(row)}
               onKeyDown={(e) => {
