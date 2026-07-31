@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { getTrackCanvas } from "../lib/tauri/canvas";
+import { useProfile } from "./useProfile";
 
 /**
  * Process-wide dedupe + cache for per-track Canvas lookups (issue #442),
@@ -99,6 +100,22 @@ export function invalidateTrackCanvas(trackId: number): void {
   for (const cb of epochListeners) cb();
 }
 
+// The caches above are keyed by `trackId` only, but track ids are per-profile
+// (each profile has its own SQLite DB), so a colliding id must not serve
+// another profile's Canvas after a switch. Track the active profile and drop
+// the whole cache when it changes — track ids from the previous profile are
+// all meaningless now, so a full clear is both correct and simplest.
+let activeProfileId: number | null = null;
+function resetCacheForProfile(profileId: number | null): void {
+  if (profileId === activeProfileId) return;
+  activeProfileId = profileId;
+  resolved.clear();
+  inFlight.clear();
+  generation.clear();
+  epoch += 1;
+  for (const cb of epochListeners) cb();
+}
+
 /**
  * Resolve a track's Canvas clip local path, or `null` when it has none
  * (or the id is missing). setState only fires inside the promise callbacks
@@ -120,6 +137,14 @@ export function useTrackCanvas(
   // Re-run the effect when a set/clear bumps the epoch, even for the same
   // trackId — otherwise the surface would keep the stale answer.
   const currentEpoch = useSyncExternalStore(subscribeEpoch, getEpoch, getEpoch);
+
+  // Drop the shared cache on a profile switch so a per-profile track id can't
+  // reuse another profile's Canvas. Idempotent + guarded, so the several
+  // mounted instances clear at most once per switch.
+  const profileId = useProfile().activeProfile?.id ?? null;
+  useEffect(() => {
+    resetCacheForProfile(profileId);
+  }, [profileId]);
 
   useEffect(() => {
     let cancelled = false;

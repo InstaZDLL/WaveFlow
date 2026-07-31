@@ -6,10 +6,16 @@
 //! and their target directory (which the caller supplies).
 
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use tokio::io::AsyncReadExt;
 
 use crate::error::{AppError, AppResult};
+
+/// Per-call counter making each in-flight temp file name unique, so two
+/// concurrent imports of the same hash in this process never collide on the
+/// staging path.
+static TMP_SEQ: AtomicU64 = AtomicU64::new(0);
 
 /// First box of an ISO base media file (mp4/mov) is required to be `ftyp`
 /// when present, which in practice means always for a real-world mp4 — the
@@ -49,7 +55,21 @@ pub async fn store_hash_addressed_mp4(
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let target = dir.join(format!("{hash}.mp4"));
     if !tokio::fs::try_exists(&target).await? {
-        tokio::fs::write(&target, &bytes).await?;
+        // Atomic publish: stage into a unique temp in the same directory,
+        // then rename onto `target` only if nobody published it first. Rename
+        // is atomic within a filesystem, so a concurrent reader never sees a
+        // half-written file — unlike a bare `write`, which truncates then
+        // fills. Same-hash ⇒ identical bytes, so on a lost race we simply drop
+        // our temp rather than overwrite the winner's file.
+        let seq = TMP_SEQ.fetch_add(1, Ordering::Relaxed);
+        let tmp = dir.join(format!(".{hash}.{}.{seq}.part", std::process::id()));
+        tokio::fs::write(&tmp, &bytes).await?;
+        if tokio::fs::try_exists(&target).await? {
+            let _ = tokio::fs::remove_file(&tmp).await;
+        } else if let Err(e) = tokio::fs::rename(&tmp, &target).await {
+            let _ = tokio::fs::remove_file(&tmp).await;
+            return Err(e.into());
+        }
     }
     Ok(hash)
 }
