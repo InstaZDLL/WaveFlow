@@ -1008,6 +1008,17 @@
     "pickFile": "Scegli un file MP4",
     "removeAction": "Rimuovi copertina animata"
   },
+  "canvas": {
+    "show": "Mostra Canvas",
+    "hide": "Nascondi Canvas",
+    "setTitle": "Imposta un Canvas"
+  },
+  "canvasPicker": {
+    "title": "Canvas del brano",
+    "subtitle": "Scegli un breve video MP4 locale. Viene riprodotto in loop dietro la riproduzione, al posto della copertina.",
+    "pickFile": "Scegli un file MP4",
+    "removeAction": "Rimuovi Canvas"
+  },
   "genreDetail": {
     "badge": "Genere",
     "playAll": "Riproduci tutto",

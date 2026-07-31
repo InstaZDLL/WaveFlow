@@ -135,11 +135,21 @@ impl AppPaths {
         self.profile_dir(profile_id).join("motion")
     }
 
+    /// Per-profile directory for user-supplied per-track Canvas clips
+    /// (issue #442). Like [`Self::profile_motion_dir`] and unlike
+    /// [`Self::motion_cache_dir`], a file here was chosen deliberately by the
+    /// user and is never evicted; kept separate from `motion/` so a track's
+    /// 15 s Canvas and an album's motion cover don't share a namespace.
+    pub fn profile_canvas_dir(&self, profile_id: i64) -> PathBuf {
+        self.profile_dir(profile_id).join("canvas")
+    }
+
     /// Create the directory layout required for a brand-new profile.
     pub fn ensure_profile_dirs(&self, profile_id: i64) -> AppResult<()> {
         std::fs::create_dir_all(self.profile_dir(profile_id))?;
         std::fs::create_dir_all(self.profile_artwork_dir(profile_id))?;
         std::fs::create_dir_all(self.profile_motion_dir(profile_id))?;
+        std::fs::create_dir_all(self.profile_canvas_dir(profile_id))?;
         Ok(())
     }
 

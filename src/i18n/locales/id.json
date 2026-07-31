@@ -1008,6 +1008,17 @@
     "pickFile": "Pilih berkas MP4",
     "removeAction": "Hapus sampul animasi"
   },
+  "canvas": {
+    "show": "Tampilkan Canvas",
+    "hide": "Sembunyikan Canvas",
+    "setTitle": "Atur Canvas"
+  },
+  "canvasPicker": {
+    "title": "Canvas lagu",
+    "subtitle": "Pilih video MP4 lokal yang pendek. Video diputar berulang di belakang pemutaran, menggantikan sampul.",
+    "pickFile": "Pilih berkas MP4",
+    "removeAction": "Hapus Canvas"
+  },
   "genreDetail": {
     "badge": "Genre",
     "playAll": "Putar semua",

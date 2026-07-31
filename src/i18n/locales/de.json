@@ -1008,6 +1008,17 @@
     "pickFile": "MP4-Datei auswählen",
     "removeAction": "Animiertes Cover entfernen"
   },
+  "canvas": {
+    "show": "Canvas anzeigen",
+    "hide": "Canvas ausblenden",
+    "setTitle": "Canvas festlegen"
+  },
+  "canvasPicker": {
+    "title": "Titel-Canvas",
+    "subtitle": "Wähle ein kurzes lokales MP4-Video. Es läuft während der Wiedergabe in einer Schleife anstelle des Covers.",
+    "pickFile": "MP4-Datei auswählen",
+    "removeAction": "Canvas entfernen"
+  },
   "genreDetail": {
     "badge": "Genre",
     "playAll": "Alle abspielen",

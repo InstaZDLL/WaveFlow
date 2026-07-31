@@ -1008,6 +1008,17 @@
     "pickFile": "Escolher um arquivo MP4",
     "removeAction": "Remover capa animada"
   },
+  "canvas": {
+    "show": "Mostrar Canvas",
+    "hide": "Ocultar Canvas",
+    "setTitle": "Definir um Canvas"
+  },
+  "canvasPicker": {
+    "title": "Canvas da faixa",
+    "subtitle": "Escolha um vídeo MP4 local e curto. Ele é reproduzido em loop atrás da reprodução, no lugar da capa.",
+    "pickFile": "Escolher um arquivo MP4",
+    "removeAction": "Remover Canvas"
+  },
   "genreDetail": {
     "badge": "Gênero",
     "playAll": "Reproduzir tudo",

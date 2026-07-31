@@ -1008,6 +1008,17 @@
     "pickFile": "MP4 फ़ाइल चुनें",
     "removeAction": "मोशन कवर हटाएं"
   },
+  "canvas": {
+    "show": "Canvas दिखाएँ",
+    "hide": "Canvas छिपाएँ",
+    "setTitle": "Canvas सेट करें"
+  },
+  "canvasPicker": {
+    "title": "ट्रैक Canvas",
+    "subtitle": "एक छोटा लोकल MP4 वीडियो चुनें। यह कवर की जगह प्लेबैक के पीछे लूप में चलता है।",
+    "pickFile": "MP4 फ़ाइल चुनें",
+    "removeAction": "Canvas हटाएँ"
+  },
   "genreDetail": {
     "badge": "शैली",
     "playAll": "सभी चलाएँ",

@@ -1008,6 +1008,17 @@
     "pickFile": "MP4ファイルを選択",
     "removeAction": "モーションカバーを削除"
   },
+  "canvas": {
+    "show": "Canvasを表示",
+    "hide": "Canvasを非表示",
+    "setTitle": "Canvasを設定"
+  },
+  "canvasPicker": {
+    "title": "トラックのCanvas",
+    "subtitle": "短いローカルのMP4動画を選んでください。カバーの代わりに、再生の背景でループ再生されます。",
+    "pickFile": "MP4ファイルを選択",
+    "removeAction": "Canvasを削除"
+  },
   "genreDetail": {
     "badge": "ジャンル",
     "playAll": "すべて再生",

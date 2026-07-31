@@ -1008,6 +1008,17 @@
     "pickFile": "選擇 MP4 檔案",
     "removeAction": "移除動態封面"
   },
+  "canvas": {
+    "show": "顯示 Canvas",
+    "hide": "隱藏 Canvas",
+    "setTitle": "設定 Canvas"
+  },
+  "canvasPicker": {
+    "title": "曲目 Canvas",
+    "subtitle": "選擇一段本機的短 MP4 影片。它會在播放時於背景循環播放，取代封面。",
+    "pickFile": "選擇 MP4 檔案",
+    "removeAction": "移除 Canvas"
+  },
   "genreDetail": {
     "badge": "曲風",
     "playAll": "播放全部",

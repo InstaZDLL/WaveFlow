@@ -1008,6 +1008,17 @@
     "pickFile": "Choose an MP4 file",
     "removeAction": "Remove motion cover"
   },
+  "canvas": {
+    "show": "Show Canvas",
+    "hide": "Hide Canvas",
+    "setTitle": "Set a Canvas"
+  },
+  "canvasPicker": {
+    "title": "Track Canvas",
+    "subtitle": "Choose a short local MP4 video. It loops behind playback in place of the cover.",
+    "pickFile": "Choose an MP4 file",
+    "removeAction": "Remove Canvas"
+  },
   "genreDetail": {
     "badge": "Genre",
     "playAll": "Play all",

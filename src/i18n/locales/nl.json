@@ -1008,6 +1008,17 @@
     "pickFile": "MP4-bestand kiezen",
     "removeAction": "Bewegende hoes verwijderen"
   },
+  "canvas": {
+    "show": "Canvas tonen",
+    "hide": "Canvas verbergen",
+    "setTitle": "Canvas instellen"
+  },
+  "canvasPicker": {
+    "title": "Nummer-canvas",
+    "subtitle": "Kies een korte lokale MP4-video. Die speelt in een lus achter het afspelen, in plaats van de hoes.",
+    "pickFile": "MP4-bestand kiezen",
+    "removeAction": "Canvas verwijderen"
+  },
   "genreDetail": {
     "badge": "Genre",
     "playAll": "Alles afspelen",

@@ -5,8 +5,16 @@ import { X, Music2, Radio } from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayer } from "../../hooks/usePlayer";
+import { useTrackCanvas } from "../../hooks/useTrackCanvas";
+import {
+  useCanvasEnabled,
+  setCanvasEnabled,
+} from "../../hooks/useCanvasEnabled";
+import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { Artwork } from "../common/Artwork";
 import { MotionCoverOverlay } from "../player/MotionCoverOverlay";
+import { CanvasStage } from "../player/CanvasStage";
+import { CanvasToggleButton } from "../player/CanvasToggleButton";
 import { ArtistLink } from "../common/ArtistLink";
 import { Lightbox } from "../common/Lightbox";
 import { enrichArtistDeezer } from "../../lib/tauri/detail";
@@ -120,6 +128,15 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
 
   const primaryArtistName = currentTrack?.artist_name?.split(", ")[0] ?? null;
 
+  // Per-track Canvas (issue #442) — mirrors the immersive view: the looping
+  // clip replaces the static cover when set + toggle on + motion not reduced,
+  // and the "Show Canvas" toggle only appears when the track has one.
+  const canvasEnabled = useCanvasEnabled();
+  const reducedMotion = usePrefersReducedMotion();
+  const canvasPath = useTrackCanvas(currentTrack?.id);
+  const canvasActive = canvasEnabled && !reducedMotion && !!canvasPath;
+  const canvasAvailable = !!canvasPath && !reducedMotion;
+
   return (
     <motion.aside
       key="nowPlaying"
@@ -135,26 +152,64 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
           <h2 className="text-sm font-bold tracking-widest uppercase text-zinc-500 dark:text-zinc-400">
             {t("nowPlaying.title")}
           </h2>
-          <button
-            type="button"
-            onClick={toggleNowPlaying}
-            aria-label={t("common.close")}
-            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1">
+            {canvasAvailable && (
+              <CanvasToggleButton
+                enabled={canvasEnabled}
+                onToggle={() => setCanvasEnabled(!canvasEnabled)}
+                size={18}
+                className={`p-2 rounded-full transition-colors ${
+                  canvasEnabled
+                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                    : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                }`}
+              />
+            )}
+            <button
+              type="button"
+              onClick={toggleNowPlaying}
+              aria-label={t("common.close")}
+              className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {currentTrack ? (
           <div className="p-6 space-y-6">
-            {/* Large artwork — keyboard-accessible lightbox trigger */}
-            {currentTrack.artwork_path ? (
-              <button
-                type="button"
-                onClick={() => setIsLightboxOpen(true)}
-                aria-label={t("common.viewArtwork")}
-                className="relative cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-2xl block w-full"
-              >
+            {/* Large artwork — keyboard-accessible lightbox trigger. The
+                Canvas overlay lives on a shared relative wrapper so it still
+                renders for a track that has a Canvas but no cover art. */}
+            <div className="relative w-full">
+              {currentTrack.artwork_path ? (
+                <button
+                  type="button"
+                  onClick={() => setIsLightboxOpen(true)}
+                  aria-label={t("common.viewArtwork")}
+                  className="relative cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-2xl block w-full"
+                >
+                  <Artwork
+                    path={currentTrack.artwork_path}
+                    path1x={currentTrack.artwork_path_1x}
+                    path2x={currentTrack.artwork_path_2x}
+                    size="full"
+                    alt={currentTrack.album_title ?? currentTrack.title}
+                    className="w-full aspect-square shadow-lg"
+                    iconSize={80}
+                    rounded="2xl"
+                  />
+                  {!canvasActive && (
+                    <MotionCoverOverlay
+                      artist={currentTrack.artist_name}
+                      album={currentTrack.album_title}
+                      albumId={currentTrack.album_id}
+                      rounded="2xl"
+                      className="shadow-lg"
+                    />
+                  )}
+                </button>
+              ) : (
                 <Artwork
                   path={currentTrack.artwork_path}
                   path1x={currentTrack.artwork_path_1x}
@@ -165,26 +220,14 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
                   iconSize={80}
                   rounded="2xl"
                 />
-                <MotionCoverOverlay
-                  artist={currentTrack.artist_name}
-                  album={currentTrack.album_title}
-                  albumId={currentTrack.album_id}
-                  rounded="2xl"
-                  className="shadow-lg"
-                />
-              </button>
-            ) : (
-              <Artwork
-                path={currentTrack.artwork_path}
-                path1x={currentTrack.artwork_path_1x}
-                path2x={currentTrack.artwork_path_2x}
-                size="full"
-                alt={currentTrack.album_title ?? currentTrack.title}
-                className="w-full aspect-square shadow-lg"
-                iconSize={80}
+              )}
+              <CanvasStage
+                path={canvasPath}
+                enabled={canvasEnabled && !reducedMotion}
                 rounded="2xl"
+                className="shadow-lg"
               />
-            )}
+            </div>
 
             {/* Track info */}
             <div className="space-y-1">

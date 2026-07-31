@@ -1008,6 +1008,17 @@
     "pickFile": "Choisir un fichier MP4",
     "removeAction": "Retirer la pochette animée"
   },
+  "canvas": {
+    "show": "Afficher le Canvas",
+    "hide": "Masquer le Canvas",
+    "setTitle": "Définir un Canvas"
+  },
+  "canvasPicker": {
+    "title": "Canvas de la piste",
+    "subtitle": "Choisissez une courte vidéo MP4 locale. Elle tourne en boucle derrière la lecture, à la place de la pochette.",
+    "pickFile": "Choisir un fichier MP4",
+    "removeAction": "Retirer le Canvas"
+  },
   "genreDetail": {
     "badge": "Genre",
     "playAll": "Tout lire",

@@ -1008,6 +1008,17 @@
     "pickFile": "选择 MP4 文件",
     "removeAction": "移除动态封面"
   },
+  "canvas": {
+    "show": "显示 Canvas",
+    "hide": "隐藏 Canvas",
+    "setTitle": "设置 Canvas"
+  },
+  "canvasPicker": {
+    "title": "曲目 Canvas",
+    "subtitle": "选择一段本地的短 MP4 视频。它会在播放时于背景循环播放，替代封面。",
+    "pickFile": "选择 MP4 文件",
+    "removeAction": "移除 Canvas"
+  },
   "genreDetail": {
     "badge": "流派",
     "playAll": "播放全部",
