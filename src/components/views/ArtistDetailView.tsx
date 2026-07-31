@@ -549,6 +549,7 @@ export function ArtistDetailView({
               playTracks(tracks, index, { type: "library", id: null })
             }
             onContextMenuRow={trackContextMenu.open}
+            onRowMenuKey={trackContextMenu.openFromKeyboard}
             t={t}
           />
         </div>
@@ -625,6 +626,7 @@ function ArtistTrackTable({
   onToggleLike,
   onPlayTrack,
   onContextMenuRow,
+  onRowMenuKey,
   t,
 }: {
   tracks: Track[];
@@ -635,6 +637,9 @@ function ArtistTrackTable({
   onToggleLike: (trackId: number) => void;
   onPlayTrack: (index: number) => void;
   onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
+  /** Keyboard equivalent (Menu / Shift+F10). Returns `true` when it
+   *  opened the menu, so the row's own key handling can stand down. */
+  onRowMenuKey: (event: React.KeyboardEvent, track: Track) => boolean;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
   const gridCols = "grid-cols-[3rem_2.75rem_1fr_1fr_5rem_2rem]";
@@ -675,6 +680,7 @@ function ArtistTrackTable({
               onKeyDown={(e) => {
                 // Only play when the row itself is focused — see LibraryView.
                 if (e.target !== e.currentTarget) return;
+                if (onRowMenuKey(e, tracks[index])) return;
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   onPlayTrack(index);

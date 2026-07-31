@@ -3,6 +3,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { CreatePlaylistModal } from "../components/common/CreatePlaylistModal";
@@ -88,6 +89,15 @@ export function usePlayerTrackContextMenu() {
     [menu],
   );
 
+  // Same keyboard contract as the library surfaces — see
+  // `useTrackContextMenu.openFromKeyboard`. Forwarded rather than
+  // reimplemented so the player surfaces can't drift from the rest.
+  const openFromKeyboard = useCallback(
+    (event: ReactKeyboardEvent, track: Track) =>
+      menu.openFromKeyboard(event, track),
+    [menu],
+  );
+
   const render = useCallback(
     () => (
       <>
@@ -116,5 +126,5 @@ export function usePlayerTrackContextMenu() {
     [menu, isCreatePlaylistOpen, createPlaylist],
   );
 
-  return { open, render };
+  return { open, openFromKeyboard, render };
 }

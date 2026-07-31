@@ -97,10 +97,26 @@ export function ImmersiveNowPlaying({
             `pb-1` + `leading-tight` on the marquee container give
             descenders (g / y / p) room so the `overflow: hidden` (needed
             for both truncate + the marquee) doesn't clip them. */}
+        {/* The title carries the track menu here — there is no row to
+            right-click in this view. Focusable (and announced via
+            `aria-haspopup`) only when a menu is actually available, so
+            the Menu key / Shift+F10 reach it without a mouse (issue
+            #436). Deliberately NOT `role="button"`: it opens a menu but
+            it is still the heading, and Enter/Space are left alone. */}
         <h1
-          className="text-3xl md:text-4xl font-bold"
+          className="text-3xl md:text-4xl font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded"
+          tabIndex={menuTrack ? 0 : undefined}
+          aria-haspopup={menuTrack ? "menu" : undefined}
           onContextMenu={
             menuTrack ? (e) => trackMenu.open(e, menuTrack) : undefined
+          }
+          onKeyDown={
+            menuTrack
+              ? (e) => {
+                  if (e.target !== e.currentTarget) return;
+                  trackMenu.openFromKeyboard(e, menuTrack);
+                }
+              : undefined
           }
         >
           <MarqueeText text={title} className="leading-tight pb-1" />

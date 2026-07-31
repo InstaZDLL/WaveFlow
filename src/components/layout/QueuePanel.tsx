@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { createPortal } from "react-dom";
@@ -186,6 +187,18 @@ export function QueuePanel() {
     },
     [trackMenu],
   );
+  // Keyboard counterpart (Menu / Shift+F10) — issue #436. Same radio
+  // guard as the mouse path: a stream row has no local file, so the
+  // track menu has nothing to act on. Returns `true` only when a menu
+  // actually opened, so the row's Enter/Space handling stays intact on
+  // the rows this skips.
+  const handleRowMenuKey = useCallback(
+    (event: ReactKeyboardEvent, item: QueueTrackPayload): boolean => {
+      if (item.id < 0 || !item.file_path) return false;
+      return trackMenu.openFromKeyboard(event, queuePayloadToTrack(item));
+    },
+    [trackMenu],
+  );
 
   return (
     <motion.aside
@@ -262,6 +275,7 @@ export function QueuePanel() {
                   item={nowPlaying}
                   isCurrent
                   onContextMenu={(e) => handleRowContextMenu(e, nowPlaying)}
+                  onMenuKey={(e) => handleRowMenuKey(e, nowPlaying)}
                 />
               </section>
             )}
@@ -276,6 +290,7 @@ export function QueuePanel() {
                   onJump={handleJump}
                   onReorder={handleReorder}
                   onContextMenu={handleRowContextMenu}
+                  onRowMenuKey={handleRowMenuKey}
                 />
               </section>
             )}
@@ -290,15 +305,28 @@ function QueueRow({
   item,
   isCurrent = false,
   onContextMenu,
+  onMenuKey,
 }: {
   item: QueueTrackPayload;
   isCurrent?: boolean;
   onContextMenu?: (e: ReactMouseEvent) => void;
+  /** Menu / Shift+F10 on the focused row (issue #436). Returns `true`
+   *  when it opened the menu. */
+  onMenuKey?: (e: ReactKeyboardEvent) => boolean;
 }) {
   return (
+    // Focusable so the context menu is reachable without a mouse. Unlike
+    // the up-next rows there is no Enter/Space action here — this row is
+    // the track already playing, so jumping to it would be a no-op.
     <div
+      tabIndex={onMenuKey ? 0 : undefined}
+      role={onMenuKey ? "button" : undefined}
       onContextMenu={onContextMenu}
-      className={`flex items-center space-x-3 p-2 rounded-lg transition-colors select-none ${
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        onMenuKey?.(e);
+      }}
+      className={`flex items-center space-x-3 p-2 rounded-lg transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
         isCurrent
           ? "bg-emerald-50 dark:bg-emerald-900/20"
           : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
@@ -339,6 +367,7 @@ interface SortableUpNextProps {
   onJump: (absoluteIndex: number) => void;
   onReorder: (fromAbsolute: number, toAbsolute: number) => void;
   onContextMenu: (e: ReactMouseEvent, item: QueueTrackPayload) => void;
+  onRowMenuKey: (e: ReactKeyboardEvent, item: QueueTrackPayload) => boolean;
 }
 
 /**
@@ -359,6 +388,7 @@ function SortableUpNext({
   onJump,
   onReorder,
   onContextMenu,
+  onRowMenuKey,
 }: SortableUpNextProps) {
   "use no memo";
   const sensors = useSensors(
@@ -452,6 +482,7 @@ function SortableUpNext({
                   rowHeight={QUEUE_ROW_HEIGHT}
                   onJump={onJump}
                   onContextMenu={onContextMenu}
+                  onRowMenuKey={onRowMenuKey}
                 />
               );
             })}
@@ -526,6 +557,7 @@ const SortableQueueRow = memo(function SortableQueueRow({
   rowHeight,
   onJump,
   onContextMenu,
+  onRowMenuKey,
 }: {
   id: string;
   absoluteIndex: number;
@@ -534,6 +566,7 @@ const SortableQueueRow = memo(function SortableQueueRow({
   rowHeight: number;
   onJump: (absoluteIndex: number) => void;
   onContextMenu: (e: ReactMouseEvent, item: QueueTrackPayload) => void;
+  onRowMenuKey: (e: ReactKeyboardEvent, item: QueueTrackPayload) => boolean;
 }) {
   // `animateLayoutChanges: () => false` disables the CSS transition
   // dnd-kit applies to every neighbour as the drag crosses them — on
@@ -584,6 +617,7 @@ const SortableQueueRow = memo(function SortableQueueRow({
           // the drag-handle button would otherwise bubble up and also
           // jump to the track.
           if (e.target !== e.currentTarget) return;
+          if (onRowMenuKey(e, item)) return;
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             onJump(absoluteIndex);

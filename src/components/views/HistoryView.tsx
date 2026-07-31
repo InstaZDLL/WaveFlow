@@ -328,6 +328,9 @@ export function HistoryView({
                 onContextMenu={(e, row) =>
                   trackContextMenu.open(e, rowToTrack(row))
                 }
+                onRowMenuKey={(e, row) =>
+                  trackContextMenu.openFromKeyboard(e, rowToTrack(row))
+                }
                 onPlay={(row) =>
                   // Single-track play — uses the row's track_id and a
                   // synthetic queue of just this track. Source type is
@@ -428,6 +431,9 @@ interface DayGroupProps {
   locale: string;
   currentTrackId: number | null;
   onContextMenu: (e: React.MouseEvent, row: PlayHistoryRow) => void;
+  /** Keyboard equivalent (Menu / Shift+F10). Returns `true` when it
+   *  opened the menu, so the row's own key handling can stand down. */
+  onRowMenuKey: (e: React.KeyboardEvent, row: PlayHistoryRow) => boolean;
   onPlay: (row: PlayHistoryRow) => void;
   onNavigateToArtist: (artistId: number) => void;
 }
@@ -437,6 +443,7 @@ function DayGroup({
   locale,
   currentTrackId,
   onContextMenu,
+  onRowMenuKey,
   onPlay,
   onNavigateToArtist,
 }: DayGroupProps) {
@@ -462,9 +469,29 @@ function DayGroup({
           return (
             <li
               key={row.event_id}
+              // Focusable like every other track row (issue #436): the
+              // context menu has to be reachable without a mouse, and a
+              // row nobody can focus can't receive the Menu key. Enter /
+              // Space play, matching the double-click already wired.
+              tabIndex={0}
+              role="button"
               onContextMenu={(e) => onContextMenu(e, row)}
               onDoubleClick={() => onPlay(row)}
-              className={`grid grid-cols-[3rem_1fr_1fr_5rem_4rem] gap-4 px-3 py-2 items-center rounded-lg transition-colors cursor-default ${
+              onKeyDown={(e) => {
+                // Only act when the row itself is focused — nested
+                // links (artist / album) handle their own keys.
+                if (e.target !== e.currentTarget) return;
+                if (onRowMenuKey(e, row)) return;
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onPlay(row);
+                }
+              }}
+              onKeyUp={(e) => {
+                if (e.target !== e.currentTarget) return;
+                if (e.key === " ") e.preventDefault();
+              }}
+              className={`grid grid-cols-[3rem_1fr_1fr_5rem_4rem] gap-4 px-3 py-2 items-center rounded-lg transition-colors cursor-default focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                 isCurrent
                   ? "bg-emerald-50 dark:bg-emerald-900/20"
                   : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"

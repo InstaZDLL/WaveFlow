@@ -385,6 +385,7 @@ export function AlbumDetailView({
           }
           onNavigateToArtist={onNavigateToArtist}
           onContextMenuRow={trackContextMenu.open}
+          onRowMenuKey={trackContextMenu.openFromKeyboard}
           t={t}
           isSelected={selection.isSelected}
           onRowSelect={(track, e) => {
@@ -478,6 +479,9 @@ interface AlbumTrackTableProps {
   onPlayTrack: (index: number) => void;
   onNavigateToArtist: (artistId: number) => void;
   onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
+  /** Keyboard equivalent (Menu / Shift+F10). Returns `true` when it
+   *  opened the menu, so the row's own key handling can stand down. */
+  onRowMenuKey: (event: React.KeyboardEvent, track: Track) => boolean;
   t: (key: string, opts?: Record<string, unknown>) => string;
   isSelected: (id: number) => boolean;
   onRowSelect: (track: Track, e: React.MouseEvent) => void;
@@ -496,6 +500,7 @@ function AlbumTrackTable({
   onPlayTrack,
   onNavigateToArtist,
   onContextMenuRow,
+  onRowMenuKey,
   t,
   isSelected,
   onRowSelect,
@@ -518,6 +523,7 @@ function AlbumTrackTable({
         onKeyDown={(e) => {
           // Only play when the row itself is focused — see LibraryView.
           if (e.target !== e.currentTarget) return;
+          if (onRowMenuKey(e, playableTracks[globalIndex])) return;
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             onPlayTrack(globalIndex);
