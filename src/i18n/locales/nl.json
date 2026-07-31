@@ -347,7 +347,10 @@
         "genres_other": "{{count}} genres",
         "dossiers_zero": "0 mappen",
         "dossiers_one": "{{count}} map",
-        "dossiers_other": "{{count}} mappen"
+        "dossiers_other": "{{count}} mappen",
+        "playlists_zero": "0 playlists",
+        "playlists_one": "{{count}} playlist",
+        "playlists_other": "{{count}} playlists"
       }
     },
     "tabs": {
@@ -355,7 +358,8 @@
       "albums": "Albums",
       "artistes": "Artiesten",
       "genres": "Genres",
-      "dossiers": "Mappen"
+      "dossiers": "Mappen",
+      "playlists": "Playlists"
     },
     "empty": {
       "morceaux": {
@@ -448,7 +452,14 @@
       "removeConfirmWithPlays_one": "Klik nogmaals om te bevestigen. {{count}} luisterbeurt blijft bewaard en wordt bij de volgende scan opnieuw gekoppeld.",
       "removeConfirmWithPlays_other": "Klik nogmaals om te bevestigen. {{count}} luisterbeurten blijven bewaard en worden bij de volgende scan opnieuw gekoppeld."
     },
-    "skeletonAriaLabel": "{{name}} laden…"
+    "skeletonAriaLabel": "{{name}} laden…",
+    "playlistsGrid": {
+      "emptyTitle": "Nog geen playlists",
+      "emptyHint": "Playlists die je maakt verschijnen hier als raster.",
+      "meta_zero": "0 nummers · {{duration}}",
+      "meta_one": "{{count}} nummer · {{duration}}",
+      "meta_other": "{{count}} nummers · {{duration}}"
+    }
   },
   "liked": {
     "badge": "Verzameling",
@@ -1305,7 +1316,8 @@
     "tracksCount": "Aantal nummers",
     "ascending": "Oplopend",
     "descending": "Aflopend",
-    "filename": "Bestandsnaam"
+    "filename": "Bestandsnaam",
+    "updatedAt": "Recent gewijzigd"
   },
   "editorial": {
     "masthead": {

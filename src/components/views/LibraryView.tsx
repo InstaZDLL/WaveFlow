@@ -2,10 +2,13 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+
+import { PlaylistGrid } from "./library/PlaylistGrid";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Music2,
@@ -15,6 +18,7 @@ import {
   Folder,
   RefreshCcw,
   FileSearch,
+  ListMusic,
   Clock,
   LayoutList,
   AlignJustify,
@@ -96,6 +100,7 @@ interface LibraryViewProps {
   onNavigateToAlbum: (albumId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
   onNavigateToGenre: (genreId: number) => void;
+  onNavigateToPlaylist: (playlistId: number) => void;
 }
 
 type Translator = (key: string, options?: Record<string, unknown>) => string;
@@ -105,6 +110,7 @@ const tabConfig: { id: LibraryTab; icon: typeof Music2 }[] = [
   { id: "albums", icon: Disc },
   { id: "artistes", icon: Mic2 },
   { id: "genres", icon: Tags },
+  { id: "playlists", icon: ListMusic },
   { id: "dossiers", icon: Folder },
 ];
 
@@ -113,6 +119,7 @@ const emptyStateIcons: Record<LibraryTab, typeof Music2> = {
   albums: Disc,
   artistes: Mic2,
   genres: Tags,
+  playlists: ListMusic,
   dossiers: Folder,
 };
 
@@ -121,6 +128,7 @@ const headerIcons: Record<LibraryTab, typeof Music2> = {
   albums: Disc,
   artistes: Mic2,
   genres: Tags,
+  playlists: ListMusic,
   dossiers: Folder,
 };
 
@@ -130,6 +138,7 @@ export function LibraryView({
   onNavigateToAlbum,
   onNavigateToArtist,
   onNavigateToGenre,
+  onNavigateToPlaylist,
 }: LibraryViewProps) {
   const { t } = useTranslation();
   const {
@@ -197,6 +206,9 @@ export function LibraryView({
     albums: true,
     artistes: true,
     genres: true,
+    // Playlists come from PlaylistContext, already loaded — there is no
+    // fetch of our own to wait on, so this tab never shows a skeleton.
+    playlists: false,
     dossiers: true,
   });
   const [tracksView, setTracksView] = useState<TracksView>("list");
@@ -212,6 +224,21 @@ export function LibraryView({
     orderBy: "title",
     direction: "asc",
   });
+  // Smart playlists (Daily Mix, On Repeat) live in Home's "Made for
+  // you" carousel; this tab is the user's own playlists, which is what
+  // issue #461 asked for ("the ones we make").
+  const userPlaylists = useMemo(
+    () => playlists.filter((p) => p.is_smart === 0),
+    [playlists],
+  );
+  // Persisted like every other tab's sort. Default `custom` = the
+  // sidebar's manual order, so the grid opens in the arrangement the
+  // user already curated there.
+  const playlistsSort = useSortMemory("playlists", {
+    orderBy: "custom",
+    direction: "asc",
+  });
+
   const albumsSort = useSortMemory("albums", {
     orderBy: "title",
     direction: "asc",
@@ -405,6 +432,8 @@ export function LibraryView({
         return artists.length;
       case "genres":
         return genres.length;
+      case "playlists":
+        return userPlaylists.length;
       case "dossiers":
         return folders.length;
     }
@@ -532,6 +561,13 @@ export function LibraryView({
     (activeTab === "albums" && albums.length > 0) ||
     (activeTab === "artistes" && artists.length > 0) ||
     (activeTab === "genres" && genres.length > 0) ||
+    // Playlists is renderable even when empty: `PlaylistGrid` owns its
+    // own empty state ("playlists you create appear here"), which is the
+    // right message. The generic one below is built for a library with
+    // no music — it offers "Import a folder", which doesn't create a
+    // playlist — and it reads `library.empty.<tab>.*`, keys this tab
+    // deliberately doesn't define.
+    activeTab === "playlists" ||
     (activeTab === "dossiers" && folders.length > 0);
 
   return (
@@ -829,6 +865,25 @@ export function LibraryView({
               onSelect={onNavigateToGenre}
             />
           )}
+          {activeTab === "playlists" && (
+            <>
+              {userPlaylists.length > 0 && (
+                <div className="flex items-center justify-end space-x-3 -mt-4">
+                  <SortDropdown
+                    options={playlistSortOptions(t)}
+                    current={playlistsSort.sort}
+                    onChange={playlistsSort.setSort}
+                    t={t}
+                  />
+                </div>
+              )}
+              <PlaylistGrid
+                playlists={userPlaylists}
+                sort={playlistsSort.sort}
+                onOpen={onNavigateToPlaylist}
+              />
+            </>
+          )}
           {activeTab === "dossiers" && (
             <FolderList
               folders={folders}
@@ -989,6 +1044,16 @@ function albumSortOptions(t: Translator): SortOption[] {
     { value: "artist", label: t("sort.artist") },
     { value: "year", label: t("sort.year") },
     { value: "added_at", label: t("sort.addedAt") },
+  ];
+}
+
+function playlistSortOptions(t: Translator): SortOption[] {
+  return [
+    { value: "custom", label: t("sort.customOrder") },
+    { value: "name", label: t("sort.name") },
+    { value: "tracks", label: t("sort.tracksCount") },
+    { value: "duration", label: t("sort.duration") },
+    { value: "updated", label: t("sort.updatedAt") },
   ];
 }
 

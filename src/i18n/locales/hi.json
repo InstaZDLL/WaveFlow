@@ -347,7 +347,10 @@
         "genres_other": "{{count}} शैलियाँ",
         "dossiers_zero": "0 फ़ोल्डर",
         "dossiers_one": "{{count}} फ़ोल्डर",
-        "dossiers_other": "{{count}} फ़ोल्डर"
+        "dossiers_other": "{{count}} फ़ोल्डर",
+        "playlists_zero": "0 प्लेलिस्ट",
+        "playlists_one": "{{count}} प्लेलिस्ट",
+        "playlists_other": "{{count}} प्लेलिस्ट"
       }
     },
     "tabs": {
@@ -355,7 +358,8 @@
       "albums": "एल्बम",
       "artistes": "कलाकार",
       "genres": "शैलियाँ",
-      "dossiers": "फ़ोल्डर"
+      "dossiers": "फ़ोल्डर",
+      "playlists": "प्लेलिस्ट"
     },
     "empty": {
       "morceaux": {
@@ -448,7 +452,14 @@
       "removeConfirmWithPlays_one": "पुष्टि के लिए फिर से क्लिक करें। {{count}} प्ले सहेजा जाएगा और अगले स्कैन में फिर से जोड़ा जाएगा।",
       "removeConfirmWithPlays_other": "पुष्टि के लिए फिर से क्लिक करें। {{count}} प्ले सहेजे जाएंगे और अगले स्कैन में फिर से जोड़े जाएंगे।"
     },
-    "skeletonAriaLabel": "{{name}} लोड हो रहे हैं…"
+    "skeletonAriaLabel": "{{name}} लोड हो रहे हैं…",
+    "playlistsGrid": {
+      "emptyTitle": "अभी कोई प्लेलिस्ट नहीं",
+      "emptyHint": "आपकी बनाई प्लेलिस्ट यहाँ ग्रिड में दिखेंगी।",
+      "meta_zero": "0 गाने · {{duration}}",
+      "meta_one": "{{count}} गाना · {{duration}}",
+      "meta_other": "{{count}} गाने · {{duration}}"
+    }
   },
   "liked": {
     "badge": "संग्रह",
@@ -1305,7 +1316,8 @@
     "tracksCount": "ट्रैकों की संख्या",
     "ascending": "आरोही",
     "descending": "अवरोही",
-    "filename": "फ़ाइल का नाम"
+    "filename": "फ़ाइल का नाम",
+    "updatedAt": "हाल में अपडेटेड"
   },
   "editorial": {
     "masthead": {

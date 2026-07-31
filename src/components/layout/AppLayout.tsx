@@ -446,6 +446,7 @@ export function AppLayout() {
             onNavigateToAlbum={navigateToAlbum}
             onNavigateToArtist={navigateToArtist}
             onNavigateToGenre={navigateToGenre}
+            onNavigateToPlaylist={navigateToPlaylist}
           />
         );
       case "settings":

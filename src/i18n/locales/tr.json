@@ -347,7 +347,10 @@
         "genres_other": "{{count}} tür",
         "dossiers_zero": "0 klasör",
         "dossiers_one": "{{count}} klasör",
-        "dossiers_other": "{{count}} klasör"
+        "dossiers_other": "{{count}} klasör",
+        "playlists_zero": "0 çalma listesi",
+        "playlists_one": "{{count}} çalma listesi",
+        "playlists_other": "{{count}} çalma listesi"
       }
     },
     "tabs": {
@@ -355,7 +358,8 @@
       "albums": "Albümler",
       "artistes": "Sanatçılar",
       "genres": "Türler",
-      "dossiers": "Klasörler"
+      "dossiers": "Klasörler",
+      "playlists": "Çalma listeleri"
     },
     "empty": {
       "morceaux": {
@@ -448,7 +452,14 @@
       "removeConfirmWithPlays_one": "Onaylamak için tekrar tıkla. {{count}} dinleme korunacak ve sonraki taramada yeniden bağlanacak.",
       "removeConfirmWithPlays_other": "Onaylamak için tekrar tıkla. {{count}} dinleme korunacak ve sonraki taramada yeniden bağlanacak."
     },
-    "skeletonAriaLabel": "{{name}} yükleniyor…"
+    "skeletonAriaLabel": "{{name}} yükleniyor…",
+    "playlistsGrid": {
+      "emptyTitle": "Henüz çalma listesi yok",
+      "emptyHint": "Oluşturduğun çalma listeleri burada ızgara olarak görünür.",
+      "meta_zero": "0 parça · {{duration}}",
+      "meta_one": "{{count}} parça · {{duration}}",
+      "meta_other": "{{count}} parça · {{duration}}"
+    }
   },
   "liked": {
     "badge": "Koleksiyon",
@@ -1305,7 +1316,8 @@
     "tracksCount": "Parça sayısı",
     "ascending": "Artan",
     "descending": "Azalan",
-    "filename": "Dosya adı"
+    "filename": "Dosya adı",
+    "updatedAt": "Son güncellenen"
   },
   "editorial": {
     "masthead": {

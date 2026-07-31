@@ -347,7 +347,10 @@
         "genres_other": "{{count}}ジャンル",
         "dossiers_zero": "0個",
         "dossiers_one": "{{count}}個",
-        "dossiers_other": "{{count}}個"
+        "dossiers_other": "{{count}}個",
+        "playlists_zero": "0 個のプレイリスト",
+        "playlists_one": "{{count}} 個のプレイリスト",
+        "playlists_other": "{{count}} 個のプレイリスト"
       }
     },
     "tabs": {
@@ -355,7 +358,8 @@
       "albums": "アルバム",
       "artistes": "アーティスト",
       "genres": "ジャンル",
-      "dossiers": "フォルダ"
+      "dossiers": "フォルダ",
+      "playlists": "プレイリスト"
     },
     "empty": {
       "morceaux": {
@@ -448,7 +452,14 @@
       "removeConfirmWithPlays_one": "もう一度クリックして確認します。{{count}} 件の再生履歴は保持され、次回のスキャンで再び関連付けられます。",
       "removeConfirmWithPlays_other": "もう一度クリックして確認します。{{count}} 件の再生履歴は保持され、次回のスキャンで再び関連付けられます。"
     },
-    "skeletonAriaLabel": "{{name}}を読み込み中…"
+    "skeletonAriaLabel": "{{name}}を読み込み中…",
+    "playlistsGrid": {
+      "emptyTitle": "プレイリストがありません",
+      "emptyHint": "作成したプレイリストがグリッドで表示されます。",
+      "meta_zero": "0 曲 · {{duration}}",
+      "meta_one": "{{count}} 曲 · {{duration}}",
+      "meta_other": "{{count}} 曲 · {{duration}}"
+    }
   },
   "liked": {
     "badge": "コレクション",
@@ -1305,7 +1316,8 @@
     "filename": "ファイル名",
     "customOrder": "カスタム順",
     "recentlyAdded": "最近追加",
-    "menuTitle": "並び替え"
+    "menuTitle": "並び替え",
+    "updatedAt": "最近更新"
   },
   "editorial": {
     "masthead": {
