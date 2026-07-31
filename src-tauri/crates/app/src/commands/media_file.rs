@@ -54,21 +54,24 @@ pub async fn store_hash_addressed_mp4(
 
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let target = dir.join(format!("{hash}.mp4"));
+    // Fast path: already published (hash-addressed ⇒ identical bytes).
     if !tokio::fs::try_exists(&target).await? {
-        // Atomic publish: stage into a unique temp in the same directory,
-        // then rename onto `target` only if nobody published it first. Rename
-        // is atomic within a filesystem, so a concurrent reader never sees a
-        // half-written file — unlike a bare `write`, which truncates then
-        // fills. Same-hash ⇒ identical bytes, so on a lost race we simply drop
-        // our temp rather than overwrite the winner's file.
+        // Publish atomically WITHOUT ever replacing an existing target: stage
+        // the complete file into a unique temp, then hard-link it onto
+        // `target`. `hard_link` is atomic and fails with `AlreadyExists` if
+        // another importer published first (same hash ⇒ identical bytes), so a
+        // concurrent reader sees either nothing or the whole file — never a
+        // half-written one — and the winner's file is never truncated. The
+        // temp is always removed; a non-`AlreadyExists` error still propagates.
         let seq = TMP_SEQ.fetch_add(1, Ordering::Relaxed);
         let tmp = dir.join(format!(".{hash}.{}.{seq}.part", std::process::id()));
         tokio::fs::write(&tmp, &bytes).await?;
-        if tokio::fs::try_exists(&target).await? {
-            let _ = tokio::fs::remove_file(&tmp).await;
-        } else if let Err(e) = tokio::fs::rename(&tmp, &target).await {
-            let _ = tokio::fs::remove_file(&tmp).await;
-            return Err(e.into());
+        let link = tokio::fs::hard_link(&tmp, &target).await;
+        let _ = tokio::fs::remove_file(&tmp).await;
+        if let Err(e) = link {
+            if e.kind() != std::io::ErrorKind::AlreadyExists {
+                return Err(e.into());
+            }
         }
     }
     Ok(hash)

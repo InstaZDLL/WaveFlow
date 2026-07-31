@@ -48,12 +48,20 @@ function lookup(trackId: number): Promise<string | null> {
   if (pending) return pending;
 
   const myGeneration = generationOf(trackId);
+  const myProfileGen = profileGeneration;
   const request: Promise<string | null> = getTrackCanvas(trackId)
     .then((canvas) => {
       const path = canvas?.localPath ?? null;
-      // Only cache when this request is still the current generation — an
-      // invalidation (set/clear) since it started means the answer is stale.
-      if (generationOf(trackId) === myGeneration) rememberResolved(trackId, path);
+      // Only cache when neither a per-track invalidation (set/clear) NOR a
+      // profile switch has happened since the request started — either makes
+      // the answer stale, and a late completion from the previous profile
+      // must never repopulate the cache for a colliding id.
+      if (
+        profileGeneration === myProfileGen &&
+        generationOf(trackId) === myGeneration
+      ) {
+        rememberResolved(trackId, path);
+      }
       return path;
     })
     // A failed lookup is NOT remembered so a transient error doesn't
@@ -105,10 +113,17 @@ export function invalidateTrackCanvas(trackId: number): void {
 // another profile's Canvas after a switch. Track the active profile and drop
 // the whole cache when it changes — track ids from the previous profile are
 // all meaningless now, so a full clear is both correct and simplest.
+//
+// `profileGeneration` is a monotonic token (never reset): a request captures
+// it at start, and a completion from a prior profile is rejected before it can
+// repopulate the cache. Clearing the maps alone wouldn't suffice — a stale
+// in-flight request would re-capture generation 0 and slip through.
 let activeProfileId: number | null = null;
+let profileGeneration = 0;
 function resetCacheForProfile(profileId: number | null): void {
   if (profileId === activeProfileId) return;
   activeProfileId = profileId;
+  profileGeneration += 1;
   resolved.clear();
   inFlight.clear();
   generation.clear();
@@ -126,12 +141,13 @@ function resetCacheForProfile(profileId: number | null): void {
 export function useTrackCanvas(
   trackId: number | null | undefined,
 ): string | null {
-  // Store the resolved path together with the id it belongs to, so the
-  // render can gate on a match below — a bare path would flash the previous
-  // track's Canvas for one render after `trackId` changes but before the
-  // effect resolves.
+  // Store the resolved path together with the track id AND profile it belongs
+  // to, so the render can gate on a match below — a bare path would flash the
+  // previous track's (or previous profile's) Canvas for one render after the
+  // inputs change but before the effect resolves.
   const [resolved, setResolved] = useState<{
     id: number;
+    profileId: number | null;
     path: string | null;
   } | null>(null);
   // Re-run the effect when a set/clear bumps the epoch, even for the same
@@ -149,7 +165,7 @@ export function useTrackCanvas(
   useEffect(() => {
     let cancelled = false;
     const apply = (p: string | null) => {
-      if (!cancelled) setResolved({ id: trackId as number, path: p });
+      if (!cancelled) setResolved({ id: trackId as number, profileId, path: p });
     };
     if (trackId != null && trackId >= 0) {
       lookup(trackId).then(apply, () => apply(null));
@@ -158,10 +174,15 @@ export function useTrackCanvas(
       cancelled = true;
     };
     // `currentEpoch` is a deliberate dep: a bump forces a re-resolve.
-  }, [trackId, currentEpoch]);
+  }, [trackId, currentEpoch, profileId]);
 
-  // Only surface the path when it belongs to the currently-requested track;
-  // a mismatch (track just changed, effect not resolved yet) reads as null,
-  // so the previous track's clip never bleeds onto the new one.
-  return resolved && resolved.id === trackId ? resolved.path : null;
+  // Only surface the path when it belongs to BOTH the currently-requested
+  // track and the active profile; any mismatch (track or profile just changed,
+  // effect not resolved yet) reads as null, so a previous track's/profile's
+  // clip never bleeds onto the new one.
+  return resolved &&
+    resolved.id === trackId &&
+    resolved.profileId === profileId
+    ? resolved.path
+    : null;
 }
