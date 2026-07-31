@@ -339,7 +339,24 @@ fn external_query(title: &str, artist_name: Option<&str>) -> String {
 /// wasn't word-level. The fallback chain stays Musixmatch-free; the
 /// dedicated tier owns it.
 fn external_fallback_providers() -> Vec<Provider> {
-    vec![Provider::NetEase, Provider::Megalobiz, Provider::Genius]
+    // LRCLIB leads even though tier 5 already asked it, because the two
+    // ask *differently*: tier 5 hits `/api/get`, which matches on artist
+    // + track + album + duration and 404s when any of them disagrees
+    // with the file's tags (a remaster, a "Deluxe" album name, a rip a
+    // few seconds off). This chain goes through the provider's
+    // `/api/search`, which is fuzzy.
+    //
+    // Without it, that 404 dropped straight to providers that answer for
+    // almost anything — so a track LRCLIB *does* carry came back from
+    // Genius, and picking LRCLIB by hand in the panel (fuzzy search)
+    // found it immediately. That contradiction is what issue #463
+    // reported.
+    vec![
+        Provider::Lrclib,
+        Provider::NetEase,
+        Provider::Megalobiz,
+        Provider::Genius,
+    ]
 }
 
 /// Process-wide shared `SyncedLyricsClient`. Standing one up per call
@@ -2695,6 +2712,33 @@ pub async fn export_lyrics_to_path(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The chain must consult LRCLIB before providers that answer for
+    /// almost any query. Tier 5 already asked LRCLIB, but through the
+    /// exact-match `/api/get`; this pass is the fuzzy one, and dropping
+    /// it is what let Genius answer for tracks LRCLIB actually carries
+    /// (issue #463).
+    #[test]
+    fn fallback_chain_asks_lrclib_before_the_catch_all_providers() {
+        let chain = external_fallback_providers();
+        let pos = |p: Provider| chain.iter().position(|c| *c == p);
+
+        let lrclib = pos(Provider::Lrclib).expect("lrclib is in the chain");
+        for catch_all in [Provider::NetEase, Provider::Megalobiz, Provider::Genius] {
+            let other = pos(catch_all).expect("provider is in the chain");
+            assert!(
+                lrclib < other,
+                "lrclib must precede {catch_all:?} in the fallback chain"
+            );
+        }
+
+        // Musixmatch stays out: the dedicated enhanced tier owns it, and
+        // listing it here would re-issue the identical request.
+        assert!(
+            pos(Provider::Musixmatch).is_none(),
+            "musixmatch belongs to its own tier, not this chain"
+        );
+    }
 
     #[test]
     fn embedded_lyrics_resolution_prioritizes_synced_and_skips_blanks() {
