@@ -23,8 +23,21 @@ use globset::{Glob, GlobSet, GlobSetBuilder};
 use sha2::{Digest, Sha256};
 
 use crate::plugin::bindings::source::waveflow::host as wit_host;
+// The `library` import is fresh to the `ui` world (not remapped via
+// bindgen `with:`), so its generated types live under the `ui`
+// bindgen module rather than `source`. http/log/storage/config all
+// resolve to `wit_host` (source's) because the `with:` remap makes
+// them one and the same type across worlds.
+use crate::plugin::bindings::ui::waveflow::host::library as ui_library;
 use crate::plugin::manifest::Manifest;
 use crate::plugin::runtime::HostCtx;
+
+/// Host-chosen hard ceiling on `library.list-artists`, applied on top
+/// of the guest's `limit` argument. Bounds the snapshot a UI plugin
+/// can pull in one call regardless of what it asks for — a redacted
+/// read is still a read, and 500 artists is already a large personal
+/// library's worth of following data.
+pub const MAX_LIBRARY_ARTISTS: usize = 500;
 
 /// Default scratch-store quota — 10 MB per plugin (sum of all keys).
 /// Mirrors the contract spelled in `waveflow-host.wit`. Phase 3 lets
@@ -71,6 +84,11 @@ pub struct HostPermissions {
     /// for the rationale (a plugin that can write but not read is
     /// the same as one that can write into a key it then re-reads).
     pub storage_state: bool,
+
+    /// `true` if `waveflow:host/library.list-artists` is allowed
+    /// (the `ui` world's redacted artist read). Default-denied like
+    /// every other capability.
+    pub library_read_artists: bool,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -117,6 +135,7 @@ impl HostPermissions {
             http,
             storage_read: manifest.permissions.storage_read,
             storage_state: manifest.permissions.storage_state,
+            library_read_artists: manifest.permissions.library_read_artists,
         })
     }
 
@@ -128,6 +147,7 @@ impl HostPermissions {
             http: None,
             storage_read: false,
             storage_state: false,
+            library_read_artists: false,
         }
     }
 
@@ -532,6 +552,37 @@ impl wit_host::config::Host for HostCtx {
     }
 }
 
+// ----- waveflow:host/library (ui world) -----------------------------------
+
+impl ui_library::Host for HostCtx {
+    /// Return the redacted artist snapshot pinned into this store at
+    /// instantiate time. Permission-gated on `library.read_artists`;
+    /// doubly clamped (the snapshot is already bounded when loaded,
+    /// and the guest's `limit` is re-capped at [`MAX_LIBRARY_ARTISTS`]
+    /// here so a large `limit` can't widen it). Pure lookup — reads
+    /// no network, so it works offline.
+    fn list_artists(
+        &mut self,
+        limit: u32,
+    ) -> wasmtime::Result<Result<Vec<ui_library::Artist>, String>> {
+        if !self.permissions.library_read_artists {
+            return Ok(Err("permission denied: library.read_artists".into()));
+        }
+        let take = (limit as usize).min(MAX_LIBRARY_ARTISTS);
+        let artists = self
+            .library_artists
+            .iter()
+            .take(take)
+            .map(|a| ui_library::Artist {
+                id: a.id,
+                name: a.name.clone(),
+                track_count: a.track_count,
+            })
+            .collect();
+        Ok(Ok(artists))
+    }
+}
+
 /// Register every `waveflow:host/*` import on the given linker.
 /// Called once by [`crate::plugin::runtime::PluginRuntime::build_linker`].
 /// Adding a new host interface = one new line here.
@@ -549,6 +600,11 @@ pub fn add_to_linker(linker: &mut wasmtime::component::Linker<HostCtx>) -> wasmt
     wit_host::log::add_to_linker::<_, HasSelf<HostCtx>>(linker, |ctx| ctx)?;
     wit_host::storage::add_to_linker::<_, HasSelf<HostCtx>>(linker, |ctx| ctx)?;
     wit_host::config::add_to_linker::<_, HasSelf<HostCtx>>(linker, |ctx| ctx)?;
+    // `waveflow:host/library` is imported only by the `ui` world.
+    // Registering it on the shared linker is harmless for source /
+    // metadata plugins — a component only binds the imports it
+    // actually declares, so the extra entry is inert for them.
+    ui_library::add_to_linker::<_, HasSelf<HostCtx>>(linker, |ctx| ctx)?;
     Ok(())
 }
 
@@ -590,6 +646,7 @@ mod tests {
             http: vec!["https://*.radio-browser.info/**".into()],
             storage_read: false,
             storage_state: false,
+            library_read_artists: false,
         });
         let p = HostPermissions::from_manifest(&m).expect("compile glob");
         assert!(p.http_allowed("https://de1.api.radio-browser.info/json/stations"));
@@ -604,6 +661,7 @@ mod tests {
             http: vec!["[".into()],
             storage_read: false,
             storage_state: false,
+            library_read_artists: false,
         });
         match HostPermissions::from_manifest(&m) {
             Ok(_) => panic!("expected glob compile error, got Ok"),
@@ -710,6 +768,7 @@ mod tests {
                 http: vec!["https://example.com/*".into()],
                 storage_read: false,
                 storage_state: false,
+                library_read_artists: false,
             },
         ))
         .expect("compile allowlist");

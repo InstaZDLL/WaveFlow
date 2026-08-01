@@ -9,9 +9,9 @@ The host is [`waveflow_core::plugin::runtime`](../../src-tauri/crates/core/src/p
 - `<app-data>/waveflow/plugins/` — the writable **sideload** root (where the store installs).
 - `<resource>/plugins/` — installer-bundled plugins, re-seeded into the sideload root at boot.
 
-A plugin declares a **world** (`source` or `metadata`, e.g. `waveflow:metadata@1.1.0`) and, in its `manifest.toml`, the host capabilities it needs. Every capability is **permission-gated**: outbound HTTP goes through the host's allowlisted `waveflow:host/http` (a plugin can only reach the hosts its manifest lists — surfaced in the UI as the "Can reach:" chip), and persistence is limited to the plugin's own **scratch store** (`waveflow:host/storage`, a small per-plugin quota — the "User storage" chip). Plugins have **no filesystem access**. The host also **serialises** calls into a given plugin, so its host operations run one at a time rather than concurrently — this bounds concurrency, not overall request volume, and the host does not itself rate-limit or back off (a plugin stays polite by caching its results, as the official ones do).
+A plugin declares a **world** (`source`, `metadata`, or `ui` — e.g. `waveflow:metadata@1.1.0`) and, in its `manifest.toml`, the host capabilities it needs. Every capability is **permission-gated**: outbound HTTP goes through the host's allowlisted `waveflow:host/http` (a plugin can only reach the hosts its manifest lists — surfaced in the UI as the "Can reach:" chip), and persistence is limited to the plugin's own **scratch store** (`waveflow:host/storage`, a small per-plugin quota — the "User storage" chip). Plugins have **no filesystem access**. The host also **serialises** calls into a given plugin, so its host operations run one at a time rather than concurrently — this bounds concurrency, not overall request volume, and the host does not itself rate-limit or back off (a plugin stays polite by caching its results, as the official ones do).
 
-Host imports currently exposed to guests: `http` (permissioned fetch), `storage` (scratch read/write state), `log`, and `config` (read-only access to the user's plugin options — see below). The `metadata` world reuses `source`'s `waveflow:host/*` types via bindgen `with:`, so there is one set of host implementations behind both.
+Host imports currently exposed to guests: `http` (permissioned fetch), `storage` (scratch read/write state), `log`, `config` (read-only access to the user's plugin options — see below), and `library` (the `ui` world's redacted artist read — see [The UI world](#the-ui-world-waveflowuiv1)). The `metadata` **and** `ui` worlds reuse `source`'s `waveflow:host/*` types via bindgen `with:`, so there is one set of host implementations behind all three — the `ui` world adds only the fresh `library` import on top.
 
 ## The plugin store
 
@@ -93,6 +93,31 @@ Key on the app's canonical locale codes (the 17 in [`src/i18n/index.ts`](../../s
 The host hands the merged value through untouched and the UI resolves it against the active i18next language via [`useLocalizedText`](../../src/hooks/useLocalizedText.ts), so a language switch re-renders instantly with no backend round-trip. The fallback chain — exact code → base language (`pt-BR` → `pt`) → `en` → any entry — is implemented twice, in [`LocalizedString::resolve`](../../src-tauri/crates/core/src/plugin/manifest.rs) and [`resolveLocalizedText`](../../src/lib/localizedText.ts); **change them together**.
 
 Blank entries are skipped at every step instead of counting as a hit, so `fr = ""` next to an English string renders the English — an empty slot is an authoring accident, and letting it win would blank a store card or leave an option control with no accessible name (the UI substitutes the option key only on a `None`). A localized field that ends up declaring zero languages is refused outright at parse time.
+
+## The UI world (`waveflow:ui/v1`)
+
+A `ui`-world plugin renders its own view inside WaveFlow **without shipping any React**. The security boundary is a **JSON view descriptor**: the guest describes a declarative tree (title, sections, item cards, images, action buttons) and the host draws it with WaveFlow-native components. A plugin never injects HTML, CSS, JavaScript, or React code — a hostile descriptor can only ask for widgets the host already knows how to render, so it can't run code in the app's origin.
+
+The exported interface `extension` is three functions ([`wit/ui/plugin.wit`](../../src-tauri/crates/plugin-sdk/wit/ui/plugin.wit)):
+
+- **`manifest() -> mount-point`** — sidebar registration (label + optional lucide icon name + initial path). The host reads it once to place a navigable entry; the plugin doesn't draw the sidebar itself.
+- **`render(path) -> result<string, string>`** — returns the current view as a JSON descriptor string for an internal `path`.
+- **`on-event(event, payload) -> result<string, string>`** — a user action (a descriptor `event` button's opaque `event` + `payload`) round-trips here, and the plugin returns the **next full descriptor** that replaces the view. There is no diff/patch protocol — every action re-renders. An `open-url` action, by contrast, is handled entirely host-side and never reaches the guest.
+
+The host side is thin: [`bindings::ui`](../../src-tauri/crates/core/src/plugin/bindings.rs) binds the world (reusing `source`'s host types via `with:`), [`runtime::{ui_manifest, ui_render, ui_event}`](../../src-tauri/crates/core/src/plugin/runtime.rs) instantiate + call it, and the Tauri commands [`list_ui_plugins` / `plugin_ui_render` / `plugin_ui_event`](../../src-tauri/crates/app/src/commands/plugins.rs) drive the frontend. Sidebar entries + routing are built dynamically off `manifest()` (keyed on plugin id), not hardcoded per plugin — a plugin whose `manifest()` traps is skipped + logged rather than blanking the nav.
+
+### The redacted `library.read_artists` capability
+
+A UI plugin often needs to know which artists the user follows (Release Radar keys new releases off them). The `library` host import ([`wit/ui/deps/host/host.wit`](../../src-tauri/crates/plugin-sdk/wit/ui/deps/host/host.wit)) grants a **redacted** read only:
+
+```wit
+list-artists: func(limit: u32) -> result<list<artist>, string>;
+// artist = { id: u64, name: string, track-count: u32 }
+```
+
+Names + aggregate track counts + an opaque id — **no file paths, no per-track rows, no raw DB access**. It's permission-gated (`library.read_artists` in the manifest, surfaced as its own permission chip), doubly clamped (the host loads ≤ [`MAX_LIBRARY_ARTISTS`](../../src-tauri/crates/core/src/plugin/host_impl.rs) and re-caps the guest's `limit`), and **snapshot-injected**: the host queries the active profile on the async side and hands the guest a ready list, so the guest never touches SQLite. Because it reads local state only, it works offline. A plugin without the permission gets `Err("permission denied: library.read_artists")` even if the snapshot is present — the redaction is enforced host-side, not left to guest good behaviour (proven both ways in [`tests/plugin_ui.rs`](../../src-tauri/crates/core/tests/plugin_ui.rs) against the `ui-fixture` component).
+
+The first `ui`-world consumer is **Release Radar** (issue #443), which — like every plugin — lives in its own repo, not the signed core. The core carries only the world surface + a test-only `ui-fixture` under [`plugins/ui-fixture/`](../../src-tauri/plugins/ui-fixture/) (never bundled, never shipped).
 
 ## Official plugins
 

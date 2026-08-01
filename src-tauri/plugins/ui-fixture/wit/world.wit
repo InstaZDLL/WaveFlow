@@ -1,0 +1,29 @@
+// WaveFlow UI extension world — v1 (test fixture copy).
+//
+// Mirrors `crates/plugin-sdk/wit/ui/plugin.wit`. Kept local to the
+// fixture crate so `cargo component build` resolves it without
+// reaching into the host tree, exactly like the web-radio plugin
+// carries its own copy of the source world.
+
+package waveflow:ui@1.0.0;
+
+interface extension {
+  record mount-point {
+    sidebar-label: string,
+    sidebar-icon: option<string>,
+    initial-path: string,
+  }
+
+  manifest: func() -> mount-point;
+  render: func(path: string) -> result<string, string>;
+  on-event: func(event: string, payload: string) -> result<string, string>;
+}
+
+world plugin {
+  import waveflow:host/http@1.0.0;
+  import waveflow:host/log@1.0.0;
+  import waveflow:host/storage@1.0.0;
+  import waveflow:host/config@1.0.0;
+  import waveflow:host/library@1.0.0;
+  export extension;
+}

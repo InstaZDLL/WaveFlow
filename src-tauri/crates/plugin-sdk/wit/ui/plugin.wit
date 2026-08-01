@@ -1,24 +1,61 @@
-// WaveFlow UI extension world — v1 SKELETON.
+// WaveFlow UI extension world — v1.
 //
-// Reserved for v1.7+ scope: plugins can describe custom views the
-// host renders (categories in the sidebar, panels in the right
-// drawer). The shape is sketched here so the world id is stable,
-// but the host runtime won't bind this world until UI plugins
-// actually land.
+// A UI plugin describes its views as JSON *view descriptors* that
+// the host renders with WaveFlow-native React components. Plugins
+// NEVER inject HTML, CSS, JavaScript, or React code into the host —
+// the descriptor is a declarative tree (sections, cards, images,
+// buttons) the host draws itself. That is the security boundary: a
+// hostile descriptor can only ask for widgets the host already
+// knows how to render, it can't run code in the app's origin.
+//
+// The interaction loop is deliberately stateless from the host's
+// side: `render(path)` returns the current view, a user action
+// round-trips through `on-event(event, payload)`, and the plugin
+// answers with a FRESH full descriptor that replaces the view.
+// There is no diff/patch protocol — every action re-renders.
 
 package waveflow:ui@1.0.0;
 
 interface extension {
-  /// Sketched: a JSON-encoded view descriptor the host's React
-  /// renderer interprets. The exact schema is still in design —
-  /// holding the surface flat for v1 keeps the world id reusable
-  /// while leaving room to evolve.
-  render: func() -> result<string, string>;
+  /// Where the plugin plants its navigable entry in the app chrome.
+  /// The host reads this once to register a sidebar item; the plugin
+  /// doesn't get to draw the sidebar itself.
+  record mount-point {
+    /// Sidebar label. The host may localize the surrounding chrome
+    /// but renders this string verbatim.
+    sidebar-label: string,
+    /// Optional lucide-react icon name (e.g. `"radar"`). The host
+    /// falls back to a generic plugin glyph when absent or unknown —
+    /// it only maps names from its own bundled icon set, never loads
+    /// arbitrary icon data from the guest.
+    sidebar-icon: option<string>,
+    /// Internal path handed to the first `render` call (e.g. `"/"`).
+    /// Lets a multi-view plugin pick its landing view.
+    initial-path: string,
+  }
+
+  /// Sidebar registration metadata. Called once when the host builds
+  /// its navigation, so a plugin can name + place its entry.
+  manifest: func() -> mount-point;
+
+  /// Render the view for an internal plugin `path`. The returned
+  /// string is a JSON-encoded view descriptor owned by the plugin
+  /// protocol (schema documented host-side). `Err` surfaces a
+  /// plugin-level failure the host shows as an error banner.
+  render: func(path: string) -> result<string, string>;
+
+  /// React to a host-dispatched user action (a descriptor `event`
+  /// action's `event` + opaque `payload`) and return the NEXT full
+  /// descriptor that replaces the current view. `Err` surfaces a
+  /// plugin-level failure without discarding the current view.
+  on-event: func(event: string, payload: string) -> result<string, string>;
 }
 
 world plugin {
   import waveflow:host/http@1.0.0;
   import waveflow:host/log@1.0.0;
   import waveflow:host/storage@1.0.0;
+  import waveflow:host/config@1.0.0;
+  import waveflow:host/library@1.0.0;
   export extension;
 }
