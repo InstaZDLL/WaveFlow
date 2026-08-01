@@ -1381,7 +1381,8 @@
         "storageState": "Kullanıcı deposu",
         "storageRead": "Depolama okuma",
         "assets": "Varlıklar ({{count}})",
-        "none": "İstenen izin yok"
+        "none": "İstenen izin yok",
+        "libraryReadArtists": "Sanatçılarınızı okur"
       },
       "bundled": "Yerleşik",
       "bundledHint": "WaveFlow ile birlikte gelir — gizlemek için devre dışı bırak.",
@@ -2096,5 +2097,11 @@
   "immersive": {
     "togglePanel": "Paneli göster / gizle",
     "panelTabs": "Panel sekmeleri"
+  },
+  "pluginView": {
+    "refresh": "Yenile",
+    "error": "Bu görünüm yüklenemedi",
+    "retry": "Yeniden dene",
+    "empty": "Gösterilecek bir şey yok"
   }
 }

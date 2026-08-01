@@ -1381,7 +1381,8 @@
         "storageState": "Gebruikersopslag",
         "storageRead": "Opslag lezen",
         "assets": "Resources ({{count}})",
-        "none": "Geen rechten gevraagd"
+        "none": "Geen rechten gevraagd",
+        "libraryReadArtists": "Leest je artiesten"
       },
       "bundled": "Ingebouwd",
       "bundledHint": "Meegeleverd met WaveFlow — schakel het uit om het te verbergen.",
@@ -2096,5 +2097,11 @@
   "immersive": {
     "togglePanel": "Paneel tonen / verbergen",
     "panelTabs": "Paneeltabbladen"
+  },
+  "pluginView": {
+    "refresh": "Vernieuwen",
+    "error": "Kan deze weergave niet laden",
+    "retry": "Opnieuw",
+    "empty": "Niets om te tonen"
   }
 }

@@ -1381,7 +1381,8 @@
         "storageState": "Almacenamiento del usuario",
         "storageRead": "Lectura de almacenamiento",
         "assets": "Recursos ({{count}})",
-        "none": "Sin permisos solicitados"
+        "none": "Sin permisos solicitados",
+        "libraryReadArtists": "Lee tus artistas"
       },
       "bundled": "Integrado",
       "bundledHint": "Incluido con WaveFlow — desactívalo para ocultarlo.",
@@ -2096,5 +2097,11 @@
   "immersive": {
     "togglePanel": "Mostrar / ocultar panel",
     "panelTabs": "Pestañas del panel"
+  },
+  "pluginView": {
+    "refresh": "Actualizar",
+    "error": "No se pudo cargar esta vista",
+    "retry": "Reintentar",
+    "empty": "Nada que mostrar"
   }
 }

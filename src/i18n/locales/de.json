@@ -1381,7 +1381,8 @@
         "storageState": "Nutzerspeicher",
         "storageRead": "Lesezugriff auf Speicher",
         "assets": "Ressourcen ({{count}})",
-        "none": "Keine Berechtigungen angefordert"
+        "none": "Keine Berechtigungen angefordert",
+        "libraryReadArtists": "Liest deine Künstler"
       },
       "bundled": "Mitgeliefert",
       "bundledHint": "Mit WaveFlow ausgeliefert — deaktivieren, um es auszublenden.",
@@ -2096,5 +2097,11 @@
   "immersive": {
     "togglePanel": "Panel ein-/ausblenden",
     "panelTabs": "Panel-Tabs"
+  },
+  "pluginView": {
+    "refresh": "Aktualisieren",
+    "error": "Diese Ansicht konnte nicht geladen werden",
+    "retry": "Erneut versuchen",
+    "empty": "Nichts anzuzeigen"
   }
 }

@@ -1516,7 +1516,8 @@
         "storageState": "تخزين المستخدم",
         "storageRead": "قراءة التخزين",
         "assets": "الموارد ({{count}})",
-        "none": "لا توجد أذونات مطلوبة"
+        "none": "لا توجد أذونات مطلوبة",
+        "libraryReadArtists": "قراءة فنانيك"
       },
       "bundled": "مدمج",
       "bundledHint": "يأتي مع WaveFlow — قم بتعطيله لإخفائه.",
@@ -2255,5 +2256,11 @@
   "immersive": {
     "togglePanel": "إظهار / إخفاء اللوحة",
     "panelTabs": "علامات تبويب اللوحة"
+  },
+  "pluginView": {
+    "refresh": "تحديث",
+    "error": "تعذّر تحميل هذا العرض",
+    "retry": "إعادة المحاولة",
+    "empty": "لا شيء لعرضه"
   }
 }

@@ -1381,7 +1381,8 @@
         "storageState": "用户存储",
         "storageRead": "读取存储",
         "assets": "资源 ({{count}})",
-        "none": "未请求任何权限"
+        "none": "未请求任何权限",
+        "libraryReadArtists": "读取你的艺人"
       },
       "bundled": "内置",
       "bundledHint": "随 WaveFlow 提供 —— 禁用以隐藏。",
@@ -2096,5 +2097,11 @@
   "immersive": {
     "togglePanel": "显示 / 隐藏面板",
     "panelTabs": "面板标签"
+  },
+  "pluginView": {
+    "refresh": "刷新",
+    "error": "无法加载此视图",
+    "retry": "重试",
+    "empty": "暂无内容"
   }
 }

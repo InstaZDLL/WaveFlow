@@ -43,6 +43,9 @@ export interface PluginPermissionsInfo {
   http: string[];
   storageRead: boolean;
   storageState: boolean;
+  /** `ui`-world redacted artist read (`library.read_artists`) — names +
+   *  aggregate counts + opaque ids only, no file paths. */
+  libraryReadArtists: boolean;
 }
 
 export interface PluginAssetInfo {
@@ -378,4 +381,232 @@ export async function setPluginOption(
   value: string | null,
 ): Promise<void> {
   return invoke<void>("set_plugin_option", { pluginId, key, value });
+}
+
+// ----- waveflow:ui/v1 view descriptor + invocation (Phase 5) --------------
+//
+// A ui-world plugin renders a custom view WITHOUT shipping React: the
+// guest returns a JSON *view descriptor* (this shape) that the host
+// draws with native components. `render` / `event` return the RAW
+// descriptor string; `parsePluginUiDescriptor` validates schemaVersion
+// + parses. The security boundary is that the guest never sends
+// HTML/CSS/JS — only this declarative tree.
+
+/** A user action on a descriptor. `kind: "event"` round-trips through
+ *  the plugin (→ next descriptor); `kind: "open-url"` is handled host-
+ *  side (opens `url` in the OS browser) and never reaches the guest. */
+export interface PluginUiAction {
+  kind: "event" | "open-url";
+  label: string;
+  /** Set when `kind === "event"`: opaque event name echoed to the plugin. */
+  event?: string | null;
+  /** Set when `kind === "event"`: opaque payload echoed to the plugin. */
+  payload?: string | null;
+  /** Set when `kind === "open-url"`: the external URL to open. */
+  url?: string | null;
+}
+
+/** One card in a section. All display fields but `id`/`title` are
+ *  optional so a plugin can render a lean list or a rich one. */
+export interface PluginUiItem {
+  id: string;
+  title: string;
+  subtitle?: string;
+  /** Right-aligned detail, e.g. a release date. */
+  detail?: string;
+  /** Remote artwork URL, used directly as an `<img src>`. */
+  imageUrl?: string | null;
+  /** Pill chips, e.g. `["Album"]`. */
+  badges?: string[];
+  /** Per-item action buttons. */
+  actions?: PluginUiAction[];
+}
+
+export interface PluginUiSection {
+  /** Section heading; rendered when non-empty. */
+  title?: string;
+  items: PluginUiItem[];
+}
+
+/** The full view a plugin returns from `render` / `on-event`. */
+export interface PluginUiDescriptor {
+  /** Descriptor schema version. Only `1` is understood today. */
+  schemaVersion: number;
+  title: string;
+  subtitle?: string;
+  /** Freeform status hint, e.g. `"fresh"` | `"cached"` | `"error"`. */
+  status?: string;
+  /** Epoch ms of the plugin's last refresh, if it tracks one. */
+  lastUpdatedAt?: number | null;
+  /** Header-level action buttons. */
+  actions?: PluginUiAction[];
+  sections?: PluginUiSection[];
+  /** Shown when there are no sections/items. */
+  emptyTitle?: string;
+  emptyHint?: string;
+}
+
+/** One enabled ui-world plugin + its sidebar registration. Mirrors
+ *  `commands::plugins::PluginUiRegistration`. */
+export interface PluginUiRegistration {
+  pluginId: string;
+  mountPoint: {
+    sidebarLabel: string;
+    /** lucide-react icon name (e.g. `"radar"`); resolved against the
+     *  host's curated set, falling back to a generic glyph. */
+    sidebarIcon: string | null;
+    initialPath: string;
+  };
+}
+
+/** Enumerate enabled ui-world plugins + their sidebar mount points.
+ *  A plugin whose `manifest()` traps is skipped backend-side. */
+export async function listUiPlugins(): Promise<PluginUiRegistration[]> {
+  return invoke<PluginUiRegistration[]>("list_ui_plugins");
+}
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/** A field that's optional in the descriptor but rendered as text when
+ *  present must be a string — a non-string (object) would make React
+ *  throw "Objects are not valid as a React child". `undefined` / `null`
+ *  are treated as absent. */
+function assertOptionalString(v: unknown, where: string): void {
+  if (v !== undefined && v !== null && typeof v !== "string") {
+    throw new Error(`${where} must be a string`);
+  }
+}
+
+/** Validate one action: a known `kind` discriminator + the field that
+ *  kind requires (a `label`, plus `url` for open-url / `event` for
+ *  event). An unknown kind or a missing required field is rejected. */
+function validateUiAction(a: unknown, where: string): void {
+  if (!isRecord(a)) throw new Error(`${where}: action must be an object`);
+  if (a.kind !== "event" && a.kind !== "open-url") {
+    throw new Error(`${where}: unknown action kind ${JSON.stringify(a.kind)}`);
+  }
+  if (typeof a.label !== "string") {
+    throw new Error(`${where}: action.label must be a string`);
+  }
+  if (a.kind === "open-url" && typeof a.url !== "string") {
+    throw new Error(`${where}: open-url action requires a url string`);
+  }
+  if (a.kind === "event" && typeof a.event !== "string") {
+    throw new Error(`${where}: event action requires an event string`);
+  }
+}
+
+/** Validate one item: required `id` + `title`, and — where present —
+ *  `badges` / `actions` must be arrays (the renderer `.map`s them, so a
+ *  non-array would throw mid-render). */
+function validateUiItem(item: unknown, where: string): void {
+  if (!isRecord(item)) throw new Error(`${where}: item must be an object`);
+  if (typeof item.id !== "string") {
+    throw new Error(`${where}: item.id must be a string`);
+  }
+  if (typeof item.title !== "string") {
+    throw new Error(`${where}: item.title must be a string`);
+  }
+  assertOptionalString(item.subtitle, `${where}: item.subtitle`);
+  assertOptionalString(item.detail, `${where}: item.detail`);
+  if (item.badges !== undefined) {
+    if (!Array.isArray(item.badges)) {
+      throw new Error(`${where}: item.badges must be an array`);
+    }
+    // Badge elements are always strings (not optional like subtitle):
+    // a null/absent element would render as an empty pill, so reject it.
+    item.badges.forEach((b, i) => {
+      if (typeof b !== "string") {
+        throw new Error(`${where}: item.badges[${i}] must be a string`);
+      }
+    });
+  }
+  if (item.actions !== undefined) {
+    if (!Array.isArray(item.actions)) {
+      throw new Error(`${where}: item.actions must be an array`);
+    }
+    item.actions.forEach((a, i) =>
+      validateUiAction(a, `${where}.actions[${i}]`),
+    );
+  }
+}
+
+/** Parse + validate a raw descriptor string from the backend. Beyond
+ *  the `schemaVersion` gate it walks the whole tree — sections, items,
+ *  actions, and their discriminators — and throws on the first
+ *  malformed node, so `PluginUIView` never receives a structure that
+ *  could throw during render (a non-array `sections`/`items`/`badges`
+ *  would break `.map`, an unknown action `kind` would misroute). The
+ *  caller surfaces the throw as an error banner. */
+export function parsePluginUiDescriptor(raw: string): PluginUiDescriptor {
+  const parsed: unknown = JSON.parse(raw);
+  if (!isRecord(parsed)) {
+    throw new Error("plugin view descriptor must be an object");
+  }
+  if (parsed.schemaVersion !== 1) {
+    throw new Error(
+      `unsupported plugin view schemaVersion: ${JSON.stringify(parsed.schemaVersion)}`,
+    );
+  }
+  if (typeof parsed.title !== "string") {
+    throw new Error("plugin view descriptor: title must be a string");
+  }
+  assertOptionalString(parsed.subtitle, "plugin view descriptor: subtitle");
+  assertOptionalString(parsed.emptyTitle, "plugin view descriptor: emptyTitle");
+  assertOptionalString(parsed.emptyHint, "plugin view descriptor: emptyHint");
+  if (parsed.actions !== undefined) {
+    if (!Array.isArray(parsed.actions)) {
+      throw new Error("plugin view descriptor: actions must be an array");
+    }
+    parsed.actions.forEach((a, i) => validateUiAction(a, `actions[${i}]`));
+  }
+  if (parsed.sections !== undefined) {
+    if (!Array.isArray(parsed.sections)) {
+      throw new Error("plugin view descriptor: sections must be an array");
+    }
+    parsed.sections.forEach((section, si) => {
+      if (!isRecord(section)) {
+        throw new Error(`sections[${si}]: must be an object`);
+      }
+      assertOptionalString(section.title, `sections[${si}].title`);
+      if (!Array.isArray(section.items)) {
+        throw new Error(`sections[${si}]: items must be an array`);
+      }
+      section.items.forEach((item, ii) =>
+        validateUiItem(item, `sections[${si}].items[${ii}]`),
+      );
+    });
+  }
+  return parsed as unknown as PluginUiDescriptor;
+}
+
+/** Render a ui plugin's view for an internal `path`. */
+export async function pluginUiRender(
+  pluginId: string,
+  path: string,
+): Promise<PluginUiDescriptor> {
+  const raw = await invoke<string>("plugin_ui_render", { pluginId, path });
+  return parsePluginUiDescriptor(raw);
+}
+
+/** Round-trip a user action; returns the next descriptor. */
+export async function pluginUiEvent(
+  pluginId: string,
+  event: string,
+  payload: string,
+): Promise<PluginUiDescriptor> {
+  const raw = await invoke<string>("plugin_ui_event", {
+    pluginId,
+    event,
+    payload,
+  });
+  return parsePluginUiDescriptor(raw);
+}
+
+/** `true` for a ui-world plugin — the gear/options predicate + any
+ *  ui-specific affordances key off this, mirroring {@link isMetadataPlugin}. */
+export function isUiPlugin(plugin: Pick<PluginInfo, "world">): boolean {
+  return plugin.world.startsWith("waveflow:ui");
 }

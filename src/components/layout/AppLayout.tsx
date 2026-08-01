@@ -60,6 +60,11 @@ const WebRadioView = lazy(() =>
     default: module.WebRadioView,
   })),
 );
+const PluginUIView = lazy(() =>
+  import("../views/PluginUIView").then((module) => ({
+    default: module.PluginUIView,
+  })),
+);
 const AboutView = lazy(() =>
   import("../views/AboutView").then((module) => ({
     default: module.AboutView,
@@ -131,7 +136,13 @@ type HistoryEntry =
   | { id: "playlist"; playlistId?: number | null }
   | { id: "album-detail"; albumId?: number | null }
   | { id: "artist-detail"; artistId?: number | null }
-  | { id: "genre-detail"; genreId?: number | null };
+  | { id: "genre-detail"; genreId?: number | null }
+  | {
+      id: "plugin-ui";
+      pluginId: string;
+      initialPath?: string | null;
+      icon?: string | null;
+    };
 
 export function AppLayout() {
   const { t } = useTranslation();
@@ -336,6 +347,14 @@ export function AppLayout() {
     currentEntry.id === "playlist" ? (currentEntry.playlistId ?? null) : null;
   const activeWrappedYear =
     currentEntry.id === "wrapped" ? (currentEntry.year ?? null) : null;
+  const activePluginId =
+    currentEntry.id === "plugin-ui" ? currentEntry.pluginId : null;
+  const activePluginPath =
+    currentEntry.id === "plugin-ui"
+      ? (currentEntry.initialPath ?? "/")
+      : "/";
+  const activePluginIcon =
+    currentEntry.id === "plugin-ui" ? (currentEntry.icon ?? null) : null;
 
   const pushEntry = useCallback((entry: HistoryEntry) => {
     setNavState(({ history, index }) => ({
@@ -417,6 +436,13 @@ export function AppLayout() {
     [pushEntry],
   );
 
+  const navigateToPluginUi = useCallback(
+    (pluginId: string, initialPath: string, icon: string | null) => {
+      pushEntry({ id: "plugin-ui", pluginId, initialPath, icon });
+    },
+    [pushEntry],
+  );
+
   function renderView() {
     switch (activeView) {
       case "home":
@@ -455,6 +481,17 @@ export function AppLayout() {
         return <SpotifyView onNavigate={setActiveView} />;
       case "web-radio":
         return <WebRadioView />;
+      case "plugin-ui":
+        // `key` forces a fresh mount per plugin so switching between two
+        // ui plugins reloads cleanly instead of reusing the last view.
+        return activePluginId ? (
+          <PluginUIView
+            key={activePluginId}
+            pluginId={activePluginId}
+            initialPath={activePluginPath}
+            icon={activePluginIcon}
+          />
+        ) : null;
       case "about":
         return <AboutView onNavigate={setActiveView} />;
       case "feedback":
@@ -589,6 +626,8 @@ export function AppLayout() {
                 setLibraryTab={setLibraryTab}
                 activePlaylistId={activePlaylistId}
                 navigateToPlaylist={navigateToPlaylist}
+                activePluginId={activePluginId}
+                navigateToPluginUi={navigateToPluginUi}
               />
             </motion.div>
 

@@ -1381,7 +1381,8 @@
         "storageState": "Stockage utilisateur",
         "storageRead": "Lecture du stockage",
         "assets": "Ressources ({{count}})",
-        "none": "Aucune permission demandée"
+        "none": "Aucune permission demandée",
+        "libraryReadArtists": "Accès à vos artistes"
       },
       "bundled": "Inclus",
       "bundledHint": "Livré avec WaveFlow — désactivez-le pour le masquer.",
@@ -2096,5 +2097,11 @@
   "immersive": {
     "togglePanel": "Afficher / masquer le panneau",
     "panelTabs": "Onglets du panneau"
+  },
+  "pluginView": {
+    "refresh": "Actualiser",
+    "error": "Impossible de charger cette vue",
+    "retry": "Réessayer",
+    "empty": "Rien à afficher"
   }
 }
