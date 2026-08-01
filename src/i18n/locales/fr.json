@@ -1951,6 +1951,10 @@
       "title": "Faire défiler les titres longs",
       "subtitle": "Les titres trop longs défilent au lieu d'être tronqués (barre de lecture + vue immersive)."
     },
+    "coverSlideshow": {
+      "title": "Diaporama pochette / artiste",
+      "subtitle": "Fait alterner en fondu la pochette et la photo de l'artiste derrière la lecture (vue immersive + panneau Lecture en cours)."
+    },
     "pluginStore": {
       "title": "Magasin de plugins",
       "subtitle": "Parcourez et installez des plugins sandboxés depuis le registre WaveFlow.",

@@ -1951,6 +1951,10 @@
       "title": "Deslocar títulos longos",
       "subtitle": "Os títulos longos deslocam-se em vez de serem truncados (barra do leitor + vista imersiva)."
     },
+    "coverSlideshow": {
+      "title": "Apresentação capa / artista",
+      "subtitle": "Alterna com um fundido a capa do álbum com a foto do artista por trás da reprodução (vista imersiva + painel A reproduzir)."
+    },
     "pluginStore": {
       "title": "Loja de plugins",
       "subtitle": "Explora e instala plugins isolados a partir do registo do WaveFlow.",

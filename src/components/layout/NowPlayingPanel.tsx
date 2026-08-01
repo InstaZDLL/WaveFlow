@@ -11,9 +11,13 @@ import {
   setCanvasEnabled,
 } from "../../hooks/useCanvasEnabled";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
+import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
+import { useCoverSlideshow } from "../../hooks/useCoverSlideshow";
+import { useArtistImage } from "../../hooks/useArtistImage";
 import { Artwork } from "../common/Artwork";
 import { MotionCoverOverlay } from "../player/MotionCoverOverlay";
 import { CanvasStage } from "../player/CanvasStage";
+import { CoverSlideshow } from "../player/CoverSlideshow";
 import { CanvasToggleButton } from "../player/CanvasToggleButton";
 import { ArtistLink } from "../common/ArtistLink";
 import { Lightbox } from "../common/Lightbox";
@@ -137,6 +141,29 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
   const canvasActive = canvasEnabled && !reducedMotion && !!canvasPath;
   const canvasAvailable = !!canvasPath && !reducedMotion;
 
+  // Cover ↔ artist slideshow (issue #466) — the ambient fallback, one rung
+  // below the motion cover (Canvas > motion > slideshow > cover). Reuses the
+  // artist photo already enriched above (`pictureSrc`).
+  const slideshowEnabled = useCoverSlideshow().enabled;
+  // `motionCover`, not `motion` — the latter is framer-motion's import here.
+  const motionCover = useAlbumMotionArtwork(
+    currentTrack?.artist_name,
+    currentTrack?.album_title,
+    currentTrack?.album_id,
+  );
+  // Full-res artist photo for the slideshow's large cover slot — distinct
+  // from `pictureSrc` (1x, for the small "About the artist" thumbnail), which
+  // would upscale blurry here. Gated on the toggle so it's free when off.
+  const artistImageHi = useArtistImage(
+    slideshowEnabled && !reducedMotion ? currentTrack?.artist_id : null,
+  );
+  const slideshowActive =
+    slideshowEnabled &&
+    !reducedMotion &&
+    !canvasActive &&
+    !motionCover &&
+    !!artistImageHi;
+
   return (
     <motion.aside
       key="nowPlaying"
@@ -224,6 +251,12 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
               <CanvasStage
                 path={canvasPath}
                 enabled={canvasEnabled && !reducedMotion}
+                rounded="2xl"
+                className="shadow-lg"
+              />
+              <CoverSlideshow
+                artistSrc={artistImageHi}
+                enabled={slideshowActive}
                 rounded="2xl"
                 className="shadow-lg"
               />

@@ -1951,6 +1951,10 @@
       "title": "Desplazar títulos largos",
       "subtitle": "Los títulos largos se desplazan en lugar de truncarse (barra de reproducción + vista inmersiva)."
     },
+    "coverSlideshow": {
+      "title": "Pase de portada / artista",
+      "subtitle": "Alterna con un fundido la portada del álbum y la foto del artista detrás de la reproducción (vista inmersiva + panel Reproduciendo)."
+    },
     "pluginStore": {
       "title": "Tienda de plugins",
       "subtitle": "Explora e instala plugins aislados desde el registro de WaveFlow.",

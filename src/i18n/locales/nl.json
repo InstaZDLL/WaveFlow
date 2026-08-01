@@ -1951,6 +1951,10 @@
       "title": "Lange titels laten scrollen",
       "subtitle": "Lange titels scrollen in plaats van afgekapt te worden (spelerbalk + meeslepende weergave)."
     },
+    "coverSlideshow": {
+      "title": "Diavoorstelling hoes / artiest",
+      "subtitle": "Wisselt met een overvloeier de albumhoes af met de artiestenfoto achter het afspelen (immersieve weergave + Nu speelt-paneel)."
+    },
     "pluginStore": {
       "title": "Plug-in-winkel",
       "subtitle": "Blader en installeer plug-ins in een sandbox uit het WaveFlow-register.",

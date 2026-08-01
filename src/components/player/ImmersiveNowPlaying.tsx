@@ -3,6 +3,7 @@ import { Heart, Star, Radio } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { MotionCoverOverlay } from "./MotionCoverOverlay";
 import { CanvasStage } from "./CanvasStage";
+import { CoverSlideshow } from "./CoverSlideshow";
 import { ArtistLink } from "../common/ArtistLink";
 import { MarqueeText } from "../common/MarqueeText";
 import { PlaybackControls } from "./PlaybackControls";
@@ -15,6 +16,9 @@ import { usePlayerTrackContextMenu } from "../../hooks/usePlayerTrackContextMenu
 import { useTrackCanvas } from "../../hooks/useTrackCanvas";
 import { useCanvasEnabled } from "../../hooks/useCanvasEnabled";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
+import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
+import { useCoverSlideshow } from "../../hooks/useCoverSlideshow";
+import { useArtistImage } from "../../hooks/useArtistImage";
 import { isRadioTrack } from "../../lib/playerSources";
 
 interface ImmersiveNowPlayingProps {
@@ -73,6 +77,31 @@ export function ImmersiveNowPlaying({
   const canvasPath = useTrackCanvas(currentTrack?.id);
   const canvasActive = canvasEnabled && !reducedMotion && !!canvasPath;
 
+  // Cover ↔ artist slideshow (issue #466) — the ambient fallback backdrop,
+  // one rung below the motion cover: Canvas > motion cover > slideshow >
+  // static cover. So it only runs when no Canvas and no motion cover own the
+  // slot, the global toggle is on, motion isn't reduced, and the artist has a
+  // photo. `useAlbumMotionArtwork` is deduped process-wide (MotionCoverOverlay
+  // reads the same key), so the extra call here is free.
+  const slideshowEnabled = useCoverSlideshow().enabled;
+  const motion = useAlbumMotionArtwork(
+    currentTrack?.artist_name,
+    currentTrack?.album_title,
+    currentTrack?.album_id,
+  );
+  // Only enrich the artist (a network call the immersive view doesn't
+  // otherwise make) when the slideshow could actually run — off by default,
+  // so this stays free unless the user opted in.
+  const artistImage = useArtistImage(
+    slideshowEnabled && !reducedMotion ? currentTrack?.artist_id : null,
+  );
+  const slideshowActive =
+    slideshowEnabled &&
+    !reducedMotion &&
+    !canvasActive &&
+    !motion &&
+    !!artistImage;
+
   const title = currentTrack?.title ?? t("player.noTrack");
   const album = currentTrack?.album_title;
 
@@ -106,6 +135,12 @@ export function ImmersiveNowPlaying({
         <CanvasStage
           path={canvasPath}
           enabled={canvasEnabled && !reducedMotion}
+          rounded="2xl"
+          className="shadow-2xl"
+        />
+        <CoverSlideshow
+          artistSrc={artistImage}
+          enabled={slideshowActive}
           rounded="2xl"
           className="shadow-2xl"
         />
