@@ -157,6 +157,17 @@ fn seconds_to_ms(seconds: f64) -> u64 {
     (seconds.max(0.0) * 1000.0) as u64
 }
 
+/// Is `position` the queue slot of the track the engine already has loaded
+/// (playing or paused)? `seek` uses this to scrub in place rather than
+/// reloading — and restarting from 0 — the very track it's seeking within.
+async fn is_current_track(ctx: &Ctx, pool: &sqlx::SqlitePool, position: i64) -> bool {
+    let loaded = matches!(
+        ctx.engine().shared().state(),
+        PlayerState::Playing | PlayerState::Paused
+    );
+    loaded && position == queue::current_index(pool).await
+}
+
 /// Map WaveFlow's tri-state repeat onto MPD's two independent flags.
 ///
 /// MPD spells "repeat the current track" as `repeat 1` + `single 1`,
@@ -532,8 +543,14 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
             if pos >= len {
                 return Err(ack_arg("seek", "Bad song index"));
             }
-            player_actions::play_at_index_with(&ctx.app, &pool, profile_id, pos as i64, SURFACE)
-                .await;
+            // Seeking within the track that's already loaded must NOT reload
+            // it (which restarts from 0) — only switch tracks when the target
+            // differs from the current cursor. Scrubbing the progress bar is
+            // exactly this case.
+            if !is_current_track(ctx, &pool, pos as i64).await {
+                player_actions::play_at_index_with(&ctx.app, &pool, profile_id, pos as i64, SURFACE)
+                    .await;
+            }
             let _ = ctx.engine().send(AudioCmd::Seek(seconds_to_ms(seconds)));
             ctx.idle.notify(Subsystem::Player);
             Ok(Response::new())
@@ -547,8 +564,12 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "seekid", "no active profile"))?;
             match queue::position_of_queue_id(&pool, id as i64).await {
                 Ok(Some(position)) => {
-                    player_actions::play_at_index_with(&ctx.app, &pool, profile_id, position, SURFACE)
+                    if !is_current_track(ctx, &pool, position).await {
+                        player_actions::play_at_index_with(
+                            &ctx.app, &pool, profile_id, position, SURFACE,
+                        )
                         .await;
+                    }
                     let _ = ctx.engine().send(AudioCmd::Seek(seconds_to_ms(seconds)));
                     ctx.idle.notify(Subsystem::Player);
                     Ok(Response::new())
@@ -727,6 +748,7 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 queue::unshuffle(&pool).await
             };
             result.map_err(|e| ack_arg("random", &e.to_string()))?;
+            crate::commands::player::emit_options_changed(&ctx.app, &pool).await;
             drop(pool);
             crate::commands::player::emit_queue_changed(&ctx.app);
             ctx.idle.notify(Subsystem::Options);
@@ -744,6 +766,9 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
             queue::write_repeat_mode(&pool, repeat_from_mpd(current, on))
                 .await
                 .map_err(|e| ack_arg("repeat", &e.to_string()))?;
+            // Reflect the change in the WaveFlow UI too (an MPD client toggled
+            // it, so the frontend has no optimistic update of its own).
+            crate::commands::player::emit_options_changed(&ctx.app, &pool).await;
             ctx.idle.notify(Subsystem::Options);
             Ok(Response::new())
         }
@@ -762,6 +787,7 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
             queue::write_repeat_mode(&pool, single_from_mpd(current, on))
                 .await
                 .map_err(|e| ack_arg("single", &e.to_string()))?;
+            crate::commands::player::emit_options_changed(&ctx.app, &pool).await;
             ctx.idle.notify(Subsystem::Options);
             Ok(Response::new())
         }

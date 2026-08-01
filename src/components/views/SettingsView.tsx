@@ -1297,6 +1297,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   });
   const [mpdStatus, setMpdStatus] = useState<MpdStatus | null>(null);
   const [mpdAddressCopied, setMpdAddressCopied] = useState(false);
+  // False until the initial `mpdGetConfig` settles, so the controls stay
+  // disabled and the user can't edit placeholder defaults before the real
+  // config arrives (a failed load still unlocks them, on the defaults).
+  const [mpdHydrated, setMpdHydrated] = useState(false);
 
   useEffect(() => {
     getDiscordRpcEnabled()
@@ -1335,6 +1339,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // initial hydration response can't clobber an action sent in the meantime.
   const mpdConfirmedRef = useRef<MpdConfig | null>(null);
   const mpdTouchedRef = useRef(false);
+  // Serialize MPD saves + gate side effects on the latest revision, so a
+  // toggle and an onBlur firing together can't apply out of order or let a
+  // stale response clobber newer state.
+  const mpdWriteChainRef = useRef<Promise<void>>(Promise.resolve());
+  const mpdWriteSeqRef = useRef(0);
 
   // DLNA — load persisted config + live status at mount.
   useEffect(() => {
@@ -1352,7 +1361,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         mpdConfirmedRef.current = cfg;
         setMpdConfig(cfg);
       })
-      .catch((err) => console.error("[SettingsView] mpd config", err));
+      .catch((err) => console.error("[SettingsView] mpd config", err))
+      // Unlock the controls once the config settles — even on failure, where
+      // the user then edits the defaults.
+      .finally(() => setMpdHydrated(true));
     mpdGetStatus()
       .then((st) => {
         if (mpdTouchedRef.current) return;
@@ -1381,17 +1393,26 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
 
   const persistMpd = useCallback(async (next: MpdConfig) => {
     mpdTouchedRef.current = true;
+    const seq = ++mpdWriteSeqRef.current;
     setMpdConfig(next);
-    try {
-      const status = await mpdSetConfig(next);
-      mpdConfirmedRef.current = next;
-      setMpdStatus(status);
-    } catch (err) {
-      console.error("[SettingsView] mpd set", err);
-      // Restore the last backend-confirmed config so a failed set doesn't
-      // leave the optimistic value displayed as if it took.
-      if (mpdConfirmedRef.current) setMpdConfig(mpdConfirmedRef.current);
-    }
+    // Chain each save so concurrent toggle/onBlur writes reach the backend in
+    // order; only the latest revision commits its side effects.
+    const run = mpdWriteChainRef.current.then(async () => {
+      try {
+        const status = await mpdSetConfig(next);
+        if (seq !== mpdWriteSeqRef.current) return;
+        mpdConfirmedRef.current = next;
+        setMpdStatus(status);
+      } catch (err) {
+        console.error("[SettingsView] mpd set", err);
+        if (seq !== mpdWriteSeqRef.current) return;
+        // Restore the last backend-confirmed config so a failed set doesn't
+        // leave the optimistic value displayed as if it took.
+        if (mpdConfirmedRef.current) setMpdConfig(mpdConfirmedRef.current);
+      }
+    });
+    mpdWriteChainRef.current = run.catch(() => undefined);
+    await run;
   }, []);
 
   const handleToggleMpd = useCallback(() => {
@@ -2850,6 +2871,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                     <ToggleSwitch
                       enabled={mpdConfig.enabled}
                       onToggle={handleToggleMpd}
+                      disabled={!mpdHydrated}
                       label={t("settings.integrations.mpd.title")}
                     />
                   </div>
@@ -2882,6 +2904,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                           min={1}
                           max={65535}
                           step={1}
+                          disabled={!mpdHydrated}
                           value={mpdConfig.port}
                           onChange={(e) =>
                             setMpdConfig({
@@ -2928,6 +2951,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                           id="mpd-password"
                           type="password"
                           autoComplete="new-password"
+                          disabled={!mpdHydrated}
                           value={mpdConfig.password}
                           placeholder={t(
                             "settings.integrations.mpd.passwordPlaceholder",

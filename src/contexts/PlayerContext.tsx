@@ -365,6 +365,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           }),
         );
         unlisten.push(
+          // Repeat / shuffle changed outside the frontend (an MPD client) —
+          // the in-app buttons update optimistically, so this only fires for
+          // external surfaces.
+          await listen<{ repeatMode: RepeatMode; shuffle: boolean }>(
+            "player:options-changed",
+            (e) => {
+              setRepeatMode(e.payload.repeatMode);
+              setIsShuffled(e.payload.shuffle);
+            },
+          ),
+        );
+        unlisten.push(
           await listen<QueueTrackPayload>("player:track-changed", (e) => {
             setActiveProvider("local");
             // Backend just selected a new track (via play_tracks,
