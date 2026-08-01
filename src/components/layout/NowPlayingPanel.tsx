@@ -60,8 +60,14 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
   const [pictureSrc, setPictureSrc] = useState<string | null>(null);
   // Full-res artist photo for the cover slideshow (issue #466) — derived from
   // the SAME enrichment as `pictureSrc` (which resolves 1x for the bio
-  // thumbnail), so there's no second `enrichArtistDeezer` fetch.
-  const [artistImageHi, setArtistImageHi] = useState<string | null>(null);
+  // thumbnail), so there's no second `enrichArtistDeezer` fetch. Tagged with
+  // the originating artist id so a rapid artist change can't flash the
+  // previous artist's photo before the effect re-resolves (mirrors the
+  // `useArtistImage` id-gate the immersive view uses).
+  const [artistImageHi, setArtistImageHi] = useState<{
+    id: number;
+    src: string | null;
+  } | null>(null);
   const [bioShort, setBioShort] = useState<string | null>(null);
   const [bioFull, setBioFull] = useState<string | null>(null);
   const [bioExpanded, setBioExpanded] = useState(false);
@@ -107,7 +113,6 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
     // stale bios don't flash during the async fetch.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPictureSrc(null);
-    setArtistImageHi(null);
     setBioShort(null);
     setBioFull(null);
     setBioExpanded(false);
@@ -126,8 +131,9 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
         const resolved = resolveArtwork(paths, "1x");
         if (resolved) setPictureSrc(resolved);
         // "full" for the slideshow's large cover slot (a 1x thumbnail
-        // upscales blurry there); same fetch, no extra network.
-        setArtistImageHi(resolveArtwork(paths, "full"));
+        // upscales blurry there); same fetch, no extra network. Tagged with
+        // `artistId` so a stale resolution can't drive the slideshow.
+        setArtistImageHi({ id: artistId, src: resolveArtwork(paths, "full") });
         if (e.bio_short) setBioShort(e.bio_short);
         if (e.bio_full) setBioFull(e.bio_full);
       })
@@ -169,13 +175,19 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
     !!currentTrack &&
     activeProvider !== "spotify" &&
     !isRadioTrack(currentTrack);
+  // Only surface the photo when it belongs to the current artist — a mismatch
+  // (artist just changed, effect not re-resolved yet) reads as none.
+  const artistSlideSrc =
+    artistImageHi && artistImageHi.id === currentTrack?.artist_id
+      ? artistImageHi.src
+      : null;
   const slideshowActive =
     slideshowEnabled &&
     !reducedMotion &&
     !canvasActive &&
     !motionCover &&
     slideshowEligible &&
-    !!artistImageHi;
+    !!artistSlideSrc;
 
   return (
     <motion.aside
@@ -268,7 +280,7 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
                 className="shadow-lg"
               />
               <CoverSlideshow
-                artistSrc={artistImageHi}
+                artistSrc={artistSlideSrc}
                 enabled={slideshowActive}
                 rounded="2xl"
                 className="shadow-lg"
