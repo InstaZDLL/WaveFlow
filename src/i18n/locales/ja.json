@@ -1381,7 +1381,8 @@
         "storageState": "ユーザーストレージ",
         "storageRead": "ストレージ読み取り",
         "assets": "アセット ({{count}})",
-        "none": "要求された権限はありません"
+        "none": "要求された権限はありません",
+        "libraryReadArtists": "アーティスト情報を読み取り"
       },
       "bundled": "組み込み",
       "bundledHint": "WaveFlow に同梱されています — 非表示にするには無効にしてください。",
@@ -2096,5 +2097,11 @@
   "immersive": {
     "togglePanel": "パネルの表示 / 非表示",
     "panelTabs": "パネルのタブ"
+  },
+  "pluginView": {
+    "refresh": "更新",
+    "error": "このビューを読み込めませんでした",
+    "retry": "再試行",
+    "empty": "表示できるものがありません"
   }
 }

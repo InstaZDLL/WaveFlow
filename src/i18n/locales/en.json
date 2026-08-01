@@ -1381,7 +1381,8 @@
         "storageState": "User storage",
         "storageRead": "Storage read",
         "assets": "Assets ({{count}})",
-        "none": "No permission requested"
+        "none": "No permission requested",
+        "libraryReadArtists": "Reads your artists"
       },
       "bundled": "Built-in",
       "bundledHint": "Ships with WaveFlow — disable it to hide it.",
@@ -2096,5 +2097,11 @@
   "immersive": {
     "togglePanel": "Show / hide panel",
     "panelTabs": "Panel tabs"
+  },
+  "pluginView": {
+    "refresh": "Refresh",
+    "error": "Couldn't load this view",
+    "retry": "Retry",
+    "empty": "Nothing to show"
   }
 }

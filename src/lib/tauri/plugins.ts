@@ -43,6 +43,9 @@ export interface PluginPermissionsInfo {
   http: string[];
   storageRead: boolean;
   storageState: boolean;
+  /** `ui`-world redacted artist read (`library.read_artists`) — names +
+   *  aggregate counts + opaque ids only, no file paths. */
+  libraryReadArtists: boolean;
 }
 
 export interface PluginAssetInfo {
@@ -378,4 +381,128 @@ export async function setPluginOption(
   value: string | null,
 ): Promise<void> {
   return invoke<void>("set_plugin_option", { pluginId, key, value });
+}
+
+// ----- waveflow:ui/v1 view descriptor + invocation (Phase 5) --------------
+//
+// A ui-world plugin renders a custom view WITHOUT shipping React: the
+// guest returns a JSON *view descriptor* (this shape) that the host
+// draws with native components. `render` / `event` return the RAW
+// descriptor string; `parsePluginUiDescriptor` validates schemaVersion
+// + parses. The security boundary is that the guest never sends
+// HTML/CSS/JS — only this declarative tree.
+
+/** A user action on a descriptor. `kind: "event"` round-trips through
+ *  the plugin (→ next descriptor); `kind: "open-url"` is handled host-
+ *  side (opens `url` in the OS browser) and never reaches the guest. */
+export interface PluginUiAction {
+  kind: "event" | "open-url";
+  label: string;
+  /** Set when `kind === "event"`: opaque event name echoed to the plugin. */
+  event?: string | null;
+  /** Set when `kind === "event"`: opaque payload echoed to the plugin. */
+  payload?: string | null;
+  /** Set when `kind === "open-url"`: the external URL to open. */
+  url?: string | null;
+}
+
+/** One card in a section. All display fields but `id`/`title` are
+ *  optional so a plugin can render a lean list or a rich one. */
+export interface PluginUiItem {
+  id: string;
+  title: string;
+  subtitle?: string;
+  /** Right-aligned detail, e.g. a release date. */
+  detail?: string;
+  /** Remote artwork URL, used directly as an `<img src>`. */
+  imageUrl?: string | null;
+  /** Pill chips, e.g. `["Album"]`. */
+  badges?: string[];
+  /** Per-item action buttons. */
+  actions?: PluginUiAction[];
+}
+
+export interface PluginUiSection {
+  /** Section heading; rendered when non-empty. */
+  title?: string;
+  items: PluginUiItem[];
+}
+
+/** The full view a plugin returns from `render` / `on-event`. */
+export interface PluginUiDescriptor {
+  /** Descriptor schema version. Only `1` is understood today. */
+  schemaVersion: number;
+  title: string;
+  subtitle?: string;
+  /** Freeform status hint, e.g. `"fresh"` | `"cached"` | `"error"`. */
+  status?: string;
+  /** Epoch ms of the plugin's last refresh, if it tracks one. */
+  lastUpdatedAt?: number | null;
+  /** Header-level action buttons. */
+  actions?: PluginUiAction[];
+  sections?: PluginUiSection[];
+  /** Shown when there are no sections/items. */
+  emptyTitle?: string;
+  emptyHint?: string;
+}
+
+/** One enabled ui-world plugin + its sidebar registration. Mirrors
+ *  `commands::plugins::PluginUiRegistration`. */
+export interface PluginUiRegistration {
+  pluginId: string;
+  mountPoint: {
+    sidebarLabel: string;
+    /** lucide-react icon name (e.g. `"radar"`); resolved against the
+     *  host's curated set, falling back to a generic glyph. */
+    sidebarIcon: string | null;
+    initialPath: string;
+  };
+}
+
+/** Enumerate enabled ui-world plugins + their sidebar mount points.
+ *  A plugin whose `manifest()` traps is skipped backend-side. */
+export async function listUiPlugins(): Promise<PluginUiRegistration[]> {
+  return invoke<PluginUiRegistration[]>("list_ui_plugins");
+}
+
+/** Parse + validate a raw descriptor string from the backend. Throws
+ *  on invalid JSON or an unknown `schemaVersion` — the caller surfaces
+ *  it as an error banner rather than rendering a half-parsed view. */
+export function parsePluginUiDescriptor(raw: string): PluginUiDescriptor {
+  const parsed = JSON.parse(raw) as PluginUiDescriptor;
+  if (parsed?.schemaVersion !== 1) {
+    throw new Error(
+      `unsupported plugin view schemaVersion: ${parsed?.schemaVersion}`,
+    );
+  }
+  return parsed;
+}
+
+/** Render a ui plugin's view for an internal `path`. */
+export async function pluginUiRender(
+  pluginId: string,
+  path: string,
+): Promise<PluginUiDescriptor> {
+  const raw = await invoke<string>("plugin_ui_render", { pluginId, path });
+  return parsePluginUiDescriptor(raw);
+}
+
+/** Round-trip a user action; returns the next descriptor. */
+export async function pluginUiEvent(
+  pluginId: string,
+  event: string,
+  payload: string,
+): Promise<PluginUiDescriptor> {
+  const raw = await invoke<string>("plugin_ui_event", {
+    pluginId,
+    event,
+    payload,
+  });
+  return parsePluginUiDescriptor(raw);
+}
+
+/** `true` for a ui-world plugin — the gear/options predicate + any
+ *  ui-specific affordances key off this, mirroring {@link isMetadataPlugin}. */
+export function isUiPlugin(plugin: Pick<PluginInfo, "world">): boolean {
+  return plugin.world.startsWith("waveflow:ui");
 }

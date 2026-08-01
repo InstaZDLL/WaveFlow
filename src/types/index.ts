@@ -15,7 +15,10 @@ export type ViewId =
   | "album-detail"
   | "artist-detail"
   | "genre-detail"
-  | "web-radio";
+  | "web-radio"
+  // A `ui`-world plugin's custom view. The concrete plugin is carried
+  // on the history entry (see AppLayout `HistoryEntry`), not the id.
+  | "plugin-ui";
 
 export type LibraryTab =
   "morceaux" | "albums" | "artistes" | "genres" | "playlists" | "dossiers";

@@ -8,6 +8,7 @@ import {
   FileText,
   Package,
   Settings2,
+  Users,
 } from "lucide-react";
 
 import {
@@ -355,6 +356,13 @@ function PermissionsRow({
       key: "state",
       icon: Database,
       label: t("settings.plugins.permissions.storageState"),
+    });
+  }
+  if (permissions.libraryReadArtists) {
+    chips.push({
+      key: "libraryReadArtists",
+      icon: Users,
+      label: t("settings.plugins.permissions.libraryReadArtists"),
     });
   }
   // `storage.read` (permission to read bundled assets) and the

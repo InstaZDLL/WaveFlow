@@ -25,6 +25,8 @@ import { useProfile } from "../../hooks/useProfile";
 import { useLibrary } from "../../hooks/useLibrary";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { usePluginAvailability } from "../../hooks/usePluginAvailability";
+import { useUiPlugins } from "../../hooks/useUiPlugins";
+import { resolvePluginIcon } from "../../lib/pluginIcons";
 import { getProfileColor, profileInitial } from "../../lib/profileColors";
 import { pickFile, pickFolder } from "../../lib/tauri/dialog";
 import { importPlaylistM3u } from "../../lib/tauri/playlist";
@@ -42,6 +44,14 @@ interface SidebarProps {
   setLibraryTab: (tab: LibraryTab) => void;
   activePlaylistId: number | null;
   navigateToPlaylist: (id: number) => void;
+  /** Id of the currently-open ui plugin view, or `null`. Drives the
+   *  active highlight on the dynamic plugin entries. */
+  activePluginId: string | null;
+  navigateToPluginUi: (
+    pluginId: string,
+    initialPath: string,
+    icon: string | null,
+  ) => void;
 }
 
 export function Sidebar({
@@ -51,6 +61,8 @@ export function Sidebar({
   setLibraryTab,
   activePlaylistId,
   navigateToPlaylist,
+  activePluginId,
+  navigateToPluginUi,
 }: SidebarProps) {
   const { t } = useTranslation();
   const { activeProfile } = useProfile();
@@ -81,6 +93,10 @@ export function Sidebar({
   // (the user has no way back without going to Settings, and the
   // raw error surfaced in the view).
   const showWebRadio = usePluginAvailability("web-radio");
+  // Dynamic entries for every enabled `ui`-world plugin — label + icon
+  // + landing path all come from each plugin's `manifest()`, so a new
+  // UI plugin appears here without any hardcoded per-plugin wiring.
+  const uiPlugins = useUiPlugins();
   // Per-profile toggle: hide the Spotify entry from the sidebar so
   // users who don't care about Spotify integration don't see it
   // every time. Default ON. Persisted in `ui.show_spotify`.
@@ -291,6 +307,23 @@ export function Sidebar({
             onClick={() => setActiveView("spotify")}
           />
         )}
+        {uiPlugins.map((plugin) => (
+          <NavItem
+            key={plugin.pluginId}
+            icon={resolvePluginIcon(plugin.mountPoint.sidebarIcon)}
+            label={plugin.mountPoint.sidebarLabel}
+            active={
+              activeView === "plugin-ui" && activePluginId === plugin.pluginId
+            }
+            onClick={() =>
+              navigateToPluginUi(
+                plugin.pluginId,
+                plugin.mountPoint.initialPath,
+                plugin.mountPoint.sidebarIcon,
+              )
+            }
+          />
+        ))}
       </div>
 
       {/* Single scroll surface for everything below the pinned nav so

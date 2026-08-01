@@ -1381,7 +1381,8 @@
         "storageState": "Penyimpanan pengguna",
         "storageRead": "Baca penyimpanan",
         "assets": "Aset ({{count}})",
-        "none": "Tidak ada izin diminta"
+        "none": "Tidak ada izin diminta",
+        "libraryReadArtists": "Membaca artis Anda"
       },
       "bundled": "Bawaan",
       "bundledHint": "Disertakan dengan WaveFlow — nonaktifkan untuk menyembunyikannya.",
@@ -2096,5 +2097,11 @@
   "immersive": {
     "togglePanel": "Tampilkan / sembunyikan panel",
     "panelTabs": "Tab panel"
+  },
+  "pluginView": {
+    "refresh": "Segarkan",
+    "error": "Tidak dapat memuat tampilan ini",
+    "retry": "Coba lagi",
+    "empty": "Tidak ada yang ditampilkan"
   }
 }

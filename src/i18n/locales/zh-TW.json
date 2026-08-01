@@ -1381,7 +1381,8 @@
         "storageState": "使用者儲存",
         "storageRead": "讀取儲存",
         "assets": "資源 ({{count}})",
-        "none": "未請求任何權限"
+        "none": "未請求任何權限",
+        "libraryReadArtists": "讀取你的演出者"
       },
       "bundled": "內建",
       "bundledHint": "隨 WaveFlow 提供 — 停用以隱藏。",
@@ -2096,5 +2097,11 @@
   "immersive": {
     "togglePanel": "顯示 / 隱藏面板",
     "panelTabs": "面板分頁"
+  },
+  "pluginView": {
+    "refresh": "重新整理",
+    "error": "無法載入此檢視",
+    "retry": "重試",
+    "empty": "暫無內容"
   }
 }
