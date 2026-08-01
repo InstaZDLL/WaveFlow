@@ -66,3 +66,32 @@ pub mod metadata {
         },
     });
 }
+
+/// `waveflow:ui/plugin@1.0.0` — the world UI-extension plugins export
+/// (Release Radar and any future custom-view plugin). Exported
+/// interface `extension` with `manifest` / `render` / `on-event`;
+/// the guest describes views as JSON descriptors the host renders
+/// with native React (no code injection). Bound Phase 5 for the
+/// first UI plugin.
+///
+/// `with:` remaps the four shared `waveflow:host/*` imports onto the
+/// types [`source`] already generated, so their host-import traits +
+/// `host_impl` impls + linker registration are SHARED — no parallel
+/// copy. The `waveflow:host/library` import is NOT remapped: it's new
+/// to the `ui` world, so this bindgen generates it fresh under
+/// [`ui::waveflow::host::library`] and [`crate::plugin::host_impl`]
+/// implements its `Host` trait on `HostCtx`. Only the world's EXPORT
+/// surface (`extension`) + `library` are fresh here.
+pub mod ui {
+    wasmtime::component::bindgen!({
+        world: "waveflow:ui/plugin",
+        path: "../plugin-sdk/wit/ui",
+        imports: { default: trappable },
+        with: {
+            "waveflow:host/http": crate::plugin::bindings::source::waveflow::host::http,
+            "waveflow:host/log": crate::plugin::bindings::source::waveflow::host::log,
+            "waveflow:host/storage": crate::plugin::bindings::source::waveflow::host::storage,
+            "waveflow:host/config": crate::plugin::bindings::source::waveflow::host::config,
+        },
+    });
+}

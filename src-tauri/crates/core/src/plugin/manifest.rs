@@ -244,6 +244,12 @@ pub struct Permissions {
     /// security boundary. Subject to a 10 MB quota.
     #[serde(default)]
     pub storage_state: bool,
+    /// Whether the plugin can read the active profile's REDACTED
+    /// artist list (names + opaque ids + aggregate track counts) via
+    /// `waveflow:host/library.list-artists`. `ui`-world only; default
+    /// `false`. No file paths or per-track data are ever exposed.
+    #[serde(default)]
+    pub library_read_artists: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -425,6 +431,13 @@ impl Manifest {
         if self.permissions.storage_state && !permissions::is_known(permissions::STORAGE_STATE) {
             return Err(ManifestError::UnknownPermission(
                 permissions::STORAGE_STATE.into(),
+            ));
+        }
+        if self.permissions.library_read_artists
+            && !permissions::is_known(permissions::LIBRARY_READ_ARTISTS)
+        {
+            return Err(ManifestError::UnknownPermission(
+                permissions::LIBRARY_READ_ARTISTS.into(),
             ));
         }
 

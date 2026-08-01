@@ -103,12 +103,23 @@ pub mod permissions {
     /// over-quota writes fail.
     pub const STORAGE_STATE: &str = "storage.state";
 
+    /// Redacted read of the active profile's artist list — names,
+    /// opaque ids, and aggregate track counts ONLY. No file paths, no
+    /// per-track rows, no raw DB access. Backs `waveflow:host/library.list-artists`
+    /// (the `ui` world). A UI plugin (e.g. Release Radar) declares this
+    /// to know which artists the user follows without the host handing
+    /// out anything the user hasn't asked to share.
+    pub const LIBRARY_READ_ARTISTS: &str = "library.read_artists";
+
     /// Returns `true` if the string names a permission this SDK
     /// version recognises. Unknown permissions in a manifest are
     /// surfaced as a load-time error so a future-permission plugin
     /// doesn't silently get NO access.
     pub fn is_known(perm: &str) -> bool {
-        matches!(perm, HTTP | STORAGE_READ | STORAGE_STATE)
+        matches!(
+            perm,
+            HTTP | STORAGE_READ | STORAGE_STATE | LIBRARY_READ_ARTISTS
+        )
     }
 }
 
@@ -129,6 +140,7 @@ mod tests {
         assert!(permissions::is_known(permissions::HTTP));
         assert!(permissions::is_known(permissions::STORAGE_READ));
         assert!(permissions::is_known(permissions::STORAGE_STATE));
+        assert!(permissions::is_known(permissions::LIBRARY_READ_ARTISTS));
         assert!(!permissions::is_known("network.tcp"));
     }
 }

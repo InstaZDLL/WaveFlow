@@ -4,6 +4,14 @@
 // the network, the filesystem, or the host's log subsystem
 // directly: those operations go through `waveflow:host/*` so the
 // host can permission-check, rate-limit, and observe them.
+//
+// This file MUST stay byte-for-byte compatible with the shared host
+// interfaces (`http`, `log`, `storage`, `config`) declared for the
+// `source` world — the host reuses ONE set of `waveflow:host/*` Rust
+// impls across every world via bindgen `with:`, and that remap only
+// type-checks when the interface shapes match. The `library`
+// interface at the bottom is the one addition specific to the `ui`
+// world.
 
 package waveflow:host@1.0.0;
 
@@ -70,4 +78,42 @@ interface storage {
   /// Gated by the manifest permission `storage.state` — see
   /// `read-state` for why read + write share one toggle.
   write-state: func(key: string, value: list<u8>) -> result<_, string>;
+}
+
+interface config {
+  /// Read a host-managed configuration option for this plugin by key.
+  /// Options are DECLARED in the plugin's `manifest.toml` (`[[options]]`
+  /// table) and SET by the user in the app's per-plugin settings; the
+  /// value is a string (the plugin parses `"true"`/`"false"`, an enum
+  /// choice, or free text as declared). Read-only from the guest — a
+  /// plugin can't write its own config, only observe what the user chose.
+  ///
+  /// Returns `none` for a key the user never set (or that the manifest
+  /// doesn't declare); the plugin should fall back to its own default in
+  /// that case, so a missing config file never breaks it.
+  get-option: func(key: string) -> option<string>;
+}
+
+interface library {
+  /// One artist in the active profile's library — a REDACTED view.
+  /// Names + aggregate counts + an opaque id only. Deliberately NOT
+  /// the raw `track` row: no file paths, no per-track data, nothing
+  /// the user hasn't implicitly shared by adding the artist.
+  record artist {
+    /// Opaque, profile-scoped artist id. Stable within a session;
+    /// a plugin can use it to dedupe but must not assume it maps to
+    /// any external identifier.
+    id: u64,
+    name: string,
+    /// Number of available tracks credited to this artist.
+    track-count: u32,
+  }
+
+  /// The active profile's artists, sorted by track-count descending
+  /// (most-present first), clamped to a host-chosen safe maximum
+  /// regardless of `limit`. Gated by the manifest permission
+  /// `library.read_artists`; a plugin without it gets
+  /// `Err("permission denied: library.read_artists")`. Reads local
+  /// state only — never a network call — so it works offline.
+  list-artists: func(limit: u32) -> result<list<artist>, string>;
 }
