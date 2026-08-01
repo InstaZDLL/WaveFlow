@@ -1084,7 +1084,11 @@ async fn load_library_artist_snapshot(
         .map(|r| LibraryArtist {
             id: r.id.max(0) as u64,
             name: r.name,
-            track_count: r.track_count.max(0) as u32,
+            // Clamp to the u32 range before narrowing: a bare `as u32`
+            // would wrap a value above u32::MAX. Unreachable in practice
+            // (it's a track COUNT) but the cast should be lossless, not
+            // silently truncating. `.max(0)` still floors negatives at 0.
+            track_count: r.track_count.clamp(0, u32::MAX as i64) as u32,
         })
         .collect())
 }
