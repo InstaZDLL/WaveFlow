@@ -83,11 +83,19 @@ export function PluginUIView({ pluginId, initialPath, icon }: PluginUIViewProps)
       setError(null);
       if (action.kind === "open-url") {
         if (action.url) {
-          openUrl(action.url).catch((e) => {
-            console.error("[PluginUIView] openUrl failed", e);
-            // Surface the failure in the banner too, not just the console.
-            setError(String(e));
-          });
+          // Mark busy while the open is pending so other actions +
+          // refresh are blocked (same as the event path); cleared in
+          // both outcomes.
+          setBusyAction(actionKey);
+          openUrl(action.url).then(
+            () => setBusyAction(null),
+            (e) => {
+              console.error("[PluginUIView] openUrl failed", e);
+              // Surface the failure in the banner too, not just the console.
+              setError(String(e));
+              setBusyAction(null);
+            },
+          );
         }
         return;
       }

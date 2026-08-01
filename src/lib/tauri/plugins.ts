@@ -515,9 +515,13 @@ function validateUiItem(item: unknown, where: string): void {
     if (!Array.isArray(item.badges)) {
       throw new Error(`${where}: item.badges must be an array`);
     }
-    item.badges.forEach((b, i) =>
-      assertOptionalString(b, `${where}: item.badges[${i}]`),
-    );
+    // Badge elements are always strings (not optional like subtitle):
+    // a null/absent element would render as an empty pill, so reject it.
+    item.badges.forEach((b, i) => {
+      if (typeof b !== "string") {
+        throw new Error(`${where}: item.badges[${i}] must be a string`);
+      }
+    });
   }
   if (item.actions !== undefined) {
     if (!Array.isArray(item.actions)) {
