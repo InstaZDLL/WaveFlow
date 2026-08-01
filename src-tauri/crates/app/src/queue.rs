@@ -207,6 +207,24 @@ pub async fn read_player_volume(pool: &SqlitePool) -> Option<f32> {
         .map(|v| (v.clamp(0, 100) as f32) / 100.0)
 }
 
+/// The queue cursor (`queue.current_index`), normalized to a valid index:
+/// clamped into `[0, len)`, or `0` when the queue is empty or the stored
+/// value is unset / out of range. The single source of truth for "which
+/// entry is current" that the MPD `status` / `currentsong` handlers read —
+/// a raw stored value can dangle past the end after the queue shrinks.
+pub async fn current_index(pool: &SqlitePool) -> i64 {
+    let len = queue_length(pool).await.unwrap_or(0);
+    if len <= 0 {
+        return 0;
+    }
+    let raw = read_setting_i64(pool, "queue.current_index")
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or(0);
+    raw.clamp(0, len - 1)
+}
+
 // ---------------------------------------------------------------------
 // Core queue operations
 // ---------------------------------------------------------------------
@@ -978,25 +996,54 @@ pub async fn unshuffle(pool: &SqlitePool) -> AppResult<()> {
     Ok(())
 }
 
-/// Clamp `queue.current_index` into `[0, len)` and persist it.
+/// Where the cursor lands after `[start, end)` (which held `removed` rows) is
+/// deleted from the queue and positions are compacted, so the **same track
+/// keeps playing**:
+///   - deletions entirely before the cursor shift it down by `removed`;
+///   - a deletion that spans the cursor lands it on whatever now occupies
+///     `start` (the track that fell into the gap);
+///   - deletions after the cursor leave it put.
 ///
-/// Shared by the removal paths below: whenever rows leave the queue the
-/// cursor can end up dangling past the end, and [`advance`] would then
-/// have nothing to step from.
-async fn clamp_current_index(tx: &mut sqlx::SqliteConnection, len: i64) -> AppResult<()> {
+/// The result is clamped into the shrunk queue `[0, new_len)`.
+///
+/// Pure so the cursor arithmetic is unit-testable without a database — the
+/// bug it guards (only clamping, so a deletion before the cursor silently
+/// advanced to the next track) isn't visible from the clamp alone.
+fn cursor_after_removal(current: i64, start: i64, end: i64, removed: i64, new_len: i64) -> i64 {
+    let adjusted = if current >= end {
+        current - removed
+    } else if current >= start {
+        start
+    } else {
+        current
+    };
+    adjusted.clamp(0, (new_len - 1).max(0))
+}
+
+/// Persist the [`cursor_after_removal`] adjustment inside the open removal
+/// transaction. Whenever rows leave the queue the cursor can dangle past the
+/// end (and [`advance`] would then have nothing to step from) or, worse,
+/// silently point at a different track; this keeps it on the same one.
+async fn adjust_current_index_after_removal(
+    tx: &mut sqlx::SqliteConnection,
+    start: i64,
+    end: i64,
+    removed: i64,
+    new_len: i64,
+) -> AppResult<()> {
     let raw: Option<String> =
         sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = 'queue.current_index'")
             .fetch_optional(&mut *tx)
             .await?;
     let current = raw.and_then(|s| s.parse::<i64>().ok()).unwrap_or(0);
-    let clamped = current.clamp(0, (len - 1).max(0));
-    if clamped != current {
+    let next = cursor_after_removal(current, start, end, removed, new_len);
+    if next != current {
         let now = Utc::now().timestamp_millis();
         sqlx::query(
             "UPDATE profile_setting SET value = ?, updated_at = ?
               WHERE key = 'queue.current_index'",
         )
-        .bind(clamped.to_string())
+        .bind(next.to_string())
         .bind(now)
         .execute(&mut *tx)
         .await?;
@@ -1068,7 +1115,8 @@ pub async fn remove_range(pool: &SqlitePool, start: i64, end: i64) -> AppResult<
         .execute(&mut *tx)
         .await?;
 
-    clamp_current_index(&mut tx, len - removed as i64).await?;
+    adjust_current_index_after_removal(&mut tx, start, end, removed as i64, len - removed as i64)
+        .await?;
     sqlx::query("DELETE FROM profile_setting WHERE key = 'queue.preshuffle'")
         .execute(&mut *tx)
         .await?;
@@ -1182,5 +1230,25 @@ mod tests {
         // must not panic. "Off" is the conservative default.
         assert_eq!(RepeatMode::from_str("garbage"), RepeatMode::Off);
         assert_eq!(RepeatMode::from_str(""), RepeatMode::Off);
+    }
+
+    #[test]
+    fn removing_before_the_cursor_keeps_the_same_track() {
+        // Queue [A,B,C,D] len 4, cursor 2 (C is playing).
+        // Delete [0,1) (A) → C is now at position 1, so the cursor follows.
+        assert_eq!(cursor_after_removal(2, 0, 1, 1, 3), 1);
+        // Delete [0,2) (A,B) → C is now at position 0.
+        assert_eq!(cursor_after_removal(2, 0, 2, 2, 2), 0);
+    }
+
+    #[test]
+    fn removing_at_or_after_the_cursor_behaves() {
+        // Delete after the cursor → the cursor doesn't move.
+        assert_eq!(cursor_after_removal(1, 2, 4, 2, 2), 1);
+        // Delete a span that includes the playing track → land on `start`,
+        // whatever fell into the gap.
+        assert_eq!(cursor_after_removal(2, 1, 3, 2, 2), 1);
+        // Delete the whole queue → clamp to 0.
+        assert_eq!(cursor_after_removal(0, 0, 4, 4, 0), 0);
     }
 }

@@ -1442,6 +1442,7 @@
         "passwordPlaceholder": "Yok",
         "passwordHint": "İsteğe bağlı. Paylaşılan bir ağda önerilir — MPD protokolü parolayı düz metin olarak gönderir.",
         "lanWarning": "Tüm yerel ağınızdan erişilebilir: ağdaki herkes oynatmayı kontrol edebilir.",
+        "lanWarningAuth": "Tüm yerel ağınızdan erişilebilir, ancak oynatma kontrolü belirlediğiniz parolayı gerektirir.",
         "statusRunning": "Çalışıyor",
         "statusStopped": "Durduruldu",
         "copyAddress": "Adresi kopyala"

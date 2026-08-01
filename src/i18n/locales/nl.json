@@ -1442,6 +1442,7 @@
         "passwordPlaceholder": "Geen",
         "passwordHint": "Optioneel. Aanbevolen op een gedeeld netwerk — het MPD-protocol verstuurt het onversleuteld.",
         "lanWarning": "Bereikbaar vanaf je hele lokale netwerk: iedereen daarop kan het afspelen bedienen.",
+        "lanWarningAuth": "Bereikbaar vanaf je hele lokale netwerk, maar afspeelbediening vereist het wachtwoord dat je hebt ingesteld.",
         "statusRunning": "Actief",
         "statusStopped": "Gestopt",
         "copyAddress": "Adres kopiëren"

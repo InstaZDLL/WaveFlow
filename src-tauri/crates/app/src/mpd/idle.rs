@@ -29,8 +29,6 @@ pub enum Subsystem {
     Mixer,
     /// repeat / random / single / consume.
     Options,
-    /// Audio output device changed.
-    Output,
 }
 
 impl Subsystem {
@@ -40,7 +38,6 @@ impl Subsystem {
             Self::Playlist => "playlist",
             Self::Mixer => "mixer",
             Self::Options => "options",
-            Self::Output => "output",
         }
     }
 
@@ -54,19 +51,17 @@ impl Subsystem {
             "playlist" => Some(Self::Playlist),
             "mixer" => Some(Self::Mixer),
             "options" => Some(Self::Options),
-            "output" => Some(Self::Output),
             _ => None,
         }
     }
 
     /// Every subsystem, for the `commands`/`tagtypes`-style listings and
     /// for a bare `idle` with no arguments (which means "any").
-    pub const ALL: [Subsystem; 5] = [
+    pub const ALL: [Subsystem; 4] = [
         Self::Player,
         Self::Playlist,
         Self::Mixer,
         Self::Options,
-        Self::Output,
     ];
 }
 

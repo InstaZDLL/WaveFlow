@@ -127,6 +127,24 @@ fn ack_arg(command: &str, message: &str) -> Ack {
     Ack::new(ACK_ERROR_ARG, command, message)
 }
 
+/// Persist the effective volume (0–100) into `profile_setting['player.volume']`
+/// so an MPD-driven volume change survives a restart, exactly as
+/// `commands::player::player_set_volume` does. Best-effort — a missing profile
+/// pool is not worth failing the command over; the engine was already told.
+async fn persist_volume(ctx: &Ctx, volume_0_100: i64) {
+    let state = ctx.app.state::<AppState>();
+    if let Ok(pool) = state.require_profile_pool().await {
+        let now = chrono::Utc::now().timestamp_millis();
+        let _ = sqlx::query(
+            "UPDATE profile_setting SET value = ?, updated_at = ? WHERE key = 'player.volume'",
+        )
+        .bind(volume_0_100.to_string())
+        .bind(now)
+        .execute(&*pool)
+        .await;
+    }
+}
+
 /// MPD sends seek targets as fractional seconds; the engine wants
 /// milliseconds.
 ///
@@ -137,20 +155,6 @@ fn ack_arg(command: &str, message: &str) -> Ack {
 /// the three had it wrong.
 fn seconds_to_ms(seconds: f64) -> u64 {
     (seconds.max(0.0) * 1000.0) as u64
-}
-
-/// Read `queue.current_index`, defaulting to 0.
-async fn current_index(pool: &sqlx::SqlitePool) -> i64 {
-    sqlx::query_scalar::<_, Option<String>>(
-        "SELECT value FROM profile_setting WHERE key = 'queue.current_index'",
-    )
-    .fetch_optional(pool)
-    .await
-    .ok()
-    .flatten()
-    .flatten()
-    .and_then(|s| s.parse::<i64>().ok())
-    .unwrap_or(0)
 }
 
 /// Map WaveFlow's tri-state repeat onto MPD's two independent flags.
@@ -236,7 +240,7 @@ async fn status(ctx: &Ctx) -> Result<Response, Ack> {
     // Resolved once: `status` is the command clients poll hardest, so
     // it should not cost two cursor reads and two row lookups.
     let current = if !is_radio && len > 0 {
-        let index = current_index(&pool).await;
+        let index = queue::current_index(&pool).await;
         out.push("song", index);
         songs::by_position(&pool, index).await.ok().flatten()
     } else {
@@ -289,7 +293,7 @@ async fn current_song(ctx: &Ctx) -> Result<Response, Ack> {
     let Ok(pool) = state.require_profile_pool().await else {
         return Ok(out);
     };
-    let index = current_index(&pool).await;
+    let index = queue::current_index(&pool).await;
     if let Ok(Some(song)) = songs::by_position(&pool, index).await {
         song.write_into(&mut out);
     }
@@ -431,6 +435,18 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                     let _ = ctx.engine().send(AudioCmd::Resume);
                 }
                 Some(p) => {
+                    // A position past the end is an argument error in MPD, not
+                    // a silent no-op / clamp.
+                    let state = ctx.app.state::<AppState>();
+                    let pool = state
+                        .require_profile_pool()
+                        .await
+                        .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "play", "no active profile"))?;
+                    let len = queue::queue_length(&pool).await.unwrap_or(0) as u32;
+                    drop(pool);
+                    if p >= len {
+                        return Err(ack_arg("play", "Bad song index"));
+                    }
                     player_actions::play_at_index(&ctx.app, p as i64, SURFACE).await;
                 }
             }
@@ -503,6 +519,16 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
         }
 
         Command::Seek(pos, seconds) => {
+            let state = ctx.app.state::<AppState>();
+            let pool = state
+                .require_profile_pool()
+                .await
+                .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "seek", "no active profile"))?;
+            let len = queue::queue_length(&pool).await.unwrap_or(0) as u32;
+            drop(pool);
+            if pos >= len {
+                return Err(ack_arg("seek", "Bad song index"));
+            }
             player_actions::play_at_index(&ctx.app, pos as i64, SURFACE).await;
             let _ = ctx.engine().send(AudioCmd::Seek(seconds_to_ms(seconds)));
             ctx.idle.notify(Subsystem::Player);
@@ -544,6 +570,7 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
 
         Command::SetVol(v) => {
             let _ = ctx.engine().send(AudioCmd::SetVolume(v as f32 / 100.0));
+            persist_volume(ctx, v as i64).await;
             ctx.idle.notify(Subsystem::Mixer);
             Ok(Response::new())
         }
@@ -562,6 +589,7 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
             let current = (engine.shared().volume() * 100.0).round() as i32;
             let next = (current + delta).clamp(0, 100);
             let _ = engine.send(AudioCmd::SetVolume(next as f32 / 100.0));
+            persist_volume(ctx, next as i64).await;
             ctx.idle.notify(Subsystem::Mixer);
             Ok(Response::new())
         }
@@ -745,10 +773,19 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
             }
         }
 
-        // `idle` / `noidle` are handled by the connection layer, which
-        // owns the socket and can hold it open. Reaching here means a
-        // command list contained `idle`, which MPD forbids.
-        Command::Idle(_) | Command::NoIdle => Err(ack_arg("idle", "idle is not allowed in a list")),
+        // `idle` is handled by the connection layer, which owns the socket
+        // and can hold it open. Reaching here means a command list contained
+        // `idle`, which MPD forbids.
+        Command::Idle(_) => Err(ack_arg("idle", "idle is not allowed in a list")),
+
+        // A bare `noidle` with no `idle` in flight is a no-op in MPD — answer
+        // OK rather than erroring. (When `idle` IS in flight the connection
+        // layer consumes the `noidle` and never dispatches it.)
+        Command::NoIdle => Ok(Response::new()),
+
+        // A recognized verb whose argument was malformed: MPD answers
+        // ACK_ERROR_ARG (2), distinct from an unknown command's ERROR (5).
+        Command::BadArgs(verb) => Err(ack_arg(&verb, "invalid argument")),
 
         Command::Unknown(verb) => Err(Ack::new(
             super::protocol::ACK_ERROR_UNKNOWN,

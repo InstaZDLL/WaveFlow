@@ -1417,6 +1417,7 @@
         "passwordPlaceholder": "なし",
         "passwordHint": "任意。共有ネットワークでは推奨します — MPD プロトコルは平文で送信します。",
         "lanWarning": "ローカルネットワーク全体からアクセスできます：同じネットワーク上の誰もが再生を操作できます。",
+        "lanWarningAuth": "ローカルネットワーク全体から到達できますが、再生の操作には設定したパスワードが必要です。",
         "statusRunning": "実行中",
         "statusStopped": "停止中",
         "copyAddress": "アドレスをコピー"

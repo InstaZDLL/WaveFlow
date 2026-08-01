@@ -48,7 +48,8 @@ pub mod idle;
 pub mod protocol;
 pub mod songs;
 
-use std::sync::{atomic::AtomicU32, Arc};
+use std::sync::{atomic::AtomicU32, Arc, Mutex};
+use std::time::Duration;
 
 use crossbeam_channel::{unbounded, Sender};
 use tauri::{AppHandle, Listener};
@@ -110,7 +111,12 @@ impl MpdServer {
                         Cmd::Start(cfg, app) => runtime.block_on(state.start(cfg, app)),
                         Cmd::Stop => runtime.block_on(state.stop()),
                         Cmd::Status(reply) => {
-                            let _ = reply.send(state.status.clone());
+                            let snapshot = state
+                                .status
+                                .lock()
+                                .map(|s| s.clone())
+                                .unwrap_or_default();
+                            let _ = reply.send(snapshot);
                         }
                     }
                 }
@@ -139,7 +145,9 @@ impl MpdServer {
 
 #[derive(Default)]
 struct WorkerState {
-    status: MpdStatus,
+    /// Shared so the detached accept task can record a fatal accept error
+    /// (running = false + `last_error`); the worker + `Cmd::Status` read it.
+    status: Arc<Mutex<MpdStatus>>,
     cancel: Option<CancellationToken>,
     /// Tauri event subscriptions feeding the idle bus. Held so they can
     /// be dropped on stop — otherwise a restart stacks a second set and
@@ -158,13 +166,13 @@ impl WorkerState {
             Ok(l) => l,
             Err(err) => {
                 tracing::warn!(port = cfg.port, ?err, "MPD bind failed");
-                self.status = MpdStatus {
+                self.set_status(MpdStatus {
                     enabled: cfg.enabled,
                     running: false,
                     bound_address: None,
                     port: None,
                     last_error: Some(format!("bind :{}: {err}", cfg.port)),
-                };
+                });
                 return;
             }
         };
@@ -185,6 +193,7 @@ impl WorkerState {
         };
 
         let accept_cancel = cancel.clone();
+        let accept_status = Arc::clone(&self.status);
         tokio::spawn(async move {
             loop {
                 tokio::select! {
@@ -200,8 +209,24 @@ impl WorkerState {
                                 }
                             });
                         }
+                        Err(err) if is_transient_accept_error(&err) => {
+                            // A single client aborting mid-handshake, or fd
+                            // exhaustion, must not tear down the whole server.
+                            // Back off briefly so an EMFILE/ENFILE storm can't
+                            // spin the loop while descriptors are exhausted.
+                            tracing::warn!(?err, "transient MPD accept error; continuing");
+                            tokio::time::sleep(Duration::from_millis(100)).await;
+                        }
                         Err(err) => {
-                            tracing::warn!(?err, "MPD accept failed");
+                            // Fatal (the listener itself is gone): stop the loop
+                            // and make the reported status reflect it.
+                            tracing::error!(?err, "fatal MPD accept error; stopping");
+                            if let Ok(mut s) = accept_status.lock() {
+                                s.running = false;
+                                s.bound_address = None;
+                                s.port = None;
+                                s.last_error = Some(format!("accept: {err}"));
+                            }
                             break;
                         }
                     }
@@ -211,14 +236,24 @@ impl WorkerState {
 
         self.cancel = Some(cancel);
         self.app = Some(app);
-        self.status = MpdStatus {
+        self.set_status(MpdStatus {
             enabled: cfg.enabled,
             running: true,
             bound_address: Some(format!("{host}:{port}")),
             port: Some(port),
             last_error: None,
-        };
+        });
         tracing::info!(%host, port, "MPD server listening");
+    }
+
+    /// Overwrite the shared status (recovering a poisoned lock rather than
+    /// panicking — a stale status is better than crashing the worker).
+    fn set_status(&self, next: MpdStatus) {
+        let mut guard = self
+            .status
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        *guard = next;
     }
 
     async fn stop(&mut self) {
@@ -230,10 +265,33 @@ impl WorkerState {
                 app.unlisten(id);
             }
         }
-        self.status.running = false;
-        self.status.bound_address = None;
-        self.status.port = None;
+        if let Ok(mut s) = self.status.lock() {
+            s.running = false;
+            s.bound_address = None;
+            s.port = None;
+        }
     }
+}
+
+/// An accept error that must NOT kill the listener: a client aborting before
+/// the handshake completes, or transient fd exhaustion. Everything else
+/// (the listening socket itself dying) is fatal.
+fn is_transient_accept_error(err: &std::io::Error) -> bool {
+    use std::io::ErrorKind;
+    if matches!(
+        err.kind(),
+        ErrorKind::ConnectionAborted | ErrorKind::ConnectionReset | ErrorKind::Interrupted
+    ) {
+        return true;
+    }
+    // EMFILE (24) / ENFILE (23) — per-process / system fd exhaustion. These
+    // BSD-derived codes are shared by Linux + macOS; on Windows the numbers
+    // differ, so gate the check to Unix and let Windows rely on `kind()`.
+    #[cfg(unix)]
+    if matches!(err.raw_os_error(), Some(24) | Some(23)) {
+        return true;
+    }
+    false
 }
 
 /// Bind `port`, falling back through the next
@@ -243,7 +301,12 @@ impl WorkerState {
 /// 6600, would otherwise leave the feature silently dead.
 async fn bind_with_scan(port: u16) -> std::io::Result<tokio::net::TcpListener> {
     let mut last_err = None;
-    for candidate in port..port.saturating_add(config::PORT_SCAN_LEN) {
+    // Inclusive range so the start port is always tried — `port..port+N` is
+    // empty at 65535 (`saturating_add` clamps both ends to the same value),
+    // which would skip binding entirely. `saturating_add` on the last
+    // candidate also clamps to 65535 near the top instead of wrapping/skipping.
+    let last = port.saturating_add(config::PORT_SCAN_LEN.saturating_sub(1));
+    for candidate in port..=last {
         match tokio::net::TcpListener::bind(("0.0.0.0", candidate)).await {
             Ok(listener) => return Ok(listener),
             Err(err) => last_err = Some(err),

@@ -1442,6 +1442,7 @@
         "passwordPlaceholder": "Nenhuma",
         "passwordHint": "Opcional. Recomendada em uma rede compartilhada — o protocolo MPD a envia em texto puro.",
         "lanWarning": "Acessível de toda a sua rede local: qualquer pessoa nela pode controlar a reprodução.",
+        "lanWarningAuth": "Acessível a partir de toda a sua rede local, mas o controle da reprodução exige a senha que você definiu.",
         "statusRunning": "Ativo",
         "statusStopped": "Parado",
         "copyAddress": "Copiar endereço"

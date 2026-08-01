@@ -20,7 +20,7 @@ Same dedicated-worker shape as [`dlna`](dlna.md): a sync `MpdServer` handle on `
 
 ```bash
 AppState.mpd ─► Cmd channel ─► mpd-worker
-                                ├─► TcpListener 0.0.0.0:6600 (scans 6600..6610)
+                                ├─► TcpListener 0.0.0.0:<port> (default 6600; scans up to 10 ports forward, e.g. 6600–6609)
                                 │     └─► one task per client (connection.rs)
                                 └─► Tauri event listeners ─► IdleBus
                                       player:state          ─► player
@@ -45,7 +45,7 @@ Persisted in the global `app_setting` table — the listener is process-wide, no
 | Key            | Default | Note                                                                                                     |
 | -------------- | ------- | -------------------------------------------------------------------------------------------------------- |
 | `mpd.enabled`  | `0`     | Opt-in. Auto-started at boot when set. **This flag is the security decision** — see below.                |
-| `mpd.port`     | `6600`  | The MPD standard, which every client probes first. Scans forward through `6610` when taken.               |
+| `mpd.port`     | `6600`  | The MPD standard, which every client probes first. Scans up to 10 ports forward (e.g. `6600`–`6609`) when taken. |
 | `mpd.password` | `""`    | Empty = no authentication.                                                                                |
 
 ## Bind address: `0.0.0.0`

@@ -1495,6 +1495,7 @@
         "passwordPlaceholder": "Aucun",
         "passwordHint": "Facultatif. Recommandé sur un réseau partagé — le protocole MPD le transmet en clair.",
         "lanWarning": "Accessible depuis tout le réseau local : n'importe qui peut piloter la lecture.",
+        "lanWarningAuth": "Joignable depuis tout votre réseau local, mais le contrôle de la lecture nécessite le mot de passe que vous avez défini.",
         "statusRunning": "Actif",
         "statusStopped": "Arrêté",
         "copyAddress": "Copier l'adresse"

@@ -43,12 +43,17 @@ pub async fn handle(ctx: Ctx, stream: TcpStream, cancel: CancellationToken) -> s
     write_half.write_all(protocol::GREETING).await?;
     write_half.flush().await?;
 
+    // Connection-level carry for `read_line`: bytes consumed from the reader
+    // but not yet part of a complete line live here, so they survive a
+    // dropped `read_line` future (e.g. `run_idle`'s `select!`). Shared across
+    // every `read_line` call on this socket.
+    let mut carry: Vec<u8> = Vec::new();
     let mut line = String::new();
     loop {
         line.clear();
         let read = tokio::select! {
             _ = cancel.cancelled() => return Ok(()),
-            n = read_line(&mut reader, &mut line) => n?,
+            n = read_line(&mut reader, &mut carry, &mut line) => n?,
         };
         if read == 0 {
             return Ok(()); // client hung up
@@ -62,6 +67,7 @@ pub async fn handle(ctx: Ctx, stream: TcpStream, cancel: CancellationToken) -> s
                     &ctx,
                     &mut session,
                     &mut reader,
+                    &mut carry,
                     &mut write_half,
                     ListMode::Silent,
                     &cancel,
@@ -74,6 +80,7 @@ pub async fn handle(ctx: Ctx, stream: TcpStream, cancel: CancellationToken) -> s
                     &ctx,
                     &mut session,
                     &mut reader,
+                    &mut carry,
                     &mut write_half,
                     ListMode::Verbose,
                     &cancel,
@@ -106,6 +113,7 @@ pub async fn handle(ctx: Ctx, stream: TcpStream, cancel: CancellationToken) -> s
             run_idle(
                 &ctx.idle,
                 &mut reader,
+                &mut carry,
                 &mut write_half,
                 &subsystems,
                 &cancel,
@@ -137,13 +145,23 @@ pub async fn handle(ctx: Ctx, stream: TcpStream, cancel: CancellationToken) -> s
 /// per-chunk `from_utf8_lossy` would corrupt any multi-byte character
 /// straddling a buffer boundary, and arguments carry file paths.
 ///
+/// **Cancellation-safe.** Bytes already `consume`d from the `BufReader`
+/// accumulate in the caller-owned `carry` buffer, not a local one, so if
+/// this future is dropped mid-line (the `idle::wait` branch of `run_idle`'s
+/// `select!` winning while a client's command is still arriving in fragments)
+/// the partial data survives and the next `read_line` call resumes from it.
+/// `carry` is cleared only once a complete line has been handed back.
+///
 /// An over-long line is an error rather than a truncation, because a
 /// truncated command would parse as a different — valid — one.
-async fn read_line<R>(reader: &mut BufReader<R>, out: &mut String) -> std::io::Result<usize>
+async fn read_line<R>(
+    reader: &mut BufReader<R>,
+    carry: &mut Vec<u8>,
+    out: &mut String,
+) -> std::io::Result<usize>
 where
     R: tokio::io::AsyncRead + Unpin,
 {
-    let mut bytes: Vec<u8> = Vec::new();
     loop {
         let available = reader.fill_buf().await?;
         if available.is_empty() {
@@ -151,15 +169,17 @@ where
         }
         match available.iter().position(|&b| b == b'\n') {
             Some(index) => {
-                bytes.extend_from_slice(&available[..=index]);
+                carry.extend_from_slice(&available[..=index]);
                 reader.consume(index + 1);
                 break;
             }
             None => {
                 let len = available.len();
-                bytes.extend_from_slice(available);
+                carry.extend_from_slice(available);
                 reader.consume(len);
-                if bytes.len() > MAX_LINE_BYTES {
+                if carry.len() > MAX_LINE_BYTES {
+                    // The connection is torn down on this error, so the
+                    // leftover `carry` never gets reused.
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::InvalidData,
                         "command line too long",
@@ -168,8 +188,9 @@ where
             }
         }
     }
-    let read = bytes.len();
-    out.push_str(&String::from_utf8_lossy(&bytes));
+    let read = carry.len();
+    out.push_str(&String::from_utf8_lossy(carry));
+    carry.clear();
     Ok(read)
 }
 
@@ -182,6 +203,7 @@ async fn run_list<R, W>(
     ctx: &Ctx,
     session: &mut Session,
     reader: &mut BufReader<R>,
+    carry: &mut Vec<u8>,
     writer: &mut W,
     mode: ListMode,
     cancel: &CancellationToken,
@@ -197,7 +219,7 @@ where
         line.clear();
         let read = tokio::select! {
             _ = cancel.cancelled() => return Ok(()),
-            n = read_line(reader, &mut line) => n?,
+            n = read_line(reader, carry, &mut line) => n?,
         };
         if read == 0 {
             return Ok(());
@@ -243,6 +265,7 @@ where
 async fn run_idle<R, W>(
     bus: &idle::IdleBus,
     reader: &mut BufReader<R>,
+    carry: &mut Vec<u8>,
     writer: &mut W,
     requested: &[String],
     cancel: &CancellationToken,
@@ -270,7 +293,9 @@ where
         // Anything arriving on the socket ends the idle. MPD only
         // allows `noidle` here; other commands are undefined, and
         // answering a bare OK (as MPD does) keeps clients in sync.
-        read = read_line(reader, &mut interrupt) => {
+        // `read_line` shares the connection carry, so if `idle::wait` wins
+        // this race any partially-read command is preserved for the next read.
+        read = read_line(reader, carry, &mut interrupt) => {
             match read {
                 Ok(0) => return Ok(()),   // client hung up mid-idle
                 Ok(_) => Vec::new(),
@@ -342,9 +367,17 @@ mod tests {
         let task = tokio::spawn({
             let bus = bus.clone();
             async move {
-                run_idle(&bus, &mut reader, &mut server_write, &requested, &cancel)
-                    .await
-                    .unwrap();
+                let mut carry: Vec<u8> = Vec::new();
+                run_idle(
+                    &bus,
+                    &mut reader,
+                    &mut carry,
+                    &mut server_write,
+                    &requested,
+                    &cancel,
+                )
+                .await
+                .unwrap();
             }
         });
 
@@ -378,12 +411,13 @@ mod tests {
             .unwrap();
         let mut reader = BufReader::new(server);
 
+        let mut carry: Vec<u8> = Vec::new();
         let mut line = String::new();
-        read_line(&mut reader, &mut line).await.unwrap();
+        read_line(&mut reader, &mut carry, &mut line).await.unwrap();
         assert_eq!(line, "play \"Café\"\n");
 
         line.clear();
-        read_line(&mut reader, &mut line).await.unwrap();
+        read_line(&mut reader, &mut carry, &mut line).await.unwrap();
         assert_eq!(line, "next\n");
     }
 
@@ -404,8 +438,11 @@ mod tests {
         });
 
         let mut reader = BufReader::new(server);
+        let mut carry: Vec<u8> = Vec::new();
         let mut line = String::new();
-        let err = read_line(&mut reader, &mut line).await.unwrap_err();
+        let err = read_line(&mut reader, &mut carry, &mut line)
+            .await
+            .unwrap_err();
         assert_eq!(err.kind(), std::io::ErrorKind::InvalidData);
     }
 

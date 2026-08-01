@@ -1417,6 +1417,7 @@
         "passwordPlaceholder": "无",
         "passwordHint": "可选。在共享网络中建议设置 —— MPD 协议以明文传输密码。",
         "lanWarning": "整个局域网均可访问：网络中的任何人都能控制播放。",
+        "lanWarningAuth": "可从整个本地网络访问，但播放控制需要你设置的密码。",
         "statusRunning": "运行中",
         "statusStopped": "已停止",
         "copyAddress": "复制地址"

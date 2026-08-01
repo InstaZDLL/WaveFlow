@@ -1442,6 +1442,7 @@
         "passwordPlaceholder": "None",
         "passwordHint": "Optional. Recommended on a shared network — the MPD protocol sends it in cleartext.",
         "lanWarning": "Reachable from your whole local network: anyone on it can control playback.",
+        "lanWarningAuth": "Reachable from your whole local network, but playback control requires the password you set.",
         "statusRunning": "Running",
         "statusStopped": "Stopped",
         "copyAddress": "Copy address"

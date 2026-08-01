@@ -2837,9 +2837,15 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                     <div className="mt-3 space-y-3">
                       {/* The LAN exposure is stated plainly rather than
                           buried in docs — it is the whole point of the
-                          feature and also its only real risk. */}
+                          feature and also its only real risk. With a password
+                          set (MpdConfig.requires_auth), control is gated, so
+                          the "anyone can control" warning would be misleading:
+                          swap it for one that separates reachability from
+                          control. */}
                       <div className="text-xs text-amber-600 dark:text-amber-500">
-                        {t("settings.integrations.mpd.lanWarning")}
+                        {mpdConfig.password
+                          ? t("settings.integrations.mpd.lanWarningAuth")
+                          : t("settings.integrations.mpd.lanWarning")}
                       </div>
 
                       <div className="flex items-center space-x-2">
@@ -2858,7 +2864,12 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                           onChange={(e) =>
                             setMpdConfig({
                               ...mpdConfig,
-                              port: Number(e.target.value),
+                              // Clamp like the DLNA port field so the value
+                              // never becomes NaN or exceeds 0–65535.
+                              port: Math.max(
+                                0,
+                                Math.min(65535, Number(e.target.value) || 0),
+                              ),
                             })
                           }
                           onBlur={() => persistMpd(mpdConfig)}

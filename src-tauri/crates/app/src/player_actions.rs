@@ -81,14 +81,16 @@ async fn load_and_play(
 /// the surface that triggered it (`"tray"`, `"mpd"`, …).
 pub async fn step(app: &AppHandle, direction: Direction, label: &str) -> Moved {
     let state = app.state::<AppState>();
-    let pool = match state.require_profile_pool().await {
-        Ok(p) => p,
+    // One atomic snapshot: the pool and the profile id come from the same
+    // read guard, so a profile switch can't slip a mismatched pair between
+    // two separate `require_*` calls.
+    let (pool, profile_id) = match state.require_profile_snapshot().await {
+        Ok(pair) => pair,
         Err(err) => {
             tracing::warn!(%err, surface = label, "player action: no profile pool");
             return Moved::Nothing;
         }
     };
-    let profile_id = state.require_profile_id().await.ok();
     let repeat = queue::read_repeat_mode(&pool).await;
     let track = match queue::advance(&pool, direction, repeat).await {
         Ok(Some(track)) => track,
@@ -98,7 +100,7 @@ pub async fn step(app: &AppHandle, direction: Direction, label: &str) -> Moved {
             return Moved::Nothing;
         }
     };
-    load_and_play(app, &pool, track, profile_id).await;
+    load_and_play(app, &pool, track, Some(profile_id)).await;
     Moved::Track
 }
 
@@ -123,14 +125,13 @@ pub async fn previous(app: &AppHandle, label: &str) -> Moved {
 /// uses for a double-click in the queue panel.
 pub async fn play_at_index(app: &AppHandle, position: i64, label: &str) -> Moved {
     let state = app.state::<AppState>();
-    let pool = match state.require_profile_pool().await {
-        Ok(p) => p,
+    let (pool, profile_id) = match state.require_profile_snapshot().await {
+        Ok(pair) => pair,
         Err(err) => {
             tracing::warn!(%err, surface = label, "player action: no profile pool");
             return Moved::Nothing;
         }
     };
-    let profile_id = state.require_profile_id().await.ok();
     let track = match queue::jump_to(&pool, position).await {
         Ok(Some(track)) => track,
         Ok(None) => return Moved::Nothing,
@@ -139,6 +140,6 @@ pub async fn play_at_index(app: &AppHandle, position: i64, label: &str) -> Moved
             return Moved::Nothing;
         }
     };
-    load_and_play(app, &pool, track, profile_id).await;
+    load_and_play(app, &pool, track, Some(profile_id)).await;
     Moved::Track
 }

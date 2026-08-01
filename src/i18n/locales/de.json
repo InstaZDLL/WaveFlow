@@ -1442,6 +1442,7 @@
         "passwordPlaceholder": "Keins",
         "passwordHint": "Optional. In einem gemeinsam genutzten Netzwerk empfohlen — das MPD-Protokoll überträgt es im Klartext.",
         "lanWarning": "Aus dem gesamten lokalen Netzwerk erreichbar: Jeder darin kann die Wiedergabe steuern.",
+        "lanWarningAuth": "Aus deinem gesamten lokalen Netzwerk erreichbar, aber die Wiedergabesteuerung erfordert das von dir festgelegte Passwort.",
         "statusRunning": "Aktiv",
         "statusStopped": "Gestoppt",
         "copyAddress": "Adresse kopieren"

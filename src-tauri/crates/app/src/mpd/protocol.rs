@@ -124,6 +124,10 @@ pub enum Command {
     // Idle
     Idle(Vec<String>),
     NoIdle,
+    /// A recognized verb whose arguments were malformed. Distinct from
+    /// `Unknown` so the dispatcher can answer `ACK_ERROR_ARG` (2) — a bad
+    /// argument — rather than `ACK_ERROR_UNKNOWN` (5) — no such command.
+    BadArgs(String),
     Unknown(String),
 }
 
@@ -308,14 +312,14 @@ pub fn parse(line: &str) -> Option<Command> {
             None => None,
             Some(a) => match parse_range(a) {
                 Some(r) => Some(r),
-                None => return Some(Command::Unknown(verb)),
+                None => return Some(Command::BadArgs(verb)),
             },
         }),
         "playlistid" => Command::PlaylistId(match arg(0) {
             None => None,
             Some(a) => match a.parse().ok() {
                 Some(v) => Some(v),
-                None => return Some(Command::Unknown(verb)),
+                None => return Some(Command::BadArgs(verb)),
             },
         }),
         "play" => Command::Play(match arg(0) {
@@ -325,21 +329,21 @@ pub fn parse(line: &str) -> Option<Command> {
             None | Some("-1") => None,
             Some(a) => match a.parse().ok() {
                 Some(v) => Some(v),
-                None => return Some(Command::Unknown(verb)),
+                None => return Some(Command::BadArgs(verb)),
             },
         }),
         "playid" => Command::PlayId(match arg(0) {
             None | Some("-1") => None,
             Some(a) => match a.parse().ok() {
                 Some(v) => Some(v),
-                None => return Some(Command::Unknown(verb)),
+                None => return Some(Command::BadArgs(verb)),
             },
         }),
         "pause" => Command::Pause(match arg(0) {
             None => None,
             Some(a) => match parse_bool(a) {
                 Some(v) => Some(v),
-                None => return Some(Command::Unknown(verb)),
+                None => return Some(Command::BadArgs(verb)),
             },
         }),
         "stop" => Command::Stop,
@@ -350,14 +354,14 @@ pub fn parse(line: &str) -> Option<Command> {
             arg(1).and_then(parse_seconds),
         ) {
             (Some(pos), Some(secs)) => Command::Seek(pos, secs),
-            _ => return Some(Command::Unknown(verb)),
+            _ => return Some(Command::BadArgs(verb)),
         },
         "seekid" => match (
             arg(0).and_then(|a| a.parse().ok()),
             arg(1).and_then(parse_seconds),
         ) {
             (Some(id), Some(secs)) => Command::SeekId(id, secs),
-            _ => return Some(Command::Unknown(verb)),
+            _ => return Some(Command::BadArgs(verb)),
         },
         "seekcur" => match arg(0) {
             Some(a) => match parse_seconds(a) {
@@ -367,60 +371,60 @@ pub fn parse(line: &str) -> Option<Command> {
                     seconds: secs,
                     relative: a.starts_with('+') || a.starts_with('-'),
                 },
-                None => return Some(Command::Unknown(verb)),
+                None => return Some(Command::BadArgs(verb)),
             },
-            None => return Some(Command::Unknown(verb)),
+            None => return Some(Command::BadArgs(verb)),
         },
         "setvol" => match arg(0).and_then(|a| a.parse::<i32>().ok()) {
             Some(v) => Command::SetVol(v.clamp(0, 100) as u8),
-            None => return Some(Command::Unknown(verb)),
+            None => return Some(Command::BadArgs(verb)),
         },
         "getvol" => Command::GetVol,
         "volume" => match arg(0).and_then(|a| a.parse::<i32>().ok()) {
             Some(v) => Command::VolumeDelta(v),
-            None => return Some(Command::Unknown(verb)),
+            None => return Some(Command::BadArgs(verb)),
         },
         "clear" => Command::Clear,
         "delete" => match arg(0).and_then(parse_range) {
             Some(r) => Command::Delete(r),
-            None => return Some(Command::Unknown(verb)),
+            None => return Some(Command::BadArgs(verb)),
         },
         "deleteid" => match arg(0).and_then(|a| a.parse().ok()) {
             Some(id) => Command::DeleteId(id),
-            None => return Some(Command::Unknown(verb)),
+            None => return Some(Command::BadArgs(verb)),
         },
         "move" => match (
             arg(0).and_then(parse_range),
             arg(1).and_then(|a| a.parse().ok()),
         ) {
             (Some(from), Some(to)) => Command::Move { from, to },
-            _ => return Some(Command::Unknown(verb)),
+            _ => return Some(Command::BadArgs(verb)),
         },
         "moveid" => match (
             arg(0).and_then(|a| a.parse().ok()),
             arg(1).and_then(|a| a.parse().ok()),
         ) {
             (Some(id), Some(to)) => Command::MoveId { id, to },
-            _ => return Some(Command::Unknown(verb)),
+            _ => return Some(Command::BadArgs(verb)),
         },
         "shuffle" => Command::Shuffle,
         "random" => match arg(0).and_then(parse_bool) {
             Some(v) => Command::Random(v),
-            None => return Some(Command::Unknown(verb)),
+            None => return Some(Command::BadArgs(verb)),
         },
         "repeat" => match arg(0).and_then(parse_bool) {
             Some(v) => Command::Repeat(v),
-            None => return Some(Command::Unknown(verb)),
+            None => return Some(Command::BadArgs(verb)),
         },
         "single" => match arg(0) {
             Some("oneshot") => Command::Single(SingleMode::OneShot),
             Some("1") => Command::Single(SingleMode::On),
             Some("0") => Command::Single(SingleMode::Off),
-            _ => return Some(Command::Unknown(verb)),
+            _ => return Some(Command::BadArgs(verb)),
         },
         "consume" => match arg(0).and_then(parse_bool) {
             Some(v) => Command::Consume(v),
-            None => return Some(Command::Unknown(verb)),
+            None => return Some(Command::BadArgs(verb)),
         },
         "idle" => Command::Idle(args),
         "noidle" => Command::NoIdle,
@@ -536,16 +540,20 @@ mod tests {
     }
 
     #[test]
-    fn malformed_arguments_degrade_to_unknown() {
+    fn malformed_arguments_degrade_to_bad_args() {
+        // A recognized verb with a bad argument is BadArgs (→ ACK_ERROR_ARG),
+        // distinct from an unrecognized verb (→ ACK_ERROR_UNKNOWN).
         assert_eq!(
             parse("setvol loud"),
-            Some(Command::Unknown("setvol".into()))
+            Some(Command::BadArgs("setvol".into()))
         );
         assert_eq!(
             parse("repeat maybe"),
-            Some(Command::Unknown("repeat".into()))
+            Some(Command::BadArgs("repeat".into()))
         );
-        assert_eq!(parse("seek 1"), Some(Command::Unknown("seek".into())));
+        assert_eq!(parse("seek 1"), Some(Command::BadArgs("seek".into())));
+        // An unrecognized verb stays Unknown.
+        assert_eq!(parse("bogus x"), Some(Command::Unknown("bogus".into())));
     }
 
     #[test]

@@ -97,12 +97,19 @@ async fn read_key(pool: &SqlitePool, key: &str) -> AppResult<Option<String>> {
 }
 
 async fn write_key(pool: &SqlitePool, key: &str, value: &str) -> AppResult<()> {
+    // `app_setting.value_type` + `updated_at` are NOT NULL (no default), so a
+    // brand-new key (the `mpd.*` keys aren't seeded) must supply both or the
+    // INSERT fails the constraint. Everything here is stored as text and
+    // parsed back on read, so `'string'` is the honest type.
     sqlx::query(
-        "INSERT INTO app_setting (key, value) VALUES (?, ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'string', ?)
+         ON CONFLICT(key) DO UPDATE SET
+            value = excluded.value, updated_at = excluded.updated_at",
     )
     .bind(key)
     .bind(value)
+    .bind(chrono::Utc::now().timestamp_millis())
     .execute(pool)
     .await?;
     Ok(())
