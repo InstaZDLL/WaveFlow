@@ -13,7 +13,6 @@ import {
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
 import { useCoverSlideshow } from "../../hooks/useCoverSlideshow";
-import { useArtistImage } from "../../hooks/useArtistImage";
 import { Artwork } from "../common/Artwork";
 import { MotionCoverOverlay } from "../player/MotionCoverOverlay";
 import { CanvasStage } from "../player/CanvasStage";
@@ -53,6 +52,10 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
   // Enrichment (picture + bio) for the current artist. Re-fetched
   // whenever the primary artist_id changes.
   const [pictureSrc, setPictureSrc] = useState<string | null>(null);
+  // Full-res artist photo for the cover slideshow (issue #466) — derived from
+  // the SAME enrichment as `pictureSrc` (which resolves 1x for the bio
+  // thumbnail), so there's no second `enrichArtistDeezer` fetch.
+  const [artistImageHi, setArtistImageHi] = useState<string | null>(null);
   const [bioShort, setBioShort] = useState<string | null>(null);
   const [bioFull, setBioFull] = useState<string | null>(null);
   const [bioExpanded, setBioExpanded] = useState(false);
@@ -98,6 +101,7 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
     // stale bios don't flash during the async fetch.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPictureSrc(null);
+    setArtistImageHi(null);
     setBioShort(null);
     setBioFull(null);
     setBioExpanded(false);
@@ -107,16 +111,17 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
     enrichArtistDeezer(artistId)
       .then((e) => {
         if (cancelled) return;
-        const resolved = resolveArtwork(
-          {
-            full: e.picture_path,
-            x1: e.picture_path_1x,
-            x2: e.picture_path_2x,
-            remoteUrl: e.picture_url,
-          },
-          "1x",
-        );
+        const paths = {
+          full: e.picture_path,
+          x1: e.picture_path_1x,
+          x2: e.picture_path_2x,
+          remoteUrl: e.picture_url,
+        };
+        const resolved = resolveArtwork(paths, "1x");
         if (resolved) setPictureSrc(resolved);
+        // "full" for the slideshow's large cover slot (a 1x thumbnail
+        // upscales blurry there); same fetch, no extra network.
+        setArtistImageHi(resolveArtwork(paths, "full"));
         if (e.bio_short) setBioShort(e.bio_short);
         if (e.bio_full) setBioFull(e.bio_full);
       })
@@ -150,12 +155,6 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
     currentTrack?.artist_name,
     currentTrack?.album_title,
     currentTrack?.album_id,
-  );
-  // Full-res artist photo for the slideshow's large cover slot — distinct
-  // from `pictureSrc` (1x, for the small "About the artist" thumbnail), which
-  // would upscale blurry here. Gated on the toggle so it's free when off.
-  const artistImageHi = useArtistImage(
-    slideshowEnabled && !reducedMotion ? currentTrack?.artist_id : null,
   );
   const slideshowActive =
     slideshowEnabled &&

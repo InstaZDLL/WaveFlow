@@ -91,9 +91,12 @@ export function ImmersiveNowPlaying({
   );
   // Only enrich the artist (a network call the immersive view doesn't
   // otherwise make) when the slideshow could actually run — off by default,
-  // so this stays free unless the user opted in.
+  // and never while a Canvas or motion cover owns the slot — so this stays
+  // free unless the user opted in and nothing higher-precedence is showing.
   const artistImage = useArtistImage(
-    slideshowEnabled && !reducedMotion ? currentTrack?.artist_id : null,
+    slideshowEnabled && !reducedMotion && !canvasActive && !motion
+      ? currentTrack?.artist_id
+      : null,
   );
   const slideshowActive =
     slideshowEnabled &&
