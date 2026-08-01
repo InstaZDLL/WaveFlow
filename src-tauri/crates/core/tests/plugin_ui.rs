@@ -123,6 +123,34 @@ fn ui_fixture_render_exposes_redacted_artists_when_permitted() {
 }
 
 #[test]
+fn ui_fixture_render_clamps_snapshot_to_host_max() {
+    // The fixture requests `u32::MAX` artists; the host must expose at
+    // most `MAX_LIBRARY_ARTISTS` regardless of what the guest asks or
+    // how large the injected snapshot is. Feed a snapshot bigger than
+    // the cap and assert the guest saw exactly the cap.
+    use waveflow_core::plugin::host_impl::MAX_LIBRARY_ARTISTS;
+
+    let (_tmp, paths) = stage_fixture(GRANTED_MANIFEST);
+    let runtime = PluginRuntime::new(RuntimeConfig::default()).expect("engine");
+    let oversized: Vec<LibraryArtist> = (0..(MAX_LIBRARY_ARTISTS as u64 + 100))
+        .map(|i| LibraryArtist {
+            id: i,
+            name: format!("Artist {i}"),
+            track_count: 1,
+        })
+        .collect();
+    let json = ui_render(&runtime, &paths, "ui-fixture", "/", oversized).expect("render");
+    let v: serde_json::Value = serde_json::from_str(&json).expect("descriptor is json");
+
+    let items = v["sections"][0]["items"].as_array().expect("items array");
+    assert_eq!(
+        items.len(),
+        MAX_LIBRARY_ARTISTS,
+        "host must clamp the exposed artist list to the cap"
+    );
+}
+
+#[test]
 fn ui_fixture_render_denied_without_permission() {
     // Same wasm, a manifest WITHOUT `library_read_artists`. Even
     // though the host passes the snapshot into the store, the

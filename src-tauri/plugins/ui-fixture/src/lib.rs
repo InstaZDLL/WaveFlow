@@ -62,7 +62,10 @@ impl Guest for Fixture {
     }
 
     fn render(path: String) -> Result<String, String> {
-        let (status, items, empty_hint) = match library::list_artists(10) {
+        // Request far more than the host's cap so the integration test
+        // can exercise host-side clamping (the host returns at most
+        // MAX_LIBRARY_ARTISTS regardless of what we ask for).
+        let (status, items, empty_hint) = match library::list_artists(u32::MAX) {
             Ok(artists) => (
                 "fresh",
                 artists

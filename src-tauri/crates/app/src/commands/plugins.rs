@@ -1015,18 +1015,52 @@ struct ArtistSnapshotRow {
     track_count: i64,
 }
 
+/// `true` iff the plugin's manifest declares the `library.read_artists`
+/// permission. Read on the blocking pool (a small TOML parse), id-pinned
+/// like the other manifest reads. A missing / unparsable / mismatched
+/// manifest yields `false` — the host gate would deny the read anyway,
+/// so we default closed.
+async fn plugin_grants_library_read(
+    state: &AppState,
+    plugin_id: &str,
+) -> AppResult<bool> {
+    let paths = state.paths.plugin_paths();
+    let manifest_path = match paths.manifest_path(plugin_id) {
+        Ok(p) => p,
+        Err(_) => return Ok(false),
+    };
+    let id = plugin_id.to_string();
+    tokio::task::spawn_blocking(move || {
+        Manifest::load_from_path(&manifest_path)
+            .ok()
+            .filter(|m| m.plugin.id == id)
+            .map(|m| m.permissions.library_read_artists)
+            .unwrap_or(false)
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))
+}
+
 /// Load the active profile's REDACTED artist snapshot for a `ui`
 /// plugin: names + opaque ids + aggregate track counts, most-present
 /// first, clamped to [`MAX_LIBRARY_ARTISTS`]. Loaded on the async side
 /// BEFORE the blocking runtime call so the guest is handed a ready
 /// snapshot and never touches the DB. Local read only — no network,
-/// so it works offline. The host re-gates access on the plugin's
-/// `library.read_artists` permission, so passing the snapshot to a
-/// plugin that lacks it is inert.
+/// so it works offline.
+///
+/// Short-circuits to an empty list (skipping the profile pool + query
+/// entirely) when the plugin never requested `library.read_artists` —
+/// the host gate would deny the read anyway, so there's no reason to
+/// materialize the redacted data for it. Authorized plugins keep the
+/// capped query, so both callers inherit the optimization.
 async fn load_library_artist_snapshot(
     state: &AppState,
+    plugin_id: &str,
     limit: usize,
 ) -> AppResult<Vec<LibraryArtist>> {
+    if !plugin_grants_library_read(state, plugin_id).await? {
+        return Ok(Vec::new());
+    }
     let pool = state.require_profile_pool().await?;
     let capped =
         limit.min(waveflow_core::plugin::host_impl::MAX_LIBRARY_ARTISTS) as i64;
@@ -1060,6 +1094,18 @@ async fn load_library_artist_snapshot(
 /// check), aliased for call-site clarity.
 async fn ui_preamble(state: &AppState, plugin_id: &str) -> AppResult<OwnedMutexGuard<()>> {
     source_preamble(state, plugin_id).await
+}
+
+/// Confirm a plugin's `render` / `on-event` output is well-formed JSON
+/// before it reaches the UI. A buggy guest that returns garbage
+/// surfaces here as a clean, plugin-tagged error instead of a raw
+/// `JSON.parse` throw frontend-side. Cheap (a single parse of a human-
+/// paced view) and the frontend still validates `schemaVersion` itself.
+fn validate_ui_descriptor(plugin_id: &str, descriptor: &str) -> AppResult<()> {
+    serde_json::from_str::<serde_json::Value>(descriptor).map_err(|e| {
+        AppError::Other(format!("plugin {plugin_id}: invalid view descriptor: {e}"))
+    })?;
+    Ok(())
 }
 
 /// Enumerate every enabled `ui`-world plugin and its sidebar mount
@@ -1104,18 +1150,23 @@ pub async fn plugin_ui_render(
     path: String,
 ) -> AppResult<String> {
     let _guard = ui_preamble(&state, &plugin_id).await?;
-    let snapshot =
-        load_library_artist_snapshot(&state, waveflow_core::plugin::host_impl::MAX_LIBRARY_ARTISTS)
-            .await?;
+    let snapshot = load_library_artist_snapshot(
+        &state,
+        &plugin_id,
+        waveflow_core::plugin::host_impl::MAX_LIBRARY_ARTISTS,
+    )
+    .await?;
     let runtime = state.plugins.clone();
     let paths = state.paths.plugin_paths();
     let id_owned = plugin_id.clone();
+    let err_id = plugin_id.clone();
     let descriptor = tokio::task::spawn_blocking(move || {
         ui_render(&runtime, &paths, &id_owned, &path, snapshot)
-            .map_err(|e| AppError::Other(format!("plugin {plugin_id}: {e}")))
+            .map_err(|e| AppError::Other(format!("plugin {err_id}: {e}")))
     })
     .await
     .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;
+    validate_ui_descriptor(&plugin_id, &descriptor)?;
     Ok(descriptor)
 }
 
@@ -1130,17 +1181,22 @@ pub async fn plugin_ui_event(
     payload: String,
 ) -> AppResult<String> {
     let _guard = ui_preamble(&state, &plugin_id).await?;
-    let snapshot =
-        load_library_artist_snapshot(&state, waveflow_core::plugin::host_impl::MAX_LIBRARY_ARTISTS)
-            .await?;
+    let snapshot = load_library_artist_snapshot(
+        &state,
+        &plugin_id,
+        waveflow_core::plugin::host_impl::MAX_LIBRARY_ARTISTS,
+    )
+    .await?;
     let runtime = state.plugins.clone();
     let paths = state.paths.plugin_paths();
     let id_owned = plugin_id.clone();
+    let err_id = plugin_id.clone();
     let descriptor = tokio::task::spawn_blocking(move || {
         ui_event(&runtime, &paths, &id_owned, &event, &payload, snapshot)
-            .map_err(|e| AppError::Other(format!("plugin {plugin_id}: {e}")))
+            .map_err(|e| AppError::Other(format!("plugin {err_id}: {e}")))
     })
     .await
     .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;
+    validate_ui_descriptor(&plugin_id, &descriptor)?;
     Ok(descriptor)
 }
