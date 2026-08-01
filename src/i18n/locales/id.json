@@ -1444,6 +1444,20 @@
         "statusStopped": "Berhenti",
         "copyUrl": "Salin URL"
       },
+      "mpd": {
+        "title": "Server MPD",
+        "subtitle": "Kendalikan WaveFlow dari klien MPD mana pun: remote di ponsel, terminal, bilah status",
+        "port": "Port",
+        "portHint": "6600 secara bawaan",
+        "password": "Kata sandi",
+        "passwordPlaceholder": "Tidak ada",
+        "passwordHint": "Opsional. Disarankan pada jaringan bersama — protokol MPD mengirimnya sebagai teks biasa.",
+        "lanWarning": "Dapat dijangkau dari seluruh jaringan lokal Anda: siapa pun di dalamnya bisa mengendalikan pemutaran.",
+        "lanWarningAuth": "Dapat dijangkau dari seluruh jaringan lokal Anda, tetapi kontrol pemutaran memerlukan kata sandi yang Anda tetapkan.",
+        "statusRunning": "Aktif",
+        "statusStopped": "Berhenti",
+        "copyAddress": "Salin alamat"
+      },
       "spotify": {
         "title": "Spotify",
         "subtitle": "Hubungkan Spotify Premium dengan Client ID Spotify Developer milikmu.",

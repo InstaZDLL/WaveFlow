@@ -268,10 +268,11 @@ impl WorkerState {
 }
 
 /// Pick the first non-loopback IPv4 interface. Returned as a string
-/// because every consumer (description.xml, status URL, SSDP LOCATION)
-/// formats it back into URLs anyway — keeping it as `String` avoids
-/// re-running the lookup at each touch point.
-fn pick_lan_ip() -> Option<String> {
+/// because every consumer (description.xml, status URL, SSDP LOCATION,
+/// and the MPD server's advertised address) formats it back into URLs
+/// anyway — keeping it as `String` avoids re-running the lookup at each
+/// touch point.
+pub(crate) fn pick_lan_ip() -> Option<String> {
     let addrs = if_addrs::get_if_addrs().ok()?;
     addrs
         .into_iter()

@@ -1579,6 +1579,20 @@
         "statusStopped": "متوقف",
         "copyUrl": "نسخ الرابط"
       },
+      "mpd": {
+        "title": "خادم MPD",
+        "subtitle": "تحكّم في WaveFlow من أي عميل MPD: جهاز تحكم على الهاتف، الطرفية، شريط الحالة",
+        "port": "المنفذ",
+        "portHint": "6600 افتراضيًا",
+        "password": "كلمة المرور",
+        "passwordPlaceholder": "بدون",
+        "passwordHint": "اختيارية. يُنصح بها على شبكة مشتركة — يرسلها بروتوكول MPD كنص صريح.",
+        "lanWarning": "يمكن الوصول إليه من كامل شبكتك المحلية: أي شخص عليها يستطيع التحكم في التشغيل.",
+        "lanWarningAuth": "يمكن الوصول إليه من شبكتك المحلية بالكامل، لكن التحكم في التشغيل يتطلب كلمة المرور التي عيّنتها.",
+        "statusRunning": "يعمل",
+        "statusStopped": "متوقف",
+        "copyAddress": "نسخ العنوان"
+      },
       "spotify": {
         "title": "Spotify",
         "subtitle": "اربط Spotify Premium باستخدام Client ID خاص بك من Spotify Developer.",

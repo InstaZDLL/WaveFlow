@@ -29,6 +29,7 @@ import {
   Copy,
   Check as CheckIcon,
   Mic2,
+  Network,
   Server,
   ChevronsRight,
   WifiOff,
@@ -116,6 +117,13 @@ import {
   type DlnaConfig,
   type DlnaStatus,
 } from "../../lib/tauri/dlna";
+import {
+  mpdGetConfig,
+  mpdGetStatus,
+  mpdSetConfig,
+  type MpdConfig,
+  type MpdStatus,
+} from "../../lib/tauri/mpd";
 import { listen } from "@tauri-apps/api/event";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
@@ -1279,6 +1287,22 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [dlnaStatus, setDlnaStatus] = useState<DlnaStatus | null>(null);
   const [dlnaUrlCopied, setDlnaUrlCopied] = useState(false);
 
+  // MPD protocol server (issue #471). Same config/status split as DLNA:
+  // `mpdConfig` is what the user set, `mpdStatus` is what the worker
+  // actually bound — they differ when the configured port was taken and
+  // the server scanned forward.
+  const [mpdConfig, setMpdConfig] = useState<MpdConfig>({
+    enabled: false,
+    port: 6600,
+    password: "",
+  });
+  const [mpdStatus, setMpdStatus] = useState<MpdStatus | null>(null);
+  const [mpdAddressCopied, setMpdAddressCopied] = useState(false);
+  // False until the initial `mpdGetConfig` settles, so the controls stay
+  // disabled and the user can't edit placeholder defaults before the real
+  // config arrives (a failed load still unlocks them, on the defaults).
+  const [mpdHydrated, setMpdHydrated] = useState(false);
+
   useEffect(() => {
     getDiscordRpcEnabled()
       .then(setDiscordRpc)
@@ -1310,6 +1334,18 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     });
   }, [trackChangeNotif]);
 
+  // Last MPD config the backend confirmed — the rollback target when a
+  // `mpdSetConfig` fails, so a failed write doesn't leave the optimistic value
+  // on screen. `mpdTouchedRef` flips once the user issues a set, so a slow
+  // initial hydration response can't clobber an action sent in the meantime.
+  const mpdConfirmedRef = useRef<MpdConfig | null>(null);
+  const mpdTouchedRef = useRef(false);
+  // Serialize MPD saves + gate side effects on the latest revision, so a
+  // toggle and an onBlur firing together can't apply out of order or let a
+  // stale response clobber newer state.
+  const mpdWriteChainRef = useRef<Promise<void>>(Promise.resolve());
+  const mpdWriteSeqRef = useRef(0);
+
   // DLNA — load persisted config + live status at mount.
   useEffect(() => {
     dlnaGetConfig()
@@ -1318,6 +1354,24 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     dlnaGetStatus()
       .then(setDlnaStatus)
       .catch((err) => console.error("[SettingsView] dlna status", err));
+    // Drop a late hydration response if the user already acted on MPD — its
+    // config would be stale relative to the set they just issued.
+    mpdGetConfig()
+      .then((cfg) => {
+        if (mpdTouchedRef.current) return;
+        mpdConfirmedRef.current = cfg;
+        setMpdConfig(cfg);
+      })
+      .catch((err) => console.error("[SettingsView] mpd config", err))
+      // Unlock the controls once the config settles — even on failure, where
+      // the user then edits the defaults.
+      .finally(() => setMpdHydrated(true));
+    mpdGetStatus()
+      .then((st) => {
+        if (mpdTouchedRef.current) return;
+        setMpdStatus(st);
+      })
+      .catch((err) => console.error("[SettingsView] mpd status", err));
   }, []);
 
   // Push a config change to the backend and immediately refresh the
@@ -1337,6 +1391,45 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const handleToggleDlna = useCallback(() => {
     persistDlna({ ...dlnaConfig, enabled: !dlnaConfig.enabled });
   }, [dlnaConfig, persistDlna]);
+
+  const persistMpd = useCallback(async (next: MpdConfig) => {
+    mpdTouchedRef.current = true;
+    const seq = ++mpdWriteSeqRef.current;
+    setMpdConfig(next);
+    // Chain each save so concurrent toggle/onBlur writes reach the backend in
+    // order; only the latest revision commits its side effects.
+    const run = mpdWriteChainRef.current.then(async () => {
+      try {
+        const status = await mpdSetConfig(next);
+        if (seq !== mpdWriteSeqRef.current) return;
+        mpdConfirmedRef.current = next;
+        setMpdStatus(status);
+      } catch (err) {
+        console.error("[SettingsView] mpd set", err);
+        if (seq !== mpdWriteSeqRef.current) return;
+        // Restore the last backend-confirmed config so a failed set doesn't
+        // leave the optimistic value displayed as if it took.
+        if (mpdConfirmedRef.current) setMpdConfig(mpdConfirmedRef.current);
+      }
+    });
+    mpdWriteChainRef.current = run.catch(() => undefined);
+    await run;
+  }, []);
+
+  const handleToggleMpd = useCallback(() => {
+    persistMpd({ ...mpdConfig, enabled: !mpdConfig.enabled });
+  }, [mpdConfig, persistMpd]);
+
+  const handleMpdCopyAddress = useCallback(() => {
+    if (!mpdStatus?.bound_address) return;
+    navigator.clipboard
+      .writeText(mpdStatus.bound_address)
+      .then(() => {
+        setMpdAddressCopied(true);
+        setTimeout(() => setMpdAddressCopied(false), 1500);
+      })
+      .catch((err) => console.error("[SettingsView] mpd copy", err));
+  }, [mpdStatus]);
 
   const handleDlnaCopyUrl = useCallback(() => {
     if (!dlnaStatus?.bound_url) return;
@@ -2746,6 +2839,179 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                       {dlnaStatus?.last_error && (
                         <div className="text-xs text-rose-500 break-words">
                           {dlnaStatus.last_error}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* MPD protocol server (issue #471). Speaking MPD hands us
+                every existing MPD client — MALP on a phone, ncmpcpp,
+                waybar modules — without writing any of them. Off by
+                default: enabling it binds every interface, so this
+                toggle *is* the security decision, same as DLNA. */}
+            <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <div className="flex items-start space-x-4">
+                <Network
+                  size={20}
+                  className="text-zinc-400 mt-0.5"
+                  aria-hidden="true"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.integrations.mpd.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.integrations.mpd.subtitle")}
+                      </div>
+                    </div>
+                    <ToggleSwitch
+                      enabled={mpdConfig.enabled}
+                      onToggle={handleToggleMpd}
+                      disabled={!mpdHydrated}
+                      label={t("settings.integrations.mpd.title")}
+                    />
+                  </div>
+
+                  {mpdConfig.enabled && (
+                    <div className="mt-3 space-y-3">
+                      {/* The LAN exposure is stated plainly rather than
+                          buried in docs — it is the whole point of the
+                          feature and also its only real risk. With a password
+                          set (MpdConfig.requires_auth), control is gated, so
+                          the "anyone can control" warning would be misleading:
+                          swap it for one that separates reachability from
+                          control. */}
+                      <div className="text-xs text-amber-600 dark:text-amber-500">
+                        {mpdConfig.password
+                          ? t("settings.integrations.mpd.lanWarningAuth")
+                          : t("settings.integrations.mpd.lanWarning")}
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <label
+                          htmlFor="mpd-port"
+                          className="text-xs text-zinc-500 w-24 shrink-0"
+                        >
+                          {t("settings.integrations.mpd.port")}
+                        </label>
+                        <input
+                          id="mpd-port"
+                          type="number"
+                          min={1}
+                          max={65535}
+                          step={1}
+                          disabled={!mpdHydrated}
+                          value={mpdConfig.port}
+                          onChange={(e) =>
+                            setMpdConfig({
+                              ...mpdConfig,
+                              // Keep the state an integer in 0–65535 while
+                              // typing; onBlur enforces the final 1–65535.
+                              port: Math.max(
+                                0,
+                                Math.min(
+                                  65535,
+                                  Math.trunc(Number(e.target.value)) || 0,
+                                ),
+                              ),
+                            })
+                          }
+                          onBlur={() => {
+                            // Never persist an empty / zero / decimal /
+                            // out-of-range port: fall back to the last
+                            // confirmed value (or the 6600 default).
+                            const p = mpdConfig.port;
+                            const valid =
+                              Number.isInteger(p) && p >= 1 && p <= 65535
+                                ? p
+                                : (mpdConfirmedRef.current?.port ?? 6600);
+                            const next = { ...mpdConfig, port: valid };
+                            setMpdConfig(next);
+                            void persistMpd(next);
+                          }}
+                          className="w-28 px-2 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-transparent focus:border-emerald-500 focus:outline-none text-zinc-900 dark:text-white"
+                        />
+                        <span className="text-xs text-zinc-400">
+                          {t("settings.integrations.mpd.portHint")}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <label
+                          htmlFor="mpd-password"
+                          className="text-xs text-zinc-500 w-24 shrink-0"
+                        >
+                          {t("settings.integrations.mpd.password")}
+                        </label>
+                        <input
+                          id="mpd-password"
+                          type="password"
+                          autoComplete="new-password"
+                          disabled={!mpdHydrated}
+                          value={mpdConfig.password}
+                          placeholder={t(
+                            "settings.integrations.mpd.passwordPlaceholder",
+                          )}
+                          onChange={(e) =>
+                            setMpdConfig({
+                              ...mpdConfig,
+                              password: e.target.value,
+                            })
+                          }
+                          onBlur={() => persistMpd(mpdConfig)}
+                          className="flex-1 min-w-0 px-2 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-transparent focus:border-emerald-500 focus:outline-none text-zinc-900 dark:text-white"
+                        />
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.integrations.mpd.passwordHint")}
+                      </div>
+
+                      {/* Status */}
+                      <div className="flex items-center space-x-2 pt-1">
+                        <span
+                          className={`inline-block w-2 h-2 rounded-full ${
+                            mpdStatus?.running
+                              ? "bg-emerald-500"
+                              : "bg-zinc-400"
+                          }`}
+                          aria-hidden="true"
+                        />
+                        <span className="text-xs text-zinc-500">
+                          {mpdStatus?.running
+                            ? t("settings.integrations.mpd.statusRunning")
+                            : t("settings.integrations.mpd.statusStopped")}
+                        </span>
+                        {mpdStatus?.bound_address && (
+                          <>
+                            <span className="text-xs font-mono text-zinc-700 dark:text-zinc-300 truncate">
+                              {mpdStatus.bound_address}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={handleMpdCopyAddress}
+                              aria-label={t(
+                                "settings.integrations.mpd.copyAddress",
+                              )}
+                              className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                            >
+                              {mpdAddressCopied ? (
+                                <CheckIcon size={14} />
+                              ) : (
+                                <Copy size={14} />
+                              )}
+                            </button>
+                          </>
+                        )}
+                      </div>
+
+                      {mpdStatus?.last_error && (
+                        <div className="text-xs text-rose-500 break-words">
+                          {mpdStatus.last_error}
                         </div>
                       )}
                     </div>

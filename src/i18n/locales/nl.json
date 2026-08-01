@@ -1444,6 +1444,20 @@
         "statusStopped": "Gestopt",
         "copyUrl": "URL kopiëren"
       },
+      "mpd": {
+        "title": "MPD-server",
+        "subtitle": "Bedien WaveFlow vanaf elke MPD-client: afstandsbediening op je telefoon, terminal, statusbalk",
+        "port": "Poort",
+        "portHint": "Standaard 6600",
+        "password": "Wachtwoord",
+        "passwordPlaceholder": "Geen",
+        "passwordHint": "Optioneel. Aanbevolen op een gedeeld netwerk — het MPD-protocol verstuurt het onversleuteld.",
+        "lanWarning": "Bereikbaar vanaf je hele lokale netwerk: iedereen daarop kan het afspelen bedienen.",
+        "lanWarningAuth": "Bereikbaar vanaf je hele lokale netwerk, maar afspeelbediening vereist het wachtwoord dat je hebt ingesteld.",
+        "statusRunning": "Actief",
+        "statusStopped": "Gestopt",
+        "copyAddress": "Adres kopiëren"
+      },
       "spotify": {
         "title": "Spotify",
         "subtitle": "Koppel Spotify Premium met je eigen Spotify Developer Client ID.",

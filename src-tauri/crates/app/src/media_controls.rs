@@ -35,12 +35,7 @@ use souvlaki::{
 };
 use tauri::{AppHandle, Manager};
 
-use crate::{
-    audio::{AudioCmd, AudioEngine, PlayerState},
-    commands,
-    queue::{self, Direction},
-    state::AppState,
-};
+use crate::audio::{AudioCmd, AudioEngine, PlayerState};
 
 /// Cached metadata held inside the controls thread so we can re-emit on
 /// every state transition (souvlaki forgets metadata between some
@@ -412,82 +407,24 @@ fn seek_relative(app: &AppHandle, direction: SeekDirection, delta_ms: u64) {
     let _ = engine.send(AudioCmd::Seek(new_ms));
 }
 
-/// Mirror of `lib.rs::spawn_next` — the OS overlay needs the same
-/// queue-advance + emit-track-changed sequence the tray menu uses.
+/// Queue advance for the OS overlay.
+///
+/// Thin wrappers over [`crate::player_actions`], which the tray menu
+/// and the MPD server share: the sequence (advance, emit
+/// `player:track-changed`, emit `player:queue-changed`, hand the track
+/// to the decoder) used to be copy-pasted here and in `lib.rs`, and the
+/// two had already drifted. souvlaki calls us from its own thread, so
+/// the async work is spawned onto Tauri's runtime.
 fn spawn_next(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
-        let state = app.state::<AppState>();
-        let engine = app.state::<Arc<AudioEngine>>();
-        let pool = match state.require_profile_pool().await {
-            Ok(p) => p,
-            Err(err) => {
-                tracing::warn!(%err, "media_controls next: no profile pool");
-                return;
-            }
-        };
-        let profile_id = state.require_profile_id().await.ok();
-        let repeat = queue::read_repeat_mode(&pool).await;
-        let next = match queue::advance(&pool, Direction::Next, repeat).await {
-            Ok(Some(track)) => track,
-            Ok(None) => return,
-            Err(err) => {
-                tracing::warn!(%err, "media_controls next: advance failed");
-                return;
-            }
-        };
-        commands::player::emit_track_changed(&app, &state.paths, &next, profile_id);
-        commands::player::emit_queue_changed(&app);
-        let replay_gain_db = commands::player::fetch_replay_gain_db(&pool, next.id).await;
-        let _ = engine.send(AudioCmd::LoadAndPlay {
-            path: next.as_path(),
-            start_ms: 0,
-            track_id: next.id,
-            duration_ms: next.duration_ms.max(0) as u64,
-            source_type: "manual".into(),
-            source_id: None,
-            replay_gain_db,
-        });
+        crate::player_actions::next(&app, "media_controls").await;
     });
 }
 
-/// Mirror of `lib.rs::spawn_previous` — same Spotify rule (seek to 0
-/// past 3 s, otherwise jump back a track).
+/// Same Spotify rule (seek to 0 past 3 s, otherwise jump back a track),
+/// implemented once in [`crate::player_actions::previous`].
 fn spawn_previous(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
-        let state = app.state::<AppState>();
-        let engine = app.state::<Arc<AudioEngine>>();
-        if engine.shared().current_position_ms() > 3000 {
-            let _ = engine.send(AudioCmd::Seek(0));
-            return;
-        }
-        let pool = match state.require_profile_pool().await {
-            Ok(p) => p,
-            Err(err) => {
-                tracing::warn!(%err, "media_controls previous: no profile pool");
-                return;
-            }
-        };
-        let profile_id = state.require_profile_id().await.ok();
-        let repeat = queue::read_repeat_mode(&pool).await;
-        let prev = match queue::advance(&pool, Direction::Previous, repeat).await {
-            Ok(Some(track)) => track,
-            Ok(None) => return,
-            Err(err) => {
-                tracing::warn!(%err, "media_controls previous: advance failed");
-                return;
-            }
-        };
-        commands::player::emit_track_changed(&app, &state.paths, &prev, profile_id);
-        commands::player::emit_queue_changed(&app);
-        let replay_gain_db = commands::player::fetch_replay_gain_db(&pool, prev.id).await;
-        let _ = engine.send(AudioCmd::LoadAndPlay {
-            path: prev.as_path(),
-            start_ms: 0,
-            track_id: prev.id,
-            duration_ms: prev.duration_ms.max(0) as u64,
-            source_type: "manual".into(),
-            source_id: None,
-            replay_gain_db,
-        });
+        crate::player_actions::previous(&app, "media_controls").await;
     });
 }

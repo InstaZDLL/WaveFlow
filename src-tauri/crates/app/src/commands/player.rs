@@ -352,6 +352,31 @@ pub(crate) fn emit_queue_changed(app: &AppHandle) {
     let _ = app.emit("player:queue-changed", ());
 }
 
+/// Repeat + shuffle, emitted so the frontend `PlayerContext` reflects an
+/// options change made OUTSIDE the frontend. The in-app buttons update their
+/// own state optimistically, but an external surface (an MPD client toggling
+/// `repeat` / `random`) has no other way to reach the UI — `player:state`
+/// carries only the play-state, and re-reading `player_get_state` would
+/// re-apply every audio setting to the engine as a side effect.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct OptionsChangedPayload {
+    repeat_mode: String,
+    shuffle: bool,
+}
+
+pub(crate) async fn emit_options_changed(app: &AppHandle, pool: &sqlx::SqlitePool) {
+    let repeat_mode = queue::read_repeat_mode(pool).await.as_str().to_string();
+    let shuffle = queue::read_shuffle(pool).await;
+    let _ = app.emit(
+        "player:options-changed",
+        OptionsChangedPayload {
+            repeat_mode,
+            shuffle,
+        },
+    );
+}
+
 /// Return the current player snapshot. Also resolves the "resume
 /// track" on the very first call after app launch by reading
 /// `player.last_track_id` / `player.last_position_ms`, so the
