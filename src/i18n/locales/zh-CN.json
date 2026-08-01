@@ -1408,6 +1408,19 @@
         "statusStopped": "已停止",
         "copyUrl": "复制 URL"
       },
+      "mpd": {
+        "title": "MPD 服务器",
+        "subtitle": "通过任意 MPD 客户端控制 WaveFlow：手机遥控、终端、状态栏",
+        "port": "端口",
+        "portHint": "默认 6600",
+        "password": "密码",
+        "passwordPlaceholder": "无",
+        "passwordHint": "可选。在共享网络中建议设置 —— MPD 协议以明文传输密码。",
+        "lanWarning": "整个局域网均可访问：网络中的任何人都能控制播放。",
+        "statusRunning": "运行中",
+        "statusStopped": "已停止",
+        "copyAddress": "复制地址"
+      },
       "spotify": {
         "title": "Spotify",
         "subtitle": "使用你自己的 Spotify Developer Client ID 连接 Spotify Premium。",

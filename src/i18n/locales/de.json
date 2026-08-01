@@ -1433,6 +1433,19 @@
         "statusStopped": "Gestoppt",
         "copyUrl": "URL kopieren"
       },
+      "mpd": {
+        "title": "MPD-Server",
+        "subtitle": "WaveFlow über jeden MPD-Client steuern: Fernbedienung am Handy, Terminal, Statusleiste",
+        "port": "Port",
+        "portHint": "Standard 6600",
+        "password": "Passwort",
+        "passwordPlaceholder": "Keins",
+        "passwordHint": "Optional. In einem gemeinsam genutzten Netzwerk empfohlen — das MPD-Protokoll überträgt es im Klartext.",
+        "lanWarning": "Aus dem gesamten lokalen Netzwerk erreichbar: Jeder darin kann die Wiedergabe steuern.",
+        "statusRunning": "Aktiv",
+        "statusStopped": "Gestoppt",
+        "copyAddress": "Adresse kopieren"
+      },
       "spotify": {
         "title": "Spotify",
         "subtitle": "Verbinde Spotify Premium mit deiner eigenen Spotify-Developer-Client-ID.",

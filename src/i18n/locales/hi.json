@@ -1433,6 +1433,19 @@
         "statusStopped": "रुका हुआ",
         "copyUrl": "URL कॉपी करें"
       },
+      "mpd": {
+        "title": "MPD सर्वर",
+        "subtitle": "किसी भी MPD क्लाइंट से WaveFlow नियंत्रित करें: फ़ोन रिमोट, टर्मिनल, स्टेटस बार",
+        "port": "पोर्ट",
+        "portHint": "डिफ़ॉल्ट 6600",
+        "password": "पासवर्ड",
+        "passwordPlaceholder": "कोई नहीं",
+        "passwordHint": "वैकल्पिक। साझा नेटवर्क पर अनुशंसित — MPD प्रोटोकॉल इसे सादे पाठ में भेजता है।",
+        "lanWarning": "आपके पूरे स्थानीय नेटवर्क से पहुँच योग्य: उस पर कोई भी प्लेबैक नियंत्रित कर सकता है।",
+        "statusRunning": "चालू",
+        "statusStopped": "बंद",
+        "copyAddress": "पता कॉपी करें"
+      },
       "spotify": {
         "title": "Spotify",
         "subtitle": "अपने Spotify Developer Client ID से Spotify Premium कनेक्ट करें।",

@@ -1433,6 +1433,19 @@
         "statusStopped": "Durduruldu",
         "copyUrl": "URL'yi kopyala"
       },
+      "mpd": {
+        "title": "MPD sunucusu",
+        "subtitle": "WaveFlow'u herhangi bir MPD istemcisinden yönetin: telefonda kumanda, terminal, durum çubuğu",
+        "port": "Bağlantı noktası",
+        "portHint": "Varsayılan 6600",
+        "password": "Parola",
+        "passwordPlaceholder": "Yok",
+        "passwordHint": "İsteğe bağlı. Paylaşılan bir ağda önerilir — MPD protokolü parolayı düz metin olarak gönderir.",
+        "lanWarning": "Tüm yerel ağınızdan erişilebilir: ağdaki herkes oynatmayı kontrol edebilir.",
+        "statusRunning": "Çalışıyor",
+        "statusStopped": "Durduruldu",
+        "copyAddress": "Adresi kopyala"
+      },
       "spotify": {
         "title": "Spotify",
         "subtitle": "Spotify Premium'u kendi Spotify Developer Client ID'n ile bağla.",

@@ -15,9 +15,11 @@ mod error;
 mod logging;
 mod media_controls;
 mod metadata_artwork;
+mod mpd;
 mod notifications;
 mod offline;
 mod paths;
+mod player_actions;
 mod queue;
 mod scrobbler;
 #[cfg(feature = "sync_v1")]
@@ -53,7 +55,6 @@ use tauri::{
 };
 
 use audio::{AudioCmd, AudioEngine};
-use queue::Direction;
 use state::AppState;
 use watcher::WatcherManager;
 
@@ -414,6 +415,28 @@ pub fn run() {
                 }
             });
 
+            // MPD protocol server auto-start (issue #471). Same shape as
+            // the DLNA block above: read the persisted `mpd.enabled`
+            // flag so a user who opted in doesn't have to re-toggle it
+            // every launch. Off by default — that flag *is* the security
+            // decision, since enabling the server binds every interface.
+            tauri::async_runtime::spawn({
+                let handle = app.handle().clone();
+                async move {
+                    let state = handle.state::<AppState>();
+                    let cfg = match mpd::config::load(&state.app_db).await {
+                        Ok(c) => c,
+                        Err(err) => {
+                            tracing::warn!(?err, "MPD config load failed");
+                            return;
+                        }
+                    };
+                    if cfg.enabled {
+                        state.mpd.start(cfg, handle.clone());
+                    }
+                }
+            });
+
             // System tray (status icon).
             //
             // Labels are seeded in English because Rust runs before the
@@ -663,6 +686,9 @@ pub fn run() {
             commands::web_radio_catalogue::set_radio_preferred_country,
             commands::mood_radio::start_mood_radio,
             commands::mood_radio::mood_radio_counts,
+            commands::mpd::mpd_get_config,
+            commands::mpd::mpd_set_config,
+            commands::mpd::mpd_get_status,
             commands::dlna::dlna_get_config,
             commands::dlna::dlna_set_config,
             commands::dlna::dlna_get_status,
@@ -1065,87 +1091,25 @@ fn toggle_play_pause(app: &AppHandle) {
     }
 }
 
-/// Tray "Suivant" — async because it touches the per-profile DB to
-/// advance the queue cursor. Mirrors `commands::player::player_next`
-/// but called outside the Tauri command pipeline so we own the
-/// scheduling here.
+/// Tray "Suivant" — advance the queue and play what lands.
+///
+/// Delegates to [`player_actions`], shared with the OS media controls
+/// and the MPD server so all three emit the same events; the tray menu
+/// handler is sync, hence the spawn.
 fn spawn_next(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        let state = app.state::<AppState>();
-        let engine = app.state::<Arc<AudioEngine>>();
-        let pool = match state.require_profile_pool().await {
-            Ok(p) => p,
-            Err(err) => {
-                tracing::warn!(%err, "tray next: no profile pool");
-                return;
-            }
-        };
-        let profile_id = state.require_profile_id().await.ok();
-        let repeat = queue::read_repeat_mode(&pool).await;
-        let next = match queue::advance(&pool, Direction::Next, repeat).await {
-            Ok(Some(track)) => track,
-            Ok(None) => return,
-            Err(err) => {
-                tracing::warn!(%err, "tray next: advance failed");
-                return;
-            }
-        };
-        commands::player::emit_track_changed(&app, &state.paths, &next, profile_id);
-        commands::player::emit_queue_changed(&app);
-        let replay_gain_db = commands::player::fetch_replay_gain_db(&pool, next.id).await;
-        let _ = engine.send(AudioCmd::LoadAndPlay {
-            path: next.as_path(),
-            start_ms: 0,
-            track_id: next.id,
-            duration_ms: next.duration_ms.max(0) as u64,
-            source_type: "manual".into(),
-            source_id: None,
-            replay_gain_db,
-        });
+        player_actions::next(&app, "tray").await;
     });
 }
 
 /// Tray "Précédent" — same Spotify-style "seek to 0 if past 3 s, else
-/// jump back" rule the in-app previous button uses.
+/// jump back" rule the in-app previous button uses, implemented once in
+/// [`player_actions::previous`].
 fn spawn_previous(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        let state = app.state::<AppState>();
-        let engine = app.state::<Arc<AudioEngine>>();
-        if engine.shared().current_position_ms() > 3000 {
-            let _ = engine.send(AudioCmd::Seek(0));
-            return;
-        }
-        let pool = match state.require_profile_pool().await {
-            Ok(p) => p,
-            Err(err) => {
-                tracing::warn!(%err, "tray previous: no profile pool");
-                return;
-            }
-        };
-        let profile_id = state.require_profile_id().await.ok();
-        let repeat = queue::read_repeat_mode(&pool).await;
-        let prev = match queue::advance(&pool, Direction::Previous, repeat).await {
-            Ok(Some(track)) => track,
-            Ok(None) => return,
-            Err(err) => {
-                tracing::warn!(%err, "tray previous: advance failed");
-                return;
-            }
-        };
-        commands::player::emit_track_changed(&app, &state.paths, &prev, profile_id);
-        commands::player::emit_queue_changed(&app);
-        let replay_gain_db = commands::player::fetch_replay_gain_db(&pool, prev.id).await;
-        let _ = engine.send(AudioCmd::LoadAndPlay {
-            path: prev.as_path(),
-            start_ms: 0,
-            track_id: prev.id,
-            duration_ms: prev.duration_ms.max(0) as u64,
-            source_type: "manual".into(),
-            source_id: None,
-            replay_gain_db,
-        });
+        player_actions::previous(&app, "tray").await;
     });
 }
 

@@ -1408,6 +1408,19 @@
         "statusStopped": "已停止",
         "copyUrl": "複製 URL"
       },
+      "mpd": {
+        "title": "MPD 伺服器",
+        "subtitle": "透過任何 MPD 用戶端控制 WaveFlow：手機遙控、終端機、狀態列",
+        "port": "連接埠",
+        "portHint": "預設 6600",
+        "password": "密碼",
+        "passwordPlaceholder": "無",
+        "passwordHint": "選用。在共用網路中建議設定 —— MPD 協定以明文傳輸密碼。",
+        "lanWarning": "整個區域網路皆可存取：網路中的任何人都能控制播放。",
+        "statusRunning": "執行中",
+        "statusStopped": "已停止",
+        "copyAddress": "複製位址"
+      },
       "spotify": {
         "title": "Spotify",
         "subtitle": "使用你自己的 Spotify Developer Client ID 連接 Spotify Premium。",

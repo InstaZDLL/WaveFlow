@@ -1519,6 +1519,19 @@
         "statusStopped": "Остановлен",
         "copyUrl": "Скопировать URL"
       },
+      "mpd": {
+        "title": "Сервер MPD",
+        "subtitle": "Управляйте WaveFlow из любого клиента MPD: пульт на телефоне, терминал, строка состояния",
+        "port": "Порт",
+        "portHint": "6600 по умолчанию",
+        "password": "Пароль",
+        "passwordPlaceholder": "Нет",
+        "passwordHint": "Необязательно. Рекомендуется в общей сети — протокол MPD передаёт его в открытом виде.",
+        "lanWarning": "Доступно из всей локальной сети: любой в ней сможет управлять воспроизведением.",
+        "statusRunning": "Работает",
+        "statusStopped": "Остановлен",
+        "copyAddress": "Копировать адрес"
+      },
       "spotify": {
         "title": "Spotify",
         "subtitle": "Подключите Spotify Premium со своим Spotify Developer Client ID.",

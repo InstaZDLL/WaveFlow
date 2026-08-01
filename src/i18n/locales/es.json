@@ -1433,6 +1433,19 @@
         "statusStopped": "Detenido",
         "copyUrl": "Copiar URL"
       },
+      "mpd": {
+        "title": "Servidor MPD",
+        "subtitle": "Controla WaveFlow desde cualquier cliente MPD: mando en el móvil, terminal, barra de estado",
+        "port": "Puerto",
+        "portHint": "6600 por defecto",
+        "password": "Contraseña",
+        "passwordPlaceholder": "Ninguna",
+        "passwordHint": "Opcional. Recomendada en una red compartida: el protocolo MPD la envía sin cifrar.",
+        "lanWarning": "Accesible desde toda la red local: cualquiera puede controlar la reproducción.",
+        "statusRunning": "Activo",
+        "statusStopped": "Detenido",
+        "copyAddress": "Copiar dirección"
+      },
       "spotify": {
         "title": "Spotify",
         "subtitle": "Conecta Spotify Premium con tu propio ID de cliente de Spotify Developer.",

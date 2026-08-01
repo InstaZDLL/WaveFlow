@@ -978,6 +978,131 @@ pub async fn unshuffle(pool: &SqlitePool) -> AppResult<()> {
     Ok(())
 }
 
+/// Clamp `queue.current_index` into `[0, len)` and persist it.
+///
+/// Shared by the removal paths below: whenever rows leave the queue the
+/// cursor can end up dangling past the end, and [`advance`] would then
+/// have nothing to step from.
+async fn clamp_current_index(tx: &mut sqlx::SqliteConnection, len: i64) -> AppResult<()> {
+    let raw: Option<String> =
+        sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = 'queue.current_index'")
+            .fetch_optional(&mut *tx)
+            .await?;
+    let current = raw.and_then(|s| s.parse::<i64>().ok()).unwrap_or(0);
+    let clamped = current.clamp(0, (len - 1).max(0));
+    if clamped != current {
+        let now = Utc::now().timestamp_millis();
+        sqlx::query(
+            "UPDATE profile_setting SET value = ?, updated_at = ?
+              WHERE key = 'queue.current_index'",
+        )
+        .bind(clamped.to_string())
+        .bind(now)
+        .execute(&mut *tx)
+        .await?;
+    }
+    Ok(())
+}
+
+/// Empty the queue and reset the cursor.
+///
+/// Playback is deliberately left alone — the decoder keeps whatever it
+/// already loaded. MPD's `clear` behaves the same way: it empties the
+/// queue, and stopping is a separate `stop`.
+pub async fn clear(pool: &SqlitePool) -> AppResult<()> {
+    let mut tx = pool.begin().await?;
+    sqlx::query("DELETE FROM queue_item")
+        .execute(&mut *tx)
+        .await?;
+    let now = Utc::now().timestamp_millis();
+    sqlx::query(
+        "UPDATE profile_setting SET value = '0', updated_at = ?
+          WHERE key = 'queue.current_index'",
+    )
+    .bind(now)
+    .execute(&mut *tx)
+    .await?;
+    // The pre-shuffle snapshot describes a queue that no longer exists.
+    sqlx::query("DELETE FROM profile_setting WHERE key = 'queue.preshuffle'")
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// Remove the half-open position range `[start, end)` and compact the
+/// positions above it. Returns the number of rows removed.
+///
+/// `position` carries a UNIQUE constraint and SQLite enforces it per
+/// row, so the surviving rows cannot simply be decremented in place —
+/// a row moving down onto a slot whose occupant has not moved yet would
+/// collide. Same `PARK` detour [`reorder`] uses.
+pub async fn remove_range(pool: &SqlitePool, start: i64, end: i64) -> AppResult<u64> {
+    let len = queue_length(pool).await?;
+    let start = start.clamp(0, len);
+    let end = end.clamp(0, len);
+    if end <= start {
+        return Ok(0);
+    }
+    let span = end - start;
+
+    const PARK: i64 = 10_000_000;
+    let mut tx = pool.begin().await?;
+
+    let removed = sqlx::query("DELETE FROM queue_item WHERE position >= ? AND position < ?")
+        .bind(start)
+        .bind(end)
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+
+    sqlx::query("UPDATE queue_item SET position = position + ? WHERE position >= ?")
+        .bind(PARK)
+        .bind(end)
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query("UPDATE queue_item SET position = position - ? - ? WHERE position >= ?")
+        .bind(PARK)
+        .bind(span)
+        .bind(PARK)
+        .execute(&mut *tx)
+        .await?;
+
+    clamp_current_index(&mut tx, len - removed as i64).await?;
+    sqlx::query("DELETE FROM profile_setting WHERE key = 'queue.preshuffle'")
+        .execute(&mut *tx)
+        .await?;
+
+    tx.commit().await?;
+    Ok(removed)
+}
+
+/// Remove one entry by its `queue_item.id`.
+///
+/// Keyed on the row id rather than the position because that is the
+/// identity MPD's `deleteid` carries, and it stays valid even if the
+/// queue was reordered between the client reading it and acting on it.
+/// Returns `false` when no such row exists.
+pub async fn remove_by_queue_id(pool: &SqlitePool, queue_id: i64) -> AppResult<bool> {
+    let position: Option<i64> = sqlx::query_scalar("SELECT position FROM queue_item WHERE id = ?")
+        .bind(queue_id)
+        .fetch_optional(pool)
+        .await?;
+    let Some(position) = position else {
+        return Ok(false);
+    };
+    Ok(remove_range(pool, position, position + 1).await? > 0)
+}
+
+/// Look up a queue row's position from its id.
+pub async fn position_of_queue_id(pool: &SqlitePool, queue_id: i64) -> AppResult<Option<i64>> {
+    let position: Option<i64> = sqlx::query_scalar("SELECT position FROM queue_item WHERE id = ?")
+        .bind(queue_id)
+        .fetch_optional(pool)
+        .await?;
+    Ok(position)
+}
+
 /// Rewrite `queue_item` with the given ordering and update the
 /// current index pointer. Runs in a transaction.
 async fn write_queue_order(

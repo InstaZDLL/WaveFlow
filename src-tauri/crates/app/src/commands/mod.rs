@@ -26,6 +26,7 @@ pub mod lyrics;
 pub mod maintenance;
 pub mod mood_radio;
 pub mod motion_artwork;
+pub mod mpd;
 pub mod offline;
 pub mod player;
 pub mod playlist;

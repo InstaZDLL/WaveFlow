@@ -1433,6 +1433,19 @@
         "statusStopped": "중지됨",
         "copyUrl": "URL 복사"
       },
+      "mpd": {
+        "title": "MPD 서버",
+        "subtitle": "모든 MPD 클라이언트에서 WaveFlow 제어: 휴대폰 리모컨, 터미널, 상태 표시줄",
+        "port": "포트",
+        "portHint": "기본값 6600",
+        "password": "비밀번호",
+        "passwordPlaceholder": "없음",
+        "passwordHint": "선택 사항. 공유 네트워크에서는 권장합니다 — MPD 프로토콜은 평문으로 전송합니다.",
+        "lanWarning": "로컬 네트워크 전체에서 접근할 수 있습니다: 네트워크의 누구나 재생을 제어할 수 있습니다.",
+        "statusRunning": "실행 중",
+        "statusStopped": "중지됨",
+        "copyAddress": "주소 복사"
+      },
       "spotify": {
         "title": "Spotify",
         "subtitle": "자신의 Spotify Developer Client ID로 Spotify Premium에 연결하세요.",
