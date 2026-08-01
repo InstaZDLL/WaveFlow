@@ -95,7 +95,7 @@ Command lists (`command_list_begin` / `command_list_ok_begin` … `command_list_
 
 **Song ids.** MPD's `Id` must be stable *per queue entry*, not per track — the same file can sit in the queue twice and `deleteid` / `moveid` must tell them apart. `queue_item.id` is an `INTEGER PRIMARY KEY` that survives reordering, so it maps directly. This is why [`mpd/songs.rs`](../../src-tauri/crates/app/src/mpd/songs.rs) has its own query instead of reusing `queue::list_queue`, which projects `track.id`.
 
-**Repeat.** WaveFlow has a tri-state enum (`off` / `all` / `one`); MPD has two independent flags. `one` is `repeat 1` + `single 1`. Both setters preserve the other flag so a client toggling one doesn't clobber the other — see the round-trip test in [`mpd/commands.rs`](../../src-tauri/crates/app/src/mpd/commands.rs).
+**Repeat.** WaveFlow has a tri-state enum (`off` / `all` / `one`); MPD has two independent flags. `one` is `repeat 1` + `single 1`. Both setters preserve the other flag so a client toggling one doesn't clobber the other — see the round-trip test in [`mpd/commands.rs`](../../src-tauri/crates/app/src/mpd/commands.rs). `single oneshot` (repeat the current track once, then auto-clear) has no durable equivalent, so it's rejected with an unsupported ACK rather than stored as a permanent `single 1` that `status` would then misreport.
 
 **Web Radio.** While a radio session owns the engine, `current_track_id` is a negative sentinel with no `track` row and no queue entry. `status` omits `song` / `songid` / `duration` and `currentsong` returns empty — same branch [`player_get_state`](../../src-tauri/crates/app/src/commands/player.rs) takes. Without it a client would show the last *library* track as if it were playing.
 

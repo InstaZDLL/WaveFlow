@@ -203,6 +203,22 @@ fn single_from_mpd(current: RepeatMode, single: bool) -> RepeatMode {
     }
 }
 
+/// Resolve a `single` command to the repeat mode to persist, or `None` when
+/// the mode is unsupported.
+///
+/// `single oneshot` (repeat/stop after ONE track, then auto-clear) has no
+/// equivalent in WaveFlow's durable repeat model. Persisting it as a durable
+/// `single 1` would misreport the mode on the next `status`, so it's rejected
+/// with an explicit ACK rather than silently degraded — the same honesty
+/// `consume` gets. `single 0` / `single 1` map through [`single_from_mpd`].
+fn single_action(mode: SingleMode, current: RepeatMode) -> Option<RepeatMode> {
+    match mode {
+        SingleMode::Off => Some(single_from_mpd(current, false)),
+        SingleMode::On => Some(single_from_mpd(current, true)),
+        SingleMode::OneShot => None,
+    }
+}
+
 /// Build the `status` response.
 async fn status(ctx: &Ctx) -> Result<Response, Ack> {
     let state = ctx.app.state::<AppState>();
@@ -780,11 +796,13 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .await
                 .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "single", "no active profile"))?;
             let current = queue::read_repeat_mode(&pool).await;
-            // `oneshot` means "stop after this track, then clear the
-            // flag". WaveFlow has no one-shot variant, so it maps to the
-            // closest durable state rather than being rejected.
-            let on = matches!(mode, SingleMode::On | SingleMode::OneShot);
-            queue::write_repeat_mode(&pool, single_from_mpd(current, on))
+            // `single oneshot` has no durable equivalent — reject it rather
+            // than persist it as a permanent `single 1` (which `status` would
+            // then misreport).
+            let Some(next) = single_action(mode, current) else {
+                return Err(ack_arg("single", "oneshot single is not supported"));
+            };
+            queue::write_repeat_mode(&pool, next)
                 .await
                 .map_err(|e| ack_arg("single", &e.to_string()))?;
             crate::commands::player::emit_options_changed(&ctx.app, &pool).await;
@@ -853,6 +871,24 @@ mod tests {
         // is what MPD's own flags do.
         assert_eq!(single_from_mpd(RepeatMode::One, false), RepeatMode::All);
         assert_eq!(single_from_mpd(RepeatMode::Off, false), RepeatMode::Off);
+    }
+
+    #[test]
+    fn single_oneshot_is_rejected_not_persisted_as_durable() {
+        // `single 0` / `single 1` resolve to a durable repeat mode…
+        assert_eq!(
+            single_action(SingleMode::On, RepeatMode::All),
+            Some(RepeatMode::One)
+        );
+        assert_eq!(
+            single_action(SingleMode::Off, RepeatMode::One),
+            Some(RepeatMode::All)
+        );
+        // …but `single oneshot` has no durable equivalent, so it is rejected
+        // (None → the handler ACKs "unsupported") rather than silently stored
+        // as a permanent `single 1`.
+        assert_eq!(single_action(SingleMode::OneShot, RepeatMode::All), None);
+        assert_eq!(single_action(SingleMode::OneShot, RepeatMode::Off), None);
     }
 
     #[test]
