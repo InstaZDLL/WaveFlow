@@ -1382,7 +1382,7 @@
         "storageRead": "संग्रहण पढ़ना",
         "assets": "संपत्तियाँ ({{count}})",
         "none": "कोई अनुमति अनुरोधित नहीं",
-        "libraryReadArtists": "आपके कलाकार पढ़ता है"
+        "libraryReadArtists": "आपके कलाकारों को पढ़ता है"
       },
       "bundled": "अंतर्निहित",
       "bundledHint": "WaveFlow के साथ शामिल — छुपाने के लिए अक्षम करें।",

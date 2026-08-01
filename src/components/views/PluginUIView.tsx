@@ -200,10 +200,15 @@ export function PluginUIView({ pluginId, initialPath, icon }: PluginUIViewProps)
           )}
           <button
             type="button"
+            disabled={isLoading}
             onClick={() => load(initialPath ?? "/")}
-            className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 transition-colors"
           >
-            <RefreshCw size={13} />
+            {isLoading ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : (
+              <RefreshCw size={13} />
+            )}
             {t("pluginView.refresh")}
           </button>
         </div>
@@ -219,9 +224,11 @@ export function PluginUIView({ pluginId, initialPath, icon }: PluginUIViewProps)
           </div>
           <button
             type="button"
+            disabled={isLoading}
             onClick={() => load(initialPath ?? "/")}
-            className="shrink-0 rounded-full border border-red-300 dark:border-red-800 px-3 py-1 text-xs font-medium hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-red-300 dark:border-red-800 px-3 py-1 text-xs font-medium hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-50 transition-colors"
           >
+            {isLoading && <Loader2 size={13} className="animate-spin" />}
             {t("pluginView.retry")}
           </button>
         </div>

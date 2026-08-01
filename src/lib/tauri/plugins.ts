@@ -465,17 +465,96 @@ export async function listUiPlugins(): Promise<PluginUiRegistration[]> {
   return invoke<PluginUiRegistration[]>("list_ui_plugins");
 }
 
-/** Parse + validate a raw descriptor string from the backend. Throws
- *  on invalid JSON or an unknown `schemaVersion` — the caller surfaces
- *  it as an error banner rather than rendering a half-parsed view. */
-export function parsePluginUiDescriptor(raw: string): PluginUiDescriptor {
-  const parsed = JSON.parse(raw) as PluginUiDescriptor;
-  if (parsed?.schemaVersion !== 1) {
-    throw new Error(
-      `unsupported plugin view schemaVersion: ${parsed?.schemaVersion}`,
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/** Validate one action: a known `kind` discriminator + the field that
+ *  kind requires (a `label`, plus `url` for open-url / `event` for
+ *  event). An unknown kind or a missing required field is rejected. */
+function validateUiAction(a: unknown, where: string): void {
+  if (!isRecord(a)) throw new Error(`${where}: action must be an object`);
+  if (a.kind !== "event" && a.kind !== "open-url") {
+    throw new Error(`${where}: unknown action kind ${JSON.stringify(a.kind)}`);
+  }
+  if (typeof a.label !== "string") {
+    throw new Error(`${where}: action.label must be a string`);
+  }
+  if (a.kind === "open-url" && typeof a.url !== "string") {
+    throw new Error(`${where}: open-url action requires a url string`);
+  }
+  if (a.kind === "event" && typeof a.event !== "string") {
+    throw new Error(`${where}: event action requires an event string`);
+  }
+}
+
+/** Validate one item: required `id` + `title`, and — where present —
+ *  `badges` / `actions` must be arrays (the renderer `.map`s them, so a
+ *  non-array would throw mid-render). */
+function validateUiItem(item: unknown, where: string): void {
+  if (!isRecord(item)) throw new Error(`${where}: item must be an object`);
+  if (typeof item.id !== "string") {
+    throw new Error(`${where}: item.id must be a string`);
+  }
+  if (typeof item.title !== "string") {
+    throw new Error(`${where}: item.title must be a string`);
+  }
+  if (item.badges !== undefined && !Array.isArray(item.badges)) {
+    throw new Error(`${where}: item.badges must be an array`);
+  }
+  if (item.actions !== undefined) {
+    if (!Array.isArray(item.actions)) {
+      throw new Error(`${where}: item.actions must be an array`);
+    }
+    item.actions.forEach((a, i) =>
+      validateUiAction(a, `${where}.actions[${i}]`),
     );
   }
-  return parsed;
+}
+
+/** Parse + validate a raw descriptor string from the backend. Beyond
+ *  the `schemaVersion` gate it walks the whole tree — sections, items,
+ *  actions, and their discriminators — and throws on the first
+ *  malformed node, so `PluginUIView` never receives a structure that
+ *  could throw during render (a non-array `sections`/`items`/`badges`
+ *  would break `.map`, an unknown action `kind` would misroute). The
+ *  caller surfaces the throw as an error banner. */
+export function parsePluginUiDescriptor(raw: string): PluginUiDescriptor {
+  const parsed: unknown = JSON.parse(raw);
+  if (!isRecord(parsed)) {
+    throw new Error("plugin view descriptor must be an object");
+  }
+  if (parsed.schemaVersion !== 1) {
+    throw new Error(
+      `unsupported plugin view schemaVersion: ${JSON.stringify(parsed.schemaVersion)}`,
+    );
+  }
+  if (typeof parsed.title !== "string") {
+    throw new Error("plugin view descriptor: title must be a string");
+  }
+  if (parsed.actions !== undefined) {
+    if (!Array.isArray(parsed.actions)) {
+      throw new Error("plugin view descriptor: actions must be an array");
+    }
+    parsed.actions.forEach((a, i) => validateUiAction(a, `actions[${i}]`));
+  }
+  if (parsed.sections !== undefined) {
+    if (!Array.isArray(parsed.sections)) {
+      throw new Error("plugin view descriptor: sections must be an array");
+    }
+    parsed.sections.forEach((section, si) => {
+      if (!isRecord(section)) {
+        throw new Error(`sections[${si}]: must be an object`);
+      }
+      if (!Array.isArray(section.items)) {
+        throw new Error(`sections[${si}]: items must be an array`);
+      }
+      section.items.forEach((item, ii) =>
+        validateUiItem(item, `sections[${si}].items[${ii}]`),
+      );
+    });
+  }
+  return parsed as unknown as PluginUiDescriptor;
 }
 
 /** Render a ui plugin's view for an internal `path`. */
