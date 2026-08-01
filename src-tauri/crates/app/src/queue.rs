@@ -1085,16 +1085,22 @@ pub async fn clear(pool: &SqlitePool) -> AppResult<()> {
 /// a row moving down onto a slot whose occupant has not moved yet would
 /// collide. Same `PARK` detour [`reorder`] uses.
 pub async fn remove_range(pool: &SqlitePool, start: i64, end: i64) -> AppResult<u64> {
-    let len = queue_length(pool).await?;
+    const PARK: i64 = 10_000_000;
+    let mut tx = pool.begin().await?;
+
+    // Read the length INSIDE the transaction so the clamp, the delete range and
+    // `new_len` all derive from the same consistent snapshot the DELETE acts
+    // on — a concurrent queue write between a pre-transaction count and the
+    // delete would otherwise skew the cursor adjustment.
+    let len: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM queue_item")
+        .fetch_one(&mut *tx)
+        .await?;
     let start = start.clamp(0, len);
     let end = end.clamp(0, len);
     if end <= start {
         return Ok(0);
     }
     let span = end - start;
-
-    const PARK: i64 = 10_000_000;
-    let mut tx = pool.begin().await?;
 
     let removed = sqlx::query("DELETE FROM queue_item WHERE position >= ? AND position < ?")
         .bind(start)

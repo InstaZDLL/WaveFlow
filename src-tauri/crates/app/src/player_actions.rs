@@ -123,16 +123,22 @@ pub async fn previous(app: &AppHandle, label: &str) -> Moved {
 ///
 /// Mirrors `commands::player::player_jump_to_index`, which the frontend
 /// uses for a double-click in the queue panel.
-pub async fn play_at_index(app: &AppHandle, position: i64, label: &str) -> Moved {
-    let state = app.state::<AppState>();
-    let (pool, profile_id) = match state.require_profile_snapshot().await {
-        Ok(pair) => pair,
-        Err(err) => {
-            tracing::warn!(%err, surface = label, "player action: no profile pool");
-            return Moved::Nothing;
-        }
-    };
-    let track = match queue::jump_to(&pool, position).await {
+/// Jump to an absolute queue position and play it, driving an
+/// already-held profile snapshot.
+///
+/// Mirrors `commands::player::player_jump_to_index` (which the frontend uses
+/// for a double-click in the queue panel). The MPD `play` / `playid` / `seek`
+/// / `seekid` handlers validate a position against the queue and then call
+/// this with the SAME snapshot, so no reacquire can slip a different profile
+/// in between the check and the jump.
+pub async fn play_at_index_with(
+    app: &AppHandle,
+    pool: &sqlx::SqlitePool,
+    profile_id: i64,
+    position: i64,
+    label: &str,
+) -> Moved {
+    let track = match queue::jump_to(pool, position).await {
         Ok(Some(track)) => track,
         Ok(None) => return Moved::Nothing,
         Err(err) => {
@@ -140,6 +146,6 @@ pub async fn play_at_index(app: &AppHandle, position: i64, label: &str) -> Moved
             return Moved::Nothing;
         }
     };
-    load_and_play(app, &pool, track, Some(profile_id)).await;
+    load_and_play(app, pool, track, Some(profile_id)).await;
     Moved::Track
 }

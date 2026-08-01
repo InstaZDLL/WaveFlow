@@ -1329,6 +1329,13 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     });
   }, [trackChangeNotif]);
 
+  // Last MPD config the backend confirmed — the rollback target when a
+  // `mpdSetConfig` fails, so a failed write doesn't leave the optimistic value
+  // on screen. `mpdTouchedRef` flips once the user issues a set, so a slow
+  // initial hydration response can't clobber an action sent in the meantime.
+  const mpdConfirmedRef = useRef<MpdConfig | null>(null);
+  const mpdTouchedRef = useRef(false);
+
   // DLNA — load persisted config + live status at mount.
   useEffect(() => {
     dlnaGetConfig()
@@ -1337,11 +1344,20 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     dlnaGetStatus()
       .then(setDlnaStatus)
       .catch((err) => console.error("[SettingsView] dlna status", err));
+    // Drop a late hydration response if the user already acted on MPD — its
+    // config would be stale relative to the set they just issued.
     mpdGetConfig()
-      .then(setMpdConfig)
+      .then((cfg) => {
+        if (mpdTouchedRef.current) return;
+        mpdConfirmedRef.current = cfg;
+        setMpdConfig(cfg);
+      })
       .catch((err) => console.error("[SettingsView] mpd config", err));
     mpdGetStatus()
-      .then(setMpdStatus)
+      .then((st) => {
+        if (mpdTouchedRef.current) return;
+        setMpdStatus(st);
+      })
       .catch((err) => console.error("[SettingsView] mpd status", err));
   }, []);
 
@@ -1364,12 +1380,17 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   }, [dlnaConfig, persistDlna]);
 
   const persistMpd = useCallback(async (next: MpdConfig) => {
+    mpdTouchedRef.current = true;
     setMpdConfig(next);
     try {
       const status = await mpdSetConfig(next);
+      mpdConfirmedRef.current = next;
       setMpdStatus(status);
     } catch (err) {
       console.error("[SettingsView] mpd set", err);
+      // Restore the last backend-confirmed config so a failed set doesn't
+      // leave the optimistic value displayed as if it took.
+      if (mpdConfirmedRef.current) setMpdConfig(mpdConfirmedRef.current);
     }
   }, []);
 
@@ -2860,19 +2881,35 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                           type="number"
                           min={1}
                           max={65535}
+                          step={1}
                           value={mpdConfig.port}
                           onChange={(e) =>
                             setMpdConfig({
                               ...mpdConfig,
-                              // Clamp like the DLNA port field so the value
-                              // never becomes NaN or exceeds 0–65535.
+                              // Keep the state an integer in 0–65535 while
+                              // typing; onBlur enforces the final 1–65535.
                               port: Math.max(
                                 0,
-                                Math.min(65535, Number(e.target.value) || 0),
+                                Math.min(
+                                  65535,
+                                  Math.trunc(Number(e.target.value)) || 0,
+                                ),
                               ),
                             })
                           }
-                          onBlur={() => persistMpd(mpdConfig)}
+                          onBlur={() => {
+                            // Never persist an empty / zero / decimal /
+                            // out-of-range port: fall back to the last
+                            // confirmed value (or the 6600 default).
+                            const p = mpdConfig.port;
+                            const valid =
+                              Number.isInteger(p) && p >= 1 && p <= 65535
+                                ? p
+                                : (mpdConfirmedRef.current?.port ?? 6600);
+                            const next = { ...mpdConfig, port: valid };
+                            setMpdConfig(next);
+                            void persistMpd(next);
+                          }}
                           className="w-28 px-2 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-transparent focus:border-emerald-500 focus:outline-none text-zinc-900 dark:text-white"
                         />
                         <span className="text-xs text-zinc-400">

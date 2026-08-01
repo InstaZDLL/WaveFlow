@@ -82,9 +82,13 @@ pub async fn load(pool: &SqlitePool) -> AppResult<MpdConfig> {
 }
 
 pub async fn save(pool: &SqlitePool, cfg: &MpdConfig) -> AppResult<()> {
-    write_key(pool, KEY_ENABLED, if cfg.enabled { "1" } else { "0" }).await?;
-    write_key(pool, KEY_PORT, &cfg.port.to_string()).await?;
-    write_key(pool, KEY_PASSWORD, &cfg.password).await?;
+    // Atomic: all three keys land together or none do, so a crash mid-save
+    // can't leave the server enabled on a stale port with a new password.
+    let mut tx = pool.begin().await?;
+    write_key(&mut tx, KEY_ENABLED, if cfg.enabled { "1" } else { "0" }).await?;
+    write_key(&mut tx, KEY_PORT, &cfg.port.to_string()).await?;
+    write_key(&mut tx, KEY_PASSWORD, &cfg.password).await?;
+    tx.commit().await?;
     Ok(())
 }
 
@@ -96,7 +100,11 @@ async fn read_key(pool: &SqlitePool, key: &str) -> AppResult<Option<String>> {
     Ok(value)
 }
 
-async fn write_key(pool: &SqlitePool, key: &str, value: &str) -> AppResult<()> {
+async fn write_key(
+    conn: &mut sqlx::SqliteConnection,
+    key: &str,
+    value: &str,
+) -> AppResult<()> {
     // `app_setting.value_type` + `updated_at` are NOT NULL (no default), so a
     // brand-new key (the `mpd.*` keys aren't seeded) must supply both or the
     // INSERT fails the constraint. Everything here is stored as text and
@@ -110,7 +118,7 @@ async fn write_key(pool: &SqlitePool, key: &str, value: &str) -> AppResult<()> {
     .bind(key)
     .bind(value)
     .bind(chrono::Utc::now().timestamp_millis())
-    .execute(pool)
+    .execute(&mut *conn)
     .await?;
     Ok(())
 }

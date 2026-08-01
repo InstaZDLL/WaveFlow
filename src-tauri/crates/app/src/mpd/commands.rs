@@ -436,18 +436,20 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 }
                 Some(p) => {
                     // A position past the end is an argument error in MPD, not
-                    // a silent no-op / clamp.
+                    // a silent no-op / clamp. One snapshot for the bounds check
+                    // AND the jump, so a profile switch can't slip a different
+                    // queue in between the two.
                     let state = ctx.app.state::<AppState>();
-                    let pool = state
-                        .require_profile_pool()
+                    let (pool, profile_id) = state
+                        .require_profile_snapshot()
                         .await
                         .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "play", "no active profile"))?;
                     let len = queue::queue_length(&pool).await.unwrap_or(0) as u32;
-                    drop(pool);
                     if p >= len {
                         return Err(ack_arg("play", "Bad song index"));
                     }
-                    player_actions::play_at_index(&ctx.app, p as i64, SURFACE).await;
+                    player_actions::play_at_index_with(&ctx.app, &pool, profile_id, p as i64, SURFACE)
+                        .await;
                 }
             }
             ctx.idle.notify(Subsystem::Player);
@@ -460,18 +462,20 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                     let _ = ctx.engine().send(AudioCmd::Resume);
                 }
                 Some(id) => {
+                    // One snapshot for the id→position lookup AND the jump, so
+                    // the position can't be resolved against one profile then
+                    // played against another.
                     let state = ctx.app.state::<AppState>();
-                    let pool = state
-                        .require_profile_pool()
+                    let (pool, profile_id) = state
+                        .require_profile_snapshot()
                         .await
                         .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "playid", "no active profile"))?;
                     match queue::position_of_queue_id(&pool, id as i64).await {
                         Ok(Some(position)) => {
-                            // Drop the lease before the action re-acquires
-                            // its own; holding it across the await would
-                            // stall a concurrent profile switch for nothing.
-                            drop(pool);
-                            player_actions::play_at_index(&ctx.app, position, SURFACE).await;
+                            player_actions::play_at_index_with(
+                                &ctx.app, &pool, profile_id, position, SURFACE,
+                            )
+                            .await;
                         }
                         _ => return Err(Ack::new(ACK_ERROR_NO_EXIST, "playid", "No such song")),
                     }
@@ -520,16 +524,16 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
 
         Command::Seek(pos, seconds) => {
             let state = ctx.app.state::<AppState>();
-            let pool = state
-                .require_profile_pool()
+            let (pool, profile_id) = state
+                .require_profile_snapshot()
                 .await
                 .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "seek", "no active profile"))?;
             let len = queue::queue_length(&pool).await.unwrap_or(0) as u32;
-            drop(pool);
             if pos >= len {
                 return Err(ack_arg("seek", "Bad song index"));
             }
-            player_actions::play_at_index(&ctx.app, pos as i64, SURFACE).await;
+            player_actions::play_at_index_with(&ctx.app, &pool, profile_id, pos as i64, SURFACE)
+                .await;
             let _ = ctx.engine().send(AudioCmd::Seek(seconds_to_ms(seconds)));
             ctx.idle.notify(Subsystem::Player);
             Ok(Response::new())
@@ -537,14 +541,14 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
 
         Command::SeekId(id, seconds) => {
             let state = ctx.app.state::<AppState>();
-            let pool = state
-                .require_profile_pool()
+            let (pool, profile_id) = state
+                .require_profile_snapshot()
                 .await
                 .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "seekid", "no active profile"))?;
             match queue::position_of_queue_id(&pool, id as i64).await {
                 Ok(Some(position)) => {
-                    drop(pool);
-                    player_actions::play_at_index(&ctx.app, position, SURFACE).await;
+                    player_actions::play_at_index_with(&ctx.app, &pool, profile_id, position, SURFACE)
+                        .await;
                     let _ = ctx.engine().send(AudioCmd::Seek(seconds_to_ms(seconds)));
                     ctx.idle.notify(Subsystem::Player);
                     Ok(Response::new())
