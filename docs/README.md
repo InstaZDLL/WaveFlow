@@ -14,7 +14,7 @@ User-facing references and per-feature deep dives. The top-level [README](../REA
 | [Plugins](features/plugins.md)                 | WASM plugin SDK + sandbox, in-app store (curated catalogue, blake3-verified installs), per-plugin options, official Web Radio + Apple Motion Artwork plugins, motion-artwork pipeline    |
 | [DLNA / UPnP server](features/dlna.md)         | Built-in MediaServer: SSDP discovery, ContentDirectory Browse, Range streaming to LAN amplifiers                                                                                         |
 | [Community-DB](features/community.md)          | _Placeholder._ Opt-in shared metadata pool — companion page to [RFC-004](rfcs/RFC-004-community-database.md). Real copy fills in during Phase 2.a.                                       |
-| [UI & UX](features/ui.md)                      | Layout, panels, skins, mini-player widget, tray, statistics, dark mode, i18n, profiles, onboarding, auto-updater                                                                         |
+| [UI & UX](features/ui.md)                      | Layout, panels, skins, immersive view, track Canvas, mini-player widget, tray, statistics, dark mode, i18n, profiles, onboarding, auto-updater                                           |
 
 ## Architecture
 
