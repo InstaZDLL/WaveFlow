@@ -469,6 +469,16 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
+/** A field that's optional in the descriptor but rendered as text when
+ *  present must be a string — a non-string (object) would make React
+ *  throw "Objects are not valid as a React child". `undefined` / `null`
+ *  are treated as absent. */
+function assertOptionalString(v: unknown, where: string): void {
+  if (v !== undefined && v !== null && typeof v !== "string") {
+    throw new Error(`${where} must be a string`);
+  }
+}
+
 /** Validate one action: a known `kind` discriminator + the field that
  *  kind requires (a `label`, plus `url` for open-url / `event` for
  *  event). An unknown kind or a missing required field is rejected. */
@@ -499,8 +509,15 @@ function validateUiItem(item: unknown, where: string): void {
   if (typeof item.title !== "string") {
     throw new Error(`${where}: item.title must be a string`);
   }
-  if (item.badges !== undefined && !Array.isArray(item.badges)) {
-    throw new Error(`${where}: item.badges must be an array`);
+  assertOptionalString(item.subtitle, `${where}: item.subtitle`);
+  assertOptionalString(item.detail, `${where}: item.detail`);
+  if (item.badges !== undefined) {
+    if (!Array.isArray(item.badges)) {
+      throw new Error(`${where}: item.badges must be an array`);
+    }
+    item.badges.forEach((b, i) =>
+      assertOptionalString(b, `${where}: item.badges[${i}]`),
+    );
   }
   if (item.actions !== undefined) {
     if (!Array.isArray(item.actions)) {
@@ -532,6 +549,9 @@ export function parsePluginUiDescriptor(raw: string): PluginUiDescriptor {
   if (typeof parsed.title !== "string") {
     throw new Error("plugin view descriptor: title must be a string");
   }
+  assertOptionalString(parsed.subtitle, "plugin view descriptor: subtitle");
+  assertOptionalString(parsed.emptyTitle, "plugin view descriptor: emptyTitle");
+  assertOptionalString(parsed.emptyHint, "plugin view descriptor: emptyHint");
   if (parsed.actions !== undefined) {
     if (!Array.isArray(parsed.actions)) {
       throw new Error("plugin view descriptor: actions must be an array");
@@ -546,6 +566,7 @@ export function parsePluginUiDescriptor(raw: string): PluginUiDescriptor {
       if (!isRecord(section)) {
         throw new Error(`sections[${si}]: must be an object`);
       }
+      assertOptionalString(section.title, `sections[${si}].title`);
       if (!Array.isArray(section.items)) {
         throw new Error(`sections[${si}]: items must be an array`);
       }

@@ -39,23 +39,27 @@ export function PluginUIView({ pluginId, initialPath, icon }: PluginUIViewProps)
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
-  // Monotonic token: a stale render/event resolving after a pluginId
-  // switch (or a newer action) must not clobber the current view.
-  const reqRef = useRef(0);
+  // Separate request tokens per flow: a load and an event must not
+  // invalidate each other's completion, or the invalidated one would
+  // never reset its own state (isLoading for load, busyAction for
+  // events). Each flow checks only its own token; the UI below also
+  // mutually disables the controls that could start a competing op.
+  const loadReqRef = useRef(0);
+  const eventReqRef = useRef(0);
 
   const load = useCallback(
     (path: string) => {
-      const token = ++reqRef.current;
+      const token = ++loadReqRef.current;
       setIsLoading(true);
       setError(null);
       pluginUiRender(pluginId, path).then(
         (d) => {
-          if (token !== reqRef.current) return;
+          if (token !== loadReqRef.current) return;
           setDescriptor(d);
           setIsLoading(false);
         },
         (e) => {
-          if (token !== reqRef.current) return;
+          if (token !== loadReqRef.current) return;
           setError(String(e));
           setIsLoading(false);
         },
@@ -75,25 +79,29 @@ export function PluginUIView({ pluginId, initialPath, icon }: PluginUIViewProps)
 
   const runAction = useCallback(
     (action: PluginUiAction, actionKey: string) => {
+      // Clear a prior error whenever the user takes a new action.
+      setError(null);
       if (action.kind === "open-url") {
         if (action.url) {
-          openUrl(action.url).catch((e) =>
-            console.error("[PluginUIView] openUrl failed", e),
-          );
+          openUrl(action.url).catch((e) => {
+            console.error("[PluginUIView] openUrl failed", e);
+            // Surface the failure in the banner too, not just the console.
+            setError(String(e));
+          });
         }
         return;
       }
       // event → round-trip to the plugin → replace the whole view.
-      const token = ++reqRef.current;
+      const token = ++eventReqRef.current;
       setBusyAction(actionKey);
       pluginUiEvent(pluginId, action.event ?? "", action.payload ?? "").then(
         (d) => {
-          if (token !== reqRef.current) return;
+          if (token !== eventReqRef.current) return;
           setDescriptor(d);
           setBusyAction(null);
         },
         (e) => {
-          if (token !== reqRef.current) return;
+          if (token !== eventReqRef.current) return;
           setError(String(e));
           setBusyAction(null);
         },
@@ -104,11 +112,15 @@ export function PluginUIView({ pluginId, initialPath, icon }: PluginUIViewProps)
 
   const renderAction = (action: PluginUiAction, actionKey: string) => {
     const busy = busyAction === actionKey;
+    // Disable every action while any op is in flight (a load or another
+    // event) so competing flows can't race; the spinner marks the one
+    // actually running.
+    const disabled = isLoading || busyAction !== null;
     return (
       <button
         key={actionKey}
         type="button"
-        disabled={busy}
+        disabled={disabled}
         onClick={() => runAction(action, actionKey)}
         className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 transition-colors"
       >
@@ -200,7 +212,7 @@ export function PluginUIView({ pluginId, initialPath, icon }: PluginUIViewProps)
           )}
           <button
             type="button"
-            disabled={isLoading}
+            disabled={isLoading || busyAction !== null}
             onClick={() => load(initialPath ?? "/")}
             className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 transition-colors"
           >
@@ -214,9 +226,13 @@ export function PluginUIView({ pluginId, initialPath, icon }: PluginUIViewProps)
         </div>
       </header>
 
-      {/* Error banner — non-destructive: keeps the last good view below. */}
+      {/* Error banner — non-destructive: keeps the last good view below.
+          role="alert" so a screen reader announces the failure. */}
       {error && (
-        <div className="flex items-start gap-2 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-3 text-sm text-red-700 dark:text-red-300">
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-3 text-sm text-red-700 dark:text-red-300"
+        >
           <AlertCircle size={16} className="mt-0.5 shrink-0" />
           <div className="flex-1">
             <p className="font-medium">{t("pluginView.error")}</p>
@@ -224,7 +240,7 @@ export function PluginUIView({ pluginId, initialPath, icon }: PluginUIViewProps)
           </div>
           <button
             type="button"
-            disabled={isLoading}
+            disabled={isLoading || busyAction !== null}
             onClick={() => load(initialPath ?? "/")}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-red-300 dark:border-red-800 px-3 py-1 text-xs font-medium hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-50 transition-colors"
           >
@@ -240,6 +256,10 @@ export function PluginUIView({ pluginId, initialPath, icon }: PluginUIViewProps)
           <Loader2 size={18} className="animate-spin" />
           {t("common.loading")}
         </div>
+      ) : !descriptor ? (
+        // A failed initial load left no descriptor — the error banner
+        // above is the visible state; don't show the misleading empty view.
+        null
       ) : !hasItems ? (
         <div className="flex flex-col items-center gap-2 py-16 text-center text-zinc-400">
           <span>{resolvePluginIcon(icon, 32)}</span>
