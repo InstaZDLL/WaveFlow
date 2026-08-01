@@ -11,9 +11,13 @@ import {
   setCanvasEnabled,
 } from "../../hooks/useCanvasEnabled";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
+import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
+import { useCoverSlideshow } from "../../hooks/useCoverSlideshow";
+import { isRadioTrack } from "../../lib/playerSources";
 import { Artwork } from "../common/Artwork";
 import { MotionCoverOverlay } from "../player/MotionCoverOverlay";
 import { CanvasStage } from "../player/CanvasStage";
+import { CoverSlideshow } from "../player/CoverSlideshow";
 import { CanvasToggleButton } from "../player/CanvasToggleButton";
 import { ArtistLink } from "../common/ArtistLink";
 import { Lightbox } from "../common/Lightbox";
@@ -43,12 +47,27 @@ interface NowPlayingPanelProps {
  */
 export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
   const { t } = useTranslation();
-  const { toggleNowPlaying, toggleQueue, currentTrack, isNowPlayingOpen } =
-    usePlayer();
+  const {
+    toggleNowPlaying,
+    toggleQueue,
+    currentTrack,
+    isNowPlayingOpen,
+    activeProvider,
+  } = usePlayer();
 
   // Enrichment (picture + bio) for the current artist. Re-fetched
   // whenever the primary artist_id changes.
   const [pictureSrc, setPictureSrc] = useState<string | null>(null);
+  // Full-res artist photo for the cover slideshow (issue #466) — derived from
+  // the SAME enrichment as `pictureSrc` (which resolves 1x for the bio
+  // thumbnail), so there's no second `enrichArtistDeezer` fetch. Tagged with
+  // the originating artist id so a rapid artist change can't flash the
+  // previous artist's photo before the effect re-resolves (mirrors the
+  // `useArtistImage` id-gate the immersive view uses).
+  const [artistImageHi, setArtistImageHi] = useState<{
+    id: number;
+    src: string | null;
+  } | null>(null);
   const [bioShort, setBioShort] = useState<string | null>(null);
   const [bioFull, setBioFull] = useState<string | null>(null);
   const [bioExpanded, setBioExpanded] = useState(false);
@@ -103,16 +122,18 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
     enrichArtistDeezer(artistId)
       .then((e) => {
         if (cancelled) return;
-        const resolved = resolveArtwork(
-          {
-            full: e.picture_path,
-            x1: e.picture_path_1x,
-            x2: e.picture_path_2x,
-            remoteUrl: e.picture_url,
-          },
-          "1x",
-        );
+        const paths = {
+          full: e.picture_path,
+          x1: e.picture_path_1x,
+          x2: e.picture_path_2x,
+          remoteUrl: e.picture_url,
+        };
+        const resolved = resolveArtwork(paths, "1x");
         if (resolved) setPictureSrc(resolved);
+        // "full" for the slideshow's large cover slot (a 1x thumbnail
+        // upscales blurry there); same fetch, no extra network. Tagged with
+        // `artistId` so a stale resolution can't drive the slideshow.
+        setArtistImageHi({ id: artistId, src: resolveArtwork(paths, "full") });
         if (e.bio_short) setBioShort(e.bio_short);
         if (e.bio_full) setBioFull(e.bio_full);
       })
@@ -136,6 +157,37 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
   const canvasPath = useTrackCanvas(currentTrack?.id);
   const canvasActive = canvasEnabled && !reducedMotion && !!canvasPath;
   const canvasAvailable = !!canvasPath && !reducedMotion;
+
+  // Cover ↔ artist slideshow (issue #466) — the ambient fallback, one rung
+  // below the motion cover (Canvas > motion > slideshow > cover). Reuses the
+  // artist photo already enriched above (`pictureSrc`).
+  const slideshowEnabled = useCoverSlideshow().enabled;
+  // `motionCover`, not `motion` — the latter is framer-motion's import here.
+  const motionCover = useAlbumMotionArtwork(
+    currentTrack?.artist_name,
+    currentTrack?.album_title,
+    currentTrack?.album_id,
+  );
+  // Radio / Spotify tracks have no library artist to slideshow (the artist
+  // enrichment effect still runs to feed the "About the artist" bio, but the
+  // slideshow itself stays off for them).
+  const slideshowEligible =
+    !!currentTrack &&
+    activeProvider !== "spotify" &&
+    !isRadioTrack(currentTrack);
+  // Only surface the photo when it belongs to the current artist — a mismatch
+  // (artist just changed, effect not re-resolved yet) reads as none.
+  const artistSlideSrc =
+    artistImageHi && artistImageHi.id === currentTrack?.artist_id
+      ? artistImageHi.src
+      : null;
+  const slideshowActive =
+    slideshowEnabled &&
+    !reducedMotion &&
+    !canvasActive &&
+    !motionCover &&
+    slideshowEligible &&
+    !!artistSlideSrc;
 
   return (
     <motion.aside
@@ -224,6 +276,12 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
               <CanvasStage
                 path={canvasPath}
                 enabled={canvasEnabled && !reducedMotion}
+                rounded="2xl"
+                className="shadow-lg"
+              />
+              <CoverSlideshow
+                artistSrc={artistSlideSrc}
+                enabled={slideshowActive}
                 rounded="2xl"
                 className="shadow-lg"
               />

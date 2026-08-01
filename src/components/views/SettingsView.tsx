@@ -150,6 +150,7 @@ import { StatsKpiVisibilityCard } from "./settings/StatsKpiVisibilityCard";
 import { SkinPickerCard } from "./settings/SkinPickerCard";
 import { FullscreenLyricsCenteringCard } from "./settings/FullscreenLyricsCenteringCard";
 import { ImmersiveViewCard } from "./settings/ImmersiveViewCard";
+import { CoverSlideshowCard } from "./settings/CoverSlideshowCard";
 import { ScrollTitlesCard } from "./settings/ScrollTitlesCard";
 import { WindowBoundsCard } from "./settings/WindowBoundsCard";
 import { LyricsDestinationCard } from "./settings/LyricsDestinationCard";
@@ -2864,6 +2865,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           <HiResBadgeCard />
 
           <ImmersiveViewCard />
+
+          <CoverSlideshowCard />
 
           <ScrollTitlesCard />
 

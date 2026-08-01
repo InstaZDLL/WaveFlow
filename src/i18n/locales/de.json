@@ -1951,6 +1951,10 @@
       "title": "Lange Titel scrollen",
       "subtitle": "Lange Titel laufen durch, statt abgeschnitten zu werden (Player-Leiste + Immersive Ansicht)."
     },
+    "coverSlideshow": {
+      "title": "Cover-/Künstler-Diashow",
+      "subtitle": "Blendet sanft zwischen dem Albumcover und dem Künstlerfoto hinter der Wiedergabe über (immersive Ansicht + „Aktuelle Wiedergabe“-Panel)."
+    },
     "pluginStore": {
       "title": "Plugin-Store",
       "subtitle": "Durchsuche und installiere isolierte Plugins aus dem WaveFlow-Verzeichnis.",

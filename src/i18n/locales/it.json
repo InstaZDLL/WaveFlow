@@ -1951,6 +1951,10 @@
       "title": "Scorri i titoli lunghi",
       "subtitle": "I titoli lunghi scorrono invece di essere troncati (barra del player + vista immersiva)."
     },
+    "coverSlideshow": {
+      "title": "Slideshow copertina / artista",
+      "subtitle": "Alterna in dissolvenza la copertina dell'album e la foto dell'artista dietro la riproduzione (vista immersiva + pannello In riproduzione)."
+    },
     "pluginStore": {
       "title": "Store dei plugin",
       "subtitle": "Sfoglia e installa plugin isolati dal registro di WaveFlow.",
