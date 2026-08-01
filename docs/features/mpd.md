@@ -64,7 +64,7 @@ The server binds every interface, matching [DLNA](dlna.md). Settled in #471 for 
 
 **On loopback the feature loses its point.** The phone remote is what justifies building this at all.
 
-**Accepted risk:** unlike DLNA, MPD grants *write* access — anyone on the LAN can pause playback or change the volume. No file access, no shell, no exfiltration; the damage ceiling is "my music stopped". On a shared network (café, dorm, coworking) that is a real nuisance, and `mpd.password` is the answer — bearing in mind the protocol transmits it in cleartext, so it is a nuisance filter, not a security boundary.
+**Accepted risk:** unlike DLNA, MPD grants *write* access — anyone on the LAN can pause playback or change the volume. There's no arbitrary audio-file read or download (unlike DLNA, which serves the files themselves) and no command / shell execution — but MPD responses **do** expose the queued tracks' **file paths and metadata** (`playlistinfo`, `currentsong`, `playlistid`), so treat those as visible to anyone on the LAN. The damage ceiling is "my music stopped, and a peer can see what's queued and where the files live". On a shared network (café, dorm, coworking) that is a real nuisance, and `mpd.password` is the answer — bearing in mind the protocol transmits it in cleartext, so it is a nuisance filter, not a security boundary.
 
 Binding `0.0.0.0` triggers a firewall prompt on Windows/macOS the first time. DLNA already does this, so the behaviour is not new to users.
 

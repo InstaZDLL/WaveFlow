@@ -25,8 +25,11 @@
 //!
 //! The accepted risk is that MPD grants *write* access where DLNA is
 //! read-only: anyone on the LAN can pause playback or change the
-//! volume. No file access, no shell, no exfiltration. `mpd.password`
-//! exists for users on a shared network.
+//! volume. There's no arbitrary audio-file read/download (unlike DLNA,
+//! which serves the files) and no command/shell execution — but the
+//! responses DO expose the queued tracks' file paths + metadata
+//! (`playlistinfo` / `currentsong`), so those are visible on the LAN.
+//! `mpd.password` exists for users on a shared network.
 //!
 //! # Architecture
 //!
