@@ -13,6 +13,7 @@ import {
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
 import { useCoverSlideshow } from "../../hooks/useCoverSlideshow";
+import { isRadioTrack } from "../../lib/playerSources";
 import { Artwork } from "../common/Artwork";
 import { MotionCoverOverlay } from "../player/MotionCoverOverlay";
 import { CanvasStage } from "../player/CanvasStage";
@@ -46,8 +47,13 @@ interface NowPlayingPanelProps {
  */
 export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
   const { t } = useTranslation();
-  const { toggleNowPlaying, toggleQueue, currentTrack, isNowPlayingOpen } =
-    usePlayer();
+  const {
+    toggleNowPlaying,
+    toggleQueue,
+    currentTrack,
+    isNowPlayingOpen,
+    activeProvider,
+  } = usePlayer();
 
   // Enrichment (picture + bio) for the current artist. Re-fetched
   // whenever the primary artist_id changes.
@@ -156,11 +162,19 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
     currentTrack?.album_title,
     currentTrack?.album_id,
   );
+  // Radio / Spotify tracks have no library artist to slideshow (the artist
+  // enrichment effect still runs to feed the "About the artist" bio, but the
+  // slideshow itself stays off for them).
+  const slideshowEligible =
+    !!currentTrack &&
+    activeProvider !== "spotify" &&
+    !isRadioTrack(currentTrack);
   const slideshowActive =
     slideshowEnabled &&
     !reducedMotion &&
     !canvasActive &&
     !motionCover &&
+    slideshowEligible &&
     !!artistImageHi;
 
   return (

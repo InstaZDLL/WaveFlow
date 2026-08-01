@@ -89,12 +89,19 @@ export function ImmersiveNowPlaying({
     currentTrack?.album_title,
     currentTrack?.album_id,
   );
+  // Radio (negative sentinel id) and Spotify tracks have no library artist to
+  // enrich, so they never get a slideshow — same eligibility the track menu
+  // uses above.
+  const slideshowEligible =
+    !!currentTrack &&
+    activeProvider !== "spotify" &&
+    !isRadioTrack(currentTrack);
   // Only enrich the artist (a network call the immersive view doesn't
   // otherwise make) when the slideshow could actually run — off by default,
-  // and never while a Canvas or motion cover owns the slot — so this stays
-  // free unless the user opted in and nothing higher-precedence is showing.
+  // never while a Canvas or motion cover owns the slot, and only for an
+  // eligible track — so this stays free unless the user opted in.
   const artistImage = useArtistImage(
-    slideshowEnabled && !reducedMotion && !canvasActive && !motion
+    slideshowEnabled && !reducedMotion && !canvasActive && !motion && slideshowEligible
       ? currentTrack?.artist_id
       : null,
   );
@@ -103,6 +110,7 @@ export function ImmersiveNowPlaying({
     !reducedMotion &&
     !canvasActive &&
     !motion &&
+    slideshowEligible &&
     !!artistImage;
 
   const title = currentTrack?.title ?? t("player.noTrack");
