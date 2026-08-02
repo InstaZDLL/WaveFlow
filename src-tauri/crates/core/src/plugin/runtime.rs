@@ -444,22 +444,31 @@ pub enum SourceError {
     Plugin(String),
 }
 
-fn instantiate_source(
-    runtime: &PluginRuntime,
-    paths: &PluginPaths,
-    plugin_id: &str,
-) -> Result<(Store<HostCtx>, crate::plugin::bindings::source::Plugin), SourceError> {
-    let loaded = runtime.load_plugin(paths, plugin_id)?;
-    let linker = runtime.build_linker()?;
-    let mut store = runtime.new_store_for_plugin(&loaded, paths)?;
-    let plugin = crate::plugin::bindings::source::Plugin::instantiate(
-        &mut store,
-        &loaded.component,
-        &linker,
-    )
-    .map_err(|e| SourceError::Instantiate(e.to_string()))?;
-    Ok((store, plugin))
+/// Generate `fn <name>(runtime, paths, plugin_id) -> Result<(Store, <Plugin>),
+/// SourceError>` that loads a plugin, builds the shared linker + a fresh
+/// store, and instantiates the given world's generated `Plugin`. Every world
+/// that needs no per-call store state instantiates identically — only the
+/// `Plugin` type differs — so `source` / `metadata` / `canvas` share this.
+/// The `ui` world is deliberately NOT generated here: it injects a redacted
+/// library snapshot via `new_store_for_plugin_with_library_artists`.
+macro_rules! define_instantiate {
+    ($name:ident, $plugin:ty) => {
+        fn $name(
+            runtime: &PluginRuntime,
+            paths: &PluginPaths,
+            plugin_id: &str,
+        ) -> Result<(Store<HostCtx>, $plugin), SourceError> {
+            let loaded = runtime.load_plugin(paths, plugin_id)?;
+            let linker = runtime.build_linker()?;
+            let mut store = runtime.new_store_for_plugin(&loaded, paths)?;
+            let plugin = <$plugin>::instantiate(&mut store, &loaded.component, &linker)
+                .map_err(|e| SourceError::Instantiate(e.to_string()))?;
+            Ok((store, plugin))
+        }
+    };
 }
+
+define_instantiate!(instantiate_source, crate::plugin::bindings::source::Plugin);
 
 /// Call the guest's `list-entries`.
 pub fn source_list_entries(
@@ -550,22 +559,7 @@ pub struct AlbumInfo {
     pub motion_cover_tall_url: Option<String>,
 }
 
-fn instantiate_metadata(
-    runtime: &PluginRuntime,
-    paths: &PluginPaths,
-    plugin_id: &str,
-) -> Result<(Store<HostCtx>, crate::plugin::bindings::metadata::Plugin), SourceError> {
-    let loaded = runtime.load_plugin(paths, plugin_id)?;
-    let linker = runtime.build_linker()?;
-    let mut store = runtime.new_store_for_plugin(&loaded, paths)?;
-    let plugin = crate::plugin::bindings::metadata::Plugin::instantiate(
-        &mut store,
-        &loaded.component,
-        &linker,
-    )
-    .map_err(|e| SourceError::Instantiate(e.to_string()))?;
-    Ok((store, plugin))
-}
+define_instantiate!(instantiate_metadata, crate::plugin::bindings::metadata::Plugin);
 
 /// Call the guest's `album-info(artist, title)`.
 pub fn metadata_album_info(
@@ -730,22 +724,7 @@ pub struct ProviderCanvas {
     pub entity_id: Option<String>,
 }
 
-fn instantiate_canvas(
-    runtime: &PluginRuntime,
-    paths: &PluginPaths,
-    plugin_id: &str,
-) -> Result<(Store<HostCtx>, crate::plugin::bindings::canvas::Plugin), SourceError> {
-    let loaded = runtime.load_plugin(paths, plugin_id)?;
-    let linker = runtime.build_linker()?;
-    let mut store = runtime.new_store_for_plugin(&loaded, paths)?;
-    let plugin = crate::plugin::bindings::canvas::Plugin::instantiate(
-        &mut store,
-        &loaded.component,
-        &linker,
-    )
-    .map_err(|e| SourceError::Instantiate(e.to_string()))?;
-    Ok((store, plugin))
-}
+define_instantiate!(instantiate_canvas, crate::plugin::bindings::canvas::Plugin);
 
 /// Call the guest's `track-canvas(artist, title, album?, duration-ms?)`.
 /// `Ok(None)` = the plugin has no Canvas for this track (the host then

@@ -2,6 +2,8 @@ import { useState } from "react";
 
 import { convertFileSrc } from "@tauri-apps/api/core";
 
+import { isRemoteCanvasUrl } from "../../lib/tauri/canvas";
+
 const ROUND: Record<"md" | "lg" | "xl" | "2xl", string> = {
   md: "rounded-md",
   lg: "rounded-lg",
@@ -68,7 +70,7 @@ function CanvasVideo({
   // A manual Canvas is a local file the webview can only reach through the
   // asset protocol; a plugin-sourced one (issue #473) is already a remote
   // `https` URL the `<video>` loads directly — same split as MotionCoverOverlay.
-  const src = /^https?:\/\//i.test(path) ? path : convertFileSrc(path);
+  const src = isRemoteCanvasUrl(path) ? path : convertFileSrc(path);
 
   return (
     <video

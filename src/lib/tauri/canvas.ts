@@ -65,3 +65,14 @@ export function fetchTrackCanvas(
     durationMs,
   });
 }
+
+/**
+ * A resolved Canvas source is **remote** (a plugin's `https` URL the webview
+ * `<video>` loads directly) when it starts with `http(s)://`; otherwise it's
+ * a **local** path that must go through `convertFileSrc`. Shared so the
+ * renderer (`CanvasStage`) and the manual-only picker check (`ImmersiveView`)
+ * never drift on the local-vs-remote split.
+ */
+export function isRemoteCanvasUrl(source: string): boolean {
+  return /^https?:\/\//i.test(source);
+}

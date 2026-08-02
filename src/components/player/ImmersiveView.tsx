@@ -7,6 +7,7 @@ import { useTrackLyrics } from "../../hooks/useTrackLyrics";
 import { useImmersivePrefs } from "../../hooks/useImmersivePrefs";
 import { useTrackCanvas } from "../../hooks/useTrackCanvas";
 import { useCanvasEnabled, setCanvasEnabled } from "../../hooks/useCanvasEnabled";
+import { isRemoteCanvasUrl } from "../../lib/tauri/canvas";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { isRadioTrack } from "../../lib/playerSources";
 import { Artwork } from "../common/Artwork";
@@ -98,8 +99,8 @@ export function ImmersiveView({
   const canvasAvailable = !!canvasPath && !reducedMotion;
   // The picker sets/removes the MANUAL local Canvas only; a plugin-sourced
   // Canvas (issue #473) is a remote `https` URL and must NOT read as
-  // "has a Canvas to remove". Same http(s) split as CanvasStage.
-  const hasManualCanvas = !!canvasPath && !/^https?:\/\//i.test(canvasPath);
+  // "has a Canvas to remove". Shared local-vs-remote split with CanvasStage.
+  const hasManualCanvas = !!canvasPath && !isRemoteCanvasUrl(canvasPath);
 
   // Escape close + focus trap. Only mounted while open → pass `true`.
   const dialogRef = useModalA11y<HTMLDivElement>(true, onClose);
