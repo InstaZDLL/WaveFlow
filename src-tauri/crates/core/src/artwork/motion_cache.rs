@@ -106,6 +106,13 @@ fn is_internal_v4(v4: std::net::Ipv4Addr) -> bool {
 /// under `max_cache_bytes`. Caller MUST have validated the URL with
 /// [`is_safe_motion_url`] first.
 pub async fn cache_mp4(dir: &Path, url: &str, max_cache_bytes: u64) -> Result<PathBuf, String> {
+    // Defence-in-depth: the doc says the caller must have validated `url`, but
+    // re-check the initial URL here so `cache_mp4` can't be made to fetch an
+    // unsafe target by a caller that forgot — rejected before any filesystem or
+    // network work. The redirect policy below covers hops 2+; this covers hop 1.
+    if !is_safe_motion_url(url) {
+        return Err(format!("refusing unsafe url: {url}"));
+    }
     let hash = blake3::hash(url.as_bytes()).to_hex().to_string();
     let path = dir.join(format!("{hash}.mp4"));
 
@@ -330,6 +337,25 @@ mod tests {
         ));
         assert!(!is_safe_motion_url("https://[::127.0.0.1]/a.mp4"));
         assert!(!is_safe_motion_url("https://[::192.168.0.1]/a.mp4"));
+    }
+
+    #[tokio::test]
+    async fn cache_mp4_refuses_unsafe_url_before_network() {
+        // The in-function guard rejects an unsafe initial URL before any
+        // filesystem/network work — no reliance on the caller validating it.
+        let tmp = tempfile::tempdir().expect("tempdir");
+        assert!(
+            cache_mp4(tmp.path(), "https://127.0.0.1/x.mp4", DEFAULT_MAX_CACHE_BYTES)
+                .await
+                .is_err(),
+            "loopback url must be refused"
+        );
+        assert!(
+            cache_mp4(tmp.path(), "http://example.com/x.mp4", DEFAULT_MAX_CACHE_BYTES)
+                .await
+                .is_err(),
+            "non-https url must be refused"
+        );
     }
 
     #[test]
