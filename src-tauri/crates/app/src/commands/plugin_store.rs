@@ -107,6 +107,15 @@ struct RegistryEntry {
     blake3: String,
     #[serde(default)]
     asset: Option<String>,
+    /// Optional direct download URL for the release asset. When present it
+    /// OVERRIDES the GitHub `releases/download` URL built from `repo` — this
+    /// lets the app-controlled registry endpoint host a plugin's binary itself
+    /// (e.g. on `waveflow.app`) instead of a public GitHub release, so a
+    /// closed-source plugin can be distributed binary-only with no public repo.
+    /// Trusted like the rest of the entry (the registry is the trust anchor)
+    /// and still blake3-verified after download; required to be `https`.
+    #[serde(default)]
+    download_url: Option<String>,
     permissions: RegistryPermissions,
     #[serde(default)]
     tags: Vec<String>,
@@ -478,15 +487,31 @@ pub async fn install_plugin_from_registry(
         )));
     }
 
-    // The release asset lives in the entry's own repo (releases/download).
-    let asset = entry
-        .asset
-        .clone()
-        .unwrap_or_else(|| format!("{}-v{}.zip", entry.id, entry.version));
-    let url = format!(
-        "https://github.com/{}/releases/download/v{}/{}",
-        entry.repo, entry.version, asset
-    );
+    // A registry-provided `download_url` overrides the GitHub `releases/download`
+    // URL (see the field doc) so the app-controlled endpoint can host the binary
+    // itself. Require https — it can't be a downgrade / loopback target — and the
+    // bytes are still blake3-verified against the registry pin below either way.
+    let url = match &entry.download_url {
+        Some(direct) => {
+            if !direct.starts_with("https://") {
+                return Err(AppError::Other(format!(
+                    "plugin {plugin_id}: registry download_url must be https"
+                )));
+            }
+            direct.clone()
+        }
+        None => {
+            // The release asset lives in the entry's own repo (releases/download).
+            let asset = entry
+                .asset
+                .clone()
+                .unwrap_or_else(|| format!("{}-v{}.zip", entry.id, entry.version));
+            format!(
+                "https://github.com/{}/releases/download/v{}/{}",
+                entry.repo, entry.version, asset
+            )
+        }
+    };
 
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(60))
