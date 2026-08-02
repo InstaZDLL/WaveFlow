@@ -161,8 +161,7 @@ pub async fn fetch_album_motion_artwork(
                         continue;
                     }
                     // When the local cache is on, download the mp4 and point the
-                    // overlay at the on-disk copy; fall back to the remote URL if
-                    // the download fails so the feature degrades gracefully.
+                    // overlay at the on-disk copy.
                     let square_url = if cache_locally {
                         match motion_cache::cache_mp4(
                             &cache_dir,
@@ -172,6 +171,15 @@ pub async fn fetch_album_motion_artwork(
                         .await
                         {
                             Ok(path) => path.to_string_lossy().into_owned(),
+                            // Security rejection (unsafe initial url or unsafe
+                            // redirect hop): must NOT degrade to streaming the
+                            // raw url — that would hand the webview <video> the
+                            // target the cache path just refused. Skip.
+                            Err(motion_cache::CacheError::UnsafeUrl) => {
+                                tracing::warn!(plugin_id, "motion cache refused an unsafe url/redirect; skipping");
+                                continue;
+                            }
+                            // Ordinary failure: degrade to the remote URL.
                             Err(e) => {
                                 tracing::warn!(%e, "motion cache download failed; serving remote url");
                                 remote_square

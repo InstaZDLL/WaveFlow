@@ -223,8 +223,7 @@ pub async fn fetch_track_canvas(
                     continue;
                 }
                 // With the local cache on, download the mp4 and point the stage
-                // at the on-disk copy; fall back to the remote url if the
-                // download fails so the feature degrades gracefully.
+                // at the on-disk copy.
                 let url = if cache_locally {
                     match motion_cache::cache_mp4(
                         &cache_dir,
@@ -234,6 +233,17 @@ pub async fn fetch_track_canvas(
                     .await
                     {
                         Ok(path) => path.to_string_lossy().into_owned(),
+                        // Security rejection (unsafe initial url or unsafe
+                        // redirect hop): must NOT degrade to streaming the raw
+                        // url — that would hand the webview <video> the very
+                        // target the cache path just refused to follow. Skip
+                        // this plugin and keep looking.
+                        Err(motion_cache::CacheError::UnsafeUrl) => {
+                            tracing::warn!(plugin_id, "canvas cache refused an unsafe url/redirect; skipping");
+                            continue;
+                        }
+                        // Ordinary failure (network / HTTP / disk): degrade to
+                        // streaming the remote url, same posture as cache-off.
                         Err(e) => {
                             tracing::warn!(plugin_id, %e, "canvas cache download failed; serving remote url");
                             canvas.url

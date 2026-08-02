@@ -99,19 +99,72 @@ fn is_internal_v4(v4: std::net::Ipv4Addr) -> bool {
     v4.is_loopback() || v4.is_private() || v4.is_link_local() || v4.is_unspecified()
 }
 
+/// Redact a plugin-supplied URL for a logged error message: keep the scheme,
+/// host and path but drop any userinfo, query and fragment. Those can carry
+/// credentials or signed tokens on a CDN URL, and every failure string here is
+/// logged. Not a validator — purely cosmetic redaction for the error text.
+fn redact_url(url: &str) -> String {
+    let no_query = url.split(['?', '#']).next().unwrap_or(url);
+    match no_query.split_once("://") {
+        Some((scheme, rest)) => {
+            let (authority, path) = match rest.split_once('/') {
+                Some((a, p)) => (a, Some(p)),
+                None => (rest, None),
+            };
+            // Drop `user:pass@` — the host is everything after the last `@`.
+            let host = authority.rsplit('@').next().unwrap_or(authority);
+            match path {
+                Some(p) => format!("{scheme}://{host}/{p}"),
+                None => format!("{scheme}://{host}"),
+            }
+        }
+        None => no_query.to_string(),
+    }
+}
+
+/// Why [`cache_mp4`] failed. The distinction is security-relevant to callers:
+/// [`CacheError::UnsafeUrl`] means the initial url OR a redirect hop failed the
+/// SSRF guard (or the redirect chain was aborted) — a hard rejection the caller
+/// MUST NOT paper over by streaming the raw url to a `<video>`, which would
+/// follow that same unsafe redirect unchecked. [`CacheError::Other`] is an
+/// ordinary failure (network, HTTP status, oversize, disk) the caller may
+/// degrade past by streaming the (already initial-validated) url.
+#[derive(Debug)]
+pub enum CacheError {
+    /// The initial url or a redirect target failed [`is_safe_motion_url`], or
+    /// the redirect chain was aborted. Never stream the url after this.
+    UnsafeUrl,
+    /// Any other failure. Carries a redacted, human-readable message.
+    Other(String),
+}
+
+impl std::fmt::Display for CacheError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            // No url interpolation — an unsafe url can carry credentials.
+            CacheError::UnsafeUrl => f.write_str("refusing unsafe url"),
+            CacheError::Other(m) => f.write_str(m),
+        }
+    }
+}
+
+impl std::error::Error for CacheError {}
+
 /// Return the local path of `url`'s cached mp4, downloading it first if absent.
 /// Hash-addressed by the (stable, per-album) source URL. On a hit the mtime is
 /// bumped for access-LRU; on a miss the body is streamed under [`MAX_MP4_BYTES`],
 /// staged through a unique temp then renamed, and the cache is evicted back
 /// under `max_cache_bytes`. Caller MUST have validated the URL with
-/// [`is_safe_motion_url`] first.
-pub async fn cache_mp4(dir: &Path, url: &str, max_cache_bytes: u64) -> Result<PathBuf, String> {
+/// [`is_safe_motion_url`] first. On failure the [`CacheError`] variant tells the
+/// caller whether it was a security rejection (never stream the url) or an
+/// ordinary failure it may degrade past.
+pub async fn cache_mp4(dir: &Path, url: &str, max_cache_bytes: u64) -> Result<PathBuf, CacheError> {
     // Defence-in-depth: the doc says the caller must have validated `url`, but
     // re-check the initial URL here so `cache_mp4` can't be made to fetch an
     // unsafe target by a caller that forgot — rejected before any filesystem or
     // network work. The redirect policy below covers hops 2+; this covers hop 1.
     if !is_safe_motion_url(url) {
-        return Err(format!("refusing unsafe url: {url}"));
+        return Err(CacheError::UnsafeUrl);
     }
     let hash = blake3::hash(url.as_bytes()).to_hex().to_string();
     let path = dir.join(format!("{hash}.mp4"));
@@ -144,37 +197,49 @@ pub async fn cache_mp4(dir: &Path, url: &str, max_cache_bytes: u64) -> Result<Pa
             }
         }))
         .build()
-        .map_err(|e| format!("http client: {e}"))?;
-    let mut resp = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| format!("download {url}: {e}"))?;
+        .map_err(|e| CacheError::Other(format!("http client: {e}")))?;
+    let mut resp = match client.get(url).send().await {
+        Ok(r) => r,
+        // The redirect policy aborts (unsafe hop or too many hops) as a
+        // `reqwest::Error` flagged `is_redirect()` — treat it as a security
+        // rejection, not an ordinary failure the caller may stream past.
+        Err(e) if e.is_redirect() => return Err(CacheError::UnsafeUrl),
+        Err(e) => {
+            return Err(CacheError::Other(format!(
+                "download {}: {e}",
+                redact_url(url)
+            )))
+        }
+    };
     if !resp.status().is_success() {
-        return Err(format!("download {url}: HTTP {}", resp.status()));
+        return Err(CacheError::Other(format!(
+            "download {}: HTTP {}",
+            redact_url(url),
+            resp.status()
+        )));
     }
     if let Some(len) = resp.content_length() {
         if len > MAX_MP4_BYTES {
-            return Err(format!(
+            return Err(CacheError::Other(format!(
                 "motion mp4 too large: {len} bytes (max {MAX_MP4_BYTES})"
-            ));
+            )));
         }
     }
     let mut bytes: Vec<u8> = Vec::new();
     while let Some(chunk) = resp
         .chunk()
         .await
-        .map_err(|e| format!("read motion mp4 body: {e}"))?
+        .map_err(|e| CacheError::Other(format!("read motion mp4 body: {e}")))?
     {
         if bytes.len() as u64 + chunk.len() as u64 > MAX_MP4_BYTES {
-            return Err(format!(
+            return Err(CacheError::Other(format!(
                 "motion mp4 exceeds {MAX_MP4_BYTES} bytes — refusing"
-            ));
+            )));
         }
         bytes.extend_from_slice(&chunk);
     }
 
-    std::fs::create_dir_all(dir).map_err(|e| format!("create cache dir: {e}"))?;
+    std::fs::create_dir_all(dir).map_err(|e| CacheError::Other(format!("create cache dir: {e}")))?;
     // Unique temp per attempt (pid + monotonic seq) so concurrent downloads of
     // the SAME url can't clobber each other's partial write. Each stages its
     // own complete file then renames over the shared final name (a file rename
@@ -183,11 +248,11 @@ pub async fn cache_mp4(dir: &Path, url: &str, max_cache_bytes: u64) -> Result<Pa
     let tmp = dir.join(format!(".{hash}.{}.{seq}.part", std::process::id()));
     if let Err(e) = std::fs::write(&tmp, &bytes) {
         let _ = std::fs::remove_file(&tmp);
-        return Err(format!("write motion mp4: {e}"));
+        return Err(CacheError::Other(format!("write motion mp4: {e}")));
     }
     if let Err(e) = std::fs::rename(&tmp, &path) {
         let _ = std::fs::remove_file(&tmp);
-        return Err(format!("publish motion mp4: {e}"));
+        return Err(CacheError::Other(format!("publish motion mp4: {e}")));
     }
     evict_lru(dir, max_cache_bytes);
     Ok(path)
@@ -342,20 +407,44 @@ mod tests {
     #[tokio::test]
     async fn cache_mp4_refuses_unsafe_url_before_network() {
         // The in-function guard rejects an unsafe initial URL before any
-        // filesystem/network work — no reliance on the caller validating it.
+        // filesystem/network work — no reliance on the caller validating it —
+        // and flags it `UnsafeUrl` (a security rejection) so the caller skips
+        // rather than streaming the raw url.
         let tmp = tempfile::tempdir().expect("tempdir");
-        assert!(
-            cache_mp4(tmp.path(), "https://127.0.0.1/x.mp4", DEFAULT_MAX_CACHE_BYTES)
+        for url in ["https://127.0.0.1/x.mp4", "http://example.com/x.mp4"] {
+            let err = cache_mp4(tmp.path(), url, DEFAULT_MAX_CACHE_BYTES)
                 .await
-                .is_err(),
-            "loopback url must be refused"
-        );
+                .expect_err("unsafe url must be refused");
+            assert!(
+                matches!(err, CacheError::UnsafeUrl),
+                "{url} must be a security failure, got {err:?}"
+            );
+        }
+        // The guard rejected before touching the filesystem: no `.mp4` cached
+        // and no `.part` temp staged.
+        let leftovers: Vec<String> = std::fs::read_dir(tmp.path())
+            .expect("read tempdir")
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect();
         assert!(
-            cache_mp4(tmp.path(), "http://example.com/x.mp4", DEFAULT_MAX_CACHE_BYTES)
-                .await
-                .is_err(),
-            "non-https url must be refused"
+            leftovers.is_empty(),
+            "guard must reject before any file is created; found {leftovers:?}"
         );
+    }
+
+    #[test]
+    fn redact_url_drops_userinfo_query_and_fragment() {
+        // Credentials / signed tokens must never reach a logged error string.
+        assert_eq!(
+            redact_url("https://user:pass@cdn.example.com/a.mp4?sig=secret#frag"),
+            "https://cdn.example.com/a.mp4"
+        );
+        assert_eq!(
+            redact_url("https://cdn.example.com/a.mp4"),
+            "https://cdn.example.com/a.mp4"
+        );
+        assert_eq!(redact_url("https://cdn.example.com"), "https://cdn.example.com");
     }
 
     #[test]
