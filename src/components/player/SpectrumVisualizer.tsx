@@ -8,12 +8,20 @@ interface SpectrumPayload {
 interface SpectrumVisualizerProps {
   /** Tailwind sizing classes for the canvas wrapper. */
   className?: string;
-  /** Bar fill colour (any CSS colour the canvas accepts). */
+  /**
+   * Bar fill colour (any CSS colour the canvas accepts). When omitted, falls
+   * back to the light backdrop variant (see `glow`). Ignored when `rainbow`.
+   */
   color?: string;
   /**
-   * When true, draws a light-on-dark variant suited to the immersive
-   * overlay backdrop (white bars at moderate opacity). When false,
-   * uses the regular `color` prop.
+   * When true, tints each bar by a per-index hue (a spectrum sweep) instead of
+   * a solid fill — overrides `color`. Issue #468.
+   */
+  rainbow?: boolean;
+  /**
+   * When true and no explicit `color` is given, draws the light-on-dark
+   * variant suited to the immersive overlay backdrop (white bars at moderate
+   * opacity). An explicit `color`/`rainbow` always wins.
    */
   glow?: boolean;
 }
@@ -32,9 +40,13 @@ interface SpectrumVisualizerProps {
  */
 export function SpectrumVisualizer({
   className = "w-full h-24",
-  color = "#10b981",
+  color,
+  rainbow = false,
   glow = false,
 }: SpectrumVisualizerProps) {
+  // An explicit colour wins; otherwise fall back to the immersive light
+  // variant (`glow`) or the historical emerald default.
+  const fill = color ?? (glow ? "rgba(255,255,255,0.85)" : "#10b981");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   // Latest bands received from the backend. Mutable ref so the
   // animation loop reads the freshest values without re-rendering.
@@ -124,8 +136,15 @@ export function SpectrumVisualizer({
         const gap = Math.max(1, Math.floor(w / barCount / 4));
         const barWidth = Math.max(1, (w - gap * (barCount - 1)) / barCount);
 
-        ctx.fillStyle = glow ? "rgba(255,255,255,0.85)" : color;
+        // Solid fill is set once; rainbow re-tints per bar by index hue.
+        if (!rainbow) ctx.fillStyle = fill;
+        const denom = Math.max(1, barCount - 1);
         for (let i = 0; i < barCount; i++) {
+          if (rainbow) {
+            // 0..300° sweep (red → violet) — stop short of 360 so the last
+            // bar doesn't wrap back to the first's red.
+            ctx.fillStyle = `hsl(${(i / denom) * 300}, 85%, 60%)`;
+          }
           const value = Math.max(0, Math.min(1, drawn[i]));
           const barHeight = value * h;
           const x = i * (barWidth + gap);
@@ -142,7 +161,7 @@ export function SpectrumVisualizer({
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, [color, glow]);
+  }, [fill, rainbow, glow]);
 
   return (
     <canvas

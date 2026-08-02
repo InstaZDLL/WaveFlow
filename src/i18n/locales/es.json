@@ -1673,7 +1673,16 @@
     },
     "visualizer": {
       "title": "Visualizador de audio",
-      "subtitle": "Muestra un espectro en tiempo real en la vista inmersiva (FFT ligero en el hilo del decodificador)"
+      "subtitle": "Muestra un espectro en tiempo real en la vista inmersiva (FFT ligero en el hilo del decodificador)",
+      "cycleColor": "Color del visualizador: {{color}}",
+      "colors": {
+        "white": "Blanco",
+        "emerald": "Esmeralda",
+        "orange": "Naranja",
+        "aqua": "Aguamarina",
+        "magenta": "Magenta",
+        "rainbow": "Arcoíris"
+      }
     },
     "smartCrossfade": {
       "title": "Crossfade inteligente",

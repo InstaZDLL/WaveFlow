@@ -1673,7 +1673,16 @@
     },
     "visualizer": {
       "title": "Audio visualizer",
-      "subtitle": "Show a real-time spectrum in the immersive view (lightweight FFT on the decoder thread)"
+      "subtitle": "Show a real-time spectrum in the immersive view (lightweight FFT on the decoder thread)",
+      "cycleColor": "Visualizer color: {{color}}",
+      "colors": {
+        "white": "White",
+        "emerald": "Emerald",
+        "orange": "Orange",
+        "aqua": "Aqua",
+        "magenta": "Magenta",
+        "rainbow": "Rainbow"
+      }
     },
     "smartCrossfade": {
       "title": "Smart crossfade",

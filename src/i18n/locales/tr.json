@@ -1673,7 +1673,16 @@
     },
     "visualizer": {
       "title": "Ses görselleştirici",
-      "subtitle": "Sürükleyici görünümde gerçek zamanlı spektrumu gösterir (kod çözücü iş parçacığında hafif FFT)"
+      "subtitle": "Sürükleyici görünümde gerçek zamanlı spektrumu gösterir (kod çözücü iş parçacığında hafif FFT)",
+      "cycleColor": "Görselleştirici rengi: {{color}}",
+      "colors": {
+        "white": "Beyaz",
+        "emerald": "Zümrüt",
+        "orange": "Turuncu",
+        "aqua": "Camgöbeği",
+        "magenta": "Macenta",
+        "rainbow": "Gökkuşağı"
+      }
     },
     "smartCrossfade": {
       "title": "Akıllı çapraz geçiş",

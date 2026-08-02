@@ -17,6 +17,7 @@ Real-time FFT bars surfaced in the immersive Now Playing overlay. Implementation
 - Output is a `player:spectrum` Tauri event carrying a `Vec<f32>` of normalised band magnitudes (0..1, peaks may briefly overshoot).
 - A `SharedPlayback::visualizer_enabled` atomic gates the entire path: when off, `feed` returns at the first atomic load — zero allocations, zero FFT cost. Persisted in `profile_setting['ui.visualizer']`, default OFF.
 - Frontend: [`SpectrumVisualizer`](../../src/components/player/SpectrumVisualizer.tsx) subscribes to the event and drives a `<canvas>` with `requestAnimationFrame`. Asymmetric decay (jump up fast, fall slow) so transients pop without making the bars look glitchy. Auto-fades to zero on pause so the bars don't freeze mid-pose.
+- Bar colour (issue #468): user-selectable per profile via [`useVisualizerColor`](../../src/hooks/useVisualizerColor.ts) — `White` (default, the historical `rgba(255,255,255,0.85)` so existing installs are unchanged) → `Emerald` → `Orange` → `Aqua` → `Magenta` → `Rainbow` (per-bar 0–300° hue sweep), stored in `profile_setting['ui.visualizer_color']`. A [`VisualizerColorButton`](../../src/components/player/VisualizerColorButton.tsx) next to the like/★ in [`ImmersiveNowPlaying`](../../src/components/player/ImmersiveNowPlaying.tsx) cycles through them (loops back to `White`); it only appears when the visualizer toggle is on. Rationale: the immersive backdrop is derived from album art, so no single fixed colour reads well over every cover — the user picks one that contrasts.
 
 ## Crossfade
 

@@ -1673,7 +1673,16 @@
     },
     "visualizer": {
       "title": "Audio-visualizer",
-      "subtitle": "Toont een real-time spectrum in de meeslepende weergave (lichte FFT op de decoderthread)"
+      "subtitle": "Toont een real-time spectrum in de meeslepende weergave (lichte FFT op de decoderthread)",
+      "cycleColor": "Visualizerkleur: {{color}}",
+      "colors": {
+        "white": "Wit",
+        "emerald": "Smaragd",
+        "orange": "Oranje",
+        "aqua": "Aqua",
+        "magenta": "Magenta",
+        "rainbow": "Regenboog"
+      }
     },
     "smartCrossfade": {
       "title": "Slimme crossfade",

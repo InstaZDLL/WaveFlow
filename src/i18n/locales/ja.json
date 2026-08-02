@@ -1794,7 +1794,16 @@
     },
     "visualizer": {
       "title": "オーディオビジュアライザー",
-      "subtitle": "没入ビューでリアルタイムのスペクトラムを表示 (デコーダースレッド上の軽量 FFT)"
+      "subtitle": "没入ビューでリアルタイムのスペクトラムを表示 (デコーダースレッド上の軽量 FFT)",
+      "cycleColor": "ビジュアライザーの色: {{color}}",
+      "colors": {
+        "white": "ホワイト",
+        "emerald": "エメラルド",
+        "orange": "オレンジ",
+        "aqua": "アクア",
+        "magenta": "マゼンタ",
+        "rainbow": "レインボー"
+      }
     },
     "smartCrossfade": {
       "title": "スマートクロスフェード",

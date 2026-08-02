@@ -1673,7 +1673,16 @@
     },
     "visualizer": {
       "title": "Visualizer audio",
-      "subtitle": "Tampilkan spektrum waktu nyata di tampilan imersif (FFT ringan di thread decoder)"
+      "subtitle": "Tampilkan spektrum waktu nyata di tampilan imersif (FFT ringan di thread decoder)",
+      "cycleColor": "Warna visualizer: {{color}}",
+      "colors": {
+        "white": "Putih",
+        "emerald": "Zamrud",
+        "orange": "Oranye",
+        "aqua": "Akua",
+        "magenta": "Magenta",
+        "rainbow": "Pelangi"
+      }
     },
     "smartCrossfade": {
       "title": "Crossfade pintar",

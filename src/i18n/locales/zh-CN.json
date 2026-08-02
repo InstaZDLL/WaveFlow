@@ -1794,7 +1794,16 @@
     },
     "visualizer": {
       "title": "音频可视化",
-      "subtitle": "在沉浸式视图中显示实时频谱（解码器线程上的轻量 FFT）"
+      "subtitle": "在沉浸式视图中显示实时频谱（解码器线程上的轻量 FFT）",
+      "cycleColor": "可视化颜色：{{color}}",
+      "colors": {
+        "white": "白色",
+        "emerald": "翡翠绿",
+        "orange": "橙色",
+        "aqua": "水蓝色",
+        "magenta": "品红色",
+        "rainbow": "彩虹"
+      }
     },
     "smartCrossfade": {
       "title": "智能交叉淡化",

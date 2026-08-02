@@ -1673,7 +1673,16 @@
     },
     "visualizer": {
       "title": "Audio-Visualizer",
-      "subtitle": "Zeigt ein Echtzeit-Spektrum in der immersiven Ansicht (leichtgewichtige FFT im Decoder-Thread)"
+      "subtitle": "Zeigt ein Echtzeit-Spektrum in der immersiven Ansicht (leichtgewichtige FFT im Decoder-Thread)",
+      "cycleColor": "Visualizer-Farbe: {{color}}",
+      "colors": {
+        "white": "Weiß",
+        "emerald": "Smaragd",
+        "orange": "Orange",
+        "aqua": "Aqua",
+        "magenta": "Magenta",
+        "rainbow": "Regenbogen"
+      }
     },
     "smartCrossfade": {
       "title": "Smartes Crossfade",
