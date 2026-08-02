@@ -64,7 +64,17 @@ export interface VisualizerColor {
   color: string | undefined;
   /** Whether the current selection is the per-bar rainbow. */
   rainbow: boolean;
-  /** Advance to the next colour in {@link VISUALIZER_COLOR_ORDER}, wrapping. */
+  /**
+   * `true` only once the active profile's stored value has been read. Until
+   * then `colorId` is the placeholder default; consumers must wait for this
+   * before letting the user act (see `cycle`, which no-ops when not ready) so
+   * an early click can't persist a default-derived value over the real one.
+   */
+  ready: boolean;
+  /**
+   * Advance to the next colour in {@link VISUALIZER_COLOR_ORDER}, wrapping.
+   * No-ops until {@link VisualizerColor.ready} is `true`.
+   */
   cycle: () => Promise<void>;
 }
 
@@ -79,6 +89,11 @@ export interface VisualizerColor {
 export function useVisualizerColor(): VisualizerColor {
   const { activeProfile } = useProfile();
   const [colorId, setColorIdState] = useState<VisualizerColorId>(DEFAULT_COLOR);
+  // Which profile the stored value has been loaded for. `ready` is derived by
+  // comparing it to the active profile, so a profile switch makes the hook
+  // not-ready again with no synchronous setState (the render just recomputes).
+  const [readyProfileId, setReadyProfileId] = useState<number | null>(null);
+  const readyProfileIdRef = useRef<number | null>(null);
   const colorIdRef = useRef(colorId);
   const confirmedRef = useRef(colorId);
   const writeChainRef = useRef<Promise<void>>(Promise.resolve());
@@ -93,6 +108,7 @@ export function useVisualizerColor(): VisualizerColor {
 
   useEffect(() => {
     let cancelled = false;
+    const profileId = activeProfile?.id ?? null;
     const refresh = async () => {
       try {
         const raw = await getProfileSetting(KEY);
@@ -101,6 +117,11 @@ export function useVisualizerColor(): VisualizerColor {
         colorIdRef.current = parsed;
         confirmedRef.current = parsed;
         setColorIdState(parsed);
+        // Mark ready for THIS profile only after a successful read+parse; a
+        // failure leaves the previous readiness untouched (stays not-ready on
+        // first load, so `cycle` refuses until the stored value is known).
+        readyProfileIdRef.current = profileId;
+        setReadyProfileId(profileId);
       } catch (err) {
         console.error("[useVisualizerColor] read failed", err);
       }
@@ -141,6 +162,16 @@ export function useVisualizerColor(): VisualizerColor {
   }, []);
 
   const cycle = useCallback(async () => {
+    // Refuse until the stored value has loaded for the ACTIVE profile —
+    // otherwise we'd cycle from the placeholder default and clobber the
+    // persisted colour (and a stale read from the previous profile mustn't
+    // authorize a write into the new one).
+    if (
+      readyProfileIdRef.current === null ||
+      readyProfileIdRef.current !== activeProfileIdRef.current
+    ) {
+      return;
+    }
     const idx = VISUALIZER_COLOR_ORDER.indexOf(colorIdRef.current);
     const next =
       VISUALIZER_COLOR_ORDER[(idx + 1) % VISUALIZER_COLOR_ORDER.length];
@@ -148,10 +179,13 @@ export function useVisualizerColor(): VisualizerColor {
   }, [setColorId]);
 
   const rainbow = colorId === "rainbow";
+  const ready =
+    readyProfileId !== null && readyProfileId === (activeProfile?.id ?? null);
   return {
     colorId,
     color: rainbow ? undefined : VISUALIZER_COLOR_CSS[colorId],
     rainbow,
+    ready,
     cycle,
   };
 }

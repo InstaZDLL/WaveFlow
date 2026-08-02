@@ -77,8 +77,13 @@ export function ImmersiveNowPlaying({
   // the visualizer itself is enabled (a per-profile backend toggle read once
   // on mount — the immersive view remounts each time it's opened). The chosen
   // colour feeds the visualizer's fill; `rainbow` tints per bar.
-  const { colorId, color: visualizerColor, rainbow, cycle } =
-    useVisualizerColor();
+  const {
+    colorId,
+    color: visualizerColor,
+    rainbow,
+    ready: visualizerColorReady,
+    cycle,
+  } = useVisualizerColor();
   const [visualizerOn, setVisualizerOn] = useState(false);
   useEffect(() => {
     let cancelled = false;
@@ -304,8 +309,9 @@ export function ImmersiveNowPlaying({
                 </button>
               ) : null}
               {/* Visualizer colour cycle (issue #468) — only when the
-                  visualizer is on, so it isn't a dead control otherwise. */}
-              {visualizerOn && (
+                  visualizer is on AND the stored colour has loaded, so an
+                  early click can't clobber it with a default-derived value. */}
+              {visualizerOn && visualizerColorReady && (
                 <VisualizerColorButton
                   colorId={colorId}
                   color={visualizerColor}
