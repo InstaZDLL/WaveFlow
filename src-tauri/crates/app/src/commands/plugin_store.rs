@@ -21,6 +21,7 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use tauri::State;
+use waveflow_core::artwork::motion_cache::is_safe_motion_url;
 use waveflow_core::plugin::is_bundled_plugin;
 use waveflow_core::plugin::manifest::{LocalizedString, Manifest};
 use waveflow_core::plugin::PluginPaths;
@@ -489,13 +490,16 @@ pub async fn install_plugin_from_registry(
 
     // A registry-provided `download_url` overrides the GitHub `releases/download`
     // URL (see the field doc) so the app-controlled endpoint can host the binary
-    // itself. Require https — it can't be a downgrade / loopback target — and the
-    // bytes are still blake3-verified against the registry pin below either way.
+    // itself. The bytes are blake3-verified against the registry pin below, but
+    // the URL is a fetch the app makes, so validate it with the shared SSRF
+    // guard: https + reject localhost / loopback / private / link-local hosts
+    // (and userinfo forms pointing at them). Even a compromised entry must not
+    // be able to make the app hit an internal address.
     let url = match &entry.download_url {
         Some(direct) => {
-            if !direct.starts_with("https://") {
+            if !is_safe_motion_url(direct) {
                 return Err(AppError::Other(format!(
-                    "plugin {plugin_id}: registry download_url must be https"
+                    "plugin {plugin_id}: registry download_url is not a safe https URL"
                 )));
             }
             direct.clone()
@@ -513,8 +517,21 @@ pub async fn install_plugin_from_registry(
         }
     };
 
+    // Follow redirects (a GitHub release URL 302s to a CDN) but re-validate
+    // EVERY hop with the same SSRF guard — the initial URL was checked above,
+    // and neither it nor a redirect may point the download at an internal
+    // target. Legit public CDNs pass; a redirect to an internal host is refused.
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(60))
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            if attempt.previous().len() > 10 {
+                attempt.error("too many redirects")
+            } else if is_safe_motion_url(attempt.url().as_str()) {
+                attempt.follow()
+            } else {
+                attempt.error("unsafe redirect target")
+            }
+        }))
         .build()
         .map_err(|e| AppError::Other(format!("http client: {e}")))?;
     let mut resp = client
