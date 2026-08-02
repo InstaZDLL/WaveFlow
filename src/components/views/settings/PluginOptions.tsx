@@ -9,9 +9,15 @@ import {
   getPluginOptions,
   setPluginOption,
   isMetadataPlugin,
+  isCanvasPlugin,
   type PluginInfo,
   type PluginOption,
 } from "../../../lib/tauri/plugins";
+import {
+  getCanvasCacheInfo,
+  setCanvasCacheEnabled,
+  clearCanvasCache,
+} from "../../../lib/tauri/canvas";
 import { useLocalizedText } from "../../../hooks/useLocalizedText";
 
 /** Human-readable byte size (locale-agnostic, 1 decimal for MB/GB). */
@@ -30,16 +36,17 @@ function formatBytes(bytes: number): string {
  * opened instead of stacking a card per plugin — the list stays short no
  * matter how many plugins are installed.
  *
- * For metadata-world plugins it renders the host-provided motion-artwork
- * local-cache control (toggle + footprint + clear). The motion cache is an
- * app-wide WaveFlow capability, surfaced here because it caches what these
- * plugins produce.
+ * For metadata-world plugins it renders the motion-artwork local-cache control,
+ * and for canvas-world plugins the Canvas local-cache control (toggle +
+ * footprint + clear). Both are app-wide WaveFlow capabilities, surfaced here
+ * because they cache what these plugins produce.
  */
 export function PluginOptions({ plugin }: { plugin: PluginInfo }) {
   return (
     <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-800 space-y-4">
       {plugin.hasOptions && <ManifestOptions pluginId={plugin.id} />}
       {isMetadataPlugin(plugin) && <MotionCacheOption />}
+      {isCanvasPlugin(plugin) && <CanvasCacheOption />}
     </div>
   );
 }
@@ -200,7 +207,28 @@ function OptionControl({
   );
 }
 
-function MotionCacheOption() {
+/** One opt-in local mp4 cache (motion artwork or Canvas): identical host-side
+ *  shape (toggle + on-disk footprint + clear), only the backend commands + the
+ *  i18n prefix differ. */
+interface LocalCacheProps {
+  i18nPrefix: "settings.motionArtwork" | "settings.canvasCache";
+  toggleId: string;
+  getInfo: () => Promise<{
+    enabled: boolean;
+    sizeBytes: number;
+    fileCount: number;
+  }>;
+  setEnabled: (enabled: boolean) => Promise<void>;
+  clear: () => Promise<void>;
+}
+
+function LocalCacheOption({
+  i18nPrefix,
+  toggleId,
+  getInfo,
+  setEnabled: persistEnabled,
+  clear,
+}: LocalCacheProps) {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState(false);
   const [sizeBytes, setSizeBytes] = useState(0);
@@ -213,7 +241,7 @@ function MotionCacheOption() {
 
   useEffect(() => {
     let cancelled = false;
-    getMotionCacheInfo().then(
+    getInfo().then(
       (info) => {
         if (cancelled) return;
         setEnabled(info.enabled);
@@ -230,7 +258,7 @@ function MotionCacheOption() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [getInfo]);
 
   const onToggle = useCallback(async () => {
     // Serialise against BOTH the toggle write and the clear op — ignore clicks
@@ -241,14 +269,14 @@ function MotionCacheOption() {
     setEnabled(next); // optimistic
     setError(null);
     try {
-      await setMotionCacheEnabled(next);
+      await persistEnabled(next);
     } catch (e) {
       setEnabled(!next); // revert
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }
-  }, [enabled, saving, busy]);
+  }, [enabled, saving, busy, persistEnabled]);
 
   const onClear = useCallback(async () => {
     // Don't start a clear while a toggle write (or another clear) is pending.
@@ -260,8 +288,8 @@ function MotionCacheOption() {
     setBusy(true);
     setError(null);
     try {
-      await clearMotionCache();
-      const info = await getMotionCacheInfo();
+      await clear();
+      const info = await getInfo();
       setSizeBytes(info.sizeBytes);
       setFileCount(info.fileCount);
     } catch (e) {
@@ -270,7 +298,7 @@ function MotionCacheOption() {
       setBusy(false);
       setConfirmingClear(false);
     }
-  }, [confirmingClear, saving, busy]);
+  }, [confirmingClear, saving, busy, getInfo, clear]);
 
   return (
     <div>
@@ -286,17 +314,17 @@ function MotionCacheOption() {
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
           <label
-            htmlFor="motion-cache-toggle"
+            htmlFor={toggleId}
             className="text-sm text-zinc-700 dark:text-zinc-200 select-none block"
           >
-            {t("settings.motionArtwork.cacheLabel")}
+            {t(`${i18nPrefix}.cacheLabel`)}
           </label>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            {t("settings.motionArtwork.subtitle")}
+            {t(`${i18nPrefix}.subtitle`)}
           </p>
         </div>
         <button
-          id="motion-cache-toggle"
+          id={toggleId}
           type="button"
           role="switch"
           aria-checked={enabled}
@@ -316,7 +344,7 @@ function MotionCacheOption() {
 
       <div className="mt-2 flex items-center justify-between gap-4">
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          {t("settings.motionArtwork.usage", {
+          {t(`${i18nPrefix}.usage`, {
             size: formatBytes(sizeBytes),
             files: fileCount,
           })}
@@ -329,10 +357,36 @@ function MotionCacheOption() {
         >
           <Trash2 size={14} aria-hidden="true" />
           {confirmingClear
-            ? t("settings.motionArtwork.clearConfirm")
-            : t("settings.motionArtwork.clear")}
+            ? t(`${i18nPrefix}.clearConfirm`)
+            : t(`${i18nPrefix}.clear`)}
         </button>
       </div>
     </div>
+  );
+}
+
+/** Motion-artwork local cache (metadata plugins). */
+function MotionCacheOption() {
+  return (
+    <LocalCacheOption
+      i18nPrefix="settings.motionArtwork"
+      toggleId="motion-cache-toggle"
+      getInfo={getMotionCacheInfo}
+      setEnabled={setMotionCacheEnabled}
+      clear={clearMotionCache}
+    />
+  );
+}
+
+/** Per-track Canvas local cache (canvas plugins, issue #473). */
+function CanvasCacheOption() {
+  return (
+    <LocalCacheOption
+      i18nPrefix="settings.canvasCache"
+      toggleId="canvas-cache-toggle"
+      getInfo={getCanvasCacheInfo}
+      setEnabled={setCanvasCacheEnabled}
+      clear={clearCanvasCache}
+    />
   );
 }

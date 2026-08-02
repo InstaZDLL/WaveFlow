@@ -2003,6 +2003,13 @@
       "reset": "Restablecer",
       "done": "Restablecido",
       "error": "No se pudo restablecer. Inténtalo de nuevo."
+    },
+    "canvasCache": {
+      "cacheLabel": "Guardar los Canvas localmente",
+      "subtitle": "Descarga el Canvas de cada pista desde el complemento para reproducirlo sin conexión y sin volver a transmitirlo.",
+      "usage": "{{size}} usados · {{files}} Canvas en caché",
+      "clear": "Vaciar caché",
+      "clearConfirm": "¿Confirmar?"
     }
   },
   "spotify": {

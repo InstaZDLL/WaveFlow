@@ -2003,6 +2003,13 @@
       "reset": "リセット",
       "done": "リセット完了",
       "error": "リセットに失敗しました。もう一度お試しください。"
+    },
+    "canvasCache": {
+      "cacheLabel": "Canvas をローカルに保存",
+      "subtitle": "各トラックの Canvas をプラグインからダウンロードし、オフラインで再ストリーミングなしに再生します。",
+      "usage": "{{size}} 使用中 · {{files}} 件の Canvas をキャッシュ",
+      "clear": "キャッシュを消去",
+      "clearConfirm": "確認しますか？"
     }
   },
   "scanProgress": {

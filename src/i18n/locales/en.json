@@ -2003,6 +2003,13 @@
       "reset": "Reset",
       "done": "Reset done",
       "error": "Reset failed. Please try again."
+    },
+    "canvasCache": {
+      "cacheLabel": "Save Canvas videos locally",
+      "subtitle": "Downloads each track's Canvas from the plugin so it plays offline and doesn't re-stream.",
+      "usage": "{{size}} used · {{files}} Canvas cached",
+      "clear": "Clear cache",
+      "clearConfirm": "Confirm?"
     }
   },
   "spotify": {

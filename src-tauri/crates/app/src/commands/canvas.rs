@@ -16,13 +16,18 @@ use serde::Serialize;
 use tauri::State;
 use waveflow_core::artwork::motion_cache;
 
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
 use crate::offline;
 use crate::state::AppState;
 
 /// Per-plugin call timeout for the Canvas fanout — a hung provider must not
 /// stall the now-playing path. Matches the motion-artwork budget.
 const CANVAS_PLUGIN_TIMEOUT: Duration = Duration::from_secs(20);
+
+/// `app_setting` key for the opt-in local Canvas cache (issue #473). Default
+/// OFF — a plugin Canvas is a remote URL the webview streams unless the user
+/// opts into caching the mp4 on disk (same shape as the motion-artwork cache).
+const CANVAS_CACHE_ENABLED_KEY: &str = "canvas.cache_enabled";
 
 /// Hard cap on a user-supplied Canvas clip, mirroring
 /// [`super::motion_artwork`]'s manual-cover cap: a deliberately-chosen file
@@ -152,6 +157,12 @@ pub async fn fetch_track_canvas(
         return Ok(None);
     }
 
+    // Opt-in local cache: when on, the resolved remote mp4 is downloaded into an
+    // app-wide LRU and the returned "url" is the on-disk path (offline replay,
+    // no re-stream). Read once up front; default OFF streams the remote url.
+    let cache_locally = canvas_cache_enabled(&state).await;
+    let cache_dir = state.paths.canvas_cache_dir.clone();
+
     let plugin_ids =
         super::plugins::enabled_plugin_ids_for_world(&state, "waveflow:canvas").await?;
     if plugin_ids.is_empty() {
@@ -211,10 +222,37 @@ pub async fn fetch_track_canvas(
                     tracing::warn!(plugin_id, "canvas plugin returned an unsafe url; skipping");
                     continue;
                 }
-                return Ok(Some(PluginCanvas {
-                    url: canvas.url,
-                    plugin_id,
-                }));
+                // With the local cache on, download the mp4 and point the stage
+                // at the on-disk copy.
+                let url = if cache_locally {
+                    match motion_cache::cache_mp4(
+                        &cache_dir,
+                        &canvas.url,
+                        motion_cache::DEFAULT_MAX_CACHE_BYTES,
+                    )
+                    .await
+                    {
+                        Ok(path) => path.to_string_lossy().into_owned(),
+                        // Security rejection (unsafe initial url or unsafe
+                        // redirect hop): must NOT degrade to streaming the raw
+                        // url — that would hand the webview <video> the very
+                        // target the cache path just refused to follow. Skip
+                        // this plugin and keep looking.
+                        Err(motion_cache::CacheError::UnsafeUrl) => {
+                            tracing::warn!(plugin_id, "canvas cache refused an unsafe url/redirect; skipping");
+                            continue;
+                        }
+                        // Ordinary failure (network / HTTP / disk): degrade to
+                        // streaming the remote url, same posture as cache-off.
+                        Err(e) => {
+                            tracing::warn!(plugin_id, %e, "canvas cache download failed; serving remote url");
+                            canvas.url
+                        }
+                    }
+                } else {
+                    canvas.url
+                };
+                return Ok(Some(PluginCanvas { url, plugin_id }));
             }
             Ok(Ok(Ok(None))) => { /* this plugin has no Canvas for the track */ }
             Ok(Ok(Err(e))) => tracing::warn!(plugin_id, %e, "canvas plugin failed; skipping"),
@@ -224,4 +262,76 @@ pub async fn fetch_track_canvas(
     }
 
     Ok(None)
+}
+
+// ----- opt-in local Canvas cache (issue #473) -----------------------------
+//
+// Mirrors the motion-artwork cache: an app-wide, hash-addressed LRU of
+// downloaded Canvas mp4s, reusing the same `motion_cache` primitives (download
+// + eviction + SSRF guard) with a separate dir so the two caches size/clear
+// independently. Default OFF — a plugin Canvas streams from the CDN unless the
+// user opts in.
+
+async fn canvas_cache_enabled(state: &AppState) -> bool {
+    sqlx::query_scalar::<_, String>("SELECT value FROM app_setting WHERE key = ?")
+        .bind(CANVAS_CACHE_ENABLED_KEY)
+        .fetch_optional(&state.app_db)
+        .await
+        .ok()
+        .flatten()
+        .map(|v| v == "true" || v == "1")
+        .unwrap_or(false)
+}
+
+/// The Canvas-cache toggle state + current on-disk footprint, for the plugin
+/// options panel. Mirrors `MotionCacheInfo`.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CanvasCacheInfo {
+    pub enabled: bool,
+    pub size_bytes: u64,
+    pub file_count: u64,
+}
+
+/// Read the toggle + cache footprint for the settings UI.
+#[tauri::command]
+pub async fn get_canvas_cache_info(state: State<'_, AppState>) -> AppResult<CanvasCacheInfo> {
+    let enabled = canvas_cache_enabled(&state).await;
+    let dir = state.paths.canvas_cache_dir.clone();
+    let (size_bytes, file_count) = tokio::task::spawn_blocking(move || motion_cache::stats(&dir))
+        .await
+        .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?;
+    Ok(CanvasCacheInfo {
+        enabled,
+        size_bytes,
+        file_count,
+    })
+}
+
+/// Toggle the opt-in local Canvas cache. Turning it OFF does not purge the
+/// existing files — that's the explicit "Clear cache" action below.
+#[tauri::command]
+pub async fn set_canvas_cache_enabled(state: State<'_, AppState>, enabled: bool) -> AppResult<()> {
+    sqlx::query(
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'bool', ?)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(CANVAS_CACHE_ENABLED_KEY)
+    .bind(if enabled { "true" } else { "false" })
+    .bind(chrono::Utc::now().timestamp_millis())
+    .execute(&state.app_db)
+    .await?;
+    Ok(())
+}
+
+/// Delete every cached Canvas mp4 (and any leftover `.part` temporaries).
+#[tauri::command]
+pub async fn clear_canvas_cache(state: State<'_, AppState>) -> AppResult<()> {
+    let dir = state.paths.canvas_cache_dir.clone();
+    tokio::task::spawn_blocking(move || motion_cache::clear(&dir))
+        .await
+        .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?;
+    Ok(())
 }

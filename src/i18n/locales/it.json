@@ -2003,6 +2003,13 @@
       "reset": "Reimposta",
       "done": "Reimpostato",
       "error": "Reimpostazione non riuscita. Riprova."
+    },
+    "canvasCache": {
+      "cacheLabel": "Salva i Canvas in locale",
+      "subtitle": "Scarica il Canvas di ogni brano dal plugin per riprodurlo offline e senza rieseguire lo streaming.",
+      "usage": "{{size}} usati · {{files}} Canvas in cache",
+      "clear": "Svuota cache",
+      "clearConfirm": "Confermare?"
     }
   },
   "spotify": {

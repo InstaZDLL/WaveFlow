@@ -2003,6 +2003,13 @@
       "reset": "Zurücksetzen",
       "done": "Zurückgesetzt",
       "error": "Zurücksetzen fehlgeschlagen. Bitte erneut versuchen."
+    },
+    "canvasCache": {
+      "cacheLabel": "Canvas lokal speichern",
+      "subtitle": "Lädt das Canvas jedes Titels vom Plugin herunter, damit es offline und ohne erneutes Streaming abspielt.",
+      "usage": "{{size}} belegt · {{files}} Canvas im Cache",
+      "clear": "Cache leeren",
+      "clearConfirm": "Bestätigen?"
     }
   },
   "spotify": {

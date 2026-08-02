@@ -2003,6 +2003,13 @@
       "reset": "Repor",
       "done": "Reposto",
       "error": "Falha ao repor. Tente novamente."
+    },
+    "canvasCache": {
+      "cacheLabel": "Guardar os Canvas localmente",
+      "subtitle": "Transfere o Canvas de cada faixa a partir do plugin para reproduzir offline e sem voltar a transmitir.",
+      "usage": "{{size}} usados · {{files}} Canvas em cache",
+      "clear": "Limpar cache",
+      "clearConfirm": "Confirmar?"
     }
   },
   "spotify": {

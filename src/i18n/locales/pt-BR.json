@@ -2003,6 +2003,13 @@
       "reset": "Redefinir",
       "done": "Redefinido",
       "error": "Falha ao redefinir. Tente novamente."
+    },
+    "canvasCache": {
+      "cacheLabel": "Salvar os Canvas localmente",
+      "subtitle": "Baixa o Canvas de cada faixa pelo plugin para reproduzir offline e sem refazer o streaming.",
+      "usage": "{{size}} usados · {{files}} Canvas em cache",
+      "clear": "Limpar cache",
+      "clearConfirm": "Confirmar?"
     }
   },
   "spotify": {

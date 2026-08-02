@@ -2003,6 +2003,13 @@
       "reset": "Herstellen",
       "done": "Hersteld",
       "error": "Herstellen mislukt. Probeer het opnieuw."
+    },
+    "canvasCache": {
+      "cacheLabel": "Canvas lokaal opslaan",
+      "subtitle": "Downloadt de Canvas van elk nummer via de plug-in, zodat die offline en zonder opnieuw streamen speelt.",
+      "usage": "{{size}} gebruikt · {{files}} Canvas in cache",
+      "clear": "Cache wissen",
+      "clearConfirm": "Bevestigen?"
     }
   },
   "spotify": {

@@ -16,7 +16,7 @@ export interface PluginInfo {
   version: string;
   author: string;
   /** Manifest world label — one of `waveflow:source/v1`,
-   *  `waveflow:metadata/v1`, `waveflow:ui/v1`. */
+   *  `waveflow:metadata/v1`, `waveflow:ui/v1`, `waveflow:canvas/v1`. */
   world: string;
   /** Manifest-authored: a plain string, or a `{ lang: text }` map.
    *  Resolve with `useLocalizedText()` before rendering. */
@@ -613,4 +613,11 @@ export async function pluginUiEvent(
  *  ui-specific affordances key off this, mirroring {@link isMetadataPlugin}. */
 export function isUiPlugin(plugin: Pick<PluginInfo, "world">): boolean {
   return plugin.world.startsWith("waveflow:ui");
+}
+
+/** `true` for a canvas-world plugin (issue #473). Like {@link isMetadataPlugin}
+ *  gates the motion cache, this gates the opt-in local Canvas-cache control in
+ *  the plugin's ⚙️ options panel. */
+export function isCanvasPlugin(plugin: Pick<PluginInfo, "world">): boolean {
+  return plugin.world.startsWith("waveflow:canvas");
 }
