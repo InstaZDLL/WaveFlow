@@ -54,6 +54,11 @@ pub fn is_safe_motion_url(url: &str) -> bool {
     } else {
         host_port.split(':').next().unwrap_or(host_port)
     };
+    // Strip a trailing FQDN dot: `localhost.` / `127.0.0.1.` resolve to the
+    // same target but would otherwise slip past the `localhost` + IP-literal
+    // checks below (`"localhost."` != `"localhost"`, and `127.0.0.1.` fails to
+    // parse as an IP so it'd read as a harmless hostname).
+    let host = host.trim_end_matches('.');
     if host.is_empty() {
         return false;
     }
@@ -121,7 +126,9 @@ pub async fn cache_mp4(dir: &Path, url: &str, max_cache_bytes: u64) -> Result<Pa
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
         .redirect(reqwest::redirect::Policy::custom(|attempt| {
-            if attempt.previous().len() >= 10 {
+            // Match reqwest's default of 10 redirects: `previous()` counts the
+            // hops already taken, so allow up to 10 and reject the 11th.
+            if attempt.previous().len() > 10 {
                 attempt.error("too many redirects")
             } else if is_safe_motion_url(attempt.url().as_str()) {
                 attempt.follow()
@@ -302,6 +309,10 @@ mod tests {
         assert!(!is_safe_motion_url("https://localhost/a.mp4"));
         assert!(!is_safe_motion_url("https://127.0.0.1/a.mp4"));
         assert!(!is_safe_motion_url("https://[::1]:8443/a.mp4"));
+        // Trailing FQDN dot must not bypass the loopback checks — these
+        // resolve to the same targets as above.
+        assert!(!is_safe_motion_url("https://localhost./a.mp4"));
+        assert!(!is_safe_motion_url("https://127.0.0.1./a.mp4"));
         // private / link-local / cloud-metadata
         assert!(!is_safe_motion_url("https://10.0.0.5/a.mp4"));
         assert!(!is_safe_motion_url("https://192.168.1.1/a.mp4"));
