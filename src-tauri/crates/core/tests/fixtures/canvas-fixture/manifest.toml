@@ -1,0 +1,15 @@
+# TEST-ONLY fixture manifest for the Canvas-world integration test
+# (`crates/core/tests/plugin_canvas.rs`), staged alongside plugin.wasm.
+# The fixture resolves a Canvas as a pure function of its inputs — no
+# network — so it needs no permissions. Not shipped.
+
+schema_version = 1
+
+[plugin]
+id = "canvas-fixture"
+name = "Canvas Fixture"
+version = "0.1.0"
+author = "InstaZDLL"
+description = "Test-only Canvas-world plugin exercising track-canvas hit / miss / error. Not shipped."
+license = "GPL-3.0-only"
+world = "waveflow:canvas/v1"

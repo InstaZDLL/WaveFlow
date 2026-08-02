@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 
-import { getTrackCanvas } from "../lib/tauri/canvas";
+import { fetchTrackCanvas, getTrackCanvas } from "../lib/tauri/canvas";
 import { useProfile } from "./useProfile";
 
 /**
@@ -40,7 +40,44 @@ function generationOf(trackId: number): number {
   return generation.get(trackId) ?? 0;
 }
 
-function lookup(trackId: number): Promise<string | null> {
+/** The track fields the Canvas lookup needs: `id` keys the manual local
+ *  Canvas + all caching; the rest let the plugin fallback (issue #473)
+ *  resolve a Canvas against an external catalogue. A {@link Track} (e.g.
+ *  `currentTrack`) is structurally assignable. */
+export interface CanvasTrackInput {
+  id: number;
+  title: string;
+  artist_name: string | null;
+  album_title: string | null;
+  duration_ms: number;
+}
+
+/**
+ * Resolve a track's Canvas source. The **manual local mp4** wins; failing
+ * that, ask enabled `canvas`-world plugins for a **remote** one (issue
+ * #473). Returns either a local absolute path OR an `https` URL — the
+ * consumer's `CanvasStage` tells them apart — or `null` when neither
+ * yields a Canvas.
+ */
+async function resolveCanvasSource(
+  track: CanvasTrackInput,
+): Promise<string | null> {
+  const manual = await getTrackCanvas(track.id);
+  if (manual?.localPath) return manual.localPath;
+  // No manual clip — fall back to a plugin. It needs artist + title to
+  // resolve against an external source; skip when either is missing.
+  if (!track.artist_name || !track.title) return null;
+  const plugin = await fetchTrackCanvas(
+    track.artist_name,
+    track.title,
+    track.album_title,
+    track.duration_ms,
+  );
+  return plugin?.url ?? null;
+}
+
+function lookup(track: CanvasTrackInput): Promise<string | null> {
+  const trackId = track.id;
   if (resolved.has(trackId)) {
     return Promise.resolve(resolved.get(trackId) ?? null);
   }
@@ -49,9 +86,8 @@ function lookup(trackId: number): Promise<string | null> {
 
   const myGeneration = generationOf(trackId);
   const myProfileGen = profileGeneration;
-  const request: Promise<string | null> = getTrackCanvas(trackId)
-    .then((canvas) => {
-      const path = canvas?.localPath ?? null;
+  const request: Promise<string | null> = resolveCanvasSource(track)
+    .then((src) => {
       // Only cache when neither a per-track invalidation (set/clear) NOR a
       // profile switch has happened since the request started — either makes
       // the answer stale, and a late completion from the previous profile
@@ -60,9 +96,9 @@ function lookup(trackId: number): Promise<string | null> {
         profileGeneration === myProfileGen &&
         generationOf(trackId) === myGeneration
       ) {
-        rememberResolved(trackId, path);
+        rememberResolved(trackId, src);
       }
-      return path;
+      return src;
     })
     // A failed lookup is NOT remembered so a transient error doesn't
     // suppress the Canvas for the rest of the session.
@@ -139,12 +175,12 @@ function resetCacheForProfile(profileId: number | null): void {
  * change.
  */
 export function useTrackCanvas(
-  trackId: number | null | undefined,
+  track: CanvasTrackInput | null | undefined,
 ): string | null {
-  // Store the resolved path together with the track id AND profile it belongs
-  // to, so the render can gate on a match below — a bare path would flash the
-  // previous track's (or previous profile's) Canvas for one render after the
-  // inputs change but before the effect resolves.
+  // Store the resolved source together with the track id AND profile it
+  // belongs to, so the render can gate on a match below — a bare path would
+  // flash the previous track's (or previous profile's) Canvas for one render
+  // after the inputs change but before the effect resolves.
   const [resolved, setResolved] = useState<{
     id: number;
     profileId: number | null;
@@ -162,21 +198,46 @@ export function useTrackCanvas(
     resetCacheForProfile(profileId);
   }, [profileId]);
 
+  // Primitive deps so the effect re-runs when the track (or any field the
+  // plugin fallback keys on) changes, without churning on a fresh object
+  // identity every render.
+  const trackId = track?.id ?? null;
+  const artistName = track?.artist_name ?? null;
+  const title = track?.title ?? null;
+  const albumTitle = track?.album_title ?? null;
+  const durationMs = track?.duration_ms ?? null;
+
   useEffect(() => {
     let cancelled = false;
     const apply = (p: string | null) => {
       if (!cancelled) setResolved({ id: trackId as number, profileId, path: p });
     };
-    if (trackId != null && trackId >= 0) {
-      lookup(trackId).then(apply, () => apply(null));
+    // Skip radio / Spotify sentinels (negative ids): no library row for a
+    // manual Canvas, and no meaningful track to resolve a plugin one.
+    if (trackId != null && trackId >= 0 && title != null) {
+      lookup({
+        id: trackId,
+        title,
+        artist_name: artistName,
+        album_title: albumTitle,
+        duration_ms: durationMs ?? 0,
+      }).then(apply, () => apply(null));
     }
     return () => {
       cancelled = true;
     };
     // `currentEpoch` is a deliberate dep: a bump forces a re-resolve.
-  }, [trackId, currentEpoch, profileId]);
+  }, [
+    trackId,
+    artistName,
+    title,
+    albumTitle,
+    durationMs,
+    currentEpoch,
+    profileId,
+  ]);
 
-  // Only surface the path when it belongs to BOTH the currently-requested
+  // Only surface the source when it belongs to BOTH the currently-requested
   // track and the active profile; any mismatch (track or profile just changed,
   // effect not resolved yet) reads as null, so a previous track's/profile's
   // clip never bleeds onto the new one.

@@ -78,7 +78,7 @@ export function ImmersiveView({
   // control; the "⋯" set/remove entry shows for any eligible track.
   const canvasEnabled = useCanvasEnabled();
   const reducedMotion = usePrefersReducedMotion();
-  const canvasPath = useTrackCanvas(currentTrack?.id);
+  const canvasPath = useTrackCanvas(currentTrack);
   const [canvasPickerOpen, setCanvasPickerOpen] = useState(false);
   // Freeze the target track + its Canvas state when the picker opens, so an
   // auto-advance to the next track mid-dialog can't redirect a set/remove
@@ -96,6 +96,10 @@ export function ImmersiveView({
       ? currentTrack
       : null;
   const canvasAvailable = !!canvasPath && !reducedMotion;
+  // The picker sets/removes the MANUAL local Canvas only; a plugin-sourced
+  // Canvas (issue #473) is a remote `https` URL and must NOT read as
+  // "has a Canvas to remove". Same http(s) split as CanvasStage.
+  const hasManualCanvas = !!canvasPath && !/^https?:\/\//i.test(canvasPath);
 
   // Escape close + focus trap. Only mounted while open → pass `true`.
   const dialogRef = useModalA11y<HTMLDivElement>(true, onClose);
@@ -287,7 +291,7 @@ export function ImmersiveView({
               onClick={() => {
                 setCanvasPickerTarget({
                   trackId: canvasTrack.id,
-                  hasCanvas: !!canvasPath,
+                  hasCanvas: hasManualCanvas,
                 });
                 setCanvasPickerOpen(true);
               }}

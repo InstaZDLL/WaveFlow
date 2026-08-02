@@ -717,6 +717,7 @@ pub fn run() {
             commands::canvas::get_track_canvas,
             commands::canvas::set_track_canvas_from_file,
             commands::canvas::clear_track_canvas,
+            commands::canvas::fetch_track_canvas,
             commands::integration::get_lastfm_api_key,
             commands::integration::set_lastfm_api_key,
             commands::integration::get_bio_source,

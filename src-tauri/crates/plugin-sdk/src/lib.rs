@@ -62,13 +62,20 @@ pub mod worlds {
     /// view descriptors the host renders. See `wit/waveflow-ui.wit`.
     pub const UI_V1: &str = "waveflow:ui/v1";
 
+    /// `waveflow:canvas/v1` — per-track Canvas providers (short looping
+    /// mp4s rendered behind the now-playing view, issue #473). Resolve a
+    /// track to a directly-playable video URL. Distinct from a `metadata`
+    /// plugin's per-album `motion-cover-url`: Canvas is per-track and sits
+    /// above motion artwork in the backdrop precedence. See `wit/canvas/`.
+    pub const CANVAS_V1: &str = "waveflow:canvas/v1";
+
     /// Returns `true` if the label names a world this version of the
     /// SDK knows about. **Compares against manifest labels only**
     /// — the WIT package strings (`waveflow:source@1.0.0`) are a
     /// different namespace; see module-level doc for the mapping
     /// convention.
     pub fn is_known(world: &str) -> bool {
-        matches!(world, SOURCE_V1 | METADATA_V1 | UI_V1)
+        matches!(world, SOURCE_V1 | METADATA_V1 | UI_V1 | CANVAS_V1)
     }
 }
 
@@ -132,6 +139,7 @@ mod tests {
         assert!(worlds::is_known(worlds::SOURCE_V1));
         assert!(worlds::is_known(worlds::METADATA_V1));
         assert!(worlds::is_known(worlds::UI_V1));
+        assert!(worlds::is_known(worlds::CANVAS_V1));
         assert!(!worlds::is_known("waveflow:bogus/v1"));
     }
 

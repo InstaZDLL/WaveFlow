@@ -1,0 +1,46 @@
+// WaveFlow Canvas provider world — v1 (issue #473).
+//
+// A `canvas` plugin resolves a per-track "Canvas": a short looping
+// video the host renders behind the now-playing view (Spotify-Canvas
+// style). It is distinct from a `metadata` plugin's per-album
+// `motion-cover-url` — Canvas is keyed per TRACK and sits ABOVE motion
+// artwork in the backdrop precedence (Canvas > motion > slideshow >
+// static cover). The plugin returns a directly-playable video URL; the
+// host loads it in a native <video> (the webview has no HLS.js), so an
+// HLS source must be resolved to a progressive mp4 by the plugin first.
+//
+// The world is deliberately generic — a provider can source Canvases
+// from anywhere. The first consumer (a Spotify Canvas plugin) lives in
+// its own separate, unsigned repo, never the core.
+
+package waveflow:canvas@1.0.0;
+
+interface provider {
+  record canvas {
+    /// Directly-playable looping video URL. MUST be a progressive
+    /// file (`.mp4`) — the host renders it in a native `<video>`
+    /// with no HLS.js, so a bare HLS `.m3u8` will NOT play on all
+    /// platforms (WebView2 has no native HLS).
+    url: string,
+    /// Optional opaque source entity id (e.g. the resolved external
+    /// track id) for the plugin's own caching / diagnostics. The host
+    /// does not interpret it.
+    entity-id: option<string>,
+  }
+
+  /// Resolve a Canvas for one track. `album` and `duration-ms` help a
+  /// provider disambiguate the track against an external catalogue.
+  /// `ok(none)` = no Canvas for this track (the host falls back to
+  /// motion artwork → slideshow → the static cover); `err` = a
+  /// provider-level failure surfaced to logs, treated as "no Canvas"
+  /// by the host so playback is never affected.
+  track-canvas: func(artist: string, title: string, album: option<string>, duration-ms: option<u32>) -> result<option<canvas>, string>;
+}
+
+world plugin {
+  import waveflow:host/http@1.0.0;
+  import waveflow:host/log@1.0.0;
+  import waveflow:host/storage@1.0.0;
+  import waveflow:host/config@1.0.0;
+  export provider;
+}

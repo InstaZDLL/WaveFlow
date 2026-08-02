@@ -119,6 +119,24 @@ Names + aggregate track counts + an opaque id — **no file paths, no per-track 
 
 The first `ui`-world consumer is **Release Radar** (issue #443), published at [`InstaZDLL/waveflow-plugin-release-radar`](https://github.com/InstaZDLL/waveflow-plugin-release-radar) and listed in the registry, which — like every plugin — lives in its own repo, not the signed core. The core carries only the world surface + a test-only `ui-fixture` under [`plugins/ui-fixture/`](../../src-tauri/plugins/ui-fixture/) (never bundled, never shipped).
 
+## The Canvas world (`waveflow:canvas/v1`)
+
+A `canvas`-world plugin resolves a **per-track Canvas** — a short looping video the host renders behind the now-playing view (issue #473), Spotify-Canvas style. It is distinct from a `metadata` plugin's per-album `motion-cover-url`: Canvas is keyed per **track** and sits **above** motion artwork in the backdrop precedence (**manual Canvas > plugin Canvas > motion > slideshow > static cover**). The world is deliberately generic — a provider can source Canvases from anywhere.
+
+The exported interface `provider` is one function ([`wit/canvas/plugin.wit`](../../src-tauri/crates/plugin-sdk/wit/canvas/plugin.wit)):
+
+```wit
+track-canvas: func(artist: string, title: string, album: option<string>, duration-ms: option<u32>)
+  -> result<option<canvas>, string>;
+// canvas = { url: string, entity-id: option<string> }
+```
+
+`url` MUST be a directly-playable progressive `.mp4` (the webview `<video>` has no HLS.js, so an HLS source is resolved to an mp4 by the plugin first). `ok(none)` = no Canvas for this track; `err` = a provider failure. The host imports are the standard four (`http`/`log`/`storage`/`config`) — **no** `library` read.
+
+The host side mirrors the metadata fanout: [`bindings::canvas`](../../src-tauri/crates/core/src/plugin/bindings.rs) binds the world (reusing `source`'s host types via `with:`), [`runtime::canvas_track_canvas`](../../src-tauri/crates/core/src/plugin/runtime.rs) instantiates + calls it, and the Tauri command [`fetch_track_canvas`](../../src-tauri/crates/app/src/commands/canvas.rs) fans out to every enabled `canvas` plugin (per-plugin lock + blocking task + 20 s timeout), returning the **first safe hit** (an SSRF guard rejects a non-https / loopback URL before it reaches the webview). It is **fail-soft**: a plugin error, panic, or timeout is logged and skipped, never surfaced — so a misbehaving Canvas provider can never break playback; the frontend simply falls back down the precedence chain. Frontend: [`useTrackCanvas`](../../src/hooks/useTrackCanvas.ts) tries the manual local Canvas first, then this command, and [`CanvasStage`](../../src/components/player/CanvasStage.tsx) tells a local path from a remote URL (same `http(s)` split as `MotionCoverOverlay`).
+
+The core carries only the world surface + a test-only `canvas-fixture` under [`plugins/canvas-fixture/`](../../src-tauri/plugins/canvas-fixture/) (never bundled), exercised by [`tests/plugin_canvas.rs`](../../src-tauri/crates/core/tests/plugin_canvas.rs). The first consumer — a Spotify Canvas plugin — lives in its own separate, **unsigned** repo, never the core (the Spotify path is a grey-area of their Developer Terms, isolated exactly like the excluded YouTube path).
+
 ## Official plugins
 
 ### Web Radio (`source` world)

@@ -28,7 +28,9 @@ export function CanvasStage({
   rounded = "2xl",
   className,
 }: {
-  /** Local mp4 path from `useTrackCanvas`, or `null` when the track has none. */
+  /** Canvas source from `useTrackCanvas`: a **local** mp4 path (manual
+   *  Canvas) OR a **remote** `https` URL (a `canvas`-world plugin, issue
+   *  #473), or `null` when the track has none. */
   path: string | null;
   /** Global "Show Canvas" preference AND reduced-motion gate, resolved by the
    *  surface. When false the stage renders nothing. */
@@ -63,9 +65,10 @@ function CanvasVideo({
 
   if (failed) return null;
 
-  // The Canvas is always a local file the webview can only reach through the
-  // asset protocol.
-  const src = convertFileSrc(path);
+  // A manual Canvas is a local file the webview can only reach through the
+  // asset protocol; a plugin-sourced one (issue #473) is already a remote
+  // `https` URL the `<video>` loads directly — same split as MotionCoverOverlay.
+  const src = /^https?:\/\//i.test(path) ? path : convertFileSrc(path);
 
   return (
     <video

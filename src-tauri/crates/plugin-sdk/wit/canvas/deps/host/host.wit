@@ -1,0 +1,49 @@
+// WaveFlow host API — v1 (canvas world view).
+//
+// The `canvas` world reuses the same host imports as `source` /
+// `metadata`; the core's bindgen remaps these onto the types the
+// `source` world already generated (`with:`), so there is one set of
+// host-import traits + `host_impl` impls across every world. This file
+// only has to declare the SAME interface signatures so the world
+// resolves — it must stay byte-compatible with the shared host surface.
+
+package waveflow:host@1.0.0;
+
+interface http {
+  record request {
+    method: string,
+    url: string,
+    headers: list<tuple<string, string>>,
+    body: option<list<u8>>,
+  }
+
+  record response {
+    status: u16,
+    headers: list<tuple<string, string>>,
+    body: list<u8>,
+  }
+
+  send: func(req: request) -> result<response, string>;
+}
+
+interface log {
+  enum level {
+    trace,
+    debug,
+    info,
+    warn,
+    error,
+  }
+
+  emit: func(level: level, message: string);
+}
+
+interface storage {
+  read-asset: func(path: string) -> result<list<u8>, string>;
+  read-state: func(key: string) -> result<option<list<u8>>, string>;
+  write-state: func(key: string, value: list<u8>) -> result<_, string>;
+}
+
+interface config {
+  get-option: func(key: string) -> option<string>;
+}

@@ -154,7 +154,7 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
   // and the "Show Canvas" toggle only appears when the track has one.
   const canvasEnabled = useCanvasEnabled();
   const reducedMotion = usePrefersReducedMotion();
-  const canvasPath = useTrackCanvas(currentTrack?.id);
+  const canvasPath = useTrackCanvas(currentTrack);
   const canvasActive = canvasEnabled && !reducedMotion && !!canvasPath;
   const canvasAvailable = !!canvasPath && !reducedMotion;
 
