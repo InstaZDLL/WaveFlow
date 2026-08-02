@@ -212,6 +212,10 @@ export interface MarketplaceEntry {
   http: string[];
   storageRead: boolean;
   storageState: boolean;
+  /** `ui`-world redacted artist read (`library.read_artists`) — names +
+   *  aggregate counts + opaque ids only, no file paths. Surfaced before
+   *  install; enforced at runtime from the installed manifest. */
+  libraryReadArtists: boolean;
   tags: string[];
   /** First-party plugin maintained by the WaveFlow team. */
   official: boolean;

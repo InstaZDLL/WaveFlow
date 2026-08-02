@@ -71,6 +71,12 @@ struct RegistryPermissions {
     storage_read: bool,
     #[serde(default)]
     storage_state: bool,
+    /// `ui`-world redacted artist read (`library.read_artists`). Optional
+    /// so pre-ui registry entries decode unchanged; an older app build
+    /// simply ignores the field (no `deny_unknown_fields`), so publishing
+    /// it can't break any client.
+    #[serde(default)]
+    library_read_artists: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -138,6 +144,10 @@ pub struct MarketplaceEntry {
     pub http: Vec<String>,
     pub storage_read: bool,
     pub storage_state: bool,
+    /// `ui`-world redacted artist read — surfaced before install so the
+    /// user sees the plugin will read their artist list (names + counts
+    /// + opaque ids only, enforced at runtime from the manifest).
+    pub library_read_artists: bool,
     pub tags: Vec<String>,
     pub official: bool,
     /// Present on disk (sideloaded/installed) already.
@@ -411,6 +421,7 @@ pub async fn list_plugin_marketplace(
                     http: e.permissions.http,
                     storage_read: e.permissions.storage_read,
                     storage_state: e.permissions.storage_state,
+                    library_read_artists: e.permissions.library_read_artists,
                     tags: e.tags,
                     official: e.official,
                 }
