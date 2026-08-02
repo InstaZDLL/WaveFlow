@@ -444,22 +444,31 @@ pub enum SourceError {
     Plugin(String),
 }
 
-fn instantiate_source(
-    runtime: &PluginRuntime,
-    paths: &PluginPaths,
-    plugin_id: &str,
-) -> Result<(Store<HostCtx>, crate::plugin::bindings::source::Plugin), SourceError> {
-    let loaded = runtime.load_plugin(paths, plugin_id)?;
-    let linker = runtime.build_linker()?;
-    let mut store = runtime.new_store_for_plugin(&loaded, paths)?;
-    let plugin = crate::plugin::bindings::source::Plugin::instantiate(
-        &mut store,
-        &loaded.component,
-        &linker,
-    )
-    .map_err(|e| SourceError::Instantiate(e.to_string()))?;
-    Ok((store, plugin))
+/// Generate `fn <name>(runtime, paths, plugin_id) -> Result<(Store, <Plugin>),
+/// SourceError>` that loads a plugin, builds the shared linker + a fresh
+/// store, and instantiates the given world's generated `Plugin`. Every world
+/// that needs no per-call store state instantiates identically — only the
+/// `Plugin` type differs — so `source` / `metadata` / `canvas` share this.
+/// The `ui` world is deliberately NOT generated here: it injects a redacted
+/// library snapshot via `new_store_for_plugin_with_library_artists`.
+macro_rules! define_instantiate {
+    ($name:ident, $plugin:ty) => {
+        fn $name(
+            runtime: &PluginRuntime,
+            paths: &PluginPaths,
+            plugin_id: &str,
+        ) -> Result<(Store<HostCtx>, $plugin), SourceError> {
+            let loaded = runtime.load_plugin(paths, plugin_id)?;
+            let linker = runtime.build_linker()?;
+            let mut store = runtime.new_store_for_plugin(&loaded, paths)?;
+            let plugin = <$plugin>::instantiate(&mut store, &loaded.component, &linker)
+                .map_err(|e| SourceError::Instantiate(e.to_string()))?;
+            Ok((store, plugin))
+        }
+    };
 }
+
+define_instantiate!(instantiate_source, crate::plugin::bindings::source::Plugin);
 
 /// Call the guest's `list-entries`.
 pub fn source_list_entries(
@@ -550,22 +559,7 @@ pub struct AlbumInfo {
     pub motion_cover_tall_url: Option<String>,
 }
 
-fn instantiate_metadata(
-    runtime: &PluginRuntime,
-    paths: &PluginPaths,
-    plugin_id: &str,
-) -> Result<(Store<HostCtx>, crate::plugin::bindings::metadata::Plugin), SourceError> {
-    let loaded = runtime.load_plugin(paths, plugin_id)?;
-    let linker = runtime.build_linker()?;
-    let mut store = runtime.new_store_for_plugin(&loaded, paths)?;
-    let plugin = crate::plugin::bindings::metadata::Plugin::instantiate(
-        &mut store,
-        &loaded.component,
-        &linker,
-    )
-    .map_err(|e| SourceError::Instantiate(e.to_string()))?;
-    Ok((store, plugin))
-}
+define_instantiate!(instantiate_metadata, crate::plugin::bindings::metadata::Plugin);
 
 /// Call the guest's `album-info(artist, title)`.
 pub fn metadata_album_info(
@@ -708,6 +702,55 @@ pub fn ui_event(
         .call_on_event(&mut store, event, payload)
         .map_err(|e| UiError::Trap(e.to_string()))?
         .map_err(UiError::Plugin)
+}
+
+// ----- canvas-v1 invocation helpers ---------------------------------------
+//
+// Instantiates + calls the `waveflow:canvas/provider` export. A canvas
+// plugin resolves a per-track looping video URL (issue #473). Reuses
+// [`SourceError`]'s Instantiate / Trap / Plugin split — world-agnostic,
+// same as the metadata helpers. No library snapshot (canvas providers
+// import only http/log/storage/config), so it uses the plain
+// `new_store_for_plugin`.
+
+/// Owned mirror of `waveflow:canvas/provider/canvas` — a resolved
+/// per-track Canvas.
+#[derive(Debug, Clone)]
+pub struct ProviderCanvas {
+    /// Directly-playable looping mp4 URL.
+    pub url: String,
+    /// Opaque source entity id (e.g. the resolved external track id),
+    /// if the plugin supplied one. The host does not interpret it.
+    pub entity_id: Option<String>,
+}
+
+define_instantiate!(instantiate_canvas, crate::plugin::bindings::canvas::Plugin);
+
+/// Call the guest's `track-canvas(artist, title, album?, duration-ms?)`.
+/// `Ok(None)` = the plugin has no Canvas for this track (the host then
+/// falls back to motion artwork → slideshow → the static cover).
+pub fn canvas_track_canvas(
+    runtime: &PluginRuntime,
+    paths: &PluginPaths,
+    plugin_id: &str,
+    artist: &str,
+    title: &str,
+    album: Option<&str>,
+    duration_ms: Option<u32>,
+) -> Result<Option<ProviderCanvas>, SourceError> {
+    let (mut store, plugin) = instantiate_canvas(runtime, paths, plugin_id)?;
+    let result = plugin
+        .waveflow_canvas_provider()
+        .call_track_canvas(&mut store, artist, title, album, duration_ms)
+        .map_err(|e| SourceError::Trap(e.to_string()))?;
+    match result {
+        Ok(Some(c)) => Ok(Some(ProviderCanvas {
+            url: c.url,
+            entity_id: c.entity_id,
+        })),
+        Ok(None) => Ok(None),
+        Err(msg) => Err(SourceError::Plugin(msg)),
+    }
 }
 
 // ----- wasmtime_wasi WasiView wiring --------------------------------------

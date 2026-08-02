@@ -74,7 +74,7 @@ export function ImmersiveNowPlaying({
   // takes precedence over the plugin motion cover (Canvas > motion > cover).
   const canvasEnabled = useCanvasEnabled();
   const reducedMotion = usePrefersReducedMotion();
-  const canvasPath = useTrackCanvas(currentTrack?.id);
+  const canvasPath = useTrackCanvas(currentTrack);
   const canvasActive = canvasEnabled && !reducedMotion && !!canvasPath;
 
   // Cover ↔ artist slideshow (issue #466) — the ambient fallback backdrop,

@@ -95,3 +95,27 @@ pub mod ui {
         },
     });
 }
+
+/// `waveflow:canvas/plugin@1.0.0` — the world per-track Canvas
+/// providers export (issue #473; the first consumer is a separate,
+/// unsigned Spotify Canvas plugin). Exported interface `provider` with
+/// a single `track-canvas` func returning a directly-playable video URL.
+///
+/// Like [`metadata`], `with:` remaps the four shared `waveflow:host/*`
+/// imports onto the types [`source`] already generated — no new host
+/// import (Canvas providers need only http/log/storage/config), so no
+/// fresh `Host for HostCtx` impls or linker registration. Only the
+/// world's EXPORT surface (`provider`) is generated here.
+pub mod canvas {
+    wasmtime::component::bindgen!({
+        world: "waveflow:canvas/plugin",
+        path: "../plugin-sdk/wit/canvas",
+        imports: { default: trappable },
+        with: {
+            "waveflow:host/http": crate::plugin::bindings::source::waveflow::host::http,
+            "waveflow:host/log": crate::plugin::bindings::source::waveflow::host::log,
+            "waveflow:host/storage": crate::plugin::bindings::source::waveflow::host::storage,
+            "waveflow:host/config": crate::plugin::bindings::source::waveflow::host::config,
+        },
+    });
+}
