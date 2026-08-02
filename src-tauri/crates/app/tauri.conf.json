@@ -47,7 +47,9 @@
           "$APPDATA/waveflow/metadata_artwork/**",
           "$APPLOCALDATA/waveflow/metadata_artwork/**",
           "$APPDATA/waveflow/motion_cache/**",
-          "$APPLOCALDATA/waveflow/motion_cache/**"
+          "$APPLOCALDATA/waveflow/motion_cache/**",
+          "$APPDATA/waveflow/canvas_cache/**",
+          "$APPLOCALDATA/waveflow/canvas_cache/**"
         ]
       }
     }

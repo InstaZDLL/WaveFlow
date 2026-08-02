@@ -40,6 +40,10 @@ pub struct AppPaths {
     /// App-wide, opt-in LRU cache of downloaded animated-album-artwork
     /// (`.mp4`) files — shared across profiles like `metadata_artwork`.
     pub motion_cache_dir: PathBuf,
+    /// App-wide, opt-in LRU cache of downloaded per-track Canvas (`.mp4`)
+    /// files (issue #473) — same shape as `motion_cache_dir`, separate dir
+    /// so the two caches size/evict/clear independently.
+    pub canvas_cache_dir: PathBuf,
     pub profiles_dir: PathBuf,
     pub bundled_plugins_dir: Option<PathBuf>,
 }
@@ -88,6 +92,7 @@ impl AppPaths {
             avatars_dir: root.join("avatars"),
             metadata_artwork_dir: root.join("metadata_artwork"),
             motion_cache_dir: root.join("motion_cache"),
+            canvas_cache_dir: root.join("canvas_cache"),
             profiles_dir: root.join("profiles"),
             bundled_plugins_dir,
             root,
@@ -106,6 +111,7 @@ impl AppPaths {
         std::fs::create_dir_all(&self.avatars_dir)?;
         std::fs::create_dir_all(&self.metadata_artwork_dir)?;
         std::fs::create_dir_all(&self.motion_cache_dir)?;
+        std::fs::create_dir_all(&self.canvas_cache_dir)?;
         std::fs::create_dir_all(&self.profiles_dir)?;
         let plugin_paths = self.plugin_paths();
         std::fs::create_dir_all(&plugin_paths.plugins_root)?;

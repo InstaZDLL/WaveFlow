@@ -614,3 +614,10 @@ export async function pluginUiEvent(
 export function isUiPlugin(plugin: Pick<PluginInfo, "world">): boolean {
   return plugin.world.startsWith("waveflow:ui");
 }
+
+/** `true` for a canvas-world plugin (issue #473). Like {@link isMetadataPlugin}
+ *  gates the motion cache, this gates the opt-in local Canvas-cache control in
+ *  the plugin's ⚙️ options panel. */
+export function isCanvasPlugin(plugin: Pick<PluginInfo, "world">): boolean {
+  return plugin.world.startsWith("waveflow:canvas");
+}

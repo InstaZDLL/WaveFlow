@@ -16,6 +16,7 @@ import {
   setPluginEnabled,
   uninstallPlugin,
   isMetadataPlugin,
+  isCanvasPlugin,
   type PluginInfo,
 } from "../../../lib/tauri/plugins";
 import { PLUGIN_AVAILABILITY_EVENT } from "../../../hooks/usePluginAvailability";
@@ -210,7 +211,9 @@ export function PluginsCard() {
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <div className="flex items-center gap-2">
-                      {(plugin.hasOptions || isMetadataPlugin(plugin)) && (
+                      {(plugin.hasOptions ||
+                        isMetadataPlugin(plugin) ||
+                        isCanvasPlugin(plugin)) && (
                         <button
                           type="button"
                           onClick={() =>

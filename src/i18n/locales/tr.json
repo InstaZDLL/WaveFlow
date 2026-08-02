@@ -2003,6 +2003,13 @@
       "reset": "Sıfırla",
       "done": "Sıfırlandı",
       "error": "Sıfırlama başarısız. Lütfen tekrar deneyin."
+    },
+    "canvasCache": {
+      "cacheLabel": "Canvas videolarını yerel olarak kaydet",
+      "subtitle": "Her parçanın Canvas'ını eklentiden indirir; çevrimdışı ve yeniden akış olmadan oynatılır.",
+      "usage": "{{size}} kullanıldı · {{files}} Canvas önbellekte",
+      "clear": "Önbelleği temizle",
+      "clearConfirm": "Onaylıyor musunuz?"
     }
   },
   "spotify": {

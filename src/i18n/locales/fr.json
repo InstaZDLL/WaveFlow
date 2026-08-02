@@ -2003,6 +2003,13 @@
       "reset": "Réinitialiser",
       "done": "Réinitialisé",
       "error": "La réinitialisation a échoué. Réessayez."
+    },
+    "canvasCache": {
+      "cacheLabel": "Enregistrer les Canvas en local",
+      "subtitle": "Télécharge le Canvas de chaque piste depuis le plugin pour une lecture hors ligne, sans re-streaming.",
+      "usage": "{{size}} utilisés · {{files}} Canvas en cache",
+      "clear": "Vider le cache",
+      "clearConfirm": "Confirmer ?"
     }
   },
   "spotify": {

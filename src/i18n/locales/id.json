@@ -2003,6 +2003,13 @@
       "reset": "Atur ulang",
       "done": "Diatur ulang",
       "error": "Gagal mengatur ulang. Silakan coba lagi."
+    },
+    "canvasCache": {
+      "cacheLabel": "Simpan Canvas secara lokal",
+      "subtitle": "Mengunduh Canvas tiap lagu dari plugin agar bisa diputar offline tanpa streaming ulang.",
+      "usage": "{{size}} terpakai · {{files}} Canvas di cache",
+      "clear": "Bersihkan cache",
+      "clearConfirm": "Konfirmasi?"
     }
   },
   "spotify": {
