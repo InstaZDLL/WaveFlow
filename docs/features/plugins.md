@@ -117,7 +117,7 @@ list-artists: func(limit: u32) -> result<list<artist>, string>;
 
 Names + aggregate track counts + an opaque id — **no file paths, no per-track rows, no raw DB access**. It's permission-gated (`library.read_artists` in the manifest, surfaced as its own permission chip), doubly clamped (the host loads ≤ [`MAX_LIBRARY_ARTISTS`](../../src-tauri/crates/core/src/plugin/host_impl.rs) and re-caps the guest's `limit`), and **snapshot-injected**: the host queries the active profile on the async side and hands the guest a ready list, so the guest never touches SQLite. Because it reads local state only, it works offline. A plugin without the permission gets `Err("permission denied: library.read_artists")` even if the snapshot is present — the redaction is enforced host-side, not left to guest good behaviour (proven both ways in [`tests/plugin_ui.rs`](../../src-tauri/crates/core/tests/plugin_ui.rs) against the `ui-fixture` component).
 
-The first `ui`-world consumer is **Release Radar** (issue #443), which — like every plugin — lives in its own repo, not the signed core. The core carries only the world surface + a test-only `ui-fixture` under [`plugins/ui-fixture/`](../../src-tauri/plugins/ui-fixture/) (never bundled, never shipped).
+The first `ui`-world consumer is **Release Radar** (issue #443), published at [`InstaZDLL/waveflow-plugin-release-radar`](https://github.com/InstaZDLL/waveflow-plugin-release-radar) and listed in the registry, which — like every plugin — lives in its own repo, not the signed core. The core carries only the world surface + a test-only `ui-fixture` under [`plugins/ui-fixture/`](../../src-tauri/plugins/ui-fixture/) (never bundled, never shipped).
 
 ## Official plugins
 
@@ -130,6 +130,10 @@ The plugin queries radio-browser live and can't host SQLite, so the **offline ca
 ### Apple Motion Artwork (`metadata` world)
 
 Animated album covers (motion artwork) from Apple Music, rendered behind the now-playing view. It resolves an album to a directly-playable looping **mp4** URL (the desktop webview has no HLS.js), caching each result — a positive hit **and** a confirmed-miss sentinel — in its 10 MB scratch store, so **once an album has resolved to a hit or a confirmed miss it never hits Apple again**. Transient failures (network errors) are deliberately **not** cached, so a blip never permanently marks an album as "no motion" — that album is simply retried on the next lookup.
+
+### Release Radar (`ui` world)
+
+A discovery view of recent releases from the artists in your library — the first `ui`-world plugin. It reads the redacted artist list (`library.read_artists`), searches [MusicBrainz](https://musicbrainz.org) for each artist's release-groups from the last ~6 months, and renders them as a native view descriptor with [Cover Art Archive](https://coverartarchive.org) covers and outbound MusicBrainz links — **no playback, no YouTube**. The scan is **incremental**: a bounded batch of artists per click, requests spaced to respect MusicBrainz's ≤ 1 req/s guidance and backing off cleanly on a `503`/`429` (never hammering a rate-limit response), with results + a resume cursor cached in its scratch store so re-opening the view is instant. Listed in the registry at [`InstaZDLL/waveflow-plugin-release-radar`](https://github.com/InstaZDLL/waveflow-plugin-release-radar); needs WaveFlow 1.8.0+ (the `ui` world).
 
 ## Motion artwork pipeline
 
