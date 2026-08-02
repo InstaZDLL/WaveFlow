@@ -114,8 +114,21 @@ pub async fn cache_mp4(dir: &Path, url: &str, max_cache_bytes: u64) -> Result<Pa
         return Ok(path);
     }
 
+    // Follow redirects, but re-validate EVERY hop against the SSRF guard: the
+    // caller only checked the initial `url`, and reqwest's default policy would
+    // otherwise chase a 3xx to an internal / loopback / non-https target and
+    // slip a request past that check.
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            if attempt.previous().len() >= 10 {
+                attempt.error("too many redirects")
+            } else if is_safe_motion_url(attempt.url().as_str()) {
+                attempt.follow()
+            } else {
+                attempt.error("unsafe redirect target")
+            }
+        }))
         .build()
         .map_err(|e| format!("http client: {e}"))?;
     let mut resp = client

@@ -16,7 +16,7 @@ export interface PluginInfo {
   version: string;
   author: string;
   /** Manifest world label — one of `waveflow:source/v1`,
-   *  `waveflow:metadata/v1`, `waveflow:ui/v1`. */
+   *  `waveflow:metadata/v1`, `waveflow:ui/v1`, `waveflow:canvas/v1`. */
   world: string;
   /** Manifest-authored: a plain string, or a `{ lang: text }` map.
    *  Resolve with `useLocalizedText()` before rendering. */
