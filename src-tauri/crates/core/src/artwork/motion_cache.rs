@@ -150,6 +150,35 @@ impl std::fmt::Display for CacheError {
 
 impl std::error::Error for CacheError {}
 
+/// Decision for a single redirect hop, split out of the [`cache_mp4`] redirect
+/// policy so the hop budget + per-hop SSRF re-validation are unit-testable
+/// without a live server. (A local mock server can't exercise this path: every
+/// hop to `127.0.0.1` is refused as [`RedirectDecision::Unsafe`] by the SSRF
+/// guard before the count ever matters, and the initial request to it is
+/// rejected up front — so the limit is only reachable as pure logic.)
+#[derive(Debug, PartialEq, Eq)]
+enum RedirectDecision {
+    /// Safe target within the hop budget — follow it.
+    Follow,
+    /// Hop budget exhausted (matches reqwest's default of 10). Abort.
+    TooMany,
+    /// Target failed [`is_safe_motion_url`]. Abort.
+    Unsafe,
+}
+
+/// `previous_hops` counts redirects already followed. Allow up to 10 and reject
+/// the 11th (reqwest's default), and re-validate each hop's target — the hop
+/// limit is checked first so an over-long chain fails closed regardless.
+fn redirect_decision(previous_hops: usize, url: &str) -> RedirectDecision {
+    if previous_hops > 10 {
+        RedirectDecision::TooMany
+    } else if is_safe_motion_url(url) {
+        RedirectDecision::Follow
+    } else {
+        RedirectDecision::Unsafe
+    }
+}
+
 /// Return the local path of `url`'s cached mp4, downloading it first if absent.
 /// Hash-addressed by the (stable, per-album) source URL. On a hit the mtime is
 /// bumped for access-LRU; on a miss the body is streamed under [`MAX_MP4_BYTES`],
@@ -186,14 +215,10 @@ pub async fn cache_mp4(dir: &Path, url: &str, max_cache_bytes: u64) -> Result<Pa
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
         .redirect(reqwest::redirect::Policy::custom(|attempt| {
-            // Match reqwest's default of 10 redirects: `previous()` counts the
-            // hops already taken, so allow up to 10 and reject the 11th.
-            if attempt.previous().len() > 10 {
-                attempt.error("too many redirects")
-            } else if is_safe_motion_url(attempt.url().as_str()) {
-                attempt.follow()
-            } else {
-                attempt.error("unsafe redirect target")
+            match redirect_decision(attempt.previous().len(), attempt.url().as_str()) {
+                RedirectDecision::Follow => attempt.follow(),
+                RedirectDecision::TooMany => attempt.error("too many redirects"),
+                RedirectDecision::Unsafe => attempt.error("unsafe redirect target"),
             }
         }))
         .build()
@@ -430,6 +455,33 @@ mod tests {
         assert!(
             leftovers.is_empty(),
             "guard must reject before any file is created; found {leftovers:?}"
+        );
+    }
+
+    #[test]
+    fn redirect_decision_allows_ten_hops_then_rejects() {
+        let safe = "https://cdn.example.com/a.mp4";
+        // Up to 10 previously-followed hops with a safe target: keep following.
+        for hops in 0..=10 {
+            assert_eq!(
+                redirect_decision(hops, safe),
+                RedirectDecision::Follow,
+                "hop {hops} within budget must follow"
+            );
+        }
+        // The 11th redirect (and beyond) is refused regardless of target.
+        assert_eq!(redirect_decision(11, safe), RedirectDecision::TooMany);
+        assert_eq!(redirect_decision(50, safe), RedirectDecision::TooMany);
+        // A safe hop count but an internal target is refused as unsafe...
+        assert_eq!(
+            redirect_decision(0, "https://127.0.0.1/a.mp4"),
+            RedirectDecision::Unsafe
+        );
+        // ...and the hop limit takes precedence over the SSRF check (both
+        // fail closed, but an over-long chain reports `TooMany`).
+        assert_eq!(
+            redirect_decision(11, "https://127.0.0.1/a.mp4"),
+            RedirectDecision::TooMany
         );
     }
 
