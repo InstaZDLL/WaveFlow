@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Heart, Star, Radio } from "lucide-react";
 import { Artwork } from "../common/Artwork";
@@ -10,7 +11,10 @@ import { PlaybackControls } from "./PlaybackControls";
 import { ProgressBar } from "./ProgressBar";
 import { VolumeControl } from "./VolumeControl";
 import { SpectrumVisualizer } from "./SpectrumVisualizer";
+import { VisualizerColorButton } from "./VisualizerColorButton";
 import { usePlayer } from "../../hooks/usePlayer";
+import { useVisualizerColor } from "../../hooks/useVisualizerColor";
+import { getVisualizerEnabled } from "../../lib/tauri/visualizer";
 import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
 import { usePlayerTrackContextMenu } from "../../hooks/usePlayerTrackContextMenu";
 import { useTrackCanvas } from "../../hooks/useTrackCanvas";
@@ -68,6 +72,25 @@ export function ImmersiveNowPlaying({
   const stationFavorited =
     currentRadioStation != null &&
     radioFavorites.isFavorite(currentRadioStation.id);
+
+  // Spectrum-visualizer colour (issue #468). The cycle button only shows when
+  // the visualizer itself is enabled (a per-profile backend toggle read once
+  // on mount — the immersive view remounts each time it's opened). The chosen
+  // colour feeds the visualizer's fill; `rainbow` tints per bar.
+  const { colorId, color: visualizerColor, rainbow, cycle } =
+    useVisualizerColor();
+  const [visualizerOn, setVisualizerOn] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    getVisualizerEnabled()
+      .then((on) => {
+        if (!cancelled) setVisualizerOn(on);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Per-track Canvas (issue #442) — a looping clip replaces the static cover
   // when one is set, the global toggle is on, and motion isn't reduced. It
@@ -226,13 +249,18 @@ export function ImmersiveNowPlaying({
               nothing when the backend toggle is off, so it's safe to
               always mount. `glow` = white bars suited to the dim
               backdrop. */}
-          <SpectrumVisualizer className="w-full h-16 mb-2 opacity-80" glow />
+          <SpectrumVisualizer
+            className="w-full h-16 mb-2 opacity-80"
+            color={visualizerColor}
+            rainbow={rainbow}
+            glow
+          />
           <ProgressBar />
           <div className="flex items-center justify-between gap-6 mt-2">
             {/* Left cluster — like / station favorite. Lives down here
                 (not in the hero) so the visualizer canvas above never
                 sits underneath an interactive control. */}
-            <div className="flex-1 min-w-0 flex justify-start">
+            <div className="flex-1 min-w-0 flex justify-start items-center gap-1">
               {currentRadioStation ? (
                 <button
                   type="button"
@@ -275,6 +303,16 @@ export function ImmersiveNowPlaying({
                   <Heart size={20} className={isLiked ? "fill-current" : ""} />
                 </button>
               ) : null}
+              {/* Visualizer colour cycle (issue #468) — only when the
+                  visualizer is on, so it isn't a dead control otherwise. */}
+              {visualizerOn && (
+                <VisualizerColorButton
+                  colorId={colorId}
+                  color={visualizerColor}
+                  rainbow={rainbow}
+                  onCycle={() => void cycle()}
+                />
+              )}
             </div>
             <PlaybackControls />
             <div className="flex-1 min-w-0 flex justify-end">

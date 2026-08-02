@@ -1537,7 +1537,16 @@
     },
     "visualizer": {
       "title": "Visualizador de áudio",
-      "subtitle": "Mostra um espetro em tempo real na vista imersiva (FFT leve na thread de descodificação)"
+      "subtitle": "Mostra um espetro em tempo real na vista imersiva (FFT leve na thread de descodificação)",
+      "cycleColor": "Cor do visualizador: {{color}}",
+      "colors": {
+        "white": "Branco",
+        "emerald": "Esmeralda",
+        "orange": "Laranja",
+        "aqua": "Ciano",
+        "magenta": "Magenta",
+        "rainbow": "Arco-íris"
+      }
     },
     "duplicates": {
       "title": "Detetar duplicados",

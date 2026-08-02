@@ -1537,7 +1537,16 @@
     },
     "visualizer": {
       "title": "오디오 비주얼라이저",
-      "subtitle": "몰입 모드에서 실시간 스펙트럼을 표시합니다 (디코더 스레드의 경량 FFT)"
+      "subtitle": "몰입 모드에서 실시간 스펙트럼을 표시합니다 (디코더 스레드의 경량 FFT)",
+      "cycleColor": "비주얼라이저 색상: {{color}}",
+      "colors": {
+        "white": "화이트",
+        "emerald": "에메랄드",
+        "orange": "오렌지",
+        "aqua": "아쿠아",
+        "magenta": "마젠타",
+        "rainbow": "무지개"
+      }
     },
     "duplicates": {
       "title": "중복 파일 감지",
