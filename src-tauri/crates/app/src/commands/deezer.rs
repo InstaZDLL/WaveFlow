@@ -565,10 +565,11 @@ async fn enrich_artist_deezer_inner(
         None => (None, None),
     };
     // The hero paints the fanart full-bleed behind the header, so it's
-    // the one image we deliberately keep at full resolution — no `_1x` /
-    // `_2x` tier, downscaling it would only soften the crop.
+    // the one image we deliberately keep at full resolution — hence the
+    // `_full_res` variant, which skips the `_1x` / `_2x` thumbnail job:
+    // downscaling would only soften the crop, and nothing reads the tiers.
     let background_hash = match background_url.as_deref() {
-        Some(url) => metadata_artwork::download_and_cache(url, &artwork_dir).await,
+        Some(url) => metadata_artwork::download_and_cache_full_res(url, &artwork_dir).await,
         None => None,
     };
     let background_path = background_hash

@@ -20,6 +20,17 @@
  * fades out through a mask instead of a hard-coded colour stop, so the
  * hero dissolves into whatever the current theme/skin paints behind it.
  */
+/**
+ * Escape a URL for interpolation inside a double-quoted CSS `url("…")`.
+ * Unlike the local artwork paths other backdrops paint, a hero source can
+ * be a **remote URL straight out of TheAudioDB** — third-party data that
+ * must not be able to close the string and inject CSS. Inside a quoted
+ * string only the backslash, the closing quote and raw newlines matter.
+ */
+function cssUrl(src: string): string {
+  return src.replace(/[\\"]/g, "\\$&").replace(/[\n\r\f]/g, "");
+}
+
 interface ArtistHeroBackdropProps {
   /** Resolved image URL (asset:// or remote). `null` renders nothing. */
   src: string | null;
@@ -57,7 +68,7 @@ export function ArtistHeroBackdrop({ src, isFanart }: ArtistHeroBackdropProps) {
         key={src}
         className="absolute inset-0 bg-center bg-cover"
         style={{
-          backgroundImage: `url("${src}")`,
+          backgroundImage: `url("${cssUrl(src)}")`,
           filter: isFanart
             ? "blur(2px) saturate(115%)"
             : "blur(56px) saturate(190%)",

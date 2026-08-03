@@ -98,7 +98,10 @@ export function ArtistDetailView({
   // `pictureSrc` because the two tiers are treated very differently: a
   // fanart is shown nearly crisp, the square photo heavily blurred.
   const [fanartSrc, setFanartSrc] = useState<string | null>(null);
-  const { enabled: heroEnabled } = useArtistHero();
+  // `heroResolved` gates the first paint: the preference defaults to ON
+  // and is read asynchronously, so rendering before it lands would flash
+  // a hero at users who turned it off.
+  const { enabled: heroEnabled, resolved: heroResolved } = useArtistHero();
   const [fansCount, setFansCount] = useState<number | null>(null);
   const [bioShort, setBioShort] = useState<string | null>(null);
   const [bioFull, setBioFull] = useState<string | null>(null);
@@ -294,7 +297,8 @@ export function ArtistDetailView({
 
   // Hero backdrop precedence (issue #482): real wide fanart → blurred
   // square photo → nothing at all (today's flat header).
-  const heroSrc = heroEnabled ? (fanartSrc ?? pictureSrc) : null;
+  const heroSrc =
+    heroResolved && heroEnabled ? (fanartSrc ?? pictureSrc) : null;
   // Header copy is forced white over the hero's dark scrim, in every
   // theme — matching Spotify, whose artist header is always dark-on-image.
   const secondaryButtonClass = heroSrc

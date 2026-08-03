@@ -94,7 +94,7 @@ It sits one rung below the motion cover in the backdrop precedence — **Canvas 
 
 [`ArtistHeroBackdrop`](../../src/components/common/ArtistHeroBackdrop.tsx) paints a **full-bleed backdrop behind the artist detail header** (issue #482), the Spotify artist-banner look — replacing the flat surface that only carried a circular avatar + name. Mounted by [`ArtistDetailView`](../../src/components/views/ArtistDetailView.tsx), which wraps its header in a `-mx-8 -mt-8` block to break out of `<main>`'s `p-8` so the image reaches the column edges (and shrinks with the column when a right panel opens).
 
-**Two tiers, in precedence order:**
+**Two image tiers plus a no-image case, in precedence order:**
 
 1. **Real wide fanart** — `strArtistFanart` (or its alternates / `strArtistWideThumb` / `strArtistBanner`) from TheAudioDB, downloaded into the shared `metadata_artwork/` cache. Shown nearly crisp: `blur(2px)` only, enough to keep JPEG artefacts from crawling under the header copy. See [the backend pipeline](library.md#wide-artist-fanart-hero).
 2. **The square artist photo** — Deezer picture or a local `artist.jpg`, heavily blurred + upscaled (`blur(56px) saturate(190%)`, `scale(1.35)`), the same colour-field treatment [`SkinAmbientBackdrop`](../../src/components/layout/SkinAmbientBackdrop.tsx) uses. Always available and **works offline**, which is why it's the universal fallback — a 1:1 image stretched across a banner would be unreadable unblurred.
