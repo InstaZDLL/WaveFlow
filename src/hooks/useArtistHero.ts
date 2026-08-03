@@ -22,8 +22,9 @@ export interface ArtistHero {
   enabled: boolean;
   /** `false` until the stored preference has been read **for the
    *  currently active profile** — a switch drops back to unresolved
-   *  until the new read lands, so the previous profile's value never
-   *  paints. Consumers that would otherwise show the ON default for a
+   *  until the new read lands, and the value is reset to the default
+   *  meanwhile, so the previous profile's preference never paints even
+   *  if that read fails. Consumers that would otherwise show the ON default for a
    *  frame (the hero itself) gate on this; the Settings card doesn't
    *  need to, its checkbox simply settles. */
   resolved: boolean;
@@ -62,6 +63,22 @@ export function useArtistHero(): ArtistHero {
   const activeProfileId = activeProfile?.id ?? null;
   useEffect(() => {
     let cancelled = false;
+    // Drop the outgoing profile's value before reading the new one, so a
+    // read that *fails* lands on the default instead of silently keeping
+    // a preference belonging to another profile. Deliberately out of
+    // `refresh`, which also serves ARTIST_HERO_EVENT — resetting there
+    // would flash the default on every same-profile broadcast, and a
+    // failed same-profile refresh is better off keeping what it had.
+    // `readProfileId` needs no reset: `resolved` is derived from the id
+    // comparison, so it already reads false the moment the id changes.
+    // The lint rule guards against effects that derive state from props;
+    // this one clears state that belongs to a profile we just left, which
+    // has no derived form — `enabled` must stay writable for the
+    // optimistic toggle.
+    enabledRef.current = DEFAULT_ENABLED;
+    confirmedEnabledRef.current = DEFAULT_ENABLED;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEnabledState(DEFAULT_ENABLED);
     const refresh = async () => {
       try {
         const raw = await getProfileSetting(KEY);
