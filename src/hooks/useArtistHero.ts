@@ -20,8 +20,10 @@ function parseEnabled(raw: string | null): boolean {
 
 export interface ArtistHero {
   enabled: boolean;
-  /** `false` until the stored preference has been read for the active
-   *  profile. Consumers that would otherwise paint the ON default for a
+  /** `false` until the stored preference has been read **for the
+   *  currently active profile** — a switch drops back to unresolved
+   *  until the new read lands, so the previous profile's value never
+   *  paints. Consumers that would otherwise show the ON default for a
    *  frame (the hero itself) gate on this; the Settings card doesn't
    *  need to, its checkbox simply settles. */
   resolved: boolean;
@@ -39,7 +41,12 @@ export interface ArtistHero {
 export function useArtistHero(): ArtistHero {
   const { activeProfile } = useProfile();
   const [enabled, setEnabledState] = useState<boolean>(DEFAULT_ENABLED);
-  const [resolved, setResolved] = useState(false);
+  // Profile whose read has completed, rather than a bare "did we read
+  // once" flag: `undefined` means never, and any other value is only
+  // authoritative for that profile.
+  const [readProfileId, setReadProfileId] = useState<number | null | undefined>(
+    undefined,
+  );
   const enabledRef = useRef(enabled);
   const confirmedEnabledRef = useRef(enabled);
   const writeChainRef = useRef<Promise<void>>(Promise.resolve());
@@ -52,6 +59,7 @@ export function useArtistHero(): ArtistHero {
     activeProfileIdRef.current = activeProfile?.id ?? null;
   }, [activeProfile?.id]);
 
+  const activeProfileId = activeProfile?.id ?? null;
   useEffect(() => {
     let cancelled = false;
     const refresh = async () => {
@@ -65,9 +73,9 @@ export function useArtistHero(): ArtistHero {
       } catch (err) {
         console.error("[useArtistHero] read failed", err);
       } finally {
-        // Resolved either way: a failed read leaves the default in place,
-        // and never flipping this would hide the hero forever.
-        if (!cancelled) setResolved(true);
+        // Stamped either way: a failed read leaves the default in place,
+        // and never stamping would hide the hero forever.
+        if (!cancelled) setReadProfileId(activeProfileId);
       }
     };
     void refresh();
@@ -76,7 +84,7 @@ export function useArtistHero(): ArtistHero {
       cancelled = true;
       window.removeEventListener(ARTIST_HERO_EVENT, refresh);
     };
-  }, [activeProfile?.id]);
+  }, [activeProfileId]);
 
   const setEnabled = useCallback(async (next: boolean) => {
     const seq = ++writeSeqRef.current;
@@ -104,6 +112,12 @@ export function useArtistHero(): ArtistHero {
       setEnabledState(rollback);
     }
   }, []);
+
+  // Derived, not stored: a profile switch re-renders with a new
+  // `activeProfileId` and the stamp no longer matches, so `resolved`
+  // goes false again for free — without a set-state-in-effect dance.
+  const resolved =
+    readProfileId !== undefined && readProfileId === activeProfileId;
 
   return { enabled, resolved, setEnabled };
 }
