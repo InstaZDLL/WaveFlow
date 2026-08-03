@@ -1,0 +1,99 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { getProfileSetting, setProfileSetting } from "../lib/tauri/profile";
+import { useProfile } from "./useProfile";
+
+const KEY = "ui.artist_hero";
+
+/** Broadcast after a successful write so every mounted consumer (the
+ *  Settings card + the artist page) re-reads in one go. */
+export const ARTIST_HERO_EVENT = "waveflow:artist-hero";
+
+/** Default ON — the hero is the baseline look of the artist page (a
+ *  static backdrop, not extra motion), so it ships enabled and the
+ *  toggle is there for users who prefer the flat header. */
+const DEFAULT_ENABLED = true;
+
+function parseEnabled(raw: string | null): boolean {
+  if (raw == null) return DEFAULT_ENABLED;
+  return raw === "true" || raw === "1";
+}
+
+export interface ArtistHero {
+  enabled: boolean;
+  setEnabled: (next: boolean) => Promise<void>;
+}
+
+/**
+ * Per-profile preference: paint a full-bleed hero backdrop behind the
+ * artist detail header (issue #482) — the wide TheAudioDB fanart when the
+ * artist has one, a blurred version of the square photo otherwise. Default
+ * ON. The write machinery mirrors [`useCoverSlideshow`](./useCoverSlideshow.ts)
+ * — serialized writes, profile-switch guards, and rollback to the last
+ * backend-confirmed value.
+ */
+export function useArtistHero(): ArtistHero {
+  const { activeProfile } = useProfile();
+  const [enabled, setEnabledState] = useState<boolean>(DEFAULT_ENABLED);
+  const enabledRef = useRef(enabled);
+  const confirmedEnabledRef = useRef(enabled);
+  const writeChainRef = useRef<Promise<void>>(Promise.resolve());
+  const writeSeqRef = useRef(0);
+  const activeProfileIdRef = useRef<number | null>(activeProfile?.id ?? null);
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
+  useEffect(() => {
+    activeProfileIdRef.current = activeProfile?.id ?? null;
+  }, [activeProfile?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const raw = await getProfileSetting(KEY);
+        if (cancelled) return;
+        const parsed = parseEnabled(raw);
+        enabledRef.current = parsed;
+        confirmedEnabledRef.current = parsed;
+        setEnabledState(parsed);
+      } catch (err) {
+        console.error("[useArtistHero] read failed", err);
+      }
+    };
+    void refresh();
+    window.addEventListener(ARTIST_HERO_EVENT, refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(ARTIST_HERO_EVENT, refresh);
+    };
+  }, [activeProfile?.id]);
+
+  const setEnabled = useCallback(async (next: boolean) => {
+    const seq = ++writeSeqRef.current;
+    const profileId = activeProfileIdRef.current;
+    enabledRef.current = next;
+    setEnabledState(next);
+    const write = writeChainRef.current.then(async () => {
+      if (activeProfileIdRef.current !== profileId) return;
+      await setProfileSetting(KEY, next ? "true" : "false", "bool");
+      if (activeProfileIdRef.current !== profileId) return;
+      confirmedEnabledRef.current = next;
+    });
+    writeChainRef.current = write.catch(() => undefined);
+    try {
+      await write;
+      if (activeProfileIdRef.current !== profileId) return;
+      if (seq !== writeSeqRef.current) return;
+      window.dispatchEvent(new CustomEvent(ARTIST_HERO_EVENT));
+    } catch (err) {
+      console.error("[useArtistHero] write failed", err);
+      if (activeProfileIdRef.current !== profileId) return;
+      if (seq !== writeSeqRef.current) return;
+      const rollback = confirmedEnabledRef.current;
+      enabledRef.current = rollback;
+      setEnabledState(rollback);
+    }
+  }, []);
+
+  return { enabled, setEnabled };
+}

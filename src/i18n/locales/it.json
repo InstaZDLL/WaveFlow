@@ -1979,6 +1979,10 @@
       "title": "Slideshow copertina / artista",
       "subtitle": "Alterna in dissolvenza la copertina dell'album e la foto dell'artista dietro la riproduzione (vista immersiva + pannello In riproduzione)."
     },
+    "artistHero": {
+      "title": "Banner artista",
+      "subtitle": "Mostra un'immagine panoramica dietro l'intestazione della pagina dell'artista (fanart di TheAudioDB, altrimenti la foto sfocata)."
+    },
     "pluginStore": {
       "title": "Store dei plugin",
       "subtitle": "Sfoglia e installa plugin isolati dal registro di WaveFlow.",

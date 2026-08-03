@@ -1979,6 +1979,10 @@
       "title": "封面 / 藝人幻燈片",
       "subtitle": "在播放時於背景將專輯封面與藝人相片柔和地交叉淡入淡出（沉浸檢視 + 正在播放面板）。"
     },
+    "artistHero": {
+      "title": "歌手橫幅",
+      "subtitle": "在歌手頁面標題後方顯示寬幅背景圖（TheAudioDB 同人圖，若無則使用模糊照片）。"
+    },
     "pluginStore": {
       "title": "外掛商店",
       "subtitle": "從 WaveFlow 登錄檔瀏覽並安裝沙箱化外掛。",

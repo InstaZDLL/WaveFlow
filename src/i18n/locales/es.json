@@ -1979,6 +1979,10 @@
       "title": "Pase de portada / artista",
       "subtitle": "Alterna con un fundido la portada del álbum y la foto del artista detrás de la reproducción (vista inmersiva + panel Reproduciendo)."
     },
+    "artistHero": {
+      "title": "Banner de artista",
+      "subtitle": "Muestra una imagen panorámica detrás de la cabecera de la página del artista (fanart de TheAudioDB o, en su defecto, la foto desenfocada)."
+    },
     "pluginStore": {
       "title": "Tienda de plugins",
       "subtitle": "Explora e instala plugins aislados desde el registro de WaveFlow.",

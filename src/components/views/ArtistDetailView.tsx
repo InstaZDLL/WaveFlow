@@ -11,6 +11,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { Artwork } from "../common/Artwork";
+import { ArtistHeroBackdrop } from "../common/ArtistHeroBackdrop";
 import { EmptyState } from "../common/EmptyState";
 import { DetailViewSkeleton } from "../common/DetailViewSkeleton";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
@@ -24,6 +25,7 @@ import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useArtistBioCollapsed } from "../../hooks/useArtistBioCollapsed";
+import { useArtistHero } from "../../hooks/useArtistHero";
 import {
   getArtistDetail,
   enrichArtistDeezer,
@@ -92,6 +94,11 @@ export function ArtistDetailView({
   // component never has to know whether the source is a remote CDN
   // URL or an `asset://` path.
   const [pictureSrc, setPictureSrc] = useState<string | null>(null);
+  // Wide TheAudioDB fanart backing the hero (issue #482). Separate from
+  // `pictureSrc` because the two tiers are treated very differently: a
+  // fanart is shown nearly crisp, the square photo heavily blurred.
+  const [fanartSrc, setFanartSrc] = useState<string | null>(null);
+  const { enabled: heroEnabled } = useArtistHero();
   const [fansCount, setFansCount] = useState<number | null>(null);
   const [bioShort, setBioShort] = useState<string | null>(null);
   const [bioFull, setBioFull] = useState<string | null>(null);
@@ -121,6 +128,7 @@ export function ArtistDetailView({
     (async () => {
       setIsLoading(true);
       setPictureSrc(null);
+      setFanartSrc(null);
       setFansCount(null);
       setBioShort(null);
       setBioFull(null);
@@ -144,6 +152,11 @@ export function ArtistDetailView({
           "full",
         );
         if (seeded) setPictureSrc(seeded);
+        // Served straight from the metadata cache, so the hero paints on
+        // the first frame when the artist was enriched before.
+        setFanartSrc(
+          resolveRemoteImage(detail.background_path, detail.background_url),
+        );
         if (detail.fans_count != null) setFansCount(detail.fans_count);
         if (detail.bio_short) setBioShort(detail.bio_short);
         if (detail.bio_full) setBioFull(detail.bio_full);
@@ -216,6 +229,10 @@ export function ArtistDetailView({
           "full",
         );
         if (resolved && !hasLocalArtistImage) setPictureSrc(resolved);
+        const fanart = resolveRemoteImage(e.background_path, e.background_url);
+        // Only ever *set* — a refresh that comes back empty (offline,
+        // TheAudioDB down) must not blank a hero the cache already gave us.
+        if (fanart) setFanartSrc(fanart);
         if (e.fans_count != null) setFansCount(e.fans_count);
         if (e.bio_short) setBioShort(e.bio_short);
         if (e.bio_full) setBioFull(e.bio_full);
@@ -275,102 +292,140 @@ export function ArtistDetailView({
           : `${fansCount} fans`
       : null;
 
+  // Hero backdrop precedence (issue #482): real wide fanart → blurred
+  // square photo → nothing at all (today's flat header).
+  const heroSrc = heroEnabled ? (fanartSrc ?? pictureSrc) : null;
+  // Header copy is forced white over the hero's dark scrim, in every
+  // theme — matching Spotify, whose artist header is always dark-on-image.
+  const secondaryButtonClass = heroSrc
+    ? "border border-white/25 bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm"
+    : "border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300";
+
   return (
     <div className="space-y-8 animate-fade-in pb-20">
-      {/* Header */}
-      <div className="flex items-center space-x-8">
-        {/* Artist photo + edit overlay (visible on hover/focus) */}
-        <div className="relative shrink-0 group">
-          {pictureSrc ? (
-            /* Keyboard-accessible lightbox trigger; omitted when no artist photo */
-            <button
-              type="button"
-              onClick={() => setIsLightboxOpen(true)}
-              aria-label={t("common.viewArtwork")}
-              className="cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full"
-            >
-              <img
-                src={pictureSrc}
-                alt={artist.name}
-                className="w-48 h-48 rounded-full object-cover shadow-lg"
-              />
-            </button>
-          ) : (
-            <div className="w-48 h-48 rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 flex items-center justify-center shadow-lg">
-              <span className="text-7xl font-bold text-violet-500/70 dark:text-violet-400/60">
-                {artist.name.trim().charAt(0).toUpperCase() || "?"}
-              </span>
-            </div>
-          )}
-          {/* The wrapper is pointer-events-none so the lightbox button
+      {/* Header — wrapped in a full-bleed hero when the artist has an
+          image and the preference is on (issue #482). The negative
+          margins break out of `<main>`'s `p-8` so the backdrop reaches
+          the column edges; the padding puts the inset back for the
+          content itself. */}
+      <div
+        className={
+          heroSrc ? "relative -mx-8 -mt-8 px-8 pt-12 pb-10 overflow-hidden" : ""
+        }
+      >
+        {heroSrc && (
+          <ArtistHeroBackdrop src={heroSrc} isFanart={fanartSrc != null} />
+        )}
+        {/* `relative` keeps the header above the absolutely-positioned
+            backdrop without inventing a z-index. */}
+        <div className="relative flex items-center space-x-8">
+          {/* Artist photo + edit overlay (visible on hover/focus) */}
+          <div className="relative shrink-0 group">
+            {pictureSrc ? (
+              /* Keyboard-accessible lightbox trigger; omitted when no artist photo */
+              <button
+                type="button"
+                onClick={() => setIsLightboxOpen(true)}
+                aria-label={t("common.viewArtwork")}
+                className="cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full"
+              >
+                <img
+                  src={pictureSrc}
+                  alt={artist.name}
+                  className="w-48 h-48 rounded-full object-cover shadow-lg"
+                />
+              </button>
+            ) : (
+              <div className="w-48 h-48 rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 flex items-center justify-center shadow-lg">
+                <span className="text-7xl font-bold text-violet-500/70 dark:text-violet-400/60">
+                  {artist.name.trim().charAt(0).toUpperCase() || "?"}
+                </span>
+              </div>
+            )}
+            {/* The wrapper is pointer-events-none so the lightbox button
               keeps receiving clicks everywhere; the inner pencil button
               re-enables pointer events for its small hit area. */}
-          <div className="absolute right-2 bottom-2 pointer-events-none">
-            <button
-              type="button"
-              onClick={() => setIsImagePickerOpen(true)}
-              aria-label={t("artistImagePicker.editAria")}
-              title={t("artistImagePicker.title")}
-              className="pointer-events-auto w-10 h-10 rounded-full bg-zinc-900/80 hover:bg-zinc-900 text-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-opacity"
-            >
-              <Pencil size={16} />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex-1 min-w-0 pt-2">
-          <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
-            {t("artistDetail.badge")}
-          </div>
-          <h1 className="text-4xl font-bold mb-3 text-zinc-900 dark:text-white truncate">
-            {artist.name}
-          </h1>
-
-          {/* Stats */}
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500 mb-4">
-            <span>
-              {t("artistDetail.trackCount", { count: artist.track_count })}
-            </span>
-            <span>·</span>
-            <span>
-              {t("artistDetail.albumCount", { count: artist.album_count })}
-            </span>
-            {fansLabel && (
-              <>
-                <span>·</span>
-                <span>{fansLabel}</span>
-              </>
-            )}
+            <div className="absolute right-2 bottom-2 pointer-events-none">
+              <button
+                type="button"
+                onClick={() => setIsImagePickerOpen(true)}
+                aria-label={t("artistImagePicker.editAria")}
+                title={t("artistImagePicker.title")}
+                className="pointer-events-auto w-10 h-10 rounded-full bg-zinc-900/80 hover:bg-zinc-900 text-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-opacity"
+              >
+                <Pencil size={16} />
+              </button>
+            </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center space-x-3">
-            <button
-              type="button"
-              onClick={handlePlayAll}
-              disabled={tracks.length === 0}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50"
+          <div className="flex-1 min-w-0 pt-2">
+            <div
+              className={`text-[10px] font-bold tracking-widest uppercase mb-1 ${
+                heroSrc ? "text-white/70" : "text-zinc-400"
+              }`}
             >
-              <Play size={16} className="fill-current" />
-              <span>{t("artistDetail.playAll")}</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleShufflePlay}
-              disabled={tracks.length === 0}
-              className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50"
+              {t("artistDetail.badge")}
+            </div>
+            <h1
+              className={`text-4xl font-bold mb-3 truncate ${
+                heroSrc
+                  ? "text-white [text-shadow:0_2px_12px_rgb(0_0_0/0.55)]"
+                  : "text-zinc-900 dark:text-white"
+              }`}
             >
-              <Shuffle size={16} />
-              <span>{t("artistDetail.shuffle")}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsMetadataEditorOpen(true)}
-              className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm"
+              {artist.name}
+            </h1>
+
+            {/* Stats */}
+            <div
+              className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-sm mb-4 ${
+                heroSrc ? "text-white/85" : "text-zinc-500"
+              }`}
             >
-              <Pencil size={16} />
-              <span>{t("artistDetail.editMetadata")}</span>
-            </button>
+              <span>
+                {t("artistDetail.trackCount", { count: artist.track_count })}
+              </span>
+              <span>·</span>
+              <span>
+                {t("artistDetail.albumCount", { count: artist.album_count })}
+              </span>
+              {fansLabel && (
+                <>
+                  <span>·</span>
+                  <span>{fansLabel}</span>
+                </>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center space-x-3">
+              <button
+                type="button"
+                onClick={handlePlayAll}
+                disabled={tracks.length === 0}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50"
+              >
+                <Play size={16} className="fill-current" />
+                <span>{t("artistDetail.playAll")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleShufflePlay}
+                disabled={tracks.length === 0}
+                className={`${secondaryButtonClass} px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50`}
+              >
+                <Shuffle size={16} />
+                <span>{t("artistDetail.shuffle")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsMetadataEditorOpen(true)}
+                className={`${secondaryButtonClass} px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm`}
+              >
+                <Pencil size={16} />
+                <span>{t("artistDetail.editMetadata")}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

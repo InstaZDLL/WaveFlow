@@ -1979,6 +1979,10 @@
       "title": "封面 / 艺人幻灯片",
       "subtitle": "在播放时于背景将专辑封面与艺人照片柔和地交叉淡入淡出（沉浸视图 + 正在播放面板）。"
     },
+    "artistHero": {
+      "title": "艺人横幅",
+      "subtitle": "在艺人页面标题后显示宽幅背景图（TheAudioDB 同人图，没有时使用模糊照片）。"
+    },
     "pluginStore": {
       "title": "插件商店",
       "subtitle": "从 WaveFlow 注册表浏览并安装沙盒化插件。",

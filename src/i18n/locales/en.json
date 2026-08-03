@@ -1979,6 +1979,10 @@
       "title": "Cover / artist slideshow",
       "subtitle": "Gently crossfades the album cover with the artist photo behind playback (immersive view + Now Playing panel)."
     },
+    "artistHero": {
+      "title": "Artist banner",
+      "subtitle": "Shows a wide image behind the artist page header (TheAudioDB fanart, otherwise the blurred photo)."
+    },
     "pluginStore": {
       "title": "Plugin store",
       "subtitle": "Browse and install sandboxed plugins from the WaveFlow registry.",

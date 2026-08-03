@@ -1979,6 +1979,10 @@
       "title": "Apresentação capa / artista",
       "subtitle": "Alterna com um fade a capa do álbum com a foto do artista atrás da reprodução (visão imersiva + painel Tocando agora)."
     },
+    "artistHero": {
+      "title": "Banner do artista",
+      "subtitle": "Mostra uma imagem panorâmica atrás do cabeçalho da página do artista (fanart do TheAudioDB ou, na falta dele, a foto desfocada)."
+    },
     "pluginStore": {
       "title": "Loja de plugins",
       "subtitle": "Explore e instale plugins isolados a partir do registro do WaveFlow.",

@@ -263,6 +263,13 @@ pub struct DeezerArtistEnrichment {
     pub bio_short: Option<String>,
     /// Full biography from Last.fm. HTML stripped.
     pub bio_full: Option<String>,
+    /// Remote TheAudioDB URL of the wide artist fanart (issue #482) —
+    /// fallback when the local download failed.
+    pub background_url: Option<String>,
+    /// Absolute filesystem path to the locally-cached fanart. Feeds the
+    /// artist hero; `None` means the artist has no wide image and the
+    /// frontend falls back to blurring the square photo.
+    pub background_path: Option<String>,
 }
 
 impl DeezerArtistEnrichment {
@@ -276,6 +283,8 @@ impl DeezerArtistEnrichment {
             fans_count: None,
             bio_short: None,
             bio_full: None,
+            background_url: None,
+            background_path: None,
         }
     }
 }
@@ -367,10 +376,14 @@ async fn enrich_artist_deezer_inner(
             Option<String>,
             Option<String>,
             Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<i64>,
             i64,
         )> = sqlx::query_as(
             "SELECT picture_url, picture_hash, fans_count, bio_short, bio_full,
-                    bio_source, bio_language, expires_at
+                    bio_source, bio_language,
+                    background_url, background_hash, background_fetched_at, expires_at
                FROM app.metadata_artist WHERE deezer_id = ?",
         )
         .bind(did)
@@ -385,6 +398,9 @@ async fn enrich_artist_deezer_inner(
             bio_full,
             cached_bio_source,
             cached_bio_language,
+            background_url,
+            background_hash,
+            background_fetched_at,
             expires_at,
         )) = cached
         {
@@ -394,7 +410,13 @@ async fn enrich_artist_deezer_inner(
             let bio_fresh = BioSource::parse(cached_bio_source.as_deref()) == active_source
                 && (active_source != BioSource::TheAudioDb
                     || cached_bio_language.as_deref() == Some(active_lang.as_str()));
-            if expires_at > now && bio_fresh {
+            // A row written before issue #482 never looked for fanart —
+            // `background_fetched_at IS NULL` is the marker, and a NULL
+            // hash alone can't say it apart from "looked, found nothing".
+            // Falling through backfills it once, then this stays true
+            // for the rest of the row's TTL.
+            let background_fresh = background_fetched_at.is_some();
+            if expires_at > now && bio_fresh && background_fresh {
                 // A row cached before #406 may hold a Deezer placeholder
                 // URL (and a grey-blob hash). Drop both so we surface the
                 // initial-letter avatar instead of the grey box; the row's
@@ -416,6 +438,9 @@ async fn enrich_artist_deezer_inner(
                     Some(h) => crate::thumbnails::thumbnail_paths_for(&artwork_dir, h),
                     None => (None, None),
                 };
+                let background_path = background_hash
+                    .as_deref()
+                    .and_then(|h| metadata_artwork::existing_path(&artwork_dir, h));
                 return Ok(DeezerArtistEnrichment {
                     deezer_id: Some(did),
                     picture_url,
@@ -425,6 +450,8 @@ async fn enrich_artist_deezer_inner(
                     fans_count,
                     bio_short,
                     bio_full,
+                    background_url,
+                    background_path,
                 });
             }
         }
@@ -473,7 +500,30 @@ async fn enrich_artist_deezer_inner(
         return Ok(DeezerArtistEnrichment::empty());
     };
 
-    // 4. Fetch the bio from the selected source (issue #295). Network
+    // 4. TheAudioDB lookup — one call, two consumers. The wide fanart
+    //    backing the artist hero (issue #482) is fetched whatever the
+    //    selected bio source is: Last.fm has no equivalent image, so
+    //    gating this on `bio_source` would leave every Last.fm user
+    //    with no hero at all. The bio half of the same response is only
+    //    used when TheAudioDB IS the selected source — one request
+    //    instead of two, which matters on their rate-limited free key.
+    let audiodb_result = TheAudioDbClient::new()
+        .artist_info(&artist_name, &active_lang)
+        .await;
+    // A *reached* API — match or not — is what licenses stamping
+    // `background_fetched_at` below. A transport error leaves it NULL so
+    // the next visit retries instead of caching a network blip as "this
+    // artist has no fanart" for the whole 30-day TTL.
+    let audiodb_reached = audiodb_result.is_ok();
+    let audiodb = match audiodb_result {
+        Ok(info) => info,
+        Err(err) => {
+            tracing::warn!(?err, "TheAudioDB artist_info failed");
+            None
+        }
+    };
+
+    // 5. Fetch the bio from the selected source (issue #295). Network
     //    failures and missing matches are non-fatal — we still persist
     //    the Deezer portion so the next refresh doesn't spam the
     //    network. The source/language we used is stored alongside so a
@@ -493,22 +543,16 @@ async fn enrich_artist_deezer_inner(
             }
             None => (None, None),
         },
-        BioSource::TheAudioDb => {
-            let client = TheAudioDbClient::new();
-            match client.artist_bio(&artist_name, &active_lang).await {
-                Ok(Some(info)) => (info.bio_short, info.bio_full),
-                Ok(None) => (None, None),
-                Err(err) => {
-                    tracing::warn!(?err, "TheAudioDB artist_bio failed");
-                    (None, None)
-                }
-            }
-        }
+        BioSource::TheAudioDb => match audiodb.as_ref() {
+            Some(info) => (info.bio_short.clone(), info.bio_full.clone()),
+            None => (None, None),
+        },
     };
 
     let picture_url = hit.best_picture();
+    let background_url = audiodb.and_then(|info| info.fanart_url);
 
-    // 5. Download artwork into the shared cache (best-effort).
+    // 6. Download artwork into the shared cache (best-effort).
     let picture_hash = match picture_url.as_deref() {
         Some(url) => metadata_artwork::download_and_cache(url, &artwork_dir).await,
         None => None,
@@ -520,8 +564,18 @@ async fn enrich_artist_deezer_inner(
         Some(h) => crate::thumbnails::thumbnail_paths_for(&artwork_dir, h),
         None => (None, None),
     };
+    // The hero paints the fanart full-bleed behind the header, so it's
+    // the one image we deliberately keep at full resolution — no `_1x` /
+    // `_2x` tier, downscaling it would only soften the crop.
+    let background_hash = match background_url.as_deref() {
+        Some(url) => metadata_artwork::download_and_cache(url, &artwork_dir).await,
+        None => None,
+    };
+    let background_path = background_hash
+        .as_deref()
+        .and_then(|h| metadata_artwork::existing_path(&artwork_dir, h));
 
-    // 6. Upsert into the metadata cache (Deezer + bio fields land in the
+    // 7. Upsert into the metadata cache (Deezer + bio fields land in the
     //    unified `metadata_artist` table in app.db so every profile
     //    shares the same cache). `bio_source` / `bio_language` record
     //    which provider produced the bio so a later switch invalidates
@@ -533,8 +587,9 @@ async fn enrich_artist_deezer_inner(
     sqlx::query(
         "INSERT INTO app.metadata_artist
             (deezer_id, name, picture_url, picture_hash, fans_count, bio_short, bio_full,
-             bio_source, bio_language, fetched_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             bio_source, bio_language, background_url, background_hash, background_fetched_at,
+             fetched_at, expires_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(deezer_id) DO UPDATE SET
            name = excluded.name,
            picture_url = excluded.picture_url,
@@ -544,6 +599,9 @@ async fn enrich_artist_deezer_inner(
            bio_full = excluded.bio_full,
            bio_source = excluded.bio_source,
            bio_language = excluded.bio_language,
+           background_url = excluded.background_url,
+           background_hash = excluded.background_hash,
+           background_fetched_at = excluded.background_fetched_at,
            fetched_at = excluded.fetched_at,
            expires_at = excluded.expires_at",
     )
@@ -556,12 +614,18 @@ async fn enrich_artist_deezer_inner(
     .bind(bio_full.as_deref())
     .bind(active_source.as_str())
     .bind(stored_lang)
+    .bind(background_url.as_deref())
+    .bind(background_hash.as_deref())
+    // Stamped even when the lookup came back empty — that's the whole
+    // point of the column: "we asked, TheAudioDB has nothing". Left NULL
+    // when the API couldn't be reached at all, so that retries.
+    .bind(audiodb_reached.then_some(now))
     .bind(now)
     .bind(expires)
     .execute(&pool)
     .await?;
 
-    // 7. Link deezer_id on the local artist.
+    // 8. Link deezer_id on the local artist.
     if existing_deezer_id.is_none() {
         sqlx::query("UPDATE artist SET deezer_id = ? WHERE id = ?")
             .bind(hit.id)
@@ -579,6 +643,8 @@ async fn enrich_artist_deezer_inner(
         fans_count: hit.nb_fan,
         bio_short,
         bio_full,
+        background_url,
+        background_path,
     })
 }
 

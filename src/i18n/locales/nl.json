@@ -1979,6 +1979,10 @@
       "title": "Diavoorstelling hoes / artiest",
       "subtitle": "Wisselt met een overvloeier tussen de albumhoes en de artiestenfoto in de meeslepende weergave en het paneel «Speelt nu»."
     },
+    "artistHero": {
+      "title": "Artiestbanner",
+      "subtitle": "Toont een brede achtergrondafbeelding achter de kop van de artiestpagina (TheAudioDB-fanart, anders de vervaagde foto)."
+    },
     "pluginStore": {
       "title": "Plug-in-winkel",
       "subtitle": "Blader en installeer plug-ins in een sandbox uit het WaveFlow-register.",

@@ -1979,6 +1979,10 @@
       "title": "Diaporama pochette / artiste",
       "subtitle": "Fait alterner en fondu la pochette et la photo de l'artiste derrière la lecture (vue immersive + panneau Lecture en cours)."
     },
+    "artistHero": {
+      "title": "Bannière d'artiste",
+      "subtitle": "Affiche une image large en fond de l'en-tête de la page artiste (fanart TheAudioDB, sinon la photo floutée)."
+    },
     "pluginStore": {
       "title": "Magasin de plugins",
       "subtitle": "Parcourez et installez des plugins sandboxés depuis le registre WaveFlow.",

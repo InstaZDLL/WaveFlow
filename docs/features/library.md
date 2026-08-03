@@ -130,3 +130,15 @@ The pencil overlay on the artist photo in [`ArtistDetailView`](../../src/compone
 - **Remove image** → `clear_artist_artwork` sets `artist.artwork_id = NULL` so the next render falls back through the resolution chain (Deezer cache → live fetch).
 
 Both `set_artist_artwork_from_*` overwrite `artwork_id` unconditionally — an explicit user pick beats any automatic resolution.
+
+### Wide artist fanart (hero)
+
+Everything above carries the **square** artist photo. The [artist hero](ui.md#artist-hero) needs a **wide** one, and the only source in the stack that has one is TheAudioDB (issue #482).
+
+[`metadata::theaudiodb`](../../src-tauri/crates/core/src/metadata/theaudiodb.rs) already queried `search.php` for multi-language bios; the same response carries `strArtistFanart` (+ `2/3/4`), `strArtistWideThumb` and `strArtistBanner`. `TheAudioDbClient::artist_info` now returns bio **and** `fanart_url` from one lookup, picking the first non-blank image widest-and-cleanest first (fanart → alternates → wide thumb → logo banner last, since baked-in text can clash with the header copy). It returns `Some` for any name match even with neither bio nor fanart, so the caller can cache the "looked, nothing there" outcome.
+
+[`enrich_artist_deezer`](../../src-tauri/crates/app/src/commands/deezer.rs) calls it **independently of the `metadata.bio_source` setting**: Last.fm has no equivalent image, so gating the fanart on the bio source would leave every Last.fm user with no hero at all. One request serves both consumers (the bio half is used only when TheAudioDB *is* the selected source) — TheAudioDB's shared free key is rate-limited, so it's one call, cached hard. The URL is downloaded through the usual `metadata_artwork::download_and_cache` (BLAKE3-addressed, shared across profiles) and kept at **full resolution** — no `_1x` / `_2x` tier, downscaling a full-bleed banner would only soften it. Offline mode short-circuits before any of this, and the blurred-photo tier still works.
+
+Cached in `app.metadata_artist` next to the picture pair: `background_url` + `background_hash`, plus **`background_fetched_at`** — the "we already looked" marker (migration `20260802120000_metadata_artist_background.sql`). Without it a NULL hash can't be told apart from "never queried", so every artist without fanart would re-hit a rate-limited API on each page visit. It is stamped whenever the API was *reached* (match or not) and left NULL on a transport error, so a network blip retries instead of caching as "this artist has no fanart" for the row's whole 30-day TTL. Rows written before the migration have NULL there and are treated as a background cache miss on their next refresh, which backfills them once.
+
+Both `get_artist_detail` (first paint, straight from the cache) and `enrich_artist_deezer` (refresh) return `background_url` / `background_path`.

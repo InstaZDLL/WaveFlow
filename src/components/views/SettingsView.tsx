@@ -159,6 +159,7 @@ import { SkinPickerCard } from "./settings/SkinPickerCard";
 import { FullscreenLyricsCenteringCard } from "./settings/FullscreenLyricsCenteringCard";
 import { ImmersiveViewCard } from "./settings/ImmersiveViewCard";
 import { CoverSlideshowCard } from "./settings/CoverSlideshowCard";
+import { ArtistHeroCard } from "./settings/ArtistHeroCard";
 import { ScrollTitlesCard } from "./settings/ScrollTitlesCard";
 import { WindowBoundsCard } from "./settings/WindowBoundsCard";
 import { LyricsDestinationCard } from "./settings/LyricsDestinationCard";
@@ -3133,6 +3134,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           <ImmersiveViewCard />
 
           <CoverSlideshowCard />
+
+          <ArtistHeroCard />
 
           <ScrollTitlesCard />
 

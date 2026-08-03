@@ -198,6 +198,18 @@
   }
 }
 
+/* Artist hero backdrop cross-fade (issue #482) — opacity only, so a
+   fanart swapping in over the blurred-photo fallback dissolves instead
+   of popping. Skipped entirely under `prefers-reduced-motion`. */
+@keyframes artistHeroFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @utility animate-breathing {
   animation: breathing 4.5s ease-in-out infinite;
 }
