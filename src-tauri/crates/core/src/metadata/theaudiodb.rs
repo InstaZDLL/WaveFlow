@@ -89,9 +89,20 @@ struct ArtistPayload {
 }
 
 impl ArtistPayload {
-    /// Pick the biography for `lang`, falling back to English when the
-    /// requested language is missing or blank. `lang` is a short code
-    /// (`"fr"`, `"de"`, … `"zh"`); anything unmapped resolves to English.
+    /// Selects the biography for a supported language and falls back to English when the selected biography is unavailable or blank.
+    ///
+    /// Supported language codes are `fr`, `de`, `es`, `it`, `pt`, `nl`, `ru`, `ja`, and `zh`; other codes select English.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let payload = ArtistPayload {
+    ///     bio_en: Some("English biography".into()),
+    ///     ..Default::default()
+    /// };
+    ///
+    /// assert_eq!(payload.bio_for_lang("fr"), Some("English biography".into()));
+    /// ```
     fn bio_for_lang(&self, lang: &str) -> Option<String> {
         let primary = match lang {
             "fr" => &self.bio_fr,
@@ -108,9 +119,24 @@ impl ArtistPayload {
         non_blank(primary).or_else(|| non_blank(&self.bio_en))
     }
 
-    /// First non-blank wide image, widest-and-cleanest first: real
-    /// fanart, then its community alternates, then the wide thumb, and
-    /// the logo banner only as a last resort.
+    /// Selects the first available wide artist image in priority order.
+    ///
+    /// Blank image URLs are skipped. Fanart fields take precedence over the wide thumbnail,
+    /// which takes precedence over the banner.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let payload = ArtistPayload {
+    ///     fanart: Some("https://example.com/fanart.jpg".into()),
+    ///     ..Default::default()
+    /// };
+    ///
+    /// assert_eq!(
+    ///     payload.fanart_url(),
+    ///     Some("https://example.com/fanart.jpg".into())
+    /// );
+    /// ```
     fn fanart_url(&self) -> Option<String> {
         non_blank(&self.fanart)
             .or_else(|| non_blank(&self.fanart2))
@@ -146,6 +172,13 @@ impl Default for TheAudioDbClient {
 }
 
 impl TheAudioDbClient {
+    /// Creates a client for communicating with TheAudioDB.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let _client = TheAudioDbClient::new();
+    /// ```
     pub fn new() -> Self {
         let http = reqwest::Client::builder()
             .user_agent(USER_AGENT)
@@ -155,12 +188,27 @@ impl TheAudioDbClient {
         Self { http }
     }
 
-    /// Look up an artist by name, returning its bio in `lang` (English
-    /// fallback) and its wide fanart URL. Returns `Ok(None)` only when
-    /// nothing matches the name — a match with neither bio nor fanart
-    /// still comes back as `Some` with both fields empty, so the caller
-    /// can cache the "looked it up, nothing there" outcome instead of
-    /// re-querying a rate-limited API on every visit.
+    /// Looks up an artist by name and returns localized biography and fanart information.
+    ///
+    /// The biography uses the requested language with an English fallback. A matching
+    /// artist is returned even when no biography or fanart is available; `None` means
+    /// that no artist matched the requested name.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// async fn lookup_artist(
+    ///     client: &TheAudioDbClient,
+    /// ) -> reqwest::Result<()> {
+    ///     let artist = client.artist_info("Daft Punk", "en").await?;
+    ///
+    ///     if let Some(artist) = artist {
+    ///         println!("{}", artist.name);
+    ///     }
+    ///
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn artist_info(
         &self,
         name: &str,

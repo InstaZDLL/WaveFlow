@@ -1262,7 +1262,17 @@ struct ArtistAlbumRawRow {
     artwork_format: Option<String>,
 }
 
-/// Return full artist detail: header, discography, and track count.
+/// Loads an artist's metadata, artwork, available-track counts, and albums.
+///
+/// # Examples
+///
+/// ```no_run
+/// let detail = get_artist_detail(state, artist_id).await?;
+/// assert_eq!(detail.id, artist_id);
+/// # Ok::<(), crate::error::AppError>(())
+/// ```
+///
+/// Returns an error when the artist does not exist or the profile data cannot be loaded.
 #[tauri::command]
 pub async fn get_artist_detail(
     state: tauri::State<'_, AppState>,

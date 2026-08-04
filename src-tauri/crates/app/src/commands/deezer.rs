@@ -273,6 +273,16 @@ pub struct DeezerArtistEnrichment {
 }
 
 impl DeezerArtistEnrichment {
+    /// Creates an artist enrichment value with no Deezer metadata or artwork.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let enrichment = DeezerArtistEnrichment::empty();
+    /// assert!(enrichment.deezer_id.is_none());
+    /// assert!(enrichment.picture_url.is_none());
+    /// assert!(enrichment.background_path.is_none());
+    /// ```
     fn empty() -> Self {
         Self {
             deezer_id: None,
@@ -340,6 +350,18 @@ async fn enrich_artist_deezer_with_pool(
     Ok(enrichment)
 }
 
+/// Enriches a local artist with cached or remotely fetched Deezer, biography, and background artwork metadata.
+///
+/// Uses the configured biography provider and language, respects offline mode, and persists newly
+/// resolved metadata for subsequent requests. Returns an empty enrichment when the artist or a
+/// remote match is unavailable.
+///
+/// # Examples
+///
+/// ```no_run
+/// let enrichment = enrich_artist_deezer_inner(state, pool, artist_id).await?;
+/// # Ok::<(), AppError>(())
+/// ```
 async fn enrich_artist_deezer_inner(
     state: tauri::State<'_, AppState>,
     pool: sqlx::SqlitePool,

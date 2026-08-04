@@ -50,6 +50,13 @@ interface ArtistDetailViewProps {
   onNavigateToArtist: (artistId: number) => void;
 }
 
+/**
+ * Renders an artist detail page with artwork, metadata, related artists, albums, and tracks.
+ *
+ * @param artistId - The library artist identifier to display
+ * @param onNavigateToAlbum - Handles navigation to an album
+ * @param onNavigateToArtist - Handles navigation to a library artist
+ */
 export function ArtistDetailView({
   artistId,
   onNavigateToAlbum,

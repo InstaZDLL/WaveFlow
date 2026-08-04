@@ -3,9 +3,9 @@ import { PanelTop } from "lucide-react";
 import { useArtistHero } from "../../../hooks/useArtistHero";
 
 /**
- * Settings → Appearance row toggling the full-bleed hero backdrop behind
- * the artist detail header (issue #482). Default ON — turning it off
- * restores the flat header with just the circular photo.
+ * Renders an appearance setting for enabling or disabling the artist detail hero backdrop.
+ *
+ * @returns A settings row containing a controlled checkbox for the hero backdrop.
  */
 export function ArtistHeroCard() {
   const { t } = useTranslation();

@@ -141,6 +141,12 @@ export interface DeezerArtistEnrichment {
   background_path: string | null;
 }
 
+/**
+ * Enriches an album with metadata from Deezer.
+ *
+ * @param albumId - The identifier of the album to enrich
+ * @returns Deezer metadata for the album
+ */
 export function enrichAlbumDeezer(
   albumId: number,
 ): Promise<DeezerAlbumEnrichment> {

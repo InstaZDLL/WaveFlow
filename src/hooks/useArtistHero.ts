@@ -13,6 +13,12 @@ export const ARTIST_HERO_EVENT = "waveflow:artist-hero";
  *  toggle is there for users who prefer the flat header. */
 const DEFAULT_ENABLED = true;
 
+/**
+ * Parses a stored preference value into an enabled state.
+ *
+ * @param raw - The stored preference value
+ * @returns `true` for `"true"` or `"1"`, the default enabled state for a missing value, and `false` for other values
+ */
 function parseEnabled(raw: string | null): boolean {
   if (raw == null) return DEFAULT_ENABLED;
   return raw === "true" || raw === "1";
@@ -32,12 +38,14 @@ export interface ArtistHero {
 }
 
 /**
- * Per-profile preference: paint a full-bleed hero backdrop behind the
- * artist detail header (issue #482) — the wide TheAudioDB fanart when the
- * artist has one, a blurred version of the square photo otherwise. Default
- * ON. The write machinery mirrors [`useCoverSlideshow`](./useCoverSlideshow.ts)
- * — serialized writes, profile-switch guards, and rollback to the last
- * backend-confirmed value.
+ * Manages the per-profile artist hero backdrop preference.
+ *
+ * The preference is enabled by default and synchronized with the active
+ * profile. Updates are applied optimistically and rolled back to the last
+ * confirmed value if the latest write fails.
+ *
+ * @returns The current enabled state, whether the active profile's preference
+ * has been resolved, and a function for updating the preference.
  */
 export function useArtistHero(): ArtistHero {
   const { activeProfile } = useProfile();

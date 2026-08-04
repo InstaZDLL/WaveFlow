@@ -38,16 +38,35 @@ pub fn existing_path(dir: &Path, hash: &str) -> Option<String> {
     }
 }
 
-/// Resolve an artist/album picture path preferring a local profile-artwork
-/// sidecar (`<local_dir>/<local_hash>.<local_format>`, e.g. `artist.jpg`
-/// imported into the profile) over the shared Deezer metadata cache
-/// ([`existing_path`]). Each candidate is returned only when the file
-/// actually exists on disk, so a stale DB reference to a wiped file falls
-/// through to the next source instead of yielding a broken path (#350).
+/// Resolves an artwork path, preferring an existing local sidecar over the shared cache.
 ///
-/// The local sidecar carries its own `format` column (jpg/png/webp) so we
-/// take it explicitly; the metadata cache is always `.jpg`, so `cache_hash`
-/// goes through [`existing_path`] which knows the extension.
+/// Local artwork uses the supplied hash and format to form `<local_dir>/<hash>.<format>`.
+/// If that file is unavailable, the function checks the shared cache. Missing or stale
+/// references yield `None`.
+///
+/// # Examples
+///
+/// ```
+/// use std::path::Path;
+///
+/// let path = resolve_local_or_cached_path(
+///     Path::new("/tmp/profile"),
+///     None,
+///     None,
+///     Path::new("/tmp/cache"),
+///     None,
+/// );
+///
+/// assert_eq!(path, None);
+/// ```
+///
+/// # Parameters
+///
+/// * `local_format` - The file extension of the local sidecar, such as `jpg`, `png`, or `webp`.
+///
+/// # Returns
+///
+/// The path to the first existing artwork file, or `None` when no referenced file exists.
 pub fn resolve_local_or_cached_path(
     local_dir: &Path,
     local_hash: Option<&str>,
@@ -64,26 +83,67 @@ pub fn resolve_local_or_cached_path(
     cache_hash.and_then(|h| existing_path(cache_dir, h))
 }
 
-/// Download `url`, blake3-hash the bytes and write the file to
-/// `<dir>/<hash>.jpg` if missing, then queue the `_1x` / `_2x` thumbnail
-/// job. Returns the hex hash on success.
+/// Downloads an image, caches it under its BLAKE3 hash, and queues thumbnail generation.
 ///
-/// All failures (network, http != 2xx, oversize body, write error) are logged
-/// at WARN level and surfaced as `None`. Enrichment is best-effort: the
-/// caller should fall back to the remote URL.
+/// The cached file is written as `<dir>/<hash>.jpg` when it does not already exist.
+/// Returns the hexadecimal hash when the download and caching succeed; failures are
+/// logged and produce `None`.
+///
+/// # Examples
+///
+/// ```no_run
+/// # async fn example() {
+/// let hash = download_and_cache("https://example.com/artwork.jpg", std::path::Path::new("/tmp/artwork")).await;
+/// assert!(hash.is_some());
+/// # }
+/// ```
+///
+/// # Returns
+///
+/// The hexadecimal BLAKE3 hash of the cached image, or `None` if downloading,
+/// reading, validation, or writing fails.
+pub async fn download_and_cache(url: &str, dir: &Path) -> Option<String>
 pub async fn download_and_cache(url: &str, dir: &Path) -> Option<String> {
     download_and_cache_inner(url, dir, true).await
 }
 
-/// Same as [`download_and_cache`] but **skips thumbnail generation**.
+/// Downloads an image and caches it without generating thumbnails.
 ///
-/// For images only ever consumed at full size — the artist hero fanart
-/// (#482) is painted full-bleed, so a downscaled tier would only soften
-/// it — the `_1x` / `_2x` job is pure CPU + disk for files nothing reads.
+/// # Returns
+///
+/// The BLAKE3 hash of the cached image, or `None` if the download or caching fails.
+///
+/// # Examples
+///
+/// ```no_run
+/// # async fn example() {
+/// let hash = download_and_cache_full_res(
+///     "https://example.com/artist-fanart.jpg",
+///     std::path::Path::new("/tmp/artwork"),
+/// ).await;
+/// # }
+/// ```
 pub async fn download_and_cache_full_res(url: &str, dir: &Path) -> Option<String> {
     download_and_cache_inner(url, dir, false).await
 }
 
+/// Downloads artwork, caches it under its content hash, and optionally queues thumbnail generation.
+///
+/// Returns `None` when the download fails, the response is unsuccessful, the response body is empty or too large, or the cached file cannot be written.
+///
+/// # Examples
+///
+/// ```no_run
+/// # async fn example() {
+/// let hash = download_and_cache_inner(
+///     "https://example.com/artwork.jpg",
+///     std::path::Path::new("/tmp/artwork"),
+///     true,
+/// )
+/// .await;
+/// assert!(hash.is_some());
+/// # }
+/// ```
 async fn download_and_cache_inner(
     url: &str,
     dir: &Path,

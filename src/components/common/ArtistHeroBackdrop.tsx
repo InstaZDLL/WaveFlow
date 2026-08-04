@@ -21,11 +21,10 @@
  * hero dissolves into whatever the current theme/skin paints behind it.
  */
 /**
- * Escape a URL for interpolation inside a double-quoted CSS `url("…")`.
- * Unlike the local artwork paths other backdrops paint, a hero source can
- * be a **remote URL straight out of TheAudioDB** — third-party data that
- * must not be able to close the string and inject CSS. Inside a quoted
- * string only the backslash, the closing quote and raw newlines matter.
+ * Escapes a source for use inside a double-quoted CSS `url(...)` value.
+ *
+ * @param src - The source to escape
+ * @returns The source with backslashes and double quotes escaped and raw line breaks removed
  */
 function cssUrl(src: string): string {
   return src.replace(/[\\"]/g, "\\$&").replace(/[\n\r\f]/g, "");
@@ -38,6 +37,13 @@ interface ArtistHeroBackdropProps {
   isFanart: boolean;
 }
 
+/**
+ * Renders a decorative artist backdrop with styling based on the image type.
+ *
+ * @param src - The image source used for the backdrop
+ * @param isFanart - Whether the source is fanart rather than a square artist photo
+ * @returns The backdrop element, or `null` when no source is provided
+ */
 export function ArtistHeroBackdrop({ src, isFanart }: ArtistHeroBackdropProps) {
   if (!src) return null;
 
