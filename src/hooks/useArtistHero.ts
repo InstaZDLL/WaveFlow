@@ -52,6 +52,11 @@ export function useArtistHero(): ArtistHero {
   const confirmedEnabledRef = useRef(enabled);
   const writeChainRef = useRef<Promise<void>>(Promise.resolve());
   const writeSeqRef = useRef(0);
+  // Bumped by every read AND every write. A read applies its result only
+  // while it's still the latest thing to have happened: an optimistic
+  // toggle fired mid-read must win over the now-stale value that read is
+  // about to bring back, and two overlapping reads must not fight.
+  const readSeqRef = useRef(0);
   const activeProfileIdRef = useRef<number | null>(activeProfile?.id ?? null);
   useEffect(() => {
     enabledRef.current = enabled;
@@ -80,9 +85,14 @@ export function useArtistHero(): ArtistHero {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setEnabledState(DEFAULT_ENABLED);
     const refresh = async () => {
+      const seq = ++readSeqRef.current;
       try {
         const raw = await getProfileSetting(KEY);
-        if (cancelled) return;
+        // Stale read: a write (or a newer read) started meanwhile and
+        // owns the value now. The stamp in `finally` still runs — this
+        // profile HAS been read, and skipping it would leave `resolved`
+        // false forever when the racing write then fails.
+        if (cancelled || seq !== readSeqRef.current) return;
         const parsed = parseEnabled(raw);
         enabledRef.current = parsed;
         confirmedEnabledRef.current = parsed;
@@ -105,6 +115,9 @@ export function useArtistHero(): ArtistHero {
 
   const setEnabled = useCallback(async (next: boolean) => {
     const seq = ++writeSeqRef.current;
+    // Invalidate any read still in flight — the user's click is newer
+    // than whatever that read is carrying.
+    readSeqRef.current += 1;
     const profileId = activeProfileIdRef.current;
     enabledRef.current = next;
     setEnabledState(next);
