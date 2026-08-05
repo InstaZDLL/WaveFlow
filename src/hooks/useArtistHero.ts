@@ -74,16 +74,19 @@ export function useArtistHero(): ArtistHero {
     // `refresh`, which also serves ARTIST_HERO_EVENT — resetting there
     // would flash the default on every same-profile broadcast, and a
     // failed same-profile refresh is better off keeping what it had.
-    // `readProfileId` needs no reset: `resolved` is derived from the id
-    // comparison, so it already reads false the moment the id changes.
+    // The stamp goes with it: the id comparison alone would let A → B → A
+    // reuse A's marker while `enabled` is back at the default (B's reset,
+    // A's read not yet in), reporting resolved with a value that isn't
+    // A's — exactly the flash this all exists to prevent.
     // The lint rule guards against effects that derive state from props;
-    // this one clears state that belongs to a profile we just left, which
-    // has no derived form — `enabled` must stay writable for the
-    // optimistic toggle.
+    // these clear state that belongs to a profile we just left, which has
+    // no derived form — `enabled` must stay writable for the optimistic
+    // toggle.
     enabledRef.current = DEFAULT_ENABLED;
     confirmedEnabledRef.current = DEFAULT_ENABLED;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setEnabledState(DEFAULT_ENABLED);
+    setReadProfileId(undefined);
     const refresh = async () => {
       const seq = ++readSeqRef.current;
       try {
