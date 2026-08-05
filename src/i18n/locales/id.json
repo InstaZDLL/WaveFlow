@@ -1979,6 +1979,10 @@
       "title": "Salindia sampul / artis",
       "subtitle": "Menyilih-lembutkan sampul album dengan foto artis di belakang pemutaran (tampilan imersif + panel Sedang Diputar)."
     },
+    "artistHero": {
+      "title": "Banner artis",
+      "subtitle": "Menampilkan gambar lebar di belakang header halaman artis (fanart TheAudioDB, atau foto yang diburamkan)."
+    },
     "pluginStore": {
       "title": "Toko plugin",
       "subtitle": "Jelajahi dan pasang plugin tersandbox dari registri WaveFlow.",

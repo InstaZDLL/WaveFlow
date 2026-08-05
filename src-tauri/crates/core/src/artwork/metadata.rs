@@ -65,12 +65,30 @@ pub fn resolve_local_or_cached_path(
 }
 
 /// Download `url`, blake3-hash the bytes and write the file to
-/// `<dir>/<hash>.jpg` if missing. Returns the hex hash on success.
+/// `<dir>/<hash>.jpg` if missing, then queue the `_1x` / `_2x` thumbnail
+/// job. Returns the hex hash on success.
 ///
 /// All failures (network, http != 2xx, oversize body, write error) are logged
 /// at WARN level and surfaced as `None`. Enrichment is best-effort: the
 /// caller should fall back to the remote URL.
 pub async fn download_and_cache(url: &str, dir: &Path) -> Option<String> {
+    download_and_cache_inner(url, dir, true).await
+}
+
+/// Same as [`download_and_cache`] but **skips thumbnail generation**.
+///
+/// For images only ever consumed at full size — the artist hero fanart
+/// (#482) is painted full-bleed, so a downscaled tier would only soften
+/// it — the `_1x` / `_2x` job is pure CPU + disk for files nothing reads.
+pub async fn download_and_cache_full_res(url: &str, dir: &Path) -> Option<String> {
+    download_and_cache_inner(url, dir, false).await
+}
+
+async fn download_and_cache_inner(
+    url: &str,
+    dir: &Path,
+    generate_thumbnails: bool,
+) -> Option<String> {
     let client = reqwest::Client::builder()
         .user_agent(USER_AGENT)
         .timeout(std::time::Duration::from_secs(DOWNLOAD_TIMEOUT_SECS))
@@ -108,7 +126,9 @@ pub async fn download_and_cache(url: &str, dir: &Path) -> Option<String> {
             return None;
         }
     }
-    crate::artwork::thumbnails::spawn_thumbnail_job(out, dir.to_path_buf(), hash.clone());
+    if generate_thumbnails {
+        crate::artwork::thumbnails::spawn_thumbnail_job(out, dir.to_path_buf(), hash.clone());
+    }
     Some(hash)
 }
 

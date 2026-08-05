@@ -1,10 +1,19 @@
-//! TheAudioDB API client — multi-language artist biographies.
+//! TheAudioDB API client — multi-language artist biographies + wide
+//! artist fanart.
 //!
 //! TheAudioDB is a community-maintained music database with a free v1
 //! JSON API. We use it as an opt-in alternative to Last.fm for artist
 //! bios (issue #295): unlike Last.fm it ships the biography in ~15
 //! languages, so users who don't run a Last.fm account can still get a
 //! localized bio.
+//!
+//! The same `search.php` response also carries the **wide** artist
+//! images (`strArtistFanart*` / `strArtistWideThumb` /
+//! `strArtistBanner`) that back the Spotify-style artist hero (issue
+//! #482) — the rest of the pipeline only ever carried the square
+//! Deezer photo. One lookup therefore serves both, which is why
+//! [`TheAudioDbClient::artist_info`] returns bio *and* fanart instead
+//! of a bio-only payload.
 //!
 //! `search.php?s=<name>` returns an `artists` array. The English bio is
 //! the suffixless `strBiography`; other languages are `strBiography{XX}`
@@ -32,7 +41,10 @@ struct SearchResponse {
 
 /// Only the fields we use. TheAudioDB returns every value as a JSON
 /// string or null, so `Option<String>` is the honest type throughout.
-#[derive(Debug, Deserialize)]
+///
+/// `Default` is derived so tests can build a payload from the one or
+/// two fields they exercise instead of spelling out every language.
+#[derive(Debug, Default, Deserialize)]
 struct ArtistPayload {
     #[serde(rename = "strArtist")]
     name: Option<String>,
@@ -56,6 +68,24 @@ struct ArtistPayload {
     bio_jp: Option<String>,
     #[serde(rename = "strBiographyCN")]
     bio_cn: Option<String>,
+    /// Wide 16:9 backdrops (1920×1080-ish). `strArtistFanart` is the
+    /// primary one; 2/3/4 are alternates uploaded by the community.
+    #[serde(rename = "strArtistFanart")]
+    fanart: Option<String>,
+    #[serde(rename = "strArtistFanart2")]
+    fanart2: Option<String>,
+    #[serde(rename = "strArtistFanart3")]
+    fanart3: Option<String>,
+    #[serde(rename = "strArtistFanart4")]
+    fanart4: Option<String>,
+    /// ~1000×185 wide thumbnail — narrower than fanart but still a
+    /// usable hero strip when no fanart exists.
+    #[serde(rename = "strArtistWideThumb")]
+    wide_thumb: Option<String>,
+    /// 1000×185 banner, usually carrying the artist's logo. Last
+    /// resort: the text baked into it can clash with the header copy.
+    #[serde(rename = "strArtistBanner")]
+    banner: Option<String>,
 }
 
 impl ArtistPayload {
@@ -77,15 +107,32 @@ impl ArtistPayload {
         };
         non_blank(primary).or_else(|| non_blank(&self.bio_en))
     }
+
+    /// First non-blank wide image, widest-and-cleanest first: real
+    /// fanart, then its community alternates, then the wide thumb, and
+    /// the logo banner only as a last resort.
+    fn fanart_url(&self) -> Option<String> {
+        non_blank(&self.fanart)
+            .or_else(|| non_blank(&self.fanart2))
+            .or_else(|| non_blank(&self.fanart3))
+            .or_else(|| non_blank(&self.fanart4))
+            .or_else(|| non_blank(&self.wide_thumb))
+            .or_else(|| non_blank(&self.banner))
+    }
 }
 
-/// Cleaned artist bio returned to callers. `bio_short` is a truncated
-/// lead-in for the collapsed UI; `bio_full` is the whole text.
+/// Cleaned artist payload returned to callers. `bio_short` is a
+/// truncated lead-in for the collapsed UI; `bio_full` is the whole
+/// text; `fanart_url` is the wide hero image (issue #482).
+///
+/// Every field is optional independently: an artist row can carry
+/// fanart with no biography in any language, and vice-versa.
 #[derive(Debug, Clone)]
-pub struct TheAudioDbArtistBio {
+pub struct TheAudioDbArtist {
     pub name: String,
     pub bio_short: Option<String>,
     pub bio_full: Option<String>,
+    pub fanart_url: Option<String>,
 }
 
 pub struct TheAudioDbClient {
@@ -108,14 +155,17 @@ impl TheAudioDbClient {
         Self { http }
     }
 
-    /// Look up an artist bio by name in `lang`. Returns `Ok(None)` when
-    /// nothing matches or the matched artist has no biography in the
-    /// requested language nor English.
-    pub async fn artist_bio(
+    /// Look up an artist by name, returning its bio in `lang` (English
+    /// fallback) and its wide fanart URL. Returns `Ok(None)` only when
+    /// nothing matches the name — a match with neither bio nor fanart
+    /// still comes back as `Some` with both fields empty, so the caller
+    /// can cache the "looked it up, nothing there" outcome instead of
+    /// re-querying a rate-limited API on every visit.
+    pub async fn artist_info(
         &self,
         name: &str,
         lang: &str,
-    ) -> reqwest::Result<Option<TheAudioDbArtistBio>> {
+    ) -> reqwest::Result<Option<TheAudioDbArtist>> {
         let url = format!("{BASE_URL}/{FREE_API_KEY}/search.php");
         let resp: SearchResponse = self
             .http
@@ -134,17 +184,17 @@ impl TheAudioDbClient {
             return Ok(None);
         };
 
-        let Some(full) = artist.bio_for_lang(lang).map(clean_text) else {
-            return Ok(None);
-        };
-        if full.is_empty() {
-            return Ok(None);
-        }
+        let fanart_url = artist.fanart_url();
+        let full = artist
+            .bio_for_lang(lang)
+            .map(clean_text)
+            .filter(|full| !full.is_empty());
 
-        Ok(Some(TheAudioDbArtistBio {
+        Ok(Some(TheAudioDbArtist {
             name: artist.name.unwrap_or_default(),
-            bio_short: Some(make_summary(&full)),
-            bio_full: Some(full),
+            bio_short: full.as_deref().map(make_summary),
+            bio_full: full,
+            fanart_url,
         }))
     }
 }
@@ -220,17 +270,38 @@ mod tests {
         let payload = ArtistPayload {
             name: Some("X".into()),
             bio_en: Some("English bio".into()),
-            bio_fr: None,
             bio_de: Some("  ".into()), // blank → ignored
-            bio_es: None,
-            bio_it: None,
-            bio_pt: None,
-            bio_nl: None,
-            bio_ru: None,
-            bio_jp: None,
-            bio_cn: None,
+            ..Default::default()
         };
         assert_eq!(payload.bio_for_lang("fr").as_deref(), Some("English bio"));
         assert_eq!(payload.bio_for_lang("de").as_deref(), Some("English bio"));
+    }
+
+    #[test]
+    fn fanart_url_prefers_the_widest_image() {
+        let payload = ArtistPayload {
+            fanart: Some("  ".into()), // blank → skipped
+            fanart2: Some("https://cdn/fanart2.jpg".into()),
+            wide_thumb: Some("https://cdn/wide.jpg".into()),
+            banner: Some("https://cdn/banner.jpg".into()),
+            ..Default::default()
+        };
+        assert_eq!(
+            payload.fanart_url().as_deref(),
+            Some("https://cdn/fanart2.jpg")
+        );
+    }
+
+    #[test]
+    fn fanart_url_falls_back_to_banner() {
+        let payload = ArtistPayload {
+            banner: Some("https://cdn/banner.jpg".into()),
+            ..Default::default()
+        };
+        assert_eq!(
+            payload.fanart_url().as_deref(),
+            Some("https://cdn/banner.jpg")
+        );
+        assert_eq!(ArtistPayload::default().fanart_url(), None);
     }
 }

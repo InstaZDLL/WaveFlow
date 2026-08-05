@@ -1979,6 +1979,10 @@
       "title": "Kapak / sanatçı slayt gösterisi",
       "subtitle": "Çalma sırasında arkada albüm kapağı ile sanatçı fotoğrafını yumuşak geçişle değiştirir (sürükleyici görünüm + Şimdi Çalınıyor paneli)."
     },
+    "artistHero": {
+      "title": "Sanatçı afişi",
+      "subtitle": "Sanatçı sayfasının başlığının arkasında geniş bir görsel gösterir (TheAudioDB fanart'ı, yoksa bulanıklaştırılmış fotoğraf)."
+    },
     "pluginStore": {
       "title": "Eklenti mağazası",
       "subtitle": "WaveFlow kayıt defterinden yalıtılmış eklentilere göz at ve yükle.",

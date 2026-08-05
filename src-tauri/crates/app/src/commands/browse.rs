@@ -1212,6 +1212,11 @@ pub struct ArtistDetail {
     pub fans_count: Option<i64>,
     pub bio_short: Option<String>,
     pub bio_full: Option<String>,
+    /// Wide TheAudioDB fanart backing the artist hero (issue #482).
+    /// Served straight from the metadata cache so the hero paints on the
+    /// first frame instead of waiting for `enrich_artist_deezer`.
+    pub background_url: Option<String>,
+    pub background_path: Option<String>,
     pub track_count: i64,
     pub album_count: i64,
     pub albums: Vec<ArtistAlbumRow>,
@@ -1228,6 +1233,8 @@ struct ArtistDetailRaw {
     fans_count: Option<i64>,
     bio_short: Option<String>,
     bio_full: Option<String>,
+    background_url: Option<String>,
+    background_hash: Option<String>,
     track_count: i64,
     album_count: i64,
 }
@@ -1274,6 +1281,8 @@ pub async fn get_artist_detail(
                da.fans_count   AS fans_count,
                da.bio_short    AS bio_short,
                da.bio_full     AS bio_full,
+               da.background_url  AS background_url,
+               da.background_hash AS background_hash,
                COUNT(DISTINCT t.id) AS track_count,
                COUNT(DISTINCT t.album_id) AS album_count
           FROM artist ar
@@ -1361,6 +1370,10 @@ pub async fn get_artist_detail(
         Some(h) => crate::thumbnails::thumbnail_paths_for(metadata_dir, h),
         None => (None, None),
     };
+    let background_path = header
+        .background_hash
+        .as_deref()
+        .and_then(|h| crate::metadata_artwork::existing_path(metadata_dir, h));
 
     Ok(ArtistDetail {
         id: header.id,
@@ -1375,6 +1388,8 @@ pub async fn get_artist_detail(
         fans_count: header.fans_count,
         bio_short: header.bio_short,
         bio_full: header.bio_full,
+        background_url: header.background_url,
+        background_path,
         track_count: header.track_count,
         album_count: header.album_count,
         albums,

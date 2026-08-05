@@ -81,6 +81,11 @@ export interface ArtistDetail {
   fans_count: number | null;
   bio_short: string | null;
   bio_full: string | null;
+  /** Wide TheAudioDB fanart backing the artist hero (issue #482).
+   *  `background_path` points into the shared metadata artwork cache;
+   *  `background_url` is the remote fallback when the download failed. */
+  background_url: string | null;
+  background_path: string | null;
   track_count: number;
   album_count: number;
   albums: ArtistAlbumRow[];
@@ -130,6 +135,10 @@ export interface DeezerArtistEnrichment {
   bio_short: string | null;
   /** Full biography from Last.fm (HTML stripped). */
   bio_full: string | null;
+  /** Remote TheAudioDB fanart URL — fallback when the download failed. */
+  background_url: string | null;
+  /** Locally-cached wide fanart backing the artist hero (issue #482). */
+  background_path: string | null;
 }
 
 export function enrichAlbumDeezer(
