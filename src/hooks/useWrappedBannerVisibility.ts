@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { getProfileSetting, setProfileSetting } from "../lib/tauri/profile";
-import { useProfile } from "./useProfile";
+import { useCallback, useMemo } from "react";
+import { useProfileSetting } from "./useProfileSetting";
 
 /**
  * How the Wrapped banner on the Home view decides to show itself.
@@ -66,59 +65,52 @@ export interface WrappedBannerVisibility {
  * React hook resolving Wrapped banner visibility from per-profile
  * settings + the current date. Re-reads on the broadcast event so a
  * Settings change flips the Home banner without a remount.
+ *
+ * Two keys, so two [`useProfileSetting`](./useProfileSetting.ts)
+ * instances sharing one broadcast event — each re-reads its own key when
+ * either one writes. Concurrency, profile isolation and rollback come
+ * from there; this hook used to carry none of it (no serialized writes,
+ * no profile guard on the write at all).
  */
 export function useWrappedBannerVisibility(): WrappedBannerVisibility {
-  const { activeProfile } = useProfile();
-  const [mode, setModeState] = useState<WrappedBannerMode>(DEFAULT_MODE);
-  const [dismissedYear, setDismissedYearState] = useState<number | null>(null);
   const inSeason = useMemo(() => isInWrappedSeason(), []);
 
-  // Re-read on profile switch — `get_profile_setting` is scoped to
-  // the active profile's pool, so the previous profile's values would
-  // otherwise linger. Tracking `activeProfile?.id` rebinds the event
-  // listener too, which keeps the cleanup symmetric.
-  useEffect(() => {
-    let cancelled = false;
-    const refresh = async () => {
-      try {
-        const [rawMode, rawDismissed] = await Promise.all([
-          getProfileSetting(MODE_KEY),
-          getProfileSetting(DISMISSED_YEAR_KEY),
-        ]);
-        if (cancelled) return;
-        setModeState(parseMode(rawMode));
-        setDismissedYearState(parseDismissedYear(rawDismissed));
-      } catch (err) {
-        console.error("[useWrappedBannerVisibility] read failed", err);
-      }
-    };
-    void refresh();
-    window.addEventListener(WRAPPED_BANNER_EVENT, refresh);
-    return () => {
-      cancelled = true;
-      window.removeEventListener(WRAPPED_BANNER_EVENT, refresh);
-    };
-  }, [activeProfile?.id]);
+  const { value: mode, setValue: setModeValue } =
+    useProfileSetting<WrappedBannerMode>({
+      key: MODE_KEY,
+      defaultValue: DEFAULT_MODE,
+      parse: parseMode,
+      serialize: (value) => value,
+      valueType: "string",
+      event: WRAPPED_BANNER_EVENT,
+      label: "useWrappedBannerVisibility.mode",
+    });
 
-  const setMode = useCallback(async (next: WrappedBannerMode) => {
-    setModeState(next);
-    try {
-      await setProfileSetting(MODE_KEY, next, "string");
-      window.dispatchEvent(new CustomEvent(WRAPPED_BANNER_EVENT));
-    } catch (err) {
-      console.error("[useWrappedBannerVisibility] write mode failed", err);
-    }
-  }, []);
+  const { value: dismissedYear, setValue: setDismissedYearValue } =
+    useProfileSetting<number | null>({
+      key: DISMISSED_YEAR_KEY,
+      defaultValue: null,
+      parse: parseDismissedYear,
+      // Never serialized as null: `dismissYear` only ever stores a year.
+      serialize: (value) => String(value ?? ""),
+      valueType: "int",
+      event: WRAPPED_BANNER_EVENT,
+      label: "useWrappedBannerVisibility.dismissedYear",
+    });
 
-  const dismissYear = useCallback(async (recapYear: number) => {
-    setDismissedYearState(recapYear);
-    try {
-      await setProfileSetting(DISMISSED_YEAR_KEY, String(recapYear), "int");
-      window.dispatchEvent(new CustomEvent(WRAPPED_BANNER_EVENT));
-    } catch (err) {
-      console.error("[useWrappedBannerVisibility] dismiss failed", err);
-    }
-  }, []);
+  const setMode = useCallback(
+    async (next: WrappedBannerMode) => {
+      await setModeValue(next);
+    },
+    [setModeValue],
+  );
+
+  const dismissYear = useCallback(
+    async (recapYear: number) => {
+      await setDismissedYearValue(recapYear);
+    },
+    [setDismissedYearValue],
+  );
 
   const shouldShow = useCallback(
     (recapYear: number): boolean => {
