@@ -21,10 +21,22 @@ const MODE_KEY = "wrapped.banner_visibility";
 const DISMISSED_YEAR_KEY = "wrapped.dismissed_year";
 
 /**
- * Window event broadcast after any write so the Home banner re-reads
- * without remounting. Same pattern as `usePlayerBarLayout`.
+ * Window event broadcast after a **mode** write so the Home banner
+ * re-reads without remounting. Same pattern as `usePlayerBarLayout`.
  */
 export const WRAPPED_BANNER_EVENT = "waveflow:wrapped-banner-changed";
+
+/**
+ * Separate channel for the dismissed-year key. The two keys deliberately
+ * do NOT share one event: a broadcast makes every listening instance
+ * re-read, so a `mode` write would kick off a read of the dismissed year
+ * that can land before an in-flight write of that key commits — and
+ * overwrite its optimistic value with the pre-write one. Transient (the
+ * write's own broadcast re-reads afterwards) but visible, and there's no
+ * reason for one key's write to make the other re-read at all.
+ */
+export const WRAPPED_DISMISSED_YEAR_EVENT =
+  "waveflow:wrapped-dismissed-year-changed";
 
 const DEFAULT_MODE: WrappedBannerMode = "auto";
 
@@ -67,10 +79,11 @@ export interface WrappedBannerVisibility {
  * Settings change flips the Home banner without a remount.
  *
  * Two keys, so two [`useProfileSetting`](./useProfileSetting.ts)
- * instances sharing one broadcast event — each re-reads its own key when
- * either one writes. Concurrency, profile isolation and rollback come
- * from there; this hook used to carry none of it (no serialized writes,
- * no profile guard on the write at all).
+ * instances — each on its **own** broadcast channel, so a write to one
+ * key never makes the other re-read (see
+ * {@link WRAPPED_DISMISSED_YEAR_EVENT}). Concurrency, profile isolation
+ * and rollback come from there; this hook used to carry none of it (no
+ * serialized writes, no profile guard on the write at all).
  */
 export function useWrappedBannerVisibility(): WrappedBannerVisibility {
   const inSeason = useMemo(() => isInWrappedSeason(), []);
@@ -94,7 +107,7 @@ export function useWrappedBannerVisibility(): WrappedBannerVisibility {
       // Never serialized as null: `dismissYear` only ever stores a year.
       serialize: (value) => String(value ?? ""),
       valueType: "int",
-      event: WRAPPED_BANNER_EVENT,
+      event: WRAPPED_DISMISSED_YEAR_EVENT,
       label: "useWrappedBannerVisibility.dismissedYear",
     });
 
