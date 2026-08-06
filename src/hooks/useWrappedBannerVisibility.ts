@@ -67,7 +67,9 @@ export interface WrappedBannerVisibility {
   mode: WrappedBannerMode;
   inSeason: boolean;
   dismissedYear: number | null;
-  /** Resolves whether the banner should render for a given recap year. */
+  /** Resolves whether the banner should render for a given recap year.
+   *  Returns `false` until both per-profile keys have been read — their
+   *  defaults would otherwise show the banner to users who opted out. */
   shouldShow: (recapYear: number) => boolean;
   setMode: (next: WrappedBannerMode) => Promise<void>;
   dismissYear: (recapYear: number) => Promise<void>;
@@ -88,28 +90,34 @@ export interface WrappedBannerVisibility {
 export function useWrappedBannerVisibility(): WrappedBannerVisibility {
   const inSeason = useMemo(() => isInWrappedSeason(), []);
 
-  const { value: mode, setValue: setModeValue } =
-    useProfileSetting<WrappedBannerMode>({
-      key: MODE_KEY,
-      defaultValue: DEFAULT_MODE,
-      parse: parseMode,
-      serialize: (value) => value,
-      valueType: "string",
-      event: WRAPPED_BANNER_EVENT,
-      label: "useWrappedBannerVisibility.mode",
-    });
+  const {
+    value: mode,
+    ready: modeReady,
+    setValue: setModeValue,
+  } = useProfileSetting<WrappedBannerMode>({
+    key: MODE_KEY,
+    defaultValue: DEFAULT_MODE,
+    parse: parseMode,
+    serialize: (value) => value,
+    valueType: "string",
+    event: WRAPPED_BANNER_EVENT,
+    label: "useWrappedBannerVisibility.mode",
+  });
 
-  const { value: dismissedYear, setValue: setDismissedYearValue } =
-    useProfileSetting<number | null>({
-      key: DISMISSED_YEAR_KEY,
-      defaultValue: null,
-      parse: parseDismissedYear,
-      // Never serialized as null: `dismissYear` only ever stores a year.
-      serialize: (value) => String(value ?? ""),
-      valueType: "int",
-      event: WRAPPED_DISMISSED_YEAR_EVENT,
-      label: "useWrappedBannerVisibility.dismissedYear",
-    });
+  const {
+    value: dismissedYear,
+    ready: dismissedYearReady,
+    setValue: setDismissedYearValue,
+  } = useProfileSetting<number | null>({
+    key: DISMISSED_YEAR_KEY,
+    defaultValue: null,
+    parse: parseDismissedYear,
+    // Never serialized as null: `dismissYear` only ever stores a year.
+    serialize: (value) => String(value ?? ""),
+    valueType: "int",
+    event: WRAPPED_DISMISSED_YEAR_EVENT,
+    label: "useWrappedBannerVisibility.dismissedYear",
+  });
 
   const setMode = useCallback(
     async (next: WrappedBannerMode) => {
@@ -127,12 +135,18 @@ export function useWrappedBannerVisibility(): WrappedBannerVisibility {
 
   const shouldShow = useCallback(
     (recapYear: number): boolean => {
+      // Both defaults ("auto", nothing dismissed) are *permissive*, so
+      // answering before the reads land shows the banner for one frame
+      // to the very users who turned it off or dismissed this year —
+      // during the season, when it's on screen. Withhold until both keys
+      // have been read for the active profile.
+      if (!modeReady || !dismissedYearReady) return false;
       if (mode === "never") return false;
       if (dismissedYear === recapYear) return false;
       if (mode === "always") return true;
       return inSeason;
     },
-    [mode, dismissedYear, inSeason],
+    [mode, dismissedYear, inSeason, modeReady, dismissedYearReady],
   );
 
   return { mode, inSeason, dismissedYear, shouldShow, setMode, dismissYear };
