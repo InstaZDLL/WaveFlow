@@ -563,6 +563,31 @@ impl AppState {
             .ok_or(AppError::NoActiveProfile)
     }
 
+    /// Like [`Self::require_profile_pool`], but refuses to hand out the
+    /// lease when `expected` names a profile that is no longer the
+    /// active one (issue #485).
+    ///
+    /// This is the only place that can close the write-to-the-wrong-profile
+    /// window. A frontend guard ("is the profile still the one I captured?")
+    /// necessarily runs *before* its `invoke` crosses the IPC boundary, so a
+    /// `switch_profile` landing in between still redirects the write. Here the
+    /// comparison and the lease happen under **one** acquisition of the same
+    /// lock `switch_profile` takes to swap the pool, so there is no window at
+    /// all: either the profile still matches and the lease pins it open, or the
+    /// call fails.
+    ///
+    /// `expected: None` opts out and behaves exactly like
+    /// [`Self::require_profile_pool`] — for callers with no profile in mind
+    /// (a fresh user action against whatever is active right now).
+    pub async fn require_profile_pool_for(&self, expected: Option<i64>) -> AppResult<ProfilePool> {
+        let guard = self.profile.read().await;
+        check_expected_profile(guard.as_ref().map(|p| p.profile_id), expected)?;
+        guard
+            .as_ref()
+            .map(ActiveProfile::lease)
+            .ok_or(AppError::NoActiveProfile)
+    }
+
     /// Return the active profile id, or an error if none is active.
     ///
     /// Used by upcoming library/scan/queue commands.
@@ -645,6 +670,72 @@ async fn cleanup_bundled_plugin_leftovers(paths: &AppPaths) -> AppResult<()> {
     })
     .await
     .map_err(|e| AppError::Other(format!("bundled plugin cleanup join: {e}")))?
+}
+
+/// Decide whether a caller that expected `expected` may act on the
+/// currently-`active` profile. Split out of
+/// [`AppState::require_profile_pool_for`] so the rule is unit-testable —
+/// `AppState` needs an `AppHandle` and can't be built in a test.
+///
+/// Note what this does *not* cover: the value of the check comes from
+/// the caller evaluating it while holding the profile lock, which is a
+/// property of the call site, not of this function.
+fn check_expected_profile(active: Option<i64>, expected: Option<i64>) -> AppResult<()> {
+    match expected {
+        // No expectation: act on whatever is active.
+        None => Ok(()),
+        Some(expected) if active == Some(expected) => Ok(()),
+        Some(expected) => Err(AppError::ProfileChanged { expected, active }),
+    }
+}
+
+#[cfg(test)]
+mod expected_profile_tests {
+    use super::*;
+
+    #[test]
+    fn no_expectation_always_passes() {
+        assert!(check_expected_profile(Some(1), None).is_ok());
+        assert!(check_expected_profile(None, None).is_ok());
+    }
+
+    #[test]
+    fn matching_expectation_passes() {
+        assert!(check_expected_profile(Some(7), Some(7)).is_ok());
+    }
+
+    #[test]
+    fn switched_profile_is_refused() {
+        let err = check_expected_profile(Some(2), Some(1)).unwrap_err();
+        assert!(
+            matches!(
+                err,
+                AppError::ProfileChanged {
+                    expected: 1,
+                    active: Some(2)
+                }
+            ),
+            "unexpected error: {err}",
+        );
+    }
+
+    #[test]
+    fn deactivated_profile_is_refused() {
+        // `deactivate_profile` leaves no active profile; a queued write
+        // that expected one must not fall through to `NoActiveProfile`
+        // silently succeeding somewhere else.
+        let err = check_expected_profile(None, Some(1)).unwrap_err();
+        assert!(
+            matches!(
+                err,
+                AppError::ProfileChanged {
+                    expected: 1,
+                    active: None
+                }
+            ),
+            "unexpected error: {err}",
+        );
+    }
 }
 
 #[cfg(test)]
