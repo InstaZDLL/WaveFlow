@@ -57,9 +57,13 @@ export function SkinProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!activeProfile) return;
     let cancelled = false;
+    // Captured before any await so both calls stay pinned to the profile
+    // this effect ran for — `cancelled` is checked before the seeding
+    // write, not during its IPC hop (issue #485).
+    const profileId = activeProfile.id;
     (async () => {
       try {
-        const stored = await getProfileSetting(PROFILE_SETTING_KEY);
+        const stored = await getProfileSetting(PROFILE_SETTING_KEY, profileId);
         if (cancelled) return;
         if (stored) {
           const fromDb = findSkin(stored);
@@ -71,7 +75,12 @@ export function SkinProvider({ children }: { children: ReactNode }) {
         }
         // First-time seed from the currently applied skin so future
         // reads have something to anchor on.
-        await setProfileSetting(PROFILE_SETTING_KEY, skin.id, "string");
+        await setProfileSetting(
+          PROFILE_SETTING_KEY,
+          skin.id,
+          "string",
+          profileId,
+        );
       } catch (err) {
         console.warn("[SkinContext] profile-scoped skin load failed", err);
       }

@@ -81,9 +81,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!activeProfile) return;
     let cancelled = false;
+    // Captured before any await: both calls below stay pinned to the
+    // profile this effect ran for. `cancelled` alone can't cover the
+    // seeding write — it's checked before the call, and a switch landing
+    // during the IPC hop would otherwise seed THIS profile's theme into
+    // the new one (issue #485).
+    const profileId = activeProfile.id;
     (async () => {
       try {
-        const stored = await getProfileSetting(PROFILE_SETTING_KEY);
+        const stored = await getProfileSetting(PROFILE_SETTING_KEY, profileId);
         if (cancelled) return;
         if (stored) {
           const fromDb = findTheme(stored);
@@ -96,7 +102,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         // No row yet for this profile. Seed it with whatever's
         // currently applied (cache hit or default) so subsequent
         // switches have something to read back.
-        await setProfileSetting(PROFILE_SETTING_KEY, theme.id, "string");
+        await setProfileSetting(
+          PROFILE_SETTING_KEY,
+          theme.id,
+          "string",
+          profileId,
+        );
       } catch (err) {
         console.warn("[ThemeContext] profile-scoped theme load failed", err);
       }

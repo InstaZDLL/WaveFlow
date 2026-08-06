@@ -63,16 +63,40 @@ export function deleteProfile(profileId: number): Promise<void> {
   return invoke<void>("delete_profile", { profileId });
 }
 
-/** Read a single value from the active profile's `profile_setting` table. */
-export function getProfileSetting(key: string): Promise<string | null> {
-  return invoke<string | null>("get_profile_setting", { key });
+/** Read a single value from the active profile's `profile_setting` table.
+ *
+ *  Pass `expectedProfileId` to pin the read to a specific profile — see
+ *  [`setProfileSetting`] for why that matters. */
+export function getProfileSetting(
+  key: string,
+  expectedProfileId?: number | null,
+): Promise<string | null> {
+  return invoke<string | null>("get_profile_setting", {
+    key,
+    expectedProfileId: expectedProfileId ?? null,
+  });
 }
 
-/** Upsert a typed value into the active profile's `profile_setting` table. */
+/** Upsert a typed value into the active profile's `profile_setting` table.
+ *
+ *  `expectedProfileId` is the profile the caller believes is active. The
+ *  backend compares it against the live one under the same lock that
+ *  `switch_profile` takes, and rejects the write rather than letting it
+ *  land in the new profile (issue #485). **Any caller that awaits before
+ *  writing must pass it** — a JS-side "is the profile still the one I
+ *  captured?" check necessarily runs before the IPC hop, so it cannot
+ *  cover the gap on its own. Omit it for a fresh user action that targets
+ *  whatever profile is active right now. */
 export function setProfileSetting(
   key: string,
   value: string,
   valueType: "bool" | "int" | "string" | "json",
+  expectedProfileId?: number | null,
 ): Promise<void> {
-  return invoke<void>("set_profile_setting", { key, value, valueType });
+  return invoke<void>("set_profile_setting", {
+    key,
+    value,
+    valueType,
+    expectedProfileId: expectedProfileId ?? null,
+  });
 }

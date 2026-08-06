@@ -44,6 +44,15 @@ pub enum AppError {
     #[error("no profile is currently active")]
     NoActiveProfile,
 
+    /// A command was told which profile the caller believed was active
+    /// and it isn't anymore. Raised by
+    /// [`AppState::require_profile_pool_for`](crate::state::AppState::require_profile_pool_for)
+    /// so a write queued before a `switch_profile` lands nowhere instead
+    /// of in the new profile (issue #485). Callers treat it as a benign
+    /// no-op — the UI re-reads the new profile's value anyway.
+    #[error("active profile changed (expected id={expected}, active id={active:?})")]
+    ProfileChanged { expected: i64, active: Option<i64> },
+
     #[error("app data directory is unavailable")]
     MissingAppDataDir,
 

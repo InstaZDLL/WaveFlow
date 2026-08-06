@@ -337,12 +337,17 @@ pub async fn delete_profile(state: tauri::State<'_, AppState>, profile_id: i64) 
 /// Returns `None` when the key is missing — the caller is responsible
 /// for falling back to a default. Generic enough to back the UI's sort
 /// memory and single-click toggle.
+///
+/// `expected_profile_id` pins the read to the profile the caller believes
+/// is active (issue #485); see [`set_profile_setting`] for why the check
+/// has to happen here. Omit it to read from whatever is active.
 #[tauri::command]
 pub async fn get_profile_setting(
     state: tauri::State<'_, AppState>,
     key: String,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<Option<String>> {
-    let pool = state.require_profile_pool().await?;
+    let pool = state.require_profile_pool_for(expected_profile_id).await?;
     let value: Option<(String,)> =
         sqlx::query_as("SELECT value FROM profile_setting WHERE key = ?")
             .bind(&key)
@@ -353,14 +358,23 @@ pub async fn get_profile_setting(
 
 /// Upsert a `profile_setting` row. `value_type` is the typed marker
 /// stored alongside the raw string ("bool", "int", "json", ...).
+///
+/// `expected_profile_id` is the profile the caller believes is active.
+/// When set, the write is refused with [`AppError::ProfileChanged`] if a
+/// `switch_profile` happened in the meantime, instead of silently landing
+/// in the new profile (issue #485). Callers that queue writes behind an
+/// await — every preference hook does, to serialize them — must pass it:
+/// their own JS-side guard runs before the IPC hop and cannot cover the
+/// gap. Omit it for a fresh user action against whatever is active.
 #[tauri::command]
 pub async fn set_profile_setting(
     state: tauri::State<'_, AppState>,
     key: String,
     value: String,
     value_type: String,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
+    let pool = state.require_profile_pool_for(expected_profile_id).await?;
     sqlx::query(
         r#"
         INSERT INTO profile_setting (key, value, value_type, updated_at)
