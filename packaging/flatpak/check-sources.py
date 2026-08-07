@@ -33,6 +33,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GEN_DIR = REPO_ROOT / "packaging" / "flatpak" / "generated"
+PACKAGE_JSON = REPO_ROOT / "package.json"
 CARGO_LOCK = REPO_ROOT / "src-tauri" / "Cargo.lock"
 CARGO_SOURCES = GEN_DIR / "cargo-sources.json"
 NODE_SOURCES = GEN_DIR / "node-sources.json"
@@ -119,8 +120,127 @@ def check_node() -> list[str]:
     return report
 
 
+DEP_FIELDS = (
+    "dependencies",
+    "devDependencies",
+    "optionalDependencies",
+    "peerDependencies",
+)
+
+
+def check_manifest_sync() -> list[str]:
+    """package.json's direct deps must match the Flatpak lockfile's root.
+
+    `npm ci` refuses to run at all when the two disagree ("can only
+    install packages when your package.json and package-lock.json are in
+    sync"), so adding a dependency without regenerating breaks the
+    Flathub build just as surely as an undeclared crate — and the tarball
+    coverage check above can't see it, since the lockfile stays internally
+    consistent with its own sources.
+    """
+    manifest = load_json(PACKAGE_JSON)
+    root = load_json(NPM_LOCK).get("packages", {}).get("")
+    if root is None:
+        return ["package-lock.json has no root ('') package entry"]
+
+    problems = []
+    for field in DEP_FIELDS:
+        want = manifest.get(field) or {}
+        have = root.get(field) or {}
+        if want == have:
+            continue
+        added = sorted(set(want) - set(have))
+        removed = sorted(set(have) - set(want))
+        changed = sorted(
+            f"{n} ({have[n]} -> {want[n]})"
+            for n in set(want) & set(have)
+            if want[n] != have[n]
+        )
+        detail = "; ".join(
+            part
+            for part in (
+                f"missing from lock: {', '.join(added)}" if added else "",
+                f"stale in lock: {', '.join(removed)}" if removed else "",
+                f"version spec changed: {', '.join(changed)}" if changed else "",
+            )
+            if part
+        )
+        problems.append(f"package.json {field} out of sync with the lockfile — {detail}")
+    print(f"npm manifest: {len(DEP_FIELDS)} dependency fields compared against the lockfile root")
+    return problems
+
+
+def satisfies(version: str, spec: str) -> bool | None:
+    """Minimal semver range check. `None` means "spec form not handled".
+
+    Only the forms an `overrides` entry realistically uses. Anything else
+    returns None and is reported as unverified rather than failed — a
+    false alarm here would train people to ignore this script.
+    """
+    parts = version.split("-", 1)[0].split(".")
+    if len(parts) != 3 or not all(p.isdigit() for p in parts):
+        return None
+    major, minor, patch = (int(p) for p in parts)
+
+    match = re.fullmatch(r"([~^]|>=)?\s*(\d+)\.(\d+)\.(\d+)", spec.strip())
+    if not match:
+        return None
+    op, wm, wn, wp = match.group(1), *(int(g) for g in match.groups()[1:])
+    at_least = (major, minor, patch) >= (wm, wn, wp)
+    if op == "^":
+        return at_least and major == wm
+    if op == "~":
+        return at_least and (major, minor) == (wm, wn)
+    if op == ">=":
+        return at_least
+    return (major, minor, patch) == (wm, wn, wp)
+
+
+def check_overrides() -> list[str]:
+    """Every resolved copy of an overridden package must satisfy the pin.
+
+    Checked against the resolved tree, not against a root `overrides`
+    field: npm doesn't echo `overrides` into the lockfile, so there is
+    nothing to compare it to. The pin only means something if the
+    versions npm actually resolved obey it — which is the property the
+    Flathub build depends on (the fast-uri advisory, #489).
+    """
+    overrides = load_json(PACKAGE_JSON).get("overrides") or {}
+    if not overrides:
+        return []
+    packages = load_json(NPM_LOCK).get("packages", {})
+    problems, checked, skipped = [], 0, []
+    for name, spec in overrides.items():
+        if not isinstance(spec, str):
+            # Nested form ({".": "1", "sub": "2"}) — out of scope.
+            skipped.append(f"{name} (nested override)")
+            continue
+        resolved = {
+            path.rsplit("node_modules/", 1)[-1]: pkg.get("version")
+            for path, pkg in packages.items()
+            if path.rsplit("node_modules/", 1)[-1] == name and pkg.get("version")
+        }
+        if not resolved:
+            # Overriding something the tree no longer pulls in is dead
+            # weight, not a build failure — say so without failing.
+            skipped.append(f"{name} (not in the tree)")
+            continue
+        for version in set(resolved.values()):
+            verdict = satisfies(version, spec)
+            if verdict is None:
+                skipped.append(f"{name} (unhandled spec {spec!r})")
+            elif not verdict:
+                problems.append(
+                    f"override {name}@{spec} not honoured — lockfile resolves {version}"
+                )
+            else:
+                checked += 1
+    print(f"npm overrides: {checked} resolution(s) verified" + (f", skipped: {'; '.join(skipped)}" if skipped else ""))
+    return problems
+
+
 def main() -> int:
-    problems = check_cargo() + check_node()
+    problems = check_cargo() + check_node() + check_manifest_sync() + check_overrides()
     if problems:
         print()
         for line in problems:
