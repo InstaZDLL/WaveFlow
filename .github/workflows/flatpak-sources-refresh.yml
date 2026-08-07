@@ -44,6 +44,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
         with:
+          # `workflow_dispatch` can be pointed at any branch, but the PR
+          # below always targets main — generating from another branch's
+          # lockfiles would produce sources that don't match the base.
+          # Pin the content to main so the two always agree (and so the
+          # "default branch only" claim in the header holds).
+          ref: main
           # Keep the job's token out of .git/config, where every later
           # step (and anything they execute — this job runs `npm install`
           # and `pip install`) could read it. The push step re-supplies

@@ -162,6 +162,13 @@ jobs:
       # ranges against the live registry, so "regenerate and diff" would go
       # red whenever any transitive dependency publishes, with nothing
       # wrong in the repo. Refreshing is `flatpak-sources-refresh.yml`'s job.
+      # The semver range logic behind the `overrides` check is the only
+      # non-obvious code in the script, and it's the kind that fails
+      # permissively (accepting a version npm would reject) — so it gets
+      # its own table of boundary cases.
+      - name: check-sources self-test
+        run: python3 packaging/flatpak/check-sources.py --self-test
+
       - name: Check generated sources cover the lockfiles
         run: python3 packaging/flatpak/check-sources.py
 

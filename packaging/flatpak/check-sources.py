@@ -171,29 +171,45 @@ def check_manifest_sync() -> list[str]:
 
 
 def satisfies(version: str, spec: str) -> bool | None:
-    """Minimal semver range check. `None` means "spec form not handled".
+    """Minimal semver range check. `None` means "can't tell, don't fail".
 
-    Only the forms an `overrides` entry realistically uses. Anything else
-    returns None and is reported as unverified rather than failed — a
-    false alarm here would train people to ignore this script.
+    Covers only the forms an `overrides` entry realistically uses.
+    Anything else — including any prerelease version, which npm excludes
+    from ranges unless the range itself is a prerelease — comes back as
+    None and is reported as unverified rather than failed: a false alarm
+    here would train people to ignore this script.
     """
-    parts = version.split("-", 1)[0].split(".")
+    if "-" in version:  # prerelease: npm's rules differ, don't guess
+        return None
+    parts = version.split(".")
     if len(parts) != 3 or not all(p.isdigit() for p in parts):
         return None
-    major, minor, patch = (int(p) for p in parts)
+    have = tuple(int(p) for p in parts)
 
-    match = re.fullmatch(r"([~^]|>=)?\s*(\d+)\.(\d+)\.(\d+)", spec.strip())
+    match = re.fullmatch(r"([~^]|>=|=)?\s*v?(\d+)\.(\d+)\.(\d+)", spec.strip())
     if not match:
         return None
-    op, wm, wn, wp = match.group(1), *(int(g) for g in match.groups()[1:])
-    at_least = (major, minor, patch) >= (wm, wn, wp)
-    if op == "^":
-        return at_least and major == wm
-    if op == "~":
-        return at_least and (major, minor) == (wm, wn)
+    op = match.group(1)
+    want = tuple(int(g) for g in match.groups()[1:])
+
     if op == ">=":
-        return at_least
-    return (major, minor, patch) == (wm, wn, wp)
+        return have >= want
+    if op in (None, "="):
+        return have == want
+
+    # Upper bound, following npm's caret rules — which are NOT simply
+    # "same major": below 1.0.0 the leftmost non-zero component is the
+    # one pinned, because a 0.x bump is allowed to break.
+    wm, wn, wp = want
+    if op == "~":
+        upper = (wm, wn + 1, 0)
+    elif wm > 0:
+        upper = (wm + 1, 0, 0)
+    elif wn > 0:
+        upper = (0, wn + 1, 0)
+    else:
+        upper = (0, 0, wp + 1)
+    return want <= have < upper
 
 
 def check_overrides() -> list[str]:
@@ -215,8 +231,13 @@ def check_overrides() -> list[str]:
             # Nested form ({".": "1", "sub": "2"}) — out of scope.
             skipped.append(f"{name} (nested override)")
             continue
+        # Every copy, not one per name: npm nests a second copy under
+        # `node_modules/<dep>/node_modules/<name>` when versions conflict,
+        # and keying by name would let one silently replace the other —
+        # so a nested, unpatched copy could slip through the very check
+        # meant to catch it.
         resolved = {
-            path.rsplit("node_modules/", 1)[-1]: pkg.get("version")
+            pkg["version"]
             for path, pkg in packages.items()
             if path.rsplit("node_modules/", 1)[-1] == name and pkg.get("version")
         }
@@ -225,7 +246,7 @@ def check_overrides() -> list[str]:
             # weight, not a build failure — say so without failing.
             skipped.append(f"{name} (not in the tree)")
             continue
-        for version in set(resolved.values()):
+        for version in sorted(resolved):
             verdict = satisfies(version, spec)
             if verdict is None:
                 skipped.append(f"{name} (unhandled spec {spec!r})")
@@ -239,7 +260,55 @@ def check_overrides() -> list[str]:
     return problems
 
 
+def self_test() -> int:
+    """Exercise `satisfies` — the only non-obvious logic in here.
+
+    Each caret case pins the boundary *and* the first version past it,
+    because the bug worth catching is an over-permissive upper bound
+    (silently accepting a version npm would have rejected).
+    """
+    cases: list[tuple[str, str, bool | None]] = [
+        # caret, major >= 1 — pinned to the major
+        ("3.1.5", "^3.1.5", True),
+        ("3.9.0", "^3.1.5", True),
+        ("3.1.4", "^3.1.5", False),
+        ("4.0.0", "^3.1.5", False),
+        # caret, 0.x — pinned to the minor
+        ("0.1.2", "^0.1.2", True),
+        ("0.1.99", "^0.1.2", True),
+        ("0.1.1", "^0.1.2", False),
+        ("0.2.0", "^0.1.2", False),
+        # caret, 0.0.x — pinned to the exact patch
+        ("0.0.3", "^0.0.3", True),
+        ("0.0.4", "^0.0.3", False),
+        ("0.1.0", "^0.0.3", False),
+        # tilde — pinned to the minor whatever the major
+        ("1.2.9", "~1.2.3", True),
+        ("1.3.0", "~1.2.3", False),
+        ("1.2.2", "~1.2.3", False),
+        # comparators + exact
+        ("9.9.9", ">=1.0.0", True),
+        ("0.9.9", ">=1.0.0", False),
+        ("2.0.0", "2.0.0", True),
+        ("2.0.1", "2.0.0", False),
+        # unverifiable: prerelease version, or a range form we don't parse
+        ("3.1.5-rc.1", "^3.1.5", None),
+        ("3.1.5", "3.x", None),
+        ("3.1.5", ">1.0.0 <4.0.0", None),
+    ]
+    failures = 0
+    for version, spec, expected in cases:
+        got = satisfies(version, spec)
+        if got is not expected:
+            failures += 1
+            print(f"::error::satisfies({version!r}, {spec!r}) = {got!r}, expected {expected!r}")
+    print(f"self-test: {len(cases) - failures}/{len(cases)} semver cases passed")
+    return 1 if failures else 0
+
+
 def main() -> int:
+    if "--self-test" in sys.argv:
+        return self_test()
     problems = check_cargo() + check_node() + check_manifest_sync() + check_overrides()
     if problems:
         print()
