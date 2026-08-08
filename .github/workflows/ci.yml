@@ -20,6 +20,7 @@ jobs:
     timeout-minutes: 2
     outputs:
       rust: ${{ steps.filter.outputs.rust }}
+      flatpak: ${{ steps.filter.outputs.flatpak }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
       - id: filter
@@ -33,6 +34,11 @@ jobs:
           filters: |
             rust:
               - 'src-tauri/**'
+              - '.github/workflows/ci.yml'
+            flatpak:
+              - 'src-tauri/Cargo.lock'
+              - 'package.json'
+              - 'packaging/flatpak/**'
               - '.github/workflows/ci.yml'
 
   rust:
@@ -131,6 +137,40 @@ jobs:
           --manifest-path src-tauri/Cargo.toml
           -p waveflow-core
           --features sqlite
+
+  flatpak-sources:
+    name: Flatpak sources
+    needs: changes
+    if: needs.changes.outputs.flatpak == 'true'
+    runs-on: ubuntu-latest
+    # Pure JSON/regex comparison — no network, no venv, no npm. Seconds.
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          # Nothing here pushes; leaving the token out of .git/config
+          # keeps it away from the checked-out code entirely.
+          persist-credentials: false
+
+      # Flathub builds with the network disabled, so a lockfile bump that
+      # skipped `generate-sources.sh` doesn't fail in CI — it fails inside
+      # Flathub's sandbox on a crate nobody can download. That already
+      # happened once (23be643 left 53 crates undeclared), which is why
+      # this guard exists.
+      #
+      # Coverage only, never freshness: `generate-sources.sh` resolves `^`
+      # ranges against the live registry, so "regenerate and diff" would go
+      # red whenever any transitive dependency publishes, with nothing
+      # wrong in the repo. Refreshing is `flatpak-sources-refresh.yml`'s job.
+      # The semver range logic behind the `overrides` check is the only
+      # non-obvious code in the script, and it's the kind that fails
+      # permissively (accepting a version npm would reject) — so it gets
+      # its own table of boundary cases.
+      - name: check-sources self-test
+        run: python3 packaging/flatpak/check-sources.py --self-test
+
+      - name: Check generated sources cover the lockfiles
+        run: python3 packaging/flatpak/check-sources.py
 
   frontend:
     name: Frontend

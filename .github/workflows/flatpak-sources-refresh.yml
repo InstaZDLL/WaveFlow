@@ -1,0 +1,273 @@
+name: Refresh Flatpak sources
+
+# Regenerates the offline Flatpak source manifests and opens a PR when
+# they moved.
+#
+# Two jobs share the work with `packaging/flatpak/check-sources.py`:
+# CI *guards the invariant* (every crate/tarball the build needs is
+# declared) on any PR touching a lockfile, and this workflow *refreshes*
+# the manifests on a schedule. The split exists because the generator is
+# not deterministic: it runs `npm install --package-lock-only`, which
+# resolves `^` ranges against the registry as it is right now, so a
+# "regenerate and diff the tree" check would go red the moment any
+# transitive dependency publishes. Freshness is a periodic chore, not a
+# per-PR gate.
+#
+# Runs on the default branch only (schedule + manual dispatch), so no
+# untrusted code reaches the generator — it executes `npm install`
+# (with --ignore-scripts) and `pip install` from a pinned upstream
+# commit.
+#
+# Two constraints from the `Main` ruleset shape how the PR is produced:
+#
+#   1. `required_signatures` — a commit made with `git commit` in a
+#      runner is unsigned, and an unsigned commit in the branch blocks
+#      the merge. So the commit is built through the Git Data API, which
+#      GitHub signs with its own key. Same approach as
+#      `release-please-bump-lockfile.yml`.
+#   2. `code_scanning` + `code_quality` require checks that only run on
+#      a `pull_request` event — and events raised by `GITHUB_TOKEN`
+#      deliberately don't start workflow runs. Set the `APP_ID` +
+#      `APP_PRIVATE_KEY` secrets (a GitHub App with contents:write +
+#      pull-requests:write on this repo) and the PR is opened as that
+#      App, so CI fires normally. Without them the workflow still works,
+#      but the PR needs a close/reopen to kick CI off — the body says so.
+
+"on":
+  schedule:
+    # 04:00 UTC on the 3rd of each month. Off-hours, and clear of the
+    # 1st so it doesn't collide with other month-boundary automation.
+    - cron: "0 4 3 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: flatpak-sources-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Regenerate + open PR
+    runs-on: ubuntu-latest
+    # The cargo generator fetches metadata for ~800 crates and the node
+    # one hashes every tarball; ~15 min is typical, 40 leaves headroom
+    # for a slow registry rather than failing a chore run.
+    timeout-minutes: 40
+    # Job-level, so the step below can read it in its `if`: a step's own
+    # `env` block isn't in scope for its own condition.
+    env:
+      APP_ID: ${{ secrets.APP_ID }}
+    steps:
+      # Optional: mint an App token so the PR is opened by the App and CI
+      # actually runs on it. Skipped — everything falls back to
+      # GITHUB_TOKEN — when the secrets aren't configured.
+      - id: app-token
+        if: env.APP_ID != ''
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          # Narrow the minted token to what this job actually does —
+          # contents for the blob/tree/commit/ref writes, pull-requests
+          # for `gh pr create`. Without these it inherits every permission
+          # the App holds on the repo.
+          permission-contents: write
+          permission-pull-requests: write
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          # `workflow_dispatch` can be pointed at any branch, but the PR
+          # below always targets main — generating from another branch's
+          # lockfiles would produce sources that don't match the base.
+          # Pin the content to main so the two always agree (and so the
+          # "default branch only" claim in the header holds).
+          ref: main
+          # Keep the job's token out of .git/config, where every later
+          # step (and anything they execute — this job runs `npm install`
+          # and `pip install`) could read it. The push step re-supplies
+          # credentials through `gh auth setup-git` instead.
+          persist-credentials: false
+
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: 22
+
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Regenerate sources
+        run: bash packaging/flatpak/generate-sources.sh
+
+      # Belt and braces: the generator is what we just ran, so this
+      # should always pass — but opening a PR that fails the very check
+      # CI runs on it would be worse than failing here.
+      - name: Verify the result
+        run: python3 packaging/flatpak/check-sources.py
+
+      - name: Detect changes
+        id: diff
+        run: |
+          if git diff --quiet -- packaging/flatpak/generated/; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Sources already up to date."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --stat -- packaging/flatpak/generated/
+          fi
+
+      # Built through the Git Data API rather than `git commit` + `git
+      # push`: the API signs the commit with GitHub's key, and the
+      # ruleset's `required_signatures` rejects a merge whose branch
+      # carries unsigned commits. Mirrors
+      # `release-please-bump-lockfile.yml`, which exists for the same
+      # reason.
+      - name: Push a signed commit to the branch
+        id: commit
+        if: steps.diff.outputs.changed == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          BRANCH: chore/flatpak-sources-refresh
+        with:
+          github-token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const branch = process.env.BRANCH;
+            const { owner, repo } = context.repo;
+            const files = [
+              'packaging/flatpak/generated/cargo-sources.json',
+              'packaging/flatpak/generated/node-sources.json',
+              'packaging/flatpak/generated/package-lock.json',
+            ];
+
+            const base = await github.rest.repos.getBranch({ owner, repo, branch: 'main' });
+            const parent = base.data.commit.sha;
+
+            const tree = await github.rest.git.createTree({
+              owner, repo,
+              base_tree: parent,
+              tree: await Promise.all(files.map(async (path) => {
+                const blob = await github.rest.git.createBlob({
+                  owner, repo,
+                  content: fs.readFileSync(path).toString('base64'),
+                  encoding: 'base64',
+                });
+                return { path, mode: '100644', type: 'blob', sha: blob.data.sha };
+              })),
+            });
+
+            // The generator can emit byte-identical output even when the
+            // working tree looked dirty (whitespace, ordering); if the
+            // tree matches main there is nothing worth a PR.
+            if (tree.data.sha === base.data.commit.commit.tree.sha) {
+              core.info('Regenerated sources match main — nothing to push.');
+              core.setOutput('pushed', 'false');
+              return;
+            }
+
+            const commit = await github.rest.git.createCommit({
+              owner, repo,
+              message: [
+                'chore(flatpak): refresh generated sources',
+                '',
+                'Regenerated by the monthly Refresh Flatpak sources workflow.',
+                '',
+                'Cargo entries follow src-tauri/Cargo.lock; npm entries re-resolve',
+                'package.json against the registry, so this also bumps transitive',
+                'frontend deps for the Flathub build.',
+              ].join('\n'),
+              tree: tree.data.sha,
+              parents: [parent],
+            });
+
+            // Don't take the signature on faith. GitHub signs commits
+            // created through this API — verified against an existing
+            // release-please commit (dcd72805, `verified: true`,
+            // `reason: valid`) — but if that ever stops being true, the
+            // PR would be unmergeable under `required_signatures` and the
+            // cause would be invisible. Re-read the commit rather than
+            // trusting the create response, so the check reflects what
+            // the API will report to the merge button.
+            const stored = await github.rest.git.getCommit({
+              owner, repo, commit_sha: commit.data.sha,
+            });
+            const verification = stored.data.verification || {};
+            if (!verification.verified) {
+              core.setFailed(
+                `Commit ${commit.data.sha} is not verified (reason: ${verification.reason ?? 'unknown'}). ` +
+                'The branch was left untouched — an unsigned commit would block the merge ' +
+                'under the Main ruleset.',
+              );
+              return;
+            }
+
+            // Re-point the branch at the fresh commit, creating it on the
+            // first run. `force` is safe here: the branch is owned by this
+            // workflow, the concurrency group serialises runs, and the
+            // parent is always current main.
+            const ref = `heads/${branch}`;
+            try {
+              await github.rest.git.getRef({ owner, repo, ref });
+              await github.rest.git.updateRef({ owner, repo, ref, sha: commit.data.sha, force: true });
+            } catch (err) {
+              if (err.status !== 404) throw err;
+              await github.rest.git.createRef({ owner, repo, ref: `refs/${ref}`, sha: commit.data.sha });
+            }
+            core.info(`Pushed signed commit ${commit.data.sha} to ${branch}`);
+            core.setOutput('pushed', 'true');
+
+      - name: Open PR
+        # Gated on the commit step's own verdict, not just on a dirty tree:
+        # the regenerated files can be byte-identical to main even when
+        # `git diff` flagged something, and there's no PR to open then.
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          BRANCH: chore/flatpak-sources-refresh
+          # 'yes' when no App token was minted. Note the operand order:
+          # `token && '' || 'yes'` would always yield 'yes', since the
+          # empty string is falsy.
+          FALLBACK_TOKEN: ${{ steps.app-token.outputs.token && 'no' || 'yes' }}
+        run: |
+          set -euo pipefail
+          # Reuse the existing PR when the branch already had one open —
+          # the ref update above moved it in place.
+          existing=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')
+          if [ -n "$existing" ]; then
+            echo "PR #$existing updated by the ref update."
+            exit 0
+          fi
+
+          cat > /tmp/pr-body.md <<'BODY'
+          Automated monthly refresh of the offline Flatpak source manifests.
+
+          - `cargo-sources.json` follows `src-tauri/Cargo.lock` exactly.
+          - `node-sources.json` + `package-lock.json` re-resolve `package.json`
+            against the npm registry, so this also bumps transitive frontend
+            dependencies **for the Flathub build only** — the app itself is
+            built from `bun.lock`, the Flatpak sandbox runs `npm ci --offline`.
+
+          `packaging/flatpak/check-sources.py` passed in the generating run,
+          and the commit is signed (created through the Git Data API) so the
+          `required_signatures` rule doesn't block the merge.
+          BODY
+
+          if [ "$FALLBACK_TOKEN" = "yes" ]; then
+            cat >> /tmp/pr-body.md <<'BODY'
+
+          ⚠️ Opened with `GITHUB_TOKEN`, which by design doesn't start workflow
+          runs — **CI has not run on this PR**, and the ruleset requires code
+          scanning to pass. Close and reopen the PR to kick everything off, or
+          configure the `APP_ID` / `APP_PRIVATE_KEY` secrets so future runs open
+          the PR as a GitHub App and CI fires on its own.
+          BODY
+          fi
+
+          gh pr create \
+            --title "chore(flatpak): refresh generated sources" \
+            --body-file /tmp/pr-body.md \
+            --base main \
+            --head "$BRANCH"
