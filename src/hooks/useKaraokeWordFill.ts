@@ -6,6 +6,11 @@ import type { LyricsWord } from "../lib/tauri/lyrics";
 /** CSS custom property the fill layer's `clip-path` reads. */
 const FILL_VAR = "--kw-fill";
 
+/** Monotonic clock, guarded for non-browser hosts (tests). */
+function now(): number {
+  return typeof performance !== "undefined" ? performance.now() : 0;
+}
+
 /**
  * Drives the progressive sweep across the active karaoke word (issue
  * #491) — a continuous fill rather than the per-word step the column
@@ -42,29 +47,53 @@ export function useKaraokeWordFill(word: LyricsWord | null | undefined) {
   const reduceMotion = usePrefersReducedMotion();
 
   const elRef = useRef<HTMLElement | null>(null);
-  // Latest position event + when it landed, so a frame can estimate
-  // "now" between two events instead of waiting for the next one.
-  const anchorRef = useRef({ positionMs, at: 0 });
+  // The point the loop extrapolates from: a position, the moment we
+  // adopted it, and the speed in force from that moment on. `at` is
+  // seeded on the first render so the very first frame doesn't measure
+  // the whole page lifetime as elapsed playback.
+  const anchorRef = useRef({ positionMs, at: now(), speed: playbackSpeed });
+  // What the last position *event* carried, so we can tell "the backend
+  // told us something new" from "only the speed or play state changed".
+  const lastEventPositionRef = useRef(positionMs);
+  const wasPlayingRef = useRef(isPlaying);
 
-  // Re-anchored on `isPlaying` as well as on `positionMs`: the backend
-  // stops emitting positions while paused, so `at` would still be dated
-  // from before the pause. Resuming after a 30 s pause would then measure
-  // 30 s of "elapsed" playback and slam the fill to 100 % until the next
-  // event arrived (≤ 250 ms later) — a visible flash on every resume.
   useEffect(() => {
+    const at = now();
+    const previous = anchorRef.current;
+    const fromEvent = positionMs !== lastEventPositionRef.current;
+    lastEventPositionRef.current = positionMs;
+    // Where the fill had actually reached, advanced with the speed that
+    // was in force — not the one that just took effect.
+    const carried =
+      previous.positionMs +
+      (wasPlayingRef.current
+        ? Math.max(0, at - previous.at) * previous.speed
+        : 0);
+    wasPlayingRef.current = isPlaying;
     anchorRef.current = {
-      positionMs,
-      at: typeof performance !== "undefined" ? performance.now() : 0,
+      // A fresh position from the backend is authoritative. Otherwise the
+      // trigger was a speed change or a play/pause, and re-anchoring on
+      // `positionMs` would discard up to 250 ms of already-extrapolated
+      // progress — the fill would visibly jump backwards on every pause
+      // and every speed change. Carrying the extrapolated value over also
+      // means a resume excludes the paused time for free: `at` is reset
+      // here, so `elapsed` restarts at zero.
+      positionMs: fromEvent ? positionMs : carried,
+      at,
+      speed: playbackSpeed,
     };
-  }, [positionMs, isPlaying]);
+  }, [positionMs, isPlaying, playbackSpeed]);
 
   const start = word?.timeMs ?? -1;
   const end = word?.endMs ?? -1;
-  // A word needs a real, forward-going span to sweep across. `endMs` is
-  // normally filled in by `fillLineAndWordEnds`, but the last word of the
-  // last line can stay -1, and a sloppy source can stamp two words at the
-  // same millisecond.
-  const hasSpan = start >= 0 && end > start;
+  // A word needs a real, forward-going, *finite* span to sweep across.
+  // `endMs` is normally filled in by `fillLineAndWordEnds`, but the last
+  // word of the last line can stay -1, a sloppy source can stamp two
+  // words at the same millisecond, and `LyricsWord`'s contract allows
+  // `+∞` for a final word — which passes `end > start` while making every
+  // ratio 0, so the word would never light up at all.
+  const hasSpan =
+    Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end > start;
 
   useEffect(() => {
     const el = elRef.current;
@@ -79,20 +108,21 @@ export function useKaraokeWordFill(word: LyricsWord | null | undefined) {
     let raf = 0;
     const paint = () => {
       const anchor = anchorRef.current;
-      const now = typeof performance !== "undefined" ? performance.now() : 0;
       // Only extrapolate while actually playing: paused, the fill must
       // hold where it is instead of drifting to the end of the word.
-      const elapsed = isPlaying ? Math.max(0, now - anchor.at) : 0;
-      const estimated = anchor.positionMs + elapsed * playbackSpeed;
+      const elapsed = isPlaying ? Math.max(0, now() - anchor.at) : 0;
+      // The anchor's own speed, not the live one — they differ for the
+      // frames between a speed change and the next position event.
+      const estimated = anchor.positionMs + elapsed * anchor.speed;
       const ratio = (estimated - start) / (end - start);
       const clamped = ratio <= 0 ? 0 : ratio >= 1 ? 1 : ratio;
       el.style.setProperty(FILL_VAR, `${(clamped * 100).toFixed(2)}%`);
-      // Keep looping for as long as playback runs, even at 100 %: a seek
-      // *backwards inside the same word* changes neither the bounds nor
-      // `isPlaying`, so stopping at full would leave the fill stuck there
-      // until the active word changed. One callback writing one string
-      // per frame is cheaper than that bug.
-      if (isPlaying) raf = requestAnimationFrame(paint);
+      // Stop at a full word: there is nothing left to move, and a long
+      // word would otherwise hold a frame callback for its whole tail.
+      // Safe because `positionMs` is a dependency of this effect — a seek
+      // backwards inside the same word re-runs it and repaints from the
+      // new anchor, which is what stopping here used to break.
+      if (isPlaying && clamped < 1) raf = requestAnimationFrame(paint);
     };
     paint();
 
