@@ -198,6 +198,34 @@
   }
 }
 
+/* Progressive karaoke word fill (issue #491) — Apple Music's sweep
+   across the word being sung, instead of a step at the word boundary.
+
+   Two stacked copies of the same text: `__base` is the unsung state and
+   carries the accessible text, `__fill` is the sung state clipped to
+   `--kw-fill` (0-100 %, written every frame by `useKaraokeWordFill`
+   straight on the element — no React re-render per frame).
+
+   The clip reveals left-to-right. Right-to-left lyrics therefore fill
+   from the wrong edge; the word-level highlight has the same limitation
+   today, so it's not a regression — worth its own issue rather than a
+   half-measure here. */
+.karaoke-word {
+  position: relative;
+  display: inline-block;
+}
+
+.karaoke-word__fill {
+  position: absolute;
+  inset: 0;
+  /* Collapsed until the hook sets the variable, so a word with no usable
+     duration (or reduced motion) simply shows the base layer. */
+  clip-path: inset(0 calc(100% - var(--kw-fill, 0%)) 0 0);
+  /* No transition: the variable already moves once per frame, and
+     easing on top of that reads as lag. */
+  pointer-events: none;
+}
+
 /* Artist hero backdrop cross-fade (issue #482) — opacity only, so a
    fanart swapping in over the blurred-photo fallback dissolves instead
    of popping. Skipped entirely under `prefers-reduced-motion`. */
