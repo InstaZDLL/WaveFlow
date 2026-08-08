@@ -5,6 +5,7 @@ import { Artwork } from "../common/Artwork";
 import type { Track } from "../../lib/tauri/track";
 import type { LyricsLine, LyricsPayload } from "../../lib/tauri/lyrics";
 import { useFullscreenLyricsCentering } from "../../hooks/useFullscreenLyricsCentering";
+import { useKaraokeWordFill } from "../../hooks/useKaraokeWordFill";
 
 interface ImmersiveLyricsColumnProps {
   track: Track;
@@ -66,6 +67,11 @@ export function ImmersiveLyricsColumn({
   // Per-profile opt-in (#168). Default OFF — see the hook.
   const { centered: syncCentered } = useFullscreenLyricsCentering();
   const lineRefs = useRef<Array<HTMLLIElement | null>>([]);
+  // Ref for the word currently being sung — attached to that word only,
+  // so moving it is what tells the hook to sweep the next one (issue #491).
+  const wordFillRef = useKaraokeWordFill(
+    isSynced ? lrcLines[activeIndex]?.words?.[activeWordIndex] : undefined,
+  );
 
   // Keep the active line vertically centered. Own ref array so this
   // scroller and the side panel can scroll independently.
@@ -210,6 +216,7 @@ export function ImmersiveLyricsColumn({
                                 : wi < activeWordIndex
                                   ? "past"
                                   : "future";
+                            const isActiveWord = wState === "active";
                             // Render a literal space between adjacent word
                             // boxes — `inline-block` strips the JSX
                             // whitespace and many Enhanced LRC sources omit
@@ -217,23 +224,48 @@ export function ImmersiveLyricsColumn({
                             return (
                               <Fragment key={wi}>
                                 <span
+                                  className="karaoke-word"
                                   style={{
-                                    opacity:
-                                      wState === "active"
-                                        ? 1
-                                        : wState === "past"
-                                          ? 0.8
-                                          : 0.45,
-                                    transform:
-                                      wState === "active"
-                                        ? "scale(1.04)"
-                                        : "scale(1)",
-                                    display: "inline-block",
-                                    transition:
-                                      "opacity 150ms ease, transform 150ms ease",
+                                    // Opacity lives on the layers, not
+                                    // here: a parent's opacity applies to
+                                    // its whole subtree, so dimming the
+                                    // box would dim the sung overlay with
+                                    // it and no fill would ever read as
+                                    // brighter than the unsung text.
+                                    transform: isActiveWord
+                                      ? "scale(1.04)"
+                                      : "scale(1)",
+                                    transition: "transform 150ms ease",
                                   }}
                                 >
-                                  {word.text}
+                                  <span
+                                    style={{
+                                      opacity:
+                                        wState === "past"
+                                          ? 0.8
+                                          : isActiveWord
+                                            ? 0.5
+                                            : 0.45,
+                                      transition: "opacity 150ms ease",
+                                    }}
+                                  >
+                                    {word.text}
+                                  </span>
+                                  {isActiveWord && (
+                                    // Sung overlay, clipped to the fill
+                                    // fraction. `aria-hidden` because the
+                                    // base layer above already carries the
+                                    // text for assistive tech — without it
+                                    // a screen reader would read the word
+                                    // twice.
+                                    <span
+                                      ref={wordFillRef}
+                                      aria-hidden="true"
+                                      className="karaoke-word__fill"
+                                    >
+                                      {word.text}
+                                    </span>
+                                  )}
                                 </span>
                                 {wi < line.words!.length - 1 && " "}
                               </Fragment>
