@@ -46,12 +46,17 @@ export function useKaraokeWordFill(word: LyricsWord | null | undefined) {
   // "now" between two events instead of waiting for the next one.
   const anchorRef = useRef({ positionMs, at: 0 });
 
+  // Re-anchored on `isPlaying` as well as on `positionMs`: the backend
+  // stops emitting positions while paused, so `at` would still be dated
+  // from before the pause. Resuming after a 30 s pause would then measure
+  // 30 s of "elapsed" playback and slam the fill to 100 % until the next
+  // event arrived (≤ 250 ms later) — a visible flash on every resume.
   useEffect(() => {
     anchorRef.current = {
       positionMs,
       at: typeof performance !== "undefined" ? performance.now() : 0,
     };
-  }, [positionMs]);
+  }, [positionMs, isPlaying]);
 
   const start = word?.timeMs ?? -1;
   const end = word?.endMs ?? -1;
