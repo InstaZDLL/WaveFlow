@@ -70,6 +70,12 @@ jobs:
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          # Narrow the minted token to what this job actually does —
+          # contents for the blob/tree/commit/ref writes, pull-requests
+          # for `gh pr create`. Without these it inherits every permission
+          # the App holds on the repo.
+          permission-contents: write
+          permission-pull-requests: write
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
         with:
@@ -176,6 +182,27 @@ jobs:
               tree: tree.data.sha,
               parents: [parent],
             });
+
+            // Don't take the signature on faith. GitHub signs commits
+            // created through this API — verified against an existing
+            // release-please commit (dcd72805, `verified: true`,
+            // `reason: valid`) — but if that ever stops being true, the
+            // PR would be unmergeable under `required_signatures` and the
+            // cause would be invisible. Re-read the commit rather than
+            // trusting the create response, so the check reflects what
+            // the API will report to the merge button.
+            const stored = await github.rest.git.getCommit({
+              owner, repo, commit_sha: commit.data.sha,
+            });
+            const verification = stored.data.verification || {};
+            if (!verification.verified) {
+              core.setFailed(
+                `Commit ${commit.data.sha} is not verified (reason: ${verification.reason ?? 'unknown'}). ` +
+                'The branch was left untouched — an unsigned commit would block the merge ' +
+                'under the Main ruleset.',
+              );
+              return;
+            }
 
             // Re-point the branch at the fresh commit, creating it on the
             // first run. `force` is safe here: the branch is owned by this
