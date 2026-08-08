@@ -8,8 +8,8 @@ const FILL_VAR = "--kw-fill";
 
 /**
  * Drives the progressive sweep across the active karaoke word (issue
- * #491) — Apple Music's continuous fill rather than the per-word step
- * the column used before.
+ * #491) — a continuous fill rather than the per-word step the column
+ * used before.
  *
  * Two problems this solves, both invisible in a naive implementation:
  *

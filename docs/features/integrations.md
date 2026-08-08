@@ -170,7 +170,7 @@ WaveFlow recognises two word-timed formats in addition to plain LRC:
 
 **Rendering** — [`LyricsPanel`](../../src/components/layout/LyricsPanel.tsx) and [`ImmersiveLyricsColumn`](../../src/components/player/ImmersiveLyricsColumn.tsx) both animate the active word: 150 ms transitions on color / opacity / transform, `scale(1.04)` on the active word, and an opacity ramp for future / past words. The panel adds an accent-color tint that the fullscreen view leaves out (the white-on-dark contrast is enough there). Lines without `words` keep the existing line-level highlight.
 
-**Progressive fill (issue #491)** — the immersive column goes further and sweeps *inside* the word being sung, Apple-Music-style, instead of switching states at the word boundary. Two stacked copies of the word: the base layer carries the accessible text at unsung opacity, and an `aria-hidden` overlay (the sung state) is clipped to a `--kw-fill` percentage. Without the `aria-hidden` a screen reader would announce every active word twice.
+**Progressive fill (issue #491)** — the immersive column goes further and sweeps *inside* the word being sung, instead of switching states at the word boundary. Two stacked copies of the word: the base layer carries the accessible text at unsung opacity, and an `aria-hidden` overlay (the sung state) is clipped to a `--kw-fill` percentage. Without the `aria-hidden` a screen reader would announce every active word twice.
 
 The percentage comes from [`useKaraokeWordFill`](../../src/hooks/useKaraokeWordFill.ts), and two constraints shape it:
 

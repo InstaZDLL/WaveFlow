@@ -198,7 +198,7 @@
   }
 }
 
-/* Progressive karaoke word fill (issue #491) — Apple Music's sweep
+/* Progressive karaoke word fill (issue #491) — a continuous sweep
    across the word being sung, instead of a step at the word boundary.
 
    Two stacked copies of the same text: `__base` is the unsung state and
