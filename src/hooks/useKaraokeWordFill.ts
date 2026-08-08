@@ -82,9 +82,12 @@ export function useKaraokeWordFill(word: LyricsWord | null | undefined) {
       const ratio = (estimated - start) / (end - start);
       const clamped = ratio <= 0 ? 0 : ratio >= 1 ? 1 : ratio;
       el.style.setProperty(FILL_VAR, `${(clamped * 100).toFixed(2)}%`);
-      // Once the word is full there is nothing left to animate; the next
-      // word remounts this ref and starts its own loop.
-      if (clamped < 1 && isPlaying) raf = requestAnimationFrame(paint);
+      // Keep looping for as long as playback runs, even at 100 %: a seek
+      // *backwards inside the same word* changes neither the bounds nor
+      // `isPlaying`, so stopping at full would leave the fill stuck there
+      // until the active word changed. One callback writing one string
+      // per frame is cheaper than that bug.
+      if (isPlaying) raf = requestAnimationFrame(paint);
     };
     paint();
 
@@ -94,7 +97,11 @@ export function useKaraokeWordFill(word: LyricsWord | null | undefined) {
       // a different word before React drops it.
       el.style.removeProperty(FILL_VAR);
     };
-  }, [start, end, hasSpan, isPlaying, playbackSpeed, reduceMotion]);
+    // `positionMs` is a dependency on purpose. It only changes at 4 Hz, so
+    // re-running this is cheap, and it's what repaints after a seek while
+    // *paused* — no loop is running then, and the anchor effect above
+    // updates a ref, which by itself repaints nothing.
+  }, [start, end, hasSpan, isPlaying, playbackSpeed, reduceMotion, positionMs]);
 
   return useCallback((el: HTMLElement | null) => {
     elRef.current = el;
