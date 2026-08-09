@@ -575,6 +575,18 @@ impl AudioEngine {
             .and_then(|guard| guard.as_ref().and_then(|h| h.device_name.clone()))
     }
 
+    /// True when the active output is currently carrying a native DSD
+    /// stream via DoP (#495). Reflects what actually engaged — a DAC
+    /// that refused the DoP format leaves this `false` even with the
+    /// opt-in on. Drives the "DSD natif" pill in the pipeline popover.
+    pub fn current_output_is_dop(&self) -> bool {
+        self.output
+            .lock()
+            .ok()
+            .and_then(|guard| guard.as_ref().map(|h| h.dop_rate.is_some()))
+            .unwrap_or(false)
+    }
+
     /// Hot-swap the cpal output device without restarting the decoder
     /// or the analytics task.
     ///

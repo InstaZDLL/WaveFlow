@@ -1173,7 +1173,8 @@
         "replayGain": "ReplayGain",
         "normalize": "Нормализация",
         "mono": "Моно",
-        "speed": "Скорость {{value}}×"
+        "speed": "Скорость {{value}}×",
+        "dopNative": "Нативный DSD"
       }
     }
   },
@@ -2124,6 +2125,10 @@
       "usage": "{{size}} использовано · {{files}} Canvas в кэше",
       "clear": "Очистить кэш",
       "clearConfirm": "Подтвердить?"
+    },
+    "dsdDop": {
+      "title": "Нативный DSD (DoP)",
+      "subtitle": "Отправляет поток DSD на ЦАП без изменений через DoP (DSD over PCM) вместо преобразования в PCM — побитово точное нативное декодирование. Требуется вывод WASAPI Exclusive и ЦАП с поддержкой DoP; иначе выполняется откат к DSD → PCM."
     }
   },
   "spotify": {

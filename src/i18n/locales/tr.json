@@ -1093,7 +1093,8 @@
         "replayGain": "ReplayGain",
         "normalize": "Normalleştirme",
         "mono": "Mono",
-        "speed": "Hız {{value}}×"
+        "speed": "Hız {{value}}×",
+        "dopNative": "Yerel DSD"
       }
     }
   },
@@ -2028,6 +2029,10 @@
       "usage": "{{size}} kullanıldı · {{files}} Canvas önbellekte",
       "clear": "Önbelleği temizle",
       "clearConfirm": "Onaylıyor musunuz?"
+    },
+    "dsdDop": {
+      "title": "Yerel DSD (DoP)",
+      "subtitle": "DSD akışını PCM'ye dönüştürmek yerine DoP (DSD over PCM) ile olduğu gibi DAC'a gönderir — bit-perfect yerel çözme. WASAPI Exclusive çıkışı ve DoP uyumlu bir DAC gerektirir; aksi hâlde DSD → PCM'ye geri döner."
     }
   },
   "spotify": {

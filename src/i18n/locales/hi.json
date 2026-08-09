@@ -1093,7 +1093,8 @@
         "replayGain": "ReplayGain",
         "normalize": "नॉर्मलाइज़",
         "mono": "मोनो",
-        "speed": "गति {{value}}×"
+        "speed": "गति {{value}}×",
+        "dopNative": "नेटिव DSD"
       }
     }
   },
@@ -2028,6 +2029,10 @@
       "usage": "{{size}} उपयोग · {{files}} Canvas कैश किए गए",
       "clear": "कैश साफ़ करें",
       "clearConfirm": "पुष्टि करें?"
+    },
+    "dsdDop": {
+      "title": "नेटिव DSD (DoP)",
+      "subtitle": "DSD स्ट्रीम को PCM में बदलने के बजाय DoP (DSD over PCM) के माध्यम से DAC को ज्यों-का-त्यों भेजता है — बिट-परफेक्ट नेटिव डिकोडिंग। इसके लिए WASAPI Exclusive आउटपुट और DoP-समर्थित DAC आवश्यक है; अन्यथा DSD → PCM पर वापस चला जाता है।"
     }
   },
   "spotify": {

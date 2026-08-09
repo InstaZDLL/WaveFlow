@@ -67,6 +67,7 @@ import {
   playerSetGapless,
   playerSetReplayGain,
   playerSetDsdPrecision,
+  playerSetDsdDop,
   DSD_PRECISION_TAPS,
   type DsdPrecisionTaps,
 } from "../../lib/tauri/player";
@@ -1221,6 +1222,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [replayGain, setReplayGain] = useState(false);
   const [gapless, setGapless] = useState(true);
   const [dsdTaps, setDsdTaps] = useState<DsdPrecisionTaps>(256);
+  const [dsdDop, setDsdDop] = useState(false);
 
   // Integrations
   const [lastfmKey, setLastfmKey] = useState("");
@@ -1645,6 +1647,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             ? (s.dsd_taps as DsdPrecisionTaps)
             : 256,
         );
+        setDsdDop(s.dsd_dop);
       })
       .catch((err) =>
         console.error("[Settings] audio settings load failed", err),
@@ -1683,6 +1686,15 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     },
     [dsdTaps],
   );
+
+  const handleToggleDsdDop = useCallback(() => {
+    const next = !dsdDop;
+    setDsdDop(next); // optimistic
+    playerSetDsdDop(next).catch((err) => {
+      console.error("[Settings] set DSD DoP failed", err);
+      setDsdDop(!next); // rollback
+    });
+  }, [dsdDop]);
 
   // Smart crossfade — skip the fade between two tracks of the same
   // album so concept records / live sets hand off naturally. Persisted
@@ -2261,6 +2273,31 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                   })}
                 </div>
               </div>
+            </div>
+
+            {/* Native DSD via DoP (DSD over PCM). Windows / WASAPI
+                Exclusive + DoP-capable DAC only; off by default. */}
+            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <div className="flex items-center space-x-4 min-w-0">
+                <AudioWaveform
+                  size={20}
+                  className="text-zinc-400 shrink-0"
+                  aria-hidden="true"
+                />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                    {t("settings.dsdDop.title")}
+                  </div>
+                  <div className="text-xs text-zinc-400">
+                    {t("settings.dsdDop.subtitle")}
+                  </div>
+                </div>
+              </div>
+              <ToggleSwitch
+                enabled={dsdDop}
+                onToggle={handleToggleDsdDop}
+                label={t("settings.dsdDop.title")}
+              />
             </div>
 
             {/* Normaliser le volume */}

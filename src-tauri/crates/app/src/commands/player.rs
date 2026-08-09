@@ -59,6 +59,9 @@ pub struct PlayerStateSnapshot {
     pub shuffle: bool,
     pub repeat_mode: String,
     pub current_track: Option<QueueTrackPayload>,
+    /// True when the active output is shipping native DSD via DoP
+    /// (#495) — reflects what really engaged, not just the opt-in.
+    pub dop_active: bool,
 }
 
 /// Subset of [`crate::queue::QueueTrack`] flattened into the shape
@@ -96,6 +99,7 @@ impl PlayerStateSnapshot {
         shuffle: bool,
         repeat_mode: queue::RepeatMode,
         current_track: Option<QueueTrackPayload>,
+        dop_active: bool,
     ) -> Self {
         Self {
             state: shared.state().as_str().to_string(),
@@ -108,6 +112,7 @@ impl PlayerStateSnapshot {
             shuffle,
             repeat_mode: repeat_mode.as_str().to_string(),
             current_track,
+            dop_active,
         }
     }
 }
@@ -630,8 +635,13 @@ pub async fn player_get_state(
         }
         Err(_) => (false, queue::RepeatMode::Off, None, 0),
     };
-    let mut snapshot =
-        PlayerStateSnapshot::from_shared(engine.shared(), shuffle, repeat_mode, current_track);
+    let mut snapshot = PlayerStateSnapshot::from_shared(
+        engine.shared(),
+        shuffle,
+        repeat_mode,
+        current_track,
+        engine.current_output_is_dop(),
+    );
     // When the engine is Idle but we resolved a resume point, use the
     // persisted position instead of the (zero) live counter.
     if snapshot.state == "idle" && snapshot.position_ms == 0 {

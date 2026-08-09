@@ -1093,7 +1093,8 @@
         "replayGain": "ReplayGain",
         "normalize": "Normaliseren",
         "mono": "Mono",
-        "speed": "Snelheid {{value}}×"
+        "speed": "Snelheid {{value}}×",
+        "dopNative": "Native DSD"
       }
     }
   },
@@ -2028,6 +2029,10 @@
       "usage": "{{size}} gebruikt · {{files}} Canvas in cache",
       "clear": "Cache wissen",
       "clearConfirm": "Bevestigen?"
+    },
+    "dsdDop": {
+      "title": "Native DSD (DoP)",
+      "subtitle": "Stuurt de DSD-stream ongewijzigd via DoP (DSD over PCM) naar de DAC in plaats van deze naar PCM te converteren — bit-perfect native decodering. Vereist WASAPI Exclusive-uitvoer en een DoP-compatibele DAC; anders terugval naar DSD → PCM."
     }
   },
   "spotify": {

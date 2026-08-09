@@ -1093,7 +1093,8 @@
         "replayGain": "ReplayGain",
         "normalize": "正規化",
         "mono": "モノラル",
-        "speed": "速度 {{value}}×"
+        "speed": "速度 {{value}}×",
+        "dopNative": "ネイティブDSD"
       }
     }
   },
@@ -2028,6 +2029,10 @@
       "usage": "{{size}} 使用中 · {{files}} 件の Canvas をキャッシュ",
       "clear": "キャッシュを消去",
       "clearConfirm": "確認しますか？"
+    },
+    "dsdDop": {
+      "title": "ネイティブDSD（DoP）",
+      "subtitle": "DSDストリームをPCMに変換せず、DoP（DSD over PCM）でそのままDACに送信します — ビットパーフェクトなネイティブデコード。WASAPI排他出力とDoP対応DACが必要です。満たさない場合はDSD → PCMにフォールバックします。"
     }
   },
   "scanProgress": {

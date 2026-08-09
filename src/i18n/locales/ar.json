@@ -1218,7 +1218,8 @@
         "replayGain": "ReplayGain",
         "normalize": "تسوية",
         "mono": "أحادي",
-        "speed": "السرعة {{value}}×"
+        "speed": "السرعة {{value}}×",
+        "dopNative": "DSD أصلي"
       }
     }
   },
@@ -2183,6 +2184,10 @@
       "usage": "{{size}} مستخدَمة · {{files}} Canvas في التخزين المؤقت",
       "clear": "مسح الذاكرة المؤقتة",
       "clearConfirm": "تأكيد؟"
+    },
+    "dsdDop": {
+      "title": "DSD أصلي (DoP)",
+      "subtitle": "يرسل تدفق DSD كما هو إلى الـDAC عبر DoP (DSD over PCM) بدلاً من تحويله إلى PCM — فك ترميز أصلي بدقة بتّية تامة. يتطلب مخرج WASAPI Exclusive وDAC متوافقًا مع DoP؛ وإلا يعود إلى DSD → PCM."
     }
   },
   "spotify": {

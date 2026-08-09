@@ -1093,7 +1093,8 @@
         "replayGain": "ReplayGain",
         "normalize": "Normalización",
         "mono": "Mono",
-        "speed": "Velocidad {{value}}×"
+        "speed": "Velocidad {{value}}×",
+        "dopNative": "DSD nativo"
       }
     }
   },
@@ -2028,6 +2029,10 @@
       "usage": "{{size}} usados · {{files}} Canvas en caché",
       "clear": "Vaciar caché",
       "clearConfirm": "¿Confirmar?"
+    },
+    "dsdDop": {
+      "title": "DSD nativo (DoP)",
+      "subtitle": "Envía el flujo DSD tal cual al DAC mediante DoP (DSD over PCM) en lugar de convertirlo a PCM: decodificación nativa bit-perfect. Requiere salida WASAPI Exclusive y un DAC compatible con DoP; de lo contrario, recurre a DSD → PCM."
     }
   },
   "spotify": {

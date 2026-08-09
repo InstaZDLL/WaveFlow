@@ -21,6 +21,8 @@ interface PipelineSnapshot {
   normalize: boolean;
   replaygain: boolean;
   mono: boolean;
+  /** Native DSD via DoP actually engaged for the current track (#495). */
+  dopActive: boolean;
 }
 
 /**
@@ -105,6 +107,7 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
           normalize: audioSettings.normalize,
           replaygain: audioSettings.replaygain,
           mono: audioSettings.mono,
+          dopActive: stateSnap.dop_active,
         });
       } catch (err) {
         console.error("[AudioPipelinePopover] hydrate failed", err);
@@ -130,12 +133,21 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
   // isn't bit-perfect — used to decide whether to surface the green
   // "Bit-perfect" pill at the bottom.
   const isDsd = (track.codec ?? "").toUpperCase().includes("DSD");
+  // Native DSD via DoP (#495): the DAC decodes the 1-bit stream itself,
+  // so nothing on our side converts it — it counts as bit-perfect and
+  // shows a distinct pill instead of the "DSD → PCM" convert chip.
+  const isDopNative = isDsd && (snap?.dopActive ?? false);
+  // A DoP stream reaches the DAC untouched, so the nominal rate/channel
+  // comparison below (DoP ships at dsd_rate/16, which never equals the
+  // stored DSD rate) must not be read as resampling / downmixing.
   const isResampling =
+    !isDopNative &&
     snap != null &&
     track.sample_rate != null &&
     snap.outputSampleRate > 0 &&
     snap.outputSampleRate !== track.sample_rate;
   const isDownmixing =
+    !isDopNative &&
     snap != null &&
     track.channels != null &&
     snap.outputChannels > 0 &&
@@ -147,7 +159,8 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
   const isMono = snap?.mono ?? false;
   const isBitPerfect =
     snap != null &&
-    !isDsd &&
+    // Native DoP is bit-perfect; only DSD → PCM conversion breaks it.
+    (!isDsd || isDopNative) &&
     !isResampling &&
     !isDownmixing &&
     !isSpeedShifted &&
@@ -158,7 +171,13 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
 
   const chips: Array<{ key: string; label: string; tone: "dsp" | "convert" }> =
     [];
-  if (isDsd)
+  if (isDopNative)
+    chips.push({
+      key: "dop",
+      label: t("playerBar.pipeline.chip.dopNative"),
+      tone: "dsp",
+    });
+  else if (isDsd)
     chips.push({
       key: "dsd",
       label: t("playerBar.pipeline.chip.dsdToPcm"),
