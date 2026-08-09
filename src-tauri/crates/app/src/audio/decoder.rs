@@ -9,7 +9,9 @@
 //! Commands are polled between packets via `cmd_rx.try_recv()` so
 //! pause / stop / seek feel responsive even during long tracks.
 
+use std::fs::File;
 use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread::JoinHandle;
@@ -21,12 +23,15 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 
 use tokio::sync::mpsc::UnboundedSender;
+use waveflow_core::audio_format::dsd::parser::{parse_dff, parse_dsf};
 
 use super::analytics::AnalyticsMsg;
 use super::crossfade::{equal_power_gains, ActiveStream};
 use super::engine::AudioCmd;
 use super::events::{emit_radio_metadata, RadioMetadataPayload};
+use super::output::DopFormat;
 use super::state::{PlayerState, SharedPlayback};
+use super::AudioEngine;
 
 /// Minimum interval between `player:position` events emitted during
 /// playback. Keeps UI traffic bounded to ~4 Hz regardless of packet
@@ -343,6 +348,16 @@ fn decoder_loop(
                 shared.base_offset_ms.store(start_ms, Ordering::Relaxed);
                 shared.current_track_id.store(track_id, Ordering::Release);
 
+                // Native DSD via DoP (#495): before opening the stream,
+                // ask the engine to re-open the output at this track's
+                // DoP rate when the file is DSD and the opt-in is on. It
+                // hands back a fresh ring producer when it actually
+                // rebuilt (we swap ours) and reports whether DoP really
+                // engaged — a DAC that refused the format falls back to
+                // the ordinary DSD → PCM path, and a non-DSD track after
+                // a DoP one rebuilds the output back to normal PCM.
+                let dop_engaged = maybe_switch_dop_output(&app, &shared, &path, producer);
+
                 let stream = match ActiveStream::open(
                     &path,
                     track_id,
@@ -351,6 +366,7 @@ fn decoder_loop(
                     source_id,
                     replay_gain_db,
                     shared.dsd_taps.load(Ordering::Acquire) as usize,
+                    dop_engaged,
                 ) {
                     Ok(s) => s,
                     Err(err) => {
@@ -360,6 +376,27 @@ fn decoder_loop(
                         continue;
                     }
                 };
+
+                if dop_engaged {
+                    let outcome = play_dop_track(
+                        stream,
+                        start_ms,
+                        producer,
+                        &shared,
+                        cmd_rx,
+                        &app,
+                        &mut pending_cmd,
+                        analytics_tx,
+                    );
+                    handle_playback_outcome(
+                        outcome,
+                        &shared,
+                        &app,
+                        analytics_tx,
+                        Some(path.display().to_string()),
+                    );
+                    continue;
+                }
 
                 let outcome = play_track(
                     stream,
@@ -758,6 +795,234 @@ pub struct FinishedTrack {
 /// needs) and folding them into a struct just to satisfy a lint would
 /// obscure the call site without changing what the function does.
 #[allow(clippy::too_many_arguments)]
+/// Resolve the DoP output format a DSD file would need — `dsd_rate / 16`
+/// at the container's channel count — by parsing just its header. Cheap
+/// (a few reads, no decode). `None` for a non-DSD path or an unreadable
+/// header (the caller then stays on the PCM path).
+fn dop_format_for(path: &Path) -> Option<DopFormat> {
+    let ext = path.extension().and_then(|s| s.to_str())?.to_ascii_lowercase();
+    let mut file = File::open(path).ok()?;
+    let layout = match ext.as_str() {
+        "dsf" => parse_dsf(&mut file).ok()?,
+        "dff" => parse_dff(&mut file).ok()?,
+        _ => return None,
+    };
+    Some(DopFormat {
+        sample_rate: layout.sample_rate_hz / 16,
+        channels: layout.channels.count() as u16,
+    })
+}
+
+/// Reconcile the output format with the track about to play (#495) and
+/// report whether DoP engaged.
+///
+/// - DSD file + `audio.dsd_dop` on → ask the engine to re-open the
+///   exclusive output at the track's DoP rate. On success we swap in the
+///   fresh ring producer and return `true`; if the DAC refused the DoP
+///   format the engine transparently rebuilt a normal PCM output and we
+///   return `false` (the caller opens the DSD → PCM path).
+/// - Any other track → ask the engine to restore the normal PCM output
+///   if the previous track left it in DoP mode; returns `false`.
+///
+/// The engine only rebuilds (and only then hands back a producer) when
+/// the format actually changes, so an ordinary PCM-to-PCM track pays
+/// nothing here.
+fn maybe_switch_dop_output(
+    app: &AppHandle,
+    shared: &SharedPlayback,
+    path: &Path,
+    producer: &mut Producer<f32>,
+) -> bool {
+    let want = if shared.dsd_dop_enabled.load(Ordering::Acquire) {
+        dop_format_for(path)
+    } else {
+        None
+    };
+    let Some(engine) = app.try_state::<Arc<AudioEngine>>() else {
+        // No engine in managed state (shouldn't happen outside teardown)
+        // — stay on the current output and the PCM path.
+        return false;
+    };
+    match engine.switch_output_for_track(want) {
+        Ok((new_producer, engaged)) => {
+            if let Some(p) = new_producer {
+                *producer = p;
+            }
+            engaged
+        }
+        Err(err) => {
+            tracing::warn!(%err, "DoP output switch failed; staying on current output (PCM)");
+            false
+        }
+    }
+}
+
+/// DoP playback loop (#495). The bit-perfect twin of [`play_track`]:
+/// no crossfade, no gapless, no EQ / ReplayGain / speed / A-B loop —
+/// every one of those would mutate the 24-bit DoP words and corrupt the
+/// embedded DSD. It just decodes DoP blocks and pushes them straight to
+/// the ring, reusing [`drain_commands`] (pause / stop / seek / next) and
+/// [`push_samples`] (backpressure) so transport control stays identical.
+fn play_dop_track(
+    mut stream: ActiveStream,
+    initial_start_ms: u64,
+    producer: &mut Producer<f32>,
+    shared: &SharedPlayback,
+    cmd_rx: &Receiver<AudioCmd>,
+    app: &AppHandle,
+    pending_cmd: &mut Option<AudioCmd>,
+    _analytics_tx: &UnboundedSender<AnalyticsMsg>,
+) -> Result<(PlaybackEnd, u64, FinishedTrack), String> {
+    if shared.sample_rate.load(Ordering::Relaxed) == 0 {
+        return Err("dop output not initialized (sample_rate=0)".into());
+    }
+    if initial_start_ms > 0 {
+        stream.seek_ms(initial_start_ms);
+        stream.reset_decoder();
+    }
+
+    tracing::info!(
+        rate = shared.sample_rate.load(Ordering::Relaxed),
+        channels = shared.channels.load(Ordering::Relaxed),
+        track_id = stream.track_id,
+        "dop decoding start"
+    );
+
+    // DoP never crossfades, so no prefetch is ever requested — this stays
+    // `None`. It only exists to satisfy the shared helpers' signatures;
+    // anything they store is dropped when this function returns.
+    let mut no_prefetch: Option<ActiveStream> = None;
+    let mut dop_words: Vec<u32> = Vec::with_capacity(16 * 1024);
+    let mut ring_scratch: Vec<f32> = Vec::with_capacity(16 * 1024);
+    let mut last_position_emit = Instant::now();
+    let mut ended_naturally = false;
+
+    transition_state(shared, app, PlayerState::Playing, Some(stream.track_id));
+
+    'pkt: loop {
+        match drain_commands(cmd_rx, shared, app, stream.track_id, pending_cmd, &mut no_prefetch) {
+            ControlFlow::Continue => {}
+            ControlFlow::Break => break 'pkt,
+            ControlFlow::Shutdown => {
+                transition_state(shared, app, PlayerState::Idle, Some(stream.track_id));
+                return Ok((
+                    PlaybackEnd::Interrupted,
+                    shared.session_listened_ms(),
+                    finished_from(&stream),
+                ));
+            }
+            ControlFlow::LoadNext => {
+                return Ok((
+                    PlaybackEnd::Interrupted,
+                    shared.session_listened_ms(),
+                    finished_from(&stream),
+                ));
+            }
+            ControlFlow::Seek(ms) => {
+                stream.seek_ms(ms);
+                stream.reset_decoder();
+                reset_clock(shared, ms);
+                drain_ring_silent(producer, shared);
+                let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
+                last_position_emit = Instant::now();
+                continue;
+            }
+        }
+        no_prefetch = None;
+
+        dop_words.clear();
+        match stream.decode_dop_block(&mut dop_words) {
+            Ok(true) => {
+                ended_naturally = true;
+                break 'pkt;
+            }
+            Ok(false) => {}
+            Err(err) => {
+                let _ = app.emit(EVENT_ERROR, ErrorPayload { message: err.clone() });
+                return Err(err);
+            }
+        }
+        if dop_words.is_empty() {
+            continue;
+        }
+
+        // Reinterpret each 24-bit DoP word as an f32 bit pattern. The ring
+        // is a pure byte pipe — `from_bits` here and `to_bits` in the DoP
+        // event loop round-trip exactly, with no arithmetic in between.
+        ring_scratch.clear();
+        ring_scratch.extend(dop_words.iter().map(|&w| f32::from_bits(w)));
+
+        match push_samples(
+            &ring_scratch,
+            producer,
+            cmd_rx,
+            shared,
+            app,
+            stream.track_id,
+            pending_cmd,
+            &mut no_prefetch,
+        ) {
+            PushOutcome::Ok => {}
+            PushOutcome::Stop => break 'pkt,
+            PushOutcome::Shutdown => {
+                transition_state(shared, app, PlayerState::Idle, Some(stream.track_id));
+                return Ok((
+                    PlaybackEnd::Interrupted,
+                    shared.session_listened_ms(),
+                    finished_from(&stream),
+                ));
+            }
+            PushOutcome::LoadNext => {
+                return Ok((
+                    PlaybackEnd::Interrupted,
+                    shared.session_listened_ms(),
+                    finished_from(&stream),
+                ));
+            }
+            PushOutcome::Seek(ms) => {
+                stream.seek_ms(ms);
+                stream.reset_decoder();
+                reset_clock(shared, ms);
+                drain_ring_silent(producer, shared);
+                let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
+                last_position_emit = Instant::now();
+                continue;
+            }
+        }
+        no_prefetch = None;
+
+        if last_position_emit.elapsed() >= POSITION_EMIT_INTERVAL
+            && shared.state() == PlayerState::Playing
+        {
+            let _ = app.emit(
+                EVENT_POSITION,
+                PositionPayload {
+                    ms: shared.current_position_ms(),
+                },
+            );
+            last_position_emit = Instant::now();
+        }
+    }
+
+    let listened_ms = shared.session_listened_ms();
+    let finished = finished_from(&stream);
+    if ended_naturally {
+        let completed = listened_ms + 2000 >= stream.duration_ms && stream.duration_ms > 0;
+        let _ = app.emit(
+            EVENT_TRACK_ENDED,
+            TrackEndedPayload {
+                track_id: stream.track_id,
+                completed,
+                listened_ms,
+            },
+        );
+        transition_state(shared, app, PlayerState::Ended, Some(stream.track_id));
+        Ok((PlaybackEnd::Natural, listened_ms, finished))
+    } else {
+        Ok((PlaybackEnd::Interrupted, listened_ms, finished))
+    }
+}
+
 fn play_track(
     initial_stream: ActiveStream,
     initial_start_ms: u64,
@@ -1664,6 +1929,11 @@ fn store_next(
         source_id,
         replay_gain_db,
         dsd_taps,
+        // Prefetch is a crossfade / gapless concern; DoP never fades, so
+        // a prefetched stream is always opened on the PCM path. A DSD
+        // track that should play as DoP reaches that mode through the
+        // cold LoadAndPlay in `decoder_loop`, not here.
+        false,
     ) {
         Ok(mut s) => {
             // Prefetched stream needs the active speed too so its

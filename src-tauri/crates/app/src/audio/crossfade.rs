@@ -18,6 +18,7 @@ use symphonia::core::io::{MediaSource, MediaSourceStream};
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::units::Time;
 
+use waveflow_core::audio_format::dsd::dop::DsdToDop;
 use waveflow_core::audio_format::dsd::parser::{parse_dff, parse_dsf, DsdLayout};
 use waveflow_core::audio_format::dsd::pcm::DsdToPcm;
 
@@ -61,6 +62,21 @@ pub enum StreamBackend {
         /// the stream was opened with instead of falling back to the
         /// default.
         taps: usize,
+    },
+    /// Native DSD passthrough via DoP (DSD over PCM), #495. No FIR, no
+    /// resampler, no channel convert: the raw 1-bit stream is repackaged
+    /// into 24-bit DoP words and shipped straight to a DoP-capable DAC.
+    /// Only reachable when the engine has (re)opened the output at the
+    /// exact DoP format — driven by [`ActiveStream::decode_dop_block`],
+    /// never by [`ActiveStream::decode_next`].
+    Dop {
+        file: File,
+        layout: DsdLayout,
+        encoder: Box<DsdToDop>,
+        /// Bytes consumed from the data chunk so far (EOF + seek math).
+        bytes_read: u64,
+        /// Reusable scratch for raw DSD bytes pulled from disk.
+        dsd_scratch: Vec<u8>,
     },
 }
 
@@ -219,6 +235,7 @@ impl ActiveStream {
         source_id: Option<i64>,
         replay_gain_db: Option<f64>,
         dsd_taps: usize,
+        dop: bool,
     ) -> Result<Self, String> {
         let ext = path
             .extension()
@@ -239,6 +256,7 @@ impl ActiveStream {
                 source_id,
                 replay_gain_db,
                 dsd_taps,
+                dop,
             );
         }
 
@@ -348,7 +366,9 @@ impl ActiveStream {
     /// is parsed up-front so we know the bit rate, channel count and
     /// where the bitstream starts; the DsdToPcm converter is built
     /// from the layout so its FIR ring buffers match the channel
-    /// count.
+    /// count. `dop` selects the native DoP passthrough backend over the
+    /// DSD → PCM one (#495).
+    #[allow(clippy::too_many_arguments)]
     fn open_dsd(
         path: &Path,
         ext: &str,
@@ -358,6 +378,7 @@ impl ActiveStream {
         source_id: Option<i64>,
         replay_gain_db: Option<f64>,
         dsd_taps: usize,
+        dop: bool,
     ) -> Result<Self, String> {
         let mut file = File::open(path).map_err(|e| format!("open: {e}"))?;
         let layout = match ext {
@@ -366,11 +387,37 @@ impl ActiveStream {
             _ => return Err(format!("unexpected DSD extension: {ext}")),
         };
         // Position the file cursor at the start of the bitstream so
-        // the first decode_next call streams from the right offset.
+        // the first decode call streams from the right offset.
         file.seek(SeekFrom::Start(layout.data_offset))
             .map_err(|e| format!("dsd seek to data: {e}"))?;
-        let converter = Box::new(DsdToPcm::new_with_taps(&layout, dsd_taps));
         let src_channels = layout.channels.count() as usize;
+        // DoP path (#495): repackage the raw bitstream instead of
+        // decoding it. The engine has already re-opened the output at
+        // this stream's DoP rate; here we just build the encoder and
+        // let `decode_dop_block` feed 24-bit words straight to the ring.
+        if dop {
+            let encoder = Box::new(DsdToDop::new(&layout));
+            return Ok(Self {
+                backend: StreamBackend::Dop {
+                    file,
+                    layout,
+                    encoder,
+                    bytes_read: 0,
+                    dsd_scratch: Vec::with_capacity(DSD_READ_CHUNK),
+                },
+                // DoP is bit-exact: no resampler ever engages.
+                resampler: Resampler::Passthrough,
+                src_channels,
+                track_id,
+                duration_ms,
+                source_type,
+                source_id,
+                replay_gain_linear: 1.0,
+                src_sample_rate: 0,
+                playback_speed: 1.0,
+            });
+        }
+        let converter = Box::new(DsdToPcm::new_with_taps(&layout, dsd_taps));
         Ok(Self {
             backend: StreamBackend::Dsd {
                 file,
@@ -431,7 +478,7 @@ impl ActiveStream {
             StreamBackend::Symphonia {
                 symphonia_track_id, ..
             } => Some(*symphonia_track_id),
-            StreamBackend::Dsd { .. } => None,
+            StreamBackend::Dsd { .. } | StreamBackend::Dop { .. } => None,
         }
     }
 
@@ -441,7 +488,7 @@ impl ActiveStream {
     pub fn format_mut(&mut self) -> Option<&mut Box<dyn FormatReader>> {
         match &mut self.backend {
             StreamBackend::Symphonia { format, .. } => Some(format),
-            StreamBackend::Dsd { .. } => None,
+            StreamBackend::Dsd { .. } | StreamBackend::Dop { .. } => None,
         }
     }
 
@@ -460,6 +507,7 @@ impl ActiveStream {
             } => {
                 **converter = DsdToPcm::new_with_taps(layout, *taps);
             }
+            StreamBackend::Dop { encoder, .. } => encoder.reset(),
         }
     }
 
@@ -525,6 +573,37 @@ impl ActiveStream {
                     return;
                 }
                 *bytes_read = aligned;
+            }
+            StreamBackend::Dop {
+                file,
+                layout,
+                bytes_read,
+                encoder,
+                ..
+            } => {
+                // Same byte math as the DSD path — align to a full
+                // interleave stride so the encoder never pairs bytes
+                // across a channel boundary — then drop the encoder's
+                // marker phase + pending byte so the DAC re-locks cleanly.
+                let bps =
+                    (layout.sample_rate_hz as u128) * (layout.channels.count() as u128) / 8 / 1000;
+                let target = (ms as u128 * bps) as u64;
+                let stride = match layout.block_interleave {
+                    Some(block_size) => (block_size as u64) * (layout.channels.count() as u64),
+                    None => layout.channels.count() as u64,
+                };
+                let aligned = target
+                    .checked_div(stride)
+                    .map(|q| q * stride)
+                    .unwrap_or(target)
+                    .min(layout.data_len_bytes);
+                let absolute = layout.data_offset + aligned;
+                if let Err(err) = file.seek(SeekFrom::Start(absolute)) {
+                    tracing::warn!(?err, ms, "dop seek failed");
+                    return;
+                }
+                *bytes_read = aligned;
+                encoder.reset();
             }
         }
     }
@@ -701,7 +780,68 @@ impl ActiveStream {
                     .map_err(|e| format!("dsd resample: {e}"))?;
                 Ok(false)
             }
+            // A DoP stream is driven exclusively by `decode_dop_block`,
+            // which produces raw 24-bit words with no resampling. Reaching
+            // the PCM decode path for it is a wiring bug, not a runtime
+            // condition — surface it rather than emit silence.
+            StreamBackend::Dop { .. } => {
+                Err("decode_next called on a DoP stream (use decode_dop_block)".into())
+            }
         }
+    }
+
+    /// Decode one chunk of a DoP stream into interleaved 24-bit DoP
+    /// words (marker in bits 23..16, two DSD bytes below), #495. No FIR,
+    /// no resampler, no channel convert — the words go straight to the
+    /// ring for a bit-perfect transport to the DAC. Returns `Ok(true)`
+    /// at EOF, `Ok(false)` after a successful block.
+    ///
+    /// Only valid on a [`StreamBackend::Dop`]; other backends return an
+    /// error (the caller picks `play_dop_track` vs `play_track` off the
+    /// same DoP flag, so this never happens at runtime).
+    pub fn decode_dop_block(&mut self, out: &mut Vec<u32>) -> Result<bool, String> {
+        let StreamBackend::Dop {
+            file,
+            layout,
+            encoder,
+            bytes_read,
+            dsd_scratch,
+        } = &mut self.backend
+        else {
+            return Err("decode_dop_block called on a non-DoP stream".into());
+        };
+
+        if *bytes_read >= layout.data_len_bytes {
+            return Ok(true);
+        }
+        // Round the read down to a whole interleave stride so the encoder
+        // never pairs bytes across a channel boundary (same reasoning as
+        // the DSD → PCM path).
+        let stride = match layout.block_interleave {
+            Some(block) => (block as u64) * (layout.channels.count() as u64),
+            None => layout.channels.count() as u64,
+        };
+        let remaining = layout.data_len_bytes - *bytes_read;
+        let raw_want = remaining.min(DSD_READ_CHUNK as u64);
+        let aligned = raw_want
+            .checked_div(stride)
+            .map(|q| q * stride)
+            .unwrap_or(raw_want);
+        if aligned == 0 {
+            // Sub-stride residual at EOF — dropping < ~12 ms is
+            // imperceptible and avoids a torn final frame.
+            *bytes_read = layout.data_len_bytes;
+            return Ok(true);
+        }
+        dsd_scratch.resize(aligned as usize, 0);
+        let read = file.read(dsd_scratch).map_err(|e| format!("dop read: {e}"))?;
+        if read == 0 {
+            return Ok(true);
+        }
+        *bytes_read += read as u64;
+        dsd_scratch.truncate(read);
+        encoder.encode_block(dsd_scratch, out);
+        Ok(false)
     }
 }
 

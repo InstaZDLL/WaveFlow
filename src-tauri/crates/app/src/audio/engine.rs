@@ -19,7 +19,7 @@ use crate::error::{AppError, AppResult};
 
 use super::analytics::{analytics_task, AnalyticsMsg};
 use super::decoder::spawn_decoder_thread;
-use super::output::{spawn_output_with_mode, OutputHandle};
+use super::output::{spawn_output_with_mode, DopFormat, OutputHandle};
 use super::state::SharedPlayback;
 
 /// Commands accepted by the decoder thread.
@@ -782,6 +782,110 @@ impl AudioEngine {
             .store(false, std::sync::atomic::Ordering::Relaxed);
         if let Ok(mut flaps) = self.exclusive_flaps.lock() {
             *flaps = FlapWindow::default();
+        }
+    }
+
+    /// Reconcile the output format with the track the decoder is about to
+    /// play, for native DSD via DoP (#495). Unlike [`Self::force_rebuild_output`]
+    /// this hands the fresh ring producer **directly back to the caller**
+    /// (the decoder thread, mid-load) instead of pushing it through the
+    /// `SwapProducer` channel — the decoder is about to write the new
+    /// track's samples to it and there's no old stream to keep feeding.
+    ///
+    /// - `dop = Some(fmt)`: open the exclusive output at that exact DoP
+    ///   rate / channels. If the DAC refuses, transparently fall back to a
+    ///   normal PCM output so the caller can play the DSD → PCM path.
+    /// - `dop = None`: restore the normal (preference-driven) PCM output
+    ///   if the previous track left the device in DoP mode.
+    ///
+    /// Returns `(producer, dop_engaged)`. `producer` is `Some` only when a
+    /// rebuild actually happened — an unchanged format returns `None` so
+    /// an ordinary PCM-to-PCM track costs nothing. `dop_engaged` tells the
+    /// caller whether to open the stream as DoP or DSD → PCM.
+    pub(crate) fn switch_output_for_track(
+        &self,
+        dop: Option<DopFormat>,
+    ) -> AppResult<(Option<rtrb::Producer<f32>>, bool)> {
+        use std::sync::atomic::Ordering;
+
+        let mut guard = self
+            .output
+            .lock()
+            .map_err(|_| AppError::Audio("output mutex poisoned".into()))?;
+
+        let has_output = guard.is_some();
+        let current_dop = guard.as_ref().and_then(|h| h.dop_rate);
+        let want_dop = dop.map(|d| d.sample_rate);
+
+        // Already in the right shape: nothing to do. An ordinary PCM track
+        // following another PCM track lands here and pays nothing.
+        if has_output && current_dop == want_dop {
+            return Ok((None, dop.is_some()));
+        }
+
+        // Capture the pinned device + exclusive preference before dropping
+        // the old handle. A DoP (exclusive) open can't proceed while the
+        // previous exclusive client still holds the device, so release it
+        // first (#322 reasoning) — this path always replaces the stream.
+        let device = guard.as_ref().and_then(|h| h.device_name.clone());
+        let pref_exclusive = self.wasapi_exclusive.load(Ordering::Relaxed);
+        if let Some(old) = guard.take() {
+            old.stop();
+        }
+
+        // Try the requested DoP format first.
+        if let Some(dop_fmt) = dop {
+            match spawn_output_with_mode(
+                self.shared.clone(),
+                self.app.clone(),
+                device.clone(),
+                pref_exclusive,
+                Some(dop_fmt),
+            ) {
+                Ok((producer, handle)) => {
+                    self.wasapi_exclusive_active
+                        .store(handle.wasapi_exclusive, Ordering::Release);
+                    *guard = Some(handle);
+                    let _ = self.app.emit("player:audio-mode-changed", ());
+                    tracing::info!(
+                        rate = dop_fmt.sample_rate,
+                        channels = dop_fmt.channels,
+                        "DoP output engaged"
+                    );
+                    return Ok((Some(producer), true));
+                }
+                Err(err) => {
+                    tracing::warn!(
+                        %err,
+                        rate = dop_fmt.sample_rate,
+                        "DoP output refused by device; falling back to DSD -> PCM"
+                    );
+                    // Fall through to a normal PCM open.
+                }
+            }
+        }
+
+        // Normal PCM output: DoP wasn't requested, or was refused.
+        match spawn_output_with_mode(
+            self.shared.clone(),
+            self.app.clone(),
+            device,
+            pref_exclusive,
+            None,
+        ) {
+            Ok((producer, handle)) => {
+                self.wasapi_exclusive_active
+                    .store(handle.wasapi_exclusive, Ordering::Release);
+                *guard = Some(handle);
+                let _ = self.app.emit("player:audio-mode-changed", ());
+                Ok((Some(producer), false))
+            }
+            Err(err) => {
+                // No output at all now — surface the loss like the other
+                // rebuild paths so the UI doesn't think playback is live.
+                self.publish_output_lost_if_gone(&guard);
+                Err(err)
+            }
         }
     }
 
