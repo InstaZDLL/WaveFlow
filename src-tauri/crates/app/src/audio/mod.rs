@@ -30,6 +30,8 @@ pub mod state;
 pub mod wasapi_exclusive;
 #[cfg(target_os = "linux")]
 pub mod alsa_exclusive;
+#[cfg(target_os = "macos")]
+pub mod coreaudio_exclusive;
 
 pub use engine::{AudioCmd, AudioEngine};
 pub use output::list_output_devices;

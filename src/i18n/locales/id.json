@@ -2032,7 +2032,7 @@
     },
     "dsdDop": {
       "title": "DSD asli (DoP)",
-      "subtitle": "Mengirim aliran DSD apa adanya ke DAC melalui DoP (DSD over PCM) alih-alih mengonversinya ke PCM — dekode asli bit-perfect. Memerlukan keluaran eksklusif (WASAPI Exclusive di Windows, ALSA perangkat keras di Linux) dan DAC yang mendukung DoP; jika tidak, kembali ke DSD → PCM."
+      "subtitle": "Mengirim aliran DSD apa adanya ke DAC melalui DoP (DSD over PCM) alih-alih mengonversinya ke PCM — dekode asli bit-perfect. Memerlukan keluaran eksklusif (WASAPI di Windows, ALSA perangkat keras di Linux, CoreAudio hog mode di macOS) dan DAC yang mendukung DoP; jika tidak, kembali ke DSD → PCM."
     }
   },
   "spotify": {

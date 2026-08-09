@@ -829,11 +829,11 @@ impl AudioEngine {
         // else gates it. On any other platform DoP can't run at all.
         #[cfg(target_os = "windows")]
         let exclusive_available = self.wasapi_exclusive.load(Ordering::Relaxed);
-        #[cfg(target_os = "linux")]
+        // Linux (raw `hw:`) and macOS (CoreAudio hog mode) engage the
+        // exclusive path from the DoP toggle itself — no separate opt-in.
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
         let exclusive_available = true;
-        // macOS DoP (CoreAudio hog mode) is a follow-up — keep it OFF so a
-        // DSD track never needlessly rebuilds the output there.
-        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+        #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
         let exclusive_available = false;
         let dop = if dop.is_some() && exclusive_available {
             dop

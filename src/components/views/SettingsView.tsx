@@ -1223,16 +1223,17 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [gapless, setGapless] = useState(true);
   const [dsdTaps, setDsdTaps] = useState<DsdPrecisionTaps>(256);
   const [dsdDop, setDsdDop] = useState(false);
-  // DoP needs exclusive device access, which WaveFlow has on Windows
-  // (WASAPI Exclusive) and Linux (raw ALSA `hw:`) — macOS (CoreAudio hog
-  // mode) is a follow-up, so the toggle is hidden there for now (#495).
-  // UA sniff like the ExclusiveModeCard; the WebView is platform-pinned.
+  // DoP needs exclusive device access, which WaveFlow has on every
+  // desktop OS: WASAPI Exclusive (Windows), raw ALSA `hw:` (Linux),
+  // CoreAudio hog mode (macOS). Hidden on mobile (#495 / #497). UA sniff
+  // like the ExclusiveModeCard; the WebView is platform-pinned.
   const dopPlatformSupported = (() => {
     if (typeof navigator === "undefined") return false;
     const ua = navigator.userAgent.toLowerCase();
-    // Exclude Android, whose UA also contains "linux".
     return (
       ua.includes("windows") ||
+      ua.includes("macintosh") ||
+      // Exclude Android, whose UA also contains "linux".
       (ua.includes("linux") && !ua.includes("android"))
     );
   })();

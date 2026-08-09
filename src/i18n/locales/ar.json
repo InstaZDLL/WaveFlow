@@ -2187,7 +2187,7 @@
     },
     "dsdDop": {
       "title": "DSD أصلي (DoP)",
-      "subtitle": "يرسل تدفق DSD كما هو إلى الـDAC عبر DoP (DSD over PCM) بدلاً من تحويله إلى PCM — فك ترميز أصلي بدقة بتّية تامة. يتطلب مخرجًا حصريًا (WASAPI Exclusive على Windows، وALSA العتادي على Linux) وDAC متوافقًا مع DoP؛ وإلا يعود إلى DSD → PCM."
+      "subtitle": "يرسل تدفق DSD كما هو إلى الـDAC عبر DoP (DSD over PCM) بدلاً من تحويله إلى PCM — فك ترميز أصلي بدقة بتّية تامة. يتطلب مخرجًا حصريًا (WASAPI على Windows، وALSA العتادي على Linux، وCoreAudio hog mode على macOS) وDAC متوافقًا مع DoP؛ وإلا يعود إلى DSD → PCM."
     }
   },
   "spotify": {

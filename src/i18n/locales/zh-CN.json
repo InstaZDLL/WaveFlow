@@ -2032,7 +2032,7 @@
     },
     "dsdDop": {
       "title": "原生 DSD（DoP）",
-      "subtitle": "通过 DoP（DSD over PCM）将 DSD 流原样发送到 DAC，而不转换为 PCM——比特完美原生解码。需要独占输出（Windows 上的 WASAPI 独占，Linux 上的硬件 ALSA）和支持 DoP 的 DAC；否则回退到 DSD → PCM。"
+      "subtitle": "通过 DoP（DSD over PCM）将 DSD 流原样发送到 DAC，而不转换为 PCM——比特完美原生解码。需要独占输出（Windows 上的 WASAPI，Linux 上的硬件 ALSA，macOS 上的 CoreAudio hog mode）和支持 DoP 的 DAC；否则回退到 DSD → PCM。"
     }
   },
   "scanProgress": {

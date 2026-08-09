@@ -2032,7 +2032,7 @@
     },
     "dsdDop": {
       "title": "Yerel DSD (DoP)",
-      "subtitle": "DSD akışını PCM'ye dönüştürmek yerine DoP (DSD over PCM) ile olduğu gibi DAC'a gönderir — bit-perfect yerel çözme. Özel bir çıkış (Windows'ta WASAPI Exclusive, Linux'ta donanım ALSA) ve DoP uyumlu bir DAC gerektirir; aksi hâlde DSD → PCM'ye geri döner."
+      "subtitle": "DSD akışını PCM'ye dönüştürmek yerine DoP (DSD over PCM) ile olduğu gibi DAC'a gönderir — bit-perfect yerel çözme. Özel bir çıkış (Windows'ta WASAPI, Linux'ta donanım ALSA, macOS'ta CoreAudio hog mode) ve DoP uyumlu bir DAC gerektirir; aksi hâlde DSD → PCM'ye geri döner."
     }
   },
   "spotify": {

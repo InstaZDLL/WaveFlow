@@ -2032,7 +2032,7 @@
     },
     "dsdDop": {
       "title": "DSD nativo (DoP)",
-      "subtitle": "Envía el flujo DSD tal cual al DAC mediante DoP (DSD over PCM) en lugar de convertirlo a PCM: decodificación nativa bit-perfect. Requiere una salida exclusiva (WASAPI Exclusive en Windows, ALSA hardware en Linux) y un DAC compatible con DoP; de lo contrario, recurre a DSD → PCM."
+      "subtitle": "Envía el flujo DSD tal cual al DAC mediante DoP (DSD over PCM) en lugar de convertirlo a PCM: decodificación nativa bit-perfect. Requiere una salida exclusiva (WASAPI en Windows, ALSA hardware en Linux, CoreAudio hog mode en macOS) y un DAC compatible con DoP; de lo contrario, recurre a DSD → PCM."
     }
   },
   "spotify": {

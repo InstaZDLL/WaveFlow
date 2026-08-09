@@ -931,13 +931,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "coreaudio-rs"
+version = "0.14.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d5d7dca3ebcf65a035582c9ad4385371a9d9ee6537474d2a278f4e1e475bb58"
+dependencies = [
+ "bitflags 2.13.1",
+ "libc",
+ "objc2-audio-toolbox",
+ "objc2-core-audio",
+ "objc2-core-audio-types",
+ "objc2-core-foundation",
+]
+
+[[package]]
 name = "cpal"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b1f9c7312f19fc2fa12fd7acaf38de54e8320ba10d1a02dcbe21038def51ccb"
 dependencies = [
  "alsa",
- "coreaudio-rs",
+ "coreaudio-rs 0.13.0",
  "dasp_sample",
  "jni 0.21.1",
  "js-sys",
@@ -7582,6 +7596,7 @@ dependencies = [
  "base64 0.23.1",
  "blake3",
  "chrono",
+ "coreaudio-rs 0.14.2",
  "cpal",
  "crossbeam-channel",
  "dirs 6.0.0",

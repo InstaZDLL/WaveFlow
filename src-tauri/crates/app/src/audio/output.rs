@@ -270,14 +270,22 @@ pub fn spawn_output_with_mode(
         );
         #[cfg(target_os = "linux")]
         return super::alsa_exclusive::spawn_alsa_dop_output_thread(shared, app, device_name, dop);
-        // macOS DoP (CoreAudio hog mode) is a follow-up; the engine gate
-        // never requests DoP there yet, so this arm is unreachable at
-        // runtime but keeps the match total on every platform.
-        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+        #[cfg(target_os = "macos")]
+        return super::coreaudio_exclusive::spawn_coreaudio_dop_output_thread(
+            shared,
+            app,
+            device_name,
+            dop,
+        );
+        #[cfg(not(any(
+            target_os = "windows",
+            target_os = "linux",
+            target_os = "macos"
+        )))]
         {
             let _ = (dop, &shared, &app, &device_name);
             return Err(AppError::Audio(
-                "DoP output is not supported on this platform yet".into(),
+                "DoP output is not supported on this platform".into(),
             ));
         }
     }
