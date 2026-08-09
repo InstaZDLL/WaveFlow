@@ -94,9 +94,10 @@ pub(crate) async fn enrich_album_inner(
 ) -> AppResult<DeezerAlbumEnrichment> {
     let now = now_ms();
 
-    // 1. Read the local album + its existing deezer_id.
-    let local: Option<(String, Option<String>, Option<i64>)> = sqlx::query_as(
-        "SELECT al.title, ar.name, al.deezer_id
+    // 1. Read the local album + its existing deezer_id + whether it already
+    //    has local artwork (issue #493 — see the cover-download guard below).
+    let local: Option<(String, Option<String>, Option<i64>, Option<i64>)> = sqlx::query_as(
+        "SELECT al.title, ar.name, al.deezer_id, al.artwork_id
            FROM album al LEFT JOIN artist ar ON ar.id = al.artist_id
           WHERE al.id = ?",
     )
@@ -104,7 +105,7 @@ pub(crate) async fn enrich_album_inner(
     .fetch_optional(pool)
     .await?;
 
-    let Some((album_title, artist_name, existing_deezer_id)) = local else {
+    let Some((album_title, artist_name, existing_deezer_id, local_artwork_id)) = local else {
         return Ok(DeezerAlbumEnrichment::empty());
     };
 
@@ -187,10 +188,21 @@ pub(crate) async fn enrich_album_inner(
 
     let cover_url = hit.cover_xl.clone().or_else(|| hit.cover_big.clone());
 
-    // 4. Download artwork into the shared cache (best-effort).
-    let cover_hash = match cover_url.as_deref() {
-        Some(url) => metadata_artwork::download_and_cache(url, artwork_dir).await,
-        None => None,
+    // 4. Download artwork into the shared cache (best-effort) — but ONLY for an
+    //    album that has NO local cover of its own (issue #493). This function is
+    //    fired automatically every time an album page opens (which only reads
+    //    `label` + `release_date`) and by the Discord presence (which reads the
+    //    remote `cover_url`); neither uses the downloaded file, and the album
+    //    grid / detail header render the LOCAL artwork. Without this guard the
+    //    shared `metadata_artwork` cache filled up with Deezer covers for albums
+    //    the user already has artwork for — never displayed. The deliberate
+    //    paths still work: `batch_fetch_missing_album_covers` only iterates
+    //    `artwork_id IS NULL` albums, and a genuinely cover-less album still
+    //    gets its fallback. `cover_url` always rides through for Discord + the
+    //    cache row regardless.
+    let cover_hash = match (local_artwork_id.is_none(), cover_url.as_deref()) {
+        (true, Some(url)) => metadata_artwork::download_and_cache(url, artwork_dir).await,
+        _ => None,
     };
     let cover_path = cover_hash
         .as_deref()
