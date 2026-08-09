@@ -1615,6 +1615,10 @@
     "regenerateThumbnailsSubtitle": "Recriar as variantes 1x/2x que faltam para todas as capas",
     "regenerateThumbnailsAction": "Regenerar",
     "regenerateThumbnailsDone": "{{count}} miniaturas atualizadas",
+    "pruneAlbumCovers": "Remover capas de álbum do Deezer não usadas",
+    "pruneAlbumCoversSubtitle": "Exclui as capas do Deezer em cache de álbuns que já têm a própria capa (nunca exibidas)",
+    "pruneAlbumCoversAction": "Remover",
+    "pruneAlbumCoversDone": "{{files}} arquivos excluídos · {{mb}} MB liberados",
     "reset": {
       "title": "Redefinir o aplicativo",
       "subtitle": "Apaga todos os dados e restaura as configurações de fábrica",

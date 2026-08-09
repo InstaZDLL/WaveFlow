@@ -1594,6 +1594,10 @@
     "regenerateThumbnailsSubtitle": "Tüm kapaklar için eksik 1x/2x varyantlarını yeniden inşa eder",
     "regenerateThumbnailsAction": "Yeniden oluştur",
     "regenerateThumbnailsDone": "{{count}} önizleme yeniden oluşturuldu",
+    "pruneAlbumCovers": "Kullanılmayan Deezer albüm kapaklarını temizle",
+    "pruneAlbumCoversSubtitle": "Zaten kendi kapağı olan albümler için önbelleğe alınmış Deezer kapaklarını siler (hiç gösterilmedi)",
+    "pruneAlbumCoversAction": "Temizle",
+    "pruneAlbumCoversDone": "{{files}} dosya silindi · {{mb}} MB boşaltıldı",
     "reset": {
       "title": "Uygulamayı sıfırla",
       "subtitle": "Tüm verileri sil ve fabrika ayarlarına geri yükle",

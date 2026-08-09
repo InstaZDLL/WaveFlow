@@ -217,6 +217,23 @@ export function regenerateThumbnails(): Promise<number> {
   return invoke<number>("regenerate_thumbnails");
 }
 
+export interface AlbumCoverCleanup {
+  rowsCleared: number;
+  filesDeleted: number;
+  bytesFreed: number;
+}
+
+/**
+ * One-time cleanup (issue #493): delete the Deezer album covers the shared
+ * `metadata_artwork` cache accumulated for albums that already have their own
+ * local artwork — files that were downloaded as a side effect and never shown.
+ * Reference-counted, so a file shared with an artist picture or reused across
+ * albums is never removed.
+ */
+export function pruneCachedAlbumCovers(): Promise<AlbumCoverCleanup> {
+  return invoke<AlbumCoverCleanup>("prune_cached_album_covers");
+}
+
 /**
  * Wipe every profile, library, playlist and cache, then restart the
  * app into onboarding. The backend never returns — `app.restart()`

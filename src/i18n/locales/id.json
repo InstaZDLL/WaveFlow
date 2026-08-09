@@ -1594,6 +1594,10 @@
     "regenerateThumbnailsSubtitle": "Bangun ulang varian 1x/2x yang hilang untuk semua sampul",
     "regenerateThumbnailsAction": "Buat ulang",
     "regenerateThumbnailsDone": "{{count}} thumbnail dibuat ulang",
+    "pruneAlbumCovers": "Bersihkan sampul album Deezer yang tidak terpakai",
+    "pruneAlbumCoversSubtitle": "Menghapus sampul album Deezer yang tersimpan untuk album yang sudah punya sampul sendiri (tidak pernah ditampilkan)",
+    "pruneAlbumCoversAction": "Bersihkan",
+    "pruneAlbumCoversDone": "{{files}} file dihapus · {{mb}} MB dibebaskan",
     "reset": {
       "title": "Atur ulang aplikasi",
       "subtitle": "Hapus semua data dan kembalikan ke pengaturan awal",

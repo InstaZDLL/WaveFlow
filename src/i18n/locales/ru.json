@@ -1682,6 +1682,10 @@
     "regenerateThumbnailsSubtitle": "Пересоздаёт недостающие варианты 1x/2x для всех обложек",
     "regenerateThumbnailsAction": "Пересоздать",
     "regenerateThumbnailsDone": "Пересоздано миниатюр: {{count}}",
+    "pruneAlbumCovers": "Очистить неиспользуемые обложки Deezer",
+    "pruneAlbumCoversSubtitle": "Удаляет кэшированные обложки Deezer для альбомов, у которых уже есть своя обложка (никогда не отображались)",
+    "pruneAlbumCoversAction": "Очистить",
+    "pruneAlbumCoversDone": "Удалено файлов: {{files}} · освобождено {{mb}} МБ",
     "reset": {
       "title": "Сбросить приложение",
       "subtitle": "Удалить все данные и вернуть заводские настройки",

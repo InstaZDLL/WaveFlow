@@ -55,6 +55,122 @@ pub async fn regenerate_thumbnails(state: tauri::State<'_, AppState>) -> AppResu
     Ok(total)
 }
 
+/// Result of [`prune_cached_album_covers`] — surfaced to the Settings UI.
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AlbumCoverCleanup {
+    /// `metadata_album` rows whose `cover_hash` was cleared.
+    pub rows_cleared: u64,
+    /// Cache files (`.jpg` + `_1x`/`_2x` thumbnails) deleted.
+    pub files_deleted: u64,
+    /// Bytes reclaimed on disk.
+    pub bytes_freed: u64,
+}
+
+/// One-time cleanup companion to issue #493: drop the Deezer album covers the
+/// shared cache accumulated for albums that already have their own local
+/// artwork. Those files were downloaded as a side effect of opening an album
+/// page (which only reads `label`/`release_date`) and were never displayed.
+///
+/// Safe by construction — the cache is content-addressed and shared between
+/// artist pictures and album covers, so a hash is only unlinked from disk once
+/// it is referenced by NO remaining `metadata_album.cover_hash`,
+/// `metadata_artist.picture_hash` or `metadata_artist.background_hash`. Scoped
+/// to the active profile's albums; if a *different* profile still lacks art for
+/// one of these albums, its cover simply re-downloads on next view (the #493
+/// fix re-fetches for art-less albums), so over-cleaning is self-healing.
+#[tauri::command]
+pub async fn prune_cached_album_covers(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<AlbumCoverCleanup> {
+    let pool = state.require_profile_pool().await?;
+    let artwork_dir = state.paths.metadata_artwork_dir.clone();
+
+    // Covers cached for albums that DO have local artwork (this profile).
+    let candidates: Vec<String> = sqlx::query_scalar(
+        "SELECT DISTINCT ma.cover_hash
+           FROM app.metadata_album ma
+           JOIN album al ON al.deezer_id = ma.deezer_id
+          WHERE al.artwork_id IS NOT NULL AND ma.cover_hash IS NOT NULL",
+    )
+    .fetch_all(&*pool)
+    .await?;
+
+    if candidates.is_empty() {
+        return Ok(AlbumCoverCleanup {
+            rows_cleared: 0,
+            files_deleted: 0,
+            bytes_freed: 0,
+        });
+    }
+
+    // Forget the cover on those rows first, so the reference check below no
+    // longer counts them — the #493 fix keeps them from re-downloading.
+    let rows_cleared = sqlx::query(
+        "UPDATE app.metadata_album
+            SET cover_hash = NULL
+          WHERE deezer_id IN (
+                SELECT ma.deezer_id
+                  FROM app.metadata_album ma
+                  JOIN album al ON al.deezer_id = ma.deezer_id
+                 WHERE al.artwork_id IS NOT NULL AND ma.cover_hash IS NOT NULL)",
+    )
+    .execute(&*pool)
+    .await?
+    .rows_affected();
+
+    // Every hash still referenced anywhere in the shared cache — must survive.
+    let referenced: std::collections::HashSet<String> = sqlx::query_scalar::<_, String>(
+        "SELECT cover_hash FROM app.metadata_album WHERE cover_hash IS NOT NULL
+         UNION SELECT picture_hash FROM app.metadata_artist WHERE picture_hash IS NOT NULL
+         UNION SELECT background_hash FROM app.metadata_artist WHERE background_hash IS NOT NULL",
+    )
+    .fetch_all(&*pool)
+    .await?
+    .into_iter()
+    .collect();
+
+    let deletable: Vec<String> = candidates
+        .into_iter()
+        .filter(|h| !referenced.contains(h))
+        .collect();
+
+    // Blocking fs work off the runtime.
+    let (files_deleted, bytes_freed) =
+        tokio::task::spawn_blocking(move || delete_cover_files(&artwork_dir, &deletable))
+            .await
+            .map_err(|e| AppError::Other(format!("prune_cached_album_covers join: {e}")))?;
+
+    Ok(AlbumCoverCleanup {
+        rows_cleared,
+        files_deleted,
+        bytes_freed,
+    })
+}
+
+/// Delete `<hash>.jpg` + `<hash>_1x.jpg` + `<hash>_2x.jpg` for each hash,
+/// summing the bytes actually reclaimed. Best-effort per file (a locked /
+/// missing file is skipped, not fatal).
+fn delete_cover_files(dir: &Path, hashes: &[String]) -> (u64, u64) {
+    let mut files_deleted = 0u64;
+    let mut bytes_freed = 0u64;
+    for hash in hashes {
+        for name in [
+            format!("{hash}.jpg"),
+            format!("{hash}_1x.jpg"),
+            format!("{hash}_2x.jpg"),
+        ] {
+            let path = dir.join(name);
+            let len = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+            if std::fs::remove_file(&path).is_ok() {
+                files_deleted += 1;
+                bytes_freed += len;
+            }
+        }
+    }
+    (files_deleted, bytes_freed)
+}
+
 /// Factory reset. Wipes every profile, library, playlist, cache and
 /// app-wide setting, then restarts the binary into a fresh
 /// onboarding flow.

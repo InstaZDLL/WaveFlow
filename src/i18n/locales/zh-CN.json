@@ -1553,6 +1553,10 @@
     "regenerateThumbnailsSubtitle": "为所有封面补全缺失的 1x/2x 版本",
     "regenerateThumbnailsAction": "重新生成",
     "regenerateThumbnailsDone": "已重新生成 {{count}} 张缩略图",
+    "pruneAlbumCovers": "清理未使用的 Deezer 专辑封面",
+    "pruneAlbumCoversSubtitle": "删除已有自己封面的专辑所缓存的 Deezer 封面（从未显示）",
+    "pruneAlbumCoversAction": "清理",
+    "pruneAlbumCoversDone": "已删除 {{files}} 个文件 · 释放 {{mb}} MB",
     "reset": {
       "title": "重置应用程序",
       "subtitle": "删除所有数据并恢复出厂设置",
