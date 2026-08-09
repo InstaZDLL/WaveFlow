@@ -965,32 +965,22 @@ fn run_dop_event_loop(
             if draining {
                 while consumer.pop().is_ok() {}
             }
-            render_dop_silence(padded, channels, need_frames, &mut silence_phase, &mut bytes_scratch);
+            super::dop_pack::render_dop_silence(
+                padded,
+                channels,
+                need_frames,
+                &mut silence_phase,
+                &mut bytes_scratch,
+            );
         } else {
-            // Pull whole frames while the ring can satisfy them; on the
-            // first short frame, fill the rest of the buffer with DoP
-            // idle so the marker cadence never breaks mid-period.
-            let mut written: u64 = 0;
-            let mut f = 0usize;
-            while f < need_frames {
-                if consumer.slots() < channels {
-                    for g in f..need_frames {
-                        let word = dop_silence_word(silence_phase);
-                        silence_phase = silence_phase.wrapping_add(1);
-                        for ch in 0..channels {
-                            write_dop_word(padded, word, &mut bytes_scratch, g * channels + ch);
-                        }
-                    }
-                    break;
-                }
-                for ch in 0..channels {
-                    // Slots checked above — this pop cannot fail.
-                    let word = consumer.pop().map(|s| s.to_bits()).unwrap_or(0);
-                    write_dop_word(padded, word, &mut bytes_scratch, f * channels + ch);
-                }
-                written += channels as u64;
-                f += 1;
-            }
+            let written = super::dop_pack::fill_dop_period(
+                padded,
+                channels,
+                need_frames,
+                &mut consumer,
+                &mut silence_phase,
+                &mut bytes_scratch,
+            );
             if written > 0 {
                 shared.samples_played.fetch_add(written, Ordering::Relaxed);
             }
@@ -1015,52 +1005,6 @@ fn run_dop_event_loop(
     wasapi::deinitialize();
 
     exit
-}
-
-/// Write one 24-bit DoP word at `sample_idx`, little-endian. `padded`
-/// selects the 4-byte 24-in-32 container (high byte 0) vs the compact
-/// 3-byte packing. The word is masked to 24 bits — the marker sits in
-/// bits 23..16, the two DSD bytes below it.
-#[inline]
-fn write_dop_word(padded: bool, word: u32, bytes: &mut [u8], sample_idx: usize) {
-    let v = word & 0x00FF_FFFF;
-    if padded {
-        let off = sample_idx * 4;
-        bytes[off..off + 4].copy_from_slice(&v.to_le_bytes());
-    } else {
-        let off = sample_idx * 3;
-        bytes[off] = v as u8;
-        bytes[off + 1] = (v >> 8) as u8;
-        bytes[off + 2] = (v >> 16) as u8;
-    }
-}
-
-/// A DoP idle (silence) word: the standard 0x69 DSD-silence payload in
-/// both data bytes, with the marker chosen by `phase` parity. Decodes to
-/// analog silence on the DAC while keeping it in DoP lock.
-#[inline]
-fn dop_silence_word(phase: u64) -> u32 {
-    let marker: u32 = if phase & 1 == 0 { 0x05 } else { 0xFA };
-    (marker << 16) | 0x6969
-}
-
-/// Fill `bytes` with `need_frames` DoP idle frames, advancing `phase`
-/// once per frame so the marker keeps alternating. Every channel of a
-/// frame carries the same marker.
-fn render_dop_silence(
-    padded: bool,
-    channels: usize,
-    need_frames: usize,
-    phase: &mut u64,
-    bytes: &mut [u8],
-) {
-    for f in 0..need_frames {
-        let word = dop_silence_word(*phase);
-        *phase = phase.wrapping_add(1);
-        for ch in 0..channels {
-            write_dop_word(padded, word, bytes, f * channels + ch);
-        }
-    }
 }
 
 /// Pack the decoded `f32` sample buffer into the little-endian byte
