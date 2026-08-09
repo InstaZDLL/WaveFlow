@@ -253,25 +253,33 @@ pub fn spawn_output_with_mode(
     dop: Option<DopFormat>,
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
     // DoP (#495) is a hard requirement, not a preference: a DoP stream
-    // that can't open its exact rate in exclusive 24-bit must NOT fall
-    // back to shared mode (the OS mixer would resample the marker
+    // that can't open its exact rate in exclusive form must NOT fall back
+    // to a shared / mixed output (the OS mixer would resample the marker
     // cadence into white noise) — the caller instead falls back to
     // ordinary DSD → PCM. So when a DoP format is requested we try the
-    // exclusive DoP path only, and surface its error verbatim.
-    #[cfg(target_os = "windows")]
+    // platform's exclusive backend only, and surface its error verbatim:
+    // WASAPI Exclusive on Windows, a raw `hw:` device on Linux (ALSA),
+    // hog mode on macOS (CoreAudio).
     if let Some(dop) = dop {
+        #[cfg(target_os = "windows")]
         return super::wasapi_exclusive::spawn_exclusive_output_thread(
             shared,
             app,
             device_name,
             Some(dop),
         );
-    }
-    #[cfg(not(target_os = "windows"))]
-    if dop.is_some() {
-        return Err(AppError::Audio(
-            "DoP output requires WASAPI Exclusive (Windows only)".into(),
-        ));
+        #[cfg(target_os = "linux")]
+        return super::alsa_exclusive::spawn_alsa_dop_output_thread(shared, app, device_name, dop);
+        // macOS DoP (CoreAudio hog mode) is a follow-up; the engine gate
+        // never requests DoP there yet, so this arm is unreachable at
+        // runtime but keeps the match total on every platform.
+        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+        {
+            let _ = (dop, &shared, &app, &device_name);
+            return Err(AppError::Audio(
+                "DoP output is not supported on this platform yet".into(),
+            ));
+        }
     }
 
     #[cfg(target_os = "windows")]

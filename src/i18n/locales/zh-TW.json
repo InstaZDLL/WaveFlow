@@ -2032,7 +2032,7 @@
     },
     "dsdDop": {
       "title": "原生 DSD（DoP）",
-      "subtitle": "透過 DoP（DSD over PCM）將 DSD 串流原樣傳送到 DAC，而非轉換為 PCM——位元完美原生解碼。需要 WASAPI 獨佔輸出與支援 DoP 的 DAC；否則回退到 DSD → PCM。"
+      "subtitle": "透過 DoP（DSD over PCM）將 DSD 串流原樣傳送到 DAC，而非轉換為 PCM——位元完美原生解碼。需要獨佔輸出（Windows 上的 WASAPI 獨佔，Linux 上的硬體 ALSA）與支援 DoP 的 DAC；否則回退到 DSD → PCM。"
     }
   },
   "scanProgress": {

@@ -2032,7 +2032,7 @@
     },
     "dsdDop": {
       "title": "ネイティブDSD（DoP）",
-      "subtitle": "DSDストリームをPCMに変換せず、DoP（DSD over PCM）でそのままDACに送信します — ビットパーフェクトなネイティブデコード。WASAPI排他出力とDoP対応DACが必要です。満たさない場合はDSD → PCMにフォールバックします。"
+      "subtitle": "DSDストリームをPCMに変換せず、DoP（DSD over PCM）でそのままDACに送信します — ビットパーフェクトなネイティブデコード。排他出力（WindowsではWASAPI排他、Linuxではハードウェア ALSA）とDoP対応DACが必要です。満たさない場合はDSD → PCMにフォールバックします。"
     }
   },
   "scanProgress": {

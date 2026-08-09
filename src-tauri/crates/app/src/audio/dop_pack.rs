@@ -138,6 +138,71 @@ pub fn advance_phase(phase: &AtomicU64) -> u32 {
     dop_silence_word(p) >> 16
 }
 
+// ── 32-bit MSB-justified path (ALSA S32_LE, CoreAudio 32-bit int) ─────
+//
+// Some transports present a full 32-bit sample to the DAC rather than a
+// packed 24-bit one. There the DoP marker must land in the *most*
+// significant byte (bits 31..24) for the DAC to detect the cadence, so
+// the 24-bit word is left-shifted by 8. This is a different justification
+// from WASAPI's `Pcm24Padded` (24 valid bits in the LOW position), hence
+// a separate path rather than a flag on the byte packer.
+
+/// Place a 24-bit DoP word MSB-justified in a 32-bit sample: marker in
+/// bits 31..24, the two DSD bytes in 23..8, low byte zero.
+#[inline]
+pub fn dop_word_to_i32(word: u32) -> i32 {
+    ((word & 0x00FF_FFFF) << 8) as i32
+}
+
+/// i32 / MSB-justified twin of [`fill_dop_period`]. Writes into an `i32`
+/// sample buffer (as `io_i32` / a CoreAudio 32-bit render buffer expect)
+/// instead of raw bytes. Returns real samples pulled.
+pub fn fill_dop_period_i32(
+    channels: usize,
+    need_frames: usize,
+    consumer: &mut Consumer<f32>,
+    silence_phase: &mut u64,
+    out: &mut [i32],
+) -> u64 {
+    let mut written: u64 = 0;
+    let mut f = 0usize;
+    while f < need_frames {
+        if consumer.slots() < channels {
+            for g in f..need_frames {
+                let s = dop_word_to_i32(dop_silence_word(*silence_phase));
+                *silence_phase = silence_phase.wrapping_add(1);
+                for ch in 0..channels {
+                    out[g * channels + ch] = s;
+                }
+            }
+            break;
+        }
+        for ch in 0..channels {
+            let word = consumer.pop().map(|s| s.to_bits()).unwrap_or(0);
+            out[f * channels + ch] = dop_word_to_i32(word);
+        }
+        written += channels as u64;
+        f += 1;
+    }
+    written
+}
+
+/// i32 / MSB-justified twin of [`render_dop_silence`].
+pub fn render_dop_silence_i32(
+    channels: usize,
+    need_frames: usize,
+    phase: &mut u64,
+    out: &mut [i32],
+) {
+    for f in 0..need_frames {
+        let s = dop_word_to_i32(dop_silence_word(*phase));
+        *phase = phase.wrapping_add(1);
+        for ch in 0..channels {
+            out[f * channels + ch] = s;
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -196,6 +261,30 @@ mod tests {
             assert_eq!(b[s * 3 + 1], 0x69);
         }
         assert_eq!(phase, 2, "advanced one phase per silence frame");
+    }
+
+    #[test]
+    fn word_to_i32_puts_marker_in_the_top_byte() {
+        // 0x05_12_34 → << 8 → 0x05_12_34_00. Marker (0x05) in bits 31..24.
+        let s = dop_word_to_i32((0x05 << 16) | 0x1234);
+        assert_eq!(s as u32, 0x0512_3400);
+        assert_eq!((s as u32) >> 24, 0x05, "marker must be the MSB");
+    }
+
+    #[test]
+    fn fill_period_i32_pulls_then_silences_msb_justified() {
+        let (mut p, mut c) = rtrb::RingBuffer::<f32>::new(16);
+        p.push(f32::from_bits((0x05 << 16) | 0x1111)).unwrap();
+        p.push(f32::from_bits((0x05 << 16) | 0x2222)).unwrap();
+        let mut phase = 0u64;
+        let mut out = vec![0i32; 4]; // 2 stereo frames
+        let written = fill_dop_period_i32(2, 2, &mut c, &mut phase, &mut out);
+        assert_eq!(written, 2);
+        assert_eq!(out[0] as u32, 0x0511_1100);
+        assert_eq!(out[1] as u32, 0x0522_2200);
+        // Frame 1 = idle silence, MSB-justified.
+        assert_eq!(out[2] as u32, 0x0569_6900);
+        assert_eq!(out[3] as u32, 0x0569_6900);
     }
 
     #[test]

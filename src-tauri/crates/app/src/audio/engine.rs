@@ -820,14 +820,22 @@ impl AudioEngine {
     ) -> AppResult<(Option<rtrb::Producer<f32>>, bool)> {
         use std::sync::atomic::Ordering;
 
-        // DoP can only ride WASAPI Exclusive (Windows). If exclusive isn't
-        // the active preference — always the case on Linux / macOS, and on
-        // Windows when the user hasn't opted into exclusive — drop the DoP
-        // request up-front so we don't tear the output down and rebuild it
-        // just to fall back to PCM on every DSD track. A synced profile
-        // carrying `audio.dsd_dop = true` from a Windows machine is handled
-        // here too: it becomes a no-op rather than a churn.
-        let dop = if dop.is_some() && self.wasapi_exclusive.load(Ordering::Relaxed) {
+        // DoP needs exclusive device access. On Windows that's the
+        // separate WASAPI Exclusive opt-in, so DoP rides it — if the user
+        // hasn't enabled exclusive, drop the DoP request up-front rather
+        // than tear the output down and rebuild it just to fall back to
+        // PCM on every DSD track. On Linux / macOS the DoP toggle itself
+        // engages the exclusive path (raw `hw:` / hog mode), so nothing
+        // else gates it. On any other platform DoP can't run at all.
+        #[cfg(target_os = "windows")]
+        let exclusive_available = self.wasapi_exclusive.load(Ordering::Relaxed);
+        #[cfg(target_os = "linux")]
+        let exclusive_available = true;
+        // macOS DoP (CoreAudio hog mode) is a follow-up — keep it OFF so a
+        // DSD track never needlessly rebuilds the output there.
+        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+        let exclusive_available = false;
+        let dop = if dop.is_some() && exclusive_available {
             dop
         } else {
             None

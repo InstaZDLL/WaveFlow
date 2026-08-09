@@ -1223,12 +1223,19 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [gapless, setGapless] = useState(true);
   const [dsdTaps, setDsdTaps] = useState<DsdPrecisionTaps>(256);
   const [dsdDop, setDsdDop] = useState(false);
-  // DoP only works over WASAPI Exclusive, so the toggle is Windows-only
-  // (#495) — same UA sniff the ExclusiveModeCard uses. The WebView is
-  // platform-pinned, so the result is stable for the session.
-  const isWindows =
-    typeof navigator !== "undefined" &&
-    navigator.userAgent.toLowerCase().includes("windows");
+  // DoP needs exclusive device access, which WaveFlow has on Windows
+  // (WASAPI Exclusive) and Linux (raw ALSA `hw:`) — macOS (CoreAudio hog
+  // mode) is a follow-up, so the toggle is hidden there for now (#495).
+  // UA sniff like the ExclusiveModeCard; the WebView is platform-pinned.
+  const dopPlatformSupported = (() => {
+    if (typeof navigator === "undefined") return false;
+    const ua = navigator.userAgent.toLowerCase();
+    // Exclude Android, whose UA also contains "linux".
+    return (
+      ua.includes("windows") ||
+      (ua.includes("linux") && !ua.includes("android"))
+    );
+  })();
 
   // Integrations
   const [lastfmKey, setLastfmKey] = useState("");
@@ -2281,10 +2288,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               </div>
             </div>
 
-            {/* Native DSD via DoP (DSD over PCM). Windows / WASAPI
-                Exclusive + DoP-capable DAC only; off by default. Hidden
-                on non-Windows platforms where DoP can't engage. */}
-            {isWindows && (
+            {/* Native DSD via DoP (DSD over PCM). Windows (WASAPI
+                Exclusive) + Linux (raw ALSA hw) with a DoP-capable DAC;
+                off by default. Hidden where DoP can't engage yet (macOS,
+                mobile). */}
+            {dopPlatformSupported && (
               <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
                 <div className="flex items-center space-x-4 min-w-0">
                   <AudioWaveform

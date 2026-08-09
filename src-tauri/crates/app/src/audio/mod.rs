@@ -28,6 +28,8 @@ pub mod spectrum;
 pub mod state;
 #[cfg(target_os = "windows")]
 pub mod wasapi_exclusive;
+#[cfg(target_os = "linux")]
+pub mod alsa_exclusive;
 
 pub use engine::{AudioCmd, AudioEngine};
 pub use output::list_output_devices;
