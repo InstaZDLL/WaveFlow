@@ -87,6 +87,18 @@ pub async fn enrich_album_deezer(
     enrich_album_inner(&pool, &artwork_dir, album_id).await
 }
 
+/// Whether a fresh cached `metadata_album` row is a usable hit **for the needs
+/// of the album being enriched**. A row with no `cover_hash` still counts as
+/// complete when the local album has its own artwork (it will never need the
+/// Deezer cover). But for an art-less album a cover-less row is *incomplete* —
+/// it must trigger a re-fetch instead of serving a permanent miss. Without this
+/// the #493 download-skip would poison the shared cache: a fresh cover-less row
+/// (art removed, a different profile sharing the cache, or a prior failed
+/// download) would block the cover from ever being fetched until the TTL lapsed.
+fn metadata_album_cache_complete(cover_hash: Option<&str>, has_local_art: bool) -> bool {
+    cover_hash.is_some() || has_local_art
+}
+
 pub(crate) async fn enrich_album_inner(
     pool: &SqlitePool,
     artwork_dir: &Path,
@@ -126,7 +138,15 @@ pub(crate) async fn enrich_album_inner(
         .await?;
 
         if let Some((label, release_date, cover_url, cover_hash, expires_at)) = cached {
-            if expires_at > now {
+            // A fresh row is a usable hit only when it's also complete for this
+            // album's needs — otherwise a cover-less row for an art-less album
+            // would block a re-fetch until the TTL lapsed (issue #493).
+            let usable = expires_at > now
+                && metadata_album_cache_complete(
+                    cover_hash.as_deref(),
+                    local_artwork_id.is_some(),
+                );
+            if usable {
                 let cover_path = cover_hash
                     .as_deref()
                     .and_then(|h| metadata_artwork::existing_path(artwork_dir, h));
@@ -1183,4 +1203,24 @@ async fn download_image_bytes(url: &str) -> AppResult<Vec<u8>> {
         bytes.extend_from_slice(&chunk);
     }
     Ok(bytes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::metadata_album_cache_complete;
+
+    #[test]
+    fn album_cache_completeness_gates_refetch() {
+        // Art-less album (`has_local_art = false`): only a cached cover makes
+        // the row usable. A cover-less fresh row must NOT be served — it has to
+        // re-fetch (art was removed, another profile shares the cache, or a
+        // prior download failed), which is the #493 regression this guards.
+        assert!(metadata_album_cache_complete(Some("hash"), false));
+        assert!(!metadata_album_cache_complete(None, false));
+
+        // Art-having album never needs the Deezer cover, so a cover-less row is
+        // a complete hit — no wasteful re-download every time the page opens.
+        assert!(metadata_album_cache_complete(None, true));
+        assert!(metadata_album_cache_complete(Some("hash"), true));
+    }
 }
