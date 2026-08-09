@@ -21,6 +21,7 @@
 //! exhaustive tests against synthesised fixtures. PCM conversion and
 //! metadata follow in subsequent commits.
 
+pub mod dop;
 pub mod metadata;
 pub mod parser;
 pub mod pcm;
