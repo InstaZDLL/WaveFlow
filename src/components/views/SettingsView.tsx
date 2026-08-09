@@ -1175,7 +1175,12 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     setPruneCoversStatus(null);
     try {
       const r = await pruneCachedAlbumCovers();
-      const mb = (r.bytesFreed / (1024 * 1024)).toFixed(1);
+      // Locale-aware one-decimal MB (e.g. "12,5" in fr) rather than the
+      // always-`.` `toFixed`.
+      const mb = new Intl.NumberFormat(
+        i18n.resolvedLanguage ?? i18n.language,
+        { minimumFractionDigits: 1, maximumFractionDigits: 1 },
+      ).format(r.bytesFreed / (1024 * 1024));
       setPruneCoversStatus({
         ok: true,
         text: t("settings.pruneAlbumCoversDone", { files: r.filesDeleted, mb }),
@@ -1190,7 +1195,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       setIsPruningCovers(false);
       window.setTimeout(() => setPruneCoversStatus(null), 5000);
     }
-  }, [isPruningCovers, t]);
+  }, [isPruningCovers, t, i18n.language, i18n.resolvedLanguage]);
 
   // Audio settings — hydrated from backend at mount.
   const [normalize, setNormalize] = useState(false);
