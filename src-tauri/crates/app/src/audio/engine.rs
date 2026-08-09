@@ -820,6 +820,19 @@ impl AudioEngine {
     ) -> AppResult<(Option<rtrb::Producer<f32>>, bool)> {
         use std::sync::atomic::Ordering;
 
+        // DoP can only ride WASAPI Exclusive (Windows). If exclusive isn't
+        // the active preference — always the case on Linux / macOS, and on
+        // Windows when the user hasn't opted into exclusive — drop the DoP
+        // request up-front so we don't tear the output down and rebuild it
+        // just to fall back to PCM on every DSD track. A synced profile
+        // carrying `audio.dsd_dop = true` from a Windows machine is handled
+        // here too: it becomes a no-op rather than a churn.
+        let dop = if dop.is_some() && self.wasapi_exclusive.load(Ordering::Relaxed) {
+            dop
+        } else {
+            None
+        };
+
         let mut guard = self
             .output
             .lock()

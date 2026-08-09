@@ -1223,6 +1223,12 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [gapless, setGapless] = useState(true);
   const [dsdTaps, setDsdTaps] = useState<DsdPrecisionTaps>(256);
   const [dsdDop, setDsdDop] = useState(false);
+  // DoP only works over WASAPI Exclusive, so the toggle is Windows-only
+  // (#495) — same UA sniff the ExclusiveModeCard uses. The WebView is
+  // platform-pinned, so the result is stable for the session.
+  const isWindows =
+    typeof navigator !== "undefined" &&
+    navigator.userAgent.toLowerCase().includes("windows");
 
   // Integrations
   const [lastfmKey, setLastfmKey] = useState("");
@@ -2276,29 +2282,32 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             </div>
 
             {/* Native DSD via DoP (DSD over PCM). Windows / WASAPI
-                Exclusive + DoP-capable DAC only; off by default. */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4 min-w-0">
-                <AudioWaveform
-                  size={20}
-                  className="text-zinc-400 shrink-0"
-                  aria-hidden="true"
-                />
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.dsdDop.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.dsdDop.subtitle")}
+                Exclusive + DoP-capable DAC only; off by default. Hidden
+                on non-Windows platforms where DoP can't engage. */}
+            {isWindows && (
+              <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="flex items-center space-x-4 min-w-0">
+                  <AudioWaveform
+                    size={20}
+                    className="text-zinc-400 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                      {t("settings.dsdDop.title")}
+                    </div>
+                    <div className="text-xs text-zinc-400">
+                      {t("settings.dsdDop.subtitle")}
+                    </div>
                   </div>
                 </div>
+                <ToggleSwitch
+                  enabled={dsdDop}
+                  onToggle={handleToggleDsdDop}
+                  label={t("settings.dsdDop.title")}
+                />
               </div>
-              <ToggleSwitch
-                enabled={dsdDop}
-                onToggle={handleToggleDsdDop}
-                label={t("settings.dsdDop.title")}
-              />
-            </div>
+            )}
 
             {/* Normaliser le volume */}
             <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
