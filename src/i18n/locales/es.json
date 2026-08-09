@@ -1598,6 +1598,7 @@
     "pruneAlbumCoversSubtitle": "Elimina las carátulas de Deezer en caché de álbumes que ya tienen su propia carátula (nunca mostradas)",
     "pruneAlbumCoversAction": "Purgar",
     "pruneAlbumCoversDone": "{{files}} archivos eliminados · {{mb}} MB liberados",
+    "pruneAlbumCoversFailed": "Error al purgar las carátulas",
     "reset": {
       "title": "Restablecer la app",
       "subtitle": "Borra todos los datos y restablece la configuración de fábrica",

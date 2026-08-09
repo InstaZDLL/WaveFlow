@@ -1164,9 +1164,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   }, [isRegeneratingThumbs, t]);
 
   const [isPruningCovers, setIsPruningCovers] = useState(false);
-  const [pruneCoversStatus, setPruneCoversStatus] = useState<string | null>(
-    null,
-  );
+  const [pruneCoversStatus, setPruneCoversStatus] = useState<{
+    ok: boolean;
+    text: string;
+  } | null>(null);
 
   const handlePruneCachedCovers = useCallback(async () => {
     if (isPruningCovers) return;
@@ -1175,11 +1176,16 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     try {
       const r = await pruneCachedAlbumCovers();
       const mb = (r.bytesFreed / (1024 * 1024)).toFixed(1);
-      setPruneCoversStatus(
-        t("settings.pruneAlbumCoversDone", { files: r.filesDeleted, mb }),
-      );
+      setPruneCoversStatus({
+        ok: true,
+        text: t("settings.pruneAlbumCoversDone", { files: r.filesDeleted, mb }),
+      });
     } catch (err) {
       console.error("[SettingsView] prune cached covers failed", err);
+      setPruneCoversStatus({
+        ok: false,
+        text: t("settings.pruneAlbumCoversFailed"),
+      });
     } finally {
       setIsPruningCovers(false);
       window.setTimeout(() => setPruneCoversStatus(null), 5000);
@@ -3669,8 +3675,14 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                     {t("settings.pruneAlbumCovers")}
                   </div>
                   {pruneCoversStatus ? (
-                    <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 truncate">
-                      {pruneCoversStatus}
+                    <div
+                      className={`text-xs mt-1 truncate ${
+                        pruneCoversStatus.ok
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-rose-600 dark:text-rose-400"
+                      }`}
+                    >
+                      {pruneCoversStatus.text}
                     </div>
                   ) : (
                     <div className="text-xs text-zinc-400">

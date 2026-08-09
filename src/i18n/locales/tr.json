@@ -1598,6 +1598,7 @@
     "pruneAlbumCoversSubtitle": "Zaten kendi kapağı olan albümler için önbelleğe alınmış Deezer kapaklarını siler (hiç gösterilmedi)",
     "pruneAlbumCoversAction": "Temizle",
     "pruneAlbumCoversDone": "{{files}} dosya silindi · {{mb}} MB boşaltıldı",
+    "pruneAlbumCoversFailed": "Kapak temizliği başarısız",
     "reset": {
       "title": "Uygulamayı sıfırla",
       "subtitle": "Tüm verileri sil ve fabrika ayarlarına geri yükle",

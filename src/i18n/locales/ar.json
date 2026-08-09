@@ -1737,6 +1737,7 @@
     "pruneAlbumCoversSubtitle": "يحذف أغلفة Deezer المخزَّنة مؤقتًا للألبومات التي لديها غلافها الخاص (لا تُعرض أبدًا)",
     "pruneAlbumCoversAction": "تنظيف",
     "pruneAlbumCoversDone": "تم حذف {{files}} ملفات · تحرير {{mb}} ميغابايت",
+    "pruneAlbumCoversFailed": "فشل تنظيف الأغلفة",
     "reset": {
       "title": "إعادة ضبط التطبيق",
       "subtitle": "حذف جميع البيانات واستعادة إعدادات المصنع",

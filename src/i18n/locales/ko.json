@@ -1619,6 +1619,7 @@
     "pruneAlbumCoversSubtitle": "이미 자체 커버가 있는 앨범을 위해 캐시된 Deezer 커버를 삭제합니다(표시되지 않음)",
     "pruneAlbumCoversAction": "정리",
     "pruneAlbumCoversDone": "파일 {{files}}개 삭제 · {{mb}} MB 확보",
+    "pruneAlbumCoversFailed": "커버 정리 실패",
     "reset": {
       "title": "앱 초기화",
       "subtitle": "모든 데이터를 삭제하고 초기 상태로 복원",

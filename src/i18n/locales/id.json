@@ -1598,6 +1598,7 @@
     "pruneAlbumCoversSubtitle": "Menghapus sampul album Deezer yang tersimpan untuk album yang sudah punya sampul sendiri (tidak pernah ditampilkan)",
     "pruneAlbumCoversAction": "Bersihkan",
     "pruneAlbumCoversDone": "{{files}} file dihapus · {{mb}} MB dibebaskan",
+    "pruneAlbumCoversFailed": "Gagal membersihkan sampul",
     "reset": {
       "title": "Atur ulang aplikasi",
       "subtitle": "Hapus semua data dan kembalikan ke pengaturan awal",

@@ -1557,6 +1557,7 @@
     "pruneAlbumCoversSubtitle": "刪除已有自己封面的專輯所快取的 Deezer 封面（從未顯示）",
     "pruneAlbumCoversAction": "清理",
     "pruneAlbumCoversDone": "已刪除 {{files}} 個檔案 · 釋放 {{mb}} MB",
+    "pruneAlbumCoversFailed": "封面清理失敗",
     "reset": {
       "title": "重置應用程式",
       "subtitle": "刪除所有資料並恢復至初始狀態",

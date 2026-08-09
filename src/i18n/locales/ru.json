@@ -1686,6 +1686,7 @@
     "pruneAlbumCoversSubtitle": "Удаляет кэшированные обложки Deezer для альбомов, у которых уже есть своя обложка (никогда не отображались)",
     "pruneAlbumCoversAction": "Очистить",
     "pruneAlbumCoversDone": "Удалено файлов: {{files}} · освобождено {{mb}} МБ",
+    "pruneAlbumCoversFailed": "Не удалось очистить обложки",
     "reset": {
       "title": "Сбросить приложение",
       "subtitle": "Удалить все данные и вернуть заводские настройки",

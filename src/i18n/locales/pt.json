@@ -1619,6 +1619,7 @@
     "pruneAlbumCoversSubtitle": "Elimina as capas do Deezer em cache de álbuns que já têm a sua própria capa (nunca mostradas)",
     "pruneAlbumCoversAction": "Remover",
     "pruneAlbumCoversDone": "{{files}} ficheiros eliminados · {{mb}} MB libertados",
+    "pruneAlbumCoversFailed": "Falha ao remover as capas",
     "reset": {
       "title": "Repor a aplicação",
       "subtitle": "Apagar todos os dados e restaurar as definições de fábrica",

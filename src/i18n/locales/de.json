@@ -1598,6 +1598,7 @@
     "pruneAlbumCoversSubtitle": "Löscht zwischengespeicherte Deezer-Albumcover für Alben, die bereits ein eigenes Cover haben (nie angezeigt)",
     "pruneAlbumCoversAction": "Entfernen",
     "pruneAlbumCoversDone": "{{files}} Dateien gelöscht · {{mb}} MB freigegeben",
+    "pruneAlbumCoversFailed": "Cover-Bereinigung fehlgeschlagen",
     "reset": {
       "title": "App zurücksetzen",
       "subtitle": "Alle Daten löschen und auf Werkseinstellungen zurücksetzen",

@@ -1598,6 +1598,7 @@
     "pruneAlbumCoversSubtitle": "Elimina le copertine Deezer in cache per gli album che hanno già la propria copertina (mai mostrate)",
     "pruneAlbumCoversAction": "Rimuovi",
     "pruneAlbumCoversDone": "{{files}} file eliminati · {{mb}} MB liberati",
+    "pruneAlbumCoversFailed": "Pulizia delle copertine non riuscita",
     "reset": {
       "title": "Reimposta l'app",
       "subtitle": "Elimina tutti i dati e ripristina le impostazioni di fabbrica",

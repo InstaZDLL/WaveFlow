@@ -1619,6 +1619,7 @@
     "pruneAlbumCoversSubtitle": "उन एल्बमों के लिए कैश की गई Deezer कवर हटाता है जिनके पास पहले से अपना कवर है (कभी नहीं दिखाया गया)",
     "pruneAlbumCoversAction": "हटाएँ",
     "pruneAlbumCoversDone": "{{files}} फ़ाइलें हटाई गईं · {{mb}} MB मुक्त किए गए",
+    "pruneAlbumCoversFailed": "कवर सफ़ाई विफल",
     "reset": {
       "title": "ऐप को रीसेट करें",
       "subtitle": "सभी डेटा मिटाएँ और फ़ैक्टरी सेटिंग्स पर पुनर्स्थापित करें।",

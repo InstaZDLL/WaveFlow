@@ -1,12 +1,14 @@
 //! Maintenance commands. Bulk operations a user can trigger from the
 //! Settings screen (regenerate thumbnails, prune orphan covers, …).
 
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
 
 use chrono::Utc;
+use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use tauri::AppHandle;
 
 use crate::{
@@ -72,65 +74,105 @@ pub struct AlbumCoverCleanup {
 /// artwork. Those files were downloaded as a side effect of opening an album
 /// page (which only reads `label`/`release_date`) and were never displayed.
 ///
-/// Safe by construction — the cache is content-addressed and shared between
-/// artist pictures and album covers, so a hash is only unlinked from disk once
-/// it is referenced by NO remaining `metadata_album.cover_hash`,
-/// `metadata_artist.picture_hash` or `metadata_artist.background_hash`. Scoped
-/// to the active profile's albums; if a *different* profile still lacks art for
-/// one of these albums, its cover simply re-downloads on next view (the #493
-/// fix re-fetches for art-less albums), so over-cleaning is self-healing.
+/// **Cross-profile safe.** The metadata cache is app-wide (one row per
+/// `deezer_id`, shared across every profile), so a cover may be pruned only
+/// when its album has local art in EVERY profile that carries it — an album
+/// still art-less in *some* profile keeps its cover so that profile isn't left
+/// blank (offline especially). And the cache is content-addressed + shared with
+/// artist pictures, so a hash is unlinked from disk only once it is referenced
+/// by NO remaining `metadata_album.cover_hash`, `metadata_artist.picture_hash`
+/// or `background_hash`. The `UPDATE` + reference re-check run in a single
+/// transaction for a consistent snapshot.
 #[tauri::command]
 pub async fn prune_cached_album_covers(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<AlbumCoverCleanup> {
-    let pool = state.require_profile_pool().await?;
     let artwork_dir = state.paths.metadata_artwork_dir.clone();
 
-    // Covers cached for albums that DO have local artwork (this profile).
-    let candidates: Vec<String> = sqlx::query_scalar(
-        "SELECT DISTINCT ma.cover_hash
-           FROM app.metadata_album ma
-           JOIN album al ON al.deezer_id = ma.deezer_id
-          WHERE al.artwork_id IS NOT NULL AND ma.cover_hash IS NOT NULL",
-    )
-    .fetch_all(&*pool)
-    .await?;
+    // 1. `deezer_id`s that must KEEP their cover: any album still WITHOUT local
+    //    art in ANY profile. The cache is app-wide, so a single-profile view
+    //    isn't enough — read every profile's `album` table. Open read-write but
+    //    WITHOUT running migrations (no migrator call); a read-only open of a
+    //    WAL db with no live writer can fail to create its `-shm`.
+    let profile_ids: Vec<i64> = sqlx::query_scalar("SELECT id FROM profile")
+        .fetch_all(&state.app_db)
+        .await
+        .unwrap_or_default();
+    let mut needed: HashSet<i64> = HashSet::new();
+    for pid in &profile_ids {
+        let path = state.paths.profile_db(*pid);
+        let opts = SqliteConnectOptions::new()
+            .filename(&path)
+            .create_if_missing(false);
+        let ppool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(opts)
+            .await
+            .map_err(|e| AppError::Other(format!("open profile {pid} db: {e}")))?;
+        let ids: Vec<i64> = sqlx::query_scalar(
+            "SELECT deezer_id FROM album WHERE artwork_id IS NULL AND deezer_id IS NOT NULL",
+        )
+        .fetch_all(&ppool)
+        .await
+        .map_err(|e| AppError::Other(format!("read profile {pid} albums: {e}")))?;
+        needed.extend(ids);
+        ppool.close().await;
+    }
 
-    if candidates.is_empty() {
+    // 2. Candidate covers: every cached album cover whose album is art-having in
+    //    every profile that has it (its `deezer_id` is not in `needed`). Queried
+    //    straight off `app.db`.
+    let rows: Vec<(i64, String)> = sqlx::query_as(
+        "SELECT deezer_id, cover_hash FROM metadata_album WHERE cover_hash IS NOT NULL",
+    )
+    .fetch_all(&state.app_db)
+    .await?;
+    let prunable: Vec<(i64, String)> = rows
+        .into_iter()
+        .filter(|(did, _)| !needed.contains(did))
+        .collect();
+    if prunable.is_empty() {
         return Ok(AlbumCoverCleanup {
             rows_cleared: 0,
             files_deleted: 0,
             bytes_freed: 0,
         });
     }
+    let prune_ids: Vec<i64> = prunable.iter().map(|(d, _)| *d).collect();
+    let candidate_hashes: HashSet<String> = prunable.into_iter().map(|(_, h)| h).collect();
 
-    // Forget the cover on those rows first, so the reference check below no
-    // longer counts them — the #493 fix keeps them from re-downloading.
-    let rows_cleared = sqlx::query(
-        "UPDATE app.metadata_album
-            SET cover_hash = NULL
-          WHERE deezer_id IN (
-                SELECT ma.deezer_id
-                  FROM app.metadata_album ma
-                  JOIN album al ON al.deezer_id = ma.deezer_id
-                 WHERE al.artwork_id IS NOT NULL AND ma.cover_hash IS NOT NULL)",
+    // 3. Clear those covers and re-check remaining references in ONE
+    //    transaction, so the reference set is consistent with the clear.
+    let mut tx = state.app_db.begin().await?;
+    let mut rows_cleared = 0u64;
+    for chunk in prune_ids.chunks(400) {
+        let placeholders = std::iter::repeat("?")
+            .take(chunk.len())
+            .collect::<Vec<_>>()
+            .join(",");
+        // SQL-safe: only bind placeholders are interpolated (never user data),
+        // mirroring the ATTACH statement in `db::profile_db`.
+        let sql = format!(
+            "UPDATE metadata_album SET cover_hash = NULL WHERE deezer_id IN ({placeholders})"
+        );
+        let mut q = sqlx::query(sqlx::AssertSqlSafe(sql));
+        for id in chunk {
+            q = q.bind(*id);
+        }
+        rows_cleared += q.execute(&mut *tx).await?.rows_affected();
+    }
+    let referenced: HashSet<String> = sqlx::query_scalar::<_, String>(
+        "SELECT cover_hash FROM metadata_album WHERE cover_hash IS NOT NULL
+         UNION SELECT picture_hash FROM metadata_artist WHERE picture_hash IS NOT NULL
+         UNION SELECT background_hash FROM metadata_artist WHERE background_hash IS NOT NULL",
     )
-    .execute(&*pool)
-    .await?
-    .rows_affected();
-
-    // Every hash still referenced anywhere in the shared cache — must survive.
-    let referenced: std::collections::HashSet<String> = sqlx::query_scalar::<_, String>(
-        "SELECT cover_hash FROM app.metadata_album WHERE cover_hash IS NOT NULL
-         UNION SELECT picture_hash FROM app.metadata_artist WHERE picture_hash IS NOT NULL
-         UNION SELECT background_hash FROM app.metadata_artist WHERE background_hash IS NOT NULL",
-    )
-    .fetch_all(&*pool)
+    .fetch_all(&mut *tx)
     .await?
     .into_iter()
     .collect();
+    tx.commit().await?;
 
-    let deletable: Vec<String> = candidates
+    let deletable: Vec<String> = candidate_hashes
         .into_iter()
         .filter(|h| !referenced.contains(h))
         .collect();

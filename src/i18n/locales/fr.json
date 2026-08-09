@@ -1684,6 +1684,7 @@
     "pruneAlbumCoversSubtitle": "Supprime les pochettes d'albums Deezer mises en cache pour des albums qui ont déjà leur propre pochette (jamais affichées)",
     "pruneAlbumCoversAction": "Purger",
     "pruneAlbumCoversDone": "{{files}} fichiers supprimés · {{mb}} Mo libérés",
+    "pruneAlbumCoversFailed": "Échec de la purge des pochettes",
     "reset": {
       "title": "Réinitialiser l'application",
       "subtitle": "Supprimer toutes les données et revenir à l'état initial",

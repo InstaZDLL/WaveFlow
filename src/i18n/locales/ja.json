@@ -1557,6 +1557,7 @@
     "pruneAlbumCoversSubtitle": "すでに独自のカバーを持つアルバムのためにキャッシュされた Deezer カバーを削除します（表示されません）",
     "pruneAlbumCoversAction": "削除",
     "pruneAlbumCoversDone": "{{files}} 個のファイルを削除 · {{mb}} MB を解放",
+    "pruneAlbumCoversFailed": "カバーの削除に失敗しました",
     "reset": {
       "title": "アプリをリセットする",
       "subtitle": "すべてのデータを削除し、初期状態に戻す",

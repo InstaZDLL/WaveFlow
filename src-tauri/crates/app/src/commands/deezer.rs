@@ -242,7 +242,13 @@ pub(crate) async fn enrich_album_inner(
            title = excluded.title,
            release_date = excluded.release_date,
            cover_url = excluded.cover_url,
-           cover_hash = excluded.cover_hash,
+           -- Only overwrite the cached hash on a NEW successful download.
+           -- `excluded.cover_hash` is NULL when the download was skipped
+           -- (art-having album, #493) or failed transiently — in both cases
+           -- keep whatever cover was already cached rather than dropping a good
+           -- one over a network blip. The #493 cleanup is what deliberately
+           -- clears art-having albums' covers, not this best-effort upsert.
+           cover_hash = COALESCE(excluded.cover_hash, cover_hash),
            label = excluded.label,
            fetched_at = excluded.fetched_at,
            expires_at = excluded.expires_at",
