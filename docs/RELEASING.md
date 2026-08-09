@@ -32,7 +32,7 @@ to the private key.
 ### 2. Embed the public key
 
 Open the public key file, copy its contents, and replace the
-placeholder in [`src-tauri/tauri.conf.json`](../src-tauri/tauri.conf.json):
+placeholder in [`src-tauri/crates/app/tauri.conf.json`](../src-tauri/crates/app/tauri.conf.json):
 
 ```jsonc
 "plugins": {
@@ -112,7 +112,7 @@ which:
 3. Opens or refreshes a **chore(main): release X.Y.Z** PR that
    bumps every version manifest in lockstep:
    - [`package.json`](../package.json) (canonical, owned by release-please)
-   - [`src-tauri/tauri.conf.json`](../src-tauri/tauri.conf.json) (`$.version`)
+   - [`src-tauri/crates/app/tauri.conf.json`](../src-tauri/crates/app/tauri.conf.json) (`$.version`)
    - [`src-tauri/Cargo.toml`](../src-tauri/Cargo.toml) (`$.package.version`)
    - [`README.md`](../README.md) version badge (`x-release-please-version` annotation)
    - [`CHANGELOG.md`](../CHANGELOG.md) (auto-generated entry)
@@ -241,6 +241,18 @@ pre-release; the beta manifest's payload URLs point there.
 > the "never hand-tag" rule — but it's still automated (the workflow
 > creates the tag, you don't). The rule's intent (don't bypass
 > release-please for _stable_ versions) is preserved.
+
+## Flatpak sources are generated, and they go stale silently
+
+Flathub builds with the network disabled, so **every crate and npm tarball must be pre-declared** in [`packaging/flatpak/generated/`](../packaging/flatpak/generated/) by [`generate-sources.sh`](../packaging/flatpak/generate-sources.sh).
+
+A `Cargo.lock` / `package.json` bump that skips that regeneration does **not** fail CI — it fails much later, inside Flathub's sandbox, on a crate nobody can download. `chore: update dependencies` (23be643) left **53** crates undeclared exactly this way.
+
+[`check-sources.py`](../packaging/flatpak/check-sources.py) guards the invariant on every PR touching a lockfile. It verifies **coverage** — every registry crate in `Cargo.lock` has a source entry, every npm package in the Flatpak lockfile has a tarball — offline, in about a second.
+
+It deliberately does **not** regenerate-and-diff: the generator runs `npm install --package-lock-only`, which re-resolves `^` ranges against the live registry, so such a check would go red whenever any transitive dependency publishes. Freshness is instead a monthly chore ([`flatpak-sources-refresh.yml`](../.github/workflows/flatpak-sources-refresh.yml), also `workflow_dispatch`-able) that regenerates and opens a PR.
+
+> **Toolchain split.** The app builds from `bun.lock`, but the Flatpak sandbox runs `npm ci --offline` against a **separate npm lockfile** (`flatpak-node-generator` can't read `bun.lock`). A dependency pin that must hold for shipped builds therefore belongs in `package.json` — e.g. an `overrides` entry — not in `bun.lock` alone.
 
 ## Notes
 

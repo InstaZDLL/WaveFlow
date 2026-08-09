@@ -130,7 +130,7 @@ Per-feature deep dives, architecture and storage layout live under [`docs/`](doc
 
 - **Features** — [playback](docs/features/playback.md) · [library](docs/features/library.md) · [playlists](docs/features/playlists.md) · [smart playlists](docs/features/smart-playlists.md) · [integrations](docs/features/integrations.md) · [plugins](docs/features/plugins.md) · [DLNA / UPnP](docs/features/dlna.md) · [UI & UX](docs/features/ui.md)
 - **Architecture** — [audio engine](docs/architecture/audio.md) · [database & paths](docs/architecture/storage.md)
-- **Contributing** — [CONTRIBUTING.md](CONTRIBUTING.md) · [RELEASING.md](RELEASING.md)
+- **Contributing** — [CONTRIBUTING.md](docs/CONTRIBUTING.md) · [RELEASING.md](docs/RELEASING.md)
 
 ## Community
 
