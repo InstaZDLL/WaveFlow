@@ -94,10 +94,12 @@ pub async fn prune_cached_album_covers(
     //    isn't enough — read every profile's `album` table. Open read-write but
     //    WITHOUT running migrations (no migrator call); a read-only open of a
     //    WAL db with no live writer can fail to create its `-shm`.
+    // Propagate a read failure — an empty list here would leave `needed` empty
+    // and mark EVERY cached cover prunable, mass-deleting covers other profiles
+    // still need. Bail instead.
     let profile_ids: Vec<i64> = sqlx::query_scalar("SELECT id FROM profile")
         .fetch_all(&state.app_db)
-        .await
-        .unwrap_or_default();
+        .await?;
     let mut needed: HashSet<i64> = HashSet::new();
     for pid in &profile_ids {
         let path = state.paths.profile_db(*pid);
