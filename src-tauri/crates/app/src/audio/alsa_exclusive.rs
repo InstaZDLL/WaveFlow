@@ -241,21 +241,24 @@ fn open_pcm(dev: &str, dop: DopFormat) -> AppResult<(PCM, usize)> {
             .map_err(|e| AppError::Audio(format!("alsa hw_params: {e}")))?;
     }
 
-    let hwp = pcm
-        .hw_params_current()
-        .map_err(|e| AppError::Audio(format!("alsa hw_params_current: {e}")))?;
-    let actual_rate = hwp
-        .get_rate()
-        .map_err(|e| AppError::Audio(format!("alsa get_rate: {e}")))?;
-    if actual_rate != dop.sample_rate {
-        return Err(AppError::Audio(format!(
-            "alsa gave {actual_rate} Hz, DoP needs exactly {} Hz — device can't do this DoP rate",
-            dop.sample_rate
-        )));
-    }
-    let period_frames = hwp
-        .get_period_size()
-        .map_err(|e| AppError::Audio(format!("alsa get_period_size: {e}")))? as usize;
+    // Scoped: `hw_params_current` borrows the PCM, and the borrow would
+    // otherwise still be live at the `Ok((pcm, …))` move below.
+    let period_frames = {
+        let hwp = pcm
+            .hw_params_current()
+            .map_err(|e| AppError::Audio(format!("alsa hw_params_current: {e}")))?;
+        let actual_rate = hwp
+            .get_rate()
+            .map_err(|e| AppError::Audio(format!("alsa get_rate: {e}")))?;
+        if actual_rate != dop.sample_rate {
+            return Err(AppError::Audio(format!(
+                "alsa gave {actual_rate} Hz, DoP needs exactly {} Hz — device can't do this DoP rate",
+                dop.sample_rate
+            )));
+        }
+        hwp.get_period_size()
+            .map_err(|e| AppError::Audio(format!("alsa get_period_size: {e}")))? as usize
+    };
     if period_frames == 0 {
         return Err(AppError::Audio("alsa reported a zero period size".into()));
     }
