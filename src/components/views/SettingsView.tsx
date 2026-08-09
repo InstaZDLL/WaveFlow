@@ -1168,6 +1168,17 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     ok: boolean;
     text: string;
   } | null>(null);
+  // Auto-clear timer for the prune status — kept in a ref so a rapid re-run (or
+  // an unmount) cancels the previous one instead of clearing a newer result.
+  const pruneCoversTimeoutRef = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (pruneCoversTimeoutRef.current != null) {
+        window.clearTimeout(pruneCoversTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   const handlePruneCachedCovers = useCallback(async () => {
     if (isPruningCovers) return;
@@ -1193,7 +1204,13 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       });
     } finally {
       setIsPruningCovers(false);
-      window.setTimeout(() => setPruneCoversStatus(null), 5000);
+      if (pruneCoversTimeoutRef.current != null) {
+        window.clearTimeout(pruneCoversTimeoutRef.current);
+      }
+      pruneCoversTimeoutRef.current = window.setTimeout(
+        () => setPruneCoversStatus(null),
+        5000,
+      );
     }
   }, [isPruningCovers, t, i18n.language, i18n.resolvedLanguage]);
 
@@ -3681,6 +3698,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                   </div>
                   {pruneCoversStatus ? (
                     <div
+                      role="status"
+                      aria-live="polite"
                       className={`text-xs mt-1 truncate ${
                         pruneCoversStatus.ok
                           ? "text-emerald-600 dark:text-emerald-400"
