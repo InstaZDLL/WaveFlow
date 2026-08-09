@@ -1733,6 +1733,11 @@
     "regenerateThumbnailsSubtitle": "إعادة بناء نسخ 1x/2x المفقودة لجميع الأغلفة",
     "regenerateThumbnailsAction": "إعادة التوليد",
     "regenerateThumbnailsDone": "تم إعادة توليد {{count}} صورة مصغرة",
+    "pruneAlbumCovers": "إزالة أغلفة ألبومات Deezer غير المستخدمة",
+    "pruneAlbumCoversSubtitle": "يحذف أغلفة Deezer المخزَّنة مؤقتًا للألبومات التي لديها غلافها الخاص (لا تُعرض أبدًا)",
+    "pruneAlbumCoversAction": "تنظيف",
+    "pruneAlbumCoversDone": "تم حذف {{files}} ملفات · تحرير {{mb}} ميغابايت",
+    "pruneAlbumCoversFailed": "فشل تنظيف الأغلفة",
     "reset": {
       "title": "إعادة ضبط التطبيق",
       "subtitle": "حذف جميع البيانات واستعادة إعدادات المصنع",

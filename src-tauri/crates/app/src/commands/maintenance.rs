@@ -1,12 +1,14 @@
 //! Maintenance commands. Bulk operations a user can trigger from the
 //! Settings screen (regenerate thumbnails, prune orphan covers, …).
 
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
 
 use chrono::Utc;
+use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use tauri::AppHandle;
 
 use crate::{
@@ -53,6 +55,164 @@ pub async fn regenerate_thumbnails(state: tauri::State<'_, AppState>) -> AppResu
     }
 
     Ok(total)
+}
+
+/// Result of [`prune_cached_album_covers`] — surfaced to the Settings UI.
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AlbumCoverCleanup {
+    /// `metadata_album` rows whose `cover_hash` was cleared.
+    pub rows_cleared: u64,
+    /// Cache files (`.jpg` + `_1x`/`_2x` thumbnails) deleted.
+    pub files_deleted: u64,
+    /// Bytes reclaimed on disk.
+    pub bytes_freed: u64,
+}
+
+/// One-time cleanup companion to issue #493: drop the Deezer album covers the
+/// shared cache accumulated for albums that already have their own local
+/// artwork. Those files were downloaded as a side effect of opening an album
+/// page (which only reads `label`/`release_date`) and were never displayed.
+///
+/// **Cross-profile safe.** The metadata cache is app-wide (one row per
+/// `deezer_id`, shared across every profile), so a cover may be pruned only
+/// when its album has local art in EVERY profile that carries it — an album
+/// still art-less in *some* profile keeps its cover so that profile isn't left
+/// blank (offline especially). And the cache is content-addressed + shared with
+/// artist pictures, so a hash is unlinked from disk only once it is referenced
+/// by NO remaining `metadata_album.cover_hash`, `metadata_artist.picture_hash`
+/// or `background_hash`. The `UPDATE` + reference re-check run in a single
+/// transaction for a consistent snapshot.
+#[tauri::command]
+pub async fn prune_cached_album_covers(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<AlbumCoverCleanup> {
+    let artwork_dir = state.paths.metadata_artwork_dir.clone();
+
+    // 1. `deezer_id`s that must KEEP their cover: any album still WITHOUT local
+    //    art in ANY profile. The cache is app-wide, so a single-profile view
+    //    isn't enough — read every profile's `album` table. Open read-write but
+    //    WITHOUT running migrations (no migrator call); a read-only open of a
+    //    WAL db with no live writer can fail to create its `-shm`.
+    // Propagate a read failure — an empty list here would leave `needed` empty
+    // and mark EVERY cached cover prunable, mass-deleting covers other profiles
+    // still need. Bail instead.
+    let profile_ids: Vec<i64> = sqlx::query_scalar("SELECT id FROM profile")
+        .fetch_all(&state.app_db)
+        .await?;
+    let mut needed: HashSet<i64> = HashSet::new();
+    for pid in &profile_ids {
+        let path = state.paths.profile_db(*pid);
+        let opts = SqliteConnectOptions::new()
+            .filename(&path)
+            .create_if_missing(false);
+        let ppool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(opts)
+            .await
+            .map_err(|e| AppError::Other(format!("open profile {pid} db: {e}")))?;
+        let ids: Vec<i64> = sqlx::query_scalar(
+            "SELECT deezer_id FROM album WHERE artwork_id IS NULL AND deezer_id IS NOT NULL",
+        )
+        .fetch_all(&ppool)
+        .await
+        .map_err(|e| AppError::Other(format!("read profile {pid} albums: {e}")))?;
+        needed.extend(ids);
+        ppool.close().await;
+    }
+
+    // 2. Candidate covers: every cached album cover whose album is art-having in
+    //    every profile that has it (its `deezer_id` is not in `needed`). Queried
+    //    straight off `app.db`.
+    let rows: Vec<(i64, String)> = sqlx::query_as(
+        "SELECT deezer_id, cover_hash FROM metadata_album WHERE cover_hash IS NOT NULL",
+    )
+    .fetch_all(&state.app_db)
+    .await?;
+    let prunable: Vec<(i64, String)> = rows
+        .into_iter()
+        .filter(|(did, _)| !needed.contains(did))
+        .collect();
+    if prunable.is_empty() {
+        return Ok(AlbumCoverCleanup {
+            rows_cleared: 0,
+            files_deleted: 0,
+            bytes_freed: 0,
+        });
+    }
+    let prune_ids: Vec<i64> = prunable.iter().map(|(d, _)| *d).collect();
+    let candidate_hashes: HashSet<String> = prunable.into_iter().map(|(_, h)| h).collect();
+
+    // 3. Clear those covers and re-check remaining references in ONE
+    //    transaction, so the reference set is consistent with the clear.
+    let mut tx = state.app_db.begin().await?;
+    let mut rows_cleared = 0u64;
+    for chunk in prune_ids.chunks(400) {
+        let placeholders = std::iter::repeat("?")
+            .take(chunk.len())
+            .collect::<Vec<_>>()
+            .join(",");
+        // SQL-safe: only bind placeholders are interpolated (never user data),
+        // mirroring the ATTACH statement in `db::profile_db`.
+        let sql = format!(
+            "UPDATE metadata_album SET cover_hash = NULL WHERE deezer_id IN ({placeholders})"
+        );
+        let mut q = sqlx::query(sqlx::AssertSqlSafe(sql));
+        for id in chunk {
+            q = q.bind(*id);
+        }
+        rows_cleared += q.execute(&mut *tx).await?.rows_affected();
+    }
+    let referenced: HashSet<String> = sqlx::query_scalar::<_, String>(
+        "SELECT cover_hash FROM metadata_album WHERE cover_hash IS NOT NULL
+         UNION SELECT picture_hash FROM metadata_artist WHERE picture_hash IS NOT NULL
+         UNION SELECT background_hash FROM metadata_artist WHERE background_hash IS NOT NULL",
+    )
+    .fetch_all(&mut *tx)
+    .await?
+    .into_iter()
+    .collect();
+    tx.commit().await?;
+
+    let deletable: Vec<String> = candidate_hashes
+        .into_iter()
+        .filter(|h| !referenced.contains(h))
+        .collect();
+
+    // Blocking fs work off the runtime.
+    let (files_deleted, bytes_freed) =
+        tokio::task::spawn_blocking(move || delete_cover_files(&artwork_dir, &deletable))
+            .await
+            .map_err(|e| AppError::Other(format!("prune_cached_album_covers join: {e}")))?;
+
+    Ok(AlbumCoverCleanup {
+        rows_cleared,
+        files_deleted,
+        bytes_freed,
+    })
+}
+
+/// Delete `<hash>.jpg` + `<hash>_1x.jpg` + `<hash>_2x.jpg` for each hash,
+/// summing the bytes actually reclaimed. Best-effort per file (a locked /
+/// missing file is skipped, not fatal).
+fn delete_cover_files(dir: &Path, hashes: &[String]) -> (u64, u64) {
+    let mut files_deleted = 0u64;
+    let mut bytes_freed = 0u64;
+    for hash in hashes {
+        for name in [
+            format!("{hash}.jpg"),
+            format!("{hash}_1x.jpg"),
+            format!("{hash}_2x.jpg"),
+        ] {
+            let path = dir.join(name);
+            let len = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+            if std::fs::remove_file(&path).is_ok() {
+                files_deleted += 1;
+                bytes_freed += len;
+            }
+        }
+    }
+    (files_deleted, bytes_freed)
 }
 
 /// Factory reset. Wipes every profile, library, playlist, cache and

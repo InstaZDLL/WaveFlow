@@ -1594,6 +1594,11 @@
     "regenerateThumbnailsSubtitle": "Fehlende 1x-/2x-Varianten für alle Cover neu erstellen",
     "regenerateThumbnailsAction": "Neu erzeugen",
     "regenerateThumbnailsDone": "{{count}} Vorschaubilder neu erzeugt",
+    "pruneAlbumCovers": "Ungenutzte Deezer-Albumcover entfernen",
+    "pruneAlbumCoversSubtitle": "Löscht zwischengespeicherte Deezer-Albumcover für Alben, die bereits ein eigenes Cover haben (nie angezeigt)",
+    "pruneAlbumCoversAction": "Entfernen",
+    "pruneAlbumCoversDone": "{{files}} Dateien gelöscht · {{mb}} MB freigegeben",
+    "pruneAlbumCoversFailed": "Cover-Bereinigung fehlgeschlagen",
     "reset": {
       "title": "App zurücksetzen",
       "subtitle": "Alle Daten löschen und auf Werkseinstellungen zurücksetzen",

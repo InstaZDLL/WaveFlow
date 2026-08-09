@@ -1680,6 +1680,11 @@
     "regenerateThumbnailsSubtitle": "Reconstruire les variantes 1x/2x manquantes pour toutes les pochettes",
     "regenerateThumbnailsAction": "Régénérer",
     "regenerateThumbnailsDone": "{{count}} vignettes régénérées",
+    "pruneAlbumCovers": "Purger les pochettes Deezer inutilisées",
+    "pruneAlbumCoversSubtitle": "Supprime les pochettes d'albums Deezer mises en cache pour des albums qui ont déjà leur propre pochette (jamais affichées)",
+    "pruneAlbumCoversAction": "Purger",
+    "pruneAlbumCoversDone": "{{files}} fichiers supprimés · {{mb}} Mo libérés",
+    "pruneAlbumCoversFailed": "Échec de la purge des pochettes",
     "reset": {
       "title": "Réinitialiser l'application",
       "subtitle": "Supprimer toutes les données et revenir à l'état initial",

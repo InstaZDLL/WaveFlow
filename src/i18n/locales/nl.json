@@ -1594,6 +1594,11 @@
     "regenerateThumbnailsSubtitle": "Maakt de ontbrekende 1x-/2x-varianten van alle albumhoezen opnieuw aan",
     "regenerateThumbnailsAction": "Opnieuw genereren",
     "regenerateThumbnailsDone": "{{count}} miniaturen opnieuw gegenereerd",
+    "pruneAlbumCovers": "Ongebruikte Deezer-albumhoezen opruimen",
+    "pruneAlbumCoversSubtitle": "Verwijdert in cache opgeslagen Deezer-albumhoezen voor albums die al hun eigen hoes hebben (nooit getoond)",
+    "pruneAlbumCoversAction": "Opruimen",
+    "pruneAlbumCoversDone": "{{files}} bestanden verwijderd · {{mb}} MB vrijgemaakt",
+    "pruneAlbumCoversFailed": "Opruimen van hoezen mislukt",
     "reset": {
       "title": "App resetten",
       "subtitle": "Verwijder alle gegevens en herstel de fabrieksinstellingen",

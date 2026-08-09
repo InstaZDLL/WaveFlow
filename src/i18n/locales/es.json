@@ -1594,6 +1594,11 @@
     "regenerateThumbnailsSubtitle": "Reconstruye las variantes 1x/2x que faltan para todas las portadas",
     "regenerateThumbnailsAction": "Regenerar",
     "regenerateThumbnailsDone": "{{count}} miniaturas regeneradas",
+    "pruneAlbumCovers": "Purgar carátulas de Deezer sin usar",
+    "pruneAlbumCoversSubtitle": "Elimina las carátulas de Deezer en caché de álbumes que ya tienen su propia carátula (nunca mostradas)",
+    "pruneAlbumCoversAction": "Purgar",
+    "pruneAlbumCoversDone": "{{files}} archivos eliminados · {{mb}} MB liberados",
+    "pruneAlbumCoversFailed": "Error al purgar las carátulas",
     "reset": {
       "title": "Restablecer la app",
       "subtitle": "Borra todos los datos y restablece la configuración de fábrica",

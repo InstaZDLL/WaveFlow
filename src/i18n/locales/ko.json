@@ -1615,6 +1615,11 @@
     "regenerateThumbnailsSubtitle": "모든 앨범 아트에 대해 누락된 1x/2x 버전을 재생성합니다",
     "regenerateThumbnailsAction": "재생성",
     "regenerateThumbnailsDone": "썸네일 {{count}}개 재생성됨",
+    "pruneAlbumCovers": "사용하지 않는 Deezer 앨범 커버 정리",
+    "pruneAlbumCoversSubtitle": "이미 자체 커버가 있는 앨범을 위해 캐시된 Deezer 커버를 삭제합니다(표시되지 않음)",
+    "pruneAlbumCoversAction": "정리",
+    "pruneAlbumCoversDone": "파일 {{files}}개 삭제 · {{mb}} MB 확보",
+    "pruneAlbumCoversFailed": "커버 정리 실패",
     "reset": {
       "title": "앱 초기화",
       "subtitle": "모든 데이터를 삭제하고 초기 상태로 복원",

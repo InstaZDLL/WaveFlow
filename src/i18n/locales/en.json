@@ -1594,6 +1594,11 @@
     "regenerateThumbnailsSubtitle": "Rebuild the missing 1x/2x variants for all covers",
     "regenerateThumbnailsAction": "Regenerate",
     "regenerateThumbnailsDone": "{{count}} thumbnails regenerated",
+    "pruneAlbumCovers": "Prune unused Deezer album covers",
+    "pruneAlbumCoversSubtitle": "Delete cached Deezer album covers for albums that already have their own artwork (never shown)",
+    "pruneAlbumCoversAction": "Prune",
+    "pruneAlbumCoversDone": "Deleted {{files}} files · freed {{mb}} MB",
+    "pruneAlbumCoversFailed": "Cover cleanup failed",
     "reset": {
       "title": "Reset the app",
       "subtitle": "Delete all data and restore to factory settings",

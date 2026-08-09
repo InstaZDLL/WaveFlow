@@ -1553,6 +1553,11 @@
     "regenerateThumbnailsSubtitle": "すべてのジャケットについて、欠落している1x/2xバージョンを再構築する",
     "regenerateThumbnailsAction": "再生成",
     "regenerateThumbnailsDone": "{{count}} 件のサムネイルを再生成しました",
+    "pruneAlbumCovers": "未使用の Deezer アルバムカバーを削除",
+    "pruneAlbumCoversSubtitle": "すでに独自のカバーを持つアルバムのためにキャッシュされた Deezer カバーを削除します（表示されません）",
+    "pruneAlbumCoversAction": "削除",
+    "pruneAlbumCoversDone": "{{files}} 個のファイルを削除 · {{mb}} MB を解放",
+    "pruneAlbumCoversFailed": "カバーの削除に失敗しました",
     "reset": {
       "title": "アプリをリセットする",
       "subtitle": "すべてのデータを削除し、初期状態に戻す",
