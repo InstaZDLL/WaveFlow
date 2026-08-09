@@ -43,7 +43,7 @@ use wasapi::{
     StreamMode, WaveFormat,
 };
 
-use super::output::{OutputHandle, RING_CAPACITY};
+use super::output::{DopFormat, OutputHandle, RING_CAPACITY};
 use super::state::SharedPlayback;
 use crate::error::{AppError, AppResult};
 
@@ -62,6 +62,7 @@ pub fn spawn_exclusive_output_thread(
     shared: Arc<SharedPlayback>,
     app: AppHandle,
     device_name: Option<String>,
+    dop: Option<DopFormat>,
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
     let (producer, consumer) = RingBuffer::<f32>::new(RING_CAPACITY);
     let (shutdown_tx, shutdown_rx) = bounded::<()>(1);
@@ -80,6 +81,7 @@ pub fn spawn_exclusive_output_thread(
                 init_tx,
                 thread_app,
                 thread_device,
+                dop,
             )
         })
         .map_err(|e| AppError::Audio(format!("spawn wasapi exclusive thread: {e}")))?;
@@ -92,6 +94,7 @@ pub fn spawn_exclusive_output_thread(
                 join,
                 device_name,
                 wasapi_exclusive: true,
+                dop_rate: dop.map(|d| d.sample_rate),
             },
         )),
         Ok(Err(err)) => {
@@ -112,6 +115,7 @@ fn output_thread_main(
     init_tx: Sender<AppResult<()>>,
     app: AppHandle,
     device_name: Option<String>,
+    dop: Option<DopFormat>,
 ) {
     // COM init for this thread. MTA is the right choice for an audio
     // worker that doesn't touch UI. Any HRESULT other than S_OK /
@@ -124,7 +128,7 @@ fn output_thread_main(
         return;
     }
 
-    let session = match open_exclusive_session(&device_name, &shared) {
+    let session = match open_exclusive_session(&device_name, &shared, dop) {
         Ok(s) => s,
         Err(err) => {
             tracing::warn!(?err, "wasapi exclusive init failed");
@@ -264,6 +268,15 @@ const FORMAT_FALLBACK_CHAIN: [ExclusiveSampleFormat; 4] = [
     ExclusiveSampleFormat::Pcm16,
 ];
 
+/// Format chain tried for a DoP stream (#495): 24-bit only, packed
+/// first (3 bytes = exactly the 24-bit DoP word), then the 32-bit
+/// padded container some codecs prefer. Float32 and 16-bit are
+/// deliberately excluded — neither can carry a DoP payload intact.
+const DOP_FORMAT_CHAIN: [ExclusiveSampleFormat; 2] = [
+    ExclusiveSampleFormat::Pcm24Packed,
+    ExclusiveSampleFormat::Pcm24Padded,
+];
+
 /// A (sample rate, channel count) pair to try in exclusive mode,
 /// tagged with where it came from so the log says which source
 /// actually got the device open (#409).
@@ -400,6 +413,11 @@ struct ExclusiveSession {
     /// Format the device actually accepted. Drives the f32 → bytes
     /// conversion inside `run_event_loop`.
     format: ExclusiveSampleFormat,
+    /// True when this session carries a DoP (DSD over PCM) stream, #495.
+    /// In DoP mode the event loop bypasses every DSP stage (volume,
+    /// mono, normalize, clamp) and ships the ring's 24-bit values
+    /// bit-exact — the DAC decodes the embedded 1-bit DSD itself.
+    dop: bool,
 }
 
 /// Resolve the device, then walk every (layout × bit depth) candidate
@@ -423,15 +441,37 @@ struct ExclusiveSession {
 fn open_exclusive_session(
     device_name: &Option<String>,
     shared: &Arc<SharedPlayback>,
+    dop: Option<DopFormat>,
 ) -> AppResult<ExclusiveSession> {
     let device = pick_device(device_name)?;
 
-    let layouts = collect_layout_candidates(&device);
-    if layouts.is_empty() {
-        return Err(AppError::Audio(
-            "wasapi exclusive: device reported no usable sample rate / channel layout".into(),
-        ));
-    }
+    // DoP (#495) pins both axes: the layout is the exact DoP format
+    // (`dsd_rate / 16`, source channels) and the bit-depth chain is
+    // 24-bit only. A DoP payload lives in 24 bits — Float32 would
+    // reinterpret the marker bytes as an exponent and 16-bit would
+    // truncate the low DSD byte, so neither can carry it. If the DAC
+    // refuses 24-bit at the DoP rate the whole open fails and the
+    // caller falls back to DSD → PCM (it never drops to shared mode).
+    let (layouts, formats): (Vec<LayoutCandidate>, &[ExclusiveSampleFormat]) = match dop {
+        Some(d) => (
+            vec![LayoutCandidate {
+                sample_rate: d.sample_rate as usize,
+                channels: d.channels as usize,
+                origin: "dop",
+            }],
+            &DOP_FORMAT_CHAIN,
+        ),
+        None => {
+            let layouts = collect_layout_candidates(&device);
+            if layouts.is_empty() {
+                return Err(AppError::Audio(
+                    "wasapi exclusive: device reported no usable sample rate / channel layout"
+                        .into(),
+                ));
+            }
+            (layouts, &FORMAT_FALLBACK_CHAIN)
+        }
+    };
 
     let mut last_err: Option<AppError> = None;
     // Every rejection, kept for the summary below. `debug` alone was
@@ -440,7 +480,7 @@ fn open_exclusive_session(
     // other seven had to be guessed at.
     let mut failures: Vec<String> = Vec::new();
     for layout in &layouts {
-        for &format in FORMAT_FALLBACK_CHAIN.iter() {
+        for &format in formats.iter() {
             match try_open_with_format(&device, format, layout.sample_rate, layout.channels) {
                 Ok((client, render, event, buffer_frames)) => {
                     tracing::info!(
@@ -464,6 +504,7 @@ fn open_exclusive_session(
                         channels: layout.channels as u16,
                         buffer_frames,
                         format,
+                        dop: dop.is_some(),
                     });
                 }
                 Err(err) => {
@@ -683,10 +724,18 @@ fn pick_device(device_name: &Option<String>) -> AppResult<Device> {
 /// recovery is warranted — see [`ExitReason`].
 fn run_event_loop(
     session: ExclusiveSession,
-    mut consumer: Consumer<f32>,
+    consumer: Consumer<f32>,
     shutdown_rx: Receiver<()>,
     shared: &Arc<SharedPlayback>,
 ) -> ExitReason {
+    // DoP streams run an entirely separate loop: bit-exact, no DSP, and
+    // marker-carrying silence on pause. Dispatch up-front so the PCM hot
+    // path below stays exactly as it was (#495).
+    if session.dop {
+        return run_dop_event_loop(session, consumer, shutdown_rx, shared);
+    }
+
+    let mut consumer = consumer;
     let ExclusiveSession {
         client,
         render,
@@ -846,6 +895,172 @@ fn run_event_loop(
     wasapi::deinitialize();
 
     exit
+}
+
+/// DoP (DSD over PCM) render loop, #495. Structurally the twin of
+/// [`run_event_loop`] — same event wait, shutdown checks, device-loss
+/// exit and teardown — but the sample stage is fundamentally different:
+///
+/// - **Bit-exact, no DSP.** The decoder already produced fully-formed
+///   24-bit DoP words (marker + two DSD bytes) and shipped them through
+///   the ring as `f32` bit patterns. We pull `to_bits()`, mask to 24
+///   bits and write the little-endian bytes straight out. No volume, no
+///   mono, no normalize, no clamp — touching a DoP word would corrupt
+///   the embedded DSD and the marker cadence the DAC locks onto.
+/// - **Marker-carrying silence.** On pause / drain / underrun we can't
+///   write PCM zero: the DAC would lose DoP lock and click. Instead we
+///   emit DoP *idle* frames — the standard 0x69 DSD-silence payload with
+///   a live, per-frame-alternating marker — so the DAC stays in DSD mode
+///   outputting analog silence.
+fn run_dop_event_loop(
+    session: ExclusiveSession,
+    mut consumer: Consumer<f32>,
+    shutdown_rx: Receiver<()>,
+    shared: &Arc<SharedPlayback>,
+) -> ExitReason {
+    let ExclusiveSession {
+        client,
+        render,
+        event,
+        channels,
+        buffer_frames,
+        format,
+        ..
+    } = session;
+
+    let channels = channels as usize;
+    let padded = matches!(format, ExclusiveSampleFormat::Pcm24Padded);
+    let sample_bytes = if padded { 4 } else { 3 };
+    let need_frames = buffer_frames as usize;
+    let buffer_bytes = need_frames * channels * sample_bytes;
+
+    // One byte scratch reused every period; no allocations in the loop.
+    let mut bytes_scratch: Vec<u8> = vec![0u8; buffer_bytes];
+    // Running DoP marker phase for generated silence. Advances per
+    // emitted silence frame so the idle cadence never stalls.
+    let mut silence_phase: u64 = 0;
+
+    const EVENT_TIMEOUT_MS: u32 = 2000;
+
+    let exit = loop {
+        if shutdown_rx.try_recv().is_ok() {
+            break ExitReason::Shutdown;
+        }
+
+        match event.wait_for_event(EVENT_TIMEOUT_MS) {
+            Ok(()) => {}
+            Err(err) => {
+                if shutdown_rx.try_recv().is_ok() {
+                    break ExitReason::Shutdown;
+                }
+                tracing::warn!(?err, "wasapi exclusive (DoP) wait_for_event failed");
+                break ExitReason::DeviceLost(format!("wasapi wait_for_event failed: {err:?}"));
+            }
+        }
+
+        let paused = shared.paused_output.load(Ordering::Acquire);
+        let draining = shared.drain_silent.load(Ordering::Acquire);
+
+        if paused || draining {
+            if draining {
+                while consumer.pop().is_ok() {}
+            }
+            render_dop_silence(padded, channels, need_frames, &mut silence_phase, &mut bytes_scratch);
+        } else {
+            // Pull whole frames while the ring can satisfy them; on the
+            // first short frame, fill the rest of the buffer with DoP
+            // idle so the marker cadence never breaks mid-period.
+            let mut written: u64 = 0;
+            let mut f = 0usize;
+            while f < need_frames {
+                if consumer.slots() < channels {
+                    for g in f..need_frames {
+                        let word = dop_silence_word(silence_phase);
+                        silence_phase = silence_phase.wrapping_add(1);
+                        for ch in 0..channels {
+                            write_dop_word(padded, word, &mut bytes_scratch, g * channels + ch);
+                        }
+                    }
+                    break;
+                }
+                for ch in 0..channels {
+                    // Slots checked above — this pop cannot fail.
+                    let word = consumer.pop().map(|s| s.to_bits()).unwrap_or(0);
+                    write_dop_word(padded, word, &mut bytes_scratch, f * channels + ch);
+                }
+                written += channels as u64;
+                f += 1;
+            }
+            if written > 0 {
+                shared.samples_played.fetch_add(written, Ordering::Relaxed);
+            }
+        }
+
+        if let Err(err) = render.write_to_device(need_frames, &bytes_scratch, None) {
+            if shutdown_rx.try_recv().is_ok() {
+                break ExitReason::Shutdown;
+            }
+            tracing::warn!(?err, "wasapi (DoP) write_to_device failed");
+            break ExitReason::DeviceLost(format!("wasapi write_to_device failed: {err:?}"));
+        }
+
+        if shutdown_rx.try_recv().is_ok() {
+            break ExitReason::Shutdown;
+        }
+    };
+
+    let _ = client.stop_stream();
+    let _ = event;
+    std::thread::sleep(Duration::from_millis(5));
+    wasapi::deinitialize();
+
+    exit
+}
+
+/// Write one 24-bit DoP word at `sample_idx`, little-endian. `padded`
+/// selects the 4-byte 24-in-32 container (high byte 0) vs the compact
+/// 3-byte packing. The word is masked to 24 bits — the marker sits in
+/// bits 23..16, the two DSD bytes below it.
+#[inline]
+fn write_dop_word(padded: bool, word: u32, bytes: &mut [u8], sample_idx: usize) {
+    let v = word & 0x00FF_FFFF;
+    if padded {
+        let off = sample_idx * 4;
+        bytes[off..off + 4].copy_from_slice(&v.to_le_bytes());
+    } else {
+        let off = sample_idx * 3;
+        bytes[off] = v as u8;
+        bytes[off + 1] = (v >> 8) as u8;
+        bytes[off + 2] = (v >> 16) as u8;
+    }
+}
+
+/// A DoP idle (silence) word: the standard 0x69 DSD-silence payload in
+/// both data bytes, with the marker chosen by `phase` parity. Decodes to
+/// analog silence on the DAC while keeping it in DoP lock.
+#[inline]
+fn dop_silence_word(phase: u64) -> u32 {
+    let marker: u32 = if phase & 1 == 0 { 0x05 } else { 0xFA };
+    (marker << 16) | 0x6969
+}
+
+/// Fill `bytes` with `need_frames` DoP idle frames, advancing `phase`
+/// once per frame so the marker keeps alternating. Every channel of a
+/// frame carries the same marker.
+fn render_dop_silence(
+    padded: bool,
+    channels: usize,
+    need_frames: usize,
+    phase: &mut u64,
+    bytes: &mut [u8],
+) {
+    for f in 0..need_frames {
+        let word = dop_silence_word(*phase);
+        *phase = phase.wrapping_add(1);
+        for ch in 0..channels {
+            write_dop_word(padded, word, bytes, f * channels + ch);
+        }
+    }
 }
 
 /// Pack the decoded `f32` sample buffer into the little-endian byte

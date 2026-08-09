@@ -444,6 +444,7 @@ impl AudioEngine {
             app.clone(),
             device_name,
             wasapi_exclusive,
+            None,
         ) {
             Ok((producer, handle)) => {
                 let active = handle.wasapi_exclusive;
@@ -833,6 +834,7 @@ impl AudioEngine {
             self.app.clone(),
             device_name,
             exclusive,
+            None,
         ) {
             Ok(pair) => pair,
             Err(err) => {
@@ -989,6 +991,7 @@ impl AudioEngine {
             device_name,
             self.wasapi_exclusive
                 .load(std::sync::atomic::Ordering::Relaxed),
+            None,
         )?;
 
         // Step 3 — interrupt any current playback. The decoder will
@@ -1181,6 +1184,7 @@ impl AudioEngine {
             self.app.clone(),
             active.clone(),
             enabled,
+            None,
         ) {
             Ok(pair) => pair,
             Err(err) => {
