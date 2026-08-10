@@ -2799,6 +2799,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09e54e57b4c48b40f7aec75635392b12b3421fa26fe8b4332e63138ed278459c"
 
 [[package]]
+name = "imagesize"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "65b27460c2c92b037f3f94c538ed9a3342f3fdf923606781629ccb35f82d042a"
+
+[[package]]
 name = "indexmap"
 version = "1.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4658,7 +4664,7 @@ dependencies = [
  "rgb",
  "svgtypes",
  "tiny-skia",
- "usvg",
+ "usvg 0.47.0",
 ]
 
 [[package]]
@@ -7095,7 +7101,7 @@ dependencies = [
  "base64 0.22.1",
  "data-url",
  "flate2",
- "imagesize",
+ "imagesize 0.14.0",
  "kurbo",
  "log",
  "pico-args",
@@ -7106,6 +7112,25 @@ dependencies = [
  "svgtypes",
  "tiny-skia-path",
  "xmlwriter",
+]
+
+[[package]]
+name = "usvg"
+version = "0.48.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "977d0a4abdef933f424a99fe09f95576e089b90aebc6f016a3bc813762493e91"
+dependencies = [
+ "data-url",
+ "imagesize 0.15.0",
+ "kurbo",
+ "log",
+ "pico-args",
+ "roxmltree",
+ "simplecss",
+ "siphasher",
+ "strict-num",
+ "svgtypes",
+ "tiny-skia-path",
 ]
 
 [[package]]
@@ -7646,7 +7671,7 @@ dependencies = [
  "tracing-appender",
  "tracing-subscriber",
  "url",
- "usvg",
+ "usvg 0.48.1",
  "uuid 1.24.0",
  "walkdir",
  "wasapi",
@@ -7686,7 +7711,7 @@ dependencies = [
  "tokio",
  "toml 1.1.4+spec-1.1.0",
  "tracing",
- "usvg",
+ "usvg 0.48.1",
  "uuid 1.24.0",
  "wasmtime",
  "wasmtime-wasi",
