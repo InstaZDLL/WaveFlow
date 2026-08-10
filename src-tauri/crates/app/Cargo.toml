@@ -36,6 +36,14 @@ updater = ["dep:tauri-plugin-updater"]
 # hash builder are all excluded from the binary. Re-enable in 1.6.0
 # once the heal migration + apply pipeline gaps close.
 sync_v1 = []
+# Remote music source + user-data sync v2 (RFC-005). Replaces `sync_v1`,
+# which talks a protocol the server no longer implements. OFF while the
+# slices land: the two trees are independent (`crate::remote` vs
+# `crate::sync`), so both can be absent from a shipped build, and
+# `sync_v1` stays available as the only recovery path from a divergence
+# until the snapshot bootstrap here is proven. Enabling BOTH is
+# supported but pointless — they bind to different server generations.
+sync_v2 = []
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

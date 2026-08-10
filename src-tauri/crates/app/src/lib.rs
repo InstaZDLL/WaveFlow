@@ -21,6 +21,12 @@ mod offline;
 mod paths;
 mod player_actions;
 mod queue;
+// Remote music source + user-data sync v2 (RFC-005). Independent of
+// `mod sync` below, which implements the retired v1 protocol: v2 does
+// not synchronize local-entity CRUD at all, so the ~70 emit call sites
+// keep resolving to the stub and this tree never touches them.
+#[cfg(feature = "sync_v2")]
+mod remote;
 mod scrobbler;
 #[cfg(feature = "sync_v1")]
 mod server_client;

@@ -105,6 +105,21 @@ jobs:
           --no-default-features
           --features postgres
 
+      - name: cargo check + test (sync_v2 — off by default, so unchecked otherwise)
+        # `crate::remote` (RFC-005) lives behind an off-by-default feature
+        # while its slices land, which means the step above never compiles
+        # a line of it. Without this step the whole tree would rot
+        # silently until the day it is switched on. Linux only: it adds no
+        # platform-specific code, and the Windows slot cannot run the app
+        # crate's test binary anyway (see below).
+        if: runner.os == 'Linux'
+        run: >-
+          cargo test
+          --manifest-path src-tauri/Cargo.toml
+          -p waveflow
+          --features sync_v2
+          --all-targets
+
       - name: cargo test (full workspace)
         if: runner.os == 'Linux'
         run: cargo test --manifest-path src-tauri/Cargo.toml --workspace
