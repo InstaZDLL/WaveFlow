@@ -1,0 +1,19 @@
+{
+  "cursor": 4,
+  "playlists": [
+    {
+      "id": "31be1c98-3984-40ff-8352-73fc6e2c29b5",
+      "name": "Mix renommee",
+      "comment": "des notes",
+      "public": true,
+      "created_at": 1786369482469,
+      "updated_at": 1786369482481,
+      "songs": []
+    }
+  ],
+  "favorites": [],
+  "ratings": [],
+  "queue": null,
+  "history": [],
+  "shares": []
+}

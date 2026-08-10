@@ -120,6 +120,37 @@ pub async fn remote_forget_server(state: tauri::State<'_, AppState>) -> AppResul
     status(&state).await
 }
 
+/// What a synchronization pass did.
+#[derive(Debug, Clone, Serialize)]
+pub struct RemoteSyncReport {
+    pub applied: usize,
+    /// Events this build did not understand and skipped. A non-zero
+    /// count is not a fault — it means the server is newer than us.
+    pub ignored: usize,
+    pub pages: usize,
+    pub cursor: i64,
+    /// Whether the pass had to fall back to a fresh snapshot, either
+    /// because it was the first one or because an event could not be
+    /// applied.
+    pub resnapshotted: bool,
+}
+
+/// Bring the projection up to date, bootstrapping if it never has been.
+///
+/// Answers an empty report when the profile is unbound, signed out, or
+/// bound to a server without a journal — all ordinary states.
+#[tauri::command]
+pub async fn remote_sync_now(state: tauri::State<'_, AppState>) -> AppResult<RemoteSyncReport> {
+    let report = crate::remote::sync::sync_now(&state).await?;
+    Ok(RemoteSyncReport {
+        applied: report.applied,
+        ignored: report.ignored,
+        pages: report.pages,
+        cursor: report.cursor,
+        resnapshotted: report.resnapshotted,
+    })
+}
+
 async fn status(state: &AppState) -> AppResult<RemoteStatus> {
     // No active profile is a legitimate state here — the onboarding
     // screens can query this before one exists — so it answers "unbound"

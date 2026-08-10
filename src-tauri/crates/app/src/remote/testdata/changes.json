@@ -1,0 +1,64 @@
+{
+  "changes": [
+    {
+      "cursor": 1,
+      "event_id": "338d2144-baaa-4877-99e5-77dceadf7de7",
+      "operation_id": "7fdf499f-89b3-42f2-a633-55e8eed01dd3",
+      "origin_device_id": null,
+      "entity_type": "playlist",
+      "entity_id": "31be1c98-3984-40ff-8352-73fc6e2c29b5",
+      "action": "upsert",
+      "payload": {
+        "id": "31be1c98-3984-40ff-8352-73fc6e2c29b5",
+        "name": "Mix",
+        "track_ids": []
+      },
+      "changed_at": 1786369482470
+    },
+    {
+      "cursor": 2,
+      "event_id": "cd9e2db4-bb47-436a-aeed-b1766f98fc30",
+      "operation_id": "b2f6bbfd-b59f-4170-83c4-28fcdc0d4240",
+      "origin_device_id": null,
+      "entity_type": "playlist",
+      "entity_id": "31be1c98-3984-40ff-8352-73fc6e2c29b5",
+      "action": "upsert",
+      "payload": {
+        "comment": "des notes",
+        "id": "31be1c98-3984-40ff-8352-73fc6e2c29b5",
+        "name": "Mix renommee",
+        "public": true,
+        "track_ids": []
+      },
+      "changed_at": 1786369482481
+    },
+    {
+      "cursor": 3,
+      "event_id": "1cc5f4f5-dabe-40ca-85fc-78aa9b49c8c8",
+      "operation_id": "bb155f83-35a1-488d-bbc3-fb26c2f1eeb1",
+      "origin_device_id": null,
+      "entity_type": "playlist",
+      "entity_id": "170c2731-487e-495e-a97a-4281f961c9f1",
+      "action": "upsert",
+      "payload": {
+        "id": "170c2731-487e-495e-a97a-4281f961c9f1",
+        "name": "A supprimer",
+        "track_ids": []
+      },
+      "changed_at": 1786369482485
+    },
+    {
+      "cursor": 4,
+      "event_id": "65cdcaae-a894-48ec-b387-0fcb4e998a7a",
+      "operation_id": "4e3e9ec2-da99-45f1-a6f6-5ef04c682bbf",
+      "origin_device_id": null,
+      "entity_type": "playlist",
+      "entity_id": "170c2731-487e-495e-a97a-4281f961c9f1",
+      "action": "delete",
+      "payload": {},
+      "changed_at": 1786369482488
+    }
+  ],
+  "next_cursor": 4,
+  "has_more": false
+}

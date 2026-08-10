@@ -98,3 +98,31 @@ export function remoteSignOut(): Promise<RemoteStatus> {
 export function remoteForgetServer(): Promise<RemoteStatus> {
   return invoke<RemoteStatus>("remote_forget_server");
 }
+
+export interface RemoteSyncReport {
+  applied: number;
+  /**
+   * Events this build did not understand and skipped. Non-zero is not a
+   * fault — it means the server is newer than this client.
+   */
+  ignored: number;
+  pages: number;
+  cursor: number;
+  /**
+   * The pass fell back to a full snapshot, either because it was the
+   * first one or because an event could not be applied.
+   */
+  resnapshotted: boolean;
+}
+
+/**
+ * Bring the cached remote library up to date, bootstrapping if it never
+ * has been.
+ *
+ * Resolves to an all-zero report when the profile is unbound, signed
+ * out, or bound to a server without a journal — all ordinary states, not
+ * errors.
+ */
+export function remoteSyncNow(): Promise<RemoteSyncReport> {
+  return invoke<RemoteSyncReport>("remote_sync_now");
+}

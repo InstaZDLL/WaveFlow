@@ -763,6 +763,8 @@ pub fn run() {
             commands::remote_auth::remote_sign_out,
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_forget_server,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_sync_now,
             #[cfg(feature = "sync_v1")]
             commands::server_auth::server_get_status,
             #[cfg(feature = "sync_v1")]

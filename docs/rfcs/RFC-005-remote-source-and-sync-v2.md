@@ -223,8 +223,17 @@ Per-profile, since the binding is per-profile:
 | `remote_rating` | `(entity_type, entity_id, rating)` |
 | `remote_history` | scrobbles, append-only |
 | `remote_queue` | single row, the server's saved queue |
-| `remote_share` | non-secret share fields; **never** token or URL |
+| `remote_share` | non-secret share fields; **never** token from the journal |
+| `remote_track` | cached song metadata, derived and droppable |
 | `remote_mutation` | outbound queue, typed, keyed by `operation_id` |
+
+`remote_track` exists because the two feeds are asymmetric: a snapshot
+returns playlists and the queue with **whole song objects**, while a change
+event carries a playlist upsert as bare `track_ids`. Without the cache, a
+playlist edited after the bootstrap would arrive as identifiers with nothing to
+render. Missing identifiers are fetched from `GET /api/v2/tracks/{id}` after a
+pass — opportunistically, since ordering and identity are already stored and a
+failed fetch costs a placeholder row rather than a wrong one.
 
 Tokens keep using `auth_credential` under the existing `waveflow_server`
 provider, which already carries a refresh token and an expiry.
@@ -247,6 +256,28 @@ recognizes the replay; the change comes back through `/changes`.
 
 Unknown entity types, actions and payload fields are ignored. A client that
 cannot apply a **known** event drops its projection and re-fetches a snapshot.
+
+### An absent key means unchanged, not null
+
+The single rule the apply path is built around, because getting it wrong loses
+user data silently. Journal payloads are not uniform — measured against a live
+server:
+
+```text
+cursor=1  playlist/upsert   payload keys = [id, name, track_ids]
+cursor=2  playlist/upsert   payload keys = [comment, id, name, public, track_ids]
+```
+
+The first is a creation, the second an update. A share update likewise omits
+`track_ids`, because updating a share cannot change them. So an apply that
+decoded the payload into a struct of `Option` fields and wrote all of them
+would blank a playlist's comment every time a create-shaped event is replayed,
+and empty a share on every description edit.
+
+Each field is therefore written only when its key is **present**; a key present
+and null is a genuine clear. The projection's tests replay the server's own
+captured journal and assert it converges on the server's own snapshot — the two
+feeds have to agree, or the result would depend on which one happened to run.
 
 ## Why the v1 design retires
 

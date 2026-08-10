@@ -222,7 +222,19 @@ impl RemoteClient {
     /// A read request. No idempotency headers — a GET has nothing to
     /// replay.
     pub fn get(&self, path: &str) -> reqwest::RequestBuilder {
-        self.http.get(self.url(path)).bearer_auth(&self.access_token)
+        self.request(reqwest::Method::GET, path)
+    }
+
+    /// A plain authenticated request, with no idempotency headers.
+    ///
+    /// For the endpoints that are not journalled mutations — the
+    /// acknowledgement above all. Stamping those with an operation
+    /// identifier would advertise a replay guarantee the server does not
+    /// implement for them.
+    pub fn request(&self, method: reqwest::Method, path: &str) -> reqwest::RequestBuilder {
+        self.http
+            .request(method, self.url(path))
+            .bearer_auth(&self.access_token)
     }
 
     /// A mutation, stamped so the server can recognize a replay.

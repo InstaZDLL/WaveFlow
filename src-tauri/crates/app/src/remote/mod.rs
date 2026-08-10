@@ -34,6 +34,16 @@
 //!   transient so the outbound queue knows whether retrying can ever
 //!   help.
 //!
+//! - [`dto`] — the wire shapes, checked against the server's live
+//!   responses rather than against prose.
+//!
+//! - [`projection`] — writing the server's user data into the local
+//!   `remote_*` tables. Pure database work, testable without a network.
+//!
+//! - [`sync`] — the orchestrator: bootstrap from a snapshot, walk the
+//!   journal, acknowledge, and recover by re-snapshotting when a known
+//!   event cannot be applied.
+//!
 //! - [`probe`] — server flavour detection. Decides whether the optional
 //!   [`SyncProvider`](#capabilities) surface exists at all.
 //!
@@ -56,5 +66,8 @@
 pub mod auth;
 pub mod binding;
 pub mod client;
+pub mod dto;
 pub mod probe;
+pub mod projection;
+pub mod sync;
 pub mod tokens;
