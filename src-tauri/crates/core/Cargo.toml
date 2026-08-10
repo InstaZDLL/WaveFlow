@@ -131,7 +131,7 @@ symphonia = { version = "0.6", default-features = false, features = [
 # canvas they paint into. Same default-features-disabled tightening
 # the desktop already applies — the SVG is pure shapes + gradients,
 # no embedded raster or text.
-resvg = { version = "0.47", default-features = false }
+resvg = { version = "0.48", default-features = false }
 usvg = { version = "0.48", default-features = false }
 tiny-skia = "0.12"
 
