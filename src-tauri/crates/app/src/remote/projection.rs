@@ -1099,62 +1099,138 @@ mod tests {
         assert_eq!(missing_track_ids(&mut conn).await.unwrap(), vec!["t9"]);
     }
 
-    /// Captured verbatim from a running server (2026-08-10) by creating
-    /// a playlist, renaming it with a comment and making it public,
-    /// then creating and deleting a second one. Bytes from the server
-    /// itself, not a shape we imagined — which is the only kind of
-    /// fixture that can catch us having imagined the wrong one.
+    /// Captured verbatim from a running server (2026-08-10) seeded with
+    /// a real six-track library, then driven through every entity the
+    /// protocol carries: two favourites (a track and an album), two
+    /// ratings, two scrobbles, a saved queue, a playlist created then
+    /// updated, and a share.
+    ///
+    /// Bytes the server produced, not a shape we imagined — the only
+    /// kind of fixture that can catch us having imagined the wrong one.
     const REAL_SNAPSHOT: &str = include_str!("testdata/snapshot.json");
     const REAL_CHANGES: &str = include_str!("testdata/changes.json");
 
+    /// Everything the projection holds, in a form two feeds can be
+    /// compared on.
+    async fn projected_state(conn: &mut SqliteConnection) -> Vec<(String, String)> {
+        let mut rows = Vec::new();
+        for (label, sql) in [
+            (
+                "playlist",
+                "SELECT remote_id || '|' || name || '|' || COALESCE(comment, '~') || '|' || is_public
+                   FROM remote_playlist ORDER BY remote_id",
+            ),
+            (
+                "playlist_track",
+                "SELECT playlist_remote_id || '|' || position || '|' || track_remote_id
+                   FROM remote_playlist_track ORDER BY playlist_remote_id, position",
+            ),
+            (
+                "favorite",
+                "SELECT entity_type || '|' || entity_id FROM remote_favorite
+                  ORDER BY entity_type, entity_id",
+            ),
+            (
+                "rating",
+                "SELECT entity_type || '|' || entity_id || '|' || rating FROM remote_rating
+                  ORDER BY entity_type, entity_id",
+            ),
+            (
+                "history",
+                "SELECT track_remote_id || '|' || played_at || '|' || submission
+                   FROM remote_history ORDER BY played_at",
+            ),
+            (
+                "queue",
+                "SELECT COALESCE(current_remote_id, '~') || '|' || position_ms FROM remote_queue",
+            ),
+            (
+                "queue_track",
+                "SELECT position || '|' || track_remote_id FROM remote_queue_track ORDER BY position",
+            ),
+            (
+                "share",
+                "SELECT remote_id || '|' || COALESCE(description, '~') FROM remote_share
+                  ORDER BY remote_id",
+            ),
+            (
+                "share_track",
+                "SELECT share_remote_id || '|' || position || '|' || track_remote_id
+                   FROM remote_share_track ORDER BY share_remote_id, position",
+            ),
+        ] {
+            let values: Vec<String> = sqlx::query_scalar(sqlx::AssertSqlSafe(sql.to_string()))
+                .fetch_all(&mut *conn)
+                .await
+                .unwrap();
+            for value in values {
+                rows.push((label.to_string(), value));
+            }
+        }
+        rows
+    }
+
     #[tokio::test]
-    async fn the_servers_own_snapshot_applies() {
+    async fn the_servers_own_snapshot_applies_across_every_entity() {
         let pool = pool().await;
         let mut conn = pool.acquire().await.unwrap();
         let snapshot: SyncSnapshot = serde_json::from_str(REAL_SNAPSHOT).unwrap();
-        assert_eq!(snapshot.cursor, 4);
 
         apply_snapshot(&mut conn, &snapshot).await.unwrap();
 
-        let (name, comment, public) =
-            playlist_row(&mut conn, "31be1c98-3984-40ff-8352-73fc6e2c29b5").await;
-        assert_eq!(name, "Mix renommee");
-        assert_eq!(comment.as_deref(), Some("des notes"));
-        assert_eq!(public, 1);
+        let state = projected_state(&mut conn).await;
+        let count = |label: &str| state.iter().filter(|(l, _)| l == label).count();
+        assert_eq!(count("playlist"), 1);
+        assert_eq!(count("playlist_track"), 3);
+        assert_eq!(count("favorite"), 2, "a track and an album were starred");
+        assert_eq!(count("rating"), 2);
+        assert_eq!(count("history"), 2);
+        assert_eq!(count("queue"), 1);
+        assert_eq!(count("queue_track"), 3);
+        assert_eq!(count("share"), 1);
+        assert_eq!(count("share_track"), 2);
+
+        // The snapshot carries whole song objects, so nothing is left
+        // waiting for metadata.
+        assert!(missing_track_ids(&mut conn).await.unwrap().is_empty());
+        let cached: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_track")
+            .fetch_one(&mut *conn)
+            .await
+            .unwrap();
+        assert!(cached >= 3, "the snapshot's songs were not cached");
     }
 
     #[tokio::test]
     async fn replaying_the_servers_own_journal_reaches_the_snapshot_state() {
-        // The real sequence is create -> update -> create -> delete, and
-        // the create events carry only three keys. Replaying it must
-        // land on exactly what the snapshot says, or the two feeds
-        // disagree and the projection depends on which one ran.
+        // The two feeds must agree. If they do not, what the user sees
+        // depends on whether they bootstrapped or caught up — which is
+        // the kind of divergence nobody can debug from a screenshot.
         let pool = pool().await;
         let mut conn = pool.acquire().await.unwrap();
 
         let page: SyncPage = serde_json::from_str(REAL_CHANGES).unwrap();
-        assert_eq!(page.changes.len(), 4);
+        assert_eq!(page.changes.len(), 10, "the capture lost events");
         for change in &page.changes {
-            apply_change(&mut conn, change).await.unwrap();
+            assert_eq!(
+                apply_change(&mut conn, change).await.unwrap(),
+                Outcome::Applied,
+                "event {} ({}/{}) was not understood",
+                change.cursor,
+                change.entity_type,
+                change.action
+            );
         }
+        let from_journal = projected_state(&mut conn).await;
 
+        // Same database, replaced by the snapshot.
         let snapshot: SyncSnapshot = serde_json::from_str(REAL_SNAPSHOT).unwrap();
-        let expected = &snapshot.playlists[0];
-        let (name, comment, public) = playlist_row(&mut conn, &expected.id).await;
-        assert_eq!(name, expected.name);
-        assert_eq!(
-            comment, expected.comment,
-            "the third event is create-shaped and blanked the comment the second one set"
-        );
-        assert_eq!(public, i64::from(expected.public));
+        apply_snapshot(&mut conn, &snapshot).await.unwrap();
+        let from_snapshot = projected_state(&mut conn).await;
 
-        // The fourth event deletes the second playlist, so exactly one
-        // survives — the same one the snapshot lists.
-        let total: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_playlist")
-            .fetch_one(&mut *conn)
-            .await
-            .unwrap();
-        assert_eq!(total, snapshot.playlists.len() as i64);
+        assert_eq!(
+            from_journal, from_snapshot,
+            "walking the journal and taking a snapshot produced different state"
+        );
     }
 
     #[tokio::test]

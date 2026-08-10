@@ -330,9 +330,14 @@ keeping them would carry complexity the protocol no longer asks for.
 - **Last-writer-wins backfill** — a conflict is no longer arbitrated locally: a
   reused operation identifier with a different fingerprint is rejected, and a
   client that cannot apply a known event takes a fresh snapshot.
-- **Compaction and `410 Gone`** — the v2.0 journal is append-only, and any
-  future retention is gated on a snapshot floor. This path disappears, but it is
-  **replaced by snapshot recovery**, not removed without a substitute.
+- **Compaction and `410 Gone`** — the v2.0 journal is append-only, so no cursor
+  can be too old: `after=` beyond the last event returns an empty page, not an
+  error (measured). There is **no retention contract yet**, and the server side
+  has deliberately not written one. So this path has no trigger today, and the
+  right move is to leave it unwritten rather than code against an imagined
+  status. Recovery still exists — it is driven by a *known event that fails to
+  apply*, which discards the projection and re-snapshots — but that is a
+  different trigger, not a stand-in for compaction.
 
 ## The RFC-003 naming trap
 

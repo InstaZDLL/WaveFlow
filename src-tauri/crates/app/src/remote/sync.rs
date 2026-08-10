@@ -261,7 +261,24 @@ async fn acknowledge(state: &AppState, profile_id: i64, client: &RemoteClient, c
         .await;
 
     if let Err(failure) = outcome {
-        tracing::debug!(%failure, cursor, "acknowledgement failed; continuing anyway");
+        // A `422` here confounds two causes: a cursor beyond the user's
+        // latest event, and a device the server does not know or has
+        // revoked. The second is far more likely and far more
+        // consequential — a revoked device fails every *mutation* too —
+        // so the log names it first. (The server side hit this exact
+        // confusion while testing: an empty device id reads as a bad
+        // cursor.)
+        if failure.status == Some(422) {
+            tracing::warn!(
+                %failure,
+                cursor,
+                device_id,
+                "the server refused this acknowledgement; check the device is still \
+                 registered before suspecting the cursor"
+            );
+        } else {
+            tracing::debug!(%failure, cursor, "acknowledgement failed; continuing anyway");
+        }
     }
 }
 

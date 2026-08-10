@@ -2,63 +2,173 @@
   "changes": [
     {
       "cursor": 1,
-      "event_id": "338d2144-baaa-4877-99e5-77dceadf7de7",
-      "operation_id": "7fdf499f-89b3-42f2-a633-55e8eed01dd3",
-      "origin_device_id": null,
-      "entity_type": "playlist",
-      "entity_id": "31be1c98-3984-40ff-8352-73fc6e2c29b5",
+      "event_id": "0651703f-03a1-42a9-9eab-8a6b16dc91f1",
+      "operation_id": "a4665e29-a76f-4f1b-b59e-673ddcae9d92",
+      "origin_device_id": "ffc3e353-7c8b-4937-8879-cc6f683ba108",
+      "entity_type": "favorite",
+      "entity_id": "3b1c72eb-99f7-4046-b2a0-798897fe62f0",
       "action": "upsert",
       "payload": {
-        "id": "31be1c98-3984-40ff-8352-73fc6e2c29b5",
-        "name": "Mix",
-        "track_ids": []
+        "entity_id": "3b1c72eb-99f7-4046-b2a0-798897fe62f0",
+        "entity_type": "track",
+        "starred": true
       },
-      "changed_at": 1786369482470
+      "changed_at": 1786396570913
     },
     {
       "cursor": 2,
-      "event_id": "cd9e2db4-bb47-436a-aeed-b1766f98fc30",
-      "operation_id": "b2f6bbfd-b59f-4170-83c4-28fcdc0d4240",
-      "origin_device_id": null,
-      "entity_type": "playlist",
-      "entity_id": "31be1c98-3984-40ff-8352-73fc6e2c29b5",
+      "event_id": "4d5001ff-4c37-45cb-bab3-d192355af7c8",
+      "operation_id": "57120140-fb41-40d7-8b32-e94a6cc802f8",
+      "origin_device_id": "62f0bd77-88a6-45b8-8224-d316d8ffb4b5",
+      "entity_type": "favorite",
+      "entity_id": "3015b5d3-d8bb-4c38-8ff9-70e43c926ced",
       "action": "upsert",
       "payload": {
-        "comment": "des notes",
-        "id": "31be1c98-3984-40ff-8352-73fc6e2c29b5",
-        "name": "Mix renommee",
-        "public": true,
-        "track_ids": []
+        "entity_id": "3015b5d3-d8bb-4c38-8ff9-70e43c926ced",
+        "entity_type": "album",
+        "starred": true
       },
-      "changed_at": 1786369482481
+      "changed_at": 1786396600015
     },
     {
       "cursor": 3,
-      "event_id": "1cc5f4f5-dabe-40ca-85fc-78aa9b49c8c8",
-      "operation_id": "bb155f83-35a1-488d-bbc3-fb26c2f1eeb1",
-      "origin_device_id": null,
-      "entity_type": "playlist",
-      "entity_id": "170c2731-487e-495e-a97a-4281f961c9f1",
+      "event_id": "418d27b5-f0aa-42f2-a317-4356aa080cf4",
+      "operation_id": "bc63b78d-debe-40fd-91bf-8f455822862c",
+      "origin_device_id": "62f0bd77-88a6-45b8-8224-d316d8ffb4b5",
+      "entity_type": "rating",
+      "entity_id": "15d63ac0-1428-43bc-ad2e-c7353d51c3b6",
       "action": "upsert",
       "payload": {
-        "id": "170c2731-487e-495e-a97a-4281f961c9f1",
-        "name": "A supprimer",
-        "track_ids": []
+        "entity_id": "15d63ac0-1428-43bc-ad2e-c7353d51c3b6",
+        "entity_type": "track",
+        "rating": 4
       },
-      "changed_at": 1786369482485
+      "changed_at": 1786396600021
     },
     {
       "cursor": 4,
-      "event_id": "65cdcaae-a894-48ec-b387-0fcb4e998a7a",
-      "operation_id": "4e3e9ec2-da99-45f1-a6f6-5ef04c682bbf",
-      "origin_device_id": null,
+      "event_id": "3de99870-de01-418d-8d8f-fc46aae2caf5",
+      "operation_id": "3c88d097-4007-4d5a-94b0-f69512eb80e1",
+      "origin_device_id": "62f0bd77-88a6-45b8-8224-d316d8ffb4b5",
+      "entity_type": "rating",
+      "entity_id": "3015b5d3-d8bb-4c38-8ff9-70e43c926ced",
+      "action": "upsert",
+      "payload": {
+        "entity_id": "3015b5d3-d8bb-4c38-8ff9-70e43c926ced",
+        "entity_type": "album",
+        "rating": 5
+      },
+      "changed_at": 1786396600024
+    },
+    {
+      "cursor": 5,
+      "event_id": "5f3e4f70-fd1c-47e9-bdaa-049020b8df8b",
+      "operation_id": "334fc539-cf06-4570-8da0-0f59e9f60d4c",
+      "origin_device_id": "62f0bd77-88a6-45b8-8224-d316d8ffb4b5",
+      "entity_type": "scrobble",
+      "entity_id": "3b1c72eb-99f7-4046-b2a0-798897fe62f0",
+      "action": "append",
+      "payload": {
+        "played_at": 1786396600027,
+        "submission": true,
+        "track_id": "3b1c72eb-99f7-4046-b2a0-798897fe62f0"
+      },
+      "changed_at": 1786396600028
+    },
+    {
+      "cursor": 6,
+      "event_id": "b91a4746-39ee-4194-97f7-eab0ab8bdbb6",
+      "operation_id": "6192d5a2-e827-4b44-8cb0-7383e6a1154d",
+      "origin_device_id": "62f0bd77-88a6-45b8-8224-d316d8ffb4b5",
+      "entity_type": "scrobble",
+      "entity_id": "d1c03c1e-0b7c-4de6-b7a2-69e0348a5f9c",
+      "action": "append",
+      "payload": {
+        "played_at": 1786396600031,
+        "submission": true,
+        "track_id": "d1c03c1e-0b7c-4de6-b7a2-69e0348a5f9c"
+      },
+      "changed_at": 1786396600032
+    },
+    {
+      "cursor": 7,
+      "event_id": "3fa6074d-ab5c-4c70-bc6e-46c4612bd683",
+      "operation_id": "70745e43-ae6b-4320-82b4-628dbd4a8650",
+      "origin_device_id": "62f0bd77-88a6-45b8-8224-d316d8ffb4b5",
+      "entity_type": "queue",
+      "entity_id": "5dafc44e-dee9-47fc-a3d3-f0ae4108b034",
+      "action": "upsert",
+      "payload": {
+        "client": "WaveFlow",
+        "current": "15d63ac0-1428-43bc-ad2e-c7353d51c3b6",
+        "position_ms": 4200,
+        "track_ids": [
+          "3b1c72eb-99f7-4046-b2a0-798897fe62f0",
+          "15d63ac0-1428-43bc-ad2e-c7353d51c3b6",
+          "d1c03c1e-0b7c-4de6-b7a2-69e0348a5f9c"
+        ]
+      },
+      "changed_at": 1786396600036
+    },
+    {
+      "cursor": 8,
+      "event_id": "5c9a2066-605a-4973-820b-fa9fffd8e624",
+      "operation_id": "596b9632-ba77-4e7a-9fa8-92377b228c38",
+      "origin_device_id": "62f0bd77-88a6-45b8-8224-d316d8ffb4b5",
       "entity_type": "playlist",
-      "entity_id": "170c2731-487e-495e-a97a-4281f961c9f1",
-      "action": "delete",
-      "payload": {},
-      "changed_at": 1786369482488
+      "entity_id": "928d8775-194c-4f8a-ac93-b50976b1cf53",
+      "action": "upsert",
+      "payload": {
+        "id": "928d8775-194c-4f8a-ac93-b50976b1cf53",
+        "name": "Mix de test",
+        "track_ids": [
+          "3b1c72eb-99f7-4046-b2a0-798897fe62f0",
+          "15d63ac0-1428-43bc-ad2e-c7353d51c3b6"
+        ]
+      },
+      "changed_at": 1786396600040
+    },
+    {
+      "cursor": 9,
+      "event_id": "7915026f-5825-4d22-aac0-7e84e480162e",
+      "operation_id": "716d4849-08a2-4b17-9300-9a5aa605dd67",
+      "origin_device_id": "62f0bd77-88a6-45b8-8224-d316d8ffb4b5",
+      "entity_type": "playlist",
+      "entity_id": "928d8775-194c-4f8a-ac93-b50976b1cf53",
+      "action": "upsert",
+      "payload": {
+        "comment": "des notes",
+        "id": "928d8775-194c-4f8a-ac93-b50976b1cf53",
+        "name": "Mix de test",
+        "public": true,
+        "track_ids": [
+          "3b1c72eb-99f7-4046-b2a0-798897fe62f0",
+          "15d63ac0-1428-43bc-ad2e-c7353d51c3b6",
+          "83dbe6de-9b92-4b2d-a834-457d4053db29"
+        ]
+      },
+      "changed_at": 1786396600047
+    },
+    {
+      "cursor": 10,
+      "event_id": "efafd910-8677-4421-9e84-49f081d686ae",
+      "operation_id": "2c883207-bd51-424c-a579-a942110aa8ac",
+      "origin_device_id": "62f0bd77-88a6-45b8-8224-d316d8ffb4b5",
+      "entity_type": "share",
+      "entity_id": "e22316dc-b3e7-4120-82cf-8d7d82c93063",
+      "action": "upsert",
+      "payload": {
+        "description": "un partage",
+        "expires_at": null,
+        "id": "e22316dc-b3e7-4120-82cf-8d7d82c93063",
+        "track_ids": [
+          "3b1c72eb-99f7-4046-b2a0-798897fe62f0",
+          "15d63ac0-1428-43bc-ad2e-c7353d51c3b6"
+        ]
+      },
+      "changed_at": 1786396600052
     }
   ],
-  "next_cursor": 4,
+  "next_cursor": 10,
   "has_more": false
 }

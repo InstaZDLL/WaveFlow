@@ -1,19 +1,200 @@
 {
-  "cursor": 4,
+  "cursor": 10,
   "playlists": [
     {
-      "id": "31be1c98-3984-40ff-8352-73fc6e2c29b5",
-      "name": "Mix renommee",
+      "id": "928d8775-194c-4f8a-ac93-b50976b1cf53",
+      "name": "Mix de test",
       "comment": "des notes",
       "public": true,
-      "created_at": 1786369482469,
-      "updated_at": 1786369482481,
-      "songs": []
+      "created_at": 1786396600040,
+      "updated_at": 1786396600046,
+      "songs": [
+        {
+          "id": "3b1c72eb-99f7-4046-b2a0-798897fe62f0",
+          "library_id": "abe37251-64e0-4b7c-a938-ee5d1506a4cc",
+          "album_id": "69c933ed-9787-4b39-bc6b-5d42b3446650",
+          "title": "Ebb",
+          "album": "Tideline",
+          "artist": "Bellweather",
+          "genre": "Test",
+          "year": 2019,
+          "track": 1,
+          "disc": null,
+          "duration_ms": 1045,
+          "bitrate": 65,
+          "codec": "MP3",
+          "suffix": "mp3",
+          "size": 8712,
+          "artwork_hash": null,
+          "created_at": 1786396537170,
+          "starred_at": 1786396570913,
+          "user_rating": null
+        },
+        {
+          "id": "15d63ac0-1428-43bc-ad2e-c7353d51c3b6",
+          "library_id": "abe37251-64e0-4b7c-a938-ee5d1506a4cc",
+          "album_id": "69c933ed-9787-4b39-bc6b-5d42b3446650",
+          "title": "Flow",
+          "album": "Tideline",
+          "artist": "Bellweather",
+          "genre": "Test",
+          "year": 2019,
+          "track": 2,
+          "disc": null,
+          "duration_ms": 1045,
+          "bitrate": 65,
+          "codec": "MP3",
+          "suffix": "mp3",
+          "size": 8713,
+          "artwork_hash": null,
+          "created_at": 1786396537170,
+          "starred_at": null,
+          "user_rating": 4
+        },
+        {
+          "id": "83dbe6de-9b92-4b2d-a834-457d4053db29",
+          "library_id": "abe37251-64e0-4b7c-a938-ee5d1506a4cc",
+          "album_id": "034cd971-83fc-4806-9fd4-761a113f74e2",
+          "title": "Solstice",
+          "album": "Northern Lights",
+          "artist": "Aurora",
+          "genre": "Test",
+          "year": 2021,
+          "track": 2,
+          "disc": null,
+          "duration_ms": 1045,
+          "bitrate": 65,
+          "codec": "MP3",
+          "suffix": "mp3",
+          "size": 8714,
+          "artwork_hash": null,
+          "created_at": 1786396537170,
+          "starred_at": null,
+          "user_rating": null
+        }
+      ]
     }
   ],
-  "favorites": [],
-  "ratings": [],
-  "queue": null,
-  "history": [],
-  "shares": []
+  "favorites": [
+    {
+      "entity_type": "album",
+      "entity_id": "3015b5d3-d8bb-4c38-8ff9-70e43c926ced",
+      "starred_at": 1786396600015
+    },
+    {
+      "entity_type": "track",
+      "entity_id": "3b1c72eb-99f7-4046-b2a0-798897fe62f0",
+      "starred_at": 1786396570913
+    }
+  ],
+  "ratings": [
+    {
+      "entity_type": "album",
+      "entity_id": "3015b5d3-d8bb-4c38-8ff9-70e43c926ced",
+      "rating": 5,
+      "updated_at": 1786396600024
+    },
+    {
+      "entity_type": "track",
+      "entity_id": "15d63ac0-1428-43bc-ad2e-c7353d51c3b6",
+      "rating": 4,
+      "updated_at": 1786396600020
+    }
+  ],
+  "queue": {
+    "current": "15d63ac0-1428-43bc-ad2e-c7353d51c3b6",
+    "position_ms": 4200,
+    "changed_by": "WaveFlow",
+    "updated_at": 1786396600036,
+    "songs": [
+      {
+        "id": "3b1c72eb-99f7-4046-b2a0-798897fe62f0",
+        "library_id": "abe37251-64e0-4b7c-a938-ee5d1506a4cc",
+        "album_id": "69c933ed-9787-4b39-bc6b-5d42b3446650",
+        "title": "Ebb",
+        "album": "Tideline",
+        "artist": "Bellweather",
+        "genre": "Test",
+        "year": 2019,
+        "track": 1,
+        "disc": null,
+        "duration_ms": 1045,
+        "bitrate": 65,
+        "codec": "MP3",
+        "suffix": "mp3",
+        "size": 8712,
+        "artwork_hash": null,
+        "created_at": 1786396537170,
+        "starred_at": 1786396570913,
+        "user_rating": null
+      },
+      {
+        "id": "15d63ac0-1428-43bc-ad2e-c7353d51c3b6",
+        "library_id": "abe37251-64e0-4b7c-a938-ee5d1506a4cc",
+        "album_id": "69c933ed-9787-4b39-bc6b-5d42b3446650",
+        "title": "Flow",
+        "album": "Tideline",
+        "artist": "Bellweather",
+        "genre": "Test",
+        "year": 2019,
+        "track": 2,
+        "disc": null,
+        "duration_ms": 1045,
+        "bitrate": 65,
+        "codec": "MP3",
+        "suffix": "mp3",
+        "size": 8713,
+        "artwork_hash": null,
+        "created_at": 1786396537170,
+        "starred_at": null,
+        "user_rating": 4
+      },
+      {
+        "id": "d1c03c1e-0b7c-4de6-b7a2-69e0348a5f9c",
+        "library_id": "abe37251-64e0-4b7c-a938-ee5d1506a4cc",
+        "album_id": "034cd971-83fc-4806-9fd4-761a113f74e2",
+        "title": "Polar",
+        "album": "Northern Lights",
+        "artist": "Aurora",
+        "genre": "Test",
+        "year": 2021,
+        "track": 1,
+        "disc": null,
+        "duration_ms": 1045,
+        "bitrate": 65,
+        "codec": "MP3",
+        "suffix": "mp3",
+        "size": 8711,
+        "artwork_hash": null,
+        "created_at": 1786396537170,
+        "starred_at": null,
+        "user_rating": null
+      }
+    ]
+  },
+  "history": [
+    {
+      "track_id": "d1c03c1e-0b7c-4de6-b7a2-69e0348a5f9c",
+      "submission": true,
+      "played_at": 1786396600031
+    },
+    {
+      "track_id": "3b1c72eb-99f7-4046-b2a0-798897fe62f0",
+      "submission": true,
+      "played_at": 1786396600027
+    }
+  ],
+  "shares": [
+    {
+      "id": "e22316dc-b3e7-4120-82cf-8d7d82c93063",
+      "description": "un partage",
+      "expires_at": null,
+      "created_at": 1786396600052,
+      "visit_count": 0,
+      "track_ids": [
+        "3b1c72eb-99f7-4046-b2a0-798897fe62f0",
+        "15d63ac0-1428-43bc-ad2e-c7353d51c3b6"
+      ]
+    }
+  ]
 }

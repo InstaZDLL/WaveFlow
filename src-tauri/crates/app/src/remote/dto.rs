@@ -116,6 +116,23 @@ pub struct QueueItem {
 /// event's `entity_id` is the **track** id, so two plays of the same
 /// track share it. `(track_id, played_at)` is the only pair that tells
 /// them apart, which is why the projection keys on it.
+///
+/// ## What that costs, precisely
+///
+/// The server stores plays in an auto-incrementing table with no
+/// uniqueness constraint: two byte-identical scrobbles both persist
+/// (confirmed server-side). Those two rows are distinguishable in
+/// `/sync/changes` — they carry different cursors and event ids — but
+/// **not** in a snapshot, which describes each play only by track and
+/// timestamp.
+///
+/// So the loss is real but bounded: walking the journal is *more
+/// faithful* to the history than bootstrapping from a snapshot, and the
+/// collision only bites when two plays share a millisecond, which in
+/// practice means a duplicate submission rather than two listens. We
+/// take the natural key because it is the only one both feeds carry;
+/// keying on the event id would make a snapshot unable to populate the
+/// table at all.
 #[derive(Debug, Clone, Deserialize)]
 pub struct HistoryItem {
     pub track_id: String,
