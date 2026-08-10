@@ -44,6 +44,11 @@
 //!   journal, acknowledge, and recover by re-snapshotting when a known
 //!   event cannot be applied.
 //!
+//! - [`socket`] — the wake-up channel. Pure latency: it carries notice
+//!   that a newer cursor may exist, never state, so removing it would
+//!   leave the projection correct and merely slower to notice another
+//!   device's edits.
+//!
 //! - [`probe`] — server flavour detection. Decides whether the optional
 //!   [`SyncProvider`](#capabilities) surface exists at all.
 //!
@@ -69,5 +74,6 @@ pub mod client;
 pub mod dto;
 pub mod probe;
 pub mod projection;
+pub mod socket;
 pub mod sync;
 pub mod tokens;

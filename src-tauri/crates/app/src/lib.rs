@@ -245,6 +245,27 @@ pub fn run() {
                 sync::ws::spawn(app.handle().clone());
             }
 
+            // Remote source wake-up socket (RFC-005). Independent of the
+            // v1 block above and gated separately, so a build can carry
+            // either protocol, both, or neither.
+            #[cfg(feature = "sync_v2")]
+            {
+                // rustls 0.23 needs a process-wide CryptoProvider before
+                // the first TLS handshake, and `connect_async` is what
+                // trips it (reqwest configures its own per-connector).
+                // Installing it here too rather than relying on the v1
+                // block: the two features are independent, and a
+                // `sync_v2`-only build would otherwise panic on the
+                // first wss:// upgrade. A second call returns Err, which
+                // is harmless.
+                let _ = rustls::crypto::ring::default_provider().install_default();
+
+                // The subscriber owns its own gates — unbound profile,
+                // signed out, offline, no journal — so spawning it
+                // unconditionally costs an idle loop and nothing else.
+                remote::socket::spawn(app.handle().clone());
+            }
+
             // Audio engine lives alongside AppState. `new` spawns the cpal
             // output thread (silence callback) and the decoder thread, both
             // receiving a clone of the AppHandle so they can emit Tauri
