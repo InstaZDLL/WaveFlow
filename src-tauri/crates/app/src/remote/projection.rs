@@ -71,10 +71,25 @@ fn clamp_rating(rating: i64) -> i64 {
 /// The pending outbound queue is untouched. It holds writes the server
 /// has not seen, so it is the one thing here that is not
 /// reconstructible.
+///
+/// And for the same reason, a playlist still carrying a `local:`
+/// placeholder **survives** the replacement. It exists only here, the
+/// server has never heard of it, so a snapshot cannot possibly be
+/// evidence that it was deleted — wiping it would silently destroy a
+/// playlist the user created offline while its creation sat in the
+/// queue.
 pub async fn apply_snapshot(conn: &mut SqliteConnection, snapshot: &SyncSnapshot) -> AppResult<()> {
+    let placeholder_pattern = format!("{}%", crate::remote::mutation::PLACEHOLDER_PREFIX);
     for statement in [
-        "DELETE FROM remote_playlist_track",
-        "DELETE FROM remote_playlist",
+        "DELETE FROM remote_playlist_track WHERE playlist_remote_id NOT LIKE ?",
+        "DELETE FROM remote_playlist WHERE remote_id NOT LIKE ?",
+    ] {
+        sqlx::query(statement)
+            .bind(&placeholder_pattern)
+            .execute(&mut *conn)
+            .await?;
+    }
+    for statement in [
         "DELETE FROM remote_favorite",
         "DELETE FROM remote_rating",
         "DELETE FROM remote_history",
@@ -1021,6 +1036,46 @@ mod tests {
         // Nothing is missing: the snapshot carried every song it
         // referenced.
         assert!(missing_track_ids(&mut conn).await.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn a_snapshot_does_not_destroy_a_playlist_created_offline() {
+        // The creation is still queued, so the server has never heard of
+        // this playlist and its snapshot cannot be evidence that it was
+        // deleted.
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        let local_id = crate::remote::mutation::new_placeholder();
+
+        sqlx::query("INSERT INTO remote_playlist (remote_id, name) VALUES (?, 'Offline mix')")
+            .bind(&local_id)
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO remote_playlist_track VALUES (?, 0, 't1')")
+            .bind(&local_id)
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+
+        let snapshot: SyncSnapshot = serde_json::from_str(r#"{"cursor": 9}"#).unwrap();
+        apply_snapshot(&mut conn, &snapshot).await.unwrap();
+
+        let survived: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM remote_playlist WHERE remote_id = ?")
+                .bind(&local_id)
+                .fetch_one(&mut *conn)
+                .await
+                .unwrap();
+        assert_eq!(survived, 1, "an unsent offline playlist was destroyed");
+
+        let tracks: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM remote_playlist_track WHERE playlist_remote_id = ?")
+                .bind(&local_id)
+                .fetch_one(&mut *conn)
+                .await
+                .unwrap();
+        assert_eq!(tracks, 1, "its tracks went with it");
     }
 
     #[tokio::test]

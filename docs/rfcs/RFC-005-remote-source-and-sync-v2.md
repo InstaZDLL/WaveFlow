@@ -193,6 +193,38 @@ Both are permanent: a retry cannot change the outcome. The queue marks such an
 entry as failed and surfaces it, instead of retrying forever. Only 5xx, 429 and
 transport errors are retried.
 
+**Order is load-bearing.** Strict FIFO, and the first retryable failure ends the
+pass so nothing overtakes what it depends on. A permanent failure is the
+exception: it can never succeed, so that entry is marked and the drain moves on
+rather than deadlocking every later change behind it.
+
+**Creating something the server has not named yet.** A playlist created offline
+has no server identifier, so it gets a local placeholder — `local:<uuid>` —
+which the projection uses as a real key, making it visible and editable
+immediately. When the creation lands, the placeholder is resolved in three
+places: the projection row, its ordered tracks, and any mutation still queued
+behind it.
+
+Two consequences that are easy to get wrong:
+
+- The row is **copied, re-pointed, then dropped**, never renamed in place. A
+  primary key cannot be updated out from under the rows referencing it —
+  renaming first orphans the tracks, re-pointing first names a parent that does
+  not exist. Either order violates the foreign key.
+- A snapshot **must not delete a placeholder playlist**. The server has never
+  heard of it, so its snapshot cannot be evidence that it was deleted; wiping it
+  would destroy a playlist the user made offline while its creation sat queued.
+
+Rewriting those queued payloads is the single exception to entry immutability,
+and it is sound for a specific reason: FIFO guarantees an entry behind an
+unlanded creation has never been presented to the server, so no fingerprint
+exists for it to conflict with.
+
+**What the API cannot express.** Clearing a playlist comment. The server applies
+`COALESCE(?, comment)`, so a null comment keeps the current one — "leave it
+alone" and "empty it" are the same request. The mutation type reflects that
+rather than pretending otherwise.
+
 ## Decision 8 — v2 lands beside v1, not on top of it
 
 The v1 surface (~12 400 lines across `sync/`, `commands/sync.rs`,

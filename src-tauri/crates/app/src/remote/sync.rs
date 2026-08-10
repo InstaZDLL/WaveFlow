@@ -84,6 +84,17 @@ pub async fn sync_now(state: &AppState) -> AppResult<SyncReport> {
     };
 
     let profile_id = state.require_profile_id().await?;
+
+    // Push before pulling, for two reasons. Our own changes then come
+    // back in the same pass instead of the next one — and, more
+    // importantly, a bootstrap replaces the projection wholesale, so
+    // anything still queued should have had its chance to become server
+    // state first. A failure here is not fatal: the queue keeps its
+    // entries and the read half still runs.
+    if let Err(error) = crate::remote::drain::drain(state).await {
+        tracing::debug!(%error, "could not push the outbound queue before syncing");
+    }
+
     let binding = read_binding(state, profile_id).await?;
 
     match binding.bootstrapped_at {

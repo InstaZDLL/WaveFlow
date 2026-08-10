@@ -37,6 +37,13 @@
 //! - [`dto`] — the wire shapes, checked against the server's live
 //!   responses rather than against prose.
 //!
+//! - [`mutation`] — the outbound queue. Replayable business calls, each
+//!   pinned to an operation identifier that must never be reused for a
+//!   different intent.
+//!
+//! - [`drain`] — pushes that queue, in order, stopping on anything that
+//!   might still succeed and marking anything that never will.
+//!
 //! - [`projection`] — writing the server's user data into the local
 //!   `remote_*` tables. Pure database work, testable without a network.
 //!
@@ -71,7 +78,9 @@
 pub mod auth;
 pub mod binding;
 pub mod client;
+pub mod drain;
 pub mod dto;
+pub mod mutation;
 pub mod probe;
 pub mod projection;
 pub mod socket;
