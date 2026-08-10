@@ -152,6 +152,20 @@ Default it into the overflow ("⋯") menu via [`MoreActionsMenu`](../../src/comp
 
 Every outbound HTTP path (Deezer, Last.fm, similar, LRCLIB, the plugin registry) checks `offline::is_offline()` first and short-circuits to an empty payload or the cache. Persisted in `app_setting['network.offline_mode']`. **Treat new HTTP code paths the same way.**
 
+### Remote user data never lands in the local tables
+
+[RFC-005](../rfcs/RFC-005-remote-source-and-sync-v2.md). Synchronized state describes the **server's** playlists, favourites, ratings, history, queue and shares, and those reference the **server's** tracks — which have no local counterpart. Writing them into `playlist` / `liked_track` / `track.rating` would leave two options, both wrong: fabricate local track rows for content that only exists on the server, or silently drop every entry. The first corrupts the library, the second makes sync look broken while reporting success.
+
+The projection therefore lives in its own `remote_*` tables and is **reconstructible**: dropping it and re-fetching `GET /api/v2/sync/snapshot` is always a valid recovery, and is what the apply path does when it meets a known event it cannot apply. `remote_mutation` is the one exception — it holds writes the server has not seen yet, so it must survive a projection reset.
+
+Matching a local file to a server track is deliberately out of scope and needs its own RFC.
+
+**Two RFCs are numbered 003.** The desktop's [RFC-003](../rfcs/RFC-003-sync-architecture.md) (hybrid logical clocks, superseded) has nothing to do with the server's RFC-003 (sync v2, accepted). Any instruction naming "RFC-003" must name the repository too, or it will be read as the wrong document. On the desktop side the accepted design is **RFC-005**.
+
+### The three sections below describe the retired v1 protocol
+
+They are accurate for `crate::sync` under the `sync_v1` feature, which is off by default and talks to a server generation that no longer exists. They stay until the v2 snapshot bootstrap is proven, because they are the only documented recovery path from a divergence. **Do not use them as a model for new work** — see the section above.
+
 ### Outbound `playlist + field: "tracks"` ops carry a snapshot map
 
 Phase 1.j.b. Every command in [`commands/playlist.rs`](../../src-tauri/crates/app/src/commands/playlist.rs) that inserts tracks (`add_track_to_playlist`, `add_tracks_to_playlist`, `add_source_to_playlist`) calls [`sync::track_snapshots::build_snapshots(conn, &track_ids)`](../../src-tauri/crates/app/src/sync/track_snapshots.rs) inside the same SQLite transaction and folds the result into the outbound payload as `snapshots: { "<id_str>": { title, artist?, duration_ms? } }`.

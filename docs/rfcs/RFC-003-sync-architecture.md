@@ -1,6 +1,16 @@
 # RFC-003 — Sync architecture v2
 
-- **Status**: Draft
+> **Superseded on 2026-08-10 by [RFC-005](RFC-005-remote-source-and-sync-v2.md).**
+> The server it was designed against no longer exists: hybrid logical clocks,
+> per-entity CRDT arbitration and digest reconciliation are all dropped in favour
+> of a server-authoritative ordered journal. Kept for the problem statement
+> below, which is still an accurate account of why the v1 protocol failed.
+>
+> **This is not the server's RFC-003.** `waveflow-server` has its own document
+> with that number, describing the accepted v2 protocol. Any instruction
+> mentioning "RFC-003" must name the repository.
+
+- **Status**: Superseded by RFC-005
 - **Date**: 2026-06-12
 - **Authors**: @InstaZDLL
 - **Supersedes**: RFC-001 §Phase 1.f sync (the practical parts — apply pipeline + ops log stay; semantics and protocol are redesigned).
