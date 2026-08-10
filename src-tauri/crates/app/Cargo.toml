@@ -187,7 +187,7 @@ fast_image_resize = "6"
 # rasterise text or embedded raster — the SVGs are pure shapes/gradients,
 # which trims ~2 MB of font + image-codec deps from the bundle.
 resvg = { version = "0.47", default-features = false }
-usvg = { version = "0.47", default-features = false }
+usvg = { version = "0.48", default-features = false }
 tiny-skia = "0.12"
 anyhow = "1"
 
