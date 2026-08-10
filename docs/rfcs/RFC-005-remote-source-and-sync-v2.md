@@ -120,9 +120,29 @@ then exchanges `code` + `code_verifier` at `/api/v2/oauth/token`.
 The loopback listener and the random generator already exist for another
 provider; only the protocol changes.
 
-> **Verified trap.** A code is **spent on first presentation**, whatever the
-> outcome. A wrong verifier burns it. Retrying the same code is not a recovery
-> path — the flow restarts from the beginning.
+Three details, all measured against a live server rather than inferred:
+
+> **A code is spent on first presentation**, whatever the outcome. Redeeming
+> with a wrong verifier burns it — presenting the *correct* verifier afterwards
+> still answers 401. Retrying a code is not a recovery path; the flow restarts
+> from the beginning.
+
+> **The redirect URI is compared as a string at redemption.** Shape validation
+> ignores the port, as RFC 8252 §7.3 asks, but the token endpoint compares the
+> grant's URI with the presented one byte for byte — changing only the port
+> answers 401. Binding the loopback listener *first* and building the URI once
+> from the port obtained makes the two identical by construction.
+
+> **The refresh token rotates and the device survives it.** A refresh returns a
+> new refresh token, the old one answers 401, and `device_id` is echoed back
+> unchanged. So a rotation never invalidates queued mutations, and the
+> device-adoption branch in the client is defensive, not routine.
+
+Worth recording as an observation rather than a decision: `/oauth/authorize`
+authenticates with a **Bearer header**, not a browser cookie, so the consent
+step is technically reachable without a browser at all. We still go through the
+browser — it is what keeps the account password out of the desktop process —
+but that is a deliberate choice, not a constraint the server imposes.
 
 A third-party server authenticates by username/password, token/salt or API key
 instead. That is a second authentication shape to carry, not a degraded first.

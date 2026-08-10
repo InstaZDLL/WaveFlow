@@ -230,13 +230,49 @@ pub async fn mark_bootstrapped(conn: &mut SqliteConnection, cursor: i64) -> AppR
     Ok(())
 }
 
-/// Drop the binding. Leaves the projection and the outbound queue
+/// Drop the binding row. Leaves the projection and the outbound queue
 /// alone — the caller decides whether unbinding also discards pending
 /// writes, which is a user-visible choice, not a storage detail.
 pub async fn clear(conn: &mut SqliteConnection) -> AppResult<()> {
     sqlx::query("DELETE FROM remote_binding WHERE id = 1")
         .execute(&mut *conn)
         .await?;
+    Ok(())
+}
+
+/// Discard everything that belongs to one account: the whole projection
+/// and every write that never reached the server.
+///
+/// Both are account-scoped in a way that makes carrying them over
+/// actively harmful, not merely stale. A cursor is a position in *that*
+/// account's journal, and a queued mutation names *that* account's
+/// resources by identifier — replaying either against a different
+/// account would apply one user's edits to another's library.
+///
+/// Call this inside the same transaction as the new binding: a
+/// projection that outlives its account for even one commit is a state
+/// no reader can interpret.
+///
+/// The two child tables are dropped explicitly rather than left to
+/// `ON DELETE CASCADE`. The cascade only fires with `foreign_keys` on,
+/// which is a connection-level pragma — depending on it here would make
+/// correctness hinge on how the caller's connection happened to be
+/// configured.
+pub async fn clear_account_state(conn: &mut SqliteConnection) -> AppResult<()> {
+    for statement in [
+        "DELETE FROM remote_playlist_track",
+        "DELETE FROM remote_playlist",
+        "DELETE FROM remote_favorite",
+        "DELETE FROM remote_rating",
+        "DELETE FROM remote_history",
+        "DELETE FROM remote_queue_track",
+        "DELETE FROM remote_queue",
+        "DELETE FROM remote_share_track",
+        "DELETE FROM remote_share",
+        "DELETE FROM remote_mutation",
+    ] {
+        sqlx::query(statement).execute(&mut *conn).await?;
+    }
     Ok(())
 }
 
@@ -365,6 +401,81 @@ mod tests {
         // into a journal it never belonged to.
         write(&mut conn, &waveflow_binding(0)).await.unwrap();
         assert_eq!(read(&mut conn).await.unwrap().unwrap().identity.cursor(), Some(0));
+    }
+
+    #[tokio::test]
+    async fn clearing_account_state_empties_the_projection_and_the_queue() {
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+
+        sqlx::raw_sql(
+            "INSERT INTO remote_playlist (remote_id, name) VALUES ('p1', 'P');
+             INSERT INTO remote_playlist_track VALUES ('p1', 0, 't1');
+             INSERT INTO remote_favorite VALUES ('track', 't1', 1);
+             INSERT INTO remote_rating VALUES ('track', 't1', 4, 1);
+             INSERT INTO remote_history VALUES ('t1', 1000, 1);
+             INSERT INTO remote_queue (id, position_ms, updated_at) VALUES (1, 0, 1);
+             INSERT INTO remote_queue_track VALUES (0, 't1');
+             INSERT INTO remote_share (remote_id) VALUES ('s1');
+             INSERT INTO remote_share_track VALUES ('s1', 0, 't1');
+             INSERT INTO remote_mutation (operation_id, kind, payload, created_at)
+                VALUES ('op1', 'k', '{}', 0);",
+        )
+        .execute(&mut *conn)
+        .await
+        .unwrap();
+
+        clear_account_state(&mut conn).await.unwrap();
+
+        for table in [
+            "remote_playlist",
+            "remote_playlist_track",
+            "remote_favorite",
+            "remote_rating",
+            "remote_history",
+            "remote_queue",
+            "remote_queue_track",
+            "remote_share",
+            "remote_share_track",
+            "remote_mutation",
+        ] {
+            // `AssertSqlSafe` because the table name comes from the
+            // literal list above, never from input.
+            let count: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+                "SELECT count(*) FROM {table}"
+            )))
+            .fetch_one(&mut *conn)
+            .await
+            .unwrap();
+            assert_eq!(count, 0, "{table} still holds rows");
+        }
+    }
+
+    #[tokio::test]
+    async fn clearing_account_state_does_not_depend_on_foreign_keys_being_on() {
+        // `foreign_keys` is a per-connection pragma, so a cascade would
+        // make this correctness depend on how the caller connected.
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        sqlx::raw_sql("PRAGMA foreign_keys = OFF")
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+        sqlx::raw_sql(
+            "INSERT INTO remote_playlist (remote_id, name) VALUES ('p1', 'P');
+             INSERT INTO remote_playlist_track VALUES ('p1', 0, 't1');",
+        )
+        .execute(&mut *conn)
+        .await
+        .unwrap();
+
+        clear_account_state(&mut conn).await.unwrap();
+
+        let orphans: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_playlist_track")
+            .fetch_one(&mut *conn)
+            .await
+            .unwrap();
+        assert_eq!(orphans, 0);
     }
 
     #[tokio::test]

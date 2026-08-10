@@ -753,6 +753,16 @@ pub fn run() {
             commands::spotify::spotify_get_queue,
             commands::spotify::spotify_search,
             commands::spotify::spotify_pause_local,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_get_status,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_detect_server,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_begin_login,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_sign_out,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_forget_server,
             #[cfg(feature = "sync_v1")]
             commands::server_auth::server_get_status,
             #[cfg(feature = "sync_v1")]

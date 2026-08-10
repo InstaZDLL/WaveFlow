@@ -16,6 +16,10 @@
 //!
 //! ## Module map
 //!
+//! - [`auth`] — Authorization Code + PKCE in the system browser, and
+//!   the two ways out: sign out (credentials only) versus forget the
+//!   server (credentials, binding, projection and pending writes).
+//!
 //! - [`binding`] — which server this profile talks to and where it is
 //!   up to. Holds [`binding::RemoteIdentity`], the polymorphic identity
 //!   that keeps a third-party server from having to pretend it has an
@@ -49,6 +53,7 @@
 // `sync/mode.rs`. Drop this once the drain consumes the client.
 #![allow(dead_code)]
 
+pub mod auth;
 pub mod binding;
 pub mod client;
 pub mod probe;

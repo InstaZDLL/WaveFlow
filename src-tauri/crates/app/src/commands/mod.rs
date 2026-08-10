@@ -39,6 +39,10 @@ pub mod preferences;
 pub mod profile;
 pub mod profile_io;
 pub mod radio;
+// Remote server binding + PKCE sign-in (RFC-005). Gated on `sync_v2`,
+// which is off by default while the slices land.
+#[cfg(feature = "sync_v2")]
+pub mod remote_auth;
 pub mod scan;
 // Server account binding (Better Auth JWT capture + URL persistence)
 // — deferred to 1.6.0. See `sync_stub.rs` / `Cargo.toml`.
