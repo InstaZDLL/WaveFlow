@@ -37,11 +37,17 @@ pub struct DrainReport {
     pub stopped_early: bool,
 }
 
-/// The reply we care about from a playlist creation: the identifier the
-/// server chose.
+/// What a creation's reply carries that we must keep.
+///
+/// For a playlist that is only the identifier. For a share it is the
+/// identifier **and the URL**, which the journal never carries and which
+/// cannot be derived locally — the creation response is the only moment
+/// this device can ever learn it.
 #[derive(Debug, serde::Deserialize)]
-struct CreatedPlaylist {
+struct Created {
     id: String,
+    #[serde(default)]
+    url: Option<String>,
 }
 
 /// Push what is queued. Does nothing, successfully, when there is
@@ -72,12 +78,20 @@ pub async fn drain(state: &AppState) -> AppResult<DrainReport> {
                 // creation the server has already accepted, under an
                 // identifier whose fingerprint now names a different
                 // playlist — the exact conflict the protocol rejects.
-                if let (
-                    Mutation::CreatePlaylist { local_id, .. },
-                    Some(CreatedPlaylist { id }),
-                ) = (&entry.mutation, &created)
-                {
-                    mutation::resolve_placeholder(&mut tx, local_id, id).await?;
+                match (&entry.mutation, &created) {
+                    (Mutation::CreatePlaylist { local_id, .. }, Some(created)) => {
+                        mutation::resolve_placeholder(&mut tx, local_id, &created.id).await?;
+                    }
+                    (Mutation::CreateShare { local_id, .. }, Some(created)) => {
+                        mutation::resolve_share_placeholder(
+                            &mut tx,
+                            local_id,
+                            &created.id,
+                            created.url.as_deref(),
+                        )
+                        .await?;
+                    }
+                    _ => {}
                 }
                 mutation::remove(&mut tx, entry.id).await?;
                 tx.commit().await?;
@@ -118,7 +132,7 @@ pub async fn drain(state: &AppState) -> AppResult<DrainReport> {
 async fn send(
     client: &RemoteClient,
     entry: &QueuedMutation,
-) -> Result<Option<CreatedPlaylist>, RemoteFailure> {
+) -> Result<Option<Created>, RemoteFailure> {
     let op = &entry.operation_id;
     match &entry.mutation {
         Mutation::SetFavorite {
@@ -173,7 +187,7 @@ async fn send(
         Mutation::CreatePlaylist {
             name, track_ids, ..
         } => {
-            let created: CreatedPlaylist = client
+            let created: Created = client
                 .send_json(
                     client
                         .mutate(reqwest::Method::POST, "/api/v2/playlists", op)
@@ -282,6 +296,73 @@ async fn send(
                             "client": client_name,
                         })),
                 )
+                .await?;
+            Ok(None)
+        }
+
+        Mutation::CreateShare {
+            track_ids,
+            description,
+            expires_at,
+            ..
+        } => {
+            // No special handling for a replay: the share token is
+            // derived deterministically from the identifier, so
+            // re-sending returns the same URL rather than minting a
+            // second share.
+            let created: Created = client
+                .send_json(
+                    client
+                        .mutate(reqwest::Method::POST, "/api/v2/shares", op)
+                        .json(&serde_json::json!({
+                            "track_ids": track_ids,
+                            "description": description,
+                            "expires_at": expires_at,
+                        })),
+                )
+                .await?;
+            Ok(Some(created))
+        }
+
+        Mutation::UpdateShare {
+            share_id,
+            description,
+            expires_at,
+        } => {
+            if mutation::is_placeholder(share_id) {
+                return Err(RemoteFailure {
+                    kind: FailureKind::Permanent,
+                    status: None,
+                    message: "the share this edit belongs to was never created on the server"
+                        .into(),
+                });
+            }
+            let path = format!("/api/v2/shares/{share_id}");
+            let mut body = serde_json::Map::new();
+            if let Some(description) = description {
+                body.insert("description".into(), serde_json::json!(description));
+            }
+            if let Some(expires_at) = expires_at {
+                body.insert("expires_at".into(), serde_json::json!(expires_at));
+            }
+            client
+                .send_ok(
+                    client
+                        .mutate(reqwest::Method::PATCH, &path, op)
+                        .json(&serde_json::Value::Object(body)),
+                )
+                .await?;
+            Ok(None)
+        }
+
+        Mutation::DeleteShare { share_id } => {
+            if mutation::is_placeholder(share_id) {
+                // Never reached the server, so it is already gone.
+                return Ok(None);
+            }
+            let path = format!("/api/v2/shares/{share_id}");
+            client
+                .send_ok(client.mutate(reqwest::Method::DELETE, &path, op))
                 .await?;
             Ok(None)
         }

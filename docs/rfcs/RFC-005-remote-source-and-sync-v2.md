@@ -220,10 +220,17 @@ and it is sound for a specific reason: FIFO guarantees an entry behind an
 unlanded creation has never been presented to the server, so no fingerprint
 exists for it to conflict with.
 
-**What the API cannot express.** Clearing a playlist comment. The server applies
-`COALESCE(?, comment)`, so a null comment keeps the current one — "leave it
-alone" and "empty it" are the same request. The mutation type reflects that
-rather than pretending otherwise.
+**What the API cannot express.** Clearing an optional field. Playlist updates
+apply `COALESCE(?, comment)` and share updates do the same for `description`
+**and `expires_at`** — so "leave it alone" and "empty it" are the same request.
+The consequence is worst for the expiry: a share given one by mistake cannot
+have it removed. The mutation types say so rather than pretending otherwise.
+
+**A share's URL has exactly one moment.** The journal never carries it, and it
+cannot be derived locally — the token is keyed on a server-side instance secret.
+So the creation response is the only time this device can learn the link, and a
+share created on another device stays link-less here permanently. Capturing it
+at creation is not an optimisation; it is the only chance.
 
 ## Decision 8 — v2 lands beside v1, not on top of it
 

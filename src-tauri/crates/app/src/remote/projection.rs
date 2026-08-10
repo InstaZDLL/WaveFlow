@@ -83,6 +83,8 @@ pub async fn apply_snapshot(conn: &mut SqliteConnection, snapshot: &SyncSnapshot
     for statement in [
         "DELETE FROM remote_playlist_track WHERE playlist_remote_id NOT LIKE ?",
         "DELETE FROM remote_playlist WHERE remote_id NOT LIKE ?",
+        "DELETE FROM remote_share_track WHERE share_remote_id NOT LIKE ?",
+        "DELETE FROM remote_share WHERE remote_id NOT LIKE ?",
     ] {
         sqlx::query(statement)
             .bind(&placeholder_pattern)
@@ -95,8 +97,6 @@ pub async fn apply_snapshot(conn: &mut SqliteConnection, snapshot: &SyncSnapshot
         "DELETE FROM remote_history",
         "DELETE FROM remote_queue_track",
         "DELETE FROM remote_queue",
-        "DELETE FROM remote_share_track",
-        "DELETE FROM remote_share",
     ] {
         sqlx::query(statement).execute(&mut *conn).await?;
     }

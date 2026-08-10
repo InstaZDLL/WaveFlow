@@ -117,6 +117,29 @@ pub enum Mutation {
         position_ms: i64,
         client: Option<String>,
     },
+    /// A share created offline has neither an identifier nor a link
+    /// until the server answers, so it carries a placeholder like a
+    /// playlist does. Replay is safe without any special handling: the
+    /// share token is derived deterministically from the identifier, so
+    /// re-sending a creation yields the same URL rather than a second
+    /// share.
+    CreateShare {
+        local_id: String,
+        track_ids: Vec<String>,
+        description: Option<String>,
+        expires_at: Option<i64>,
+    },
+    /// Same coalescing limitation as [`Mutation::UpdatePlaylist`], and
+    /// it bites harder here: `expires_at` is also `COALESCE`d, so an
+    /// expiry set by mistake **cannot be removed** through this API.
+    UpdateShare {
+        share_id: String,
+        description: Option<String>,
+        expires_at: Option<i64>,
+    },
+    DeleteShare {
+        share_id: String,
+    },
 }
 
 impl Mutation {
@@ -131,16 +154,22 @@ impl Mutation {
             Mutation::DeletePlaylist { .. } => "delete_playlist",
             Mutation::Scrobble { .. } => "scrobble",
             Mutation::SaveQueue { .. } => "save_queue",
+            Mutation::CreateShare { .. } => "create_share",
+            Mutation::UpdateShare { .. } => "update_share",
+            Mutation::DeleteShare { .. } => "delete_share",
         }
     }
 
-    /// The playlist placeholder this mutation depends on, if any. Used
-    /// to find the entries a completed creation has to rewrite.
+    /// The placeholder this mutation depends on, if any. Used to find
+    /// the entries a completed creation has to rewrite.
     pub fn placeholder_dependency(&self) -> Option<&str> {
         let id = match self {
             Mutation::CreatePlaylist { local_id, .. } => local_id,
             Mutation::UpdatePlaylist { playlist_id, .. } => playlist_id,
             Mutation::DeletePlaylist { playlist_id } => playlist_id,
+            Mutation::CreateShare { local_id, .. } => local_id,
+            Mutation::UpdateShare { share_id, .. } => share_id,
+            Mutation::DeleteShare { share_id } => share_id,
             _ => return None,
         };
         is_placeholder(id).then_some(id.as_str())
@@ -305,6 +334,54 @@ pub async fn resolve_placeholder(
         .execute(&mut *conn)
         .await?;
 
+    rewrite_queued_references(conn, placeholder, remote_id).await
+}
+
+/// The share equivalent, plus the one thing only the creator ever learns.
+///
+/// The journal never carries a share's URL, and it cannot be derived
+/// locally — the token is keyed on a server-side instance secret. So the
+/// creation response is the only moment this device can capture the
+/// link, and a share created on another device stays link-less here for
+/// good. Storing it now is not an optimisation; it is the only chance.
+pub async fn resolve_share_placeholder(
+    conn: &mut SqliteConnection,
+    placeholder: &str,
+    remote_id: &str,
+    url: Option<&str>,
+) -> AppResult<()> {
+    // Copied, re-pointed, dropped — for the same foreign-key reason as
+    // the playlist above.
+    sqlx::query(
+        "INSERT INTO remote_share
+            (remote_id, description, expires_at, visit_count, url, created_at, updated_at)
+         SELECT ?, description, expires_at, visit_count, COALESCE(?, url), created_at, updated_at
+           FROM remote_share WHERE remote_id = ?",
+    )
+    .bind(remote_id)
+    .bind(url)
+    .bind(placeholder)
+    .execute(&mut *conn)
+    .await?;
+    sqlx::query("UPDATE remote_share_track SET share_remote_id = ? WHERE share_remote_id = ?")
+        .bind(remote_id)
+        .bind(placeholder)
+        .execute(&mut *conn)
+        .await?;
+    sqlx::query("DELETE FROM remote_share WHERE remote_id = ?")
+        .bind(placeholder)
+        .execute(&mut *conn)
+        .await?;
+
+    rewrite_queued_references(conn, placeholder, remote_id).await
+}
+
+/// Point every still-queued entry at the identifier the server chose.
+async fn rewrite_queued_references(
+    conn: &mut SqliteConnection,
+    placeholder: &str,
+    remote_id: &str,
+) -> AppResult<()> {
     let rows = sqlx::query(
         "SELECT id, payload FROM remote_mutation WHERE failed_at IS NULL ORDER BY id",
     )
@@ -337,6 +414,18 @@ pub async fn resolve_placeholder(
             },
             Mutation::DeletePlaylist { .. } => Mutation::DeletePlaylist {
                 playlist_id: remote_id.to_string(),
+            },
+            Mutation::UpdateShare {
+                description,
+                expires_at,
+                ..
+            } => Mutation::UpdateShare {
+                share_id: remote_id.to_string(),
+                description,
+                expires_at,
+            },
+            Mutation::DeleteShare { .. } => Mutation::DeleteShare {
+                share_id: remote_id.to_string(),
             },
             // The creation itself is the row being resolved; it is
             // removed by the drain on success, so there is nothing to
@@ -552,6 +641,66 @@ mod tests {
             }
             other => panic!("unexpected mutation: {other:?}"),
         }
+    }
+
+    #[tokio::test]
+    async fn resolving_a_share_captures_the_url_the_journal_never_carries() {
+        // The token is keyed on a server-side secret, so the creation
+        // response is the only moment this device can learn the link.
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        let local_id = new_placeholder();
+
+        sqlx::query("INSERT INTO remote_share (remote_id) VALUES (?)")
+            .bind(&local_id)
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO remote_share_track VALUES (?, 0, 't1')")
+            .bind(&local_id)
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+        enqueue(
+            &mut conn,
+            &Mutation::DeleteShare {
+                share_id: local_id.clone(),
+            },
+        )
+        .await
+        .unwrap();
+
+        resolve_share_placeholder(
+            &mut conn,
+            &local_id,
+            "share-uuid",
+            Some("https://music.example/share/abc"),
+        )
+        .await
+        .unwrap();
+
+        let url: Option<String> =
+            sqlx::query_scalar("SELECT url FROM remote_share WHERE remote_id = 'share-uuid'")
+                .fetch_one(&mut *conn)
+                .await
+                .unwrap();
+        assert_eq!(url.as_deref(), Some("https://music.example/share/abc"));
+
+        let tracks: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM remote_share_track WHERE share_remote_id = 'share-uuid'",
+        )
+        .fetch_one(&mut *conn)
+        .await
+        .unwrap();
+        assert_eq!(tracks, 1);
+
+        let queued = pending(&mut conn, 10).await.unwrap();
+        assert_eq!(
+            queued[0].mutation,
+            Mutation::DeleteShare {
+                share_id: "share-uuid".into()
+            }
+        );
     }
 
     #[tokio::test]
