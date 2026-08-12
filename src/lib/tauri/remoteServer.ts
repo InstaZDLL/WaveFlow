@@ -126,3 +126,81 @@ export interface RemoteSyncReport {
 export function remoteSyncNow(): Promise<RemoteSyncReport> {
   return invoke<RemoteSyncReport>("remote_sync_now");
 }
+
+export interface RemoteOverview {
+  playlists: number;
+  favorites: number;
+  ratings: number;
+  history: number;
+  shares: number;
+  queue_tracks: number;
+  cached_tracks: number;
+  /**
+   * Identifiers the projection references but has no metadata for.
+   * Normal right after a catch-up; it should fall back to zero on the
+   * next pass.
+   */
+  tracks_awaiting_metadata: number;
+  /** Local changes the server has not accepted yet. */
+  pending_changes: number;
+  /**
+   * Local changes the server refused permanently. These will never be
+   * retried, so surface them — nobody else will say anything.
+   */
+  failed_changes: number;
+}
+
+export interface RemotePlaylistSummary {
+  id: string;
+  name: string;
+  comment: string | null;
+  is_public: boolean;
+  track_count: number;
+  /**
+   * Sums only the tracks whose metadata is cached, so it understates
+   * while a backfill is outstanding. Showing an approximate duration
+   * beats refusing to show one.
+   */
+  duration_ms: number;
+  /**
+   * Created here and never sent: the server has no such playlist yet.
+   * Worth showing, because it is the one that disappears if the user
+   * forgets this server.
+   */
+  pending_creation: boolean;
+}
+
+export interface RemoteTrack {
+  id: string;
+  /** `null` while the metadata has not been fetched yet. */
+  title: string | null;
+  artist: string | null;
+  album: string | null;
+  duration_ms: number | null;
+  artwork_hash: string | null;
+}
+
+/** Counts for the diagnostics panel. Local only — instant, and the same
+ * answer whether or not the server is reachable. */
+export function remoteGetOverview(): Promise<RemoteOverview> {
+  return invoke<RemoteOverview>("remote_get_overview");
+}
+
+export function remoteListPlaylists(): Promise<RemotePlaylistSummary[]> {
+  return invoke<RemotePlaylistSummary[]>("remote_list_playlists");
+}
+
+/**
+ * One playlist's tracks, in order. Entries still awaiting metadata come
+ * back with a null title rather than being skipped — dropping them would
+ * make the playlist look shorter than it is.
+ */
+export function remoteListPlaylistTracks(
+  playlistId: string,
+): Promise<RemoteTrack[]> {
+  return invoke<RemoteTrack[]>("remote_list_playlist_tracks", { playlistId });
+}
+
+export function remoteListQueue(): Promise<RemoteTrack[]> {
+  return invoke<RemoteTrack[]>("remote_list_queue");
+}

@@ -786,6 +786,14 @@ pub fn run() {
             commands::remote_auth::remote_forget_server,
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_sync_now,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_get_overview,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_list_playlists,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_list_playlist_tracks,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_list_queue,
             #[cfg(feature = "sync_v1")]
             commands::server_auth::server_get_status,
             #[cfg(feature = "sync_v1")]

@@ -151,6 +151,70 @@ pub async fn remote_sync_now(state: tauri::State<'_, AppState>) -> AppResult<Rem
     })
 }
 
+/// Counts for the diagnostics panel. Reads the local projection only —
+/// answers instantly, and answers the same whether or not the server is
+/// reachable.
+#[tauri::command]
+pub async fn remote_get_overview(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<crate::remote::read::RemoteOverview> {
+    let Some(mut conn) = optional_conn(&state).await? else {
+        return Ok(Default::default());
+    };
+    crate::remote::read::overview(&mut conn).await
+}
+
+/// The projected playlists, most recently touched first.
+#[tauri::command]
+pub async fn remote_list_playlists(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Vec<crate::remote::read::RemotePlaylistSummary>> {
+    let Some(mut conn) = optional_conn(&state).await? else {
+        return Ok(Vec::new());
+    };
+    crate::remote::read::playlists(&mut conn).await
+}
+
+/// One playlist's tracks, in order. Entries whose metadata has not been
+/// fetched yet come back with a null title rather than being skipped —
+/// dropping them would make the playlist look shorter than it is.
+#[tauri::command]
+pub async fn remote_list_playlist_tracks(
+    state: tauri::State<'_, AppState>,
+    playlist_id: String,
+) -> AppResult<Vec<crate::remote::read::RemoteTrack>> {
+    let Some(mut conn) = optional_conn(&state).await? else {
+        return Ok(Vec::new());
+    };
+    crate::remote::read::playlist_tracks(&mut conn, &playlist_id).await
+}
+
+/// The account's saved queue, in order.
+#[tauri::command]
+pub async fn remote_list_queue(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Vec<crate::remote::read::RemoteTrack>> {
+    let Some(mut conn) = optional_conn(&state).await? else {
+        return Ok(Vec::new());
+    };
+    crate::remote::read::queue_tracks(&mut conn).await
+}
+
+/// A connection to the active profile, or `None` when there is no
+/// active profile.
+///
+/// No profile is an ordinary state for these reads — onboarding queries
+/// them before one exists — so it answers empty rather than failing.
+async fn optional_conn(
+    state: &AppState,
+) -> AppResult<Option<sqlx::pool::PoolConnection<sqlx::Sqlite>>> {
+    match state.require_profile_pool().await {
+        Ok(pool) => Ok(Some(pool.acquire().await?)),
+        Err(AppError::NoActiveProfile) => Ok(None),
+        Err(err) => Err(err),
+    }
+}
+
 async fn status(state: &AppState) -> AppResult<RemoteStatus> {
     // No active profile is a legitimate state here — the onboarding
     // screens can query this before one exists — so it answers "unbound"

@@ -47,6 +47,10 @@
 //! - [`projection`] — writing the server's user data into the local
 //!   `remote_*` tables. Pure database work, testable without a network.
 //!
+//! - [`read`] — reading it back out for the UI. Also pure: what the
+//!   projection holds is already the answer, so nothing here needs the
+//!   server to be reachable.
+//!
 //! - [`sync`] — the orchestrator: bootstrap from a snapshot, walk the
 //!   journal, acknowledge, and recover by re-snapshotting when a known
 //!   event cannot be applied.
@@ -83,6 +87,7 @@ pub mod dto;
 pub mod mutation;
 pub mod probe;
 pub mod projection;
+pub mod read;
 pub mod socket;
 pub mod sync;
 pub mod tokens;
