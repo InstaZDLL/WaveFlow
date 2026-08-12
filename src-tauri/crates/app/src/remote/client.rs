@@ -72,10 +72,11 @@ pub enum FailureKind {
     /// Retrying cannot change the outcome. The caller stops and
     /// surfaces the problem.
     ///
-    /// This covers the idempotency conflict: reusing an operation
-    /// identifier with a different fingerprint answers `422`, the same
-    /// status as a malformed payload. The two are indistinguishable on
-    /// the wire and, usefully, call for the same handling.
+    /// Covers both a malformed payload (`422 validation_error`) and an
+    /// idempotency conflict (`409 conflict`). The server separates the
+    /// two on purpose — the fixes differ, one is "correct the request"
+    /// and the other "mint a new operation id" — but neither is helped
+    /// by sending the same bytes again.
     Permanent,
     /// The condition may clear on its own — congestion, a restart, a
     /// flaky link. Worth retrying with backoff.
@@ -85,10 +86,26 @@ pub enum FailureKind {
     Unauthorized,
 }
 
+/// Error code for a cursor that precedes the oldest retained event.
+///
+/// Shares its `409` with [`CODE_CONFLICT`], and the two demand **opposite**
+/// reactions — which is precisely why the code, not the status, is what
+/// gets tested. See [`RemoteFailure::is_cursor_expired`].
+pub const CODE_CURSOR_EXPIRED: &str = "cursor_expired";
+
+/// Error code for a request that collides with existing state — an
+/// operation id replayed with a different payload, most of all.
+pub const CODE_CONFLICT: &str = "conflict";
+
 /// Classify an HTTP status.
 ///
 /// `408` and `429` sit with the 5xx range rather than with the other
 /// 4xx: they describe a moment, not a malformed request.
+///
+/// `409` is permanent **as a status**, which is right for a conflict:
+/// replaying it can never succeed. It is not the whole story for a read,
+/// where the same status may carry `cursor_expired` and mean "recover" —
+/// so callers branch on the code rather than on this alone.
 pub fn classify_status(status: u16) -> Option<FailureKind> {
     match status {
         200..=299 => None,
@@ -105,14 +122,24 @@ pub fn classify_status(status: u16) -> Option<FailureKind> {
 pub struct RemoteFailure {
     pub kind: FailureKind,
     pub status: Option<u16>,
+    /// The server's machine-readable code, kept **structured** rather
+    /// than folded into the message.
+    ///
+    /// It has to be: `409` covers both `conflict` and `cursor_expired`,
+    /// and reacting to one as the other is destructive in both
+    /// directions — treating an expired cursor as a conflict abandons a
+    /// write that would have succeeded, and treating a conflict as an
+    /// expired cursor throws away a perfectly healthy projection.
+    pub code: Option<String>,
     pub message: String,
 }
 
 impl std::fmt::Display for RemoteFailure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.status {
-            Some(status) => write!(f, "{status}: {}", self.message),
-            None => write!(f, "{}", self.message),
+        match (self.status, &self.code) {
+            (Some(status), Some(code)) => write!(f, "{status} {code}: {}", self.message),
+            (Some(status), None) => write!(f, "{status}: {}", self.message),
+            (None, _) => write!(f, "{}", self.message),
         }
     }
 }
@@ -124,8 +151,21 @@ impl RemoteFailure {
             // about the request's validity — always worth retrying.
             kind: FailureKind::Transient,
             status: None,
+            code: None,
             message: error.to_string(),
         }
+    }
+
+    /// The journal no longer reaches back this far: discard the
+    /// projection and take a fresh snapshot.
+    pub fn is_cursor_expired(&self) -> bool {
+        self.code.as_deref() == Some(CODE_CURSOR_EXPIRED)
+    }
+
+    /// The request collides with existing state. Permanent, and the fix
+    /// is a new operation id — never a retry of this one.
+    pub fn is_conflict(&self) -> bool {
+        self.code.as_deref() == Some(CODE_CONFLICT)
     }
 }
 
@@ -293,6 +333,7 @@ impl RemoteClient {
             // promises. Retrying re-fetches the same bytes.
             kind: FailureKind::Permanent,
             status: None,
+            code: None,
             message: format!("malformed response body: {err}"),
         })
     }
@@ -311,6 +352,7 @@ impl RemoteClient {
             return Err(RemoteFailure {
                 kind: FailureKind::Transient,
                 status: None,
+                code: None,
                 message: "offline mode is on".into(),
             });
         }
@@ -320,15 +362,18 @@ impl RemoteClient {
         match classify_status(status) {
             None => Ok(response),
             Some(kind) => {
-                // Read the structured body while we still can — it names
-                // the failure far better than the status alone.
-                let message = match response.json::<ErrorBody>().await {
-                    Ok(body) => format!("{} ({})", body.message, body.code),
-                    Err(_) => "no error body".to_string(),
+                // Read the structured body while we still can. The code
+                // is kept as a field, not formatted away: callers have to
+                // branch on it, and a substring match on a message would
+                // be a fragile way to make a destructive decision.
+                let (code, message) = match response.json::<ErrorBody>().await {
+                    Ok(body) => (Some(body.code), body.message),
+                    Err(_) => (None, "no error body".to_string()),
                 };
                 Err(RemoteFailure {
                     kind,
                     status: Some(status),
+                    code,
                     message,
                 })
             }
@@ -457,11 +502,59 @@ mod tests {
     }
 
     #[test]
-    fn an_idempotency_conflict_is_permanent() {
-        // The server answers 422 both for a malformed payload and for a
-        // reused operation id with a different fingerprint. Neither can
-        // succeed on retry, so the queue must stop rather than spin.
+    fn a_malformed_payload_and_a_conflict_are_both_permanent() {
+        // Different codes, different fixes, same verdict for the queue:
+        // sending the same bytes again cannot help.
         assert_eq!(classify_status(422), Some(FailureKind::Permanent));
+        assert_eq!(classify_status(409), Some(FailureKind::Permanent));
+    }
+
+    fn failure(status: u16, code: &str) -> RemoteFailure {
+        RemoteFailure {
+            kind: classify_status(status).unwrap(),
+            status: Some(status),
+            code: Some(code.into()),
+            message: "…".into(),
+        }
+    }
+
+    #[test]
+    fn the_two_meanings_of_409_are_told_apart_by_code_not_status() {
+        // Confusing them is destructive both ways: an expired cursor
+        // read as a conflict abandons a write that would have worked, a
+        // conflict read as an expired cursor throws away a healthy
+        // projection.
+        let expired = failure(409, CODE_CURSOR_EXPIRED);
+        assert!(expired.is_cursor_expired());
+        assert!(!expired.is_conflict());
+
+        let conflict = failure(409, CODE_CONFLICT);
+        assert!(conflict.is_conflict());
+        assert!(!conflict.is_cursor_expired());
+
+        assert_eq!(expired.status, conflict.status, "the status cannot decide");
+    }
+
+    #[test]
+    fn a_failure_without_a_code_claims_neither_meaning() {
+        // A body we could not parse must not be guessed into a
+        // destructive branch.
+        let opaque = RemoteFailure {
+            kind: FailureKind::Permanent,
+            status: Some(409),
+            code: None,
+            message: "no error body".into(),
+        };
+        assert!(!opaque.is_cursor_expired());
+        assert!(!opaque.is_conflict());
+    }
+
+    #[test]
+    fn the_code_shows_up_when_a_failure_is_displayed() {
+        assert_eq!(
+            failure(409, CODE_CURSOR_EXPIRED).to_string(),
+            "409 cursor_expired: …"
+        );
     }
 
     #[test]

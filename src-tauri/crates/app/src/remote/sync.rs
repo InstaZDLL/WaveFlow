@@ -171,13 +171,41 @@ pub async fn catch_up(
             break;
         }
 
-        let page: SyncPage = client
+        let page: SyncPage = match client
             .send_json(client.get(&format!(
                 "/api/v2/sync/changes?after={}&limit={PAGE_LIMIT}",
                 report.cursor
             )))
             .await
-            .map_err(|failure| AppError::Other(format!("could not fetch changes: {failure}")))?;
+        {
+            Ok(page) => page,
+            // The journal no longer reaches back this far — a future
+            // compaction dropped the events between our cursor and the
+            // surviving floor. Nothing local can fill that gap, so the
+            // projection is discarded and rebuilt from a snapshot.
+            //
+            // Tested on the *code*, never the status: `409` also carries
+            // `conflict`, and mistaking that for this would throw away a
+            // perfectly healthy projection over a rejected write.
+            Err(failure) if failure.is_cursor_expired() => {
+                tracing::info!(
+                    cursor = report.cursor,
+                    "the journal no longer reaches this cursor; taking a fresh snapshot"
+                );
+                let cursor = bootstrap(state, profile_id, client).await?;
+                return Ok(SyncReport {
+                    cursor,
+                    resnapshotted: true,
+                    pages: report.pages + 1,
+                    ..Default::default()
+                });
+            }
+            Err(failure) => {
+                return Err(AppError::Other(format!(
+                    "could not fetch changes: {failure}"
+                )))
+            }
+        };
 
         report.pages += 1;
         let has_more = page.has_more;

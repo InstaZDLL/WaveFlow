@@ -187,11 +187,19 @@ perfectly ordinary situations:
   retention, not read authorization. A failing ACK must never block
   synchronization.
 
-**Permanent versus transient failure.** The server answers `422
-validation_error` both for a malformed payload and for an operation-id conflict.
-Both are permanent: a retry cannot change the outcome. The queue marks such an
-entry as failed and surfaces it, instead of retrying forever. Only 5xx, 429 and
+**Permanent versus transient failure.** `422 validation_error` (malformed) and
+`409 conflict` (an operation id replayed with a different payload) are both
+permanent: a retry cannot change the outcome, so the entry is marked and
+surfaced rather than spun on. The fixes differ — correct the request versus mint
+a new operation id — which is why the server keeps them apart. Only 5xx, 429 and
 transport errors are retried.
+
+**`409` carries two opposite meanings, so branch on the code.** It is also the
+status for `cursor_expired` on a read, and confusing the two is destructive in
+both directions: an expired cursor treated as a conflict abandons a write that
+would have succeeded, and a conflict treated as an expired cursor throws away a
+healthy projection. The client therefore keeps the server's `code` as a
+structured field and never decides from the status alone.
 
 **Order is load-bearing.** Strict FIFO, and the first retryable failure ends the
 pass so nothing overtakes what it depends on. A permanent failure is the
@@ -220,11 +228,19 @@ and it is sound for a specific reason: FIFO guarantees an entry behind an
 unlanded creation has never been presented to the server, so no fingerprint
 exists for it to conflict with.
 
-**What the API cannot express.** Clearing an optional field. Playlist updates
-apply `COALESCE(?, comment)` and share updates do the same for `description`
-**and `expires_at`** — so "leave it alone" and "empty it" are the same request.
-The consequence is worst for the expiry: a share given one by mistake cannot
-have it removed. The mutation types say so rather than pretending otherwise.
+**Emptying a field is its own verb.** An update coalesces, so an absent field
+and an explicit null are indistinguishable — "leave it" and "empty it" would
+otherwise be the same request. Clearing is expressed by naming the field:
+`clear: ["comment"]` on a playlist, `["description", "expires_at"]` on a share.
+Two consequences the client is built around:
+
+- **An unrecognized name is refused, not ignored.** Asking to clear `expiresAt`
+  answers `422` rather than reporting success while nothing moved. That makes
+  those field names load-bearing, so they are spelled in exactly one place
+  instead of inline at each call site.
+- **The clear belongs to the operation fingerprint.** Setting an expiry and
+  removing it are two distinct mutations and cannot share a replay identifier —
+  which the queue satisfies for free, since every enqueue draws a fresh one.
 
 **A share's URL has exactly one moment.** The journal never carries it, and it
 cannot be derived locally — the token is keyed on a server-side instance secret.
@@ -330,14 +346,14 @@ keeping them would carry complexity the protocol no longer asks for.
 - **Last-writer-wins backfill** — a conflict is no longer arbitrated locally: a
   reused operation identifier with a different fingerprint is rejected, and a
   client that cannot apply a known event takes a fresh snapshot.
-- **Compaction and `410 Gone`** — the v2.0 journal is append-only, so no cursor
-  can be too old: `after=` beyond the last event returns an empty page, not an
-  error (measured). There is **no retention contract yet**, and the server side
-  has deliberately not written one. So this path has no trigger today, and the
-  right move is to leave it unwritten rather than code against an imagined
-  status. Recovery still exists — it is driven by a *known event that fails to
-  apply*, which discards the projection and re-snapshots — but that is a
-  different trigger, not a stand-in for compaction.
+- **Compaction and `410 Gone`** — replaced, not dropped. The v2.0 journal is
+  append-only, so no cursor is too old *yet*: a cursor beyond the last event
+  returns an empty page rather than an error. But the contract for when
+  compaction lands is now defined — `/sync/changes` answers `409` with
+  `code: "cursor_expired"` for a cursor below the oldest retained event — and
+  the client implements the recovery against it. Two triggers therefore lead to
+  the same place: a known event that fails to apply, and an expired cursor.
+  Both discard the projection and take a fresh snapshot.
 
 ## The RFC-003 naming trap
 

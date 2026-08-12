@@ -28,6 +28,17 @@ use crate::{
 /// holding a profile lease across thousands of round-trips.
 const BATCH: i64 = 100;
 
+/// Names the `clear` array accepts, spelled once.
+///
+/// A name the server does not recognize is **rejected with 422** rather
+/// than ignored — deliberately, so a client asking to clear `expiresAt`
+/// hears that nothing happened instead of being told all is well. That
+/// makes these three strings load-bearing, and worth having in exactly
+/// one place rather than inline at each call site.
+const FIELD_COMMENT: &str = "comment";
+const FIELD_DESCRIPTION: &str = "description";
+const FIELD_EXPIRES_AT: &str = "expires_at";
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct DrainReport {
     pub sent: usize,
@@ -204,6 +215,7 @@ async fn send(
             public,
             add,
             remove_indexes,
+            clear_comment,
         } => {
             if mutation::is_placeholder(playlist_id) {
                 // The creation this depends on never landed, so the
@@ -213,6 +225,7 @@ async fn send(
                 return Err(RemoteFailure {
                     kind: FailureKind::Permanent,
                     status: None,
+                    code: None,
                     message: "the playlist this edit belongs to was never created on the server"
                         .into(),
                 });
@@ -236,6 +249,9 @@ async fn send(
             }
             if !remove_indexes.is_empty() {
                 body.insert("remove_indexes".into(), serde_json::json!(remove_indexes));
+            }
+            if *clear_comment {
+                body.insert("clear".into(), serde_json::json!([FIELD_COMMENT]));
             }
             client
                 .send_ok(
@@ -328,11 +344,14 @@ async fn send(
             share_id,
             description,
             expires_at,
+            clear_description,
+            clear_expires_at,
         } => {
             if mutation::is_placeholder(share_id) {
                 return Err(RemoteFailure {
                     kind: FailureKind::Permanent,
                     status: None,
+                    code: None,
                     message: "the share this edit belongs to was never created on the server"
                         .into(),
                 });
@@ -344,6 +363,16 @@ async fn send(
             }
             if let Some(expires_at) = expires_at {
                 body.insert("expires_at".into(), serde_json::json!(expires_at));
+            }
+            let mut clear = Vec::new();
+            if *clear_description {
+                clear.push(FIELD_DESCRIPTION);
+            }
+            if *clear_expires_at {
+                clear.push(FIELD_EXPIRES_AT);
+            }
+            if !clear.is_empty() {
+                body.insert("clear".into(), serde_json::json!(clear));
             }
             client
                 .send_ok(

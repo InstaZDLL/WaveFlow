@@ -89,10 +89,12 @@ pub enum Mutation {
     },
     /// A field left `None` is unchanged.
     ///
-    /// Note what cannot be expressed: the server applies
-    /// `COALESCE(?, comment)`, so a null comment keeps the current one.
-    /// **Clearing a comment is not possible through this API** — sending
-    /// `None` and sending "please empty it" are the same request.
+    /// Emptying one is a separate verb — see [`clear_comment`] — because
+    /// the server coalesces an absent field and an explicit null
+    /// identically. Naming the field is the only way to say "empty it",
+    /// and it cannot fire by accident on a caller that simply omits it.
+    ///
+    /// [`clear_comment`]: Mutation::UpdatePlaylist::clear_comment
     UpdatePlaylist {
         playlist_id: String,
         name: Option<String>,
@@ -102,6 +104,13 @@ pub enum Mutation {
         /// server applies them in.
         add: Vec<String>,
         remove_indexes: Vec<usize>,
+        /// Blank the comment out. `comment` is the only clearable field
+        /// on a playlist.
+        ///
+        /// `default` on purpose: rows queued by a build that predates
+        /// this field still deserialize, and they mean "clear nothing".
+        #[serde(default)]
+        clear_comment: bool,
     },
     DeletePlaylist {
         playlist_id: String,
@@ -129,13 +138,21 @@ pub enum Mutation {
         description: Option<String>,
         expires_at: Option<i64>,
     },
-    /// Same coalescing limitation as [`Mutation::UpdatePlaylist`], and
-    /// it bites harder here: `expires_at` is also `COALESCE`d, so an
-    /// expiry set by mistake **cannot be removed** through this API.
+    /// Same shape as [`Mutation::UpdatePlaylist`], with two clearable
+    /// fields instead of one.
+    ///
+    /// Clearing the expiry is the one that matters: without it, an
+    /// expiry set by mistake would be permanent, and the owner's only
+    /// recourse would be deleting the share and publishing a different
+    /// URL.
     UpdateShare {
         share_id: String,
         description: Option<String>,
         expires_at: Option<i64>,
+        #[serde(default)]
+        clear_description: bool,
+        #[serde(default)]
+        clear_expires_at: bool,
     },
     DeleteShare {
         share_id: String,
@@ -403,6 +420,7 @@ async fn rewrite_queued_references(
                 public,
                 add,
                 remove_indexes,
+                clear_comment,
                 ..
             } => Mutation::UpdatePlaylist {
                 playlist_id: remote_id.to_string(),
@@ -411,6 +429,7 @@ async fn rewrite_queued_references(
                 public,
                 add,
                 remove_indexes,
+                clear_comment,
             },
             Mutation::DeletePlaylist { .. } => Mutation::DeletePlaylist {
                 playlist_id: remote_id.to_string(),
@@ -418,11 +437,15 @@ async fn rewrite_queued_references(
             Mutation::UpdateShare {
                 description,
                 expires_at,
+                clear_description,
+                clear_expires_at,
                 ..
             } => Mutation::UpdateShare {
                 share_id: remote_id.to_string(),
                 description,
                 expires_at,
+                clear_description,
+                clear_expires_at,
             },
             Mutation::DeleteShare { .. } => Mutation::DeleteShare {
                 share_id: remote_id.to_string(),
@@ -607,6 +630,7 @@ mod tests {
                 public: None,
                 add: vec![],
                 remove_indexes: vec![],
+                clear_comment: false,
             },
         )
         .await
@@ -728,6 +752,72 @@ mod tests {
             queued[0].mutation,
             Mutation::DeletePlaylist {
                 playlist_id: other
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn setting_a_field_and_clearing_it_are_two_operations() {
+        // The clear is part of the server's operation fingerprint, so
+        // "set an expiry" and "remove it" cannot share a replay
+        // identifier — presenting one id with the other's payload is
+        // rejected as a conflict.
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+
+        let set = enqueue(
+            &mut conn,
+            &Mutation::UpdateShare {
+                share_id: "s1".into(),
+                description: None,
+                expires_at: Some(9_999),
+                clear_description: false,
+                clear_expires_at: false,
+            },
+        )
+        .await
+        .unwrap();
+        let cleared = enqueue(
+            &mut conn,
+            &Mutation::UpdateShare {
+                share_id: "s1".into(),
+                description: None,
+                expires_at: None,
+                clear_description: false,
+                clear_expires_at: true,
+            },
+        )
+        .await
+        .unwrap();
+
+        assert_ne!(set, cleared);
+        assert_eq!(pending(&mut conn, 10).await.unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn a_row_queued_before_clearing_existed_still_reads() {
+        // Backwards compatibility with payloads written by an earlier
+        // build: the absent flags mean "clear nothing".
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        sqlx::query(
+            "INSERT INTO remote_mutation (operation_id, kind, payload, created_at)
+             VALUES ('op-old', 'update_share', ?, 0)",
+        )
+        .bind(r#"{"kind":"update_share","share_id":"s1","description":"a","expires_at":null}"#)
+        .execute(&mut *conn)
+        .await
+        .unwrap();
+
+        let queued = pending(&mut conn, 10).await.unwrap();
+        assert_eq!(
+            queued[0].mutation,
+            Mutation::UpdateShare {
+                share_id: "s1".into(),
+                description: Some("a".into()),
+                expires_at: None,
+                clear_description: false,
+                clear_expires_at: false,
             }
         );
     }
