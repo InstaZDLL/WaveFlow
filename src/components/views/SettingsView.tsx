@@ -48,6 +48,7 @@ import {
   Puzzle,
 } from "lucide-react";
 // import { ServerAccountCard } from "./settings/ServerAccountCard"; // deferred to 1.6.0
+import { RemoteServerCard } from "./settings/RemoteServerCard";
 // import { SyncStatusCard } from "./settings/SyncStatusCard"; // deferred to 1.6.0
 import { PluginStoreCard } from "./settings/PluginStoreCard";
 import { PluginsCard } from "./settings/PluginsCard";
@@ -2399,6 +2400,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               while the full bootstrap + heal lands.
               Uncomment when the 1.6.0 work closes. */}
             {/* <ServerAccountCard /> */}
+
+            {/* Its RFC-005 replacement. Safe to mount unconditionally:
+              the card probes for its own backend and renders nothing
+              when `sync_v2` is off, which is every shipped build today. */}
+            <RemoteServerCard />
 
             <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
               <div className="flex items-start space-x-4">
