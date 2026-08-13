@@ -79,6 +79,17 @@ pub struct SongItem {
     pub artwork_hash: Option<String>,
     #[serde(default)]
     pub library_id: Option<String>,
+    /// BLAKE3 of the whole file, non-keyed, hex — the server's content
+    /// fingerprint, pinned as part of its contract.
+    ///
+    /// Captured but unread: matching a local file to a server track is
+    /// out of scope. It is stored because it arrives free with every
+    /// snapshot, and the alternative is re-downloading the catalogue on
+    /// the day matching is designed. It is **not** comparable to the
+    /// local `track.file_hash`, which is a length-prefixed head+tail
+    /// digest — see the migration for why.
+    #[serde(default)]
+    pub full_hash: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

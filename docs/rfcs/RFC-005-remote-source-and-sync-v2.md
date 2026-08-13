@@ -364,9 +364,49 @@ Any instruction mentioning "RFC-003" must name the repository, or it will be
 read as the wrong document. This RFC exists partly to end that ambiguity: on the
 desktop side, the accepted design is **RFC-005**.
 
+## A note for whoever designs the matching layer
+
+Still out of scope, but one constraint is now known and worth recording before
+someone plans around an assumption that does not hold.
+
+The server publishes `full_hash` on its tracks: BLAKE3, non-keyed, hexadecimal,
+over the **whole file**, pinned as part of its contract. The projection captures
+it — unread — because it arrives free with every snapshot, and the alternative
+is re-downloading the catalogue on the day matching is designed.
+
+**It is not comparable to the local `track.file_hash`.** The names invite the
+assumption and the assumption is wrong. `scanner::extract::hash_file` computes
+
+```text
+blake3( file_length_le_bytes || head_1MiB || tail_1MiB )
+```
+
+for anything above 2 MiB, and `blake3(length || whole_content)` below it. The
+length prefix alone means it can never equal a plain full-file digest, at any
+size. That partial form is deliberate: full hashing was the scanner's dominant
+cost, reading roughly 9 GB to scan 900 tracks.
+
+The comparable local value is `scanner::extract::hash_file_full` — a plain
+whole-file BLAKE3 in hex, therefore directly equal to `full_hash` on identical
+bytes. It exists today only to confirm duplicates before a destructive delete,
+and is stored nowhere.
+
+So matching on content means reading local files in full, which is exactly the
+cost the scan avoids. A cheap pre-filter exists: both sides already expose
+`size`, so only the handful of candidates that agree on length ever need to be
+read. That turns "hash the whole library" into "hash the few files that could
+possibly match".
+
+The scope rule is unchanged: automatic linking on a **unique** exact match only,
+a MusicBrainz identifier as a suggestion the user confirms, and never a fuzzy
+match on title, artist or duration. Note also what the fingerprint is — the
+file, not the decoded audio — so two copies of the same recording with different
+tags will not meet.
+
 ## Out of scope
 
-- Matching local files to server tracks (own RFC, needs the exact-hash rule).
+- Matching local files to server tracks (own RFC; the note above is input to it,
+  not a design).
 - Full third-party Subsonic implementation: the seam is defined here and
   `WaveflowSource` implements it; the other branch is its own slice.
 - Retention and compaction of the server journal.

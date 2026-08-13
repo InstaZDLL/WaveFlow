@@ -233,8 +233,8 @@ pub async fn cache_song(conn: &mut SqliteConnection, song: &SongItem) -> AppResu
     sqlx::query(
         "INSERT INTO remote_track
             (remote_id, title, artist, album, album_id, duration_ms, track_no, disc_no,
-             year, genre, suffix, bitrate, size, artwork_hash, library_id, cached_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             year, genre, suffix, bitrate, size, artwork_hash, library_id, full_hash, cached_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(remote_id) DO UPDATE SET
             title        = excluded.title,
             artist       = COALESCE(excluded.artist, artist),
@@ -250,6 +250,7 @@ pub async fn cache_song(conn: &mut SqliteConnection, song: &SongItem) -> AppResu
             size         = COALESCE(excluded.size, size),
             artwork_hash = COALESCE(excluded.artwork_hash, artwork_hash),
             library_id   = COALESCE(excluded.library_id, library_id),
+            full_hash    = COALESCE(excluded.full_hash, full_hash),
             cached_at    = excluded.cached_at",
     )
     .bind(&song.id)
@@ -269,6 +270,7 @@ pub async fn cache_song(conn: &mut SqliteConnection, song: &SongItem) -> AppResu
     .bind(song.size)
     .bind(song.artwork_hash.as_deref())
     .bind(song.library_id.as_deref())
+    .bind(song.full_hash.as_deref())
     .bind(chrono::Utc::now().timestamp_millis())
     .execute(&mut *conn)
     .await?;
@@ -676,6 +678,7 @@ mod tests {
                 "../../../../migrations/profile/20260810120000_remote_source_projection.sql"
             ),
             include_str!("../../../../migrations/profile/20260810140000_remote_track_cache.sql"),
+            include_str!("../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"),
         ] {
             sqlx::raw_sql(migration).execute(&pool).await.unwrap();
         }

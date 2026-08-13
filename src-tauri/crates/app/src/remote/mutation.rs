@@ -483,6 +483,7 @@ mod tests {
                 "../../../../migrations/profile/20260810120000_remote_source_projection.sql"
             ),
             include_str!("../../../../migrations/profile/20260810140000_remote_track_cache.sql"),
+            include_str!("../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"),
         ] {
             sqlx::raw_sql(migration).execute(&pool).await.unwrap();
         }

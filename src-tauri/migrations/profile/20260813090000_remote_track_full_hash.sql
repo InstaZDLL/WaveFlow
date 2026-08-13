@@ -1,0 +1,51 @@
+-- The server's content fingerprint for a remote track. RFC-005.
+--
+-- BLAKE3, non-keyed, hexadecimal, 64 characters, over the **whole
+-- file** — the server pins that algorithm as part of its contract: a
+-- change would arrive as a different field, never as different bytes
+-- under this name.
+--
+-- ## Nothing reads this yet, and that is deliberate
+--
+-- Matching a local file to a server track is out of scope (RFC-005
+-- §Decision 1) and needs its own RFC. This column exists because the
+-- value arrives free with every snapshot, and because the alternative
+-- is worse: without it, the day matching is designed, the first step
+-- would be re-downloading the entire catalogue to collect a field we
+-- had already been handed and thrown away.
+--
+-- ## It does NOT match `track.file_hash`
+--
+-- Worth stating here, because the names invite the assumption. The
+-- local `track.file_hash` comes from `scanner::extract::hash_file`,
+-- which is a different function on purpose:
+--
+--   blake3( file_length_le_bytes || head_1MiB || tail_1MiB )
+--
+-- for anything over 2 MiB, and `blake3(length || whole_content)` below
+-- that. The length prefix alone means it can never equal a plain
+-- full-file digest, at any size. That partial form is an I/O
+-- optimisation the scanner depends on — full hashing read roughly 9 GB
+-- to scan 900 tracks.
+--
+-- The comparable local value is `scanner::extract::hash_file_full`,
+-- which is a plain whole-file BLAKE3 in hex and therefore directly
+-- equal to this column when the bytes are identical. It is computed
+-- today only to confirm duplicates before a destructive delete, and is
+-- not stored anywhere.
+--
+-- So whoever designs the matching layer inherits a real constraint:
+-- comparing on content means reading local files in full, which is
+-- exactly the cost the scanner avoids. `remote_track.size` and the
+-- local `track.size` are both already present and make a cheap
+-- pre-filter — a full read then only has to happen for the handful of
+-- candidates that could possibly match.
+
+ALTER TABLE remote_track ADD COLUMN full_hash TEXT;
+
+-- Lookups will be "find the remote track with this content", so the
+-- index goes on the hash. Partial, because the column stays NULL for
+-- every row cached from a server that predates the field or from a
+-- third-party server that has no equivalent.
+CREATE INDEX idx_remote_track_full_hash
+    ON remote_track (full_hash) WHERE full_hash IS NOT NULL;
