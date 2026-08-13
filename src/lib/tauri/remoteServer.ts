@@ -282,3 +282,91 @@ export function remoteUpdatePlaylist(
 export function remoteDeletePlaylist(playlistId: string): Promise<void> {
   return invoke<void>("remote_delete_playlist", { playlistId });
 }
+
+/**
+ * Record a play against the remote account. `submission: false` is a
+ * "now playing" ping; only a completed listen enters the history.
+ *
+ * **`trackId` must be a server identifier.** Nothing calls this from
+ * playback, and nothing should until remote playback exists: the local
+ * player deals in file paths and local row ids, which the server
+ * validates and rejects — every such call would fail permanently and
+ * pile up in the outbound queue.
+ */
+export function remoteScrobble(
+  trackId: string,
+  submission: boolean,
+  playedAt?: number,
+): Promise<void> {
+  return invoke<void>("remote_scrobble", {
+    trackId,
+    submission,
+    playedAt: playedAt ?? null,
+  });
+}
+
+/** Save the account's play queue. Same identifier caveat as
+ * {@link remoteScrobble}. */
+export function remoteSaveQueue(
+  trackIds: string[],
+  current: string | null,
+  positionMs: number,
+  client?: string,
+): Promise<void> {
+  return invoke<void>("remote_save_queue", {
+    trackIds,
+    current,
+    positionMs,
+    client: client ?? null,
+  });
+}
+
+/**
+ * Publish a share of remote tracks.
+ *
+ * Resolves to the local identifier. The public link is **not** available
+ * yet — the token is derived from a server-side secret, so it only
+ * arrives with the server's response. A share created offline has no
+ * link to copy until it lands.
+ */
+export function remoteCreateShare(
+  trackIds: string[],
+  description?: string,
+  expiresAt?: number,
+): Promise<string> {
+  return invoke<string>("remote_create_share", {
+    trackIds,
+    description: description ?? null,
+    expiresAt: expiresAt ?? null,
+  });
+}
+
+/**
+ * Change a share's description or expiry, or empty either.
+ *
+ * The `clear*` flags are the only way to empty a field: omitting it
+ * leaves it in place, so an expiry set by mistake would otherwise be
+ * permanent — the owner's only recourse being to withdraw the share and
+ * publish a different link.
+ */
+export function remoteUpdateShare(
+  shareId: string,
+  changes: {
+    description?: string;
+    expiresAt?: number;
+    clearDescription?: boolean;
+    clearExpiresAt?: boolean;
+  },
+): Promise<void> {
+  return invoke<void>("remote_update_share", {
+    shareId,
+    description: changes.description ?? null,
+    expiresAt: changes.expiresAt ?? null,
+    clearDescription: changes.clearDescription ?? false,
+    clearExpiresAt: changes.clearExpiresAt ?? false,
+  });
+}
+
+export function remoteDeleteShare(shareId: string): Promise<void> {
+  return invoke<void>("remote_delete_share", { shareId });
+}

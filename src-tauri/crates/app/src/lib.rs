@@ -804,6 +804,16 @@ pub fn run() {
             commands::remote_auth::remote_update_playlist,
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_delete_playlist,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_scrobble,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_save_queue,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_create_share,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_update_share,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_delete_share,
             #[cfg(feature = "sync_v1")]
             commands::server_auth::server_get_status,
             #[cfg(feature = "sync_v1")]

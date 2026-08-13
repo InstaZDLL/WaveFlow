@@ -344,6 +344,319 @@ pub async fn delete_playlist_in_tx(
     Ok(())
 }
 
+/// Record a play against the remote account.
+///
+/// `submission: false` is a "now playing" ping, `true` a completed
+/// listen.
+///
+/// ## Not hooked to the player, and why
+///
+/// Nothing calls this from playback yet, and wiring it there today
+/// would be a bug rather than a feature: the local queue holds file
+/// paths and local row ids, and the scrobbler joins the local `track`
+/// table. Those identifiers mean nothing to the server, which validates
+/// them — every such mutation would come back `404`, be marked
+/// permanently failed, and pile up in the queue as garbage a user would
+/// have to be told about.
+///
+/// The dependency is remote playback, which does not exist. Until it
+/// does, this is the surface a caller holding a genuine remote track
+/// identifier uses.
+pub async fn scrobble(
+    state: &AppState,
+    track_id: &str,
+    submission: bool,
+    played_at: Option<i64>,
+) -> AppResult<()> {
+    let (pool, _) = lease(state).await?;
+    let mut tx = pool.begin().await?;
+    scrobble_in_tx(&mut tx, track_id, submission, played_at).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+pub async fn scrobble_in_tx(
+    conn: &mut SqliteConnection,
+    track_id: &str,
+    submission: bool,
+    played_at: Option<i64>,
+) -> AppResult<()> {
+    let played_at = played_at.unwrap_or_else(now_ms);
+    // Only a completed listen belongs in the history. A "now playing"
+    // ping is a transient state the server tracks separately, and
+    // writing it here would show a play that never happened.
+    if submission {
+        sqlx::query(
+            "INSERT OR REPLACE INTO remote_history (track_remote_id, played_at, submission)
+             VALUES (?, ?, 1)",
+        )
+        .bind(track_id)
+        .bind(played_at)
+        .execute(&mut *conn)
+        .await?;
+    }
+    mutation::enqueue(
+        conn,
+        &Mutation::Scrobble {
+            track_id: track_id.to_string(),
+            submission,
+            played_at,
+        },
+    )
+    .await?;
+    Ok(())
+}
+
+/// Save the account's play queue.
+///
+/// Same dependency as [`scrobble`]: the identifiers have to be the
+/// server's, so nothing drives this from the local player yet.
+pub async fn save_queue(
+    state: &AppState,
+    track_ids: &[String],
+    current: Option<String>,
+    position_ms: i64,
+    client: Option<String>,
+) -> AppResult<()> {
+    let (pool, _) = lease(state).await?;
+    let mut tx = pool.begin().await?;
+    save_queue_in_tx(&mut tx, track_ids, current, position_ms, client).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+pub async fn save_queue_in_tx(
+    conn: &mut SqliteConnection,
+    track_ids: &[String],
+    current: Option<String>,
+    position_ms: i64,
+    client: Option<String>,
+) -> AppResult<()> {
+    let position_ms = position_ms.max(0);
+    sqlx::query(
+        "INSERT INTO remote_queue (id, current_remote_id, position_ms, changed_by, updated_at)
+         VALUES (1, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+            current_remote_id = excluded.current_remote_id,
+            position_ms       = excluded.position_ms,
+            changed_by        = excluded.changed_by,
+            updated_at        = excluded.updated_at",
+    )
+    .bind(current.as_deref())
+    .bind(position_ms)
+    .bind(client.as_deref())
+    .bind(now_ms())
+    .execute(&mut *conn)
+    .await?;
+
+    sqlx::query("DELETE FROM remote_queue_track")
+        .execute(&mut *conn)
+        .await?;
+    for (position, track_id) in track_ids.iter().enumerate() {
+        sqlx::query("INSERT INTO remote_queue_track (position, track_remote_id) VALUES (?, ?)")
+            .bind(position as i64)
+            .bind(track_id)
+            .execute(&mut *conn)
+            .await?;
+    }
+
+    mutation::enqueue(
+        conn,
+        &Mutation::SaveQueue {
+            track_ids: track_ids.to_vec(),
+            current,
+            position_ms,
+            client,
+        },
+    )
+    .await?;
+    Ok(())
+}
+
+/// Publish a share of remote tracks.
+///
+/// Returns the local identifier. The public link is **not** known yet —
+/// it only comes back with the server's response, because the token is
+/// derived from a server-side secret. A share created offline therefore
+/// has no link until it lands.
+pub async fn create_share(
+    state: &AppState,
+    track_ids: &[String],
+    description: Option<String>,
+    expires_at: Option<i64>,
+) -> AppResult<String> {
+    let (pool, _) = lease(state).await?;
+    let mut tx = pool.begin().await?;
+    let id = create_share_in_tx(&mut tx, track_ids, description, expires_at).await?;
+    tx.commit().await?;
+    Ok(id)
+}
+
+pub async fn create_share_in_tx(
+    conn: &mut SqliteConnection,
+    track_ids: &[String],
+    description: Option<String>,
+    expires_at: Option<i64>,
+) -> AppResult<String> {
+    if track_ids.is_empty() {
+        return Err(AppError::Other("a share needs at least one track".into()));
+    }
+    let local_id = mutation::new_placeholder();
+    let now = now_ms();
+
+    sqlx::query(
+        "INSERT INTO remote_share (remote_id, description, expires_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)",
+    )
+    .bind(&local_id)
+    .bind(description.as_deref())
+    .bind(expires_at)
+    .bind(now)
+    .bind(now)
+    .execute(&mut *conn)
+    .await?;
+    for (position, track_id) in track_ids.iter().enumerate() {
+        sqlx::query(
+            "INSERT INTO remote_share_track (share_remote_id, position, track_remote_id)
+             VALUES (?, ?, ?)",
+        )
+        .bind(&local_id)
+        .bind(position as i64)
+        .bind(track_id)
+        .execute(&mut *conn)
+        .await?;
+    }
+
+    mutation::enqueue(
+        conn,
+        &Mutation::CreateShare {
+            local_id: local_id.clone(),
+            track_ids: track_ids.to_vec(),
+            description,
+            expires_at,
+        },
+    )
+    .await?;
+    Ok(local_id)
+}
+
+/// Change a share's description or expiry, or empty either.
+pub async fn update_share(
+    state: &AppState,
+    share_id: &str,
+    description: Option<String>,
+    expires_at: Option<i64>,
+    clear_description: bool,
+    clear_expires_at: bool,
+) -> AppResult<()> {
+    let (pool, _) = lease(state).await?;
+    let mut tx = pool.begin().await?;
+    update_share_in_tx(
+        &mut tx,
+        share_id,
+        description,
+        expires_at,
+        clear_description,
+        clear_expires_at,
+    )
+    .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// The clears are what make an expiry removable at all — omitting the
+/// field leaves it in place, so a share given one by mistake would
+/// otherwise be stuck with it for good.
+pub async fn update_share_in_tx(
+    conn: &mut SqliteConnection,
+    share_id: &str,
+    description: Option<String>,
+    expires_at: Option<i64>,
+    clear_description: bool,
+    clear_expires_at: bool,
+) -> AppResult<()> {
+    if clear_description {
+        sqlx::query("UPDATE remote_share SET description = NULL WHERE remote_id = ?")
+            .bind(share_id)
+            .execute(&mut *conn)
+            .await?;
+    } else if let Some(description) = &description {
+        sqlx::query("UPDATE remote_share SET description = ? WHERE remote_id = ?")
+            .bind(description)
+            .bind(share_id)
+            .execute(&mut *conn)
+            .await?;
+    }
+    if clear_expires_at {
+        sqlx::query("UPDATE remote_share SET expires_at = NULL WHERE remote_id = ?")
+            .bind(share_id)
+            .execute(&mut *conn)
+            .await?;
+    } else if let Some(expires_at) = expires_at {
+        sqlx::query("UPDATE remote_share SET expires_at = ? WHERE remote_id = ?")
+            .bind(expires_at)
+            .bind(share_id)
+            .execute(&mut *conn)
+            .await?;
+    }
+    sqlx::query("UPDATE remote_share SET updated_at = ? WHERE remote_id = ?")
+        .bind(now_ms())
+        .bind(share_id)
+        .execute(&mut *conn)
+        .await?;
+
+    mutation::enqueue(
+        conn,
+        &Mutation::UpdateShare {
+            share_id: share_id.to_string(),
+            description: if clear_description { None } else { description },
+            expires_at: if clear_expires_at { None } else { expires_at },
+            clear_description,
+            clear_expires_at,
+        },
+    )
+    .await?;
+    Ok(())
+}
+
+/// Withdraw a share. Same placeholder handling as a playlist: one that
+/// never reached the server takes its queued creation with it.
+pub async fn delete_share(state: &AppState, share_id: &str) -> AppResult<()> {
+    let (pool, _) = lease(state).await?;
+    let mut tx = pool.begin().await?;
+    delete_share_in_tx(&mut tx, share_id).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+pub async fn delete_share_in_tx(
+    conn: &mut SqliteConnection,
+    share_id: &str,
+) -> AppResult<()> {
+    sqlx::query("DELETE FROM remote_share_track WHERE share_remote_id = ?")
+        .bind(share_id)
+        .execute(&mut *conn)
+        .await?;
+    sqlx::query("DELETE FROM remote_share WHERE remote_id = ?")
+        .bind(share_id)
+        .execute(&mut *conn)
+        .await?;
+
+    if mutation::is_placeholder(share_id) {
+        mutation::discard_for_placeholder(&mut *conn, share_id).await?;
+        return Ok(());
+    }
+
+    mutation::enqueue(
+        conn,
+        &Mutation::DeleteShare {
+            share_id: share_id.to_string(),
+        },
+    )
+    .await?;
+    Ok(())
+}
+
 /// The active profile's pool, pinned to the profile it was resolved
 /// from, so a switch landing mid-write fails the call instead of
 /// applying one profile's gesture to another's data.
@@ -587,6 +900,136 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn a_now_playing_ping_travels_without_entering_the_history() {
+        // It is a transient state, not a play. Writing it locally would
+        // show a listen that never happened.
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+
+        scrobble_in_tx(&mut conn, "t1", false, Some(1_000)).await.unwrap();
+        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_history").await, 0);
+        assert_eq!(pending(&mut conn, 10).await.unwrap().len(), 1);
+
+        scrobble_in_tx(&mut conn, "t1", true, Some(2_000)).await.unwrap();
+        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_history").await, 1);
+    }
+
+    #[tokio::test]
+    async fn saving_the_queue_replaces_it_rather_than_appending() {
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+
+        save_queue_in_tx(&mut conn, &["a".into(), "b".into()], Some("a".into()), 0, None)
+            .await
+            .unwrap();
+        save_queue_in_tx(&mut conn, &["c".into()], Some("c".into()), 4200, None)
+            .await
+            .unwrap();
+
+        let ids: Vec<String> =
+            sqlx::query_scalar("SELECT track_remote_id FROM remote_queue_track ORDER BY position")
+                .fetch_all(&mut *conn)
+                .await
+                .unwrap();
+        assert_eq!(ids, vec!["c"]);
+        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_queue").await, 1);
+    }
+
+    #[tokio::test]
+    async fn a_negative_position_never_reaches_storage() {
+        // The column has a CHECK, so a stray negative would abort the
+        // whole gesture rather than degrade.
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        save_queue_in_tx(&mut conn, &["a".into()], None, -5, None)
+            .await
+            .unwrap();
+        let position: i64 = sqlx::query_scalar("SELECT position_ms FROM remote_queue")
+            .fetch_one(&mut *conn)
+            .await
+            .unwrap();
+        assert_eq!(position, 0);
+    }
+
+    #[tokio::test]
+    async fn a_share_is_visible_at_once_but_has_no_link_yet() {
+        // The token is derived from a server-side secret, so the link
+        // cannot exist before the creation lands.
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+
+        let id = create_share_in_tx(&mut conn, &["t1".into()], Some("notes".into()), None)
+            .await
+            .unwrap();
+
+        assert!(mutation::is_placeholder(&id));
+        let url: Option<String> =
+            sqlx::query_scalar("SELECT url FROM remote_share WHERE remote_id = ?")
+                .bind(&id)
+                .fetch_one(&mut *conn)
+                .await
+                .unwrap();
+        assert_eq!(url, None);
+        assert_eq!(pending(&mut conn, 10).await.unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn an_empty_share_is_refused() {
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        assert!(create_share_in_tx(&mut conn, &[], None, None).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn clearing_an_expiry_empties_it_locally_and_says_so_upstream() {
+        // The case that motivated the whole clear verb: without it an
+        // expiry set by mistake is permanent.
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        let id = create_share_in_tx(&mut conn, &["t1".into()], None, Some(9_999))
+            .await
+            .unwrap();
+
+        update_share_in_tx(&mut conn, &id, None, None, false, true)
+            .await
+            .unwrap();
+
+        let expires: Option<i64> =
+            sqlx::query_scalar("SELECT expires_at FROM remote_share WHERE remote_id = ?")
+                .bind(&id)
+                .fetch_one(&mut *conn)
+                .await
+                .unwrap();
+        assert_eq!(expires, None);
+
+        match &pending(&mut conn, 10).await.unwrap().last().unwrap().mutation {
+            Mutation::UpdateShare {
+                clear_expires_at,
+                expires_at,
+                ..
+            } => {
+                assert!(clear_expires_at);
+                assert_eq!(expires_at, &None, "sending both would coalesce it back");
+            }
+            other => panic!("unexpected mutation: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn deleting_an_unsent_share_drops_its_queued_creation() {
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        let id = create_share_in_tx(&mut conn, &["t1".into()], None, None)
+            .await
+            .unwrap();
+
+        delete_share_in_tx(&mut conn, &id).await.unwrap();
+
+        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_share").await, 0);
+        assert!(pending(&mut conn, 10).await.unwrap().is_empty());
+    }
+
+    #[tokio::test]
     async fn every_gesture_leaves_the_projection_and_the_queue_in_step() {
         // A sweep rather than a per-gesture assertion: any future
         // gesture that writes one half and forgets the other fails here.
@@ -595,16 +1038,26 @@ mod tests {
 
         set_favorite_in_tx(&mut conn, "track", "t1", true).await.unwrap();
         set_rating_in_tx(&mut conn, "track", "t1", 3).await.unwrap();
-        let id = create_playlist_in_tx(&mut conn, "Mix", &[]).await.unwrap();
-        update_playlist_in_tx(&mut conn, &id, Some("Renamed".into()), None, None, false)
+        let playlist = create_playlist_in_tx(&mut conn, "Mix", &[]).await.unwrap();
+        update_playlist_in_tx(&mut conn, &playlist, Some("Renamed".into()), None, None, false)
+            .await
+            .unwrap();
+        scrobble_in_tx(&mut conn, "t1", true, Some(1_000)).await.unwrap();
+        save_queue_in_tx(&mut conn, &["t1".into()], None, 0, None)
+            .await
+            .unwrap();
+        create_share_in_tx(&mut conn, &["t1".into()], None, None)
             .await
             .unwrap();
 
         let queued = pending(&mut conn, 20).await.unwrap();
-        assert_eq!(queued.len(), 4, "a gesture wrote without queuing");
+        assert_eq!(queued.len(), 7, "a gesture wrote without queuing");
         let rows = count(&mut conn, "SELECT count(*) FROM remote_favorite").await
             + count(&mut conn, "SELECT count(*) FROM remote_rating").await
-            + count(&mut conn, "SELECT count(*) FROM remote_playlist").await;
-        assert_eq!(rows, 3, "a gesture queued without writing");
+            + count(&mut conn, "SELECT count(*) FROM remote_playlist").await
+            + count(&mut conn, "SELECT count(*) FROM remote_history").await
+            + count(&mut conn, "SELECT count(*) FROM remote_queue").await
+            + count(&mut conn, "SELECT count(*) FROM remote_share").await;
+        assert_eq!(rows, 6, "a gesture queued without writing");
     }
 }

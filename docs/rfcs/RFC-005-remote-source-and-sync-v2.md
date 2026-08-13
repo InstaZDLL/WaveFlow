@@ -403,6 +403,22 @@ match on title, artist or duration. Note also what the fingerprint is — the
 file, not the decoded audio — so two copies of the same recording with different
 tags will not meet.
 
+## Scrobbles and the queue wait on remote playback
+
+Their mutations, commands and projection writes all exist, and nothing
+drives them from the player — deliberately.
+
+The local queue holds file paths and local row ids, and the scrobbler joins the
+local `track` table. Those identifiers mean nothing to the server, which
+validates them: every such mutation would come back `404`, be marked
+permanently failed, and accumulate in the queue as garbage the user would then
+have to be told about. Wiring them today would not be an incomplete feature, it
+would be a defect.
+
+The dependency is remote playback (§Decision 6 defines the transport; nothing
+implements it). Until then the commands are the surface for a caller that
+already holds genuine remote identifiers.
+
 ## Out of scope
 
 - Matching local files to server tracks (own RFC; the note above is input to it,
