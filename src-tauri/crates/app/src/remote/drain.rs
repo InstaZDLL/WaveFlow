@@ -61,6 +61,22 @@ struct Created {
     url: Option<String>,
 }
 
+/// Kick a pass without waiting for it.
+///
+/// Edge-triggered: called after a local change commits. The change is
+/// already durable in the projection and the queue, so the user has
+/// nothing to wait for, and a failure here costs a delay rather than a
+/// loss — the entry stays queued for the next pass.
+pub fn spawn(handle: tauri::AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        use tauri::Manager;
+        let state = handle.state::<AppState>();
+        if let Err(error) = drain(state.inner()).await {
+            tracing::debug!(%error, "could not push the queue after a local change");
+        }
+    });
+}
+
 /// Push what is queued. Does nothing, successfully, when there is
 /// nothing to push or nowhere to push it.
 pub async fn drain(state: &AppState) -> AppResult<DrainReport> {

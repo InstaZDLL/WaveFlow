@@ -41,6 +41,10 @@
 //!   pinned to an operation identifier that must never be reused for a
 //!   different intent.
 //!
+//! - [`write`] — local gestures on remote data. Applies the change to
+//!   the projection and queues the mutation in **one** transaction;
+//!   splitting them either loses the change or makes the interface lie.
+//!
 //! - [`drain`] — pushes that queue, in order, stopping on anything that
 //!   might still succeed and marking anything that never will.
 //!
@@ -91,3 +95,4 @@ pub mod read;
 pub mod socket;
 pub mod sync;
 pub mod tokens;
+pub mod write;

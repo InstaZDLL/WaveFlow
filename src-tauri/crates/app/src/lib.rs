@@ -794,6 +794,16 @@ pub fn run() {
             commands::remote_auth::remote_list_playlist_tracks,
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_list_queue,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_set_favorite,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_set_rating,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_create_playlist,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_update_playlist,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_delete_playlist,
             #[cfg(feature = "sync_v1")]
             commands::server_auth::server_get_status,
             #[cfg(feature = "sync_v1")]

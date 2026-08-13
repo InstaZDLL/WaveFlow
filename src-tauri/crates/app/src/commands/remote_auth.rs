@@ -200,6 +200,95 @@ pub async fn remote_list_queue(
     crate::remote::read::queue_tracks(&mut conn).await
 }
 
+/// Star or unstar a remote entity.
+///
+/// Answers as soon as the change is durable locally; the server hears
+/// about it on the drain pass this kicks off. Offline, the entry simply
+/// waits — which is the point of having a queue.
+#[tauri::command]
+pub async fn remote_set_favorite(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    entity_type: String,
+    entity_id: String,
+    starred: bool,
+) -> AppResult<()> {
+    crate::remote::write::set_favorite(&state, &entity_type, &entity_id, starred).await?;
+    crate::remote::drain::spawn(app);
+    Ok(())
+}
+
+/// Rate a remote entity from 1 to 5, or clear it with `0`.
+#[tauri::command]
+pub async fn remote_set_rating(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    entity_type: String,
+    entity_id: String,
+    rating: u8,
+) -> AppResult<()> {
+    crate::remote::write::set_rating(&state, &entity_type, &entity_id, rating).await?;
+    crate::remote::drain::spawn(app);
+    Ok(())
+}
+
+/// Create a playlist on the remote account.
+///
+/// Returns the identifier it is known by locally. That is a `local:`
+/// placeholder until the creation reaches the server, so a caller
+/// holding it should re-read rather than assume it stays valid.
+#[tauri::command]
+pub async fn remote_create_playlist(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    name: String,
+    track_ids: Vec<String>,
+) -> AppResult<String> {
+    let id = crate::remote::write::create_playlist(&state, &name, &track_ids).await?;
+    crate::remote::drain::spawn(app);
+    Ok(id)
+}
+
+/// Rename a playlist, set or empty its comment, change its visibility.
+///
+/// `clearComment` is what empties the comment: omitting the field leaves
+/// it untouched, because the server coalesces an absent value onto the
+/// current one.
+#[tauri::command]
+pub async fn remote_update_playlist(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    playlist_id: String,
+    name: Option<String>,
+    comment: Option<String>,
+    public: Option<bool>,
+    clear_comment: Option<bool>,
+) -> AppResult<()> {
+    crate::remote::write::update_playlist(
+        &state,
+        &playlist_id,
+        name,
+        comment,
+        public,
+        clear_comment.unwrap_or(false),
+    )
+    .await?;
+    crate::remote::drain::spawn(app);
+    Ok(())
+}
+
+/// Delete a remote playlist.
+#[tauri::command]
+pub async fn remote_delete_playlist(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    playlist_id: String,
+) -> AppResult<()> {
+    crate::remote::write::delete_playlist(&state, &playlist_id).await?;
+    crate::remote::drain::spawn(app);
+    Ok(())
+}
+
 /// A connection to the active profile, or `None` when there is no
 /// active profile.
 ///

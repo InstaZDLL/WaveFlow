@@ -393,6 +393,37 @@ pub async fn resolve_share_placeholder(
     rewrite_queued_references(conn, placeholder, remote_id).await
 }
 
+/// Drop every queued entry that names a placeholder the server will
+/// never be told about.
+///
+/// Used when the user deletes something they created offline before it
+/// was ever sent. Sending the creation and then a delete would be two
+/// pointless round-trips describing something that briefly existed for
+/// nobody; dropping both is the same outcome with none of the noise.
+///
+/// Safe for the same reason [`resolve_placeholder`] is: FIFO guarantees
+/// that entries behind an unlanded creation have never been presented,
+/// so the server holds no fingerprint for them.
+pub async fn discard_for_placeholder(
+    conn: &mut SqliteConnection,
+    placeholder: &str,
+) -> AppResult<()> {
+    let rows = sqlx::query("SELECT id, payload FROM remote_mutation WHERE failed_at IS NULL")
+        .fetch_all(&mut *conn)
+        .await?;
+    for row in rows {
+        let id: i64 = row.try_get("id")?;
+        let payload: String = row.try_get("payload")?;
+        let Ok(mutation) = serde_json::from_str::<Mutation>(&payload) else {
+            continue;
+        };
+        if mutation.placeholder_dependency() == Some(placeholder) {
+            remove(&mut *conn, id).await?;
+        }
+    }
+    Ok(())
+}
+
 /// Point every still-queued entry at the identifier the server chose.
 async fn rewrite_queued_references(
     conn: &mut SqliteConnection,

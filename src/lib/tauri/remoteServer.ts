@@ -204,3 +204,81 @@ export function remoteListPlaylistTracks(
 export function remoteListQueue(): Promise<RemoteTrack[]> {
   return invoke<RemoteTrack[]>("remote_list_queue");
 }
+
+/**
+ * Local gestures on remote data.
+ *
+ * Each resolves as soon as the change is durable **locally** — it is
+ * written to the cached library and queued for the server in one
+ * transaction — not when the server has acknowledged it. That is
+ * deliberate: the change is not at risk, so there is nothing for the
+ * user to wait on, and the same call works offline.
+ *
+ * The server echoes each one back through the journal, which is
+ * harmless: applying our own change twice lands on the same state.
+ */
+
+/** Star or unstar a remote track, album or artist. */
+export function remoteSetFavorite(
+  entityType: string,
+  entityId: string,
+  starred: boolean,
+): Promise<void> {
+  return invoke<void>("remote_set_favorite", {
+    entityType,
+    entityId,
+    starred,
+  });
+}
+
+/** Rate from 1 to 5, or pass `0` to clear the rating. */
+export function remoteSetRating(
+  entityType: string,
+  entityId: string,
+  rating: number,
+): Promise<void> {
+  return invoke<void>("remote_set_rating", { entityType, entityId, rating });
+}
+
+/**
+ * Create a remote playlist.
+ *
+ * Resolves to the identifier it is known by locally — a temporary one
+ * until the creation reaches the server, which then replaces it. Re-read
+ * rather than holding on to it.
+ */
+export function remoteCreatePlaylist(
+  name: string,
+  trackIds: string[] = [],
+): Promise<string> {
+  return invoke<string>("remote_create_playlist", { name, trackIds });
+}
+
+/**
+ * Rename a playlist, set or empty its comment, change its visibility.
+ *
+ * Omitting a field leaves it untouched. Emptying the comment needs
+ * `clearComment` — the server treats an absent value and an explicit
+ * null identically, so naming the field is the only way to say "empty".
+ */
+export function remoteUpdatePlaylist(
+  playlistId: string,
+  changes: {
+    name?: string;
+    comment?: string;
+    public?: boolean;
+    clearComment?: boolean;
+  },
+): Promise<void> {
+  return invoke<void>("remote_update_playlist", {
+    playlistId,
+    name: changes.name ?? null,
+    comment: changes.comment ?? null,
+    public: changes.public ?? null,
+    clearComment: changes.clearComment ?? false,
+  });
+}
+
+export function remoteDeletePlaylist(playlistId: string): Promise<void> {
+  return invoke<void>("remote_delete_playlist", { playlistId });
+}

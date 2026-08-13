@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { CloudOff, Loader2, RefreshCw, Server, Unplug } from "lucide-react";
 import {
   remoteBeginLogin,
+  remoteCreatePlaylist,
+  remoteDeletePlaylist,
   remoteDetectServer,
   remoteForgetServer,
   remoteGetOverview,
@@ -46,9 +48,10 @@ export function RemoteServerCard() {
   const [urlDraft, setUrlDraft] = useState("");
   const [probe, setProbe] = useState<RemoteProbeResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<null | "probe" | "login" | "sync" | "forget">(
-    null,
-  );
+  const [newPlaylist, setNewPlaylist] = useState("");
+  const [busy, setBusy] = useState<
+    null | "probe" | "login" | "sync" | "forget" | "write"
+  >(null);
 
   const refresh = useCallback(async () => {
     const [next, counts, lists] = await Promise.all([
@@ -224,12 +227,54 @@ export function RemoteServerCard() {
 
           {overview && signedIn && <Counts overview={overview} />}
 
+          {signedIn && (
+            <div className="flex gap-2">
+              {/* Exercises the write path end to end: the playlist
+                  appears at once with a local identifier, travels on the
+                  next drain, and comes back named by the server. */}
+              <input
+                type="text"
+                value={newPlaylist}
+                onChange={(event) => setNewPlaylist(event.target.value)}
+                placeholder="New playlist name"
+                className="flex-1 min-w-0 px-3 py-1.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                aria-label="New playlist name"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  void run("write", async () => {
+                    await remoteCreatePlaylist(newPlaylist);
+                    setNewPlaylist("");
+                  })
+                }
+                disabled={busy !== null || !newPlaylist.trim()}
+                className="px-3 py-1.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 disabled:opacity-50"
+              >
+                {busy === "write" ? <Spinner /> : "Create"}
+              </button>
+            </div>
+          )}
+
           {playlists.length > 0 && (
             <ul className="text-xs text-zinc-600 dark:text-zinc-300 space-y-0.5">
               {playlists.slice(0, 8).map((playlist) => (
-                <li key={playlist.id} className="truncate">
-                  {playlist.name} — {playlist.track_count} tracks
-                  {playlist.pending_creation && " (not sent yet)"}
+                <li key={playlist.id} className="flex items-center gap-2">
+                  <span className="truncate flex-1">
+                    {playlist.name} — {playlist.track_count} tracks
+                    {playlist.pending_creation && " (not sent yet)"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void run("write", () => remoteDeletePlaylist(playlist.id))
+                    }
+                    disabled={busy !== null}
+                    className="text-zinc-400 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50"
+                    aria-label={`Delete ${playlist.name}`}
+                  >
+                    ×
+                  </button>
                 </li>
               ))}
             </ul>
