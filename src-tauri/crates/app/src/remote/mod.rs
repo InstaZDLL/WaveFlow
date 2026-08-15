@@ -92,6 +92,7 @@ pub mod probe;
 pub mod projection;
 pub mod read;
 pub mod socket;
+pub mod stream;
 pub mod sync;
 pub mod tokens;
 pub mod write;

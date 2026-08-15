@@ -438,3 +438,24 @@ async fn status(state: &AppState) -> AppResult<RemoteStatus> {
             .is_some_and(|b| b.bootstrapped_at.is_some()),
     })
 }
+
+/// Mint a locally-playable stream URL for a projected remote track. The
+/// server hands back a sealed ticket; this returns
+/// `{base_url}/api/v2/stream/<ticket>`, ready for `player_play_url`.
+#[tauri::command]
+pub async fn remote_stream_url(
+    state: tauri::State<'_, AppState>,
+    track_id: String,
+) -> AppResult<String> {
+    crate::remote::stream::ticket_url(&state, &track_id).await
+}
+
+/// Fetch a remote track's artwork (by hash) as a `data:` URL — the artwork
+/// endpoint is Bearer-only, so a bare `<img src>` to it would 401.
+#[tauri::command]
+pub async fn remote_artwork(
+    state: tauri::State<'_, AppState>,
+    artwork_hash: String,
+) -> AppResult<String> {
+    crate::remote::stream::artwork_data_url(&state, &artwork_hash).await
+}

@@ -206,6 +206,23 @@ export function remoteListQueue(): Promise<RemoteTrack[]> {
 }
 
 /**
+ * Mint a locally-playable stream URL for a projected remote track. The
+ * server returns a sealed ticket; this resolves to an absolute URL safe to
+ * hand to `playerPlayUrl` (self-authenticating, TTL ~1h, Range-capable).
+ */
+export function remoteStreamUrl(trackId: string): Promise<string> {
+  return invoke<string>("remote_stream_url", { trackId });
+}
+
+/**
+ * Fetch a remote track's artwork (by hash) as a `data:` URL — the artwork
+ * endpoint is Bearer-only, so a bare `<img src>` pointed at it would 401.
+ */
+export function remoteArtwork(artworkHash: string): Promise<string> {
+  return invoke<string>("remote_artwork", { artworkHash });
+}
+
+/**
  * Local gestures on remote data.
  *
  * Each resolves as soon as the change is durable **locally** — it is

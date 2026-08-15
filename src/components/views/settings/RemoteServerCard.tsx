@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { CloudOff, Loader2, RefreshCw, Server, Unplug } from "lucide-react";
+import { CloudOff, Loader2, Play, RefreshCw, Server, Unplug } from "lucide-react";
 import {
   remoteBeginLogin,
   remoteCreatePlaylist,
@@ -9,13 +9,16 @@ import {
   remoteGetOverview,
   remoteGetStatus,
   remoteListPlaylists,
+  remoteListPlaylistTracks,
   remoteSignOut,
+  remoteStreamUrl,
   remoteSyncNow,
   type RemoteOverview,
   type RemotePlaylistSummary,
   type RemoteProbeResult,
   type RemoteStatus,
 } from "../../../lib/tauri/remoteServer";
+import { playerPlayUrl } from "../../../lib/tauri/player";
 
 /**
  * Settings → remote server binding (RFC-005).
@@ -264,6 +267,36 @@ export function RemoteServerCard() {
                     {playlist.name} — {playlist.track_count} tracks
                     {playlist.pending_creation && " (not sent yet)"}
                   </span>
+                  {/* Temporary Phase-A affordance: play the playlist's first
+                      track that has cached metadata, to prove remote streaming
+                      end-to-end. Replaced by the real remote source view. */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void run("write", async () => {
+                        const tracks = await remoteListPlaylistTracks(
+                          playlist.id,
+                        );
+                        const track = tracks.find((t) => t.title != null);
+                        if (!track) {
+                          throw new Error(
+                            "no playable track yet (metadata not cached)",
+                          );
+                        }
+                        const url = await remoteStreamUrl(track.id);
+                        await playerPlayUrl({
+                          url,
+                          title: track.title ?? undefined,
+                          artist: track.artist ?? undefined,
+                        });
+                      })
+                    }
+                    disabled={busy !== null || playlist.track_count === 0}
+                    className="text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 disabled:opacity-50"
+                    aria-label={`Play ${playlist.name}`}
+                  >
+                    <Play size={13} />
+                  </button>
                   <button
                     type="button"
                     onClick={() =>
