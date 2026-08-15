@@ -19,6 +19,7 @@ import {
   type RemoteStatus,
 } from "../../../lib/tauri/remoteServer";
 import { playerPlayUrl } from "../../../lib/tauri/player";
+import { notifyRemoteChanged } from "../../../hooks/useRemoteSource";
 
 /**
  * Settings → remote server binding (RFC-005).
@@ -93,6 +94,9 @@ export function RemoteServerCard() {
       try {
         await action();
         await refresh();
+        // Keep the sidebar's remote-source section in step with any
+        // create / delete / sync / sign-out done from here.
+        notifyRemoteChanged();
       } catch (err) {
         setError(String(err));
       } finally {

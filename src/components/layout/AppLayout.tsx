@@ -115,6 +115,11 @@ const GenreDetailView = lazy(() =>
     default: module.GenreDetailView,
   })),
 );
+const RemotePlaylistView = lazy(() =>
+  import("../views/RemotePlaylistView").then((module) => ({
+    default: module.RemotePlaylistView,
+  })),
+);
 
 // Each entry in the navigation history pairs a view id with its payload
 // (when relevant) so back/forward can restore the exact target the user
@@ -134,6 +139,9 @@ type HistoryEntry =
   | { id: "recent" }
   | { id: "wrapped"; year?: number | null }
   | { id: "playlist"; playlistId?: number | null }
+  // Remote playlists key on the server's string id (opaque `wfa_`-style),
+  // not a local rowid — kept distinct from the local "playlist" entry.
+  | { id: "remote-playlist"; remotePlaylistId?: string | null }
   | { id: "album-detail"; albumId?: number | null }
   | { id: "artist-detail"; artistId?: number | null }
   | { id: "genre-detail"; genreId?: number | null }
@@ -252,6 +260,7 @@ export function AppLayout() {
       void import("../views/AlbumDetailView");
       void import("../views/ArtistDetailView");
       void import("../views/GenreDetailView");
+      void import("../views/RemotePlaylistView");
       void import("../views/StatisticsView");
       void import("../views/WrappedView");
       void import("../views/SettingsView");
@@ -345,6 +354,10 @@ export function AppLayout() {
     currentEntry.id === "genre-detail" ? (currentEntry.genreId ?? null) : null;
   const activePlaylistId =
     currentEntry.id === "playlist" ? (currentEntry.playlistId ?? null) : null;
+  const activeRemotePlaylistId =
+    currentEntry.id === "remote-playlist"
+      ? (currentEntry.remotePlaylistId ?? null)
+      : null;
   const activeWrappedYear =
     currentEntry.id === "wrapped" ? (currentEntry.year ?? null) : null;
   const activePluginId =
@@ -425,6 +438,13 @@ export function AppLayout() {
   const navigateToPlaylist = useCallback(
     (playlistId: number) => {
       pushEntry({ id: "playlist", playlistId });
+    },
+    [pushEntry],
+  );
+
+  const navigateToRemotePlaylist = useCallback(
+    (remotePlaylistId: string) => {
+      pushEntry({ id: "remote-playlist", remotePlaylistId });
     },
     [pushEntry],
   );
@@ -527,6 +547,13 @@ export function AppLayout() {
             onNavigateToArtist={navigateToArtist}
           />
         );
+      case "remote-playlist":
+        return (
+          <RemotePlaylistView
+            remotePlaylistId={activeRemotePlaylistId}
+            onAfterDelete={() => replaceEntry({ id: "home" })}
+          />
+        );
       case "album-detail":
         return (
           <AlbumDetailView
@@ -626,6 +653,8 @@ export function AppLayout() {
                 setLibraryTab={setLibraryTab}
                 activePlaylistId={activePlaylistId}
                 navigateToPlaylist={navigateToPlaylist}
+                activeRemotePlaylistId={activeRemotePlaylistId}
+                navigateToRemotePlaylist={navigateToRemotePlaylist}
                 activePluginId={activePluginId}
                 navigateToPluginUi={navigateToPluginUi}
               />

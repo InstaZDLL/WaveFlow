@@ -15,6 +15,7 @@ import {
   Sparkles,
   Headphones,
   Radio,
+  Server,
 } from "lucide-react";
 import type { ViewId, LibraryTab } from "../../types";
 import { NavItem } from "../common/NavItem";
@@ -26,6 +27,7 @@ import { useLibrary } from "../../hooks/useLibrary";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { usePluginAvailability } from "../../hooks/usePluginAvailability";
 import { useUiPlugins } from "../../hooks/useUiPlugins";
+import { useRemoteSource } from "../../hooks/useRemoteSource";
 import { resolvePluginIcon } from "../../lib/pluginIcons";
 import { getProfileColor, profileInitial } from "../../lib/profileColors";
 import { pickFile, pickFolder } from "../../lib/tauri/dialog";
@@ -44,6 +46,10 @@ interface SidebarProps {
   setLibraryTab: (tab: LibraryTab) => void;
   activePlaylistId: number | null;
   navigateToPlaylist: (id: number) => void;
+  /** Server id of the open remote playlist, or `null`. Drives the active
+   *  highlight on the remote-source rows. */
+  activeRemotePlaylistId: string | null;
+  navigateToRemotePlaylist: (id: string) => void;
   /** Id of the currently-open ui plugin view, or `null`. Drives the
    *  active highlight on the dynamic plugin entries. */
   activePluginId: string | null;
@@ -61,6 +67,8 @@ export function Sidebar({
   setLibraryTab,
   activePlaylistId,
   navigateToPlaylist,
+  activeRemotePlaylistId,
+  navigateToRemotePlaylist,
   activePluginId,
   navigateToPluginUi,
 }: SidebarProps) {
@@ -97,6 +105,10 @@ export function Sidebar({
   // + landing path all come from each plugin's `manifest()`, so a new
   // UI plugin appears here without any hardcoded per-plugin wiring.
   const uiPlugins = useUiPlugins();
+  // Remote source (RFC-005 sync_v2). Self-hides in stock builds — the
+  // hook probes `remote_get_status`, which is unregistered when the
+  // feature is off, and reports `available: false`.
+  const remote = useRemoteSource();
   // Per-profile toggle: hide the Spotify entry from the sidebar so
   // users who don't care about Spotify integration don't see it
   // every time. Default ON. Persisted in `ui.show_spotify`.
@@ -455,6 +467,48 @@ export function Sidebar({
             ))}
           </div>
         </div>
+
+        {/* ─── REMOTE SOURCE (sync_v2) ───
+            Only rendered when signed in to a native server. Header is the
+            server host; rows are its playlists, managed from the main UI
+            just like local ones. Not localized — it lives behind the same
+            off-by-default feature as RemoteServerCard, so no shipped build
+            reaches it and the seventeen locale files stay clean. */}
+        {remote.available && (
+          <div>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-zinc-400 mb-1 px-2 uppercase">
+              <Server size={11} className="shrink-0" />
+              <span className="truncate">{remote.serverName ?? "Remote"}</span>
+            </div>
+            <div className="space-y-1">
+              {remote.playlists.length === 0 ? (
+                <p className="px-2 py-1 text-[11px] text-zinc-500">
+                  No playlists on this server yet.
+                </p>
+              ) : (
+                remote.playlists.map((pl) => (
+                  <SidebarRow
+                    key={`remote-${pl.id}`}
+                    icon={
+                      <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center dark:bg-emerald-950/50 dark:text-emerald-400">
+                        <Server size={15} />
+                      </div>
+                    }
+                    label={pl.name}
+                    subtext={`${pl.track_count} tracks${
+                      pl.pending_creation ? " · not sent yet" : ""
+                    }`}
+                    active={
+                      activeView === "remote-playlist" &&
+                      activeRemotePlaylistId === pl.id
+                    }
+                    onClick={() => navigateToRemotePlaylist(pl.id)}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <CreatePlaylistModal
