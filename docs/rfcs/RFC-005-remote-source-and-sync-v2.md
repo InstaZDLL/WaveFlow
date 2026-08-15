@@ -277,6 +277,61 @@ feature itself are gone, along with the `lamport`, `hlc`, `digest/` and
 The migrations that added the HLC columns stay — they are immutable once merged;
 the columns are now unused but harmless.
 
+## Decision 9 — remote playback is a parallel in-memory queue, not the local one
+
+A remote playlist plays natively — start it and its tracks auto-advance, and
+next / previous from the PlayerBar, the media keys, the tray and MPD drive it —
+but its queue does **not** live in the local `queue_item` table.
+
+`queue_item` rows are library row ids, joined to `track` / `album` / `artist` /
+`artwork` to build [`QueueTrack`](../../src-tauri/crates/app/src/queue.rs), which
+the local player, MPD and the PlayerBar payload all consume. A projected remote
+track has no such row (Decision 1 keeps the projection out of local tables), so
+teaching `QueueTrack` about id-less entries would ripple through every one of
+those consumers. Instead the remote queue is a **parallel structure** —
+[`remote_playback.rs`](../../src-tauri/crates/app/src/remote_playback.rs), an
+ordered list of server track ids plus display metadata, held in memory like the
+radio session and rebuilt from the projection each time a playlist starts. No
+migration, no change to the local queue path.
+
+Each track streams over the same single-URL path Web Radio uses
+(`LoadUrlAndPlay`, negative sentinel id) via a **sealed stream ticket** — the
+desktop mints `POST /api/v2/tracks/{id}/stream-ticket`, prepends its **own**
+trusted `base_url` to the deliberately-relative URL the server returns (rejecting
+any absolute or protocol-relative value, which would redirect playback to an
+unauthenticated host), and hands the result to the engine. This is the ticket
+consumer Decision 6 anticipated: the cpal HTTP source cannot attach a Bearer
+header to the audio stream, so the credential rides inside the URL instead.
+
+The seams that make advance work:
+
+- a **finite** stream reaching EOF carries a negative id (radio is infinite and
+  never reaches EOF on its own), which the decoder routes to a new
+  `AnalyticsMsg::RemoteTrackEnded`; analytics advances the remote queue on it,
+  but **only when one is active** — a dropped radio connection lands here too and
+  is ignored;
+- `player_next` / `player_previous` and `player_actions` check the session first
+  and hand off to `remote::playback::advance`;
+- the session is cleared at a single choke point — `emit_track_changed`, which
+  every local-track start funnels through — plus `player_play_url` for radio, so
+  a stale remote queue can never hijack the next advance.
+
+The orchestration (fill from projection, mint ticket, dispatch) lives in the
+`sync_v2`-gated `remote::playback`; the state and its clear/probe live in the
+always-compiled `remote_playback` so the control seams stay feature-clean.
+
+**UI.** The remote source is managed from the main UI, not Settings: a "Remote
+source" section at the bottom of the sidebar (headed by the server host, listing
+its playlists) and a `RemotePlaylistView` that plays, renames and deletes them
+like local playlists. `RemoteServerCard` in Settings is connection-only —
+identify, sign in, sync, sign out, forget. `CreatePlaylistModal` offers an "also
+create on the server" checkbox when one is connected. All of it self-hides when
+`sync_v2` is off (the frontend probes `remote_get_status`) and is intentionally
+unlocalized until the feature ships, matching `RemoteServerCard`.
+
+Deferred: during remote playback the QueuePanel still shows the local queue, and
+the seekbar is live-stream style — `LoadUrlAndPlay` carries no duration yet.
+
 ## Local schema
 
 Per-profile, since the binding is per-profile:
