@@ -248,23 +248,34 @@ So the creation response is the only time this device can learn the link, and a
 share created on another device stays link-less here permanently. Capturing it
 at creation is not an optimisation; it is the only chance.
 
-## Decision 8 — v2 lands beside v1, not on top of it
+## Decision 8 — v2 landed beside v1, then replaced it
 
 The v1 surface (~12 400 lines across `sync/`, `commands/sync.rs`,
-`server_client.rs`, `commands/share.rs`) sits behind the `sync_v1` feature,
-which **is not in `default`** — it is already absent from shipped binaries, and
-`sync_stub.rs` keeps the ~70 CRUD emit call sites compiling.
+`server_client.rs`, `commands/share.rs`) sat behind the `sync_v1` feature,
+which was **not in `default`** — already absent from shipped binaries, with
+`sync_stub.rs` keeping the ~70 CRUD emit call sites compiling.
 
-So v2 is a new tree, `crate::remote`, behind a new `sync_v2` feature, also off
-by default. Consequences worth stating:
+v2 landed as a new tree, `crate::remote`, behind a new `sync_v2` feature (also
+off by default), built *beside* v1 rather than on top so v1 stayed available as
+the only recovery path while the snapshot bootstrap was unproven.
 
-- the ~70 emit call sites are **not touched** — under v2 they keep resolving to
-  the stub, which is correct, since local-entity CRUD is no longer synchronized;
-- v1 keeps compiling and stays available as the only recovery path while the
-  snapshot bootstrap is unproven;
-- **`digest/` and `backfill/` are not deleted until a working bootstrap
-  exists.** Those 2 500 lines become pointless, but until their replacement is
-  proven they are the only way back from a divergence.
+**Cutover (2026-08-15).** Once the bootstrap was validated end-to-end against a
+live server — identify, PKCE sign-in, snapshot pull, optimistic create + drain,
+and offline replay all confirmed by hand — the v1 tree was deleted: `sync/`,
+`commands/{sync,server_auth,share}.rs`, `server_client.rs`, and the `sync_v1`
+feature itself are gone, along with the `lamport`, `hlc`, `digest/` and
+`backfill/` machinery. Two things survive the delete:
+
+- the ~70 emit call sites are **untouched** — `mod sync` is now permanently
+  `sync_stub.rs`, whose no-ops keep them compiling; local-entity CRUD is no
+  longer synchronized, which is correct under v2;
+- `save_share_image` — a generic PNG sink used by Wrapped and the Now-Playing
+  card, mis-filed in the old `commands/share.rs` — moved to
+  `commands/share_image.rs` and is no longer feature-gated (it had been silently
+  absent from shipped builds while it rode the `sync_v1` gate).
+
+The migrations that added the HLC columns stay — they are immutable once merged;
+the columns are now unused but harmless.
 
 ## Local schema
 

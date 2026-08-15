@@ -1,14 +1,15 @@
-//! Sync module stub — replaces `crate::sync` when the `sync_v1`
-//! Cargo feature is OFF.
+//! Sync module — a permanent no-op. The v1 multi-device sync protocol
+//! (`src/sync/`) was removed in the RFC-005 cutover — the server no
+//! longer speaks it — so this stub is now the sole `mod sync`.
 //!
-//! Why a stub instead of compile-flag wrapping every call site? The
-//! sync emit path is interleaved with the CRUD transactions in
+//! Why a stub instead of unpicking every call site? The old sync emit
+//! path is interleaved with the CRUD transactions in
 //! `commands/{library,playlist,track,scan,duplicates}.rs` — ~70 call
-//! sites in total. Wrapping each in `#[cfg(feature = "sync_v1")]`
-//! would mean an audit pass on every future CRUD change. The stub
-//! pattern is: public API surface identical to the real module, all
-//! functions short-circuit to "sync disabled" responses, and the
-//! existing call sites compile unchanged.
+//! sites in total. Rather than touch each one, the stub keeps a public
+//! API surface identical to the retired module, all functions short-
+//! circuit to "sync disabled" responses, and the existing call sites
+//! compile unchanged. v2 (`crate::remote`) deliberately does not hook
+//! these sites: local-entity CRUD is no longer synchronized.
 //!
 //! ## Short-circuit semantics
 //!
@@ -28,28 +29,24 @@
 //! land normally; nothing is enqueued, nothing is stamped, nothing
 //! is hashed. The `sync_op_queue` table stays empty.
 //!
-//! ## What's missing from the binary
+//! ## What the retired v1 module did (and this stub does not)
 //!
-//! - HTTP client (`server_client`) — feature-gated alongside `sync`.
+//! - HTTP client (`server_client`) posting ops to `/api/v1/sync/ops`.
 //! - WS subscriber (`tokio-tungstenite` upgrade + reconnect loop).
 //! - Drain task + backfill orchestrator (digest diff, LWW merge).
-//! - Payload hash builder (`waveflow_core::sync::payload_hash`).
-//! - All `commands/{sync,share,server_auth,loopback}` Tauri handlers.
+//! - Payload hash builder + logical clocks (lamport / HLC).
+//! - The `commands/{sync,share,server_auth}` Tauri handlers.
 //!
-//! ## When re-enabled (1.6.0)
-//!
-//! `cargo build --features sync_v1` resolves `mod sync` to the real
-//! module (`src/sync/`). This stub stays in tree as the source-of-
-//! truth for "what the public API surface looks like" — drift in
-//! either direction breaks the build.
+//! All of the above were deleted in the RFC-005 cutover. Their server
+//! counterpart is gone; v2's ordered journal (`crate::remote`) replaces
+//! the peer-to-peer reconciliation they implemented.
 
 // Every field on every stub struct is "dead" in the sync-off build —
 // callers construct the structs (the literal-init call sites in
 // library / playlist / scan must still compile) but nothing reads
 // them back because the stub fns short-circuit before any field
 // access. Same goes for the wake() method on SubscribeHandle. The
-// allow keeps the build noise-free without leaking the suppression
-// into the real module under `--features sync_v1`.
+// allow keeps the build noise-free.
 #![allow(dead_code)]
 
 use serde_json::{Map, Value};

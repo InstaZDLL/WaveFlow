@@ -47,9 +47,7 @@ import {
   Stethoscope,
   Puzzle,
 } from "lucide-react";
-// import { ServerAccountCard } from "./settings/ServerAccountCard"; // deferred to 1.6.0
 import { RemoteServerCard } from "./settings/RemoteServerCard";
-// import { SyncStatusCard } from "./settings/SyncStatusCard"; // deferred to 1.6.0
 import { PluginStoreCard } from "./settings/PluginStoreCard";
 import { PluginsCard } from "./settings/PluginsCard";
 import { useTheme } from "../../hooks/useTheme";
@@ -2391,17 +2389,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               />
             </div>
 
-            {/* WaveFlow server account binding — DEFERRED to 1.6.0.
-              The 1.5.0 cut ships sync code but the onboarding has
-              gaps (payload_hash NULL on upgrade libraries, server-
-              side track auto-provision missing for legacy rows, no
-              heal migration for pre-v2 columns). Hiding the entry
-              point keeps users from hitting partial-sync corruption
-              while the full bootstrap + heal lands.
-              Uncomment when the 1.6.0 work closes. */}
-            {/* <ServerAccountCard /> */}
-
-            {/* Its RFC-005 replacement. Safe to mount unconditionally:
+            {/* Remote source (RFC-005). Safe to mount unconditionally:
               the card probes for its own backend and renders nothing
               when `sync_v2` is off, which is every shipped build today. */}
             <RemoteServerCard />
@@ -3924,9 +3912,6 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             {t("settings.sections.diagnostics")}
           </h2>
           <div className="space-y-1">
-            {/* Sync status card hidden alongside ServerAccountCard for 1.5.0 — see
-              the comment above the ServerAccountCard mount. Uncomment with it. */}
-            {/* <SyncStatusCard /> */}
             <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center space-x-4 min-w-0">

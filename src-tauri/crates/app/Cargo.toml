@@ -26,23 +26,12 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 # `cargo build --no-default-features`.
 default = ["updater"]
 updater = ["dep:tauri-plugin-updater"]
-# Multi-device sync + server account binding (Phase 1.f, RFC-003).
-# OFF for 1.5.0 — the bootstrap path has unresolved gaps (pre-v2
-# `payload_hash` not backfilled on upgrade, server-side track auto-
-# provision missing for legacy rows). When OFF, `mod sync` resolves
-# to a stub with no-op functions matching the real public API so the
-# ~70 emit call sites compile unchanged; the WS subscriber, drain
-# task, auto-backfill, HTTP client, digest computation and payload-
-# hash builder are all excluded from the binary. Re-enable in 1.6.0
-# once the heal migration + apply pipeline gaps close.
-sync_v1 = []
-# Remote music source + user-data sync v2 (RFC-005). Replaces `sync_v1`,
-# which talks a protocol the server no longer implements. OFF while the
-# slices land: the two trees are independent (`crate::remote` vs
-# `crate::sync`), so both can be absent from a shipped build, and
-# `sync_v1` stays available as the only recovery path from a divergence
-# until the snapshot bootstrap here is proven. Enabling BOTH is
-# supported but pointless — they bind to different server generations.
+# Remote music source + user-data sync v2 (RFC-005). OFF by default —
+# absent from shipped binaries until the surface is promoted. The `sync_v1`
+# protocol it replaces was removed in the RFC-005 cutover (the server no
+# longer speaks it); `mod sync` is now permanently the no-op stub so the
+# ~70 CRUD emit call sites still compile, and v2 does not touch them —
+# local-entity CRUD is no longer synchronized.
 sync_v2 = []
 
 [build-dependencies]

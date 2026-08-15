@@ -3,12 +3,11 @@
 //!
 //! ## Not to be confused with [`crate::sync`]
 //!
-//! `crate::sync` implements the retired v1 protocol (peer-to-peer ops,
-//! hybrid logical clocks, digest reconciliation) against a server that
-//! no longer exists. It stays in the tree, behind the `sync_v1`
-//! feature, for exactly as long as it takes to prove the snapshot
-//! bootstrap here — until then it is the only path back from a
-//! divergence. This module is its replacement, not its evolution.
+//! `crate::sync` is now a permanent no-op stub. The v1 protocol it once
+//! held (peer-to-peer ops, hybrid logical clocks, digest reconciliation)
+//! spoke to a server generation that no longer exists and was removed in
+//! the RFC-005 cutover, once this module's snapshot bootstrap was proven.
+//! This module is its replacement, not its evolution.
 //!
 //! Neither module's docs should be read as describing the other, and
 //! the two RFCs numbered 003 (one per repository) are likewise

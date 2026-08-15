@@ -21,30 +21,26 @@ mod offline;
 mod paths;
 mod player_actions;
 mod queue;
-// Remote music source + user-data sync v2 (RFC-005). Independent of
-// `mod sync` below, which implements the retired v1 protocol: v2 does
-// not synchronize local-entity CRUD at all, so the ~70 emit call sites
-// keep resolving to the stub and this tree never touches them.
+// Remote music source + user-data sync v2 (RFC-005). `mod sync` is now
+// permanently the no-op stub — the retired v1 protocol was removed in
+// the RFC-005 cutover — and v2 does not synchronize local-entity CRUD at
+// all, so the ~70 emit call sites keep resolving to the stub and this
+// tree never touches them.
 #[cfg(feature = "sync_v2")]
 mod remote;
 mod scrobbler;
-#[cfg(feature = "sync_v1")]
-mod server_client;
 mod smart_playlists;
 // `mod spotify` was extracted to the `waveflow-spotify` workspace crate.
 // `crate::commands::spotify` now imports from `waveflow_spotify::*` and
 // passes raw `&SqlitePool` handles in lieu of `&AppState`. Same pattern
 // as `waveflow-syncedlyrics`.
 mod state;
-// Multi-device sync (Phase 1.f, RFC-003). When the `sync_v1` feature
-// is OFF (1.5.0 default), `mod sync` resolves to `sync_stub.rs` —
-// a no-op surface that matches the real public API so the ~70 emit
-// call sites in `commands/{library,playlist,track,scan,duplicates}`
-// compile unchanged. See `sync_stub.rs` for the short-circuit
-// semantics and `Cargo.toml` for the rationale.
-#[cfg(feature = "sync_v1")]
-mod sync;
-#[cfg(not(feature = "sync_v1"))]
+// Multi-device sync v1 (Phase 1.f, RFC-003) was retired in the RFC-005
+// cutover — the server no longer speaks its protocol. `mod sync` is now
+// permanently `sync_stub.rs`, a no-op surface matching the old public
+// API so the ~70 emit call sites in
+// `commands/{library,playlist,track,scan,duplicates}` compile unchanged.
+// See `sync_stub.rs` for the short-circuit semantics.
 #[path = "sync_stub.rs"]
 mod sync;
 mod thumbnails;
@@ -177,87 +173,16 @@ pub fn run() {
                 }
             });
 
-            // Sync drain task — pushes pending `sync_pending_op`
-            // rows to the waveflow-server in the background. Spawned
-            // here so it picks up `AppState` from `app.manage(state)`
-            // above. Wake handle already lives in `AppState::drain`,
-            // so CRUD commands can `state.drain.notify()` after a
-            // successful tx.commit() without needing a separate
-            // import path.
-            // Sync background tasks (drain push, auto-backfill on boot,
-            // heartbeat tick, WS subscriber) + the rustls CryptoProvider
-            // they need — all gated behind the `sync_v1` feature. With
-            // 1.5.0's sync_v1 OFF the stub `mod sync` doesn't expose
-            // `spawn`/`heartbeat::spawn`/etc., so the spawn sites would
-            // fail to resolve unless cfg-gated here.
-            #[cfg(feature = "sync_v1")]
-            {
-                sync::drain::spawn(app.handle().clone());
-
-                // RFC-003 Phase B.2 — fire a one-shot auto-backfill
-                // pass on boot when the user opted in via
-                // `sync.v2.backfill_enabled`. All gates (offline /
-                // SyncMode::Local / no JWT / no profile canonical)
-                // short-circuit silently inside `maybe_auto_backfill`,
-                // so this is safe to fire unconditionally — the helper
-                // owns the gate logic.
-                let boot_handle = app.handle().clone();
-                // `setup` runs OUTSIDE a tokio reactor, so a bare
-                // `tokio::spawn` panics with "no reactor running".
-                // `tauri::async_runtime::spawn` resolves to the Tauri-
-                // managed tokio runtime — same pattern `sync::drain::spawn`
-                // documents at its own spawn site.
-                tauri::async_runtime::spawn(async move {
-                    use tauri::Manager;
-                    let state = boot_handle.state::<state::AppState>();
-                    if let Err(err) = sync::backfill::maybe_auto_backfill(state.inner()).await {
-                        tracing::warn!(error = %err, "auto-backfill on boot failed");
-                    }
-                });
-
-                // RFC-003 Phase B polish — periodic heartbeat that fires
-                // `maybe_auto_backfill` every
-                // `sync.backfill.heartbeat_interval_min` minutes (default
-                // 60 min). Same gates as the boot pass short-circuit
-                // inside the helper, so a Local / offline / no-JWT
-                // session spins idle without cost. Cadence is re-read at
-                // every tick from the active profile's
-                // `profile_setting`, so changing it from Settings applies
-                // on the next iteration without restart.
-                sync::backfill::heartbeat::spawn(app.handle().clone());
-
-                // Install the rustls process-wide CryptoProvider before
-                // the WS subscriber spawns. rustls 0.23 panics on the
-                // first TLS handshake when no provider is installed, and
-                // tokio-tungstenite's `connect_async` is the first
-                // wss:// consumer in the codebase (reqwest uses its own
-                // per-connector setup). Ignore the Result — a second
-                // call (e.g. after a future reqwest version starts
-                // installing one) returns Err which is harmless here.
-                let _ = rustls::crypto::ring::default_provider().install_default();
-
-                // Sync WebSocket subscriber + catch-up pull (Phase
-                // 1.f.desktop.4b). Closes the loop: drain pushes local
-                // edits upstream, ws subscribes to other devices'. Both
-                // gate on `mode = Hybrid` + a configured JWT, so a
-                // local-only profile spawns the task but its gates
-                // short-circuit every pass without HTTP.
-                sync::ws::spawn(app.handle().clone());
-            }
-
-            // Remote source wake-up socket (RFC-005). Independent of the
-            // v1 block above and gated separately, so a build can carry
-            // either protocol, both, or neither.
+            // Remote source wake-up socket (RFC-005). Gated on `sync_v2`,
+            // so a build can carry the remote source or not.
             #[cfg(feature = "sync_v2")]
             {
                 // rustls 0.23 needs a process-wide CryptoProvider before
                 // the first TLS handshake, and `connect_async` is what
                 // trips it (reqwest configures its own per-connector).
-                // Installing it here too rather than relying on the v1
-                // block: the two features are independent, and a
-                // `sync_v2`-only build would otherwise panic on the
-                // first wss:// upgrade. A second call returns Err, which
-                // is harmless.
+                // Without this a `sync_v2` build would panic on the first
+                // wss:// upgrade. A second call returns Err, which is
+                // harmless.
                 let _ = rustls::crypto::ring::default_provider().install_default();
 
                 // The subscriber owns its own gates — unbound profile,
@@ -814,46 +739,6 @@ pub fn run() {
             commands::remote_auth::remote_update_share,
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_delete_share,
-            #[cfg(feature = "sync_v1")]
-            commands::server_auth::server_get_status,
-            #[cfg(feature = "sync_v1")]
-            commands::server_auth::server_set_url,
-            #[cfg(feature = "sync_v1")]
-            commands::server_auth::server_set_web_url,
-            #[cfg(feature = "sync_v1")]
-            commands::server_auth::server_set_token,
-            #[cfg(feature = "sync_v1")]
-            commands::server_auth::server_sign_out,
-            #[cfg(feature = "sync_v1")]
-            commands::server_auth::server_open_login_browser,
-            #[cfg(feature = "sync_v1")]
-            commands::server_auth::server_begin_loopback_login,
-            #[cfg(feature = "sync_v1")]
-            commands::sync::sync_get_queue_state,
-            #[cfg(feature = "sync_v1")]
-            commands::sync::sync_clear_pending,
-            #[cfg(feature = "sync_v1")]
-            commands::sync::sync_get_mode,
-            #[cfg(feature = "sync_v1")]
-            commands::sync::sync_set_mode,
-            #[cfg(feature = "sync_v1")]
-            commands::sync::sync_drain_now,
-            #[cfg(feature = "sync_v1")]
-            commands::sync::sync_digest_check,
-            #[cfg(feature = "sync_v1")]
-            commands::sync::sync_backfill_now,
-            #[cfg(feature = "sync_v1")]
-            commands::sync::sync_backfill_get_enabled,
-            #[cfg(feature = "sync_v1")]
-            commands::sync::sync_backfill_set_enabled,
-            #[cfg(feature = "sync_v1")]
-            commands::sync::sync_backfill_get_status,
-            #[cfg(feature = "sync_v1")]
-            commands::sync::sync_backfill_get_heartbeat_interval,
-            #[cfg(feature = "sync_v1")]
-            commands::sync::sync_backfill_set_heartbeat_interval,
-            #[cfg(feature = "sync_v1")]
-            commands::sync::sync_digest_check_detailed,
             commands::offline::get_offline_mode,
             commands::offline::set_offline_mode,
             commands::preferences::get_minimize_to_tray,
@@ -951,14 +836,7 @@ pub fn run() {
             commands::wrapped::get_wrapped,
             commands::wrapped::available_wrapped_years,
             commands::wrapped::wrapped_current_year,
-            #[cfg(feature = "sync_v1")]
-            commands::share::save_share_image,
-            #[cfg(feature = "sync_v1")]
-            commands::share::share_link_mint,
-            #[cfg(feature = "sync_v1")]
-            commands::share::share_link_revoke,
-            #[cfg(feature = "sync_v1")]
-            commands::share::share_link_status,
+            commands::share_image::save_share_image,
         ])
         .on_window_event(|window, event| match event {
             // Close-to-tray: when the user clicks the window's "X" we

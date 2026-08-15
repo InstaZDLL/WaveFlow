@@ -162,41 +162,11 @@ Matching a local file to a server track is deliberately out of scope and needs i
 
 **Two RFCs are numbered 003.** The desktop's [RFC-003](../rfcs/RFC-003-sync-architecture.md) (hybrid logical clocks, superseded) has nothing to do with the server's RFC-003 (sync v2, accepted). Any instruction naming "RFC-003" must name the repository too, or it will be read as the wrong document. On the desktop side the accepted design is **RFC-005**.
 
-### The three sections below describe the retired v1 protocol
+### The v1 sync protocol was removed
 
-They are accurate for `crate::sync` under the `sync_v1` feature, which is off by default and talks to a server generation that no longer exists. They stay until the v2 snapshot bootstrap is proven, because they are the only documented recovery path from a divergence. **Do not use them as a model for new work** — see the section above.
+`crate::sync` is now a permanent no-op stub. The peer-to-peer v1 protocol — ops journal, logical clocks (`lamport` / `hlc`), digest/backfill reconciliation, per-op `snapshots` maps, and the scanner's track emit — was deleted in the RFC-005 cutover once the v2 snapshot bootstrap was proven end-to-end. See [RFC-005 §Decision 8](../rfcs/RFC-005-remote-source-and-sync-v2.md#decision-8--v2-landed-beside-v1-then-replaced-it).
 
-### Outbound `playlist + field: "tracks"` ops carry a snapshot map
-
-Phase 1.j.b. Every command in [`commands/playlist.rs`](../../src-tauri/crates/app/src/commands/playlist.rs) that inserts tracks (`add_track_to_playlist`, `add_tracks_to_playlist`, `add_source_to_playlist`) calls [`sync::track_snapshots::build_snapshots(conn, &track_ids)`](../../src-tauri/crates/app/src/sync/track_snapshots.rs) inside the same SQLite transaction and folds the result into the outbound payload as `snapshots: { "<id_str>": { title, artist?, duration_ms? } }`.
-
-The server stores the snapshot in `playlist_track.snapshot_*` and filters its public share preview on `snapshot_title IS NOT NULL`, so tracks without one stay invisible to the wider web. **Don't shadow this** — emitting a `tracks` insert op without `snapshots` regresses the share preview for that playlist until any other client re-syncs it. `delete` and `set` (reorder) ops don't need snapshots (no display change on the receiving side).
-
-### Track sync emit
-
-Phase 4.d.0.3. The scanner pushes `entity: "track"` ops to the server for every new + re-emit track. [`sync::track_emit::emit_track_insert_in_tx`](../../src-tauri/crates/app/src/sync/track_emit.rs) is the entry point; the scanner wraps it via the private `emit_track_insert_from_extracted` shim ([`commands/scan.rs`](../../src-tauri/crates/app/src/commands/scan.rs)) so the "brand-new track" and "existing track re-emit" branches share one wire shape.
-
-The skip-fast-path branch (mtime + hash unchanged) also emits — but ONLY when the path actually re-normalised `track_artist` rows (multi-artist count delta from a comma-joined → `";"`-split rewrite). Cover + codec backfills are server-derived and don't need to round-trip.
-
-**Wire shape** mirrors the server's `apply::track::insert` (phase 4.d.0.2):
-
-- `entity_id` is the **file_path** — per-library natural identity. Keying on `file_hash` would break tag-edit re-emit, because lofty rewrites embedded metadata frames so the hash changes while the path doesn't.
-- `payload.library_canonical_id` carries the tenant scope.
-- `payload.file_hash` + `payload.file_modified` ride as fields; the latter lets a peer device sharing the same drive skip its own slow path on the next scan.
-- `payload.added_at` carries the row's **original** import timestamp on every re-emit (the brand-new branch uses `now`, the update + skip branches read it from the existing row) — a re-emit must NOT bump the peer's `Recently added` ordering.
-- The full audio metadata plus `album_title?` / `album_artist_name?` / `is_compilation?` / `artists?: [String]` (the desktop's `";"`-split list — position derives from array index) round-trip.
-
-**Deletes.** User-initiated track deletes call [`emit_track_delete_in_tx`](../../src-tauri/crates/app/src/sync/track_emit.rs): the duplicates UI ([`commands/duplicates.rs::delete_tracks`](../../src-tauri/crates/app/src/commands/duplicates.rs)) AND folder removal ([`commands/library.rs::remove_folder_from_library`](../../src-tauri/crates/app/src/commands/library.rs)) both emit per-row inside the same SQLite tx as the local DELETE.
-
-- **Folder removal is NOT a server-side cascade** — the server has no `library_folder` entity, so without per-row emits the tracks linger as ghost rows under the still-live library until the library itself is dropped.
-- **Library removal IS a server-side cascade** (the apply pipeline drops the tracks when the parent `library + delete` op lands) — explicit per-track emits would be redundant and race the cascade.
-- `is_available = 0` (file vanished but not user-deleted) deliberately does NOT emit — the track resurfaces on the next scan if the file reappears, and a noisy delete-then-insert pair would just churn the apply pipeline.
-
-**Remaining accumulation path**: a permanently-gone file under a still-live folder/library leaves a ghost row server-side. v1 accepts this; a server-side TTL reaper is the proper long-term fix.
-
-Every CRUD command that enqueues track ops calls `state.drain.notify()` post-commit (`scan_folder`, `rescan_library`, `import_paths`, `delete_tracks`, `remove_folder_from_library`) — matches the existing playlist/library convention, drain is edge-triggered.
-
-Wider design: [RFC-003 — Sync architecture v2](../rfcs/RFC-003-sync-architecture.md).
+The ~70 CRUD emit call sites still call `crate::sync::*`, but those now resolve to the stub's no-ops and nothing is enqueued. **New CRUD commands do not need to emit anything** — the remote source ([`crate::remote`](../../src-tauri/crates/app/src/remote/mod.rs), RFC-005) never touches local-entity CRUD. The HLC migration columns stay (immutable once merged) but are unused.
 
 ---
 
