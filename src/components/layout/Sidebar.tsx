@@ -27,7 +27,8 @@ import { useLibrary } from "../../hooks/useLibrary";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { usePluginAvailability } from "../../hooks/usePluginAvailability";
 import { useUiPlugins } from "../../hooks/useUiPlugins";
-import { useRemoteSource } from "../../hooks/useRemoteSource";
+import { useRemoteSource, notifyRemoteChanged } from "../../hooks/useRemoteSource";
+import { remoteCreatePlaylist } from "../../lib/tauri/remoteServer";
 import { resolvePluginIcon } from "../../lib/pluginIcons";
 import { getProfileColor, profileInitial } from "../../lib/profileColors";
 import { pickFile, pickFolder } from "../../lib/tauri/dialog";
@@ -190,6 +191,7 @@ export function Sidebar({
     description: string;
     colorId: string;
     iconId: string;
+    alsoOnServer: boolean;
   }) => {
     try {
       const created = await createPlaylist({
@@ -199,6 +201,17 @@ export function Sidebar({
         icon_id: data.iconId,
       });
       navigateToPlaylist(created.id);
+      // Best-effort mirror to the remote server (RFC-005). Kept separate
+      // from the local create — the local one is what the user watches
+      // land, and a server hiccup shouldn't sink it. The sidebar's remote
+      // section re-reads on the event.
+      if (data.alsoOnServer) {
+        remoteCreatePlaylist(data.name)
+          .then(() => notifyRemoteChanged())
+          .catch((err) =>
+            console.error("[Sidebar] mirror playlist to server failed", err),
+          );
+      }
     } catch (err) {
       console.error("[Sidebar] failed to create playlist", err);
     }

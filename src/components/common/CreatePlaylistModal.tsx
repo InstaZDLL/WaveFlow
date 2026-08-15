@@ -19,6 +19,7 @@ import { pickFile } from "../../lib/tauri/dialog";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import { useRemoteSource } from "../../hooks/useRemoteSource";
 import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
 
 interface CreatePlaylistModalProps {
@@ -35,6 +36,9 @@ interface CreatePlaylistModalProps {
     description: string;
     colorId: string;
     iconId: string;
+    /** Also create a matching playlist on the bound remote server. Only
+     *  ever true in a `sync_v2` build with a server connected. */
+    alsoOnServer: boolean;
   }) => void;
   /**
    * When provided, the modal switches to edit mode: title + button label
@@ -74,6 +78,11 @@ export function CreatePlaylistModal({
   const [coverMenuOpen, setCoverMenuOpen] = useState(false);
   const [coverBusy, setCoverBusy] = useState(false);
   const coverMenuRef = useRef<HTMLDivElement>(null);
+  // Remote source (RFC-005). When signed in to a native server, offer to
+  // mirror the new playlist there. Self-hides otherwise, so stock builds
+  // never render the (unlocalized) option.
+  const remote = useRemoteSource();
+  const [alsoOnServer, setAlsoOnServer] = useState(false);
 
   // Reset on close OR re-sync when `existing` changes (reopening the modal
   // on a different playlist). See CreateLibraryModal for why the new
@@ -85,6 +94,7 @@ export function CreatePlaylistModal({
       setDescription(existing?.description ?? "");
       setSelectedColorId(existing?.color_id ?? PLAYLIST_COLORS[0].id);
       setSelectedIconId(existing?.icon_id ?? PLAYLIST_ICONS[0].id);
+      setAlsoOnServer(false);
       // Also collapse the cover "..." menu — call sites mount this
       // component unconditionally (parent owns the `isOpen` prop, not
       // a mount/unmount), so without this reset the menu would still
@@ -165,6 +175,7 @@ export function CreatePlaylistModal({
       description: description.trim(),
       colorId: selectedColorId,
       iconId: selectedIconId,
+      alsoOnServer: !isEdit && remote.available && alsoOnServer,
     });
     onClose();
   };
@@ -443,6 +454,25 @@ export function CreatePlaylistModal({
             })}
           </div>
         </div>
+
+        {/* Mirror to the remote server. Create mode only, and only when a
+            native server is connected — not localized, same rationale as
+            the rest of the sync_v2 surface (unreachable in stock builds).
+            The server keeps its own playlist metadata, so only the name
+            travels; colour / icon / cover stay local. */}
+        {!isEdit && remote.available && (
+          <label className="flex items-center gap-2 mb-4 text-sm text-zinc-600 dark:text-zinc-300 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={alsoOnServer}
+              onChange={(e) => setAlsoOnServer(e.target.checked)}
+              className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-emerald-500 focus:ring-emerald-500"
+            />
+            <span>
+              Also create on {remote.serverName ?? "the remote server"}
+            </span>
+          </label>
+        )}
 
         {/* Footer actions */}
         <div className="flex items-center justify-end space-x-3">

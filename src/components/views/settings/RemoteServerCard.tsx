@@ -1,71 +1,63 @@
 import { useCallback, useEffect, useState } from "react";
-import { CloudOff, Loader2, Play, RefreshCw, Server, Unplug } from "lucide-react";
+import { CloudOff, Loader2, RefreshCw, Server, Unplug } from "lucide-react";
 import {
   remoteBeginLogin,
-  remoteCreatePlaylist,
-  remoteDeletePlaylist,
   remoteDetectServer,
   remoteForgetServer,
   remoteGetOverview,
   remoteGetStatus,
-  remoteListPlaylists,
-  remoteListPlaylistTracks,
   remoteSignOut,
-  remoteStreamUrl,
   remoteSyncNow,
   type RemoteOverview,
-  type RemotePlaylistSummary,
   type RemoteProbeResult,
   type RemoteStatus,
 } from "../../../lib/tauri/remoteServer";
-import { playerPlayUrl } from "../../../lib/tauri/player";
 import { notifyRemoteChanged } from "../../../hooks/useRemoteSource";
 
 /**
  * Settings → remote server binding (RFC-005).
  *
+ * ## Connection only
+ *
+ * This card does one thing: bind a profile to a server and manage that
+ * binding — identify, sign in, sync, sign out, forget. The library it
+ * exposes (playlists and their tracks, playback, create / rename /
+ * delete) lives in the main UI: a "Remote source" section in the sidebar
+ * and a RemotePlaylistView, managed exactly like local playlists. Nothing
+ * about browsing or playing remote music belongs in Settings.
+ *
  * ## Deliberately not localized
  *
- * Every other string in this app carries a key in all seventeen locale
- * files. This card does not, and that is a decision rather than an
- * oversight: the `sync_v2` Cargo feature is off by default, so no
- * shipped build can render this at all. Translating copy that no user
- * can reach — and that will still change as the feature grows — would
- * put ~255 unreviewed strings into files that had a native-speaker
- * pass. The keys land when the feature ships and the wording settles.
- *
- * Until then this is a developer surface: it exists so the protocol can
- * be exercised and watched by a human, which is the one thing unit
- * tests cannot do for it.
+ * The `sync_v2` Cargo feature is off by default, so no shipped build can
+ * render this at all. Translating copy no user can reach — and that will
+ * still change as the feature grows — would put unreviewed strings into
+ * files that had a native-speaker pass. The keys land when the feature
+ * ships and the wording settles.
  *
  * ## It hides itself when the feature is absent
  *
  * TypeScript cannot see a Cargo feature, so the card probes for its own
- * backend: if `remote_get_status` is not a registered command, the
- * whole thing renders nothing rather than showing a broken panel.
+ * backend: if `remote_get_status` is not a registered command, the whole
+ * thing renders nothing rather than showing a broken panel.
  */
 export function RemoteServerCard() {
   const [available, setAvailable] = useState<boolean | null>(null);
   const [status, setStatus] = useState<RemoteStatus | null>(null);
   const [overview, setOverview] = useState<RemoteOverview | null>(null);
-  const [playlists, setPlaylists] = useState<RemotePlaylistSummary[]>([]);
   const [urlDraft, setUrlDraft] = useState("");
   const [probe, setProbe] = useState<RemoteProbeResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [newPlaylist, setNewPlaylist] = useState("");
   const [busy, setBusy] = useState<
-    null | "probe" | "login" | "sync" | "forget" | "write"
+    null | "probe" | "login" | "sync" | "forget"
   >(null);
 
   const refresh = useCallback(async () => {
-    const [next, counts, lists] = await Promise.all([
+    const [next, counts] = await Promise.all([
       remoteGetStatus(),
       remoteGetOverview(),
-      remoteListPlaylists(),
     ]);
     setStatus(next);
     setOverview(counts);
-    setPlaylists(lists);
     if (next.server_url) setUrlDraft(next.server_url);
   }, []);
 
@@ -94,8 +86,7 @@ export function RemoteServerCard() {
       try {
         await action();
         await refresh();
-        // Keep the sidebar's remote-source section in step with any
-        // create / delete / sync / sign-out done from here.
+        // The sidebar remote-source section reads the same binding.
         notifyRemoteChanged();
       } catch (err) {
         setError(String(err));
@@ -121,7 +112,7 @@ export function RemoteServerCard() {
             </h3>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Developer surface — not localized while the feature is
-              off by default.
+              off by default. Playlists live in the sidebar.
             </p>
           </div>
 
@@ -233,89 +224,6 @@ export function RemoteServerCard() {
           )}
 
           {overview && signedIn && <Counts overview={overview} />}
-
-          {signedIn && (
-            <div className="flex gap-2">
-              {/* Exercises the write path end to end: the playlist
-                  appears at once with a local identifier, travels on the
-                  next drain, and comes back named by the server. */}
-              <input
-                type="text"
-                value={newPlaylist}
-                onChange={(event) => setNewPlaylist(event.target.value)}
-                placeholder="New playlist name"
-                className="flex-1 min-w-0 px-3 py-1.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
-                aria-label="New playlist name"
-              />
-              <button
-                type="button"
-                onClick={() =>
-                  void run("write", async () => {
-                    await remoteCreatePlaylist(newPlaylist);
-                    setNewPlaylist("");
-                  })
-                }
-                disabled={busy !== null || !newPlaylist.trim()}
-                className="px-3 py-1.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 disabled:opacity-50"
-              >
-                {busy === "write" ? <Spinner /> : "Create"}
-              </button>
-            </div>
-          )}
-
-          {playlists.length > 0 && (
-            <ul className="text-xs text-zinc-600 dark:text-zinc-300 space-y-0.5">
-              {playlists.slice(0, 8).map((playlist) => (
-                <li key={playlist.id} className="flex items-center gap-2">
-                  <span className="truncate flex-1">
-                    {playlist.name} — {playlist.track_count} tracks
-                    {playlist.pending_creation && " (not sent yet)"}
-                  </span>
-                  {/* Temporary Phase-A affordance: play the playlist's first
-                      track that has cached metadata, to prove remote streaming
-                      end-to-end. Replaced by the real remote source view. */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void run("write", async () => {
-                        const tracks = await remoteListPlaylistTracks(
-                          playlist.id,
-                        );
-                        const track = tracks.find((t) => t.title != null);
-                        if (!track) {
-                          throw new Error(
-                            "no playable track yet (metadata not cached)",
-                          );
-                        }
-                        const url = await remoteStreamUrl(track.id);
-                        await playerPlayUrl({
-                          url,
-                          title: track.title ?? undefined,
-                          artist: track.artist ?? undefined,
-                        });
-                      })
-                    }
-                    disabled={busy !== null || playlist.track_count === 0}
-                    className="text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 disabled:opacity-50"
-                    aria-label={`Play ${playlist.name}`}
-                  >
-                    <Play size={13} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void run("write", () => remoteDeletePlaylist(playlist.id))
-                    }
-                    disabled={busy !== null}
-                    className="text-zinc-400 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50"
-                    aria-label={`Delete ${playlist.name}`}
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
       </div>
     </div>
