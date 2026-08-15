@@ -91,6 +91,15 @@ fn handle_playback_outcome(
                     source_type: finished.source_type,
                     source_id: finished.source_id,
                 });
+            } else {
+                // A finite non-library stream reached EOF. Radio is
+                // infinite and never lands here on its own, so this is a
+                // remote-queue track (or a dropped radio connection, which
+                // the analytics side ignores when no remote queue is
+                // active). Route it to the remote auto-advance.
+                let _ = analytics_tx.send(AnalyticsMsg::RemoteTrackEnded {
+                    track_id: finished.track_id,
+                });
             }
         }
         Ok((PlaybackEnd::Interrupted, listened_ms, finished)) => {

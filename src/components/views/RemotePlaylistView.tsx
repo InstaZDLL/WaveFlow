@@ -5,12 +5,11 @@ import {
   remoteDeletePlaylist,
   remoteListPlaylists,
   remoteListPlaylistTracks,
-  remoteStreamUrl,
+  remotePlayPlaylist,
   remoteUpdatePlaylist,
   type RemotePlaylistSummary,
   type RemoteTrack,
 } from "../../lib/tauri/remoteServer";
-import { playerPlayUrl } from "../../lib/tauri/player";
 import { formatDuration } from "../../lib/tauri/track";
 import { notifyRemoteChanged } from "../../hooks/useRemoteSource";
 
@@ -76,23 +75,24 @@ export function RemotePlaylistView({
     void load();
   }, [load]);
 
-  const playTrack = useCallback(async (track: RemoteTrack) => {
-    if (track.title == null) return; // metadata not cached yet
-    setBusy(true);
-    setError(null);
-    try {
-      const url = await remoteStreamUrl(track.id);
-      await playerPlayUrl({
-        url,
-        title: track.title ?? undefined,
-        artist: track.artist ?? undefined,
-      });
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setBusy(false);
-    }
-  }, []);
+  // Play the playlist as a native remote queue from `index`. The tracks
+  // after it auto-advance, and next / previous (PlayerBar, media keys)
+  // drive the remote queue while it plays — the backend owns it.
+  const playFrom = useCallback(
+    async (index: number) => {
+      if (!remotePlaylistId) return;
+      setBusy(true);
+      setError(null);
+      try {
+        await remotePlayPlaylist(remotePlaylistId, index);
+      } catch (err) {
+        setError(String(err));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [remotePlaylistId],
+  );
 
   const commitRename = useCallback(async () => {
     const next = nameDraft.trim();
@@ -165,6 +165,15 @@ export function RemotePlaylistView({
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
+            onClick={() => void playFrom(0)}
+            disabled={busy || tracks.length === 0}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold disabled:opacity-50"
+          >
+            <Play size={16} className="fill-current" />
+            Play
+          </button>
+          <button
+            type="button"
             onClick={() => {
               setNameDraft(summary?.name ?? "");
               setRenaming(true);
@@ -209,7 +218,7 @@ export function RemotePlaylistView({
               track={track}
               index={index + 1}
               busy={busy}
-              onPlay={() => void playTrack(track)}
+              onPlay={() => void playFrom(index)}
             />
           ))}
         </ul>
@@ -229,15 +238,16 @@ function RemoteTrackRow({
   busy: boolean;
   onPlay: () => void;
 }) {
-  const pending = track.title == null;
   return (
     <li className="group flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
       <div className="w-6 text-right text-xs text-zinc-400 tabular-nums shrink-0">
         <span className="group-hover:hidden">{index}</span>
+        {/* Playable even while awaiting metadata: the server streams by
+            id, so a missing title only means we can't label it yet. */}
         <button
           type="button"
           onClick={onPlay}
-          disabled={busy || pending}
+          disabled={busy}
           className="hidden group-hover:inline-flex text-emerald-600 dark:text-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed"
           aria-label="Play"
         >

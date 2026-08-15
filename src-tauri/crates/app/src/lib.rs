@@ -21,6 +21,11 @@ mod offline;
 mod paths;
 mod player_actions;
 mod queue;
+// Remote play queue (RFC-005). Plain in-memory data — compiled
+// unconditionally so the always-present player control seams can probe
+// and clear it; the `sync_v2`-gated orchestration lives in
+// `remote::playback`.
+mod remote_playback;
 // Remote music source + user-data sync v2 (RFC-005). `mod sync` is now
 // permanently the no-op stub — the retired v1 protocol was removed in
 // the RFC-005 cutover — and v2 does not synchronize local-entity CRUD at
@@ -717,6 +722,8 @@ pub fn run() {
             commands::remote_auth::remote_stream_url,
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_artwork,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_play_playlist,
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_list_playlists,
             #[cfg(feature = "sync_v2")]

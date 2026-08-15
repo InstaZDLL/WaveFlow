@@ -88,6 +88,7 @@ pub mod client;
 pub mod drain;
 pub mod dto;
 pub mod mutation;
+pub mod playback;
 pub mod probe;
 pub mod projection;
 pub mod read;

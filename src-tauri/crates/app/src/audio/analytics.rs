@@ -58,6 +58,12 @@ pub enum AnalyticsMsg {
     /// `peek_next` and a `SetNextTrack` reply so the decoder can
     /// open the second decoder before the fade window starts.
     PrefetchNext,
+    /// A finite non-library stream reached EOF (`track_id < 0`). No
+    /// `play_event` — there is no library row — but if a remote play
+    /// queue is active this drives its auto-advance. Radio is infinite
+    /// and does not reach here on its own; a dropped radio connection
+    /// can, and is ignored when no remote queue is active.
+    RemoteTrackEnded { track_id: i64 },
     /// Sent by the decoder right after the crossfade swap has
     /// happened and the second decoder is now the primary. Writes a
     /// `play_event` for the just-faded-out track AND advances the
@@ -182,6 +188,20 @@ async fn handle_message(
                 *source_id,
             )
             .await;
+        }
+        AnalyticsMsg::RemoteTrackEnded { track_id } => {
+            // No play_event — a remote-queue track has no library row.
+            // Advance the remote queue if one is active; otherwise this
+            // was a plain radio stream ending, so do nothing.
+            let _ = track_id;
+            #[cfg(feature = "sync_v2")]
+            if state.remote_playback.is_active() {
+                if let Err(err) =
+                    crate::remote::playback::advance(app, Direction::Next).await
+                {
+                    tracing::warn!(%err, "remote auto-advance failed");
+                }
+            }
         }
         AnalyticsMsg::PrefetchNext => {
             // Look up what would be played next without bumping the

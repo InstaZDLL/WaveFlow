@@ -671,7 +671,7 @@ mod tests {
     use super::*;
     use crate::remote::mutation::pending;
     use sqlx::sqlite::SqlitePoolOptions;
-    use sqlx::{Row, SqlitePool};
+    use sqlx::SqlitePool;
 
     async fn pool() -> SqlitePool {
         let pool = SqlitePoolOptions::new()

@@ -459,3 +459,18 @@ pub async fn remote_artwork(
 ) -> AppResult<String> {
     crate::remote::stream::artwork_data_url(&state, &artwork_hash).await
 }
+
+/// Play a projected remote playlist as a native queue, starting at
+/// `start_index`. Fills the in-memory remote queue from the projection so
+/// the tracks after it auto-advance, mints a stream ticket for the first,
+/// and hands its URL to the engine. Manual next/previous and end-of-track
+/// all route back through [`crate::remote::playback`] while the session is
+/// active.
+#[tauri::command]
+pub async fn remote_play_playlist(
+    app: tauri::AppHandle,
+    playlist_id: String,
+    start_index: usize,
+) -> AppResult<()> {
+    crate::remote::playback::start(&app, &playlist_id, start_index).await
+}

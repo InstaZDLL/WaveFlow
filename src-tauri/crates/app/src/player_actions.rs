@@ -106,6 +106,10 @@ pub async fn step(app: &AppHandle, direction: Direction, label: &str) -> Moved {
 
 /// Advance to the next queue entry.
 pub async fn next(app: &AppHandle, label: &str) -> Moved {
+    #[cfg(feature = "sync_v2")]
+    if let Some(moved) = try_remote_advance(app, Direction::Next, label).await {
+        return moved;
+    }
     step(app, Direction::Next, label).await
 }
 
@@ -116,7 +120,25 @@ pub async fn previous(app: &AppHandle, label: &str) -> Moved {
         let _ = engine.send(AudioCmd::Seek(0));
         return Moved::Restarted;
     }
+    #[cfg(feature = "sync_v2")]
+    if let Some(moved) = try_remote_advance(app, Direction::Previous, label).await {
+        return moved;
+    }
     step(app, Direction::Previous, label).await
+}
+
+/// When a remote play queue is active, advance it instead of the local
+/// queue. Returns `Some(Moved)` when it handled the step, `None` to fall
+/// through to the local `queue_item` path.
+#[cfg(feature = "sync_v2")]
+async fn try_remote_advance(app: &AppHandle, direction: Direction, label: &str) -> Option<Moved> {
+    if !app.state::<AppState>().remote_playback.is_active() {
+        return None;
+    }
+    if let Err(err) = crate::remote::playback::advance(app, direction).await {
+        tracing::warn!(%err, surface = label, "remote player action: advance failed");
+    }
+    Some(Moved::Track)
 }
 
 /// Jump to an absolute queue position and play it.

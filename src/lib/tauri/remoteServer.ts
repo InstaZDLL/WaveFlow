@@ -223,6 +223,20 @@ export function remoteArtwork(artworkHash: string): Promise<string> {
 }
 
 /**
+ * Play a remote playlist as a native queue, starting at `startIndex`. The
+ * backend fills an in-memory remote queue from the projection, mints a
+ * stream ticket for the first track, and streams it through the engine —
+ * so the tracks after it auto-advance and the PlayerBar's next / previous
+ * (and the media keys) drive the remote queue while it is playing.
+ */
+export function remotePlayPlaylist(
+  playlistId: string,
+  startIndex: number,
+): Promise<void> {
+  return invoke<void>("remote_play_playlist", { playlistId, startIndex });
+}
+
+/**
  * Local gestures on remote data.
  *
  * Each resolves as soon as the change is durable **locally** — it is

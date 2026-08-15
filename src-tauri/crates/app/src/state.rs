@@ -289,6 +289,11 @@ pub struct AppState {
     /// by how many distinct plugin ids the user ever touches in
     /// one session — sub-dozen for v1.5.0, no GC needed.
     pub plugin_locks: Arc<Mutex<HashMap<String, Arc<Mutex<()>>>>>,
+    /// The active remote play queue, if any (RFC-005). Streams its tracks
+    /// by URL rather than from `queue_item`; cleared the moment a library
+    /// track or a radio stream takes over. Always present — a stock build
+    /// simply never populates it (the command that does is `sync_v2`-gated).
+    pub remote_playback: crate::remote_playback::RemotePlayback,
 }
 
 impl AppState {
@@ -402,6 +407,7 @@ impl AppState {
             ws: Arc::new(crate::sync::ws::SubscribeHandle),
             plugins,
             plugin_locks: Arc::new(Mutex::new(HashMap::new())),
+            remote_playback: crate::remote_playback::RemotePlayback::default(),
         };
 
         state.bootstrap().await?;
