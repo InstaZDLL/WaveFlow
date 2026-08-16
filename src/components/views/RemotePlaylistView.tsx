@@ -218,6 +218,23 @@ export function RemotePlaylistView({
   // every other mode is a stable copy-sort that never mutates the
   // projection — the drag handle and ×-remove are hidden while it's
   // active (see the row), so the two can't disagree on positions.
+  // Up to four distinct track covers for the header mosaic — the same
+  // auto-generated look the local "Liked Songs" tile has, composed here
+  // from the per-track artwork we already hold (no server cover needed).
+  // Dedup so a single-artist playlist doesn't show four identical tiles.
+  const coverHashes = useMemo<string[]>(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const t of tracks) {
+      if (t.artwork_hash && !seen.has(t.artwork_hash)) {
+        seen.add(t.artwork_hash);
+        out.push(t.artwork_hash);
+        if (out.length === 4) break;
+      }
+    }
+    return out;
+  }, [tracks]);
+
   const isCustomOrder = sortMode === "custom";
   const displayTracks = useMemo<RemoteTrack[]>(() => {
     if (isCustomOrder) return tracks;
@@ -456,11 +473,30 @@ export function RemotePlaylistView({
         className={`flex items-start justify-between p-6 rounded-2xl ${color.previewBg}`}
       >
         <div className="flex items-center space-x-6 min-w-0">
-          <div
-            className={`w-24 h-24 rounded-2xl shadow-sm flex items-center justify-center shrink-0 ${color.tileBg} ${color.tileText}`}
-          >
-            <ListMusic size={48} />
-          </div>
+          {coverHashes.length >= 4 ? (
+            <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-sm shrink-0 grid grid-cols-2">
+              {coverHashes.map((hash) => (
+                <RemoteArtwork
+                  key={hash}
+                  hash={hash}
+                  className="w-full h-full"
+                  iconSize={16}
+                />
+              ))}
+            </div>
+          ) : coverHashes.length >= 1 ? (
+            <RemoteArtwork
+              hash={coverHashes[0]}
+              className="w-24 h-24 rounded-2xl shadow-sm shrink-0"
+              iconSize={40}
+            />
+          ) : (
+            <div
+              className={`w-24 h-24 rounded-2xl shadow-sm flex items-center justify-center shrink-0 ${color.tileBg} ${color.tileText}`}
+            >
+              <ListMusic size={48} />
+            </div>
+          )}
           <div className="min-w-0">
             <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
               Remote playlist
