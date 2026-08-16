@@ -323,10 +323,12 @@ always-compiled `remote_playback` so the control seams stay feature-clean.
 **UI.** The remote source is managed from the main UI, not Settings: a "Remote
 source" section at the bottom of the sidebar (headed by the server host, listing
 its playlists) and a `RemotePlaylistView` that plays, renames, deletes, removes
-tracks from and reorders them like local playlists. Track edits go through the
-server's `UpdatePlaylist` mutation: removal queues `remove_indexes`; reorder, for
-which the mutation has no move, queues a full replace (`remove_indexes` for every
-position + `add` in the new order). `RemoteServerCard` in Settings is connection-only —
+tracks from, reorders and adds tracks to them like local playlists. Track edits
+go through the server's `UpdatePlaylist` mutation: add queues `add` (its hits
+come from a live `/api/v2/search`, cached into `remote_track` so titles render at
+once); removal queues `remove_indexes`; reorder, for which the mutation has no
+move, queues a full replace (`remove_indexes` for every position + `add` in the
+new order). `RemoteServerCard` in Settings is connection-only —
 identify, sign in, sync, sign out, forget. `CreatePlaylistModal` offers an "also
 create on the server" checkbox when one is connected. All of it self-hides when
 `sync_v2` is off (the frontend probes `remote_get_status`) and is intentionally
@@ -342,7 +344,7 @@ and `HttpMediaSource::open_seekable` reads `Content-Length` + `Accept-Ranges` to
 advertise `is_seekable()`, so a drag drives `format.seek`, which reissues a
 ranged GET. Radio stays forward-only (opened with ICY, never seekable).
 
-Deferred: adding tracks (needs a remote catalogue picker).
+Nothing is deferred: the remote source is managed end to end like a local one.
 
 ## Local schema
 
