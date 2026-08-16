@@ -49,17 +49,15 @@ use std::sync::Mutex;
 use crate::queue::{Direction, RepeatMode};
 
 /// One entry of a remote play queue: a server track id plus the metadata
-/// the PlayerBar shows. Cloned out of the lock before any await.
-///
-/// Deliberately narrow — id, title, artist are what the overlay needs
-/// today. Artwork (Bearer-only, fetched as a data URL) and duration would
-/// let the bar show a cover and a bounded seekbar, but neither reaches the
-/// engine through `LoadUrlAndPlay` yet; they join here when that does.
+/// the PlayerBar, the queue panel and the seekbar read. Cloned out of the
+/// lock before any await.
 #[derive(Debug, Clone)]
 pub struct RemoteEntry {
     pub id: String,
     pub title: Option<String>,
     pub artist: Option<String>,
+    pub artwork_hash: Option<String>,
+    pub duration_ms: Option<i64>,
 }
 
 /// An ordered remote play queue and its cursor.
@@ -104,6 +102,24 @@ impl RemotePlayback {
     pub fn current(&self) -> Option<RemoteEntry> {
         let guard = self.inner.lock().expect("remote_playback poisoned");
         guard.as_ref().and_then(|q| q.entries.get(q.index).cloned())
+    }
+
+    /// A snapshot of the whole queue and its cursor, for the queue panel.
+    pub fn snapshot(&self) -> Option<(Vec<RemoteEntry>, usize)> {
+        let guard = self.inner.lock().expect("remote_playback poisoned");
+        guard.as_ref().map(|q| (q.entries.clone(), q.index))
+    }
+
+    /// Move the cursor to an absolute position (clamped) and return the
+    /// entry there. Used when the user clicks a row in the queue panel.
+    pub fn seek_to(&self, index: usize) -> Option<RemoteEntry> {
+        let mut guard = self.inner.lock().expect("remote_playback poisoned");
+        let queue = guard.as_mut()?;
+        if queue.entries.is_empty() {
+            return None;
+        }
+        queue.index = index.min(queue.entries.len() - 1);
+        queue.entries.get(queue.index).cloned()
     }
 
     /// Move the cursor one step and return the entry it lands on. Returns
@@ -237,6 +253,8 @@ mod tests {
             id: id.into(),
             title: None,
             artist: None,
+            artwork_hash: None,
+            duration_ms: None,
         }
     }
 }

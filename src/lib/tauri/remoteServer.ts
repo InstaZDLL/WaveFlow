@@ -236,6 +236,34 @@ export function remotePlayPlaylist(
   return invoke<void>("remote_play_playlist", { playlistId, startIndex });
 }
 
+export interface RemotePlayQueueRow {
+  id: string;
+  title: string | null;
+  artist: string | null;
+  artwork_hash: string | null;
+  duration_ms: number | null;
+}
+
+export interface RemotePlayQueue {
+  entries: RemotePlayQueueRow[];
+  /** Index of the entry currently playing. */
+  index: number;
+}
+
+/**
+ * Snapshot the live remote play queue, or `null` when the current
+ * playback is a library track or a radio stream (i.e. no remote session).
+ * Read from memory — instant, no server round-trip.
+ */
+export function remoteGetPlayQueue(): Promise<RemotePlayQueue | null> {
+  return invoke<RemotePlayQueue | null>("remote_get_play_queue");
+}
+
+/** Jump the remote play queue to an absolute position and play it. */
+export function remoteQueueJump(index: number): Promise<void> {
+  return invoke<void>("remote_queue_jump", { index });
+}
+
 /**
  * Local gestures on remote data.
  *

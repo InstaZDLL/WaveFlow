@@ -474,3 +474,52 @@ pub async fn remote_play_playlist(
 ) -> AppResult<()> {
     crate::remote::playback::start(&app, &playlist_id, start_index).await
 }
+
+/// One row of the live remote play queue.
+#[derive(Debug, Clone, Serialize)]
+pub struct RemoteQueueRow {
+    pub id: String,
+    pub title: Option<String>,
+    pub artist: Option<String>,
+    pub artwork_hash: Option<String>,
+    pub duration_ms: Option<i64>,
+}
+
+/// The live remote play queue and its cursor, for the queue panel.
+#[derive(Debug, Clone, Serialize)]
+pub struct RemotePlayQueue {
+    pub entries: Vec<RemoteQueueRow>,
+    pub index: usize,
+}
+
+/// Snapshot the active remote play queue, or `None` when the current
+/// playback is a library track or a radio stream. Read from memory —
+/// instant, no server round-trip.
+#[tauri::command]
+pub async fn remote_get_play_queue(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Option<RemotePlayQueue>> {
+    Ok(state.remote_playback.snapshot().map(|(entries, index)| {
+        RemotePlayQueue {
+            entries: entries
+                .into_iter()
+                .map(|e| RemoteQueueRow {
+                    id: e.id,
+                    title: e.title,
+                    artist: e.artist,
+                    artwork_hash: e.artwork_hash,
+                    duration_ms: e.duration_ms,
+                })
+                .collect(),
+            index,
+        }
+    }))
+}
+
+/// Jump the remote play queue to an absolute position and play it. Backs
+/// the queue panel's click-to-jump; a no-op when no remote session is
+/// active.
+#[tauri::command]
+pub async fn remote_queue_jump(app: tauri::AppHandle, index: usize) -> AppResult<()> {
+    crate::remote::playback::jump_to(&app, index).await
+}

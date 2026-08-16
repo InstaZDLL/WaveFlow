@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, ListMusic, Pencil, Play, Trash2 } from "lucide-react";
 import {
-  remoteArtwork,
   remoteDeletePlaylist,
   remoteListPlaylists,
   remoteListPlaylistTracks,
@@ -12,6 +11,7 @@ import {
 } from "../../lib/tauri/remoteServer";
 import { formatDuration } from "../../lib/tauri/track";
 import { notifyRemoteChanged } from "../../hooks/useRemoteSource";
+import { RemoteArtwork } from "../common/RemoteArtwork";
 
 /**
  * A single remote-server playlist, managed like a local one but from the
@@ -267,47 +267,5 @@ function RemoteTrackRow({
         {track.duration_ms != null ? formatDuration(track.duration_ms) : "—"}
       </div>
     </li>
-  );
-}
-
-/**
- * The artwork endpoint is Bearer-only, so a bare `<img src>` would 401.
- * Fetch it once as a `data:` URL and cache it in state; fall back to a
- * neutral tile while it resolves or when there is no hash.
- */
-function RemoteArtwork({ hash }: { hash: string | null }) {
-  const [src, setSrc] = useState<string | null>(null);
-  useEffect(() => {
-    if (!hash) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSrc(null);
-      return;
-    }
-    let cancelled = false;
-    remoteArtwork(hash)
-      .then((url) => {
-        if (!cancelled) setSrc(url);
-      })
-      .catch(() => {
-        if (!cancelled) setSrc(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [hash]);
-  if (!src) {
-    return (
-      <div className="w-9 h-9 rounded bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center shrink-0">
-        <ListMusic size={14} className="text-zinc-400" />
-      </div>
-    );
-  }
-  return (
-    <img
-      src={src}
-      alt=""
-      className="w-9 h-9 rounded object-cover shrink-0"
-      loading="lazy"
-    />
   );
 }

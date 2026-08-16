@@ -45,6 +45,8 @@ import {
   type QueueTrackPayload,
 } from "../../lib/tauri/player";
 import { SpotifyQueueView } from "./SpotifyQueueView";
+import { RemoteQueueView } from "./RemoteQueueView";
+import { isRemoteTrack } from "../../lib/playerSources";
 
 /**
  * Right-hand queue panel. Shows:
@@ -57,9 +59,13 @@ import { SpotifyQueueView } from "./SpotifyQueueView";
  */
 export function QueuePanel() {
   const { t } = useTranslation();
-  const { isQueueOpen, toggleQueue, playbackState, activeProvider } =
+  const { isQueueOpen, toggleQueue, playbackState, activeProvider, currentTrack } =
     usePlayer();
   const isSpotify = activeProvider === "spotify";
+  // A remote play session has its own in-memory queue, shown by a
+  // dedicated view — the local `player_get_queue` path (and its jump /
+  // reorder) act on the library queue, which isn't what's playing here.
+  const isRemote = isRemoteTrack(currentTrack);
   const [snapshot, setSnapshot] = useState<PlayerQueueSnapshot | null>(null);
 
   // Seq counter so overlapping refetches never resolve in the
@@ -215,7 +221,7 @@ export function QueuePanel() {
           <div>
             <h2 className="text-xl font-bold">{t("queue.title")}</h2>
             <p className="text-xs text-zinc-500 mt-1">
-              {t("queue.count", { count: total })}
+              {!isRemote && t("queue.count", { count: total })}
               {!isActive && (
                 <span className="bg-zinc-200 dark:bg-zinc-700 text-[10px] px-2 py-0.5 rounded-full ml-2 font-medium">
                   {t("queue.inactive")}
@@ -233,7 +239,9 @@ export function QueuePanel() {
           </button>
         </div>
 
-        {isSpotify ? (
+        {isRemote ? (
+          <RemoteQueueView />
+        ) : isSpotify ? (
           <SpotifyQueueView />
         ) : total === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center">

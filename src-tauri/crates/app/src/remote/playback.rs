@@ -39,6 +39,8 @@ pub async fn start(app: &AppHandle, playlist_id: &str, start_index: usize) -> Ap
                 id: t.id,
                 title: t.title,
                 artist: t.artist,
+                artwork_hash: t.artwork_hash,
+                duration_ms: t.duration_ms,
             })
             .collect::<Vec<_>>()
     };
@@ -52,6 +54,16 @@ pub async fn start(app: &AppHandle, playlist_id: &str, start_index: usize) -> Ap
     let index = start_index.min(entries.len() - 1);
     state.remote_playback.set(RemoteQueue { entries, index });
     play_current(app).await
+}
+
+/// Move the cursor to an absolute position and play it. Backs the queue
+/// panel's click-to-jump on a remote session.
+pub async fn jump_to(app: &AppHandle, index: usize) -> AppResult<()> {
+    let state = app.state::<AppState>();
+    match state.remote_playback.seek_to(index) {
+        Some(_) => play_current(app).await,
+        None => Ok(()),
+    }
 }
 
 /// Step the remote cursor and play what it lands on. `None` from the step
