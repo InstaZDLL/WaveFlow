@@ -87,7 +87,11 @@ function radioMetadataToTrack(payload: RadioMetadata): Track {
     sample_rate: null,
     channels: null,
     bit_depth: null,
-    codec: "Web Radio",
+    // The `codec` doubles as the discriminator the transport controls and
+    // the pipeline popover read: "Web Radio" gates next / previous off and
+    // labels the source, "Remote server" keeps them on (a remote queue does
+    // advance) and labels it as such. See `isRadioTrack` / `isRemoteTrack`.
+    codec: payload.is_remote ? "Remote server" : "Web Radio",
     musical_key: null,
     file_path: "",
     file_size: 0,
@@ -308,7 +312,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             const radio = await getCurrentRadioMetadata();
             if (!cancelled && radio) {
               setCurrentTrack(radioMetadataToTrack(radio));
-              setCurrentRadioStation(radioStationFromMetadata(radio));
+              // A remote-queue track is not a favouritable station — its
+              // URL is an expiring ticket, not a stable stream.
+              setCurrentRadioStation(
+                radio.is_remote ? null : radioStationFromMetadata(radio),
+              );
               setDurationMs(0);
               // Upgrade the station favicon to the song's album cover.
               fetchRadioArtworkInto(radio.title, radio.artist);
@@ -423,7 +431,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             // station identity drives the favorite-station star.
             setActiveProvider("local");
             setCurrentTrack(radioMetadataToTrack(e.payload));
-            setCurrentRadioStation(radioStationFromMetadata(e.payload));
+            // Remote-queue tracks aren't favouritable stations (expiring
+            // ticket URL, not a stable stream) — leave the station null.
+            setCurrentRadioStation(
+              e.payload.is_remote
+                ? null
+                : radioStationFromMetadata(e.payload),
+            );
             setDurationMs(0);
             setPositionMs(0);
             // The payload only carries the station favicon; fetch the

@@ -456,6 +456,16 @@ fn decoder_loop(
                         station_name: title.clone(),
                         station_artist: artist.clone(),
                         station_artwork: artwork_url.clone(),
+                        // A remote-queue track and a radio station both reach
+                        // here via `LoadUrlAndPlay`; the live remote-session
+                        // flag is the only thing that tells them apart. Read
+                        // it now (a plain `std::sync::Mutex`, no await) so the
+                        // frontend can enable next / previous and label the
+                        // source correctly.
+                        is_remote: app
+                            .state::<crate::state::AppState>()
+                            .remote_playback
+                            .is_active(),
                     },
                 );
 

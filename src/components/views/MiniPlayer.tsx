@@ -28,7 +28,7 @@ import { Window as TauriWindow } from "@tauri-apps/api/window";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
-import { isRadioTrack } from "../../lib/playerSources";
+import { isRadioTrack, isStreamTrack } from "../../lib/playerSources";
 import { Artwork } from "../common/Artwork";
 import { resolveArtwork } from "../../lib/tauri/artwork";
 import { dominantColor, darken, rgb } from "../../lib/dominantColor";
@@ -506,7 +506,7 @@ export function MiniPlayer() {
                   }
                 />
               </button>
-            ) : currentTrack && !isSpotify && !isRadioTrack(currentTrack) ? (
+            ) : currentTrack && !isSpotify && !isStreamTrack(currentTrack) ? (
               // Guard the radio sentinel track (negative id) during the
               // hydration race / idle tail — no ♥ like without a library
               // row. `currentTrack &&` also drops the disabled ♥ when

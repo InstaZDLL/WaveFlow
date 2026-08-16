@@ -13,7 +13,7 @@ import {
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
 import { useCoverSlideshow } from "../../hooks/useCoverSlideshow";
-import { isRadioTrack } from "../../lib/playerSources";
+import { isStreamTrack } from "../../lib/playerSources";
 import { Artwork } from "../common/Artwork";
 import { MotionCoverOverlay } from "../player/MotionCoverOverlay";
 import { CanvasStage } from "../player/CanvasStage";
@@ -174,7 +174,7 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
   const slideshowEligible =
     !!currentTrack &&
     activeProvider !== "spotify" &&
-    !isRadioTrack(currentTrack);
+    !isStreamTrack(currentTrack);
   // Only surface the photo when it belongs to the current artist — a mismatch
   // (artist just changed, effect not re-resolved yet) reads as none.
   const artistSlideSrc =

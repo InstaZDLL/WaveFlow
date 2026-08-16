@@ -10,7 +10,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
-import { isRadioTrack } from "../../lib/playerSources";
+import { isRadioTrack, isRemoteTrack } from "../../lib/playerSources";
 
 export function PlaybackControls() {
   const { t } = useTranslation();
@@ -39,6 +39,10 @@ export function PlaybackControls() {
   // Discrimination contract lives in `isRadioTrack` — keep the
   // gating decentralised here, the invariant centralised there.
   const isRadio = isRadioTrack(currentTrack);
+  // A remote-queue track advances (Previous / Next / Repeat drive the
+  // remote queue in the backend), so it is NOT gated like radio — only
+  // Shuffle stays off, since the remote queue has no shuffle yet.
+  const isRemote = isRemoteTrack(currentTrack);
   const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
   const isRepeatActive = repeatMode !== "off";
 
@@ -47,7 +51,7 @@ export function PlaybackControls() {
       <button
         type="button"
         onClick={toggleShuffle}
-        disabled={isSpotify || isRadio}
+        disabled={isSpotify || isRadio || isRemote}
         aria-pressed={isShuffled}
         aria-label={
           isShuffled

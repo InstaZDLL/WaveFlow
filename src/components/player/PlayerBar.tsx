@@ -18,7 +18,7 @@ import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { HiResBadge } from "../common/HiResBadge";
 import { MarqueeText } from "../common/MarqueeText";
-import { isRadioTrack } from "../../lib/playerSources";
+import { isRadioTrack, isStreamTrack } from "../../lib/playerSources";
 import { PlaybackControls } from "./PlaybackControls";
 import { ProgressBar } from "./ProgressBar";
 import { SleepTimerMenu } from "./SleepTimerMenu";
@@ -239,8 +239,8 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                   fill={stationFavorited ? "currentColor" : "none"}
                 />
               </button>
-            ) : currentTrack && !isSpotify && !isRadioTrack(currentTrack) ? (
-              // `!isRadioTrack` guards the hydration race + the idle
+            ) : currentTrack && !isSpotify && !isStreamTrack(currentTrack) ? (
+              // `!isStreamTrack` guards the hydration race + the idle
               // tail: a radio sentinel track (negative id) must never
               // show a ♥ like (it has no library row), even in the brief
               // window before `currentRadioStation` arrives.
