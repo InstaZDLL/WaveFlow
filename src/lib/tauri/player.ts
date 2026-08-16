@@ -208,6 +208,9 @@ export interface RadioMetadata {
    * than "Web Radio".
    */
   is_remote: boolean;
+  /** Track length in ms for a remote-queue entry, when known; `null` for
+   *  live radio. Drives a bounded (but non-seekable) progress bar. */
+  duration_ms: number | null;
 }
 
 /**

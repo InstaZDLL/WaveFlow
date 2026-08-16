@@ -466,6 +466,12 @@ fn decoder_loop(
                             .state::<crate::state::AppState>()
                             .remote_playback
                             .is_active(),
+                        // A remote-queue entry carries its length; radio
+                        // does not. Drives a bounded seekbar on the bar.
+                        duration_ms: app
+                            .state::<crate::state::AppState>()
+                            .remote_playback
+                            .current_duration_ms(),
                     },
                 );
 

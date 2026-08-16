@@ -9,7 +9,7 @@ import {
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { usePlayer } from "../../hooks/usePlayer";
-import { isRadioTrack } from "../../lib/playerSources";
+import { isRadioTrack, isRemoteTrack } from "../../lib/playerSources";
 import { formatDuration } from "../../lib/tauri/track";
 import { playerGetAbLoop, type AbLoopSnapshot } from "../../lib/tauri/player";
 
@@ -56,6 +56,10 @@ export function ProgressBar() {
   }, []);
 
   const hasTrack = currentTrack != null && durationMs > 0;
+  // A remote-queue track has a known length (so the bar fills and shows a
+  // total) but streams over a non-seekable HTTP source, so dragging /
+  // arrow-key seeking must stay off — the backend would reject the seek.
+  const seekable = hasTrack && !isRemoteTrack(currentTrack);
   const displayMs = dragMs ?? positionMs;
   const clampedDisplay = Math.min(
     Math.max(displayMs, 0),
@@ -79,12 +83,12 @@ export function ProgressBar() {
 
   const handlePointerDown = useCallback(
     (e: PointerEvent<HTMLDivElement>) => {
-      if (!hasTrack) return;
+      if (!seekable) return;
       (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
       setSeeking(true);
       setDragMs(positionFromPointer(e.clientX));
     },
-    [hasTrack, positionFromPointer, setSeeking],
+    [seekable, positionFromPointer, setSeeking],
   );
 
   const handlePointerMove = useCallback(
@@ -115,7 +119,7 @@ export function ProgressBar() {
   const PAGE_MS = 30_000;
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
-      if (!hasTrack) return;
+      if (!seekable) return;
       let next: number;
       switch (e.key) {
         case "ArrowLeft":
@@ -144,7 +148,7 @@ export function ProgressBar() {
       e.preventDefault();
       seek(next);
     },
-    [hasTrack, positionMs, durationMs, seek],
+    [seekable, positionMs, durationMs, seek],
   );
 
   // Live Web Radio has no seekable timeline (the stream started before we
@@ -166,15 +170,15 @@ export function ProgressBar() {
         onPointerCancel={handlePointerUp}
         onKeyDown={handleKeyDown}
         role="slider"
-        tabIndex={hasTrack ? 0 : -1}
+        tabIndex={seekable ? 0 : -1}
         aria-label={t("player.seek", "Position")}
         aria-valuemin={0}
         aria-valuemax={hasTrack ? durationMs : 0}
         aria-valuenow={hasTrack ? clampedDisplay : 0}
         aria-valuetext={`${formatDuration(clampedDisplay)} / ${formatDuration(durationMs)}`}
-        aria-disabled={!hasTrack}
+        aria-disabled={!seekable}
         className={`flex-1 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700 relative ${
-          hasTrack ? "cursor-pointer" : "cursor-default"
+          seekable ? "cursor-pointer" : "cursor-default"
         } group`}
       >
         <div
@@ -212,7 +216,7 @@ export function ProgressBar() {
               }}
             />
           )}
-        {hasTrack && (
+        {seekable && (
           <div
             className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow border border-zinc-200 opacity-0 group-hover:opacity-100 transition-opacity"
             style={{ left: `calc(${percent}% - 6px)` }}

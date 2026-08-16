@@ -104,6 +104,17 @@ impl RemotePlayback {
         guard.as_ref().and_then(|q| q.entries.get(q.index).cloned())
     }
 
+    /// Duration of the entry under the cursor, if known. Lets the decoder
+    /// stamp a bounded timeline on the radio-metadata event for a remote
+    /// track (radio has none). `None` when no session is active.
+    pub fn current_duration_ms(&self) -> Option<i64> {
+        let guard = self.inner.lock().expect("remote_playback poisoned");
+        guard
+            .as_ref()
+            .and_then(|q| q.entries.get(q.index))
+            .and_then(|e| e.duration_ms)
+    }
+
     /// A snapshot of the whole queue and its cursor, for the queue panel.
     pub fn snapshot(&self) -> Option<(Vec<RemoteEntry>, usize)> {
         let guard = self.inner.lock().expect("remote_playback poisoned");

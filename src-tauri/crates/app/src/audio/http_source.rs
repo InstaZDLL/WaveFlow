@@ -383,8 +383,10 @@ impl HttpMediaSource {
                 station_artwork: icy.artwork_url.clone(),
                 // ICY `StreamTitle` frames only come from a live shoutcast
                 // stream — a remote-queue track is a plain file with no ICY,
-                // so this re-emit path is always a radio station.
+                // so this re-emit path is always a radio station with an
+                // open-ended timeline.
                 is_remote: false,
+                duration_ms: None,
             },
         );
     }

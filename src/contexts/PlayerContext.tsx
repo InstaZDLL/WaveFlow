@@ -76,10 +76,11 @@ function radioMetadataToTrack(payload: RadioMetadata): Track {
     artist_id: null,
     artist_name: payload.artist,
     artist_ids: null,
-    // 0 = open-ended scrubber. The PlayerBar's progress fields special-
-    // case duration_ms === 0 already (live mode for DLNA / Spotify),
-    // so the radio inherits that path without extra logic.
-    duration_ms: 0,
+    // 0 = open-ended scrubber (live radio). A remote-queue track carries
+    // its real length, so the bar draws a bounded — if non-seekable —
+    // timeline; the PlayerBar special-cases duration_ms === 0 for the live
+    // case (DLNA / Spotify / radio).
+    duration_ms: payload.duration_ms ?? 0,
     track_number: null,
     disc_number: null,
     year: null,
@@ -317,7 +318,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
               setCurrentRadioStation(
                 radio.is_remote ? null : radioStationFromMetadata(radio),
               );
-              setDurationMs(0);
+              setDurationMs(radio.duration_ms ?? 0);
               // Upgrade the station favicon to the song's album cover.
               fetchRadioArtworkInto(radio.title, radio.artist);
             }
@@ -438,7 +439,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                 ? null
                 : radioStationFromMetadata(e.payload),
             );
-            setDurationMs(0);
+            setDurationMs(e.payload.duration_ms ?? 0);
             setPositionMs(0);
             // The payload only carries the station favicon; fetch the
             // song's real album cover from Deezer and swap it in async.

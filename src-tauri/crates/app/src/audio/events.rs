@@ -49,6 +49,10 @@ pub struct RadioMetadataPayload {
     /// advances. The decoder sets this by reading whether a remote session
     /// is active at emit time.
     pub is_remote: bool,
+    /// Track length in ms for a remote-queue entry, when known — lets the
+    /// PlayerBar draw a bounded progress bar with a total time. `None` for
+    /// live radio, whose timeline is open-ended.
+    pub duration_ms: Option<i64>,
 }
 
 /// Last emitted radio metadata, kept process-wide so a webview that
