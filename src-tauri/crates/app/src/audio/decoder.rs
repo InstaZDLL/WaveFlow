@@ -442,6 +442,20 @@ fn decoder_loop(
                 // offline load never caches a phantom station; a later
                 // open/probe failure transitions to Idle, which clears
                 // the cache via `transition_state`.
+                // A remote-queue track and a radio station both arrive via
+                // `LoadUrlAndPlay` with a negative id; the live remote-session
+                // flag is the only thing that tells them apart. Read it once
+                // (a plain `std::sync::Mutex`, no await) — it drives the emit
+                // below AND whether the source is opened seekable.
+                let is_remote = {
+                    let state = app.state::<crate::state::AppState>();
+                    state.remote_playback.is_active()
+                };
+                let remote_duration = app
+                    .state::<crate::state::AppState>()
+                    .remote_playback
+                    .current_duration_ms();
+
                 emit_radio_metadata(
                     &app,
                     RadioMetadataPayload {
@@ -456,22 +470,10 @@ fn decoder_loop(
                         station_name: title.clone(),
                         station_artist: artist.clone(),
                         station_artwork: artwork_url.clone(),
-                        // A remote-queue track and a radio station both reach
-                        // here via `LoadUrlAndPlay`; the live remote-session
-                        // flag is the only thing that tells them apart. Read
-                        // it now (a plain `std::sync::Mutex`, no await) so the
-                        // frontend can enable next / previous and label the
-                        // source correctly.
-                        is_remote: app
-                            .state::<crate::state::AppState>()
-                            .remote_playback
-                            .is_active(),
+                        is_remote,
                         // A remote-queue entry carries its length; radio
                         // does not. Drives a bounded seekbar on the bar.
-                        duration_ms: app
-                            .state::<crate::state::AppState>()
-                            .remote_playback
-                            .current_duration_ms(),
+                        duration_ms: remote_duration,
                     },
                 );
 
@@ -482,34 +484,38 @@ fn decoder_loop(
                 // the rolling log file.
                 let redacted = super::http_source::redact_url(&url);
 
-                // Pass the station identity so the source can re-emit
-                // `player:radio-metadata` with the live `StreamTitle`
-                // while keeping the station's cover + name (ICY rarely
-                // carries per-song art). Falls back to passthrough when
-                // the server doesn't interleave metadata.
-                let icy_ctx = super::http_source::IcyContext {
-                    app: app.clone(),
-                    track_id,
-                    station_url: url.clone(),
-                    station_name: title.clone(),
-                    station_artist: artist.clone(),
-                    artwork_url: artwork_url.clone(),
-                };
-                let http_source =
-                    match super::http_source::HttpMediaSource::open_with_icy(&url, icy_ctx) {
-                        Ok(s) => s,
-                        Err(err) => {
-                            tracing::warn!(?err, url = %redacted, "radio stream open failed");
-                            let _ = app.emit(
-                                EVENT_ERROR,
-                                ErrorPayload {
-                                    message: format!("radio stream open: {err}"),
-                                },
-                            );
-                            transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
-                            continue;
-                        }
+                // A remote-queue track is a finite file: open it seekable
+                // (no ICY, range-capable) so the scrubber works. Radio opens
+                // with ICY so the source can re-emit `player:radio-metadata`
+                // with the live `StreamTitle` while keeping the station's
+                // cover + name; it stays forward-only.
+                let opened = if is_remote {
+                    super::http_source::HttpMediaSource::open_seekable(&url)
+                } else {
+                    let icy_ctx = super::http_source::IcyContext {
+                        app: app.clone(),
+                        track_id,
+                        station_url: url.clone(),
+                        station_name: title.clone(),
+                        station_artist: artist.clone(),
+                        artwork_url: artwork_url.clone(),
                     };
+                    super::http_source::HttpMediaSource::open_with_icy(&url, icy_ctx)
+                };
+                let http_source = match opened {
+                    Ok(s) => s,
+                    Err(err) => {
+                        tracing::warn!(?err, url = %redacted, "url stream open failed");
+                        let _ = app.emit(
+                            EVENT_ERROR,
+                            ErrorPayload {
+                                message: format!("url stream open: {err}"),
+                            },
+                        );
+                        transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
+                        continue;
+                    }
+                };
 
                 let stream = match ActiveStream::open_from_source(
                     Box::new(http_source),

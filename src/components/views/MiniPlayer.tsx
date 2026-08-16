@@ -28,11 +28,7 @@ import { Window as TauriWindow } from "@tauri-apps/api/window";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
-import {
-  isRadioTrack,
-  isRemoteTrack,
-  isStreamTrack,
-} from "../../lib/playerSources";
+import { isRadioTrack, isStreamTrack } from "../../lib/playerSources";
 import { Artwork } from "../common/Artwork";
 import { resolveArtwork } from "../../lib/tauri/artwork";
 import { dominantColor, darken, rgb } from "../../lib/dominantColor";
@@ -78,9 +74,6 @@ export function MiniPlayer() {
   // Live radio has no seekable timeline — the seek bar + timestamps are
   // hidden (matching the PlayerBar / immersive ProgressBar).
   const isRadio = isRadioTrack(currentTrack);
-  // A remote-queue track has a known length (the bar fills + shows a total)
-  // but its HTTP source is not seekable, so the drag / thumb stay off.
-  const isRemote = isRemoteTrack(currentTrack);
 
   // Web Radio favorites — a live stream swaps the ♥ for a station ★.
   const radioFavorites = useWebRadioFavorites();
@@ -317,7 +310,7 @@ export function MiniPlayer() {
     [durationMs],
   );
   const handleSeekDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (!currentTrack || durationMs <= 0 || isRemote) return;
+    if (!currentTrack || durationMs <= 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     setSeeking(true);
     setDragMs(positionFromPointer(e.clientX));
@@ -568,13 +561,13 @@ export function MiniPlayer() {
               onPointerMove={handleSeekMove}
               onPointerUp={handleSeekUp}
               onPointerCancel={handleSeekUp}
-              className={`relative h-1 rounded-full bg-white/20 ${currentTrack && durationMs > 0 && !isRemote ? "cursor-pointer" : "cursor-default"}`}
+              className={`relative h-1 rounded-full bg-white/20 ${currentTrack && durationMs > 0 ? "cursor-pointer" : "cursor-default"}`}
             >
               <div
                 className="absolute inset-y-0 left-0 rounded-full bg-white"
                 style={{ width: `${Math.min(100, progressPct)}%` }}
               />
-              {currentTrack && durationMs > 0 && !isRemote && (
+              {currentTrack && durationMs > 0 && (
                 <div
                   className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white shadow opacity-0 group-hover:opacity-100 transition-opacity"
                   style={{ left: `calc(${Math.min(100, progressPct)}% - 5px)` }}

@@ -9,7 +9,7 @@ import {
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { usePlayer } from "../../hooks/usePlayer";
-import { isRadioTrack, isRemoteTrack } from "../../lib/playerSources";
+import { isRadioTrack } from "../../lib/playerSources";
 import { formatDuration } from "../../lib/tauri/track";
 import { playerGetAbLoop, type AbLoopSnapshot } from "../../lib/tauri/player";
 
@@ -56,10 +56,10 @@ export function ProgressBar() {
   }, []);
 
   const hasTrack = currentTrack != null && durationMs > 0;
-  // A remote-queue track has a known length (so the bar fills and shows a
-  // total) but streams over a non-seekable HTTP source, so dragging /
-  // arrow-key seeking must stay off — the backend would reject the seek.
-  const seekable = hasTrack && !isRemoteTrack(currentTrack);
+  // Anything with a known length is scrubbable: local files, and now remote
+  // tracks too (their HTTP source seeks via range requests). Live radio has
+  // duration 0, so `hasTrack` already keeps it non-seekable.
+  const seekable = hasTrack;
   const displayMs = dragMs ?? positionMs;
   const clampedDisplay = Math.min(
     Math.max(displayMs, 0),
