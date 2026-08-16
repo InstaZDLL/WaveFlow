@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowUpDown,
+  Check,
   Clock,
   GripVertical,
   Heart,
   Loader2,
   ListMusic,
   ListPlus,
+  Music2,
   Pencil,
   Play,
   Plus,
@@ -40,12 +43,59 @@ import {
   remoteSearchCatalogue,
   remoteSetFavorite,
   remoteUpdatePlaylist,
+  remoteGetPlayQueue,
+  remotePlayTracks,
   type RemotePlaylistSummary,
   type RemoteTrack,
 } from "../../lib/tauri/remoteServer";
 import { formatDuration } from "../../lib/tauri/track";
 import { notifyRemoteChanged } from "../../hooks/useRemoteSource";
+import { usePlayer } from "../../hooks/usePlayer";
+import { isRemoteTrack } from "../../lib/playerSources";
+import { PlayingIndicator } from "../common/PlayingIndicator";
+import { PLAYLIST_COLORS, type PlaylistColor } from "../../lib/playlistVisuals";
 import { RemoteArtwork } from "../common/RemoteArtwork";
+
+/**
+ * A remote playlist carries no `color_id`, but a plain library playlist
+ * shows a per-playlist colour band + tile — so derive a stable colour
+ * from the playlist id (same hash always maps to the same swatch). Keeps
+ * the remote header visually 1:1 with a local one instead of a fixed
+ * emerald that every remote playlist would share.
+ */
+function remotePlaylistColor(id: string): PlaylistColor {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  }
+  return PLAYLIST_COLORS[hash % PLAYLIST_COLORS.length];
+}
+
+/**
+ * Display-only sort for the remote track table, mirroring the local
+ * PlaylistView menu. "custom" preserves the server-curated order (the
+ * only one the drag handle and the ×-remove act on, since the server
+ * keys tracks by position and may hold duplicates); any other mode is a
+ * client-side sort that never touches the projection. `added_at` /
+ * `filename` are dropped — a remote track carries neither field.
+ */
+type RemoteSortMode = "custom" | "title" | "artist" | "album" | "duration";
+
+const REMOTE_SORT_MODES: ReadonlyArray<RemoteSortMode> = [
+  "custom",
+  "title",
+  "artist",
+  "album",
+  "duration",
+];
+
+const REMOTE_SORT_LABELS: Record<RemoteSortMode, string> = {
+  custom: "Custom order",
+  title: "Title",
+  artist: "Artist",
+  album: "Album",
+  duration: "Duration",
+};
 
 /**
  * A single remote-server playlist, managed like a local one but from the
@@ -77,6 +127,7 @@ export function RemotePlaylistView({
   onNavigateToRemoteAlbum: (albumId: string) => void;
   onNavigateToRemoteArtist: (artistId: string) => void;
 }) {
+  const { currentTrack, isPlaying } = usePlayer();
   const [summary, setSummary] = useState<RemotePlaylistSummary | null>(null);
   const [tracks, setTracks] = useState<RemoteTrack[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,6 +135,14 @@ export function RemotePlaylistView({
   const [renaming, setRenaming] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sortMode, setSortMode] = useState<RemoteSortMode>("custom");
+  // Two-step delete, mirroring the local PlaylistView: first click arms
+  // it, a second within 3 s confirms, otherwise it auto-reverts.
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const confirmTimeoutRef = useRef<number | null>(null);
+  // Server id of the remote track currently playing, so the matching row
+  // lights up like a local playlist. Null unless a remote queue is live.
+  const [playingRemoteId, setPlayingRemoteId] = useState<string | null>(null);
   // Add-tracks panel: a live catalogue search with a "+" per hit.
   const [adding, setAdding] = useState(false);
   const [query, setQuery] = useState("");
@@ -118,23 +177,103 @@ export function RemotePlaylistView({
     void load();
   }, [load]);
 
-  // Play the playlist as a native remote queue from `index`. The tracks
-  // after it auto-advance, and next / previous (PlayerBar, media keys)
-  // drive the remote queue while it plays — the backend owns it.
+  // Cleanup the delete-confirm timer on unmount.
+  useEffect(
+    () => () => {
+      if (confirmTimeoutRef.current != null) {
+        window.clearTimeout(confirmTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  // Resolve which of our rows (if any) is the remote track playing right
+  // now, so it highlights like a local one. The synthesized remote Track
+  // carries a negative sentinel id, not the server id — the server id
+  // lives on the live remote queue, so read it from there whenever the
+  // current track is a remote stream. Re-runs on every track change.
+  const currentIsRemote = isRemoteTrack(currentTrack);
+  const currentSentinelId = currentTrack?.id ?? null;
+  useEffect(() => {
+    if (!currentIsRemote) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPlayingRemoteId(null);
+      return;
+    }
+    let cancelled = false;
+    remoteGetPlayQueue()
+      .then((q) => {
+        if (cancelled) return;
+        setPlayingRemoteId(q?.entries[q.index]?.id ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setPlayingRemoteId(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentIsRemote, currentSentinelId]);
+
+  // Client-side display order. "custom" keeps the server order verbatim;
+  // every other mode is a stable copy-sort that never mutates the
+  // projection — the drag handle and ×-remove are hidden while it's
+  // active (see the row), so the two can't disagree on positions.
+  const isCustomOrder = sortMode === "custom";
+  const displayTracks = useMemo<RemoteTrack[]>(() => {
+    if (isCustomOrder) return tracks;
+    const collator = new Intl.Collator(undefined, {
+      numeric: true,
+      sensitivity: "base",
+    });
+    const sorted = [...tracks];
+    switch (sortMode) {
+      case "title":
+        sorted.sort((a, b) =>
+          collator.compare(a.title ?? "", b.title ?? ""),
+        );
+        break;
+      case "artist":
+        sorted.sort((a, b) =>
+          collator.compare(a.artist ?? "", b.artist ?? ""),
+        );
+        break;
+      case "album":
+        sorted.sort((a, b) =>
+          collator.compare(a.album ?? "", b.album ?? ""),
+        );
+        break;
+      case "duration":
+        sorted.sort((a, b) => (b.duration_ms ?? 0) - (a.duration_ms ?? 0));
+        break;
+    }
+    return sorted;
+  }, [tracks, sortMode, isCustomOrder]);
+
+  // Play from `displayIndex` in the order the user is seeing. In custom
+  // order that's the server order, so `remotePlayPlaylist` builds the
+  // native queue directly; under a display sort we enqueue the shown
+  // sequence by id via `remotePlayTracks` so "next" stays sensible.
   const playFrom = useCallback(
-    async (index: number) => {
+    async (displayIndex: number) => {
       if (!remotePlaylistId) return;
       setBusy(true);
       setError(null);
       try {
-        await remotePlayPlaylist(remotePlaylistId, index);
+        if (isCustomOrder) {
+          await remotePlayPlaylist(remotePlaylistId, displayIndex);
+        } else {
+          await remotePlayTracks(
+            displayTracks.map((t) => t.id),
+            displayIndex,
+          );
+        }
       } catch (err) {
         setError(String(err));
       } finally {
         setBusy(false);
       }
     },
-    [remotePlaylistId],
+    [remotePlaylistId, isCustomOrder, displayTracks],
   );
 
   const removeTrack = useCallback(
@@ -269,106 +408,154 @@ export function RemotePlaylistView({
     }
   }, [nameDraft, remotePlaylistId, summary?.name, load]);
 
-  const remove = useCallback(async () => {
-    if (!remotePlaylistId) return;
+  const handleDeleteClick = useCallback(async () => {
+    if (!remotePlaylistId || busy) return;
+    // First click arms the confirm, with a 3 s auto-revert — matches the
+    // local PlaylistView so the two delete the same way.
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      if (confirmTimeoutRef.current != null) {
+        window.clearTimeout(confirmTimeoutRef.current);
+      }
+      confirmTimeoutRef.current = window.setTimeout(() => {
+        setConfirmDelete(false);
+        confirmTimeoutRef.current = null;
+      }, 3000);
+      return;
+    }
+    if (confirmTimeoutRef.current != null) {
+      window.clearTimeout(confirmTimeoutRef.current);
+      confirmTimeoutRef.current = null;
+    }
     setBusy(true);
     try {
+      // Redirect away before the delete so no not-found frame flashes.
+      onAfterDelete();
       await remoteDeletePlaylist(remotePlaylistId);
       notifyRemoteChanged();
-      onAfterDelete();
     } catch (err) {
       setError(String(err));
       setBusy(false);
+      setConfirmDelete(false);
     }
-  }, [remotePlaylistId, onAfterDelete]);
+  }, [remotePlaylistId, busy, confirmDelete, onAfterDelete]);
 
   if (!remotePlaylistId) return null;
 
   const totalMs = tracks.reduce((sum, t) => sum + (t.duration_ms ?? 0), 0);
+  const color = remotePlaylistColor(remotePlaylistId);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <header className="flex items-center gap-5 p-5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-900/15">
-        <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-emerald-500/80 to-teal-600/80 flex items-center justify-center shrink-0 shadow-lg">
-          <ListMusic size={44} className="text-white/90" />
+    <div className="space-y-8 animate-fade-in pb-20">
+      {/* Header — mirrors the local PlaylistView: a per-playlist colour
+          band, a flat colour tile (no cover_path exists on a remote
+          playlist, exactly like a local one without a custom cover), a
+          4xl title, and a colour Play button beside a bordered action
+          pill. */}
+      <header
+        className={`flex items-start justify-between p-6 rounded-2xl ${color.previewBg}`}
+      >
+        <div className="flex items-center space-x-6 min-w-0">
+          <div
+            className={`w-24 h-24 rounded-2xl shadow-sm flex items-center justify-center shrink-0 ${color.tileBg} ${color.tileText}`}
+          >
+            <ListMusic size={48} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
+              Remote playlist
+            </div>
+            {renaming ? (
+              <input
+                autoFocus
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                onBlur={() => void commitRename()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void commitRename();
+                  if (e.key === "Escape") setRenaming(false);
+                }}
+                className="w-full mb-2 px-2 py-1 text-3xl font-bold rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900"
+              />
+            ) : (
+              <h1 className="text-4xl font-bold mb-2 truncate text-zinc-900 dark:text-white">
+                {summary?.name ?? "…"}
+              </h1>
+            )}
+            {summary?.comment && (
+              <p className="text-sm text-zinc-500 mb-2 line-clamp-2">
+                {summary.comment}
+              </p>
+            )}
+            <div className="flex items-center text-sm text-zinc-500 space-x-2">
+              <Music2 size={16} />
+              <span>{tracks.length} tracks</span>
+              <span>·</span>
+              <span>{formatDuration(totalMs)}</span>
+              {summary?.pending_creation && (
+                <>
+                  <span>·</span>
+                  <span>not sent to the server yet</span>
+                </>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
-            Remote playlist
-          </p>
-          {renaming ? (
-            <input
-              autoFocus
-              value={nameDraft}
-              onChange={(e) => setNameDraft(e.target.value)}
-              onBlur={() => void commitRename()}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void commitRename();
-                if (e.key === "Escape") setRenaming(false);
-              }}
-              className="w-full mt-1 px-2 py-1 text-2xl font-bold rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900"
-            />
-          ) : (
-            <h1 className="text-3xl font-bold truncate text-zinc-900 dark:text-white">
-              {summary?.name ?? "…"}
-            </h1>
-          )}
-          {summary?.comment && (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2">
-              {summary.comment}
-            </p>
-          )}
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            {tracks.length} tracks · {formatDuration(totalMs)}
-            {summary?.pending_creation && " · not sent to the server yet"}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
+
+        <div className="flex items-center space-x-3 shrink-0">
           <button
             type="button"
             onClick={() => void playFrom(0)}
             disabled={busy || tracks.length === 0}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold disabled:opacity-50"
+            className={`text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm ${color.button} disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             <Play size={16} className="fill-current" />
-            Play
+            <span>Play</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setAdding((v) => !v)}
-            disabled={busy || !summary}
-            className={`p-2 rounded-lg border disabled:opacity-50 ${
-              adding
-                ? "border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
-                : "border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
-            }`}
-            aria-label="Add tracks"
-            aria-pressed={adding}
-            title="Add tracks"
-          >
-            <ListPlus size={16} />
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setNameDraft(summary?.name ?? "");
-              setRenaming(true);
-            }}
-            disabled={busy || !summary}
-            className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 disabled:opacity-50"
-            aria-label="Rename"
-          >
-            <Pencil size={16} />
-          </button>
-          <button
-            type="button"
-            onClick={() => void remove()}
-            disabled={busy}
-            className="p-2 rounded-lg border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50"
-            aria-label="Delete"
-          >
-            <Trash2 size={16} />
-          </button>
+
+          <div className="flex items-center space-x-1 p-1 rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/50">
+            <button
+              type="button"
+              onClick={() => setAdding((v) => !v)}
+              disabled={busy || !summary}
+              aria-label="Add tracks"
+              aria-pressed={adding}
+              title="Add tracks"
+              className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                adding
+                  ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
+                  : "hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white"
+              }`}
+            >
+              <ListPlus size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setNameDraft(summary?.name ?? "");
+                setRenaming(true);
+              }}
+              disabled={busy || !summary}
+              aria-label="Rename"
+              className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Pencil size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleDeleteClick()}
+              disabled={busy}
+              aria-label="Delete"
+              title={confirmDelete ? "Click again to confirm" : "Delete"}
+              className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                confirmDelete
+                  ? "bg-red-500 text-white hover:bg-red-600"
+                  : "text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"
+              }`}
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -436,6 +623,12 @@ export function RemotePlaylistView({
         </p>
       )}
 
+      {!loading && tracks.length > 0 && (
+        <div className="flex items-center justify-end -mt-4">
+          <RemoteSortMenu current={sortMode} onChange={setSortMode} />
+        </div>
+      )}
+
       {loading ? (
         <div className="flex justify-center py-16">
           <Loader2 size={24} className="animate-spin text-zinc-400" />
@@ -449,7 +642,7 @@ export function RemotePlaylistView({
           {/* Column header — mirrors the local playlist table so the two
               read the same. Drag + remove columns are unlabeled. */}
           <div
-            className={`grid ${GRID_COLS} gap-3 items-center px-3 pb-2 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-200 dark:border-zinc-800`}
+            className={`grid ${GRID_COLS} gap-4 items-center px-5 py-3 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-200 dark:border-zinc-800`}
           >
             <span />
             <span className="text-right">#</span>
@@ -458,7 +651,7 @@ export function RemotePlaylistView({
             <span>Artist</span>
             <span>Album</span>
             <span className="flex justify-end">
-              <Clock size={13} />
+              <Clock size={14} />
             </span>
             <span />
             <span />
@@ -470,17 +663,22 @@ export function RemotePlaylistView({
             onDragEnd={onDragEnd}
           >
             <SortableContext
-              items={tracks.map((_, i) => String(i))}
+              items={displayTracks.map((_, i) => String(i))}
               strategy={verticalListSortingStrategy}
             >
-              <ul className="mt-1">
-                {tracks.map((track, index) => (
+              <ul>
+                {displayTracks.map((track, index) => (
                   <RemoteTrackRow
                     key={`${track.id}-${index}`}
                     id={String(index)}
                     track={track}
                     index={index + 1}
                     busy={busy}
+                    dragEnabled={isCustomOrder}
+                    isCurrent={
+                      playingRemoteId != null && track.id === playingRemoteId
+                    }
+                    isPlaying={isPlaying}
                     onPlay={() => void playFrom(index)}
                     onRemove={() => void removeTrack(index)}
                     onNavigateToRemoteAlbum={onNavigateToRemoteAlbum}
@@ -499,15 +697,19 @@ export function RemotePlaylistView({
 
 /** Column template shared by the header and the rows, mirroring the local
  *  playlist table: drag · # · cover · title · artist · album · time · like ·
- *  remove. */
+ *  remove. Widths match `PlaylistView` verbatim (plus the trailing remove
+ *  column, which the local view puts in a context menu we don't have). */
 const GRID_COLS =
-  "grid-cols-[1.25rem_1.5rem_2.5rem_minmax(0,2fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_3.5rem_1.5rem_1.5rem]";
+  "grid-cols-[1.5rem_3rem_2.75rem_1fr_1fr_1fr_5rem_2rem_2rem]";
 
 function RemoteTrackRow({
   id,
   track,
   index,
   busy,
+  dragEnabled,
+  isCurrent,
+  isPlaying,
   onPlay,
   onRemove,
   onNavigateToRemoteAlbum,
@@ -518,6 +720,12 @@ function RemoteTrackRow({
   track: RemoteTrack;
   index: number;
   busy: boolean;
+  /** False while a display sort is active — the grip and ×-remove are
+   *  hidden and dnd-kit is detached so neither can act on a position that
+   *  no longer matches the server's order. */
+  dragEnabled: boolean;
+  isCurrent: boolean;
+  isPlaying: boolean;
   onPlay: () => void;
   onRemove: () => void;
   onNavigateToRemoteAlbum: (albumId: string) => void;
@@ -525,7 +733,7 @@ function RemoteTrackRow({
   onToggleLike: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id });
+    useSortable({ id, disabled: !dragEnabled });
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -535,37 +743,63 @@ function RemoteTrackRow({
     <li
       ref={setNodeRef}
       style={style}
-      className={`group grid ${GRID_COLS} gap-3 items-center px-3 h-12 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/40`}
+      onDoubleClick={onPlay}
+      className={`group grid ${GRID_COLS} gap-4 items-center px-5 h-14 border-b border-zinc-100 dark:border-zinc-800/60 transition-colors ${
+        isCurrent
+          ? "bg-emerald-50 dark:bg-emerald-900/20"
+          : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
+      }`}
     >
       {/* Drag handle — appears on hover; PointerSensor only starts a sort
-          past a 4px drag, so the row's other clicks still work. */}
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        aria-label="Reorder"
-        className="text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <GripVertical size={14} />
-      </button>
-      <div className="text-right text-xs text-zinc-400 tabular-nums">
-        <span className="group-hover:hidden">{index}</span>
-        {/* Playable even while awaiting metadata: the server streams by
-            id, so a missing title only means we can't label it yet. */}
+          past a 4px drag, so the row's other clicks still work. Hidden
+          under a display sort (an empty slot keeps the columns aligned). */}
+      {dragEnabled ? (
         <button
           type="button"
-          onClick={onPlay}
-          disabled={busy}
-          className="hidden group-hover:inline-flex text-emerald-600 dark:text-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed"
-          aria-label="Play"
+          {...attributes}
+          {...listeners}
+          aria-label="Reorder"
+          className="shrink-0 p-1 -ml-1 text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
         >
-          <Play size={14} className="fill-current" />
+          <GripVertical size={14} />
         </button>
-      </div>
-      <RemoteArtwork hash={track.artwork_hash} className="w-9 h-9 rounded" />
-      <div className="min-w-0 text-sm font-medium truncate text-zinc-800 dark:text-zinc-100">
+      ) : (
+        <span aria-hidden="true" />
+      )}
+      <span
+        className={`text-right text-sm tabular-nums flex items-center justify-end ${
+          isCurrent ? "text-emerald-500 font-semibold" : "text-zinc-400"
+        }`}
+      >
+        {isCurrent ? (
+          <PlayingIndicator isPlaying={isPlaying} />
+        ) : (
+          <>
+            <span className="group-hover:hidden">{index}</span>
+            {/* Playable even while awaiting metadata: the server streams by
+                id, so a missing title only means we can't label it yet. */}
+            <button
+              type="button"
+              onClick={onPlay}
+              disabled={busy}
+              className="hidden group-hover:inline-flex text-emerald-600 dark:text-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed"
+              aria-label="Play"
+            >
+              <Play size={14} className="fill-current" />
+            </button>
+          </>
+        )}
+      </span>
+      <RemoteArtwork hash={track.artwork_hash} className="w-10 h-10 rounded-md" />
+      <span
+        className={`min-w-0 text-sm truncate ${
+          isCurrent
+            ? "text-emerald-600 dark:text-emerald-400 font-semibold"
+            : "text-zinc-800 dark:text-zinc-200"
+        }`}
+      >
         {track.title ?? "Awaiting metadata…"}
-      </div>
+      </span>
       <div className="min-w-0 text-sm text-zinc-500 truncate">
         {track.artist && track.artist_id ? (
           <button
@@ -594,32 +828,129 @@ function RemoteTrackRow({
           (track.album ?? "—")
         )}
       </div>
-      <div className="text-right text-xs text-zinc-400 tabular-nums">
+      <span className="text-sm tabular-nums text-zinc-400 text-right">
         {track.duration_ms != null ? formatDuration(track.duration_ms) : "—"}
+      </span>
+      <div className="flex justify-center">
+        <button
+          type="button"
+          onClick={onToggleLike}
+          className={`p-1 rounded-full transition-colors ${
+            track.starred
+              ? "text-pink-500"
+              : "text-zinc-300 dark:text-zinc-600 hover:text-pink-500"
+          }`}
+          aria-label={track.starred ? "Unlike" : "Like"}
+          aria-pressed={track.starred}
+        >
+          <Heart size={14} className={track.starred ? "fill-current" : ""} />
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={onToggleLike}
-        className={`p-1 rounded transition-colors ${
-          track.starred
-            ? "text-pink-500"
-            : "text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-pink-500"
-        }`}
-        aria-label={track.starred ? "Unlike" : "Like"}
-        aria-pressed={track.starred}
-      >
-        <Heart size={15} className={track.starred ? "fill-current" : ""} />
-      </button>
-      <button
-        type="button"
-        onClick={onRemove}
-        disabled={busy}
-        className="p-1 rounded text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-red-500 dark:hover:text-red-400 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-        aria-label="Remove from playlist"
-        title="Remove from playlist"
-      >
-        <X size={15} />
-      </button>
+      {/* Remove acts on the server position, so it's only offered in the
+          curated order — hidden (empty slot) under a display sort. */}
+      {dragEnabled ? (
+        <button
+          type="button"
+          onClick={onRemove}
+          disabled={busy}
+          className="p-1 rounded text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-red-500 dark:hover:text-red-400 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+          aria-label="Remove from playlist"
+          title="Remove from playlist"
+        >
+          <X size={15} />
+        </button>
+      ) : (
+        <span aria-hidden="true" />
+      )}
     </li>
+  );
+}
+
+/**
+ * Sort selector for the remote track table — the same Spotify-style
+ * "list of modes + check, no direction toggle" menu as the local
+ * PlaylistView, minus the modes a remote track can't back.
+ */
+function RemoteSortMenu({
+  current,
+  onChange,
+}: {
+  current: RemoteSortMode;
+  onChange: (next: RemoteSortMode) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [isOpen]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen((p) => !p)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        className="flex items-center space-x-2 px-3 py-1.5 rounded-lg border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
+      >
+        <ArrowUpDown size={14} />
+        <span>{REMOTE_SORT_LABELS[current]}</span>
+      </button>
+      {isOpen && (
+        <ul
+          role="listbox"
+          className="absolute top-full right-0 mt-2 min-w-56 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated overflow-hidden z-50 animate-fade-in py-1"
+        >
+          <li
+            className="px-4 pt-1 pb-2 text-[10px] font-bold tracking-widest text-zinc-400 uppercase"
+            aria-hidden="true"
+          >
+            Sort by
+          </li>
+          {REMOTE_SORT_MODES.map((mode) => {
+            const isSelected = mode === current;
+            return (
+              <li key={mode} role="presentation">
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  onClick={() => {
+                    onChange(mode);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-4 py-2 text-sm text-left transition-colors ${
+                    isSelected
+                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
+                      : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30"
+                  }`}
+                >
+                  <span>{REMOTE_SORT_LABELS[mode]}</span>
+                  {isSelected && <Check size={14} />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
