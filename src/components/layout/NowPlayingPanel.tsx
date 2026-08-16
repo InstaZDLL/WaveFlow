@@ -13,7 +13,12 @@ import {
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
 import { useCoverSlideshow } from "../../hooks/useCoverSlideshow";
-import { isStreamTrack } from "../../lib/playerSources";
+import { isRemoteTrack, isStreamTrack } from "../../lib/playerSources";
+import {
+  remoteArtwork,
+  remoteGetArtist,
+  remoteGetPlayQueue,
+} from "../../lib/tauri/remoteServer";
 import { Artwork } from "../common/Artwork";
 import { MotionCoverOverlay } from "../player/MotionCoverOverlay";
 import { CanvasStage } from "../player/CanvasStage";
@@ -32,6 +37,9 @@ import { startRadio } from "../../lib/tauri/radio";
 
 interface NowPlayingPanelProps {
   onNavigateToArtist: (artistId: number) => void;
+  /** Navigate to a remote artist (RFC-005) — used when the current track
+   *  is a remote stream, whose artist has a server id, not a local one. */
+  onNavigateToRemoteArtist: (artistId: string) => void;
 }
 
 /**
@@ -45,7 +53,10 @@ interface NowPlayingPanelProps {
  * Lyrics are NOT rendered here in v1. The `Mic` icon in `PlayerBar`
  * will open a separate lyrics panel once that feature lands.
  */
-export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
+export function NowPlayingPanel({
+  onNavigateToArtist,
+  onNavigateToRemoteArtist,
+}: NowPlayingPanelProps) {
   const { t } = useTranslation();
   const {
     toggleNowPlaying,
@@ -143,11 +154,63 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
     };
   }, [currentTrack?.artist_id]);
 
+  // Remote-track artist (RFC-005). The synthesized remote Track has no
+  // local artist_id, so the enrichment effect above bails; resolve the
+  // server artist id from the live remote queue instead, and pull the
+  // artist photo the server carries. Bio still needs Last.fm by name (the
+  // panel's existing "set your key" message covers its absence).
+  const isRemote = isRemoteTrack(currentTrack);
+  const [remoteArtistId, setRemoteArtistId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isRemote) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRemoteArtistId(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const queue = await remoteGetPlayQueue();
+        if (cancelled || !queue) return;
+        const artistId = queue.entries[queue.index]?.artist_id ?? null;
+        setRemoteArtistId(artistId);
+        if (!artistId) return;
+        const artist = await remoteGetArtist(artistId);
+        if (cancelled || !artist.artwork_hash) return;
+        const url = await remoteArtwork(artist.artwork_hash);
+        if (!cancelled && url) setPictureSrc(url);
+      } catch (err) {
+        console.error("[NowPlaying] resolve remote artist failed", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isRemote, currentTrack?.id]);
+
   const displayedBio = bioExpanded ? (bioFull ?? bioShort) : bioShort;
   const canExpand =
     bioFull != null && bioShort != null && bioFull.length > bioShort.length;
 
   const primaryArtistName = currentTrack?.artist_name?.split(", ")[0] ?? null;
+  // Whether the current artist can be opened — a local id, or a resolved
+  // remote id. Drives both the title-line link and the About-the-artist row.
+  const canOpenArtist = isRemote
+    ? remoteArtistId != null
+    : currentTrack?.artist_id != null;
+  const openCurrentArtist = () => {
+    if (isRemote) {
+      if (remoteArtistId != null) {
+        onNavigateToRemoteArtist(remoteArtistId);
+        toggleNowPlaying();
+      }
+      return;
+    }
+    if (currentTrack?.artist_id != null) {
+      onNavigateToArtist(currentTrack.artist_id);
+      toggleNowPlaying();
+    }
+  };
 
   // Per-track Canvas (issue #442) — mirrors the immersive view: the looping
   // clip replaces the static cover when set + toggle on + motion not reduced,
@@ -293,14 +356,28 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
                 {currentTrack.title}
               </div>
               <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                <ArtistLink
-                  name={currentTrack.artist_name}
-                  artistIds={currentTrack.artist_ids}
-                  onNavigate={(id) => {
-                    onNavigateToArtist(id);
-                    toggleNowPlaying();
-                  }}
-                />
+                {isRemote ? (
+                  canOpenArtist ? (
+                    <button
+                      type="button"
+                      onClick={openCurrentArtist}
+                      className="text-left hover:underline hover:text-emerald-600 dark:hover:text-emerald-400"
+                    >
+                      {currentTrack.artist_name}
+                    </button>
+                  ) : (
+                    (currentTrack.artist_name ?? "")
+                  )
+                ) : (
+                  <ArtistLink
+                    name={currentTrack.artist_name}
+                    artistIds={currentTrack.artist_ids}
+                    onNavigate={(id) => {
+                      onNavigateToArtist(id);
+                      toggleNowPlaying();
+                    }}
+                  />
+                )}
               </div>
               {currentTrack.album_title && (
                 <div className="text-xs text-zinc-400">
@@ -353,13 +430,9 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
                   )}
                   <button
                     type="button"
-                    onClick={() => {
-                      if (currentTrack.artist_id != null) {
-                        onNavigateToArtist(currentTrack.artist_id);
-                        toggleNowPlaying();
-                      }
-                    }}
-                    className="text-sm font-semibold text-zinc-800 dark:text-zinc-100 hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 text-left truncate"
+                    onClick={openCurrentArtist}
+                    disabled={!canOpenArtist}
+                    className="text-sm font-semibold text-zinc-800 dark:text-zinc-100 hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 text-left truncate disabled:hover:no-underline disabled:hover:text-zinc-800 dark:disabled:hover:text-zinc-100 disabled:cursor-default"
                   >
                     {primaryArtistName}
                   </button>

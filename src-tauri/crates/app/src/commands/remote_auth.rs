@@ -570,6 +570,9 @@ pub struct RemoteQueueRow {
     pub id: String,
     pub title: Option<String>,
     pub artist: Option<String>,
+    /// Server id of the primary artist — lets the "About the artist" panel
+    /// link to the remote artist and fetch its photo for a remote track.
+    pub artist_id: Option<String>,
     pub artwork_hash: Option<String>,
     pub duration_ms: Option<i64>,
 }
@@ -596,6 +599,7 @@ pub async fn remote_get_play_queue(
                     id: e.id,
                     title: e.title,
                     artist: e.artist,
+                    artist_id: e.artist_id,
                     artwork_hash: e.artwork_hash,
                     duration_ms: e.duration_ms,
                 })

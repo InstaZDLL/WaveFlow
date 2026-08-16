@@ -324,13 +324,31 @@ async fn backfill_missing_tracks(state: &AppState, profile_id: i64, client: &Rem
         let Ok(mut conn) = pool.acquire().await else {
             return;
         };
-        match projection::missing_track_ids(&mut conn).await {
+        let mut ids = match projection::missing_track_ids(&mut conn).await {
             Ok(ids) => ids,
             Err(error) => {
                 tracing::debug!(%error, "could not list tracks awaiting metadata");
                 return;
             }
+        };
+        // Also re-fetch tracks cached before the server exposed `artist_id`
+        // so the artist becomes clickable without a full re-snapshot. Dedup
+        // against the fully-missing set — a track can be in both.
+        match projection::tracks_missing_artist_id(&mut conn).await {
+            Ok(stale) => {
+                let known: std::collections::HashSet<&str> =
+                    ids.iter().map(String::as_str).collect();
+                let extra: Vec<String> = stale
+                    .into_iter()
+                    .filter(|id| !known.contains(id.as_str()))
+                    .collect();
+                ids.extend(extra);
+            }
+            Err(error) => {
+                tracing::debug!(%error, "could not list tracks missing artist_id");
+            }
         }
+        ids
     };
     if missing.is_empty() {
         return;

@@ -781,7 +781,10 @@ export function AppLayout() {
             <AnimatePresence initial={false}>
               {activeRightPanel === "queue" && <QueuePanel />}
               {activeRightPanel === "nowPlaying" && (
-                <NowPlayingPanel onNavigateToArtist={navigateToArtist} />
+                <NowPlayingPanel
+                  onNavigateToArtist={navigateToArtist}
+                  onNavigateToRemoteArtist={navigateToRemoteArtist}
+                />
               )}
               {activeRightPanel === "lyrics" && <LyricsPanel />}
             </AnimatePresence>

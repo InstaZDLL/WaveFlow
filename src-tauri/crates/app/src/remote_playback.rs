@@ -56,6 +56,10 @@ pub struct RemoteEntry {
     pub id: String,
     pub title: Option<String>,
     pub artist: Option<String>,
+    /// Server id of the primary artist, so the "About the artist" panel can
+    /// link to the remote artist view and fetch its photo. `None` when the
+    /// server has no primary artist for the track.
+    pub artist_id: Option<String>,
     pub artwork_hash: Option<String>,
     pub duration_ms: Option<i64>,
 }
@@ -274,6 +278,7 @@ mod tests {
             id: id.into(),
             title: None,
             artist: None,
+            artist_id: None,
             artwork_hash: None,
             duration_ms: None,
         }

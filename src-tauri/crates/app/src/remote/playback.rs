@@ -56,6 +56,7 @@ pub async fn start(app: &AppHandle, playlist_id: &str, start_index: usize) -> Ap
                 id: t.id,
                 title: t.title,
                 artist: t.artist,
+                artist_id: t.artist_id,
                 artwork_hash: t.artwork_hash,
                 duration_ms: t.duration_ms,
             })
@@ -81,13 +82,13 @@ pub async fn play_track_ids(
         let mut entries = Vec::with_capacity(track_ids.len());
         for id in track_ids {
             let row = sqlx::query(
-                "SELECT title, artist, artwork_hash, duration_ms
+                "SELECT title, artist, artist_id, artwork_hash, duration_ms
                    FROM remote_track WHERE remote_id = ?",
             )
             .bind(id)
             .fetch_optional(&mut *conn)
             .await?;
-            let (title, artist, artwork_hash, duration_ms) = match row {
+            let (title, artist, artist_id, artwork_hash, duration_ms) = match row {
                 Some(r) => (
                     // The cache stores an empty title for a bare id; treat
                     // that as "unknown" rather than a blank label.
@@ -95,15 +96,17 @@ pub async fn play_track_ids(
                         .ok()
                         .filter(|s| !s.is_empty()),
                     r.try_get("artist").ok().flatten(),
+                    r.try_get("artist_id").ok().flatten(),
                     r.try_get("artwork_hash").ok().flatten(),
                     r.try_get("duration_ms").ok(),
                 ),
-                None => (None, None, None, None),
+                None => (None, None, None, None, None),
             };
             entries.push(RemoteEntry {
                 id: id.clone(),
                 title,
                 artist,
+                artist_id,
                 artwork_hash,
                 duration_ms,
             });

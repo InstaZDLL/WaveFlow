@@ -247,6 +247,9 @@ export interface RemotePlayQueueRow {
   id: string;
   title: string | null;
   artist: string | null;
+  /** Server id of the primary artist — lets the "About the artist" panel
+   *  link to the remote artist and fetch its photo. */
+  artist_id: string | null;
   artwork_hash: string | null;
   duration_ms: number | null;
 }

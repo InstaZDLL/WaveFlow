@@ -302,6 +302,29 @@ pub async fn missing_track_ids(conn: &mut SqliteConnection) -> AppResult<Vec<Str
     Ok(rows)
 }
 
+/// Cached tracks that carry an artist name but no `artist_id` — the
+/// signature of a row cached before the server exposed `artist_id` (the
+/// column was added by a later migration and defaults NULL). Re-fetching
+/// their metadata backfills the id so "About the artist" and the clickable
+/// artist columns light up without a full re-snapshot.
+///
+/// Gated on `artist IS NOT NULL` so it converges: a track with a real
+/// artist name resolves to an id on the next fetch and drops out. A track
+/// with no artist at all is left alone — it has nothing to link to anyway.
+/// Kept separate from [`missing_track_ids`] so the overview's
+/// "awaiting metadata" count keeps meaning "no metadata at all".
+pub async fn tracks_missing_artist_id(
+    conn: &mut SqliteConnection,
+) -> AppResult<Vec<String>> {
+    let rows: Vec<String> = sqlx::query_scalar(
+        "SELECT remote_id FROM remote_track
+          WHERE artist_id IS NULL AND artist IS NOT NULL",
+    )
+    .fetch_all(&mut *conn)
+    .await?;
+    Ok(rows)
+}
+
 /// Apply one journal event.
 pub async fn apply_change(conn: &mut SqliteConnection, change: &SyncChange) -> AppResult<Outcome> {
     match (change.entity_type.as_str(), change.action.as_str()) {
