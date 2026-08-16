@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Clock, Loader2, Play } from "lucide-react";
+import { Clock, Heart, Loader2, Play } from "lucide-react";
 import {
   remoteGetAlbum,
   remotePlayTracks,
+  remoteSetFavorite,
   type RemoteAlbum,
+  type RemoteTrack,
 } from "../../lib/tauri/remoteServer";
 import { formatDuration } from "../../lib/tauri/track";
+import { notifyRemoteChanged } from "../../hooks/useRemoteSource";
 import { RemoteArtwork } from "../common/RemoteArtwork";
 
 /**
@@ -18,8 +21,10 @@ import { RemoteArtwork } from "../common/RemoteArtwork";
  */
 export function RemoteAlbumView({
   remoteAlbumId,
+  onNavigateToRemoteArtist,
 }: {
   remoteAlbumId: string | null;
+  onNavigateToRemoteArtist: (artistId: string) => void;
 }) {
   const [album, setAlbum] = useState<RemoteAlbum | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,6 +69,35 @@ export function RemoteAlbumView({
     [album],
   );
 
+  const toggleLike = useCallback((track: RemoteTrack) => {
+    const next = !track.starred;
+    setAlbum((prev) =>
+      prev
+        ? {
+            ...prev,
+            tracks: prev.tracks.map((t) =>
+              t.id === track.id ? { ...t, starred: next } : t,
+            ),
+          }
+        : prev,
+    );
+    remoteSetFavorite("track", track.id, next)
+      .then(() => notifyRemoteChanged())
+      .catch((err) => {
+        console.error("[RemoteAlbumView] toggle like failed", err);
+        setAlbum((prev) =>
+          prev
+            ? {
+                ...prev,
+                tracks: prev.tracks.map((t) =>
+                  t.id === track.id ? { ...t, starred: track.starred } : t,
+                ),
+              }
+            : prev,
+        );
+      });
+  }, []);
+
   if (!remoteAlbumId) return null;
 
   const totalMs =
@@ -71,7 +105,7 @@ export function RemoteAlbumView({
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <header className="flex items-end gap-5">
+      <header className="flex items-center gap-5 p-5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-900/15">
         <RemoteArtwork
           hash={album?.artwork_hash ?? null}
           className="w-28 h-28 rounded-2xl shadow-lg"
@@ -85,9 +119,23 @@ export function RemoteAlbumView({
             {album?.title ?? "…"}
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            {[album?.artist, album?.year ? String(album.year) : null]
-              .filter(Boolean)
-              .join(" · ")}
+            {album?.artist && album.artist_id ? (
+              <button
+                type="button"
+                onClick={() => onNavigateToRemoteArtist(album.artist_id!)}
+                className="hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline"
+              >
+                {album.artist}
+              </button>
+            ) : (
+              album?.artist
+            )}
+            {album?.year != null && (
+              <>
+                {album?.artist ? " · " : ""}
+                {album.year}
+              </>
+            )}
           </p>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
             {album?.tracks.length ?? 0} tracks · {formatDuration(totalMs)}
@@ -120,19 +168,20 @@ export function RemoteAlbumView({
         </p>
       ) : (
         <div>
-          <div className="grid grid-cols-[1.5rem_minmax(0,3fr)_minmax(0,1.6fr)_3.5rem] gap-3 items-center px-3 pb-2 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-200 dark:border-zinc-800">
+          <div className="grid grid-cols-[1.5rem_minmax(0,3fr)_minmax(0,1.6fr)_3.5rem_1.5rem] gap-3 items-center px-3 pb-2 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-200 dark:border-zinc-800">
             <span className="text-right">#</span>
             <span>Title</span>
             <span>Artist</span>
             <span className="flex justify-end">
               <Clock size={13} />
             </span>
+            <span />
           </div>
           <ul className="mt-1">
             {album.tracks.map((track, index) => (
               <li
                 key={`${track.id}-${index}`}
-                className="group grid grid-cols-[1.5rem_minmax(0,3fr)_minmax(0,1.6fr)_3.5rem] gap-3 items-center px-3 h-11 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+                className="group grid grid-cols-[1.5rem_minmax(0,3fr)_minmax(0,1.6fr)_3.5rem_1.5rem] gap-3 items-center px-3 h-11 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
               >
                 <div className="text-right text-xs text-zinc-400 tabular-nums">
                   <span className="group-hover:hidden">{index + 1}</span>
@@ -150,13 +199,40 @@ export function RemoteAlbumView({
                   {track.title ?? "Awaiting metadata…"}
                 </div>
                 <div className="min-w-0 text-sm text-zinc-500 truncate">
-                  {track.artist ?? "—"}
+                  {track.artist && track.artist_id ? (
+                    <button
+                      type="button"
+                      onClick={() => onNavigateToRemoteArtist(track.artist_id!)}
+                      className="truncate max-w-full text-left hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline"
+                      title={track.artist}
+                    >
+                      {track.artist}
+                    </button>
+                  ) : (
+                    (track.artist ?? "—")
+                  )}
                 </div>
                 <div className="text-right text-xs text-zinc-400 tabular-nums">
                   {track.duration_ms != null
                     ? formatDuration(track.duration_ms)
                     : "—"}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => toggleLike(track)}
+                  className={`p-1 rounded transition-colors ${
+                    track.starred
+                      ? "text-pink-500"
+                      : "text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-pink-500"
+                  }`}
+                  aria-label={track.starred ? "Unlike" : "Like"}
+                  aria-pressed={track.starred}
+                >
+                  <Heart
+                    size={15}
+                    className={track.starred ? "fill-current" : ""}
+                  />
+                </button>
               </li>
             ))}
           </ul>

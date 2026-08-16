@@ -53,6 +53,48 @@ pub struct RemoteAlbum {
     pub tracks: Vec<RemoteTrack>,
 }
 
+/// The server's `ArtistDetail` flattens `ArtistItem` and lists the artist's
+/// albums (no flat track list).
+#[derive(Deserialize)]
+struct ArtistDetailResponse {
+    id: String,
+    name: String,
+    #[serde(default)]
+    artwork_hash: Option<String>,
+    #[serde(default)]
+    albums: Vec<AlbumSummaryDto>,
+}
+
+#[derive(Deserialize)]
+struct AlbumSummaryDto {
+    id: String,
+    title: String,
+    #[serde(default)]
+    artist: Option<String>,
+    #[serde(default)]
+    artwork_hash: Option<String>,
+    #[serde(default)]
+    year: Option<i64>,
+}
+
+/// A remote artist with their albums, for the artist detail view.
+#[derive(Debug, Clone, Serialize)]
+pub struct RemoteArtist {
+    pub id: String,
+    pub name: String,
+    pub artwork_hash: Option<String>,
+    pub albums: Vec<RemoteAlbumSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct RemoteAlbumSummary {
+    pub id: String,
+    pub title: String,
+    pub artist: Option<String>,
+    pub artwork_hash: Option<String>,
+    pub year: Option<i64>,
+}
+
 fn song_to_track(song: &SongItem) -> RemoteTrack {
     RemoteTrack {
         id: song.id.clone(),
@@ -63,6 +105,11 @@ fn song_to_track(song: &SongItem) -> RemoteTrack {
         album_id: song.album_id.clone(),
         duration_ms: song.duration_ms,
         artwork_hash: song.artwork_hash.clone(),
+        // The projection is the source of truth for the star; a fresh
+        // server row doesn't know about a pending local change. Callers
+        // that need it accurate (the album view) fill it from
+        // `remote_favorite`; search results don't show a heart.
+        starred: false,
     }
 }
 
@@ -120,6 +167,18 @@ pub async fn get_album(state: &AppState, album_id: &str) -> AppResult<RemoteAlbu
         tracks.push(song_to_track(song));
     }
 
+    // Fill the star from the synced favorites — the album's own rows carry
+    // the server's view, which can lag a pending local like/unlike.
+    let starred: std::collections::HashSet<String> =
+        sqlx::query_scalar("SELECT entity_id FROM remote_favorite WHERE entity_type = 'track'")
+            .fetch_all(&mut *conn)
+            .await?
+            .into_iter()
+            .collect();
+    for track in &mut tracks {
+        track.starred = starred.contains(&track.id);
+    }
+
     Ok(RemoteAlbum {
         id: resp.id,
         title: resp.title,
@@ -128,5 +187,39 @@ pub async fn get_album(state: &AppState, album_id: &str) -> AppResult<RemoteAlbu
         artwork_hash: resp.artwork_hash,
         year: resp.year,
         tracks,
+    })
+}
+
+/// Fetch a remote artist with their albums (`GET /api/v2/artists/{id}`).
+/// The server carries the artist's image (`artwork_hash`) but no biography,
+/// so the view fills the bio from Last.fm by name.
+pub async fn get_artist(state: &AppState, artist_id: &str) -> AppResult<RemoteArtist> {
+    if crate::offline::is_offline() {
+        return Err(AppError::Other("offline mode is enabled".into()));
+    }
+    let client = RemoteClient::try_build(state)
+        .await?
+        .ok_or_else(|| AppError::Other("not signed in to a remote server".into()))?;
+
+    let resp: ArtistDetailResponse = client
+        .send_json(client.get(&format!("/api/v2/artists/{artist_id}")))
+        .await
+        .map_err(|err| AppError::Other(format!("artist: {}", err.message)))?;
+
+    Ok(RemoteArtist {
+        id: resp.id,
+        name: resp.name,
+        artwork_hash: resp.artwork_hash,
+        albums: resp
+            .albums
+            .into_iter()
+            .map(|a| RemoteAlbumSummary {
+                id: a.id,
+                title: a.title,
+                artist: a.artist,
+                artwork_hash: a.artwork_hash,
+                year: a.year,
+            })
+            .collect(),
     })
 }

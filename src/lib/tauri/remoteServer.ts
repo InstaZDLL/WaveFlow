@@ -183,6 +183,8 @@ export interface RemoteTrack {
   album_id: string | null;
   duration_ms: number | null;
   artwork_hash: string | null;
+  /** Whether the track is starred, from the synced favorites. */
+  starred: boolean;
 }
 
 /** Counts for the diagnostics panel. Local only — instant, and the same
@@ -271,6 +273,29 @@ export interface RemoteAlbum {
  */
 export function remoteGetAlbum(albumId: string): Promise<RemoteAlbum> {
   return invoke<RemoteAlbum>("remote_get_album", { albumId });
+}
+
+export interface RemoteAlbumSummary {
+  id: string;
+  title: string;
+  artist: string | null;
+  artwork_hash: string | null;
+  year: number | null;
+}
+
+export interface RemoteArtist {
+  id: string;
+  name: string;
+  artwork_hash: string | null;
+  albums: RemoteAlbumSummary[];
+}
+
+/**
+ * Fetch a remote artist with their albums (`GET /api/v2/artists/{id}`). The
+ * server carries the artist image; the biography comes from Last.fm by name.
+ */
+export function remoteGetArtist(artistId: string): Promise<RemoteArtist> {
+  return invoke<RemoteArtist>("remote_get_artist", { artistId });
 }
 
 /**

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Clock,
   GripVertical,
+  Heart,
   Loader2,
   ListMusic,
   ListPlus,
@@ -37,6 +38,7 @@ import {
   remoteRemovePlaylistTrack,
   remoteReorderPlaylistTrack,
   remoteSearchCatalogue,
+  remoteSetFavorite,
   remoteUpdatePlaylist,
   type RemotePlaylistSummary,
   type RemoteTrack,
@@ -68,10 +70,12 @@ export function RemotePlaylistView({
   remotePlaylistId,
   onAfterDelete,
   onNavigateToRemoteAlbum,
+  onNavigateToRemoteArtist,
 }: {
   remotePlaylistId: string | null;
   onAfterDelete: () => void;
   onNavigateToRemoteAlbum: (albumId: string) => void;
+  onNavigateToRemoteArtist: (artistId: string) => void;
 }) {
   const [summary, setSummary] = useState<RemotePlaylistSummary | null>(null);
   const [tracks, setTracks] = useState<RemoteTrack[]>([]);
@@ -150,6 +154,25 @@ export function RemotePlaylistView({
     },
     [remotePlaylistId, load],
   );
+
+  const toggleLike = useCallback((track: RemoteTrack) => {
+    const next = !track.starred;
+    // Optimistic: flip the heart at once; the write is durable locally and
+    // travels on the next drain, so there's nothing to wait on.
+    setTracks((prev) =>
+      prev.map((t) => (t.id === track.id ? { ...t, starred: next } : t)),
+    );
+    remoteSetFavorite("track", track.id, next)
+      .then(() => notifyRemoteChanged())
+      .catch((err) => {
+        console.error("[RemotePlaylistView] toggle like failed", err);
+        setTracks((prev) =>
+          prev.map((t) =>
+            t.id === track.id ? { ...t, starred: track.starred } : t,
+          ),
+        );
+      });
+  }, []);
 
   const handleReorder = useCallback(
     (from: number, to: number) => {
@@ -265,7 +288,7 @@ export function RemotePlaylistView({
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <header className="flex items-end gap-5">
+      <header className="flex items-center gap-5 p-5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-900/15">
         <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-emerald-500/80 to-teal-600/80 flex items-center justify-center shrink-0 shadow-lg">
           <ListMusic size={44} className="text-white/90" />
         </div>
@@ -438,6 +461,7 @@ export function RemotePlaylistView({
               <Clock size={13} />
             </span>
             <span />
+            <span />
           </div>
           <DndContext
             sensors={sensors}
@@ -460,6 +484,8 @@ export function RemotePlaylistView({
                     onPlay={() => void playFrom(index)}
                     onRemove={() => void removeTrack(index)}
                     onNavigateToRemoteAlbum={onNavigateToRemoteAlbum}
+                    onNavigateToRemoteArtist={onNavigateToRemoteArtist}
+                    onToggleLike={() => toggleLike(track)}
                   />
                 ))}
               </ul>
@@ -472,9 +498,10 @@ export function RemotePlaylistView({
 }
 
 /** Column template shared by the header and the rows, mirroring the local
- *  playlist table: drag · # · cover · title · artist · album · time · remove. */
+ *  playlist table: drag · # · cover · title · artist · album · time · like ·
+ *  remove. */
 const GRID_COLS =
-  "grid-cols-[1.25rem_1.5rem_2.5rem_minmax(0,2fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_3.5rem_1.5rem]";
+  "grid-cols-[1.25rem_1.5rem_2.5rem_minmax(0,2fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_3.5rem_1.5rem_1.5rem]";
 
 function RemoteTrackRow({
   id,
@@ -484,6 +511,8 @@ function RemoteTrackRow({
   onPlay,
   onRemove,
   onNavigateToRemoteAlbum,
+  onNavigateToRemoteArtist,
+  onToggleLike,
 }: {
   id: string;
   track: RemoteTrack;
@@ -492,6 +521,8 @@ function RemoteTrackRow({
   onPlay: () => void;
   onRemove: () => void;
   onNavigateToRemoteAlbum: (albumId: string) => void;
+  onNavigateToRemoteArtist: (artistId: string) => void;
+  onToggleLike: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
@@ -536,7 +567,18 @@ function RemoteTrackRow({
         {track.title ?? "Awaiting metadata…"}
       </div>
       <div className="min-w-0 text-sm text-zinc-500 truncate">
-        {track.artist ?? "—"}
+        {track.artist && track.artist_id ? (
+          <button
+            type="button"
+            onClick={() => onNavigateToRemoteArtist(track.artist_id!)}
+            className="truncate max-w-full text-left hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline"
+            title={track.artist}
+          >
+            {track.artist}
+          </button>
+        ) : (
+          (track.artist ?? "—")
+        )}
       </div>
       <div className="min-w-0 text-sm text-zinc-500 truncate">
         {track.album && track.album_id ? (
@@ -555,6 +597,19 @@ function RemoteTrackRow({
       <div className="text-right text-xs text-zinc-400 tabular-nums">
         {track.duration_ms != null ? formatDuration(track.duration_ms) : "—"}
       </div>
+      <button
+        type="button"
+        onClick={onToggleLike}
+        className={`p-1 rounded transition-colors ${
+          track.starred
+            ? "text-pink-500"
+            : "text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-pink-500"
+        }`}
+        aria-label={track.starred ? "Unlike" : "Like"}
+        aria-pressed={track.starred}
+      >
+        <Heart size={15} className={track.starred ? "fill-current" : ""} />
+      </button>
       <button
         type="button"
         onClick={onRemove}

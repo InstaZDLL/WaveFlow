@@ -74,6 +74,9 @@ pub struct RemoteTrack {
     pub album_id: Option<String>,
     pub duration_ms: Option<i64>,
     pub artwork_hash: Option<String>,
+    /// Whether this track is starred, from the projected `remote_favorite`
+    /// table (the synced source of truth, including pending local changes).
+    pub starred: bool,
 }
 
 /// Count everything worth counting, in one round-trip.
@@ -152,7 +155,9 @@ pub async fn playlist_tracks(
 ) -> AppResult<Vec<RemoteTrack>> {
     let rows = sqlx::query(
         "SELECT t.track_remote_id, rt.title, rt.artist, rt.artist_id, rt.album,
-                rt.album_id, rt.duration_ms, rt.artwork_hash
+                rt.album_id, rt.duration_ms, rt.artwork_hash,
+                EXISTS(SELECT 1 FROM remote_favorite f
+                        WHERE f.entity_type = 'track' AND f.entity_id = t.track_remote_id) AS starred
            FROM remote_playlist_track t
            LEFT JOIN remote_track rt ON rt.remote_id = t.track_remote_id
           WHERE t.playlist_remote_id = ?
@@ -169,7 +174,9 @@ pub async fn playlist_tracks(
 pub async fn queue_tracks(conn: &mut SqliteConnection) -> AppResult<Vec<RemoteTrack>> {
     let rows = sqlx::query(
         "SELECT q.track_remote_id, rt.title, rt.artist, rt.artist_id, rt.album,
-                rt.album_id, rt.duration_ms, rt.artwork_hash
+                rt.album_id, rt.duration_ms, rt.artwork_hash,
+                EXISTS(SELECT 1 FROM remote_favorite f
+                        WHERE f.entity_type = 'track' AND f.entity_id = q.track_remote_id) AS starred
            FROM remote_queue_track q
            LEFT JOIN remote_track rt ON rt.remote_id = q.track_remote_id
           ORDER BY q.position",
@@ -190,6 +197,7 @@ fn track_from_row(row: sqlx::sqlite::SqliteRow) -> AppResult<RemoteTrack> {
         album_id: row.try_get("album_id")?,
         duration_ms: row.try_get("duration_ms")?,
         artwork_hash: row.try_get("artwork_hash")?,
+        starred: row.try_get::<i64, _>("starred")? != 0,
     })
 }
 

@@ -22,6 +22,8 @@ export type ViewId =
   | "remote-playlist"
   // A remote album detail view (RFC-005 sync_v2).
   | "remote-album"
+  // A remote artist detail view (RFC-005 sync_v2).
+  | "remote-artist"
   // A `ui`-world plugin's custom view. The concrete plugin is carried
   // on the history entry (see AppLayout `HistoryEntry`), not the id.
   | "plugin-ui";

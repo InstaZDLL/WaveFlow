@@ -316,6 +316,15 @@ pub async fn remote_get_album(
     crate::remote::catalogue::get_album(&state, &album_id).await
 }
 
+/// Fetch a remote artist with their albums (`GET /api/v2/artists/{id}`).
+#[tauri::command]
+pub async fn remote_get_artist(
+    state: tauri::State<'_, AppState>,
+    artist_id: String,
+) -> AppResult<crate::remote::catalogue::RemoteArtist> {
+    crate::remote::catalogue::get_artist(&state, &artist_id).await
+}
+
 /// Play an explicit list of remote track ids as a native queue, from
 /// `start_index`. Backs "play this album": metadata comes from the cache.
 #[tauri::command]
