@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Clock,
   GripVertical,
   Loader2,
   ListMusic,
@@ -287,6 +288,11 @@ export function RemotePlaylistView({
               {summary?.name ?? "…"}
             </h1>
           )}
+          {summary?.comment && (
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2">
+              {summary.comment}
+            </p>
+          )}
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
             {tracks.length} tracks · {formatDuration(totalMs)}
             {summary?.pending_creation && " · not sent to the server yet"}
@@ -414,35 +420,58 @@ export function RemotePlaylistView({
           This playlist is empty.
         </p>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          modifiers={[restrictToVerticalAxis]}
-          onDragEnd={onDragEnd}
-        >
-          <SortableContext
-            items={tracks.map((_, i) => String(i))}
-            strategy={verticalListSortingStrategy}
+        <div>
+          {/* Column header — mirrors the local playlist table so the two
+              read the same. Drag + remove columns are unlabeled. */}
+          <div
+            className={`grid ${GRID_COLS} gap-3 items-center px-3 pb-2 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-200 dark:border-zinc-800`}
           >
-            <ul className="space-y-0.5">
-              {tracks.map((track, index) => (
-                <RemoteTrackRow
-                  key={`${track.id}-${index}`}
-                  id={String(index)}
-                  track={track}
-                  index={index + 1}
-                  busy={busy}
-                  onPlay={() => void playFrom(index)}
-                  onRemove={() => void removeTrack(index)}
-                />
-              ))}
-            </ul>
-          </SortableContext>
-        </DndContext>
+            <span />
+            <span className="text-right">#</span>
+            <span />
+            <span>Title</span>
+            <span>Artist</span>
+            <span>Album</span>
+            <span className="flex justify-end">
+              <Clock size={13} />
+            </span>
+            <span />
+          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalAxis]}
+            onDragEnd={onDragEnd}
+          >
+            <SortableContext
+              items={tracks.map((_, i) => String(i))}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul className="mt-1">
+                {tracks.map((track, index) => (
+                  <RemoteTrackRow
+                    key={`${track.id}-${index}`}
+                    id={String(index)}
+                    track={track}
+                    index={index + 1}
+                    busy={busy}
+                    onPlay={() => void playFrom(index)}
+                    onRemove={() => void removeTrack(index)}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
+        </div>
       )}
     </div>
   );
 }
+
+/** Column template shared by the header and the rows, mirroring the local
+ *  playlist table: drag · # · cover · title · artist · album · time · remove. */
+const GRID_COLS =
+  "grid-cols-[1.25rem_1.5rem_2.5rem_minmax(0,2fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_3.5rem_1.5rem]";
 
 function RemoteTrackRow({
   id,
@@ -470,20 +499,20 @@ function RemoteTrackRow({
     <li
       ref={setNodeRef}
       style={style}
-      className="group flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+      className={`group grid ${GRID_COLS} gap-3 items-center px-3 h-12 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/40`}
     >
-      {/* Drag handle — appears on hover, keeps the row's own buttons
-          clickable (PointerSensor only starts a sort past a 4px drag). */}
+      {/* Drag handle — appears on hover; PointerSensor only starts a sort
+          past a 4px drag, so the row's other clicks still work. */}
       <button
         type="button"
         {...attributes}
         {...listeners}
         aria-label="Reorder"
-        className="shrink-0 -ml-1 p-0.5 text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+        className="text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
       >
         <GripVertical size={14} />
       </button>
-      <div className="w-5 text-right text-xs text-zinc-400 tabular-nums shrink-0">
+      <div className="text-right text-xs text-zinc-400 tabular-nums">
         <span className="group-hover:hidden">{index}</span>
         {/* Playable even while awaiting metadata: the server streams by
             id, so a missing title only means we can't label it yet. */}
@@ -497,23 +526,24 @@ function RemoteTrackRow({
           <Play size={14} className="fill-current" />
         </button>
       </div>
-      <RemoteArtwork hash={track.artwork_hash} />
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium truncate text-zinc-800 dark:text-zinc-100">
-          {track.title ?? "Awaiting metadata…"}
-        </div>
-        <div className="text-xs text-zinc-500 truncate">
-          {[track.artist, track.album].filter(Boolean).join(" — ")}
-        </div>
+      <RemoteArtwork hash={track.artwork_hash} className="w-9 h-9" />
+      <div className="min-w-0 text-sm font-medium truncate text-zinc-800 dark:text-zinc-100">
+        {track.title ?? "Awaiting metadata…"}
       </div>
-      <div className="text-xs text-zinc-400 tabular-nums shrink-0">
+      <div className="min-w-0 text-sm text-zinc-500 truncate">
+        {track.artist ?? "—"}
+      </div>
+      <div className="min-w-0 text-sm text-zinc-500 truncate">
+        {track.album ?? "—"}
+      </div>
+      <div className="text-right text-xs text-zinc-400 tabular-nums">
         {track.duration_ms != null ? formatDuration(track.duration_ms) : "—"}
       </div>
       <button
         type="button"
         onClick={onRemove}
         disabled={busy}
-        className="shrink-0 p-1 rounded text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-red-500 dark:hover:text-red-400 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+        className="p-1 rounded text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-red-500 dark:hover:text-red-400 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
         aria-label="Remove from playlist"
         title="Remove from playlist"
       >
