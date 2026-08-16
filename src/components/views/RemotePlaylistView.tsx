@@ -3,8 +3,11 @@ import {
   GripVertical,
   Loader2,
   ListMusic,
+  ListPlus,
   Pencil,
   Play,
+  Plus,
+  Search,
   Trash2,
   X,
 } from "lucide-react";
@@ -27,10 +30,12 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   remoteDeletePlaylist,
   remoteListPlaylists,
+  remoteAddPlaylistTracks,
   remoteListPlaylistTracks,
   remotePlayPlaylist,
   remoteRemovePlaylistTrack,
   remoteReorderPlaylistTrack,
+  remoteSearchCatalogue,
   remoteUpdatePlaylist,
   type RemotePlaylistSummary,
   type RemoteTrack,
@@ -51,12 +56,12 @@ import { RemoteArtwork } from "../common/RemoteArtwork";
  * files would be churn for strings no user can reach yet. The keys land
  * with the feature.
  *
- * ## Playback is per-track for now
+ * ## Managed like a local playlist
  *
- * Step 1 plays each track through the single-URL radio path
- * ({@link playerPlayUrl}) — proven end to end in Phase A. Queue-aware
- * native playback (play-all, next/prev, auto-advance) is Step 2, which
- * teaches the engine a finite "remote track" queue entry.
+ * Play (as a native remote queue), rename, delete, remove a track, drag to
+ * reorder, and add tracks via a live catalogue search. Every track edit
+ * applies to the projection at once and queues an `UpdatePlaylist` for the
+ * server, so it survives offline.
  */
 export function RemotePlaylistView({
   remotePlaylistId,
@@ -72,6 +77,11 @@ export function RemotePlaylistView({
   const [renaming, setRenaming] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  // Add-tracks panel: a live catalogue search with a "+" per hit.
+  const [adding, setAdding] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<RemoteTrack[]>([]);
+  const [searching, setSearching] = useState(false);
 
   const seqRef = useRef(0);
   const load = useCallback(async () => {
@@ -166,6 +176,54 @@ export function RemotePlaylistView({
     [handleReorder],
   );
 
+  // Debounced catalogue search while the add panel is open.
+  const searchSeqRef = useRef(0);
+  useEffect(() => {
+    if (!adding) return;
+    const q = query.trim();
+    if (!q) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setResults([]);
+      return;
+    }
+    const seq = ++searchSeqRef.current;
+    setSearching(true);
+    const timer = setTimeout(() => {
+      remoteSearchCatalogue(q)
+        .then((rows) => {
+          if (seq === searchSeqRef.current) setResults(rows);
+        })
+        .catch((err) => {
+          if (seq === searchSeqRef.current) {
+            setError(String(err));
+            setResults([]);
+          }
+        })
+        .finally(() => {
+          if (seq === searchSeqRef.current) setSearching(false);
+        });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query, adding]);
+
+  const addTracks = useCallback(
+    async (ids: string[]) => {
+      if (!remotePlaylistId || ids.length === 0) return;
+      setBusy(true);
+      setError(null);
+      try {
+        await remoteAddPlaylistTracks(remotePlaylistId, ids);
+        notifyRemoteChanged();
+        await load();
+      } catch (err) {
+        setError(String(err));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [remotePlaylistId, load],
+  );
+
   const commitRename = useCallback(async () => {
     const next = nameDraft.trim();
     if (!remotePlaylistId || !next || next === summary?.name) {
@@ -246,6 +304,21 @@ export function RemotePlaylistView({
           </button>
           <button
             type="button"
+            onClick={() => setAdding((v) => !v)}
+            disabled={busy || !summary}
+            className={`p-2 rounded-lg border disabled:opacity-50 ${
+              adding
+                ? "border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
+                : "border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+            }`}
+            aria-label="Add tracks"
+            aria-pressed={adding}
+            title="Add tracks"
+          >
+            <ListPlus size={16} />
+          </button>
+          <button
+            type="button"
             onClick={() => {
               setNameDraft(summary?.name ?? "");
               setRenaming(true);
@@ -267,6 +340,64 @@ export function RemotePlaylistView({
           </button>
         </div>
       </header>
+
+      {adding && (
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 p-3 space-y-2">
+          <div className="relative">
+            <Search
+              size={15}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+            />
+            <input
+              autoFocus
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search the server's catalogue…"
+              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+            />
+            {searching && (
+              <Loader2
+                size={15}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 animate-spin"
+              />
+            )}
+          </div>
+          {query.trim() !== "" && !searching && results.length === 0 && (
+            <p className="px-1 py-2 text-xs text-zinc-500">No matches.</p>
+          )}
+          {results.length > 0 && (
+            <ul className="max-h-72 overflow-y-auto scrollbar-hide space-y-0.5">
+              {results.map((track) => (
+                <li
+                  key={track.id}
+                  className="group flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+                >
+                  <RemoteArtwork hash={track.artwork_hash} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm truncate text-zinc-800 dark:text-zinc-100">
+                      {track.title ?? "Untitled"}
+                    </div>
+                    <div className="text-xs text-zinc-500 truncate">
+                      {[track.artist, track.album].filter(Boolean).join(" — ")}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void addTracks([track.id])}
+                    disabled={busy}
+                    className="shrink-0 p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50"
+                    aria-label={`Add ${track.title ?? "track"}`}
+                    title="Add to playlist"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {error && (
         <p className="text-xs text-red-600 dark:text-red-400 break-words">

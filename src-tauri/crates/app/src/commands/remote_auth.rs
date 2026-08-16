@@ -292,6 +292,34 @@ pub async fn remote_remove_playlist_track(
     Ok(())
 }
 
+/// Search the remote server's catalogue for tracks matching `query`. A
+/// live query (the catalogue is the server's), capped at a page; each hit's
+/// metadata is cached so adding it renders a title at once.
+#[tauri::command]
+pub async fn remote_search_catalogue(
+    state: tauri::State<'_, AppState>,
+    query: String,
+) -> AppResult<Vec<crate::remote::read::RemoteTrack>> {
+    if query.trim().is_empty() {
+        return Ok(Vec::new());
+    }
+    crate::remote::catalogue::search(&state, query.trim(), 50).await
+}
+
+/// Append tracks to a remote playlist. Applies locally at once and queues
+/// the additions for the server.
+#[tauri::command]
+pub async fn remote_add_playlist_tracks(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    playlist_id: String,
+    track_ids: Vec<String>,
+) -> AppResult<()> {
+    crate::remote::write::add_playlist_tracks(&state, &playlist_id, &track_ids).await?;
+    crate::remote::drain::spawn(app);
+    Ok(())
+}
+
 /// Move the track at `from` to `to` within a remote playlist (positions in
 /// the current order). Applies locally at once and queues the new order for
 /// the server.

@@ -84,6 +84,7 @@
 
 pub mod auth;
 pub mod binding;
+pub mod catalogue;
 pub mod client;
 pub mod drain;
 pub mod dto;

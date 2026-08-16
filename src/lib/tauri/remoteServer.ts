@@ -368,6 +368,24 @@ export function remoteReorderPlaylistTrack(
 }
 
 /**
+ * Search the remote server's catalogue for tracks. A live query capped at a
+ * page; each hit's metadata is cached server-side so adding it renders a
+ * title at once. Empty for a blank query.
+ */
+export function remoteSearchCatalogue(query: string): Promise<RemoteTrack[]> {
+  return invoke<RemoteTrack[]>("remote_search_catalogue", { query });
+}
+
+/** Append tracks to a remote playlist. Applies locally at once and queues
+ *  the additions for the server. */
+export function remoteAddPlaylistTracks(
+  playlistId: string,
+  trackIds: string[],
+): Promise<void> {
+  return invoke<void>("remote_add_playlist_tracks", { playlistId, trackIds });
+}
+
+/**
  * Record a play against the remote account. `submission: false` is a
  * "now playing" ping; only a completed listen enters the history.
  *

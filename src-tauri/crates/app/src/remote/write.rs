@@ -386,6 +386,72 @@ pub async fn remove_playlist_tracks_in_tx(
     Ok(())
 }
 
+/// Append `track_ids` to the end of a playlist. Their metadata is expected
+/// to be cached already (the search that surfaced them does that), so the
+/// projection can render titles at once.
+pub async fn add_playlist_tracks(
+    state: &AppState,
+    playlist_id: &str,
+    track_ids: &[String],
+) -> AppResult<()> {
+    let (pool, _) = lease(state).await?;
+    let mut tx = pool.begin().await?;
+    add_playlist_tracks_in_tx(&mut tx, playlist_id, track_ids).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// The server's `add` appends after any removals, so a bare append lines up
+/// with a queued `UpdatePlaylist { add }`. Positions continue past the
+/// current tail; duplicates are allowed, matching a local playlist.
+pub async fn add_playlist_tracks_in_tx(
+    conn: &mut SqliteConnection,
+    playlist_id: &str,
+    track_ids: &[String],
+) -> AppResult<()> {
+    if track_ids.is_empty() {
+        return Ok(());
+    }
+    let start: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(MAX(position), -1) + 1 FROM remote_playlist_track
+          WHERE playlist_remote_id = ?",
+    )
+    .bind(playlist_id)
+    .fetch_one(&mut *conn)
+    .await?;
+    for (offset, track_id) in track_ids.iter().enumerate() {
+        sqlx::query(
+            "INSERT INTO remote_playlist_track (playlist_remote_id, position, track_remote_id)
+             VALUES (?, ?, ?)",
+        )
+        .bind(playlist_id)
+        .bind(start + offset as i64)
+        .bind(track_id)
+        .execute(&mut *conn)
+        .await?;
+    }
+    sqlx::query("UPDATE remote_playlist SET updated_at = ? WHERE remote_id = ?")
+        .bind(now_ms())
+        .bind(playlist_id)
+        .execute(&mut *conn)
+        .await?;
+
+    mutation::enqueue(
+        conn,
+        &Mutation::UpdatePlaylist {
+            playlist_id: playlist_id.to_string(),
+            name: None,
+            comment: None,
+            public: None,
+            add: track_ids.to_vec(),
+            remove_indexes: Vec::new(),
+            clear_comment: false,
+        },
+    )
+    .await?;
+    Ok(())
+}
+
 /// Move the track at `from` to `to` within a playlist (positions in the
 /// current order). The projection is rewritten and the whole new order is
 /// sent to the server.
