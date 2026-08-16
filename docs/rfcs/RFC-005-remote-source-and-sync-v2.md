@@ -329,8 +329,17 @@ create on the server" checkbox when one is connected. All of it self-hides when
 `sync_v2` is off (the frontend probes `remote_get_status`) and is intentionally
 unlocalized until the feature ships, matching `RemoteServerCard`.
 
-Deferred: during remote playback the QueuePanel still shows the local queue, and
-the seekbar is live-stream style — `LoadUrlAndPlay` carries no duration yet.
+**The queue panel** switches to a dedicated `RemoteQueueView` while a remote
+session plays (keyed on `isRemoteTrack`), reading `remote_get_play_queue` (an
+in-memory snapshot) and jumping with `remote_queue_jump` — the local
+`player_get_queue` / jump / reorder path acts on the library queue and would be
+wrong here. **The seekbar** is bounded: the decoder stamps the current entry's
+duration onto the radio-metadata event, so the bar fills to a real total, but a
+new `seekable` gate keeps dragging off — `HttpMediaSource` is non-seekable.
+
+Deferred: reordering a remote playlist from the queue panel (the in-memory queue
+is ephemeral; a reorder should persist to the server), and true remote seeking
+(needs a Range-backed source — the ticket endpoint accepts `offset_ms`).
 
 ## Local schema
 
