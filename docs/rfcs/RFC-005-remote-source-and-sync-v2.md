@@ -336,12 +336,13 @@ unlocalized until the feature ships, matching `RemoteServerCard`.
 session plays (keyed on `isRemoteTrack`), reading `remote_get_play_queue` (an
 in-memory snapshot) and jumping with `remote_queue_jump` — the local
 `player_get_queue` / jump / reorder path acts on the library queue and would be
-wrong here. **The seekbar** is bounded: the decoder stamps the current entry's
-duration onto the radio-metadata event, so the bar fills to a real total, but a
-new `seekable` gate keeps dragging off — `HttpMediaSource` is non-seekable.
+wrong here. **The seekbar** is bounded and scrubbable: the decoder stamps the current
+entry's duration onto the radio-metadata event so the bar fills to a real total,
+and `HttpMediaSource::open_seekable` reads `Content-Length` + `Accept-Ranges` to
+advertise `is_seekable()`, so a drag drives `format.seek`, which reissues a
+ranged GET. Radio stays forward-only (opened with ICY, never seekable).
 
-Deferred: adding tracks (needs a remote catalogue picker) and true remote seeking
-(needs a Range-backed source — the ticket endpoint accepts `offset_ms`).
+Deferred: adding tracks (needs a remote catalogue picker).
 
 ## Local schema
 
