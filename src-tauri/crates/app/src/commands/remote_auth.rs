@@ -292,6 +292,22 @@ pub async fn remote_remove_playlist_track(
     Ok(())
 }
 
+/// Move the track at `from` to `to` within a remote playlist (positions in
+/// the current order). Applies locally at once and queues the new order for
+/// the server.
+#[tauri::command]
+pub async fn remote_reorder_playlist_track(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    playlist_id: String,
+    from: usize,
+    to: usize,
+) -> AppResult<()> {
+    crate::remote::write::reorder_playlist(&state, &playlist_id, from, to).await?;
+    crate::remote::drain::spawn(app);
+    Ok(())
+}
+
 /// Delete a remote playlist.
 #[tauri::command]
 pub async fn remote_delete_playlist(

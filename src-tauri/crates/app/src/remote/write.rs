@@ -386,6 +386,91 @@ pub async fn remove_playlist_tracks_in_tx(
     Ok(())
 }
 
+/// Move the track at `from` to `to` within a playlist (positions in the
+/// current order). The projection is rewritten and the whole new order is
+/// sent to the server.
+pub async fn reorder_playlist(
+    state: &AppState,
+    playlist_id: &str,
+    from: usize,
+    to: usize,
+) -> AppResult<()> {
+    let (pool, _) = lease(state).await?;
+    let mut tx = pool.begin().await?;
+    reorder_playlist_in_tx(&mut tx, playlist_id, from, to).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// The server's playlist mutation has no move / insert-at-index — it
+/// appends. So an arbitrary reorder is expressed as a **full replace**:
+/// remove every current position, then add the tracks back in the new
+/// order. `remove_indexes` lines up with the server because the projection
+/// mirrors every pending mutation, so its length equals the server's when
+/// this one is applied. Fine for the small playlists a projection holds.
+pub async fn reorder_playlist_in_tx(
+    conn: &mut SqliteConnection,
+    playlist_id: &str,
+    from: usize,
+    to: usize,
+) -> AppResult<()> {
+    let mut ordered: Vec<String> = sqlx::query_scalar(
+        "SELECT track_remote_id FROM remote_playlist_track
+          WHERE playlist_remote_id = ? ORDER BY position",
+    )
+    .bind(playlist_id)
+    .fetch_all(&mut *conn)
+    .await?;
+
+    let len = ordered.len();
+    if len == 0 {
+        return Ok(());
+    }
+    let from = from.min(len - 1);
+    let to = to.min(len - 1);
+    if from == to {
+        return Ok(());
+    }
+    let moved = ordered.remove(from);
+    ordered.insert(to, moved);
+
+    sqlx::query("DELETE FROM remote_playlist_track WHERE playlist_remote_id = ?")
+        .bind(playlist_id)
+        .execute(&mut *conn)
+        .await?;
+    for (position, track_id) in ordered.iter().enumerate() {
+        sqlx::query(
+            "INSERT INTO remote_playlist_track (playlist_remote_id, position, track_remote_id)
+             VALUES (?, ?, ?)",
+        )
+        .bind(playlist_id)
+        .bind(position as i64)
+        .bind(track_id)
+        .execute(&mut *conn)
+        .await?;
+    }
+    sqlx::query("UPDATE remote_playlist SET updated_at = ? WHERE remote_id = ?")
+        .bind(now_ms())
+        .bind(playlist_id)
+        .execute(&mut *conn)
+        .await?;
+
+    mutation::enqueue(
+        conn,
+        &Mutation::UpdatePlaylist {
+            playlist_id: playlist_id.to_string(),
+            name: None,
+            comment: None,
+            public: None,
+            add: ordered,
+            remove_indexes: (0..len).collect(),
+            clear_comment: false,
+        },
+    )
+    .await?;
+    Ok(())
+}
+
 /// Delete a playlist.
 pub async fn delete_playlist(state: &AppState, playlist_id: &str) -> AppResult<()> {
     let (pool, _) = lease(state).await?;
@@ -979,6 +1064,49 @@ mod tests {
         match &queued.last().unwrap().mutation {
             Mutation::UpdatePlaylist { remove_indexes, .. } => {
                 assert_eq!(remove_indexes, &vec![1]);
+            }
+            other => panic!("unexpected mutation: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn reordering_rewrites_the_order_and_queues_a_full_replace() {
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        sqlx::raw_sql(
+            "INSERT INTO remote_playlist (remote_id, name) VALUES ('p', 'Mix');
+             INSERT INTO remote_playlist_track VALUES ('p', 0, 'a'), ('p', 1, 'b'), ('p', 2, 'c');",
+        )
+        .execute(&mut *conn)
+        .await
+        .unwrap();
+
+        // Move the last track to the front: [a,b,c] -> [c,a,b].
+        reorder_playlist_in_tx(&mut conn, "p", 2, 0).await.unwrap();
+
+        let rows: Vec<(i64, String)> = sqlx::query_as(
+            "SELECT position, track_remote_id FROM remote_playlist_track
+              WHERE playlist_remote_id = 'p' ORDER BY position",
+        )
+        .fetch_all(&mut *conn)
+        .await
+        .unwrap();
+        assert_eq!(
+            rows,
+            vec![(0, "c".into()), (1, "a".into()), (2, "b".into())]
+        );
+
+        // The server has no move, so it's expressed as remove-all + re-add
+        // in the new order.
+        let queued = pending(&mut conn, 10).await.unwrap();
+        match &queued.last().unwrap().mutation {
+            Mutation::UpdatePlaylist {
+                add,
+                remove_indexes,
+                ..
+            } => {
+                assert_eq!(remove_indexes, &vec![0, 1, 2]);
+                assert_eq!(add, &vec!["c".to_string(), "a".into(), "b".into()]);
             }
             other => panic!("unexpected mutation: {other:?}"),
         }

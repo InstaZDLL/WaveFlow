@@ -355,6 +355,19 @@ export function remoteRemovePlaylistTrack(
 }
 
 /**
+ * Move the track at `from` to `to` within a remote playlist (positions in
+ * the current order). Applies locally at once and queues the new order for
+ * the server.
+ */
+export function remoteReorderPlaylistTrack(
+  playlistId: string,
+  from: number,
+  to: number,
+): Promise<void> {
+  return invoke<void>("remote_reorder_playlist_track", { playlistId, from, to });
+}
+
+/**
  * Record a play against the remote account. `submission: false` is a
  * "now playing" ping; only a completed listen enters the history.
  *

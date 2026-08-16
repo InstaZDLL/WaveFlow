@@ -1,11 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, ListMusic, Pencil, Play, Trash2, X } from "lucide-react";
+import {
+  GripVertical,
+  Loader2,
+  ListMusic,
+  Pencil,
+  Play,
+  Trash2,
+  X,
+} from "lucide-react";
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { CSS } from "@dnd-kit/utilities";
 import {
   remoteDeletePlaylist,
   remoteListPlaylists,
   remoteListPlaylistTracks,
   remotePlayPlaylist,
   remoteRemovePlaylistTrack,
+  remoteReorderPlaylistTrack,
   remoteUpdatePlaylist,
   type RemotePlaylistSummary,
   type RemoteTrack,
@@ -111,6 +136,34 @@ export function RemotePlaylistView({
       }
     },
     [remotePlaylistId, load],
+  );
+
+  const handleReorder = useCallback(
+    (from: number, to: number) => {
+      if (!remotePlaylistId || from === to) return;
+      // Optimistic local move so the row settles before the server ack;
+      // resync from the backend only if the write fails.
+      setTracks((prev) => arrayMove(prev, from, to));
+      remoteReorderPlaylistTrack(remotePlaylistId, from, to)
+        .then(() => notifyRemoteChanged())
+        .catch((err) => {
+          setError(String(err));
+          void load();
+        });
+    },
+    [remotePlaylistId, load],
+  );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+  );
+  const onDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      handleReorder(Number(active.id), Number(over.id));
+    },
+    [handleReorder],
   );
 
   const commitRename = useCallback(async () => {
@@ -230,39 +283,76 @@ export function RemotePlaylistView({
           This playlist is empty.
         </p>
       ) : (
-        <ul className="space-y-0.5">
-          {tracks.map((track, index) => (
-            <RemoteTrackRow
-              key={`${track.id}-${index}`}
-              track={track}
-              index={index + 1}
-              busy={busy}
-              onPlay={() => void playFrom(index)}
-              onRemove={() => void removeTrack(index)}
-            />
-          ))}
-        </ul>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          modifiers={[restrictToVerticalAxis]}
+          onDragEnd={onDragEnd}
+        >
+          <SortableContext
+            items={tracks.map((_, i) => String(i))}
+            strategy={verticalListSortingStrategy}
+          >
+            <ul className="space-y-0.5">
+              {tracks.map((track, index) => (
+                <RemoteTrackRow
+                  key={`${track.id}-${index}`}
+                  id={String(index)}
+                  track={track}
+                  index={index + 1}
+                  busy={busy}
+                  onPlay={() => void playFrom(index)}
+                  onRemove={() => void removeTrack(index)}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
   );
 }
 
 function RemoteTrackRow({
+  id,
   track,
   index,
   busy,
   onPlay,
   onRemove,
 }: {
+  id: string;
   track: RemoteTrack;
   index: number;
   busy: boolean;
   onPlay: () => void;
   onRemove: () => void;
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
   return (
-    <li className="group flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
-      <div className="w-6 text-right text-xs text-zinc-400 tabular-nums shrink-0">
+    <li
+      ref={setNodeRef}
+      style={style}
+      className="group flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+    >
+      {/* Drag handle — appears on hover, keeps the row's own buttons
+          clickable (PointerSensor only starts a sort past a 4px drag). */}
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label="Reorder"
+        className="shrink-0 -ml-1 p-0.5 text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <GripVertical size={14} />
+      </button>
+      <div className="w-5 text-right text-xs text-zinc-400 tabular-nums shrink-0">
         <span className="group-hover:hidden">{index}</span>
         {/* Playable even while awaiting metadata: the server streams by
             id, so a missing title only means we can't label it yet. */}
