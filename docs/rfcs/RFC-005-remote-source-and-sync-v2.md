@@ -322,8 +322,9 @@ always-compiled `remote_playback` so the control seams stay feature-clean.
 
 **UI.** The remote source is managed from the main UI, not Settings: a "Remote
 source" section at the bottom of the sidebar (headed by the server host, listing
-its playlists) and a `RemotePlaylistView` that plays, renames and deletes them
-like local playlists. `RemoteServerCard` in Settings is connection-only —
+its playlists) and a `RemotePlaylistView` that plays, renames, deletes and
+removes tracks from them like local playlists (removal queues an
+`UpdatePlaylist` with the server's `remove_indexes`). `RemoteServerCard` in Settings is connection-only —
 identify, sign in, sync, sign out, forget. `CreatePlaylistModal` offers an "also
 create on the server" checkbox when one is connected. All of it self-hides when
 `sync_v2` is off (the frontend probes `remote_get_status`) and is intentionally
@@ -337,8 +338,9 @@ wrong here. **The seekbar** is bounded: the decoder stamps the current entry's
 duration onto the radio-metadata event, so the bar fills to a real total, but a
 new `seekable` gate keeps dragging off — `HttpMediaSource` is non-seekable.
 
-Deferred: reordering a remote playlist from the queue panel (the in-memory queue
-is ephemeral; a reorder should persist to the server), and true remote seeking
+Deferred: reordering a remote playlist (the server's playlist mutation appends
+only — no arbitrary-position insert — so a reorder means a full remove-all +
+re-add), adding tracks (needs a remote catalogue picker), and true remote seeking
 (needs a Range-backed source — the ticket endpoint accepts `offset_ms`).
 
 ## Local schema
