@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, ListMusic, Pencil, Play, Trash2 } from "lucide-react";
+import { Loader2, ListMusic, Pencil, Play, Trash2, X } from "lucide-react";
 import {
   remoteDeletePlaylist,
   remoteListPlaylists,
   remoteListPlaylistTracks,
   remotePlayPlaylist,
+  remoteRemovePlaylistTrack,
   remoteUpdatePlaylist,
   type RemotePlaylistSummary,
   type RemoteTrack,
@@ -92,6 +93,24 @@ export function RemotePlaylistView({
       }
     },
     [remotePlaylistId],
+  );
+
+  const removeTrack = useCallback(
+    async (index: number) => {
+      if (!remotePlaylistId) return;
+      setBusy(true);
+      setError(null);
+      try {
+        await remoteRemovePlaylistTrack(remotePlaylistId, index);
+        notifyRemoteChanged();
+        await load();
+      } catch (err) {
+        setError(String(err));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [remotePlaylistId, load],
   );
 
   const commitRename = useCallback(async () => {
@@ -219,6 +238,7 @@ export function RemotePlaylistView({
               index={index + 1}
               busy={busy}
               onPlay={() => void playFrom(index)}
+              onRemove={() => void removeTrack(index)}
             />
           ))}
         </ul>
@@ -232,11 +252,13 @@ function RemoteTrackRow({
   index,
   busy,
   onPlay,
+  onRemove,
 }: {
   track: RemoteTrack;
   index: number;
   busy: boolean;
   onPlay: () => void;
+  onRemove: () => void;
 }) {
   return (
     <li className="group flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
@@ -266,6 +288,16 @@ function RemoteTrackRow({
       <div className="text-xs text-zinc-400 tabular-nums shrink-0">
         {track.duration_ms != null ? formatDuration(track.duration_ms) : "—"}
       </div>
+      <button
+        type="button"
+        onClick={onRemove}
+        disabled={busy}
+        className="shrink-0 p-1 rounded text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-red-500 dark:hover:text-red-400 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+        aria-label="Remove from playlist"
+        title="Remove from playlist"
+      >
+        <X size={15} />
+      </button>
     </li>
   );
 }

@@ -343,6 +343,18 @@ export function remoteDeletePlaylist(playlistId: string): Promise<void> {
 }
 
 /**
+ * Remove the track at `index` (its position in the current order) from a
+ * remote playlist. Applies locally at once and queues the change for the
+ * server, like the other remote gestures.
+ */
+export function remoteRemovePlaylistTrack(
+  playlistId: string,
+  index: number,
+): Promise<void> {
+  return invoke<void>("remote_remove_playlist_track", { playlistId, index });
+}
+
+/**
  * Record a play against the remote account. `submission: false` is a
  * "now playing" ping; only a completed listen enters the history.
  *

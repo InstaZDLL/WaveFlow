@@ -303,6 +303,89 @@ pub async fn update_playlist_in_tx(
     Ok(())
 }
 
+/// Remove the tracks at `indexes` (positions in the current order) from a
+/// playlist. The projection is compacted to match, and an `UpdatePlaylist`
+/// carrying `remove_indexes` is queued for the server.
+pub async fn remove_playlist_tracks(
+    state: &AppState,
+    playlist_id: &str,
+    indexes: &[usize],
+) -> AppResult<()> {
+    let (pool, _) = lease(state).await?;
+    let mut tx = pool.begin().await?;
+    remove_playlist_tracks_in_tx(&mut tx, playlist_id, indexes).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// `indexes` are positions in the playlist's **current** order, which is
+/// what the server's `remove_indexes` expects too. The projection is
+/// rewritten with the survivors compacted to `0..n`, keeping local and
+/// server orderings aligned so a later index-based edit still lines up.
+pub async fn remove_playlist_tracks_in_tx(
+    conn: &mut SqliteConnection,
+    playlist_id: &str,
+    indexes: &[usize],
+) -> AppResult<()> {
+    if indexes.is_empty() {
+        return Ok(());
+    }
+
+    let ordered: Vec<String> = sqlx::query_scalar(
+        "SELECT track_remote_id FROM remote_playlist_track
+          WHERE playlist_remote_id = ? ORDER BY position",
+    )
+    .bind(playlist_id)
+    .fetch_all(&mut *conn)
+    .await?;
+
+    let drop: std::collections::HashSet<usize> = indexes.iter().copied().collect();
+    let kept: Vec<String> = ordered
+        .into_iter()
+        .enumerate()
+        .filter_map(|(i, id)| (!drop.contains(&i)).then_some(id))
+        .collect();
+
+    // Rewrite the survivors with dense positions. A full delete + reinsert
+    // is simplest and avoids the UNIQUE(position) shuffle the local queue
+    // needs — a projected playlist is small.
+    sqlx::query("DELETE FROM remote_playlist_track WHERE playlist_remote_id = ?")
+        .bind(playlist_id)
+        .execute(&mut *conn)
+        .await?;
+    for (position, track_id) in kept.iter().enumerate() {
+        sqlx::query(
+            "INSERT INTO remote_playlist_track (playlist_remote_id, position, track_remote_id)
+             VALUES (?, ?, ?)",
+        )
+        .bind(playlist_id)
+        .bind(position as i64)
+        .bind(track_id)
+        .execute(&mut *conn)
+        .await?;
+    }
+    sqlx::query("UPDATE remote_playlist SET updated_at = ? WHERE remote_id = ?")
+        .bind(now_ms())
+        .bind(playlist_id)
+        .execute(&mut *conn)
+        .await?;
+
+    mutation::enqueue(
+        conn,
+        &Mutation::UpdatePlaylist {
+            playlist_id: playlist_id.to_string(),
+            name: None,
+            comment: None,
+            public: None,
+            add: Vec::new(),
+            remove_indexes: indexes.to_vec(),
+            clear_comment: false,
+        },
+    )
+    .await?;
+    Ok(())
+}
+
 /// Delete a playlist.
 pub async fn delete_playlist(state: &AppState, playlist_id: &str) -> AppResult<()> {
     let (pool, _) = lease(state).await?;
@@ -863,6 +946,42 @@ mod tests {
             pending(&mut conn, 10).await.unwrap().is_empty(),
             "the creation should not travel for something already deleted"
         );
+    }
+
+    #[tokio::test]
+    async fn removing_a_track_compacts_the_projection_and_queues_the_index() {
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        sqlx::raw_sql(
+            "INSERT INTO remote_playlist (remote_id, name) VALUES ('p', 'Mix');
+             INSERT INTO remote_playlist_track VALUES ('p', 0, 'a'), ('p', 1, 'b'), ('p', 2, 'c');",
+        )
+        .execute(&mut *conn)
+        .await
+        .unwrap();
+
+        remove_playlist_tracks_in_tx(&mut conn, "p", &[1])
+            .await
+            .unwrap();
+
+        // The survivors keep their order with dense positions, so a later
+        // index-based edit still lines up with the server's.
+        let rows: Vec<(i64, String)> = sqlx::query_as(
+            "SELECT position, track_remote_id FROM remote_playlist_track
+              WHERE playlist_remote_id = 'p' ORDER BY position",
+        )
+        .fetch_all(&mut *conn)
+        .await
+        .unwrap();
+        assert_eq!(rows, vec![(0, "a".into()), (1, "c".into())]);
+
+        let queued = pending(&mut conn, 10).await.unwrap();
+        match &queued.last().unwrap().mutation {
+            Mutation::UpdatePlaylist { remove_indexes, .. } => {
+                assert_eq!(remove_indexes, &vec![1]);
+            }
+            other => panic!("unexpected mutation: {other:?}"),
+        }
     }
 
     #[tokio::test]
