@@ -56,6 +56,8 @@ pub struct SongItem {
     #[serde(default)]
     pub artist: Option<String>,
     #[serde(default)]
+    pub artist_id: Option<String>,
+    #[serde(default)]
     pub album: Option<String>,
     #[serde(default)]
     pub album_id: Option<String>,

@@ -14,6 +14,7 @@
 
 use std::sync::Arc;
 
+use sqlx::Row;
 use tauri::{AppHandle, Manager};
 
 use crate::{
@@ -24,16 +25,32 @@ use crate::{
     state::AppState,
 };
 
+/// Install `entries` as the remote queue and start playing at `start_index`.
+/// The shared tail of every "start a remote session" path.
+pub async fn play_entries(
+    app: &AppHandle,
+    entries: Vec<RemoteEntry>,
+    start_index: usize,
+) -> AppResult<()> {
+    if entries.is_empty() {
+        return Err(crate::error::AppError::Other("no tracks to play".into()));
+    }
+    let index = start_index.min(entries.len() - 1);
+    app.state::<AppState>()
+        .remote_playback
+        .set(RemoteQueue { entries, index });
+    play_current(app).await
+}
+
 /// Start playing a projected remote playlist from `start_index`, filling
 /// the remote queue from the projection so subsequent tracks auto-advance.
 pub async fn start(app: &AppHandle, playlist_id: &str, start_index: usize) -> AppResult<()> {
     let state = app.state::<AppState>();
-
     let entries = {
         let pool = state.require_profile_pool().await?;
         let mut conn = pool.acquire().await?;
-        let tracks = crate::remote::read::playlist_tracks(&mut conn, playlist_id).await?;
-        tracks
+        crate::remote::read::playlist_tracks(&mut conn, playlist_id)
+            .await?
             .into_iter()
             .map(|t| RemoteEntry {
                 id: t.id,
@@ -44,16 +61,56 @@ pub async fn start(app: &AppHandle, playlist_id: &str, start_index: usize) -> Ap
             })
             .collect::<Vec<_>>()
     };
+    play_entries(app, entries, start_index).await
+}
 
-    if entries.is_empty() {
-        return Err(crate::error::AppError::Other(
-            "remote playlist has no tracks to play".into(),
-        ));
-    }
-
-    let index = start_index.min(entries.len() - 1);
-    state.remote_playback.set(RemoteQueue { entries, index });
-    play_current(app).await
+/// Start a remote session from an explicit list of track ids, reading each
+/// one's display metadata from the `remote_track` cache. Backs "play this
+/// album": its tracks were cached when the album was fetched, so titles and
+/// covers are already on hand; an uncached id still plays by ticket, just
+/// without a label until a later fetch.
+pub async fn play_track_ids(
+    app: &AppHandle,
+    track_ids: &[String],
+    start_index: usize,
+) -> AppResult<()> {
+    let state = app.state::<AppState>();
+    let entries = {
+        let pool = state.require_profile_pool().await?;
+        let mut conn = pool.acquire().await?;
+        let mut entries = Vec::with_capacity(track_ids.len());
+        for id in track_ids {
+            let row = sqlx::query(
+                "SELECT title, artist, artwork_hash, duration_ms
+                   FROM remote_track WHERE remote_id = ?",
+            )
+            .bind(id)
+            .fetch_optional(&mut *conn)
+            .await?;
+            let (title, artist, artwork_hash, duration_ms) = match row {
+                Some(r) => (
+                    // The cache stores an empty title for a bare id; treat
+                    // that as "unknown" rather than a blank label.
+                    r.try_get::<String, _>("title")
+                        .ok()
+                        .filter(|s| !s.is_empty()),
+                    r.try_get("artist").ok().flatten(),
+                    r.try_get("artwork_hash").ok().flatten(),
+                    r.try_get("duration_ms").ok(),
+                ),
+                None => (None, None, None, None),
+            };
+            entries.push(RemoteEntry {
+                id: id.clone(),
+                title,
+                artist,
+                artwork_hash,
+                duration_ms,
+            });
+        }
+        entries
+    };
+    play_entries(app, entries, start_index).await
 }
 
 /// Move the cursor to an absolute position and play it. Backs the queue

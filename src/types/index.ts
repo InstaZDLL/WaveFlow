@@ -20,6 +20,8 @@ export type ViewId =
   // The concrete playlist id is carried on the history entry, like the
   // local "playlist" view. Only reachable in a `sync_v2` build.
   | "remote-playlist"
+  // A remote album detail view (RFC-005 sync_v2).
+  | "remote-album"
   // A `ui`-world plugin's custom view. The concrete plugin is carried
   // on the history entry (see AppLayout `HistoryEntry`), not the id.
   | "plugin-ui";

@@ -66,7 +66,12 @@ pub struct RemoteTrack {
     /// the metadata has not been fetched yet.
     pub title: Option<String>,
     pub artist: Option<String>,
+    /// Server id of the primary artist, for navigating to a remote artist
+    /// view. `None` when the server has no primary artist for the track.
+    pub artist_id: Option<String>,
     pub album: Option<String>,
+    /// Server id of the album, for navigating to a remote album view.
+    pub album_id: Option<String>,
     pub duration_ms: Option<i64>,
     pub artwork_hash: Option<String>,
 }
@@ -146,7 +151,8 @@ pub async fn playlist_tracks(
     playlist_id: &str,
 ) -> AppResult<Vec<RemoteTrack>> {
     let rows = sqlx::query(
-        "SELECT t.track_remote_id, rt.title, rt.artist, rt.album, rt.duration_ms, rt.artwork_hash
+        "SELECT t.track_remote_id, rt.title, rt.artist, rt.artist_id, rt.album,
+                rt.album_id, rt.duration_ms, rt.artwork_hash
            FROM remote_playlist_track t
            LEFT JOIN remote_track rt ON rt.remote_id = t.track_remote_id
           WHERE t.playlist_remote_id = ?
@@ -162,7 +168,8 @@ pub async fn playlist_tracks(
 /// The account's saved queue, in order.
 pub async fn queue_tracks(conn: &mut SqliteConnection) -> AppResult<Vec<RemoteTrack>> {
     let rows = sqlx::query(
-        "SELECT q.track_remote_id, rt.title, rt.artist, rt.album, rt.duration_ms, rt.artwork_hash
+        "SELECT q.track_remote_id, rt.title, rt.artist, rt.artist_id, rt.album,
+                rt.album_id, rt.duration_ms, rt.artwork_hash
            FROM remote_queue_track q
            LEFT JOIN remote_track rt ON rt.remote_id = q.track_remote_id
           ORDER BY q.position",
@@ -178,7 +185,9 @@ fn track_from_row(row: sqlx::sqlite::SqliteRow) -> AppResult<RemoteTrack> {
         id: row.try_get("track_remote_id")?,
         title: row.try_get("title")?,
         artist: row.try_get("artist")?,
+        artist_id: row.try_get("artist_id")?,
         album: row.try_get("album")?,
+        album_id: row.try_get("album_id")?,
         duration_ms: row.try_get("duration_ms")?,
         artwork_hash: row.try_get("artwork_hash")?,
     })
@@ -203,6 +212,7 @@ mod tests {
             ),
             include_str!("../../../../migrations/profile/20260810140000_remote_track_cache.sql"),
             include_str!("../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"),
+            include_str!("../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"),
         ] {
             sqlx::raw_sql(migration).execute(&pool).await.unwrap();
         }

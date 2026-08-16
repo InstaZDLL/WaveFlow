@@ -67,9 +67,11 @@ import { RemoteArtwork } from "../common/RemoteArtwork";
 export function RemotePlaylistView({
   remotePlaylistId,
   onAfterDelete,
+  onNavigateToRemoteAlbum,
 }: {
   remotePlaylistId: string | null;
   onAfterDelete: () => void;
+  onNavigateToRemoteAlbum: (albumId: string) => void;
 }) {
   const [summary, setSummary] = useState<RemotePlaylistSummary | null>(null);
   const [tracks, setTracks] = useState<RemoteTrack[]>([]);
@@ -457,6 +459,7 @@ export function RemotePlaylistView({
                     busy={busy}
                     onPlay={() => void playFrom(index)}
                     onRemove={() => void removeTrack(index)}
+                    onNavigateToRemoteAlbum={onNavigateToRemoteAlbum}
                   />
                 ))}
               </ul>
@@ -480,6 +483,7 @@ function RemoteTrackRow({
   busy,
   onPlay,
   onRemove,
+  onNavigateToRemoteAlbum,
 }: {
   id: string;
   track: RemoteTrack;
@@ -487,6 +491,7 @@ function RemoteTrackRow({
   busy: boolean;
   onPlay: () => void;
   onRemove: () => void;
+  onNavigateToRemoteAlbum: (albumId: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
@@ -526,7 +531,7 @@ function RemoteTrackRow({
           <Play size={14} className="fill-current" />
         </button>
       </div>
-      <RemoteArtwork hash={track.artwork_hash} className="w-9 h-9" />
+      <RemoteArtwork hash={track.artwork_hash} className="w-9 h-9 rounded" />
       <div className="min-w-0 text-sm font-medium truncate text-zinc-800 dark:text-zinc-100">
         {track.title ?? "Awaiting metadata…"}
       </div>
@@ -534,7 +539,18 @@ function RemoteTrackRow({
         {track.artist ?? "—"}
       </div>
       <div className="min-w-0 text-sm text-zinc-500 truncate">
-        {track.album ?? "—"}
+        {track.album && track.album_id ? (
+          <button
+            type="button"
+            onClick={() => onNavigateToRemoteAlbum(track.album_id!)}
+            className="truncate max-w-full text-left hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline"
+            title={track.album}
+          >
+            {track.album}
+          </button>
+        ) : (
+          (track.album ?? "—")
+        )}
       </div>
       <div className="text-right text-xs text-zinc-400 tabular-nums">
         {track.duration_ms != null ? formatDuration(track.duration_ms) : "—"}

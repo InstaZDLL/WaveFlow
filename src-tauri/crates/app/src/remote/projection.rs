@@ -232,12 +232,13 @@ pub async fn apply_snapshot(conn: &mut SqliteConnection, snapshot: &SyncSnapshot
 pub async fn cache_song(conn: &mut SqliteConnection, song: &SongItem) -> AppResult<()> {
     sqlx::query(
         "INSERT INTO remote_track
-            (remote_id, title, artist, album, album_id, duration_ms, track_no, disc_no,
+            (remote_id, title, artist, artist_id, album, album_id, duration_ms, track_no, disc_no,
              year, genre, suffix, bitrate, size, artwork_hash, library_id, full_hash, cached_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(remote_id) DO UPDATE SET
             title        = excluded.title,
             artist       = COALESCE(excluded.artist, artist),
+            artist_id    = COALESCE(excluded.artist_id, artist_id),
             album        = COALESCE(excluded.album, album),
             album_id     = COALESCE(excluded.album_id, album_id),
             duration_ms  = MAX(excluded.duration_ms, duration_ms),
@@ -258,6 +259,7 @@ pub async fn cache_song(conn: &mut SqliteConnection, song: &SongItem) -> AppResu
     // its ordering and the identifier is there to re-fetch with.
     .bind(song.title.as_deref().unwrap_or_default())
     .bind(song.artist.as_deref())
+    .bind(song.artist_id.as_deref())
     .bind(song.album.as_deref())
     .bind(song.album_id.as_deref())
     .bind(song.duration_ms.unwrap_or(0).max(0))
@@ -679,6 +681,7 @@ mod tests {
             ),
             include_str!("../../../../migrations/profile/20260810140000_remote_track_cache.sql"),
             include_str!("../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"),
+            include_str!("../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"),
         ] {
             sqlx::raw_sql(migration).execute(&pool).await.unwrap();
         }

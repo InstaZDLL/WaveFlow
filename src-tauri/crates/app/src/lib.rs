@@ -751,6 +751,10 @@ pub fn run() {
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_search_catalogue,
             #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_get_album,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_play_tracks,
+            #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_add_playlist_tracks,
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_scrobble,

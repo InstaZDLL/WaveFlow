@@ -114,7 +114,7 @@ function RemoteQueueRow({
           : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
       }`}
     >
-      <RemoteArtwork hash={entry.artwork_hash} className="w-10 h-10" iconSize={18} />
+      <RemoteArtwork hash={entry.artwork_hash} className="w-10 h-10 rounded" iconSize={18} />
       <div className="flex-1 min-w-0">
         <div
           className={`text-sm truncate ${

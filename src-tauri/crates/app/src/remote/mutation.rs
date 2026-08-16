@@ -515,6 +515,7 @@ mod tests {
             ),
             include_str!("../../../../migrations/profile/20260810140000_remote_track_cache.sql"),
             include_str!("../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"),
+            include_str!("../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"),
         ] {
             sqlx::raw_sql(migration).execute(&pool).await.unwrap();
         }

@@ -12,7 +12,7 @@ import { remoteArtwork } from "../../lib/tauri/remoteServer";
  */
 export function RemoteArtwork({
   hash,
-  className = "w-9 h-9",
+  className = "w-9 h-9 rounded",
   iconSize = 14,
 }: {
   hash: string | null;
@@ -41,7 +41,7 @@ export function RemoteArtwork({
   if (!src) {
     return (
       <div
-        className={`${className} rounded bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center shrink-0`}
+        className={`${className} bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center shrink-0`}
       >
         <ListMusic size={iconSize} className="text-zinc-400" />
       </div>
@@ -51,7 +51,7 @@ export function RemoteArtwork({
     <img
       src={src}
       alt=""
-      className={`${className} rounded object-cover shrink-0`}
+      className={`${className} object-cover shrink-0`}
       loading="lazy"
     />
   );

@@ -175,7 +175,12 @@ export interface RemoteTrack {
   /** `null` while the metadata has not been fetched yet. */
   title: string | null;
   artist: string | null;
+  /** Server id of the primary artist, for navigating to a remote artist
+   *  view; `null` when the server has no primary artist. */
+  artist_id: string | null;
   album: string | null;
+  /** Server id of the album, for navigating to a remote album view. */
+  album_id: string | null;
   duration_ms: number | null;
   artwork_hash: string | null;
 }
@@ -248,6 +253,35 @@ export interface RemotePlayQueue {
   entries: RemotePlayQueueRow[];
   /** Index of the entry currently playing. */
   index: number;
+}
+
+export interface RemoteAlbum {
+  id: string;
+  title: string;
+  artist: string | null;
+  artist_id: string | null;
+  artwork_hash: string | null;
+  year: number | null;
+  tracks: RemoteTrack[];
+}
+
+/**
+ * Fetch a remote album with its tracks (`GET /api/v2/albums/{id}`). The
+ * songs are cached server-side so they render and play at once.
+ */
+export function remoteGetAlbum(albumId: string): Promise<RemoteAlbum> {
+  return invoke<RemoteAlbum>("remote_get_album", { albumId });
+}
+
+/**
+ * Play an explicit list of remote track ids as a native queue from
+ * `startIndex` — used to play an album. Metadata comes from the cache.
+ */
+export function remotePlayTracks(
+  trackIds: string[],
+  startIndex: number,
+): Promise<void> {
+  return invoke<void>("remote_play_tracks", { trackIds, startIndex });
 }
 
 /**

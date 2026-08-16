@@ -306,6 +306,27 @@ pub async fn remote_search_catalogue(
     crate::remote::catalogue::search(&state, query.trim(), 50).await
 }
 
+/// Fetch a remote album with its tracks (`GET /api/v2/albums/{id}`),
+/// caching the songs so they render and play at once.
+#[tauri::command]
+pub async fn remote_get_album(
+    state: tauri::State<'_, AppState>,
+    album_id: String,
+) -> AppResult<crate::remote::catalogue::RemoteAlbum> {
+    crate::remote::catalogue::get_album(&state, &album_id).await
+}
+
+/// Play an explicit list of remote track ids as a native queue, from
+/// `start_index`. Backs "play this album": metadata comes from the cache.
+#[tauri::command]
+pub async fn remote_play_tracks(
+    app: tauri::AppHandle,
+    track_ids: Vec<String>,
+    start_index: usize,
+) -> AppResult<()> {
+    crate::remote::playback::play_track_ids(&app, &track_ids, start_index).await
+}
+
 /// Append tracks to a remote playlist. Applies locally at once and queues
 /// the additions for the server.
 #[tauri::command]
