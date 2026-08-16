@@ -437,6 +437,7 @@ impl HttpMediaSource {
                 // open-ended timeline.
                 is_remote: false,
                 duration_ms: None,
+                artwork_hash: None,
             },
         );
     }

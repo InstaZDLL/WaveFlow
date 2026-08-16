@@ -474,6 +474,12 @@ fn decoder_loop(
                         // A remote-queue entry carries its length; radio
                         // does not. Drives a bounded seekbar on the bar.
                         duration_ms: remote_duration,
+                        // Cover hash for a remote track — the frontend turns
+                        // it into a data URL for the PlayerBar.
+                        artwork_hash: app
+                            .state::<crate::state::AppState>()
+                            .remote_playback
+                            .current_artwork_hash(),
                     },
                 );
 

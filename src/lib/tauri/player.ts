@@ -211,6 +211,9 @@ export interface RadioMetadata {
   /** Track length in ms for a remote-queue entry, when known; `null` for
    *  live radio. Drives a bounded (but non-seekable) progress bar. */
   duration_ms: number | null;
+  /** Artwork hash for a remote-queue track; `null` for radio. The frontend
+   *  fetches it (Bearer-only) as a data URL for the PlayerBar cover. */
+  artwork_hash: string | null;
 }
 
 /**

@@ -43,7 +43,8 @@ import {
 } from "../lib/tauri/player";
 import type { PluginFavorite } from "../lib/tauri/plugins";
 import { enrichArtistDeezer } from "../lib/tauri/detail";
-import { isRadioTrack } from "../lib/playerSources";
+import { remoteArtwork } from "../lib/tauri/remoteServer";
+import { isRadioTrack, isRemoteTrack } from "../lib/playerSources";
 
 /**
  * Build the stable station identity (favorite shape, id `url:<stream>`)
@@ -264,6 +265,32 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  // Same shape for a remote-queue track: its cover lives behind a
+  // Bearer-only endpoint, so fetch it as a data URL by hash and swap it in.
+  // Reuses the radio token so a stale fetch from either source can't win.
+  const fetchRemoteArtworkInto = useCallback((hash: string | null) => {
+    if (!hash) return;
+    const token = ++radioArtworkTokenRef.current;
+    void (async () => {
+      try {
+        const url = await remoteArtwork(hash);
+        if (!url || token !== radioArtworkTokenRef.current) return;
+        setCurrentTrack((prev) =>
+          prev && isRemoteTrack(prev)
+            ? {
+                ...prev,
+                artwork_path: url,
+                artwork_path_1x: null,
+                artwork_path_2x: null,
+              }
+            : prev,
+        );
+      } catch (err) {
+        console.error("[PlayerContext] fetch remote artwork failed", err);
+      }
+    })();
+  }, []);
+
   const effectivePlaybackState =
     activeProvider === "spotify" ? spotify.playbackState : playbackState;
   const isPlaying = effectivePlaybackState === "playing";
@@ -319,8 +346,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                 radio.is_remote ? null : radioStationFromMetadata(radio),
               );
               setDurationMs(radio.duration_ms ?? 0);
-              // Upgrade the station favicon to the song's album cover.
-              fetchRadioArtworkInto(radio.title, radio.artist);
+              // Upgrade the placeholder to the real cover: the remote hash
+              // for a remote track, a Deezer lookup for a radio song.
+              if (radio.is_remote) {
+                fetchRemoteArtworkInto(radio.artwork_hash);
+              } else {
+                fetchRadioArtworkInto(radio.title, radio.artist);
+              }
             }
           } catch (err) {
             console.error("[PlayerContext] hydrate radio failed", err);
@@ -343,7 +375,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [activeProfile, fetchRadioArtworkInto]);
+  }, [activeProfile, fetchRadioArtworkInto, fetchRemoteArtworkInto]);
 
   // --- Tauri event listeners ---
   useEffect(() => {
@@ -441,9 +473,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             );
             setDurationMs(e.payload.duration_ms ?? 0);
             setPositionMs(0);
-            // The payload only carries the station favicon; fetch the
-            // song's real album cover from Deezer and swap it in async.
-            fetchRadioArtworkInto(e.payload.title, e.payload.artist);
+            // A remote track has a real cover behind a Bearer endpoint;
+            // radio only carries the station favicon, so fetch the song's
+            // album cover from Deezer instead. Either swaps in async.
+            if (e.payload.is_remote) {
+              fetchRemoteArtworkInto(e.payload.artwork_hash);
+            } else {
+              fetchRadioArtworkInto(e.payload.title, e.payload.artist);
+            }
           }),
         );
         unlisten.push(
@@ -461,7 +498,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       unlisten.forEach((u) => u());
     };
-  }, [fetchRadioArtworkInto]);
+  }, [fetchRadioArtworkInto, fetchRemoteArtworkInto]);
 
   // --- Volume debounce ---
   const setVolume = useCallback(

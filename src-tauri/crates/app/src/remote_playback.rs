@@ -115,6 +115,16 @@ impl RemotePlayback {
             .and_then(|e| e.duration_ms)
     }
 
+    /// Artwork hash of the entry under the cursor, if any. The frontend
+    /// fetches it (Bearer-only) as a data URL to paint the PlayerBar cover.
+    pub fn current_artwork_hash(&self) -> Option<String> {
+        let guard = self.inner.lock().expect("remote_playback poisoned");
+        guard
+            .as_ref()
+            .and_then(|q| q.entries.get(q.index))
+            .and_then(|e| e.artwork_hash.clone())
+    }
+
     /// A snapshot of the whole queue and its cursor, for the queue panel.
     pub fn snapshot(&self) -> Option<(Vec<RemoteEntry>, usize)> {
         let guard = self.inner.lock().expect("remote_playback poisoned");

@@ -53,6 +53,10 @@ pub struct RadioMetadataPayload {
     /// PlayerBar draw a bounded progress bar with a total time. `None` for
     /// live radio, whose timeline is open-ended.
     pub duration_ms: Option<i64>,
+    /// Artwork hash for a remote-queue track. The frontend fetches it
+    /// (Bearer-only endpoint) as a data URL for the cover; `None` for radio,
+    /// which paints its own station favicon / Deezer lookup instead.
+    pub artwork_hash: Option<String>,
 }
 
 /// Last emitted radio metadata, kept process-wide so a webview that
