@@ -127,7 +127,11 @@ fn structured_to_lyrics(tracks: &[StructuredLyricsDto]) -> Option<ServerLyrics> 
         content.push_str(&line.value);
         content.push('\n');
     }
-    let content = content.trim_end().to_string();
+    // Drop only the single trailing newline the loop appended — keep any
+    // trailing spaces or blank final lines the server sent verbatim.
+    if content.ends_with('\n') {
+        content.pop();
+    }
     if content.is_empty() {
         return None;
     }
@@ -196,5 +200,17 @@ mod tests {
     fn no_usable_content_returns_none() {
         assert!(structured_to_lyrics(&[]).is_none());
         assert!(structured_to_lyrics(&[track(false, vec![line(None, "   ")])]).is_none());
+    }
+
+    #[test]
+    fn trailing_spaces_and_blank_lines_survive() {
+        let got = structured_to_lyrics(&[track(
+            false,
+            vec![line(None, "hello  "), line(None, ""), line(None, "")],
+        )])
+        .unwrap();
+        // Only the loop's final '\n' is stripped: the trailing spaces on the
+        // first line and the two blank lines are preserved.
+        assert_eq!(got.content, "hello  \n\n");
     }
 }
