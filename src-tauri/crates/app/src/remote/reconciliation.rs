@@ -9,8 +9,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicU8, Ordering};
 
 use chrono::Utc;
 use serde::Serialize;
@@ -27,22 +26,28 @@ use crate::error::{AppError, AppResult};
 const STATUS_CONFIRMED: &str = "confirmed";
 const STATUS_STALE: &str = "stale";
 
-/// The reconciliation scan reads and full-hashes local files, so it can run
-/// for a while on a large library even behind the byte-size prefilter. These
-/// mirror `commands::analysis`: `RUNNING` guards against overlapping scans and
-/// tells the cancel command whether anything is in flight; `CANCEL` is the
-/// cooperative stop flag the hashing loop polls. Both are reset at the start
-/// of every guarded run.
-static RECONCILE_RUNNING: AtomicBool = AtomicBool::new(false);
-static RECONCILE_CANCEL: AtomicBool = AtomicBool::new(false);
-
-/// Serializes the two-step lifecycle transitions that touch both atomics so
-/// they stay consistent: acquiring a scan (test `RUNNING`, then clear `CANCEL`)
-/// and requesting a cancel (test `RUNNING`, then set `CANCEL`). Without it, a
-/// cancel landing between a fresh scan's `RUNNING.swap(true)` and its
-/// `CANCEL.store(false)` would be clobbered and silently lost. The hot-ish
-/// per-file poll in the hash loop stays lock-free on the atomic itself.
-static SCAN_LOCK: Mutex<()> = Mutex::new(());
+/// Reconciliation-scan lifecycle as a single atomic state machine so the
+/// cancel-vs-commit race resolves with one compare-exchange instead of two
+/// separate flags. The scan reads and full-hashes local files, so it can run
+/// for a while on a large library even behind the byte-size prefilter.
+///
+/// Transitions (all `compare_exchange`, so exactly one racer wins):
+/// - `IDLE → STAGING`: claim the slot ([`discover_with_progress`]); any other
+///   current value means a scan is already running.
+/// - `STAGING → CANCELLED`: a cancel wins ([`request_cancel`]); only possible
+///   while staging, never once the commit has begun.
+/// - `STAGING → COMMITTING`: the run wins the race and starts persisting
+///   ([`reconcile`]); a cancel can no longer take effect.
+/// - `* → IDLE`: the [`PhaseGuard`] resets on every exit path.
+///
+/// Because the same `STAGING → {CANCELLED, COMMITTING}` compare-exchange
+/// arbitrates both sides, `request_cancel` can never report success after
+/// persistence has started, and the commit can never run after a cancel won.
+const PHASE_IDLE: u8 = 0;
+const PHASE_STAGING: u8 = 1;
+const PHASE_CANCELLED: u8 = 2;
+const PHASE_COMMITTING: u8 = 3;
+static RECONCILE_PHASE: AtomicU8 = AtomicU8::new(PHASE_IDLE);
 
 /// Progress payload for the `reconcile:progress` event the UI drives its bar
 /// from. `processed` counts local files whose full hash has been computed.
@@ -59,28 +64,35 @@ struct HashScan {
     cancelled: bool,
 }
 
-/// RAII guard clearing [`RECONCILE_RUNNING`] on every exit path (early return,
-/// `?`, panic) so a failed scan can't wedge the flag `true` for the session.
-struct RunningGuard;
+/// RAII guard resetting [`RECONCILE_PHASE`] to `IDLE` on every exit path (early
+/// return, `?`, panic) so a failed scan can't wedge the state and brick the
+/// feature for the session.
+struct PhaseGuard;
 
-impl Drop for RunningGuard {
+impl Drop for PhaseGuard {
     fn drop(&mut self) {
-        RECONCILE_RUNNING.store(false, Ordering::SeqCst);
+        RECONCILE_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
     }
 }
 
-/// Ask an in-flight reconciliation scan to stop at the next file boundary.
-/// Idempotent and safe to call when nothing is running; returns whether a scan
-/// was actually in flight so the UI can ignore a stray click.
+/// Ask an in-flight reconciliation scan to stop. Succeeds only while the scan
+/// is still staging (hashing / building links); once the commit has begun it is
+/// too late and this returns `false`, so a `true` return is an authoritative
+/// promise that nothing was persisted. Idempotent and safe to call when nothing
+/// is running.
 pub fn request_cancel() -> bool {
-    // Hold SCAN_LOCK across the test-and-set so an acquiring scan cannot clear
-    // CANCEL between our read of RUNNING and our store.
-    let _guard = SCAN_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let running = RECONCILE_RUNNING.load(Ordering::SeqCst);
-    if running {
-        RECONCILE_CANCEL.store(true, Ordering::SeqCst);
+    match RECONCILE_PHASE.compare_exchange(
+        PHASE_STAGING,
+        PHASE_CANCELLED,
+        Ordering::SeqCst,
+        Ordering::SeqCst,
+    ) {
+        Ok(_) => true,
+        // Already cancelled (double click) — idempotently still "cancelled".
+        Err(PHASE_CANCELLED) => true,
+        // IDLE (nothing running) or COMMITTING (too late to stop).
+        Err(_) => false,
     }
-    running
 }
 
 #[derive(Debug, Clone)]
@@ -258,21 +270,23 @@ pub async fn discover_with_progress(
     pool: &SqlitePool,
     app: AppHandle,
 ) -> AppResult<ReconciliationReport> {
-    // Acquire the scan slot and clear any stale cancel from a prior run as one
-    // critical section, so a concurrent `request_cancel` either runs fully
-    // before us (sees no scan, no-ops) or fully after us (sees RUNNING, sets
-    // CANCEL) — never in between, where its request would be clobbered.
+    // Claim the scan slot atomically: only `IDLE → STAGING` succeeds, so a
+    // second concurrent scan (any non-IDLE state) bails with an empty,
+    // non-cancelled report rather than a scary error toast.
+    if RECONCILE_PHASE
+        .compare_exchange(
+            PHASE_IDLE,
+            PHASE_STAGING,
+            Ordering::SeqCst,
+            Ordering::SeqCst,
+        )
+        .is_err()
     {
-        let _lock = SCAN_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-        if RECONCILE_RUNNING.swap(true, Ordering::SeqCst) {
-            // A scan is already running; leave it untouched and report an
-            // empty, non-cancelled result rather than a scary error toast.
-            return Ok(empty_report(false));
-        }
-        RECONCILE_CANCEL.store(false, Ordering::SeqCst);
+        return Ok(empty_report(false));
     }
-    // The guard resets RUNNING on every exit path (early return, `?`, panic).
-    let _guard = RunningGuard;
+    // The guard resets the phase to IDLE on every exit path (early return, `?`,
+    // panic), whether we ended in STAGING, CANCELLED or COMMITTING.
+    let _guard = PhaseGuard;
     discover_inner(pool, Some(app)).await
 }
 
@@ -280,6 +294,11 @@ async fn discover_inner(
     pool: &SqlitePool,
     app: Option<AppHandle>,
 ) -> AppResult<ReconciliationReport> {
+    // Cancellation only exists on the progress path (`app` present). The
+    // test/no-progress path never polls or transitions the shared phase, so a
+    // unit test cannot be perturbed by another test's scan state.
+    let cancellable = app.is_some();
+
     let remote_tracks = load_remote_tracks(pool).await?;
     if remote_tracks.is_empty() {
         return Ok(empty_report(false));
@@ -298,7 +317,7 @@ async fn discover_inner(
         return Ok(empty_report(true));
     }
 
-    reconcile(pool, scan.hashed, scan.unreadable, remote_tracks).await
+    reconcile(pool, scan.hashed, scan.unreadable, remote_tracks, cancellable).await
 }
 
 async fn load_remote_tracks(pool: &SqlitePool) -> AppResult<Vec<RemoteTrack>> {
@@ -367,12 +386,16 @@ async fn load_local_candidates(pool: &SqlitePool) -> AppResult<Vec<LocalTrack>> 
 }
 
 fn hash_local_tracks(tracks: Vec<LocalTrack>, app: Option<&AppHandle>, total: usize) -> HashScan {
+    // The phase is only meaningful on the progress path; the no-progress/test
+    // path can't be cancelled and must not read the shared phase (see
+    // `discover_inner`).
+    let cancellable = app.is_some();
     let mut hashed = Vec::with_capacity(tracks.len());
     let mut unreadable = 0;
     for track in tracks {
-        // Poll the cancel flag at the top of the loop so a click that lands
+        // Poll for a cancel at the top of the loop so a click that lands
         // between two files is honoured before starting another full-file read.
-        if RECONCILE_CANCEL.load(Ordering::Relaxed) {
+        if cancellable && RECONCILE_PHASE.load(Ordering::Relaxed) == PHASE_CANCELLED {
             return cancelled_scan(hashed, unreadable, total);
         }
         match waveflow_core::scanner::hash_file_full(Path::new(&track.file_path)) {
@@ -394,8 +417,10 @@ fn hash_local_tracks(tracks: Vec<LocalTrack>, app: Option<&AppHandle>, total: us
     }
     // A cancel arriving while the LAST file hashes would never be seen by the
     // top-of-loop poll, so the run would persist despite the click. Re-check
-    // once after the loop before declaring the scan complete.
-    if RECONCILE_CANCEL.load(Ordering::Relaxed) {
+    // once after the loop before declaring the scan complete. The definitive
+    // arbitration still happens at the pre-commit compare-exchange in
+    // `reconcile`, which catches a cancel this relaxed load may have missed.
+    if cancellable && RECONCILE_PHASE.load(Ordering::Relaxed) == PHASE_CANCELLED {
         return cancelled_scan(hashed, unreadable, total);
     }
     HashScan {
@@ -459,6 +484,7 @@ async fn reconcile(
     local_tracks: Vec<HashedLocalTrack>,
     unreadable_local_tracks: usize,
     remote_tracks: Vec<RemoteTrack>,
+    cancellable: bool,
 ) -> AppResult<ReconciliationReport> {
     let hashed_local_count = local_tracks.len();
     let mut local_by_hash: HashMap<String, Vec<HashedLocalTrack>> = HashMap::new();
@@ -636,12 +662,24 @@ async fn reconcile(
         }
     }
 
-    // A cancel can land after hashing finished but while this transaction was
-    // staging its auto-links and status revalidations. Check once more before
-    // the commit: if it's set, drop `tx` (rollback) so a cancelled run persists
-    // nothing, matching the hash-phase contract. The RUNNING guard stays held
-    // throughout, so this can't race a second scan onto the same pool.
-    if RECONCILE_CANCEL.load(Ordering::Relaxed) {
+    // Atomically leave the cancellable phase right before persisting. This is
+    // the single point that arbitrates the cancel-vs-commit race: only
+    // `STAGING → COMMITTING` lets the commit through, and it fails exactly when
+    // a `request_cancel` already won `STAGING → CANCELLED`. On failure we drop
+    // `tx` (rollback) so a cancelled run persists nothing, and `request_cancel`
+    // — having observed STAGING — returned an authoritative `true`. The
+    // no-progress/test path (`cancellable == false`) never entered STAGING and
+    // always commits. All writes are staged in `tx`, so rollback leaves nothing.
+    if cancellable
+        && RECONCILE_PHASE
+            .compare_exchange(
+                PHASE_STAGING,
+                PHASE_COMMITTING,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            )
+            .is_err()
+    {
         tracing::info!("reconciliation scan cancelled before commit; rolling back");
         return Ok(empty_report(true));
     }
@@ -1342,6 +1380,56 @@ mod tests {
     use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
     use std::fs;
     use std::str::FromStr;
+    use std::sync::{Arc, Barrier};
+
+    /// Arbitration of the cancel-vs-commit race the phase machine exists for.
+    /// Kept in ONE test (its sub-checks run sequentially) because it mutates the
+    /// process-global `RECONCILE_PHASE`; no other test touches the phase (the
+    /// discovery tests run the non-cancellable path), so this is the only
+    /// mutator and can't be perturbed by a concurrent test.
+    #[test]
+    fn cancel_and_commit_transitions_are_mutually_exclusive() {
+        // Barrier-synchronised race: `request_cancel` (STAGING → CANCELLED) and
+        // the pre-commit transition (STAGING → COMMITTING) released at the same
+        // instant. Exactly one must win each round — never both (a persist while
+        // `request_cancel` also reported success) and never neither.
+        for _ in 0..1_000 {
+            RECONCILE_PHASE.store(PHASE_STAGING, Ordering::SeqCst);
+            let barrier = Arc::new(Barrier::new(2));
+
+            let cancel_barrier = Arc::clone(&barrier);
+            let cancel = std::thread::spawn(move || {
+                cancel_barrier.wait();
+                request_cancel()
+            });
+            let commit_barrier = Arc::clone(&barrier);
+            let commit = std::thread::spawn(move || {
+                commit_barrier.wait();
+                RECONCILE_PHASE
+                    .compare_exchange(
+                        PHASE_STAGING,
+                        PHASE_COMMITTING,
+                        Ordering::SeqCst,
+                        Ordering::SeqCst,
+                    )
+                    .is_ok()
+            });
+
+            let cancelled = cancel.join().unwrap();
+            let committed = commit.join().unwrap();
+            assert!(
+                cancelled ^ committed,
+                "exactly one of cancel/commit must win (cancelled={cancelled}, committed={committed})"
+            );
+        }
+
+        // Once committing, or when idle, a cancel is too late / a no-op and must
+        // report the authoritative `false`.
+        RECONCILE_PHASE.store(PHASE_COMMITTING, Ordering::SeqCst);
+        assert!(!request_cancel(), "cancel after commit started must be rejected");
+        RECONCILE_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
+        assert!(!request_cancel(), "cancel with nothing running must be rejected");
+    }
 
     /// Build the fixture from the REAL compiled-in profile migrations rather
     /// than a hand-rolled subset. A trimmed schema drops CHECK constraints,
