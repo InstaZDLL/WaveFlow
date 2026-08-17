@@ -297,10 +297,11 @@ async fn acknowledge(state: &AppState, profile_id: i64, client: &RemoteClient, c
         // confusion while testing: an empty device id reads as a bad
         // cursor.)
         if failure.status == Some(422) {
+            // The device id is deliberately not logged — the message points
+            // at the device without emitting its raw identifier.
             tracing::warn!(
                 %failure,
                 cursor,
-                device_id,
                 "the server refused this acknowledgement; check the device is still \
                  registered before suspecting the cursor"
             );

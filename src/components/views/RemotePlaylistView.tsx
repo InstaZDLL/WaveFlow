@@ -366,11 +366,14 @@ export function RemotePlaylistView({
     if (!q) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults([]);
+      setSearching(false);
       return;
     }
     const seq = ++searchSeqRef.current;
-    setSearching(true);
     const timer = setTimeout(() => {
+      // Flip the spinner on only when the request actually fires, not for
+      // the whole debounce window on every keystroke.
+      setSearching(true);
       remoteSearchCatalogue(q)
         .then((rows) => {
           if (seq === searchSeqRef.current) setResults(rows);
@@ -710,7 +713,7 @@ export function RemotePlaylistView({
                     track={track}
                     index={index + 1}
                     busy={busy}
-                    dragEnabled={isCustomOrder}
+                    dragEnabled={isCustomOrder && !busy}
                     isCurrent={
                       playingRemoteId != null && track.id === playingRemoteId
                     }

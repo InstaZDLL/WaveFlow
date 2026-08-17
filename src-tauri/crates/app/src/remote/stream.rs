@@ -40,6 +40,9 @@ async fn client(state: &AppState) -> AppResult<RemoteClient> {
 /// absolute URL (`{base_url}/api/v2/stream/<ticket>`), safe to hand to
 /// `player_play_url` / `HttpMediaSource`.
 pub async fn ticket_url(state: &AppState, track_id: &str) -> AppResult<String> {
+    if crate::offline::is_offline() {
+        return Err(AppError::Other("offline".into()));
+    }
     let client = client(state).await?;
 
     let resp: StreamTicketResponse = client

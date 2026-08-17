@@ -1736,7 +1736,8 @@ pub async fn player_next(
     // tracks stream by URL and have no row in the local `queue_item` table.
     #[cfg(feature = "sync_v2")]
     if state.remote_playback.is_active() {
-        return crate::remote::playback::advance(&app, Direction::Next).await;
+        crate::remote::playback::advance(&app, Direction::Next).await?;
+        return Ok(());
     }
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();
@@ -1786,7 +1787,8 @@ pub async fn player_previous(
     }
     #[cfg(feature = "sync_v2")]
     if state.remote_playback.is_active() {
-        return crate::remote::playback::advance(&app, Direction::Previous).await;
+        crate::remote::playback::advance(&app, Direction::Previous).await?;
+        return Ok(());
     }
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();

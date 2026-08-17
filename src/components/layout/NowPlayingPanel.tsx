@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { X, Music2, Radio } from "lucide-react";
-import { convertFileSrc } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useTrackCanvas } from "../../hooks/useTrackCanvas";
@@ -167,6 +166,13 @@ export function NowPlayingPanel({
       setRemoteArtistId(null);
       return;
     }
+    // Clear the previous remote artist's resolved state before re-resolving
+    // — on a remote→remote change the local enrichment effect (keyed on the
+    // always-null artist_id) never re-runs, so nothing else would.
+    setRemoteArtistId(null);
+    setPictureSrc(null);
+    setBioShort(null);
+    setBioFull(null);
     let cancelled = false;
     void (async () => {
       try {
@@ -538,11 +544,10 @@ export function NowPlayingPanel({
       </div>
 
       <Lightbox
-        src={
-          currentTrack?.artwork_path
-            ? convertFileSrc(currentTrack.artwork_path)
-            : null
-        }
+        // resolveArtwork returns http / data URLs verbatim and only
+        // convertFileSrc's a real local path — a remote track's inlined
+        // `data:` cover would break under a bare convertFileSrc.
+        src={resolveArtwork({ full: currentTrack?.artwork_path ?? null }, "full")}
         alt={currentTrack?.album_title ?? currentTrack?.title}
         isOpen={isLightboxOpen}
         onClose={() => setIsLightboxOpen(false)}

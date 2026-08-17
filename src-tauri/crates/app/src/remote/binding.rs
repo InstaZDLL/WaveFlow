@@ -270,6 +270,11 @@ pub async fn clear_account_state(conn: &mut SqliteConnection) -> AppResult<()> {
         "DELETE FROM remote_share_track",
         "DELETE FROM remote_share",
         "DELETE FROM remote_mutation",
+        // The cached track metadata is account-scoped too: leaving it behind
+        // would let a new account's projection resolve an old account's
+        // titles / artwork by remote_id. Dropped last, after every table that
+        // references it, so an FK-on connection can't reject the delete.
+        "DELETE FROM remote_track",
     ] {
         sqlx::query(statement).execute(&mut *conn).await?;
     }

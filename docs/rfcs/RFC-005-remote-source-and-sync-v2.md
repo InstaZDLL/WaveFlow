@@ -439,7 +439,8 @@ keeping them would carry complexity the protocol no longer asks for.
 
 The desktop's own [RFC-003](RFC-003-sync-architecture.md) (hybrid logical
 clocks, Draft, 2026-06-12) has nothing to do with the server's RFC-003 (sync v2,
-Accepted, 2026-08-09). Comments in `sync/mod.rs` point at the **desktop** one.
+Accepted, 2026-08-09). Comments in `sync_stub.rs` (the module `mod sync`
+resolves to after the RFC-005 cutover) point at the **desktop** one.
 Any instruction mentioning "RFC-003" must name the repository, or it will be
 read as the wrong document. This RFC exists partly to end that ambiguity: on the
 desktop side, the accepted design is **RFC-005**.

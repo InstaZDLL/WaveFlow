@@ -514,6 +514,10 @@ impl AppState {
     /// makes the drain terminate: once the old [`ActiveProfile`] is out
     /// of `self.profile`, no further lease can be issued against it.
     pub async fn activate_profile(&self, profile_id: i64) -> AppResult<()> {
+        // Drop any remote play session so the incoming profile can't observe
+        // playback state (queue, cursor) belonging to the previous one
+        // (RFC-005). The session references the old profile's remote tracks.
+        self.remote_playback.clear();
         self.paths.ensure_profile_dirs(profile_id)?;
 
         let db_path = self.paths.profile_db(profile_id);
@@ -535,6 +539,9 @@ impl AppState {
     /// Close the active profile pool, if any, leaving no profile active.
     /// Waits for outstanding leases first, same as [`Self::activate_profile`].
     pub async fn deactivate_profile(&self) {
+        // Same reason as activate_profile: no remote session may outlive the
+        // profile whose tracks it points at (RFC-005).
+        self.remote_playback.clear();
         let previous = {
             let mut guard = self.profile.write().await;
             guard.take()

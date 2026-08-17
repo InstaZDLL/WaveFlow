@@ -126,21 +126,34 @@ pub async fn jump_to(app: &AppHandle, index: usize) -> AppResult<()> {
     }
 }
 
-/// Step the remote cursor and play what it lands on. `None` from the step
-/// means the queue ran off the end with repeat off — the session has
-/// already been cleared, so stop the engine.
-pub async fn advance(app: &AppHandle, direction: Direction) -> AppResult<()> {
+/// Step the remote cursor and play what it lands on. Returns `Ok(true)`
+/// when a track was loaded, `Ok(false)` when the queue ran off the end with
+/// repeat off (the session is already cleared, so the engine is stopped).
+///
+/// A failure to mint the ticket for the stepped-to entry must not strand
+/// the session on a track it never played: the engine is stopped and the
+/// session cleared before the error propagates, so the next action starts
+/// clean rather than acting on a phantom cursor.
+pub async fn advance(app: &AppHandle, direction: Direction) -> AppResult<bool> {
     let state = app.state::<AppState>();
     let repeat = {
         let pool = state.require_profile_pool().await?;
         crate::queue::read_repeat_mode(&pool).await
     };
     match state.remote_playback.step(direction, repeat) {
-        Some(_) => play_current(app).await,
+        Some(_) => {
+            if let Err(err) = play_current(app).await {
+                let engine = app.state::<Arc<AudioEngine>>();
+                let _ = engine.send(AudioCmd::Stop);
+                state.remote_playback.clear();
+                return Err(err);
+            }
+            Ok(true)
+        }
         None => {
             let engine = app.state::<Arc<AudioEngine>>();
             let _ = engine.send(AudioCmd::Stop);
-            Ok(())
+            Ok(false)
         }
     }
 }

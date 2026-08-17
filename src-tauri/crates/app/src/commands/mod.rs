@@ -40,7 +40,8 @@ pub mod profile;
 pub mod profile_io;
 pub mod radio;
 // Remote server binding + PKCE sign-in (RFC-005). Gated on `sync_v2`,
-// which is off by default while the slices land.
+// which is now in the default feature set — a build can still compile it
+// out via `--no-default-features`.
 #[cfg(feature = "sync_v2")]
 pub mod remote_auth;
 pub mod scan;

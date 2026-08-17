@@ -105,19 +105,34 @@ jobs:
           --no-default-features
           --features postgres
 
-      - name: cargo check + test (sync_v2 — off by default, so unchecked otherwise)
-        # `crate::remote` (RFC-005) lives behind an off-by-default feature
-        # while its slices land, which means the step above never compiles
-        # a line of it. Without this step the whole tree would rot
-        # silently until the day it is switched on. Linux only: it adds no
-        # platform-specific code, and the Windows slot cannot run the app
-        # crate's test binary anyway (see below).
+      - name: cargo test (waveflow app crate — Linux only)
+        # sync_v2 (RFC-005) is now in the default feature set, so the
+        # `cargo check --workspace --all-targets` step above already
+        # compiles every line of `crate::remote`. This step remains to RUN
+        # the app crate's tests, which only the Linux slot can — the Windows
+        # slot can't start the Tauri test binary (see below). `--features
+        # sync_v2` is redundant with the default now, kept explicit so the
+        # intent survives a future default change.
         if: runner.os == 'Linux'
         run: >-
           cargo test
           --manifest-path src-tauri/Cargo.toml
           -p waveflow
           --features sync_v2
+          --all-targets
+
+      - name: cargo check (opt-out build — no default features)
+        # The Flatpak / app-store builds compile with `--no-default-features`
+        # (they own updates and don't ship sync_v2's server surface). Now
+        # that sync_v2 is default, this is the ONLY step that exercises the
+        # code compiled WITHOUT it — the always-present stubs and the
+        # local-only halves of shared modules — so they can't rot silently.
+        if: runner.os == 'Linux'
+        run: >-
+          cargo check
+          --manifest-path src-tauri/Cargo.toml
+          -p waveflow
+          --no-default-features
           --all-targets
 
       - name: cargo test (full workspace)

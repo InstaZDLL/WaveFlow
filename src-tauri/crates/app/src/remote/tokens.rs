@@ -126,6 +126,12 @@ fn decode(bytes: Vec<u8>, what: &str) -> AppResult<String> {
 /// separately would leave a window where a crash strands a new access
 /// token next to a refresh token that has already been spent — the
 /// profile would look signed in and be unable to recover.
+///
+/// SECURITY: the tokens are currently stored **in cleartext** despite the
+/// `*_encrypted` column names — no encryption is applied here yet. The
+/// refresh token is the sensitive one (it re-mints access tokens). Moving
+/// this to the OS keyring is tracked as hardening work, not done in this
+/// change.
 pub async fn write(conn: &mut SqliteConnection, pair: &TokenPair) -> AppResult<()> {
     if pair.access_token.trim().is_empty() || pair.refresh_token.trim().is_empty() {
         return Err(AppError::Other(

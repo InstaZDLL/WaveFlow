@@ -52,6 +52,9 @@ export function RemoteArtistView({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError(null);
+    // Clear the previous artist up front so its header / artwork / albums
+    // can't linger (or stay clickable) while the new one loads.
+    setArtist(null);
     setEnrichment(null);
     setSimilar([]);
     setBioExpanded(false);

@@ -135,10 +135,16 @@ async fn try_remote_advance(app: &AppHandle, direction: Direction, label: &str) 
     if !app.state::<AppState>().remote_playback.is_active() {
         return None;
     }
-    if let Err(err) = crate::remote::playback::advance(app, direction).await {
-        tracing::warn!(%err, surface = label, "remote player action: advance failed");
+    match crate::remote::playback::advance(app, direction).await {
+        // A track was actually loaded.
+        Ok(true) => Some(Moved::Track),
+        // End of queue (repeat off) — the session stopped, nothing new plays.
+        Ok(false) => Some(Moved::Nothing),
+        Err(err) => {
+            tracing::warn!(%err, surface = label, "remote player action: advance failed");
+            Some(Moved::Nothing)
+        }
     }
-    Some(Moved::Track)
 }
 
 /// Jump to an absolute queue position and play it.

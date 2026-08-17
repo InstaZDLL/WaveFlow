@@ -236,7 +236,9 @@ pub async fn cache_song(conn: &mut SqliteConnection, song: &SongItem) -> AppResu
              year, genre, suffix, bitrate, size, artwork_hash, library_id, full_hash, cached_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(remote_id) DO UPDATE SET
-            title        = excluded.title,
+            -- A later cache pass for a bare id binds an empty title; keep the
+            -- existing one rather than blanking a row we already labelled.
+            title        = COALESCE(NULLIF(excluded.title, ''), title),
             artist       = COALESCE(excluded.artist, artist),
             artist_id    = COALESCE(excluded.artist_id, artist_id),
             album        = COALESCE(excluded.album, album),
@@ -445,12 +447,19 @@ pub async fn apply_change(conn: &mut SqliteConnection, change: &SyncChange) -> A
         }
 
         ("queue", "upsert") => {
+            // Same partial-update rule as playlist / share: an absent
+            // "current" key means "unchanged", not "clear". Only overwrite
+            // current_remote_id when the key is present (a present null still
+            // clears it).
+            let has_current = change.payload.get("current").is_some();
             sqlx::query(
                 "INSERT INTO remote_queue
                     (id, current_remote_id, position_ms, changed_by, updated_at)
                  VALUES (1, ?, ?, ?, ?)
                  ON CONFLICT(id) DO UPDATE SET
-                    current_remote_id = excluded.current_remote_id,
+                    current_remote_id = CASE WHEN ?
+                        THEN excluded.current_remote_id
+                        ELSE current_remote_id END,
                     position_ms       = excluded.position_ms,
                     changed_by        = excluded.changed_by,
                     updated_at        = excluded.updated_at",
@@ -466,6 +475,7 @@ pub async fn apply_change(conn: &mut SqliteConnection, change: &SyncChange) -> A
             )
             .bind(payload_str(&change.payload, "client"))
             .bind(change.changed_at)
+            .bind(has_current)
             .execute(&mut *conn)
             .await?;
 
