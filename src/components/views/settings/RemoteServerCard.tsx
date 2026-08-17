@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CloudOff, Loader2, RefreshCw, Server, Unplug } from "lucide-react";
 import {
   remoteBeginLogin,
@@ -48,34 +48,47 @@ export function RemoteServerCard() {
   const [probe, setProbe] = useState<RemoteProbeResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<
-    null | "probe" | "login" | "sync" | "forget"
+    null | "probe" | "login" | "signout" | "sync" | "forget"
   >(null);
+  const mountedRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    const [next, counts] = await Promise.all([
-      remoteGetStatus(),
-      remoteGetOverview(),
-    ]);
+    // Status is availability-critical; the overview is only counts. Read
+    // them independently so a transient overview failure never blanks the
+    // card, and neither call clobbers state after unmount.
+    const next = await remoteGetStatus();
+    if (!mountedRef.current) return;
     setStatus(next);
-    setOverview(counts);
     if (next.server_url) setUrlDraft(next.server_url);
+    try {
+      const counts = await remoteGetOverview();
+      if (mountedRef.current) setOverview(counts);
+    } catch {
+      // Informational only — keep the last counts.
+    }
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    mountedRef.current = true;
     void (async () => {
       try {
+        // Availability hinges on this one call alone: if it rejects, the
+        // command is not registered (sync_v2 off) and the card hides.
         await remoteGetStatus();
-        if (cancelled) return;
+        if (!mountedRef.current) return;
         setAvailable(true);
-        await refresh();
+        try {
+          await refresh();
+        } catch {
+          // A transient status failure right after the probe must not flip
+          // availability back off — the command clearly exists.
+        }
       } catch {
-        // The command is not registered: this build has sync_v2 off.
-        if (!cancelled) setAvailable(false);
+        if (mountedRef.current) setAvailable(false);
       }
     })();
     return () => {
-      cancelled = true;
+      mountedRef.current = false;
     };
   }, [refresh]);
 
@@ -89,9 +102,9 @@ export function RemoteServerCard() {
         // The sidebar remote-source section reads the same binding.
         notifyRemoteChanged();
       } catch (err) {
-        setError(String(err));
+        if (mountedRef.current) setError(String(err));
       } finally {
-        setBusy(null);
+        if (mountedRef.current) setBusy(null);
       }
     },
     [refresh],
@@ -185,11 +198,15 @@ export function RemoteServerCard() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void run("login", remoteSignOut)}
+                  onClick={() => void run("signout", remoteSignOut)}
                   disabled={busy !== null}
                   className="px-3 py-1.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 inline-flex items-center gap-1.5 disabled:opacity-50"
                 >
-                  <Unplug size={14} aria-hidden="true" />
+                  {busy === "signout" ? (
+                    <Spinner />
+                  ) : (
+                    <Unplug size={14} aria-hidden="true" />
+                  )}
                   Sign out
                 </button>
               </>

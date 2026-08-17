@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   remoteGetStatus,
   remoteListPlaylists,
@@ -31,31 +31,49 @@ export function useRemoteSource(): RemoteSourceState {
   const [available, setAvailable] = useState(false);
   const [serverName, setServerName] = useState<string | null>(null);
   const [playlists, setPlaylists] = useState<RemotePlaylistSummary[]>([]);
+  // Monotonic token so a slow pass can't overwrite a newer one: bursts of
+  // `waveflow:remote-changed` fire overlapping refreshes, and without this
+  // an older status/list response landing last would clobber fresher data.
+  const seqRef = useRef(0);
+  // Once we've resolved as available, sync_v2 is compiled in — so a later
+  // status failure is transient (never "command absent"), and must not
+  // make the section vanish under the user.
+  const everAvailableRef = useRef(false);
 
   const refresh = useCallback(() => {
+    const seq = ++seqRef.current;
+    const isCurrent = () => seq === seqRef.current;
     void (async () => {
       try {
         const status = await remoteGetStatus();
+        if (!isCurrent()) return;
         if (!status.signed_in) {
           setAvailable(false);
           setServerName(null);
           setPlaylists([]);
           return;
         }
+        everAvailableRef.current = true;
         setAvailable(true);
         setServerName(hostOf(status.server_url) ?? status.username ?? "Remote");
         try {
-          setPlaylists(await remoteListPlaylists());
+          const list = await remoteListPlaylists();
+          if (isCurrent()) setPlaylists(list);
         } catch {
           // Signed in but the list call failed (offline, transient): keep
           // the section visible with whatever we last had rather than
           // making it vanish under the user.
         }
       } catch {
-        // `remote_get_status` is not a registered command: sync_v2 off.
-        setAvailable(false);
-        setServerName(null);
-        setPlaylists([]);
+        if (!isCurrent()) return;
+        // Only hide when we've never resolved: the command may be absent
+        // (sync_v2 off). Once we've been available, this is a transient
+        // status failure — keep the last state instead of flipping off.
+        if (!everAvailableRef.current) {
+          setAvailable(false);
+          setServerName(null);
+          setPlaylists([]);
+        }
       }
     })();
   }, []);
