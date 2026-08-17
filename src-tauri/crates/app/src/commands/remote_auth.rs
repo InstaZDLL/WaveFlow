@@ -538,6 +538,36 @@ pub async fn remote_remove_reconciliation_link(
     crate::remote::reconciliation::remove_link(&pool, local_track_id).await
 }
 
+#[tauri::command]
+pub async fn remote_copy_reconciliation_favorite(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    local_track_id: i64,
+    direction: String,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    crate::remote::reconciliation::copy_favorite(&pool, local_track_id, &direction).await?;
+    if direction == "local_to_server" {
+        crate::remote::drain::spawn(app);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn remote_copy_reconciliation_rating(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    local_track_id: i64,
+    direction: String,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    crate::remote::reconciliation::copy_rating(&pool, local_track_id, &direction).await?;
+    if direction == "local_to_server" {
+        crate::remote::drain::spawn(app);
+    }
+    Ok(())
+}
+
 /// Preview an explicit playlist conversion. No rows are written; every source
 /// position is returned with its reconciliation status so the UI can require a
 /// deliberate confirmation.

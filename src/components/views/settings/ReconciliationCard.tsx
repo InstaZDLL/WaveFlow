@@ -13,6 +13,8 @@ import {
   remoteConvertPlaylist,
   remoteConfirmReconciliation,
   remoteGetStatus,
+  remoteCopyReconciliationFavorite,
+  remoteCopyReconciliationRating,
   remoteListReconciliationLinks,
   remoteListPlaylists,
   remotePreviewPlaylistConversion,
@@ -158,7 +160,7 @@ export function ReconciliationCard() {
               {links.map((link) => (
                 <div
                   key={link.local_track_id}
-                  className="flex items-center gap-3 rounded-lg border border-zinc-200 dark:border-zinc-700 px-3 py-2"
+                  className="flex items-start gap-3 rounded-lg border border-zinc-200 dark:border-zinc-700 px-3 py-2"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-zinc-800 dark:text-zinc-100 truncate">
@@ -167,6 +169,59 @@ export function ReconciliationCard() {
                     <p className="text-xs text-zinc-500 truncate">
                       {link.remote_title ?? link.remote_track_id}
                     </p>
+                    <p className="text-[10px] text-zinc-500 mt-1">
+                      Favorites: local {link.local_favorite ? "yes" : "no"} ·
+                      server {link.remote_favorite ? "yes" : "no"} · Ratings:
+                      local {formatLocalRating(link.local_rating)} · server{" "}
+                      {link.remote_rating ?? "—"}/5
+                    </p>
+                    <p className="text-[10px] text-zinc-500">
+                      History: {link.local_plays} local + {link.remote_plays}{" "}
+                      server = {link.combined_plays} plays
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {[
+                        [
+                          "favorite",
+                          "local_to_server",
+                          "Favorite local → server",
+                        ],
+                        [
+                          "favorite",
+                          "server_to_local",
+                          "Favorite server → local",
+                        ],
+                        ["rating", "local_to_server", "Rating local → server"],
+                        ["rating", "server_to_local", "Rating server → local"],
+                      ].map(([kind, direction, label]) => (
+                        <button
+                          key={`${kind}:${direction}`}
+                          type="button"
+                          disabled={
+                            busy !== null || link.status !== "confirmed"
+                          }
+                          onClick={() =>
+                            void runPair(
+                              `copy:${kind}:${direction}:${link.local_track_id}`,
+                              () =>
+                                kind === "favorite"
+                                  ? remoteCopyReconciliationFavorite(
+                                      link.local_track_id,
+                                      direction as PlaylistConversionDirection,
+                                    )
+                                  : remoteCopyReconciliationRating(
+                                      link.local_track_id,
+                                      direction as PlaylistConversionDirection,
+                                    ),
+                              false,
+                            )
+                          }
+                          className="px-2 py-1 text-[10px] rounded border border-zinc-200 dark:border-zinc-700 disabled:opacity-40"
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <span
                     className={`text-[10px] font-medium uppercase ${
@@ -235,6 +290,10 @@ export function ReconciliationCard() {
       </div>
     </div>
   );
+}
+
+function formatLocalRating(value: number | null): string {
+  return value == null ? "—/5" : `${((value / 255) * 5).toFixed(1)}/5`;
 }
 
 function PlaylistConversion() {
