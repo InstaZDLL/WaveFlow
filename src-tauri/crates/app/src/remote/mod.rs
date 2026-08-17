@@ -74,14 +74,6 @@
 //! on top. Only WaveFlow offers it, which is why nothing in this module
 //! may assume it is present without having observed it.
 
-// This slice lands the foundation; its consumers — the PKCE handshake,
-// the snapshot bootstrap, the outbound drain — land in the ones that
-// follow. Until then most of the surface below has no caller and
-// `dead_code` would flag nearly all of it, drowning the warnings that
-// mean something. Same treatment, and the same reason, as
-// `sync/mode.rs`. Drop this once the drain consumes the client.
-#![allow(dead_code)]
-
 pub mod auth;
 pub mod binding;
 pub mod catalogue;

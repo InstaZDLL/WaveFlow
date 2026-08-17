@@ -95,6 +95,12 @@ pub const CODE_CURSOR_EXPIRED: &str = "cursor_expired";
 
 /// Error code for a request that collides with existing state — an
 /// operation id replayed with a different payload, most of all.
+///
+/// Kept as the documented counterpart to [`CODE_CURSOR_EXPIRED`] — the two
+/// share `409` and demand opposite reactions — and exercised by the tests
+/// that pin that distinction, though the drain classifies a conflict as
+/// permanent by status alone rather than reading this.
+#[allow(dead_code)]
 pub const CODE_CONFLICT: &str = "conflict";
 
 /// Classify an HTTP status.
@@ -164,6 +170,11 @@ impl RemoteFailure {
 
     /// The request collides with existing state. Permanent, and the fix
     /// is a new operation id — never a retry of this one.
+    ///
+    /// The symmetric counterpart to [`Self::is_cursor_expired`]; only the
+    /// tests read it today (the drain acts on the permanent status), but it
+    /// keeps the 409 duality legible in one place.
+    #[allow(dead_code)]
     pub fn is_conflict(&self) -> bool {
         self.code.as_deref() == Some(CODE_CONFLICT)
     }

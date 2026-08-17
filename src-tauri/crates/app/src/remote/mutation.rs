@@ -199,6 +199,9 @@ pub struct QueuedMutation {
     pub id: i64,
     pub operation_id: String,
     pub mutation: Mutation,
+    // Surfaced for diagnostics and asserted by the tests; the drain itself
+    // doesn't branch on the try count.
+    #[allow(dead_code)]
     pub attempt_count: i64,
 }
 
