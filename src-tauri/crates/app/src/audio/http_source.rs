@@ -359,14 +359,28 @@ fn split_artist_title(raw: &str) -> (String, Option<String>) {
 /// rather than trusting it.
 fn parse_content_range_start(value: &str) -> Option<u64> {
     let rest = value.trim().strip_prefix("bytes ")?;
-    let range = rest.split('/').next()?; // "<start>-<end>"
-    // A 206 always carries BOTH bounds — an open-ended "<start>-" is only
-    // valid in a *request* Range, so a missing end means a malformed
-    // response. Require both, and reject a start that runs past the end.
+    // Exactly "<range>/<total>": one slash, total required (a 206 always
+    // sends it). A missing or extra slash is malformed.
+    let (range, total) = rest.split_once('/')?;
+    if total.contains('/') {
+        return None;
+    }
+    // Total is a byte count, or "*" when the full length is unknown.
+    let total = match total.trim() {
+        "*" => None,
+        other => Some(other.parse::<u64>().ok()?),
+    };
+    // A 206 carries BOTH bounds — an open-ended "<start>-" is only valid in
+    // a *request* Range. Require both, reject a start past the end, and
+    // reject a range that reaches or passes the total (end is inclusive, so
+    // the last valid byte is total-1).
     let (start, end) = range.split_once('-')?;
     let start = start.trim().parse::<u64>().ok()?;
     let end = end.trim().parse::<u64>().ok()?;
     if start > end {
+        return None;
+    }
+    if total.is_some_and(|total| end >= total) {
         return None;
     }
     Some(start)
@@ -692,6 +706,14 @@ mod tests {
         assert_eq!(parse_content_range_start("bytes 512-/2048"), None);
         // Start past end.
         assert_eq!(parse_content_range_start("bytes 100-50/200"), None);
+        // Range reaches/passes the total (end is inclusive).
+        assert_eq!(parse_content_range_start("bytes 0-100/100"), None);
+        // Missing total entirely (no slash).
+        assert_eq!(parse_content_range_start("bytes 0-99"), None);
+        // Extra slash / trailing suffix.
+        assert_eq!(parse_content_range_start("bytes 0-99/100/200"), None);
+        // Non-numeric total.
+        assert_eq!(parse_content_range_start("bytes 0-99/abc"), None);
         // Unsatisfied range → no start byte.
         assert_eq!(parse_content_range_start("bytes */1024"), None);
         // Wrong unit.

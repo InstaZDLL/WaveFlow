@@ -101,13 +101,16 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
     if offline::is_offline() {
         return Ok(false);
     }
-    let Some(client) = RemoteClient::try_build(state).await? else {
+    // Pin the client and the cursor read to the same profile: capture the
+    // id once so a switch landing mid-connect can't build the client from
+    // one profile and read another's cursor.
+    let profile_id = state.require_profile_id().await?;
+    let Some(client) = RemoteClient::try_build_for(state, profile_id).await? else {
         // Unbound, signed out, or a server with no journal.
         return Ok(false);
     };
 
     let cursor = {
-        let profile_id = state.require_profile_id().await?;
         let pool = state.require_profile_pool_for(Some(profile_id)).await?;
         let mut conn = pool.acquire().await?;
         binding::read(&mut conn)
@@ -146,6 +149,15 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
     // timeout.
     let mut pending_since: Option<Instant> = None;
     loop {
+        // Fire the coalesced catch-up the moment the cap is reached, before
+        // awaiting again. Relying on a zero-duration timeout instead would
+        // lose the race to an already-ready frame under a steady stream, so
+        // the catch-up could be postponed indefinitely.
+        if pending_since.is_some_and(|since| since.elapsed() >= MAX_COALESCE_DELAY) {
+            pending_since = None;
+            catch_up_and_notify(handle, state).await;
+            continue;
+        }
         let wait = match pending_since {
             Some(since) => {
                 COALESCE_WINDOW.min(MAX_COALESCE_DELAY.saturating_sub(since.elapsed()))
