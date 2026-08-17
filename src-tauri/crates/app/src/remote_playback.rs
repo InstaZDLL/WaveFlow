@@ -23,7 +23,7 @@
 //! ## The discriminator
 //!
 //! Playback tells a remote session apart from a library track by the
-//! sign of the engine's `current_track_id` (negative = URL stream), and
+//! sign of the engine's `current_track_id` (negative = non-library source), and
 //! a remote session apart from a *plain radio* stream by
 //! [`RemotePlayback::is_active`]. The session is cleared the instant a
 //! library track becomes current (see `emit_track_changed`) or a radio

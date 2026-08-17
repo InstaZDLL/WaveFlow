@@ -42,6 +42,22 @@ pub enum AudioCmd {
         /// stays out of the SQLite path.
         replay_gain_db: Option<f64>,
     },
+    /// Play a track from the active remote queue using its confirmed local
+    /// reconciliation link. The negative `track_id` deliberately preserves
+    /// the remote queue/UI semantics; `fallback_url`, when available, lets
+    /// the decoder fall back to the server if the local file can no longer
+    /// be opened between selection and playback.
+    LoadRemoteFileAndPlay {
+        path: PathBuf,
+        start_ms: u64,
+        track_id: i64,
+        duration_ms: u64,
+        title: Option<String>,
+        artist: Option<String>,
+        artwork_url: Option<String>,
+        fallback_url: Option<String>,
+        replay_gain_db: Option<f64>,
+    },
     Pause,
     Resume,
     Stop,
@@ -122,6 +138,12 @@ impl std::fmt::Debug for AudioCmd {
             } => write!(
                 f,
                 "LoadAndPlay {{ track_id: {track_id}, start_ms: {start_ms} }}"
+            ),
+            AudioCmd::LoadRemoteFileAndPlay {
+                track_id, start_ms, ..
+            } => write!(
+                f,
+                "LoadRemoteFileAndPlay {{ track_id: {track_id}, start_ms: {start_ms} }}"
             ),
             AudioCmd::Pause => write!(f, "Pause"),
             AudioCmd::Resume => write!(f, "Resume"),
@@ -1304,6 +1326,25 @@ fn apply_radio_resume_update(snapshot: &Mutex<Option<RadioResumeState>>, cmd: &A
                 });
             }
         }
+        AudioCmd::LoadRemoteFileAndPlay {
+            fallback_url,
+            track_id,
+            title,
+            artist,
+            artwork_url,
+            ..
+        } => {
+            if let Ok(mut guard) = snapshot.lock() {
+                *guard = fallback_url.as_ref().map(|url| RadioResumeState {
+                    url: url.clone(),
+                    ext_hint: None,
+                    track_id: *track_id,
+                    title: title.clone(),
+                    artist: artist.clone(),
+                    artwork_url: artwork_url.clone(),
+                });
+            }
+        }
         AudioCmd::LoadAndPlay { .. } => {
             if let Ok(mut guard) = snapshot.lock() {
                 *guard = None;
@@ -1478,6 +1519,20 @@ mod radio_resume_tests {
         }
     }
 
+    fn remote_local_cmd(fallback_url: Option<&str>, track_id: i64) -> AudioCmd {
+        AudioCmd::LoadRemoteFileAndPlay {
+            path: PathBuf::from("/dev/null"),
+            start_ms: 0,
+            track_id,
+            duration_ms: 1000,
+            title: Some("Remote track".to_string()),
+            artist: Some("Remote artist".to_string()),
+            artwork_url: None,
+            fallback_url: fallback_url.map(str::to_string),
+            replay_gain_db: None,
+        }
+    }
+
     #[test]
     fn load_url_writes_snapshot_verbatim() {
         let lock: Mutex<Option<RadioResumeState>> = Mutex::new(None);
@@ -1509,6 +1564,27 @@ mod radio_resume_tests {
             lock.lock().unwrap().is_none(),
             "local-track LoadAndPlay must wipe the radio resume cache",
         );
+    }
+
+    #[test]
+    fn remote_local_playback_keeps_server_resume_when_available() {
+        let lock: Mutex<Option<RadioResumeState>> = Mutex::new(None);
+        apply_radio_resume_update(
+            &lock,
+            &remote_local_cmd(Some("https://server.invalid/stream"), -3),
+        );
+        let snap = lock.lock().unwrap().clone().expect("snapshot stored");
+        assert_eq!(snap.url, "https://server.invalid/stream");
+        assert_eq!(snap.track_id, -3);
+        assert_eq!(snap.title.as_deref(), Some("Remote track"));
+    }
+
+    #[test]
+    fn offline_remote_local_playback_clears_stale_resume() {
+        let lock: Mutex<Option<RadioResumeState>> = Mutex::new(None);
+        apply_radio_resume_update(&lock, &url_cmd("https://radio.invalid/", -1));
+        apply_radio_resume_update(&lock, &remote_local_cmd(None, -3));
+        assert!(lock.lock().unwrap().is_none());
     }
 
     #[test]
