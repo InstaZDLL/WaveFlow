@@ -28,7 +28,7 @@
 //! result instead of spending our now-stale token. Without that second
 //! read the gate would only serialize the damage, not prevent it.
 
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock, RwLock};
 use std::time::Duration;
 
 use serde::Deserialize;
@@ -223,7 +223,11 @@ struct RefreshCtx<'a> {
 pub struct RemoteClient<'a> {
     base_url: String,
     device_id: Option<String>,
-    access_token: String,
+    /// Shared so a `401` refresh can publish the rotated token in place:
+    /// a client is reused across a whole drain batch, and without this
+    /// every entry after a mid-batch rotation would 401 once on the stale
+    /// token before the gate re-read recovered it.
+    access_token: Arc<RwLock<String>>,
     http: reqwest::Client,
     /// Present when built from a live profile: lets [`Self::send`] refresh
     /// and replay a single `401` in-band. Absent for the test constructor.
@@ -242,7 +246,18 @@ impl<'a> RemoteClient<'a> {
         // it. A switch landing mid-way must fail this call rather than
         // read one profile's binding and write another profile's tokens.
         let profile_id = state.require_profile_id().await?;
+        Self::try_build_for(state, profile_id).await
+    }
 
+    /// Like [`Self::try_build`], but pinned to a profile id the caller
+    /// captured earlier. Lets the caller bind the client and its own pool
+    /// acquisition to the *same* profile across an operation, so a switch
+    /// landing mid-way fails cleanly instead of reading one profile's
+    /// tokens and writing another's data.
+    pub async fn try_build_for(
+        state: &'a AppState,
+        profile_id: i64,
+    ) -> AppResult<Option<Self>> {
         let (binding, pair) = {
             let pool = state.require_profile_pool_for(Some(profile_id)).await?;
             let mut conn = pool.acquire().await?;
@@ -284,13 +299,23 @@ impl<'a> RemoteClient<'a> {
         Ok(Self {
             base_url: binding.server_url.trim_end_matches('/').to_string(),
             device_id: binding.identity.device_id().map(str::to_owned),
-            access_token: pair.access_token.clone(),
+            access_token: Arc::new(RwLock::new(pair.access_token.clone())),
             http: reqwest::Client::builder()
                 .timeout(REQUEST_TIMEOUT)
                 .build()
                 .map_err(|err| AppError::Other(format!("http client init: {err}")))?,
             refresh_ctx: None,
         })
+    }
+
+    /// The current access token, cloned out of the shared cell. Read fresh
+    /// on every request so a `401` refresh (which writes the rotated token
+    /// back into the cell) is picked up by later calls on the same client.
+    fn token(&self) -> String {
+        self.access_token
+            .read()
+            .expect("access token lock poisoned")
+            .clone()
     }
 
     /// A read request. No idempotency headers — a GET has nothing to
@@ -308,7 +333,7 @@ impl<'a> RemoteClient<'a> {
     pub fn request(&self, method: reqwest::Method, path: &str) -> reqwest::RequestBuilder {
         self.http
             .request(method, self.url(path))
-            .bearer_auth(&self.access_token)
+            .bearer_auth(self.token())
     }
 
     /// A mutation, stamped so the server can recognize a replay.
@@ -327,7 +352,7 @@ impl<'a> RemoteClient<'a> {
         let mut builder = self
             .http
             .request(method, self.url(path))
-            .bearer_auth(&self.access_token)
+            .bearer_auth(self.token())
             .header(OPERATION_ID_HEADER, operation_id);
         if let Some(device_id) = &self.device_id {
             builder = builder.header(DEVICE_ID_HEADER, device_id);
@@ -347,8 +372,11 @@ impl<'a> RemoteClient<'a> {
         &self.base_url
     }
 
-    pub fn access_token(&self) -> &str {
-        &self.access_token
+    /// The current access token, cloned out of the shared cell. Owned
+    /// rather than borrowed so a caller (the socket upgrade) isn't tied to
+    /// the lock guard's lifetime.
+    pub fn access_token(&self) -> String {
+        self.token()
     }
 
     /// Send a request and decode its JSON body.
@@ -421,6 +449,11 @@ impl<'a> RemoteClient<'a> {
             Ok(pair) => pair,
             Err(_) => return Self::interpret(response).await,
         };
+        // Publish the rotated token so later requests on this same client
+        // (a drain reuses one across the batch) don't 401 on the stale one.
+        if let Ok(mut guard) = self.access_token.write() {
+            guard.clone_from(&fresh.access_token);
+        }
         let Ok(bearer) =
             reqwest::header::HeaderValue::from_str(&format!("Bearer {}", fresh.access_token))
         else {

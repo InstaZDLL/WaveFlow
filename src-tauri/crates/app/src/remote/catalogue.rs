@@ -120,7 +120,11 @@ pub async fn search(state: &AppState, query: &str, limit: i64) -> AppResult<Vec<
     if crate::offline::is_offline() {
         return Err(AppError::Other("offline mode is enabled".into()));
     }
-    let client = RemoteClient::try_build(state)
+    // Pin the client and the cache pool to one profile for the whole call,
+    // so a switch mid-request can't read one profile's session and cache
+    // into another's tables.
+    let profile_id = state.require_profile_id().await?;
+    let client = RemoteClient::try_build_for(state, profile_id)
         .await?
         .ok_or_else(|| AppError::Other("not signed in to a remote server".into()))?;
 
@@ -137,7 +141,7 @@ pub async fn search(state: &AppState, query: &str, limit: i64) -> AppResult<Vec<
         // a re-auth rather than shrug.
         .map_err(|err| AppError::Other(format!("search failed: {err}")))?;
 
-    let pool = state.require_profile_pool().await?;
+    let pool = state.require_profile_pool_for(Some(profile_id)).await?;
     let mut tracks = Vec::with_capacity(resp.songs.len());
     // Cache every hit in one transaction: the rows exist only to label the
     // picker, and committing each individually multiplies the fsyncs for no
@@ -158,7 +162,9 @@ pub async fn get_album(state: &AppState, album_id: &str) -> AppResult<RemoteAlbu
     if crate::offline::is_offline() {
         return Err(AppError::Other("offline mode is enabled".into()));
     }
-    let client = RemoteClient::try_build(state)
+    // Pin the client and the cache pool to one profile (see `search`).
+    let profile_id = state.require_profile_id().await?;
+    let client = RemoteClient::try_build_for(state, profile_id)
         .await?
         .ok_or_else(|| AppError::Other("not signed in to a remote server".into()))?;
 
@@ -169,7 +175,7 @@ pub async fn get_album(state: &AppState, album_id: &str) -> AppResult<RemoteAlbu
         // distinguishable from a missing album.
         .map_err(|err| AppError::Other(format!("album fetch failed: {err}")))?;
 
-    let pool = state.require_profile_pool().await?;
+    let pool = state.require_profile_pool_for(Some(profile_id)).await?;
     let mut tracks = Vec::with_capacity(resp.songs.len());
     // Cache the album's songs and read back the favorites in one
     // transaction, so the tracks are cached-and-labelled atomically.

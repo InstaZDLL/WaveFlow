@@ -25,7 +25,7 @@
 //! escalating, because escalating would delay the reconnect that follows
 //! the user signing back in.
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use futures::StreamExt;
 use tauri::{AppHandle, Emitter, Manager};
@@ -61,6 +61,12 @@ const IDLE_TIMEOUT: Duration = Duration::from_secs(120);
 /// of edits on another device collapses into a single `/sync/changes`
 /// round-trip instead of one per frame.
 const COALESCE_WINDOW: Duration = Duration::from_millis(250);
+
+/// Hard cap on how long coalescing may defer a catch-up. A steady stream
+/// of notices less than [`COALESCE_WINDOW`] apart would otherwise reset the
+/// window forever and starve the fetch; once the first pending notice is
+/// this old, catch up regardless.
+const MAX_COALESCE_DELAY: Duration = Duration::from_secs(2);
 
 /// Start the subscriber. Returns immediately; the loop runs for the
 /// lifetime of the app.
@@ -122,7 +128,7 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
         );
     }
 
-    let request = build_request(&url, client.access_token())?;
+    let request = build_request(&url, &client.access_token())?;
     let (stream, _response) = tokio_tungstenite::connect_async(request)
         .await
         .map_err(|err| AppError::Other(format!("sync socket upgrade failed: {err}")))?;
@@ -133,15 +139,18 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
     catch_up_and_notify(handle, state).await;
 
     let mut delivered = false;
-    // A notice seen but not yet caught up on. While one is pending we wait
-    // only the short coalesce window for more frames, so a burst fires a
-    // single catch-up; otherwise we wait the full idle timeout.
-    let mut pending_notice = false;
+    // When the first still-un-caught-up notice arrived. While one is
+    // pending we wait only the short coalesce window for more frames — but
+    // never past `MAX_COALESCE_DELAY` from that first notice, so a steady
+    // stream can't starve the fetch. Otherwise we wait the full idle
+    // timeout.
+    let mut pending_since: Option<Instant> = None;
     loop {
-        let wait = if pending_notice {
-            COALESCE_WINDOW
-        } else {
-            IDLE_TIMEOUT
+        let wait = match pending_since {
+            Some(since) => {
+                COALESCE_WINDOW.min(MAX_COALESCE_DELAY.saturating_sub(since.elapsed()))
+            }
+            None => IDLE_TIMEOUT,
         };
         match tokio::time::timeout(wait, reader.next()).await {
             Ok(Some(Ok(Message::Text(text)))) => {
@@ -150,10 +159,11 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
                 // cheap when there is nothing new: one request answering
                 // an empty page. Trusting the hint enough to skip the
                 // fetch would make a stale or reordered frame lose an
-                // event. Don't catch up yet — coalesce the burst first.
+                // event. Don't catch up yet — coalesce the burst first,
+                // anchoring the cap on the first notice.
                 let _ = notice_cursor(&text);
                 delivered = true;
-                pending_notice = true;
+                pending_since.get_or_insert_with(Instant::now);
             }
             Ok(Some(Ok(Message::Close(_)))) => break,
             // Ping and Pong are handled by the library; anything else is
@@ -166,9 +176,9 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
             // Stream closed cleanly.
             Ok(None) => break,
             Err(_elapsed) => {
-                if pending_notice {
-                    // The burst settled: one catch-up for all of it.
-                    pending_notice = false;
+                if pending_since.is_some() {
+                    // The burst settled (or hit the cap): one catch-up.
+                    pending_since = None;
                     catch_up_and_notify(handle, state).await;
                 } else {
                     // Genuine inactivity — the link is likely half-open.
@@ -182,7 +192,7 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
     }
 
     // Flush a notice that arrived just before the stream closed.
-    if pending_notice {
+    if pending_since.is_some() {
         catch_up_and_notify(handle, state).await;
     }
 
