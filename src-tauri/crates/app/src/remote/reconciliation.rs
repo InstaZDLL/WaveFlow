@@ -10,6 +10,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 
 use chrono::Utc;
 use serde::Serialize;
@@ -34,6 +35,14 @@ const STATUS_STALE: &str = "stale";
 /// of every guarded run.
 static RECONCILE_RUNNING: AtomicBool = AtomicBool::new(false);
 static RECONCILE_CANCEL: AtomicBool = AtomicBool::new(false);
+
+/// Serializes the two-step lifecycle transitions that touch both atomics so
+/// they stay consistent: acquiring a scan (test `RUNNING`, then clear `CANCEL`)
+/// and requesting a cancel (test `RUNNING`, then set `CANCEL`). Without it, a
+/// cancel landing between a fresh scan's `RUNNING.swap(true)` and its
+/// `CANCEL.store(false)` would be clobbered and silently lost. The hot-ish
+/// per-file poll in the hash loop stays lock-free on the atomic itself.
+static SCAN_LOCK: Mutex<()> = Mutex::new(());
 
 /// Progress payload for the `reconcile:progress` event the UI drives its bar
 /// from. `processed` counts local files whose full hash has been computed.
@@ -64,7 +73,10 @@ impl Drop for RunningGuard {
 /// Idempotent and safe to call when nothing is running; returns whether a scan
 /// was actually in flight so the UI can ignore a stray click.
 pub fn request_cancel() -> bool {
-    let running = RECONCILE_RUNNING.load(Ordering::Relaxed);
+    // Hold SCAN_LOCK across the test-and-set so an acquiring scan cannot clear
+    // CANCEL between our read of RUNNING and our store.
+    let _guard = SCAN_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let running = RECONCILE_RUNNING.load(Ordering::SeqCst);
     if running {
         RECONCILE_CANCEL.store(true, Ordering::SeqCst);
     }
@@ -246,14 +258,20 @@ pub async fn discover_with_progress(
     pool: &SqlitePool,
     app: AppHandle,
 ) -> AppResult<ReconciliationReport> {
-    if RECONCILE_RUNNING.swap(true, Ordering::SeqCst) {
-        // A scan is already running; leave it untouched and report an empty,
-        // non-cancelled result rather than surfacing a scary error toast.
-        return Ok(empty_report(false));
+    // Acquire the scan slot and clear any stale cancel from a prior run as one
+    // critical section, so a concurrent `request_cancel` either runs fully
+    // before us (sees no scan, no-ops) or fully after us (sees RUNNING, sets
+    // CANCEL) — never in between, where its request would be clobbered.
+    {
+        let _lock = SCAN_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        if RECONCILE_RUNNING.swap(true, Ordering::SeqCst) {
+            // A scan is already running; leave it untouched and report an
+            // empty, non-cancelled result rather than a scary error toast.
+            return Ok(empty_report(false));
+        }
+        RECONCILE_CANCEL.store(false, Ordering::SeqCst);
     }
-    // Clear a stale cancel from a previous run before arming this one; the
-    // guard resets RUNNING on every exit path.
-    RECONCILE_CANCEL.store(false, Ordering::SeqCst);
+    // The guard resets RUNNING on every exit path (early return, `?`, panic).
     let _guard = RunningGuard;
     discover_inner(pool, Some(app)).await
 }
@@ -355,13 +373,7 @@ fn hash_local_tracks(tracks: Vec<LocalTrack>, app: Option<&AppHandle>, total: us
         // Poll the cancel flag at the top of the loop so a click that lands
         // between two files is honoured before starting another full-file read.
         if RECONCILE_CANCEL.load(Ordering::Relaxed) {
-            let processed = hashed.len() + unreadable;
-            tracing::info!(processed, total, "reconciliation scan cancelled by user");
-            return HashScan {
-                hashed,
-                unreadable,
-                cancelled: true,
-            };
+            return cancelled_scan(hashed, unreadable, total);
         }
         match waveflow_core::scanner::hash_file_full(Path::new(&track.file_path)) {
             Ok(full_hash) => hashed.push(HashedLocalTrack { track, full_hash }),
@@ -380,10 +392,26 @@ fn hash_local_tracks(tracks: Vec<LocalTrack>, app: Option<&AppHandle>, total: us
             let _ = app.emit("reconcile:progress", ReconcileProgress { processed, total });
         }
     }
+    // A cancel arriving while the LAST file hashes would never be seen by the
+    // top-of-loop poll, so the run would persist despite the click. Re-check
+    // once after the loop before declaring the scan complete.
+    if RECONCILE_CANCEL.load(Ordering::Relaxed) {
+        return cancelled_scan(hashed, unreadable, total);
+    }
     HashScan {
         hashed,
         unreadable,
         cancelled: false,
+    }
+}
+
+fn cancelled_scan(hashed: Vec<HashedLocalTrack>, unreadable: usize, total: usize) -> HashScan {
+    let processed = hashed.len() + unreadable;
+    tracing::info!(processed, total, "reconciliation scan cancelled by user");
+    HashScan {
+        hashed,
+        unreadable,
+        cancelled: true,
     }
 }
 

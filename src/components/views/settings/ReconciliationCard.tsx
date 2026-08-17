@@ -51,14 +51,20 @@ export function ReconciliationCard() {
   // `reconcile:progress` per file, so the bar advances even on a large scan.
   useEffect(() => {
     let unlisten: (() => void) | null = null;
+    // If the effect is torn down before `listen()` resolves, the cleanup below
+    // sees `unlisten` still null and can't detach; mark disposal so the late
+    // resolution unlistens immediately instead of leaking the subscription.
+    let disposed = false;
     listen<ReconcileProgress>("reconcile:progress", (event) => {
       setProgress(event.payload);
     })
       .then((un) => {
-        unlisten = un;
+        if (disposed) un();
+        else unlisten = un;
       })
       .catch(() => {});
     return () => {
+      disposed = true;
       if (unlisten) unlisten();
     };
   }, []);
