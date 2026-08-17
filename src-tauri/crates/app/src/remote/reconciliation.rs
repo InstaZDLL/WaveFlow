@@ -636,6 +636,15 @@ async fn reconcile(
         }
     }
 
+    // A cancel can land after hashing finished but while this transaction was
+    // staging its auto-links and status revalidations. Check once more before
+    // the commit: if it's set, drop `tx` (rollback) so a cancelled run persists
+    // nothing, matching the hash-phase contract. The RUNNING guard stays held
+    // throughout, so this can't race a second scan onto the same pool.
+    if RECONCILE_CANCEL.load(Ordering::Relaxed) {
+        tracing::info!("reconciliation scan cancelled before commit; rolling back");
+        return Ok(empty_report(true));
+    }
     tx.commit().await?;
     Ok(ReconciliationReport {
         hashed_local_tracks: hashed_local_count,
