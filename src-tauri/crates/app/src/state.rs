@@ -523,14 +523,18 @@ impl AppState {
             let mut guard = self.profile.write().await;
             let previous = guard.take();
             *guard = Some(ActiveProfile::new(profile_id, pool));
+            // Drop any remote play session *under the same lock* as the
+            // swap, so no concurrent `profile.read()` can observe the new
+            // profile alongside the previous one's playback state (queue,
+            // cursor) (RFC-005). The fallible setup above runs before the
+            // lock, so a failed `ensure_profile_dirs` / `open` still leaves
+            // the current session intact. The clear only takes the
+            // `remote_playback` mutex briefly and never re-enters the
+            // profile lock, so the profile→remote_playback order is
+            // consistent and deadlock-free.
+            self.remote_playback.clear();
             previous
         };
-        // Only now that the swap has actually happened: drop any remote play
-        // session so the incoming profile can't observe playback state (queue,
-        // cursor) belonging to the previous one (RFC-005). Done after the
-        // fallible setup above so a failed `ensure_profile_dirs` / `open`
-        // leaves the current session intact.
-        self.remote_playback.clear();
         if let Some(previous) = previous {
             previous.close_when_idle().await;
         }
@@ -541,12 +545,16 @@ impl AppState {
     /// Close the active profile pool, if any, leaving no profile active.
     /// Waits for outstanding leases first, same as [`Self::activate_profile`].
     pub async fn deactivate_profile(&self) {
-        // Same reason as activate_profile: no remote session may outlive the
-        // profile whose tracks it points at (RFC-005).
-        self.remote_playback.clear();
         let previous = {
             let mut guard = self.profile.write().await;
-            guard.take()
+            let previous = guard.take();
+            // Same reason as activate_profile: no remote session may outlive
+            // the profile whose tracks it points at (RFC-005). Cleared under
+            // the profile write lock so the session and the profile go away
+            // together; the clear only touches the `remote_playback` mutex,
+            // never the profile lock, so the ordering stays deadlock-free.
+            self.remote_playback.clear();
+            previous
         };
         if let Some(previous) = previous {
             previous.close_when_idle().await;
