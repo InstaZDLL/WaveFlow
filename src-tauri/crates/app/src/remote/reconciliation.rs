@@ -957,6 +957,18 @@ pub async fn convert_playlist(
     direction: &str,
     source_id: &str,
 ) -> AppResult<PlaylistConversionResult> {
+    convert_playlist_with_post_validation(pool, direction, source_id, || {}).await
+}
+
+async fn convert_playlist_with_post_validation<F>(
+    pool: &SqlitePool,
+    direction: &str,
+    source_id: &str,
+    post_validation: F,
+) -> AppResult<PlaylistConversionResult>
+where
+    F: FnOnce(),
+{
     let mut tx = pool.begin().await?;
     let preview = preview_playlist_conversion_on(&mut tx, direction, source_id).await?;
     if !preview.can_convert {
@@ -965,6 +977,7 @@ pub async fn convert_playlist(
             preview.blocked_tracks
         )));
     }
+    post_validation();
 
     let destination_id = match direction {
         "local_to_server" => {
@@ -996,6 +1009,13 @@ pub async fn convert_playlist(
         }
         _ => unreachable!("direction validated by preview"),
     };
+    let final_preview = preview_playlist_conversion_on(&mut tx, direction, source_id).await?;
+    if !final_preview.can_convert {
+        return Err(AppError::Other(format!(
+            "playlist conversion blocked by {} tracks that changed during conversion",
+            final_preview.blocked_tracks
+        )));
+    }
     tx.commit().await?;
     Ok(PlaylistConversionResult {
         direction: direction.to_string(),
@@ -1443,6 +1463,18 @@ mod tests {
             .is_err());
         fs::write(&first, b"first bytes").unwrap();
 
+        let raced = convert_playlist_with_post_validation(&pool, "local_to_server", "10", || {
+            fs::write(&first, b"other bytes").unwrap();
+        })
+        .await;
+        assert!(raced.is_err());
+        let rolled_back: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_playlist")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(rolled_back, 0, "the raced destination must roll back");
+        fs::write(&first, b"first bytes").unwrap();
+
         let result = convert_playlist(&pool, "local_to_server", "10")
             .await
             .unwrap();
@@ -1538,6 +1570,19 @@ mod tests {
         assert!(!inaccessible.can_convert);
         assert_eq!(inaccessible.items[1].status, "unlinked_or_ambiguous");
         insert_remote(&pool, "remote-1", b"first bytes", "First remote").await;
+
+        let raced =
+            convert_playlist_with_post_validation(&pool, "server_to_local", "valid", || {
+                fs::write(&first, b"other bytes").unwrap();
+            })
+            .await;
+        assert!(raced.is_err());
+        let rolled_back: i64 = sqlx::query_scalar("SELECT count(*) FROM playlist")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(rolled_back, 0, "the raced destination must roll back");
+        fs::write(&first, b"first bytes").unwrap();
 
         let result = convert_playlist(&pool, "server_to_local", "valid")
             .await
