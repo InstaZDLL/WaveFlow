@@ -426,7 +426,11 @@ export function remoteReorderPlaylistTrack(
   from: number,
   to: number,
 ): Promise<void> {
-  return invoke<void>("remote_reorder_playlist_track", { playlistId, from, to });
+  return invoke<void>("remote_reorder_playlist_track", {
+    playlistId,
+    from,
+    to,
+  });
 }
 
 /**
@@ -533,4 +537,99 @@ export function remoteUpdateShare(
 
 export function remoteDeleteShare(shareId: string): Promise<void> {
   return invoke<void>("remote_delete_share", { shareId });
+}
+
+export interface LocalMatchCandidate {
+  track_id: number;
+  title: string;
+  artist: string | null;
+  album: string | null;
+  file_path: string;
+  size: number;
+}
+
+export interface RemoteMatchCandidate {
+  track_id: string;
+  title: string;
+  artist: string | null;
+  album: string | null;
+  size: number;
+}
+
+export interface MatchCandidateGroup {
+  full_hash: string;
+  local_tracks: LocalMatchCandidate[];
+  remote_tracks: RemoteMatchCandidate[];
+}
+
+export interface ReconciliationReport {
+  hashed_local_tracks: number;
+  unreadable_local_tracks: number;
+  auto_linked: number;
+  verified_links: number;
+  stale_links: number;
+  rejected_pairs: number;
+  candidates: MatchCandidateGroup[];
+}
+
+export interface ReconciliationLink {
+  local_track_id: number;
+  remote_track_id: string;
+  local_title: string;
+  remote_title: string | null;
+  method: "exact_full_hash" | "confirmed_mbid";
+  verified_full_hash: string | null;
+  status: "confirmed" | "stale";
+  playback_preference: "local_first" | "server_first";
+  confirmed_at: number;
+  verified_at: number;
+}
+
+/**
+ * Find local/server identity links. The backend hashes only local files whose
+ * byte size exists in the remote cache; unique exact matches are persisted,
+ * while duplicate groups come back for explicit confirmation.
+ */
+export function remoteReconcileScan(): Promise<ReconciliationReport> {
+  return invoke<ReconciliationReport>("remote_reconcile_scan");
+}
+
+export function remoteListReconciliationLinks(): Promise<ReconciliationLink[]> {
+  return invoke<ReconciliationLink[]>("remote_list_reconciliation_links");
+}
+
+export function remoteConfirmReconciliation(
+  localTrackId: number,
+  remoteTrackId: string,
+): Promise<void> {
+  return invoke<void>("remote_confirm_reconciliation", {
+    localTrackId,
+    remoteTrackId,
+  });
+}
+
+export function remoteRejectReconciliation(
+  localTrackId: number,
+  remoteTrackId: string,
+): Promise<void> {
+  return invoke<void>("remote_reject_reconciliation", {
+    localTrackId,
+    remoteTrackId,
+  });
+}
+
+export function remoteSetReconciliationPreference(
+  localTrackId: number,
+  preference: "local_first" | "server_first",
+): Promise<void> {
+  return invoke<void>("remote_set_reconciliation_preference", {
+    localTrackId,
+    preference,
+  });
+}
+
+export function remoteRemoveReconciliationLink(
+  localTrackId: number,
+): Promise<void> {
+  return invoke<void>("remote_remove_reconciliation_link", { localTrackId });
 }

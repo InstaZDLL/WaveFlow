@@ -48,6 +48,7 @@ import {
   Puzzle,
 } from "lucide-react";
 import { RemoteServerCard } from "./settings/RemoteServerCard";
+import { ReconciliationCard } from "./settings/ReconciliationCard";
 import { PluginStoreCard } from "./settings/PluginStoreCard";
 import { PluginsCard } from "./settings/PluginsCard";
 import { useTheme } from "../../hooks/useTheme";
@@ -1187,10 +1188,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       const r = await pruneCachedAlbumCovers();
       // Locale-aware one-decimal MB (e.g. "12,5" in fr) rather than the
       // always-`.` `toFixed`.
-      const mb = new Intl.NumberFormat(
-        i18n.resolvedLanguage ?? i18n.language,
-        { minimumFractionDigits: 1, maximumFractionDigits: 1 },
-      ).format(r.bytesFreed / (1024 * 1024));
+      const mb = new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      }).format(r.bytesFreed / (1024 * 1024));
       setPruneCoversStatus({
         ok: true,
         text: t("settings.pruneAlbumCoversDone", { files: r.filesDeleted, mb }),
@@ -2393,6 +2394,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               the card probes for its own backend and renders nothing
               when `sync_v2` is off, which is every shipped build today. */}
             <RemoteServerCard />
+            <ReconciliationCard />
 
             <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
               <div className="flex items-start space-x-4">

@@ -772,6 +772,18 @@ pub fn run() {
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_delete_share,
             #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_reconcile_scan,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_list_reconciliation_links,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_confirm_reconciliation,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_reject_reconciliation,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_set_reconciliation_preference,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_remove_reconciliation_link,
+            #[cfg(feature = "sync_v2")]
             commands::lyrics::fetch_remote_lyrics,
             commands::offline::get_offline_mode,
             commands::offline::set_offline_mode,
