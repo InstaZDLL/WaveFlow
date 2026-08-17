@@ -784,6 +784,10 @@ pub fn run() {
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_remove_reconciliation_link,
             #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_preview_playlist_conversion,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_convert_playlist,
+            #[cfg(feature = "sync_v2")]
             commands::lyrics::fetch_remote_lyrics,
             commands::offline::get_offline_mode,
             commands::offline::set_offline_mode,

@@ -538,6 +538,47 @@ pub async fn remote_remove_reconciliation_link(
     crate::remote::reconciliation::remove_link(&pool, local_track_id).await
 }
 
+/// Preview an explicit playlist conversion. No rows are written; every source
+/// position is returned with its reconciliation status so the UI can require a
+/// deliberate confirmation.
+#[tauri::command]
+pub async fn remote_preview_playlist_conversion(
+    state: tauri::State<'_, AppState>,
+    direction: String,
+    source_id: String,
+) -> AppResult<crate::remote::reconciliation::PlaylistConversionPreview> {
+    let pool = state.require_profile_pool().await?;
+    crate::remote::reconciliation::preview_playlist_conversion(&pool, &direction, &source_id).await
+}
+
+/// Convert a playlist only when every source row still has a confirmed link.
+/// The backend rebuilds the preview inside the write transaction so a stale
+/// browser confirmation cannot silently omit tracks.
+#[tauri::command]
+pub async fn remote_convert_playlist(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    direction: String,
+    source_id: String,
+) -> AppResult<crate::remote::reconciliation::PlaylistConversionResult> {
+    let pool = state.require_profile_pool().await?;
+    let result =
+        crate::remote::reconciliation::convert_playlist(&pool, &direction, &source_id).await?;
+    if direction == "local_to_server" {
+        crate::remote::drain::spawn(app);
+    } else if let Ok(playlist_id) = result.destination_id.parse::<i64>() {
+        let profile_id = state.require_profile_id().await?;
+        crate::commands::playlist_cover::maybe_regen_auto_cover(
+            &pool,
+            &state.paths,
+            profile_id,
+            playlist_id,
+        )
+        .await;
+    }
+    Ok(result)
+}
+
 /// The leased pool of the active profile, or `None` when there is no
 /// active profile.
 ///

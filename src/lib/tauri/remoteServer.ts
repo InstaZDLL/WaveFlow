@@ -585,6 +585,33 @@ export interface ReconciliationLink {
   verified_at: number;
 }
 
+export type PlaylistConversionDirection = "local_to_server" | "server_to_local";
+
+export interface PlaylistConversionItem {
+  position: number;
+  title: string;
+  local_track_id: number | null;
+  remote_track_id: string | null;
+  status: "confirmed" | "stale" | "unlinked_or_ambiguous" | "duplicate";
+}
+
+export interface PlaylistConversionPreview {
+  direction: PlaylistConversionDirection;
+  source_id: string;
+  source_name: string;
+  total_tracks: number;
+  convertible_tracks: number;
+  blocked_tracks: number;
+  can_convert: boolean;
+  items: PlaylistConversionItem[];
+}
+
+export interface PlaylistConversionResult {
+  direction: PlaylistConversionDirection;
+  destination_id: string;
+  converted_tracks: number;
+}
+
 /**
  * Find local/server identity links. The backend hashes only local files whose
  * byte size exists in the remote cache; unique exact matches are persisted,
@@ -632,4 +659,24 @@ export function remoteRemoveReconciliationLink(
   localTrackId: number,
 ): Promise<void> {
   return invoke<void>("remote_remove_reconciliation_link", { localTrackId });
+}
+
+export function remotePreviewPlaylistConversion(
+  direction: PlaylistConversionDirection,
+  sourceId: string,
+): Promise<PlaylistConversionPreview> {
+  return invoke<PlaylistConversionPreview>(
+    "remote_preview_playlist_conversion",
+    { direction, sourceId },
+  );
+}
+
+export function remoteConvertPlaylist(
+  direction: PlaylistConversionDirection,
+  sourceId: string,
+): Promise<PlaylistConversionResult> {
+  return invoke<PlaylistConversionResult>("remote_convert_playlist", {
+    direction,
+    sourceId,
+  });
 }
