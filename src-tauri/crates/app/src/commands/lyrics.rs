@@ -2495,9 +2495,11 @@ pub async fn fetch_radio_lyrics(
 ///
 /// The server is the priority source (`GET /api/v2/tracks/{id}/lyrics`,
 /// which serves the embedded + sidecar lyrics its scanner extracted); on a
-/// miss we fall back to LRCLIB + the query chain by (artist, title,
-/// duration). Unlike radio, a remote track has a stable identity and a
-/// known length, so its lyrics CAN be synced and the panel renders them so.
+/// miss we fall back to LRCLIB + the query chain, searched by artist +
+/// title (`external_lyrics_search` / `external_query`) — the duration is
+/// carried on the meta but not part of the query. Unlike radio, a remote
+/// track has a stable identity and a known length, so its lyrics CAN be
+/// synced and the panel renders them so.
 ///
 /// `track_id` is the negative sentinel echoed into the payload for the
 /// frontend; `remote_track_id` is the server UUID the lyrics are keyed by.

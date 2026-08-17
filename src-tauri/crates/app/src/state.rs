@@ -514,10 +514,6 @@ impl AppState {
     /// makes the drain terminate: once the old [`ActiveProfile`] is out
     /// of `self.profile`, no further lease can be issued against it.
     pub async fn activate_profile(&self, profile_id: i64) -> AppResult<()> {
-        // Drop any remote play session so the incoming profile can't observe
-        // playback state (queue, cursor) belonging to the previous one
-        // (RFC-005). The session references the old profile's remote tracks.
-        self.remote_playback.clear();
         self.paths.ensure_profile_dirs(profile_id)?;
 
         let db_path = self.paths.profile_db(profile_id);
@@ -529,6 +525,12 @@ impl AppState {
             *guard = Some(ActiveProfile::new(profile_id, pool));
             previous
         };
+        // Only now that the swap has actually happened: drop any remote play
+        // session so the incoming profile can't observe playback state (queue,
+        // cursor) belonging to the previous one (RFC-005). Done after the
+        // fallible setup above so a failed `ensure_profile_dirs` / `open`
+        // leaves the current session intact.
+        self.remote_playback.clear();
         if let Some(previous) = previous {
             previous.close_when_idle().await;
         }

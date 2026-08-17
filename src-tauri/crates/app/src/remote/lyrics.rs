@@ -66,8 +66,13 @@ pub async fn fetch_server_lyrics(
     if crate::offline::is_offline() {
         return Ok(None);
     }
-    let Some(client) = RemoteClient::try_build(state).await? else {
-        return Ok(None);
+    // Signed out, or a token read / pre-emptive refresh failed — none of
+    // these should abort the fetch: they just mean "no server lyrics", so we
+    // fall through to the LRCLIB fallback rather than propagating. Lyrics are
+    // best-effort, so even a local read error degrades to the fallback here.
+    let client = match RemoteClient::try_build(state).await {
+        Ok(Some(client)) => client,
+        Ok(None) | Err(_) => return Ok(None),
     };
 
     let resp: LyricsListDto = match client
