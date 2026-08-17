@@ -88,9 +88,13 @@ pub async fn drain(state: &AppState) -> AppResult<DrainReport> {
         return Ok(report);
     };
     let profile_id = state.require_profile_id().await?;
+    // Resolve the leased pool once and keep the handle bound for the whole
+    // pass — re-resolving per entry both churns the lease and risks a
+    // profile swap landing mid-drain, applying one profile's queue against
+    // another's data.
+    let pool = state.require_profile_pool_for(Some(profile_id)).await?;
 
     let queued = {
-        let pool = state.require_profile_pool_for(Some(profile_id)).await?;
         let mut conn = pool.acquire().await?;
         mutation::pending(&mut conn, BATCH).await?
     };
@@ -98,7 +102,6 @@ pub async fn drain(state: &AppState) -> AppResult<DrainReport> {
     for entry in queued {
         match send(&client, &entry).await {
             Ok(created) => {
-                let pool = state.require_profile_pool_for(Some(profile_id)).await?;
                 let mut tx = pool.begin().await?;
                 // The identifier and the entry's removal commit
                 // together. Resolving without removing would re-send a
@@ -125,7 +128,6 @@ pub async fn drain(state: &AppState) -> AppResult<DrainReport> {
                 report.sent += 1;
             }
             Err(failure) => {
-                let pool = state.require_profile_pool_for(Some(profile_id)).await?;
                 let mut conn = pool.acquire().await?;
                 match failure.kind {
                     FailureKind::Permanent => {
@@ -157,7 +159,7 @@ pub async fn drain(state: &AppState) -> AppResult<DrainReport> {
 /// that is the one case where the server's reply carries something the
 /// caller must keep.
 async fn send(
-    client: &RemoteClient,
+    client: &RemoteClient<'_>,
     entry: &QueuedMutation,
 ) -> Result<Option<Created>, RemoteFailure> {
     let op = &entry.operation_id;

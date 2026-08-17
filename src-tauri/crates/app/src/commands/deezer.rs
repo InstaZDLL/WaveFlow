@@ -356,15 +356,25 @@ pub async fn enrich_artist_by_name(
     // id before — otherwise the None path skips the id-keyed cache check
     // and re-hits the network on every remote track change / view open. A
     // miss just falls through to a fresh fetch, which caches for next time.
-    let cached_deezer_id: Option<i64> = sqlx::query_scalar(
-        "SELECT deezer_id FROM app.metadata_artist
-          WHERE name = ? ORDER BY fetched_at DESC LIMIT 1",
+    //
+    // Match the name the *same* way a fresh Deezer search would
+    // (`select_by_name` over `normalize_name`d candidates), not by
+    // byte-exact SQL equality: the cache stores the raw Deezer display
+    // name, so a server-supplied "Beyonce" must still hit a cached
+    // "Beyoncé" row instead of re-fetching. Rows are walked most-recent
+    // first so recency still breaks ties, mirroring the old
+    // `ORDER BY fetched_at DESC LIMIT 1`.
+    let searched = normalize_name(&name);
+    let candidates: Vec<(i64, String)> = sqlx::query_as(
+        "SELECT deezer_id, name FROM app.metadata_artist
+          WHERE deezer_id IS NOT NULL AND name IS NOT NULL
+          ORDER BY fetched_at DESC",
     )
-    .bind(&name)
-    .fetch_optional(&*pool)
+    .fetch_all(&*pool)
     .await
-    .ok()
-    .flatten();
+    .unwrap_or_default();
+    let cached_deezer_id: Option<i64> =
+        select_by_name(candidates, &searched, |(_, n)| Some(n.as_str())).map(|(id, _)| id);
     enrich_artist_named(state, (*pool).clone(), name, cached_deezer_id).await
 }
 

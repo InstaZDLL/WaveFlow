@@ -158,9 +158,10 @@ pub async fn remote_sync_now(state: tauri::State<'_, AppState>) -> AppResult<Rem
 pub async fn remote_get_overview(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<crate::remote::read::RemoteOverview> {
-    let Some(mut conn) = optional_conn(&state).await? else {
+    let Some(pool) = optional_pool(&state).await? else {
         return Ok(Default::default());
     };
+    let mut conn = pool.acquire().await?;
     crate::remote::read::overview(&mut conn).await
 }
 
@@ -169,9 +170,10 @@ pub async fn remote_get_overview(
 pub async fn remote_list_playlists(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<Vec<crate::remote::read::RemotePlaylistSummary>> {
-    let Some(mut conn) = optional_conn(&state).await? else {
+    let Some(pool) = optional_pool(&state).await? else {
         return Ok(Vec::new());
     };
+    let mut conn = pool.acquire().await?;
     crate::remote::read::playlists(&mut conn).await
 }
 
@@ -183,9 +185,10 @@ pub async fn remote_list_playlist_tracks(
     state: tauri::State<'_, AppState>,
     playlist_id: String,
 ) -> AppResult<Vec<crate::remote::read::RemoteTrack>> {
-    let Some(mut conn) = optional_conn(&state).await? else {
+    let Some(pool) = optional_pool(&state).await? else {
         return Ok(Vec::new());
     };
+    let mut conn = pool.acquire().await?;
     crate::remote::read::playlist_tracks(&mut conn, &playlist_id).await
 }
 
@@ -194,9 +197,10 @@ pub async fn remote_list_playlist_tracks(
 pub async fn remote_list_queue(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<Vec<crate::remote::read::RemoteTrack>> {
-    let Some(mut conn) = optional_conn(&state).await? else {
+    let Some(pool) = optional_pool(&state).await? else {
         return Ok(Vec::new());
     };
+    let mut conn = pool.acquire().await?;
     crate::remote::read::queue_tracks(&mut conn).await
 }
 
@@ -474,16 +478,19 @@ pub async fn remote_delete_share(
     Ok(())
 }
 
-/// A connection to the active profile, or `None` when there is no
+/// The leased pool of the active profile, or `None` when there is no
 /// active profile.
 ///
 /// No profile is an ordinary state for these reads — onboarding queries
 /// them before one exists — so it answers empty rather than failing.
-async fn optional_conn(
-    state: &AppState,
-) -> AppResult<Option<sqlx::pool::PoolConnection<sqlx::Sqlite>>> {
+///
+/// Returns the *lease*, not a bare connection: the caller acquires its
+/// connection from the returned pool and keeps the lease bound for the
+/// whole read, so a profile switch can't close the pool under a live
+/// connection (CLAUDE.md "profile-scoped pool").
+async fn optional_pool(state: &AppState) -> AppResult<Option<crate::state::ProfilePool>> {
     match state.require_profile_pool().await {
-        Ok(pool) => Ok(Some(pool.acquire().await?)),
+        Ok(pool) => Ok(Some(pool)),
         Err(AppError::NoActiveProfile) => Ok(None),
         Err(err) => Err(err),
     }

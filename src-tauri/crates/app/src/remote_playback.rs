@@ -71,6 +71,15 @@ pub struct RemoteQueue {
     pub index: usize,
 }
 
+/// A one-lock snapshot of what the decoder stamps on a remote track's
+/// `player:radio-metadata` emit. See [`RemotePlayback::current_stream_meta`].
+#[derive(Debug, Clone, Default)]
+pub struct RemoteStreamMeta {
+    pub is_remote: bool,
+    pub duration_ms: Option<i64>,
+    pub artwork_hash: Option<String>,
+}
+
 /// Process-wide handle on the active remote play queue, if any. Held on
 /// [`crate::state::AppState`]. A `std::sync::Mutex` (not tokio) so the
 /// synchronous control seams — `emit_track_changed`, the player commands
@@ -108,25 +117,20 @@ impl RemotePlayback {
         guard.as_ref().and_then(|q| q.entries.get(q.index).cloned())
     }
 
-    /// Duration of the entry under the cursor, if known. Lets the decoder
-    /// stamp a bounded timeline on the radio-metadata event for a remote
-    /// track (radio has none). `None` when no session is active.
-    pub fn current_duration_ms(&self) -> Option<i64> {
+    /// The three facts the decoder stamps on a remote track's
+    /// `player:radio-metadata` emit — whether a session is active, and the
+    /// cursor entry's duration and artwork hash — read under a single lock.
+    /// Three separate calls could straddle a `clear()` and emit
+    /// `is_remote = true` with a `None` duration/artwork (or the reverse),
+    /// so they must come from one guard.
+    pub fn current_stream_meta(&self) -> RemoteStreamMeta {
         let guard = self.inner.lock().expect("remote_playback poisoned");
-        guard
-            .as_ref()
-            .and_then(|q| q.entries.get(q.index))
-            .and_then(|e| e.duration_ms)
-    }
-
-    /// Artwork hash of the entry under the cursor, if any. The frontend
-    /// fetches it (Bearer-only) as a data URL to paint the PlayerBar cover.
-    pub fn current_artwork_hash(&self) -> Option<String> {
-        let guard = self.inner.lock().expect("remote_playback poisoned");
-        guard
-            .as_ref()
-            .and_then(|q| q.entries.get(q.index))
-            .and_then(|e| e.artwork_hash.clone())
+        let entry = guard.as_ref().and_then(|q| q.entries.get(q.index));
+        RemoteStreamMeta {
+            is_remote: guard.is_some(),
+            duration_ms: entry.and_then(|e| e.duration_ms),
+            artwork_hash: entry.and_then(|e| e.artwork_hash.clone()),
+        }
     }
 
     /// A snapshot of the whole queue and its cursor, for the queue panel.

@@ -100,6 +100,21 @@ async fn handle_message(
     app: &AppHandle,
 ) -> Result<(), String> {
     let state = app.state::<AppState>();
+
+    // A remote-queue track has no library row: it writes no play_event and
+    // needs no profile pool. Handle it before acquiring the pool so a
+    // missing or momentarily-unavailable profile can't strand remote
+    // auto-advance (a plain radio stream ending here is a no-op).
+    if let AnalyticsMsg::RemoteTrackEnded { .. } = msg {
+        #[cfg(feature = "sync_v2")]
+        if state.remote_playback.is_active() {
+            if let Err(err) = crate::remote::playback::advance(app, Direction::Next).await {
+                tracing::warn!(%err, "remote auto-advance failed");
+            }
+        }
+        return Ok(());
+    }
+
     let pool = state
         .require_profile_pool()
         .await
@@ -189,20 +204,9 @@ async fn handle_message(
             )
             .await;
         }
-        AnalyticsMsg::RemoteTrackEnded { track_id } => {
-            // No play_event — a remote-queue track has no library row.
-            // Advance the remote queue if one is active; otherwise this
-            // was a plain radio stream ending, so do nothing.
-            let _ = track_id;
-            #[cfg(feature = "sync_v2")]
-            if state.remote_playback.is_active() {
-                if let Err(err) =
-                    crate::remote::playback::advance(app, Direction::Next).await
-                {
-                    tracing::warn!(%err, "remote auto-advance failed");
-                }
-            }
-        }
+        // Handled before the pool acquisition above (no play_event, no
+        // pool needed).
+        AnalyticsMsg::RemoteTrackEnded { .. } => {}
         AnalyticsMsg::PrefetchNext => {
             // Look up what would be played next without bumping the
             // cursor (the cursor is bumped only when the crossfade

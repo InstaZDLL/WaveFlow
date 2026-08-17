@@ -54,8 +54,7 @@ pub async fn set_favorite(
     entity_id: &str,
     starred: bool,
 ) -> AppResult<()> {
-    let (pool, profile_id) = lease(state).await?;
-    let _ = profile_id;
+    let pool = lease(state).await?;
     let mut tx = pool.begin().await?;
     set_favorite_in_tx(&mut tx, entity_type, entity_id, starred).await?;
     tx.commit().await?;
@@ -106,7 +105,7 @@ pub async fn set_rating(
     entity_id: &str,
     rating: u8,
 ) -> AppResult<()> {
-    let (pool, _) = lease(state).await?;
+    let pool = lease(state).await?;
     let mut tx = pool.begin().await?;
     set_rating_in_tx(&mut tx, entity_type, entity_id, rating).await?;
     tx.commit().await?;
@@ -172,7 +171,7 @@ pub async fn create_playlist(
     name: &str,
     track_ids: &[String],
 ) -> AppResult<String> {
-    let (pool, _) = lease(state).await?;
+    let pool = lease(state).await?;
     let mut tx = pool.begin().await?;
     let id = create_playlist_in_tx(&mut tx, name, track_ids).await?;
     tx.commit().await?;
@@ -235,7 +234,7 @@ pub async fn update_playlist(
     public: Option<bool>,
     clear_comment: bool,
 ) -> AppResult<()> {
-    let (pool, _) = lease(state).await?;
+    let pool = lease(state).await?;
     let mut tx = pool.begin().await?;
     update_playlist_in_tx(&mut tx, playlist_id, name, comment, public, clear_comment).await?;
     tx.commit().await?;
@@ -311,7 +310,7 @@ pub async fn remove_playlist_tracks(
     playlist_id: &str,
     indexes: &[usize],
 ) -> AppResult<()> {
-    let (pool, _) = lease(state).await?;
+    let pool = lease(state).await?;
     let mut tx = pool.begin().await?;
     remove_playlist_tracks_in_tx(&mut tx, playlist_id, indexes).await?;
     tx.commit().await?;
@@ -394,7 +393,7 @@ pub async fn add_playlist_tracks(
     playlist_id: &str,
     track_ids: &[String],
 ) -> AppResult<()> {
-    let (pool, _) = lease(state).await?;
+    let pool = lease(state).await?;
     let mut tx = pool.begin().await?;
     add_playlist_tracks_in_tx(&mut tx, playlist_id, track_ids).await?;
     tx.commit().await?;
@@ -461,7 +460,7 @@ pub async fn reorder_playlist(
     from: usize,
     to: usize,
 ) -> AppResult<()> {
-    let (pool, _) = lease(state).await?;
+    let pool = lease(state).await?;
     let mut tx = pool.begin().await?;
     reorder_playlist_in_tx(&mut tx, playlist_id, from, to).await?;
     tx.commit().await?;
@@ -539,7 +538,7 @@ pub async fn reorder_playlist_in_tx(
 
 /// Delete a playlist.
 pub async fn delete_playlist(state: &AppState, playlist_id: &str) -> AppResult<()> {
-    let (pool, _) = lease(state).await?;
+    let pool = lease(state).await?;
     let mut tx = pool.begin().await?;
     delete_playlist_in_tx(&mut tx, playlist_id).await?;
     tx.commit().await?;
@@ -602,7 +601,7 @@ pub async fn scrobble(
     submission: bool,
     played_at: Option<i64>,
 ) -> AppResult<()> {
-    let (pool, _) = lease(state).await?;
+    let pool = lease(state).await?;
     let mut tx = pool.begin().await?;
     scrobble_in_tx(&mut tx, track_id, submission, played_at).await?;
     tx.commit().await?;
@@ -652,7 +651,7 @@ pub async fn save_queue(
     position_ms: i64,
     client: Option<String>,
 ) -> AppResult<()> {
-    let (pool, _) = lease(state).await?;
+    let pool = lease(state).await?;
     let mut tx = pool.begin().await?;
     save_queue_in_tx(&mut tx, track_ids, current, position_ms, client).await?;
     tx.commit().await?;
@@ -719,7 +718,7 @@ pub async fn create_share(
     description: Option<String>,
     expires_at: Option<i64>,
 ) -> AppResult<String> {
-    let (pool, _) = lease(state).await?;
+    let pool = lease(state).await?;
     let mut tx = pool.begin().await?;
     let id = create_share_in_tx(&mut tx, track_ids, description, expires_at).await?;
     tx.commit().await?;
@@ -783,7 +782,7 @@ pub async fn update_share(
     clear_description: bool,
     clear_expires_at: bool,
 ) -> AppResult<()> {
-    let (pool, _) = lease(state).await?;
+    let pool = lease(state).await?;
     let mut tx = pool.begin().await?;
     update_share_in_tx(
         &mut tx,
@@ -856,7 +855,7 @@ pub async fn update_share_in_tx(
 /// Withdraw a share. Same placeholder handling as a playlist: one that
 /// never reached the server takes its queued creation with it.
 pub async fn delete_share(state: &AppState, share_id: &str) -> AppResult<()> {
-    let (pool, _) = lease(state).await?;
+    let pool = lease(state).await?;
     let mut tx = pool.begin().await?;
     delete_share_in_tx(&mut tx, share_id).await?;
     tx.commit().await?;
@@ -894,10 +893,10 @@ pub async fn delete_share_in_tx(
 /// The active profile's pool, pinned to the profile it was resolved
 /// from, so a switch landing mid-write fails the call instead of
 /// applying one profile's gesture to another's data.
-async fn lease(state: &AppState) -> AppResult<(crate::state::ProfilePool, i64)> {
+async fn lease(state: &AppState) -> AppResult<crate::state::ProfilePool> {
     let profile_id = state.require_profile_id().await?;
     let pool = state.require_profile_pool_for(Some(profile_id)).await?;
-    Ok((pool, profile_id))
+    Ok(pool)
 }
 
 #[cfg(test)]
