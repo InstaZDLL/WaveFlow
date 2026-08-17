@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { ListMusic } from "lucide-react";
 import { remoteArtwork } from "../../lib/tauri/remoteServer";
 
@@ -78,7 +78,10 @@ export function RemoteArtwork({
   const [src, setSrc] = useState<string | null>(() =>
     hash ? (artworkCache.get(hash) ?? null) : null,
   );
-  useEffect(() => {
+  // Layout effect so a cached hash (or the reset below) updates `src`
+  // synchronously before paint, avoiding a one-frame flash of the previous
+  // cover when the hash changes.
+  useLayoutEffect(() => {
     if (!hash) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSrc(null);
