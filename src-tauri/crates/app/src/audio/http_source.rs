@@ -358,7 +358,12 @@ fn split_artist_title(raw: &str) -> (String, Option<String>) {
 /// garbage — so the caller treats an unverifiable range as a failure
 /// rather than trusting it.
 fn parse_content_range_start(value: &str) -> Option<u64> {
-    let rest = value.trim().strip_prefix("bytes ")?;
+    // The range unit is case-insensitive per HTTP — accept "bytes",
+    // "Bytes", "BYTES" — then a single space before the range.
+    let (unit, rest) = value.trim().split_once(' ')?;
+    if !unit.eq_ignore_ascii_case("bytes") {
+        return None;
+    }
     // Exactly "<range>/<total>": one slash, total required (a 206 always
     // sends it). A missing or extra slash is malformed.
     let (range, total) = rest.split_once('/')?;
@@ -698,6 +703,9 @@ mod tests {
         assert_eq!(parse_content_range_start("bytes 0-99/100"), Some(0));
         // Unknown total ("*") is fine as long as both bounds are present.
         assert_eq!(parse_content_range_start("bytes 512-1023/*"), Some(512));
+        // The range unit is case-insensitive.
+        assert_eq!(parse_content_range_start("Bytes 200-1023/1024"), Some(200));
+        assert_eq!(parse_content_range_start("BYTES 0-99/100"), Some(0));
     }
 
     #[test]

@@ -139,7 +139,9 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
 
     // Reconnecting is itself a reason to ask: anything that happened
     // while we were away arrived through no frame at all.
-    catch_up_and_notify(handle, state).await;
+    if !catch_up_and_notify(handle, state, profile_id).await {
+        return Ok(false);
+    }
 
     let mut delivered = false;
     // When the first still-un-caught-up notice arrived. While one is
@@ -155,7 +157,9 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
         // the catch-up could be postponed indefinitely.
         if pending_since.is_some_and(|since| since.elapsed() >= MAX_COALESCE_DELAY) {
             pending_since = None;
-            catch_up_and_notify(handle, state).await;
+            if !catch_up_and_notify(handle, state, profile_id).await {
+                break;
+            }
             continue;
         }
         let wait = match pending_since {
@@ -191,7 +195,9 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
                 if pending_since.is_some() {
                     // The burst settled (or hit the cap): one catch-up.
                     pending_since = None;
-                    catch_up_and_notify(handle, state).await;
+                    if !catch_up_and_notify(handle, state, profile_id).await {
+                        break;
+                    }
                 } else {
                     // Genuine inactivity — the link is likely half-open.
                     // End the session so the loop reconnects and catches
@@ -203,15 +209,28 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
         }
     }
 
-    // Flush a notice that arrived just before the stream closed.
+    // Flush a notice that arrived just before the stream closed. The
+    // profile guard inside is a no-op sync if it switched.
     if pending_since.is_some() {
-        catch_up_and_notify(handle, state).await;
+        catch_up_and_notify(handle, state, profile_id).await;
     }
 
     Ok(delivered)
 }
 
-async fn catch_up_and_notify(handle: &AppHandle, state: &AppState) {
+/// Drain, then pull. Returns `false` when the active profile no longer
+/// matches `profile_id` — a switch happened mid-session, and this socket
+/// (built for the old profile) must not drive the new profile's sync or
+/// advance its cursor. The caller ends the session so the loop reconnects
+/// for whatever profile is now active.
+async fn catch_up_and_notify(handle: &AppHandle, state: &AppState, profile_id: i64) -> bool {
+    // Bail before syncing if the profile switched under us. `sync_now`
+    // itself operates on the active profile, so gating on the captured id
+    // is what keeps profile A's socket from syncing / advancing profile B.
+    match state.require_profile_id().await {
+        Ok(active) if active == profile_id => {}
+        _ => return false,
+    }
     match sync::sync_now(state).await {
         Ok(report) => {
             // Only wake the UI when something actually changed. Emitting
@@ -223,6 +242,7 @@ async fn catch_up_and_notify(handle: &AppHandle, state: &AppState) {
         }
         Err(error) => tracing::debug!(%error, "catch-up after a socket notice failed"),
     }
+    true
 }
 
 /// Read the cursor out of a notice frame.
