@@ -239,10 +239,17 @@ async fn catch_up_and_notify(handle: &AppHandle, state: &AppState, profile_id: i
             if report.applied > 0 || report.resnapshotted {
                 let _ = handle.emit(SYNCED_EVENT, report.cursor);
             }
+            true
         }
-        Err(error) => tracing::debug!(%error, "catch-up after a socket notice failed"),
+        Err(error) => {
+            // The catch-up is the whole point of the socket, so a failing
+            // one means holding the connection open buys nothing. End the
+            // session and let the loop reconnect (with backoff) and retry
+            // from a fresh connection.
+            tracing::debug!(%error, "catch-up after a socket notice failed; ending session");
+            false
+        }
     }
-    true
 }
 
 /// Read the cursor out of a notice frame.
