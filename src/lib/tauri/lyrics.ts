@@ -100,6 +100,33 @@ export function fetchRadioLyrics(
 }
 
 /**
+ * Fetch lyrics for a now-playing remote-source track (RFC-005).
+ *
+ * The server (`GET /api/v2/tracks/{id}/lyrics`) is the priority source;
+ * on a miss the backend falls back to LRCLIB + the query chain by
+ * (artist, title, duration). Unlike radio, a remote track has a stable
+ * identity and known length, so synced lyrics align and the panel renders
+ * the karaoke highlight. `trackId` is the negative sentinel echoed into
+ * the payload; `remoteTrackId` is the server UUID the lyrics are keyed by.
+ * Returns null when neither source has lyrics. `sync_v2` builds only.
+ */
+export function fetchRemoteLyrics(
+  remoteTrackId: string,
+  artist: string,
+  title: string,
+  durationMs: number,
+  trackId: number,
+): Promise<LyricsPayload | null> {
+  return invoke<LyricsPayload | null>("fetch_remote_lyrics", {
+    remoteTrackId,
+    artist,
+    title,
+    durationMs,
+    trackId,
+  });
+}
+
+/**
  * Force a re-fetch for a single track, dropping the cached row first
  * so the waterfall (or single-provider query below) is guaranteed to
  * re-query.

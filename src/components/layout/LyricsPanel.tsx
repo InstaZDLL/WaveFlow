@@ -51,6 +51,7 @@ export function LyricsPanel() {
     isSynced,
     radioPlainText,
     isRadio,
+    isRemote,
     activeIndex,
     activeWordIndex,
     importLyrics,
@@ -76,6 +77,10 @@ export function LyricsPanel() {
   const pickerRef = useRef<HTMLSpanElement | null>(null);
 
   const trackId = currentTrack?.id ?? null;
+  // A radio session and a remote-source stream both lack a library row, so
+  // the row-scoped actions (edit / import / refetch / clear / the provider
+  // picker) apply to neither — they're keyed by track_id / file_hash.
+  const noLibraryRow = isRadio || isRemote;
 
   // ── Active-line auto-scroll (view-local) ─────────────────────────
   // The active index itself comes from the shared hook; only the
@@ -169,7 +174,7 @@ export function LyricsPanel() {
               onClick={() => setIsEditing(true)}
               aria-label={t("lyrics.actions.edit")}
               title={t("lyrics.actions.edit")}
-              disabled={currentTrack == null || isRadio}
+              disabled={currentTrack == null || noLibraryRow}
               className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Pencil size={16} />
@@ -317,7 +322,7 @@ export function LyricsPanel() {
                   — the picker would have nothing meaningful to do for
                   a tag-embedded lyric. */}
               <span ref={pickerRef} className="relative inline-flex">
-                {payload && payload.source === "api" && !isRadio ? (
+                {payload && payload.source === "api" && !noLibraryRow ? (
                   <button
                     type="button"
                     onClick={() => setPickerOpen((v) => !v)}
@@ -335,7 +340,7 @@ export function LyricsPanel() {
                     {payload ? sourceLabel(payload, t) : ""}
                   </span>
                 )}
-                {pickerOpen && !isRadio && (
+                {pickerOpen && !noLibraryRow && (
                   <div
                     role="menu"
                     aria-label={t("lyrics.source.pickerHint")}
@@ -395,7 +400,7 @@ export function LyricsPanel() {
                   they're hidden for radio — the lyrics auto-fetch by
                   artist + title and there's nothing to import-to or
                   clear-from. */}
-              {!isRadio && (
+              {!noLibraryRow && (
                 <>
                   <button
                     type="button"

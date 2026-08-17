@@ -769,6 +769,8 @@ pub fn run() {
             commands::remote_auth::remote_update_share,
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_delete_share,
+            #[cfg(feature = "sync_v2")]
+            commands::lyrics::fetch_remote_lyrics,
             commands::offline::get_offline_mode,
             commands::offline::set_offline_mode,
             commands::preferences::get_minimize_to_tray,
