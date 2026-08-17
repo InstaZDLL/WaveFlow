@@ -99,6 +99,13 @@ pub struct ReconciliationLink {
     pub playback_preference: String,
     pub confirmed_at: i64,
     pub verified_at: i64,
+    pub local_favorite: bool,
+    pub remote_favorite: bool,
+    pub local_rating: Option<i64>,
+    pub remote_rating: Option<i64>,
+    pub local_plays: i64,
+    pub remote_plays: i64,
+    pub combined_plays: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -668,7 +675,16 @@ pub async fn links(pool: &SqlitePool) -> AppResult<Vec<ReconciliationLink>> {
     let rows = sqlx::query(
         "SELECT l.local_track_id, l.remote_track_id, t.title AS local_title,
                 rt.title AS remote_title, l.method, l.verified_full_hash,
-                l.status, l.playback_preference, l.confirmed_at, l.verified_at
+                l.status, l.playback_preference, l.confirmed_at, l.verified_at,
+                EXISTS(SELECT 1 FROM liked_track f WHERE f.track_id = t.id) AS local_favorite,
+                EXISTS(SELECT 1 FROM remote_favorite f
+                        WHERE f.entity_type = 'track' AND f.entity_id = l.remote_track_id) AS remote_favorite,
+                t.rating AS local_rating,
+                (SELECT rating FROM remote_rating r
+                  WHERE r.entity_type = 'track' AND r.entity_id = l.remote_track_id) AS remote_rating,
+                (SELECT count(*) FROM play_event p WHERE p.track_id = t.id) AS local_plays,
+                (SELECT count(*) FROM remote_history h
+                  WHERE h.track_remote_id = l.remote_track_id) AS remote_plays
            FROM remote_track_link l
            JOIN track t ON t.id = l.local_track_id
            LEFT JOIN remote_track rt ON rt.remote_id = l.remote_track_id
@@ -678,6 +694,8 @@ pub async fn links(pool: &SqlitePool) -> AppResult<Vec<ReconciliationLink>> {
     .await?;
     rows.into_iter()
         .map(|row| {
+            let local_plays = row.try_get("local_plays")?;
+            let remote_plays = row.try_get("remote_plays")?;
             Ok(ReconciliationLink {
                 local_track_id: row.try_get("local_track_id")?,
                 remote_track_id: row.try_get("remote_track_id")?,
@@ -689,9 +707,117 @@ pub async fn links(pool: &SqlitePool) -> AppResult<Vec<ReconciliationLink>> {
                 playback_preference: row.try_get("playback_preference")?,
                 confirmed_at: row.try_get("confirmed_at")?,
                 verified_at: row.try_get("verified_at")?,
+                local_favorite: row.try_get::<i64, _>("local_favorite")? != 0,
+                remote_favorite: row.try_get::<i64, _>("remote_favorite")? != 0,
+                local_rating: row.try_get("local_rating")?,
+                remote_rating: row.try_get("remote_rating")?,
+                local_plays,
+                remote_plays,
+                combined_plays: local_plays + remote_plays,
             })
         })
         .collect()
+}
+
+async fn confirmed_link_on(
+    conn: &mut SqliteConnection,
+    local_track_id: i64,
+) -> AppResult<(String, bool, bool, Option<i64>, Option<i64>)> {
+    let row = sqlx::query(
+        "SELECT l.remote_track_id, t.file_path, l.verified_full_hash,
+                rt.full_hash AS remote_full_hash,
+                EXISTS(SELECT 1 FROM liked_track f WHERE f.track_id = t.id) AS local_favorite,
+                EXISTS(SELECT 1 FROM remote_favorite f
+                        WHERE f.entity_type = 'track' AND f.entity_id = l.remote_track_id) AS remote_favorite,
+                t.rating AS local_rating,
+                (SELECT rating FROM remote_rating r
+                  WHERE r.entity_type = 'track' AND r.entity_id = l.remote_track_id) AS remote_rating
+           FROM remote_track_link l
+           JOIN track t ON t.id = l.local_track_id AND t.is_available = 1
+           JOIN remote_track rt ON rt.remote_id = l.remote_track_id
+          WHERE l.local_track_id = ? AND l.status = 'confirmed'",
+    )
+    .bind(local_track_id)
+    .fetch_optional(&mut *conn)
+    .await?
+    .ok_or_else(|| AppError::Other("confirmed visible reconciliation link not found".into()))?;
+    let freshness = playlist_link_freshness(vec![PlaylistLinkProof {
+        local_track_id,
+        file_path: row.try_get("file_path")?,
+        verified_full_hash: row.try_get("verified_full_hash")?,
+        remote_full_hash: row.try_get("remote_full_hash")?,
+    }])
+    .await?;
+    if freshness.get(&local_track_id) != Some(&true) {
+        return Err(AppError::Other("reconciliation link is stale".into()));
+    }
+    Ok((
+        row.try_get("remote_track_id")?,
+        row.try_get::<i64, _>("local_favorite")? != 0,
+        row.try_get::<i64, _>("remote_favorite")? != 0,
+        row.try_get("local_rating")?,
+        row.try_get("remote_rating")?,
+    ))
+}
+
+pub async fn copy_favorite(
+    pool: &SqlitePool,
+    local_track_id: i64,
+    direction: &str,
+) -> AppResult<()> {
+    let mut tx = pool.begin().await?;
+    let (remote_id, local, remote, _, _) = confirmed_link_on(&mut tx, local_track_id).await?;
+    match direction {
+        "local_to_server" => {
+            crate::remote::write::set_favorite_in_tx(&mut tx, "track", &remote_id, local).await?
+        }
+        "server_to_local" => {
+            if remote {
+                sqlx::query(
+                    "INSERT OR REPLACE INTO liked_track (track_id, liked_at) VALUES (?, ?)",
+                )
+                .bind(local_track_id)
+                .bind(now_ms())
+                .execute(&mut *tx)
+                .await?;
+            } else {
+                sqlx::query("DELETE FROM liked_track WHERE track_id = ?")
+                    .bind(local_track_id)
+                    .execute(&mut *tx)
+                    .await?;
+            }
+        }
+        _ => return Err(AppError::Other("invalid user-data copy direction".into())),
+    }
+    tx.commit().await?;
+    Ok(())
+}
+
+pub async fn copy_rating(pool: &SqlitePool, local_track_id: i64, direction: &str) -> AppResult<()> {
+    let mut tx = pool.begin().await?;
+    let (remote_id, _, _, local, remote) = confirmed_link_on(&mut tx, local_track_id).await?;
+    match direction {
+        "local_to_server" => {
+            let stars = local
+                .map(|value| ((value.clamp(0, 255) * 5 + 127) / 255).clamp(1, 5) as u8)
+                .unwrap_or(0);
+            crate::remote::write::set_rating_in_tx(&mut tx, "track", &remote_id, stars).await?;
+        }
+        "server_to_local" => {
+            // Reconciliation copies user data, never audio tags. A later local
+            // edit may deliberately write the rating through the normal track
+            // command, but this directional copy stays database-only.
+            let popm = remote.map(|value| (value.clamp(1, 5) * 255 + 2) / 5);
+            sqlx::query("UPDATE track SET rating = ? WHERE id = ?")
+                .bind(popm)
+                .bind(local_track_id)
+                .execute(&mut *tx)
+                .await?;
+        }
+        _ => return Err(AppError::Other("invalid user-data copy direction".into())),
+    }
+    tx.commit().await?;
+    Ok(())
 }
 
 pub async fn set_playback_preference(
@@ -1090,6 +1216,7 @@ mod tests {
                  file_size INTEGER NOT NULL,
                  title TEXT NOT NULL,
                  duration_ms INTEGER NOT NULL DEFAULT 0,
+                 rating INTEGER,
                  is_available INTEGER NOT NULL DEFAULT 1
              );
              CREATE TABLE track_artist (
@@ -1123,6 +1250,18 @@ mod tests {
                  added_at INTEGER NOT NULL,
                  PRIMARY KEY (playlist_id, track_id)
              );
+             CREATE TABLE liked_track (
+                 track_id INTEGER PRIMARY KEY REFERENCES track(id) ON DELETE CASCADE,
+                 liked_at INTEGER NOT NULL
+             );
+             CREATE TABLE play_event (
+                 id INTEGER PRIMARY KEY,
+                 track_id INTEGER NOT NULL REFERENCES track(id) ON DELETE CASCADE,
+                 played_at INTEGER NOT NULL,
+                 listened_ms INTEGER NOT NULL DEFAULT 0,
+                 completed INTEGER NOT NULL DEFAULT 0,
+                 skipped INTEGER NOT NULL DEFAULT 0
+             );
              CREATE TABLE remote_playlist (
                  remote_id TEXT PRIMARY KEY,
                  name TEXT NOT NULL,
@@ -1147,6 +1286,25 @@ mod tests {
                  last_attempt_at INTEGER,
                  last_error TEXT,
                  failed_at INTEGER
+             );
+             CREATE TABLE remote_favorite (
+                 entity_type TEXT NOT NULL,
+                 entity_id TEXT NOT NULL,
+                 starred_at INTEGER NOT NULL,
+                 PRIMARY KEY (entity_type, entity_id)
+             );
+             CREATE TABLE remote_rating (
+                 entity_type TEXT NOT NULL,
+                 entity_id TEXT NOT NULL,
+                 rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+                 updated_at INTEGER NOT NULL,
+                 PRIMARY KEY (entity_type, entity_id)
+             );
+             CREATE TABLE remote_history (
+                 track_remote_id TEXT NOT NULL,
+                 played_at INTEGER NOT NULL,
+                 submission INTEGER NOT NULL CHECK (submission IN (0, 1)),
+                 PRIMARY KEY (track_remote_id, played_at)
              );",
         )
         .execute(&pool)
@@ -1223,6 +1381,69 @@ mod tests {
         assert_eq!(report.auto_linked, 0);
         assert!(report.candidates.is_empty());
         assert!(links(&pool).await.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn user_data_copies_only_on_explicit_directional_actions() {
+        let pool = pool().await;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("local.flac");
+        fs::write(&path, b"same bytes").unwrap();
+        insert_local(&pool, 1, &path, "Local").await;
+        insert_remote(&pool, "remote-1", b"same bytes", "Remote").await;
+        assert_eq!(discover(&pool).await.unwrap().auto_linked, 1);
+        let queued: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_mutation")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(queued, 0, "linking must not copy user data");
+
+        sqlx::raw_sql(
+            "INSERT INTO liked_track (track_id, liked_at) VALUES (1, 10);
+             UPDATE track SET rating = 204 WHERE id = 1;
+             INSERT INTO play_event (id, track_id, played_at) VALUES (1, 1, 100), (2, 1, 200);
+             INSERT INTO remote_history VALUES ('remote-1', 300, 1);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let link = links(&pool).await.unwrap().remove(0);
+        assert!(link.local_favorite);
+        assert!(!link.remote_favorite);
+        assert_eq!(link.local_rating, Some(204));
+        assert_eq!(link.remote_rating, None);
+        assert_eq!(
+            (link.local_plays, link.remote_plays, link.combined_plays),
+            (2, 1, 3)
+        );
+
+        copy_favorite(&pool, 1, "local_to_server").await.unwrap();
+        copy_rating(&pool, 1, "local_to_server").await.unwrap();
+        let remote_rating: i64 = sqlx::query_scalar(
+            "SELECT rating FROM remote_rating WHERE entity_type = 'track' AND entity_id = 'remote-1'",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(remote_rating, 4);
+
+        sqlx::query("DELETE FROM liked_track WHERE track_id = 1")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query("UPDATE track SET rating = NULL WHERE id = 1")
+            .execute(&pool)
+            .await
+            .unwrap();
+        copy_favorite(&pool, 1, "server_to_local").await.unwrap();
+        copy_rating(&pool, 1, "server_to_local").await.unwrap();
+        let local: (i64, i64) = sqlx::query_as(
+            "SELECT EXISTS(SELECT 1 FROM liked_track WHERE track_id = 1), rating FROM track WHERE id = 1",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(local, (1, 204));
     }
 
     #[tokio::test]

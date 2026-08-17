@@ -583,6 +583,13 @@ export interface ReconciliationLink {
   playback_preference: "local_first" | "server_first";
   confirmed_at: number;
   verified_at: number;
+  local_favorite: boolean;
+  remote_favorite: boolean;
+  local_rating: number | null;
+  remote_rating: number | null;
+  local_plays: number;
+  remote_plays: number;
+  combined_plays: number;
 }
 
 export type PlaylistConversionDirection = "local_to_server" | "server_to_local";
@@ -659,6 +666,26 @@ export function remoteRemoveReconciliationLink(
   localTrackId: number,
 ): Promise<void> {
   return invoke<void>("remote_remove_reconciliation_link", { localTrackId });
+}
+
+export function remoteCopyReconciliationFavorite(
+  localTrackId: number,
+  direction: PlaylistConversionDirection,
+): Promise<void> {
+  return invoke<void>("remote_copy_reconciliation_favorite", {
+    localTrackId,
+    direction,
+  });
+}
+
+export function remoteCopyReconciliationRating(
+  localTrackId: number,
+  direction: PlaylistConversionDirection,
+): Promise<void> {
+  return invoke<void>("remote_copy_reconciliation_rating", {
+    localTrackId,
+    direction,
+  });
 }
 
 export function remotePreviewPlaylistConversion(
