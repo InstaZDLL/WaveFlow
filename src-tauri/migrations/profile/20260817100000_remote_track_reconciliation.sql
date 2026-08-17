@@ -18,10 +18,18 @@ CREATE TABLE remote_track_link (
                                  CHECK (playback_preference IN ('local_first', 'server_first')),
     confirmed_at         INTEGER NOT NULL,
     verified_at          INTEGER NOT NULL,
-    CHECK (method != 'exact_full_hash' OR length(verified_full_hash) = 64)
+    -- An exact-hash link must carry its 64-char proof. `length(NULL) = 64`
+    -- evaluates to NULL (not FALSE), so a bare length check would let a NULL
+    -- proof slip through — require non-NULL explicitly.
+    CHECK (method != 'exact_full_hash'
+           OR (verified_full_hash IS NOT NULL AND length(verified_full_hash) = 64))
 );
 
 CREATE INDEX idx_remote_track_link_status ON remote_track_link(status);
+
+-- The reconciliation prefilter joins local files to remote tracks on byte
+-- size (then verifies with a full hash), so index the remote side's size.
+CREATE INDEX idx_remote_track_size ON remote_track(size);
 
 -- A rejected pair stays hidden while the proof that produced it is unchanged.
 -- It is separate from `remote_track_link`: a rejected candidate is explicitly

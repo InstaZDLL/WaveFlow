@@ -184,7 +184,8 @@ async fn load_local_candidates(pool: &SqlitePool) -> AppResult<Vec<LocalTrack>> 
            LEFT JOIN album al ON al.id = t.album_id
           WHERE t.is_available = 1
             AND (EXISTS (SELECT 1 FROM remote_track rt
-                          WHERE rt.size = t.file_size AND rt.full_hash IS NOT NULL)
+                          WHERE rt.size = t.file_size AND rt.size >= 0
+                            AND rt.full_hash IS NOT NULL)
                  OR EXISTS (SELECT 1 FROM remote_track_link l
                              WHERE l.local_track_id = t.id))
           ORDER BY t.id",
@@ -628,10 +629,45 @@ pub async fn set_playback_preference(
 }
 
 pub async fn remove_link(pool: &SqlitePool, local_track_id: i64) -> AppResult<()> {
+    let mut tx = pool.begin().await?;
+    // Capture the link's matching evidence before deleting it and record a
+    // rejection for the same pair — otherwise the next `discover` would just
+    // auto-recreate the exact link the user manually removed. Same proof
+    // representation as `reject_exact`, so `reconcile` honours it.
+    if let Some(row) = sqlx::query(
+        "SELECT remote_track_id, method, verified_full_hash
+           FROM remote_track_link WHERE local_track_id = ?",
+    )
+    .bind(local_track_id)
+    .fetch_optional(&mut *tx)
+    .await?
+    {
+        let remote_track_id: String = row.try_get("remote_track_id")?;
+        let method: String = row.try_get("method")?;
+        let verified_full_hash: Option<String> = row.try_get("verified_full_hash")?;
+        // Only an exact-hash link carries a full-hash proof to suppress.
+        if method == "exact_full_hash" {
+            if let Some(proof) = verified_full_hash.filter(|value| valid_full_hash(value)) {
+                sqlx::query(
+                    "INSERT OR IGNORE INTO remote_track_match_rejection
+                        (local_track_id, remote_track_id, proof_kind, proof, rejected_at)
+                     VALUES (?, ?, 'exact_full_hash', ?, ?)",
+                )
+                .bind(local_track_id)
+                .bind(&remote_track_id)
+                .bind(proof.to_ascii_lowercase())
+                .bind(now_ms())
+                .execute(&mut *tx)
+                .await?;
+            }
+        }
+    }
+
     sqlx::query("DELETE FROM remote_track_link WHERE local_track_id = ?")
         .bind(local_track_id)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
+    tx.commit().await?;
     Ok(())
 }
 

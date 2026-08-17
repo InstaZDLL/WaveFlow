@@ -206,7 +206,11 @@ export function ReconciliationCard() {
           )}
 
           {error && (
-            <p className="text-xs text-red-600 dark:text-red-400 break-words">
+            <p
+              role="status"
+              aria-live="polite"
+              className="text-xs text-red-600 dark:text-red-400 break-words"
+            >
               {error}
             </p>
           )}
@@ -246,6 +250,20 @@ function CandidateEditor({
     group.remote_tracks[0]?.track_id ?? "",
   );
 
+  // A rescan hands a fresh `group` under the same `full_hash` key, so this
+  // instance (and its selection state) is reused — a stored id can now point
+  // at a track the rescan removed. Derive the effective ids from the current
+  // group, falling back to the first entry, so the selects and the
+  // confirm/reject handlers only ever act on ids still present.
+  const effectiveLocalId = group.local_tracks.some((t) => t.track_id === localId)
+    ? localId
+    : (group.local_tracks[0]?.track_id ?? 0);
+  const effectiveRemoteId = group.remote_tracks.some(
+    (t) => t.track_id === remoteId,
+  )
+    ? remoteId
+    : (group.remote_tracks[0]?.track_id ?? "");
+
   return (
     <div className="rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/10 p-3 space-y-2">
       <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
@@ -253,7 +271,7 @@ function CandidateEditor({
       </p>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
         <select
-          value={localId}
+          value={effectiveLocalId}
           onChange={(event) => setLocalId(Number(event.target.value))}
           disabled={busy !== null}
           aria-label="Local track"
@@ -266,7 +284,7 @@ function CandidateEditor({
           ))}
         </select>
         <select
-          value={remoteId}
+          value={effectiveRemoteId}
           onChange={(event) => setRemoteId(event.target.value)}
           disabled={busy !== null}
           aria-label="Server track"
@@ -283,16 +301,16 @@ function CandidateEditor({
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={() => void onConfirm(localId, remoteId)}
-          disabled={busy !== null || !remoteId}
+          onClick={() => void onConfirm(effectiveLocalId, effectiveRemoteId)}
+          disabled={busy !== null || !effectiveRemoteId}
           className="px-2.5 py-1 text-xs rounded-md bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 inline-flex items-center gap-1 disabled:opacity-50"
         >
           <Check size={12} aria-hidden="true" /> Confirm pair
         </button>
         <button
           type="button"
-          onClick={() => void onReject(localId, remoteId)}
-          disabled={busy !== null || !remoteId}
+          onClick={() => void onReject(effectiveLocalId, effectiveRemoteId)}
+          disabled={busy !== null || !effectiveRemoteId}
           className="px-2.5 py-1 text-xs rounded-md border border-zinc-200 dark:border-zinc-700 inline-flex items-center gap-1 disabled:opacity-50"
         >
           <X size={12} aria-hidden="true" /> Reject pair
