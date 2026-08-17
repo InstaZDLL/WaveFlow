@@ -1310,6 +1310,17 @@ mod tests {
             .await
             .is_err());
 
+        fs::write(&first, b"other bytes").unwrap();
+        assert_eq!(discover(&pool).await.unwrap().stale_links, 1);
+        let stale = preview_playlist_conversion(&pool, "local_to_server", "10")
+            .await
+            .unwrap();
+        assert!(!stale.can_convert);
+        assert_eq!(stale.items[0].status, "stale");
+
+        fs::write(&first, b"first bytes").unwrap();
+        assert_eq!(discover(&pool).await.unwrap().stale_links, 0);
+
         insert_remote(&pool, "remote-2", b"second bytes", "Second remote").await;
         assert_eq!(discover(&pool).await.unwrap().auto_linked, 1);
         let ready = preview_playlist_conversion(&pool, "local_to_server", "10")

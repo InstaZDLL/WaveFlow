@@ -567,14 +567,24 @@ pub async fn remote_convert_playlist(
     if direction == "local_to_server" {
         crate::remote::drain::spawn(app);
     } else if let Ok(playlist_id) = result.destination_id.parse::<i64>() {
-        let profile_id = state.require_profile_id().await?;
-        crate::commands::playlist_cover::maybe_regen_auto_cover(
-            &pool,
-            &state.paths,
-            profile_id,
-            playlist_id,
-        )
-        .await;
+        match state.require_profile_id().await {
+            Ok(profile_id) => {
+                crate::commands::playlist_cover::maybe_regen_auto_cover(
+                    &pool,
+                    &state.paths,
+                    profile_id,
+                    playlist_id,
+                )
+                .await;
+            }
+            Err(err) => {
+                tracing::warn!(
+                    playlist_id,
+                    ?err,
+                    "playlist conversion succeeded but auto-cover regeneration was skipped"
+                );
+            }
+        }
     }
     Ok(result)
 }

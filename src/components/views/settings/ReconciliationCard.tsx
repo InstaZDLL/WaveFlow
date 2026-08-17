@@ -252,31 +252,27 @@ function PlaylistConversion() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const loadPlaylists = useCallback(async () => {
+  const loadPlaylists = useCallback(async (isCancelled?: () => boolean) => {
     const [local, remote] = await Promise.all([
       listPlaylists(),
       remoteListPlaylists(),
     ]);
+    if (isCancelled?.()) return;
     setLocalPlaylists(local.filter((playlist) => playlist.is_smart === 0));
     setRemotePlaylists(remote);
-    return { local, remote };
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([listPlaylists(), remoteListPlaylists()])
-      .then(([local, remote]) => {
-        if (cancelled) return;
-        setLocalPlaylists(local.filter((playlist) => playlist.is_smart === 0));
-        setRemotePlaylists(remote);
-      })
+    void Promise.resolve()
+      .then(() => loadPlaylists(() => cancelled))
       .catch((err) => {
         if (!cancelled) setError(String(err));
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadPlaylists]);
 
   const sources =
     direction === "local_to_server" ? localPlaylists : remotePlaylists;
@@ -308,6 +304,7 @@ function PlaylistConversion() {
     if (!selectedSourceId || !preview?.can_convert) return;
     setBusy(true);
     setError(null);
+    setSuccess(null);
     try {
       const result = await remoteConvertPlaylist(direction, selectedSourceId);
       setSuccess(
@@ -425,12 +422,22 @@ function PlaylistConversion() {
       )}
 
       {success && (
-        <p className="text-xs text-emerald-600 dark:text-emerald-400">
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-xs text-emerald-600 dark:text-emerald-400"
+        >
           {success}
         </p>
       )}
       {error && (
-        <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-xs text-red-600 dark:text-red-400"
+        >
+          {error}
+        </p>
       )}
     </div>
   );
