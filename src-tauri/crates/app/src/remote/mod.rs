@@ -86,6 +86,7 @@ pub mod playback;
 pub mod probe;
 pub mod projection;
 pub mod read;
+pub mod reconciliation;
 pub mod socket;
 pub mod stream;
 pub mod sync;

@@ -433,7 +433,8 @@ pub async fn remote_create_share(
     description: Option<String>,
     expires_at: Option<i64>,
 ) -> AppResult<String> {
-    let id = crate::remote::write::create_share(&state, &track_ids, description, expires_at).await?;
+    let id =
+        crate::remote::write::create_share(&state, &track_ids, description, expires_at).await?;
     crate::remote::drain::spawn(app);
     Ok(id)
 }
@@ -476,6 +477,65 @@ pub async fn remote_delete_share(
     crate::remote::write::delete_share(&state, &share_id).await?;
     crate::remote::drain::spawn(app);
     Ok(())
+}
+
+/// Scan the local library for conservative M5 reconciliation matches.
+///
+/// Only exact, unique full-file BLAKE3 matches are linked automatically.
+/// Duplicate groups are returned for explicit confirmation.
+#[tauri::command]
+pub async fn remote_reconcile_scan(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<crate::remote::reconciliation::ReconciliationReport> {
+    let pool = state.require_profile_pool().await?;
+    crate::remote::reconciliation::discover(&pool).await
+}
+
+#[tauri::command]
+pub async fn remote_list_reconciliation_links(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Vec<crate::remote::reconciliation::ReconciliationLink>> {
+    let pool = state.require_profile_pool().await?;
+    crate::remote::reconciliation::links(&pool).await
+}
+
+#[tauri::command]
+pub async fn remote_confirm_reconciliation(
+    state: tauri::State<'_, AppState>,
+    local_track_id: i64,
+    remote_track_id: String,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    crate::remote::reconciliation::confirm_exact(&pool, local_track_id, &remote_track_id).await
+}
+
+#[tauri::command]
+pub async fn remote_reject_reconciliation(
+    state: tauri::State<'_, AppState>,
+    local_track_id: i64,
+    remote_track_id: String,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    crate::remote::reconciliation::reject_exact(&pool, local_track_id, &remote_track_id).await
+}
+
+#[tauri::command]
+pub async fn remote_set_reconciliation_preference(
+    state: tauri::State<'_, AppState>,
+    local_track_id: i64,
+    preference: String,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    crate::remote::reconciliation::set_playback_preference(&pool, local_track_id, &preference).await
+}
+
+#[tauri::command]
+pub async fn remote_remove_reconciliation_link(
+    state: tauri::State<'_, AppState>,
+    local_track_id: i64,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    crate::remote::reconciliation::remove_link(&pool, local_track_id).await
 }
 
 /// The leased pool of the active profile, or `None` when there is no
@@ -598,8 +658,10 @@ pub struct RemotePlayQueue {
 pub async fn remote_get_play_queue(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<Option<RemotePlayQueue>> {
-    Ok(state.remote_playback.snapshot().map(|(entries, index)| {
-        RemotePlayQueue {
+    Ok(state
+        .remote_playback
+        .snapshot()
+        .map(|(entries, index)| RemotePlayQueue {
             entries: entries
                 .into_iter()
                 .map(|e| RemoteQueueRow {
@@ -612,8 +674,7 @@ pub async fn remote_get_play_queue(
                 })
                 .collect(),
             index,
-        }
-    }))
+        }))
 }
 
 /// Jump the remote play queue to an absolute position and play it. Backs
