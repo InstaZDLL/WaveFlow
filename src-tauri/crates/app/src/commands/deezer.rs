@@ -336,6 +336,38 @@ pub async fn enrich_artist_deezer(
     enrich_artist_deezer_with_pool(state, &pool, artist_id).await
 }
 
+/// Enrich an artist by **name**, for a remote artist (RFC-005) that has no
+/// local row — the remote artist view and the "About the artist" panel use
+/// it to show the Deezer photo, the TheAudioDB hero background and the
+/// Last.fm bio the server itself does not carry. Same shared cache and
+/// offline behaviour as [`enrich_artist_deezer`]; there's just no local
+/// artist to link the resolved deezer_id back to.
+#[tauri::command]
+pub async fn enrich_artist_by_name(
+    state: tauri::State<'_, AppState>,
+    name: String,
+) -> AppResult<DeezerArtistEnrichment> {
+    let name = name.trim().to_string();
+    if name.is_empty() {
+        return Ok(DeezerArtistEnrichment::empty());
+    }
+    let pool = state.require_profile_pool().await?;
+    // Reuse the shared cache when this name has been resolved to a Deezer
+    // id before — otherwise the None path skips the id-keyed cache check
+    // and re-hits the network on every remote track change / view open. A
+    // miss just falls through to a fresh fetch, which caches for next time.
+    let cached_deezer_id: Option<i64> = sqlx::query_scalar(
+        "SELECT deezer_id FROM app.metadata_artist
+          WHERE name = ? ORDER BY fetched_at DESC LIMIT 1",
+    )
+    .bind(&name)
+    .fetch_optional(&*pool)
+    .await
+    .ok()
+    .flatten();
+    enrich_artist_named(state, (*pool).clone(), name, cached_deezer_id).await
+}
+
 /// Enrichment body, pinned to a caller-supplied pool.
 ///
 /// Split out of [`enrich_artist_deezer`] so the batch path can enrich a
@@ -383,9 +415,6 @@ async fn enrich_artist_deezer_inner(
     pool: sqlx::SqlitePool,
     artist_id: i64,
 ) -> AppResult<DeezerArtistEnrichment> {
-    let artwork_dir = state.paths.metadata_artwork_dir.clone();
-    let now = now_ms();
-
     // 1. Read local artist.
     let local: Option<(String, Option<i64>)> =
         sqlx::query_as("SELECT name, deezer_id FROM artist WHERE id = ?")
@@ -396,6 +425,40 @@ async fn enrich_artist_deezer_inner(
     let Some((artist_name, existing_deezer_id)) = local else {
         return Ok(DeezerArtistEnrichment::empty());
     };
+
+    let enrichment =
+        enrich_artist_named(state, pool.clone(), artist_name, existing_deezer_id).await?;
+
+    // 8. Link the discovered deezer_id back onto the local artist, so the
+    //    next pass hits the cache by id instead of re-searching by name.
+    if existing_deezer_id.is_none() {
+        if let Some(did) = enrichment.deezer_id {
+            sqlx::query("UPDATE artist SET deezer_id = ? WHERE id = ?")
+                .bind(did)
+                .bind(artist_id)
+                .execute(&pool)
+                .await?;
+        }
+    }
+    Ok(enrichment)
+}
+
+/// Enrichment core keyed on an artist **name** rather than a local row.
+///
+/// A remote artist (RFC-005) has no local id, so this is what gives its
+/// view the same Deezer photo, TheAudioDB hero background and Last.fm bio
+/// as a library artist. Pass a known `deezer_id` to reuse the shared
+/// `app.metadata_artist` cache; `None` searches Deezer by name. The result
+/// is cached by the resolved deezer_id either way — the caller links it to
+/// a local row when there is one.
+async fn enrich_artist_named(
+    state: tauri::State<'_, AppState>,
+    pool: sqlx::SqlitePool,
+    artist_name: String,
+    existing_deezer_id: Option<i64>,
+) -> AppResult<DeezerArtistEnrichment> {
+    let artwork_dir = state.paths.metadata_artwork_dir.clone();
+    let now = now_ms();
 
     // Active bio provider + language (issue #295). Read up-front so the
     // cache check can invalidate a bio fetched under a different source
@@ -663,15 +726,6 @@ async fn enrich_artist_deezer_inner(
     .bind(expires)
     .execute(&pool)
     .await?;
-
-    // 8. Link deezer_id on the local artist.
-    if existing_deezer_id.is_none() {
-        sqlx::query("UPDATE artist SET deezer_id = ? WHERE id = ?")
-            .bind(hit.id)
-            .bind(artist_id)
-            .execute(&pool)
-            .await?;
-    }
 
     Ok(DeezerArtistEnrichment {
         deezer_id: Some(hit.id),

@@ -26,7 +26,7 @@ import { CoverSlideshow } from "../player/CoverSlideshow";
 import { CanvasToggleButton } from "../player/CanvasToggleButton";
 import { ArtistLink } from "../common/ArtistLink";
 import { Lightbox } from "../common/Lightbox";
-import { enrichArtistDeezer } from "../../lib/tauri/detail";
+import { enrichArtistByName, enrichArtistDeezer } from "../../lib/tauri/detail";
 import { resolveArtwork } from "../../lib/tauri/artwork";
 import {
   playerGetQueue,
@@ -174,11 +174,37 @@ export function NowPlayingPanel({
         if (cancelled || !queue) return;
         const artistId = queue.entries[queue.index]?.artist_id ?? null;
         setRemoteArtistId(artistId);
-        if (!artistId) return;
-        const artist = await remoteGetArtist(artistId);
-        if (cancelled || !artist.artwork_hash) return;
-        const url = await remoteArtwork(artist.artwork_hash);
-        if (!cancelled && url) setPictureSrc(url);
+
+        // Photo + bio by name (Deezer / Last.fm) — same as a library
+        // artist, since the server carries neither. The server's own
+        // artwork_hash is the portrait fallback when Deezer has nothing.
+        const name = currentTrack?.artist_name?.split(", ")[0] ?? null;
+        let gotPicture = false;
+        if (name) {
+          const e = await enrichArtistByName(name);
+          if (cancelled) return;
+          const resolved = resolveArtwork(
+            {
+              full: e.picture_path,
+              x1: e.picture_path_1x,
+              x2: e.picture_path_2x,
+              remoteUrl: e.picture_url,
+            },
+            "1x",
+          );
+          if (resolved) {
+            setPictureSrc(resolved);
+            gotPicture = true;
+          }
+          if (e.bio_short) setBioShort(e.bio_short);
+          if (e.bio_full) setBioFull(e.bio_full);
+        }
+        if (!gotPicture && artistId) {
+          const artist = await remoteGetArtist(artistId);
+          if (cancelled || !artist.artwork_hash) return;
+          const url = await remoteArtwork(artist.artwork_hash);
+          if (!cancelled && url) setPictureSrc(url);
+        }
       } catch (err) {
         console.error("[NowPlaying] resolve remote artist failed", err);
       }
@@ -186,7 +212,7 @@ export function NowPlayingPanel({
     return () => {
       cancelled = true;
     };
-  }, [isRemote, currentTrack?.id]);
+  }, [isRemote, currentTrack?.id, currentTrack?.artist_name]);
 
   const displayedBio = bioExpanded ? (bioFull ?? bioShort) : bioShort;
   const canExpand =

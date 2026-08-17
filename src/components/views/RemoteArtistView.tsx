@@ -4,13 +4,20 @@ import {
   remoteGetArtist,
   type RemoteArtist,
 } from "../../lib/tauri/remoteServer";
+import {
+  enrichArtistByName,
+  type DeezerArtistEnrichment,
+} from "../../lib/tauri/detail";
+import { resolveArtwork } from "../../lib/tauri/artwork";
 import { RemoteArtwork } from "../common/RemoteArtwork";
 
 /**
- * A remote artist's detail view (RFC-005 sync_v2). Fetched live from the
- * server (`GET /api/v2/artists/{id}`): the artist image + their albums.
- * The server has no biography, so that stays a Last.fm-by-name concern of
- * the Now Playing panel, not this page.
+ * A remote artist's detail view (RFC-005 sync_v2). The server (`GET
+ * /api/v2/artists/{id}`) carries the artist's albums but rarely a photo
+ * and never a biography, so — exactly like a library artist — the photo,
+ * the hero background and the bio come from the by-name enrichment
+ * (Deezer + TheAudioDB + Last.fm). The server's own `artwork_hash`, when
+ * present, is the fallback for the portrait.
  *
  * Not localized — behind the same off-by-default `sync_v2` feature.
  */
@@ -22,6 +29,10 @@ export function RemoteArtistView({
   onNavigateToRemoteAlbum: (albumId: string) => void;
 }) {
   const [artist, setArtist] = useState<RemoteArtist | null>(null);
+  const [enrichment, setEnrichment] = useState<DeezerArtistEnrichment | null>(
+    null,
+  );
+  const [bioExpanded, setBioExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,9 +43,18 @@ export function RemoteArtistView({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError(null);
+    setEnrichment(null);
+    setBioExpanded(false);
     remoteGetArtist(remoteArtistId)
       .then((a) => {
-        if (seq === seqRef.current) setArtist(a);
+        if (seq !== seqRef.current) return;
+        setArtist(a);
+        // Photo / background / bio by name — the server has none of them.
+        enrichArtistByName(a.name)
+          .then((e) => {
+            if (seq === seqRef.current) setEnrichment(e);
+          })
+          .catch(() => {});
       })
       .catch((err) => {
         if (seq === seqRef.current) setError(String(err));
@@ -46,24 +66,85 @@ export function RemoteArtistView({
 
   if (!remoteArtistId) return null;
 
+  const pictureSrc = enrichment
+    ? resolveArtwork(
+        {
+          full: enrichment.picture_path,
+          x1: enrichment.picture_path_1x,
+          x2: enrichment.picture_path_2x,
+          remoteUrl: enrichment.picture_url,
+        },
+        "full",
+      )
+    : null;
+  const backgroundSrc = enrichment
+    ? resolveArtwork(
+        {
+          full: enrichment.background_path,
+          remoteUrl: enrichment.background_url,
+        },
+        "full",
+      )
+    : null;
+  const bioShort = enrichment?.bio_short ?? null;
+  const bioFull = enrichment?.bio_full ?? null;
+  const displayedBio = bioExpanded ? (bioFull ?? bioShort) : bioShort;
+  const canExpand =
+    bioFull != null && bioShort != null && bioFull.length > bioShort.length;
+  const fansLabel =
+    enrichment?.fans_count != null
+      ? `${Intl.NumberFormat(undefined, { notation: "compact" }).format(
+          enrichment.fans_count,
+        )} fans`
+      : null;
+
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      <header className="flex items-center gap-6">
-        <RemoteArtwork
-          hash={artist?.artwork_hash ?? null}
-          className="w-32 h-32 rounded-full"
-          iconSize={48}
-        />
-        <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
-            Remote artist
-          </p>
-          <h1 className="text-4xl font-bold truncate text-zinc-900 dark:text-white">
-            {artist?.name ?? "…"}
-          </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            {artist?.albums.length ?? 0} albums
-          </p>
+      {/* Hero — the TheAudioDB fanart paints full-bleed behind the header,
+          the same treatment as a library artist. Falls back to a flat
+          band when there's no background. */}
+      <header className="relative overflow-hidden rounded-2xl">
+        {backgroundSrc ? (
+          <>
+            <img
+              src={backgroundSrc}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-linear-to-t from-white via-white/85 to-white/40 dark:from-surface-dark dark:via-surface-dark/85 dark:to-surface-dark/40" />
+          </>
+        ) : (
+          <div className="absolute inset-0 bg-zinc-50 dark:bg-zinc-900/40" />
+        )}
+        <div className="relative flex items-center gap-6 p-6">
+          {pictureSrc ? (
+            <img
+              src={pictureSrc}
+              alt={artist?.name ?? ""}
+              className="w-32 h-32 rounded-full object-cover shadow-lg shrink-0"
+              loading="lazy"
+            />
+          ) : (
+            <RemoteArtwork
+              hash={artist?.artwork_hash ?? null}
+              className="w-32 h-32 rounded-full"
+              iconSize={48}
+            />
+          )}
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
+              Remote artist
+            </p>
+            <h1 className="text-4xl font-bold truncate text-zinc-900 dark:text-white">
+              {artist?.name ?? "…"}
+            </h1>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+              {artist?.albums.length ?? 0} albums
+              {fansLabel && ` · ${fansLabel}`}
+            </p>
+          </div>
         </div>
       </header>
 
@@ -71,6 +152,26 @@ export function RemoteArtistView({
         <p className="text-xs text-red-600 dark:text-red-400 break-words">
           {error}
         </p>
+      )}
+
+      {displayedBio && (
+        <section className="space-y-2">
+          <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">
+            Biography
+          </div>
+          <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 whitespace-pre-line max-w-3xl">
+            {displayedBio}
+          </p>
+          {canExpand && (
+            <button
+              type="button"
+              onClick={() => setBioExpanded((p) => !p)}
+              className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
+            >
+              {bioExpanded ? "Read less" : "Read more"}
+            </button>
+          )}
+        </section>
       )}
 
       {loading ? (
