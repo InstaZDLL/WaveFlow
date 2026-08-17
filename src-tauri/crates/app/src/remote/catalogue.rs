@@ -131,15 +131,23 @@ pub async fn search(state: &AppState, query: &str, limit: i64) -> AppResult<Vec<
                 .query(&[("q", query), ("limit", &limit.to_string())]),
         )
         .await
-        .map_err(|err| AppError::Other(format!("search: {}", err.message)))?;
+        // Surface the whole failure (status + code + message), not just the
+        // message: a 401 here means the session lapsed, which the caller
+        // must be able to tell apart from a plain "search failed" to prompt
+        // a re-auth rather than shrug.
+        .map_err(|err| AppError::Other(format!("search failed: {err}")))?;
 
     let pool = state.require_profile_pool().await?;
-    let mut conn = pool.acquire().await?;
     let mut tracks = Vec::with_capacity(resp.songs.len());
+    // Cache every hit in one transaction: the rows exist only to label the
+    // picker, and committing each individually multiplies the fsyncs for no
+    // benefit.
+    let mut tx = pool.begin().await?;
     for song in &resp.songs {
-        crate::remote::projection::cache_song(&mut conn, song).await?;
+        crate::remote::projection::cache_song(&mut tx, song).await?;
         tracks.push(song_to_track(song));
     }
+    tx.commit().await?;
     Ok(tracks)
 }
 
@@ -157,13 +165,17 @@ pub async fn get_album(state: &AppState, album_id: &str) -> AppResult<RemoteAlbu
     let resp: AlbumDetailResponse = client
         .send_json(client.get(&format!("/api/v2/albums/{album_id}")))
         .await
-        .map_err(|err| AppError::Other(format!("album: {}", err.message)))?;
+        // Preserve the status (see `search`) so a lapsed session is
+        // distinguishable from a missing album.
+        .map_err(|err| AppError::Other(format!("album fetch failed: {err}")))?;
 
     let pool = state.require_profile_pool().await?;
-    let mut conn = pool.acquire().await?;
     let mut tracks = Vec::with_capacity(resp.songs.len());
+    // Cache the album's songs and read back the favorites in one
+    // transaction, so the tracks are cached-and-labelled atomically.
+    let mut tx = pool.begin().await?;
     for song in &resp.songs {
-        crate::remote::projection::cache_song(&mut conn, song).await?;
+        crate::remote::projection::cache_song(&mut tx, song).await?;
         tracks.push(song_to_track(song));
     }
 
@@ -171,10 +183,11 @@ pub async fn get_album(state: &AppState, album_id: &str) -> AppResult<RemoteAlbu
     // the server's view, which can lag a pending local like/unlike.
     let starred: std::collections::HashSet<String> =
         sqlx::query_scalar("SELECT entity_id FROM remote_favorite WHERE entity_type = 'track'")
-            .fetch_all(&mut *conn)
+            .fetch_all(&mut *tx)
             .await?
             .into_iter()
             .collect();
+    tx.commit().await?;
     for track in &mut tracks {
         track.starred = starred.contains(&track.id);
     }
@@ -204,7 +217,9 @@ pub async fn get_artist(state: &AppState, artist_id: &str) -> AppResult<RemoteAr
     let resp: ArtistDetailResponse = client
         .send_json(client.get(&format!("/api/v2/artists/{artist_id}")))
         .await
-        .map_err(|err| AppError::Other(format!("artist: {}", err.message)))?;
+        // Preserve the status (see `search`) so a lapsed session is
+        // distinguishable from a missing artist.
+        .map_err(|err| AppError::Other(format!("artist fetch failed: {err}")))?;
 
     Ok(RemoteArtist {
         id: resp.id,

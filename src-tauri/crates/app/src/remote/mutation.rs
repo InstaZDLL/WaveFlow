@@ -246,19 +246,31 @@ pub async fn pending(conn: &mut SqliteConnection, limit: i64) -> AppResult<Vec<Q
 
     let mut queued = Vec::with_capacity(rows.len());
     for row in rows {
+        let id: i64 = row.try_get("id")?;
         let payload: String = row.try_get("payload")?;
-        // A payload this build cannot parse is a row written by a newer
-        // one. Skipping it keeps the queue moving; failing the whole
-        // drain would stall every later entry over one unknown shape.
         match serde_json::from_str::<Mutation>(&payload) {
             Ok(mutation) => queued.push(QueuedMutation {
-                id: row.try_get("id")?,
+                id,
                 operation_id: row.try_get("operation_id")?,
                 mutation,
                 attempt_count: row.try_get("attempt_count")?,
             }),
             Err(error) => {
-                tracing::warn!(%error, "skipping a queued mutation this build cannot read");
+                // A payload this build cannot parse can never be sent by
+                // it — most likely a row written by a newer build. It must
+                // not be skipped: the drain relies on FIFO order, so
+                // letting a later entry overtake it could send an edit
+                // before the creation it depends on. Mark it permanently
+                // failed (surfacing it in diagnostics and excluding it from
+                // the next pass) and stop here, so nothing behind it slips
+                // past within this batch. The next pass resumes past it.
+                tracing::warn!(
+                    %error,
+                    mutation_id = id,
+                    "a queued mutation cannot be read by this build; marking it failed and stopping the pass"
+                );
+                mark_failed(conn, id, &format!("unreadable payload: {error}")).await?;
+                break;
             }
         }
     }
@@ -331,25 +343,50 @@ pub async fn resolve_placeholder(
     placeholder: &str,
     remote_id: &str,
 ) -> AppResult<()> {
-    sqlx::query(
-        "INSERT INTO remote_playlist
-            (remote_id, name, comment, is_public, created_at, updated_at)
-         SELECT ?, name, comment, is_public, created_at, updated_at
-           FROM remote_playlist WHERE remote_id = ?",
-    )
-    .bind(remote_id)
-    .bind(placeholder)
-    .execute(&mut *conn)
-    .await?;
-    sqlx::query("UPDATE remote_playlist_track SET playlist_remote_id = ? WHERE playlist_remote_id = ?")
+    // Idempotent: a `/changes` echo of our own creation can project the
+    // real playlist under `remote_id` before the drain resolves the
+    // placeholder. If it did, copying the placeholder over it collides on
+    // the primary key and re-pointing its tracks collides on
+    // `(playlist_remote_id, position)`. In that case the projection is
+    // authoritative — just drop the placeholder side.
+    let already_projected: i64 =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM remote_playlist WHERE remote_id = ?)")
+            .bind(remote_id)
+            .fetch_one(&mut *conn)
+            .await?;
+
+    if already_projected != 0 {
+        sqlx::query("DELETE FROM remote_playlist_track WHERE playlist_remote_id = ?")
+            .bind(placeholder)
+            .execute(&mut *conn)
+            .await?;
+        sqlx::query("DELETE FROM remote_playlist WHERE remote_id = ?")
+            .bind(placeholder)
+            .execute(&mut *conn)
+            .await?;
+    } else {
+        sqlx::query(
+            "INSERT INTO remote_playlist
+                (remote_id, name, comment, is_public, created_at, updated_at)
+             SELECT ?, name, comment, is_public, created_at, updated_at
+               FROM remote_playlist WHERE remote_id = ?",
+        )
         .bind(remote_id)
         .bind(placeholder)
         .execute(&mut *conn)
         .await?;
-    sqlx::query("DELETE FROM remote_playlist WHERE remote_id = ?")
+        sqlx::query(
+            "UPDATE remote_playlist_track SET playlist_remote_id = ? WHERE playlist_remote_id = ?",
+        )
+        .bind(remote_id)
         .bind(placeholder)
         .execute(&mut *conn)
         .await?;
+        sqlx::query("DELETE FROM remote_playlist WHERE remote_id = ?")
+            .bind(placeholder)
+            .execute(&mut *conn)
+            .await?;
+    }
 
     rewrite_queued_references(conn, placeholder, remote_id).await
 }
@@ -367,28 +404,54 @@ pub async fn resolve_share_placeholder(
     remote_id: &str,
     url: Option<&str>,
 ) -> AppResult<()> {
-    // Copied, re-pointed, dropped — for the same foreign-key reason as
-    // the playlist above.
-    sqlx::query(
-        "INSERT INTO remote_share
-            (remote_id, description, expires_at, visit_count, url, created_at, updated_at)
-         SELECT ?, description, expires_at, visit_count, COALESCE(?, url), created_at, updated_at
-           FROM remote_share WHERE remote_id = ?",
-    )
-    .bind(remote_id)
-    .bind(url)
-    .bind(placeholder)
-    .execute(&mut *conn)
-    .await?;
-    sqlx::query("UPDATE remote_share_track SET share_remote_id = ? WHERE share_remote_id = ?")
+    // Idempotent, like `resolve_placeholder`: a `/changes` echo may have
+    // projected the real share already. If it did, still capture the URL —
+    // the journal never carries it, so the creation response is the only
+    // chance — then drop the placeholder side.
+    let already_projected: i64 =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM remote_share WHERE remote_id = ?)")
+            .bind(remote_id)
+            .fetch_one(&mut *conn)
+            .await?;
+
+    if already_projected != 0 {
+        sqlx::query("UPDATE remote_share SET url = COALESCE(?, url) WHERE remote_id = ?")
+            .bind(url)
+            .bind(remote_id)
+            .execute(&mut *conn)
+            .await?;
+        sqlx::query("DELETE FROM remote_share_track WHERE share_remote_id = ?")
+            .bind(placeholder)
+            .execute(&mut *conn)
+            .await?;
+        sqlx::query("DELETE FROM remote_share WHERE remote_id = ?")
+            .bind(placeholder)
+            .execute(&mut *conn)
+            .await?;
+    } else {
+        // Copied, re-pointed, dropped — for the same foreign-key reason as
+        // the playlist above.
+        sqlx::query(
+            "INSERT INTO remote_share
+                (remote_id, description, expires_at, visit_count, url, created_at, updated_at)
+             SELECT ?, description, expires_at, visit_count, COALESCE(?, url), created_at, updated_at
+               FROM remote_share WHERE remote_id = ?",
+        )
         .bind(remote_id)
+        .bind(url)
         .bind(placeholder)
         .execute(&mut *conn)
         .await?;
-    sqlx::query("DELETE FROM remote_share WHERE remote_id = ?")
-        .bind(placeholder)
-        .execute(&mut *conn)
-        .await?;
+        sqlx::query("UPDATE remote_share_track SET share_remote_id = ? WHERE share_remote_id = ?")
+            .bind(remote_id)
+            .bind(placeholder)
+            .execute(&mut *conn)
+            .await?;
+        sqlx::query("DELETE FROM remote_share WHERE remote_id = ?")
+            .bind(placeholder)
+            .execute(&mut *conn)
+            .await?;
+    }
 
     rewrite_queued_references(conn, placeholder, remote_id).await
 }
@@ -596,9 +659,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_payload_this_build_cannot_read_is_skipped_not_fatal() {
-        // A row written by a newer build must not stall every entry
-        // behind it.
+    async fn a_payload_this_build_cannot_read_stops_the_pass_and_is_marked_failed() {
+        // A row written by a newer build can never be sent by this one.
+        // FIFO is load-bearing, so it must not be skipped over — the pass
+        // stops at it, it is marked permanently failed, and the next pass
+        // resumes past it. That way the later entry is still sent, just one
+        // pass later, and never *before* something it might depend on.
         let pool = pool().await;
         let mut conn = pool.acquire().await.unwrap();
         sqlx::query(
@@ -610,9 +676,121 @@ mod tests {
         .unwrap();
         enqueue(&mut conn, &favorite(true)).await.unwrap();
 
-        let queued = pending(&mut conn, 10).await.unwrap();
-        assert_eq!(queued.len(), 1);
-        assert_eq!(queued[0].mutation, favorite(true));
+        // First pass stops at the unreadable row — nothing behind it slips
+        // past — and marks it failed.
+        let first = pending(&mut conn, 10).await.unwrap();
+        assert!(first.is_empty(), "the pass must stop at the unreadable row");
+        let failed: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM remote_mutation WHERE failed_at IS NOT NULL")
+                .fetch_one(&mut *conn)
+                .await
+                .unwrap();
+        assert_eq!(failed, 1);
+
+        // Next pass resumes past it and returns the readable entry.
+        let second = pending(&mut conn, 10).await.unwrap();
+        assert_eq!(second.len(), 1);
+        assert_eq!(second[0].mutation, favorite(true));
+    }
+
+    #[tokio::test]
+    async fn resolving_a_placeholder_the_projection_already_created_is_idempotent() {
+        // A `/changes` echo can materialize the real playlist under its
+        // server id before the drain resolves the placeholder. Resolving
+        // must then not collide on the primary key or duplicate tracks —
+        // it drops the placeholder side and keeps the projected row.
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+
+        let local_id = new_placeholder();
+        // Placeholder projection (what the user saw offline).
+        sqlx::query("INSERT INTO remote_playlist (remote_id, name) VALUES (?, 'Offline mix')")
+            .bind(&local_id)
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO remote_playlist_track VALUES (?, 0, 't1')")
+            .bind(&local_id)
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+        // The real row, already projected from the server's echo.
+        sqlx::query(
+            "INSERT INTO remote_playlist (remote_id, name) VALUES ('server-uuid', 'Offline mix')",
+        )
+        .execute(&mut *conn)
+        .await
+        .unwrap();
+        sqlx::query("INSERT INTO remote_playlist_track VALUES ('server-uuid', 0, 't1')")
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+
+        resolve_placeholder(&mut conn, &local_id, "server-uuid")
+            .await
+            .expect("resolving over an already-projected row must not error");
+
+        // Exactly one playlist row (the real one), one track, no placeholder.
+        let playlists: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_playlist")
+            .fetch_one(&mut *conn)
+            .await
+            .unwrap();
+        assert_eq!(playlists, 1);
+        let placeholder_gone: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM remote_playlist WHERE remote_id = ?")
+                .bind(&local_id)
+                .fetch_one(&mut *conn)
+                .await
+                .unwrap();
+        assert_eq!(placeholder_gone, 0);
+        let tracks: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM remote_playlist_track WHERE playlist_remote_id = 'server-uuid'",
+        )
+        .fetch_one(&mut *conn)
+        .await
+        .unwrap();
+        assert_eq!(tracks, 1, "the projected track must not be duplicated");
+    }
+
+    #[tokio::test]
+    async fn resolving_a_share_the_projection_already_created_still_captures_the_url() {
+        // The share URL is learned only from the creation response. If the
+        // real share was already projected (without a URL — the journal
+        // never carries one), resolving must still write the URL in.
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+
+        let local_id = new_placeholder();
+        sqlx::query("INSERT INTO remote_share (remote_id, description) VALUES (?, 'My mix')")
+            .bind(&local_id)
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+        // Real share already projected, URL still null.
+        sqlx::query(
+            "INSERT INTO remote_share (remote_id, description) VALUES ('share-uuid', 'My mix')",
+        )
+        .execute(&mut *conn)
+        .await
+        .unwrap();
+
+        resolve_share_placeholder(&mut conn, &local_id, "share-uuid", Some("https://x/y"))
+            .await
+            .expect("resolving over an already-projected share must not error");
+
+        let url: Option<String> =
+            sqlx::query_scalar("SELECT url FROM remote_share WHERE remote_id = 'share-uuid'")
+                .fetch_one(&mut *conn)
+                .await
+                .unwrap();
+        assert_eq!(url.as_deref(), Some("https://x/y"));
+        let placeholder_gone: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM remote_share WHERE remote_id = ?")
+                .bind(&local_id)
+                .fetch_one(&mut *conn)
+                .await
+                .unwrap();
+        assert_eq!(placeholder_gone, 0);
     }
 
     #[tokio::test]
