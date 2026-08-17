@@ -192,26 +192,41 @@ pub struct AuthUserResponse {
     pub username: String,
 }
 
+/// What a client needs to refresh its own token and replay a request
+/// once when the server answers `401`. Held only by a client built from a
+/// live [`AppState`] (via [`RemoteClient::try_build`]); a
+/// [`RemoteClient::from_parts`] client — the test constructor — has none
+/// and simply surfaces the `401`.
+struct RefreshCtx<'a> {
+    state: &'a AppState,
+    profile_id: i64,
+    binding: RemoteBinding,
+    pair: TokenPair,
+}
+
 /// A client bound to one profile's server and credentials.
 ///
 /// Built per operation rather than held long-term: the credential it
 /// carries is a snapshot, and a client kept across a refresh would go on
 /// presenting a token that has been rotated away.
-pub struct RemoteClient {
+pub struct RemoteClient<'a> {
     base_url: String,
     device_id: Option<String>,
     access_token: String,
     http: reqwest::Client,
+    /// Present when built from a live profile: lets [`Self::send`] refresh
+    /// and replay a single `401` in-band. Absent for the test constructor.
+    refresh_ctx: Option<RefreshCtx<'a>>,
 }
 
-impl RemoteClient {
+impl<'a> RemoteClient<'a> {
     /// Build against the active profile's binding and tokens, or
     /// `Ok(None)` when the profile is not bound to a native server.
     ///
     /// Returns `None` — not an error — for an unbound profile, a
     /// signed-out one, or a Subsonic binding: local-only is the normal
     /// case, and a server without a journal has no business here.
-    pub async fn try_build(state: &AppState) -> AppResult<Option<Self>> {
+    pub async fn try_build(state: &'a AppState) -> AppResult<Option<Self>> {
         // Capture the profile up front and pin every later acquisition to
         // it. A switch landing mid-way must fail this call rather than
         // read one profile's binding and write another profile's tokens.
@@ -244,7 +259,14 @@ impl RemoteClient {
             pair
         };
 
-        Ok(Some(Self::from_parts(&binding, &pair)?))
+        let mut client = Self::from_parts(&binding, &pair)?;
+        client.refresh_ctx = Some(RefreshCtx {
+            state,
+            profile_id,
+            binding,
+            pair,
+        });
+        Ok(Some(client))
     }
 
     fn from_parts(binding: &RemoteBinding, pair: &TokenPair) -> AppResult<Self> {
@@ -256,6 +278,7 @@ impl RemoteClient {
                 .timeout(REQUEST_TIMEOUT)
                 .build()
                 .map_err(|err| AppError::Other(format!("http client init: {err}")))?,
+            refresh_ctx: None,
         })
     }
 
@@ -357,15 +380,64 @@ impl RemoteClient {
             });
         }
 
-        let response = builder.send().await.map_err(RemoteFailure::transport)?;
+        let request = builder.build().map_err(RemoteFailure::transport)?;
+        // Keep a clone to replay after a refresh if the token is refused.
+        // `try_clone` returns `None` only for a streaming body, which none
+        // of our requests use.
+        let replay = request.try_clone();
+        let response = self
+            .http
+            .execute(request)
+            .await
+            .map_err(RemoteFailure::transport)?;
+
+        if response.status().as_u16() != 401 {
+            return Self::interpret(response).await;
+        }
+
+        // A 401 means the access token was refused. `try_build`'s
+        // pre-emptive refresh covers the common lapse; this handles the
+        // narrow race where the token expired (or was rotated) between that
+        // check and the server reading it. Refresh once — single-flighted
+        // process-wide — and replay with the fresh token. Anything that
+        // stops us (no refresh context, an uncloneable request, a failed
+        // refresh) falls through to surfacing the original 401 as
+        // `Unauthorized`, and the queue retries later.
+        let (Some(ctx), Some(mut replay)) = (self.refresh_ctx.as_ref(), replay) else {
+            return Self::interpret(response).await;
+        };
+        let fresh = match refresh(ctx.state, ctx.profile_id, &ctx.binding, &ctx.pair).await {
+            Ok(pair) => pair,
+            Err(_) => return Self::interpret(response).await,
+        };
+        let Ok(bearer) =
+            reqwest::header::HeaderValue::from_str(&format!("Bearer {}", fresh.access_token))
+        else {
+            return Self::interpret(response).await;
+        };
+        replay
+            .headers_mut()
+            .insert(reqwest::header::AUTHORIZATION, bearer);
+        let retried = self
+            .http
+            .execute(replay)
+            .await
+            .map_err(RemoteFailure::transport)?;
+        Self::interpret(retried).await
+    }
+
+    /// Turn a completed response into `Ok(response)` or a classified
+    /// [`RemoteFailure`], reading the structured error body while it is
+    /// still available. The code is kept as a field, not formatted away:
+    /// callers branch on it, and a substring match on a message would be a
+    /// fragile way to make a destructive decision.
+    async fn interpret(
+        response: reqwest::Response,
+    ) -> Result<reqwest::Response, RemoteFailure> {
         let status = response.status().as_u16();
         match classify_status(status) {
             None => Ok(response),
             Some(kind) => {
-                // Read the structured body while we still can. The code
-                // is kept as a field, not formatted away: callers have to
-                // branch on it, and a substring match on a message would
-                // be a fragile way to make a destructive decision.
                 let (code, message) = match response.json::<ErrorBody>().await {
                     Ok(body) => (Some(body.code), body.message),
                     Err(_) => (None, "no error body".to_string()),
@@ -398,10 +470,22 @@ pub async fn refresh(
         let pool = state.require_profile_pool_for(Some(profile_id)).await?;
         let mut conn = pool.acquire().await?;
 
-        // Somebody may have refreshed while we waited for the gate.
-        if let Some(current) = tokens::read(&mut conn).await? {
-            if current.refresh_token != known.refresh_token {
+        // Somebody may have acted while we waited for the gate. If the
+        // stored pair changed, another task already refreshed — adopt its
+        // result rather than spend our now-stale token. If it is gone
+        // entirely, a concurrent sign-out or forget cleared it, and
+        // refreshing now would silently resurrect the credentials the user
+        // just dropped — so stop and let the caller treat this as
+        // signed-out.
+        match tokens::read(&mut conn).await? {
+            Some(current) if current.refresh_token != known.refresh_token => {
                 return Ok(current);
+            }
+            Some(_) => {}
+            None => {
+                return Err(AppError::Other(
+                    "signed out while a token refresh was queued".into(),
+                ));
             }
         }
         // Lease released before the request — see `try_build`.
@@ -458,8 +542,13 @@ pub async fn refresh(
                  could not be stored and that profile will need to sign in again"
             );
         })?;
-    let mut conn = pool.acquire().await?;
-    tokens::write(&mut conn, &pair).await?;
+
+    // The rotated pair and any device-id correction commit together. A
+    // half-write — new tokens stored but the re-issued device left behind —
+    // would let every subsequent mutation stamp the wrong device and 401,
+    // so the two writes share one transaction.
+    let mut tx = pool.begin().await?;
+    tokens::write(&mut tx, &pair).await?;
 
     // The server echoes the device back rather than minting a new one,
     // so this normally matches what we already hold. Adopting it anyway
@@ -478,9 +567,10 @@ pub async fn refresh(
                 },
                 ..binding.clone()
             };
-            binding::write(&mut conn, &updated).await?;
+            binding::write(&mut tx, &updated).await?;
         }
     }
+    tx.commit().await?;
 
     Ok(pair)
 }
