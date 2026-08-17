@@ -9,10 +9,12 @@
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use chrono::Utc;
 use serde::Serialize;
 use sqlx::{Row, SqliteConnection, SqlitePool};
+use tauri::{AppHandle, Emitter};
 
 use waveflow_core::repository::{
     playlist::PlaylistDraft,
@@ -23,6 +25,51 @@ use crate::error::{AppError, AppResult};
 
 const STATUS_CONFIRMED: &str = "confirmed";
 const STATUS_STALE: &str = "stale";
+
+/// The reconciliation scan reads and full-hashes local files, so it can run
+/// for a while on a large library even behind the byte-size prefilter. These
+/// mirror `commands::analysis`: `RUNNING` guards against overlapping scans and
+/// tells the cancel command whether anything is in flight; `CANCEL` is the
+/// cooperative stop flag the hashing loop polls. Both are reset at the start
+/// of every guarded run.
+static RECONCILE_RUNNING: AtomicBool = AtomicBool::new(false);
+static RECONCILE_CANCEL: AtomicBool = AtomicBool::new(false);
+
+/// Progress payload for the `reconcile:progress` event the UI drives its bar
+/// from. `processed` counts local files whose full hash has been computed.
+#[derive(Debug, Clone, Serialize)]
+struct ReconcileProgress {
+    processed: usize,
+    total: usize,
+}
+
+/// Outcome of the blocking hash pass over the local candidates.
+struct HashScan {
+    hashed: Vec<HashedLocalTrack>,
+    unreadable: usize,
+    cancelled: bool,
+}
+
+/// RAII guard clearing [`RECONCILE_RUNNING`] on every exit path (early return,
+/// `?`, panic) so a failed scan can't wedge the flag `true` for the session.
+struct RunningGuard;
+
+impl Drop for RunningGuard {
+    fn drop(&mut self) {
+        RECONCILE_RUNNING.store(false, Ordering::SeqCst);
+    }
+}
+
+/// Ask an in-flight reconciliation scan to stop at the next file boundary.
+/// Idempotent and safe to call when nothing is running; returns whether a scan
+/// was actually in flight so the UI can ignore a stray click.
+pub fn request_cancel() -> bool {
+    let running = RECONCILE_RUNNING.load(Ordering::Relaxed);
+    if running {
+        RECONCILE_CANCEL.store(true, Ordering::SeqCst);
+    }
+    running
+}
 
 #[derive(Debug, Clone)]
 struct LocalTrack {
@@ -84,6 +131,10 @@ pub struct ReconciliationReport {
     pub verified_links: usize,
     pub stale_links: usize,
     pub rejected_pairs: usize,
+    /// `true` when the user cancelled mid-scan. A cancelled run persists
+    /// nothing new and returns an otherwise-empty report so the UI can render
+    /// "Cancelled" instead of a misleading zero-match result.
+    pub cancelled: bool,
     pub candidates: Vec<MatchCandidateGroup>,
 }
 
@@ -167,35 +218,69 @@ fn valid_full_hash(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|b| b.is_ascii_hexdigit())
 }
 
-/// Discover exact matches, persist only the unique ones and return every
-/// ambiguous group. Files that cannot be read are reported but never linked.
-pub async fn discover(pool: &SqlitePool) -> AppResult<ReconciliationReport> {
+fn empty_report(cancelled: bool) -> ReconciliationReport {
+    ReconciliationReport {
+        hashed_local_tracks: 0,
+        unreadable_local_tracks: 0,
+        auto_linked: 0,
+        verified_links: 0,
+        stale_links: 0,
+        rejected_pairs: 0,
+        cancelled,
+        candidates: Vec::new(),
+    }
+}
+
+/// Test-only convenience entry: run the discovery pipeline with no progress
+/// events and no cancellation. Production always goes through
+/// [`discover_with_progress`].
+#[cfg(test)]
+async fn discover(pool: &SqlitePool) -> AppResult<ReconciliationReport> {
+    discover_inner(pool, None).await
+}
+
+/// Same as [`discover`], but emits `reconcile:progress` events for the UI and
+/// honours the shared cancel flag. Overlapping scans are rejected up front so
+/// two `RUNNING` runs can't interleave their progress and cancel state.
+pub async fn discover_with_progress(
+    pool: &SqlitePool,
+    app: AppHandle,
+) -> AppResult<ReconciliationReport> {
+    if RECONCILE_RUNNING.swap(true, Ordering::SeqCst) {
+        // A scan is already running; leave it untouched and report an empty,
+        // non-cancelled result rather than surfacing a scary error toast.
+        return Ok(empty_report(false));
+    }
+    // Clear a stale cancel from a previous run before arming this one; the
+    // guard resets RUNNING on every exit path.
+    RECONCILE_CANCEL.store(false, Ordering::SeqCst);
+    let _guard = RunningGuard;
+    discover_inner(pool, Some(app)).await
+}
+
+async fn discover_inner(
+    pool: &SqlitePool,
+    app: Option<AppHandle>,
+) -> AppResult<ReconciliationReport> {
     let remote_tracks = load_remote_tracks(pool).await?;
     if remote_tracks.is_empty() {
-        return Ok(ReconciliationReport {
-            hashed_local_tracks: 0,
-            unreadable_local_tracks: 0,
-            auto_linked: 0,
-            verified_links: 0,
-            stale_links: 0,
-            rejected_pairs: 0,
-            candidates: Vec::new(),
-        });
+        return Ok(empty_report(false));
     }
 
     let local_tracks = load_local_candidates(pool).await?;
-    let (hashed_local_tracks, unreadable_local_tracks) =
-        tokio::task::spawn_blocking(move || hash_local_tracks(local_tracks))
-            .await
-            .map_err(|err| AppError::Other(format!("reconciliation hash task failed: {err}")))?;
+    let total = local_tracks.len();
+    let scan = tokio::task::spawn_blocking(move || hash_local_tracks(local_tracks, app.as_ref(), total))
+        .await
+        .map_err(|err| AppError::Other(format!("reconciliation hash task failed: {err}")))?;
 
-    reconcile(
-        pool,
-        hashed_local_tracks,
-        unreadable_local_tracks,
-        remote_tracks,
-    )
-    .await
+    if scan.cancelled {
+        // A partial scan could auto-link the unique matches it happened to
+        // reach and leave the rest looking "resolved"; a cancelled run must
+        // persist nothing, so bail before touching the database.
+        return Ok(empty_report(true));
+    }
+
+    reconcile(pool, scan.hashed, scan.unreadable, remote_tracks).await
 }
 
 async fn load_remote_tracks(pool: &SqlitePool) -> AppResult<Vec<RemoteTrack>> {
@@ -263,10 +348,21 @@ async fn load_local_candidates(pool: &SqlitePool) -> AppResult<Vec<LocalTrack>> 
         .collect()
 }
 
-fn hash_local_tracks(tracks: Vec<LocalTrack>) -> (Vec<HashedLocalTrack>, usize) {
+fn hash_local_tracks(tracks: Vec<LocalTrack>, app: Option<&AppHandle>, total: usize) -> HashScan {
     let mut hashed = Vec::with_capacity(tracks.len());
     let mut unreadable = 0;
     for track in tracks {
+        // Poll the cancel flag at the top of the loop so a click that lands
+        // between two files is honoured before starting another full-file read.
+        if RECONCILE_CANCEL.load(Ordering::Relaxed) {
+            let processed = hashed.len() + unreadable;
+            tracing::info!(processed, total, "reconciliation scan cancelled by user");
+            return HashScan {
+                hashed,
+                unreadable,
+                cancelled: true,
+            };
+        }
         match waveflow_core::scanner::hash_file_full(Path::new(&track.file_path)) {
             Ok(full_hash) => hashed.push(HashedLocalTrack { track, full_hash }),
             Err(err) => {
@@ -278,8 +374,17 @@ fn hash_local_tracks(tracks: Vec<LocalTrack>) -> (Vec<HashedLocalTrack>, usize) 
                 );
             }
         }
+        // `hashed + unreadable` is exactly the count of files processed so far.
+        if let Some(app) = app {
+            let processed = hashed.len() + unreadable;
+            let _ = app.emit("reconcile:progress", ReconcileProgress { processed, total });
+        }
     }
-    (hashed, unreadable)
+    HashScan {
+        hashed,
+        unreadable,
+        cancelled: false,
+    }
 }
 
 async fn playlist_link_freshness(proofs: Vec<PlaylistLinkProof>) -> AppResult<HashMap<i64, bool>> {
@@ -511,6 +616,7 @@ async fn reconcile(
         verified_links,
         stale_links,
         rejected_pairs,
+        cancelled: false,
         candidates,
     })
 }
@@ -1196,136 +1302,49 @@ pub async fn remove_link(pool: &SqlitePool, local_track_id: i64) -> AppResult<()
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sqlx::sqlite::SqlitePoolOptions;
+    use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
     use std::fs;
+    use std::str::FromStr;
 
+    /// Build the fixture from the REAL compiled-in profile migrations rather
+    /// than a hand-rolled subset. A trimmed schema drops CHECK constraints,
+    /// NOT NULL columns and the HLC quartet the migrator adds, so a green test
+    /// on a fake schema proves nothing about production (cf. the DB-test
+    /// fidelity rule). `foreign_keys(true)` mirrors the runtime pool, and a
+    /// single connection keeps the `:memory:` database shared across queries.
     async fn pool() -> SqlitePool {
+        let opts = SqliteConnectOptions::from_str(":memory:")
+            .unwrap()
+            .foreign_keys(true);
         let pool = SqlitePoolOptions::new()
             .max_connections(1)
-            .connect(":memory:")
+            .connect_with(opts)
             .await
             .unwrap();
-        sqlx::raw_sql(
-            "PRAGMA foreign_keys = ON;
-             CREATE TABLE album (id INTEGER PRIMARY KEY, title TEXT NOT NULL);
-             CREATE TABLE artist (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
-             CREATE TABLE track (
-                 id INTEGER PRIMARY KEY,
-                 album_id INTEGER REFERENCES album(id),
-                 file_path TEXT NOT NULL,
-                 file_size INTEGER NOT NULL,
-                 title TEXT NOT NULL,
-                 duration_ms INTEGER NOT NULL DEFAULT 0,
-                 rating INTEGER,
-                 is_available INTEGER NOT NULL DEFAULT 1
-             );
-             CREATE TABLE track_artist (
-                 track_id INTEGER NOT NULL REFERENCES track(id) ON DELETE CASCADE,
-                 artist_id INTEGER NOT NULL REFERENCES artist(id),
-                 position INTEGER NOT NULL DEFAULT 0
-             );
-             CREATE TABLE remote_track (
-                 remote_id TEXT PRIMARY KEY,
-                 title TEXT NOT NULL,
-                 artist TEXT,
-                 album TEXT,
-                 size INTEGER,
-                 full_hash TEXT
-             );
-             CREATE TABLE playlist (
-                 id INTEGER PRIMARY KEY,
-                 name TEXT NOT NULL,
-                 description TEXT,
-                 color_id TEXT NOT NULL DEFAULT 'violet',
-                 icon_id TEXT NOT NULL DEFAULT 'music',
-                 is_smart INTEGER NOT NULL DEFAULT 0,
-                 position INTEGER NOT NULL DEFAULT 0,
-                 created_at INTEGER NOT NULL,
-                 updated_at INTEGER NOT NULL
-             );
-             CREATE TABLE playlist_track (
-                 playlist_id INTEGER NOT NULL REFERENCES playlist(id) ON DELETE CASCADE,
-                 track_id INTEGER NOT NULL REFERENCES track(id) ON DELETE CASCADE,
-                 position INTEGER NOT NULL,
-                 added_at INTEGER NOT NULL,
-                 PRIMARY KEY (playlist_id, track_id)
-             );
-             CREATE TABLE liked_track (
-                 track_id INTEGER PRIMARY KEY REFERENCES track(id) ON DELETE CASCADE,
-                 liked_at INTEGER NOT NULL
-             );
-             CREATE TABLE play_event (
-                 id INTEGER PRIMARY KEY,
-                 track_id INTEGER NOT NULL REFERENCES track(id) ON DELETE CASCADE,
-                 played_at INTEGER NOT NULL,
-                 listened_ms INTEGER NOT NULL DEFAULT 0,
-                 completed INTEGER NOT NULL DEFAULT 0,
-                 skipped INTEGER NOT NULL DEFAULT 0
-             );
-             CREATE TABLE remote_playlist (
-                 remote_id TEXT PRIMARY KEY,
-                 name TEXT NOT NULL,
-                 comment TEXT,
-                 is_public INTEGER NOT NULL DEFAULT 0,
-                 created_at INTEGER,
-                 updated_at INTEGER
-             );
-             CREATE TABLE remote_playlist_track (
-                 playlist_remote_id TEXT NOT NULL REFERENCES remote_playlist(remote_id) ON DELETE CASCADE,
-                 position INTEGER NOT NULL,
-                 track_remote_id TEXT NOT NULL,
-                 PRIMARY KEY (playlist_remote_id, position)
-             );
-             CREATE TABLE remote_mutation (
-                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                 operation_id TEXT NOT NULL UNIQUE,
-                 kind TEXT NOT NULL,
-                 payload TEXT NOT NULL,
-                 created_at INTEGER NOT NULL,
-                 attempt_count INTEGER NOT NULL DEFAULT 0,
-                 last_attempt_at INTEGER,
-                 last_error TEXT,
-                 failed_at INTEGER
-             );
-             CREATE TABLE remote_favorite (
-                 entity_type TEXT NOT NULL,
-                 entity_id TEXT NOT NULL,
-                 starred_at INTEGER NOT NULL,
-                 PRIMARY KEY (entity_type, entity_id)
-             );
-             CREATE TABLE remote_rating (
-                 entity_type TEXT NOT NULL,
-                 entity_id TEXT NOT NULL,
-                 rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
-                 updated_at INTEGER NOT NULL,
-                 PRIMARY KEY (entity_type, entity_id)
-             );
-             CREATE TABLE remote_history (
-                 track_remote_id TEXT NOT NULL,
-                 played_at INTEGER NOT NULL,
-                 submission INTEGER NOT NULL CHECK (submission IN (0, 1)),
-                 PRIMARY KEY (track_remote_id, played_at)
-             );",
-        )
-        .execute(&pool)
-        .await
-        .unwrap();
-        sqlx::raw_sql(include_str!(
-            "../../../../migrations/profile/20260817100000_remote_track_reconciliation.sql"
-        ))
-        .execute(&pool)
-        .await
-        .unwrap();
+        sqlx::migrate!("../../migrations/profile")
+            .run(&pool)
+            .await
+            .unwrap();
+        // Every `track` row FKs `library(id)`, so seed one library up front.
+        sqlx::query("INSERT INTO library (id, name, created_at, updated_at) VALUES (1, 'Test', 0, 0)")
+            .execute(&pool)
+            .await
+            .unwrap();
         pool
     }
 
     async fn insert_local(pool: &SqlitePool, id: i64, path: &Path, title: &str) {
         sqlx::query(
-            "INSERT INTO track (id, file_path, file_size, title, is_available)
-             VALUES (?, ?, ?, ?, 1)",
+            "INSERT INTO track
+                (id, library_id, file_path, file_hash, file_size, file_modified,
+                 title, duration_ms, added_at, is_available)
+             VALUES (?, 1, ?, ?, ?, 0, ?, 0, 0, 1)",
         )
         .bind(id)
         .bind(path.to_string_lossy().as_ref())
+        // A distinct partial-scan digest per row; deliberately never equal to
+        // the full-file BLAKE3 the reconciler compares on.
+        .bind(format!("localscan-{id}"))
         .bind(fs::metadata(path).unwrap().len() as i64)
         .bind(title)
         .execute(pool)
@@ -1336,8 +1355,8 @@ mod tests {
     async fn insert_remote(pool: &SqlitePool, id: &str, bytes: &[u8], title: &str) {
         let hash = blake3::hash(bytes).to_hex().to_string();
         sqlx::query(
-            "INSERT INTO remote_track (remote_id, title, size, full_hash)
-             VALUES (?, ?, ?, ?)",
+            "INSERT INTO remote_track (remote_id, title, size, full_hash, cached_at)
+             VALUES (?, ?, ?, ?, 0)",
         )
         .bind(id)
         .bind(title)
@@ -1401,8 +1420,10 @@ mod tests {
         sqlx::raw_sql(
             "INSERT INTO liked_track (track_id, liked_at) VALUES (1, 10);
              UPDATE track SET rating = 204 WHERE id = 1;
-             INSERT INTO play_event (id, track_id, played_at) VALUES (1, 1, 100), (2, 1, 200);
-             INSERT INTO remote_history VALUES ('remote-1', 300, 1);",
+             INSERT INTO play_event (id, track_id, played_at, listened_ms)
+                 VALUES (1, 1, 100, 0), (2, 1, 200, 0);
+             INSERT INTO remote_history (track_remote_id, played_at, submission)
+                 VALUES ('remote-1', 300, 1);",
         )
         .execute(&pool)
         .await
@@ -1621,7 +1642,8 @@ mod tests {
         assert_eq!(discover(&pool).await.unwrap().auto_linked, 1);
         sqlx::raw_sql(
             "INSERT INTO playlist (id, name, created_at, updated_at) VALUES (10, 'Local mix', 1, 1);
-             INSERT INTO playlist_track VALUES (10, 1, 0, 1), (10, 2, 1, 1);",
+             INSERT INTO playlist_track (playlist_id, track_id, position, added_at)
+                 VALUES (10, 1, 0, 1), (10, 2, 1, 1);",
         )
         .execute(&pool)
         .await

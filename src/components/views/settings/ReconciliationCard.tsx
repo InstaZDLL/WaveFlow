@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 import {
   ArrowLeftRight,
   Check,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 import { listPlaylists, type Playlist } from "../../../lib/tauri/playlist";
 import {
+  remoteCancelReconcileScan,
   remoteConvertPlaylist,
   remoteConfirmReconciliation,
   remoteGetStatus,
@@ -25,6 +27,7 @@ import {
   type MatchCandidateGroup,
   type PlaylistConversionDirection,
   type PlaylistConversionPreview,
+  type ReconcileProgress,
   type ReconciliationLink,
   type ReconciliationReport,
   type RemotePlaylistSummary,
@@ -38,9 +41,26 @@ export function ReconciliationCard() {
   const [report, setReport] = useState<ReconciliationReport | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<ReconcileProgress | null>(null);
 
   const refreshLinks = useCallback(async () => {
     setLinks(await remoteListReconciliationLinks());
+  }, []);
+
+  // The scan hashes files on a background thread and emits
+  // `reconcile:progress` per file, so the bar advances even on a large scan.
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    listen<ReconcileProgress>("reconcile:progress", (event) => {
+      setProgress(event.payload);
+    })
+      .then((un) => {
+        unlisten = un;
+      })
+      .catch(() => {});
+    return () => {
+      if (unlisten) unlisten();
+    };
   }, []);
 
   useEffect(() => {
@@ -64,6 +84,7 @@ export function ReconciliationCard() {
   const scan = useCallback(async () => {
     setBusy("scan");
     setError(null);
+    setProgress(null);
     try {
       const next = await remoteReconcileScan();
       setReport(next);
@@ -72,8 +93,13 @@ export function ReconciliationCard() {
       setError(String(err));
     } finally {
       setBusy(null);
+      setProgress(null);
     }
   }, [refreshLinks]);
+
+  const cancelScan = useCallback(() => {
+    void remoteCancelReconcileScan().catch(() => {});
+  }, []);
 
   const runPair = useCallback(
     async (key: string, action: () => Promise<void>, rescan: boolean) => {
@@ -109,24 +135,46 @@ export function ReconciliationCard() {
                 BLAKE3; metadata never creates a link.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => void scan()}
-              disabled={busy !== null}
-              className="shrink-0 px-3 py-1.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 inline-flex items-center gap-1.5 disabled:opacity-50"
-            >
-              {busy === "scan" ? (
-                <Loader2
-                  size={14}
-                  className="animate-spin"
-                  aria-hidden="true"
-                />
-              ) : (
-                <RefreshCw size={14} aria-hidden="true" />
+            <div className="shrink-0 flex items-center gap-2">
+              {busy === "scan" && (
+                <button
+                  type="button"
+                  onClick={cancelScan}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 inline-flex items-center gap-1.5"
+                >
+                  <X size={14} aria-hidden="true" />
+                  Cancel
+                </button>
               )}
-              Find matches
-            </button>
+              <button
+                type="button"
+                onClick={() => void scan()}
+                disabled={busy !== null}
+                className="px-3 py-1.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 inline-flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {busy === "scan" ? (
+                  <Loader2
+                    size={14}
+                    className="animate-spin"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <RefreshCw size={14} aria-hidden="true" />
+                )}
+                Find matches
+              </button>
+            </div>
           </div>
+
+          {busy === "scan" && progress && progress.total > 0 && (
+            <p
+              className="text-xs text-zinc-500 dark:text-zinc-400"
+              role="status"
+              aria-live="polite"
+            >
+              Hashing {progress.processed} / {progress.total} local files…
+            </p>
+          )}
 
           {report && <ReportSummary report={report} />}
 
@@ -503,6 +551,13 @@ function PlaylistConversion() {
 }
 
 function ReportSummary({ report }: { report: ReconciliationReport }) {
+  if (report.cancelled) {
+    return (
+      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        Scan cancelled — nothing was linked.
+      </p>
+    );
+  }
   return (
     <p className="text-xs text-zinc-500 dark:text-zinc-400">
       {report.hashed_local_tracks} local candidates verified ·{" "}
