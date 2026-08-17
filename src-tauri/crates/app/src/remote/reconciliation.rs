@@ -787,7 +787,8 @@ async fn preview_playlist_conversion_on(
                 "SELECT rpt.position, rpt.track_remote_id, rt.title,
                         l.local_track_id, l.status,
                         rt.remote_id IS NOT NULL AS remote_visible,
-                        EXISTS(SELECT 1 FROM track t WHERE t.id = l.local_track_id) AS local_visible
+                        EXISTS(SELECT 1 FROM track t
+                                WHERE t.id = l.local_track_id AND t.is_available = 1) AS local_visible
                    FROM remote_playlist_track rpt
                    LEFT JOIN remote_track rt ON rt.remote_id = rpt.track_remote_id
                    LEFT JOIN remote_track_link l ON l.remote_track_id = rpt.track_remote_id
@@ -1378,6 +1379,28 @@ mod tests {
             .unwrap();
         assert!(!duplicate.can_convert);
         assert_eq!(duplicate.items[1].status, "duplicate");
+
+        sqlx::query("UPDATE track SET is_available = 0 WHERE id = 2")
+            .execute(&pool)
+            .await
+            .unwrap();
+        let unavailable = preview_playlist_conversion(&pool, "server_to_local", "valid")
+            .await
+            .unwrap();
+        assert!(!unavailable.can_convert);
+        assert_eq!(unavailable.items[0].status, "unlinked_or_ambiguous");
+        assert!(convert_playlist(&pool, "server_to_local", "valid")
+            .await
+            .is_err());
+        let local_playlists: i64 = sqlx::query_scalar("SELECT count(*) FROM playlist")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(local_playlists, 0, "a blocked copy must remain atomic");
+        sqlx::query("UPDATE track SET is_available = 1 WHERE id = 2")
+            .execute(&pool)
+            .await
+            .unwrap();
 
         sqlx::query("DELETE FROM remote_track WHERE remote_id = 'remote-1'")
             .execute(&pool)
