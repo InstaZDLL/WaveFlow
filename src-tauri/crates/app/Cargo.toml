@@ -24,14 +24,16 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 # /app), the Microsoft Store, the Mac App Store and any future repo where
 # the system updater owns the binary. Those builds opt out via
 # `cargo build --no-default-features`.
-default = ["updater"]
+default = ["updater", "sync_v2"]
 updater = ["dep:tauri-plugin-updater"]
-# Remote music source + user-data sync v2 (RFC-005). OFF by default —
-# absent from shipped binaries until the surface is promoted. The `sync_v1`
-# protocol it replaces was removed in the RFC-005 cutover (the server no
-# longer speaks it); `mod sync` is now permanently the no-op stub so the
-# ~70 CRUD emit call sites still compile, and v2 does not touch them —
-# local-entity CRUD is no longer synchronized.
+# Remote music source + user-data sync v2 (RFC-005). Now ON by default —
+# the remote-source surface is promoted into shipped builds. A build that
+# wants to compile it out (e.g. to trim binary size) can still opt out via
+# `--no-default-features` + re-adding `updater`. The `sync_v1` protocol it
+# replaced was removed in the RFC-005 cutover (the server no longer speaks
+# it); `mod sync` is now permanently the no-op stub so the ~70 CRUD emit
+# call sites still compile, and v2 does not touch them — local-entity CRUD
+# is no longer synchronized.
 sync_v2 = []
 
 [build-dependencies]

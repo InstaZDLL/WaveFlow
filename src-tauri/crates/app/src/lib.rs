@@ -634,6 +634,8 @@ pub fn run() {
             commands::deezer::batch_fetch_missing_artist_pictures,
             commands::deezer::fetch_radio_artwork,
             commands::similar::get_similar_artists,
+            #[cfg(feature = "sync_v2")]
+            commands::similar::get_similar_artists_by_name,
             commands::radio::start_radio,
             commands::web_radio_catalogue::radio_catalogue_status,
             commands::web_radio_catalogue::set_radio_catalogue_local_first,

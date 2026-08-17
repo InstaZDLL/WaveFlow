@@ -8,6 +8,10 @@ import {
   enrichArtistByName,
   type DeezerArtistEnrichment,
 } from "../../lib/tauri/detail";
+import {
+  getSimilarArtistsByName,
+  type SimilarArtist,
+} from "../../lib/tauri/similar";
 import { resolveArtwork } from "../../lib/tauri/artwork";
 import { RemoteArtwork } from "../common/RemoteArtwork";
 
@@ -24,14 +28,19 @@ import { RemoteArtwork } from "../common/RemoteArtwork";
 export function RemoteArtistView({
   remoteArtistId,
   onNavigateToRemoteAlbum,
+  onNavigateToArtist,
 }: {
   remoteArtistId: string | null;
   onNavigateToRemoteAlbum: (albumId: string) => void;
+  /** Open a local library artist — used by the similar-artist cards that
+   *  resolved to a row the user already owns. */
+  onNavigateToArtist: (artistId: number) => void;
 }) {
   const [artist, setArtist] = useState<RemoteArtist | null>(null);
   const [enrichment, setEnrichment] = useState<DeezerArtistEnrichment | null>(
     null,
   );
+  const [similar, setSimilar] = useState<SimilarArtist[]>([]);
   const [bioExpanded, setBioExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +53,7 @@ export function RemoteArtistView({
     setLoading(true);
     setError(null);
     setEnrichment(null);
+    setSimilar([]);
     setBioExpanded(false);
     remoteGetArtist(remoteArtistId)
       .then((a) => {
@@ -53,6 +63,13 @@ export function RemoteArtistView({
         enrichArtistByName(a.name)
           .then((e) => {
             if (seq === seqRef.current) setEnrichment(e);
+          })
+          .catch(() => {});
+        // Similar artists by name (Last.fm → Deezer), same as a library
+        // artist. In-library matches carry a library_artist_id to link on.
+        getSimilarArtistsByName(a.name)
+          .then((list) => {
+            if (seq === seqRef.current) setSimilar(list);
           })
           .catch(() => {});
       })
@@ -208,6 +225,67 @@ export function RemoteArtistView({
                 )}
               </button>
             ))}
+          </div>
+        </section>
+      )}
+
+      {similar.length > 0 && (
+        <section className="space-y-3">
+          <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">
+            Similar artists
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+            {similar.map((s) => {
+              const src = resolveArtwork(
+                { full: s.picture_path, remoteUrl: s.picture_url },
+                "1x",
+              );
+              const inLibrary = s.library_artist_id != null;
+              const body = (
+                <>
+                  {src ? (
+                    <img
+                      src={src}
+                      alt={s.name}
+                      loading="lazy"
+                      className="w-full aspect-square rounded-full object-cover shadow-sm"
+                    />
+                  ) : (
+                    <div className="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 flex items-center justify-center">
+                      <span className="text-2xl font-bold text-violet-500/70 dark:text-violet-400/60">
+                        {s.name.trim().charAt(0).toUpperCase() || "?"}
+                      </span>
+                    </div>
+                  )}
+                  <div
+                    className={`mt-2 text-sm font-medium text-center truncate ${
+                      inLibrary
+                        ? "text-zinc-800 dark:text-zinc-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400"
+                        : "text-zinc-500 dark:text-zinc-400"
+                    }`}
+                  >
+                    {s.name}
+                  </div>
+                </>
+              );
+              // In-library suggestions link to the local artist page; the
+              // rest are discovery-only (no remote artist id to open).
+              return inLibrary ? (
+                <button
+                  key={s.name}
+                  type="button"
+                  onClick={() => onNavigateToArtist(s.library_artist_id!)}
+                  className="group text-left"
+                  title={s.name}
+                >
+                  {body}
+                </button>
+              ) : (
+                <div key={s.name} title={s.name}>
+                  {body}
+                </div>
+              );
+            })}
           </div>
         </section>
       )}

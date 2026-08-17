@@ -604,6 +604,7 @@ export function AppLayout() {
           <RemoteArtistView
             remoteArtistId={activeRemoteArtistId}
             onNavigateToRemoteAlbum={navigateToRemoteAlbum}
+            onNavigateToArtist={navigateToArtist}
           />
         );
       case "album-detail":
