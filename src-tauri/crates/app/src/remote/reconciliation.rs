@@ -737,7 +737,7 @@ async fn preview_playlist_conversion_on(
                 ));
             }
             let rows = sqlx::query(
-                "SELECT pt.position, t.id AS local_track_id, t.title,
+                "SELECT pt.position, t.id AS local_track_id, t.title, t.is_available,
                         l.remote_track_id, l.status,
                         EXISTS(SELECT 1 FROM remote_track rt
                                 WHERE rt.remote_id = l.remote_track_id) AS remote_visible
@@ -755,9 +755,11 @@ async fn preview_playlist_conversion_on(
                 .map(|row| {
                     let remote_track_id: Option<String> = row.try_get("remote_track_id")?;
                     let link_status: Option<String> = row.try_get("status")?;
+                    let local_available = row.try_get::<i64, _>("is_available")? != 0;
                     let remote_visible = row.try_get::<i64, _>("remote_visible")? != 0;
                     let status = if link_status.as_deref() == Some(STATUS_CONFIRMED)
                         && remote_track_id.is_some()
+                        && local_available
                         && remote_visible
                     {
                         STATUS_CONFIRMED
@@ -1324,6 +1326,24 @@ mod tests {
 
         insert_remote(&pool, "remote-2", b"second bytes", "Second remote").await;
         assert_eq!(discover(&pool).await.unwrap().auto_linked, 1);
+
+        sqlx::query("UPDATE track SET is_available = 0 WHERE id = 1")
+            .execute(&pool)
+            .await
+            .unwrap();
+        let unavailable = preview_playlist_conversion(&pool, "local_to_server", "10")
+            .await
+            .unwrap();
+        assert!(!unavailable.can_convert);
+        assert_eq!(unavailable.items[0].status, "unlinked_or_ambiguous");
+        assert!(convert_playlist(&pool, "local_to_server", "10")
+            .await
+            .is_err());
+        sqlx::query("UPDATE track SET is_available = 1 WHERE id = 1")
+            .execute(&pool)
+            .await
+            .unwrap();
+
         let ready = preview_playlist_conversion(&pool, "local_to_server", "10")
             .await
             .unwrap();
