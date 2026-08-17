@@ -138,8 +138,9 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
     let (_writer, mut reader) = stream.split();
 
     // Reconnecting is itself a reason to ask: anything that happened
-    // while we were away arrived through no frame at all.
-    if !catch_up_and_notify(handle, state, profile_id).await {
+    // while we were away arrived through no frame at all. A sync failure
+    // here propagates (backoff); a profile switch ends the session cleanly.
+    if !catch_up_and_notify(handle, state, profile_id).await? {
         return Ok(false);
     }
 
@@ -157,7 +158,7 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
         // the catch-up could be postponed indefinitely.
         if pending_since.is_some_and(|since| since.elapsed() >= MAX_COALESCE_DELAY) {
             pending_since = None;
-            if !catch_up_and_notify(handle, state, profile_id).await {
+            if !catch_up_and_notify(handle, state, profile_id).await? {
                 break;
             }
             continue;
@@ -195,7 +196,7 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
                 if pending_since.is_some() {
                     // The burst settled (or hit the cap): one catch-up.
                     pending_since = None;
-                    if !catch_up_and_notify(handle, state, profile_id).await {
+                    if !catch_up_and_notify(handle, state, profile_id).await? {
                         break;
                     }
                 } else {
@@ -209,47 +210,42 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
         }
     }
 
-    // Flush a notice that arrived just before the stream closed. The
-    // profile guard inside is a no-op sync if it switched.
+    // Flush a notice that arrived just before the stream closed. A profile
+    // switch here is a no-op; a sync failure propagates so the supervisor
+    // backs off.
     if pending_since.is_some() {
-        catch_up_and_notify(handle, state, profile_id).await;
+        catch_up_and_notify(handle, state, profile_id).await?;
     }
 
     Ok(delivered)
 }
 
-/// Drain, then pull. Returns `false` when the active profile no longer
-/// matches `profile_id` — a switch happened mid-session, and this socket
-/// (built for the old profile) must not drive the new profile's sync or
-/// advance its cursor. The caller ends the session so the loop reconnects
-/// for whatever profile is now active.
-async fn catch_up_and_notify(handle: &AppHandle, state: &AppState, profile_id: i64) -> bool {
-    // Bail before syncing if the profile switched under us. `sync_now`
-    // itself operates on the active profile, so gating on the captured id
-    // is what keeps profile A's socket from syncing / advancing profile B.
+/// Drain, then pull. The result separates the two reasons a session ends:
+///
+/// - `Ok(true)`: synchronized (or nothing to do); the session is healthy.
+/// - `Ok(false)`: the active profile switched under us — end the session
+///   benignly so the loop reconnects for the new profile, with no backoff.
+/// - `Err`: the sync itself failed — propagated so the supervisor backs
+///   off before reconnecting instead of hammering a failing server.
+///
+/// Gating on the captured `profile_id` is what keeps profile A's socket
+/// from syncing / advancing profile B after a switch.
+async fn catch_up_and_notify(
+    handle: &AppHandle,
+    state: &AppState,
+    profile_id: i64,
+) -> AppResult<bool> {
     match state.require_profile_id().await {
         Ok(active) if active == profile_id => {}
-        _ => return false,
+        _ => return Ok(false),
     }
-    match sync::sync_now(state).await {
-        Ok(report) => {
-            // Only wake the UI when something actually changed. Emitting
-            // on every empty page would re-render the library on a timer
-            // for no reason.
-            if report.applied > 0 || report.resnapshotted {
-                let _ = handle.emit(SYNCED_EVENT, report.cursor);
-            }
-            true
-        }
-        Err(error) => {
-            // The catch-up is the whole point of the socket, so a failing
-            // one means holding the connection open buys nothing. End the
-            // session and let the loop reconnect (with backoff) and retry
-            // from a fresh connection.
-            tracing::debug!(%error, "catch-up after a socket notice failed; ending session");
-            false
-        }
+    let report = sync::sync_now(state).await?;
+    // Only wake the UI when something actually changed. Emitting on every
+    // empty page would re-render the library on a timer for no reason.
+    if report.applied > 0 || report.resnapshotted {
+        let _ = handle.emit(SYNCED_EVENT, report.cursor);
     }
+    Ok(true)
 }
 
 /// Read the cursor out of a notice frame.
