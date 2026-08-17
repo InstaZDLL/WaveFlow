@@ -200,7 +200,10 @@ pub struct SyncChange {
     pub action: String,
     #[serde(default)]
     pub payload: serde_json::Value,
+    // Part of the wire shape, kept so the DTO mirrors the server's change
+    // record; the apply path doesn't branch on the originating device.
     #[serde(default)]
+    #[allow(dead_code)]
     pub origin_device_id: Option<String>,
     #[serde(default)]
     pub changed_at: i64,

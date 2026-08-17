@@ -296,12 +296,16 @@ mod tests {
             .connect(":memory:")
             .await
             .unwrap();
-        sqlx::raw_sql(include_str!(
-            "../../../../migrations/profile/20260810120000_remote_source_projection.sql"
-        ))
-        .execute(&pool)
-        .await
-        .unwrap();
+        for migration in [
+            include_str!(
+                "../../../../migrations/profile/20260810120000_remote_source_projection.sql"
+            ),
+            include_str!("../../../../migrations/profile/20260810140000_remote_track_cache.sql"),
+            include_str!("../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"),
+            include_str!("../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"),
+        ] {
+            sqlx::raw_sql(migration).execute(&pool).await.unwrap();
+        }
         pool
     }
 
@@ -323,6 +327,78 @@ mod tests {
         let pool = pool().await;
         let mut conn = pool.acquire().await.unwrap();
         assert_eq!(read(&mut conn).await.unwrap(), None);
+    }
+
+    #[tokio::test]
+    async fn switching_accounts_leaves_no_inherited_metadata() {
+        // Binding a second account after clearing must not let any of the
+        // first account's projection or queued writes survive — a cursor
+        // and queued mutations name *that* account's resources, and cached
+        // titles/artwork keyed by remote_id would resolve to the wrong
+        // library.
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+
+        // Account 1, with some of everything projected.
+        write(&mut conn, &waveflow_binding(42)).await.unwrap();
+        sqlx::query("INSERT INTO remote_playlist (remote_id, name) VALUES ('p1', 'Acc1 mix')")
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO remote_playlist_track VALUES ('p1', 0, 't1')")
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO remote_favorite (entity_type, entity_id, starred_at) \
+             VALUES ('track', 't1', 0)",
+        )
+        .execute(&mut *conn)
+        .await
+        .unwrap();
+        sqlx::query("INSERT INTO remote_track (remote_id, title) VALUES ('t1', 'Acc1 song')")
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO remote_mutation (operation_id, kind, payload, created_at) \
+             VALUES ('op-1', 'set_favorite', '{}', 0)",
+        )
+        .execute(&mut *conn)
+        .await
+        .unwrap();
+
+        // Switch: clear, then bind account 2.
+        clear_account_state(&mut conn).await.unwrap();
+        let mut account_two = waveflow_binding(0);
+        if let RemoteIdentity::Waveflow {
+            account_id,
+            device_id,
+            ..
+        } = &mut account_two.identity
+        {
+            *account_id = "acc-2".into();
+            *device_id = "dev-2".into();
+        }
+        write(&mut conn, &account_two).await.unwrap();
+
+        // Nothing from account 1 survives, in any table. (Literal SQL per
+        // table — sqlx 0.9 rejects a `format!`d query string.)
+        async fn count(conn: &mut SqliteConnection, sql: &'static str) -> i64 {
+            sqlx::query_scalar(sql).fetch_one(&mut *conn).await.unwrap()
+        }
+        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_playlist").await, 0);
+        assert_eq!(
+            count(&mut conn, "SELECT count(*) FROM remote_playlist_track").await,
+            0
+        );
+        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_favorite").await, 0);
+        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_track").await, 0);
+        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_mutation").await, 0);
+
+        // And the binding is now account 2.
+        let bound = read(&mut conn).await.unwrap().unwrap();
+        assert_eq!(bound.identity, account_two.identity);
     }
 
     #[tokio::test]

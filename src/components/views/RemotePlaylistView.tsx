@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowUpDown,
   Check,
@@ -18,11 +27,14 @@ import {
 } from "lucide-react";
 import {
   DndContext,
+  DragOverlay,
+  MeasuringStrategy,
   PointerSensor,
   closestCenter,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -32,6 +44,8 @@ import {
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { usePageScroll } from "../../hooks/usePageScroll";
 import {
   remoteDeletePlaylist,
   remoteListPlaylists,
@@ -148,6 +162,10 @@ export function RemotePlaylistView({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<RemoteTrack[]>([]);
   const [searching, setSearching] = useState(false);
+  // Index (as a string) of the row currently being dragged, for the
+  // DragOverlay copy — the in-place row can scroll out of the virtual
+  // window mid-drag, so the overlay is what the user actually follows.
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const seqRef = useRef(0);
   const load = useCallback(async () => {
@@ -173,7 +191,6 @@ export function RemotePlaylistView({
   useEffect(() => {
     // `load` flips `loading` on synchronously — the intended initial
     // state for a freshly-opened playlist, not a cascading-render smell.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 
@@ -196,7 +213,6 @@ export function RemotePlaylistView({
   const currentSentinelId = currentTrack?.id ?? null;
   useEffect(() => {
     if (!currentIsRemote) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPlayingRemoteId(null);
       return;
     }
@@ -349,8 +365,13 @@ export function RemotePlaylistView({
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   );
+  const onDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(String(event.active.id));
+  }, []);
+  const onDragCancel = useCallback(() => setActiveId(null), []);
   const onDragEnd = useCallback(
     (event: DragEndEvent) => {
+      setActiveId(null);
       const { active, over } = event;
       if (!over || active.id === over.id) return;
       handleReorder(Number(active.id), Number(over.id));
@@ -358,13 +379,57 @@ export function RemotePlaylistView({
     [handleReorder],
   );
 
+  // Virtualize the track list against the page scroller (same contract as
+  // the local PlaylistView, and the repo's "virtual scroll everywhere"
+  // invariant) so a large remote playlist doesn't mount thousands of rows.
+  // SortableContext still holds the full index array, so dnd-kit knows the
+  // ordering even for rows outside the window.
+  const pageScrollRef = usePageScroll();
+  const listParentRef = useRef<HTMLDivElement>(null);
+  const [scrollMargin, setScrollMargin] = useState(0);
+  useLayoutEffect(() => {
+    const parent = listParentRef.current;
+    const scroller = pageScrollRef?.current;
+    if (!parent || !scroller) return;
+    const recompute = () => {
+      const parentRect = parent.getBoundingClientRect();
+      const scrollerRect = scroller.getBoundingClientRect();
+      setScrollMargin(parentRect.top - scrollerRect.top + scroller.scrollTop);
+    };
+    recompute();
+    const ro = new ResizeObserver(recompute);
+    ro.observe(parent);
+    ro.observe(scroller);
+    return () => ro.disconnect();
+    // Also recompute when content *above* the list changes height without
+    // resizing the list itself — the add-tracks panel opening, an error or
+    // the playlist comment appearing, the sort bar toggling — since that
+    // shifts the list's top within the scroller (which a ResizeObserver on
+    // the list alone wouldn't catch).
+  }, [
+    pageScrollRef,
+    displayTracks.length,
+    adding,
+    error,
+    sortMode,
+    summary?.comment,
+  ]);
+
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const rowVirtualizer = useVirtualizer({
+    count: displayTracks.length,
+    getScrollElement: () => pageScrollRef?.current ?? null,
+    estimateSize: () => REMOTE_ROW_HEIGHT,
+    overscan: 8,
+    scrollMargin,
+  });
+
   // Debounced catalogue search while the add panel is open.
   const searchSeqRef = useRef(0);
   useEffect(() => {
     if (!adding) return;
     const q = query.trim();
     if (!q) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults([]);
       setSearching(false);
       return;
@@ -508,9 +573,14 @@ export function RemotePlaylistView({
               <input
                 autoFocus
                 value={nameDraft}
+                aria-label="Playlist name"
                 onChange={(e) => setNameDraft(e.target.value)}
                 onBlur={() => void commitRename()}
                 onKeyDown={(e) => {
+                  // Ignore the Enter/Escape that closes an IME composition
+                  // (Japanese, Chinese, …) — committing or cancelling on it
+                  // would fire mid-word, before the character is chosen.
+                  if (e.nativeEvent.isComposing) return;
                   if (e.key === "Enter") void commitRename();
                   if (e.key === "Escape") setRenaming(false);
                 }}
@@ -699,34 +769,64 @@ export function RemotePlaylistView({
             sensors={sensors}
             collisionDetection={closestCenter}
             modifiers={[restrictToVerticalAxis]}
+            // Always-measure pairs with virtualization: rows entering the
+            // window during a drag-scroll get measured on the fly.
+            measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+            onDragStart={onDragStart}
             onDragEnd={onDragEnd}
+            onDragCancel={onDragCancel}
           >
             <SortableContext
               items={displayTracks.map((_, i) => String(i))}
               strategy={verticalListSortingStrategy}
             >
-              <ul>
-                {displayTracks.map((track, index) => (
-                  <RemoteTrackRow
-                    key={`${track.id}-${index}`}
-                    id={String(index)}
-                    track={track}
-                    index={index + 1}
-                    busy={busy}
-                    dragEnabled={isCustomOrder && !busy}
-                    isCurrent={
-                      playingRemoteId != null && track.id === playingRemoteId
-                    }
-                    isPlaying={isPlaying}
-                    onPlay={() => void playFrom(index)}
-                    onRemove={() => void removeTrack(index)}
-                    onNavigateToRemoteAlbum={onNavigateToRemoteAlbum}
-                    onNavigateToRemoteArtist={onNavigateToRemoteArtist}
-                    onToggleLike={() => toggleLike(track)}
-                  />
-                ))}
-              </ul>
+              <div
+                ref={listParentRef}
+                style={{
+                  height: `${rowVirtualizer.getTotalSize()}px`,
+                  position: "relative",
+                  width: "100%",
+                }}
+              >
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const index = virtualRow.index;
+                  const track = displayTracks[index];
+                  if (!track) return null;
+                  return (
+                    <RemoteTrackRow
+                      key={`${track.id}-${index}`}
+                      id={String(index)}
+                      track={track}
+                      index={index + 1}
+                      rowHeight={REMOTE_ROW_HEIGHT}
+                      top={virtualRow.start - scrollMargin}
+                      busy={busy}
+                      dragEnabled={isCustomOrder && !busy}
+                      isCurrent={
+                        playingRemoteId != null && track.id === playingRemoteId
+                      }
+                      isPlaying={isPlaying}
+                      onPlay={() => void playFrom(index)}
+                      onRemove={() => void removeTrack(index)}
+                      onNavigateToRemoteAlbum={onNavigateToRemoteAlbum}
+                      onNavigateToRemoteArtist={onNavigateToRemoteArtist}
+                      onToggleLike={() => toggleLike(track)}
+                    />
+                  );
+                })}
+              </div>
             </SortableContext>
+            {/* Portal the overlay to <body> so a future `transform`/
+                `backdrop-filter` ancestor can't become its containing block
+                and pin it off-screen (repo overlay invariant). */}
+            {createPortal(
+              <DragOverlay dropAnimation={null}>
+                {activeId != null && displayTracks[Number(activeId)] ? (
+                  <RemoteRowPreview track={displayTracks[Number(activeId)]} />
+                ) : null}
+              </DragOverlay>,
+              document.body,
+            )}
           </DndContext>
         </div>
       )}
@@ -741,10 +841,16 @@ export function RemotePlaylistView({
 const GRID_COLS =
   "grid-cols-[1.5rem_3rem_2.75rem_1fr_1fr_1fr_5rem_2rem_2rem]";
 
-function RemoteTrackRow({
+/** Row height (px) the virtualizer estimates with — matches the old
+ *  `h-14` (3.5rem = 56px), now set via inline style for absolute layout. */
+const REMOTE_ROW_HEIGHT = 56;
+
+const RemoteTrackRow = memo(function RemoteTrackRow({
   id,
   track,
   index,
+  rowHeight,
+  top,
   busy,
   dragEnabled,
   isCurrent,
@@ -758,6 +864,11 @@ function RemoteTrackRow({
   id: string;
   track: RemoteTrack;
   index: number;
+  /** Slot height, driven by the virtualizer's estimate. */
+  rowHeight: number;
+  /** Absolute offset of this row's slot within the virtualized container,
+   *  already corrected for the container's `scrollMargin`. */
+  top: number;
   busy: boolean;
   /** False while a display sort is active — the grip and ×-remove are
    *  hidden and dnd-kit is detached so neither can act on a position that
@@ -771,19 +882,34 @@ function RemoteTrackRow({
   onNavigateToRemoteArtist: (artistId: string) => void;
   onToggleLike: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id, disabled: !dragEnabled });
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useSortable({
+      id,
+      // Skip layout-shift animations: on a long virtualized list the
+      // per-neighbour transitions are what make a drag feel sluggish.
+      animateLayoutChanges: () => false,
+      disabled: !dragEnabled,
+    });
+  // Position via CSS `top`, not a translateY transform: dnd-kit resolves
+  // drop targets from `offsetTop`, which ignores transforms — anchoring
+  // every row at the container top would collapse all collisions to the
+  // first DOM row. useSortable's own transform (intra-drag displacement)
+  // stays the only `transform` so it composes with `top` cleanly.
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.6 : 1,
+    position: "absolute",
+    top: `${top}px`,
+    left: 0,
+    width: "100%",
+    height: `${rowHeight}px`,
+    transform: CSS.Transform.toString(transform) || undefined,
+    opacity: isDragging ? 0 : 1,
   };
   return (
-    <li
+    <div
       ref={setNodeRef}
       style={style}
       onDoubleClick={onPlay}
-      className={`group grid ${GRID_COLS} gap-4 items-center px-5 h-14 border-b border-zinc-100 dark:border-zinc-800/60 transition-colors ${
+      className={`group grid ${GRID_COLS} gap-4 items-center px-5 border-b border-zinc-100 dark:border-zinc-800/60 transition-colors ${
         isCurrent
           ? "bg-emerald-50 dark:bg-emerald-900/20"
           : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
@@ -901,7 +1027,26 @@ function RemoteTrackRow({
       ) : (
         <span aria-hidden="true" />
       )}
-    </li>
+    </div>
+  );
+});
+
+/** A lightweight copy of a row for the drag overlay: cover + title +
+ *  artist, no controls. It follows the cursor while the in-place row (which
+ *  can scroll out of the virtual window) stays hidden. */
+function RemoteRowPreview({ track }: { track: RemoteTrack }) {
+  return (
+    <div className="flex items-center gap-3 px-5 h-14 rounded-lg bg-white dark:bg-zinc-800 shadow-lg ring-1 ring-black/5 dark:ring-white/10">
+      <RemoteArtwork hash={track.artwork_hash} className="w-10 h-10 rounded-md" />
+      <div className="min-w-0">
+        <div className="text-sm truncate text-zinc-800 dark:text-zinc-200">
+          {track.title ?? "Awaiting metadata…"}
+        </div>
+        {track.artist && (
+          <div className="text-xs text-zinc-500 truncate">{track.artist}</div>
+        )}
+      </div>
+    </div>
   );
 }
 

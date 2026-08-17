@@ -126,7 +126,7 @@ async fn read_binding(state: &AppState, profile_id: i64) -> AppResult<RemoteBind
 pub async fn bootstrap(
     state: &AppState,
     profile_id: i64,
-    client: &RemoteClient,
+    client: &RemoteClient<'_>,
 ) -> AppResult<i64> {
     let snapshot: SyncSnapshot = client
         .send_json(client.get("/api/v2/sync/snapshot"))
@@ -153,7 +153,7 @@ pub async fn bootstrap(
 pub async fn catch_up(
     state: &AppState,
     profile_id: i64,
-    client: &RemoteClient,
+    client: &RemoteClient<'_>,
     after: i64,
 ) -> AppResult<SyncReport> {
     let mut report = SyncReport {
@@ -210,6 +210,25 @@ pub async fn catch_up(
         report.pages += 1;
         let has_more = page.has_more;
         let next_cursor = page.next_cursor;
+
+        // A page whose cursor does not move forward cannot make progress:
+        // with `has_more` set it would spin to MAX_PAGES, and a cursor that
+        // went backwards is a server fault we must not persist. Stop the
+        // pass and leave the cursor where it is — the next sync retries
+        // from here. The common case (nothing new: an empty tail page with
+        // `next_cursor == after`) lands here too and simply ends the walk.
+        if next_cursor <= report.cursor {
+            if !page.changes.is_empty() || has_more {
+                tracing::warn!(
+                    cursor = report.cursor,
+                    next_cursor,
+                    has_more,
+                    changes = page.changes.len(),
+                    "a journal page did not advance the cursor; stopping the pass"
+                );
+            }
+            break;
+        }
 
         let pool = state.require_profile_pool_for(Some(profile_id)).await?;
         let mut tx = pool.begin().await?;
@@ -268,7 +287,7 @@ pub async fn catch_up(
 ///
 /// Deliberately infallible from the caller's point of view: a failed ACK
 /// is an observability gap, never a reason to stop synchronizing.
-async fn acknowledge(state: &AppState, profile_id: i64, client: &RemoteClient, cursor: i64) {
+async fn acknowledge(state: &AppState, profile_id: i64, client: &RemoteClient<'_>, cursor: i64) {
     let Ok(binding) = read_binding(state, profile_id).await else {
         return;
     };
@@ -317,7 +336,7 @@ async fn acknowledge(state: &AppState, profile_id: i64, client: &RemoteClient, c
 /// Best-effort by design. The projection is already correct without it —
 /// ordering and identity are stored — and a failure here costs a
 /// placeholder row, not a wrong one.
-async fn backfill_missing_tracks(state: &AppState, profile_id: i64, client: &RemoteClient) {
+async fn backfill_missing_tracks(state: &AppState, profile_id: i64, client: &RemoteClient<'_>) {
     let missing = {
         let Ok(pool) = state.require_profile_pool_for(Some(profile_id)).await else {
             return;
@@ -383,8 +402,11 @@ async fn backfill_missing_tracks(state: &AppState, profile_id: i64, client: &Rem
     let Ok(mut tx) = pool.begin().await else { return };
     for song in &fetched {
         if let Err(error) = projection::cache_song(&mut tx, song).await {
-            tracing::debug!(%error, "could not cache track metadata");
-            return;
+            // Skip the one song we could not cache rather than abandoning
+            // the whole batch before commit — the others are valid, and
+            // this one stays a placeholder until the next pass, which is
+            // the honest rendering.
+            tracing::debug!(%error, track = %song.id, "could not cache track metadata; skipping");
         }
     }
     let _ = tx.commit().await;

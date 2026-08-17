@@ -5,6 +5,7 @@ import { ProfileProvider } from "./contexts/ProfileContext";
 import { LibraryProvider } from "./contexts/LibraryContext";
 import { PlaylistProvider } from "./contexts/PlaylistContext";
 import { SpotifyProvider } from "./contexts/SpotifyContext";
+import { RemoteSourceProvider } from "./contexts/RemoteSourceContext";
 import { AppLayout } from "./components/layout/AppLayout";
 
 export default function App() {
@@ -29,7 +30,12 @@ export default function App() {
             <PlaylistProvider>
               <SpotifyProvider>
                 <PlayerProvider>
-                  <AppLayout />
+                  {/* One owner of the remote-source state so a single
+                      `waveflow:remote-changed` event fans out one refresh
+                      to every consumer (sidebar, create-playlist modal). */}
+                  <RemoteSourceProvider>
+                    <AppLayout />
+                  </RemoteSourceProvider>
                 </PlayerProvider>
               </SpotifyProvider>
             </PlaylistProvider>

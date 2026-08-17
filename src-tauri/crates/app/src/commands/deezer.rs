@@ -352,19 +352,32 @@ pub async fn enrich_artist_by_name(
         return Ok(DeezerArtistEnrichment::empty());
     }
     let pool = state.require_profile_pool().await?;
-    // Reuse the shared cache when this name has been resolved to a Deezer
-    // id before — otherwise the None path skips the id-keyed cache check
-    // and re-hits the network on every remote track change / view open. A
-    // miss just falls through to a fresh fetch, which caches for next time.
-    let cached_deezer_id: Option<i64> = sqlx::query_scalar(
+    // Reuse a previously-resolved Deezer id for this name so the None path
+    // doesn't re-hit the network on every remote track change / view open.
+    //
+    // A bounded, case-insensitive exact match evaluated inside SQLite —
+    // rather than loading the whole cache into Rust to fuzzy-match every
+    // row — catches the common same-name/different-case hit. A diacritic-
+    // only variant ("Beyonce" vs a cached "Beyoncé") misses here and falls
+    // through to a fresh fetch, which does the accent-insensitive match
+    // against Deezer's own results and then caches it for next time.
+    let cached_deezer_id: Option<i64> = match sqlx::query_scalar::<_, i64>(
         "SELECT deezer_id FROM app.metadata_artist
-          WHERE name = ? ORDER BY fetched_at DESC LIMIT 1",
+          WHERE deezer_id IS NOT NULL AND name = ? COLLATE NOCASE
+          ORDER BY fetched_at DESC LIMIT 1",
     )
     .bind(&name)
     .fetch_optional(&*pool)
     .await
-    .ok()
-    .flatten();
+    {
+        Ok(id) => id,
+        Err(err) => {
+            // A lookup failure is not fatal — fall through to a fresh fetch
+            // — but it is distinct from a clean cache miss, so log it.
+            tracing::debug!(%err, artist = %name, "cached deezer id lookup failed");
+            None
+        }
+    };
     enrich_artist_named(state, (*pool).clone(), name, cached_deezer_id).await
 }
 

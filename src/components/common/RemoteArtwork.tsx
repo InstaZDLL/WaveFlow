@@ -1,12 +1,66 @@
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { ListMusic } from "lucide-react";
 import { remoteArtwork } from "../../lib/tauri/remoteServer";
 
 /**
+ * Process-wide cache of resolved `data:` URLs, keyed by artwork hash, plus
+ * a registry of in-flight fetches. The artwork is content-addressed and
+ * immutable, so a hash resolves to the same bytes forever — every remount
+ * (scrolling a virtualized list, reopening a view) then reuses the cached
+ * URL, and two components mounting the same hash at once share one fetch
+ * instead of racing two.
+ */
+/** Cap the resolved-artwork cache so a long session browsing many remote
+ *  tracks can't grow it without bound. */
+const ARTWORK_CACHE_CAPACITY = 256;
+const artworkCache = new Map<string, string>();
+const inFlight = new Map<string, Promise<string | null>>();
+
+/** LRU read: `Map` preserves insertion order, so re-inserting on a hit
+ *  marks the entry most-recently-used. */
+function cacheGet(hash: string): string | undefined {
+  const url = artworkCache.get(hash);
+  if (url !== undefined) {
+    artworkCache.delete(hash);
+    artworkCache.set(hash, url);
+  }
+  return url;
+}
+
+function cacheSet(hash: string, url: string) {
+  artworkCache.set(hash, url);
+  if (artworkCache.size > ARTWORK_CACHE_CAPACITY) {
+    // Evict the least-recently-used entry (the oldest insertion).
+    const oldest = artworkCache.keys().next().value;
+    if (oldest !== undefined) artworkCache.delete(oldest);
+  }
+}
+
+function loadArtwork(hash: string): Promise<string | null> {
+  const cached = cacheGet(hash);
+  if (cached !== undefined) return Promise.resolve(cached);
+  const pending = inFlight.get(hash);
+  if (pending) return pending;
+  const promise = remoteArtwork(hash)
+    .then((url) => {
+      cacheSet(hash, url);
+      inFlight.delete(hash);
+      return url;
+    })
+    .catch(() => {
+      inFlight.delete(hash);
+      return null;
+    });
+  inFlight.set(hash, promise);
+  return promise;
+}
+
+/**
  * A remote track's cover, fetched by hash as a `data:` URL. The artwork
  * endpoint is Bearer-only, so a bare `<img src>` pointed at it would 401 —
- * we fetch it once and cache the result in state. Falls back to a neutral
- * tile while it resolves or when there is no hash.
+ * we fetch it once, cache the result process-wide (see {@link loadArtwork})
+ * and reuse it across remounts. Falls back to a neutral tile while it
+ * resolves or when there is no hash.
  *
  * Shared by the remote playlist view and the remote queue panel (RFC-005).
  */
@@ -19,21 +73,32 @@ export function RemoteArtwork({
   className?: string;
   iconSize?: number;
 }) {
-  const [src, setSrc] = useState<string | null>(null);
-  useEffect(() => {
+  // Seed synchronously from the cache so a remount of an already-resolved
+  // hash paints the cover on the first frame instead of flashing the tile.
+  const [src, setSrc] = useState<string | null>(() =>
+    hash ? (artworkCache.get(hash) ?? null) : null,
+  );
+  // Layout effect so a cached hash (or the reset below) updates `src`
+  // synchronously before paint, avoiding a one-frame flash of the previous
+  // cover when the hash changes.
+  useLayoutEffect(() => {
     if (!hash) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSrc(null);
       return;
     }
+    const cached = cacheGet(hash);
+    if (cached !== undefined) {
+      setSrc(cached);
+      return;
+    }
+    // Uncached new hash: clear the previous cover up front so a changed
+    // hash can't keep showing the old artwork while the new one loads.
+    setSrc(null);
     let cancelled = false;
-    remoteArtwork(hash)
-      .then((url) => {
-        if (!cancelled) setSrc(url);
-      })
-      .catch(() => {
-        if (!cancelled) setSrc(null);
-      });
+    void loadArtwork(hash).then((url) => {
+      if (!cancelled) setSrc(url);
+    });
     return () => {
       cancelled = true;
     };

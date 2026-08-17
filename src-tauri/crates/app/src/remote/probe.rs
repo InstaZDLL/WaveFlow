@@ -79,6 +79,11 @@ pub enum ServerFlavour {
 
 impl ServerFlavour {
     /// Whether the optional synchronization surface exists here.
+    ///
+    /// Not currently called — the sync paths gate on the `Waveflow`
+    /// binding variant directly — but kept as the named capability check
+    /// the flavour exists to express.
+    #[allow(dead_code)]
     pub fn supports_sync(&self) -> bool {
         matches!(self, ServerFlavour::Waveflow { .. })
     }

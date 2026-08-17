@@ -28,7 +28,7 @@
 //! result instead of spending our now-stale token. Without that second
 //! read the gate would only serialize the damage, not prevent it.
 
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock, RwLock};
 use std::time::Duration;
 
 use serde::Deserialize;
@@ -95,6 +95,12 @@ pub const CODE_CURSOR_EXPIRED: &str = "cursor_expired";
 
 /// Error code for a request that collides with existing state — an
 /// operation id replayed with a different payload, most of all.
+///
+/// Kept as the documented counterpart to [`CODE_CURSOR_EXPIRED`] — the two
+/// share `409` and demand opposite reactions — and exercised by the tests
+/// that pin that distinction, though the drain classifies a conflict as
+/// permanent by status alone rather than reading this.
+#[allow(dead_code)]
 pub const CODE_CONFLICT: &str = "conflict";
 
 /// Classify an HTTP status.
@@ -164,6 +170,11 @@ impl RemoteFailure {
 
     /// The request collides with existing state. Permanent, and the fix
     /// is a new operation id — never a retry of this one.
+    ///
+    /// The symmetric counterpart to [`Self::is_cursor_expired`]; only the
+    /// tests read it today (the drain acts on the permanent status), but it
+    /// keeps the 409 duality legible in one place.
+    #[allow(dead_code)]
     pub fn is_conflict(&self) -> bool {
         self.code.as_deref() == Some(CODE_CONFLICT)
     }
@@ -192,31 +203,61 @@ pub struct AuthUserResponse {
     pub username: String,
 }
 
+/// What a client needs to refresh its own token and replay a request
+/// once when the server answers `401`. Held only by a client built from a
+/// live [`AppState`] (via [`RemoteClient::try_build`]); a
+/// [`RemoteClient::from_parts`] client — the test constructor — has none
+/// and simply surfaces the `401`.
+struct RefreshCtx<'a> {
+    state: &'a AppState,
+    profile_id: i64,
+    binding: RemoteBinding,
+    pair: TokenPair,
+}
+
 /// A client bound to one profile's server and credentials.
 ///
 /// Built per operation rather than held long-term: the credential it
 /// carries is a snapshot, and a client kept across a refresh would go on
 /// presenting a token that has been rotated away.
-pub struct RemoteClient {
+pub struct RemoteClient<'a> {
     base_url: String,
     device_id: Option<String>,
-    access_token: String,
+    /// Shared so a `401` refresh can publish the rotated token in place:
+    /// a client is reused across a whole drain batch, and without this
+    /// every entry after a mid-batch rotation would 401 once on the stale
+    /// token before the gate re-read recovered it.
+    access_token: Arc<RwLock<String>>,
     http: reqwest::Client,
+    /// Present when built from a live profile: lets [`Self::send`] refresh
+    /// and replay a single `401` in-band. Absent for the test constructor.
+    refresh_ctx: Option<RefreshCtx<'a>>,
 }
 
-impl RemoteClient {
+impl<'a> RemoteClient<'a> {
     /// Build against the active profile's binding and tokens, or
     /// `Ok(None)` when the profile is not bound to a native server.
     ///
     /// Returns `None` — not an error — for an unbound profile, a
     /// signed-out one, or a Subsonic binding: local-only is the normal
     /// case, and a server without a journal has no business here.
-    pub async fn try_build(state: &AppState) -> AppResult<Option<Self>> {
+    pub async fn try_build(state: &'a AppState) -> AppResult<Option<Self>> {
         // Capture the profile up front and pin every later acquisition to
         // it. A switch landing mid-way must fail this call rather than
         // read one profile's binding and write another profile's tokens.
         let profile_id = state.require_profile_id().await?;
+        Self::try_build_for(state, profile_id).await
+    }
 
+    /// Like [`Self::try_build`], but pinned to a profile id the caller
+    /// captured earlier. Lets the caller bind the client and its own pool
+    /// acquisition to the *same* profile across an operation, so a switch
+    /// landing mid-way fails cleanly instead of reading one profile's
+    /// tokens and writing another's data.
+    pub async fn try_build_for(
+        state: &'a AppState,
+        profile_id: i64,
+    ) -> AppResult<Option<Self>> {
         let (binding, pair) = {
             let pool = state.require_profile_pool_for(Some(profile_id)).await?;
             let mut conn = pool.acquire().await?;
@@ -244,19 +285,37 @@ impl RemoteClient {
             pair
         };
 
-        Ok(Some(Self::from_parts(&binding, &pair)?))
+        let mut client = Self::from_parts(&binding, &pair)?;
+        client.refresh_ctx = Some(RefreshCtx {
+            state,
+            profile_id,
+            binding,
+            pair,
+        });
+        Ok(Some(client))
     }
 
     fn from_parts(binding: &RemoteBinding, pair: &TokenPair) -> AppResult<Self> {
         Ok(Self {
             base_url: binding.server_url.trim_end_matches('/').to_string(),
             device_id: binding.identity.device_id().map(str::to_owned),
-            access_token: pair.access_token.clone(),
+            access_token: Arc::new(RwLock::new(pair.access_token.clone())),
             http: reqwest::Client::builder()
                 .timeout(REQUEST_TIMEOUT)
                 .build()
                 .map_err(|err| AppError::Other(format!("http client init: {err}")))?,
+            refresh_ctx: None,
         })
+    }
+
+    /// The current access token, cloned out of the shared cell. Read fresh
+    /// on every request so a `401` refresh (which writes the rotated token
+    /// back into the cell) is picked up by later calls on the same client.
+    fn token(&self) -> String {
+        self.access_token
+            .read()
+            .expect("access token lock poisoned")
+            .clone()
     }
 
     /// A read request. No idempotency headers — a GET has nothing to
@@ -274,7 +333,7 @@ impl RemoteClient {
     pub fn request(&self, method: reqwest::Method, path: &str) -> reqwest::RequestBuilder {
         self.http
             .request(method, self.url(path))
-            .bearer_auth(&self.access_token)
+            .bearer_auth(self.token())
     }
 
     /// A mutation, stamped so the server can recognize a replay.
@@ -293,7 +352,7 @@ impl RemoteClient {
         let mut builder = self
             .http
             .request(method, self.url(path))
-            .bearer_auth(&self.access_token)
+            .bearer_auth(self.token())
             .header(OPERATION_ID_HEADER, operation_id);
         if let Some(device_id) = &self.device_id {
             builder = builder.header(DEVICE_ID_HEADER, device_id);
@@ -313,8 +372,11 @@ impl RemoteClient {
         &self.base_url
     }
 
-    pub fn access_token(&self) -> &str {
-        &self.access_token
+    /// The current access token, cloned out of the shared cell. Owned
+    /// rather than borrowed so a caller (the socket upgrade) isn't tied to
+    /// the lock guard's lifetime.
+    pub fn access_token(&self) -> String {
+        self.token()
     }
 
     /// Send a request and decode its JSON body.
@@ -357,15 +419,69 @@ impl RemoteClient {
             });
         }
 
-        let response = builder.send().await.map_err(RemoteFailure::transport)?;
+        let request = builder.build().map_err(RemoteFailure::transport)?;
+        // Keep a clone to replay after a refresh if the token is refused.
+        // `try_clone` returns `None` only for a streaming body, which none
+        // of our requests use.
+        let replay = request.try_clone();
+        let response = self
+            .http
+            .execute(request)
+            .await
+            .map_err(RemoteFailure::transport)?;
+
+        if response.status().as_u16() != 401 {
+            return Self::interpret(response).await;
+        }
+
+        // A 401 means the access token was refused. `try_build`'s
+        // pre-emptive refresh covers the common lapse; this handles the
+        // narrow race where the token expired (or was rotated) between that
+        // check and the server reading it. Refresh once — single-flighted
+        // process-wide — and replay with the fresh token. Anything that
+        // stops us (no refresh context, an uncloneable request, a failed
+        // refresh) falls through to surfacing the original 401 as
+        // `Unauthorized`, and the queue retries later.
+        let (Some(ctx), Some(mut replay)) = (self.refresh_ctx.as_ref(), replay) else {
+            return Self::interpret(response).await;
+        };
+        let fresh = match refresh(ctx.state, ctx.profile_id, &ctx.binding, &ctx.pair).await {
+            Ok(pair) => pair,
+            Err(_) => return Self::interpret(response).await,
+        };
+        // Publish the rotated token so later requests on this same client
+        // (a drain reuses one across the batch) don't 401 on the stale one.
+        if let Ok(mut guard) = self.access_token.write() {
+            guard.clone_from(&fresh.access_token);
+        }
+        let Ok(bearer) =
+            reqwest::header::HeaderValue::from_str(&format!("Bearer {}", fresh.access_token))
+        else {
+            return Self::interpret(response).await;
+        };
+        replay
+            .headers_mut()
+            .insert(reqwest::header::AUTHORIZATION, bearer);
+        let retried = self
+            .http
+            .execute(replay)
+            .await
+            .map_err(RemoteFailure::transport)?;
+        Self::interpret(retried).await
+    }
+
+    /// Turn a completed response into `Ok(response)` or a classified
+    /// [`RemoteFailure`], reading the structured error body while it is
+    /// still available. The code is kept as a field, not formatted away:
+    /// callers branch on it, and a substring match on a message would be a
+    /// fragile way to make a destructive decision.
+    async fn interpret(
+        response: reqwest::Response,
+    ) -> Result<reqwest::Response, RemoteFailure> {
         let status = response.status().as_u16();
         match classify_status(status) {
             None => Ok(response),
             Some(kind) => {
-                // Read the structured body while we still can. The code
-                // is kept as a field, not formatted away: callers have to
-                // branch on it, and a substring match on a message would
-                // be a fragile way to make a destructive decision.
                 let (code, message) = match response.json::<ErrorBody>().await {
                     Ok(body) => (Some(body.code), body.message),
                     Err(_) => (None, "no error body".to_string()),
@@ -398,10 +514,22 @@ pub async fn refresh(
         let pool = state.require_profile_pool_for(Some(profile_id)).await?;
         let mut conn = pool.acquire().await?;
 
-        // Somebody may have refreshed while we waited for the gate.
-        if let Some(current) = tokens::read(&mut conn).await? {
-            if current.refresh_token != known.refresh_token {
+        // Somebody may have acted while we waited for the gate. If the
+        // stored pair changed, another task already refreshed — adopt its
+        // result rather than spend our now-stale token. If it is gone
+        // entirely, a concurrent sign-out or forget cleared it, and
+        // refreshing now would silently resurrect the credentials the user
+        // just dropped — so stop and let the caller treat this as
+        // signed-out.
+        match tokens::read(&mut conn).await? {
+            Some(current) if current.refresh_token != known.refresh_token => {
                 return Ok(current);
+            }
+            Some(_) => {}
+            None => {
+                return Err(AppError::Other(
+                    "signed out while a token refresh was queued".into(),
+                ));
             }
         }
         // Lease released before the request — see `try_build`.
@@ -458,8 +586,13 @@ pub async fn refresh(
                  could not be stored and that profile will need to sign in again"
             );
         })?;
-    let mut conn = pool.acquire().await?;
-    tokens::write(&mut conn, &pair).await?;
+
+    // The rotated pair and any device-id correction commit together. A
+    // half-write — new tokens stored but the re-issued device left behind —
+    // would let every subsequent mutation stamp the wrong device and 401,
+    // so the two writes share one transaction.
+    let mut tx = pool.begin().await?;
+    tokens::write(&mut tx, &pair).await?;
 
     // The server echoes the device back rather than minting a new one,
     // so this normally matches what we already hold. Adopting it anyway
@@ -478,9 +611,10 @@ pub async fn refresh(
                 },
                 ..binding.clone()
             };
-            binding::write(&mut conn, &updated).await?;
+            binding::write(&mut tx, &updated).await?;
         }
     }
+    tx.commit().await?;
 
     Ok(pair)
 }

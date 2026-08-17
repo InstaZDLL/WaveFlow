@@ -81,11 +81,16 @@ pub fn redact_url(raw: &str) -> String {
 /// a spinner for a misconfigured station.
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
-// No request-level read timeout — reqwest::blocking's `timeout()` is a
+// No request-level `timeout()` anywhere — reqwest::blocking's is a
 // deadline for the *entire* call, which would kill a long-running radio
-// stream after 30 s. Stalls are rare in practice; if they happen the
-// user hits Stop and the decoder thread unwinds through the next
-// `try_recv`.
+// stream, and a seekable body is a *long file* whose remainder streams
+// through one ranged GET, so a total timeout would cap its playback just
+// the same. A per-read (inter-read) timeout would be the right tool for a
+// stalled seek-reopen, but reqwest::blocking's `ClientBuilder` doesn't
+// expose one (only the async builder does). Rather than pull in a
+// watchdog-thread wrapper, we accept the same failure mode as radio: a
+// stalled read blocks the decoder thread until the user hits Stop, which
+// unwinds it through the next `try_recv`.
 
 /// User-Agent advertised to radio servers. radio-browser entries vary
 /// in how strictly they filter — some Icecast configs reject empty UAs
@@ -347,6 +352,45 @@ fn split_artist_title(raw: &str) -> (String, Option<String>) {
     }
 }
 
+/// Parse the start byte out of a `Content-Range: bytes <start>-<end>/<total>`
+/// header value. Returns `None` for any shape we don't recognize — an
+/// unsatisfied-range `bytes */<total>`, a unit other than `bytes`, or
+/// garbage — so the caller treats an unverifiable range as a failure
+/// rather than trusting it.
+fn parse_content_range_start(value: &str) -> Option<u64> {
+    // The range unit is case-insensitive per HTTP — accept "bytes",
+    // "Bytes", "BYTES" — then a single space before the range.
+    let (unit, rest) = value.trim().split_once(' ')?;
+    if !unit.eq_ignore_ascii_case("bytes") {
+        return None;
+    }
+    // Exactly "<range>/<total>": one slash, total required (a 206 always
+    // sends it). A missing or extra slash is malformed.
+    let (range, total) = rest.split_once('/')?;
+    if total.contains('/') {
+        return None;
+    }
+    // Total is a byte count, or "*" when the full length is unknown.
+    let total = match total.trim() {
+        "*" => None,
+        other => Some(other.parse::<u64>().ok()?),
+    };
+    // A 206 carries BOTH bounds — an open-ended "<start>-" is only valid in
+    // a *request* Range. Require both, reject a start past the end, and
+    // reject a range that reaches or passes the total (end is inclusive, so
+    // the last valid byte is total-1).
+    let (start, end) = range.split_once('-')?;
+    let start = start.trim().parse::<u64>().ok()?;
+    let end = end.trim().parse::<u64>().ok()?;
+    if start > end {
+        return None;
+    }
+    if total.is_some_and(|total| end >= total) {
+        return None;
+    }
+    Some(start)
+}
+
 impl Read for HttpMediaSource {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         // `Mutex::lock` only fails on poisoning; we never panic inside
@@ -487,6 +531,28 @@ impl Seek for HttpMediaSource {
                 response.status().as_u16()
             )));
         }
+        // A 206 must actually start at the byte we asked for. A server that
+        // answers 206 from a different offset — or with a malformed or
+        // absent Content-Range — would desync `pos` and corrupt the decode
+        // just as a bare 200 would, so verify the range's start byte.
+        match response
+            .headers()
+            .get(reqwest::header::CONTENT_RANGE)
+            .and_then(|v| v.to_str().ok())
+            .and_then(parse_content_range_start)
+        {
+            Some(start) if start == target => {}
+            Some(start) => {
+                return Err(io::Error::other(format!(
+                    "range start mismatch: asked for byte {target}, got {start}"
+                )));
+            }
+            None => {
+                return Err(io::Error::other(
+                    "206 response without a usable Content-Range header",
+                ));
+            }
+        }
 
         let mut guard = self
             .inner
@@ -626,6 +692,43 @@ mod tests {
             split_artist_title("Artist - "),
             ("Artist - ".to_string(), None)
         );
+    }
+
+    #[test]
+    fn parse_content_range_start_reads_the_offset() {
+        assert_eq!(
+            parse_content_range_start("bytes 200-1023/1024"),
+            Some(200)
+        );
+        assert_eq!(parse_content_range_start("bytes 0-99/100"), Some(0));
+        // Unknown total ("*") is fine as long as both bounds are present.
+        assert_eq!(parse_content_range_start("bytes 512-1023/*"), Some(512));
+        // The range unit is case-insensitive.
+        assert_eq!(parse_content_range_start("Bytes 200-1023/1024"), Some(200));
+        assert_eq!(parse_content_range_start("BYTES 0-99/100"), Some(0));
+    }
+
+    #[test]
+    fn parse_content_range_start_rejects_unusable_shapes() {
+        // Missing end bound — only valid in a request Range, not a 206.
+        assert_eq!(parse_content_range_start("bytes 512-/2048"), None);
+        // Start past end.
+        assert_eq!(parse_content_range_start("bytes 100-50/200"), None);
+        // Range reaches/passes the total (end is inclusive).
+        assert_eq!(parse_content_range_start("bytes 0-100/100"), None);
+        // Missing total entirely (no slash).
+        assert_eq!(parse_content_range_start("bytes 0-99"), None);
+        // Extra slash / trailing suffix.
+        assert_eq!(parse_content_range_start("bytes 0-99/100/200"), None);
+        // Non-numeric total.
+        assert_eq!(parse_content_range_start("bytes 0-99/abc"), None);
+        // Unsatisfied range → no start byte.
+        assert_eq!(parse_content_range_start("bytes */1024"), None);
+        // Wrong unit.
+        assert_eq!(parse_content_range_start("items 0-9/10"), None);
+        // Garbage.
+        assert_eq!(parse_content_range_start("nonsense"), None);
+        assert_eq!(parse_content_range_start(""), None);
     }
 
     #[test]

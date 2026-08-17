@@ -25,7 +25,7 @@
 //! escalating, because escalating would delay the reconnect that follows
 //! the user signing back in.
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use futures::StreamExt;
 use tauri::{AppHandle, Emitter, Manager};
@@ -48,6 +48,25 @@ const BASE_BACKOFF: Duration = Duration::from_secs(5);
 /// hammering a server that is down, while still recovering promptly once
 /// it returns.
 const MAX_BACKOFF: Duration = Duration::from_secs(300);
+
+/// End the session and reconnect if not a single frame — notice or
+/// keep-alive — arrives within this window. A half-open TCP connection
+/// otherwise leaves `reader.next()` blocked forever; the reconnect (and
+/// its catch-up) is how a silently-dead socket recovers. Longer than any
+/// reasonable server keep-alive interval so a merely quiet-but-live
+/// connection is not torn down needlessly.
+const IDLE_TIMEOUT: Duration = Duration::from_secs(120);
+
+/// After a notice, wait this long for more before catching up, so a burst
+/// of edits on another device collapses into a single `/sync/changes`
+/// round-trip instead of one per frame.
+const COALESCE_WINDOW: Duration = Duration::from_millis(250);
+
+/// Hard cap on how long coalescing may defer a catch-up. A steady stream
+/// of notices less than [`COALESCE_WINDOW`] apart would otherwise reset the
+/// window forever and starve the fetch; once the first pending notice is
+/// this old, catch up regardless.
+const MAX_COALESCE_DELAY: Duration = Duration::from_secs(2);
 
 /// Start the subscriber. Returns immediately; the loop runs for the
 /// lifetime of the app.
@@ -82,13 +101,16 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
     if offline::is_offline() {
         return Ok(false);
     }
-    let Some(client) = RemoteClient::try_build(state).await? else {
+    // Pin the client and the cursor read to the same profile: capture the
+    // id once so a switch landing mid-connect can't build the client from
+    // one profile and read another's cursor.
+    let profile_id = state.require_profile_id().await?;
+    let Some(client) = RemoteClient::try_build_for(state, profile_id).await? else {
         // Unbound, signed out, or a server with no journal.
         return Ok(false);
     };
 
     let cursor = {
-        let profile_id = state.require_profile_id().await?;
         let pool = state.require_profile_pool_for(Some(profile_id)).await?;
         let mut conn = pool.acquire().await?;
         binding::read(&mut conn)
@@ -109,56 +131,121 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
         );
     }
 
-    let request = build_request(&url, client.access_token())?;
+    let request = build_request(&url, &client.access_token())?;
     let (stream, _response) = tokio_tungstenite::connect_async(request)
         .await
         .map_err(|err| AppError::Other(format!("sync socket upgrade failed: {err}")))?;
     let (_writer, mut reader) = stream.split();
 
     // Reconnecting is itself a reason to ask: anything that happened
-    // while we were away arrived through no frame at all.
-    catch_up_and_notify(handle, state).await;
+    // while we were away arrived through no frame at all. A sync failure
+    // here propagates (backoff); a profile switch ends the session cleanly.
+    if !catch_up_and_notify(handle, state, profile_id).await? {
+        return Ok(false);
+    }
 
     let mut delivered = false;
-    while let Some(message) = reader.next().await {
-        match message {
-            Ok(Message::Text(text)) => {
+    // When the first still-un-caught-up notice arrived. While one is
+    // pending we wait only the short coalesce window for more frames — but
+    // never past `MAX_COALESCE_DELAY` from that first notice, so a steady
+    // stream can't starve the fetch. Otherwise we wait the full idle
+    // timeout.
+    let mut pending_since: Option<Instant> = None;
+    loop {
+        // Fire the coalesced catch-up the moment the cap is reached, before
+        // awaiting again. Relying on a zero-duration timeout instead would
+        // lose the race to an already-ready frame under a steady stream, so
+        // the catch-up could be postponed indefinitely.
+        if pending_since.is_some_and(|since| since.elapsed() >= MAX_COALESCE_DELAY) {
+            pending_since = None;
+            if !catch_up_and_notify(handle, state, profile_id).await? {
+                break;
+            }
+            continue;
+        }
+        let wait = match pending_since {
+            Some(since) => {
+                COALESCE_WINDOW.min(MAX_COALESCE_DELAY.saturating_sub(since.elapsed()))
+            }
+            None => IDLE_TIMEOUT,
+        };
+        match tokio::time::timeout(wait, reader.next()).await {
+            Ok(Some(Ok(Message::Text(text)))) => {
                 // The cursor in the frame is deliberately not compared
                 // against ours. It is a hint, and `/sync/changes` is
                 // cheap when there is nothing new: one request answering
                 // an empty page. Trusting the hint enough to skip the
                 // fetch would make a stale or reordered frame lose an
-                // event.
+                // event. Don't catch up yet — coalesce the burst first,
+                // anchoring the cap on the first notice.
                 let _ = notice_cursor(&text);
                 delivered = true;
-                catch_up_and_notify(handle, state).await;
+                pending_since.get_or_insert_with(Instant::now);
             }
-            Ok(Message::Close(_)) => break,
+            Ok(Some(Ok(Message::Close(_)))) => break,
             // Ping and Pong are handled by the library; anything else is
             // not part of this protocol and is ignored rather than
             // treated as an error.
-            Ok(_) => {}
-            Err(error) => {
+            Ok(Some(Ok(_))) => {}
+            Ok(Some(Err(error))) => {
                 return Err(AppError::Other(format!("sync socket read failed: {error}")));
             }
+            // Stream closed cleanly.
+            Ok(None) => break,
+            Err(_elapsed) => {
+                if pending_since.is_some() {
+                    // The burst settled (or hit the cap): one catch-up.
+                    pending_since = None;
+                    if !catch_up_and_notify(handle, state, profile_id).await? {
+                        break;
+                    }
+                } else {
+                    // Genuine inactivity — the link is likely half-open.
+                    // End the session so the loop reconnects and catches
+                    // up on the way back in.
+                    tracing::debug!("sync socket idle for {IDLE_TIMEOUT:?}; reconnecting");
+                    break;
+                }
+            }
         }
+    }
+
+    // Flush a notice that arrived just before the stream closed. A profile
+    // switch here is a no-op; a sync failure propagates so the supervisor
+    // backs off.
+    if pending_since.is_some() {
+        catch_up_and_notify(handle, state, profile_id).await?;
     }
 
     Ok(delivered)
 }
 
-async fn catch_up_and_notify(handle: &AppHandle, state: &AppState) {
-    match sync::sync_now(state).await {
-        Ok(report) => {
-            // Only wake the UI when something actually changed. Emitting
-            // on every empty page would re-render the library on a timer
-            // for no reason.
-            if report.applied > 0 || report.resnapshotted {
-                let _ = handle.emit(SYNCED_EVENT, report.cursor);
-            }
-        }
-        Err(error) => tracing::debug!(%error, "catch-up after a socket notice failed"),
+/// Drain, then pull. The result separates the two reasons a session ends:
+///
+/// - `Ok(true)`: synchronized (or nothing to do); the session is healthy.
+/// - `Ok(false)`: the active profile switched under us — end the session
+///   benignly so the loop reconnects for the new profile, with no backoff.
+/// - `Err`: the sync itself failed — propagated so the supervisor backs
+///   off before reconnecting instead of hammering a failing server.
+///
+/// Gating on the captured `profile_id` is what keeps profile A's socket
+/// from syncing / advancing profile B after a switch.
+async fn catch_up_and_notify(
+    handle: &AppHandle,
+    state: &AppState,
+    profile_id: i64,
+) -> AppResult<bool> {
+    match state.require_profile_id().await {
+        Ok(active) if active == profile_id => {}
+        _ => return Ok(false),
     }
+    let report = sync::sync_now(state).await?;
+    // Only wake the UI when something actually changed. Emitting on every
+    // empty page would re-render the library on a timer for no reason.
+    if report.applied > 0 || report.resnapshotted {
+        let _ = handle.emit(SYNCED_EVENT, report.cursor);
+    }
+    Ok(true)
 }
 
 /// Read the cursor out of a notice frame.

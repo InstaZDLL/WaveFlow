@@ -444,17 +444,17 @@ fn decoder_loop(
                 // the cache via `transition_state`.
                 // A remote-queue track and a radio station both arrive via
                 // `LoadUrlAndPlay` with a negative id; the live remote-session
-                // flag is the only thing that tells them apart. Read it once
-                // (a plain `std::sync::Mutex`, no await) — it drives the emit
-                // below AND whether the source is opened seekable.
-                let is_remote = {
+                // flag is the only thing that tells them apart. Read the
+                // active flag, duration and artwork hash in ONE lock (a plain
+                // `std::sync::Mutex`, no await) so they stay consistent — three
+                // separate reads could straddle a `clear()` and emit
+                // `is_remote = true` with a `None` duration/artwork. It drives
+                // the emit below AND whether the source is opened seekable.
+                let remote_meta = {
                     let state = app.state::<crate::state::AppState>();
-                    state.remote_playback.is_active()
+                    state.remote_playback.current_stream_meta()
                 };
-                let remote_duration = app
-                    .state::<crate::state::AppState>()
-                    .remote_playback
-                    .current_duration_ms();
+                let is_remote = remote_meta.is_remote;
 
                 emit_radio_metadata(
                     &app,
@@ -473,13 +473,10 @@ fn decoder_loop(
                         is_remote,
                         // A remote-queue entry carries its length; radio
                         // does not. Drives a bounded seekbar on the bar.
-                        duration_ms: remote_duration,
+                        duration_ms: remote_meta.duration_ms,
                         // Cover hash for a remote track — the frontend turns
                         // it into a data URL for the PlayerBar.
-                        artwork_hash: app
-                            .state::<crate::state::AppState>()
-                            .remote_playback
-                            .current_artwork_hash(),
+                        artwork_hash: remote_meta.artwork_hash,
                     },
                 );
 

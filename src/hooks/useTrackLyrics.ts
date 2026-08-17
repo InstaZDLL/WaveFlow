@@ -116,9 +116,11 @@ export function useTrackLyrics(): TrackLyrics {
     trackIdRef.current = trackId;
   }, [trackId]);
 
-  // Previous `isRadio` so the fetch effect can tell a context switch
-  // (library ↔ radio) from a same-context track change.
-  const prevIsRadioRef = useRef(isRadio);
+  // Previous streaming state (radio OR remote) so the fetch effect can
+  // tell a context switch — into, out of, or between streaming sources —
+  // from a same-context library track change.
+  const isStream = isRadio || isRemote;
+  const prevIsStreamRef = useRef(isStream);
 
   // ── Fetch when the focused track changes ─────────────────────────
   useEffect(() => {
@@ -129,21 +131,21 @@ export function useTrackLyrics(): TrackLyrics {
       // Clear the spinner too — without this a fetch in flight when the
       // track drops to null leaves `isFetching` stuck true.
       setIsFetching(false);
-      prevIsRadioRef.current = isRadio;
+      prevIsStreamRef.current = isStream;
       return;
     }
     let cancelled = false;
-    // Drop the previous payload up front on any transition that involves
-    // radio — entering radio (library→radio), leaving it (radio→library),
-    // or a new song on the same station (radio→radio, where the sentinel
-    // trackId is unchanged so the swap-on-resolve below wouldn't fire).
-    // Without this the previous lyrics linger under the new identity for
-    // the duration of the fetch. Library→library is deliberately exempt:
-    // it keeps the swap-on-resolve so a fast cache hit doesn't flash an
-    // intermediate "loading" state.
-    const wasRadio = prevIsRadioRef.current;
-    prevIsRadioRef.current = isRadio;
-    if (isRadio || wasRadio) {
+    // Drop the previous payload up front on any transition that involves a
+    // streaming source — entering one (library→radio/remote), leaving it
+    // (radio/remote→library), switching between them, or a new song on the
+    // same station / remote queue (where the sentinel trackId is unchanged
+    // so the swap-on-resolve below wouldn't fire). Without this the previous
+    // lyrics linger under the new identity for the duration of the fetch.
+    // Library→library is deliberately exempt: it keeps the swap-on-resolve
+    // so a fast cache hit doesn't flash an intermediate "loading" state.
+    const wasStream = prevIsStreamRef.current;
+    prevIsStreamRef.current = isStream;
+    if (isStream || wasStream) {
       setPayload(null);
     }
     setIsFetching(true);
@@ -197,6 +199,7 @@ export function useTrackLyrics(): TrackLyrics {
     radioArtist,
     radioTitle,
     isRemote,
+    isStream,
     remoteArtist,
     remoteTitle,
     remoteDurationMs,
