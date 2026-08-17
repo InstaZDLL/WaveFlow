@@ -30,7 +30,7 @@ struct StreamTicketResponse {
     url: String,
 }
 
-async fn client(state: &AppState) -> AppResult<RemoteClient> {
+async fn client(state: &AppState) -> AppResult<RemoteClient<'_>> {
     RemoteClient::try_build(state)
         .await?
         .ok_or_else(|| AppError::Other("not signed in to a remote server".into()))
