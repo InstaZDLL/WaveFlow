@@ -1,16 +1,31 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, Link2, Loader2, RefreshCw, Unlink, X } from "lucide-react";
 import {
+  ArrowLeftRight,
+  Check,
+  Link2,
+  Loader2,
+  RefreshCw,
+  Unlink,
+  X,
+} from "lucide-react";
+import { listPlaylists, type Playlist } from "../../../lib/tauri/playlist";
+import {
+  remoteConvertPlaylist,
   remoteConfirmReconciliation,
   remoteGetStatus,
   remoteListReconciliationLinks,
+  remoteListPlaylists,
+  remotePreviewPlaylistConversion,
   remoteReconcileScan,
   remoteRejectReconciliation,
   remoteRemoveReconciliationLink,
   remoteSetReconciliationPreference,
   type MatchCandidateGroup,
+  type PlaylistConversionDirection,
+  type PlaylistConversionPreview,
   type ReconciliationLink,
   type ReconciliationReport,
+  type RemotePlaylistSummary,
 } from "../../../lib/tauri/remoteServer";
 
 /** M5 identity links. Kept beside the connection card because it only makes
@@ -205,6 +220,8 @@ export function ReconciliationCard() {
             </div>
           )}
 
+          <PlaylistConversion />
+
           {error && (
             <p
               role="status"
@@ -216,6 +233,212 @@ export function ReconciliationCard() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function PlaylistConversion() {
+  const [direction, setDirection] =
+    useState<PlaylistConversionDirection>("local_to_server");
+  const [localPlaylists, setLocalPlaylists] = useState<Playlist[]>([]);
+  const [remotePlaylists, setRemotePlaylists] = useState<
+    RemotePlaylistSummary[]
+  >([]);
+  const [sourceId, setSourceId] = useState("");
+  const [preview, setPreview] = useState<PlaylistConversionPreview | null>(
+    null,
+  );
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const loadPlaylists = useCallback(async (isCancelled?: () => boolean) => {
+    const [local, remote] = await Promise.all([
+      listPlaylists(),
+      remoteListPlaylists(),
+    ]);
+    if (isCancelled?.()) return;
+    setLocalPlaylists(local.filter((playlist) => playlist.is_smart === 0));
+    setRemotePlaylists(remote);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.resolve()
+      .then(() => loadPlaylists(() => cancelled))
+      .catch((err) => {
+        if (!cancelled) setError(String(err));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadPlaylists]);
+
+  const sources =
+    direction === "local_to_server" ? localPlaylists : remotePlaylists;
+  const selectedSourceId = sources.some(
+    (playlist) => String(playlist.id) === sourceId,
+  )
+    ? sourceId
+    : sources[0]
+      ? String(sources[0].id)
+      : "";
+
+  const inspect = useCallback(async () => {
+    if (!selectedSourceId) return;
+    setBusy(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      setPreview(
+        await remotePreviewPlaylistConversion(direction, selectedSourceId),
+      );
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }, [direction, selectedSourceId]);
+
+  const convert = useCallback(async () => {
+    if (!selectedSourceId || !preview?.can_convert) return;
+    setBusy(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const result = await remoteConvertPlaylist(direction, selectedSourceId);
+      setSuccess(
+        `${result.converted_tracks} tracks copied to ${
+          direction === "local_to_server" ? "the server" : "the local library"
+        }.`,
+      );
+      setPreview(null);
+      await loadPlaylists();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }, [direction, loadPlaylists, preview?.can_convert, selectedSourceId]);
+
+  return (
+    <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <ArrowLeftRight
+          size={15}
+          className="text-zinc-400"
+          aria-hidden="true"
+        />
+        <div>
+          <p className="text-xs font-medium text-zinc-800 dark:text-zinc-100">
+            Explicit playlist copy
+          </p>
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+            A preview must confirm every identity link. Nothing is merged or
+            omitted silently.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[180px_minmax(0,1fr)_auto] gap-2">
+        <select
+          value={direction}
+          onChange={(event) => {
+            setDirection(event.target.value as PlaylistConversionDirection);
+            setSourceId("");
+            setPreview(null);
+            setSuccess(null);
+          }}
+          disabled={busy}
+          aria-label="Playlist copy direction"
+          className="px-2 py-1.5 text-xs rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+        >
+          <option value="local_to_server">Local → server</option>
+          <option value="server_to_local">Server → local</option>
+        </select>
+        <select
+          value={selectedSourceId}
+          onChange={(event) => {
+            setSourceId(event.target.value);
+            setPreview(null);
+            setSuccess(null);
+          }}
+          disabled={busy || sources.length === 0}
+          aria-label="Source playlist"
+          className="min-w-0 px-2 py-1.5 text-xs rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+        >
+          {sources.length === 0 && <option value="">No playlists</option>}
+          {sources.map((playlist) => (
+            <option key={playlist.id} value={String(playlist.id)}>
+              {playlist.name} · {playlist.track_count} tracks
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => void inspect()}
+          disabled={busy || !selectedSourceId}
+          className="px-3 py-1.5 text-xs rounded-md border border-zinc-200 dark:border-zinc-700 disabled:opacity-50"
+        >
+          Preview
+        </button>
+      </div>
+
+      {preview && (
+        <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 p-3 space-y-3">
+          <p className="text-xs text-zinc-600 dark:text-zinc-300">
+            {preview.source_name}: {preview.convertible_tracks}/
+            {preview.total_tracks} tracks have confirmed links
+            {preview.blocked_tracks > 0
+              ? ` · ${preview.blocked_tracks} blocked`
+              : ""}
+          </p>
+          {preview.blocked_tracks > 0 && (
+            <div className="max-h-40 overflow-auto space-y-1">
+              {preview.items
+                .filter((item) => item.status !== "confirmed")
+                .map((item) => (
+                  <div
+                    key={`${item.position}:${item.remote_track_id ?? item.local_track_id}`}
+                    className="flex items-center justify-between gap-3 text-[11px]"
+                  >
+                    <span className="truncate">{item.title}</span>
+                    <span className="shrink-0 text-amber-600 dark:text-amber-400">
+                      {item.status.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => void convert()}
+            disabled={busy || !preview.can_convert}
+            className="px-3 py-1.5 text-xs rounded-md bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 disabled:opacity-40"
+          >
+            Confirm copy
+          </button>
+        </div>
+      )}
+
+      {success && (
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-xs text-emerald-600 dark:text-emerald-400"
+        >
+          {success}
+        </p>
+      )}
+      {error && (
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-xs text-red-600 dark:text-red-400"
+        >
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -255,7 +478,9 @@ function CandidateEditor({
   // at a track the rescan removed. Derive the effective ids from the current
   // group, falling back to the first entry, so the selects and the
   // confirm/reject handlers only ever act on ids still present.
-  const effectiveLocalId = group.local_tracks.some((t) => t.track_id === localId)
+  const effectiveLocalId = group.local_tracks.some(
+    (t) => t.track_id === localId,
+  )
     ? localId
     : (group.local_tracks[0]?.track_id ?? 0);
   const effectiveRemoteId = group.remote_tracks.some(
