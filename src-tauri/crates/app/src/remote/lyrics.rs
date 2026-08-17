@@ -88,27 +88,35 @@ pub async fn fetch_server_lyrics(
         }
     };
 
-    // Prefer a synced track with real content, else any track with content.
-    let has_content =
-        |s: &&StructuredLyricsDto| s.lines.iter().any(|l| !l.value.trim().is_empty());
-    let best = resp
-        .structured_lyrics
-        .iter()
-        .find(|s| s.synced && has_content(s))
-        .or_else(|| resp.structured_lyrics.iter().find(has_content));
-    let Some(best) = best else {
-        return Ok(None);
-    };
+    Ok(structured_to_lyrics(&resp.structured_lyrics))
+}
 
-    // Treat the result as synced only when EVERY non-empty line carries a
-    // timestamp. A partially-stamped "synced" track would emit lines without
-    // an `[mm:ss.xx]` tag, which the frontend's `parseLrc` drops — losing
-    // them from the karaoke view. In that case fall back to plain text.
-    let synced = best.synced
-        && best
-            .lines
-            .iter()
-            .all(|l| l.value.trim().is_empty() || l.start.is_some());
+fn track_has_content(track: &StructuredLyricsDto) -> bool {
+    track.lines.iter().any(|l| !l.value.trim().is_empty())
+}
+
+/// Every non-empty line carries a timestamp — the condition for rendering a
+/// track as synced LRC without dropping lines in the frontend's `parseLrc`.
+fn track_fully_stamped(track: &StructuredLyricsDto) -> bool {
+    track
+        .lines
+        .iter()
+        .all(|l| l.value.trim().is_empty() || l.start.is_some())
+}
+
+/// Pick the best structured track and flatten it into `ServerLyrics`. Split
+/// out of the fetch so it's unit-testable without a network round-trip.
+fn structured_to_lyrics(tracks: &[StructuredLyricsDto]) -> Option<ServerLyrics> {
+    // Prefer a synced track that is ALSO complete (every non-empty line
+    // timestamped) — a synced-but-partial one would be downgraded to plain
+    // below, so it must not shadow a later fully-stamped track. Otherwise the
+    // first track with any content, rendered plain if it isn't fully stamped.
+    let best = tracks
+        .iter()
+        .find(|s| s.synced && track_has_content(s) && track_fully_stamped(s))
+        .or_else(|| tracks.iter().find(|s| track_has_content(s)))?;
+
+    let synced = best.synced && track_fully_stamped(best);
     let mut content = String::new();
     for line in &best.lines {
         if synced {
@@ -121,7 +129,72 @@ pub async fn fetch_server_lyrics(
     }
     let content = content.trim_end().to_string();
     if content.is_empty() {
-        return Ok(None);
+        return None;
     }
-    Ok(Some(ServerLyrics { content, synced }))
+    Some(ServerLyrics { content, synced })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn line(start: Option<i64>, value: &str) -> LyricsLineDto {
+        LyricsLineDto {
+            start,
+            value: value.to_string(),
+        }
+    }
+    fn track(synced: bool, lines: Vec<LyricsLineDto>) -> StructuredLyricsDto {
+        StructuredLyricsDto { synced, lines }
+    }
+
+    #[test]
+    fn lrc_stamp_covers_boundaries() {
+        assert_eq!(lrc_stamp(0), "[00:00.00]");
+        assert_eq!(lrc_stamp(999), "[00:00.99]");
+        assert_eq!(lrc_stamp(1000), "[00:01.00]");
+        assert_eq!(lrc_stamp(61_230), "[01:01.23]");
+        // Negatives are clamped to zero rather than producing a bogus stamp.
+        assert_eq!(lrc_stamp(-5), "[00:00.00]");
+    }
+
+    #[test]
+    fn fully_stamped_track_renders_synced_lrc() {
+        let got = structured_to_lyrics(&[track(
+            true,
+            vec![line(Some(0), "one"), line(Some(1500), "two")],
+        )])
+        .unwrap();
+        assert!(got.synced);
+        assert_eq!(got.content, "[00:00.00]one\n[00:01.50]two");
+    }
+
+    #[test]
+    fn partially_stamped_track_falls_back_to_plain_keeping_all_lines() {
+        let got = structured_to_lyrics(&[track(
+            true,
+            vec![line(Some(0), "one"), line(None, "two")],
+        )])
+        .unwrap();
+        assert!(!got.synced);
+        // Both lines survive, without any `[mm:ss.xx]` tag.
+        assert_eq!(got.content, "one\ntwo");
+    }
+
+    #[test]
+    fn a_complete_synced_track_wins_over_an_earlier_partial_one() {
+        let got = structured_to_lyrics(&[
+            track(true, vec![line(Some(0), "partial"), line(None, "gap")]),
+            track(true, vec![line(Some(0), "full"), line(Some(1000), "stamped")]),
+        ])
+        .unwrap();
+        assert!(got.synced);
+        assert_eq!(got.content, "[00:00.00]full\n[00:01.00]stamped");
+    }
+
+    #[test]
+    fn no_usable_content_returns_none() {
+        assert!(structured_to_lyrics(&[]).is_none());
+        assert!(structured_to_lyrics(&[track(false, vec![line(None, "   ")])]).is_none());
+    }
 }
