@@ -100,7 +100,15 @@ pub async fn fetch_server_lyrics(
         return Ok(None);
     };
 
-    let synced = best.synced;
+    // Treat the result as synced only when EVERY non-empty line carries a
+    // timestamp. A partially-stamped "synced" track would emit lines without
+    // an `[mm:ss.xx]` tag, which the frontend's `parseLrc` drops — losing
+    // them from the karaoke view. In that case fall back to plain text.
+    let synced = best.synced
+        && best
+            .lines
+            .iter()
+            .all(|l| l.value.trim().is_empty() || l.start.is_some());
     let mut content = String::new();
     for line in &best.lines {
         if synced {
