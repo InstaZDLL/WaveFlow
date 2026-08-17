@@ -3,9 +3,8 @@
 //! The queue itself — its entries and cursor — lives in
 //! [`crate::remote_playback`], which is plain in-memory data compiled into
 //! every build. This module is the `sync_v2`-gated half: it fills that
-//! queue from the projection, mints a stream ticket for the current entry,
-//! and hands the resulting URL to the audio engine over the same
-//! `LoadUrlAndPlay` path Web Radio uses.
+//! queue from the projection, selects a confirmed local reconciliation link
+//! when requested, and otherwise mints a stream ticket for the current entry.
 //!
 //! Advancing is safe to do here because it runs entirely in the async
 //! layer — both the manual next/previous seams and the auto-advance on
@@ -158,21 +157,54 @@ pub async fn advance(app: &AppHandle, direction: Direction) -> AppResult<bool> {
     }
 }
 
-/// Mint a ticket for the entry under the cursor and hand its URL to the
-/// engine. The decoder emits `player:radio-metadata` off this command, so
-/// the PlayerBar picks up the title / artist without a separate push.
+/// Prefer a confirmed local reconciliation link for the entry under the
+/// cursor, otherwise mint a server ticket. Local playback keeps the negative
+/// remote sentinel and metadata path, so queue controls and auto-advance stay
+/// remote. When online, a best-effort ticket accompanies the local command as
+/// a decoder-level fallback if the file disappears or fails to decode.
 async fn play_current(app: &AppHandle) -> AppResult<()> {
     let state = app.state::<AppState>();
     let Some(entry) = state.remote_playback.current() else {
         return Ok(());
     };
 
-    let url = crate::remote::stream::ticket_url(&state, &entry.id).await?;
     // Reuse the negative sentinel id space radio uses: no library row, and
     // a fresh id per load so overlays can tell back-to-back tracks apart.
     let track_id = crate::commands::player::next_radio_track_id();
 
     let engine = app.state::<Arc<AudioEngine>>();
+    let pool = state.require_profile_pool().await?;
+    if let Some(local) =
+        crate::remote::reconciliation::preferred_local_playback(&pool, &entry.id).await?
+    {
+        let replay_gain_db =
+            crate::commands::player::fetch_replay_gain_db(&pool, local.track_id).await;
+        let fallback_url = if crate::offline::is_offline() {
+            None
+        } else {
+            match crate::remote::stream::ticket_url(&state, &entry.id).await {
+                Ok(url) => Some(url),
+                Err(_) => {
+                    tracing::warn!("remote local playback has no server fallback ticket");
+                    None
+                }
+            }
+        };
+        engine.send(AudioCmd::LoadRemoteFileAndPlay {
+            path: local.path,
+            start_ms: 0,
+            track_id,
+            duration_ms: local.duration_ms,
+            title: entry.title.clone(),
+            artist: entry.artist.clone(),
+            artwork_url: None,
+            fallback_url,
+            replay_gain_db,
+        })?;
+        return Ok(());
+    }
+
+    let url = crate::remote::stream::ticket_url(&state, &entry.id).await?;
     engine.send(AudioCmd::LoadUrlAndPlay {
         url,
         ext_hint: None,

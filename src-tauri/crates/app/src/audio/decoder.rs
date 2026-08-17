@@ -379,6 +379,127 @@ fn decoder_loop(
                     Some(path.display().to_string()),
                 );
             }
+            AudioCmd::LoadRemoteFileAndPlay {
+                path,
+                start_ms,
+                track_id,
+                duration_ms,
+                title,
+                artist,
+                artwork_url,
+                fallback_url,
+                replay_gain_db,
+            } => {
+                shared.clear_ab_loop();
+                transition_state(&shared, &app, PlayerState::Loading, Some(track_id));
+
+                if producer.slots() != super::output::RING_CAPACITY {
+                    shared.paused_output.store(false, Ordering::Release);
+                    shared.drain_silent.store(true, Ordering::Release);
+                    let start = std::time::Instant::now();
+                    while producer.slots() < super::output::RING_CAPACITY
+                        && start.elapsed() < Duration::from_millis(500)
+                    {
+                        std::thread::sleep(Duration::from_millis(1));
+                    }
+                    shared.drain_silent.store(false, Ordering::Release);
+                } else {
+                    shared.paused_output.store(false, Ordering::Release);
+                }
+                shared.samples_played.store(0, Ordering::Relaxed);
+                shared.base_offset_ms.store(start_ms, Ordering::Relaxed);
+                shared.current_track_id.store(track_id, Ordering::Release);
+
+                let remote_meta = {
+                    let state = app.state::<crate::state::AppState>();
+                    state.remote_playback.current_stream_meta()
+                };
+                emit_radio_metadata(
+                    &app,
+                    RadioMetadataPayload {
+                        track_id,
+                        title: title.clone(),
+                        artist: artist.clone(),
+                        artwork_url: artwork_url.clone(),
+                        station_url: fallback_url.clone(),
+                        station_name: title.clone(),
+                        station_artist: artist.clone(),
+                        station_artwork: artwork_url.clone(),
+                        is_remote: true,
+                        duration_ms: remote_meta.duration_ms.or(Some(duration_ms as i64)),
+                        artwork_hash: remote_meta.artwork_hash,
+                    },
+                );
+
+                let stream = match ActiveStream::open(
+                    &path,
+                    track_id,
+                    duration_ms,
+                    "remote-local".to_string(),
+                    None,
+                    replay_gain_db,
+                    shared.dsd_taps.load(Ordering::Acquire) as usize,
+                ) {
+                    Ok(stream) => stream,
+                    Err(err) => {
+                        tracing::warn!(
+                            ?err,
+                            path = %path.display(),
+                            has_server_fallback = fallback_url.is_some(),
+                            "remote local source open failed"
+                        );
+                        if let Some(url) = fallback_url.filter(|_| !crate::offline::is_offline()) {
+                            pending_cmd = Some(AudioCmd::LoadUrlAndPlay {
+                                url,
+                                ext_hint: None,
+                                track_id,
+                                title,
+                                artist,
+                                artwork_url,
+                            });
+                            continue;
+                        }
+                        let _ = app.emit(EVENT_ERROR, ErrorPayload { message: err });
+                        transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
+                        continue;
+                    }
+                };
+
+                let outcome = play_track(
+                    stream,
+                    start_ms,
+                    producer,
+                    &shared,
+                    cmd_rx,
+                    &app,
+                    &mut pending_cmd,
+                    analytics_tx,
+                );
+                if outcome.is_err() {
+                    if let Some(url) = fallback_url.filter(|_| !crate::offline::is_offline()) {
+                        tracing::warn!(
+                            path = %path.display(),
+                            "remote local decode failed; falling back to server"
+                        );
+                        pending_cmd = Some(AudioCmd::LoadUrlAndPlay {
+                            url,
+                            ext_hint: None,
+                            track_id,
+                            title,
+                            artist,
+                            artwork_url,
+                        });
+                        continue;
+                    }
+                }
+                handle_playback_outcome(
+                    outcome,
+                    &shared,
+                    &app,
+                    analytics_tx,
+                    Some(path.display().to_string()),
+                );
+            }
             AudioCmd::LoadUrlAndPlay {
                 url,
                 ext_hint,
@@ -1358,6 +1479,11 @@ fn drain_commands(
                 *pending_cmd = Some(cmd);
                 return ControlFlow::LoadNext;
             }
+            Ok(cmd @ AudioCmd::LoadRemoteFileAndPlay { .. }) => {
+                shared.paused_output.store(false, Ordering::Release);
+                *pending_cmd = Some(cmd);
+                return ControlFlow::LoadNext;
+            }
             Ok(cmd @ AudioCmd::LoadUrlAndPlay { .. }) => {
                 shared.paused_output.store(false, Ordering::Release);
                 *pending_cmd = Some(cmd);
@@ -1444,6 +1570,11 @@ fn drain_commands(
                         }
                         Ok(AudioCmd::SetSpeed(v)) => shared.set_playback_speed(v),
                         Ok(cmd @ AudioCmd::LoadAndPlay { .. }) => {
+                            shared.paused_output.store(false, Ordering::Release);
+                            *pending_cmd = Some(cmd);
+                            return ControlFlow::LoadNext;
+                        }
+                        Ok(cmd @ AudioCmd::LoadRemoteFileAndPlay { .. }) => {
                             shared.paused_output.store(false, Ordering::Release);
                             *pending_cmd = Some(cmd);
                             return ControlFlow::LoadNext;

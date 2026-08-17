@@ -41,13 +41,10 @@ pub struct RadioMetadataPayload {
     pub station_name: Option<String>,
     pub station_artist: Option<String>,
     pub station_artwork: Option<String>,
-    /// `true` when this URL stream is a track from the remote play queue
-    /// (RFC-005), not a live radio station. Both share the `LoadUrlAndPlay`
-    /// path and a negative id, so the frontend cannot tell them apart from
-    /// the payload alone: a radio session is a single stream with next /
-    /// previous disabled, a remote track is one entry of a queue that
-    /// advances. The decoder sets this by reading whether a remote session
-    /// is active at emit time.
+    /// `true` when this source is a track from the remote play queue
+    /// (RFC-005), not a live radio station. A remote track may be read from a
+    /// server URL or a confirmed local reconciliation link; both retain a
+    /// negative id so the frontend keeps the remote queue semantics.
     pub is_remote: bool,
     /// Track length in ms for a remote-queue entry, when known — lets the
     /// PlayerBar draw a bounded progress bar with a total time. `None` for

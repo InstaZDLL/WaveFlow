@@ -8,7 +8,7 @@
 //! a human decision.
 
 use std::collections::{HashMap, HashSet};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use chrono::Utc;
 use serde::Serialize;
@@ -94,6 +94,13 @@ pub struct ReconciliationLink {
     pub playback_preference: String,
     pub confirmed_at: i64,
     pub verified_at: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PreferredLocalPlayback {
+    pub track_id: i64,
+    pub path: PathBuf,
+    pub duration_ms: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -628,6 +635,41 @@ pub async fn set_playback_preference(
     Ok(())
 }
 
+/// Resolve a remote track to the confirmed, available local file selected by
+/// the user's playback preference. A missing file is treated like no local
+/// candidate so callers can immediately fall back to the server.
+pub async fn preferred_local_playback(
+    pool: &SqlitePool,
+    remote_track_id: &str,
+) -> AppResult<Option<PreferredLocalPlayback>> {
+    let row = sqlx::query(
+        "SELECT t.id, t.file_path, t.duration_ms
+           FROM remote_track_link l
+           JOIN track t ON t.id = l.local_track_id
+          WHERE l.remote_track_id = ?
+            AND l.status = 'confirmed'
+            AND l.playback_preference = 'local_first'
+            AND t.is_available = 1
+          LIMIT 1",
+    )
+    .bind(remote_track_id)
+    .fetch_optional(pool)
+    .await?;
+    let Some(row) = row else {
+        return Ok(None);
+    };
+    let path = PathBuf::from(row.try_get::<String, _>("file_path")?);
+    if !path.is_file() {
+        return Ok(None);
+    }
+    let duration_ms = row.try_get::<i64, _>("duration_ms")?.max(0) as u64;
+    Ok(Some(PreferredLocalPlayback {
+        track_id: row.try_get("id")?,
+        path,
+        duration_ms,
+    }))
+}
+
 pub async fn remove_link(pool: &SqlitePool, local_track_id: i64) -> AppResult<()> {
     let mut tx = pool.begin().await?;
     // Capture the link's matching evidence before deleting it and record a
@@ -693,6 +735,7 @@ mod tests {
                  file_path TEXT NOT NULL,
                  file_size INTEGER NOT NULL,
                  title TEXT NOT NULL,
+                 duration_ms INTEGER NOT NULL DEFAULT 0,
                  is_available INTEGER NOT NULL DEFAULT 1
              );
              CREATE TABLE track_artist (
@@ -881,5 +924,68 @@ mod tests {
         let report = discover(&pool).await.unwrap();
         assert_eq!(report.verified_links, 1);
         assert_eq!(links(&pool).await.unwrap()[0].status, "confirmed");
+    }
+
+    #[tokio::test]
+    async fn playback_uses_only_confirmed_available_local_first_links() {
+        let pool = pool().await;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("local.flac");
+        fs::write(&path, b"same bytes").unwrap();
+        insert_local(&pool, 1, &path, "Local").await;
+        sqlx::query("UPDATE track SET duration_ms = 12_345 WHERE id = 1")
+            .execute(&pool)
+            .await
+            .unwrap();
+        insert_remote(&pool, "remote-1", b"same bytes", "Remote").await;
+        assert_eq!(discover(&pool).await.unwrap().auto_linked, 1);
+
+        let selected = preferred_local_playback(&pool, "remote-1")
+            .await
+            .unwrap()
+            .expect("confirmed local-first link selected");
+        assert_eq!(selected.track_id, 1);
+        assert_eq!(selected.path, path);
+        assert_eq!(selected.duration_ms, 12_345);
+
+        set_playback_preference(&pool, 1, "server_first")
+            .await
+            .unwrap();
+        assert!(preferred_local_playback(&pool, "remote-1")
+            .await
+            .unwrap()
+            .is_none());
+
+        set_playback_preference(&pool, 1, "local_first")
+            .await
+            .unwrap();
+        sqlx::query("UPDATE track SET is_available = 0 WHERE id = 1")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert!(preferred_local_playback(&pool, "remote-1")
+            .await
+            .unwrap()
+            .is_none());
+
+        sqlx::query("UPDATE track SET is_available = 1 WHERE id = 1")
+            .execute(&pool)
+            .await
+            .unwrap();
+        fs::remove_file(&path).unwrap();
+        assert!(preferred_local_playback(&pool, "remote-1")
+            .await
+            .unwrap()
+            .is_none());
+
+        fs::write(&path, b"same bytes").unwrap();
+        sqlx::query("UPDATE remote_track_link SET status = 'stale' WHERE local_track_id = 1")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert!(preferred_local_playback(&pool, "remote-1")
+            .await
+            .unwrap()
+            .is_none());
     }
 }

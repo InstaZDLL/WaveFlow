@@ -42,6 +42,22 @@ pub enum AudioCmd {
         /// stays out of the SQLite path.
         replay_gain_db: Option<f64>,
     },
+    /// Play a track from the active remote queue using its confirmed local
+    /// reconciliation link. The negative `track_id` deliberately preserves
+    /// the remote queue/UI semantics; `fallback_url`, when available, lets
+    /// the decoder fall back to the server if the local file can no longer
+    /// be opened between selection and playback.
+    LoadRemoteFileAndPlay {
+        path: PathBuf,
+        start_ms: u64,
+        track_id: i64,
+        duration_ms: u64,
+        title: Option<String>,
+        artist: Option<String>,
+        artwork_url: Option<String>,
+        fallback_url: Option<String>,
+        replay_gain_db: Option<f64>,
+    },
     Pause,
     Resume,
     Stop,
@@ -122,6 +138,12 @@ impl std::fmt::Debug for AudioCmd {
             } => write!(
                 f,
                 "LoadAndPlay {{ track_id: {track_id}, start_ms: {start_ms} }}"
+            ),
+            AudioCmd::LoadRemoteFileAndPlay {
+                track_id, start_ms, ..
+            } => write!(
+                f,
+                "LoadRemoteFileAndPlay {{ track_id: {track_id}, start_ms: {start_ms} }}"
             ),
             AudioCmd::Pause => write!(f, "Pause"),
             AudioCmd::Resume => write!(f, "Resume"),
@@ -311,37 +333,76 @@ pub struct AudioEngine {
     /// This gate spans the whole arm → delay → run lifecycle plus a
     /// settle window, so one burst of device errors yields one rebuild.
     rebuild_gate: Mutex<RebuildGate>,
-    /// Last Web Radio session captured at the boundary of
-    /// [`Self::send`] (#230). The three output-rebuild paths
+    /// Last non-library source captured at the boundary of [`Self::send`]
+    /// (#230). The three output-rebuild paths
     /// ([`Self::set_output_device`], [`Self::set_wasapi_exclusive`],
     /// [`Self::force_rebuild_output`]) snapshot
-    /// `shared.current_track_id`; for a radio stream that id is a
+    /// `shared.current_track_id`; for radio and remote queues that id is a
     /// negative sentinel from
     /// [`crate::commands::player::next_radio_track_id`] with no
     /// matching `track` row, so a plain `WHERE id = ?` resume
     /// returns nothing and the rebuild silently drops the user
-    /// off the stream. Holding the originating
-    /// [`AudioCmd::LoadUrlAndPlay`] payload lets those paths
-    /// re-dispatch the same command instead. Cleared on the next
+    /// off the stream. Holding the originating URL or reconciled-file payload
+    /// lets those paths re-dispatch the same source instead. Cleared on the next
     /// [`AudioCmd::LoadAndPlay`] so a local-track switch doesn't
     /// resurrect the dead radio session on a later rebuild.
     radio_resume: Mutex<Option<RadioResumeState>>,
 }
 
-/// Snapshot of an active Web Radio session, retained by the
-/// engine so output-rebuild paths can re-dispatch
-/// [`AudioCmd::LoadUrlAndPlay`] verbatim. Mirrors the variant's
-/// payload one-for-one; lives behind a [`Mutex`] on
-/// [`AudioEngine`] (low contention — only set on stream start /
-/// track change, read on the rare rebuild paths).
-#[derive(Debug, Clone)]
+/// Snapshot of an active non-library source, retained by the engine so output
+/// rebuilds can resume either the server URL or a reconciled local file.
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct RadioResumeState {
-    pub url: String,
-    pub ext_hint: Option<String>,
+    pub source: RadioResumeSource,
     pub track_id: i64,
     pub title: Option<String>,
     pub artist: Option<String>,
     pub artwork_url: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum RadioResumeSource {
+    Url {
+        url: String,
+        ext_hint: Option<String>,
+    },
+    RemoteFile {
+        path: PathBuf,
+        duration_ms: u64,
+        fallback_url: Option<String>,
+        replay_gain_db: Option<f64>,
+    },
+}
+
+impl RadioResumeState {
+    fn into_command(self, position_ms: u64) -> AudioCmd {
+        match self.source {
+            RadioResumeSource::Url { url, ext_hint } => AudioCmd::LoadUrlAndPlay {
+                url,
+                ext_hint,
+                track_id: self.track_id,
+                title: self.title,
+                artist: self.artist,
+                artwork_url: self.artwork_url,
+            },
+            RadioResumeSource::RemoteFile {
+                path,
+                duration_ms,
+                fallback_url,
+                replay_gain_db,
+            } => AudioCmd::LoadRemoteFileAndPlay {
+                path,
+                start_ms: position_ms,
+                track_id: self.track_id,
+                duration_ms,
+                title: self.title,
+                artist: self.artist,
+                artwork_url: self.artwork_url,
+                fallback_url,
+                replay_gain_db,
+            },
+        }
+    }
 }
 
 impl AudioEngine {
@@ -829,14 +890,7 @@ impl AudioEngine {
         if was_playing {
             if track_id < 0 {
                 if let Some(state) = self.snapshot_radio_resume() {
-                    let _ = self.cmd_tx.send(AudioCmd::LoadUrlAndPlay {
-                        url: state.url,
-                        ext_hint: state.ext_hint,
-                        track_id: state.track_id,
-                        title: state.title,
-                        artist: state.artist,
-                        artwork_url: state.artwork_url,
-                    });
+                    let _ = self.cmd_tx.send(state.into_command(position_ms));
                 }
             } else if track_id > 0 {
                 let app = self.app.clone();
@@ -993,14 +1047,7 @@ impl AudioEngine {
         if was_playing {
             if track_id < 0 {
                 if let Some(state) = self.snapshot_radio_resume() {
-                    let _ = self.cmd_tx.send(AudioCmd::LoadUrlAndPlay {
-                        url: state.url,
-                        ext_hint: state.ext_hint,
-                        track_id: state.track_id,
-                        title: state.title,
-                        artist: state.artist,
-                        artwork_url: state.artwork_url,
-                    });
+                    let _ = self.cmd_tx.send(state.into_command(position_ms));
                 }
             } else if track_id > 0 {
                 // Best-effort: pull file path + RG from the active profile
@@ -1219,14 +1266,7 @@ impl AudioEngine {
         if was_playing {
             if track_id < 0 {
                 if let Some(state) = self.snapshot_radio_resume() {
-                    let _ = self.cmd_tx.send(AudioCmd::LoadUrlAndPlay {
-                        url: state.url,
-                        ext_hint: state.ext_hint,
-                        track_id: state.track_id,
-                        title: state.title,
-                        artist: state.artist,
-                        artwork_url: state.artwork_url,
-                    });
+                    let _ = self.cmd_tx.send(state.into_command(position_ms));
                 }
             } else if track_id > 0 {
                 let app = self.app.clone();
@@ -1295,8 +1335,36 @@ fn apply_radio_resume_update(snapshot: &Mutex<Option<RadioResumeState>>, cmd: &A
         } => {
             if let Ok(mut guard) = snapshot.lock() {
                 *guard = Some(RadioResumeState {
-                    url: url.clone(),
-                    ext_hint: ext_hint.clone(),
+                    source: RadioResumeSource::Url {
+                        url: url.clone(),
+                        ext_hint: ext_hint.clone(),
+                    },
+                    track_id: *track_id,
+                    title: title.clone(),
+                    artist: artist.clone(),
+                    artwork_url: artwork_url.clone(),
+                });
+            }
+        }
+        AudioCmd::LoadRemoteFileAndPlay {
+            path,
+            duration_ms,
+            fallback_url,
+            replay_gain_db,
+            track_id,
+            title,
+            artist,
+            artwork_url,
+            ..
+        } => {
+            if let Ok(mut guard) = snapshot.lock() {
+                *guard = Some(RadioResumeState {
+                    source: RadioResumeSource::RemoteFile {
+                        path: path.clone(),
+                        duration_ms: *duration_ms,
+                        fallback_url: fallback_url.clone(),
+                        replay_gain_db: *replay_gain_db,
+                    },
                     track_id: *track_id,
                     title: title.clone(),
                     artist: artist.clone(),
@@ -1478,15 +1546,34 @@ mod radio_resume_tests {
         }
     }
 
+    fn remote_local_cmd(fallback_url: Option<&str>, track_id: i64) -> AudioCmd {
+        AudioCmd::LoadRemoteFileAndPlay {
+            path: PathBuf::from("/dev/null"),
+            start_ms: 0,
+            track_id,
+            duration_ms: 1000,
+            title: Some("Remote track".to_string()),
+            artist: Some("Remote artist".to_string()),
+            artwork_url: None,
+            fallback_url: fallback_url.map(str::to_string),
+            replay_gain_db: Some(-4.0),
+        }
+    }
+
     #[test]
     fn load_url_writes_snapshot_verbatim() {
         let lock: Mutex<Option<RadioResumeState>> = Mutex::new(None);
         apply_radio_resume_update(&lock, &url_cmd("https://radio.invalid/live", -1));
         let snap = lock.lock().unwrap().clone().expect("snapshot stored");
-        assert_eq!(snap.url, "https://radio.invalid/live");
         assert_eq!(snap.track_id, -1);
-        assert_eq!(snap.ext_hint.as_deref(), Some("mp3"));
         assert_eq!(snap.title.as_deref(), Some("Test stream"));
+        match snap.source {
+            RadioResumeSource::Url { url, ext_hint } => {
+                assert_eq!(url, "https://radio.invalid/live");
+                assert_eq!(ext_hint.as_deref(), Some("mp3"));
+            }
+            RadioResumeSource::RemoteFile { .. } => panic!("expected URL resume"),
+        }
     }
 
     #[test]
@@ -1495,8 +1582,11 @@ mod radio_resume_tests {
         apply_radio_resume_update(&lock, &url_cmd("https://first.invalid/", -1));
         apply_radio_resume_update(&lock, &url_cmd("https://second.invalid/", -2));
         let snap = lock.lock().unwrap().clone().expect("snapshot present");
-        assert_eq!(snap.url, "https://second.invalid/");
         assert_eq!(snap.track_id, -2);
+        assert!(matches!(
+            snap.source,
+            RadioResumeSource::Url { ref url, .. } if url == "https://second.invalid/"
+        ));
     }
 
     #[test]
@@ -1509,6 +1599,59 @@ mod radio_resume_tests {
             lock.lock().unwrap().is_none(),
             "local-track LoadAndPlay must wipe the radio resume cache",
         );
+    }
+
+    #[test]
+    fn online_device_change_reemits_remote_local_command_with_fallback() {
+        let lock: Mutex<Option<RadioResumeState>> = Mutex::new(None);
+        apply_radio_resume_update(
+            &lock,
+            &remote_local_cmd(Some("https://server.invalid/stream"), -3),
+        );
+        let snap = lock.lock().unwrap().clone().expect("snapshot stored");
+        match snap.into_command(4_321) {
+            AudioCmd::LoadRemoteFileAndPlay {
+                path,
+                start_ms,
+                track_id,
+                duration_ms,
+                fallback_url,
+                replay_gain_db,
+                ..
+            } => {
+                assert_eq!(path, PathBuf::from("/dev/null"));
+                assert_eq!(start_ms, 4_321);
+                assert_eq!(track_id, -3);
+                assert_eq!(duration_ms, 1_000);
+                assert_eq!(
+                    fallback_url.as_deref(),
+                    Some("https://server.invalid/stream")
+                );
+                assert_eq!(replay_gain_db, Some(-4.0));
+            }
+            _ => panic!("device change must resume the reconciled local file"),
+        }
+    }
+
+    #[test]
+    fn offline_device_change_reemits_remote_local_command_without_fallback() {
+        let lock: Mutex<Option<RadioResumeState>> = Mutex::new(None);
+        apply_radio_resume_update(&lock, &url_cmd("https://radio.invalid/", -1));
+        apply_radio_resume_update(&lock, &remote_local_cmd(None, -3));
+        let snap = lock.lock().unwrap().clone().expect("local snapshot stored");
+        match snap.into_command(7_654) {
+            AudioCmd::LoadRemoteFileAndPlay {
+                path,
+                start_ms,
+                fallback_url,
+                ..
+            } => {
+                assert_eq!(path, PathBuf::from("/dev/null"));
+                assert_eq!(start_ms, 7_654);
+                assert_eq!(fallback_url, None);
+            }
+            _ => panic!("offline device change must still resume locally"),
+        }
     }
 
     #[test]
@@ -1527,9 +1670,9 @@ mod radio_resume_tests {
             apply_radio_resume_update(&lock, &cmd);
         }
         let after = lock.lock().unwrap().clone();
-        assert!(
-            matches!((&baseline, &after), (Some(a), Some(b)) if a.url == b.url && a.track_id == b.track_id),
-            "non-Load* commands must not touch the snapshot",
+        assert_eq!(
+            baseline, after,
+            "non-Load* commands must not touch the snapshot"
         );
     }
 }
