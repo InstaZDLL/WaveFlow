@@ -401,7 +401,19 @@ export function RemotePlaylistView({
     ro.observe(parent);
     ro.observe(scroller);
     return () => ro.disconnect();
-  }, [pageScrollRef, displayTracks.length]);
+    // Also recompute when content *above* the list changes height without
+    // resizing the list itself — the add-tracks panel opening, an error or
+    // the playlist comment appearing, the sort bar toggling — since that
+    // shifts the list's top within the scroller (which a ResizeObserver on
+    // the list alone wouldn't catch).
+  }, [
+    pageScrollRef,
+    displayTracks.length,
+    adding,
+    error,
+    sortMode,
+    summary?.comment,
+  ]);
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({

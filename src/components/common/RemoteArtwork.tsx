@@ -10,17 +10,40 @@ import { remoteArtwork } from "../../lib/tauri/remoteServer";
  * URL, and two components mounting the same hash at once share one fetch
  * instead of racing two.
  */
+/** Cap the resolved-artwork cache so a long session browsing many remote
+ *  tracks can't grow it without bound. */
+const ARTWORK_CACHE_CAPACITY = 256;
 const artworkCache = new Map<string, string>();
 const inFlight = new Map<string, Promise<string | null>>();
 
+/** LRU read: `Map` preserves insertion order, so re-inserting on a hit
+ *  marks the entry most-recently-used. */
+function cacheGet(hash: string): string | undefined {
+  const url = artworkCache.get(hash);
+  if (url !== undefined) {
+    artworkCache.delete(hash);
+    artworkCache.set(hash, url);
+  }
+  return url;
+}
+
+function cacheSet(hash: string, url: string) {
+  artworkCache.set(hash, url);
+  if (artworkCache.size > ARTWORK_CACHE_CAPACITY) {
+    // Evict the least-recently-used entry (the oldest insertion).
+    const oldest = artworkCache.keys().next().value;
+    if (oldest !== undefined) artworkCache.delete(oldest);
+  }
+}
+
 function loadArtwork(hash: string): Promise<string | null> {
-  const cached = artworkCache.get(hash);
-  if (cached) return Promise.resolve(cached);
+  const cached = cacheGet(hash);
+  if (cached !== undefined) return Promise.resolve(cached);
   const pending = inFlight.get(hash);
   if (pending) return pending;
   const promise = remoteArtwork(hash)
     .then((url) => {
-      artworkCache.set(hash, url);
+      cacheSet(hash, url);
       inFlight.delete(hash);
       return url;
     })
@@ -61,11 +84,14 @@ export function RemoteArtwork({
       setSrc(null);
       return;
     }
-    const cached = artworkCache.get(hash);
-    if (cached) {
+    const cached = cacheGet(hash);
+    if (cached !== undefined) {
       setSrc(cached);
       return;
     }
+    // Uncached new hash: clear the previous cover up front so a changed
+    // hash can't keep showing the old artwork while the new one loads.
+    setSrc(null);
     let cancelled = false;
     void loadArtwork(hash).then((url) => {
       if (!cancelled) setSrc(url);
