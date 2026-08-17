@@ -49,6 +49,19 @@ const BASE_BACKOFF: Duration = Duration::from_secs(5);
 /// it returns.
 const MAX_BACKOFF: Duration = Duration::from_secs(300);
 
+/// End the session and reconnect if not a single frame — notice or
+/// keep-alive — arrives within this window. A half-open TCP connection
+/// otherwise leaves `reader.next()` blocked forever; the reconnect (and
+/// its catch-up) is how a silently-dead socket recovers. Longer than any
+/// reasonable server keep-alive interval so a merely quiet-but-live
+/// connection is not torn down needlessly.
+const IDLE_TIMEOUT: Duration = Duration::from_secs(120);
+
+/// After a notice, wait this long for more before catching up, so a burst
+/// of edits on another device collapses into a single `/sync/changes`
+/// round-trip instead of one per frame.
+const COALESCE_WINDOW: Duration = Duration::from_millis(250);
+
 /// Start the subscriber. Returns immediately; the loop runs for the
 /// lifetime of the app.
 pub fn spawn(handle: AppHandle) {
@@ -120,28 +133,57 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
     catch_up_and_notify(handle, state).await;
 
     let mut delivered = false;
-    while let Some(message) = reader.next().await {
-        match message {
-            Ok(Message::Text(text)) => {
+    // A notice seen but not yet caught up on. While one is pending we wait
+    // only the short coalesce window for more frames, so a burst fires a
+    // single catch-up; otherwise we wait the full idle timeout.
+    let mut pending_notice = false;
+    loop {
+        let wait = if pending_notice {
+            COALESCE_WINDOW
+        } else {
+            IDLE_TIMEOUT
+        };
+        match tokio::time::timeout(wait, reader.next()).await {
+            Ok(Some(Ok(Message::Text(text)))) => {
                 // The cursor in the frame is deliberately not compared
                 // against ours. It is a hint, and `/sync/changes` is
                 // cheap when there is nothing new: one request answering
                 // an empty page. Trusting the hint enough to skip the
                 // fetch would make a stale or reordered frame lose an
-                // event.
+                // event. Don't catch up yet — coalesce the burst first.
                 let _ = notice_cursor(&text);
                 delivered = true;
-                catch_up_and_notify(handle, state).await;
+                pending_notice = true;
             }
-            Ok(Message::Close(_)) => break,
+            Ok(Some(Ok(Message::Close(_)))) => break,
             // Ping and Pong are handled by the library; anything else is
             // not part of this protocol and is ignored rather than
             // treated as an error.
-            Ok(_) => {}
-            Err(error) => {
+            Ok(Some(Ok(_))) => {}
+            Ok(Some(Err(error))) => {
                 return Err(AppError::Other(format!("sync socket read failed: {error}")));
             }
+            // Stream closed cleanly.
+            Ok(None) => break,
+            Err(_elapsed) => {
+                if pending_notice {
+                    // The burst settled: one catch-up for all of it.
+                    pending_notice = false;
+                    catch_up_and_notify(handle, state).await;
+                } else {
+                    // Genuine inactivity — the link is likely half-open.
+                    // End the session so the loop reconnects and catches
+                    // up on the way back in.
+                    tracing::debug!("sync socket idle for {IDLE_TIMEOUT:?}; reconnecting");
+                    break;
+                }
+            }
         }
+    }
+
+    // Flush a notice that arrived just before the stream closed.
+    if pending_notice {
+        catch_up_and_notify(handle, state).await;
     }
 
     Ok(delivered)

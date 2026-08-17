@@ -42,12 +42,12 @@
 //! URI once, from the port we actually got, makes that true by
 //! construction rather than by discipline.
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
-use tiny_http::Server;
+use tiny_http::{Response, Server};
 
 use crate::{
     commands::loopback::html_response,
@@ -224,50 +224,72 @@ fn hostname() -> Option<String> {
 }
 
 /// Block until the browser hits the callback, and hand back the code.
+///
+/// The loopback port can receive requests that are not the callback — a
+/// browser favicon probe, a prefetch, an OS port check. Those are answered
+/// `404` and ignored rather than mistaken for a state-mismatched callback,
+/// which would abort a sign-in that had not actually failed. All the
+/// waiting shares one deadline, so those stray requests cannot extend the
+/// window indefinitely.
 fn wait_for_code(server: Server, expected_state: &str) -> AppResult<String> {
-    let request = server
-        .recv_timeout(CALLBACK_TIMEOUT)
-        .map_err(|err| AppError::Other(format!("sign-in callback failed: {err}")))?
-        .ok_or_else(|| AppError::Other("sign-in timed out — try again".into()))?;
+    let deadline = Instant::now() + CALLBACK_TIMEOUT;
+    loop {
+        let remaining = deadline
+            .checked_duration_since(Instant::now())
+            .ok_or_else(|| AppError::Other("sign-in timed out — try again".into()))?;
+        let request = server
+            .recv_timeout(remaining)
+            .map_err(|err| AppError::Other(format!("sign-in callback failed: {err}")))?
+            .ok_or_else(|| AppError::Other("sign-in timed out — try again".into()))?;
 
-    let url = request.url().to_string();
-    let query = url.split_once('?').map(|(_, q)| q).unwrap_or("");
-    let parsed = serde_urlencoded::from_str::<CallbackQuery>(query)
-        .map_err(|err| AppError::Other(format!("could not read the callback: {err}")))?;
+        let url = request.url().to_string();
+        let (path, query) = match url.split_once('?') {
+            Some((path, query)) => (path, query),
+            None => (url.as_str(), ""),
+        };
 
-    match (parsed.code, parsed.error, parsed.state.as_deref()) {
-        // `error` absent is part of the success condition on purpose:
-        // accepting a code that arrived alongside an error claim would
-        // mask a protocol change instead of failing on it.
-        (Some(code), None, state) if state == Some(expected_state) => {
-            let _ = request.respond(html_response(
-                "<!doctype html><title>WaveFlow</title>\
-                 <p>Signed in. You can close this tab and return to WaveFlow.</p>",
-            ));
-            Ok(code)
+        if path != CALLBACK_PATH {
+            let _ = request.respond(Response::empty(404));
+            continue;
         }
-        (_, Some(error), _) => {
-            let _ = request.respond(html_response(
-                "<!doctype html><title>WaveFlow</title>\
-                 <p>Sign-in was cancelled.</p>",
-            ));
-            // The consent screen's Deny button sends exactly this.
-            if error == "access_denied" {
-                Err(AppError::Other("sign-in was declined".into()))
-            } else {
-                Err(AppError::Other(format!("sign-in failed: {error}")))
+
+        let parsed = serde_urlencoded::from_str::<CallbackQuery>(query)
+            .map_err(|err| AppError::Other(format!("could not read the callback: {err}")))?;
+
+        return match (parsed.code, parsed.error, parsed.state.as_deref()) {
+            // `error` absent is part of the success condition on purpose:
+            // accepting a code that arrived alongside an error claim would
+            // mask a protocol change instead of failing on it.
+            (Some(code), None, state) if state == Some(expected_state) => {
+                let _ = request.respond(html_response(
+                    "<!doctype html><title>WaveFlow</title>\
+                     <p>Signed in. You can close this tab and return to WaveFlow.</p>",
+                ));
+                Ok(code)
             }
-        }
-        _ => {
-            let _ = request.respond(html_response(
-                "<!doctype html><title>WaveFlow</title>\
-                 <p>Sign-in failed: the reply did not match this request. \
-                 Start again from WaveFlow.</p>",
-            ));
-            Err(AppError::Other(
-                "sign-in reply did not match this request (state mismatch)".into(),
-            ))
-        }
+            (_, Some(error), _) => {
+                let _ = request.respond(html_response(
+                    "<!doctype html><title>WaveFlow</title>\
+                     <p>Sign-in was cancelled.</p>",
+                ));
+                // The consent screen's Deny button sends exactly this.
+                if error == "access_denied" {
+                    Err(AppError::Other("sign-in was declined".into()))
+                } else {
+                    Err(AppError::Other(format!("sign-in failed: {error}")))
+                }
+            }
+            _ => {
+                let _ = request.respond(html_response(
+                    "<!doctype html><title>WaveFlow</title>\
+                     <p>Sign-in failed: the reply did not match this request. \
+                     Start again from WaveFlow.</p>",
+                ));
+                Err(AppError::Other(
+                    "sign-in reply did not match this request (state mismatch)".into(),
+                ))
+            }
+        };
     }
 }
 
