@@ -43,7 +43,8 @@ import {
 } from "../lib/tauri/player";
 import type { PluginFavorite } from "../lib/tauri/plugins";
 import { enrichArtistDeezer } from "../lib/tauri/detail";
-import { isRadioTrack } from "../lib/playerSources";
+import { remoteArtwork } from "../lib/tauri/remoteServer";
+import { isRadioTrack, isRemoteTrack } from "../lib/playerSources";
 
 /**
  * Build the stable station identity (favorite shape, id `url:<stream>`)
@@ -76,10 +77,11 @@ function radioMetadataToTrack(payload: RadioMetadata): Track {
     artist_id: null,
     artist_name: payload.artist,
     artist_ids: null,
-    // 0 = open-ended scrubber. The PlayerBar's progress fields special-
-    // case duration_ms === 0 already (live mode for DLNA / Spotify),
-    // so the radio inherits that path without extra logic.
-    duration_ms: 0,
+    // 0 = open-ended scrubber (live radio). A remote-queue track carries
+    // its real length, so the bar draws a bounded — if non-seekable —
+    // timeline; the PlayerBar special-cases duration_ms === 0 for the live
+    // case (DLNA / Spotify / radio).
+    duration_ms: payload.duration_ms ?? 0,
     track_number: null,
     disc_number: null,
     year: null,
@@ -87,7 +89,11 @@ function radioMetadataToTrack(payload: RadioMetadata): Track {
     sample_rate: null,
     channels: null,
     bit_depth: null,
-    codec: "Web Radio",
+    // The `codec` doubles as the discriminator the transport controls and
+    // the pipeline popover read: "Web Radio" gates next / previous off and
+    // labels the source, "Remote server" keeps them on (a remote queue does
+    // advance) and labels it as such. See `isRadioTrack` / `isRemoteTrack`.
+    codec: payload.is_remote ? "Remote server" : "Web Radio",
     musical_key: null,
     file_path: "",
     file_size: 0,
@@ -259,6 +265,32 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  // Same shape for a remote-queue track: its cover lives behind a
+  // Bearer-only endpoint, so fetch it as a data URL by hash and swap it in.
+  // Reuses the radio token so a stale fetch from either source can't win.
+  const fetchRemoteArtworkInto = useCallback((hash: string | null) => {
+    if (!hash) return;
+    const token = ++radioArtworkTokenRef.current;
+    void (async () => {
+      try {
+        const url = await remoteArtwork(hash);
+        if (!url || token !== radioArtworkTokenRef.current) return;
+        setCurrentTrack((prev) =>
+          prev && isRemoteTrack(prev)
+            ? {
+                ...prev,
+                artwork_path: url,
+                artwork_path_1x: null,
+                artwork_path_2x: null,
+              }
+            : prev,
+        );
+      } catch (err) {
+        console.error("[PlayerContext] fetch remote artwork failed", err);
+      }
+    })();
+  }, []);
+
   const effectivePlaybackState =
     activeProvider === "spotify" ? spotify.playbackState : playbackState;
   const isPlaying = effectivePlaybackState === "playing";
@@ -308,10 +340,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             const radio = await getCurrentRadioMetadata();
             if (!cancelled && radio) {
               setCurrentTrack(radioMetadataToTrack(radio));
-              setCurrentRadioStation(radioStationFromMetadata(radio));
-              setDurationMs(0);
-              // Upgrade the station favicon to the song's album cover.
-              fetchRadioArtworkInto(radio.title, radio.artist);
+              // A remote-queue track is not a favouritable station — its
+              // URL is an expiring ticket, not a stable stream.
+              setCurrentRadioStation(
+                radio.is_remote ? null : radioStationFromMetadata(radio),
+              );
+              setDurationMs(radio.duration_ms ?? 0);
+              // Upgrade the placeholder to the real cover: the remote hash
+              // for a remote track, a Deezer lookup for a radio song.
+              if (radio.is_remote) {
+                fetchRemoteArtworkInto(radio.artwork_hash);
+              } else {
+                fetchRadioArtworkInto(radio.title, radio.artist);
+              }
             }
           } catch (err) {
             console.error("[PlayerContext] hydrate radio failed", err);
@@ -334,7 +375,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [activeProfile, fetchRadioArtworkInto]);
+  }, [activeProfile, fetchRadioArtworkInto, fetchRemoteArtworkInto]);
 
   // --- Tauri event listeners ---
   useEffect(() => {
@@ -423,12 +464,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             // station identity drives the favorite-station star.
             setActiveProvider("local");
             setCurrentTrack(radioMetadataToTrack(e.payload));
-            setCurrentRadioStation(radioStationFromMetadata(e.payload));
-            setDurationMs(0);
+            // Remote-queue tracks aren't favouritable stations (expiring
+            // ticket URL, not a stable stream) — leave the station null.
+            setCurrentRadioStation(
+              e.payload.is_remote
+                ? null
+                : radioStationFromMetadata(e.payload),
+            );
+            setDurationMs(e.payload.duration_ms ?? 0);
             setPositionMs(0);
-            // The payload only carries the station favicon; fetch the
-            // song's real album cover from Deezer and swap it in async.
-            fetchRadioArtworkInto(e.payload.title, e.payload.artist);
+            // A remote track has a real cover behind a Bearer endpoint;
+            // radio only carries the station favicon, so fetch the song's
+            // album cover from Deezer instead. Either swaps in async.
+            if (e.payload.is_remote) {
+              fetchRemoteArtworkInto(e.payload.artwork_hash);
+            } else {
+              fetchRadioArtworkInto(e.payload.title, e.payload.artist);
+            }
           }),
         );
         unlisten.push(
@@ -446,7 +498,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       unlisten.forEach((u) => u());
     };
-  }, [fetchRadioArtworkInto]);
+  }, [fetchRadioArtworkInto, fetchRemoteArtworkInto]);
 
   // --- Volume debounce ---
   const setVolume = useCallback(

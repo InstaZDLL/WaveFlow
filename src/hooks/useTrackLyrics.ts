@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePlayer } from "./usePlayer";
-import { isRadioTrack } from "../lib/playerSources";
+import { isRadioTrack, isRemoteTrack } from "../lib/playerSources";
 import { pickFile } from "../lib/tauri/dialog";
+import { remoteGetPlayQueue } from "../lib/tauri/remoteServer";
 import {
   clearLyrics,
   fetchLyrics,
   fetchRadioLyrics,
+  fetchRemoteLyrics,
   findActiveLineIndex,
   findActiveWordIndex,
   importLrcFile,
@@ -49,6 +51,10 @@ export interface TrackLyrics {
   radioPlainText: string | null;
   /** True when the current track is a live Web Radio session. */
   isRadio: boolean;
+  /** True when the current track is a remote-source stream (RFC-005).
+   *  Synced lyrics still render (its position aligns), but the library-row
+   *  mutations — import / refetch / clear / edit — don't apply. */
+  isRemote: boolean;
   /** Active synced line index (`-1` when none / not synced). */
   activeIndex: number;
   /** Active word index inside the active line (`-1` when no word stamps). */
@@ -89,6 +95,16 @@ export function useTrackLyrics(): TrackLyrics {
   const isRadio = isRadioTrack(currentTrack);
   const radioArtist = isRadio ? (currentTrack?.artist_name ?? null) : null;
   const radioTitle = isRadio ? (currentTrack?.title ?? null) : null;
+
+  // A remote-source track (RFC-005) also has no library row, but unlike
+  // radio it has a stable identity and a known length — so its lyrics are
+  // fetched from the server (by the queue's remote id) with an LRCLIB
+  // fallback, and rendered synced. The library-row mutations (import /
+  // refetch / clear / edit) still don't apply and the consumer hides them.
+  const isRemote = isRemoteTrack(currentTrack);
+  const remoteArtist = isRemote ? (currentTrack?.artist_name ?? null) : null;
+  const remoteTitle = isRemote ? (currentTrack?.title ?? null) : null;
+  const remoteDurationMs = isRemote ? (currentTrack?.duration_ms ?? 0) : 0;
 
   // Live mirror of `trackId` so async handlers can detect when the user
   // switched tracks during an `await` — without it the closure carries
@@ -140,7 +156,25 @@ export function useTrackLyrics(): TrackLyrics {
       ? radioArtist && radioTitle
         ? fetchRadioLyrics(radioArtist, radioTitle, trackId)
         : Promise.resolve<LyricsPayload | null>(null)
-      : fetchLyrics(trackId);
+      : isRemote
+        ? remoteArtist && remoteTitle
+          ? // The lyrics are keyed by the server track id, which lives on
+            // the live remote queue's current entry (the synthesized Track
+            // only carries the negative sentinel). Resolve it, then fetch.
+            remoteGetPlayQueue().then((q) => {
+              const remoteId = q?.entries[q.index]?.id ?? null;
+              return remoteId
+                ? fetchRemoteLyrics(
+                    remoteId,
+                    remoteArtist,
+                    remoteTitle,
+                    remoteDurationMs,
+                    trackId,
+                  )
+                : null;
+            })
+          : Promise.resolve<LyricsPayload | null>(null)
+        : fetchLyrics(trackId);
     request
       .then((p) => {
         if (cancelled) return;
@@ -157,7 +191,16 @@ export function useTrackLyrics(): TrackLyrics {
     return () => {
       cancelled = true;
     };
-  }, [trackId, isRadio, radioArtist, radioTitle]);
+  }, [
+    trackId,
+    isRadio,
+    radioArtist,
+    radioTitle,
+    isRemote,
+    remoteArtist,
+    remoteTitle,
+    remoteDurationMs,
+  ]);
 
   // ── Parse lyrics once per content change ─────────────────────────
   const lrcLines = useMemo<LyricsLine[]>(() => {
@@ -316,6 +359,7 @@ export function useTrackLyrics(): TrackLyrics {
     isSynced,
     radioPlainText,
     isRadio,
+    isRemote,
     activeIndex,
     activeWordIndex,
     activeLine,

@@ -28,3 +28,31 @@ export function isRadioTrack(track: Track | null): boolean {
   if (track === null) return false;
   return track.id < 0 && track.codec === "Web Radio";
 }
+
+/**
+ * A track from the remote play queue (RFC-005). Shares the negative-id
+ * URL-stream path with radio but is one entry of a queue that advances, so
+ * it must NOT inherit radio's Previous/Next disabling — those drive the
+ * remote queue in the backend. Same two-invariant contract as
+ * {@link isRadioTrack}; the `codec` sentinel is `"Remote server"`, set by
+ * `radioMetadataToTrack` from the event's `is_remote` flag.
+ *
+ * Shuffle stays off for it (the remote queue has no shuffle yet); Previous
+ * / Next / Repeat are on.
+ */
+export function isRemoteTrack(track: Track | null): boolean {
+  if (track === null) return false;
+  return track.id < 0 && track.codec === "Remote server";
+}
+
+/**
+ * Either kind of URL stream — radio or a remote-queue track. Neither has a
+ * library row, so surfaces that gate a library affordance (♥ like, artist
+ * slideshow, "go to album") on `!isRadioTrack` should use this instead, or
+ * they light those up for remote tracks where they would fail. The
+ * transport controls are the deliberate exception: a remote track advances,
+ * so it checks the two apart.
+ */
+export function isStreamTrack(track: Track | null): boolean {
+  return isRadioTrack(track) || isRemoteTrack(track);
+}

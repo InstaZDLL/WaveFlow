@@ -24,18 +24,17 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 # /app), the Microsoft Store, the Mac App Store and any future repo where
 # the system updater owns the binary. Those builds opt out via
 # `cargo build --no-default-features`.
-default = ["updater"]
+default = ["updater", "sync_v2"]
 updater = ["dep:tauri-plugin-updater"]
-# Multi-device sync + server account binding (Phase 1.f, RFC-003).
-# OFF for 1.5.0 — the bootstrap path has unresolved gaps (pre-v2
-# `payload_hash` not backfilled on upgrade, server-side track auto-
-# provision missing for legacy rows). When OFF, `mod sync` resolves
-# to a stub with no-op functions matching the real public API so the
-# ~70 emit call sites compile unchanged; the WS subscriber, drain
-# task, auto-backfill, HTTP client, digest computation and payload-
-# hash builder are all excluded from the binary. Re-enable in 1.6.0
-# once the heal migration + apply pipeline gaps close.
-sync_v1 = []
+# Remote music source + user-data sync v2 (RFC-005). Now ON by default —
+# the remote-source surface is promoted into shipped builds. A build that
+# wants to compile it out (e.g. to trim binary size) can still opt out via
+# `--no-default-features` + re-adding `updater`. The `sync_v1` protocol it
+# replaced was removed in the RFC-005 cutover (the server no longer speaks
+# it); `mod sync` is now permanently the no-op stub so the ~70 CRUD emit
+# call sites still compile, and v2 does not touch them — local-entity CRUD
+# is no longer synchronized.
+sync_v2 = []
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

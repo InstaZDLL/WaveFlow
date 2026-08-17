@@ -28,7 +28,11 @@ import { Window as TauriWindow } from "@tauri-apps/api/window";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
-import { isRadioTrack } from "../../lib/playerSources";
+import {
+  isRadioTrack,
+  isRemoteTrack,
+  isStreamTrack,
+} from "../../lib/playerSources";
 import { Artwork } from "../common/Artwork";
 import { resolveArtwork } from "../../lib/tauri/artwork";
 import { dominantColor, darken, rgb } from "../../lib/dominantColor";
@@ -444,6 +448,7 @@ export function MiniPlayer() {
             onNext={next}
             onCycleRepeat={cycleRepeatMode}
             onToggleShuffle={toggleShuffle}
+            shuffleDisabled={isRemoteTrack(currentTrack)}
             artworkSlot={
               currentTrack ? (
                 <Artwork
@@ -506,7 +511,7 @@ export function MiniPlayer() {
                   }
                 />
               </button>
-            ) : currentTrack && !isSpotify && !isRadioTrack(currentTrack) ? (
+            ) : currentTrack && !isSpotify && !isStreamTrack(currentTrack) ? (
               // Guard the radio sentinel track (negative id) during the
               // hydration race / idle tail — no ♥ like without a library
               // row. `currentTrack &&` also drops the disabled ♥ when
@@ -647,6 +652,8 @@ interface CoverWithControlsProps {
   onNext: () => void;
   onCycleRepeat: () => void;
   onToggleShuffle: () => void;
+  /** Remote-queue tracks have no shuffle (matches PlaybackControls). */
+  shuffleDisabled: boolean;
   artworkSlot: React.ReactNode;
 }
 
@@ -662,6 +669,7 @@ function CoverWithControls({
   onNext,
   onCycleRepeat,
   onToggleShuffle,
+  shuffleDisabled,
   artworkSlot,
 }: CoverWithControlsProps) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -684,6 +692,7 @@ function CoverWithControls({
             onClick={onToggleShuffle}
             label="shuffle"
             active={isShuffled}
+            disabled={shuffleDisabled}
           >
             <Shuffle size={14} />
           </IconButton>
@@ -726,19 +735,22 @@ function IconButton({
   onClick,
   label,
   active,
+  disabled,
   children,
 }: {
   onClick: () => void;
   label: string;
   active?: boolean;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={label}
-      className={`p-2 rounded-full transition-colors ${
+      className={`p-2 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
         active
           ? "text-emerald-400 hover:bg-white/10"
           : "text-white/80 hover:text-white hover:bg-white/10"

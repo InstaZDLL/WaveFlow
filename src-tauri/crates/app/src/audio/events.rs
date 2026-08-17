@@ -41,6 +41,22 @@ pub struct RadioMetadataPayload {
     pub station_name: Option<String>,
     pub station_artist: Option<String>,
     pub station_artwork: Option<String>,
+    /// `true` when this URL stream is a track from the remote play queue
+    /// (RFC-005), not a live radio station. Both share the `LoadUrlAndPlay`
+    /// path and a negative id, so the frontend cannot tell them apart from
+    /// the payload alone: a radio session is a single stream with next /
+    /// previous disabled, a remote track is one entry of a queue that
+    /// advances. The decoder sets this by reading whether a remote session
+    /// is active at emit time.
+    pub is_remote: bool,
+    /// Track length in ms for a remote-queue entry, when known — lets the
+    /// PlayerBar draw a bounded progress bar with a total time. `None` for
+    /// live radio, whose timeline is open-ended.
+    pub duration_ms: Option<i64>,
+    /// Artwork hash for a remote-queue track. The frontend fetches it
+    /// (Bearer-only endpoint) as a data URL for the cover; `None` for radio,
+    /// which paints its own station favicon / Deezer lookup instead.
+    pub artwork_hash: Option<String>,
 }
 
 /// Last emitted radio metadata, kept process-wide so a webview that

@@ -2491,6 +2491,93 @@ pub async fn fetch_radio_lyrics(
     }
 }
 
+/// Fetch lyrics for a now-playing remote-source track (RFC-005).
+///
+/// The server is the priority source (`GET /api/v2/tracks/{id}/lyrics`,
+/// which serves the embedded + sidecar lyrics its scanner extracted); on a
+/// miss we fall back to LRCLIB + the query chain, searched by artist +
+/// title (`external_lyrics_search` / `external_query`) — the duration is
+/// carried on the meta but not part of the query. Unlike radio, a remote
+/// track has a stable identity and a known length, so its lyrics CAN be
+/// synced and the panel renders them so.
+///
+/// `track_id` is the negative sentinel echoed into the payload for the
+/// frontend; `remote_track_id` is the server UUID the lyrics are keyed by.
+/// Not cached: remote playback is necessarily online, so a re-query is
+/// cheap and always current.
+#[cfg(feature = "sync_v2")]
+#[tauri::command]
+pub async fn fetch_remote_lyrics(
+    state: tauri::State<'_, AppState>,
+    remote_track_id: String,
+    artist: String,
+    title: String,
+    duration_ms: i64,
+    track_id: i64,
+) -> AppResult<Option<LyricsPayload>> {
+    // 1. Server first — the priority source.
+    if let Some(server) =
+        crate::remote::lyrics::fetch_server_lyrics(&state, &remote_track_id).await?
+    {
+        return Ok(Some(LyricsPayload {
+            track_id,
+            content: server.content,
+            format: if server.synced {
+                LyricsFormat::Lrc
+            } else {
+                LyricsFormat::Plain
+            },
+            source: LyricsSource::Api,
+            // The server itself, not one of the query providers.
+            provider: None,
+            tag_write_skipped: None,
+            sidecar_write_skipped: None,
+        }));
+    }
+
+    // 2. LRCLIB (+ query fallback chain) by name — needs an artist + title.
+    let artist = artist.trim();
+    let title = title.trim();
+    if artist.is_empty() || title.is_empty() || crate::offline::is_offline() {
+        return Ok(None);
+    }
+    let meta = TrackMeta {
+        file_path: String::new(),
+        file_hash: String::new(),
+        title: title.to_string(),
+        artist_name: Some(artist.to_string()),
+        album_title: None,
+        duration_ms,
+    };
+    let providers = vec![
+        Provider::Lrclib,
+        Provider::NetEase,
+        Provider::Megalobiz,
+        Provider::Genius,
+    ];
+    match external_lyrics_search(&meta, providers, SearchMode::PreferSynced, false, None).await {
+        Ok(SearchOutcome::Found(r)) => {
+            let format = external_format_to_app(r.format);
+            let provider = r.provider.as_str().to_string();
+            Ok(Some(LyricsPayload {
+                track_id,
+                content: r.content,
+                format,
+                source: LyricsSource::Api,
+                provider: Some(provider),
+                tag_write_skipped: None,
+                sidecar_write_skipped: None,
+            }))
+        }
+        // Miss / unavailable / transient error → nothing to show.
+        Ok(_) => Ok(None),
+        Err(err) => {
+            tracing::warn!(?err, "remote lyrics fallback search failed");
+            Ok(None)
+        }
+    }
+}
+
 /// Whitelist of language codes the Musixmatch translation endpoint
 /// accepts. Mirrors the union of locale codes WaveFlow ships UI for
 /// (CLAUDE.md "Language" section) — the 17 i18n locales — minus the

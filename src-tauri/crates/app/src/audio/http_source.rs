@@ -136,11 +136,25 @@ pub struct IcyContext {
 pub struct HttpMediaSource {
     /// Buffered reader over the response body. Wrapped in a `Mutex` to
     /// upgrade `reqwest::blocking::Response` from `Send` to `Send + Sync`
-    /// (required by [`MediaSource`]).
+    /// (required by [`MediaSource`]). Replaced wholesale on a seek, when a
+    /// fresh ranged GET reopens the body at the target byte.
     inner: Mutex<BufReader<Response>>,
-    /// Cached origin URL — only used in `Debug` impls / error messages
-    /// so a logged "read failed" line points at the offending stream.
+    /// Cached origin URL — reused to reissue ranged GETs on a seek, and in
+    /// error messages so a logged "read failed" line points at the stream.
     url: String,
+    /// The client kept alive so a seek can reissue a ranged GET on the same
+    /// connection pool / config as the initial open.
+    client: Client,
+    /// Current absolute byte offset into the body. Tracked on every read so
+    /// a `SeekFrom::Current` resolves, and reset to the target on a seek.
+    pos: u64,
+    /// Total body length from `Content-Length`, when the server sent one.
+    /// Enables `SeekFrom::End` and lets symphonia estimate a VBR duration.
+    len: Option<u64>,
+    /// Whether this stream can be seeked. True only for a finite,
+    /// range-capable file (a remote-queue track) — never for live radio,
+    /// whose bytes are produced on the wire and have no rewind.
+    seekable: bool,
     /// Bytes of audio between two ICY metadata blocks. `0` disables ICY
     /// handling entirely (no metadata interleaved → plain passthrough).
     metaint: usize,
@@ -163,7 +177,7 @@ impl HttpMediaSource {
     /// 404 / 502 surfaces as `Err` instead of producing a `MediaSource`
     /// that would only fail at the first `probe()` call.
     pub fn open(url: &str) -> Result<Self, String> {
-        Self::open_inner(url, None)
+        Self::open_inner(url, None, false)
     }
 
     /// Open a streaming HTTP GET that also requests + de-interleaves ICY
@@ -171,10 +185,20 @@ impl HttpMediaSource {
     /// whenever the live `StreamTitle` changes. Falls back transparently
     /// to passthrough when the server ignores `Icy-MetaData: 1`.
     pub fn open_with_icy(url: &str, icy: IcyContext) -> Result<Self, String> {
-        Self::open_inner(url, Some(icy))
+        Self::open_inner(url, Some(icy), false)
     }
 
-    fn open_inner(url: &str, icy: Option<IcyContext>) -> Result<Self, String> {
+    /// Open a finite, range-capable file for **seekable** playback — a
+    /// remote-queue track streamed from the server. No ICY (a file carries
+    /// none); the source advertises `is_seekable()` when the server sent
+    /// `Accept-Ranges: bytes` and a length, so the PlayerBar scrubber can
+    /// drive a real `format.seek`. Degrades to forward-only if the server
+    /// doesn't answer ranges — playback still works, only scrubbing won't.
+    pub fn open_seekable(url: &str) -> Result<Self, String> {
+        Self::open_inner(url, None, true)
+    }
+
+    fn open_inner(url: &str, icy: Option<IcyContext>, want_seek: bool) -> Result<Self, String> {
         // Offline short-circuit at the HTTP boundary itself. The decoder
         // already gates `LoadUrlAndPlay` on this before reaching here, but
         // guarding the source too makes it self-honouring for any future
@@ -224,9 +248,31 @@ impl HttpMediaSource {
             0
         };
 
+        // Seekability is a property of a finite, range-capable body. Only
+        // consider it when the caller asked (a remote file, never radio),
+        // the server advertised byte ranges, gave a length, and isn't
+        // interleaving metadata (ICY and seeking are mutually exclusive).
+        let len = response.content_length();
+        let accepts_ranges = response
+            .headers()
+            .get(reqwest::header::ACCEPT_RANGES)
+            .and_then(|v| v.to_str().ok())
+            .map(|v| v.to_ascii_lowercase().contains("bytes"))
+            .unwrap_or(false);
+        let seekable = want_seek && metaint == 0 && accepts_ranges && len.is_some();
+        // Keep a length only for a seekable file. Radio must keep answering
+        // `byte_len() == None` exactly as before, even on the rare stream
+        // that sends a Content-Length, so symphonia never treats it as
+        // finite.
+        let len = if seekable { len } else { None };
+
         Ok(Self {
             inner: Mutex::new(BufReader::with_capacity(8 * 1024, response)),
             url: url.to_string(),
+            client,
+            pos: 0,
+            len,
+            seekable,
             metaint,
             bytes_until_meta: metaint,
             // Drop the sink when the server isn't interleaving — keeps
@@ -311,9 +357,13 @@ impl Read for HttpMediaSource {
             .lock()
             .map_err(|_| io::Error::other("http source mutex poisoned"))?;
 
-        // Passthrough fast path: no ICY interleaving on this stream.
+        // Passthrough fast path: no ICY interleaving on this stream. This
+        // is also the only path a seekable source takes, so advance the
+        // byte cursor here for `SeekFrom::Current`.
         if self.metaint == 0 {
-            return guard.read(buf);
+            let n = guard.read(buf)?;
+            self.pos += n as u64;
+            return Ok(n);
         }
         if buf.is_empty() {
             return Ok(0);
@@ -381,27 +431,81 @@ impl HttpMediaSource {
                 station_name: icy.station_name.clone(),
                 station_artist: icy.station_artist.clone(),
                 station_artwork: icy.artwork_url.clone(),
+                // ICY `StreamTitle` frames only come from a live shoutcast
+                // stream — a remote-queue track is a plain file with no ICY,
+                // so this re-emit path is always a radio station with an
+                // open-ended timeline.
+                is_remote: false,
+                duration_ms: None,
+                artwork_hash: None,
             },
         );
     }
 }
 
 impl Seek for HttpMediaSource {
-    fn seek(&mut self, _pos: SeekFrom) -> io::Result<u64> {
-        Err(io::Error::new(
-            io::ErrorKind::Unsupported,
-            "live HTTP stream is not seekable",
-        ))
+    /// Seek a finite, range-capable body by reopening it at the target byte
+    /// with a `Range` GET and swapping the reader. Live radio isn't
+    /// seekable, so it keeps returning `Unsupported` — symphonia checks
+    /// `is_seekable()` first, so this only fires for a remote file.
+    fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
+        if !self.seekable {
+            return Err(io::Error::new(
+                io::ErrorKind::Unsupported,
+                "live HTTP stream is not seekable",
+            ));
+        }
+        // Honour the process-wide offline switch: a seek reopens a socket.
+        if crate::offline::is_offline() {
+            return Err(io::Error::other("offline mode is enabled"));
+        }
+
+        let target = match pos {
+            SeekFrom::Start(n) => n,
+            SeekFrom::Current(delta) => (self.pos as i64 + delta).max(0) as u64,
+            SeekFrom::End(delta) => {
+                let len = self
+                    .len
+                    .ok_or_else(|| io::Error::other("seek from end: unknown length"))?;
+                (len as i64 + delta).max(0) as u64
+            }
+        };
+
+        let response = self
+            .client
+            .get(&self.url)
+            .header(reqwest::header::ACCEPT, "audio/*,*/*;q=0.8")
+            .header(reqwest::header::RANGE, format!("bytes={target}-"))
+            .send()
+            .map_err(|e| io::Error::other(format!("range get: {e}")))?;
+        // 206 = ranged answer; a 200 means the server ignored the range and
+        // is streaming from 0, which would silently corrupt the position —
+        // refuse it rather than play the wrong bytes.
+        if response.status() != reqwest::StatusCode::PARTIAL_CONTENT {
+            return Err(io::Error::other(format!(
+                "range not honoured: HTTP {}",
+                response.status().as_u16()
+            )));
+        }
+
+        let mut guard = self
+            .inner
+            .lock()
+            .map_err(|_| io::Error::other("http source mutex poisoned"))?;
+        *guard = BufReader::with_capacity(8 * 1024, response);
+        drop(guard);
+        self.pos = target;
+        Ok(target)
     }
 }
 
 impl MediaSource for HttpMediaSource {
     fn is_seekable(&self) -> bool {
-        false
+        self.seekable
     }
 
     fn byte_len(&self) -> Option<u64> {
-        None
+        self.len
     }
 }
 

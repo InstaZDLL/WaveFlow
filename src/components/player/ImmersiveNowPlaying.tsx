@@ -23,7 +23,7 @@ import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
 import { useCoverSlideshow } from "../../hooks/useCoverSlideshow";
 import { useArtistImage } from "../../hooks/useArtistImage";
-import { isRadioTrack } from "../../lib/playerSources";
+import { isRadioTrack, isStreamTrack } from "../../lib/playerSources";
 
 interface ImmersiveNowPlayingProps {
   /** Dismisses the immersive view (used after an artist navigation). */
@@ -123,7 +123,7 @@ export function ImmersiveNowPlaying({
   const slideshowEligible =
     !!currentTrack &&
     activeProvider !== "spotify" &&
-    !isRadioTrack(currentTrack);
+    !isStreamTrack(currentTrack);
   // Only enrich the artist (a network call the immersive view doesn't
   // otherwise make) when the slideshow could actually run — off by default,
   // never while a Canvas or motion cover owns the slot, and only for an
@@ -289,11 +289,11 @@ export function ImmersiveNowPlaying({
                     fill={stationFavorited ? "currentColor" : "none"}
                   />
                 </button>
-              ) : currentTrack && !isRadioTrack(currentTrack) ? (
-                // `!isRadioTrack` guards the hydration race + idle tail: a
-                // radio sentinel track (negative id) must never show a ♥
-                // like (no library row), even before `currentRadioStation`
-                // arrives.
+              ) : currentTrack && !isStreamTrack(currentTrack) ? (
+                // `!isStreamTrack` guards the hydration race + idle tail: a
+                // radio or remote-queue sentinel track (negative id) must
+                // never show a ♥ like (no library row), even before
+                // `currentRadioStation` arrives.
                 <button
                   type="button"
                   onClick={onToggleLike}

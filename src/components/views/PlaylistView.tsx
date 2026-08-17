@@ -21,7 +21,6 @@ import {
   Download,
   ArrowUpDown,
   Check,
-  // Share2, // re-enable when Share button restores in 1.6.0
 } from "lucide-react";
 import {
   DndContext,
@@ -50,7 +49,6 @@ import { ArtistLink } from "../common/ArtistLink";
 import { Tooltip } from "../common/Tooltip";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
-// import { ShareModal } from "../common/ShareModal"; // re-enable for 1.6.0
 import { HiResBadge } from "../common/HiResBadge";
 import { PlayingIndicator } from "../common/PlayingIndicator";
 import { SelectionActionBar } from "../common/SelectionActionBar";
@@ -176,9 +174,6 @@ export function PlaylistView({
     [playlistSort],
   );
   const [isEditOpen, setIsEditOpen] = useState(false);
-  // Share state + route-change reset removed alongside the share button
-  // mount (deferred to 1.6.0 with server account binding). Restore when
-  // ShareModal is re-introduced. See SettingsView ServerAccountCard comment.
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
@@ -656,21 +651,6 @@ export function PlaylistView({
                   </button>
                 </Tooltip>
 
-                {/* Public playlist share — DEFERRED to 1.6.0 alongside the
-                  server account binding (Settings → Intégrations). Mounting
-                  the button without a configured server only paints a 503-style
-                  error. Restore when sync ships. */}
-                {/* <Tooltip label={t("playlistView.actions.share")}>
-                  <button
-                    type="button"
-                    onClick={() => setIsShareOpen(true)}
-                    aria-label={t("playlistView.actions.share")}
-                    className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white"
-                  >
-                    <Share2 size={18} />
-                  </button>
-                </Tooltip> */}
-
                 <Tooltip
                   label={
                     confirmDelete
@@ -788,11 +768,6 @@ export function PlaylistView({
       />
 
       {trackContextMenu.render()}
-
-      {/* ShareModal deferred to 1.6.0 — see share button comment above.
-        <ShareModal playlistId={playlistId} playlistName={playlist.name}
-          isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} />
-      */}
 
       {playlistId != null && (
         <SelectionActionBar

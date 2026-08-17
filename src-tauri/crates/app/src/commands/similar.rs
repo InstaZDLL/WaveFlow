@@ -89,8 +89,6 @@ pub async fn get_similar_artists(
         return Ok(custom);
     }
 
-    let api_key = read_lastfm_api_key(&state).await?;
-
     // 1. Resolve the source artist's name + Deezer ID (used by the
     //    Deezer fallback path).
     let local: Option<(String, Option<i64>)> =
@@ -101,10 +99,27 @@ pub async fn get_similar_artists(
     let Some((source_name, source_deezer_id)) = local else {
         return Ok(Vec::new());
     };
-    let source_canonical = canonical_name(&source_name);
+
+    resolve_similar_by_name(&state, &pool, &artwork_dir, &source_name, source_deezer_id).await
+}
+
+/// Core similar-artists resolution keyed on an artist **name** rather than
+/// a local row, so a remote artist (RFC-005) gets the same discovery list.
+/// Owns the cache, the Last.fm → Deezer cascade, the library-match
+/// resolution and the Deezer picture enrichment. `source_deezer_id` is the
+/// known id when the caller has one (the local path), else `None`.
+async fn resolve_similar_by_name(
+    state: &AppState,
+    pool: &SqlitePool,
+    artwork_dir: &std::path::Path,
+    source_name: &str,
+    source_deezer_id: Option<i64>,
+) -> AppResult<Vec<SimilarArtistDto>> {
+    let source_canonical = canonical_name(source_name);
     if source_canonical.is_empty() {
         return Ok(Vec::new());
     }
+    let api_key = read_lastfm_api_key(state).await?;
 
     // 2. Cache check.
     let now = now_ms();
@@ -113,7 +128,7 @@ pub async fn get_similar_artists(
           WHERE name_canonical = ?",
     )
     .bind(&source_canonical)
-    .fetch_optional(&*pool)
+    .fetch_optional(pool)
     .await?;
 
     // Offline mode: hand back whatever the cache holds (even if
@@ -129,9 +144,9 @@ pub async fn get_similar_artists(
             serde_json::from_str(&payload).unwrap_or_default()
         } else {
             fetch_and_cache(
-                &pool,
+                pool,
                 api_key.as_deref(),
-                &source_name,
+                source_name,
                 &source_canonical,
                 source_deezer_id,
                 now,
@@ -140,9 +155,9 @@ pub async fn get_similar_artists(
         }
     } else {
         fetch_and_cache(
-            &pool,
+            pool,
             api_key.as_deref(),
-            &source_name,
+            source_name,
             &source_canonical,
             source_deezer_id,
             now,
@@ -173,7 +188,7 @@ pub async fn get_similar_artists(
         for c in &canonicals {
             q = q.bind(c);
         }
-        for (id, canon, url, hash) in q.fetch_all(&*pool).await? {
+        for (id, canon, url, hash) in q.fetch_all(pool).await? {
             // A placeholder cached before the #406 fix still carries a real
             // hash pointing at the grey-silhouette blob on disk. Drop it so
             // `picture_path` doesn't resurface it for library artists — the
@@ -192,7 +207,7 @@ pub async fn get_similar_artists(
     //    step Last.fm-configured users get a sea of grey stars for
     //    every similar artist that isn't already in their library.
     //    This step is a no-op when offline mode is on.
-    let metadata_map = enrich_with_deezer_pictures(&pool, &artwork_dir, &raw, now).await;
+    let metadata_map = enrich_with_deezer_pictures(pool, artwork_dir, &raw, now).await;
 
     let out = raw
         .into_iter()
@@ -208,7 +223,7 @@ pub async fn get_similar_artists(
             let picture_path = local
                 .and_then(|(_, hash)| hash.as_deref())
                 .or_else(|| meta.and_then(|(_, hash)| hash.as_deref()))
-                .and_then(|h| metadata_artwork::existing_path(&artwork_dir, h));
+                .and_then(|h| metadata_artwork::existing_path(artwork_dir, h));
             // When we have a metadata_artist entry it is authoritative:
             // its URL (real Deezer picture, or `None` for a genuinely
             // absent / filtered-placeholder one, #406) wins and must NOT
@@ -237,6 +252,28 @@ pub async fn get_similar_artists(
         })
         .collect();
     Ok(out)
+}
+
+/// Similar artists for a remote-source artist (RFC-005), keyed by name.
+///
+/// A remote artist has no local row, so this skips the curated-override
+/// and local-resolve steps of [`get_similar_artists`] and goes straight to
+/// the shared by-name core. Suggestions that happen to be in the user's
+/// library still resolve their `library_artist_id`, so the remote artist
+/// view can link those to the local artist page.
+#[cfg(feature = "sync_v2")]
+#[tauri::command]
+pub async fn get_similar_artists_by_name(
+    state: tauri::State<'_, AppState>,
+    name: String,
+) -> AppResult<Vec<SimilarArtistDto>> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Ok(Vec::new());
+    }
+    let pool = state.require_profile_pool().await?;
+    let artwork_dir = state.paths.metadata_artwork_dir.clone();
+    resolve_similar_by_name(&state, &pool, &artwork_dir, name, None).await
 }
 
 /// Read the user's curated similar list (issue #323) for `artist_id`,

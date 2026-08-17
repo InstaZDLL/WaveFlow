@@ -289,6 +289,11 @@ pub struct AppState {
     /// by how many distinct plugin ids the user ever touches in
     /// one session — sub-dozen for v1.5.0, no GC needed.
     pub plugin_locks: Arc<Mutex<HashMap<String, Arc<Mutex<()>>>>>,
+    /// The active remote play queue, if any (RFC-005). Streams its tracks
+    /// by URL rather than from `queue_item`; cleared the moment a library
+    /// track or a radio stream takes over. Always present — a stock build
+    /// simply never populates it (the command that does is `sync_v2`-gated).
+    pub remote_playback: crate::remote_playback::RemotePlayback,
 }
 
 impl AppState {
@@ -402,6 +407,7 @@ impl AppState {
             ws: Arc::new(crate::sync::ws::SubscribeHandle),
             plugins,
             plugin_locks: Arc::new(Mutex::new(HashMap::new())),
+            remote_playback: crate::remote_playback::RemotePlayback::default(),
         };
 
         state.bootstrap().await?;
@@ -519,6 +525,12 @@ impl AppState {
             *guard = Some(ActiveProfile::new(profile_id, pool));
             previous
         };
+        // Only now that the swap has actually happened: drop any remote play
+        // session so the incoming profile can't observe playback state (queue,
+        // cursor) belonging to the previous one (RFC-005). Done after the
+        // fallible setup above so a failed `ensure_profile_dirs` / `open`
+        // leaves the current session intact.
+        self.remote_playback.clear();
         if let Some(previous) = previous {
             previous.close_when_idle().await;
         }
@@ -529,6 +541,9 @@ impl AppState {
     /// Close the active profile pool, if any, leaving no profile active.
     /// Waits for outstanding leases first, same as [`Self::activate_profile`].
     pub async fn deactivate_profile(&self) {
+        // Same reason as activate_profile: no remote session may outlive the
+        // profile whose tracks it points at (RFC-005).
+        self.remote_playback.clear();
         let previous = {
             let mut guard = self.profile.write().await;
             guard.take()

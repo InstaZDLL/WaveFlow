@@ -179,6 +179,16 @@ pub(crate) fn emit_track_changed(
     track: &QueueTrack,
     profile_id: Option<i64>,
 ) {
+    // A library track is now current, so any remote play queue the user
+    // was on is over. This is the single choke point every local-start
+    // path funnels through (play_tracks / next / previous / jump /
+    // auto-advance / the non-frontend surfaces), which is why the clear
+    // lives here rather than being repeated at each one. Remote playback
+    // never reaches this function — it drives the engine by URL and never
+    // builds a `QueueTrack` — so it never clears itself out from under.
+    if let Some(state) = app.try_state::<AppState>() {
+        state.remote_playback.clear();
+    }
     let payload = queue_track_to_payload_with_paths(paths, track.clone(), profile_id);
     let tooltip = match payload.artist_name.as_deref() {
         Some(artist) if !artist.is_empty() => format!("{} — {}", payload.title, artist),
@@ -1722,6 +1732,13 @@ pub async fn player_next(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
 ) -> AppResult<()> {
+    // A remote play queue takes over next/previous while it is active: its
+    // tracks stream by URL and have no row in the local `queue_item` table.
+    #[cfg(feature = "sync_v2")]
+    if state.remote_playback.is_active() {
+        crate::remote::playback::advance(&app, Direction::Next).await?;
+        return Ok(());
+    }
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();
     let repeat = queue::read_repeat_mode(&pool).await;
@@ -1763,8 +1780,15 @@ pub async fn player_previous(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
 ) -> AppResult<()> {
+    // Same restart-vs-step rule as the local queue applies to a remote
+    // one: past 3 s, "previous" restarts the current track.
     if engine.shared().current_position_ms() > 3000 {
         return engine.send(AudioCmd::Seek(0));
+    }
+    #[cfg(feature = "sync_v2")]
+    if state.remote_playback.is_active() {
+        crate::remote::playback::advance(&app, Direction::Previous).await?;
+        return Ok(());
     }
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();
@@ -1797,7 +1821,7 @@ pub async fn player_previous(
 /// the active row" check.
 static RADIO_TRACK_ID: AtomicI64 = AtomicI64::new(0);
 
-fn next_radio_track_id() -> i64 {
+pub(crate) fn next_radio_track_id() -> i64 {
     // `fetch_sub` returns the value *before* the subtraction. We want
     // strictly-negative ids; sub then read.
     RADIO_TRACK_ID.fetch_sub(1, AtomicOrdering::Relaxed) - 1
@@ -1850,6 +1874,13 @@ pub async fn player_play_url(
     if crate::offline::is_offline() {
         tracing::warn!("player_play_url short-circuited: offline mode enabled");
         return Err(AppError::Other("offline mode is enabled".into()));
+    }
+
+    // Starting a radio stream ends any remote play queue. Radio takes the
+    // URL path too, so it never passes through `emit_track_changed` where
+    // the clear otherwise happens — clear it here explicitly.
+    if let Some(state) = app.try_state::<AppState>() {
+        state.remote_playback.clear();
     }
 
     let track_id = next_radio_track_id();

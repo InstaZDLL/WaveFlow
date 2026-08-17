@@ -153,5 +153,17 @@ export function enrichArtistDeezer(
   return invoke<DeezerArtistEnrichment>("enrich_artist_deezer", { artistId });
 }
 
+/**
+ * Enrich an artist by name (Deezer photo + TheAudioDB hero background +
+ * Last.fm bio) — for a remote artist (RFC-005) with no local row. Same
+ * shared cache as {@link enrichArtistDeezer}; returns empties offline or
+ * when nothing matches.
+ */
+export function enrichArtistByName(
+  name: string,
+): Promise<DeezerArtistEnrichment> {
+  return invoke<DeezerArtistEnrichment>("enrich_artist_by_name", { name });
+}
+
 // Re-export Track so views can import everything from one place.
 export type { Track };

@@ -17,3 +17,15 @@ export interface SimilarArtist {
 export function getSimilarArtists(artistId: number): Promise<SimilarArtist[]> {
   return invoke<SimilarArtist[]>("get_similar_artists", { artistId });
 }
+
+/**
+ * Similar artists by name — for a remote-source artist (RFC-005) with no
+ * local row. Same Last.fm → Deezer cascade + picture enrichment as
+ * {@link getSimilarArtists}; suggestions in the user's library still
+ * resolve their `library_artist_id`. `sync_v2` builds only.
+ */
+export function getSimilarArtistsByName(
+  name: string,
+): Promise<SimilarArtist[]> {
+  return invoke<SimilarArtist[]>("get_similar_artists_by_name", { name });
+}

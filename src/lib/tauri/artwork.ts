@@ -37,10 +37,18 @@ export function resolveArtwork(
     if (k === "remoteUrl") return v;
     // Spotify (and any future remote provider) feeds CDN URLs into
     // the same `full` slot the local scanner uses for filesystem
-    // paths. Detect them and return verbatim — convertFileSrc would
-    // try to wrap them as `asset://https://...` which Tauri's asset
-    // protocol rightly rejects.
-    if (v.startsWith("http://") || v.startsWith("https://")) return v;
+    // paths. Remote-server covers (RFC-005) arrive already inlined as
+    // `data:` URLs — their endpoint is Bearer-only, so they're fetched
+    // once and embedded rather than linked. Both return verbatim:
+    // convertFileSrc would wrap them as `asset://https://…` /
+    // `asset://data:…`, which Tauri's asset protocol rightly rejects.
+    if (
+      v.startsWith("http://") ||
+      v.startsWith("https://") ||
+      v.startsWith("data:")
+    ) {
+      return v;
+    }
     const cached = getCachedUrl(v);
     if (cached) return cached;
     const url = convertFileSrc(v);
