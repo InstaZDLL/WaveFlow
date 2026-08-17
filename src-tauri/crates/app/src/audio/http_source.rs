@@ -360,8 +360,16 @@ fn split_artist_title(raw: &str) -> (String, Option<String>) {
 fn parse_content_range_start(value: &str) -> Option<u64> {
     let rest = value.trim().strip_prefix("bytes ")?;
     let range = rest.split('/').next()?; // "<start>-<end>"
-    let start = range.split('-').next()?; // "<start>"
-    start.trim().parse::<u64>().ok()
+    // A 206 always carries BOTH bounds — an open-ended "<start>-" is only
+    // valid in a *request* Range, so a missing end means a malformed
+    // response. Require both, and reject a start that runs past the end.
+    let (start, end) = range.split_once('-')?;
+    let start = start.trim().parse::<u64>().ok()?;
+    let end = end.trim().parse::<u64>().ok()?;
+    if start > end {
+        return None;
+    }
+    Some(start)
 }
 
 impl Read for HttpMediaSource {
@@ -674,12 +682,16 @@ mod tests {
             Some(200)
         );
         assert_eq!(parse_content_range_start("bytes 0-99/100"), Some(0));
-        // An open-ended satisfied range still carries the start.
-        assert_eq!(parse_content_range_start("bytes 512-/2048"), Some(512));
+        // Unknown total ("*") is fine as long as both bounds are present.
+        assert_eq!(parse_content_range_start("bytes 512-1023/*"), Some(512));
     }
 
     #[test]
     fn parse_content_range_start_rejects_unusable_shapes() {
+        // Missing end bound — only valid in a request Range, not a 206.
+        assert_eq!(parse_content_range_start("bytes 512-/2048"), None);
+        // Start past end.
+        assert_eq!(parse_content_range_start("bytes 100-50/200"), None);
         // Unsatisfied range → no start byte.
         assert_eq!(parse_content_range_start("bytes */1024"), None);
         // Wrong unit.

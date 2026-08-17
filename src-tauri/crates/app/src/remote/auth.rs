@@ -253,8 +253,24 @@ fn wait_for_code(server: Server, expected_state: &str) -> AppResult<String> {
             continue;
         }
 
-        let parsed = serde_urlencoded::from_str::<CallbackQuery>(query)
-            .map_err(|err| AppError::Other(format!("could not read the callback: {err}")))?;
+        let parsed = match serde_urlencoded::from_str::<CallbackQuery>(query) {
+            Ok(parsed) => parsed,
+            Err(_) => {
+                // A query we cannot read is not our callback — keep waiting
+                // rather than aborting the sign-in on a stray request.
+                let _ = request.respond(Response::empty(404));
+                continue;
+            }
+        };
+
+        // Nothing actionable — no authorization code and no error. A bare
+        // hit to the callback path (a prefetch, a manual visit) is not a
+        // completed sign-in, so ignore it and keep waiting; a real callback
+        // still carries one of the two.
+        if parsed.code.is_none() && parsed.error.is_none() {
+            let _ = request.respond(Response::empty(404));
+            continue;
+        }
 
         return match (parsed.code, parsed.error, parsed.state.as_deref()) {
             // `error` absent is part of the success condition on purpose:
