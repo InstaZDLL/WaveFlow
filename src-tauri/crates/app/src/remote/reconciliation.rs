@@ -144,6 +144,14 @@ struct ExistingLink {
     verified_full_hash: Option<String>,
 }
 
+#[derive(Debug)]
+struct PlaylistLinkProof {
+    local_track_id: i64,
+    file_path: String,
+    verified_full_hash: Option<String>,
+    remote_full_hash: Option<String>,
+}
+
 fn now_ms() -> i64 {
     Utc::now().timestamp_millis()
 }
@@ -265,6 +273,45 @@ fn hash_local_tracks(tracks: Vec<LocalTrack>) -> (Vec<HashedLocalTrack>, usize) 
         }
     }
     (hashed, unreadable)
+}
+
+async fn playlist_link_freshness(proofs: Vec<PlaylistLinkProof>) -> AppResult<HashMap<i64, bool>> {
+    tokio::task::spawn_blocking(move || {
+        let mut freshness = HashMap::new();
+        for proof in proofs {
+            if freshness.contains_key(&proof.local_track_id) {
+                continue;
+            }
+            let expected = proof
+                .verified_full_hash
+                .as_deref()
+                .filter(|value| valid_full_hash(value));
+            let remote = proof
+                .remote_full_hash
+                .as_deref()
+                .filter(|value| valid_full_hash(value));
+            let fresh = match (expected, remote) {
+                (Some(expected), Some(remote)) if expected.eq_ignore_ascii_case(remote) => {
+                    match waveflow_core::scanner::hash_file_full(Path::new(&proof.file_path)) {
+                        Ok(current) => current.eq_ignore_ascii_case(expected),
+                        Err(err) => {
+                            tracing::warn!(
+                                local_track_id = proof.local_track_id,
+                                error = %err,
+                                "playlist conversion could not revalidate local track"
+                            );
+                            false
+                        }
+                    }
+                }
+                _ => false,
+            };
+            freshness.insert(proof.local_track_id, fresh);
+        }
+        freshness
+    })
+    .await
+    .map_err(|err| AppError::Other(format!("reconciliation hash task failed: {err}")))
 }
 
 async fn reconcile(
@@ -737,33 +784,50 @@ async fn preview_playlist_conversion_on(
                 ));
             }
             let rows = sqlx::query(
-                "SELECT pt.position, t.id AS local_track_id, t.title, t.is_available,
-                        l.remote_track_id, l.status,
-                        EXISTS(SELECT 1 FROM remote_track rt
-                                WHERE rt.remote_id = l.remote_track_id) AS remote_visible
+                "SELECT pt.position, t.id AS local_track_id, t.title, t.file_path,
+                        t.is_available, l.remote_track_id, l.status,
+                        l.verified_full_hash, rt.full_hash AS remote_full_hash,
+                        rt.remote_id IS NOT NULL AS remote_visible
                    FROM playlist_track pt
                    JOIN track t ON t.id = pt.track_id
                    LEFT JOIN remote_track_link l ON l.local_track_id = t.id
+                   LEFT JOIN remote_track rt ON rt.remote_id = l.remote_track_id
                   WHERE pt.playlist_id = ?
                   ORDER BY pt.position, t.id",
             )
             .bind(playlist_id)
             .fetch_all(&mut *conn)
             .await?;
+            let mut proofs = Vec::new();
+            for row in &rows {
+                if row.try_get::<i64, _>("is_available")? != 0 {
+                    proofs.push(PlaylistLinkProof {
+                        local_track_id: row.try_get("local_track_id")?,
+                        file_path: row.try_get("file_path")?,
+                        verified_full_hash: row.try_get("verified_full_hash")?,
+                        remote_full_hash: row.try_get("remote_full_hash")?,
+                    });
+                }
+            }
+            let freshness = playlist_link_freshness(proofs).await?;
             let items = rows
                 .into_iter()
                 .map(|row| {
+                    let local_track_id: i64 = row.try_get("local_track_id")?;
                     let remote_track_id: Option<String> = row.try_get("remote_track_id")?;
                     let link_status: Option<String> = row.try_get("status")?;
                     let local_available = row.try_get::<i64, _>("is_available")? != 0;
                     let remote_visible = row.try_get::<i64, _>("remote_visible")? != 0;
-                    let status = if link_status.as_deref() == Some(STATUS_CONFIRMED)
+                    let confirmed_context = link_status.as_deref() == Some(STATUS_CONFIRMED)
                         && remote_track_id.is_some()
                         && local_available
-                        && remote_visible
-                    {
+                        && remote_visible;
+                    let fresh = freshness.get(&local_track_id).copied().unwrap_or(false);
+                    let status = if confirmed_context && fresh {
                         STATUS_CONFIRMED
-                    } else if link_status.as_deref() == Some(STATUS_STALE) {
+                    } else if link_status.as_deref() == Some(STATUS_STALE)
+                        || (confirmed_context && !fresh)
+                    {
                         STATUS_STALE
                     } else {
                         "unlinked_or_ambiguous"
@@ -771,7 +835,7 @@ async fn preview_playlist_conversion_on(
                     Ok(PlaylistConversionItem {
                         position: row.try_get("position")?,
                         title: row.try_get("title")?,
-                        local_track_id: Some(row.try_get("local_track_id")?),
+                        local_track_id: Some(local_track_id),
                         remote_track_id,
                         status: status.to_string(),
                     })
@@ -787,19 +851,32 @@ async fn preview_playlist_conversion_on(
                 .ok_or_else(|| AppError::Other("server playlist not found".into()))?;
             let rows = sqlx::query(
                 "SELECT rpt.position, rpt.track_remote_id, rt.title,
-                        l.local_track_id, l.status,
+                        l.local_track_id, l.status, l.verified_full_hash,
+                        rt.full_hash AS remote_full_hash, t.file_path,
                         rt.remote_id IS NOT NULL AS remote_visible,
-                        EXISTS(SELECT 1 FROM track t
-                                WHERE t.id = l.local_track_id AND t.is_available = 1) AS local_visible
+                        t.id IS NOT NULL AND t.is_available = 1 AS local_visible
                    FROM remote_playlist_track rpt
                    LEFT JOIN remote_track rt ON rt.remote_id = rpt.track_remote_id
                    LEFT JOIN remote_track_link l ON l.remote_track_id = rpt.track_remote_id
+                   LEFT JOIN track t ON t.id = l.local_track_id
                   WHERE rpt.playlist_remote_id = ?
                   ORDER BY rpt.position",
             )
             .bind(source_id)
             .fetch_all(&mut *conn)
             .await?;
+            let mut proofs = Vec::new();
+            for row in &rows {
+                if row.try_get::<i64, _>("local_visible")? != 0 {
+                    proofs.push(PlaylistLinkProof {
+                        local_track_id: row.try_get("local_track_id")?,
+                        file_path: row.try_get("file_path")?,
+                        verified_full_hash: row.try_get("verified_full_hash")?,
+                        remote_full_hash: row.try_get("remote_full_hash")?,
+                    });
+                }
+            }
+            let freshness = playlist_link_freshness(proofs).await?;
             let mut seen_local = HashSet::new();
             let items = rows
                 .into_iter()
@@ -808,17 +885,23 @@ async fn preview_playlist_conversion_on(
                     let link_status: Option<String> = row.try_get("status")?;
                     let remote_visible = row.try_get::<i64, _>("remote_visible")? != 0;
                     let local_visible = row.try_get::<i64, _>("local_visible")? != 0;
-                    let status = if let Some(local_track_id) = local_track_id.filter(|_| {
-                        link_status.as_deref() == Some(STATUS_CONFIRMED)
-                            && remote_visible
-                            && local_visible
-                    }) {
+                    let fresh = local_track_id
+                        .and_then(|id| freshness.get(&id).copied())
+                        .unwrap_or(false);
+                    let confirmed_context = link_status.as_deref() == Some(STATUS_CONFIRMED)
+                        && remote_visible
+                        && local_visible;
+                    let status = if let Some(local_track_id) =
+                        local_track_id.filter(|_| confirmed_context && fresh)
+                    {
                         if seen_local.insert(local_track_id) {
                             STATUS_CONFIRMED
                         } else {
                             "duplicate"
                         }
-                    } else if link_status.as_deref() == Some(STATUS_STALE) {
+                    } else if link_status.as_deref() == Some(STATUS_STALE)
+                        || (confirmed_context && !fresh)
+                    {
                         STATUS_STALE
                     } else {
                         "unlinked_or_ambiguous"
@@ -1349,6 +1432,17 @@ mod tests {
             .unwrap();
         assert!(ready.can_convert);
 
+        fs::write(&first, b"other bytes").unwrap();
+        let changed_without_discover = preview_playlist_conversion(&pool, "local_to_server", "10")
+            .await
+            .unwrap();
+        assert!(!changed_without_discover.can_convert);
+        assert_eq!(changed_without_discover.items[0].status, "stale");
+        assert!(convert_playlist(&pool, "local_to_server", "10")
+            .await
+            .is_err());
+        fs::write(&first, b"first bytes").unwrap();
+
         let result = convert_playlist(&pool, "local_to_server", "10")
             .await
             .unwrap();
@@ -1399,6 +1493,18 @@ mod tests {
             .unwrap();
         assert!(!duplicate.can_convert);
         assert_eq!(duplicate.items[1].status, "duplicate");
+
+        fs::write(&first, b"other bytes").unwrap();
+        let changed_without_discover =
+            preview_playlist_conversion(&pool, "server_to_local", "valid")
+                .await
+                .unwrap();
+        assert!(!changed_without_discover.can_convert);
+        assert_eq!(changed_without_discover.items[1].status, "stale");
+        assert!(convert_playlist(&pool, "server_to_local", "valid")
+            .await
+            .is_err());
+        fs::write(&first, b"first bytes").unwrap();
 
         sqlx::query("UPDATE track SET is_available = 0 WHERE id = 2")
             .execute(&pool)
