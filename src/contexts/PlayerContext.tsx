@@ -198,6 +198,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [volume, setVolumeState] = useState(80);
   const previousVolumeRef = useRef(80);
   const volumeDebounceRef = useRef<number | null>(null);
+  // Timestamp of the last volume change made *in this window*. While the
+  // user is working the slider here, `player:volume-changed` echoes of
+  // our own (debounced, so possibly stale) pushes must not yank it back
+  // — see the listener below.
+  const lastLocalVolumeWriteRef = useRef(0);
 
   // Shuffle / repeat — local for checkpoint 11, backend-wired in CP12
   const [isShuffled, setIsShuffled] = useState(false);
@@ -418,6 +423,22 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           ),
         );
         unlisten.push(
+          // Volume changed anywhere — the other window's slider, the
+          // mini-player, an external surface. One engine, one volume, so
+          // every window has to follow.
+          //
+          // Our own pushes echo back here too, and they're debounced:
+          // during a drag an echo can carry a value the user has already
+          // moved past. So the window that just touched the slider keeps
+          // authority for a moment and ignores what comes back.
+          await listen<{ volume: number }>("player:volume-changed", (e) => {
+            if (Date.now() - lastLocalVolumeWriteRef.current < 500) return;
+            const next = Math.max(0, Math.min(100, Math.round(e.payload.volume * 100)));
+            setVolumeState(next);
+            if (next > 0) previousVolumeRef.current = next;
+          }),
+        );
+        unlisten.push(
           await listen<QueueTrackPayload>("player:track-changed", (e) => {
             setActiveProvider("local");
             // Backend just selected a new track (via play_tracks,
@@ -505,6 +526,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     (value: number) => {
       const clamped = Math.max(0, Math.min(100, Math.round(value)));
       setVolumeState(clamped);
+      lastLocalVolumeWriteRef.current = Date.now();
       if (clamped > 0) previousVolumeRef.current = clamped;
 
       if (volumeDebounceRef.current != null) {
@@ -537,6 +559,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toggleMute = useCallback(() => {
+    lastLocalVolumeWriteRef.current = Date.now();
     setVolumeState((current) => {
       const next = current > 0 ? 0 : previousVolumeRef.current || 50;
       if (current > 0) previousVolumeRef.current = current;
