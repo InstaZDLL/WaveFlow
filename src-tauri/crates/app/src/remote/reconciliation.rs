@@ -261,6 +261,29 @@ fn empty_report(cancelled: bool) -> ReconciliationReport {
     }
 }
 
+/// Atomically leave the cancellable `STAGING` phase at a terminal / commit
+/// point. Returns `Some(cancelled_report)` when a cancel already won the
+/// `STAGING → CANCELLED` race and the caller must bail without persisting;
+/// `None` to proceed. On the non-cancellable path it is always `None`. Using
+/// this at every terminal point — the empty-remote early return and the
+/// pre-commit gate in [`reconcile`] alike — keeps `request_cancel`'s
+/// authoritative `true` consistent with the report's `cancelled` flag.
+fn take_commit_slot(cancellable: bool) -> Option<ReconciliationReport> {
+    if cancellable
+        && RECONCILE_PHASE
+            .compare_exchange(
+                PHASE_STAGING,
+                PHASE_COMMITTING,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            )
+            .is_err()
+    {
+        return Some(empty_report(true));
+    }
+    None
+}
+
 /// Test-only convenience entry: run the discovery pipeline with no progress
 /// events and no cancellation. Production always goes through
 /// [`discover_with_progress`].
@@ -314,7 +337,10 @@ async fn discover_inner(
 ) -> AppResult<ReconciliationReport> {
     let remote_tracks = load_remote_tracks(pool).await?;
     if remote_tracks.is_empty() {
-        return Ok(empty_report(false));
+        // Nothing to reconcile, but this is still a terminal point: arbitrate
+        // the phase exactly like `reconcile` so a cancel that raced this path is
+        // reported consistently instead of as a plain empty result.
+        return Ok(take_commit_slot(cancellable).unwrap_or_else(|| empty_report(false)));
     }
 
     let local_tracks = load_local_candidates(pool).await?;
@@ -679,26 +705,16 @@ async fn reconcile(
         }
     }
 
-    // Atomically leave the cancellable phase right before persisting. This is
-    // the single point that arbitrates the cancel-vs-commit race: only
+    // Atomically leave the cancellable phase right before persisting: only
     // `STAGING → COMMITTING` lets the commit through, and it fails exactly when
     // a `request_cancel` already won `STAGING → CANCELLED`. On failure we drop
     // `tx` (rollback) so a cancelled run persists nothing, and `request_cancel`
     // — having observed STAGING — returned an authoritative `true`. The
     // no-progress/test path (`cancellable == false`) never entered STAGING and
     // always commits. All writes are staged in `tx`, so rollback leaves nothing.
-    if cancellable
-        && RECONCILE_PHASE
-            .compare_exchange(
-                PHASE_STAGING,
-                PHASE_COMMITTING,
-                Ordering::SeqCst,
-                Ordering::SeqCst,
-            )
-            .is_err()
-    {
+    if let Some(cancelled) = take_commit_slot(cancellable) {
         tracing::info!("reconciliation scan cancelled before commit; rolling back");
-        return Ok(empty_report(true));
+        return Ok(cancelled);
     }
     tx.commit().await?;
     Ok(ReconciliationReport {
@@ -1474,6 +1490,20 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(rows, 0, "a cancelled hash must not persist any link");
+        RECONCILE_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
+    }
+
+    /// The empty-remote early return is a terminal point too: a cancel that
+    /// raced it must be reported as cancelled, not as a plain empty result.
+    #[tokio::test]
+    async fn cancel_with_empty_remote_reports_cancelled() {
+        let _serial = PHASE_TEST_LOCK.lock().await;
+        // `pool()` leaves `remote_track` empty, so `discover_inner` takes the
+        // early return without hashing or reconciling.
+        let pool = pool().await;
+        RECONCILE_PHASE.store(PHASE_CANCELLED, Ordering::SeqCst);
+        let report = discover_inner(&pool, None, true).await.unwrap();
+        assert!(report.cancelled, "a cancel racing the empty-remote path is reported");
         RECONCILE_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
     }
 
