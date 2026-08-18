@@ -7612,6 +7612,8 @@ dependencies = [
  "mac_address",
  "md-5",
  "notify",
+ "objc2-core-audio",
+ "objc2-core-audio-types",
  "quick-xml",
  "realfft",
  "regex",
