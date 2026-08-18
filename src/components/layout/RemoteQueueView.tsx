@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { usePlayer } from "../../hooks/usePlayer";
 import {
@@ -20,10 +21,11 @@ const REMOTE_QUEUE_ROW_HEIGHT = 56;
  * (whose jump / reorder act on the local queue). Same shape as
  * {@link SpotifyQueueView}: Now Playing + Up Next, click a row to jump.
  *
- * Not localized — behind the same off-by-default `sync_v2` feature as the
- * rest of the remote surface.
+ * Localized under the shared `remote.*` i18n namespace, like the rest of
+ * the remote surface.
  */
 export function RemoteQueueView() {
+  const { t } = useTranslation();
   const { currentTrack } = usePlayer();
   const [queue, setQueue] = useState<RemotePlayQueue | null>(null);
 
@@ -74,7 +76,7 @@ export function RemoteQueueView() {
   if (!queue || queue.entries.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-sm text-zinc-500">
-        Nothing queued.
+        {t("remote.queue.empty")}
       </div>
     );
   }
@@ -87,7 +89,7 @@ export function RemoteQueueView() {
       {nowPlaying && (
         <section className="shrink-0">
           <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-2 px-1">
-            Now playing
+            {t("remote.queue.nowPlaying")}
           </div>
           <RemoteQueueRow entry={nowPlaying} isCurrent />
         </section>
@@ -95,7 +97,7 @@ export function RemoteQueueView() {
       {upNextCount > 0 && (
         <section className="flex-1 flex flex-col min-h-0">
           <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-2 px-1">
-            Up next · {upNextCount}
+            {t("remote.queue.upNext")} · {upNextCount}
           </div>
           <div
             ref={scrollRef}
@@ -145,6 +147,7 @@ function RemoteQueueRow({
   top?: number;
   rowHeight?: number;
 }) {
+  const { t } = useTranslation();
   const style: React.CSSProperties | undefined =
     top != null && rowHeight != null
       ? {
@@ -176,7 +179,7 @@ function RemoteQueueRow({
               : "text-zinc-800 dark:text-zinc-200"
           }`}
         >
-          {entry.title ?? "Awaiting metadata…"}
+          {entry.title ?? t("remote.common.awaitingMetadata")}
         </div>
         <div className="text-xs text-zinc-500 truncate">
           {entry.artist ?? "—"}
