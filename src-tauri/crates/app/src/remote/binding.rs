@@ -356,10 +356,15 @@ mod tests {
         .execute(&mut *conn)
         .await
         .unwrap();
-        sqlx::query("INSERT INTO remote_track (remote_id, title) VALUES ('t1', 'Acc1 song')")
-            .execute(&mut *conn)
-            .await
-            .unwrap();
+        // `cached_at` is NOT NULL in the real schema this fixture runs, like
+        // the `starred_at` / `created_at` the neighbouring inserts already pass.
+        sqlx::query(
+            "INSERT INTO remote_track (remote_id, title, cached_at) \
+             VALUES ('t1', 'Acc1 song', 0)",
+        )
+        .execute(&mut *conn)
+        .await
+        .unwrap();
         sqlx::query(
             "INSERT INTO remote_mutation (operation_id, kind, payload, created_at) \
              VALUES ('op-1', 'set_favorite', '{}', 0)",
