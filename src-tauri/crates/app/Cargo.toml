@@ -290,9 +290,10 @@ windows = { version = "0.62", features = [
 ] }
 
 # macOS-only: opt-in bit-perfect native DSD via DoP (#495 / #497).
-# `coreaudio-rs` (lib name `coreaudio`) wraps Apple's CoreAudio HAL and
-# re-exports the raw `coreaudio-sys` bindings as `coreaudio::sys`, which
-# we need for the parts its safe layer doesn't cover (device hog mode).
+# `coreaudio-rs` (lib name `coreaudio`) wraps Apple's CoreAudio HAL. We
+# only use its safe `audio_unit::macos_helpers` layer — hog mode,
+# physical-format negotiation and the device-bound AudioUnit — all of
+# which 0.14.2 provides with default features, so no raw HAL bindings.
 # Target-gated, so the Windows + Linux bundles are untouched.
 [target.'cfg(target_os = "macos")'.dependencies]
 coreaudio-rs = "0.14"

@@ -26,6 +26,7 @@
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread::JoinHandle;
+use std::time::Duration;
 
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::macos_helpers::{
@@ -34,13 +35,18 @@ use coreaudio::audio_unit::macos_helpers::{
 };
 use coreaudio::audio_unit::render_callback::{data, Args};
 use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
-use crossbeam_channel::{bounded, Receiver, Sender};
+use crossbeam_channel::{bounded, Receiver, RecvTimeoutError, Sender};
 use rtrb::{Consumer, Producer, RingBuffer};
 use tauri::AppHandle;
 
 use super::output::{DopFormat, OutputHandle, RING_CAPACITY};
 use super::state::SharedPlayback;
 use crate::error::{AppError, AppResult};
+
+/// How often the parked output thread checks that its device still
+/// exists. Long enough to be free, short enough that an unplugged DAC
+/// surfaces before the user reaches for the mouse.
+const DEVICE_POLL_INTERVAL: Duration = Duration::from_secs(1);
 
 /// CoreAudio device handle. `coreaudio-rs` takes/returns the
 /// `objc2_core_audio::AudioDeviceID` type, which is a transparent alias
@@ -89,7 +95,7 @@ pub fn spawn_coreaudio_dop_output_thread(
                 join,
                 device_name,
                 wasapi_exclusive: false,
-                dop_rate: Some(dop.sample_rate),
+                dop: Some(dop),
             },
         )),
         Ok(Err(err)) => {
@@ -107,7 +113,7 @@ fn output_thread_main(
     consumer: Consumer<f32>,
     shutdown_rx: Receiver<()>,
     init_tx: Sender<AppResult<()>>,
-    _app: AppHandle,
+    app: AppHandle,
     device_name: Option<String>,
     dop: DopFormat,
 ) {
@@ -134,9 +140,29 @@ fn output_thread_main(
     release_hog(device_id);
 
     match result {
-        Ok(()) => tracing::debug!("coreaudio dop output thread exiting"),
+        Ok(ExitReason::Shutdown) => tracing::debug!("coreaudio dop output thread exiting"),
+        // Same contract as the WASAPI / ALSA backends (#405): a device
+        // that vanishes mid-stream must be reported, or the engine keeps
+        // a handle to a thread that no longer feeds anything and the UI
+        // stays stuck showing "DSD natif".
+        Ok(ExitReason::DeviceLost(reason)) => {
+            tracing::warn!(
+                %reason,
+                "coreaudio dop output thread lost the device; requesting rebuild"
+            );
+            super::output::notify_device_lost(&app, &shared, format!("audio device error: {reason}"));
+            super::output::schedule_device_rebuild(&app, super::output::RebuildTarget::Resolve);
+        }
         Err(err) => tracing::warn!(%err, "coreaudio dop output thread stopped on error"),
     }
+}
+
+/// Why the render loop returned — same distinction as the other exclusive
+/// backends: a clean shutdown must NOT trigger a recovery, a device loss
+/// must.
+enum ExitReason {
+    Shutdown,
+    DeviceLost(String),
 }
 
 /// The stateful body, factored out so `output_thread_main` can always run
@@ -150,7 +176,7 @@ fn open_and_run(
     init_tx: &Sender<AppResult<()>>,
     device_id: AudioDeviceID,
     dop: DopFormat,
-) -> AppResult<()> {
+) -> AppResult<ExitReason> {
     let channels = dop.channels as usize;
 
     // The DoP client format: interleaved 32-bit signed int at the exact
@@ -183,7 +209,7 @@ fn open_and_run(
 
     // Render callback: bit-exact DoP, no DSP. Runs on CoreAudio's
     // realtime thread — only ring pops + atomic ops, no alloc/lock.
-    let mut silence_phase: u64 = 0;
+    let mut marker_phase: u64 = 0;
     let cb_shared = shared.clone();
     audio_unit
         .set_render_callback(move |args: Args<data::Interleaved<i32>>| {
@@ -201,7 +227,7 @@ fn open_and_run(
                 super::dop_pack::render_dop_silence_i32(
                     channels,
                     num_frames,
-                    &mut silence_phase,
+                    &mut marker_phase,
                     buffer,
                 );
             } else {
@@ -209,7 +235,7 @@ fn open_and_run(
                     channels,
                     num_frames,
                     &mut consumer,
-                    &mut silence_phase,
+                    &mut marker_phase,
                     buffer,
                 );
                 if written > 0 {
@@ -242,13 +268,30 @@ fn open_and_run(
 
     // Init succeeded — tell the spawn call, then park until teardown.
     let _ = init_tx.send(Ok(()));
-    let _ = shutdown_rx.recv();
+
+    // CoreAudio doesn't error into our thread when the DAC is unplugged:
+    // it simply stops pulling the render callback, which would leave us
+    // parked on `recv()` forever with a dead output. Poll the device
+    // object between shutdown waits instead — a property query on a
+    // removed device fails, and that's our loss signal. (`AliveListener`
+    // in `macos_helpers` would push this instead of polling; it needs a
+    // macOS build to validate, which neither CI nor this branch has yet.)
+    let exit = loop {
+        match shutdown_rx.recv_timeout(DEVICE_POLL_INTERVAL) {
+            Ok(()) | Err(RecvTimeoutError::Disconnected) => break ExitReason::Shutdown,
+            Err(RecvTimeoutError::Timeout) => {
+                if let Err(err) = get_hogging_pid(device_id) {
+                    break ExitReason::DeviceLost(format!("coreaudio device gone: {err}"));
+                }
+            }
+        }
+    };
 
     // Stop + drop the unit here (frees the render callback + its captured
     // ring consumer) before the caller releases hog mode.
     let _ = audio_unit.stop();
     drop(audio_unit);
-    Ok(())
+    Ok(exit)
 }
 
 /// Resolve the persisted device name to a CoreAudio device id, or the
