@@ -1715,19 +1715,33 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // would otherwise race in the backend and could leave the persisted
   // setting on the *first* value. The rollback is likewise conditional,
   // so a stale failure can't clobber a newer click.
+  //
+  // The queue outlives a profile switch, so each entry also carries the
+  // profile it was scheduled under: `audio.dsd_dop` is profile-scoped,
+  // and a queued write landing after the switch would put profile A's
+  // value into profile B — as would its rollback.
   const dsdDopWrite = useRef<Promise<void>>(Promise.resolve());
+  const activeProfileIdRef = useRef(activeProfile?.id);
+  useEffect(() => {
+    activeProfileIdRef.current = activeProfile?.id;
+  }, [activeProfile?.id]);
   const handleToggleDsdDop = useCallback(() => {
     const prev = dsdDop;
     const next = !prev;
+    const profileId = activeProfile?.id;
     setDsdDop(next); // optimistic
     dsdDopWrite.current = dsdDopWrite.current
       .catch(() => {})
-      .then(() => playerSetDsdDop(next))
+      .then(() => {
+        if (activeProfileIdRef.current !== profileId) return;
+        return playerSetDsdDop(next);
+      })
       .catch((err) => {
         console.error("[Settings] set DSD DoP failed", err);
+        if (activeProfileIdRef.current !== profileId) return;
         setDsdDop((cur) => (cur === next ? prev : cur));
       });
-  }, [dsdDop]);
+  }, [dsdDop, activeProfile?.id]);
 
   // Smart crossfade — skip the fade between two tracks of the same
   // album so concept records / live sets hand off naturally. Persisted
