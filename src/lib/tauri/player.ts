@@ -362,12 +362,14 @@ export function playerSetDsdPrecision(taps: DsdPrecisionTaps): Promise<void> {
 }
 
 /**
- * Toggle native DSD output via DoP (DSD over PCM), #495. When on AND the
- * output is WASAPI Exclusive AND the DAC accepts the DoP format, `.dsf` /
- * `.dff` tracks are shipped as raw 1-bit DoP frames the DAC decodes
- * natively (bit-perfect) instead of being converted to PCM. Any condition
- * failing falls back silently to DSD → PCM, so it's safe to leave on.
- * Windows-only in practice. Persisted in `profile_setting['audio.dsd_dop']`.
+ * Toggle native DSD output via DoP (DSD over PCM), #495. When on AND an
+ * exclusive output can be opened — WASAPI Exclusive (Windows), a raw ALSA
+ * `hw:` device (Linux), CoreAudio hog mode (macOS) — AND the DAC accepts
+ * the DoP format, `.dsf` / `.dff` tracks are shipped as raw 1-bit DoP
+ * frames the DAC decodes natively (bit-perfect) instead of being
+ * converted to PCM. Any condition failing falls back silently to
+ * DSD → PCM, so it's safe to leave on. Persisted in
+ * `profile_setting['audio.dsd_dop']`.
  */
 export function playerSetDsdDop(enabled: boolean): Promise<void> {
   return invoke<void>("player_set_dsd_dop", { enabled });

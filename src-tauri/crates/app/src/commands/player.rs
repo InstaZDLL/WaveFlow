@@ -1024,14 +1024,15 @@ pub async fn player_set_dsd_precision(
     Ok(())
 }
 
-/// Toggle native DSD output via DoP (DSD over PCM), #495. When on AND the
-/// active output is WASAPI Exclusive AND the DAC accepts the DoP format,
-/// a `.dsf` / `.dff` track is shipped as raw 1-bit DoP frames instead of
-/// being converted to PCM — the DAC decodes the DSD natively. Any of
-/// those conditions failing falls back silently to DSD → PCM, so it's
-/// safe to leave on. Takes effect on the next track open. Persisted in
-/// `profile_setting['audio.dsd_dop']`, default OFF. Windows-only in
-/// practice (DoP needs exclusive mode).
+/// Toggle native DSD output via DoP (DSD over PCM), #495. When on AND an
+/// exclusive output can be opened — WASAPI Exclusive (Windows), a raw
+/// ALSA `hw:` device (Linux), CoreAudio hog mode (macOS) — AND the DAC
+/// accepts the DoP format, a `.dsf` / `.dff` track is shipped as raw
+/// 1-bit DoP frames instead of being converted to PCM — the DAC decodes
+/// the DSD natively. Any of those conditions failing falls back silently
+/// to DSD → PCM, so it's safe to leave on. Takes effect on the next
+/// track open. Persisted in `profile_setting['audio.dsd_dop']`,
+/// default OFF.
 #[tauri::command]
 pub async fn player_set_dsd_dop(
     state: tauri::State<'_, AppState>,
