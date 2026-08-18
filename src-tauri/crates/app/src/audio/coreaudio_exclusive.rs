@@ -198,23 +198,30 @@ fn open_and_run(
             dop.sample_rate
         ))
     })?;
-    // Remember what the device was set to first. Pinning the physical
-    // format is a change to the *device*, not to our stream: without
-    // this, quitting a DoP track leaves every other app on the machine
-    // talking to a DAC clocked at 352.8 kHz. The guard puts it back on
-    // every exit path, including the `?`s below.
-    let previous_format = read_physical_stream_format(device_id)
-        .inspect_err(|err| {
-            tracing::warn!(%err, "coreaudio: can't read the current physical format; it won't be restored");
-        })
-        .ok();
+    // Remember what the device was set to *before* touching it. Pinning
+    // the physical format is a change to the device, not to our stream:
+    // without this, quitting a DoP track leaves every other app on the
+    // machine talking to a DAC clocked at 352.8 kHz. The guard puts it
+    // back on every exit path, including the `?`s below.
+    //
+    // A read failure aborts the whole DoP open rather than proceeding
+    // with nothing to restore: we'd be re-clocking the user's device
+    // with no way to undo it. Failing here is the ordinary fail-soft
+    // path — the engine falls back to DSD → PCM, same as for any other
+    // refused DoP negotiation.
+    let previous_format = read_physical_stream_format(device_id).map_err(|e| {
+        AppError::Audio(format!(
+            "coreaudio: can't read the device's current physical format ({e}) — refusing to \
+             re-clock it with no way back"
+        ))
+    })?;
     set_device_physical_stream_format(device_id, asbd)
         .map_err(|e| AppError::Audio(format!("coreaudio set physical format: {e}")))?;
     // Declared after the AudioUnit would be wrong: locals drop in reverse
     // order, and the unit has to stop before the device is re-clocked.
     let _format_guard = PhysicalFormatGuard {
         device_id,
-        previous: previous_format,
+        previous: Some(previous_format),
     };
 
     // Build the output AudioUnit bound to the device (uninitialized so we
@@ -372,7 +379,12 @@ fn read_physical_stream_format(device_id: AudioDeviceID) -> Result<AudioStreamBa
         mElement: kAudioObjectPropertyElementMain,
     };
     let mut asbd = std::mem::MaybeUninit::<AudioStreamBasicDescription>::zeroed();
-    let data_size = std::mem::size_of::<AudioStreamBasicDescription>() as u32;
+    // `ioDataSize` is in *and* out — CoreAudio writes the size it actually
+    // produced back through this pointer, so it has to come from a unique
+    // borrow. (Upstream `coreaudio-rs` hands it a `&`; writing through a
+    // pointer derived from a shared borrow is UB whether or not it
+    // currently miscompiles.)
+    let mut data_size = std::mem::size_of::<AudioStreamBasicDescription>() as u32;
 
     // SAFETY: `address` and `data_size` outlive the call; the destination
     // is a correctly sized and aligned ASBD slot, which CoreAudio fills
@@ -384,7 +396,7 @@ fn read_physical_stream_format(device_id: AudioDeviceID) -> Result<AudioStreamBa
             NonNull::from(&address),
             0,
             std::ptr::null(),
-            NonNull::from(&data_size),
+            NonNull::from(&mut data_size),
             NonNull::from(&mut asbd).cast(),
         )
     };
