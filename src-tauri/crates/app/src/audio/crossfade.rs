@@ -558,15 +558,8 @@ impl ActiveStream {
                 // / pixelation after every seek. For DFF the bytes
                 // alternate one-by-one across channels, so any
                 // multiple of channel-count is safe.
-                let stride = match layout.block_interleave {
-                    Some(block_size) => (block_size as u64) * (layout.channels.count() as u64),
-                    None => layout.channels.count() as u64,
-                };
-                let aligned = target
-                    .checked_div(stride)
-                    .map(|q| q * stride)
-                    .unwrap_or(target);
-                let aligned = aligned.min(layout.data_len_bytes);
+                let stride = interleave_stride(layout);
+                let aligned = aligned_byte_offset(target, stride, layout.data_len_bytes);
                 let absolute = layout.data_offset + aligned;
                 if let Err(err) = file.seek(SeekFrom::Start(absolute)) {
                     tracing::warn!(?err, ms, "dsd seek failed");
@@ -588,15 +581,8 @@ impl ActiveStream {
                 let bps =
                     (layout.sample_rate_hz as u128) * (layout.channels.count() as u128) / 8 / 1000;
                 let target = (ms as u128 * bps) as u64;
-                let stride = match layout.block_interleave {
-                    Some(block_size) => (block_size as u64) * (layout.channels.count() as u64),
-                    None => layout.channels.count() as u64,
-                };
-                let aligned = target
-                    .checked_div(stride)
-                    .map(|q| q * stride)
-                    .unwrap_or(target)
-                    .min(layout.data_len_bytes);
+                let stride = interleave_stride(layout);
+                let aligned = aligned_byte_offset(target, stride, layout.data_len_bytes);
                 let absolute = layout.data_offset + aligned;
                 if let Err(err) = file.seek(SeekFrom::Start(absolute)) {
                     tracing::warn!(?err, ms, "dop seek failed");
@@ -699,10 +685,7 @@ impl ActiveStream {
                 // grit/noise audible during the primary's tail
                 // (and through the first ~half of the crossfade
                 // because g_out is still > 0 there).
-                let stride = match layout.block_interleave {
-                    Some(block) => (block as u64) * (layout.channels.count() as u64),
-                    None => layout.channels.count() as u64,
-                };
+                let stride = interleave_stride(layout);
                 let remaining = layout.data_len_bytes - *bytes_read;
                 let raw_want = remaining.min(DSD_READ_CHUNK as u64);
                 let aligned = raw_want
@@ -721,9 +704,8 @@ impl ActiveStream {
                     aligned as usize
                 };
                 dsd_scratch.resize(want, 0);
-                let read = file
-                    .read(dsd_scratch)
-                    .map_err(|e| format!("dsd read: {e}"))?;
+                let read =
+                    read_full_block(file, dsd_scratch).map_err(|e| format!("dsd read: {e}"))?;
                 if read == 0 {
                     return Ok(true);
                 }
@@ -817,10 +799,7 @@ impl ActiveStream {
         // Round the read down to a whole interleave stride so the encoder
         // never pairs bytes across a channel boundary (same reasoning as
         // the DSD → PCM path).
-        let stride = match layout.block_interleave {
-            Some(block) => (block as u64) * (layout.channels.count() as u64),
-            None => layout.channels.count() as u64,
-        };
+        let stride = interleave_stride(layout);
         let remaining = layout.data_len_bytes - *bytes_read;
         let raw_want = remaining.min(DSD_READ_CHUNK as u64);
         let aligned = raw_want
@@ -834,7 +813,7 @@ impl ActiveStream {
             return Ok(true);
         }
         dsd_scratch.resize(aligned as usize, 0);
-        let read = file.read(dsd_scratch).map_err(|e| format!("dop read: {e}"))?;
+        let read = read_full_block(file, dsd_scratch).map_err(|e| format!("dop read: {e}"))?;
         if read == 0 {
             return Ok(true);
         }
@@ -843,6 +822,51 @@ impl ActiveStream {
         encoder.encode_block(dsd_scratch, out);
         Ok(false)
     }
+}
+
+/// Bytes making up one full interleave cycle of a DSD stream: a DSF
+/// block per channel, or a single byte per channel for DFF. Every read
+/// and every seek must land on a multiple of this, or the decoder starts
+/// attributing one channel's bytes to another.
+#[inline]
+fn interleave_stride(layout: &DsdLayout) -> u64 {
+    match layout.block_interleave {
+        Some(block) => (block as u64) * (layout.channels.count() as u64),
+        None => layout.channels.count() as u64,
+    }
+}
+
+/// Round a byte target down to a whole interleave stride and clamp it to
+/// the payload — the shared half of both DSD seek paths.
+#[inline]
+fn aligned_byte_offset(target: u64, stride: u64, data_len_bytes: u64) -> u64 {
+    target
+        .checked_div(stride)
+        .map(|q| q * stride)
+        .unwrap_or(target)
+        .min(data_len_bytes)
+}
+
+/// Read exactly `buf.len()` bytes unless the file genuinely ends first.
+///
+/// `Read::read` may come up short at any time, and for a DSD block that
+/// is not a benign truncation: the requested size is a whole interleave
+/// stride, so a fragment ends mid-cycle and every byte after it is
+/// attributed to the wrong channel — audible as channel-swapped grit on
+/// the PCM path, and as a torn frame against the marker cadence on the
+/// DoP one. With this loop, a short return means real EOF, which is what
+/// both callers already assume.
+fn read_full_block<R: Read>(reader: &mut R, buf: &mut [u8]) -> std::io::Result<usize> {
+    let mut filled = 0usize;
+    while filled < buf.len() {
+        match reader.read(&mut buf[filled..]) {
+            Ok(0) => break,
+            Ok(n) => filled += n,
+            Err(err) if err.kind() == std::io::ErrorKind::Interrupted => {}
+            Err(err) => return Err(err),
+        }
+    }
+    Ok(filled)
 }
 
 /// Convert a ReplayGain dB value into a linear scalar applicable to
