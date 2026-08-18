@@ -190,6 +190,18 @@ pub struct SharedPlayback {
     /// hardware. Only affects DSD playback — symphonia formats ignore
     /// it. Takes effect on the next track open.
     pub dsd_taps: AtomicU32,
+    /// User opt-in for native DSD output via DoP (DSD over PCM), #495.
+    /// When `true` AND an exclusive output can be opened AND the DAC
+    /// accepts the DoP rate/format, a `.dsf` / `.dff` stream is shipped
+    /// as raw 1-bit DoP frames instead of being converted to PCM — the
+    /// DAC decodes the DSD natively (bit-perfect). The supported
+    /// exclusive outputs are WASAPI Exclusive (Windows), a raw ALSA
+    /// `hw:` device (Linux) and CoreAudio hog mode (macOS). Any of those
+    /// conditions failing falls back silently to the DSD → PCM path, so
+    /// this is safe to leave on. Read by the decoder when it opens a DSD
+    /// stream (not in the hot path). Persisted in
+    /// `profile_setting['audio.dsd_dop']`, default OFF.
+    pub dsd_dop_enabled: AtomicBool,
 }
 
 impl SharedPlayback {
@@ -222,6 +234,7 @@ impl SharedPlayback {
             playback_speed_bits: AtomicU32::new(1.0_f32.to_bits()),
             speed_dirty: AtomicBool::new(false),
             dsd_taps: AtomicU32::new(256),
+            dsd_dop_enabled: AtomicBool::new(false),
         }
     }
 

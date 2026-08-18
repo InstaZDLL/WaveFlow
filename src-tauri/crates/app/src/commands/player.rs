@@ -59,6 +59,9 @@ pub struct PlayerStateSnapshot {
     pub shuffle: bool,
     pub repeat_mode: String,
     pub current_track: Option<QueueTrackPayload>,
+    /// True when the active output is shipping native DSD via DoP
+    /// (#495) — reflects what really engaged, not just the opt-in.
+    pub dop_active: bool,
 }
 
 /// Subset of [`crate::queue::QueueTrack`] flattened into the shape
@@ -96,6 +99,7 @@ impl PlayerStateSnapshot {
         shuffle: bool,
         repeat_mode: queue::RepeatMode,
         current_track: Option<QueueTrackPayload>,
+        dop_active: bool,
     ) -> Self {
         Self {
             state: shared.state().as_str().to_string(),
@@ -108,6 +112,7 @@ impl PlayerStateSnapshot {
             shuffle,
             repeat_mode: repeat_mode.as_str().to_string(),
             current_track,
+            dop_active,
         }
     }
 }
@@ -465,6 +470,25 @@ pub async fn player_get_state(
                 .shared()
                 .dsd_taps
                 .store(dsd_taps, std::sync::atomic::Ordering::Release);
+            // Native DSD via DoP defaults OFF (#495) — only override the
+            // boot-time default when an explicit `true` row is found, and
+            // reset to false otherwise so a profile switch can't leak the
+            // previous profile's opt-in.
+            {
+                let dop = sqlx::query_scalar::<_, String>(
+                    "SELECT value FROM profile_setting WHERE key = 'audio.dsd_dop'",
+                )
+                .fetch_optional(&*pool)
+                .await
+                .ok()
+                .flatten()
+                .map(|v| v == "true")
+                .unwrap_or(false);
+                engine
+                    .shared()
+                    .dsd_dop_enabled
+                    .store(dop, std::sync::atomic::Ordering::Release);
+            }
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'audio.replaygain'",
             )
@@ -611,8 +635,13 @@ pub async fn player_get_state(
         }
         Err(_) => (false, queue::RepeatMode::Off, None, 0),
     };
-    let mut snapshot =
-        PlayerStateSnapshot::from_shared(engine.shared(), shuffle, repeat_mode, current_track);
+    let mut snapshot = PlayerStateSnapshot::from_shared(
+        engine.shared(),
+        shuffle,
+        repeat_mode,
+        current_track,
+        engine.current_output_is_dop(),
+    );
     // When the engine is Idle but we resolved a resume point, use the
     // persisted position instead of the (zero) live counter.
     if snapshot.state == "idle" && snapshot.position_ms == 0 {
@@ -988,6 +1017,40 @@ pub async fn player_set_dsd_precision(
              ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
         )
         .bind(taps.to_string())
+        .bind(now)
+        .execute(&*pool)
+        .await;
+    }
+    Ok(())
+}
+
+/// Toggle native DSD output via DoP (DSD over PCM), #495. When on AND an
+/// exclusive output can be opened — WASAPI Exclusive (Windows), a raw
+/// ALSA `hw:` device (Linux), CoreAudio hog mode (macOS) — AND the DAC
+/// accepts the DoP format, a `.dsf` / `.dff` track is shipped as raw
+/// 1-bit DoP frames instead of being converted to PCM — the DAC decodes
+/// the DSD natively. Any of those conditions failing falls back silently
+/// to DSD → PCM, so it's safe to leave on. Takes effect on the next
+/// track open. Persisted in `profile_setting['audio.dsd_dop']`,
+/// default OFF.
+#[tauri::command]
+pub async fn player_set_dsd_dop(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+) -> AppResult<()> {
+    engine
+        .shared()
+        .dsd_dop_enabled
+        .store(enabled, std::sync::atomic::Ordering::Release);
+    if let Ok(pool) = state.require_profile_pool().await {
+        let now = chrono::Utc::now().timestamp_millis();
+        let _ = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.dsd_dop', ?, 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(if enabled { "true" } else { "false" })
         .bind(now)
         .execute(&*pool)
         .await;
@@ -1412,6 +1475,9 @@ pub async fn player_get_audio_settings(
         .gapless_enabled
         .load(std::sync::atomic::Ordering::Relaxed);
     let dsd_taps = shared.dsd_taps.load(std::sync::atomic::Ordering::Relaxed);
+    let dsd_dop = shared
+        .dsd_dop_enabled
+        .load(std::sync::atomic::Ordering::Relaxed);
 
     let mut crossfade_ms: i64 = 0;
     if let Ok(pool) = state.require_profile_pool().await {
@@ -1432,6 +1498,7 @@ pub async fn player_get_audio_settings(
         replaygain,
         gapless,
         dsd_taps,
+        dsd_dop,
     })
 }
 
@@ -1444,6 +1511,8 @@ pub struct AudioSettingsSnapshot {
     pub gapless: bool,
     /// Active DSD → PCM FIR tap count (256 / 1024 / 2048).
     pub dsd_taps: u32,
+    /// Native DSD via DoP opt-in (#495), default false.
+    pub dsd_dop: bool,
 }
 
 /// One row in the output-device picker that powers the PlayerBar

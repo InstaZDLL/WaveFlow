@@ -1093,7 +1093,8 @@
         "replayGain": "ReplayGain",
         "normalize": "Normalisasi",
         "mono": "Mono",
-        "speed": "Kecepatan {{value}}×"
+        "speed": "Kecepatan {{value}}×",
+        "dopNative": "DSD asli"
       }
     }
   },
@@ -2028,6 +2029,10 @@
       "usage": "{{size}} terpakai · {{files}} Canvas di cache",
       "clear": "Bersihkan cache",
       "clearConfirm": "Konfirmasi?"
+    },
+    "dsdDop": {
+      "title": "DSD asli (DoP)",
+      "subtitle": "Mengirim aliran DSD apa adanya ke DAC melalui DoP (DSD over PCM) alih-alih mengonversinya ke PCM — dekode asli bit-perfect. Memerlukan keluaran eksklusif (WASAPI di Windows, ALSA perangkat keras di Linux, CoreAudio hog mode di macOS) dan DAC yang mendukung DoP; jika tidak, kembali ke DSD → PCM."
     }
   },
   "spotify": {

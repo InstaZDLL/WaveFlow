@@ -1093,7 +1093,8 @@
         "replayGain": "ReplayGain",
         "normalize": "음량 평준화",
         "mono": "모노",
-        "speed": "속도 {{value}}×"
+        "speed": "속도 {{value}}×",
+        "dopNative": "네이티브 DSD"
       }
     }
   },
@@ -2028,6 +2029,10 @@
       "usage": "{{size}} 사용 · {{files}}개 Canvas 캐시됨",
       "clear": "캐시 지우기",
       "clearConfirm": "확인할까요?"
+    },
+    "dsdDop": {
+      "title": "네이티브 DSD (DoP)",
+      "subtitle": "DSD 스트림을 PCM으로 변환하지 않고 DoP(DSD over PCM)로 DAC에 그대로 전송합니다 — 비트 퍼펙트 네이티브 디코딩. 독점 출력(Windows는 WASAPI, Linux는 하드웨어 ALSA, macOS는 CoreAudio hog mode)과 DoP 지원 DAC가 필요하며, 그렇지 않으면 DSD → PCM으로 대체됩니다."
     }
   },
   "spotify": {

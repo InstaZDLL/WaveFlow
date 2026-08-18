@@ -43,7 +43,7 @@ use wasapi::{
     StreamMode, WaveFormat,
 };
 
-use super::output::{OutputHandle, RING_CAPACITY};
+use super::output::{DopFormat, OutputHandle, RING_CAPACITY};
 use super::state::SharedPlayback;
 use crate::error::{AppError, AppResult};
 
@@ -62,6 +62,7 @@ pub fn spawn_exclusive_output_thread(
     shared: Arc<SharedPlayback>,
     app: AppHandle,
     device_name: Option<String>,
+    dop: Option<DopFormat>,
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
     let (producer, consumer) = RingBuffer::<f32>::new(RING_CAPACITY);
     let (shutdown_tx, shutdown_rx) = bounded::<()>(1);
@@ -80,6 +81,7 @@ pub fn spawn_exclusive_output_thread(
                 init_tx,
                 thread_app,
                 thread_device,
+                dop,
             )
         })
         .map_err(|e| AppError::Audio(format!("spawn wasapi exclusive thread: {e}")))?;
@@ -92,6 +94,7 @@ pub fn spawn_exclusive_output_thread(
                 join,
                 device_name,
                 wasapi_exclusive: true,
+                dop,
             },
         )),
         Ok(Err(err)) => {
@@ -112,6 +115,7 @@ fn output_thread_main(
     init_tx: Sender<AppResult<()>>,
     app: AppHandle,
     device_name: Option<String>,
+    dop: Option<DopFormat>,
 ) {
     // COM init for this thread. MTA is the right choice for an audio
     // worker that doesn't touch UI. Any HRESULT other than S_OK /
@@ -124,7 +128,7 @@ fn output_thread_main(
         return;
     }
 
-    let session = match open_exclusive_session(&device_name, &shared) {
+    let session = match open_exclusive_session(&device_name, &shared, dop) {
         Ok(s) => s,
         Err(err) => {
             tracing::warn!(?err, "wasapi exclusive init failed");
@@ -264,6 +268,15 @@ const FORMAT_FALLBACK_CHAIN: [ExclusiveSampleFormat; 4] = [
     ExclusiveSampleFormat::Pcm16,
 ];
 
+/// Format chain tried for a DoP stream (#495): 24-bit only, packed
+/// first (3 bytes = exactly the 24-bit DoP word), then the 32-bit
+/// padded container some codecs prefer. Float32 and 16-bit are
+/// deliberately excluded — neither can carry a DoP payload intact.
+const DOP_FORMAT_CHAIN: [ExclusiveSampleFormat; 2] = [
+    ExclusiveSampleFormat::Pcm24Packed,
+    ExclusiveSampleFormat::Pcm24Padded,
+];
+
 /// A (sample rate, channel count) pair to try in exclusive mode,
 /// tagged with where it came from so the log says which source
 /// actually got the device open (#409).
@@ -400,6 +413,11 @@ struct ExclusiveSession {
     /// Format the device actually accepted. Drives the f32 → bytes
     /// conversion inside `run_event_loop`.
     format: ExclusiveSampleFormat,
+    /// True when this session carries a DoP (DSD over PCM) stream, #495.
+    /// In DoP mode the event loop bypasses every DSP stage (volume,
+    /// mono, normalize, clamp) and ships the ring's 24-bit values
+    /// bit-exact — the DAC decodes the embedded 1-bit DSD itself.
+    dop: bool,
 }
 
 /// Resolve the device, then walk every (layout × bit depth) candidate
@@ -423,15 +441,37 @@ struct ExclusiveSession {
 fn open_exclusive_session(
     device_name: &Option<String>,
     shared: &Arc<SharedPlayback>,
+    dop: Option<DopFormat>,
 ) -> AppResult<ExclusiveSession> {
     let device = pick_device(device_name)?;
 
-    let layouts = collect_layout_candidates(&device);
-    if layouts.is_empty() {
-        return Err(AppError::Audio(
-            "wasapi exclusive: device reported no usable sample rate / channel layout".into(),
-        ));
-    }
+    // DoP (#495) pins both axes: the layout is the exact DoP format
+    // (`dsd_rate / 16`, source channels) and the bit-depth chain is
+    // 24-bit only. A DoP payload lives in 24 bits — Float32 would
+    // reinterpret the marker bytes as an exponent and 16-bit would
+    // truncate the low DSD byte, so neither can carry it. If the DAC
+    // refuses 24-bit at the DoP rate the whole open fails and the
+    // caller falls back to DSD → PCM (it never drops to shared mode).
+    let (layouts, formats): (Vec<LayoutCandidate>, &[ExclusiveSampleFormat]) = match dop {
+        Some(d) => (
+            vec![LayoutCandidate {
+                sample_rate: d.sample_rate as usize,
+                channels: d.channels as usize,
+                origin: "dop",
+            }],
+            &DOP_FORMAT_CHAIN,
+        ),
+        None => {
+            let layouts = collect_layout_candidates(&device);
+            if layouts.is_empty() {
+                return Err(AppError::Audio(
+                    "wasapi exclusive: device reported no usable sample rate / channel layout"
+                        .into(),
+                ));
+            }
+            (layouts, &FORMAT_FALLBACK_CHAIN)
+        }
+    };
 
     let mut last_err: Option<AppError> = None;
     // Every rejection, kept for the summary below. `debug` alone was
@@ -440,7 +480,7 @@ fn open_exclusive_session(
     // other seven had to be guessed at.
     let mut failures: Vec<String> = Vec::new();
     for layout in &layouts {
-        for &format in FORMAT_FALLBACK_CHAIN.iter() {
+        for &format in formats.iter() {
             match try_open_with_format(&device, format, layout.sample_rate, layout.channels) {
                 Ok((client, render, event, buffer_frames)) => {
                     tracing::info!(
@@ -464,6 +504,7 @@ fn open_exclusive_session(
                         channels: layout.channels as u16,
                         buffer_frames,
                         format,
+                        dop: dop.is_some(),
                     });
                 }
                 Err(err) => {
@@ -683,10 +724,18 @@ fn pick_device(device_name: &Option<String>) -> AppResult<Device> {
 /// recovery is warranted — see [`ExitReason`].
 fn run_event_loop(
     session: ExclusiveSession,
-    mut consumer: Consumer<f32>,
+    consumer: Consumer<f32>,
     shutdown_rx: Receiver<()>,
     shared: &Arc<SharedPlayback>,
 ) -> ExitReason {
+    // DoP streams run an entirely separate loop: bit-exact, no DSP, and
+    // marker-carrying silence on pause. Dispatch up-front so the PCM hot
+    // path below stays exactly as it was (#495).
+    if session.dop {
+        return run_dop_event_loop(session, consumer, shutdown_rx, shared);
+    }
+
+    let mut consumer = consumer;
     let ExclusiveSession {
         client,
         render,
@@ -842,6 +891,116 @@ fn run_event_loop(
     let _ = event; // released with the function frame
                    // Wait briefly so a slow `stop_stream` settles before COM
                    // uninit; not strictly required, but tidier under tracing.
+    std::thread::sleep(Duration::from_millis(5));
+    wasapi::deinitialize();
+
+    exit
+}
+
+/// DoP (DSD over PCM) render loop, #495. Structurally the twin of
+/// [`run_event_loop`] — same event wait, shutdown checks, device-loss
+/// exit and teardown — but the sample stage is fundamentally different:
+///
+/// - **Bit-exact, no DSP.** The decoder already produced fully-formed
+///   24-bit DoP words (marker + two DSD bytes) and shipped them through
+///   the ring as `f32` bit patterns. We pull `to_bits()`, mask to 24
+///   bits and write the little-endian bytes straight out. No volume, no
+///   mono, no normalize, no clamp — touching a DoP word would corrupt
+///   the embedded DSD and the marker cadence the DAC locks onto.
+/// - **Marker-carrying silence.** On pause / drain / underrun we can't
+///   write PCM zero: the DAC would lose DoP lock and click. Instead we
+///   emit DoP *idle* frames — the standard 0x69 DSD-silence payload with
+///   a live, per-frame-alternating marker — so the DAC stays in DSD mode
+///   outputting analog silence.
+fn run_dop_event_loop(
+    session: ExclusiveSession,
+    mut consumer: Consumer<f32>,
+    shutdown_rx: Receiver<()>,
+    shared: &Arc<SharedPlayback>,
+) -> ExitReason {
+    let ExclusiveSession {
+        client,
+        render,
+        event,
+        channels,
+        buffer_frames,
+        format,
+        ..
+    } = session;
+
+    let channels = channels as usize;
+    let padded = matches!(format, ExclusiveSampleFormat::Pcm24Padded);
+    let need_frames = buffer_frames as usize;
+    let buffer_bytes = need_frames * channels * super::dop_pack::sample_bytes(padded);
+
+    // One byte scratch reused every period; no allocations in the loop.
+    let mut bytes_scratch: Vec<u8> = vec![0u8; buffer_bytes];
+    // Running DoP marker phase. Advances once per emitted frame — music
+    // and idle alike — so the 0x05 / 0xFA cadence the DAC locks onto
+    // never repeats or skips.
+    let mut marker_phase: u64 = 0;
+
+    const EVENT_TIMEOUT_MS: u32 = 2000;
+
+    let exit = loop {
+        if shutdown_rx.try_recv().is_ok() {
+            break ExitReason::Shutdown;
+        }
+
+        match event.wait_for_event(EVENT_TIMEOUT_MS) {
+            Ok(()) => {}
+            Err(err) => {
+                if shutdown_rx.try_recv().is_ok() {
+                    break ExitReason::Shutdown;
+                }
+                tracing::warn!(?err, "wasapi exclusive (DoP) wait_for_event failed");
+                break ExitReason::DeviceLost(format!("wasapi wait_for_event failed: {err:?}"));
+            }
+        }
+
+        let paused = shared.paused_output.load(Ordering::Acquire);
+        let draining = shared.drain_silent.load(Ordering::Acquire);
+
+        if paused || draining {
+            if draining {
+                while consumer.pop().is_ok() {}
+            }
+            super::dop_pack::render_dop_silence(
+                padded,
+                channels,
+                need_frames,
+                &mut marker_phase,
+                &mut bytes_scratch,
+            );
+        } else {
+            let written = super::dop_pack::fill_dop_period(
+                padded,
+                channels,
+                need_frames,
+                &mut consumer,
+                &mut marker_phase,
+                &mut bytes_scratch,
+            );
+            if written > 0 {
+                shared.samples_played.fetch_add(written, Ordering::Relaxed);
+            }
+        }
+
+        if let Err(err) = render.write_to_device(need_frames, &bytes_scratch, None) {
+            if shutdown_rx.try_recv().is_ok() {
+                break ExitReason::Shutdown;
+            }
+            tracing::warn!(?err, "wasapi (DoP) write_to_device failed");
+            break ExitReason::DeviceLost(format!("wasapi write_to_device failed: {err:?}"));
+        }
+
+        if shutdown_rx.try_recv().is_ok() {
+            break ExitReason::Shutdown;
+        }
+    };
+
+    let _ = client.stop_stream();
+    let _ = event;
     std::thread::sleep(Duration::from_millis(5));
     wasapi::deinitialize();
 

@@ -1093,7 +1093,8 @@
         "replayGain": "ReplayGain",
         "normalize": "Normalize",
         "mono": "Mono",
-        "speed": "Speed {{value}}×"
+        "speed": "Speed {{value}}×",
+        "dopNative": "Native DSD"
       }
     }
   },
@@ -2028,6 +2029,10 @@
       "usage": "{{size}} used · {{files}} Canvas cached",
       "clear": "Clear cache",
       "clearConfirm": "Confirm?"
+    },
+    "dsdDop": {
+      "title": "Native DSD (DoP)",
+      "subtitle": "Send the DSD stream as-is to the DAC via DoP (DSD over PCM) instead of converting it to PCM — bit-perfect native decoding. Requires an exclusive output (WASAPI on Windows, hardware ALSA on Linux, CoreAudio hog mode on macOS) and a DoP-capable DAC; falls back to DSD → PCM otherwise."
     }
   },
   "spotify": {

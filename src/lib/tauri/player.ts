@@ -38,6 +38,8 @@ export interface PlayerStateSnapshot {
   shuffle: boolean;
   repeat_mode: "off" | "all" | "one";
   current_track: QueueTrackPayload | null;
+  /** True when the output is shipping native DSD via DoP (#495). */
+  dop_active: boolean;
 }
 
 /** Event payloads emitted by the Rust decoder thread. */
@@ -317,6 +319,8 @@ export interface AudioSettingsSnapshot {
   gapless: boolean;
   /** Active DSD → PCM FIR tap count (256 / 1024 / 2048). */
   dsd_taps: number;
+  /** Native DSD via DoP opt-in (#495), default false. */
+  dsd_dop: boolean;
 }
 
 /** Allowed DSD → PCM precision tiers (FIR tap counts). */
@@ -355,6 +359,20 @@ export function playerSetGapless(enabled: boolean): Promise<void> {
  */
 export function playerSetDsdPrecision(taps: DsdPrecisionTaps): Promise<void> {
   return invoke<void>("player_set_dsd_precision", { taps });
+}
+
+/**
+ * Toggle native DSD output via DoP (DSD over PCM), #495. When on AND an
+ * exclusive output can be opened — WASAPI Exclusive (Windows), a raw ALSA
+ * `hw:` device (Linux), CoreAudio hog mode (macOS) — AND the DAC accepts
+ * the DoP format, `.dsf` / `.dff` tracks are shipped as raw 1-bit DoP
+ * frames the DAC decodes natively (bit-perfect) instead of being
+ * converted to PCM. Any condition failing falls back silently to
+ * DSD → PCM, so it's safe to leave on. Persisted in
+ * `profile_setting['audio.dsd_dop']`.
+ */
+export function playerSetDsdDop(enabled: boolean): Promise<void> {
+  return invoke<void>("player_set_dsd_dop", { enabled });
 }
 
 /**

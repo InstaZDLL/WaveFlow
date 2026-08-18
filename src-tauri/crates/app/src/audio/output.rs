@@ -223,6 +223,22 @@ fn silence_alsa_stderr<R, F: FnOnce() -> R>(f: F) -> R {
 /// headroom while keeping latency low.
 pub const RING_CAPACITY: usize = 96_000;
 
+/// Exact (rate, channels) an output must open at to carry a DoP (DSD
+/// over PCM) stream, #495. Unlike the normal path — where the device
+/// picks the rate and the decoder resamples to it — a DoP stream must
+/// reach the DAC at precisely `dsd_rate / 16` in 24-bit or the marker
+/// cadence breaks. So the caller (the engine, when it loads a DSD track
+/// with DoP enabled) hands the exclusive backend this forced format
+/// instead of letting it negotiate. Ignored entirely on the cpal shared
+/// path — DoP only runs over an exclusive backend: WASAPI Exclusive on
+/// Windows, a raw ALSA `hw:` device on Linux, CoreAudio hog mode on
+/// macOS.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DopFormat {
+    pub sample_rate: u32,
+    pub channels: u16,
+}
+
 /// Pick the right output backend based on the runtime preference.
 /// On Windows + `exclusive=true`, tries the WASAPI Exclusive backend
 /// first and falls back to cpal shared if init fails (device busy, no
@@ -236,13 +252,53 @@ pub fn spawn_output_with_mode(
     app: AppHandle,
     device_name: Option<String>,
     exclusive: bool,
+    dop: Option<DopFormat>,
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
+    // DoP (#495) is a hard requirement, not a preference: a DoP stream
+    // that can't open its exact rate in exclusive form must NOT fall back
+    // to a shared / mixed output (the OS mixer would resample the marker
+    // cadence into white noise) — the caller instead falls back to
+    // ordinary DSD → PCM. So when a DoP format is requested we try the
+    // platform's exclusive backend only, and surface its error verbatim:
+    // WASAPI Exclusive on Windows, a raw `hw:` device on Linux (ALSA),
+    // hog mode on macOS (CoreAudio).
+    if let Some(dop) = dop {
+        #[cfg(target_os = "windows")]
+        return super::wasapi_exclusive::spawn_exclusive_output_thread(
+            shared,
+            app,
+            device_name,
+            Some(dop),
+        );
+        #[cfg(target_os = "linux")]
+        return super::alsa_exclusive::spawn_alsa_dop_output_thread(shared, app, device_name, dop);
+        #[cfg(target_os = "macos")]
+        return super::coreaudio_exclusive::spawn_coreaudio_dop_output_thread(
+            shared,
+            app,
+            device_name,
+            dop,
+        );
+        #[cfg(not(any(
+            target_os = "windows",
+            target_os = "linux",
+            target_os = "macos"
+        )))]
+        {
+            let _ = (dop, &shared, &app, &device_name);
+            return Err(AppError::Audio(
+                "DoP output is not supported on this platform".into(),
+            ));
+        }
+    }
+
     #[cfg(target_os = "windows")]
     if exclusive {
         match super::wasapi_exclusive::spawn_exclusive_output_thread(
             shared.clone(),
             app.clone(),
             device_name.clone(),
+            None,
         ) {
             Ok(pair) => {
                 tracing::info!("audio output: WASAPI Exclusive Mode engaged");
@@ -369,6 +425,17 @@ pub struct OutputHandle {
     /// The user preference can request exclusive mode, but startup may
     /// fall back to cpal shared mode when the device rejects it.
     pub wasapi_exclusive: bool,
+    /// `Some(fmt)` when this output is carrying a DoP (DSD over PCM)
+    /// stream, opened at exactly that rate (`dsd_rate / 16`) and channel
+    /// count, #495. `None` for every ordinary PCM output. The engine
+    /// reads it to decide whether the next track needs an output
+    /// rebuild: a DoP track whose format differs in *any* field, or any
+    /// PCM track after a DoP one, forces a re-open; a DoP track with the
+    /// identical format can reuse it. The channel count is part of the
+    /// comparison because the exclusive stream is opened for a fixed
+    /// interleave — a stereo output handed 5.1 DoP frames would tear
+    /// them across channels.
+    pub dop: Option<DopFormat>,
 }
 
 impl OutputHandle {
@@ -430,6 +497,7 @@ pub fn spawn_output_thread(
                 join,
                 device_name,
                 wasapi_exclusive: false,
+                dop: None,
             },
         )),
         Ok(Err(err)) => {

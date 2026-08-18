@@ -67,6 +67,7 @@ import {
   playerSetGapless,
   playerSetReplayGain,
   playerSetDsdPrecision,
+  playerSetDsdDop,
   DSD_PRECISION_TAPS,
   type DsdPrecisionTaps,
 } from "../../lib/tauri/player";
@@ -1221,6 +1222,21 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [replayGain, setReplayGain] = useState(false);
   const [gapless, setGapless] = useState(true);
   const [dsdTaps, setDsdTaps] = useState<DsdPrecisionTaps>(256);
+  const [dsdDop, setDsdDop] = useState(false);
+  // DoP needs exclusive device access, which WaveFlow has on every
+  // desktop OS: WASAPI Exclusive (Windows), raw ALSA `hw:` (Linux),
+  // CoreAudio hog mode (macOS). Hidden on mobile (#495 / #497). UA sniff
+  // like the ExclusiveModeCard; the WebView is platform-pinned.
+  const dopPlatformSupported = (() => {
+    if (typeof navigator === "undefined") return false;
+    const ua = navigator.userAgent.toLowerCase();
+    return (
+      ua.includes("windows") ||
+      ua.includes("macintosh") ||
+      // Exclude Android, whose UA also contains "linux".
+      (ua.includes("linux") && !ua.includes("android"))
+    );
+  })();
 
   // Integrations
   const [lastfmKey, setLastfmKey] = useState("");
@@ -1631,9 +1647,16 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     }
   };
 
+  // Audio settings live in `profile_setting`, so they have to be
+  // re-read when the active profile changes — otherwise the panel keeps
+  // showing the previous profile's values and the next toggle writes
+  // them into the new one. The `stale` latch drops an in-flight answer
+  // that belongs to the profile we just left.
   useEffect(() => {
+    let stale = false;
     playerGetAudioSettings()
       .then((s) => {
+        if (stale) return;
         setNormalize(s.normalize);
         setMono(s.mono);
         setCrossfadeSec(Math.round(s.crossfade_ms / 1000));
@@ -1645,11 +1668,15 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             ? (s.dsd_taps as DsdPrecisionTaps)
             : 256,
         );
+        setDsdDop(s.dsd_dop);
       })
       .catch((err) =>
         console.error("[Settings] audio settings load failed", err),
       );
-  }, []);
+    return () => {
+      stale = true;
+    };
+  }, [activeProfile?.id]);
 
   const handleToggleNormalize = useCallback(() => {
     const next = !normalize;
@@ -1683,6 +1710,38 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     },
     [dsdTaps],
   );
+
+  // Writes are chained rather than fired in parallel: two fast clicks
+  // would otherwise race in the backend and could leave the persisted
+  // setting on the *first* value. The rollback is likewise conditional,
+  // so a stale failure can't clobber a newer click.
+  //
+  // The queue outlives a profile switch, so each entry also carries the
+  // profile it was scheduled under: `audio.dsd_dop` is profile-scoped,
+  // and a queued write landing after the switch would put profile A's
+  // value into profile B — as would its rollback.
+  const dsdDopWrite = useRef<Promise<void>>(Promise.resolve());
+  const activeProfileIdRef = useRef(activeProfile?.id);
+  useEffect(() => {
+    activeProfileIdRef.current = activeProfile?.id;
+  }, [activeProfile?.id]);
+  const handleToggleDsdDop = useCallback(() => {
+    const prev = dsdDop;
+    const next = !prev;
+    const profileId = activeProfile?.id;
+    setDsdDop(next); // optimistic
+    dsdDopWrite.current = dsdDopWrite.current
+      .catch(() => {})
+      .then(() => {
+        if (activeProfileIdRef.current !== profileId) return;
+        return playerSetDsdDop(next);
+      })
+      .catch((err) => {
+        console.error("[Settings] set DSD DoP failed", err);
+        if (activeProfileIdRef.current !== profileId) return;
+        setDsdDop((cur) => (cur === next ? prev : cur));
+      });
+  }, [dsdDop, activeProfile?.id]);
 
   // Smart crossfade — skip the fade between two tracks of the same
   // album so concept records / live sets hand off naturally. Persisted
@@ -2262,6 +2321,35 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 </div>
               </div>
             </div>
+
+            {/* Native DSD via DoP (DSD over PCM), with a DoP-capable DAC
+                on an exclusive output: WASAPI Exclusive (Windows), raw
+                ALSA hw (Linux), CoreAudio hog mode (macOS). Off by
+                default. Hidden where DoP can't engage at all (mobile). */}
+            {dopPlatformSupported && (
+              <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="flex items-center space-x-4 min-w-0">
+                  <AudioWaveform
+                    size={20}
+                    className="text-zinc-400 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                      {t("settings.dsdDop.title")}
+                    </div>
+                    <div className="text-xs text-zinc-400">
+                      {t("settings.dsdDop.subtitle")}
+                    </div>
+                  </div>
+                </div>
+                <ToggleSwitch
+                  enabled={dsdDop}
+                  onToggle={handleToggleDsdDop}
+                  label={t("settings.dsdDop.title")}
+                />
+              </div>
+            )}
 
             {/* Normaliser le volume */}
             <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">

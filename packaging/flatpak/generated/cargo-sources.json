@@ -1230,6 +1230,19 @@
     {
         "type": "archive",
         "archive-type": "tar-gzip",
+        "url": "https://static.crates.io/crates/coreaudio-rs/coreaudio-rs-0.14.2.crate",
+        "sha256": "7d5d7dca3ebcf65a035582c9ad4385371a9d9ee6537474d2a278f4e1e475bb58",
+        "dest": "cargo/vendor/coreaudio-rs-0.14.2"
+    },
+    {
+        "type": "inline",
+        "contents": "{\"package\": \"7d5d7dca3ebcf65a035582c9ad4385371a9d9ee6537474d2a278f4e1e475bb58\", \"files\": {}}",
+        "dest": "cargo/vendor/coreaudio-rs-0.14.2",
+        "dest-filename": ".cargo-checksum.json"
+    },
+    {
+        "type": "archive",
+        "archive-type": "tar-gzip",
         "url": "https://static.crates.io/crates/cpal/cpal-0.17.1.crate",
         "sha256": "5b1f9c7312f19fc2fa12fd7acaf38de54e8320ba10d1a02dcbe21038def51ccb",
         "dest": "cargo/vendor/cpal-0.17.1"
