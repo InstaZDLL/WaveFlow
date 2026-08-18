@@ -2160,10 +2160,10 @@
         "playlists_other": "プレイリスト",
         "favorites_other": "お気に入り",
         "ratings_other": "評価",
-        "history_other": "履歴",
+        "history_other": "回再生",
         "shares_other": "共有",
-        "queue_other": "キュー",
-        "cachedTracks_other": "キャッシュ済み"
+        "queue_other": "キュー内の曲",
+        "cachedTracks_other": "キャッシュ済みの曲"
       },
       "awaitingMetadata_other": "{{count}} 曲がメタデータを待機中 — 次のパスで解決されます。",
       "pendingChanges_other": "{{count}} 件のローカル変更が送信待ちです。",
