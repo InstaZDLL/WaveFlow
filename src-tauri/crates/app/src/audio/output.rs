@@ -230,7 +230,9 @@ pub const RING_CAPACITY: usize = 96_000;
 /// cadence breaks. So the caller (the engine, when it loads a DSD track
 /// with DoP enabled) hands the exclusive backend this forced format
 /// instead of letting it negotiate. Ignored entirely on the cpal shared
-/// path — DoP only works over WASAPI Exclusive.
+/// path — DoP only runs over an exclusive backend: WASAPI Exclusive on
+/// Windows, a raw ALSA `hw:` device on Linux, CoreAudio hog mode on
+/// macOS.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DopFormat {
     pub sample_rate: u32,
@@ -423,13 +425,17 @@ pub struct OutputHandle {
     /// The user preference can request exclusive mode, but startup may
     /// fall back to cpal shared mode when the device rejects it.
     pub wasapi_exclusive: bool,
-    /// `Some(rate)` when this output is carrying a DoP (DSD over PCM)
-    /// stream, at the given 24-bit PCM rate (`dsd_rate / 16`), #495.
-    /// `None` for every ordinary PCM output. The engine reads it to
-    /// decide whether the next track needs an output rebuild: a DoP
-    /// track at a different rate, or any PCM track after a DoP one,
-    /// forces a re-open; a DoP track at the same rate can reuse it.
-    pub dop_rate: Option<u32>,
+    /// `Some(fmt)` when this output is carrying a DoP (DSD over PCM)
+    /// stream, opened at exactly that rate (`dsd_rate / 16`) and channel
+    /// count, #495. `None` for every ordinary PCM output. The engine
+    /// reads it to decide whether the next track needs an output
+    /// rebuild: a DoP track whose format differs in *any* field, or any
+    /// PCM track after a DoP one, forces a re-open; a DoP track with the
+    /// identical format can reuse it. The channel count is part of the
+    /// comparison because the exclusive stream is opened for a fixed
+    /// interleave — a stereo output handed 5.1 DoP frames would tear
+    /// them across channels.
+    pub dop: Option<DopFormat>,
 }
 
 impl OutputHandle {
@@ -491,7 +497,7 @@ pub fn spawn_output_thread(
                 join,
                 device_name,
                 wasapi_exclusive: false,
-                dop_rate: None,
+                dop: None,
             },
         )),
         Ok(Err(err)) => {

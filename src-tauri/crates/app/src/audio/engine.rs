@@ -583,7 +583,7 @@ impl AudioEngine {
         self.output
             .lock()
             .ok()
-            .and_then(|guard| guard.as_ref().map(|h| h.dop_rate.is_some()))
+            .and_then(|guard| guard.as_ref().map(|h| h.dop.is_some()))
             .unwrap_or(false)
     }
 
@@ -847,8 +847,13 @@ impl AudioEngine {
             .map_err(|_| AppError::Audio("output mutex poisoned".into()))?;
 
         let has_output = guard.is_some();
-        let current_dop = guard.as_ref().and_then(|h| h.dop_rate);
-        let want_dop = dop.map(|d| d.sample_rate);
+        // Compared as a whole `DopFormat`, not just the rate: an
+        // exclusive DoP stream is opened for a fixed interleave, so two
+        // consecutive DSD tracks at the same DoP rate but different
+        // channel counts still need a re-open (reusing the stereo stream
+        // for a multichannel one would tear frames across channels).
+        let current_dop = guard.as_ref().and_then(|h| h.dop);
+        let want_dop = dop;
 
         // Already in the right shape: nothing to do. An ordinary PCM track
         // following another PCM track lands here and pays nothing.
