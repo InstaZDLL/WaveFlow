@@ -927,21 +927,35 @@ pub async fn player_seek(
     Ok(())
 }
 
+/// New volume after a `player_set_volume`, as `0.0..=1.0` — the same
+/// scale as the `volume` field of the player snapshot.
+#[derive(Debug, Clone, Serialize)]
+struct VolumeChangedPayload {
+    volume: f32,
+}
+
 /// Set playback volume. `value` is clamped to `[0.0, 1.0]` on the
 /// decoder side; values outside that range are saturated, not rejected.
 /// Also persists to `profile_setting['player.volume']` (as an int 0-100
 /// rounded from the f32) so the volume survives an app restart.
 #[tauri::command]
 pub async fn player_set_volume(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     value: f32,
 ) -> AppResult<()> {
     engine.send(AudioCmd::SetVolume(value))?;
 
+    let clamped = value.clamp(0.0, 1.0);
+    // Each window runs its own `PlayerContext`, and there is one engine
+    // behind them: without this the mini-player and the main window would
+    // show different volumes while driving the same output. Emitted after
+    // the clamp so every listener adopts the value the engine really got.
+    let _ = app.emit("player:volume-changed", VolumeChangedPayload { volume: clamped });
+
     // Best-effort persist — not fatal if the profile pool is gone.
     if let Ok(pool) = state.require_profile_pool().await {
-        let clamped = value.clamp(0.0, 1.0);
         let as_int = (clamped * 100.0).round() as i64;
         let now = chrono::Utc::now().timestamp_millis();
         let _ = sqlx::query(
