@@ -208,10 +208,11 @@ enum ExclusiveSampleFormat {
     /// sample, no padding. Compact wire format favored by USB
     /// class-1 / class-2 DACs.
     Pcm24Packed,
-    /// `wBitsPerSample = 32`, valid bits 24, PCM. Four bytes per
-    /// sample, high byte is the LSB of a sign-extended i32. Most
-    /// integrated codecs that "support 24-bit" really want this
-    /// layout in exclusive mode.
+    /// `wBitsPerSample = 32`, valid bits 24, PCM. Four bytes per sample,
+    /// and per WAVEFORMATEXTENSIBLE the valid audio is **left-aligned**:
+    /// bits 31..8 carry the 24-bit sample, the least-significant byte is
+    /// zero padding. Most integrated codecs that "support 24-bit" really
+    /// want this layout in exclusive mode.
     Pcm24Padded,
     /// `wBitsPerSample = 16`, PCM. Two bytes per sample. Universal
     /// fallback for ancient or driver-limited hardware.
