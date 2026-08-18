@@ -31,6 +31,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Window as TauriWindow } from "@tauri-apps/api/window";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayer } from "../../hooks/usePlayer";
+import { useLikedTracks } from "../../hooks/useLikedTracks";
 import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
 import {
   isRadioTrack,
@@ -40,7 +41,6 @@ import {
 import { Artwork } from "../common/Artwork";
 import { resolveArtwork } from "../../lib/tauri/artwork";
 import { dominantColor, darken, rgb } from "../../lib/dominantColor";
-import { listLikedTrackIds, toggleLikeTrack } from "../../lib/tauri/track";
 import { formatDuration } from "../../lib/tauri/track";
 import { setMiniPlayerBounds } from "../../lib/tauri/preferences";
 import {
@@ -92,28 +92,12 @@ export function MiniPlayer() {
     currentRadioStation != null &&
     radioFavorites.isFavorite(currentRadioStation.id);
 
-  // ── Like-state mirror (own webview = own React state) ───────────
-  const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
-  useEffect(() => {
-    listLikedTrackIds()
-      .then((ids) => setLikedIds(new Set(ids)))
-      .catch(() => {});
-  }, [currentTrack?.id]);
+  // ── Like state (own webview, kept in step with the main window by
+  //    the hook's `track:liked-changed` subscription, #523) ─────────
+  const { likedIds, toggleLike } = useLikedTracks(currentTrack?.id);
   const isLiked = currentTrack ? likedIds.has(currentTrack.id) : false;
-
-  const handleLike = async () => {
-    if (!currentTrack) return;
-    try {
-      const nowLiked = await toggleLikeTrack(currentTrack.id);
-      setLikedIds((prev) => {
-        const n = new Set(prev);
-        if (nowLiked) n.add(currentTrack.id);
-        else n.delete(currentTrack.id);
-        return n;
-      });
-    } catch (err) {
-      console.error("[MiniPlayer] like failed", err);
-    }
+  const handleLike = () => {
+    if (currentTrack) void toggleLike(currentTrack.id);
   };
 
   // ── Up-next queue (own webview = own fetch + event subscription) ─

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Menu,
@@ -28,7 +28,7 @@ import { EqPresetButton } from "./EqPresetButton";
 import { MoreActionsMenu } from "./MoreActionsMenu";
 import { AudioQualityFooter } from "./AudioQualityFooter";
 import { ImmersiveView } from "./ImmersiveView";
-import { toggleLikeTrack, listLikedTrackIds } from "../../lib/tauri/track";
+import { useLikedTracks } from "../../hooks/useLikedTracks";
 
 interface PlayerBarProps {
   onNavigateToArtist: (artistId: number) => void;
@@ -92,15 +92,10 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
-
-  // Load liked IDs on mount + refresh when track changes (the user
-  // might have liked/unliked from the library view).
-  useEffect(() => {
-    listLikedTrackIds()
-      .then((ids) => setLikedIds(new Set(ids)))
-      .catch(() => {});
-  }, [currentTrack?.id]);
+  // Liked ids: loaded on mount, refreshed when the track changes (the
+  // user might have liked from a library view), and kept in step with
+  // the mini-player's own copy through `track:liked-changed` (#523).
+  const { likedIds, toggleLike } = useLikedTracks(currentTrack?.id);
 
   const isSpotify = activeProvider === "spotify";
   const isLiked =
@@ -110,14 +105,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
     radioFavorites.isFavorite(currentRadioStation.id);
 
   const handleToggleLike = async () => {
-    if (!currentTrack) return;
-    const nowLiked = await toggleLikeTrack(currentTrack.id);
-    setLikedIds((prev) => {
-      const next = new Set(prev);
-      if (nowLiked) next.add(currentTrack.id);
-      else next.delete(currentTrack.id);
-      return next;
-    });
+    if (currentTrack) await toggleLike(currentTrack.id);
   };
 
   const title = currentTrack?.title ?? t("player.noTrack");

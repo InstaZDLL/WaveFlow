@@ -50,9 +50,11 @@ The hook also passes the captured profile id to [`set_profile_setting` / `get_pr
 
 The backend emits Tauri events; the frontend listens via `listen()` from `@tauri-apps/api/event`:
 
-`player:state` · `player:position` · `player:track-changed` · `player:queue-changed` · `player:options-changed` · `player:error` · `player:ab-loop` · `player:spectrum` · `track:updated` · `library:rescanned` · `scan:progress` · `lyrics:updated` · …
+`player:state` · `player:position` · `player:track-changed` · `player:queue-changed` · `player:options-changed` · `player:volume-changed` · `player:error` · `player:ab-loop` · `player:spectrum` · `track:updated` · `track:liked-changed` · `library:rescanned` · `scan:progress` · `lyrics:updated` · …
 
-`player:options-changed` fires when repeat/shuffle changed **outside** the frontend (e.g. an MPD client) — the in-app buttons update optimistically and don't need it.
+**Shared state needs an event, because there is more than one window.** The mini-player is a second webview with its own provider tree, so anything a user can change from both places has to be broadcast or the two copies drift — the engine stays right, the two UIs disagree, and the user "fixes" the one that looks wrong and breaks the one that was. `player:options-changed` (repeat + shuffle), `player:volume-changed` and `track:liked-changed` all exist for that reason, and are emitted by the in-app commands too, not only by external surfaces like MPD (#523).
+
+The window that made the change has already updated optimistically, so it receives an echo of what it holds — a no-op. With one exception: volume is pushed through a 60 ms debounce, so a returning value can be one the user has already dragged past. That window therefore ignores `player:volume-changed` for 500 ms after its own last change. Discrete toggles need no such guard.
 
 ### Non-frontend control surfaces go through `player_actions`
 
