@@ -571,6 +571,9 @@ export interface ReconciliationReport {
   rejected_pairs: number;
   /** `true` when the user cancelled mid-scan; the report is otherwise empty. */
   cancelled: boolean;
+  /** `true` when another scan already owns the run; ignore this report and keep
+   * the candidates already on screen rather than clearing them. */
+  already_running: boolean;
   candidates: MatchCandidateGroup[];
 }
 

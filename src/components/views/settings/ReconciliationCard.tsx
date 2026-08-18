@@ -93,6 +93,9 @@ export function ReconciliationCard() {
     setProgress(null);
     try {
       const next = await remoteReconcileScan();
+      // Another scan already owns the run (e.g. a double-click): keep the
+      // current view instead of clearing candidates to a false "0 matches".
+      if (next.already_running) return;
       setReport(next);
       await refreshLinks();
     } catch (err) {
@@ -113,7 +116,11 @@ export function ReconciliationCard() {
       setError(null);
       try {
         await action();
-        if (rescan) setReport(await remoteReconcileScan());
+        if (rescan) {
+          const next = await remoteReconcileScan();
+          // Keep existing candidates if another scan owns the run.
+          if (!next.already_running) setReport(next);
+        }
         await refreshLinks();
       } catch (err) {
         setError(String(err));

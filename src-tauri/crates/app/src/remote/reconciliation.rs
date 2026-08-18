@@ -159,6 +159,11 @@ pub struct ReconciliationReport {
     /// nothing new and returns an otherwise-empty report so the UI can render
     /// "Cancelled" instead of a misleading zero-match result.
     pub cancelled: bool,
+    /// `true` when another scan already owns the run (e.g. a double-clicked
+    /// "Find matches"). Distinct from a genuinely empty result: the UI must
+    /// ignore this report and keep whatever candidates it already shows, rather
+    /// than clearing them to a false "0 matches".
+    pub already_running: bool,
     pub candidates: Vec<MatchCandidateGroup>,
 }
 
@@ -251,6 +256,7 @@ fn empty_report(cancelled: bool) -> ReconciliationReport {
         stale_links: 0,
         rejected_pairs: 0,
         cancelled,
+        already_running: false,
         candidates: Vec::new(),
     }
 }
@@ -260,7 +266,7 @@ fn empty_report(cancelled: bool) -> ReconciliationReport {
 /// [`discover_with_progress`].
 #[cfg(test)]
 async fn discover(pool: &SqlitePool) -> AppResult<ReconciliationReport> {
-    discover_inner(pool, None).await
+    discover_inner(pool, None, false).await
 }
 
 /// Same as [`discover`], but emits `reconcile:progress` events for the UI and
@@ -282,23 +288,30 @@ pub async fn discover_with_progress(
         )
         .is_err()
     {
-        return Ok(empty_report(false));
+        // A scan already owns the run. Signal that explicitly so the UI keeps
+        // its current candidates instead of clearing them to a false "0
+        // matches"; this is NOT the same as a genuinely empty remote library.
+        return Ok(ReconciliationReport {
+            already_running: true,
+            ..empty_report(false)
+        });
     }
     // The guard resets the phase to IDLE on every exit path (early return, `?`,
     // panic), whether we ended in STAGING, CANCELLED or COMMITTING.
     let _guard = PhaseGuard;
-    discover_inner(pool, Some(app)).await
+    // The progress path is cancellable and emits through `app`.
+    discover_inner(pool, Some(app), true).await
 }
 
+/// Shared discovery pipeline. `cancellable` is passed explicitly rather than
+/// inferred from `app`, so a unit test can exercise the cancellation path with
+/// no `AppHandle` (a `None` progress sink) — and so the non-cancellable path
+/// provably never reads or transitions the process-global phase.
 async fn discover_inner(
     pool: &SqlitePool,
     app: Option<AppHandle>,
+    cancellable: bool,
 ) -> AppResult<ReconciliationReport> {
-    // Cancellation only exists on the progress path (`app` present). The
-    // test/no-progress path never polls or transitions the shared phase, so a
-    // unit test cannot be perturbed by another test's scan state.
-    let cancellable = app.is_some();
-
     let remote_tracks = load_remote_tracks(pool).await?;
     if remote_tracks.is_empty() {
         return Ok(empty_report(false));
@@ -306,9 +319,10 @@ async fn discover_inner(
 
     let local_tracks = load_local_candidates(pool).await?;
     let total = local_tracks.len();
-    let scan = tokio::task::spawn_blocking(move || hash_local_tracks(local_tracks, app.as_ref(), total))
-        .await
-        .map_err(|err| AppError::Other(format!("reconciliation hash task failed: {err}")))?;
+    let scan =
+        tokio::task::spawn_blocking(move || hash_local_tracks(local_tracks, app.as_ref(), total, cancellable))
+            .await
+            .map_err(|err| AppError::Other(format!("reconciliation hash task failed: {err}")))?;
 
     if scan.cancelled {
         // A partial scan could auto-link the unique matches it happened to
@@ -385,11 +399,14 @@ async fn load_local_candidates(pool: &SqlitePool) -> AppResult<Vec<LocalTrack>> 
         .collect()
 }
 
-fn hash_local_tracks(tracks: Vec<LocalTrack>, app: Option<&AppHandle>, total: usize) -> HashScan {
-    // The phase is only meaningful on the progress path; the no-progress/test
-    // path can't be cancelled and must not read the shared phase (see
-    // `discover_inner`).
-    let cancellable = app.is_some();
+fn hash_local_tracks(
+    tracks: Vec<LocalTrack>,
+    app: Option<&AppHandle>,
+    total: usize,
+    cancellable: bool,
+) -> HashScan {
+    // The phase is only meaningful on the cancellable path; the no-progress/test
+    // path must not read the shared phase (see `discover_inner`).
     let mut hashed = Vec::with_capacity(tracks.len());
     let mut unreadable = 0;
     for track in tracks {
@@ -692,6 +709,7 @@ async fn reconcile(
         stale_links,
         rejected_pairs,
         cancelled: false,
+        already_running: false,
         candidates,
     })
 }
@@ -1382,18 +1400,21 @@ mod tests {
     use std::str::FromStr;
     use std::sync::{Arc, Barrier};
 
+    /// Serializes the tests that mutate the process-global `RECONCILE_PHASE`, so
+    /// cargo's parallel runner can't interleave them. A tokio mutex (not `std`)
+    /// because these tests hold it across `.await`. Tests on the non-cancellable
+    /// path never read the phase and so don't need it.
+    static PHASE_TEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
     /// Arbitration of the cancel-vs-commit race the phase machine exists for.
-    /// Kept in ONE test (its sub-checks run sequentially) because it mutates the
-    /// process-global `RECONCILE_PHASE`; no other test touches the phase (the
-    /// discovery tests run the non-cancellable path), so this is the only
-    /// mutator and can't be perturbed by a concurrent test.
-    #[test]
-    fn cancel_and_commit_transitions_are_mutually_exclusive() {
+    #[tokio::test]
+    async fn cancel_and_commit_transitions_are_mutually_exclusive() {
+        let _serial = PHASE_TEST_LOCK.lock().await;
         // Barrier-synchronised race: `request_cancel` (STAGING → CANCELLED) and
         // the pre-commit transition (STAGING → COMMITTING) released at the same
         // instant. Exactly one must win each round — never both (a persist while
         // `request_cancel` also reported success) and never neither.
-        for _ in 0..1_000 {
+        for _ in 0..20_000 {
             RECONCILE_PHASE.store(PHASE_STAGING, Ordering::SeqCst);
             let barrier = Arc::new(Barrier::new(2));
 
@@ -1429,6 +1450,65 @@ mod tests {
         assert!(!request_cancel(), "cancel after commit started must be rejected");
         RECONCILE_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
         assert!(!request_cancel(), "cancel with nothing running must be rejected");
+    }
+
+    /// A cancel latched while the scan is still staging stops the hashing loop
+    /// before any file is read and persists nothing — exercised with no
+    /// `AppHandle`, via the explicit `cancellable` flag.
+    #[tokio::test]
+    async fn cancel_during_hashing_persists_nothing() {
+        let _serial = PHASE_TEST_LOCK.lock().await;
+        let pool = pool().await;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("local.flac");
+        fs::write(&path, b"same bytes").unwrap();
+        insert_local(&pool, 1, &path, "Local").await;
+        insert_remote(&pool, "remote-1", b"same bytes", "Remote").await;
+
+        RECONCILE_PHASE.store(PHASE_CANCELLED, Ordering::SeqCst);
+        let report = discover_inner(&pool, None, true).await.unwrap();
+        assert!(report.cancelled);
+        assert_eq!(report.auto_linked, 0);
+        let rows: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_track_link")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(rows, 0, "a cancelled hash must not persist any link");
+        RECONCILE_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
+    }
+
+    /// A cancel that lands after hashing finished, while `reconcile` is staging
+    /// its writes, loses the pre-commit `STAGING → COMMITTING` transition and
+    /// rolls the transaction back before commit, so no link row is written.
+    #[tokio::test]
+    async fn cancel_during_reconcile_rolls_back_before_commit() {
+        let _serial = PHASE_TEST_LOCK.lock().await;
+        let pool = pool().await;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("local.flac");
+        fs::write(&path, b"same bytes").unwrap();
+        insert_local(&pool, 1, &path, "Local").await;
+        insert_remote(&pool, "remote-1", b"same bytes", "Remote").await;
+
+        // Hash to completion on the non-cancellable path (never reads the phase),
+        // so the cancel below can only be caught by reconcile's pre-commit CAS.
+        let locals = load_local_candidates(&pool).await.unwrap();
+        let scan = hash_local_tracks(locals, None, 0, false);
+        assert_eq!(scan.hashed.len(), 1);
+        let remotes = load_remote_tracks(&pool).await.unwrap();
+
+        RECONCILE_PHASE.store(PHASE_CANCELLED, Ordering::SeqCst);
+        let report = reconcile(&pool, scan.hashed, scan.unreadable, remotes, true)
+            .await
+            .unwrap();
+        assert!(report.cancelled);
+        assert_eq!(report.auto_linked, 0);
+        let rows: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_track_link")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(rows, 0, "a cancel during reconcile must roll back before commit");
+        RECONCILE_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
     }
 
     /// Build the fixture from the REAL compiled-in profile migrations rather
