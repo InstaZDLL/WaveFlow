@@ -40,15 +40,27 @@ pub fn sample_bytes(padded: bool) -> usize {
 }
 
 /// Write one 24-bit DoP word at `sample_idx`, little-endian. `padded`
-/// selects the 4-byte 24-in-32 container (high byte 0) vs the compact
-/// 3-byte packing. The word is masked to 24 bits — the marker sits in
-/// bits 23..16, the two DSD bytes below it.
+/// selects the 4-byte 24-in-32 container vs the compact 3-byte packing.
+/// The word is masked to 24 bits — the marker sits in bits 23..16, the
+/// two DSD bytes below it.
+///
+/// The two containers justify differently, and the marker's position is
+/// what the DAC locks onto, so this is not cosmetic:
+///
+/// - **packed** (`wBitsPerSample = 24`): container *is* the word, written
+///   as-is.
+/// - **padded** (`wBitsPerSample = 32`, `wValidBitsPerSample = 24`):
+///   WAVEFORMATEXTENSIBLE requires the valid bits **left-aligned**, unused
+///   low bits zeroed, so the word is shifted up by 8 and the marker lands
+///   in bits 31..24. Right-justifying it would leave 0x00 in the byte the
+///   DAC scans for the 0x05 / 0xFA cadence — it would never lock, and the
+///   DSD payload would be played as PCM noise.
 #[inline]
 pub fn write_dop_word(padded: bool, word: u32, bytes: &mut [u8], sample_idx: usize) {
     let v = word & 0x00FF_FFFF;
     if padded {
         let off = sample_idx * 4;
-        bytes[off..off + 4].copy_from_slice(&v.to_le_bytes());
+        bytes[off..off + 4].copy_from_slice(&(v << 8).to_le_bytes());
     } else {
         let off = sample_idx * 3;
         bytes[off] = v as u8;
@@ -143,9 +155,9 @@ pub fn advance_phase(phase: &AtomicU64) -> u32 {
 // Some transports present a full 32-bit sample to the DAC rather than a
 // packed 24-bit one. There the DoP marker must land in the *most*
 // significant byte (bits 31..24) for the DAC to detect the cadence, so
-// the 24-bit word is left-shifted by 8. This is a different justification
-// from WASAPI's `Pcm24Padded` (24 valid bits in the LOW position), hence
-// a separate path rather than a flag on the byte packer.
+// the 24-bit word is left-shifted by 8. This matches WASAPI's
+// `Pcm24Padded`, which is left-aligned for the same reason — the split
+// here is i32-vs-bytes, not a difference in justification.
 
 /// Place a 24-bit DoP word MSB-justified in a 32-bit sample: marker in
 /// bits 31..24, the two DSD bytes in 23..8, low byte zero.
@@ -216,11 +228,17 @@ mod tests {
     }
 
     #[test]
-    fn padded_word_is_four_le_bytes_high_zero() {
-        // 0xFA_AB_CD → LE bytes [0xCD, 0xAB, 0xFA, 0x00].
+    fn padded_word_is_left_aligned_with_the_marker_in_the_top_byte() {
+        // 24 valid bits in a 32-bit container are left-aligned
+        // (WAVEFORMATEXTENSIBLE), so 0xFA_AB_CD is written as 0xFAABCD00 →
+        // LE bytes [0x00, 0xCD, 0xAB, 0xFA].
         let mut b = vec![0u8; 4];
         write_dop_word(true, (0xFA << 16) | 0xABCD, &mut b, 0);
-        assert_eq!(b, vec![0xCD, 0xAB, 0xFA, 0x00]);
+        assert_eq!(b, vec![0x00, 0xCD, 0xAB, 0xFA]);
+        // The byte the DAC scans for the 0x05 / 0xFA cadence is the MSB; a
+        // right-justified packing would leave 0x00 there and never lock.
+        assert_eq!(b[3], 0xFA, "marker must be the most significant byte");
+        assert_eq!(b[0], 0x00, "the unused bits must be the low ones");
     }
 
     #[test]
