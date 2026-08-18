@@ -476,6 +476,13 @@ fn decoder_loop(
                     None,
                     replay_gain_db,
                     shared.dsd_taps.load(Ordering::Acquire) as usize,
+                    // Local-first playback of a reconciled remote track never
+                    // takes the DoP path: DoP requires re-opening the exclusive
+                    // output at `dsd_rate / 16` via `maybe_switch_dop_output`,
+                    // which this branch doesn't do. Handing DoP words to an
+                    // output still clocked for PCM is white noise, so a DSD
+                    // file reached this way plays through DSD → PCM.
+                    false,
                 ) {
                     Ok(stream) => stream,
                     Err(err) => {
