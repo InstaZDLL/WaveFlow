@@ -446,6 +446,7 @@ fn decoder_loop(
                 shared.samples_played.store(0, Ordering::Relaxed);
                 shared.base_offset_ms.store(start_ms, Ordering::Relaxed);
                 shared.current_track_id.store(track_id, Ordering::Release);
+                restore_pcm_output(&app, producer);
 
                 let remote_meta = {
                     let state = app.state::<crate::state::AppState>();
@@ -576,6 +577,7 @@ fn decoder_loop(
                 shared.samples_played.store(0, Ordering::Relaxed);
                 shared.base_offset_ms.store(0, Ordering::Relaxed);
                 shared.current_track_id.store(track_id, Ordering::Release);
+                restore_pcm_output(&app, producer);
 
                 // Defence in depth: `player_play_url` already gates on
                 // `offline::is_offline()` before dispatching the
@@ -861,6 +863,30 @@ fn maybe_switch_dop_output(
             tracing::warn!(%err, "DoP output switch failed; staying on current output (PCM)");
             false
         }
+    }
+}
+
+/// Put the output back on the ordinary PCM path before a load that can't
+/// carry DoP (remote files, HTTP streams).
+///
+/// Those branches never negotiate a format, so without this a DoP output
+/// left over from the previous track stays installed — and that output
+/// reads every ring value as a 24-bit DoP word (`to_bits`), stamps a
+/// marker on it and ships it to the DAC. PCM samples pushed into it come
+/// out as full-scale noise on a DAC that's still in DSD lock. Free when
+/// there's nothing to do: the engine no-ops if the output is already PCM.
+///
+/// (DoP for a locally-reconciled remote track is possible — it opens a
+/// real file — but it needs the same rebuild + `play_dop_track` dance as
+/// `LoadAndPlay`, so it's left for its own change.)
+fn restore_pcm_output(app: &AppHandle, producer: &mut Producer<f32>) {
+    let Some(engine) = app.try_state::<Arc<AudioEngine>>() else {
+        return;
+    };
+    match engine.switch_output_for_track(None) {
+        Ok((Some(fresh), _)) => *producer = fresh,
+        Ok((None, _)) => {}
+        Err(err) => tracing::warn!(%err, "failed to restore the PCM output"),
     }
 }
 
