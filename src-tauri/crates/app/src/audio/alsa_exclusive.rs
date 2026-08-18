@@ -72,7 +72,7 @@ pub fn spawn_alsa_dop_output_thread(
                 join,
                 device_name,
                 wasapi_exclusive: false,
-                dop_rate: Some(dop.sample_rate),
+                dop: Some(dop),
             },
         )),
         Ok(Err(err)) => {
@@ -101,7 +101,14 @@ fn output_thread_main(
     device_name: Option<String>,
     dop: DopFormat,
 ) {
-    let dev = resolve_hw_device(&device_name);
+    let dev = match resolve_hw_device(&device_name) {
+        Ok(dev) => dev,
+        Err(err) => {
+            tracing::warn!(%err, "alsa dop: can't map the selected output to a hw: device");
+            let _ = init_tx.send(Err(err));
+            return;
+        }
+    };
     let channels = dop.channels as usize;
 
     let (pcm, period_frames) = match open_pcm(&dev, dop) {
@@ -135,24 +142,24 @@ fn output_thread_main(
     );
 
     let mut buf: Vec<i32> = vec![0; period_frames * channels];
-    let mut silence_phase: u64 = 0;
+    let mut marker_phase: u64 = 0;
 
-    let exit = loop {
+    let exit = 'run: loop {
         if shutdown_rx.try_recv().is_ok() {
             break ExitReason::Shutdown;
         }
 
         if shared.paused_output.load(Ordering::Acquire) {
-            super::dop_pack::render_dop_silence_i32(channels, period_frames, &mut silence_phase, &mut buf);
+            super::dop_pack::render_dop_silence_i32(channels, period_frames, &mut marker_phase, &mut buf);
         } else if shared.drain_silent.load(Ordering::Acquire) {
             while consumer.pop().is_ok() {}
-            super::dop_pack::render_dop_silence_i32(channels, period_frames, &mut silence_phase, &mut buf);
+            super::dop_pack::render_dop_silence_i32(channels, period_frames, &mut marker_phase, &mut buf);
         } else {
             let written = super::dop_pack::fill_dop_period_i32(
                 channels,
                 period_frames,
                 &mut consumer,
-                &mut silence_phase,
+                &mut marker_phase,
                 &mut buf,
             );
             if written > 0 {
@@ -160,20 +167,37 @@ fn output_thread_main(
             }
         }
 
-        // Blocking write (the PCM was opened blocking). On XRUN / suspend
-        // `try_recover` re-prepares the device; a hard failure is a device
-        // loss.
-        if let Err(err) = io.writei(&buf) {
-            if shutdown_rx.try_recv().is_ok() {
-                break ExitReason::Shutdown;
-            }
-            if let Err(rec) = pcm.try_recover(err, true) {
-                tracing::warn!(?rec, "alsa dop write failed and recovery failed");
-                break ExitReason::DeviceLost(format!("alsa write failed: {rec}"));
-            }
-            // Recovered — re-prepare if needed and continue.
-            if pcm.state() == State::Setup {
-                let _ = pcm.prepare();
+        // Blocking write (the PCM was opened blocking), but `writei` is
+        // still allowed to accept fewer frames than we offered — on a
+        // signal, or after a recovery that swallowed part of the period.
+        // The tail has to be re-offered rather than dropped: a hole in
+        // the stream shifts every following frame against the DoP marker
+        // cadence the DAC is locked onto. Only the *unwritten* remainder
+        // is re-sent, never the frames the device already took.
+        let mut frames_done = 0usize;
+        while frames_done < period_frames {
+            match io.writei(&buf[frames_done * channels..]) {
+                Ok(0) => {
+                    // A blocking device that reports no progress and no
+                    // error has nothing left to recover from.
+                    break 'run ExitReason::DeviceLost(
+                        "alsa accepted 0 frames on a blocking write".into(),
+                    );
+                }
+                Ok(n) => frames_done += n,
+                Err(err) => {
+                    if shutdown_rx.try_recv().is_ok() {
+                        break 'run ExitReason::Shutdown;
+                    }
+                    if let Err(rec) = pcm.try_recover(err, true) {
+                        tracing::warn!(?rec, "alsa dop write failed and recovery failed");
+                        break 'run ExitReason::DeviceLost(format!("alsa write failed: {rec}"));
+                    }
+                    // Recovered — re-prepare if needed, then retry the tail.
+                    if pcm.state() == State::Setup {
+                        let _ = pcm.prepare();
+                    }
+                }
             }
         }
 
@@ -203,19 +227,47 @@ fn output_thread_main(
 /// exclusive hardware access. A `default` / `plughw:` / `sysdefault:` /
 /// Pulse alias would route through the mixer and resample the DoP marker
 /// into noise, so we rewrite to `hw:` (keeping the `CARD=` selector when
-/// present). An empty / unknown name falls back to the first card.
-fn resolve_hw_device(name: &Option<String>) -> String {
-    match name.as_deref().filter(|n| !n.is_empty()) {
-        Some(n) if n.starts_with("hw:") => n.to_string(),
-        Some(n) => {
-            if let Some(idx) = n.find("CARD=") {
-                format!("hw:{}", &n[idx..])
-            } else {
-                "hw:0,0".to_string()
-            }
-        }
-        None => "hw:0,0".to_string(),
+/// present, else resolving the friendly name against the card list).
+///
+/// Only an *absent* selection falls back to the first card. A name we
+/// can't place is an error instead: opening card 0 because the user's
+/// DAC didn't parse would send a DoP stream to some other device
+/// entirely — better to fail here and let the engine play this track as
+/// ordinary DSD → PCM on the device the user actually picked.
+fn resolve_hw_device(name: &Option<String>) -> AppResult<String> {
+    let Some(n) = name.as_deref().filter(|n| !n.is_empty()) else {
+        return Ok("hw:0,0".to_string());
+    };
+    if n.starts_with("hw:") {
+        return Ok(n.to_string());
     }
+    // ALSA PCM names carry the card as a `CARD=` selector
+    // ("sysdefault:CARD=D50s", "front:CARD=PCH,DEV=0") — keep it and
+    // swap the plugin prefix for `hw:`.
+    if let Some(idx) = n.find("CARD=") {
+        return Ok(format!("hw:{}", &n[idx..]));
+    }
+    // No selector: a friendly name, or one of the system aliases.
+    if let Some(index) = find_card_index(n) {
+        return Ok(format!("hw:{index},0"));
+    }
+    if n.eq_ignore_ascii_case("default") {
+        return Ok("hw:0,0".to_string());
+    }
+    Err(AppError::Audio(format!(
+        "alsa: no card matches the selected output '{n}' — can't open it exclusively for DoP"
+    )))
+}
+
+/// Find the ALSA card index whose short or long name matches `name`.
+/// Long names are the verbose HAL strings ("Topping D50s at usb-…"), so
+/// they're matched by containment; short names must match exactly.
+fn find_card_index(name: &str) -> Option<i32> {
+    alsa::card::Iter::new().flatten().find_map(|card| {
+        let short_hit = card.get_name().is_ok_and(|n| n == name);
+        let long_hit = card.get_longname().is_ok_and(|n| n.contains(name));
+        (short_hit || long_hit).then(|| card.get_index())
+    })
 }
 
 /// Open the `hw:` device at the exact DoP format. Returns the PCM plus its
