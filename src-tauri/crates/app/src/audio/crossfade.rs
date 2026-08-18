@@ -706,7 +706,14 @@ impl ActiveStream {
                 dsd_scratch.resize(want, 0);
                 let read =
                     read_full_block(file, dsd_scratch).map_err(|e| format!("dsd read: {e}"))?;
+                // A short return means the payload ended earlier than
+                // the header claimed (truncated file / bad `data_len`),
+                // so it can land mid-cycle. Drop the sub-stride
+                // remainder rather than feed the converter bytes it
+                // would attribute to the wrong channel.
+                let read = sub_stride_trim(read, stride);
                 if read == 0 {
+                    *bytes_read = layout.data_len_bytes;
                     return Ok(true);
                 }
                 *bytes_read += read as u64;
@@ -814,7 +821,12 @@ impl ActiveStream {
         }
         dsd_scratch.resize(aligned as usize, 0);
         let read = read_full_block(file, dsd_scratch).map_err(|e| format!("dop read: {e}"))?;
+        // Same guard as the DSD → PCM path: a payload shorter than the
+        // header claims can end mid-cycle, and a partial cycle would
+        // pair bytes across channels.
+        let read = sub_stride_trim(read, stride);
         if read == 0 {
+            *bytes_read = layout.data_len_bytes;
             return Ok(true);
         }
         *bytes_read += read as u64;
@@ -845,6 +857,13 @@ fn aligned_byte_offset(target: u64, stride: u64, data_len_bytes: u64) -> u64 {
         .map(|q| q * stride)
         .unwrap_or(target)
         .min(data_len_bytes)
+}
+
+/// Round a byte count down to a whole interleave stride — what's left of
+/// a block that ended mid-cycle is unusable, not just short.
+#[inline]
+fn sub_stride_trim(read: usize, stride: u64) -> usize {
+    ((read as u64 / stride.max(1)) * stride) as usize
 }
 
 /// Read exactly `buf.len()` bytes unless the file genuinely ends first.
