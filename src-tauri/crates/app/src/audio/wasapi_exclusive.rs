@@ -94,7 +94,7 @@ pub fn spawn_exclusive_output_thread(
                 join,
                 device_name,
                 wasapi_exclusive: true,
-                dop_rate: dop.map(|d| d.sample_rate),
+                dop,
             },
         )),
         Ok(Err(err)) => {
@@ -930,15 +930,15 @@ fn run_dop_event_loop(
 
     let channels = channels as usize;
     let padded = matches!(format, ExclusiveSampleFormat::Pcm24Padded);
-    let sample_bytes = if padded { 4 } else { 3 };
     let need_frames = buffer_frames as usize;
-    let buffer_bytes = need_frames * channels * sample_bytes;
+    let buffer_bytes = need_frames * channels * super::dop_pack::sample_bytes(padded);
 
     // One byte scratch reused every period; no allocations in the loop.
     let mut bytes_scratch: Vec<u8> = vec![0u8; buffer_bytes];
-    // Running DoP marker phase for generated silence. Advances per
-    // emitted silence frame so the idle cadence never stalls.
-    let mut silence_phase: u64 = 0;
+    // Running DoP marker phase. Advances once per emitted frame — music
+    // and idle alike — so the 0x05 / 0xFA cadence the DAC locks onto
+    // never repeats or skips.
+    let mut marker_phase: u64 = 0;
 
     const EVENT_TIMEOUT_MS: u32 = 2000;
 
@@ -969,7 +969,7 @@ fn run_dop_event_loop(
                 padded,
                 channels,
                 need_frames,
-                &mut silence_phase,
+                &mut marker_phase,
                 &mut bytes_scratch,
             );
         } else {
@@ -978,7 +978,7 @@ fn run_dop_event_loop(
                 channels,
                 need_frames,
                 &mut consumer,
-                &mut silence_phase,
+                &mut marker_phase,
                 &mut bytes_scratch,
             );
             if written > 0 {
