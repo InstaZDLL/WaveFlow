@@ -774,6 +774,8 @@ pub fn run() {
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_reconcile_scan,
             #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_cancel_reconcile_scan,
+            #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_list_reconciliation_links,
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_confirm_reconciliation,

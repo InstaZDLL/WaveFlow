@@ -569,7 +569,18 @@ export interface ReconciliationReport {
   verified_links: number;
   stale_links: number;
   rejected_pairs: number;
+  /** `true` when the user cancelled mid-scan; the report is otherwise empty. */
+  cancelled: boolean;
+  /** `true` when another scan already owns the run; ignore this report and keep
+   * the candidates already on screen rather than clearing them. */
+  already_running: boolean;
   candidates: MatchCandidateGroup[];
+}
+
+/** Progress payload emitted on `reconcile:progress` while a scan hashes files. */
+export interface ReconcileProgress {
+  processed: number;
+  total: number;
 }
 
 export interface ReconciliationLink {
@@ -626,6 +637,11 @@ export interface PlaylistConversionResult {
  */
 export function remoteReconcileScan(): Promise<ReconciliationReport> {
   return invoke<ReconciliationReport>("remote_reconcile_scan");
+}
+
+/** Ask an in-flight scan to stop; resolves to whether one was running. */
+export function remoteCancelReconcileScan(): Promise<boolean> {
+  return invoke<boolean>("remote_cancel_reconcile_scan");
 }
 
 export function remoteListReconciliationLinks(): Promise<ReconciliationLink[]> {

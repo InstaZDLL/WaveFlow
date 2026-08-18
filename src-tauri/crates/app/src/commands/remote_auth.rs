@@ -485,10 +485,18 @@ pub async fn remote_delete_share(
 /// Duplicate groups are returned for explicit confirmation.
 #[tauri::command]
 pub async fn remote_reconcile_scan(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> AppResult<crate::remote::reconciliation::ReconciliationReport> {
     let pool = state.require_profile_pool().await?;
-    crate::remote::reconciliation::discover(&pool).await
+    crate::remote::reconciliation::discover_with_progress(&pool, app).await
+}
+
+/// Ask an in-flight [`remote_reconcile_scan`] to stop. Returns whether a scan
+/// was actually running; a stray click before/after a scan is a no-op.
+#[tauri::command]
+pub fn remote_cancel_reconcile_scan() -> bool {
+    crate::remote::reconciliation::request_cancel()
 }
 
 #[tauri::command]

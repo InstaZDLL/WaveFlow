@@ -9,10 +9,12 @@
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU8, Ordering};
 
 use chrono::Utc;
 use serde::Serialize;
 use sqlx::{Row, SqliteConnection, SqlitePool};
+use tauri::{AppHandle, Emitter};
 
 use waveflow_core::repository::{
     playlist::PlaylistDraft,
@@ -23,6 +25,75 @@ use crate::error::{AppError, AppResult};
 
 const STATUS_CONFIRMED: &str = "confirmed";
 const STATUS_STALE: &str = "stale";
+
+/// Reconciliation-scan lifecycle as a single atomic state machine so the
+/// cancel-vs-commit race resolves with one compare-exchange instead of two
+/// separate flags. The scan reads and full-hashes local files, so it can run
+/// for a while on a large library even behind the byte-size prefilter.
+///
+/// Transitions (all `compare_exchange`, so exactly one racer wins):
+/// - `IDLE → STAGING`: claim the slot ([`discover_with_progress`]); any other
+///   current value means a scan is already running.
+/// - `STAGING → CANCELLED`: a cancel wins ([`request_cancel`]); only possible
+///   while staging, never once the commit has begun.
+/// - `STAGING → COMMITTING`: the run wins the race and starts persisting
+///   ([`reconcile`]); a cancel can no longer take effect.
+/// - `* → IDLE`: the [`PhaseGuard`] resets on every exit path.
+///
+/// Because the same `STAGING → {CANCELLED, COMMITTING}` compare-exchange
+/// arbitrates both sides, `request_cancel` can never report success after
+/// persistence has started, and the commit can never run after a cancel won.
+const PHASE_IDLE: u8 = 0;
+const PHASE_STAGING: u8 = 1;
+const PHASE_CANCELLED: u8 = 2;
+const PHASE_COMMITTING: u8 = 3;
+static RECONCILE_PHASE: AtomicU8 = AtomicU8::new(PHASE_IDLE);
+
+/// Progress payload for the `reconcile:progress` event the UI drives its bar
+/// from. `processed` counts local files whose full hash has been computed.
+#[derive(Debug, Clone, Serialize)]
+struct ReconcileProgress {
+    processed: usize,
+    total: usize,
+}
+
+/// Outcome of the blocking hash pass over the local candidates.
+struct HashScan {
+    hashed: Vec<HashedLocalTrack>,
+    unreadable: usize,
+    cancelled: bool,
+}
+
+/// RAII guard resetting [`RECONCILE_PHASE`] to `IDLE` on every exit path (early
+/// return, `?`, panic) so a failed scan can't wedge the state and brick the
+/// feature for the session.
+struct PhaseGuard;
+
+impl Drop for PhaseGuard {
+    fn drop(&mut self) {
+        RECONCILE_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
+    }
+}
+
+/// Ask an in-flight reconciliation scan to stop. Succeeds only while the scan
+/// is still staging (hashing / building links); once the commit has begun it is
+/// too late and this returns `false`, so a `true` return is an authoritative
+/// promise that nothing was persisted. Idempotent and safe to call when nothing
+/// is running.
+pub fn request_cancel() -> bool {
+    match RECONCILE_PHASE.compare_exchange(
+        PHASE_STAGING,
+        PHASE_CANCELLED,
+        Ordering::SeqCst,
+        Ordering::SeqCst,
+    ) {
+        Ok(_) => true,
+        // Already cancelled (double click) — idempotently still "cancelled".
+        Err(PHASE_CANCELLED) => true,
+        // IDLE (nothing running) or COMMITTING (too late to stop).
+        Err(_) => false,
+    }
+}
 
 #[derive(Debug, Clone)]
 struct LocalTrack {
@@ -84,6 +155,15 @@ pub struct ReconciliationReport {
     pub verified_links: usize,
     pub stale_links: usize,
     pub rejected_pairs: usize,
+    /// `true` when the user cancelled mid-scan. A cancelled run persists
+    /// nothing new and returns an otherwise-empty report so the UI can render
+    /// "Cancelled" instead of a misleading zero-match result.
+    pub cancelled: bool,
+    /// `true` when another scan already owns the run (e.g. a double-clicked
+    /// "Find matches"). Distinct from a genuinely empty result: the UI must
+    /// ignore this report and keep whatever candidates it already shows, rather
+    /// than clearing them to a false "0 matches".
+    pub already_running: bool,
     pub candidates: Vec<MatchCandidateGroup>,
 }
 
@@ -167,35 +247,117 @@ fn valid_full_hash(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|b| b.is_ascii_hexdigit())
 }
 
-/// Discover exact matches, persist only the unique ones and return every
-/// ambiguous group. Files that cannot be read are reported but never linked.
-pub async fn discover(pool: &SqlitePool) -> AppResult<ReconciliationReport> {
+fn empty_report(cancelled: bool) -> ReconciliationReport {
+    ReconciliationReport {
+        hashed_local_tracks: 0,
+        unreadable_local_tracks: 0,
+        auto_linked: 0,
+        verified_links: 0,
+        stale_links: 0,
+        rejected_pairs: 0,
+        cancelled,
+        already_running: false,
+        candidates: Vec::new(),
+    }
+}
+
+/// Atomically leave the cancellable `STAGING` phase at a terminal / commit
+/// point. Returns `Some(cancelled_report)` when a cancel already won the
+/// `STAGING → CANCELLED` race and the caller must bail without persisting;
+/// `None` to proceed. On the non-cancellable path it is always `None`. Using
+/// this at every terminal point — the empty-remote early return and the
+/// pre-commit gate in [`reconcile`] alike — keeps `request_cancel`'s
+/// authoritative `true` consistent with the report's `cancelled` flag.
+fn take_commit_slot(cancellable: bool) -> Option<ReconciliationReport> {
+    if cancellable
+        && RECONCILE_PHASE
+            .compare_exchange(
+                PHASE_STAGING,
+                PHASE_COMMITTING,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            )
+            .is_err()
+    {
+        return Some(empty_report(true));
+    }
+    None
+}
+
+/// Test-only convenience entry: run the discovery pipeline with no progress
+/// events and no cancellation. Production always goes through
+/// [`discover_with_progress`].
+#[cfg(test)]
+async fn discover(pool: &SqlitePool) -> AppResult<ReconciliationReport> {
+    discover_inner(pool, None, false).await
+}
+
+/// Same as [`discover`], but emits `reconcile:progress` events for the UI and
+/// honours the shared cancel flag. Overlapping scans are rejected up front so
+/// two `RUNNING` runs can't interleave their progress and cancel state.
+pub async fn discover_with_progress(
+    pool: &SqlitePool,
+    app: AppHandle,
+) -> AppResult<ReconciliationReport> {
+    // Claim the scan slot atomically: only `IDLE → STAGING` succeeds, so a
+    // second concurrent scan (any non-IDLE state) bails with an empty,
+    // non-cancelled report rather than a scary error toast.
+    if RECONCILE_PHASE
+        .compare_exchange(
+            PHASE_IDLE,
+            PHASE_STAGING,
+            Ordering::SeqCst,
+            Ordering::SeqCst,
+        )
+        .is_err()
+    {
+        // A scan already owns the run. Signal that explicitly so the UI keeps
+        // its current candidates instead of clearing them to a false "0
+        // matches"; this is NOT the same as a genuinely empty remote library.
+        return Ok(ReconciliationReport {
+            already_running: true,
+            ..empty_report(false)
+        });
+    }
+    // The guard resets the phase to IDLE on every exit path (early return, `?`,
+    // panic), whether we ended in STAGING, CANCELLED or COMMITTING.
+    let _guard = PhaseGuard;
+    // The progress path is cancellable and emits through `app`.
+    discover_inner(pool, Some(app), true).await
+}
+
+/// Shared discovery pipeline. `cancellable` is passed explicitly rather than
+/// inferred from `app`, so a unit test can exercise the cancellation path with
+/// no `AppHandle` (a `None` progress sink) — and so the non-cancellable path
+/// provably never reads or transitions the process-global phase.
+async fn discover_inner(
+    pool: &SqlitePool,
+    app: Option<AppHandle>,
+    cancellable: bool,
+) -> AppResult<ReconciliationReport> {
     let remote_tracks = load_remote_tracks(pool).await?;
     if remote_tracks.is_empty() {
-        return Ok(ReconciliationReport {
-            hashed_local_tracks: 0,
-            unreadable_local_tracks: 0,
-            auto_linked: 0,
-            verified_links: 0,
-            stale_links: 0,
-            rejected_pairs: 0,
-            candidates: Vec::new(),
-        });
+        // Nothing to reconcile, but this is still a terminal point: arbitrate
+        // the phase exactly like `reconcile` so a cancel that raced this path is
+        // reported consistently instead of as a plain empty result.
+        return Ok(take_commit_slot(cancellable).unwrap_or_else(|| empty_report(false)));
     }
 
     let local_tracks = load_local_candidates(pool).await?;
-    let (hashed_local_tracks, unreadable_local_tracks) =
-        tokio::task::spawn_blocking(move || hash_local_tracks(local_tracks))
+    let total = local_tracks.len();
+    let scan =
+        tokio::task::spawn_blocking(move || hash_local_tracks(local_tracks, app.as_ref(), total, cancellable))
             .await
             .map_err(|err| AppError::Other(format!("reconciliation hash task failed: {err}")))?;
 
-    reconcile(
-        pool,
-        hashed_local_tracks,
-        unreadable_local_tracks,
-        remote_tracks,
-    )
-    .await
+    if scan.cancelled {
+        // A partial scan could auto-link the unique matches it happened to
+        // reach and leave the rest looking "resolved"; a cancelled run must
+        // persist nothing, so bail before touching the database.
+        return Ok(empty_report(true));
+    }
+
+    reconcile(pool, scan.hashed, scan.unreadable, remote_tracks, cancellable).await
 }
 
 async fn load_remote_tracks(pool: &SqlitePool) -> AppResult<Vec<RemoteTrack>> {
@@ -263,10 +425,22 @@ async fn load_local_candidates(pool: &SqlitePool) -> AppResult<Vec<LocalTrack>> 
         .collect()
 }
 
-fn hash_local_tracks(tracks: Vec<LocalTrack>) -> (Vec<HashedLocalTrack>, usize) {
+fn hash_local_tracks(
+    tracks: Vec<LocalTrack>,
+    app: Option<&AppHandle>,
+    total: usize,
+    cancellable: bool,
+) -> HashScan {
+    // The phase is only meaningful on the cancellable path; the no-progress/test
+    // path must not read the shared phase (see `discover_inner`).
     let mut hashed = Vec::with_capacity(tracks.len());
     let mut unreadable = 0;
     for track in tracks {
+        // Poll for a cancel at the top of the loop so a click that lands
+        // between two files is honoured before starting another full-file read.
+        if cancellable && RECONCILE_PHASE.load(Ordering::Relaxed) == PHASE_CANCELLED {
+            return cancelled_scan(hashed, unreadable, total);
+        }
         match waveflow_core::scanner::hash_file_full(Path::new(&track.file_path)) {
             Ok(full_hash) => hashed.push(HashedLocalTrack { track, full_hash }),
             Err(err) => {
@@ -278,8 +452,35 @@ fn hash_local_tracks(tracks: Vec<LocalTrack>) -> (Vec<HashedLocalTrack>, usize) 
                 );
             }
         }
+        // `hashed + unreadable` is exactly the count of files processed so far.
+        if let Some(app) = app {
+            let processed = hashed.len() + unreadable;
+            let _ = app.emit("reconcile:progress", ReconcileProgress { processed, total });
+        }
     }
-    (hashed, unreadable)
+    // A cancel arriving while the LAST file hashes would never be seen by the
+    // top-of-loop poll, so the run would persist despite the click. Re-check
+    // once after the loop before declaring the scan complete. The definitive
+    // arbitration still happens at the pre-commit compare-exchange in
+    // `reconcile`, which catches a cancel this relaxed load may have missed.
+    if cancellable && RECONCILE_PHASE.load(Ordering::Relaxed) == PHASE_CANCELLED {
+        return cancelled_scan(hashed, unreadable, total);
+    }
+    HashScan {
+        hashed,
+        unreadable,
+        cancelled: false,
+    }
+}
+
+fn cancelled_scan(hashed: Vec<HashedLocalTrack>, unreadable: usize, total: usize) -> HashScan {
+    let processed = hashed.len() + unreadable;
+    tracing::info!(processed, total, "reconciliation scan cancelled by user");
+    HashScan {
+        hashed,
+        unreadable,
+        cancelled: true,
+    }
 }
 
 async fn playlist_link_freshness(proofs: Vec<PlaylistLinkProof>) -> AppResult<HashMap<i64, bool>> {
@@ -326,6 +527,7 @@ async fn reconcile(
     local_tracks: Vec<HashedLocalTrack>,
     unreadable_local_tracks: usize,
     remote_tracks: Vec<RemoteTrack>,
+    cancellable: bool,
 ) -> AppResult<ReconciliationReport> {
     let hashed_local_count = local_tracks.len();
     let mut local_by_hash: HashMap<String, Vec<HashedLocalTrack>> = HashMap::new();
@@ -503,6 +705,17 @@ async fn reconcile(
         }
     }
 
+    // Atomically leave the cancellable phase right before persisting: only
+    // `STAGING → COMMITTING` lets the commit through, and it fails exactly when
+    // a `request_cancel` already won `STAGING → CANCELLED`. On failure we drop
+    // `tx` (rollback) so a cancelled run persists nothing, and `request_cancel`
+    // — having observed STAGING — returned an authoritative `true`. The
+    // no-progress/test path (`cancellable == false`) never entered STAGING and
+    // always commits. All writes are staged in `tx`, so rollback leaves nothing.
+    if let Some(cancelled) = take_commit_slot(cancellable) {
+        tracing::info!("reconciliation scan cancelled before commit; rolling back");
+        return Ok(cancelled);
+    }
     tx.commit().await?;
     Ok(ReconciliationReport {
         hashed_local_tracks: hashed_local_count,
@@ -511,6 +724,8 @@ async fn reconcile(
         verified_links,
         stale_links,
         rejected_pairs,
+        cancelled: false,
+        already_running: false,
         candidates,
     })
 }
@@ -1196,136 +1411,175 @@ pub async fn remove_link(pool: &SqlitePool, local_track_id: i64) -> AppResult<()
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sqlx::sqlite::SqlitePoolOptions;
+    use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
     use std::fs;
+    use std::str::FromStr;
+    use std::sync::{Arc, Barrier};
 
-    async fn pool() -> SqlitePool {
-        let pool = SqlitePoolOptions::new()
-            .max_connections(1)
-            .connect(":memory:")
+    /// Serializes the tests that mutate the process-global `RECONCILE_PHASE`, so
+    /// cargo's parallel runner can't interleave them. A tokio mutex (not `std`)
+    /// because these tests hold it across `.await`. Tests on the non-cancellable
+    /// path never read the phase and so don't need it.
+    static PHASE_TEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
+    /// Arbitration of the cancel-vs-commit race the phase machine exists for.
+    #[tokio::test]
+    async fn cancel_and_commit_transitions_are_mutually_exclusive() {
+        let _serial = PHASE_TEST_LOCK.lock().await;
+        // Barrier-synchronised race: `request_cancel` (STAGING → CANCELLED) and
+        // the pre-commit transition (STAGING → COMMITTING) released at the same
+        // instant. Exactly one must win each round — never both (a persist while
+        // `request_cancel` also reported success) and never neither.
+        for _ in 0..20_000 {
+            RECONCILE_PHASE.store(PHASE_STAGING, Ordering::SeqCst);
+            let barrier = Arc::new(Barrier::new(2));
+
+            let cancel_barrier = Arc::clone(&barrier);
+            let cancel = std::thread::spawn(move || {
+                cancel_barrier.wait();
+                request_cancel()
+            });
+            let commit_barrier = Arc::clone(&barrier);
+            let commit = std::thread::spawn(move || {
+                commit_barrier.wait();
+                RECONCILE_PHASE
+                    .compare_exchange(
+                        PHASE_STAGING,
+                        PHASE_COMMITTING,
+                        Ordering::SeqCst,
+                        Ordering::SeqCst,
+                    )
+                    .is_ok()
+            });
+
+            let cancelled = cancel.join().unwrap();
+            let committed = commit.join().unwrap();
+            assert!(
+                cancelled ^ committed,
+                "exactly one of cancel/commit must win (cancelled={cancelled}, committed={committed})"
+            );
+        }
+
+        // Once committing, or when idle, a cancel is too late / a no-op and must
+        // report the authoritative `false`.
+        RECONCILE_PHASE.store(PHASE_COMMITTING, Ordering::SeqCst);
+        assert!(!request_cancel(), "cancel after commit started must be rejected");
+        RECONCILE_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
+        assert!(!request_cancel(), "cancel with nothing running must be rejected");
+    }
+
+    /// A cancel latched while the scan is still staging stops the hashing loop
+    /// before any file is read and persists nothing — exercised with no
+    /// `AppHandle`, via the explicit `cancellable` flag.
+    #[tokio::test]
+    async fn cancel_during_hashing_persists_nothing() {
+        let _serial = PHASE_TEST_LOCK.lock().await;
+        let pool = pool().await;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("local.flac");
+        fs::write(&path, b"same bytes").unwrap();
+        insert_local(&pool, 1, &path, "Local").await;
+        insert_remote(&pool, "remote-1", b"same bytes", "Remote").await;
+
+        RECONCILE_PHASE.store(PHASE_CANCELLED, Ordering::SeqCst);
+        let report = discover_inner(&pool, None, true).await.unwrap();
+        assert!(report.cancelled);
+        assert_eq!(report.auto_linked, 0);
+        let rows: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_track_link")
+            .fetch_one(&pool)
             .await
             .unwrap();
-        sqlx::raw_sql(
-            "PRAGMA foreign_keys = ON;
-             CREATE TABLE album (id INTEGER PRIMARY KEY, title TEXT NOT NULL);
-             CREATE TABLE artist (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
-             CREATE TABLE track (
-                 id INTEGER PRIMARY KEY,
-                 album_id INTEGER REFERENCES album(id),
-                 file_path TEXT NOT NULL,
-                 file_size INTEGER NOT NULL,
-                 title TEXT NOT NULL,
-                 duration_ms INTEGER NOT NULL DEFAULT 0,
-                 rating INTEGER,
-                 is_available INTEGER NOT NULL DEFAULT 1
-             );
-             CREATE TABLE track_artist (
-                 track_id INTEGER NOT NULL REFERENCES track(id) ON DELETE CASCADE,
-                 artist_id INTEGER NOT NULL REFERENCES artist(id),
-                 position INTEGER NOT NULL DEFAULT 0
-             );
-             CREATE TABLE remote_track (
-                 remote_id TEXT PRIMARY KEY,
-                 title TEXT NOT NULL,
-                 artist TEXT,
-                 album TEXT,
-                 size INTEGER,
-                 full_hash TEXT
-             );
-             CREATE TABLE playlist (
-                 id INTEGER PRIMARY KEY,
-                 name TEXT NOT NULL,
-                 description TEXT,
-                 color_id TEXT NOT NULL DEFAULT 'violet',
-                 icon_id TEXT NOT NULL DEFAULT 'music',
-                 is_smart INTEGER NOT NULL DEFAULT 0,
-                 position INTEGER NOT NULL DEFAULT 0,
-                 created_at INTEGER NOT NULL,
-                 updated_at INTEGER NOT NULL
-             );
-             CREATE TABLE playlist_track (
-                 playlist_id INTEGER NOT NULL REFERENCES playlist(id) ON DELETE CASCADE,
-                 track_id INTEGER NOT NULL REFERENCES track(id) ON DELETE CASCADE,
-                 position INTEGER NOT NULL,
-                 added_at INTEGER NOT NULL,
-                 PRIMARY KEY (playlist_id, track_id)
-             );
-             CREATE TABLE liked_track (
-                 track_id INTEGER PRIMARY KEY REFERENCES track(id) ON DELETE CASCADE,
-                 liked_at INTEGER NOT NULL
-             );
-             CREATE TABLE play_event (
-                 id INTEGER PRIMARY KEY,
-                 track_id INTEGER NOT NULL REFERENCES track(id) ON DELETE CASCADE,
-                 played_at INTEGER NOT NULL,
-                 listened_ms INTEGER NOT NULL DEFAULT 0,
-                 completed INTEGER NOT NULL DEFAULT 0,
-                 skipped INTEGER NOT NULL DEFAULT 0
-             );
-             CREATE TABLE remote_playlist (
-                 remote_id TEXT PRIMARY KEY,
-                 name TEXT NOT NULL,
-                 comment TEXT,
-                 is_public INTEGER NOT NULL DEFAULT 0,
-                 created_at INTEGER,
-                 updated_at INTEGER
-             );
-             CREATE TABLE remote_playlist_track (
-                 playlist_remote_id TEXT NOT NULL REFERENCES remote_playlist(remote_id) ON DELETE CASCADE,
-                 position INTEGER NOT NULL,
-                 track_remote_id TEXT NOT NULL,
-                 PRIMARY KEY (playlist_remote_id, position)
-             );
-             CREATE TABLE remote_mutation (
-                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                 operation_id TEXT NOT NULL UNIQUE,
-                 kind TEXT NOT NULL,
-                 payload TEXT NOT NULL,
-                 created_at INTEGER NOT NULL,
-                 attempt_count INTEGER NOT NULL DEFAULT 0,
-                 last_attempt_at INTEGER,
-                 last_error TEXT,
-                 failed_at INTEGER
-             );
-             CREATE TABLE remote_favorite (
-                 entity_type TEXT NOT NULL,
-                 entity_id TEXT NOT NULL,
-                 starred_at INTEGER NOT NULL,
-                 PRIMARY KEY (entity_type, entity_id)
-             );
-             CREATE TABLE remote_rating (
-                 entity_type TEXT NOT NULL,
-                 entity_id TEXT NOT NULL,
-                 rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
-                 updated_at INTEGER NOT NULL,
-                 PRIMARY KEY (entity_type, entity_id)
-             );
-             CREATE TABLE remote_history (
-                 track_remote_id TEXT NOT NULL,
-                 played_at INTEGER NOT NULL,
-                 submission INTEGER NOT NULL CHECK (submission IN (0, 1)),
-                 PRIMARY KEY (track_remote_id, played_at)
-             );",
-        )
-        .execute(&pool)
-        .await
-        .unwrap();
-        sqlx::raw_sql(include_str!(
-            "../../../../migrations/profile/20260817100000_remote_track_reconciliation.sql"
-        ))
-        .execute(&pool)
-        .await
-        .unwrap();
+        assert_eq!(rows, 0, "a cancelled hash must not persist any link");
+        RECONCILE_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
+    }
+
+    /// The empty-remote early return is a terminal point too: a cancel that
+    /// raced it must be reported as cancelled, not as a plain empty result.
+    #[tokio::test]
+    async fn cancel_with_empty_remote_reports_cancelled() {
+        let _serial = PHASE_TEST_LOCK.lock().await;
+        // `pool()` leaves `remote_track` empty, so `discover_inner` takes the
+        // early return without hashing or reconciling.
+        let pool = pool().await;
+        RECONCILE_PHASE.store(PHASE_CANCELLED, Ordering::SeqCst);
+        let report = discover_inner(&pool, None, true).await.unwrap();
+        assert!(report.cancelled, "a cancel racing the empty-remote path is reported");
+        RECONCILE_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
+    }
+
+    /// A cancel that lands after hashing finished, while `reconcile` is staging
+    /// its writes, loses the pre-commit `STAGING → COMMITTING` transition and
+    /// rolls the transaction back before commit, so no link row is written.
+    #[tokio::test]
+    async fn cancel_during_reconcile_rolls_back_before_commit() {
+        let _serial = PHASE_TEST_LOCK.lock().await;
+        let pool = pool().await;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("local.flac");
+        fs::write(&path, b"same bytes").unwrap();
+        insert_local(&pool, 1, &path, "Local").await;
+        insert_remote(&pool, "remote-1", b"same bytes", "Remote").await;
+
+        // Hash to completion on the non-cancellable path (never reads the phase),
+        // so the cancel below can only be caught by reconcile's pre-commit CAS.
+        let locals = load_local_candidates(&pool).await.unwrap();
+        let scan = hash_local_tracks(locals, None, 0, false);
+        assert_eq!(scan.hashed.len(), 1);
+        let remotes = load_remote_tracks(&pool).await.unwrap();
+
+        RECONCILE_PHASE.store(PHASE_CANCELLED, Ordering::SeqCst);
+        let report = reconcile(&pool, scan.hashed, scan.unreadable, remotes, true)
+            .await
+            .unwrap();
+        assert!(report.cancelled);
+        assert_eq!(report.auto_linked, 0);
+        let rows: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_track_link")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(rows, 0, "a cancel during reconcile must roll back before commit");
+        RECONCILE_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
+    }
+
+    /// Build the fixture from the REAL compiled-in profile migrations rather
+    /// than a hand-rolled subset. A trimmed schema drops CHECK constraints,
+    /// NOT NULL columns and the HLC quartet the migrator adds, so a green test
+    /// on a fake schema proves nothing about production (cf. the DB-test
+    /// fidelity rule). `foreign_keys(true)` mirrors the runtime pool, and a
+    /// single connection keeps the `:memory:` database shared across queries.
+    async fn pool() -> SqlitePool {
+        let opts = SqliteConnectOptions::from_str(":memory:")
+            .unwrap()
+            .foreign_keys(true);
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(opts)
+            .await
+            .unwrap();
+        sqlx::migrate!("../../migrations/profile")
+            .run(&pool)
+            .await
+            .unwrap();
+        // Every `track` row FKs `library(id)`, so seed one library up front.
+        sqlx::query("INSERT INTO library (id, name, created_at, updated_at) VALUES (1, 'Test', 0, 0)")
+            .execute(&pool)
+            .await
+            .unwrap();
         pool
     }
 
     async fn insert_local(pool: &SqlitePool, id: i64, path: &Path, title: &str) {
         sqlx::query(
-            "INSERT INTO track (id, file_path, file_size, title, is_available)
-             VALUES (?, ?, ?, ?, 1)",
+            "INSERT INTO track
+                (id, library_id, file_path, file_hash, file_size, file_modified,
+                 title, duration_ms, added_at, is_available)
+             VALUES (?, 1, ?, ?, ?, 0, ?, 0, 0, 1)",
         )
         .bind(id)
         .bind(path.to_string_lossy().as_ref())
+        // A distinct partial-scan digest per row; deliberately never equal to
+        // the full-file BLAKE3 the reconciler compares on.
+        .bind(format!("localscan-{id}"))
         .bind(fs::metadata(path).unwrap().len() as i64)
         .bind(title)
         .execute(pool)
@@ -1336,8 +1590,8 @@ mod tests {
     async fn insert_remote(pool: &SqlitePool, id: &str, bytes: &[u8], title: &str) {
         let hash = blake3::hash(bytes).to_hex().to_string();
         sqlx::query(
-            "INSERT INTO remote_track (remote_id, title, size, full_hash)
-             VALUES (?, ?, ?, ?)",
+            "INSERT INTO remote_track (remote_id, title, size, full_hash, cached_at)
+             VALUES (?, ?, ?, ?, 0)",
         )
         .bind(id)
         .bind(title)
@@ -1401,8 +1655,10 @@ mod tests {
         sqlx::raw_sql(
             "INSERT INTO liked_track (track_id, liked_at) VALUES (1, 10);
              UPDATE track SET rating = 204 WHERE id = 1;
-             INSERT INTO play_event (id, track_id, played_at) VALUES (1, 1, 100), (2, 1, 200);
-             INSERT INTO remote_history VALUES ('remote-1', 300, 1);",
+             INSERT INTO play_event (id, track_id, played_at, listened_ms)
+                 VALUES (1, 1, 100, 0), (2, 1, 200, 0);
+             INSERT INTO remote_history (track_remote_id, played_at, submission)
+                 VALUES ('remote-1', 300, 1);",
         )
         .execute(&pool)
         .await
@@ -1621,7 +1877,8 @@ mod tests {
         assert_eq!(discover(&pool).await.unwrap().auto_linked, 1);
         sqlx::raw_sql(
             "INSERT INTO playlist (id, name, created_at, updated_at) VALUES (10, 'Local mix', 1, 1);
-             INSERT INTO playlist_track VALUES (10, 1, 0, 1), (10, 2, 1, 1);",
+             INSERT INTO playlist_track (playlist_id, track_id, position, added_at)
+                 VALUES (10, 1, 0, 1), (10, 2, 1, 1);",
         )
         .execute(&pool)
         .await
