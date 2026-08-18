@@ -887,16 +887,30 @@ impl<'a> DopSpeedPin<'a> {
         if (restore - 1.0).abs() > f32::EPSILON {
             shared.set_playback_speed(1.0);
         }
+        // Swallow the `speed_dirty` flag our own write just raised, so
+        // `resync` below can use it as a pure "the user asked for
+        // something" signal.
+        shared.speed_dirty.store(false, Ordering::Release);
         Self { shared, restore }
     }
 
     /// Re-pin after a `SetSpeed` reached `drain_commands` mid-track,
     /// remembering the requested value as the one to restore.
+    ///
+    /// The trigger is `speed_dirty`, not the value: reading the shared
+    /// speed alone can't tell "the user just asked for 1.0×" apart from
+    /// "we pinned it to 1.0× ourselves", and mistaking the first for the
+    /// second would resurrect a speed the user had already cancelled
+    /// once the next PCM track started. Nothing else consumes the flag
+    /// on this path — the PCM loop does, and it isn't running.
     fn resync(&mut self) {
-        let current = self.shared.playback_speed();
-        if (current - 1.0).abs() > f32::EPSILON {
-            self.restore = current;
+        if !self.shared.speed_dirty.swap(false, Ordering::AcqRel) {
+            return;
+        }
+        self.restore = self.shared.playback_speed();
+        if (self.restore - 1.0).abs() > f32::EPSILON {
             self.shared.set_playback_speed(1.0);
+            self.shared.speed_dirty.store(false, Ordering::Release);
         }
     }
 }
