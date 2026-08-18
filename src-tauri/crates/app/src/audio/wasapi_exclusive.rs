@@ -208,10 +208,11 @@ enum ExclusiveSampleFormat {
     /// sample, no padding. Compact wire format favored by USB
     /// class-1 / class-2 DACs.
     Pcm24Packed,
-    /// `wBitsPerSample = 32`, valid bits 24, PCM. Four bytes per
-    /// sample, high byte is the LSB of a sign-extended i32. Most
-    /// integrated codecs that "support 24-bit" really want this
-    /// layout in exclusive mode.
+    /// `wBitsPerSample = 32`, valid bits 24, PCM. Four bytes per sample,
+    /// and per WAVEFORMATEXTENSIBLE the valid audio is **left-aligned**:
+    /// bits 31..8 carry the 24-bit sample, the least-significant byte is
+    /// zero padding. Most integrated codecs that "support 24-bit" really
+    /// want this layout in exclusive mode.
     Pcm24Padded,
     /// `wBitsPerSample = 16`, PCM. Two bytes per sample. Universal
     /// fallback for ancient or driver-limited hardware.
@@ -882,14 +883,16 @@ fn pack_samples(format: ExclusiveSampleFormat, samples: &[f32], bytes: &mut [u8]
             }
         }
         ExclusiveSampleFormat::Pcm24Padded => {
-            // 24-bit valid bits inside a 32-bit container, LE. WASAPI
-            // expects the 24-bit value in the LOW bytes with sign
-            // extension into the high byte (so a positive i32 with
-            // bits 24-30 == 0 is the right shape — left-shift would
-            // be wrong, the container stores the raw signed value).
+            // 24 valid bits inside a 32-bit container, LE. WAVEFORMATEXTENSIBLE
+            // pins the layout: "if wValidBitsPerSample is less than
+            // wBitsPerSample, the valid bits are left-aligned within the
+            // container. The unused bits in the least-significant portion of
+            // the container should be set to zero." So the 24-bit value is
+            // shifted up by 8 — right-justifying it would hand the device a
+            // signal 48 dB down, since it reads precision from the top bits.
             for (sample, chunk) in samples.iter().zip(bytes.chunks_exact_mut(4)) {
                 let clamped = sample.clamp(-1.0, 1.0);
-                let v = (clamped * 8_388_607.0) as i32;
+                let v = ((clamped * 8_388_607.0) as i32) << 8;
                 chunk.copy_from_slice(&v.to_le_bytes());
             }
         }
@@ -1107,11 +1110,18 @@ mod tests {
     }
 
     #[test]
-    fn pack_samples_s24_padded_four_bytes_per_sample() {
-        let samples = [1.0_f32];
-        let mut bytes = vec![0u8; 4];
+    fn pack_samples_s24_padded_is_left_aligned_in_the_container() {
+        let samples = [1.0_f32, -1.0_f32, 0.0_f32];
+        let mut bytes = vec![0u8; 12];
         pack_samples(ExclusiveSampleFormat::Pcm24Padded, &samples, &mut bytes);
-        // 1.0 → 8_388_607 as i32, LE. High byte stays 0 (positive value).
-        assert_eq!(bytes, 8_388_607_i32.to_le_bytes().to_vec());
+        // WAVEFORMATEXTENSIBLE: the 24 valid bits sit in the MOST significant
+        // part of the 32-bit container, unused low bits zeroed.
+        assert_eq!(&bytes[0..4], &(8_388_607_i32 << 8).to_le_bytes());
+        assert_eq!(&bytes[4..8], &((-8_388_607_i32) << 8).to_le_bytes());
+        assert_eq!(&bytes[8..12], &[0, 0, 0, 0]);
+        // The zeroed byte is the LOW one, not the high one — a right-justified
+        // packing would put the zero at index 3 and drop the signal 48 dB.
+        assert_eq!(bytes[0], 0, "unused bits must be the least significant");
+        assert_eq!(bytes[3], 0x7F, "full scale must reach the top byte");
     }
 }
