@@ -1647,9 +1647,16 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     }
   };
 
+  // Audio settings live in `profile_setting`, so they have to be
+  // re-read when the active profile changes — otherwise the panel keeps
+  // showing the previous profile's values and the next toggle writes
+  // them into the new one. The `stale` latch drops an in-flight answer
+  // that belongs to the profile we just left.
   useEffect(() => {
+    let stale = false;
     playerGetAudioSettings()
       .then((s) => {
+        if (stale) return;
         setNormalize(s.normalize);
         setMono(s.mono);
         setCrossfadeSec(Math.round(s.crossfade_ms / 1000));
@@ -1666,7 +1673,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       .catch((err) =>
         console.error("[Settings] audio settings load failed", err),
       );
-  }, []);
+    return () => {
+      stale = true;
+    };
+  }, [activeProfile?.id]);
 
   const handleToggleNormalize = useCallback(() => {
     const next = !normalize;
@@ -1701,13 +1711,22 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     [dsdTaps],
   );
 
+  // Writes are chained rather than fired in parallel: two fast clicks
+  // would otherwise race in the backend and could leave the persisted
+  // setting on the *first* value. The rollback is likewise conditional,
+  // so a stale failure can't clobber a newer click.
+  const dsdDopWrite = useRef<Promise<void>>(Promise.resolve());
   const handleToggleDsdDop = useCallback(() => {
-    const next = !dsdDop;
+    const prev = dsdDop;
+    const next = !prev;
     setDsdDop(next); // optimistic
-    playerSetDsdDop(next).catch((err) => {
-      console.error("[Settings] set DSD DoP failed", err);
-      setDsdDop(!next); // rollback
-    });
+    dsdDopWrite.current = dsdDopWrite.current
+      .catch(() => {})
+      .then(() => playerSetDsdDop(next))
+      .catch((err) => {
+        console.error("[Settings] set DSD DoP failed", err);
+        setDsdDop((cur) => (cur === next ? prev : cur));
+      });
   }, [dsdDop]);
 
   // Smart crossfade — skip the fade between two tracks of the same
@@ -2289,10 +2308,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               </div>
             </div>
 
-            {/* Native DSD via DoP (DSD over PCM). Windows (WASAPI
-                Exclusive) + Linux (raw ALSA hw) with a DoP-capable DAC;
-                off by default. Hidden where DoP can't engage yet (macOS,
-                mobile). */}
+            {/* Native DSD via DoP (DSD over PCM), with a DoP-capable DAC
+                on an exclusive output: WASAPI Exclusive (Windows), raw
+                ALSA hw (Linux), CoreAudio hog mode (macOS). Off by
+                default. Hidden where DoP can't engage at all (mobile). */}
             {dopPlatformSupported && (
               <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
                 <div className="flex items-center space-x-4 min-w-0">

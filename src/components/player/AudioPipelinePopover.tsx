@@ -152,11 +152,16 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
     track.channels != null &&
     snap.outputChannels > 0 &&
     snap.outputChannels < track.channels;
-  const isSpeedShifted = Math.abs(playbackSpeed - 1.0) > 0.001;
-  const isEq = snap?.eqEnabled ?? false;
-  const isNormalize = snap?.normalize ?? false;
-  const isReplayGain = snap?.replaygain ?? false;
-  const isMono = snap?.mono ?? false;
+  // Every DSP stage below is bypassed on the DoP path — the decoder
+  // pushes the 24-bit words straight to the ring, so EQ / normalize /
+  // ReplayGain / mono / speed are all inert whatever the preference
+  // says. Reading the raw preferences here would badge the stream with
+  // effects that aren't running, and cancel the bit-perfect pill.
+  const isSpeedShifted = !isDopNative && Math.abs(playbackSpeed - 1.0) > 0.001;
+  const isEq = !isDopNative && (snap?.eqEnabled ?? false);
+  const isNormalize = !isDopNative && (snap?.normalize ?? false);
+  const isReplayGain = !isDopNative && (snap?.replaygain ?? false);
+  const isMono = !isDopNative && (snap?.mono ?? false);
   const isBitPerfect =
     snap != null &&
     // Native DoP is bit-perfect; only DSD → PCM conversion breaks it.
