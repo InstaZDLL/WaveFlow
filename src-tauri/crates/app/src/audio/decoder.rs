@@ -356,7 +356,15 @@ fn decoder_loop(
                 // engaged — a DAC that refused the format falls back to
                 // the ordinary DSD → PCM path, and a non-DSD track after
                 // a DoP one rebuilds the output back to normal PCM.
-                let dop_engaged = maybe_switch_dop_output(&app, &shared, &path, producer);
+                let dop_engaged = match maybe_switch_dop_output(&app, &shared, &path, producer) {
+                    Ok(engaged) => engaged,
+                    Err(err) => {
+                        tracing::warn!(%err, path = %path.display(), "no output for this track");
+                        let _ = app.emit(EVENT_ERROR, ErrorPayload { message: err });
+                        transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
+                        continue;
+                    }
+                };
 
                 let stream = match ActiveStream::open(
                     &path,
@@ -446,7 +454,12 @@ fn decoder_loop(
                 shared.samples_played.store(0, Ordering::Relaxed);
                 shared.base_offset_ms.store(start_ms, Ordering::Relaxed);
                 shared.current_track_id.store(track_id, Ordering::Release);
-                restore_pcm_output(&app, producer);
+                if let Err(err) = restore_pcm_output(&app, producer) {
+                    tracing::warn!(%err, "no output for this remote track");
+                    let _ = app.emit(EVENT_ERROR, ErrorPayload { message: err });
+                    transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
+                    continue;
+                }
 
                 let remote_meta = {
                     let state = app.state::<crate::state::AppState>();
@@ -577,7 +590,12 @@ fn decoder_loop(
                 shared.samples_played.store(0, Ordering::Relaxed);
                 shared.base_offset_ms.store(0, Ordering::Relaxed);
                 shared.current_track_id.store(track_id, Ordering::Release);
-                restore_pcm_output(&app, producer);
+                if let Err(err) = restore_pcm_output(&app, producer) {
+                    tracing::warn!(%err, "no output for this stream");
+                    let _ = app.emit(EVENT_ERROR, ErrorPayload { message: err });
+                    transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
+                    continue;
+                }
 
                 // Defence in depth: `player_play_url` already gates on
                 // `offline::is_offline()` before dispatching the
@@ -836,12 +854,22 @@ fn dop_format_for(path: &Path) -> Option<DopFormat> {
 /// The engine only rebuilds (and only then hands back a producer) when
 /// the format actually changes, so an ordinary PCM-to-PCM track pays
 /// nothing here.
+/// Negotiate the output format for this track and report whether DoP
+/// engaged.
+///
+/// `Ok(false)` is the ordinary fallback — the DAC refused the DoP format
+/// and the engine opened a normal PCM output instead, so the caller plays
+/// the track through DSD → PCM. `Err` is not that: by the time
+/// [`AudioEngine::switch_output_for_track`] fails, it has already stopped
+/// the previous output and couldn't open a replacement, so there is no
+/// device on the other end of `producer` at all. Playing on would push
+/// into an abandoned ring and show the UI a track that nobody can hear.
 fn maybe_switch_dop_output(
     app: &AppHandle,
     shared: &SharedPlayback,
     path: &Path,
     producer: &mut Producer<f32>,
-) -> bool {
+) -> Result<bool, String> {
     let want = if shared.dsd_dop_enabled.load(Ordering::Acquire) {
         dop_format_for(path)
     } else {
@@ -850,19 +878,16 @@ fn maybe_switch_dop_output(
     let Some(engine) = app.try_state::<Arc<AudioEngine>>() else {
         // No engine in managed state (shouldn't happen outside teardown)
         // — stay on the current output and the PCM path.
-        return false;
+        return Ok(false);
     };
     match engine.switch_output_for_track(want) {
         Ok((new_producer, engaged)) => {
             if let Some(p) = new_producer {
                 *producer = p;
             }
-            engaged
+            Ok(engaged)
         }
-        Err(err) => {
-            tracing::warn!(%err, "DoP output switch failed; staying on current output (PCM)");
-            false
-        }
+        Err(err) => Err(format!("audio output switch failed: {err}")),
     }
 }
 
@@ -879,14 +904,19 @@ fn maybe_switch_dop_output(
 /// (DoP for a locally-reconciled remote track is possible — it opens a
 /// real file — but it needs the same rebuild + `play_dop_track` dance as
 /// `LoadAndPlay`, so it's left for its own change.)
-fn restore_pcm_output(app: &AppHandle, producer: &mut Producer<f32>) {
+/// Errors for the same reason as [`maybe_switch_dop_output`]: a failure
+/// here means the engine has no output left, not that it kept the old one.
+fn restore_pcm_output(app: &AppHandle, producer: &mut Producer<f32>) -> Result<(), String> {
     let Some(engine) = app.try_state::<Arc<AudioEngine>>() else {
-        return;
+        return Ok(());
     };
     match engine.switch_output_for_track(None) {
-        Ok((Some(fresh), _)) => *producer = fresh,
-        Ok((None, _)) => {}
-        Err(err) => tracing::warn!(%err, "failed to restore the PCM output"),
+        Ok((Some(fresh), _)) => {
+            *producer = fresh;
+            Ok(())
+        }
+        Ok((None, _)) => Ok(()),
+        Err(err) => Err(format!("audio output switch failed: {err}")),
     }
 }
 

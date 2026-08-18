@@ -865,7 +865,10 @@ fn aligned_byte_offset(target: u64, stride: u64, data_len_bytes: u64) -> u64 {
 #[inline]
 fn dsd_byte_offset_for_ms(layout: &DsdLayout, ms: u64) -> u64 {
     let bits_per_second = (layout.sample_rate_hz as u128) * (layout.channels.count() as u128);
-    ((ms as u128) * bits_per_second / 8 / 1000) as u64
+    // Saturate rather than let the `as` truncate: a wrapped offset would
+    // land somewhere plausible inside the payload and survive the clamp
+    // in `aligned_byte_offset`, which only bounds the top end.
+    ((ms as u128) * bits_per_second / 8 / 1000).min(u64::MAX as u128) as u64
 }
 
 /// Round a byte count down to a whole interleave stride — what's left of
