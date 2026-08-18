@@ -297,3 +297,18 @@ windows = { version = "0.62", features = [
 # Target-gated, so the Windows + Linux bundles are untouched.
 [target.'cfg(target_os = "macos")'.dependencies]
 coreaudio-rs = "0.14"
+# The two HAL crates `coreaudio-rs` itself is built on, at the same
+# version and feature set so the `AudioStreamBasicDescription` we read
+# is the very type its setter takes. Needed for exactly one call it
+# doesn't wrap: reading the device's *current* physical stream format,
+# so DoP can hand the device back the way it found it.
+objc2-core-audio = { version = "0.3", default-features = false, features = [
+    "std",
+    "objc2-core-audio-types",
+    "AudioHardware",
+] }
+objc2-core-audio-types = { version = "0.3", default-features = false, features = [
+    "std",
+    "bitflags",
+    "CoreAudioBaseTypes",
+] }

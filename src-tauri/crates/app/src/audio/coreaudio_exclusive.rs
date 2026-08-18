@@ -23,6 +23,7 @@
 //! Same SPSC ring contract as the other backends (`Producer<f32>` →
 //! `Consumer<f32>`, words carried as `f32` bit patterns).
 
+use std::ptr::NonNull;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread::JoinHandle;
@@ -32,10 +33,17 @@ use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::macos_helpers::{
     audio_unit_from_device_id_uninitialized, find_matching_physical_format, get_default_device_id,
     get_device_id_from_name, get_hogging_pid, set_device_physical_stream_format, toggle_hog_mode,
+    AliveListener,
 };
 use coreaudio::audio_unit::render_callback::{data, Args};
 use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
 use crossbeam_channel::{bounded, Receiver, RecvTimeoutError, Sender};
+use objc2_core_audio::{
+    kAudioObjectPropertyElementMain, kAudioObjectPropertyScopeGlobal,
+    kAudioStreamPropertyPhysicalFormat, AudioDeviceID, AudioObjectGetPropertyData,
+    AudioObjectPropertyAddress,
+};
+use objc2_core_audio_types::AudioStreamBasicDescription;
 use rtrb::{Consumer, Producer, RingBuffer};
 use tauri::AppHandle;
 
@@ -43,16 +51,10 @@ use super::output::{DopFormat, OutputHandle, RING_CAPACITY};
 use super::state::SharedPlayback;
 use crate::error::{AppError, AppResult};
 
-/// How often the parked output thread checks that its device still
-/// exists. Long enough to be free, short enough that an unplugged DAC
-/// surfaces before the user reaches for the mouse.
+/// How often the parked output thread wakes to look at its device. The
+/// loss itself arrives by push (see [`AliveListener`]) — this only sets
+/// how fast a sleeping thread notices the flag, so it can stay lazy.
 const DEVICE_POLL_INTERVAL: Duration = Duration::from_secs(1);
-
-/// CoreAudio device handle. `coreaudio-rs` takes/returns the
-/// `objc2_core_audio::AudioDeviceID` type, which is a transparent alias
-/// for `u32` (`AudioObjectID`), so we alias it locally rather than pull
-/// in `objc2-core-audio` just for the name.
-type AudioDeviceID = u32;
 
 /// Spawn the CoreAudio DoP output thread. Mirrors the other exclusive
 /// backends' contract: returns the decoder-side `Producer<f32>` and an
@@ -196,8 +198,24 @@ fn open_and_run(
             dop.sample_rate
         ))
     })?;
+    // Remember what the device was set to first. Pinning the physical
+    // format is a change to the *device*, not to our stream: without
+    // this, quitting a DoP track leaves every other app on the machine
+    // talking to a DAC clocked at 352.8 kHz. The guard puts it back on
+    // every exit path, including the `?`s below.
+    let previous_format = read_physical_stream_format(device_id)
+        .inspect_err(|err| {
+            tracing::warn!(%err, "coreaudio: can't read the current physical format; it won't be restored");
+        })
+        .ok();
     set_device_physical_stream_format(device_id, asbd)
         .map_err(|e| AppError::Audio(format!("coreaudio set physical format: {e}")))?;
+    // Declared after the AudioUnit would be wrong: locals drop in reverse
+    // order, and the unit has to stop before the device is re-clocked.
+    let _format_guard = PhysicalFormatGuard {
+        device_id,
+        previous: previous_format,
+    };
 
     // Build the output AudioUnit bound to the device (uninitialized so we
     // can set the client format before init).
@@ -271,17 +289,38 @@ fn open_and_run(
 
     // CoreAudio doesn't error into our thread when the DAC is unplugged:
     // it simply stops pulling the render callback, which would leave us
-    // parked on `recv()` forever with a dead output. Poll the device
-    // object between shutdown waits instead — a property query on a
-    // removed device fails, and that's our loss signal. (`AliveListener`
-    // in `macos_helpers` would push this instead of polling; it needs a
-    // macOS build to validate, which neither CI nor this branch has yet.)
+    // parked forever on a dead output. `AliveListener` subscribes to the
+    // device's `IsAlive` property, so the loss arrives as a flag flip and
+    // the wait below only decides how soon we look at it.
+    //
+    // It registers a listener holding a pointer to itself, so it must not
+    // move afterwards — it stays a local of this frame, and its `Drop`
+    // unregisters.
+    let mut alive = AliveListener::new(device_id);
+    let watching = match alive.register() {
+        Ok(()) => true,
+        Err(err) => {
+            tracing::warn!(
+                %err,
+                "coreaudio: no device-alive listener; falling back to polling the device object"
+            );
+            false
+        }
+    };
+
     let exit = loop {
         match shutdown_rx.recv_timeout(DEVICE_POLL_INTERVAL) {
             Ok(()) | Err(RecvTimeoutError::Disconnected) => break ExitReason::Shutdown,
             Err(RecvTimeoutError::Timeout) => {
-                if let Err(err) = get_hogging_pid(device_id) {
-                    break ExitReason::DeviceLost(format!("coreaudio device gone: {err}"));
+                let gone = if watching {
+                    !alive.is_alive()
+                } else {
+                    // No listener: a property query on a removed device
+                    // fails, which is the next best signal.
+                    get_hogging_pid(device_id).is_err()
+                };
+                if gone {
+                    break ExitReason::DeviceLost("coreaudio device is no longer alive".into());
                 }
             }
         }
@@ -292,6 +331,69 @@ fn open_and_run(
     let _ = audio_unit.stop();
     drop(audio_unit);
     Ok(exit)
+}
+
+/// Puts the device's physical stream format back when the DoP stream
+/// goes away — whether that's a clean stop, a device loss, or a `?` on
+/// one of the AudioUnit calls.
+///
+/// Restoring is best-effort and never fatal: the stream is already gone
+/// by the time this runs, and a device that refuses the old format
+/// (unplugged, taken by someone else) is not something we can act on.
+struct PhysicalFormatGuard {
+    device_id: AudioDeviceID,
+    previous: Option<AudioStreamBasicDescription>,
+}
+
+impl Drop for PhysicalFormatGuard {
+    fn drop(&mut self) {
+        let Some(previous) = self.previous.take() else {
+            return;
+        };
+        match set_device_physical_stream_format(self.device_id, previous) {
+            Ok(()) => tracing::debug!("coreaudio: physical format restored"),
+            Err(err) => {
+                tracing::warn!(%err, "coreaudio: couldn't restore the device's physical format")
+            }
+        }
+    }
+}
+
+/// Read the device's *current* physical stream format.
+///
+/// `coreaudio-rs` 0.14.2 can set this property and can list the formats a
+/// device supports, but never hands back the one in force — its setter
+/// reads it internally and drops it. So the only way to restore what we
+/// found is to make the same HAL call ourselves.
+fn read_physical_stream_format(device_id: AudioDeviceID) -> Result<AudioStreamBasicDescription, String> {
+    let address = AudioObjectPropertyAddress {
+        mSelector: kAudioStreamPropertyPhysicalFormat,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMain,
+    };
+    let mut asbd = std::mem::MaybeUninit::<AudioStreamBasicDescription>::zeroed();
+    let data_size = std::mem::size_of::<AudioStreamBasicDescription>() as u32;
+
+    // SAFETY: `address` and `data_size` outlive the call; the destination
+    // is a correctly sized and aligned ASBD slot, which CoreAudio fills
+    // entirely when it reports success. `assume_init` only runs on a
+    // zero status, and the slot is zeroed either way.
+    let status = unsafe {
+        AudioObjectGetPropertyData(
+            device_id,
+            NonNull::from(&address),
+            0,
+            std::ptr::null(),
+            NonNull::from(&data_size),
+            NonNull::from(&mut asbd).cast(),
+        )
+    };
+    if status != 0 {
+        return Err(format!(
+            "AudioObjectGetPropertyData(kAudioStreamPropertyPhysicalFormat) failed: {status}"
+        ));
+    }
+    Ok(unsafe { asbd.assume_init() })
 }
 
 /// Resolve the persisted device name to a CoreAudio device id, or the
@@ -360,6 +462,23 @@ mod tests {
         let dev = get_default_device_id(false).expect("a default output device");
         let hog = get_hogging_pid(dev).unwrap_or(-99);
         println!("default output device id = {dev}, current hog pid = {hog}");
+
+        // The property read the restore path depends on. Printing it
+        // proves the raw HAL call actually executes and returns a
+        // plausible description, not just that it compiles.
+        match read_physical_stream_format(dev) {
+            Ok(asbd) => println!(
+                "current physical format: {} Hz, {} bits, {} ch, format id {:#x}",
+                asbd.mSampleRate, asbd.mBitsPerChannel, asbd.mChannelsPerFrame, asbd.mFormatID
+            ),
+            Err(err) => panic!("reading the physical format failed: {err}"),
+        }
+
+        // The alive listener the device-loss path depends on.
+        let mut alive = AliveListener::new(dev);
+        alive.register().expect("registering the alive listener");
+        assert!(alive.is_alive(), "a present device reports alive");
+        println!("alive listener registered, device reports alive");
         for rate in [176_400u32, 352_800, 705_600] {
             let sf = StreamFormat {
                 sample_rate: rate as f64,
