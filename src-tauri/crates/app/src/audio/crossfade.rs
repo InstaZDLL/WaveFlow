@@ -547,9 +547,7 @@ impl ActiveStream {
             } => {
                 // Bytes per ms of DSD: rate × channels / 8 / 1000.
                 // u128 to dodge overflow on DSD512 stereo.
-                let bps =
-                    (layout.sample_rate_hz as u128) * (layout.channels.count() as u128) / 8 / 1000;
-                let target = (ms as u128 * bps) as u64;
+                let target = dsd_byte_offset_for_ms(layout, ms);
                 // Align to a full interleave cycle. For DSF the
                 // bitstream is block-interleaved (block_size bytes
                 // per channel, looped), so a seek that lands inside
@@ -578,9 +576,7 @@ impl ActiveStream {
                 // interleave stride so the encoder never pairs bytes
                 // across a channel boundary — then drop the encoder's
                 // marker phase + pending byte so the DAC re-locks cleanly.
-                let bps =
-                    (layout.sample_rate_hz as u128) * (layout.channels.count() as u128) / 8 / 1000;
-                let target = (ms as u128 * bps) as u64;
+                let target = dsd_byte_offset_for_ms(layout, ms);
                 let stride = interleave_stride(layout);
                 let aligned = aligned_byte_offset(target, stride, layout.data_len_bytes);
                 let absolute = layout.data_offset + aligned;
@@ -857,6 +853,19 @@ fn aligned_byte_offset(target: u64, stride: u64, data_len_bytes: u64) -> u64 {
         .map(|q| q * stride)
         .unwrap_or(target)
         .min(data_len_bytes)
+}
+
+/// Byte offset of `ms` into a DSD payload.
+///
+/// The division comes last on purpose. Folding it into a bytes-per-ms
+/// constant first truncates the ratio — DSD64 stereo is 705.6 bytes/ms,
+/// which becomes 705 — and the error is then multiplied by the seek
+/// position: about 0.15 s short three minutes in, and growing from
+/// there. u128 throughout so DSD512 stereo can't overflow.
+#[inline]
+fn dsd_byte_offset_for_ms(layout: &DsdLayout, ms: u64) -> u64 {
+    let bits_per_second = (layout.sample_rate_hz as u128) * (layout.channels.count() as u128);
+    ((ms as u128) * bits_per_second / 8 / 1000) as u64
 }
 
 /// Round a byte count down to a whole interleave stride — what's left of
