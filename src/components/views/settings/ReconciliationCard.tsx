@@ -256,6 +256,9 @@ export function ReconciliationCard() {
                     </p>
                     <p className="text-[10px] text-zinc-500">
                       {t("remote.reconciliation.history", {
+                        // `count` drives plural selection on the total; the
+                        // three numbers are interpolated by name.
+                        count: link.combined_plays,
                         local: link.local_plays,
                         remote: link.remote_plays,
                         combined: link.combined_plays,
@@ -562,6 +565,7 @@ function PlaylistConversion() {
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 p-3 space-y-3">
           <p className="text-xs text-zinc-600 dark:text-zinc-300">
             {t("remote.reconciliation.conversionPreviewSummary", {
+              count: preview.total_tracks,
               name: preview.source_name,
               convertible: preview.convertible_tracks,
               total: preview.total_tracks,
@@ -634,13 +638,19 @@ function ReportSummary({ report }: { report: ReconciliationReport }) {
       </p>
     );
   }
+  // Three independent counts can't share one plural form, so each segment is
+  // its own key and they're joined here.
   return (
     <p className="text-xs text-zinc-500 dark:text-zinc-400">
-      {t("remote.reconciliation.summary", {
-        verified: report.hashed_local_tracks,
-        linked: report.auto_linked,
-        groups: report.candidates.length,
-      })}
+      {[
+        t("remote.reconciliation.summaryVerified", {
+          count: report.hashed_local_tracks,
+        }),
+        t("remote.reconciliation.summaryLinked", { count: report.auto_linked }),
+        t("remote.reconciliation.summaryGroups", {
+          count: report.candidates.length,
+        }),
+      ].join(" · ")}
       {report.stale_links > 0
         ? t("remote.reconciliation.summaryStale", { count: report.stale_links })
         : ""}

@@ -37,7 +37,7 @@ export function RemoteArtistView({
    *  resolved to a row the user already owns. */
   onNavigateToArtist: (artistId: number) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [artist, setArtist] = useState<RemoteArtist | null>(null);
   const [enrichment, setEnrichment] = useState<DeezerArtistEnrichment | null>(
     null,
@@ -117,9 +117,11 @@ export function RemoteArtistView({
     enrichment?.fans_count != null
       ? t("remote.artist.fansCount", {
           count: enrichment.fans_count,
-          value: Intl.NumberFormat(undefined, { notation: "compact" }).format(
-            enrichment.fans_count,
-          ),
+          // Group/abbreviate with the language the UI is actually rendering in,
+          // not the browser's — they diverge whenever the user picks a locale.
+          value: Intl.NumberFormat(i18n.language, {
+            notation: "compact",
+          }).format(enrichment.fans_count),
         })
       : null;
 

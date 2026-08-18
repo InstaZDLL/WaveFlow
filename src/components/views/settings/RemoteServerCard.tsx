@@ -252,20 +252,28 @@ export function RemoteServerCard() {
 
 function Counts({ overview }: { overview: RemoteOverview }) {
   const { t } = useTranslation();
-  const entries: [string, number][] = [
-    [t("remote.server.counts.playlists"), overview.playlists],
-    [t("remote.server.counts.favorites"), overview.favorites],
-    [t("remote.server.counts.ratings"), overview.ratings],
-    [t("remote.server.counts.history"), overview.history],
-    [t("remote.server.counts.shares"), overview.shares],
-    [t("remote.server.counts.queue"), overview.queue_tracks],
-    [t("remote.server.counts.cachedTracks"), overview.cached_tracks],
+  // The number is rendered separately (tabular-nums, its own colour), so the
+  // label carries no `{{count}}` — `count` only drives plural selection, which
+  // keeps "1 playlist" / "2 playlists" correct in every language.
+  const counts: [string, number][] = [
+    ["playlists", overview.playlists],
+    ["favorites", overview.favorites],
+    ["ratings", overview.ratings],
+    ["history", overview.history],
+    ["shares", overview.shares],
+    ["queue", overview.queue_tracks],
+    ["cachedTracks", overview.cached_tracks],
   ];
+  const entries = counts.map(([key, value]) => ({
+    key,
+    label: t(`remote.server.counts.${key}`, { count: value }),
+    value,
+  }));
   return (
     <div className="space-y-1">
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
-        {entries.map(([label, value]) => (
-          <span key={label}>
+        {entries.map(({ key, label, value }) => (
+          <span key={key}>
             <span className="tabular-nums text-zinc-700 dark:text-zinc-200">
               {value}
             </span>{" "}
