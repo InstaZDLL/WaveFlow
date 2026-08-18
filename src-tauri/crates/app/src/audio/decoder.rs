@@ -864,12 +864,62 @@ fn maybe_switch_dop_output(
     }
 }
 
+/// Holds the shared playback speed at 1.0 for the duration of a DoP
+/// track, and puts the user's value back on the way out.
+///
+/// Speed is implemented by the resampler, which the DoP path doesn't
+/// run: the words go to the DAC at its fixed carrier rate whatever the
+/// setting says. But [`SharedPlayback::current_position_ms`] still
+/// scales by it, so leaving a 1.5× in place would make the progress bar
+/// and the scrobble clock run away from music that plays at 1×. Pinning
+/// it keeps the reported position honest without discarding the
+/// preference — the next PCM track picks the user's speed back up.
+struct DopSpeedPin<'a> {
+    shared: &'a SharedPlayback,
+    restore: f32,
+}
+
+impl<'a> DopSpeedPin<'a> {
+    fn new(shared: &'a SharedPlayback) -> Self {
+        let restore = shared.playback_speed();
+        // `set_playback_speed` re-bases the position clock, so it's only
+        // called when the value actually has to move.
+        if (restore - 1.0).abs() > f32::EPSILON {
+            shared.set_playback_speed(1.0);
+        }
+        Self { shared, restore }
+    }
+
+    /// Re-pin after a `SetSpeed` reached `drain_commands` mid-track,
+    /// remembering the requested value as the one to restore.
+    fn resync(&mut self) {
+        let current = self.shared.playback_speed();
+        if (current - 1.0).abs() > f32::EPSILON {
+            self.restore = current;
+            self.shared.set_playback_speed(1.0);
+        }
+    }
+}
+
+impl Drop for DopSpeedPin<'_> {
+    fn drop(&mut self) {
+        if (self.restore - 1.0).abs() > f32::EPSILON {
+            self.shared.set_playback_speed(self.restore);
+        }
+    }
+}
+
 /// DoP playback loop (#495). The bit-perfect twin of [`play_track`]:
-/// no crossfade, no gapless, no EQ / ReplayGain / speed / A-B loop —
-/// every one of those would mutate the 24-bit DoP words and corrupt the
-/// embedded DSD. It just decodes DoP blocks and pushes them straight to
-/// the ring, reusing [`drain_commands`] (pause / stop / seek / next) and
+/// no crossfade, no gapless, no EQ / ReplayGain / speed — every one of
+/// those would mutate the 24-bit DoP words and corrupt the embedded DSD.
+/// It just decodes DoP blocks and pushes them straight to the ring,
+/// reusing [`drain_commands`] (pause / stop / seek / next) and
 /// [`push_samples`] (backpressure) so transport control stays identical.
+///
+/// Seeking is the one transport action that survives the constraint —
+/// it moves the read head and resets the encoder without touching a
+/// single word — so A-B repeat is honoured here too, unlike the DSP
+/// features above. Speed is not: see [`DopSpeedPin`].
 fn play_dop_track(
     mut stream: ActiveStream,
     initial_start_ms: u64,
@@ -880,9 +930,15 @@ fn play_dop_track(
     pending_cmd: &mut Option<AudioCmd>,
     _analytics_tx: &UnboundedSender<AnalyticsMsg>,
 ) -> Result<(PlaybackEnd, u64, FinishedTrack), String> {
-    if shared.sample_rate.load(Ordering::Relaxed) == 0 {
-        return Err("dop output not initialized (sample_rate=0)".into());
+    // Both halves of the output format are needed: the ring is drained in
+    // whole frames, so a zero channel count would make the backend read
+    // frames of nothing and the position clock divide by a placeholder.
+    if shared.sample_rate.load(Ordering::Relaxed) == 0 || shared.channels.load(Ordering::Relaxed) == 0
+    {
+        return Err("dop output not initialized (sample_rate / channels unset)".into());
     }
+    // Pinned for the whole track, restored on every exit path.
+    let mut speed_pin = DopSpeedPin::new(shared);
     if initial_start_ms > 0 {
         stream.seek_ms(initial_start_ms);
         stream.reset_decoder();
@@ -936,6 +992,23 @@ fn play_dop_track(
             }
         }
         no_prefetch = None;
+        speed_pin.resync();
+
+        // A-B repeat: same rule as [`play_track`] — when the loop is
+        // armed and we've passed B, seek back to A. Nothing here touches
+        // the DoP words; `seek_ms` resets the encoder and the DAC
+        // re-locks on the next marker.
+        if let Some((a_ms, b_ms)) = shared.ab_loop_armed() {
+            if shared.current_position_ms() >= b_ms {
+                stream.seek_ms(a_ms);
+                stream.reset_decoder();
+                reset_clock(shared, a_ms);
+                drain_ring_silent(producer, shared);
+                let _ = app.emit(EVENT_POSITION, PositionPayload { ms: a_ms });
+                last_position_emit = Instant::now();
+                continue;
+            }
+        }
 
         dop_words.clear();
         match stream.decode_dop_block(&mut dop_words) {
@@ -997,6 +1070,7 @@ fn play_dop_track(
             }
         }
         no_prefetch = None;
+        speed_pin.resync();
 
         if last_position_emit.elapsed() >= POSITION_EMIT_INTERVAL
             && shared.state() == PlayerState::Playing
