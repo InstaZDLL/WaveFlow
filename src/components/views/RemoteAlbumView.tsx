@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Clock, Heart, Loader2, Play } from "lucide-react";
 import {
   remoteGetAlbum,
@@ -16,8 +17,8 @@ import { RemoteArtwork } from "../common/RemoteArtwork";
  * server (`GET /api/v2/albums/{id}`); its tracks play as a native remote
  * queue. Reached by clicking an album in the remote playlist table.
  *
- * Not localized — behind the same off-by-default `sync_v2` feature as the
- * rest of the remote surface.
+ * Localized under the shared `remote.*` i18n namespace, like the rest of
+ * the remote surface.
  */
 export function RemoteAlbumView({
   remoteAlbumId,
@@ -26,6 +27,7 @@ export function RemoteAlbumView({
   remoteAlbumId: string | null;
   onNavigateToRemoteArtist: (artistId: string) => void;
 }) {
+  const { t } = useTranslation();
   const [album, setAlbum] = useState<RemoteAlbum | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -113,7 +115,7 @@ export function RemoteAlbumView({
         />
         <div className="flex-1 min-w-0">
           <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
-            Remote album
+            {t("remote.album.label")}
           </p>
           <h1 className="text-3xl font-bold truncate text-zinc-900 dark:text-white">
             {album?.title ?? "…"}
@@ -138,7 +140,8 @@ export function RemoteAlbumView({
             )}
           </p>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
-            {album?.tracks.length ?? 0} tracks · {formatDuration(totalMs)}
+            {t("remote.album.trackCount", { count: album?.tracks.length ?? 0 })}{" "}
+            · {formatDuration(totalMs)}
           </p>
         </div>
         <button
@@ -148,7 +151,7 @@ export function RemoteAlbumView({
           className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold disabled:opacity-50"
         >
           <Play size={16} className="fill-current" />
-          Play
+          {t("remote.common.play")}
         </button>
       </header>
 
@@ -164,14 +167,14 @@ export function RemoteAlbumView({
         </div>
       ) : !album || album.tracks.length === 0 ? (
         <p className="text-sm text-zinc-500 dark:text-zinc-400 py-8 text-center">
-          This album has no tracks.
+          {t("remote.album.empty")}
         </p>
       ) : (
         <div>
           <div className="grid grid-cols-[1.5rem_minmax(0,3fr)_minmax(0,1.6fr)_3.5rem_1.5rem] gap-3 items-center px-3 pb-2 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-200 dark:border-zinc-800">
             <span className="text-right">#</span>
-            <span>Title</span>
-            <span>Artist</span>
+            <span>{t("remote.common.colTitle")}</span>
+            <span>{t("remote.common.colArtist")}</span>
             <span className="flex justify-end">
               <Clock size={13} />
             </span>
@@ -190,13 +193,13 @@ export function RemoteAlbumView({
                     onClick={() => void playFrom(index)}
                     disabled={busy}
                     className="hidden group-hover:inline-flex text-emerald-600 dark:text-emerald-400 disabled:opacity-40"
-                    aria-label="Play"
+                    aria-label={t("remote.common.play")}
                   >
                     <Play size={14} className="fill-current" />
                   </button>
                 </div>
                 <div className="min-w-0 text-sm font-medium truncate text-zinc-800 dark:text-zinc-100">
-                  {track.title ?? "Awaiting metadata…"}
+                  {track.title ?? t("remote.common.awaitingMetadata")}
                 </div>
                 <div className="min-w-0 text-sm text-zinc-500 truncate">
                   {track.artist && track.artist_id ? (
@@ -225,7 +228,11 @@ export function RemoteAlbumView({
                       ? "text-pink-500"
                       : "text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-pink-500"
                   }`}
-                  aria-label={track.starred ? "Unlike" : "Like"}
+                  aria-label={
+                    track.starred
+                      ? t("remote.common.unlike")
+                      : t("remote.common.like")
+                  }
                   aria-pressed={track.starred}
                 >
                   <Heart

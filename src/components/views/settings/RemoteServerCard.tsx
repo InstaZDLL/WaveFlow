@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CloudOff, Loader2, RefreshCw, Server, Unplug } from "lucide-react";
 import {
   remoteBeginLogin,
@@ -26,13 +27,12 @@ import { notifyRemoteChanged } from "../../../hooks/useRemoteSource";
  * and a RemotePlaylistView, managed exactly like local playlists. Nothing
  * about browsing or playing remote music belongs in Settings.
  *
- * ## Deliberately not localized
+ * ## Localized under `remote.*`
  *
- * The `sync_v2` Cargo feature is off by default, so no shipped build can
- * render this at all. Translating copy no user can reach — and that will
- * still change as the feature grows — would put unreviewed strings into
- * files that had a native-speaker pass. The keys land when the feature
- * ships and the wording settles.
+ * `sync_v2` now ships in the default feature set, so this surface is
+ * reachable in a released build and is localized across every locale —
+ * the whole remote surface shares the self-contained `remote.*` i18n
+ * namespace.
  *
  * ## It hides itself when the feature is absent
  *
@@ -41,6 +41,7 @@ import { notifyRemoteChanged } from "../../../hooks/useRemoteSource";
  * thing renders nothing rather than showing a broken panel.
  */
 export function RemoteServerCard() {
+  const { t } = useTranslation();
   const [available, setAvailable] = useState<boolean | null>(null);
   const [status, setStatus] = useState<RemoteStatus | null>(null);
   const [overview, setOverview] = useState<RemoteOverview | null>(null);
@@ -121,11 +122,10 @@ export function RemoteServerCard() {
         <div className="flex-1 min-w-0 space-y-4">
           <div>
             <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-              Remote server
+              {t("remote.server.title")}
             </h3>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Developer surface — not localized while the feature is
-              off by default. Playlists live in the sidebar.
+              {t("remote.server.subtitle")}
             </p>
           </div>
 
@@ -138,7 +138,7 @@ export function RemoteServerCard() {
               spellCheck={false}
               disabled={signedIn}
               className="flex-1 min-w-0 px-3 py-1.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 disabled:opacity-50"
-              aria-label="Server URL"
+              aria-label={t("remote.server.urlLabel")}
             />
             <button
               type="button"
@@ -150,17 +150,17 @@ export function RemoteServerCard() {
               disabled={busy !== null || !urlDraft.trim() || signedIn}
               className="px-3 py-1.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 disabled:opacity-50"
             >
-              {busy === "probe" ? <Spinner /> : "Identify"}
+              {busy === "probe" ? <Spinner /> : t("remote.server.identify")}
             </button>
           </div>
 
           {probe && !signedIn && (
             <p className="text-xs text-zinc-600 dark:text-zinc-300">
-              {probe.server_type ?? "unknown"}
+              {probe.server_type ?? t("remote.server.unknownType")}
               {probe.server_version ? ` ${probe.server_version}` : ""} —{" "}
               {probe.supports_sync
-                ? "native, signs in through the browser"
-                : "Subsonic protocol only; no journal, and no sign-in flow here yet"}
+                ? t("remote.server.probeNative")
+                : t("remote.server.probeSubsonic")}
             </p>
           )}
 
@@ -176,12 +176,16 @@ export function RemoteServerCard() {
                 }
                 className="px-3 py-1.5 text-sm rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 disabled:opacity-50"
               >
-                {busy === "login" ? <Spinner /> : "Sign in with browser"}
+                {busy === "login" ? (
+                  <Spinner />
+                ) : (
+                  t("remote.server.signInBrowser")
+                )}
               </button>
             ) : (
               <>
                 <span className="text-sm text-zinc-700 dark:text-zinc-200">
-                  {status?.username ?? "signed in"}
+                  {status?.username ?? t("remote.server.signedInFallback")}
                 </span>
                 <button
                   type="button"
@@ -194,7 +198,7 @@ export function RemoteServerCard() {
                   ) : (
                     <RefreshCw size={14} aria-hidden="true" />
                   )}
-                  Sync now
+                  {t("remote.server.syncNow")}
                 </button>
                 <button
                   type="button"
@@ -207,7 +211,7 @@ export function RemoteServerCard() {
                   ) : (
                     <Unplug size={14} aria-hidden="true" />
                   )}
-                  Sign out
+                  {t("remote.server.signOut")}
                 </button>
               </>
             )}
@@ -219,18 +223,17 @@ export function RemoteServerCard() {
                 className="px-3 py-1.5 text-sm rounded-lg text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 inline-flex items-center gap-1.5 disabled:opacity-50"
                 // Destructive in a way signing out is not: this one
                 // discards changes that never reached the server.
-                title="Discards the cached library and any change made offline that never reached the server"
+                title={t("remote.server.forgetTitle")}
               >
                 <CloudOff size={14} aria-hidden="true" />
-                Forget server
+                {t("remote.server.forget")}
               </button>
             )}
           </div>
 
           {status && !status.bootstrapped && signedIn && (
             <p className="text-xs text-amber-600 dark:text-amber-400">
-              Never synchronized yet — the first pass downloads a full
-              snapshot.
+              {t("remote.server.neverSynced")}
             </p>
           )}
 
@@ -248,20 +251,29 @@ export function RemoteServerCard() {
 }
 
 function Counts({ overview }: { overview: RemoteOverview }) {
-  const entries: [string, number][] = [
+  const { t } = useTranslation();
+  // The number is rendered separately (tabular-nums, its own colour), so the
+  // label carries no `{{count}}` — `count` only drives plural selection, which
+  // keeps "1 playlist" / "2 playlists" correct in every language.
+  const counts: [string, number][] = [
     ["playlists", overview.playlists],
-    ["favourites", overview.favorites],
+    ["favorites", overview.favorites],
     ["ratings", overview.ratings],
     ["history", overview.history],
     ["shares", overview.shares],
     ["queue", overview.queue_tracks],
-    ["cached tracks", overview.cached_tracks],
+    ["cachedTracks", overview.cached_tracks],
   ];
+  const entries = counts.map(([key, value]) => ({
+    key,
+    label: t(`remote.server.counts.${key}`, { count: value }),
+    value,
+  }));
   return (
     <div className="space-y-1">
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
-        {entries.map(([label, value]) => (
-          <span key={label}>
+        {entries.map(({ key, label, value }) => (
+          <span key={key}>
             <span className="tabular-nums text-zinc-700 dark:text-zinc-200">
               {value}
             </span>{" "}
@@ -275,19 +287,21 @@ function Counts({ overview }: { overview: RemoteOverview }) {
           it, so it gets the only alarming colour on this card. */}
       {overview.tracks_awaiting_metadata > 0 && (
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          {overview.tracks_awaiting_metadata} tracks awaiting metadata —
-          clears on the next pass.
+          {t("remote.server.awaitingMetadata", {
+            count: overview.tracks_awaiting_metadata,
+          })}
         </p>
       )}
       {overview.pending_changes > 0 && (
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          {overview.pending_changes} local changes waiting to be sent.
+          {t("remote.server.pendingChanges", {
+            count: overview.pending_changes,
+          })}
         </p>
       )}
       {overview.failed_changes > 0 && (
         <p className="text-xs text-red-600 dark:text-red-400">
-          {overview.failed_changes} local changes were refused and will
-          not be retried.
+          {t("remote.server.failedChanges", { count: overview.failed_changes })}
         </p>
       )}
     </div>

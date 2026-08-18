@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Loader2 } from "lucide-react";
 import {
   remoteGetArtist,
@@ -23,7 +24,7 @@ import { RemoteArtwork } from "../common/RemoteArtwork";
  * (Deezer + TheAudioDB + Last.fm). The server's own `artwork_hash`, when
  * present, is the fallback for the portrait.
  *
- * Not localized — behind the same off-by-default `sync_v2` feature.
+ * Localized under the shared `remote.*` i18n namespace.
  */
 export function RemoteArtistView({
   remoteArtistId,
@@ -36,6 +37,7 @@ export function RemoteArtistView({
    *  resolved to a row the user already owns. */
   onNavigateToArtist: (artistId: number) => void;
 }) {
+  const { t, i18n } = useTranslation();
   const [artist, setArtist] = useState<RemoteArtist | null>(null);
   const [enrichment, setEnrichment] = useState<DeezerArtistEnrichment | null>(
     null,
@@ -113,9 +115,14 @@ export function RemoteArtistView({
     bioFull != null && bioShort != null && bioFull.length > bioShort.length;
   const fansLabel =
     enrichment?.fans_count != null
-      ? `${Intl.NumberFormat(undefined, { notation: "compact" }).format(
-          enrichment.fans_count,
-        )} fans`
+      ? t("remote.artist.fansCount", {
+          count: enrichment.fans_count,
+          // Group/abbreviate with the language the UI is actually rendering in,
+          // not the browser's — they diverge whenever the user picks a locale.
+          value: Intl.NumberFormat(i18n.language, {
+            notation: "compact",
+          }).format(enrichment.fans_count),
+        })
       : null;
 
   return (
@@ -155,13 +162,15 @@ export function RemoteArtistView({
           )}
           <div className="min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
-              Remote artist
+              {t("remote.artist.label")}
             </p>
             <h1 className="text-4xl font-bold truncate text-zinc-900 dark:text-white">
               {artist?.name ?? "…"}
             </h1>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-              {artist?.albums.length ?? 0} albums
+              {t("remote.artist.albumCount", {
+                count: artist?.albums.length ?? 0,
+              })}
               {fansLabel && ` · ${fansLabel}`}
             </p>
           </div>
@@ -177,7 +186,7 @@ export function RemoteArtistView({
       {displayedBio && (
         <section className="space-y-2">
           <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">
-            Biography
+            {t("remote.artist.biography")}
           </div>
           <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 whitespace-pre-line max-w-3xl">
             {displayedBio}
@@ -188,7 +197,9 @@ export function RemoteArtistView({
               onClick={() => setBioExpanded((p) => !p)}
               className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
             >
-              {bioExpanded ? "Read less" : "Read more"}
+              {bioExpanded
+                ? t("remote.artist.readLess")
+                : t("remote.artist.readMore")}
             </button>
           )}
         </section>
@@ -200,12 +211,12 @@ export function RemoteArtistView({
         </div>
       ) : !artist || artist.albums.length === 0 ? (
         <p className="text-sm text-zinc-500 dark:text-zinc-400 py-8 text-center">
-          No albums for this artist.
+          {t("remote.artist.noAlbums")}
         </p>
       ) : (
         <section className="space-y-3">
           <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">
-            Albums
+            {t("remote.artist.albumsHeading")}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {artist.albums.map((album) => (
@@ -235,7 +246,7 @@ export function RemoteArtistView({
       {similar.length > 0 && (
         <section className="space-y-3">
           <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">
-            Similar artists
+            {t("remote.artist.similar")}
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
             {similar.map((s) => {

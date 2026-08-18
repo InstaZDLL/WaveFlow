@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
 import {
   ArrowLeftRight,
@@ -33,9 +34,18 @@ import {
   type RemotePlaylistSummary,
 } from "../../../lib/tauri/remoteServer";
 
+/** Maps a playlist-conversion item status (a backend enum) to its i18n key. */
+const REMOTE_ITEM_STATUS_KEYS: Record<string, string> = {
+  confirmed: "remote.reconciliation.itemStatusConfirmed",
+  stale: "remote.reconciliation.itemStatusStale",
+  unlinked_or_ambiguous: "remote.reconciliation.itemStatusUnlinkedOrAmbiguous",
+  duplicate: "remote.reconciliation.itemStatusDuplicate",
+};
+
 /** M5 identity links. Kept beside the connection card because it only makes
  * sense for a bootstrapped native remote source. */
 export function ReconciliationCard() {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [links, setLinks] = useState<ReconciliationLink[]>([]);
   const [report, setReport] = useState<ReconciliationReport | null>(null);
@@ -141,11 +151,10 @@ export function ReconciliationCard() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                Local ↔ server matching
+                {t("remote.reconciliation.title")}
               </h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Exact full-file matches only. Same-size files are verified with
-                BLAKE3; metadata never creates a link.
+                {t("remote.reconciliation.subtitle")}
               </p>
             </div>
             <div className="shrink-0 flex items-center gap-2">
@@ -156,7 +165,7 @@ export function ReconciliationCard() {
                   className="px-3 py-1.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 inline-flex items-center gap-1.5"
                 >
                   <X size={14} aria-hidden="true" />
-                  Cancel
+                  {t("remote.reconciliation.cancel")}
                 </button>
               )}
               <button
@@ -174,7 +183,7 @@ export function ReconciliationCard() {
                 ) : (
                   <RefreshCw size={14} aria-hidden="true" />
                 )}
-                Find matches
+                {t("remote.reconciliation.findMatches")}
               </button>
             </div>
           </div>
@@ -185,7 +194,10 @@ export function ReconciliationCard() {
               role="status"
               aria-live="polite"
             >
-              Hashing {progress.processed} / {progress.total} local files…
+              {t("remote.reconciliation.hashing", {
+                processed: progress.processed,
+                total: progress.total,
+              })}
             </p>
           )}
 
@@ -216,7 +228,7 @@ export function ReconciliationCard() {
           {links.length > 0 && (
             <div className="space-y-2">
               <p className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">
-                Confirmed links
+                {t("remote.reconciliation.confirmedLinks")}
               </p>
               {links.map((link) => (
                 <div
@@ -231,29 +243,49 @@ export function ReconciliationCard() {
                       {link.remote_title ?? link.remote_track_id}
                     </p>
                     <p className="text-[10px] text-zinc-500 mt-1">
-                      Favorites: local {link.local_favorite ? "yes" : "no"} ·
-                      server {link.remote_favorite ? "yes" : "no"} · Ratings:
-                      local {formatLocalRating(link.local_rating)} · server{" "}
-                      {link.remote_rating ?? "—"}/5
+                      {t("remote.reconciliation.favoritesRatings", {
+                        localFav: link.local_favorite
+                          ? t("remote.reconciliation.yes")
+                          : t("remote.reconciliation.no"),
+                        remoteFav: link.remote_favorite
+                          ? t("remote.reconciliation.yes")
+                          : t("remote.reconciliation.no"),
+                        localRating: formatLocalRating(link.local_rating),
+                        remoteRating: link.remote_rating ?? "—",
+                      })}
                     </p>
                     <p className="text-[10px] text-zinc-500">
-                      History: {link.local_plays} local + {link.remote_plays}{" "}
-                      server = {link.combined_plays} plays
+                      {t("remote.reconciliation.history", {
+                        // `count` drives plural selection on the total; the
+                        // three numbers are interpolated by name.
+                        count: link.combined_plays,
+                        local: link.local_plays,
+                        remote: link.remote_plays,
+                        combined: link.combined_plays,
+                      })}
                     </p>
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {[
                         [
                           "favorite",
                           "local_to_server",
-                          "Favorite local → server",
+                          t("remote.reconciliation.copyFavoriteLocalToServer"),
                         ],
                         [
                           "favorite",
                           "server_to_local",
-                          "Favorite server → local",
+                          t("remote.reconciliation.copyFavoriteServerToLocal"),
                         ],
-                        ["rating", "local_to_server", "Rating local → server"],
-                        ["rating", "server_to_local", "Rating server → local"],
+                        [
+                          "rating",
+                          "local_to_server",
+                          t("remote.reconciliation.copyRatingLocalToServer"),
+                        ],
+                        [
+                          "rating",
+                          "server_to_local",
+                          t("remote.reconciliation.copyRatingServerToLocal"),
+                        ],
                       ].map(([kind, direction, label]) => (
                         <button
                           key={`${kind}:${direction}`}
@@ -291,7 +323,9 @@ export function ReconciliationCard() {
                         : "text-emerald-600 dark:text-emerald-400"
                     }`}
                   >
-                    {link.status}
+                    {link.status === "stale"
+                      ? t("remote.reconciliation.statusStale")
+                      : t("remote.reconciliation.statusConfirmed")}
                   </span>
                   <select
                     value={link.playback_preference}
@@ -309,11 +343,17 @@ export function ReconciliationCard() {
                         false,
                       );
                     }}
-                    aria-label={`Playback preference for ${link.local_title}`}
+                    aria-label={t("remote.reconciliation.playbackPreference", {
+                      title: link.local_title,
+                    })}
                     className="px-2 py-1 text-xs rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
                   >
-                    <option value="local_first">Local first</option>
-                    <option value="server_first">Server first</option>
+                    <option value="local_first">
+                      {t("remote.reconciliation.localFirst")}
+                    </option>
+                    <option value="server_first">
+                      {t("remote.reconciliation.serverFirst")}
+                    </option>
                   </select>
                   <button
                     type="button"
@@ -326,7 +366,9 @@ export function ReconciliationCard() {
                       )
                     }
                     disabled={busy !== null}
-                    aria-label={`Unlink ${link.local_title}`}
+                    aria-label={t("remote.reconciliation.unlink", {
+                      title: link.local_title,
+                    })}
                     className="p-1.5 rounded-md text-zinc-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50"
                   >
                     <Unlink size={14} aria-hidden="true" />
@@ -358,6 +400,7 @@ function formatLocalRating(value: number | null): string {
 }
 
 function PlaylistConversion() {
+  const { t } = useTranslation();
   const [direction, setDirection] =
     useState<PlaylistConversionDirection>("local_to_server");
   const [localPlaylists, setLocalPlaylists] = useState<Playlist[]>([]);
@@ -428,9 +471,13 @@ function PlaylistConversion() {
     try {
       const result = await remoteConvertPlaylist(direction, selectedSourceId);
       setSuccess(
-        `${result.converted_tracks} tracks copied to ${
-          direction === "local_to_server" ? "the server" : "the local library"
-        }.`,
+        direction === "local_to_server"
+          ? t("remote.reconciliation.conversionSuccessServer", {
+              count: result.converted_tracks,
+            })
+          : t("remote.reconciliation.conversionSuccessLocal", {
+              count: result.converted_tracks,
+            }),
       );
       setPreview(null);
       await loadPlaylists();
@@ -439,7 +486,7 @@ function PlaylistConversion() {
     } finally {
       setBusy(false);
     }
-  }, [direction, loadPlaylists, preview?.can_convert, selectedSourceId]);
+  }, [direction, loadPlaylists, preview?.can_convert, selectedSourceId, t]);
 
   return (
     <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 space-y-3">
@@ -451,11 +498,10 @@ function PlaylistConversion() {
         />
         <div>
           <p className="text-xs font-medium text-zinc-800 dark:text-zinc-100">
-            Explicit playlist copy
+            {t("remote.reconciliation.conversionTitle")}
           </p>
           <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-            A preview must confirm every identity link. Nothing is merged or
-            omitted silently.
+            {t("remote.reconciliation.conversionSubtitle")}
           </p>
         </div>
       </div>
@@ -470,11 +516,15 @@ function PlaylistConversion() {
             setSuccess(null);
           }}
           disabled={busy}
-          aria-label="Playlist copy direction"
+          aria-label={t("remote.reconciliation.conversionDirection")}
           className="px-2 py-1.5 text-xs rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
         >
-          <option value="local_to_server">Local → server</option>
-          <option value="server_to_local">Server → local</option>
+          <option value="local_to_server">
+            {t("remote.reconciliation.conversionLocalToServer")}
+          </option>
+          <option value="server_to_local">
+            {t("remote.reconciliation.conversionServerToLocal")}
+          </option>
         </select>
         <select
           value={selectedSourceId}
@@ -484,13 +534,20 @@ function PlaylistConversion() {
             setSuccess(null);
           }}
           disabled={busy || sources.length === 0}
-          aria-label="Source playlist"
+          aria-label={t("remote.reconciliation.conversionSource")}
           className="min-w-0 px-2 py-1.5 text-xs rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
         >
-          {sources.length === 0 && <option value="">No playlists</option>}
+          {sources.length === 0 && (
+            <option value="">
+              {t("remote.reconciliation.conversionNoPlaylists")}
+            </option>
+          )}
           {sources.map((playlist) => (
             <option key={playlist.id} value={String(playlist.id)}>
-              {playlist.name} · {playlist.track_count} tracks
+              {t("remote.reconciliation.conversionSourceOption", {
+                name: playlist.name,
+                count: playlist.track_count,
+              })}
             </option>
           ))}
         </select>
@@ -500,17 +557,23 @@ function PlaylistConversion() {
           disabled={busy || !selectedSourceId}
           className="px-3 py-1.5 text-xs rounded-md border border-zinc-200 dark:border-zinc-700 disabled:opacity-50"
         >
-          Preview
+          {t("remote.reconciliation.conversionPreview")}
         </button>
       </div>
 
       {preview && (
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 p-3 space-y-3">
           <p className="text-xs text-zinc-600 dark:text-zinc-300">
-            {preview.source_name}: {preview.convertible_tracks}/
-            {preview.total_tracks} tracks have confirmed links
+            {t("remote.reconciliation.conversionPreviewSummary", {
+              count: preview.total_tracks,
+              name: preview.source_name,
+              convertible: preview.convertible_tracks,
+              total: preview.total_tracks,
+            })}
             {preview.blocked_tracks > 0
-              ? ` · ${preview.blocked_tracks} blocked`
+              ? t("remote.reconciliation.conversionBlocked", {
+                  count: preview.blocked_tracks,
+                })
               : ""}
           </p>
           {preview.blocked_tracks > 0 && (
@@ -524,7 +587,10 @@ function PlaylistConversion() {
                   >
                     <span className="truncate">{item.title}</span>
                     <span className="shrink-0 text-amber-600 dark:text-amber-400">
-                      {item.status.replace(/_/g, " ")}
+                      {t(
+                        REMOTE_ITEM_STATUS_KEYS[item.status] ??
+                          "remote.reconciliation.itemStatusStale",
+                      )}
                     </span>
                   </div>
                 ))}
@@ -536,7 +602,7 @@ function PlaylistConversion() {
             disabled={busy || !preview.can_convert}
             className="px-3 py-1.5 text-xs rounded-md bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 disabled:opacity-40"
           >
-            Confirm copy
+            {t("remote.reconciliation.conversionConfirm")}
           </button>
         </div>
       )}
@@ -564,21 +630,34 @@ function PlaylistConversion() {
 }
 
 function ReportSummary({ report }: { report: ReconciliationReport }) {
+  const { t } = useTranslation();
   if (report.cancelled) {
     return (
       <p className="text-xs text-zinc-500 dark:text-zinc-400">
-        Scan cancelled — nothing was linked.
+        {t("remote.reconciliation.cancelledSummary")}
       </p>
     );
   }
+  // Three independent counts can't share one plural form, so each segment is
+  // its own key and they're joined here.
   return (
     <p className="text-xs text-zinc-500 dark:text-zinc-400">
-      {report.hashed_local_tracks} local candidates verified ·{" "}
-      {report.auto_linked} linked automatically · {report.candidates.length}{" "}
-      groups need a decision
-      {report.stale_links > 0 ? ` · ${report.stale_links} stale` : ""}
+      {[
+        t("remote.reconciliation.summaryVerified", {
+          count: report.hashed_local_tracks,
+        }),
+        t("remote.reconciliation.summaryLinked", { count: report.auto_linked }),
+        t("remote.reconciliation.summaryGroups", {
+          count: report.candidates.length,
+        }),
+      ].join(" · ")}
+      {report.stale_links > 0
+        ? t("remote.reconciliation.summaryStale", { count: report.stale_links })
+        : ""}
       {report.unreadable_local_tracks > 0
-        ? ` · ${report.unreadable_local_tracks} unreadable`
+        ? t("remote.reconciliation.summaryUnreadable", {
+            count: report.unreadable_local_tracks,
+          })
         : ""}
     </p>
   );
@@ -595,6 +674,7 @@ function CandidateEditor({
   onConfirm: (localId: number, remoteId: string) => Promise<void>;
   onReject: (localId: number, remoteId: string) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [localId, setLocalId] = useState(group.local_tracks[0]?.track_id ?? 0);
   const [remoteId, setRemoteId] = useState(
     group.remote_tracks[0]?.track_id ?? "",
@@ -619,19 +699,22 @@ function CandidateEditor({
   return (
     <div className="rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/10 p-3 space-y-2">
       <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
-        Identical copies need confirmation
+        {t("remote.reconciliation.candidateHeading")}
       </p>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
         <select
           value={effectiveLocalId}
           onChange={(event) => setLocalId(Number(event.target.value))}
           disabled={busy !== null}
-          aria-label="Local track"
+          aria-label={t("remote.reconciliation.candidateLocalTrack")}
           className="min-w-0 px-2 py-1.5 text-xs rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
         >
           {group.local_tracks.map((track) => (
             <option key={track.track_id} value={track.track_id}>
-              Local: {track.title} — {track.file_path}
+              {t("remote.reconciliation.candidateLocalOption", {
+                title: track.title,
+                path: track.file_path,
+              })}
             </option>
           ))}
         </select>
@@ -639,13 +722,19 @@ function CandidateEditor({
           value={effectiveRemoteId}
           onChange={(event) => setRemoteId(event.target.value)}
           disabled={busy !== null}
-          aria-label="Server track"
+          aria-label={t("remote.reconciliation.candidateServerTrack")}
           className="min-w-0 px-2 py-1.5 text-xs rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
         >
           {group.remote_tracks.map((track) => (
             <option key={track.track_id} value={track.track_id}>
-              Server: {track.title}
-              {track.artist ? ` — ${track.artist}` : ""}
+              {track.artist
+                ? t("remote.reconciliation.candidateServerOptionArtist", {
+                    title: track.title,
+                    artist: track.artist,
+                  })
+                : t("remote.reconciliation.candidateServerOption", {
+                    title: track.title,
+                  })}
             </option>
           ))}
         </select>
@@ -657,7 +746,8 @@ function CandidateEditor({
           disabled={busy !== null || !effectiveRemoteId}
           className="px-2.5 py-1 text-xs rounded-md bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 inline-flex items-center gap-1 disabled:opacity-50"
         >
-          <Check size={12} aria-hidden="true" /> Confirm pair
+          <Check size={12} aria-hidden="true" />{" "}
+          {t("remote.reconciliation.candidateConfirmPair")}
         </button>
         <button
           type="button"
@@ -665,7 +755,8 @@ function CandidateEditor({
           disabled={busy !== null || !effectiveRemoteId}
           className="px-2.5 py-1 text-xs rounded-md border border-zinc-200 dark:border-zinc-700 inline-flex items-center gap-1 disabled:opacity-50"
         >
-          <X size={12} aria-hidden="true" /> Reject pair
+          <X size={12} aria-hidden="true" />{" "}
+          {t("remote.reconciliation.candidateRejectPair")}
         </button>
       </div>
     </div>

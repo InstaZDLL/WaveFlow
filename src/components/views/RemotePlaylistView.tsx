@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import {
   ArrowUpDown,
@@ -103,25 +104,23 @@ const REMOTE_SORT_MODES: ReadonlyArray<RemoteSortMode> = [
   "duration",
 ];
 
-const REMOTE_SORT_LABELS: Record<RemoteSortMode, string> = {
-  custom: "Custom order",
-  title: "Title",
-  artist: "Artist",
-  album: "Album",
-  duration: "Duration",
+const REMOTE_SORT_LABEL_KEYS: Record<RemoteSortMode, string> = {
+  custom: "remote.playlist.sort.custom",
+  title: "remote.playlist.sort.title",
+  artist: "remote.playlist.sort.artist",
+  album: "remote.playlist.sort.album",
+  duration: "remote.playlist.sort.duration",
 };
 
 /**
  * A single remote-server playlist, managed like a local one but from the
  * projected `remote_*` cache (RFC-005 sync_v2).
  *
- * ## Not localized — deliberately
+ * ## Localized under `remote.*`
  *
- * This mounts only in a `sync_v2` build (off by default), so no shipped
- * build renders it. It shares that decision with {@link RemoteServerCard}:
- * translating provisional copy into seventeen native-reviewed locale
- * files would be churn for strings no user can reach yet. The keys land
- * with the feature.
+ * `sync_v2` now ships in the default feature set, so this view is
+ * reachable in a released build and is translated across every locale
+ * through the shared `remote.*` i18n namespace.
  *
  * ## Managed like a local playlist
  *
@@ -141,6 +140,7 @@ export function RemotePlaylistView({
   onNavigateToRemoteAlbum: (albumId: string) => void;
   onNavigateToRemoteArtist: (artistId: string) => void;
 }) {
+  const { t } = useTranslation();
   const { currentTrack, isPlaying } = usePlayer();
   const [summary, setSummary] = useState<RemotePlaylistSummary | null>(null);
   const [tracks, setTracks] = useState<RemoteTrack[]>([]);
@@ -567,13 +567,13 @@ export function RemotePlaylistView({
           )}
           <div className="min-w-0">
             <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
-              Remote playlist
+              {t("remote.playlist.label")}
             </div>
             {renaming ? (
               <input
                 autoFocus
                 value={nameDraft}
-                aria-label="Playlist name"
+                aria-label={t("remote.playlist.nameLabel")}
                 onChange={(e) => setNameDraft(e.target.value)}
                 onBlur={() => void commitRename()}
                 onKeyDown={(e) => {
@@ -598,13 +598,15 @@ export function RemotePlaylistView({
             )}
             <div className="flex items-center text-sm text-zinc-500 space-x-2">
               <Music2 size={16} />
-              <span>{tracks.length} tracks</span>
+              <span>
+                {t("remote.playlist.trackCount", { count: tracks.length })}
+              </span>
               <span>·</span>
               <span>{formatDuration(totalMs)}</span>
               {summary?.pending_creation && (
                 <>
                   <span>·</span>
-                  <span>not sent to the server yet</span>
+                  <span>{t("remote.playlist.notSent")}</span>
                 </>
               )}
             </div>
@@ -619,7 +621,7 @@ export function RemotePlaylistView({
             className={`text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm ${color.button} disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             <Play size={16} className="fill-current" />
-            <span>Play</span>
+            <span>{t("remote.common.play")}</span>
           </button>
 
           <div className="flex items-center space-x-1 p-1 rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/50">
@@ -627,9 +629,9 @@ export function RemotePlaylistView({
               type="button"
               onClick={() => setAdding((v) => !v)}
               disabled={busy || !summary}
-              aria-label="Add tracks"
+              aria-label={t("remote.playlist.addTracks")}
               aria-pressed={adding}
-              title="Add tracks"
+              title={t("remote.playlist.addTracks")}
               className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 adding
                   ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
@@ -645,7 +647,7 @@ export function RemotePlaylistView({
                 setRenaming(true);
               }}
               disabled={busy || !summary}
-              aria-label="Rename"
+              aria-label={t("remote.playlist.rename")}
               className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Pencil size={18} />
@@ -654,8 +656,12 @@ export function RemotePlaylistView({
               type="button"
               onClick={() => void handleDeleteClick()}
               disabled={busy}
-              aria-label="Delete"
-              title={confirmDelete ? "Click again to confirm" : "Delete"}
+              aria-label={t("remote.playlist.delete")}
+              title={
+                confirmDelete
+                  ? t("remote.playlist.confirmDelete")
+                  : t("remote.playlist.delete")
+              }
               className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 confirmDelete
                   ? "bg-red-500 text-white hover:bg-red-600"
@@ -680,7 +686,7 @@ export function RemotePlaylistView({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search the server's catalogue…"
+              placeholder={t("remote.playlist.searchPlaceholder")}
               className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
             />
             {searching && (
@@ -691,7 +697,9 @@ export function RemotePlaylistView({
             )}
           </div>
           {query.trim() !== "" && !searching && results.length === 0 && (
-            <p className="px-1 py-2 text-xs text-zinc-500">No matches.</p>
+            <p className="px-1 py-2 text-xs text-zinc-500">
+              {t("remote.playlist.noMatches")}
+            </p>
           )}
           {results.length > 0 && (
             <ul className="max-h-72 overflow-y-auto scrollbar-hide space-y-0.5">
@@ -703,7 +711,7 @@ export function RemotePlaylistView({
                   <RemoteArtwork hash={track.artwork_hash} />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm truncate text-zinc-800 dark:text-zinc-100">
-                      {track.title ?? "Untitled"}
+                      {track.title ?? t("remote.common.untitled")}
                     </div>
                     <div className="text-xs text-zinc-500 truncate">
                       {[track.artist, track.album].filter(Boolean).join(" — ")}
@@ -714,8 +722,10 @@ export function RemotePlaylistView({
                     onClick={() => void addTracks([track.id])}
                     disabled={busy}
                     className="shrink-0 p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50"
-                    aria-label={`Add ${track.title ?? "track"}`}
-                    title="Add to playlist"
+                    aria-label={t("remote.playlist.addTrack", {
+                      title: track.title ?? t("remote.common.trackFallback"),
+                    })}
+                    title={t("remote.playlist.addToPlaylist")}
                   >
                     <Plus size={16} />
                   </button>
@@ -744,7 +754,7 @@ export function RemotePlaylistView({
         </div>
       ) : tracks.length === 0 ? (
         <p className="text-sm text-zinc-500 dark:text-zinc-400 py-8 text-center">
-          This playlist is empty.
+          {t("remote.playlist.empty")}
         </p>
       ) : (
         <div>
@@ -756,9 +766,9 @@ export function RemotePlaylistView({
             <span />
             <span className="text-right">#</span>
             <span />
-            <span>Title</span>
-            <span>Artist</span>
-            <span>Album</span>
+            <span>{t("remote.common.colTitle")}</span>
+            <span>{t("remote.common.colArtist")}</span>
+            <span>{t("remote.common.colAlbum")}</span>
             <span className="flex justify-end">
               <Clock size={14} />
             </span>
@@ -882,6 +892,7 @@ const RemoteTrackRow = memo(function RemoteTrackRow({
   onNavigateToRemoteArtist: (artistId: string) => void;
   onToggleLike: () => void;
 }) {
+  const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({
       id,
@@ -923,7 +934,7 @@ const RemoteTrackRow = memo(function RemoteTrackRow({
           type="button"
           {...attributes}
           {...listeners}
-          aria-label="Reorder"
+          aria-label={t("remote.playlist.reorder")}
           className="shrink-0 p-1 -ml-1 text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
         >
           <GripVertical size={14} />
@@ -948,7 +959,7 @@ const RemoteTrackRow = memo(function RemoteTrackRow({
               onClick={onPlay}
               disabled={busy}
               className="hidden group-hover:inline-flex text-emerald-600 dark:text-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed"
-              aria-label="Play"
+              aria-label={t("remote.common.play")}
             >
               <Play size={14} className="fill-current" />
             </button>
@@ -963,7 +974,7 @@ const RemoteTrackRow = memo(function RemoteTrackRow({
             : "text-zinc-800 dark:text-zinc-200"
         }`}
       >
-        {track.title ?? "Awaiting metadata…"}
+        {track.title ?? t("remote.common.awaitingMetadata")}
       </span>
       <div className="min-w-0 text-sm text-zinc-500 truncate">
         {track.artist && track.artist_id ? (
@@ -1005,7 +1016,9 @@ const RemoteTrackRow = memo(function RemoteTrackRow({
               ? "text-pink-500"
               : "text-zinc-300 dark:text-zinc-600 hover:text-pink-500"
           }`}
-          aria-label={track.starred ? "Unlike" : "Like"}
+          aria-label={
+            track.starred ? t("remote.common.unlike") : t("remote.common.like")
+          }
           aria-pressed={track.starred}
         >
           <Heart size={14} className={track.starred ? "fill-current" : ""} />
@@ -1019,8 +1032,8 @@ const RemoteTrackRow = memo(function RemoteTrackRow({
           onClick={onRemove}
           disabled={busy}
           className="p-1 rounded text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-red-500 dark:hover:text-red-400 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-          aria-label="Remove from playlist"
-          title="Remove from playlist"
+          aria-label={t("remote.playlist.remove")}
+          title={t("remote.playlist.remove")}
         >
           <X size={15} />
         </button>
@@ -1035,12 +1048,13 @@ const RemoteTrackRow = memo(function RemoteTrackRow({
  *  artist, no controls. It follows the cursor while the in-place row (which
  *  can scroll out of the virtual window) stays hidden. */
 function RemoteRowPreview({ track }: { track: RemoteTrack }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-3 px-5 h-14 rounded-lg bg-white dark:bg-zinc-800 shadow-lg ring-1 ring-black/5 dark:ring-white/10">
       <RemoteArtwork hash={track.artwork_hash} className="w-10 h-10 rounded-md" />
       <div className="min-w-0">
         <div className="text-sm truncate text-zinc-800 dark:text-zinc-200">
-          {track.title ?? "Awaiting metadata…"}
+          {track.title ?? t("remote.common.awaitingMetadata")}
         </div>
         {track.artist && (
           <div className="text-xs text-zinc-500 truncate">{track.artist}</div>
@@ -1062,6 +1076,7 @@ function RemoteSortMenu({
   current: RemoteSortMode;
   onChange: (next: RemoteSortMode) => void;
 }) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -1096,7 +1111,7 @@ function RemoteSortMenu({
         className="flex items-center space-x-2 px-3 py-1.5 rounded-lg border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
       >
         <ArrowUpDown size={14} />
-        <span>{REMOTE_SORT_LABELS[current]}</span>
+        <span>{t(REMOTE_SORT_LABEL_KEYS[current])}</span>
       </button>
       {isOpen && (
         <ul
@@ -1107,7 +1122,7 @@ function RemoteSortMenu({
             className="px-4 pt-1 pb-2 text-[10px] font-bold tracking-widest text-zinc-400 uppercase"
             aria-hidden="true"
           >
-            Sort by
+            {t("remote.playlist.sortBy")}
           </li>
           {REMOTE_SORT_MODES.map((mode) => {
             const isSelected = mode === current;
@@ -1127,7 +1142,7 @@ function RemoteSortMenu({
                       : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30"
                   }`}
                 >
-                  <span>{REMOTE_SORT_LABELS[mode]}</span>
+                  <span>{t(REMOTE_SORT_LABEL_KEYS[mode])}</span>
                   {isSelected && <Check size={14} />}
                 </button>
               </li>
