@@ -762,7 +762,7 @@ fn read_vorbis_comment(path: &Path, file_type: FileType, keys: &[&str]) -> Optio
     use lofty::config::ParseOptions;
     use lofty::file::AudioFile;
 
-    fn pick(comments: &lofty::ogg::VorbisComments, keys: &[&str]) -> Option<String> {
+    fn pick(comments: &lofty::ogg::tag::VorbisComments, keys: &[&str]) -> Option<String> {
         for key in keys {
             if let Some(s) = comments.get(key) {
                 let trimmed = s.trim();
@@ -2883,7 +2883,7 @@ mod tests {
 
     #[test]
     fn synced_keys_match_vorbis_comments_case_insensitively() {
-        use lofty::ogg::VorbisComments;
+        use lofty::ogg::tag::VorbisComments;
 
         // Validates the reader mechanism: our key constants resolve a real
         // VorbisComments case-insensitively, and a plain-only file yields
