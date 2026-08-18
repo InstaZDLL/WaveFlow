@@ -45,6 +45,7 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev \
             libfuse2 \
+            squashfs-tools \
             libasound2-dev
 
       - name: Setup Rust toolchain
@@ -93,6 +94,12 @@ jobs:
         # the build fails after producing the AppImage, so the upload
         # step never runs.
         run: bun run tauri build --bundles appimage -c '{"bundle":{"createUpdaterArtifacts":false}}'
+
+      - name: Unbundle libwayland-client from the AppImage
+        # Same post-processing the real release applies, so an artifact
+        # downloaded from here behaves like the shipped one. No updater
+        # signature is produced above, so the script skips re-signing.
+        run: bash scripts/fix-appimage.sh
 
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

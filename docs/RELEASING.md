@@ -242,6 +242,20 @@ pre-release; the beta manifest's payload URLs point there.
 > creates the tag, you don't). The rule's intent (don't bypass
 > release-please for _stable_ versions) is preserved.
 
+## The AppImage is post-processed, and it has to stay that way
+
+Tauri's AppImage bundler copies the webview's dependency closure into the AppDir, and that closure contains `libwayland-client.so.0` — a library the [official AppImage excludelist](https://github.com/AppImage/pkg2appimage/blob/master/excludelist) explicitly forbids bundling, because [Mesa breaks against a bundled copy](https://gitlab.freedesktop.org/mesa/mesa/-/issues/11316).
+
+We build on Ubuntu. On any host with a newer Mesa — Fedora 44 ships Mesa 26 and libwayland 1.25 — the bundled copy wins the lookup and WebKit's WebProcess dies before painting anything:
+
+```text
+Could not create default EGL display: EGL_BAD_PARAMETER. Aborting...
+```
+
+The Rust side is unaffected: the app starts, creates its profile, opens its audio device, and shows an empty window. That asymmetry is why this was misread for months as a WebKitGTK 2.52 incompatibility, with users told to install a native package instead. It is not a WebKit problem, and it is not unfixable — [`scripts/fix-appimage.sh`](../scripts/fix-appimage.sh) removes the one file, repacks the squashfs with the compressor the bundler used, verifies the result re-extracts, and re-signs when an updater `.sig` is present.
+
+Both `release.yml` and `test-appimage.yml` run it right after `tauri build`. **If you ever restructure the Linux build, that step has to survive** — dropping it silently produces a release that installs fine and never opens, on exactly the distributions least likely to be in your test matrix. The script no-ops (and says so) if a future Tauri stops bundling the library, so it's safe to leave in place.
+
 ## Flatpak sources are generated, and they go stale silently
 
 Flathub builds with the network disabled, so **every crate and npm tarball must be pre-declared** in [`packaging/flatpak/generated/`](../packaging/flatpak/generated/) by [`generate-sources.sh`](../packaging/flatpak/generate-sources.sh).
