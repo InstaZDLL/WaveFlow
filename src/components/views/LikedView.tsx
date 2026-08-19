@@ -61,11 +61,14 @@ export function LikedView({
   const [editRefetch, setEditRefetch] = useState(0);
   const bumpRefetch = useCallback(() => setEditRefetch((k) => k + 1), []);
   useTrackUpdated(bumpRefetch);
-  useLikedChanged(bumpRefetch);
+  const likedListenerReady = useLikedChanged(bumpRefetch);
 
-  // Reload when the view mounts and when playback ends (a new
-  // play_event might bump the sidebar counter — keep in sync).
+  // Reload once the liked listener is live — a heart flipped in that
+  // window would be missed by the event *and* by a list read that
+  // raced the write — and then when playback ends (a new play_event
+  // might bump the sidebar counter — keep in sync).
   useEffect(() => {
+    if (!likedListenerReady) return;
     let cancelled = false;
     (async () => {
       setIsLoading(true);
@@ -83,7 +86,7 @@ export function LikedView({
     return () => {
       cancelled = true;
     };
-  }, [playbackState, editRefetch]);
+  }, [playbackState, editRefetch, likedListenerReady]);
 
   const handleUnlike = async (trackId: number) => {
     await toggleLikeTrack(trackId);

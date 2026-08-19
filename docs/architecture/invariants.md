@@ -56,6 +56,8 @@ The backend emits Tauri events; the frontend listens via `listen()` from `@tauri
 
 The window that made the change has already updated optimistically, so it receives an echo of what it holds — a no-op. With one exception: volume is pushed through a 60 ms debounce, so a returning value can be one the user has already dragged past. That window therefore ignores `player:volume-changed` for 500 ms after its own last change. Discrete toggles need no such guard.
 
+**Subscribe first, then snapshot.** When a listener keeps a set in sync and a command loads its initial value, the two must be ordered, not fired in parallel: `listen()` is a round-trip and Tauri replays nothing emitted before it resolves, so a change landing in that gap is missed by the event _and_ can be missed by a read that raced the write — the copy stays wrong until something else forces a refetch. [`useLikedChanged`](../../src/hooks/useLikedTracks.ts) returns a readiness flag its callers gate their fetch on; anything committed before the snapshot is in it, anything after arrives as an event. Changes that land between the two are replayed on top of the snapshot rather than overwritten by it.
+
 ### Non-frontend control surfaces go through `player_actions`
 
 The tray menu, the OS media keys and the MPD server all need the same sequence the frontend gets from `commands::player`: advance the queue → `emit_track_changed` → `emit_queue_changed` → hand the track to the decoder.

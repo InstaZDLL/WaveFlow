@@ -14,10 +14,22 @@ export interface LikedChangedPayload {
  * Same contract as [`useTrackUpdated`](./useTrackUpdated.ts): memoize
  * the callback, or the subscription is torn down and rebuilt on every
  * render.
+ *
+ * Returns whether it is safe to take a snapshot of the liked set:
+ * `listen()` is a round-trip, and Tauri does not replay what was
+ * emitted before it resolved. A caller that fetches in parallel can
+ * therefore both miss the event *and* read a row the write had not
+ * reached yet, and it would stay wrong until the next refetch. Waiting
+ * on this flag orders the two: everything committed before the snapshot
+ * is in it, everything after arrives as an event.
+ *
+ * A failed `listen()` also flips the flag — nothing will ever arrive on
+ * that subscription, and a stale set beats never loading one at all.
  */
 export function useLikedChanged(
   callback: (payload: LikedChangedPayload) => void,
-): void {
+): boolean {
+  const [ready, setReady] = useState(false);
   useEffect(() => {
     let unlisten: UnlistenFn | null = null;
     let cancelled = false;
@@ -28,17 +40,25 @@ export function useLikedChanged(
           (e) => callback(e.payload),
         );
         // Cleanup may have run before `listen()` resolved.
-        if (cancelled) off();
-        else unlisten = off;
+        if (cancelled) {
+          off();
+          return;
+        }
+        unlisten = off;
       } catch (err) {
         console.error("[useLikedChanged] listen failed", err);
       }
+      if (!cancelled) setReady(true);
     })();
     return () => {
       cancelled = true;
+      // Dropped on unmount; on a callback change it re-arms the barrier
+      // so the caller re-snapshots around the gap in coverage.
+      setReady(false);
       unlisten?.();
     };
   }, [callback]);
+  return ready;
 }
 
 /**
@@ -56,11 +76,9 @@ export function useLikedChanged(
  * like never costs a round-trip in the windows that didn't ask for it.
  *
  * The subscription is permanent while the host component lives, rather
- * than being re-established around each fetch: that would trade the
- * millisecond-wide gap before the first `listen()` resolves for one at
- * every track change. What can still be lost is an event fired in that
- * very first gap, before any listener exists to record it — the next
- * track change repairs it.
+ * than being re-established around each fetch: that would reopen at
+ * every track change the gap in coverage that the readiness barrier
+ * below exists to close.
  */
 export function useLikedTracks(currentTrackId: number | null | undefined) {
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
@@ -84,9 +102,18 @@ export function useLikedTracks(currentTrackId: number | null | undefined) {
     });
   }, []);
 
-  // Full list on mount, and again when the track changes — the user may
-  // have liked this one from a library view, which has its own heart.
+  const listenerReady = useLikedChanged(
+    useCallback(
+      (payload: LikedChangedPayload) => apply(payload.trackId, payload.liked),
+      [apply],
+    ),
+  );
+
+  // Full list once the listener is live, and again when the track
+  // changes — the user may have liked this one from a library view,
+  // which has its own heart.
   useEffect(() => {
+    if (!listenerReady) return;
     let cancelled = false;
     const deltas = new Map<number, boolean>();
     inFlight.current = deltas;
@@ -111,14 +138,7 @@ export function useLikedTracks(currentTrackId: number | null | undefined) {
       cancelled = true;
       settle();
     };
-  }, [currentTrackId]);
-
-  useLikedChanged(
-    useCallback(
-      (payload: LikedChangedPayload) => apply(payload.trackId, payload.liked),
-      [apply],
-    ),
-  );
+  }, [currentTrackId, listenerReady]);
 
   /**
    * Flip the heart. The optimistic update is applied from the command's
