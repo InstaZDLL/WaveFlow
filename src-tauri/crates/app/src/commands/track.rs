@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 use waveflow_core::{
@@ -619,13 +619,26 @@ fn write_rating_to_file(
     Ok(())
 }
 
+/// New liked state of a track, broadcast so every surface showing a
+/// heart for it can follow — the player bar, the mini-player in its own
+/// webview, the liked list (#523).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LikedChangedPayload {
+    track_id: i64,
+    liked: bool,
+}
+
 /// Toggle the liked state of a track. If already liked → unlike (DELETE),
 /// if not → like (INSERT). Returns `true` if the track is now liked.
 #[tauri::command]
 pub async fn toggle_like_track(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     track_id: i64,
 ) -> AppResult<bool> {
+    use tauri::Emitter;
+
     let pool = state.require_profile_pool().await?;
     let mut tx = pool.begin().await?;
 
@@ -700,6 +713,19 @@ pub async fn toggle_like_track(
         }
     }
     tx.commit().await?;
+    // Same condition as the outbox enqueue above: a no-op flip has
+    // nothing to tell anyone, and emitting one would make every heart in
+    // every window repaint for free. After the commit, so a listener
+    // that refetches reads the state we just wrote.
+    if did_change {
+        let _ = app.emit(
+            "track:liked-changed",
+            LikedChangedPayload {
+                track_id,
+                liked: now_liked,
+            },
+        );
+    }
     state.drain.notify();
     Ok(now_liked)
 }

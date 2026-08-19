@@ -367,12 +367,17 @@ pub(crate) fn emit_queue_changed(app: &AppHandle) {
     let _ = app.emit("player:queue-changed", ());
 }
 
-/// Repeat + shuffle, emitted so the frontend `PlayerContext` reflects an
-/// options change made OUTSIDE the frontend. The in-app buttons update their
-/// own state optimistically, but an external surface (an MPD client toggling
-/// `repeat` / `random`) has no other way to reach the UI — `player:state`
-/// carries only the play-state, and re-reading `player_get_state` would
-/// re-apply every audio setting to the engine as a side effect.
+/// Repeat + shuffle, emitted so every frontend `PlayerContext` reflects an
+/// options change — an external surface (an MPD client toggling `repeat` /
+/// `random`) has no other way to reach the UI, and neither has the *other*
+/// window: `player:state` carries only the play-state, and re-reading
+/// `player_get_state` would re-apply every audio setting to the engine as a
+/// side effect.
+///
+/// The in-app buttons still flip optimistically, so the window that pressed
+/// one receives an echo of a value it already holds — a no-op. Unlike volume
+/// these are discrete toggles with no debounce, so there's no stale echo to
+/// guard against (#523).
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct OptionsChangedPayload {
@@ -779,12 +784,20 @@ pub async fn player_toggle_shuffle(
     }
     // Queue content changed (reordered in place) — tell the panel.
     emit_queue_changed(&app);
+    // …and the other windows. Each one runs its own `PlayerContext` with
+    // its own optimistic toggle state, so without this the mini-player
+    // and the main window disagree about shuffle while sharing one queue
+    // (#523). Cheap: two setting reads, only on an explicit toggle.
+    emit_options_changed(&app, &pool).await;
     Ok(next)
 }
 
 /// Cycle `off → all → one → off` and return the new mode as a string.
 #[tauri::command]
-pub async fn player_cycle_repeat(state: tauri::State<'_, AppState>) -> AppResult<String> {
+pub async fn player_cycle_repeat(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<String> {
     let pool = state.require_profile_pool().await?;
     let current = queue::read_repeat_mode(&pool).await;
     let next = match current {
@@ -793,6 +806,10 @@ pub async fn player_cycle_repeat(state: tauri::State<'_, AppState>) -> AppResult
         queue::RepeatMode::One => queue::RepeatMode::Off,
     };
     queue::write_repeat_mode(&pool, next).await?;
+    // Same reason as `player_toggle_shuffle` (#523): the caller updates
+    // its own state from the return value, the *other* windows only
+    // learn about it here.
+    emit_options_changed(&app, &pool).await;
     Ok(next.as_str().to_string())
 }
 

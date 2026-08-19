@@ -10,6 +10,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
+import { useLikedChanged } from "../../hooks/useLikedTracks";
 import {
   listLikedTracks,
   toggleLikeTrack,
@@ -53,13 +54,21 @@ export function LikedView({
   });
 
   // Bumped on `track:updated` so a tag edit refreshes the liked
-  // table without the user re-navigating to it.
+  // table without the user re-navigating to it — and on
+  // `track:liked-changed`, so a heart flipped anywhere else (a library
+  // row, the player bar, the mini-player in its own webview) adds or
+  // removes the row here instead of leaving a stale list (#523).
   const [editRefetch, setEditRefetch] = useState(0);
-  useTrackUpdated(useCallback(() => setEditRefetch((k) => k + 1), []));
+  const bumpRefetch = useCallback(() => setEditRefetch((k) => k + 1), []);
+  useTrackUpdated(bumpRefetch);
+  const likedListenerReady = useLikedChanged(bumpRefetch);
 
-  // Reload when the view mounts and when playback ends (a new
-  // play_event might bump the sidebar counter — keep in sync).
+  // Reload once the liked listener is live — a heart flipped in that
+  // window would be missed by the event *and* by a list read that
+  // raced the write — and then when playback ends (a new play_event
+  // might bump the sidebar counter — keep in sync).
   useEffect(() => {
+    if (!likedListenerReady) return;
     let cancelled = false;
     (async () => {
       setIsLoading(true);
@@ -77,7 +86,7 @@ export function LikedView({
     return () => {
       cancelled = true;
     };
-  }, [playbackState, editRefetch]);
+  }, [playbackState, editRefetch, likedListenerReady]);
 
   const handleUnlike = async (trackId: number) => {
     await toggleLikeTrack(trackId);
