@@ -62,6 +62,7 @@ use tauri::{
 };
 
 use audio::{AudioCmd, AudioEngine};
+use error::AppError;
 use state::AppState;
 use watcher::WatcherManager;
 
@@ -138,7 +139,21 @@ pub fn run() {
             // Block on the async init — this runs once at startup before any
             // command can be dispatched, so blocking here is acceptable.
             let state =
-                tauri::async_runtime::block_on(async move { AppState::init(&init_handle).await })?;
+                match tauri::async_runtime::block_on(async move { AppState::init(&init_handle).await })
+                {
+                    Ok(state) => state,
+                    Err(err) => {
+                        // One failure has a remedy the user can act on:
+                        // the database was written by a newer build.
+                        // Everything else keeps propagating into Tauri's
+                        // "Failed to setup app" panic, which is the
+                        // right shape for a bug.
+                        if matches!(err, AppError::SchemaFromTheFuture { .. }) {
+                            report_fatal_and_exit(app.handle(), &err);
+                        }
+                        return Err(Box::new(err));
+                    }
+                };
 
             // Hydrate the close-to-tray flag once at boot. The atomic
             // is the source of truth for `WindowEvent::CloseRequested`
@@ -1039,6 +1054,94 @@ async fn restore_bounds_and_reveal(app: AppHandle) -> bool {
         }
     }
     reveal_main_close_splash(&app)
+}
+
+/// Tell the user why WaveFlow is stopping, then stop.
+///
+/// Called from the `setup` hook for the one startup failure a user can
+/// act on: the database was written by a newer build. Everything else
+/// keeps propagating into Tauri's `"Failed to setup app"` panic, which
+/// is the right shape for a bug — but was the wrong shape for this,
+/// where the splash painted and the process vanished with it, leaving
+/// nothing on screen to act on (issue #526).
+///
+/// Three constraints shape this, and all three come from the same fact:
+/// **`setup` runs from inside the event loop**, dispatched on
+/// `RuntimeRunEvent::Ready`, so nothing we queue can be processed until
+/// we return — and we never return.
+///
+/// - **`tauri-plugin-dialog` can't be used.** It dispatches through
+///   `run_on_main_thread`, straight into the queue nobody is draining;
+///   `blocking_show` documents itself as unsafe from the main thread for
+///   exactly that reason. `rfd` — the plugin's own backend — is called
+///   directly instead.
+/// - **The splash is hidden, not closed.** `close()` posts a
+///   `CloseRequested` *event*, so it is a silent no-op here; `hide()`
+///   lands on the runtime's same-thread fast path and applies
+///   immediately. It has to go: it's `alwaysOnTop` and would otherwise
+///   sit over the dialog.
+/// - **The dialog runs on its own thread.** Measured on Windows,
+///   `TaskDialogIndirect` called on the main thread from here creates
+///   its window and never shows it — `WS_VISIBLE` stays clear and the
+///   process hangs. A spawned thread carries its own message pump and
+///   displays normally.
+///
+/// The message is English, like the tray menu's seed labels: there is no
+/// frontend yet, so no i18next — and no readable language preference,
+/// because that setting lives in the database we just refused to open.
+fn report_fatal_and_exit(app: &AppHandle, err: &AppError) -> ! {
+    tracing::error!(%err, "fatal startup error, exiting");
+
+    if let Some(splash) = app.get_webview_window("splashscreen") {
+        let _ = splash.hide();
+    }
+
+    let (title, body) = match err {
+        AppError::SchemaFromTheFuture {
+            scope,
+            version,
+            installed_on,
+        } => {
+            let stamp = match installed_on {
+                Some(when) => format!("Database schema {version}, applied on {when}."),
+                None => format!("Database schema {version}."),
+            };
+            (
+                "WaveFlow can't open this library".to_string(),
+                format!(
+                    "{} was written by a newer version of WaveFlow.\n\n\
+                     Opening it with this older build could corrupt it, so WaveFlow \
+                     stopped before touching anything.\n\n\
+                     {}\n\n\
+                     {stamp}",
+                    scope.label(),
+                    scope.remedy(),
+                ),
+            )
+        }
+        // Not reachable today — the caller filters — but a `match` that
+        // can't fall over is one less way for a future variant to reach
+        // the user as an empty dialog.
+        other => ("WaveFlow can't start".to_string(), other.to_string()),
+    };
+
+    // Joined, so the process outlives the dialog: `show()` blocks the
+    // spawned thread until the user dismisses it.
+    let _ = std::thread::spawn(move || {
+        rfd::MessageDialog::new()
+            .set_level(rfd::MessageLevel::Error)
+            .set_title(&title)
+            .set_description(&body)
+            .set_buttons(rfd::MessageButtons::Ok)
+            .show()
+    })
+    .join();
+
+    // Straight out rather than unwinding through `setup`: there is no
+    // state to tear down (the pools that opened are WAL, which is
+    // crash-consistent by construction) and returning would hand Tauri
+    // the panic we just replaced.
+    std::process::exit(1);
 }
 
 /// Bring the main window back to the front (used by the tray's left

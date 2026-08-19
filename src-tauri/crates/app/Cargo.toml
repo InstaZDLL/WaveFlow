@@ -57,6 +57,22 @@ waveflow-syncedlyrics = { path = "../syncedlyrics" }
 tauri = { version = "2", features = ["protocol-asset", "tray-icon", "image-png"] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
+# The dialog plugin's own backend, taken as a direct dependency for the
+# one dialog that cannot go through the plugin: a fatal error inside the
+# Tauri `setup` hook (issue #526). `setup` runs from inside the event
+# loop, so a dialog that dispatches through `run_on_main_thread` — which
+# is what the plugin does — lands in a queue nobody drains until we
+# return, and we never return. `blocking_show` documents itself as
+# unsafe from the main thread for that reason. rfd is called directly,
+# on a thread of its own.
+#
+# Version and features are pinned to match what tauri-plugin-dialog
+# already requests, so Cargo unifies them into the single copy that is
+# in the lockfile — no new crate, no Flatpak source regeneration.
+rfd = { version = "0.16", default-features = false, features = [
+    "gtk3",
+    "common-controls-v6",
+] }
 tauri-plugin-updater = { version = "2", optional = true }
 # Single-instance lock: a second `waveflow` invocation surrenders to the
 # first, which surfaces and focuses its main window. Prevents two audio

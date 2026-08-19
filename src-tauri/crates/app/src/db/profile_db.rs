@@ -56,10 +56,20 @@ pub async fn open(path: &Path, app_db_path: &Path) -> AppResult<SqlitePool> {
         .connect_with(opts)
         .await?;
 
+    let migrator = sqlx::migrate!("../../migrations/profile");
+
+    // Same guard-then-heal order as `app_db::open`: refuse a profile a
+    // newer build wrote before the heal pass writes anything to it.
+    super::schema_guard::ensure_not_from_the_future(
+        &pool,
+        &migrator,
+        super::schema_guard::DbScope::Profile,
+    )
+    .await?;
+
     // Same self-healing dance as `app_db::open` — line-ending drift
     // in the working tree gets reconciled before sqlx's strict
     // checksum check fires. Details in [`crate::db::migration_heal`].
-    let migrator = sqlx::migrate!("../../migrations/profile");
     super::migration_heal::heal_line_ending_drift(&pool, &migrator).await?;
     migrator.run(&pool).await?;
 
