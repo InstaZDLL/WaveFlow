@@ -17,6 +17,9 @@
 *.md        text eol=lf
 *.html      text eol=lf
 *.css       text eol=lf
+# Shell scripts run on CI runners: a CRLF checkout makes bash fail on the
+# shebang with a `\r` nobody can see in the error message.
+*.sh        text eol=lf
 
 # Lockfiles change frequently and benefit from native diff/merge handling,
 # but should still stay LF so CI builds on Linux runners don't see noisy

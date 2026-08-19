@@ -128,6 +128,7 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev \
             libfuse2 \
+            squashfs-tools \
             libasound2-dev
 
       - name: Setup Rust toolchain
@@ -262,6 +263,19 @@ jobs:
           else
             bun run tauri build --bundles "$BUNDLES"
           fi
+
+      - name: Unbundle libwayland-client from the AppImage (Linux)
+        if: matrix.platform == 'linux'
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        # Tauri's bundler ships a library the official AppImage
+        # excludelist forbids, and the result doesn't start on any host
+        # with a newer Mesa than this runner. Runs before "Prepare release
+        # assets" so the renamed copy and its .sig are taken from the
+        # fixed bundle. See the script header for the full diagnosis.
+        run: bash scripts/fix-appimage.sh
 
       - name: Scrub Authenticode secrets (Windows)
         if: always() && matrix.platform == 'windows'
