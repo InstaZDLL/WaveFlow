@@ -80,6 +80,14 @@ sqlx records a SHA-384 checksum in `_sqlx_migrations.checksum` at apply time, so
 
 **Line-ending drift is a non-event.** [`db::migration_heal`](../../src-tauri/crates/app/src/db/migration_heal.rs) reconciles stored checksums against the compiled-in migrator before each `Migrator::run`: when the stored hash matches the LF or CRLF variant of the same SQL (the Windows `core.autocrlf=true` regression), it silently rewrites the row to the canonical hash and logs a warning. A real SQL change still panics, because neither LF nor CRLF normalization will rescue it.
 
+**A database from a newer build is refused, out loud.** Because migrations only ever get appended, a database records the newest build that ever touched it, and an older binary finds a `_sqlx_migrations` row it has no migration for. Refusing is right — replaying a newer schema through older code corrupts it — but the refusal used to leave `AppState::init`, and an error out of the Tauri `setup` hook is a panic: the splash painted, the process died with it, nothing explained (#526). [`db::schema_guard`](../../src-tauri/crates/app/src/db/schema_guard.rs) now detects the case ahead of the migrator, and startup turns it into a native dialog and a clean exit.
+
+Three rules come out of that, in order:
+
+- **Guard before heal, heal before run.** The guard runs first because the heal pass _writes_ — no rewriting checksums into a database this build has already decided not to touch.
+- **The guard must not outlive its reason.** `the_guard_fires_on_exactly_what_sqlx_refuses` pins it to sqlx's own `VersionMissing`; if sqlx ever stops refusing, the guard has started deciding policy on its own and that test says so.
+- **Nothing you queue from `setup` will happen.** `setup` runs from inside the event loop (`RuntimeRunEvent::Ready`), so while it blocks, the loop dispatches nothing — and a fatal path never returns. Three consequences, all measured, all in [`report_fatal_and_exit`](../../src-tauri/crates/app/src/lib.rs): `tauri-plugin-dialog` is unusable because it dispatches through `run_on_main_thread`; the splash must be `hide()`n, not `close()`d, because a close is delivered as an _event_ while `hide` takes the runtime's same-thread fast path; and the dialog needs its own thread, because `TaskDialogIndirect` on the main thread creates its window and never shows it (`WS_VISIBLE` stays clear) and the process hangs there. The splash has to go regardless — it's `alwaysOnTop` and would sit over the dialog. Text is English like the tray's seed labels: the language preference lives in the database we just refused to open.
+
 ### Single writer to SQLite
 
 WAL mode allows concurrent reads but only one writer.

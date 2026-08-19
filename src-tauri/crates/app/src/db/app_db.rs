@@ -30,12 +30,23 @@ pub async fn open(path: &Path) -> AppResult<SqlitePool> {
         .connect_with(opts)
         .await?;
 
+    let migrator = sqlx::migrate!("../../migrations/app");
+
+    // Refuse a database from a newer build before anything else touches
+    // it — including the heal pass below, which writes. See
+    // [`crate::db::schema_guard`].
+    super::schema_guard::ensure_not_from_the_future(
+        &pool,
+        &migrator,
+        super::schema_guard::DbScope::App,
+    )
+    .await?;
+
     // Reconcile any line-ending drift in `_sqlx_migrations` BEFORE
     // running the migrator — without this, a Windows working tree that
     // briefly held CRLF when a new migration was first applied will
     // panic at every subsequent boot once the file is restored to LF.
     // See [`crate::db::migration_heal`] for the full backstory.
-    let migrator = sqlx::migrate!("../../migrations/app");
     super::migration_heal::heal_line_ending_drift(&pool, &migrator).await?;
     migrator.run(&pool).await?;
 

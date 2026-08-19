@@ -29,6 +29,27 @@ pub enum AppError {
     #[error("migration error: {0}")]
     Migration(#[from] sqlx::migrate::MigrateError),
 
+    /// The database holds a migration this build doesn't ship — it was
+    /// written by a newer version of WaveFlow. Split out of the generic
+    /// `Migration` variant because it's the one migration failure with
+    /// a remedy the user can act on, and startup turns it into a dialog
+    /// instead of a panic (issue #526). Raised by
+    /// [`crate::db::schema_guard::ensure_not_from_the_future`].
+    #[error(
+        "{} was written by a newer version of WaveFlow (database schema {version})",
+        scope.label()
+    )]
+    SchemaFromTheFuture {
+        /// Which database — decides what the user can actually do about
+        /// it, so startup branches the remedy on it.
+        scope: crate::db::schema_guard::DbScope,
+        /// The highest applied migration this build doesn't know.
+        version: i64,
+        /// When that migration was applied, `YYYY-MM-DD HH:MM:SS` as
+        /// SQLite recorded it. `None` if the column was NULL.
+        installed_on: Option<String>,
+    },
+
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
 
