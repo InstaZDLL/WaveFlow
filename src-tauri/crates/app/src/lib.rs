@@ -83,6 +83,19 @@ pub fn run() {
     // of the log right when a crash report is most useful.
     let _log_guard = logging::init_tracing();
 
+    // Resolved up front because the pre-flight below needs the bundle
+    // identifier to find the app-data root — `tauri.conf.json` stays
+    // its single source of truth — and because everything this call
+    // does is compile-time work anyway.
+    let context = tauri::generate_context!();
+
+    // Refuse a database written by a newer build BEFORE the event loop
+    // exists. This is the only startup failure with a remedy the user
+    // can act on, and the only place it can be *said* on all three
+    // platforms — see `report_fatal_and_exit` for why "inside `setup`"
+    // is not that place (issues #526, #529).
+    preflight_schema_guard(&context.config().identifier);
+
     // `mut` is only consumed when the updater plugin is wired in (release
     // builds); the lint would fire in debug otherwise.
     #[allow(unused_mut)]
@@ -143,13 +156,21 @@ pub fn run() {
                 {
                     Ok(state) => state,
                     Err(err) => {
-                        // One failure has a remedy the user can act on:
-                        // the database was written by a newer build.
+                        // The database from a newer build is normally
+                        // caught by the pre-flight in `run`, which is
+                        // where it gets explained. Reaching it here
+                        // means the pre-flight couldn't read what
+                        // startup then could — a lock it lost, a file
+                        // that needed recovery — so all that's left is
+                        // to stop. Not a dialog: from inside the event
+                        // loop that is the deadlock (#529), and a
+                        // frozen splash is worse than a short one.
                         // Everything else keeps propagating into Tauri's
                         // "Failed to setup app" panic, which is the
                         // right shape for a bug.
                         if matches!(err, AppError::SchemaFromTheFuture { .. }) {
-                            report_fatal_and_exit(app.handle(), &err);
+                            tracing::error!(%err, "fatal startup error, exiting");
+                            std::process::exit(1);
                         }
                         return Err(Box::new(err));
                     }
@@ -986,7 +1007,7 @@ pub fn run() {
             }
             _ => {}
         })
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running tauri application");
 }
 
@@ -1056,45 +1077,71 @@ async fn restore_bounds_and_reveal(app: AppHandle) -> bool {
     reveal_main_close_splash(&app)
 }
 
+/// Vet the databases startup is about to open, and stop with an
+/// explanation if one of them came from a newer build.
+///
+/// Runs from [`run`] before `tauri::Builder` is even constructed, so a
+/// refusal costs the user a dialog instead of a mystery. The detection
+/// itself stays in [`db::schema_guard`], which the real opens call
+/// again downstream; this is the early, best-effort pass whose only
+/// privilege is being able to talk to the user.
+///
+/// Anything short of a verdict — no app-data dir, no database yet, a
+/// file it can't read — proceeds to normal startup.
+fn preflight_schema_guard(identifier: &str) {
+    let root = match paths::AppPaths::root_for_identifier(identifier) {
+        Ok(root) => root,
+        Err(err) => {
+            tracing::warn!(%err, "startup pre-flight: no app-data dir, skipping");
+            return;
+        }
+    };
+
+    let paths = paths::AppPaths::from_root(root, None);
+    if let Some(err) = tauri::async_runtime::block_on(db::schema_guard::preflight(&paths)) {
+        report_fatal_and_exit(&err);
+    }
+}
+
 /// Tell the user why WaveFlow is stopping, then stop.
 ///
-/// Called from the `setup` hook for the one startup failure a user can
-/// act on: the database was written by a newer build. Everything else
-/// keeps propagating into Tauri's `"Failed to setup app"` panic, which
-/// is the right shape for a bug — but was the wrong shape for this,
-/// where the splash painted and the process vanished with it, leaving
-/// nothing on screen to act on (issue #526).
+/// One startup failure has a remedy the user can act on: the database
+/// was written by a newer build. Everything else keeps propagating into
+/// Tauri's `"Failed to setup app"` panic, which is the right shape for
+/// a bug — but was the wrong shape for this, where the splash painted
+/// and the process vanished with it, leaving nothing on screen to act
+/// on (issue #526).
 ///
-/// Three constraints shape this, and all three come from the same fact:
-/// **`setup` runs from inside the event loop**, dispatched on
-/// `RuntimeRunEvent::Ready`, so nothing we queue can be processed until
-/// we return — and we never return.
+/// **This runs before the event loop, and that is load-bearing.**
+/// `setup` runs from *inside* the loop, dispatched on
+/// `RuntimeRunEvent::Ready`, so nothing queued from there is processed
+/// until it returns — and a fatal path never returns. Presenting from
+/// there cost one workaround per platform and still hung two of them
+/// (issue #529):
 ///
-/// - **`tauri-plugin-dialog` can't be used.** It dispatches through
-///   `run_on_main_thread`, straight into the queue nobody is draining;
-///   `blocking_show` documents itself as unsafe from the main thread for
-///   exactly that reason. `rfd` — the plugin's own backend — is called
-///   directly instead.
-/// - **The splash is hidden, not closed.** `close()` posts a
-///   `CloseRequested` *event*, so it is a silent no-op here; `hide()`
-///   lands on the runtime's same-thread fast path and applies
-///   immediately. It has to go: it's `alwaysOnTop` and would otherwise
-///   sit over the dialog.
-/// - **The dialog runs on its own thread.** Measured on Windows,
-///   `TaskDialogIndirect` called on the main thread from here creates
-///   its window and never shows it — `WS_VISIBLE` stays clear and the
-///   process hangs. A spawned thread carries its own message pump and
-///   displays normally.
+/// - **Linux.** `rfd`'s GTK backend runs every dialog on a global
+///   thread that iterates the *default* GLib main context, and `tao`
+///   owns that context on the main thread for the life of the loop.
+///   Waiting there for the dialog blocks the very context the dialog
+///   needs: no window is ever created and the process hangs.
+/// - **macOS.** `rfd`'s `run_on_main` dispatches to the main queue when
+///   called off-thread — a queue the blocked main thread never drains —
+///   and panics outright when `NSApplication` isn't running yet.
+/// - **Windows.** `TaskDialogIndirect` on the main thread from inside
+///   the loop creates its window and never shows it (`WS_VISIBLE` stays
+///   clear).
 ///
-/// The message is English, like the tray menu's seed labels: there is no
-/// frontend yet, so no i18next — and no readable language preference,
-/// because that setting lives in the database we just refused to open.
-fn report_fatal_and_exit(app: &AppHandle, err: &AppError) -> ! {
+/// Before the loop, none of it applies: no main context is held, no
+/// window exists — so there is no splash to hide either, which is the
+/// other half of what made the old shape fragile (`close()` was a
+/// silent no-op there, `hide()` the only thing that landed).
+///
+/// The message is English, like the tray menu's seed labels: there is
+/// no frontend yet, so no i18next — and no readable language
+/// preference, because that setting lives in the database we just
+/// refused to open.
+fn report_fatal_and_exit(err: &AppError) -> ! {
     tracing::error!(%err, "fatal startup error, exiting");
-
-    if let Some(splash) = app.get_webview_window("splashscreen") {
-        let _ = splash.hide();
-    }
 
     let (title, body) = match err {
         AppError::SchemaFromTheFuture {
@@ -1125,23 +1172,56 @@ fn report_fatal_and_exit(app: &AppHandle, err: &AppError) -> ! {
         other => ("WaveFlow can't start".to_string(), other.to_string()),
     };
 
-    // Joined, so the process outlives the dialog: `show()` blocks the
-    // spawned thread until the user dismisses it.
-    let _ = std::thread::spawn(move || {
+    show_native_error(title, body);
+
+    // Straight out rather than unwinding: there is no state to tear
+    // down (nothing has been built yet, and the pools the pre-flight
+    // opened are closed and WAL, which is crash-consistent by
+    // construction).
+    std::process::exit(1);
+}
+
+/// Put a native error box on screen from a process with no event loop,
+/// and block until it's dismissed.
+///
+/// Which thread is a toolkit rule, not a preference. AppKit demands the
+/// main thread, and `MainThreadMarker::new()` succeeds there without a
+/// running `NSApplication` — off-thread, `rfd` panics in exactly this
+/// situation. GTK and `TaskDialogIndirect` accept any thread, and a
+/// dedicated one is the shape actually measured working on both: on
+/// Windows in issue #528, on Linux in #529's standalone control.
+fn show_native_error(title: String, body: String) {
+    fn dialog(title: &str, body: &str) -> rfd::MessageDialog {
         rfd::MessageDialog::new()
             .set_level(rfd::MessageLevel::Error)
-            .set_title(&title)
-            .set_description(&body)
+            .set_title(title)
+            .set_description(body)
             .set_buttons(rfd::MessageButtons::Ok)
-            .show()
-    })
-    .join();
+    }
 
-    // Straight out rather than unwinding through `setup`: there is no
-    // state to tear down (the pools that opened are WAL, which is
-    // crash-consistent by construction) and returning would hand Tauri
-    // the panic we just replaced.
-    std::process::exit(1);
+    // A GTK dialog needs a display server, and `rfd`'s GTK backend has
+    // no way to report that it didn't get one: a failed `gtk_init_check`
+    // leaves its global thread dead, and `run_blocking` then parks on a
+    // condvar nobody will ever notify. Ask first — headless is not
+    // where this message was going to help anyway, and the log line
+    // above already carries it.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("DISPLAY").is_none() && std::env::var_os("WAYLAND_DISPLAY").is_none() {
+        tracing::warn!("no display server; the error above is the whole story");
+        return;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        dialog(&title, &body).show();
+    }
+
+    // Joined, so the process outlives the dialog: `show()` blocks the
+    // spawned thread until the user dismisses it.
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = std::thread::spawn(move || dialog(&title, &body).show()).join();
+    }
 }
 
 /// Bring the main window back to the front (used by the tray's left

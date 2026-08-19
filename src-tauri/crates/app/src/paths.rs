@@ -59,8 +59,6 @@ impl AppPaths {
             .app_data_dir()
             .map_err(|_| AppError::MissingAppDataDir)?;
 
-        let root = data_dir.join("waveflow");
-
         // Bundled plugin resources live next to the binary, resolved
         // via Tauri's `BaseDirectory::Resource`. A failure here isn't
         // fatal — `PluginPaths::install_root_for` falls back to the
@@ -87,7 +85,21 @@ impl AppPaths {
             }
         };
 
-        Ok(Self {
+        Ok(Self::from_root(data_dir.join("waveflow"), bundled_plugins_dir))
+    }
+
+    /// Same layout, resolved from the app-data root alone.
+    ///
+    /// [`Self::from_handle`] is this plus the `BaseDirectory::Resource`
+    /// lookup, which needs a live app. The startup pre-flight
+    /// ([`crate::db::schema_guard::preflight`]) runs *before* the Tauri
+    /// event loop exists — there is no `AppHandle` to resolve against
+    /// yet — and it only ever reads databases, so it takes this
+    /// constructor and leaves `bundled_plugins_dir` at `None`.
+    ///
+    /// Creates nothing on disk, same as [`Self::from_handle`].
+    pub fn from_root(root: PathBuf, bundled_plugins_dir: Option<PathBuf>) -> Self {
+        Self {
             app_db: root.join("app.db"),
             avatars_dir: root.join("avatars"),
             metadata_artwork_dir: root.join("metadata_artwork"),
@@ -96,7 +108,21 @@ impl AppPaths {
             profiles_dir: root.join("profiles"),
             bundled_plugins_dir,
             root,
-        })
+        }
+    }
+
+    /// The app-data root for a bundle identifier, without a running app.
+    ///
+    /// Mirrors what Tauri's own resolver does — `app_data_dir()` is
+    /// `dirs::data_dir()/<identifier>` (see `tauri::path::PathResolver`)
+    /// — plus the `waveflow/` subdirectory [`Self::from_handle`] appends.
+    /// The identifier is read from the generated context at the call
+    /// site rather than hardcoded, so `tauri.conf.json` stays the single
+    /// source of truth.
+    pub fn root_for_identifier(identifier: &str) -> AppResult<PathBuf> {
+        dirs::data_dir()
+            .ok_or(AppError::MissingAppDataDir)
+            .map(|dir| dir.join(identifier).join("waveflow"))
     }
 
     /// Create every directory that the application expects to exist.

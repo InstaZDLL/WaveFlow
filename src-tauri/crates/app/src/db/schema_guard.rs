@@ -36,10 +36,16 @@
 //! touch.
 
 use std::collections::HashSet;
+use std::path::Path;
 
-use sqlx::{migrate::Migrator, SqlitePool};
+use sqlx::{
+    migrate::Migrator,
+    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
+    SqlitePool,
+};
 
 use crate::error::{AppError, AppResult};
+use crate::paths::AppPaths;
 
 /// Which database a guard failure is about. Decides what the user can
 /// actually do: another profile is a way out of a profile database
@@ -125,6 +131,120 @@ pub async fn ensure_not_from_the_future(
         version,
         installed_on,
     })
+}
+
+
+/// Vet the databases this launch is about to open, **before**
+/// `tauri::Builder::run`.
+///
+/// [`ensure_not_from_the_future`] already runs inside `app_db::open` /
+/// `profile_db::open`, which is where the authority belongs — but those
+/// run from the Tauri `setup` hook, and `setup` runs from *inside* the
+/// event loop (`RuntimeRunEvent::Ready`). A fatal path there never
+/// returns to the loop, and on Linux that deadlocks the process instead
+/// of explaining anything: `rfd`'s GTK backend hands every dialog to a
+/// global thread that iterates the default GLib main context, and `tao`
+/// already owns that context on the main thread we are blocking (issue
+/// #529). Asking the question early — no windows, no event loop, no
+/// main context held — is what lets the answer reach the user on all
+/// three platforms.
+///
+/// **Best effort by construction.** Anything that isn't a clear verdict
+/// (no database yet, a file we can't open, a query that fails) returns
+/// `None` and lets startup proceed: the real guards downstream are
+/// still there, and a pre-flight that refused on its own uncertainty
+/// would be a new way to brick a healthy install.
+///
+/// Vets exactly the two databases startup will open — `app.db`, then
+/// the profile [`resolve_target_profile`](crate::state::resolve_target_profile)
+/// picks. Not every profile on disk: one profile left behind by a newer
+/// build is no reason to refuse a launch that won't touch it.
+///
+/// Creates nothing. Missing files are the fresh-install case and are
+/// left for the real open to create.
+pub async fn preflight(paths: &AppPaths) -> Option<AppError> {
+    let app_pool = open_existing(&paths.app_db).await?;
+
+    let app_migrator = sqlx::migrate!("../../migrations/app");
+    let mut verdict = vet(&app_pool, &app_migrator, DbScope::App).await;
+
+    if verdict.is_none() {
+        verdict = match crate::state::resolve_target_profile(&app_pool).await {
+            Ok(Some(profile_id)) => vet_profile(paths, profile_id).await,
+            Ok(None) => None,
+            Err(err) => {
+                tracing::warn!(%err, "startup pre-flight: could not resolve the target profile");
+                None
+            }
+        };
+    }
+
+    app_pool.close().await;
+    verdict
+}
+
+/// Vet one profile's `data.db`.
+async fn vet_profile(paths: &AppPaths, profile_id: i64) -> Option<AppError> {
+    let pool = open_existing(&paths.profile_db(profile_id)).await?;
+    let migrator = sqlx::migrate!("../../migrations/profile");
+    let verdict = vet(&pool, &migrator, DbScope::Profile).await;
+    pool.close().await;
+    verdict
+}
+
+/// [`ensure_not_from_the_future`] reduced to the one answer the
+/// pre-flight can act on. A database error here means we couldn't tell,
+/// which is not the same as "it's fine" — but it is the same *decision*,
+/// because the downstream guard will be asked again with the pool that
+/// actually matters.
+async fn vet(pool: &SqlitePool, migrator: &Migrator, scope: DbScope) -> Option<AppError> {
+    match ensure_not_from_the_future(pool, migrator, scope).await {
+        Ok(()) => None,
+        Err(err @ AppError::SchemaFromTheFuture { .. }) => Some(err),
+        Err(err) => {
+            tracing::warn!(%err, ?scope, "startup pre-flight: inconclusive, deferring to startup");
+            None
+        }
+    }
+}
+
+/// Open an existing SQLite file, or give up quietly.
+///
+/// `create_if_missing(false)` is the point: a pre-flight that
+/// materialized `app.db` would turn "no install yet" into "install
+/// with an empty database", and the fresh-install path downstream
+/// would never run.
+async fn open_existing(path: &Path) -> Option<SqlitePool> {
+    if !path.exists() {
+        return None;
+    }
+
+    // Same options as the real open minus `create_if_missing`, so the
+    // pre-flight sees what startup will see. Not `read_only`: a
+    // database left with a hot WAL by a crash needs recovery on open,
+    // and a read-only connection fails on exactly the installs most
+    // likely to be in trouble.
+    let opts = SqliteConnectOptions::new()
+        .filename(path)
+        .create_if_missing(false)
+        .foreign_keys(true)
+        .journal_mode(SqliteJournalMode::Wal);
+
+    match SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(opts)
+        .await
+    {
+        Ok(pool) => Some(pool),
+        Err(err) => {
+            tracing::warn!(
+                %err,
+                path = %path.display(),
+                "startup pre-flight: could not open the database, deferring to startup",
+            );
+            None
+        }
+    }
 }
 
 #[cfg(test)]
@@ -259,5 +379,185 @@ mod tests {
         ensure_not_from_the_future(&pool, &migrator, DbScope::App)
             .await
             .expect("app.db written by this build must be accepted");
+    }
+
+    // ---- pre-flight ------------------------------------------------
+    //
+    // Same forged row as above, but reached through the real path
+    // layout and the real profile lookup, on files rather than
+    // `:memory:` — the pre-flight's whole job is deciding *which*
+    // database to ask about, and that is not something an in-memory
+    // pool can get wrong.
+
+    use crate::paths::AppPaths;
+    use std::path::Path;
+
+    /// Open (creating) a database file, the way startup would.
+    async fn file_pool(path: &Path) -> SqlitePool {
+        let opts = SqliteConnectOptions::new()
+            .filename(path)
+            .create_if_missing(true)
+            .foreign_keys(true);
+        SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(opts)
+            .await
+            .unwrap()
+    }
+
+    /// A minimal but real app-data tree: `app.db` migrated by the app
+    /// migrator, one profile row per id, each with its own migrated
+    /// `data.db` under `profiles/<id>/`.
+    async fn seed_tree(root: &Path, profile_ids: &[i64]) -> AppPaths {
+        let paths = AppPaths::from_root(root.to_path_buf(), None);
+        paths.ensure_dirs().unwrap();
+
+        let app_db = file_pool(&paths.app_db).await;
+        sqlx::migrate!("../../migrations/app")
+            .run(&app_db)
+            .await
+            .unwrap();
+
+        for id in profile_ids {
+            sqlx::query(
+                "INSERT INTO profile (id, name, color_id, avatar_hash, data_dir, created_at, last_used_at)
+                 VALUES (?, ?, 'emerald', NULL, ?, 0, ?)",
+            )
+            .bind(id)
+            .bind(format!("Profile {id}"))
+            .bind(AppPaths::profile_rel_dir(*id))
+            .bind(id)
+            .execute(&app_db)
+            .await
+            .unwrap();
+
+            paths.ensure_profile_dirs(*id).unwrap();
+            let profile_db = file_pool(&paths.profile_db(*id)).await;
+            sqlx::migrate!("../../migrations/profile")
+                .run(&profile_db)
+                .await
+                .unwrap();
+            profile_db.close().await;
+        }
+
+        app_db.close().await;
+        paths
+    }
+
+    /// Point `app.last_profile_id` at a profile, the way a profile
+    /// switch does.
+    async fn pin_last_profile(paths: &AppPaths, profile_id: i64) {
+        let app_db = file_pool(&paths.app_db).await;
+        sqlx::query(
+            "INSERT INTO app_setting (key, value, value_type, updated_at)
+             VALUES ('app.last_profile_id', ?, 'int', 0)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        )
+        .bind(profile_id.to_string())
+        .execute(&app_db)
+        .await
+        .unwrap();
+        app_db.close().await;
+    }
+
+    /// Forge a migration from the future into a database file.
+    async fn poison(path: &Path, version: i64) {
+        let pool = file_pool(path).await;
+        record_applied(&pool, version).await;
+        pool.close().await;
+    }
+
+    #[tokio::test]
+    async fn preflight_creates_nothing_on_a_fresh_install() {
+        // The dangerous failure mode: a pre-flight that materializes
+        // `app.db` turns "no install yet" into "install with an empty
+        // database", and the first-run path never runs again.
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path().join("waveflow");
+        let paths = AppPaths::from_root(root.clone(), None);
+
+        assert!(preflight(&paths).await.is_none());
+        assert!(!root.exists(), "pre-flight must not create the app-data tree");
+    }
+
+    #[tokio::test]
+    async fn preflight_accepts_a_tree_this_build_wrote() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = seed_tree(&tmp.path().join("waveflow"), &[1]).await;
+
+        assert!(
+            preflight(&paths).await.is_none(),
+            "our own migrations must not read as newer",
+        );
+    }
+
+    #[tokio::test]
+    async fn preflight_names_a_future_app_db() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = seed_tree(&tmp.path().join("waveflow"), &[1]).await;
+        poison(&paths.app_db, 29990101000000).await;
+
+        match preflight(&paths).await {
+            Some(AppError::SchemaFromTheFuture { scope, version, .. }) => {
+                assert_eq!(scope, DbScope::App);
+                assert_eq!(version, 29990101000000);
+            }
+            other => panic!("expected an App-scoped refusal, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn preflight_names_a_future_profile_db() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = seed_tree(&tmp.path().join("waveflow"), &[1]).await;
+        poison(&paths.profile_db(1), 29990101000000).await;
+
+        match preflight(&paths).await {
+            Some(AppError::SchemaFromTheFuture { scope, version, .. }) => {
+                assert_eq!(scope, DbScope::Profile);
+                assert_eq!(version, 29990101000000);
+            }
+            other => panic!("expected a Profile-scoped refusal, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn preflight_vets_the_profile_startup_will_actually_open() {
+        // Two profiles, and the one from the future is not the one
+        // being opened. Refusing here would ground a launch over a
+        // database it never touches — and the symmetric case has to
+        // still fire, or the lookup is just decoration.
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = seed_tree(&tmp.path().join("waveflow"), &[1, 2]).await;
+        pin_last_profile(&paths, 2).await;
+        poison(&paths.profile_db(1), 29990101000000).await;
+
+        assert!(
+            preflight(&paths).await.is_none(),
+            "a profile we are not opening must not ground the launch",
+        );
+
+        poison(&paths.profile_db(2), 29990202000000).await;
+        match preflight(&paths).await {
+            Some(AppError::SchemaFromTheFuture { version, .. }) => {
+                assert_eq!(version, 29990202000000);
+            }
+            other => panic!("expected the pinned profile to be refused, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn preflight_defers_when_it_cannot_read_the_database() {
+        // Inconclusive is not a verdict. A file that isn't SQLite at
+        // all stands in for the whole class (corruption, permissions,
+        // a lock we lost the race for): startup proceeds and the real
+        // guard gets the last word.
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path().join("waveflow");
+        let paths = AppPaths::from_root(root, None);
+        paths.ensure_dirs().unwrap();
+        std::fs::write(&paths.app_db, b"not a database").unwrap();
+
+        assert!(preflight(&paths).await.is_none());
     }
 }
