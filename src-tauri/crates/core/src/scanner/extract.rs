@@ -19,12 +19,32 @@ use super::canonical::canonical_name;
 
 /// Extensions considered "audio files" by the scanner. Limited to
 /// formats the symphonia + cpal engine can actually decode and play,
-/// so the library never displays tracks that would error at play
-/// time. Opus / WMA / AIFF are intentionally absent — symphonia
-/// doesn't ship a mainline decoder for Opus, WMA is Microsoft
-/// proprietary, and AIFF isn't in the default feature set.
+/// so the library never displays tracks that would error at play time.
+///
+/// What is absent, and why — three different reasons that are worth not
+/// confusing, because only one of them is a licence question:
+///
+/// - **Opus** is missing for a purely technical reason: symphonia ships
+///   no Opus decoder. Not a licence issue in any sense — Opus is an IETF
+///   standard (RFC 6716), royalty-free by design, and `libopus` is BSD.
+///   Playing it means an out-of-tree decoder, the way DSD is handled
+///   below. Note the gap this leaves: `.ogg` is accepted for Vorbis, and
+///   an extension cannot tell Vorbis from Opus inside the container, so
+///   an Opus file named `.ogg` is indexed here and fails at play time.
+///   Closing that needs the codec read at scan, not a longer list.
+/// - **WMA** is genuinely proprietary: Microsoft, unpublished
+///   specification, patent-encumbered. This one stays out.
+/// - **AIFF** is neither. It is a container, not a codec — Apple's
+///   answer to WAV, holding the same PCM — and symphonia reads it from
+///   `symphonia-format-riff`, the crate `wav` already pulls in.
+///
+/// `.aifc` is deliberately not listed. symphonia's AIFC support covers
+/// the PCM-shaped compression types (`none`, `sowt`, `twos`, `fl32`,
+/// `alaw`, …) and refuses the rest, so accepting the extension would
+/// reproduce the `.ogg` problem above on a format nobody writes any
+/// more.
 pub const AUDIO_EXTENSIONS: &[&str] = &[
-    "mp3", "flac", "wav", "ogg", "oga", "m4a", "mp4", "aac",
+    "mp3", "flac", "wav", "aiff", "aif", "ogg", "oga", "m4a", "mp4", "aac",
     // DSD: handled by the in-tree audio::dsd pipeline (symphonia
     // doesn't decode DSD), with metadata read via audio::dsd::metadata.
     "dsf", "dff",
@@ -619,6 +639,126 @@ mod tests {
     const TINY_JPEG: &[u8] = &[
         0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0xFF, 0xD9,
     ];
+
+    /// A minimal but real AIFF: `FORM`/`COMM`/`SSND`, 16-bit big-endian
+    /// stereo PCM. Built here rather than committed as a fixture so the
+    /// bytes the test relies on are visible next to the assertions.
+    fn tiny_aiff(frames: u32) -> Vec<u8> {
+        let channels: u16 = 2;
+        let sample_size: u16 = 16;
+        let data_len = frames as usize * channels as usize * 2;
+
+        let mut comm = Vec::new();
+        comm.extend_from_slice(&channels.to_be_bytes());
+        comm.extend_from_slice(&frames.to_be_bytes());
+        comm.extend_from_slice(&sample_size.to_be_bytes());
+        // 44100 Hz as an IEEE 754 80-bit extended float: biased exponent
+        // 16383 + 15, then 0xAC44 (44100) left-aligned in the significand,
+        // whose leading integer bit is explicit in this format.
+        comm.extend_from_slice(&[0x40, 0x0E, 0xAC, 0x44, 0, 0, 0, 0, 0, 0]);
+
+        let mut ssnd = Vec::new();
+        ssnd.extend_from_slice(&0u32.to_be_bytes()); // offset
+        ssnd.extend_from_slice(&0u32.to_be_bytes()); // block size
+        for frame in 0..frames {
+            // A quiet ramp rather than silence: a decoder that returns the
+            // right frame count of zeroes would pass on silence alone.
+            let sample = (frame as i16).wrapping_mul(64);
+            ssnd.extend_from_slice(&sample.to_be_bytes());
+            ssnd.extend_from_slice(&sample.to_be_bytes());
+        }
+
+        let mut body = Vec::new();
+        body.extend_from_slice(b"AIFF");
+        body.extend_from_slice(b"COMM");
+        body.extend_from_slice(&(comm.len() as u32).to_be_bytes());
+        body.extend_from_slice(&comm);
+        body.extend_from_slice(b"SSND");
+        body.extend_from_slice(&((8 + data_len) as u32).to_be_bytes());
+        body.extend_from_slice(&ssnd);
+
+        let mut out = Vec::new();
+        out.extend_from_slice(b"FORM");
+        out.extend_from_slice(&(body.len() as u32).to_be_bytes());
+        out.extend_from_slice(&body);
+        out
+    }
+
+    /// The `aiff` feature is what makes the extension list below honest:
+    /// the scanner only offers what the engine can play, so this decodes a
+    /// real file rather than asserting that a string is in a list.
+    #[test]
+    fn an_aiff_file_probes_and_decodes() {
+        use symphonia::core::codecs::audio::AudioDecoderOptions;
+        use symphonia::core::formats::probe::Hint;
+        use symphonia::core::formats::{FormatOptions, TrackType};
+        use symphonia::core::io::MediaSourceStream;
+        use symphonia::core::meta::MetadataOptions;
+
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("tone.aiff");
+        write_bytes(&path, &tiny_aiff(256));
+
+        let file = fs::File::open(&path).expect("open");
+        let mut hint = Hint::new();
+        hint.with_extension("aiff");
+        let mut format = symphonia::default::get_probe()
+            .probe(
+                &hint,
+                MediaSourceStream::new(Box::new(file), Default::default()),
+                FormatOptions::default(),
+                MetadataOptions::default(),
+            )
+            .expect("symphonia probes AIFF once the feature is on");
+
+        let track = format
+            .default_track(TrackType::Audio)
+            .expect("the AIFF carries an audio track");
+        let track_id = track.id;
+        let params = track
+            .codec_params
+            .as_ref()
+            .and_then(|p| p.audio())
+            .expect("audio codec params")
+            .clone();
+        let mut decoder = symphonia::default::get_codecs()
+            .make_audio_decoder(&params, &AudioDecoderOptions::default())
+            .expect("AIFF holds the PCM `wav` already decodes");
+
+        let mut decoded = 0u64;
+        while let Ok(Some(packet)) = format.next_packet() {
+            if packet.track_id != track_id {
+                continue;
+            }
+            let buffer = decoder.decode(&packet).expect("decode");
+            decoded += buffer.frames() as u64;
+        }
+        assert_eq!(decoded, 256, "every frame written comes back out");
+    }
+
+    /// The list states a policy, and the policy has edges that are easy to
+    /// widen by accident.
+    #[test]
+    fn the_extension_list_admits_aiff_and_still_refuses_what_cannot_play() {
+        for accepted in ["aiff", "aif", "wav", "flac", "mp3"] {
+            assert!(
+                AUDIO_EXTENSIONS.contains(&accepted),
+                "{accepted} is playable and must be indexed"
+            );
+        }
+        for refused in [
+            // No symphonia decoder at all.
+            "opus", // Proprietary, and staying out.
+            "wma",  // AIFC's compressed forms are refused by the reader, so
+            // accepting the extension would index files that cannot play.
+            "aifc",
+        ] {
+            assert!(
+                !AUDIO_EXTENSIONS.contains(&refused),
+                "{refused} cannot be played and must not be indexed"
+            );
+        }
+    }
 
     #[test]
     fn folder_cover_picks_priority_stem_over_alphabetical_first() {
