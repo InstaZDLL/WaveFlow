@@ -30,6 +30,75 @@ pub const AUDIO_EXTENSIONS: &[&str] = &[
     "dsf", "dff",
 ];
 
+/// Containers whose extension names the box and not the stream inside
+/// it. Everything else in [`AUDIO_EXTENSIONS`] implies its codec closely
+/// enough that the extension is the whole answer; these do not, so they
+/// pay for one header read before the scanner believes them.
+const AMBIGUOUS_CONTAINERS: &[&str] = &["ogg", "oga"];
+
+/// Why the local engine cannot decode this container's stream, or `None`
+/// when it can.
+///
+/// Stated as a deny list rather than an allow list on purpose. An allow
+/// list that forgot a codec would drop files the engine plays perfectly
+/// well — including anything lofty reports as `Custom`, and any codec a
+/// future symphonia feature adds. Every entry here is a stream lofty
+/// identifies and this build ships no decoder for.
+pub fn undecodable_stream(file_type: &FileType) -> Option<&'static str> {
+    match file_type {
+        FileType::Opus => Some("Opus"),
+        FileType::Speex => Some("Speex"),
+        _ => None,
+    }
+}
+
+/// Whether the scanner should index this path at all.
+///
+/// The extension check alone was wrong for one family of files: `.ogg`
+/// and `.oga` name a container, and Opus travels in the same one Vorbis
+/// does. Such a file passed a list built for Vorbis, was indexed, and
+/// then failed at play time — the single thing [`AUDIO_EXTENSIONS`]
+/// exists to prevent. So an ambiguous container is opened far enough to
+/// read which stream it actually carries.
+///
+/// A file that stops qualifying is not deleted from a library that
+/// already holds it: it simply stops being walked, and the scan's
+/// disappearance sweep marks the row unavailable, keeping its likes,
+/// playlists and play history. Ship a decoder for it later and the next
+/// scan brings the same row back.
+pub fn is_scannable_audio(path: &Path) -> bool {
+    let Some(extension) = path.extension().and_then(|ext| ext.to_str()) else {
+        return false;
+    };
+    let extension = extension.to_lowercase();
+    if !AUDIO_EXTENSIONS.contains(&extension.as_str()) {
+        return false;
+    }
+    if !AMBIGUOUS_CONTAINERS.contains(&extension.as_str()) {
+        return true;
+    }
+    // A container we cannot read is left to the extractor to report:
+    // refusing it here would turn an unreadable file into an absent one.
+    let Some(file_type) = lofty::probe::Probe::open(path)
+        .ok()
+        .and_then(|probe| probe.guess_file_type().ok())
+        .and_then(|probe| probe.file_type())
+    else {
+        return true;
+    };
+    match undecodable_stream(&file_type) {
+        Some(codec) => {
+            tracing::info!(
+                path = %path.display(),
+                codec,
+                "container holds a stream this build cannot decode; not indexing it"
+            );
+            false
+        }
+        None => true,
+    }
+}
+
 /// Bytes hashed from each of the file's head and tail in the partial
 /// path. 1 MiB each — large enough that distinct tracks differ inside
 /// the window (leading frames) and that tag rewrites land in it (ID3v2
@@ -619,6 +688,89 @@ mod tests {
     const TINY_JPEG: &[u8] = &[
         0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0xFF, 0xD9,
     ];
+
+    /// Wrap one packet in an Ogg beginning-of-stream page.
+    ///
+    /// Enough of a page for the codec magic that follows the header to be
+    /// found where a reader looks for it, which is all identifying the
+    /// stream needs. The CRC is left zero: nothing on this path verifies
+    /// it, and a real encoder is a heavy price for one header.
+    fn ogg_page(packet: &[u8]) -> Vec<u8> {
+        let mut page = Vec::new();
+        page.extend_from_slice(b"OggS");
+        page.push(0); // stream structure version
+        page.push(0x02); // beginning of stream
+        page.extend_from_slice(&0u64.to_le_bytes()); // granule position
+        page.extend_from_slice(&1u32.to_le_bytes()); // bitstream serial
+        page.extend_from_slice(&0u32.to_le_bytes()); // page sequence
+        page.extend_from_slice(&0u32.to_le_bytes()); // checksum
+        page.push(1); // one segment
+        page.push(packet.len() as u8);
+        page.extend_from_slice(packet);
+        page
+    }
+
+    fn opus_identification() -> Vec<u8> {
+        let mut packet = b"OpusHead".to_vec();
+        packet.push(1); // version
+        packet.push(2); // channels
+        packet.extend_from_slice(&312u16.to_le_bytes()); // pre-skip
+        packet.extend_from_slice(&48_000u32.to_le_bytes()); // input rate
+        packet.extend_from_slice(&0i16.to_le_bytes()); // output gain
+        packet.push(0); // channel mapping family
+        packet
+    }
+
+    fn vorbis_identification() -> Vec<u8> {
+        let mut packet = vec![1];
+        packet.extend_from_slice(b"vorbis");
+        packet.extend_from_slice(&0u32.to_le_bytes()); // version
+        packet.push(2); // channels
+        packet.extend_from_slice(&44_100u32.to_le_bytes()); // sample rate
+        packet.extend_from_slice(&[0u8; 12]); // the three bitrate hints
+        packet.push(0xB8); // block sizes
+        packet.push(1); // framing
+        packet
+    }
+
+    /// The bug this guards: `.ogg` names a container, not a codec, so an
+    /// Opus stream reached a list built for Vorbis, was indexed, and then
+    /// failed the moment it was played.
+    #[test]
+    fn an_ogg_is_judged_by_its_stream_and_not_by_its_extension() {
+        let dir = tempfile::tempdir().expect("tempdir");
+
+        let opus = dir.path().join("opus-in-disguise.ogg");
+        write_bytes(&opus, &ogg_page(&opus_identification()));
+        assert!(
+            !is_scannable_audio(&opus),
+            "an Opus stream in an .ogg container is not indexed"
+        );
+
+        let vorbis = dir.path().join("really-vorbis.ogg");
+        write_bytes(&vorbis, &ogg_page(&vorbis_identification()));
+        assert!(
+            is_scannable_audio(&vorbis),
+            "the container the extension was built for still passes"
+        );
+
+        // An unambiguous extension is not opened at all, so a file the
+        // extractor will refuse later still reaches it — an unreadable
+        // file has to be reported, not made to disappear.
+        let broken = dir.path().join("truncated.flac");
+        write_bytes(&broken, b"not really audio");
+        assert!(is_scannable_audio(&broken));
+
+        // And an ambiguous container nothing can identify is left to the
+        // extractor for the same reason.
+        let unreadable = dir.path().join("empty.oga");
+        write_bytes(&unreadable, b"");
+        assert!(is_scannable_audio(&unreadable));
+
+        let cover = dir.path().join("cover.jpg");
+        write_bytes(&cover, TINY_JPEG);
+        assert!(!is_scannable_audio(&cover));
+    }
 
     #[test]
     fn folder_cover_picks_priority_stem_over_alphabetical_first() {

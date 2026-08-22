@@ -16,10 +16,10 @@ use walkdir::WalkDir;
 use waveflow_core::scanner::{
     extract_album_artist, extract_artist_image, extract_compilation_flag, extract_cover,
     extract_folder_cover, extract_musical_key, extract_rating, file_type_label, hash_file,
-    link_local_artist_image, link_va_artist_image, maybe_link_artist_images,
+    is_scannable_audio, link_local_artist_image, link_va_artist_image, maybe_link_artist_images,
     merge_implicit_compilations, now_millis, reattach_orphaned_play_events, refresh_folder_covers,
     split_artist_name, upsert_album, upsert_artist, upsert_artwork, ArtistImageScanCache,
-    ExtractedFile, UpsertCache, AUDIO_EXTENSIONS, VARIOUS_ARTISTS_LABEL,
+    ExtractedFile, UpsertCache, VARIOUS_ARTISTS_LABEL,
 };
 
 use crate::{
@@ -490,14 +490,7 @@ pub(crate) async fn scan_folder_inner(
             .into_iter()
             .filter_map(Result::ok)
             .filter(|entry| entry.file_type().is_file())
-            .filter(|entry| {
-                entry
-                    .path()
-                    .extension()
-                    .and_then(|ext| ext.to_str())
-                    .map(|ext| AUDIO_EXTENSIONS.contains(&ext.to_lowercase().as_str()))
-                    .unwrap_or(false)
-            })
+            .filter(|entry| is_scannable_audio(entry.path()))
             .map(|entry| entry.path().to_path_buf())
             .collect()
     })
