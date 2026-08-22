@@ -28,12 +28,18 @@ jobs:
         # the Rust build. Locale-only / docs-only PRs skip the Rust matrix
         # entirely to save Actions minutes (the windows matrix slot is 2× per
         # minute). The workflow file itself is part of the filter so CI tweaks
-        # still re-run the job.
+        # still re-run the job. So are the three configuration files at the
+        # repository root: they decide which compiler runs and what the
+        # formatter and clippy accept, so a pull request that changes only
+        # one of them is exactly the pull request the Rust job has to see.
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         with:
           filters: |
             rust:
               - 'src-tauri/**'
+              - 'rust-toolchain.toml'
+              - 'rustfmt.toml'
+              - 'clippy.toml'
               - '.github/workflows/ci.yml'
             flatpak:
               - 'src-tauri/Cargo.lock'
@@ -81,10 +87,33 @@ jobs:
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # stable
         with:
           toolchain: 1.98.0
+          components: rustfmt, clippy
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri
+
+      - name: cargo fmt
+        # Both checks run on one runner only: their answer cannot differ by
+        # operating system, and `rustfmt.toml` names the version-independent
+        # settings they read. Linux because it is the slot that already runs
+        # everything else.
+        if: runner.os == 'Linux'
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
+
+      - name: cargo clippy
+        # `-D warnings` rather than a warning count: a lint nobody has to fix
+        # is a lint everybody scrolls past. The thresholds that would make
+        # that unbearable — argument counts, function length, type
+        # complexity — are already relaxed in `clippy.toml` to match what the
+        # audio engine and the Tauri commands actually look like.
+        if: runner.os == 'Linux'
+        run: >-
+          cargo clippy
+          --manifest-path src-tauri/Cargo.toml
+          --workspace
+          --all-targets
+          -- -D warnings
 
       - name: cargo check
         run: cargo check --manifest-path src-tauri/Cargo.toml --workspace --all-targets
