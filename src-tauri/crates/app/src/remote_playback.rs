@@ -177,7 +177,12 @@ impl RemotePlayback {
 ///   - repeat-one replays the same slot in either direction;
 ///   - next stops (`None`) at the end with repeat off, else wraps;
 ///   - previous clamps at 0 with repeat off, else wraps to the end.
-fn advance_index(len: usize, index: usize, direction: Direction, repeat: RepeatMode) -> Option<usize> {
+fn advance_index(
+    len: usize,
+    index: usize,
+    direction: Direction,
+    repeat: RepeatMode,
+) -> Option<usize> {
     if len == 0 {
         return None;
     }
@@ -208,14 +213,23 @@ mod tests {
 
     #[test]
     fn next_off_stops_at_the_end() {
-        assert_eq!(advance_index(3, 0, Direction::Next, RepeatMode::Off), Some(1));
-        assert_eq!(advance_index(3, 1, Direction::Next, RepeatMode::Off), Some(2));
+        assert_eq!(
+            advance_index(3, 0, Direction::Next, RepeatMode::Off),
+            Some(1)
+        );
+        assert_eq!(
+            advance_index(3, 1, Direction::Next, RepeatMode::Off),
+            Some(2)
+        );
         assert_eq!(advance_index(3, 2, Direction::Next, RepeatMode::Off), None);
     }
 
     #[test]
     fn next_all_wraps() {
-        assert_eq!(advance_index(3, 2, Direction::Next, RepeatMode::All), Some(0));
+        assert_eq!(
+            advance_index(3, 2, Direction::Next, RepeatMode::All),
+            Some(0)
+        );
     }
 
     #[test]
@@ -240,7 +254,10 @@ mod tests {
 
     #[test]
     fn repeat_one_holds_the_slot() {
-        assert_eq!(advance_index(3, 1, Direction::Next, RepeatMode::One), Some(1));
+        assert_eq!(
+            advance_index(3, 1, Direction::Next, RepeatMode::One),
+            Some(1)
+        );
         assert_eq!(
             advance_index(3, 1, Direction::Previous, RepeatMode::One),
             Some(1)

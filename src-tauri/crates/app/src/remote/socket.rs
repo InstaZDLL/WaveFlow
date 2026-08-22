@@ -164,9 +164,7 @@ async fn run_session(handle: &AppHandle, state: &AppState) -> AppResult<bool> {
             continue;
         }
         let wait = match pending_since {
-            Some(since) => {
-                COALESCE_WINDOW.min(MAX_COALESCE_DELAY.saturating_sub(since.elapsed()))
-            }
+            Some(since) => COALESCE_WINDOW.min(MAX_COALESCE_DELAY.saturating_sub(since.elapsed())),
             None => IDLE_TIMEOUT,
         };
         match tokio::time::timeout(wait, reader.next()).await {

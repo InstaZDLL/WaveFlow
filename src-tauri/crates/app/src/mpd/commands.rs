@@ -475,8 +475,10 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                     if p >= len {
                         return Err(ack_arg("play", "Bad song index"));
                     }
-                    player_actions::play_at_index_with(&ctx.app, &pool, profile_id, p as i64, SURFACE)
-                        .await;
+                    player_actions::play_at_index_with(
+                        &ctx.app, &pool, profile_id, p as i64, SURFACE,
+                    )
+                    .await;
                 }
             }
             ctx.idle.notify(Subsystem::Player);
@@ -564,8 +566,10 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
             // differs from the current cursor. Scrubbing the progress bar is
             // exactly this case.
             if !is_current_track(ctx, &pool, pos as i64).await {
-                player_actions::play_at_index_with(&ctx.app, &pool, profile_id, pos as i64, SURFACE)
-                    .await;
+                player_actions::play_at_index_with(
+                    &ctx.app, &pool, profile_id, pos as i64, SURFACE,
+                )
+                .await;
             }
             let _ = ctx.engine().send(AudioCmd::Seek(seconds_to_ms(seconds)));
             ctx.idle.notify(Subsystem::Player);

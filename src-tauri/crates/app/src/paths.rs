@@ -85,7 +85,10 @@ impl AppPaths {
             }
         };
 
-        Ok(Self::from_root(data_dir.join("waveflow"), bundled_plugins_dir))
+        Ok(Self::from_root(
+            data_dir.join("waveflow"),
+            bundled_plugins_dir,
+        ))
     }
 
     /// Same layout, resolved from the app-data root alone.

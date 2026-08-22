@@ -827,7 +827,10 @@ pub struct FinishedTrack {
 /// (a few reads, no decode). `None` for a non-DSD path or an unreadable
 /// header (the caller then stays on the PCM path).
 fn dop_format_for(path: &Path) -> Option<DopFormat> {
-    let ext = path.extension().and_then(|s| s.to_str())?.to_ascii_lowercase();
+    let ext = path
+        .extension()
+        .and_then(|s| s.to_str())?
+        .to_ascii_lowercase();
     let mut file = File::open(path).ok()?;
     let layout = match ext.as_str() {
         "dsf" => parse_dsf(&mut file).ok()?,
@@ -1003,7 +1006,8 @@ fn play_dop_track(
     // Both halves of the output format are needed: the ring is drained in
     // whole frames, so a zero channel count would make the backend read
     // frames of nothing and the position clock divide by a placeholder.
-    if shared.sample_rate.load(Ordering::Relaxed) == 0 || shared.channels.load(Ordering::Relaxed) == 0
+    if shared.sample_rate.load(Ordering::Relaxed) == 0
+        || shared.channels.load(Ordering::Relaxed) == 0
     {
         return Err("dop output not initialized (sample_rate / channels unset)".into());
     }
@@ -1033,7 +1037,14 @@ fn play_dop_track(
     transition_state(shared, app, PlayerState::Playing, Some(stream.track_id));
 
     'pkt: loop {
-        match drain_commands(cmd_rx, shared, app, stream.track_id, pending_cmd, &mut no_prefetch) {
+        match drain_commands(
+            cmd_rx,
+            shared,
+            app,
+            stream.track_id,
+            pending_cmd,
+            &mut no_prefetch,
+        ) {
             ControlFlow::Continue => {}
             ControlFlow::Break => break 'pkt,
             ControlFlow::Shutdown => {
@@ -1088,7 +1099,12 @@ fn play_dop_track(
             }
             Ok(false) => {}
             Err(err) => {
-                let _ = app.emit(EVENT_ERROR, ErrorPayload { message: err.clone() });
+                let _ = app.emit(
+                    EVENT_ERROR,
+                    ErrorPayload {
+                        message: err.clone(),
+                    },
+                );
                 return Err(err);
             }
         }

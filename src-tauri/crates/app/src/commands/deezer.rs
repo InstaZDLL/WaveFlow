@@ -142,10 +142,7 @@ pub(crate) async fn enrich_album_inner(
             // album's needs — otherwise a cover-less row for an art-less album
             // would block a re-fetch until the TTL lapsed (issue #493).
             let usable = expires_at > now
-                && metadata_album_cache_complete(
-                    cover_hash.as_deref(),
-                    local_artwork_id.is_some(),
-                );
+                && metadata_album_cache_complete(cover_hash.as_deref(), local_artwork_id.is_some());
             if usable {
                 let cover_path = cover_hash
                     .as_deref()

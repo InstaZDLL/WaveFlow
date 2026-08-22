@@ -293,7 +293,7 @@ pub fn extract_cover(tag: &Tag, artwork_dir: &Path) -> Option<ExtractedCover> {
     }
     let hash = blake3::hash(bytes).to_hex().to_string();
     let format = extension_for_mime(picture.mime_type()).to_string();
-    let out_path = artwork_dir.join(format!("{}.{}", &hash, &format));
+    let out_path = artwork_dir.join(format!("{}.{}", hash, format));
     if !out_path.exists() {
         if let Err(err) = fs::write(&out_path, bytes) {
             tracing::warn!(path = %out_path.display(), error = %err, "failed to write artwork");
@@ -384,7 +384,7 @@ pub fn extract_folder_cover(track_path: &Path, artwork_dir: &Path) -> Option<Ext
         format
     };
 
-    let out_path = artwork_dir.join(format!("{}.{}", &hash, &format));
+    let out_path = artwork_dir.join(format!("{}.{}", hash, format));
     if !out_path.exists() {
         if let Err(err) = fs::write(&out_path, &bytes) {
             tracing::warn!(path = %out_path.display(), error = %err, "failed to write folder cover");
@@ -583,7 +583,7 @@ pub fn write_artist_image(picked: &Path, artwork_dir: &Path) -> Option<Extracted
         format
     };
 
-    let out_path = artwork_dir.join(format!("{}.{}", &hash, &format));
+    let out_path = artwork_dir.join(format!("{}.{}", hash, format));
     if !out_path.exists() {
         if let Err(err) = fs::write(&out_path, &bytes) {
             tracing::warn!(

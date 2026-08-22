@@ -150,10 +150,20 @@ fn output_thread_main(
         }
 
         if shared.paused_output.load(Ordering::Acquire) {
-            super::dop_pack::render_dop_silence_i32(channels, period_frames, &mut marker_phase, &mut buf);
+            super::dop_pack::render_dop_silence_i32(
+                channels,
+                period_frames,
+                &mut marker_phase,
+                &mut buf,
+            );
         } else if shared.drain_silent.load(Ordering::Acquire) {
             while consumer.pop().is_ok() {}
-            super::dop_pack::render_dop_silence_i32(channels, period_frames, &mut marker_phase, &mut buf);
+            super::dop_pack::render_dop_silence_i32(
+                channels,
+                period_frames,
+                &mut marker_phase,
+                &mut buf,
+            );
         } else {
             let written = super::dop_pack::fill_dop_period_i32(
                 channels,
@@ -217,7 +227,11 @@ fn output_thread_main(
         }
         ExitReason::DeviceLost(reason) => {
             tracing::warn!(%reason, "alsa dop output thread lost the device; requesting rebuild");
-            super::output::notify_device_lost(&app, &shared, format!("audio device error: {reason}"));
+            super::output::notify_device_lost(
+                &app,
+                &shared,
+                format!("audio device error: {reason}"),
+            );
             super::output::schedule_device_rebuild(&app, super::output::RebuildTarget::Resolve);
         }
     }
@@ -278,7 +292,8 @@ fn open_pcm(dev: &str, dop: DopFormat) -> AppResult<(PCM, usize)> {
         .map_err(|e| AppError::Audio(format!("alsa open {dev}: {e}")))?;
 
     {
-        let hwp = HwParams::any(&pcm).map_err(|e| AppError::Audio(format!("alsa hwparams: {e}")))?;
+        let hwp =
+            HwParams::any(&pcm).map_err(|e| AppError::Audio(format!("alsa hwparams: {e}")))?;
         hwp.set_channels(dop.channels as u32)
             .map_err(|e| AppError::Audio(format!("alsa set_channels: {e}")))?;
         // DoP demands the exact rate — no resampling. `Nearest` lets ALSA

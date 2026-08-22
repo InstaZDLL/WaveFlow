@@ -969,7 +969,10 @@ pub async fn player_set_volume(
     // behind them: without this the mini-player and the main window would
     // show different volumes while driving the same output. Emitted after
     // the clamp so every listener adopts the value the engine really got.
-    let _ = app.emit("player:volume-changed", VolumeChangedPayload { volume: clamped });
+    let _ = app.emit(
+        "player:volume-changed",
+        VolumeChangedPayload { volume: clamped },
+    );
 
     // Best-effort persist — not fatal if the profile pool is gone.
     if let Ok(pool) = state.require_profile_pool().await {

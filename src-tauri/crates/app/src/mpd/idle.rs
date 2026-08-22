@@ -57,12 +57,7 @@ impl Subsystem {
 
     /// Every subsystem, for the `commands`/`tagtypes`-style listings and
     /// for a bare `idle` with no arguments (which means "any").
-    pub const ALL: [Subsystem; 4] = [
-        Self::Player,
-        Self::Playlist,
-        Self::Mixer,
-        Self::Options,
-    ];
+    pub const ALL: [Subsystem; 4] = [Self::Player, Self::Playlist, Self::Mixer, Self::Options];
 }
 
 /// Fan-out channel. Cloned into every connection task.

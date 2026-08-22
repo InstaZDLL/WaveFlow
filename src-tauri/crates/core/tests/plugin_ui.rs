@@ -62,9 +62,14 @@ fn stage_fixture(manifest: &str) -> (tempfile::TempDir, PluginPaths) {
     let plugin_dir = paths.plugin_dir("ui-fixture").expect("dir");
     std::fs::create_dir_all(&plugin_dir).expect("mkdir");
 
-    let fixture_root: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "fixtures", "ui-fixture"]
-        .iter()
-        .collect();
+    let fixture_root: PathBuf = [
+        env!("CARGO_MANIFEST_DIR"),
+        "tests",
+        "fixtures",
+        "ui-fixture",
+    ]
+    .iter()
+    .collect();
     std::fs::copy(
         fixture_root.join("plugin.wasm"),
         plugin_dir.join("plugin.wasm"),

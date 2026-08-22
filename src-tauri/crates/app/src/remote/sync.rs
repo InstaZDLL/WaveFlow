@@ -106,7 +106,15 @@ pub async fn sync_now(state: &AppState) -> AppResult<SyncReport> {
                 ..Default::default()
             })
         }
-        Some(_) => catch_up(state, profile_id, &client, binding.identity.cursor().unwrap_or(0)).await,
+        Some(_) => {
+            catch_up(
+                state,
+                profile_id,
+                &client,
+                binding.identity.cursor().unwrap_or(0),
+            )
+            .await
+        }
     }
 }
 
@@ -399,7 +407,9 @@ async fn backfill_missing_tracks(state: &AppState, profile_id: i64, client: &Rem
     let Ok(pool) = state.require_profile_pool_for(Some(profile_id)).await else {
         return;
     };
-    let Ok(mut tx) = pool.begin().await else { return };
+    let Ok(mut tx) = pool.begin().await else {
+        return;
+    };
     for song in &fetched {
         if let Err(error) = projection::cache_song(&mut tx, song).await {
             // Skip the one song we could not cache rather than abandoning

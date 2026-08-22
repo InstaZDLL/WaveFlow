@@ -175,11 +175,9 @@ mod tests {
 
     #[test]
     fn partially_stamped_track_falls_back_to_plain_keeping_all_lines() {
-        let got = structured_to_lyrics(&[track(
-            true,
-            vec![line(Some(0), "one"), line(None, "two")],
-        )])
-        .unwrap();
+        let got =
+            structured_to_lyrics(&[track(true, vec![line(Some(0), "one"), line(None, "two")])])
+                .unwrap();
         assert!(!got.synced);
         // Both lines survive, without any `[mm:ss.xx]` tag.
         assert_eq!(got.content, "one\ntwo");
@@ -189,7 +187,10 @@ mod tests {
     fn a_complete_synced_track_wins_over_an_earlier_partial_one() {
         let got = structured_to_lyrics(&[
             track(true, vec![line(Some(0), "partial"), line(None, "gap")]),
-            track(true, vec![line(Some(0), "full"), line(Some(1000), "stamped")]),
+            track(
+                true,
+                vec![line(Some(0), "full"), line(Some(1000), "stamped")],
+            ),
         ])
         .unwrap();
         assert!(got.synced);

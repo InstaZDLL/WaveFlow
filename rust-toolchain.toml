@@ -1,0 +1,17 @@
+# The compiler every check in this repository runs under.
+#
+# `stable` used to mean "whatever shipped last Thursday": a release built
+# here and a release built in CI could be two different compilers, and
+# `cargo fmt` reformatted files nobody had touched the day rustfmt's
+# defaults moved. Naming the version makes a local run and a CI run the
+# same run, and makes a compiler bump a reviewed commit like any other.
+#
+# Bumping it: change the channel here, then the `toolchain:` input of the
+# workflows that install Rust — .github/workflows/ci.yml, codeql.yml,
+# release.yml, release-please-lockfile-build.yml and test-appimage.yml.
+# They name the version rather than reading this file so a runner installs
+# exactly one toolchain instead of downloading a second on first use.
+[toolchain]
+channel = "1.98.0"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

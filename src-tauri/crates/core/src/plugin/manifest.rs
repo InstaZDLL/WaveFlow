@@ -388,8 +388,10 @@ impl Manifest {
                 let base = std::mem::replace(&mut opt.label, LocalizedString::Plain(String::new()));
                 opt.label = base.merged_with(opt.label_i18n.take());
             }
-            opt.description =
-                LocalizedString::merge_optional(opt.description.take(), opt.description_i18n.take());
+            opt.description = LocalizedString::merge_optional(
+                opt.description.take(),
+                opt.description_i18n.take(),
+            );
         }
     }
 
@@ -448,7 +450,9 @@ impl Manifest {
         // so every pre-existing manifest still validates.
         if let Some(desc) = &self.plugin.description {
             if desc.is_empty_map() {
-                return Err(ManifestError::EmptyLocalizedMap("plugin.description".into()));
+                return Err(ManifestError::EmptyLocalizedMap(
+                    "plugin.description".into(),
+                ));
             }
         }
 
@@ -661,7 +665,10 @@ en = "Bigger files."
         let desc = m.plugin.description.as_ref().unwrap();
         assert_eq!(desc.resolve("fr"), Some("Pochettes animées."));
         assert_eq!(desc.resolve("en"), Some("Animated album covers."));
-        assert_eq!(m.options[0].label.resolve("fr"), Some("Préférer les pochettes 4K HEVC"));
+        assert_eq!(
+            m.options[0].label.resolve("fr"),
+            Some("Préférer les pochettes 4K HEVC")
+        );
         // Missing locale on an option description falls back to `en`.
         assert_eq!(
             m.options[0].description.as_ref().unwrap().resolve("ja"),
@@ -677,14 +684,22 @@ en = "Bigger files."
         map.insert("pt-BR".to_string(), "português do Brasil".to_string());
         let s = LocalizedString::Localized(map);
 
-        assert_eq!(s.resolve("pt-BR"), Some("português do Brasil"), "exact wins");
+        assert_eq!(
+            s.resolve("pt-BR"),
+            Some("português do Brasil"),
+            "exact wins"
+        );
         assert_eq!(s.resolve("pt"), Some("português"), "exact base code wins");
         assert_eq!(
             s.resolve("fr-CA"),
             Some("english"),
             "unknown regional code falls through base to en"
         );
-        assert_eq!(s.resolve("ja"), Some("english"), "unknown code falls back to en");
+        assert_eq!(
+            s.resolve("ja"),
+            Some("english"),
+            "unknown code falls back to en"
+        );
 
         // No `en` at all: any entry beats rendering nothing. BTreeMap
         // ordering makes the pick deterministic.
@@ -706,7 +721,11 @@ en = "Bigger files."
             ("de".to_string(), "   ".to_string()),
             ("en".to_string(), "english".to_string()),
         ]));
-        assert_eq!(s.resolve("fr"), Some("english"), "empty falls through to en");
+        assert_eq!(
+            s.resolve("fr"),
+            Some("english"),
+            "empty falls through to en"
+        );
         assert_eq!(s.resolve("de"), Some("english"), "whitespace-only too");
 
         // Nothing renderable anywhere: report None so the caller can
@@ -764,7 +783,10 @@ fr = "Fichiers plus lourds."
             m.options[0].label.resolve("fr"),
             Some("Préférer les pochettes 4K HEVC")
         );
-        assert_eq!(m.options[0].label.resolve("de"), Some("Prefer 4K HEVC covers"));
+        assert_eq!(
+            m.options[0].label.resolve("de"),
+            Some("Prefer 4K HEVC covers")
+        );
         assert_eq!(
             m.options[0].description.as_ref().unwrap().resolve("fr"),
             Some("Fichiers plus lourds.")

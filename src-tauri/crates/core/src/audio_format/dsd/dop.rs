@@ -110,9 +110,7 @@ impl DsdToDop {
     /// sample and restarts the marker cadence — the DAC re-locks within
     /// a frame or two, inaudible.
     pub fn reset(&mut self) {
-        for p in &mut self.pending {
-            *p = None;
-        }
+        self.pending.fill(None);
         self.frame_counter = 0;
     }
 
@@ -256,9 +254,18 @@ mod tests {
     #[test]
     fn output_rate_is_dsd_rate_over_sixteen() {
         // DSD64 → 176.4 kHz, DSD128 → 352.8, DSD256 → 705.6.
-        assert_eq!(DsdToDop::new(&layout(2_822_400, None, false)).output_rate_hz, 176_400);
-        assert_eq!(DsdToDop::new(&layout(5_644_800, None, false)).output_rate_hz, 352_800);
-        assert_eq!(DsdToDop::new(&layout(11_289_600, None, false)).output_rate_hz, 705_600);
+        assert_eq!(
+            DsdToDop::new(&layout(2_822_400, None, false)).output_rate_hz,
+            176_400
+        );
+        assert_eq!(
+            DsdToDop::new(&layout(5_644_800, None, false)).output_rate_hz,
+            352_800
+        );
+        assert_eq!(
+            DsdToDop::new(&layout(11_289_600, None, false)).output_rate_hz,
+            705_600
+        );
     }
 
     #[test]
@@ -295,11 +302,15 @@ mod tests {
         let mut enc = DsdToDop::new(&layout(2_822_400, None, false));
         let mut out = Vec::new();
         // 4 frames × 2 ch × 2 bytes = 16 bytes.
-        enc.encode_block(&vec![0u8; 16], &mut out);
+        enc.encode_block(&[0u8; 16], &mut out);
         assert_eq!(out.len(), 8, "4 stereo frames");
         let marker = |w: u32| w >> 16;
         for f in 0..4 {
-            let expected = if f % 2 == 0 { DOP_MARKER_A } else { DOP_MARKER_B };
+            let expected = if f % 2 == 0 {
+                DOP_MARKER_A
+            } else {
+                DOP_MARKER_B
+            };
             assert_eq!(marker(out[f * 2]), expected, "L frame {f}");
             assert_eq!(marker(out[f * 2 + 1]), expected, "R frame {f}");
         }
@@ -353,7 +364,11 @@ mod tests {
         out.clear();
         // After reset the pending 0x55/0x66 are gone and marker is A again.
         enc.encode_block(&[0xAA, 0xBB, 0xCC, 0xDD], &mut out);
-        assert_eq!(out[0], (DOP_MARKER_A << 16) | 0xAACC, "L uses fresh bytes only");
+        assert_eq!(
+            out[0],
+            (DOP_MARKER_A << 16) | 0xAACC,
+            "L uses fresh bytes only"
+        );
         assert_eq!(out[1], (DOP_MARKER_A << 16) | 0xBBDD);
     }
 

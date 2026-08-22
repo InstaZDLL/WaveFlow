@@ -23,13 +23,19 @@ cargo test  --manifest-path src-tauri/Cargo.toml --workspace
 
 ## Before you open a PR
 
-Run the triple-check — CI runs the same three, so save yourself a round-trip:
+Run the check — CI runs the same commands, so save yourself a round-trip:
 
 ```bash
 bun run typecheck
 bun run lint
+cargo fmt --manifest-path src-tauri/Cargo.toml --all
+cargo clippy --manifest-path src-tauri/Cargo.toml --workspace --all-targets -- -D warnings
 cargo check --manifest-path src-tauri/Cargo.toml --workspace --all-targets
 ```
+
+`rust-toolchain.toml` decides which compiler those run under, so a local
+answer and the CI answer are the same answer. Let rustup install it rather
+than reaching for your default toolchain.
 
 If you touched a cross-cutting pattern (a context, the audio pipeline, a
 migration, a sync wire shape), **update the docs in the same PR** — `CLAUDE.md`

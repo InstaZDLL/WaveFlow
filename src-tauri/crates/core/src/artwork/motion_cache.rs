@@ -214,13 +214,13 @@ pub async fn cache_mp4(dir: &Path, url: &str, max_cache_bytes: u64) -> Result<Pa
     // slip a request past that check.
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
-        .redirect(reqwest::redirect::Policy::custom(|attempt| {
-            match redirect_decision(attempt.previous().len(), attempt.url().as_str()) {
+        .redirect(reqwest::redirect::Policy::custom(
+            |attempt| match redirect_decision(attempt.previous().len(), attempt.url().as_str()) {
                 RedirectDecision::Follow => attempt.follow(),
                 RedirectDecision::TooMany => attempt.error("too many redirects"),
                 RedirectDecision::Unsafe => attempt.error("unsafe redirect target"),
-            }
-        }))
+            },
+        ))
         .build()
         .map_err(|e| CacheError::Other(format!("http client: {e}")))?;
     let mut resp = match client.get(url).send().await {
@@ -264,7 +264,8 @@ pub async fn cache_mp4(dir: &Path, url: &str, max_cache_bytes: u64) -> Result<Pa
         bytes.extend_from_slice(&chunk);
     }
 
-    std::fs::create_dir_all(dir).map_err(|e| CacheError::Other(format!("create cache dir: {e}")))?;
+    std::fs::create_dir_all(dir)
+        .map_err(|e| CacheError::Other(format!("create cache dir: {e}")))?;
     // Unique temp per attempt (pid + monotonic seq) so concurrent downloads of
     // the SAME url can't clobber each other's partial write. Each stages its
     // own complete file then renames over the shared final name (a file rename
@@ -496,7 +497,10 @@ mod tests {
             redact_url("https://cdn.example.com/a.mp4"),
             "https://cdn.example.com/a.mp4"
         );
-        assert_eq!(redact_url("https://cdn.example.com"), "https://cdn.example.com");
+        assert_eq!(
+            redact_url("https://cdn.example.com"),
+            "https://cdn.example.com"
+        );
     }
 
     #[test]

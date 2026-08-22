@@ -345,10 +345,11 @@ async fn discover_inner(
 
     let local_tracks = load_local_candidates(pool).await?;
     let total = local_tracks.len();
-    let scan =
-        tokio::task::spawn_blocking(move || hash_local_tracks(local_tracks, app.as_ref(), total, cancellable))
-            .await
-            .map_err(|err| AppError::Other(format!("reconciliation hash task failed: {err}")))?;
+    let scan = tokio::task::spawn_blocking(move || {
+        hash_local_tracks(local_tracks, app.as_ref(), total, cancellable)
+    })
+    .await
+    .map_err(|err| AppError::Other(format!("reconciliation hash task failed: {err}")))?;
 
     if scan.cancelled {
         // A partial scan could auto-link the unique matches it happened to
@@ -357,7 +358,14 @@ async fn discover_inner(
         return Ok(empty_report(true));
     }
 
-    reconcile(pool, scan.hashed, scan.unreadable, remote_tracks, cancellable).await
+    reconcile(
+        pool,
+        scan.hashed,
+        scan.unreadable,
+        remote_tracks,
+        cancellable,
+    )
+    .await
 }
 
 async fn load_remote_tracks(pool: &SqlitePool) -> AppResult<Vec<RemoteTrack>> {
@@ -1463,9 +1471,15 @@ mod tests {
         // Once committing, or when idle, a cancel is too late / a no-op and must
         // report the authoritative `false`.
         RECONCILE_PHASE.store(PHASE_COMMITTING, Ordering::SeqCst);
-        assert!(!request_cancel(), "cancel after commit started must be rejected");
+        assert!(
+            !request_cancel(),
+            "cancel after commit started must be rejected"
+        );
         RECONCILE_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
-        assert!(!request_cancel(), "cancel with nothing running must be rejected");
+        assert!(
+            !request_cancel(),
+            "cancel with nothing running must be rejected"
+        );
     }
 
     /// A cancel latched while the scan is still staging stops the hashing loop
@@ -1503,7 +1517,10 @@ mod tests {
         let pool = pool().await;
         RECONCILE_PHASE.store(PHASE_CANCELLED, Ordering::SeqCst);
         let report = discover_inner(&pool, None, true).await.unwrap();
-        assert!(report.cancelled, "a cancel racing the empty-remote path is reported");
+        assert!(
+            report.cancelled,
+            "a cancel racing the empty-remote path is reported"
+        );
         RECONCILE_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
     }
 
@@ -1537,7 +1554,10 @@ mod tests {
             .fetch_one(&pool)
             .await
             .unwrap();
-        assert_eq!(rows, 0, "a cancel during reconcile must roll back before commit");
+        assert_eq!(
+            rows, 0,
+            "a cancel during reconcile must roll back before commit"
+        );
         RECONCILE_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
     }
 
@@ -1561,10 +1581,12 @@ mod tests {
             .await
             .unwrap();
         // Every `track` row FKs `library(id)`, so seed one library up front.
-        sqlx::query("INSERT INTO library (id, name, created_at, updated_at) VALUES (1, 'Test', 0, 0)")
-            .execute(&pool)
-            .await
-            .unwrap();
+        sqlx::query(
+            "INSERT INTO library (id, name, created_at, updated_at) VALUES (1, 'Test', 0, 0)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
         pool
     }
 

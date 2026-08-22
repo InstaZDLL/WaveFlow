@@ -219,8 +219,12 @@ mod tests {
                 "../../../../migrations/profile/20260810120000_remote_source_projection.sql"
             ),
             include_str!("../../../../migrations/profile/20260810140000_remote_track_cache.sql"),
-            include_str!("../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"),
-            include_str!("../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"),
+            include_str!(
+                "../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"
+            ),
+            include_str!(
+                "../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"
+            ),
         ] {
             sqlx::raw_sql(migration).execute(&pool).await.unwrap();
         }
@@ -255,7 +259,10 @@ mod tests {
     async fn an_unbound_profile_reads_as_all_zeroes_rather_than_failing() {
         let pool = pool().await;
         let mut conn = pool.acquire().await.unwrap();
-        assert_eq!(overview(&mut conn).await.unwrap(), RemoteOverview::default());
+        assert_eq!(
+            overview(&mut conn).await.unwrap(),
+            RemoteOverview::default()
+        );
         assert!(playlists(&mut conn).await.unwrap().is_empty());
     }
 

@@ -696,10 +696,7 @@ mod tests {
 
     #[test]
     fn parse_content_range_start_reads_the_offset() {
-        assert_eq!(
-            parse_content_range_start("bytes 200-1023/1024"),
-            Some(200)
-        );
+        assert_eq!(parse_content_range_start("bytes 200-1023/1024"), Some(200));
         assert_eq!(parse_content_range_start("bytes 0-99/100"), Some(0));
         // Unknown total ("*") is fine as long as both bounds are present.
         assert_eq!(parse_content_range_start("bytes 512-1023/*"), Some(512));

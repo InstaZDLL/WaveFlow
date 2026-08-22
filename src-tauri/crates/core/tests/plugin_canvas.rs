@@ -97,7 +97,15 @@ fn canvas_fixture_surfaces_a_provider_error() {
     // then logs + skips — fail-soft).
     let (_tmp, paths) = stage_fixture();
     let runtime = PluginRuntime::new(RuntimeConfig::default()).expect("engine");
-    match canvas_track_canvas(&runtime, &paths, "canvas-fixture", "Artist", "boom", None, None) {
+    match canvas_track_canvas(
+        &runtime,
+        &paths,
+        "canvas-fixture",
+        "Artist",
+        "boom",
+        None,
+        None,
+    ) {
         Err(SourceError::Plugin(msg)) => assert_eq!(msg, "provider failure"),
         Ok(other) => panic!("expected a provider error, got Ok({other:?})"),
         Err(other) => panic!("expected SourceError::Plugin, got {other:?}"),

@@ -638,7 +638,10 @@ mod tests {
             r#""description": "Animated album covers.",
                "description_i18n": { "fr": "Pochettes animées." }"#,
         );
-        assert_eq!(resolve_description(&json, "fr").as_deref(), Some("Pochettes animées."));
+        assert_eq!(
+            resolve_description(&json, "fr").as_deref(),
+            Some("Pochettes animées.")
+        );
         // The plain string takes the `en` slot, so untranslated
         // languages still read the author's original text.
         assert_eq!(

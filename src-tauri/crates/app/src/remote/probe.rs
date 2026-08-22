@@ -151,9 +151,8 @@ pub async fn detect(base_url: &str) -> AppResult<ServerFlavour> {
 /// Parse a ping body into a flavour. Split out from the request so the
 /// interesting half is testable without a server.
 pub fn classify_ping_body(body: &str) -> AppResult<ServerFlavour> {
-    let envelope: PingEnvelope = serde_json::from_str(body).map_err(|_| {
-        AppError::Other("this URL did not answer like a music server".to_string())
-    })?;
+    let envelope: PingEnvelope = serde_json::from_str(body)
+        .map_err(|_| AppError::Other("this URL did not answer like a music server".to_string()))?;
 
     let Some(response) = envelope.response else {
         return Err(AppError::Other(
