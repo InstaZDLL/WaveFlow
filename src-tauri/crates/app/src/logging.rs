@@ -21,7 +21,7 @@
 //! Tauri's PathResolver because the subscriber must be installed before
 //! `tauri::Builder` is built.
 use std::path::PathBuf;
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
@@ -32,6 +32,41 @@ const LOG_FILE_PREFIX: &str = "waveflow";
 /// Computed at `init_tracing` and reused by Tauri commands so the
 /// frontend can locate logs without re-implementing the path logic.
 static LOG_DIR: OnceLock<PathBuf> = OnceLock::new();
+
+/// The non-blocking file writer's worker guard. Dropping it flushes and
+/// closes the sink, and dropping it is the *only* way to flush — the
+/// type exposes no other.
+///
+/// It lives here rather than in a `run()` local because the startup
+/// fatal paths leave through `std::process::exit`, which runs no
+/// destructors: a local would strand the last error line in the
+/// writer's buffer, exactly when it is the only account of what
+/// happened. Those paths call [`flush`] directly. `run` still holds a
+/// [`FlushOnDrop`] so the ordinary return — and an unwinding panic —
+/// keep flushing on their own.
+static LOG_GUARD: Mutex<Option<WorkerGuard>> = Mutex::new(None);
+
+/// Flushes the log file when it goes out of scope. Handed to `run` so
+/// the normal path needs no explicit call and can't forget one.
+pub struct FlushOnDrop;
+
+impl Drop for FlushOnDrop {
+    fn drop(&mut self) {
+        flush();
+    }
+}
+
+/// Flush and close the log file. Idempotent, and safe to call from a
+/// path that is about to `std::process::exit`.
+///
+/// Anything logged afterwards still reaches stdout; only the file sink
+/// closes. A poisoned lock is ignored rather than panicked on — this is
+/// called while already handling a fatal error.
+pub fn flush() {
+    if let Ok(mut guard) = LOG_GUARD.lock() {
+        drop(guard.take());
+    }
+}
 
 /// Compute the log directory path for the current OS without creating
 /// it. Returns `None` only on truly exotic platforms where `dirs`
@@ -52,10 +87,12 @@ fn resolve_log_dir() -> Option<PathBuf> {
     })
 }
 
-/// Install the global tracing subscriber. Returns a `WorkerGuard` that
-/// must outlive the program — dropping it flushes the non-blocking file
-/// writer, so callers must hold it for the entire app lifetime.
-pub fn init_tracing() -> Option<WorkerGuard> {
+/// Install the global tracing subscriber.
+///
+/// Parks the file writer's guard in [`LOG_GUARD`] and returns a
+/// [`FlushOnDrop`] the caller must hold for the whole program: let it
+/// fall out of scope early and the file sink closes with it.
+pub fn init_tracing() -> FlushOnDrop {
     let filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| EnvFilter::new("info,sqlx=warn,lofty=error"));
 
@@ -99,7 +136,11 @@ pub fn init_tracing() -> Option<WorkerGuard> {
         .with(file_layer)
         .init();
 
-    guard
+    if let Ok(mut slot) = LOG_GUARD.lock() {
+        *slot = guard;
+    }
+
+    FlushOnDrop
 }
 
 /// Path of the directory that holds rolling log files.
