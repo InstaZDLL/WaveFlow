@@ -33,6 +33,11 @@ cargo clippy --manifest-path src-tauri/Cargo.toml --workspace --all-targets -- -
 cargo check --manifest-path src-tauri/Cargo.toml --workspace --all-targets
 ```
 
+If you bump the pinned compiler, change `rust-toolchain.toml` **and** the
+`toolchain:` input of every workflow that installs Rust, then run
+`python3 scripts/check-toolchain-pin.py` — it is what CI runs, and it is
+there because missing one of the six sites otherwise fails silently.
+
 `rust-toolchain.toml` decides which compiler those run under, so a local
 answer and the CI answer are the same answer. Let rustup install it rather
 than reaching for your default toolchain.

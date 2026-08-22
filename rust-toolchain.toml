@@ -11,6 +11,11 @@
 # release.yml, release-please-lockfile-build.yml and test-appimage.yml.
 # They name the version rather than reading this file so a runner installs
 # exactly one toolchain instead of downloading a second on first use.
+#
+# Six places, and forgetting one is silent: CI stays green while a job
+# quietly answers under a different compiler. `scripts/check-toolchain-pin.py`
+# compares them on every pull request, so the omission fails instead.
+# Run it after bumping — it takes a second and needs no network.
 [toolchain]
 channel = "1.98.0"
 components = ["rustfmt", "clippy"]
