@@ -110,9 +110,7 @@ impl DsdToDop {
     /// sample and restarts the marker cadence — the DAC re-locks within
     /// a frame or two, inaudible.
     pub fn reset(&mut self) {
-        for p in &mut self.pending {
-            *p = None;
-        }
+        self.pending.fill(None);
         self.frame_counter = 0;
     }
 
@@ -295,7 +293,7 @@ mod tests {
         let mut enc = DsdToDop::new(&layout(2_822_400, None, false));
         let mut out = Vec::new();
         // 4 frames × 2 ch × 2 bytes = 16 bytes.
-        enc.encode_block(&vec![0u8; 16], &mut out);
+        enc.encode_block(&[0u8; 16], &mut out);
         assert_eq!(out.len(), 8, "4 stereo frames");
         let marker = |w: u32| w >> 16;
         for f in 0..4 {
