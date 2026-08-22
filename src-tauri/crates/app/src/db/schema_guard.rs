@@ -40,7 +40,7 @@ use std::path::Path;
 
 use sqlx::{
     migrate::Migrator,
-    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
+    sqlite::{SqliteConnectOptions, SqlitePoolOptions},
     SqlitePool,
 };
 
@@ -220,15 +220,23 @@ async fn open_existing(path: &Path) -> Option<SqlitePool> {
     }
 
     // Same options as the real open minus `create_if_missing`, so the
-    // pre-flight sees what startup will see. Not `read_only`: a
-    // database left with a hot WAL by a crash needs recovery on open,
-    // and a read-only connection fails on exactly the installs most
-    // likely to be in trouble.
+    // pre-flight sees what startup will see — and minus `journal_mode`,
+    // which is not the no-op it looks like. sqlx issues no `PRAGMA
+    // journal_mode` of its own, and its source says why: the mode is
+    // permanent for a created database, and moving into or out of it
+    // takes an exclusive lock `sqlite3_busy_timeout()` cannot wait on.
+    // Asking for WAL here was a real write, and a non-negotiable lock,
+    // from the one pass whose whole job is to look without touching.
+    // Startup's own open still sets it.
+    //
+    // Not `read_only` either, for the opposite reason: a database left
+    // with a hot WAL by a crash needs recovery on open, and a read-only
+    // connection fails on exactly the installs most likely to be in
+    // trouble — abstaining where a verdict was there to be had.
     let opts = SqliteConnectOptions::new()
         .filename(path)
         .create_if_missing(false)
-        .foreign_keys(true)
-        .journal_mode(SqliteJournalMode::Wal);
+        .foreign_keys(true);
 
     match SqlitePoolOptions::new()
         .max_connections(1)

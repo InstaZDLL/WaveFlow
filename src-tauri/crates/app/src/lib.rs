@@ -77,10 +77,12 @@ const TRAY_ID: &str = "waveflow";
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Initialize structured logging. `RUST_LOG` overrides the default
-    // filter. The returned guard owns the non-blocking file writer's
-    // background thread and must be held until the process exits — a
-    // dropped guard flushes and closes the file early, losing the tail
-    // of the log right when a crash report is most useful.
+    // filter. The returned value must be held until the process exits —
+    // dropping it flushes and closes the file early, losing the tail of
+    // the log right when a crash report is most useful. It covers the
+    // ordinary return and an unwinding panic; the paths that leave
+    // through `std::process::exit` call `logging::flush` themselves,
+    // because `exit` runs no destructors at all.
     let _log_guard = logging::init_tracing();
 
     // Resolved up front because the pre-flight below needs the bundle
@@ -170,6 +172,11 @@ pub fn run() {
                         // right shape for a bug.
                         if matches!(err, AppError::SchemaFromTheFuture { .. }) {
                             tracing::error!(%err, "fatal startup error, exiting");
+                            // `exit` runs no destructors, so the line
+                            // above would die in the writer's buffer.
+                            // Here it is the only account there is —
+                            // this path shows the user nothing.
+                            logging::flush();
                             std::process::exit(1);
                         }
                         return Err(Box::new(err));
@@ -1124,9 +1131,11 @@ fn preflight_schema_guard(identifier: &str) {
 ///   owns that context on the main thread for the life of the loop.
 ///   Waiting there for the dialog blocks the very context the dialog
 ///   needs: no window is ever created and the process hangs.
-/// - **macOS.** `rfd`'s `run_on_main` dispatches to the main queue when
-///   called off-thread — a queue the blocked main thread never drains —
-///   and panics outright when `NSApplication` isn't running yet.
+/// - **macOS**, inferred rather than observed — read out of `rfd`
+///   0.16's sources, and there is no macOS job in CI to check it
+///   against. `run_on_main` dispatches to the main queue when called
+///   off-thread — a queue the blocked main thread never drains — and
+///   panics outright when `NSApplication` isn't running yet.
 /// - **Windows.** `TaskDialogIndirect` on the main thread from inside
 ///   the loop creates its window and never shows it (`WS_VISIBLE` stays
 ///   clear).
@@ -1177,7 +1186,9 @@ fn report_fatal_and_exit(err: &AppError) -> ! {
     // Straight out rather than unwinding: there is no state to tear
     // down (nothing has been built yet, and the pools the pre-flight
     // opened are closed and WAL, which is crash-consistent by
-    // construction).
+    // construction). The log file is the one thing `exit` would
+    // truncate, so flush it by hand first.
+    logging::flush();
     std::process::exit(1);
 }
 
