@@ -100,11 +100,7 @@ async fn read_key(pool: &SqlitePool, key: &str) -> AppResult<Option<String>> {
     Ok(value)
 }
 
-async fn write_key(
-    conn: &mut sqlx::SqliteConnection,
-    key: &str,
-    value: &str,
-) -> AppResult<()> {
+async fn write_key(conn: &mut sqlx::SqliteConnection, key: &str, value: &str) -> AppResult<()> {
     // `app_setting.value_type` + `updated_at` are NOT NULL (no default), so a
     // brand-new key (the `mpd.*` keys aren't seeded) must supply both or the
     // INSERT fails the constraint. Everything here is stored as text and

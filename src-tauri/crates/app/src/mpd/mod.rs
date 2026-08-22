@@ -114,11 +114,8 @@ impl MpdServer {
                         Cmd::Start(cfg, app) => runtime.block_on(state.start(cfg, app)),
                         Cmd::Stop => runtime.block_on(state.stop()),
                         Cmd::Status(reply) => {
-                            let snapshot = state
-                                .status
-                                .lock()
-                                .map(|s| s.clone())
-                                .unwrap_or_default();
+                            let snapshot =
+                                state.status.lock().map(|s| s.clone()).unwrap_or_default();
                             let _ = reply.send(snapshot);
                         }
                     }

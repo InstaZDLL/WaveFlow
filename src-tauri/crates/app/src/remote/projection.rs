@@ -315,9 +315,7 @@ pub async fn missing_track_ids(conn: &mut SqliteConnection) -> AppResult<Vec<Str
 /// with no artist at all is left alone — it has nothing to link to anyway.
 /// Kept separate from [`missing_track_ids`] so the overview's
 /// "awaiting metadata" count keeps meaning "no metadata at all".
-pub async fn tracks_missing_artist_id(
-    conn: &mut SqliteConnection,
-) -> AppResult<Vec<String>> {
+pub async fn tracks_missing_artist_id(conn: &mut SqliteConnection) -> AppResult<Vec<String>> {
     let rows: Vec<String> = sqlx::query_scalar(
         "SELECT remote_id FROM remote_track
           WHERE artist_id IS NULL AND artist IS NOT NULL",
@@ -610,7 +608,10 @@ async fn apply_playlist_upsert(
 /// for one specific reason: updating a share's description emits a
 /// payload with **no** `track_ids`, so writing them unconditionally
 /// would empty the share.
-async fn apply_share_upsert(conn: &mut SqliteConnection, change: &SyncChange) -> AppResult<Outcome> {
+async fn apply_share_upsert(
+    conn: &mut SqliteConnection,
+    change: &SyncChange,
+) -> AppResult<Outcome> {
     let id = payload_str(&change.payload, "id")
         .unwrap_or(&change.entity_id)
         .to_string();
@@ -713,8 +714,12 @@ mod tests {
                 "../../../../migrations/profile/20260810120000_remote_source_projection.sql"
             ),
             include_str!("../../../../migrations/profile/20260810140000_remote_track_cache.sql"),
-            include_str!("../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"),
-            include_str!("../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"),
+            include_str!(
+                "../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"
+            ),
+            include_str!(
+                "../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"
+            ),
         ] {
             sqlx::raw_sql(migration).execute(&pool).await.unwrap();
         }
@@ -734,11 +739,12 @@ mod tests {
     }
 
     async fn playlist_row(conn: &mut SqliteConnection, id: &str) -> (String, Option<String>, i64) {
-        let row = sqlx::query("SELECT name, comment, is_public FROM remote_playlist WHERE remote_id = ?")
-            .bind(id)
-            .fetch_one(&mut *conn)
-            .await
-            .unwrap();
+        let row =
+            sqlx::query("SELECT name, comment, is_public FROM remote_playlist WHERE remote_id = ?")
+                .bind(id)
+                .fetch_one(&mut *conn)
+                .await
+                .unwrap();
         (
             row.try_get("name").unwrap(),
             row.try_get("comment").unwrap(),
@@ -874,11 +880,12 @@ mod tests {
         .await
         .unwrap();
 
-        let count: i64 =
-            sqlx::query_scalar("SELECT count(*) FROM remote_share_track WHERE share_remote_id='s1'")
-                .fetch_one(&mut *conn)
-                .await
-                .unwrap();
+        let count: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM remote_share_track WHERE share_remote_id='s1'",
+        )
+        .fetch_one(&mut *conn)
+        .await
+        .unwrap();
         assert_eq!(count, 2, "the share lost its tracks on a description edit");
     }
 
@@ -1108,12 +1115,13 @@ mod tests {
                 .unwrap();
         assert_eq!(survived, 1, "an unsent offline playlist was destroyed");
 
-        let tracks: i64 =
-            sqlx::query_scalar("SELECT count(*) FROM remote_playlist_track WHERE playlist_remote_id = ?")
-                .bind(&local_id)
-                .fetch_one(&mut *conn)
-                .await
-                .unwrap();
+        let tracks: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM remote_playlist_track WHERE playlist_remote_id = ?",
+        )
+        .bind(&local_id)
+        .fetch_one(&mut *conn)
+        .await
+        .unwrap();
         assert_eq!(tracks, 1, "its tracks went with it");
     }
 
@@ -1290,7 +1298,12 @@ mod tests {
             .fetch_one(&mut *conn)
             .await
             .unwrap();
-        assert_eq!(row.try_get::<Option<String>, _>("artist").unwrap().as_deref(), Some("A"));
+        assert_eq!(
+            row.try_get::<Option<String>, _>("artist")
+                .unwrap()
+                .as_deref(),
+            Some("A")
+        );
         assert_eq!(row.try_get::<i64, _>("duration_ms").unwrap(), 1234);
     }
 }

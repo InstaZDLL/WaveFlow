@@ -559,7 +559,10 @@ pub struct AlbumInfo {
     pub motion_cover_tall_url: Option<String>,
 }
 
-define_instantiate!(instantiate_metadata, crate::plugin::bindings::metadata::Plugin);
+define_instantiate!(
+    instantiate_metadata,
+    crate::plugin::bindings::metadata::Plugin
+);
 
 /// Call the guest's `album-info(artist, title)`.
 pub fn metadata_album_info(

@@ -239,7 +239,10 @@ pub async fn fetch_track_canvas(
                         // target the cache path just refused to follow. Skip
                         // this plugin and keep looking.
                         Err(motion_cache::CacheError::UnsafeUrl) => {
-                            tracing::warn!(plugin_id, "canvas cache refused an unsafe url/redirect; skipping");
+                            tracing::warn!(
+                                plugin_id,
+                                "canvas cache refused an unsafe url/redirect; skipping"
+                            );
                             continue;
                         }
                         // Ordinary failure (network / HTTP / disk): degrade to

@@ -459,7 +459,9 @@ async fn expand_artist_rows(
                 // `<hash>.jpg` naming pattern, so we can drop a `picture_hash`
                 // when the source file is missing — the frontend won't have
                 // anything to point a thumbnail variant at either.
-                let picture_hash = r.picture_hash.filter(|h| crate::metadata_artwork::existing_path(&metadata_dir, h).is_some());
+                let picture_hash = r
+                    .picture_hash
+                    .filter(|h| crate::metadata_artwork::existing_path(&metadata_dir, h).is_some());
                 let (picture_has_1x, picture_has_2x) = match picture_hash.as_deref() {
                     Some(h) => {
                         let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&metadata_dir, h);

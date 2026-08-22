@@ -152,7 +152,11 @@ fn output_thread_main(
                 %reason,
                 "coreaudio dop output thread lost the device; requesting rebuild"
             );
-            super::output::notify_device_lost(&app, &shared, format!("audio device error: {reason}"));
+            super::output::notify_device_lost(
+                &app,
+                &shared,
+                format!("audio device error: {reason}"),
+            );
             super::output::schedule_device_rebuild(&app, super::output::RebuildTarget::Resolve);
         }
         Err(err) => tracing::warn!(%err, "coreaudio dop output thread stopped on error"),
@@ -239,7 +243,9 @@ fn open_and_run(
     audio_unit
         .set_render_callback(move |args: Args<data::Interleaved<i32>>| {
             let Args {
-                data: data::Interleaved { buffer, channels, .. },
+                data: data::Interleaved {
+                    buffer, channels, ..
+                },
                 num_frames,
                 ..
             } = args;
@@ -372,7 +378,9 @@ impl Drop for PhysicalFormatGuard {
 /// device supports, but never hands back the one in force — its setter
 /// reads it internally and drops it. So the only way to restore what we
 /// found is to make the same HAL call ourselves.
-fn read_physical_stream_format(device_id: AudioDeviceID) -> Result<AudioStreamBasicDescription, String> {
+fn read_physical_stream_format(
+    device_id: AudioDeviceID,
+) -> Result<AudioStreamBasicDescription, String> {
     let address = AudioObjectPropertyAddress {
         mSelector: kAudioStreamPropertyPhysicalFormat,
         mScope: kAudioObjectPropertyScopeGlobal,

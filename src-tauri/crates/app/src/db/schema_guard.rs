@@ -73,9 +73,7 @@ impl DbScope {
     /// `app.db`, which every profile goes through.
     pub fn remedy(self) -> &'static str {
         match self {
-            DbScope::App => {
-                "Install WaveFlow again from the version you were using before."
-            }
+            DbScope::App => "Install WaveFlow again from the version you were using before.",
             DbScope::Profile => {
                 "Install WaveFlow again from the version you were using before, \
                  or start WaveFlow with a different profile."
@@ -132,7 +130,6 @@ pub async fn ensure_not_from_the_future(
         installed_on,
     })
 }
-
 
 /// Vet the databases this launch is about to open, **before**
 /// `tauri::Builder::run`.
@@ -485,7 +482,10 @@ mod tests {
         let paths = AppPaths::from_root(root.clone(), None);
 
         assert!(preflight(&paths).await.is_none());
-        assert!(!root.exists(), "pre-flight must not create the app-data tree");
+        assert!(
+            !root.exists(),
+            "pre-flight must not create the app-data tree"
+        );
     }
 
     #[tokio::test]

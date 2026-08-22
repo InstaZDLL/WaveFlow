@@ -176,7 +176,10 @@ pub async fn fetch_album_motion_artwork(
                             // raw url — that would hand the webview <video> the
                             // target the cache path just refused. Skip.
                             Err(motion_cache::CacheError::UnsafeUrl) => {
-                                tracing::warn!(plugin_id, "motion cache refused an unsafe url/redirect; skipping");
+                                tracing::warn!(
+                                    plugin_id,
+                                    "motion cache refused an unsafe url/redirect; skipping"
+                                );
                                 continue;
                             }
                             // Ordinary failure: degrade to the remote URL.

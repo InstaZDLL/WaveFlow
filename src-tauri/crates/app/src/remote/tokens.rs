@@ -97,7 +97,9 @@ pub async fn read(conn: &mut SqliteConnection) -> AppResult<Option<TokenPair>> {
     // long-lived API token pasted by hand. Both are unusable for the v2
     // flow, which cannot recover the session once the access token
     // lapses — treating it as signed out is the honest answer.
-    let Some(refresh_token) = refresh.map(|bytes| decode(bytes, "refresh token")).transpose()?
+    let Some(refresh_token) = refresh
+        .map(|bytes| decode(bytes, "refresh token"))
+        .transpose()?
     else {
         return Ok(None);
     };

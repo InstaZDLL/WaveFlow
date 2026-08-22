@@ -496,11 +496,10 @@ async fn rewrite_queued_references(
     placeholder: &str,
     remote_id: &str,
 ) -> AppResult<()> {
-    let rows = sqlx::query(
-        "SELECT id, payload FROM remote_mutation WHERE failed_at IS NULL ORDER BY id",
-    )
-    .fetch_all(&mut *conn)
-    .await?;
+    let rows =
+        sqlx::query("SELECT id, payload FROM remote_mutation WHERE failed_at IS NULL ORDER BY id")
+            .fetch_all(&mut *conn)
+            .await?;
     for row in rows {
         let id: i64 = row.try_get("id")?;
         let payload: String = row.try_get("payload")?;
@@ -580,8 +579,12 @@ mod tests {
                 "../../../../migrations/profile/20260810120000_remote_source_projection.sql"
             ),
             include_str!("../../../../migrations/profile/20260810140000_remote_track_cache.sql"),
-            include_str!("../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"),
-            include_str!("../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"),
+            include_str!(
+                "../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"
+            ),
+            include_str!(
+                "../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"
+            ),
         ] {
             sqlx::raw_sql(migration).execute(&pool).await.unwrap();
         }
@@ -653,8 +656,12 @@ mod tests {
         enqueue(&mut conn, &favorite(true)).await.unwrap();
         let queued = pending(&mut conn, 10).await.unwrap();
 
-        record_attempt(&mut conn, queued[0].id, "503").await.unwrap();
-        record_attempt(&mut conn, queued[0].id, "503").await.unwrap();
+        record_attempt(&mut conn, queued[0].id, "503")
+            .await
+            .unwrap();
+        record_attempt(&mut conn, queued[0].id, "503")
+            .await
+            .unwrap();
 
         let again = pending(&mut conn, 10).await.unwrap();
         assert_eq!(again.len(), 1);
@@ -964,9 +971,7 @@ mod tests {
         let queued = pending(&mut conn, 10).await.unwrap();
         assert_eq!(
             queued[0].mutation,
-            Mutation::DeletePlaylist {
-                playlist_id: other
-            }
+            Mutation::DeletePlaylist { playlist_id: other }
         );
     }
 

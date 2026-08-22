@@ -862,10 +862,7 @@ pub async fn delete_share(state: &AppState, share_id: &str) -> AppResult<()> {
     Ok(())
 }
 
-pub async fn delete_share_in_tx(
-    conn: &mut SqliteConnection,
-    share_id: &str,
-) -> AppResult<()> {
+pub async fn delete_share_in_tx(conn: &mut SqliteConnection, share_id: &str) -> AppResult<()> {
     sqlx::query("DELETE FROM remote_share_track WHERE share_remote_id = ?")
         .bind(share_id)
         .execute(&mut *conn)
@@ -917,8 +914,12 @@ mod tests {
                 "../../../../migrations/profile/20260810120000_remote_source_projection.sql"
             ),
             include_str!("../../../../migrations/profile/20260810140000_remote_track_cache.sql"),
-            include_str!("../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"),
-            include_str!("../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"),
+            include_str!(
+                "../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"
+            ),
+            include_str!(
+                "../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"
+            ),
         ] {
             sqlx::raw_sql(migration).execute(&pool).await.unwrap();
         }
@@ -943,7 +944,10 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_favorite").await, 1);
+        assert_eq!(
+            count(&mut conn, "SELECT count(*) FROM remote_favorite").await,
+            1
+        );
         let queued = pending(&mut conn, 10).await.unwrap();
         assert_eq!(
             queued[0].mutation,
@@ -959,10 +963,17 @@ mod tests {
     async fn unstarring_removes_the_row_and_still_queues() {
         let pool = pool().await;
         let mut conn = pool.acquire().await.unwrap();
-        set_favorite_in_tx(&mut conn, "track", "t1", true).await.unwrap();
-        set_favorite_in_tx(&mut conn, "track", "t1", false).await.unwrap();
+        set_favorite_in_tx(&mut conn, "track", "t1", true)
+            .await
+            .unwrap();
+        set_favorite_in_tx(&mut conn, "track", "t1", false)
+            .await
+            .unwrap();
 
-        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_favorite").await, 0);
+        assert_eq!(
+            count(&mut conn, "SELECT count(*) FROM remote_favorite").await,
+            0
+        );
         assert_eq!(
             pending(&mut conn, 10).await.unwrap().len(),
             2,
@@ -977,7 +988,10 @@ mod tests {
         set_rating_in_tx(&mut conn, "track", "t1", 4).await.unwrap();
         set_rating_in_tx(&mut conn, "track", "t1", 0).await.unwrap();
 
-        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_rating").await, 0);
+        assert_eq!(
+            count(&mut conn, "SELECT count(*) FROM remote_rating").await,
+            0
+        );
         let queued = pending(&mut conn, 10).await.unwrap();
         assert_eq!(
             queued[1].mutation,
@@ -996,7 +1010,10 @@ mod tests {
 
         assert!(set_rating_in_tx(&mut conn, "track", "t1", 6).await.is_err());
 
-        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_rating").await, 0);
+        assert_eq!(
+            count(&mut conn, "SELECT count(*) FROM remote_rating").await,
+            0
+        );
         assert_eq!(
             count(&mut conn, "SELECT count(*) FROM remote_mutation").await,
             0,
@@ -1088,7 +1105,10 @@ mod tests {
 
         delete_playlist_in_tx(&mut conn, &id).await.unwrap();
 
-        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_playlist").await, 0);
+        assert_eq!(
+            count(&mut conn, "SELECT count(*) FROM remote_playlist").await,
+            0
+        );
         assert_eq!(
             count(&mut conn, "SELECT count(*) FROM remote_playlist_track").await,
             0
@@ -1204,12 +1224,20 @@ mod tests {
         // projection write must take the queued mutation with it.
         let pool = pool().await;
         let mut tx = pool.begin().await.unwrap();
-        set_favorite_in_tx(&mut tx, "track", "t1", true).await.unwrap();
+        set_favorite_in_tx(&mut tx, "track", "t1", true)
+            .await
+            .unwrap();
         tx.rollback().await.unwrap();
 
         let mut conn = pool.acquire().await.unwrap();
-        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_favorite").await, 0);
-        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_mutation").await, 0);
+        assert_eq!(
+            count(&mut conn, "SELECT count(*) FROM remote_favorite").await,
+            0
+        );
+        assert_eq!(
+            count(&mut conn, "SELECT count(*) FROM remote_mutation").await,
+            0
+        );
     }
 
     #[tokio::test]
@@ -1219,12 +1247,22 @@ mod tests {
         let pool = pool().await;
         let mut conn = pool.acquire().await.unwrap();
 
-        scrobble_in_tx(&mut conn, "t1", false, Some(1_000)).await.unwrap();
-        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_history").await, 0);
+        scrobble_in_tx(&mut conn, "t1", false, Some(1_000))
+            .await
+            .unwrap();
+        assert_eq!(
+            count(&mut conn, "SELECT count(*) FROM remote_history").await,
+            0
+        );
         assert_eq!(pending(&mut conn, 10).await.unwrap().len(), 1);
 
-        scrobble_in_tx(&mut conn, "t1", true, Some(2_000)).await.unwrap();
-        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_history").await, 1);
+        scrobble_in_tx(&mut conn, "t1", true, Some(2_000))
+            .await
+            .unwrap();
+        assert_eq!(
+            count(&mut conn, "SELECT count(*) FROM remote_history").await,
+            1
+        );
     }
 
     #[tokio::test]
@@ -1232,9 +1270,15 @@ mod tests {
         let pool = pool().await;
         let mut conn = pool.acquire().await.unwrap();
 
-        save_queue_in_tx(&mut conn, &["a".into(), "b".into()], Some("a".into()), 0, None)
-            .await
-            .unwrap();
+        save_queue_in_tx(
+            &mut conn,
+            &["a".into(), "b".into()],
+            Some("a".into()),
+            0,
+            None,
+        )
+        .await
+        .unwrap();
         save_queue_in_tx(&mut conn, &["c".into()], Some("c".into()), 4200, None)
             .await
             .unwrap();
@@ -1245,7 +1289,10 @@ mod tests {
                 .await
                 .unwrap();
         assert_eq!(ids, vec!["c"]);
-        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_queue").await, 1);
+        assert_eq!(
+            count(&mut conn, "SELECT count(*) FROM remote_queue").await,
+            1
+        );
     }
 
     #[tokio::test]
@@ -1290,7 +1337,9 @@ mod tests {
     async fn an_empty_share_is_refused() {
         let pool = pool().await;
         let mut conn = pool.acquire().await.unwrap();
-        assert!(create_share_in_tx(&mut conn, &[], None, None).await.is_err());
+        assert!(create_share_in_tx(&mut conn, &[], None, None)
+            .await
+            .is_err());
     }
 
     #[tokio::test]
@@ -1315,7 +1364,13 @@ mod tests {
                 .unwrap();
         assert_eq!(expires, None);
 
-        match &pending(&mut conn, 10).await.unwrap().last().unwrap().mutation {
+        match &pending(&mut conn, 10)
+            .await
+            .unwrap()
+            .last()
+            .unwrap()
+            .mutation
+        {
             Mutation::UpdateShare {
                 clear_expires_at,
                 expires_at,
@@ -1338,7 +1393,10 @@ mod tests {
 
         delete_share_in_tx(&mut conn, &id).await.unwrap();
 
-        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_share").await, 0);
+        assert_eq!(
+            count(&mut conn, "SELECT count(*) FROM remote_share").await,
+            0
+        );
         assert!(pending(&mut conn, 10).await.unwrap().is_empty());
     }
 
@@ -1349,13 +1407,24 @@ mod tests {
         let pool = pool().await;
         let mut conn = pool.acquire().await.unwrap();
 
-        set_favorite_in_tx(&mut conn, "track", "t1", true).await.unwrap();
-        set_rating_in_tx(&mut conn, "track", "t1", 3).await.unwrap();
-        let playlist = create_playlist_in_tx(&mut conn, "Mix", &[]).await.unwrap();
-        update_playlist_in_tx(&mut conn, &playlist, Some("Renamed".into()), None, None, false)
+        set_favorite_in_tx(&mut conn, "track", "t1", true)
             .await
             .unwrap();
-        scrobble_in_tx(&mut conn, "t1", true, Some(1_000)).await.unwrap();
+        set_rating_in_tx(&mut conn, "track", "t1", 3).await.unwrap();
+        let playlist = create_playlist_in_tx(&mut conn, "Mix", &[]).await.unwrap();
+        update_playlist_in_tx(
+            &mut conn,
+            &playlist,
+            Some("Renamed".into()),
+            None,
+            None,
+            false,
+        )
+        .await
+        .unwrap();
+        scrobble_in_tx(&mut conn, "t1", true, Some(1_000))
+            .await
+            .unwrap();
         save_queue_in_tx(&mut conn, &["t1".into()], None, 0, None)
             .await
             .unwrap();

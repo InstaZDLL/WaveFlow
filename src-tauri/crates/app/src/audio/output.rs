@@ -279,11 +279,7 @@ pub fn spawn_output_with_mode(
             device_name,
             dop,
         );
-        #[cfg(not(any(
-            target_os = "windows",
-            target_os = "linux",
-            target_os = "macos"
-        )))]
+        #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
         {
             let _ = (dop, &shared, &app, &device_name);
             return Err(AppError::Audio(

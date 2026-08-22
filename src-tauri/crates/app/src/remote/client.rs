@@ -254,10 +254,7 @@ impl<'a> RemoteClient<'a> {
     /// acquisition to the *same* profile across an operation, so a switch
     /// landing mid-way fails cleanly instead of reading one profile's
     /// tokens and writing another's data.
-    pub async fn try_build_for(
-        state: &'a AppState,
-        profile_id: i64,
-    ) -> AppResult<Option<Self>> {
+    pub async fn try_build_for(state: &'a AppState, profile_id: i64) -> AppResult<Option<Self>> {
         let (binding, pair) = {
             let pool = state.require_profile_pool_for(Some(profile_id)).await?;
             let mut conn = pool.acquire().await?;
@@ -475,9 +472,7 @@ impl<'a> RemoteClient<'a> {
     /// still available. The code is kept as a field, not formatted away:
     /// callers branch on it, and a substring match on a message would be a
     /// fragile way to make a destructive decision.
-    async fn interpret(
-        response: reqwest::Response,
-    ) -> Result<reqwest::Response, RemoteFailure> {
+    async fn interpret(response: reqwest::Response) -> Result<reqwest::Response, RemoteFailure> {
         let status = response.status().as_u16();
         match classify_status(status) {
             None => Ok(response),

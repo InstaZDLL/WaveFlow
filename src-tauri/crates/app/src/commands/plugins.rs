@@ -1020,10 +1020,7 @@ struct ArtistSnapshotRow {
 /// like the other manifest reads. A missing / unparsable / mismatched
 /// manifest yields `false` — the host gate would deny the read anyway,
 /// so we default closed.
-async fn plugin_grants_library_read(
-    state: &AppState,
-    plugin_id: &str,
-) -> AppResult<bool> {
+async fn plugin_grants_library_read(state: &AppState, plugin_id: &str) -> AppResult<bool> {
     let paths = state.paths.plugin_paths();
     let manifest_path = match paths.manifest_path(plugin_id) {
         Ok(p) => p,
@@ -1062,8 +1059,7 @@ async fn load_library_artist_snapshot(
         return Ok(Vec::new());
     }
     let pool = state.require_profile_pool().await?;
-    let capped =
-        limit.min(waveflow_core::plugin::host_impl::MAX_LIBRARY_ARTISTS) as i64;
+    let capped = limit.min(waveflow_core::plugin::host_impl::MAX_LIBRARY_ARTISTS) as i64;
     let rows = sqlx::query_as::<_, ArtistSnapshotRow>(
         "SELECT ar.id AS id,
                 ar.name AS name,

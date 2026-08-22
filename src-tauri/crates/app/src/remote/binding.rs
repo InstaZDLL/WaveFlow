@@ -301,8 +301,12 @@ mod tests {
                 "../../../../migrations/profile/20260810120000_remote_source_projection.sql"
             ),
             include_str!("../../../../migrations/profile/20260810140000_remote_track_cache.sql"),
-            include_str!("../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"),
-            include_str!("../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"),
+            include_str!(
+                "../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"
+            ),
+            include_str!(
+                "../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"
+            ),
         ] {
             sqlx::raw_sql(migration).execute(&pool).await.unwrap();
         }
@@ -392,14 +396,26 @@ mod tests {
         async fn count(conn: &mut SqliteConnection, sql: &'static str) -> i64 {
             sqlx::query_scalar(sql).fetch_one(&mut *conn).await.unwrap()
         }
-        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_playlist").await, 0);
+        assert_eq!(
+            count(&mut conn, "SELECT count(*) FROM remote_playlist").await,
+            0
+        );
         assert_eq!(
             count(&mut conn, "SELECT count(*) FROM remote_playlist_track").await,
             0
         );
-        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_favorite").await, 0);
-        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_track").await, 0);
-        assert_eq!(count(&mut conn, "SELECT count(*) FROM remote_mutation").await, 0);
+        assert_eq!(
+            count(&mut conn, "SELECT count(*) FROM remote_favorite").await,
+            0
+        );
+        assert_eq!(
+            count(&mut conn, "SELECT count(*) FROM remote_track").await,
+            0
+        );
+        assert_eq!(
+            count(&mut conn, "SELECT count(*) FROM remote_mutation").await,
+            0
+        );
 
         // And the binding is now account 2.
         let bound = read(&mut conn).await.unwrap().unwrap();
@@ -457,7 +473,10 @@ mod tests {
         // A catch-up pass that started earlier finishing later.
         advance_cursor(&mut conn, 11).await.unwrap();
 
-        assert_eq!(read(&mut conn).await.unwrap().unwrap().identity.cursor(), Some(42));
+        assert_eq!(
+            read(&mut conn).await.unwrap().unwrap().identity.cursor(),
+            Some(42)
+        );
     }
 
     #[tokio::test]
@@ -486,7 +505,10 @@ mod tests {
         // Signing into a different account must not inherit a cursor
         // into a journal it never belonged to.
         write(&mut conn, &waveflow_binding(0)).await.unwrap();
-        assert_eq!(read(&mut conn).await.unwrap().unwrap().identity.cursor(), Some(0));
+        assert_eq!(
+            read(&mut conn).await.unwrap().unwrap().identity.cursor(),
+            Some(0)
+        );
     }
 
     #[tokio::test]
@@ -527,12 +549,11 @@ mod tests {
         ] {
             // `AssertSqlSafe` because the table name comes from the
             // literal list above, never from input.
-            let count: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
-                "SELECT count(*) FROM {table}"
-            )))
-            .fetch_one(&mut *conn)
-            .await
-            .unwrap();
+            let count: i64 =
+                sqlx::query_scalar(sqlx::AssertSqlSafe(format!("SELECT count(*) FROM {table}")))
+                    .fetch_one(&mut *conn)
+                    .await
+                    .unwrap();
             assert_eq!(count, 0, "{table} still holds rows");
         }
     }

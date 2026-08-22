@@ -637,7 +637,8 @@ pub async fn export_stats_json(
 
     let overview = stats_overview_inner(&pool, &range).await?;
     let top_tracks = stats_top_tracks_inner(&pool, &artwork_dir, &range, 100).await?;
-    let top_artists = stats_top_artists_inner(&pool, &artwork_dir, metadata_dir, &range, 100).await?;
+    let top_artists =
+        stats_top_artists_inner(&pool, &artwork_dir, metadata_dir, &range, 100).await?;
     let top_albums = stats_top_albums_inner(&pool, &artwork_dir, &range, 100).await?;
     let top_genres = stats_top_genres_inner(&pool, &range, 100).await?;
     let listening_by_day = stats_listening_by_day_inner(&pool, &range).await?;
