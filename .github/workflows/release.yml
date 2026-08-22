@@ -2,15 +2,26 @@ name: Release
 
 # Triggered when a tag like v0.1.0 lands. Builds Linux (AppImage) and
 # Windows (NSIS) bundles, signs the updater payloads with the project's
-# minisign key, signs the Windows installer with Authenticode, and
-# attaches everything plus a merged latest.json updater manifest to the
-# matching GitHub release.
+# minisign key, signs the Windows installer with Authenticode, codesigns
+# (and optionally notarizes) the macOS bundle, and attaches everything
+# plus a merged latest.json updater manifest to the matching GitHub
+# release.
 #
 # Required repository secrets:
 #   TAURI_SIGNING_PRIVATE_KEY            — raw contents of ~/.tauri/waveflow.key
 #   TAURI_SIGNING_PRIVATE_KEY_PASSWORD   — passphrase for the above key
 #   SIGNTOOL_PFX_BASE64                  — base64-encoded Authenticode PFX
 #   SIGNTOOL_PFX_PASSWORD                — PFX export passphrase
+#
+# Optional macOS signing secrets — the job degrades to ad-hoc signing when
+# APPLE_CERTIFICATE is unset, which still yields a sealed bundle with a
+# stable identity (so TCC folder grants persist) but does not satisfy
+# Gatekeeper:
+#   APPLE_CERTIFICATE                    — base64-encoded Developer ID .p12
+#   APPLE_CERTIFICATE_PASSWORD           — .p12 export passphrase
+#   APPLE_SIGNING_IDENTITY               — e.g. "Developer ID Application: Name (TEAMID)"
+#   APPLE_ID / APPLE_PASSWORD            — Apple ID + app-specific password
+#   APPLE_TEAM_ID                        — 10-char team identifier
 
 on:
   push:
@@ -233,15 +244,80 @@ jobs:
           ($config | ConvertTo-Json -Depth 20) | Set-Content $configPath -Encoding utf8
           Write-Host "[sign] signCommand injected into $configPath"
 
+      - name: Resolve macOS signing mode
+        if: matrix.platform == 'macos'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        # macOS keys a TCC grant (the Downloads / Documents / Desktop consent
+        # prompts) to the app's *designated requirement*. A linker-only ad-hoc
+        # binary has no sealed bundle, no bound Info.plist and a generated
+        # identifier, so there is no stable identity to hang the grant on and
+        # the user is re-prompted on every single launch. Signing the bundle
+        # is what fixes that — ad-hoc already gives a stable per-build
+        # identity, a Developer ID additionally keeps the grant across
+        # updates and clears Gatekeeper.
+        #
+        # This step only decides the mode; the Tauri bundler does the actual
+        # signing (and notarization) from the APPLE_* env in the build step.
+        run: |
+          if [ -n "$APPLE_CERTIFICATE" ]; then
+            if [ -z "$APPLE_CERTIFICATE_PASSWORD" ] || [ -z "$APPLE_SIGNING_IDENTITY" ]; then
+              echo "::error::APPLE_CERTIFICATE requires APPLE_CERTIFICATE_PASSWORD and APPLE_SIGNING_IDENTITY"
+              exit 1
+            fi
+            echo "MACOS_SIGN_MODE=developer-id" >> "$GITHUB_ENV"
+            echo "[sign] Developer ID signing enabled ($APPLE_SIGNING_IDENTITY)"
+            # Notarization is all-or-nothing: partial credentials mean the
+            # bundler silently skips it and we ship a signed-but-unnotarized
+            # app that Gatekeeper still blocks. Fail loudly instead.
+            if [ -n "$APPLE_ID$APPLE_PASSWORD$APPLE_TEAM_ID" ]; then
+              if [ -z "$APPLE_ID" ] || [ -z "$APPLE_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then
+                echo "::error::Notarization needs all three of APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID"
+                exit 1
+              fi
+              echo "MACOS_NOTARIZE=true" >> "$GITHUB_ENV"
+              echo "[sign] Notarization enabled"
+            else
+              echo "MACOS_NOTARIZE=false" >> "$GITHUB_ENV"
+              echo "::warning::Developer ID signing without notarization — Gatekeeper will still block first launch. Set APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID."
+            fi
+          else
+            echo "MACOS_SIGN_MODE=adhoc" >> "$GITHUB_ENV"
+            echo "MACOS_NOTARIZE=false" >> "$GITHUB_ENV"
+            echo "::warning::No APPLE_CERTIFICATE secret — falling back to ad-hoc signing. Gatekeeper still warns on first launch (right-click → Open), but the bundle gets a sealed, stable identity so macOS stops re-asking for folder access on every launch."
+          fi
+
       - name: Build Tauri bundles
         shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           BUNDLES: ${{ matrix.tauri_bundles }}
           TARGET: ${{ matrix.tauri_target }}
           PLATFORM: ${{ matrix.platform }}
         run: |
+          # Without a cert, hand codesign the ad-hoc identity ("-") and clear
+          # the half-set APPLE_* vars — an empty APPLE_CERTIFICATE still sends
+          # the bundler down the keychain-import path. Signing has to happen
+          # here rather than as a post-build codesign pass: the bundler builds
+          # the DMG and the .app.tar.gz updater payload *from* the .app, so
+          # re-signing afterwards would leave both wrapping an unsigned copy.
+          if [ "$PLATFORM" = "macos" ] && [ "$MACOS_SIGN_MODE" = "adhoc" ]; then
+            unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
+            export APPLE_SIGNING_IDENTITY="-"
+          fi
           # WiX/MSI rejects a non-numeric semver pre-release identifier
           # ("optional pre-release identifier ... must be numeric-only" —
           # e.g. 1.6.1-beta.1). So beta Windows builds ship the NSIS
@@ -479,6 +555,46 @@ jobs:
           }, indent=2))
           PY
           ls -la dist-release/
+
+      - name: Verify macOS signature
+        if: matrix.platform == 'macos'
+        shell: bash
+        # A silent signing failure is worse than a loud one: the bundle would
+        # look fine, ship, and quietly reintroduce the per-launch TCC prompt.
+        # So assert the three things that actually make the grant stick —
+        # sealed resources, the stable `app.waveflow` identifier, and a
+        # satisfied designated requirement — and, when we have a real cert,
+        # that Gatekeeper accepts the result.
+        run: |
+          set -euo pipefail
+          # `|| true` because a missing bundle dir makes find exit non-zero,
+          # and pipefail would abort before the friendlier error below.
+          APP=$(find src-tauri/target/universal-apple-darwin/release/bundle/macos \
+                     src-tauri/target/release/bundle/macos \
+                     -maxdepth 1 -name '*.app' 2>/dev/null | head -1 || true)
+          if [ -z "$APP" ]; then
+            echo "::error::No .app bundle found to verify"
+            exit 1
+          fi
+          echo "[verify] $APP"
+          codesign --verify --strict --verbose=2 "$APP"
+
+          DETAILS=$(codesign -dv "$APP" 2>&1)
+          echo "$DETAILS"
+          case "$DETAILS" in
+            *"Identifier=app.waveflow"*) ;;
+            *) echo "::error::Bundle identifier is not app.waveflow — TCC grants will not persist"; exit 1 ;;
+          esac
+          case "$DETAILS" in
+            *"Sealed Resources"*) ;;
+            *) echo "::error::Bundle has no sealed resources — the signature is linker-only"; exit 1 ;;
+          esac
+
+          if [ "${MACOS_NOTARIZE:-false}" = "true" ]; then
+            spctl --assess --type exec --verbose=4 "$APP"
+          else
+            echo "[verify] Skipping Gatekeeper assessment (not notarized)"
+          fi
 
       - name: Prepare release assets (macOS)
         if: matrix.platform == 'macos'

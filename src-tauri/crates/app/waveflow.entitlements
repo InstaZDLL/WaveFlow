@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Entitlements applied when the macOS bundle is codesigned. Hardened runtime
+  is on (the Tauri bundler defaults `macOS.hardenedRuntime` to true) and is a
+  hard requirement for notarization, so anything the app does that hardened
+  runtime otherwise blocks has to be declared here.
+
+  Keep this list minimal — every entry widens the hole hardened runtime is
+  there to close.
+
+  allow-jit: the wasmtime plugin host compiles plugin modules with Cranelift
+  and maps the result executable. Under hardened runtime that needs MAP_JIT,
+  which is gated on this entitlement. Without it, loading any WASM plugin
+  (Web Radio ships in the bundle) crashes the process.
+
+  Deliberately NOT present: `allow-unsigned-executable-memory` and
+  `disable-library-validation`. Wasmtime uses MAP_JIT properly, so the
+  narrower entitlement is enough; the app loads no third-party dylibs.
+  App Sandbox entitlements (`com.apple.security.files.*`,
+  `com.apple.security.network.*`) are irrelevant here — this is a
+  Developer-ID-distributed app, not a Mac App Store one, so it is not
+  sandboxed. Folder access is governed by TCC, driven by the purpose strings
+  in Info.plist.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+</dict>
+</plist>
