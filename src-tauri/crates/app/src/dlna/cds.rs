@@ -497,6 +497,9 @@ fn mime_for_path(path: &str) -> &'static str {
         Some("mp3") => "audio/mpeg",
         Some("flac") => "audio/flac",
         Some("wav") => "audio/wav",
+        // `x-aiff` rather than `aiff`: it is what Apple emits and what
+        // renderers actually match on.
+        Some("aiff" | "aif") => "audio/x-aiff",
         Some("ogg" | "oga") => "audio/ogg",
         Some("m4a" | "mp4" | "aac") => "audio/mp4",
         _ => "application/octet-stream",

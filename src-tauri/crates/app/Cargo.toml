@@ -138,6 +138,10 @@ symphonia = { version = "0.6", default-features = false, features = [
     "mp3",
     "flac",
     "wav",
+    # Same crate as `wav` — `symphonia-format-riff`, already in the graph —
+    # under a different sub-feature. AIFF is Apple's container for the PCM
+    # that `wav` already decodes, so this adds a format, not a dependency.
+    "aiff",
     "vorbis",
     "ogg",
     "aac",
