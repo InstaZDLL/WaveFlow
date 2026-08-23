@@ -30,6 +30,11 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          # The script this job runs comes from the pull request. Leave
+          # no token behind in `.git/config` for it to find — the same
+          # reason the Flatpak-sources job already does this.
+          persist-credentials: false
       - run: python3 scripts/check-toolchain-pin.py
 
   changes:
