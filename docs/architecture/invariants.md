@@ -117,6 +117,21 @@ Deep dive: [library § album grouping](../features/library.md#album-grouping).
 
 Any command that rewrites an audio file (`edit::update_track_tags`, `save_lyrics`, `set_track_rating`) MUST pause playback first when the engine reports the edited track as `current_track_id` — lofty's `save_to_path` needs an exclusive handle on Windows. Re-hash with blake3 and update `track.file_hash` after the write so the scanner's `(mtime, size)` fast path stays addressable.
 
+### Tag writes go through the concrete tag
+
+**Never write a file by mutating `lofty::read_from_path(...)` and calling `save_to_path` on the `TaggedFile`.** Go through [`edit::patch_file`](../../src-tauri/crates/app/src/commands/edit.rs), which reads the concrete file type (`FlacFile`, `MpegFile`, `Mp4File`, …), splits its tag, applies the edit to the generic half and merges the remainder back.
+
+The reason is that `TaggedFile` holds *generic* `Tag`s, built by splitting each concrete tag into what has an `ItemKey` mapping plus a remainder — and what happens to that remainder is not uniform. `Id3v2Tag` stashes it in the `Tag`'s companion slot and restores it on write; `VorbisComments` does not (`From<VorbisComments> for Tag` is `split_tag().1`), so **every non-standard comment on a FLAC / Ogg / Opus / Speex file is dropped by the round trip** — our own `SYNCEDLYRICS`, `REPLAYGAIN_*` values another tagger left, anything a different player stores. Nothing warns, and no rescan brings it back.
+
+Two rules ride along in the same function:
+
+- **The year goes on the date item**, not `ItemKey::Year`. `Year` has no ID3v2 mapping at all, so writing it there dropped the value silently while the database happily recorded the new year.
+- **A cover replaces the front cover, not the artwork.** Clearing `tag.pictures()` to make room for one image also threw away the booklet, the back cover and the artist shot. Only `CoverFront` and the untyped `Other` are removed.
+
+Containers the scanner indexes but lofty cannot tag (`.dsf` / `.dff` — lofty's `FileType` has no DSD variant) are refused up front with a message that says so, instead of failing later as an unrelated "unknown format".
+
+Deep dive: [library § tag editing](../features/library.md#tag-editing).
+
 ---
 
 ## Audio

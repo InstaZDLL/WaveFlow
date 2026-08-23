@@ -270,37 +270,86 @@ struct TrackRow {
     album_id: Option<i64>,
 }
 
-/// Apply the edit to the file's primary tag. Creates a fresh tag of
-/// the file's preferred type when none exists (rare — every supported
-/// format ships with at least empty headers). Returns the boxed lofty
-/// error untouched so the caller can surface a useful message.
-fn write_tags_to_file(
+/// Containers the library indexes but lofty cannot tag. lofty 0.25's
+/// `FileType` carries no DSD variant, so `read_from_path` on a `.dsf` /
+/// `.dff` fails with a generic "unknown format" — accurate, but it reads
+/// as a corrupt file rather than as a format we never supported writing.
+/// DSD metadata is parsed by `waveflow_core::audio_format::dsd`, which is
+/// read-only, so there is no fallback to reach for: refusing before we
+/// touch the file is the whole of the honest answer.
+const UNTAGGABLE_EXTENSIONS: &[&str] = &["dsf", "dff"];
+
+/// `Err` when `path` names a container this build can index but not write
+/// tags into. The message is user-facing — it reaches the properties
+/// dialog through `AppError::Other`.
+fn reject_untaggable(
     path: &std::path::Path,
-    edit: &TrackEdit,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use lofty::file::{AudioFile, TaggedFileExt};
-    use lofty::prelude::*;
-    use lofty::tag::{ItemKey, Tag};
-
-    let mut tagged = lofty::read_from_path(path)?;
-
-    // Pick the existing tag if any, otherwise create one of the
-    // file's preferred type so a previously-untagged file gets
-    // properly tagged on first edit.
-    if tagged.primary_tag().is_none() && tagged.first_tag().is_none() {
-        let preferred = tagged.primary_tag_type();
-        tagged.insert_tag(Tag::new(preferred));
+    let Some(ext) = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(str::to_ascii_lowercase)
+    else {
+        return Ok(());
+    };
+    if UNTAGGABLE_EXTENSIONS.contains(&ext.as_str()) {
+        return Err(format!(
+            "{} files have no writable tag block in this build",
+            ext.to_uppercase()
+        )
+        .into());
     }
-    // Two-step borrow so the borrow checker doesn't see a chained
-    // primary_tag_mut() / first_tag_mut() on the same tagged file.
-    let tag = if tagged.primary_tag().is_some() {
-        tagged
-            .primary_tag_mut()
-            .expect("checked primary_tag is Some")
-    } else {
-        tagged
-            .first_tag_mut()
-            .ok_or("no tag available after insert")?
+    Ok(())
+}
+
+/// One edit to a file's tags, applied through [`patch_file`].
+enum TagPatch<'a> {
+    /// The metadata fields the properties dialog exposes.
+    Fields(&'a TrackEdit),
+    /// A new front cover. Every other embedded image survives.
+    Cover {
+        bytes: &'a [u8],
+        mime: &'a lofty::picture::MimeType,
+    },
+}
+
+/// Apply a patch to a generic [`lofty::tag::Tag`].
+///
+/// The edit semantics live here, in one place, whatever the container:
+/// [`patch_file`] converts each concrete tag into this shape and back.
+fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
+    use lofty::prelude::*;
+    use lofty::tag::ItemKey;
+
+    let edit = match patch {
+        TagPatch::Fields(edit) => edit,
+        TagPatch::Cover { bytes, mime } => {
+            use lofty::picture::{Picture, PictureType};
+            // Replace the cover, not the artwork. A release with a
+            // booklet, a back cover or an artist shot carries several
+            // pictures, and clearing the list to make room for one of
+            // them threw the rest away — nothing brings them back.
+            //
+            // `Other` goes with `CoverFront` because taggers that don't
+            // set a type write the cover there; keeping it would leave
+            // the previous cover in the file next to the new one.
+            let mut i = 0;
+            while i < tag.pictures().len() {
+                match tag.pictures()[i].pic_type() {
+                    PictureType::CoverFront | PictureType::Other => {
+                        tag.remove_picture(i);
+                    }
+                    _ => i += 1,
+                }
+            }
+            tag.push_picture(
+                Picture::unchecked(bytes.to_vec())
+                    .pic_type(PictureType::CoverFront)
+                    .mime_type((*mime).clone())
+                    .build(),
+            );
+            return;
+        }
     };
 
     if let Some(t) = edit.title.as_ref() {
@@ -329,13 +378,28 @@ fn write_tags_to_file(
         }
     }
     if let Some(y) = edit.year {
-        // Year isn't on the Accessor trait in lofty 0.24 — it's
-        // exposed as a generic ItemKey because the underlying
-        // representation differs across formats (TDRC vs DATE vs
-        // ©day). insert_text overwrites the existing value.
+        // The year rides on the *date* item (`TDRC` / `DATE` / `©day` /
+        // `ICRD`), which is what the scanner reads back through
+        // `Accessor::date`. `ItemKey::Year` has no ID3v2 mapping at all,
+        // so writing it there dropped the value on the way to the file
+        // and left the database claiming a year no player could see.
         if y > 0 {
-            tag.insert_text(ItemKey::Year, y.to_string());
+            let year = u16::try_from(y).unwrap_or(u16::MAX);
+            match tag.date() {
+                // The dialog sends the year on every save, so a save
+                // that changed only the title must not truncate a full
+                // release date to its year.
+                Some(existing) if existing.year == year => {}
+                _ => tag.set_date(lofty::tag::items::Timestamp {
+                    year,
+                    ..Default::default()
+                }),
+            }
         } else {
+            tag.remove_date();
+            // Legacy files may still carry a bare `YEAR` next to the
+            // date; clearing one without the other leaves the value
+            // visible to every other player.
             tag.remove_key(ItemKey::Year);
         }
     }
@@ -360,9 +424,161 @@ fn write_tags_to_file(
             tag.set_genre(g.trim().to_string());
         }
     }
+}
 
-    tagged.save_to_path(path, lofty::config::WriteOptions::default())?;
+/// Apply `patch` to the file at `path`, keeping every field the generic
+/// [`lofty::tag::Tag`] shape cannot model.
+///
+/// `lofty::read_from_path` hands back a `TaggedFile`, whose tags are
+/// generic `Tag`s produced by *splitting* each concrete tag: what has an
+/// `ItemKey` mapping goes into the `Tag`, the rest stays behind in a
+/// remainder. What happens to that remainder is not uniform, and that is
+/// the whole reason this function exists:
+///
+/// * `Id3v2Tag` stashes it in the `Tag`'s companion slot, so a `TXXX`
+///   lofty doesn't model survives a save.
+/// * `VorbisComments` has no such slot — `From<VorbisComments> for Tag`
+///   is `split_tag().1` and throws the remainder away. Every
+///   non-standard comment on a FLAC / Ogg / Opus / Speex file therefore
+///   disappeared the first time the user pressed Save: our own
+///   `SYNCEDLYRICS` (written by `commands::lyrics`), `REPLAYGAIN_*`
+///   values another tagger left, anything a different player stores.
+///
+/// Reading the concrete file, splitting it here and merging the
+/// remainder back covers both cases the same way, so the guarantee no
+/// longer depends on which container the user happens to own.
+///
+/// Only the containers the scanner indexes are handled; anything else is
+/// refused rather than written through a path we haven't checked.
+fn patch_file(
+    path: &std::path::Path,
+    patch: &TagPatch<'_>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    use lofty::config::{ParseOptions, WriteOptions};
+    use lofty::file::{AudioFile, FileType};
+    use lofty::prelude::*;
+    use lofty::probe::Probe;
+
+    reject_untaggable(path)?;
+
+    let file_type = Probe::open(path)?
+        .guess_file_type()?
+        .file_type()
+        .ok_or("unrecognised audio container")?;
+
+    // Round-trip one tag slot: take it out of the file, split it into a
+    // generic tag plus the frames lofty can't model, apply the patch to
+    // the generic half, then merge the two back together. An absent slot
+    // starts from an empty tag, which is what gives a never-tagged file
+    // its first tag.
+    macro_rules! patch_slot {
+        ($file:expr, $take:ident, $set:ident) => {{
+            let (remainder, mut generic) = $file.$take().unwrap_or_default().split_tag();
+            apply_patch(&mut generic, patch);
+            $file.$set(remainder.merge_tag(generic));
+        }};
+    }
+
+    // Same, for a slot the container always has (the Ogg families carry
+    // their Vorbis comments by spec, so lofty models them unwrapped).
+    macro_rules! patch_required_slot {
+        ($file:expr, $take:ident, $set:ident) => {{
+            let (remainder, mut generic) = $file.$take().split_tag();
+            apply_patch(&mut generic, patch);
+            $file.$set(remainder.merge_tag(generic));
+        }};
+    }
+
+    // Read the concrete file, run the body over it, save it back.
+    macro_rules! with_file {
+        ($ty:ty, |$f:ident| $body:block) => {{
+            let mut $f = <$ty>::read_from(&mut std::fs::File::open(path)?, ParseOptions::new())?;
+            $body
+            $f.save_to_path(path, WriteOptions::default())?;
+        }};
+    }
+
+    match file_type {
+        FileType::Mpeg => with_file!(lofty::mpeg::MpegFile, |f| {
+            patch_slot!(f, remove_id3v2, set_id3v2);
+        }),
+        FileType::Aac => with_file!(lofty::aac::AacFile, |f| {
+            patch_slot!(f, remove_id3v2, set_id3v2);
+        }),
+        FileType::Mp4 => with_file!(lofty::mp4::Mp4File, |f| {
+            patch_slot!(f, remove_ilst, set_ilst);
+        }),
+        // WAV and AIFF can carry both an ID3v2 chunk and their native
+        // list, and players disagree on which one they read. Patching
+        // only the primary would leave the other one contradicting it,
+        // so both get the edit whenever both exist; a file with neither
+        // gets the ID3v2 chunk lofty treats as primary.
+        FileType::Wav => with_file!(lofty::iff::wav::WavFile, |f| {
+            if f.riff_info().is_some() {
+                patch_slot!(f, remove_riff_info, set_riff_info);
+            }
+            patch_slot!(f, remove_id3v2, set_id3v2);
+        }),
+        FileType::Aiff => with_file!(lofty::iff::aiff::AiffFile, |f| {
+            if f.text_chunks().is_some() {
+                patch_slot!(f, remove_text_chunks, set_text_chunks);
+            }
+            patch_slot!(f, remove_id3v2, set_id3v2);
+        }),
+        FileType::Vorbis => with_file!(lofty::ogg::VorbisFile, |f| {
+            patch_required_slot!(f, remove_vorbis_comments, set_vorbis_comments);
+        }),
+        FileType::Opus => with_file!(lofty::ogg::OpusFile, |f| {
+            patch_required_slot!(f, remove_vorbis_comments, set_vorbis_comments);
+        }),
+        FileType::Speex => with_file!(lofty::ogg::SpeexFile, |f| {
+            patch_required_slot!(f, remove_vorbis_comments, set_vorbis_comments);
+        }),
+        // FLAC keeps its pictures in their own metadata blocks, which
+        // lofty exposes on the file and not on the tag — a cover pushed
+        // into the Vorbis comments here would be written *alongside* the
+        // blocks already there rather than replacing the front cover.
+        FileType::Flac => with_file!(lofty::flac::FlacFile, |f| {
+            match patch {
+                TagPatch::Fields(_) => {
+                    patch_slot!(f, remove_vorbis_comments, set_vorbis_comments);
+                }
+                TagPatch::Cover { bytes, mime } => {
+                    use lofty::ogg::OggPictureStorage;
+                    use lofty::picture::{Picture, PictureInformation, PictureType};
+                    f.remove_picture_type(PictureType::CoverFront);
+                    f.remove_picture_type(PictureType::Other);
+                    let picture = Picture::unchecked(bytes.to_vec())
+                        .pic_type(PictureType::CoverFront)
+                        .mime_type((*mime).clone())
+                        .build();
+                    // `from_picture` decodes the header for width /
+                    // height / colour depth. A format it can't read (our
+                    // WebP path) is no reason to refuse the cover — the
+                    // fields are informational and readers fall back to
+                    // the image itself.
+                    let info = PictureInformation::from_picture(&picture).unwrap_or_default();
+                    f.insert_picture(picture, Some(info))?;
+                }
+            }
+        }),
+        other => {
+            return Err(format!("{other:?} files are not editable in this build").into());
+        }
+    }
+
     Ok(())
+}
+
+/// Apply the edit to the file's tags. Creates a tag when the file has
+/// none, so a previously-untagged file gets properly tagged on first
+/// edit. Returns the boxed lofty error untouched so the caller can
+/// surface a useful message.
+fn write_tags_to_file(
+    path: &std::path::Path,
+    edit: &TrackEdit,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    patch_file(path, &TagPatch::Fields(edit))
 }
 
 /// Mirror the file write into the database. Order matters because
@@ -549,9 +765,9 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
 }
 
 /// Replace the embedded cover for a track. The new image is written
-/// into the audio file's tag (replacing every existing picture so the
-/// thumbnail-thieving "20-cover ID3 spam" tracks get cleaned up too)
-/// AND copied into the per-profile artwork cache, then the track's
+/// into the audio file's tag (replacing the front cover, and only the
+/// front cover — a release that ships a booklet or a back cover keeps
+/// them) AND copied into the per-profile artwork cache, then the track's
 /// album.artwork_id is repointed at the new row. Cover is per-album
 /// in WaveFlow's data model, so editing one track repaints every
 /// sibling on the same album — matching the behaviour every other
@@ -644,43 +860,14 @@ pub async fn update_track_cover(
     Ok(())
 }
 
-/// Write `bytes` as the only embedded picture in the audio file at
-/// `path`. Removes every existing picture first so we don't end up
-/// with a chimera tag holding both the new cover AND the previous
-/// one(s).
+/// Write `bytes` as the file's front cover, leaving every other
+/// embedded picture (back cover, booklet, artist shot) in place.
 fn write_cover_to_file(
     path: &std::path::Path,
     bytes: &[u8],
     mime: &lofty::picture::MimeType,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use lofty::file::{AudioFile, TaggedFileExt};
-    use lofty::picture::{Picture, PictureType};
-    use lofty::tag::Tag;
-
-    let mut tagged = lofty::read_from_path(path)?;
-    if tagged.primary_tag().is_none() && tagged.first_tag().is_none() {
-        let preferred = tagged.primary_tag_type();
-        tagged.insert_tag(Tag::new(preferred));
-    }
-    let tag = if tagged.primary_tag().is_some() {
-        tagged.primary_tag_mut().expect("checked")
-    } else {
-        tagged.first_tag_mut().ok_or("no tag")?
-    };
-
-    // Drop existing pictures. `remove_picture` takes an index so we
-    // pop from the end backwards to avoid invalidating positions.
-    while !tag.pictures().is_empty() {
-        tag.remove_picture(tag.pictures().len() - 1);
-    }
-    // Lofty 0.24 swapped the constructor for a builder.
-    let picture = Picture::unchecked(bytes.to_vec())
-        .pic_type(PictureType::CoverFront)
-        .mime_type(mime.clone())
-        .build();
-    tag.push_picture(picture);
-    tagged.save_to_path(path, lofty::config::WriteOptions::default())?;
-    Ok(())
+    patch_file(path, &TagPatch::Cover { bytes, mime })
 }
 
 /// Pick the MIME type + filename extension for the user-supplied
