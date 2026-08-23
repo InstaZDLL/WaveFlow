@@ -68,33 +68,198 @@ def is_exempt(line: str) -> bool:
 
 
 def steps(text: str):
-    """Yield `(line_number, block)` for each YAML list item.
+    """Yield `(line_number, block)` for each step of every `steps:` list.
 
-    A crude split, and deliberately so: pulling in a YAML parser to read
+    Anchored to the `steps:` key rather than to list items in general.
+    An earlier, shallower list — `on: schedule:` and its `- cron:` is
+    the usual one — would otherwise fix the item indentation for the
+    whole file, and every step of every job would land in one block. A
+    `toolchain:` from one step would then satisfy another, which is
+    precisely the hole this function exists to close.
+
+    Still a line scanner, deliberately: importing a YAML parser to read
     five workflow files would trade a dependency for a check that has to
-    keep working on a bare runner. Steps are list items, so a new item
-    at the same indentation or shallower ends the previous block.
-    Non-step lists — a paths filter, a matrix — come out as blocks too
-    and are simply never Rust steps.
+    keep working on a bare runner.
     """
-    block: list[str] = []
-    start = 0
-    indent = None
+    lines = text.splitlines()
+    index = 0
 
+    while index < len(lines):
+        header = re.match(r"^(\s*)steps:\s*(#.*)?$", lines[index])
+        if not header:
+            index += 1
+            continue
+
+        key_indent = len(header.group(1))
+        index += 1
+        item_indent = None
+        block: list[str] = []
+        start = 0
+
+        while index < len(lines):
+            line = lines[index]
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#"):
+                if len(line) - len(line.lstrip()) <= key_indent:
+                    break
+
+            item = LIST_ITEM_RE.match(line)
+            if item and (item_indent is None or len(item.group(1)) == item_indent):
+                if block:
+                    yield start, "\n".join(block)
+                item_indent = len(item.group(1))
+                block, start = [line], index + 1
+            elif block:
+                block.append(line)
+            index += 1
+
+        if block:
+            yield start, "\n".join(block)
+
+
+def unpinned_rust_steps(text: str) -> list[int]:
+    """Line numbers of steps that install Rust without pinning it."""
+    offenders = []
+    for number, block in steps(text):
+        if not INSTALLS_RUST_RE.search(block):
+            continue
+        if any(TOOLCHAIN_INPUT_RE.match(line) for line in block.splitlines()):
+            continue
+        offenders.append(number)
+    return offenders
+
+
+def mismatched_inputs(text: str, channel: str) -> list[tuple[int, str]]:
+    """`(line, value)` for every non-exempt `toolchain:` off the pin."""
+    wrong = []
     for number, line in enumerate(text.splitlines(), start=1):
-        match = LIST_ITEM_RE.match(line)
-        if match and (indent is None or len(match.group(1)) <= indent):
-            if block:
-                yield start, "\n".join(block)
-            block, start, indent = [line], number, len(match.group(1))
-        elif block:
-            block.append(line)
-
-    if block:
-        yield start, "\n".join(block)
+        match = TOOLCHAIN_INPUT_RE.match(line)
+        if not match or is_exempt(line):
+            continue
+        value = match.group(1).strip("\"'")
+        if value != channel:
+            wrong.append((number, value))
+    return wrong
 
 
-def main() -> int:
+def count_inputs(text: str) -> int:
+    return sum(
+        1
+        for line in text.splitlines()
+        if TOOLCHAIN_INPUT_RE.match(line) and not is_exempt(line)
+    )
+
+
+SCHEDULE_BEFORE_JOBS = """\
+name: Fixture
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+jobs:
+  build:
+    steps:
+      - uses: dtolnay/rust-toolchain@sha
+        with:
+          toolchain: 1.98.0
+      - uses: dtolnay/rust-toolchain@sha
+        with:
+          components: clippy
+"""
+
+TWO_JOBS = """\
+jobs:
+  one:
+    steps:
+      - uses: dtolnay/rust-toolchain@sha
+        with:
+          toolchain: 1.98.0
+  two:
+    steps:
+      - uses: dtolnay/rust-toolchain@sha
+"""
+
+UNRELATED_INPUT = """\
+jobs:
+  build:
+    steps:
+      - uses: some/other-action@v1
+        with:
+          toolchain: 1.98.0
+      - uses: dtolnay/rust-toolchain@sha
+        with:
+          components: clippy
+"""
+
+PINNED = """\
+jobs:
+  build:
+    steps:
+      - uses: dtolnay/rust-toolchain@sha
+        with:
+          toolchain: 1.98.0
+"""
+
+
+def self_test() -> int:
+    """Pin down the parsing. Both mistakes below were shipped once.
+
+    The step splitter matched any list item, then took its indentation
+    from whichever list came first in the file. Each time the check kept
+    passing something it exists to catch, which is the failure mode a
+    guard cannot afford.
+    """
+    failures: list[str] = []
+
+    def expect(label: str, actual, wanted):
+        if actual != wanted:
+            failures.append(f"{label}: got {actual!r}, wanted {wanted!r}")
+
+    expect(
+        "a shallower list before jobs must not merge the steps",
+        unpinned_rust_steps(SCHEDULE_BEFORE_JOBS),
+        [11],
+    )
+    expect(
+        "a step in another job must not satisfy this one",
+        unpinned_rust_steps(TWO_JOBS),
+        [9],
+    )
+    expect(
+        "an unrelated toolchain: input is not a pin",
+        unpinned_rust_steps(UNRELATED_INPUT),
+        [7],
+    )
+    expect("a pinned step is accepted", unpinned_rust_steps(PINNED), [])
+
+    expect("marker at end of line exempts", is_exempt(f"  toolchain: nightly {EXEMPT}"), True)
+    expect("marker mid-line does not", is_exempt(f"  toolchain: nightly {EXEMPT} # note"), False)
+    expect("no marker", is_exempt("  toolchain: 1.98.0"), False)
+
+    expect(
+        "an off-pin value is reported with its line",
+        mismatched_inputs("      toolchain: 1.97.0\n", "1.98.0"),
+        [(1, "1.97.0")],
+    )
+    expect(
+        "an exempt value is not compared",
+        mismatched_inputs(f"      toolchain: nightly {EXEMPT}\n", "1.98.0"),
+        [],
+    )
+
+    if failures:
+        print("self-test failed:\n", file=sys.stderr)
+        for failure in failures:
+            print(f"  {failure}", file=sys.stderr)
+        return 1
+
+    print("self-test: 9 assertions passed")
+    return 0
+
+
+def main(argv: list[str]) -> int:
+    if "--self-test" in argv:
+        return self_test()
+
     channel = pinned_channel()
     problems: list[str] = []
     checked = 0
@@ -103,23 +268,13 @@ def main() -> int:
     for workflow in workflows:
         rel = workflow.relative_to(ROOT).as_posix()
         text = workflow.read_text(encoding="utf-8")
+        checked += count_inputs(text)
 
-        for number, line in enumerate(text.splitlines(), start=1):
-            match = TOOLCHAIN_INPUT_RE.match(line)
-            if not match or is_exempt(line):
-                continue
-            checked += 1
-            value = match.group(1).strip("\"'")
-            if value != channel:
-                problems.append(
-                    f"{rel}:{number}: installs {value}, but rust-toolchain.toml pins {channel}"
-                )
-
-        for number, block in steps(text):
-            if not INSTALLS_RUST_RE.search(block):
-                continue
-            if any(TOOLCHAIN_INPUT_RE.match(line) for line in block.splitlines()):
-                continue
+        for number, value in mismatched_inputs(text, channel):
+            problems.append(
+                f"{rel}:{number}: installs {value}, but rust-toolchain.toml pins {channel}"
+            )
+        for number in unpinned_rust_steps(text):
             problems.append(
                 f"{rel}:{number}: installs Rust without a `toolchain:` input of its own, "
                 f"so it resolves to whatever the action defaults to instead of {channel}"
@@ -141,4 +296,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

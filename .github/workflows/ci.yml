@@ -35,6 +35,10 @@ jobs:
           # no token behind in `.git/config` for it to find — the same
           # reason the Flatpak-sources job already does this.
           persist-credentials: false
+      # The self-test first: if the parsing is broken, the check below
+      # reports "consistent" for reasons that have nothing to do with
+      # the workflows. It caught two real splitter bugs during review.
+      - run: python3 scripts/check-toolchain-pin.py --self-test
       - run: python3 scripts/check-toolchain-pin.py
 
   changes:
