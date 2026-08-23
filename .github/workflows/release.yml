@@ -140,6 +140,7 @@ jobs:
             librsvg2-dev \
             libfuse2 \
             squashfs-tools \
+            zsync \
             libasound2-dev
 
       - name: Setup Rust toolchain
@@ -376,6 +377,26 @@ jobs:
         # fixed bundle. See the script header for the full diagnosis.
         run: bash scripts/fix-appimage.sh
 
+      - name: Embed AppImage update information (Linux)
+        if: matrix.platform == 'linux' && env.IS_PRERELEASE != 'true'
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        # Fills the runtime's `.upd_info` section so AppImageUpdate,
+        # AppImageLauncher and AM can offer delta updates (#527). Runs
+        # after the unbundling step because both rewrite the image and
+        # each re-signs; running last means the `.sig` covers the final
+        # bytes.
+        #
+        # Stable only. The string points at the repository's *latest*
+        # release, and GitHub excludes pre-releases from that — a beta
+        # carrying it would walk its user back to the newest stable. Beta
+        # builds keep an empty section, so those clients honestly report
+        # "no update information" and the in-app beta channel stays the
+        # only path.
+        run: bash scripts/appimage-update-info.sh
+
       - name: Scrub Authenticode secrets (Windows)
         if: always() && matrix.platform == 'windows'
         shell: pwsh
@@ -493,6 +514,31 @@ jobs:
           }, indent=2))
           PY
           ls -la dist-release/
+
+      - name: Build the AppImage zsync control file (Linux)
+        if: matrix.platform == 'linux' && env.IS_PRERELEASE != 'true'
+        shell: bash
+        # Built from the dist-release copy, after the rename: the control
+        # file names its target, and zsync clients resolve that name
+        # relative to the URL they fetched the .zsync from. Both are
+        # assets of the same release, so a bare filename lands on the
+        # right image — pointing it at the bundler's own name would send
+        # every client to a 404.
+        #
+        # Last of the Linux steps that touch the payload, and it must
+        # stay there: the checksums it records describe the file byte for
+        # byte, so any later rewrite would silently invalidate it.
+        run: |
+          img="dist-release/WaveFlow_${VERSION}_linux-x86_64.AppImage"
+          if [ ! -f "$img" ]; then
+            echo "::error::$img is missing — the AppImage rename must run first"
+            exit 1
+          fi
+          zsyncmake -u "$(basename "$img")" -o "$img.zsync" "$img"
+          # The header is the whole contract with the client; print it so
+          # a wrong Filename/URL is visible in the log rather than in a
+          # user's failed update.
+          sed -n '1,8p' "$img.zsync"
 
       - name: Prepare release assets (Windows)
         if: matrix.platform == 'windows'

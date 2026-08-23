@@ -101,6 +101,16 @@ jobs:
         # signature is produced above, so the script skips re-signing.
         run: bash scripts/fix-appimage.sh
 
+      - name: Embed AppImage update information
+        # Also part of what a release ships, and the reason this workflow
+        # exists is that the artifact behaves like the shipped one — an
+        # AppImage without it reports "no update information available"
+        # and would read as a regression during manual testing. Again no
+        # updater signature exists here, so no re-signing happens.
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: bash scripts/appimage-update-info.sh
+
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
