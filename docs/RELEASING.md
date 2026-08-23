@@ -285,6 +285,32 @@ The Rust side is unaffected: the app starts, creates its profile, opens its audi
 
 Both `release.yml` and `test-appimage.yml` run it right after `tauri build`. **If you ever restructure the Linux build, that step has to survive** — dropping it silently produces a release that installs fine and never opens, on exactly the distributions least likely to be in your test matrix. The script no-ops (and says so) if a future Tauri stops bundling the library, so it's safe to leave in place.
 
+## AppImage delta updates: three steps in one order
+
+The AppImage runtime reserves a 1024-byte `.upd_info` section for a single string saying where updates come from. `appimagetool -u` fills it; Tauri builds the AppImage itself and exposes no equivalent, so it shipped zeroed and every ecosystem tool — AppImageUpdate, AppImageLauncher, AM, AppManager — reported *no update information available* ([#527](https://github.com/InstaZDLL/WaveFlow/issues/527)).
+
+[`scripts/appimage-update-info.sh`](../scripts/appimage-update-info.sh) writes it:
+
+```text
+gh-releases-zsync|InstaZDLL|WaveFlow|latest|WaveFlow_*_linux-x86_64.AppImage.zsync
+```
+
+`latest` is a literal the transport resolves through the GitHub API on every check, so the string stays correct for all future versions. Paired with the `.zsync` control file `zsyncmake` emits, a client reuses what it already has and fetches only the changed blocks — measured on a synthetic release: **3 080 192 bytes reused locally, 65 774 fetched**, reconstructed file identical to the published one.
+
+The section is written with `dd conv=notrunc` at the offset `readelf` reports, never `objcopy --update-section`. This file is an ELF *with a squashfs appended* that the runtime locates by a fixed offset; rebuilding the container would move that boundary and produce an image that no longer mounts. The script asserts the file size and the `--appimage-offset` are unchanged afterwards, so that mistake cannot ship quietly.
+
+**The order is load-bearing, and all three steps mutate or describe the same bytes:**
+
+1. `fix-appimage.sh` — repacks the squashfs (keeps the runtime header verbatim, so anything written into it survives)
+2. `appimage-update-info.sh` — writes `.upd_info`, then re-signs, because the `.sig` covers the bytes it just changed
+3. `zsyncmake` — runs **last**, on the renamed `dist-release/` copy
+
+Step 3's placement matters twice. Its checksums describe the payload byte for byte, so any later rewrite would silently invalidate it. And the control file names its target, which clients resolve *relative to the URL they fetched the `.zsync` from* — both are assets of the same release, so the bare renamed filename lands on the right image, while the bundler's own name would send every client to a 404.
+
+**If you rename the Linux release assets, the embedded pattern has to move with them.** `WaveFlow_*_linux-x86_64.AppImage.zsync` lives in the script, the asset name lives in `release.yml`, and they are two halves of one contract: rename one and clients ask for a `.zsync` that was never published — visible to users, invisible in CI. Step 3 therefore reads the string back out of the image it is about to ship and fails the release when the two disagree. That check fires on a tag, which is a poor moment to discover it, so treat it as a backstop and change both together.
+
+> **Stable only.** The update information points at the repository's latest release, and GitHub excludes pre-releases from "latest" — a beta carrying that string would walk its user *back* to the newest stable. Beta builds keep an empty section, so those clients honestly report no update information and the [in-app beta channel](#beta-channel) stays the only path.
+
 ## Flatpak sources are generated, and they go stale silently
 
 Flathub builds with the network disabled, so **every crate and npm tarball must be pre-declared** in [`packaging/flatpak/generated/`](../packaging/flatpak/generated/) by [`generate-sources.sh`](../packaging/flatpak/generate-sources.sh).
