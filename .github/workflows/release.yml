@@ -540,6 +540,30 @@ jobs:
           # user's failed update.
           sed -n '1,8p' "$img.zsync"
 
+          # The string burned into the image names the asset it expects to
+          # find; this step names the asset. Two files, one contract, and
+          # nothing else couples them — rename the asset here and the
+          # mismatch surfaces only when a user's client asks for a .zsync
+          # that was never published. So read the pattern back out of the
+          # image we are about to ship and check it actually matches.
+          pattern=$(readelf -p .upd_info "$img" 2>/dev/null |
+            awk -F'|' '/gh-releases-zsync/ { gsub(/[[:space:]]+$/, "", $5); print $5; exit }')
+          if [ -z "$pattern" ]; then
+            echo "::error::no update information found in $img — the embed step has to run before this one"
+            exit 1
+          fi
+          # Unquoted on purpose: $pattern is a glob (the version is a `*`),
+          # and it comes from the image this same job just wrote.
+          case "$(basename "$img").zsync" in
+            $pattern)
+              echo "asset name matches the embedded pattern: $pattern"
+              ;;
+            *)
+              echo "::error::embedded update information expects '$pattern' but this release ships '$(basename "$img").zsync'"
+              exit 1
+              ;;
+          esac
+
       - name: Prepare release assets (Windows)
         if: matrix.platform == 'windows'
         shell: bash

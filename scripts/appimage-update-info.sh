@@ -69,6 +69,14 @@ if [ -z "$update_info" ]; then
   # The `*` stands in for the version in our asset naming. Both the
   # `.zsync` and the image it describes are assets of the same release,
   # so the relative URL zsyncmake records resolves alongside it.
+  #
+  # This filename is half a contract: release.yml names the asset, and
+  # this names what clients will look for. Change either and the other
+  # has to follow. The zsync step there reads this string back out of
+  # the built image and fails the release when the two disagree, so the
+  # coupling is enforced rather than merely written down — but it is
+  # enforced at release time, on a tag, which is a bad moment to find
+  # out. Change them together.
   [ -n "${GITHUB_REPOSITORY:-}" ] \
     || die "no --update-info and GITHUB_REPOSITORY is unset — nothing to compose from"
   owner="${GITHUB_REPOSITORY%%/*}"
@@ -96,8 +104,20 @@ command -v readelf >/dev/null || die "readelf not found (apt install binutils)"
 
 # Offsets come from the image itself rather than a constant: the runtime
 # is fetched by the bundler and its layout is not ours to assume.
+#
+# The section index has to be stripped before the fields line up, and
+# stripping it is not optional: readelf pads single-digit indices to a
+# fixed width, so `[ 1]` splits into two fields where `[23]` splits into
+# one, and every column after it shifts. Ours sits at 23 today, which is
+# exactly the kind of accident that holds until a runtime ships with
+# fewer sections. Everything up to the first `]` is that prefix; what
+# follows is Name Type Address Off Size.
 read -r sec_off sec_size <<EOF
-$(readelf -S -W "$img" 2>/dev/null | awk -v s="$SECTION" '$2 == s { print $5, $6; exit }')
+$(readelf -S -W "$img" 2>/dev/null | awk -v s="$SECTION" '
+  { bracket = index($0, "]")
+    line = bracket > 0 ? substr($0, bracket + 1) : $0
+    split(line, f)
+    if (f[1] == s) { print f[4], f[5]; exit } }')
 EOF
 if [ -z "${sec_off:-}" ] || [ -z "${sec_size:-}" ]; then
   die "no $SECTION section — this runtime does not support update information"

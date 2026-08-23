@@ -307,6 +307,8 @@ The section is written with `dd conv=notrunc` at the offset `readelf` reports, n
 
 Step 3's placement matters twice. Its checksums describe the payload byte for byte, so any later rewrite would silently invalidate it. And the control file names its target, which clients resolve *relative to the URL they fetched the `.zsync` from* — both are assets of the same release, so the bare renamed filename lands on the right image, while the bundler's own name would send every client to a 404.
 
+**If you rename the Linux release assets, the embedded pattern has to move with them.** `WaveFlow_*_linux-x86_64.AppImage.zsync` lives in the script, the asset name lives in `release.yml`, and they are two halves of one contract: rename one and clients ask for a `.zsync` that was never published — visible to users, invisible in CI. Step 3 therefore reads the string back out of the image it is about to ship and fails the release when the two disagree. That check fires on a tag, which is a poor moment to discover it, so treat it as a backstop and change both together.
+
 > **Stable only.** The update information points at the repository's latest release, and GitHub excludes pre-releases from "latest" — a beta carrying that string would walk its user *back* to the newest stable. Beta builds keep an empty section, so those clients honestly report no update information and the [in-app beta channel](#beta-channel) stays the only path.
 
 ## Flatpak sources are generated, and they go stale silently
