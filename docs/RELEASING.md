@@ -102,7 +102,13 @@ the job to a real Developer ID signature plus notarization.
 
 The first three are what enables signing; the last three add
 notarization on top. Providing only part of either group fails the build
-on purpose, rather than silently shipping a half-signed bundle.
+on purpose, rather than silently shipping a half-signed bundle — and so
+does the cross-group case, notarization credentials without a
+certificate, since there would be nothing signed to submit.
+
+Setting **none** of the six stays a supported configuration: that is the
+ad-hoc build described above, chosen deliberately rather than reached by
+accident.
 
 The AUR package itself (`waveflow-bin`) needs a one-off manual setup
 on the maintainer's box — see [`packaging/aur/README.md`](../packaging/aur/README.md).

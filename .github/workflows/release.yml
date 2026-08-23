@@ -266,21 +266,44 @@ jobs:
         # This step only decides the mode; the Tauri bundler does the actual
         # signing (and notarization) from the APPLE_* env in the build step.
         run: |
-          if [ -n "$APPLE_CERTIFICATE" ]; then
-            if [ -z "$APPLE_CERTIFICATE_PASSWORD" ] || [ -z "$APPLE_SIGNING_IDENTITY" ]; then
-              echo "::error::APPLE_CERTIFICATE requires APPLE_CERTIFICATE_PASSWORD and APPLE_SIGNING_IDENTITY"
-              exit 1
-            fi
-            echo "MACOS_SIGN_MODE=developer-id" >> "$GITHUB_ENV"
-            echo "[sign] Developer ID signing enabled ($APPLE_SIGNING_IDENTITY)"
-            # Notarization is all-or-nothing: partial credentials mean the
-            # bundler silently skips it and we ship a signed-but-unnotarized
-            # app that Gatekeeper still blocks. Fail loudly instead.
-            if [ -n "$APPLE_ID$APPLE_PASSWORD$APPLE_TEAM_ID" ]; then
+          # Validate before choosing, because the choice is what used to
+          # hide the mistake: a half-configured signing setup — a
+          # notarization triple with no certificate, an identity with no
+          # certificate — fell into the ad-hoc branch and shipped a
+          # release the operator plainly did not ask for, with a warning
+          # nobody reads. Partial configuration now fails; *no*
+          # configuration is still a supported, deliberate ad-hoc build.
+          NOTARIZE_SET="$APPLE_ID$APPLE_PASSWORD$APPLE_TEAM_ID"
+          ANY_APPLE_SECRET="$APPLE_CERTIFICATE$APPLE_CERTIFICATE_PASSWORD$APPLE_SIGNING_IDENTITY$NOTARIZE_SET"
+
+          if [ -n "$ANY_APPLE_SECRET" ]; then
+            if [ -n "$NOTARIZE_SET" ]; then
               if [ -z "$APPLE_ID" ] || [ -z "$APPLE_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then
                 echo "::error::Notarization needs all three of APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID"
                 exit 1
               fi
+              # Notarization submits a Developer ID-signed bundle. Without
+              # the certificate there is nothing to submit, and the bundler
+              # would quietly skip the whole thing.
+              if [ -z "$APPLE_CERTIFICATE" ]; then
+                echo "::error::Notarization credentials are set but APPLE_CERTIFICATE is not — nothing would be notarized"
+                exit 1
+              fi
+            fi
+            if [ -z "$APPLE_CERTIFICATE" ]; then
+              echo "::error::APPLE_CERTIFICATE_PASSWORD / APPLE_SIGNING_IDENTITY are set but APPLE_CERTIFICATE is not"
+              exit 1
+            fi
+            if [ -z "$APPLE_CERTIFICATE_PASSWORD" ] || [ -z "$APPLE_SIGNING_IDENTITY" ]; then
+              echo "::error::APPLE_CERTIFICATE requires APPLE_CERTIFICATE_PASSWORD and APPLE_SIGNING_IDENTITY"
+              exit 1
+            fi
+          fi
+
+          if [ -n "$APPLE_CERTIFICATE" ]; then
+            echo "MACOS_SIGN_MODE=developer-id" >> "$GITHUB_ENV"
+            echo "[sign] Developer ID signing enabled ($APPLE_SIGNING_IDENTITY)"
+            if [ -n "$NOTARIZE_SET" ]; then
               echo "MACOS_NOTARIZE=true" >> "$GITHUB_ENV"
               echo "[sign] Notarization enabled"
             else
