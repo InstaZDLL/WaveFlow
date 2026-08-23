@@ -928,6 +928,7 @@
     "edit": "Düzenle",
     "save": "Kaydet",
     "saving": "Kaydediliyor…",
+    "saveFailed": "Kaydedilemedi: {{reason}}",
     "fields": {
       "title": "Başlık",
       "artist": "Sanatçı(lar)",
@@ -1084,6 +1085,7 @@
       "output": "Çıkış",
       "noProcessing": "İşlem uygulanmıyor",
       "bitPerfect": "Bit-perfect",
+      "sharedOutput": "Paylaşımlı çıkış (sistem karıştırıcısı)",
       "loading": "Yükleniyor…",
       "chip": {
         "dsdToPcm": "DSD → PCM",

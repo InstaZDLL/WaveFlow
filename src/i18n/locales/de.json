@@ -928,6 +928,7 @@
     "edit": "Bearbeiten",
     "save": "Speichern",
     "saving": "Wird gespeichert…",
+    "saveFailed": "Speichern fehlgeschlagen: {{reason}}",
     "fields": {
       "title": "Titel",
       "artist": "Künstler",
@@ -1084,6 +1085,7 @@
       "output": "Ausgabe",
       "noProcessing": "Keine Verarbeitung aktiv",
       "bitPerfect": "Bit-perfect",
+      "sharedOutput": "Gemeinsame Ausgabe (System-Mixer)",
       "loading": "Laden…",
       "chip": {
         "dsdToPcm": "DSD → PCM",

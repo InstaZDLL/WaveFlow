@@ -928,6 +928,7 @@
     "edit": "Sunting",
     "save": "Simpan",
     "saving": "Menyimpan…",
+    "saveFailed": "Gagal menyimpan: {{reason}}",
     "fields": {
       "title": "Judul",
       "artist": "Artis",
@@ -1084,6 +1085,7 @@
       "output": "Keluaran",
       "noProcessing": "Tidak ada pemrosesan aktif",
       "bitPerfect": "Bit-perfect",
+      "sharedOutput": "Keluaran bersama (mixer sistem)",
       "loading": "Memuat…",
       "chip": {
         "dsdToPcm": "DSD → PCM",

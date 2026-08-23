@@ -928,6 +928,7 @@
     "edit": "编辑",
     "save": "保存",
     "saving": "保存中…",
+    "saveFailed": "保存失败：{{reason}}",
     "fields": {
       "title": "标题",
       "artist": "艺人",
@@ -1084,6 +1085,7 @@
       "output": "输出",
       "noProcessing": "无处理",
       "bitPerfect": "比特完美",
+      "sharedOutput": "共享输出（系统混音器）",
       "loading": "加载中…",
       "chip": {
         "dsdToPcm": "DSD → PCM",
