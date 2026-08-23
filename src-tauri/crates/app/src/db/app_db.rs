@@ -42,6 +42,17 @@ pub async fn open(path: &Path) -> AppResult<SqlitePool> {
     )
     .await?;
 
+    // And refuse one an incompatible build wrote at the same
+    // version. Before the heal pass for the same reason: the guard
+    // already ignores the line-ending case the heal exists to fix, so
+    // anything left is a divergence no write of ours should paper over.
+    super::schema_guard::ensure_no_foreign_migration(
+        &pool,
+        &migrator,
+        super::schema_guard::DbScope::App,
+    )
+    .await?;
+
     // Reconcile any line-ending drift in `_sqlx_migrations` BEFORE
     // running the migrator — without this, a Windows working tree that
     // briefly held CRLF when a new migration was first applied will

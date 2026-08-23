@@ -50,6 +50,25 @@ pub enum AppError {
         installed_on: Option<String>,
     },
 
+    /// A migration this build *does* ship was applied in a different
+    /// form — same version, different SQL. The other way a downgrade
+    /// (or a beta whose migration was amended before release) lands,
+    /// and the one sqlx reports as `VersionMismatch`. Split out for the
+    /// same reason as [`AppError::SchemaFromTheFuture`]: it has a
+    /// remedy, and the alternative was a panic out of the Tauri `setup`
+    /// hook. Raised by
+    /// [`crate::db::schema_guard::ensure_no_foreign_migration`].
+    #[error(
+        "{} was written by a different build of WaveFlow (migration {version} does not match)",
+        scope.label()
+    )]
+    SchemaWrittenElsewhere {
+        /// Which database — decides what the user can do about it.
+        scope: crate::db::schema_guard::DbScope,
+        /// The first applied migration whose SQL differs from ours.
+        version: i64,
+    },
+
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
 

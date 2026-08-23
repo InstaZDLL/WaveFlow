@@ -67,6 +67,15 @@ pub async fn open(path: &Path, app_db_path: &Path) -> AppResult<SqlitePool> {
     )
     .await?;
 
+    // Same pairing as `app_db::open`: the version guard, then the
+    // checksum one, both ahead of the first write.
+    super::schema_guard::ensure_no_foreign_migration(
+        &pool,
+        &migrator,
+        super::schema_guard::DbScope::Profile,
+    )
+    .await?;
+
     // Same self-healing dance as `app_db::open` — line-ending drift
     // in the working tree gets reconciled before sqlx's strict
     // checksum check fires. Details in [`crate::db::migration_heal`].

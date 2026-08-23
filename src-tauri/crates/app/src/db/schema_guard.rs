@@ -131,6 +131,67 @@ pub async fn ensure_not_from_the_future(
     })
 }
 
+/// Fail with [`AppError::SchemaWrittenElsewhere`] if a migration this
+/// binary *does* ship was applied in a different form.
+///
+/// The sibling of [`ensure_not_from_the_future`], for the other half of
+/// the same accident. Going back to an older build usually shows up as
+/// an unknown version; it shows up as a checksum mismatch instead
+/// whenever the two builds share a migration id whose SQL changed —
+/// a migration amended before release, a beta whose file was edited
+/// after the stable cut. sqlx refuses both, and refusing is right, but
+/// only the first one had an explanation attached: the second still
+/// reached the user as `MigrateError::VersionMismatch` panicking out of
+/// the Tauri `setup` hook, which is the crash-on-launch shape issue
+/// #526 set out to remove.
+///
+/// Line-ending drift is deliberately *not* a mismatch here:
+/// [`super::migration_heal`] repairs that a moment later, and refusing
+/// on it would turn a Windows checkout quirk into a dead install.
+pub async fn ensure_no_foreign_migration(
+    pool: &SqlitePool,
+    migrator: &Migrator,
+    scope: DbScope,
+) -> AppResult<()> {
+    let table_present: Option<i64> = sqlx::query_scalar(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '_sqlx_migrations'",
+    )
+    .fetch_optional(pool)
+    .await?;
+    if table_present.is_none() {
+        return Ok(());
+    }
+
+    let stored: Vec<(i64, Vec<u8>)> =
+        sqlx::query_as("SELECT version, checksum FROM _sqlx_migrations ORDER BY version")
+            .fetch_all(pool)
+            .await?;
+
+    for (version, checksum) in stored {
+        // An unknown version is the other guard's business; saying
+        // nothing here keeps the two verdicts from racing to name the
+        // same database.
+        let Some(migration) = migrator.iter().find(|m| m.version == version) else {
+            continue;
+        };
+        if checksum.as_slice() == migration.checksum.as_ref() {
+            continue;
+        }
+        if super::migration_heal::is_line_ending_drift(migration.sql.as_str(), &checksum) {
+            continue;
+        }
+
+        tracing::error!(
+            version,
+            scope = ?scope,
+            "migration {version} was applied in a form this build does not ship — refusing to open it"
+        );
+        return Err(AppError::SchemaWrittenElsewhere { scope, version });
+    }
+
+    Ok(())
+}
+
 /// Vet the databases this launch is about to open, **before**
 /// `tauri::Builder::run`.
 ///
@@ -195,9 +256,19 @@ async fn vet_profile(paths: &AppPaths, profile_id: i64) -> Option<AppError> {
 /// because the downstream guard will be asked again with the pool that
 /// actually matters.
 async fn vet(pool: &SqlitePool, migrator: &Migrator, scope: DbScope) -> Option<AppError> {
-    match ensure_not_from_the_future(pool, migrator, scope).await {
+    // Ordered the way the accident reads: "newer build" names how far
+    // ahead the database is and is the more actionable of the two, so
+    // it gets to answer first when a database is both ahead *and*
+    // divergent.
+    let verdict = match ensure_not_from_the_future(pool, migrator, scope).await {
+        Ok(()) => ensure_no_foreign_migration(pool, migrator, scope).await,
+        ahead => ahead,
+    };
+    match verdict {
         Ok(()) => None,
-        Err(err @ AppError::SchemaFromTheFuture { .. }) => Some(err),
+        Err(
+            err @ (AppError::SchemaFromTheFuture { .. } | AppError::SchemaWrittenElsewhere { .. }),
+        ) => Some(err),
         Err(err) => {
             tracing::warn!(%err, ?scope, "startup pre-flight: inconclusive, deferring to startup");
             None
@@ -327,6 +398,116 @@ mod tests {
             }
             other => panic!("expected SchemaFromTheFuture, got {other:?}"),
         }
+    }
+
+    /// Overwrite a real migration's stored checksum, the way a build
+    /// that shipped different SQL under the same id would have.
+    async fn tamper_checksum(pool: &SqlitePool, version: i64, checksum: &[u8]) {
+        sqlx::query("UPDATE _sqlx_migrations SET checksum = ? WHERE version = ?")
+            .bind(checksum)
+            .bind(version)
+            .execute(pool)
+            .await
+            .unwrap();
+    }
+
+    fn first_migration(migrator: &Migrator) -> (i64, String) {
+        let m = migrator.iter().next().expect("we ship migrations");
+        (m.version, m.sql.as_str().to_string())
+    }
+
+    #[tokio::test]
+    async fn a_migration_applied_in_another_form_is_refused() {
+        let pool = fresh_pool().await;
+        let migrator = sqlx::migrate!("../../migrations/profile");
+        migrator.run(&pool).await.unwrap();
+
+        let (version, _) = first_migration(&migrator);
+        tamper_checksum(&pool, version, b"not the sql we ship").await;
+
+        let err = ensure_no_foreign_migration(&pool, &migrator, DbScope::Profile)
+            .await
+            .expect_err("a migration whose SQL differs must be refused");
+        match err {
+            AppError::SchemaWrittenElsewhere { version: v, scope } => {
+                assert_eq!(v, version);
+                assert_eq!(scope, DbScope::Profile);
+            }
+            other => panic!("expected SchemaWrittenElsewhere, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn the_guard_fires_on_what_sqlx_would_have_panicked_on() {
+        // Same contract as the version guard's own test: this exists to
+        // get in front of sqlx, not to invent a rule. If sqlx stops
+        // refusing a checksum change, the guard has drifted into
+        // deciding policy by itself.
+        let pool = fresh_pool().await;
+        let migrator = sqlx::migrate!("../../migrations/profile");
+        migrator.run(&pool).await.unwrap();
+
+        let (version, _) = first_migration(&migrator);
+        tamper_checksum(&pool, version, b"not the sql we ship").await;
+
+        let verdict = migrator.run(&pool).await;
+        assert!(
+            matches!(
+                verdict,
+                Err(sqlx::migrate::MigrateError::VersionMismatch(v)) if v == version
+            ),
+            "expected sqlx to refuse the modified migration, got {verdict:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn line_ending_drift_is_not_a_foreign_migration() {
+        // The whole point of the exception: a Windows checkout that
+        // applied the CRLF form of the *same* SQL is healthy, and
+        // `migration_heal` fixes it moments later. Refusing here would
+        // turn a newline into a dead install.
+        let pool = fresh_pool().await;
+        let migrator = sqlx::migrate!("../../migrations/profile");
+        migrator.run(&pool).await.unwrap();
+
+        let (version, sql) = first_migration(&migrator);
+        let crlf = sql.replace('\n', "\r\n");
+        let crlf_hash = {
+            use sha2::{Digest, Sha384};
+            let mut hasher = Sha384::new();
+            hasher.update(crlf.as_bytes());
+            hasher.finalize()
+        };
+        tamper_checksum(&pool, version, &crlf_hash).await;
+
+        ensure_no_foreign_migration(&pool, &migrator, DbScope::Profile)
+            .await
+            .expect("line-ending drift must not be refused");
+    }
+
+    #[tokio::test]
+    async fn an_untouched_database_passes() {
+        let pool = fresh_pool().await;
+        let migrator = sqlx::migrate!("../../migrations/profile");
+        migrator.run(&pool).await.unwrap();
+        ensure_no_foreign_migration(&pool, &migrator, DbScope::Profile)
+            .await
+            .expect("the database we just migrated is ours");
+    }
+
+    #[tokio::test]
+    async fn a_version_we_do_not_ship_is_left_to_the_other_guard() {
+        // Both guards read the same table, and a row from a newer build
+        // has no compiled-in checksum to compare against. Naming it here
+        // would give the user the vaguer of the two messages.
+        let pool = fresh_pool().await;
+        let migrator = sqlx::migrate!("../../migrations/profile");
+        migrator.run(&pool).await.unwrap();
+        record_applied(&pool, 29990101000000).await;
+
+        ensure_no_foreign_migration(&pool, &migrator, DbScope::Profile)
+            .await
+            .expect("an unknown version is not this guard's verdict");
     }
 
     #[tokio::test]
