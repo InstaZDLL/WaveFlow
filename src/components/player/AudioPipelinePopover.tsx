@@ -116,6 +116,13 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
     let unlisten: UnlistenFn | null = null;
 
     const read = async () => {
+      // A read from an effect that has already been torn down must not
+      // touch the shared token. `await listen()` can resolve after a
+      // track change, and the tail of that dead run would otherwise
+      // bump the token past the *new* effect's in-flight read and
+      // silence it — leaving the popover on "loading" until the next
+      // output rebuild or a fresh hover.
+      if (cancelled) return;
       const token = ++readTokenRef.current;
       try {
         const [stateSnap, audioSettings, eqSnap] = await Promise.all([
