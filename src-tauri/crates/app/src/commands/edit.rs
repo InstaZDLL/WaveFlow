@@ -79,6 +79,26 @@ pub struct TrackEdit {
     pub genre: Option<String>,
 }
 
+/// Refuse an edit the file and the database could not agree on.
+///
+/// The year is the one field with a narrower range on disk than in the
+/// row: a tag carries it as a `u16`, `track.year` is an SQLite integer.
+/// Clamping on the way to the file would leave the two telling
+/// different stories — the same divergence the date handling in
+/// [`apply_patch`] exists to avoid — so an unrepresentable year is
+/// refused before either is touched. The message is user-facing.
+fn validate_edit(edit: &TrackEdit) -> AppResult<()> {
+    if let Some(year) = edit.year {
+        if year > i64::from(u16::MAX) {
+            return Err(AppError::Other(format!(
+                "year {year} is out of range for a tag (0-{})",
+                u16::MAX
+            )));
+        }
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn update_track_tags(
     state: tauri::State<'_, AppState>,
@@ -87,6 +107,7 @@ pub async fn update_track_tags(
     track_id: i64,
     edit: TrackEdit,
 ) -> AppResult<()> {
+    validate_edit(&edit)?;
     let pool = state.require_profile_pool().await?;
 
     // 1. Pull the current track row so we know the file path AND can
@@ -188,6 +209,8 @@ pub async fn update_tracks_batch(
     track_ids: Vec<i64>,
     edit: TrackEdit,
 ) -> AppResult<BatchUpdateSummary> {
+    // One edit for the whole batch, so one check for the whole batch.
+    validate_edit(&edit)?;
     let pool = state.require_profile_pool().await?;
     let mut summary = BatchUpdateSummary {
         updated: 0,
@@ -383,8 +406,13 @@ fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
         // `Accessor::date`. `ItemKey::Year` has no ID3v2 mapping at all,
         // so writing it there dropped the value on the way to the file
         // and left the database claiming a year no player could see.
-        if y > 0 {
-            let year = u16::try_from(y).unwrap_or(u16::MAX);
+        if y <= 0 {
+            tag.remove_date();
+            // Legacy files may still carry a bare `YEAR` next to the
+            // date; clearing one without the other leaves the value
+            // visible to every other player.
+            tag.remove_key(ItemKey::Year);
+        } else if let Ok(year) = u16::try_from(y) {
             match tag.date() {
                 // The dialog sends the year on every save, so a save
                 // that changed only the title must not truncate a full
@@ -395,13 +423,10 @@ fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
                     ..Default::default()
                 }),
             }
-        } else {
-            tag.remove_date();
-            // Legacy files may still carry a bare `YEAR` next to the
-            // date; clearing one without the other leaves the value
-            // visible to every other player.
-            tag.remove_key(ItemKey::Year);
         }
+        // A year `u16` cannot hold never reaches here — `validate_edit`
+        // refuses the whole edit first, because clamping it would write
+        // one value to the file and another to the row.
     }
     if let Some(n) = edit.track_number {
         if n > 0 {
