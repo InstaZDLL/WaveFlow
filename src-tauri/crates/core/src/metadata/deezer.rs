@@ -81,13 +81,24 @@ pub enum DeezerError {
     Http(#[from] reqwest::Error),
     #[error("deezer refused the request: {0}")]
     Api(DeezerApiError),
+    /// Throttling that arrived as a status code rather than in the body.
+    /// Deezer usually answers 200 with an `error` object, but the edge
+    /// in front of it can rate-limit on its own — and that response
+    /// carries no JSON to read, so it needs its own arm rather than a
+    /// decode failure.
+    #[error("deezer rate-limited the request (HTTP 429)")]
+    RateLimited,
 }
 
 impl DeezerError {
     /// True when Deezer said "slow down". Lets a caller tell a real
     /// empty result from a throttled one without matching on strings.
     pub fn is_quota_exceeded(&self) -> bool {
-        matches!(self, DeezerError::Api(err) if err.is_quota_exceeded())
+        match self {
+            DeezerError::Api(err) => err.is_quota_exceeded(),
+            DeezerError::RateLimited => true,
+            DeezerError::Http(_) => false,
+        }
     }
 }
 
@@ -224,12 +235,20 @@ impl DeezerClient {
 
     /// Send `request` and read the body as `T`, turning Deezer's in-band
     /// error object into an `Err` instead of a decode failure.
+    ///
+    /// The status is checked first because `send()` does not: a 429 from
+    /// the edge carries no JSON at all, and letting it reach `json()`
+    /// turned throttling back into the decode error this arm exists to
+    /// stop producing.
     async fn fetch<T: serde::de::DeserializeOwned>(
         request: reqwest::RequestBuilder,
     ) -> DeezerResult<T> {
-        request
-            .send()
-            .await?
+        let response = request.send().await?;
+        if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+            return Err(DeezerError::RateLimited);
+        }
+        response
+            .error_for_status()?
             .json::<DeezerReply<T>>()
             .await?
             .into_result()
@@ -347,6 +366,26 @@ mod tests {
         let hits = decode_artists(r#"{"data":[{"id":27,"name":"Daft Punk"}]}"#).unwrap();
         assert_eq!(hits.len(), 1);
         assert_eq!(hits[0].name, "Daft Punk");
+    }
+
+    #[test]
+    fn a_body_carrying_both_reads_as_the_refusal() {
+        // `#[serde(untagged)]` tries the variants in declaration order
+        // and `Error` ignores unknown fields, so a body with `data` *and*
+        // `error` resolves to the refusal. That is the precedence we
+        // want — a partial payload next to a refusal is still a refusal
+        // — and this test is what keeps a variant reorder from silently
+        // flipping it.
+        let err = decode_artists(
+            r#"{"data":[{"id":27,"name":"Daft Punk"}],"error":{"message":"Quota limit exceeded","code":4}}"#,
+        )
+        .expect_err("a body carrying an error must not read as a result");
+        assert!(err.is_quota_exceeded(), "{err}");
+    }
+
+    #[test]
+    fn a_status_level_rate_limit_is_a_quota_refusal_too() {
+        assert!(DeezerError::RateLimited.is_quota_exceeded());
     }
 
     #[test]

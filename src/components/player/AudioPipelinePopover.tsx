@@ -165,9 +165,25 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
   const isNormalize = !isDopNative && (snap?.normalize ?? false);
   const isReplayGain = !isDopNative && (snap?.replaygain ?? false);
   const isMono = !isDopNative && (snap?.mono ?? false);
+  // `isResampling` / `isDownmixing` answer "no" both when the format
+  // matches and when we never learned the source format — a track whose
+  // scan recorded no sample rate would otherwise sail through them into
+  // a verdict nothing checked. The claim needs the comparison to have
+  // actually happened. DoP is exempt: it ships at `dsd_rate / 16`, so
+  // the nominal rates never match by construction.
+  const isFormatProven =
+    isDopNative ||
+    (snap != null &&
+      track.sample_rate != null &&
+      snap.outputSampleRate > 0 &&
+      snap.outputSampleRate === track.sample_rate &&
+      track.channels != null &&
+      snap.outputChannels > 0 &&
+      snap.outputChannels >= track.channels);
   // Nothing in our own pipeline is touching the samples.
   const isUnprocessed =
     snap != null &&
+    isFormatProven &&
     // Native DoP is transparent; only DSD → PCM conversion breaks it.
     (!isDsd || isDopNative) &&
     !isResampling &&

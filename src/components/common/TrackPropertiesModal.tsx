@@ -246,14 +246,17 @@ export function TrackPropertiesModal({
         disc_number:
           form.disc_number.trim() === "" ? 0 : Number(form.disc_number) || 0,
       };
-      // Omit the genre entirely when its fetch hasn't landed: the
-      // backend reads a present-but-empty genre as "clear it", and
-      // sending that would erase a value we never showed the user.
-      const sendingGenre = genres != null;
+      // The genre only rides along when the user actually changed it.
+      // Two reasons: the backend reads a present-but-empty genre as
+      // "clear it", so a fetch that hasn't landed must not be sent as
+      // one — and `sync_db` stores whatever string it receives as a
+      // *single* genre, so echoing back a track that legitimately has
+      // two would collapse them into one row named "Rock; Jazz".
+      const sendingGenre = genres != null && form.genre !== genres.join("; ");
       if (sendingGenre) edit.genre = form.genre;
       await updateTrackTags(track.id, edit);
-      // Only when we sent one — otherwise this would record an empty
-      // genre we never wrote, and the *next* save would act on it.
+      // Only when we sent one — otherwise this would record a genre we
+      // never wrote, and the *next* save would act on it.
       if (sendingGenre) {
         const saved = form.genre.trim();
         setGenres(saved === "" ? [] : [saved]);
@@ -470,6 +473,11 @@ export function TrackPropertiesModal({
                   value={form.genre}
                   onChange={(v) => setForm((p) => ({ ...p, genre: v }))}
                   placeholder={t("trackProperties.fields.genrePlaceholder")}
+                  // Locked until we know what the track already carries.
+                  // An editable-but-empty box would take a value the save
+                  // then drops on the floor, since a genre we can't
+                  // compare against is a genre we won't send.
+                  disabled={genres == null}
                 />
                 <Row
                   label={t("trackProperties.duration")}
@@ -699,12 +707,14 @@ function EditRow({
   onChange,
   type = "text",
   placeholder,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   type?: "text" | "number";
   placeholder?: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-center gap-4 px-3 py-2 text-sm">
@@ -716,7 +726,8 @@ function EditRow({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 min-w-0 px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200"
+        disabled={disabled}
+        className="flex-1 min-w-0 px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </div>
   );
