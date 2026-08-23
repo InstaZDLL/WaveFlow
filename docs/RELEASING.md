@@ -82,6 +82,34 @@ Actions):
 | `COPR_TOKEN`                         | `token` field from the same COPR API page (paired with `COPR_LOGIN`). Token lifetime is 6 months — rotate when builds start returning `401 Unauthorized`                       |
 | `BUILDKITE_PACKAGES_TOKEN`           | Buildkite API token (`read_packages` + `write_packages`) for `.github/workflows/apt-publish.yml` to push the `.deb` to the `instazdll/waveflow` registry                       |
 
+### Optional: macOS code signing
+
+The macOS job signs the bundle either way. Without the secrets below it
+falls back to an **ad-hoc** signature, which is enough to give the app a
+sealed bundle and the stable `app.waveflow` identifier — see
+[macOS signing and the TCC prompt](#macos-signing-and-the-tcc-prompt) for
+why that matters — but not enough for Gatekeeper. Setting them switches
+the job to a real Developer ID signature plus notarization.
+
+| Secret                       | What it is                                                                                                             |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `APPLE_CERTIFICATE`          | `base64 -i cert.p12` of the **Developer ID Application** certificate exported from Keychain Access (private key included) |
+| `APPLE_CERTIFICATE_PASSWORD` | passphrase used at `.p12` export time                                                                                  |
+| `APPLE_SIGNING_IDENTITY`     | full identity string, e.g. `Developer ID Application: Jane Doe (A1B2C3D4E5)` — read it from `security find-identity -v -p codesigning` |
+| `APPLE_ID`                   | Apple ID email of the developer account                                                                                |
+| `APPLE_PASSWORD`             | **app-specific** password generated at <https://appleid.apple.com> — not the account password                           |
+| `APPLE_TEAM_ID`              | 10-character team identifier from <https://developer.apple.com/account>                                                |
+
+The first three are what enables signing; the last three add
+notarization on top. Providing only part of either group fails the build
+on purpose, rather than silently shipping a half-signed bundle — and so
+does the cross-group case, notarization credentials without a
+certificate, since there would be nothing signed to submit.
+
+Setting **none** of the six stays a supported configuration: that is the
+ad-hoc build described above, chosen deliberately rather than reached by
+accident.
+
 The AUR package itself (`waveflow-bin`) needs a one-off manual setup
 on the maintainer's box — see [`packaging/aur/README.md`](../packaging/aur/README.md).
 
@@ -144,11 +172,12 @@ Pushing the tag triggers `.github/workflows/release.yml`:
   under `%LOCALAPPDATA%`, also the updater payload) and a `.msi`
   (system-wide install for IT deployment).
 - Builds macOS (`*.dmg` + `*.app.tar.gz` + `.sig`) on `macos-latest`
-  as a universal binary covering both Intel and Apple Silicon. The
-  bundle is **not** Apple-Developer-signed (no cert configured), so
-  Gatekeeper will warn first-launch users — they have to right-click
-  → Open once. The minisign signature on the updater payload is
-  still produced normally, so auto-updates work.
+  as a universal binary covering both Intel and Apple Silicon, and
+  codesigns the bundle — with a Developer ID + notarization when the
+  `APPLE_*` secrets are set, ad-hoc otherwise. Ad-hoc still leaves
+  Gatekeeper warning first-launch users (right-click → Open once).
+  The minisign signature on the updater payload is produced
+  independently, so auto-updates work either way.
 - Generates a per-platform `latest-<platform>.json`
 - Creates the GitHub release if missing (with auto-generated notes
   from the commit log) and uploads every artefact
@@ -268,6 +297,34 @@ It deliberately does **not** regenerate-and-diff: the generator runs `npm instal
 
 > **Toolchain split.** The app builds from `bun.lock`, but the Flatpak sandbox runs `npm ci --offline` against a **separate npm lockfile** (`flatpak-node-generator` can't read `bun.lock`). A dependency pin that must hold for shipped builds therefore belongs in `package.json` — e.g. an `overrides` entry — not in `bun.lock` alone.
 
+## macOS signing and the TCC prompt
+
+Signing the macOS bundle is not only about Gatekeeper. It is what stops macOS from asking for folder permission **on every single launch**.
+
+macOS records a TCC grant — the "WaveFlow would like to access files in your Downloads folder" consent — against the app's *designated requirement*, i.e. its code-signing identity. Before this was wired up, the shipped bundle carried only the ad-hoc signature the linker adds automatically on Apple Silicon:
+
+```
+Identifier=waveflow-36c95c4d36c8f6a6      ← generated, not app.waveflow
+Signature=adhoc
+flags=0x20002(adhoc,linker-signed)
+Info.plist=not bound
+Sealed Resources=none
+```
+
+There is no `Contents/_CodeSignature` in that state: the `.app` was never passed to `codesign`, only its Mach-O binary was. With no sealed bundle and no stable identifier, there is nothing to anchor the grant to, so it never persists. Any user whose library lives under `~/Downloads`, `~/Desktop`, `~/Documents`, an external drive or a network share re-consents at every launch.
+
+Signing the bundle fixes it, and **ad-hoc is enough for this specific problem** — `codesign -s -` still produces sealed resources, a bound `Info.plist` and the `app.waveflow` identifier from the bundle. What ad-hoc does *not* do is survive an update (each build is a different identity, so the grant resets on upgrade) or satisfy Gatekeeper. A Developer ID identity is stable across versions and does both.
+
+Three pieces make this work, and they have to stay together:
+
+- [`Info.plist`](../src-tauri/crates/app/Info.plist) — the `NS*UsageDescription` purpose strings macOS shows in the consent dialog. Auto-merged by the bundler because it sits next to `tauri.conf.json`.
+- [`waveflow.entitlements`](../src-tauri/crates/app/waveflow.entitlements) — signing turns **on** hardened runtime, which the old linker-signed bundle never had, so signing introduces a failure mode rather than only removing one. The wasmtime plugin host executes Cranelift output from anonymous `mmap` + `mprotect` pages, not `MAP_JIT`, so it needs `com.apple.security.cs.allow-unsigned-executable-memory`; `com.apple.security.cs.allow-jit` alone is **not** enough and the process is SIGKILL'd (`Namespace CODESIGNING, Code 2, Invalid Page`) the moment a plugin instantiates. Web Radio ships in the bundle, so that path runs for every user. Verified against the pinned source, not assumed: wasmtime 47.0.3 contains no `MAP_JIT` at all and `Mmap::make_executable` goes through plain `mprotect`, so no narrower grant exists — re-evaluate only if the plugin host changes how it maps executable memory. The companion `allow-jit` is **not** redundant: JavaScriptCore runs in-process for the WKWebView and JITs via `MAP_JIT`. The two entitlements serve two different consumers, so neither can be pruned as dead weight.
+- The `Resolve macOS signing mode` + `Verify macOS signature` steps in [`release.yml`](../.github/workflows/release.yml).
+
+Signing happens **inside** `tauri build`, driven by `APPLE_SIGNING_IDENTITY`, not as a post-build `codesign` pass. That ordering is not cosmetic: the bundler builds the DMG and the `.app.tar.gz` updater payload *from* the `.app`, so signing afterwards would leave both wrapping an unsigned copy.
+
+The verify step asserts the sealed-resources / `app.waveflow` / designated-requirement triple, because a silent signing failure would look like a clean release and quietly bring the per-launch prompt back.
+
 ## Notes
 
 - **Dev builds skip the updater entirely** (gated on
@@ -281,11 +338,4 @@ It deliberately does **not** regenerate-and-diff: the generator runs `npm instal
   workflow via `SIGNTOOL_PFX_BASE64` + `SIGNTOOL_PFX_PASSWORD`
   secrets. SmartScreen still warns on first install with a fresh
   cert until enough downloads accumulate reputation; an EV cert
-  shortcuts that. **macOS code signing** (Apple Developer cert) is
-  not configured — the macOS job ships an unsigned universal binary
-  that triggers Gatekeeper on first launch. Users right-click the
-  app and pick "Open" once to allow it. To remove that friction,
-  add Apple Developer ID + notarization in the macOS job (set
-  `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_ID`,
-  `APPLE_TEAM_ID`, and `APPLE_PASSWORD` secrets and pass them to
-  `tauri build`).
+  shortcuts that.

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Merged into the generated bundle Info.plist by the Tauri bundler, which
+  picks up any `Info.plist` sitting next to `tauri.conf.json`.
+
+  These are the TCC (Transparency, Consent & Control) purpose strings macOS
+  shows in the consent prompt when the app first touches a protected
+  location. Without them the prompt is generic; with them it says why.
+  They are shown verbatim — localizing needs `.lproj/InfoPlist.strings`
+  inside the bundle, which the bundler does not generate today.
+-->
+<plist version="1.0">
+<dict>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>WaveFlow needs access to read the music files in your Downloads folder.</string>
+
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>WaveFlow needs access to read the music files on your Desktop.</string>
+
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>WaveFlow needs access to read the music files in your Documents folder.</string>
+
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>WaveFlow needs access to read music from external drives and USB volumes.</string>
+
+	<key>NSNetworkVolumesUsageDescription</key>
+	<string>WaveFlow needs access to read music from network shares and NAS volumes.</string>
+
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>WaveFlow uses the local network to expose the optional DLNA MediaServer and MPD control surface.</string>
+</dict>
+</plist>

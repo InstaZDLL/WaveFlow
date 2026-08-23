@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Entitlements applied when the macOS bundle is codesigned. Hardened runtime
+  is on (the Tauri bundler defaults `macOS.hardenedRuntime` to true) and is a
+  hard requirement for notarization, so anything the app does that hardened
+  runtime otherwise blocks has to be declared here.
+
+  Keep this list minimal — every entry widens the hole hardened runtime is
+  there to close. Both entries below are load-bearing; neither is defensive.
+
+  The wasmtime plugin host compiles plugin modules with Cranelift and executes
+  the result. On macOS it does that by mmap'ing anonymous memory and
+  mprotect'ing it to r-x — it does NOT use MAP_JIT. That distinction decides
+  which entitlement is needed, and getting it wrong is not a soft failure:
+
+    allow-jit                        sanctions MAP_JIT regions only.
+    allow-unsigned-executable-memory sanctions executing anonymous,
+                                     unsigned executable pages.
+
+  Shipping only `allow-jit` was tried, and opening Web Radio killed the
+  process instantly — SIGKILL, `Namespace CODESIGNING, Code 2, Invalid Page`,
+  faulting on an `r-x/rwx SM=COW` VM_ALLOCATE region inside
+  `Instance::start_raw` under `plugin::runtime::instantiate_source`.
+  Confirmed against the pinned source rather than assumed: wasmtime 47.0.3
+  contains no occurrence of MAP_JIT at all, and `Mmap::make_executable` goes
+  through plain `mprotect`. There is no narrower grant to reach for.
+
+  `allow-jit` is NOT dead weight kept for a hypothetical, and must not be
+  pruned as such: JavaScriptCore runs in-process for the WKWebView and JITs
+  through MAP_JIT — the crash report above shows 512 MB of "JS JIT generated
+  code" regions in the host process. The two entitlements serve two different
+  consumers: allow-jit for JavaScriptCore, allow-unsigned-executable-memory
+  for wasmtime. Removing either targets a live code path.
+
+  Apple documents `allow-unsigned-executable-memory` for exactly this class of
+  JIT engine and notarization accepts it, but it is genuinely broad: it lets
+  the process execute memory nothing has signed. It stays justified only as
+  long as the plugin host needs it. Web Radio ships in the bundle, so this
+  path runs for every user — it is not an edge case.
+
+  Deliberately NOT present: `disable-library-validation`. The app loads no
+  third-party dylibs. App Sandbox entitlements (`com.apple.security.files.*`,
+  `com.apple.security.network.*`) are irrelevant — this is a
+  Developer-ID-distributed app, not a Mac App Store one, so it is not
+  sandboxed. Folder access is governed by TCC, driven by the purpose strings
+  in Info.plist.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+	<true/>
+</dict>
+</plist>
