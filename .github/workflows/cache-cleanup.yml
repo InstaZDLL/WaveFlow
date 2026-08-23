@@ -3,11 +3,28 @@ name: Cache Cleanup
 on:
   pull_request:
     types: [closed]
+  # A new generation of caches appears the moment one of these finishes
+  # on `main`, so that is when the generation it replaces becomes dead
+  # weight. Waiting for the weekly schedule would leave ~2.8 GB of it
+  # standing against a 10 GB quota for up to seven days (#535).
+  workflow_run:
+    workflows: [CI, CodeQL]
+    types: [completed]
+    branches: [main]
   schedule:
     - cron: "0 3 * * 1" # Every Monday at 03:00 UTC
+  workflow_dispatch:
 
 permissions:
   actions: write
+  contents: read
+
+# Two runs finishing together would compute the same deletions and race
+# each other to perform them. Harmless — the loser gets a 404 it
+# ignores — but serialising keeps the logs readable.
+concurrency:
+  group: cache-cleanup-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'repo' }}
+  cancel-in-progress: false
 
 jobs:
   cleanup-pr:
@@ -26,8 +43,73 @@ jobs:
           gh cache list --ref "$BRANCH" --limit 100 --json id --jq '.[].id' |
             xargs -I {} gh cache delete {} || true
 
+  # Drops the generations on `main` that nothing can restore any more.
+  # `Swatinem/rust-cache` matches its key exactly and ships no
+  # `restore-keys` fallback, so once a manifest change mints a new key
+  # the previous entry is unreachable — while still looking fresh to an
+  # age-based rule, because every pull request keeps reading the newest
+  # one. See scripts/prune-superseded-caches.py.
+  cleanup-superseded:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          persist-credentials: false
+
+      # The script decides what gets deleted, so a grouping bug here is
+      # destructive rather than merely wrong. Same reasoning as the
+      # toolchain-pin job in ci.yml.
+      - name: Self-test the pruner
+        run: python3 scripts/prune-superseded-caches.py --self-test
+
+      - name: Delete superseded caches on main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -o pipefail
+          # Paginated rather than `gh cache list --limit N`: a limit can
+          # only ever be too small, and silently pruning a truncated
+          # listing would leave the quota full for reasons nothing logs.
+          gh api --paginate --slurp \
+            "repos/$GH_REPO/actions/caches?ref=refs/heads/main&per_page=100" \
+            > caches.json
+          python3 scripts/prune-superseded-caches.py < caches.json > doomed.txt
+
+          # A cache can vanish between the listing and the delete —
+          # GitHub evicts on its own to hold the quota — so a single
+          # failure is a lost race, not a fault.
+          deleted=0
+          missing=0
+          while read -r id; do
+            [ -n "$id" ] || continue
+            if gh cache delete "$id"; then
+              deleted=$((deleted + 1))
+            else
+              missing=$((missing + 1))
+              echo "already gone: $id"
+            fi
+          done < doomed.txt
+          echo "deleted $deleted, already gone $missing"
+
+          # Every one failing is a different animal: the ids are
+          # malformed or the command is wrong, and the tolerance above
+          # would report a clean run while the quota stays full. Seen
+          # for real — a listing written on Windows carried CRLF, and
+          # each id reached gh with a trailing carriage return.
+          if [ "$deleted" -eq 0 ] && [ "$missing" -gt 0 ]; then
+            echo "::error::no cache could be deleted; the ids or the command are wrong, not the timing"
+            exit 1
+          fi
+
+  # Backstop for a group the rule above can never shrink: a job that was
+  # renamed or removed leaves a lone cache no newer entry supersedes.
   cleanup-stale:
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: cleanup-superseded
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -38,7 +120,13 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           echo "Cleaning stale caches on main (last accessed > 7 days ago)"
-          CUTOFF=$(date -d '7 days ago' --iso-8601=seconds)
-          gh cache list --ref refs/heads/main --limit 200 \
-            --json id,lastAccessedAt,key --jq ".[] | select(.lastAccessedAt < \"$CUTOFF\") | .id" |
-            xargs -I {} gh cache delete {} || true
+          # `%Y-%m-%dT%H:%M:%SZ` rather than --iso-8601, whose `+00:00`
+          # suffix does not compare as a string against the API's `Z`.
+          CUTOFF=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          # Paginated for the same reason as the job above. No --slurp
+          # here: gh rejects it alongside --jq, and none is needed —
+          # the query runs per page and the matches concatenate.
+          gh api --paginate \
+            "repos/$GH_REPO/actions/caches?ref=refs/heads/main&per_page=100" \
+            --jq ".actions_caches[] | select(.last_accessed_at < \"$CUTOFF\") | .id" |
+            xargs -r -I {} gh cache delete {} || true

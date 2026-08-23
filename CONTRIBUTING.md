@@ -42,6 +42,13 @@ there because missing one of the six sites otherwise fails silently.
 answer and the CI answer are the same answer. Let rustup install it rather
 than reaching for your default toolchain.
 
+Expect `Rust (ubuntu-latest)` to take ~13 minutes whenever your branch
+changes a `Cargo.toml`, `Cargo.lock` or `rust-toolchain.toml`, and ~7
+otherwise. `Swatinem/rust-cache` hashes those files into its key and
+matches it exactly — a stale Rust cache being worse than none — so
+touching any of them is a full miss with no fallback to `main`'s entry.
+It is the expected cost of the change, not a broken cache.
+
 If you touched a cross-cutting pattern (a context, the audio pipeline, a
 migration, a sync wire shape), **update the docs in the same PR** — `CLAUDE.md`
 and the relevant page under `docs/features/` are the source of truth and are
