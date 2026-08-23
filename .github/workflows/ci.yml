@@ -14,6 +14,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Runs on every pull request, outside the paths filter below, because
+  # that filter only lets `ci.yml` wake the Rust job. A pull request that
+  # touches `release.yml` alone — exactly the one that forgets a site
+  # when bumping the pin — would otherwise be checked by nothing.
+  #
+  # Kept as its own job rather than folded into the Rust matrix for the
+  # same reason it isn't in the filter: this is a text comparison that
+  # costs a checkout and a second, and the Rust job costs thirteen
+  # minutes (#535). Widening the filter would have spent those minutes
+  # on every workflow tweak.
+  toolchain-pin:
+    name: Toolchain pin
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          # The script this job runs comes from the pull request. Leave
+          # no token behind in `.git/config` for it to find — the same
+          # reason the Flatpak-sources job already does this.
+          persist-credentials: false
+      # The self-test first: if the parsing is broken, the check below
+      # reports "consistent" for reasons that have nothing to do with
+      # the workflows. It caught two real splitter bugs during review.
+      - run: python3 scripts/check-toolchain-pin.py --self-test
+      - run: python3 scripts/check-toolchain-pin.py
+
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
