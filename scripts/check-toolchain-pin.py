@@ -50,6 +50,8 @@ CHANNEL_RE = re.compile(r'^\s*channel\s*=\s*"([^"]+)"', re.MULTILINE)
 TOOLCHAIN_INPUT_RE = re.compile(r"^\s*toolchain:\s*(\S+)")
 INSTALLS_RUST_RE = re.compile(r"dtolnay/rust-toolchain|actions-rs/toolchain")
 LIST_ITEM_RE = re.compile(r"^(\s*)-\s")
+WITH_KEY_RE = re.compile(r"^( *)with: *(#.*)?$")
+MAPPING_KEY_RE = re.compile(r"^( *)([A-Za-z0-9_-]+): *(.*)$")
 EXEMPT = "# toolchain-pin: exempt"
 
 
@@ -117,26 +119,67 @@ def steps(text: str):
             yield start, "\n".join(block)
 
 
+def with_inputs(text: str):
+    """Yield `(line_number, key, value, line)` for direct children of `with:`.
+
+    An action's inputs are the keys directly under its `with:` mapping,
+    and only those. Matching `toolchain:` wherever it appeared on a line
+    let a sibling mapping stand in for the real input: an `env:` block
+    carrying a key of that name satisfied the pin without pinning
+    anything, and was then compared against the channel as though it
+    were one.
+    """
+    lines = text.splitlines()
+    index = 0
+
+    while index < len(lines):
+        header = WITH_KEY_RE.match(lines[index])
+        if not header:
+            index += 1
+            continue
+
+        with_indent = len(header.group(1))
+        index += 1
+        child_indent = None
+
+        while index < len(lines):
+            line = lines[index]
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                index += 1
+                continue
+
+            indent = len(line) - len(line.lstrip())
+            if indent <= with_indent:
+                break
+            if child_indent is None:
+                child_indent = indent
+            if indent == child_indent:
+                entry = MAPPING_KEY_RE.match(line)
+                if entry:
+                    yield index + 1, entry.group(2), entry.group(3).strip(), line
+            index += 1
+
+
 def unpinned_rust_steps(text: str) -> list[int]:
     """Line numbers of steps that install Rust without pinning it."""
     offenders = []
     for number, block in steps(text):
         if not INSTALLS_RUST_RE.search(block):
             continue
-        if any(TOOLCHAIN_INPUT_RE.match(line) for line in block.splitlines()):
+        if any(key == "toolchain" for _, key, _, _ in with_inputs(block)):
             continue
         offenders.append(number)
     return offenders
 
 
 def mismatched_inputs(text: str, channel: str) -> list[tuple[int, str]]:
-    """`(line, value)` for every non-exempt `toolchain:` off the pin."""
+    """`(line, value)` for every non-exempt `toolchain:` input off the pin."""
     wrong = []
-    for number, line in enumerate(text.splitlines(), start=1):
-        match = TOOLCHAIN_INPUT_RE.match(line)
-        if not match or is_exempt(line):
+    for number, key, value, line in with_inputs(text):
+        if key != "toolchain" or is_exempt(line):
             continue
-        value = match.group(1).strip("\"'")
+        value = value.strip('"').strip("'")
         if value != channel:
             wrong.append((number, value))
     return wrong
@@ -145,8 +188,8 @@ def mismatched_inputs(text: str, channel: str) -> list[tuple[int, str]]:
 def count_inputs(text: str) -> int:
     return sum(
         1
-        for line in text.splitlines()
-        if TOOLCHAIN_INPUT_RE.match(line) and not is_exempt(line)
+        for _, key, _, line in with_inputs(text)
+        if key == "toolchain" and not is_exempt(line)
     )
 
 
@@ -190,6 +233,17 @@ jobs:
           components: clippy
 """
 
+TOOLCHAIN_UNDER_ENV = """\
+jobs:
+  build:
+    steps:
+      - uses: dtolnay/rust-toolchain@sha
+        env:
+          toolchain: 1.98.0
+        with:
+          components: clippy
+"""
+
 PINNED = """\
 jobs:
   build:
@@ -197,6 +251,23 @@ jobs:
       - uses: dtolnay/rust-toolchain@sha
         with:
           toolchain: 1.98.0
+"""
+
+
+OFF_PIN = """jobs:
+  build:
+    steps:
+      - uses: dtolnay/rust-toolchain@sha
+        with:
+          toolchain: 1.97.0
+"""
+
+EXEMPT_VALUE = """jobs:
+  build:
+    steps:
+      - uses: dtolnay/rust-toolchain@sha
+        with:
+          toolchain: nightly # toolchain-pin: exempt
 """
 
 
@@ -229,6 +300,11 @@ def self_test() -> int:
         unpinned_rust_steps(UNRELATED_INPUT),
         [7],
     )
+    expect(
+        "a toolchain: under env is not an input",
+        unpinned_rust_steps(TOOLCHAIN_UNDER_ENV),
+        [4],
+    )
     expect("a pinned step is accepted", unpinned_rust_steps(PINNED), [])
 
     expect("marker at end of line exempts", is_exempt(f"  toolchain: nightly {EXEMPT}"), True)
@@ -237,14 +313,10 @@ def self_test() -> int:
 
     expect(
         "an off-pin value is reported with its line",
-        mismatched_inputs("      toolchain: 1.97.0\n", "1.98.0"),
-        [(1, "1.97.0")],
+        mismatched_inputs(OFF_PIN, "1.98.0"),
+        [(6, "1.97.0")],
     )
-    expect(
-        "an exempt value is not compared",
-        mismatched_inputs(f"      toolchain: nightly {EXEMPT}\n", "1.98.0"),
-        [],
-    )
+    expect("an exempt value is not compared", mismatched_inputs(EXEMPT_VALUE, "1.98.0"), [])
 
     if failures:
         print("self-test failed:\n", file=sys.stderr)
@@ -252,7 +324,7 @@ def self_test() -> int:
             print(f"  {failure}", file=sys.stderr)
         return 1
 
-    print("self-test: 9 assertions passed")
+    print("self-test: 10 assertions passed")
     return 0
 
 
