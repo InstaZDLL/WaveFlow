@@ -3,11 +3,28 @@ name: Cache Cleanup
 on:
   pull_request:
     types: [closed]
+  # A new generation of caches appears the moment one of these finishes
+  # on `main`, so that is when the generation it replaces becomes dead
+  # weight. Waiting for the weekly schedule would leave ~2.8 GB of it
+  # standing against a 10 GB quota for up to seven days (#535).
+  workflow_run:
+    workflows: [CI, CodeQL]
+    types: [completed]
+    branches: [main]
   schedule:
     - cron: "0 3 * * 1" # Every Monday at 03:00 UTC
+  workflow_dispatch:
 
 permissions:
   actions: write
+  contents: read
+
+# Two runs finishing together would compute the same deletions and race
+# each other to perform them. Harmless — the loser gets a 404 it
+# ignores — but serialising keeps the logs readable.
+concurrency:
+  group: cache-cleanup-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'repo' }}
+  cancel-in-progress: false
 
 jobs:
   cleanup-pr:
@@ -26,8 +43,50 @@ jobs:
           gh cache list --ref "$BRANCH" --limit 100 --json id --jq '.[].id' |
             xargs -I {} gh cache delete {} || true
 
+  # Drops the generations on `main` that nothing can restore any more.
+  # `Swatinem/rust-cache` matches its key exactly and ships no
+  # `restore-keys` fallback, so once a manifest change mints a new key
+  # the previous entry is unreachable — while still looking fresh to an
+  # age-based rule, because every pull request keeps reading the newest
+  # one. See scripts/prune-superseded-caches.py.
+  cleanup-superseded:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          persist-credentials: false
+
+      # The script decides what gets deleted, so a grouping bug here is
+      # destructive rather than merely wrong. Same reasoning as the
+      # toolchain-pin job in ci.yml.
+      - name: Self-test the pruner
+        run: python3 scripts/prune-superseded-caches.py --self-test
+
+      - name: Delete superseded caches on main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -o pipefail
+          gh cache list --ref refs/heads/main --limit 200 \
+            --json id,key,createdAt,sizeInBytes \
+            > caches.json
+          python3 scripts/prune-superseded-caches.py < caches.json > doomed.txt
+          # A cache can vanish between the listing and the delete —
+          # GitHub evicts on its own to hold the quota. Losing that race
+          # is the expected outcome, not a failure.
+          while read -r id; do
+            gh cache delete "$id" || echo "already gone: $id"
+          done < doomed.txt
+
+  # Backstop for a group the rule above can never shrink: a job that was
+  # renamed or removed leaves a lone cache no newer entry supersedes.
   cleanup-stale:
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: cleanup-superseded
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
