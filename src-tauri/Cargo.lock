@@ -7766,6 +7766,7 @@ dependencies = [
  "waveflow-spotify",
  "waveflow-syncedlyrics",
  "windows 0.62.2",
+ "zbus",
  "zip 8.6.0",
 ]
 

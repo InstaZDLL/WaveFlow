@@ -928,6 +928,7 @@
     "edit": "編集",
     "save": "保存",
     "saving": "保存中…",
+    "saveFailed": "保存できませんでした: {{reason}}",
     "fields": {
       "title": "タイトル",
       "artist": "アーティスト",
@@ -1084,6 +1085,7 @@
       "output": "出力",
       "noProcessing": "処理は適用されていません",
       "bitPerfect": "ビットパーフェクト",
+      "sharedOutput": "共有出力（システムミキサー経由）",
       "loading": "読み込み中…",
       "chip": {
         "dsdToPcm": "DSD → PCM",

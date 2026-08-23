@@ -928,6 +928,7 @@
     "edit": "Bewerken",
     "save": "Opslaan",
     "saving": "Opslaan…",
+    "saveFailed": "Opslaan mislukt: {{reason}}",
     "fields": {
       "title": "Titel",
       "artist": "Artiest(en)",
@@ -1084,6 +1085,7 @@
       "output": "Uitvoer",
       "noProcessing": "Geen verwerking actief",
       "bitPerfect": "Bit-perfect",
+      "sharedOutput": "Gedeelde uitvoer (systeemmixer)",
       "loading": "Laden…",
       "chip": {
         "dsdToPcm": "DSD → PCM",

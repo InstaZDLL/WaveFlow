@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { FileAudio, Cpu, Speaker, Sparkles } from "lucide-react";
 import type { QueueTrackPayload } from "../../lib/tauri/player";
 import { playerGetAudioSettings, playerGetState } from "../../lib/tauri/player";
@@ -23,6 +24,10 @@ interface PipelineSnapshot {
   mono: boolean;
   /** Native DSD via DoP actually engaged for the current track (#495). */
   dopActive: boolean;
+  /** The output really owns the device (WASAPI Exclusive today). */
+  exclusiveActive: boolean;
+  /** Which track was playing when this was read. See `snap` below. */
+  forTrackId: number;
 }
 
 /**
@@ -78,29 +83,72 @@ function formatSampleRate(hz: number | null | undefined): string | null {
  * Pipeline DSP chips → Output) for the currently playing track. Lives
  * above [`AudioQualityFooter`] which is its only trigger today.
  *
- * Strategy on data freshness: hydrates the output-side + DSP flags on
- * mount via `playerGetState` / `playerGetAudioSettings` / `playerGetEq`
- * so the popover always reflects the real engine state rather than
- * stale React state (e.g. EQ may have been flipped from the dedicated
- * popover seconds ago). Cheap calls — atomic loads on the Rust side —
- * so we don't bother caching across hover sessions.
+ * Strategy on data freshness: reads the output-side + DSP flags from
+ * the engine via `playerGetState` / `playerGetAudioSettings` /
+ * `playerGetEq` rather than trusting React state (the EQ may have been
+ * flipped from the dedicated popover seconds ago). Cheap calls —
+ * atomic loads on the Rust side — so we don't bother caching across
+ * hover sessions.
+ *
+ * That read is repeated whenever it can have gone stale *while the
+ * popover is open*, which is the part a mount-only hydration got wrong:
+ * the popover lives for as long as the pointer rests on the footer, and
+ * a track ending under it swaps `track` for the next one while every
+ * output-side field still described the previous stream. Pairing new
+ * metadata with an old snapshot is how a verdict gets made about a
+ * stream nobody measured — a DoP track handing its `dopActive` to the
+ * PCM track after it would have exempted that one from the rate check
+ * and badged it bit-perfect.
  */
 export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
   const { t } = useTranslation();
   const { playbackSpeed } = usePlayer();
-  const [snap, setSnap] = useState<PipelineSnapshot | null>(null);
+  const [rawSnap, setRawSnap] = useState<PipelineSnapshot | null>(null);
+  // A track change and an output rebuild can put two reads in flight at
+  // once; the older one resolving second would pin a stale output
+  // format under fresh metadata. Same guard, and same reason, as
+  // `deviceRefreshTokenRef` in PlayerContext.
+  const readTokenRef = useRef(0);
 
+  const trackId = track.id;
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
+    let unlisten: UnlistenFn | null = null;
+
+    const read = async () => {
+      // A read from an effect that has already been torn down must not
+      // touch the shared token. `await listen()` can resolve after a
+      // track change, and the tail of that dead run would otherwise
+      // bump the token past the *new* effect's in-flight read and
+      // silence it — leaving the popover on "loading" until the next
+      // output rebuild or a fresh hover.
+      if (cancelled) return;
+      const token = ++readTokenRef.current;
       try {
         const [stateSnap, audioSettings, eqSnap] = await Promise.all([
           playerGetState(),
           playerGetAudioSettings(),
           playerGetEq(),
         ]);
-        if (cancelled) return;
-        setSnap({
+        if (cancelled || token !== readTokenRef.current) return;
+        // The engine's own idea of what is playing beats the prop when
+        // the two disagree. A track that advanced *after* this read
+        // started returns the new stream's output, and the prop only
+        // catches up once `player:track-changed` has been through the
+        // context and a render — so stamping this with the id we still
+        // hold would pair one track's metadata with another's
+        // measurement, which is the exact pairing the stamp exists to
+        // prevent.
+        //
+        // Only a positive disagreement counts. `current_track` is null
+        // for a Web Radio session (negative sentinel id, no library row)
+        // and whenever the persisted queue cursor hasn't caught up with
+        // the live engine — reading "no answer" as "another track"
+        // would leave radio permanently unhydrated. The read the new
+        // effect fires for itself is what fills the gap.
+        const reported = stateSnap.current_track?.id;
+        if (reported != null && reported !== trackId) return;
+        setRawSnap({
           outputSampleRate: stateSnap.sample_rate,
           outputChannels: stateSnap.channels,
           eqEnabled: eqSnap.enabled,
@@ -108,15 +156,53 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
           replaygain: audioSettings.replaygain,
           mono: audioSettings.mono,
           dopActive: stateSnap.dop_active,
+          exclusiveActive: stateSnap.exclusive_active,
+          forTrackId: trackId,
         });
       } catch (err) {
         console.error("[AudioPipelinePopover] hydrate failed", err);
       }
+    };
+
+    void (async () => {
+      // Subscribe before the first read, not after. The output is
+      // rebuilt *after* the track changes — a DoP engage, a WASAPI
+      // exclusive re-open at the new native rate — so the rebuild can
+      // land in the window between the two, and that is the one event
+      // we cannot afford to miss (see the "subscribe first, then
+      // snapshot" invariant). `player:audio-mode-changed` carries no
+      // payload; every engine path that stores a new output mode emits
+      // it.
+      try {
+        const stop = await listen("player:audio-mode-changed", () => {
+          void read();
+        });
+        if (cancelled) {
+          stop();
+        } else {
+          unlisten = stop;
+        }
+      } catch (err) {
+        // A failed subscription must not cost us the snapshot itself:
+        // a stale-after-a-rebuild popover still beats an empty one.
+        console.error("[AudioPipelinePopover] listen failed", err);
+      }
+      void read();
     })();
+
     return () => {
       cancelled = true;
+      unlisten?.();
     };
-  }, []);
+  }, [trackId]);
+
+  // A snapshot taken for the previous track describes the previous
+  // stream, so it counts as absent rather than being paired with this
+  // track's metadata. Everything below is already written to say
+  // "loading" and to withhold the verdict when there is no snapshot,
+  // which is exactly the right behaviour for the moment between a
+  // track change and the read that follows it.
+  const snap = rawSnap?.forTrackId === trackId ? rawSnap : null;
 
   const sourceCodec = track.codec ?? "—";
   const sourceRateLabel = formatSampleRate(track.sample_rate);
@@ -162,9 +248,33 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
   const isNormalize = !isDopNative && (snap?.normalize ?? false);
   const isReplayGain = !isDopNative && (snap?.replaygain ?? false);
   const isMono = !isDopNative && (snap?.mono ?? false);
-  const isBitPerfect =
+  // `isResampling` / `isDownmixing` answer "no" both when the format
+  // matches and when we never learned the source format — a track whose
+  // scan recorded no sample rate would otherwise sail through them into
+  // a verdict nothing checked. The claim needs the comparison to have
+  // actually happened. DoP is exempt: it ships at `dsd_rate / 16`, so
+  // the nominal rates never match by construction.
+  const isFormatProven =
     snap != null &&
-    // Native DoP is bit-perfect; only DSD → PCM conversion breaks it.
+    // Channels have to match outright: an output wider than the source
+    // means the engine is routing or padding, which is not "untouched"
+    // however clean the rest of the chain is.
+    track.channels != null &&
+    track.channels > 0 &&
+    snap.outputChannels === track.channels &&
+    // Only the *rate* comparison is exempt for DoP, and only because a
+    // DoP stream is carried at `dsd_rate / 16` — the nominal rates are
+    // never equal by construction. Everything else still has to hold.
+    (isDopNative ||
+      (track.sample_rate != null &&
+        track.sample_rate > 0 &&
+        snap.outputSampleRate > 0 &&
+        snap.outputSampleRate === track.sample_rate));
+  // Nothing in our own pipeline is touching the samples.
+  const isUnprocessed =
+    snap != null &&
+    isFormatProven &&
+    // Native DoP is transparent; only DSD → PCM conversion breaks it.
     (!isDsd || isDopNative) &&
     !isResampling &&
     !isDownmixing &&
@@ -173,6 +283,14 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
     !isNormalize &&
     !isReplayGain &&
     !isMono;
+  // …but bit-perfect also means nothing *downstream* touches them, and
+  // that only holds when the stream owns the device. A shared-mode
+  // stream at the same nominal rate still goes through the system
+  // mixer, which re-clocks it and mixes in whatever else is playing —
+  // the pill used to claim bit-perfect for exactly that case. DoP
+  // implies an exclusive backend, so it qualifies on its own.
+  const isBitPerfect =
+    isUnprocessed && (isDopNative || (snap?.exclusiveActive ?? false));
 
   const chips: Array<{ key: string; label: string; tone: "dsp" | "convert" }> =
     [];
@@ -341,14 +459,23 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
         </div>
       </div>
 
-      {/* Bit-perfect pill — only shown when the pipeline is fully
-          transparent. Sits at the bottom so the visual cue is the
-          last thing the audiophile reads. */}
+      {/* Verdict pill — the last thing the audiophile reads, so it has
+          to be the one we can actually stand behind: bit-perfect when
+          the stream owns the device, "no processing" when our pipeline
+          is transparent but the OS mixer still sits in the path. */}
       {isBitPerfect && (
         <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-2">
           <Sparkles size={14} className="text-emerald-500" aria-hidden="true" />
           <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
             {t("playerBar.pipeline.bitPerfect")}
+          </span>
+        </div>
+      )}
+      {!isBitPerfect && isUnprocessed && (
+        <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-2">
+          <Speaker size={14} className="text-zinc-400" aria-hidden="true" />
+          <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+            {t("playerBar.pipeline.sharedOutput")}
           </span>
         </div>
       )}

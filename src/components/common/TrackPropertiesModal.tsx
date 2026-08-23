@@ -1,13 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import { ExternalLink, ImageUp, Pencil, Save, Sparkles, X } from "lucide-react";
+import {
+  ExternalLink,
+  ImageUp,
+  Pencil,
+  Save,
+  Sparkles,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { Artwork } from "./Artwork";
 import { HiResBadge } from "./HiResBadge";
 import {
   formatDuration,
   getTrack,
+  getTrackGenres,
   setTrackRating,
   updateTrackCover,
   updateTrackTags,
@@ -104,6 +113,14 @@ export function TrackPropertiesModal({
   // the backend; consuming views listen and refetch.
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Last save failure, rendered under the form. Writing tags can fail
+  // for reasons the user can act on — a read-only file, a container we
+  // can't tag — and the dialog used to swallow all of them into a
+  // console line while looking like nothing had happened.
+  const [saveError, setSaveError] = useState<string | null>(null);
+  // Genres as they stand in the database, loaded alongside the track.
+  // `null` means "not loaded yet", which is what gates the save below.
+  const [genres, setGenres] = useState<string[] | null>(null);
   const [form, setForm] = useState<{
     title: string;
     artist: string;
@@ -141,6 +158,32 @@ export function TrackPropertiesModal({
     };
   }, [track]);
 
+  // The genre isn't on the `Track` row (it lives in `track_genre`), so
+  // it takes its own fetch. A failure leaves `genres` null, which keeps
+  // the genre out of the payload entirely rather than sending an empty
+  // string the backend would read as "erase it".
+  const trackId = track?.id;
+  useEffect(() => {
+    if (trackId == null) return;
+    let cancelled = false;
+    getTrackGenres(trackId)
+      .then((rows) => {
+        if (cancelled) return;
+        setGenres(rows);
+        // Don't stomp on the user: the fetch is a millisecond-scale IPC
+        // round trip, but a value already in the box is theirs.
+        setForm((prev) =>
+          prev.genre === "" ? { ...prev, genre: rows.join("; ") } : prev,
+        );
+      })
+      .catch((err) =>
+        console.error("[TrackProperties] get_track_genres failed", err),
+      );
+    return () => {
+      cancelled = true;
+    };
+  }, [trackId]);
+
   // Hydrate the edit form whenever the track changes. Wrapped in a
   // microtask via setTimeout(0) so the state writes happen outside
   // the effect body — keeps the cascading-render lint happy without
@@ -149,7 +192,7 @@ export function TrackPropertiesModal({
   useEffect(() => {
     if (!track) return;
     const handle = window.setTimeout(() => {
-      setForm({
+      setForm((prev) => ({
         title: track.title ?? "",
         artist: track.artist_name ?? "",
         album: track.album_title ?? "",
@@ -157,11 +200,13 @@ export function TrackPropertiesModal({
         track_number:
           track.track_number != null ? String(track.track_number) : "",
         disc_number: track.disc_number != null ? String(track.disc_number) : "",
-        // Genre isn't on the Track row yet — the editor lets the user
-        // enter / overwrite one and the backend syncs track_genre
-        // accordingly. Future iteration: surface the existing genres.
-        genre: "",
-      });
+        // Carried over rather than reset: the genre comes from its own
+        // fetch (it isn't on the `Track` row), and the two resolve in
+        // no particular order. Until that fetch lands the value stays
+        // empty and the save omits the field entirely, rather than
+        // sending an empty string the backend reads as "clear it".
+        genre: prev.genre,
+      }));
       setEditing(false);
     }, 0);
     return () => window.clearTimeout(handle);
@@ -185,6 +230,7 @@ export function TrackPropertiesModal({
   const handleSave = async () => {
     if (!track || saving) return;
     setSaving(true);
+    setSaveError(null);
     try {
       const edit: TrackEdit = {
         title: form.title,
@@ -199,14 +245,30 @@ export function TrackPropertiesModal({
           form.track_number.trim() === "" ? 0 : Number(form.track_number) || 0,
         disc_number:
           form.disc_number.trim() === "" ? 0 : Number(form.disc_number) || 0,
-        genre: form.genre,
       };
+      // The genre only rides along when the user actually changed it.
+      // Two reasons: the backend reads a present-but-empty genre as
+      // "clear it", so a fetch that hasn't landed must not be sent as
+      // one — and `sync_db` stores whatever string it receives as a
+      // *single* genre, so echoing back a track that legitimately has
+      // two would collapse them into one row named "Rock; Jazz".
+      //
+      // Compared trimmed because that is what the backend stores, so
+      // "Rock " against "Rock" is not a change and shouldn't cost a
+      // file rewrite.
+      const genre = form.genre.trim();
+      const sendingGenre = genres != null && genre !== genres.join("; ");
+      if (sendingGenre) edit.genre = genre;
       await updateTrackTags(track.id, edit);
+      // Only when we sent one — otherwise this would record a genre we
+      // never wrote, and the *next* save would act on it.
+      if (sendingGenre) setGenres(genre === "" ? [] : [genre]);
       setEditing(false);
       // The backend emits `track:updated` after the save, which the
       // surrounding views listen to and react to (re-fetch the row).
     } catch (err) {
       console.error("[TrackProperties] update_track_tags failed", err);
+      setSaveError(String(err));
     } finally {
       setSaving(false);
     }
@@ -221,6 +283,7 @@ export function TrackPropertiesModal({
       );
       if (!path) return;
       setSaving(true);
+      setSaveError(null);
       await updateTrackCover(track.id, path);
       // The backend's `track:updated` event triggers a refetch in the
       // surrounding views; the modal itself stays open on the same
@@ -228,6 +291,7 @@ export function TrackPropertiesModal({
       // the parent passes it back down.
     } catch (err) {
       console.error("[TrackProperties] update_track_cover failed", err);
+      setSaveError(String(err));
     } finally {
       setSaving(false);
     }
@@ -411,6 +475,11 @@ export function TrackPropertiesModal({
                   value={form.genre}
                   onChange={(v) => setForm((p) => ({ ...p, genre: v }))}
                   placeholder={t("trackProperties.fields.genrePlaceholder")}
+                  // Locked until we know what the track already carries.
+                  // An editable-but-empty box would take a value the save
+                  // then drops on the floor, since a genre we can't
+                  // compare against is a genre we won't send.
+                  disabled={genres == null}
                 />
                 <Row
                   label={t("trackProperties.duration")}
@@ -527,6 +596,18 @@ export function TrackPropertiesModal({
           </Section>
         </div>
 
+        {saveError && (
+          <div
+            role="alert"
+            className="mx-6 mb-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
+          >
+            <TriangleAlert size={16} className="mt-0.5 shrink-0" />
+            <span className="min-w-0 break-words">
+              {t("trackProperties.saveFailed", { reason: saveError })}
+            </span>
+          </div>
+        )}
+
         <div className="px-6 py-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-end gap-2">
           {editing ? (
             <>
@@ -628,12 +709,14 @@ function EditRow({
   onChange,
   type = "text",
   placeholder,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   type?: "text" | "number";
   placeholder?: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-center gap-4 px-3 py-2 text-sm">
@@ -645,7 +728,8 @@ function EditRow({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 min-w-0 px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200"
+        disabled={disabled}
+        className="flex-1 min-w-0 px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </div>
   );

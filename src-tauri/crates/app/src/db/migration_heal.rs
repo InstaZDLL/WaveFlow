@@ -83,16 +83,7 @@ pub async fn heal_line_ending_drift(pool: &SqlitePool, migrator: &Migrator) -> A
             continue;
         }
 
-        let sql_bytes = migration.sql.as_str().as_bytes();
-        let lf = normalize_to_lf(sql_bytes);
-        let crlf = lf_to_crlf(&lf);
-
-        let lf_hash = sha384(&lf);
-        let crlf_hash = sha384(&crlf);
-
-        if stored_ck.as_slice() == lf_hash.as_slice()
-            || stored_ck.as_slice() == crlf_hash.as_slice()
-        {
+        if is_line_ending_drift(migration.sql.as_str(), &stored_ck) {
             sqlx::query("UPDATE _sqlx_migrations SET checksum = ? WHERE version = ?")
                 .bind(canonical)
                 .bind(version)
@@ -117,6 +108,19 @@ pub async fn heal_line_ending_drift(pool: &SqlitePool, migrator: &Migrator) -> A
         );
     }
     Ok(healed)
+}
+
+/// Whether `stored` is the checksum of the *same* SQL as `sql`, written
+/// with the other platform's line endings.
+///
+/// Shared with [`super::schema_guard`], which has to ask the same
+/// question before it refuses a launch: a divergence this returns `true`
+/// for is one the heal pass will fix a moment later, and refusing on it
+/// would brick a healthy install over a newline.
+pub(crate) fn is_line_ending_drift(sql: &str, stored: &[u8]) -> bool {
+    let lf = normalize_to_lf(sql.as_bytes());
+    let crlf = lf_to_crlf(&lf);
+    stored == sha384(&lf).as_slice() || stored == sha384(&crlf).as_slice()
 }
 
 /// Collapse any CRLF in `input` to LF, leaving lone CR and lone LF

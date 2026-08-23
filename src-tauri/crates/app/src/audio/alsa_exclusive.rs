@@ -9,9 +9,16 @@
 //! MSB-justified in the 32-bit sample (marker in the top byte) via
 //! [`super::dop_pack::fill_dop_period_i32`].
 //!
-//! If the DAC won't accept `S32_LE` at the DoP rate, or another client
-//! already holds the `hw:` device, the open fails and the engine falls
-//! back to the ordinary DSD → PCM path (through cpal shared).
+//! If the DAC won't accept `S32_LE` at the DoP rate the open fails and
+//! the engine falls back to the ordinary DSD → PCM path (through cpal
+//! shared).
+//!
+//! A device held by *another client* is a different story, and used to
+//! end the same way: on a desktop the holder is PipeWire or PulseAudio,
+//! which grabbed the card at login, so DoP fell back on every machine
+//! that had a sound server — silently. It now asks for the card through
+//! [`super::device_reservation`] and retries; the fallback is what
+//! happens when that is refused, not the first thing we do.
 //!
 //! Same SPSC ring contract as the other backends (`Producer<f32>` →
 //! `Consumer<f32>`, words carried as `f32` bit patterns), so the decoder
@@ -20,6 +27,7 @@
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread::JoinHandle;
+use std::time::{Duration, Instant};
 
 use alsa::pcm::{Access, Format, HwParams, State, PCM};
 use alsa::{Direction, ValueOr};
@@ -111,11 +119,41 @@ fn output_thread_main(
     };
     let channels = dop.channels as usize;
 
-    let (pcm, period_frames) = match open_pcm(&dev, dop) {
-        Ok(v) => v,
-        Err(err) => {
-            tracing::warn!(%err, device = %dev, "alsa dop init failed");
-            let _ = init_tx.send(Err(err));
+    // The reservation is bound alongside the PCM and dropped with it:
+    // holding a card we are no longer playing on would keep the sound
+    // server locked out of it.
+    let (_reservation, pcm, period_frames) = match open_pcm(&dev, dop) {
+        Ok((pcm, period_frames)) => (None, pcm, period_frames),
+        Err(failure) if failure.busy => {
+            // Someone else owns the card. On any desktop that is the
+            // sound server, and the protocol below is how you ask it to
+            // step aside; before this, the answer was always to give up.
+            let reservation =
+                hw_card_index(&dev).and_then(super::device_reservation::Reservation::acquire);
+            let Some(reservation) = reservation else {
+                tracing::warn!(
+                    device = %dev,
+                    "alsa dop: the card is busy and could not be reserved; falling back to DSD -> PCM"
+                );
+                let _ = init_tx.send(Err(failure.err));
+                return;
+            };
+            match open_after_release(&dev, dop) {
+                Ok((pcm, period_frames)) => (Some(reservation), pcm, period_frames),
+                Err(failure) => {
+                    tracing::warn!(
+                        err = %failure.err,
+                        device = %dev,
+                        "alsa dop: the card stayed busy after the reservation"
+                    );
+                    let _ = init_tx.send(Err(failure.err));
+                    return;
+                }
+            }
+        }
+        Err(failure) => {
+            tracing::warn!(err = %failure.err, device = %dev, "alsa dop init failed");
+            let _ = init_tx.send(Err(failure.err));
             return;
         }
     };
@@ -284,12 +322,63 @@ fn find_card_index(name: &str) -> Option<i32> {
     })
 }
 
+/// The ALSA card index behind a resolved `hw:` name.
+///
+/// The reservation protocol is keyed on the index, not on the name, so
+/// `hw:CARD=D50s` has to be resolved back through the card list.
+fn hw_card_index(dev: &str) -> Option<i32> {
+    let first = dev.strip_prefix("hw:")?.split(',').next()?;
+    if let Ok(index) = first.parse::<i32>() {
+        return Some(index);
+    }
+    find_card_index(first.strip_prefix("CARD=")?)
+}
+
+/// A failed open, plus the one thing the caller has to branch on: a
+/// device another client is holding can be asked for, a device that
+/// can't do this DoP rate cannot.
+struct PcmOpenError {
+    busy: bool,
+    err: AppError,
+}
+
+impl From<AppError> for PcmOpenError {
+    fn from(err: AppError) -> Self {
+        Self { busy: false, err }
+    }
+}
+
+/// Retry the open while the sound server finishes letting go.
+///
+/// Releasing is asynchronous on its side — it sees `NameLost`, plays
+/// out what it has buffered and only then closes the device — so the
+/// first open after the reservation lands still returns `EBUSY`.
+fn open_after_release(dev: &str, dop: DopFormat) -> Result<(PCM, usize), PcmOpenError> {
+    const STEP: Duration = Duration::from_millis(50);
+    let deadline = Instant::now() + super::device_reservation::RELEASE_GRACE;
+    loop {
+        // Try before waiting: a server that let go promptly costs
+        // nothing, and a device that simply cannot do this DoP rate
+        // says so on the first attempt.
+        match open_pcm(dev, dop) {
+            Ok(opened) => return Ok(opened),
+            Err(failure) if failure.busy && Instant::now() < deadline => {
+                std::thread::sleep(STEP);
+            }
+            Err(failure) => return Err(failure),
+        }
+    }
+}
+
 /// Open the `hw:` device at the exact DoP format. Returns the PCM plus its
-/// negotiated period size (frames). Any rejection (busy device, rate /
-/// format unsupported) is an error → the caller falls back to DSD → PCM.
-fn open_pcm(dev: &str, dop: DopFormat) -> AppResult<(PCM, usize)> {
-    let pcm = PCM::new(dev, Direction::Playback, false)
-        .map_err(|e| AppError::Audio(format!("alsa open {dev}: {e}")))?;
+/// negotiated period size (frames). A rejection (busy device, rate /
+/// format unsupported) is an error → the caller either reserves the
+/// card and retries, or falls back to DSD → PCM.
+fn open_pcm(dev: &str, dop: DopFormat) -> Result<(PCM, usize), PcmOpenError> {
+    let pcm = PCM::new(dev, Direction::Playback, false).map_err(|e| PcmOpenError {
+        busy: e.errno() == libc::EBUSY,
+        err: AppError::Audio(format!("alsa open {dev}: {e}")),
+    })?;
 
     {
         let hwp =
@@ -321,17 +410,44 @@ fn open_pcm(dev: &str, dop: DopFormat) -> AppResult<(PCM, usize)> {
             return Err(AppError::Audio(format!(
                 "alsa gave {actual_rate} Hz, DoP needs exactly {} Hz — device can't do this DoP rate",
                 dop.sample_rate
-            )));
+            ))
+            .into());
         }
         hwp.get_period_size()
             .map_err(|e| AppError::Audio(format!("alsa get_period_size: {e}")))? as usize
     };
     if period_frames == 0 {
-        return Err(AppError::Audio("alsa reported a zero period size".into()));
+        return Err(AppError::Audio("alsa reported a zero period size".into()).into());
     }
 
     pcm.prepare()
         .map_err(|e| AppError::Audio(format!("alsa prepare: {e}")))?;
 
     Ok((pcm, period_frames))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::hw_card_index;
+
+    #[test]
+    fn a_numeric_hw_name_yields_its_index() {
+        assert_eq!(hw_card_index("hw:0,0"), Some(0));
+        assert_eq!(hw_card_index("hw:3"), Some(3));
+    }
+
+    #[test]
+    fn a_name_we_never_resolved_to_hw_has_no_index() {
+        // `resolve_hw_device` only ever hands us `hw:` names, but the
+        // reservation must not invent a card index from anything else.
+        assert_eq!(hw_card_index("default"), None);
+        assert_eq!(hw_card_index("plughw:1,0"), None);
+    }
+
+    #[test]
+    fn a_card_selector_is_looked_up_and_not_parsed() {
+        // `hw:CARD=…` carries a name, not an index — parsing it as a
+        // number would reserve card 0 and hand the wrong device over.
+        assert_eq!(hw_card_index("hw:CARD=NoSuchCardHere,DEV=0"), None);
+    }
 }

@@ -994,6 +994,7 @@
     "edit": "Изменить",
     "save": "Сохранить",
     "saving": "Сохранение…",
+    "saveFailed": "Не удалось сохранить: {{reason}}",
     "fields": {
       "title": "Название",
       "artist": "Исполнитель(и)",
@@ -1164,6 +1165,7 @@
       "output": "Выход",
       "noProcessing": "Обработка не применяется",
       "bitPerfect": "Bit-perfect",
+      "sharedOutput": "Общий выход (системный микшер)",
       "loading": "Загрузка…",
       "chip": {
         "dsdToPcm": "DSD → PCM",

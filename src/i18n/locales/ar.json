@@ -1031,6 +1031,7 @@
     "edit": "تعديل",
     "save": "حفظ",
     "saving": "جارٍ الحفظ…",
+    "saveFailed": "تعذّر الحفظ: {{reason}}",
     "fields": {
       "title": "العنوان",
       "artist": "الفنان (الفنانون)",
@@ -1209,6 +1210,7 @@
       "output": "الخرج",
       "noProcessing": "لا توجد معالجة مطبقة",
       "bitPerfect": "دقة بت مثالية",
+      "sharedOutput": "إخراج مشترك (مازج النظام)",
       "loading": "جارٍ التحميل…",
       "chip": {
         "dsdToPcm": "DSD → PCM",

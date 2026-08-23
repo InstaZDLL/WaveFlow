@@ -4,7 +4,7 @@ The library is a per-profile SQLite database (`<root>/profiles/<id>/data.db`) ke
 
 ## Scanning
 
-- **Tag extraction** — [`lofty 0.24`](https://crates.io/crates/lofty) reads ID3v2 / Vorbis Comments / MP4 atoms and surfaces title, artist(s), album, album artist, year, track / disc number, genre, embedded artwork, POPM ratings, and the tagged musical key (`TKEY` / `INITIALKEY`).
+- **Tag extraction** — [`lofty 0.25`](https://crates.io/crates/lofty) reads ID3v2 / Vorbis Comments / MP4 atoms and surfaces title, artist(s), album, album artist, year, track / disc number, genre, embedded artwork, POPM ratings, and the tagged musical key (`TKEY` / `INITIALKEY`).
 - **Folder cover fallback** — when a track carries no embedded picture, the scanner inspects its parent directory for a sidecar image with one of the canonical stems (`cover`, `folder`, `front`, `albumart`, `album`, `artwork`) and an extension the thumbnail pipeline can decode (`jpg`/`jpeg`, `png`, `webp`, `bmp`, `gif`, `tiff`). The first match — by stem priority, not alphabetical — is hash-addressed into the shared `artwork/` dir like an embedded picture. The provenance is tagged `source = 'folder'` in the `artwork` table so a future cleanup job can distinguish it from `'embedded'`, `'deezer'`, or `'user'` entries. Covers common CD-rip / lossless layouts where the artwork sits beside the audio files.
 - **Audio quality** — sample rate, bitrate, channel count, bit depth and codec are captured at scan time. Hi-Res badges (≥ 24-bit, ≥ 44.1 kHz) light up automatically on covers and rows.
 - **Watch folders** — [`notify 8`](https://crates.io/crates/notify) drives a per-folder filesystem watcher with debounced rescans so files dropped into a watched directory appear without a manual refresh. Deletions flag rows `is_available = 0` rather than purging them, so play history, ratings and playlist memberships survive a reorganisation.
@@ -78,6 +78,18 @@ Tag edits go through the same funnel: [`edit.rs`](../../src-tauri/crates/app/src
 - **Track Properties dialog** — foobar2000-style modal with the full tag set, audio specs, analysis results, file path and a Show in Explorer button.
 - **POPM ratings** — 5-star with half-steps, round-tripped to the file's tag. Edit surfaces: inline `StarRating` in the library track list, integer-star submenu in the right-click `TrackContextMenu` (any view), full half-star widget in the `TrackPropertiesModal`. The backend command `set_track_rating` writes the POPM frame back to the file (binary `<email>\0<rating><counter>` for ID3v2, text `RATING=0-100` for Vorbis / MP4 / APE), updates `track.rating` in the DB, then emits `track:updated` so every open view re-fetches without polling. Containers lofty can't open (DSD) keep a DB-only rating; the next folder scan still preserves it because the fast-path skip on `(mtime, size)` never re-extracts unchanged files. Smart playlists expose this as the `rating_min` rule — see [smart-playlists.md](smart-playlists.md#custom-smart-playlists-recursive-boolean-rule-tree).
 - **Lightbox** — double-click any cover or artist photo to view full-size with keyboard navigation.
+
+## Tag editing
+
+[`commands/edit.rs`](../../src-tauri/crates/app/src/commands/edit.rs) writes the file first, then mirrors the change into the database (`track` / `album` / `artist` / `track_artist` / `track_genre`) inside one transaction, re-hashes the file and emits `track:updated` + `library:rescanned` + `player:queue-changed`.
+
+**Every write goes through `patch_file`**, which reads the *concrete* lofty file type rather than the generic `TaggedFile`. See the [invariant](../architecture/invariants.md#tag-writes-go-through-the-concrete-tag) for why: the generic round trip drops non-standard Vorbis comments, so editing a FLAC's title used to erase the `SYNCEDLYRICS` our own lyrics editor had written into it. The same function serves the cover write, which replaces the front cover and leaves a release's booklet, back cover and artist shots alone.
+
+`.dsf` / `.dff` are refused before anything is touched — lofty has no DSD reader, so there is no write path to fall back on. The dialog shows the reason instead of failing silently.
+
+**The genre is fetched separately.** It lives in `track_genre`, not on the `Track` row, so [`TrackPropertiesModal`](../../src/components/common/TrackPropertiesModal.tsx) loads it through `get_track_genres` and pre-fills the input. It has to: the dialog sends every field on save, and a genre input that opened empty read as "the user cleared it" — erasing the value from the file *and* from the database, with no rescan able to recover it. Until that fetch lands the field is omitted from the payload entirely rather than sent empty. The batch editor ([`BatchTagEditModal`](../../src/components/common/BatchTagEditModal.tsx)) never had the problem: it sends only the fields the user explicitly enabled.
+
+A failed save is rendered in the dialog rather than logged to the console.
 
 ## Search
 

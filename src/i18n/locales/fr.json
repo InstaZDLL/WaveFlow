@@ -928,6 +928,7 @@
     "edit": "Modifier",
     "save": "Enregistrer",
     "saving": "Enregistrement…",
+    "saveFailed": "Échec de l'enregistrement : {{reason}}",
     "fields": {
       "title": "Titre",
       "artist": "Artiste(s)",
@@ -1084,6 +1085,7 @@
       "output": "Sortie",
       "noProcessing": "Aucun traitement appliqué",
       "bitPerfect": "Bit-perfect",
+      "sharedOutput": "Sortie partagée (mixeur système)",
       "loading": "Chargement…",
       "chip": {
         "dsdToPcm": "DSD → PCM",

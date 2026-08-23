@@ -289,6 +289,11 @@ tempfile = "3"
 [target.'cfg(target_os = "linux")'.dependencies]
 alsa = "0.10"
 libc = "0.2"
+# `org.freedesktop.ReserveDevice1`, the protocol that asks PipeWire /
+# PulseAudio to let go of a card so the DoP path can open it as `hw:`
+# (see `audio::device_reservation`). No new tree: the same zbus is
+# already pulled in on Linux by notify-rust and two Tauri plugins.
+zbus = "5"
 
 # Windows-only: opt-in bit-perfect playback via WASAPI Exclusive Mode.
 # `wasapi` is a thin safe wrapper over the Win32 audio COM API — it

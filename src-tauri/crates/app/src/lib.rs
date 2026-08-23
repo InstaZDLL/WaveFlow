@@ -170,7 +170,11 @@ pub fn run() {
                         // Everything else keeps propagating into Tauri's
                         // "Failed to setup app" panic, which is the
                         // right shape for a bug.
-                        if matches!(err, AppError::SchemaFromTheFuture { .. }) {
+                        if matches!(
+                            err,
+                            AppError::SchemaFromTheFuture { .. }
+                                | AppError::SchemaWrittenElsewhere { .. }
+                        ) {
                             tracing::error!(%err, "fatal startup error, exiting");
                             // `exit` runs no destructors, so the line
                             // above would die in the writer's buffer.
@@ -640,6 +644,7 @@ pub fn run() {
             commands::deezer::clear_artist_artwork,
             commands::track::list_tracks,
             commands::track::get_track,
+            commands::track::get_track_genres,
             commands::track::search_tracks,
             commands::track::search_tracks_advanced,
             commands::edit::update_track_tags,
@@ -1175,6 +1180,20 @@ fn report_fatal_and_exit(err: &AppError) -> ! {
                 ),
             )
         }
+        AppError::SchemaWrittenElsewhere { scope, version } => (
+            "WaveFlow can't open this library".to_string(),
+            format!(
+                "{} was set up by a different build of WaveFlow, and one of the \
+                 database updates it applied does not match the one this build \
+                 ships.\n\n\
+                 Running it anyway could corrupt the library, so WaveFlow stopped \
+                 before touching anything.\n\n\
+                 {}\n\n\
+                 Database update {version}.",
+                scope.label(),
+                scope.remedy(),
+            ),
+        ),
         // Not reachable today — the caller filters — but a `match` that
         // can't fall over is one less way for a future variant to reach
         // the user as an empty dialog.

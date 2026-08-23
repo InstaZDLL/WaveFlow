@@ -928,6 +928,7 @@
     "edit": "편집",
     "save": "저장",
     "saving": "저장 중…",
+    "saveFailed": "저장하지 못했습니다: {{reason}}",
     "fields": {
       "title": "제목",
       "artist": "아티스트",
@@ -1084,6 +1085,7 @@
       "output": "출력",
       "noProcessing": "처리 없음",
       "bitPerfect": "비트 퍼펙트",
+      "sharedOutput": "공유 출력(시스템 믹서)",
       "loading": "로드 중…",
       "chip": {
         "dsdToPcm": "DSD → PCM",

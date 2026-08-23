@@ -189,6 +189,36 @@ pub async fn get_track(
     Ok(row.map(|row| track_from_row(row, &artwork_dir)))
 }
 
+/// The genres linked to a track, in display order.
+///
+/// The properties dialog needs them to *pre-fill* its genre input. It
+/// used to open that input empty and send it back on every save, which
+/// read as "the user cleared the genre" and wiped it from the file and
+/// from `track_genre` — a rescan could not undo it because the file no
+/// longer carried the value either.
+///
+/// Returns a list because `track_genre` is a many-to-many, but the
+/// scanner writes exactly one row per track (the raw tag string), so in
+/// practice this is empty or a single entry.
+#[tauri::command]
+pub async fn get_track_genres(
+    state: tauri::State<'_, AppState>,
+    track_id: i64,
+) -> AppResult<Vec<String>> {
+    let pool = state.require_profile_pool().await?;
+    let names = sqlx::query_scalar::<_, String>(
+        "SELECT g.name
+           FROM track_genre tg
+           JOIN genre g ON g.id = tg.genre_id
+          WHERE tg.track_id = ?
+          ORDER BY g.name COLLATE NOCASE",
+    )
+    .bind(track_id)
+    .fetch_all(&*pool)
+    .await?;
+    Ok(names)
+}
+
 /// Full-text search via the `track_fts` FTS5 virtual table (kept in sync
 /// by triggers). Returns up to 50 matching tracks, ranked by relevance.
 /// The query is sanitized: double-quotes are stripped and a trailing `*`

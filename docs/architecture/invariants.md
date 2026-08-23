@@ -82,6 +82,8 @@ sqlx records a SHA-384 checksum in `_sqlx_migrations.checksum` at apply time, so
 
 **A database from a newer build is refused, out loud.** Because migrations only ever get appended, a database records the newest build that ever touched it, and an older binary finds a `_sqlx_migrations` row it has no migration for. Refusing is right — replaying a newer schema through older code corrupts it — but the refusal used to leave `AppState::init`, and an error out of the Tauri `setup` hook is a panic: the splash painted, the process died with it, nothing explained (#526). [`db::schema_guard`](../../src-tauri/crates/app/src/db/schema_guard.rs) now detects the case ahead of the migrator, `run` asks it once more before the event loop even starts, and the answer reaches the user as a native dialog and a clean exit (#529 is why that ordering is not cosmetic).
 
+**Two shapes, one accident.** A downgrade lands as an unknown `version` only when the builds do not share the migration id. When they do — a migration amended before release, a beta whose file was edited after the stable cut — sqlx reports `VersionMismatch` on the checksum instead, and that one still panicked out of `setup`. `ensure_no_foreign_migration` covers it, next to `ensure_not_from_the_future` and with the same treatment. The version guard answers first when both apply, because naming how far ahead the database is gives the user more to act on. Line-ending drift is deliberately excluded: [`migration_heal`](../../src-tauri/crates/app/src/db/migration_heal.rs) repairs that a moment later, and refusing on it would turn a Windows checkout quirk into a dead install — both passes share the one `is_line_ending_drift` helper so they cannot drift apart on what counts.
+
 Four rules come out of that, in order:
 
 - **Guard before heal, heal before run.** The guard runs first because the heal pass _writes_ — no rewriting checksums into a database this build has already decided not to touch.
@@ -116,6 +118,21 @@ Deep dive: [library § album grouping](../features/library.md#album-grouping).
 ### File-write safety on Windows
 
 Any command that rewrites an audio file (`edit::update_track_tags`, `save_lyrics`, `set_track_rating`) MUST pause playback first when the engine reports the edited track as `current_track_id` — lofty's `save_to_path` needs an exclusive handle on Windows. Re-hash with blake3 and update `track.file_hash` after the write so the scanner's `(mtime, size)` fast path stays addressable.
+
+### Tag writes go through the concrete tag
+
+**Never write a file by mutating `lofty::read_from_path(...)` and calling `save_to_path` on the `TaggedFile`.** Go through [`edit::patch_file`](../../src-tauri/crates/app/src/commands/edit.rs), which reads the concrete file type (`FlacFile`, `MpegFile`, `Mp4File`, …), splits its tag, applies the edit to the generic half and merges the remainder back.
+
+The reason is that `TaggedFile` holds *generic* `Tag`s, built by splitting each concrete tag into what has an `ItemKey` mapping plus a remainder — and what happens to that remainder is not uniform. `Id3v2Tag` stashes it in the `Tag`'s companion slot and restores it on write; `VorbisComments` does not (`From<VorbisComments> for Tag` is `split_tag().1`), so **every non-standard comment on a FLAC / Ogg / Opus / Speex file is dropped by the round trip** — our own `SYNCEDLYRICS`, `REPLAYGAIN_*` values another tagger left, anything a different player stores. Nothing warns, and no rescan brings it back.
+
+Two rules ride along in the same function:
+
+- **The year goes on the date item**, not `ItemKey::Year`. `Year` has no ID3v2 mapping at all, so writing it there dropped the value silently while the database happily recorded the new year.
+- **A cover replaces the front cover, not the artwork.** Clearing `tag.pictures()` to make room for one image also threw away the booklet, the back cover and the artist shot. Only `CoverFront` and the untyped `Other` are removed.
+
+Containers the scanner indexes but lofty cannot tag (`.dsf` / `.dff` — lofty's `FileType` has no DSD variant) are refused up front with a message that says so, instead of failing later as an unrelated "unknown format".
+
+Deep dive: [library § tag editing](../features/library.md#tag-editing).
 
 ---
 

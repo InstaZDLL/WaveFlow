@@ -40,6 +40,13 @@ export interface PlayerStateSnapshot {
   current_track: QueueTrackPayload | null;
   /** True when the output is shipping native DSD via DoP (#495). */
   dop_active: boolean;
+  /**
+   * True when the stream really owns the device (WASAPI Exclusive
+   * today). False on Linux / macOS and after a fallback to shared mode.
+   * What separates a bit-perfect stream from one the system mixer
+   * re-clocks on its way to the DAC.
+   */
+  exclusive_active: boolean;
 }
 
 /** Event payloads emitted by the Rust decoder thread. */

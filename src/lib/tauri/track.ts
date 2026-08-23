@@ -175,6 +175,19 @@ export function getTrack(trackId: number): Promise<Track | null> {
 }
 
 /**
+ * The genres linked to a track. The properties dialog needs them to
+ * pre-fill its genre input: it sends the field back on every save, so an
+ * input that opened empty read as "clear the genre" and erased it from
+ * the file as well as from the database.
+ *
+ * A list because `track_genre` is a many-to-many, but the scanner writes
+ * one row per track, so this is empty or a single entry in practice.
+ */
+export function getTrackGenres(trackId: number): Promise<string[]> {
+  return invoke<string[]>("get_track_genres", { trackId });
+}
+
+/**
  * Multi-criteria filters layered on top of the FTS5 search. Every field
  * is optional — `query` itself can be omitted to run a pure-filter
  * browse (e.g. "all my Hi-Res FLACs from the 90s").

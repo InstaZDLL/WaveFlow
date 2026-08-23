@@ -928,6 +928,7 @@
     "edit": "編輯",
     "save": "儲存",
     "saving": "儲存中…",
+    "saveFailed": "儲存失敗：{{reason}}",
     "fields": {
       "title": "標題",
       "artist": "藝人",
@@ -1084,6 +1085,7 @@
       "output": "輸出",
       "noProcessing": "無處理",
       "bitPerfect": "位元完美",
+      "sharedOutput": "共用輸出（系統混音器）",
       "loading": "載入中…",
       "chip": {
         "dsdToPcm": "DSD → PCM",

@@ -928,6 +928,7 @@
     "edit": "संपादन",
     "save": "सहेजें",
     "saving": "सहेज रहा है…",
+    "saveFailed": "सहेजा नहीं जा सका: {{reason}}",
     "fields": {
       "title": "शीर्षक",
       "artist": "कलाकार",
@@ -1084,6 +1085,7 @@
       "output": "आउटपुट",
       "noProcessing": "कोई प्रसंस्करण लागू नहीं",
       "bitPerfect": "बिट-परफेक्ट",
+      "sharedOutput": "साझा आउटपुट (सिस्टम मिक्सर)",
       "loading": "लोड हो रहा है…",
       "chip": {
         "dsdToPcm": "DSD → PCM",
