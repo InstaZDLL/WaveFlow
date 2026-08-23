@@ -21,6 +21,11 @@ pub mod analytics;
 pub mod coreaudio_exclusive;
 pub mod crossfade;
 pub mod decoder;
+// Linux-only: asks the sound server for the card before we try to open
+// it exclusively. See the module doc for why an `EBUSY` is a question
+// and not an answer.
+#[cfg(target_os = "linux")]
+pub mod device_reservation;
 pub mod dop_pack;
 pub mod engine;
 pub mod eq;
