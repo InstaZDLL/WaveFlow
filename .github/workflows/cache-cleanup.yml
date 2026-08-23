@@ -71,8 +71,11 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -o pipefail
-          gh cache list --ref refs/heads/main --limit 200 \
-            --json id,key,createdAt,sizeInBytes \
+          # Paginated rather than `gh cache list --limit N`: a limit can
+          # only ever be too small, and silently pruning a truncated
+          # listing would leave the quota full for reasons nothing logs.
+          gh api --paginate --slurp \
+            "repos/$GH_REPO/actions/caches?ref=refs/heads/main&per_page=100" \
             > caches.json
           python3 scripts/prune-superseded-caches.py < caches.json > doomed.txt
           # A cache can vanish between the listing and the delete —
@@ -97,7 +100,13 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           echo "Cleaning stale caches on main (last accessed > 7 days ago)"
-          CUTOFF=$(date -d '7 days ago' --iso-8601=seconds)
-          gh cache list --ref refs/heads/main --limit 200 \
-            --json id,lastAccessedAt,key --jq ".[] | select(.lastAccessedAt < \"$CUTOFF\") | .id" |
-            xargs -I {} gh cache delete {} || true
+          # `%Y-%m-%dT%H:%M:%SZ` rather than --iso-8601, whose `+00:00`
+          # suffix does not compare as a string against the API's `Z`.
+          CUTOFF=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          # Paginated for the same reason as the job above. No --slurp
+          # here: gh rejects it alongside --jq, and none is needed —
+          # the query runs per page and the matches concatenate.
+          gh api --paginate \
+            "repos/$GH_REPO/actions/caches?ref=refs/heads/main&per_page=100" \
+            --jq ".actions_caches[] | select(.last_accessed_at < \"$CUTOFF\") | .id" |
+            xargs -r -I {} gh cache delete {} || true

@@ -24,10 +24,15 @@ key shares its prefix and whose creation is more recent. So this script
 groups by key-minus-the-trailing-hashes, keeps the newest of each
 group, and names the rest.
 
-Reads `gh cache list --json id,key,createdAt,sizeInBytes` on stdin,
-writes the ids to delete on stdout one per line, and a readable summary
-on stderr. It deletes nothing and makes no network call, which is what
-lets `--self-test` cover the whole decision.
+Reads a cache listing on stdin, writes the ids to delete on stdout one
+per line, and a readable summary on stderr. It deletes nothing and makes
+no network call, which is what lets `--self-test` cover the whole
+decision.
+
+Both listing shapes are accepted: `gh cache list --json …`, and the
+pages `gh api --paginate --slurp …/actions/caches` produces. The
+workflow uses the latter, because `gh cache list` takes a `--limit` and
+a limit can only ever be too small.
 """
 
 import argparse
@@ -51,6 +56,40 @@ def group_of(key):
         if stripped == key:
             return key
         key = stripped
+
+
+def entries(payload):
+    """Flatten a listing to cache records with `gh cache list` field names.
+
+    `gh api --paginate --slurp` yields one object per page, each holding
+    an `actions_caches` array and REST's snake_case fields; `gh cache
+    list --json` yields the records directly, camelCased. Normalising
+    here rather than in jq keeps the shapes under `--self-test`.
+    """
+    if isinstance(payload, dict):
+        payload = [payload]
+
+    records = []
+    for item in payload:
+        if isinstance(item, dict) and "actions_caches" in item:
+            records.extend(item["actions_caches"])
+        else:
+            records.append(item)
+
+    normalised = []
+    for record in records:
+        size = record.get("sizeInBytes")
+        if size is None:
+            size = record.get("size_in_bytes", 0)
+        normalised.append(
+            {
+                "id": record["id"],
+                "key": record["key"],
+                "createdAt": record.get("createdAt") or record["created_at"],
+                "sizeInBytes": size,
+            }
+        )
+    return normalised
 
 
 def superseded(caches, keep=1):
@@ -97,7 +136,7 @@ def main(argv=None):
     if args.keep < 1:
         parser.error("--keep must be at least 1; keeping none deletes the entry every run restores")
 
-    caches = json.load(sys.stdin)
+    caches = entries(json.load(sys.stdin))
     doomed = superseded(caches, keep=args.keep)
 
     if not doomed:
@@ -221,6 +260,60 @@ def self_test():
     # A key carrying no hash at all still groups as itself rather than
     # collapsing into a neighbour.
     check("an unhashed key groups as itself", group_of("plain-key"), "plain-key")
+
+    # The workflow feeds paginated REST pages, so the flattening and the
+    # snake_case field names are part of the decision, not plumbing
+    # around it. A page boundary must not hide a generation.
+    rest_pages = [
+        {
+            "total_count": 3,
+            "actions_caches": [
+                {
+                    "id": 1,
+                    "key": "v0-rust-rust-Linux-x64-718c915e-2e9a1d04",
+                    "created_at": "2026-08-22T23:40:34Z",
+                    "size_in_bytes": 1867841536,
+                },
+                {
+                    "id": 2,
+                    "key": "v0-rust-rust-Linux-x64-718c915e-f884c40f",
+                    "created_at": "2026-08-22T23:58:59Z",
+                    "size_in_bytes": 1884653903,
+                },
+            ],
+        },
+        {
+            "total_count": 3,
+            "actions_caches": [
+                {
+                    "id": 3,
+                    "key": "v0-rust-rust-Linux-x64-718c915e-6da14145",
+                    "created_at": "2026-08-23T07:37:57Z",
+                    "size_in_bytes": 1884653903,
+                }
+            ],
+        },
+    ]
+    check(
+        "paginated REST pages are flattened, and the newest page wins",
+        sorted(c["id"] for c in superseded(entries(rest_pages))),
+        [1, 2],
+    )
+    check("REST sizes survive normalisation", entries(rest_pages)[0]["sizeInBytes"], 1867841536)
+    check("a single REST page needs no wrapping", len(entries(rest_pages[0])), 2)
+    check("an empty page contributes nothing", entries({"total_count": 0, "actions_caches": []}), [])
+    check(
+        "gh cache list records pass through unchanged",
+        entries([cache(1, "some-key-2e9a1d04", "2026-08-22T23:40:34Z", size=7)]),
+        [
+            {
+                "id": 1,
+                "key": "some-key-2e9a1d04",
+                "createdAt": "2026-08-22T23:40:34Z",
+                "sizeInBytes": 7,
+            }
+        ],
+    )
 
     for failure in failures:
         print(f"FAIL {failure}", file=sys.stderr)
