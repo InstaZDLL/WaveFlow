@@ -19,10 +19,10 @@ Age cannot spot them. The workflow's older rule dropped caches on
 read within the hour — every pull request restores the newest one,
 which says nothing about the two it supersedes.
 
-What identifies a dead cache is structural: another cache exists whose
-key shares its prefix and whose creation is more recent. So this script
-groups by key-minus-the-trailing-hashes, keeps the newest of each
-group, and names the rest.
+What identifies a dead cache is structural: another cache exists that a
+future run would reach instead — same key prefix, same version, more
+recent. So this script groups by key-minus-the-trailing-hashes paired
+with the version, keeps the newest of each group, and names the rest.
 
 Reads a cache listing on stdin, writes the ids to delete on stdout one
 per line, and a readable summary on stderr. It deletes nothing and makes
@@ -85,6 +85,11 @@ def entries(payload):
             {
                 "id": record["id"],
                 "key": record["key"],
+                # A restore matches key *and* version, so two versions
+                # are not interchangeable. Absent from a listing that
+                # did not ask for it, in which case every entry gets the
+                # same blank and grouping falls back to the key alone.
+                "version": record.get("version", ""),
                 "createdAt": record.get("createdAt") or record["created_at"],
                 "sizeInBytes": size,
             }
@@ -95,13 +100,25 @@ def entries(payload):
 def superseded(caches, keep=1):
     """Caches outranked by `keep` newer entries sharing their group.
 
+    A group is a key prefix *and* a version. Version hashes the cache
+    paths, and a restore matches on both, so two versions under one
+    prefix answer different questions: collapsing them would let two
+    jobs evict each other's entry in turn and never hit again. Nothing
+    in this repository splits a prefix that way today — the check is
+    what keeps the rule honest to its own claim, that it only drops
+    what no run can reach.
+
+    A version that genuinely died — the paths changed, so nothing
+    derives it any more — survives this rule and falls to the age
+    backstop instead. Bounded staleness, not a permanent leak.
+
     Ordering is by creation, not by list order: `gh cache list` sorts by
     last access by default, and last access is precisely the signal that
     fails to tell a live generation from a dead one.
     """
     groups = {}
     for cache in caches:
-        groups.setdefault(group_of(cache["key"]), []).append(cache)
+        groups.setdefault((group_of(cache["key"]), cache.get("version", "")), []).append(cache)
 
     doomed = []
     for group in groups.values():
@@ -271,12 +288,14 @@ def self_test():
                 {
                     "id": 1,
                     "key": "v0-rust-rust-Linux-x64-718c915e-2e9a1d04",
+                    "version": "751b220e8ea2",
                     "created_at": "2026-08-22T23:40:34Z",
                     "size_in_bytes": 1867841536,
                 },
                 {
                     "id": 2,
                     "key": "v0-rust-rust-Linux-x64-718c915e-f884c40f",
+                    "version": "751b220e8ea2",
                     "created_at": "2026-08-22T23:58:59Z",
                     "size_in_bytes": 1884653903,
                 },
@@ -288,6 +307,7 @@ def self_test():
                 {
                     "id": 3,
                     "key": "v0-rust-rust-Linux-x64-718c915e-6da14145",
+                    "version": "751b220e8ea2",
                     "created_at": "2026-08-23T07:37:57Z",
                     "size_in_bytes": 1884653903,
                 }
@@ -300,19 +320,53 @@ def self_test():
         [1, 2],
     )
     check("REST sizes survive normalisation", entries(rest_pages)[0]["sizeInBytes"], 1867841536)
+    check("REST versions survive normalisation", entries(rest_pages)[0]["version"], "751b220e8ea2")
     check("a single REST page needs no wrapping", len(entries(rest_pages[0])), 2)
     check("an empty page contributes nothing", entries({"total_count": 0, "actions_caches": []}), [])
     check(
-        "gh cache list records pass through unchanged",
+        "gh cache list records pass through, version defaulted",
         entries([cache(1, "some-key-2e9a1d04", "2026-08-22T23:40:34Z", size=7)]),
         [
             {
                 "id": 1,
                 "key": "some-key-2e9a1d04",
+                "version": "",
                 "createdAt": "2026-08-22T23:40:34Z",
                 "sizeInBytes": 7,
             }
         ],
+    )
+
+    # A restore matches key *and* version, so an entry under another
+    # version is not superseded by a newer one — it answers a question
+    # the newer entry cannot. Collapsing the two would let a pair of
+    # jobs evict each other in turn and never hit again.
+    versioned = [
+        {
+            "id": 1,
+            "key": "v0-rust-rust-Linux-x64-718c915e-2e9a1d04",
+            "version": "751b220e8ea2",
+            "createdAt": "2026-08-22T23:40:34Z",
+            "sizeInBytes": 1,
+        },
+        {
+            "id": 2,
+            "key": "v0-rust-rust-Linux-x64-718c915e-6da14145",
+            "version": "d6c7f0067ee7",
+            "createdAt": "2026-08-23T07:37:57Z",
+            "sizeInBytes": 1,
+        },
+    ]
+    check("a different version is not superseded", ids(versioned), [])
+    check(
+        "within one version the newest still wins",
+        ids(versioned + [dict(versioned[0], id=3, createdAt="2026-08-21T00:00:00Z")]),
+        [3],
+    )
+    check(
+        "a listing without versions groups on the key alone",
+        ids([{k: v for k, v in c.items() if k != "version"} for c in versioned]),
+        [1],
     )
 
     for failure in failures:
