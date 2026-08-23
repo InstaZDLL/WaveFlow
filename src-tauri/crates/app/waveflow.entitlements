@@ -21,10 +21,17 @@
   Shipping only `allow-jit` was tried, and opening Web Radio killed the
   process instantly — SIGKILL, `Namespace CODESIGNING, Code 2, Invalid Page`,
   faulting on an `r-x/rwx SM=COW` VM_ALLOCATE region inside
-  `Instance::start_raw` under `plugin::runtime::instantiate_source`. So
-  `allow-unsigned-executable-memory` is the one that actually matters here;
-  `allow-jit` is kept because it is the narrower, preferred grant and would
-  carry the load if wasmtime ever switches to MAP_JIT.
+  `Instance::start_raw` under `plugin::runtime::instantiate_source`.
+  Confirmed against the pinned source rather than assumed: wasmtime 47.0.3
+  contains no occurrence of MAP_JIT at all, and `Mmap::make_executable` goes
+  through plain `mprotect`. There is no narrower grant to reach for.
+
+  `allow-jit` is NOT dead weight kept for a hypothetical, and must not be
+  pruned as such: JavaScriptCore runs in-process for the WKWebView and JITs
+  through MAP_JIT — the crash report above shows 512 MB of "JS JIT generated
+  code" regions in the host process. The two entitlements serve two different
+  consumers: allow-jit for JavaScriptCore, allow-unsigned-executable-memory
+  for wasmtime. Removing either targets a live code path.
 
   Apple documents `allow-unsigned-executable-memory` for exactly this class of
   JIT engine and notarization accepts it, but it is genuinely broad: it lets
