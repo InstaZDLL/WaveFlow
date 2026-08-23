@@ -357,10 +357,14 @@ fn open_after_release(dev: &str, dop: DopFormat) -> Result<(PCM, usize), PcmOpen
     const STEP: Duration = Duration::from_millis(50);
     let deadline = Instant::now() + super::device_reservation::RELEASE_GRACE;
     loop {
-        std::thread::sleep(STEP);
+        // Try before waiting: a server that let go promptly costs
+        // nothing, and a device that simply cannot do this DoP rate
+        // says so on the first attempt.
         match open_pcm(dev, dop) {
             Ok(opened) => return Ok(opened),
-            Err(failure) if failure.busy && Instant::now() < deadline => continue,
+            Err(failure) if failure.busy && Instant::now() < deadline => {
+                std::thread::sleep(STEP);
+            }
             Err(failure) => return Err(failure),
         }
     }

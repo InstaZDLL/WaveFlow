@@ -38,7 +38,7 @@
 use std::time::Duration;
 
 use zbus::blocking::{fdo::DBusProxy, Connection};
-use zbus::fdo::{RequestNameFlags, RequestNameReply};
+use zbus::fdo::{ReleaseNameReply, RequestNameFlags, RequestNameReply};
 use zbus::names::WellKnownName;
 
 /// How long to keep trying the `hw:` open after the sound server has
@@ -136,7 +136,22 @@ impl Drop for Reservation {
             }
         };
         match proxy.release_name(name) {
-            Ok(_) => tracing::info!(name = %self.name, "device reservation released"),
+            Ok(ReleaseNameReply::Released) => {
+                tracing::info!(name = %self.name, "device reservation released")
+            }
+            // We asked for `AllowReplacement`, so the sound server is
+            // free to take the name back mid-stream. That costs the
+            // stream nothing — the `hw:` handle is already open — but
+            // the release then finds nothing of ours to give up, and
+            // `Ok` covers both. Logging "released" for all three would
+            // put a small lie in the only trace this path leaves.
+            Ok(reply) => {
+                tracing::info!(
+                    name = %self.name,
+                    %reply,
+                    "device reservation was no longer ours to release"
+                )
+            }
             Err(err) => {
                 tracing::warn!(%err, name = %self.name, "device reservation release failed")
             }
