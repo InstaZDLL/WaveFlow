@@ -23,6 +23,8 @@ interface PipelineSnapshot {
   mono: boolean;
   /** Native DSD via DoP actually engaged for the current track (#495). */
   dopActive: boolean;
+  /** The output really owns the device (WASAPI Exclusive today). */
+  exclusiveActive: boolean;
 }
 
 /**
@@ -108,6 +110,7 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
           replaygain: audioSettings.replaygain,
           mono: audioSettings.mono,
           dopActive: stateSnap.dop_active,
+          exclusiveActive: stateSnap.exclusive_active,
         });
       } catch (err) {
         console.error("[AudioPipelinePopover] hydrate failed", err);
@@ -162,9 +165,10 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
   const isNormalize = !isDopNative && (snap?.normalize ?? false);
   const isReplayGain = !isDopNative && (snap?.replaygain ?? false);
   const isMono = !isDopNative && (snap?.mono ?? false);
-  const isBitPerfect =
+  // Nothing in our own pipeline is touching the samples.
+  const isUnprocessed =
     snap != null &&
-    // Native DoP is bit-perfect; only DSD → PCM conversion breaks it.
+    // Native DoP is transparent; only DSD → PCM conversion breaks it.
     (!isDsd || isDopNative) &&
     !isResampling &&
     !isDownmixing &&
@@ -173,6 +177,14 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
     !isNormalize &&
     !isReplayGain &&
     !isMono;
+  // …but bit-perfect also means nothing *downstream* touches them, and
+  // that only holds when the stream owns the device. A shared-mode
+  // stream at the same nominal rate still goes through the system
+  // mixer, which re-clocks it and mixes in whatever else is playing —
+  // the pill used to claim bit-perfect for exactly that case. DoP
+  // implies an exclusive backend, so it qualifies on its own.
+  const isBitPerfect =
+    isUnprocessed && (isDopNative || (snap?.exclusiveActive ?? false));
 
   const chips: Array<{ key: string; label: string; tone: "dsp" | "convert" }> =
     [];
@@ -341,14 +353,23 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
         </div>
       </div>
 
-      {/* Bit-perfect pill — only shown when the pipeline is fully
-          transparent. Sits at the bottom so the visual cue is the
-          last thing the audiophile reads. */}
+      {/* Verdict pill — the last thing the audiophile reads, so it has
+          to be the one we can actually stand behind: bit-perfect when
+          the stream owns the device, "no processing" when our pipeline
+          is transparent but the OS mixer still sits in the path. */}
       {isBitPerfect && (
         <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-2">
           <Sparkles size={14} className="text-emerald-500" aria-hidden="true" />
           <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
             {t("playerBar.pipeline.bitPerfect")}
+          </span>
+        </div>
+      )}
+      {!isBitPerfect && isUnprocessed && (
+        <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-2">
+          <Speaker size={14} className="text-zinc-400" aria-hidden="true" />
+          <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+            {t("playerBar.pipeline.sharedOutput")}
           </span>
         </div>
       )}

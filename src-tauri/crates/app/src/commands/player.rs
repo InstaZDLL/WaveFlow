@@ -62,6 +62,13 @@ pub struct PlayerStateSnapshot {
     /// True when the active output is shipping native DSD via DoP
     /// (#495) — reflects what really engaged, not just the opt-in.
     pub dop_active: bool,
+    /// True when the stream really owns the device: WASAPI Exclusive on
+    /// Windows, false everywhere else and false after a fallback to
+    /// shared mode. Without it the UI cannot tell a stream that reaches
+    /// the DAC untouched from one the system mixer re-clocks on its way
+    /// there, which is the difference between bit-perfect and merely
+    /// un-processed.
+    pub exclusive_active: bool,
 }
 
 /// Subset of [`crate::queue::QueueTrack`] flattened into the shape
@@ -100,6 +107,7 @@ impl PlayerStateSnapshot {
         repeat_mode: queue::RepeatMode,
         current_track: Option<QueueTrackPayload>,
         dop_active: bool,
+        exclusive_active: bool,
     ) -> Self {
         Self {
             state: shared.state().as_str().to_string(),
@@ -113,6 +121,7 @@ impl PlayerStateSnapshot {
             repeat_mode: repeat_mode.as_str().to_string(),
             current_track,
             dop_active,
+            exclusive_active,
         }
     }
 }
@@ -646,6 +655,7 @@ pub async fn player_get_state(
         repeat_mode,
         current_track,
         engine.current_output_is_dop(),
+        engine.wasapi_exclusive(),
     );
     // When the engine is Idle but we resolved a resume point, use the
     // persisted position instead of the (zero) live counter.
