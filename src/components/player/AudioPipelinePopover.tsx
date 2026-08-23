@@ -172,14 +172,21 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
   // actually happened. DoP is exempt: it ships at `dsd_rate / 16`, so
   // the nominal rates never match by construction.
   const isFormatProven =
-    isDopNative ||
-    (snap != null &&
-      track.sample_rate != null &&
-      snap.outputSampleRate > 0 &&
-      snap.outputSampleRate === track.sample_rate &&
-      track.channels != null &&
-      snap.outputChannels > 0 &&
-      snap.outputChannels >= track.channels);
+    snap != null &&
+    // Channels have to match outright: an output wider than the source
+    // means the engine is routing or padding, which is not "untouched"
+    // however clean the rest of the chain is.
+    track.channels != null &&
+    track.channels > 0 &&
+    snap.outputChannels === track.channels &&
+    // Only the *rate* comparison is exempt for DoP, and only because a
+    // DoP stream is carried at `dsd_rate / 16` — the nominal rates are
+    // never equal by construction. Everything else still has to hold.
+    (isDopNative ||
+      (track.sample_rate != null &&
+        track.sample_rate > 0 &&
+        snap.outputSampleRate > 0 &&
+        snap.outputSampleRate === track.sample_rate));
   // Nothing in our own pipeline is touching the samples.
   const isUnprocessed =
     snap != null &&

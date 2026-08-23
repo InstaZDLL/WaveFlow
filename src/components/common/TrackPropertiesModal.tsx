@@ -252,15 +252,17 @@ export function TrackPropertiesModal({
       // one — and `sync_db` stores whatever string it receives as a
       // *single* genre, so echoing back a track that legitimately has
       // two would collapse them into one row named "Rock; Jazz".
-      const sendingGenre = genres != null && form.genre !== genres.join("; ");
-      if (sendingGenre) edit.genre = form.genre;
+      //
+      // Compared trimmed because that is what the backend stores, so
+      // "Rock " against "Rock" is not a change and shouldn't cost a
+      // file rewrite.
+      const genre = form.genre.trim();
+      const sendingGenre = genres != null && genre !== genres.join("; ");
+      if (sendingGenre) edit.genre = genre;
       await updateTrackTags(track.id, edit);
       // Only when we sent one — otherwise this would record a genre we
       // never wrote, and the *next* save would act on it.
-      if (sendingGenre) {
-        const saved = form.genre.trim();
-        setGenres(saved === "" ? [] : [saved]);
-      }
+      if (sendingGenre) setGenres(genre === "" ? [] : [genre]);
       setEditing(false);
       // The backend emits `track:updated` after the save, which the
       // surrounding views listen to and react to (re-fetch the row).
