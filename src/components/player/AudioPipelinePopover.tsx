@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { FileAudio, Cpu, Speaker, Sparkles } from "lucide-react";
 import type { QueueTrackPayload } from "../../lib/tauri/player";
 import { playerGetAudioSettings, playerGetState } from "../../lib/tauri/player";
@@ -25,6 +26,8 @@ interface PipelineSnapshot {
   dopActive: boolean;
   /** The output really owns the device (WASAPI Exclusive today). */
   exclusiveActive: boolean;
+  /** Which track was playing when this was read. See `snap` below. */
+  forTrackId: number;
 }
 
 /**
@@ -80,29 +83,48 @@ function formatSampleRate(hz: number | null | undefined): string | null {
  * Pipeline DSP chips → Output) for the currently playing track. Lives
  * above [`AudioQualityFooter`] which is its only trigger today.
  *
- * Strategy on data freshness: hydrates the output-side + DSP flags on
- * mount via `playerGetState` / `playerGetAudioSettings` / `playerGetEq`
- * so the popover always reflects the real engine state rather than
- * stale React state (e.g. EQ may have been flipped from the dedicated
- * popover seconds ago). Cheap calls — atomic loads on the Rust side —
- * so we don't bother caching across hover sessions.
+ * Strategy on data freshness: reads the output-side + DSP flags from
+ * the engine via `playerGetState` / `playerGetAudioSettings` /
+ * `playerGetEq` rather than trusting React state (the EQ may have been
+ * flipped from the dedicated popover seconds ago). Cheap calls —
+ * atomic loads on the Rust side — so we don't bother caching across
+ * hover sessions.
+ *
+ * That read is repeated whenever it can have gone stale *while the
+ * popover is open*, which is the part a mount-only hydration got wrong:
+ * the popover lives for as long as the pointer rests on the footer, and
+ * a track ending under it swaps `track` for the next one while every
+ * output-side field still described the previous stream. Pairing new
+ * metadata with an old snapshot is how a verdict gets made about a
+ * stream nobody measured — a DoP track handing its `dopActive` to the
+ * PCM track after it would have exempted that one from the rate check
+ * and badged it bit-perfect.
  */
 export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
   const { t } = useTranslation();
   const { playbackSpeed } = usePlayer();
-  const [snap, setSnap] = useState<PipelineSnapshot | null>(null);
+  const [rawSnap, setRawSnap] = useState<PipelineSnapshot | null>(null);
+  // A track change and an output rebuild can put two reads in flight at
+  // once; the older one resolving second would pin a stale output
+  // format under fresh metadata. Same guard, and same reason, as
+  // `deviceRefreshTokenRef` in PlayerContext.
+  const readTokenRef = useRef(0);
 
+  const trackId = track.id;
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
+    let unlisten: UnlistenFn | null = null;
+
+    const read = async () => {
+      const token = ++readTokenRef.current;
       try {
         const [stateSnap, audioSettings, eqSnap] = await Promise.all([
           playerGetState(),
           playerGetAudioSettings(),
           playerGetEq(),
         ]);
-        if (cancelled) return;
-        setSnap({
+        if (cancelled || token !== readTokenRef.current) return;
+        setRawSnap({
           outputSampleRate: stateSnap.sample_rate,
           outputChannels: stateSnap.channels,
           eqEnabled: eqSnap.enabled,
@@ -111,15 +133,52 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
           mono: audioSettings.mono,
           dopActive: stateSnap.dop_active,
           exclusiveActive: stateSnap.exclusive_active,
+          forTrackId: trackId,
         });
       } catch (err) {
         console.error("[AudioPipelinePopover] hydrate failed", err);
       }
+    };
+
+    void (async () => {
+      // Subscribe before the first read, not after. The output is
+      // rebuilt *after* the track changes — a DoP engage, a WASAPI
+      // exclusive re-open at the new native rate — so the rebuild can
+      // land in the window between the two, and that is the one event
+      // we cannot afford to miss (see the "subscribe first, then
+      // snapshot" invariant). `player:audio-mode-changed` carries no
+      // payload; every engine path that stores a new output mode emits
+      // it.
+      try {
+        const stop = await listen("player:audio-mode-changed", () => {
+          void read();
+        });
+        if (cancelled) {
+          stop();
+        } else {
+          unlisten = stop;
+        }
+      } catch (err) {
+        // A failed subscription must not cost us the snapshot itself:
+        // a stale-after-a-rebuild popover still beats an empty one.
+        console.error("[AudioPipelinePopover] listen failed", err);
+      }
+      void read();
     })();
+
     return () => {
       cancelled = true;
+      unlisten?.();
     };
-  }, []);
+  }, [trackId]);
+
+  // A snapshot taken for the previous track describes the previous
+  // stream, so it counts as absent rather than being paired with this
+  // track's metadata. Everything below is already written to say
+  // "loading" and to withhold the verdict when there is no snapshot,
+  // which is exactly the right behaviour for the moment between a
+  // track change and the read that follows it.
+  const snap = rawSnap?.forTrackId === trackId ? rawSnap : null;
 
   const sourceCodec = track.codec ?? "—";
   const sourceRateLabel = formatSampleRate(track.sample_rate);
