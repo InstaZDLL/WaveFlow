@@ -7,18 +7,34 @@
   runtime otherwise blocks has to be declared here.
 
   Keep this list minimal — every entry widens the hole hardened runtime is
-  there to close.
+  there to close. Both entries below are load-bearing; neither is defensive.
 
-  allow-jit: the wasmtime plugin host compiles plugin modules with Cranelift
-  and maps the result executable. Under hardened runtime that needs MAP_JIT,
-  which is gated on this entitlement. Without it, loading any WASM plugin
-  (Web Radio ships in the bundle) crashes the process.
+  The wasmtime plugin host compiles plugin modules with Cranelift and executes
+  the result. On macOS it does that by mmap'ing anonymous memory and
+  mprotect'ing it to r-x — it does NOT use MAP_JIT. That distinction decides
+  which entitlement is needed, and getting it wrong is not a soft failure:
 
-  Deliberately NOT present: `allow-unsigned-executable-memory` and
-  `disable-library-validation`. Wasmtime uses MAP_JIT properly, so the
-  narrower entitlement is enough; the app loads no third-party dylibs.
-  App Sandbox entitlements (`com.apple.security.files.*`,
-  `com.apple.security.network.*`) are irrelevant here — this is a
+    allow-jit                        sanctions MAP_JIT regions only.
+    allow-unsigned-executable-memory sanctions executing anonymous,
+                                     unsigned executable pages.
+
+  Shipping only `allow-jit` was tried, and opening Web Radio killed the
+  process instantly — SIGKILL, `Namespace CODESIGNING, Code 2, Invalid Page`,
+  faulting on an `r-x/rwx SM=COW` VM_ALLOCATE region inside
+  `Instance::start_raw` under `plugin::runtime::instantiate_source`. So
+  `allow-unsigned-executable-memory` is the one that actually matters here;
+  `allow-jit` is kept because it is the narrower, preferred grant and would
+  carry the load if wasmtime ever switches to MAP_JIT.
+
+  Apple documents `allow-unsigned-executable-memory` for exactly this class of
+  JIT engine and notarization accepts it, but it is genuinely broad: it lets
+  the process execute memory nothing has signed. It stays justified only as
+  long as the plugin host needs it. Web Radio ships in the bundle, so this
+  path runs for every user — it is not an edge case.
+
+  Deliberately NOT present: `disable-library-validation`. The app loads no
+  third-party dylibs. App Sandbox entitlements (`com.apple.security.files.*`,
+  `com.apple.security.network.*`) are irrelevant — this is a
   Developer-ID-distributed app, not a Mac App Store one, so it is not
   sandboxed. Folder access is governed by TCC, driven by the purpose strings
   in Info.plist.
@@ -26,6 +42,8 @@
 <plist version="1.0">
 <dict>
 	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
 	<true/>
 </dict>
 </plist>
