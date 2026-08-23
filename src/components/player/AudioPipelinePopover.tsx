@@ -131,6 +131,23 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
           playerGetEq(),
         ]);
         if (cancelled || token !== readTokenRef.current) return;
+        // The engine's own idea of what is playing beats the prop when
+        // the two disagree. A track that advanced *after* this read
+        // started returns the new stream's output, and the prop only
+        // catches up once `player:track-changed` has been through the
+        // context and a render — so stamping this with the id we still
+        // hold would pair one track's metadata with another's
+        // measurement, which is the exact pairing the stamp exists to
+        // prevent.
+        //
+        // Only a positive disagreement counts. `current_track` is null
+        // for a Web Radio session (negative sentinel id, no library row)
+        // and whenever the persisted queue cursor hasn't caught up with
+        // the live engine — reading "no answer" as "another track"
+        // would leave radio permanently unhydrated. The read the new
+        // effect fires for itself is what fills the gap.
+        const reported = stateSnap.current_track?.id;
+        if (reported != null && reported !== trackId) return;
         setRawSnap({
           outputSampleRate: stateSnap.sample_rate,
           outputChannels: stateSnap.channels,
