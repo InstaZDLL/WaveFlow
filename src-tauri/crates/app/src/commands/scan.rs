@@ -1382,7 +1382,12 @@ pub(crate) async fn scan_folder_inner(
     // out to carry no tags: re-reading those on every future scan is
     // exactly what it exists to prevent.
     if rg_backfill_pending && !rg_backfill_failed {
-        let _ = sqlx::query(
+        // Non-fatal: the scan itself is already committed, and losing
+        // the marker only costs one more backfill pass. But it must
+        // not be lost silently — an unwritable marker makes every
+        // future scan re-read the whole folder, which looks exactly
+        // like the fast path being broken for no reason.
+        if let Err(err) = sqlx::query(
             "INSERT INTO profile_setting (key, value, value_type, updated_at)
              VALUES (?, 'true', 'bool', ?)
              ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
@@ -1390,7 +1395,15 @@ pub(crate) async fn scan_folder_inner(
         .bind(&rg_backfill_key)
         .bind(now_millis())
         .execute(pool)
-        .await;
+        .await
+        {
+            tracing::warn!(
+                ?err,
+                folder_id,
+                key = %rg_backfill_key,
+                "could not persist the ReplayGain backfill marker (non-fatal);                  the next scan will run the pass again"
+            );
+        }
     }
 
     // Per-phase breakdown so a slow scan on a big library is diagnosable
