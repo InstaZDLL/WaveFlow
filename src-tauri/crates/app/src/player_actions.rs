@@ -63,7 +63,7 @@ async fn load_and_play(
     let engine = app.state::<Arc<AudioEngine>>();
     commands::player::emit_track_changed(app, &app.state::<AppState>().paths, &track, profile_id);
     commands::player::emit_queue_changed(app);
-    let replay_gain_db = commands::player::fetch_replay_gain_db(pool, track.id).await;
+    let replay_gain = commands::player::fetch_replay_gain(pool, track.id).await;
     let _ = engine.send(AudioCmd::LoadAndPlay {
         path: track.as_path(),
         start_ms: 0,
@@ -71,7 +71,7 @@ async fn load_and_play(
         duration_ms: track.duration_ms.max(0) as u64,
         source_type: "manual".into(),
         source_id: None,
-        replay_gain_db,
+        replay_gain,
     });
 }
 

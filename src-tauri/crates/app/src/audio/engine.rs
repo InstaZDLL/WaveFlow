@@ -20,6 +20,7 @@ use crate::error::{AppError, AppResult};
 use super::analytics::{analytics_task, AnalyticsMsg};
 use super::decoder::spawn_decoder_thread;
 use super::output::{spawn_output_with_mode, DopFormat, OutputHandle};
+use super::replay_gain::TrackGain;
 use super::state::SharedPlayback;
 
 /// Commands accepted by the decoder thread.
@@ -40,7 +41,7 @@ pub enum AudioCmd {
         /// decoder leaves the signal untouched even when the toggle is
         /// on. Lookup is done at command time so the decoder thread
         /// stays out of the SQLite path.
-        replay_gain_db: Option<f64>,
+        replay_gain: TrackGain,
     },
     /// Play a track from the active remote queue using its confirmed local
     /// reconciliation link. The negative `track_id` deliberately preserves
@@ -56,7 +57,7 @@ pub enum AudioCmd {
         artist: Option<String>,
         artwork_url: Option<String>,
         fallback_url: Option<String>,
-        replay_gain_db: Option<f64>,
+        replay_gain: TrackGain,
     },
     Pause,
     Resume,
@@ -86,7 +87,7 @@ pub enum AudioCmd {
         duration_ms: u64,
         source_type: String,
         source_id: Option<i64>,
-        replay_gain_db: Option<f64>,
+        replay_gain: TrackGain,
     },
     /// Play a live HTTP audio stream (Web Radio). The decoder opens
     /// the URL in a blocking client (safe because the decoder thread
@@ -370,7 +371,7 @@ pub(crate) enum RadioResumeSource {
         path: PathBuf,
         duration_ms: u64,
         fallback_url: Option<String>,
-        replay_gain_db: Option<f64>,
+        replay_gain: TrackGain,
     },
 }
 
@@ -389,7 +390,7 @@ impl RadioResumeState {
                 path,
                 duration_ms,
                 fallback_url,
-                replay_gain_db,
+                replay_gain,
             } => AudioCmd::LoadRemoteFileAndPlay {
                 path,
                 start_ms: position_ms,
@@ -399,7 +400,7 @@ impl RadioResumeState {
                 artist: self.artist,
                 artwork_url: self.artwork_url,
                 fallback_url,
-                replay_gain_db,
+                replay_gain,
             },
         }
     }
@@ -1061,8 +1062,8 @@ impl AudioEngine {
                         // enabled the toggle keeps their analysed gain
                         // across an unintended device flap — matches
                         // set_output_device and set_wasapi_exclusive.
-                        let replay_gain_db =
-                            crate::commands::player::fetch_replay_gain_db(&pool, track_id).await;
+                        let replay_gain =
+                            crate::commands::player::fetch_replay_gain(&pool, track_id).await;
                         let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
                             path: std::path::PathBuf::from(file_path),
                             start_ms: position_ms,
@@ -1075,7 +1076,7 @@ impl AudioEngine {
                             duration_ms: duration_ms.max(0) as u64,
                             source_type: "device-rebuild".into(),
                             source_id: None,
-                            replay_gain_db,
+                            replay_gain,
                         });
                     }
                 });
@@ -1219,8 +1220,8 @@ impl AudioEngine {
                     let Some((file_path, duration_ms)) = row else {
                         return;
                     };
-                    let replay_gain_db =
-                        crate::commands::player::fetch_replay_gain_db(&pool, track_id).await;
+                    let replay_gain =
+                        crate::commands::player::fetch_replay_gain(&pool, track_id).await;
                     let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
                         path: std::path::PathBuf::from(file_path),
                         start_ms: position_ms,
@@ -1228,7 +1229,7 @@ impl AudioEngine {
                         duration_ms: duration_ms.max(0) as u64,
                         source_type: "manual".into(),
                         source_id: None,
-                        replay_gain_db,
+                        replay_gain,
                     });
                 });
             }
@@ -1437,8 +1438,8 @@ impl AudioEngine {
                     let Some((file_path, duration_ms)) = row else {
                         return;
                     };
-                    let replay_gain_db =
-                        crate::commands::player::fetch_replay_gain_db(&pool, track_id).await;
+                    let replay_gain =
+                        crate::commands::player::fetch_replay_gain(&pool, track_id).await;
                     let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
                         path: std::path::PathBuf::from(file_path),
                         start_ms: position_ms,
@@ -1446,7 +1447,7 @@ impl AudioEngine {
                         duration_ms: duration_ms.max(0) as u64,
                         source_type: "manual".into(),
                         source_id: None,
-                        replay_gain_db,
+                        replay_gain,
                     });
                 });
             }
@@ -1496,7 +1497,7 @@ fn apply_radio_resume_update(snapshot: &Mutex<Option<RadioResumeState>>, cmd: &A
             path,
             duration_ms,
             fallback_url,
-            replay_gain_db,
+            replay_gain,
             track_id,
             title,
             artist,
@@ -1509,7 +1510,7 @@ fn apply_radio_resume_update(snapshot: &Mutex<Option<RadioResumeState>>, cmd: &A
                         path: path.clone(),
                         duration_ms: *duration_ms,
                         fallback_url: fallback_url.clone(),
-                        replay_gain_db: *replay_gain_db,
+                        replay_gain: *replay_gain,
                     },
                     track_id: *track_id,
                     title: title.clone(),
@@ -1688,7 +1689,7 @@ mod radio_resume_tests {
             duration_ms: 1000,
             source_type: "test".into(),
             source_id: None,
-            replay_gain_db: None,
+            replay_gain: TrackGain::default(),
         }
     }
 
@@ -1702,7 +1703,10 @@ mod radio_resume_tests {
             artist: Some("Remote artist".to_string()),
             artwork_url: None,
             fallback_url: fallback_url.map(str::to_string),
-            replay_gain_db: Some(-4.0),
+            replay_gain: TrackGain {
+                gain_db: Some(-4.0),
+                peak: None,
+            },
         }
     }
 
@@ -1762,7 +1766,7 @@ mod radio_resume_tests {
                 track_id,
                 duration_ms,
                 fallback_url,
-                replay_gain_db,
+                replay_gain,
                 ..
             } => {
                 assert_eq!(path, PathBuf::from("/dev/null"));
@@ -1773,7 +1777,7 @@ mod radio_resume_tests {
                     fallback_url.as_deref(),
                     Some("https://server.invalid/stream")
                 );
-                assert_eq!(replay_gain_db, Some(-4.0));
+                assert_eq!(replay_gain.gain_db, Some(-4.0));
             }
             _ => panic!("device change must resume the reconciled local file"),
         }

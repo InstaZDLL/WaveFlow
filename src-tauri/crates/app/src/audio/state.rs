@@ -103,10 +103,23 @@ pub struct SharedPlayback {
     /// next track and when to start mixing.
     pub crossfade_ms: AtomicU32,
     /// When `true`, the decoder thread multiplies decoded samples by
-    /// each track's stored ReplayGain factor (computed by `analysis.rs`
-    /// and read from `track_analysis.replay_gain_db` at load time).
+    /// each track's ReplayGain factor — read from the file's own tags
+    /// when it has them, from `track_analysis` otherwise.
     /// Toggled from the Settings "Apply ReplayGain" switch.
     pub replaygain_enabled: AtomicBool,
+    /// Pre-amp added to every track's gain, in dB, as `f32` bits.
+    /// −18 LUFS is quieter than most systems are set for, so a
+    /// correctly-normalised library otherwise sounds like it lost
+    /// volume the moment the switch goes on.
+    pub replaygain_preamp_db_bits: AtomicU32,
+    /// Gain applied, in dB, to tracks that carry no ReplayGain at all
+    /// and haven't been analysed. Keeps a half-tagged library from
+    /// jumping every time playback crosses the line.
+    pub replaygain_fallback_db_bits: AtomicU32,
+    /// Hold each track's gain back to the headroom its peak leaves,
+    /// so a boost never pushes samples past full scale and into the
+    /// decoder's final clamp. On by default.
+    pub replaygain_prevent_clipping: AtomicBool,
     /// When `true`, the decoder pre-fetches the next queued track
     /// ~500 ms before the current one ends and swaps to it the
     /// instant primary EOFs — no analytics → LoadAndPlay round trip,
@@ -221,6 +234,9 @@ impl SharedPlayback {
             mono_enabled: AtomicBool::new(false),
             crossfade_ms: AtomicU32::new(0),
             replaygain_enabled: AtomicBool::new(false),
+            replaygain_preamp_db_bits: AtomicU32::new(0.0_f32.to_bits()),
+            replaygain_fallback_db_bits: AtomicU32::new(0.0_f32.to_bits()),
+            replaygain_prevent_clipping: AtomicBool::new(true),
             gapless_enabled: AtomicBool::new(true),
             eq: super::eq::EqShared::new(),
             pause_after_current_track: AtomicBool::new(false),
@@ -296,6 +312,25 @@ impl SharedPlayback {
     pub fn set_volume(&self, v: f32) {
         let clamped = v.clamp(0.0, 1.0);
         self.volume_bits.store(clamped.to_bits(), Ordering::Relaxed);
+    }
+
+    /// Snapshot of the ReplayGain knobs for one decoded buffer.
+    ///
+    /// Read as four independent atomics rather than behind a lock:
+    /// the decoder thread is the only reader, and the worst a torn
+    /// read can do is apply the old pre-amp to one buffer and the new
+    /// one to the next — inaudible, and gone by the following packet.
+    pub fn replay_gain_settings(&self) -> super::replay_gain::GainSettings {
+        super::replay_gain::GainSettings {
+            enabled: self.replaygain_enabled.load(Ordering::Relaxed),
+            preamp_db: f64::from(f32::from_bits(
+                self.replaygain_preamp_db_bits.load(Ordering::Relaxed),
+            )),
+            fallback_db: f64::from(f32::from_bits(
+                self.replaygain_fallback_db_bits.load(Ordering::Relaxed),
+            )),
+            prevent_clipping: self.replaygain_prevent_clipping.load(Ordering::Relaxed),
+        }
     }
 
     /// Current position **inside the track** in ms, derived from the
