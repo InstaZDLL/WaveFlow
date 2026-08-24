@@ -15,11 +15,12 @@ use walkdir::WalkDir;
 
 use waveflow_core::scanner::{
     extract_album_artist, extract_artist_image, extract_compilation_flag, extract_cover,
-    extract_folder_cover, extract_musical_key, extract_rating, file_type_label, hash_file,
-    is_scannable_audio, link_local_artist_image, link_va_artist_image, maybe_link_artist_images,
-    merge_implicit_compilations, now_millis, reattach_orphaned_play_events, refresh_folder_covers,
-    split_artist_name, upsert_album, upsert_artist, upsert_artwork, ArtistImageScanCache,
-    ExtractedFile, UpsertCache, VARIOUS_ARTISTS_LABEL,
+    extract_folder_cover, extract_musical_key, extract_rating, extract_replay_gain,
+    file_type_label, hash_file, is_scannable_audio, link_local_artist_image, link_va_artist_image,
+    maybe_link_artist_images, merge_implicit_compilations, now_millis,
+    reattach_orphaned_play_events, refresh_folder_covers, split_artist_name, upsert_album,
+    upsert_artist, upsert_artwork, ArtistImageScanCache, ExtractedFile, ReplayGainTags,
+    UpsertCache, VARIOUS_ARTISTS_LABEL,
 };
 
 use crate::{
@@ -231,6 +232,11 @@ fn extract_dsd_file(
         // takes over via extract_folder_cover (called below).
         cover_art: extract_folder_cover(path, artwork_dir),
         rating: None,
+        // Same limitation as `album_artist` above: the DSF ID3v2 blob
+        // can carry ReplayGain frames, but our DSD reader doesn't
+        // surface arbitrary tag items. A DSD track falls back to the
+        // analysis pass like it did before.
+        replay_gain: ReplayGainTags::default(),
     })
 }
 
@@ -327,6 +333,7 @@ fn extract_file(
         cover_art,
         rating,
         musical_key,
+        replay_gain,
     ) = match tag {
         Some(tag) => (
             tag.title().map(|s| s.into_owned()),
@@ -341,9 +348,22 @@ fn extract_file(
             extract_cover(tag, artwork_dir),
             extract_rating(tag),
             extract_musical_key(tag),
+            extract_replay_gain(tag),
         ),
         None => (
-            None, None, None, None, false, None, None, None, None, None, None, None,
+            None,
+            None,
+            None,
+            None,
+            false,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            ReplayGainTags::default(),
         ),
     };
 
@@ -385,6 +405,7 @@ fn extract_file(
         musical_key,
         cover_art,
         rating,
+        replay_gain,
     })
 }
 
@@ -990,6 +1011,8 @@ pub(crate) async fn scan_folder_inner(
                         bit_depth = ?, codec = ?,
                         musical_key = ?,
                         rating = ?,
+                        rg_track_gain_db = ?, rg_track_peak = ?,
+                        rg_album_gain_db = ?, rg_album_peak = ?,
                         is_available = 1
                      WHERE id = ?",
                 )
@@ -1011,6 +1034,10 @@ pub(crate) async fn scan_folder_inner(
                 .bind(extracted.codec.as_deref())
                 .bind(extracted.musical_key.as_deref())
                 .bind(extracted.rating.map(|r| r as i64))
+                .bind(extracted.replay_gain.track_gain_db)
+                .bind(extracted.replay_gain.track_peak)
+                .bind(extracted.replay_gain.album_gain_db)
+                .bind(extracted.replay_gain.album_peak)
                 .bind(existing_track_id)
                 .execute(&mut *tx)
                 .await?;
@@ -1123,8 +1150,10 @@ pub(crate) async fn scan_folder_inner(
                     duration_ms, bitrate, sample_rate, channels,
                     bit_depth, codec, musical_key,
                     rating,
+                    rg_track_gain_db, rg_track_peak, rg_album_gain_db, rg_album_peak,
                     added_at, is_available
-                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
+                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                           ?, ?, ?, ?, ?, 1)",
             )
             .bind(library_id)
             .bind(folder_id)
@@ -1146,6 +1175,10 @@ pub(crate) async fn scan_folder_inner(
             .bind(extracted.codec.as_deref())
             .bind(extracted.musical_key.as_deref())
             .bind(extracted.rating.map(|r| r as i64))
+            .bind(extracted.replay_gain.track_gain_db)
+            .bind(extracted.replay_gain.track_peak)
+            .bind(extracted.replay_gain.album_gain_db)
+            .bind(extracted.replay_gain.album_peak)
             .bind(now)
             .execute(&mut *tx)
             .await?;
