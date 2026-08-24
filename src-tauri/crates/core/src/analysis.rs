@@ -2,14 +2,19 @@
 //!
 //! Given a path on disk, decode the file with symphonia and compute:
 //!
-//! - **Peak**: max(|sample|) over the whole stream, in linear 0..1.
-//! - **Loudness** (dB FS): `10·log10(mean(s²))` over a mono sum of
-//!   the channels. Not BS.1770 K-weighted — the user-facing label
-//!   says "Loudness" rather than "LUFS" to avoid implying conformity
-//!   to the broadcast spec. Still good enough as a ReplayGain
-//!   anchor and for relative comparisons inside one library.
-//! - **ReplayGain**: `target − loudness_db` with the EBU/Apple
-//!   target of −18 dB FS.
+//! - **Peak**: `max(|sample|)` across **every channel**, in linear
+//!   0..1. Not the peak of a mono downmix: a mix with the channels
+//!   in opposition sums to near silence while its samples sit at full
+//!   scale, and the anti-clip limiter downstream would then hand out a
+//!   gain that clips. This is what a `REPLAYGAIN_TRACK_PEAK` tag means
+//!   too, so ours and a tagger's are comparable.
+//! - **Loudness** (LUFS): ITU-R BS.1770-4 — K-weighted, gated. See
+//!   [`loudness`] for the algorithm and for why an unweighted RMS
+//!   wasn't good enough once we started reading other people's tags.
+//! - **ReplayGain**: `target − loudness_lufs` against the ReplayGain
+//!   2.0 target of −18 LUFS. `None` when the track has no measurable
+//!   loudness (silence, or shorter than one 400 ms gating block) —
+//!   suggesting a gain there would mean boosting silence.
 //! - **BPM**: autocorrelation peak on a coarse onset envelope.
 //!   Works well for 4/4 tracks in the 60-200 BPM range; can land
 //!   on half/double-time on heavily syncopated material — that's
@@ -21,6 +26,7 @@
 use std::fs::File;
 use std::path::Path;
 
+use symphonia::core::audio::{Channels, Position};
 use symphonia::core::codecs::audio::AudioDecoderOptions;
 use symphonia::core::errors::Error as SymphoniaError;
 use symphonia::core::formats::probe::Hint;
@@ -28,7 +34,13 @@ use symphonia::core::formats::{FormatOptions, TrackType};
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 
-const REPLAY_GAIN_TARGET_DB: f64 = -18.0;
+pub mod loudness;
+
+use loudness::LoudnessMeter;
+
+/// ReplayGain 2.0 reference level. A track measured at exactly this
+/// loudness gets a gain of 0 dB.
+const REPLAY_GAIN_TARGET_LUFS: f64 = -18.0;
 /// Energy-envelope hop in samples at the analysis sample rate.
 /// 11_025 / 256 ≈ 43 frames/s — enough resolution to land 60-200 BPM
 /// peaks at 1 BPM granularity after autocorrelation refinement.
@@ -41,13 +53,15 @@ const BPM_TARGET_RATE_HZ: u32 = 11_025;
 
 #[derive(Debug, Clone, Default)]
 pub struct AnalysisResult {
-    /// Linear peak in 0..1.
+    /// Linear peak in 0..1, taken across every channel.
     pub peak: f64,
-    /// `10·log10(mean(s²))` of the mono-summed signal, in dB FS.
-    pub loudness_db: f64,
+    /// Integrated loudness in LUFS (BS.1770-4). `None` for a track
+    /// with nothing above the absolute gate.
+    pub loudness_lufs: Option<f64>,
     /// Suggested ReplayGain in dB. Positive = boost on quiet tracks,
-    /// negative = attenuate on loud ones.
-    pub replay_gain_db: f64,
+    /// negative = attenuate on loud ones. `None` travels with
+    /// `loudness_lufs`.
+    pub replay_gain_db: Option<f64>,
     /// Estimated tempo in beats per minute, or `None` when the
     /// onset envelope had no usable autocorrelation peak (very short
     /// or near-silent tracks).
@@ -93,10 +107,10 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
     let mut src_channels: usize = 0;
     let mut src_rate: u32 = 0;
 
-    // Loudness / peak accumulators on the mono-summed signal at the
-    // file's native rate.
-    let mut sum_squares: f64 = 0.0;
-    let mut sample_count: u64 = 0;
+    // The BS.1770 meter needs the channel count and rate, so it's
+    // built once the first decoded packet reveals the spec.
+    let mut meter: Option<LoudnessMeter> = None;
+    let mut frames_seen: u64 = 0;
     let mut peak: f64 = 0.0;
 
     // BPM envelope: every Nth mono sample, RMS over 256-sample hops.
@@ -136,6 +150,10 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
             src_channels = spec.channels().count().max(1);
             src_rate = spec.rate().max(1);
             spec_captured = true;
+            meter = Some(LoudnessMeter::with_channel_weights(
+                src_rate,
+                &channel_weights(spec.channels()),
+            ));
             // Pre-decimate to ~11 kHz mono envelope for BPM. Feeding
             // the autocorrelation a 44.1 kHz envelope would balloon
             // memory and add no useful resolution.
@@ -144,22 +162,30 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
         decoded.copy_to_vec_interleaved(&mut interleaved);
         let samples = &interleaved[..];
 
-        // Walk frames: average channels, accumulate loudness + peak,
-        // feed every Nth mono sum to the envelope.
+        // Loudness runs on the interleaved buffer as-is: BS.1770
+        // filters each channel separately and only sums the powers
+        // afterwards, so a mono downmix here would cancel exactly the
+        // out-of-phase content the measurement is supposed to weigh.
+        if let Some(meter) = meter.as_mut() {
+            meter.push_interleaved(samples);
+        }
+
+        // Walk frames: peak across channels, and every Nth mono sum
+        // into the BPM envelope.
         let frames = samples.len() / src_channels;
+        frames_seen += frames as u64;
         for f in 0..frames {
             let base = f * src_channels;
             let mut sum: f32 = 0.0;
             for ch in 0..src_channels {
-                sum += samples[base + ch];
+                let sample = samples[base + ch];
+                sum += sample;
+                let abs = f64::from(sample.abs());
+                if abs > peak {
+                    peak = abs;
+                }
             }
             let mono = sum / src_channels as f32;
-            let abs = mono.abs() as f64;
-            if abs > peak {
-                peak = abs;
-            }
-            sum_squares += (mono as f64) * (mono as f64);
-            sample_count += 1;
 
             if decimate_counter == 0 {
                 hop_sumsq += mono * mono;
@@ -178,26 +204,66 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
         }
     }
 
-    if sample_count == 0 {
+    if frames_seen == 0 {
         return Err("no samples decoded".into());
     }
 
-    let mean_sq = sum_squares / sample_count as f64;
-    let loudness_db = if mean_sq > 0.0 {
-        10.0 * mean_sq.log10()
-    } else {
-        -100.0
-    };
-    let replay_gain_db = REPLAY_GAIN_TARGET_DB - loudness_db;
+    // `None` here is a real answer, not a failure: the file decoded,
+    // it just has no loudness worth referencing a gain to.
+    let loudness_lufs = meter.as_ref().and_then(LoudnessMeter::finish);
+    let replay_gain_db = loudness_lufs.map(|lufs| REPLAY_GAIN_TARGET_LUFS - lufs);
 
     let bpm = estimate_bpm(&envelope, src_rate, decimate_stride);
 
     Ok(AnalysisResult {
         peak,
-        loudness_db,
+        loudness_lufs,
         replay_gain_db,
         bpm,
     })
+}
+
+/// BS.1770-4 §2 channel weights, in the decoder's own channel order.
+///
+/// The spec gives the surround channels `G = 1.41` (+1.5 dB) and
+/// excludes LFE outright; everything else is `1.0`. A layout we can't
+/// interpret — discrete, ambisonic, custom labels — gets all `1.0`,
+/// which is what the measurement did for every layout before this.
+///
+/// The buffer index of a positioned channel is the number of
+/// lower-numbered position bits that are set, so walking the mask from
+/// bit 0 upwards yields the weights in interleaved order.
+fn channel_weights(channels: &Channels) -> Vec<f64> {
+    /// The +1.5 dB the spec applies to the surround channels.
+    const SURROUND: f64 = 1.41;
+
+    let Channels::Positioned(positions) = channels else {
+        return vec![1.0; channels.count().max(1)];
+    };
+
+    let mut weights = Vec::with_capacity(positions.bits().count_ones() as usize);
+    for bit in 0..u32::BITS {
+        let Some(position) = Position::from_bits(1 << bit) else {
+            continue;
+        };
+        if !positions.contains(position) {
+            continue;
+        }
+        weights.push(match position {
+            // Excluded, not attenuated: a loud LFE would otherwise
+            // make a film mix measure far louder than it sounds.
+            Position::LFE1 | Position::LFE2 => 0.0,
+            Position::REAR_LEFT
+            | Position::REAR_RIGHT
+            | Position::SIDE_LEFT
+            | Position::SIDE_RIGHT => SURROUND,
+            _ => 1.0,
+        });
+    }
+    if weights.is_empty() {
+        weights.push(1.0);
+    }
+    weights
 }
 
 /// Pick the dominant tempo from an onset-energy envelope by

@@ -66,6 +66,8 @@ import {
   playerSetCrossfade,
   playerSetGapless,
   playerSetReplayGain,
+  playerSetReplayGainOptions,
+  REPLAYGAIN_ADJUST_LIMIT_DB,
   playerSetDsdPrecision,
   playerSetDsdDop,
   DSD_PRECISION_TAPS,
@@ -1220,6 +1222,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [mono, setMono] = useState(false);
   const [crossfadeSec, setCrossfadeSec] = useState(0);
   const [replayGain, setReplayGain] = useState(false);
+  const [replayGainPreamp, setReplayGainPreamp] = useState(0);
+  const [replayGainFallback, setReplayGainFallback] = useState(0);
+  const [replayGainPreventClipping, setReplayGainPreventClipping] =
+    useState(true);
+  const replayGainOptionsDebounce = useRef<number | null>(null);
   const [gapless, setGapless] = useState(true);
   const [dsdTaps, setDsdTaps] = useState<DsdPrecisionTaps>(256);
   const [dsdDop, setDsdDop] = useState(false);
@@ -1661,6 +1668,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         setMono(s.mono);
         setCrossfadeSec(Math.round(s.crossfade_ms / 1000));
         setReplayGain(s.replaygain);
+        setReplayGainPreamp(s.replaygain_preamp_db);
+        setReplayGainFallback(s.replaygain_fallback_db);
+        setReplayGainPreventClipping(s.replaygain_prevent_clipping);
         setGapless(s.gapless);
         // Guard against a stale / out-of-set value from the backend.
         setDsdTaps(
@@ -1695,6 +1705,64 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       setReplayGain(!next); // rollback
     });
   }, [replayGain]);
+
+  // The sliders fire on every pixel of drag. The audio side is a pair
+  // of atomics and would happily take all of them, but each push also
+  // writes three rows to SQLite — so the round trip is debounced and
+  // local state drives the UI in the meantime.
+  const pushReplayGainOptions = useCallback(
+    (preampDb: number, fallbackDb: number, preventClipping: boolean) => {
+      if (replayGainOptionsDebounce.current != null) {
+        window.clearTimeout(replayGainOptionsDebounce.current);
+      }
+      replayGainOptionsDebounce.current = window.setTimeout(() => {
+        playerSetReplayGainOptions({
+          preampDb,
+          fallbackDb,
+          preventClipping,
+        }).catch((err) => {
+          console.error("[Settings] set replaygain options failed", err);
+        });
+      }, 250);
+    },
+    [],
+  );
+
+  useEffect(
+    () => () => {
+      if (replayGainOptionsDebounce.current != null) {
+        window.clearTimeout(replayGainOptionsDebounce.current);
+      }
+    },
+    [],
+  );
+
+  const handleReplayGainPreampChange = useCallback(
+    (value: number) => {
+      setReplayGainPreamp(value);
+      pushReplayGainOptions(value, replayGainFallback, replayGainPreventClipping);
+    },
+    [pushReplayGainOptions, replayGainFallback, replayGainPreventClipping],
+  );
+
+  const handleReplayGainFallbackChange = useCallback(
+    (value: number) => {
+      setReplayGainFallback(value);
+      pushReplayGainOptions(replayGainPreamp, value, replayGainPreventClipping);
+    },
+    [pushReplayGainOptions, replayGainPreamp, replayGainPreventClipping],
+  );
+
+  const handleToggleReplayGainPreventClipping = useCallback(() => {
+    const next = !replayGainPreventClipping;
+    setReplayGainPreventClipping(next);
+    pushReplayGainOptions(replayGainPreamp, replayGainFallback, next);
+  }, [
+    pushReplayGainOptions,
+    replayGainPreamp,
+    replayGainFallback,
+    replayGainPreventClipping,
+  ]);
 
   const handleSetDsdPrecision = useCallback(
     (next: DsdPrecisionTaps) => {
@@ -2398,6 +2466,92 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 label={t("settings.replayGain.title")}
               />
             </div>
+
+            {/* ReplayGain refinements — only meaningful once the
+                switch above is on, so they stay out of the way until
+                then. */}
+            {replayGain && (
+              <div className="ml-9 pl-5 border-l border-zinc-200 dark:border-zinc-700/60">
+                {/* Pre-amp */}
+                <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div>
+                    <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                      {t("settings.replayGain.preamp.title")}
+                    </div>
+                    <div className="text-xs text-zinc-400">
+                      {t("settings.replayGain.preamp.subtitle")}
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="range"
+                      min={-REPLAYGAIN_ADJUST_LIMIT_DB}
+                      max={REPLAYGAIN_ADJUST_LIMIT_DB}
+                      step={0.5}
+                      value={replayGainPreamp}
+                      onChange={(e) =>
+                        handleReplayGainPreampChange(Number(e.target.value))
+                      }
+                      className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
+                      aria-label={t("settings.replayGain.preamp.title")}
+                    />
+                    <span className="text-sm font-medium text-zinc-500 w-16 text-right tabular-nums">
+                      {t("settings.replayGain.decibels", {
+                        value: replayGainPreamp.toFixed(1),
+                      })}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Fallback gain for untagged, unanalysed tracks */}
+                <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div>
+                    <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                      {t("settings.replayGain.fallback.title")}
+                    </div>
+                    <div className="text-xs text-zinc-400">
+                      {t("settings.replayGain.fallback.subtitle")}
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="range"
+                      min={-REPLAYGAIN_ADJUST_LIMIT_DB}
+                      max={REPLAYGAIN_ADJUST_LIMIT_DB}
+                      step={0.5}
+                      value={replayGainFallback}
+                      onChange={(e) =>
+                        handleReplayGainFallbackChange(Number(e.target.value))
+                      }
+                      className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
+                      aria-label={t("settings.replayGain.fallback.title")}
+                    />
+                    <span className="text-sm font-medium text-zinc-500 w-16 text-right tabular-nums">
+                      {t("settings.replayGain.decibels", {
+                        value: replayGainFallback.toFixed(1),
+                      })}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Clipping prevention */}
+                <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div>
+                    <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                      {t("settings.replayGain.preventClipping.title")}
+                    </div>
+                    <div className="text-xs text-zinc-400">
+                      {t("settings.replayGain.preventClipping.subtitle")}
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={replayGainPreventClipping}
+                    onToggle={handleToggleReplayGainPreventClipping}
+                    label={t("settings.replayGain.preventClipping.title")}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Equalizer */}
             <div className="px-4">

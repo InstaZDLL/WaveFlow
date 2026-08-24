@@ -1466,7 +1466,20 @@
     },
     "replayGain": {
       "title": "ReplayGainの適用",
-      "subtitle": "各トラックの分析されたゲインを使用して、知覚される音量のバランスを調整する"
+      "subtitle": "ファイルの ReplayGain、または解析した値を使って音量感をそろえます",
+      "preamp": {
+        "title": "プリアンプ",
+        "subtitle": "各トラックのゲインに加算されます。ReplayGain の基準は多くのシステムより小さめです"
+      },
+      "fallback": {
+        "title": "既定のゲイン",
+        "subtitle": "ReplayGain がなく解析もされていないトラックに適用されます"
+      },
+      "preventClipping": {
+        "title": "クリッピングを防ぐ",
+        "subtitle": "トラックのピークが残す余裕までゲインを抑えます"
+      },
+      "decibels": "{{value}} dB"
     },
     "exclusive": {
       "title": "WASAPI 排他モード (Windows)",

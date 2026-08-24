@@ -2,10 +2,11 @@ import { invoke } from "@tauri-apps/api/core";
 
 /**
  * Cached analysis row for a single track. Mirrors the Rust
- * `TrackAnalysisRow`. `loudness_lufs` is mislabelled by tradition —
- * the value comes from a plain RMS pass without K-weighting, but we
- * keep the column name so the schema stays compatible with a future
- * BS.1770 implementation.
+ * `TrackAnalysisRow`. `loudness_lufs` finally means what it says: the
+ * value is ITU-R BS.1770-4 integrated loudness, K-weighted and gated.
+ * It is `null` for a track with nothing above the absolute gate —
+ * silence, or shorter than one 400 ms gating block — and so is the
+ * ReplayGain derived from it.
  */
 export interface TrackAnalysis {
   track_id: number;

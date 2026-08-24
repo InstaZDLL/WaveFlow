@@ -43,11 +43,13 @@ Note the interaction with **Split this artist** below: a deep rescan re-reads ta
 
 ## Audio analysis
 
-[`analysis.rs`](../../src-tauri/crates/core/src/analysis.rs) computes peak, integrated loudness (dB), ReplayGain (–18 LUFS reference) and BPM (autocorrelation). Runs on demand (per track) or as a background sweep (whole library), gated by a Settings toggle. Results land in `track_analysis` and feed:
+[`analysis.rs`](../../src-tauri/crates/core/src/analysis.rs) computes peak, integrated loudness and BPM (autocorrelation). Loudness is **ITU-R BS.1770-4** — K-weighted and gated ([`analysis/loudness.rs`](../../src-tauri/crates/core/src/analysis/loudness.rs)) — so the number is real LUFS and lands on the same scale as the ReplayGain other taggers write; the earlier unweighted RMS over a mono sum was a fine relative yardstick inside one library but could not be compared with anything outside it. ReplayGain is `-18 LUFS - loudness`, and is `NULL` rather than a huge boost for a track with nothing above the absolute gate. Peak is taken across **every channel**, not over a mono downmix — an out-of-phase mix sums to near silence while its samples sit at full scale, and clipping prevention downstream depends on that number being true. Runs on demand (per track) or as a background sweep (whole library), gated by a Settings toggle. Results land in `track_analysis` and feed:
 
-- per-stream gain in the audio engine (`replaygain_enabled`),
+- per-stream gain in the audio engine (`replaygain_enabled`) — as the **fallback** source, behind the file's own tags (see [playback](playback.md#replaygain)),
 - the BPM bucketing in [smart playlists](smart-playlists.md),
 - the per-track audio specs strip under the player.
+
+Rows analysed before the BS.1770 switch are **left in place**: they hold the old unweighted RMS figure, which is a few dB off the new scale on some material, so a track analysed back then and a track carrying a `REPLAYGAIN_*` tag can differ slightly in level. Nothing is invalidated automatically — deleting a user's analysis results to force a re-run is a worse trade than the residual mismatch, which clipping prevention bounds anyway. Re-analysing a track (or a sweep over the library) replaces the value with the real LUFS one.
 
 The background sweep ([`run_analyze_library`](../../src-tauri/crates/app/src/commands/analysis.rs)) is deliberately yielded to the foreground scanner: a scan saturates every CPU core and the single SQLite writer, so the analyzer parks itself while [`scan_in_flight()`](../../src-tauri/crates/app/src/commands/scan.rs) reports an active walk (any of `scan_folder` / `rescan_library` / `import_paths` / the fs-watcher / the startup rescan). It resumes once the scan drains. Decoded results are buffered and flushed to `track_analysis` in batches of 16 inside one transaction, and the flush retries the whole batch on `SQLITE_BUSY` / `SQLITE_LOCKED` with exponential backoff — before this, a per-row `INSERT` racing a concurrent scan would hit `database is locked` after the 5 s busy-timeout and silently drop the freshly-computed BPM / loudness.
 

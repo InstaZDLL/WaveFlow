@@ -246,6 +246,12 @@ pub struct ExtractedFile {
     /// derived from the `RATING` text field for Vorbis/FLAC/MP4. `None`
     /// when neither tag carries a rating.
     pub rating: Option<u8>,
+    /// ReplayGain the file already carries, normalised to the
+    /// ReplayGain 2.0 scale. Refreshed on every scan because an
+    /// external tagger can add or recompute it at any time; playback
+    /// prefers it over our own analysis, which is why it is read here
+    /// rather than only when the user asks for an analysis pass.
+    pub replay_gain: super::replay_gain::ReplayGainTags,
 }
 
 pub struct ExtractedCover {

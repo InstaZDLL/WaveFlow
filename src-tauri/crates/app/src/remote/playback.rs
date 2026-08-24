@@ -11,6 +11,7 @@
 //! end query the SQLite pool already, so minting a ticket (one HTTP
 //! round-trip) at advance time adds no work to the real-time callback.
 
+use crate::audio::replay_gain::TrackGain;
 use std::sync::Arc;
 
 use sqlx::Row;
@@ -177,8 +178,7 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
     if let Some(local) =
         crate::remote::reconciliation::preferred_local_playback(&pool, &entry.id).await?
     {
-        let replay_gain_db =
-            crate::commands::player::fetch_replay_gain_db(&pool, local.track_id).await;
+        let replay_gain = crate::commands::player::fetch_replay_gain(&pool, local.track_id).await;
         let fallback_url = if crate::offline::is_offline() {
             None
         } else {
@@ -199,7 +199,7 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
             artist: entry.artist.clone(),
             artwork_url: None,
             fallback_url,
-            replay_gain_db,
+            replay_gain,
         })?;
         return Ok(());
     }
@@ -215,6 +215,9 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
         // the PlayerBar overlay path expects a plain URL, so leave it off
         // here and let the bar fall back to its placeholder.
         artwork_url: None,
+        // No reconciled local file, so nothing local knows this
+        // track's loudness; the server doesn't send one either.
+        replay_gain: TrackGain::default(),
     })?;
     Ok(())
 }

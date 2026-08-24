@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
@@ -15,11 +15,12 @@ use walkdir::WalkDir;
 
 use waveflow_core::scanner::{
     extract_album_artist, extract_artist_image, extract_compilation_flag, extract_cover,
-    extract_folder_cover, extract_musical_key, extract_rating, file_type_label, hash_file,
-    is_scannable_audio, link_local_artist_image, link_va_artist_image, maybe_link_artist_images,
-    merge_implicit_compilations, now_millis, reattach_orphaned_play_events, refresh_folder_covers,
-    split_artist_name, upsert_album, upsert_artist, upsert_artwork, ArtistImageScanCache,
-    ExtractedFile, UpsertCache, VARIOUS_ARTISTS_LABEL,
+    extract_folder_cover, extract_musical_key, extract_rating, extract_replay_gain,
+    file_type_label, hash_file, is_scannable_audio, link_local_artist_image, link_va_artist_image,
+    maybe_link_artist_images, merge_implicit_compilations, now_millis,
+    reattach_orphaned_play_events, refresh_folder_covers, split_artist_name, upsert_album,
+    upsert_artist, upsert_artwork, ArtistImageScanCache, ExtractedFile, ReplayGainTags,
+    UpsertCache, VARIOUS_ARTISTS_LABEL,
 };
 
 use crate::{
@@ -231,6 +232,11 @@ fn extract_dsd_file(
         // takes over via extract_folder_cover (called below).
         cover_art: extract_folder_cover(path, artwork_dir),
         rating: None,
+        // Same limitation as `album_artist` above: the DSF ID3v2 blob
+        // can carry ReplayGain frames, but our DSD reader doesn't
+        // surface arbitrary tag items. A DSD track falls back to the
+        // analysis pass like it did before.
+        replay_gain: ReplayGainTags::default(),
     })
 }
 
@@ -327,6 +333,7 @@ fn extract_file(
         cover_art,
         rating,
         musical_key,
+        replay_gain,
     ) = match tag {
         Some(tag) => (
             tag.title().map(|s| s.into_owned()),
@@ -341,9 +348,22 @@ fn extract_file(
             extract_cover(tag, artwork_dir),
             extract_rating(tag),
             extract_musical_key(tag),
+            extract_replay_gain(tag),
         ),
         None => (
-            None, None, None, None, false, None, None, None, None, None, None, None,
+            None,
+            None,
+            None,
+            None,
+            false,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            ReplayGainTags::default(),
         ),
     };
 
@@ -385,6 +405,7 @@ fn extract_file(
         musical_key,
         cover_art,
         rating,
+        replay_gain,
     })
 }
 
@@ -518,18 +539,43 @@ pub(crate) async fn scan_folder_inner(
     //
     // Tracks already at `is_available = 0` are excluded — bringing them
     // back is handled by the upsert path which re-sets the flag to 1.
-    let existing_rows: Vec<(String, i64, i64)> = sqlx::query_as(
-        "SELECT file_path, file_modified, file_size
+    let existing_rows: Vec<(String, i64, i64, i64)> = sqlx::query_as(
+        "SELECT file_path, file_modified, file_size,
+                (rg_track_gain_db IS NULL AND rg_track_peak IS NULL
+                 AND rg_album_gain_db IS NULL AND rg_album_peak IS NULL) AS rg_missing
            FROM track
           WHERE folder_id = ? AND is_available = 1",
     )
     .bind(folder_id)
     .fetch_all(pool)
     .await?;
-    let mut existing_meta: HashMap<String, (i64, i64)> = existing_rows
-        .into_iter()
-        .map(|(p, mtime, size)| (p, (mtime, size)))
-        .collect();
+    let mut existing_meta: HashMap<String, (i64, i64)> = HashMap::new();
+    let mut rg_missing: HashSet<String> = HashSet::new();
+    for (path, mtime, size, missing) in existing_rows {
+        if missing != 0 {
+            rg_missing.insert(path.clone());
+        }
+        existing_meta.insert(path, (mtime, size));
+    }
+
+    // ReplayGain tags became a thing the scanner reads *after* these
+    // rows were written, and the fast path below never opens a file
+    // whose mtime + size still match — so on an existing library the
+    // feature would stay invisible until someone ran a deep rescan.
+    // One pass per folder re-reads the tracks that have no ReplayGain
+    // columns yet; the marker below keeps it from repeating, which
+    // matters because a library with no ReplayGain tags at all would
+    // otherwise re-read every file on every scan and lose the fast
+    // path permanently.
+    let rg_backfill_key = format!("scan.rg_backfill_done.{folder_id}");
+    let rg_backfill_pending = !rg_missing.is_empty()
+        && sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
+            .bind(&rg_backfill_key)
+            .fetch_optional(pool)
+            .await
+            .ok()
+            .flatten()
+            .is_none();
 
     let meta_load_ms = t_scan.elapsed().as_millis();
 
@@ -593,7 +639,11 @@ pub(crate) async fn scan_folder_inner(
                         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
                         .map(|d| d.as_millis() as i64)
                         .unwrap_or(0);
-                    if disk_size == stored_size && disk_mtime_ms == stored_mtime {
+                    let needs_rg_backfill = rg_backfill_pending && rg_missing.contains(&path_str);
+                    if disk_size == stored_size
+                        && disk_mtime_ms == stored_mtime
+                        && !needs_rg_backfill
+                    {
                         summary.skipped += 1;
                         maybe_emit_progress(
                             app_handle,
@@ -726,18 +776,29 @@ pub(crate) async fn scan_folder_inner(
         );
     };
 
+    // A track the backfill pass was meant to re-read but couldn't:
+    // the marker below must not be written, or that file would keep
+    // its empty ReplayGain columns for good.
+    let mut rg_backfill_failed = false;
+
     while let Some((path, result)) = extraction_stream.next().await {
         processed += 1;
         let extracted = match result {
             Ok(Ok(e)) => e,
             Ok(Err(err)) => {
                 tracing::warn!(path = %path.display(), error = %err, "extraction failed");
+                if rg_backfill_pending && rg_missing.contains(path.to_string_lossy().as_ref()) {
+                    rg_backfill_failed = true;
+                }
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
             }
             Err(err) => {
                 tracing::warn!(path = %path.display(), error = %err, "extraction panicked");
+                if rg_backfill_pending && rg_missing.contains(path.to_string_lossy().as_ref()) {
+                    rg_backfill_failed = true;
+                }
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -807,15 +868,27 @@ pub(crate) async fn scan_folder_inner(
                 // the row stays hidden forever (issue #366, symptom B).
                 sqlx::query(
                     "UPDATE track
-                        SET bit_depth    = COALESCE(bit_depth, ?),
-                            codec        = COALESCE(codec, ?),
-                            musical_key  = COALESCE(musical_key, ?),
-                            is_available = 1
+                        SET bit_depth        = COALESCE(bit_depth, ?),
+                            codec            = COALESCE(codec, ?),
+                            musical_key      = COALESCE(musical_key, ?),
+                            rg_track_gain_db = ?,
+                            rg_track_peak    = ?,
+                            rg_album_gain_db = ?,
+                            rg_album_peak    = ?,
+                            is_available     = 1
                       WHERE id = ?",
                 )
                 .bind(extracted.bit_depth)
                 .bind(extracted.codec.as_deref())
                 .bind(extracted.musical_key.as_deref())
+                // Assigned rather than COALESCEd: this branch runs on a
+                // file whose bytes are unchanged but whose row may be
+                // stale, and a tagger that *removed* a gain has to be
+                // able to clear it.
+                .bind(extracted.replay_gain.track_gain_db)
+                .bind(extracted.replay_gain.track_peak)
+                .bind(extracted.replay_gain.album_gain_db)
+                .bind(extracted.replay_gain.album_peak)
                 .bind(existing_track_id)
                 .execute(&mut *tx)
                 .await?;
@@ -990,6 +1063,8 @@ pub(crate) async fn scan_folder_inner(
                         bit_depth = ?, codec = ?,
                         musical_key = ?,
                         rating = ?,
+                        rg_track_gain_db = ?, rg_track_peak = ?,
+                        rg_album_gain_db = ?, rg_album_peak = ?,
                         is_available = 1
                      WHERE id = ?",
                 )
@@ -1011,6 +1086,10 @@ pub(crate) async fn scan_folder_inner(
                 .bind(extracted.codec.as_deref())
                 .bind(extracted.musical_key.as_deref())
                 .bind(extracted.rating.map(|r| r as i64))
+                .bind(extracted.replay_gain.track_gain_db)
+                .bind(extracted.replay_gain.track_peak)
+                .bind(extracted.replay_gain.album_gain_db)
+                .bind(extracted.replay_gain.album_peak)
                 .bind(existing_track_id)
                 .execute(&mut *tx)
                 .await?;
@@ -1123,8 +1202,10 @@ pub(crate) async fn scan_folder_inner(
                     duration_ms, bitrate, sample_rate, channels,
                     bit_depth, codec, musical_key,
                     rating,
+                    rg_track_gain_db, rg_track_peak, rg_album_gain_db, rg_album_peak,
                     added_at, is_available
-                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
+                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                           ?, ?, ?, ?, ?, 1)",
             )
             .bind(library_id)
             .bind(folder_id)
@@ -1146,6 +1227,10 @@ pub(crate) async fn scan_folder_inner(
             .bind(extracted.codec.as_deref())
             .bind(extracted.musical_key.as_deref())
             .bind(extracted.rating.map(|r| r as i64))
+            .bind(extracted.replay_gain.track_gain_db)
+            .bind(extracted.replay_gain.track_peak)
+            .bind(extracted.replay_gain.album_gain_db)
+            .bind(extracted.replay_gain.album_peak)
             .bind(now)
             .execute(&mut *tx)
             .await?;
@@ -1288,6 +1373,38 @@ pub(crate) async fn scan_folder_inner(
             0
         }
     };
+
+    // Mark the one-off ReplayGain backfill done for this folder — but
+    // only if every track it was meant to re-read actually got read.
+    // A file that failed extraction this time (locked, unreadable,
+    // mid-write) must be picked up by the next scan rather than be
+    // written off. The marker is still set when files simply turned
+    // out to carry no tags: re-reading those on every future scan is
+    // exactly what it exists to prevent.
+    if rg_backfill_pending && !rg_backfill_failed {
+        // Non-fatal: the scan itself is already committed, and losing
+        // the marker only costs one more backfill pass. But it must
+        // not be lost silently — an unwritable marker makes every
+        // future scan re-read the whole folder, which looks exactly
+        // like the fast path being broken for no reason.
+        if let Err(err) = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES (?, 'true', 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(&rg_backfill_key)
+        .bind(now_millis())
+        .execute(pool)
+        .await
+        {
+            tracing::warn!(
+                ?err,
+                folder_id,
+                key = %rg_backfill_key,
+                "could not persist the ReplayGain backfill marker (non-fatal);                  the next scan will run the pass again"
+            );
+        }
+    }
 
     // Per-phase breakdown so a slow scan on a big library is diagnosable
     // from the log alone. `*_ms` are wall-clock deltas between phases;

@@ -1622,7 +1622,20 @@
     },
     "replayGain": {
       "title": "تطبيق ReplayGain",
-      "subtitle": "يستخدم الكسب المحلَّل لكل مقطع لموازنة الجهارة المُدركة"
+      "subtitle": "استخدام قيمة ReplayGain المخزّنة في الملف أو القيمة المحلَّلة لتوحيد مستوى الصوت المُدرَك",
+      "preamp": {
+        "title": "التضخيم الأولي",
+        "subtitle": "يُضاف إلى كسب كل مقطع — مرجع ReplayGain أخفض من معظم الأنظمة"
+      },
+      "fallback": {
+        "title": "الكسب الافتراضي",
+        "subtitle": "يُطبَّق على المقاطع التي لا تحمل ReplayGain ولم تُحلَّل قط"
+      },
+      "preventClipping": {
+        "title": "تفادي البتر",
+        "subtitle": "تقييد الكسب بالهامش الذي تتركه ذروة المقطع"
+      },
+      "decibels": "{{value}} dB"
     },
     "exclusive": {
       "title": "وضع WASAPI الحصري (Windows)",

@@ -1487,7 +1487,20 @@
     },
     "replayGain": {
       "title": "Applica ReplayGain",
-      "subtitle": "Usa il gain analizzato di ogni brano per bilanciare il volume percepito"
+      "subtitle": "Usare il ReplayGain del file, o quello analizzato, per uniformare il volume percepito",
+      "preamp": {
+        "title": "Preamplificazione",
+        "subtitle": "Si somma al guadagno di ogni brano — il riferimento ReplayGain è più basso della maggior parte dei sistemi"
+      },
+      "fallback": {
+        "title": "Guadagno predefinito",
+        "subtitle": "Applicato ai brani senza ReplayGain mai analizzati"
+      },
+      "preventClipping": {
+        "title": "Evitare la saturazione",
+        "subtitle": "Limitare il guadagno al margine lasciato dal picco del brano"
+      },
+      "decibels": "{{value}} dB"
     },
     "exclusive": {
       "title": "Modalità esclusiva WASAPI (Windows)",

@@ -1487,7 +1487,20 @@
     },
     "replayGain": {
       "title": "ReplayGain anwenden",
-      "subtitle": "Nutze den analysierten Gain jedes Titels, um die wahrgenommene Lautstärke auszugleichen"
+      "subtitle": "Den ReplayGain der Datei oder den analysierten Wert nutzen, um die wahrgenommene Lautheit anzugleichen",
+      "preamp": {
+        "title": "Vorverstärkung",
+        "subtitle": "Wird zum Gain jedes Titels addiert — die ReplayGain-Referenz ist leiser als die meisten Systeme"
+      },
+      "fallback": {
+        "title": "Standard-Gain",
+        "subtitle": "Gilt für Titel ohne ReplayGain, die nie analysiert wurden"
+      },
+      "preventClipping": {
+        "title": "Übersteuerung vermeiden",
+        "subtitle": "Den Gain auf den Spielraum begrenzen, den der Spitzenpegel des Titels lässt"
+      },
+      "decibels": "{{value}} dB"
     },
     "exclusive": {
       "title": "WASAPI-Exklusivmodus (Windows)",

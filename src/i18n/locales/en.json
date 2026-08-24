@@ -1487,7 +1487,20 @@
     },
     "replayGain": {
       "title": "Apply ReplayGain",
-      "subtitle": "Use each track's analysed gain to balance perceived volume"
+      "subtitle": "Use the file's ReplayGain, or the analysed one, to even out perceived loudness",
+      "preamp": {
+        "title": "Pre-amp",
+        "subtitle": "Added to every track's gain — the ReplayGain reference is quieter than most systems"
+      },
+      "fallback": {
+        "title": "Default gain",
+        "subtitle": "Applied to tracks with no ReplayGain that were never analysed"
+      },
+      "preventClipping": {
+        "title": "Prevent clipping",
+        "subtitle": "Hold the gain back to the headroom the track's peak leaves"
+      },
+      "decibels": "{{value}} dB"
     },
     "exclusive": {
       "title": "WASAPI exclusive mode (Windows)",

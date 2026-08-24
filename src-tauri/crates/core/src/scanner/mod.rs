@@ -11,6 +11,7 @@
 
 pub mod canonical;
 pub mod extract;
+pub mod replay_gain;
 
 // `upserts` runs raw SQLite statements against a
 // `&mut sqlx::SqliteConnection`. It's the only sqlite-specific surface
@@ -28,6 +29,7 @@ pub use extract::{
     find_artist_image_in_dir, hash_file, hash_file_full, is_scannable_audio, undecodable_stream,
     write_artist_image, ExtractedCover, ExtractedFile, AUDIO_EXTENSIONS,
 };
+pub use replay_gain::{extract_replay_gain, ReplayGainTags};
 #[cfg(feature = "sqlite")]
 pub use upserts::{
     link_local_artist_image, link_va_artist_image, maybe_link_artist_images,

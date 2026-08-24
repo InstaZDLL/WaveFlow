@@ -30,6 +30,7 @@ use super::crossfade::{equal_power_gains, ActiveStream};
 use super::engine::AudioCmd;
 use super::events::{emit_radio_metadata, RadioMetadataPayload};
 use super::output::DopFormat;
+use super::replay_gain::{effective_linear, TrackGain};
 use super::state::{PlayerState, SharedPlayback};
 use super::AudioEngine;
 
@@ -302,7 +303,7 @@ fn decoder_loop(
                 duration_ms,
                 source_type,
                 source_id,
-                replay_gain_db,
+                replay_gain,
             } => {
                 // A-B loop is a single-track concern — clear it on
                 // every fresh load so the new track doesn't inherit
@@ -372,7 +373,7 @@ fn decoder_loop(
                     duration_ms,
                     source_type.clone(),
                     source_id,
-                    replay_gain_db,
+                    replay_gain,
                     shared.dsd_taps.load(Ordering::Acquire) as usize,
                     dop_engaged,
                 ) {
@@ -433,7 +434,7 @@ fn decoder_loop(
                 artist,
                 artwork_url,
                 fallback_url,
-                replay_gain_db,
+                replay_gain,
             } => {
                 shared.clear_ab_loop();
                 transition_state(&shared, &app, PlayerState::Loading, Some(track_id));
@@ -488,7 +489,7 @@ fn decoder_loop(
                     duration_ms,
                     "remote-local".to_string(),
                     None,
-                    replay_gain_db,
+                    replay_gain,
                     shared.dsd_taps.load(Ordering::Acquire) as usize,
                     // Local-first playback of a reconciled remote track never
                     // takes the DoP path: DoP requires re-opening the exclusive
@@ -514,6 +515,10 @@ fn decoder_loop(
                                 title,
                                 artist,
                                 artwork_url,
+                                // Streaming the same recording from the
+                                // server instead of the local file must
+                                // not change its level.
+                                replay_gain,
                             });
                             continue;
                         }
@@ -542,6 +547,7 @@ fn decoder_loop(
                         pending_cmd = Some(AudioCmd::LoadUrlAndPlay {
                             url,
                             ext_hint: None,
+                            replay_gain,
                             track_id,
                             title,
                             artist,
@@ -565,6 +571,7 @@ fn decoder_loop(
                 title,
                 artist,
                 artwork_url,
+                replay_gain,
             } => {
                 tracing::info!(
                     track_id,
@@ -715,7 +722,10 @@ fn decoder_loop(
                     0,
                     "radio".to_string(),
                     None,
-                    None,
+                    // Empty for a live station; carries the track's own
+                    // gain when this is a library track that fell back
+                    // to streaming from the server.
+                    replay_gain,
                 ) {
                     Ok(s) => s,
                     Err(err) => {
@@ -1451,7 +1461,7 @@ fn play_track(
                 apply_replay_gain(
                     &mut primary_resampled[prev_len..],
                     shared,
-                    stream.replay_gain_linear,
+                    stream.replay_gain,
                 );
             }
             let secondary = pending_next
@@ -1470,7 +1480,7 @@ fn play_track(
                 apply_replay_gain(
                     &mut secondary_resampled[prev_len..],
                     shared,
-                    secondary.replay_gain_linear,
+                    secondary.replay_gain,
                 );
             }
 
@@ -1647,7 +1657,7 @@ fn play_track(
                 apply_replay_gain(
                     &mut primary_resampled[prev_len..],
                     shared,
-                    stream.replay_gain_linear,
+                    stream.replay_gain,
                 );
             }
             if primary_resampled.is_empty() && primary_at_eof {
@@ -1930,7 +1940,7 @@ fn drain_commands(
                 duration_ms,
                 source_type,
                 source_id,
-                replay_gain_db,
+                replay_gain,
             }) => {
                 store_next(
                     pending_next,
@@ -1939,7 +1949,7 @@ fn drain_commands(
                     duration_ms,
                     source_type,
                     source_id,
-                    replay_gain_db,
+                    replay_gain,
                     shared.playback_speed(),
                     shared.dsd_taps.load(Ordering::Acquire) as usize,
                 );
@@ -1982,7 +1992,7 @@ fn drain_commands(
                             duration_ms,
                             source_type,
                             source_id,
-                            replay_gain_db,
+                            replay_gain,
                         }) => store_next(
                             pending_next,
                             path,
@@ -1990,7 +2000,7 @@ fn drain_commands(
                             duration_ms,
                             source_type,
                             source_id,
-                            replay_gain_db,
+                            replay_gain,
                             shared.playback_speed(),
                             shared.dsd_taps.load(Ordering::Acquire) as usize,
                         ),
@@ -2043,14 +2053,21 @@ fn drain_commands(
 }
 
 /// Multiply the trailing `len_before..` slice of a freshly-decoded
-/// buffer by the active stream's stored ReplayGain factor, gated on
-/// the live `replaygain_enabled` toggle. Done here (rather than in the
-/// cpal callback) so each stream gets its own gain even during the
+/// buffer by the gain this track works out to, gated on the live
+/// `replaygain_enabled` toggle. Done here (rather than in the cpal
+/// callback) so each stream gets its own gain even during the
 /// crossfade dual-decoder mix, where two tracks with different gains
 /// are summed before reaching the ring.
+///
+/// The scalar is derived per buffer rather than cached on the stream:
+/// it depends on the pre-amp and clipping settings as well as the
+/// track, so baking it in at load time would leave the pre-amp slider
+/// doing nothing until the next track. One `powf` per decoded buffer
+/// is nothing next to the decode that produced it.
 #[inline]
-fn apply_replay_gain(buf: &mut [f32], shared: &SharedPlayback, gain: f32) {
-    if gain == 1.0 || !shared.replaygain_enabled.load(Ordering::Relaxed) {
+fn apply_replay_gain(buf: &mut [f32], shared: &SharedPlayback, track: TrackGain) {
+    let gain = effective_linear(track, shared.replay_gain_settings());
+    if gain == 1.0 {
         return;
     }
     for s in buf.iter_mut() {
@@ -2084,7 +2101,7 @@ fn store_next(
     duration_ms: u64,
     source_type: String,
     source_id: Option<i64>,
-    replay_gain_db: Option<f64>,
+    replay_gain: TrackGain,
     speed: f32,
     dsd_taps: usize,
 ) {
@@ -2094,7 +2111,7 @@ fn store_next(
         duration_ms,
         source_type,
         source_id,
-        replay_gain_db,
+        replay_gain,
         dsd_taps,
         // Prefetch is a crossfade / gapless concern; DoP never fades, so
         // a prefetched stream is always opened on the PCM path. A DSD

@@ -1487,7 +1487,20 @@
     },
     "replayGain": {
       "title": "Aplicar ReplayGain",
-      "subtitle": "Usa la ganancia analizada de cada pista para equilibrar el volumen percibido"
+      "subtitle": "Usar el ReplayGain del archivo, o el analizado, para igualar el volumen percibido",
+      "preamp": {
+        "title": "Preamplificación",
+        "subtitle": "Se suma a la ganancia de cada pista — la referencia ReplayGain es más baja que la de la mayoría de sistemas"
+      },
+      "fallback": {
+        "title": "Ganancia predeterminada",
+        "subtitle": "Se aplica a las pistas sin ReplayGain que nunca se han analizado"
+      },
+      "preventClipping": {
+        "title": "Evitar la saturación",
+        "subtitle": "Limitar la ganancia al margen que deja el pico de la pista"
+      },
+      "decibels": "{{value}} dB"
     },
     "exclusive": {
       "title": "Modo exclusivo WASAPI (Windows)",

@@ -22,6 +22,7 @@ use waveflow_core::audio_format::dsd::dop::DsdToDop;
 use waveflow_core::audio_format::dsd::parser::{parse_dff, parse_dsf, DsdLayout};
 use waveflow_core::audio_format::dsd::pcm::DsdToPcm;
 
+use super::replay_gain::TrackGain;
 use super::resampler::Resampler;
 
 /// Per-stream decoder backend. Symphonia handles the FLAC / MP3 /
@@ -90,11 +91,13 @@ pub struct ActiveStream {
     pub duration_ms: u64,
     pub source_type: String,
     pub source_id: Option<i64>,
-    /// Linear gain factor derived from `track_analysis.replay_gain_db`
-    /// for this track. `1.0` means "no gain known / disabled". Stored
-    /// per-stream so the crossfade dual-decoder mix gives each track
-    /// its own gain before they are summed.
-    pub replay_gain_linear: f32,
+    /// What is known about this track's loudness — from its own tags
+    /// when it has them, from our analysis otherwise. Kept as metadata
+    /// rather than as a baked-in scalar so the pre-amp and clipping
+    /// settings apply the moment they change, and stored per-stream so
+    /// the crossfade dual-decoder mix gives each track its own gain
+    /// before the two are summed.
+    pub replay_gain: super::replay_gain::TrackGain,
     /// True source sample rate of the underlying audio (44100, 48000,
     /// 96000, …). Captured the first time `decode_next` builds the
     /// resampler and held so `rebuild_resampler` can recompute the
@@ -233,7 +236,7 @@ impl ActiveStream {
         duration_ms: u64,
         source_type: String,
         source_id: Option<i64>,
-        replay_gain_db: Option<f64>,
+        replay_gain: TrackGain,
         dsd_taps: usize,
         dop: bool,
     ) -> Result<Self, String> {
@@ -254,7 +257,7 @@ impl ActiveStream {
                 duration_ms,
                 source_type,
                 source_id,
-                replay_gain_db,
+                replay_gain,
                 dsd_taps,
                 dop,
             );
@@ -276,7 +279,7 @@ impl ActiveStream {
                     duration_ms,
                     source_type,
                     source_id,
-                    replay_gain_db,
+                    replay_gain,
                 );
             }
         }
@@ -289,7 +292,7 @@ impl ActiveStream {
             duration_ms,
             source_type,
             source_id,
-            replay_gain_db,
+            replay_gain,
         )
     }
 
@@ -312,7 +315,7 @@ impl ActiveStream {
         duration_ms: u64,
         source_type: String,
         source_id: Option<i64>,
-        replay_gain_db: Option<f64>,
+        replay_gain: TrackGain,
     ) -> Result<Self, String> {
         let mss = MediaSourceStream::new(source, Default::default());
         let mut hint = Hint::new();
@@ -356,7 +359,7 @@ impl ActiveStream {
             duration_ms,
             source_type,
             source_id,
-            replay_gain_linear: replay_gain_db_to_linear(replay_gain_db),
+            replay_gain,
             src_sample_rate: 0,
             playback_speed: 1.0,
         })
@@ -376,7 +379,7 @@ impl ActiveStream {
         duration_ms: u64,
         source_type: String,
         source_id: Option<i64>,
-        replay_gain_db: Option<f64>,
+        replay_gain: TrackGain,
         dsd_taps: usize,
         dop: bool,
     ) -> Result<Self, String> {
@@ -412,7 +415,8 @@ impl ActiveStream {
                 duration_ms,
                 source_type,
                 source_id,
-                replay_gain_linear: 1.0,
+                // DoP is bit-exact — no gain stage runs on it at all.
+                replay_gain: super::replay_gain::TrackGain::default(),
                 src_sample_rate: 0,
                 playback_speed: 1.0,
             });
@@ -438,7 +442,7 @@ impl ActiveStream {
             duration_ms,
             source_type,
             source_id,
-            replay_gain_linear: replay_gain_db_to_linear(replay_gain_db),
+            replay_gain,
             src_sample_rate: 0,
             playback_speed: 1.0,
         })
@@ -900,18 +904,6 @@ fn read_full_block<R: Read>(reader: &mut R, buf: &mut [u8]) -> std::io::Result<u
     Ok(filled)
 }
 
-/// Convert a ReplayGain dB value into a linear scalar applicable to
-/// f32 samples. Returns `1.0` when no gain is known or when the value
-/// looks suspicious (NaN, ±∞, beyond ±24 dB) so a buggy analysis row
-/// can never blow the speakers.
-#[inline]
-pub fn replay_gain_db_to_linear(db: Option<f64>) -> f32 {
-    match db {
-        Some(v) if v.is_finite() && v.abs() <= 24.0 => 10f64.powf(v / 20.0) as f32,
-        _ => 1.0,
-    }
-}
-
 /// Equal-power fade gains for a normalized progress `t ∈ [0, 1]`.
 /// Returns `(fade_out_gain, fade_in_gain)` where
 /// `fade_out² + fade_in² = 1` so total power is preserved across the
@@ -982,32 +974,5 @@ mod tests {
         // t outside [0, 1] should clamp, not panic or wrap.
         assert_eq!(equal_power_gains(-0.5), equal_power_gains(0.0));
         assert_eq!(equal_power_gains(1.5), equal_power_gains(1.0));
-    }
-
-    #[test]
-    fn replay_gain_none_is_unity() {
-        assert_eq!(replay_gain_db_to_linear(None), 1.0);
-    }
-
-    #[test]
-    fn replay_gain_zero_db_is_unity() {
-        assert!(approx_eq(replay_gain_db_to_linear(Some(0.0)), 1.0, 1e-6));
-    }
-
-    #[test]
-    fn replay_gain_six_db_doubles_amplitude() {
-        // +6 dB ≈ 2× amplitude, −6 dB ≈ ½× — sanity-check both directions.
-        assert!(approx_eq(replay_gain_db_to_linear(Some(6.0)), 1.995, 0.01));
-        assert!(approx_eq(replay_gain_db_to_linear(Some(-6.0)), 0.501, 0.01));
-    }
-
-    #[test]
-    fn replay_gain_rejects_pathological_values() {
-        // Any analysis row that says "blow the speakers" gets ignored.
-        assert_eq!(replay_gain_db_to_linear(Some(f64::NAN)), 1.0);
-        assert_eq!(replay_gain_db_to_linear(Some(f64::INFINITY)), 1.0);
-        assert_eq!(replay_gain_db_to_linear(Some(-f64::INFINITY)), 1.0);
-        assert_eq!(replay_gain_db_to_linear(Some(40.0)), 1.0);
-        assert_eq!(replay_gain_db_to_linear(Some(-40.0)), 1.0);
     }
 }

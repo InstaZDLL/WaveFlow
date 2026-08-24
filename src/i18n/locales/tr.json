@@ -1487,7 +1487,20 @@
     },
     "replayGain": {
       "title": "ReplayGain uygula",
-      "subtitle": "Algılanan ses yüksekliğini dengelemek için her parçanın analiz edilmiş gain değerini kullanır"
+      "subtitle": "Algılanan ses düzeyini eşitlemek için dosyanın ReplayGain değerini veya analiz edilen değeri kullan",
+      "preamp": {
+        "title": "Ön yükseltme",
+        "subtitle": "Her parçanın kazancına eklenir — ReplayGain referansı çoğu sistemden daha kısıktır"
+      },
+      "fallback": {
+        "title": "Varsayılan kazanç",
+        "subtitle": "ReplayGain içermeyen ve hiç analiz edilmemiş parçalara uygulanır"
+      },
+      "preventClipping": {
+        "title": "Bozulmayı önle",
+        "subtitle": "Kazancı, parçanın tepe değerinin bıraktığı boşlukla sınırla"
+      },
+      "decibels": "{{value}} dB"
     },
     "exclusive": {
       "title": "WASAPI özel modu (Windows)",

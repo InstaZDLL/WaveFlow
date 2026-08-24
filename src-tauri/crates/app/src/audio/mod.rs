@@ -32,6 +32,7 @@ pub mod eq;
 pub mod events;
 pub mod http_source;
 pub mod output;
+pub mod replay_gain;
 pub mod resampler;
 pub mod spectrum;
 pub mod state;

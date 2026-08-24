@@ -564,7 +564,7 @@ export function TrackPropertiesModal({
               label={t("trackProperties.loudness")}
               value={
                 analysis?.loudness_lufs != null
-                  ? `${analysis.loudness_lufs.toFixed(1)} dB`
+                  ? `${analysis.loudness_lufs.toFixed(1)} LUFS`
                   : "—"
               }
             />

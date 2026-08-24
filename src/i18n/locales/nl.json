@@ -1487,7 +1487,20 @@
     },
     "replayGain": {
       "title": "ReplayGain toepassen",
-      "subtitle": "Gebruikt de geanalyseerde gain van elk nummer om het waargenomen volume te balanceren"
+      "subtitle": "De ReplayGain van het bestand of de geanalyseerde waarde gebruiken om het waargenomen volume gelijk te trekken",
+      "preamp": {
+        "title": "Voorversterking",
+        "subtitle": "Wordt bij de versterking van elk nummer opgeteld — de ReplayGain-referentie is stiller dan de meeste systemen"
+      },
+      "fallback": {
+        "title": "Standaardversterking",
+        "subtitle": "Toegepast op nummers zonder ReplayGain die nooit zijn geanalyseerd"
+      },
+      "preventClipping": {
+        "title": "Vervorming voorkomen",
+        "subtitle": "De versterking beperken tot de ruimte die de piek van het nummer overlaat"
+      },
+      "decibels": "{{value}} dB"
     },
     "exclusive": {
       "title": "WASAPI exclusive-modus (Windows)",

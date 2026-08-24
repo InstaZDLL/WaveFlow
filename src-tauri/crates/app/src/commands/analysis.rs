@@ -200,7 +200,7 @@ pub async fn analyze_track(
     )
     .bind(track_id)
     .bind(result.bpm)
-    .bind(result.loudness_db)
+    .bind(result.loudness_lufs)
     .bind(result.replay_gain_db)
     .bind(result.peak)
     .bind(now)
@@ -211,8 +211,8 @@ pub async fn analyze_track(
         track_id,
         bpm: result.bpm,
         musical_key: None,
-        loudness_lufs: Some(result.loudness_db),
-        replay_gain_db: Some(result.replay_gain_db),
+        loudness_lufs: result.loudness_lufs,
+        replay_gain_db: result.replay_gain_db,
         peak: Some(result.peak),
         analyzed_at: now,
     })
@@ -451,7 +451,7 @@ async fn persist_batch_once(
         )
         .bind(p.track_id)
         .bind(p.result.bpm)
-        .bind(p.result.loudness_db)
+        .bind(p.result.loudness_lufs)
         .bind(p.result.replay_gain_db)
         .bind(p.result.peak)
         .bind(p.analyzed_at)
