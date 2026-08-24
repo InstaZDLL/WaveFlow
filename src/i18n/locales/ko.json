@@ -1495,7 +1495,20 @@
     },
     "replayGain": {
       "title": "ReplayGain 적용",
-      "subtitle": "각 트랙의 분석된 게인을 사용하여 들리는 음량을 균형 있게 조절합니다"
+      "subtitle": "파일의 ReplayGain 또는 분석한 값을 사용해 체감 음량을 고르게 맞춥니다",
+      "preamp": {
+        "title": "프리앰프",
+        "subtitle": "각 트랙의 게인에 더해집니다. ReplayGain 기준은 대부분의 시스템보다 작습니다"
+      },
+      "fallback": {
+        "title": "기본 게인",
+        "subtitle": "ReplayGain이 없고 분석한 적도 없는 트랙에 적용됩니다"
+      },
+      "preventClipping": {
+        "title": "클리핑 방지",
+        "subtitle": "트랙의 피크가 남기는 여유만큼만 게인을 올립니다"
+      },
+      "decibels": "{{value}} dB"
     },
     "exclusive": {
       "title": "WASAPI 독점 모드 (Windows)",

@@ -1487,7 +1487,20 @@
     },
     "replayGain": {
       "title": "Terapkan ReplayGain",
-      "subtitle": "Gunakan gain hasil analisis setiap lagu untuk menyeimbangkan volume yang dirasakan"
+      "subtitle": "Gunakan ReplayGain dari berkas, atau hasil analisis, untuk menyamakan kenyaringan yang terdengar",
+      "preamp": {
+        "title": "Pra-penguat",
+        "subtitle": "Ditambahkan ke gain setiap lagu — acuan ReplayGain lebih pelan daripada kebanyakan sistem"
+      },
+      "fallback": {
+        "title": "Gain bawaan",
+        "subtitle": "Diterapkan pada lagu tanpa ReplayGain yang belum pernah dianalisis"
+      },
+      "preventClipping": {
+        "title": "Cegah kliping",
+        "subtitle": "Batasi gain sesuai ruang yang disisakan puncak lagu"
+      },
+      "decibels": "{{value}} dB"
     },
     "exclusive": {
       "title": "Mode eksklusif WASAPI (Windows)",

@@ -1466,7 +1466,20 @@
     },
     "replayGain": {
       "title": "套用 ReplayGain",
-      "subtitle": "使用每首曲目的分析增益值來平衡聽覺音量"
+      "subtitle": "使用檔案本身的 ReplayGain 或分析所得的值，統一各曲目的聽感音量",
+      "preamp": {
+        "title": "前置增益",
+        "subtitle": "疊加到每首曲目的增益上——ReplayGain 的基準比大多數系統更低"
+      },
+      "fallback": {
+        "title": "預設增益",
+        "subtitle": "套用於沒有 ReplayGain 且從未分析過的曲目"
+      },
+      "preventClipping": {
+        "title": "避免削波",
+        "subtitle": "將增益限制在曲目峰值留下的餘裕之內"
+      },
+      "decibels": "{{value}} dB"
     },
     "exclusive": {
       "title": "WASAPI 獨佔模式(Windows)",

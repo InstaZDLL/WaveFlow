@@ -44,6 +44,26 @@ Smart and dynamic crossfade compose: the album skip wins (it's a hard "no fade" 
 
 ReplayGain is applied **per-stream before the mix** so the two tracks can have very different gains without the louder one swamping the fade.
 
+## ReplayGain
+
+Off by default; the switch lives in Settings → Playback and persists in `profile_setting['audio.replaygain']`.
+
+**Two sources, one scale.** The gain comes from the file's own tags when it has them and from our analysis pass otherwise — [`TrackGain::prefer_tag`](../../src-tauri/crates/app/src/audio/replay_gain.rs). The scanner reads `REPLAYGAIN_TRACK_GAIN` / `_TRACK_PEAK` / `_ALBUM_GAIN` / `_ALBUM_PEAK` and the Opus/Vorbis `R128_*` pair through [`scanner::replay_gain`](../../src-tauri/crates/core/src/scanner/replay_gain.rs) into four columns on `track`, refreshed on every (re)scan. An `R128_*` value is a Q7.8 integer of 1/256 LU referenced to −23 LUFS; it is converted to dB against −18 LUFS on the way in, so everything downstream — tags, `R128`, our own measurement — is on the ReplayGain 2.0 scale. Where both exist the textual tag wins, since it is already on that scale and is what other players will use on the same file. Each field falls back independently: a tagger that wrote a gain but no peak still gets clipping prevention from our analysis.
+
+**An Opus caveat**: the stream header also carries an `output gain` a decoder must apply, and adding `R128_TRACK_GAIN` on top of a non-zero one would adjust twice. Taggers overwhelmingly leave the header at 0 and write the tag, so the tag is what we read.
+
+**Three knobs on top of the switch** (`player_set_replaygain_options`, persisted per profile, clamped to ±15 dB on the way in and again on the way out of the database):
+
+| Knob | Why |
+| --- | --- |
+| **Pre-amp** | −18 LUFS is quieter than most systems are set for, so a correctly-normalised library otherwise sounds like it lost volume the moment the switch goes on. |
+| **Fallback gain** | Applied to tracks that have no gain from either source, so a half-tagged library doesn't jump every time playback crosses the line. |
+| **Clipping prevention** (default ON) | A boost on a track that already peaks near full scale pushes samples past 1.0, and the decoder's final clamp flattens every one of them into distortion. Knowing the peak, the gain is capped at `-20·log10(peak)` instead — the loudest sample lands exactly at full scale. It only ever lowers a gain, so a quiet-peaking track that measured loud is still turned down. |
+
+The total is bounded to [−30, +12] dB regardless, which is what stands between a corrupt tag that got past the parser and a pair of speakers.
+
+The scalar is recomputed **per decoded buffer** rather than baked into the stream at load time, so moving the pre-amp is audible immediately instead of at the next track. One `powf` per buffer, on the decoder thread — never in the cpal callback.
+
 ## Seek
 
 `format.seek()` + `decoder.reset()` + `resampler.flush()`. The cpal callback enters `drain_silent` mode, which (since 70c1968) drains the ring in **one bulk `while consumer.pop()` pass** instead of one sample per output slot — total perceived gap on seek dropped from ~270 ms (one full ring at 44.1 kHz × 8 ch) to ~10-15 ms (one cpal callback period).

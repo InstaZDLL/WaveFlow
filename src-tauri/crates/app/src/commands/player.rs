@@ -17,29 +17,51 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::{
-    audio::{engine::AudioCmd, state::SharedPlayback, AudioEngine},
+    audio::{engine::AudioCmd, replay_gain::TrackGain, state::SharedPlayback, AudioEngine},
     error::{AppError, AppResult},
     paths::AppPaths,
     queue::{self, Direction, QueueTrack},
     state::AppState,
 };
 
-/// Look up the analyzed ReplayGain for a track. Returns `None` if the
-/// track has never been analyzed or if the lookup fails — both cases
-/// mean "leave the signal untouched", which is the safe default.
+/// Look up what is known about a track's loudness, from both sources
+/// at once: the ReplayGain the file carries in its own tags (read by
+/// the scanner into `track`) and what our analysis pass measured
+/// (`track_analysis`). The tag wins where both exist — see
+/// [`TrackGain::prefer_tag`].
+///
+/// An empty result means "leave the signal untouched", which is the
+/// safe default and what a failed lookup returns too.
 ///
 /// Called at every `LoadAndPlay` / `SetNextTrack` dispatch site so the
 /// decoder thread never has to reach into SQLite from the audio path.
-pub(crate) async fn fetch_replay_gain_db(pool: &sqlx::SqlitePool, track_id: i64) -> Option<f64> {
-    sqlx::query_scalar::<_, Option<f64>>(
-        "SELECT replay_gain_db FROM track_analysis WHERE track_id = ?",
+pub(crate) async fn fetch_replay_gain(pool: &sqlx::SqlitePool, track_id: i64) -> TrackGain {
+    let row = sqlx::query_as::<_, (Option<f64>, Option<f64>, Option<f64>, Option<f64>)>(
+        "SELECT t.rg_track_gain_db, t.rg_track_peak,
+                a.replay_gain_db, a.peak
+           FROM track t
+           LEFT JOIN track_analysis a ON a.track_id = t.id
+          WHERE t.id = ?",
     )
     .bind(track_id)
     .fetch_optional(pool)
     .await
     .ok()
-    .flatten()
-    .flatten()
+    .flatten();
+
+    let Some((tag_gain, tag_peak, analysis_gain, analysis_peak)) = row else {
+        return TrackGain::default();
+    };
+    TrackGain::prefer_tag(
+        TrackGain {
+            gain_db: tag_gain,
+            peak: tag_peak,
+        },
+        TrackGain {
+            gain_db: analysis_gain,
+            peak: analysis_peak,
+        },
+    )
 }
 
 /// Snapshot of the player state, returned to the frontend on demand.
@@ -514,6 +536,47 @@ pub async fn player_get_state(
                     .replaygain_enabled
                     .store(v == "true", std::sync::atomic::Ordering::Release);
             }
+            // The three knobs that ride on top of the switch. Each is
+            // clamped on the way in for the same reason playback speed
+            // is: a hand-edited row must not reach the mixer intact.
+            for (key, target) in [
+                (
+                    "audio.replaygain_preamp",
+                    &engine.shared().replaygain_preamp_db_bits,
+                ),
+                (
+                    "audio.replaygain_fallback",
+                    &engine.shared().replaygain_fallback_db_bits,
+                ),
+            ] {
+                if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
+                    "SELECT value FROM profile_setting WHERE key = ?",
+                )
+                .bind(key)
+                .fetch_optional(&*pool)
+                .await
+                {
+                    if let Ok(parsed) = v.parse::<f32>() {
+                        target.store(
+                            clamp_replaygain_adjust(parsed).to_bits(),
+                            std::sync::atomic::Ordering::Release,
+                        );
+                    }
+                }
+            }
+            // Clipping prevention defaults to ON, so only an explicit
+            // row turns it off.
+            if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
+                "SELECT value FROM profile_setting WHERE key = 'audio.replaygain_prevent_clipping'",
+            )
+            .fetch_optional(&*pool)
+            .await
+            {
+                engine
+                    .shared()
+                    .replaygain_prevent_clipping
+                    .store(v == "true", std::sync::atomic::Ordering::Release);
+            }
             // Gapless defaults to ON, so only override the boot-time
             // default when an explicit `false` row is found.
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
@@ -682,7 +745,7 @@ pub async fn player_jump_to_index(
     };
     emit_track_changed(&app, &state.paths, &track, profile_id);
     emit_queue_changed(&app);
-    let replay_gain_db = fetch_replay_gain_db(&pool, track.id).await;
+    let replay_gain = fetch_replay_gain(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
         path: track.as_path(),
         start_ms: 0,
@@ -690,7 +753,7 @@ pub async fn player_jump_to_index(
         duration_ms: track.duration_ms.max(0) as u64,
         source_type: "manual".into(),
         source_id: None,
-        replay_gain_db,
+        replay_gain,
     })
 }
 
@@ -763,7 +826,7 @@ pub async fn player_resume_last(
         return Err(AppError::Other("no resume point available".into()));
     };
     emit_track_changed(&app, &state.paths, &track, profile_id);
-    let replay_gain_db = fetch_replay_gain_db(&pool, track.id).await;
+    let replay_gain = fetch_replay_gain(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
         path: track.as_path(),
         start_ms: position_ms,
@@ -771,7 +834,7 @@ pub async fn player_resume_last(
         duration_ms: track.duration_ms.max(0) as u64,
         source_type: "manual".into(),
         source_id: None,
-        replay_gain_db,
+        replay_gain,
     })
 }
 
@@ -1125,6 +1188,81 @@ pub async fn player_set_replaygain(
         .await;
     }
     Ok(())
+}
+
+/// Bound on the pre-amp and on the fallback gain, in dB. Wide enough
+/// for any real listening preference, narrow enough that a
+/// hand-edited database can't hand the mixer a 40 dB multiplier.
+pub const REPLAYGAIN_ADJUST_LIMIT_DB: f32 = 15.0;
+
+/// Set the three ReplayGain knobs that sit on top of the on/off
+/// switch: pre-amp, fallback gain for tracks nothing knows about, and
+/// clipping prevention.
+///
+/// Written straight into `SharedPlayback` rather than sent as an
+/// [`AudioCmd`] — they are plain atomics the decoder re-reads on every
+/// buffer, so there is no ordering to arrange with the decode stream,
+/// and this is the same path the boot-time restore takes.
+///
+/// Persisted in `profile_setting['audio.replaygain_preamp' |
+/// 'audio.replaygain_fallback' | 'audio.replaygain_prevent_clipping']`.
+#[tauri::command]
+pub async fn player_set_replaygain_options(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    preamp_db: f32,
+    fallback_db: f32,
+    prevent_clipping: bool,
+) -> AppResult<()> {
+    let preamp = clamp_replaygain_adjust(preamp_db);
+    let fallback = clamp_replaygain_adjust(fallback_db);
+
+    let shared = engine.shared();
+    shared
+        .replaygain_preamp_db_bits
+        .store(preamp.to_bits(), std::sync::atomic::Ordering::Relaxed);
+    shared
+        .replaygain_fallback_db_bits
+        .store(fallback.to_bits(), std::sync::atomic::Ordering::Relaxed);
+    shared
+        .replaygain_prevent_clipping
+        .store(prevent_clipping, std::sync::atomic::Ordering::Relaxed);
+
+    if let Ok(pool) = state.require_profile_pool().await {
+        let now = chrono::Utc::now().timestamp_millis();
+        for (key, value, value_type) in [
+            ("audio.replaygain_preamp", preamp.to_string(), "float"),
+            ("audio.replaygain_fallback", fallback.to_string(), "float"),
+            (
+                "audio.replaygain_prevent_clipping",
+                prevent_clipping.to_string(),
+                "bool",
+            ),
+        ] {
+            let _ = sqlx::query(
+                "INSERT INTO profile_setting (key, value, value_type, updated_at)
+                 VALUES (?, ?, ?, ?)
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+            )
+            .bind(key)
+            .bind(value)
+            .bind(value_type)
+            .bind(now)
+            .execute(&*pool)
+            .await;
+        }
+    }
+    Ok(())
+}
+
+/// Keep a pre-amp / fallback value inside the supported range, and
+/// turn a non-finite one into a no-op rather than into silence.
+fn clamp_replaygain_adjust(db: f32) -> f32 {
+    if db.is_finite() {
+        db.clamp(-REPLAYGAIN_ADJUST_LIMIT_DB, REPLAYGAIN_ADJUST_LIMIT_DB)
+    } else {
+        0.0
+    }
 }
 
 /// Toggle mono downmix (average L+R into both channels).
@@ -1535,11 +1673,16 @@ pub async fn player_get_audio_settings(
         }
     }
 
+    let replay_gain_settings = shared.replay_gain_settings();
+
     Ok(AudioSettingsSnapshot {
         normalize,
         mono,
         crossfade_ms,
         replaygain,
+        replaygain_preamp_db: replay_gain_settings.preamp_db as f32,
+        replaygain_fallback_db: replay_gain_settings.fallback_db as f32,
+        replaygain_prevent_clipping: replay_gain_settings.prevent_clipping,
         gapless,
         dsd_taps,
         dsd_dop,
@@ -1552,6 +1695,12 @@ pub struct AudioSettingsSnapshot {
     pub mono: bool,
     pub crossfade_ms: i64,
     pub replaygain: bool,
+    /// Pre-amp added to every track's ReplayGain, in dB.
+    pub replaygain_preamp_db: f32,
+    /// Gain used for tracks that carry none and were never analysed.
+    pub replaygain_fallback_db: f32,
+    /// Hold gains back to the headroom each track's peak leaves.
+    pub replaygain_prevent_clipping: bool,
     pub gapless: bool,
     /// Active DSD → PCM FIR tap count (256 / 1024 / 2048).
     pub dsd_taps: u32,
@@ -1775,7 +1924,7 @@ pub async fn player_play_tracks(
     // the first position/state event.
     emit_track_changed(&app, &state.paths, &track, profile_id);
 
-    let replay_gain_db = fetch_replay_gain_db(&pool, track.id).await;
+    let replay_gain = fetch_replay_gain(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
         path: pb,
         start_ms: 0,
@@ -1783,7 +1932,7 @@ pub async fn player_play_tracks(
         duration_ms: track.duration_ms.max(0) as u64,
         source_type,
         source_id,
-        replay_gain_db,
+        replay_gain,
     })
 }
 
@@ -1872,7 +2021,7 @@ pub async fn player_next(
     };
     emit_track_changed(&app, &state.paths, &track, profile_id);
     emit_queue_changed(&app);
-    let replay_gain_db = fetch_replay_gain_db(&pool, track.id).await;
+    let replay_gain = fetch_replay_gain(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
         path: track.as_path(),
         start_ms: 0,
@@ -1880,7 +2029,7 @@ pub async fn player_next(
         duration_ms: track.duration_ms.max(0) as u64,
         source_type: "manual".into(),
         source_id: None,
-        replay_gain_db,
+        replay_gain,
     })
 }
 
@@ -1911,7 +2060,7 @@ pub async fn player_previous(
     };
     emit_track_changed(&app, &state.paths, &track, profile_id);
     emit_queue_changed(&app);
-    let replay_gain_db = fetch_replay_gain_db(&pool, track.id).await;
+    let replay_gain = fetch_replay_gain(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
         path: track.as_path(),
         start_ms: 0,
@@ -1919,7 +2068,7 @@ pub async fn player_previous(
         duration_ms: track.duration_ms.max(0) as u64,
         source_type: "manual".into(),
         source_id: None,
-        replay_gain_db,
+        replay_gain,
     })
 }
 

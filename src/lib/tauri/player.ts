@@ -323,6 +323,12 @@ export interface AudioSettingsSnapshot {
   mono: boolean;
   crossfade_ms: number;
   replaygain: boolean;
+  /** Pre-amp added to every track's ReplayGain, in dB. */
+  replaygain_preamp_db: number;
+  /** Gain used for tracks that carry none and were never analysed. */
+  replaygain_fallback_db: number;
+  /** Hold gains back to the headroom each track's peak leaves. */
+  replaygain_prevent_clipping: boolean;
   gapless: boolean;
   /** Active DSD → PCM FIR tap count (256 / 1024 / 2048). */
   dsd_taps: number;
@@ -352,6 +358,29 @@ export function playerSetCrossfade(seconds: number): Promise<void> {
 
 export function playerSetReplayGain(enabled: boolean): Promise<void> {
   return invoke<void>("player_set_replaygain", { enabled });
+}
+
+/**
+ * Bound the backend enforces on the pre-amp and the fallback gain.
+ * Mirrored here so the sliders can't ask for a value that would come
+ * back clamped and out of sync with what the user sees.
+ */
+export const REPLAYGAIN_ADJUST_LIMIT_DB = 15;
+
+export interface ReplayGainOptions {
+  preampDb: number;
+  fallbackDb: number;
+  preventClipping: boolean;
+}
+
+export function playerSetReplayGainOptions(
+  options: ReplayGainOptions,
+): Promise<void> {
+  return invoke<void>("player_set_replaygain_options", {
+    preampDb: options.preampDb,
+    fallbackDb: options.fallbackDb,
+    preventClipping: options.preventClipping,
+  });
 }
 
 export function playerSetGapless(enabled: boolean): Promise<void> {
