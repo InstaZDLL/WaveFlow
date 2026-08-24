@@ -69,7 +69,7 @@ tauri-plugin-dialog = "2"
 # Version and features are pinned to match what tauri-plugin-dialog
 # already requests, so Cargo unifies them into the single copy that is
 # in the lockfile — no new crate, no Flatpak source regeneration.
-rfd = { version = "0.16", default-features = false, features = [
+rfd = { version = "0.17", default-features = false, features = [
     "gtk3",
     "common-controls-v6",
 ] }
