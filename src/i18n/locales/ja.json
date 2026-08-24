@@ -2288,6 +2288,27 @@
       "conversionBlocked_other": " · {{count}} 件がブロック",
       "conversionSuccessServer_other": "{{count}} 曲をサーバーにコピーしました。",
       "conversionSuccessLocal_other": "{{count}} 曲をローカルライブラリにコピーしました。"
+    },
+    "catalogue": {
+      "title": "サーバーのカタログ",
+      "subtitle": "ライブラリからたどれるように、サーバーのカタログをローカルに複製します。複製しない場合、プレイリストが使っている曲しか把握できません。",
+      "mirror": "複製",
+      "cancel": "停止",
+      "clear": "複製を削除",
+      "clearConfirm": "確定",
+      "clearAbort": "キャンセル",
+      "statAlbums": "アルバム",
+      "statTracks": "曲",
+      "statArtists": "アーティスト",
+      "statLibraries": "ライブラリ",
+      "progressAlbums": "{{done}} 件のアルバムを取得中…",
+      "progressSweep": "{{done}} 曲を確認中…",
+      "reportUnchanged": "変更はありませんでした。",
+      "reportWalked": "{{albums}} 件のアルバムを取得し、{{tracks}} 曲を複製しました。",
+      "reportRemoved": "{{removed}} 件を削除",
+      "reportCancelled": "停止しました",
+      "neverMirrored": "まだ複製されていません。",
+      "mirroredAt": "最後の完全な複製：{{date}}"
     }
   }
 }

@@ -2313,6 +2313,27 @@
       "conversionSuccessServer_other": "{{count}} brani copiati sul server.",
       "conversionSuccessLocal_one": "{{count}} brano copiato nella libreria locale.",
       "conversionSuccessLocal_other": "{{count}} brani copiati nella libreria locale."
+    },
+    "catalogue": {
+      "title": "Catalogo del server",
+      "subtitle": "Copia in locale il catalogo del server per poterlo sfogliare dalla libreria. Senza, si conoscono solo i brani già usati dalle tue playlist.",
+      "mirror": "Copia",
+      "cancel": "Interrompi",
+      "clear": "Svuota la copia",
+      "clearConfirm": "Conferma",
+      "clearAbort": "Annulla",
+      "statAlbums": "Album",
+      "statTracks": "Brani",
+      "statArtists": "Artisti",
+      "statLibraries": "Librerie",
+      "progressAlbums": "{{done}} album percorsi…",
+      "progressSweep": "{{done}} brani rilevati…",
+      "reportUnchanged": "Non era cambiato nulla.",
+      "reportWalked": "{{albums}} album percorsi, {{tracks}} brani copiati.",
+      "reportRemoved": "{{removed}} rimossi",
+      "reportCancelled": "interrotto",
+      "neverMirrored": "Mai copiato.",
+      "mirroredAt": "Ultima copia completa: {{date}}."
     }
   }
 }

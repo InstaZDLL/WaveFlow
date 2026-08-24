@@ -2313,6 +2313,27 @@
       "conversionSuccessServer_other": "{{count}} ट्रैक सर्वर पर कॉपी किए गए।",
       "conversionSuccessLocal_one": "{{count}} ट्रैक स्थानीय लाइब्रेरी में कॉपी किया गया।",
       "conversionSuccessLocal_other": "{{count}} ट्रैक स्थानीय लाइब्रेरी में कॉपी किए गए।"
+    },
+    "catalogue": {
+      "title": "सर्वर कैटलॉग",
+      "subtitle": "सर्वर का कैटलॉग स्थानीय रूप से कॉपी करें ताकि आप उसे अपनी लाइब्रेरी से देख सकें। इसके बिना केवल वही ट्रैक ज्ञात होते हैं जिन्हें आपकी प्लेलिस्ट पहले से इस्तेमाल करती हैं।",
+      "mirror": "कॉपी करें",
+      "cancel": "रोकें",
+      "clear": "कॉपी हटाएँ",
+      "clearConfirm": "पुष्टि करें",
+      "clearAbort": "रद्द करें",
+      "statAlbums": "एल्बम",
+      "statTracks": "ट्रैक",
+      "statArtists": "कलाकार",
+      "statLibraries": "लाइब्रेरी",
+      "progressAlbums": "{{done}} एल्बम देखे गए…",
+      "progressSweep": "{{done}} ट्रैक गिने गए…",
+      "reportUnchanged": "कुछ नहीं बदला था।",
+      "reportWalked": "{{albums}} एल्बम देखे गए, {{tracks}} ट्रैक कॉपी हुए।",
+      "reportRemoved": "{{removed}} हटाए गए",
+      "reportCancelled": "रोका गया",
+      "neverMirrored": "कभी कॉपी नहीं हुआ।",
+      "mirroredAt": "अंतिम पूर्ण कॉपी: {{date}}"
     }
   }
 }

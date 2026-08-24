@@ -2313,6 +2313,27 @@
       "conversionSuccessServer_other": "{{count}} Titel auf den Server kopiert.",
       "conversionSuccessLocal_one": "{{count}} Titel in die lokale Bibliothek kopiert.",
       "conversionSuccessLocal_other": "{{count}} Titel in die lokale Bibliothek kopiert."
+    },
+    "catalogue": {
+      "title": "Server-Katalog",
+      "subtitle": "Den Katalog des Servers lokal kopieren, um ihn aus der Mediathek heraus durchsuchen zu können. Ohne das sind nur die Titel bekannt, die deine Playlists bereits verwenden.",
+      "mirror": "Kopieren",
+      "cancel": "Anhalten",
+      "clear": "Kopie leeren",
+      "clearConfirm": "Bestätigen",
+      "clearAbort": "Abbrechen",
+      "statAlbums": "Alben",
+      "statTracks": "Titel",
+      "statArtists": "Künstler",
+      "statLibraries": "Mediatheken",
+      "progressAlbums": "{{done}} Alben durchlaufen…",
+      "progressSweep": "{{done}} Titel erfasst…",
+      "reportUnchanged": "Es hatte sich nichts geändert.",
+      "reportWalked": "{{albums}} Alben durchlaufen, {{tracks}} Titel kopiert.",
+      "reportRemoved": "{{removed}} entfernt",
+      "reportCancelled": "angehalten",
+      "neverMirrored": "Nie kopiert.",
+      "mirroredAt": "Letzte vollständige Kopie: {{date}}."
     }
   }
 }

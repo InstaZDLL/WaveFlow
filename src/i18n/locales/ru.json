@@ -2461,6 +2461,27 @@
       "conversionSuccessLocal_few": "{{count}} трека скопировано в локальную библиотеку.",
       "conversionSuccessLocal_many": "{{count}} треков скопировано в локальную библиотеку.",
       "conversionSuccessLocal_other": "{{count}} трека скопировано в локальную библиотеку."
+    },
+    "catalogue": {
+      "title": "Каталог сервера",
+      "subtitle": "Скопировать каталог сервера локально, чтобы просматривать его из фонотеки. Без этого известны только треки, которые уже используют ваши плейлисты.",
+      "mirror": "Скопировать",
+      "cancel": "Остановить",
+      "clear": "Очистить копию",
+      "clearConfirm": "Подтвердить",
+      "clearAbort": "Отмена",
+      "statAlbums": "Альбомы",
+      "statTracks": "Треки",
+      "statArtists": "Исполнители",
+      "statLibraries": "Фонотеки",
+      "progressAlbums": "Пройдено альбомов: {{done}}…",
+      "progressSweep": "Учтено треков: {{done}}…",
+      "reportUnchanged": "Ничего не изменилось.",
+      "reportWalked": "Пройдено альбомов: {{albums}}, скопировано треков: {{tracks}}.",
+      "reportRemoved": "удалено: {{removed}}",
+      "reportCancelled": "остановлено",
+      "neverMirrored": "Ещё не копировался.",
+      "mirroredAt": "Последняя полная копия: {{date}}."
     }
   }
 }

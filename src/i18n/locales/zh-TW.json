@@ -2288,6 +2288,27 @@
       "conversionBlocked_other": " · {{count}} 個受阻",
       "conversionSuccessServer_other": "已複製 {{count}} 首曲目至伺服器。",
       "conversionSuccessLocal_other": "已複製 {{count}} 首曲目至本機音樂庫。"
+    },
+    "catalogue": {
+      "title": "伺服器曲庫",
+      "subtitle": "把伺服器的曲庫複製到本機，以便從資料庫中瀏覽。不複製時，只會辨識播放清單已用到的曲目。",
+      "mirror": "複製",
+      "cancel": "停止",
+      "clear": "清空副本",
+      "clearConfirm": "確認",
+      "clearAbort": "取消",
+      "statAlbums": "專輯",
+      "statTracks": "曲目",
+      "statArtists": "演出者",
+      "statLibraries": "資料庫",
+      "progressAlbums": "已走訪 {{done}} 張專輯…",
+      "progressSweep": "已清點 {{done}} 首曲目…",
+      "reportUnchanged": "沒有任何變化。",
+      "reportWalked": "走訪 {{albums}} 張專輯，複製 {{tracks}} 首曲目。",
+      "reportRemoved": "移除 {{removed}} 首",
+      "reportCancelled": "已停止",
+      "neverMirrored": "從未複製。",
+      "mirroredAt": "上次完整複製：{{date}}"
     }
   }
 }

@@ -2288,6 +2288,27 @@
       "conversionBlocked_other": " · {{count}} terblokir",
       "conversionSuccessServer_other": "{{count}} lagu disalin ke server.",
       "conversionSuccessLocal_other": "{{count}} lagu disalin ke pustaka lokal."
+    },
+    "catalogue": {
+      "title": "Katalog server",
+      "subtitle": "Salin katalog server secara lokal agar bisa dijelajahi dari pustaka Anda. Tanpa itu, hanya lagu yang sudah dipakai daftar putar Anda yang dikenali.",
+      "mirror": "Salin",
+      "cancel": "Hentikan",
+      "clear": "Kosongkan salinan",
+      "clearConfirm": "Konfirmasi",
+      "clearAbort": "Batal",
+      "statAlbums": "Album",
+      "statTracks": "Lagu",
+      "statArtists": "Artis",
+      "statLibraries": "Pustaka",
+      "progressAlbums": "{{done}} album ditelusuri…",
+      "progressSweep": "{{done}} lagu didata…",
+      "reportUnchanged": "Tidak ada yang berubah.",
+      "reportWalked": "{{albums}} album ditelusuri, {{tracks}} lagu disalin.",
+      "reportRemoved": "{{removed}} dihapus",
+      "reportCancelled": "dihentikan",
+      "neverMirrored": "Belum pernah disalin.",
+      "mirroredAt": "Salinan lengkap terakhir: {{date}}."
     }
   }
 }

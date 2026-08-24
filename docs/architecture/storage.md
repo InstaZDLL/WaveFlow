@@ -35,6 +35,7 @@ Migrations: [`src-tauri/migrations/app/`](../../src-tauri/migrations/app).
 ### `data.db` (per-profile)
 
 - Library: `library`, `library_folder`, `track` (which also carries the ReplayGain the file's own tags declare, in `rg_track_gain_db` / `rg_track_peak` / `rg_album_gain_db` / `rg_album_peak` — a property of the file, refreshed by every scan, as opposed to what `track_analysis` measured), `artist`, `album`, `genre`, `track_artist`, `track_genre`, `artwork`, `track_analysis`, `playlist`, `playlist_track`, `liked_track`, `queue_item`, `play_event`, `scrobble_queue`, `profile_setting`, `track_fts` (FTS5 contentless).
+- Remote source (`sync_v2`): `remote_binding`, `remote_playlist`, `remote_playlist_track`, `remote_favorite`, `remote_rating`, `remote_history`, `remote_queue`, `remote_queue_track`, `remote_share`, `remote_share_track`, `remote_track`, `remote_album`, `remote_library`, `remote_mutation`, `remote_track_link`. All derived from the server and droppable — dropping them and re-fetching a snapshot is always a valid recovery. `remote_track.in_catalogue` marks the rows the catalogue walk owns, so purging the mirror cannot take a playlist's titles with it ([RFC-005](../rfcs/RFC-005-remote-source-and-sync-v2.md#the-catalogue-mirror)).
 - Profile-scoped pool: every command that touches user data goes through `state.require_profile_pool().await?`.
 
 Migrations: [`src-tauri/migrations/profile/`](../../src-tauri/migrations/profile). Applied via `sqlx::migrate!()` at boot for each opened pool.

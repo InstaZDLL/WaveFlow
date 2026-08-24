@@ -360,6 +360,8 @@ Per-profile, since the binding is per-profile:
 | `remote_queue` | single row, the server's saved queue |
 | `remote_share` | non-secret share fields; **never** token from the journal |
 | `remote_track` | cached song metadata, derived and droppable |
+| `remote_album` | the server's albums, from the catalogue walk |
+| `remote_library` | the libraries this account can see, and when each was last swept |
 | `remote_mutation` | outbound queue, typed, keyed by `operation_id` |
 
 `remote_track` exists because the two feeds are asymmetric: a snapshot
@@ -369,6 +371,48 @@ playlist edited after the bootstrap would arrive as identifiers with nothing to
 render. Missing identifiers are fetched from `GET /api/v2/tracks/{id}` after a
 pass — opportunistically, since ordering and identity are already stored and a
 failed fetch costs a placeholder row rather than a wrong one.
+
+### The catalogue mirror
+
+The projection above describes **user data**, and user data only ever names the
+tracks the account touched. A server track nothing points at is invisible
+locally, which is why the remote source could show playlists and nothing else:
+there was no "all the server's albums" to show.
+
+Browsing both sources from one library needs the catalogue **in SQL**. Merging a
+local table with a paginated HTTP endpoint cannot be sorted, filtered or
+virtualised as one list, because the ordering of page 3 depends on rows the
+server has not sent yet. So
+[`remote::mirror`](../../src-tauri/crates/app/src/remote/mirror.rs) walks the
+catalogue once into the same tables, and every listing afterwards is a query.
+
+The walk goes **album by album**. `GET /api/v2/libraries/{id}/tracks` enumerates
+everything but answers with `TrackRecord` — no `album_id`, no track or disc
+number, no year — so grouping an album or ordering a disc would be guesswork.
+`GET /api/v2/albums/{id}` answers with full `SongItem`s, the same shape the
+snapshot uses, so the walk reuses `cache_song` verbatim and produces rows
+indistinguishable from projected ones. The library sweep still runs, for the two
+things the album walk cannot see: a track belonging to no album, and a track the
+server has since deleted.
+
+Three properties worth keeping:
+
+- **`in_catalogue` decides what a purge may take.** A row that a playlist, the
+  queue, a favourite, a rating, the history or a share still references survives
+  the purge and merely stops counting as catalogue. Deleting it would leave the
+  playlist unable to render its own titles.
+- **`AlbumItem.song_count` is what makes the walk incremental.** An album whose
+  mirrored count already matches is skipped without being fetched, so a second
+  walk over an unchanged library costs one request per page instead of one per
+  album.
+- **The mirror reports no date until every library has been swept.** A partial
+  mirror showing a timestamp reads as "up to date", which is the one thing it is
+  not.
+
+A side effect worth naming: `SongItem` carries `full_hash`, and `cache_song`
+already stores it. Mirroring the catalogue therefore lands the server's content
+fingerprint for **every** track it has — precisely the input the matching layer
+described below needs, obtained without asking for it.
 
 Tokens keep using `auth_credential` under the existing `waveflow_server`
 provider, which already carries a refresh token and an expiry.

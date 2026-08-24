@@ -2288,6 +2288,27 @@
       "conversionBlocked_other": " · {{count}}개 차단됨",
       "conversionSuccessServer_other": "{{count}}개 트랙을 서버에 복사했습니다.",
       "conversionSuccessLocal_other": "{{count}}개 트랙을 로컬 라이브러리에 복사했습니다."
+    },
+    "catalogue": {
+      "title": "서버 카탈로그",
+      "subtitle": "라이브러리에서 둘러볼 수 있도록 서버 카탈로그를 로컬에 복사합니다. 복사하지 않으면 재생목록이 이미 사용하는 곡만 알 수 있습니다.",
+      "mirror": "복사",
+      "cancel": "중지",
+      "clear": "복사본 비우기",
+      "clearConfirm": "확인",
+      "clearAbort": "취소",
+      "statAlbums": "앨범",
+      "statTracks": "트랙",
+      "statArtists": "아티스트",
+      "statLibraries": "라이브러리",
+      "progressAlbums": "앨범 {{done}}개 확인 중…",
+      "progressSweep": "트랙 {{done}}개 확인 중…",
+      "reportUnchanged": "변경된 것이 없습니다.",
+      "reportWalked": "앨범 {{albums}}개를 확인하고 트랙 {{tracks}}개를 복사했습니다.",
+      "reportRemoved": "{{removed}}개 제거",
+      "reportCancelled": "중지됨",
+      "neverMirrored": "복사한 적이 없습니다.",
+      "mirroredAt": "마지막 전체 복사: {{date}}"
     }
   }
 }

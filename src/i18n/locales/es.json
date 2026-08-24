@@ -2313,6 +2313,27 @@
       "conversionSuccessServer_other": "{{count}} pistas copiadas al servidor.",
       "conversionSuccessLocal_one": "{{count}} pista copiada a la biblioteca local.",
       "conversionSuccessLocal_other": "{{count}} pistas copiadas a la biblioteca local."
+    },
+    "catalogue": {
+      "title": "Catálogo del servidor",
+      "subtitle": "Copia el catálogo del servidor en local para poder explorarlo desde tu biblioteca. Sin ello, solo se conocen las pistas que ya usan tus listas.",
+      "mirror": "Copiar",
+      "cancel": "Detener",
+      "clear": "Vaciar la copia",
+      "clearConfirm": "Confirmar",
+      "clearAbort": "Cancelar",
+      "statAlbums": "Álbumes",
+      "statTracks": "Pistas",
+      "statArtists": "Artistas",
+      "statLibraries": "Bibliotecas",
+      "progressAlbums": "{{done}} álbumes recorridos…",
+      "progressSweep": "{{done}} pistas registradas…",
+      "reportUnchanged": "Nada había cambiado.",
+      "reportWalked": "{{albums}} álbumes recorridos, {{tracks}} pistas copiadas.",
+      "reportRemoved": "{{removed}} retiradas",
+      "reportCancelled": "detenido",
+      "neverMirrored": "Nunca copiado.",
+      "mirroredAt": "Última copia completa: {{date}}."
     }
   }
 }
