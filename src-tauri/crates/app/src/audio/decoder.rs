@@ -515,6 +515,10 @@ fn decoder_loop(
                                 title,
                                 artist,
                                 artwork_url,
+                                // Streaming the same recording from the
+                                // server instead of the local file must
+                                // not change its level.
+                                replay_gain,
                             });
                             continue;
                         }
@@ -543,6 +547,7 @@ fn decoder_loop(
                         pending_cmd = Some(AudioCmd::LoadUrlAndPlay {
                             url,
                             ext_hint: None,
+                            replay_gain,
                             track_id,
                             title,
                             artist,
@@ -566,6 +571,7 @@ fn decoder_loop(
                 title,
                 artist,
                 artwork_url,
+                replay_gain,
             } => {
                 tracing::info!(
                     track_id,
@@ -716,9 +722,10 @@ fn decoder_loop(
                     0,
                     "radio".to_string(),
                     None,
-                    // A live stream carries no ReplayGain and nothing
-                    // has analysed it, so there is nothing to apply.
-                    TrackGain::default(),
+                    // Empty for a live station; carries the track's own
+                    // gain when this is a library track that fell back
+                    // to streaming from the server.
+                    replay_gain,
                 ) {
                     Ok(s) => s,
                     Err(err) => {

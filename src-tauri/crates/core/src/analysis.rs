@@ -26,6 +26,7 @@
 use std::fs::File;
 use std::path::Path;
 
+use symphonia::core::audio::{Channels, Position};
 use symphonia::core::codecs::audio::AudioDecoderOptions;
 use symphonia::core::errors::Error as SymphoniaError;
 use symphonia::core::formats::probe::Hint;
@@ -149,7 +150,10 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
             src_channels = spec.channels().count().max(1);
             src_rate = spec.rate().max(1);
             spec_captured = true;
-            meter = Some(LoudnessMeter::new(src_rate, src_channels));
+            meter = Some(LoudnessMeter::with_channel_weights(
+                src_rate,
+                &channel_weights(spec.channels()),
+            ));
             // Pre-decimate to ~11 kHz mono envelope for BPM. Feeding
             // the autocorrelation a 44.1 kHz envelope would balloon
             // memory and add no useful resolution.
@@ -217,6 +221,49 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
         replay_gain_db,
         bpm,
     })
+}
+
+/// BS.1770-4 §2 channel weights, in the decoder's own channel order.
+///
+/// The spec gives the surround channels `G = 1.41` (+1.5 dB) and
+/// excludes LFE outright; everything else is `1.0`. A layout we can't
+/// interpret — discrete, ambisonic, custom labels — gets all `1.0`,
+/// which is what the measurement did for every layout before this.
+///
+/// The buffer index of a positioned channel is the number of
+/// lower-numbered position bits that are set, so walking the mask from
+/// bit 0 upwards yields the weights in interleaved order.
+fn channel_weights(channels: &Channels) -> Vec<f64> {
+    /// The +1.5 dB the spec applies to the surround channels.
+    const SURROUND: f64 = 1.41;
+
+    let Channels::Positioned(positions) = channels else {
+        return vec![1.0; channels.count().max(1)];
+    };
+
+    let mut weights = Vec::with_capacity(positions.bits().count_ones() as usize);
+    for bit in 0..u32::BITS {
+        let Some(position) = Position::from_bits(1 << bit) else {
+            continue;
+        };
+        if !positions.contains(position) {
+            continue;
+        }
+        weights.push(match position {
+            // Excluded, not attenuated: a loud LFE would otherwise
+            // make a film mix measure far louder than it sounds.
+            Position::LFE1 | Position::LFE2 => 0.0,
+            Position::REAR_LEFT
+            | Position::REAR_RIGHT
+            | Position::SIDE_LEFT
+            | Position::SIDE_RIGHT => SURROUND,
+            _ => 1.0,
+        });
+    }
+    if weights.is_empty() {
+        weights.push(1.0);
+    }
+    weights
 }
 
 /// Pick the dominant tempo from an onset-energy envelope by

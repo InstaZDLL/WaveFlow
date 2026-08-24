@@ -32,12 +32,15 @@
 //! hour-long file, which is why it's a plain `Vec` and not something
 //! cleverer.
 //!
-//! **Channel weights**: the spec gives the surround channels a +1.5 dB
-//! weight (`G = 1.41`) and excludes LFE. We weight every channel at
-//! `1.0`, which is exact for mono and stereo — what a music library is
-//! made of — and reads a 5.1 mix slightly quiet. Fixing that needs a
-//! real channel layout threaded down from the decoder, and would buy
-//! accuracy on material this analysis pass barely sees.
+//! **Channel weights** come from the caller, which is the only place
+//! that knows the layout. The spec weights the surround channels at
+//! `G = 1.41` (+1.5 dB) and **excludes LFE entirely** — an action film
+//! mixed with a loud LFE would otherwise measure far louder than it
+//! sounds, and get too small a gain in return. Mono and stereo are all
+//! `1.0`, so the common case is unaffected. A weight of `0.0` drops a
+//! channel out of the sum, which is how LFE is excluded; a file that is
+//! nothing but LFE therefore has no measurable loudness at all, which
+//! is the honest answer.
 
 /// Absolute gate, in LUFS (BS.1770-4 §3.1). Blocks quieter than this
 /// are silence as far as the measurement is concerned.
@@ -139,6 +142,9 @@ impl Biquad {
 pub struct LoudnessMeter {
     /// Two filter stages per channel, each with its own state.
     filters: Vec<(Biquad, Biquad)>,
+    /// Per-channel `G` from BS.1770-4 §2, in the buffer's own channel
+    /// order. `0.0` excludes a channel (LFE).
+    weights: Vec<f64>,
     channels: usize,
     /// Frames per 100 ms sub-block at this rate.
     subblock_frames: u64,
@@ -157,15 +163,28 @@ pub struct LoudnessMeter {
 }
 
 impl LoudnessMeter {
-    /// A meter for a stream of `channels` interleaved channels at
-    /// `sample_rate` Hz.
+    /// A meter for `channels` interleaved channels at `sample_rate` Hz,
+    /// every channel weighted `1.0`. Correct as-is for mono and stereo.
     pub fn new(sample_rate: u32, channels: usize) -> Self {
+        Self::with_channel_weights(sample_rate, &vec![1.0; channels.max(1)])
+    }
+
+    /// A meter with an explicit per-channel `G`, in the same order as
+    /// the interleaved samples. See the module header for which
+    /// channels the spec weights differently.
+    pub fn with_channel_weights(sample_rate: u32, weights: &[f64]) -> Self {
         let rate = f64::from(sample_rate.max(1));
-        let channels = channels.max(1);
+        let weights: Vec<f64> = if weights.is_empty() {
+            vec![1.0]
+        } else {
+            weights.to_vec()
+        };
+        let channels = weights.len();
         Self {
             filters: (0..channels)
                 .map(|_| (Biquad::k_shelf(rate), Biquad::rlb_highpass(rate)))
                 .collect(),
+            weights,
             channels,
             // 100 ms — a quarter of the 400 ms block.
             subblock_frames: ((rate * (BLOCK_MS as f64 / 1000.0)) as u64
@@ -211,11 +230,13 @@ impl LoudnessMeter {
             self.recent.remove(0);
         }
         if self.recent.len() == SUBBLOCKS_PER_BLOCK {
-            // z_i averaged over the four sub-blocks, summed across
-            // channels at weight 1.0 (see the module header).
+            // z_i averaged over the four sub-blocks, then summed
+            // across channels with each channel's G.
             let power: f64 = (0..self.channels)
                 .map(|ch| {
-                    self.recent.iter().map(|m| m[ch]).sum::<f64>() / SUBBLOCKS_PER_BLOCK as f64
+                    let z =
+                        self.recent.iter().map(|m| m[ch]).sum::<f64>() / SUBBLOCKS_PER_BLOCK as f64;
+                    self.weights[ch] * z
                 })
                 .sum();
             self.block_powers.push(power);
@@ -326,6 +347,58 @@ mod tests {
         let hpf = Biquad::rlb_highpass(48_000.0);
         assert!((hpf.a1 - -1.990_047_454_833_98).abs() < 1e-5, "rlb a1");
         assert!((hpf.a2 - 0.990_072_250_366_21).abs() < 1e-5, "rlb a2");
+    }
+
+    /// BS.1770-4 weights the surround channels at G = 1.41, so the
+    /// same signal on a surround pair reads +1.5 dB against a front
+    /// pair. Weighting them equally — what this used to do — reads a
+    /// 5.1 mix quiet and hands out too much gain.
+    #[test]
+    fn surround_channels_carry_more_weight_than_front_ones() {
+        let samples = sine(1000.0, -20.0, 48_000, 2, 3.0);
+
+        let mut front = LoudnessMeter::with_channel_weights(48_000, &[1.0, 1.0]);
+        front.push_interleaved(&samples);
+        let front = front.finish().unwrap();
+
+        let mut surround = LoudnessMeter::with_channel_weights(48_000, &[1.41, 1.41]);
+        surround.push_interleaved(&samples);
+        let surround = surround.finish().unwrap();
+
+        assert!(
+            (surround - front - 1.5).abs() < 0.05,
+            "surround read {surround} LUFS against {front} for the same signal"
+        );
+    }
+
+    /// LFE is excluded outright (weight 0.0), not merely attenuated.
+    /// A loud LFE track would otherwise measure far louder than it
+    /// sounds and be handed too small a gain — and a stream that is
+    /// nothing but LFE has no measurable loudness at all.
+    #[test]
+    fn the_lfe_channel_is_excluded_from_the_measurement() {
+        let samples = sine(1000.0, -20.0, 48_000, 2, 3.0);
+
+        // Channel 1 is LFE: the result must match the other channel
+        // measured alone.
+        let mut with_lfe = LoudnessMeter::with_channel_weights(48_000, &[1.0, 0.0]);
+        with_lfe.push_interleaved(&samples);
+        let with_lfe = with_lfe.finish().unwrap();
+
+        let mono: Vec<f32> = samples.iter().step_by(2).copied().collect();
+        let mut alone = LoudnessMeter::with_channel_weights(48_000, &[1.0]);
+        alone.push_interleaved(&mono);
+        let alone = alone.finish().unwrap();
+
+        assert!(
+            (with_lfe - alone).abs() < 1e-6,
+            "the LFE channel leaked into the measurement: {with_lfe} vs {alone}"
+        );
+
+        // An LFE-only stream measures nothing at all.
+        let mut lfe_only = LoudnessMeter::with_channel_weights(48_000, &[0.0]);
+        lfe_only.push_interleaved(&mono);
+        assert_eq!(lfe_only.finish(), None);
     }
 
     /// EBU Tech 3341 case 1: a 1 kHz stereo sine reads its own level.

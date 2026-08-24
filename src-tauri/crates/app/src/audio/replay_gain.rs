@@ -105,19 +105,25 @@ pub fn effective_gain_db(track: TrackGain, settings: GainSettings) -> f64 {
         .gain_db
         .filter(|db| db.is_finite())
         .unwrap_or(settings.fallback_db);
-    let mut gain = base + settings.preamp_db;
+    // Bound first, cap second. The other order lets the floor undo the
+    // limiter: a peak needing more than `MIN_TOTAL_GAIN_DB` of
+    // attenuation would be capped correctly and then raised back above
+    // its own headroom, which is exactly the clipping this is meant to
+    // prevent.
+    let mut gain = (base + settings.preamp_db).clamp(MIN_TOTAL_GAIN_DB, MAX_TOTAL_GAIN_DB);
 
     if settings.prevent_clipping {
         if let Some(peak) = track.peak.filter(|p| p.is_finite() && *p > 0.0) {
             // The gain that lands the loudest sample exactly at full
             // scale. Negative for a track that already clips, which
-            // correctly asks for attenuation.
+            // correctly asks for attenuation. `min` only ever lowers,
+            // so an absurdly small peak can't turn into a boost.
             let headroom_db = -20.0 * peak.log10();
             gain = gain.min(headroom_db);
         }
     }
 
-    gain.clamp(MIN_TOTAL_GAIN_DB, MAX_TOTAL_GAIN_DB)
+    gain
 }
 
 /// The linear scalar for the decoder's multiply. Returns exactly
@@ -322,6 +328,30 @@ mod tests {
             peak: None,
         };
         assert!(approx(effective_gain_db(silent, on()), MIN_TOTAL_GAIN_DB));
+    }
+
+    /// The floor must not undo the limiter. A peak above 31.62 needs
+    /// more than `MIN_TOTAL_GAIN_DB` of attenuation, and clamping
+    /// after the cap used to raise the gain back above the track's own
+    /// headroom — re-introducing the clipping this exists to prevent.
+    #[test]
+    fn the_floor_never_raises_a_gain_back_above_its_headroom() {
+        for peak in [31.62_f64, 100.0, 1_000.0] {
+            let track = TrackGain {
+                gain_db: Some(0.0),
+                peak: Some(peak),
+            };
+            let headroom_db = -20.0 * peak.log10();
+            let gain = effective_gain_db(track, on());
+            assert!(
+                gain <= headroom_db + 1e-9,
+                "peak {peak} leaves {headroom_db} dB of headroom but the gain came out {gain}"
+            );
+            // And the loudest sample really does stay at or under
+            // full scale.
+            let scaled = f64::from(effective_linear(track, on())) * peak;
+            assert!(scaled <= 1.0 + 1e-6, "peak {peak} scaled to {scaled}");
+        }
     }
 
     /// A gain stored as NaN by an older build must not poison the

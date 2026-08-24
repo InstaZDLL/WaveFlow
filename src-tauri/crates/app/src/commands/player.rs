@@ -525,57 +525,65 @@ pub async fn player_get_state(
                     .dsd_dop_enabled
                     .store(dop, std::sync::atomic::Ordering::Release);
             }
-            if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
-                "SELECT value FROM profile_setting WHERE key = 'audio.replaygain'",
-            )
-            .fetch_optional(&*pool)
-            .await
+            // Every ReplayGain setting resolves to its default when the
+            // row is missing or unparseable, and is stored either way —
+            // the `dsd_dop` pattern above, for the same reason: this
+            // block also runs on a profile *switch*, so a value left
+            // conditional would keep the previous profile's setting on
+            // a profile that never set one.
             {
-                engine
-                    .shared()
-                    .replaygain_enabled
-                    .store(v == "true", std::sync::atomic::Ordering::Release);
-            }
-            // The three knobs that ride on top of the switch. Each is
-            // clamped on the way in for the same reason playback speed
-            // is: a hand-edited row must not reach the mixer intact.
-            for (key, target) in [
-                (
-                    "audio.replaygain_preamp",
-                    &engine.shared().replaygain_preamp_db_bits,
-                ),
-                (
-                    "audio.replaygain_fallback",
-                    &engine.shared().replaygain_fallback_db_bits,
-                ),
-            ] {
-                if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
-                    "SELECT value FROM profile_setting WHERE key = ?",
+                let shared = engine.shared();
+                let enabled = sqlx::query_scalar::<_, String>(
+                    "SELECT value FROM profile_setting WHERE key = 'audio.replaygain'",
                 )
-                .bind(key)
                 .fetch_optional(&*pool)
                 .await
-                {
-                    if let Ok(parsed) = v.parse::<f32>() {
-                        target.store(
-                            clamp_replaygain_adjust(parsed).to_bits(),
-                            std::sync::atomic::Ordering::Release,
-                        );
-                    }
+                .ok()
+                .flatten()
+                .map(|v| v == "true")
+                .unwrap_or(false);
+                shared
+                    .replaygain_enabled
+                    .store(enabled, std::sync::atomic::Ordering::Release);
+
+                // The two dB knobs default to 0.0 and are clamped on the
+                // way in for the same reason playback speed is: a
+                // hand-edited row must not reach the mixer intact.
+                for (key, target) in [
+                    ("audio.replaygain_preamp", &shared.replaygain_preamp_db_bits),
+                    (
+                        "audio.replaygain_fallback",
+                        &shared.replaygain_fallback_db_bits,
+                    ),
+                ] {
+                    let value = sqlx::query_scalar::<_, String>(
+                        "SELECT value FROM profile_setting WHERE key = ?",
+                    )
+                    .bind(key)
+                    .fetch_optional(&*pool)
+                    .await
+                    .ok()
+                    .flatten()
+                    .and_then(|v| v.parse::<f32>().ok())
+                    .map(clamp_replaygain_adjust)
+                    .unwrap_or(0.0);
+                    target.store(value.to_bits(), std::sync::atomic::Ordering::Release);
                 }
-            }
-            // Clipping prevention defaults to ON, so only an explicit
-            // row turns it off.
-            if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
-                "SELECT value FROM profile_setting WHERE key = 'audio.replaygain_prevent_clipping'",
-            )
-            .fetch_optional(&*pool)
-            .await
-            {
-                engine
-                    .shared()
+
+                // Clipping prevention defaults to ON, so only an
+                // explicit `false` row turns it off.
+                let prevent_clipping = sqlx::query_scalar::<_, String>(
+                    "SELECT value FROM profile_setting WHERE key = 'audio.replaygain_prevent_clipping'",
+                )
+                .fetch_optional(&*pool)
+                .await
+                .ok()
+                .flatten()
+                .map(|v| v == "true")
+                .unwrap_or(true);
+                shared
                     .replaygain_prevent_clipping
-                    .store(v == "true", std::sync::atomic::Ordering::Release);
+                    .store(prevent_clipping, std::sync::atomic::Ordering::Release);
             }
             // Gapless defaults to ON, so only override the boot-time
             // default when an explicit `false` row is found.
@@ -2179,6 +2187,8 @@ pub async fn player_play_url(
         title,
         artist,
         artwork_url,
+        // A live station: nothing knows its loudness.
+        replay_gain: TrackGain::default(),
     })?;
 
     Ok(track_id)

@@ -11,6 +11,7 @@
 //! end query the SQLite pool already, so minting a ticket (one HTTP
 //! round-trip) at advance time adds no work to the real-time callback.
 
+use crate::audio::replay_gain::TrackGain;
 use std::sync::Arc;
 
 use sqlx::Row;
@@ -214,6 +215,9 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
         // the PlayerBar overlay path expects a plain URL, so leave it off
         // here and let the bar fall back to its placeholder.
         artwork_url: None,
+        // No reconciled local file, so nothing local knows this
+        // track's loudness; the server doesn't send one either.
+        replay_gain: TrackGain::default(),
     })?;
     Ok(())
 }

@@ -36,11 +36,13 @@ pub enum AudioCmd {
         /// row with the same source for later filtering.
         source_type: String,
         source_id: Option<i64>,
-        /// ReplayGain in dB for this track if analysis has computed it.
-        /// `None` means "no gain known" (track never analyzed) — the
-        /// decoder leaves the signal untouched even when the toggle is
-        /// on. Lookup is done at command time so the decoder thread
-        /// stays out of the SQLite path.
+        /// What is known about this track's loudness: the gain in dB
+        /// on the ReplayGain 2.0 scale and the linear peak, from the
+        /// file's own tags when it has them and from `track_analysis`
+        /// otherwise. `TrackGain::default()` carries neither, and the
+        /// decoder then applies the user's fallback gain instead of
+        /// leaving the signal untouched. Lookup is done at command
+        /// time so the decoder thread stays out of the SQLite path.
         replay_gain: TrackGain,
     },
     /// Play a track from the active remote queue using its confirmed local
@@ -116,6 +118,13 @@ pub enum AudioCmd {
         title: Option<String>,
         artist: Option<String>,
         artwork_url: Option<String>,
+        /// Loudness metadata for the stream. `TrackGain::default()`
+        /// for a live radio station — nothing knows anything about it
+        /// — but a library track that fell back to streaming from the
+        /// server is still the same recording, so it carries the gain
+        /// the local file would have used. Without this the fallback
+        /// is an audible level jump.
+        replay_gain: TrackGain,
     },
     /// Hand the decoder thread a fresh ring producer after the output
     /// thread was rebuilt on a different cpal device. The decoder
@@ -366,6 +375,11 @@ pub(crate) enum RadioResumeSource {
     Url {
         url: String,
         ext_hint: Option<String>,
+        /// Carried so a device flap mid-stream resumes at the same
+        /// level. Empty for a live station; set when a library track
+        /// is being streamed from the server after its local file
+        /// failed to open.
+        replay_gain: TrackGain,
     },
     RemoteFile {
         path: PathBuf,
@@ -378,13 +392,18 @@ pub(crate) enum RadioResumeSource {
 impl RadioResumeState {
     fn into_command(self, position_ms: u64) -> AudioCmd {
         match self.source {
-            RadioResumeSource::Url { url, ext_hint } => AudioCmd::LoadUrlAndPlay {
+            RadioResumeSource::Url {
+                url,
+                ext_hint,
+                replay_gain,
+            } => AudioCmd::LoadUrlAndPlay {
                 url,
                 ext_hint,
                 track_id: self.track_id,
                 title: self.title,
                 artist: self.artist,
                 artwork_url: self.artwork_url,
+                replay_gain,
             },
             RadioResumeSource::RemoteFile {
                 path,
@@ -1479,12 +1498,14 @@ fn apply_radio_resume_update(snapshot: &Mutex<Option<RadioResumeState>>, cmd: &A
             title,
             artist,
             artwork_url,
+            replay_gain,
         } => {
             if let Ok(mut guard) = snapshot.lock() {
                 *guard = Some(RadioResumeState {
                     source: RadioResumeSource::Url {
                         url: url.clone(),
                         ext_hint: ext_hint.clone(),
+                        replay_gain: *replay_gain,
                     },
                     track_id: *track_id,
                     title: title.clone(),
@@ -1678,6 +1699,7 @@ mod radio_resume_tests {
             title: Some("Test stream".to_string()),
             artist: Some("Test artist".to_string()),
             artwork_url: Some("https://example.invalid/art.jpg".to_string()),
+            replay_gain: TrackGain::default(),
         }
     }
 
@@ -1718,7 +1740,7 @@ mod radio_resume_tests {
         assert_eq!(snap.track_id, -1);
         assert_eq!(snap.title.as_deref(), Some("Test stream"));
         match snap.source {
-            RadioResumeSource::Url { url, ext_hint } => {
+            RadioResumeSource::Url { url, ext_hint, .. } => {
                 assert_eq!(url, "https://radio.invalid/live");
                 assert_eq!(ext_hint.as_deref(), Some("mp3"));
             }
