@@ -776,18 +776,29 @@ pub(crate) async fn scan_folder_inner(
         );
     };
 
+    // A track the backfill pass was meant to re-read but couldn't:
+    // the marker below must not be written, or that file would keep
+    // its empty ReplayGain columns for good.
+    let mut rg_backfill_failed = false;
+
     while let Some((path, result)) = extraction_stream.next().await {
         processed += 1;
         let extracted = match result {
             Ok(Ok(e)) => e,
             Ok(Err(err)) => {
                 tracing::warn!(path = %path.display(), error = %err, "extraction failed");
+                if rg_backfill_pending && rg_missing.contains(path.to_string_lossy().as_ref()) {
+                    rg_backfill_failed = true;
+                }
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
             }
             Err(err) => {
                 tracing::warn!(path = %path.display(), error = %err, "extraction panicked");
+                if rg_backfill_pending && rg_missing.contains(path.to_string_lossy().as_ref()) {
+                    rg_backfill_failed = true;
+                }
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -1363,12 +1374,14 @@ pub(crate) async fn scan_folder_inner(
         }
     };
 
-    // Mark the one-off ReplayGain backfill done for this folder. Set
-    // only when the pass actually ran to completion, so a scan that
-    // errored out on half its files gets another go; and set even when
-    // some files turned out to carry no tags, since re-reading them on
-    // every future scan is exactly what the marker exists to prevent.
-    if rg_backfill_pending {
+    // Mark the one-off ReplayGain backfill done for this folder — but
+    // only if every track it was meant to re-read actually got read.
+    // A file that failed extraction this time (locked, unreadable,
+    // mid-write) must be picked up by the next scan rather than be
+    // written off. The marker is still set when files simply turned
+    // out to carry no tags: re-reading those on every future scan is
+    // exactly what it exists to prevent.
+    if rg_backfill_pending && !rg_backfill_failed {
         let _ = sqlx::query(
             "INSERT INTO profile_setting (key, value, value_type, updated_at)
              VALUES (?, 'true', 'bool', ?)
