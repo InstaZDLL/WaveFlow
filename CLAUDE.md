@@ -29,11 +29,12 @@ bun run typecheck            # tsc --noEmit
 bun run lint                 # eslint
 bun run build                # tsc + Vite prod build
 
+cargo fmt   --manifest-path src-tauri/Cargo.toml --all -- --check
 cargo check --manifest-path src-tauri/Cargo.toml --workspace --all-targets
 cargo test  --manifest-path src-tauri/Cargo.toml --workspace
 ```
 
-The PR checklist is the `typecheck` / `lint` / `cargo check` triple.
+The PR checklist is `typecheck` / `lint` / `cargo fmt --check` / `cargo check`. **`cargo fmt` is not optional** — CI runs it as the first step of the Rust job, so an unformatted file fails the whole job before a single test runs, and neither `cargo check` nor `clippy` will have warned you.
 
 ## Architecture
 

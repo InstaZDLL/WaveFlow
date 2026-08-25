@@ -171,7 +171,10 @@ struct MirrorProgress {
 fn emit(app: &AppHandle, phase: &'static str, done: i64, total: i64) {
     // Progress is decoration: a listener that has gone away must not turn a
     // successful walk into an error.
-    let _ = app.emit("remote:mirror-progress", MirrorProgress { phase, done, total });
+    let _ = app.emit(
+        "remote:mirror-progress",
+        MirrorProgress { phase, done, total },
+    );
 }
 
 /// One library the account can see.
@@ -402,10 +405,14 @@ async fn walk_albums(
             return Ok(());
         }
         let page: Vec<AlbumListItem> = client
-            .send_json(client.request(reqwest::Method::GET, "/api/v2/albums").query(&[
-                ("offset", offset.to_string()),
-                ("limit", ALBUM_PAGE.to_string()),
-            ]))
+            .send_json(
+                client
+                    .request(reqwest::Method::GET, "/api/v2/albums")
+                    .query(&[
+                        ("offset", offset.to_string()),
+                        ("limit", ALBUM_PAGE.to_string()),
+                    ]),
+            )
             .await
             .map_err(|err| AppError::Other(format!("album listing failed: {err}")))?;
         if page.is_empty() {
@@ -742,7 +749,9 @@ pub async fn clear(pool: &SqlitePool) -> AppResult<()> {
     sqlx::query("UPDATE remote_track SET in_catalogue = 0 WHERE in_catalogue = 1")
         .execute(&mut *tx)
         .await?;
-    sqlx::query("DELETE FROM remote_album").execute(&mut *tx).await?;
+    sqlx::query("DELETE FROM remote_album")
+        .execute(&mut *tx)
+        .await?;
     sqlx::query("UPDATE remote_library SET mirrored_at = NULL")
         .execute(&mut *tx)
         .await?;
@@ -891,10 +900,12 @@ mod tests {
         let pool = pool().await;
         mirrored_track(&pool, "t-keep").await;
         mirrored_track(&pool, "t-drop").await;
-        sqlx::query("INSERT INTO remote_playlist (remote_id, name, updated_at) VALUES ('p1','P',1)")
-            .execute(&pool)
-            .await
-            .unwrap();
+        sqlx::query(
+            "INSERT INTO remote_playlist (remote_id, name, updated_at) VALUES ('p1','P',1)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
         sqlx::query(
             "INSERT INTO remote_playlist_track (playlist_remote_id, position, track_remote_id)
              VALUES ('p1', 0, 't-keep')",
