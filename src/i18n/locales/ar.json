@@ -2592,7 +2592,9 @@
       "reportRemoved": "تمت إزالة {{removed}}",
       "reportCancelled": "أُوقف",
       "neverMirrored": "لم يُنسخ قط.",
-      "mirroredAt": "آخر نسخة كاملة: {{date}}"
+      "mirroredAt": "آخر نسخة كاملة: {{date}}",
+      "coversCached": "{{covers}} غلاف في الذاكرة المؤقتة ({{size}} ميغابايت).",
+      "clearCovers": "إفراغ"
     }
   }
 }

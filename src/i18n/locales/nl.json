@@ -2333,7 +2333,9 @@
       "reportRemoved": "{{removed}} verwijderd",
       "reportCancelled": "gestopt",
       "neverMirrored": "Nooit gekopieerd.",
-      "mirroredAt": "Laatste volledige kopie: {{date}}."
+      "mirroredAt": "Laatste volledige kopie: {{date}}.",
+      "coversCached": "{{covers}} hoezen in cache ({{size}} MB).",
+      "clearCovers": "Wissen"
     }
   }
 }

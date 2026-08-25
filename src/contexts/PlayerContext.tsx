@@ -271,20 +271,22 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   );
 
   // Same shape for a remote-queue track: its cover lives behind a
-  // Bearer-only endpoint, so fetch it as a data URL by hash and swap it in.
-  // Reuses the radio token so a stale fetch from either source can't win.
+  // Bearer-only endpoint, so the backend caches the cover on disk and answers
+  // with a path — which is what `artwork_path` already means everywhere else,
+  // so `resolveArtwork` needs no special case downstream. Reuses the radio
+  // token so a stale fetch from either source can't win.
   const fetchRemoteArtworkInto = useCallback((hash: string | null) => {
     if (!hash) return;
     const token = ++radioArtworkTokenRef.current;
     void (async () => {
       try {
-        const url = await remoteArtwork(hash);
-        if (!url || token !== radioArtworkTokenRef.current) return;
+        const path = await remoteArtwork(hash);
+        if (!path || token !== radioArtworkTokenRef.current) return;
         setCurrentTrack((prev) =>
           prev && isRemoteTrack(prev)
             ? {
                 ...prev,
-                artwork_path: url,
+                artwork_path: path,
                 artwork_path_1x: null,
                 artwork_path_2x: null,
               }

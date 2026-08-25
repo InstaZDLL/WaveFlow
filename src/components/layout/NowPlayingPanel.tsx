@@ -208,7 +208,10 @@ export function NowPlayingPanel({
         if (!gotPicture && artistId) {
           const artist = await remoteGetArtist(artistId);
           if (cancelled || !artist.artwork_hash) return;
-          const url = await remoteArtwork(artist.artwork_hash);
+          // A local path from the disk cache, not a URL: the asset protocol
+          // serves it like any scanned cover.
+          const path = await remoteArtwork(artist.artwork_hash);
+          const url = path ? resolveArtwork({ full: path }, "full") : null;
           if (!cancelled && url) setPictureSrc(url);
         }
       } catch (err) {

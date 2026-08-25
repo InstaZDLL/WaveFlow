@@ -2481,7 +2481,9 @@
       "reportRemoved": "удалено: {{removed}}",
       "reportCancelled": "остановлено",
       "neverMirrored": "Ещё не копировался.",
-      "mirroredAt": "Последняя полная копия: {{date}}."
+      "mirroredAt": "Последняя полная копия: {{date}}.",
+      "coversCached": "Обложек в кэше: {{covers}} ({{size}} МБ).",
+      "clearCovers": "Очистить"
     }
   }
 }

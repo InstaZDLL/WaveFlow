@@ -2333,7 +2333,9 @@
       "reportRemoved": "{{removed}} हटाए गए",
       "reportCancelled": "रोका गया",
       "neverMirrored": "कभी कॉपी नहीं हुआ।",
-      "mirroredAt": "अंतिम पूर्ण कॉपी: {{date}}"
+      "mirroredAt": "अंतिम पूर्ण कॉपी: {{date}}",
+      "coversCached": "{{covers}} कवर कैश में ({{size}} MB)।",
+      "clearCovers": "हटाएँ"
     }
   }
 }

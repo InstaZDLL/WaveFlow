@@ -2308,7 +2308,9 @@
       "reportRemoved": "移除 {{removed}} 首",
       "reportCancelled": "已停止",
       "neverMirrored": "從未複製。",
-      "mirroredAt": "上次完整複製：{{date}}"
+      "mirroredAt": "上次完整複製：{{date}}",
+      "coversCached": "已快取 {{covers}} 張封面（{{size}} MB）",
+      "clearCovers": "清空"
     }
   }
 }

@@ -736,14 +736,36 @@ pub async fn remote_stream_url(
     crate::remote::stream::ticket_url(&state, &track_id).await
 }
 
-/// Fetch a remote track's artwork (by hash) as a `data:` URL — the artwork
-/// endpoint is Bearer-only, so a bare `<img src>` to it would 401.
+/// Resolve a remote cover (by hash) to a **local file path**, downloading it
+/// once if it is not already cached.
+///
+/// The artwork endpoint is Bearer-only, so a bare `<img src>` to it answers
+/// 401. This used to be worked around by inlining the bytes as a `data:` URL;
+/// caching to disk instead lets the webview's asset protocol serve the file
+/// exactly like a scanned local cover — no base64 held in the renderer, and a
+/// second launch paints from disk rather than re-downloading.
 #[tauri::command]
 pub async fn remote_artwork(
     state: tauri::State<'_, AppState>,
     artwork_hash: String,
 ) -> AppResult<String> {
-    crate::remote::stream::artwork_data_url(&state, &artwork_hash).await
+    let path = crate::remote::artwork::cached_path(&state, &artwork_hash).await?;
+    Ok(path.to_string_lossy().into_owned())
+}
+
+/// What the remote cover cache holds on disk, for the settings card.
+#[tauri::command]
+pub async fn remote_artwork_cache_info(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<crate::remote::artwork::ArtworkCacheInfo> {
+    crate::remote::artwork::info(&state).await
+}
+
+/// Delete every cached remote cover. Costs one download each time one is
+/// looked at again — the images are content-addressed, so nothing is lost.
+#[tauri::command]
+pub async fn remote_clear_artwork_cache(state: tauri::State<'_, AppState>) -> AppResult<()> {
+    crate::remote::artwork::clear(&state).await
 }
 
 /// Play a projected remote playlist as a native queue, starting at

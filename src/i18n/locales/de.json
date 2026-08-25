@@ -2333,7 +2333,9 @@
       "reportRemoved": "{{removed}} entfernt",
       "reportCancelled": "angehalten",
       "neverMirrored": "Nie kopiert.",
-      "mirroredAt": "Letzte vollständige Kopie: {{date}}."
+      "mirroredAt": "Letzte vollständige Kopie: {{date}}.",
+      "coversCached": "{{covers}} Cover im Zwischenspeicher ({{size}} MB).",
+      "clearCovers": "Leeren"
     }
   }
 }

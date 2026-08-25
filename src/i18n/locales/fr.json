@@ -2333,7 +2333,9 @@
       "reportRemoved": "{{removed}} retirés",
       "reportCancelled": "arrêté",
       "neverMirrored": "Jamais recopié.",
-      "mirroredAt": "Dernière copie complète : {{date}}."
+      "mirroredAt": "Dernière copie complète : {{date}}.",
+      "coversCached": "{{covers}} pochettes en cache ({{size}} Mo).",
+      "clearCovers": "Vider"
     }
   }
 }

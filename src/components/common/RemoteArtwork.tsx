@@ -1,14 +1,19 @@
 import { useLayoutEffect, useState } from "react";
 import { ListMusic } from "lucide-react";
 import { remoteArtwork } from "../../lib/tauri/remoteServer";
+import { resolveArtwork } from "../../lib/tauri/artwork";
 
 /**
- * Process-wide cache of resolved `data:` URLs, keyed by artwork hash, plus
- * a registry of in-flight fetches. The artwork is content-addressed and
+ * Process-wide cache of resolved `asset://` URLs, keyed by artwork hash, plus
+ * a registry of in-flight resolutions. The artwork is content-addressed and
  * immutable, so a hash resolves to the same bytes forever — every remount
  * (scrolling a virtualized list, reopening a view) then reuses the cached
- * URL, and two components mounting the same hash at once share one fetch
+ * URL, and two components mounting the same hash at once share one call
  * instead of racing two.
+ *
+ * The backend caches the bytes on disk and hands back a path, so this holds
+ * short strings rather than base64 blobs, and a second launch resolves from
+ * disk without touching the network.
  */
 /** Cap the resolved-artwork cache so a long session browsing many remote
  *  tracks can't grow it without bound. */
@@ -42,8 +47,11 @@ function loadArtwork(hash: string): Promise<string | null> {
   const pending = inFlight.get(hash);
   if (pending) return pending;
   const promise = remoteArtwork(hash)
-    .then((url) => {
-      cacheSet(hash, url);
+    .then((path) => {
+      // The backend answers with a local path; the asset protocol serves it
+      // exactly like a scanned cover.
+      const url = resolveArtwork({ full: path }, "full");
+      if (url) cacheSet(hash, url);
       inFlight.delete(hash);
       return url;
     })
@@ -56,11 +64,12 @@ function loadArtwork(hash: string): Promise<string | null> {
 }
 
 /**
- * A remote track's cover, fetched by hash as a `data:` URL. The artwork
- * endpoint is Bearer-only, so a bare `<img src>` pointed at it would 401 —
- * we fetch it once, cache the result process-wide (see {@link loadArtwork})
- * and reuse it across remounts. Falls back to a neutral tile while it
- * resolves or when there is no hash.
+ * A remote track's cover, resolved by hash. The artwork endpoint is
+ * Bearer-only, so a bare `<img src>` pointed at it would 401 — the backend
+ * downloads it once into a per-profile disk cache and answers with a path,
+ * which the asset protocol then serves. Resolved URLs are cached
+ * process-wide (see {@link loadArtwork}) and reused across remounts. Falls
+ * back to a neutral tile while it resolves or when there is no hash.
  *
  * Shared by the remote playlist view and the remote queue panel (RFC-005).
  */

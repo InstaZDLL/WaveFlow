@@ -7,11 +7,22 @@ import {
   remoteCatalogueStats,
   remoteClearCatalogue,
   remoteGetStatus,
+  remoteArtworkCacheInfo,
+  remoteClearArtworkCache,
   remoteMirrorCatalogue,
+  type ArtworkCacheInfo,
   type CatalogueMirrorProgress,
   type CatalogueMirrorReport,
   type CatalogueStats,
 } from "../../../lib/tauri/remoteServer";
+
+/** Mebibytes with one decimal, in the interface's language. Covers are tens
+ *  of kilobytes each, so the interesting figure is always the total. */
+function formatBytes(bytes: number, locale: string): string {
+  return new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 1,
+  }).format(bytes / (1024 * 1024));
+}
 
 /**
  * Settings → the server's catalogue, mirrored locally.
@@ -33,7 +44,8 @@ export function CatalogueMirrorCard() {
   const [stats, setStats] = useState<CatalogueStats | null>(null);
   const [report, setReport] = useState<CatalogueMirrorReport | null>(null);
   const [progress, setProgress] = useState<CatalogueMirrorProgress | null>(null);
-  const [busy, setBusy] = useState<null | "mirror" | "clear">(null);
+  const [covers, setCovers] = useState<ArtworkCacheInfo | null>(null);
+  const [busy, setBusy] = useState<null | "mirror" | "clear" | "covers">(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(false);
@@ -41,6 +53,12 @@ export function CatalogueMirrorCard() {
   const refreshStats = useCallback(async () => {
     const next = await remoteCatalogueStats();
     if (mountedRef.current) setStats(next);
+    try {
+      const cache = await remoteArtworkCacheInfo();
+      if (mountedRef.current) setCovers(cache);
+    } catch {
+      // Informational only — keep the last figure rather than blanking it.
+    }
   }, []);
 
   // Subscribe before the first read: the walk can start from another window,
@@ -100,6 +118,19 @@ export function CatalogueMirrorCard() {
   const cancel = useCallback(() => {
     void remoteCancelCatalogueMirror().catch(() => {});
   }, []);
+
+  const clearCovers = useCallback(async () => {
+    setBusy("covers");
+    setError(null);
+    try {
+      await remoteClearArtworkCache();
+      await refreshStats();
+    } catch (err) {
+      if (mountedRef.current) setError(String(err));
+    } finally {
+      if (mountedRef.current) setBusy(null);
+    }
+  }, [refreshStats]);
 
   const clear = useCallback(async () => {
     setBusy("clear");
@@ -230,6 +261,28 @@ export function CatalogueMirrorCard() {
               {report.removed > 0 &&
                 ` · ${t("remote.catalogue.reportRemoved", { removed: report.removed })}`}
               {report.cancelled && ` · ${t("remote.catalogue.reportCancelled")}`}
+            </p>
+          )}
+
+          {/* The covers live on disk, not in the database, so they are counted
+              apart from the mirror and cleared apart from it — dropping them
+              costs one download each, never a wrong picture. */}
+          {covers && covers.covers > 0 && (
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-2 flex-wrap">
+              <span>
+                {t("remote.catalogue.coversCached", {
+                  covers: covers.covers,
+                  size: formatBytes(covers.bytes, i18n.resolvedLanguage ?? i18n.language),
+                })}
+              </span>
+              <button
+                type="button"
+                onClick={() => void clearCovers()}
+                disabled={busy !== null}
+                className="underline underline-offset-2 disabled:opacity-50"
+              >
+                {t("remote.catalogue.clearCovers")}
+              </button>
             </p>
           )}
 

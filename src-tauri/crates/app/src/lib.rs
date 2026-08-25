@@ -820,6 +820,10 @@ pub fn run() {
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_delete_share,
             #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_artwork_cache_info,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_clear_artwork_cache,
+            #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_mirror_catalogue,
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_cancel_catalogue_mirror,

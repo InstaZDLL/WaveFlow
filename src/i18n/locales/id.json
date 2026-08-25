@@ -2308,7 +2308,9 @@
       "reportRemoved": "{{removed}} dihapus",
       "reportCancelled": "dihentikan",
       "neverMirrored": "Belum pernah disalin.",
-      "mirroredAt": "Salinan lengkap terakhir: {{date}}."
+      "mirroredAt": "Salinan lengkap terakhir: {{date}}.",
+      "coversCached": "{{covers}} sampul di cache ({{size}} MB).",
+      "clearCovers": "Kosongkan"
     }
   }
 }

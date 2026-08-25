@@ -2333,7 +2333,9 @@
       "reportRemoved": "{{removed}} kaldırıldı",
       "reportCancelled": "durduruldu",
       "neverMirrored": "Hiç kopyalanmadı.",
-      "mirroredAt": "Son tam kopya: {{date}}."
+      "mirroredAt": "Son tam kopya: {{date}}.",
+      "coversCached": "Önbellekte {{covers}} kapak ({{size}} MB).",
+      "clearCovers": "Temizle"
     }
   }
 }

@@ -2308,7 +2308,9 @@
       "reportRemoved": "{{removed}} 件を削除",
       "reportCancelled": "停止しました",
       "neverMirrored": "まだ複製されていません。",
-      "mirroredAt": "最後の完全な複製：{{date}}"
+      "mirroredAt": "最後の完全な複製：{{date}}",
+      "coversCached": "キャッシュ済みのジャケット {{covers}} 件（{{size}} MB）",
+      "clearCovers": "削除"
     }
   }
 }
