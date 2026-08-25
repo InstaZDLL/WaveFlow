@@ -755,6 +755,14 @@ mod tests {
     use super::*;
     use sqlx::sqlite::SqlitePoolOptions;
 
+    /// Serialises the tests that touch [`MIRROR_PHASE`].
+    ///
+    /// The phase is process-global while test threads are not: one test
+    /// holding the slot makes another's `clear` fail, which reads as a bug in
+    /// `clear` rather than as two tests colliding. A tokio mutex rather than a
+    /// std one because it is held across `.await`.
+    static PHASE_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
     /// `foreign_keys` ON, like the real profile database: a fixture that
     /// leaves it off would let a broken delete pass. See the projection
     /// tests for the same migration list.
@@ -878,6 +886,8 @@ mod tests {
     /// playlist's rows with it, or the playlist loses its titles.
     #[tokio::test]
     async fn dropping_the_mirror_spares_rows_the_user_data_needs() {
+        // `clear` claims the walk slot, so this shares it with the test below.
+        let _lock = PHASE_LOCK.lock().await;
         let pool = pool().await;
         mirrored_track(&pool, "t-keep").await;
         mirrored_track(&pool, "t-drop").await;
@@ -1094,22 +1104,32 @@ mod tests {
     /// other's assertions, not the code under test.
     #[tokio::test]
     async fn the_walk_slot_is_exclusive() {
+        let _lock = PHASE_LOCK.lock().await;
+
         // Idle: nothing to cancel, and clearing is allowed.
         assert!(!request_cancel());
         assert!(!cancelled());
         let pool = pool().await;
         clear(&pool).await.unwrap();
 
-        // A walk owns the slot: clearing is refused rather than interleaved.
-        MIRROR_PHASE.store(PHASE_RUNNING, Ordering::SeqCst);
-        assert!(clear(&pool).await.is_err());
-        assert!(request_cancel());
-        assert!(cancelled());
+        {
+            // A walk owns the slot: clearing is refused rather than
+            // interleaved. `PhaseGuard` is the production guard, and it is what
+            // hands the slot back here — including when an assert below
+            // unwinds, which would otherwise leave the phase RUNNING and fail
+            // every later `clear` in the binary.
+            MIRROR_PHASE.store(PHASE_RUNNING, Ordering::SeqCst);
+            let _guard = PhaseGuard;
+            assert!(clear(&pool).await.is_err());
+            assert!(request_cancel());
+            assert!(cancelled());
+        }
 
-        // And the guard hands the slot back, so the next clear goes through.
-        MIRROR_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
-        clear(&pool).await.unwrap();
+        // The guard reset the phase on the way out, so the next clear goes
+        // through — which is also what makes a failed walk not wedge the
+        // feature for the rest of the session.
         assert_eq!(MIRROR_PHASE.load(Ordering::SeqCst), PHASE_IDLE);
+        clear(&pool).await.unwrap();
     }
 
     /// The defect the `mirrored_at` CASE exists for: an album that gains a
