@@ -524,6 +524,9 @@ pub async fn remote_catalogue_stats(
 }
 
 /// Drop the mirrored catalogue, keeping every row the user data still needs.
+///
+/// Refused while a walk owns the slot: the two write the same rows, and
+/// interleaving them leaves albums deleted with their tracks still flagged.
 #[tauri::command]
 pub async fn remote_clear_catalogue(state: tauri::State<'_, AppState>) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;

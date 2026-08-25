@@ -40,7 +40,7 @@
 //! for it.
 
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     sync::atomic::{AtomicU8, Ordering},
 };
 
@@ -301,6 +301,13 @@ async fn fetch_libraries(client: &RemoteClient<'_>) -> AppResult<Vec<LibraryAcce
 }
 
 async fn store_libraries(pool: &SqlitePool, libraries: &[LibraryAccessDto]) -> AppResult<()> {
+    // Same reading as the sweep guard in `mirror_catalogue`: an empty answer
+    // means this account cannot browse anything, not that the server holds
+    // nothing. Deleting on it would throw away every sweep date and leave a
+    // mirror that can no longer see its own libraries.
+    if libraries.is_empty() {
+        return Ok(());
+    }
     let mut tx = pool.begin().await?;
     for library in libraries {
         // `mirrored_at` is deliberately absent from the update: a rename must
@@ -331,6 +338,54 @@ async fn store_libraries(pool: &SqlitePool, libraries: &[LibraryAccessDto]) -> A
     Ok(())
 }
 
+/// What is already mirrored for one album, as far as freshness is concerned.
+#[derive(Debug, Clone, Copy)]
+struct MirroredAlbum {
+    song_count: i64,
+    /// `false` while `mirrored_at` is NULL — listed, but its tracks never
+    /// fetched. That is the state an interrupted walk leaves behind.
+    walked: bool,
+}
+
+/// `true` when the album needs no fetch: already walked, and the server still
+/// reports the same number of available tracks.
+fn is_fresh(known: Option<&MirroredAlbum>, listed: &AlbumListItem) -> bool {
+    matches!(known, Some(state) if state.walked && state.song_count == listed.song_count)
+}
+
+/// Everything the mirror knows about albums, read once for the whole walk.
+///
+/// Deciding freshness per album would cost a query per album, which on a
+/// second walk over an unchanged library *is* the whole cost — every other
+/// step is skipped. One read up front makes the repeat walk a listing and
+/// nothing else.
+async fn known_albums(pool: &SqlitePool) -> AppResult<HashMap<String, MirroredAlbum>> {
+    let rows: Vec<(String, i64, Option<i64>)> =
+        sqlx::query_as("SELECT remote_id, song_count, mirrored_at FROM remote_album")
+            .fetch_all(pool)
+            .await?;
+    Ok(rows
+        .into_iter()
+        .map(|(id, song_count, mirrored_at)| {
+            (
+                id,
+                MirroredAlbum {
+                    song_count,
+                    walked: mirrored_at.is_some(),
+                },
+            )
+        })
+        .collect())
+}
+
+/// Freshness straight from the database. Production reads [`known_albums`]
+/// once and answers from memory; this exists so a test asserts against the
+/// stored rows rather than against the cache built from them.
+#[cfg(test)]
+async fn album_is_fresh(pool: &SqlitePool, album: &AlbumListItem) -> AppResult<bool> {
+    Ok(is_fresh(known_albums(pool).await?.get(&album.id), album))
+}
+
 /// Page the album listing, fetching only the albums whose track count no
 /// longer matches what is mirrored.
 async fn walk_albums(
@@ -339,7 +394,9 @@ async fn walk_albums(
     app: &AppHandle,
     report: &mut MirrorReport,
 ) -> AppResult<()> {
+    let known = known_albums(pool).await?;
     let mut offset = 0i64;
+    let mut processed = 0i64;
     loop {
         if cancelled() {
             return Ok(());
@@ -356,21 +413,35 @@ async fn walk_albums(
         }
         report.albums_seen += page.len() as i64;
 
+        // Freshness is read from `known`, which predates the upsert below —
+        // the upsert overwrites `song_count` with the server's new value, and
+        // asking afterwards would compare the answer with itself.
+        let stale: Vec<&AlbumListItem> = page
+            .iter()
+            .filter(|album| !is_fresh(known.get(&album.id), album))
+            .collect();
+
+        // One transaction for the page rather than one per album: on a repeat
+        // walk these upserts are the only writes, and paying an fsync each
+        // would make the cheap path the slow one.
+        let mut tx = pool.begin().await?;
         for album in &page {
+            upsert_album(&mut tx, album).await?;
+        }
+        tx.commit().await?;
+
+        for album in stale {
             if cancelled() {
                 return Ok(());
-            }
-            let fresh = album_is_fresh(pool, album).await?;
-            upsert_album(pool, album).await?;
-            if fresh {
-                continue;
             }
             let walked = walk_one_album(client, pool, &album.id).await?;
             report.albums_walked += 1;
             report.tracks_mirrored += walked;
-            emit(app, "albums", report.albums_seen, 0);
         }
-        emit(app, "albums", report.albums_seen, 0);
+        // Advance by the page, once the page is done: the count the card shows
+        // is albums accounted for, and every album of the page now is.
+        processed += page.len() as i64;
+        emit(app, "albums", processed, 0);
 
         // A short page is the last page. Asking for one more would cost a
         // round-trip to be told the same thing.
@@ -381,18 +452,7 @@ async fn walk_albums(
     }
 }
 
-/// `true` when the album needs no fetch: it was walked before and the server
-/// still reports the same number of available tracks.
-async fn album_is_fresh(pool: &SqlitePool, album: &AlbumListItem) -> AppResult<bool> {
-    let row: Option<(i64, Option<i64>)> =
-        sqlx::query_as("SELECT song_count, mirrored_at FROM remote_album WHERE remote_id = ?")
-            .bind(&album.id)
-            .fetch_optional(pool)
-            .await?;
-    Ok(matches!(row, Some((count, Some(_))) if count == album.song_count))
-}
-
-async fn upsert_album(pool: &SqlitePool, album: &AlbumListItem) -> AppResult<()> {
+async fn upsert_album(conn: &mut sqlx::SqliteConnection, album: &AlbumListItem) -> AppResult<()> {
     sqlx::query(
         "INSERT INTO remote_album
             (remote_id, library_id, title, artist, artist_id, artwork_hash, year,
@@ -409,7 +469,17 @@ async fn upsert_album(pool: &SqlitePool, album: &AlbumListItem) -> AppResult<()>
             sort_name      = excluded.sort_name,
             song_count     = excluded.song_count,
             duration_ms    = excluded.duration_ms,
-            created_at     = excluded.created_at",
+            created_at     = excluded.created_at,
+            -- A changed count invalidates the walk, and must do so in the same
+            -- statement that records the new count. Writing the count while
+            -- keeping the old stamp is how an album interrupted between this
+            -- upsert and its fetch would read as fresh forever, and never
+            -- receive the tracks it just gained.
+            mirrored_at    = CASE
+                                WHEN excluded.song_count = remote_album.song_count
+                                THEN remote_album.mirrored_at
+                                ELSE NULL
+                             END",
     )
     .bind(&album.id)
     .bind(album.library_id.as_deref())
@@ -423,14 +493,14 @@ async fn upsert_album(pool: &SqlitePool, album: &AlbumListItem) -> AppResult<()>
     .bind(album.song_count.max(0))
     .bind(album.duration_ms.max(0))
     .bind(album.created_at)
-    .execute(pool)
+    .execute(&mut *conn)
     .await?;
     Ok(())
 }
 
 /// Fetch one album and cache its songs. The `mirrored_at` stamp is set in the
 /// same transaction as the tracks: an album marked walked whose tracks were
-/// not committed would be skipped forever by [`album_is_fresh`].
+/// not committed would be skipped by every later walk.
 async fn walk_one_album(
     client: &RemoteClient<'_>,
     pool: &SqlitePool,
@@ -581,11 +651,14 @@ async fn drop_vanished(pool: &SqlitePool, seen: &HashSet<String>) -> AppResult<i
             .bind(id)
             .execute(&mut *tx)
             .await?;
-        sqlx::query(DELETE_VANISHED)
+        // Count the deletions, not the visits: a track a playlist still
+        // references leaves the catalogue but stays in the table, and
+        // reporting it as removed would overstate what the purge did.
+        removed += sqlx::query(DELETE_VANISHED)
             .bind(id)
             .execute(&mut *tx)
-            .await?;
-        removed += 1;
+            .await?
+            .rows_affected() as i64;
     }
     tx.commit().await?;
     Ok(removed)
@@ -643,6 +716,25 @@ pub async fn stats(pool: &SqlitePool) -> AppResult<CatalogueStats> {
 /// Drop the mirror, keeping every row the user data still needs. Recovery for
 /// a mirror that went wrong, and the honest way to free the space.
 pub async fn clear(pool: &SqlitePool) -> AppResult<()> {
+    // Take the same slot a walk takes. A walk writes rows and stamps albums
+    // while this deletes them, so overlapping the two leaves a catalogue whose
+    // albums are gone and whose tracks are still flagged as belonging to them.
+    // Refusing is honest and the collision is a stray click, not a workflow.
+    if MIRROR_PHASE
+        .compare_exchange(
+            PHASE_IDLE,
+            PHASE_RUNNING,
+            Ordering::SeqCst,
+            Ordering::SeqCst,
+        )
+        .is_err()
+    {
+        return Err(AppError::Other(
+            "a catalogue copy is running; stop it first".into(),
+        ));
+    }
+    let _guard = PhaseGuard;
+
     let mut tx = pool.begin().await?;
     // Same order as `drop_vanished`: delete what nothing else points at, then
     // unflag whatever survived because something does.
@@ -713,6 +805,14 @@ mod tests {
         }
     }
 
+    /// `upsert_album` writes through the page transaction in production; the
+    /// tests upsert one album at a time.
+    async fn upsert(pool: &SqlitePool, listed: &AlbumListItem) {
+        let mut tx = pool.begin().await.unwrap();
+        upsert_album(&mut tx, listed).await.unwrap();
+        tx.commit().await.unwrap();
+    }
+
     async fn mirrored_track(pool: &SqlitePool, id: &str) {
         sqlx::query(
             "INSERT INTO remote_track (remote_id, title, artist_id, duration_ms, cached_at, in_catalogue)
@@ -735,7 +835,7 @@ mod tests {
 
         // Listed but not yet walked: still not fresh — `mirrored_at` is NULL,
         // which is exactly the state an interrupted walk leaves behind.
-        upsert_album(&pool, &listed).await.unwrap();
+        upsert(&pool, &listed).await;
         assert!(!album_is_fresh(&pool, &listed).await.unwrap());
 
         sqlx::query("UPDATE remote_album SET mirrored_at = 1 WHERE remote_id = 'al-1'")
@@ -754,11 +854,11 @@ mod tests {
     #[tokio::test]
     async fn re_listing_an_album_updates_it_in_place() {
         let pool = pool().await;
-        upsert_album(&pool, &album("al-1", 3)).await.unwrap();
+        upsert(&pool, &album("al-1", 3)).await;
         let mut renamed = album("al-1", 4);
         renamed.title = "Renamed".into();
         renamed.is_compilation = true;
-        upsert_album(&pool, &renamed).await.unwrap();
+        upsert(&pool, &renamed).await;
 
         let (count, title, compilation): (i64, String, i64) = sqlx::query_as(
             "SELECT song_count, title, is_compilation FROM remote_album WHERE remote_id = 'al-1'",
@@ -819,9 +919,10 @@ mod tests {
         .await
         .unwrap();
 
-        // The sweep listed neither, so both vanished from the catalogue.
+        // Both left the catalogue, but only the unreferenced one was deleted —
+        // `removed` counts deletions, not visits.
         let removed = drop_vanished(&pool, &HashSet::new()).await.unwrap();
-        assert_eq!(removed, 2);
+        assert_eq!(removed, 1);
 
         let rows: Vec<(String, i64)> =
             sqlx::query_as("SELECT remote_id, in_catalogue FROM remote_track")
@@ -867,7 +968,7 @@ mod tests {
         .await
         .unwrap();
         mirrored_track(&pool, "t-1").await;
-        upsert_album(&pool, &album("al-1", 1)).await.unwrap();
+        upsert(&pool, &album("al-1", 1)).await;
 
         let held = stats(&pool).await.unwrap();
         assert_eq!((held.libraries, held.tracks, held.albums), (2, 1, 1));
@@ -988,11 +1089,81 @@ mod tests {
         assert_eq!(listed.artist_id.as_deref(), Some("art-1"));
     }
 
-    /// Cancelling is only meaningful while a walk owns the slot.
-    #[test]
-    fn cancelling_outside_a_walk_is_a_no_op() {
-        // The phase is process-global; leave it as we found it.
+    /// The walk slot is process-global, so this exercises the whole machine in
+    /// one test rather than several: two tests sharing it would race each
+    /// other's assertions, not the code under test.
+    #[tokio::test]
+    async fn the_walk_slot_is_exclusive() {
+        // Idle: nothing to cancel, and clearing is allowed.
         assert!(!request_cancel());
         assert!(!cancelled());
+        let pool = pool().await;
+        clear(&pool).await.unwrap();
+
+        // A walk owns the slot: clearing is refused rather than interleaved.
+        MIRROR_PHASE.store(PHASE_RUNNING, Ordering::SeqCst);
+        assert!(clear(&pool).await.is_err());
+        assert!(request_cancel());
+        assert!(cancelled());
+
+        // And the guard hands the slot back, so the next clear goes through.
+        MIRROR_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
+        clear(&pool).await.unwrap();
+        assert_eq!(MIRROR_PHASE.load(Ordering::SeqCst), PHASE_IDLE);
+    }
+
+    /// The defect the `mirrored_at` CASE exists for: an album that gains a
+    /// track and is interrupted before its fetch must not read as fresh.
+    #[tokio::test]
+    async fn a_changed_count_invalidates_the_walk_even_without_a_fetch() {
+        let pool = pool().await;
+        upsert(&pool, &album("al-1", 3)).await;
+        sqlx::query("UPDATE remote_album SET mirrored_at = 1 WHERE remote_id = 'al-1'")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert!(album_is_fresh(&pool, &album("al-1", 3)).await.unwrap());
+
+        // The listing now says four, and nothing else happens — no fetch, no
+        // stamp. The album must come back stale on the next walk.
+        upsert(&pool, &album("al-1", 4)).await;
+        assert!(!album_is_fresh(&pool, &album("al-1", 4)).await.unwrap());
+
+        // Re-listing at the same count must not clear a stamp that is valid.
+        sqlx::query("UPDATE remote_album SET mirrored_at = 2 WHERE remote_id = 'al-1'")
+            .execute(&pool)
+            .await
+            .unwrap();
+        upsert(&pool, &album("al-1", 4)).await;
+        assert!(album_is_fresh(&pool, &album("al-1", 4)).await.unwrap());
+    }
+
+    /// An empty answer means "this account can browse nothing", not "the
+    /// server has nothing" — deleting on it discards every sweep date.
+    #[tokio::test]
+    async fn an_empty_library_answer_deletes_nothing() {
+        let pool = pool().await;
+        store_libraries(
+            &pool,
+            &[LibraryAccessDto {
+                id: "lib-1".into(),
+                name: "One".into(),
+            }],
+        )
+        .await
+        .unwrap();
+        sqlx::query("UPDATE remote_library SET mirrored_at = 7")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        store_libraries(&pool, &[]).await.unwrap();
+
+        let rows: Vec<(String, Option<i64>)> =
+            sqlx::query_as("SELECT remote_id, mirrored_at FROM remote_library")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+        assert_eq!(rows, vec![("lib-1".to_string(), Some(7))]);
     }
 }

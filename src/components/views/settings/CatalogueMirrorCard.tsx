@@ -28,7 +28,7 @@ import {
  * TypeScript cannot see a Cargo feature, so the card probes for its backend.
  */
 export function CatalogueMirrorCard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [stats, setStats] = useState<CatalogueStats | null>(null);
   const [report, setReport] = useState<CatalogueMirrorReport | null>(null);
@@ -121,6 +121,13 @@ export function CatalogueMirrorCard() {
   if (!visible) return null;
 
   const running = busy === "mirror";
+  // Albums are not the only thing the mirror holds: a server whose singles
+  // belong to no album mirrors tracks and nothing else, and gating on albums
+  // alone would leave that user unable to clear anything.
+  const hasSomethingToClear =
+    (stats?.albums ?? 0) > 0 ||
+    (stats?.tracks ?? 0) > 0 ||
+    (stats?.libraries ?? 0) > 0;
 
   return (
     <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
@@ -231,7 +238,11 @@ export function CatalogueMirrorCard() {
               {stats.mirrored_at === null
                 ? t("remote.catalogue.neverMirrored")
                 : t("remote.catalogue.mirroredAt", {
-                    date: new Date(stats.mirrored_at).toLocaleString(),
+                    // The interface language, not the machine's: a French UI on
+                    // an English system must not date itself in English.
+                    date: new Date(stats.mirrored_at).toLocaleString(
+                      i18n.resolvedLanguage ?? i18n.language,
+                    ),
                   })}
             </p>
           )}
@@ -268,7 +279,7 @@ export function CatalogueMirrorCard() {
               <button
                 type="button"
                 onClick={() => setConfirmClear(true)}
-                disabled={busy !== null || (stats?.albums ?? 0) === 0}
+                disabled={busy !== null || !hasSomethingToClear}
                 className="px-3 py-1.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 inline-flex items-center gap-1.5 disabled:opacity-50"
               >
                 <Trash2 size={14} aria-hidden="true" />
