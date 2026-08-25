@@ -2313,6 +2313,27 @@
       "conversionSuccessServer_other": "{{count}} titres copiés vers le serveur.",
       "conversionSuccessLocal_one": "{{count}} titre copié vers la bibliothèque locale.",
       "conversionSuccessLocal_other": "{{count}} titres copiés vers la bibliothèque locale."
+    },
+    "catalogue": {
+      "title": "Catalogue du serveur",
+      "subtitle": "Recopier le catalogue du serveur en local pour pouvoir le parcourir depuis la bibliothèque. Seuls les titres déjà utilisés par vos playlists sont connus sans cela.",
+      "mirror": "Recopier",
+      "cancel": "Arrêter",
+      "clear": "Vider le miroir",
+      "clearConfirm": "Confirmer",
+      "clearAbort": "Annuler",
+      "statAlbums": "Albums",
+      "statTracks": "Titres",
+      "statArtists": "Artistes",
+      "statLibraries": "Bibliothèques",
+      "progressAlbums": "{{done}} albums parcourus…",
+      "progressSweep": "{{done}} titres relevés…",
+      "reportUnchanged": "Rien n'avait changé.",
+      "reportWalked": "{{albums}} albums parcourus, {{tracks}} titres recopiés.",
+      "reportRemoved": "{{removed}} retirés",
+      "reportCancelled": "arrêté",
+      "neverMirrored": "Jamais recopié.",
+      "mirroredAt": "Dernière copie complète : {{date}}."
     }
   }
 }

@@ -50,6 +50,12 @@
 //! - [`projection`] — writing the server's user data into the local
 //!   `remote_*` tables. Pure database work, testable without a network.
 //!
+//! - [`mirror`] — the other half of that: walking the server's whole
+//!   **catalogue** into the same tables, so both sources can be browsed
+//!   from one list. The projection only ever sees the tracks the account
+//!   touched; everything else exists solely on the server until this
+//!   walks it in.
+//!
 //! - [`read`] — reading it back out for the UI. Also pure: what the
 //!   projection holds is already the answer, so nothing here needs the
 //!   server to be reachable.
@@ -81,6 +87,7 @@ pub mod client;
 pub mod drain;
 pub mod dto;
 pub mod lyrics;
+pub mod mirror;
 pub mod mutation;
 pub mod playback;
 pub mod probe;

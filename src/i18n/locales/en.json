@@ -2313,6 +2313,27 @@
       "conversionSuccessServer_other": "{{count}} tracks copied to the server.",
       "conversionSuccessLocal_one": "{{count}} track copied to the local library.",
       "conversionSuccessLocal_other": "{{count}} tracks copied to the local library."
+    },
+    "catalogue": {
+      "title": "Server catalogue",
+      "subtitle": "Copy the server's catalogue locally so you can browse it from your library. Without it, only the tracks your playlists already use are known.",
+      "mirror": "Copy",
+      "cancel": "Stop",
+      "clear": "Clear the copy",
+      "clearConfirm": "Confirm",
+      "clearAbort": "Cancel",
+      "statAlbums": "Albums",
+      "statTracks": "Tracks",
+      "statArtists": "Artists",
+      "statLibraries": "Libraries",
+      "progressAlbums": "{{done}} albums walked…",
+      "progressSweep": "{{done}} tracks listed…",
+      "reportUnchanged": "Nothing had changed.",
+      "reportWalked": "{{albums}} albums walked, {{tracks}} tracks copied.",
+      "reportRemoved": "{{removed}} removed",
+      "reportCancelled": "stopped",
+      "neverMirrored": "Never copied.",
+      "mirroredAt": "Last full copy: {{date}}."
     }
   }
 }

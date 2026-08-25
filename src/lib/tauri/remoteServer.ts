@@ -630,6 +630,65 @@ export interface PlaylistConversionResult {
   converted_tracks: number;
 }
 
+/** What one catalogue walk did. Counts are of work performed, so all-zero on a
+ * populated server means "nothing had changed", not "nothing was found". */
+export interface CatalogueMirrorReport {
+  albums_seen: number;
+  albums_walked: number;
+  tracks_mirrored: number;
+  orphans_mirrored: number;
+  removed: number;
+  libraries: number;
+  cancelled: boolean;
+  already_running: boolean;
+}
+
+/** Progress emitted on `remote:mirror-progress`. `total` is 0 while a phase is
+ * still counting, so render it as indeterminate rather than as 0 %. */
+export interface CatalogueMirrorProgress {
+  phase: "albums" | "sweep";
+  done: number;
+  total: number;
+}
+
+/** What the mirror currently holds. */
+export interface CatalogueStats {
+  albums: number;
+  /** Albums whose tracks have been walked; below `albums` while a walk is
+   * still in progress or was cancelled. */
+  albums_mirrored: number;
+  tracks: number;
+  artists: number;
+  libraries: number;
+  /** Oldest library sweep, or `null` until every library has been swept once —
+   * a partial mirror must not show a date that reads as "up to date". */
+  mirrored_at: number | null;
+}
+
+/**
+ * Walk the server's catalogue into the local projection so both sources can be
+ * browsed from one library. Incremental: an album whose track count is
+ * unchanged is not re-fetched.
+ */
+export function remoteMirrorCatalogue(): Promise<CatalogueMirrorReport> {
+  return invoke<CatalogueMirrorReport>("remote_mirror_catalogue");
+}
+
+/** Ask an in-flight walk to stop; resolves to whether one was running. What was
+ * already committed stays, and the next walk resumes from what is missing. */
+export function remoteCancelCatalogueMirror(): Promise<boolean> {
+  return invoke<boolean>("remote_cancel_catalogue_mirror");
+}
+
+export function remoteCatalogueStats(): Promise<CatalogueStats> {
+  return invoke<CatalogueStats>("remote_catalogue_stats");
+}
+
+/** Drop the mirrored catalogue. Rows the user data still references are kept. */
+export function remoteClearCatalogue(): Promise<void> {
+  return invoke<void>("remote_clear_catalogue");
+}
+
 /**
  * Find local/server identity links. The backend hashes only local files whose
  * byte size exists in the remote cache; unique exact matches are persisted,

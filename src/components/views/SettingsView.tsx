@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import { RemoteServerCard } from "./settings/RemoteServerCard";
 import { ReconciliationCard } from "./settings/ReconciliationCard";
+import { CatalogueMirrorCard } from "./settings/CatalogueMirrorCard";
 import { PluginStoreCard } from "./settings/PluginStoreCard";
 import { PluginsCard } from "./settings/PluginsCard";
 import { useTheme } from "../../hooks/useTheme";
@@ -2636,6 +2637,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               the card probes for its own backend and renders nothing
               when `sync_v2` is off, which is every shipped build today. */}
             <RemoteServerCard />
+            <CatalogueMirrorCard />
             <ReconciliationCard />
 
             <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">

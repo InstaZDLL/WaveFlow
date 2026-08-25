@@ -2572,6 +2572,27 @@
       "conversionSuccessLocal_few": "تم نسخ {{count}} مقاطع إلى المكتبة المحلية.",
       "conversionSuccessLocal_many": "تم نسخ {{count}} مقطعًا إلى المكتبة المحلية.",
       "conversionSuccessLocal_other": "تم نسخ {{count}} مقطع إلى المكتبة المحلية."
+    },
+    "catalogue": {
+      "title": "فهرس الخادم",
+      "subtitle": "انسخ فهرس الخادم محليًا لتتمكّن من تصفّحه من مكتبتك. بدون ذلك، لا تُعرف سوى المقاطع التي تستخدمها قوائم التشغيل بالفعل.",
+      "mirror": "نسخ",
+      "cancel": "إيقاف",
+      "clear": "إفراغ النسخة",
+      "clearConfirm": "تأكيد",
+      "clearAbort": "إلغاء",
+      "statAlbums": "الألبومات",
+      "statTracks": "المقاطع",
+      "statArtists": "الفنانون",
+      "statLibraries": "المكتبات",
+      "progressAlbums": "تم اجتياز {{done}} ألبوم…",
+      "progressSweep": "تم إحصاء {{done}} مقطع…",
+      "reportUnchanged": "لم يتغيّر شيء.",
+      "reportWalked": "تم اجتياز {{albums}} ألبوم ونسخ {{tracks}} مقطع.",
+      "reportRemoved": "تمت إزالة {{removed}}",
+      "reportCancelled": "أُوقف",
+      "neverMirrored": "لم يُنسخ قط.",
+      "mirroredAt": "آخر نسخة كاملة: {{date}}"
     }
   }
 }

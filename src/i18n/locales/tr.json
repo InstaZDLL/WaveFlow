@@ -2313,6 +2313,27 @@
       "conversionSuccessServer_other": "{{count}} parça sunucuya kopyalandı.",
       "conversionSuccessLocal_one": "{{count}} parça yerel kütüphaneye kopyalandı.",
       "conversionSuccessLocal_other": "{{count}} parça yerel kütüphaneye kopyalandı."
+    },
+    "catalogue": {
+      "title": "Sunucu kataloğu",
+      "subtitle": "Kitaplığınızdan göz atabilmek için sunucunun kataloğunu yerel olarak kopyalayın. Bu yapılmadan yalnızca çalma listelerinizin kullandığı parçalar bilinir.",
+      "mirror": "Kopyala",
+      "cancel": "Durdur",
+      "clear": "Kopyayı temizle",
+      "clearConfirm": "Onayla",
+      "clearAbort": "Vazgeç",
+      "statAlbums": "Albümler",
+      "statTracks": "Parçalar",
+      "statArtists": "Sanatçılar",
+      "statLibraries": "Kitaplıklar",
+      "progressAlbums": "{{done}} albüm tarandı…",
+      "progressSweep": "{{done}} parça listelendi…",
+      "reportUnchanged": "Hiçbir şey değişmemişti.",
+      "reportWalked": "{{albums}} albüm tarandı, {{tracks}} parça kopyalandı.",
+      "reportRemoved": "{{removed}} kaldırıldı",
+      "reportCancelled": "durduruldu",
+      "neverMirrored": "Hiç kopyalanmadı.",
+      "mirroredAt": "Son tam kopya: {{date}}."
     }
   }
 }

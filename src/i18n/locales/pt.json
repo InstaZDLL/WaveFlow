@@ -2313,6 +2313,27 @@
       "conversionSuccessServer_other": "{{count}} faixas copiadas para o servidor.",
       "conversionSuccessLocal_one": "{{count}} faixa copiada para a biblioteca local.",
       "conversionSuccessLocal_other": "{{count}} faixas copiadas para a biblioteca local."
+    },
+    "catalogue": {
+      "title": "Catálogo do servidor",
+      "subtitle": "Copiar o catálogo do servidor localmente para o poder percorrer a partir da biblioteca. Sem isso, só são conhecidas as faixas que as suas listas já utilizam.",
+      "mirror": "Copiar",
+      "cancel": "Parar",
+      "clear": "Esvaziar a cópia",
+      "clearConfirm": "Confirmar",
+      "clearAbort": "Cancelar",
+      "statAlbums": "Álbuns",
+      "statTracks": "Faixas",
+      "statArtists": "Artistas",
+      "statLibraries": "Bibliotecas",
+      "progressAlbums": "{{done}} álbuns percorridos…",
+      "progressSweep": "{{done}} faixas registadas…",
+      "reportUnchanged": "Nada tinha mudado.",
+      "reportWalked": "{{albums}} álbuns percorridos, {{tracks}} faixas copiadas.",
+      "reportRemoved": "{{removed}} removidas",
+      "reportCancelled": "parado",
+      "neverMirrored": "Nunca copiado.",
+      "mirroredAt": "Última cópia completa: {{date}}."
     }
   }
 }

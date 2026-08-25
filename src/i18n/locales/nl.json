@@ -2313,6 +2313,27 @@
       "conversionSuccessServer_other": "{{count}} nummers naar de server gekopieerd.",
       "conversionSuccessLocal_one": "{{count}} nummer naar de lokale bibliotheek gekopieerd.",
       "conversionSuccessLocal_other": "{{count}} nummers naar de lokale bibliotheek gekopieerd."
+    },
+    "catalogue": {
+      "title": "Servercatalogus",
+      "subtitle": "Kopieer de catalogus van de server lokaal zodat je hem vanuit je bibliotheek kunt doorbladeren. Zonder dat zijn alleen de nummers bekend die je afspeellijsten al gebruiken.",
+      "mirror": "Kopiëren",
+      "cancel": "Stoppen",
+      "clear": "Kopie wissen",
+      "clearConfirm": "Bevestigen",
+      "clearAbort": "Annuleren",
+      "statAlbums": "Albums",
+      "statTracks": "Nummers",
+      "statArtists": "Artiesten",
+      "statLibraries": "Bibliotheken",
+      "progressAlbums": "{{done}} albums doorlopen…",
+      "progressSweep": "{{done}} nummers geteld…",
+      "reportUnchanged": "Er was niets veranderd.",
+      "reportWalked": "{{albums}} albums doorlopen, {{tracks}} nummers gekopieerd.",
+      "reportRemoved": "{{removed}} verwijderd",
+      "reportCancelled": "gestopt",
+      "neverMirrored": "Nooit gekopieerd.",
+      "mirroredAt": "Laatste volledige kopie: {{date}}."
     }
   }
 }

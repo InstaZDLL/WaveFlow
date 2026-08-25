@@ -2288,6 +2288,27 @@
       "conversionBlocked_other": " · {{count}} 个被阻止",
       "conversionSuccessServer_other": "已将 {{count}} 首曲目复制到服务器。",
       "conversionSuccessLocal_other": "已将 {{count}} 首曲目复制到本地音乐库。"
+    },
+    "catalogue": {
+      "title": "服务器曲库",
+      "subtitle": "把服务器的曲库复制到本地，以便从资料库中浏览。不复制时，只能识别播放列表已用到的曲目。",
+      "mirror": "复制",
+      "cancel": "停止",
+      "clear": "清空副本",
+      "clearConfirm": "确认",
+      "clearAbort": "取消",
+      "statAlbums": "专辑",
+      "statTracks": "曲目",
+      "statArtists": "艺人",
+      "statLibraries": "资料库",
+      "progressAlbums": "已遍历 {{done}} 张专辑…",
+      "progressSweep": "已清点 {{done}} 首曲目…",
+      "reportUnchanged": "没有任何变化。",
+      "reportWalked": "遍历 {{albums}} 张专辑，复制 {{tracks}} 首曲目。",
+      "reportRemoved": "移除 {{removed}} 首",
+      "reportCancelled": "已停止",
+      "neverMirrored": "从未复制。",
+      "mirroredAt": "上次完整复制：{{date}}"
     }
   }
 }

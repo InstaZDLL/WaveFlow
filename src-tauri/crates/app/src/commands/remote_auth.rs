@@ -492,6 +492,47 @@ pub async fn remote_reconcile_scan(
     crate::remote::reconciliation::discover_with_progress(&pool, app).await
 }
 
+/// Walk the server's catalogue into the projection so both sources can be
+/// browsed from one library.
+///
+/// Incremental: an album whose track count is unchanged is not fetched. Safe
+/// to run repeatedly, and safe to cancel — see
+/// [`remote_cancel_catalogue_mirror`].
+#[tauri::command]
+pub async fn remote_mirror_catalogue(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<crate::remote::mirror::MirrorReport> {
+    crate::remote::mirror::mirror_catalogue(&state, app).await
+}
+
+/// Ask an in-flight [`remote_mirror_catalogue`] to stop. Returns whether a
+/// walk was actually running. Whatever was committed stays: the next walk
+/// resumes from what is missing rather than starting over.
+#[tauri::command]
+pub fn remote_cancel_catalogue_mirror() -> bool {
+    crate::remote::mirror::request_cancel()
+}
+
+/// What the mirror currently holds, for the settings card.
+#[tauri::command]
+pub async fn remote_catalogue_stats(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<crate::remote::mirror::CatalogueStats> {
+    let pool = state.require_profile_pool().await?;
+    crate::remote::mirror::stats(&pool).await
+}
+
+/// Drop the mirrored catalogue, keeping every row the user data still needs.
+///
+/// Refused while a walk owns the slot: the two write the same rows, and
+/// interleaving them leaves albums deleted with their tracks still flagged.
+#[tauri::command]
+pub async fn remote_clear_catalogue(state: tauri::State<'_, AppState>) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    crate::remote::mirror::clear(&pool).await
+}
+
 /// Ask an in-flight [`remote_reconcile_scan`] to stop. Returns whether a scan
 /// was actually running; a stray click before/after a scan is a no-op.
 #[tauri::command]
