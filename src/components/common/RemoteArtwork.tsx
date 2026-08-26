@@ -114,7 +114,17 @@ export function RemoteArtwork({
   // Layout effect so a cached hash (or the reset below) updates `src`
   // synchronously before paint, avoiding a one-frame flash of the previous
   // cover when the hash changes.
+  // What this component is showing right now. Every resolution stamps the
+  // identity it was started for and drops its answer if that is no longer the
+  // one on screen — the rows are virtualized, so a component outlives the
+  // covers that pass through it.
+  const currentKeyRef = useRef<string | null>(null);
+  const retriedRef = useRef<string | null>(null);
   useLayoutEffect(() => {
+    currentKeyRef.current = hash ? keyFor(profileId, hash) : null;
+    // A different cover is a different episode: a tile recycled away from a
+    // hash that had failed, and back to it, deserves its retry again.
+    retriedRef.current = null;
     if (!hash) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSrc(null);
@@ -142,10 +152,11 @@ export function RemoteArtwork({
   // `asset://` would otherwise stay cached and keep failing, so drop it and
   // resolve once more; the second attempt re-downloads.
   //
-  // Once, and only once. A retry that also fails would fire `onError` again
-  // and spin: an unreachable server means every attempt fails, and the tile
-  // is the honest answer.
-  const retriedRef = useRef<string | null>(null);
+  // Once per failure, not once per lifetime. The guard exists so a retry that
+  // also fails cannot fire `onError` again and spin — against an unreachable
+  // server every attempt fails and the tile is the honest answer. A load that
+  // succeeds ends that episode, so a later eviction of the same cover is
+  // allowed its own retry.
   const handleError = useCallback(() => {
     if (!hash) return;
     const key = keyFor(profileId, hash);
@@ -156,8 +167,17 @@ export function RemoteArtwork({
     retriedRef.current = key;
     forget(profileId, hash);
     setSrc(null);
-    void loadArtwork(profileId, hash).then(setSrc);
+    void loadArtwork(profileId, hash).then((url) => {
+      // Same guard as the effect above, and it belongs here too: this
+      // resolution can outlive the cover it was started for.
+      if (currentKeyRef.current !== key) return;
+      setSrc(url);
+    });
   }, [hash, profileId]);
+
+  const handleLoad = useCallback(() => {
+    retriedRef.current = null;
+  }, []);
   if (!src) {
     return (
       <div
@@ -172,6 +192,7 @@ export function RemoteArtwork({
       src={src}
       alt=""
       onError={handleError}
+      onLoad={handleLoad}
       className={`${className} object-cover shrink-0`}
       loading="lazy"
     />
