@@ -8,7 +8,10 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { PlaylistGrid } from "./library/PlaylistGrid";
+import {
+  PlaylistGrid,
+  type LibraryPlaylistRow,
+} from "./library/PlaylistGrid";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Music2,
@@ -111,6 +114,7 @@ interface LibraryViewProps {
    *  never merged, so they are never the same page. */
   onNavigateToRemoteAlbum: (remoteAlbumId: string) => void;
   onNavigateToRemoteArtist: (remoteArtistId: string) => void;
+  onNavigateToRemotePlaylist: (remotePlaylistId: string) => void;
   onNavigateToArtist: (artistId: number) => void;
   onNavigateToGenre: (genreId: number) => void;
   onNavigateToPlaylist: (playlistId: number) => void;
@@ -152,6 +156,7 @@ export function LibraryView({
   onNavigateToRemoteAlbum,
   onNavigateToArtist,
   onNavigateToRemoteArtist,
+  onNavigateToRemotePlaylist,
   onNavigateToGenre,
   onNavigateToPlaylist,
 }: LibraryViewProps) {
@@ -209,6 +214,9 @@ export function LibraryView({
   const [tracks, setTracks] = useState<LibraryTrackRow[]>([]);
   const [albums, setAlbums] = useState<LibraryAlbumRow[]>([]);
   const librarySource = useLibrarySource();
+  // Read here as well as inside `SourceFilter`: the playlists tab merges the
+  // two halves in the browser and needs the remote one.
+  const remote = useRemoteSource();
   const [artists, setArtists] = useState<LibraryArtistRow[]>([]);
   const [genres, setGenres] = useState<GenreRow[]>([]);
   const [folders, setFolders] = useState<FolderRow[]>([]);
@@ -472,6 +480,56 @@ export function LibraryView({
       .catch((err) => console.error("[LibraryView] liked ids failed", err));
   }, [librariesSignature]);
 
+  // Playlists is the one tab whose two halves are merged in the browser: the
+  // grid already sorted there, so there is no SQL ordering to unify and a
+  // compound select would buy nothing.
+  const libraryPlaylists = useMemo<LibraryPlaylistRow[]>(() => {
+    const wanted = librarySource.source;
+    const rows: LibraryPlaylistRow[] = [];
+    if (wanted !== "remote") {
+      for (const playlist of userPlaylists) {
+        rows.push({
+          source: "local",
+          id: String(playlist.id),
+          name: playlist.name,
+          track_count: playlist.track_count,
+          total_duration_ms: playlist.total_duration_ms,
+          updated_at: playlist.updated_at,
+          position: playlist.position,
+          color_id: playlist.color_id,
+          icon_id: playlist.icon_id,
+          cover_path: playlist.cover_path,
+          pending_creation: false,
+        });
+      }
+    }
+    if (wanted !== "local" && remote.available) {
+      for (const playlist of remote.playlists) {
+        rows.push({
+          source: "remote",
+          id: playlist.id,
+          name: playlist.name,
+          track_count: playlist.track_count,
+          total_duration_ms: playlist.duration_ms,
+          // The server's summary carries neither; the grid files them last
+          // rather than reading a missing key as zero.
+          updated_at: null,
+          position: null,
+          color_id: "",
+          icon_id: null,
+          cover_path: null,
+          pending_creation: playlist.pending_creation,
+        });
+      }
+    }
+    return rows;
+  }, [
+    userPlaylists,
+    remote.available,
+    remote.playlists,
+    librarySource.source,
+  ]);
+
   // Per-tab header subtext uses the fetched data lengths since we
   // aggregate across all libraries (no single Library to read counts from).
   const countForTab = (tab: LibraryTab): number => {
@@ -485,7 +543,9 @@ export function LibraryView({
       case "genres":
         return genres.length;
       case "playlists":
-        return userPlaylists.length;
+        // The merged list, not the local one: the header would otherwise
+        // count a different set from the grid right below it.
+        return libraryPlaylists.length;
       case "dossiers":
         return folders.length;
     }
@@ -615,6 +675,9 @@ export function LibraryView({
     ((activeTab === "morceaux" && tracks.length === 0) ||
       (activeTab === "albums" && albums.length === 0) ||
       (activeTab === "artistes" && artists.length === 0));
+  // Playlists is not in that list on purpose: `PlaylistGrid` owns its own
+  // empty state and never falls through to the generic one, so a narrowed
+  // source there is already explained where the user is looking.
 
   // The two engines keep separate queues by design (RFC-005 decision 9), so a
   // mixed list cannot produce a mixed queue. Playing a row therefore queues the
@@ -796,7 +859,8 @@ export function LibraryView({
           problem — it did not cause the emptiness — so it stays gated. */}
       {(activeTab === "morceaux" ||
         activeTab === "albums" ||
-        activeTab === "artistes") && (
+        activeTab === "artistes" ||
+        activeTab === "playlists") && (
         <div className="flex items-center justify-end space-x-3 -mt-4">
           <SourceFilter
             current={librarySource.source}
@@ -816,6 +880,14 @@ export function LibraryView({
               options={albumSortOptions(t)}
               current={albumsSort.sort}
               onChange={albumsSort.setSort}
+              t={t}
+            />
+          )}
+          {activeTab === "playlists" && libraryPlaylists.length > 0 && (
+            <SortDropdown
+              options={playlistSortOptions(t)}
+              current={playlistsSort.sort}
+              onChange={playlistsSort.setSort}
               t={t}
             />
           )}
@@ -979,20 +1051,13 @@ export function LibraryView({
           )}
           {activeTab === "playlists" && (
             <>
-              {userPlaylists.length > 0 && (
-                <div className="flex items-center justify-end space-x-3 -mt-4">
-                  <SortDropdown
-                    options={playlistSortOptions(t)}
-                    current={playlistsSort.sort}
-                    onChange={playlistsSort.setSort}
-                    t={t}
-                  />
-                </div>
-              )}
+
               <PlaylistGrid
-                playlists={userPlaylists}
+                playlists={libraryPlaylists}
                 sort={playlistsSort.sort}
                 onOpen={onNavigateToPlaylist}
+                onOpenRemote={onNavigateToRemotePlaylist}
+                sourceFiltered={librarySource.source !== "all"}
               />
             </>
           )}

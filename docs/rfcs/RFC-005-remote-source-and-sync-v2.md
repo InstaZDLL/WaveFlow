@@ -480,8 +480,16 @@ comparable rather than merely concatenated:
 
 A server album keeps none of the local gestures — no playlist, no cover picker,
 no context menu — because none of them can accept it, and it opens the remote
-detail view rather than the local one. The artists and tracks tabs work the same
-way, on the same filter.
+detail view rather than the local one. The artists, tracks and playlists tabs
+work the same way, on the same filter.
+
+Playlists are the one tab whose halves are merged **in the browser**. The grid
+already sorted there — locale-aware, with `Intl.Collator` — so there is no SQL
+ordering to unify and a compound select would buy nothing. Two of its sort keys
+exist on the local half only: the server's summary carries no modification time,
+and manual order is the sidebar's, which a server playlist is not in. Those rows
+file last and settle among themselves by name, on the same reading as the
+unratable tracks — absent is not smallest.
 
 The tracks tab adds one consequence worth stating plainly: **playing a row
 queues the run of rows from its own source.** Decision 9 keeps the remote queue

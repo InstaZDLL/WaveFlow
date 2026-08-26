@@ -5,21 +5,55 @@ import { ListMusic } from "lucide-react";
 
 import { usePageScroll } from "../../../hooks/usePageScroll";
 import { PlaylistIcon } from "../../../lib/PlaylistIcon";
-import { resolvePlaylistColor } from "../../../lib/playlistVisuals";
+import {
+  colorForPlaylistId,
+  resolvePlaylistColor,
+} from "../../../lib/playlistVisuals";
 import { resolveRemoteImage } from "../../../lib/tauri/artwork";
 import { formatDuration } from "../../../lib/tauri/track";
 import type { SortState } from "../../../hooks/useSortMemory";
-import type { Playlist } from "../../../lib/tauri/playlist";
+import type { LibrarySource } from "../../../lib/tauri/browse";
 import { EmptyState } from "../../common/EmptyState";
+
+/**
+ * A playlist of the library, from either source.
+ *
+ * Built in the view rather than fetched: unlike the other three tabs, the
+ * playlist grid already sorted in the browser, so there is no SQL ordering to
+ * unify and nothing to gain from a compound select. The two shapes are merged
+ * where they are read.
+ */
+export interface LibraryPlaylistRow {
+  source: LibrarySource;
+  /** Local rowid as text, or the server's playlist identifier. */
+  id: string;
+  name: string;
+  track_count: number;
+  total_duration_ms: number;
+  /** Local only: the server's summary carries no modification time. */
+  updated_at: number | null;
+  /** Local only: the sidebar's manual order. */
+  position: number | null;
+  color_id: string;
+  icon_id: string | null;
+  cover_path: string | null;
+  /** Remote only: created here and not yet sent to the server. */
+  pending_creation: boolean;
+}
 
 interface PlaylistGridProps {
   /** User playlists only — smart ones live in Home's "Made for you". */
-  playlists: Playlist[];
+  playlists: LibraryPlaylistRow[];
   /** Same `{ orderBy, direction }` shape the other library tabs use, so
    *  this tab gets `SortDropdown` + persisted sort for free. `custom` is
    *  the sidebar's own manual order (`playlist.position`). */
   sort: SortState;
   onOpen: (playlistId: number) => void;
+  /** A server playlist has no local rowid and opens its own view. */
+  onOpenRemote: (remotePlaylistId: string) => void;
+  /** Whether the list is empty because the source filter narrowed it, rather
+   *  than because there is nothing to show. Two different messages. */
+  sourceFiltered: boolean;
 }
 
 /**
@@ -34,7 +68,13 @@ interface PlaylistGridProps {
  * nesting its own `overflow-y-auto`, which is what keeps the app on a
  * single Spotify-style scrollbar.
  */
-export function PlaylistGrid({ playlists, sort, onOpen }: PlaylistGridProps) {
+export function PlaylistGrid({
+  playlists,
+  sort,
+  onOpen,
+  onOpenRemote,
+  sourceFiltered,
+}: PlaylistGridProps) {
   const { t, i18n } = useTranslation();
 
   const sorted = useMemo(() => {
@@ -42,25 +82,47 @@ export function PlaylistGrid({ playlists, sort, onOpen }: PlaylistGridProps) {
     const collator = new Intl.Collator(i18n.language, {
       sensitivity: "base",
     });
-    const ascending = (a: Playlist, b: Playlist): number => {
+    // Two of the sort keys exist on the local half only: the server's summary
+    // carries no modification time, and manual order is the sidebar's, which a
+    // server playlist is not in. Rather than reading a missing key as zero —
+    // which would file every remote playlist as the oldest, or first — they
+    // fall to the end of the list and settle among themselves by name. Same
+    // reading as the unratable tracks: absent is not smallest.
+    const factor = sort.direction === "desc" ? -1 : 1;
+    // The direction applies to the values, never to the missing-last rule.
+    // Multiplying the whole comparison by the factor would invert the
+    // sentinels too, and "last" would become "first" the moment someone
+    // reversed the sort — which is the same defect the track list had when
+    // its NULL ratings were left to the ORDER BY direction.
+    const missingLast = (
+      a: number | null,
+      b: number | null,
+      byName: number,
+    ): number => {
+      if (a == null && b == null) return factor * byName;
+      if (a == null) return 1;
+      if (b == null) return -1;
+      return factor * (a - b);
+    };
+    const compare = (a: LibraryPlaylistRow, b: LibraryPlaylistRow): number => {
+      const byName = collator.compare(a.name, b.name);
       switch (sort.orderBy) {
         case "name":
-          return collator.compare(a.name, b.name);
+          return factor * byName;
         case "tracks":
-          return a.track_count - b.track_count;
+          return factor * (a.track_count - b.track_count);
         case "duration":
-          return a.total_duration_ms - b.total_duration_ms;
+          return factor * (a.total_duration_ms - b.total_duration_ms);
         case "updated":
-          return a.updated_at - b.updated_at;
+          return missingLast(a.updated_at, b.updated_at, byName);
         case "custom":
         default:
-          return a.position - b.position;
+          return missingLast(a.position, b.position, byName);
       }
     };
-    const factor = sort.direction === "desc" ? -1 : 1;
     // Sorting a copy: `playlists` comes straight from the context and is
     // shared with the sidebar, which renders it in `position` order.
-    return [...playlists].sort((a, b) => factor * ascending(a, b));
+    return [...playlists].sort(compare);
   }, [playlists, sort.orderBy, sort.direction, i18n.language]);
 
   const pageScrollRef = usePageScroll();
@@ -131,7 +193,14 @@ export function PlaylistGrid({ playlists, sort, onOpen }: PlaylistGridProps) {
       <EmptyState
         icon={<ListMusic size={32} />}
         title={t("library.playlistsGrid.emptyTitle")}
-        description={t("library.playlistsGrid.emptyHint")}
+        // A narrowed source is a different emptiness from "you have not made
+        // any playlists yet", and telling the user to create one would not
+        // help: the half they are looking at is simply not this one.
+        description={t(
+          sourceFiltered
+            ? "library.empty.sourceFiltered.description"
+            : "library.playlistsGrid.emptyHint",
+        )}
       />
     );
   }
@@ -164,9 +233,10 @@ export function PlaylistGrid({ playlists, sort, onOpen }: PlaylistGridProps) {
             >
               {rowItems.map((playlist) => (
                 <PlaylistCard
-                  key={playlist.id}
+                  key={`${playlist.source}:${playlist.id}`}
                   playlist={playlist}
                   onOpen={onOpen}
+                  onOpenRemote={onOpenRemote}
                 />
               ))}
             </div>
@@ -180,12 +250,19 @@ export function PlaylistGrid({ playlists, sort, onOpen }: PlaylistGridProps) {
 function PlaylistCard({
   playlist,
   onOpen,
+  onOpenRemote,
 }: {
-  playlist: Playlist;
+  playlist: LibraryPlaylistRow;
   onOpen: (playlistId: number) => void;
+  onOpenRemote: (remotePlaylistId: string) => void;
 }) {
   const { t } = useTranslation();
-  const color = resolvePlaylistColor(playlist.color_id);
+  const remote = playlist.source === "remote";
+  // A server playlist carries no `color_id`; the colour is derived from its
+  // identifier so it is stable and not the same swatch for all of them.
+  const color = remote
+    ? colorForPlaylistId(playlist.id)
+    : resolvePlaylistColor(playlist.color_id);
   const coverUrl = resolveRemoteImage(playlist.cover_path, null);
 
   return (
@@ -194,7 +271,9 @@ function PlaylistCard({
     // without bolting a keydown handler onto a non-interactive element.
     <button
       type="button"
-      onClick={() => onOpen(playlist.id)}
+      onClick={() =>
+        remote ? onOpenRemote(playlist.id) : onOpen(Number(playlist.id))
+      }
       className="group flex flex-col space-y-2 text-left cursor-pointer rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
     >
       {coverUrl ? (
@@ -210,12 +289,20 @@ function PlaylistCard({
         <div
           className={`w-full aspect-square rounded-2xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow ${color.tileBg} ${color.tileText}`}
         >
-          <PlaylistIcon iconId={playlist.icon_id} size={44} />
+          {/* A server playlist has no icon of its own; the default one keeps
+              the tile from being an empty colour block. */}
+          <PlaylistIcon iconId={playlist.icon_id ?? "music"} size={44} />
         </div>
       )}
       <div className="min-w-0">
-        <div className="text-sm font-medium text-zinc-900 dark:text-white truncate">
-          {playlist.name}
+        <div className="text-sm font-medium text-zinc-900 dark:text-white truncate flex items-center gap-1.5">
+          <span className="truncate">{playlist.name}</span>
+          {/* One list, and every tile says where it comes from. */}
+          {remote && (
+            <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+              {t("library.source.remote")}
+            </span>
+          )}
         </div>
         <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
           {t("library.playlistsGrid.meta", {
