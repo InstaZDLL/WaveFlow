@@ -359,6 +359,107 @@ export async function listLibraryAlbums(
   });
 }
 
+/** A track of the library, from either source.
+ *
+ *  The local half carries everything a `Track` does, so a row can be handed
+ *  straight to the player. The remote half leaves the file-shaped fields null:
+ *  there is no file here to rate, edit or hash. `rating: null` on a remote row
+ *  means "cannot be rated", which is not the same as unrated. */
+export interface LibraryTrackRow {
+  source: LibrarySource;
+  id: string;
+  library_id: number | null;
+  title: string;
+  album_id: string | null;
+  album_title: string | null;
+  artist_id: string | null;
+  artist_name: string | null;
+  artist_ids: string | null;
+  duration_ms: number;
+  track_number: number | null;
+  disc_number: number | null;
+  year: number | null;
+  bitrate: number | null;
+  sample_rate: number | null;
+  bit_depth: number | null;
+  channels: number | null;
+  codec: string | null;
+  musical_key: string | null;
+  file_path: string | null;
+  file_size: number | null;
+  added_at: number;
+  artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
+  /** Remote only: resolved through the server cover cache. */
+  artwork_hash: string | null;
+  rating: number | null;
+}
+
+interface LibraryTrackRowSlim
+  extends Omit<
+    LibraryTrackRow,
+    "artwork_path" | "artwork_path_1x" | "artwork_path_2x" | "artwork_hash"
+  > {
+  artwork_hash: string | null;
+  artwork_format: string | null;
+  artwork_has_1x: boolean;
+  artwork_has_2x: boolean;
+}
+
+interface ListLibraryTracksResponse {
+  artwork_base: string;
+  items: LibraryTrackRowSlim[];
+}
+
+/**
+ * Every track the library can show, from the device and from the bound
+ * server, as one sorted list. Not merged, on the same terms as the albums.
+ *
+ * Only tracks the catalogue walk mirrored appear: a track cached because a
+ * playlist referenced it is not part of the server's browsable catalogue and
+ * would show up with no album and no way to reach it.
+ */
+export async function listLibraryTracks(
+  libraryId: number | null,
+  source: LibrarySource | null,
+  options?: { orderBy?: string; direction?: "asc" | "desc" },
+): Promise<LibraryTrackRow[]> {
+  const resp = await invoke<ListLibraryTracksResponse>("list_library_tracks", {
+    libraryId,
+    source,
+    orderBy: options?.orderBy ?? null,
+    direction: options?.direction ?? null,
+  });
+  const sep = pathSep(resp.artwork_base);
+  return resp.items.map((item) => {
+    const local = item.source === "local";
+    const {
+      artwork_format,
+      artwork_has_1x,
+      artwork_has_2x,
+      artwork_hash,
+      ...rest
+    } = item;
+    return {
+      ...rest,
+      artwork_path:
+        local && artwork_hash && artwork_format
+          ? `${resp.artwork_base}${sep}${artwork_hash}.${artwork_format}`
+          : null,
+      artwork_path_1x:
+        local && artwork_hash && artwork_has_1x
+          ? `${resp.artwork_base}${sep}${artwork_hash}_1x.jpg`
+          : null,
+      artwork_path_2x:
+        local && artwork_hash && artwork_has_2x
+          ? `${resp.artwork_base}${sep}${artwork_hash}_2x.jpg`
+          : null,
+      artwork_hash: local ? null : artwork_hash,
+    };
+  });
+}
+
 /** An artist of the library, from either source. Same contract as
  *  `LibraryAlbumRow`: text identifier, `source` says how to read it. */
 export interface LibraryArtistRow {

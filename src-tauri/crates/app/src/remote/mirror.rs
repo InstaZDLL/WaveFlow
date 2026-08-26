@@ -933,27 +933,14 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        for migration in [
-            include_str!(
-                "../../../../migrations/profile/20260810120000_remote_source_projection.sql"
-            ),
-            include_str!("../../../../migrations/profile/20260810140000_remote_track_cache.sql"),
-            include_str!(
-                "../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"
-            ),
-            include_str!(
-                "../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"
-            ),
-            include_str!(
-                "../../../../migrations/profile/20260824210000_remote_catalogue_mirror.sql"
-            ),
-            include_str!(
-                "../../../../migrations/profile/20260826090000_remote_album_sort_keys.sql"
-            ),
-            include_str!("../../../../migrations/profile/20260826140000_remote_artist_mirror.sql"),
-        ] {
-            sqlx::raw_sql(migration).execute(&pool).await.unwrap();
-        }
+        // The real migrator, like every other remote fixture: a hand-listed
+        // subset breaks whenever a migration touches a table the list
+        // happened to omit. The upgrade test below lists them on purpose,
+        // because it needs the schema as it was *before* one of them.
+        sqlx::migrate!("../../migrations/profile")
+            .run(&pool)
+            .await
+            .unwrap();
         pool
     }
 
@@ -1400,6 +1387,63 @@ mod tests {
         // feature for the rest of the session.
         assert_eq!(MIRROR_PHASE.load(Ordering::SeqCst), PHASE_IDLE);
         clear(&pool).await.unwrap();
+    }
+
+    /// The upgrade path for the track sort keys: an album already walked, whose
+    /// count has not changed, would otherwise never be walked again — so its
+    /// tracks would keep their empty keys and keep sorting on the wrong
+    /// expression forever. The migration clears the stamps to force one walk.
+    #[tokio::test]
+    async fn the_sort_key_migration_makes_every_walked_album_stale() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect(":memory:")
+            .await
+            .unwrap();
+        // Everything up to, but not including, the migration under test.
+        for migration in [
+            include_str!(
+                "../../../../migrations/profile/20260810120000_remote_source_projection.sql"
+            ),
+            include_str!("../../../../migrations/profile/20260810140000_remote_track_cache.sql"),
+            include_str!(
+                "../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"
+            ),
+            include_str!(
+                "../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"
+            ),
+            include_str!(
+                "../../../../migrations/profile/20260824210000_remote_catalogue_mirror.sql"
+            ),
+            include_str!(
+                "../../../../migrations/profile/20260826090000_remote_album_sort_keys.sql"
+            ),
+        ] {
+            sqlx::raw_sql(migration).execute(&pool).await.unwrap();
+        }
+
+        let listed = album("al-1", 5);
+        upsert(&pool, &listed).await;
+        sqlx::query("UPDATE remote_album SET mirrored_at = 1 WHERE remote_id = 'al-1'")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert!(
+            album_is_fresh(&pool, &listed).await.unwrap(),
+            "the album is walked and unchanged before the upgrade"
+        );
+
+        sqlx::raw_sql(include_str!(
+            "../../../../migrations/profile/20260826180000_remote_track_sort_keys.sql"
+        ))
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        assert!(
+            !album_is_fresh(&pool, &listed).await.unwrap(),
+            "the upgrade must send it back through the walk"
+        );
     }
 
     /// The defect the `mirrored_at` CASE exists for: an album that gains a
