@@ -2217,12 +2217,6 @@
       "nowPlaying": "En cours de lecture",
       "upNext": "À suivre"
     },
-    "album": {
-      "label": "Album distant",
-      "empty": "Cet album n'a aucun titre.",
-      "trackCount_one": "{{count}} titre",
-      "trackCount_other": "{{count}} titres"
-    },
     "artist": {
       "label": "Artiste distant",
       "albumCount_one": "{{count}} album",

@@ -2419,16 +2419,6 @@
       "nowPlaying": "قيد التشغيل الآن",
       "upNext": "التالي"
     },
-    "album": {
-      "label": "ألبوم بعيد",
-      "empty": "لا يحتوي هذا الألبوم على أي مقاطع.",
-      "trackCount_zero": "0 مقطع",
-      "trackCount_one": "مقطع واحد",
-      "trackCount_two": "مقطعان",
-      "trackCount_few": "{{count}} مقاطع",
-      "trackCount_many": "{{count}} مقطعًا",
-      "trackCount_other": "{{count}} مقطع"
-    },
     "artist": {
       "label": "فنان بعيد",
       "albumCount_zero": "0 ألبوم",

@@ -2337,14 +2337,6 @@
       "nowPlaying": "Сейчас играет",
       "upNext": "Далее"
     },
-    "album": {
-      "label": "Удалённый альбом",
-      "empty": "В этом альбоме нет треков.",
-      "trackCount_one": "{{count}} трек",
-      "trackCount_few": "{{count}} трека",
-      "trackCount_many": "{{count}} треков",
-      "trackCount_other": "{{count}} трека"
-    },
     "artist": {
       "label": "Удалённый исполнитель",
       "albumCount_one": "{{count}} альбом",

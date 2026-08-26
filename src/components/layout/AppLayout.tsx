@@ -120,11 +120,6 @@ const RemotePlaylistView = lazy(() =>
     default: module.RemotePlaylistView,
   })),
 );
-const RemoteAlbumView = lazy(() =>
-  import("../views/RemoteAlbumView").then((module) => ({
-    default: module.RemoteAlbumView,
-  })),
-);
 const RemoteArtistView = lazy(() =>
   import("../views/RemoteArtistView").then((module) => ({
     default: module.RemoteArtistView,
@@ -273,7 +268,6 @@ export function AppLayout() {
       void import("../views/ArtistDetailView");
       void import("../views/GenreDetailView");
       void import("../views/RemotePlaylistView");
-      void import("../views/RemoteAlbumView");
       void import("../views/RemoteArtistView");
       void import("../views/StatisticsView");
       void import("../views/WrappedView");
@@ -597,8 +591,10 @@ export function AppLayout() {
         );
       case "remote-album":
         return (
-          <RemoteAlbumView
+          <AlbumDetailView
+            albumId={null}
             remoteAlbumId={activeRemoteAlbumId}
+            onNavigateToArtist={navigateToArtist}
             onNavigateToRemoteArtist={navigateToRemoteArtist}
           />
         );

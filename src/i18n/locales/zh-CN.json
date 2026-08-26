@@ -2207,11 +2207,6 @@
       "nowPlaying": "正在播放",
       "upNext": "即将播放"
     },
-    "album": {
-      "label": "远程专辑",
-      "empty": "该专辑没有曲目。",
-      "trackCount_other": "{{count}} 首曲目"
-    },
     "artist": {
       "label": "远程艺人",
       "albumCount_other": "{{count}} 张专辑",

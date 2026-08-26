@@ -2207,11 +2207,6 @@
       "nowPlaying": "지금 재생 중",
       "upNext": "다음 재생"
     },
-    "album": {
-      "label": "원격 앨범",
-      "empty": "이 앨범에는 트랙이 없습니다.",
-      "trackCount_other": "{{count}}개 트랙"
-    },
     "artist": {
       "label": "원격 아티스트",
       "albumCount_other": "{{count}}개 앨범",

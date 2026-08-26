@@ -9,6 +9,12 @@ import {
   ImageIcon,
   Film,
 } from "lucide-react";
+import {
+  remoteGetAlbum,
+  remotePlayTracks,
+  type RemoteAlbum,
+} from "../../lib/tauri/remoteServer";
+import { RemoteArtwork } from "../common/RemoteArtwork";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { EmptyState } from "../common/EmptyState";
@@ -39,21 +45,104 @@ import {
   type Track,
 } from "../../lib/tauri/track";
 
-interface AlbumDetailViewProps {
-  albumId: number | null;
-  onNavigateToArtist: (artistId: number) => void;
+/**
+ * A server album in the shape the view already speaks.
+ *
+ * Mapping rather than branching everywhere: the header, the meta line and the
+ * track table all read `AlbumDetail`, and a second shape would mean a second
+ * version of each. What the server has no answer for is `null` — a label, a
+ * release date, genres — which is what those fields already mean locally when
+ * enrichment has not run.
+ */
+function toAlbumDetail(album: RemoteAlbum): AlbumDetail {
+  return {
+    // Never read: the view checks `remote` before anything that needs a rowid.
+    id: -1,
+    title: album.title,
+    artist_id: null,
+    artist_name: album.artist,
+    year: album.year,
+    track_count: album.tracks.length,
+    total_duration_ms: album.tracks.reduce(
+      (sum, track) => sum + (track.duration_ms ?? 0),
+      0,
+    ),
+    artwork_path: null,
+    artwork_path_1x: null,
+    artwork_path_2x: null,
+    label: null,
+    release_date: null,
+    genres: [],
+    tracks: album.tracks.map((track, index) => ({
+      source: "remote" as const,
+      remote_id: track.id,
+      artwork_hash: track.artwork_hash,
+      // Negative so a leak is obvious rather than colliding with a real rowid.
+      id: -(index + 1),
+      title: track.title ?? "",
+      artist_id: null,
+      artist_name: track.artist,
+      artist_ids: null,
+      duration_ms: track.duration_ms ?? 0,
+      track_number: index + 1,
+      disc_number: 1,
+      artwork_path: null,
+      artwork_path_1x: null,
+      artwork_path_2x: null,
+      file_path: "",
+      bit_depth: null,
+      sample_rate: null,
+      codec: null,
+      year: album.year,
+      bitrate: null,
+      channels: null,
+      musical_key: null,
+      file_size: 0,
+      added_at: 0,
+      rating: null,
+    })),
+  };
 }
 
+interface AlbumDetailViewProps {
+  albumId: number | null;
+  /** Set instead of `albumId` when the album is the bound server's. Exactly
+   *  one of the two is ever set: they are two catalogues, not two ids for one
+   *  album. */
+  remoteAlbumId?: string | null;
+  onNavigateToArtist: (artistId: number) => void;
+  onNavigateToRemoteArtist?: (remoteArtistId: string) => void;
+}
+
+/**
+ * One album's detail, from the device or from the bound server.
+ *
+ * The server's albums had a view of their own until now, and it was poorer by
+ * construction: no ratings, no motion cover, no selection, no context menu —
+ * not because a server album cannot have them but because every feature landed
+ * on the local side and the twin was never updated. One view stops that: what
+ * a server album cannot have is now absent for a stated reason rather than by
+ * omission.
+ */
 export function AlbumDetailView({
   albumId,
+  remoteAlbumId = null,
   onNavigateToArtist,
+  onNavigateToRemoteArtist,
 }: AlbumDetailViewProps) {
   const { t } = useTranslation();
+  // Which catalogue this album came from. Everything that touches a local
+  // rowid, a file or the local user data is gated on it.
+  const remote = remoteAlbumId != null;
   const { playTracks, currentTrack, toggleShuffle, isShuffled, isPlaying } =
     usePlayer();
   const { createPlaylist } = usePlaylist();
 
   const [album, setAlbum] = useState<AlbumDetail | null>(null);
+  // The server's artist identifier, kept beside the mapped album: it is a
+  // string and `AlbumDetail.artist_id` is a rowid, so it has nowhere to go in
+  // the shared shape.
+  const [remoteArtistId, setRemoteArtistId] = useState<string | null>(null);
   // Init true so the skeleton paints on first render — paired with the
   // `!album && !isLoading` early-return below, this also prevents a
   // one-frame "album not found" flash before the fetch schedules.
@@ -92,7 +181,7 @@ export function AlbumDetailView({
 
   // Load album detail
   useEffect(() => {
-    if (albumId == null) {
+    if (albumId == null && remoteAlbumId == null) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setAlbum(null);
       return;
@@ -103,8 +192,19 @@ export function AlbumDetailView({
       setEnrichedLabel(null);
       setEnrichedDate(null);
       try {
-        const detail = await getAlbumDetail(albumId);
-        if (!cancelled) setAlbum(detail);
+        if (remoteAlbumId != null) {
+          const fetched = await remoteGetAlbum(remoteAlbumId);
+          if (!cancelled) {
+            setAlbum(toAlbumDetail(fetched));
+            setRemoteArtistId(fetched.artist_id);
+          }
+        } else {
+          const detail = await getAlbumDetail(albumId as number);
+          if (!cancelled) {
+            setAlbum(detail);
+            setRemoteArtistId(null);
+          }
+        }
       } catch (err) {
         console.error("[AlbumDetailView] load failed", err);
         if (!cancelled) setAlbum(null);
@@ -115,7 +215,7 @@ export function AlbumDetailView({
     return () => {
       cancelled = true;
     };
-  }, [albumId, coverReloadKey, editRefetch]);
+  }, [albumId, remoteAlbumId, coverReloadKey, editRefetch]);
 
   // Load liked IDs
   useEffect(() => {
@@ -209,12 +309,32 @@ export function AlbumDetailView({
     rating: at.rating,
   }));
 
-  const handlePlayAll = async () => {
+  // The two engines keep separate queues (RFC-005 decision 9), so a server
+  // album plays through the remote one. Every track here shares a source, so
+  // unlike the mixed library list there is no run to pick out.
+  // A plain function, not a hook: it lives past the early returns above, and
+  // `album` is non-null by here.
+  const playFrom = async (index: number) => {
+    if (remote) {
+      const ids = album.tracks.map((track) => track.remote_id ?? "");
+      if (ids.length === 0) return;
+      await remotePlayTracks(ids, index);
+      return;
+    }
     if (playableTracks.length === 0) return;
-    await playTracks(playableTracks, 0, { type: "library", id: null });
+    await playTracks(playableTracks, index, { type: "library", id: null });
+  };
+
+  const handlePlayAll = async () => {
+    await playFrom(0);
   };
 
   const handleShufflePlay = async () => {
+    if (remote) {
+      // Shuffle is a local-queue mode; the remote queue has none, so the
+      // button is not offered and this is unreachable.
+      return;
+    }
     if (playableTracks.length === 0) return;
     await playTracks(playableTracks, 0, { type: "library", id: null });
     // Gate the toggle so we never *disable* shuffle when the user
@@ -238,8 +358,16 @@ export function AlbumDetailView({
           viewport, title wraps to a second line instead of truncating
           when the side lyrics panel is open. */}
       <div className="flex items-start space-x-6">
-        {/* Album artwork — keyboard-accessible lightbox trigger; omitted when no artwork */}
-        {album.artwork_path ? (
+        {/* Album artwork. A server cover is resolved by hash through the cover
+            cache and has no lightbox: the lightbox opens the original file,
+            and there is no file here. */}
+        {remote ? (
+          <RemoteArtwork
+            hash={album.tracks.find((track) => track.artwork_hash)?.artwork_hash ?? null}
+            className="w-44 h-44 rounded-2xl shadow-lg shrink-0"
+            iconSize={64}
+          />
+        ) : album.artwork_path ? (
           <button
             type="button"
             onClick={() => setIsLightboxOpen(true)}
@@ -282,9 +410,15 @@ export function AlbumDetailView({
           {album.artist_name && (
             <button
               type="button"
-              onClick={() =>
-                album.artist_id != null && onNavigateToArtist(album.artist_id)
-              }
+              onClick={() => {
+                if (remote) {
+                  if (remoteArtistId && onNavigateToRemoteArtist) {
+                    onNavigateToRemoteArtist(remoteArtistId);
+                  }
+                  return;
+                }
+                if (album.artist_id != null) onNavigateToArtist(album.artist_id);
+              }}
               className="text-lg font-medium text-emerald-600 dark:text-emerald-400 hover:underline mb-2"
             >
               {album.artist_name}
@@ -336,6 +470,8 @@ export function AlbumDetailView({
               <Play size={16} className="fill-current" />
               <span>{t("albumDetail.playAll")}</span>
             </button>
+            {/* Shuffle is a mode of the local queue; the remote one has none. */}
+            {!remote && (
             <button
               type="button"
               onClick={handleShufflePlay}
@@ -345,6 +481,11 @@ export function AlbumDetailView({
               <Shuffle size={16} />
               <span>{t("albumDetail.shuffle")}</span>
             </button>
+            )}
+            {/* Both covers are written into the local library — there is no
+                local album row here to write one to. */}
+            {!remote && (
+            <>
             <button
               type="button"
               onClick={() => setIsCoverPickerOpen(true)}
@@ -361,6 +502,8 @@ export function AlbumDetailView({
               <Film size={16} />
               <span>{t("albumDetail.setMotionCover")}</span>
             </button>
+            </>
+            )}
           </div>
         </div>
       </div>
@@ -377,12 +520,7 @@ export function AlbumDetailView({
           isPlaying={isPlaying}
           likedIds={likedIds}
           onToggleLike={handleToggleLike}
-          onPlayTrack={(index) =>
-            playTracks(playableTracks, index, {
-              type: "library",
-              id: null,
-            })
-          }
+          onPlayTrack={(index) => void playFrom(index)}
           onNavigateToArtist={onNavigateToArtist}
           onContextMenuRow={trackContextMenu.open}
           onRowMenuKey={trackContextMenu.openFromKeyboard}
@@ -508,22 +646,30 @@ function AlbumTrackTable({
   const gridCols = "grid-cols-[3rem_1fr_1fr_5rem_2rem]";
 
   const renderTrackRow = (track: AlbumTrack, globalIndex: number) => {
-    const isCurrent = track.id === currentTrackId;
-    const isRowSelected = isSelected(track.id);
+    // A server track has no local rowid: the one on the row is a negative
+    // sentinel. Everything keyed on a rowid — the current-track highlight,
+    // the selection, the like list, the context menu — is gated here rather
+    // than reading that sentinel and quietly matching nothing.
+    const local = track.source !== "remote";
+    const playable = local ? playableTracks[globalIndex] : null;
+    const isCurrent = local && track.id === currentTrackId;
+    const isRowSelected = local && isSelected(track.id);
     return (
       // Row can't be a <button> because it contains action buttons;
       // nested buttons are invalid HTML. Keyboard activation still
       // works via tabIndex + onKeyDown.
       <li
-        key={`${track.id}-${globalIndex}`}
+        key={track.remote_id ?? `${track.id}-${globalIndex}`}
         tabIndex={0}
         role="button"
-        onClick={(e) => onRowSelect(playableTracks[globalIndex], e)}
+        onClick={(e) => {
+          if (playable) onRowSelect(playable, e);
+        }}
         onDoubleClick={() => onPlayTrack(globalIndex)}
         onKeyDown={(e) => {
           // Only play when the row itself is focused — see LibraryView.
           if (e.target !== e.currentTarget) return;
-          if (onRowMenuKey(e, playableTracks[globalIndex])) return;
+          if (playable && onRowMenuKey(e, playable)) return;
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             onPlayTrack(globalIndex);
@@ -533,7 +679,9 @@ function AlbumTrackTable({
           if (e.target !== e.currentTarget) return;
           if (e.key === " ") e.preventDefault();
         }}
-        onContextMenu={(e) => onContextMenuRow(e, playableTracks[globalIndex])}
+        onContextMenu={(e) => {
+          if (playable) onContextMenuRow(e, playable);
+        }}
         className={`grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
           isRowSelected
             ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"
@@ -579,6 +727,9 @@ function AlbumTrackTable({
           name={track.artist_name}
           artistIds={track.artist_ids}
           onNavigate={onNavigateToArtist}
+          // The album's own artist link already goes to the right place; a
+          // per-row one would need each track's server artist id, which the
+          // album payload does not carry.
           fallback={t("library.table.unknown")}
           className="text-sm text-zinc-500 truncate"
         />
@@ -586,26 +737,31 @@ function AlbumTrackTable({
           {formatDuration(track.duration_ms)}
         </span>
         <div className="flex justify-center">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleLike(track.id);
-            }}
-            aria-label={
-              likedIds.has(track.id) ? t("liked.unlike") : t("liked.like")
-            }
-            className={`p-1 rounded-full transition-colors ${
-              likedIds.has(track.id)
-                ? "text-pink-500"
-                : "text-zinc-300 dark:text-zinc-600 hover:text-pink-500"
-            }`}
-          >
-            <Heart
-              size={14}
-              className={likedIds.has(track.id) ? "fill-current" : ""}
-            />
-          </button>
+          {/* The like list keys on a local rowid a server track does not
+              have. Absent rather than inert: an empty heart that does
+              nothing reads as "not liked". */}
+          {local && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleLike(track.id);
+              }}
+              aria-label={
+                likedIds.has(track.id) ? t("liked.unlike") : t("liked.like")
+              }
+              className={`p-1 rounded-full transition-colors ${
+                likedIds.has(track.id)
+                  ? "text-pink-500"
+                  : "text-zinc-300 dark:text-zinc-600 hover:text-pink-500"
+              }`}
+            >
+              <Heart
+                size={14}
+                className={likedIds.has(track.id) ? "fill-current" : ""}
+              />
+            </button>
+          )}
         </div>
       </li>
     );

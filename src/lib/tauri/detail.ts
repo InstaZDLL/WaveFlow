@@ -1,9 +1,23 @@
+import type { LibrarySource } from "./browse";
 import { invoke } from "@tauri-apps/api/core";
 import type { Track } from "./track";
 
 // ── Album detail ────────────────────────────────────────────────────
 
 export interface AlbumTrack {
+  /** Absent on a local track, which is the unmarked case. */
+  source?: LibrarySource;
+  /** The server's identifier, present only on a remote track. It is what
+   *  plays, what keys the row, and what the local `id` deliberately is not. */
+  remote_id?: string;
+  /** Remote only: resolved through the server cover cache. */
+  artwork_hash?: string | null;
+  /**
+   * Local rowid. On a remote track this is a negative sentinel that is never
+   * read — the type requires a number and there is none, so it is made
+   * obviously invalid rather than plausibly wrong. Every site that acts on a
+   * rowid checks `source` first.
+   */
   id: number;
   title: string;
   artist_id: number | null;

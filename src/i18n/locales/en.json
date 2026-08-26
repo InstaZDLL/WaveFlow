@@ -2217,12 +2217,6 @@
       "nowPlaying": "Now playing",
       "upNext": "Up next"
     },
-    "album": {
-      "label": "Remote album",
-      "empty": "This album has no tracks.",
-      "trackCount_one": "{{count}} track",
-      "trackCount_other": "{{count}} tracks"
-    },
     "artist": {
       "label": "Remote artist",
       "albumCount_one": "{{count}} album",

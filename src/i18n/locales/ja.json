@@ -2207,11 +2207,6 @@
       "nowPlaying": "再生中",
       "upNext": "次に再生"
     },
-    "album": {
-      "label": "リモートアルバム",
-      "empty": "このアルバムには曲がありません。",
-      "trackCount_other": "{{count}} 曲"
-    },
     "artist": {
       "label": "リモートアーティスト",
       "albumCount_other": "{{count}} 枚",
