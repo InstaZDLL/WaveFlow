@@ -2334,8 +2334,10 @@
       "reportCancelled": "angehalten",
       "neverMirrored": "Nie kopiert.",
       "mirroredAt": "Letzte vollständige Kopie: {{date}}.",
-      "coversCached": "{{covers}} Cover im Zwischenspeicher ({{size}} MB).",
-      "clearCovers": "Leeren"
+      "clearCovers": "Leeren",
+      "coversCached_zero": "Keine Cover im Zwischenspeicher.",
+      "coversCached_one": "{{count}} Cover im Zwischenspeicher ({{size}} MB).",
+      "coversCached_other": "{{count}} Cover im Zwischenspeicher ({{size}} MB)."
     }
   }
 }

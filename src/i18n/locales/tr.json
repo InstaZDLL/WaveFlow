@@ -2334,8 +2334,10 @@
       "reportCancelled": "durduruldu",
       "neverMirrored": "Hiç kopyalanmadı.",
       "mirroredAt": "Son tam kopya: {{date}}.",
-      "coversCached": "Önbellekte {{covers}} kapak ({{size}} MB).",
-      "clearCovers": "Temizle"
+      "clearCovers": "Temizle",
+      "coversCached_zero": "Önbellekte kapak yok.",
+      "coversCached_one": "Önbellekte {{count}} kapak ({{size}} MB).",
+      "coversCached_other": "Önbellekte {{count}} kapak ({{size}} MB)."
     }
   }
 }

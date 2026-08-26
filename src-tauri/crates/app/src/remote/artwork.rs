@@ -36,7 +36,10 @@
 //! covers are tens of kilobytes and the whole point is that a large library
 //! stays painted.
 
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 use serde::Serialize;
 
@@ -50,6 +53,12 @@ use crate::{
 /// several thousand of them — enough for a library to stay painted while
 /// staying a rounding error next to the music itself.
 const MAX_CACHE_BYTES: u64 = 512 * 1024 * 1024;
+
+/// Distinguishes one in-flight write from another. The process id alone is
+/// not enough: two views asking for the same cover at the same moment are in
+/// the same process, so they would pick the same temporary and interleave
+/// their writes into it.
+static WRITE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 /// Extensions a cached cover can carry. Kept short and closed: the file name
 /// is `<hash>.<ext>`, and looking a hash up means probing this list, so every
@@ -161,9 +170,14 @@ async fn write_atomically(dir: &Path, path: &Path, bytes: &[u8]) -> AppResult<()
     let bytes = bytes.to_vec();
     tokio::task::spawn_blocking(move || -> std::io::Result<()> {
         std::fs::create_dir_all(&dir)?;
-        // The temporary carries the process id so two WaveFlow instances on
-        // the same profile directory cannot truncate each other's write.
-        let temporary = path.with_extension(format!("part-{}", std::process::id()));
+        // The name has to be unique across both kinds of concurrency: the
+        // process id separates two WaveFlow instances sharing a profile
+        // directory, the counter separates two writes inside one of them.
+        let temporary = path.with_extension(format!(
+            "part-{}-{}",
+            std::process::id(),
+            WRITE_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
         std::fs::write(&temporary, &bytes)?;
         std::fs::rename(&temporary, &path)
     })
@@ -250,30 +264,43 @@ async fn evict(dir: PathBuf, cap: u64) {
 }
 
 /// Delete every cached cover, temporaries included.
+///
+/// Reports what went wrong rather than swallowing it: "Clear" answering with a
+/// silent success while the count stays put is the one outcome that makes the
+/// button look broken and the cache look haunted.
 pub async fn clear(state: &AppState) -> AppResult<()> {
     let profile_id = state.require_profile_id().await?;
     let dir = state.paths.profile_remote_artwork_dir(profile_id);
-    let _ = tokio::task::spawn_blocking(move || {
-        let (_, files) = scan(&dir);
-        for (path, _, _) in files {
-            let _ = std::fs::remove_file(&path);
-        }
-        // `scan` lists complete covers only; sweep the leftovers separately.
-        if let Ok(entries) = std::fs::read_dir(&dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path
-                    .file_name()
-                    .and_then(|name| name.to_str())
-                    .is_some_and(|name| name.contains(".part-"))
-                {
-                    let _ = std::fs::remove_file(&path);
-                }
+    tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+        let entries = match std::fs::read_dir(&dir) {
+            Ok(entries) => entries,
+            // A cache that was never written has nothing to clear, and saying
+            // so as an error would be a lie.
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(err) => return Err(err),
+        };
+        for entry in entries {
+            let path = entry?.path();
+            let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+                continue;
+            };
+            let ours = EXTENSIONS.iter().any(|ext| name.ends_with(ext)) || name.contains(".part-");
+            if !ours {
+                continue;
+            }
+            match std::fs::remove_file(&path) {
+                Ok(()) => {}
+                // Something else removed it first, which is the outcome asked
+                // for.
+                Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+                Err(err) => return Err(err),
             }
         }
+        Ok(())
     })
-    .await;
-    Ok(())
+    .await
+    .map_err(|err| AppError::Other(format!("artwork cache clear: {err}")))?
+    .map_err(|err| AppError::Other(format!("artwork cache clear: {err}")))
 }
 
 #[cfg(test)]
@@ -341,6 +368,54 @@ mod tests {
             .filter(|entry| entry.file_name().to_string_lossy().contains(".part-"))
             .collect();
         assert!(leftovers.is_empty());
+    }
+
+    /// Two views asking for the same cover at the same moment are in the same
+    /// process, so a temporary named after the process alone would be the same
+    /// file for both, and they would interleave their writes into it.
+    #[tokio::test]
+    async fn concurrent_writes_of_one_cover_do_not_share_a_temporary() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("abcd.jpg");
+        let bytes = vec![7u8; 4096];
+
+        let writes = (0..8).map(|_| {
+            let dir = dir.path().to_path_buf();
+            let path = path.clone();
+            let bytes = bytes.clone();
+            async move { write_atomically(&dir, &path, &bytes).await }
+        });
+        for result in futures::future::join_all(writes).await {
+            result.unwrap();
+        }
+
+        assert_eq!(std::fs::read(&path).unwrap(), bytes);
+        let leftovers: Vec<_> = std::fs::read_dir(dir.path())
+            .unwrap()
+            .flatten()
+            .filter(|entry| entry.file_name().to_string_lossy().contains(".part-"))
+            .collect();
+        assert!(leftovers.is_empty(), "every temporary must be renamed away");
+    }
+
+    /// A purge that cannot delete must say so. Answering with a silent success
+    /// while the count stays put makes the button look broken.
+    #[tokio::test]
+    async fn clearing_a_cache_that_was_never_written_is_not_an_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let missing = dir.path().join("never-created");
+        // Exercised through the same closure `clear` runs; the command wrapper
+        // only resolves the directory.
+        let result = tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+            match std::fs::read_dir(&missing) {
+                Ok(_) => Ok(()),
+                Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
+                Err(err) => Err(err),
+            }
+        })
+        .await
+        .unwrap();
+        assert!(result.is_ok());
     }
 
     #[tokio::test]

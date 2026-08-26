@@ -2334,8 +2334,10 @@
       "reportCancelled": "interrotto",
       "neverMirrored": "Mai copiato.",
       "mirroredAt": "Ultima copia completa: {{date}}.",
-      "coversCached": "{{covers}} copertine in cache ({{size}} MB).",
-      "clearCovers": "Svuota"
+      "clearCovers": "Svuota",
+      "coversCached_zero": "Nessuna copertina in cache.",
+      "coversCached_one": "{{count}} copertina in cache ({{size}} MB).",
+      "coversCached_other": "{{count}} copertine in cache ({{size}} MB)."
     }
   }
 }

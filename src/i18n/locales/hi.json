@@ -2334,8 +2334,10 @@
       "reportCancelled": "रोका गया",
       "neverMirrored": "कभी कॉपी नहीं हुआ।",
       "mirroredAt": "अंतिम पूर्ण कॉपी: {{date}}",
-      "coversCached": "{{covers}} कवर कैश में ({{size}} MB)।",
-      "clearCovers": "हटाएँ"
+      "clearCovers": "हटाएँ",
+      "coversCached_zero": "कैश में कोई कवर नहीं।",
+      "coversCached_one": "{{count}} कवर कैश में ({{size}} MB)।",
+      "coversCached_other": "{{count}} कवर कैश में ({{size}} MB)।"
     }
   }
 }

@@ -270,9 +270,15 @@ export function CatalogueMirrorCard() {
           {covers && covers.covers > 0 && (
             <p className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-2 flex-wrap">
               <span>
+                {/* `count` drives i18next's plural selection; the locales
+                    carry exactly the CLDR categories each of them declares
+                    elsewhere, so no language falls through to English. */}
                 {t("remote.catalogue.coversCached", {
-                  covers: covers.covers,
-                  size: formatBytes(covers.bytes, i18n.resolvedLanguage ?? i18n.language),
+                  count: covers.covers,
+                  size: formatBytes(
+                    covers.bytes,
+                    i18n.resolvedLanguage ?? i18n.language,
+                  ),
                 })}
               </span>
               <button

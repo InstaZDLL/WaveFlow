@@ -2482,8 +2482,12 @@
       "reportCancelled": "остановлено",
       "neverMirrored": "Ещё не копировался.",
       "mirroredAt": "Последняя полная копия: {{date}}.",
-      "coversCached": "Обложек в кэше: {{covers}} ({{size}} МБ).",
-      "clearCovers": "Очистить"
+      "clearCovers": "Очистить",
+      "coversCached_zero": "Обложек в кэше нет.",
+      "coversCached_one": "{{count}} обложка в кэше ({{size}} МБ).",
+      "coversCached_few": "{{count}} обложки в кэше ({{size}} МБ).",
+      "coversCached_many": "{{count}} обложек в кэше ({{size}} МБ).",
+      "coversCached_other": "{{count}} обложек в кэше ({{size}} МБ)."
     }
   }
 }

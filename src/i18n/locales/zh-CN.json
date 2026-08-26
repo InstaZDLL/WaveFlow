@@ -2309,8 +2309,10 @@
       "reportCancelled": "已停止",
       "neverMirrored": "从未复制。",
       "mirroredAt": "上次完整复制：{{date}}",
-      "coversCached": "已缓存 {{covers}} 张封面（{{size}} MB）",
-      "clearCovers": "清空"
+      "clearCovers": "清空",
+      "coversCached_zero": "没有缓存的封面。",
+      "coversCached_one": "已缓存 {{count}} 张封面（{{size}} MB）",
+      "coversCached_other": "已缓存 {{count}} 张封面（{{size}} MB）"
     }
   }
 }

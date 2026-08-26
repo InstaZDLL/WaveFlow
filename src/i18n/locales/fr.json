@@ -2334,8 +2334,10 @@
       "reportCancelled": "arrêté",
       "neverMirrored": "Jamais recopié.",
       "mirroredAt": "Dernière copie complète : {{date}}.",
-      "coversCached": "{{covers}} pochettes en cache ({{size}} Mo).",
-      "clearCovers": "Vider"
+      "clearCovers": "Vider",
+      "coversCached_zero": "Aucune pochette en cache.",
+      "coversCached_one": "{{count}} pochette en cache ({{size}} Mo).",
+      "coversCached_other": "{{count}} pochettes en cache ({{size}} Mo)."
     }
   }
 }
