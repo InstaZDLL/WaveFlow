@@ -207,7 +207,10 @@
     "myLibrary": {
       "playlistSubtext_zero": "0 首曲目",
       "playlistSubtext_one": "{{count}} 首曲目",
-      "playlistSubtext_other": "{{count}} 首曲目"
+      "playlistSubtext_other": "{{count}} 首曲目",
+      "playlistSubtextPending_zero": "0 首曲目 · 尚未发送",
+      "playlistSubtextPending_one": "{{count}} 首曲目 · 尚未发送",
+      "playlistSubtextPending_other": "{{count}} 首曲目 · 尚未发送"
     }
   },
   "topbar": {

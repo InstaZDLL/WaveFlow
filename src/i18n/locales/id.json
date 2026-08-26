@@ -207,7 +207,10 @@
     "myLibrary": {
       "playlistSubtext_zero": "0 lagu",
       "playlistSubtext_one": "{{count}} lagu",
-      "playlistSubtext_other": "{{count}} lagu"
+      "playlistSubtext_other": "{{count}} lagu",
+      "playlistSubtextPending_zero": "0 lagu · belum dikirim",
+      "playlistSubtextPending_one": "{{count}} lagu · belum dikirim",
+      "playlistSubtextPending_other": "{{count}} lagu · belum dikirim"
     }
   },
   "topbar": {

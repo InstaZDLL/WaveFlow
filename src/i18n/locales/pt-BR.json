@@ -207,7 +207,10 @@
     "myLibrary": {
       "playlistSubtext_zero": "0 faixas",
       "playlistSubtext_one": "{{count}} faixa",
-      "playlistSubtext_other": "{{count}} faixas"
+      "playlistSubtext_other": "{{count}} faixas",
+      "playlistSubtextPending_zero": "0 faixas · ainda não enviada",
+      "playlistSubtextPending_one": "{{count}} faixa · ainda não enviada",
+      "playlistSubtextPending_other": "{{count}} faixas · ainda não enviada"
     }
   },
   "topbar": {

@@ -483,6 +483,18 @@ no context menu — because none of them can accept it, and it opens the remote
 detail view rather than the local one. The artists, tracks and playlists tabs
 work the same way, on the same filter.
 
+The sidebar merges them too, and for the same reason it stopped having a
+section of its own: a "Remote source" heading beside the playlist list *was*
+the redundancy this lot was aimed at. Server playlists now sit in the one
+playlist list with a chip, and the filter deliberately does not reach there —
+the sidebar is navigation, not a filtered view, so narrowing a tab must not
+empty half of it.
+
+That section also carried hardcoded English. It was written when `sync_v2` was
+off by default and unreachable in a release, and the comment saying so outlived
+the feature flag flip that made it reachable — which is its own argument for not
+keeping a second surface that only one of the two halves passes through.
+
 Playlists are the one tab whose halves are merged **in the browser**. The grid
 already sorted there — locale-aware, with `Intl.Collator` — so there is no SQL
 ordering to unify and a compound select would buy nothing. Two of its sort keys
