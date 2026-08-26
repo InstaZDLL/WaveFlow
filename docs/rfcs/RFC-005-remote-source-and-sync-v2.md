@@ -480,8 +480,23 @@ comparable rather than merely concatenated:
 
 A server album keeps none of the local gestures — no playlist, no cover picker,
 no context menu — because none of them can accept it, and it opens the remote
-detail view rather than the local one. The artists tab works the same way, on
-the same filter.
+detail view rather than the local one. The artists and tracks tabs work the same
+way, on the same filter.
+
+The tracks tab adds one consequence worth stating plainly: **playing a row
+queues the run of rows from its own source.** Decision 9 keeps the remote queue
+parallel to the local one — they are two structures, and a mixed list cannot
+produce a mixed queue. So clicking a local track queues the local rows and
+clicking a server track queues the server ones. The chip on every row is what
+makes that legible, and narrowing the source filter is how a user gets one
+continuous queue.
+
+A server track also carries none of the local user data: no rating, no like, no
+playlist membership, no tag editing. Those are absent rather than inert — five
+hollow stars that do nothing read as "unrated", which is a different claim from
+"cannot be rated here". Only tracks the catalogue walk mirrored are listed: one
+cached because a playlist referenced it is not part of the browsable catalogue
+and would appear with no album and no way to reach it.
 
 Artists need one thing albums did not: the walk mirrors them into
 `remote_artist` rather than deriving them by grouping on `artist_id`. Grouping

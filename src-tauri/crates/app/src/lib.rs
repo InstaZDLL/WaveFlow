@@ -657,6 +657,7 @@ pub fn run() {
             commands::browse::list_albums,
             commands::browse::list_library_albums,
             commands::browse::list_library_artists,
+            commands::browse::list_library_tracks,
             commands::browse::list_artists,
             commands::browse::search_albums,
             commands::browse::search_artists,

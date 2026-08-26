@@ -471,6 +471,333 @@ fn library_album_order_clause(order_by: Option<&str>, direction: Option<&str>) -
     }
 }
 
+/// One track of the library, whichever source it comes from.
+///
+/// Carries only what the library table renders. A server track has no local
+/// row, so it has no rating, no like, no file and no tags — the fields that
+/// describe those are absent rather than defaulted, because a `0` rating and
+/// "not rated" are different things.
+#[derive(Debug, Clone, Serialize)]
+pub struct LibraryTrackRow {
+    pub source: String,
+    /// Local rowid rendered as text, or the server's track UUID.
+    pub id: String,
+    /// Local only — the library a track belongs to. A server track belongs to
+    /// one of the *server's* libraries, which is not one of these.
+    pub library_id: Option<i64>,
+    pub title: String,
+    pub album_id: Option<String>,
+    pub album_title: Option<String>,
+    pub artist_id: Option<String>,
+    pub artist_name: Option<String>,
+    /// Comma-joined artist ids, local only — the server credits one artist per
+    /// track in its listings, so a remote row has nothing to split.
+    pub artist_ids: Option<String>,
+    pub duration_ms: i64,
+    pub track_number: Option<i64>,
+    pub disc_number: Option<i64>,
+    pub year: Option<i64>,
+    pub bitrate: Option<i64>,
+    pub sample_rate: Option<i64>,
+    pub bit_depth: Option<i64>,
+    pub channels: Option<i64>,
+    pub codec: Option<String>,
+    pub musical_key: Option<String>,
+    /// Local only, and the reason a remote row cannot be edited, rated or
+    /// hashed: there is no file here to do any of it to.
+    pub file_path: Option<String>,
+    pub file_size: Option<i64>,
+    pub added_at: i64,
+    pub artwork_hash: Option<String>,
+    pub artwork_format: Option<String>,
+    pub artwork_has_1x: bool,
+    pub artwork_has_2x: bool,
+    /// Local only. `None` on a remote row means "this cannot be rated here",
+    /// not "unrated".
+    pub rating: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ListLibraryTracksResponse {
+    pub artwork_base: String,
+    pub items: Vec<LibraryTrackRow>,
+}
+
+#[derive(sqlx::FromRow)]
+struct LibraryTrackRawRow {
+    source: String,
+    id: String,
+    library_id: Option<i64>,
+    title: String,
+    album_id: Option<String>,
+    album_title: Option<String>,
+    artist_id: Option<String>,
+    artist_name: Option<String>,
+    artist_ids: Option<String>,
+    duration_ms: i64,
+    track_number: Option<i64>,
+    disc_number: Option<i64>,
+    year: Option<i64>,
+    bitrate: Option<i64>,
+    sample_rate: Option<i64>,
+    bit_depth: Option<i64>,
+    channels: Option<i64>,
+    codec: Option<String>,
+    musical_key: Option<String>,
+    file_path: Option<String>,
+    file_size: Option<i64>,
+    added_at: i64,
+    artwork_hash: Option<String>,
+    artwork_format: Option<String>,
+    rating: Option<i64>,
+}
+
+/// Ordering for the unified track listing.
+///
+/// Artist and album sort on the normalised keys both halves now carry; the
+/// title sorts on the display string on both sides, because the local half has
+/// no canonical form for it either. Consistency per column is what matters —
+/// normalising one side of a comparison and not the other is exactly how an
+/// artist ends up in two places.
+fn library_track_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'static str {
+    let dir_default_desc = matches!(
+        order_by,
+        Some("duration") | Some("added_at") | Some("year") | Some("rating")
+    );
+    let dir = match direction {
+        Some(d) if d.eq_ignore_ascii_case("asc") => "ASC",
+        Some(d) if d.eq_ignore_ascii_case("desc") => "DESC",
+        _ => {
+            if dir_default_desc {
+                "DESC"
+            } else {
+                "ASC"
+            }
+        }
+    };
+    match (order_by, dir) {
+        (Some("title"), "ASC") => "ORDER BY title COLLATE NOCASE ASC",
+        (Some("title"), "DESC") => "ORDER BY title COLLATE NOCASE DESC",
+        (Some("artist"), "ASC") => {
+            "ORDER BY sort_artist COLLATE NOCASE ASC, title COLLATE NOCASE"
+        }
+        (Some("artist"), "DESC") => {
+            "ORDER BY sort_artist COLLATE NOCASE DESC, title COLLATE NOCASE"
+        }
+        (Some("album"), "ASC") => {
+            "ORDER BY sort_album COLLATE NOCASE ASC, disc_number, track_number"
+        }
+        (Some("album"), "DESC") => {
+            "ORDER BY sort_album COLLATE NOCASE DESC, disc_number, track_number"
+        }
+        (Some("duration"), "ASC") => "ORDER BY duration_ms ASC",
+        (Some("duration"), "DESC") => "ORDER BY duration_ms DESC",
+        (Some("year"), "ASC") => "ORDER BY year ASC, title COLLATE NOCASE",
+        (Some("year"), "DESC") => "ORDER BY year DESC, title COLLATE NOCASE",
+        (Some("added_at"), "ASC") => "ORDER BY added_at ASC",
+        (Some("added_at"), "DESC") => "ORDER BY added_at DESC",
+        // Rating is local-only, so a server track has none. NULLs last in
+        // either direction: an unratable row is not a badly-rated one.
+        (Some("rating"), "ASC") => {
+            "ORDER BY rating IS NULL, rating ASC, title COLLATE NOCASE"
+        }
+        (Some("rating"), "DESC") => {
+            "ORDER BY rating IS NULL, rating DESC, title COLLATE NOCASE"
+        }
+        _ => {
+            "ORDER BY sort_artist COLLATE NOCASE,\n                  sort_album COLLATE NOCASE,\n                  disc_number,\n                  track_number,\n                  title COLLATE NOCASE"
+        }
+    }
+}
+
+/// Both halves of the track listing, as one compound select.
+///
+/// Split out of the command for the reason on [`library_albums_sql`].
+fn library_tracks_sql(order_clause: &str) -> String {
+    format!(
+        r#"
+        SELECT source, id, library_id, title, album_id, album_title, artist_id, artist_name,
+               artist_ids, duration_ms, track_number, disc_number, year, bitrate, sample_rate,
+               bit_depth, channels, codec, musical_key, file_path, file_size, added_at,
+               artwork_hash, artwork_format, rating
+          FROM (
+            SELECT 'local'                    AS source,
+                   CAST(t.id AS TEXT)         AS id,
+                   t.library_id               AS library_id,
+                   t.title                    AS title,
+                   CAST(t.album_id AS TEXT)   AS album_id,
+                   al.title                   AS album_title,
+                   CAST(t.primary_artist AS TEXT) AS artist_id,
+                   (SELECT GROUP_CONCAT(name, ', ') FROM (
+                      SELECT ar2.name FROM track_artist ta2
+                      JOIN artist ar2 ON ar2.id = ta2.artist_id
+                      WHERE ta2.track_id = t.id
+                      ORDER BY ta2.position
+                   ))                         AS artist_name,
+                   (SELECT GROUP_CONCAT(id, ',') FROM (
+                      SELECT ta2.artist_id AS id FROM track_artist ta2
+                      WHERE ta2.track_id = t.id
+                      ORDER BY ta2.position
+                   ))                         AS artist_ids,
+                   t.duration_ms              AS duration_ms,
+                   t.track_number             AS track_number,
+                   t.disc_number              AS disc_number,
+                   t.year                     AS year,
+                   t.bitrate                  AS bitrate,
+                   t.sample_rate              AS sample_rate,
+                   t.bit_depth                AS bit_depth,
+                   t.channels                 AS channels,
+                   t.codec                    AS codec,
+                   t.musical_key              AS musical_key,
+                   t.file_path                AS file_path,
+                   t.file_size                AS file_size,
+                   t.added_at                 AS added_at,
+                   aw.hash                    AS artwork_hash,
+                   aw.format                  AS artwork_format,
+                   t.rating                   AS rating,
+                   -- Coalesced on both sides or on neither. The remote half
+                   -- falls back to its display string, so leaving the local
+                   -- one bare would file every track without a primary artist
+                   -- ahead of the entire list, NULL sorting first.
+                   COALESCE(ar.canonical_name, al.album_artist) AS sort_artist,
+                   al.canonical_title         AS sort_album
+              FROM track t
+              LEFT JOIN album   al ON al.id = t.album_id
+              LEFT JOIN artist  ar ON ar.id = t.primary_artist
+              LEFT JOIN artwork aw ON aw.id = al.artwork_id
+             WHERE (? IS NULL OR t.library_id = ?)
+               AND t.is_available = 1
+            UNION ALL
+            SELECT 'remote',
+                   rt.remote_id,
+                   NULL,
+                   rt.title,
+                   rt.album_id,
+                   rt.album,
+                   rt.artist_id,
+                   rt.artist,
+                   NULL,
+                   rt.duration_ms,
+                   rt.track_no,
+                   rt.disc_no,
+                   rt.year,
+                   rt.bitrate,
+                   NULL,
+                   NULL,
+                   NULL,
+                   rt.suffix,
+                   NULL,
+                   NULL,
+                   rt.size,
+                   rt.cached_at,
+                   rt.artwork_hash,
+                   NULL,
+                   NULL,
+                   COALESCE(rt.sort_artist, rt.artist),
+                   COALESCE(rt.sort_album, rt.album)
+              FROM remote_track rt
+             WHERE rt.in_catalogue = 1
+             -- A local library filter is a filter over local libraries; see
+             -- `list_library_albums`.
+               AND ? IS NULL
+          )
+         WHERE (? IS NULL OR source = ?)
+         {order_clause}
+"#
+    )
+}
+
+/// Every track the library can show, from the device and from the bound
+/// server, as one sorted list.
+///
+/// Not merged, on the same terms as the albums and the artists. A server track
+/// carries none of the local user data — no rating, no like, no tags — because
+/// none of it exists for a row that has no local counterpart.
+#[tauri::command]
+pub async fn list_library_tracks(
+    state: tauri::State<'_, AppState>,
+    library_id: Option<i64>,
+    source: Option<String>,
+    order_by: Option<String>,
+    direction: Option<String>,
+) -> AppResult<ListLibraryTracksResponse> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+
+    let order_clause = library_track_order_clause(order_by.as_deref(), direction.as_deref());
+    let sql = library_tracks_sql(order_clause);
+
+    let raw = sqlx::query_as::<_, LibraryTrackRawRow>(sqlx::AssertSqlSafe(sql))
+        .bind(library_id)
+        .bind(library_id)
+        .bind(library_id)
+        .bind(source.as_deref())
+        .bind(source.as_deref())
+        .fetch_all(&*pool)
+        .await?;
+
+    let items = expand_library_track_rows(raw, artwork_dir.clone()).await?;
+
+    Ok(ListLibraryTracksResponse {
+        artwork_base: artwork_dir.to_string_lossy().into_owned(),
+        items,
+    })
+}
+
+/// Stitch thumbnail-existence flags onto the local half only. See
+/// [`expand_library_album_rows`].
+async fn expand_library_track_rows(
+    raw: Vec<LibraryTrackRawRow>,
+    artwork_dir: PathBuf,
+) -> AppResult<Vec<LibraryTrackRow>> {
+    tokio::task::spawn_blocking(move || {
+        raw.into_iter()
+            .map(|row| {
+                let local = row.source == "local";
+                let (artwork_has_1x, artwork_has_2x) = match row.artwork_hash.as_deref() {
+                    Some(hash) if local => {
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        (p1.is_some(), p2.is_some())
+                    }
+                    _ => (false, false),
+                };
+                LibraryTrackRow {
+                    source: row.source,
+                    id: row.id,
+                    library_id: row.library_id,
+                    title: row.title,
+                    album_id: row.album_id,
+                    album_title: row.album_title,
+                    artist_id: row.artist_id,
+                    artist_name: row.artist_name,
+                    artist_ids: row.artist_ids,
+                    duration_ms: row.duration_ms,
+                    track_number: row.track_number,
+                    disc_number: row.disc_number,
+                    year: row.year,
+                    bitrate: row.bitrate,
+                    sample_rate: row.sample_rate,
+                    bit_depth: row.bit_depth,
+                    channels: row.channels,
+                    codec: row.codec,
+                    musical_key: row.musical_key,
+                    file_path: row.file_path,
+                    file_size: row.file_size,
+                    added_at: row.added_at,
+                    artwork_hash: row.artwork_hash,
+                    artwork_format: row.artwork_format,
+                    artwork_has_1x,
+                    artwork_has_2x,
+                    rating: row.rating,
+                }
+            })
+            .collect()
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("library track row expand join: {e}")))
+}
+
 /// Both halves of the album listing, as one compound select.
 ///
 /// Split out of the command so the SQL can be exercised on its own: the
@@ -2311,6 +2638,9 @@ mod tests {
                                 title, album_id, duration_ms, added_at, is_available,
                                 hlc_wall, hlc_logical, rating_hlc_wall, rating_hlc_logical)
              VALUES (1, 1, '/m/1.flac', 'h1', 1, 0, 'T1', 1, 300000, 500, 1, 0, 0, 0, 0)",
+            // The scanner always stamps a primary artist; a fixture that omits
+            // it would exercise a shape the library never holds.
+            "UPDATE track SET primary_artist = 1 WHERE id = 1",
             "INSERT INTO track_artist (track_id, artist_id, position) VALUES (1, 1, 0)",
             "INSERT INTO remote_artist (remote_id, name, artwork_hash, sort_key, mirrored_at)
              VALUES ('ar-1', 'Aphex Twin', 'aa11', 'aphex twin', 1)",
@@ -2324,6 +2654,18 @@ mod tests {
             "INSERT INTO remote_track (remote_id, title, artist_id, duration_ms, cached_at,
                                        in_catalogue)
              VALUES ('t-2', 'R2', 'ar-1', 0, 1, 1)",
+            // Fully described, so the track listing has something to sort and
+            // render: the two above are bare identifiers on purpose.
+            "UPDATE remote_track
+                SET artist = 'Aphex Twin', album = 'Drukqs', album_id = 'al-1',
+                    sort_artist = 'aphex twin', sort_album = 'drukqs',
+                    track_no = 1, disc_no = 1, artwork_hash = 'bb22'
+              WHERE remote_id IN ('t-1', 't-2')",
+            // Cached for a playlist but never walked: outside the catalogue,
+            // so the library must not list it.
+            "INSERT INTO remote_track (remote_id, title, artist, duration_ms, cached_at,
+                                       in_catalogue)
+             VALUES ('t-3', 'Not in the catalogue', 'Someone', 0, 1, 0)",
         ] {
             sqlx::raw_sql(statement).execute(pool).await.unwrap();
         }
@@ -2436,6 +2778,100 @@ mod tests {
         // A library that holds nothing leaves nothing, rather than falling
         // back to the remote half.
         assert!(albums(&pool, Some(99), None, order).await.is_empty());
+    }
+
+    async fn tracks(
+        pool: &SqlitePool,
+        library_id: Option<i64>,
+        source: Option<&str>,
+        order: &str,
+    ) -> Vec<(String, String, Option<i64>)> {
+        sqlx::query(sqlx::AssertSqlSafe(library_tracks_sql(order)))
+            .bind(library_id)
+            .bind(library_id)
+            .bind(library_id)
+            .bind(source)
+            .bind(source)
+            .fetch_all(pool)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|row| (row.get("source"), row.get("title"), row.get("rating")))
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn the_track_listing_sorts_both_halves_against_each_other() {
+        let pool = pool().await;
+        seed(&pool).await;
+
+        let rows = tracks(&pool, None, None, library_track_order_clause(None, None)).await;
+        // "aphex twin" before "bjork", from the normalised keys on both sides.
+        assert_eq!(
+            rows.iter().map(|row| row.1.as_str()).collect::<Vec<_>>(),
+            vec!["R1", "R2", "T1"]
+        );
+        // A server track has no rating, and that is not the same as unrated.
+        assert_eq!(rows[0].2, None);
+    }
+
+    /// A track cached for a playlist is not part of the catalogue, and the
+    /// library must not list it — it would appear with no album and no way to
+    /// reach it.
+    #[tokio::test]
+    async fn the_track_listing_shows_only_the_mirrored_catalogue() {
+        let pool = pool().await;
+        seed(&pool).await;
+
+        let titles: Vec<String> = tracks(&pool, None, None, library_track_order_clause(None, None))
+            .await
+            .into_iter()
+            .map(|row| row.1)
+            .collect();
+        assert!(!titles.iter().any(|title| title == "Not in the catalogue"));
+    }
+
+    /// Rating is local-only, so the remote half has none. Sorting by it must
+    /// not read a missing rating as the worst one.
+    #[tokio::test]
+    async fn sorting_by_rating_puts_the_unratable_last_either_way() {
+        let pool = pool().await;
+        seed(&pool).await;
+        sqlx::raw_sql("UPDATE track SET rating = 200 WHERE id = 1")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        for direction in ["asc", "desc"] {
+            let rows = tracks(
+                &pool,
+                None,
+                None,
+                library_track_order_clause(Some("rating"), Some(direction)),
+            )
+            .await;
+            assert_eq!(rows[0].1, "T1", "{direction}: the rated track leads");
+            assert!(rows[1..].iter().all(|row| row.2.is_none()));
+        }
+    }
+
+    #[tokio::test]
+    async fn the_track_filters_behave_like_the_album_ones() {
+        let pool = pool().await;
+        seed(&pool).await;
+        let order = library_track_order_clause(None, None);
+
+        let local = tracks(&pool, None, Some("local"), order).await;
+        assert_eq!(local.len(), 1);
+        assert_eq!(local[0].0, "local");
+
+        let remote = tracks(&pool, None, Some("remote"), order).await;
+        assert_eq!(remote.len(), 2);
+        assert!(remote.iter().all(|row| row.0 == "remote"));
+
+        let scoped = tracks(&pool, Some(1), None, order).await;
+        assert_eq!(scoped.len(), 1);
+        assert_eq!(scoped[0].0, "local");
     }
 
     #[tokio::test]

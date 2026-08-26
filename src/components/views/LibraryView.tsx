@@ -37,6 +37,7 @@ import { useTranslation } from "react-i18next";
 import type { LibraryTab } from "../../types";
 import { Tab } from "../common/Tab";
 import { RemoteArtwork } from "../common/RemoteArtwork";
+import { remotePlayTracks } from "../../lib/tauri/remoteServer";
 import { useRemoteArtworkSrc } from "../../hooks/useRemoteArtworkSrc";
 import { useRemoteSource } from "../../hooks/useRemoteSource";
 import {
@@ -81,7 +82,6 @@ import {
 } from "../../lib/tauri/library";
 import {
   formatDuration,
-  listTracks,
   listLikedTrackIds,
   setTrackRating,
   toggleLikeTrack,
@@ -92,8 +92,10 @@ import {
   listFolders,
   type LibraryAlbumRow,
   type LibraryArtistRow,
+  type LibraryTrackRow,
   listLibraryAlbums,
   listLibraryArtists,
+  listLibraryTracks,
   type GenreRow,
   type FolderRow,
 } from "../../lib/tauri/browse";
@@ -204,7 +206,7 @@ export function LibraryView({
     null,
   );
   const [coverReloadKey, setCoverReloadKey] = useState(0);
-  const [tracks, setTracks] = useState<Track[]>([]);
+  const [tracks, setTracks] = useState<LibraryTrackRow[]>([]);
   const [albums, setAlbums] = useState<LibraryAlbumRow[]>([]);
   const librarySource = useLibrarySource();
   const [artists, setArtists] = useState<LibraryArtistRow[]>([]);
@@ -319,16 +321,22 @@ export function LibraryView({
   // "EmptyState flash" disappears because the data lands during the
   // very first paint instead of after the user picks a tab.
   useEffect(() => {
-    if (!tracksSort.isLoaded) return;
+    // Both preferences gate the fetch, for the reason on the albums effect.
+    if (!tracksSort.isLoaded || !librarySource.ready) return;
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading((p) => ({ ...p, morceaux: true }));
-    listTracks(null, tracksSort.sort)
+    listLibraryTracks(
+      null,
+      librarySource.source === "all" ? null : librarySource.source,
+      tracksSort.sort,
+    )
       .then((list) => {
         if (!cancelled) setTracks(list);
       })
       .catch((err) => {
-        if (!cancelled) console.error("[LibraryView] listTracks failed", err);
+        if (!cancelled)
+          console.error("[LibraryView] listLibraryTracks failed", err);
       })
       .finally(() => {
         if (!cancelled) setLoading((p) => ({ ...p, morceaux: false }));
@@ -336,7 +344,14 @@ export function LibraryView({
     return () => {
       cancelled = true;
     };
-  }, [librariesSignature, tracksSort.isLoaded, tracksSort.sort, editRefetch]);
+  }, [
+    librariesSignature,
+    tracksSort.isLoaded,
+    tracksSort.sort,
+    librarySource.ready,
+    librarySource.source,
+    editRefetch,
+  ]);
 
   useEffect(() => {
     // Both preferences gate the fetch: loading with either default and again
@@ -597,8 +612,36 @@ export function LibraryView({
   // two different answers.
   const sourceFilterEmptied =
     librarySource.source !== "all" &&
-    ((activeTab === "albums" && albums.length === 0) ||
+    ((activeTab === "morceaux" && tracks.length === 0) ||
+      (activeTab === "albums" && albums.length === 0) ||
       (activeTab === "artistes" && artists.length === 0));
+
+  // The two engines keep separate queues by design (RFC-005 decision 9), so a
+  // mixed list cannot produce a mixed queue. Playing a row therefore queues the
+  // run of rows from *its* source — which is why the chip on every row matters,
+  // and why narrowing the filter is how you get one continuous queue.
+  const playRow = useCallback(
+    (index: number) => {
+      const row = tracks[index];
+      if (!row) return;
+      const run = tracks.filter((candidate) => candidate.source === row.source);
+      const at = run.findIndex((candidate) => candidate.id === row.id);
+      if (row.source === "remote") {
+        void remotePlayTracks(
+          run.map((candidate) => candidate.id),
+          Math.max(at, 0),
+        ).catch((err: unknown) =>
+          console.error("[LibraryView] remotePlayTracks failed", err),
+        );
+        return;
+      }
+      void playTracks(run as unknown as Track[], Math.max(at, 0), {
+        type: "library",
+        id: null,
+      });
+    },
+    [tracks, playTracks],
+  );
 
   const hasContent =
     (activeTab === "morceaux" && tracks.length > 0) ||
@@ -751,13 +794,23 @@ export function LibraryView({
           nothing yet empties the list, and a control that disappears with the
           content it emptied leaves no way back. The sort dropdown has no such
           problem — it did not cause the emptiness — so it stays gated. */}
-      {(activeTab === "albums" || activeTab === "artistes") && (
+      {(activeTab === "morceaux" ||
+        activeTab === "albums" ||
+        activeTab === "artistes") && (
         <div className="flex items-center justify-end space-x-3 -mt-4">
           <SourceFilter
             current={librarySource.source}
             onChange={librarySource.setSource}
             t={t}
           />
+          {activeTab === "morceaux" && tracks.length > 0 && (
+            <SortDropdown
+              options={trackSortOptions(t)}
+              current={tracksSort.sort}
+              onChange={tracksSort.setSort}
+              t={t}
+            />
+          )}
           {activeTab === "albums" && albums.length > 0 && (
             <SortDropdown
               options={albumSortOptions(t)}
@@ -781,25 +834,12 @@ export function LibraryView({
         <>
           {activeTab === "morceaux" && (
             <>
-              <div className="flex items-center justify-end -mt-4">
-                <SortDropdown
-                  options={trackSortOptions(t)}
-                  current={tracksSort.sort}
-                  onChange={tracksSort.setSort}
-                  t={t}
-                />
-              </div>
               <TrackTable
                 tracks={tracks}
                 isLoading={loading.morceaux}
                 view={tracksView}
                 t={t}
-                onPlayTrack={(index) =>
-                  playTracks(tracks, index, {
-                    type: "library",
-                    id: null,
-                  })
-                }
+                onPlayTrack={(index) => playRow(index)}
                 currentTrackId={currentTrack?.id ?? null}
                 isPlaying={isPlaying}
                 likedIds={likedIds}
@@ -843,11 +883,20 @@ export function LibraryView({
                 onContextMenuRow={trackContextMenu.open}
                 onRowMenuKey={trackContextMenu.openFromKeyboard}
                 isSelected={selection.isSelected}
+                onNavigateToRemoteAlbum={onNavigateToRemoteAlbum}
+                onNavigateToRemoteArtist={onNavigateToRemoteArtist}
                 onRowSelect={(track, e) => {
                   // Modifier-driven selection always wins so multi-select
                   // remains accessible even with single-click play on.
+                  // Selection, and everything it feeds, speaks in local
+                  // rowids. The table only hands us local rows here — a remote
+                  // one has no `Track` to pass — so the list it ranges over is
+                  // narrowed to match.
+                  const localRows = tracks.filter(
+                    (row) => row.source === "local",
+                  ) as unknown as Track[];
                   if (e.shiftKey) {
-                    selection.selectRange(track.id, tracks);
+                    selection.selectRange(track.id, localRows);
                     return;
                   }
                   if (e.ctrlKey || e.metaKey) {
@@ -855,10 +904,11 @@ export function LibraryView({
                     return;
                   }
                   if (singleClickPlay) {
-                    const idx = tracks.findIndex((tr) => tr.id === track.id);
-                    if (idx >= 0) {
-                      playTracks(tracks, idx, { type: "library", id: null });
-                    }
+                    const idx = tracks.findIndex(
+                      (row) =>
+                        row.source === "local" && Number(row.id) === track.id,
+                    );
+                    if (idx >= 0) playRow(idx);
                     selection.clear();
                     return;
                   }
@@ -1308,7 +1358,7 @@ function SortDropdown({ options, current, onChange, t }: SortDropdownProps) {
 // =============================================================================
 
 interface TrackTableProps {
-  tracks: Track[];
+  tracks: LibraryTrackRow[];
   isLoading: boolean;
   view: TracksView;
   t: Translator;
@@ -1335,6 +1385,10 @@ interface TrackTableProps {
   onRowMenuKey: (event: React.KeyboardEvent, track: Track) => boolean;
   isSelected: (id: number) => boolean;
   onRowSelect: (track: Track, e: React.MouseEvent) => void;
+  /** A server track opens the remote detail views; the two catalogues are
+   *  never merged, so they are never the same page. */
+  onNavigateToRemoteAlbum: (remoteAlbumId: string) => void;
+  onNavigateToRemoteArtist: (remoteArtistId: string) => void;
 }
 
 function TrackTable({
@@ -1357,6 +1411,8 @@ function TrackTable({
   onRowMenuKey,
   isSelected,
   onRowSelect,
+  onNavigateToRemoteAlbum,
+  onNavigateToRemoteArtist,
 }: TrackTableProps) {
   "use no memo";
   const unknown = t("library.table.unknown");
@@ -1459,18 +1515,29 @@ function TrackTable({
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const index = virtualRow.index;
           const track = tracks[index];
-          const isCurrent = track.id === currentTrackId;
-          const isMenuOpen = openMenuTrackId === track.id;
-          const isRowSelected = isSelected(track.id);
+          // A server track has no local rowid, and none of the gestures below
+          // can accept one: it is in no local playlist, its rating lives in a
+          // file that is not here, and the like list keys on `track.id`.
+          const localId = track.source === "remote" ? null : Number(track.id);
+          const local = localId !== null;
+          // The row the user can act on as a local track, for the handlers
+          // that still speak `Track`. Narrowed once here rather than cast at
+          // every call site.
+          const asTrack = local ? (track as unknown as Track) : null;
+          const isCurrent = localId !== null && localId === currentTrackId;
+          const isMenuOpen = localId !== null && openMenuTrackId === localId;
+          const isRowSelected = localId !== null && isSelected(localId);
           return (
             // Row can't be a <button> because it contains action buttons
             // (heart, more-options); nested buttons are invalid HTML.
             // Keyboard activation still works via tabIndex + onKeyDown.
             <div
-              key={track.id}
+              key={`${track.source}:${track.id}`}
               tabIndex={0}
               role="button"
-              onClick={(e) => onRowSelect(track, e)}
+              onClick={(e) => {
+                if (asTrack) onRowSelect(asTrack, e);
+              }}
               onDoubleClick={() => onPlayTrack(index)}
               onKeyDown={(e) => {
                 // Only play when the row itself is focused. Without
@@ -1479,7 +1546,7 @@ function TrackTable({
                 // double-fires playback alongside the button's own
                 // action.
                 if (e.target !== e.currentTarget) return;
-                if (onRowMenuKey(e, track)) return;
+                if (asTrack && onRowMenuKey(e, asTrack)) return;
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   onPlayTrack(index);
@@ -1492,7 +1559,9 @@ function TrackTable({
                 if (e.target !== e.currentTarget) return;
                 if (e.key === " ") e.preventDefault();
               }}
-              onContextMenu={(e) => onContextMenuRow(e, track)}
+              onContextMenu={(e) => {
+                if (asTrack) onContextMenuRow(e, asTrack);
+              }}
               style={{
                 position: "absolute",
                 top: 0,
@@ -1527,16 +1596,23 @@ function TrackTable({
                   index + 1
                 )}
               </span>
-              {view === "list" && (
-                <Artwork
-                  path={track.artwork_path}
-                  size="1x"
-                  className="w-10 h-10"
-                  iconSize={18}
-                  alt={track.album_title ?? track.title}
-                  rounded="md"
-                />
-              )}
+              {view === "list" &&
+                (local ? (
+                  <Artwork
+                    path={track.artwork_path}
+                    size="1x"
+                    className="w-10 h-10"
+                    iconSize={18}
+                    alt={track.album_title ?? track.title}
+                    rounded="md"
+                  />
+                ) : (
+                  <RemoteArtwork
+                    hash={track.artwork_hash}
+                    className="w-10 h-10 rounded-md"
+                    iconSize={18}
+                  />
+                ))}
               <span
                 className={`text-sm truncate flex items-center gap-2 ${
                   isCurrent
@@ -1545,6 +1621,12 @@ function TrackTable({
                 }`}
               >
                 <span className="truncate">{track.title}</span>
+                {/* One list, and every row says where it comes from. */}
+                {!local && (
+                  <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                    {t("library.source.remote")}
+                  </span>
+                )}
                 <HiResBadge
                   bitDepth={track.bit_depth}
                   sampleRate={track.sample_rate}
@@ -1554,15 +1636,25 @@ function TrackTable({
               </span>
               <ArtistLink
                 name={track.artist_name}
-                artistIds={track.artist_ids}
+                artistIds={local ? track.artist_ids : null}
                 onNavigate={onNavigateToArtist}
+                onNavigateRemote={
+                  local || !track.artist_id
+                    ? undefined
+                    : () => onNavigateToRemoteArtist(track.artist_id as string)
+                }
                 fallback={unknown}
                 className="text-sm text-zinc-500 truncate"
               />
               <AlbumLink
                 title={track.album_title}
-                albumId={track.album_id}
+                albumId={local && track.album_id ? Number(track.album_id) : null}
                 onNavigate={onNavigateToAlbum}
+                onNavigateRemote={
+                  local || !track.album_id
+                    ? undefined
+                    : () => onNavigateToRemoteAlbum(track.album_id as string)
+                }
                 fallback={unknown}
                 className="text-sm text-zinc-500 truncate"
               />
@@ -1570,72 +1662,83 @@ function TrackTable({
                 className="flex items-center"
                 onDoubleClick={(e) => e.stopPropagation()}
               >
+                {/* Rating writes a POPM frame into the file. A server track has
+                    no file here, so the control is absent rather than inert —
+                    five hollow stars that do nothing read as "unrated". */}
+                {localId !== null && (
                 <StarRating
                   value={
-                    ratingOverrides.has(track.id)
-                      ? (ratingOverrides.get(track.id) ?? null)
+                    ratingOverrides.has(localId)
+                      ? (ratingOverrides.get(localId) ?? null)
                       : track.rating
                   }
                   size="sm"
                   onChange={(rating) => {
                     setRatingOverrides((prev) => {
                       const next = new Map(prev);
-                      next.set(track.id, rating);
+                      next.set(localId, rating);
                       return next;
                     });
-                    setTrackRating(track.id, rating).catch((err) => {
+                    setTrackRating(localId, rating).catch((err) => {
                       console.error("[LibraryView] set rating failed", err);
                       setRatingOverrides((prev) => {
                         const next = new Map(prev);
-                        next.delete(track.id);
+                        next.delete(localId);
                         return next;
                       });
                     });
                   }}
                 />
+                )}
               </div>
               <span className="text-sm tabular-nums text-zinc-400 text-right">
                 {formatDuration(track.duration_ms)}
               </span>
               <div className="flex justify-center">
+                {localId !== null && (
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onToggleLike(track.id);
+                    onToggleLike(localId);
                   }}
                   aria-label={
-                    likedIds.has(track.id) ? t("liked.unlike") : t("liked.like")
+                    likedIds.has(localId) ? t("liked.unlike") : t("liked.like")
                   }
                   className={`p-1 rounded-full transition-colors ${
-                    likedIds.has(track.id)
+                    likedIds.has(localId)
                       ? "text-pink-500"
                       : "text-zinc-300 dark:text-zinc-600 hover:text-pink-500"
                   }`}
                 >
                   <Heart
                     size={14}
-                    className={likedIds.has(track.id) ? "fill-current" : ""}
+                    className={likedIds.has(localId) ? "fill-current" : ""}
                   />
                 </button>
+                )}
               </div>
               <div className="relative flex justify-center">
+                {/* A local playlist holds local tracks; the picker cannot
+                    accept a server one. */}
+                {localId !== null && (
+                <>
                 <button
                   type="button"
                   data-add-to-playlist-trigger
                   onClick={(e) => {
                     e.stopPropagation();
                     const opening = !isMenuOpen;
-                    setOpenMenuTrackId(opening ? track.id : null);
+                    setOpenMenuTrackId(opening ? localId : null);
                     // Lazy-fetch membership the first time this track's
                     // popover is opened. Subsequent opens reuse the cached
                     // set (kept in sync via optimistic updates on toggle).
-                    if (opening && !trackMembership.has(track.id)) {
-                      listPlaylistsContainingTrack(track.id)
+                    if (opening && !trackMembership.has(localId)) {
+                      listPlaylistsContainingTrack(localId)
                         .then((ids) => {
                           setTrackMembership((prev) => {
                             const next = new Map(prev);
-                            next.set(track.id, new Set(ids));
+                            next.set(localId, new Set(ids));
                             return next;
                           });
                         })
@@ -1650,7 +1753,7 @@ function TrackTable({
                   aria-label={t("trackActions.addToPlaylist")}
                   aria-haspopup="menu"
                   aria-expanded={isMenuOpen}
-                  className={`p-1.5 rounded-full transition-all ${
+                  className={`p-1.5 rounded-full transition-all focus-visible:opacity-100 ${
                     isMenuOpen
                       ? "opacity-100 bg-zinc-100 dark:bg-zinc-700 text-zinc-800 dark:text-white"
                       : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
@@ -1661,10 +1764,10 @@ function TrackTable({
                 {isMenuOpen && (
                   <AddToPlaylistPopover
                     playlists={playlists}
-                    trackId={track.id}
-                    memberPlaylistIds={trackMembership.get(track.id)}
+                    trackId={localId}
+                    memberPlaylistIds={trackMembership.get(localId)}
                     onPick={(playlistId) => {
-                      const members = trackMembership.get(track.id);
+                      const members = trackMembership.get(localId);
                       const isMember = members?.has(playlistId) ?? false;
                       // Optimistic membership flip — the underlying mutations
                       // are idempotent on the backend, so a failed RPC just
@@ -1673,25 +1776,27 @@ function TrackTable({
                       // single click.
                       setTrackMembership((prev) => {
                         const next = new Map(prev);
-                        const set = new Set(next.get(track.id) ?? []);
+                        const set = new Set(next.get(localId) ?? []);
                         if (isMember) set.delete(playlistId);
                         else set.add(playlistId);
-                        next.set(track.id, set);
+                        next.set(localId, set);
                         return next;
                       });
                       if (isMember) {
-                        void onRemoveFromPlaylist(playlistId, track.id);
+                        void onRemoveFromPlaylist(playlistId, localId);
                       } else {
-                        void onAddToPlaylist(playlistId, track.id);
+                        void onAddToPlaylist(playlistId, localId);
                       }
                       setOpenMenuTrackId(null);
                     }}
                     onCreate={() => {
                       setOpenMenuTrackId(null);
-                      onCreatePlaylist(track.id);
+                      onCreatePlaylist(localId);
                     }}
                     t={t}
                   />
+                )}
+                </>
                 )}
               </div>
             </div>

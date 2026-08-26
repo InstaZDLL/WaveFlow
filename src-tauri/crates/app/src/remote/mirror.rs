@@ -951,6 +951,9 @@ mod tests {
                 "../../../../migrations/profile/20260826090000_remote_album_sort_keys.sql"
             ),
             include_str!("../../../../migrations/profile/20260826140000_remote_artist_mirror.sql"),
+            include_str!(
+                "../../../../migrations/profile/20260826180000_remote_track_sort_keys.sql"
+            ),
         ] {
             sqlx::raw_sql(migration).execute(&pool).await.unwrap();
         }

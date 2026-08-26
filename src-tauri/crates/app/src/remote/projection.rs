@@ -37,6 +37,7 @@
 
 use serde_json::Value;
 use sqlx::SqliteConnection;
+use waveflow_core::metadata::name_match::normalize_name;
 
 use crate::{
     error::AppResult,
@@ -233,8 +234,9 @@ pub async fn cache_song(conn: &mut SqliteConnection, song: &SongItem) -> AppResu
     sqlx::query(
         "INSERT INTO remote_track
             (remote_id, title, artist, artist_id, album, album_id, duration_ms, track_no, disc_no,
-             year, genre, suffix, bitrate, size, artwork_hash, library_id, full_hash, cached_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             year, genre, suffix, bitrate, size, artwork_hash, library_id, full_hash, cached_at,
+             sort_artist, sort_album)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(remote_id) DO UPDATE SET
             -- A later cache pass for a bare id binds an empty title; keep the
             -- existing one rather than blanking a row we already labelled.
@@ -254,7 +256,12 @@ pub async fn cache_song(conn: &mut SqliteConnection, song: &SongItem) -> AppResu
             artwork_hash = COALESCE(excluded.artwork_hash, artwork_hash),
             library_id   = COALESCE(excluded.library_id, library_id),
             full_hash    = COALESCE(excluded.full_hash, full_hash),
-            cached_at    = excluded.cached_at",
+            cached_at    = excluded.cached_at,
+            -- Keyed off the same COALESCE as the strings they are derived
+            -- from: a sparser later sighting must not blank a key any more
+            -- than it blanks the title it came from.
+            sort_artist  = COALESCE(excluded.sort_artist, sort_artist),
+            sort_album   = COALESCE(excluded.sort_album, sort_album)",
     )
     .bind(&song.id)
     // An untitled row is still better than no row: the playlist keeps
@@ -276,6 +283,14 @@ pub async fn cache_song(conn: &mut SqliteConnection, song: &SongItem) -> AppResu
     .bind(song.library_id.as_deref())
     .bind(song.full_hash.as_deref())
     .bind(chrono::Utc::now().timestamp_millis())
+    // The comparison keys the unified track listing sorts artist and album
+    // on, through the very normaliser the local half's `canonical_*` columns
+    // went through. SQLite cannot fold a diacritic, so without these the two
+    // halves interleave wrongly. The title is deliberately absent: it has no
+    // canonical form locally either, so both halves sort it on their display
+    // string and stay consistent that way.
+    .bind(song.artist.as_deref().map(normalize_name))
+    .bind(song.album.as_deref().map(normalize_name))
     .execute(&mut *conn)
     .await?;
     Ok(())
@@ -719,6 +734,9 @@ mod tests {
             ),
             include_str!(
                 "../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"
+            ),
+            include_str!(
+                "../../../../migrations/profile/20260826180000_remote_track_sort_keys.sql"
             ),
         ] {
             sqlx::raw_sql(migration).execute(&pool).await.unwrap();

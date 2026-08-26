@@ -6,6 +6,9 @@ interface AlbumLinkProps {
    *  (loose tracks without an album row, e.g. single-file imports). */
   albumId: number | null | undefined;
   onNavigate: (albumId: number) => void;
+  /** Overrides `onNavigate` when present. A server album has no local rowid,
+   *  so it cannot be reached through `albumId` — it opens its own view. */
+  onNavigateRemote?: () => void;
   fallback?: string;
   className?: string;
 }
@@ -20,18 +23,23 @@ export function AlbumLink({
   title,
   albumId,
   onNavigate,
+  onNavigateRemote,
   fallback = "—",
   className = "",
 }: AlbumLinkProps) {
   if (!title || !title.trim()) {
     return <span className={className}>{fallback}</span>;
   }
-  if (albumId == null) {
+  if (albumId == null && !onNavigateRemote) {
     return <span className={className}>{title}</span>;
   }
   const handleClick = (e: MouseEvent) => {
     e.stopPropagation();
-    onNavigate(albumId);
+    if (onNavigateRemote) {
+      onNavigateRemote();
+      return;
+    }
+    if (albumId != null) onNavigate(albumId);
   };
   return (
     <span className={className}>

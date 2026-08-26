@@ -14,6 +14,10 @@ interface ArtistLinkProps {
    */
   artistIds: string | null | undefined;
   onNavigate: (artistId: number) => void;
+  /** Overrides `onNavigate` when present, and makes the whole credit one
+   *  link. A server track credits one artist and has no local rowids, so
+   *  there is nothing to zip by index — it opens its own view. */
+  onNavigateRemote?: () => void;
   /** Fallback text shown when `name` is null/empty (e.g. "—"). */
   fallback?: string;
   /** Optional class applied to the wrapper span. */
@@ -36,11 +40,29 @@ export function ArtistLink({
   name,
   artistIds,
   onNavigate,
+  onNavigateRemote,
   fallback = "—",
   className = "",
 }: ArtistLinkProps) {
   if (!name || !name.trim()) {
     return <span className={className}>{fallback}</span>;
+  }
+
+  if (onNavigateRemote) {
+    return (
+      <span className={className}>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onNavigateRemote();
+          }}
+          className="hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+        >
+          {name}
+        </button>
+      </span>
+    );
   }
 
   const names = name.split(", ");

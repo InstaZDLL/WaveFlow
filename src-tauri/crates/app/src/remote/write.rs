@@ -920,6 +920,9 @@ mod tests {
             include_str!(
                 "../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"
             ),
+            include_str!(
+                "../../../../migrations/profile/20260826180000_remote_track_sort_keys.sql"
+            ),
         ] {
             sqlx::raw_sql(migration).execute(&pool).await.unwrap();
         }
