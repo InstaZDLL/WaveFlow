@@ -382,8 +382,8 @@
         "title": "Não há pastas importadas",
         "description": "Importa uma pasta a partir da barra de ações para a explorares aqui."
       },
-      "albumsFiltered": {
-        "description": "Nenhum álbum desta origem. Mude de origem acima ou copie o catálogo do servidor nas definições."
+      "sourceFiltered": {
+        "description": "Nada desta origem. Mude de origem acima ou copie o catálogo do servidor nas definições."
       }
     },
     "actions": {

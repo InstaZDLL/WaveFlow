@@ -148,6 +148,8 @@ pub struct MirrorReport {
     pub albums_seen: i64,
     /// Albums fetched, i.e. those whose track count had changed.
     pub albums_walked: i64,
+    /// Artists the server listed, mirrored for their pictures.
+    pub artists_seen: i64,
     /// Tracks written, counting an album's tracks once per walk.
     pub tracks_mirrored: i64,
     /// Tracks that belong to no album and were fetched one by one.
@@ -216,6 +218,22 @@ struct AlbumListItem {
     created_at: Option<i64>,
 }
 
+/// The four fields the mirror keeps out of a listed artist. The counts a grid
+/// shows are derived from the albums and tracks already mirrored rather than
+/// stored: a stored count is a second truth that goes stale the moment an
+/// album is walked.
+#[derive(Debug, Clone, Deserialize)]
+struct ArtistListItem {
+    id: String,
+    #[serde(default)]
+    library_id: Option<String>,
+    name: String,
+    #[serde(default)]
+    artwork_hash: Option<String>,
+    #[serde(default)]
+    sort_name: Option<String>,
+}
+
 /// An album with its songs, as `GET /api/v2/albums/{id}` answers.
 #[derive(Debug, Clone, Deserialize)]
 struct AlbumDetailDto {
@@ -277,6 +295,14 @@ pub async fn mirror_catalogue(state: &AppState, app: AppHandle) -> AppResult<Mir
     let libraries = fetch_libraries(&client).await?;
     report.libraries = libraries.len() as i64;
     store_libraries(&pool, &libraries).await?;
+
+    // Artists first: one request per page, nothing to fetch per row, and the
+    // album walk that follows is the long one.
+    walk_artists(&client, &pool, &app, &mut report).await?;
+    if cancelled() {
+        report.cancelled = true;
+        return Ok(report);
+    }
 
     walk_albums(&client, &pool, &app, &mut report).await?;
     if cancelled() {
@@ -459,6 +485,105 @@ async fn walk_albums(
         }
         offset += ALBUM_PAGE;
     }
+}
+
+/// Page the artist listing and mirror it.
+///
+/// Unlike the album walk there is nothing to fetch per artist: the listing
+/// already carries everything the grid needs, the picture included. So this is
+/// one request per page and no second round, and it is not incremental for the
+/// same reason — there is no per-artist cost to save.
+async fn walk_artists(
+    client: &RemoteClient<'_>,
+    pool: &SqlitePool,
+    app: &AppHandle,
+    report: &mut MirrorReport,
+) -> AppResult<()> {
+    let mut seen: HashSet<String> = HashSet::new();
+    let mut offset = 0i64;
+    loop {
+        if cancelled() {
+            return Ok(());
+        }
+        let page: Vec<ArtistListItem> = client
+            .send_json(
+                client
+                    .request(reqwest::Method::GET, "/api/v2/artists")
+                    .query(&[
+                        ("offset", offset.to_string()),
+                        ("limit", ALBUM_PAGE.to_string()),
+                    ]),
+            )
+            .await
+            .map_err(|err| AppError::Other(format!("artist listing failed: {err}")))?;
+        if page.is_empty() {
+            break;
+        }
+
+        let mut tx = pool.begin().await?;
+        for artist in &page {
+            upsert_artist(&mut tx, artist).await?;
+            seen.insert(artist.id.clone());
+        }
+        tx.commit().await?;
+
+        report.artists_seen += page.len() as i64;
+        emit(app, "artists", report.artists_seen, 0);
+
+        if (page.len() as i64) < ALBUM_PAGE {
+            break;
+        }
+        offset += ALBUM_PAGE;
+    }
+
+    // Same rule as the track sweep, and for the same reason: absence is what
+    // says an artist is gone, and an empty listing is no evidence at all.
+    if !cancelled() && !seen.is_empty() {
+        let known: Vec<String> = sqlx::query_scalar("SELECT remote_id FROM remote_artist")
+            .fetch_all(pool)
+            .await?;
+        let mut tx = pool.begin().await?;
+        for id in known.iter().filter(|id| !seen.contains(*id)) {
+            sqlx::query("DELETE FROM remote_artist WHERE remote_id = ?")
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
+        }
+        tx.commit().await?;
+    }
+    Ok(())
+}
+
+async fn upsert_artist(
+    conn: &mut sqlx::SqliteConnection,
+    artist: &ArtistListItem,
+) -> AppResult<()> {
+    sqlx::query(
+        "INSERT INTO remote_artist
+            (remote_id, library_id, name, artwork_hash, sort_name, sort_key, mirrored_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(remote_id) DO UPDATE SET
+            library_id   = excluded.library_id,
+            name         = excluded.name,
+            artwork_hash = excluded.artwork_hash,
+            sort_name    = excluded.sort_name,
+            sort_key     = excluded.sort_key,
+            mirrored_at  = excluded.mirrored_at",
+    )
+    .bind(&artist.id)
+    .bind(artist.library_id.as_deref())
+    .bind(&artist.name)
+    .bind(artist.artwork_hash.as_deref())
+    .bind(artist.sort_name.as_deref())
+    // The tagged sort form is the input when the server has one — that is what
+    // a sort tag is for — and the normaliser turns it into a comparison key.
+    .bind(normalize_name(
+        artist.sort_name.as_deref().unwrap_or(&artist.name),
+    ))
+    .bind(now_ms())
+    .execute(&mut *conn)
+    .await?;
+    Ok(())
 }
 
 async fn upsert_album(conn: &mut sqlx::SqliteConnection, album: &AlbumListItem) -> AppResult<()> {
@@ -707,11 +832,13 @@ pub async fn stats(pool: &SqlitePool) -> AppResult<CatalogueStats> {
     )
     .fetch_one(pool)
     .await?;
-    let (tracks, artists): (i64, i64) = sqlx::query_as(
-        "SELECT count(*), count(DISTINCT artist_id) FROM remote_track WHERE in_catalogue = 1",
-    )
-    .fetch_one(pool)
-    .await?;
+    let tracks: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM remote_track WHERE in_catalogue = 1")
+            .fetch_one(pool)
+            .await?;
+    let artists: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_artist")
+        .fetch_one(pool)
+        .await?;
     let (libraries, pending): (i64, i64) = sqlx::query_as(
         "SELECT count(*), coalesce(sum(mirrored_at IS NULL), 0) FROM remote_library",
     )
@@ -817,6 +944,7 @@ mod tests {
             include_str!(
                 "../../../../migrations/profile/20260826090000_remote_album_sort_keys.sql"
             ),
+            include_str!("../../../../migrations/profile/20260826140000_remote_artist_mirror.sql"),
         ] {
             sqlx::raw_sql(migration).execute(&pool).await.unwrap();
         }
@@ -1101,6 +1229,56 @@ mod tests {
                 .unwrap();
         // Punctuation dropped, lowercased — the form the local half stores.
         assert_eq!(sort_title.as_deref(), Some("beatles the"));
+    }
+
+    fn artist(id: &str, name: &str, sort_name: Option<&str>) -> ArtistListItem {
+        ArtistListItem {
+            id: id.into(),
+            library_id: Some("lib-1".into()),
+            name: name.into(),
+            artwork_hash: Some("aa11".into()),
+            sort_name: sort_name.map(Into::into),
+        }
+    }
+
+    async fn upsert_one_artist(pool: &SqlitePool, listed: &ArtistListItem) {
+        let mut tx = pool.begin().await.unwrap();
+        upsert_artist(&mut tx, listed).await.unwrap();
+        tx.commit().await.unwrap();
+    }
+
+    /// The artist grid sorts against the local half, whose key went through
+    /// the normaliser. Anything less puts "Björk" and "bjork" in two places.
+    #[tokio::test]
+    async fn an_artists_sort_key_is_normalised_like_the_local_one() {
+        let pool = pool().await;
+        upsert_one_artist(&pool, &artist("ar-1", "Björk", None)).await;
+        upsert_one_artist(&pool, &artist("ar-2", "The Beatles", Some("Beatles, The"))).await;
+
+        let keys: Vec<(String, Option<String>)> =
+            sqlx::query_as("SELECT remote_id, sort_key FROM remote_artist ORDER BY remote_id")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+        assert_eq!(keys[0].1.as_deref(), Some("bjork"));
+        // The tagged sort form is the input to the key, not the key.
+        assert_eq!(keys[1].1.as_deref(), Some("beatles the"));
+    }
+
+    /// Re-listing must overwrite in place — a renamed artist is the same
+    /// artist, and a second row would double them in the grid.
+    #[tokio::test]
+    async fn re_listing_an_artist_updates_it_in_place() {
+        let pool = pool().await;
+        upsert_one_artist(&pool, &artist("ar-1", "Bjork", None)).await;
+        upsert_one_artist(&pool, &artist("ar-1", "Björk", None)).await;
+
+        let rows: Vec<(String, String)> =
+            sqlx::query_as("SELECT remote_id, name FROM remote_artist")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+        assert_eq!(rows, vec![("ar-1".to_string(), "Björk".to_string())]);
     }
 
     /// A library the account lost access to must not keep its sweep date: a

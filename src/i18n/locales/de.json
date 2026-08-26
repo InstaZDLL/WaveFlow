@@ -382,8 +382,8 @@
         "title": "Keine Ordner importiert",
         "description": "Importiere einen Ordner über die Aktionsleiste, um ihn hier zu durchsuchen."
       },
-      "albumsFiltered": {
-        "description": "Keine Alben aus dieser Quelle. Wechsle oben die Quelle oder kopiere den Server-Katalog in den Einstellungen."
+      "sourceFiltered": {
+        "description": "Nichts aus dieser Quelle. Wechsle oben die Quelle oder kopiere den Server-Katalog in den Einstellungen."
       }
     },
     "actions": {

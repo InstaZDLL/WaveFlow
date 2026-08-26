@@ -479,7 +479,17 @@ comparable rather than merely concatenated:
 
 A server album keeps none of the local gestures — no playlist, no cover picker,
 no context menu — because none of them can accept it, and it opens the remote
-detail view rather than the local one.
+detail view rather than the local one. The artists tab works the same way, on
+the same filter.
+
+Artists need one thing albums did not: the walk mirrors them into
+`remote_artist` rather than deriving them by grouping on `artist_id`. Grouping
+would produce the names and the counts perfectly well; what it cannot produce
+is the **picture**, which lives on the server's artist row. A grid built that
+way would show letters where the local half shows photographs — which is the
+defect issue #350 was about, arriving by another route. Their counts, on the
+other hand, *are* derived from the albums and tracks already mirrored: a stored
+count is a second truth that goes stale the moment an album is walked.
 
 Tokens keep using `auth_credential` under the existing `waveflow_server`
 provider, which already carries a refresh token and an expiry.

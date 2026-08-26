@@ -382,8 +382,8 @@
         "title": "İçe aktarılmış klasör yok",
         "description": "Burada gezinmek için eylem çubuğundan bir klasör içe aktar."
       },
-      "albumsFiltered": {
-        "description": "Bu kaynakta albüm yok. Yukarıdan kaynağı değiştirin ya da ayarlardan sunucu kataloğunu kopyalayın."
+      "sourceFiltered": {
+        "description": "Bu kaynakta bir şey yok. Yukarıdan kaynağı değiştirin ya da ayarlardan sunucu kataloğunu kopyalayın."
       }
     },
     "actions": {

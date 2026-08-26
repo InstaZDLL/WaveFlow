@@ -382,8 +382,8 @@
         "title": "未导入任何文件夹",
         "description": "从操作栏导入一个文件夹，以便在此处浏览。"
       },
-      "albumsFiltered": {
-        "description": "该来源没有专辑。请在上方切换来源，或在设置中复制服务器曲库。"
+      "sourceFiltered": {
+        "description": "该来源没有内容。请在上方切换来源，或在设置中复制服务器曲库。"
       }
     },
     "actions": {

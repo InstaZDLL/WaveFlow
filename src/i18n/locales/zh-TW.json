@@ -382,8 +382,8 @@
         "title": "未匯入任何資料夾",
         "description": "從操作列匯入一個資料夾，以便在此處瀏覽。"
       },
-      "albumsFiltered": {
-        "description": "該來源沒有專輯。請在上方切換來源，或在設定中複製伺服器曲庫。"
+      "sourceFiltered": {
+        "description": "該來源沒有內容。請在上方切換來源，或在設定中複製伺服器曲庫。"
       }
     },
     "actions": {
