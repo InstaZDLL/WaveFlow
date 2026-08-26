@@ -88,25 +88,31 @@ export function PlaylistGrid({
     // which would file every remote playlist as the oldest, or first — they
     // fall to the end of the list and settle among themselves by name. Same
     // reading as the unratable tracks: absent is not smallest.
+    const factor = sort.direction === "desc" ? -1 : 1;
+    // The direction applies to the values, never to the missing-last rule.
+    // Multiplying the whole comparison by the factor would invert the
+    // sentinels too, and "last" would become "first" the moment someone
+    // reversed the sort — which is the same defect the track list had when
+    // its NULL ratings were left to the ORDER BY direction.
     const missingLast = (
       a: number | null,
       b: number | null,
       byName: number,
     ): number => {
-      if (a == null && b == null) return byName;
+      if (a == null && b == null) return factor * byName;
       if (a == null) return 1;
       if (b == null) return -1;
-      return a - b;
+      return factor * (a - b);
     };
-    const ascending = (a: LibraryPlaylistRow, b: LibraryPlaylistRow): number => {
+    const compare = (a: LibraryPlaylistRow, b: LibraryPlaylistRow): number => {
       const byName = collator.compare(a.name, b.name);
       switch (sort.orderBy) {
         case "name":
-          return byName;
+          return factor * byName;
         case "tracks":
-          return a.track_count - b.track_count;
+          return factor * (a.track_count - b.track_count);
         case "duration":
-          return a.total_duration_ms - b.total_duration_ms;
+          return factor * (a.total_duration_ms - b.total_duration_ms);
         case "updated":
           return missingLast(a.updated_at, b.updated_at, byName);
         case "custom":
@@ -114,10 +120,9 @@ export function PlaylistGrid({
           return missingLast(a.position, b.position, byName);
       }
     };
-    const factor = sort.direction === "desc" ? -1 : 1;
     // Sorting a copy: `playlists` comes straight from the context and is
     // shared with the sidebar, which renders it in `position` order.
-    return [...playlists].sort((a, b) => factor * ascending(a, b));
+    return [...playlists].sort(compare);
   }, [playlists, sort.orderBy, sort.direction, i18n.language]);
 
   const pageScrollRef = usePageScroll();
