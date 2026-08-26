@@ -33,9 +33,15 @@ So the incoming projection cannot be written into `playlist`, `liked_track` or
 `track.rating`. Doing so would either fabricate local tracks for rows that only
 exist on the server, or silently drop every entry — the first corrupts the local
 library, the second makes sync look broken. The projection therefore lands in
-its **own tables** (`remote_*`), is presented as a distinct source in the
-sidebar, and is reconstructible: dropping it and re-fetching a snapshot is
-always a valid recovery.
+its **own tables** (`remote_*`) and is reconstructible: dropping it and
+re-fetching a snapshot is always a valid recovery.
+
+It was also, at first, presented as a distinct *place* — its own sidebar
+section, its own views. That reading has since been dropped: the tables stay
+separate because the entities are, but the navigation does not have to repeat
+the split, and one library with the source as a filter is what the sections
+below describe. Never merged still holds; never merged is not the same as
+shown apart.
 
 Matching a local file to a server track is **out of scope** and needs its own
 RFC. When it comes, the only automatic link allowed is an exact, unique
@@ -320,10 +326,12 @@ The orchestration (fill from projection, mint ticket, dispatch) lives in the
 `sync_v2`-gated `remote::playback`; the state and its clear/probe live in the
 always-compiled `remote_playback` so the control seams stay feature-clean.
 
-**UI.** The remote source is managed from the main UI, not Settings: a "Remote
-source" section at the bottom of the sidebar (headed by the server host, listing
-its playlists) and a `RemotePlaylistView` that plays, renames, deletes, removes
-tracks from, reorders and adds tracks to them like local playlists. Track edits
+**UI.** The remote source is managed from the main UI, not Settings. It began
+as a "Remote source" section at the bottom of the sidebar, headed by the server
+host and listing its playlists; that section is gone — its rows sit in the one
+playlist list, tagged, alongside the local ones. A `RemotePlaylistView` still
+plays, renames, deletes, removes tracks from, reorders and adds tracks to them
+like local playlists. Track edits
 go through the server's `UpdatePlaylist` mutation: add queues `add` (its hits
 come from a live `/api/v2/search`, cached into `remote_track` so titles render at
 once); removal queues `remove_indexes`; reorder, for which the mutation has no
