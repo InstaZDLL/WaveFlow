@@ -381,6 +381,9 @@
       "dossiers": {
         "title": "No hay carpetas importadas",
         "description": "Importa una carpeta desde la barra de acciones para explorarla aquí."
+      },
+      "albumsFiltered": {
+        "description": "No hay álbumes de esta fuente. Cambia de fuente arriba o copia el catálogo del servidor desde los ajustes."
       }
     },
     "actions": {
@@ -459,6 +462,12 @@
       "meta_zero": "0 canciones · {{duration}}",
       "meta_one": "{{count}} canción · {{duration}}",
       "meta_other": "{{count}} canciones · {{duration}}"
+    },
+    "source": {
+      "label": "Fuente",
+      "all": "Todo",
+      "local": "Este dispositivo",
+      "remote": "Servidor"
     }
   },
   "liked": {

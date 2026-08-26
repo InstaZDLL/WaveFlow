@@ -381,6 +381,9 @@
       "dossiers": {
         "title": "कोई फ़ोल्डर आयात नहीं हुआ",
         "description": "इसे यहाँ ब्राउज़ करने के लिए एक्शन बार से एक फ़ोल्डर आयात करें।"
+      },
+      "albumsFiltered": {
+        "description": "इस स्रोत से कोई एल्बम नहीं। ऊपर स्रोत बदलें, या सेटिंग्स से सर्वर कैटलॉग कॉपी करें।"
       }
     },
     "actions": {
@@ -459,6 +462,12 @@
       "meta_zero": "0 गाने · {{duration}}",
       "meta_one": "{{count}} गाना · {{duration}}",
       "meta_other": "{{count}} गाने · {{duration}}"
+    },
+    "source": {
+      "label": "स्रोत",
+      "all": "सभी",
+      "local": "यह डिवाइस",
+      "remote": "सर्वर"
     }
   },
   "liked": {

@@ -381,6 +381,9 @@
       "dossiers": {
         "title": "インポートされたフォルダはありません",
         "description": "アクションバーからフォルダをインポートして、ここでその中を確認してください。"
+      },
+      "albumsFiltered": {
+        "description": "このソースにアルバムはありません。上でソースを切り替えるか、設定からサーバーのカタログを複製してください。"
       }
     },
     "actions": {
@@ -459,6 +462,12 @@
       "meta_zero": "0 曲 · {{duration}}",
       "meta_one": "{{count}} 曲 · {{duration}}",
       "meta_other": "{{count}} 曲 · {{duration}}"
+    },
+    "source": {
+      "label": "ソース",
+      "all": "すべて",
+      "local": "このデバイス",
+      "remote": "サーバー"
     }
   },
   "liked": {

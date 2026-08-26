@@ -372,33 +372,6 @@ render. Missing identifiers are fetched from `GET /api/v2/tracks/{id}` after a
 pass — opportunistically, since ordering and identity are already stored and a
 failed fetch costs a placeholder row rather than a wrong one.
 
-### Cover art is cached on disk, not inlined
-
-The artwork endpoint is Bearer-only, so a bare `<img src>` to it answers 401.
-The first answer to that was to fetch the bytes and hand the webview a `data:`
-URL — correct, and wrong twice over for a grid: the base64 sits in the
-renderer's memory, and nothing survives a restart, so every launch
-re-downloads every cover scrolled past.
-
-[`remote::artwork`](../../src-tauri/crates/app/src/remote/artwork.rs) caches
-them under `profiles/<id>/remote-artwork/` and answers with a **path**, which
-the asset protocol serves exactly like a scanned local cover — so
-[`resolveArtwork`](../../src/lib/tauri/artwork.ts) needs no special case and
-the renderer holds a string rather than a blob.
-
-Two properties hold it together:
-
-- **Only hash-addressed covers are cached.** The same server route also accepts
-  a track, album or artist identifier and resolves that entity's *current*
-  cover, which a rescan can move; the server marks only the hash form immutable
-  and keeps the aliases revalidatable. Caching an alias forever would freeze a
-  replaced cover, so anything that is not plain hexadecimal is refused. The
-  check reads as a path-traversal guard, and it is one — it is also what keeps
-  the cache honest.
-- **Eviction is by modification time, and a hit touches the file.** The cover of
-  an album played weekly keeps its place while a one-off browse ages out.
-  Dropping a file costs one download, never a wrong picture.
-
 ### The catalogue mirror
 
 The projection above describes **user data**, and user data only ever names the
@@ -440,6 +413,73 @@ A side effect worth naming: `SongItem` carries `full_hash`, and `cache_song`
 already stores it. Mirroring the catalogue therefore lands the server's content
 fingerprint for **every** track it has — precisely the input the matching layer
 described below needs, obtained without asking for it.
+
+### Cover art is cached on disk, not inlined
+
+The artwork endpoint is Bearer-only, so a bare `<img src>` to it answers 401.
+The first answer to that was to fetch the bytes and hand the webview a `data:`
+URL — correct, and wrong twice over for a grid: the base64 sits in the
+renderer's memory, and nothing survives a restart, so every launch
+re-downloads every cover scrolled past.
+
+[`remote::artwork`](../../src-tauri/crates/app/src/remote/artwork.rs) caches
+them under `profiles/<id>/remote-artwork/` and answers with a **path**, which
+the asset protocol serves exactly like a scanned local cover — so
+[`resolveArtwork`](../../src/lib/tauri/artwork.ts) needs no special case and
+the renderer holds a string rather than a blob.
+
+The listings do not carry that path, though: they carry the **hash**, and
+[`RemoteArtwork`](../../src/components/common/RemoteArtwork.tsx) is what turns
+one into a rendered cover. Resolving server-side would mean one round trip per
+row before a page could be answered, on a list that is virtualised precisely so
+most rows are never looked at. The component resolves on mount instead, shares
+one in-flight resolution per profile-and-hash, caches what comes back, and
+falls back to a neutral tile — which is also the only place that can notice a
+cached path has since been evicted and ask for it again.
+
+Two properties hold it together:
+
+- **Only hash-addressed covers are cached.** The same server route also accepts
+  a track, album or artist identifier and resolves that entity's *current*
+  cover, which a rescan can move; the server marks only the hash form immutable
+  and keeps the aliases revalidatable. Caching an alias forever would freeze a
+  replaced cover, so anything that is not plain hexadecimal is refused. The
+  check reads as a path-traversal guard, and it is one — it is also what keeps
+  the cache honest.
+- **Eviction is by modification time, and a hit touches the file.** The cover of
+  an album played weekly keeps its place while a one-off browse ages out.
+  Dropping a file costs one download, never a wrong picture.
+### One library, two sources, never merged
+
+With the catalogue mirrored, `list_library_albums` returns both halves as one
+sorted list, tagged by `source`. The source becomes a **filter inside** the
+list rather than a section beside it — which is the whole difference between a
+unified library and two tabs, and it changes nothing about Decision 1: an album
+held both locally and on the server appears **twice**, tagged twice. Unifying
+the navigation is not deduplicating the catalogue; that is reserved for its own
+RFC.
+
+Two things the query has to get right, and both are about the halves being
+comparable rather than merely concatenated:
+
+- **The sort keys are normalised on both sides.** The local half sorts on
+  `album.canonical_title` / `artist.canonical_name` — forms produced by
+  `normalize_name`, which lowercases, folds diacritics and drops punctuation.
+  SQLite cannot reproduce any of that (`COLLATE NOCASE` is ASCII-only), so
+  sorting the remote half on its raw display name puts "Björk" and "bjork" in
+  two different places and splits one artist in half down the middle of the
+  list. `remote_album.sort_title` / `sort_artist` therefore carry the same
+  normalised forms, computed by the mirror with the same function. A row
+  mirrored before those columns existed falls back to its display title, and
+  one walk fills it in.
+- **A local library filter excludes the remote half.** The picker chooses among
+  *local* libraries, and a server album belongs to none of them; leaving the
+  remote rows visible while the user has narrowed to one library reads as the
+  filter having failed.
+
+A server album keeps none of the local gestures — no playlist, no cover picker,
+no context menu — because none of them can accept it, and it opens the remote
+detail view rather than the local one.
 
 Tokens keep using `auth_credential` under the existing `waveflow_server`
 provider, which already carries a refresh token and an expiry.

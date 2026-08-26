@@ -381,6 +381,9 @@
       "dossiers": {
         "title": "Nessuna cartella importata",
         "description": "Importa una cartella dalla barra degli strumenti per sfogliarla qui."
+      },
+      "albumsFiltered": {
+        "description": "Nessun album da questa sorgente. Cambia sorgente qui sopra o copia il catalogo del server dalle impostazioni."
       }
     },
     "actions": {
@@ -459,6 +462,12 @@
       "meta_zero": "0 brani · {{duration}}",
       "meta_one": "{{count}} brano · {{duration}}",
       "meta_other": "{{count}} brani · {{duration}}"
+    },
+    "source": {
+      "label": "Sorgente",
+      "all": "Tutto",
+      "local": "Questo dispositivo",
+      "remote": "Server"
     }
   },
   "liked": {

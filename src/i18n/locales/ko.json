@@ -381,6 +381,9 @@
       "dossiers": {
         "title": "가져온 폴더가 없습니다",
         "description": "도구 모음에서 폴더를 가져와 이곳에서 내용을 살펴보세요."
+      },
+      "albumsFiltered": {
+        "description": "이 소스에는 앨범이 없습니다. 위에서 소스를 바꾸거나 설정에서 서버 카탈로그를 복사하세요."
       }
     },
     "actions": {
@@ -459,6 +462,12 @@
       "meta_zero": "0곡 · {{duration}}",
       "meta_one": "{{count}}곡 · {{duration}}",
       "meta_other": "{{count}}곡 · {{duration}}"
+    },
+    "source": {
+      "label": "소스",
+      "all": "전체",
+      "local": "이 기기",
+      "remote": "서버"
     }
   },
   "liked": {

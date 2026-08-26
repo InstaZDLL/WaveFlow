@@ -381,6 +381,9 @@
       "dossiers": {
         "title": "Belum ada folder yang diimpor",
         "description": "Impor folder dari bilah aksi untuk menjelajahinya di sini."
+      },
+      "albumsFiltered": {
+        "description": "Tidak ada album dari sumber ini. Ganti sumber di atas, atau salin katalog server dari pengaturan."
       }
     },
     "actions": {
@@ -459,6 +462,12 @@
       "meta_zero": "0 lagu · {{duration}}",
       "meta_one": "{{count}} lagu · {{duration}}",
       "meta_other": "{{count}} lagu · {{duration}}"
+    },
+    "source": {
+      "label": "Sumber",
+      "all": "Semua",
+      "local": "Perangkat ini",
+      "remote": "Server"
     }
   },
   "liked": {

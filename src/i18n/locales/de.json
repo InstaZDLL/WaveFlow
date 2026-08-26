@@ -381,6 +381,9 @@
       "dossiers": {
         "title": "Keine Ordner importiert",
         "description": "Importiere einen Ordner über die Aktionsleiste, um ihn hier zu durchsuchen."
+      },
+      "albumsFiltered": {
+        "description": "Keine Alben aus dieser Quelle. Wechsle oben die Quelle oder kopiere den Server-Katalog in den Einstellungen."
       }
     },
     "actions": {
@@ -459,6 +462,12 @@
       "meta_zero": "0 Titel · {{duration}}",
       "meta_one": "{{count}} Titel · {{duration}}",
       "meta_other": "{{count}} Titel · {{duration}}"
+    },
+    "source": {
+      "label": "Quelle",
+      "all": "Alle",
+      "local": "Dieses Gerät",
+      "remote": "Server"
     }
   },
   "liked": {

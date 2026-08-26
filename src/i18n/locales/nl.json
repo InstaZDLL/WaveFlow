@@ -381,6 +381,9 @@
       "dossiers": {
         "title": "Geen mappen geïmporteerd",
         "description": "Importeer een map vanuit de actiebalk om die hier te bekijken."
+      },
+      "albumsFiltered": {
+        "description": "Geen albums uit deze bron. Wissel hierboven van bron of kopieer de servercatalogus via de instellingen."
       }
     },
     "actions": {
@@ -459,6 +462,12 @@
       "meta_zero": "0 nummers · {{duration}}",
       "meta_one": "{{count}} nummer · {{duration}}",
       "meta_other": "{{count}} nummers · {{duration}}"
+    },
+    "source": {
+      "label": "Bron",
+      "all": "Alles",
+      "local": "Dit apparaat",
+      "remote": "Server"
     }
   },
   "liked": {

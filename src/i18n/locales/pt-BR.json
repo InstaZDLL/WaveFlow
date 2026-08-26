@@ -381,6 +381,9 @@
       "dossiers": {
         "title": "Nenhuma pasta importada",
         "description": "Importe uma pasta a partir da barra de ações para explorá-la aqui."
+      },
+      "albumsFiltered": {
+        "description": "Nenhum álbum desta origem. Mude a origem acima ou copie o catálogo do servidor nas configurações."
       }
     },
     "actions": {
@@ -459,6 +462,12 @@
       "meta_zero": "0 faixas · {{duration}}",
       "meta_one": "{{count}} faixa · {{duration}}",
       "meta_other": "{{count}} faixas · {{duration}}"
+    },
+    "source": {
+      "label": "Origem",
+      "all": "Tudo",
+      "local": "Este dispositivo",
+      "remote": "Servidor"
     }
   },
   "liked": {

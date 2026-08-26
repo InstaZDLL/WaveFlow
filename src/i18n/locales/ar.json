@@ -425,6 +425,9 @@
       "dossiers": {
         "title": "لم يتم استيراد أي مجلد",
         "description": "استورد مجلدًا من شريط الإجراءات لتصفحه هنا."
+      },
+      "albumsFiltered": {
+        "description": "لا ألبومات من هذا المصدر. غيّر المصدر بالأعلى، أو انسخ فهرس الخادم من الإعدادات."
       }
     },
     "actions": {
@@ -524,6 +527,12 @@
       "meta_few": "{{count}} مقاطع · {{duration}}",
       "meta_many": "{{count}} مقطعًا · {{duration}}",
       "meta_other": "{{count}} مقطع · {{duration}}"
+    },
+    "source": {
+      "label": "المصدر",
+      "all": "الكل",
+      "local": "هذا الجهاز",
+      "remote": "الخادم"
     }
   },
   "liked": {

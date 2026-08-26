@@ -655,6 +655,7 @@ pub fn run() {
             commands::track::list_liked_tracks,
             commands::track::set_track_rating,
             commands::browse::list_albums,
+            commands::browse::list_library_albums,
             commands::browse::list_artists,
             commands::browse::search_albums,
             commands::browse::search_artists,

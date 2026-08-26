@@ -526,6 +526,7 @@ export function AppLayout() {
             activeTab={libraryTab}
             setActiveTab={setLibraryTab}
             onNavigateToAlbum={navigateToAlbum}
+            onNavigateToRemoteAlbum={navigateToRemoteAlbum}
             onNavigateToArtist={navigateToArtist}
             onNavigateToGenre={navigateToGenre}
             onNavigateToPlaylist={navigateToPlaylist}
