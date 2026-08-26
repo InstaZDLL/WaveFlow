@@ -2592,7 +2592,14 @@
       "reportRemoved": "تمت إزالة {{removed}}",
       "reportCancelled": "أُوقف",
       "neverMirrored": "لم يُنسخ قط.",
-      "mirroredAt": "آخر نسخة كاملة: {{date}}"
+      "mirroredAt": "آخر نسخة كاملة: {{date}}",
+      "clearCovers": "إفراغ",
+      "coversCached_zero": "لا أغلفة في الذاكرة المؤقتة.",
+      "coversCached_one": "غلاف واحد في الذاكرة المؤقتة ({{size}} ميغابايت).",
+      "coversCached_two": "غلافان في الذاكرة المؤقتة ({{size}} ميغابايت).",
+      "coversCached_few": "{{count}} أغلفة في الذاكرة المؤقتة ({{size}} ميغابايت).",
+      "coversCached_many": "{{count}} غلافًا في الذاكرة المؤقتة ({{size}} ميغابايت).",
+      "coversCached_other": "{{count}} غلاف في الذاكرة المؤقتة ({{size}} ميغابايت)."
     }
   }
 }

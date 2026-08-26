@@ -2333,7 +2333,11 @@
       "reportRemoved": "{{removed}} removidas",
       "reportCancelled": "parado",
       "neverMirrored": "Nunca copiado.",
-      "mirroredAt": "Última cópia completa: {{date}}."
+      "mirroredAt": "Última cópia completa: {{date}}.",
+      "clearCovers": "Esvaziar",
+      "coversCached_zero": "Nenhuma capa em cache.",
+      "coversCached_one": "{{count}} capa em cache ({{size}} MB).",
+      "coversCached_other": "{{count}} capas em cache ({{size}} MB)."
     }
   }
 }

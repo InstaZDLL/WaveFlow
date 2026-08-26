@@ -2308,7 +2308,11 @@
       "reportRemoved": "{{removed}}개 제거",
       "reportCancelled": "중지됨",
       "neverMirrored": "복사한 적이 없습니다.",
-      "mirroredAt": "마지막 전체 복사: {{date}}"
+      "mirroredAt": "마지막 전체 복사: {{date}}",
+      "clearCovers": "비우기",
+      "coversCached_zero": "캐시된 커버가 없습니다.",
+      "coversCached_one": "캐시된 커버 {{count}}개 ({{size}} MB)",
+      "coversCached_other": "캐시된 커버 {{count}}개 ({{size}} MB)"
     }
   }
 }

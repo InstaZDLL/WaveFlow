@@ -179,12 +179,24 @@ impl AppPaths {
         self.profile_dir(profile_id).join("canvas")
     }
 
+    /// Per-profile cache for the remote server's cover art (RFC-005).
+    /// Unlike [`Self::profile_motion_dir`] and [`Self::profile_canvas_dir`],
+    /// nothing here was chosen by the user: every file is a download that is
+    /// content-addressed and reproducible, so this one *is* evictable — on
+    /// the same terms as [`Self::motion_cache_dir`].
+    pub fn profile_remote_artwork_dir(&self, profile_id: i64) -> PathBuf {
+        self.profile_dir(profile_id).join("remote-artwork")
+    }
+
     /// Create the directory layout required for a brand-new profile.
     pub fn ensure_profile_dirs(&self, profile_id: i64) -> AppResult<()> {
         std::fs::create_dir_all(self.profile_dir(profile_id))?;
         std::fs::create_dir_all(self.profile_artwork_dir(profile_id))?;
         std::fs::create_dir_all(self.profile_motion_dir(profile_id))?;
         std::fs::create_dir_all(self.profile_canvas_dir(profile_id))?;
+        // Profiles that predate this directory get it on first write instead;
+        // the cache creates it on demand rather than trusting this to have run.
+        std::fs::create_dir_all(self.profile_remote_artwork_dir(profile_id))?;
         Ok(())
     }
 

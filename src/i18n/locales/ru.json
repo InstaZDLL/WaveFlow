@@ -2481,7 +2481,13 @@
       "reportRemoved": "удалено: {{removed}}",
       "reportCancelled": "остановлено",
       "neverMirrored": "Ещё не копировался.",
-      "mirroredAt": "Последняя полная копия: {{date}}."
+      "mirroredAt": "Последняя полная копия: {{date}}.",
+      "clearCovers": "Очистить",
+      "coversCached_zero": "Обложек в кэше нет.",
+      "coversCached_one": "{{count}} обложка в кэше ({{size}} МБ).",
+      "coversCached_few": "{{count}} обложки в кэше ({{size}} МБ).",
+      "coversCached_many": "{{count}} обложек в кэше ({{size}} МБ).",
+      "coversCached_other": "{{count}} обложек в кэше ({{size}} МБ)."
     }
   }
 }

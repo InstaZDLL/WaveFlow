@@ -2333,7 +2333,11 @@
       "reportRemoved": "{{removed}} verwijderd",
       "reportCancelled": "gestopt",
       "neverMirrored": "Nooit gekopieerd.",
-      "mirroredAt": "Laatste volledige kopie: {{date}}."
+      "mirroredAt": "Laatste volledige kopie: {{date}}.",
+      "clearCovers": "Wissen",
+      "coversCached_zero": "Geen hoezen in cache.",
+      "coversCached_one": "{{count}} hoes in cache ({{size}} MB).",
+      "coversCached_other": "{{count}} hoezen in cache ({{size}} MB)."
     }
   }
 }

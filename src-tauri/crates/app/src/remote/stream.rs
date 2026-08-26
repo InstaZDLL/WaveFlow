@@ -15,7 +15,6 @@
 //! absolute URL from the server could redirect playback to a host the user
 //! never authenticated against.
 
-use base64::{engine::general_purpose::STANDARD, Engine};
 use serde::Deserialize;
 
 use crate::{
@@ -63,37 +62,4 @@ pub async fn ticket_url(state: &AppState, track_id: &str) -> AppResult<String> {
         ));
     }
     Ok(format!("{}{}", client.base_url(), rel))
-}
-
-/// Fetch a remote artwork by hash and return it as a `data:` URL, ready to
-/// drop into an `<img>` — the artwork endpoint is Bearer-only, so a bare
-/// `<img src>` pointed at it would 401.
-pub async fn artwork_data_url(state: &AppState, artwork_hash: &str) -> AppResult<String> {
-    if crate::offline::is_offline() {
-        return Err(AppError::Other("offline".into()));
-    }
-    let client = client(state).await?;
-
-    let response = client
-        .get(&format!("/api/v2/artwork/{artwork_hash}"))
-        .send()
-        .await
-        .map_err(|err| AppError::Other(format!("artwork fetch: {err}")))?;
-    if !response.status().is_success() {
-        return Err(AppError::Other(format!(
-            "artwork fetch: HTTP {}",
-            response.status().as_u16()
-        )));
-    }
-    let mime = response
-        .headers()
-        .get(reqwest::header::CONTENT_TYPE)
-        .and_then(|value| value.to_str().ok())
-        .unwrap_or("image/jpeg")
-        .to_string();
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|err| AppError::Other(format!("artwork body: {err}")))?;
-    Ok(format!("data:{};base64,{}", mime, STANDARD.encode(&bytes)))
 }

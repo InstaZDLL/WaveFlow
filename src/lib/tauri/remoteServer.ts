@@ -221,10 +221,15 @@ export function remoteStreamUrl(trackId: string): Promise<string> {
   return invoke<string>("remote_stream_url", { trackId });
 }
 
-/**
- * Fetch a remote track's artwork (by hash) as a `data:` URL — the artwork
- * endpoint is Bearer-only, so a bare `<img src>` pointed at it would 401.
- */
+/** Resolve a remote cover to a **local file path**, downloading it once into
+ *  a per-profile disk cache if needed. The artwork endpoint is Bearer-only, so
+ *  a bare `<img src>` to it would 401; the path goes through the asset
+ *  protocol exactly like a scanned local cover, so `resolveArtwork` handles it
+ *  with no special case.
+ *
+ *  Only hash-addressed covers are cacheable and only those are accepted: the
+ *  server keeps its track/album/artist aliases revalidatable because a rescan
+ *  can move the cover they resolve to. */
 export function remoteArtwork(artworkHash: string): Promise<string> {
   return invoke<string>("remote_artwork", { artworkHash });
 }
@@ -628,6 +633,22 @@ export interface PlaylistConversionResult {
   direction: PlaylistConversionDirection;
   destination_id: string;
   converted_tracks: number;
+}
+
+/** What the remote cover cache holds on disk. */
+export interface ArtworkCacheInfo {
+  bytes: number;
+  covers: number;
+}
+
+export function remoteArtworkCacheInfo(): Promise<ArtworkCacheInfo> {
+  return invoke<ArtworkCacheInfo>("remote_artwork_cache_info");
+}
+
+/** Delete every cached remote cover. Costs one download each time one is
+ *  looked at again — the images are content-addressed, so nothing is lost. */
+export function remoteClearArtworkCache(): Promise<void> {
+  return invoke<void>("remote_clear_artwork_cache");
 }
 
 /** What one catalogue walk did. Counts are of work performed, so all-zero on a

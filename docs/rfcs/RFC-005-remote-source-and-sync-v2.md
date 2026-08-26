@@ -372,6 +372,33 @@ render. Missing identifiers are fetched from `GET /api/v2/tracks/{id}` after a
 pass — opportunistically, since ordering and identity are already stored and a
 failed fetch costs a placeholder row rather than a wrong one.
 
+### Cover art is cached on disk, not inlined
+
+The artwork endpoint is Bearer-only, so a bare `<img src>` to it answers 401.
+The first answer to that was to fetch the bytes and hand the webview a `data:`
+URL — correct, and wrong twice over for a grid: the base64 sits in the
+renderer's memory, and nothing survives a restart, so every launch
+re-downloads every cover scrolled past.
+
+[`remote::artwork`](../../src-tauri/crates/app/src/remote/artwork.rs) caches
+them under `profiles/<id>/remote-artwork/` and answers with a **path**, which
+the asset protocol serves exactly like a scanned local cover — so
+[`resolveArtwork`](../../src/lib/tauri/artwork.ts) needs no special case and
+the renderer holds a string rather than a blob.
+
+Two properties hold it together:
+
+- **Only hash-addressed covers are cached.** The same server route also accepts
+  a track, album or artist identifier and resolves that entity's *current*
+  cover, which a rescan can move; the server marks only the hash form immutable
+  and keeps the aliases revalidatable. Caching an alias forever would freeze a
+  replaced cover, so anything that is not plain hexadecimal is refused. The
+  check reads as a path-traversal guard, and it is one — it is also what keeps
+  the cache honest.
+- **Eviction is by modification time, and a hit touches the file.** The cover of
+  an album played weekly keeps its place while a one-off browse ages out.
+  Dropping a file costs one download, never a wrong picture.
+
 ### The catalogue mirror
 
 The projection above describes **user data**, and user data only ever names the

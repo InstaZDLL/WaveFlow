@@ -80,6 +80,7 @@
 //! on top. Only WaveFlow offers it, which is why nothing in this module
 //! may assume it is present without having observed it.
 
+pub mod artwork;
 pub mod auth;
 pub mod binding;
 pub mod catalogue;
