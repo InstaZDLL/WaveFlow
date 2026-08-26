@@ -13,6 +13,12 @@ interface FadeInImageProps {
   /** Optional placeholder children rendered behind the image (e.g. a
    *  fallback initial or a Disc icon). Hidden once the image fades in. */
   placeholder?: React.ReactNode;
+  /** Forwarded to the `<img>`. A caller whose source can go stale — a cached
+   *  path to a file that has since been evicted — needs the failure to reach
+   *  it, or it keeps handing back the same dead URL. */
+  onError?: () => void;
+  /** Forwarded alongside `onError`; the fade still runs either way. */
+  onLoad?: () => void;
 }
 
 /**
@@ -32,6 +38,8 @@ export function FadeInImage({
   wrapperClassName,
   imgClassName = "",
   placeholder,
+  onError,
+  onLoad,
 }: FadeInImageProps) {
   // Reset the fade gate when the underlying URL changes (e.g. a tile
   // gets recycled by a virtualized list, or the same component
@@ -64,7 +72,13 @@ export function FadeInImage({
         loading="lazy"
         decoding="async"
         draggable={false}
-        onLoad={() => setLoaded(true)}
+        onLoad={() => {
+          setLoaded(true);
+          onLoad?.();
+        }}
+        // A source that fails is the caller's business: it may hold a cache
+        // entry pointing at a file that no longer exists.
+        onError={onError}
         ref={(el) => {
           // The WebView cache can serve the bytes synchronously — the
           // <img> is already `complete` before React even attaches an

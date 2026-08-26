@@ -359,6 +359,104 @@ export async function listLibraryAlbums(
   });
 }
 
+/** An artist of the library, from either source. Same contract as
+ *  `LibraryAlbumRow`: text identifier, `source` says how to read it. */
+export interface LibraryArtistRow {
+  source: LibrarySource;
+  id: string;
+  name: string;
+  track_count: number;
+  album_count: number;
+  artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
+  picture_url: string | null;
+  picture_path: string | null;
+  picture_path_1x: string | null;
+  picture_path_2x: string | null;
+  /** Remote only: resolved through the server cover cache. */
+  artwork_hash: string | null;
+}
+
+interface LibraryArtistRowSlim {
+  source: LibrarySource;
+  id: string;
+  name: string;
+  track_count: number;
+  album_count: number;
+  artwork_hash: string | null;
+  artwork_format: string | null;
+  artwork_has_1x: boolean;
+  artwork_has_2x: boolean;
+  picture_hash: string | null;
+  picture_has_1x: boolean;
+  picture_has_2x: boolean;
+  picture_url: string | null;
+}
+
+interface ListLibraryArtistsResponse {
+  artwork_base: string;
+  metadata_artwork_base: string;
+  items: LibraryArtistRowSlim[];
+}
+
+/**
+ * Every artist the library can show, from the device and from the bound
+ * server, as one sorted list. Not merged: an artist credited on both sides
+ * appears twice, on the same terms as the albums.
+ *
+ * The remote half's counts are derived from what is mirrored, so they move
+ * with the catalogue walk rather than trailing a stored total.
+ */
+export async function listLibraryArtists(
+  libraryId: number | null,
+  source: LibrarySource | null,
+  options?: { orderBy?: string; direction?: "asc" | "desc" },
+): Promise<LibraryArtistRow[]> {
+  const resp = await invoke<ListLibraryArtistsResponse>("list_library_artists", {
+    libraryId,
+    source,
+    orderBy: options?.orderBy ?? null,
+    direction: options?.direction ?? null,
+  });
+  const artSep = pathSep(resp.artwork_base);
+  const metaSep = pathSep(resp.metadata_artwork_base);
+  return resp.items.map((item) => {
+    // Only a local hash names a file under either directory; a remote one is
+    // resolved by the cover cache instead.
+    const local = item.source === "local";
+    const art = (suffix: string, present: boolean) =>
+      local && item.artwork_hash && present
+        ? `${resp.artwork_base}${artSep}${item.artwork_hash}${suffix}`
+        : null;
+    const pic = (suffix: string, present: boolean) =>
+      local && item.picture_hash && present
+        ? `${resp.metadata_artwork_base}${metaSep}${item.picture_hash}${suffix}`
+        : null;
+    return {
+      source: item.source,
+      id: item.id,
+      name: item.name,
+      track_count: item.track_count,
+      album_count: item.album_count,
+      artwork_path:
+        local && item.artwork_hash && item.artwork_format
+          ? `${resp.artwork_base}${artSep}${item.artwork_hash}.${item.artwork_format}`
+          : null,
+      artwork_path_1x: art("_1x.jpg", item.artwork_has_1x),
+      artwork_path_2x: art("_2x.jpg", item.artwork_has_2x),
+      picture_url: local ? item.picture_url : null,
+      picture_path:
+        local && item.picture_hash
+          ? `${resp.metadata_artwork_base}${metaSep}${item.picture_hash}.jpg`
+          : null,
+      picture_path_1x: pic("_1x.jpg", item.picture_has_1x),
+      picture_path_2x: pic("_2x.jpg", item.picture_has_2x),
+      artwork_hash: local ? null : item.artwork_hash,
+    };
+  });
+}
+
 export async function listArtists(
   libraryId: number | null,
   sort?: { orderBy?: string; direction?: "asc" | "desc" },

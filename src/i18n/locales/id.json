@@ -382,8 +382,8 @@
         "title": "Belum ada folder yang diimpor",
         "description": "Impor folder dari bilah aksi untuk menjelajahinya di sini."
       },
-      "albumsFiltered": {
-        "description": "Tidak ada album dari sumber ini. Ganti sumber di atas, atau salin katalog server dari pengaturan."
+      "sourceFiltered": {
+        "description": "Tidak ada apa pun dari sumber ini. Ganti sumber di atas, atau salin katalog server dari pengaturan."
       }
     },
     "actions": {
@@ -468,7 +468,8 @@
       "all": "Semua",
       "local": "Perangkat ini",
       "remote": "Server"
-    }
+    },
+    "open": "Buka {{name}}"
   },
   "liked": {
     "badge": "Koleksi",

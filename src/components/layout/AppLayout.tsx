@@ -528,6 +528,7 @@ export function AppLayout() {
             onNavigateToAlbum={navigateToAlbum}
             onNavigateToRemoteAlbum={navigateToRemoteAlbum}
             onNavigateToArtist={navigateToArtist}
+            onNavigateToRemoteArtist={navigateToRemoteArtist}
             onNavigateToGenre={navigateToGenre}
             onNavigateToPlaylist={navigateToPlaylist}
           />

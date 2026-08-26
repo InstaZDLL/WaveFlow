@@ -382,8 +382,8 @@
         "title": "Nenhuma pasta importada",
         "description": "Importe uma pasta a partir da barra de ações para explorá-la aqui."
       },
-      "albumsFiltered": {
-        "description": "Nenhum álbum desta origem. Mude a origem acima ou copie o catálogo do servidor nas configurações."
+      "sourceFiltered": {
+        "description": "Nada desta origem. Mude a origem acima ou copie o catálogo do servidor nas configurações."
       }
     },
     "actions": {
@@ -468,7 +468,8 @@
       "all": "Tudo",
       "local": "Este dispositivo",
       "remote": "Servidor"
-    }
+    },
+    "open": "Abrir {{name}}"
   },
   "liked": {
     "badge": "Coleção",

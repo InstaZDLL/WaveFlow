@@ -37,6 +37,7 @@ import { useTranslation } from "react-i18next";
 import type { LibraryTab } from "../../types";
 import { Tab } from "../common/Tab";
 import { RemoteArtwork } from "../common/RemoteArtwork";
+import { useRemoteArtworkSrc } from "../../hooks/useRemoteArtworkSrc";
 import { useRemoteSource } from "../../hooks/useRemoteSource";
 import {
   useLibrarySource,
@@ -87,12 +88,12 @@ import {
   type Track,
 } from "../../lib/tauri/track";
 import {
-  listArtists,
   listGenres,
   listFolders,
   type LibraryAlbumRow,
+  type LibraryArtistRow,
   listLibraryAlbums,
-  type ArtistRow,
+  listLibraryArtists,
   type GenreRow,
   type FolderRow,
 } from "../../lib/tauri/browse";
@@ -107,6 +108,7 @@ interface LibraryViewProps {
   /** A server album opens the remote detail view; the two catalogues are
    *  never merged, so they are never the same page. */
   onNavigateToRemoteAlbum: (remoteAlbumId: string) => void;
+  onNavigateToRemoteArtist: (remoteArtistId: string) => void;
   onNavigateToArtist: (artistId: number) => void;
   onNavigateToGenre: (genreId: number) => void;
   onNavigateToPlaylist: (playlistId: number) => void;
@@ -147,6 +149,7 @@ export function LibraryView({
   onNavigateToAlbum,
   onNavigateToRemoteAlbum,
   onNavigateToArtist,
+  onNavigateToRemoteArtist,
   onNavigateToGenre,
   onNavigateToPlaylist,
 }: LibraryViewProps) {
@@ -204,7 +207,7 @@ export function LibraryView({
   const [tracks, setTracks] = useState<Track[]>([]);
   const [albums, setAlbums] = useState<LibraryAlbumRow[]>([]);
   const librarySource = useLibrarySource();
-  const [artists, setArtists] = useState<ArtistRow[]>([]);
+  const [artists, setArtists] = useState<LibraryArtistRow[]>([]);
   const [genres, setGenres] = useState<GenreRow[]>([]);
   const [folders, setFolders] = useState<FolderRow[]>([]);
   // Per-tab loading state — drives both the in-place dim and the
@@ -375,16 +378,22 @@ export function LibraryView({
   ]);
 
   useEffect(() => {
-    if (!artistsSort.isLoaded) return;
+    // Both preferences gate the fetch, for the reason on the albums effect.
+    if (!artistsSort.isLoaded || !librarySource.ready) return;
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading((p) => ({ ...p, artistes: true }));
-    listArtists(null, artistsSort.sort)
+    listLibraryArtists(
+      null,
+      librarySource.source === "all" ? null : librarySource.source,
+      artistsSort.sort,
+    )
       .then((list) => {
         if (!cancelled) setArtists(list);
       })
       .catch((err) => {
-        if (!cancelled) console.error("[LibraryView] listArtists failed", err);
+        if (!cancelled)
+          console.error("[LibraryView] listLibraryArtists failed", err);
       })
       .finally(() => {
         if (!cancelled) setLoading((p) => ({ ...p, artistes: false }));
@@ -392,7 +401,14 @@ export function LibraryView({
     return () => {
       cancelled = true;
     };
-  }, [librariesSignature, artistsSort.isLoaded, artistsSort.sort, editRefetch]);
+  }, [
+    librariesSignature,
+    artistsSort.isLoaded,
+    artistsSort.sort,
+    librarySource.ready,
+    librarySource.source,
+    editRefetch,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -580,9 +596,9 @@ export function LibraryView({
   // The albums tab can be empty for two different reasons, and they deserve
   // two different answers.
   const sourceFilterEmptied =
-    activeTab === "albums" &&
-    albums.length === 0 &&
-    librarySource.source !== "all";
+    librarySource.source !== "all" &&
+    ((activeTab === "albums" && albums.length === 0) ||
+      (activeTab === "artistes" && artists.length === 0));
 
   const hasContent =
     (activeTab === "morceaux" && tracks.length > 0) ||
@@ -735,18 +751,26 @@ export function LibraryView({
           nothing yet empties the list, and a control that disappears with the
           content it emptied leaves no way back. The sort dropdown has no such
           problem — it did not cause the emptiness — so it stays gated. */}
-      {activeTab === "albums" && (
+      {(activeTab === "albums" || activeTab === "artistes") && (
         <div className="flex items-center justify-end space-x-3 -mt-4">
           <SourceFilter
             current={librarySource.source}
             onChange={librarySource.setSource}
             t={t}
           />
-          {albums.length > 0 && (
+          {activeTab === "albums" && albums.length > 0 && (
             <SortDropdown
               options={albumSortOptions(t)}
               current={albumsSort.sort}
               onChange={albumsSort.setSort}
+              t={t}
+            />
+          )}
+          {activeTab === "artistes" && artists.length > 0 && (
+            <SortDropdown
+              options={artistSortOptions(t)}
+              current={artistsSort.sort}
+              onChange={artistsSort.setSort}
               t={t}
             />
           )}
@@ -865,14 +889,6 @@ export function LibraryView({
           )}
           {activeTab === "artistes" && (
             <>
-              <div className="flex items-center justify-end -mt-4">
-                <SortDropdown
-                  options={artistSortOptions(t)}
-                  current={artistsSort.sort}
-                  onChange={artistsSort.setSort}
-                  t={t}
-                />
-              </div>
               <div className="relative">
                 <ArtistList
                   artists={artists}
@@ -887,6 +903,7 @@ export function LibraryView({
                     setIsCreatePlaylistModalOpen(true);
                   }}
                   onArtistClick={onNavigateToArtist}
+                  onRemoteArtistClick={onNavigateToRemoteArtist}
                   scrollToIndexRef={artistScrollToIndexRef}
                 />
                 {artistsSort.sort.orderBy === "name" && artists.length > 0 && (
@@ -992,7 +1009,7 @@ export function LibraryView({
           // nothing to the half being looked at.
           description={t(
             sourceFilterEmptied
-              ? "library.empty.albumsFiltered.description"
+              ? "library.empty.sourceFiltered.description"
               : `library.empty.${activeTab}.description`,
           )}
           className="py-20"
@@ -2039,19 +2056,6 @@ function AlbumGrid({
     return (
       <div
         key={`${album.source}:${album.id}`}
-        role="button"
-        tabIndex={0}
-        onClick={() => open()}
-        onKeyDown={(e) => {
-          if (e.key !== "Enter" && e.key !== " ") return;
-          // The `+` button lives inside this card and is focusable in its own
-          // right; a key press that started there is its business, not ours.
-          if (e.target !== e.currentTarget) return;
-          // Space scrolls the page otherwise, which is not what activating a
-          // card should do.
-          e.preventDefault();
-          open();
-        }}
         onContextMenu={(e) => {
           if (localId === null) return;
           e.preventDefault();
@@ -2098,6 +2102,17 @@ function AlbumGrid({
               {t("library.source.remote")}
             </span>
           )}
+          {/* A real button rather than a role on the card. `role="button"`
+              makes its descendants presentational, which would have hidden the
+              "+" below from assistive technology — one gap traded for another.
+              Sized to the cover and declared before the "+" so that one paints
+              and clicks on top of it. */}
+          <button
+            type="button"
+            onClick={open}
+            aria-label={t("library.open", { name: album.title })}
+            className="absolute inset-0 rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
+          />
           {/* Local playlists hold local tracks. Offering the gesture on a
               server album would open a picker that cannot accept it. */}
           {localId !== null && (
@@ -2113,7 +2128,9 @@ function AlbumGrid({
                 setOpenMenuAlbumId(isMenuOpen ? null : localId);
               }}
               aria-label={t("trackActions.addToPlaylist")}
-              className={`absolute bottom-2 right-2 p-1.5 rounded-full shadow-sm transition-all ${
+              // `focus-visible:opacity-100` is not decoration: without it the
+              // button is invisible exactly when the keyboard reaches it.
+              className={`absolute bottom-2 right-2 p-1.5 rounded-full shadow-sm transition-all focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${
                 isMenuOpen
                   ? "opacity-100 bg-emerald-500 text-white"
                   : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
@@ -2123,7 +2140,9 @@ function AlbumGrid({
             </button>
           )}
         </div>
-        <div className="px-1">
+        {/* Mouse-only: the overlay button above is the keyboard target, so
+            duplicating it here would put two stops on one card. */}
+        <div className="px-1" onClick={open}>
           <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
             {album.title}
           </div>
@@ -2231,14 +2250,77 @@ function AlbumGrid({
   );
 }
 
+/**
+ * An artist's picture, from whichever source the row came from.
+ *
+ * Its own component because it holds a hook: `renderArtistTile` is a plain
+ * function called in a loop, and a hook cannot live there. Calling
+ * `useRemoteArtworkSrc` unconditionally — with `null` for a local artist — is
+ * what keeps the rule satisfied while both paths share one tile.
+ *
+ * The load handlers are forwarded to `FadeInImage`, so a cover evicted between
+ * being resolved and being painted is invalidated and fetched again here just
+ * as it is in `RemoteArtwork`. They are inert on the local path, which has no
+ * cache to invalidate.
+ */
+function ArtistAvatar({ artist }: { artist: LibraryArtistRow }) {
+  const { src: remoteSrc, onError, onLoad } = useRemoteArtworkSrc(
+    artist.artwork_hash,
+  );
+  // Use the full-resolution source so HiDPI screens render the avatar crisp at
+  // any column width — same trade-off documented on `AlbumGrid`'s Artwork
+  // usage. The 128 px 2x thumbnail upscaled soft on the 180–220 px tiles.
+  const localSrc = resolveArtwork(
+    {
+      full: artist.artwork_path ?? artist.picture_path,
+      x1: artist.artwork_path_1x ?? artist.picture_path_1x,
+      x2: artist.artwork_path_2x ?? artist.picture_path_2x,
+      remoteUrl: artist.picture_url,
+    },
+    "full",
+  );
+  const src = artist.artwork_hash ? remoteSrc : localSrc;
+  const initial = artist.name.trim().charAt(0).toUpperCase() || "?";
+
+  if (!src) {
+    return (
+      <div className="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 flex items-center justify-center overflow-hidden shadow-sm group-hover:shadow-md transition-shadow">
+        <span className="text-5xl font-bold text-violet-500/70 dark:text-violet-400/60">
+          {initial}
+        </span>
+      </div>
+    );
+  }
+  return (
+    <FadeInImage
+      src={src}
+      alt={artist.name}
+      // No violet border here on purpose — `rounded-full` + a 1 px violet
+      // border draws around the image clip, which reads as a visible halo on
+      // dark portraits (#106). The placeholder bg gradient is fine because
+      // `object-cover` fully covers it once the image decodes.
+      wrapperClassName="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 shadow-sm group-hover:shadow-md transition-shadow"
+      onError={onError}
+      onLoad={onLoad}
+      placeholder={
+        <span className="text-5xl font-bold text-violet-500/70 dark:text-violet-400/60">
+          {initial}
+        </span>
+      }
+    />
+  );
+}
+
 interface ArtistListProps {
-  artists: ArtistRow[];
+  artists: LibraryArtistRow[];
   isLoading: boolean;
   t: Translator;
   playlists: Playlist[];
   onAddToPlaylist: (playlistId: number, artistId: number) => void;
   onCreatePlaylist: (artistId: number) => void;
   onArtistClick: (artistId: number) => void;
+  /** A server artist has no local rowid and none of the gestures above. */
+  onRemoteArtistClick: (remoteArtistId: string) => void;
   /**
    * Mutable ref the grid populates with a `(idx) => void` callback that
    * scrolls a specific artist into view. Used by the alphabet jump
@@ -2256,6 +2338,7 @@ function ArtistList({
   onAddToPlaylist,
   onCreatePlaylist,
   onArtistClick,
+  onRemoteArtistClick,
   scrollToIndexRef,
 }: ArtistListProps) {
   "use no memo";
@@ -2356,65 +2439,54 @@ function ArtistList({
     };
   }, [openMenuArtistId]);
 
-  const renderArtistTile = (artist: ArtistRow, idx: number) => {
-    const isMenuOpen = openMenuArtistId === artist.id;
-    // Use the full-resolution source so HiDPI screens render the
-    // avatar crisp at any column width — same trade-off documented on
-    // `AlbumGrid`'s Artwork usage. The 128 px 2x thumbnail upscaled
-    // soft on the 180–220 px artist tiles users actually see.
-    const artistPictureSrc = resolveArtwork(
-      {
-        full: artist.artwork_path ?? artist.picture_path,
-        x1: artist.artwork_path_1x ?? artist.picture_path_1x,
-        x2: artist.artwork_path_2x ?? artist.picture_path_2x,
-        remoteUrl: artist.picture_url,
-      },
-      "full",
-    );
+  const renderArtistTile = (artist: LibraryArtistRow, idx: number) => {
+    // A server artist has a UUID and none of the local gestures; see
+    // `renderAlbumCard` for why the numeric id is computed rather than
+    // coerced.
+    const remote = artist.source === "remote";
+    const localId = remote ? null : Number(artist.id);
+    const isMenuOpen = localId !== null && openMenuArtistId === localId;
+    const open = () =>
+      localId !== null
+        ? onArtistClick(localId)
+        : onRemoteArtistClick(artist.id);
     return (
       <div
-        key={artist.id}
+        key={`${artist.source}:${artist.id}`}
         data-artist-index={idx}
-        onClick={() => onArtistClick(artist.id)}
         className="group flex flex-col items-center space-y-3 cursor-pointer relative"
       >
         <div className="relative w-full">
-          {artistPictureSrc ? (
-            <FadeInImage
-              src={artistPictureSrc}
-              alt={artist.name}
-              // No violet border here on purpose — `rounded-full` + a
-              // 1 px violet border draws around the image clip, which
-              // reads as a visible halo on dark portraits (#106).
-              // The placeholder bg gradient is fine because `object-cover`
-              // fully covers it once the image decodes.
-              wrapperClassName="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 shadow-sm group-hover:shadow-md transition-shadow"
-              placeholder={
-                <span className="text-5xl font-bold text-violet-500/70 dark:text-violet-400/60">
-                  {artist.name.trim().charAt(0).toUpperCase() || "?"}
-                </span>
-              }
-            />
-          ) : (
-            <div className="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 flex items-center justify-center overflow-hidden shadow-sm group-hover:shadow-md transition-shadow">
-              <span className="text-5xl font-bold text-violet-500/70 dark:text-violet-400/60">
-                {artist.name.trim().charAt(0).toUpperCase() || "?"}
-              </span>
-            </div>
+          <ArtistAvatar artist={artist} />
+          {/* Same chip as the album grid: one list, every tile says where it
+              comes from. */}
+          {remote && (
+            <span className="absolute top-1 right-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-black/60 text-white backdrop-blur-sm">
+              {t("library.source.remote")}
+            </span>
           )}
+          {/* See `renderAlbumCard`: a real button rather than a role on the
+              tile, so the "+" below keeps its own semantics. */}
+          <button
+            type="button"
+            onClick={open}
+            aria-label={t("library.open", { name: artist.name })}
+            className="absolute inset-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
+          />
+          {localId !== null && (
           <button
             type="button"
             data-add-to-playlist-trigger
             ref={(el) => {
-              if (el) triggerRefs.current.set(artist.id, el);
-              else triggerRefs.current.delete(artist.id);
+              if (el) triggerRefs.current.set(localId, el);
+              else triggerRefs.current.delete(localId);
             }}
             onClick={(e) => {
               e.stopPropagation();
-              setOpenMenuArtistId(isMenuOpen ? null : artist.id);
+              setOpenMenuArtistId(isMenuOpen ? null : localId);
             }}
             aria-label={t("trackActions.addToPlaylist")}
-            className={`absolute bottom-1 right-1 p-1.5 rounded-full shadow-sm transition-all ${
+            className={`absolute bottom-1 right-1 p-1.5 rounded-full shadow-sm transition-all focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${
               isMenuOpen
                 ? "opacity-100 bg-emerald-500 text-white"
                 : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
@@ -2422,8 +2494,11 @@ function ArtistList({
           >
             <Plus size={16} />
           </button>
+          )}
         </div>
-        <div className="text-center px-1 w-full">
+        {/* Mouse-only, like the album card: the overlay above is the
+            keyboard target. */}
+        <div className="text-center px-1 w-full" onClick={open}>
           <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
             {artist.name}
           </div>
@@ -2436,18 +2511,18 @@ function ArtistList({
               : ""}
           </div>
         </div>
-        {isMenuOpen && (
+        {isMenuOpen && localId !== null && (
           <AddToPlaylistPopover
             playlists={playlists}
-            trackId={artist.id}
-            anchorEl={triggerRefs.current.get(artist.id) ?? null}
+            trackId={localId}
+            anchorEl={triggerRefs.current.get(localId) ?? null}
             onPick={(playlistId) => {
-              onAddToPlaylist(playlistId, artist.id);
+              onAddToPlaylist(playlistId, localId);
               setOpenMenuArtistId(null);
             }}
             onCreate={() => {
               setOpenMenuArtistId(null);
-              onCreatePlaylist(artist.id);
+              onCreatePlaylist(localId);
             }}
             t={t}
           />
@@ -2471,7 +2546,8 @@ function ArtistList({
         // Same stacking fix as TrackTable / AlbumGrid: bump the row that
         // owns the open `+` popover above the rows rendered after it.
         const rowHasOpenMenu = rowItems.some(
-          (artist) => artist.id === openMenuArtistId,
+          (artist) =>
+            artist.source === "local" && Number(artist.id) === openMenuArtistId,
         );
         return (
           <div

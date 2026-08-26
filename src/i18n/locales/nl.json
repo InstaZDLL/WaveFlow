@@ -382,8 +382,8 @@
         "title": "Geen mappen geïmporteerd",
         "description": "Importeer een map vanuit de actiebalk om die hier te bekijken."
       },
-      "albumsFiltered": {
-        "description": "Geen albums uit deze bron. Wissel hierboven van bron of kopieer de servercatalogus via de instellingen."
+      "sourceFiltered": {
+        "description": "Niets uit deze bron. Wissel hierboven van bron of kopieer de servercatalogus via de instellingen."
       }
     },
     "actions": {
@@ -468,7 +468,8 @@
       "all": "Alles",
       "local": "Dit apparaat",
       "remote": "Server"
-    }
+    },
+    "open": "{{name}} openen"
   },
   "liked": {
     "badge": "Verzameling",

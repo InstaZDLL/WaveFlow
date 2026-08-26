@@ -471,35 +471,13 @@ fn library_album_order_clause(order_by: Option<&str>, direction: Option<&str>) -
     }
 }
 
-/// Every album the library can show, from the device and from the bound
-/// server, as one sorted list.
+/// Both halves of the album listing, as one compound select.
 ///
-/// The two halves are **not** merged: an album held both locally and on the
-/// server appears twice, tagged twice, which is what RFC-005 decision 1 says
-/// and what the source chip explains. Unifying the navigation is not
-/// deduplicating the catalogue.
-///
-/// `source` filters the list to one half; `None` means both. The remote half
-/// comes from the mirrored catalogue, so it is exactly as complete as the
-/// last walk left it — and empty, at no cost, on a build without `sync_v2`.
-#[tauri::command]
-pub async fn list_library_albums(
-    state: tauri::State<'_, AppState>,
-    library_id: Option<i64>,
-    source: Option<String>,
-    order_by: Option<String>,
-    direction: Option<String>,
-) -> AppResult<ListLibraryAlbumsResponse> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
-    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
-
-    let order_clause = library_album_order_clause(order_by.as_deref(), direction.as_deref());
-
-    // The sort keys are projected rather than computed in the ORDER BY: the
-    // two halves spell them differently (`canonical_title` against
-    // `sort_name`) and only the aliases exist outside the union.
-    let sql = format!(
+/// Split out of the command so the SQL can be exercised on its own: the
+/// command needs an `AppState`, the query needs only a database, and the query
+/// is the part that can be wrong.
+fn library_albums_sql(order_clause: &str) -> String {
+    format!(
         r#"
         SELECT source, id, title, artist_name, year, track_count, total_duration_ms,
                artwork_hash, artwork_format, max_bit_depth, max_sample_rate
@@ -550,7 +528,38 @@ pub async fn list_library_albums(
          WHERE (? IS NULL OR source = ?)
          {order_clause}
 "#
-    );
+    )
+}
+
+/// Every album the library can show, from the device and from the bound
+/// server, as one sorted list.
+///
+/// The two halves are **not** merged: an album held both locally and on the
+/// server appears twice, tagged twice, which is what RFC-005 decision 1 says
+/// and what the source chip explains. Unifying the navigation is not
+/// deduplicating the catalogue.
+///
+/// `source` filters the list to one half; `None` means both. The remote half
+/// comes from the mirrored catalogue, so it is exactly as complete as the
+/// last walk left it — and empty, at no cost, on a build without `sync_v2`.
+#[tauri::command]
+pub async fn list_library_albums(
+    state: tauri::State<'_, AppState>,
+    library_id: Option<i64>,
+    source: Option<String>,
+    order_by: Option<String>,
+    direction: Option<String>,
+) -> AppResult<ListLibraryAlbumsResponse> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+
+    let order_clause = library_album_order_clause(order_by.as_deref(), direction.as_deref());
+
+    // The sort keys are projected rather than computed in the ORDER BY: the
+    // two halves spell them differently (`canonical_title` against
+    // `sort_name`) and only the aliases exist outside the union.
+    let sql = library_albums_sql(order_clause);
 
     let raw = sqlx::query_as::<_, LibraryAlbumRawRow>(sqlx::AssertSqlSafe(sql))
         .bind(library_id)
@@ -610,6 +619,215 @@ async fn expand_library_album_rows(
     })
     .await
     .map_err(|e| AppError::Other(format!("library album row expand join: {e}")))
+}
+
+/// One artist of the library, whichever source they come from. Same shape
+/// contract as [`LibraryAlbumRow`]: text identifier, `source` says how to read
+/// it.
+#[derive(Debug, Clone, Serialize)]
+pub struct LibraryArtistRow {
+    pub source: String,
+    pub id: String,
+    pub name: String,
+    pub track_count: i64,
+    pub album_count: i64,
+    pub artwork_hash: Option<String>,
+    pub artwork_format: Option<String>,
+    pub artwork_has_1x: bool,
+    pub artwork_has_2x: bool,
+    pub picture_hash: Option<String>,
+    pub picture_has_1x: bool,
+    pub picture_has_2x: bool,
+    pub picture_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ListLibraryArtistsResponse {
+    pub artwork_base: String,
+    pub metadata_artwork_base: String,
+    pub items: Vec<LibraryArtistRow>,
+}
+
+#[derive(sqlx::FromRow)]
+struct LibraryArtistRawRow {
+    source: String,
+    id: String,
+    name: String,
+    track_count: i64,
+    album_count: i64,
+    artwork_hash: Option<String>,
+    artwork_format: Option<String>,
+    picture_url: Option<String>,
+    picture_hash: Option<String>,
+}
+
+/// Ordering for the unified artist listing — on the union's own columns, for
+/// the reason spelled out on [`library_album_order_clause`].
+fn library_artist_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'static str {
+    let dir_default_desc = matches!(order_by, Some("albums_count") | Some("tracks_count"));
+    let dir = match direction {
+        Some(d) if d.eq_ignore_ascii_case("asc") => "ASC",
+        Some(d) if d.eq_ignore_ascii_case("desc") => "DESC",
+        _ => {
+            if dir_default_desc {
+                "DESC"
+            } else {
+                "ASC"
+            }
+        }
+    };
+    match (order_by, dir) {
+        (Some("name"), "ASC") => "ORDER BY sort_name COLLATE NOCASE ASC",
+        (Some("name"), "DESC") => "ORDER BY sort_name COLLATE NOCASE DESC",
+        (Some("albums_count"), "ASC") => "ORDER BY album_count ASC, sort_name COLLATE NOCASE",
+        (Some("albums_count"), "DESC") => "ORDER BY album_count DESC, sort_name COLLATE NOCASE",
+        (Some("tracks_count"), "ASC") => "ORDER BY track_count ASC, sort_name COLLATE NOCASE",
+        (Some("tracks_count"), "DESC") => "ORDER BY track_count DESC, sort_name COLLATE NOCASE",
+        _ => "ORDER BY sort_name COLLATE NOCASE",
+    }
+}
+
+/// Both halves of the artist listing, as one compound select.
+///
+/// Split out of the command so the SQL can be exercised on its own: the
+/// command needs an `AppState`, the query needs only a database, and the query
+/// is the part that can be wrong.
+fn library_artists_sql(order_clause: &str) -> String {
+    format!(
+        r#"
+        SELECT source, id, name, track_count, album_count,
+               artwork_hash, artwork_format, picture_url, picture_hash
+          FROM (
+            SELECT 'local'                     AS source,
+                   CAST(ar.id AS TEXT)         AS id,
+                   ar.name                     AS name,
+                   COUNT(DISTINCT t.id)        AS track_count,
+                   COUNT(DISTINCT t.album_id)  AS album_count,
+                   aw.hash                     AS artwork_hash,
+                   aw.format                   AS artwork_format,
+                   da.picture_url              AS picture_url,
+                   da.picture_hash             AS picture_hash,
+                   ar.canonical_name           AS sort_name
+              FROM artist ar
+              JOIN track_artist ta ON ta.artist_id = ar.id
+              JOIN track t         ON t.id = ta.track_id
+              LEFT JOIN artwork aw ON aw.id = ar.artwork_id
+              LEFT JOIN app.metadata_artist da ON da.deezer_id = ar.deezer_id
+             WHERE (? IS NULL OR t.library_id = ?)
+               AND t.is_available = 1
+             GROUP BY ar.id
+            UNION ALL
+            SELECT 'remote',
+                   ra.remote_id,
+                   ra.name,
+                   (SELECT count(*) FROM remote_track rt
+                     WHERE rt.artist_id = ra.remote_id AND rt.in_catalogue = 1),
+                   (SELECT count(*) FROM remote_album al
+                     WHERE al.artist_id = ra.remote_id),
+                   ra.artwork_hash,
+                   NULL,
+                   NULL,
+                   NULL,
+                   COALESCE(ra.sort_key, ra.name)
+              FROM remote_artist ra
+             -- A local library filter is a filter over local libraries; see
+             -- `list_library_albums`.
+             WHERE ? IS NULL
+          )
+         WHERE (? IS NULL OR source = ?)
+         {order_clause}
+"#
+    )
+}
+
+/// Every artist the library can show, from the device and from the bound
+/// server, as one sorted list.
+///
+/// Not merged, on the same terms as the albums: an artist credited on both
+/// sides appears twice. The remote half comes from the mirrored catalogue, and
+/// its counts are derived from the albums and tracks already mirrored rather
+/// than stored — a stored count would go stale the moment an album is walked.
+#[tauri::command]
+pub async fn list_library_artists(
+    state: tauri::State<'_, AppState>,
+    library_id: Option<i64>,
+    source: Option<String>,
+    order_by: Option<String>,
+    direction: Option<String>,
+) -> AppResult<ListLibraryArtistsResponse> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    let metadata_dir = state.paths.metadata_artwork_dir.clone();
+
+    let order_clause = library_artist_order_clause(order_by.as_deref(), direction.as_deref());
+
+    let sql = library_artists_sql(order_clause);
+
+    let raw = sqlx::query_as::<_, LibraryArtistRawRow>(sqlx::AssertSqlSafe(sql))
+        .bind(library_id)
+        .bind(library_id)
+        .bind(library_id)
+        .bind(source.as_deref())
+        .bind(source.as_deref())
+        .fetch_all(&*pool)
+        .await?;
+
+    let items = expand_library_artist_rows(raw, artwork_dir.clone(), metadata_dir.clone()).await?;
+
+    Ok(ListLibraryArtistsResponse {
+        artwork_base: artwork_dir.to_string_lossy().into_owned(),
+        metadata_artwork_base: metadata_dir.to_string_lossy().into_owned(),
+        items,
+    })
+}
+
+/// Stitch thumbnail-existence flags onto the local half only — a remote hash
+/// names nothing in either local directory. See
+/// [`expand_library_album_rows`].
+async fn expand_library_artist_rows(
+    raw: Vec<LibraryArtistRawRow>,
+    artwork_dir: PathBuf,
+    metadata_dir: PathBuf,
+) -> AppResult<Vec<LibraryArtistRow>> {
+    tokio::task::spawn_blocking(move || {
+        raw.into_iter()
+            .map(|r| {
+                let local = r.source == "local";
+                let (artwork_has_1x, artwork_has_2x) = match r.artwork_hash.as_deref() {
+                    Some(hash) if local => {
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        (p1.is_some(), p2.is_some())
+                    }
+                    _ => (false, false),
+                };
+                let (picture_has_1x, picture_has_2x) = match r.picture_hash.as_deref() {
+                    Some(hash) if local => {
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&metadata_dir, hash);
+                        (p1.is_some(), p2.is_some())
+                    }
+                    _ => (false, false),
+                };
+                LibraryArtistRow {
+                    source: r.source,
+                    id: r.id,
+                    name: r.name,
+                    track_count: r.track_count,
+                    album_count: r.album_count,
+                    artwork_hash: r.artwork_hash,
+                    artwork_format: r.artwork_format,
+                    artwork_has_1x,
+                    artwork_has_2x,
+                    picture_hash: r.picture_hash,
+                    picture_has_1x,
+                    picture_has_2x,
+                    picture_url: r.picture_url,
+                }
+            })
+            .collect()
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("library artist row expand join: {e}")))
 }
 
 /// List every primary artist that has at least one available track in the
@@ -2033,4 +2251,239 @@ pub async fn play_history_months(
         });
     }
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+    use sqlx::{Row, SqlitePool};
+    use std::str::FromStr;
+
+    /// The real migrator against a real database, `foreign_keys` on — the only
+    /// fixture that proves a compound select over fourteen tables actually
+    /// runs. The unified listings join the attached `app` database too, so the
+    /// fixture attaches one and creates the single table they read.
+    async fn pool() -> SqlitePool {
+        let options = SqliteConnectOptions::from_str(":memory:")
+            .unwrap()
+            .foreign_keys(true);
+        let pool = SqlitePoolOptions::new()
+            // One connection: `ATTACH` is per-connection, and a second one
+            // would not see the attached database.
+            .max_connections(1)
+            .connect_with(options)
+            .await
+            .unwrap();
+        sqlx::migrate!("../../migrations/profile")
+            .run(&pool)
+            .await
+            .unwrap();
+        sqlx::raw_sql("ATTACH DATABASE ':memory:' AS app")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::raw_sql(
+            "CREATE TABLE app.metadata_artist (
+                deezer_id    INTEGER PRIMARY KEY,
+                picture_url  TEXT,
+                picture_hash TEXT
+             )",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        pool
+    }
+
+    /// One local artist with one album and one track, and one server artist
+    /// with one album and two tracks. The two artists share a name that only
+    /// the normaliser makes comparable.
+    async fn seed(pool: &SqlitePool) {
+        for statement in [
+            "INSERT INTO library (id, name, color_id, icon_id, created_at, updated_at,
+                                  hlc_wall, hlc_logical)
+             VALUES (1, 'L', 1, 1, 0, 0, 0, 0)",
+            "INSERT INTO artist (id, name, canonical_name) VALUES (1, 'Björk', 'bjork')",
+            "INSERT INTO album (id, title, canonical_title, artist_id, year, is_compilation)
+             VALUES (1, 'Vespertine', 'vespertine', 1, 2001, 0)",
+            "INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
+                                title, album_id, duration_ms, added_at, is_available,
+                                hlc_wall, hlc_logical, rating_hlc_wall, rating_hlc_logical)
+             VALUES (1, 1, '/m/1.flac', 'h1', 1, 0, 'T1', 1, 300000, 500, 1, 0, 0, 0, 0)",
+            "INSERT INTO track_artist (track_id, artist_id, position) VALUES (1, 1, 0)",
+            "INSERT INTO remote_artist (remote_id, name, artwork_hash, sort_key, mirrored_at)
+             VALUES ('ar-1', 'Aphex Twin', 'aa11', 'aphex twin', 1)",
+            "INSERT INTO remote_album (remote_id, title, artist, artist_id, song_count,
+                                       duration_ms, created_at, sort_title, sort_artist)
+             VALUES ('al-1', 'Drukqs', 'Aphex Twin', 'ar-1', 2, 1000, 100, 'drukqs',
+                     'aphex twin')",
+            "INSERT INTO remote_track (remote_id, title, artist_id, duration_ms, cached_at,
+                                       in_catalogue)
+             VALUES ('t-1', 'R1', 'ar-1', 0, 1, 1)",
+            "INSERT INTO remote_track (remote_id, title, artist_id, duration_ms, cached_at,
+                                       in_catalogue)
+             VALUES ('t-2', 'R2', 'ar-1', 0, 1, 1)",
+        ] {
+            sqlx::raw_sql(statement).execute(pool).await.unwrap();
+        }
+    }
+
+    async fn albums(
+        pool: &SqlitePool,
+        library_id: Option<i64>,
+        source: Option<&str>,
+        order: &str,
+    ) -> Vec<(String, String)> {
+        sqlx::query(sqlx::AssertSqlSafe(library_albums_sql(order)))
+            .bind(library_id)
+            .bind(library_id)
+            .bind(library_id)
+            .bind(source)
+            .bind(source)
+            .fetch_all(pool)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|row| (row.get("source"), row.get("title")))
+            .collect()
+    }
+
+    async fn artists(
+        pool: &SqlitePool,
+        library_id: Option<i64>,
+        source: Option<&str>,
+        order: &str,
+    ) -> Vec<(String, String, i64, i64)> {
+        sqlx::query(sqlx::AssertSqlSafe(library_artists_sql(order)))
+            .bind(library_id)
+            .bind(library_id)
+            .bind(library_id)
+            .bind(source)
+            .bind(source)
+            .fetch_all(pool)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|row| {
+                (
+                    row.get("source"),
+                    row.get("name"),
+                    row.get("track_count"),
+                    row.get("album_count"),
+                )
+            })
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn the_album_listing_sorts_both_halves_against_each_other() {
+        let pool = pool().await;
+        seed(&pool).await;
+
+        let by_artist = albums(&pool, None, None, library_album_order_clause(None, None)).await;
+        // "aphex twin" before "bjork": the remote half's normalised key sorts
+        // against the local half's canonical one, which is the whole point.
+        assert_eq!(
+            by_artist,
+            vec![
+                ("remote".into(), "Drukqs".into()),
+                ("local".into(), "Vespertine".into()),
+            ]
+        );
+
+        let by_title_desc = albums(
+            &pool,
+            None,
+            None,
+            library_album_order_clause(Some("title"), Some("desc")),
+        )
+        .await;
+        assert_eq!(
+            by_title_desc.first().map(|row| row.1.as_str()),
+            Some("Vespertine")
+        );
+    }
+
+    #[tokio::test]
+    async fn the_source_filter_returns_one_half_only() {
+        let pool = pool().await;
+        seed(&pool).await;
+        let order = library_album_order_clause(None, None);
+
+        assert_eq!(
+            albums(&pool, None, Some("local"), order).await,
+            vec![("local".to_string(), "Vespertine".to_string())]
+        );
+        assert_eq!(
+            albums(&pool, None, Some("remote"), order).await,
+            vec![("remote".to_string(), "Drukqs".to_string())]
+        );
+    }
+
+    /// The picker chooses among *local* libraries, and a server album belongs
+    /// to none of them.
+    #[tokio::test]
+    async fn a_local_library_filter_excludes_the_remote_half() {
+        let pool = pool().await;
+        seed(&pool).await;
+        let order = library_album_order_clause(None, None);
+
+        assert_eq!(
+            albums(&pool, Some(1), None, order).await,
+            vec![("local".to_string(), "Vespertine".to_string())]
+        );
+        // A library that holds nothing leaves nothing, rather than falling
+        // back to the remote half.
+        assert!(albums(&pool, Some(99), None, order).await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn the_artist_listing_sorts_and_derives_its_counts() {
+        let pool = pool().await;
+        seed(&pool).await;
+
+        let rows = artists(&pool, None, None, library_artist_order_clause(None, None)).await;
+        assert_eq!(
+            rows,
+            vec![
+                // Two mirrored tracks and one mirrored album, counted from the
+                // rows the mirror holds rather than from a stored total.
+                ("remote".to_string(), "Aphex Twin".to_string(), 2, 1),
+                ("local".to_string(), "Björk".to_string(), 1, 1),
+            ]
+        );
+
+        let by_tracks = artists(
+            &pool,
+            None,
+            None,
+            library_artist_order_clause(Some("tracks_count"), Some("desc")),
+        )
+        .await;
+        assert_eq!(
+            by_tracks.first().map(|row| row.1.as_str()),
+            Some("Aphex Twin")
+        );
+    }
+
+    #[tokio::test]
+    async fn the_artist_filters_behave_like_the_album_ones() {
+        let pool = pool().await;
+        seed(&pool).await;
+        let order = library_artist_order_clause(None, None);
+
+        let local = artists(&pool, None, Some("local"), order).await;
+        assert_eq!(local.len(), 1);
+        assert_eq!(local[0].0, "local");
+
+        let remote = artists(&pool, None, Some("remote"), order).await;
+        assert_eq!(remote.len(), 1);
+        assert_eq!(remote[0].0, "remote");
+
+        // A local library filter drops the remote half here too.
+        let scoped = artists(&pool, Some(1), None, order).await;
+        assert_eq!(scoped.len(), 1);
+        assert_eq!(scoped[0].0, "local");
+    }
 }

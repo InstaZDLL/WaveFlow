@@ -382,8 +382,8 @@
         "title": "Nessuna cartella importata",
         "description": "Importa una cartella dalla barra degli strumenti per sfogliarla qui."
       },
-      "albumsFiltered": {
-        "description": "Nessun album da questa sorgente. Cambia sorgente qui sopra o copia il catalogo del server dalle impostazioni."
+      "sourceFiltered": {
+        "description": "Nulla da questa sorgente. Cambia sorgente qui sopra o copia il catalogo del server dalle impostazioni."
       }
     },
     "actions": {
@@ -468,7 +468,8 @@
       "all": "Tutto",
       "local": "Questo dispositivo",
       "remote": "Server"
-    }
+    },
+    "open": "Apri {{name}}"
   },
   "liked": {
     "badge": "Raccolta",
