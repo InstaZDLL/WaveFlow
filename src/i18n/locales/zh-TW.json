@@ -459,6 +459,12 @@
       "meta_zero": "0 首 · {{duration}}",
       "meta_one": "{{count}} 首 · {{duration}}",
       "meta_other": "{{count}} 首 · {{duration}}"
+    },
+    "source": {
+      "label": "來源",
+      "all": "全部",
+      "local": "本機",
+      "remote": "伺服器"
     }
   },
   "liked": {

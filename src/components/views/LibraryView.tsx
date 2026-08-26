@@ -36,6 +36,12 @@ import {
 import { useTranslation } from "react-i18next";
 import type { LibraryTab } from "../../types";
 import { Tab } from "../common/Tab";
+import { RemoteArtwork } from "../common/RemoteArtwork";
+import { useRemoteSource } from "../../hooks/useRemoteSource";
+import {
+  useLibrarySource,
+  type LibrarySourceFilter,
+} from "../../hooks/useLibrarySource";
 import { EmptyState } from "../common/EmptyState";
 import { Artwork } from "../common/Artwork";
 import { AlbumLink } from "../common/AlbumLink";
@@ -81,11 +87,11 @@ import {
   type Track,
 } from "../../lib/tauri/track";
 import {
-  listAlbums,
   listArtists,
   listGenres,
   listFolders,
-  type AlbumRow,
+  type LibraryAlbumRow,
+  listLibraryAlbums,
   type ArtistRow,
   type GenreRow,
   type FolderRow,
@@ -98,6 +104,9 @@ interface LibraryViewProps {
   activeTab: LibraryTab;
   setActiveTab: (tab: LibraryTab) => void;
   onNavigateToAlbum: (albumId: number) => void;
+  /** A server album opens the remote detail view; the two catalogues are
+   *  never merged, so they are never the same page. */
+  onNavigateToRemoteAlbum: (remoteAlbumId: string) => void;
   onNavigateToArtist: (artistId: number) => void;
   onNavigateToGenre: (genreId: number) => void;
   onNavigateToPlaylist: (playlistId: number) => void;
@@ -136,6 +145,7 @@ export function LibraryView({
   activeTab,
   setActiveTab,
   onNavigateToAlbum,
+  onNavigateToRemoteAlbum,
   onNavigateToArtist,
   onNavigateToGenre,
   onNavigateToPlaylist,
@@ -192,7 +202,8 @@ export function LibraryView({
   );
   const [coverReloadKey, setCoverReloadKey] = useState(0);
   const [tracks, setTracks] = useState<Track[]>([]);
-  const [albums, setAlbums] = useState<AlbumRow[]>([]);
+  const [albums, setAlbums] = useState<LibraryAlbumRow[]>([]);
+  const librarySource = useLibrarySource();
   const [artists, setArtists] = useState<ArtistRow[]>([]);
   const [genres, setGenres] = useState<GenreRow[]>([]);
   const [folders, setFolders] = useState<FolderRow[]>([]);
@@ -325,19 +336,27 @@ export function LibraryView({
   }, [librariesSignature, tracksSort.isLoaded, tracksSort.sort, editRefetch]);
 
   useEffect(() => {
-    if (!albumsSort.isLoaded) return;
+    // Both preferences gate the fetch: loading with either default and again
+    // with the stored value would paint the wrong list first, and the source
+    // filter is the more visible of the two to get wrong.
+    if (!albumsSort.isLoaded || !librarySource.ready) return;
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading((p) => ({ ...p, albums: true }));
-    listAlbums(null, {
-      orderBy: albumsSort.sort.orderBy,
-      direction: albumsSort.sort.direction,
-    })
+    listLibraryAlbums(
+      null,
+      librarySource.source === "all" ? null : librarySource.source,
+      {
+        orderBy: albumsSort.sort.orderBy,
+        direction: albumsSort.sort.direction,
+      },
+    )
       .then((list) => {
         if (!cancelled) setAlbums(list);
       })
       .catch((err) => {
-        if (!cancelled) console.error("[LibraryView] listAlbums failed", err);
+        if (!cancelled)
+          console.error("[LibraryView] listLibraryAlbums failed", err);
       })
       .finally(() => {
         if (!cancelled) setLoading((p) => ({ ...p, albums: false }));
@@ -349,6 +368,8 @@ export function LibraryView({
     librariesSignature,
     albumsSort.isLoaded,
     albumsSort.sort,
+    librarySource.ready,
+    librarySource.source,
     coverReloadKey,
     editRefetch,
   ]);
@@ -796,6 +817,11 @@ export function LibraryView({
           {activeTab === "albums" && (
             <>
               <div className="flex items-center justify-end space-x-3 -mt-4">
+                <SourceFilter
+                  current={librarySource.source}
+                  onChange={librarySource.setSource}
+                  t={t}
+                />
                 <SortDropdown
                   options={albumSortOptions(t)}
                   current={albumsSort.sort}
@@ -816,6 +842,7 @@ export function LibraryView({
                   setIsCreatePlaylistModalOpen(true);
                 }}
                 onAlbumClick={onNavigateToAlbum}
+                onRemoteAlbumClick={onNavigateToRemoteAlbum}
                 onChangeCover={(albumId) => setCoverPickerAlbumId(albumId)}
               />
             </>
@@ -997,7 +1024,13 @@ export function LibraryView({
         <CoverPickerModal
           albumId={coverPickerAlbumId}
           initialQuery={(() => {
-            const a = albums.find((al) => al.id === coverPickerAlbumId);
+            // Only a local album has a cover picker, and only a local id is
+            // a rowid — matching on the text id alone would find a server
+            // album whose UUID happened to read as a number.
+            const a = albums.find(
+              (al) =>
+                al.source === "local" && Number(al.id) === coverPickerAlbumId,
+            );
             if (!a) return "";
             return a.artist_name ? `${a.title} ${a.artist_name}` : a.title;
           })()}
@@ -1071,6 +1104,56 @@ interface SortDropdownProps {
   current: { orderBy: string; direction: "asc" | "desc" };
   onChange: (next: { orderBy: string; direction: "asc" | "desc" }) => void;
   t: Translator;
+}
+
+interface SourceFilterProps {
+  current: LibrarySourceFilter;
+  onChange: (next: LibrarySourceFilter) => void;
+  t: Translator;
+}
+
+/**
+ * Which half of the library to show — a filter *inside* the list, which is
+ * the whole difference between a unified library and two tabs.
+ *
+ * Renders nothing when no server is bound: a filter whose second option is
+ * permanently empty is worse than no filter, and most profiles are local-only.
+ */
+function SourceFilter({ current, onChange, t }: SourceFilterProps) {
+  const remote = useRemoteSource();
+  if (!remote.available) return null;
+
+  const options: { id: LibrarySourceFilter; label: string }[] = [
+    { id: "all", label: t("library.source.all") },
+    { id: "local", label: t("library.source.local") },
+    // The server's own name when we know it — "Serveur" is what it is, but
+    // the name is what the user recognises.
+    { id: "remote", label: remote.serverName ?? t("library.source.remote") },
+  ];
+
+  return (
+    <div
+      role="group"
+      aria-label={t("library.source.label")}
+      className="inline-flex items-center rounded-lg border border-zinc-200 dark:border-zinc-700 p-0.5 text-xs"
+    >
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          onClick={() => onChange(option.id)}
+          aria-pressed={current === option.id}
+          className={`px-2.5 py-1 rounded-md transition-colors max-w-40 truncate ${
+            current === option.id
+              ? "bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-medium"
+              : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function SortDropdown({ options, current, onChange, t }: SortDropdownProps) {
@@ -1784,13 +1867,16 @@ function AddToPlaylistPopover({
 }
 
 interface AlbumGridProps {
-  albums: AlbumRow[];
+  albums: LibraryAlbumRow[];
   isLoading: boolean;
   t: Translator;
   playlists: Playlist[];
   onAddToPlaylist: (playlistId: number, albumId: number) => void;
   onCreatePlaylist: (albumId: number) => void;
   onAlbumClick: (albumId: number) => void;
+  /** A server album has no local rowid and none of the gestures below —
+   *  no playlist, no cover picker — so it gets its own click path. */
+  onRemoteAlbumClick: (remoteAlbumId: string) => void;
   onChangeCover: (albumId: number) => void;
 }
 
@@ -1802,6 +1888,7 @@ function AlbumGrid({
   onAddToPlaylist,
   onCreatePlaylist,
   onAlbumClick,
+  onRemoteAlbumClick,
   onChangeCover,
 }: AlbumGridProps) {
   "use no memo";
@@ -1914,16 +2001,25 @@ function AlbumGrid({
     };
   }, [openMenuAlbumId]);
 
-  const renderAlbumCard = (album: AlbumRow) => {
-    const isMenuOpen = openMenuAlbumId === album.id;
+  const renderAlbumCard = (album: LibraryAlbumRow) => {
+    // A server album carries a UUID, not a rowid, and none of the local
+    // gestures apply to it: it is in no local playlist, and its cover lives
+    // on the server. So everything keyed on a numeric id is computed only
+    // for the local half rather than coerced for both.
+    const remote = album.source === "remote";
+    const localId = remote ? null : Number(album.id);
+    const isMenuOpen = localId !== null && openMenuAlbumId === localId;
     return (
       <div
-        key={album.id}
-        onClick={() => onAlbumClick(album.id)}
+        key={`${album.source}:${album.id}`}
+        onClick={() =>
+          localId !== null ? onAlbumClick(localId) : onRemoteAlbumClick(album.id)
+        }
         onContextMenu={(e) => {
+          if (localId === null) return;
           e.preventDefault();
           setContextMenu({
-            albumId: album.id,
+            albumId: localId,
             x: e.clientX,
             y: e.clientY,
           });
@@ -1931,44 +2027,64 @@ function AlbumGrid({
         className="group flex flex-col space-y-2 cursor-pointer relative"
       >
         <div className="relative">
-          <Artwork
-            path={album.artwork_path}
-            path1x={album.artwork_path_1x}
-            path2x={album.artwork_path_2x}
-            // Album grid tile renders ~150-200 px wide; the 128 px
-            // 2x thumbnail upscales soft on a HiDPI display. Source
-            // originals are 600-1500 px square — small enough to
-            // decode instantly and crisp at any tile size.
-            size="full"
-            alt={album.title}
-            className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
-            iconSize={44}
-            rounded="2xl"
-          />
+          {remote ? (
+            <RemoteArtwork
+              hash={album.artwork_hash}
+              className="w-full aspect-square rounded-2xl shadow-sm group-hover:shadow-md transition-shadow"
+              iconSize={44}
+            />
+          ) : (
+            <Artwork
+              path={album.artwork_path}
+              path1x={album.artwork_path_1x}
+              path2x={album.artwork_path_2x}
+              // Album grid tile renders ~150-200 px wide; the 128 px
+              // 2x thumbnail upscales soft on a HiDPI display. Source
+              // originals are 600-1500 px square — small enough to
+              // decode instantly and crisp at any tile size.
+              size="full"
+              alt={album.title}
+              className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
+              iconSize={44}
+              rounded="2xl"
+            />
+          )}
           <HiResBadge
             bitDepth={album.max_bit_depth}
             sampleRate={album.max_sample_rate}
           />
-          <button
-            type="button"
-            data-add-to-playlist-trigger
-            ref={(el) => {
-              if (el) triggerRefs.current.set(album.id, el);
-              else triggerRefs.current.delete(album.id);
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpenMenuAlbumId(isMenuOpen ? null : album.id);
-            }}
-            aria-label={t("trackActions.addToPlaylist")}
-            className={`absolute bottom-2 right-2 p-1.5 rounded-full shadow-sm transition-all ${
-              isMenuOpen
-                ? "opacity-100 bg-emerald-500 text-white"
-                : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
-            }`}
-          >
-            <Plus size={16} />
-          </button>
+          {/* The chip is the whole point of unifying the navigation: one
+              list, and every row says where it comes from. Local rows carry
+              none — the device is the unmarked case. */}
+          {remote && (
+            <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-black/60 text-white backdrop-blur-sm">
+              {t("library.source.remote")}
+            </span>
+          )}
+          {/* Local playlists hold local tracks. Offering the gesture on a
+              server album would open a picker that cannot accept it. */}
+          {localId !== null && (
+            <button
+              type="button"
+              data-add-to-playlist-trigger
+              ref={(el) => {
+                if (el) triggerRefs.current.set(localId, el);
+                else triggerRefs.current.delete(localId);
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpenMenuAlbumId(isMenuOpen ? null : localId);
+              }}
+              aria-label={t("trackActions.addToPlaylist")}
+              className={`absolute bottom-2 right-2 p-1.5 rounded-full shadow-sm transition-all ${
+                isMenuOpen
+                  ? "opacity-100 bg-emerald-500 text-white"
+                  : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
+              }`}
+            >
+              <Plus size={16} />
+            </button>
+          )}
         </div>
         <div className="px-1">
           <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
@@ -1984,18 +2100,18 @@ function AlbumGrid({
             {album.year ? ` · ${album.year}` : ""}
           </div>
         </div>
-        {isMenuOpen && (
+        {isMenuOpen && localId !== null && (
           <AddToPlaylistPopover
             playlists={playlists}
-            trackId={album.id}
-            anchorEl={triggerRefs.current.get(album.id) ?? null}
+            trackId={localId}
+            anchorEl={triggerRefs.current.get(localId) ?? null}
             onPick={(playlistId) => {
-              onAddToPlaylist(playlistId, album.id);
+              onAddToPlaylist(playlistId, localId);
               setOpenMenuAlbumId(null);
             }}
             onCreate={() => {
               setOpenMenuAlbumId(null);
-              onCreatePlaylist(album.id);
+              onCreatePlaylist(localId);
             }}
             t={t}
           />
@@ -2022,7 +2138,8 @@ function AlbumGrid({
           // TrackTable: every virtualized row is `position: absolute`, so
           // a `z-50` inside one card can't escape its row.
           const rowHasOpenMenu = rowItems.some(
-            (album) => album.id === openMenuAlbumId,
+            (album) =>
+              album.source === "local" && Number(album.id) === openMenuAlbumId,
           );
           return (
             <div

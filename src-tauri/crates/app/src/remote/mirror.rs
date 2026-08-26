@@ -48,6 +48,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter};
 
+use waveflow_core::metadata::name_match::normalize_name;
+
 use crate::{
     error::{AppError, AppResult},
     remote::{client::RemoteClient, dto::SongItem},
@@ -463,8 +465,9 @@ async fn upsert_album(conn: &mut sqlx::SqliteConnection, album: &AlbumListItem) 
     sqlx::query(
         "INSERT INTO remote_album
             (remote_id, library_id, title, artist, artist_id, artwork_hash, year,
-             is_compilation, sort_name, song_count, duration_ms, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             is_compilation, sort_name, sort_title, sort_artist, song_count,
+             duration_ms, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(remote_id) DO UPDATE SET
             library_id     = excluded.library_id,
             title          = excluded.title,
@@ -474,6 +477,8 @@ async fn upsert_album(conn: &mut sqlx::SqliteConnection, album: &AlbumListItem) 
             year           = excluded.year,
             is_compilation = excluded.is_compilation,
             sort_name      = excluded.sort_name,
+            sort_title     = excluded.sort_title,
+            sort_artist    = excluded.sort_artist,
             song_count     = excluded.song_count,
             duration_ms    = excluded.duration_ms,
             created_at     = excluded.created_at,
@@ -497,6 +502,16 @@ async fn upsert_album(conn: &mut sqlx::SqliteConnection, album: &AlbumListItem) 
     .bind(album.year)
     .bind(i64::from(album.is_compilation))
     .bind(album.sort_name.as_deref())
+    // The keys the unified listing sorts on. Computed here, with the very
+    // normaliser the local half's `canonical_*` columns went through, because
+    // SQLite cannot fold a diacritic and a list that sorts "Björk" apart from
+    // "bjork" splits one artist in two. The server's own `sort_name` is a
+    // tagged display form ("Beatles, The"), not a comparison key, so it is
+    // preferred as the *input* and normalised rather than used as-is.
+    .bind(normalize_name(
+        album.sort_name.as_deref().unwrap_or(&album.title),
+    ))
+    .bind(album.artist.as_deref().map(normalize_name))
     .bind(album.song_count.max(0))
     .bind(album.duration_ms.max(0))
     .bind(album.created_at)
@@ -799,6 +814,9 @@ mod tests {
             include_str!(
                 "../../../../migrations/profile/20260824210000_remote_catalogue_mirror.sql"
             ),
+            include_str!(
+                "../../../../migrations/profile/20260826090000_remote_album_sort_keys.sql"
+            ),
         ] {
             sqlx::raw_sql(migration).execute(&pool).await.unwrap();
         }
@@ -1041,6 +1059,48 @@ mod tests {
                 .await
                 .unwrap();
         assert_eq!((name.as_str(), mirrored), ("Renamed", Some(42)));
+    }
+
+    /// The unified listing sorts both halves against each other, so the
+    /// remote keys have to go through the same normaliser the local
+    /// `canonical_*` columns did — SQLite cannot fold a diacritic, and a list
+    /// that sorts "Björk" apart from "bjork" splits one artist in two.
+    #[tokio::test]
+    async fn the_sort_keys_are_normalised_like_the_local_ones() {
+        let pool = pool().await;
+        let mut listed = album("al-1", 1);
+        listed.title = "Vespertine".into();
+        listed.artist = Some("Björk".into());
+        upsert(&pool, &listed).await;
+
+        let (sort_title, sort_artist): (Option<String>, Option<String>) = sqlx::query_as(
+            "SELECT sort_title, sort_artist FROM remote_album WHERE remote_id = 'al-1'",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(sort_title.as_deref(), Some("vespertine"));
+        assert_eq!(sort_artist.as_deref(), Some("bjork"));
+    }
+
+    /// The server's `sort_name` is a tagged display form, not a comparison
+    /// key, so it is normalised rather than stored as-is — and it wins over
+    /// the title when present, which is the whole point of a sort tag.
+    #[tokio::test]
+    async fn a_tagged_sort_name_is_the_input_to_the_key_not_the_key() {
+        let pool = pool().await;
+        let mut listed = album("al-2", 1);
+        listed.title = "The Beatles".into();
+        listed.sort_name = Some("Beatles, The".into());
+        upsert(&pool, &listed).await;
+
+        let sort_title: Option<String> =
+            sqlx::query_scalar("SELECT sort_title FROM remote_album WHERE remote_id = 'al-2'")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        // Punctuation dropped, lowercased — the form the local half stores.
+        assert_eq!(sort_title.as_deref(), Some("beatles the"));
     }
 
     /// A library the account lost access to must not keep its sweep date: a

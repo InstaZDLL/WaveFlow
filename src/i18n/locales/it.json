@@ -459,6 +459,12 @@
       "meta_zero": "0 brani · {{duration}}",
       "meta_one": "{{count}} brano · {{duration}}",
       "meta_other": "{{count}} brani · {{duration}}"
+    },
+    "source": {
+      "label": "Sorgente",
+      "all": "Tutto",
+      "local": "Questo dispositivo",
+      "remote": "Server"
     }
   },
   "liked": {

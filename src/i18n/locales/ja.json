@@ -459,6 +459,12 @@
       "meta_zero": "0 曲 · {{duration}}",
       "meta_one": "{{count}} 曲 · {{duration}}",
       "meta_other": "{{count}} 曲 · {{duration}}"
+    },
+    "source": {
+      "label": "ソース",
+      "all": "すべて",
+      "local": "このデバイス",
+      "remote": "サーバー"
     }
   },
   "liked": {

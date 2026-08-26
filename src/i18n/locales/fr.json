@@ -459,6 +459,12 @@
       "meta_zero": "0 titre · {{duration}}",
       "meta_one": "{{count}} titre · {{duration}}",
       "meta_other": "{{count}} titres · {{duration}}"
+    },
+    "source": {
+      "label": "Source",
+      "all": "Tout",
+      "local": "Cet appareil",
+      "remote": "Serveur"
     }
   },
   "liked": {

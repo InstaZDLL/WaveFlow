@@ -253,6 +253,112 @@ export async function listAlbums(
   return resp.items.map((item) => expandAlbumRow(item, resp.artwork_base, sep));
 }
 
+/** Which source a library row comes from. Not decoration: it decides how the
+ *  identifier is read, where the cover comes from, and which detail view a
+ *  click opens. */
+export type LibrarySource = "local" | "remote";
+
+/** An album of the library, from either source.
+ *
+ *  Deliberately not an `AlbumRow`: the two sources do not share an identifier
+ *  type — a local album is a rowid, a server album is a UUID — so the id is
+ *  text here and `source` says how to read it. */
+export interface LibraryAlbumRow {
+  source: LibrarySource;
+  id: string;
+  title: string;
+  artist_name: string | null;
+  year: number | null;
+  track_count: number;
+  total_duration_ms: number;
+  /** Local only: absolute paths stitched from the content hash. A remote
+   *  cover is not a file in this profile's artwork directory. */
+  artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
+  /** Remote only: hand it to `<RemoteArtwork hash={…} />`, which resolves it
+   *  through the server cover cache. */
+  artwork_hash: string | null;
+  max_bit_depth: number | null;
+  max_sample_rate: number | null;
+}
+
+interface LibraryAlbumRowSlim {
+  source: LibrarySource;
+  id: string;
+  title: string;
+  artist_name: string | null;
+  year: number | null;
+  track_count: number;
+  total_duration_ms: number;
+  artwork_hash: string | null;
+  artwork_format: string | null;
+  artwork_has_1x: boolean;
+  artwork_has_2x: boolean;
+  max_bit_depth: number | null;
+  max_sample_rate: number | null;
+}
+
+interface ListLibraryAlbumsResponse {
+  artwork_base: string;
+  items: LibraryAlbumRowSlim[];
+}
+
+/**
+ * Every album the library can show, from the device and from the bound
+ * server, as one sorted list.
+ *
+ * The two halves are **not** merged: an album held on both sides appears
+ * twice, tagged twice. Unifying the navigation is not deduplicating the
+ * catalogue — that is reserved for its own RFC.
+ *
+ * `source` narrows to one half; `null` means both. The remote half is exactly
+ * as complete as the last catalogue walk left it, and empty at no cost on a
+ * build without the remote source.
+ */
+export async function listLibraryAlbums(
+  libraryId: number | null,
+  source: LibrarySource | null,
+  options?: { orderBy?: string; direction?: "asc" | "desc" },
+): Promise<LibraryAlbumRow[]> {
+  const resp = await invoke<ListLibraryAlbumsResponse>("list_library_albums", {
+    libraryId,
+    source,
+    orderBy: options?.orderBy ?? null,
+    direction: options?.direction ?? null,
+  });
+  const sep = pathSep(resp.artwork_base);
+  return resp.items.map((item) => {
+    // Only a local hash names a file under the profile's artwork directory;
+    // stitching a path for a remote one would point at nothing.
+    const local = item.source === "local";
+    return {
+      source: item.source,
+      id: item.id,
+      title: item.title,
+      artist_name: item.artist_name,
+      year: item.year,
+      track_count: item.track_count,
+      total_duration_ms: item.total_duration_ms,
+      artwork_path:
+        local && item.artwork_hash && item.artwork_format
+          ? `${resp.artwork_base}${sep}${item.artwork_hash}.${item.artwork_format}`
+          : null,
+      artwork_path_1x:
+        local && item.artwork_hash && item.artwork_has_1x
+          ? `${resp.artwork_base}${sep}${item.artwork_hash}_1x.jpg`
+          : null,
+      artwork_path_2x:
+        local && item.artwork_hash && item.artwork_has_2x
+          ? `${resp.artwork_base}${sep}${item.artwork_hash}_2x.jpg`
+          : null,
+      artwork_hash: local ? null : item.artwork_hash,
+      max_bit_depth: item.max_bit_depth,
+      max_sample_rate: item.max_sample_rate,
+    };
+  });
+}
+
 export async function listArtists(
   libraryId: number | null,
   sort?: { orderBy?: string; direction?: "asc" | "desc" },

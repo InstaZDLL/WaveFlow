@@ -459,6 +459,12 @@
       "meta_zero": "0 faixas · {{duration}}",
       "meta_one": "{{count}} faixa · {{duration}}",
       "meta_other": "{{count}} faixas · {{duration}}"
+    },
+    "source": {
+      "label": "Origem",
+      "all": "Tudo",
+      "local": "Este dispositivo",
+      "remote": "Servidor"
     }
   },
   "liked": {

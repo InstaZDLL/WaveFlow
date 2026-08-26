@@ -459,6 +459,12 @@
       "meta_zero": "0 nummers · {{duration}}",
       "meta_one": "{{count}} nummer · {{duration}}",
       "meta_other": "{{count}} nummers · {{duration}}"
+    },
+    "source": {
+      "label": "Bron",
+      "all": "Alles",
+      "local": "Dit apparaat",
+      "remote": "Server"
     }
   },
   "liked": {

@@ -459,6 +459,12 @@
       "meta_zero": "0 parça · {{duration}}",
       "meta_one": "{{count}} parça · {{duration}}",
       "meta_other": "{{count}} parça · {{duration}}"
+    },
+    "source": {
+      "label": "Kaynak",
+      "all": "Tümü",
+      "local": "Bu cihaz",
+      "remote": "Sunucu"
     }
   },
   "liked": {

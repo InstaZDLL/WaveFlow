@@ -501,6 +501,12 @@
       "meta_few": "{{count}} трека · {{duration}}",
       "meta_many": "{{count}} треков · {{duration}}",
       "meta_other": "{{count}} треков · {{duration}}"
+    },
+    "source": {
+      "label": "Источник",
+      "all": "Все",
+      "local": "Это устройство",
+      "remote": "Сервер"
     }
   },
   "liked": {

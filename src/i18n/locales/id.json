@@ -459,6 +459,12 @@
       "meta_zero": "0 lagu · {{duration}}",
       "meta_one": "{{count}} lagu · {{duration}}",
       "meta_other": "{{count}} lagu · {{duration}}"
+    },
+    "source": {
+      "label": "Sumber",
+      "all": "Semua",
+      "local": "Perangkat ini",
+      "remote": "Server"
     }
   },
   "liked": {

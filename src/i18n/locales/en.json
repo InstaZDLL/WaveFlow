@@ -459,6 +459,12 @@
       "meta_zero": "0 tracks · {{duration}}",
       "meta_one": "{{count}} track · {{duration}}",
       "meta_other": "{{count}} tracks · {{duration}}"
+    },
+    "source": {
+      "label": "Source",
+      "all": "All",
+      "local": "This device",
+      "remote": "Server"
     }
   },
   "liked": {

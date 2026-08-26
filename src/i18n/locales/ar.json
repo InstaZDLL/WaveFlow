@@ -524,6 +524,12 @@
       "meta_few": "{{count}} مقاطع · {{duration}}",
       "meta_many": "{{count}} مقطعًا · {{duration}}",
       "meta_other": "{{count}} مقطع · {{duration}}"
+    },
+    "source": {
+      "label": "المصدر",
+      "all": "الكل",
+      "local": "هذا الجهاز",
+      "remote": "الخادم"
     }
   },
   "liked": {

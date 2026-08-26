@@ -459,6 +459,12 @@
       "meta_zero": "0곡 · {{duration}}",
       "meta_one": "{{count}}곡 · {{duration}}",
       "meta_other": "{{count}}곡 · {{duration}}"
+    },
+    "source": {
+      "label": "소스",
+      "all": "전체",
+      "local": "이 기기",
+      "remote": "서버"
     }
   },
   "liked": {

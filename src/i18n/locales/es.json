@@ -459,6 +459,12 @@
       "meta_zero": "0 canciones · {{duration}}",
       "meta_one": "{{count}} canción · {{duration}}",
       "meta_other": "{{count}} canciones · {{duration}}"
+    },
+    "source": {
+      "label": "Fuente",
+      "all": "Todo",
+      "local": "Este dispositivo",
+      "remote": "Servidor"
     }
   },
   "liked": {

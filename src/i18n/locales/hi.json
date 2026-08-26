@@ -459,6 +459,12 @@
       "meta_zero": "0 गाने · {{duration}}",
       "meta_one": "{{count}} गाना · {{duration}}",
       "meta_other": "{{count}} गाने · {{duration}}"
+    },
+    "source": {
+      "label": "स्रोत",
+      "all": "सभी",
+      "local": "यह डिवाइस",
+      "remote": "सर्वर"
     }
   },
   "liked": {
