@@ -161,3 +161,23 @@ export const PLAYLIST_ICONS: PlaylistIconEntry[] = [
 export function resolvePlaylistColor(colorId: string): PlaylistColor {
   return PLAYLIST_COLORS.find((c) => c.id === colorId) ?? PLAYLIST_COLORS[0];
 }
+
+/**
+ * A stable colour for a playlist that has no `color_id`.
+ *
+ * A server playlist carries none, but a local one shows a per-playlist band
+ * and tile — so the colour is derived from the identifier instead, the same
+ * hash always landing on the same swatch. A fixed emerald would make every
+ * remote playlist look like the same one.
+ *
+ * Shared between the remote playlist view and the library grid so the two
+ * agree: the same playlist must not be blue in one place and amber in the
+ * other.
+ */
+export function colorForPlaylistId(id: string): PlaylistColor {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  }
+  return PLAYLIST_COLORS[hash % PLAYLIST_COLORS.length];
+}

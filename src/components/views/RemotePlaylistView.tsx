@@ -68,23 +68,8 @@ import { notifyRemoteChanged } from "../../hooks/useRemoteSource";
 import { usePlayer } from "../../hooks/usePlayer";
 import { isRemoteTrack } from "../../lib/playerSources";
 import { PlayingIndicator } from "../common/PlayingIndicator";
-import { PLAYLIST_COLORS, type PlaylistColor } from "../../lib/playlistVisuals";
+import { colorForPlaylistId } from "../../lib/playlistVisuals";
 import { RemoteArtwork } from "../common/RemoteArtwork";
-
-/**
- * A remote playlist carries no `color_id`, but a plain library playlist
- * shows a per-playlist colour band + tile — so derive a stable colour
- * from the playlist id (same hash always maps to the same swatch). Keeps
- * the remote header visually 1:1 with a local one instead of a fixed
- * emerald that every remote playlist would share.
- */
-function remotePlaylistColor(id: string): PlaylistColor {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  }
-  return PLAYLIST_COLORS[hash % PLAYLIST_COLORS.length];
-}
 
 /**
  * Display-only sort for the remote track table, mirroring the local
@@ -528,7 +513,7 @@ export function RemotePlaylistView({
   if (!remotePlaylistId) return null;
 
   const totalMs = tracks.reduce((sum, t) => sum + (t.duration_ms ?? 0), 0);
-  const color = remotePlaylistColor(remotePlaylistId);
+  const color = colorForPlaylistId(remotePlaylistId);
 
   return (
     <div className="space-y-8 animate-fade-in pb-20">
