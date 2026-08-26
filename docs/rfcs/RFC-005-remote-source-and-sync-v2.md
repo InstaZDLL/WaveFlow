@@ -339,8 +339,19 @@ move, queues a full replace (`remove_indexes` for every position + `add` in the
 new order). `RemoteServerCard` in Settings is connection-only —
 identify, sign in, sync, sign out, forget. `CreatePlaylistModal` offers an "also
 create on the server" checkbox when one is connected. All of it self-hides when
-`sync_v2` is off (the frontend probes `remote_get_status`) and is intentionally
-unlocalized until the feature ships, matching `RemoteServerCard`.
+`sync_v2` is off — the frontend probes `remote_get_status`, since TypeScript
+cannot see a Cargo feature.
+
+It is **localized across all seventeen locales**, under a self-contained
+`remote.*` namespace. This paragraph said the opposite until now: the surface
+was deliberately left untranslated "until the feature ships", which was true
+while `sync_v2` was off by default and no released build could reach it. It went
+into the default feature set on 2026-08-17 and the surface was translated the
+same day; the sentence outlived both by nine days, and a comment repeating it
+sat above the sidebar's server section shipping hardcoded English the whole
+time. A claim that a surface needs no translation is only ever true of a
+surface nobody can reach, which makes it worth re-reading every time the reason
+it cannot be reached changes.
 
 **The queue panel** switches to a dedicated `RemoteQueueView` while a remote
 session plays (keyed on `isRemoteTrack`), reading `remote_get_play_queue` (an
