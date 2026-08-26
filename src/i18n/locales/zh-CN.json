@@ -468,7 +468,8 @@
       "all": "全部",
       "local": "本机",
       "remote": "服务器"
-    }
+    },
+    "open": "打开 {{name}}"
   },
   "liked": {
     "badge": "收藏",

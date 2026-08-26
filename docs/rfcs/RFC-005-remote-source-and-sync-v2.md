@@ -361,6 +361,7 @@ Per-profile, since the binding is per-profile:
 | `remote_share` | non-secret share fields; **never** token from the journal |
 | `remote_track` | cached song metadata, derived and droppable |
 | `remote_album` | the server's albums, from the catalogue walk |
+| `remote_artist` | the server's artists, walked for the one thing grouping cannot derive: their picture |
 | `remote_library` | the libraries this account can see, and when each was last swept |
 | `remote_mutation` | outbound queue, typed, keyed by `operation_id` |
 

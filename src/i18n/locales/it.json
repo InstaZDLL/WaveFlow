@@ -468,7 +468,8 @@
       "all": "Tutto",
       "local": "Questo dispositivo",
       "remote": "Server"
-    }
+    },
+    "open": "Apri {{name}}"
   },
   "liked": {
     "badge": "Raccolta",

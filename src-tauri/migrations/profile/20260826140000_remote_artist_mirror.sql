@@ -30,3 +30,10 @@ CREATE TABLE remote_artist (
 );
 
 CREATE INDEX idx_remote_artist_sort ON remote_artist (sort_key);
+
+-- The unified artist listing counts an artist's tracks with a correlated
+-- subquery over `remote_track`. Without this the count is a full scan of the
+-- mirrored catalogue *per artist*, which on a large server is the one query in
+-- the tab that would be felt. `album_id` was indexed at creation for the same
+-- reason; `artist_id` arrived later and never got its own.
+CREATE INDEX idx_remote_track_artist ON remote_track (artist_id);

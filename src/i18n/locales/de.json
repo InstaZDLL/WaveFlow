@@ -468,7 +468,8 @@
       "all": "Alle",
       "local": "Dieses Gerät",
       "remote": "Server"
-    }
+    },
+    "open": "{{name}} öffnen"
   },
   "liked": {
     "badge": "Sammlung",

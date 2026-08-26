@@ -894,6 +894,12 @@ pub async fn clear(pool: &SqlitePool) -> AppResult<()> {
     sqlx::query("DELETE FROM remote_album")
         .execute(&mut *tx)
         .await?;
+    // In the same transaction as the albums: a purge that leaves the artists
+    // behind leaves a catalogue that is half there, and the artist grid would
+    // still list rows whose albums are gone.
+    sqlx::query("DELETE FROM remote_artist")
+        .execute(&mut *tx)
+        .await?;
     sqlx::query("UPDATE remote_library SET mirrored_at = NULL")
         .execute(&mut *tx)
         .await?;
@@ -1060,6 +1066,9 @@ mod tests {
         .await
         .unwrap();
 
+        upsert(&pool, &album("al-1", 1)).await;
+        upsert_one_artist(&pool, &artist("ar-1", "Someone", None)).await;
+
         clear(&pool).await.unwrap();
 
         let rows: Vec<(String, i64)> =
@@ -1069,6 +1078,18 @@ mod tests {
                 .unwrap();
         // Kept, but no longer part of the catalogue.
         assert_eq!(rows, vec![("t-keep".to_string(), 0)]);
+
+        // Nothing the catalogue owns outright survives the purge. Spelled out
+        // rather than looped: sqlx refuses a runtime-formatted query.
+        let albums: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_album")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        let artists: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_artist")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!((albums, artists), (0, 0));
     }
 
     /// Same rule on the incremental path: a track the server dropped stops

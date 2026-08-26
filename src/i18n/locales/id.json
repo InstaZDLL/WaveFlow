@@ -468,7 +468,8 @@
       "all": "Semua",
       "local": "Perangkat ini",
       "remote": "Server"
-    }
+    },
+    "open": "Buka {{name}}"
   },
   "liked": {
     "badge": "Koleksi",

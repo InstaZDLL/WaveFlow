@@ -468,7 +468,8 @@
       "all": "Tümü",
       "local": "Bu cihaz",
       "remote": "Sunucu"
-    }
+    },
+    "open": "{{name}} öğesini aç"
   },
   "liked": {
     "badge": "Koleksiyon",

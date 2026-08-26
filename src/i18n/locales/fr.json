@@ -468,7 +468,8 @@
       "all": "Tout",
       "local": "Cet appareil",
       "remote": "Serveur"
-    }
+    },
+    "open": "Ouvrir {{name}}"
   },
   "liked": {
     "badge": "Collection",

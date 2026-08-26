@@ -2056,19 +2056,6 @@ function AlbumGrid({
     return (
       <div
         key={`${album.source}:${album.id}`}
-        role="button"
-        tabIndex={0}
-        onClick={() => open()}
-        onKeyDown={(e) => {
-          if (e.key !== "Enter" && e.key !== " ") return;
-          // The `+` button lives inside this card and is focusable in its own
-          // right; a key press that started there is its business, not ours.
-          if (e.target !== e.currentTarget) return;
-          // Space scrolls the page otherwise, which is not what activating a
-          // card should do.
-          e.preventDefault();
-          open();
-        }}
         onContextMenu={(e) => {
           if (localId === null) return;
           e.preventDefault();
@@ -2115,6 +2102,17 @@ function AlbumGrid({
               {t("library.source.remote")}
             </span>
           )}
+          {/* A real button rather than a role on the card. `role="button"`
+              makes its descendants presentational, which would have hidden the
+              "+" below from assistive technology — one gap traded for another.
+              Sized to the cover and declared before the "+" so that one paints
+              and clicks on top of it. */}
+          <button
+            type="button"
+            onClick={open}
+            aria-label={t("library.open", { name: album.title })}
+            className="absolute inset-0 rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
+          />
           {/* Local playlists hold local tracks. Offering the gesture on a
               server album would open a picker that cannot accept it. */}
           {localId !== null && (
@@ -2130,7 +2128,9 @@ function AlbumGrid({
                 setOpenMenuAlbumId(isMenuOpen ? null : localId);
               }}
               aria-label={t("trackActions.addToPlaylist")}
-              className={`absolute bottom-2 right-2 p-1.5 rounded-full shadow-sm transition-all ${
+              // `focus-visible:opacity-100` is not decoration: without it the
+              // button is invisible exactly when the keyboard reaches it.
+              className={`absolute bottom-2 right-2 p-1.5 rounded-full shadow-sm transition-all focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${
                 isMenuOpen
                   ? "opacity-100 bg-emerald-500 text-white"
                   : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
@@ -2140,7 +2140,9 @@ function AlbumGrid({
             </button>
           )}
         </div>
-        <div className="px-1">
+        {/* Mouse-only: the overlay button above is the keyboard target, so
+            duplicating it here would put two stops on one card. */}
+        <div className="px-1" onClick={open}>
           <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
             {album.title}
           </div>
@@ -2256,12 +2258,15 @@ function AlbumGrid({
  * `useRemoteArtworkSrc` unconditionally — with `null` for a local artist — is
  * what keeps the rule satisfied while both paths share one tile.
  *
- * A dead remote path degrades to the letter placeholder rather than retrying:
- * `FadeInImage` reports no load error, and the letter is the fallback this
- * grid already had.
+ * The load handlers are forwarded to `FadeInImage`, so a cover evicted between
+ * being resolved and being painted is invalidated and fetched again here just
+ * as it is in `RemoteArtwork`. They are inert on the local path, which has no
+ * cache to invalidate.
  */
 function ArtistAvatar({ artist }: { artist: LibraryArtistRow }) {
-  const { src: remoteSrc } = useRemoteArtworkSrc(artist.artwork_hash);
+  const { src: remoteSrc, onError, onLoad } = useRemoteArtworkSrc(
+    artist.artwork_hash,
+  );
   // Use the full-resolution source so HiDPI screens render the avatar crisp at
   // any column width — same trade-off documented on `AlbumGrid`'s Artwork
   // usage. The 128 px 2x thumbnail upscaled soft on the 180–220 px tiles.
@@ -2295,6 +2300,8 @@ function ArtistAvatar({ artist }: { artist: LibraryArtistRow }) {
       // dark portraits (#106). The placeholder bg gradient is fine because
       // `object-cover` fully covers it once the image decodes.
       wrapperClassName="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 shadow-sm group-hover:shadow-md transition-shadow"
+      onError={onError}
+      onLoad={onLoad}
       placeholder={
         <span className="text-5xl font-bold text-violet-500/70 dark:text-violet-400/60">
           {initial}
@@ -2447,15 +2454,6 @@ function ArtistList({
       <div
         key={`${artist.source}:${artist.id}`}
         data-artist-index={idx}
-        role="button"
-        tabIndex={0}
-        onClick={() => open()}
-        onKeyDown={(e) => {
-          if (e.key !== "Enter" && e.key !== " ") return;
-          if (e.target !== e.currentTarget) return;
-          e.preventDefault();
-          open();
-        }}
         className="group flex flex-col items-center space-y-3 cursor-pointer relative"
       >
         <div className="relative w-full">
@@ -2467,6 +2465,14 @@ function ArtistList({
               {t("library.source.remote")}
             </span>
           )}
+          {/* See `renderAlbumCard`: a real button rather than a role on the
+              tile, so the "+" below keeps its own semantics. */}
+          <button
+            type="button"
+            onClick={open}
+            aria-label={t("library.open", { name: artist.name })}
+            className="absolute inset-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
+          />
           {localId !== null && (
           <button
             type="button"
@@ -2480,7 +2486,7 @@ function ArtistList({
               setOpenMenuArtistId(isMenuOpen ? null : localId);
             }}
             aria-label={t("trackActions.addToPlaylist")}
-            className={`absolute bottom-1 right-1 p-1.5 rounded-full shadow-sm transition-all ${
+            className={`absolute bottom-1 right-1 p-1.5 rounded-full shadow-sm transition-all focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${
               isMenuOpen
                 ? "opacity-100 bg-emerald-500 text-white"
                 : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
@@ -2490,7 +2496,9 @@ function ArtistList({
           </button>
           )}
         </div>
-        <div className="text-center px-1 w-full">
+        {/* Mouse-only, like the album card: the overlay above is the
+            keyboard target. */}
+        <div className="text-center px-1 w-full" onClick={open}>
           <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
             {artist.name}
           </div>

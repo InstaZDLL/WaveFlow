@@ -468,7 +468,8 @@
       "all": "전체",
       "local": "이 기기",
       "remote": "서버"
-    }
+    },
+    "open": "{{name}} 열기"
   },
   "liked": {
     "badge": "컬렉션",

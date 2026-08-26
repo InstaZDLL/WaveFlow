@@ -468,7 +468,8 @@
       "all": "Alles",
       "local": "Dit apparaat",
       "remote": "Server"
-    }
+    },
+    "open": "{{name}} openen"
   },
   "liked": {
     "badge": "Verzameling",
