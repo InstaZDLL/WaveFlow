@@ -885,6 +885,7 @@ export function LibraryView({
                 isSelected={selection.isSelected}
                 onNavigateToRemoteAlbum={onNavigateToRemoteAlbum}
                 onNavigateToRemoteArtist={onNavigateToRemoteArtist}
+                singleClickPlay={singleClickPlay}
                 onRowSelect={(track, e) => {
                   // Modifier-driven selection always wins so multi-select
                   // remains accessible even with single-click play on.
@@ -1426,6 +1427,10 @@ interface TrackTableProps {
   onRowMenuKey: (event: React.KeyboardEvent, track: Track) => boolean;
   isSelected: (id: number) => boolean;
   onRowSelect: (track: Track, e: React.MouseEvent) => void;
+  /** Whether a plain click plays instead of selecting. The table needs it
+   *  because selection speaks in local rowids and a server row has none: it
+   *  would otherwise be the only row a click does nothing to. */
+  singleClickPlay: boolean;
   /** A server track opens the remote detail views; the two catalogues are
    *  never merged, so they are never the same page. */
   onNavigateToRemoteAlbum: (remoteAlbumId: string) => void;
@@ -1452,6 +1457,7 @@ function TrackTable({
   onRowMenuKey,
   isSelected,
   onRowSelect,
+  singleClickPlay,
   onNavigateToRemoteAlbum,
   onNavigateToRemoteArtist,
 }: TrackTableProps) {
@@ -1577,7 +1583,19 @@ function TrackTable({
               tabIndex={0}
               role="button"
               onClick={(e) => {
-                if (asTrack) onRowSelect(asTrack, e);
+                if (asTrack) {
+                  onRowSelect(asTrack, e);
+                  return;
+                }
+                // A server row has nothing to select — selection is keyed on
+                // local rowids. With single-click play on, every other row
+                // responds and this one would not, which reads as a dead row
+                // rather than as an unselectable one. Modifier clicks stay
+                // inert: they are selection gestures, and there is no
+                // selection here to extend.
+                if (singleClickPlay && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+                  onPlayTrack(index);
+                }
               }}
               onDoubleClick={() => onPlayTrack(index)}
               onKeyDown={(e) => {
