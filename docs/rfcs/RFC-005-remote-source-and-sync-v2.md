@@ -428,6 +428,15 @@ the asset protocol serves exactly like a scanned local cover — so
 [`resolveArtwork`](../../src/lib/tauri/artwork.ts) needs no special case and
 the renderer holds a string rather than a blob.
 
+The listings do not carry that path, though: they carry the **hash**, and
+[`RemoteArtwork`](../../src/components/common/RemoteArtwork.tsx) is what turns
+one into a rendered cover. Resolving server-side would mean one round trip per
+row before a page could be answered, on a list that is virtualised precisely so
+most rows are never looked at. The component resolves on mount instead, shares
+one in-flight resolution per profile-and-hash, caches what comes back, and
+falls back to a neutral tile — which is also the only place that can notice a
+cached path has since been evicted and ask for it again.
+
 Two properties hold it together:
 
 - **Only hash-addressed covers are cached.** The same server route also accepts

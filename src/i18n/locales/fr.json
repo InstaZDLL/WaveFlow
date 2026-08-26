@@ -381,6 +381,9 @@
       "dossiers": {
         "title": "Aucun dossier importé",
         "description": "Importez un dossier depuis la barre d'action pour l'explorer ici."
+      },
+      "albumsFiltered": {
+        "description": "Aucun album pour cette source. Changez de source ci-dessus, ou recopiez le catalogue du serveur depuis les réglages."
       }
     },
     "actions": {

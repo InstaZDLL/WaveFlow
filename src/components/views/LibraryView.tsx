@@ -577,6 +577,13 @@ export function LibraryView({
     }
   };
 
+  // The albums tab can be empty for two different reasons, and they deserve
+  // two different answers.
+  const sourceFilterEmptied =
+    activeTab === "albums" &&
+    albums.length === 0 &&
+    librarySource.source !== "all";
+
   const hasContent =
     (activeTab === "morceaux" && tracks.length > 0) ||
     (activeTab === "albums" && albums.length > 0) ||
@@ -724,6 +731,28 @@ export function LibraryView({
         </div>
       </div>
 
+      {/* Outside the content gate on purpose. Narrowing to a source that has
+          nothing yet empties the list, and a control that disappears with the
+          content it emptied leaves no way back. The sort dropdown has no such
+          problem — it did not cause the emptiness — so it stays gated. */}
+      {activeTab === "albums" && (
+        <div className="flex items-center justify-end space-x-3 -mt-4">
+          <SourceFilter
+            current={librarySource.source}
+            onChange={librarySource.setSource}
+            t={t}
+          />
+          {albums.length > 0 && (
+            <SortDropdown
+              options={albumSortOptions(t)}
+              current={albumsSort.sort}
+              onChange={albumsSort.setSort}
+              t={t}
+            />
+          )}
+        </div>
+      )}
+
       {hasContent ? (
         <>
           {activeTab === "morceaux" && (
@@ -816,19 +845,6 @@ export function LibraryView({
           )}
           {activeTab === "albums" && (
             <>
-              <div className="flex items-center justify-end space-x-3 -mt-4">
-                <SourceFilter
-                  current={librarySource.source}
-                  onChange={librarySource.setSource}
-                  t={t}
-                />
-                <SortDropdown
-                  options={albumSortOptions(t)}
-                  current={albumsSort.sort}
-                  onChange={albumsSort.setSort}
-                  t={t}
-                />
-              </div>
               <AlbumGrid
                 albums={albums}
                 isLoading={loading.albums}
@@ -971,20 +987,29 @@ export function LibraryView({
         <EmptyState
           icon={<EmptyIcon size={40} />}
           title={t(`library.empty.${activeTab}.title`)}
-          description={t(`library.empty.${activeTab}.description`)}
+          // A narrowed source is a different emptiness: the library may be
+          // full and the answer is not to import a folder, which would add
+          // nothing to the half being looked at.
+          description={t(
+            sourceFilterEmptied
+              ? "library.empty.albumsFiltered.description"
+              : `library.empty.${activeTab}.description`,
+          )}
           className="py-20"
         >
-          <div className="mt-8 flex items-center flex-wrap justify-center gap-4">
-            <button
-              type="button"
-              onClick={handleImport}
-              disabled={isImporting}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <Folder size={18} />
-              <span>{t("library.actions.importFolder")}</span>
-            </button>
-          </div>
+          {!sourceFilterEmptied && (
+            <div className="mt-8 flex items-center flex-wrap justify-center gap-4">
+              <button
+                type="button"
+                onClick={handleImport}
+                disabled={isImporting}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <Folder size={18} />
+                <span>{t("library.actions.importFolder")}</span>
+              </button>
+            </div>
+          )}
         </EmptyState>
       )}
 
@@ -2009,12 +2034,24 @@ function AlbumGrid({
     const remote = album.source === "remote";
     const localId = remote ? null : Number(album.id);
     const isMenuOpen = localId !== null && openMenuAlbumId === localId;
+    const open = () =>
+      localId !== null ? onAlbumClick(localId) : onRemoteAlbumClick(album.id);
     return (
       <div
         key={`${album.source}:${album.id}`}
-        onClick={() =>
-          localId !== null ? onAlbumClick(localId) : onRemoteAlbumClick(album.id)
-        }
+        role="button"
+        tabIndex={0}
+        onClick={() => open()}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter" && e.key !== " ") return;
+          // The `+` button lives inside this card and is focusable in its own
+          // right; a key press that started there is its business, not ours.
+          if (e.target !== e.currentTarget) return;
+          // Space scrolls the page otherwise, which is not what activating a
+          // card should do.
+          e.preventDefault();
+          open();
+        }}
         onContextMenu={(e) => {
           if (localId === null) return;
           e.preventDefault();

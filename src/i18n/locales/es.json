@@ -381,6 +381,9 @@
       "dossiers": {
         "title": "No hay carpetas importadas",
         "description": "Importa una carpeta desde la barra de acciones para explorarla aquí."
+      },
+      "albumsFiltered": {
+        "description": "No hay álbumes de esta fuente. Cambia de fuente arriba o copia el catálogo del servidor desde los ajustes."
       }
     },
     "actions": {

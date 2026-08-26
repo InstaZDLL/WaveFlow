@@ -381,6 +381,9 @@
       "dossiers": {
         "title": "No folders imported",
         "description": "Import a folder from the action bar to browse it here."
+      },
+      "albumsFiltered": {
+        "description": "No albums from this source. Switch source above, or copy the server's catalogue from the settings."
       }
     },
     "actions": {
