@@ -15,7 +15,6 @@ import {
   Sparkles,
   Headphones,
   Radio,
-  Server,
 } from "lucide-react";
 import type { ViewId, LibraryTab } from "../../types";
 import { NavItem } from "../common/NavItem";
@@ -27,7 +26,8 @@ import { useLibrary } from "../../hooks/useLibrary";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { usePluginAvailability } from "../../hooks/usePluginAvailability";
 import { useUiPlugins } from "../../hooks/useUiPlugins";
-import { useRemoteSource, notifyRemoteChanged } from "../../hooks/useRemoteSource";
+import { notifyRemoteChanged } from "../../hooks/useRemoteSource";
+import { useLibraryPlaylists } from "../../hooks/useLibraryPlaylists";
 import { remoteCreatePlaylist } from "../../lib/tauri/remoteServer";
 import { resolvePluginIcon } from "../../lib/pluginIcons";
 import { getProfileColor, profileInitial } from "../../lib/profileColors";
@@ -35,10 +35,13 @@ import { pickFile, pickFolder } from "../../lib/tauri/dialog";
 import { importPlaylistM3u } from "../../lib/tauri/playlist";
 import { getProfileStats, type ProfileStats } from "../../lib/tauri/browse";
 import { getProfileSetting } from "../../lib/tauri/profile";
-import { resolvePlaylistColor } from "../../lib/playlistVisuals";
+import {
+  colorForPlaylistId,
+  resolvePlaylistColor,
+} from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
-import type { Playlist } from "../../lib/tauri/playlist";
+import type { LibraryPlaylistRow } from "../../hooks/useLibraryPlaylists";
 
 interface SidebarProps {
   activeView: ViewId;
@@ -109,7 +112,9 @@ export function Sidebar({
   // Remote source (RFC-005 sync_v2). Self-hides in stock builds — the
   // hook probes `remote_get_status`, which is unregistered when the
   // feature is off, and reports `available: false`.
-  const remote = useRemoteSource();
+  // The sidebar is navigation, not a filtered view: it always shows both
+  // halves, whatever the library tab is currently narrowed to.
+  const libraryPlaylists = useLibraryPlaylists(playlists, "all");
   // Per-profile toggle: hide the Spotify entry from the sidebar so
   // users who don't care about Spotify integration don't see it
   // every time. Default ON. Persisted in `ui.show_spotify`.
@@ -466,62 +471,40 @@ export function Sidebar({
               />
             ))}
 
-            {/* Real playlists */}
-            {playlists.map((pl) => (
+            {/* Real playlists, from the device and from the bound server.
+                One list: the server had its own section here, which is the
+                redundancy the unified library was aimed at — and it carried
+                hardcoded English, having been written when the feature was
+                off by default and unreachable in a release. */}
+            {libraryPlaylists.map((pl) => (
               <PlaylistSidebarRow
-                key={`pl-${pl.id}`}
+                key={`${pl.source}:${pl.id}`}
                 playlist={pl}
-                active={isPlaylistRowActive(pl.id)}
-                onClick={() => handleSelectPlaylist(pl.id)}
-                subtext={t("sidebar.myLibrary.playlistSubtext", {
-                  count: pl.track_count,
-                })}
+                active={
+                  pl.source === "remote"
+                    ? activeView === "remote-playlist" &&
+                      activeRemotePlaylistId === pl.id
+                    : isPlaylistRowActive(Number(pl.id))
+                }
+                onClick={() =>
+                  pl.source === "remote"
+                    ? navigateToRemotePlaylist(pl.id)
+                    : handleSelectPlaylist(Number(pl.id))
+                }
+                subtext={
+                  pl.pending_creation
+                    ? t("sidebar.myLibrary.playlistSubtextPending", {
+                        count: pl.track_count,
+                      })
+                    : t("sidebar.myLibrary.playlistSubtext", {
+                        count: pl.track_count,
+                      })
+                }
               />
             ))}
           </div>
         </div>
 
-        {/* ─── REMOTE SOURCE (sync_v2) ───
-            Only rendered when signed in to a native server. Header is the
-            server host; rows are its playlists, managed from the main UI
-            just like local ones. Not localized — it lives behind the same
-            off-by-default feature as RemoteServerCard, so no shipped build
-            reaches it and the seventeen locale files stay clean. */}
-        {remote.available && (
-          <div>
-            <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-zinc-400 mb-1 px-2 uppercase">
-              <Server size={11} className="shrink-0" />
-              <span className="truncate">{remote.serverName ?? "Remote"}</span>
-            </div>
-            <div className="space-y-1">
-              {remote.playlists.length === 0 ? (
-                <p className="px-2 py-1 text-[11px] text-zinc-500">
-                  No playlists on this server yet.
-                </p>
-              ) : (
-                remote.playlists.map((pl) => (
-                  <SidebarRow
-                    key={`remote-${pl.id}`}
-                    icon={
-                      <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center dark:bg-emerald-950/50 dark:text-emerald-400">
-                        <Server size={15} />
-                      </div>
-                    }
-                    label={pl.name}
-                    subtext={`${pl.track_count} tracks${
-                      pl.pending_creation ? " · not sent yet" : ""
-                    }`}
-                    active={
-                      activeView === "remote-playlist" &&
-                      activeRemotePlaylistId === pl.id
-                    }
-                    onClick={() => navigateToRemotePlaylist(pl.id)}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       <CreatePlaylistModal
@@ -591,12 +574,17 @@ function PlaylistSidebarRow({
   onClick,
   subtext,
 }: {
-  playlist: Playlist;
+  playlist: LibraryPlaylistRow;
   active?: boolean;
   onClick?: () => void;
   subtext: string;
 }) {
-  const color = resolvePlaylistColor(playlist.color_id);
+  const remote = playlist.source === "remote";
+  // A server playlist carries no colour of its own; derived from its
+  // identifier, the same way the grid and the remote view do it.
+  const color = remote
+    ? colorForPlaylistId(playlist.id)
+    : resolvePlaylistColor(playlist.color_id);
   // Custom covers (today: smart playlists with a generated composite;
   // tomorrow: user-uploaded covers) preempt the icon + gradient tile.
   const coverUrl = resolveRemoteImage(playlist.cover_path, null);
@@ -611,7 +599,7 @@ function PlaylistSidebarRow({
     <div
       className={`w-8 h-8 rounded-lg flex items-center justify-center ${color.tileBg} ${color.tileText}`}
     >
-      <PlaylistIcon iconId={playlist.icon_id} size={16} />
+      <PlaylistIcon iconId={playlist.icon_id ?? "music"} size={16} />
     </div>
   );
   return (

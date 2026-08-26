@@ -33,9 +33,15 @@ So the incoming projection cannot be written into `playlist`, `liked_track` or
 `track.rating`. Doing so would either fabricate local tracks for rows that only
 exist on the server, or silently drop every entry — the first corrupts the local
 library, the second makes sync look broken. The projection therefore lands in
-its **own tables** (`remote_*`), is presented as a distinct source in the
-sidebar, and is reconstructible: dropping it and re-fetching a snapshot is
-always a valid recovery.
+its **own tables** (`remote_*`) and is reconstructible: dropping it and
+re-fetching a snapshot is always a valid recovery.
+
+It was also, at first, presented as a distinct *place* — its own sidebar
+section, its own views. That reading has since been dropped: the tables stay
+separate because the entities are, but the navigation does not have to repeat
+the split, and one library with the source as a filter is what the sections
+below describe. Never merged still holds; never merged is not the same as
+shown apart.
 
 Matching a local file to a server track is **out of scope** and needs its own
 RFC. When it comes, the only automatic link allowed is an exact, unique
@@ -320,10 +326,12 @@ The orchestration (fill from projection, mint ticket, dispatch) lives in the
 `sync_v2`-gated `remote::playback`; the state and its clear/probe live in the
 always-compiled `remote_playback` so the control seams stay feature-clean.
 
-**UI.** The remote source is managed from the main UI, not Settings: a "Remote
-source" section at the bottom of the sidebar (headed by the server host, listing
-its playlists) and a `RemotePlaylistView` that plays, renames, deletes, removes
-tracks from, reorders and adds tracks to them like local playlists. Track edits
+**UI.** The remote source is managed from the main UI, not Settings. It began
+as a "Remote source" section at the bottom of the sidebar, headed by the server
+host and listing its playlists; that section is gone — its rows sit in the one
+playlist list, tagged, alongside the local ones. A `RemotePlaylistView` still
+plays, renames, deletes, removes tracks from, reorders and adds tracks to them
+like local playlists. Track edits
 go through the server's `UpdatePlaylist` mutation: add queues `add` (its hits
 come from a live `/api/v2/search`, cached into `remote_track` so titles render at
 once); removal queues `remove_indexes`; reorder, for which the mutation has no
@@ -331,8 +339,19 @@ move, queues a full replace (`remove_indexes` for every position + `add` in the
 new order). `RemoteServerCard` in Settings is connection-only —
 identify, sign in, sync, sign out, forget. `CreatePlaylistModal` offers an "also
 create on the server" checkbox when one is connected. All of it self-hides when
-`sync_v2` is off (the frontend probes `remote_get_status`) and is intentionally
-unlocalized until the feature ships, matching `RemoteServerCard`.
+`sync_v2` is off — the frontend probes `remote_get_status`, since TypeScript
+cannot see a Cargo feature.
+
+It is **localized across all seventeen locales**, under a self-contained
+`remote.*` namespace. This paragraph said the opposite until now: the surface
+was deliberately left untranslated "until the feature ships", which was true
+while `sync_v2` was off by default and no released build could reach it. It went
+into the default feature set on 2026-08-17 and the surface was translated the
+same day; the sentence outlived both by nine days, and a comment repeating it
+sat above the sidebar's server section shipping hardcoded English the whole
+time. A claim that a surface needs no translation is only ever true of a
+surface nobody can reach, which makes it worth re-reading every time the reason
+it cannot be reached changes.
 
 **The queue panel** switches to a dedicated `RemoteQueueView` while a remote
 session plays (keyed on `isRemoteTrack`), reading `remote_get_play_queue` (an
@@ -482,6 +501,18 @@ A server album keeps none of the local gestures — no playlist, no cover picker
 no context menu — because none of them can accept it, and it opens the remote
 detail view rather than the local one. The artists, tracks and playlists tabs
 work the same way, on the same filter.
+
+The sidebar merges them too, and for the same reason it stopped having a
+section of its own: a "Remote source" heading beside the playlist list *was*
+the redundancy this lot was aimed at. Server playlists now sit in the one
+playlist list with a chip, and the filter deliberately does not reach there —
+the sidebar is navigation, not a filtered view, so narrowing a tab must not
+empty half of it.
+
+That section also carried hardcoded English. It was written when `sync_v2` was
+off by default and unreachable in a release, and the comment saying so outlived
+the feature flag flip that made it reachable — which is its own argument for not
+keeping a second surface that only one of the two halves passes through.
 
 Playlists are the one tab whose halves are merged **in the browser**. The grid
 already sorted there — locale-aware, with `Intl.Collator` — so there is no SQL

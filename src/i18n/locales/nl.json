@@ -207,7 +207,10 @@
     "myLibrary": {
       "playlistSubtext_zero": "0 nummers",
       "playlistSubtext_one": "{{count}} nummer",
-      "playlistSubtext_other": "{{count}} nummers"
+      "playlistSubtext_other": "{{count}} nummers",
+      "playlistSubtextPending_zero": "0 nummers · nog niet verstuurd",
+      "playlistSubtextPending_one": "{{count}} nummer · nog niet verstuurd",
+      "playlistSubtextPending_other": "{{count}} nummers · nog niet verstuurd"
     }
   },
   "topbar": {

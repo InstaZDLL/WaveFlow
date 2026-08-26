@@ -207,7 +207,10 @@
     "myLibrary": {
       "playlistSubtext_zero": "0 parça",
       "playlistSubtext_one": "{{count}} parça",
-      "playlistSubtext_other": "{{count}} parça"
+      "playlistSubtext_other": "{{count}} parça",
+      "playlistSubtextPending_zero": "0 parça · henüz gönderilmedi",
+      "playlistSubtextPending_one": "{{count}} parça · henüz gönderilmedi",
+      "playlistSubtextPending_other": "{{count}} parça · henüz gönderilmedi"
     }
   },
   "topbar": {

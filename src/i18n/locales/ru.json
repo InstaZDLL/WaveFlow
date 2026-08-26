@@ -217,7 +217,12 @@
       "playlistSubtext_one": "{{count}} трек",
       "playlistSubtext_few": "{{count}} трека",
       "playlistSubtext_other": "{{count}} треков",
-      "playlistSubtext_many": "{{count}} треков"
+      "playlistSubtext_many": "{{count}} треков",
+      "playlistSubtextPending_zero": "0 треков · ещё не отправлен",
+      "playlistSubtextPending_one": "{{count}} трек · ещё не отправлен",
+      "playlistSubtextPending_few": "{{count}} трека · ещё не отправлен",
+      "playlistSubtextPending_other": "{{count}} треков · ещё не отправлен",
+      "playlistSubtextPending_many": "{{count}} треков · ещё не отправлен"
     }
   },
   "topbar": {

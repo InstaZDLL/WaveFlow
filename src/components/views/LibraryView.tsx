@@ -8,10 +8,8 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import {
-  PlaylistGrid,
-  type LibraryPlaylistRow,
-} from "./library/PlaylistGrid";
+import { PlaylistGrid } from "./library/PlaylistGrid";
+import { useLibraryPlaylists } from "../../hooks/useLibraryPlaylists";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Music2,
@@ -214,9 +212,6 @@ export function LibraryView({
   const [tracks, setTracks] = useState<LibraryTrackRow[]>([]);
   const [albums, setAlbums] = useState<LibraryAlbumRow[]>([]);
   const librarySource = useLibrarySource();
-  // Read here as well as inside `SourceFilter`: the playlists tab merges the
-  // two halves in the browser and needs the remote one.
-  const remote = useRemoteSource();
   const [artists, setArtists] = useState<LibraryArtistRow[]>([]);
   const [genres, setGenres] = useState<GenreRow[]>([]);
   const [folders, setFolders] = useState<FolderRow[]>([]);
@@ -480,55 +475,12 @@ export function LibraryView({
       .catch((err) => console.error("[LibraryView] liked ids failed", err));
   }, [librariesSignature]);
 
-  // Playlists is the one tab whose two halves are merged in the browser: the
-  // grid already sorted there, so there is no SQL ordering to unify and a
-  // compound select would buy nothing.
-  const libraryPlaylists = useMemo<LibraryPlaylistRow[]>(() => {
-    const wanted = librarySource.source;
-    const rows: LibraryPlaylistRow[] = [];
-    if (wanted !== "remote") {
-      for (const playlist of userPlaylists) {
-        rows.push({
-          source: "local",
-          id: String(playlist.id),
-          name: playlist.name,
-          track_count: playlist.track_count,
-          total_duration_ms: playlist.total_duration_ms,
-          updated_at: playlist.updated_at,
-          position: playlist.position,
-          color_id: playlist.color_id,
-          icon_id: playlist.icon_id,
-          cover_path: playlist.cover_path,
-          pending_creation: false,
-        });
-      }
-    }
-    if (wanted !== "local" && remote.available) {
-      for (const playlist of remote.playlists) {
-        rows.push({
-          source: "remote",
-          id: playlist.id,
-          name: playlist.name,
-          track_count: playlist.track_count,
-          total_duration_ms: playlist.duration_ms,
-          // The server's summary carries neither; the grid files them last
-          // rather than reading a missing key as zero.
-          updated_at: null,
-          position: null,
-          color_id: "",
-          icon_id: null,
-          cover_path: null,
-          pending_creation: playlist.pending_creation,
-        });
-      }
-    }
-    return rows;
-  }, [
+  // Merged where they are read: both playlist surfaces already sorted in the
+  // browser, so there is nothing for a compound select to unify.
+  const libraryPlaylists = useLibraryPlaylists(
     userPlaylists,
-    remote.available,
-    remote.playlists,
     librarySource.source,
-  ]);
+  );
 
   // Per-tab header subtext uses the fetched data lengths since we
   // aggregate across all libraries (no single Library to read counts from).

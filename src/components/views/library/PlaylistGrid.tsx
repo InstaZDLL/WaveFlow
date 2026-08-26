@@ -12,34 +12,8 @@ import {
 import { resolveRemoteImage } from "../../../lib/tauri/artwork";
 import { formatDuration } from "../../../lib/tauri/track";
 import type { SortState } from "../../../hooks/useSortMemory";
-import type { LibrarySource } from "../../../lib/tauri/browse";
+import type { LibraryPlaylistRow } from "../../../hooks/useLibraryPlaylists";
 import { EmptyState } from "../../common/EmptyState";
-
-/**
- * A playlist of the library, from either source.
- *
- * Built in the view rather than fetched: unlike the other three tabs, the
- * playlist grid already sorted in the browser, so there is no SQL ordering to
- * unify and nothing to gain from a compound select. The two shapes are merged
- * where they are read.
- */
-export interface LibraryPlaylistRow {
-  source: LibrarySource;
-  /** Local rowid as text, or the server's playlist identifier. */
-  id: string;
-  name: string;
-  track_count: number;
-  total_duration_ms: number;
-  /** Local only: the server's summary carries no modification time. */
-  updated_at: number | null;
-  /** Local only: the sidebar's manual order. */
-  position: number | null;
-  color_id: string;
-  icon_id: string | null;
-  cover_path: string | null;
-  /** Remote only: created here and not yet sent to the server. */
-  pending_creation: boolean;
-}
 
 interface PlaylistGridProps {
   /** User playlists only — smart ones live in Home's "Made for you". */

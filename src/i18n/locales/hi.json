@@ -207,7 +207,10 @@
     "myLibrary": {
       "playlistSubtext_zero": "0 ट्रैक",
       "playlistSubtext_one": "{{count}} ट्रैक",
-      "playlistSubtext_other": "{{count}} ट्रैक"
+      "playlistSubtext_other": "{{count}} ट्रैक",
+      "playlistSubtextPending_zero": "0 ट्रैक · अभी नहीं भेजी गई",
+      "playlistSubtextPending_one": "{{count}} ट्रैक · अभी नहीं भेजी गई",
+      "playlistSubtextPending_other": "{{count}} ट्रैक · अभी नहीं भेजी गई"
     }
   },
   "topbar": {

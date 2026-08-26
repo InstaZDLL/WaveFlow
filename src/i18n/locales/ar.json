@@ -222,7 +222,13 @@
       "playlistSubtext_other": "{{count}} مقطع",
       "playlistSubtext_two": "مقطعان",
       "playlistSubtext_few": "{{count}} مقاطع",
-      "playlistSubtext_many": "{{count}} مقطعًا"
+      "playlistSubtext_many": "{{count}} مقطعًا",
+      "playlistSubtextPending_zero": "0 مقطع · لم تُرسل بعد",
+      "playlistSubtextPending_one": "مقطع واحد · لم تُرسل بعد",
+      "playlistSubtextPending_other": "{{count}} مقطع · لم تُرسل بعد",
+      "playlistSubtextPending_two": "مقطعان · لم تُرسل بعد",
+      "playlistSubtextPending_few": "{{count}} مقاطع · لم تُرسل بعد",
+      "playlistSubtextPending_many": "{{count}} مقطعًا · لم تُرسل بعد"
     }
   },
   "topbar": {
