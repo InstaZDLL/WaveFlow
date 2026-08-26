@@ -560,9 +560,12 @@ struct LibraryTrackRawRow {
 /// normalising one side of a comparison and not the other is exactly how an
 /// artist ends up in two places.
 fn library_track_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'static str {
+    // `duration_ms` is the column name, and it is what the sort dropdown and
+    // the persisted preference both carry. Matching on "duration" here sent
+    // every duration sort to the fallback clause instead.
     let dir_default_desc = matches!(
         order_by,
-        Some("duration") | Some("added_at") | Some("year") | Some("rating")
+        Some("duration_ms") | Some("added_at") | Some("year") | Some("rating")
     );
     let dir = match direction {
         Some(d) if d.eq_ignore_ascii_case("asc") => "ASC",
@@ -590,8 +593,8 @@ fn library_track_order_clause(order_by: Option<&str>, direction: Option<&str>) -
         (Some("album"), "DESC") => {
             "ORDER BY sort_album COLLATE NOCASE DESC, disc_number, track_number"
         }
-        (Some("duration"), "ASC") => "ORDER BY duration_ms ASC",
-        (Some("duration"), "DESC") => "ORDER BY duration_ms DESC",
+        (Some("duration_ms"), "ASC") => "ORDER BY duration_ms ASC",
+        (Some("duration_ms"), "DESC") => "ORDER BY duration_ms DESC",
         (Some("year"), "ASC") => "ORDER BY year ASC, title COLLATE NOCASE",
         (Some("year"), "DESC") => "ORDER BY year DESC, title COLLATE NOCASE",
         (Some("added_at"), "ASC") => "ORDER BY added_at ASC",
@@ -2853,6 +2856,38 @@ mod tests {
             assert_eq!(rows[0].1, "T1", "{direction}: the rated track leads");
             assert!(rows[1..].iter().all(|row| row.2.is_none()));
         }
+    }
+
+    /// The sort dropdown and the persisted preference both carry the column
+    /// name. Matching on anything else sends the sort to the fallback clause
+    /// and does nothing visible — which is the quietest way for a sort to be
+    /// broken.
+    #[tokio::test]
+    async fn sorting_by_duration_uses_the_key_the_dropdown_sends() {
+        let pool = pool().await;
+        seed(&pool).await;
+        sqlx::raw_sql("UPDATE remote_track SET duration_ms = 999999 WHERE remote_id = 't-1'")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let longest = tracks(
+            &pool,
+            None,
+            None,
+            library_track_order_clause(Some("duration_ms"), Some("desc")),
+        )
+        .await;
+        assert_eq!(longest.first().map(|row| row.1.as_str()), Some("R1"));
+
+        let shortest = tracks(
+            &pool,
+            None,
+            None,
+            library_track_order_clause(Some("duration_ms"), Some("asc")),
+        )
+        .await;
+        assert_eq!(shortest.last().map(|row| row.1.as_str()), Some("R1"));
     }
 
     #[tokio::test]

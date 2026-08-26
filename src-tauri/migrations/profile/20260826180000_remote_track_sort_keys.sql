@@ -22,3 +22,17 @@ ALTER TABLE remote_track ADD COLUMN sort_artist TEXT;
 ALTER TABLE remote_track ADD COLUMN sort_album TEXT;
 
 CREATE INDEX idx_remote_track_sort ON remote_track (sort_artist, sort_album, title);
+
+-- Existing rows have no keys, and nothing would ever give them any.
+--
+-- The columns are nullable and the listing coalesces to the display string,
+-- so an un-keyed row still renders — but it sorts on the wrong expression,
+-- which is the whole defect these columns exist to fix. And it would sort that
+-- way *forever*: the walk skips an album whose `song_count` is unchanged, so
+-- `cache_song` never runs again for its tracks and the keys stay NULL.
+--
+-- SQLite cannot compute them (it cannot fold a diacritic), so the stamps are
+-- cleared instead: every album becomes stale, the next walk re-fetches it, and
+-- `cache_song` fills the keys on the way through. One walk, and it is
+-- incremental again afterwards.
+UPDATE remote_album SET mirrored_at = NULL;

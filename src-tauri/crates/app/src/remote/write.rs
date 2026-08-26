@@ -909,23 +909,14 @@ mod tests {
             .connect(":memory:")
             .await
             .unwrap();
-        for migration in [
-            include_str!(
-                "../../../../migrations/profile/20260810120000_remote_source_projection.sql"
-            ),
-            include_str!("../../../../migrations/profile/20260810140000_remote_track_cache.sql"),
-            include_str!(
-                "../../../../migrations/profile/20260813090000_remote_track_full_hash.sql"
-            ),
-            include_str!(
-                "../../../../migrations/profile/20260816120000_remote_track_artist_id.sql"
-            ),
-            include_str!(
-                "../../../../migrations/profile/20260826180000_remote_track_sort_keys.sql"
-            ),
-        ] {
-            sqlx::raw_sql(migration).execute(&pool).await.unwrap();
-        }
+        // The real migrator rather than a hand-listed subset: a
+        // migration that touches a table this list happened to omit
+        // breaks the fixture and not the code, which is a failure that
+        // teaches nothing. Same fixture the browse tests use.
+        sqlx::migrate!("../../migrations/profile")
+            .run(&pool)
+            .await
+            .unwrap();
         pool
     }
 

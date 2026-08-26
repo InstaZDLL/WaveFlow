@@ -635,7 +635,7 @@ export function LibraryView({
         );
         return;
       }
-      void playTracks(run as unknown as Track[], Math.max(at, 0), {
+      void playTracks(run.map(toLocalTrack), Math.max(at, 0), {
         type: "library",
         id: null,
       });
@@ -892,9 +892,9 @@ export function LibraryView({
                   // rowids. The table only hands us local rows here — a remote
                   // one has no `Track` to pass — so the list it ranges over is
                   // narrowed to match.
-                  const localRows = tracks.filter(
-                    (row) => row.source === "local",
-                  ) as unknown as Track[];
+                  const localRows = tracks
+                    .filter((row) => row.source === "local")
+                    .map(toLocalTrack);
                   if (e.shiftKey) {
                     selection.selectRange(track.id, localRows);
                     return;
@@ -1357,6 +1357,47 @@ function SortDropdown({ options, current, onChange, t }: SortDropdownProps) {
 // Tab-specific list components
 // =============================================================================
 
+/**
+ * A local library row as the `Track` the player, the selection and the
+ * playlist calls all speak.
+ *
+ * Not a cast. The row's identifiers are **text** — the two sources do not
+ * share an identifier type, so the unified listing hands both back as strings
+ * — and handing that object straight to code that compares `id` numerically
+ * makes every comparison silently false: no row ever reads as selected, and
+ * the queue is built from tracks the engine cannot match. Only ever called for
+ * a row whose source is local; a server row has no `Track` to become.
+ */
+function toLocalTrack(row: LibraryTrackRow): Track {
+  return {
+    id: Number(row.id),
+    library_id: row.library_id ?? 0,
+    title: row.title,
+    album_id: row.album_id != null ? Number(row.album_id) : null,
+    album_title: row.album_title,
+    artist_id: row.artist_id != null ? Number(row.artist_id) : null,
+    artist_name: row.artist_name,
+    artist_ids: row.artist_ids,
+    duration_ms: row.duration_ms,
+    track_number: row.track_number,
+    disc_number: row.disc_number,
+    year: row.year,
+    bitrate: row.bitrate,
+    sample_rate: row.sample_rate,
+    channels: row.channels,
+    bit_depth: row.bit_depth,
+    codec: row.codec,
+    musical_key: row.musical_key,
+    file_path: row.file_path ?? "",
+    file_size: row.file_size ?? 0,
+    added_at: row.added_at,
+    artwork_path: row.artwork_path,
+    artwork_path_1x: row.artwork_path_1x,
+    artwork_path_2x: row.artwork_path_2x,
+    rating: row.rating,
+  };
+}
+
 interface TrackTableProps {
   tracks: LibraryTrackRow[];
   isLoading: boolean;
@@ -1521,9 +1562,9 @@ function TrackTable({
           const localId = track.source === "remote" ? null : Number(track.id);
           const local = localId !== null;
           // The row the user can act on as a local track, for the handlers
-          // that still speak `Track`. Narrowed once here rather than cast at
-          // every call site.
-          const asTrack = local ? (track as unknown as Track) : null;
+          // that still speak `Track`. Converted once here — the identifiers
+          // are text on the wire, and a cast would leave them text.
+          const asTrack = local ? toLocalTrack(track) : null;
           const isCurrent = localId !== null && localId === currentTrackId;
           const isMenuOpen = localId !== null && openMenuTrackId === localId;
           const isRowSelected = localId !== null && isSelected(localId);
