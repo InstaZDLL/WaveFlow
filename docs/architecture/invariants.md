@@ -154,6 +154,10 @@ Wider topology: [audio architecture](audio.md).
 
 `TrackTable` uses `@tanstack/react-virtual` for 6000+ track performance. Virtualized tables consume `usePageScroll()` for the scroll element instead of nesting their own `overflow-y-auto` — that drives a single Spotify-style page scrollbar.
 
+**Where the line is.** "Everywhere" means every list whose length has no natural bound: the library's tracks, albums, artists and playlist grids, and `PlaylistView` — a playlist can hold six thousand tracks because someone put them there. A **detail view of one entity** is bounded by that entity and is not virtualized: `AlbumDetailView`, `ArtistDetailView` and `GenreDetailView` all render their lists directly, and an album is a dozen or two tracks by nature. The distinction is worth stating because the cost is not free — a virtualizer needs a measured scroll element, a `scrollMargin` recomputed against the page scroller, and a re-measure on every column change, which is real machinery to carry for a list that fits on a screen.
+
+The **sidebar** is the deliberate exception on the other side: it is a fixed column with its own scroller, so it neither uses `usePageScroll()` nor virtualizes. Pointing a virtualizer at its nested `overflow-y-auto` would introduce, inside the one component that legitimately has one, exactly the pattern this invariant exists to keep out of the page.
+
 ### Modal accessibility
 
 Every modal calls [`useModalA11y(isOpen, onClose)`](../../src/hooks/useModalA11y.ts) — Escape-close, Tab focus trap, focus restoration. The container gets `role="dialog"` + `aria-modal="true"` + `aria-labelledby` (stable heading id) or `aria-label` (conditional heading). Don't roll bespoke `useEffect` Escape handlers.
