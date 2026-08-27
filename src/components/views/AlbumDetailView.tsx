@@ -147,6 +147,21 @@ export function AlbumDetailView({
   // string and `AlbumDetail.artist_id` is a rowid, so it has nowhere to go in
   // the shared shape.
   const [remoteArtistId, setRemoteArtistId] = useState<string | null>(null);
+  /**
+   * Which album the loaded one *is*.
+   *
+   * `remote` is derived from the props and flips the instant navigation
+   * happens, while `album` still holds the album that was showing. In that
+   * window the two disagree, and the disagreement is not cosmetic: playing
+   * would take the remote branch over a local album's tracks and hand the
+   * server a list of empty identifiers, and the artist link would go to the
+   * previous album's artist. A snapshot of another album counts as absent,
+   * not as approximate — the same rule the audio pipeline popover needed.
+   *
+   * Stamped rather than cleared, so a cover change or a tag edit refetches
+   * without flashing a skeleton: those do not change the identity.
+   */
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
   // Init true so the skeleton paints on first render — paired with the
   // `!album && !isLoading` early-return below, this also prevents a
   // one-frame "album not found" flash before the fetch schedules.
@@ -183,6 +198,10 @@ export function AlbumDetailView({
   const [editRefetch, setEditRefetch] = useState(0);
   useTrackUpdated(useCallback(() => setEditRefetch((k) => k + 1), []));
 
+  // The identity of what is being asked for, as opposed to what is loaded.
+  const albumKey =
+    remoteAlbumId != null ? `remote:${remoteAlbumId}` : `local:${albumId}`;
+
   // Load album detail
   useEffect(() => {
     if (albumId == null && remoteAlbumId == null) {
@@ -201,12 +220,14 @@ export function AlbumDetailView({
           if (!cancelled) {
             setAlbum(toAlbumDetail(fetched));
             setRemoteArtistId(fetched.artist_id);
+            setLoadedKey(albumKey);
           }
         } else {
           const detail = await getAlbumDetail(albumId as number);
           if (!cancelled) {
             setAlbum(detail);
             setRemoteArtistId(null);
+            setLoadedKey(albumKey);
           }
         }
       } catch (err) {
@@ -219,7 +240,7 @@ export function AlbumDetailView({
     return () => {
       cancelled = true;
     };
-  }, [albumId, remoteAlbumId, coverReloadKey, editRefetch]);
+  }, [albumId, remoteAlbumId, albumKey, coverReloadKey, editRefetch]);
 
   // Load liked IDs
   useEffect(() => {
@@ -274,7 +295,11 @@ export function AlbumDetailView({
     );
   }
 
-  if (!album) return <DetailViewSkeleton ariaLabel={t("albumDetail.badge")} />; // loading
+  // Loading, or holding another album's snapshot — which is the same thing as
+  // far as everything below is concerned.
+  if (!album || loadedKey !== albumKey) {
+    return <DetailViewSkeleton ariaLabel={t("albumDetail.badge")} />;
+  }
 
   // Build playable Track[] from AlbumTrack[] for the player AND for the
   // track context menu — which is what feeds the Properties modal. Every
