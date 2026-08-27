@@ -334,10 +334,11 @@ plays, renames, deletes, removes tracks from, reorders and adds tracks to them
 like local playlists.
 
 A server **artist** has none either. The absorption is smaller than the
-album's because the two sides already agreed on the hard part: the server
-carries a name, a portrait and a list of albums, and nothing else — no
-biography, no fan count, no background — which is exactly what a *local* artist
-carries too. Both have always filled the rest from the same by-name
+album's because the two sides already agreed on the hard part: the *descriptive*
+metadata the server carries for an artist is a name, a portrait and a list of
+albums, and nothing beyond that — no biography, no fan count, no background —
+which is exactly what a *local* artist carries too. (It carries an identifier
+as well, of course; that is what the page is fetched by.) Both have always filled the rest from the same by-name
 enrichment; the only difference is the key. A local artist resolves a cached
 Deezer id through its own row, which is also what a curated override hangs off;
 a server artist has no row and goes by name. Its play buttons are hidden rather

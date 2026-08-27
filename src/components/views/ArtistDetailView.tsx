@@ -216,12 +216,13 @@ export function ArtistDetailView({
       try {
         // A server artist has no track list to intersect: its payload lists
         // albums only, so the top-track section is absent rather than empty.
-        const [detail, allTracks] = remoteArtistId != null
-          ? [toArtistDetail(await remoteGetArtist(remoteArtistId)), []]
-          : await Promise.all([
-              getArtistDetail(artistId as number),
-              listTracks(null),
-            ]);
+        const [detail, allTracks] =
+          remoteArtistId != null
+            ? [toArtistDetail(await remoteGetArtist(remoteArtistId)), []]
+            : await Promise.all([
+                getArtistDetail(artistId as number),
+                listTracks(null),
+              ]);
         if (cancelled) return;
         setArtist(detail);
         setLoadedKey(artistKey);
@@ -469,17 +470,17 @@ export function ArtistDetailView({
                 image and the curated metadata alike. A server artist has no
                 such row. */}
             {!remote && (
-            <div className="absolute right-2 bottom-2 pointer-events-none">
-              <button
-                type="button"
-                onClick={() => setIsImagePickerOpen(true)}
-                aria-label={t("artistImagePicker.editAria")}
-                title={t("artistImagePicker.title")}
-                className="pointer-events-auto w-10 h-10 rounded-full bg-zinc-900/80 hover:bg-zinc-900 text-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-opacity"
-              >
-                <Pencil size={16} />
-              </button>
-            </div>
+              <div className="absolute right-2 bottom-2 pointer-events-none">
+                <button
+                  type="button"
+                  onClick={() => setIsImagePickerOpen(true)}
+                  aria-label={t("artistImagePicker.editAria")}
+                  title={t("artistImagePicker.title")}
+                  className="pointer-events-auto w-10 h-10 rounded-full bg-zinc-900/80 hover:bg-zinc-900 text-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-opacity"
+                >
+                  <Pencil size={16} />
+                </button>
+              </div>
             )}
           </div>
 
@@ -529,36 +530,36 @@ export function ArtistDetailView({
                 rather than that the discography below is the way in. */}
             <div className="flex items-center space-x-3">
               {!remote && (
-              <>
-              <button
-                type="button"
-                onClick={handlePlayAll}
-                disabled={tracks.length === 0}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50"
-              >
-                <Play size={16} className="fill-current" />
-                <span>{t("artistDetail.playAll")}</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleShufflePlay}
-                disabled={tracks.length === 0}
-                className={`${secondaryButtonClass} px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50`}
-              >
-                <Shuffle size={16} />
-                <span>{t("artistDetail.shuffle")}</span>
-              </button>
-              </>
+                <>
+                  <button
+                    type="button"
+                    onClick={handlePlayAll}
+                    disabled={tracks.length === 0}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50"
+                  >
+                    <Play size={16} className="fill-current" />
+                    <span>{t("artistDetail.playAll")}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleShufflePlay}
+                    disabled={tracks.length === 0}
+                    className={`${secondaryButtonClass} px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50`}
+                  >
+                    <Shuffle size={16} />
+                    <span>{t("artistDetail.shuffle")}</span>
+                  </button>
+                </>
               )}
               {!remote && (
-              <button
-                type="button"
-                onClick={() => setIsMetadataEditorOpen(true)}
-                className={`${secondaryButtonClass} px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm`}
-              >
-                <Pencil size={16} />
-                <span>{t("artistDetail.editMetadata")}</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setIsMetadataEditorOpen(true)}
+                  className={`${secondaryButtonClass} px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm`}
+                >
+                  <Pencil size={16} />
+                  <span>{t("artistDetail.editMetadata")}</span>
+                </button>
               )}
             </div>
           </div>
@@ -703,18 +704,18 @@ export function ArtistDetailView({
                     iconSize={44}
                   />
                 ) : (
-                <Artwork
-                  path={album.artwork_path}
-                  path1x={album.artwork_path_1x}
-                  path2x={album.artwork_path_2x}
-                  // Discography tile renders ~150-200 px wide; see
-                  // HomeView carousel comment — same reason for full.
-                  size="full"
-                  alt={album.title}
-                  className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
-                  iconSize={44}
-                  rounded="2xl"
-                />
+                  <Artwork
+                    path={album.artwork_path}
+                    path1x={album.artwork_path_1x}
+                    path2x={album.artwork_path_2x}
+                    // Discography tile renders ~150-200 px wide; see
+                    // HomeView carousel comment — same reason for full.
+                    size="full"
+                    alt={album.title}
+                    className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
+                    iconSize={44}
+                    rounded="2xl"
+                  />
                 )}
                 <div className="px-1">
                   <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
@@ -787,38 +788,38 @@ export function ArtistDetailView({
           server one, and mounting them anyway would hand each the negative
           sentinel. */}
       {!remote && (
-      <>
-      <ArtistImagePickerModal
-        artistId={artist.id}
-        artistName={artist.name}
-        hasArtwork={!!artist.artwork_path}
-        isOpen={isImagePickerOpen}
-        onClose={() => setIsImagePickerOpen(false)}
-        onSuccess={() => setEditRefetch((k) => k + 1)}
-      />
+        <>
+          <ArtistImagePickerModal
+            artistId={artist.id}
+            artistName={artist.name}
+            hasArtwork={!!artist.artwork_path}
+            isOpen={isImagePickerOpen}
+            onClose={() => setIsImagePickerOpen(false)}
+            onSuccess={() => setEditRefetch((k) => k + 1)}
+          />
 
-      <ArtistMetadataEditorModal
-        artistId={artist.id}
-        artistName={artist.name}
-        isOpen={isMetadataEditorOpen}
-        onClose={() => setIsMetadataEditorOpen(false)}
-        onSuccess={() => {
-          // Reset bio so the enrichment effect repopulates from the new
-          // source — clearing an override must drop the stale text, and
-          // the effect only ever *sets* bio (never nulls it).
-          setBioShort(null);
-          setBioFull(null);
-          setBioExpanded(false);
-          setOverrideRefetch((k) => k + 1);
-        }}
-        onSplit={(primaryArtistId) => {
-          // The phantom artist we're viewing was just dissolved (issue
-          // #396); jump to the new primary so we don't render a dead id.
-          setIsMetadataEditorOpen(false);
-          if (primaryArtistId != null) onNavigateToArtist(primaryArtistId);
-        }}
-      />
-      </>
+          <ArtistMetadataEditorModal
+            artistId={artist.id}
+            artistName={artist.name}
+            isOpen={isMetadataEditorOpen}
+            onClose={() => setIsMetadataEditorOpen(false)}
+            onSuccess={() => {
+              // Reset bio so the enrichment effect repopulates from the new
+              // source — clearing an override must drop the stale text, and
+              // the effect only ever *sets* bio (never nulls it).
+              setBioShort(null);
+              setBioFull(null);
+              setBioExpanded(false);
+              setOverrideRefetch((k) => k + 1);
+            }}
+            onSplit={(primaryArtistId) => {
+              // The phantom artist we're viewing was just dissolved (issue
+              // #396); jump to the new primary so we don't render a dead id.
+              setIsMetadataEditorOpen(false);
+              if (primaryArtistId != null) onNavigateToArtist(primaryArtistId);
+            }}
+          />
+        </>
       )}
     </div>
   );
