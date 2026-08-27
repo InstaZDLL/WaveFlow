@@ -2419,27 +2419,6 @@
       "nowPlaying": "قيد التشغيل الآن",
       "upNext": "التالي"
     },
-    "artist": {
-      "label": "فنان بعيد",
-      "albumCount_zero": "0 ألبوم",
-      "albumCount_one": "ألبوم واحد",
-      "albumCount_two": "ألبومان",
-      "albumCount_few": "{{count}} ألبومات",
-      "albumCount_many": "{{count}} ألبومًا",
-      "albumCount_other": "{{count}} ألبوم",
-      "fansCount_zero": "0 معجب",
-      "fansCount_one": "معجب واحد",
-      "fansCount_two": "معجبان",
-      "fansCount_few": "{{value}} معجبين",
-      "fansCount_many": "{{value}} معجبًا",
-      "fansCount_other": "{{value}} معجب",
-      "biography": "السيرة الذاتية",
-      "readMore": "قراءة المزيد",
-      "readLess": "قراءة أقل",
-      "noAlbums": "لا توجد ألبومات لهذا الفنان.",
-      "albumsHeading": "الألبومات",
-      "similar": "فنانون مشابهون"
-    },
     "playlist": {
       "label": "قائمة تشغيل بعيدة",
       "nameLabel": "اسم قائمة التشغيل",

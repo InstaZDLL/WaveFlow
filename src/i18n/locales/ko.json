@@ -2207,17 +2207,6 @@
       "nowPlaying": "지금 재생 중",
       "upNext": "다음 재생"
     },
-    "artist": {
-      "label": "원격 아티스트",
-      "albumCount_other": "{{count}}개 앨범",
-      "fansCount_other": "팬 {{value}}명",
-      "biography": "약력",
-      "readMore": "더 보기",
-      "readLess": "간략히",
-      "noAlbums": "이 아티스트의 앨범이 없습니다.",
-      "albumsHeading": "앨범",
-      "similar": "비슷한 아티스트"
-    },
     "playlist": {
       "label": "원격 플레이리스트",
       "nameLabel": "플레이리스트 이름",

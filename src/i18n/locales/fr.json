@@ -2217,19 +2217,6 @@
       "nowPlaying": "En cours de lecture",
       "upNext": "À suivre"
     },
-    "artist": {
-      "label": "Artiste distant",
-      "albumCount_one": "{{count}} album",
-      "albumCount_other": "{{count}} albums",
-      "fansCount_one": "{{value}} fan",
-      "fansCount_other": "{{value}} fans",
-      "biography": "Biographie",
-      "readMore": "Lire plus",
-      "readLess": "Lire moins",
-      "noAlbums": "Aucun album pour cet artiste.",
-      "albumsHeading": "Albums",
-      "similar": "Artistes similaires"
-    },
     "playlist": {
       "label": "Playlist distante",
       "nameLabel": "Nom de la playlist",

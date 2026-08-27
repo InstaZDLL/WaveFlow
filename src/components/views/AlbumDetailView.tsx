@@ -449,7 +449,8 @@ export function AlbumDetailView({
                   }
                   return;
                 }
-                if (album.artist_id != null) onNavigateToArtist(album.artist_id);
+                if (album.artist_id != null)
+                  onNavigateToArtist(album.artist_id);
               }}
               className="text-lg font-medium text-emerald-600 dark:text-emerald-400 hover:underline mb-2"
             >
@@ -504,37 +505,37 @@ export function AlbumDetailView({
             </button>
             {/* Shuffle is a mode of the local queue; the remote one has none. */}
             {!remote && (
-            <button
-              type="button"
-              onClick={handleShufflePlay}
-              disabled={album.tracks.length === 0}
-              className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50"
-            >
-              <Shuffle size={16} />
-              <span>{t("albumDetail.shuffle")}</span>
-            </button>
+              <button
+                type="button"
+                onClick={handleShufflePlay}
+                disabled={album.tracks.length === 0}
+                className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50"
+              >
+                <Shuffle size={16} />
+                <span>{t("albumDetail.shuffle")}</span>
+              </button>
             )}
             {/* Both covers are written into the local library — there is no
                 local album row here to write one to. */}
             {!remote && (
-            <>
-            <button
-              type="button"
-              onClick={() => setIsCoverPickerOpen(true)}
-              className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm"
-            >
-              <ImageIcon size={16} />
-              <span>{t("library.changeCover")}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsMotionCoverPickerOpen(true)}
-              className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm"
-            >
-              <Film size={16} />
-              <span>{t("albumDetail.setMotionCover")}</span>
-            </button>
-            </>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsCoverPickerOpen(true)}
+                  className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm"
+                >
+                  <ImageIcon size={16} />
+                  <span>{t("library.changeCover")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsMotionCoverPickerOpen(true)}
+                  className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm"
+                >
+                  <Film size={16} />
+                  <span>{t("albumDetail.setMotionCover")}</span>
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -599,26 +600,26 @@ export function AlbumDetailView({
           is the negative sentinel. A component that never opens should not
           be holding an invalid identifier in the meantime. */}
       {!remote && (
-      <>
-      <CoverPickerModal
-        albumId={album.id}
-        initialQuery={
-          album.artist_name
-            ? `${album.title} ${album.artist_name}`
-            : album.title
-        }
-        isOpen={isCoverPickerOpen}
-        onClose={() => setIsCoverPickerOpen(false)}
-        onSuccess={() => setCoverReloadKey((k) => k + 1)}
-      />
+        <>
+          <CoverPickerModal
+            albumId={album.id}
+            initialQuery={
+              album.artist_name
+                ? `${album.title} ${album.artist_name}`
+                : album.title
+            }
+            isOpen={isCoverPickerOpen}
+            onClose={() => setIsCoverPickerOpen(false)}
+            onSuccess={() => setCoverReloadKey((k) => k + 1)}
+          />
 
-      <MotionCoverPickerModal
-        albumId={album.id}
-        isOpen={isMotionCoverPickerOpen}
-        onClose={() => setIsMotionCoverPickerOpen(false)}
-        onSuccess={() => setCoverReloadKey((k) => k + 1)}
-      />
-      </>
+          <MotionCoverPickerModal
+            albumId={album.id}
+            isOpen={isMotionCoverPickerOpen}
+            onClose={() => setIsMotionCoverPickerOpen(false)}
+            onSuccess={() => setCoverReloadKey((k) => k + 1)}
+          />
+        </>
       )}
 
       {trackContextMenu.render()}

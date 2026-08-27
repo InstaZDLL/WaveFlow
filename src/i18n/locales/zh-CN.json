@@ -2207,17 +2207,6 @@
       "nowPlaying": "正在播放",
       "upNext": "即将播放"
     },
-    "artist": {
-      "label": "远程艺人",
-      "albumCount_other": "{{count}} 张专辑",
-      "fansCount_other": "{{value}} 位粉丝",
-      "biography": "简介",
-      "readMore": "展开",
-      "readLess": "收起",
-      "noAlbums": "该艺人暂无专辑。",
-      "albumsHeading": "专辑",
-      "similar": "相似艺人"
-    },
     "playlist": {
       "label": "远程播放列表",
       "nameLabel": "播放列表名称",

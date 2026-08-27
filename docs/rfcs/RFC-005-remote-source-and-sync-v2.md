@@ -333,6 +333,18 @@ playlist list, tagged, alongside the local ones. A `RemotePlaylistView` still
 plays, renames, deletes, removes tracks from, reorders and adds tracks to them
 like local playlists.
 
+A server **artist** has none either. The absorption is smaller than the
+album's because the two sides already agreed on the hard part: the *descriptive*
+metadata the server carries for an artist is a name, a portrait and a list of
+albums, and nothing beyond that — no biography, no fan count, no background —
+which is exactly what a *local* artist carries too. (It carries an identifier
+as well, of course; that is what the page is fetched by.) Both have always filled the rest from the same by-name
+enrichment; the only difference is the key. A local artist resolves a cached
+Deezer id through its own row, which is also what a curated override hangs off;
+a server artist has no row and goes by name. Its play buttons are hidden rather
+than disabled: the payload lists albums and no tracks, so there is nothing at
+that level to play and the discography below is the way in.
+
 A server **album** no longer has a view of its own: `AlbumDetailView` takes
 either identifier and renders both. The twin it replaced was poorer by
 construction — no ratings, no motion cover, no selection, no context menu — not

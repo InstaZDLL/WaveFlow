@@ -2207,17 +2207,6 @@
       "nowPlaying": "再生中",
       "upNext": "次に再生"
     },
-    "artist": {
-      "label": "リモートアーティスト",
-      "albumCount_other": "{{count}} 枚",
-      "fansCount_other": "{{value}} 人のファン",
-      "biography": "バイオグラフィー",
-      "readMore": "続きを読む",
-      "readLess": "折りたたむ",
-      "noAlbums": "このアーティストのアルバムはありません。",
-      "albumsHeading": "アルバム",
-      "similar": "似ているアーティスト"
-    },
     "playlist": {
       "label": "リモートプレイリスト",
       "nameLabel": "プレイリスト名",

@@ -2337,23 +2337,6 @@
       "nowPlaying": "Сейчас играет",
       "upNext": "Далее"
     },
-    "artist": {
-      "label": "Удалённый исполнитель",
-      "albumCount_one": "{{count}} альбом",
-      "albumCount_few": "{{count}} альбома",
-      "albumCount_many": "{{count}} альбомов",
-      "albumCount_other": "{{count}} альбома",
-      "fansCount_one": "{{value}} поклонник",
-      "fansCount_few": "{{value}} поклонника",
-      "fansCount_many": "{{value}} поклонников",
-      "fansCount_other": "{{value}} поклонника",
-      "biography": "Биография",
-      "readMore": "Читать далее",
-      "readLess": "Свернуть",
-      "noAlbums": "У этого исполнителя нет альбомов.",
-      "albumsHeading": "Альбомы",
-      "similar": "Похожие исполнители"
-    },
     "playlist": {
       "label": "Удалённый плейлист",
       "nameLabel": "Название плейлиста",

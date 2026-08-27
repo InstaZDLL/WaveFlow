@@ -27,8 +27,15 @@ import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useArtistBioCollapsed } from "../../hooks/useArtistBioCollapsed";
 import { useArtistHero } from "../../hooks/useArtistHero";
 import {
+  remoteGetArtist,
+  type RemoteArtist,
+} from "../../lib/tauri/remoteServer";
+import { getSimilarArtistsByName } from "../../lib/tauri/similar";
+import { RemoteArtwork } from "../common/RemoteArtwork";
+import {
   getArtistDetail,
   enrichArtistDeezer,
+  enrichArtistByName,
   type ArtistDetail,
 } from "../../lib/tauri/detail";
 import { resolveArtwork, resolveRemoteImage } from "../../lib/tauri/artwork";
@@ -41,26 +48,101 @@ import {
   type Track,
 } from "../../lib/tauri/track";
 
+/**
+ * A server artist in the shape the view already speaks.
+ *
+ * Everything the server has no answer for is `null`, which is what those
+ * fields already mean locally before enrichment has run — and the enrichment
+ * that fills them is the same one, keyed by name instead of by row.
+ */
+function toArtistDetail(artist: RemoteArtist): ArtistDetail {
+  return {
+    // Never read: every site that acts on a rowid checks the source first.
+    id: -1,
+    name: artist.name,
+    artwork_hash: artist.artwork_hash,
+    artwork_path: null,
+    artwork_path_1x: null,
+    artwork_path_2x: null,
+    picture_url: null,
+    picture_path: null,
+    picture_path_1x: null,
+    picture_path_2x: null,
+    fans_count: null,
+    bio_short: null,
+    bio_full: null,
+    background_url: null,
+    background_path: null,
+    // The server's artist payload lists albums and no tracks, so there is no
+    // top-track section to fill rather than an empty one to explain.
+    track_count: 0,
+    album_count: artist.albums.length,
+    albums: artist.albums.map((album, index) => ({
+      source: "remote" as const,
+      remote_id: album.id,
+      artwork_hash: album.artwork_hash,
+      id: -(index + 1),
+      title: album.title,
+      year: album.year,
+      track_count: 0,
+      total_duration_ms: 0,
+      artwork_path: null,
+      artwork_path_1x: null,
+      artwork_path_2x: null,
+    })),
+  };
+}
+
 interface ArtistDetailViewProps {
   artistId: number | null;
+  /** Set instead of `artistId` when the artist is the bound server's.
+   *  Exactly one of the two is ever set. */
+  remoteArtistId?: string | null;
   onNavigateToAlbum: (albumId: number) => void;
+  onNavigateToRemoteAlbum?: (remoteAlbumId: string) => void;
   /// Click target for similar-artist cards that map to a row in the
   /// user's library. Suggestions without a `library_artist_id` aren't
   /// clickable — there's no in-app destination for an external artist.
   onNavigateToArtist: (artistId: number) => void;
 }
 
+/**
+ * One artist's page, from the device or from the bound server.
+ *
+ * The server carries an artist's name, their portrait and their albums — and
+ * nothing else: no biography, no fan count, no background. That was already
+ * true of a library artist, which is why both sides get the photo, the hero
+ * background and the biography from the same by-name enrichment. The only real
+ * difference is how the enrichment is keyed: a local artist resolves a cached
+ * Deezer id through its own row, a server artist has no row and goes by name.
+ */
 export function ArtistDetailView({
   artistId,
+  remoteArtistId = null,
   onNavigateToAlbum,
+  onNavigateToRemoteAlbum,
   onNavigateToArtist,
 }: ArtistDetailViewProps) {
   const { t } = useTranslation();
+  // Which catalogue this artist came from. Everything keyed on a local rowid
+  // is gated on it.
+  const remote = remoteArtistId != null;
+  // The identity of what is being asked for, as opposed to what is loaded —
+  // see `AlbumDetailView`: a snapshot read for another artist counts as
+  // absent, not as an approximation of this one.
+  const artistKey =
+    remoteArtistId != null ? `remote:${remoteArtistId}` : `local:${artistId}`;
   const { playTracks, currentTrack, toggleShuffle, isShuffled, isPlaying } =
     usePlayer();
   const { createPlaylist } = usePlaylist();
 
   const [artist, setArtist] = useState<ArtistDetail | null>(null);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  // Whether the loaded artist is the one being asked for. The render guard is
+  // not enough on its own: every effect that reads the snapshot has to wait
+  // for it too, or it acts on the previous artist while this one loads.
+  const settled = loadedKey === artistKey;
+
   const [tracks, setTracks] = useState<Track[]>([]);
   // Init true so the skeleton paints on first render (paired with the
   // `!artist && !isLoading` early-return below to avoid a one-frame
@@ -121,7 +203,7 @@ export function ArtistDetailView({
 
   // Load artist detail
   useEffect(() => {
-    if (artistId == null) {
+    if (artistId == null && remoteArtistId == null) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setArtist(null);
       setTracks([]);
@@ -137,12 +219,18 @@ export function ArtistDetailView({
       setBioFull(null);
       setBioExpanded(false);
       try {
-        const [detail, allTracks] = await Promise.all([
-          getArtistDetail(artistId),
-          listTracks(null),
-        ]);
+        // A server artist has no track list to intersect: its payload lists
+        // albums only, so the top-track section is absent rather than empty.
+        const [detail, allTracks] =
+          remoteArtistId != null
+            ? [toArtistDetail(await remoteGetArtist(remoteArtistId)), []]
+            : await Promise.all([
+                getArtistDetail(artistId as number),
+                listTracks(null),
+              ]);
         if (cancelled) return;
         setArtist(detail);
+        setLoadedKey(artistKey);
         // Local sidecar `artist.jpg` always wins over the Deezer cache —
         // keeps the offline-first promise from issue #31.
         const seeded = resolveArtwork(
@@ -184,7 +272,7 @@ export function ArtistDetailView({
     return () => {
       cancelled = true;
     };
-  }, [artistId, editRefetch]);
+  }, [artistId, remoteArtistId, artistKey, editRefetch]);
 
   // Load liked IDs
   useEffect(() => {
@@ -196,13 +284,29 @@ export function ArtistDetailView({
   // Similar artists (Last.fm primary, Deezer fallback). Loaded after
   // the main detail so it never blocks the initial paint.
   useEffect(() => {
-    if (artistId == null) {
+    // Keyed by row locally, by name for a server artist — which is what the
+    // curated-override path needs the local row for, and why the two are not
+    // one call.
+    //
+    // Gated on the snapshot matching what is being asked for. The by-name
+    // branch reads `artist.name`, and during navigation that is still the
+    // *previous* artist: firing here would fetch the wrong artist's
+    // neighbours and paint them under the new one's name.
+    const pending =
+      !settled || artist == null
+        ? null
+        : remoteArtistId != null
+          ? getSimilarArtistsByName(artist.name)
+          : artistId != null
+            ? getSimilarArtists(artistId)
+            : null;
+    if (!pending) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSimilar([]);
       return;
     }
     let cancelled = false;
-    getSimilarArtists(artistId)
+    pending
       .then((list) => {
         if (!cancelled) setSimilar(list);
       })
@@ -210,16 +314,30 @@ export function ArtistDetailView({
     return () => {
       cancelled = true;
     };
-  }, [artistId, overrideRefetch]);
+  }, [artistId, remoteArtistId, artist, settled, overrideRefetch]);
 
   // Deezer enrichment. Gated on `artist` being loaded so the
   // "local-wins-over-Deezer" guard below can read `artwork_path` from a
   // fresh detail instead of a stale closure value.
   const hasLocalArtistImage = !!artist?.artwork_path;
   useEffect(() => {
-    if (artistId == null || artist == null) return;
+    // Same gate as the neighbours above, and it matters more here: these
+    // fields are only ever *set*, never nulled, so a result for the previous
+    // artist does not get overwritten by the new one's — it stays, under the
+    // new one's name, for as long as the page is open.
+    if (!settled || artist == null) return;
+    // Same enrichment, two keys. A local artist resolves a cached Deezer id
+    // through its own row, which is also what carries a curated override; a
+    // server artist has no row, so it goes by name.
+    const pending =
+      remoteArtistId != null
+        ? enrichArtistByName(artist.name)
+        : artistId != null
+          ? enrichArtistDeezer(artistId)
+          : null;
+    if (!pending) return;
     let cancelled = false;
-    enrichArtistDeezer(artistId)
+    pending
       .then((e) => {
         if (cancelled) return;
         const resolved = resolveArtwork(
@@ -244,7 +362,14 @@ export function ArtistDetailView({
     return () => {
       cancelled = true;
     };
-  }, [artistId, hasLocalArtistImage, artist, overrideRefetch]);
+  }, [
+    artistId,
+    remoteArtistId,
+    hasLocalArtistImage,
+    artist,
+    settled,
+    overrideRefetch,
+  ]);
 
   const handleToggleLike = async (trackId: number) => {
     const nowLiked = await toggleLikeTrack(trackId);
@@ -256,7 +381,9 @@ export function ArtistDetailView({
     });
   };
 
-  if (artistId == null || (!artist && !isLoading)) {
+  // Either identifier will do — testing only the local one is what sent every
+  // server album to the empty state in `AlbumDetailView`.
+  if ((artistId == null && remoteArtistId == null) || (!artist && !isLoading)) {
     return (
       <EmptyState
         icon={<Music2 size={40} />}
@@ -267,7 +394,9 @@ export function ArtistDetailView({
     );
   }
 
-  if (!artist) {
+  // Loading, or holding another artist's snapshot — the same thing as far as
+  // everything below is concerned.
+  if (!artist || !settled) {
     return (
       <DetailViewSkeleton ariaLabel={t("artistDetail.badge")} shape="circle" />
     );
@@ -325,7 +454,16 @@ export function ArtistDetailView({
         <div className="relative flex items-center space-x-8">
           {/* Artist photo + edit overlay (visible on hover/focus) */}
           <div className="relative shrink-0 group">
-            {pictureSrc ? (
+            {!pictureSrc && remote && artist.artwork_hash ? (
+              /* The server's own portrait. Shown while the by-name enrichment
+                 is in flight and kept if it never finds anything — no
+                 lightbox, which opens the original file, and there is none. */
+              <RemoteArtwork
+                hash={artist.artwork_hash}
+                className="w-48 h-48 rounded-full shadow-lg"
+                iconSize={64}
+              />
+            ) : pictureSrc ? (
               /* Keyboard-accessible lightbox trigger; omitted when no artist photo */
               <button
                 type="button"
@@ -349,17 +487,22 @@ export function ArtistDetailView({
             {/* The wrapper is pointer-events-none so the lightbox button
               keeps receiving clicks everywhere; the inner pencil button
               re-enables pointer events for its small hit area. */}
-            <div className="absolute right-2 bottom-2 pointer-events-none">
-              <button
-                type="button"
-                onClick={() => setIsImagePickerOpen(true)}
-                aria-label={t("artistImagePicker.editAria")}
-                title={t("artistImagePicker.title")}
-                className="pointer-events-auto w-10 h-10 rounded-full bg-zinc-900/80 hover:bg-zinc-900 text-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-opacity"
-              >
-                <Pencil size={16} />
-              </button>
-            </div>
+            {/* Both edits write into the local `artist` row — the picked
+                image and the curated metadata alike. A server artist has no
+                such row. */}
+            {!remote && (
+              <div className="absolute right-2 bottom-2 pointer-events-none">
+                <button
+                  type="button"
+                  onClick={() => setIsImagePickerOpen(true)}
+                  aria-label={t("artistImagePicker.editAria")}
+                  title={t("artistImagePicker.title")}
+                  className="pointer-events-auto w-10 h-10 rounded-full bg-zinc-900/80 hover:bg-zinc-900 text-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-opacity"
+                >
+                  <Pencil size={16} />
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="flex-1 min-w-0 pt-2">
@@ -401,34 +544,44 @@ export function ArtistDetailView({
               )}
             </div>
 
-            {/* Actions */}
+            {/* Actions. Both play the artist's *tracks*, and the server's
+                artist payload lists albums and no tracks — so for a server
+                artist there is nothing at this level to play, and a pair of
+                permanently disabled buttons would say the page is broken
+                rather than that the discography below is the way in. */}
             <div className="flex items-center space-x-3">
-              <button
-                type="button"
-                onClick={handlePlayAll}
-                disabled={tracks.length === 0}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50"
-              >
-                <Play size={16} className="fill-current" />
-                <span>{t("artistDetail.playAll")}</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleShufflePlay}
-                disabled={tracks.length === 0}
-                className={`${secondaryButtonClass} px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50`}
-              >
-                <Shuffle size={16} />
-                <span>{t("artistDetail.shuffle")}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsMetadataEditorOpen(true)}
-                className={`${secondaryButtonClass} px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm`}
-              >
-                <Pencil size={16} />
-                <span>{t("artistDetail.editMetadata")}</span>
-              </button>
+              {!remote && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handlePlayAll}
+                    disabled={tracks.length === 0}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50"
+                  >
+                    <Play size={16} className="fill-current" />
+                    <span>{t("artistDetail.playAll")}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleShufflePlay}
+                    disabled={tracks.length === 0}
+                    className={`${secondaryButtonClass} px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50`}
+                  >
+                    <Shuffle size={16} />
+                    <span>{t("artistDetail.shuffle")}</span>
+                  </button>
+                </>
+              )}
+              {!remote && (
+                <button
+                  type="button"
+                  onClick={() => setIsMetadataEditorOpen(true)}
+                  className={`${secondaryButtonClass} px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm`}
+                >
+                  <Pencil size={16} />
+                  <span>{t("artistDetail.editMetadata")}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -556,23 +709,35 @@ export function ArtistDetailView({
           <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5">
             {artist.albums.map((album) => (
               <button
-                key={album.id}
+                key={album.remote_id ?? album.id}
                 type="button"
-                onClick={() => onNavigateToAlbum(album.id)}
+                onClick={() =>
+                  album.remote_id
+                    ? onNavigateToRemoteAlbum?.(album.remote_id)
+                    : onNavigateToAlbum(album.id)
+                }
                 className="group flex flex-col space-y-2 text-left"
               >
-                <Artwork
-                  path={album.artwork_path}
-                  path1x={album.artwork_path_1x}
-                  path2x={album.artwork_path_2x}
-                  // Discography tile renders ~150-200 px wide; see
-                  // HomeView carousel comment — same reason for full.
-                  size="full"
-                  alt={album.title}
-                  className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
-                  iconSize={44}
-                  rounded="2xl"
-                />
+                {album.source === "remote" ? (
+                  <RemoteArtwork
+                    hash={album.artwork_hash ?? null}
+                    className="w-full aspect-square rounded-2xl shadow-sm group-hover:shadow-md transition-shadow"
+                    iconSize={44}
+                  />
+                ) : (
+                  <Artwork
+                    path={album.artwork_path}
+                    path1x={album.artwork_path_1x}
+                    path2x={album.artwork_path_2x}
+                    // Discography tile renders ~150-200 px wide; see
+                    // HomeView carousel comment — same reason for full.
+                    size="full"
+                    alt={album.title}
+                    className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
+                    iconSize={44}
+                    rounded="2xl"
+                  />
+                )}
                 <div className="px-1">
                   <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
                     {album.title}
@@ -640,36 +805,43 @@ export function ArtistDetailView({
         onClose={() => setIsLightboxOpen(false)}
       />
 
-      <ArtistImagePickerModal
-        artistId={artist.id}
-        artistName={artist.name}
-        hasArtwork={!!artist.artwork_path}
-        isOpen={isImagePickerOpen}
-        onClose={() => setIsImagePickerOpen(false)}
-        onSuccess={() => setEditRefetch((k) => k + 1)}
-      />
+      {/* Mounted only for a local artist: their triggers are hidden for a
+          server one, and mounting them anyway would hand each the negative
+          sentinel. */}
+      {!remote && (
+        <>
+          <ArtistImagePickerModal
+            artistId={artist.id}
+            artistName={artist.name}
+            hasArtwork={!!artist.artwork_path}
+            isOpen={isImagePickerOpen}
+            onClose={() => setIsImagePickerOpen(false)}
+            onSuccess={() => setEditRefetch((k) => k + 1)}
+          />
 
-      <ArtistMetadataEditorModal
-        artistId={artist.id}
-        artistName={artist.name}
-        isOpen={isMetadataEditorOpen}
-        onClose={() => setIsMetadataEditorOpen(false)}
-        onSuccess={() => {
-          // Reset bio so the enrichment effect repopulates from the new
-          // source — clearing an override must drop the stale text, and
-          // the effect only ever *sets* bio (never nulls it).
-          setBioShort(null);
-          setBioFull(null);
-          setBioExpanded(false);
-          setOverrideRefetch((k) => k + 1);
-        }}
-        onSplit={(primaryArtistId) => {
-          // The phantom artist we're viewing was just dissolved (issue
-          // #396); jump to the new primary so we don't render a dead id.
-          setIsMetadataEditorOpen(false);
-          if (primaryArtistId != null) onNavigateToArtist(primaryArtistId);
-        }}
-      />
+          <ArtistMetadataEditorModal
+            artistId={artist.id}
+            artistName={artist.name}
+            isOpen={isMetadataEditorOpen}
+            onClose={() => setIsMetadataEditorOpen(false)}
+            onSuccess={() => {
+              // Reset bio so the enrichment effect repopulates from the new
+              // source — clearing an override must drop the stale text, and
+              // the effect only ever *sets* bio (never nulls it).
+              setBioShort(null);
+              setBioFull(null);
+              setBioExpanded(false);
+              setOverrideRefetch((k) => k + 1);
+            }}
+            onSplit={(primaryArtistId) => {
+              // The phantom artist we're viewing was just dissolved (issue
+              // #396); jump to the new primary so we don't render a dead id.
+              setIsMetadataEditorOpen(false);
+              if (primaryArtistId != null) onNavigateToArtist(primaryArtistId);
+            }}
+          />
+        </>
+      )}
     </div>
   );
 }

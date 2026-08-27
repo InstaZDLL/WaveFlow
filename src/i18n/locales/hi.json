@@ -2217,19 +2217,6 @@
       "nowPlaying": "अभी चल रहा है",
       "upNext": "आगे"
     },
-    "artist": {
-      "label": "रिमोट कलाकार",
-      "albumCount_one": "{{count}} एल्बम",
-      "albumCount_other": "{{count}} एल्बम",
-      "fansCount_one": "{{value}} प्रशंसक",
-      "fansCount_other": "{{value}} प्रशंसक",
-      "biography": "जीवनी",
-      "readMore": "और पढ़ें",
-      "readLess": "कम पढ़ें",
-      "noAlbums": "इस कलाकार का कोई एल्बम नहीं।",
-      "albumsHeading": "एल्बम",
-      "similar": "समान कलाकार"
-    },
     "playlist": {
       "label": "रिमोट प्लेलिस्ट",
       "nameLabel": "प्लेलिस्ट का नाम",

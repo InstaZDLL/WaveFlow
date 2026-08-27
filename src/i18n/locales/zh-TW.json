@@ -2207,17 +2207,6 @@
       "nowPlaying": "正在播放",
       "upNext": "接下來"
     },
-    "artist": {
-      "label": "遠端演出者",
-      "albumCount_other": "{{count}} 張專輯",
-      "fansCount_other": "{{value}} 位粉絲",
-      "biography": "簡介",
-      "readMore": "顯示更多",
-      "readLess": "顯示較少",
-      "noAlbums": "此演出者沒有專輯。",
-      "albumsHeading": "專輯",
-      "similar": "相似演出者"
-    },
     "playlist": {
       "label": "遠端播放清單",
       "nameLabel": "播放清單名稱",
