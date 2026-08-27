@@ -2217,19 +2217,6 @@
       "nowPlaying": "Now playing",
       "upNext": "Up next"
     },
-    "artist": {
-      "label": "Remote artist",
-      "albumCount_one": "{{count}} album",
-      "albumCount_other": "{{count}} albums",
-      "fansCount_one": "{{value}} fan",
-      "fansCount_other": "{{value}} fans",
-      "biography": "Biography",
-      "readMore": "Read more",
-      "readLess": "Read less",
-      "noAlbums": "No albums for this artist.",
-      "albumsHeading": "Albums",
-      "similar": "Similar artists"
-    },
     "playlist": {
       "label": "Remote playlist",
       "nameLabel": "Playlist name",

@@ -120,11 +120,6 @@ const RemotePlaylistView = lazy(() =>
     default: module.RemotePlaylistView,
   })),
 );
-const RemoteArtistView = lazy(() =>
-  import("../views/RemoteArtistView").then((module) => ({
-    default: module.RemoteArtistView,
-  })),
-);
 
 // Each entry in the navigation history pairs a view id with its payload
 // (when relevant) so back/forward can restore the exact target the user
@@ -268,7 +263,6 @@ export function AppLayout() {
       void import("../views/ArtistDetailView");
       void import("../views/GenreDetailView");
       void import("../views/RemotePlaylistView");
-      void import("../views/RemoteArtistView");
       void import("../views/StatisticsView");
       void import("../views/WrappedView");
       void import("../views/SettingsView");
@@ -600,8 +594,10 @@ export function AppLayout() {
         );
       case "remote-artist":
         return (
-          <RemoteArtistView
+          <ArtistDetailView
+            artistId={null}
             remoteArtistId={activeRemoteArtistId}
+            onNavigateToAlbum={navigateToAlbum}
             onNavigateToRemoteAlbum={navigateToRemoteAlbum}
             onNavigateToArtist={navigateToArtist}
           />

@@ -2217,19 +2217,6 @@
       "nowPlaying": "A reproduzir",
       "upNext": "A seguir"
     },
-    "artist": {
-      "label": "Artista remoto",
-      "albumCount_one": "{{count}} álbum",
-      "albumCount_other": "{{count}} álbuns",
-      "fansCount_one": "{{value}} fã",
-      "fansCount_other": "{{value}} fãs",
-      "biography": "Biografia",
-      "readMore": "Ler mais",
-      "readLess": "Ler menos",
-      "noAlbums": "Sem álbuns para este artista.",
-      "albumsHeading": "Álbuns",
-      "similar": "Artistas semelhantes"
-    },
     "playlist": {
       "label": "Lista de reprodução remota",
       "nameLabel": "Nome da lista",

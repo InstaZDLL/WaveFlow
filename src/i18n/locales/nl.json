@@ -2217,19 +2217,6 @@
       "nowPlaying": "Nu aan het afspelen",
       "upNext": "Volgende"
     },
-    "artist": {
-      "label": "Externe artiest",
-      "albumCount_one": "{{count}} album",
-      "albumCount_other": "{{count}} albums",
-      "fansCount_one": "{{value}} fan",
-      "fansCount_other": "{{value}} fans",
-      "biography": "Biografie",
-      "readMore": "Meer lezen",
-      "readLess": "Minder lezen",
-      "noAlbums": "Geen albums voor deze artiest.",
-      "albumsHeading": "Albums",
-      "similar": "Vergelijkbare artiesten"
-    },
     "playlist": {
       "label": "Externe afspeellijst",
       "nameLabel": "Naam van afspeellijst",

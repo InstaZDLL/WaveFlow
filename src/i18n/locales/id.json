@@ -2207,17 +2207,6 @@
       "nowPlaying": "Sedang diputar",
       "upNext": "Berikutnya"
     },
-    "artist": {
-      "label": "Artis jarak jauh",
-      "albumCount_other": "{{count}} album",
-      "fansCount_other": "{{value}} penggemar",
-      "biography": "Biografi",
-      "readMore": "Baca selengkapnya",
-      "readLess": "Perkecil",
-      "noAlbums": "Tidak ada album untuk artis ini.",
-      "albumsHeading": "Album",
-      "similar": "Artis serupa"
-    },
     "playlist": {
       "label": "Playlist jarak jauh",
       "nameLabel": "Nama playlist",

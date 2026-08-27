@@ -2217,19 +2217,6 @@
       "nowPlaying": "Şimdi çalıyor",
       "upNext": "Sıradaki"
     },
-    "artist": {
-      "label": "Uzak sanatçı",
-      "albumCount_one": "{{count}} albüm",
-      "albumCount_other": "{{count}} albüm",
-      "fansCount_one": "{{value}} hayran",
-      "fansCount_other": "{{value}} hayran",
-      "biography": "Biyografi",
-      "readMore": "Devamını oku",
-      "readLess": "Daha az göster",
-      "noAlbums": "Bu sanatçının albümü yok.",
-      "albumsHeading": "Albümler",
-      "similar": "Benzer sanatçılar"
-    },
     "playlist": {
       "label": "Uzak çalma listesi",
       "nameLabel": "Çalma listesi adı",

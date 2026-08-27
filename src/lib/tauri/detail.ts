@@ -75,6 +75,14 @@ export function getAlbumDetail(albumId: number): Promise<AlbumDetail> {
 // ── Artist detail ───────────────────────────────────────────────────
 
 export interface ArtistAlbumRow {
+  /** Absent on a local album, which is the unmarked case. */
+  source?: LibrarySource;
+  /** The server's identifier, present only on a remote album. */
+  remote_id?: string;
+  /** Remote only: resolved through the server cover cache. */
+  artwork_hash?: string | null;
+  /** Local rowid. Negative and never read on a remote album — see
+   *  [`AlbumTrack.id`]. */
   id: number;
   title: string;
   year: number | null;
@@ -86,6 +94,11 @@ export interface ArtistAlbumRow {
 }
 
 export interface ArtistDetail {
+  /** Remote only: the artist's server-side portrait, resolved through the
+   *  cover cache. Everything else on the artist — the photo, the hero
+   *  background, the biography — comes from the by-name enrichment on both
+   *  sides, because the server carries none of it. */
+  artwork_hash?: string | null;
   id: number;
   name: string;
   artwork_path: string | null;
