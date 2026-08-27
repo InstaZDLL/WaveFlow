@@ -70,6 +70,10 @@ function toAlbumDetail(album: RemoteAlbum): AlbumDetail {
     artwork_path: null,
     artwork_path_1x: null,
     artwork_path_2x: null,
+    // The album's own cover. Derived from the first track that had one until
+    // now, which is wrong twice: an album with no tracks showed none, and an
+    // album whose cover differs from its first track's showed the track's.
+    artwork_hash: album.artwork_hash,
     label: null,
     release_date: null,
     genres: [],
@@ -228,7 +232,7 @@ export function AlbumDetailView({
   const clearSelection = selection.clear;
   useEffect(() => {
     clearSelection();
-  }, [albumId, clearSelection]);
+  }, [albumId, remoteAlbumId, clearSelection]);
 
   // Deezer enrichment (async, fire-and-forget)
   useEffect(() => {
@@ -256,7 +260,10 @@ export function AlbumDetailView({
     });
   };
 
-  if (albumId == null || (!album && !isLoading)) {
+  // Either identifier will do. Testing only the local one sent every server
+  // album straight to the empty state — the fetch above ran, the mapping ran,
+  // and nothing was ever shown.
+  if ((albumId == null && remoteAlbumId == null) || (!album && !isLoading)) {
     return (
       <EmptyState
         icon={<Music2 size={40} />}
@@ -363,7 +370,7 @@ export function AlbumDetailView({
             and there is no file here. */}
         {remote ? (
           <RemoteArtwork
-            hash={album.tracks.find((track) => track.artwork_hash)?.artwork_hash ?? null}
+            hash={album.artwork_hash ?? null}
             className="w-44 h-44 rounded-2xl shadow-lg shrink-0"
             iconSize={64}
           />
@@ -562,6 +569,12 @@ export function AlbumDetailView({
         }}
       />
 
+      {/* Mounted only for a local album: their buttons are hidden for a
+          server one, but mounting them anyway would hand each a rowid that
+          is the negative sentinel. A component that never opens should not
+          be holding an invalid identifier in the meantime. */}
+      {!remote && (
+      <>
       <CoverPickerModal
         albumId={album.id}
         initialQuery={
@@ -580,6 +593,8 @@ export function AlbumDetailView({
         onClose={() => setIsMotionCoverPickerOpen(false)}
         onSuccess={() => setCoverReloadKey((k) => k + 1)}
       />
+      </>
+      )}
 
       {trackContextMenu.render()}
 

@@ -49,6 +49,9 @@ export interface AlbumTrack {
 }
 
 export interface AlbumDetail {
+  /** Remote only: the album's own cover, resolved through the server cover
+   *  cache. A local album's cover is a file, and arrives as `artwork_path`. */
+  artwork_hash?: string | null;
   id: number;
   title: string;
   artist_id: number | null;
