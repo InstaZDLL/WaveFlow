@@ -2207,11 +2207,6 @@
       "nowPlaying": "正在播放",
       "upNext": "接下來"
     },
-    "album": {
-      "label": "遠端專輯",
-      "empty": "此專輯沒有曲目。",
-      "trackCount_other": "{{count}} 首曲目"
-    },
     "artist": {
       "label": "遠端演出者",
       "albumCount_other": "{{count}} 張專輯",

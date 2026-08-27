@@ -331,7 +331,19 @@ as a "Remote source" section at the bottom of the sidebar, headed by the server
 host and listing its playlists; that section is gone — its rows sit in the one
 playlist list, tagged, alongside the local ones. A `RemotePlaylistView` still
 plays, renames, deletes, removes tracks from, reorders and adds tracks to them
-like local playlists. Track edits
+like local playlists.
+
+A server **album** no longer has a view of its own: `AlbumDetailView` takes
+either identifier and renders both. The twin it replaced was poorer by
+construction — no ratings, no motion cover, no selection, no context menu — not
+because a server album cannot have those but because every feature landed on
+the local side and nothing updated the copy. One view stops that: what a server
+album cannot have is now absent for a stated reason rather than by omission.
+Shuffle is a mode of the local queue and the remote one has none; both cover
+pickers write into the local library and there is no local album row to write
+to; the lightbox opens the original file and there is no file. The like column
+is absent rather than inert, on the same reading as the track list — an empty
+heart that does nothing says "not liked", which is a different claim. Track edits
 go through the server's `UpdatePlaylist` mutation: add queues `add` (its hits
 come from a live `/api/v2/search`, cached into `remote_track` so titles render at
 once); removal queues `remove_indexes`; reorder, for which the mutation has no

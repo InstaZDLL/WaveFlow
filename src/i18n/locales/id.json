@@ -2207,11 +2207,6 @@
       "nowPlaying": "Sedang diputar",
       "upNext": "Berikutnya"
     },
-    "album": {
-      "label": "Album jarak jauh",
-      "empty": "Album ini tidak punya lagu.",
-      "trackCount_other": "{{count}} lagu"
-    },
     "artist": {
       "label": "Artis jarak jauh",
       "albumCount_other": "{{count}} album",

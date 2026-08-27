@@ -2217,12 +2217,6 @@
       "nowPlaying": "अभी चल रहा है",
       "upNext": "आगे"
     },
-    "album": {
-      "label": "रिमोट एल्बम",
-      "empty": "इस एल्बम में कोई ट्रैक नहीं है।",
-      "trackCount_one": "{{count}} ट्रैक",
-      "trackCount_other": "{{count}} ट्रैक"
-    },
     "artist": {
       "label": "रिमोट कलाकार",
       "albumCount_one": "{{count}} एल्बम",

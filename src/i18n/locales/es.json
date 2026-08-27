@@ -2217,12 +2217,6 @@
       "nowPlaying": "Reproduciendo ahora",
       "upNext": "A continuación"
     },
-    "album": {
-      "label": "Álbum remoto",
-      "empty": "Este álbum no tiene títulos.",
-      "trackCount_one": "{{count}} título",
-      "trackCount_other": "{{count}} títulos"
-    },
     "artist": {
       "label": "Artista remoto",
       "albumCount_one": "{{count}} álbum",

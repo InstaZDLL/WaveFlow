@@ -2217,12 +2217,6 @@
       "nowPlaying": "Şimdi çalıyor",
       "upNext": "Sıradaki"
     },
-    "album": {
-      "label": "Uzak albüm",
-      "empty": "Bu albümde hiç parça yok.",
-      "trackCount_one": "{{count}} parça",
-      "trackCount_other": "{{count}} parça"
-    },
     "artist": {
       "label": "Uzak sanatçı",
       "albumCount_one": "{{count}} albüm",
