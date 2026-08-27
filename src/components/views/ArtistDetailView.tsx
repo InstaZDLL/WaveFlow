@@ -138,6 +138,11 @@ export function ArtistDetailView({
 
   const [artist, setArtist] = useState<ArtistDetail | null>(null);
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  // Whether the loaded artist is the one being asked for. The render guard is
+  // not enough on its own: every effect that reads the snapshot has to wait
+  // for it too, or it acts on the previous artist while this one loads.
+  const settled = loadedKey === artistKey;
+
   const [tracks, setTracks] = useState<Track[]>([]);
   // Init true so the skeleton paints on first render (paired with the
   // `!artist && !isLoading` early-return below to avoid a one-frame
@@ -282,14 +287,19 @@ export function ArtistDetailView({
     // Keyed by row locally, by name for a server artist — which is what the
     // curated-override path needs the local row for, and why the two are not
     // one call.
+    //
+    // Gated on the snapshot matching what is being asked for. The by-name
+    // branch reads `artist.name`, and during navigation that is still the
+    // *previous* artist: firing here would fetch the wrong artist's
+    // neighbours and paint them under the new one's name.
     const pending =
-      remoteArtistId != null
-        ? artist
+      !settled || artist == null
+        ? null
+        : remoteArtistId != null
           ? getSimilarArtistsByName(artist.name)
-          : null
-        : artistId != null
-          ? getSimilarArtists(artistId)
-          : null;
+          : artistId != null
+            ? getSimilarArtists(artistId)
+            : null;
     if (!pending) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSimilar([]);
@@ -304,14 +314,18 @@ export function ArtistDetailView({
     return () => {
       cancelled = true;
     };
-  }, [artistId, remoteArtistId, artist, overrideRefetch]);
+  }, [artistId, remoteArtistId, artist, settled, overrideRefetch]);
 
   // Deezer enrichment. Gated on `artist` being loaded so the
   // "local-wins-over-Deezer" guard below can read `artwork_path` from a
   // fresh detail instead of a stale closure value.
   const hasLocalArtistImage = !!artist?.artwork_path;
   useEffect(() => {
-    if (artist == null) return;
+    // Same gate as the neighbours above, and it matters more here: these
+    // fields are only ever *set*, never nulled, so a result for the previous
+    // artist does not get overwritten by the new one's — it stays, under the
+    // new one's name, for as long as the page is open.
+    if (!settled || artist == null) return;
     // Same enrichment, two keys. A local artist resolves a cached Deezer id
     // through its own row, which is also what carries a curated override; a
     // server artist has no row, so it goes by name.
@@ -348,7 +362,14 @@ export function ArtistDetailView({
     return () => {
       cancelled = true;
     };
-  }, [artistId, remoteArtistId, hasLocalArtistImage, artist, overrideRefetch]);
+  }, [
+    artistId,
+    remoteArtistId,
+    hasLocalArtistImage,
+    artist,
+    settled,
+    overrideRefetch,
+  ]);
 
   const handleToggleLike = async (trackId: number) => {
     const nowLiked = await toggleLikeTrack(trackId);
@@ -375,7 +396,7 @@ export function ArtistDetailView({
 
   // Loading, or holding another artist's snapshot — the same thing as far as
   // everything below is concerned.
-  if (!artist || loadedKey !== artistKey) {
+  if (!artist || !settled) {
     return (
       <DetailViewSkeleton ariaLabel={t("artistDetail.badge")} shape="circle" />
     );
