@@ -286,6 +286,26 @@ That is strict, and it is the same asymmetry as Decision 5: a pair that is not
 yet eligible costs a visible duplicate, and a pair wrongly eligible hides
 something on a proof that has quietly stopped being true.
 
+### Two invariants the matrix implies
+
+Neither is a further decision; both are places where a straightforward
+implementation of the rules above goes wrong.
+
+**A reconciliation pass records the generation it produced, not the one it
+started from.** It writes links itself, and a new `confirmed` link advances the
+generation — so a pass that stored the value it read at the start would mark the
+entity dirty the instant it finished, for ever. Reconciling an entity,
+writing its links, and recording the resulting generation belong to one
+transaction.
+
+**`mirror::drop_vanished` must dirty before it deletes.** Removing a
+`remote_track` changes its album's and its artist's membership, which the matrix
+says invalidates both — but once the row is gone, nothing says which album and
+which artist those were. The identifiers have to be captured in the same
+transaction as the delete. When they cannot be established, the conservative
+answer is the one Decision 5 always gives: the affected pairs are ineligible
+until a full reconciliation says otherwise.
+
 ### The corpus is what is observed, not what exists
 
 Artists get the same frontier as albums, with the meaning that makes it
@@ -404,13 +424,22 @@ first is already shipped:
 **Only `confirmed` links count.** A `stale` link is a guess, and hiding on a
 guess loses the entity.
 
-**Deduplication never suppresses the last representation of anything.** The
-track listing states this today as `is_available = 1` on the local row, which is
-the right check for the case it faces and too narrow as a principle. What the
-rule means is that a representation may only be hidden while **another one
-remains renderable and playable**, and local availability is one of several ways
-that can fail: a server track deleted upstream, an account signed out, a
-permission withdrawn.
+**Deduplication never suppresses the last representation that still exists for
+this user.** The track listing states this today as `is_available = 1` on the
+local row, which is the right check for the case it faces and too narrow as a
+principle: a server track deleted upstream, an account signed out and a
+permission withdrawn all end a representation without touching that flag.
+
+*Exists* — not *plays*. Requiring the survivor to be playable would contradict
+the two rules on either side of this one: Decision 4 keeps the entry shown when
+the local file is gone and the server is briefly unreachable, and the table
+below keeps the pair collapsed through an outage. Both would be impossible if
+playability gated suppression. The two questions are answered by different
+things and neither answers the other:
+
+> **Existence decides whether the pair stays collapsed. Reachability decides
+> whether it can play right now.** A temporary inability to render or play the
+> surviving representation never dissolves an otherwise proven pair.
 
 One distinction has to be made explicit or this rule causes the flicker it was
 written to prevent: **transient unreachability is not loss.** A server that is
@@ -434,7 +463,7 @@ as transient would leave a user looking at a library that quietly lost entries
 they still hold locally, which is the exact harm this decision exists to
 prevent.
 
-## Decision 6 — a local playlist becomes exactly representable
+## Decision 6 — what playlist conversion still has to establish
 
 RFC-005 recorded a loss and its precondition in one paragraph:
 
@@ -443,61 +472,63 @@ RFC-005 recorded a loss and its precondition in one paragraph:
 > matching layer above, because a local playlist is a list of local files and
 > nothing in the protocol can name those on another install.
 
-The matching layer is here, and lot 5 added the missing piece: what has no name
-on the server can be given one, by uploading it.
+**An earlier draft of this section claimed to restore that, and was wrong about
+the starting point.** Conversion already exists: `remote::reconciliation`
+exposes `preview_playlist_conversion` and `convert_playlist`, both registered as
+commands, and they already hold the all-or-nothing invariant this RFC would
+otherwise have introduced — only `confirmed` links convert, while stale, missing
+and ambiguous entries stay visible in place and *block* the conversion. The
+local side is even validated positively rather than trusted:
+`playlist_link_freshness` re-reads and re-hashes each local file, so a link
+whose bytes have changed since it was written does not convert.
 
-What this RFC decides is narrower than "playlists sync again", and the
-distinction matters. It decides **representability**:
+So this decision is not a new capability. It states the rule the existing
+mechanism follows, and names the half of it that is missing.
 
-> A local playlist whose every entry carries a `confirmed` link can be projected
-> into server track identifiers exactly, with no guessing. Publication happens
-> only when every entry is representable.
+**The invariant, stated normatively.** A local playlist is publishable only when
+**every** entry is exactly representable. Forty tracks with three unlinked ones
+do not travel as thirty-seven: a list missing three songs is worse than a list
+that did not sync, because it looks complete. The three are named, and the offer
+is to upload them — the lot 5 operation whose commit hands back the track id and
+digest that write the missing links. Then the playlist travels whole. The
+uploads themselves are resumable and partial; it is the playlist's *visibility*
+that is transactional.
 
-A `confirmed` link is necessary and not sufficient: the same
-existence-versus-reach distinction applies. A link naming a server track that
-will not resolve — deleted upstream, or on a library this account may no longer
-read — is not representable, however confirmed the proof once was. Being unable
-to reach the server *right now* is not that, and does not make a playlist
-unrepresentable.
+**What is missing is the symmetric check on the server side.** The local half is
+revalidated by re-hashing; the remote half is taken on the link's word. Three
+facts have to be established positively about the target, and none of them can
+be inferred from a flag:
 
-**`in_catalogue` does not answer this question, and must not be read as if it
-did.** The flag records what the last mirror walk saw. A row can lose it because
-the track was cached from user data and never walked; a track deleted upstream
-is not flagged at all but *deleted*, by `mirror::drop_vanished`. And
-`remote_track_link.remote_track_id` carries no foreign key, so a link can
-outlive the row it names — an orphan that still reads as `confirmed`.
+- **it still exists.** `in_catalogue` does not answer this — it records what the
+  last walk saw, and a track deleted upstream is not flagged but *removed*, by
+  `mirror::drop_vanished`. Since `remote_track_link.remote_track_id` carries no
+  foreign key, a link can outlive the row it names and still read as
+  `confirmed`. Conversion does not consult `in_catalogue` today, and consulting
+  it would not be enough.
+- **this account may read it.** A membership or permission the server answers
+  for, and whose withdrawal RFC-005 deliberately makes indistinguishable from
+  absence — both are a 404.
+- **the answer is current.** A positive result is scoped to the entity's
+  generation, in the sense of Decision 3: whatever invalidates the identity
+  frontier invalidates this too. It is not a fact with a lifetime of its own.
 
-Resolvability and authorisation are therefore separate facts a client has to
-establish, not flags it can infer:
+**A failure to reach the server is *unknown*, not *invalid*.** The distinction
+Decision 5 draws applies here unchanged: a server that is not answering has told
+us nothing about whether these tracks exist. Publication does not proceed on an
+unknown — nothing is published while the server is unreachable anyway — but
+nothing is concluded from it either, and the playlist is not marked
+unrepresentable. Only a definite answer, deletion or refusal, does that.
 
-- **the target still exists** — the link resolves to a catalogue row, or the
-  server says so when asked;
-- **this account may read it** — a membership or permission the server answers
-  for, and whose withdrawal a 404 deliberately does not distinguish from
-  absence (RFC-005's own rule);
-- **the server is answering** — reachability, which is transient and gates
-  nothing here.
+**A reference that fails is never dropped from the local playlist.** The local
+list is unchanged and remains the source of truth; what it loses is
+publishability, which the upload path can often restore — a track missing
+upstream is a track this machine can offer back.
 
-A reference that fails the first two is not dropped from the playlist. The local
-playlist is unchanged and remains the source of truth; what it loses is
-*publishability* until the entry can be named again — which the upload path can
-often restore, since a track missing upstream is a track this machine can offer
-back.
-
-All or nothing, and never silently. A playlist of forty tracks with three
-unlinked ones does not travel as a playlist of thirty-seven: a list missing
-three songs is worse than a list that did not sync, because it looks complete.
-The three are named, and the offer is to upload them — the operation lot 5
-implements, whose commit hands back the track id and digest that write the
-missing links. Then the playlist travels whole. The uploads themselves are
-resumable and partial; it is the playlist's *visibility* that is transactional.
-
-**What this RFC does not decide** is how a published playlist then behaves:
-identity across machines, ordering semantics, duplicates, renames, deletions,
-concurrent edits, ownership, and what happens when the server's copy changes.
-Those belong to a playlist protocol, not to a deduplication rule, and calling
-this "playlists travel again" would promise all of them. It restores the
-mapping; it does not solve the sync.
+**What this RFC still does not decide** is how a published playlist then
+behaves: identity across machines, ordering semantics, duplicates, renames,
+deletions, concurrent edits, ownership, and what happens when the server's copy
+changes. Those belong to a playlist protocol. This one makes the mapping exact
+and says what must be true before it is used.
 
 ## What this costs
 
@@ -551,5 +582,7 @@ it will read as the feature not working. It should be visible in the interface �
   should; where that surfaces without cluttering a library view is unresolved.
 - **How an entity is marked dirty from an event.** Decision 3 enumerates *what*
   advances a generation; mapping each library event onto the albums and artists
-  it touches — a track moving between albums touches two of each — is an
-  implementation shape this document does not fix.
+  **whose identity inputs it changes** is an implementation shape this document
+  does not fix. An album move dirties the old and the new album and leaves the
+  artist alone when `primary_artist` is unchanged; an artist reassignment
+  dirties the old and the new artist; one event may do both.
