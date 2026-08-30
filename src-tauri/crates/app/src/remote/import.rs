@@ -232,8 +232,15 @@ pub async fn import(
     // links after the single scan below.
     let mut written: Vec<(String, PathBuf, String)> = Vec::new();
 
+    // Held until the whole pass is over, not merely until each transfer ends.
+    // The bytes are only half of an import: the scan that indexes them and the
+    // link written from that both happen after the loop, and a second caller
+    // slipping in between would find no link, no local track and no file of
+    // its own — and would write a second copy of what is already on disk.
+    let mut guards: Vec<InFlightGuard> = Vec::new();
+
     for remote_track_id in remote_track_ids {
-        let Some(_guard) = InFlightGuard::claim(remote_track_id) else {
+        let Some(guard) = InFlightGuard::claim(remote_track_id) else {
             outcome.skipped.push(SkippedImport {
                 remote_track_id: remote_track_id.clone(),
                 reason: ImportRefusal::Failed,
@@ -241,6 +248,7 @@ pub async fn import(
             });
             continue;
         };
+        guards.push(guard);
         match import_one(app, state, &pool, remote_track_id, &folder).await {
             Ok(Prepared::Written { path, full_hash }) => {
                 written.push((remote_track_id.clone(), path, full_hash));
@@ -267,6 +275,9 @@ pub async fn import(
     if written.is_empty() {
         return Ok(outcome);
     }
+    // `guards` stays alive to the end of this function on purpose; naming it
+    // here keeps a later edit from "cleaning up" an unused-looking binding.
+    debug_assert!(!guards.is_empty());
 
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     crate::commands::scan::scan_folder_inner(&pool, &artwork_dir, folder_id, Some(app), false)
@@ -507,8 +518,9 @@ async fn local_twin(pool: &SqlitePool, size: i64, expected_hash: &str) -> AppRes
 }
 
 /// The extension to write, lower-cased and stripped of anything a path cannot
-/// carry. Defaults to `mp3` only when the server said nothing at all, which is
-/// then refused by the caller's extension check if it was wrong.
+/// carry. Empty when the server declared no container, which the caller then
+/// refuses as `unsupported_format` — guessing one would name a file after a
+/// format nobody claimed it was in.
 fn extension_for(suffix: Option<&str>) -> String {
     suffix
         .unwrap_or_default()

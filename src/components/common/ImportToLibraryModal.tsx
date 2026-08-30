@@ -54,9 +54,15 @@ export function ImportToLibraryModal({
   onImported,
 }: ImportToLibraryModalProps) {
   const { t } = useTranslation();
-  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
-  const [folders, setFolders] = useState<ImportFolder[] | null>(null);
   const [running, setRunning] = useState(false);
+  // Escape must obey the same guard as the backdrop and the Cancel button:
+  // closing mid-import does not stop the transfer, it only takes away the one
+  // place its outcome is reported.
+  const closeIfIdle = useCallback(() => {
+    if (!running) onClose();
+  }, [running, onClose]);
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, closeIfIdle);
+  const [folders, setFolders] = useState<ImportFolder[] | null>(null);
   const [progress, setProgress] = useState<ImportProgress | null>(null);
   const [outcome, setOutcome] = useState<ImportOutcome | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -141,7 +147,7 @@ export function ImportToLibraryModal({
       : null;
 
   return (
-    <AnimatedModalShell isOpen={isOpen} onBackdropClick={running ? () => {} : onClose}>
+    <AnimatedModalShell isOpen={isOpen} onBackdropClick={closeIfIdle}>
       <AnimatedModalContent
         ref={dialogRef}
         role="dialog"

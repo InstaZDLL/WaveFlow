@@ -502,7 +502,7 @@ The working file carries no audio extension and sits in the destination
 directory itself. Both halves are structural rather than remembered: the same
 directory makes the publishing rename a rename and not a cross-device copy with
 a window where a truncated file exists, and no audio extension makes a
-half-written file inindexable *by construction*, since the scanner filters on
+half-written file unindexable *by construction*, since the scanner filters on
 extension. The server settled the identical question in the same two clauses
 for files arriving the other way (server RFC-008, decision 6).
 
