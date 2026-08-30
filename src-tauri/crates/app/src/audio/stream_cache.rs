@@ -131,8 +131,18 @@ pub fn lookup(dir: &Path, name: &str) -> Option<PathBuf> {
 const WORKING_SUFFIX: &str = ".in-flight";
 
 /// Whether a directory entry is a working file rather than a published one.
+///
+/// Judged on the **file name alone**. Testing the whole path made the answer
+/// depend on the parent directories, which are the user's home and profile
+/// path and need not be valid UTF-8 on Unix — a single stray byte anywhere
+/// above the cache would have made every working file read as a published
+/// one, counted in the reported size and evictable out from under its writer.
+/// The names this module generates are ASCII by construction, so a file name
+/// that will not convert is one we did not write, and treating that as a
+/// published entry is the right default: it gets counted and can be swept.
 fn is_working_file(path: &Path) -> bool {
-    path.to_str()
+    path.file_name()
+        .and_then(|name| name.to_str())
         .map(|name| name.ends_with(WORKING_SUFFIX))
         .unwrap_or(false)
 }
@@ -465,6 +475,40 @@ mod tests {
         let mut writer = CacheWriter::create(dir.path(), &name, 4).expect("writer");
         writer.write_at(0, &[0u8; 8]);
         assert!(lookup(dir.path(), &name).is_none());
+    }
+
+    /// Unix only: Windows path components are UTF-16 and cannot carry the
+    /// byte sequences this guards against.
+    #[cfg(unix)]
+    #[test]
+    fn a_parent_directory_that_is_not_utf8_does_not_hide_a_working_file() {
+        use std::os::unix::ffi::OsStrExt;
+
+        let root = tempfile::tempdir().expect("tempdir");
+        // A profile path with one stray byte in it — legal on Unix, and
+        // enough to make `Path::to_str` on the full path return `None`.
+        let dir = root.path().join(std::ffi::OsStr::from_bytes(b"caf\xff"));
+        fs::create_dir_all(&dir).expect("non-utf8 dir");
+
+        let name = file_name("t8", "raw", 0, "flac");
+        let mut writer = CacheWriter::create(&dir, &name, 10).expect("writer");
+        writer.write_at(0, &[0u8; 4]);
+
+        assert_eq!(
+            info(&dir),
+            (0, 0),
+            "a working file stays invisible however its parents are encoded"
+        );
+        // And the sweep must still refuse to touch it.
+        let part = fs::read_dir(&dir)
+            .expect("read_dir")
+            .flatten()
+            .map(|entry| entry.path())
+            .find(|path| is_working_file(path));
+        assert!(
+            part.is_some(),
+            "the working file is still recognised as one"
+        );
     }
 
     #[test]
