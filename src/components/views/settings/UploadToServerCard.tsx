@@ -80,8 +80,14 @@ export function UploadToServerCard() {
     // never be removed by it: the array it would be pushed onto has already
     // been walked. So each one is either detached immediately or registered
     // for the cleanup to find, decided after the await rather than before it.
+    //
+    // Through `current()` rather than `mountedRef`, because a profile switch
+    // sets that flag back to true from the incoming effect: a `listen()` from
+    // the outgoing one, resolving a moment later, would find it true and push
+    // onto an array nobody will read again. The generation is what tells the
+    // two apart.
     const keep = (off: () => void) => {
-      if (mountedRef.current) offs.push(off);
+      if (current()) offs.push(off);
       else off();
     };
     // Nothing from the outgoing profile may paint: reset first, then read.
