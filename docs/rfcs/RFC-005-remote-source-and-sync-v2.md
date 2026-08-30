@@ -46,12 +46,15 @@ shown apart.
 Matching a local file to a server track is **out of scope** and needs its own
 RFC. When it comes, the only automatic link allowed is an exact, unique
 content-hash match; a MusicBrainz identifier is a suggestion the user confirms;
-matching by title/artist/duration is explicitly forbidden. The matching layer
-shipped without an RFC of its own — it is `remote::reconciliation` and the
-`remote_track_link` table, which hold to every constraint stated above.
-[RFC-006](RFC-006-deduplicating-the-two-catalogues.md) is not that
-specification: it is the deduplication layer built on top of those proofs, and
-it adds no second way of matching.
+matching by title/artist/duration is explicitly forbidden.
+
+*Since accepted:* that layer was built directly, without a separate RFC — it is
+`remote::reconciliation` and the `remote_track_link` table, and it holds to
+every constraint the paragraph above sets. The RFC this paragraph anticipated
+never covered matching;
+[RFC-006](RFC-006-deduplicating-the-two-catalogues.md) is the deduplication
+layer built on top of those proofs and adds no second way of matching. The
+normative rules for matching remain the three sentences above.
 
 **What this costs.** Local playlists no longer travel between machines. That
 capability existed in the v1 design and is genuinely lost. It cannot be

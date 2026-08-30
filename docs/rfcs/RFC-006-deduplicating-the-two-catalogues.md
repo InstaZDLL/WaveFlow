@@ -203,7 +203,7 @@ reconciliation frontier, per catalogue generation, in the sense below — is a
 prerequisite of this RFC, alongside routing reconciliation through
 `local_full_hash` so that the two paths stop hashing the same files twice.
 
-### Completeness is versioned, not a timestamp
+### Completeness is versioned, and the version is per entity
 
 `remote_album.mirrored_at` says a walk finished. It does not say the set has not
 changed since:
@@ -214,23 +214,77 @@ changed since:
 ```
 
 A closed set that reopened is not a closed set, so the frontier is attached to a
-**generation of the catalogue** rather than to a moment. Eligibility holds while
-the reconciled generation equals the current one; anything that changes either
-side's membership advances the current generation and makes the pair ineligible
-until reconciliation catches up.
+**generation of that entity's identity inputs** rather than to a moment.
+Eligibility holds while the reconciled generation equals the current one.
 
-The desktop has a weak form of this already and no strong one.
-`remote_album.song_count` is the mirror's own freshness check — an album whose
-count is unchanged is skipped without a fetch — so `(song_count, mirrored_at)`
-detects the common case of a track arriving or leaving. It does not detect a
-track being *replaced*, and it depends on a walk to notice anything at all.
+**Per entity, and not a global counter.** A single number for the whole
+catalogue would make an unrelated change invalidate everything: someone stars
+one album, the number moves, and five thousand pairs go ineligible until a
+reconciliation pass has walked the entire library. Conservative, and unusable.
 
-The strong form is the server's library event stream (its RFC-007), which
-carries a monotonic `cursor` and is already live. **The desktop consumes none of
-it** — there is no cursor anywhere in `remote/mirror.rs` — which makes this
-RFC's frontier one more consumer for the work lot 6 has to do anyway. Until
-then, `(song_count, mirrored_at)` is the available approximation, and it is an
-approximation on the conservative side only for additions and removals.
+```
+album A   generation 17   reconciled 17   → eligible
+album B   generation  9   reconciled  8   → ineligible, and only B
+```
+
+**A generation advances only when an identity input changed.** Presentation and
+reachability never advance it — that distinction is the whole point of having
+two frontiers rather than one:
+
+| Change | Album | Artist | Why |
+| --- | --- | --- | --- |
+| Track added or removed | invalidates | invalidates | different corpus |
+| `full_hash` changed (file replaced or retagged upstream) | invalidates | invalidates | different content proof |
+| Track moved to another album | both albums | — | different set |
+| `primary_artist` changed | — | both artists | different grouping |
+| A link becomes `stale`, or is rejected | invalidates | invalidates | the proof is gone |
+| A new `confirmed` link | invalidates | invalidates | the result may differ |
+| Album or track title, year, artwork | no | no | presentation |
+| `disc_number` / `track_number` | no | no | order only |
+| Star, rating, play count | no | no | user state |
+| Server unreachable, offline mode | no | no | reachability, not identity |
+| Local `is_available` flips | no | no | Decision 5 picks which representation shows |
+| Signed out, permission withdrawn | no | no | reachability, not a new proof |
+
+The last three rows matter as much as the first six. A pair whose local file has
+gone is still a *proven* pair; what changes is which half can be rendered, which
+is Decision 5's business and requires no reconciliation at all.
+
+### The server cursor is a watermark, not a generation
+
+The server's library event stream (its RFC-007) carries a monotonic `cursor`,
+and it is the right input — but it is **not** the generation. Comparing a stored
+cursor against the server's latest would invalidate the whole library every time
+anything anywhere changed, including the star in the table above.
+
+The cursor answers "how far have I observed the server?". The generation answers
+"which version of *this entity's* identity inputs have I examined?". So an event
+is received, the entities it affects are marked, and only those are reconciled
+again.
+
+The stream is well suited to this: a track upsert **carries the track's
+`full_hash`**, which the server added precisely because nothing else tells a
+client that a file was retagged outside the API. That is the one identity input
+a client cannot otherwise observe without re-walking.
+
+**The desktop consumes none of this** — there is no cursor anywhere in
+`remote/mirror.rs` — so this RFC's frontier is one more consumer for the work
+lot 6 has to do anyway.
+
+Until then the only signal available is `remote_album.song_count`, the mirror's
+own freshness check. It detects additions and removals and **cannot detect a
+replacement**: a server track whose file was swapped keeps its identifier and
+its count, so a `confirmed` link built on the old bytes stays confirmed while
+being false. So the approximation is admitted in one direction only:
+
+> `(song_count, mirrored_at)` may **withdraw** eligibility. It may never
+> **grant** it. Until an entity's identity inputs have been re-examined —
+> today by a reconciliation pass that actually re-read them, later by the
+> event stream — the pair is not eligible.
+
+That is strict, and it is the same asymmetry as Decision 5: a pair that is not
+yet eligible costs a visible duplicate, and a pair wrongly eligible hides
+something on a proof that has quietly stopped being true.
 
 ### The corpus is what is observed, not what exists
 
@@ -285,8 +339,25 @@ can list a track twice.
 `remote_track_link.playback_preference` — `local_first` by default,
 `server_first` when the user says so — which exists precisely so that which
 copy plays is a property of the *pair* rather than of whichever half a listing
-happened to render. A row shown from the local half can still play from the
-server, and does when the local file has gone.
+happened to render.
+
+**When the local file is gone, the row is the server's.** The pair is still
+proven — a missing file is not a disproof — so the entry stays one entry and
+takes its identity from the surviving half. Three cases, and none of them
+removes the album from the library:
+
+| Local file | Server | The row |
+| --- | --- | --- |
+| present | either | local, plays per the pair's preference |
+| missing | reachable | server, plays from the server |
+| missing | unreachable right now | server, and it does not play |
+
+The last is the case worth stating out loud, because the two rules could be read
+as fighting: Decision 5 keeps the pair collapsed through a transient outage, and
+the local half has filtered itself out. The entry is therefore *shown and not
+playable*, which is correct — the music is still in the user's library, and
+saying so while failing to play is far better than making the album disappear
+because a server did not answer.
 
 **The order is total.** `disc_number`, then `track_number`, then the stable
 identifier. There is no local-before-remote tiebreak, because after the two
@@ -354,7 +425,7 @@ representation can be expected to come back **for this user**:
 | --- | --- |
 | Network down, server asleep, offline mode on | Yes — it will answer again |
 | Local file missing (`is_available = 0`) | No — the local half already filtered itself out |
-| Track gone from the server's catalogue (`in_catalogue = 0`) | No |
+| Server track deleted upstream | No |
 | Signed out, or the binding forgotten | No |
 | Membership or permission withdrawn upstream | No |
 
@@ -383,11 +454,35 @@ distinction matters. It decides **representability**:
 > only when every entry is representable.
 
 A `confirmed` link is necessary and not sufficient: the same
-existence-versus-reach distinction applies. A link whose server track has left
-the catalogue (`in_catalogue = 0`), or whose server is no longer one this
-account may read, names something that will not resolve — the entry is not
-representable, however confirmed the proof once was. Being unable to reach the
-server *right now* is not that, and does not make a playlist unrepresentable.
+existence-versus-reach distinction applies. A link naming a server track that
+will not resolve — deleted upstream, or on a library this account may no longer
+read — is not representable, however confirmed the proof once was. Being unable
+to reach the server *right now* is not that, and does not make a playlist
+unrepresentable.
+
+**`in_catalogue` does not answer this question, and must not be read as if it
+did.** The flag records what the last mirror walk saw. A row can lose it because
+the track was cached from user data and never walked; a track deleted upstream
+is not flagged at all but *deleted*, by `mirror::drop_vanished`. And
+`remote_track_link.remote_track_id` carries no foreign key, so a link can
+outlive the row it names — an orphan that still reads as `confirmed`.
+
+Resolvability and authorisation are therefore separate facts a client has to
+establish, not flags it can infer:
+
+- **the target still exists** — the link resolves to a catalogue row, or the
+  server says so when asked;
+- **this account may read it** — a membership or permission the server answers
+  for, and whose withdrawal a 404 deliberately does not distinguish from
+  absence (RFC-005's own rule);
+- **the server is answering** — reachability, which is transient and gates
+  nothing here.
+
+A reference that fails the first two is not dropped from the playlist. The local
+playlist is unchanged and remains the source of truth; what it loses is
+*publishability* until the entry can be named again — which the upload path can
+often restore, since a track missing upstream is a track this machine can offer
+back.
 
 All or nothing, and never silently. A playlist of forty tracks with three
 unlinked ones does not travel as a playlist of thirty-seven: a list missing
@@ -454,7 +549,7 @@ it will read as the feature not working. It should be visible in the interface �
 
 - **Whether an ineligible pair should say so.** The cost section argues it
   should; where that surfaces without cluttering a library view is unresolved.
-- **What advances a catalogue generation, exactly.** Decision 3 requires one;
-  `(song_count, mirrored_at)` approximates it today and the library event
-  stream's cursor is the real answer, but which changes must invalidate a
-  frontier — a retag upstream, a track becoming unavailable — is unenumerated.
+- **How an entity is marked dirty from an event.** Decision 3 enumerates *what*
+  advances a generation; mapping each library event onto the albums and artists
+  it touches — a track moving between albums touches two of each — is an
+  implementation shape this document does not fix.
