@@ -2228,7 +2228,12 @@
       "addTrack": "新增 {{title}}",
       "addToPlaylist": "加入播放清單",
       "emptyDescription": "點選「新增曲目」，在伺服器的曲庫中搜尋。",
-      "notFoundDescription": "此播放清單在已連線的伺服器上已不存在。"
+      "notFoundDescription": "此播放清單在已連線的伺服器上已不存在。",
+      "keepOffline": "離線保存",
+      "keepingProgress": "已保存 {{done}}/{{total}}",
+      "keptOffline_one": "{{count}} 首離線",
+      "keptOffline_other": "{{count}} 首離線",
+      "keptOffline_zero": "無離線曲目"
     },
     "reconciliation": {
       "title": "本機 ↔ 伺服器比對",
@@ -2311,7 +2316,11 @@
       "streamsCached_one": "已快取 {{count}} 首曲目（{{size}} MB）",
       "streamsCached_other": "已快取 {{count}} 首曲目（{{size}} MB）",
       "streamsCached_zero": "沒有快取的曲目。",
-      "clearStreams": "清空"
+      "clearStreams": "清空",
+      "downloadsKept_one": "已離線保存 {{count}} 首曲目（{{size}} MB）",
+      "downloadsKept_other": "已離線保存 {{count}} 首曲目（{{size}} MB）",
+      "downloadsKept_zero": "沒有離線保存的曲目。",
+      "clearDownloads": "清空"
     }
   }
 }

@@ -2238,7 +2238,12 @@
       "addTrack": "Aggiungi {{title}}",
       "addToPlaylist": "Aggiungi alla playlist",
       "emptyDescription": "Usa «Aggiungi brani» per cercare nel catalogo del server.",
-      "notFoundDescription": "Questa playlist non esiste più sul server collegato."
+      "notFoundDescription": "Questa playlist non esiste più sul server collegato.",
+      "keepOffline": "Tieni offline",
+      "keepingProgress": "{{done}}/{{total}} tenuti",
+      "keptOffline_one": "{{count}} offline",
+      "keptOffline_other": "{{count}} offline",
+      "keptOffline_zero": "nessuno offline"
     },
     "reconciliation": {
       "title": "Corrispondenza locale ↔ server",
@@ -2332,7 +2337,11 @@
       "streamsCached_one": "{{count}} brano in cache ({{size}} MB).",
       "streamsCached_other": "{{count}} brani in cache ({{size}} MB).",
       "streamsCached_zero": "Nessun brano in cache.",
-      "clearStreams": "Svuota"
+      "clearStreams": "Svuota",
+      "downloadsKept_one": "{{count}} brano tenuto offline ({{size}} MB).",
+      "downloadsKept_other": "{{count}} brani tenuti offline ({{size}} MB).",
+      "downloadsKept_zero": "Niente tenuto offline.",
+      "clearDownloads": "Svuota"
     }
   }
 }

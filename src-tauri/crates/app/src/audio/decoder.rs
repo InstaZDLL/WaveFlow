@@ -527,6 +527,14 @@ fn decoder_loop(
                                 // Caching here would also risk re-writing the
                                 // very entry that just failed to decode.
                                 cache: None,
+                                // Whatever failed was a finite file, and its
+                                // replacement on the server is one too — this
+                                // is the path a vanished library track takes.
+                                // Its duration came with the command and is
+                                // the only place that knows it, since no
+                                // remote session is running.
+                                duration_ms: Some(duration_ms),
+                                seekable_file: true,
                             });
                             continue;
                         }
@@ -563,6 +571,8 @@ fn decoder_loop(
                             artwork_url,
                             // See above: a repair path does not repopulate.
                             cache: None,
+                            duration_ms: Some(duration_ms),
+                            seekable_file: true,
                         });
                         continue;
                     }
@@ -584,6 +594,8 @@ fn decoder_loop(
                 artwork_url,
                 replay_gain,
                 cache,
+                duration_ms: declared_duration_ms,
+                seekable_file,
             } => {
                 tracing::info!(
                     track_id,
@@ -659,6 +671,13 @@ fn decoder_loop(
                     state.remote_playback.current_stream_meta()
                 };
                 let is_remote = remote_meta.is_remote;
+                // Two different questions, and they used to share an answer.
+                // `is_remote` says whether a remote *session* is running, which
+                // is what the metadata emit below is about. Whether to open a
+                // finite, range-capable body is a property of THIS stream, and
+                // a caller outside the session — a library track falling back
+                // to the server — knows it without one.
+                let finite = is_remote || seekable_file;
 
                 emit_radio_metadata(
                     &app,
@@ -677,7 +696,12 @@ fn decoder_loop(
                         is_remote,
                         // A remote-queue entry carries its length; radio
                         // does not. Drives a bounded seekbar on the bar.
-                        duration_ms: remote_meta.duration_ms,
+                        // What the caller declared wins: it knows about streams
+                        // no remote session covers, and a session that is not
+                        // running has nothing to say about this one.
+                        duration_ms: declared_duration_ms
+                            .map(|ms| ms as i64)
+                            .or(remote_meta.duration_ms),
                         // Cover hash for a remote track — the frontend turns
                         // it into a data URL for the PlayerBar.
                         artwork_hash: remote_meta.artwork_hash,
@@ -696,7 +720,7 @@ fn decoder_loop(
                 // with ICY so the source can re-emit `player:radio-metadata`
                 // with the live `StreamTitle` while keeping the station's
                 // cover + name; it stays forward-only.
-                let opened = if is_remote {
+                let opened = if finite {
                     // A cache target only ever accompanies a finite
                     // remote-queue track, so the seekable open is the only
                     // one that can honour it.
@@ -2353,6 +2377,24 @@ fn downmix_frame_to_stereo(frame: &[f32]) -> (f32, f32) {
     }
 }
 
+/// Drop a reproducible copy that would not play.
+///
+/// Only ever called with `allowed` set for a stream-cache entry: the server
+/// still holds those bytes, so a file that fails to open or decode is worth
+/// losing to make the next play refetch it. A reconciled file from the user's
+/// own library reaches the same failure path and must survive it — it is
+/// theirs, and a decoder that deletes a listener's music because a codec
+/// tripped would be a far worse bug than a cache miss.
+fn discard_unplayable(path: &std::path::Path, allowed: bool) {
+    if !allowed {
+        return;
+    }
+    match std::fs::remove_file(path) {
+        Ok(()) => tracing::info!(path = %path.display(), "dropped unplayable cached stream"),
+        Err(err) => tracing::warn!(?err, path = %path.display(), "could not drop cached stream"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{convert_channels, downmix_frame_to_stereo};
@@ -2441,23 +2483,5 @@ mod tests {
             downmix_frame_to_stereo(&[1.0, 2.0, 0.4, 9.9, 0.6, 0.8, 0.1, 0.2, 0.05, 0.07]);
         approx(lo, 1.0 + K * (0.4 + 0.6 + 0.1 + 0.05));
         approx(ro, 2.0 + K * (0.4 + 0.8 + 0.2 + 0.07));
-    }
-}
-
-/// Drop a reproducible copy that would not play.
-///
-/// Only ever called with `allowed` set for a stream-cache entry: the server
-/// still holds those bytes, so a file that fails to open or decode is worth
-/// losing to make the next play refetch it. A reconciled file from the user's
-/// own library reaches the same failure path and must survive it — it is
-/// theirs, and a decoder that deletes a listener's music because a codec
-/// tripped would be a far worse bug than a cache miss.
-fn discard_unplayable(path: &std::path::Path, allowed: bool) {
-    if !allowed {
-        return;
-    }
-    match std::fs::remove_file(path) {
-        Ok(()) => tracing::info!(path = %path.display(), "dropped unplayable cached stream"),
-        Err(err) => tracing::warn!(?err, path = %path.display(), "could not drop cached stream"),
     }
 }

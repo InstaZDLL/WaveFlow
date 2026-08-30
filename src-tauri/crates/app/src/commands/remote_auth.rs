@@ -823,6 +823,56 @@ pub async fn remote_clear_stream_cache(state: tauri::State<'_, AppState>) -> App
         .map_err(AppError::from)
 }
 
+/// Keep a remote track's original bytes on this machine.
+///
+/// Answers with the existing copy when there already is one, so asking twice
+/// costs nothing. Progress arrives as `remote:download-progress`.
+#[tauri::command]
+pub async fn remote_download_track(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    track_id: String,
+) -> AppResult<crate::remote::download::DownloadedTrack> {
+    crate::remote::download::download(&app, &state, &track_id).await
+}
+
+/// Every offline copy, newest first.
+#[tauri::command]
+pub async fn remote_list_downloads(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Vec<crate::remote::download::DownloadedTrack>> {
+    let (pool, _) = state.require_profile_snapshot().await?;
+    crate::remote::download::list(&pool).await
+}
+
+/// Disk held by the managed download folder.
+#[tauri::command]
+pub async fn remote_downloads_info(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<crate::remote::download::DownloadsInfo> {
+    let (pool, _) = state.require_profile_snapshot().await?;
+    crate::remote::download::info(&pool).await
+}
+
+/// Drop one offline copy. `false` when there was none to drop.
+#[tauri::command]
+pub async fn remote_remove_download(
+    state: tauri::State<'_, AppState>,
+    track_id: String,
+) -> AppResult<bool> {
+    let (pool, _) = state.require_profile_snapshot().await?;
+    let mut conn = pool.acquire().await?;
+    crate::remote::download::remove(&mut conn, &track_id).await
+}
+
+/// Drop every offline copy.
+#[tauri::command]
+pub async fn remote_clear_downloads(state: tauri::State<'_, AppState>) -> AppResult<usize> {
+    let (pool, _) = state.require_profile_snapshot().await?;
+    let mut conn = pool.acquire().await?;
+    crate::remote::download::clear_all(&mut conn).await
+}
+
 /// Play a projected remote playlist as a native queue, starting at
 /// `start_index`. Fills the in-memory remote queue from the projection so
 /// the tracks after it auto-advance, mints a stream ticket for the first,

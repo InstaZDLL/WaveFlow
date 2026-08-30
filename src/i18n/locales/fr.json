@@ -2238,7 +2238,12 @@
       "addTrack": "Ajouter {{title}}",
       "addToPlaylist": "Ajouter à la playlist",
       "emptyDescription": "Utilisez « Ajouter des titres » pour chercher dans le catalogue du serveur.",
-      "notFoundDescription": "Cette playlist n'existe plus sur le serveur associé."
+      "notFoundDescription": "Cette playlist n'existe plus sur le serveur associé.",
+      "keepOffline": "Garder hors ligne",
+      "keepingProgress": "{{done}}/{{total}} gardés",
+      "keptOffline_one": "{{count}} hors ligne",
+      "keptOffline_other": "{{count}} hors ligne",
+      "keptOffline_zero": "aucun hors ligne"
     },
     "reconciliation": {
       "title": "Correspondance local ↔ serveur",
@@ -2332,7 +2337,11 @@
       "streamsCached_one": "{{count}} piste en cache ({{size}} Mo).",
       "streamsCached_other": "{{count}} pistes en cache ({{size}} Mo).",
       "streamsCached_zero": "Aucune piste en cache.",
-      "clearStreams": "Vider"
+      "clearStreams": "Vider",
+      "downloadsKept_one": "{{count}} piste gardée hors ligne ({{size}} Mo).",
+      "downloadsKept_other": "{{count}} pistes gardées hors ligne ({{size}} Mo).",
+      "downloadsKept_zero": "Rien gardé hors ligne.",
+      "clearDownloads": "Vider"
     }
   }
 }

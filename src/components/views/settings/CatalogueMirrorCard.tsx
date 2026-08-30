@@ -10,8 +10,11 @@ import {
   remoteArtworkCacheInfo,
   remoteClearArtworkCache,
   remoteMirrorCatalogue,
+  remoteClearDownloads,
   remoteClearStreamCache,
+  remoteDownloadsInfo,
   remoteStreamCacheInfo,
+  type DownloadsInfo,
   type ArtworkCacheInfo,
   type StreamCacheInfo,
   type CatalogueMirrorProgress,
@@ -49,8 +52,9 @@ export function CatalogueMirrorCard() {
   const [progress, setProgress] = useState<CatalogueMirrorProgress | null>(null);
   const [covers, setCovers] = useState<ArtworkCacheInfo | null>(null);
   const [streams, setStreams] = useState<StreamCacheInfo | null>(null);
+  const [downloads, setDownloads] = useState<DownloadsInfo | null>(null);
   const [busy, setBusy] = useState<
-    null | "mirror" | "clear" | "covers" | "streams"
+    null | "mirror" | "clear" | "covers" | "streams" | "downloads"
   >(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +74,12 @@ export function CatalogueMirrorCard() {
       if (mountedRef.current) setStreams(cache);
     } catch {
       // Same: a figure that failed to refresh is better than none.
+    }
+    try {
+      const kept = await remoteDownloadsInfo();
+      if (mountedRef.current) setDownloads(kept);
+    } catch {
+      // Same again.
     }
   }, []);
 
@@ -149,6 +159,19 @@ export function CatalogueMirrorCard() {
     setError(null);
     try {
       await remoteClearStreamCache();
+      await refreshStats();
+    } catch (err) {
+      if (mountedRef.current) setError(String(err));
+    } finally {
+      if (mountedRef.current) setBusy(null);
+    }
+  }, [refreshStats]);
+
+  const clearDownloads = useCallback(async () => {
+    setBusy("downloads");
+    setError(null);
+    try {
+      await remoteClearDownloads();
       await refreshStats();
     } catch (err) {
       if (mountedRef.current) setError(String(err));
@@ -338,6 +361,31 @@ export function CatalogueMirrorCard() {
                 className="underline underline-offset-2 disabled:opacity-50"
               >
                 {t("remote.catalogue.clearStreams")}
+              </button>
+            </p>
+          )}
+
+          {/* Offline copies, counted apart from the cache above and cleared
+              apart from it: the cache is evicted under a budget without
+              asking, and these disappear only when their owner says so. */}
+          {downloads && downloads.tracks > 0 && (
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-2 flex-wrap">
+              <span>
+                {t("remote.catalogue.downloadsKept", {
+                  count: downloads.tracks,
+                  size: formatBytes(
+                    downloads.bytes,
+                    i18n.resolvedLanguage ?? i18n.language,
+                  ),
+                })}
+              </span>
+              <button
+                type="button"
+                onClick={() => void clearDownloads()}
+                disabled={busy !== null}
+                className="underline underline-offset-2 disabled:opacity-50"
+              >
+                {t("remote.catalogue.clearDownloads")}
               </button>
             </p>
           )}

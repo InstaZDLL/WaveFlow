@@ -2238,7 +2238,12 @@
       "addTrack": "{{title}} hinzufügen",
       "addToPlaylist": "Zur Playlist hinzufügen",
       "emptyDescription": "Nutze „Titel hinzufügen“, um den Katalog des Servers zu durchsuchen.",
-      "notFoundDescription": "Diese Playlist existiert auf dem verbundenen Server nicht mehr."
+      "notFoundDescription": "Diese Playlist existiert auf dem verbundenen Server nicht mehr.",
+      "keepOffline": "Offline behalten",
+      "keepingProgress": "{{done}}/{{total}} behalten",
+      "keptOffline_one": "{{count}} offline",
+      "keptOffline_other": "{{count}} offline",
+      "keptOffline_zero": "nichts offline"
     },
     "reconciliation": {
       "title": "Abgleich lokal ↔ Server",
@@ -2332,7 +2337,11 @@
       "streamsCached_one": "{{count}} Titel im Zwischenspeicher ({{size}} MB).",
       "streamsCached_other": "{{count}} Titel im Zwischenspeicher ({{size}} MB).",
       "streamsCached_zero": "Keine Titel im Zwischenspeicher.",
-      "clearStreams": "Leeren"
+      "clearStreams": "Leeren",
+      "downloadsKept_one": "{{count}} Titel offline behalten ({{size}} MB).",
+      "downloadsKept_other": "{{count}} Titel offline behalten ({{size}} MB).",
+      "downloadsKept_zero": "Nichts offline behalten.",
+      "clearDownloads": "Leeren"
     }
   }
 }

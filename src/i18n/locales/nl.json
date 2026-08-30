@@ -2238,7 +2238,12 @@
       "addTrack": "{{title}} toevoegen",
       "addToPlaylist": "Aan afspeellijst toevoegen",
       "emptyDescription": "Gebruik ‘Nummers toevoegen’ om de catalogus van de server te doorzoeken.",
-      "notFoundDescription": "Deze afspeellijst staat niet meer op de gekoppelde server."
+      "notFoundDescription": "Deze afspeellijst staat niet meer op de gekoppelde server.",
+      "keepOffline": "Offline bewaren",
+      "keepingProgress": "{{done}}/{{total}} bewaard",
+      "keptOffline_one": "{{count}} offline",
+      "keptOffline_other": "{{count}} offline",
+      "keptOffline_zero": "niets offline"
     },
     "reconciliation": {
       "title": "Lokaal ↔ server-koppeling",
@@ -2332,7 +2337,11 @@
       "streamsCached_one": "{{count}} nummer in cache ({{size}} MB).",
       "streamsCached_other": "{{count}} nummers in cache ({{size}} MB).",
       "streamsCached_zero": "Geen nummers in cache.",
-      "clearStreams": "Wissen"
+      "clearStreams": "Wissen",
+      "downloadsKept_one": "{{count}} nummer offline bewaard ({{size}} MB).",
+      "downloadsKept_other": "{{count}} nummers offline bewaard ({{size}} MB).",
+      "downloadsKept_zero": "Niets offline bewaard.",
+      "clearDownloads": "Wissen"
     }
   }
 }

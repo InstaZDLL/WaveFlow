@@ -188,10 +188,28 @@ impl AppPaths {
         self.profile_dir(profile_id).join("remote-artwork")
     }
 
+    /// Downloaded copies of the bound server's tracks — the managed folder.
+    ///
+    /// Deliberately not a scanned library folder: a download is an offline
+    /// copy of a *remote* track, not a new local one, and letting the scanner
+    /// index it would create a second entry for a song the library already
+    /// knows through the server.
+    ///
+    /// Separate from the stream cache next door because the two have opposite
+    /// lifetimes: the cache is evicted under a budget without asking, and a
+    /// download disappears only when its owner says so.
+    /// Only the remote source uses this, so it does not exist without it.
+    #[cfg(feature = "sync_v2")]
+    pub fn profile_remote_download_dir(&self, profile_id: i64) -> PathBuf {
+        self.profile_dir(profile_id).join("remote-downloads")
+    }
+
     /// Cached audio for the bound server's tracks. Beside the cover cache
     /// rather than inside it: these are whole songs, and the settings card
     /// reports and clears the two separately because their sizes are orders
     /// of magnitude apart.
+    /// Only the remote source uses this, so it does not exist without it.
+    #[cfg(feature = "sync_v2")]
     pub fn profile_remote_stream_dir(&self, profile_id: i64) -> PathBuf {
         self.profile_dir(profile_id).join("remote-stream")
     }

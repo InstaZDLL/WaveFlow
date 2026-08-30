@@ -200,10 +200,6 @@ pub async fn status(state: &AppState) -> AppResult<TranscodeStatus> {
 /// than discovered by being refused, and a saturated server costs the user
 /// bandwidth instead of a track that will not play.
 pub async fn ticket_url(state: &AppState, track_id: &str) -> AppResult<String> {
-    if crate::offline::is_offline() {
-        return Err(AppError::Other("offline".into()));
-    }
-
     // Read the preference before the client is built: `try_build` releases
     // its own lease before any network call, and holding one across a
     // request would stall a profile switch for its whole duration.
@@ -212,6 +208,24 @@ pub async fn ticket_url(state: &AppState, track_id: &str) -> AppResult<String> {
         preference(&pool).await
     };
 
+    let base = raw_ticket_url(state, track_id).await?;
+    if !wanted.is_on() {
+        return Ok(base);
+    }
+    Ok(format!("{base}{}", transcode_query(state, wanted).await))
+}
+
+/// A stream URL for the track's **original** bytes, ignoring the transcode
+/// preference.
+///
+/// What a download keeps, and what reconciliation hashes, must be the file the
+/// server holds — not a re-encode of it. The preference exists to spend less
+/// bandwidth on a stream heard once; baking it into a stored copy would make a
+/// bandwidth choice permanent, and silently.
+pub async fn raw_ticket_url(state: &AppState, track_id: &str) -> AppResult<String> {
+    if crate::offline::is_offline() {
+        return Err(AppError::Other("offline".into()));
+    }
     let client = client(state).await?;
 
     let resp: StreamTicketResponse = client
@@ -231,13 +245,7 @@ pub async fn ticket_url(state: &AppState, track_id: &str) -> AppResult<String> {
             "remote server returned a non-relative stream URL".into(),
         ));
     }
-
-    let query = if wanted.is_on() {
-        transcode_query(state, wanted).await
-    } else {
-        String::new()
-    };
-    Ok(format!("{}{}{}", client.base_url(), rel, query))
+    Ok(format!("{}{}", client.base_url(), rel))
 }
 
 /// The `?format=&bitrate=` suffix, or an empty string when the original

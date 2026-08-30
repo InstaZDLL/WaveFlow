@@ -2228,7 +2228,12 @@
       "addTrack": "{{title}} 추가",
       "addToPlaylist": "플레이리스트에 추가",
       "emptyDescription": "‘트랙 추가’를 눌러 서버 카탈로그에서 검색하세요.",
-      "notFoundDescription": "이 플레이리스트는 연결된 서버에 더 이상 존재하지 않습니다."
+      "notFoundDescription": "이 플레이리스트는 연결된 서버에 더 이상 존재하지 않습니다.",
+      "keepOffline": "오프라인 보관",
+      "keepingProgress": "{{done}}/{{total}} 보관됨",
+      "keptOffline_one": "{{count}}개 오프라인",
+      "keptOffline_other": "{{count}}개 오프라인",
+      "keptOffline_zero": "오프라인 없음"
     },
     "reconciliation": {
       "title": "로컬 ↔ 서버 매칭",
@@ -2311,7 +2316,11 @@
       "streamsCached_one": "캐시된 트랙 {{count}}개 ({{size}} MB)",
       "streamsCached_other": "캐시된 트랙 {{count}}개 ({{size}} MB)",
       "streamsCached_zero": "캐시된 트랙이 없습니다.",
-      "clearStreams": "비우기"
+      "clearStreams": "비우기",
+      "downloadsKept_one": "오프라인 보관 트랙 {{count}}개 ({{size}} MB)",
+      "downloadsKept_other": "오프라인 보관 트랙 {{count}}개 ({{size}} MB)",
+      "downloadsKept_zero": "오프라인으로 보관된 트랙이 없습니다.",
+      "clearDownloads": "비우기"
     }
   }
 }
