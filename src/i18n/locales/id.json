@@ -2063,6 +2063,20 @@
     "dsdDop": {
       "title": "DSD asli (DoP)",
       "subtitle": "Mengirim aliran DSD apa adanya ke DAC melalui DoP (DSD over PCM) alih-alih mengonversinya ke PCM — dekode asli bit-perfect. Memerlukan keluaran eksklusif (WASAPI di Windows, ALSA perangkat keras di Linux, CoreAudio hog mode di macOS) dan DAC yang mendukung DoP; jika tidak, kembali ke DSD → PCM."
+    },
+    "remoteTranscode": {
+      "title": "Transkode sumber jarak jauh",
+      "subtitle": "Minta server mengodekan ulang lagunya sebelum mengirim. Menghemat bandwidth, mengurangi kualitas audio.",
+      "off": "Asli",
+      "offHint": "Berkas apa adanya di server. Tanpa kehilangan kualitas.",
+      "opus": "Opus",
+      "opusHint": "Kualitas terbaik per kilobyte. Kodek modern.",
+      "mp3": "MP3",
+      "mp3Hint": "Lebih besar pada kualitas yang sama. Kompatibilitas maksimal.",
+      "bitrateLabel": "Bitrate",
+      "kbps": "{{rate}} kbit/dtk",
+      "activeNotice": "Lagu jarak jauh dikodekan ulang, jadi diputar di bawah kualitas aslinya. Berkas lokal tidak pernah ditranskode.",
+      "unsupported": "Server ini dibangun tanpa FFmpeg dan tidak bisa mentranskode. Lagu jarak jauh selalu tiba dalam format aslinya."
     }
   },
   "spotify": {

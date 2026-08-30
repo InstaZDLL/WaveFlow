@@ -309,6 +309,31 @@ unauthenticated host), and hands the result to the engine. This is the ticket
 consumer Decision 6 anticipated: the cpal HTTP source cannot attach a Bearer
 header to the audio stream, so the credential rides inside the URL instead.
 
+**Transcoding is asked for on that URL, or nowhere.** The stream route has
+always accepted `format` (`raw` / `mp3` / `opus`) and `bitrate` (32-512); the
+desktop simply never sent them, so every remote track arrived as the original
+file and the setting to change that did not exist. It does now, per profile and
+**off by default** — transcoding trades fidelity for bandwidth, which is not a
+trade to opt someone into silently, and it is **remote-only**: a local file is
+already on the machine, so re-encoding it would cost quality and buy nothing.
+Because the parameters belong to the *request* and not to the ticket, the
+preference resolves at that one seam and the rest of the playback path is
+untouched — it receives a URL either way.
+
+The interesting decision is what to do about a `429`, which the server returns
+when the transcode concurrency ceiling is reached. It cannot be handled where it
+arrives: the refusal lands when the **decoder** opens the URL, on the audio
+thread, where there is no sensible thing to retry with and no layer that knows
+what a fallback would even be. So it is not handled — it is *avoided*. The
+desktop reads `GET /api/v2/transcode/status` first (`available`, `active`,
+`global_limit`, `per_user_limit`, all announced for exactly this purpose) and
+falls back to the original bytes before asking, rather than discovering the
+refusal after. A saturated server therefore costs the user bandwidth instead of
+a track that will not play, and a server built without FFmpeg says so in
+Settings instead of leaving the preference to look broken. The pre-check is not
+a reservation — two clients can pass it at once and one still be refused — but
+the residual case is a rare failure rather than the common one.
+
 The seams that make advance work:
 
 - a **finite** stream reaching EOF carries a negative id (radio is infinite and

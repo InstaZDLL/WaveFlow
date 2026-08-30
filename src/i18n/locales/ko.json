@@ -2063,6 +2063,20 @@
     "dsdDop": {
       "title": "네이티브 DSD (DoP)",
       "subtitle": "DSD 스트림을 PCM으로 변환하지 않고 DoP(DSD over PCM)로 DAC에 그대로 전송합니다 — 비트 퍼펙트 네이티브 디코딩. 독점 출력(Windows는 WASAPI, Linux는 하드웨어 ALSA, macOS는 CoreAudio hog mode)과 DoP 지원 DAC가 필요하며, 그렇지 않으면 DSD → PCM으로 대체됩니다."
+    },
+    "remoteTranscode": {
+      "title": "원격 소스 트랜스코딩",
+      "subtitle": "서버가 트랙을 보내기 전에 다시 인코딩하도록 요청합니다. 대역폭은 아끼지만 음질은 떨어집니다.",
+      "off": "원본",
+      "offHint": "서버에 있는 파일 그대로. 손실 없음.",
+      "opus": "Opus",
+      "opusHint": "용량 대비 음질이 가장 좋습니다. 최신 코덱.",
+      "mp3": "MP3",
+      "mp3Hint": "같은 음질에서 용량이 더 큽니다. 호환성 최대.",
+      "bitrateLabel": "비트레이트",
+      "kbps": "{{rate}} kbps",
+      "activeNotice": "원격 트랙은 다시 인코딩되므로 원래 음질보다 낮게 재생됩니다. 로컬 파일은 트랜스코딩되지 않습니다.",
+      "unsupported": "이 서버는 FFmpeg 없이 빌드되어 트랜스코딩할 수 없습니다. 원격 트랙은 항상 원본 형식으로 도착합니다."
     }
   },
   "spotify": {
