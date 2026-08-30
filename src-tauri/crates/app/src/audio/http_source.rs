@@ -293,6 +293,12 @@ impl HttpMediaSource {
         // `byte_len() == None` exactly as before, even on the rare stream
         // that sends a Content-Length, so symphonia never treats it as
         // finite.
+        // Two different questions were sharing one variable. Seeking needs a
+        // length AND ranges; caching needs only a length, because it is filled
+        // by reading forward. Collapsing them meant a server that sends
+        // `Content-Length` without `Accept-Ranges` — perfectly cacheable —
+        // was never cached at all.
+        let declared_len = len;
         let len = if seekable { len } else { None };
 
         Ok(Self {
@@ -313,7 +319,7 @@ impl HttpMediaSource {
             // there is no way to decide that every byte has been covered, and
             // a file we cannot call complete must never be offered as one.
             cache: cache_target.and_then(|target| {
-                len.and_then(|len| {
+                declared_len.and_then(|len| {
                     crate::audio::stream_cache::CacheWriter::create(&target.dir, &target.name, len)
                 })
             }),

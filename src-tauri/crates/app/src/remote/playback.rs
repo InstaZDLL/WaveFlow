@@ -174,7 +174,11 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
     let track_id = crate::commands::player::next_radio_track_id();
 
     let engine = app.state::<Arc<AudioEngine>>();
-    let pool = state.require_profile_pool().await?;
+    // Pool and profile id together, once: everything below — the reconciled
+    // local file, the transcode preference, the cache directory — belongs to
+    // the same profile, and resolving them separately across awaits is what
+    // lets a switch mix two of them.
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     if let Some(local) =
         crate::remote::reconciliation::preferred_local_playback(&pool, &entry.id).await?
     {
@@ -199,6 +203,8 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
             artist: entry.artist.clone(),
             artwork_url: None,
             fallback_url,
+            // The user's own library file. Ours to play, never ours to delete.
+            discard_on_failure: false,
             replay_gain,
         })?;
         return Ok(());
@@ -207,7 +213,10 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
     // Name the cache entry before deciding anything: the key is what the
     // request would ask for, and the same triple answers both "is it already
     // here" and "where do the bytes go if it is not".
-    let profile_id = state.require_profile_id().await?;
+    // The same profile that the pool above belongs to. Re-resolving it here
+    // would read whichever profile is active *after* the awaits that came in
+    // between, and a switch landing there would file this track's bytes under
+    // another profile's cache.
     let cache_dir = state.paths.profile_remote_stream_dir(profile_id);
     let preference = crate::remote::stream::preference(&pool).await;
     let (format_key, extension) = cached_format(&pool, &entry.id, preference).await;
@@ -244,6 +253,10 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
             artist: entry.artist.clone(),
             artwork_url: None,
             fallback_url,
+            // Our own copy, and the server still has the bytes. If it will not
+            // open, drop it so the next play refetches instead of paying the
+            // fallback forever.
+            discard_on_failure: true,
             // Nothing local knows this recording's loudness, and the server
             // does not send one — same as the streaming branch below.
             replay_gain: TrackGain::default(),

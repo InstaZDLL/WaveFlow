@@ -118,7 +118,21 @@ pub fn lookup(dir: &Path, name: &str) -> Option<PathBuf> {
     Some(path)
 }
 
+/// Suffix of a working file. Published entries never carry it — the rename
+/// is what drops it — so it is the one reliable way to tell the two apart.
+const PART_SUFFIX: &str = ".part";
+
+/// Whether a directory entry is a working file rather than a published one.
+fn is_working_file(path: &Path) -> bool {
+    path.to_str()
+        .map(|name| name.ends_with(PART_SUFFIX))
+        .unwrap_or(false)
+}
+
 /// Total bytes held, and how many entries. For the settings card.
+///
+/// Working files are excluded: they are not entries anyone can play, and
+/// counting them would report disk that is about to disappear on its own.
 pub fn info(dir: &Path) -> (u64, usize) {
     let Ok(entries) = fs::read_dir(dir) else {
         return (0, 0);
@@ -126,6 +140,9 @@ pub fn info(dir: &Path) -> (u64, usize) {
     let mut bytes = 0;
     let mut count = 0;
     for entry in entries.flatten() {
+        if is_working_file(&entry.path()) {
+            continue;
+        }
         if let Ok(meta) = entry.metadata() {
             if meta.is_file() {
                 bytes += meta.len();
@@ -171,6 +188,13 @@ fn evict(dir: &Path) {
     let mut files: Vec<(std::time::SystemTime, u64, PathBuf)> = entries
         .flatten()
         .filter_map(|entry| {
+            let path = entry.path();
+            // Never evict a working file: a writer is holding it open right
+            // now, and deleting it under that writer would spend a download
+            // to free bytes that were about to be freed anyway.
+            if is_working_file(&path) {
+                return None;
+            }
             let meta = entry.metadata().ok()?;
             if !meta.is_file() {
                 return None;
@@ -182,7 +206,7 @@ fn evict(dir: &Path) {
                 .accessed()
                 .or_else(|_| meta.modified())
                 .unwrap_or(std::time::UNIX_EPOCH);
-            Some((stamp, meta.len(), entry.path()))
+            Some((stamp, meta.len(), path))
         })
         .collect();
 
@@ -433,6 +457,27 @@ mod tests {
         let mut writer = CacheWriter::create(dir.path(), &name, 4).expect("writer");
         writer.write_at(0, &[0u8; 8]);
         assert!(lookup(dir.path(), &name).is_none());
+    }
+
+    #[test]
+    fn a_body_written_almost_to_the_end_is_not_reported_as_cached() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let name = file_name("t6", "raw", 0, "flac");
+        let mut writer = CacheWriter::create(dir.path(), &name, 10).expect("writer");
+        // One byte short: the working file is on disk and nearly the full
+        // size, which is exactly when counting it would be most misleading.
+        writer.write_at(0, &[0u8; 9]);
+        assert!(lookup(dir.path(), &name).is_none(), "still not playable");
+        assert_eq!(
+            info(dir.path()),
+            (0, 0),
+            "a working file is disk in flight, not a cached track"
+        );
+        // And it must not be evicted out from under its own writer, which
+        // would spend a download to reclaim bytes already about to be freed.
+        writer.write_at(9, &[0u8; 1]);
+        assert!(lookup(dir.path(), &name).is_some());
+        assert_eq!(info(dir.path()).1, 1);
     }
 
     #[test]

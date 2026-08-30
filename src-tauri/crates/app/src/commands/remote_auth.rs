@@ -789,9 +789,15 @@ pub async fn remote_clear_artwork_cache(state: tauri::State<'_, AppState>) -> Ap
 pub async fn remote_stream_cache_info(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<StreamCacheInfo> {
-    let profile_id = state.require_profile_id().await?;
+    // One snapshot, held across the walk: the cached audio is this profile's
+    // user data, and a switch landing mid-call must not have us report another
+    // profile's disk under this one's name.
+    let (_pool, profile_id) = state.require_profile_snapshot().await?;
     let dir = state.paths.profile_remote_stream_dir(profile_id);
-    let (bytes, tracks) = crate::audio::stream_cache::info(&dir);
+    let (bytes, tracks) =
+        tokio::task::spawn_blocking(move || crate::audio::stream_cache::info(&dir))
+            .await
+            .map_err(|err| AppError::Other(format!("stream cache info: {err}")))?;
     Ok(StreamCacheInfo { bytes, tracks })
 }
 
@@ -806,9 +812,15 @@ pub struct StreamCacheInfo {
 /// played again — nothing is lost, since the server still holds the bytes.
 #[tauri::command]
 pub async fn remote_clear_stream_cache(state: tauri::State<'_, AppState>) -> AppResult<usize> {
-    let profile_id = state.require_profile_id().await?;
+    let (_pool, profile_id) = state.require_profile_snapshot().await?;
     let dir = state.paths.profile_remote_stream_dir(profile_id);
-    Ok(crate::audio::stream_cache::clear(&dir)?)
+    // Deleting gigabytes of files is a blocking walk; run it where blocking is
+    // allowed, as `artwork::clear` beside it already does. On the async
+    // executor it would stall every other command for the duration.
+    tokio::task::spawn_blocking(move || crate::audio::stream_cache::clear(&dir))
+        .await
+        .map_err(|err| AppError::Other(format!("stream cache clear: {err}")))?
+        .map_err(AppError::from)
 }
 
 /// Play a projected remote playlist as a native queue, starting at

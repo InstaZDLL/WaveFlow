@@ -434,6 +434,7 @@ fn decoder_loop(
                 artist,
                 artwork_url,
                 fallback_url,
+                discard_on_failure,
                 replay_gain,
             } => {
                 shared.clear_ab_loop();
@@ -507,6 +508,7 @@ fn decoder_loop(
                             has_server_fallback = fallback_url.is_some(),
                             "remote local source open failed"
                         );
+                        discard_unplayable(&path, discard_on_failure);
                         if let Some(url) = fallback_url.filter(|_| !crate::offline::is_offline()) {
                             pending_cmd = Some(AudioCmd::LoadUrlAndPlay {
                                 url,
@@ -550,6 +552,7 @@ fn decoder_loop(
                             path = %path.display(),
                             "remote local decode failed; falling back to server"
                         );
+                        discard_unplayable(&path, discard_on_failure);
                         pending_cmd = Some(AudioCmd::LoadUrlAndPlay {
                             url,
                             ext_hint: None,
@@ -2438,5 +2441,23 @@ mod tests {
             downmix_frame_to_stereo(&[1.0, 2.0, 0.4, 9.9, 0.6, 0.8, 0.1, 0.2, 0.05, 0.07]);
         approx(lo, 1.0 + K * (0.4 + 0.6 + 0.1 + 0.05));
         approx(ro, 2.0 + K * (0.4 + 0.8 + 0.2 + 0.07));
+    }
+}
+
+/// Drop a reproducible copy that would not play.
+///
+/// Only ever called with `allowed` set for a stream-cache entry: the server
+/// still holds those bytes, so a file that fails to open or decode is worth
+/// losing to make the next play refetch it. A reconciled file from the user's
+/// own library reaches the same failure path and must survive it — it is
+/// theirs, and a decoder that deletes a listener's music because a codec
+/// tripped would be a far worse bug than a cache miss.
+fn discard_unplayable(path: &std::path::Path, allowed: bool) {
+    if !allowed {
+        return;
+    }
+    match std::fs::remove_file(path) {
+        Ok(()) => tracing::info!(path = %path.display(), "dropped unplayable cached stream"),
+        Err(err) => tracing::warn!(?err, path = %path.display(), "could not drop cached stream"),
     }
 }
