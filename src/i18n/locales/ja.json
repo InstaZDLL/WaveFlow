@@ -852,7 +852,9 @@
       "exportM3u": "M3U形式でエクスポート",
       "delete": "プレイリストを削除する",
       "deleteConfirm": "もう一度クリックして確認してください",
-      "share": "共有"
+      "share": "共有",
+      "reorder": "並べ替え",
+      "removeFromPlaylist": "プレイリストから削除"
     },
     "export": {
       "dialogTitle": "プレイリストをM3U形式でエクスポートする"
@@ -2166,13 +2168,7 @@
     "common": {
       "awaitingMetadata": "メタデータを待機中…",
       "untitled": "無題",
-      "trackFallback": "タイトル",
-      "play": "再生",
-      "like": "お気に入りに追加",
-      "unlike": "お気に入りから削除",
-      "colTitle": "タイトル",
-      "colArtist": "アーティスト",
-      "colAlbum": "アルバム"
+      "trackFallback": "タイトル"
     },
     "server": {
       "title": "リモートサーバー",
@@ -2211,26 +2207,14 @@
       "label": "リモートプレイリスト",
       "nameLabel": "プレイリスト名",
       "notSent": "サーバーに未送信",
-      "trackCount_other": "{{count}} 曲",
       "addTracks": "曲を追加",
       "rename": "名前を変更",
-      "delete": "削除",
-      "confirmDelete": "確認するにはもう一度クリック",
       "searchPlaceholder": "サーバーのカタログを検索…",
       "noMatches": "結果がありません。",
       "addTrack": "{{title}} を追加",
       "addToPlaylist": "プレイリストに追加",
-      "empty": "このプレイリストは空です。",
-      "reorder": "並べ替え",
-      "remove": "プレイリストから削除",
-      "sortBy": "並び替え",
-      "sort": {
-        "custom": "カスタム順",
-        "title": "タイトル",
-        "artist": "アーティスト",
-        "album": "アルバム",
-        "duration": "再生時間"
-      }
+      "emptyDescription": "「曲を追加」から、サーバーのカタログを検索してください。",
+      "notFoundDescription": "このプレイリストは、接続中のサーバーにはもう存在しません。"
     },
     "reconciliation": {
       "title": "ローカル ↔ サーバーの照合",

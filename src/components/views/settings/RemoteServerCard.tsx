@@ -23,9 +23,10 @@ import { notifyRemoteChanged } from "../../../hooks/useRemoteSource";
  * This card does one thing: bind a profile to a server and manage that
  * binding — identify, sign in, sync, sign out, forget. The library it
  * exposes (playlists and their tracks, playback, create / rename /
- * delete) lives in the main UI: a "Remote source" section in the sidebar
- * and a RemotePlaylistView, managed exactly like local playlists. Nothing
- * about browsing or playing remote music belongs in Settings.
+ * delete) lives in the main UI: the server's playlists sit in the one
+ * playlist list and open in `PlaylistView`, the same view a local one
+ * opens in. Nothing about browsing or playing remote music belongs in
+ * Settings.
  *
  * ## Localized under `remote.*`
  *

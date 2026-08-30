@@ -852,7 +852,9 @@
       "exportM3u": "导出为 M3U",
       "delete": "删除播放列表",
       "deleteConfirm": "再次点击以确认",
-      "share": "分享"
+      "share": "分享",
+      "reorder": "重新排序",
+      "removeFromPlaylist": "从播放列表中移除"
     },
     "export": {
       "dialogTitle": "将播放列表导出为 M3U 格式"
@@ -2166,13 +2168,7 @@
     "common": {
       "awaitingMetadata": "正在等待元数据…",
       "untitled": "无标题",
-      "trackFallback": "曲目",
-      "play": "播放",
-      "like": "添加到收藏",
-      "unlike": "取消收藏",
-      "colTitle": "标题",
-      "colArtist": "艺人",
-      "colAlbum": "专辑"
+      "trackFallback": "曲目"
     },
     "server": {
       "title": "远程服务器",
@@ -2211,26 +2207,14 @@
       "label": "远程播放列表",
       "nameLabel": "播放列表名称",
       "notSent": "尚未发送到服务器",
-      "trackCount_other": "{{count}} 首曲目",
       "addTracks": "添加曲目",
       "rename": "重命名",
-      "delete": "删除",
-      "confirmDelete": "再次点击以确认",
       "searchPlaceholder": "搜索服务器音乐库…",
       "noMatches": "无匹配结果。",
       "addTrack": "添加 {{title}}",
       "addToPlaylist": "添加到播放列表",
-      "empty": "该播放列表为空。",
-      "reorder": "重新排序",
-      "remove": "从播放列表中移除",
-      "sortBy": "排序方式",
-      "sort": {
-        "custom": "自定义顺序",
-        "title": "标题",
-        "artist": "艺人",
-        "album": "专辑",
-        "duration": "时长"
-      }
+      "emptyDescription": "点击「添加曲目」，在服务器的曲库中搜索。",
+      "notFoundDescription": "该播放列表在已连接的服务器上已不存在。"
     },
     "reconciliation": {
       "title": "本地 ↔ 服务器匹配",

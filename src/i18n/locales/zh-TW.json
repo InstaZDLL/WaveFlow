@@ -852,7 +852,9 @@
       "exportM3u": "匯出為 M3U",
       "delete": "刪除播放清單",
       "deleteConfirm": "請再次點擊以確認",
-      "share": "分享"
+      "share": "分享",
+      "reorder": "重新排序",
+      "removeFromPlaylist": "從播放清單移除"
     },
     "export": {
       "dialogTitle": "將播放清單匯出為 M3U 格式"
@@ -2166,13 +2168,7 @@
     "common": {
       "awaitingMetadata": "正在等待中繼資料…",
       "untitled": "無標題",
-      "trackFallback": "曲目",
-      "play": "播放",
-      "like": "加入喜愛",
-      "unlike": "移除喜愛",
-      "colTitle": "標題",
-      "colArtist": "演出者",
-      "colAlbum": "專輯"
+      "trackFallback": "曲目"
     },
     "server": {
       "title": "遠端伺服器",
@@ -2211,26 +2207,14 @@
       "label": "遠端播放清單",
       "nameLabel": "播放清單名稱",
       "notSent": "尚未送至伺服器",
-      "trackCount_other": "{{count}} 首曲目",
       "addTracks": "新增曲目",
       "rename": "重新命名",
-      "delete": "刪除",
-      "confirmDelete": "再次點擊以確認",
       "searchPlaceholder": "搜尋伺服器的目錄…",
       "noMatches": "沒有符合的結果。",
       "addTrack": "新增 {{title}}",
       "addToPlaylist": "加入播放清單",
-      "empty": "此播放清單是空的。",
-      "reorder": "重新排序",
-      "remove": "從播放清單移除",
-      "sortBy": "排序方式",
-      "sort": {
-        "custom": "自訂順序",
-        "title": "標題",
-        "artist": "演出者",
-        "album": "專輯",
-        "duration": "時長"
-      }
+      "emptyDescription": "點選「新增曲目」，在伺服器的曲庫中搜尋。",
+      "notFoundDescription": "此播放清單在已連線的伺服器上已不存在。"
     },
     "reconciliation": {
       "title": "本機 ↔ 伺服器比對",

@@ -852,7 +852,9 @@
       "exportM3u": "Exporter en M3U",
       "delete": "Supprimer la playlist",
       "deleteConfirm": "Cliquez à nouveau pour confirmer",
-      "share": "Partager"
+      "share": "Partager",
+      "reorder": "Réordonner",
+      "removeFromPlaylist": "Retirer de la playlist"
     },
     "export": {
       "dialogTitle": "Exporter la playlist en M3U"
@@ -2166,13 +2168,7 @@
     "common": {
       "awaitingMetadata": "En attente des métadonnées…",
       "untitled": "Sans titre",
-      "trackFallback": "titre",
-      "play": "Lire",
-      "like": "Ajouter aux favoris",
-      "unlike": "Retirer des favoris",
-      "colTitle": "Titre",
-      "colArtist": "Artiste",
-      "colAlbum": "Album"
+      "trackFallback": "titre"
     },
     "server": {
       "title": "Serveur distant",
@@ -2221,27 +2217,14 @@
       "label": "Playlist distante",
       "nameLabel": "Nom de la playlist",
       "notSent": "pas encore envoyée au serveur",
-      "trackCount_one": "{{count}} titre",
-      "trackCount_other": "{{count}} titres",
       "addTracks": "Ajouter des titres",
       "rename": "Renommer",
-      "delete": "Supprimer",
-      "confirmDelete": "Cliquez à nouveau pour confirmer",
       "searchPlaceholder": "Rechercher dans le catalogue du serveur…",
       "noMatches": "Aucun résultat.",
       "addTrack": "Ajouter {{title}}",
       "addToPlaylist": "Ajouter à la playlist",
-      "empty": "Cette playlist est vide.",
-      "reorder": "Réordonner",
-      "remove": "Retirer de la playlist",
-      "sortBy": "Trier par",
-      "sort": {
-        "custom": "Ordre personnalisé",
-        "title": "Titre",
-        "artist": "Artiste",
-        "album": "Album",
-        "duration": "Durée"
-      }
+      "emptyDescription": "Utilisez « Ajouter des titres » pour chercher dans le catalogue du serveur.",
+      "notFoundDescription": "Cette playlist n'existe plus sur le serveur associé."
     },
     "reconciliation": {
       "title": "Correspondance local ↔ serveur",

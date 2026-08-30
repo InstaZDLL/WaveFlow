@@ -852,7 +852,9 @@
       "exportM3u": "Exporteren als M3U",
       "delete": "Afspeellijst verwijderen",
       "deleteConfirm": "Klik nogmaals om te bevestigen",
-      "share": "Delen"
+      "share": "Delen",
+      "reorder": "Herschikken",
+      "removeFromPlaylist": "Uit afspeellijst verwijderen"
     },
     "export": {
       "dialogTitle": "Afspeellijst als M3U exporteren"
@@ -2166,13 +2168,7 @@
     "common": {
       "awaitingMetadata": "Wachten op metadata…",
       "untitled": "Naamloos",
-      "trackFallback": "nummer",
-      "play": "Afspelen",
-      "like": "Aan favorieten toevoegen",
-      "unlike": "Uit favorieten verwijderen",
-      "colTitle": "Titel",
-      "colArtist": "Artiest",
-      "colAlbum": "Album"
+      "trackFallback": "nummer"
     },
     "server": {
       "title": "Externe server",
@@ -2221,27 +2217,14 @@
       "label": "Externe afspeellijst",
       "nameLabel": "Naam van afspeellijst",
       "notSent": "nog niet naar de server verzonden",
-      "trackCount_one": "{{count}} nummer",
-      "trackCount_other": "{{count}} nummers",
       "addTracks": "Nummers toevoegen",
       "rename": "Naam wijzigen",
-      "delete": "Verwijderen",
-      "confirmDelete": "Klik nogmaals om te bevestigen",
       "searchPlaceholder": "Zoek in de catalogus van de server…",
       "noMatches": "Geen resultaten.",
       "addTrack": "{{title}} toevoegen",
       "addToPlaylist": "Aan afspeellijst toevoegen",
-      "empty": "Deze afspeellijst is leeg.",
-      "reorder": "Herschikken",
-      "remove": "Uit afspeellijst verwijderen",
-      "sortBy": "Sorteren op",
-      "sort": {
-        "custom": "Aangepaste volgorde",
-        "title": "Titel",
-        "artist": "Artiest",
-        "album": "Album",
-        "duration": "Duur"
-      }
+      "emptyDescription": "Gebruik ‘Nummers toevoegen’ om de catalogus van de server te doorzoeken.",
+      "notFoundDescription": "Deze afspeellijst staat niet meer op de gekoppelde server."
     },
     "reconciliation": {
       "title": "Lokaal ↔ server-koppeling",

@@ -852,7 +852,9 @@
       "exportM3u": "M3U로 내보내기",
       "delete": "재생 목록 삭제",
       "deleteConfirm": "확인을 위해 다시 클릭하세요",
-      "share": "공유"
+      "share": "공유",
+      "reorder": "순서 변경",
+      "removeFromPlaylist": "플레이리스트에서 제거"
     },
     "export": {
       "dialogTitle": "재생 목록을 M3U 형식으로 내보내기"
@@ -2166,13 +2168,7 @@
     "common": {
       "awaitingMetadata": "메타데이터를 기다리는 중…",
       "untitled": "제목 없음",
-      "trackFallback": "트랙",
-      "play": "재생",
-      "like": "좋아요",
-      "unlike": "좋아요 취소",
-      "colTitle": "제목",
-      "colArtist": "아티스트",
-      "colAlbum": "앨범"
+      "trackFallback": "트랙"
     },
     "server": {
       "title": "원격 서버",
@@ -2211,26 +2207,14 @@
       "label": "원격 플레이리스트",
       "nameLabel": "플레이리스트 이름",
       "notSent": "아직 서버에 전송되지 않음",
-      "trackCount_other": "{{count}}개 트랙",
       "addTracks": "트랙 추가",
       "rename": "이름 변경",
-      "delete": "삭제",
-      "confirmDelete": "확인하려면 다시 클릭하세요",
       "searchPlaceholder": "서버 카탈로그 검색…",
       "noMatches": "결과가 없습니다.",
       "addTrack": "{{title}} 추가",
       "addToPlaylist": "플레이리스트에 추가",
-      "empty": "이 플레이리스트가 비어 있습니다.",
-      "reorder": "순서 변경",
-      "remove": "플레이리스트에서 제거",
-      "sortBy": "정렬 기준",
-      "sort": {
-        "custom": "사용자 지정 순서",
-        "title": "제목",
-        "artist": "아티스트",
-        "album": "앨범",
-        "duration": "재생 시간"
-      }
+      "emptyDescription": "‘트랙 추가’를 눌러 서버 카탈로그에서 검색하세요.",
+      "notFoundDescription": "이 플레이리스트는 연결된 서버에 더 이상 존재하지 않습니다."
     },
     "reconciliation": {
       "title": "로컬 ↔ 서버 매칭",

@@ -115,12 +115,6 @@ const GenreDetailView = lazy(() =>
     default: module.GenreDetailView,
   })),
 );
-const RemotePlaylistView = lazy(() =>
-  import("../views/RemotePlaylistView").then((module) => ({
-    default: module.RemotePlaylistView,
-  })),
-);
-
 // Each entry in the navigation history pairs a view id with its payload
 // (when relevant) so back/forward can restore the exact target the user
 // visited. Payload fields are optional so callers without a target (e.g.
@@ -262,7 +256,6 @@ export function AppLayout() {
       void import("../views/AlbumDetailView");
       void import("../views/ArtistDetailView");
       void import("../views/GenreDetailView");
-      void import("../views/RemotePlaylistView");
       void import("../views/StatisticsView");
       void import("../views/WrappedView");
       void import("../views/SettingsView");
@@ -576,9 +569,12 @@ export function AppLayout() {
         );
       case "remote-playlist":
         return (
-          <RemotePlaylistView
+          <PlaylistView
+            playlistId={null}
             remotePlaylistId={activeRemotePlaylistId}
             onAfterDelete={() => replaceEntry({ id: "home" })}
+            onNavigateToAlbum={navigateToAlbum}
+            onNavigateToArtist={navigateToArtist}
             onNavigateToRemoteAlbum={navigateToRemoteAlbum}
             onNavigateToRemoteArtist={navigateToRemoteArtist}
           />

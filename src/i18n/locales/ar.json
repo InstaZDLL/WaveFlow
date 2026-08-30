@@ -955,7 +955,9 @@
       "exportM3u": "تصدير كملف M3U",
       "delete": "حذف قائمة التشغيل",
       "deleteConfirm": "انقر مرة أخرى للتأكيد",
-      "share": "مشاركة"
+      "share": "مشاركة",
+      "reorder": "إعادة الترتيب",
+      "removeFromPlaylist": "إزالة من قائمة التشغيل"
     },
     "export": {
       "dialogTitle": "تصدير قائمة التشغيل كملف M3U"
@@ -2328,13 +2330,7 @@
     "common": {
       "awaitingMetadata": "في انتظار البيانات الوصفية…",
       "untitled": "بدون عنوان",
-      "trackFallback": "مقطع",
-      "play": "تشغيل",
-      "like": "إضافة إلى المفضلة",
-      "unlike": "إزالة من المفضلة",
-      "colTitle": "العنوان",
-      "colArtist": "الفنان",
-      "colAlbum": "الألبوم"
+      "trackFallback": "مقطع"
     },
     "server": {
       "title": "خادم بعيد",
@@ -2423,31 +2419,14 @@
       "label": "قائمة تشغيل بعيدة",
       "nameLabel": "اسم قائمة التشغيل",
       "notSent": "لم تُرسَل إلى الخادم بعد",
-      "trackCount_zero": "0 مقطع",
-      "trackCount_one": "مقطع واحد",
-      "trackCount_two": "مقطعان",
-      "trackCount_few": "{{count}} مقاطع",
-      "trackCount_many": "{{count}} مقطعًا",
-      "trackCount_other": "{{count}} مقطع",
       "addTracks": "إضافة مقاطع",
       "rename": "إعادة تسمية",
-      "delete": "حذف",
-      "confirmDelete": "انقر مرة أخرى للتأكيد",
       "searchPlaceholder": "ابحث في كتالوج الخادم…",
       "noMatches": "لا توجد نتائج.",
       "addTrack": "إضافة {{title}}",
       "addToPlaylist": "إضافة إلى قائمة التشغيل",
-      "empty": "قائمة التشغيل هذه فارغة.",
-      "reorder": "إعادة الترتيب",
-      "remove": "إزالة من قائمة التشغيل",
-      "sortBy": "ترتيب حسب",
-      "sort": {
-        "custom": "ترتيب مخصص",
-        "title": "العنوان",
-        "artist": "الفنان",
-        "album": "الألبوم",
-        "duration": "المدة"
-      }
+      "emptyDescription": "استخدم «إضافة مقاطع» للبحث في كتالوج الخادم.",
+      "notFoundDescription": "لم تعد قائمة التشغيل هذه موجودة على الخادم المرتبط."
     },
     "reconciliation": {
       "title": "المطابقة بين المحلي ↔ الخادم",
