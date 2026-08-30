@@ -779,6 +779,10 @@ pub fn run() {
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_download_track,
             #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_import_folders,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_import_tracks,
+            #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_list_downloads,
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_downloads_info,

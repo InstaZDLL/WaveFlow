@@ -2342,6 +2342,31 @@
       "downloadsKept_other": "{{count}} nummers offline bewaard ({{size}} MB).",
       "downloadsKept_zero": "Niets offline bewaard.",
       "clearDownloads": "Wissen"
+    },
+    "import": {
+      "action": "Importeren in mijn bibliotheek",
+      "title": "Importeren in mijn bibliotheek",
+      "subtitle": "{{name}} wordt gekopieerd naar een gescande map en wordt zo een nummer van je eigen bibliotheek.",
+      "destination": "Doelmap",
+      "noFolder": "Geen gescande map bereikbaar. Voeg er een toe via Instellingen → Bibliotheek.",
+      "unreachable": "Niet bereikbaar",
+      "explainer": "Het bestand wordt ongewijzigd gekopieerd en daarna gekoppeld aan het nummer van de server: bij afspelen krijgt je lokale kopie voorrang.",
+      "submit": "Importeren",
+      "running": "Bezig met importeren…",
+      "done": "Geïmporteerd: {{count}}",
+      "refusal": {
+        "already_linked": "Al gekoppeld aan een lokaal nummer: {{count}}",
+        "already_held": "Al in je bibliotheek, gekoppeld: {{count}}",
+        "unknown_track": "Onbekend in de catalogus: {{count}}",
+        "unsupported_format": "Niet-ondersteunde indeling: {{count}}",
+        "hash_mismatch": "Onverwachte inhoud: {{count}}",
+        "not_indexed": "Na het kopiëren niet geïndexeerd: {{count}}",
+        "failed": "Mislukt: {{count}}"
+      }
+    },
+    "download": {
+      "keep": "Offline bewaren",
+      "kept": "Offline bewaard"
     }
   }
 }

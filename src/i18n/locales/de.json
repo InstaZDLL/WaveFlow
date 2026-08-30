@@ -2342,6 +2342,31 @@
       "downloadsKept_other": "{{count}} Titel offline behalten ({{size}} MB).",
       "downloadsKept_zero": "Nichts offline behalten.",
       "clearDownloads": "Leeren"
+    },
+    "import": {
+      "action": "In meine Mediathek importieren",
+      "title": "In meine Mediathek importieren",
+      "subtitle": "{{name}} wird in einen durchsuchten Ordner kopiert und damit zu einem Titel deiner eigenen Mediathek.",
+      "destination": "Zielordner",
+      "noFolder": "Kein durchsuchter Ordner erreichbar. Füge einen unter Einstellungen → Mediathek hinzu.",
+      "unreachable": "Nicht erreichbar",
+      "explainer": "Die Datei wird unverändert kopiert und dann mit dem Titel des Servers verknüpft: die Wiedergabe bevorzugt deine lokale Kopie.",
+      "submit": "Importieren",
+      "running": "Import läuft…",
+      "done": "Importiert: {{count}}",
+      "refusal": {
+        "already_linked": "Bereits mit einem lokalen Titel verknüpft: {{count}}",
+        "already_held": "Bereits in deiner Mediathek, verknüpft: {{count}}",
+        "unknown_track": "Dem Katalog unbekannt: {{count}}",
+        "unsupported_format": "Nicht unterstütztes Format: {{count}}",
+        "hash_mismatch": "Unerwarteter Inhalt: {{count}}",
+        "not_indexed": "Nach dem Kopieren nicht indexiert: {{count}}",
+        "failed": "Fehlgeschlagen: {{count}}"
+      }
+    },
+    "download": {
+      "keep": "Offline behalten",
+      "kept": "Offline behalten"
     }
   }
 }

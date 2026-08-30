@@ -41,6 +41,9 @@ use crate::{
     state::AppState,
 };
 
+/// The progress event a download reports on.
+pub(super) const PROGRESS_EVENT: &str = "remote:download-progress";
+
 /// Emitted while a download runs so the interface can show a bar rather than
 /// a spinner that says nothing about a forty-megabyte file.
 #[derive(Clone, Serialize)]
@@ -263,7 +266,7 @@ pub async fn download(
             .split_at(16)
             .0
     ));
-    let outcome = stream_to_file(app, remote_track_id, &url, &part_path).await;
+    let outcome = stream_to_file(app, remote_track_id, &url, &part_path, PROGRESS_EVENT).await;
     let (size, full_hash) = match outcome {
         Ok(pair) => pair,
         Err(err) => {
@@ -351,11 +354,16 @@ async fn existing_row(
 /// The hash is fed from the same buffer that is written, in order, so it costs
 /// one pass over bytes that were being copied anyway — no second read of the
 /// finished file.
-async fn stream_to_file(
+///
+/// `event` names the progress event because the import path ([`super::import`])
+/// fetches the same bytes for a different purpose, and a shared event name
+/// would have one feature's bar move for the other's transfer.
+pub(super) async fn stream_to_file(
     app: &AppHandle,
     remote_track_id: &str,
     url: &str,
     dest: &Path,
+    event: &str,
 ) -> AppResult<(u64, String)> {
     let client = reqwest::Client::builder()
         .build()
@@ -390,7 +398,7 @@ async fn stream_to_file(
         if received - last_emit >= 1024 * 1024 {
             last_emit = received;
             let _ = app.emit(
-                "remote:download-progress",
+                event,
                 DownloadProgress {
                     track_id: remote_track_id.to_string(),
                     received,

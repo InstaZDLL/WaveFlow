@@ -527,6 +527,73 @@ export function remoteClearDownloads(): Promise<number> {
   return invoke<number>("remote_clear_downloads");
 }
 
+/**
+ * A scanned folder an import can land in.
+ *
+ * `exists` is false when the path is not on this machine right now — an
+ * unplugged drive, a share that is down. Still listed, because saying so is
+ * more useful than quietly dropping the destination someone always uses.
+ */
+export interface ImportFolder {
+  folder_id: number;
+  library_id: number;
+  path: string;
+  exists: boolean;
+}
+
+/** Why one track was not copied. Named rather than boolean: `already_linked`
+ *  and `already_held` both mean "you have this", `unsupported_format` will
+ *  never work, and `failed` is worth retrying. */
+export type ImportRefusal =
+  | "already_linked"
+  | "already_held"
+  | "unknown_track"
+  | "unsupported_format"
+  | "hash_mismatch"
+  | "not_indexed"
+  | "failed";
+
+export interface ImportedTrack {
+  remote_track_id: string;
+  local_track_id: number;
+  path: string;
+  full_hash: string;
+}
+
+export interface SkippedImport {
+  remote_track_id: string;
+  reason: ImportRefusal;
+  local_track_id?: number;
+}
+
+export interface ImportOutcome {
+  imported: ImportedTrack[];
+  skipped: SkippedImport[];
+}
+
+/** Progress event payload (`remote:import-progress`), one per megabyte.
+ *  Separate from a download's: same bytes, different feature. */
+export type ImportProgress = DownloadProgress;
+
+/** The scanned folders an import can target. */
+export function remoteImportFolders(): Promise<ImportFolder[]> {
+  return invoke<ImportFolder[]>("remote_import_folders");
+}
+
+/**
+ * Copy server tracks into a scanned folder, index them, and link each one back
+ * to the track it came from.
+ *
+ * The folder is scanned once at the end, so `scan:progress` fires as well as
+ * `remote:import-progress`.
+ */
+export function remoteImportTracks(
+  trackIds: string[],
+  folderId: number,
+): Promise<ImportOutcome> {
+  return invoke<ImportOutcome>("remote_import_tracks", { trackIds, folderId });
+}
+
 /** Drop every cached stream. Costs one download per track played again. */
 export function remoteClearStreamCache(): Promise<number> {
   return invoke<number>("remote_clear_stream_cache");

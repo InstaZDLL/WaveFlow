@@ -2342,6 +2342,31 @@
       "downloadsKept_other": "{{count}} brani tenuti offline ({{size}} MB).",
       "downloadsKept_zero": "Niente tenuto offline.",
       "clearDownloads": "Svuota"
+    },
+    "import": {
+      "action": "Importa nella mia libreria",
+      "title": "Importa nella mia libreria",
+      "subtitle": "{{name}} verrà copiato in una cartella analizzata e diventerà un brano della tua libreria.",
+      "destination": "Cartella di destinazione",
+      "noFolder": "Nessuna cartella analizzata raggiungibile. Aggiungine una in Impostazioni → Libreria.",
+      "unreachable": "Non raggiungibile",
+      "explainer": "Il file viene copiato così com'è e poi collegato al brano del server: la riproduzione preferirà la tua copia locale.",
+      "submit": "Importa",
+      "running": "Importazione in corso…",
+      "done": "Importati: {{count}}",
+      "refusal": {
+        "already_linked": "Già collegati a un brano locale: {{count}}",
+        "already_held": "Già nella tua libreria, collegati: {{count}}",
+        "unknown_track": "Sconosciuti al catalogo: {{count}}",
+        "unsupported_format": "Formato non supportato: {{count}}",
+        "hash_mismatch": "Contenuto inatteso: {{count}}",
+        "not_indexed": "Non indicizzati dopo la copia: {{count}}",
+        "failed": "Non riusciti: {{count}}"
+      }
+    },
+    "download": {
+      "keep": "Tieni offline",
+      "kept": "Tenuto offline"
     }
   }
 }

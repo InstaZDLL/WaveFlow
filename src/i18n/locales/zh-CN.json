@@ -2321,6 +2321,31 @@
       "downloadsKept_other": "已离线保存 {{count}} 首曲目（{{size}} MB）",
       "downloadsKept_zero": "没有离线保存的曲目。",
       "clearDownloads": "清空"
+    },
+    "import": {
+      "action": "导入我的音乐库",
+      "title": "导入我的音乐库",
+      "subtitle": "{{name}} 将被复制到已扫描的文件夹，成为你自己音乐库中的曲目。",
+      "destination": "目标文件夹",
+      "noFolder": "没有可用的已扫描文件夹。请在“设置 → 音乐库”中添加。",
+      "unreachable": "无法访问",
+      "explainer": "文件按原样复制，随后与服务器上的曲目建立关联：播放时优先使用你的本地副本。",
+      "submit": "导入",
+      "running": "正在导入…",
+      "done": "已导入：{{count}}",
+      "refusal": {
+        "already_linked": "已与本地曲目关联：{{count}}",
+        "already_held": "音乐库中已有，已建立关联：{{count}}",
+        "unknown_track": "目录中找不到：{{count}}",
+        "unsupported_format": "不支持的格式：{{count}}",
+        "hash_mismatch": "内容与预期不符：{{count}}",
+        "not_indexed": "复制后未被索引：{{count}}",
+        "failed": "失败：{{count}}"
+      }
+    },
+    "download": {
+      "keep": "离线保存",
+      "kept": "已离线保存"
     }
   }
 }

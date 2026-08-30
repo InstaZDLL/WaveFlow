@@ -2321,6 +2321,31 @@
       "downloadsKept_other": "已離線保存 {{count}} 首曲目（{{size}} MB）",
       "downloadsKept_zero": "沒有離線保存的曲目。",
       "clearDownloads": "清空"
+    },
+    "import": {
+      "action": "匯入我的音樂庫",
+      "title": "匯入我的音樂庫",
+      "subtitle": "{{name}} 將複製到已掃描的資料夾，成為你自己音樂庫中的曲目。",
+      "destination": "目標資料夾",
+      "noFolder": "沒有可用的已掃描資料夾。請在「設定 → 音樂庫」中新增。",
+      "unreachable": "無法存取",
+      "explainer": "檔案會原樣複製，接著與伺服器上的曲目建立關聯：播放時優先使用你的本機副本。",
+      "submit": "匯入",
+      "running": "正在匯入…",
+      "done": "已匯入：{{count}}",
+      "refusal": {
+        "already_linked": "已與本機曲目關聯：{{count}}",
+        "already_held": "音樂庫中已有，已建立關聯：{{count}}",
+        "unknown_track": "目錄中找不到：{{count}}",
+        "unsupported_format": "不支援的格式：{{count}}",
+        "hash_mismatch": "內容與預期不符：{{count}}",
+        "not_indexed": "複製後未建立索引：{{count}}",
+        "failed": "失敗：{{count}}"
+      }
+    },
+    "download": {
+      "keep": "離線保存",
+      "kept": "已離線保存"
     }
   }
 }

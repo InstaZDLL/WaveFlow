@@ -14,6 +14,7 @@
 //! That is the destructive one, and the UI must present it as such.
 
 use serde::Serialize;
+use tauri::Emitter;
 
 use crate::{
     error::{AppError, AppResult},
@@ -834,6 +835,43 @@ pub async fn remote_download_track(
     track_id: String,
 ) -> AppResult<crate::remote::download::DownloadedTrack> {
     crate::remote::download::download(&app, &state, &track_id).await
+}
+
+/// The scanned folders an import can land in.
+///
+/// A folder whose `exists` is false is still listed: telling someone their
+/// external drive is unplugged is more useful than quietly dropping the
+/// destination they have always used.
+#[tauri::command]
+pub async fn remote_import_folders(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Vec<crate::remote::import::ImportFolder>> {
+    let (pool, _) = state.require_profile_snapshot().await?;
+    crate::remote::import::folders(&pool).await
+}
+
+/// Copy server tracks into a scanned folder, index them, and link each one
+/// back to the track it came from.
+///
+/// Progress arrives as `remote:import-progress`; the folder is scanned once at
+/// the end, so `scan:progress` fires too.
+#[tauri::command]
+pub async fn remote_import_tracks(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    track_ids: Vec<String>,
+    folder_id: i64,
+) -> AppResult<crate::remote::import::ImportOutcome> {
+    let outcome = crate::remote::import::import(&app, &state, &track_ids, folder_id).await?;
+    if !outcome.imported.is_empty() {
+        // The same two follow-ups `scan_folder` does: freshly written track
+        // ops ship now rather than at the drain's next idle poll, and the
+        // background analyzer picks up what just arrived.
+        state.drain.notify();
+        crate::commands::analysis::maybe_auto_analyze(&app);
+        let _ = app.emit("library:rescanned", ());
+    }
+    Ok(outcome)
 }
 
 /// Every offline copy, newest first.

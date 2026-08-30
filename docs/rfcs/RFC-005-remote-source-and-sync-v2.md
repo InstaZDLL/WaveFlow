@@ -477,6 +477,41 @@ waits for a `track` row is only the *link*, which is a different object and a
 later step. It is also checked against the catalogue's own digest before the
 file is published, so a truncated or substituted body never becomes a proof.
 
+**And a track can be brought in, which is a third thing again.** A download is
+kept for offline playback and stays a *remote* track. An **import** copies the
+same bytes into a folder the user already scans, where the scanner indexes them
+and a `track` row exists: the file becomes theirs — playable offline, editable,
+counted in every local view — and the server's track is *linked* to it rather
+than shadowed by it. The two are separate features rather than one with a flag
+because they answer different questions: "keep this for the plane" versus "this
+belongs in my library".
+
+This is where the free proof is finally spent. The digest falls out of the
+write exactly as it does for a download, and the exact link is written from it
+with no re-read of anything — which is why lot 4 came before this one.
+Everything that can refuse an import is decided **before the first byte**: an
+extension the local scanner cannot index (copying it would leave a file in the
+user's own folder that never becomes a track, clutter with no way back), a
+track already linked, or bytes this library already holds. That last one is a
+byte-size prefilter followed by a full hash of the few candidates that share
+the size; finding one means the user already owns these bytes, so the link is
+written **instead of** a second copy. That is what a reconciliation pass would
+have concluded anyway, at the price of reading the whole library.
+
+The working file carries no audio extension and sits in the destination
+directory itself. Both halves are structural rather than remembered: the same
+directory makes the publishing rename a rename and not a cross-device copy with
+a window where a truncated file exists, and no audio extension makes a
+half-written file inindexable *by construction*, since the scanner filters on
+extension. The server settled the identical question in the same two clauses
+for files arriving the other way (server RFC-008, decision 6).
+
+Files are named from tags here — `Artist/Album/NN - Title.ext`, each component
+sanitised — which is the opposite of what the server does with a file it
+receives, and deliberately so. The server names by digest because a retag would
+leave its path lying; this file lands once in someone's own library, where a
+path they recognise is the entire point, and nothing here will retag it.
+
 Playback prefers, in order: a reconciled local file, a download, a cached
 stream, the network.
 
