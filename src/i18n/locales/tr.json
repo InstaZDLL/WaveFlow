@@ -2328,7 +2328,11 @@
       "clearCovers": "Temizle",
       "coversCached_zero": "Önbellekte kapak yok.",
       "coversCached_one": "Önbellekte {{count}} kapak ({{size}} MB).",
-      "coversCached_other": "Önbellekte {{count}} kapak ({{size}} MB)."
+      "coversCached_other": "Önbellekte {{count}} kapak ({{size}} MB).",
+      "streamsCached_one": "Önbellekte {{count}} parça ({{size}} MB).",
+      "streamsCached_other": "Önbellekte {{count}} parça ({{size}} MB).",
+      "streamsCached_zero": "Önbellekte parça yok.",
+      "clearStreams": "Temizle"
     }
   }
 }

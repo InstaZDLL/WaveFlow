@@ -777,6 +777,10 @@ pub fn run() {
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_transcode_status,
             #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_stream_cache_info,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_clear_stream_cache,
+            #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_artwork,
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_play_playlist,

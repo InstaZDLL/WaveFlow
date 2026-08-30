@@ -2472,7 +2472,13 @@
       "coversCached_one": "{{count}} обложка в кэше ({{size}} МБ).",
       "coversCached_few": "{{count}} обложки в кэше ({{size}} МБ).",
       "coversCached_many": "{{count}} обложек в кэше ({{size}} МБ).",
-      "coversCached_other": "{{count}} обложек в кэше ({{size}} МБ)."
+      "coversCached_other": "{{count}} обложек в кэше ({{size}} МБ).",
+      "streamsCached_few": "{{count}} трека в кэше ({{size}} МБ).",
+      "streamsCached_many": "{{count}} треков в кэше ({{size}} МБ).",
+      "streamsCached_one": "{{count}} трек в кэше ({{size}} МБ).",
+      "streamsCached_other": "{{count}} треков в кэше ({{size}} МБ).",
+      "streamsCached_zero": "Треков в кэше нет.",
+      "clearStreams": "Очистить"
     }
   }
 }

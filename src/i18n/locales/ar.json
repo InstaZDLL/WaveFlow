@@ -2577,7 +2577,14 @@
       "coversCached_two": "غلافان في الذاكرة المؤقتة ({{size}} ميغابايت).",
       "coversCached_few": "{{count}} أغلفة في الذاكرة المؤقتة ({{size}} ميغابايت).",
       "coversCached_many": "{{count}} غلافًا في الذاكرة المؤقتة ({{size}} ميغابايت).",
-      "coversCached_other": "{{count}} غلاف في الذاكرة المؤقتة ({{size}} ميغابايت)."
+      "coversCached_other": "{{count}} غلاف في الذاكرة المؤقتة ({{size}} ميغابايت).",
+      "streamsCached_few": "{{count}} مقاطع في الذاكرة المؤقتة ({{size}} ميغابايت).",
+      "streamsCached_many": "{{count}} مقطعًا في الذاكرة المؤقتة ({{size}} ميغابايت).",
+      "streamsCached_one": "مقطع واحد في الذاكرة المؤقتة ({{size}} ميغابايت).",
+      "streamsCached_other": "{{count}} مقطع في الذاكرة المؤقتة ({{size}} ميغابايت).",
+      "streamsCached_two": "مقطعان في الذاكرة المؤقتة ({{size}} ميغابايت).",
+      "streamsCached_zero": "لا مقاطع في الذاكرة المؤقتة.",
+      "clearStreams": "إفراغ"
     }
   }
 }

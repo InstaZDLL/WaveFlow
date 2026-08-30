@@ -2328,7 +2328,11 @@
       "clearCovers": "Wissen",
       "coversCached_zero": "Geen hoezen in cache.",
       "coversCached_one": "{{count}} hoes in cache ({{size}} MB).",
-      "coversCached_other": "{{count}} hoezen in cache ({{size}} MB)."
+      "coversCached_other": "{{count}} hoezen in cache ({{size}} MB).",
+      "streamsCached_one": "{{count}} nummer in cache ({{size}} MB).",
+      "streamsCached_other": "{{count}} nummers in cache ({{size}} MB).",
+      "streamsCached_zero": "Geen nummers in cache.",
+      "clearStreams": "Wissen"
     }
   }
 }

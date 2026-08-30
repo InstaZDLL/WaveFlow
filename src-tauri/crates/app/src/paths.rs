@@ -188,6 +188,14 @@ impl AppPaths {
         self.profile_dir(profile_id).join("remote-artwork")
     }
 
+    /// Cached audio for the bound server's tracks. Beside the cover cache
+    /// rather than inside it: these are whole songs, and the settings card
+    /// reports and clears the two separately because their sizes are orders
+    /// of magnitude apart.
+    pub fn profile_remote_stream_dir(&self, profile_id: i64) -> PathBuf {
+        self.profile_dir(profile_id).join("remote-stream")
+    }
+
     /// Create the directory layout required for a brand-new profile.
     pub fn ensure_profile_dirs(&self, profile_id: i64) -> AppResult<()> {
         std::fs::create_dir_all(self.profile_dir(profile_id))?;

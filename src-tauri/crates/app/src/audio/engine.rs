@@ -59,6 +59,15 @@ pub enum AudioCmd {
         artist: Option<String>,
         artwork_url: Option<String>,
         fallback_url: Option<String>,
+        /// Whether `path` is a reproducible copy that should be discarded if
+        /// it will not open or decode.
+        ///
+        /// True for a stream-cache entry, which can always be fetched again;
+        /// false for a reconciled file from the user's own library, which is
+        /// theirs and is never ours to delete. Without the distinction a bad
+        /// cache entry would fall back to the server on every single play
+        /// instead of once.
+        discard_on_failure: bool,
         replay_gain: TrackGain,
     },
     Pause,
@@ -118,6 +127,10 @@ pub enum AudioCmd {
         title: Option<String>,
         artist: Option<String>,
         artwork_url: Option<String>,
+        /// Where to cache the bytes this stream reads, when it is a finite
+        /// remote-queue track worth keeping. `None` for radio, which is
+        /// endless and therefore never complete.
+        cache: Option<crate::audio::stream_cache::CacheTarget>,
         /// Loudness metadata for the stream. `TrackGain::default()`
         /// for a live radio station — nothing knows anything about it
         /// — but a library track that fell back to streaming from the
@@ -404,6 +417,9 @@ impl RadioResumeState {
                 artist: self.artist,
                 artwork_url: self.artwork_url,
                 replay_gain,
+                // Resuming radio after a device change: endless, so never a
+                // complete body to cache.
+                cache: None,
             },
             RadioResumeSource::RemoteFile {
                 path,
@@ -411,6 +427,8 @@ impl RadioResumeState {
                 fallback_url,
                 replay_gain,
             } => AudioCmd::LoadRemoteFileAndPlay {
+                // Radio resume never restores a cache entry.
+                discard_on_failure: false,
                 path,
                 start_ms: position_ms,
                 track_id: self.track_id,
@@ -1499,6 +1517,10 @@ fn apply_radio_resume_update(snapshot: &Mutex<Option<RadioResumeState>>, cmd: &A
             artist,
             artwork_url,
             replay_gain,
+            // The resume snapshot exists to restart radio after a device
+            // change; a cache target belongs to one open response and does
+            // not survive into a new one.
+            cache: _,
         } => {
             if let Ok(mut guard) = snapshot.lock() {
                 *guard = Some(RadioResumeState {
@@ -1515,6 +1537,7 @@ fn apply_radio_resume_update(snapshot: &Mutex<Option<RadioResumeState>>, cmd: &A
             }
         }
         AudioCmd::LoadRemoteFileAndPlay {
+            discard_on_failure: false,
             path,
             duration_ms,
             fallback_url,
@@ -1699,6 +1722,7 @@ mod radio_resume_tests {
             title: Some("Test stream".to_string()),
             artist: Some("Test artist".to_string()),
             artwork_url: Some("https://example.invalid/art.jpg".to_string()),
+            cache: None,
             replay_gain: TrackGain::default(),
         }
     }
@@ -1725,6 +1749,7 @@ mod radio_resume_tests {
             artist: Some("Remote artist".to_string()),
             artwork_url: None,
             fallback_url: fallback_url.map(str::to_string),
+            discard_on_failure: false,
             replay_gain: TrackGain {
                 gain_db: Some(-4.0),
                 peak: None,

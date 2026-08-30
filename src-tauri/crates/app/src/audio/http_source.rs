@@ -174,6 +174,11 @@ pub struct HttpMediaSource {
     /// (radio servers resend the same title every interval) doesn't
     /// re-fire the event.
     last_title: Option<String>,
+    /// Writes what this source reads into the on-disk stream cache, when the
+    /// caller asked for it and the body declared a length. `None` for radio
+    /// (endless, so never complete) and whenever the cache is unusable — it
+    /// is an optimisation, and its absence is never a playback failure.
+    cache: Option<crate::audio::stream_cache::CacheWriter>,
 }
 
 impl HttpMediaSource {
@@ -182,7 +187,7 @@ impl HttpMediaSource {
     /// 404 / 502 surfaces as `Err` instead of producing a `MediaSource`
     /// that would only fail at the first `probe()` call.
     pub fn open(url: &str) -> Result<Self, String> {
-        Self::open_inner(url, None, false)
+        Self::open_inner(url, None, false, None)
     }
 
     /// Open a streaming HTTP GET that also requests + de-interleaves ICY
@@ -190,7 +195,7 @@ impl HttpMediaSource {
     /// whenever the live `StreamTitle` changes. Falls back transparently
     /// to passthrough when the server ignores `Icy-MetaData: 1`.
     pub fn open_with_icy(url: &str, icy: IcyContext) -> Result<Self, String> {
-        Self::open_inner(url, Some(icy), false)
+        Self::open_inner(url, Some(icy), false, None)
     }
 
     /// Open a finite, range-capable file for **seekable** playback — a
@@ -200,10 +205,29 @@ impl HttpMediaSource {
     /// drive a real `format.seek`. Degrades to forward-only if the server
     /// doesn't answer ranges — playback still works, only scrubbing won't.
     pub fn open_seekable(url: &str) -> Result<Self, String> {
-        Self::open_inner(url, None, true)
+        Self::open_inner(url, None, true, None)
     }
 
-    fn open_inner(url: &str, icy: Option<IcyContext>, want_seek: bool) -> Result<Self, String> {
+    /// [`Self::open_seekable`], additionally filling the on-disk stream cache
+    /// from the bytes playback reads.
+    ///
+    /// Nothing extra is fetched and nothing is delayed: the cache is written
+    /// from the blocks the decoder was going to read anyway, at their absolute
+    /// offsets, so a seek leaves a hole rather than corrupting the file and
+    /// the entry is simply never published.
+    pub fn open_seekable_caching(
+        url: &str,
+        target: crate::audio::stream_cache::CacheTarget,
+    ) -> Result<Self, String> {
+        Self::open_inner(url, None, true, Some(target))
+    }
+
+    fn open_inner(
+        url: &str,
+        icy: Option<IcyContext>,
+        want_seek: bool,
+        cache_target: Option<crate::audio::stream_cache::CacheTarget>,
+    ) -> Result<Self, String> {
         // Offline short-circuit at the HTTP boundary itself. The decoder
         // already gates `LoadUrlAndPlay` on this before reaching here, but
         // guarding the source too makes it self-honouring for any future
@@ -269,6 +293,12 @@ impl HttpMediaSource {
         // `byte_len() == None` exactly as before, even on the rare stream
         // that sends a Content-Length, so symphonia never treats it as
         // finite.
+        // Two different questions were sharing one variable. Seeking needs a
+        // length AND ranges; caching needs only a length, because it is filled
+        // by reading forward. Collapsing them meant a server that sends
+        // `Content-Length` without `Accept-Ranges` — perfectly cacheable —
+        // was never cached at all.
+        let declared_len = len;
         let len = if seekable { len } else { None };
 
         Ok(Self {
@@ -285,6 +315,14 @@ impl HttpMediaSource {
             // actually parse blocks).
             icy: if metaint > 0 { icy } else { None },
             last_title: None,
+            // Only a body that declared its length can be cached: without one
+            // there is no way to decide that every byte has been covered, and
+            // a file we cannot call complete must never be offered as one.
+            cache: cache_target.and_then(|target| {
+                declared_len.and_then(|len| {
+                    crate::audio::stream_cache::CacheWriter::create(&target.dir, &target.name, len)
+                })
+            }),
         })
     }
 
@@ -406,7 +444,17 @@ impl Read for HttpMediaSource {
         // byte cursor here for `SeekFrom::Current`.
         if self.metaint == 0 {
             let n = guard.read(buf)?;
+            drop(guard);
+            let start = self.pos;
             self.pos += n as u64;
+            // Record where these bytes live, not merely that they arrived: a
+            // seek reopens the body at another offset, so an append would
+            // interleave two regions into one corrupt file.
+            if n > 0 {
+                if let Some(cache) = self.cache.as_mut() {
+                    cache.write_at(start, &buf[..n]);
+                }
+            }
             return Ok(n);
         }
         if buf.is_empty() {

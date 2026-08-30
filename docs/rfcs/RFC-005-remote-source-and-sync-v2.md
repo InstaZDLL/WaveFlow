@@ -428,6 +428,34 @@ negative sentinel id at load time, per position rather than per track, and the
 rows are moved rather than re-projected — so the handle survives an optimistic
 reorder even on a playlist holding one track twice.
 
+**A remote stream is cached on disk, and it is filled by playback itself.**
+Until now the audio was re-fetched in full on every play — the projection
+caches metadata and the cover cache caches covers, but the bytes that actually
+cost bandwidth were not kept. They are now, under
+`profile_remote_stream_dir`, keyed by `(track id, format, bitrate)`: the triple
+that determines the bytes, and deliberately not the URL, which carries a
+single-use ticket and differs on every play.
+
+The cache is **not** a downloader. Nothing extra is fetched and nothing is
+delayed: every block the decoder reads is written at its **absolute offset**
+into a sparse working file, so the first play sounds exactly as it did and the
+second reads from disk. Writing by offset rather than by append is what makes
+this survive symphonia, which seeks while probing and again on a scrub — an
+append-only tee would have to give up at the first seek, which for most formats
+arrives within the first few kilobytes.
+
+An entry is published only when the covered ranges merge into one span over the
+whole body, by a single atomic rename out of `.part`. A partial file is worse
+than an absent one: it decodes for a while and then stops, which reads as a
+broken track rather than as a cold cache. A body whose length the server did
+not declare is never cached, because completeness could not be decided. On a
+hit the track loads through the existing `LoadRemoteFileAndPlay` path with a
+freshly-minted ticket as its `fallback_url` — a small JSON round-trip, not the
+body the cache just saved, which buys back the decoder's repair path so a
+cached file that will not decode falls back to the server once instead of
+failing that track forever. Offline, the ticket is simply not minted and the
+cached file plays alone, which is the point of having it.
+
 **The queue panel** switches to a dedicated `RemoteQueueView` while a remote
 session plays (keyed on `isRemoteTrack`), reading `remote_get_play_queue` (an
 in-memory snapshot) and jumping with `remote_queue_jump` — the local

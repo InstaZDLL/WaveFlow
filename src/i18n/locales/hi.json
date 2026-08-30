@@ -2328,7 +2328,11 @@
       "clearCovers": "हटाएँ",
       "coversCached_zero": "कैश में कोई कवर नहीं।",
       "coversCached_one": "{{count}} कवर कैश में ({{size}} MB)।",
-      "coversCached_other": "{{count}} कवर कैश में ({{size}} MB)।"
+      "coversCached_other": "{{count}} कवर कैश में ({{size}} MB)।",
+      "streamsCached_one": "{{count}} ट्रैक कैश में ({{size}} MB)।",
+      "streamsCached_other": "{{count}} ट्रैक कैश में ({{size}} MB)।",
+      "streamsCached_zero": "कैश में कोई ट्रैक नहीं।",
+      "clearStreams": "हटाएँ"
     }
   }
 }
