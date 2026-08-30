@@ -1934,24 +1934,22 @@ pub async fn player_play_tracks(
             );
             emit_track_changed(&app, &state.paths, &track, profile_id);
             let replay_gain = fetch_replay_gain(&pool, track.id).await;
-            return engine
-                .send(AudioCmd::LoadRemoteFileAndPlay {
-                    // The missing path on purpose: the decoder's repair path
-                    // is exactly this situation, and reusing it keeps one
-                    // implementation of "try the file, then the server".
-                    path: pb,
-                    start_ms: 0,
-                    track_id: track.id,
-                    duration_ms: track.duration_ms.max(0) as u64,
-                    title: Some(track.title.clone()),
-                    artist: track.artist_name.clone(),
-                    artwork_url: None,
-                    fallback_url: Some(url),
-                    // The user's own library row. Never ours to delete.
-                    discard_on_failure: false,
-                    replay_gain,
-                })
-                .map_err(Into::into);
+            return engine.send(AudioCmd::LoadRemoteFileAndPlay {
+                // The missing path on purpose: the decoder's repair path
+                // is exactly this situation, and reusing it keeps one
+                // implementation of "try the file, then the server".
+                path: pb,
+                start_ms: 0,
+                track_id: track.id,
+                duration_ms: track.duration_ms.max(0) as u64,
+                title: Some(track.title.clone()),
+                artist: track.artist_name.clone(),
+                artwork_url: None,
+                fallback_url: Some(url),
+                // The user's own library row. Never ours to delete.
+                discard_on_failure: false,
+                replay_gain,
+            });
         }
         return Err(AppError::Audio(format!(
             "file not found: {}",

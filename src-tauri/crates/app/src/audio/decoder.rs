@@ -2366,6 +2366,24 @@ fn downmix_frame_to_stereo(frame: &[f32]) -> (f32, f32) {
     }
 }
 
+/// Drop a reproducible copy that would not play.
+///
+/// Only ever called with `allowed` set for a stream-cache entry: the server
+/// still holds those bytes, so a file that fails to open or decode is worth
+/// losing to make the next play refetch it. A reconciled file from the user's
+/// own library reaches the same failure path and must survive it — it is
+/// theirs, and a decoder that deletes a listener's music because a codec
+/// tripped would be a far worse bug than a cache miss.
+fn discard_unplayable(path: &std::path::Path, allowed: bool) {
+    if !allowed {
+        return;
+    }
+    match std::fs::remove_file(path) {
+        Ok(()) => tracing::info!(path = %path.display(), "dropped unplayable cached stream"),
+        Err(err) => tracing::warn!(?err, path = %path.display(), "could not drop cached stream"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{convert_channels, downmix_frame_to_stereo};
@@ -2454,23 +2472,5 @@ mod tests {
             downmix_frame_to_stereo(&[1.0, 2.0, 0.4, 9.9, 0.6, 0.8, 0.1, 0.2, 0.05, 0.07]);
         approx(lo, 1.0 + K * (0.4 + 0.6 + 0.1 + 0.05));
         approx(ro, 2.0 + K * (0.4 + 0.8 + 0.2 + 0.07));
-    }
-}
-
-/// Drop a reproducible copy that would not play.
-///
-/// Only ever called with `allowed` set for a stream-cache entry: the server
-/// still holds those bytes, so a file that fails to open or decode is worth
-/// losing to make the next play refetch it. A reconciled file from the user's
-/// own library reaches the same failure path and must survive it — it is
-/// theirs, and a decoder that deletes a listener's music because a codec
-/// tripped would be a far worse bug than a cache miss.
-fn discard_unplayable(path: &std::path::Path, allowed: bool) {
-    if !allowed {
-        return;
-    }
-    match std::fs::remove_file(path) {
-        Ok(()) => tracing::info!(path = %path.display(), "dropped unplayable cached stream"),
-        Err(err) => tracing::warn!(?err, path = %path.display(), "could not drop cached stream"),
     }
 }
