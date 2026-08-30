@@ -17,19 +17,9 @@ import {
 } from "../../../lib/tauri/remoteServer";
 
 /**
- * Settings → sending the server what it does not have.
+ * Provides controls for surveying and uploading local tracks to a remote library.
  *
- * The other half of the balance: the library can already pull from the server,
- * and without this the two collections drift apart by design.
- *
- * Two steps rather than one button, because they cost different things. The
- * survey reads every unlinked file to compute a whole-file digest — the price
- * of an identity the server can recognise, paid once and cached — and it is
- * also where most of the work disappears: a digest the mirrored catalogue
- * already knows is a track the server has, linked offline without a single
- * request. Only what is left is offered.
- *
- * Hides itself when `sync_v2` is absent, like every other remote surface.
+ * @returns The upload settings card when remote uploading is available; otherwise, `null`.
  */
 export function UploadToServerCard() {
   const { t } = useTranslation();

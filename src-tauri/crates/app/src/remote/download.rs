@@ -214,10 +214,23 @@ pub async fn clear_all(conn: &mut SqliteConnection) -> AppResult<usize> {
     Ok(removed)
 }
 
-/// Fetch a remote track's original bytes into the managed folder.
+/// Downloads the original bytes for a remote track into the active profile's managed directory.
 ///
-/// Returns the existing copy untouched when there already is one: asking twice
-/// is a no-op, not a re-download.
+/// If a valid local copy already exists, returns its metadata without downloading again.
+///
+/// # Arguments
+///
+/// * `remote_track_id` - Identifier of the remote track to download.
+///
+/// # Examples
+///
+/// ```no_run
+/// # async fn example(app: &AppHandle, state: &AppState) -> AppResult<()> {
+/// let track = download(app, state, "remote-track-id").await?;
+/// assert_eq!(track.remote_track_id, "remote-track-id");
+/// # Ok(())
+/// # }
+/// ```
 pub async fn download(
     app: &AppHandle,
     state: &AppState,
@@ -349,15 +362,28 @@ async fn existing_row(
     }))
 }
 
-/// Stream the body to `dest`, hashing as it goes, and report progress.
+/// Streams response bytes to a file while computing their BLAKE3 hash and reporting progress.
 ///
-/// The hash is fed from the same buffer that is written, in order, so it costs
-/// one pass over bytes that were being copied anyway — no second read of the
-/// finished file.
+/// Progress events are emitted approximately once per megabyte using the supplied event name.
 ///
-/// `event` names the progress event because the import path ([`super::import`])
-/// fetches the same bytes for a different purpose, and a shared event name
-/// would have one feature's bar move for the other's transfer.
+/// # Examples
+///
+/// ```no_run
+/// let (size, hash) = stream_to_file(&app, track_id, url, destination, "download-progress").await?;
+/// assert!(size > 0);
+/// assert_eq!(hash.len(), 64);
+/// # Ok::<(), AppError>(())
+/// ```
+///
+/// # Parameters
+///
+/// * `remote_track_id` identifies the track in progress notifications.
+/// * `dest` is the temporary destination file.
+/// * `event` is the event name used for progress notifications.
+///
+/// # Returns
+///
+/// The number of bytes written and the lowercase hexadecimal BLAKE3 hash of those bytes.
 pub(super) async fn stream_to_file(
     app: &AppHandle,
     remote_track_id: &str,

@@ -529,6 +529,12 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
   );
 }
 
+/**
+ * Renders the categorized settings interface for the application.
+ *
+ * @param onNavigate - Callback used to navigate back to the home view
+ * @returns The settings page
+ */
 export function SettingsView({ onNavigate }: SettingsViewProps) {
   const { t, i18n } = useTranslation();
   const { theme, setThemeId } = useTheme();

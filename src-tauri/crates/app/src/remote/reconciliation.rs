@@ -759,8 +759,21 @@ fn remote_candidate(remote: &RemoteTrack) -> RemoteMatchCandidate {
     }
 }
 
-/// Confirm one exact pair from an ambiguous group. The local file is re-read
-/// immediately before the transaction so a stale UI cannot confirm old bytes.
+/// Confirms an exact local and remote track pairing after revalidating the current local file contents.
+///
+/// # Errors
+///
+/// Returns an error if either track is unavailable, their sizes or remote digest are invalid,
+/// the local file cannot be hashed, or the current contents do not match the remote digest.
+///
+/// # Examples
+///
+/// ```no_run
+/// # async fn example(pool: &sqlx::SqlitePool) -> waveflow_core::AppResult<()> {
+/// waveflow_core::reconciliation::confirm_exact(pool, 42, "remote-track-id").await?;
+/// # Ok(())
+/// # }
+/// ```
 pub async fn confirm_exact(
     pool: &SqlitePool,
     local_track_id: i64,
@@ -800,15 +813,16 @@ pub async fn confirm_exact(
     link_exact(pool, local_track_id, remote_track_id, &remote_hash).await
 }
 
-/// Write one exact link, in its own transaction.
+/// Creates or updates a confirmed exact-hash link between a local and remote track.
 ///
-/// Shared with the import path, which reaches this point having *just written*
-/// the bytes and so already knowing the digest — the one case where an exact
-/// link costs nothing. Keeping the write here rather than copying it is what
-/// stops the two callers from drifting on the guard below: a link is refused
-/// when either side is already linked elsewhere, because `remote_track_link`
-/// is one-to-one in both directions and an `ON CONFLICT` on `local_track_id`
-/// alone would silently steal a remote track from another local row.
+/// The digest is normalized to lowercase, existing links on either side are
+/// protected, and any matching exact-hash rejection is removed.
+///
+/// # Examples
+///
+/// ```ignore
+/// link_exact(&pool, local_track_id, remote_track_id, full_hash).await?;
+/// ```
 pub(super) async fn link_exact(
     pool: &SqlitePool,
     local_track_id: i64,

@@ -154,6 +154,19 @@ const headerIcons: Record<LibraryTab, typeof Music2> = {
   dossiers: Folder,
 };
 
+/**
+ * Displays the music library with tabs for tracks, albums, artists, genres, playlists, and folders.
+ *
+ * @param activeTab - The currently selected library tab
+ * @param setActiveTab - Updates the selected library tab
+ * @param onNavigateToAlbum - Opens a local album
+ * @param onNavigateToRemoteAlbum - Opens a remote album
+ * @param onNavigateToArtist - Opens a local artist
+ * @param onNavigateToRemoteArtist - Opens a remote artist
+ * @param onNavigateToRemotePlaylist - Opens a remote playlist
+ * @param onNavigateToGenre - Opens a genre
+ * @param onNavigateToPlaylist - Opens a local playlist
+ */
 export function LibraryView({
   activeTab,
   setActiveTab,
@@ -1550,6 +1563,15 @@ interface TrackTableProps {
   downloadedRemote: Set<string>;
 }
 
+/**
+ * Displays library tracks in a virtualized table with playback, navigation, selection, rating, playlist, like, download, and import actions.
+ *
+ * @param tracks - The local and remote tracks to display
+ * @param isLoading - Whether the track data is currently loading
+ * @param view - The table density to display
+ * @param downloadingRemote - Remote track IDs currently being downloaded
+ * @param downloadedRemote - Remote track IDs already kept for offline playback
+ */
 function TrackTable({
   tracks,
   isLoading,

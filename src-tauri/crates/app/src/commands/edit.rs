@@ -30,13 +30,25 @@ use crate::{
     state::AppState,
 };
 
-/// Recompute the BLAKE3 hash of an on-disk audio file and persist it to
-/// `track.file_hash`. Required after every command that mutates the file
-/// on disk (tag write, cover write, rating, lyrics write) so the
-/// scanner's `(file_modified, file_hash)` fast path keeps recognising
-/// the file on the next pass and the per-hash caches (lyrics, etc.) stay
-/// addressable. Errors propagate so the caller can decide whether to
-/// fail the command or just warn.
+/// Recomputes and persists the BLAKE3 hash for an audio file.
+///
+/// The cached remote full hash is invalidated after the file hash is updated.
+/// Failure to invalidate that cache is logged without failing the operation.
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be read, the blocking task fails, or the
+/// database update fails.
+///
+/// # Examples
+///
+/// ```no_run
+/// # async fn example(pool: &sqlx::SqlitePool, path: &std::path::Path) -> crate::AppResult<()> {
+/// let hash = rehash_track_file(pool, 42, path).await?;
+/// assert_eq!(hash.len(), 64);
+/// # Ok(())
+/// # }
+/// ```
 pub(crate) async fn rehash_track_file(
     pool: &SqlitePool,
     track_id: i64,

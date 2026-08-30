@@ -28,12 +28,31 @@ use sqlx::{Row, SqlitePool};
 
 use crate::error::{AppError, AppResult};
 
-/// The digest of one track, from the cache when it is still valid and from the
-/// file otherwise.
+/// Retrieves a track's full digest, reusing a cached value when its file metadata
+/// matches and computing a new value otherwise. Unreadable files produce `None`.
 ///
-/// Returns `None` when the file cannot be read — a track whose file has gone
-/// is a fact the caller reports, not an error that should abort a sweep over
-/// thousands of them.
+/// # Arguments
+///
+/// * `track_id` - Identifier of the local track.
+/// * `path` - Path to the track file.
+/// * `size` - File size associated with the requested digest.
+/// * `modified` - File modification timestamp associated with the requested digest.
+///
+/// # Returns
+///
+/// The full digest, or `None` when the file cannot be read.
+///
+/// # Examples
+///
+/// ```no_run
+/// # use sqlx::SqlitePool;
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let pool = SqlitePool::connect("sqlite::memory:").await?;
+/// let digest = full_hash(&pool, 42, "/music/track.flac", 123_456, 1_700_000_000).await?;
+/// # let _ = digest;
+/// # Ok(())
+/// # }
+/// ```
 pub async fn full_hash(
     pool: &SqlitePool,
     track_id: i64,
@@ -87,8 +106,24 @@ pub async fn full_hash(
     Ok(Some(hash))
 }
 
-/// Every available local track that is not already linked to a server track,
-/// oldest first so a resumed sweep makes the same progress twice.
+/// Lists available local tracks that have no server-track link, ordered by track ID.
+///
+/// Each tuple contains the track ID, file path, file size, and modification time.
+///
+/// # Examples
+///
+/// ```no_run
+/// # async fn example(pool: &sqlx::SqlitePool) {
+/// let tracks = unlinked_tracks(pool).await.unwrap();
+/// for (track_id, path, size, modified) in tracks {
+///     println!("{track_id}: {path} ({size} bytes, modified {modified})");
+/// }
+/// # }
+/// ```
+///
+/// # Errors
+///
+/// Returns an error if the database query or row conversion fails.
 pub async fn unlinked_tracks(pool: &SqlitePool) -> AppResult<Vec<(i64, String, i64, i64)>> {
     let rows = sqlx::query(
         "SELECT t.id, t.file_path, t.file_size, t.file_modified
@@ -111,8 +146,16 @@ pub async fn unlinked_tracks(pool: &SqlitePool) -> AppResult<Vec<(i64, String, i
         .collect()
 }
 
-/// Drop the cached digest of one track, for the paths that know the file
-/// changed without waiting for a size or mtime comparison to notice.
+/// Removes the cached full digest for a track.
+///
+/// # Examples
+///
+/// ```no_run
+/// # async fn example(pool: &sqlx::SqlitePool) -> Result<(), Box<dyn std::error::Error>> {
+/// forget(pool, 42).await?;
+/// # Ok(())
+/// # }
+/// ```
 pub async fn forget(pool: &SqlitePool, track_id: i64) -> AppResult<()> {
     sqlx::query("DELETE FROM local_full_hash WHERE track_id = ?")
         .bind(track_id)

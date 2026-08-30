@@ -575,17 +575,21 @@ export interface ImportOutcome {
  *  Separate from a download's: same bytes, different feature. */
 export type ImportProgress = DownloadProgress;
 
-/** The scanned folders an import can target. */
+/**
+ * Lists scanned folders available as import destinations.
+ *
+ * @returns The available import folders
+ */
 export function remoteImportFolders(): Promise<ImportFolder[]> {
   return invoke<ImportFolder[]>("remote_import_folders");
 }
 
 /**
- * Copy server tracks into a scanned folder, index them, and link each one back
- * to the track it came from.
+ * Imports selected remote tracks into a scanned destination folder.
  *
- * The folder is scanned once at the end, so `scan:progress` fires as well as
- * `remote:import-progress`.
+ * @param trackIds - Identifiers of the remote tracks to import
+ * @param folderId - Identifier of the destination folder
+ * @returns The imported tracks and any tracks that were skipped with their refusal reasons
  */
 export function remoteImportTracks(
   trackIds: string[],
@@ -662,23 +666,31 @@ export interface UploadProgress {
   total: number;
 }
 
-/** The server libraries an upload can target. Whether one *accepts* uploads is
- *  the server's to say, and it says it on the first offer. */
+/**
+ * Lists the server libraries available as upload targets.
+ *
+ * @returns The server libraries that can be targeted by uploads
+ */
 export function remoteUploadLibraries(): Promise<UploadLibrary[]> {
   return invoke<UploadLibrary[]>("remote_upload_libraries");
 }
 
 /**
- * Read every unlinked local file once and report what the server is missing.
+ * Surveys local files that are not linked to the remote server and identifies upload candidates.
  *
- * The expensive half — it hashes whole files — but paid once: digests are
- * cached and only a rewrite invalidates one.
+ * @returns The upload plan for unlinked local files
  */
 export function remoteUploadSurvey(): Promise<UploadPlan> {
   return invoke<UploadPlan>("remote_upload_survey");
 }
 
-/** Offer local tracks to one server library, one session at a time. */
+/**
+ * Uploads selected local tracks to a server library.
+ *
+ * @param libraryId - Identifier of the target server library
+ * @param trackIds - Identifiers of the local tracks to upload
+ * @returns The upload outcome
+ */
 export function remoteUploadTracks(
   libraryId: string,
   trackIds: number[],

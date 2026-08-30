@@ -824,11 +824,25 @@ pub async fn remote_clear_stream_cache(state: tauri::State<'_, AppState>) -> App
         .map_err(AppError::from)
 }
 
-/// Keep a remote track's original bytes on this machine.
+/// Stores a remote track's original bytes for offline use.
 ///
-/// Answers with the existing copy when there already is one, so asking twice
-/// costs nothing. Progress arrives as `remote:download-progress`.
-#[tauri::command]
+/// An existing offline copy is reused when available. Download progress is
+/// emitted through the `remote:download-progress` event.
+///
+/// # Arguments
+///
+/// * `track_id` - The server identifier of the track to download.
+///
+/// # Returns
+///
+/// The managed offline copy of the track.
+///
+/// # Examples
+///
+/// ```ignore
+/// let track = remote_download_track(app, state, "track-id".to_owned()).await?;
+/// # Ok::<(), _>(())
+/// ```
 pub async fn remote_download_track(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
@@ -837,12 +851,21 @@ pub async fn remote_download_track(
     crate::remote::download::download(&app, &state, &track_id).await
 }
 
-/// The server libraries an upload can land in.
+/// Lists the server libraries available as upload destinations.
 ///
-/// Whether one accepts uploads is the server's to say, and it says it on the
-/// first offer rather than here: a non-member is answered with a 404 on
-/// purpose, so a "does this library accept files" probe would be an oracle.
-#[tauri::command]
+/// The server determines upload eligibility when an upload is attempted; this
+/// command does not expose a separate eligibility probe.
+///
+/// # Examples
+///
+/// ```no_run
+/// let libraries = remote_upload_libraries(state).await?;
+/// # Ok::<(), AppError>(())
+/// ```
+///
+/// # Returns
+///
+/// The server libraries available to the current account.
 pub async fn remote_upload_libraries(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<Vec<crate::remote::upload::UploadLibrary>> {
@@ -850,12 +873,16 @@ pub async fn remote_upload_libraries(
     crate::remote::upload::libraries(&pool).await
 }
 
-/// Read every unlinked local file once and report what the server is missing.
+/// Builds an upload plan for unlinked local files by comparing their cached content hashes with the server.
 ///
-/// The expensive half — it hashes whole files — but paid once: the digests are
-/// cached and only a retag invalidates one. Progress arrives as
-/// `remote:upload-survey`, and [`remote_cancel_upload`] stops it.
-#[tauri::command]
+/// Progress is emitted through `remote:upload-survey`. The operation can be stopped with
+/// [`remote_cancel_upload`].
+///
+/// # Examples
+///
+/// ```ignore
+/// let plan = remote_upload_survey(app, state).await?;
+/// ```
 pub async fn remote_upload_survey(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
@@ -863,10 +890,20 @@ pub async fn remote_upload_survey(
     crate::remote::upload::survey(&app, &state).await
 }
 
-/// Offer local tracks to one server library, one session at a time.
+/// Uploads selected local tracks to a remote library.
 ///
-/// Progress arrives as `remote:upload-progress`.
-#[tauri::command]
+/// Progress is emitted through the `remote:upload-progress` event.
+///
+/// # Examples
+///
+/// ```no_run
+/// let library_id = "library-id".to_owned();
+/// let track_ids = vec![1_i64, 2_i64];
+/// ```
+///
+/// # Returns
+///
+/// The outcome of the upload operation.
 pub async fn remote_upload_tracks(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
@@ -876,21 +913,36 @@ pub async fn remote_upload_tracks(
     crate::remote::upload::upload(&app, &state, &library_id, &track_ids).await
 }
 
-/// Stop a survey or an upload after the track it is on.
+/// Requests cancellation of the active upload or survey.
 ///
-/// Never mid-track: a committed upload stays committed, and an interrupted
-/// one is resumable, so there is nothing here to roll back.
+/// Cancellation takes effect between tracks. Completed uploads remain committed,
+/// while an interrupted upload can be resumed.
+///
+/// # Examples
+///
+/// ```no_run
+/// remote_cancel_upload().await?;
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 #[tauri::command]
 pub async fn remote_cancel_upload() -> AppResult<()> {
     crate::remote::upload::request_cancel();
     Ok(())
 }
 
-/// The scanned folders an import can land in.
+/// Lists scanned destinations available for importing remote tracks.
 ///
-/// A folder whose `exists` is false is still listed: telling someone their
-/// external drive is unplugged is more useful than quietly dropping the
-/// destination they have always used.
+/// Folders that are currently unavailable remain included so callers can report
+/// missing external storage to the user.
+///
+/// # Examples
+///
+/// ```no_run
+/// # async fn example(state: tauri::State<'_, AppState>) -> AppResult<()> {
+/// let folders = remote_import_folders(state).await?;
+/// # Ok(())
+/// # }
+/// ```
 #[tauri::command]
 pub async fn remote_import_folders(
     state: tauri::State<'_, AppState>,
@@ -899,12 +951,26 @@ pub async fn remote_import_folders(
     crate::remote::import::folders(&pool).await
 }
 
-/// Copy server tracks into a scanned folder, index them, and link each one
-/// back to the track it came from.
+/// Imports selected server tracks into a scanned local folder and links each imported track to its source.
 ///
-/// Progress arrives as `remote:import-progress`; the folder is scanned once at
-/// the end, so `scan:progress` fires too.
-#[tauri::command]
+/// The import emits `remote:import-progress` events while copying tracks. After successful imports,
+/// it triggers a folder rescan and emits `scan:progress` and `library:rescanned` events.
+///
+/// # Parameters
+///
+/// * `track_ids` - Server identifiers of the tracks to import.
+/// * `folder_id` - Identifier of the scanned destination folder.
+///
+/// # Returns
+///
+/// The outcome describing imported tracks and any tracks that could not be imported.
+///
+/// # Examples
+///
+/// ```ignore
+/// let outcome = remote_import_tracks(app, state, vec!["track-id".into()], folder_id).await?;
+/// println!("Imported {} tracks", outcome.imported.len());
+/// ```
 pub async fn remote_import_tracks(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
@@ -923,8 +989,14 @@ pub async fn remote_import_tracks(
     Ok(outcome)
 }
 
-/// Every offline copy, newest first.
-#[tauri::command]
+/// Lists downloaded offline tracks, ordered from newest to oldest.
+///
+/// # Examples
+///
+/// ```no_run
+/// let downloads = remote_list_downloads(state).await?;
+/// # Ok::<(), _>(())
+/// ```
 pub async fn remote_list_downloads(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<Vec<crate::remote::download::DownloadedTrack>> {

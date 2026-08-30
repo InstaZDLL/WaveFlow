@@ -39,12 +39,10 @@ const SETTING = {
 };
 
 /**
- * Copy server tracks into a scanned folder.
+ * Imports server tracks into a selected scanned library folder.
  *
- * The destination is a *scanned* folder on purpose — that is the whole
- * difference from keeping an offline copy, which lands somewhere the scanner
- * never looks. What lands here becomes a track of the user's own library,
- * linked back to the server's copy rather than duplicating it.
+ * @param label - Display name used to identify the tracks in the modal
+ * @param onImported - Optional callback invoked when one or more tracks are imported
  */
 export function ImportToLibraryModal({
   isOpen,
@@ -259,8 +257,11 @@ export function ImportToLibraryModal({
   );
 }
 
-/** What one pass did, refusal by refusal. A count alone would hide the two
- *  verdicts that mean "you already have this", which is not a failure. */
+/**
+ * Displays the number of imported tracks and groups skipped tracks by refusal reason.
+ *
+ * @param outcome - The completed import result to summarize
+ */
 function ImportSummary({ outcome }: { outcome: ImportOutcome }) {
   const { t } = useTranslation();
   const byReason = new Map<string, number>();

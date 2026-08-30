@@ -74,6 +74,13 @@ struct QuitGate(AtomicBool);
 
 const TRAY_ID: &str = "waveflow";
 
+/// Initializes and runs the WaveFlow desktop application.
+///
+/// # Examples
+///
+/// ```no_run
+/// run();
+/// ```
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Initialize structured logging. `RUST_LOG` overrides the default

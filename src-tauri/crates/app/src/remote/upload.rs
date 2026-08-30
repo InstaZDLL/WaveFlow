@@ -70,7 +70,23 @@ static CANCEL: AtomicBool = AtomicBool::new(false);
 /// one finishing.
 static RUNNING: AtomicBool = AtomicBool::new(false);
 
-/// Ask a running sweep to stop after the track it is on.
+/// Requests cancellation of the active survey or upload run.
+
+///
+
+/// The running operation stops after completing its current track.
+
+///
+
+/// # Examples
+
+///
+
+/// ```
+
+/// request_cancel();
+
+/// ```
 pub fn request_cancel() {
     CANCEL.store(true, Ordering::SeqCst);
 }
@@ -80,7 +96,18 @@ pub fn request_cancel() {
 struct RunGuard;
 
 impl RunGuard {
-    /// `None` when a sweep is already running.
+    /// Claims the exclusive run slot and clears any pending cancellation request.
+    ///
+    /// Returns `Some` when the slot is claimed successfully, or `None` when another
+    /// run is already active.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let guard = RunGuard::claim();
+    /// assert!(guard.is_some());
+    /// ```
+    fn claim() -> Option<Self>
     fn claim() -> Option<Self> {
         RUNNING
             .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
@@ -91,12 +118,28 @@ impl RunGuard {
 }
 
 impl Drop for RunGuard {
+    /// Releases the run guard and clears the cancellation request.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// // Dropping the guard releases the exclusive run slot.
+    /// drop(guard);
+    /// ```
     fn drop(&mut self) {
         CANCEL.store(false, Ordering::SeqCst);
         RUNNING.store(false, Ordering::SeqCst);
     }
 }
 
+/// Reports whether cancellation has been requested for the current operation.
+///
+/// # Examples
+///
+/// ```
+/// let cancellation_requested = cancelled();
+/// assert!(cancellation_requested || !cancellation_requested);
+/// ```
 fn cancelled() -> bool {
     CANCEL.load(Ordering::SeqCst)
 }
@@ -242,12 +285,21 @@ struct WireCommitted {
 
 // ---- survey ------------------------------------------------------------
 
-/// The server libraries this profile knows about, as destinations.
+/// Lists the remote libraries known to the profile, ordered by name.
 ///
-/// Whether one *accepts* uploads is not knowable from here: the flag lives on
-/// the server and a non-member is answered with a 404 rather than a refusal,
-/// on purpose. A closed library comes back as the `library_closed` verdict on
-/// the first offer, which is where it is reported.
+/// The list identifies available destinations; upload eligibility is determined by the
+/// server when an upload is negotiated.
+///
+/// # Examples
+///
+/// ```no_run
+/// # async fn example() -> app::AppResult<()> {
+/// let pool = sqlx::SqlitePool::connect("sqlite://profile.db").await?;
+/// let libraries = app::remote::upload::libraries(&pool).await?;
+/// # let _ = libraries;
+/// # Ok(())
+/// # }
+/// ```
 pub async fn libraries(pool: &SqlitePool) -> AppResult<Vec<UploadLibrary>> {
     let rows = sqlx::query("SELECT remote_id, name FROM remote_library ORDER BY name")
         .fetch_all(pool)
@@ -262,13 +314,24 @@ pub async fn libraries(pool: &SqlitePool) -> AppResult<Vec<UploadLibrary>> {
         .collect()
 }
 
-/// Read every unlinked local file once, link the ones the mirror already
-/// knows, and return the rest as candidates.
+/// Surveys unlinked local tracks and identifies files that require remote upload.
 ///
-/// This is the pass the server's RFC calls a cost to be assumed rather than
-/// discovered: `full_hash` covers whole files, so deciding what is missing
-/// means reading the library. It is paid once — [`super::hashing`] keeps the
-/// result — and it is interruptible.
+/// Supported files are hashed, linked locally when their hashes are already present
+/// in the remote catalogue, and otherwise returned as upload candidates. The survey
+/// can be cancelled between tracks and emits progress updates while processing.
+///
+/// # Examples
+///
+/// ```no_run
+/// # async fn example(
+/// #     app: &tauri::AppHandle,
+/// #     state: &crate::AppState,
+/// # ) -> crate::AppResult<()> {
+/// let plan = crate::remote::upload::survey(app, state).await?;
+/// println!("{} files need uploading", plan.candidates.len());
+/// # Ok(())
+/// # }
+/// ```
 pub async fn survey(app: &AppHandle, state: &AppState) -> AppResult<UploadPlan> {
     let _guard = RunGuard::claim()
         .ok_or_else(|| AppError::Other("an upload sweep is already running".into()))?;
@@ -372,7 +435,32 @@ pub async fn survey(app: &AppHandle, state: &AppState) -> AppResult<UploadPlan> 
 
 // ---- transfer ----------------------------------------------------------
 
-/// Offer the given local tracks to one server library, one session at a time.
+/// Uploads the specified local tracks to a remote library sequentially.
+///
+/// # Arguments
+///
+/// * `library_id` — Identifier of the destination remote library.
+/// * `track_ids` — Identifiers of the local tracks to offer for upload.
+///
+/// # Returns
+///
+/// The tracks uploaded, skipped with refusal reasons, and whether cancellation stopped the operation.
+///
+/// # Errors
+///
+/// Returns an error when offline, when another upload run is active, or when the active profile cannot be loaded.
+///
+/// # Examples
+///
+/// ```no_run
+/// # let app = todo!();
+/// # let state = todo!();
+/// # let library_id = "library-id";
+/// # let track_ids = vec![1, 2, 3];
+/// let outcome = upload(&app, &state, library_id, &track_ids).await?;
+/// # let _: UploadOutcome = outcome;
+/// # Ok::<(), AppError>(())
+/// ```
 pub async fn upload(
     app: &AppHandle,
     state: &AppState,
@@ -427,6 +515,22 @@ enum Sent {
     Cancelled,
 }
 
+/// Uploads one available track to a remote library, resuming any negotiated session.
+///
+/// Tracks already present remotely are linked locally. Unsupported or rejected tracks
+/// are reported as refusals, while cancellation preserves the resumable upload state.
+///
+/// # Errors
+///
+/// Returns an error if the track is unavailable, the remote session is invalid or
+/// stalls, a transfer fails, or the committed content hash does not match the local hash.
+///
+/// # Examples
+///
+/// ```ignore
+/// let result = upload_one(&app, &state, &pool, "library-id", track_id).await?;
+/// ```
+async fn upload_one(
 async fn upload_one(
     app: &AppHandle,
     state: &AppState,
@@ -608,11 +712,23 @@ async fn upload_one(
     }))
 }
 
-/// One fragment, read at its offset.
+/// Reads an exact byte fragment from a file at the specified offset.
 ///
-/// By offset rather than by a held-open handle: a sweep can sit on one file
-/// for minutes over a slow link, and keeping a descriptor open across that
-/// would block the file being retagged or moved on Windows for the duration.
+/// # Examples
+///
+/// ```
+/// # #[tokio::main]
+/// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let path = std::env::temp_dir().join(format!("read-chunk-{}", std::process::id()));
+/// std::fs::write(&path, b"abcdef")?;
+///
+/// let chunk = read_chunk(path.to_str().unwrap(), 2, 3).await?;
+/// assert_eq!(chunk, b"cde");
+///
+/// std::fs::remove_file(path)?;
+/// # Ok(())
+/// # }
+/// ```
 async fn read_chunk(path: &str, offset: i64, len: usize) -> AppResult<Vec<u8>> {
     let owned = path.to_string();
     tokio::task::spawn_blocking(move || -> std::io::Result<Vec<u8>> {
@@ -627,7 +743,14 @@ async fn read_chunk(path: &str, offset: i64, len: usize) -> AppResult<Vec<u8>> {
     .map_err(AppError::from)
 }
 
-/// A path's extension, lower-cased and without its dot.
+/// Extracts a path's extension in lowercase without its leading dot.
+///
+/// # Examples
+///
+/// ```
+/// assert_eq!(extension_of("Music/Track.MP3"), "mp3");
+/// assert_eq!(extension_of("README"), "");
+/// ```
 fn extension_of(path: &str) -> String {
     std::path::Path::new(path)
         .extension()

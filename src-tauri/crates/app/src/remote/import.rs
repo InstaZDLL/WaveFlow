@@ -143,8 +143,16 @@ struct RemoteTrackMeta {
     full_hash: Option<String>,
 }
 
-/// Track ids being imported right now, so a second click cannot start a second
-/// transfer of the same track into the same folder.
+/// Provides the process-wide set of track IDs currently being imported.
+///
+/// # Examples
+///
+/// ```
+/// let in_flight_ids = in_flight();
+/// let mut ids = in_flight_ids.lock().unwrap();
+/// ids.insert("track-1".to_owned());
+/// assert!(ids.contains("track-1"));
+/// ```
 fn in_flight() -> &'static Mutex<HashSet<String>> {
     static IN_FLIGHT: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
     IN_FLIGHT.get_or_init(|| Mutex::new(HashSet::new()))
@@ -154,6 +162,18 @@ fn in_flight() -> &'static Mutex<HashSet<String>> {
 struct InFlightGuard(String);
 
 impl InFlightGuard {
+    /// Claims a track ID for exclusive in-flight processing.
+    ///
+    /// Returns `None` when the track is already claimed or the in-flight registry
+    /// cannot be accessed. The claim is released when the returned guard is dropped.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let claim = InFlightGuard::claim("track-123");
+    /// assert!(claim.is_some());
+    /// assert!(InFlightGuard::claim("track-123").is_none());
+    /// ```
     fn claim(track_id: &str) -> Option<Self> {
         let mut set = in_flight().lock().ok()?;
         if !set.insert(track_id.to_string()) {
@@ -164,6 +184,16 @@ impl InFlightGuard {
 }
 
 impl Drop for InFlightGuard {
+    /// Releases the track identifier from the set of imports currently in progress.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// {
+    ///     let guard = InFlightGuard("track-id".to_owned());
+    ///     drop(guard);
+    /// }
+    /// ```
     fn drop(&mut self) {
         if let Ok(mut set) = in_flight().lock() {
             set.remove(&self.0);
@@ -171,7 +201,19 @@ impl Drop for InFlightGuard {
     }
 }
 
-/// The scanned folders an import can target, newest library first.
+/// Lists library folders that can be used as import targets, including whether each path currently exists as a directory.
+///
+/// # Examples
+///
+/// ```no_run
+/// # async fn example(pool: &SqlitePool) -> AppResult<()> {
+/// let folders = folders(pool).await?;
+/// for folder in folders {
+///     println!("{}: {}", folder.folder_id, folder.path);
+/// }
+/// # Ok(())
+/// # }
+/// ```
 pub async fn folders(pool: &SqlitePool) -> AppResult<Vec<ImportFolder>> {
     let rows =
         sqlx::query("SELECT id, library_id, path FROM library_folder ORDER BY library_id, path")
@@ -192,13 +234,34 @@ pub async fn folders(pool: &SqlitePool) -> AppResult<Vec<ImportFolder>> {
         .collect())
 }
 
-/// Copy server tracks into a scanned folder, index them, and link each one to
-/// the track it came from.
+/// Imports remote tracks into a scanned library folder and links indexed files to their source tracks.
 ///
-/// Every file is written first and the folder scanned **once** at the end.
-/// Scanning per file would re-walk the whole folder for each track, and the
-/// scan's own fast path makes one pass over an already-indexed folder cheap
-/// while making a hundred passes exactly a hundred times that.
+/// Files are scanned once after all transfers complete. Tracks that cannot be imported are
+/// reported in the outcome without preventing other tracks from being processed.
+///
+/// # Examples
+///
+/// ```no_run
+/// # async fn example(
+/// #     app: &AppHandle,
+/// #     state: &AppState,
+/// #     remote_track_ids: &[String],
+/// #     folder_id: i64,
+/// # ) -> AppResult<()> {
+/// let outcome = import(app, state, remote_track_ids, folder_id).await?;
+/// println!("Imported {} tracks", outcome.imported.len());
+/// # Ok(())
+/// # }
+/// ```
+///
+/// # Parameters
+///
+/// * `remote_track_ids` — IDs of the remote tracks to import.
+/// * `folder_id` — ID of the library folder receiving the imported files.
+///
+/// # Returns
+///
+/// The imported tracks and tracks skipped with their refusal reasons.
 pub async fn import(
     app: &AppHandle,
     state: &AppState,
@@ -340,6 +403,26 @@ enum Prepared {
     },
 }
 
+/// Prepares a remote track for import into a library folder.
+///
+/// Existing links, locally held duplicates, unknown tracks, unsupported formats,
+/// and hash mismatches are reported as refusal outcomes. Otherwise, the remote
+/// bytes are written to a temporary file, verified, and moved to a reserved
+/// destination path.
+///
+/// # Examples
+///
+/// ```ignore
+/// let prepared = import_one(
+///     &app,
+///     &state,
+///     &pool,
+///     "remote-track-id",
+///     folder,
+/// ).await?;
+/// # Ok::<(), AppError>(())
+/// ```
+async fn import_one(
 async fn import_one(
     app: &AppHandle,
     state: &AppState,
@@ -463,7 +546,28 @@ async fn import_one(
     })
 }
 
-/// What the mirror holds for one track.
+/// Loads mirrored metadata for a remote track.
+///
+/// Returns `None` when the remote track is unknown.
+///
+/// # Examples
+///
+/// ```no_run
+/// let metadata = meta(&pool, "remote-track-id").await?;
+/// if let Some(metadata) = metadata {
+///     println!("{}", metadata.title);
+/// }
+/// # Ok::<(), AppError>(())
+/// ```
+///
+/// # Arguments
+///
+/// * `pool` - Database connection pool containing the mirrored track metadata.
+/// * `remote_track_id` - Identifier of the remote track to look up.
+///
+/// # Returns
+///
+/// The track's mirrored metadata, or `None` if no matching track exists.
 async fn meta(pool: &SqlitePool, remote_track_id: &str) -> AppResult<Option<RemoteTrackMeta>> {
     let row = sqlx::query(
         "SELECT title, artist, album, track_no, disc_no, suffix, size, full_hash
@@ -517,10 +621,20 @@ async fn local_twin(pool: &SqlitePool, size: i64, expected_hash: &str) -> AppRes
     Ok(None)
 }
 
-/// The extension to write, lower-cased and stripped of anything a path cannot
-/// carry. Empty when the server declared no container, which the caller then
-/// refuses as `unsupported_format` — guessing one would name a file after a
-/// format nobody claimed it was in.
+/// Normalizes an optional file suffix for use as a filename extension.
+///
+/// Leading and trailing whitespace and dots are removed, non-ASCII-alphanumeric
+/// characters are discarded, the result is limited to eight characters, and the
+/// remaining characters are lowercased. A missing or empty suffix produces an
+/// empty string.
+///
+/// # Examples
+///
+/// ```
+/// assert_eq!(extension_for(Some(".FLAC")), "flac");
+/// assert_eq!(extension_for(Some(" mp3 ")), "mp3");
+/// assert_eq!(extension_for(None), "");
+/// ```
 fn extension_for(suffix: Option<&str>) -> String {
     suffix
         .unwrap_or_default()
@@ -533,8 +647,22 @@ fn extension_for(suffix: Option<&str>) -> String {
         .to_ascii_lowercase()
 }
 
-/// The file name's stem: `NN - Title`, or `D-NN - Title` on a multi-disc
-/// release, so a directory listing sorts the way the album plays.
+/// Creates a filesystem-safe, sortable filename stem from remote track metadata.
+///
+/// Track numbers are zero-padded, and disc numbers are included for tracks on
+/// discs after the first.
+///
+/// # Examples
+///
+/// ```
+/// let meta = RemoteTrackMeta {
+///     title: "Song".to_owned(),
+///     disc_no: Some(2),
+///     track_no: Some(3),
+/// };
+///
+/// assert_eq!(stem(&meta), "2-03 - Song");
+/// ```
 fn stem(meta: &RemoteTrackMeta) -> String {
     let title = sanitize_component(&meta.title, "Untitled");
     match (meta.disc_no, meta.track_no) {
@@ -544,13 +672,19 @@ fn stem(meta: &RemoteTrackMeta) -> String {
     }
 }
 
-/// One path component, safe on every platform the app ships to.
+/// Sanitizes a file-system path component while preserving readable title characters.
 ///
-/// Deliberately gentler than the app's other filename sanitizers: those name
-/// archives, where legibility is a nicety. This one names music in someone's
-/// own library, so accents, apostrophes and brackets — most of what titles are
-/// actually made of — survive, and only what a filesystem genuinely refuses is
-/// replaced.
+/// Invalid characters, control characters, trailing dots and spaces are replaced or
+/// removed. The result is limited to 60 characters and uses `fallback` when it is
+/// empty or a Windows-reserved name.
+///
+/// # Examples
+///
+/// ```
+/// assert_eq!(sanitize_component("Track: One", "Unknown"), "Track_ One");
+/// assert_eq!(sanitize_component("...", "Unknown"), "Unknown");
+/// ```
+fn sanitize_component(raw: &str, fallback: &str) -> String {
 fn sanitize_component(raw: &str, fallback: &str) -> String {
     let cleaned: String = raw
         .chars()
@@ -574,7 +708,14 @@ fn sanitize_component(raw: &str, fallback: &str) -> String {
     limited.to_string()
 }
 
-/// Names Windows refuses whatever the extension.
+/// Determines whether a filename uses a reserved Windows device name.
+///
+/// # Examples
+///
+/// ```
+/// assert!(is_reserved("CON.txt"));
+/// assert!(!is_reserved("cover.txt"));
+/// ```
 fn is_reserved(name: &str) -> bool {
     const RESERVED: &[&str] = &[
         "con", "prn", "aux", "nul", "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8",
@@ -584,16 +725,21 @@ fn is_reserved(name: &str) -> bool {
     RESERVED.contains(&stem.as_str())
 }
 
-/// A path in `dir` that nothing occupies, **claimed** rather than merely
-/// checked, suffixing instead of overwriting.
+/// Reserves an unused path in `dir` without overwriting existing files.
 ///
-/// The name is reserved by creating the empty file exclusively, and the final
-/// rename lands on that reservation. Testing `exists()` and renaming later
-/// leaves a window in which a concurrent import — a second window, a second
-/// track that happens to share artist, album and title — picks the same free
-/// name and one of the two silently overwrites the other. Never overwrites a
-/// file that was already there: the folder is the user's own, and what is in
-/// it is theirs whether this feature put it there or not.
+/// The reservation is created atomically and uses numbered suffixes when the
+/// base name is already occupied. Returns an error if the directory cannot be
+/// accessed or all 1,000 candidate names are occupied.
+///
+/// # Examples
+///
+/// ```
+/// # use std::path::Path;
+/// # let dir = Path::new("/tmp/music");
+/// # let stem = "01 - Track";
+/// # let extension = "mp3";
+/// # let _ = (dir, stem, extension);
+/// ```
 fn reserve_path(dir: &Path, stem: &str, extension: &str) -> AppResult<PathBuf> {
     let named = |n: u32| -> PathBuf {
         let base = if n == 1 {

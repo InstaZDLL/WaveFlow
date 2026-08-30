@@ -613,9 +613,25 @@ fn library_track_order_clause(order_by: Option<&str>, direction: Option<&str>) -
     }
 }
 
-/// Both halves of the track listing, as one compound select.
+/// Builds the SQL query for unified local and remote track listings.
 ///
-/// Split out of the command for the reason on [`library_albums_sql`].
+/// Local rows are limited to available tracks, while remote rows are limited to
+/// catalogue entries and exclude confirmed duplicates whose local tracks remain
+/// available. The query includes placeholders for library and source filters and
+/// appends the supplied ordering clause.
+///
+/// # Parameters
+///
+/// * `order_clause` - SQL ordering expression appended to the unified query.
+///
+/// # Examples
+///
+/// ```
+/// let sql = library_tracks_sql("ORDER BY title");
+/// assert!(sql.contains("UNION ALL"));
+/// assert!(sql.contains("ORDER BY title"));
+/// ```
+fn library_tracks_sql(order_clause: &str) -> String {
 fn library_tracks_sql(order_clause: &str) -> String {
     format!(
         r#"
