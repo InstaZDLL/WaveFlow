@@ -2367,6 +2367,31 @@
     "download": {
       "keep": "Garder hors ligne",
       "kept": "Gardé hors ligne"
+    },
+    "upload": {
+      "title": "Téléverser vers le serveur",
+      "subtitle": "Envoyer au serveur les titres qu'il n'a pas. L'analyse lit chaque fichier une fois pour savoir lesquels lui manquent vraiment.",
+      "cancel": "Arrêter",
+      "survey": "Analyser",
+      "surveying": "{{done}} / {{total}} fichiers lus…",
+      "statMissing": "Manquants",
+      "statLinked": "Déjà là, reliés",
+      "statUnsupported": "Format refusé",
+      "statUnreadable": "Illisibles",
+      "destination": "Bibliothèque",
+      "send": "Téléverser ({{count}})",
+      "sent": "Téléversés : {{count}}",
+      "stopped": "arrêté",
+      "refusal": {
+        "present": "Déjà sur le serveur, reliés : {{count}}",
+        "unsupported_format": "Format refusé par le serveur : {{count}}",
+        "too_large": "Trop volumineux : {{count}}",
+        "quota_exceeded": "Plus de place sur le serveur : {{count}}",
+        "library_closed": "Bibliothèque fermée aux envois : {{count}}",
+        "too_many_sessions": "Trop d'envois simultanés : {{count}}",
+        "unknown_verdict": "Réponse inconnue du serveur : {{count}}",
+        "failed": "Échecs : {{count}}"
+      }
     }
   }
 }

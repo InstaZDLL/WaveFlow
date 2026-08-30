@@ -2367,6 +2367,31 @@
     "download": {
       "keep": "Tieni offline",
       "kept": "Tenuto offline"
+    },
+    "upload": {
+      "title": "Carica sul server",
+      "subtitle": "Invia al server i brani che non ha. L'analisi legge ogni file una volta per capire quali mancano davvero.",
+      "cancel": "Ferma",
+      "survey": "Analizza",
+      "surveying": "{{done}} / {{total}} file letti…",
+      "statMissing": "Mancanti",
+      "statLinked": "Già presenti, collegati",
+      "statUnsupported": "Formato rifiutato",
+      "statUnreadable": "Illeggibili",
+      "destination": "Libreria",
+      "send": "Carica ({{count}})",
+      "sent": "Caricati: {{count}}",
+      "stopped": "fermato",
+      "refusal": {
+        "present": "Già sul server, collegati: {{count}}",
+        "unsupported_format": "Formato rifiutato dal server: {{count}}",
+        "too_large": "Troppo grandi: {{count}}",
+        "quota_exceeded": "Spazio esaurito sul server: {{count}}",
+        "library_closed": "Libreria chiusa ai caricamenti: {{count}}",
+        "too_many_sessions": "Troppi caricamenti insieme: {{count}}",
+        "unknown_verdict": "Risposta sconosciuta del server: {{count}}",
+        "failed": "Non riusciti: {{count}}"
+      }
     }
   }
 }

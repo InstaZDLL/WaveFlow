@@ -2367,6 +2367,31 @@
     "download": {
       "keep": "Keep offline",
       "kept": "Kept offline"
+    },
+    "upload": {
+      "title": "Upload to the server",
+      "subtitle": "Send the server the tracks it does not have. The survey reads each file once to find out which are genuinely missing.",
+      "cancel": "Stop",
+      "survey": "Survey",
+      "surveying": "{{done}} / {{total}} files read…",
+      "statMissing": "Missing",
+      "statLinked": "Already there, linked",
+      "statUnsupported": "Refused format",
+      "statUnreadable": "Unreadable",
+      "destination": "Library",
+      "send": "Upload ({{count}})",
+      "sent": "Uploaded: {{count}}",
+      "stopped": "stopped",
+      "refusal": {
+        "present": "Already on the server, linked: {{count}}",
+        "unsupported_format": "Format the server refuses: {{count}}",
+        "too_large": "Too large: {{count}}",
+        "quota_exceeded": "No room left on the server: {{count}}",
+        "library_closed": "Library closed to uploads: {{count}}",
+        "too_many_sessions": "Too many uploads at once: {{count}}",
+        "unknown_verdict": "Answer this build does not know: {{count}}",
+        "failed": "Failed: {{count}}"
+      }
     }
   }
 }

@@ -2346,6 +2346,31 @@
     "download": {
       "keep": "オフラインで保存",
       "kept": "オフラインに保存済み"
+    },
+    "upload": {
+      "title": "サーバーへアップロード",
+      "subtitle": "サーバーにない曲を送ります。調査は各ファイルを一度読み、本当に不足しているものを確かめます。",
+      "cancel": "停止",
+      "survey": "調査",
+      "surveying": "{{done}} / {{total}} ファイルを読み込み中…",
+      "statMissing": "不足",
+      "statLinked": "既にあり、関連付け済み",
+      "statUnsupported": "非対応の形式",
+      "statUnreadable": "読み取り不可",
+      "destination": "ライブラリ",
+      "send": "アップロード（{{count}}）",
+      "sent": "アップロード: {{count}}",
+      "stopped": "停止しました",
+      "refusal": {
+        "present": "既にサーバーにあり、関連付けました: {{count}}",
+        "unsupported_format": "サーバーが受け付けない形式: {{count}}",
+        "too_large": "容量超過: {{count}}",
+        "quota_exceeded": "サーバーの空き容量なし: {{count}}",
+        "library_closed": "ライブラリが受け入れを停止中: {{count}}",
+        "too_many_sessions": "同時アップロードが多すぎます: {{count}}",
+        "unknown_verdict": "このビルドが知らない応答: {{count}}",
+        "failed": "失敗: {{count}}"
+      }
     }
   }
 }

@@ -594,6 +594,103 @@ export function remoteImportTracks(
   return invoke<ImportOutcome>("remote_import_tracks", { trackIds, folderId });
 }
 
+/** A server library, as an upload destination. */
+export interface UploadLibrary {
+  library_id: string;
+  name: string;
+}
+
+/** One local track the server does not appear to have. */
+export interface UploadCandidate {
+  track_id: number;
+  title: string;
+  artist: string | null;
+  size: number;
+  full_hash: string;
+  extension: string;
+}
+
+/** What a survey of the local library found. */
+export interface UploadPlan {
+  candidates: UploadCandidate[];
+  /** Linked without a single request: their digest was already mirrored. */
+  linked_offline: number;
+  unreadable: number;
+  unsupported: number;
+  cancelled: boolean;
+}
+
+/** Why one track was not sent. The server's verdicts, plus the two this side
+ *  decides on its own. */
+export type UploadRefusal =
+  | "present"
+  | "unsupported_format"
+  | "too_large"
+  | "quota_exceeded"
+  | "library_closed"
+  | "too_many_sessions"
+  | "unknown_verdict"
+  | "failed";
+
+export interface UploadedTrack {
+  track_id: number;
+  remote_track_id: string;
+  full_hash: string;
+}
+
+export interface SkippedUpload {
+  track_id: number;
+  reason: UploadRefusal;
+}
+
+export interface UploadOutcome {
+  uploaded: UploadedTrack[];
+  skipped: SkippedUpload[];
+  cancelled: boolean;
+}
+
+/** Progress event payload (`remote:upload-survey`), one per 25 files. */
+export interface UploadSurveyProgress {
+  processed: number;
+  total: number;
+}
+
+/** Progress event payload (`remote:upload-progress`), one per chunk. */
+export interface UploadProgress {
+  track_id: number;
+  sent: number;
+  total: number;
+}
+
+/** The server libraries an upload can target. Whether one *accepts* uploads is
+ *  the server's to say, and it says it on the first offer. */
+export function remoteUploadLibraries(): Promise<UploadLibrary[]> {
+  return invoke<UploadLibrary[]>("remote_upload_libraries");
+}
+
+/**
+ * Read every unlinked local file once and report what the server is missing.
+ *
+ * The expensive half — it hashes whole files — but paid once: digests are
+ * cached and only a rewrite invalidates one.
+ */
+export function remoteUploadSurvey(): Promise<UploadPlan> {
+  return invoke<UploadPlan>("remote_upload_survey");
+}
+
+/** Offer local tracks to one server library, one session at a time. */
+export function remoteUploadTracks(
+  libraryId: string,
+  trackIds: number[],
+): Promise<UploadOutcome> {
+  return invoke<UploadOutcome>("remote_upload_tracks", { libraryId, trackIds });
+}
+
+/** Stop a survey or an upload after the track it is on. */
+export function remoteCancelUpload(): Promise<void> {
+  return invoke<void>("remote_cancel_upload");
+}
+
 /** Drop every cached stream. Costs one download per track played again. */
 export function remoteClearStreamCache(): Promise<number> {
   return invoke<number>("remote_clear_stream_cache");

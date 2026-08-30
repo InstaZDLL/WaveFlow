@@ -2346,6 +2346,31 @@
     "download": {
       "keep": "Simpan luring",
       "kept": "Tersimpan luring"
+    },
+    "upload": {
+      "title": "Unggah ke server",
+      "subtitle": "Kirim ke server trek yang belum dimilikinya. Survei membaca setiap berkas sekali untuk tahu mana yang benar-benar hilang.",
+      "cancel": "Hentikan",
+      "survey": "Survei",
+      "surveying": "{{done}} / {{total}} berkas dibaca…",
+      "statMissing": "Belum ada",
+      "statLinked": "Sudah ada, ditautkan",
+      "statUnsupported": "Format ditolak",
+      "statUnreadable": "Tak terbaca",
+      "destination": "Pustaka",
+      "send": "Unggah ({{count}})",
+      "sent": "Terunggah: {{count}}",
+      "stopped": "dihentikan",
+      "refusal": {
+        "present": "Sudah di server, ditautkan: {{count}}",
+        "unsupported_format": "Format yang ditolak server: {{count}}",
+        "too_large": "Terlalu besar: {{count}}",
+        "quota_exceeded": "Ruang server habis: {{count}}",
+        "library_closed": "Pustaka menolak unggahan: {{count}}",
+        "too_many_sessions": "Terlalu banyak unggahan sekaligus: {{count}}",
+        "unknown_verdict": "Jawaban yang tak dikenal versi ini: {{count}}",
+        "failed": "Gagal: {{count}}"
+      }
     }
   }
 }

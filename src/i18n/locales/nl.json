@@ -2367,6 +2367,31 @@
     "download": {
       "keep": "Offline bewaren",
       "kept": "Offline bewaard"
+    },
+    "upload": {
+      "title": "Uploaden naar de server",
+      "subtitle": "Stuur de server de nummers die hij niet heeft. De analyse leest elk bestand één keer om te bepalen welke er echt ontbreken.",
+      "cancel": "Stoppen",
+      "survey": "Analyseren",
+      "surveying": "{{done}} / {{total}} bestanden gelezen…",
+      "statMissing": "Ontbrekend",
+      "statLinked": "Al aanwezig, gekoppeld",
+      "statUnsupported": "Geweigerde indeling",
+      "statUnreadable": "Onleesbaar",
+      "destination": "Bibliotheek",
+      "send": "Uploaden ({{count}})",
+      "sent": "Geüpload: {{count}}",
+      "stopped": "gestopt",
+      "refusal": {
+        "present": "Al op de server, gekoppeld: {{count}}",
+        "unsupported_format": "Indeling die de server weigert: {{count}}",
+        "too_large": "Te groot: {{count}}",
+        "quota_exceeded": "Geen ruimte meer op de server: {{count}}",
+        "library_closed": "Bibliotheek accepteert geen uploads: {{count}}",
+        "too_many_sessions": "Te veel uploads tegelijk: {{count}}",
+        "unknown_verdict": "Antwoord dat deze versie niet kent: {{count}}",
+        "failed": "Mislukt: {{count}}"
+      }
     }
   }
 }

@@ -2367,6 +2367,31 @@
     "download": {
       "keep": "Manter offline",
       "kept": "Mantida offline"
+    },
+    "upload": {
+      "title": "Enviar para o servidor",
+      "subtitle": "Envie ao servidor as faixas que ele não tem. A análise lê cada ficheiro uma vez para saber quais faltam mesmo.",
+      "cancel": "Parar",
+      "survey": "Analisar",
+      "surveying": "{{done}} / {{total}} ficheiros lidos…",
+      "statMissing": "Em falta",
+      "statLinked": "Já lá estão, ligadas",
+      "statUnsupported": "Formato recusado",
+      "statUnreadable": "Ilegíveis",
+      "destination": "Biblioteca",
+      "send": "Enviar ({{count}})",
+      "sent": "Enviadas: {{count}}",
+      "stopped": "parado",
+      "refusal": {
+        "present": "Já no servidor, ligadas: {{count}}",
+        "unsupported_format": "Formato recusado pelo servidor: {{count}}",
+        "too_large": "Demasiado grandes: {{count}}",
+        "quota_exceeded": "Sem espaço no servidor: {{count}}",
+        "library_closed": "Biblioteca fechada a envios: {{count}}",
+        "too_many_sessions": "Envios simultâneos a mais: {{count}}",
+        "unknown_verdict": "Resposta desconhecida do servidor: {{count}}",
+        "failed": "Falharam: {{count}}"
+      }
     }
   }
 }

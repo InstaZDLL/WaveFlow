@@ -2346,6 +2346,31 @@
     "download": {
       "keep": "離線保存",
       "kept": "已離線保存"
+    },
+    "upload": {
+      "title": "上傳到伺服器",
+      "subtitle": "把伺服器沒有的曲目送過去。分析會把每個檔案讀一遍，弄清哪些真的缺少。",
+      "cancel": "停止",
+      "survey": "分析",
+      "surveying": "已讀取 {{done}} / {{total}} 個檔案…",
+      "statMissing": "缺少",
+      "statLinked": "已存在，已關聯",
+      "statUnsupported": "被拒格式",
+      "statUnreadable": "無法讀取",
+      "destination": "音樂庫",
+      "send": "上傳（{{count}}）",
+      "sent": "已上傳：{{count}}",
+      "stopped": "已停止",
+      "refusal": {
+        "present": "伺服器已有，已關聯：{{count}}",
+        "unsupported_format": "伺服器不接受的格式：{{count}}",
+        "too_large": "檔案過大：{{count}}",
+        "quota_exceeded": "伺服器空間不足：{{count}}",
+        "library_closed": "音樂庫不接受上傳：{{count}}",
+        "too_many_sessions": "同時上傳過多：{{count}}",
+        "unknown_verdict": "此版本無法辨識的回覆：{{count}}",
+        "failed": "失敗：{{count}}"
+      }
     }
   }
 }

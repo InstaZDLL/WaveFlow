@@ -2346,6 +2346,31 @@
     "download": {
       "keep": "오프라인으로 보관",
       "kept": "오프라인으로 보관됨"
+    },
+    "upload": {
+      "title": "서버에 업로드",
+      "subtitle": "서버에 없는 트랙을 보냅니다. 조사는 각 파일을 한 번 읽어 실제로 없는 것을 가려냅니다.",
+      "cancel": "중지",
+      "survey": "조사",
+      "surveying": "{{done}} / {{total}}개 파일 읽는 중…",
+      "statMissing": "없음",
+      "statLinked": "이미 있음, 연결됨",
+      "statUnsupported": "거부된 형식",
+      "statUnreadable": "읽을 수 없음",
+      "destination": "라이브러리",
+      "send": "업로드 ({{count}})",
+      "sent": "업로드함: {{count}}",
+      "stopped": "중지됨",
+      "refusal": {
+        "present": "이미 서버에 있어 연결함: {{count}}",
+        "unsupported_format": "서버가 거부하는 형식: {{count}}",
+        "too_large": "용량 초과: {{count}}",
+        "quota_exceeded": "서버 공간 부족: {{count}}",
+        "library_closed": "라이브러리가 업로드를 받지 않음: {{count}}",
+        "too_many_sessions": "동시 업로드가 너무 많음: {{count}}",
+        "unknown_verdict": "이 빌드가 모르는 응답: {{count}}",
+        "failed": "실패: {{count}}"
+      }
     }
   }
 }

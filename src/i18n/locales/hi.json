@@ -2367,6 +2367,31 @@
     "download": {
       "keep": "ऑफ़लाइन रखें",
       "kept": "ऑफ़लाइन रखा गया"
+    },
+    "upload": {
+      "title": "सर्वर पर अपलोड करें",
+      "subtitle": "सर्वर को वे ट्रैक भेजें जो उसके पास नहीं हैं। सर्वेक्षण हर फ़ाइल को एक बार पढ़कर तय करता है कि सचमुच क्या नहीं है।",
+      "cancel": "रोकें",
+      "survey": "सर्वेक्षण",
+      "surveying": "{{done}} / {{total}} फ़ाइलें पढ़ी गईं…",
+      "statMissing": "अनुपलब्ध",
+      "statLinked": "पहले से मौजूद, जुड़े",
+      "statUnsupported": "अस्वीकृत प्रारूप",
+      "statUnreadable": "अपठनीय",
+      "destination": "लाइब्रेरी",
+      "send": "अपलोड करें ({{count}})",
+      "sent": "अपलोड हुए: {{count}}",
+      "stopped": "रोका गया",
+      "refusal": {
+        "present": "सर्वर पर पहले से हैं, जोड़ दिए गए: {{count}}",
+        "unsupported_format": "सर्वर जिस प्रारूप को नहीं लेता: {{count}}",
+        "too_large": "बहुत बड़े: {{count}}",
+        "quota_exceeded": "सर्वर पर जगह नहीं: {{count}}",
+        "library_closed": "लाइब्रेरी अपलोड नहीं ले रही: {{count}}",
+        "too_many_sessions": "एक साथ बहुत सारे अपलोड: {{count}}",
+        "unknown_verdict": "इस बिल्ड को अज्ञात उत्तर: {{count}}",
+        "failed": "विफल: {{count}}"
+      }
     }
   }
 }

@@ -837,6 +837,55 @@ pub async fn remote_download_track(
     crate::remote::download::download(&app, &state, &track_id).await
 }
 
+/// The server libraries an upload can land in.
+///
+/// Whether one accepts uploads is the server's to say, and it says it on the
+/// first offer rather than here: a non-member is answered with a 404 on
+/// purpose, so a "does this library accept files" probe would be an oracle.
+#[tauri::command]
+pub async fn remote_upload_libraries(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Vec<crate::remote::upload::UploadLibrary>> {
+    let (pool, _) = state.require_profile_snapshot().await?;
+    crate::remote::upload::libraries(&pool).await
+}
+
+/// Read every unlinked local file once and report what the server is missing.
+///
+/// The expensive half — it hashes whole files — but paid once: the digests are
+/// cached and only a retag invalidates one. Progress arrives as
+/// `remote:upload-survey`, and [`remote_cancel_upload`] stops it.
+#[tauri::command]
+pub async fn remote_upload_survey(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<crate::remote::upload::UploadPlan> {
+    crate::remote::upload::survey(&app, &state).await
+}
+
+/// Offer local tracks to one server library, one session at a time.
+///
+/// Progress arrives as `remote:upload-progress`.
+#[tauri::command]
+pub async fn remote_upload_tracks(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    library_id: String,
+    track_ids: Vec<i64>,
+) -> AppResult<crate::remote::upload::UploadOutcome> {
+    crate::remote::upload::upload(&app, &state, &library_id, &track_ids).await
+}
+
+/// Stop a survey or an upload after the track it is on.
+///
+/// Never mid-track: a committed upload stays committed, and an interrupted
+/// one is resumable, so there is nothing here to roll back.
+#[tauri::command]
+pub async fn remote_cancel_upload() -> AppResult<()> {
+    crate::remote::upload::request_cancel();
+    Ok(())
+}
+
 /// The scanned folders an import can land in.
 ///
 /// A folder whose `exists` is false is still listed: telling someone their
