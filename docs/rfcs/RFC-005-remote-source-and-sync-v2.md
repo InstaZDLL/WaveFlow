@@ -48,6 +48,14 @@ RFC. When it comes, the only automatic link allowed is an exact, unique
 content-hash match; a MusicBrainz identifier is a suggestion the user confirms;
 matching by title/artist/duration is explicitly forbidden.
 
+*Since accepted:* that layer was built directly, without a separate RFC — it is
+`remote::reconciliation` and the `remote_track_link` table, and it holds to
+every constraint the paragraph above sets. The RFC this paragraph anticipated
+never covered matching;
+[RFC-006](RFC-006-deduplicating-the-two-catalogues.md) is the deduplication
+layer built on top of those proofs and adds no second way of matching. The
+normative rules for matching remain the three sentences above.
+
 **What this costs.** Local playlists no longer travel between machines. That
 capability existed in the v1 design and is genuinely lost. It cannot be
 recovered without the matching layer above, because a local playlist is a list
@@ -696,7 +704,8 @@ list rather than a section beside it — which is the whole difference between a
 unified library and two tabs, and it changes nothing about Decision 1: an album
 held both locally and on the server appears **twice**, tagged twice. Unifying
 the navigation is not deduplicating the catalogue; that is reserved for its own
-RFC.
+RFC — now written, as
+[RFC-006](RFC-006-deduplicating-the-two-catalogues.md).
 
 Two things the query has to get right, and both are about the halves being
 comparable rather than merely concatenated:
