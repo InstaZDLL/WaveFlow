@@ -2342,6 +2342,56 @@
       "downloadsKept_other": "{{count}} tracks kept offline ({{size}} MB).",
       "downloadsKept_zero": "Nothing kept offline.",
       "clearDownloads": "Clear"
+    },
+    "import": {
+      "action": "Import into my library",
+      "title": "Import into my library",
+      "subtitle": "{{name}} will be copied into a scanned folder and become a track of your own library.",
+      "destination": "Destination folder",
+      "noFolder": "No scanned folder is reachable. Add one in Settings → Library.",
+      "unreachable": "Not reachable",
+      "explainer": "The file is copied as it is, then linked to the server's track: playback will prefer your local copy.",
+      "submit": "Import",
+      "running": "Importing…",
+      "done": "Imported: {{count}}",
+      "refusal": {
+        "already_linked": "Already linked to a local track: {{count}}",
+        "already_held": "Already in your library, linked: {{count}}",
+        "unknown_track": "Unknown to the catalogue: {{count}}",
+        "unsupported_format": "Unsupported format: {{count}}",
+        "hash_mismatch": "Unexpected contents: {{count}}",
+        "not_indexed": "Not indexed after copying: {{count}}",
+        "failed": "Failed: {{count}}"
+      }
+    },
+    "download": {
+      "keep": "Keep offline",
+      "kept": "Kept offline"
+    },
+    "upload": {
+      "title": "Upload to the server",
+      "subtitle": "Send the server the tracks it does not have. The survey reads each file once to find out which are genuinely missing.",
+      "cancel": "Stop",
+      "survey": "Survey",
+      "surveying": "{{done}} / {{total}} files read…",
+      "statMissing": "Missing",
+      "statLinked": "Already there, linked",
+      "statUnsupported": "Refused format",
+      "statUnreadable": "Unreadable",
+      "destination": "Library",
+      "send": "Upload ({{count}})",
+      "sent": "Uploaded: {{count}}",
+      "stopped": "stopped",
+      "refusal": {
+        "present": "Already on the server, linked: {{count}}",
+        "unsupported_format": "Format the server refuses: {{count}}",
+        "too_large": "Too large: {{count}}",
+        "quota_exceeded": "No room left on the server: {{count}}",
+        "library_closed": "Library closed to uploads: {{count}}",
+        "too_many_sessions": "Too many uploads at once: {{count}}",
+        "unknown_verdict": "Answer this build does not know: {{count}}",
+        "failed": "Failed: {{count}}"
+      }
     }
   }
 }

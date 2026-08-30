@@ -2321,6 +2321,56 @@
       "downloadsKept_other": "オフライン保存 {{count}} 件（{{size}} MB）",
       "downloadsKept_zero": "オフラインに保存された楽曲はありません。",
       "clearDownloads": "削除"
+    },
+    "import": {
+      "action": "自分のライブラリに取り込む",
+      "title": "自分のライブラリに取り込む",
+      "subtitle": "{{name}} をスキャン対象のフォルダーにコピーし、自分のライブラリの曲にします。",
+      "destination": "コピー先フォルダー",
+      "noFolder": "利用できるスキャン対象フォルダーがありません。「設定 → ライブラリ」で追加してください。",
+      "unreachable": "アクセスできません",
+      "explainer": "ファイルはそのままコピーされ、サーバーの曲と関連付けられます。再生ではローカルのコピーが優先されます。",
+      "submit": "取り込む",
+      "running": "取り込み中…",
+      "done": "取り込み: {{count}}",
+      "refusal": {
+        "already_linked": "すでにローカルの曲と関連付け済み: {{count}}",
+        "already_held": "すでにライブラリにあり、関連付けました: {{count}}",
+        "unknown_track": "カタログに見つかりません: {{count}}",
+        "unsupported_format": "非対応の形式: {{count}}",
+        "hash_mismatch": "内容が一致しません: {{count}}",
+        "not_indexed": "コピー後に登録されませんでした: {{count}}",
+        "failed": "失敗: {{count}}"
+      }
+    },
+    "download": {
+      "keep": "オフラインで保存",
+      "kept": "オフラインに保存済み"
+    },
+    "upload": {
+      "title": "サーバーへアップロード",
+      "subtitle": "サーバーにない曲を送ります。スキャンは各ファイルを一度読み、本当に不足しているものを確かめます。",
+      "cancel": "停止",
+      "survey": "スキャン",
+      "surveying": "{{done}} / {{total}} ファイルを読み込み中…",
+      "statMissing": "不足",
+      "statLinked": "既にあり、関連付け済み",
+      "statUnsupported": "非対応の形式",
+      "statUnreadable": "読み取り不可",
+      "destination": "ライブラリ",
+      "send": "アップロード（{{count}}）",
+      "sent": "アップロード: {{count}}",
+      "stopped": "停止しました",
+      "refusal": {
+        "present": "既にサーバーにあり、関連付けました: {{count}}",
+        "unsupported_format": "サーバーが受け付けない形式: {{count}}",
+        "too_large": "容量超過: {{count}}",
+        "quota_exceeded": "サーバーの空き容量なし: {{count}}",
+        "library_closed": "ライブラリが受け入れを停止中: {{count}}",
+        "too_many_sessions": "同時アップロードが多すぎます: {{count}}",
+        "unknown_verdict": "このビルドが知らない応答: {{count}}",
+        "failed": "失敗: {{count}}"
+      }
     }
   }
 }

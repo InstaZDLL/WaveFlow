@@ -33,6 +33,8 @@ import {
   ArrowDown,
   ArrowUp,
   Check,
+  Download,
+  FolderDown,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { LibraryTab } from "../../types";
@@ -54,6 +56,11 @@ import { PlayingIndicator } from "../common/PlayingIndicator";
 import { Tooltip } from "../common/Tooltip";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { CoverPickerModal } from "../common/CoverPickerModal";
+import {
+  remoteDownloadTrack,
+  remoteListDownloads,
+} from "../../lib/tauri/remoteServer";
+import { ImportToLibraryModal } from "../common/ImportToLibraryModal";
 import { StarRating } from "../common/StarRating";
 import { SelectionActionBar } from "../common/SelectionActionBar";
 import { AlphabetIndex } from "../common/AlphabetIndex";
@@ -194,6 +201,18 @@ export function LibraryView({
   // per-folder button free to start a second concurrent scan.
   const isAnyRescanActive =
     isRescanning || isDeepRescanning || deepRescanFolderId != null;
+  // Server tracks queued for an import, and what to call them in the modal's
+  // heading. `null` closes it.
+  const [importTargets, setImportTargets] = useState<{
+    ids: string[];
+    label: string;
+  } | null>(null);
+  const [downloadingRemote, setDownloadingRemote] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [downloadedRemote, setDownloadedRemote] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
   // When the create-playlist modal is opened from a popover's "+ New
@@ -317,6 +336,29 @@ export function LibraryView({
   useEffect(() => {
     clearSelection();
   }, [activeTab, clearSelection]);
+
+  const { available: remoteAvailable } = useRemoteSource();
+
+  // Which server tracks are already kept offline, so the row's tick is right
+  // on first paint rather than only after the user downloads one this session.
+  // Silent on failure: a stock build has no such command, and a signed-out one
+  // has nothing to report — neither is worth a console error every mount.
+  useEffect(() => {
+    if (!remoteAvailable) return;
+    let cancelled = false;
+    void remoteListDownloads()
+      .then((kept) => {
+        if (!cancelled) {
+          setDownloadedRemote(
+            new Set(kept.map((entry) => entry.remote_track_id)),
+          );
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [remoteAvailable]);
 
   // Per-tab parallel fetchers — each runs independently of `activeTab`,
   // so navigating into LibraryView fires all 5 SQL queries at once and
@@ -909,6 +951,35 @@ export function LibraryView({
                 isSelected={selection.isSelected}
                 onNavigateToRemoteAlbum={onNavigateToRemoteAlbum}
                 onNavigateToRemoteArtist={onNavigateToRemoteArtist}
+                downloadingRemote={downloadingRemote}
+                downloadedRemote={downloadedRemote}
+                onDownloadRemote={(remoteTrackId) => {
+                  setDownloadingRemote((prev) =>
+                    new Set(prev).add(remoteTrackId),
+                  );
+                  void remoteDownloadTrack(remoteTrackId)
+                    .then(() => {
+                      setDownloadedRemote((prev) =>
+                        new Set(prev).add(remoteTrackId),
+                      );
+                    })
+                    .catch((err) => {
+                      console.error("[LibraryView] download failed", err);
+                    })
+                    .finally(() => {
+                      setDownloadingRemote((prev) => {
+                        const next = new Set(prev);
+                        next.delete(remoteTrackId);
+                        return next;
+                      });
+                    });
+                }}
+                onImportRemote={(row) => {
+                  setImportTargets({
+                    ids: [String(row.id)],
+                    label: row.title,
+                  });
+                }}
                 singleClickPlay={singleClickPlay}
                 onRowSelect={(track, e) => {
                   // Modifier-driven selection always wins so multi-select
@@ -1127,6 +1198,21 @@ export function LibraryView({
           } finally {
             setPendingSourceForCreate(null);
           }
+        }}
+      />
+
+      <ImportToLibraryModal
+        isOpen={importTargets !== null}
+        onClose={() => setImportTargets(null)}
+        trackIds={importTargets?.ids ?? []}
+        label={importTargets?.label ?? ""}
+        onImported={() => {
+          // The imported files are local tracks now, so every list this view
+          // shows is one row out of date. Same refetch a tag edit triggers,
+          // rather than trusting the backend's `library:rescanned` to move
+          // `librariesSignature` — it only does when a library row itself
+          // changed.
+          setEditRefetch((k) => k + 1);
         }}
       />
 
@@ -1452,6 +1538,16 @@ interface TrackTableProps {
    *  never merged, so they are never the same page. */
   onNavigateToRemoteAlbum: (remoteAlbumId: string) => void;
   onNavigateToRemoteArtist: (remoteArtistId: string) => void;
+  /** Keep a server track's bytes in the managed folder — offline playback,
+   *  still a remote track. */
+  onDownloadRemote: (remoteTrackId: string) => void;
+  /** Copy a server track into a scanned folder, where it becomes a local
+   *  track of the user's own library. */
+  onImportRemote: (row: LibraryTrackRow) => void;
+  /** Server tracks whose download is in flight, so the button can say so. */
+  downloadingRemote: Set<string>;
+  /** Server tracks already kept offline. */
+  downloadedRemote: Set<string>;
 }
 
 function TrackTable({
@@ -1477,6 +1573,10 @@ function TrackTable({
   singleClickPlay,
   onNavigateToRemoteAlbum,
   onNavigateToRemoteArtist,
+  onDownloadRemote,
+  onImportRemote,
+  downloadingRemote,
+  downloadedRemote,
 }: TrackTableProps) {
   "use no memo";
   const unknown = t("library.table.unknown");
@@ -1795,6 +1895,61 @@ function TrackTable({
                 )}
               </div>
               <div className="relative flex justify-center">
+                {/* A server row gets the two gestures that are meaningful on
+                    it instead: keep the bytes for offline playback, or copy
+                    them into a scanned folder where they become a track of
+                    this library. Two buttons rather than a menu — there are
+                    exactly two, and a menu would hide both behind a click. */}
+                {!local && (
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDownloadRemote(String(track.id));
+                      }}
+                      disabled={
+                        downloadingRemote.has(String(track.id)) ||
+                        downloadedRemote.has(String(track.id))
+                      }
+                      aria-label={
+                        downloadedRemote.has(String(track.id))
+                          ? t("remote.download.kept")
+                          : t("remote.download.keep")
+                      }
+                      title={
+                        downloadedRemote.has(String(track.id))
+                          ? t("remote.download.kept")
+                          : t("remote.download.keep")
+                      }
+                      className={`p-1.5 rounded-full transition-all focus-visible:opacity-100 ${
+                        downloadedRemote.has(String(track.id))
+                          ? "opacity-100 text-emerald-500"
+                          : downloadingRemote.has(String(track.id))
+                            ? "opacity-100 text-zinc-400 animate-pulse"
+                            : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                      }`}
+                    >
+                      {downloadedRemote.has(String(track.id)) ? (
+                        <Check size={16} />
+                      ) : (
+                        <Download size={16} />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onImportRemote(track);
+                      }}
+                      aria-label={t("remote.import.action")}
+                      title={t("remote.import.action")}
+                      className="p-1.5 rounded-full transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                    >
+                      <FolderDown size={16} />
+                    </button>
+                  </div>
+                )}
                 {/* A local playlist holds local tracks; the picker cannot
                     accept a server one. */}
                 {localId !== null && (

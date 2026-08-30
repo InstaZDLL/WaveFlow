@@ -797,7 +797,28 @@ pub async fn confirm_exact(
         return Err(AppError::Other("track contents no longer match".into()));
     }
 
-    let normalized_hash = remote_hash.to_ascii_lowercase();
+    link_exact(pool, local_track_id, remote_track_id, &remote_hash).await
+}
+
+/// Write one exact link, in its own transaction.
+///
+/// Shared with the import path, which reaches this point having *just written*
+/// the bytes and so already knowing the digest — the one case where an exact
+/// link costs nothing. Keeping the write here rather than copying it is what
+/// stops the two callers from drifting on the guard below: a link is refused
+/// when either side is already linked elsewhere, because `remote_track_link`
+/// is one-to-one in both directions and an `ON CONFLICT` on `local_track_id`
+/// alone would silently steal a remote track from another local row.
+pub(super) async fn link_exact(
+    pool: &SqlitePool,
+    local_track_id: i64,
+    remote_track_id: &str,
+    full_hash: &str,
+) -> AppResult<()> {
+    if !valid_full_hash(full_hash) {
+        return Err(AppError::Other("link proof is not a full digest".into()));
+    }
+    let normalized_hash = full_hash.to_ascii_lowercase();
     let now = now_ms();
     let mut tx = pool.begin().await?;
     let conflict: Option<(i64, String)> = sqlx::query_as(

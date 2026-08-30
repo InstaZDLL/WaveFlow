@@ -2342,6 +2342,56 @@
       "downloadsKept_other": "Çevrimdışı {{count}} parça saklandı ({{size}} MB).",
       "downloadsKept_zero": "Çevrimdışı hiçbir şey saklanmadı.",
       "clearDownloads": "Temizle"
+    },
+    "import": {
+      "action": "Kitaplığıma aktar",
+      "title": "Kitaplığıma aktar",
+      "subtitle": "{{name}} taranan bir klasöre kopyalanacak ve kendi kitaplığınızın bir parçası olacak.",
+      "destination": "Hedef klasör",
+      "noFolder": "Erişilebilir taranan klasör yok. Ayarlar → Kitaplık bölümünden ekleyin.",
+      "unreachable": "Erişilemiyor",
+      "explainer": "Dosya olduğu gibi kopyalanır, ardından sunucudaki parçayla ilişkilendirilir: çalma sırasında yerel kopyanız tercih edilir.",
+      "submit": "Aktar",
+      "running": "Aktarılıyor…",
+      "done": "Aktarılan: {{count}}",
+      "refusal": {
+        "already_linked": "Zaten bir yerel parçayla ilişkili: {{count}}",
+        "already_held": "Zaten kitaplığınızda, ilişkilendirildi: {{count}}",
+        "unknown_track": "Katalogda bulunamadı: {{count}}",
+        "unsupported_format": "Desteklenmeyen biçim: {{count}}",
+        "hash_mismatch": "Beklenmeyen içerik: {{count}}",
+        "not_indexed": "Kopyalandıktan sonra dizine eklenmedi: {{count}}",
+        "failed": "Başarısız: {{count}}"
+      }
+    },
+    "download": {
+      "keep": "Çevrimdışı sakla",
+      "kept": "Çevrimdışı saklandı"
+    },
+    "upload": {
+      "title": "Sunucuya yükle",
+      "subtitle": "Sunucuda olmayan parçaları gönderin. Tarama, gerçekten hangilerinin eksik olduğunu anlamak için her dosyayı bir kez okur.",
+      "cancel": "Durdur",
+      "survey": "Tara",
+      "surveying": "{{done}} / {{total}} dosya okundu…",
+      "statMissing": "Eksik",
+      "statLinked": "Zaten var, ilişkilendirildi",
+      "statUnsupported": "Reddedilen biçim",
+      "statUnreadable": "Okunamayan",
+      "destination": "Kitaplık",
+      "send": "Yükle ({{count}})",
+      "sent": "Yüklenen: {{count}}",
+      "stopped": "durduruldu",
+      "refusal": {
+        "present": "Zaten sunucuda, ilişkilendirildi: {{count}}",
+        "unsupported_format": "Sunucunun reddettiği biçim: {{count}}",
+        "too_large": "Çok büyük: {{count}}",
+        "quota_exceeded": "Sunucuda yer kalmadı: {{count}}",
+        "library_closed": "Kitaplık yüklemeye kapalı: {{count}}",
+        "too_many_sessions": "Aynı anda çok fazla yükleme: {{count}}",
+        "unknown_verdict": "Bu sürümün bilmediği yanıt: {{count}}",
+        "failed": "Başarısız: {{count}}"
+      }
     }
   }
 }

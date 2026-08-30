@@ -2342,6 +2342,56 @@
       "downloadsKept_other": "{{count}} faixas mantidas offline ({{size}} MB).",
       "downloadsKept_zero": "Nada mantido offline.",
       "clearDownloads": "Limpar"
+    },
+    "import": {
+      "action": "Importar para minha biblioteca",
+      "title": "Importar para minha biblioteca",
+      "subtitle": "{{name}} será copiado para uma pasta escaneada e virará uma faixa da sua própria biblioteca.",
+      "destination": "Pasta de destino",
+      "noFolder": "Nenhuma pasta escaneada está acessível. Adicione uma em Configurações → Biblioteca.",
+      "unreachable": "Inacessível",
+      "explainer": "O arquivo é copiado como está e depois vinculado à faixa do servidor: a reprodução vai preferir sua cópia local.",
+      "submit": "Importar",
+      "running": "Importando…",
+      "done": "Importadas: {{count}}",
+      "refusal": {
+        "already_linked": "Já vinculadas a uma faixa local: {{count}}",
+        "already_held": "Já na sua biblioteca, vinculadas: {{count}}",
+        "unknown_track": "Desconhecidas do catálogo: {{count}}",
+        "unsupported_format": "Formato não suportado: {{count}}",
+        "hash_mismatch": "Conteúdo inesperado: {{count}}",
+        "not_indexed": "Não indexadas após a cópia: {{count}}",
+        "failed": "Falharam: {{count}}"
+      }
+    },
+    "download": {
+      "keep": "Manter offline",
+      "kept": "Mantida offline"
+    },
+    "upload": {
+      "title": "Enviar para o servidor",
+      "subtitle": "Envie ao servidor as faixas que ele não tem. A análise lê cada arquivo uma vez para saber quais realmente faltam.",
+      "cancel": "Parar",
+      "survey": "Analisar",
+      "surveying": "{{done}} / {{total}} arquivos lidos…",
+      "statMissing": "Faltando",
+      "statLinked": "Já lá, vinculadas",
+      "statUnsupported": "Formato recusado",
+      "statUnreadable": "Ilegíveis",
+      "destination": "Biblioteca",
+      "send": "Enviar ({{count}})",
+      "sent": "Enviadas: {{count}}",
+      "stopped": "parado",
+      "refusal": {
+        "present": "Já no servidor, vinculadas: {{count}}",
+        "unsupported_format": "Formato recusado pelo servidor: {{count}}",
+        "too_large": "Grandes demais: {{count}}",
+        "quota_exceeded": "Sem espaço no servidor: {{count}}",
+        "library_closed": "Biblioteca fechada a envios: {{count}}",
+        "too_many_sessions": "Envios simultâneos demais: {{count}}",
+        "unknown_verdict": "Resposta desconhecida do servidor: {{count}}",
+        "failed": "Falharam: {{count}}"
+      }
     }
   }
 }

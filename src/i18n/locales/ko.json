@@ -2321,6 +2321,56 @@
       "downloadsKept_other": "오프라인 보관 트랙 {{count}}개 ({{size}} MB)",
       "downloadsKept_zero": "오프라인으로 보관된 트랙이 없습니다.",
       "clearDownloads": "비우기"
+    },
+    "import": {
+      "action": "내 라이브러리로 가져오기",
+      "title": "내 라이브러리로 가져오기",
+      "subtitle": "{{name}}을(를) 검색 대상 폴더로 복사해 내 라이브러리의 트랙으로 만듭니다.",
+      "destination": "대상 폴더",
+      "noFolder": "사용할 수 있는 검색 폴더가 없습니다. 설정 → 라이브러리에서 추가하세요.",
+      "unreachable": "연결할 수 없음",
+      "explainer": "파일은 그대로 복사된 뒤 서버 트랙과 연결됩니다. 재생 시 로컬 사본이 우선합니다.",
+      "submit": "가져오기",
+      "running": "가져오는 중…",
+      "done": "가져옴: {{count}}",
+      "refusal": {
+        "already_linked": "이미 로컬 트랙과 연결됨: {{count}}",
+        "already_held": "이미 라이브러리에 있어 연결함: {{count}}",
+        "unknown_track": "카탈로그에 없음: {{count}}",
+        "unsupported_format": "지원하지 않는 형식: {{count}}",
+        "hash_mismatch": "예상과 다른 내용: {{count}}",
+        "not_indexed": "복사 후 색인되지 않음: {{count}}",
+        "failed": "실패: {{count}}"
+      }
+    },
+    "download": {
+      "keep": "오프라인으로 보관",
+      "kept": "오프라인으로 보관됨"
+    },
+    "upload": {
+      "title": "서버에 업로드",
+      "subtitle": "서버에 없는 트랙을 보냅니다. 검사는 각 파일을 한 번 읽어 실제로 없는 것을 가려냅니다.",
+      "cancel": "중지",
+      "survey": "검사",
+      "surveying": "{{done}} / {{total}}개 파일 읽는 중…",
+      "statMissing": "누락",
+      "statLinked": "이미 있음, 연결됨",
+      "statUnsupported": "거부된 형식",
+      "statUnreadable": "읽을 수 없음",
+      "destination": "라이브러리",
+      "send": "업로드 ({{count}})",
+      "sent": "업로드함: {{count}}",
+      "stopped": "중지됨",
+      "refusal": {
+        "present": "이미 서버에 있어 연결함: {{count}}",
+        "unsupported_format": "서버가 거부하는 형식: {{count}}",
+        "too_large": "용량 초과: {{count}}",
+        "quota_exceeded": "서버 공간 부족: {{count}}",
+        "library_closed": "라이브러리가 업로드를 받지 않음: {{count}}",
+        "too_many_sessions": "동시 업로드가 너무 많음: {{count}}",
+        "unknown_verdict": "이 빌드가 모르는 응답: {{count}}",
+        "failed": "실패: {{count}}"
+      }
     }
   }
 }

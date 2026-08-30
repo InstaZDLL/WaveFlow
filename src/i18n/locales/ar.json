@@ -2600,6 +2600,56 @@
       "downloadsKept_two": "حُفظ مقطعان دون اتصال ({{size}} ميغابايت).",
       "downloadsKept_zero": "لم يُحفظ شيء دون اتصال.",
       "clearDownloads": "إفراغ"
+    },
+    "import": {
+      "action": "استيراد إلى مكتبتي",
+      "title": "استيراد إلى مكتبتي",
+      "subtitle": "سيُنسخ {{name}} إلى مجلد مفحوص ليصبح مقطعًا في مكتبتك الخاصة.",
+      "destination": "مجلد الوجهة",
+      "noFolder": "لا يوجد مجلد مفحوص متاح. أضف واحدًا من الإعدادات ← المكتبة.",
+      "unreachable": "غير متاح",
+      "explainer": "يُنسخ الملف كما هو ثم يُربط بمقطع الخادم: سيفضّل التشغيل نسختك المحلية.",
+      "submit": "استيراد",
+      "running": "جارٍ الاستيراد…",
+      "done": "المستوردة: {{count}}",
+      "refusal": {
+        "already_linked": "مرتبطة بالفعل بمقطع محلي: {{count}}",
+        "already_held": "موجودة في مكتبتك وتم ربطها: {{count}}",
+        "unknown_track": "غير معروفة في الفهرس: {{count}}",
+        "unsupported_format": "صيغة غير مدعومة: {{count}}",
+        "hash_mismatch": "محتوى غير متوقع: {{count}}",
+        "not_indexed": "لم تُفهرس بعد النسخ: {{count}}",
+        "failed": "فشلت: {{count}}"
+      }
+    },
+    "download": {
+      "keep": "الاحتفاظ للاستماع دون اتصال",
+      "kept": "محفوظ دون اتصال"
+    },
+    "upload": {
+      "title": "الرفع إلى الخادم",
+      "subtitle": "أرسل إلى الخادم المقاطع التي لا يملكها. يقرأ الفحص كل ملف مرة واحدة ليعرف ما ينقصه فعلًا.",
+      "cancel": "إيقاف",
+      "survey": "فحص",
+      "surveying": "تمت قراءة {{done}} / {{total}} ملفًا…",
+      "statMissing": "ناقصة",
+      "statLinked": "موجودة ومرتبطة",
+      "statUnsupported": "صيغة مرفوضة",
+      "statUnreadable": "غير مقروءة",
+      "destination": "المكتبة",
+      "send": "رفع ({{count}})",
+      "sent": "المرفوعة: {{count}}",
+      "stopped": "أُوقف",
+      "refusal": {
+        "present": "موجودة على الخادم وتم ربطها: {{count}}",
+        "unsupported_format": "صيغة يرفضها الخادم: {{count}}",
+        "too_large": "أكبر من المسموح: {{count}}",
+        "quota_exceeded": "لا مساحة على الخادم: {{count}}",
+        "library_closed": "المكتبة لا تقبل الرفع: {{count}}",
+        "too_many_sessions": "عمليات رفع متزامنة أكثر من اللازم: {{count}}",
+        "unknown_verdict": "ردّ لا تعرفه هذه النسخة: {{count}}",
+        "failed": "فشلت: {{count}}"
+      }
     }
   }
 }

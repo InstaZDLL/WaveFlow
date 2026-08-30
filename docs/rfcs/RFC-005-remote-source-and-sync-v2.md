@@ -477,6 +477,81 @@ waits for a `track` row is only the *link*, which is a different object and a
 later step. It is also checked against the catalogue's own digest before the
 file is published, so a truncated or substituted body never becomes a proof.
 
+**And a track can be brought in, which is a third thing again.** A download is
+kept for offline playback and stays a *remote* track. An **import** copies the
+same bytes into a folder the user already scans, where the scanner indexes them
+and a `track` row exists: the file becomes theirs — playable offline, editable,
+counted in every local view — and the server's track is *linked* to it rather
+than shadowed by it. The two are separate features rather than one with a flag
+because they answer different questions: "keep this for the plane" versus "this
+belongs in my library".
+
+This is where the free proof is finally spent. The digest falls out of the
+write exactly as it does for a download, and the exact link is written from it
+with no re-read of anything — which is why lot 4 came before this one.
+Everything that can refuse an import is decided **before the first byte**: an
+extension the local scanner cannot index (copying it would leave a file in the
+user's own folder that never becomes a track, clutter with no way back), a
+track already linked, or bytes this library already holds. That last one is a
+byte-size prefilter followed by a full hash of the few candidates that share
+the size; finding one means the user already owns these bytes, so the link is
+written **instead of** a second copy. That is what a reconciliation pass would
+have concluded anyway, at the price of reading the whole library.
+
+The working file carries no audio extension and sits in the destination
+directory itself. Both halves are structural rather than remembered: the same
+directory makes the publishing rename a rename and not a cross-device copy with
+a window where a truncated file exists, and no audio extension makes a
+half-written file unindexable *by construction*, since the scanner filters on
+extension. The server settled the identical question in the same two clauses
+for files arriving the other way (server RFC-008, decision 6).
+
+Files are named from tags here — `Artist/Album/NN - Title.ext`, each component
+sanitised — which is the opposite of what the server does with a file it
+receives, and deliberately so. The server names by digest because a retag would
+leave its path lying; this file lands once in someone's own library, where a
+path they recognise is the entire point, and nothing here will retag it.
+
+**And the library pushes as well as pulls.** A library that can take from the
+server and never give to it keeps two collections drifting apart on purpose,
+which is what the fourth direction closes: the tracks the server does not have
+are offered to it, over the routes its own RFC-008 defines.
+
+The digest goes before the bytes, because that is the only moment a refusal is
+cheap — a `present`, a closed library, an unsupported container or an exhausted
+quota costs one question there and a whole transfer anywhere later. But **most
+of the deduplication never reaches the server at all**: the catalogue mirror
+already holds every server track's `full_hash`, so a local file whose digest is
+in that table is answered with a *link*, written offline, with no request. The
+server's RFC expects exactly this and sizes its negotiation route for the
+leftovers rather than for the volume.
+
+Deciding what is missing means reading the library, once: `full_hash` covers
+whole files while `track.file_hash` is a head-and-tail digest, and no amount of
+cleverness makes the two comparable. That cost is accepted — it is the same one
+reconciliation pays — but it is paid **once** and kept, in `local_full_hash`,
+valid only while `(file_size, file_modified)` still match the `track` row. The
+one case that pair cannot catch is a rewrite that preserves both, so the app's
+own tag writer drops the entry explicitly rather than leaving a digest that
+would be offered to a server as an identity it no longer describes.
+
+**One session at a time, deliberately.** The negotiation route takes a batch and
+this does not use it: a batch does not merely ask questions, every `accepted`
+verdict opens a session and reserves that file's size against the library's
+quota. Two hundred offers would open two hundred sessions, all but one idle,
+holding quota nothing is spending — and would meet a per-account ceiling whose
+value this client cannot know. With the deduplication already done offline, the
+batch buys nothing.
+
+Resumption rests on reading the session state rather than deducing it. A chunk
+whose acknowledgement was lost is the ordinary shape of a home connection
+dropping, so the server answers a re-sent chunk idempotently and says where it
+actually is. Asking is what makes a resumed upload unable to skip a fragment and
+discover it at the final digest. Nothing about a quality ceiling is implemented:
+original bytes go up, unmodified — a re-encode would be permanent on a server
+that does not replace files, and its digest would no longer match the local
+one, which is to say the exact link would be spent to save bandwidth.
+
 Playback prefers, in order: a reconciled local file, a download, a cached
 stream, the network.
 

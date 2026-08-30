@@ -2321,6 +2321,56 @@
       "downloadsKept_other": "{{count}} lagu disimpan offline ({{size}} MB).",
       "downloadsKept_zero": "Tidak ada yang disimpan offline.",
       "clearDownloads": "Kosongkan"
+    },
+    "import": {
+      "action": "Impor ke pustaka saya",
+      "title": "Impor ke pustaka saya",
+      "subtitle": "{{name}} akan disalin ke folder yang dipindai dan menjadi trek pustaka Anda sendiri.",
+      "destination": "Folder tujuan",
+      "noFolder": "Tidak ada folder terpindai yang dapat dijangkau. Tambahkan satu di Pengaturan → Pustaka.",
+      "unreachable": "Tidak terjangkau",
+      "explainer": "Berkas disalin apa adanya, lalu ditautkan ke trek server: pemutaran akan mengutamakan salinan lokal Anda.",
+      "submit": "Impor",
+      "running": "Mengimpor…",
+      "done": "Diimpor: {{count}}",
+      "refusal": {
+        "already_linked": "Sudah tertaut ke trek lokal: {{count}}",
+        "already_held": "Sudah ada di pustaka Anda, ditautkan: {{count}}",
+        "unknown_track": "Tidak dikenal katalog: {{count}}",
+        "unsupported_format": "Format tidak didukung: {{count}}",
+        "hash_mismatch": "Isi tidak sesuai: {{count}}",
+        "not_indexed": "Tidak terindeks setelah disalin: {{count}}",
+        "failed": "Gagal: {{count}}"
+      }
+    },
+    "download": {
+      "keep": "Simpan luring",
+      "kept": "Tersimpan luring"
+    },
+    "upload": {
+      "title": "Unggah ke server",
+      "subtitle": "Kirim ke server trek yang belum dimilikinya. Pemindaian membaca setiap berkas sekali untuk tahu mana yang benar-benar hilang.",
+      "cancel": "Hentikan",
+      "survey": "Pindai",
+      "surveying": "{{done}} / {{total}} berkas dibaca…",
+      "statMissing": "Belum ada",
+      "statLinked": "Sudah ada, ditautkan",
+      "statUnsupported": "Format ditolak",
+      "statUnreadable": "Tak terbaca",
+      "destination": "Pustaka",
+      "send": "Unggah ({{count}})",
+      "sent": "Terunggah: {{count}}",
+      "stopped": "dihentikan",
+      "refusal": {
+        "present": "Sudah di server, ditautkan: {{count}}",
+        "unsupported_format": "Format yang ditolak server: {{count}}",
+        "too_large": "Terlalu besar: {{count}}",
+        "quota_exceeded": "Ruang server habis: {{count}}",
+        "library_closed": "Pustaka menolak unggahan: {{count}}",
+        "too_many_sessions": "Terlalu banyak unggahan sekaligus: {{count}}",
+        "unknown_verdict": "Jawaban yang tak dikenal versi ini: {{count}}",
+        "failed": "Gagal: {{count}}"
+      }
     }
   }
 }

@@ -2342,6 +2342,56 @@
       "downloadsKept_other": "{{count}} pistas guardadas sin conexión ({{size}} MB).",
       "downloadsKept_zero": "Nada guardado sin conexión.",
       "clearDownloads": "Vaciar"
+    },
+    "import": {
+      "action": "Importar a mi biblioteca",
+      "title": "Importar a mi biblioteca",
+      "subtitle": "{{name}} se copiará en una carpeta analizada y pasará a ser una pista de tu biblioteca.",
+      "destination": "Carpeta de destino",
+      "noFolder": "No hay ninguna carpeta analizada accesible. Añade una en Ajustes → Biblioteca.",
+      "unreachable": "No accesible",
+      "explainer": "El archivo se copia tal cual y luego se vincula con la pista del servidor: la reproducción preferirá tu copia local.",
+      "submit": "Importar",
+      "running": "Importando…",
+      "done": "Importadas: {{count}}",
+      "refusal": {
+        "already_linked": "Ya vinculadas a una pista local: {{count}}",
+        "already_held": "Ya en tu biblioteca, vinculadas: {{count}}",
+        "unknown_track": "Desconocidas para el catálogo: {{count}}",
+        "unsupported_format": "Formato no admitido: {{count}}",
+        "hash_mismatch": "Contenido inesperado: {{count}}",
+        "not_indexed": "No indexadas tras la copia: {{count}}",
+        "failed": "Fallidas: {{count}}"
+      }
+    },
+    "download": {
+      "keep": "Guardar sin conexión",
+      "kept": "Guardada sin conexión"
+    },
+    "upload": {
+      "title": "Subir al servidor",
+      "subtitle": "Envía al servidor las pistas que no tiene. El análisis lee cada archivo una vez para saber cuáles faltan realmente.",
+      "cancel": "Detener",
+      "survey": "Analizar",
+      "surveying": "{{done}} / {{total}} archivos leídos…",
+      "statMissing": "Faltan",
+      "statLinked": "Ya están, vinculadas",
+      "statUnsupported": "Formato rechazado",
+      "statUnreadable": "Ilegibles",
+      "destination": "Biblioteca",
+      "send": "Subir ({{count}})",
+      "sent": "Subidas: {{count}}",
+      "stopped": "detenido",
+      "refusal": {
+        "present": "Ya en el servidor, vinculadas: {{count}}",
+        "unsupported_format": "Formato que el servidor rechaza: {{count}}",
+        "too_large": "Demasiado grandes: {{count}}",
+        "quota_exceeded": "Sin espacio en el servidor: {{count}}",
+        "library_closed": "Biblioteca cerrada a las subidas: {{count}}",
+        "too_many_sessions": "Demasiadas subidas a la vez: {{count}}",
+        "unknown_verdict": "Respuesta desconocida del servidor: {{count}}",
+        "failed": "Fallidas: {{count}}"
+      }
     }
   }
 }

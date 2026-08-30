@@ -2342,6 +2342,56 @@
       "downloadsKept_other": "{{count}} pistes gardées hors ligne ({{size}} Mo).",
       "downloadsKept_zero": "Rien gardé hors ligne.",
       "clearDownloads": "Vider"
+    },
+    "import": {
+      "action": "Importer dans ma bibliothèque",
+      "title": "Importer dans ma bibliothèque",
+      "subtitle": "{{name}} sera copié dans un dossier analysé et deviendra un titre de votre bibliothèque.",
+      "destination": "Dossier de destination",
+      "noFolder": "Aucun dossier analysé n'est accessible. Ajoutez-en un dans Réglages → Bibliothèque.",
+      "unreachable": "Introuvable",
+      "explainer": "Le fichier est copié tel quel, puis relié au titre du serveur : la lecture préférera votre copie locale.",
+      "submit": "Importer",
+      "running": "Import en cours…",
+      "done": "Importés : {{count}}",
+      "refusal": {
+        "already_linked": "Déjà reliés à un titre local : {{count}}",
+        "already_held": "Déjà dans votre bibliothèque, reliés : {{count}}",
+        "unknown_track": "Inconnus du catalogue : {{count}}",
+        "unsupported_format": "Format non pris en charge : {{count}}",
+        "hash_mismatch": "Contenu inattendu : {{count}}",
+        "not_indexed": "Non indexés après copie : {{count}}",
+        "failed": "Échecs : {{count}}"
+      }
+    },
+    "download": {
+      "keep": "Garder hors ligne",
+      "kept": "Gardé hors ligne"
+    },
+    "upload": {
+      "title": "Téléverser vers le serveur",
+      "subtitle": "Envoyer au serveur les titres qu'il n'a pas. L'analyse lit chaque fichier une fois pour savoir lesquels lui manquent vraiment.",
+      "cancel": "Arrêter",
+      "survey": "Analyser",
+      "surveying": "{{done}} / {{total}} fichiers lus…",
+      "statMissing": "Manquants",
+      "statLinked": "Déjà là, reliés",
+      "statUnsupported": "Format refusé",
+      "statUnreadable": "Illisibles",
+      "destination": "Bibliothèque",
+      "send": "Téléverser ({{count}})",
+      "sent": "Téléversés : {{count}}",
+      "stopped": "arrêté",
+      "refusal": {
+        "present": "Déjà sur le serveur, reliés : {{count}}",
+        "unsupported_format": "Format refusé par le serveur : {{count}}",
+        "too_large": "Trop volumineux : {{count}}",
+        "quota_exceeded": "Plus de place sur le serveur : {{count}}",
+        "library_closed": "Bibliothèque fermée aux envois : {{count}}",
+        "too_many_sessions": "Trop d'envois simultanés : {{count}}",
+        "unknown_verdict": "Réponse inconnue du serveur : {{count}}",
+        "failed": "Échecs : {{count}}"
+      }
     }
   }
 }

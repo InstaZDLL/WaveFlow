@@ -700,6 +700,25 @@ fn library_tracks_sql(order_clause: &str) -> String {
                    COALESCE(rt.sort_album, rt.album)
               FROM remote_track rt
              WHERE rt.in_catalogue = 1
+             -- A server track proven to be the same bytes as a local one is
+             -- not a second track. Without this the list shows the same
+             -- recording twice the moment a reconciliation pass or an import
+             -- establishes the link -- which is exactly when the user has the
+             -- most reason to expect one row.
+             --
+             -- Two narrowings, and neither is decoration. `confirmed` only:
+             -- a stale link is a guess, and hiding a track on a guess loses
+             -- it. And the local row must still be available -- when its file
+             -- has gone the local half already filtered it out, so dropping
+             -- the remote half too would remove from the library a track the
+             -- server can still play.
+               AND NOT EXISTS (
+                     SELECT 1 FROM remote_track_link l
+                       JOIN track lt ON lt.id = l.local_track_id
+                      WHERE l.remote_track_id = rt.remote_id
+                        AND l.status = 'confirmed'
+                        AND lt.is_available = 1
+                   )
              -- A local library filter is a filter over local libraries; see
              -- `list_library_albums`.
                AND ? IS NULL
@@ -2832,6 +2851,76 @@ mod tests {
             .map(|row| row.1)
             .collect();
         assert!(!titles.iter().any(|title| title == "Not in the catalogue"));
+    }
+
+    /// A confirmed link proves the two rows are the same bytes, so the list
+    /// must show one of them — the local one, which is the playable half.
+    #[tokio::test]
+    async fn a_linked_server_track_stops_being_a_second_row() {
+        let pool = pool().await;
+        seed(&pool).await;
+        sqlx::raw_sql(
+            "INSERT INTO remote_track_link
+                 (local_track_id, remote_track_id, method, verified_full_hash,
+                  status, playback_preference, confirmed_at, verified_at)
+             VALUES (1, 't-1', 'exact_full_hash',
+                     '0000000000000000000000000000000000000000000000000000000000000000',
+                     'confirmed', 'local_first', 0, 0)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let titles: Vec<String> = tracks(&pool, None, None, library_track_order_clause(None, None))
+            .await
+            .into_iter()
+            .map(|row| row.1)
+            .collect();
+        assert_eq!(titles, vec!["R2".to_string(), "T1".to_string()]);
+    }
+
+    /// Two narrowings on that predicate, and dropping either one loses a
+    /// track rather than a duplicate.
+    #[tokio::test]
+    async fn a_link_hides_nothing_it_cannot_prove() {
+        let pool = pool().await;
+        seed(&pool).await;
+        sqlx::raw_sql(
+            "INSERT INTO remote_track_link
+                 (local_track_id, remote_track_id, method, verified_full_hash,
+                  status, playback_preference, confirmed_at, verified_at)
+             VALUES (1, 't-1', 'exact_full_hash',
+                     '0000000000000000000000000000000000000000000000000000000000000000',
+                     'stale', 'local_first', 0, 0)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        // A stale link is a guess. Hiding on a guess loses the track.
+        let stale: Vec<String> = tracks(&pool, None, None, library_track_order_clause(None, None))
+            .await
+            .into_iter()
+            .map(|row| row.1)
+            .collect();
+        assert!(stale.iter().any(|title| title == "R1"), "{stale:?}");
+
+        // Confirmed, but the local file has gone: the local half already
+        // filtered itself out, so hiding the remote half too would remove the
+        // recording from the library altogether — and the server can play it.
+        sqlx::raw_sql("UPDATE remote_track_link SET status = 'confirmed'")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::raw_sql("UPDATE track SET is_available = 0 WHERE id = 1")
+            .execute(&pool)
+            .await
+            .unwrap();
+        let gone: Vec<String> = tracks(&pool, None, None, library_track_order_clause(None, None))
+            .await
+            .into_iter()
+            .map(|row| row.1)
+            .collect();
+        assert_eq!(gone, vec!["R1".to_string(), "R2".to_string()]);
     }
 
     /// Rating is local-only, so the remote half has none. Sorting by it must
