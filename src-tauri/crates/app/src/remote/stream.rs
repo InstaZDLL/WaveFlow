@@ -173,7 +173,14 @@ async fn read_setting(pool: &SqlitePool, key: &str) -> Option<String> {
 }
 
 /// Ask the server what its transcoder can do right now.
+///
+/// Offline is refused before the request, like every other outbound path:
+/// this one is reachable from the settings card as well as from
+/// [`ticket_url`], and only the latter was checking.
 pub async fn status(state: &AppState) -> AppResult<TranscodeStatus> {
+    if crate::offline::is_offline() {
+        return Err(AppError::Other("offline".into()));
+    }
     let client = client(state).await?;
     client
         .send_json(client.request(reqwest::Method::GET, "/api/v2/transcode/status"))
