@@ -919,7 +919,9 @@
       "exportM3u": "Экспорт в M3U",
       "delete": "Удалить плейлист",
       "deleteConfirm": "Нажмите ещё раз для подтверждения",
-      "share": "Поделиться"
+      "share": "Поделиться",
+      "reorder": "Изменить порядок",
+      "removeFromPlaylist": "Убрать из плейлиста"
     },
     "export": {
       "dialogTitle": "Экспорт плейлиста в M3U"
@@ -2266,13 +2268,7 @@
     "common": {
       "awaitingMetadata": "Ожидание метаданных…",
       "untitled": "Без названия",
-      "trackFallback": "трек",
-      "play": "Воспроизвести",
-      "like": "В избранное",
-      "unlike": "Убрать из избранного",
-      "colTitle": "Название",
-      "colArtist": "Исполнитель",
-      "colAlbum": "Альбом"
+      "trackFallback": "трек"
     },
     "server": {
       "title": "Удалённый сервер",
@@ -2341,29 +2337,16 @@
       "label": "Удалённый плейлист",
       "nameLabel": "Название плейлиста",
       "notSent": "ещё не отправлен на сервер",
-      "trackCount_one": "{{count}} трек",
       "trackCount_few": "{{count}} трека",
       "trackCount_many": "{{count}} треков",
-      "trackCount_other": "{{count}} трека",
       "addTracks": "Добавить треки",
       "rename": "Переименовать",
-      "delete": "Удалить",
-      "confirmDelete": "Нажмите ещё раз для подтверждения",
       "searchPlaceholder": "Поиск в каталоге сервера…",
       "noMatches": "Ничего не найдено.",
       "addTrack": "Добавить {{title}}",
       "addToPlaylist": "Добавить в плейлист",
-      "empty": "Этот плейлист пуст.",
-      "reorder": "Изменить порядок",
-      "remove": "Убрать из плейлиста",
-      "sortBy": "Сортировать по",
-      "sort": {
-        "custom": "Свой порядок",
-        "title": "Название",
-        "artist": "Исполнитель",
-        "album": "Альбом",
-        "duration": "Длительность"
-      }
+      "emptyDescription": "Нажмите «Добавить треки», чтобы найти их в каталоге сервера.",
+      "notFoundDescription": "Этого плейлиста больше нет на подключённом сервере."
     },
     "reconciliation": {
       "title": "Сопоставление локально ↔ сервер",

@@ -329,9 +329,9 @@ always-compiled `remote_playback` so the control seams stay feature-clean.
 **UI.** The remote source is managed from the main UI, not Settings. It began
 as a "Remote source" section at the bottom of the sidebar, headed by the server
 host and listing its playlists; that section is gone — its rows sit in the one
-playlist list, tagged, alongside the local ones. A `RemotePlaylistView` still
-plays, renames, deletes, removes tracks from, reorders and adds tracks to them
-like local playlists.
+playlist list, tagged, alongside the local ones. Its playlists, albums and
+artists no longer have views of their own either: the three twins are absorbed,
+each into the local view of the same thing.
 
 A server **artist** has none either. The absorption is smaller than the
 album's because the two sides already agreed on the hard part: the *descriptive*
@@ -376,6 +376,32 @@ sat above the sidebar's server section shipping hardcoded English the whole
 time. A claim that a surface needs no translation is only ever true of a
 surface nobody can reach, which makes it worth re-reading every time the reason
 it cannot be reached changes.
+
+A server **playlist** was the last of the three, and the only one where the
+twin was the *richer* view. It had an inline rename, a remove button on every
+row and an add-tracks panel backed by a live catalogue search — three
+affordances the local playlist has no equivalent for, because a local playlist
+renames through a modal that also sets a colour, an icon and a cover, and adds
+and removes through the track context menu. So the absorption carried them over
+rather than levelling them off: `PlaylistView` takes either identifier, and
+those three are remote-only the same way shuffle, M3U export and the edit modal
+are local-only. What a server playlist genuinely cannot have stays absent for a
+stated reason — shuffle is a mode of the local queue, an M3U is a list of file
+paths, and the selection, the context menu and the ratings are all keyed by
+rowid. The sort menu drops `added_at` and `filename` rather than showing them
+inert: a server track carries neither field.
+
+The one place the two sides do not merely differ in what they offer but in what
+they *write* is the drag handle. Locally a playlist entry is named by its
+track's rowid — a track is in a playlist zero or one times — so a move travels
+as (track, destination). The server keys entries by position and may hold the
+same track twice, so there is no id to name one by and the move travels as
+(from, to). The table resolves a drag to a pair of indices either way, which is
+what lets one implementation drive both writes; the branch is a single call
+site. Dragging works at all because the projection hands each row a distinct
+negative sentinel id at load time, per position rather than per track, and the
+rows are moved rather than re-projected — so the handle survives an optimistic
+reorder even on a playlist holding one track twice.
 
 **The queue panel** switches to a dedicated `RemoteQueueView` while a remote
 session plays (keyed on `isRemoteTrack`), reading `remote_get_play_queue` (an

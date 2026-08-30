@@ -852,7 +852,9 @@
       "exportM3u": "Export as M3U",
       "delete": "Delete the playlist",
       "deleteConfirm": "Click again to confirm",
-      "share": "Share"
+      "share": "Share",
+      "reorder": "Reorder",
+      "removeFromPlaylist": "Remove from playlist"
     },
     "export": {
       "dialogTitle": "Export the playlist as M3U"
@@ -2166,13 +2168,7 @@
     "common": {
       "awaitingMetadata": "Awaiting metadata…",
       "untitled": "Untitled",
-      "trackFallback": "track",
-      "play": "Play",
-      "like": "Like",
-      "unlike": "Unlike",
-      "colTitle": "Title",
-      "colArtist": "Artist",
-      "colAlbum": "Album"
+      "trackFallback": "track"
     },
     "server": {
       "title": "Remote server",
@@ -2221,27 +2217,14 @@
       "label": "Remote playlist",
       "nameLabel": "Playlist name",
       "notSent": "not sent to the server yet",
-      "trackCount_one": "{{count}} track",
-      "trackCount_other": "{{count}} tracks",
       "addTracks": "Add tracks",
       "rename": "Rename",
-      "delete": "Delete",
-      "confirmDelete": "Click again to confirm",
       "searchPlaceholder": "Search the server's catalogue…",
       "noMatches": "No matches.",
       "addTrack": "Add {{title}}",
       "addToPlaylist": "Add to playlist",
-      "empty": "This playlist is empty.",
-      "reorder": "Reorder",
-      "remove": "Remove from playlist",
-      "sortBy": "Sort by",
-      "sort": {
-        "custom": "Custom order",
-        "title": "Title",
-        "artist": "Artist",
-        "album": "Album",
-        "duration": "Duration"
-      }
+      "emptyDescription": "Use Add tracks to search the server's catalogue.",
+      "notFoundDescription": "This playlist is no longer on the bound server."
     },
     "reconciliation": {
       "title": "Local ↔ server matching",

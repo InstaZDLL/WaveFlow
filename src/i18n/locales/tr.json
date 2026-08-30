@@ -852,7 +852,9 @@
       "exportM3u": "M3U olarak dışa aktar",
       "delete": "Çalma listesini sil",
       "deleteConfirm": "Onaylamak için tekrar tıkla",
-      "share": "Paylaş"
+      "share": "Paylaş",
+      "reorder": "Yeniden sırala",
+      "removeFromPlaylist": "Çalma listesinden çıkar"
     },
     "export": {
       "dialogTitle": "Çalma listesini M3U olarak dışa aktar"
@@ -2166,13 +2168,7 @@
     "common": {
       "awaitingMetadata": "Meta veriler bekleniyor…",
       "untitled": "Adsız",
-      "trackFallback": "parça",
-      "play": "Çal",
-      "like": "Beğen",
-      "unlike": "Beğenmekten vazgeç",
-      "colTitle": "Başlık",
-      "colArtist": "Sanatçı",
-      "colAlbum": "Albüm"
+      "trackFallback": "parça"
     },
     "server": {
       "title": "Uzak sunucu",
@@ -2221,27 +2217,14 @@
       "label": "Uzak çalma listesi",
       "nameLabel": "Çalma listesi adı",
       "notSent": "henüz sunucuya gönderilmedi",
-      "trackCount_one": "{{count}} parça",
-      "trackCount_other": "{{count}} parça",
       "addTracks": "Parça ekle",
       "rename": "Yeniden adlandır",
-      "delete": "Sil",
-      "confirmDelete": "Onaylamak için tekrar tıkla",
       "searchPlaceholder": "Sunucu kataloğunda ara…",
       "noMatches": "Sonuç yok.",
       "addTrack": "{{title}} ekle",
       "addToPlaylist": "Çalma listesine ekle",
-      "empty": "Bu çalma listesi boş.",
-      "reorder": "Yeniden sırala",
-      "remove": "Çalma listesinden çıkar",
-      "sortBy": "Sıralama ölçütü",
-      "sort": {
-        "custom": "Özel sıralama",
-        "title": "Başlık",
-        "artist": "Sanatçı",
-        "album": "Albüm",
-        "duration": "Süre"
-      }
+      "emptyDescription": "Sunucunun kataloğunda arama yapmak için «Parça ekle» düğmesini kullan.",
+      "notFoundDescription": "Bu çalma listesi bağlı sunucuda artık yok."
     },
     "reconciliation": {
       "title": "Yerel ↔ sunucu eşleştirmesi",

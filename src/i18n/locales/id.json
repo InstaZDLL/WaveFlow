@@ -852,7 +852,9 @@
       "exportM3u": "Ekspor sebagai M3U",
       "delete": "Hapus daftar putar",
       "deleteConfirm": "Klik lagi untuk konfirmasi",
-      "share": "Bagikan"
+      "share": "Bagikan",
+      "reorder": "Susun ulang",
+      "removeFromPlaylist": "Hapus dari playlist"
     },
     "export": {
       "dialogTitle": "Ekspor daftar putar sebagai M3U"
@@ -2166,13 +2168,7 @@
     "common": {
       "awaitingMetadata": "Menunggu metadata…",
       "untitled": "Tanpa judul",
-      "trackFallback": "lagu",
-      "play": "Putar",
-      "like": "Sukai",
-      "unlike": "Batal sukai",
-      "colTitle": "Judul",
-      "colArtist": "Artis",
-      "colAlbum": "Album"
+      "trackFallback": "lagu"
     },
     "server": {
       "title": "Server jarak jauh",
@@ -2211,26 +2207,14 @@
       "label": "Playlist jarak jauh",
       "nameLabel": "Nama playlist",
       "notSent": "belum dikirim ke server",
-      "trackCount_other": "{{count}} lagu",
       "addTracks": "Tambah lagu",
       "rename": "Ganti nama",
-      "delete": "Hapus",
-      "confirmDelete": "Klik lagi untuk konfirmasi",
       "searchPlaceholder": "Cari di katalog server…",
       "noMatches": "Tidak ada hasil.",
       "addTrack": "Tambah {{title}}",
       "addToPlaylist": "Tambah ke playlist",
-      "empty": "Playlist ini kosong.",
-      "reorder": "Susun ulang",
-      "remove": "Hapus dari playlist",
-      "sortBy": "Urutkan menurut",
-      "sort": {
-        "custom": "Urutan khusus",
-        "title": "Judul",
-        "artist": "Artis",
-        "album": "Album",
-        "duration": "Durasi"
-      }
+      "emptyDescription": "Gunakan «Tambah lagu» untuk mencari di katalog server.",
+      "notFoundDescription": "Playlist ini sudah tidak ada di server yang terhubung."
     },
     "reconciliation": {
       "title": "Pencocokan lokal ↔ server",

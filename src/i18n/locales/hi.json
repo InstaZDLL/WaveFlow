@@ -852,7 +852,9 @@
       "exportM3u": "M3U के रूप में निर्यात करें",
       "delete": "प्लेलिस्ट हटाएँ",
       "deleteConfirm": "पुष्टि करने के लिए फिर से क्लिक करें",
-      "share": "साझा करें"
+      "share": "साझा करें",
+      "reorder": "पुनः क्रमबद्ध करें",
+      "removeFromPlaylist": "प्लेलिस्ट से हटाएँ"
     },
     "export": {
       "dialogTitle": "प्लेलिस्ट को M3U फ़ाइल के रूप में निर्यात करें"
@@ -2166,13 +2168,7 @@
     "common": {
       "awaitingMetadata": "मेटाडेटा की प्रतीक्षा…",
       "untitled": "शीर्षकहीन",
-      "trackFallback": "ट्रैक",
-      "play": "चलाएँ",
-      "like": "पसंद करें",
-      "unlike": "पसंद से हटाएँ",
-      "colTitle": "शीर्षक",
-      "colArtist": "कलाकार",
-      "colAlbum": "एल्बम"
+      "trackFallback": "ट्रैक"
     },
     "server": {
       "title": "रिमोट सर्वर",
@@ -2221,27 +2217,14 @@
       "label": "रिमोट प्लेलिस्ट",
       "nameLabel": "प्लेलिस्ट का नाम",
       "notSent": "अभी तक सर्वर पर नहीं भेजी गई",
-      "trackCount_one": "{{count}} ट्रैक",
-      "trackCount_other": "{{count}} ट्रैक",
       "addTracks": "ट्रैक जोड़ें",
       "rename": "नाम बदलें",
-      "delete": "हटाएँ",
-      "confirmDelete": "पुष्टि के लिए फिर क्लिक करें",
       "searchPlaceholder": "सर्वर के कैटलॉग में खोजें…",
       "noMatches": "कोई परिणाम नहीं।",
       "addTrack": "{{title}} जोड़ें",
       "addToPlaylist": "प्लेलिस्ट में जोड़ें",
-      "empty": "यह प्लेलिस्ट खाली है।",
-      "reorder": "पुनः क्रमबद्ध करें",
-      "remove": "प्लेलिस्ट से हटाएँ",
-      "sortBy": "इसके अनुसार क्रमबद्ध करें",
-      "sort": {
-        "custom": "कस्टम क्रम",
-        "title": "शीर्षक",
-        "artist": "कलाकार",
-        "album": "एल्बम",
-        "duration": "अवधि"
-      }
+      "emptyDescription": "सर्वर की सूची में खोजने के लिए «ट्रैक जोड़ें» का उपयोग करें।",
+      "notFoundDescription": "यह प्लेलिस्ट अब जुड़े हुए सर्वर पर मौजूद नहीं है।"
     },
     "reconciliation": {
       "title": "स्थानीय ↔ सर्वर मिलान",
