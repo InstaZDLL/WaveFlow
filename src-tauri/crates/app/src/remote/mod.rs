@@ -66,6 +66,14 @@
 //!   folder the user already scans, where they become a local track
 //!   with the server's one linked to it.
 //!
+//! - [`upload`] — the fourth direction: offering the server what it
+//!   does not have, over its RFC-008 routes. Most of that work never
+//!   reaches it, since the mirror already knows which digests it holds.
+//!
+//! - [`hashing`] — the whole-file digest of a local track, computed
+//!   once and kept, because deciding what a server is missing means
+//!   reading the library.
+//!
 //! - [`reconciliation`] — pairing local files with server tracks after
 //!   the fact, which costs a full re-read; [`import`] is the one path
 //!   that gets the same proof for nothing.
@@ -102,6 +110,7 @@ pub mod client;
 pub mod download;
 pub mod drain;
 pub mod dto;
+pub mod hashing;
 pub mod import;
 pub mod lyrics;
 pub mod mirror;
@@ -115,4 +124,5 @@ pub mod socket;
 pub mod stream;
 pub mod sync;
 pub mod tokens;
+pub mod upload;
 pub mod write;

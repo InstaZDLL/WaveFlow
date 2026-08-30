@@ -2346,6 +2346,31 @@
     "download": {
       "keep": "离线保存",
       "kept": "已离线保存"
+    },
+    "upload": {
+      "title": "上传到服务器",
+      "subtitle": "把服务器没有的曲目发送过去。分析会把每个文件读一遍，弄清哪些真的缺失。",
+      "cancel": "停止",
+      "survey": "分析",
+      "surveying": "已读取 {{done}} / {{total}} 个文件…",
+      "statMissing": "缺失",
+      "statLinked": "已存在，已关联",
+      "statUnsupported": "被拒格式",
+      "statUnreadable": "无法读取",
+      "destination": "音乐库",
+      "send": "上传（{{count}}）",
+      "sent": "已上传：{{count}}",
+      "stopped": "已停止",
+      "refusal": {
+        "present": "服务器已有，已关联：{{count}}",
+        "unsupported_format": "服务器不接受的格式：{{count}}",
+        "too_large": "文件过大：{{count}}",
+        "quota_exceeded": "服务器空间不足：{{count}}",
+        "library_closed": "音乐库不接受上传：{{count}}",
+        "too_many_sessions": "同时上传过多：{{count}}",
+        "unknown_verdict": "此版本无法识别的答复：{{count}}",
+        "failed": "失败：{{count}}"
+      }
     }
   }
 }

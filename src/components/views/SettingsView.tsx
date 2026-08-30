@@ -50,6 +50,7 @@ import {
 import { RemoteServerCard } from "./settings/RemoteServerCard";
 import { ReconciliationCard } from "./settings/ReconciliationCard";
 import { CatalogueMirrorCard } from "./settings/CatalogueMirrorCard";
+import { UploadToServerCard } from "./settings/UploadToServerCard";
 import { RemoteTranscodeCard } from "./settings/RemoteTranscodeCard";
 import { PluginStoreCard } from "./settings/PluginStoreCard";
 import { PluginsCard } from "./settings/PluginsCard";
@@ -2640,6 +2641,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             <RemoteServerCard />
             <RemoteTranscodeCard />
             <CatalogueMirrorCard />
+            <UploadToServerCard />
             <ReconciliationCard />
 
             <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">

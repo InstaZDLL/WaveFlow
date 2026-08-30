@@ -2367,6 +2367,31 @@
     "download": {
       "keep": "Offline behalten",
       "kept": "Offline behalten"
+    },
+    "upload": {
+      "title": "Auf den Server hochladen",
+      "subtitle": "Sende dem Server die Titel, die er nicht hat. Die Prüfung liest jede Datei einmal, um zu erkennen, welche wirklich fehlen.",
+      "cancel": "Anhalten",
+      "survey": "Prüfen",
+      "surveying": "{{done}} / {{total}} Dateien gelesen…",
+      "statMissing": "Fehlend",
+      "statLinked": "Schon da, verknüpft",
+      "statUnsupported": "Abgelehntes Format",
+      "statUnreadable": "Nicht lesbar",
+      "destination": "Mediathek",
+      "send": "Hochladen ({{count}})",
+      "sent": "Hochgeladen: {{count}}",
+      "stopped": "angehalten",
+      "refusal": {
+        "present": "Schon auf dem Server, verknüpft: {{count}}",
+        "unsupported_format": "Vom Server abgelehntes Format: {{count}}",
+        "too_large": "Zu groß: {{count}}",
+        "quota_exceeded": "Kein Platz mehr auf dem Server: {{count}}",
+        "library_closed": "Mediathek nimmt keine Dateien an: {{count}}",
+        "too_many_sessions": "Zu viele Uploads gleichzeitig: {{count}}",
+        "unknown_verdict": "Antwort, die dieser Build nicht kennt: {{count}}",
+        "failed": "Fehlgeschlagen: {{count}}"
+      }
     }
   }
 }

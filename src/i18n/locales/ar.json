@@ -2625,6 +2625,31 @@
     "download": {
       "keep": "الاحتفاظ للاستماع دون اتصال",
       "kept": "محفوظ دون اتصال"
+    },
+    "upload": {
+      "title": "الرفع إلى الخادم",
+      "subtitle": "أرسل إلى الخادم المقاطع التي لا يملكها. يقرأ الفحص كل ملف مرة واحدة ليعرف ما ينقصه فعلًا.",
+      "cancel": "إيقاف",
+      "survey": "فحص",
+      "surveying": "تمت قراءة {{done}} / {{total}} ملفًا…",
+      "statMissing": "ناقصة",
+      "statLinked": "موجودة ومرتبطة",
+      "statUnsupported": "صيغة مرفوضة",
+      "statUnreadable": "غير مقروءة",
+      "destination": "المكتبة",
+      "send": "رفع ({{count}})",
+      "sent": "المرفوعة: {{count}}",
+      "stopped": "أُوقف",
+      "refusal": {
+        "present": "موجودة على الخادم وتم ربطها: {{count}}",
+        "unsupported_format": "صيغة يرفضها الخادم: {{count}}",
+        "too_large": "أكبر من المسموح: {{count}}",
+        "quota_exceeded": "لا مساحة على الخادم: {{count}}",
+        "library_closed": "المكتبة لا تقبل الرفع: {{count}}",
+        "too_many_sessions": "عمليات رفع متزامنة أكثر من اللازم: {{count}}",
+        "unknown_verdict": "ردّ لا تعرفه هذه النسخة: {{count}}",
+        "failed": "فشلت: {{count}}"
+      }
     }
   }
 }

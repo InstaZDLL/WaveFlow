@@ -56,6 +56,18 @@ pub(crate) async fn rehash_track_file(
         .execute(pool)
         .await
         .map_err(|e| AppError::Other(format!("rehash update: {e}")))?;
+    // The whole-file digest cached for the server is about these bytes, and
+    // these bytes have just changed. Dropping it here rather than relying on
+    // `(size, mtime)` to notice covers the one case that pair cannot: a
+    // rewrite that lands on the same size and whose mtime a tool preserved.
+    #[cfg(feature = "sync_v2")]
+    if let Err(err) = crate::remote::hashing::forget(pool, track_id).await {
+        tracing::warn!(
+            track = track_id,
+            ?err,
+            "could not drop the cached full hash"
+        );
+    }
     Ok(new_hash)
 }
 
