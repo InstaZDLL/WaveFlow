@@ -46,7 +46,10 @@ shown apart.
 Matching a local file to a server track is **out of scope** and needs its own
 RFC. When it comes, the only automatic link allowed is an exact, unique
 content-hash match; a MusicBrainz identifier is a suggestion the user confirms;
-matching by title/artist/duration is explicitly forbidden.
+matching by title/artist/duration is explicitly forbidden. That RFC is
+[RFC-006](RFC-006-deduplicating-the-two-catalogues.md); the matching layer
+itself shipped first, and RFC-006 decides what its proofs are allowed to change
+above the track.
 
 **What this costs.** Local playlists no longer travel between machines. That
 capability existed in the v1 design and is genuinely lost. It cannot be
@@ -696,7 +699,8 @@ list rather than a section beside it — which is the whole difference between a
 unified library and two tabs, and it changes nothing about Decision 1: an album
 held both locally and on the server appears **twice**, tagged twice. Unifying
 the navigation is not deduplicating the catalogue; that is reserved for its own
-RFC.
+RFC — now written, as
+[RFC-006](RFC-006-deduplicating-the-two-catalogues.md).
 
 Two things the query has to get right, and both are about the halves being
 comparable rather than merely concatenated:

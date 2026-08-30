@@ -37,6 +37,7 @@ Long-form design documents that lock in cross-cutting architectural decisions be
 | [RFC-003 — Sync architecture v2](rfcs/RFC-003-sync-architecture.md) | Superseded by RFC-005 | Backfill, HLC ordering, per-entity CRDT conflict resolution. **Not** the server's RFC-003 — see [RFC-005](rfcs/RFC-005-remote-source-and-sync-v2.md#the-rfc-003-naming-trap). |
 | [RFC-004 — Community-DB](rfcs/RFC-004-community-database.md)        | Draft    | Opt-in shared metadata pool (lyrics, bios, BPM, etc.), LRCLIB pattern. Schema + endpoints + privacy.     |
 | [RFC-005 — Remote source + sync v2](rfcs/RFC-005-remote-source-and-sync-v2.md) | Accepted | The server catalogue as a separate remote source, `MusicServer` / `SyncProvider` seam, PKCE, journal-based user-data sync. |
+| [RFC-006 — Deduplicating the two catalogues](rfcs/RFC-006-deduplicating-the-two-catalogues.md) | Proposed | What a content-proven track pair is allowed to change above the track: one entry per album and artist, derived from links and never from names. |
 
 ## Contributing
 
