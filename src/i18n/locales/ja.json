@@ -2228,7 +2228,12 @@
       "addTrack": "{{title}} を追加",
       "addToPlaylist": "プレイリストに追加",
       "emptyDescription": "「曲を追加」から、サーバーのカタログを検索してください。",
-      "notFoundDescription": "このプレイリストは、接続中のサーバーにはもう存在しません。"
+      "notFoundDescription": "このプレイリストは、接続中のサーバーにはもう存在しません。",
+      "keepOffline": "オフラインで保存",
+      "keepingProgress": "{{done}}/{{total}} 保存済み",
+      "keptOffline_one": "{{count}} 件オフライン",
+      "keptOffline_other": "{{count}} 件オフライン",
+      "keptOffline_zero": "オフライン保存なし"
     },
     "reconciliation": {
       "title": "ローカル ↔ サーバーの照合",
@@ -2311,7 +2316,11 @@
       "streamsCached_one": "キャッシュ済みの楽曲 {{count}} 件（{{size}} MB）",
       "streamsCached_other": "キャッシュ済みの楽曲 {{count}} 件（{{size}} MB）",
       "streamsCached_zero": "キャッシュされた楽曲はありません。",
-      "clearStreams": "削除"
+      "clearStreams": "削除",
+      "downloadsKept_one": "オフライン保存 {{count}} 件（{{size}} MB）",
+      "downloadsKept_other": "オフライン保存 {{count}} 件（{{size}} MB）",
+      "downloadsKept_zero": "オフラインに保存された楽曲はありません。",
+      "clearDownloads": "削除"
     }
   }
 }

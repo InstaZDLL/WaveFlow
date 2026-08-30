@@ -2238,7 +2238,12 @@
       "addTrack": "{{title}} जोड़ें",
       "addToPlaylist": "प्लेलिस्ट में जोड़ें",
       "emptyDescription": "सर्वर की सूची में खोजने के लिए «ट्रैक जोड़ें» का उपयोग करें।",
-      "notFoundDescription": "यह प्लेलिस्ट अब जुड़े हुए सर्वर पर मौजूद नहीं है।"
+      "notFoundDescription": "यह प्लेलिस्ट अब जुड़े हुए सर्वर पर मौजूद नहीं है।",
+      "keepOffline": "ऑफ़लाइन रखें",
+      "keepingProgress": "{{done}}/{{total}} रखे गए",
+      "keptOffline_one": "{{count}} ऑफ़लाइन",
+      "keptOffline_other": "{{count}} ऑफ़लाइन",
+      "keptOffline_zero": "कोई ऑफ़लाइन नहीं"
     },
     "reconciliation": {
       "title": "स्थानीय ↔ सर्वर मिलान",
@@ -2332,7 +2337,11 @@
       "streamsCached_one": "{{count}} ट्रैक कैश में ({{size}} MB)।",
       "streamsCached_other": "{{count}} ट्रैक कैश में ({{size}} MB)।",
       "streamsCached_zero": "कैश में कोई ट्रैक नहीं।",
-      "clearStreams": "हटाएँ"
+      "clearStreams": "हटाएँ",
+      "downloadsKept_one": "{{count}} ट्रैक ऑफ़लाइन रखा गया ({{size}} MB)।",
+      "downloadsKept_other": "{{count}} ट्रैक ऑफ़लाइन रखे गए ({{size}} MB)।",
+      "downloadsKept_zero": "ऑफ़लाइन कुछ नहीं रखा गया।",
+      "clearDownloads": "हटाएँ"
     }
   }
 }

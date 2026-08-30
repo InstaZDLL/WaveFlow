@@ -2238,7 +2238,12 @@
       "addTrack": "Adicionar {{title}}",
       "addToPlaylist": "Adicionar à lista",
       "emptyDescription": "Usa «Adicionar faixas» para procurar no catálogo do servidor.",
-      "notFoundDescription": "Esta lista já não existe no servidor associado."
+      "notFoundDescription": "Esta lista já não existe no servidor associado.",
+      "keepOffline": "Manter offline",
+      "keepingProgress": "{{done}}/{{total}} mantidas",
+      "keptOffline_one": "{{count}} offline",
+      "keptOffline_other": "{{count}} offline",
+      "keptOffline_zero": "nenhuma offline"
     },
     "reconciliation": {
       "title": "Correspondência local ↔ servidor",
@@ -2332,7 +2337,11 @@
       "streamsCached_one": "{{count}} faixa em cache ({{size}} MB).",
       "streamsCached_other": "{{count}} faixas em cache ({{size}} MB).",
       "streamsCached_zero": "Nenhuma faixa em cache.",
-      "clearStreams": "Esvaziar"
+      "clearStreams": "Esvaziar",
+      "downloadsKept_one": "{{count}} faixa mantida offline ({{size}} MB).",
+      "downloadsKept_other": "{{count}} faixas mantidas offline ({{size}} MB).",
+      "downloadsKept_zero": "Nada mantido offline.",
+      "clearDownloads": "Esvaziar"
     }
   }
 }

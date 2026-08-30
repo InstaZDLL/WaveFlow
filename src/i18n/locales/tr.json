@@ -2238,7 +2238,12 @@
       "addTrack": "{{title}} ekle",
       "addToPlaylist": "Çalma listesine ekle",
       "emptyDescription": "Sunucunun kataloğunda arama yapmak için «Parça ekle» düğmesini kullan.",
-      "notFoundDescription": "Bu çalma listesi bağlı sunucuda artık yok."
+      "notFoundDescription": "Bu çalma listesi bağlı sunucuda artık yok.",
+      "keepOffline": "Çevrimdışı sakla",
+      "keepingProgress": "{{done}}/{{total}} saklandı",
+      "keptOffline_one": "{{count}} çevrimdışı",
+      "keptOffline_other": "{{count}} çevrimdışı",
+      "keptOffline_zero": "çevrimdışı yok"
     },
     "reconciliation": {
       "title": "Yerel ↔ sunucu eşleştirmesi",
@@ -2332,7 +2337,11 @@
       "streamsCached_one": "Önbellekte {{count}} parça ({{size}} MB).",
       "streamsCached_other": "Önbellekte {{count}} parça ({{size}} MB).",
       "streamsCached_zero": "Önbellekte parça yok.",
-      "clearStreams": "Temizle"
+      "clearStreams": "Temizle",
+      "downloadsKept_one": "Çevrimdışı {{count}} parça saklandı ({{size}} MB).",
+      "downloadsKept_other": "Çevrimdışı {{count}} parça saklandı ({{size}} MB).",
+      "downloadsKept_zero": "Çevrimdışı hiçbir şey saklanmadı.",
+      "clearDownloads": "Temizle"
     }
   }
 }

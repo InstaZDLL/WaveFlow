@@ -131,6 +131,16 @@ pub enum AudioCmd {
         /// remote-queue track worth keeping. `None` for radio, which is
         /// endless and therefore never complete.
         cache: Option<crate::audio::stream_cache::CacheTarget>,
+        /// Force a finite, range-capable open even with no remote session
+        /// running.
+        ///
+        /// The decoder used to answer "file or radio?" from the *global*
+        /// remote-session state, which is right for the remote queue and
+        /// wrong for anyone else: a library track whose file vanished and
+        /// falls back to the server has no session, and would have been
+        /// opened with ICY — forward-only, and parsing metadata blocks out
+        /// of a FLAC. The question belongs to the command.
+        seekable_file: bool,
         /// Loudness metadata for the stream. `TrackGain::default()`
         /// for a live radio station — nothing knows anything about it
         /// — but a library track that fell back to streaming from the
@@ -418,8 +428,9 @@ impl RadioResumeState {
                 artwork_url: self.artwork_url,
                 replay_gain,
                 // Resuming radio after a device change: endless, so never a
-                // complete body to cache.
+                // complete body to cache, and never seekable.
                 cache: None,
+                seekable_file: false,
             },
             RadioResumeSource::RemoteFile {
                 path,
@@ -1519,8 +1530,9 @@ fn apply_radio_resume_update(snapshot: &Mutex<Option<RadioResumeState>>, cmd: &A
             replay_gain,
             // The resume snapshot exists to restart radio after a device
             // change; a cache target belongs to one open response and does
-            // not survive into a new one.
+            // not survive into a new one, and only radio is ever resumed.
             cache: _,
+            seekable_file: _,
         } => {
             if let Ok(mut guard) = snapshot.lock() {
                 *guard = Some(RadioResumeState {
@@ -1723,6 +1735,7 @@ mod radio_resume_tests {
             artist: Some("Test artist".to_string()),
             artwork_url: Some("https://example.invalid/art.jpg".to_string()),
             cache: None,
+            seekable_file: false,
             replay_gain: TrackGain::default(),
         }
     }

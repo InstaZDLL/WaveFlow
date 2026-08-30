@@ -2228,7 +2228,12 @@
       "addTrack": "Tambah {{title}}",
       "addToPlaylist": "Tambah ke playlist",
       "emptyDescription": "Gunakan «Tambah lagu» untuk mencari di katalog server.",
-      "notFoundDescription": "Playlist ini sudah tidak ada di server yang terhubung."
+      "notFoundDescription": "Playlist ini sudah tidak ada di server yang terhubung.",
+      "keepOffline": "Simpan offline",
+      "keepingProgress": "{{done}}/{{total}} disimpan",
+      "keptOffline_one": "{{count}} offline",
+      "keptOffline_other": "{{count}} offline",
+      "keptOffline_zero": "tidak ada offline"
     },
     "reconciliation": {
       "title": "Pencocokan lokal ↔ server",
@@ -2311,7 +2316,11 @@
       "streamsCached_one": "{{count}} lagu di cache ({{size}} MB).",
       "streamsCached_other": "{{count}} lagu di cache ({{size}} MB).",
       "streamsCached_zero": "Tidak ada lagu di cache.",
-      "clearStreams": "Kosongkan"
+      "clearStreams": "Kosongkan",
+      "downloadsKept_one": "{{count}} lagu disimpan offline ({{size}} MB).",
+      "downloadsKept_other": "{{count}} lagu disimpan offline ({{size}} MB).",
+      "downloadsKept_zero": "Tidak ada yang disimpan offline.",
+      "clearDownloads": "Kosongkan"
     }
   }
 }

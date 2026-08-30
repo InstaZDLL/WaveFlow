@@ -21,6 +21,7 @@ import {
   Download,
   ArrowUpDown,
   Check,
+  ArrowDownToLine,
   ListMusic,
   ListPlus,
   Loader2,
@@ -79,6 +80,8 @@ import {
 import {
   remoteAddPlaylistTracks,
   remoteDeletePlaylist,
+  remoteDownloadTrack,
+  remoteListDownloads,
   remoteGetPlayQueue,
   remoteListPlaylists,
   remoteListPlaylistTracks,
@@ -378,6 +381,17 @@ export function PlaylistView({
   // Server id of the remote track playing right now, so the matching row
   // lights up the way a local one does off `currentTrack.id`.
   const [playingRemoteId, setPlayingRemoteId] = useState<string | null>(null);
+  // Remote only: which of this playlist's tracks already have an offline copy,
+  // and how far a "keep offline" run has got. Kept as a set of server ids
+  // rather than per-row state — the question is asked once for the whole
+  // playlist, and a row does not need to answer it on its own.
+  const [offlineIds, setOfflineIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const [keeping, setKeeping] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
   // Bumped by the `track:updated` listener and by every remote write, to
   // flip the fetch effect's deps and pull a fresh snapshot when neither
   // the playlist id nor its `updated_at` changed.
@@ -658,6 +672,38 @@ export function PlaylistView({
     [remotePlaylistId],
   );
 
+  /**
+   * Remote only: keep every track of this playlist on disk.
+   *
+   * Sequential on purpose. Parallel downloads would race the server's own
+   * transcode ceiling and each other's bandwidth for no gain — the wait is the
+   * bytes, not the round-trips — and one at a time is what lets the count mean
+   * something while it runs.
+   */
+  const keepOffline = useCallback(async () => {
+    const missing = tracksRef.current
+      .map((row) => row.remote_id)
+      .filter((id): id is string => !!id && !offlineIds.has(id));
+    if (missing.length === 0) return;
+    setRemoteError(null);
+    setKeeping({ done: 0, total: missing.length });
+    const kept = new Set(offlineIds);
+    try {
+      for (const [index, id] of missing.entries()) {
+        await remoteDownloadTrack(id);
+        kept.add(id);
+        setKeeping({ done: index + 1, total: missing.length });
+      }
+    } catch (err) {
+      // Stop at the first failure rather than hammering a server that just
+      // refused; what was already kept stays kept.
+      setRemoteError(String(err));
+    } finally {
+      setOfflineIds(kept);
+      setKeeping(null);
+    }
+  }, [offlineIds]);
+
   /** Remote only: append server tracks picked from the catalogue search. */
   const handleAddRemoteTracks = useCallback(
     async (ids: string[]) => {
@@ -796,6 +842,26 @@ export function PlaylistView({
     refetchKey,
   ]);
 
+  // Which server tracks are already on this disk. Re-read after a run, and
+  // when the playlist changes, so the button says what is actually true.
+  useEffect(() => {
+    if (!remote) return;
+    let cancelled = false;
+    remoteListDownloads()
+      .then((rows) => {
+        if (!cancelled) {
+          setOfflineIds(new Set(rows.map((row) => row.remote_track_id)));
+        }
+      })
+      .catch(() => {
+        // A list we could not read leaves the button offering to download
+        // again, which is a no-op server-side rather than a duplicate.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [remote, remotePlaylistId, refetchKey]);
+
   // Debounced catalogue search while the add panel is open (remote only).
   const searchSeqRef = useRef(0);
   const trimmedQuery = query.trim();
@@ -920,6 +986,17 @@ export function PlaylistView({
   if (!playlist || loadedKey !== playlistKey) {
     return <PlaylistSkeleton t={t} />;
   }
+
+  // How many of these tracks are already on this disk. Counted here rather
+  // than stored, so removing a copy from Settings is reflected without this
+  // view having to hear about it.
+  const offlineTrackCount = remote
+    ? tracks.reduce(
+        (total, row) =>
+          total + (row.remote_id && offlineIds.has(row.remote_id) ? 1 : 0),
+        0,
+      )
+    : 0;
 
   const color = resolvePlaylistColor(playlist.color_id);
   const totalDurationMs = playlist.total_duration_ms;
@@ -1130,6 +1207,27 @@ export function PlaylistView({
                   </span>
                   <span>·</span>
                   <span>{totalDurationLabel}</span>
+                  {remote && keeping && (
+                    <>
+                      <span>·</span>
+                      <span>
+                        {t("remote.playlist.keepingProgress", {
+                          done: keeping.done,
+                          total: keeping.total,
+                        })}
+                      </span>
+                    </>
+                  )}
+                  {remote && !keeping && offlineTrackCount > 0 && (
+                    <>
+                      <span>·</span>
+                      <span>
+                        {t("remote.playlist.keptOffline", {
+                          count: offlineTrackCount,
+                        })}
+                      </span>
+                    </>
+                  )}
                   {remote && remotePending && (
                     <>
                       <span>·</span>
@@ -1187,6 +1285,28 @@ export function PlaylistView({
                       }`}
                     >
                       <ListPlus size={18} />
+                    </button>
+                  </Tooltip>
+                )}
+
+                {/* Keep every track on this disk. Absent once they all are:
+                    a control whose only outcome is "nothing to do" is noise,
+                    and the settings card is where copies are reviewed and
+                    dropped. */}
+                {remote && offlineTrackCount < tracks.length && (
+                  <Tooltip label={t("remote.playlist.keepOffline")}>
+                    <button
+                      type="button"
+                      onClick={() => void keepOffline()}
+                      disabled={remoteBusy || keeping !== null}
+                      aria-label={t("remote.playlist.keepOffline")}
+                      className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {keeping ? (
+                        <Loader2 size={18} className="animate-spin" />
+                      ) : (
+                        <ArrowDownToLine size={18} />
+                      )}
                     </button>
                   </Tooltip>
                 )}

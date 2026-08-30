@@ -777,6 +777,16 @@ pub fn run() {
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_transcode_status,
             #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_download_track,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_list_downloads,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_downloads_info,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_remove_download,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_clear_downloads,
+            #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_stream_cache_info,
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_clear_stream_cache,

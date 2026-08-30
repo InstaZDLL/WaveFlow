@@ -527,6 +527,10 @@ fn decoder_loop(
                                 // Caching here would also risk re-writing the
                                 // very entry that just failed to decode.
                                 cache: None,
+                                // Whatever failed was a finite file, and its
+                                // replacement on the server is one too — this
+                                // is the path a vanished library track takes.
+                                seekable_file: true,
                             });
                             continue;
                         }
@@ -563,6 +567,7 @@ fn decoder_loop(
                             artwork_url,
                             // See above: a repair path does not repopulate.
                             cache: None,
+                            seekable_file: true,
                         });
                         continue;
                     }
@@ -584,6 +589,7 @@ fn decoder_loop(
                 artwork_url,
                 replay_gain,
                 cache,
+                seekable_file,
             } => {
                 tracing::info!(
                     track_id,
@@ -659,6 +665,13 @@ fn decoder_loop(
                     state.remote_playback.current_stream_meta()
                 };
                 let is_remote = remote_meta.is_remote;
+                // Two different questions, and they used to share an answer.
+                // `is_remote` says whether a remote *session* is running, which
+                // is what the metadata emit below is about. Whether to open a
+                // finite, range-capable body is a property of THIS stream, and
+                // a caller outside the session — a library track falling back
+                // to the server — knows it without one.
+                let finite = is_remote || seekable_file;
 
                 emit_radio_metadata(
                     &app,
@@ -696,7 +709,7 @@ fn decoder_loop(
                 // with ICY so the source can re-emit `player:radio-metadata`
                 // with the live `StreamTitle` while keeping the station's
                 // cover + name; it stays forward-only.
-                let opened = if is_remote {
+                let opened = if finite {
                     // A cache target only ever accompanies a finite
                     // remote-queue track, so the seekable open is the only
                     // one that can honour it.

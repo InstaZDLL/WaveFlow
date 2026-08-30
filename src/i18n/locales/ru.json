@@ -2358,7 +2358,14 @@
       "addTrack": "Добавить {{title}}",
       "addToPlaylist": "Добавить в плейлист",
       "emptyDescription": "Нажмите «Добавить треки», чтобы найти их в каталоге сервера.",
-      "notFoundDescription": "Этого плейлиста больше нет на подключённом сервере."
+      "notFoundDescription": "Этого плейлиста больше нет на подключённом сервере.",
+      "keepOffline": "Сохранить офлайн",
+      "keepingProgress": "сохранено {{done}}/{{total}}",
+      "keptOffline_few": "{{count}} офлайн",
+      "keptOffline_many": "{{count}} офлайн",
+      "keptOffline_one": "{{count}} офлайн",
+      "keptOffline_other": "{{count}} офлайн",
+      "keptOffline_zero": "ничего офлайн"
     },
     "reconciliation": {
       "title": "Сопоставление локально ↔ сервер",
@@ -2478,7 +2485,13 @@
       "streamsCached_one": "{{count}} трек в кэше ({{size}} МБ).",
       "streamsCached_other": "{{count}} треков в кэше ({{size}} МБ).",
       "streamsCached_zero": "Треков в кэше нет.",
-      "clearStreams": "Очистить"
+      "clearStreams": "Очистить",
+      "downloadsKept_few": "{{count}} трека сохранены офлайн ({{size}} МБ).",
+      "downloadsKept_many": "{{count}} треков сохранено офлайн ({{size}} МБ).",
+      "downloadsKept_one": "{{count}} трек сохранён офлайн ({{size}} МБ).",
+      "downloadsKept_other": "{{count}} треков сохранено офлайн ({{size}} МБ).",
+      "downloadsKept_zero": "Ничего не сохранено офлайн.",
+      "clearDownloads": "Очистить"
     }
   }
 }

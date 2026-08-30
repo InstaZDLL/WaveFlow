@@ -2228,7 +2228,12 @@
       "addTrack": "添加 {{title}}",
       "addToPlaylist": "添加到播放列表",
       "emptyDescription": "点击「添加曲目」，在服务器的曲库中搜索。",
-      "notFoundDescription": "该播放列表在已连接的服务器上已不存在。"
+      "notFoundDescription": "该播放列表在已连接的服务器上已不存在。",
+      "keepOffline": "离线保存",
+      "keepingProgress": "已保存 {{done}}/{{total}}",
+      "keptOffline_one": "{{count}} 首离线",
+      "keptOffline_other": "{{count}} 首离线",
+      "keptOffline_zero": "无离线曲目"
     },
     "reconciliation": {
       "title": "本地 ↔ 服务器匹配",
@@ -2311,7 +2316,11 @@
       "streamsCached_one": "已缓存 {{count}} 首曲目（{{size}} MB）",
       "streamsCached_other": "已缓存 {{count}} 首曲目（{{size}} MB）",
       "streamsCached_zero": "没有缓存的曲目。",
-      "clearStreams": "清空"
+      "clearStreams": "清空",
+      "downloadsKept_one": "已离线保存 {{count}} 首曲目（{{size}} MB）",
+      "downloadsKept_other": "已离线保存 {{count}} 首曲目（{{size}} MB）",
+      "downloadsKept_zero": "没有离线保存的曲目。",
+      "clearDownloads": "清空"
     }
   }
 }

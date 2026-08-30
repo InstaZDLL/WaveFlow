@@ -475,6 +475,58 @@ export function remoteStreamCacheInfo(): Promise<StreamCacheInfo> {
   return invoke<StreamCacheInfo>("remote_stream_cache_info");
 }
 
+/**
+ * An offline copy of a server track, kept in a folder the scanner never sees.
+ *
+ * Not a local library track: it describes a *remote* one that happens to be on
+ * this disk, which is why it is keyed by the server's id.
+ */
+export interface DownloadedTrack {
+  remote_track_id: string;
+  path: string;
+  /** BLAKE3 of the whole file, computed while writing it — the server's own
+   *  digest, so directly comparable, unlike the library's `file_hash`. */
+  full_hash: string;
+  size: number;
+  downloaded_at: number;
+}
+
+export interface DownloadsInfo {
+  bytes: number;
+  tracks: number;
+}
+
+/** Progress event payload (`remote:download-progress`), one per megabyte. */
+export interface DownloadProgress {
+  track_id: string;
+  received: number;
+  total: number | null;
+}
+
+/** Keep a track's original bytes. Answering with the existing copy when there
+ *  already is one, so asking twice costs nothing. */
+export function remoteDownloadTrack(trackId: string): Promise<DownloadedTrack> {
+  return invoke<DownloadedTrack>("remote_download_track", { trackId });
+}
+
+export function remoteListDownloads(): Promise<DownloadedTrack[]> {
+  return invoke<DownloadedTrack[]>("remote_list_downloads");
+}
+
+export function remoteDownloadsInfo(): Promise<DownloadsInfo> {
+  return invoke<DownloadsInfo>("remote_downloads_info");
+}
+
+/** Drop one offline copy. `false` when there was none. */
+export function remoteRemoveDownload(trackId: string): Promise<boolean> {
+  return invoke<boolean>("remote_remove_download", { trackId });
+}
+
+/** Drop every offline copy. Returns how many were removed. */
+export function remoteClearDownloads(): Promise<number> {
+  return invoke<number>("remote_clear_downloads");
+}
+
 /** Drop every cached stream. Costs one download per track played again. */
 export function remoteClearStreamCache(): Promise<number> {
   return invoke<number>("remote_clear_stream_cache");

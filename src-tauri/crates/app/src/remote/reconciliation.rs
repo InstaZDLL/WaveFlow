@@ -1068,6 +1068,28 @@ pub async fn set_playback_preference(
 /// Resolve a remote track to the confirmed, available local file selected by
 /// the user's playback preference. A missing file is treated like no local
 /// candidate so callers can immediately fall back to the server.
+/// The server track a local one was proved to be, for playing it when its
+/// file is gone.
+///
+/// The mirror image of [`preferred_local_playback`], and the direction that
+/// did not exist: server-to-local has always resolved, local-to-server never
+/// did, so a library track whose file vanished simply failed. Only a
+/// `confirmed` link qualifies — a stale one is a guess, and guessing which
+/// recording to play instead is worse than saying the file is missing.
+pub async fn linked_remote_track(
+    pool: &SqlitePool,
+    local_track_id: i64,
+) -> AppResult<Option<String>> {
+    Ok(sqlx::query_scalar::<_, String>(
+        "SELECT remote_track_id FROM remote_track_link
+          WHERE local_track_id = ? AND status = 'confirmed'
+          LIMIT 1",
+    )
+    .bind(local_track_id)
+    .fetch_optional(pool)
+    .await?)
+}
+
 pub async fn preferred_local_playback(
     pool: &SqlitePool,
     remote_track_id: &str,

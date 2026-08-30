@@ -1921,6 +1921,38 @@ pub async fn player_play_tracks(
 
     let pb = std::path::PathBuf::from(&track.file_path);
     if !pb.is_file() {
+        // The file is gone, but the recording may not be: if this track was
+        // proved to be one the bound server holds, play it from there instead
+        // of refusing. Announced rather than silent — the row keeps saying the
+        // file is missing, because it is.
+        #[cfg(feature = "sync_v2")]
+        if let Some(url) = server_stand_in(&state, &pool, track.id).await {
+            tracing::info!(
+                track_id = track.id,
+                path = %track.file_path,
+                "local file missing; playing the linked server copy"
+            );
+            emit_track_changed(&app, &state.paths, &track, profile_id);
+            let replay_gain = fetch_replay_gain(&pool, track.id).await;
+            return engine
+                .send(AudioCmd::LoadRemoteFileAndPlay {
+                    // The missing path on purpose: the decoder's repair path
+                    // is exactly this situation, and reusing it keeps one
+                    // implementation of "try the file, then the server".
+                    path: pb,
+                    start_ms: 0,
+                    track_id: track.id,
+                    duration_ms: track.duration_ms.max(0) as u64,
+                    title: Some(track.title.clone()),
+                    artist: track.artist_name.clone(),
+                    artwork_url: None,
+                    fallback_url: Some(url),
+                    // The user's own library row. Never ours to delete.
+                    discard_on_failure: false,
+                    replay_gain,
+                })
+                .map_err(Into::into);
+        }
         return Err(AppError::Audio(format!(
             "file not found: {}",
             track.file_path
@@ -2182,8 +2214,9 @@ pub async fn player_play_url(
     tracing::info!(track_id, "dispatching AudioCmd::LoadUrlAndPlay");
     engine.send(AudioCmd::LoadUrlAndPlay {
         // Radio: an endless body has no length and no end, so nothing here
-        // could ever be published as a complete entry.
+        // could ever be published as a complete entry, and nothing to seek.
         cache: None,
+        seekable_file: false,
         url,
         ext_hint,
         track_id,
@@ -2208,4 +2241,28 @@ pub async fn player_play_url(
 pub async fn get_current_radio_metadata(
 ) -> AppResult<Option<crate::audio::events::RadioMetadataPayload>> {
     Ok(crate::audio::events::last_radio_metadata())
+}
+
+/// A stream URL for the server copy of a local track whose file is gone.
+///
+/// `None` for every ordinary reason — no server bound, no confirmed link,
+/// offline, the mint refused — and each of them means the caller reports the
+/// missing file, which is the honest answer when there is nothing to play
+/// instead.
+#[cfg(feature = "sync_v2")]
+async fn server_stand_in(
+    state: &AppState,
+    pool: &sqlx::SqlitePool,
+    local_track_id: i64,
+) -> Option<String> {
+    if crate::offline::is_offline() {
+        return None;
+    }
+    let remote_id = crate::remote::reconciliation::linked_remote_track(pool, local_track_id)
+        .await
+        .ok()
+        .flatten()?;
+    crate::remote::stream::ticket_url(state, &remote_id)
+        .await
+        .ok()
 }

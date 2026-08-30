@@ -2440,7 +2440,15 @@
       "addTrack": "إضافة {{title}}",
       "addToPlaylist": "إضافة إلى قائمة التشغيل",
       "emptyDescription": "استخدم «إضافة مقاطع» للبحث في كتالوج الخادم.",
-      "notFoundDescription": "لم تعد قائمة التشغيل هذه موجودة على الخادم المرتبط."
+      "notFoundDescription": "لم تعد قائمة التشغيل هذه موجودة على الخادم المرتبط.",
+      "keepOffline": "حفظ دون اتصال",
+      "keepingProgress": "حُفظ {{done}}/{{total}}",
+      "keptOffline_few": "{{count}} دون اتصال",
+      "keptOffline_many": "{{count}} دون اتصال",
+      "keptOffline_one": "{{count}} دون اتصال",
+      "keptOffline_other": "{{count}} دون اتصال",
+      "keptOffline_two": "{{count}} دون اتصال",
+      "keptOffline_zero": "لا شيء دون اتصال"
     },
     "reconciliation": {
       "title": "المطابقة بين المحلي ↔ الخادم",
@@ -2584,7 +2592,14 @@
       "streamsCached_other": "{{count}} مقطع في الذاكرة المؤقتة ({{size}} ميغابايت).",
       "streamsCached_two": "مقطعان في الذاكرة المؤقتة ({{size}} ميغابايت).",
       "streamsCached_zero": "لا مقاطع في الذاكرة المؤقتة.",
-      "clearStreams": "إفراغ"
+      "clearStreams": "إفراغ",
+      "downloadsKept_few": "حُفظت {{count}} مقاطع دون اتصال ({{size}} ميغابايت).",
+      "downloadsKept_many": "حُفظ {{count}} مقطعًا دون اتصال ({{size}} ميغابايت).",
+      "downloadsKept_one": "حُفظ مقطع واحد دون اتصال ({{size}} ميغابايت).",
+      "downloadsKept_other": "حُفظ {{count}} مقطع دون اتصال ({{size}} ميغابايت).",
+      "downloadsKept_two": "حُفظ مقطعان دون اتصال ({{size}} ميغابايت).",
+      "downloadsKept_zero": "لم يُحفظ شيء دون اتصال.",
+      "clearDownloads": "إفراغ"
     }
   }
 }

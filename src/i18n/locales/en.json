@@ -2238,7 +2238,12 @@
       "addTrack": "Add {{title}}",
       "addToPlaylist": "Add to playlist",
       "emptyDescription": "Use Add tracks to search the server's catalogue.",
-      "notFoundDescription": "This playlist is no longer on the bound server."
+      "notFoundDescription": "This playlist is no longer on the bound server.",
+      "keepOffline": "Keep offline",
+      "keepingProgress": "keeping {{done}}/{{total}}",
+      "keptOffline_one": "{{count}} kept offline",
+      "keptOffline_other": "{{count}} kept offline",
+      "keptOffline_zero": "none kept offline"
     },
     "reconciliation": {
       "title": "Local ↔ server matching",
@@ -2332,7 +2337,11 @@
       "streamsCached_one": "{{count}} track cached ({{size}} MB).",
       "streamsCached_other": "{{count}} tracks cached ({{size}} MB).",
       "streamsCached_zero": "No tracks cached.",
-      "clearStreams": "Clear"
+      "clearStreams": "Clear",
+      "downloadsKept_one": "{{count}} track kept offline ({{size}} MB).",
+      "downloadsKept_other": "{{count}} tracks kept offline ({{size}} MB).",
+      "downloadsKept_zero": "Nothing kept offline.",
+      "clearDownloads": "Clear"
     }
   }
 }

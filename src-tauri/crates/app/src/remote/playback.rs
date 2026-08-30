@@ -227,6 +227,32 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
         &extension,
     );
 
+    // An offline copy outranks the cache: it holds the original bytes, it was
+    // kept on purpose, and no eviction can take it away mid-album.
+    {
+        let mut conn = pool.acquire().await?;
+        if let Some(path) = crate::remote::download::lookup(&mut conn, &entry.id).await {
+            drop(conn);
+            engine.send(AudioCmd::LoadRemoteFileAndPlay {
+                path,
+                start_ms: 0,
+                track_id,
+                duration_ms: entry.duration_ms.unwrap_or(0).max(0) as u64,
+                title: entry.title.clone(),
+                artist: entry.artist.clone(),
+                artwork_url: None,
+                // No ticket: a download is meant to play without the network,
+                // and minting one would defeat the reason it was kept.
+                fallback_url: None,
+                // Kept deliberately. Unlike a cache entry, it is not ours to
+                // throw away because a codec tripped — the owner decides.
+                discard_on_failure: false,
+                replay_gain: TrackGain::default(),
+            })?;
+            return Ok(());
+        }
+    }
+
     if let Some(path) = crate::audio::stream_cache::lookup(&cache_dir, &cache_name) {
         // A ticket is still minted, and it is cheap: a small JSON round-trip,
         // not the audio body the cache just saved. It buys the decoder its
@@ -272,6 +298,9 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
             dir: cache_dir,
             name: cache_name,
         }),
+        // A remote-queue track is finite. The running session says so too,
+        // but saying it here keeps the answer with the caller that knows.
+        seekable_file: true,
         url,
         ext_hint: None,
         track_id,

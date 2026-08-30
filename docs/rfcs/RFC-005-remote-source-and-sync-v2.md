@@ -456,6 +456,43 @@ cached file that will not decode falls back to the server once instead of
 failing that track forever. Offline, the ticket is simply not minted and the
 cached file plays alone, which is the point of having it.
 
+**A track can be kept**, which is a different thing from being cached. The
+cache is filled without asking and evicted without asking; a download is
+chosen, lands in a managed folder the scanner never sees, and disappears only
+when its owner says so. It is deliberately **not** a local library track: no
+`track` row is created for it, so `remote_track_link` cannot describe it either
+— that table keys on `local_track_id REFERENCES track(id)` — and a download is
+recorded as what it is, a *remote* track that happens to be on this disk.
+
+Downloads are always the **original** bytes, whatever the transcode preference
+says. That preference exists to spend less bandwidth on a stream heard once;
+baking a lossy re-encode into a file someone chose to keep would make a
+bandwidth decision permanent, and silently. The file is hashed while it is
+written, in the same pass that copies it, which is what makes the plan's "free"
+reconciliation proof real: the server's own `full_hash` — not the library's
+`file_hash`, which covers a file the server has never seen — is in hand the
+moment a `track` row exists to attach it to, with no re-read.
+
+Playback prefers, in order: a reconciled local file, a download, a cached
+stream, the network.
+
+**And the direction that never existed now does.** Server-to-local has always
+resolved — `preferred_local_playback` plays the local file when there is one —
+but local-to-server did not, so a library track whose file had been moved or
+deleted simply failed with `file not found`. When such a track carries a
+*confirmed* link, it now plays from the server instead. Only confirmed: a stale
+link is a guess, and guessing which recording to substitute is worse than
+saying the file is missing.
+
+Making that work required separating two questions the decoder had been
+answering with one variable. It decided "finite file or endless radio?" from
+the **global remote-session state**, which is right for the remote queue and
+wrong for anyone else: a library track falling back has no session, and would
+have been opened with ICY — forward-only, and parsing metadata blocks out of a
+FLAC. Whether a body is finite is a property of the stream, so it now travels
+on the command; whether a remote session is running stays what it always was,
+and still drives the metadata the bar shows.
+
 **The queue panel** switches to a dedicated `RemoteQueueView` while a remote
 session plays (keyed on `isRemoteTrack`), reading `remote_get_play_queue` (an
 in-memory snapshot) and jumping with `remote_queue_jump` — the local
