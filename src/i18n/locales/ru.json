@@ -2337,8 +2337,6 @@
       "label": "Удалённый плейлист",
       "nameLabel": "Название плейлиста",
       "notSent": "ещё не отправлен на сервер",
-      "trackCount_few": "{{count}} трека",
-      "trackCount_many": "{{count}} треков",
       "addTracks": "Добавить треки",
       "rename": "Переименовать",
       "searchPlaceholder": "Поиск в каталоге сервера…",
