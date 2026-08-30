@@ -48,6 +48,14 @@ export function UploadToServerCard() {
   const mountedRef = useRef(false);
   const { activeProfile } = useProfile();
   const activeProfileId = activeProfile?.id ?? null;
+  // Which profile a result belongs to. `mountedRef` cannot answer that: a
+  // profile switch leaves this card mounted, so a survey or an upload started
+  // under the previous profile resolves with the flag still true and paints
+  // its result over the reset. That matters beyond a stale figure — the plan
+  // carries local rowids, and rowids are per-profile, so a plan restored after
+  // the switch would offer the *new* profile's tracks by the *old* one's
+  // numbers.
+  const generationRef = useRef(0);
 
   // Subscribe before the first read, for the reason the mirror card gives: an
   // event emitted while `listen()` is still resolving is lost for good.
@@ -60,6 +68,13 @@ export function UploadToServerCard() {
   // on a stale picture.
   useEffect(() => {
     mountedRef.current = true;
+    generationRef.current += 1;
+    const generation = generationRef.current;
+    // True only while this profile is still the one on screen. Every write
+    // below goes through it, including the ones inside the listeners: a pass
+    // still running for the outgoing profile keeps emitting, and its bar must
+    // not move under the incoming one.
+    const current = () => mountedRef.current && generationRef.current === generation;
     const offs: (() => void)[] = [];
     // A listener whose `listen()` resolves after the cleanup has run would
     // never be removed by it: the array it would be pushed onto has already
@@ -78,16 +93,22 @@ export function UploadToServerCard() {
     setPicked(null);
     setPlan(null);
     setOutcome(null);
+    // Including the busy flag: the in-flight call's `finally` now belongs to
+    // the previous generation and will decline to clear it, which would leave
+    // the card disabled for good.
+    setBusy(null);
+    setSurveyProgress(null);
+    setUploadProgress(null);
     void (async () => {
       try {
         keep(
           await listen<UploadSurveyProgress>("remote:upload-survey", (event) => {
-            if (mountedRef.current) setSurveyProgress(event.payload);
+            if (current()) setSurveyProgress(event.payload);
           }),
         );
         keep(
           await listen<UploadProgress>("remote:upload-progress", (event) => {
-            if (mountedRef.current) setUploadProgress(event.payload);
+            if (current()) setUploadProgress(event.payload);
           }),
         );
       } catch {
@@ -95,17 +116,17 @@ export function UploadToServerCard() {
       }
       try {
         const status = await remoteGetStatus();
-        if (!mountedRef.current) return;
+        if (!current()) return;
         const nextVisible = status.signed_in && status.bootstrapped;
         setVisible(nextVisible);
         if (!nextVisible) return;
         const list = await remoteUploadLibraries();
-        if (mountedRef.current) {
+        if (current()) {
           setLibraries(list);
           setPicked(list[0]?.library_id ?? null);
         }
       } catch {
-        if (mountedRef.current) setVisible(false);
+        if (current()) setVisible(false);
       }
     })();
     return () => {
@@ -115,17 +136,20 @@ export function UploadToServerCard() {
   }, [activeProfileId]);
 
   const survey = useCallback(async () => {
+    const generation = generationRef.current;
+    const current = () =>
+      mountedRef.current && generationRef.current === generation;
     setBusy("survey");
     setError(null);
     setOutcome(null);
     setSurveyProgress(null);
     try {
       const next = await remoteUploadSurvey();
-      if (mountedRef.current) setPlan(next);
+      if (current()) setPlan(next);
     } catch (err) {
-      if (mountedRef.current) setError(String(err));
+      if (current()) setError(String(err));
     } finally {
-      if (mountedRef.current) {
+      if (current()) {
         setBusy(null);
         setSurveyProgress(null);
       }
@@ -134,6 +158,9 @@ export function UploadToServerCard() {
 
   const upload = useCallback(async () => {
     if (!picked || !plan || plan.candidates.length === 0) return;
+    const generation = generationRef.current;
+    const current = () =>
+      mountedRef.current && generationRef.current === generation;
     setBusy("upload");
     setError(null);
     setUploadProgress(null);
@@ -142,7 +169,7 @@ export function UploadToServerCard() {
         picked,
         plan.candidates.map((candidate) => candidate.track_id),
       );
-      if (mountedRef.current) {
+      if (current()) {
         setOutcome(next);
         // Whatever was sent is linked now, so the plan on screen describes a
         // library that no longer exists. Re-surveying is cheap after the
@@ -150,9 +177,9 @@ export function UploadToServerCard() {
         setPlan(null);
       }
     } catch (err) {
-      if (mountedRef.current) setError(String(err));
+      if (current()) setError(String(err));
     } finally {
-      if (mountedRef.current) {
+      if (current()) {
         setBusy(null);
         setUploadProgress(null);
       }
