@@ -2349,9 +2349,9 @@
     },
     "upload": {
       "title": "Unggah ke server",
-      "subtitle": "Kirim ke server trek yang belum dimilikinya. Survei membaca setiap berkas sekali untuk tahu mana yang benar-benar hilang.",
+      "subtitle": "Kirim ke server trek yang belum dimilikinya. Pemindaian membaca setiap berkas sekali untuk tahu mana yang benar-benar hilang.",
       "cancel": "Hentikan",
-      "survey": "Survei",
+      "survey": "Pindai",
       "surveying": "{{done}} / {{total}} berkas dibaca…",
       "statMissing": "Belum ada",
       "statLinked": "Sudah ada, ditautkan",

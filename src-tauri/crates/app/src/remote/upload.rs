@@ -394,6 +394,14 @@ pub async fn upload(
         }
         match upload_one(app, state, &pool, library_id, *track_id).await {
             Ok(Sent::Uploaded(entry)) => outcome.uploaded.push(entry),
+            // Set here rather than only at the top of the loop: a stop during
+            // the last track's transfer would otherwise fall out of the loop
+            // without the flag ever being read, and the run would report
+            // itself as having finished.
+            Ok(Sent::Cancelled) => {
+                outcome.cancelled = true;
+                break;
+            }
             Ok(Sent::Refused(reason)) => outcome.skipped.push(SkippedUpload {
                 track_id: *track_id,
                 reason,
@@ -413,6 +421,10 @@ pub async fn upload(
 enum Sent {
     Uploaded(UploadedTrack),
     Refused(UploadRefusal),
+    /// Stopped part-way through this track's transfer. Distinct from a
+    /// refusal: nothing was decided about the file, and the session holds
+    /// what it received, so the next sweep carries on from there.
+    Cancelled,
 }
 
 async fn upload_one(
@@ -517,8 +529,10 @@ async fn upload_one(
     while session.next_chunk * chunk_bytes < size {
         if cancelled() {
             // Nothing is lost: the session holds what it received and the next
-            // sweep reads its state and carries on from there.
-            return Ok(Sent::Refused(UploadRefusal::Failed));
+            // sweep reads its state and carries on from there. Reported as a
+            // stop rather than as a failure — the user asked for this, and a
+            // track listed under "failed" reads as something to investigate.
+            return Ok(Sent::Cancelled);
         }
         let offset = session.next_chunk * chunk_bytes;
         let want = chunk_bytes.min(size - offset);

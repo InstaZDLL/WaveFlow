@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useProfile } from "../../../hooks/useProfile";
 import { listen } from "@tauri-apps/api/event";
 import { Loader2, Search, Upload, X } from "lucide-react";
 import {
@@ -45,20 +46,46 @@ export function UploadToServerCard() {
   const [busy, setBusy] = useState<null | "survey" | "upload">(null);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(false);
+  const { activeProfile } = useProfile();
+  const activeProfileId = activeProfile?.id ?? null;
 
   // Subscribe before the first read, for the reason the mirror card gives: an
   // event emitted while `listen()` is still resolving is lost for good.
+  //
+  // Keyed on the active profile, not mounted once. A profile switch does not
+  // remount this tree — it swaps a value in the context — so a card that read
+  // its destinations at mount would keep offering the *previous* profile's
+  // server libraries, while the backend resolves the pool afresh on every
+  // call. Uploading writes to somebody's server; it is the last place to act
+  // on a stale picture.
   useEffect(() => {
     mountedRef.current = true;
     const offs: (() => void)[] = [];
+    // A listener whose `listen()` resolves after the cleanup has run would
+    // never be removed by it: the array it would be pushed onto has already
+    // been walked. So each one is either detached immediately or registered
+    // for the cleanup to find, decided after the await rather than before it.
+    const keep = (off: () => void) => {
+      if (mountedRef.current) offs.push(off);
+      else off();
+    };
+    // Nothing from the outgoing profile may paint: reset first, then read.
+    // Synchronous on purpose — deferring it would let one paint show the
+    // previous profile's destinations, which is the whole failure this guards
+    // against. Same exception the other profile-scoped surfaces take.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLibraries([]);
+    setPicked(null);
+    setPlan(null);
+    setOutcome(null);
     void (async () => {
       try {
-        offs.push(
+        keep(
           await listen<UploadSurveyProgress>("remote:upload-survey", (event) => {
             if (mountedRef.current) setSurveyProgress(event.payload);
           }),
         );
-        offs.push(
+        keep(
           await listen<UploadProgress>("remote:upload-progress", (event) => {
             if (mountedRef.current) setUploadProgress(event.payload);
           }),
@@ -75,7 +102,7 @@ export function UploadToServerCard() {
         const list = await remoteUploadLibraries();
         if (mountedRef.current) {
           setLibraries(list);
-          setPicked((current) => current ?? list[0]?.library_id ?? null);
+          setPicked(list[0]?.library_id ?? null);
         }
       } catch {
         if (mountedRef.current) setVisible(false);
@@ -85,7 +112,7 @@ export function UploadToServerCard() {
       mountedRef.current = false;
       for (const off of offs) off();
     };
-  }, []);
+  }, [activeProfileId]);
 
   const survey = useCallback(async () => {
     setBusy("survey");
