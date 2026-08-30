@@ -25,7 +25,8 @@
 //! Partial files are worse than absent ones: a truncated audio file decodes
 //! for a while and then stops, which reads as a broken track rather than a
 //! cold cache. So the writer tracks the byte ranges it has covered, merges
-//! them, and only publishes the entry — one atomic rename out of `.part` —
+//! them, and only publishes the entry — one atomic rename out of its working
+//! name —
 //! when a single range spans the whole body. Anything else is discarded on
 //! drop. A body of unknown length is never cached at all, since completeness
 //! could not be decided.
@@ -118,14 +119,21 @@ pub fn lookup(dir: &Path, name: &str) -> Option<PathBuf> {
     Some(path)
 }
 
-/// Suffix of a working file. Published entries never carry it — the rename
-/// is what drops it — so it is the one reliable way to tell the two apart.
-const PART_SUFFIX: &str = ".part";
+/// Suffix of a working file.
+///
+/// The hyphen is the point. A published entry ends in whatever
+/// [`sanitize_ext`] produced, and that function emits ASCII alphanumerics
+/// only — so no extension the server can hand us, however hostile, can ever
+/// end a published name with this. A plain `.part` could: a track whose
+/// `suffix` column read `part` would publish as `<key>.part` and then be
+/// mistaken for a file still being written, excluded from the reported size
+/// and never evicted.
+const WORKING_SUFFIX: &str = ".in-flight";
 
 /// Whether a directory entry is a working file rather than a published one.
 fn is_working_file(path: &Path) -> bool {
     path.to_str()
-        .map(|name| name.ends_with(PART_SUFFIX))
+        .map(|name| name.ends_with(WORKING_SUFFIX))
         .unwrap_or(false)
 }
 
@@ -263,7 +271,7 @@ impl CacheWriter {
         // process can play the same track at once, and they would otherwise
         // share one working file and corrupt each other's bytes.
         let part = dir.join(format!(
-            "{name}.{}.part",
+            "{name}.{}{WORKING_SUFFIX}",
             blake3::hash(
                 format!(
                     "{:?}:{:?}",
@@ -457,6 +465,30 @@ mod tests {
         let mut writer = CacheWriter::create(dir.path(), &name, 4).expect("writer");
         writer.write_at(0, &[0u8; 8]);
         assert!(lookup(dir.path(), &name).is_none());
+    }
+
+    #[test]
+    fn an_extension_cannot_impersonate_a_working_file() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        // The one extension that would collide with a naive `.part` marker.
+        // It is far-fetched as an audio suffix and entirely under the
+        // server's control, which is reason enough not to let it decide
+        // whether one of our files is visible.
+        let name = file_name("t7", "raw", 0, "part");
+        let mut writer = CacheWriter::create(dir.path(), &name, 4).expect("writer");
+        writer.write_at(0, &[0u8; 4]);
+        assert!(
+            lookup(dir.path(), &name).is_some(),
+            "a published entry is playable whatever its extension"
+        );
+        assert_eq!(
+            info(dir.path()),
+            (4, 1),
+            "and it is counted, not mistaken for a file still being written"
+        );
+        // Evictable too: excluded from the sweep, it would outlive the budget
+        // forever.
+        assert!(!is_working_file(&dir.path().join(&name)));
     }
 
     #[test]
