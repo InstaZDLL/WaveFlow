@@ -1,11 +1,11 @@
 # RFC-006 — Deduplicating the two catalogues
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Date**: 2026-08-31
 - **Authors**: @InstaZDLL
 - **Depends on**: [RFC-005](RFC-005-remote-source-and-sync-v2.md) — this RFC answers the question its Decision 1 deferred, and does not revisit anything else it settled.
 - **Implementation**: none yet.
-- **Revised** after external review, before any implementation. What the first draft proposed for albums is kept below, as [the rule that was withdrawn](#the-album-rule-that-was-withdrawn), because the reason it fails is the most useful thing in this document.
+- **Revised** after external review and accepted on 2026-08-31, before any implementation. What the first draft proposed for albums is kept below, as [the rule that was withdrawn](#the-album-rule-that-was-withdrawn), because the reason it fails is the most useful thing in this document.
 
 ---
 
