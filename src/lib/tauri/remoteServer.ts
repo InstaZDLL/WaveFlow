@@ -443,6 +443,24 @@ export function remoteReorderPlaylistTrack(
  * page; each hit's metadata is cached server-side so adding it renders a
  * title at once. Empty for a blank query.
  */
+/**
+ * What the bound server's transcoder can do, and how busy it is.
+ *
+ * `available` is a startup capability — the server found both FFmpeg tools —
+ * so a `false` here means the preference cannot be honoured however it is
+ * set. The two ceilings are what a `429` on the stream route enforces.
+ */
+export interface RemoteTranscodeStatus {
+  available: boolean;
+  active: number;
+  global_limit: number;
+  per_user_limit: number;
+}
+
+export function remoteTranscodeStatus(): Promise<RemoteTranscodeStatus> {
+  return invoke<RemoteTranscodeStatus>("remote_transcode_status");
+}
+
 export function remoteSearchCatalogue(query: string): Promise<RemoteTrack[]> {
   return invoke<RemoteTrack[]>("remote_search_catalogue", { query });
 }

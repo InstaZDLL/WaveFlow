@@ -2063,6 +2063,20 @@
     "dsdDop": {
       "title": "原生 DSD（DoP）",
       "subtitle": "通过 DoP（DSD over PCM）将 DSD 流原样发送到 DAC，而不转换为 PCM——比特完美原生解码。需要独占输出（Windows 上的 WASAPI，Linux 上的硬件 ALSA，macOS 上的 CoreAudio hog mode）和支持 DoP 的 DAC；否则回退到 DSD → PCM。"
+    },
+    "remoteTranscode": {
+      "title": "转码远程音源",
+      "subtitle": "请求服务器在发送前重新编码曲目。节省流量，但会损失音质。",
+      "off": "原始",
+      "offHint": "服务器上的原始文件，无损失。",
+      "opus": "Opus",
+      "opusHint": "同等体积下音质最佳，现代编解码器。",
+      "mp3": "MP3",
+      "mp3Hint": "同等音质下体积更大，兼容性最好。",
+      "bitrateLabel": "比特率",
+      "kbps": "{{rate}} kbps",
+      "activeNotice": "远程曲目会被重新编码，因此播放音质低于原始文件。本地文件永远不会被转码。",
+      "unsupported": "该服务器在构建时未包含 FFmpeg，无法转码。远程曲目始终以原始格式送达。"
     }
   },
   "scanProgress": {

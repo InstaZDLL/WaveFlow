@@ -50,6 +50,7 @@ import {
 import { RemoteServerCard } from "./settings/RemoteServerCard";
 import { ReconciliationCard } from "./settings/ReconciliationCard";
 import { CatalogueMirrorCard } from "./settings/CatalogueMirrorCard";
+import { RemoteTranscodeCard } from "./settings/RemoteTranscodeCard";
 import { PluginStoreCard } from "./settings/PluginStoreCard";
 import { PluginsCard } from "./settings/PluginsCard";
 import { useTheme } from "../../hooks/useTheme";
@@ -2637,6 +2638,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               the card probes for its own backend and renders nothing
               when `sync_v2` is off, which is every shipped build today. */}
             <RemoteServerCard />
+            <RemoteTranscodeCard />
             <CatalogueMirrorCard />
             <ReconciliationCard />
 

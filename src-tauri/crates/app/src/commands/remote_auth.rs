@@ -736,6 +736,19 @@ pub async fn remote_stream_url(
     crate::remote::stream::ticket_url(&state, &track_id).await
 }
 
+/// What the bound server's transcoder can do, and how busy it is.
+///
+/// Read by the settings card so the preference can say plainly that a server
+/// without FFmpeg cannot honour it — otherwise the only way to learn that is
+/// to turn transcoding on and hear the original anyway, with nothing on
+/// screen explaining why.
+#[tauri::command]
+pub async fn remote_transcode_status(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<crate::remote::stream::TranscodeStatus> {
+    crate::remote::stream::status(&state).await
+}
+
 /// Resolve a remote cover (by hash) to a **local file path**, downloading it
 /// once if it is not already cached.
 ///

@@ -2063,6 +2063,20 @@
     "dsdDop": {
       "title": "DSD nativo (DoP)",
       "subtitle": "Invia il flusso DSD così com'è al DAC tramite DoP (DSD over PCM) invece di convertirlo in PCM — decodifica nativa bit-perfect. Richiede un'uscita esclusiva (WASAPI su Windows, ALSA hardware su Linux, CoreAudio hog mode su macOS) e un DAC compatibile con DoP; altrimenti ripiega su DSD → PCM."
+    },
+    "remoteTranscode": {
+      "title": "Transcodifica la sorgente remota",
+      "subtitle": "Chiedi al server di ricodificare i suoi brani prima di inviarli. Risparmia banda, costa qualità audio.",
+      "off": "Originale",
+      "offHint": "Il file com'è sul server. Nessuna perdita.",
+      "opus": "Opus",
+      "opusHint": "Migliore qualità per kilobyte. Codec moderno.",
+      "mp3": "MP3",
+      "mp3Hint": "Più pesante a parità di qualità. Massima compatibilità.",
+      "bitrateLabel": "Bitrate",
+      "kbps": "{{rate}} kbit/s",
+      "activeNotice": "I brani remoti vengono ricodificati: suonano al di sotto della qualità originale. I file locali non vengono mai transcodificati.",
+      "unsupported": "Questo server è stato compilato senza FFmpeg e non può transcodificare. I brani remoti arrivano sempre nel formato originale."
     }
   },
   "spotify": {

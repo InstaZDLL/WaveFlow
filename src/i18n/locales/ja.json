@@ -2063,6 +2063,20 @@
     "dsdDop": {
       "title": "ネイティブDSD（DoP）",
       "subtitle": "DSDストリームをPCMに変換せず、DoP（DSD over PCM）でそのままDACに送信します — ビットパーフェクトなネイティブデコード。排他出力（WindowsではWASAPI、Linuxではハードウェア ALSA、macOSではCoreAudio hog mode）とDoP対応DACが必要です。満たさない場合はDSD → PCMにフォールバックします。"
+    },
+    "remoteTranscode": {
+      "title": "リモートソースをトランスコード",
+      "subtitle": "送信前に楽曲を再エンコードするようサーバーに要求します。通信量は減りますが、音質は下がります。",
+      "off": "オリジナル",
+      "offHint": "サーバー上のファイルそのまま。劣化なし。",
+      "opus": "Opus",
+      "opusHint": "容量あたりの音質が最良。新しいコーデックです。",
+      "mp3": "MP3",
+      "mp3Hint": "同じ音質でもサイズは大きめ。互換性は最大。",
+      "bitrateLabel": "ビットレート",
+      "kbps": "{{rate}} kbps",
+      "activeNotice": "リモートの楽曲は再エンコードされるため、本来の音質より下がった状態で再生されます。ローカルのファイルがトランスコードされることはありません。",
+      "unsupported": "このサーバーは FFmpeg なしでビルドされているため、トランスコードできません。リモートの楽曲は常に元の形式で届きます。"
     }
   },
   "scanProgress": {

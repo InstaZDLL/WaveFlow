@@ -2063,6 +2063,20 @@
     "dsdDop": {
       "title": "原生 DSD（DoP）",
       "subtitle": "透過 DoP（DSD over PCM）將 DSD 串流原樣傳送到 DAC，而非轉換為 PCM——位元完美原生解碼。需要獨佔輸出（Windows 上的 WASAPI，Linux 上的硬體 ALSA，macOS 上的 CoreAudio hog mode）與支援 DoP 的 DAC；否則回退到 DSD → PCM。"
+    },
+    "remoteTranscode": {
+      "title": "轉碼遠端音源",
+      "subtitle": "要求伺服器在傳送前重新編碼曲目。節省流量，但會損失音質。",
+      "off": "原始",
+      "offHint": "伺服器上的原始檔案，無損失。",
+      "opus": "Opus",
+      "opusHint": "同等容量下音質最佳，現代編解碼器。",
+      "mp3": "MP3",
+      "mp3Hint": "同等音質下檔案更大，相容性最好。",
+      "bitrateLabel": "位元率",
+      "kbps": "{{rate}} kbps",
+      "activeNotice": "遠端曲目會重新編碼，因此播放音質低於原始檔案。本機檔案永遠不會被轉碼。",
+      "unsupported": "此伺服器建置時未包含 FFmpeg，無法轉碼。遠端曲目一律以原始格式送達。"
     }
   },
   "scanProgress": {

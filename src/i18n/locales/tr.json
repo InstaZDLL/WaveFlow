@@ -2063,6 +2063,20 @@
     "dsdDop": {
       "title": "Yerel DSD (DoP)",
       "subtitle": "DSD akışını PCM'ye dönüştürmek yerine DoP (DSD over PCM) ile olduğu gibi DAC'a gönderir — bit-perfect yerel çözme. Özel bir çıkış (Windows'ta WASAPI, Linux'ta donanım ALSA, macOS'ta CoreAudio hog mode) ve DoP uyumlu bir DAC gerektirir; aksi hâlde DSD → PCM'ye geri döner."
+    },
+    "remoteTranscode": {
+      "title": "Uzak kaynağı yeniden kodla",
+      "subtitle": "Sunucudan parçaları göndermeden önce yeniden kodlamasını iste. Bant genişliğinden kazandırır, ses kalitesinden götürür.",
+      "off": "Orijinal",
+      "offHint": "Dosya sunucudaki hâliyle. Kayıpsız.",
+      "opus": "Opus",
+      "opusHint": "Kilobayt başına en iyi kalite. Modern kodek.",
+      "mp3": "MP3",
+      "mp3Hint": "Aynı kalitede daha büyük. En geniş uyumluluk.",
+      "bitrateLabel": "Bit hızı",
+      "kbps": "{{rate}} kbit/sn",
+      "activeNotice": "Uzak parçalar yeniden kodlanır, yani özgün kalitelerinin altında çalar. Yerel dosyalar hiçbir zaman yeniden kodlanmaz.",
+      "unsupported": "Bu sunucu FFmpeg olmadan derlenmiş ve yeniden kodlama yapamıyor. Uzak parçalar her zaman özgün biçiminde gelir."
     }
   },
   "spotify": {
