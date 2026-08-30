@@ -300,6 +300,7 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
         }),
         // A remote-queue track is finite. The running session says so too,
         // but saying it here keeps the answer with the caller that knows.
+        duration_ms: entry.duration_ms.map(|ms| ms.max(0) as u64),
         seekable_file: true,
         url,
         ext_hint: None,

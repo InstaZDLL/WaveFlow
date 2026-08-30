@@ -530,6 +530,10 @@ fn decoder_loop(
                                 // Whatever failed was a finite file, and its
                                 // replacement on the server is one too — this
                                 // is the path a vanished library track takes.
+                                // Its duration came with the command and is
+                                // the only place that knows it, since no
+                                // remote session is running.
+                                duration_ms: Some(duration_ms),
                                 seekable_file: true,
                             });
                             continue;
@@ -567,6 +571,7 @@ fn decoder_loop(
                             artwork_url,
                             // See above: a repair path does not repopulate.
                             cache: None,
+                            duration_ms: Some(duration_ms),
                             seekable_file: true,
                         });
                         continue;
@@ -589,6 +594,7 @@ fn decoder_loop(
                 artwork_url,
                 replay_gain,
                 cache,
+                duration_ms: declared_duration_ms,
                 seekable_file,
             } => {
                 tracing::info!(
@@ -690,7 +696,12 @@ fn decoder_loop(
                         is_remote,
                         // A remote-queue entry carries its length; radio
                         // does not. Drives a bounded seekbar on the bar.
-                        duration_ms: remote_meta.duration_ms,
+                        // What the caller declared wins: it knows about streams
+                        // no remote session covers, and a session that is not
+                        // running has nothing to say about this one.
+                        duration_ms: declared_duration_ms
+                            .map(|ms| ms as i64)
+                            .or(remote_meta.duration_ms),
                         // Cover hash for a remote track — the frontend turns
                         // it into a data URL for the PlayerBar.
                         artwork_hash: remote_meta.artwork_hash,

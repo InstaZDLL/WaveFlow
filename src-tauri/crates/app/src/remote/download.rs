@@ -26,8 +26,10 @@
 //! for it twice.
 
 use std::{
+    collections::HashSet,
     io::Write,
     path::{Path, PathBuf},
+    sync::{Mutex, OnceLock},
 };
 
 use serde::Serialize;
@@ -64,6 +66,40 @@ pub struct DownloadedTrack {
 pub struct DownloadsInfo {
     pub bytes: u64,
     pub tracks: usize,
+}
+
+/// Track ids with a download in flight right now.
+///
+/// Two callers asking for the same track — a second window, a double click —
+/// would otherwise both find no existing copy, both fetch the same bytes, and
+/// both write them to the same place. The working name below is unique per
+/// call, so nothing could corrupt anything even without this; the guard is
+/// what stops the *second download* from happening at all.
+fn in_flight() -> &'static Mutex<HashSet<String>> {
+    static IN_FLIGHT: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
+    IN_FLIGHT.get_or_init(|| Mutex::new(HashSet::new()))
+}
+
+/// Releases its track id however the download ends, including a panic.
+struct InFlightGuard(String);
+
+impl InFlightGuard {
+    /// `None` when this track is already being fetched.
+    fn claim(track_id: &str) -> Option<Self> {
+        let mut set = in_flight().lock().ok()?;
+        if !set.insert(track_id.to_string()) {
+            return None;
+        }
+        Some(Self(track_id.to_string()))
+    }
+}
+
+impl Drop for InFlightGuard {
+    fn drop(&mut self) {
+        if let Ok(mut set) = in_flight().lock() {
+            set.remove(&self.0);
+        }
+    }
 }
 
 /// The offline copy of a remote track, if one exists **and its file is still
@@ -196,6 +232,14 @@ pub async fn download(
     if let Some(existing) = existing_row(&pool, remote_track_id).await? {
         return Ok(existing);
     }
+    // Claimed before the first byte and held through the rename and the row,
+    // so the window a second caller could slip into does not exist.
+    let _guard = InFlightGuard::claim(remote_track_id)
+        .ok_or_else(|| AppError::Other("this track is already downloading".into()))?;
+    // Re-checked under the claim: the copy may have landed while we waited.
+    if let Some(existing) = existing_row(&pool, remote_track_id).await? {
+        return Ok(existing);
+    }
 
     let extension = suffix_for(&pool, remote_track_id).await;
     let dir = state.paths.profile_remote_download_dir(profile_id);
@@ -207,9 +251,17 @@ pub async fn download(
     let url = crate::remote::stream::raw_ticket_url(state, remote_track_id).await?;
 
     let final_path = dir.join(file_name(remote_track_id, &extension));
+    // Unique per call, not merely per track: a shared working name is how two
+    // writers end up interleaving one file. The stream cache learned this; the
+    // lesson belongs here too.
     let part_path = dir.join(format!(
-        "{}.in-flight",
-        file_name(remote_track_id, &extension)
+        "{}.{}.in-flight",
+        file_name(remote_track_id, &extension),
+        blake3::hash(format!("{:?}", std::time::SystemTime::now()).as_bytes())
+            .to_hex()
+            .to_string()
+            .split_at(16)
+            .0
     ));
     let outcome = stream_to_file(app, remote_track_id, &url, &part_path).await;
     let (size, full_hash) = match outcome {
@@ -221,6 +273,19 @@ pub async fn download(
             return Err(err);
         }
     };
+    // The server told us what these bytes hash to when it mirrored the track.
+    // Comparing costs nothing here — we hashed while writing — and it is the
+    // only thing standing between a truncated or substituted body and a file
+    // we will later offer as an exact reconciliation proof.
+    if let Some(expected) = catalogue_hash(&pool, remote_track_id).await {
+        if expected != full_hash {
+            let _ = std::fs::remove_file(&part_path);
+            return Err(AppError::Other(format!(
+                "download: hash mismatch for {remote_track_id}"
+            )));
+        }
+    }
+
     if let Err(err) = std::fs::rename(&part_path, &final_path) {
         let _ = std::fs::remove_file(&part_path);
         return Err(AppError::from(err));
@@ -372,6 +437,24 @@ fn file_name(remote_track_id: &str, extension: &str) -> String {
     } else {
         format!("{key}.{ext}")
     }
+}
+
+/// What the catalogue says this track's bytes hash to, when it knows.
+///
+/// `None` for a track mirrored before the column was populated, which is a
+/// reason to accept the download rather than to refuse it: an unverifiable
+/// copy is still the copy the server just sent.
+async fn catalogue_hash(pool: &SqlitePool, remote_track_id: &str) -> Option<String> {
+    sqlx::query_scalar::<_, Option<String>>(
+        "SELECT full_hash FROM remote_track WHERE remote_id = ?",
+    )
+    .bind(remote_track_id)
+    .fetch_optional(pool)
+    .await
+    .ok()
+    .flatten()
+    .flatten()
+    .filter(|hash| hash.len() == 64)
 }
 
 /// The container the server holds this track in, for the file name.

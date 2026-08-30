@@ -469,9 +469,13 @@ says. That preference exists to spend less bandwidth on a stream heard once;
 baking a lossy re-encode into a file someone chose to keep would make a
 bandwidth decision permanent, and silently. The file is hashed while it is
 written, in the same pass that copies it, which is what makes the plan's "free"
-reconciliation proof real: the server's own `full_hash` — not the library's
-`file_hash`, which covers a file the server has never seen — is in hand the
-moment a `track` row exists to attach it to, with no re-read.
+reconciliation proof real. The server's own `full_hash` — not the library's
+`file_hash`, which covers a file the server has never seen — is known **the
+moment the write completes**, with no re-read and without needing a `track`
+row to exist: it is stored on `remote_track_download` there and then. What
+waits for a `track` row is only the *link*, which is a different object and a
+later step. It is also checked against the catalogue's own digest before the
+file is published, so a truncated or substituted body never becomes a proof.
 
 Playback prefers, in order: a reconciled local file, a download, a cached
 stream, the network.

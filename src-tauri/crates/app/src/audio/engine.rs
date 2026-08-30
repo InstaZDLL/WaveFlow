@@ -131,6 +131,13 @@ pub enum AudioCmd {
         /// remote-queue track worth keeping. `None` for radio, which is
         /// endless and therefore never complete.
         cache: Option<crate::audio::stream_cache::CacheTarget>,
+        /// Total length, when the caller knows it.
+        ///
+        /// The decoder used to take this from the remote session alone, which
+        /// leaves it unknown for a finite stream reached any other way — a
+        /// library track falling back to the server has a duration in its own
+        /// row, and dropping it costs the seekbar its total.
+        duration_ms: Option<u64>,
         /// Force a finite, range-capable open even with no remote session
         /// running.
         ///
@@ -403,6 +410,10 @@ pub(crate) enum RadioResumeSource {
         /// is being streamed from the server after its local file
         /// failed to open.
         replay_gain: TrackGain,
+        /// Carried so a finite stream comes back finite — see
+        /// [`AudioCmd::LoadUrlAndPlay`].
+        duration_ms: Option<u64>,
+        seekable_file: bool,
     },
     RemoteFile {
         path: PathBuf,
@@ -419,6 +430,8 @@ impl RadioResumeState {
                 url,
                 ext_hint,
                 replay_gain,
+                duration_ms,
+                seekable_file,
             } => AudioCmd::LoadUrlAndPlay {
                 url,
                 ext_hint,
@@ -427,10 +440,14 @@ impl RadioResumeState {
                 artist: self.artist,
                 artwork_url: self.artwork_url,
                 replay_gain,
-                // Resuming radio after a device change: endless, so never a
-                // complete body to cache, and never seekable.
+                // Not cached on resume: the target belongs to the response
+                // that was open, and this is a new one.
                 cache: None,
-                seekable_file: false,
+                // Restored, not assumed. Flattening every resumed stream to
+                // "radio" would bring a finite server track back forward-only
+                // and ICY-parsed, just because the device changed.
+                duration_ms,
+                seekable_file,
             },
             RadioResumeSource::RemoteFile {
                 path,
@@ -1528,11 +1545,14 @@ fn apply_radio_resume_update(snapshot: &Mutex<Option<RadioResumeState>>, cmd: &A
             artist,
             artwork_url,
             replay_gain,
-            // The resume snapshot exists to restart radio after a device
-            // change; a cache target belongs to one open response and does
-            // not survive into a new one, and only radio is ever resumed.
+            // A cache target belongs to one open response and does not
+            // survive into a new one. Everything else about the stream does:
+            // flattening it to "radio" here is what would bring a finite
+            // server track back forward-only and ICY-parsed, just because
+            // the audio device changed.
             cache: _,
-            seekable_file: _,
+            duration_ms,
+            seekable_file,
         } => {
             if let Ok(mut guard) = snapshot.lock() {
                 *guard = Some(RadioResumeState {
@@ -1540,6 +1560,8 @@ fn apply_radio_resume_update(snapshot: &Mutex<Option<RadioResumeState>>, cmd: &A
                         url: url.clone(),
                         ext_hint: ext_hint.clone(),
                         replay_gain: *replay_gain,
+                        duration_ms: *duration_ms,
+                        seekable_file: *seekable_file,
                     },
                     track_id: *track_id,
                     title: title.clone(),
@@ -1735,6 +1757,7 @@ mod radio_resume_tests {
             artist: Some("Test artist".to_string()),
             artwork_url: Some("https://example.invalid/art.jpg".to_string()),
             cache: None,
+            duration_ms: None,
             seekable_file: false,
             replay_gain: TrackGain::default(),
         }

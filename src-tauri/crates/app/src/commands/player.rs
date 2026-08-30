@@ -2214,6 +2214,8 @@ pub async fn player_play_url(
         // Radio: an endless body has no length and no end, so nothing here
         // could ever be published as a complete entry, and nothing to seek.
         cache: None,
+        // A live station has no end and therefore no total.
+        duration_ms: None,
         seekable_file: false,
         url,
         ext_hint,
