@@ -10,7 +10,10 @@ import {
   remoteArtworkCacheInfo,
   remoteClearArtworkCache,
   remoteMirrorCatalogue,
+  remoteClearStreamCache,
+  remoteStreamCacheInfo,
   type ArtworkCacheInfo,
+  type StreamCacheInfo,
   type CatalogueMirrorProgress,
   type CatalogueMirrorReport,
   type CatalogueStats,
@@ -45,7 +48,10 @@ export function CatalogueMirrorCard() {
   const [report, setReport] = useState<CatalogueMirrorReport | null>(null);
   const [progress, setProgress] = useState<CatalogueMirrorProgress | null>(null);
   const [covers, setCovers] = useState<ArtworkCacheInfo | null>(null);
-  const [busy, setBusy] = useState<null | "mirror" | "clear" | "covers">(null);
+  const [streams, setStreams] = useState<StreamCacheInfo | null>(null);
+  const [busy, setBusy] = useState<
+    null | "mirror" | "clear" | "covers" | "streams"
+  >(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(false);
@@ -58,6 +64,12 @@ export function CatalogueMirrorCard() {
       if (mountedRef.current) setCovers(cache);
     } catch {
       // Informational only — keep the last figure rather than blanking it.
+    }
+    try {
+      const cache = await remoteStreamCacheInfo();
+      if (mountedRef.current) setStreams(cache);
+    } catch {
+      // Same: a figure that failed to refresh is better than none.
     }
   }, []);
 
@@ -124,6 +136,19 @@ export function CatalogueMirrorCard() {
     setError(null);
     try {
       await remoteClearArtworkCache();
+      await refreshStats();
+    } catch (err) {
+      if (mountedRef.current) setError(String(err));
+    } finally {
+      if (mountedRef.current) setBusy(null);
+    }
+  }, [refreshStats]);
+
+  const clearStreams = useCallback(async () => {
+    setBusy("streams");
+    setError(null);
+    try {
+      await remoteClearStreamCache();
       await refreshStats();
     } catch (err) {
       if (mountedRef.current) setError(String(err));
@@ -288,6 +313,31 @@ export function CatalogueMirrorCard() {
                 className="underline underline-offset-2 disabled:opacity-50"
               >
                 {t("remote.catalogue.clearCovers")}
+              </button>
+            </p>
+          )}
+
+          {/* Cached audio, counted and cleared apart from the covers and from
+              the mirror. Dropping it costs one download per track played
+              again — the server still holds every byte. */}
+          {streams && streams.tracks > 0 && (
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-2 flex-wrap">
+              <span>
+                {t("remote.catalogue.streamsCached", {
+                  count: streams.tracks,
+                  size: formatBytes(
+                    streams.bytes,
+                    i18n.resolvedLanguage ?? i18n.language,
+                  ),
+                })}
+              </span>
+              <button
+                type="button"
+                onClick={() => void clearStreams()}
+                disabled={busy !== null}
+                className="underline underline-offset-2 disabled:opacity-50"
+              >
+                {t("remote.catalogue.clearStreams")}
               </button>
             </p>
           )}

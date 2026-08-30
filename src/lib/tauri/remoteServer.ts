@@ -461,6 +461,25 @@ export function remoteTranscodeStatus(): Promise<RemoteTranscodeStatus> {
   return invoke<RemoteTranscodeStatus>("remote_transcode_status");
 }
 
+/**
+ * Disk held by cached remote audio, counted apart from the covers: whole
+ * songs and thumbnails differ in size by two orders of magnitude, and one
+ * figure covering both would be read as the smaller one.
+ */
+export interface StreamCacheInfo {
+  bytes: number;
+  tracks: number;
+}
+
+export function remoteStreamCacheInfo(): Promise<StreamCacheInfo> {
+  return invoke<StreamCacheInfo>("remote_stream_cache_info");
+}
+
+/** Drop every cached stream. Costs one download per track played again. */
+export function remoteClearStreamCache(): Promise<number> {
+  return invoke<number>("remote_clear_stream_cache");
+}
+
 export function remoteSearchCatalogue(query: string): Promise<RemoteTrack[]> {
   return invoke<RemoteTrack[]>("remote_search_catalogue", { query });
 }

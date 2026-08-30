@@ -519,6 +519,12 @@ fn decoder_loop(
                                 // server instead of the local file must
                                 // not change its level.
                                 replay_gain,
+                                // Not cached: this is the repair path for a
+                                // file that would not open, and the target
+                                // that named it is two commands upstream.
+                                // Caching here would also risk re-writing the
+                                // very entry that just failed to decode.
+                                cache: None,
                             });
                             continue;
                         }
@@ -552,6 +558,8 @@ fn decoder_loop(
                             title,
                             artist,
                             artwork_url,
+                            // See above: a repair path does not repopulate.
+                            cache: None,
                         });
                         continue;
                     }
@@ -572,6 +580,7 @@ fn decoder_loop(
                 artist,
                 artwork_url,
                 replay_gain,
+                cache,
             } => {
                 tracing::info!(
                     track_id,
@@ -685,7 +694,15 @@ fn decoder_loop(
                 // with the live `StreamTitle` while keeping the station's
                 // cover + name; it stays forward-only.
                 let opened = if is_remote {
-                    super::http_source::HttpMediaSource::open_seekable(&url)
+                    // A cache target only ever accompanies a finite
+                    // remote-queue track, so the seekable open is the only
+                    // one that can honour it.
+                    match cache {
+                        Some(target) => {
+                            super::http_source::HttpMediaSource::open_seekable_caching(&url, target)
+                        }
+                        None => super::http_source::HttpMediaSource::open_seekable(&url),
+                    }
                 } else {
                     let icy_ctx = super::http_source::IcyContext {
                         app: app.clone(),

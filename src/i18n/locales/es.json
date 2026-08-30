@@ -2328,7 +2328,11 @@
       "clearCovers": "Vaciar",
       "coversCached_zero": "Ninguna carátula en caché.",
       "coversCached_one": "{{count}} carátula en caché ({{size}} MB).",
-      "coversCached_other": "{{count}} carátulas en caché ({{size}} MB)."
+      "coversCached_other": "{{count}} carátulas en caché ({{size}} MB).",
+      "streamsCached_one": "{{count}} pista en caché ({{size}} MB).",
+      "streamsCached_other": "{{count}} pistas en caché ({{size}} MB).",
+      "streamsCached_zero": "Ninguna pista en caché.",
+      "clearStreams": "Vaciar"
     }
   }
 }

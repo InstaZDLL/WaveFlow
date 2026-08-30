@@ -2181,6 +2181,9 @@ pub async fn player_play_url(
 
     tracing::info!(track_id, "dispatching AudioCmd::LoadUrlAndPlay");
     engine.send(AudioCmd::LoadUrlAndPlay {
+        // Radio: an endless body has no length and no end, so nothing here
+        // could ever be published as a complete entry.
+        cache: None,
         url,
         ext_hint,
         track_id,

@@ -781,6 +781,36 @@ pub async fn remote_clear_artwork_cache(state: tauri::State<'_, AppState>) -> Ap
     crate::remote::artwork::clear(&state).await
 }
 
+/// How much disk the cached remote streams occupy, and how many tracks that
+/// is. Reported beside the cover cache but counted separately: whole songs
+/// and thumbnails differ in size by two orders of magnitude, and one figure
+/// covering both would be read as the smaller one.
+#[tauri::command]
+pub async fn remote_stream_cache_info(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<StreamCacheInfo> {
+    let profile_id = state.require_profile_id().await?;
+    let dir = state.paths.profile_remote_stream_dir(profile_id);
+    let (bytes, tracks) = crate::audio::stream_cache::info(&dir);
+    Ok(StreamCacheInfo { bytes, tracks })
+}
+
+/// Bytes held by the remote stream cache, and how many complete tracks.
+#[derive(serde::Serialize)]
+pub struct StreamCacheInfo {
+    pub bytes: u64,
+    pub tracks: usize,
+}
+
+/// Delete every cached remote stream. Costs one download each time a track is
+/// played again — nothing is lost, since the server still holds the bytes.
+#[tauri::command]
+pub async fn remote_clear_stream_cache(state: tauri::State<'_, AppState>) -> AppResult<usize> {
+    let profile_id = state.require_profile_id().await?;
+    let dir = state.paths.profile_remote_stream_dir(profile_id);
+    Ok(crate::audio::stream_cache::clear(&dir)?)
+}
+
 /// Play a projected remote playlist as a native queue, starting at
 /// `start_index`. Fills the in-memory remote queue from the projection so
 /// the tracks after it auto-advance, mints a stream ticket for the first,

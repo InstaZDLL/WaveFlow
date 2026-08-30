@@ -36,6 +36,7 @@ pub mod replay_gain;
 pub mod resampler;
 pub mod spectrum;
 pub mod state;
+pub mod stream_cache;
 #[cfg(target_os = "windows")]
 pub mod wasapi_exclusive;
 

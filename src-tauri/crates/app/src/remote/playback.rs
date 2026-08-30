@@ -204,8 +204,61 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
         return Ok(());
     }
 
+    // Name the cache entry before deciding anything: the key is what the
+    // request would ask for, and the same triple answers both "is it already
+    // here" and "where do the bytes go if it is not".
+    let profile_id = state.require_profile_id().await?;
+    let cache_dir = state.paths.profile_remote_stream_dir(profile_id);
+    let preference = crate::remote::stream::preference(&pool).await;
+    let (format_key, extension) = cached_format(&pool, &entry.id, preference).await;
+    let cache_name = crate::audio::stream_cache::file_name(
+        &entry.id,
+        format_key,
+        preference.bitrate,
+        &extension,
+    );
+
+    if let Some(path) = crate::audio::stream_cache::lookup(&cache_dir, &cache_name) {
+        // A ticket is still minted, and it is cheap: a small JSON round-trip,
+        // not the audio body the cache just saved. It buys the decoder its
+        // existing repair path, so a cache entry that will not decode falls
+        // back to the server once instead of failing this track forever.
+        // Offline it simply fails, and the cached file plays alone — which is
+        // the whole point of having it.
+        let fallback_url = if crate::offline::is_offline() {
+            None
+        } else {
+            crate::remote::stream::ticket_url(&state, &entry.id)
+                .await
+                .ok()
+        };
+        engine.send(AudioCmd::LoadRemoteFileAndPlay {
+            path,
+            start_ms: 0,
+            track_id,
+            // Zero when the projection has no duration yet: the decoder
+            // reads the real one out of the file it is about to open, which
+            // a cached entry is.
+            duration_ms: entry.duration_ms.unwrap_or(0).max(0) as u64,
+            title: entry.title.clone(),
+            artist: entry.artist.clone(),
+            artwork_url: None,
+            fallback_url,
+            // Nothing local knows this recording's loudness, and the server
+            // does not send one — same as the streaming branch below.
+            replay_gain: TrackGain::default(),
+        })?;
+        return Ok(());
+    }
+
     let url = crate::remote::stream::ticket_url(&state, &entry.id).await?;
     engine.send(AudioCmd::LoadUrlAndPlay {
+        // Fill the cache from the blocks this playback was going to read
+        // anyway. Nothing extra is fetched and nothing is delayed.
+        cache: Some(crate::audio::stream_cache::CacheTarget {
+            dir: cache_dir,
+            name: cache_name,
+        }),
         url,
         ext_hint: None,
         track_id,
@@ -220,4 +273,38 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
         replay_gain: TrackGain::default(),
     })?;
     Ok(())
+}
+
+/// The key half of the format, and the extension the cached bytes carry.
+///
+/// A transcode always produces the codec that was asked for. The original
+/// bytes are whatever the server holds, which only its `suffix` column knows —
+/// and the decoder probes a file by extension, so guessing here would mean
+/// caching a FLAC under a name that says MP3.
+///
+/// The key half stays `"raw"` in that case: what identifies the request is
+/// that no transcode was asked for, not which container happened to answer.
+async fn cached_format(
+    pool: &sqlx::SqlitePool,
+    track_id: &str,
+    preference: crate::remote::stream::TranscodePreference,
+) -> (&'static str, String) {
+    use crate::remote::stream::TranscodeFormat;
+    match preference.format {
+        TranscodeFormat::Mp3 => ("mp3", "mp3".to_string()),
+        TranscodeFormat::Opus => ("opus", "opus".to_string()),
+        TranscodeFormat::Off => {
+            let suffix = sqlx::query_scalar::<_, Option<String>>(
+                "SELECT suffix FROM remote_track WHERE remote_id = ?",
+            )
+            .bind(track_id)
+            .fetch_optional(pool)
+            .await
+            .ok()
+            .flatten()
+            .flatten()
+            .unwrap_or_default();
+            ("raw", suffix)
+        }
+    }
 }

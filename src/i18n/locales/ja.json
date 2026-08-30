@@ -2307,7 +2307,11 @@
       "clearCovers": "削除",
       "coversCached_zero": "キャッシュされたジャケットはありません。",
       "coversCached_one": "キャッシュ済みのジャケット {{count}} 件（{{size}} MB）",
-      "coversCached_other": "キャッシュ済みのジャケット {{count}} 件（{{size}} MB）"
+      "coversCached_other": "キャッシュ済みのジャケット {{count}} 件（{{size}} MB）",
+      "streamsCached_one": "キャッシュ済みの楽曲 {{count}} 件（{{size}} MB）",
+      "streamsCached_other": "キャッシュ済みの楽曲 {{count}} 件（{{size}} MB）",
+      "streamsCached_zero": "キャッシュされた楽曲はありません。",
+      "clearStreams": "削除"
     }
   }
 }

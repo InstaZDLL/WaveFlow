@@ -2307,7 +2307,11 @@
       "clearCovers": "清空",
       "coversCached_zero": "没有缓存的封面。",
       "coversCached_one": "已缓存 {{count}} 张封面（{{size}} MB）",
-      "coversCached_other": "已缓存 {{count}} 张封面（{{size}} MB）"
+      "coversCached_other": "已缓存 {{count}} 张封面（{{size}} MB）",
+      "streamsCached_one": "已缓存 {{count}} 首曲目（{{size}} MB）",
+      "streamsCached_other": "已缓存 {{count}} 首曲目（{{size}} MB）",
+      "streamsCached_zero": "没有缓存的曲目。",
+      "clearStreams": "清空"
     }
   }
 }

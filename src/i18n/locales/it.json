@@ -2328,7 +2328,11 @@
       "clearCovers": "Svuota",
       "coversCached_zero": "Nessuna copertina in cache.",
       "coversCached_one": "{{count}} copertina in cache ({{size}} MB).",
-      "coversCached_other": "{{count}} copertine in cache ({{size}} MB)."
+      "coversCached_other": "{{count}} copertine in cache ({{size}} MB).",
+      "streamsCached_one": "{{count}} brano in cache ({{size}} MB).",
+      "streamsCached_other": "{{count}} brani in cache ({{size}} MB).",
+      "streamsCached_zero": "Nessun brano in cache.",
+      "clearStreams": "Svuota"
     }
   }
 }

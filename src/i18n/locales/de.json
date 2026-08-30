@@ -2328,7 +2328,11 @@
       "clearCovers": "Leeren",
       "coversCached_zero": "Keine Cover im Zwischenspeicher.",
       "coversCached_one": "{{count}} Cover im Zwischenspeicher ({{size}} MB).",
-      "coversCached_other": "{{count}} Cover im Zwischenspeicher ({{size}} MB)."
+      "coversCached_other": "{{count}} Cover im Zwischenspeicher ({{size}} MB).",
+      "streamsCached_one": "{{count}} Titel im Zwischenspeicher ({{size}} MB).",
+      "streamsCached_other": "{{count}} Titel im Zwischenspeicher ({{size}} MB).",
+      "streamsCached_zero": "Keine Titel im Zwischenspeicher.",
+      "clearStreams": "Leeren"
     }
   }
 }

@@ -2307,7 +2307,11 @@
       "clearCovers": "Kosongkan",
       "coversCached_zero": "Tidak ada sampul di cache.",
       "coversCached_one": "{{count}} sampul di cache ({{size}} MB).",
-      "coversCached_other": "{{count}} sampul di cache ({{size}} MB)."
+      "coversCached_other": "{{count}} sampul di cache ({{size}} MB).",
+      "streamsCached_one": "{{count}} lagu di cache ({{size}} MB).",
+      "streamsCached_other": "{{count}} lagu di cache ({{size}} MB).",
+      "streamsCached_zero": "Tidak ada lagu di cache.",
+      "clearStreams": "Kosongkan"
     }
   }
 }
