@@ -100,7 +100,15 @@ sample is evidence about the *person*, not about the extent of their work.
 
 Two albums are the same when **every track of each is confirmed-linked to a
 track of the other**, one to one, over sets both of which are
-[eligible](#decision-3--nothing-is-paired-until-both-sides-have-been-examined).
+[eligible](#decision-3--nothing-is-paired-until-both-sides-have-been-reconciled)
+— and when there is **at least one such link**.
+
+That last clause is not redundant. A bijection over two empty sets holds
+vacuously: every track of each is linked to a track of the other, because there
+are none. Two albums with no tracks would pair, and so would a local album with
+an empty server response — a walk that returned nothing, a release whose files
+are all unavailable upstream. An album with no tracks is not evidence of
+anything, and it never pairs.
 
 Ten local tracks against ten server tracks, all linked: the same album. Ten
 against eighteen: **not** automatically the same album, however many links
@@ -161,37 +169,92 @@ third link contradicting them arrives a second later and un-hides it. A rule
 that can hide something on incomplete evidence is not made safe by eventually
 correcting itself.
 
-## Decision 3 — nothing is paired until both sides have been examined
+## Decision 3 — nothing is paired until both sides have been reconciled
 
 The withdrawn rule had a second flaw, and it survives any threshold: **the
 absence of a link is ambiguous**. It means either "these bytes differ" or "this
 pair has not been looked at yet", and a predicate that cannot tell them apart is
 deciding on evidence it does not have.
 
-So pairing requires an explicit **completeness frontier**, and the pleasant
-discovery is that the columns to compute it already exist:
+So pairing requires an explicit **completeness frontier**. Three properties
+have to hold together, and the second is the one that is easy to get wrong.
 
-- **A server album is fully discovered** when `remote_album.mirrored_at` is set.
-  Until then its track list is a prefix, not a set.
-- **A server track is examinable** when `remote_track.full_hash` is present. A
-  row mirrored before that column was populated cannot be compared at all.
-- **A local track has been examined** when `local_full_hash` holds a valid entry
-  for it — the digest cache added in lot 5, valid while `(file_size,
-  file_modified)` still match. That table is what turns "no link" into "no link,
-  and we looked".
+### Hashed is not reconciled
 
-A pair is eligible only when every track on both sides clears the matching
-condition. Absence of a link between two examined tracks then means what it
-should: different bytes. `remote_track_match_rejection` already records the
-stronger statement — a candidate a person examined and refused — and it
-continues to mean what it means.
+The obvious frontier — both sides have a digest, therefore both sides have been
+examined — is **wrong**, and it is wrong today rather than hypothetically:
 
-**This makes reconciliation's use of `local_full_hash` a prerequisite rather
-than an optimisation.** Today only the upload survey fills that cache;
-reconciliation still hashes on its own. Until both go through it, the
-completeness frontier is only as complete as whatever last ran, and pairing
-would be eligible in fewer cases than it should be — conservative, so not
-dangerous, but not the intended behaviour either.
+```
+local track   local_full_hash = ABC123      (written by the upload survey)
+remote track  full_hash       = ABC123      (written by the mirror)
+remote_track_link             = no row
+```
+
+Both files are hashed. Both digests are equal. No link exists, because nothing
+has yet compared them — the upload survey fills the cache, and reconciliation
+still hashes on its own rather than reading it. A frontier built on "both sides
+hashed" reads that absence as *different bytes*, about two files that are
+identical.
+
+Digests are an input to reconciliation, not a record that it ran. **Eligibility
+requires a completed reconciliation over the exact sets being evaluated**, and
+that is a distinct fact which nothing currently records. Adding it — a
+reconciliation frontier, per catalogue generation, in the sense below — is a
+prerequisite of this RFC, alongside routing reconciliation through
+`local_full_hash` so that the two paths stop hashing the same files twice.
+
+### Completeness is versioned, not a timestamp
+
+`remote_album.mirrored_at` says a walk finished. It does not say the set has not
+changed since:
+
+```
+12:00  walk completes            mirrored_at = 12:00
+12:05  the server adds a track   mirrored_at = 12:00, and now lying
+```
+
+A closed set that reopened is not a closed set, so the frontier is attached to a
+**generation of the catalogue** rather than to a moment. Eligibility holds while
+the reconciled generation equals the current one; anything that changes either
+side's membership advances the current generation and makes the pair ineligible
+until reconciliation catches up.
+
+The desktop has a weak form of this already and no strong one.
+`remote_album.song_count` is the mirror's own freshness check — an album whose
+count is unchanged is skipped without a fetch — so `(song_count, mirrored_at)`
+detects the common case of a track arriving or leaving. It does not detect a
+track being *replaced*, and it depends on a walk to notice anything at all.
+
+The strong form is the server's library event stream (its RFC-007), which
+carries a monotonic `cursor` and is already live. **The desktop consumes none of
+it** — there is no cursor anywhere in `remote/mirror.rs` — which makes this
+RFC's frontier one more consumer for the work lot 6 has to do anyway. Until
+then, `(song_count, mirrored_at)` is the available approximation, and it is an
+approximation on the conservative side only for additions and removals.
+
+### The corpus is what is observed, not what exists
+
+Artists get the same frontier as albums, with the meaning that makes it
+possible: complete does **not** mean "we know this artist's entire discography",
+which is unachievable and would pair nobody. It means **every track currently
+observed for that artist, on both sides, has been reconciled**.
+
+```
+snapshot N        local: A B C      remote: A B D      all reconciled
+                  A ↔ A,  B ↔ B,  no contradiction    → eligible
+
+snapshot N+1      a track E appears                    → ineligible until
+                                                          reconciled again
+```
+
+Without this, artists reproduce the withdrawn rule's failure at smaller scale:
+two links arrive and the artist is hidden, a third contradicts them and it comes
+back. Decision 5 explains why that behaviour is worse than never hiding it at
+all, and the explanation does not stop applying because the entity is an artist.
+
+`remote_track_match_rejection` already records the stronger statement — a
+candidate a person examined and refused — and it continues to mean what it
+means.
 
 ## Decision 4 — a pair is presented as one, not stored as one
 
@@ -211,12 +274,23 @@ the server has held for three years and this machine acquired today belongs at
 the top of *recently added*, not buried three years back. A remote-only entry
 naturally keeps the server's date; there is no pair to reconcile.
 
-**Contents are ordered, not merely concatenated.** With Decision 2's bijection
-the two track sets coincide, so the union is the set itself — but the rule still
-has to be written, because a *presentation* built from two rows needs a total
-order or two renders can disagree. It is: `disc_number`, then `track_number`,
-then local before remote, then the stable identifier. The last two exist to make
-the order total, not to express a preference.
+**One pair, one row — and the row is the local one.** With Decision 2's
+bijection the two track sets coincide, so a deduplicated album shows each
+recording exactly once, rendered from its local row. This is the rule the track
+listing already applies, and stating it here removes the reading the earlier
+draft invited: nothing produces two rows for one pair, so no deduplicated album
+can list a track twice.
+
+**Playback is not decided by the row.** It follows
+`remote_track_link.playback_preference` — `local_first` by default,
+`server_first` when the user says so — which exists precisely so that which
+copy plays is a property of the *pair* rather than of whichever half a listing
+happened to render. A row shown from the local half can still play from the
+server, and does when the local file has gone.
+
+**The order is total.** `disc_number`, then `track_number`, then the stable
+identifier. There is no local-before-remote tiebreak, because after the two
+previous rules there is no pair of rows for it to arbitrate.
 
 **Actions have one meaning, decided here.** "Whichever half the gesture came
 from" is not an answer once the user sees one card: they cannot tell which half
@@ -225,7 +299,10 @@ they clicked, and they should not have to.
 - **Starring applies to both representations that can carry it**, and the entry
   reads as starred when either is. Un-starring clears both. The server half
   travels through the outbound mutation queue like any other remote write, so
-  this works offline and lands when the queue drains.
+  this works offline and lands when the queue drains — and the entry reads from
+  the projection, which `remote::write` updates in the *same transaction* as it
+  queues the mutation. That is what keeps an offline un-star from looking like
+  a button that did nothing until the network returns.
 - **Rating and the cover picker write to local rows only.** They have no server
   counterpart in this protocol; nothing is silently dropped because nothing was
   ever offered.
@@ -265,11 +342,26 @@ that can fail: a server track deleted upstream, an account signed out, a
 permission withdrawn.
 
 One distinction has to be made explicit or this rule causes the flicker it was
-written to prevent: **it is about existence, not about momentary reach.** A
-server that is unreachable right now, or offline mode being on, must not
-re-expand every pair in the library — the representation still exists, it is
-merely not answering. Only a representation that has *ceased to exist* releases
-its partner from being hidden.
+written to prevent: **transient unreachability is not loss.** A server that is
+not answering right now, or offline mode being on, must not re-expand every pair
+in the library — the representation still exists and will answer again.
+
+But "only actual deletion counts" is too narrow in the other direction, because
+some failures are durable without being deletions. The line is whether the
+representation can be expected to come back **for this user**:
+
+| Condition | Still hidden? |
+| --- | --- |
+| Network down, server asleep, offline mode on | Yes — it will answer again |
+| Local file missing (`is_available = 0`) | No — the local half already filtered itself out |
+| Track gone from the server's catalogue (`in_catalogue = 0`) | No |
+| Signed out, or the binding forgotten | No |
+| Membership or permission withdrawn upstream | No |
+
+The last three are not outages: nothing about waiting fixes them. Treating them
+as transient would leave a user looking at a library that quietly lost entries
+they still hold locally, which is the exact harm this decision exists to
+prevent.
 
 ## Decision 6 — a local playlist becomes exactly representable
 
@@ -289,6 +381,13 @@ distinction matters. It decides **representability**:
 > A local playlist whose every entry carries a `confirmed` link can be projected
 > into server track identifiers exactly, with no guessing. Publication happens
 > only when every entry is representable.
+
+A `confirmed` link is necessary and not sufficient: the same
+existence-versus-reach distinction applies. A link whose server track has left
+the catalogue (`in_catalogue = 0`), or whose server is no longer one this
+account may read, names something that will not resolve — the entry is not
+representable, however confirmed the proof once was. Being unable to reach the
+server *right now* is not that, and does not make a playlist unrepresentable.
 
 All or nothing, and never silently. A playlist of forty tracks with three
 unlinked ones does not travel as a playlist of thirty-seven: a list missing
@@ -355,7 +454,7 @@ it will read as the feature not working. It should be visible in the interface �
 
 - **Whether an ineligible pair should say so.** The cost section argues it
   should; where that surfaces without cluttering a library view is unresolved.
-- **Whether artists should also require a completeness frontier.** Decision 3 is
-  written for both, but an artist is an open grouping, so "both sides examined"
-  is a stronger demand there than the evidence needs. Leaving it uniform is the
-  conservative choice and may prove too strict in practice.
+- **What advances a catalogue generation, exactly.** Decision 3 requires one;
+  `(song_count, mirrored_at)` approximates it today and the library event
+  stream's cursor is the real answer, but which changes must invalidate a
+  frontier — a retag upstream, a track becoming unavailable — is unenumerated.
