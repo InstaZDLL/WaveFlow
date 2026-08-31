@@ -494,8 +494,8 @@ async fn local_twin(pool: &SqlitePool, size: i64, expected_hash: &str) -> AppRes
     if size <= 0 || expected_hash.len() != 64 {
         return Ok(None);
     }
-    let candidates: Vec<(i64, String)> = sqlx::query_as(
-        "SELECT t.id, t.file_path
+    let candidates: Vec<(i64, String, i64)> = sqlx::query_as(
+        "SELECT t.id, t.file_path, t.file_modified
            FROM track t
           WHERE t.file_size = ? AND t.is_available = 1
             AND NOT EXISTS (SELECT 1 FROM remote_track_link l WHERE l.local_track_id = t.id)",
@@ -503,13 +503,12 @@ async fn local_twin(pool: &SqlitePool, size: i64, expected_hash: &str) -> AppRes
     .bind(size)
     .fetch_all(pool)
     .await?;
-    for (track_id, file_path) in candidates {
-        let path = PathBuf::from(file_path);
-        let hashed =
-            tokio::task::spawn_blocking(move || waveflow_core::scanner::hash_file_full(&path))
-                .await
-                .map_err(|err| AppError::Other(format!("import hash task failed: {err}")))?;
-        let Ok(hashed) = hashed else { continue };
+    for (track_id, file_path, modified) in candidates {
+        // Through the shared cache: this is discovery — "does the library
+        // already hold these bytes" — so a file another sweep has read does not
+        // need reading again, and one read here serves the next sweep too.
+        let hashed = super::hashing::full_hash(pool, track_id, &file_path, size, modified).await?;
+        let Some(hashed) = hashed else { continue };
         if hashed.eq_ignore_ascii_case(expected_hash) {
             return Ok(Some(track_id));
         }
