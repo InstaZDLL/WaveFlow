@@ -871,15 +871,22 @@ macro_rules! album_pair_proven {
     () => {
         concat!(
             "ra.mirrored_at IS NOT NULL AND EXISTS (
-           SELECT 1 FROM album al
-            WHERE EXISTS (
-                    SELECT 1 FROM remote_track rt
-                      JOIN remote_track_link l
-                        ON l.remote_track_id = rt.remote_id AND l.status = 'confirmed'
-                      JOIN track t ON t.id = l.local_track_id
-                     WHERE rt.album_id = ra.remote_id AND rt.in_catalogue = 1
-                       AND t.album_id = al.id AND t.is_available = 1)
-              AND NOT EXISTS (
+           SELECT 1 FROM (
+                  -- The only albums that can possibly pair are those a
+                  -- confirmed link already reaches from this one. Ranging over
+                  -- every local album instead would be one scan of the local
+                  -- catalogue per server album, answering `false` for all but
+                  -- a handful. It also subsumes the non-empty requirement: a
+                  -- candidate exists only because a link does.
+                  SELECT DISTINCT t.album_id AS id
+                    FROM remote_track rt
+                    JOIN remote_track_link l
+                      ON l.remote_track_id = rt.remote_id AND l.status = 'confirmed'
+                    JOIN track t ON t.id = l.local_track_id
+                   WHERE rt.album_id = ra.remote_id AND rt.in_catalogue = 1
+                     AND t.is_available = 1 AND t.album_id IS NOT NULL
+                ) al
+            WHERE NOT EXISTS (
                     SELECT 1 FROM remote_track rt
                      WHERE rt.album_id = ra.remote_id AND rt.in_catalogue = 1
                        AND NOT EXISTS (
@@ -921,11 +928,40 @@ macro_rules! album_pair_proven {
 /// Both sides of the disagreement are checked. Looking only from the server
 /// side would fold a local *Various Artists* into a real artist whenever the
 /// compilation's own tracks happened to agree.
+///
+/// ## Why `primary_artist`, when the listing joins `track_artist`
+///
+/// The listing shows a local artist credited anywhere on a track; this
+/// predicate considers only the *primary* one, and the two are deliberately
+/// not the same set.
+///
+/// The mirror holds exactly one artist per server track — `remote_track` has
+/// an `artist_id` column and there is no remote participants table — so
+/// `primary_artist` is the only local column comparable to it. Joining
+/// `track_artist` instead would make every guest credit look like a
+/// disagreement: a featured artist would "own" a track the server attributes
+/// to the host, and the unanimity check would fire against an artist the
+/// server never mentioned.
+///
+/// The cost is a known false negative: an artist never credited as primary is
+/// never paired, so they appear twice. That is the direction this design
+/// always fails in — a visible duplicate rather than a hidden entity — and it
+/// resolves on its own if the mirror ever carries participants.
 macro_rules! artist_pair_proven {
     () => {
         concat!(
             "EXISTS (
-           SELECT 1 FROM artist la
+           SELECT 1 FROM (
+                  -- Same candidate narrowing as the albums': only an artist a
+                  -- confirmed link already reaches can pair.
+                  SELECT DISTINCT t.primary_artist AS id
+                    FROM remote_track rt
+                    JOIN remote_track_link l
+                      ON l.remote_track_id = rt.remote_id AND l.status = 'confirmed'
+                    JOIN track t ON t.id = l.local_track_id
+                   WHERE rt.artist_id = ra.remote_id AND rt.in_catalogue = 1
+                     AND t.is_available = 1 AND t.primary_artist IS NOT NULL
+                ) la
             WHERE (SELECT COUNT(*)
                      FROM remote_track rt
                      JOIN remote_track_link l
@@ -3314,6 +3350,61 @@ mod tests {
             names.len(),
             3,
             "a disagreeing link ends the question: {names:?}"
+        );
+    }
+
+    /// An artist credited on a track but never its primary is not paired, and
+    /// appears twice.
+    ///
+    /// The mirror holds one artist per server track, so `primary_artist` is
+    /// the only comparable local column; a guest credit would otherwise read
+    /// as a disagreement about an artist the server never mentioned. A visible
+    /// duplicate is the failure this design chooses.
+    #[tokio::test]
+    async fn a_guest_credit_alone_never_pairs_an_artist() {
+        let pool = pool().await;
+        seed(&pool).await;
+        // A second local artist, credited on both tracks but primary on
+        // neither — exactly what a featuring credit looks like.
+        sqlx::raw_sql("INSERT INTO artist (id, name, canonical_name) VALUES (2, 'Guest', 'guest')")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::raw_sql(
+            "INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
+                                title, album_id, duration_ms, added_at, is_available,
+                                primary_artist, hlc_wall, hlc_logical,
+                                rating_hlc_wall, rating_hlc_logical)
+             VALUES (2, 1, '/m/2.flac', 'h2', 2, 0, 'T2', 1, 300000, 500, 1, 1, 0, 0, 0, 0)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::raw_sql(
+            "INSERT INTO track_artist (track_id, artist_id, position)
+             VALUES (1, 2, 1), (2, 1, 0), (2, 2, 1)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        examine(&pool, 1).await;
+        examine(&pool, 2).await;
+        link(&pool, 1, "t-1").await;
+        link(&pool, 2, "t-2").await;
+
+        let names: Vec<String> =
+            artists(&pool, None, None, library_artist_order_clause(None, None))
+                .await
+                .into_iter()
+                .map(|row| row.1)
+                .collect();
+        // Björk is primary on both linked tracks and pairs; Guest is credited
+        // on both and pairs with nothing, so it stays listed on its own.
+        assert!(names.contains(&"Guest".to_string()), "{names:?}");
+        assert_eq!(
+            names.iter().filter(|name| *name == "Björk").count(),
+            1,
+            "the primary artist still pairs: {names:?}"
         );
     }
 
