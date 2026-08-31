@@ -198,9 +198,17 @@ identical.
 
 Digests are an input to reconciliation, not a record that it ran. **Eligibility
 requires a completed reconciliation over the exact sets being evaluated**, and
-that is a distinct fact which nothing currently records. Adding it — a
-reconciliation frontier, per catalogue generation, in the sense below — remains
-a prerequisite of this RFC.
+recording *that* — a per-entity generation, in the sense below — is still to be
+built.
+
+What is implemented is the part of the frontier the schema can already answer,
+and it turns out to carry most of the weight: a track is treated as examined
+only when `local_full_hash` holds a valid entry for it, and a server album only
+when `remote_album.mirrored_at` is set. Combined with Decision 2's demand that
+**every** track on both sides be linked, an unexamined track cannot pair
+anything — it has no link, so the bijection fails and the two entries stay
+apart. The generation is what remains to catch the narrower case: a set that was
+fully examined and has changed since.
 
 The other half of that prerequisite is **done**: every discovery path now shares
 one digest cache — the reconciliation sweep, the upload survey, and an import's
