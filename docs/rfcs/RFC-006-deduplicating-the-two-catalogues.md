@@ -199,9 +199,30 @@ identical.
 Digests are an input to reconciliation, not a record that it ran. **Eligibility
 requires a completed reconciliation over the exact sets being evaluated**, and
 that is a distinct fact which nothing currently records. Adding it — a
-reconciliation frontier, per catalogue generation, in the sense below — is a
-prerequisite of this RFC, alongside routing reconciliation through
-`local_full_hash` so that the two paths stop hashing the same files twice.
+reconciliation frontier, per catalogue generation, in the sense below — remains
+a prerequisite of this RFC.
+
+The other half of that prerequisite is **done**: every discovery path now shares
+one digest cache — the reconciliation sweep, the upload survey, and an import's
+check for bytes the library already holds — so the same file is no longer read
+by each of them in turn.
+
+**But discovery reads the cache and verification never does**, and implementing
+that surfaced a distinction the frontier depends on. A reconciliation sweep does
+two jobs at once. It **discovers** pairs among unlinked tracks, which is what
+the cache is for. It also **re-verifies** the tracks that already carry a link,
+which is how a link whose bytes have changed becomes `stale` — and that job must
+read the file. `track.file_modified` moves when a *scan* re-reads a file, not
+when the file changes, so a track edited outside WaveFlow keeps its
+`(size, mtime)` and with them a cached digest describing bytes that are gone. A
+re-verification served from that would never catch the stale link it exists to
+catch.
+
+So the cache is offered only for tracks carrying no link, and the paths that
+verify immediately before an irreversible write — confirming a link, converting
+a playlist — always read the file. Stated once: **a caller asking what a file
+hashes to may use the cache; a caller asking whether it still hashes to that
+must not.**
 
 ### Completeness is versioned, and the version is per entity
 

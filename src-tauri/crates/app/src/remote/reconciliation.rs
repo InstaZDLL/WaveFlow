@@ -60,6 +60,10 @@ struct ReconcileProgress {
 /// Outcome of the blocking hash pass over the local candidates.
 struct HashScan {
     hashed: Vec<HashedLocalTrack>,
+    /// `(track id, digest, size, mtime)` for the files this sweep actually
+    /// read, so the caller can file them for the next one. Empty when every
+    /// candidate was already known.
+    computed: Vec<(i64, String, i64, i64)>,
     unreadable: usize,
     cancelled: bool,
 }
@@ -103,6 +107,9 @@ struct LocalTrack {
     album: Option<String>,
     file_path: String,
     size: i64,
+    /// Carried so a computed digest can be filed against the same
+    /// `(size, mtime)` the row had when it was read — see [`super::hashing`].
+    modified: i64,
 }
 
 #[derive(Debug, Clone)]
@@ -345,11 +352,40 @@ async fn discover_inner(
 
     let local_tracks = load_local_candidates(pool).await?;
     let total = local_tracks.len();
+    // What a previous sweep — or an upload survey, or an import — already
+    // established about these exact files. Read once, before the blocking pass,
+    // because that pass has no pool and must not acquire one per file.
+    //
+    // **Only for tracks that carry no link yet.** This sweep does two jobs, and
+    // they are the two the digest cache exists to keep apart: it *discovers*
+    // pairs among unlinked tracks, and it *re-verifies* the tracks that already
+    // have a link, which is how a link whose bytes changed becomes `stale`.
+    // Serving that second job from the cache would defeat it — `file_modified`
+    // only moves when a scan re-reads the file, so a track edited outside
+    // WaveFlow keeps its `(size, mtime)` and its cached digest, and its stale
+    // link would never be caught. A linked track is therefore always read.
+    let unlinked: Vec<i64> = sqlx::query_scalar(
+        "SELECT t.id FROM track t
+          WHERE NOT EXISTS (SELECT 1 FROM remote_track_link l WHERE l.local_track_id = t.id)",
+    )
+    .fetch_all(pool)
+    .await?;
+    let unlinked: std::collections::HashSet<i64> = unlinked.into_iter().collect();
+    let ids: Vec<i64> = local_tracks
+        .iter()
+        .map(|track| track.id)
+        .filter(|id| unlinked.contains(id))
+        .collect();
+    let known = super::hashing::cached_digests(pool, &ids).await?;
     let scan = tokio::task::spawn_blocking(move || {
-        hash_local_tracks(local_tracks, app.as_ref(), total, cancellable)
+        hash_local_tracks(local_tracks, known, app.as_ref(), total, cancellable)
     })
     .await
     .map_err(|err| AppError::Other(format!("reconciliation hash task failed: {err}")))?;
+    // Filed before the cancellation check below: these describe files, not
+    // decisions, so a run that was stopped still leaves the reading it paid for
+    // behind — which is the whole reason the next sweep is cheap.
+    super::hashing::remember(pool, &scan.computed).await?;
 
     if scan.cancelled {
         // A partial scan could auto-link the unique matches it happened to
@@ -398,7 +434,7 @@ async fn load_remote_tracks(pool: &SqlitePool) -> AppResult<Vec<RemoteTrack>> {
 
 async fn load_local_candidates(pool: &SqlitePool) -> AppResult<Vec<LocalTrack>> {
     let rows = sqlx::query(
-        "SELECT t.id, t.title, t.file_path, t.file_size, al.title AS album,
+        "SELECT t.id, t.title, t.file_path, t.file_size, t.file_modified, al.title AS album,
                 (SELECT GROUP_CONCAT(name, ', ') FROM (
                     SELECT ar.name
                       FROM track_artist ta
@@ -428,6 +464,7 @@ async fn load_local_candidates(pool: &SqlitePool) -> AppResult<Vec<LocalTrack>> 
                 album: row.try_get("album")?,
                 file_path: row.try_get("file_path")?,
                 size: row.try_get("file_size")?,
+                modified: row.try_get("file_modified")?,
             })
         })
         .collect()
@@ -435,6 +472,7 @@ async fn load_local_candidates(pool: &SqlitePool) -> AppResult<Vec<LocalTrack>> 
 
 fn hash_local_tracks(
     tracks: Vec<LocalTrack>,
+    known: HashMap<i64, String>,
     app: Option<&AppHandle>,
     total: usize,
     cancellable: bool,
@@ -442,15 +480,31 @@ fn hash_local_tracks(
     // The phase is only meaningful on the cancellable path; the no-progress/test
     // path must not read the shared phase (see `discover_inner`).
     let mut hashed = Vec::with_capacity(tracks.len());
+    let mut computed: Vec<(i64, String, i64, i64)> = Vec::new();
     let mut unreadable = 0;
     for track in tracks {
         // Poll for a cancel at the top of the loop so a click that lands
         // between two files is honoured before starting another full-file read.
         if cancellable && RECONCILE_PHASE.load(Ordering::Relaxed) == PHASE_CANCELLED {
-            return cancelled_scan(hashed, unreadable, total);
+            return cancelled_scan(hashed, computed, unreadable, total);
+        }
+        // Already known for this exact `(size, mtime)`: reading the file again
+        // would cost a full pass over the library to learn what the last one
+        // learned. Discovery wants to know the digest, not to re-check the
+        // bytes — the callers that need that use `hashing::verify`.
+        if let Some(full_hash) = known.get(&track.id).cloned() {
+            hashed.push(HashedLocalTrack { track, full_hash });
+            if let Some(app) = app {
+                let processed = hashed.len() + unreadable;
+                let _ = app.emit("reconcile:progress", ReconcileProgress { processed, total });
+            }
+            continue;
         }
         match waveflow_core::scanner::hash_file_full(Path::new(&track.file_path)) {
-            Ok(full_hash) => hashed.push(HashedLocalTrack { track, full_hash }),
+            Ok(full_hash) => {
+                computed.push((track.id, full_hash.clone(), track.size, track.modified));
+                hashed.push(HashedLocalTrack { track, full_hash });
+            }
             Err(err) => {
                 unreadable += 1;
                 tracing::warn!(
@@ -472,25 +526,43 @@ fn hash_local_tracks(
     // arbitration still happens at the pre-commit compare-exchange in
     // `reconcile`, which catches a cancel this relaxed load may have missed.
     if cancellable && RECONCILE_PHASE.load(Ordering::Relaxed) == PHASE_CANCELLED {
-        return cancelled_scan(hashed, unreadable, total);
+        return cancelled_scan(hashed, computed, unreadable, total);
     }
     HashScan {
         hashed,
+        computed,
         unreadable,
         cancelled: false,
     }
 }
 
-fn cancelled_scan(hashed: Vec<HashedLocalTrack>, unreadable: usize, total: usize) -> HashScan {
+fn cancelled_scan(
+    hashed: Vec<HashedLocalTrack>,
+    computed: Vec<(i64, String, i64, i64)>,
+    unreadable: usize,
+    total: usize,
+) -> HashScan {
     let processed = hashed.len() + unreadable;
     tracing::info!(processed, total, "reconciliation scan cancelled by user");
+    // A cancelled sweep persists no *links* — that is the invariant — but the
+    // digests it computed describe files, not decisions, and throwing them away
+    // would make a resumed run re-read everything it already read.
     HashScan {
         hashed,
+        computed,
         unreadable,
         cancelled: true,
     }
 }
 
+/// Re-read every local file behind a playlist conversion and say whether its
+/// bytes still match the proof its link was written from.
+///
+/// Deliberately *not* served from [`super::hashing`]'s cache. This is a
+/// verification, not a discovery: the caller is about to convert a playlist,
+/// and the question is what the file contains now — an entry that is valid for
+/// its `(size, mtime)` cannot answer that, since the one rewrite that pair
+/// cannot see is exactly the one this guards against.
 async fn playlist_link_freshness(proofs: Vec<PlaylistLinkProof>) -> AppResult<HashMap<i64, bool>> {
     tokio::task::spawn_blocking(move || {
         let mut freshness = HashMap::new();
@@ -767,7 +839,8 @@ pub async fn confirm_exact(
     remote_track_id: &str,
 ) -> AppResult<()> {
     let row = sqlx::query(
-        "SELECT t.file_path, t.file_size, rt.size AS remote_size, rt.full_hash
+        "SELECT t.file_path, t.file_size, t.file_modified,
+                rt.size AS remote_size, rt.full_hash
            FROM track t
            JOIN remote_track rt ON rt.remote_id = ?
           WHERE t.id = ? AND t.is_available = 1",
@@ -780,6 +853,7 @@ pub async fn confirm_exact(
 
     let file_path: String = row.try_get("file_path")?;
     let local_size: i64 = row.try_get("file_size")?;
+    let local_modified: i64 = row.try_get("file_modified")?;
     let remote_size: i64 = row.try_get("remote_size")?;
     let remote_hash: String = row.try_get("full_hash")?;
     if local_size != remote_size || !valid_full_hash(&remote_hash) {
@@ -788,11 +862,14 @@ pub async fn confirm_exact(
         ));
     }
 
-    let local_hash = tokio::task::spawn_blocking(move || {
-        waveflow_core::scanner::hash_file_full(Path::new(&file_path))
-    })
-    .await
-    .map_err(|err| AppError::Other(format!("reconciliation hash task failed: {err}")))??;
+    // Reads the file, deliberately: this is a verification immediately before an
+    // irreversible write, and the cache exists to avoid re-reading during
+    // *discovery*. Going through `hashing::verify` rather than hashing directly
+    // means the fresh reading also repairs whatever the cache held.
+    let local_hash =
+        super::hashing::verify(pool, local_track_id, &file_path, local_size, local_modified)
+            .await?
+            .ok_or_else(|| AppError::Other("local file could not be read".into()))?;
     if !local_hash.eq_ignore_ascii_case(&remote_hash) {
         return Err(AppError::Other("track contents no longer match".into()));
     }
@@ -1567,6 +1644,47 @@ mod tests {
         RECONCILE_PHASE.store(PHASE_IDLE, Ordering::SeqCst);
     }
 
+    /// The sweep answers from the shared digest cache instead of reading the
+    /// file again — which is what makes RFC-006's completeness frontier mean
+    /// "examined" rather than "examined by whichever pass ran last".
+    ///
+    /// Proved by deleting the file after seeding the cache: a sweep that still
+    /// finds the digest cannot have read it.
+    #[tokio::test]
+    async fn the_sweep_reads_the_cache_rather_than_the_file() {
+        let pool = pool().await;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("local.flac");
+        fs::write(&path, b"same bytes").unwrap();
+        insert_local(&pool, 1, &path, "Local").await;
+        insert_remote(&pool, "remote-1", b"same bytes", "Remote").await;
+
+        let locals = load_local_candidates(&pool).await.unwrap();
+        let ids: Vec<i64> = locals.iter().map(|track| track.id).collect();
+        let scan = hash_local_tracks(locals, HashMap::new(), None, 0, false);
+        assert_eq!(scan.computed.len(), 1, "the first sweep reads the file");
+        super::super::hashing::remember(&pool, &scan.computed)
+            .await
+            .unwrap();
+
+        fs::remove_file(&path).unwrap();
+        let known = super::super::hashing::cached_digests(&pool, &ids)
+            .await
+            .unwrap();
+        let locals = load_local_candidates(&pool).await.unwrap();
+        let second = hash_local_tracks(locals, known, None, 0, false);
+        assert_eq!(
+            second.hashed.len(),
+            1,
+            "the file is gone, the digest is not"
+        );
+        assert_eq!(second.unreadable, 0);
+        assert!(
+            second.computed.is_empty(),
+            "nothing was read, so nothing is new to file"
+        );
+    }
+
     /// A cancel that lands after hashing finished, while `reconcile` is staging
     /// its writes, loses the pre-commit `STAGING → COMMITTING` transition and
     /// rolls the transaction back before commit, so no link row is written.
@@ -1583,7 +1701,7 @@ mod tests {
         // Hash to completion on the non-cancellable path (never reads the phase),
         // so the cancel below can only be caught by reconcile's pre-commit CAS.
         let locals = load_local_candidates(&pool).await.unwrap();
-        let scan = hash_local_tracks(locals, None, 0, false);
+        let scan = hash_local_tracks(locals, HashMap::new(), None, 0, false);
         assert_eq!(scan.hashed.len(), 1);
         let remotes = load_remote_tracks(&pool).await.unwrap();
 
@@ -1841,6 +1959,41 @@ mod tests {
         let report = discover(&pool).await.unwrap();
         assert_eq!(report.stale_links, 1);
         assert_eq!(links(&pool).await.unwrap()[0].status, "stale");
+    }
+
+    /// A linked track is re-read even when the digest cache holds an entry that
+    /// still looks valid.
+    ///
+    /// The sweep discovers *and* re-verifies, and only the first may be served
+    /// from the cache. `track.file_modified` moves when a scan re-reads a file,
+    /// not when the file changes, so a track edited outside WaveFlow keeps its
+    /// `(size, mtime)` — and with them a cached digest describing bytes that
+    /// are gone. Serving a re-verification from that is how a stale link would
+    /// never be caught.
+    #[tokio::test]
+    async fn a_linked_track_is_re_read_even_when_cached() {
+        let pool = pool().await;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("local.ogg");
+        fs::write(&path, b"aaaa").unwrap();
+        insert_local(&pool, 1, &path, "Local").await;
+        insert_remote(&pool, "remote-1", b"aaaa", "Remote").await;
+        assert_eq!(discover(&pool).await.unwrap().auto_linked, 1);
+
+        // The cache now holds the digest of "aaaa" against (4, 0). Rewriting to
+        // the same length leaves both unchanged, so the entry still reads as
+        // valid — and the link must go stale regardless.
+        fs::write(&path, b"bbbb").unwrap();
+        let cached = super::super::hashing::cached_digests(&pool, &[1])
+            .await
+            .unwrap();
+        assert!(
+            cached.contains_key(&1),
+            "the fixture must leave a still-valid entry, or this proves nothing"
+        );
+
+        let report = discover(&pool).await.unwrap();
+        assert_eq!(report.stale_links, 1);
     }
 
     #[tokio::test]

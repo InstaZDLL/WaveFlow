@@ -71,8 +71,12 @@
 //!   reaches it, since the mirror already knows which digests it holds.
 //!
 //! - [`hashing`] — the whole-file digest of a local track, computed
-//!   once and kept, because deciding what a server is missing means
-//!   reading the library.
+//!   once and shared by every path that needs one, because deciding
+//!   what a server is missing means reading the library. Keeps two
+//!   kinds of caller apart: *discovery* asks what a file hashes to and
+//!   may be answered from the cache; *verification* asks whether it
+//!   still hashes to that, immediately before an irreversible write,
+//!   and always reads the file.
 //!
 //! - [`reconciliation`] — pairing local files with server tracks after
 //!   the fact, which costs a full re-read; [`import`] is the one path
