@@ -384,8 +384,10 @@ async fn discover_inner(
     .map_err(|err| AppError::Other(format!("reconciliation hash task failed: {err}")))?;
     // Filed before the cancellation check below: these describe files, not
     // decisions, so a run that was stopped still leaves the reading it paid for
-    // behind — which is the whole reason the next sweep is cheap.
-    super::hashing::remember(pool, &scan.computed).await?;
+    // behind — which is the whole reason the next sweep is cheap. Failing to
+    // file them must not fail the reconciliation: the digests are an
+    // optimisation for the next run, and this run's answer is already in hand.
+    super::hashing::remember_quietly(pool, &scan.computed).await;
 
     if scan.cancelled {
         // A partial scan could auto-link the unique matches it happened to

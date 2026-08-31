@@ -104,7 +104,13 @@ pub async fn full_hash(
     .bind(modified)
     .bind(chrono::Utc::now().timestamp_millis())
     .execute(pool)
-    .await?;
+    .await
+    // Same reasoning as `remember_quietly`: the answer is already computed and
+    // the cache is an optimisation, so a failed write must not lose it.
+    .inspect_err(|err| {
+        tracing::warn!(track_id, ?err, "could not cache a full-file digest");
+    })
+    .ok();
     Ok(Some(hash))
 }
 
@@ -149,6 +155,14 @@ pub async fn cached_digests(
 /// One transaction, because this runs after a sweep that may have hashed
 /// thousands of files and SQLite has a single writer: a row at a time would
 /// hold the write lock open across the whole batch for no gain.
+///
+/// Takes the pool rather than a caller's `&mut SqliteConnection`, unlike the
+/// scanner's upsert helpers: those run *inside* a transaction their caller
+/// already owns, while every caller here is between transactions and would
+/// have to open one just to hand it over. Contention is left to sqlx's
+/// five-second `busy_timeout`, and a collision that outlasts it is not retried
+/// — see [`remember_quietly`] for why losing this batch is survivable in a way
+/// that losing a batch of computed loudness is not.
 pub async fn remember(pool: &SqlitePool, entries: &[(i64, String, i64, i64)]) -> AppResult<()> {
     if entries.is_empty() {
         return Ok(());
@@ -178,6 +192,27 @@ pub async fn remember(pool: &SqlitePool, entries: &[(i64, String, i64, i64)]) ->
     Ok(())
 }
 
+/// [`remember`], for the callers whose real work is already done.
+///
+/// A digest cache that could not be written is a slower next sweep, not a
+/// failure: everything in the batch is recomputable by reading the files
+/// again, which is exactly what the caller just did. Propagating the error
+/// would abort a reconciliation — or discard a verification's answer — over a
+/// write whose only purpose was to make the *next* run cheaper. That is also
+/// why there is no retry loop here, unlike the analysis flush: that one
+/// retries because a lost batch means recomputing an eight-second decode per
+/// track and it has no other copy, while these digests are one file read away
+/// and the sweep will simply pay it again.
+pub async fn remember_quietly(pool: &SqlitePool, entries: &[(i64, String, i64, i64)]) {
+    if let Err(err) = remember(pool, entries).await {
+        tracing::warn!(
+            rows = entries.len(),
+            ?err,
+            "could not cache full-file digests; the next sweep will re-read them"
+        );
+    }
+}
+
 /// Read the file **now** and record what it says.
 ///
 /// For the callers that must not trust an earlier reading — confirming a link,
@@ -200,7 +235,7 @@ pub async fn verify(
     let Ok(hash) = hashed else {
         return Ok(None);
     };
-    remember(pool, &[(track_id, hash.clone(), size, modified)]).await?;
+    remember_quietly(pool, &[(track_id, hash.clone(), size, modified)]).await;
     Ok(Some(hash))
 }
 
