@@ -21,6 +21,7 @@ import {
   type CatalogueMirrorReport,
   type CatalogueStats,
 } from "../../../lib/tauri/remoteServer";
+import { notifyRemoteChanged } from "../../../hooks/useRemoteSource";
 
 /** Mebibytes with one decimal, in the interface's language. Covers are tens
  *  of kilobytes each, so the interesting figure is always the total. */
@@ -127,6 +128,13 @@ export function CatalogueMirrorCard() {
       if (next.already_running) return;
       if (mountedRef.current) setReport(next);
       await refreshStats();
+      // The mirror is what several other surfaces read from — the upload
+      // card's destination list is `remote_library`, not a server call — so
+      // a walk that fills it has to say so. Without this they keep the empty
+      // picture they read at mount: the upload card offered no library to
+      // send to, with its button disabled and nothing on screen tying that
+      // back to a mirror that had just been filled.
+      notifyRemoteChanged();
     } catch (err) {
       if (mountedRef.current) setError(String(err));
     } finally {
@@ -187,6 +195,8 @@ export function CatalogueMirrorCard() {
       await remoteClearCatalogue();
       if (mountedRef.current) setReport(null);
       await refreshStats();
+      // Emptying it matters to the same readers as filling it.
+      notifyRemoteChanged();
     } catch (err) {
       if (mountedRef.current) setError(String(err));
     } finally {

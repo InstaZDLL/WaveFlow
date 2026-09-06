@@ -57,6 +57,32 @@ export function UploadToServerCard() {
   // numbers.
   const generationRef = useRef(0);
 
+  /// Read the server libraries the mirror knows about, and keep the current
+  /// pick when it is still one of them — a re-read triggered by a mirror walk
+  /// must not silently move an upload's destination under the user.
+  ///
+  /// Takes the caller's `current()` rather than closing over one, so the same
+  /// guard covers the mount read and every later refresh.
+  const loadDestinations = useCallback(async (current: () => boolean) => {
+    try {
+      const status = await remoteGetStatus();
+      if (!current()) return;
+      const nextVisible = status.signed_in && status.bootstrapped;
+      setVisible(nextVisible);
+      if (!nextVisible) return;
+      const list = await remoteUploadLibraries();
+      if (!current()) return;
+      setLibraries(list);
+      setPicked((previous) =>
+        previous && list.some((library) => library.library_id === previous)
+          ? previous
+          : (list[0]?.library_id ?? null),
+      );
+    } catch {
+      if (current()) setVisible(false);
+    }
+  }, []);
+
   // Subscribe before the first read, for the reason the mirror card gives: an
   // event emitted while `listen()` is still resolving is lost for good.
   //
@@ -120,26 +146,24 @@ export function UploadToServerCard() {
       } catch {
         // Progress is decoration; the card works without it.
       }
-      try {
-        const status = await remoteGetStatus();
-        if (!current()) return;
-        const nextVisible = status.signed_in && status.bootstrapped;
-        setVisible(nextVisible);
-        if (!nextVisible) return;
-        const list = await remoteUploadLibraries();
-        if (current()) {
-          setLibraries(list);
-          setPicked(list[0]?.library_id ?? null);
-        }
-      } catch {
-        if (current()) setVisible(false);
-      }
+      await loadDestinations(current);
     })();
+    // The destinations come from the mirror (`remote_library`), not from a
+    // server call, so they only exist once the catalogue has been walked.
+    // Read once at mount, this card sat on an empty list for the whole
+    // session: the picker was blank and the upload button stayed disabled
+    // even after a walk had just supplied what it was missing. The mirror
+    // announces itself on `waveflow:remote-changed`; re-read on it.
+    const onRemoteChanged = () => {
+      void loadDestinations(current);
+    };
+    window.addEventListener("waveflow:remote-changed", onRemoteChanged);
     return () => {
       mountedRef.current = false;
+      window.removeEventListener("waveflow:remote-changed", onRemoteChanged);
       for (const off of offs) off();
     };
-  }, [activeProfileId]);
+  }, [activeProfileId, loadDestinations]);
 
   const survey = useCallback(async () => {
     const generation = generationRef.current;
@@ -304,7 +328,17 @@ export function UploadToServerCard() {
                 </div>
               </dl>
 
-              {plan.candidates.length > 0 && (
+              {/* No destination to offer means the mirror has not been walked
+                  — the list comes from `remote_library`, not from the server.
+                  Say so: the picker was simply empty and the button disabled,
+                  with nothing tying either back to the card above. */}
+              {plan.candidates.length > 0 && libraries.length === 0 && (
+                <p className="text-xs text-amber-600 dark:text-amber-500">
+                  {t("remote.needsMirror")}
+                </p>
+              )}
+
+              {plan.candidates.length > 0 && libraries.length > 0 && (
                 <div className="flex items-center gap-2 flex-wrap">
                   <label
                     htmlFor="remote-upload-library"
