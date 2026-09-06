@@ -89,19 +89,28 @@ export function ImmersiveView({
     trackId: number;
     hasCanvas: boolean;
   } | null>(null);
-  const canvasTrack =
-    currentTrack &&
-    activeProvider !== "spotify" &&
-    !isRadioTrack(currentTrack) &&
-    currentTrack.id >= 0
+  // Two questions, and conflating them hid the server Canvas entirely.
+  //
+  // `canvasShowable` asks whether this track can DISPLAY one. A server track
+  // can: it plays under a negative sentinel, but its clip comes from the
+  // server, not from a local row. Requiring a non-negative id here left the
+  // "Show Canvas" toggle unrendered — and since the toggle defaults to OFF,
+  // that meant the clip could never be revealed at all.
+  //
+  // `canvasEditable` asks whether the PICKER may act on it, which does need a
+  // real library row: the picker writes `track_canvas` keyed on a rowid, and
+  // a server clip is not ours to replace or delete in any case.
+  const canvasShowable =
+    currentTrack && activeProvider !== "spotify" && !isRadioTrack(currentTrack)
       ? currentTrack
       : null;
+  const canvasEditable =
+    canvasShowable && canvasShowable.id >= 0 ? canvasShowable : null;
   const canvasAvailable = !!canvasPath && !reducedMotion;
   // The picker sets/removes the MANUAL local Canvas only. A Canvas that came
   // from a plugin (issue #473) or from the bound server is a URL, and must
-  // NOT read as "has a Canvas to remove" — neither is ours to delete. The
-  // `id >= 0` guard above already keeps a server track out of the picker
-  // entirely, since it plays under a negative sentinel. Shared
+  // NOT read as "has a Canvas to remove" — neither is ours to delete.
+  // `canvasEditable` already keeps a server track out of the picker. Shared
   // local-vs-remote split with CanvasStage.
   const hasManualCanvas = !!canvasPath && !isRemoteCanvasUrl(canvasPath);
 
@@ -277,7 +286,7 @@ export function ImmersiveView({
             ))}
           {/* Show Canvas toggle — only when the current track has a Canvas
               and motion isn't reduced (never a dead control). */}
-          {canvasTrack && canvasAvailable && (
+          {canvasShowable && canvasAvailable && (
             <CanvasToggleButton
               enabled={canvasEnabled}
               onToggle={() => setCanvasEnabled(!canvasEnabled)}
@@ -289,12 +298,12 @@ export function ImmersiveView({
             />
           )}
           {/* Set / remove the track's Canvas — the immersive "⋯". */}
-          {canvasTrack && (
+          {canvasEditable && (
             <button
               type="button"
               onClick={() => {
                 setCanvasPickerTarget({
-                  trackId: canvasTrack.id,
+                  trackId: canvasEditable.id,
                   hasCanvas: hasManualCanvas,
                 });
                 setCanvasPickerOpen(true);
