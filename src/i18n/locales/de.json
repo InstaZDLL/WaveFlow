@@ -2341,7 +2341,8 @@
       "downloadsKept_one": "{{count}} Titel offline behalten ({{size}} MB).",
       "downloadsKept_other": "{{count}} Titel offline behalten ({{size}} MB).",
       "downloadsKept_zero": "Nichts offline behalten.",
-      "clearDownloads": "Leeren"
+      "clearDownloads": "Leeren",
+      "reportFeed": "Serverkorrekturen: {{applied}}"
     },
     "import": {
       "action": "In meine Mediathek importieren",
@@ -2392,6 +2393,14 @@
         "unknown_verdict": "Antwort, die dieser Build nicht kennt: {{count}}",
         "failed": "Fehlgeschlagen: {{count}}"
       }
+    },
+    "tags": {
+      "action": "Metadaten korrigieren",
+      "title": "Server-Metadaten",
+      "subtitle": "Die Korrektur wird auf dem Server gespeichert, nicht in der Datei.",
+      "help": "Diese Korrekturen überstehen die Scans des Servers und sind für alle Mitglieder der Bibliothek sichtbar. Ein leeres Feld entfernt die Korrektur: Der Wert aus der Datei erscheint wieder.",
+      "missing": "Dieser Titel ist noch nicht im Spiegel des Servers. Führen Sie einen Katalogdurchlauf aus und versuchen Sie es erneut.",
+      "invalidNumber": "Jahr sowie Titel- und CD-Nummer müssen ganze Zahlen sein."
     }
   }
 }

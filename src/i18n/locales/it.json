@@ -2341,7 +2341,8 @@
       "downloadsKept_one": "{{count}} brano tenuto offline ({{size}} MB).",
       "downloadsKept_other": "{{count}} brani tenuti offline ({{size}} MB).",
       "downloadsKept_zero": "Niente tenuto offline.",
-      "clearDownloads": "Svuota"
+      "clearDownloads": "Svuota",
+      "reportFeed": "correzioni del server: {{applied}}"
     },
     "import": {
       "action": "Importa nella mia libreria",
@@ -2392,6 +2393,14 @@
         "unknown_verdict": "Risposta sconosciuta del server: {{count}}",
         "failed": "Non riusciti: {{count}}"
       }
+    },
+    "tags": {
+      "action": "Correggi i metadati",
+      "title": "Metadati del server",
+      "subtitle": "La correzione viene salvata sul server, non nel file.",
+      "help": "Queste correzioni sopravvivono alle scansioni del server e sono visibili a tutti i membri della libreria. Svuotare un campo rimuove la correzione: riappare il valore del file.",
+      "missing": "Questo brano non è ancora nella copia del server. Esegui una scansione del catalogo e riprova.",
+      "invalidNumber": "L'anno e i numeri di traccia e disco devono essere numeri interi."
     }
   }
 }

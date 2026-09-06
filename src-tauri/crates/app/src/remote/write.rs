@@ -887,6 +887,152 @@ pub async fn delete_share_in_tx(conn: &mut SqliteConnection, share_id: &str) -> 
     Ok(())
 }
 
+/// What the tag editor holds for a server track, as typed.
+///
+/// Strings arrive raw and are read here rather than by the caller, so
+/// every entry point inherits the same reading of a blank field — and
+/// so that reading can be tested.
+#[derive(Debug, Clone, Default, serde::Deserialize)]
+#[serde(default)]
+pub struct TrackMetadataEdit {
+    pub title: String,
+    /// The `"; "`-joined display string the rest of the application
+    /// speaks. Split on the way out, because the server wants the list.
+    pub artist: String,
+    pub genre: String,
+    pub year: Option<i64>,
+    pub track_number: Option<i64>,
+    pub disc_number: Option<i64>,
+}
+
+/// Read a typed field as a correction, or as the absence of one.
+///
+/// A blank field means "no correction", never "corrected to empty". The
+/// distinction is real on the server — an empty artist list is a stored
+/// claim that the track credits nobody — but it is not one this form
+/// can express: whoever clears the artist box is undoing a correction,
+/// not asserting an anonymous recording. Reading it the other way would
+/// make the empty box permanent and leave no way back to what the file
+/// says.
+fn correction(value: &str) -> Option<String> {
+    let trimmed = value.trim();
+    (!trimmed.is_empty()).then(|| trimmed.to_string())
+}
+
+/// Split a joined credit string into the ordered list the server wants.
+///
+/// **`"; "`, separator and space** — the same string
+/// `waveflow_core::scanner::upserts::split_artist_name` splits the local
+/// half on, so both halves of the library read one credit line the same
+/// way. A bare `;` is not the separator: "AC;DC" is one band, and
+/// splitting on the character alone would send the server two artists
+/// that never existed.
+///
+/// Deliberately *not* the comma the local tag editor also accepts on
+/// input, either. A comma occurs inside single names, and the server
+/// takes a list precisely so nobody has to guess where one name ends.
+/// What the editor accepted loosely, it hands over strictly.
+fn split_credits(value: &str) -> Vec<String> {
+    value
+        .split("; ")
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+/// Correct a server track's metadata.
+///
+/// The correction lives on the server beside the track and survives its
+/// rescans. No file is rewritten, here or there.
+pub async fn set_track_metadata(
+    state: &AppState,
+    track_id: &str,
+    edit: &TrackMetadataEdit,
+) -> AppResult<()> {
+    let pool = lease(state).await?;
+    let mut tx = pool.begin().await?;
+    set_track_metadata_in_tx(&mut tx, track_id, edit).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// ## The optimistic half is provisional here, unlike everywhere else
+///
+/// Every other gesture in this module can predict the state it asks
+/// for, so its local write is the final answer. This one cannot:
+/// clearing a correction hands back whatever the file's tag says, and
+/// this device has only ever seen the corrected value that was masking
+/// it. So what lands locally is what the user typed — right for a field
+/// they filled in, and a deliberate blank for one they cleared — and
+/// the drain overwrites it with the server's reply, which is the only
+/// place the underlying tag can be learnt.
+pub async fn set_track_metadata_in_tx(
+    conn: &mut SqliteConnection,
+    track_id: &str,
+    edit: &TrackMetadataEdit,
+) -> AppResult<()> {
+    if mutation::is_placeholder(track_id) {
+        // Playlists and shares can be created offline; tracks cannot. A
+        // placeholder here means a caller invented an identifier the
+        // server will never resolve, so the queue would hold an entry
+        // that can only ever fail.
+        return Err(AppError::Other(
+            "a track the server has never heard of cannot be corrected".into(),
+        ));
+    }
+    let title = correction(&edit.title);
+    let artist = correction(&edit.artist);
+    let genre = correction(&edit.genre);
+
+    sqlx::query(
+        "UPDATE remote_track
+            SET title       = ?,
+                artist      = ?,
+                genre       = ?,
+                year        = ?,
+                track_no    = ?,
+                disc_no     = ?,
+                sort_artist = ?,
+                cached_at   = ?
+          WHERE remote_id = ?",
+    )
+    // NOT NULL, and the same fallback the mirror's upsert uses: an
+    // untitled row beats losing the row.
+    .bind(title.as_deref().unwrap_or_default())
+    .bind(artist.as_deref())
+    .bind(genre.as_deref())
+    .bind(edit.year)
+    .bind(edit.track_number)
+    .bind(edit.disc_number)
+    // Kept in step with the string it derives from, or the row sorts
+    // under its old artist in the unified listing.
+    .bind(
+        artist
+            .as_deref()
+            .map(waveflow_core::metadata::name_match::normalize_name),
+    )
+    .bind(now_ms())
+    .bind(track_id)
+    .execute(&mut *conn)
+    .await?;
+
+    mutation::enqueue(
+        conn,
+        &Mutation::UpdateTrackMetadata {
+            track_id: track_id.to_string(),
+            artists: artist.as_deref().map(split_credits),
+            genres: genre.as_deref().map(split_credits),
+            title,
+            year: edit.year,
+            track_number: edit.track_number,
+            disc_number: edit.disc_number,
+        },
+    )
+    .await?;
+    Ok(())
+}
+
 /// The active profile's pool, pinned to the profile it was resolved
 /// from, so a switch landing mid-write fails the call instead of
 /// applying one profile's gesture to another's data.
@@ -1435,5 +1581,212 @@ mod tests {
             + count(&mut conn, "SELECT count(*) FROM remote_queue").await
             + count(&mut conn, "SELECT count(*) FROM remote_share").await;
         assert_eq!(rows, 6, "a gesture queued without writing");
+    }
+
+    /// A mirrored track to correct. `cache_song` would do, but it needs
+    /// a whole `SongItem`, and what these tests care about is the row.
+    async fn mirror_track(conn: &mut SqliteConnection) {
+        sqlx::query(
+            "INSERT INTO remote_track
+                (remote_id, title, artist, genre, year, track_no, disc_no, duration_ms, cached_at)
+             VALUES ('t1', 'Intro', 'Bjork', 'Trip Hop', 1995, 1, 1, 1000, 0)",
+        )
+        .execute(&mut *conn)
+        .await
+        .unwrap();
+    }
+
+    async fn text(conn: &mut SqliteConnection, column: &str) -> Option<String> {
+        sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+            "SELECT {column} FROM remote_track WHERE remote_id = 't1'"
+        )))
+        .fetch_one(&mut *conn)
+        .await
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn correcting_a_track_writes_the_mirror_and_queues_the_patch() {
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        mirror_track(&mut conn).await;
+
+        set_track_metadata_in_tx(
+            &mut conn,
+            "t1",
+            &TrackMetadataEdit {
+                title: "Army of Me".into(),
+                artist: "Björk; Skunk Anansie".into(),
+                genre: "Trip Hop".into(),
+                year: Some(1995),
+                track_number: Some(1),
+                disc_number: Some(1),
+            },
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            text(&mut conn, "title").await.as_deref(),
+            Some("Army of Me")
+        );
+        assert_eq!(
+            text(&mut conn, "artist").await.as_deref(),
+            Some("Björk; Skunk Anansie")
+        );
+        // Derived from the artist string, or the unified listing sorts
+        // this row under the name it no longer carries.
+        assert_eq!(
+            text(&mut conn, "sort_artist").await,
+            Some(waveflow_core::metadata::name_match::normalize_name(
+                "Björk; Skunk Anansie"
+            ))
+        );
+
+        let queued = pending(&mut conn, 10).await.unwrap();
+        assert_eq!(
+            queued[0].mutation,
+            Mutation::UpdateTrackMetadata {
+                track_id: "t1".into(),
+                title: Some("Army of Me".into()),
+                // The joined form stops here: the server takes the list
+                // so that nobody has to guess where a name ends.
+                artists: Some(vec!["Björk".into(), "Skunk Anansie".into()]),
+                genres: Some(vec!["Trip Hop".into()]),
+                year: Some(1995),
+                track_number: Some(1),
+                disc_number: Some(1),
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn a_cleared_field_removes_the_correction_rather_than_emptying_it() {
+        // `Some(vec![])` would be a stored claim that the track credits
+        // nobody. An empty box means the user is undoing a correction,
+        // and reading it the other way would make the blank permanent.
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        mirror_track(&mut conn).await;
+
+        set_track_metadata_in_tx(
+            &mut conn,
+            "t1",
+            &TrackMetadataEdit {
+                title: "Army of Me".into(),
+                artist: "   ".into(),
+                genre: String::new(),
+                year: None,
+                track_number: None,
+                disc_number: None,
+            },
+        )
+        .await
+        .unwrap();
+
+        let queued = pending(&mut conn, 10).await.unwrap();
+        let Mutation::UpdateTrackMetadata {
+            artists,
+            genres,
+            year,
+            ..
+        } = &queued[0].mutation
+        else {
+            panic!("the queued entry is not a metadata patch");
+        };
+        assert_eq!(*artists, None, "a blank field asked for no correction");
+        assert_eq!(*genres, None);
+        assert_eq!(*year, None);
+
+        // And the mirror shows the clearing straight away. An upsert
+        // could not: `cache_song` coalesces, so it would keep showing
+        // the value the user just deleted.
+        assert_eq!(text(&mut conn, "artist").await, None);
+        assert_eq!(text(&mut conn, "genre").await, None);
+    }
+
+    #[tokio::test]
+    async fn a_name_holding_the_bare_separator_survives_the_split() {
+        // "AC;DC" is one band. Splitting on the character rather than on
+        // the separator would send the server two artists that never
+        // existed, under a wholesale patch that makes them the truth.
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        mirror_track(&mut conn).await;
+
+        set_track_metadata_in_tx(
+            &mut conn,
+            "t1",
+            &TrackMetadataEdit {
+                artist: "AC;DC".into(),
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
+
+        let queued = pending(&mut conn, 10).await.unwrap();
+        let Mutation::UpdateTrackMetadata { artists, .. } = &queued[0].mutation else {
+            panic!("the queued entry is not a metadata patch");
+        };
+        assert_eq!(artists.as_deref(), Some(&["AC;DC".to_string()][..]));
+    }
+
+    #[tokio::test]
+    async fn a_name_holding_a_comma_survives_the_split() {
+        // The local editor accepts a comma on input; `"; "` is the only
+        // separator that crosses the wire, so "Earth, Wind & Fire"
+        // stays one artist.
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        mirror_track(&mut conn).await;
+
+        set_track_metadata_in_tx(
+            &mut conn,
+            "t1",
+            &TrackMetadataEdit {
+                artist: "Earth, Wind & Fire; Deniece Williams".into(),
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
+
+        let queued = pending(&mut conn, 10).await.unwrap();
+        let Mutation::UpdateTrackMetadata { artists, .. } = &queued[0].mutation else {
+            panic!("the queued entry is not a metadata patch");
+        };
+        assert_eq!(
+            artists.as_deref(),
+            Some(
+                &[
+                    "Earth, Wind & Fire".to_string(),
+                    "Deniece Williams".to_string()
+                ][..]
+            )
+        );
+    }
+
+    #[tokio::test]
+    async fn a_placeholder_track_is_refused_before_anything_is_written() {
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+
+        let error = set_track_metadata_in_tx(
+            &mut conn,
+            &mutation::new_placeholder(),
+            &TrackMetadataEdit::default(),
+        )
+        .await;
+
+        assert!(
+            error.is_err(),
+            "a track the server cannot resolve was queued"
+        );
+        assert_eq!(
+            count(&mut conn, "SELECT count(*) FROM remote_mutation").await,
+            0,
+            "a patch that can only ever fail was left in the queue"
+        );
     }
 }

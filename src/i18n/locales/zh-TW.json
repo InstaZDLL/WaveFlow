@@ -2320,7 +2320,8 @@
       "downloadsKept_one": "已離線保存 {{count}} 首曲目（{{size}} MB）",
       "downloadsKept_other": "已離線保存 {{count}} 首曲目（{{size}} MB）",
       "downloadsKept_zero": "沒有離線保存的曲目。",
-      "clearDownloads": "清空"
+      "clearDownloads": "清空",
+      "reportFeed": "伺服器修正：{{applied}} 項"
     },
     "import": {
       "action": "匯入我的音樂庫",
@@ -2371,6 +2372,14 @@
         "unknown_verdict": "此版本無法辨識的回覆：{{count}}",
         "failed": "失敗：{{count}}"
       }
+    },
+    "tags": {
+      "action": "修正中繼資料",
+      "title": "伺服器中繼資料",
+      "subtitle": "修正會儲存在伺服器上，而不是檔案中。",
+      "help": "這些修正不會被伺服器的掃描覆蓋，媒體庫的所有成員都看得到。清空某個欄位即撤銷該項修正，檔案本身的值會重新顯示。",
+      "missing": "此曲目尚未收錄到伺服器鏡像中。請先執行一次目錄掃描，然後重試。",
+      "invalidNumber": "年份、曲目編號與光碟編號必須是整數。"
     }
   }
 }

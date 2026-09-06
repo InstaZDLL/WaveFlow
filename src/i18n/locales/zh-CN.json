@@ -2320,7 +2320,8 @@
       "downloadsKept_one": "已离线保存 {{count}} 首曲目（{{size}} MB）",
       "downloadsKept_other": "已离线保存 {{count}} 首曲目（{{size}} MB）",
       "downloadsKept_zero": "没有离线保存的曲目。",
-      "clearDownloads": "清空"
+      "clearDownloads": "清空",
+      "reportFeed": "服务器修正：{{applied}} 项"
     },
     "import": {
       "action": "导入我的音乐库",
@@ -2371,6 +2372,14 @@
         "unknown_verdict": "此版本无法识别的答复：{{count}}",
         "failed": "失败：{{count}}"
       }
+    },
+    "tags": {
+      "action": "修正元数据",
+      "title": "服务器元数据",
+      "subtitle": "修正保存在服务器上，而不是文件中。",
+      "help": "这些修正不会被服务器的扫描覆盖，媒体库的所有成员都能看到。清空某个字段即撤销该项修正，文件本身的值会重新显示。",
+      "missing": "该曲目尚未收录到服务器镜像中。请先执行一次目录遍历，然后重试。",
+      "invalidNumber": "年份、音轨号和碟片号必须为整数。"
     }
   }
 }

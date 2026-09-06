@@ -2320,7 +2320,8 @@
       "downloadsKept_one": "{{count}} lagu disimpan offline ({{size}} MB).",
       "downloadsKept_other": "{{count}} lagu disimpan offline ({{size}} MB).",
       "downloadsKept_zero": "Tidak ada yang disimpan offline.",
-      "clearDownloads": "Kosongkan"
+      "clearDownloads": "Kosongkan",
+      "reportFeed": "koreksi server: {{applied}}"
     },
     "import": {
       "action": "Impor ke pustaka saya",
@@ -2371,6 +2372,14 @@
         "unknown_verdict": "Jawaban yang tak dikenal versi ini: {{count}}",
         "failed": "Gagal: {{count}}"
       }
+    },
+    "tags": {
+      "action": "Perbaiki metadata",
+      "title": "Metadata server",
+      "subtitle": "Koreksi disimpan di server, bukan di berkas.",
+      "help": "Koreksi ini bertahan dari pemindaian server dan terlihat oleh semua anggota pustaka. Mengosongkan sebuah bidang menghapus koreksinya: nilai dari berkas akan muncul kembali.",
+      "missing": "Trek ini belum ada di cermin server. Jalankan penelusuran katalog, lalu coba lagi.",
+      "invalidNumber": "Tahun serta nomor trek dan cakram harus berupa bilangan bulat."
     }
   }
 }

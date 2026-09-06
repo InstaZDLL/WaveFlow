@@ -93,6 +93,14 @@ Tag edits go through the same funnel: [`edit.rs`](../../src-tauri/crates/app/src
 
 A failed save is rendered in the dialog rather than logged to the console.
 
+### A server track is corrected, not rewritten
+
+None of the above applies to a track that lives on the bound server: there is no file here to open, and rewriting somebody else's collection is not something a client gets to do. [`RemoteTrackTagsModal`](../../src/components/common/RemoteTrackTagsModal.tsx) sends the correction to the server instead, which stores it *beside* the track — so it survives that library's rescans and every member of the library sees it.
+
+It is a separate dialog rather than a mode of the Properties one, because Properties is a file inspector — codec, bit depth, path, size, on-disk analysis — and for a server track almost none of that exists. Six fields, and only the ones the server can store.
+
+Two differences from the local editor, both load-bearing and spelled out in [RFC-005](../rfcs/RFC-005-remote-source-and-sync-v2.md#the-one-endpoint-where-an-absent-key-means-the-opposite): the whole form goes every time, because the server's patch is wholesale and an omitted field *withdraws* its correction; and clearing a box shows a blank that may not last, because the track then falls back to a tag this device has never seen — the server's reply is what fills it back in.
+
 ## Search
 
 FTS5 contentless index over `title`, `artist`, `album` with prefix matching. Auto-sync triggers (`AFTER INSERT/UPDATE/DELETE` on `track`) keep the index current using the `'delete'` command on the contentless table. Queries are issued from the React top bar with a 250 ms debounce.

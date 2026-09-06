@@ -2341,7 +2341,8 @@
       "downloadsKept_one": "{{count}} faixa mantida offline ({{size}} MB).",
       "downloadsKept_other": "{{count}} faixas mantidas offline ({{size}} MB).",
       "downloadsKept_zero": "Nada mantido offline.",
-      "clearDownloads": "Limpar"
+      "clearDownloads": "Limpar",
+      "reportFeed": "correções do servidor: {{applied}}"
     },
     "import": {
       "action": "Importar para minha biblioteca",
@@ -2392,6 +2393,14 @@
         "unknown_verdict": "Resposta desconhecida do servidor: {{count}}",
         "failed": "Falharam: {{count}}"
       }
+    },
+    "tags": {
+      "action": "Corrigir os metadados",
+      "title": "Metadados do servidor",
+      "subtitle": "A correção é salva no servidor, não no arquivo.",
+      "help": "Essas correções sobrevivem às varreduras do servidor e são visíveis para todos os membros da biblioteca. Esvaziar um campo remove a correção: o valor do arquivo reaparece.",
+      "missing": "Esta faixa ainda não está no espelho do servidor. Execute uma varredura do catálogo e tente de novo.",
+      "invalidNumber": "O ano e os números de faixa e de disco precisam ser números inteiros."
     }
   }
 }

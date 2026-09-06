@@ -2341,7 +2341,8 @@
       "downloadsKept_one": "Çevrimdışı {{count}} parça saklandı ({{size}} MB).",
       "downloadsKept_other": "Çevrimdışı {{count}} parça saklandı ({{size}} MB).",
       "downloadsKept_zero": "Çevrimdışı hiçbir şey saklanmadı.",
-      "clearDownloads": "Temizle"
+      "clearDownloads": "Temizle",
+      "reportFeed": "sunucu düzeltmeleri: {{applied}}"
     },
     "import": {
       "action": "Kitaplığıma aktar",
@@ -2392,6 +2393,14 @@
         "unknown_verdict": "Bu sürümün bilmediği yanıt: {{count}}",
         "failed": "Başarısız: {{count}}"
       }
+    },
+    "tags": {
+      "action": "Üst verileri düzelt",
+      "title": "Sunucu üst verileri",
+      "subtitle": "Düzeltme dosyaya değil, sunucuya kaydedilir.",
+      "help": "Bu düzeltmeler sunucunun taramalarından etkilenmez ve kitaplığın tüm üyeleri tarafından görülür. Bir alanı boşaltmak düzeltmeyi kaldırır: dosyadaki değer geri gelir.",
+      "missing": "Bu parça henüz sunucu aynasında yok. Bir katalog taraması çalıştırıp yeniden deneyin.",
+      "invalidNumber": "Yıl ile parça ve disk numaraları tam sayı olmalıdır."
     }
   }
 }

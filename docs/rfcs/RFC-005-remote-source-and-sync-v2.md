@@ -661,6 +661,63 @@ already stores it. Mirroring the catalogue therefore lands the server's content
 fingerprint for **every** track it has — precisely the input the matching layer
 described below needs, obtained without asking for it.
 
+### The change feed covers what the walk structurally cannot see
+
+`AlbumItem::song_count` is what makes the walk cheap, and it is also a blind
+spot with a precise shape. A track added or removed moves that count, so the
+walk notices. A **correction** does not. Somebody retitles a track through
+`PATCH /tracks/{id}`, the album's count is unchanged, the album is skipped, and
+the mirror goes on showing the old title until something unrelated forces a
+re-fetch.
+
+`GET /api/v2/libraries/{id}/events` is what sees those, so
+[`remote::events`](../../src-tauri/crates/app/src/remote/events.rs) is not a
+faster sweep — it reports a class of change the sweep was never able to.
+
+It runs **before** the walk, not after: what it produces is a set of
+invalidations — an album whose `mirrored_at` it cleared, a library whose cursor
+the server refused — and the walk is what acts on them. Reading it afterwards
+would leave every one of them for the next walk.
+
+Three things are load-bearing:
+
+- **A track upsert carries `full_hash`, and that is the point.** Nothing else
+  tells a client that a file was retagged *outside* the API: the track keeps its
+  identifier while its bytes move, so an `exact_full_hash` link built on the old
+  bytes stays `confirmed` while being wrong. Reading the feed is what marks it
+  `stale`. This is the consumer RFC-006 said the desktop was missing.
+- **A refused cursor is not an error.** The server purges old events behind a
+  watermark and refuses a cursor below it, rather than handing back the
+  surviving tail — which would look like a successful catch-up while silently
+  skipping the gap. The answer is to make the walk re-read what was missed, so
+  the failure mode is "no faster than before", never "wrong". Two details
+  decide whether that actually happens: the walk decides freshness **per
+  album** (`remote_album.mirrored_at` against `song_count`), so invalidating
+  the *library's* sweep date changes nothing — and the missed events are
+  corrections, which leave `song_count` alone, so the walk would skip exactly
+  the albums that needed re-reading. And because the server exposes **no
+  watermark**, there is no cursor to adopt after the re-walk: a feed merely
+  forgotten gets asked from zero next pass, refused again, and invalidates the
+  mirror again, paying for a full re-walk forever. It is marked unreachable
+  instead, and emptying the mirror is what clears the mark.
+- **The refusal arrives as `conflict`, not `cursor_expired`.** The sync journal
+  answers the second code for the same situation; this feed maps its refusal
+  through `ServiceError::Conflict` and answers the first. A reader watching for
+  `cursor_expired` here would never match, and would retry a permanent refusal
+  forever. `RemoteFailure` keeps the code structured rather than folded into the
+  message for exactly this reason.
+
+Our own writes come back through the feed and are skipped on `origin_device_id`.
+The drain has already applied them from the patch's reply, which is the better
+source — it is the state the server settled on, not a notification that it
+changed. Skipping them also stops an upload arriving as a track this device has
+just discovered.
+
+The cursor advances only behind an event that landed, and is never lowered. A
+fetch failing mid-page leaves the rest for the next pass rather than skipping
+it: the cursor is the only record of what was read, so a gap in it is a gap
+nothing can detect afterwards.
+
 ### Cover art is cached on disk, not inlined
 
 The artwork endpoint is Bearer-only, so a bare `<img src>` to it answers 401.
@@ -817,6 +874,40 @@ Each field is therefore written only when its key is **present**; a key present
 and null is a genuine clear. The projection's tests replay the server's own
 captured journal and assert it converges on the server's own snapshot — the two
 feeds have to agree, or the result would depend on which one happened to run.
+
+### The one endpoint where an absent key means the opposite
+
+`PATCH /api/v2/tracks/{id}` inverts the rule above, and the inversion is
+deliberate on the server's side rather than an oversight: its body is the
+**complete set of corrections the track should carry afterwards**. A field left
+out is not a field left alone — it is a correction *withdrawn*, and the track
+falls back to whatever its file's tag says.
+
+That shape is right for a tag editor, which submits a whole form and needs
+"clear this" to be expressible without a magic null. It is wrong for everything
+else in the queue, so `Mutation::UpdateTrackMetadata` is the one mutation with
+no `clear_*` flags, and callers may never send a diff. Sending only the fields
+that changed — which is what the *local* tag editor does — would silently drop
+every correction it failed to mention.
+
+Two consequences, both invisible until they bite:
+
+- **The desktop sends only the six fields its editor shows.** The server also
+  stores `sort_title`, `comment` and `musicbrainz_recording_id`; under wholesale
+  semantics, sending a field we cannot show the user is indistinguishable from
+  clearing it. That is sound **only while this application is the sole writer of
+  `track_override`** — which it is today, the server's own web client sending no
+  such patch. The day a second writer appears this quietly erases their
+  corrections, and the fix is a server route returning the *raw* overrides.
+  `GET /tracks/{id}` cannot stand in for it: it answers the merged values, in
+  which a correction is indistinguishable from what the file said.
+- **The reply is the only place the underlying tag can be learnt.** Withdrawing
+  a correction hands back a value this device has never seen — it only ever saw
+  the correction that was masking it. So the drain writes the patch's reply into
+  the mirror through `projection::apply_track_metadata`, which writes its columns
+  flat instead of coalescing them the way `cache_song` does. Coalescing would go
+  on showing the year the user just deleted, with no later pass able to put it
+  right.
 
 ## Why the v1 design retires
 

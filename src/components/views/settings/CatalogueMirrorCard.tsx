@@ -300,12 +300,26 @@ export function CatalogueMirrorCard() {
 
           {report && !running && (
             <p className="text-xs text-zinc-600 dark:text-zinc-300">
+              {/* The feed counts towards "something happened": a correction
+                  applied through it changes what the library shows while
+                  leaving every album's track count alone, so a walk that
+                  skipped every album can still have changed the mirror. */}
               {report.albums_walked === 0 && report.orphans_mirrored === 0
-                ? t("remote.catalogue.reportUnchanged")
+                ? // A walk that touched nothing says so, and says it alone:
+                  // pairing "0 albums, 0 tracks" with the feed's count reads
+                  // as a contradiction rather than as two facts.
+                  report.feed_applied === 0
+                  ? t("remote.catalogue.reportUnchanged")
+                  : t("remote.catalogue.reportFeed", {
+                      applied: report.feed_applied,
+                    })
                 : t("remote.catalogue.reportWalked", {
                     albums: report.albums_walked,
                     tracks: report.tracks_mirrored + report.orphans_mirrored,
                   })}
+              {report.feed_applied > 0 &&
+                (report.albums_walked > 0 || report.orphans_mirrored > 0) &&
+                ` · ${t("remote.catalogue.reportFeed", { applied: report.feed_applied })}`}
               {report.removed > 0 &&
                 ` · ${t("remote.catalogue.reportRemoved", { removed: report.removed })}`}
               {report.cancelled && ` · ${t("remote.catalogue.reportCancelled")}`}

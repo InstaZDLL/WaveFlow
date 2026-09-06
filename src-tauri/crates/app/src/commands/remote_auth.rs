@@ -237,6 +237,46 @@ pub async fn remote_set_rating(
     Ok(())
 }
 
+/// What the mirror holds for a server track, to fill the tag editor.
+///
+/// `None` when the mirror has no row for it — a track known only as an
+/// identifier has no form to show.
+#[tauri::command]
+pub async fn remote_get_track_tags(
+    state: tauri::State<'_, AppState>,
+    track_id: String,
+) -> AppResult<Option<crate::remote::read::RemoteTrackTags>> {
+    let pool = state.require_profile_pool().await?;
+    let mut conn = pool.acquire().await?;
+    crate::remote::read::track_tags(&mut conn, &track_id).await
+}
+
+/// Correct a server track's metadata.
+///
+/// The server keeps the correction beside the track, so it survives
+/// that library's rescans and every member of the library sees it.
+/// **No file is rewritten** — not here, not there — which is what
+/// separates this from [`update_track_tags`] and what makes correcting
+/// a track that lives on somebody else's disk possible at all.
+///
+/// The whole form is sent rather than the fields that changed: the
+/// endpoint is wholesale, so a field left out is a correction removed.
+/// [`UpdateTrackMetadata`] spells out what that rules out.
+///
+/// [`update_track_tags`]: crate::commands::edit::update_track_tags
+/// [`UpdateTrackMetadata`]: crate::remote::mutation::Mutation::UpdateTrackMetadata
+#[tauri::command]
+pub async fn remote_update_track_tags(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    track_id: String,
+    edit: crate::remote::write::TrackMetadataEdit,
+) -> AppResult<()> {
+    crate::remote::write::set_track_metadata(&state, &track_id, &edit).await?;
+    crate::remote::drain::spawn(app);
+    Ok(())
+}
+
 /// Create a playlist on the remote account.
 ///
 /// Returns the identifier it is known by locally. That is a `local:`

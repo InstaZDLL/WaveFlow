@@ -171,10 +171,11 @@ impl RemoteFailure {
     /// The request collides with existing state. Permanent, and the fix
     /// is a new operation id — never a retry of this one.
     ///
-    /// The symmetric counterpart to [`Self::is_cursor_expired`]; only the
-    /// tests read it today (the drain acts on the permanent status), but it
-    /// keeps the 409 duality legible in one place.
-    #[allow(dead_code)]
+    /// The symmetric counterpart to [`Self::is_cursor_expired`], and the one
+    /// the library change feed answers with: that endpoint maps its refusal
+    /// through `ServiceError::Conflict`, so a reader watching for
+    /// `cursor_expired` there would never match and would retry a permanent
+    /// refusal forever.
     pub fn is_conflict(&self) -> bool {
         self.code.as_deref() == Some(CODE_CONFLICT)
     }
@@ -363,6 +364,15 @@ impl<'a> RemoteClient<'a> {
         } else {
             format!("{}/{}", self.base_url, path)
         }
+    }
+
+    /// This device's identifier, when the binding carries one.
+    ///
+    /// Read by the change feed for two things: acknowledging a position, which
+    /// the server records per device, and recognising this device's own writes
+    /// coming back so they are not applied twice.
+    pub fn device_id(&self) -> Option<&str> {
+        self.device_id.as_deref()
     }
 
     pub fn base_url(&self) -> &str {

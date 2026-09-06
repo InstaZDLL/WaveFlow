@@ -2341,7 +2341,8 @@
       "downloadsKept_one": "{{count}} track kept offline ({{size}} MB).",
       "downloadsKept_other": "{{count}} tracks kept offline ({{size}} MB).",
       "downloadsKept_zero": "Nothing kept offline.",
-      "clearDownloads": "Clear"
+      "clearDownloads": "Clear",
+      "reportFeed": "server corrections: {{applied}}"
     },
     "import": {
       "action": "Import into my library",
@@ -2392,6 +2393,14 @@
         "unknown_verdict": "Answer this build does not know: {{count}}",
         "failed": "Failed: {{count}}"
       }
+    },
+    "tags": {
+      "action": "Correct metadata",
+      "title": "Server metadata",
+      "subtitle": "The correction is stored on the server, not in the file.",
+      "help": "These corrections survive the server's scans and are visible to every member of the library. Clearing a field removes the correction: the file's own value comes back.",
+      "missing": "This track is not in the server mirror yet. Run a catalogue walk, then try again.",
+      "invalidNumber": "The year and the track and disc numbers must be whole numbers."
     }
   }
 }

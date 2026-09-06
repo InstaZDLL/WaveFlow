@@ -2320,7 +2320,8 @@
       "downloadsKept_one": "オフライン保存 {{count}} 件（{{size}} MB）",
       "downloadsKept_other": "オフライン保存 {{count}} 件（{{size}} MB）",
       "downloadsKept_zero": "オフラインに保存された楽曲はありません。",
-      "clearDownloads": "削除"
+      "clearDownloads": "削除",
+      "reportFeed": "サーバーの修正: {{applied}} 件"
     },
     "import": {
       "action": "自分のライブラリに取り込む",
@@ -2371,6 +2372,14 @@
         "unknown_verdict": "このビルドが知らない応答: {{count}}",
         "failed": "失敗: {{count}}"
       }
+    },
+    "tags": {
+      "action": "メタデータを修正",
+      "title": "サーバーのメタデータ",
+      "subtitle": "修正はファイルではなくサーバーに保存されます。",
+      "help": "これらの修正はサーバーのスキャンでも失われず、ライブラリのすべてのメンバーに表示されます。項目を空にすると修正が取り消され、ファイル本来の値に戻ります。",
+      "missing": "この曲はまだサーバーのミラーにありません。カタログの取得を実行してから、もう一度お試しください。",
+      "invalidNumber": "年、トラック番号、ディスク番号は整数で入力してください。"
     }
   }
 }

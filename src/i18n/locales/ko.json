@@ -2320,7 +2320,8 @@
       "downloadsKept_one": "오프라인 보관 트랙 {{count}}개 ({{size}} MB)",
       "downloadsKept_other": "오프라인 보관 트랙 {{count}}개 ({{size}} MB)",
       "downloadsKept_zero": "오프라인으로 보관된 트랙이 없습니다.",
-      "clearDownloads": "비우기"
+      "clearDownloads": "비우기",
+      "reportFeed": "서버 수정: {{applied}}건"
     },
     "import": {
       "action": "내 라이브러리로 가져오기",
@@ -2371,6 +2372,14 @@
         "unknown_verdict": "이 빌드가 모르는 응답: {{count}}",
         "failed": "실패: {{count}}"
       }
+    },
+    "tags": {
+      "action": "메타데이터 수정",
+      "title": "서버 메타데이터",
+      "subtitle": "수정 내용은 파일이 아니라 서버에 저장됩니다.",
+      "help": "이 수정 내용은 서버의 검사 후에도 유지되며 라이브러리의 모든 구성원에게 표시됩니다. 항목을 비우면 수정이 취소되어 파일에 있는 값이 다시 나타납니다.",
+      "missing": "이 트랙은 아직 서버 미러에 없습니다. 카탈로그를 한 번 훑은 뒤 다시 시도하세요.",
+      "invalidNumber": "연도와 트랙 번호, 디스크 번호는 정수여야 합니다."
     }
   }
 }

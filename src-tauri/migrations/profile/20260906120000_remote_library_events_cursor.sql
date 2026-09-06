@@ -1,0 +1,20 @@
+-- Where this device has read up to in each library's change feed.
+--
+-- The catalogue sweep is complete but blind to one whole class of change.
+-- It skips an album whose `song_count` still matches, which is the right
+-- call for what it was built for — a track added or removed moves that
+-- count — but a *correction* does not. Somebody retitles a track through
+-- `PATCH /tracks/{id}`, the count is unchanged, the album is skipped, and
+-- the mirror keeps showing the old title until something unrelated forces
+-- a re-fetch. The feed is what sees those.
+--
+-- NULL means "never read this feed", not "read nothing": a library that
+-- has never been swept has nothing to keep up to date, and replaying its
+-- history would duplicate the work the sweep is about to do anyway.
+--
+-- The cursor is per library and per *device*, and it is deliberately not
+-- the sync journal's cursor on `remote_binding`: that one follows the
+-- account's user data across every server, this one follows one library's
+-- catalogue. Conflating them would have a playlist edit advance a position
+-- in a feed of scans.
+ALTER TABLE remote_library ADD COLUMN events_cursor INTEGER;

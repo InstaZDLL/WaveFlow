@@ -35,6 +35,7 @@ import {
   Check,
   Download,
   FolderDown,
+  Pencil,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { LibraryTab } from "../../types";
@@ -61,6 +62,7 @@ import {
   remoteListDownloads,
 } from "../../lib/tauri/remoteServer";
 import { ImportToLibraryModal } from "../common/ImportToLibraryModal";
+import { RemoteTrackTagsModal } from "../common/RemoteTrackTagsModal";
 import { StarRating } from "../common/StarRating";
 import { SelectionActionBar } from "../common/SelectionActionBar";
 import { AlphabetIndex } from "../common/AlphabetIndex";
@@ -207,6 +209,10 @@ export function LibraryView({
     ids: string[];
     label: string;
   } | null>(null);
+  // Server track whose tag editor is open, by its server identifier.
+  const [remoteTagsTrackId, setRemoteTagsTrackId] = useState<string | null>(
+    null,
+  );
   const [downloadingRemote, setDownloadingRemote] = useState<Set<string>>(
     () => new Set(),
   );
@@ -980,6 +986,7 @@ export function LibraryView({
                     label: row.title,
                   });
                 }}
+                onEditRemoteTags={setRemoteTagsTrackId}
                 singleClickPlay={singleClickPlay}
                 onRowSelect={(track, e) => {
                   // Modifier-driven selection always wins so multi-select
@@ -1212,6 +1219,25 @@ export function LibraryView({
           // rather than trusting the backend's `library:rescanned` to move
           // `librariesSignature` — it only does when a library row itself
           // changed.
+          setEditRefetch((k) => k + 1);
+        }}
+      />
+
+      {/* Re-keyed on the identifier, so closing and reopening mounts a
+          fresh dialog instead of one still holding the previous form.
+          Without it, reopening the SAME track keeps `loadedId` equal to
+          `trackId`, the form reads as ready while its reload is still in
+          flight, and a quick Save would send stale values — which under a
+          wholesale patch withdraws whatever changed in between. Same
+          strategy the Properties dialog uses. */}
+      <RemoteTrackTagsModal
+        key={remoteTagsTrackId ?? "none"}
+        trackId={remoteTagsTrackId}
+        onClose={() => setRemoteTagsTrackId(null)}
+        onSaved={() => {
+          // The mirror row was rewritten in the same transaction that
+          // queued the patch, so the list is one row out of date the
+          // moment the modal closes. Same refetch an import triggers.
           setEditRefetch((k) => k + 1);
         }}
       />
@@ -1544,6 +1570,7 @@ interface TrackTableProps {
   /** Copy a server track into a scanned folder, where it becomes a local
    *  track of the user's own library. */
   onImportRemote: (row: LibraryTrackRow) => void;
+  onEditRemoteTags: (remoteTrackId: string) => void;
   /** Server tracks whose download is in flight, so the button can say so. */
   downloadingRemote: Set<string>;
   /** Server tracks already kept offline. */
@@ -1575,6 +1602,7 @@ function TrackTable({
   onNavigateToRemoteArtist,
   onDownloadRemote,
   onImportRemote,
+  onEditRemoteTags,
   downloadingRemote,
   downloadedRemote,
 }: TrackTableProps) {
@@ -1640,10 +1668,14 @@ function TrackTable({
     };
   }, [openMenuTrackId]);
 
+  // The last track holds the row's actions. A server row puts three
+  // buttons there (keep offline, import, correct tags) at 28px each, so
+  // the 2.5rem it used to be overflowed into the heart beside it — it
+  // already did with two, and a third made it plain.
   const gridCols =
     view === "list"
-      ? "grid-cols-[3rem_2.75rem_1fr_1fr_1fr_7rem_5rem_2rem_2.5rem]"
-      : "grid-cols-[3rem_1fr_1fr_1fr_7rem_5rem_2rem_2.5rem]";
+      ? "grid-cols-[3rem_2.75rem_1fr_1fr_1fr_7rem_5rem_2rem_5.5rem]"
+      : "grid-cols-[3rem_1fr_1fr_1fr_7rem_5rem_2rem_5.5rem]";
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40 overflow-hidden">
@@ -1895,13 +1927,21 @@ function TrackTable({
                 )}
               </div>
               <div className="relative flex justify-center">
-                {/* A server row gets the two gestures that are meaningful on
-                    it instead: keep the bytes for offline playback, or copy
-                    them into a scanned folder where they become a track of
-                    this library. Two buttons rather than a menu — there are
-                    exactly two, and a menu would hide both behind a click. */}
+                {/* A server row gets the gestures that are meaningful on it
+                    instead: keep the bytes for offline playback, copy them
+                    into a scanned folder where they become a track of this
+                    library, or correct the metadata the server holds. Plain
+                    buttons rather than a menu — there are few enough to show,
+                    and a menu would hide every one behind a click. */}
                 {!local && (
-                  <div className="flex items-center gap-0.5">
+                  // Same guard the rating column carries: without it a
+                  // double-click on one of these buttons bubbles up to the
+                  // row and starts playback behind the dialog that just
+                  // opened.
+                  <div
+                    className="flex items-center gap-0.5"
+                    onDoubleClick={(e) => e.stopPropagation()}
+                  >
                     <button
                       type="button"
                       onClick={(e) => {
@@ -1947,6 +1987,24 @@ function TrackTable({
                       className="p-1.5 rounded-full transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
                     >
                       <FolderDown size={16} />
+                    </button>
+                    {/* Corrects what the SERVER holds, beside the track and
+                        surviving its rescans. No file is rewritten, which is
+                        what makes it possible on a track that lives on
+                        somebody else's disk — and why the local Properties
+                        dialog, which is a file inspector, is not what opens
+                        here. */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditRemoteTags(String(track.id));
+                      }}
+                      aria-label={t("remote.tags.action")}
+                      title={t("remote.tags.action")}
+                      className="p-1.5 rounded-full transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                    >
+                      <Pencil size={16} />
                     </button>
                   </div>
                 )}
@@ -3248,7 +3306,7 @@ function LibraryTabSkeleton({ tab, t }: { tab: LibraryTab; t: Translator }) {
         {Array.from({ length: 12 }).map((_, i) => (
           <div
             key={i}
-            className="grid grid-cols-[3rem_2.75rem_1fr_1fr_1fr_7rem_5rem_2rem_2.5rem] gap-4 px-5 h-14 items-center border-b border-zinc-100 dark:border-zinc-800/60"
+            className="grid grid-cols-[3rem_2.75rem_1fr_1fr_1fr_7rem_5rem_2rem_5.5rem] gap-4 px-5 h-14 items-center border-b border-zinc-100 dark:border-zinc-800/60"
           >
             <div className={`h-3 w-4 rounded ${tile} justify-self-end`} />
             <div className={`w-10 h-10 rounded-md ${tile}`} />

@@ -157,6 +157,54 @@ pub enum Mutation {
     DeleteShare {
         share_id: String,
     },
+    /// Corrections for one server track.
+    ///
+    /// ## `None` means the opposite of what it means above
+    ///
+    /// Every other update in this enum is incremental: a field left
+    /// `None` is unchanged, and emptying one needs its own `clear_*`
+    /// verb because the server coalesces an absent field with an
+    /// explicit null. `PATCH /tracks/{id}` is **wholesale** — the body
+    /// is the complete set of corrections the track should carry
+    /// afterwards, so a field left out is not a field left alone, it is
+    /// a correction *removed*. That is why there are no `clear_*` flags
+    /// here, and why there must never be any: the empty value already
+    /// says it.
+    ///
+    /// The consequence for callers is that they may not send a diff.
+    /// The whole form goes, or the corrections it failed to mention are
+    /// silently dropped.
+    ///
+    /// ## Why only six fields
+    ///
+    /// The server also stores `sort_title`, `comment` and
+    /// `musicbrainz_recording_id`. They are absent here because the tag
+    /// editor has no input for them, and under wholesale semantics
+    /// sending a field we cannot show the user is indistinguishable
+    /// from clearing it.
+    ///
+    /// **That is sound only while this application is the sole writer
+    /// of `track_override`** — which it is today: the server's own web
+    /// client sends no such patch. The day a second writer appears,
+    /// this quietly erases somebody else's corrections, and the fix is
+    /// a server route returning the raw overrides. The track endpoint
+    /// cannot stand in for it: it answers the *merged* values, in which
+    /// a correction is indistinguishable from what the file said.
+    UpdateTrackMetadata {
+        track_id: String,
+        title: Option<String>,
+        /// Ordered, and a list rather than the `"; "`-joined string the
+        /// local invariant uses everywhere else. That form exists
+        /// because a tagger writes names however it likes and the
+        /// mapper has to guess where one name ends; the server refuses
+        /// to reintroduce that guess on a list somebody typed on
+        /// purpose, so the joined form stops at the network boundary.
+        artists: Option<Vec<String>>,
+        genres: Option<Vec<String>>,
+        year: Option<i64>,
+        track_number: Option<i64>,
+        disc_number: Option<i64>,
+    },
 }
 
 impl Mutation {
@@ -174,6 +222,7 @@ impl Mutation {
             Mutation::CreateShare { .. } => "create_share",
             Mutation::UpdateShare { .. } => "update_share",
             Mutation::DeleteShare { .. } => "delete_share",
+            Mutation::UpdateTrackMetadata { .. } => "update_track_metadata",
         }
     }
 
