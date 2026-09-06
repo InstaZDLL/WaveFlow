@@ -921,14 +921,20 @@ fn correction(value: &str) -> Option<String> {
 
 /// Split a joined credit string into the ordered list the server wants.
 ///
-/// `"; "` only — matching the local invariant, and deliberately *not*
-/// the comma the local tag editor also accepts on input. A comma occurs
-/// inside single names, and the server takes a list precisely so that
-/// nobody has to guess where one name ends. What the editor accepted
-/// loosely, it hands over strictly.
+/// **`"; "`, separator and space** — the same string
+/// `waveflow_core::scanner::upserts::split_artist_name` splits the local
+/// half on, so both halves of the library read one credit line the same
+/// way. A bare `;` is not the separator: "AC;DC" is one band, and
+/// splitting on the character alone would send the server two artists
+/// that never existed.
+///
+/// Deliberately *not* the comma the local tag editor also accepts on
+/// input, either. A comma occurs inside single names, and the server
+/// takes a list precisely so nobody has to guess where one name ends.
+/// What the editor accepted loosely, it hands over strictly.
 fn split_credits(value: &str) -> Vec<String> {
     value
-        .split(';')
+        .split("; ")
         .map(str::trim)
         .filter(|part| !part.is_empty())
         .map(str::to_string)
@@ -1697,6 +1703,33 @@ mod tests {
         // the value the user just deleted.
         assert_eq!(text(&mut conn, "artist").await, None);
         assert_eq!(text(&mut conn, "genre").await, None);
+    }
+
+    #[tokio::test]
+    async fn a_name_holding_the_bare_separator_survives_the_split() {
+        // "AC;DC" is one band. Splitting on the character rather than on
+        // the separator would send the server two artists that never
+        // existed, under a wholesale patch that makes them the truth.
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        mirror_track(&mut conn).await;
+
+        set_track_metadata_in_tx(
+            &mut conn,
+            "t1",
+            &TrackMetadataEdit {
+                artist: "AC;DC".into(),
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
+
+        let queued = pending(&mut conn, 10).await.unwrap();
+        let Mutation::UpdateTrackMetadata { artists, .. } = &queued[0].mutation else {
+            panic!("the queued entry is not a metadata patch");
+        };
+        assert_eq!(artists.as_deref(), Some(&["AC;DC".to_string()][..]));
     }
 
     #[tokio::test]

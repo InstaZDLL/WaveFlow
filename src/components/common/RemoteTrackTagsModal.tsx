@@ -71,7 +71,6 @@ export function RemoteTrackTagsModal({
 }: RemoteTrackTagsModalProps) {
   const { t } = useTranslation();
   const isOpen = trackId != null;
-  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
   const [form, setForm] = useState<FormState>(EMPTY);
   // The track the form was filled from. Anything else — including
   // `null` — means what is on screen does not describe `trackId` yet.
@@ -131,6 +130,12 @@ export function RemoteTrackTagsModal({
     if (saving) return;
     onClose();
   }, [saving, onClose]);
+
+  // Escape goes through the same guard as the button. Handing `onClose`
+  // straight to the hook would let Escape hide the dialog mid-save, and
+  // a request that then failed would write its error onto a dialog
+  // nobody can see.
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, handleClose);
 
   const handleSave = useCallback(async () => {
     if (trackId == null) return;

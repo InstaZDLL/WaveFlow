@@ -29,6 +29,29 @@ use crate::{
 /// holding a profile lease across thousands of round-trips.
 const BATCH: i64 = 100;
 
+/// One pass at a time, process-wide.
+///
+/// [`spawn`] is edge-triggered — every local gesture fires one — so two
+/// quick edits start two passes, and each reads the queue before the
+/// other has removed anything from it. That was survivable while a
+/// reply carried nothing: the operation identifier makes the server
+/// treat the second send as a replay.
+///
+/// It stopped being survivable once a reply began writing back. Save A,
+/// save B, and two passes race; B's reply can land before A's, after
+/// which A's reply overwrites the projection with values the user has
+/// already replaced. The queue is FIFO precisely so an edit cannot
+/// overtake what it depends on, and running two passes at once is what
+/// takes that guarantee away.
+///
+/// A lock rather than a version check on each mutation: ordering is the
+/// property the queue already promises, so restoring it is cheaper and
+/// less to get wrong than teaching every reply to recognise a newer
+/// sibling. Waiting rather than skipping, so a pass started for B still
+/// runs after A's — with `try_lock`, B's wake-up would be dropped and B
+/// would wait for the next unrelated gesture.
+static PASS: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 /// Names the `clear` array accepts, spelled once.
 ///
 /// A name the server does not recognize is **rejected with 422** rather
@@ -114,6 +137,12 @@ pub async fn drain(state: &AppState) -> AppResult<DrainReport> {
     // profile swap landing mid-drain, applying one profile's queue against
     // another's data.
     let pool = state.require_profile_pool_for(Some(profile_id)).await?;
+
+    // Claimed here rather than at the top: the early returns above are
+    // no-ops, and making them queue behind a running pass would serialise
+    // work that does nothing. Held for the rest of the function, so the
+    // queue is read and drained by one pass at a time.
+    let _pass = PASS.lock().await;
 
     let queued = {
         let mut conn = pool.acquire().await?;

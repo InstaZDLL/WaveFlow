@@ -1223,7 +1223,15 @@ export function LibraryView({
         }}
       />
 
+      {/* Re-keyed on the identifier, so closing and reopening mounts a
+          fresh dialog instead of one still holding the previous form.
+          Without it, reopening the SAME track keeps `loadedId` equal to
+          `trackId`, the form reads as ready while its reload is still in
+          flight, and a quick Save would send stale values — which under a
+          wholesale patch withdraws whatever changed in between. Same
+          strategy the Properties dialog uses. */}
       <RemoteTrackTagsModal
+        key={remoteTagsTrackId ?? "none"}
         trackId={remoteTagsTrackId}
         onClose={() => setRemoteTagsTrackId(null)}
         onSaved={() => {
@@ -1660,10 +1668,14 @@ function TrackTable({
     };
   }, [openMenuTrackId]);
 
+  // The last track holds the row's actions. A server row puts three
+  // buttons there (keep offline, import, correct tags) at 28px each, so
+  // the 2.5rem it used to be overflowed into the heart beside it — it
+  // already did with two, and a third made it plain.
   const gridCols =
     view === "list"
-      ? "grid-cols-[3rem_2.75rem_1fr_1fr_1fr_7rem_5rem_2rem_2.5rem]"
-      : "grid-cols-[3rem_1fr_1fr_1fr_7rem_5rem_2rem_2.5rem]";
+      ? "grid-cols-[3rem_2.75rem_1fr_1fr_1fr_7rem_5rem_2rem_5.5rem]"
+      : "grid-cols-[3rem_1fr_1fr_1fr_7rem_5rem_2rem_5.5rem]";
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40 overflow-hidden">
@@ -3287,7 +3299,7 @@ function LibraryTabSkeleton({ tab, t }: { tab: LibraryTab; t: Translator }) {
         {Array.from({ length: 12 }).map((_, i) => (
           <div
             key={i}
-            className="grid grid-cols-[3rem_2.75rem_1fr_1fr_1fr_7rem_5rem_2rem_2.5rem] gap-4 px-5 h-14 items-center border-b border-zinc-100 dark:border-zinc-800/60"
+            className="grid grid-cols-[3rem_2.75rem_1fr_1fr_1fr_7rem_5rem_2rem_5.5rem] gap-4 px-5 h-14 items-center border-b border-zinc-100 dark:border-zinc-800/60"
           >
             <div className={`h-3 w-4 rounded ${tile} justify-self-end`} />
             <div className={`w-10 h-10 rounded-md ${tile}`} />
