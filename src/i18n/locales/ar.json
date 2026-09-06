@@ -2599,7 +2599,8 @@
       "downloadsKept_other": "حُفظ {{count}} مقطع دون اتصال ({{size}} ميغابايت).",
       "downloadsKept_two": "حُفظ مقطعان دون اتصال ({{size}} ميغابايت).",
       "downloadsKept_zero": "لم يُحفظ شيء دون اتصال.",
-      "clearDownloads": "إفراغ"
+      "clearDownloads": "إفراغ",
+      "reportFeed": "تصحيحات الخادم: {{applied}}"
     },
     "import": {
       "action": "استيراد إلى مكتبتي",

@@ -2320,7 +2320,8 @@
       "downloadsKept_one": "已离线保存 {{count}} 首曲目（{{size}} MB）",
       "downloadsKept_other": "已离线保存 {{count}} 首曲目（{{size}} MB）",
       "downloadsKept_zero": "没有离线保存的曲目。",
-      "clearDownloads": "清空"
+      "clearDownloads": "清空",
+      "reportFeed": "服务器修正：{{applied}} 项"
     },
     "import": {
       "action": "导入我的音乐库",

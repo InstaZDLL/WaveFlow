@@ -2341,7 +2341,8 @@
       "downloadsKept_one": "{{count}} brano tenuto offline ({{size}} MB).",
       "downloadsKept_other": "{{count}} brani tenuti offline ({{size}} MB).",
       "downloadsKept_zero": "Niente tenuto offline.",
-      "clearDownloads": "Svuota"
+      "clearDownloads": "Svuota",
+      "reportFeed": "correzioni del server: {{applied}}"
     },
     "import": {
       "action": "Importa nella mia libreria",

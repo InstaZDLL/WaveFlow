@@ -2341,7 +2341,8 @@
       "downloadsKept_one": "{{count}} nummer offline bewaard ({{size}} MB).",
       "downloadsKept_other": "{{count}} nummers offline bewaard ({{size}} MB).",
       "downloadsKept_zero": "Niets offline bewaard.",
-      "clearDownloads": "Wissen"
+      "clearDownloads": "Wissen",
+      "reportFeed": "servercorrecties: {{applied}}"
     },
     "import": {
       "action": "Importeren in mijn bibliotheek",

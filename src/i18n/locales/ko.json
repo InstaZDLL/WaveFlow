@@ -2320,7 +2320,8 @@
       "downloadsKept_one": "오프라인 보관 트랙 {{count}}개 ({{size}} MB)",
       "downloadsKept_other": "오프라인 보관 트랙 {{count}}개 ({{size}} MB)",
       "downloadsKept_zero": "오프라인으로 보관된 트랙이 없습니다.",
-      "clearDownloads": "비우기"
+      "clearDownloads": "비우기",
+      "reportFeed": "서버 수정: {{applied}}건"
     },
     "import": {
       "action": "내 라이브러리로 가져오기",

@@ -2341,7 +2341,8 @@
       "downloadsKept_one": "{{count}} pista guardada sin conexión ({{size}} MB).",
       "downloadsKept_other": "{{count}} pistas guardadas sin conexión ({{size}} MB).",
       "downloadsKept_zero": "Nada guardado sin conexión.",
-      "clearDownloads": "Vaciar"
+      "clearDownloads": "Vaciar",
+      "reportFeed": "correcciones del servidor: {{applied}}"
     },
     "import": {
       "action": "Importar a mi biblioteca",

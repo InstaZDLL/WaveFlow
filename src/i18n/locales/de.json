@@ -2341,7 +2341,8 @@
       "downloadsKept_one": "{{count}} Titel offline behalten ({{size}} MB).",
       "downloadsKept_other": "{{count}} Titel offline behalten ({{size}} MB).",
       "downloadsKept_zero": "Nichts offline behalten.",
-      "clearDownloads": "Leeren"
+      "clearDownloads": "Leeren",
+      "reportFeed": "Serverkorrekturen: {{applied}}"
     },
     "import": {
       "action": "In meine Mediathek importieren",

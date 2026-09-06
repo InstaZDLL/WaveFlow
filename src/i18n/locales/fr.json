@@ -2341,7 +2341,8 @@
       "downloadsKept_one": "{{count}} piste gardée hors ligne ({{size}} Mo).",
       "downloadsKept_other": "{{count}} pistes gardées hors ligne ({{size}} Mo).",
       "downloadsKept_zero": "Rien gardé hors ligne.",
-      "clearDownloads": "Vider"
+      "clearDownloads": "Vider",
+      "reportFeed": "corrections du serveur : {{applied}}"
     },
     "import": {
       "action": "Importer dans ma bibliothèque",

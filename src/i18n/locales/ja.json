@@ -2320,7 +2320,8 @@
       "downloadsKept_one": "オフライン保存 {{count}} 件（{{size}} MB）",
       "downloadsKept_other": "オフライン保存 {{count}} 件（{{size}} MB）",
       "downloadsKept_zero": "オフラインに保存された楽曲はありません。",
-      "clearDownloads": "削除"
+      "clearDownloads": "削除",
+      "reportFeed": "サーバーの修正: {{applied}} 件"
     },
     "import": {
       "action": "自分のライブラリに取り込む",

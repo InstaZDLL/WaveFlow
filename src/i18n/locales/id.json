@@ -2320,7 +2320,8 @@
       "downloadsKept_one": "{{count}} lagu disimpan offline ({{size}} MB).",
       "downloadsKept_other": "{{count}} lagu disimpan offline ({{size}} MB).",
       "downloadsKept_zero": "Tidak ada yang disimpan offline.",
-      "clearDownloads": "Kosongkan"
+      "clearDownloads": "Kosongkan",
+      "reportFeed": "koreksi server: {{applied}}"
     },
     "import": {
       "action": "Impor ke pustaka saya",

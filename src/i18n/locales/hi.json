@@ -2341,7 +2341,8 @@
       "downloadsKept_one": "{{count}} ट्रैक ऑफ़लाइन रखा गया ({{size}} MB)।",
       "downloadsKept_other": "{{count}} ट्रैक ऑफ़लाइन रखे गए ({{size}} MB)।",
       "downloadsKept_zero": "ऑफ़लाइन कुछ नहीं रखा गया।",
-      "clearDownloads": "हटाएँ"
+      "clearDownloads": "हटाएँ",
+      "reportFeed": "सर्वर से सुधार: {{applied}}"
     },
     "import": {
       "action": "मेरी लाइब्रेरी में आयात करें",

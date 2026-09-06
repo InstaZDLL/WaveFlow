@@ -970,6 +970,13 @@ export interface CatalogueMirrorReport {
   orphans_mirrored: number;
   removed: number;
   libraries: number;
+  /** Events read from the server's change feeds and acted on. Counted apart
+   * from the walk because they cover what the walk cannot see: a correction
+   * leaves an album's track count untouched, so the walk skips that album. */
+  feed_applied: number;
+  /** Reconciliation links marked stale because the feed reported the server's
+   * bytes had moved under an unchanged identifier. */
+  feed_unlinked: number;
   cancelled: boolean;
   already_running: boolean;
 }

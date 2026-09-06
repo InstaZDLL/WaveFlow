@@ -114,6 +114,7 @@ pub mod client;
 pub mod download;
 pub mod drain;
 pub mod dto;
+pub mod events;
 pub mod hashing;
 pub mod import;
 pub mod lyrics;

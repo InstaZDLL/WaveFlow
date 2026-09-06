@@ -139,6 +139,32 @@ const DELETE_MIRROR: &str = concat!(
     unreferenced!()
 );
 
+/// Drop one track from the catalogue, keeping the row if anything still
+/// points at it.
+///
+/// Shared with [`super::events`] rather than restated there: "nothing else
+/// references it" is the same fact in both places, and the macro above exists
+/// precisely so it is written once. Answers whether the row itself went, which
+/// is not the same question as whether the track left the catalogue — a track
+/// a playlist still holds does the second without the first.
+pub(super) async fn forget_track(
+    conn: &mut sqlx::SqliteConnection,
+    remote_id: &str,
+) -> AppResult<bool> {
+    // Cleared first: it is what makes the row stop counting as catalogue,
+    // whether or not the delete below can fire.
+    sqlx::query("UPDATE remote_track SET in_catalogue = 0 WHERE remote_id = ?")
+        .bind(remote_id)
+        .execute(&mut *conn)
+        .await?;
+    let deleted = sqlx::query(DELETE_VANISHED)
+        .bind(remote_id)
+        .execute(&mut *conn)
+        .await?
+        .rows_affected();
+    Ok(deleted > 0)
+}
+
 /// What one walk did. Every count is of work actually performed, so a report
 /// of all zeros on a populated server means "nothing had changed", not
 /// "nothing was found".
@@ -158,6 +184,13 @@ pub struct MirrorReport {
     pub removed: i64,
     /// Libraries swept.
     pub libraries: i64,
+    /// Events read from the servers change feeds and acted on. These cover
+    /// what the walk cannot see on its own: a correction leaves an albums
+    /// track count untouched, so the walk skips it.
+    pub feed_applied: i64,
+    /// Reconciliation links marked stale because the feed reported the
+    /// servers bytes had moved under an unchanged identifier.
+    pub feed_unlinked: i64,
     /// Stopped early on request. The mirror is consistent either way.
     pub cancelled: bool,
     /// Another walk already owned the slot; nothing here ran.
@@ -295,6 +328,28 @@ pub async fn mirror_catalogue(state: &AppState, app: AppHandle) -> AppResult<Mir
     let libraries = fetch_libraries(&client).await?;
     report.libraries = libraries.len() as i64;
     store_libraries(&pool, &libraries).await?;
+
+    // Before the walk, not after: the feed's answer is a set of
+    // invalidations — an album whose `mirrored_at` it cleared, a library
+    // whose cursor the server refused — and the walk below is what acts on
+    // them. Reading the feed afterwards would leave every one of them for the
+    // *next* walk.
+    //
+    // Its failures are already swallowed per library: the feed is an
+    // optimisation over a sweep that still runs, so it must never be what
+    // stops one.
+    let feed = super::events::catch_up(&client, &pool).await?;
+    if feed.applied > 0 || feed.restarted > 0 {
+        tracing::info!(
+            applied = feed.applied,
+            own = feed.skipped_own,
+            unlinked = feed.unlinked,
+            restarted = feed.restarted,
+            "applied the servers change feed before walking"
+        );
+    }
+    report.feed_applied = feed.applied as i64;
+    report.feed_unlinked = feed.unlinked as i64;
 
     // Artists first: one request per page, nothing to fetch per row, and the
     // album walk that follows is the long one.

@@ -2341,7 +2341,8 @@
       "downloadsKept_one": "Çevrimdışı {{count}} parça saklandı ({{size}} MB).",
       "downloadsKept_other": "Çevrimdışı {{count}} parça saklandı ({{size}} MB).",
       "downloadsKept_zero": "Çevrimdışı hiçbir şey saklanmadı.",
-      "clearDownloads": "Temizle"
+      "clearDownloads": "Temizle",
+      "reportFeed": "sunucu düzeltmeleri: {{applied}}"
     },
     "import": {
       "action": "Kitaplığıma aktar",

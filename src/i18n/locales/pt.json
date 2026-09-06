@@ -2341,7 +2341,8 @@
       "downloadsKept_one": "{{count}} faixa mantida offline ({{size}} MB).",
       "downloadsKept_other": "{{count}} faixas mantidas offline ({{size}} MB).",
       "downloadsKept_zero": "Nada mantido offline.",
-      "clearDownloads": "Esvaziar"
+      "clearDownloads": "Esvaziar",
+      "reportFeed": "correções do servidor: {{applied}}"
     },
     "import": {
       "action": "Importar para a minha biblioteca",

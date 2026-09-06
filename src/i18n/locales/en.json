@@ -2341,7 +2341,8 @@
       "downloadsKept_one": "{{count}} track kept offline ({{size}} MB).",
       "downloadsKept_other": "{{count}} tracks kept offline ({{size}} MB).",
       "downloadsKept_zero": "Nothing kept offline.",
-      "clearDownloads": "Clear"
+      "clearDownloads": "Clear",
+      "reportFeed": "server corrections: {{applied}}"
     },
     "import": {
       "action": "Import into my library",
