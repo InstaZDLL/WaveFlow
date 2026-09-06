@@ -338,14 +338,14 @@ pub async fn survey(app: &AppHandle, state: &AppState) -> AppResult<UploadPlan> 
             }
         }
 
-        let row = sqlx::query("SELECT title, artist_display FROM track WHERE id = ?")
+        let row = sqlx::query("SELECT title, primary_artist FROM track WHERE id = ?")
             .bind(track_id)
             .fetch_optional(&*pool)
             .await?;
         let (title, artist) = match row {
             Some(row) => (
                 row.try_get::<String, _>("title").unwrap_or_default(),
-                row.try_get::<Option<String>, _>("artist_display")
+                row.try_get::<Option<String>, _>("primary_artist")
                     .unwrap_or_default(),
             ),
             None => (String::new(), None),
@@ -660,5 +660,66 @@ mod tests {
         drop(guard);
         assert!(!cancelled(), "a cancel must not poison the next sweep");
         assert!(RunGuard::claim().is_some(), "the slot must be free again");
+    }
+
+    /// The real migrator against a real database, so the columns are the ones
+    /// that ship rather than a fixture's idea of them.
+    async fn pool() -> sqlx::SqlitePool {
+        use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+        use std::str::FromStr;
+
+        let options = SqliteConnectOptions::from_str(":memory:")
+            .unwrap()
+            .foreign_keys(true);
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(options)
+            .await
+            .unwrap();
+        sqlx::migrate!("../../migrations/profile")
+            .run(&pool)
+            .await
+            .unwrap();
+        pool
+    }
+
+    /// The survey's per-candidate read, run against the shipped schema.
+    ///
+    /// It asked `track` for `artist_display`, a column no migration has ever
+    /// created — the name is `primary_artist` — so the sweep died on its first
+    /// candidate and the whole upload feature was unreachable. Nothing could
+    /// catch it before it ran: `sqlx::query` is the unchecked form, so neither
+    /// `cargo check` nor clippy reads the string, and no test in this module
+    /// touched a database.
+    ///
+    /// Asserting on the row's contents is not what makes this test work.
+    /// Running the statement against the real schema is.
+    #[tokio::test]
+    async fn the_survey_reads_columns_that_exist() {
+        let pool = pool().await;
+        sqlx::raw_sql(
+            "INSERT INTO library (id, name, color_id, icon_id, created_at, updated_at,
+                                  hlc_wall, hlc_logical)
+             VALUES (1, 'L', 1, 1, 0, 0, 0, 0);
+             INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
+                                title, primary_artist, duration_ms, added_at, is_available,
+                                hlc_wall, hlc_logical, rating_hlc_wall, rating_hlc_logical)
+             VALUES (1, 1, '/m/a.flac', 'h', 1, 0, 'T', 'A', 1000, 0, 1, 0, 0, 0, 0)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let row = sqlx::query("SELECT title, primary_artist FROM track WHERE id = ?")
+            .bind(1_i64)
+            .fetch_optional(&pool)
+            .await
+            .expect("the survey's read must run against the shipped schema")
+            .expect("the seeded track");
+        assert_eq!(row.try_get::<String, _>("title").unwrap(), "T");
+        assert_eq!(
+            row.try_get::<Option<String>, _>("primary_artist").unwrap(),
+            Some("A".into()),
+        );
     }
 }
