@@ -1027,8 +1027,10 @@ impl AudioEngine {
         // path only runs after a DeviceNotAvailable error, so the old stream
         // is already dead — there's no working state to roll back to. When
         // the old stream is shared we keep the spawn-first order so a failed
-        // spawn can still roll back.
-        let pre_release = guard.as_ref().is_some_and(|h| h.exclusive);
+        // spawn can still roll back — except where entering exclusive can't
+        // evict it, see [`must_release_before_reopening`].
+        let pre_release =
+            must_release_before_reopening(guard.as_ref().map(|h| h.exclusive), exclusive);
         if pre_release {
             if was_playing {
                 self.cmd_tx
@@ -1351,8 +1353,11 @@ impl AudioEngine {
         // `exclusive_output_active` kept reporting the old mode: the toggle
         // sat latched on the very mode the user was trying to leave, with a
         // restart as the only way out. Release the old exclusive stream
-        // FIRST so the new open finds a free device.
-        let pre_release = guard.as_ref().is_some_and(|h| h.exclusive);
+        // FIRST so the new open finds a free device — and on macOS the
+        // other direction needs it too, see
+        // [`must_release_before_reopening`].
+        let pre_release =
+            must_release_before_reopening(guard.as_ref().map(|h| h.exclusive), enabled);
         if pre_release {
             if was_playing {
                 if let Err(e) = self.cmd_tx.send(AudioCmd::Stop) {
@@ -1533,6 +1538,42 @@ impl AudioEngine {
     }
 }
 
+/// Whether the old output has to be released *before* the new one is
+/// opened, rather than the other way round. `old_is_exclusive` is `None`
+/// when there is no stream installed at all.
+///
+/// Spawn-first is the order we want wherever it works: a failed open then
+/// costs nothing, because the stream the user is listening to is still
+/// installed and still playing. Two situations take that away.
+///
+/// - **The old stream is exclusive**, on any platform. It owns the device
+///   outright and nothing — shared or exclusive — can open that device
+///   until it lets go (#322, then #405 for the other direction).
+/// - **We are entering exclusive on macOS.** Hog mode is recorded as a
+///   *pid*, and the client it would have to evict here is our own cpal
+///   stream, in this very process — so it evicts nothing. Windows kicks
+///   the shared client off when the endpoint is seized, and on Linux the
+///   reservation protocol makes the sound server hand the card over;
+///   macOS has neither. The new AudioUnit then comes up on a device our
+///   old one is still driving and renders nothing: no sound, and a
+///   position counter frozen where it stood.
+///
+///   Measured on a MacBook Air, and only on the toggle. Armed before
+///   launch the same code opens on an idle device and plays, which is
+///   what made this look like a backend fault rather than an ordering
+///   one.
+///
+/// Releasing first is safe in the second case because
+/// [`spawn_output_with_mode`] falls back to shared mode on its own, so
+/// the caller still comes back holding a stream.
+fn must_release_before_reopening(old_is_exclusive: Option<bool>, entering_exclusive: bool) -> bool {
+    match old_is_exclusive {
+        None => false,
+        Some(true) => true,
+        Some(false) => cfg!(target_os = "macos") && entering_exclusive,
+    }
+}
+
 /// Update the [`AudioEngine::radio_resume`] snapshot in place
 /// according to the command about to be sent. Lifted out of the
 /// `send` method as a free function so the lifecycle invariant
@@ -1606,6 +1647,43 @@ fn apply_radio_resume_update(snapshot: &Mutex<Option<RadioResumeState>>, cmd: &A
             }
         }
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod reopen_order_tests {
+    use super::must_release_before_reopening;
+
+    #[test]
+    fn nothing_to_release_when_no_stream_is_installed() {
+        assert!(!must_release_before_reopening(None, true));
+        assert!(!must_release_before_reopening(None, false));
+    }
+
+    #[test]
+    fn an_exclusive_stream_is_always_released_first() {
+        // It owns the device outright: no open of any kind succeeds until
+        // it lets go. True in both directions and on every platform.
+        assert!(must_release_before_reopening(Some(true), true));
+        assert!(must_release_before_reopening(Some(true), false));
+    }
+
+    #[test]
+    fn entering_exclusive_over_a_shared_stream_depends_on_the_platform() {
+        // Windows evicts the shared client when the endpoint is seized and
+        // Linux asks the sound server for the card, so both keep the
+        // spawn-first order and the rollback it buys. macOS records hog
+        // mode against a pid and would be asked to evict this very
+        // process, so it cannot.
+        assert_eq!(
+            must_release_before_reopening(Some(false), true),
+            cfg!(target_os = "macos")
+        );
+    }
+
+    #[test]
+    fn shared_to_shared_has_nothing_to_reorder() {
+        assert!(!must_release_before_reopening(Some(false), false));
     }
 }
 
