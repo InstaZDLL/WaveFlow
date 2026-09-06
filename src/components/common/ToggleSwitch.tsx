@@ -9,6 +9,11 @@ interface ToggleSwitchProps {
  * copies in `SettingsView` and `EqualizerCard`; new cards should
  * prefer this shared export and the older inline copies can be
  * collapsed in a follow-up.
+ *
+ * `shrink-0` because a flex item shrinks past an explicit width: every
+ * row here is a flex line whose other half is a label, so a long enough
+ * subtitle squeezed the switch narrower than the ones above and below
+ * it. The width is the control's size, not a suggestion.
  */
 export function ToggleSwitch({ enabled, onToggle, label }: ToggleSwitchProps) {
   return (
@@ -18,7 +23,7 @@ export function ToggleSwitch({ enabled, onToggle, label }: ToggleSwitchProps) {
       role="switch"
       aria-checked={enabled}
       aria-label={label}
-      className={`relative w-12 h-7 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900 ${
+      className={`relative w-12 h-7 shrink-0 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900 ${
         enabled ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-600"
       }`}
     >

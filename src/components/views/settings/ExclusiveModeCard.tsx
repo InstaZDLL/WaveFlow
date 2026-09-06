@@ -133,9 +133,13 @@ export function ExclusiveModeCard() {
   return (
     <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Lock size={20} className="text-zinc-500 dark:text-zinc-400" />
-          <div>
+        <div className="flex items-center space-x-4 min-w-0">
+          <Lock
+            size={20}
+            className="shrink-0 text-zinc-500 dark:text-zinc-400"
+            aria-hidden="true"
+          />
+          <div className="min-w-0">
             <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
               {t("settings.exclusive.title")}
             </p>

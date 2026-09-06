@@ -46,7 +46,7 @@ use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
-use alsa::pcm::{Access, Format, HwParams, State, IO, PCM};
+use alsa::pcm::{Access, Format, Frames, HwParams, State, IO, PCM};
 use alsa::{Direction, ValueOr};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use rtrb::{Consumer, Producer, RingBuffer};
@@ -434,6 +434,7 @@ fn open_dop_pcm(dev: &str, dop: DopFormat) -> Result<(PCM, usize), PcmOpenError>
             .map_err(|e| AppError::Audio(format!("alsa set_format S32_LE: {e}")))?;
         hwp.set_access(Access::RWInterleaved)
             .map_err(|e| AppError::Audio(format!("alsa set_access: {e}")))?;
+        set_period_and_buffer(&hwp)?;
         pcm.hw_params(&hwp)
             .map_err(|e| AppError::Audio(format!("alsa hw_params: {e}")))?;
     }
@@ -560,6 +561,38 @@ impl AlsaSampleFormat {
     }
 }
 
+/// Frames per period we ask ALSA for — about 23 ms at 44.1 kHz.
+const TARGET_PERIOD_FRAMES: Frames = 1024;
+
+/// Periods per buffer. Four is the usual choice: deep enough to absorb a
+/// scheduling hiccup on a thread that is not realtime, shallow enough
+/// that a pause or a seek is heard now rather than after the buffer
+/// plays out.
+const TARGET_PERIODS: Frames = 4;
+
+/// Ask for a period the ring can feed and a buffer only a few periods
+/// deep, on both streams.
+///
+/// Without this, `HwParams::any` leaves the sizes at whatever the driver
+/// offers, and `snd_pcm_hw_params` then takes its maximum. Measured on a
+/// `snd-dummy` card: a 16 384-frame period, and a buffer deep enough that
+/// starting a track, seeking and changing track each took about ten
+/// seconds — the wait was the buffer draining.
+///
+/// The period also has to stay small against
+/// [`super::output::RING_CAPACITY`], because one period is drained from
+/// the ring in a single pass and whatever the ring cannot supply is
+/// written as silence. At 16 384 frames a period was two thirds of the
+/// whole ring, which makes an underrun the normal case rather than the
+/// exception.
+fn set_period_and_buffer(hwp: &HwParams<'_>) -> AppResult<()> {
+    hwp.set_period_size_near(TARGET_PERIOD_FRAMES, ValueOr::Nearest)
+        .map_err(|e| AppError::Audio(format!("alsa set_period_size: {e}")))?;
+    hwp.set_buffer_size_near(TARGET_PERIOD_FRAMES * TARGET_PERIODS)
+        .map_err(|e| AppError::Audio(format!("alsa set_buffer_size: {e}")))?;
+    Ok(())
+}
+
 /// Pack the mixed `f32` samples into the byte image the negotiated
 /// format expects, little-endian throughout.
 ///
@@ -683,6 +716,10 @@ struct OpenPcm {
     sample_rate: u32,
     channels: u16,
     period_frames: usize,
+    /// Logged, not used: it is the number that says how long a pause or
+    /// a seek takes to be heard, so a latency report can be read without
+    /// asking for another run.
+    buffer_frames: Frames,
 }
 
 /// Open `dev` for ordinary PCM, walking the format chain until one
@@ -779,13 +816,14 @@ fn try_open_pcm(
             .map_err(|e| AppError::Audio(format!("alsa set_format {}: {e}", format.label())))?;
         hwp.set_access(Access::RWInterleaved)
             .map_err(|e| AppError::Audio(format!("alsa set_access: {e}")))?;
+        set_period_and_buffer(&hwp)?;
         pcm.hw_params(&hwp)
             .map_err(|e| AppError::Audio(format!("alsa hw_params: {e}")))?;
     }
 
     // Scoped: `hw_params_current` borrows the PCM, and the borrow would
     // otherwise still be live at the `Ok(OpenPcm { pcm, .. })` move.
-    let (sample_rate, channels, period_frames) = {
+    let (sample_rate, channels, period_frames, buffer_frames) = {
         let hwp = pcm
             .hw_params_current()
             .map_err(|e| AppError::Audio(format!("alsa hw_params_current: {e}")))?;
@@ -797,6 +835,8 @@ fn try_open_pcm(
             hwp.get_period_size()
                 .map_err(|e| AppError::Audio(format!("alsa get_period_size: {e}")))?
                 as usize,
+            hwp.get_buffer_size()
+                .map_err(|e| AppError::Audio(format!("alsa get_buffer_size: {e}")))?,
         )
     };
     if period_frames == 0 {
@@ -815,6 +855,7 @@ fn try_open_pcm(
         sample_rate,
         channels: channels as u16,
         period_frames,
+        buffer_frames,
     })
 }
 
@@ -924,6 +965,7 @@ fn pcm_output_thread_main(
         sample_rate,
         channels,
         period_frames,
+        buffer_frames,
     } = opened;
 
     // `io_bytes` rather than a typed `io_*`: the packed image is bytes
@@ -945,6 +987,7 @@ fn pcm_output_thread_main(
         channels,
         format = format.label(),
         period_frames,
+        buffer_frames,
         "alsa exclusive stream opened"
     );
 
