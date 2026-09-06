@@ -487,13 +487,28 @@ function PlaylistConversion() {
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.resolve()
-      .then(() => loadPlaylists(() => cancelled))
-      .catch((err) => {
-        if (!cancelled) setError(String(err));
-      });
+    const reload = () =>
+      void Promise.resolve()
+        .then(() => loadPlaylists(() => cancelled))
+        .catch((err) => {
+          if (!cancelled) setError(String(err));
+        });
+    reload();
+    // A preview names the tracks each entry would link to, resolved against
+    // the mirror at the moment it was built. A walk, a sign-out or an emptied
+    // mirror all raise this event and all change those answers, so the
+    // preview is dropped rather than left to be confirmed against a
+    // catalogue it no longer describes.
+    const onRemoteChanged = () => {
+      if (cancelled) return;
+      setPreview(null);
+      setSuccess(null);
+      reload();
+    };
+    window.addEventListener("waveflow:remote-changed", onRemoteChanged);
     return () => {
       cancelled = true;
+      window.removeEventListener("waveflow:remote-changed", onRemoteChanged);
     };
   }, [loadPlaylists]);
 
