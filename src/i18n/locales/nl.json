@@ -1521,7 +1521,7 @@
     },
     "exclusive": {
       "title": "Exclusieve uitvoer",
-      "subtitle": "Neemt het apparaat alleen voor deze app in plaats van het te delen met de systeemmixer: WASAPI op Windows, een ruw ALSA-apparaat ‘hw:’ op Linux. Valt terug op de gedeelde modus als het apparaat weigert.",
+      "subtitle": "Neemt het apparaat alleen voor deze app in plaats van het te delen met de systeemmixer. Valt terug op de gedeelde modus als het apparaat weigert.",
       "fallback": "Het apparaat accepteert geen exclusive-modus. Terugvallen op shared-modus."
     },
     "mono": {

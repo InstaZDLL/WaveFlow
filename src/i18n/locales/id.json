@@ -1521,7 +1521,7 @@
     },
     "exclusive": {
       "title": "Keluaran eksklusif",
-      "subtitle": "Mengambil perangkat hanya untuk aplikasi ini alih-alih membaginya dengan mixer sistem: WASAPI di Windows, perangkat ALSA “hw:” mentah di Linux. Kembali ke mode berbagi jika perangkat menolak.",
+      "subtitle": "Mengambil perangkat hanya untuk aplikasi ini alih-alih membaginya dengan mixer sistem. Kembali ke mode berbagi jika perangkat menolak.",
       "fallback": "Perangkat tidak menerima mode eksklusif. Kembali ke mode bersama."
     },
     "mono": {

@@ -1574,7 +1574,7 @@
     },
     "exclusive": {
       "title": "Sortie exclusive",
-      "subtitle": "Prend le périphérique pour cette application seule au lieu de le partager avec le mixeur du système : WASAPI sous Windows, périphérique ALSA « hw: » brut sous Linux. Revient au mode partagé si le périphérique refuse.",
+      "subtitle": "Prend le périphérique pour cette application seule au lieu de le partager avec le mixeur du système. Revient au mode partagé si le périphérique refuse.",
       "fallback": "Le périphérique n'accepte pas le mode exclusif. Retour en mode partagé."
     },
     "mono": {

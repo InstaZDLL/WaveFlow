@@ -802,58 +802,12 @@ fn run_event_loop(
             while consumer.pop().is_ok() {}
             &silent_buf
         } else {
-            let volume = shared.volume();
-            let normalize = shared.normalize_enabled.load(Ordering::Relaxed);
-            let mono = shared.mono_enabled.load(Ordering::Relaxed);
-            let norm_gain: f32 = if normalize { 0.707 } else { 1.0 };
-
-            // Samples actually pulled from the ring this period. Drives
-            // `SharedPlayback::samples_played`, which is the only source
-            // the progress bar, lyrics sync and play-event crediting have
-            // for "where are we in the track" — see the counting note in
-            // `state.rs`. Silence written on an underrun is deliberately
-            // NOT counted, matching the cpal callback.
-            let mut written: u64 = 0;
-
-            if mono && channels >= 2 {
-                // Mono downmix: average all channels per frame.
-                let mut i = 0;
-                while i + channels <= need_samples {
-                    let mut sum = 0.0_f32;
-                    let mut got = 0usize;
-                    for slot in &mut samples[i..i + channels] {
-                        match consumer.pop() {
-                            Ok(s) => {
-                                sum += s;
-                                got += 1;
-                                *slot = 0.0; // placeholder, overwritten below
-                            }
-                            Err(_) => *slot = 0.0,
-                        }
-                    }
-                    let v = if got > 0 {
-                        written += got as u64;
-                        (sum / channels as f32) * volume * norm_gain
-                    } else {
-                        0.0
-                    };
-                    for slot in &mut samples[i..i + channels] {
-                        *slot = v;
-                    }
-                    i += channels;
-                }
-            } else {
-                // Normal multi-channel path.
-                for slot in samples.iter_mut() {
-                    *slot = match consumer.pop() {
-                        Ok(s) => {
-                            written += 1;
-                            s * volume * norm_gain
-                        }
-                        Err(_) => 0.0,
-                    };
-                }
-            }
+            // Same fill every backend uses: volume, the normalize
+            // attenuation, the optional mono downmix, and an underrun
+            // left uncredited. It lives in `output` so the three
+            // exclusive paths and the cpal callback can't drift apart.
+            let written =
+                super::output::fill_pcm_period(&shared, &mut consumer, &mut samples, channels);
 
             // Pack `samples` into the byte layout the negotiated
             // exclusive format expects (#174). Hot path: no

@@ -1521,7 +1521,7 @@
     },
     "exclusive": {
       "title": "Exclusive output",
-      "subtitle": "Takes the device for this app alone instead of sharing it with the system mixer: WASAPI on Windows, a raw ALSA “hw:” device on Linux. Falls back to shared mode if the device refuses.",
+      "subtitle": "Takes the device for this app alone instead of sharing it with the system mixer. Falls back to shared mode if the device refuses.",
       "fallback": "The device doesn't accept exclusive mode. Falling back to shared mode."
     },
     "mono": {

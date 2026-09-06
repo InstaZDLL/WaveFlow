@@ -600,7 +600,8 @@ fn set_period_and_buffer(hwp: &HwParams<'_>) -> AppResult<()> {
 /// than by checking the result: `as` casts on floats saturate in Rust,
 /// so an out-of-range sample would land on `i32::MAX` silently instead
 /// of at full scale. Gain (volume, normalize, the mono mix) is applied
-/// upstream in [`fill_pcm_period`], so a sample that clips here is one
+/// upstream in [`super::output::fill_pcm_period`], so a sample that clips
+/// here is one
 /// the chain genuinely pushed past 0 dBFS.
 ///
 /// Every path is bounded by both slice lengths, so a short `samples`
@@ -647,63 +648,6 @@ fn pack_samples(format: AlsaSampleFormat, samples: &[f32], bytes: &mut [u8]) {
             }
         }
     }
-}
-
-/// Drain one period out of the ring into `samples`, applying the same
-/// per-sample chain the cpal callback and the WASAPI backend apply:
-/// volume, the normalize attenuation, and the optional mono downmix.
-///
-/// Returns how many samples were actually pulled. Silence written
-/// because the ring ran dry is deliberately NOT counted — every backend
-/// agrees on that, because `samples_played` is the only clock the
-/// progress bar, the lyrics sync and play-event crediting have, and
-/// crediting an underrun would make the track run ahead of itself.
-fn fill_pcm_period(
-    shared: &SharedPlayback,
-    consumer: &mut Consumer<f32>,
-    samples: &mut [f32],
-    channels: usize,
-) -> u64 {
-    let volume = shared.volume();
-    let normalize = shared.normalize_enabled.load(Ordering::Relaxed);
-    let mono = shared.mono_enabled.load(Ordering::Relaxed);
-    // Normalization applies a -3 dB reduction to leave headroom.
-    let norm_gain: f32 = if normalize { 0.707 } else { 1.0 };
-    let mut written: u64 = 0;
-
-    if mono && channels >= 2 {
-        for frame in samples.chunks_mut(channels) {
-            let mut sum = 0.0_f32;
-            let mut got = 0usize;
-            for _ in 0..frame.len() {
-                if let Ok(s) = consumer.pop() {
-                    sum += s;
-                    got += 1;
-                }
-            }
-            let value = if got > 0 {
-                written += got as u64;
-                (sum / channels as f32) * volume * norm_gain
-            } else {
-                0.0
-            };
-            for slot in frame.iter_mut() {
-                *slot = value;
-            }
-        }
-    } else {
-        for slot in samples.iter_mut() {
-            *slot = match consumer.pop() {
-                Ok(s) => {
-                    written += 1;
-                    s * volume * norm_gain
-                }
-                Err(_) => 0.0,
-            };
-        }
-    }
-
-    written
 }
 
 /// A device opened and negotiated, with the terms it agreed to.
@@ -1014,7 +958,8 @@ fn pcm_output_thread_main(
             while consumer.pop().is_ok() {}
             &silence
         } else {
-            let written = fill_pcm_period(&shared, &mut consumer, &mut samples, channels);
+            let written =
+                super::output::fill_pcm_period(&shared, &mut consumer, &mut samples, channels);
             pack_samples(format, &samples, &mut wire);
             if written > 0 {
                 shared.samples_played.fetch_add(written, Ordering::Relaxed);
@@ -1061,9 +1006,7 @@ fn pcm_output_thread_main(
 mod tests {
     use super::hw_card_index;
 
-    use super::{fill_pcm_period, pack_samples, AlsaSampleFormat};
-    use crate::audio::state::SharedPlayback;
-    use rtrb::RingBuffer;
+    use super::{pack_samples, AlsaSampleFormat};
 
     #[test]
     fn an_unopened_engine_asks_for_stereo_not_mono() {
@@ -1138,48 +1081,6 @@ mod tests {
         let mut bytes = [0u8; 4];
         pack_samples(AlsaSampleFormat::F32, &[0.25], &mut bytes);
         assert_eq!(f32::from_le_bytes(bytes), 0.25);
-    }
-
-    #[test]
-    fn a_dry_ring_yields_silence_that_is_not_credited() {
-        // The counter drives the progress bar and play crediting: an
-        // underrun must leave the track where it was, not advance it.
-        let shared = SharedPlayback::new();
-        let (_producer, mut consumer) = RingBuffer::<f32>::new(8);
-        let mut samples = [1.0_f32; 4];
-        let written = fill_pcm_period(&shared, &mut consumer, &mut samples, 2);
-        assert_eq!(written, 0);
-        assert_eq!(samples, [0.0; 4]);
-    }
-
-    #[test]
-    fn volume_is_applied_here_because_a_raw_device_has_no_mixer() {
-        let shared = SharedPlayback::new();
-        shared.set_volume(0.5);
-        let (mut producer, mut consumer) = RingBuffer::<f32>::new(8);
-        for _ in 0..4 {
-            producer.push(1.0).expect("ring has room");
-        }
-        let mut samples = [0.0_f32; 4];
-        let written = fill_pcm_period(&shared, &mut consumer, &mut samples, 2);
-        assert_eq!(written, 4);
-        assert_eq!(samples, [0.5; 4]);
-    }
-
-    #[test]
-    fn the_mono_downmix_averages_the_frame_across_every_channel() {
-        let shared = SharedPlayback::new();
-        shared
-            .mono_enabled
-            .store(true, std::sync::atomic::Ordering::Relaxed);
-        let (mut producer, mut consumer) = RingBuffer::<f32>::new(8);
-        // One stereo frame, hard-panned left.
-        producer.push(1.0).expect("ring has room");
-        producer.push(0.0).expect("ring has room");
-        let mut samples = [0.0_f32; 2];
-        let written = fill_pcm_period(&shared, &mut consumer, &mut samples, 2);
-        assert_eq!(written, 2);
-        assert_eq!(samples, [0.5, 0.5]);
     }
 
     #[test]

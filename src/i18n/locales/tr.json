@@ -1521,7 +1521,7 @@
     },
     "exclusive": {
       "title": "Özel çıkış",
-      "subtitle": "Aygıtı sistem karıştırıcısıyla paylaşmak yerine yalnızca bu uygulama için alır: Windows’ta WASAPI, Linux’ta ham ALSA “hw:” aygıtı. Aygıt reddederse paylaşımlı moda döner.",
+      "subtitle": "Aygıtı sistem karıştırıcısıyla paylaşmak yerine yalnızca bu uygulama için alır. Aygıt reddederse paylaşımlı moda döner.",
       "fallback": "Cihaz özel modu kabul etmiyor. Paylaşımlı moda geri dönülüyor."
     },
     "mono": {

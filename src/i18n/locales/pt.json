@@ -1529,7 +1529,7 @@
     },
     "exclusive": {
       "title": "Saída exclusiva",
-      "subtitle": "Assume o dispositivo só para esta aplicação em vez de o partilhar com o misturador do sistema: WASAPI no Windows, dispositivo ALSA «hw:» em bruto no Linux. Volta ao modo partilhado se o dispositivo recusar.",
+      "subtitle": "Assume o dispositivo só para esta aplicação em vez de o partilhar com o misturador do sistema. Volta ao modo partilhado se o dispositivo recusar.",
       "fallback": "O dispositivo não aceita o modo exclusivo. A voltar ao modo partilhado."
     },
     "mono": {

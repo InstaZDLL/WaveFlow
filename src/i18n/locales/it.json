@@ -1521,7 +1521,7 @@
     },
     "exclusive": {
       "title": "Uscita esclusiva",
-      "subtitle": "Prende il dispositivo solo per questa app invece di condividerlo con il mixer di sistema: WASAPI su Windows, dispositivo ALSA «hw:» grezzo su Linux. Torna alla modalità condivisa se il dispositivo rifiuta.",
+      "subtitle": "Prende il dispositivo solo per questa app invece di condividerlo con il mixer di sistema. Torna alla modalità condivisa se il dispositivo rifiuta.",
       "fallback": "Il dispositivo non accetta la modalità esclusiva. Ricade sulla modalità condivisa."
     },
     "mono": {

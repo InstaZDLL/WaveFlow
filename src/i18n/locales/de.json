@@ -1521,7 +1521,7 @@
     },
     "exclusive": {
       "title": "Exklusive Ausgabe",
-      "subtitle": "Übernimmt das Gerät allein für diese App, statt es mit dem System-Mixer zu teilen: WASAPI unter Windows, rohes ALSA-Gerät „hw:“ unter Linux. Fällt auf den gemeinsamen Modus zurück, wenn das Gerät ablehnt.",
+      "subtitle": "Übernimmt das Gerät allein für diese App, statt es mit dem System-Mixer zu teilen. Fällt auf den gemeinsamen Modus zurück, wenn das Gerät ablehnt.",
       "fallback": "Das Gerät akzeptiert den Exklusivmodus nicht. Es wird auf den Shared-Modus ausgewichen."
     },
     "mono": {

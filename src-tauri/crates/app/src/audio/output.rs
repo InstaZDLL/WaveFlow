@@ -243,8 +243,7 @@ pub struct DopFormat {
 /// With `exclusive=true`, tries the platform's exclusive backend first
 /// and falls back to cpal shared if init fails (device busy, no
 /// supported format, COM apartment conflict, …): WASAPI Exclusive on
-/// Windows, a raw `hw:` device on Linux. macOS has an exclusive backend
-/// for DoP only so far, so it still goes to cpal here. With
+/// Windows, a raw `hw:` device on Linux, hog mode on macOS. With
 /// `exclusive=false`, always cpal.
 ///
 /// The fallback is silent at the caller level — the warning is logged
@@ -280,11 +279,11 @@ pub fn spawn_output_with_mode(
             Some(dop),
         );
         #[cfg(target_os = "macos")]
-        return super::coreaudio_exclusive::spawn_coreaudio_dop_output_thread(
+        return super::coreaudio_exclusive::spawn_coreaudio_exclusive_output_thread(
             shared,
             app,
             device_name,
-            dop,
+            Some(dop),
         );
         #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
         {
@@ -340,8 +339,33 @@ pub fn spawn_output_with_mode(
         }
     }
 
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-    let _ = exclusive; // no exclusive PCM backend on this target yet
+    // macOS: hog mode, which stops the system mixing anything else into
+    // the device. Unlike the DoP path it leaves the device's physical
+    // format alone — re-clocking a device the whole machine shares is a
+    // price only a marker cadence justifies paying.
+    #[cfg(target_os = "macos")]
+    if exclusive {
+        match super::coreaudio_exclusive::spawn_coreaudio_exclusive_output_thread(
+            shared.clone(),
+            app.clone(),
+            device_name.clone(),
+            None,
+        ) {
+            Ok(pair) => {
+                tracing::info!("audio output: CoreAudio exclusive (hog mode) engaged");
+                return Ok(pair);
+            }
+            Err(err) => {
+                tracing::warn!(
+                    %err,
+                    "CoreAudio exclusive init failed, falling back to shared mode"
+                );
+            }
+        }
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
+    let _ = exclusive; // no exclusive PCM backend on this target
 
     spawn_output_thread(shared, app, device_name)
 }
@@ -442,6 +466,63 @@ pub(super) fn schedule_device_rebuild(app: &AppHandle, target: RebuildTarget) {
 /// cleanly on shutdown or device switch. Separate from the decoder-side
 /// `Producer` which is handed off independently — see the tuple returned
 /// from [`spawn_output_thread`].
+/// Drain one period out of the ring into `samples`, applying the same
+/// per-sample chain the cpal callback and the WASAPI backend apply:
+/// volume, the normalize attenuation, and the optional mono downmix.
+///
+/// Returns how many samples were actually pulled. Silence written
+/// because the ring ran dry is deliberately NOT counted — every backend
+/// agrees on that, because `samples_played` is the only clock the
+/// progress bar, the lyrics sync and play-event crediting have, and
+/// crediting an underrun would make the track run ahead of itself.
+pub(super) fn fill_pcm_period(
+    shared: &SharedPlayback,
+    consumer: &mut Consumer<f32>,
+    samples: &mut [f32],
+    channels: usize,
+) -> u64 {
+    let volume = shared.volume();
+    let normalize = shared.normalize_enabled.load(Ordering::Relaxed);
+    let mono = shared.mono_enabled.load(Ordering::Relaxed);
+    // Normalization applies a -3 dB reduction to leave headroom.
+    let norm_gain: f32 = if normalize { 0.707 } else { 1.0 };
+    let mut written: u64 = 0;
+
+    if mono && channels >= 2 {
+        for frame in samples.chunks_mut(channels) {
+            let mut sum = 0.0_f32;
+            let mut got = 0usize;
+            for _ in 0..frame.len() {
+                if let Ok(s) = consumer.pop() {
+                    sum += s;
+                    got += 1;
+                }
+            }
+            let value = if got > 0 {
+                written += got as u64;
+                (sum / channels as f32) * volume * norm_gain
+            } else {
+                0.0
+            };
+            for slot in frame.iter_mut() {
+                *slot = value;
+            }
+        }
+    } else {
+        for slot in samples.iter_mut() {
+            *slot = match consumer.pop() {
+                Ok(s) => {
+                    written += 1;
+                    s * volume * norm_gain
+                }
+                Err(_) => 0.0,
+            };
+        }
+    }
+
+    written
+}
+
 pub struct OutputHandle {
     pub shutdown_tx: Sender<()>,
     pub join: JoinHandle<()>,
@@ -791,4 +872,53 @@ where
         .map_err(|e| AppError::Audio(format!("build_output_stream: {e}")))?;
 
     Ok(stream)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::fill_pcm_period;
+    use crate::audio::state::SharedPlayback;
+    use rtrb::RingBuffer;
+
+    #[test]
+    fn a_dry_ring_yields_silence_that_is_not_credited() {
+        // The counter drives the progress bar and play crediting: an
+        // underrun must leave the track where it was, not advance it.
+        let shared = SharedPlayback::new();
+        let (_producer, mut consumer) = RingBuffer::<f32>::new(8);
+        let mut samples = [1.0_f32; 4];
+        let written = fill_pcm_period(&shared, &mut consumer, &mut samples, 2);
+        assert_eq!(written, 0);
+        assert_eq!(samples, [0.0; 4]);
+    }
+
+    #[test]
+    fn volume_is_applied_here_because_a_raw_device_has_no_mixer() {
+        let shared = SharedPlayback::new();
+        shared.set_volume(0.5);
+        let (mut producer, mut consumer) = RingBuffer::<f32>::new(8);
+        for _ in 0..4 {
+            producer.push(1.0).expect("ring has room");
+        }
+        let mut samples = [0.0_f32; 4];
+        let written = fill_pcm_period(&shared, &mut consumer, &mut samples, 2);
+        assert_eq!(written, 4);
+        assert_eq!(samples, [0.5; 4]);
+    }
+
+    #[test]
+    fn the_mono_downmix_averages_the_frame_across_every_channel() {
+        let shared = SharedPlayback::new();
+        shared
+            .mono_enabled
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        let (mut producer, mut consumer) = RingBuffer::<f32>::new(8);
+        // One stereo frame, hard-panned left.
+        producer.push(1.0).expect("ring has room");
+        producer.push(0.0).expect("ring has room");
+        let mut samples = [0.0_f32; 2];
+        let written = fill_pcm_period(&shared, &mut consumer, &mut samples, 2);
+        assert_eq!(written, 2);
+        assert_eq!(samples, [0.5, 0.5]);
+    }
 }

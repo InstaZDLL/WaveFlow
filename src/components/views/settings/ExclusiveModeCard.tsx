@@ -13,11 +13,10 @@ import { ToggleSwitch } from "../../common/ToggleSwitch";
  * Exclusive output card — the audiophile path where the app owns the
  * device instead of sharing it with the system mixer.
  *
- * Detection: we check `navigator.userAgent` for the platforms that
- * have a backend for it — Windows (WASAPI Exclusive) and Linux (a raw
- * ALSA `hw:` device). The setting is still a silent no-op on macOS,
- * whose exclusive backend carries DoP only, and showing a switch that
- * does nothing would mislead.
+ * Shown on every desktop platform, because every one of them now has a
+ * backend: WASAPI Exclusive on Windows, a raw ALSA `hw:` device on
+ * Linux, hog mode on macOS. The card used to sniff the user agent to
+ * hide itself where the toggle did nothing.
  *
  * The toggle calls the backend which:
  *   1. Persists the preference in `profile_setting`.
@@ -32,24 +31,14 @@ export function ExclusiveModeCard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Sniffing UA is fine here — Tauri's WebView is platform-pinned, so
-  // the result is stable for the lifetime of the process. macOS reports
-  // "Macintosh", so it falls out of this test on its own.
-  const supported =
-    typeof navigator !== "undefined" &&
-    ["windows", "linux"].some((os) =>
-      navigator.userAgent.toLowerCase().includes(os),
-    );
-
   useEffect(() => {
-    if (!supported) return;
     playerGetExclusiveOutput()
       .then(setEnabled)
       .catch((err) => {
         console.error("[ExclusiveModeCard] get failed", err);
         setEnabled(false);
       });
-  }, [supported]);
+  }, []);
 
   // The engine can rebuild the output stream on its own — a device
   // flap (issue #405), a device switch from the output-device picker —
@@ -60,7 +49,6 @@ export function ExclusiveModeCard() {
   // carries no payload; a re-fetch here mirrors the one `toggle()`
   // already does after a manual click.
   useEffect(() => {
-    if (!supported) return;
     let unlisten: UnlistenFn | null = null;
     // `listen()` is async, so the effect can unmount before it resolves.
     // Without this flag the cleanup below runs while `unlisten` is still
@@ -93,9 +81,7 @@ export function ExclusiveModeCard() {
       cancelled = true;
       if (unlisten) unlisten();
     };
-  }, [supported]);
-
-  if (!supported) return null;
+  }, []);
 
   const toggle = async (next: boolean) => {
     setBusy(true);
