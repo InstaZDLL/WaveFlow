@@ -1520,8 +1520,8 @@
       "decibels": "{{value}} dB"
     },
     "exclusive": {
-      "title": "Modalità esclusiva WASAPI (Windows)",
-      "subtitle": "Bit-perfect: bypassa il mixer di Windows per un'uscita senza interferenze. Ricade sulla modalità condivisa se il dispositivo rifiuta l'accesso esclusivo.",
+      "title": "Uscita esclusiva",
+      "subtitle": "Prende il dispositivo solo per questa app invece di condividerlo con il mixer di sistema: WASAPI su Windows, dispositivo ALSA «hw:» grezzo su Linux. Torna alla modalità condivisa se il dispositivo rifiuta.",
       "fallback": "Il dispositivo non accetta la modalità esclusiva. Ricade sulla modalità condivisa."
     },
     "mono": {

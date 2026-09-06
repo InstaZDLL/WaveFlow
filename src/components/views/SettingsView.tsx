@@ -2561,8 +2561,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               <EqualizerCard />
             </div>
 
-            {/* WASAPI Exclusive Mode — Windows-only, the card hides
-              itself on other platforms via UA sniff. */}
+            {/* Exclusive output — Windows and Linux; the card hides
+              itself where there's no backend for it, via UA sniff. */}
             <ExclusiveModeCard />
 
             {/* Audio mono */}

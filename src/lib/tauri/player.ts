@@ -461,21 +461,23 @@ export function playerSetOutputDevice(deviceId: string | null): Promise<void> {
 }
 
 /**
- * Toggle WASAPI Exclusive Mode (Windows only). The backend persists
- * the value across platforms but only re-opens the output stream on
- * Windows. Falls back to cpal shared if exclusive init fails (device
- * busy, no exclusive format support).
+ * Toggle exclusive output: own the device rather than share it with
+ * the system mixer — WASAPI Exclusive on Windows, a raw ALSA `hw:`
+ * device on Linux. The backend persists the value on every platform
+ * but only re-opens the stream where a backend exists (macOS still
+ * has one for DoP only). Falls back to cpal shared if exclusive init
+ * fails (device busy, no supported format).
  */
-export function playerSetWasapiExclusive(enabled: boolean): Promise<void> {
-  return invoke<void>("player_set_wasapi_exclusive", { enabled });
+export function playerSetExclusiveOutput(enabled: boolean): Promise<void> {
+  return invoke<void>("player_set_exclusive_output", { enabled });
 }
 
 /**
- * Read whether WASAPI Exclusive Mode is currently engaged. Always
- * `false` on Linux / macOS. Useful for the Settings card to show
- * what's actually active (a failed exclusive init silently falls
- * back to shared, so the toggle could be on but the mode off).
+ * Read whether the output really owns its device right now. Useful for
+ * the Settings card to show what's actually active: a failed exclusive
+ * init silently falls back to shared, so the toggle can be on while
+ * the mode is off.
  */
-export function playerGetWasapiExclusive(): Promise<boolean> {
-  return invoke<boolean>("player_get_wasapi_exclusive");
+export function playerGetExclusiveOutput(): Promise<boolean> {
+  return invoke<boolean>("player_get_exclusive_output");
 }

@@ -96,7 +96,11 @@ pub fn spawn_coreaudio_dop_output_thread(
                 shutdown_tx,
                 join,
                 device_name,
-                wasapi_exclusive: false,
+                // Hog mode means the system stops mixing anything
+                // else into this device — the same ownership WASAPI
+                // and ALSA report. It used to say `false` here, which
+                // had the pipeline panel deny a grab that had happened.
+                exclusive: true,
                 dop: Some(dop),
             },
         )),

@@ -4,17 +4,20 @@ import { Lock } from "lucide-react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import {
-  playerGetWasapiExclusive,
-  playerSetWasapiExclusive,
+  playerGetExclusiveOutput,
+  playerSetExclusiveOutput,
 } from "../../../lib/tauri/player";
 import { ToggleSwitch } from "../../common/ToggleSwitch";
 
 /**
- * WASAPI Exclusive Mode card — Windows-only audiophile path.
+ * Exclusive output card — the audiophile path where the app owns the
+ * device instead of sharing it with the system mixer.
  *
- * Detection: we check `navigator.userAgent` for "Windows" since the
- * setting is silently no-op on Linux / macOS and showing it there
- * would mislead users.
+ * Detection: we check `navigator.userAgent` for the platforms that
+ * have a backend for it — Windows (WASAPI Exclusive) and Linux (a raw
+ * ALSA `hw:` device). The setting is still a silent no-op on macOS,
+ * whose exclusive backend carries DoP only, and showing a switch that
+ * does nothing would mislead.
  *
  * The toggle calls the backend which:
  *   1. Persists the preference in `profile_setting`.
@@ -29,22 +32,24 @@ export function ExclusiveModeCard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Windows-only gate. Sniffing UA is fine here — Tauri's WebView is
-  // platform-pinned, so the result is stable for the lifetime of the
-  // process.
-  const isWindows =
+  // Sniffing UA is fine here — Tauri's WebView is platform-pinned, so
+  // the result is stable for the lifetime of the process. macOS reports
+  // "Macintosh", so it falls out of this test on its own.
+  const supported =
     typeof navigator !== "undefined" &&
-    navigator.userAgent.toLowerCase().includes("windows");
+    ["windows", "linux"].some((os) =>
+      navigator.userAgent.toLowerCase().includes(os),
+    );
 
   useEffect(() => {
-    if (!isWindows) return;
-    playerGetWasapiExclusive()
+    if (!supported) return;
+    playerGetExclusiveOutput()
       .then(setEnabled)
       .catch((err) => {
         console.error("[ExclusiveModeCard] get failed", err);
         setEnabled(false);
       });
-  }, [isWindows]);
+  }, [supported]);
 
   // The engine can rebuild the output stream on its own — a device
   // flap (issue #405), a device switch from the output-device picker —
@@ -55,7 +60,7 @@ export function ExclusiveModeCard() {
   // carries no payload; a re-fetch here mirrors the one `toggle()`
   // already does after a manual click.
   useEffect(() => {
-    if (!isWindows) return;
+    if (!supported) return;
     let unlisten: UnlistenFn | null = null;
     // `listen()` is async, so the effect can unmount before it resolves.
     // Without this flag the cleanup below runs while `unlisten` is still
@@ -66,7 +71,7 @@ export function ExclusiveModeCard() {
     (async () => {
       try {
         const stop = await listen("player:audio-mode-changed", () => {
-          playerGetWasapiExclusive()
+          playerGetExclusiveOutput()
             .then(setEnabled)
             .catch((err) => {
               console.error(
@@ -88,18 +93,18 @@ export function ExclusiveModeCard() {
       cancelled = true;
       if (unlisten) unlisten();
     };
-  }, [isWindows]);
+  }, [supported]);
 
-  if (!isWindows) return null;
+  if (!supported) return null;
 
   const toggle = async (next: boolean) => {
     setBusy(true);
     setError(null);
     try {
-      await playerSetWasapiExclusive(next);
+      await playerSetExclusiveOutput(next);
       // Re-read so the displayed state reflects the engine's actual
       // mode after fallback.
-      const actual = await playerGetWasapiExclusive();
+      const actual = await playerGetExclusiveOutput();
       setEnabled(actual);
       if (next && !actual) {
         setError(t("settings.exclusive.fallback"));
@@ -113,7 +118,7 @@ export function ExclusiveModeCard() {
       // otherwise the switch keeps showing the mode the user just tried
       // to leave and looks stuck.
       try {
-        setEnabled(await playerGetWasapiExclusive());
+        setEnabled(await playerGetExclusiveOutput());
       } catch (refreshErr) {
         console.error(
           "[ExclusiveModeCard] refresh after failed toggle",

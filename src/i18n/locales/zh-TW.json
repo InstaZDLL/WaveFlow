@@ -1499,8 +1499,8 @@
       "decibels": "{{value}} dB"
     },
     "exclusive": {
-      "title": "WASAPI 獨佔模式(Windows)",
-      "subtitle": "位元完美：繞過 Windows 混音器以提供無干擾輸出。如果裝置拒絕獨佔存取，則退回共用模式。",
+      "title": "獨佔輸出",
+      "subtitle": "讓本應用程式獨佔裝置，而不是與系統混音器共用：Windows 使用 WASAPI，Linux 使用原始 ALSA「hw:」裝置。裝置拒絕時會回到共用模式。",
       "fallback": "裝置不接受獨佔模式，正在退回共用模式。"
     },
     "mono": {
