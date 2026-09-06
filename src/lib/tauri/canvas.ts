@@ -98,11 +98,16 @@ export function clearCanvasCache(): Promise<void> {
 }
 
 /**
- * A resolved Canvas source is **remote** (a plugin's `https` URL the webview
- * `<video>` loads directly) when it starts with `http(s)://`; otherwise it's
- * a **local** path that must go through `convertFileSrc`. Shared so the
- * renderer (`CanvasStage`) and the manual-only picker check (`ImmersiveView`)
- * never drift on the local-vs-remote split.
+ * A resolved Canvas source is **remote** — a URL the webview `<video>` loads
+ * directly — when it starts with `http(s)://`; otherwise it is a **local**
+ * path that must go through `convertFileSrc`.
+ *
+ * Two things arrive as remote now: a plugin's URL (issue #473), and a
+ * ticketed URL for a track playing from the bound server. They differ in
+ * where they come from and in nothing the renderer cares about.
+ *
+ * Shared so the renderer (`CanvasStage`) and the manual-only picker check
+ * (`ImmersiveView`) never drift on the local-vs-remote split.
  */
 export function isRemoteCanvasUrl(source: string): boolean {
   return /^https?:\/\//i.test(source);

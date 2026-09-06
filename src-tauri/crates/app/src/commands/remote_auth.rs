@@ -237,6 +237,23 @@ pub async fn remote_set_rating(
     Ok(())
 }
 
+/// A playable URL for a server track's Canvas, or `None` when it has none.
+///
+/// The now-playing view paints it behind the cover, exactly where a local
+/// Canvas goes. The URL carries a **ticket** rather than a header, because a
+/// `<video src>` cannot send one — the same reason remote audio is played
+/// through a ticketed URL.
+///
+/// Do not hold on to the result: the ticket expires within the hour, so it
+/// describes a permission valid now and not a property of the track.
+#[tauri::command]
+pub async fn remote_track_canvas(
+    state: tauri::State<'_, AppState>,
+    track_id: String,
+) -> AppResult<Option<String>> {
+    crate::remote::canvas::ticket_url(&state, &track_id).await
+}
+
 /// What the mirror holds for a server track, to fill the tag editor.
 ///
 /// `None` when the mirror has no row for it — a track known only as an

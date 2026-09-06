@@ -109,6 +109,7 @@
 pub mod artwork;
 pub mod auth;
 pub mod binding;
+pub mod canvas;
 pub mod catalogue;
 pub mod client;
 pub mod download;

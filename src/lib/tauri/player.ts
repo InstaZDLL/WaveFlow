@@ -223,6 +223,11 @@ export interface RadioMetadata {
   /** Artwork hash for a remote-queue track; `null` for radio. The frontend
    *  fetches it (Bearer-only) as a data URL for the PlayerBar cover. */
   artwork_hash: string | null;
+  /** The track's identifier **on the server**, for the surfaces that have to
+   *  name it there — the Canvas lookup above all. `track_id` cannot stand in:
+   *  it is a negative sentinel minted per playback, meaningful only to this
+   *  process. `null` for live radio, which has no server track. */
+  remote_track_id: string | null;
 }
 
 /**

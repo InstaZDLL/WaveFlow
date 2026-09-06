@@ -45,6 +45,16 @@ export interface Track {
   artwork_path_2x: string | null;
   /** Raw POPM byte (0-255). `null` when no rating is set. */
   rating: number | null;
+  /**
+   * Set only while this row stands for a track playing from the bound
+   * server. **Absent is the unmarked, local case**, as everywhere else in
+   * the unified library.
+   *
+   * It exists because `id` cannot carry it: a remote track plays under a
+   * negative sentinel minted per playback, so nothing downstream can name
+   * the track to the server without this.
+   */
+  remote_id?: string;
 }
 
 /** Sort spec accepted by `listTracks` / `listAlbums` / `listArtists`. */

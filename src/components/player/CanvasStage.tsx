@@ -68,8 +68,9 @@ function CanvasVideo({
   if (failed) return null;
 
   // A manual Canvas is a local file the webview can only reach through the
-  // asset protocol; a plugin-sourced one (issue #473) is already a remote
-  // `https` URL the `<video>` loads directly — same split as MotionCoverOverlay.
+  // asset protocol; a plugin's (issue #473) and a server track's ticketed one
+  // are already URLs the `<video>` loads directly — same split as
+  // MotionCoverOverlay.
   const src = isRemoteCanvasUrl(path) ? path : convertFileSrc(path);
 
   return (

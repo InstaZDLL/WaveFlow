@@ -481,6 +481,7 @@ fn decoder_loop(
                         is_remote: true,
                         duration_ms: remote_meta.duration_ms.or(Some(duration_ms as i64)),
                         artwork_hash: remote_meta.artwork_hash,
+                        remote_track_id: remote_meta.remote_id,
                     },
                 );
 
@@ -705,6 +706,7 @@ fn decoder_loop(
                         // Cover hash for a remote track — the frontend turns
                         // it into a data URL for the PlayerBar.
                         artwork_hash: remote_meta.artwork_hash,
+                        remote_track_id: remote_meta.remote_id,
                     },
                 );
 

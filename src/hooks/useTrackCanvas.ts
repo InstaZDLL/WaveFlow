@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { fetchTrackCanvas, getTrackCanvas } from "../lib/tauri/canvas";
+import { remoteTrackCanvas } from "../lib/tauri/remoteServer";
 import { useProfile } from "./useProfile";
 
 /**
@@ -50,6 +51,8 @@ export interface CanvasTrackInput {
   artist_name: string | null;
   album_title: string | null;
   duration_ms: number;
+  /** Set only for a track playing from the bound server; absent is local. */
+  remote_id?: string;
 }
 
 /**
@@ -62,8 +65,21 @@ export interface CanvasTrackInput {
 async function resolveCanvasSource(
   track: CanvasTrackInput,
 ): Promise<string | null> {
-  const manual = await getTrackCanvas(track.id);
-  if (manual?.localPath) return manual.localPath;
+  // A server track takes the rung the manual local clip holds, and for the
+  // same reason: somebody put it on that library on purpose. It cannot use
+  // the local lookup at all — `track.id` is a negative sentinel here, so
+  // `get_track_canvas` would be asking the local database about a rowid that
+  // does not exist.
+  if (track.remote_id) {
+    const remote = await remoteTrackCanvas(track.remote_id);
+    if (remote) return remote;
+    // No Canvas on the server is an ordinary answer; fall through to the
+    // plugin, which resolves by artist and title and knows nothing about
+    // where the track is stored.
+  } else {
+    const manual = await getTrackCanvas(track.id);
+    if (manual?.localPath) return manual.localPath;
+  }
   // No manual clip — fall back to a plugin. It needs artist + title to
   // resolve against an external source; skip when either is missing.
   if (!track.artist_name || !track.title) return null;
@@ -100,9 +116,15 @@ function lookup(track: CanvasTrackInput): Promise<string | null> {
       }
       return src;
     })
-    // A failed lookup is NOT remembered so a transient error doesn't
-    // suppress the Canvas for the rest of the session.
-    .catch(() => null)
+    // A failed lookup is NOT remembered, so a transient error does not
+    // suppress the Canvas for the rest of the session — a Canvas is
+    // decoration, and no failure here may break playback. Logged rather
+    // than swallowed outright: "no Canvas" and "the lookup broke" look
+    // identical on screen, and only one of them is worth investigating.
+    .catch((err) => {
+      console.debug("[useTrackCanvas] lookup failed", err);
+      return null;
+    })
     .finally(() => {
       // Only clear inFlight if we're still the registered request: an
       // invalidation may have replaced us with a newer one, which we must
@@ -206,21 +228,28 @@ export function useTrackCanvas(
   const title = track?.title ?? null;
   const albumTitle = track?.album_title ?? null;
   const durationMs = track?.duration_ms ?? null;
+  const remoteId = track?.remote_id ?? null;
 
   useEffect(() => {
     let cancelled = false;
     const apply = (p: string | null) => {
       if (!cancelled) setResolved({ id: trackId as number, profileId, path: p });
     };
-    // Skip radio / Spotify sentinels (negative ids): no library row for a
-    // manual Canvas, and no meaningful track to resolve a plugin one.
-    if (trackId != null && trackId >= 0 && title != null) {
+    // Radio and Spotify play under a negative sentinel id: no library row
+    // for a manual Canvas, and nothing meaningful to resolve a plugin one
+    // against. A **server** track is also negative — the sentinel is minted
+    // per playback — but it is not in that position: `remote_id` names it on
+    // the server, which is what the remote lookup asks about. So the guard
+    // is on having something to ask with, not on the sign of the id.
+    const resolvable = trackId != null && (trackId >= 0 || remoteId != null);
+    if (resolvable && title != null) {
       lookup({
         id: trackId,
         title,
         artist_name: artistName,
         album_title: albumTitle,
         duration_ms: durationMs ?? 0,
+        ...(remoteId ? { remote_id: remoteId } : {}),
       }).then(apply, () => apply(null));
     }
     return () => {
@@ -229,6 +258,7 @@ export function useTrackCanvas(
     // `currentEpoch` is a deliberate dep: a bump forces a re-resolve.
   }, [
     trackId,
+    remoteId,
     artistName,
     title,
     albumTitle,
