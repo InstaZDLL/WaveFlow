@@ -375,6 +375,23 @@ pub async fn mark_failed(conn: &mut SqliteConnection, id: i64, error: &str) -> A
     Ok(())
 }
 
+/// Drop every entry that has been given up on, and say how many went.
+///
+/// The count of refused changes is reported in Settings and, until this
+/// existed, could not be acted on: the rows are never retried, so the warning
+/// stood for the life of the binding with no way to acknowledge it short of
+/// forgetting the server — which also discards the mirror and every change
+/// still waiting to be sent.
+///
+/// Only `failed_at IS NOT NULL` rows go. A pending entry is still owed to the
+/// server and is never in scope here.
+pub async fn discard_failed(conn: &mut SqliteConnection) -> AppResult<u64> {
+    let result = sqlx::query("DELETE FROM remote_mutation WHERE failed_at IS NOT NULL")
+        .execute(&mut *conn)
+        .await?;
+    Ok(result.rows_affected())
+}
+
 /// Give a created playlist its real identifier, everywhere it is named.
 ///
 /// Three places, and missing any one of them breaks something specific:
@@ -1137,5 +1154,37 @@ mod tests {
             let json = serde_json::to_string(&mutation).unwrap();
             assert_eq!(serde_json::from_str::<Mutation>(&json).unwrap(), mutation);
         }
+    }
+
+    /// Refused entries go, pending ones stay.
+    ///
+    /// The count of refused changes is shown in Settings and is never retried,
+    /// so before this existed the only way to clear it was to forget the
+    /// server — which also discards the mirror and everything still queued.
+    #[tokio::test]
+    async fn discarding_refused_changes_spares_the_pending_ones() {
+        let pool = pool().await;
+        sqlx::raw_sql(
+            "INSERT INTO remote_mutation (id, operation_id, kind, payload, created_at,
+                                          attempt_count, failed_at)
+             VALUES (1, 'op-1', 'k', '{}', 0, 1, 123),
+                    (2, 'op-2', 'k', '{}', 0, 0, NULL)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let mut conn = pool.acquire().await.unwrap();
+        assert_eq!(discard_failed(&mut conn).await.unwrap(), 1);
+
+        let left: Vec<String> = sqlx::query_scalar("SELECT operation_id FROM remote_mutation")
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+        assert_eq!(
+            left,
+            vec!["op-2".to_string()],
+            "a pending change is still owed to the server"
+        );
     }
 }

@@ -4,6 +4,7 @@ import { CloudOff, Loader2, RefreshCw, Server, Unplug } from "lucide-react";
 import {
   remoteBeginLogin,
   remoteDetectServer,
+  remoteDiscardFailedChanges,
   remoteForgetServer,
   remoteGetOverview,
   remoteGetStatus,
@@ -111,6 +112,18 @@ export function RemoteServerCard() {
     },
     [refresh],
   );
+
+  // Acknowledge the changes the server refused. They are never retried, so
+  // the count they feed was otherwise permanent — the only way to be rid of
+  // it was to forget the server, mirror and pending changes included.
+  const dismissFailed = useCallback(async () => {
+    try {
+      await remoteDiscardFailedChanges();
+      await refresh();
+    } catch (err) {
+      if (mountedRef.current) setError(String(err));
+    }
+  }, [refresh]);
 
   if (available !== true) return null;
 
@@ -244,14 +257,22 @@ export function RemoteServerCard() {
             </p>
           )}
 
-          {overview && signedIn && <Counts overview={overview} />}
+          {overview && signedIn && (
+            <Counts overview={overview} onDismissFailed={dismissFailed} />
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function Counts({ overview }: { overview: RemoteOverview }) {
+function Counts({
+  overview,
+  onDismissFailed,
+}: {
+  overview: RemoteOverview;
+  onDismissFailed: () => Promise<void>;
+}) {
   const { t } = useTranslation();
   // The number is rendered separately (tabular-nums, its own colour), so the
   // label carries no `{{count}}` — `count` only drives plural selection, which
@@ -301,8 +322,22 @@ function Counts({ overview }: { overview: RemoteOverview }) {
         </p>
       )}
       {overview.failed_changes > 0 && (
-        <p className="text-xs text-red-600 dark:text-red-400">
-          {t("remote.server.failedChanges", { count: overview.failed_changes })}
+        <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-2 flex-wrap">
+          <span>
+            {t("remote.server.failedChanges", {
+              count: overview.failed_changes,
+            })}
+          </span>
+          {/* Refused entries are never retried, so this count could only ever
+              go up: acknowledging it meant forgetting the server, mirror and
+              still-pending changes included. */}
+          <button
+            type="button"
+            onClick={() => void onDismissFailed()}
+            className="underline underline-offset-2 hover:no-underline"
+          >
+            {t("remote.server.failedChangesDismiss")}
+          </button>
         </p>
       )}
     </div>

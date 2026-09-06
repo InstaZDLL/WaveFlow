@@ -294,6 +294,19 @@ pub async fn remote_update_track_tags(
     Ok(())
 }
 
+/// Forget the queued changes the server refused, and report how many went.
+///
+/// They are never retried, so the warning that counts them was permanent: the
+/// only way to clear it was to forget the server, which also throws away the
+/// mirror and every change still waiting to go out. This drops the refused
+/// rows and nothing else.
+#[tauri::command]
+pub async fn remote_discard_failed_changes(state: tauri::State<'_, AppState>) -> AppResult<u64> {
+    let pool = state.require_profile_pool().await?;
+    let mut conn = pool.acquire().await?;
+    crate::remote::mutation::discard_failed(&mut conn).await
+}
+
 /// Create a playlist on the remote account.
 ///
 /// Returns the identifier it is known by locally. That is a `local:`

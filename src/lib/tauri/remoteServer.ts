@@ -449,6 +449,17 @@ export function remoteCreatePlaylist(
 }
 
 /**
+ * Forget the queued changes the server refused. Resolves to how many went.
+ *
+ * They are never retried, so the count reported in Settings had no way of
+ * going down: acknowledging it meant forgetting the server, which also throws
+ * away the mirror and every change still waiting to be sent.
+ */
+export function remoteDiscardFailedChanges(): Promise<number> {
+  return invoke<number>("remote_discard_failed_changes");
+}
+
+/**
  * Rename a playlist, set or empty its comment, change its visibility.
  *
  * Omitting a field leaves it untouched. Emptying the comment needs

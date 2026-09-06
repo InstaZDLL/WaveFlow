@@ -827,6 +827,8 @@ pub fn run() {
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_update_track_tags,
             #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_discard_failed_changes,
+            #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_create_playlist,
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_update_playlist,
