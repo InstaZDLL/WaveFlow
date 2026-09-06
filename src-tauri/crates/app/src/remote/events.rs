@@ -43,7 +43,7 @@ use sqlx::SqlitePool;
 use crate::{
     error::{AppError, AppResult},
     remote::{
-        client::{RemoteClient, RemoteFailure},
+        client::{FailureKind, RemoteClient, RemoteFailure},
         mirror, projection,
     },
 };
@@ -132,6 +132,10 @@ pub struct EventsReport {
     pub skipped_own: usize,
     /// Reconciliation links marked stale because the server's bytes moved.
     pub unlinked: usize,
+    /// Events that can never be applied and were stepped over. The
+    /// ordinary cause is benign: a track deleted between the upsert and
+    /// this device reading about it.
+    pub skipped_permanent: usize,
     /// Libraries whose cursor the server refused, and which now wait for a
     /// full sweep.
     pub restarted: usize,
@@ -217,19 +221,39 @@ async fn catch_up_library(
             break;
         }
         for event in &page.events {
-            // Applied one at a time, and the cursor advances only behind an
-            // event that landed. A fetch that fails mid-page leaves the rest
-            // for the next pass instead of skipping it: the alternative is a
-            // gap nothing can detect, since the cursor is the only record of
-            // what was read.
-            if let Err(error) = apply(client, pool, event, report).await {
-                tracing::debug!(
-                    library = %library_id,
-                    cursor = event.cursor,
-                    %error,
-                    "stopping a feed pass on the event that failed"
-                );
-                break;
+            // One at a time, and the cursor advances only behind an event
+            // this pass is done with -- applied, or proven unappliable.
+            match apply(client, pool, event, report).await {
+                Ok(()) => {}
+                // Permanent means it cannot succeed however long we wait, and
+                // the commonest shape is ordinary: an upsert whose track was
+                // deleted before this device read the feed answers 404 when
+                // re-fetched. Stopping there would wedge the cursor on that
+                // event for every pass from now on, so the feed would never
+                // advance again. Skipped and counted, the way the outbound
+                // drain marks an entry failed and moves on.
+                Err(PassError::Remote(failure)) if failure.kind == FailureKind::Permanent => {
+                    tracing::warn!(
+                        library = %library_id,
+                        cursor = event.cursor,
+                        %failure,
+                        "skipping a feed event that can never be applied"
+                    );
+                    report.skipped_permanent += 1;
+                }
+                // Transient, or a local write that failed. Both may work next
+                // time, so the rest of the page waits rather than being
+                // skipped: the cursor is the only record of what was read, so
+                // a gap in it is a gap nothing can detect afterwards.
+                Err(error) => {
+                    tracing::debug!(
+                        library = %library_id,
+                        cursor = event.cursor,
+                        %error,
+                        "stopping a feed pass on the event that failed"
+                    );
+                    break;
+                }
             }
             cursor = event.cursor;
         }

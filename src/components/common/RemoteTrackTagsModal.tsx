@@ -34,12 +34,21 @@ const EMPTY: FormState = {
   disc_number: "",
 };
 
-/** Blank stays blank; anything unparseable is treated as blank too. */
+/**
+ * A blank field stays blank; anything that is not a whole number is read
+ * the same way.
+ *
+ * `parseInt` is the wrong tool here and quietly so: it stops at the first
+ * character it cannot use, so "1.9" becomes 1 and "1e3" becomes 1 — both
+ * of which a `type="number"` input accepts. `Number` reads the whole
+ * string or nothing, and `isSafeInteger` rejects what remains: fractions,
+ * and values past the range an integer can round-trip.
+ */
 function toNumber(value: string): number | null {
   const trimmed = value.trim();
   if (trimmed === "") return null;
-  const parsed = Number.parseInt(trimmed, 10);
-  return Number.isFinite(parsed) ? parsed : null;
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
 /**
@@ -95,18 +104,22 @@ export function RemoteTrackTagsModal({
     remoteGetTrackTags(trackId)
       .then((tags) => {
         if (cancelled) return;
-        setForm(
-          tags == null
-            ? EMPTY
-            : {
-                title: tags.title,
-                artist: tags.artist ?? "",
-                genre: tags.genre ?? "",
-                year: tags.year?.toString() ?? "",
-                track_number: tags.track_number?.toString() ?? "",
-                disc_number: tags.disc_number?.toString() ?? "",
-              },
-        );
+        if (tags == null) {
+          // The mirror holds no row for this track. An empty form is not
+          // the answer: under a wholesale patch, saving it would withdraw
+          // every correction the track carries. Reported like any other
+          // failure to load, which leaves saving disabled.
+          setLoadError({ id: trackId, message: t("remote.tags.missing") });
+          return;
+        }
+        setForm({
+          title: tags.title,
+          artist: tags.artist ?? "",
+          genre: tags.genre ?? "",
+          year: tags.year?.toString() ?? "",
+          track_number: tags.track_number?.toString() ?? "",
+          disc_number: tags.disc_number?.toString() ?? "",
+        });
         setLoadedId(trackId);
       })
       .catch((err) => {
@@ -116,7 +129,7 @@ export function RemoteTrackTagsModal({
     return () => {
       cancelled = true;
     };
-  }, [trackId]);
+  }, [trackId, t]);
 
   // A failed load leaves the form blank, and blank is not neutral here:
   // the patch is wholesale, so saving it would withdraw every

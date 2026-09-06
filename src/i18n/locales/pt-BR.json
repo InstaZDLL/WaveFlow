@@ -2398,7 +2398,8 @@
       "action": "Corrigir os metadados",
       "title": "Metadados do servidor",
       "subtitle": "A correção é salva no servidor, não no arquivo.",
-      "help": "Essas correções sobrevivem às varreduras do servidor e são visíveis para todos os membros da biblioteca. Esvaziar um campo remove a correção: o valor do arquivo reaparece."
+      "help": "Essas correções sobrevivem às varreduras do servidor e são visíveis para todos os membros da biblioteca. Esvaziar um campo remove a correção: o valor do arquivo reaparece.",
+      "missing": "Esta faixa ainda não está no espelho do servidor. Execute uma varredura do catálogo e tente de novo."
     }
   }
 }

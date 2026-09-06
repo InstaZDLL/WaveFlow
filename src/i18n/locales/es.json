@@ -2398,7 +2398,8 @@
       "action": "Corregir los metadatos",
       "title": "Metadatos del servidor",
       "subtitle": "La corrección se guarda en el servidor, no en el archivo.",
-      "help": "Estas correcciones sobreviven a los análisis del servidor y las ven todos los miembros de la biblioteca. Vaciar un campo elimina la corrección: reaparece el valor del archivo."
+      "help": "Estas correcciones sobreviven a los análisis del servidor y las ven todos los miembros de la biblioteca. Vaciar un campo elimina la corrección: reaparece el valor del archivo.",
+      "missing": "Esta pista aún no está en el espejo del servidor. Ejecute un recorrido del catálogo y vuelva a intentarlo."
     }
   }
 }

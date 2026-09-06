@@ -2398,7 +2398,8 @@
       "action": "Correct metadata",
       "title": "Server metadata",
       "subtitle": "The correction is stored on the server, not in the file.",
-      "help": "These corrections survive the server's scans and are visible to every member of the library. Clearing a field removes the correction: the file's own value comes back."
+      "help": "These corrections survive the server's scans and are visible to every member of the library. Clearing a field removes the correction: the file's own value comes back.",
+      "missing": "This track is not in the server mirror yet. Run a catalogue walk, then try again."
     }
   }
 }

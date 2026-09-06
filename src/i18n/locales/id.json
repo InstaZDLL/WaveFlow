@@ -2377,7 +2377,8 @@
       "action": "Perbaiki metadata",
       "title": "Metadata server",
       "subtitle": "Koreksi disimpan di server, bukan di berkas.",
-      "help": "Koreksi ini bertahan dari pemindaian server dan terlihat oleh semua anggota pustaka. Mengosongkan sebuah bidang menghapus koreksinya: nilai dari berkas akan muncul kembali."
+      "help": "Koreksi ini bertahan dari pemindaian server dan terlihat oleh semua anggota pustaka. Mengosongkan sebuah bidang menghapus koreksinya: nilai dari berkas akan muncul kembali.",
+      "missing": "Trek ini belum ada di cermin server. Jalankan penelusuran katalog, lalu coba lagi."
     }
   }
 }

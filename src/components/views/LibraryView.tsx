@@ -1934,7 +1934,14 @@ function TrackTable({
                     buttons rather than a menu — there are few enough to show,
                     and a menu would hide every one behind a click. */}
                 {!local && (
-                  <div className="flex items-center gap-0.5">
+                  // Same guard the rating column carries: without it a
+                  // double-click on one of these buttons bubbles up to the
+                  // row and starts playback behind the dialog that just
+                  // opened.
+                  <div
+                    className="flex items-center gap-0.5"
+                    onDoubleClick={(e) => e.stopPropagation()}
+                  >
                     <button
                       type="button"
                       onClick={(e) => {

@@ -338,7 +338,17 @@ pub async fn mirror_catalogue(state: &AppState, app: AppHandle) -> AppResult<Mir
     // Its failures are already swallowed per library: the feed is an
     // optimisation over a sweep that still runs, so it must never be what
     // stops one.
-    let feed = super::events::catch_up(&client, &pool).await?;
+    // Never fatal. The feed is an optimisation over a sweep that still
+    // runs, so a failure here -- unreachable server, or a local write that
+    // did not commit -- must cost freshness and not the whole walk. Per
+    // library it is already swallowed inside `catch_up`; this covers the
+    // parts around that loop, which `?` would otherwise propagate.
+    let feed = super::events::catch_up(&client, &pool)
+        .await
+        .unwrap_or_else(|error| {
+            tracing::debug!(%error, "could not read the change feeds; walking anyway");
+            super::events::EventsReport::default()
+        });
     if feed.applied > 0 || feed.restarted > 0 {
         tracing::info!(
             applied = feed.applied,

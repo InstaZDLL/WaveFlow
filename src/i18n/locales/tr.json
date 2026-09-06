@@ -2398,7 +2398,8 @@
       "action": "Üst verileri düzelt",
       "title": "Sunucu üst verileri",
       "subtitle": "Düzeltme dosyaya değil, sunucuya kaydedilir.",
-      "help": "Bu düzeltmeler sunucunun taramalarından etkilenmez ve kitaplığın tüm üyeleri tarafından görülür. Bir alanı boşaltmak düzeltmeyi kaldırır: dosyadaki değer geri gelir."
+      "help": "Bu düzeltmeler sunucunun taramalarından etkilenmez ve kitaplığın tüm üyeleri tarafından görülür. Bir alanı boşaltmak düzeltmeyi kaldırır: dosyadaki değer geri gelir.",
+      "missing": "Bu parça henüz sunucu aynasında yok. Bir katalog taraması çalıştırıp yeniden deneyin."
     }
   }
 }
