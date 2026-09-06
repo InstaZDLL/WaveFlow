@@ -19,7 +19,7 @@ import {
   listLikedTrackIds,
   type Track,
 } from "../../lib/tauri/track";
-import { createPlaylistFromModal } from "../../lib/createPlaylistFromModal";
+import { useCreatePlaylistFromModal } from "../../lib/createPlaylistFromModal";
 
 interface HistoryViewProps {
   onNavigateToAlbum: (albumId: number) => void;
@@ -102,6 +102,7 @@ export function HistoryView({
   onNavigateToArtist,
 }: HistoryViewProps) {
   const { t, i18n } = useTranslation();
+  const createFromModal = useCreatePlaylistFromModal();
   const locale = i18n.language;
   const { playbackState, currentTrack, playTracks } = usePlayer();
 
@@ -384,7 +385,7 @@ export function HistoryView({
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={async (data) => {
           try {
-            await createPlaylistFromModal(data);
+            await createFromModal(data);
           } catch (err) {
             console.error("[HistoryView] create playlist failed", err);
           }

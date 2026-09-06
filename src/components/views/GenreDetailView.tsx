@@ -27,7 +27,7 @@ import {
   toggleLikeTrack,
   type Track,
 } from "../../lib/tauri/track";
-import { createPlaylistFromModal } from "../../lib/createPlaylistFromModal";
+import { useCreatePlaylistFromModal } from "../../lib/createPlaylistFromModal";
 
 interface GenreDetailViewProps {
   genreId: number | null;
@@ -41,6 +41,7 @@ export function GenreDetailView({
   onNavigateToArtist,
 }: GenreDetailViewProps) {
   const { t } = useTranslation();
+  const createFromModal = useCreatePlaylistFromModal();
   const { playTracks, currentTrack, toggleShuffle, isShuffled, isPlaying } =
     usePlayer();
 
@@ -247,7 +248,7 @@ export function GenreDetailView({
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={async (data) => {
           try {
-            await createPlaylistFromModal(data);
+            await createFromModal(data);
           } catch (err) {
             console.error("[GenreDetailView] create playlist failed", err);
           }

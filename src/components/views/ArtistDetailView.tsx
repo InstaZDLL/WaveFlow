@@ -46,7 +46,7 @@ import {
   toggleLikeTrack,
   type Track,
 } from "../../lib/tauri/track";
-import { createPlaylistFromModal } from "../../lib/createPlaylistFromModal";
+import { useCreatePlaylistFromModal } from "../../lib/createPlaylistFromModal";
 
 /**
  * A server artist in the shape the view already speaks.
@@ -124,6 +124,7 @@ export function ArtistDetailView({
   onNavigateToArtist,
 }: ArtistDetailViewProps) {
   const { t } = useTranslation();
+  const createFromModal = useCreatePlaylistFromModal();
   // Which catalogue this artist came from. Everything keyed on a local rowid
   // is gated on it.
   const remote = remoteArtistId != null;
@@ -783,7 +784,7 @@ export function ArtistDetailView({
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={async (data) => {
           try {
-            await createPlaylistFromModal(data);
+            await createFromModal(data);
           } catch (err) {
             console.error("[ArtistDetailView] create playlist failed", err);
           }

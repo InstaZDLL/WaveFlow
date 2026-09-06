@@ -697,11 +697,18 @@ mod tests {
     #[tokio::test]
     async fn the_survey_reads_columns_that_exist() {
         let pool = pool().await;
+        // Two statements, two calls: batched through `raw_sql` the track lands
+        // before its library exists and the foreign key refuses it.
         sqlx::raw_sql(
             "INSERT INTO library (id, name, color_id, icon_id, created_at, updated_at,
                                   hlc_wall, hlc_logical)
-             VALUES (1, 'L', 1, 1, 0, 0, 0, 0);
-             INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
+             VALUES (1, 'L', 1, 1, 0, 0, 0, 0)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
                                 title, primary_artist, duration_ms, added_at, is_available,
                                 hlc_wall, hlc_logical, rating_hlc_wall, rating_hlc_logical)
              VALUES (1, 1, '/m/a.flac', 'h', 1, 0, 'T', 'A', 1000, 0, 1, 0, 0, 0, 0)",

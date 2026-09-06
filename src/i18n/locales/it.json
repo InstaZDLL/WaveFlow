@@ -840,7 +840,7 @@
     "coverAutoHint": "Copertina automatica — si aggiorna con i contenuti",
     "coverManualHint": "Immagine personalizzata",
     "alsoOnServer": "Crea anche su {{server}}",
-    "alsoOnServerFallback": "il server remoto"
+    "alsoOnServerFallback": "un server remoto"
   },
   "playlistView": {
     "badge": "Playlist",

@@ -16,7 +16,7 @@ import {
   formatDuration,
   type Track,
 } from "../../lib/tauri/track";
-import { createPlaylistFromModal } from "../../lib/createPlaylistFromModal";
+import { useCreatePlaylistFromModal } from "../../lib/createPlaylistFromModal";
 
 interface LikedViewProps {
   onNavigateToAlbum: (albumId: number) => void;
@@ -28,6 +28,7 @@ export function LikedView({
   onNavigateToArtist,
 }: LikedViewProps) {
   const { t } = useTranslation();
+  const createFromModal = useCreatePlaylistFromModal();
   const { playTracks, currentTrack, playbackState } = usePlayer();
   const [tracks, setTracks] = useState<Track[]>([]);
   // Init to `true` so the skeleton paints on first render — otherwise
@@ -270,7 +271,7 @@ export function LikedView({
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={async (data) => {
           try {
-            await createPlaylistFromModal(data);
+            await createFromModal(data);
           } catch (err) {
             console.error("[LikedView] create playlist failed", err);
           }

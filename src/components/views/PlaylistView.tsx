@@ -107,7 +107,7 @@ import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { isRemoteTrack } from "../../lib/playerSources";
 import { notifyRemoteChanged } from "../../hooks/useRemoteSource";
 import { useSortMemory } from "../../hooks/useSortMemory";
-import { createPlaylistFromModal } from "../../lib/createPlaylistFromModal";
+import { useCreatePlaylistFromModal } from "../../lib/createPlaylistFromModal";
 
 /**
  * Sort modes for the playlist track list. "custom" preserves the
@@ -303,6 +303,7 @@ export function PlaylistView({
   onNavigateToRemoteArtist,
 }: PlaylistViewProps) {
   const { t } = useTranslation();
+  const createFromModal = useCreatePlaylistFromModal();
   // Which catalogue this playlist came from. Everything that touches a
   // local rowid, a file or the local user data is gated on it.
   const remote = remotePlaylistId != null;
@@ -1557,7 +1558,7 @@ export function PlaylistView({
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={async (data) => {
           try {
-            await createPlaylistFromModal(data);
+            await createFromModal(data);
           } catch (err) {
             console.error("[PlaylistView] create playlist failed", err);
           }

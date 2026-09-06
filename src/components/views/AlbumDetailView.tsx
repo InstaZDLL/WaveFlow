@@ -43,7 +43,7 @@ import {
   toggleLikeTrack,
   type Track,
 } from "../../lib/tauri/track";
-import { createPlaylistFromModal } from "../../lib/createPlaylistFromModal";
+import { useCreatePlaylistFromModal } from "../../lib/createPlaylistFromModal";
 
 /**
  * A server album in the shape the view already speaks.
@@ -135,6 +135,7 @@ export function AlbumDetailView({
   onNavigateToRemoteArtist,
 }: AlbumDetailViewProps) {
   const { t } = useTranslation();
+  const createFromModal = useCreatePlaylistFromModal();
   // Which catalogue this album came from. Everything that touches a local
   // rowid, a file or the local user data is gated on it.
   const remote = remoteAlbumId != null;
@@ -582,7 +583,7 @@ export function AlbumDetailView({
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={async (data) => {
           try {
-            await createPlaylistFromModal(data);
+            await createFromModal(data);
           } catch (err) {
             console.error("[AlbumDetailView] create playlist failed", err);
           }

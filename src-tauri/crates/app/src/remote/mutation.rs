@@ -1177,8 +1177,10 @@ mod tests {
         let mut conn = pool.acquire().await.unwrap();
         assert_eq!(discard_failed(&mut conn).await.unwrap(), 1);
 
+        // Through the connection already held: the fixture's pool allows one,
+        // so asking it for a second while this one is alive waits forever.
         let left: Vec<String> = sqlx::query_scalar("SELECT operation_id FROM remote_mutation")
-            .fetch_all(&pool)
+            .fetch_all(&mut *conn)
             .await
             .unwrap();
         assert_eq!(

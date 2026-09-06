@@ -109,8 +109,22 @@ export function ReconciliationCard() {
         if (!cancelled) setVisible(false);
       }
     })();
-    // A walk finished elsewhere changes the answer.
-    const onRemoteChanged = () => void readMirror();
+    // A walk finished elsewhere changes the answer — and so does signing out
+    // or forgetting the server, which raises the same event. Re-reading only
+    // the mirror would leave this card on screen for a binding that is gone.
+    const onRemoteChanged = () => {
+      void (async () => {
+        try {
+          const status = await remoteGetStatus();
+          if (cancelled) return;
+          const nextVisible = status.signed_in && status.bootstrapped;
+          setVisible(nextVisible);
+          if (nextVisible) await readMirror();
+        } catch {
+          if (!cancelled) setVisible(false);
+        }
+      })();
+    };
     window.addEventListener("waveflow:remote-changed", onRemoteChanged);
     return () => {
       cancelled = true;

@@ -127,14 +127,18 @@ export function CatalogueMirrorCard() {
       // rather than replacing it with an all-zero report.
       if (next.already_running) return;
       if (mountedRef.current) setReport(next);
-      await refreshStats();
       // The mirror is what several other surfaces read from — the upload
       // card's destination list is `remote_library`, not a server call — so
       // a walk that fills it has to say so. Without this they keep the empty
       // picture they read at mount: the upload card offered no library to
       // send to, with its button disabled and nothing on screen tying that
       // back to a mirror that had just been filled.
+      //
+      // Announced before this card's own figures are refreshed, because the
+      // walk has already happened: `refreshStats` can throw, and a failure to
+      // repaint one card must not leave every other reader stale.
       notifyRemoteChanged();
+      await refreshStats();
     } catch (err) {
       if (mountedRef.current) setError(String(err));
     } finally {
@@ -194,9 +198,10 @@ export function CatalogueMirrorCard() {
     try {
       await remoteClearCatalogue();
       if (mountedRef.current) setReport(null);
-      await refreshStats();
-      // Emptying it matters to the same readers as filling it.
+      // Emptying it matters to the same readers as filling it, and for the
+      // same reason it is announced before this card repaints itself.
       notifyRemoteChanged();
+      await refreshStats();
     } catch (err) {
       if (mountedRef.current) setError(String(err));
     } finally {

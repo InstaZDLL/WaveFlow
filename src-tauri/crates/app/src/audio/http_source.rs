@@ -878,6 +878,13 @@ mod tests {
                         ),
                     None => tiny_http::Response::from_data(BODY.to_vec()),
                 };
+                // Without this the source is forward-only — `seekable` needs a
+                // length *and* an advertised range capability — and the seek
+                // below would report Unsupported instead of exercising the end
+                // of the body at all.
+                let response = response.with_header(
+                    tiny_http::Header::from_bytes(&b"Accept-Ranges"[..], &b"bytes"[..]).unwrap(),
+                );
                 let _ = request.respond(response);
             }
         });

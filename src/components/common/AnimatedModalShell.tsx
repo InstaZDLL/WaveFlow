@@ -46,12 +46,25 @@ export function AnimatedModalShell({
           onPointerDown={(e) => {
             pressedBackdrop.current = e.target === e.currentTarget;
           }}
-          onClick={(e) => {
-            // Both ends of the gesture on the backdrop itself, never on a
-            // child that bubbled up here.
-            if (!pressedBackdrop.current || e.target !== e.currentTarget) return;
+          onPointerUp={(e) => {
+            // Both ends of the gesture on the backdrop itself.
+            //
+            // On `pointerup` rather than `click` because the two answer
+            // different questions: a click's target is the closest common
+            // ancestor of press and release, which is this backdrop for
+            // *either* direction of a drag across its edge — so it cannot
+            // tell a release inside the dialog from one outside it. A
+            // pointerup carries the element actually under the pointer.
+            const onBackdrop = e.target === e.currentTarget;
+            const started = pressedBackdrop.current;
             pressedBackdrop.current = false;
-            onBackdropClick?.();
+            if (started && onBackdrop) onBackdropClick?.();
+          }}
+          onPointerCancel={() => {
+            // A gesture torn away (touch turned into a scroll, pointer
+            // captured elsewhere) must not leave the press armed for whatever
+            // release comes next.
+            pressedBackdrop.current = false;
           }}
           className={
             backdropClassName ??

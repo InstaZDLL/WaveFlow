@@ -27,7 +27,7 @@ import { usePlaylist } from "../../hooks/usePlaylist";
 import { usePluginAvailability } from "../../hooks/usePluginAvailability";
 import { useUiPlugins } from "../../hooks/useUiPlugins";
 import {
-  createPlaylistFromModal,
+  useCreatePlaylistFromModal,
   type CreatePlaylistModalData,
 } from "../../lib/createPlaylistFromModal";
 import { useLibraryPlaylists } from "../../hooks/useLibraryPlaylists";
@@ -79,6 +79,7 @@ export function Sidebar({
   navigateToPluginUi,
 }: SidebarProps) {
   const { t } = useTranslation();
+  const createFromModal = useCreatePlaylistFromModal();
   const { activeProfile } = useProfile();
   const {
     libraries,
@@ -199,7 +200,7 @@ export function Sidebar({
       // Local create + best-effort server mirror, both in one place so the
       // other eight mounts of the modal cannot honour the checkbox by
       // halves. See `createPlaylistFromModal`.
-      const created = await createPlaylistFromModal(data);
+      const created = await createFromModal(data);
       navigateToPlaylist(created.id);
     } catch (err) {
       console.error("[Sidebar] failed to create playlist", err);

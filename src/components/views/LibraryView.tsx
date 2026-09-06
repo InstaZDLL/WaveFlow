@@ -110,7 +110,7 @@ import {
   type GenreRow,
   type FolderRow,
 } from "../../lib/tauri/browse";
-import { createPlaylistFromModal } from "../../lib/createPlaylistFromModal";
+import { useCreatePlaylistFromModal } from "../../lib/createPlaylistFromModal";
 
 /** View density for the tracks list: `list` shows cover art, `compact` doesn't. */
 type TracksView = "list" | "compact";
@@ -170,6 +170,7 @@ export function LibraryView({
   onNavigateToPlaylist,
 }: LibraryViewProps) {
   const { t } = useTranslation();
+  const createFromModal = useCreatePlaylistFromModal();
   const {
     libraries,
     selectedLibraryId,
@@ -1187,7 +1188,7 @@ export function LibraryView({
         }}
         onCreate={async (data) => {
           try {
-            const created = await createPlaylistFromModal(data);
+            const created = await createFromModal(data);
             const pending = pendingSourceForCreate;
             if (pending && created?.id != null) {
               if (pending.kind === "tracks") {
@@ -1766,7 +1767,16 @@ function TrackTable({
                 // double-fires playback alongside the button's own
                 // action.
                 if (e.target !== e.currentTarget) return;
-                if (asTrack && onRowMenuKey(e, asTrack)) return;
+                if (asTrack) {
+                  if (onRowMenuKey(e, asTrack)) return;
+                } else if (
+                  remoteContextMenu.openFromKeyboard(e, {
+                    remoteId: track.id,
+                    title: track.title,
+                  })
+                ) {
+                  return;
+                }
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   onPlayTrack(index);

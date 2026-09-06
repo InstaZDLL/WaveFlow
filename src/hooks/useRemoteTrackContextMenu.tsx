@@ -1,4 +1,9 @@
-import { useCallback, useState, type MouseEvent as ReactMouseEvent } from "react";
+import {
+  useCallback,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { Download, FolderInput, Pencil } from "lucide-react";
 import {
@@ -6,6 +11,7 @@ import {
   ContextMenuItem,
   type ContextMenuPoint,
 } from "../components/common/ContextMenu";
+import { isContextMenuKey, menuAnchorForElement } from "../lib/contextMenuKeys";
 
 /** The row the menu acts on — only what the three actions need. */
 export interface RemoteContextTrack {
@@ -61,6 +67,29 @@ export function useRemoteTrackContextMenu({
     [],
   );
 
+  /**
+   * Keyboard counterpart of {@link open}: the Menu key and Shift+F10 on a
+   * focused row, anchored to the row since there is no pointer to place it at.
+   *
+   * Same contract as the local menu's — returns `true` when it handled the
+   * event — so a row's `onKeyDown` early-returns instead of re-deriving the
+   * condition. Without it the local rows answered the keyboard and the server
+   * rows did not, which is the same split this menu exists to close.
+   */
+  const openFromKeyboard = useCallback(
+    (event: ReactKeyboardEvent, track: RemoteContextTrack): boolean => {
+      if (!isContextMenuKey(event)) return false;
+      event.preventDefault();
+      event.stopPropagation();
+      setState({
+        point: menuAnchorForElement(event.currentTarget as HTMLElement),
+        track,
+      });
+      return true;
+    },
+    [],
+  );
+
   const close = useCallback(() => setState(null), []);
 
   const render = useCallback(() => {
@@ -96,5 +125,5 @@ export function useRemoteTrackContextMenu({
     );
   }, [state, close, downloading, downloaded, onDownload, onImport, onEditTags, t]);
 
-  return { open, close, render };
+  return { open, openFromKeyboard, close, render };
 }

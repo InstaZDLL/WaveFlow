@@ -51,7 +51,7 @@ export function RemoteServerCard() {
   const [probe, setProbe] = useState<RemoteProbeResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<
-    null | "probe" | "login" | "signout" | "sync" | "forget"
+    null | "probe" | "login" | "signout" | "sync" | "forget" | "dismiss"
   >(null);
   const mountedRef = useRef(false);
 
@@ -116,14 +116,14 @@ export function RemoteServerCard() {
   // Acknowledge the changes the server refused. They are never retried, so
   // the count they feed was otherwise permanent — the only way to be rid of
   // it was to forget the server, mirror and pending changes included.
-  const dismissFailed = useCallback(async () => {
-    try {
-      await remoteDiscardFailedChanges();
-      await refresh();
-    } catch (err) {
-      if (mountedRef.current) setError(String(err));
-    }
-  }, [refresh]);
+  //
+  // Through `run` like every other action on this card, so the button is
+  // disabled for the whole round trip: without it a second click lands while
+  // the first is still refreshing, against a count that is already gone.
+  const dismissFailed = useCallback(
+    () => run("dismiss", remoteDiscardFailedChanges),
+    [run],
+  );
 
   if (available !== true) return null;
 
@@ -258,7 +258,11 @@ export function RemoteServerCard() {
           )}
 
           {overview && signedIn && (
-            <Counts overview={overview} onDismissFailed={dismissFailed} />
+            <Counts
+              overview={overview}
+              onDismissFailed={dismissFailed}
+              busy={busy !== null}
+            />
           )}
         </div>
       </div>
@@ -269,9 +273,12 @@ export function RemoteServerCard() {
 function Counts({
   overview,
   onDismissFailed,
+  busy,
 }: {
   overview: RemoteOverview;
   onDismissFailed: () => Promise<void>;
+  /** Any action in flight on this card — the dismiss button waits for it. */
+  busy: boolean;
 }) {
   const { t } = useTranslation();
   // The number is rendered separately (tabular-nums, its own colour), so the
@@ -334,7 +341,8 @@ function Counts({
           <button
             type="button"
             onClick={() => void onDismissFailed()}
-            className="underline underline-offset-2 hover:no-underline"
+            disabled={busy}
+            className="underline underline-offset-2 hover:no-underline disabled:opacity-50 disabled:no-underline"
           >
             {t("remote.server.failedChangesDismiss")}
           </button>
