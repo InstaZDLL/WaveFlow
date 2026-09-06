@@ -838,7 +838,9 @@
     "coverChange": "Cambiar foto",
     "coverRemove": "Quitar foto",
     "coverAutoHint": "Portada automática — se actualiza con el contenido",
-    "coverManualHint": "Imagen personalizada"
+    "coverManualHint": "Imagen personalizada",
+    "alsoOnServer": "Crear también en {{server}}",
+    "alsoOnServerFallback": "el servidor remoto"
   },
   "playlistView": {
     "badge": "Lista de reproducción",
@@ -2220,7 +2222,8 @@
       "pendingChanges_one": "{{count}} cambio local pendiente de enviar.",
       "pendingChanges_other": "{{count}} cambios locales pendientes de enviar.",
       "failedChanges_one": "{{count}} cambio local fue rechazado y no se reintentará.",
-      "failedChanges_other": "{{count}} cambios locales fueron rechazados y no se reintentarán."
+      "failedChanges_other": "{{count}} cambios locales fueron rechazados y no se reintentarán.",
+      "failedChangesDismiss": "Descartar"
     },
     "queue": {
       "empty": "No hay nada en la cola.",
@@ -2401,6 +2404,7 @@
       "help": "Estas correcciones sobreviven a los análisis del servidor y las ven todos los miembros de la biblioteca. Vaciar un campo elimina la corrección: reaparece el valor del archivo.",
       "missing": "Esta pista aún no está en el espejo del servidor. Ejecute un recorrido del catálogo y vuelva a intentarlo.",
       "invalidNumber": "El año y los números de pista y de disco deben ser números enteros."
-    }
+    },
+    "needsMirror": "Copia primero el catálogo del servidor, arriba: esta sección compara tus archivos con el espejo local, que aún está vacío."
   }
 }

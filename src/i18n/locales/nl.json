@@ -838,7 +838,9 @@
     "coverChange": "Foto wijzigen",
     "coverRemove": "Foto verwijderen",
     "coverAutoHint": "Automatische albumhoes — past zich aan de inhoud aan",
-    "coverManualHint": "Aangepaste afbeelding"
+    "coverManualHint": "Aangepaste afbeelding",
+    "alsoOnServer": "Ook aanmaken op {{server}}",
+    "alsoOnServerFallback": "de externe server"
   },
   "playlistView": {
     "badge": "Afspeellijst",
@@ -2220,7 +2222,8 @@
       "pendingChanges_one": "{{count}} lokale wijziging wacht op verzending.",
       "pendingChanges_other": "{{count}} lokale wijzigingen wachten op verzending.",
       "failedChanges_one": "{{count}} lokale wijziging is geweigerd en wordt niet opnieuw geprobeerd.",
-      "failedChanges_other": "{{count}} lokale wijzigingen zijn geweigerd en worden niet opnieuw geprobeerd."
+      "failedChanges_other": "{{count}} lokale wijzigingen zijn geweigerd en worden niet opnieuw geprobeerd.",
+      "failedChangesDismiss": "Negeren"
     },
     "queue": {
       "empty": "Niets in de wachtrij.",
@@ -2401,6 +2404,7 @@
       "help": "Deze correcties overleven de scans van de server en zijn zichtbaar voor elk lid van de bibliotheek. Een veld leegmaken verwijdert de correctie: de waarde uit het bestand komt terug.",
       "missing": "Dit nummer staat nog niet in de spiegel van de server. Voer een catalogusronde uit en probeer het opnieuw.",
       "invalidNumber": "Het jaar en de track- en schijfnummers moeten hele getallen zijn."
-    }
+    },
+    "needsMirror": "Kopieer eerst de catalogus van de server hierboven: dit onderdeel vergelijkt je bestanden met de lokale spiegel, die nog leeg is."
   }
 }

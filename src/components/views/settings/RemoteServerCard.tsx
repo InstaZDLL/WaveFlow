@@ -4,6 +4,7 @@ import { CloudOff, Loader2, RefreshCw, Server, Unplug } from "lucide-react";
 import {
   remoteBeginLogin,
   remoteDetectServer,
+  remoteDiscardFailedChanges,
   remoteForgetServer,
   remoteGetOverview,
   remoteGetStatus,
@@ -50,7 +51,7 @@ export function RemoteServerCard() {
   const [probe, setProbe] = useState<RemoteProbeResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<
-    null | "probe" | "login" | "signout" | "sync" | "forget"
+    null | "probe" | "login" | "signout" | "sync" | "forget" | "dismiss"
   >(null);
   const mountedRef = useRef(false);
 
@@ -110,6 +111,18 @@ export function RemoteServerCard() {
       }
     },
     [refresh],
+  );
+
+  // Acknowledge the changes the server refused. They are never retried, so
+  // the count they feed was otherwise permanent — the only way to be rid of
+  // it was to forget the server, mirror and pending changes included.
+  //
+  // Through `run` like every other action on this card, so the button is
+  // disabled for the whole round trip: without it a second click lands while
+  // the first is still refreshing, against a count that is already gone.
+  const dismissFailed = useCallback(
+    () => run("dismiss", remoteDiscardFailedChanges),
+    [run],
   );
 
   if (available !== true) return null;
@@ -244,14 +257,29 @@ export function RemoteServerCard() {
             </p>
           )}
 
-          {overview && signedIn && <Counts overview={overview} />}
+          {overview && signedIn && (
+            <Counts
+              overview={overview}
+              onDismissFailed={dismissFailed}
+              busy={busy !== null}
+            />
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function Counts({ overview }: { overview: RemoteOverview }) {
+function Counts({
+  overview,
+  onDismissFailed,
+  busy,
+}: {
+  overview: RemoteOverview;
+  onDismissFailed: () => Promise<void>;
+  /** Any action in flight on this card — the dismiss button waits for it. */
+  busy: boolean;
+}) {
   const { t } = useTranslation();
   // The number is rendered separately (tabular-nums, its own colour), so the
   // label carries no `{{count}}` — `count` only drives plural selection, which
@@ -301,8 +329,23 @@ function Counts({ overview }: { overview: RemoteOverview }) {
         </p>
       )}
       {overview.failed_changes > 0 && (
-        <p className="text-xs text-red-600 dark:text-red-400">
-          {t("remote.server.failedChanges", { count: overview.failed_changes })}
+        <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-2 flex-wrap">
+          <span>
+            {t("remote.server.failedChanges", {
+              count: overview.failed_changes,
+            })}
+          </span>
+          {/* Refused entries are never retried, so this count could only ever
+              go up: acknowledging it meant forgetting the server, mirror and
+              still-pending changes included. */}
+          <button
+            type="button"
+            onClick={() => void onDismissFailed()}
+            disabled={busy}
+            className="underline underline-offset-2 hover:no-underline disabled:opacity-50 disabled:no-underline"
+          >
+            {t("remote.server.failedChangesDismiss")}
+          </button>
         </p>
       )}
     </div>

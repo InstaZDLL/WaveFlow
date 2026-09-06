@@ -26,9 +26,11 @@ import { useLibrary } from "../../hooks/useLibrary";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { usePluginAvailability } from "../../hooks/usePluginAvailability";
 import { useUiPlugins } from "../../hooks/useUiPlugins";
-import { notifyRemoteChanged } from "../../hooks/useRemoteSource";
+import {
+  useCreatePlaylistFromModal,
+  type CreatePlaylistModalData,
+} from "../../lib/createPlaylistFromModal";
 import { useLibraryPlaylists } from "../../hooks/useLibraryPlaylists";
-import { remoteCreatePlaylist } from "../../lib/tauri/remoteServer";
 import { resolvePluginIcon } from "../../lib/pluginIcons";
 import { getProfileColor, profileInitial } from "../../lib/profileColors";
 import { pickFile, pickFolder } from "../../lib/tauri/dialog";
@@ -77,6 +79,7 @@ export function Sidebar({
   navigateToPluginUi,
 }: SidebarProps) {
   const { t } = useTranslation();
+  const createFromModal = useCreatePlaylistFromModal();
   const { activeProfile } = useProfile();
   const {
     libraries,
@@ -87,7 +90,6 @@ export function Sidebar({
   } = useLibrary();
   const {
     playlists,
-    createPlaylist,
     refresh: refreshPlaylists,
   } = usePlaylist();
   const profileColor = getProfileColor(activeProfile?.color_id);
@@ -191,32 +193,15 @@ export function Sidebar({
     }
   };
 
-  const handleCreatePlaylistSubmit = async (data: {
-    name: string;
-    description: string;
-    colorId: string;
-    iconId: string;
-    alsoOnServer: boolean;
-  }) => {
+  const handleCreatePlaylistSubmit = async (
+    data: CreatePlaylistModalData,
+  ) => {
     try {
-      const created = await createPlaylist({
-        name: data.name,
-        description: data.description || null,
-        color_id: data.colorId,
-        icon_id: data.iconId,
-      });
+      // Local create + best-effort server mirror, both in one place so the
+      // other eight mounts of the modal cannot honour the checkbox by
+      // halves. See `createPlaylistFromModal`.
+      const created = await createFromModal(data);
       navigateToPlaylist(created.id);
-      // Best-effort mirror to the remote server (RFC-005). Kept separate
-      // from the local create — the local one is what the user watches
-      // land, and a server hiccup shouldn't sink it. The sidebar's remote
-      // section re-reads on the event.
-      if (data.alsoOnServer) {
-        remoteCreatePlaylist(data.name)
-          .then(() => notifyRemoteChanged())
-          .catch((err) =>
-            console.error("[Sidebar] mirror playlist to server failed", err),
-          );
-      }
     } catch (err) {
       console.error("[Sidebar] failed to create playlist", err);
     }

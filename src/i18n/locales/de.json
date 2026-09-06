@@ -838,7 +838,9 @@
     "coverChange": "Cover ändern",
     "coverRemove": "Cover entfernen",
     "coverAutoHint": "Auto-Cover — passt sich dem Inhalt an",
-    "coverManualHint": "Eigenes Bild"
+    "coverManualHint": "Eigenes Bild",
+    "alsoOnServer": "Auch auf {{server}} erstellen",
+    "alsoOnServerFallback": "dem Remote-Server"
   },
   "playlistView": {
     "badge": "Playlist",
@@ -2220,7 +2222,8 @@
       "pendingChanges_one": "{{count}} lokale Änderung wartet auf das Senden.",
       "pendingChanges_other": "{{count}} lokale Änderungen warten auf das Senden.",
       "failedChanges_one": "{{count}} lokale Änderung wurde abgelehnt und wird nicht erneut versucht.",
-      "failedChanges_other": "{{count}} lokale Änderungen wurden abgelehnt und werden nicht erneut versucht."
+      "failedChanges_other": "{{count}} lokale Änderungen wurden abgelehnt und werden nicht erneut versucht.",
+      "failedChangesDismiss": "Verwerfen"
     },
     "queue": {
       "empty": "Warteschlange leer.",
@@ -2401,6 +2404,7 @@
       "help": "Diese Korrekturen überstehen die Scans des Servers und sind für alle Mitglieder der Bibliothek sichtbar. Ein leeres Feld entfernt die Korrektur: Der Wert aus der Datei erscheint wieder.",
       "missing": "Dieser Titel ist noch nicht im Spiegel des Servers. Führen Sie einen Katalogdurchlauf aus und versuchen Sie es erneut.",
       "invalidNumber": "Jahr sowie Titel- und CD-Nummer müssen ganze Zahlen sein."
-    }
+    },
+    "needsMirror": "Kopieren Sie zuerst den Serverkatalog oben: Dieser Abschnitt vergleicht Ihre Dateien mit dem lokalen Spiegel, der noch leer ist."
   }
 }

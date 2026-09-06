@@ -73,6 +73,7 @@ import { useLibrary } from "../../hooks/useLibrary";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
+import { useRemoteTrackContextMenu } from "../../hooks/useRemoteTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useMultiSelect } from "../../hooks/useMultiSelect";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
@@ -109,6 +110,7 @@ import {
   type GenreRow,
   type FolderRow,
 } from "../../lib/tauri/browse";
+import { useCreatePlaylistFromModal } from "../../lib/createPlaylistFromModal";
 
 /** View density for the tracks list: `list` shows cover art, `compact` doesn't. */
 type TracksView = "list" | "compact";
@@ -168,6 +170,7 @@ export function LibraryView({
   onNavigateToPlaylist,
 }: LibraryViewProps) {
   const { t } = useTranslation();
+  const createFromModal = useCreatePlaylistFromModal();
   const {
     libraries,
     selectedLibraryId,
@@ -182,7 +185,6 @@ export function LibraryView({
     addTracksToPlaylist,
     removeTrackFromPlaylist,
     addSourceToPlaylist,
-    createPlaylist,
   } = usePlaylist();
   const [isImporting, setIsImporting] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
@@ -1186,12 +1188,7 @@ export function LibraryView({
         }}
         onCreate={async (data) => {
           try {
-            const created = await createPlaylist({
-              name: data.name,
-              description: data.description || null,
-              color_id: data.colorId,
-              icon_id: data.iconId,
-            });
+            const created = await createFromModal(data);
             const pending = pendingSourceForCreate;
             if (pending && created?.id != null) {
               if (pending.kind === "tracks") {
@@ -1608,6 +1605,22 @@ function TrackTable({
 }: TrackTableProps) {
   "use no memo";
   const unknown = t("library.table.unknown");
+  // Right-click on a server row. The local menu speaks `Track` — a rowid, a
+  // file, a rating — which a server row has none of, so those rows were handed
+  // `null` and the gesture did nothing at all. Offers the same three actions
+  // as the hover icons, so both ways in agree.
+  const remoteContextMenu = useRemoteTrackContextMenu({
+    onDownload: onDownloadRemote,
+    onImport: (target) => {
+      // A server row's `id` is the server's identifier — the same string the
+      // menu carries.
+      const row = tracks.find((candidate) => candidate.id === target.remoteId);
+      if (row) onImportRemote(row);
+    },
+    onEditTags: (target) => onEditRemoteTags(target.remoteId),
+    downloading: downloadingRemote,
+    downloaded: downloadedRemote,
+  });
   const [openMenuTrackId, setOpenMenuTrackId] = useState<number | null>(null);
   // Per-track playlist membership snapshot, fetched the first time the
   // user opens the `+` popover for a given track. Entry stays cached for
@@ -1754,7 +1767,16 @@ function TrackTable({
                 // double-fires playback alongside the button's own
                 // action.
                 if (e.target !== e.currentTarget) return;
-                if (asTrack && onRowMenuKey(e, asTrack)) return;
+                if (asTrack) {
+                  if (onRowMenuKey(e, asTrack)) return;
+                } else if (
+                  remoteContextMenu.openFromKeyboard(e, {
+                    remoteId: track.id,
+                    title: track.title,
+                  })
+                ) {
+                  return;
+                }
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   onPlayTrack(index);
@@ -1768,7 +1790,14 @@ function TrackTable({
                 if (e.key === " ") e.preventDefault();
               }}
               onContextMenu={(e) => {
-                if (asTrack) onContextMenuRow(e, asTrack);
+                if (asTrack) {
+                  onContextMenuRow(e, asTrack);
+                } else {
+                  remoteContextMenu.open(e, {
+                    remoteId: track.id,
+                    title: track.title,
+                  });
+                }
               }}
               style={{
                 position: "absolute",
@@ -2092,6 +2121,7 @@ function TrackTable({
           );
         })}
       </div>
+      {remoteContextMenu.render()}
     </div>
   );
 }

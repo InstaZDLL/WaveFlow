@@ -838,7 +838,9 @@
     "coverChange": "Changer la photo",
     "coverRemove": "Retirer la photo",
     "coverAutoHint": "Pochette automatique — se met à jour avec le contenu",
-    "coverManualHint": "Image personnalisée"
+    "coverManualHint": "Image personnalisée",
+    "alsoOnServer": "Créer aussi sur {{server}}",
+    "alsoOnServerFallback": "le serveur distant"
   },
   "playlistView": {
     "badge": "Playlist",
@@ -2220,7 +2222,8 @@
       "pendingChanges_one": "{{count}} modification locale en attente d'envoi.",
       "pendingChanges_other": "{{count}} modifications locales en attente d'envoi.",
       "failedChanges_one": "{{count}} modification locale a été refusée et ne sera pas réessayée.",
-      "failedChanges_other": "{{count}} modifications locales ont été refusées et ne seront pas réessayées."
+      "failedChanges_other": "{{count}} modifications locales ont été refusées et ne seront pas réessayées.",
+      "failedChangesDismiss": "Ignorer"
     },
     "queue": {
       "empty": "File d'attente vide.",
@@ -2401,6 +2404,7 @@
       "help": "Ces corrections survivent aux analyses du serveur et sont visibles par tous les membres de la bibliothèque. Vider un champ retire la correction : la valeur du fichier réapparaît.",
       "missing": "Ce titre n'est pas encore dans le miroir du serveur. Lancez une analyse du catalogue, puis réessayez.",
       "invalidNumber": "L'année et les numéros de piste et de disque doivent être des nombres entiers."
-    }
+    },
+    "needsMirror": "Recopiez d'abord le catalogue du serveur, ci-dessus : cette section compare vos fichiers au miroir local, qui est encore vide."
   }
 }

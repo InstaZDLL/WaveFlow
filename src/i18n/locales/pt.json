@@ -838,7 +838,9 @@
     "coverChange": "Mudar foto",
     "coverRemove": "Remover foto",
     "coverAutoHint": "Capa automática — atualiza com o conteúdo",
-    "coverManualHint": "Imagem personalizada"
+    "coverManualHint": "Imagem personalizada",
+    "alsoOnServer": "Criar também em {{server}}",
+    "alsoOnServerFallback": "um servidor remoto"
   },
   "playlistView": {
     "badge": "Lista de reprodução",
@@ -2220,7 +2222,8 @@
       "pendingChanges_one": "{{count}} alteração local à espera de ser enviada.",
       "pendingChanges_other": "{{count}} alterações locais à espera de serem enviadas.",
       "failedChanges_one": "{{count}} alteração local foi recusada e não será repetida.",
-      "failedChanges_other": "{{count}} alterações locais foram recusadas e não serão repetidas."
+      "failedChanges_other": "{{count}} alterações locais foram recusadas e não serão repetidas.",
+      "failedChangesDismiss": "Ignorar"
     },
     "queue": {
       "empty": "Nada na fila.",
@@ -2401,6 +2404,7 @@
       "help": "Estas correções sobrevivem às análises do servidor e são visíveis para todos os membros da biblioteca. Esvaziar um campo remove a correção: o valor do ficheiro volta a aparecer.",
       "missing": "Esta faixa ainda não está no espelho do servidor. Execute uma análise do catálogo e tente novamente.",
       "invalidNumber": "O ano e os números de faixa e de disco têm de ser números inteiros."
-    }
+    },
+    "needsMirror": "Copie primeiro o catálogo do servidor, acima: esta secção compara os seus ficheiros com o espelho local, que ainda está vazio."
   }
 }

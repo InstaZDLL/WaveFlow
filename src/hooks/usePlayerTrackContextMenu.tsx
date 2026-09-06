@@ -8,9 +8,9 @@ import {
 } from "react";
 import { CreatePlaylistModal } from "../components/common/CreatePlaylistModal";
 import { useTrackContextMenu } from "./useTrackContextMenu";
-import { usePlaylist } from "./usePlaylist";
 import { useProfile } from "./useProfile";
 import { listLikedTrackIds, type Track } from "../lib/tauri/track";
+import { useCreatePlaylistFromModal } from "../lib/createPlaylistFromModal";
 
 /**
  * Track context menu for the player surfaces (ImmersiveView, QueuePanel)
@@ -29,8 +29,8 @@ import { listLikedTrackIds, type Track } from "../lib/tauri/track";
  * an already-rated track as unrated.
  */
 export function usePlayerTrackContextMenu() {
-  const { createPlaylist } = usePlaylist();
   const { activeProfile } = useProfile();
+  const createFromModal = useCreatePlaylistFromModal();
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [isCreatePlaylistOpen, setIsCreatePlaylistOpen] = useState(false);
   // Toggles the user made through `onLikedChanged` while the per-profile
@@ -107,12 +107,7 @@ export function usePlayerTrackContextMenu() {
           onClose={() => setIsCreatePlaylistOpen(false)}
           onCreate={async (data) => {
             try {
-              await createPlaylist({
-                name: data.name,
-                description: data.description || null,
-                color_id: data.colorId,
-                icon_id: data.iconId,
-              });
+              await createFromModal(data);
             } catch (err) {
               console.error(
                 "[usePlayerTrackContextMenu] create playlist failed",
@@ -123,7 +118,7 @@ export function usePlayerTrackContextMenu() {
         />
       </>
     ),
-    [menu, isCreatePlaylistOpen, createPlaylist],
+    [menu, isCreatePlaylistOpen, createFromModal],
   );
 
   return { open, openFromKeyboard, render };

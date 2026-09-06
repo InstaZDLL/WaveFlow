@@ -838,7 +838,9 @@
     "coverChange": "Cambia foto",
     "coverRemove": "Rimuovi foto",
     "coverAutoHint": "Copertina automatica — si aggiorna con i contenuti",
-    "coverManualHint": "Immagine personalizzata"
+    "coverManualHint": "Immagine personalizzata",
+    "alsoOnServer": "Crea anche su {{server}}",
+    "alsoOnServerFallback": "un server remoto"
   },
   "playlistView": {
     "badge": "Playlist",
@@ -2220,7 +2222,8 @@
       "pendingChanges_one": "{{count}} modifica locale in attesa di invio.",
       "pendingChanges_other": "{{count}} modifiche locali in attesa di invio.",
       "failedChanges_one": "{{count}} modifica locale è stata rifiutata e non verrà ritentata.",
-      "failedChanges_other": "{{count}} modifiche locali sono state rifiutate e non verranno ritentate."
+      "failedChanges_other": "{{count}} modifiche locali sono state rifiutate e non verranno ritentate.",
+      "failedChangesDismiss": "Ignora"
     },
     "queue": {
       "empty": "Nessun brano in coda.",
@@ -2401,6 +2404,7 @@
       "help": "Queste correzioni sopravvivono alle scansioni del server e sono visibili a tutti i membri della libreria. Svuotare un campo rimuove la correzione: riappare il valore del file.",
       "missing": "Questo brano non è ancora nella copia del server. Esegui una scansione del catalogo e riprova.",
       "invalidNumber": "L'anno e i numeri di traccia e disco devono essere numeri interi."
-    }
+    },
+    "needsMirror": "Copia prima il catalogo del server, qui sopra: questa sezione confronta i tuoi file con il mirror locale, ancora vuoto."
   }
 }

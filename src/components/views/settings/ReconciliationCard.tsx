@@ -13,6 +13,7 @@ import {
 import { listPlaylists, type Playlist } from "../../../lib/tauri/playlist";
 import {
   remoteCancelReconcileScan,
+  remoteCatalogueStats,
   remoteConvertPlaylist,
   remoteConfirmReconciliation,
   remoteGetStatus,
@@ -47,6 +48,10 @@ const REMOTE_ITEM_STATUS_KEYS: Record<string, string> = {
 export function ReconciliationCard() {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
+  // Whether the local mirror holds anything to compare against. A scan
+  // against an empty one can only report zero matches, which reads as a
+  // verdict on the files rather than on the mirror.
+  const [mirrorIsEmpty, setMirrorIsEmpty] = useState(false);
   const [links, setLinks] = useState<ReconciliationLink[]>([]);
   const [report, setReport] = useState<ReconciliationReport | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -81,19 +86,49 @@ export function ReconciliationCard() {
 
   useEffect(() => {
     let cancelled = false;
+    const readMirror = async () => {
+      try {
+        const stats = await remoteCatalogueStats();
+        if (!cancelled) setMirrorIsEmpty(stats.tracks === 0);
+      } catch {
+        // Only decides whether a hint is shown; assume the mirror is fine.
+        if (!cancelled) setMirrorIsEmpty(false);
+      }
+    };
     void (async () => {
       try {
         const status = await remoteGetStatus();
         if (cancelled) return;
         const nextVisible = status.signed_in && status.bootstrapped;
         setVisible(nextVisible);
-        if (nextVisible) await refreshLinks();
+        if (nextVisible) {
+          await refreshLinks();
+          await readMirror();
+        }
       } catch {
         if (!cancelled) setVisible(false);
       }
     })();
+    // A walk finished elsewhere changes the answer — and so does signing out
+    // or forgetting the server, which raises the same event. Re-reading only
+    // the mirror would leave this card on screen for a binding that is gone.
+    const onRemoteChanged = () => {
+      void (async () => {
+        try {
+          const status = await remoteGetStatus();
+          if (cancelled) return;
+          const nextVisible = status.signed_in && status.bootstrapped;
+          setVisible(nextVisible);
+          if (nextVisible) await readMirror();
+        } catch {
+          if (!cancelled) setVisible(false);
+        }
+      })();
+    };
+    window.addEventListener("waveflow:remote-changed", onRemoteChanged);
     return () => {
       cancelled = true;
+      window.removeEventListener("waveflow:remote-changed", onRemoteChanged);
     };
   }, [refreshLinks]);
 
@@ -202,6 +237,16 @@ export function ReconciliationCard() {
           )}
 
           {report && <ReportSummary report={report} />}
+
+          {/* A scan that verified nothing against an empty mirror reports a
+              truthful "0 matches" that reads like "your files are not on the
+              server". The comparison is against `remote_track`, so an unwalked
+              catalogue can only ever answer zero. */}
+          {report && mirrorIsEmpty && (
+            <p className="text-xs text-amber-600 dark:text-amber-500">
+              {t("remote.needsMirror")}
+            </p>
+          )}
 
           {report?.candidates.map((group) => (
             <CandidateEditor

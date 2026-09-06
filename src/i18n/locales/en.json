@@ -838,7 +838,9 @@
     "coverChange": "Change photo",
     "coverRemove": "Remove photo",
     "coverAutoHint": "Auto cover — updates with the contents",
-    "coverManualHint": "Custom image"
+    "coverManualHint": "Custom image",
+    "alsoOnServer": "Also create on {{server}}",
+    "alsoOnServerFallback": "the remote server"
   },
   "playlistView": {
     "badge": "Playlist",
@@ -2220,7 +2222,8 @@
       "pendingChanges_one": "{{count}} local change waiting to be sent.",
       "pendingChanges_other": "{{count}} local changes waiting to be sent.",
       "failedChanges_one": "{{count}} local change was refused and will not be retried.",
-      "failedChanges_other": "{{count}} local changes were refused and will not be retried."
+      "failedChanges_other": "{{count}} local changes were refused and will not be retried.",
+      "failedChangesDismiss": "Dismiss"
     },
     "queue": {
       "empty": "Nothing queued.",
@@ -2401,6 +2404,7 @@
       "help": "These corrections survive the server's scans and are visible to every member of the library. Clearing a field removes the correction: the file's own value comes back.",
       "missing": "This track is not in the server mirror yet. Run a catalogue walk, then try again.",
       "invalidNumber": "The year and the track and disc numbers must be whole numbers."
-    }
+    },
+    "needsMirror": "Copy the server's catalogue first, above: this section compares your files against the local mirror, which is still empty."
   }
 }

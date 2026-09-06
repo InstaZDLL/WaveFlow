@@ -456,10 +456,15 @@ export function CreatePlaylistModal({
         </div>
 
         {/* Mirror to the remote server. Create mode only, and only when a
-            native server is connected — not localized, same rationale as
-            the rest of the sync_v2 surface (unreachable in stock builds).
-            The server keeps its own playlist metadata, so only the name
-            travels; colour / icon / cover stay local. */}
+            native server is connected. The server keeps its own playlist
+            metadata, so only the name travels; colour / icon / cover stay
+            local.
+
+            Localized like everything else: this used to be an English
+            literal, justified by sync_v2 being "unreachable in stock
+            builds" — true when the feature was opt-in, false since it
+            joined the default set, which left one English line in the
+            middle of a translated dialog. */}
         {!isEdit && remote.available && (
           <label className="flex items-center gap-2 mb-4 text-sm text-zinc-600 dark:text-zinc-300 cursor-pointer select-none">
             <input
@@ -469,7 +474,11 @@ export function CreatePlaylistModal({
               className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-emerald-500 focus:ring-emerald-500"
             />
             <span>
-              Also create on {remote.serverName ?? "the remote server"}
+              {t("playlistModal.alsoOnServer", {
+                server:
+                  remote.serverName ??
+                  t("playlistModal.alsoOnServerFallback"),
+              })}
             </span>
           </label>
         )}

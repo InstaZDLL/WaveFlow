@@ -18,7 +18,6 @@ import { GenreImagePickerModal } from "../common/GenreImagePickerModal";
 import { HiResBadge } from "../common/HiResBadge";
 import { PlayingIndicator } from "../common/PlayingIndicator";
 import { usePlayer } from "../../hooks/usePlayer";
-import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { getGenreDetail, type GenreDetail } from "../../lib/tauri/detail";
@@ -28,6 +27,7 @@ import {
   toggleLikeTrack,
   type Track,
 } from "../../lib/tauri/track";
+import { useCreatePlaylistFromModal } from "../../lib/createPlaylistFromModal";
 
 interface GenreDetailViewProps {
   genreId: number | null;
@@ -41,9 +41,9 @@ export function GenreDetailView({
   onNavigateToArtist,
 }: GenreDetailViewProps) {
   const { t } = useTranslation();
+  const createFromModal = useCreatePlaylistFromModal();
   const { playTracks, currentTrack, toggleShuffle, isShuffled, isPlaying } =
     usePlayer();
-  const { createPlaylist } = usePlaylist();
 
   const [genre, setGenre] = useState<GenreDetail | null>(null);
   // Init true so the skeleton paints on first render (paired with the
@@ -248,12 +248,7 @@ export function GenreDetailView({
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={async (data) => {
           try {
-            await createPlaylist({
-              name: data.name,
-              description: data.description || null,
-              color_id: data.colorId,
-              icon_id: data.iconId,
-            });
+            await createFromModal(data);
           } catch (err) {
             console.error("[GenreDetailView] create playlist failed", err);
           }
