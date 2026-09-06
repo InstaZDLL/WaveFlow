@@ -338,14 +338,23 @@ pub async fn survey(app: &AppHandle, state: &AppState) -> AppResult<UploadPlan> 
             }
         }
 
-        let row = sqlx::query("SELECT title, primary_artist FROM track WHERE id = ?")
-            .bind(track_id)
-            .fetch_optional(&*pool)
-            .await?;
+        // `primary_artist` is a rowid into `artist`, not a name — reading it
+        // as text would label every candidate with a number. Joined the way
+        // the rest of the codebase resolves it, and LEFT so a track whose
+        // artist is unknown still appears in the plan under its title.
+        let row = sqlx::query(
+            "SELECT t.title AS title, ar.name AS artist_name
+               FROM track t
+               LEFT JOIN artist ar ON ar.id = t.primary_artist
+              WHERE t.id = ?",
+        )
+        .bind(track_id)
+        .fetch_optional(&*pool)
+        .await?;
         let (title, artist) = match row {
             Some(row) => (
                 row.try_get::<String, _>("title").unwrap_or_default(),
-                row.try_get::<Option<String>, _>("primary_artist")
+                row.try_get::<Option<String>, _>("artist_name")
                     .unwrap_or_default(),
             ),
             None => (String::new(), None),
@@ -692,41 +701,44 @@ mod tests {
     /// `cargo check` nor clippy reads the string, and no test in this module
     /// touched a database.
     ///
-    /// Asserting on the row's contents is not what makes this test work.
-    /// Running the statement against the real schema is.
+    /// And `primary_artist` is a rowid into `artist`, not a name: reading it
+    /// as text would have labelled every candidate with a number. The join is
+    /// what this asserts, against the shipped schema rather than a fixture's
+    /// idea of it.
     #[tokio::test]
-    async fn the_survey_reads_columns_that_exist() {
+    async fn the_survey_reads_a_name_not_an_artist_rowid() {
         let pool = pool().await;
-        // Two statements, two calls: batched through `raw_sql` the track lands
-        // before its library exists and the foreign key refuses it.
-        sqlx::raw_sql(
+        // One statement per call: batched through `raw_sql`, a row can land
+        // before the row it references exists and the foreign key refuses it.
+        for statement in [
             "INSERT INTO library (id, name, color_id, icon_id, created_at, updated_at,
                                   hlc_wall, hlc_logical)
              VALUES (1, 'L', 1, 1, 0, 0, 0, 0)",
-        )
-        .execute(&pool)
-        .await
-        .unwrap();
-        sqlx::query(
+            "INSERT INTO artist (id, name, canonical_name) VALUES (7, 'NAYEON', 'nayeon')",
             "INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
                                 title, primary_artist, duration_ms, added_at, is_available,
                                 hlc_wall, hlc_logical, rating_hlc_wall, rating_hlc_logical)
-             VALUES (1, 1, '/m/a.flac', 'h', 1, 0, 'T', 'A', 1000, 0, 1, 0, 0, 0, 0)",
-        )
-        .execute(&pool)
-        .await
-        .unwrap();
+             VALUES (1, 1, '/m/a.flac', 'h', 1, 0, 'T', 7, 1000, 0, 1, 0, 0, 0, 0)",
+        ] {
+            sqlx::raw_sql(statement).execute(&pool).await.unwrap();
+        }
 
-        let row = sqlx::query("SELECT title, primary_artist FROM track WHERE id = ?")
-            .bind(1_i64)
-            .fetch_optional(&pool)
-            .await
-            .expect("the survey's read must run against the shipped schema")
-            .expect("the seeded track");
+        let row = sqlx::query(
+            "SELECT t.title AS title, ar.name AS artist_name
+               FROM track t
+               LEFT JOIN artist ar ON ar.id = t.primary_artist
+              WHERE t.id = ?",
+        )
+        .bind(1_i64)
+        .fetch_optional(&pool)
+        .await
+        .expect("the survey's read must run against the shipped schema")
+        .expect("the seeded track");
         assert_eq!(row.try_get::<String, _>("title").unwrap(), "T");
         assert_eq!(
-            row.try_get::<Option<String>, _>("primary_artist").unwrap(),
-            Some("A".into()),
+            row.try_get::<Option<String>, _>("artist_name").unwrap(),
+            Some("NAYEON".into()),
+            "the candidate is labelled with a name, not a rowid",
         );
     }
 }
