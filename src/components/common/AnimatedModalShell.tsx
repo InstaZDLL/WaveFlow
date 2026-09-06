@@ -4,7 +4,7 @@ import {
   type HTMLMotionProps,
   type Transition,
 } from "framer-motion";
-import { forwardRef, type ReactNode } from "react";
+import { forwardRef, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 interface AnimatedModalShellProps {
@@ -28,6 +28,13 @@ export function AnimatedModalShell({
   children,
   backdropClassName,
 }: AnimatedModalShellProps) {
+  // Where the press started. A `click` fires on the closest common ancestor
+  // of mousedown and mouseup, so selecting text inside the dialog and
+  // releasing past its edge — which is what dragging across a field to
+  // select it does — targets the backdrop and closed the modal, discarding
+  // whatever was being typed. Dismissal has to mean "pressed AND released on
+  // the backdrop", which is also how a native dialog behaves.
+  const pressedBackdrop = useRef(false);
   const content = (
     <AnimatePresence>
       {isOpen && (
@@ -36,7 +43,16 @@ export function AnimatedModalShell({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={BACKDROP_TRANSITION}
-          onClick={onBackdropClick}
+          onPointerDown={(e) => {
+            pressedBackdrop.current = e.target === e.currentTarget;
+          }}
+          onClick={(e) => {
+            // Both ends of the gesture on the backdrop itself, never on a
+            // child that bubbled up here.
+            if (!pressedBackdrop.current || e.target !== e.currentTarget) return;
+            pressedBackdrop.current = false;
+            onBackdropClick?.();
+          }}
           className={
             backdropClassName ??
             "fixed inset-0 z-100 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
