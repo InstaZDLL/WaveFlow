@@ -16,7 +16,7 @@ import {
   formatDuration,
   type Track,
 } from "../../lib/tauri/track";
-import { useCreatePlaylistFromModal } from "../../lib/createPlaylistFromModal";
+import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
 
 interface LikedViewProps {
   onNavigateToAlbum: (albumId: number) => void;

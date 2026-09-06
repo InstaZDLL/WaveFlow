@@ -10,7 +10,7 @@ import { CreatePlaylistModal } from "../components/common/CreatePlaylistModal";
 import { useTrackContextMenu } from "./useTrackContextMenu";
 import { useProfile } from "./useProfile";
 import { listLikedTrackIds, type Track } from "../lib/tauri/track";
-import { useCreatePlaylistFromModal } from "../lib/createPlaylistFromModal";
+import { useCreatePlaylistFromModal } from "./useCreatePlaylistFromModal";
 
 /**
  * Track context menu for the player surfaces (ImmersiveView, QueuePanel)

@@ -29,7 +29,7 @@ import { useUiPlugins } from "../../hooks/useUiPlugins";
 import {
   useCreatePlaylistFromModal,
   type CreatePlaylistModalData,
-} from "../../lib/createPlaylistFromModal";
+} from "../../hooks/useCreatePlaylistFromModal";
 import { useLibraryPlaylists } from "../../hooks/useLibraryPlaylists";
 import { resolvePluginIcon } from "../../lib/pluginIcons";
 import { getProfileColor, profileInitial } from "../../lib/profileColors";

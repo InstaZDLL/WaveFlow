@@ -107,7 +107,7 @@ import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { isRemoteTrack } from "../../lib/playerSources";
 import { notifyRemoteChanged } from "../../hooks/useRemoteSource";
 import { useSortMemory } from "../../hooks/useSortMemory";
-import { useCreatePlaylistFromModal } from "../../lib/createPlaylistFromModal";
+import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
 
 /**
  * Sort modes for the playlist track list. "custom" preserves the

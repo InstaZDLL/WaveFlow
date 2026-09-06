@@ -19,7 +19,7 @@ import {
   listLikedTrackIds,
   type Track,
 } from "../../lib/tauri/track";
-import { useCreatePlaylistFromModal } from "../../lib/createPlaylistFromModal";
+import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
 
 interface HistoryViewProps {
   onNavigateToAlbum: (albumId: number) => void;

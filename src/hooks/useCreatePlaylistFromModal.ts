@@ -1,8 +1,8 @@
 import { useCallback } from "react";
-import { usePlaylist } from "../hooks/usePlaylist";
-import type { Playlist } from "./tauri/playlist";
-import { remoteCreatePlaylist } from "./tauri/remoteServer";
-import { notifyRemoteChanged } from "../hooks/useRemoteSource";
+import { usePlaylist } from "./usePlaylist";
+import type { Playlist } from "../lib/tauri/playlist";
+import { remoteCreatePlaylist } from "../lib/tauri/remoteServer";
+import { notifyRemoteChanged } from "./useRemoteSource";
 
 /** What `CreatePlaylistModal` hands back on submit. */
 export interface CreatePlaylistModalData {

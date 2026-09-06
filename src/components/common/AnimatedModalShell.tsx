@@ -53,12 +53,20 @@ export function AnimatedModalShell({
             // different questions: a click's target is the closest common
             // ancestor of press and release, which is this backdrop for
             // *either* direction of a drag across its edge — so it cannot
-            // tell a release inside the dialog from one outside it. A
-            // pointerup carries the element actually under the pointer.
-            const onBackdrop = e.target === e.currentTarget;
+            // tell a release inside the dialog from one outside it.
+            //
+            // And by where the pointer physically is, not by `e.target`:
+            // touch sets pointer capture implicitly, so a finger that presses
+            // the backdrop and lifts over the dialog still reports the
+            // backdrop as its target, and the dialog would close under the
+            // gesture. `elementFromPoint` answers the question actually being
+            // asked. It returns null when the release lands outside the
+            // window, which is not the backdrop either.
             const started = pressedBackdrop.current;
             pressedBackdrop.current = false;
-            if (started && onBackdrop) onBackdropClick?.();
+            if (!started) return;
+            const under = document.elementFromPoint(e.clientX, e.clientY);
+            if (under === e.currentTarget) onBackdropClick?.();
           }}
           onPointerCancel={() => {
             // A gesture torn away (touch turned into a scroll, pointer

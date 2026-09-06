@@ -43,7 +43,7 @@ import {
   toggleLikeTrack,
   type Track,
 } from "../../lib/tauri/track";
-import { useCreatePlaylistFromModal } from "../../lib/createPlaylistFromModal";
+import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
 
 /**
  * A server album in the shape the view already speaks.

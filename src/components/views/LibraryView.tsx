@@ -110,7 +110,7 @@ import {
   type GenreRow,
   type FolderRow,
 } from "../../lib/tauri/browse";
-import { useCreatePlaylistFromModal } from "../../lib/createPlaylistFromModal";
+import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
 
 /** View density for the tracks list: `list` shows cover art, `compact` doesn't. */
 type TracksView = "list" | "compact";

@@ -119,7 +119,22 @@ export function ReconciliationCard() {
           if (cancelled) return;
           const nextVisible = status.signed_in && status.bootstrapped;
           setVisible(nextVisible);
-          if (nextVisible) await readMirror();
+          if (!nextVisible) {
+            // The binding is gone. Whatever was on screen described it, and
+            // leaving it would offer links to a server this profile no longer
+            // has — so it goes with the card rather than waiting to reappear
+            // behind a different one.
+            setLinks([]);
+            setReport(null);
+            return;
+          }
+          // A scan report describes the mirror at the moment it ran. The
+          // mirror has just changed, so the report is stale by definition:
+          // dropping it is what stops a walk from leaving candidates on
+          // screen that no longer exist.
+          setReport(null);
+          await refreshLinks();
+          await readMirror();
         } catch {
           if (!cancelled) setVisible(false);
         }
