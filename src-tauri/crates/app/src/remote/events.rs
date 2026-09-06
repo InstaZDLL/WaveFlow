@@ -387,16 +387,21 @@ async fn mark_link_stale(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sqlx::sqlite::SqlitePoolOptions;
+    use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+    use std::str::FromStr;
 
+    /// The real migrator against a real database with `foreign_keys` on, so
+    /// the constraints under test are the ones that ship rather than a
+    /// fixture's idea of them. Same shape as `remote::hashing`'s.
     async fn pool() -> SqlitePool {
+        let options = SqliteConnectOptions::from_str(":memory:")
+            .unwrap()
+            .foreign_keys(true);
         let pool = SqlitePoolOptions::new()
             .max_connections(1)
-            .connect(":memory:")
+            .connect_with(options)
             .await
             .unwrap();
-        // The real migrator rather than a hand-listed subset, like every other
-        // fixture in this module tree.
         sqlx::migrate!("../../migrations/profile")
             .run(&pool)
             .await
@@ -456,9 +461,24 @@ mod tests {
     }
 
     async fn link(pool: &SqlitePool, hash: &str, status: &str) {
+        // A library and a track, every NOT NULL column filled and the
+        // foreign key satisfied. The fixture runs the real migrator with
+        // `foreign_keys` on, so the real constraints apply — a hand-trimmed
+        // insert reads fine and fails in CI, which is how the first version
+        // of this fixture went out.
+        sqlx::raw_sql(
+            "INSERT INTO library (id, name, color_id, icon_id, created_at, updated_at,
+                                  hlc_wall, hlc_logical)
+             VALUES (1, 'L', 1, 1, 0, 0, 0, 0)",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
         sqlx::query(
-            "INSERT INTO track (id, library_id, title, file_path, file_size, duration_ms, added_at)
-             VALUES (1, 1, 'T', '/t.flac', 1, 1, 0)",
+            "INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
+                                title, duration_ms, added_at, is_available,
+                                hlc_wall, hlc_logical, rating_hlc_wall, rating_hlc_logical)
+             VALUES (1, 1, '/t.flac', 'local-hash', 1, 0, 'T', 1000, 0, 1, 0, 0, 0, 0)",
         )
         .execute(pool)
         .await
