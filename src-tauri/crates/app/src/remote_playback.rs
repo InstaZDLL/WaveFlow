@@ -78,6 +78,12 @@ pub struct RemoteStreamMeta {
     pub is_remote: bool,
     pub duration_ms: Option<i64>,
     pub artwork_hash: Option<String>,
+    /// The track's identifier **on the server**, which the local one cannot
+    /// stand in for: a remote track plays under a negative sentinel id
+    /// ([`crate::commands::player`] mints a fresh one per track), so nothing
+    /// downstream can name it to the server without this. Same reason
+    /// `artwork_hash` is here.
+    pub remote_id: Option<String>,
 }
 
 /// Process-wide handle on the active remote play queue, if any. Held on
@@ -117,10 +123,10 @@ impl RemotePlayback {
         guard.as_ref().and_then(|q| q.entries.get(q.index).cloned())
     }
 
-    /// The three facts the decoder stamps on a remote track's
+    /// The facts the decoder stamps on a remote track's
     /// `player:radio-metadata` emit — whether a session is active, and the
-    /// cursor entry's duration and artwork hash — read under a single lock.
-    /// Three separate calls could straddle a `clear()` and emit
+    /// cursor entry's duration, artwork hash and server id — read under a
+    /// single lock. Separate calls could straddle a `clear()` and emit
     /// `is_remote = true` with a `None` duration/artwork (or the reverse),
     /// so they must come from one guard.
     pub fn current_stream_meta(&self) -> RemoteStreamMeta {
@@ -130,6 +136,7 @@ impl RemotePlayback {
             is_remote: guard.is_some(),
             duration_ms: entry.and_then(|e| e.duration_ms),
             artwork_hash: entry.and_then(|e| e.artwork_hash.clone()),
+            remote_id: entry.map(|e| e.id.clone()),
         }
     }
 

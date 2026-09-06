@@ -97,9 +97,12 @@ export function ImmersiveView({
       ? currentTrack
       : null;
   const canvasAvailable = !!canvasPath && !reducedMotion;
-  // The picker sets/removes the MANUAL local Canvas only; a plugin-sourced
-  // Canvas (issue #473) is a remote `https` URL and must NOT read as
-  // "has a Canvas to remove". Shared local-vs-remote split with CanvasStage.
+  // The picker sets/removes the MANUAL local Canvas only. A Canvas that came
+  // from a plugin (issue #473) or from the bound server is a URL, and must
+  // NOT read as "has a Canvas to remove" — neither is ours to delete. The
+  // `id >= 0` guard above already keeps a server track out of the picker
+  // entirely, since it plays under a negative sentinel. Shared
+  // local-vs-remote split with CanvasStage.
   const hasManualCanvas = !!canvasPath && !isRemoteCanvasUrl(canvasPath);
 
   // Escape close + focus trap. Only mounted while open → pass `true`.

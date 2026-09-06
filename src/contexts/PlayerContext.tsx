@@ -102,6 +102,11 @@ function radioMetadataToTrack(payload: RadioMetadata): Track {
     artwork_path_1x: null,
     artwork_path_2x: null,
     rating: null,
+    // Absent for radio, which has no server track — and absent is what
+    // "local" reads as everywhere this field appears.
+    ...(payload.remote_track_id
+      ? { remote_id: payload.remote_track_id }
+      : {}),
   };
 }
 

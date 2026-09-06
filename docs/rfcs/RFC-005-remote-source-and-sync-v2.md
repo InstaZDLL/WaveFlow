@@ -718,6 +718,48 @@ fetch failing mid-page leaves the rest for the next pass rather than skipping
 it: the cursor is the only record of what was read, so a gap in it is a gap
 nothing can detect afterwards.
 
+### A server track's Canvas rides a ticket, like its audio
+
+A Canvas is a short looping clip the now-playing view paints behind the cover.
+Locally it is a file on disk; on the server it is a blob behind a Bearer-only
+endpoint, and a `<video src>` cannot send a header. So it takes the answer the
+audio path already takes:
+[`remote::canvas`](../../src-tauri/crates/app/src/remote/canvas.rs) mints a
+ticket at `POST /tracks/{id}/canvas-ticket` and hands the webview the
+`/api/v2/canvas-stream/{ticket}` URL, which authorises itself.
+
+Three things carry over from the stream path, and one is new.
+
+**The URL is built from our base, never the server's.** The reply is a relative
+path; anything absolute or protocol-relative is refused rather than followed.
+An absolute URL from the server would point the webview at a host the user
+never authenticated against — and unlike a fetch, a `<video>` element loads it
+without a murmur.
+
+**The ticket expires, so the answer is never cached durably.** It describes a
+permission valid now, not a property of the track. This falls out for free:
+`useTrackCanvas` keys its cache on the local track id, and a remote track plays
+under a **negative sentinel minted per playback**, so the same track played
+twice mints two tickets rather than reusing a stale one.
+
+**A track with no Canvas is not an error.** Most have none and the server says
+so with a 404, which resolves to `None` and falls through to the plugin rung of
+the backdrop precedence.
+
+**What is new: the identifier had to be made to travel.** Nothing downstream
+could name a playing remote track *to the server* — the negative sentinel is
+meaningful only inside this process. So `RemoteStreamMeta` carries the server
+id out of the queue entry under the same lock as the duration and the artwork
+hash, `player:radio-metadata` carries it to the frontend, and the projected
+`Track` carries `remote_id` (absent meaning local, as everywhere else in the
+unified library). It is the same route `artwork_hash` took, and for the same
+reason.
+
+In the backdrop precedence a server Canvas takes the rung the manual local clip
+holds: somebody put it on that library deliberately. The picker is unaffected —
+it already required a non-negative track id, so a server track was never
+offered a "replace this clip" it could not honour.
+
 ### Cover art is cached on disk, not inlined
 
 The artwork endpoint is Bearer-only, so a bare `<img src>` to it answers 401.

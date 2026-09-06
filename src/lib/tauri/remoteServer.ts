@@ -366,6 +366,17 @@ export function remoteSetRating(
   return invoke<void>("remote_set_rating", { entityType, entityId, rating });
 }
 
+/**
+ * A playable URL for a server track's Canvas, or `null` when it has none.
+ *
+ * Carries a **ticket** rather than a header, because a `<video src>` cannot
+ * send one. Do not hold on to it: the ticket expires within the hour, so it
+ * describes a permission valid now rather than a property of the track.
+ */
+export function remoteTrackCanvas(trackId: string): Promise<string | null> {
+  return invoke<string | null>("remote_track_canvas", { trackId });
+}
+
 /** What the mirror holds for a server track, to fill the tag editor. */
 export interface RemoteTrackTags {
   title: string;

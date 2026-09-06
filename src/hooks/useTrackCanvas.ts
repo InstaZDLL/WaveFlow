@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { fetchTrackCanvas, getTrackCanvas } from "../lib/tauri/canvas";
+import { remoteTrackCanvas } from "../lib/tauri/remoteServer";
 import { useProfile } from "./useProfile";
 
 /**
@@ -50,6 +51,8 @@ export interface CanvasTrackInput {
   artist_name: string | null;
   album_title: string | null;
   duration_ms: number;
+  /** Set only for a track playing from the bound server; absent is local. */
+  remote_id?: string;
 }
 
 /**
@@ -62,8 +65,21 @@ export interface CanvasTrackInput {
 async function resolveCanvasSource(
   track: CanvasTrackInput,
 ): Promise<string | null> {
-  const manual = await getTrackCanvas(track.id);
-  if (manual?.localPath) return manual.localPath;
+  // A server track takes the rung the manual local clip holds, and for the
+  // same reason: somebody put it on that library on purpose. It cannot use
+  // the local lookup at all — `track.id` is a negative sentinel here, so
+  // `get_track_canvas` would be asking the local database about a rowid that
+  // does not exist.
+  if (track.remote_id) {
+    const remote = await remoteTrackCanvas(track.remote_id);
+    if (remote) return remote;
+    // No Canvas on the server is an ordinary answer; fall through to the
+    // plugin, which resolves by artist and title and knows nothing about
+    // where the track is stored.
+  } else {
+    const manual = await getTrackCanvas(track.id);
+    if (manual?.localPath) return manual.localPath;
+  }
   // No manual clip — fall back to a plugin. It needs artist + title to
   // resolve against an external source; skip when either is missing.
   if (!track.artist_name || !track.title) return null;

@@ -54,6 +54,11 @@ pub struct RadioMetadataPayload {
     /// (Bearer-only endpoint) as a data URL for the cover; `None` for radio,
     /// which paints its own station favicon / Deezer lookup instead.
     pub artwork_hash: Option<String>,
+    /// The track's identifier on the server, for the surfaces that must name
+    /// it there — the Canvas lookup above all. The `track_id` above cannot:
+    /// it is a negative sentinel minted per playback, meaningful only to this
+    /// process. `None` for live radio, which has no server track.
+    pub remote_track_id: Option<String>,
 }
 
 /// Last emitted radio metadata, kept process-wide so a webview that
