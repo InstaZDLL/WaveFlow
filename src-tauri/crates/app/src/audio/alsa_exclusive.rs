@@ -180,6 +180,16 @@ fn output_thread_main(
         }
     };
 
+    // What the output was running at before DoP took over. The PCM
+    // half reads `sample_rate` / `channels` as its *preference* for the
+    // next open, and a DoP rate is not one: a DAC that does DSD128
+    // usually also accepts 352.8 kHz as PCM, so the track after the DSD
+    // one would open there and have rubato upsample every 44.1 kHz
+    // source eightfold for nothing. Put back what we found on the way
+    // out — see the restore at the end of this function.
+    let pre_dop_rate = shared.sample_rate.load(Ordering::Acquire);
+    let pre_dop_channels = shared.channels.load(Ordering::Acquire);
+
     shared.sample_rate.store(dop.sample_rate, Ordering::Release);
     shared.channels.store(dop.channels, Ordering::Release);
     let _ = init_tx.send(Ok(()));
@@ -247,6 +257,16 @@ fn output_thread_main(
     // PCM calls `snd_pcm_close`, which stops the stream and releases the
     // exclusive `hw:` handle for the next opener.
     drop(io);
+
+    // Hand the DoP rate back before anyone can mistake it for a PCM
+    // preference. `OutputHandle::stop` joins this thread, so every
+    // deliberate teardown has published this before the replacement
+    // output opens; on a device loss the rebuild is scheduled from
+    // below, after the same store. Whatever opens next overwrites both
+    // values with what it actually negotiated — this only decides what
+    // that open *asks* for.
+    shared.sample_rate.store(pre_dop_rate, Ordering::Release);
+    shared.channels.store(pre_dop_channels, Ordering::Release);
 
     match exit {
         ExitReason::Shutdown => {
