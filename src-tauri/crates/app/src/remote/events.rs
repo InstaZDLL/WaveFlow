@@ -24,9 +24,18 @@
 //! The server purges old events and keeps a watermark of what it cut. A cursor
 //! below it has missed events, and rather than hand back the surviving tail —
 //! which would look like a successful catch-up while silently skipping the gap
-//! — the server refuses. The answer is to forget the cursor and let the sweep
-//! rebuild the mirror, which is what this application did before this module
-//! existed. So the failure mode is "no faster than before", never "wrong".
+//! — the server refuses. The answer is to make the sweep re-read what we
+//! missed, which is what this application did before this module existed. So
+//! the failure mode is "no faster than before", never "wrong".
+//!
+//! Two things that took a correction to get right. Re-reading means
+//! invalidating the **albums** (`remote_album.mirrored_at`), not the library's
+//! sweep date: freshness is decided per album against `song_count`, and the
+//! events we missed are corrections, which leave `song_count` alone. And the
+//! refusal has to be *remembered* — the server exposes no watermark, so there
+//! is no cursor to adopt after the re-walk, and a feed merely forgotten would
+//! be asked from zero on the next pass, refused again, and invalidate the
+//! mirror again. Marked unreachable instead, until the mirror is emptied.
 //!
 //! **The refusal arrives as `conflict`, not `cursor_expired`.** The sync
 //! journal uses the second code for the same situation; this feed maps its
@@ -148,8 +157,14 @@ pub struct EventsReport {
 /// about to run anyway.
 pub async fn catch_up(client: &RemoteClient<'_>, pool: &SqlitePool) -> AppResult<EventsReport> {
     let mut report = EventsReport::default();
+    // Swept libraries whose feed is still worth asking for. One marked
+    // unreachable is skipped rather than retried: asking again would be
+    // refused again, and the refusal costs a full re-walk. Emptying the
+    // mirror clears the mark, which is the way back.
     let libraries: Vec<(String, Option<i64>)> = sqlx::query_as(
-        "SELECT remote_id, events_cursor FROM remote_library WHERE mirrored_at IS NOT NULL",
+        "SELECT remote_id, events_cursor FROM remote_library
+          WHERE mirrored_at IS NOT NULL
+            AND (events_cursor IS NULL OR events_cursor >= 0)",
     )
     .fetch_all(pool)
     .await?;
@@ -190,19 +205,49 @@ fn is_cursor_refused(failure: &RemoteFailure) -> bool {
     failure.is_conflict() || failure.is_cursor_expired()
 }
 
-/// Forget where we were, so the next pass starts from scratch behind the
-/// sweep.
+/// Cursor value meaning "this feed is out of reach from the beginning".
 ///
-/// The sweep date goes with it: a mirror that missed events is stale in ways
-/// the cursor cannot describe, and leaving `mirrored_at` set would let the
-/// incremental walk skip every album whose count happens to match.
+/// Not `NULL`, which means "never read one". The two need telling apart or
+/// the pass loops: a refused cursor would be forgotten, the next pass would
+/// ask from 0 again, be refused again, and invalidate the mirror again —
+/// paying for a full re-walk on every pass, forever.
+const CURSOR_UNREACHABLE: i64 = -1;
+
+/// Give up on a feed the server will not serve us, after making the sweep
+/// actually re-read what we missed.
+///
+/// **Invalidating the albums is the part that does the work**, and the first
+/// version of this got it wrong: freshness lives in `remote_album.mirrored_at`
+/// against `song_count` ([`known_albums`]), so clearing the *library's* sweep
+/// date changed nothing about which albums the walk fetches. The events we
+/// missed are corrections, and a correction leaves `song_count` alone — so the
+/// walk would skip precisely the albums that needed re-reading.
+///
+/// `library_id IS NULL` is included deliberately. The column is nullable, and
+/// an album we cannot attribute to a library is one we cannot prove is
+/// unaffected; re-walking it costs a request, while skipping it would leave
+/// wrong metadata in place with nothing left to correct it.
+///
+/// The library's own sweep date is left alone: it is what the interface shows
+/// as "last copied", and this library *has* been copied. The albums beneath it
+/// are what became stale.
+///
+/// [`known_albums`]: super::mirror
 async fn forget_cursor(pool: &SqlitePool, library_id: &str) -> AppResult<()> {
+    let mut tx = pool.begin().await?;
     sqlx::query(
-        "UPDATE remote_library SET events_cursor = NULL, mirrored_at = NULL WHERE remote_id = ?",
+        "UPDATE remote_album SET mirrored_at = NULL
+          WHERE library_id = ? OR library_id IS NULL",
     )
     .bind(library_id)
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
+    sqlx::query("UPDATE remote_library SET events_cursor = ? WHERE remote_id = ?")
+        .bind(CURSOR_UNREACHABLE)
+        .bind(library_id)
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await?;
     Ok(())
 }
 
@@ -444,6 +489,18 @@ mod tests {
         .unwrap();
     }
 
+    /// The libraries a pass would read, using production's own predicate.
+    async fn selectable(pool: &SqlitePool) -> Vec<String> {
+        sqlx::query_scalar(
+            "SELECT remote_id FROM remote_library
+              WHERE mirrored_at IS NOT NULL
+                AND (events_cursor IS NULL OR events_cursor >= 0)",
+        )
+        .fetch_all(pool)
+        .await
+        .unwrap()
+    }
+
     async fn cursor_of(pool: &SqlitePool) -> Option<i64> {
         sqlx::query_scalar("SELECT events_cursor FROM remote_library WHERE remote_id = 'lib'")
             .fetch_one(pool)
@@ -464,24 +521,97 @@ mod tests {
         assert_eq!(cursor_of(&pool).await, Some(42));
     }
 
+    async fn album(pool: &SqlitePool, id: &str, library_id: Option<&str>) {
+        sqlx::query(
+            "INSERT INTO remote_album (remote_id, library_id, title, song_count, mirrored_at)
+             VALUES (?, ?, 'A', 3, 1)",
+        )
+        .bind(id)
+        .bind(library_id)
+        .execute(pool)
+        .await
+        .unwrap();
+    }
+
+    async fn album_walked(pool: &SqlitePool, id: &str) -> bool {
+        let at: Option<i64> =
+            sqlx::query_scalar("SELECT mirrored_at FROM remote_album WHERE remote_id = ?")
+                .bind(id)
+                .fetch_one(pool)
+                .await
+                .unwrap();
+        at.is_some()
+    }
+
     #[tokio::test]
-    async fn forgetting_a_cursor_also_forgets_the_sweep() {
-        // A mirror that missed events is stale in ways the cursor cannot
-        // describe. Leaving `mirrored_at` set would let the incremental walk
-        // skip every album whose count happens to match, and the gap would
-        // never be closed.
+    async fn giving_up_on_a_feed_makes_the_walk_re_read_its_albums() {
+        // The part that does the work, and the part the first version got
+        // wrong. Freshness lives in `remote_album.mirrored_at` against
+        // `song_count`, so clearing the library's sweep date changed nothing
+        // about which albums the walk fetches — and the events we missed are
+        // corrections, which leave `song_count` alone. The walk would have
+        // skipped precisely the albums that needed re-reading.
+        let pool = pool().await;
+        library(&pool, Some(99)).await;
+        album(&pool, "a-ours", Some("lib")).await;
+        album(&pool, "a-unattributed", None).await;
+        album(&pool, "a-elsewhere", Some("other-lib")).await;
+
+        forget_cursor(&pool, "lib").await.unwrap();
+
+        assert!(!album_walked(&pool, "a-ours").await);
+        // Nullable column: an album we cannot attribute is one we cannot
+        // prove is unaffected, and re-walking it costs a request while
+        // skipping it would leave wrong metadata with nothing to correct it.
+        assert!(!album_walked(&pool, "a-unattributed").await);
+        assert!(
+            album_walked(&pool, "a-elsewhere").await,
+            "another library's albums were invalidated"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_refused_feed_is_not_asked_again_on_the_next_pass() {
+        // Without the mark the pass loops: forget the cursor, ask from 0
+        // again, be refused again, invalidate the mirror again — a full
+        // re-walk on every pass, forever. The server exposes no watermark,
+        // so there is no cursor to adopt instead; not asking is the only
+        // honest answer.
         let pool = pool().await;
         library(&pool, Some(99)).await;
 
         forget_cursor(&pool, "lib").await.unwrap();
 
-        assert_eq!(cursor_of(&pool).await, None);
+        assert_eq!(cursor_of(&pool).await, Some(CURSOR_UNREACHABLE));
+        assert!(
+            selectable(&pool).await.is_empty(),
+            "a feed known to be out of reach was queued for another attempt"
+        );
+
+        // Emptying the mirror is the way back: the catalogue that cursor
+        // described is gone, so asking from zero means something again.
+        sqlx::query("UPDATE remote_library SET events_cursor = NULL")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert_eq!(selectable(&pool).await, vec!["lib".to_string()]);
+    }
+
+    #[tokio::test]
+    async fn the_librarys_own_sweep_date_survives() {
+        // It is what the interface shows as "last copied", and this library
+        // has been copied. Its albums are what went stale.
+        let pool = pool().await;
+        library(&pool, Some(99)).await;
+
+        forget_cursor(&pool, "lib").await.unwrap();
+
         let swept: Option<i64> =
             sqlx::query_scalar("SELECT mirrored_at FROM remote_library WHERE remote_id = 'lib'")
                 .fetch_one(&pool)
                 .await
                 .unwrap();
-        assert_eq!(swept, None, "the sweep date outlived the cursor");
+        assert_eq!(swept, Some(1));
     }
 
     async fn link(pool: &SqlitePool, hash: &str, status: &str) {

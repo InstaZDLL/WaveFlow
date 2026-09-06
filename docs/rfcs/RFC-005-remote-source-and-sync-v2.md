@@ -689,9 +689,17 @@ Three things are load-bearing:
 - **A refused cursor is not an error.** The server purges old events behind a
   watermark and refuses a cursor below it, rather than handing back the
   surviving tail — which would look like a successful catch-up while silently
-  skipping the gap. The answer is to forget the cursor *and the sweep date*, so
-  the walk rebuilds the mirror. The failure mode is "no faster than before",
-  never "wrong".
+  skipping the gap. The answer is to make the walk re-read what was missed, so
+  the failure mode is "no faster than before", never "wrong". Two details
+  decide whether that actually happens: the walk decides freshness **per
+  album** (`remote_album.mirrored_at` against `song_count`), so invalidating
+  the *library's* sweep date changes nothing — and the missed events are
+  corrections, which leave `song_count` alone, so the walk would skip exactly
+  the albums that needed re-reading. And because the server exposes **no
+  watermark**, there is no cursor to adopt after the re-walk: a feed merely
+  forgotten gets asked from zero next pass, refused again, and invalidates the
+  mirror again, paying for a full re-walk forever. It is marked unreachable
+  instead, and emptying the mirror is what clears the mark.
 - **The refusal arrives as `conflict`, not `cursor_expired`.** The sync journal
   answers the second code for the same situation; this feed maps its refusal
   through `ServiceError::Conflict` and answers the first. A reader watching for

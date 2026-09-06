@@ -965,7 +965,12 @@ pub async fn clear(pool: &SqlitePool) -> AppResult<()> {
     sqlx::query("DELETE FROM remote_artist")
         .execute(&mut *tx)
         .await?;
-    sqlx::query("UPDATE remote_library SET mirrored_at = NULL")
+    // The feed cursor goes with the sweep date. The catalogue it described is
+    // gone, so a position in that feed describes nothing — and clearing it is
+    // also the way back for a library whose feed was marked unreachable, since
+    // emptying the mirror is the one gesture that makes asking from zero
+    // meaningful again.
+    sqlx::query("UPDATE remote_library SET mirrored_at = NULL, events_cursor = NULL")
         .execute(&mut *tx)
         .await?;
     tx.commit().await?;
