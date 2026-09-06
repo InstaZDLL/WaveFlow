@@ -35,20 +35,29 @@ const EMPTY: FormState = {
 };
 
 /**
- * A blank field stays blank; anything that is not a whole number is read
- * the same way.
+ * A typed number field, read as one of three things — and the third is
+ * why this does not simply return `number | null`.
  *
- * `parseInt` is the wrong tool here and quietly so: it stops at the first
- * character it cannot use, so "1.9" becomes 1 and "1e3" becomes 1 — both
- * of which a `type="number"` input accepts. `Number` reads the whole
- * string or nothing, and `isSafeInteger` rejects what remains: fractions,
- * and values past the range an integer can round-trip.
+ * Blank means "no correction". A whole number means that number. Anything
+ * else — "1.5", "1e400", a stray letter, all of which a `type="number"`
+ * input will hold — is **refused**, because the alternative is worse than
+ * it looks: folding it into `null` would send "no correction" under a
+ * wholesale patch, silently *withdrawing* the correction the user believes
+ * they have just typed.
+ *
+ * `parseInt` is the wrong tool here for the same family of reason: it
+ * stops at the first character it cannot use, so "1.9" reads as 1 and
+ * "1e3" as 1. `Number` reads the whole string or nothing, and
+ * `isSafeInteger` rejects fractions and anything past the range an integer
+ * round-trips.
  */
-function toNumber(value: string): number | null {
+type ParsedNumber = { ok: true; value: number | null } | { ok: false };
+
+function parseWhole(value: string): ParsedNumber {
   const trimmed = value.trim();
-  if (trimmed === "") return null;
+  if (trimmed === "") return { ok: true, value: null };
   const parsed = Number(trimmed);
-  return Number.isSafeInteger(parsed) ? parsed : null;
+  return Number.isSafeInteger(parsed) ? { ok: true, value: parsed } : { ok: false };
 }
 
 /**
@@ -152,6 +161,15 @@ export function RemoteTrackTagsModal({
 
   const handleSave = useCallback(async () => {
     if (trackId == null) return;
+    const year = parseWhole(form.year);
+    const trackNumber = parseWhole(form.track_number);
+    const discNumber = parseWhole(form.disc_number);
+    if (!year.ok || !trackNumber.ok || !discNumber.ok) {
+      // Refused rather than coerced. Sending these as `null` would read
+      // as "no correction" and withdraw the very field being edited.
+      setSaveError(t("remote.tags.invalidNumber"));
+      return;
+    }
     setSaving(true);
     setSaveError(null);
     try {
@@ -159,9 +177,9 @@ export function RemoteTrackTagsModal({
         title: form.title,
         artist: form.artist,
         genre: form.genre,
-        year: toNumber(form.year),
-        track_number: toNumber(form.track_number),
-        disc_number: toNumber(form.disc_number),
+        year: year.value,
+        track_number: trackNumber.value,
+        disc_number: discNumber.value,
       });
       onSaved?.();
       onClose();
@@ -171,7 +189,14 @@ export function RemoteTrackTagsModal({
     } finally {
       setSaving(false);
     }
-  }, [trackId, form, onSaved, onClose]);
+  }, [trackId, form, onSaved, onClose, t]);
+
+  // Numbers are checked as they are typed as well as on save, so the
+  // button says "not yet" instead of the dialog saying "no" afterwards.
+  const numbersValid =
+    parseWhole(form.year).ok &&
+    parseWhole(form.track_number).ok &&
+    parseWhole(form.disc_number).ok;
 
   if (!isOpen) return null;
 
@@ -308,7 +333,7 @@ export function RemoteTrackTagsModal({
           <button
             type="button"
             onClick={handleSave}
-            disabled={!ready || saving}
+            disabled={!ready || saving || !numbersValid}
             className="px-5 py-2 rounded-xl text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 shadow-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? (

@@ -2399,7 +2399,8 @@
       "title": "Métadonnées du serveur",
       "subtitle": "La correction est enregistrée sur le serveur, pas dans le fichier.",
       "help": "Ces corrections survivent aux analyses du serveur et sont visibles par tous les membres de la bibliothèque. Vider un champ retire la correction : la valeur du fichier réapparaît.",
-      "missing": "Ce titre n'est pas encore dans le miroir du serveur. Lancez une analyse du catalogue, puis réessayez."
+      "missing": "Ce titre n'est pas encore dans le miroir du serveur. Lancez une analyse du catalogue, puis réessayez.",
+      "invalidNumber": "L'année et les numéros de piste et de disque doivent être des nombres entiers."
     }
   }
 }

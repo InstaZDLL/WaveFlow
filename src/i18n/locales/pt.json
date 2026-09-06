@@ -2399,7 +2399,8 @@
       "title": "Metadados do servidor",
       "subtitle": "A correção é guardada no servidor, não no ficheiro.",
       "help": "Estas correções sobrevivem às análises do servidor e são visíveis para todos os membros da biblioteca. Esvaziar um campo remove a correção: o valor do ficheiro volta a aparecer.",
-      "missing": "Esta faixa ainda não está no espelho do servidor. Execute uma análise do catálogo e tente novamente."
+      "missing": "Esta faixa ainda não está no espelho do servidor. Execute uma análise do catálogo e tente novamente.",
+      "invalidNumber": "O ano e os números de faixa e de disco têm de ser números inteiros."
     }
   }
 }

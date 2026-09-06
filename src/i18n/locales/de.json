@@ -2399,7 +2399,8 @@
       "title": "Server-Metadaten",
       "subtitle": "Die Korrektur wird auf dem Server gespeichert, nicht in der Datei.",
       "help": "Diese Korrekturen überstehen die Scans des Servers und sind für alle Mitglieder der Bibliothek sichtbar. Ein leeres Feld entfernt die Korrektur: Der Wert aus der Datei erscheint wieder.",
-      "missing": "Dieser Titel ist noch nicht im Spiegel des Servers. Führen Sie einen Katalogdurchlauf aus und versuchen Sie es erneut."
+      "missing": "Dieser Titel ist noch nicht im Spiegel des Servers. Führen Sie einen Katalogdurchlauf aus und versuchen Sie es erneut.",
+      "invalidNumber": "Jahr sowie Titel- und CD-Nummer müssen ganze Zahlen sein."
     }
   }
 }

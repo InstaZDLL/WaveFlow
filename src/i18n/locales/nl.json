@@ -2399,7 +2399,8 @@
       "title": "Servermetadata",
       "subtitle": "De correctie wordt op de server opgeslagen, niet in het bestand.",
       "help": "Deze correcties overleven de scans van de server en zijn zichtbaar voor elk lid van de bibliotheek. Een veld leegmaken verwijdert de correctie: de waarde uit het bestand komt terug.",
-      "missing": "Dit nummer staat nog niet in de spiegel van de server. Voer een catalogusronde uit en probeer het opnieuw."
+      "missing": "Dit nummer staat nog niet in de spiegel van de server. Voer een catalogusronde uit en probeer het opnieuw.",
+      "invalidNumber": "Het jaar en de track- en schijfnummers moeten hele getallen zijn."
     }
   }
 }
