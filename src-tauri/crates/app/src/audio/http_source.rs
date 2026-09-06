@@ -179,6 +179,20 @@ pub struct HttpMediaSource {
     /// (endless, so never complete) and whenever the cache is unusable — it
     /// is an optimisation, and its absence is never a playback failure.
     cache: Option<crate::audio::stream_cache::CacheWriter>,
+    /// Parked at or past the end of the body, with no open response.
+    ///
+    /// Seeking to the length of a file is a legal position — it is where a
+    /// reader lands to discover there is nothing left — but it cannot be
+    /// asked for over HTTP: `Range: bytes={len}-` has no satisfiable byte
+    /// and RFC 9110 obliges the server to answer 416. So the position is
+    /// held here instead of on the wire, and `read` reports the EOF that a
+    /// local file would have reported. Cleared by the next seek that lands
+    /// inside the body.
+    ///
+    /// Not a corner case: symphonia seeks to the end of an MP4 to find a
+    /// `moov` atom the file kept there, so without this every AAC track
+    /// streamed from a server fails to open while an MP3 plays fine.
+    at_eof: bool,
 }
 
 impl HttpMediaSource {
@@ -323,6 +337,7 @@ impl HttpMediaSource {
                     crate::audio::stream_cache::CacheWriter::create(&target.dir, &target.name, len)
                 })
             }),
+            at_eof: false,
         })
     }
 
@@ -431,6 +446,13 @@ fn parse_content_range_start(value: &str) -> Option<u64> {
 
 impl Read for HttpMediaSource {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        // Parked past the end by a seek that was never sent (see `at_eof`):
+        // the body still open is the one from before that seek, so reading it
+        // would hand back bytes from the wrong offset. EOF is the honest
+        // answer, and the one a local file gives.
+        if self.at_eof {
+            return Ok(0);
+        }
         // `Mutex::lock` only fails on poisoning; we never panic inside
         // a held guard so treat poisoning as a fatal I/O error rather
         // than silently swallowing it.
@@ -565,6 +587,18 @@ impl Seek for HttpMediaSource {
             }
         };
 
+        // Landing at or past the end is legal, and it is exactly where
+        // symphonia goes to read an MP4's trailing `moov` atom. There is no
+        // request to make for it — `bytes={len}-` is unsatisfiable by
+        // definition — so record the position and let `read` answer EOF.
+        if let Some(len) = self.len {
+            if target >= len {
+                self.pos = target;
+                self.at_eof = true;
+                return Ok(target);
+            }
+        }
+
         let response = self
             .client
             .get(&self.url)
@@ -611,6 +645,8 @@ impl Seek for HttpMediaSource {
         *guard = BufReader::with_capacity(8 * 1024, response);
         drop(guard);
         self.pos = target;
+        // Back inside the body, with a response open at `target`.
+        self.at_eof = false;
         Ok(target)
     }
 }
@@ -794,5 +830,77 @@ mod tests {
         // L=0 → no metadata this interval.
         let mut zero = Cursor::new(vec![0u8]);
         assert!(read_icy_block(&mut zero).expect("read").is_none());
+    }
+    /// Seeking to the end of the body must not go to the wire.
+    ///
+    /// `Range: bytes={len}-` names no byte that exists, so RFC 9110 has the
+    /// server answer 416 — correctly. Treating that as a failed seek made
+    /// **every** AAC track streamed from a server refuse to open, because
+    /// symphonia lands there looking for the `moov` atom an MP4 keeps at the
+    /// end. MP3 needs no such jump, which is why the break looked like a codec
+    /// problem rather than a range one.
+    ///
+    /// The stub answers 416 exactly as a real server does, so this fails
+    /// against the version that asked.
+    #[test]
+    fn seeking_to_the_end_is_eof_not_a_failure() {
+        const BODY: &[u8] = b"0123456789";
+
+        let server = tiny_http::Server::http("127.0.0.1:0").expect("bind");
+        let url = format!("http://{}/audio", server.server_addr());
+        std::thread::spawn(move || {
+            while let Ok(request) = server.recv() {
+                let start = request
+                    .headers()
+                    .iter()
+                    .find(|header| header.field.equiv("Range"))
+                    .map(|header| header.value.as_str().to_string())
+                    .and_then(|value| {
+                        value
+                            .strip_prefix("bytes=")
+                            .and_then(|rest| rest.split('-').next())
+                            .and_then(|from| from.parse::<usize>().ok())
+                    });
+                let response = match start {
+                    // Unsatisfiable: at or past the end, like a real server.
+                    Some(from) if from >= BODY.len() => {
+                        tiny_http::Response::from_data(Vec::new()).with_status_code(416)
+                    }
+                    Some(from) => tiny_http::Response::from_data(BODY[from..].to_vec())
+                        .with_status_code(206)
+                        .with_header(
+                            tiny_http::Header::from_bytes(
+                                &b"Content-Range"[..],
+                                format!("bytes {from}-{}/{}", BODY.len() - 1, BODY.len())
+                                    .as_bytes(),
+                            )
+                            .unwrap(),
+                        ),
+                    None => tiny_http::Response::from_data(BODY.to_vec()),
+                };
+                let _ = request.respond(response);
+            }
+        });
+
+        let mut source = HttpMediaSource::open_seekable(&url).expect("open");
+        assert_eq!(source.byte_len(), Some(BODY.len() as u64));
+
+        let end = source
+            .seek(SeekFrom::End(0))
+            .expect("landing at the end is a position, not a failure");
+        assert_eq!(end, BODY.len() as u64);
+
+        let mut buf = [0u8; 4];
+        assert_eq!(
+            source.read(&mut buf).expect("read at EOF"),
+            0,
+            "there is nothing past the end to hand back"
+        );
+
+        // And it is not stuck there: seeking back inside the body reopens it.
+        assert_eq!(source.seek(SeekFrom::Start(4)).expect("seek back"), 4);
+        let read = source.read(&mut buf).expect("read after seeking back");
+        assert!(read > 0, "a seek back into the body must read real bytes");
+        assert_eq!(&buf[..read], &BODY[4..4 + read]);
     }
 }
