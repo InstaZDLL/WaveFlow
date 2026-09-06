@@ -201,6 +201,48 @@ fn track_from_row(row: sqlx::sqlite::SqliteRow) -> AppResult<RemoteTrack> {
     })
 }
 
+/// The fields a server track's tag editor can correct.
+///
+/// Its own read rather than fields on the unified track row: the genre
+/// is the reason. Locally a genre lives in `track_genre` and never on
+/// the track row, so carrying it on the shared row would mean either an
+/// extra join on every library listing or a column only half the rows
+/// could fill. The editor needs it once, when it opens.
+#[derive(Debug, Serialize)]
+pub struct RemoteTrackTags {
+    pub title: String,
+    pub artist: Option<String>,
+    pub genre: Option<String>,
+    pub year: Option<i64>,
+    pub track_number: Option<i64>,
+    pub disc_number: Option<i64>,
+}
+
+/// What the mirror holds for one server track, or `None` when it holds
+/// nothing — a track known only as an identifier has no form to fill.
+pub async fn track_tags(
+    conn: &mut SqliteConnection,
+    track_id: &str,
+) -> AppResult<Option<RemoteTrackTags>> {
+    let row = sqlx::query(
+        "SELECT title, artist, genre, year, track_no, disc_no
+           FROM remote_track
+          WHERE remote_id = ?",
+    )
+    .bind(track_id)
+    .fetch_optional(&mut *conn)
+    .await?;
+    let Some(row) = row else { return Ok(None) };
+    Ok(Some(RemoteTrackTags {
+        title: row.try_get("title")?,
+        artist: row.try_get("artist")?,
+        genre: row.try_get("genre")?,
+        year: row.try_get("year")?,
+        track_number: row.try_get("track_no")?,
+        disc_number: row.try_get("disc_no")?,
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

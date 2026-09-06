@@ -19,6 +19,7 @@ use crate::{
     remote::{
         client::{FailureKind, RemoteClient, RemoteFailure},
         mutation::{self, Mutation, QueuedMutation},
+        projection,
     },
     state::AppState,
 };
@@ -59,6 +60,23 @@ struct Created {
     id: String,
     #[serde(default)]
     url: Option<String>,
+}
+
+/// What a reply carries that has to be written down before the entry
+/// leaves the queue.
+///
+/// Both variants exist for the same reason: the reply is the only place
+/// the value can be learnt. A creation's identifier cannot be derived
+/// locally, and a metadata patch's result cannot be *predicted* locally
+/// — removing a correction hands back whatever the file's tag says, and
+/// this device has never seen that value, only the corrected one that
+/// was masking it.
+#[derive(Debug)]
+enum Echo {
+    Created(Created),
+    /// The track as it stands after the patch, merged corrections
+    /// included.
+    Track(Box<super::dto::SongItem>),
 }
 
 /// Kick a pass without waiting for it.
@@ -104,18 +122,19 @@ pub async fn drain(state: &AppState) -> AppResult<DrainReport> {
 
     for entry in queued {
         match send(&client, &entry).await {
-            Ok(created) => {
+            Ok(echo) => {
                 let mut tx = pool.begin().await?;
-                // The identifier and the entry's removal commit
-                // together. Resolving without removing would re-send a
-                // creation the server has already accepted, under an
-                // identifier whose fingerprint now names a different
-                // playlist — the exact conflict the protocol rejects.
-                match (&entry.mutation, &created) {
-                    (Mutation::CreatePlaylist { local_id, .. }, Some(created)) => {
+                // Whatever the reply taught us and the entry's removal
+                // commit together. Resolving without removing would
+                // re-send a creation the server has already accepted,
+                // under an identifier whose fingerprint now names a
+                // different playlist — the exact conflict the protocol
+                // rejects.
+                match (&entry.mutation, &echo) {
+                    (Mutation::CreatePlaylist { local_id, .. }, Some(Echo::Created(created))) => {
                         mutation::resolve_placeholder(&mut tx, local_id, &created.id).await?;
                     }
-                    (Mutation::CreateShare { local_id, .. }, Some(created)) => {
+                    (Mutation::CreateShare { local_id, .. }, Some(Echo::Created(created))) => {
                         mutation::resolve_share_placeholder(
                             &mut tx,
                             local_id,
@@ -123,6 +142,9 @@ pub async fn drain(state: &AppState) -> AppResult<DrainReport> {
                             created.url.as_deref(),
                         )
                         .await?;
+                    }
+                    (Mutation::UpdateTrackMetadata { .. }, Some(Echo::Track(song))) => {
+                        projection::apply_track_metadata(&mut tx, song).await?;
                     }
                     _ => {}
                 }
@@ -158,13 +180,14 @@ pub async fn drain(state: &AppState) -> AppResult<DrainReport> {
 
 /// Issue one queued change.
 ///
-/// Returns the created playlist when the mutation was a creation, since
-/// that is the one case where the server's reply carries something the
-/// caller must keep.
+/// Returns an [`Echo`] for the two mutations whose reply carries
+/// something the caller must keep — a creation's identifier, and a
+/// metadata patch's resulting track. Everything else answers `None`:
+/// the queue entry did its whole job by being sent.
 async fn send(
     client: &RemoteClient<'_>,
     entry: &QueuedMutation,
-) -> Result<Option<Created>, RemoteFailure> {
+) -> Result<Option<Echo>, RemoteFailure> {
     let op = &entry.operation_id;
     match &entry.mutation {
         Mutation::SetFavorite {
@@ -226,7 +249,7 @@ async fn send(
                         .json(&serde_json::json!({ "name": name, "track_ids": track_ids })),
                 )
                 .await?;
-            Ok(Some(created))
+            Ok(Some(Echo::Created(created)))
         }
 
         Mutation::UpdatePlaylist {
@@ -358,7 +381,7 @@ async fn send(
                         })),
                 )
                 .await?;
-            Ok(Some(created))
+            Ok(Some(Echo::Created(created)))
         }
 
         Mutation::UpdateShare {
@@ -415,6 +438,37 @@ async fn send(
                 .send_ok(client.mutate(reqwest::Method::DELETE, &path, op))
                 .await?;
             Ok(None)
+        }
+
+        Mutation::UpdateTrackMetadata {
+            track_id,
+            title,
+            artists,
+            genres,
+            year,
+            track_number,
+            disc_number,
+        } => {
+            let path = format!("/api/v2/tracks/{track_id}");
+            // Every field, nulls included, because this endpoint is
+            // wholesale: the body states the corrections the track
+            // should carry afterwards, so an omitted field and a null
+            // one both say "no correction here". Spelling the nulls out
+            // makes the request say what it means instead of leaving it
+            // to be inferred from what is missing.
+            let song = client
+                .send_json(client.mutate(reqwest::Method::PATCH, &path, op).json(
+                    &serde_json::json!({
+                        "title": title,
+                        "artists": artists,
+                        "genres": genres,
+                        "year": year,
+                        "track_number": track_number,
+                        "disc_number": disc_number,
+                    }),
+                ))
+                .await?;
+            Ok(Some(Echo::Track(Box::new(song))))
         }
     }
 }

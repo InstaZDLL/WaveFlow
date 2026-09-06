@@ -818,6 +818,40 @@ and null is a genuine clear. The projection's tests replay the server's own
 captured journal and assert it converges on the server's own snapshot — the two
 feeds have to agree, or the result would depend on which one happened to run.
 
+### The one endpoint where an absent key means the opposite
+
+`PATCH /api/v2/tracks/{id}` inverts the rule above, and the inversion is
+deliberate on the server's side rather than an oversight: its body is the
+**complete set of corrections the track should carry afterwards**. A field left
+out is not a field left alone — it is a correction *withdrawn*, and the track
+falls back to whatever its file's tag says.
+
+That shape is right for a tag editor, which submits a whole form and needs
+"clear this" to be expressible without a magic null. It is wrong for everything
+else in the queue, so `Mutation::UpdateTrackMetadata` is the one mutation with
+no `clear_*` flags, and callers may never send a diff. Sending only the fields
+that changed — which is what the *local* tag editor does — would silently drop
+every correction it failed to mention.
+
+Two consequences, both invisible until they bite:
+
+- **The desktop sends only the six fields its editor shows.** The server also
+  stores `sort_title`, `comment` and `musicbrainz_recording_id`; under wholesale
+  semantics, sending a field we cannot show the user is indistinguishable from
+  clearing it. That is sound **only while this application is the sole writer of
+  `track_override`** — which it is today, the server's own web client sending no
+  such patch. The day a second writer appears this quietly erases their
+  corrections, and the fix is a server route returning the *raw* overrides.
+  `GET /tracks/{id}` cannot stand in for it: it answers the merged values, in
+  which a correction is indistinguishable from what the file said.
+- **The reply is the only place the underlying tag can be learnt.** Withdrawing
+  a correction hands back a value this device has never seen — it only ever saw
+  the correction that was masking it. So the drain writes the patch's reply into
+  the mirror through `projection::apply_track_metadata`, which writes its columns
+  flat instead of coalescing them the way `cache_song` does. Coalescing would go
+  on showing the year the user just deleted, with no later pass able to put it
+  right.
+
 ## Why the v1 design retires
 
 Every mechanism below exists because v1 accepted concurrent writes arbitrated

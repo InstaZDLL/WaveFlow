@@ -2392,6 +2392,12 @@
         "unknown_verdict": "Respuesta desconocida del servidor: {{count}}",
         "failed": "Fallidas: {{count}}"
       }
+    },
+    "tags": {
+      "action": "Corregir los metadatos",
+      "title": "Metadatos del servidor",
+      "subtitle": "La corrección se guarda en el servidor, no en el archivo.",
+      "help": "Estas correcciones sobreviven a los análisis del servidor y las ven todos los miembros de la biblioteca. Vaciar un campo elimina la corrección: reaparece el valor del archivo."
     }
   }
 }

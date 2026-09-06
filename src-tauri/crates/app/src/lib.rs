@@ -821,6 +821,10 @@ pub fn run() {
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_set_rating,
             #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_get_track_tags,
+            #[cfg(feature = "sync_v2")]
+            commands::remote_auth::remote_update_track_tags,
+            #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_create_playlist,
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_update_playlist,

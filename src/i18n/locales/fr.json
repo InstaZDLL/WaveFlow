@@ -2392,6 +2392,12 @@
         "unknown_verdict": "Réponse inconnue du serveur : {{count}}",
         "failed": "Échecs : {{count}}"
       }
+    },
+    "tags": {
+      "action": "Corriger les métadonnées",
+      "title": "Métadonnées du serveur",
+      "subtitle": "La correction est enregistrée sur le serveur, pas dans le fichier.",
+      "help": "Ces corrections survivent aux analyses du serveur et sont visibles par tous les membres de la bibliothèque. Vider un champ retire la correction : la valeur du fichier réapparaît."
     }
   }
 }

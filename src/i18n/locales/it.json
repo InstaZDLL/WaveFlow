@@ -2392,6 +2392,12 @@
         "unknown_verdict": "Risposta sconosciuta del server: {{count}}",
         "failed": "Non riusciti: {{count}}"
       }
+    },
+    "tags": {
+      "action": "Correggi i metadati",
+      "title": "Metadati del server",
+      "subtitle": "La correzione viene salvata sul server, non nel file.",
+      "help": "Queste correzioni sopravvivono alle scansioni del server e sono visibili a tutti i membri della libreria. Svuotare un campo rimuove la correzione: riappare il valore del file."
     }
   }
 }

@@ -296,6 +296,61 @@ pub async fn cache_song(conn: &mut SqliteConnection, song: &SongItem) -> AppResu
     Ok(())
 }
 
+/// Write a track's corrected metadata over what the mirror holds.
+///
+/// ## Why this cannot be [`cache_song`]
+///
+/// That one coalesces every optional column, so a sparse later sighting
+/// can never blank a field a richer earlier one filled in. The rule is
+/// right for a mirror pass and **wrong here**: a patch that removes a
+/// correction legitimately hands back a *smaller* value — a cleared
+/// year comes back null, and coalescing would keep showing the year the
+/// user just deleted, with no later pass able to correct it.
+///
+/// So these columns are written flat. They are exactly the fields
+/// [`UpdateTrackMetadata`] can change; the rest of the row (size, hash,
+/// artwork, library) is left alone, because correcting metadata moves
+/// none of it.
+///
+/// A row that is absent is not created. The only caller patches a track
+/// the mirror already holds, and minting a row from a reply would enter
+/// a track into the catalogue by a path that never established it
+/// belongs to a mirrored library.
+///
+/// [`UpdateTrackMetadata`]: super::mutation::Mutation::UpdateTrackMetadata
+pub async fn apply_track_metadata(conn: &mut SqliteConnection, song: &SongItem) -> AppResult<()> {
+    sqlx::query(
+        "UPDATE remote_track
+            SET title       = ?,
+                artist      = ?,
+                genre       = ?,
+                year        = ?,
+                track_no    = ?,
+                disc_no     = ?,
+                sort_artist = ?,
+                cached_at   = ?
+          WHERE remote_id = ?",
+    )
+    // Same fallback as the upsert: an untitled row still beats losing
+    // the row's label, and the column is NOT NULL.
+    .bind(song.title.as_deref().unwrap_or_default())
+    .bind(song.artist.as_deref())
+    .bind(song.genre.as_deref())
+    .bind(song.year)
+    .bind(song.track)
+    .bind(song.disc)
+    // Kept in step with the string it derives from. Leaving it stale
+    // would sort the row under its old artist — exactly the
+    // half-updated state the unified listing's sort keys exist to
+    // prevent.
+    .bind(song.artist.as_deref().map(normalize_name))
+    .bind(chrono::Utc::now().timestamp_millis())
+    .bind(&song.id)
+    .execute(&mut *conn)
+    .await?;
+    Ok(())
+}
+
 /// Track identifiers the projection references but has no metadata for.
 ///
 /// The gap is structural, not a bug: a snapshot carries whole song
@@ -1314,5 +1369,62 @@ mod tests {
             Some("A")
         );
         assert_eq!(row.try_get::<i64, _>("duration_ms").unwrap(), 1234);
+    }
+
+    #[tokio::test]
+    async fn a_patch_reply_can_blank_what_the_upsert_would_have_kept() {
+        // The one behaviour that stops `apply_track_metadata` being a
+        // call to `cache_song`. Removing a correction hands back a
+        // *smaller* value, and coalescing would keep showing the year
+        // and genre the user just deleted, with no later pass able to
+        // put it right.
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        let corrected: SongItem = serde_json::from_value(serde_json::json!({
+            "id": "t1", "title": "Army of Me", "artist": "Björk",
+            "genre": "Trip Hop", "year": 1995, "duration_ms": 1234
+        }))
+        .unwrap();
+        cache_song(&mut conn, &corrected).await.unwrap();
+
+        // What the server answers once the corrections are withdrawn:
+        // the file's own tags, which carry neither.
+        let uncorrected: SongItem = serde_json::from_value(serde_json::json!({
+            "id": "t1", "title": "Army of Me", "artist": "Björk"
+        }))
+        .unwrap();
+        apply_track_metadata(&mut conn, &uncorrected).await.unwrap();
+
+        let row = sqlx::query(
+            "SELECT genre, year, size, duration_ms FROM remote_track WHERE remote_id='t1'",
+        )
+        .fetch_one(&mut *conn)
+        .await
+        .unwrap();
+        assert_eq!(row.try_get::<Option<String>, _>("genre").unwrap(), None);
+        assert_eq!(row.try_get::<Option<i64>, _>("year").unwrap(), None);
+        // And nothing outside the corrected fields moved: a metadata
+        // patch does not touch the file, so it cannot change its size
+        // or its duration.
+        assert_eq!(row.try_get::<i64, _>("duration_ms").unwrap(), 1234);
+    }
+
+    #[tokio::test]
+    async fn a_patch_reply_for_an_unmirrored_track_creates_nothing() {
+        // Minting a row from a reply would enter a track into the
+        // catalogue by a path that never established it belongs to a
+        // mirrored library.
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        let song: SongItem =
+            serde_json::from_value(serde_json::json!({"id": "ghost", "title": "Nowhere"})).unwrap();
+
+        apply_track_metadata(&mut conn, &song).await.unwrap();
+
+        let rows: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_track")
+            .fetch_one(&mut *conn)
+            .await
+            .unwrap();
+        assert_eq!(rows, 0);
     }
 }

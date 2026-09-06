@@ -2392,6 +2392,12 @@
         "unknown_verdict": "Antwoord dat deze versie niet kent: {{count}}",
         "failed": "Mislukt: {{count}}"
       }
+    },
+    "tags": {
+      "action": "Metadata corrigeren",
+      "title": "Servermetadata",
+      "subtitle": "De correctie wordt op de server opgeslagen, niet in het bestand.",
+      "help": "Deze correcties overleven de scans van de server en zijn zichtbaar voor elk lid van de bibliotheek. Een veld leegmaken verwijdert de correctie: de waarde uit het bestand komt terug."
     }
   }
 }

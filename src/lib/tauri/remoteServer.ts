@@ -366,6 +366,63 @@ export function remoteSetRating(
   return invoke<void>("remote_set_rating", { entityType, entityId, rating });
 }
 
+/** What the mirror holds for a server track, to fill the tag editor. */
+export interface RemoteTrackTags {
+  title: string;
+  artist: string | null;
+  genre: string | null;
+  year: number | null;
+  track_number: number | null;
+  disc_number: number | null;
+}
+
+/**
+ * Read a server track's current metadata.
+ *
+ * Resolves `null` when the mirror holds no row for it — a track known
+ * only as an identifier has no form to fill.
+ */
+export function remoteGetTrackTags(
+  trackId: string,
+): Promise<RemoteTrackTags | null> {
+  return invoke<RemoteTrackTags | null>("remote_get_track_tags", { trackId });
+}
+
+/**
+ * What the server accepts as corrections for one of its tracks.
+ *
+ * Strings exactly as typed. A blank one asks for no correction on that
+ * field, which is also how an existing correction is withdrawn.
+ */
+export interface RemoteTrackEdit {
+  title: string;
+  /** `"; "`-joined like everywhere else; the backend splits it. */
+  artist: string;
+  genre: string;
+  year: number | null;
+  track_number: number | null;
+  disc_number: number | null;
+}
+
+/**
+ * Correct a server track's metadata.
+ *
+ * The correction is stored beside the track on the server, survives its
+ * rescans and is visible to every member of that library. **No file is
+ * rewritten** — which is what makes this possible at all on a track
+ * that lives on somebody else's disk, and the difference from
+ * `updateTrackTags`.
+ *
+ * Send the **whole form**, never the fields that changed: the endpoint
+ * is wholesale, so a field left out reads as a correction withdrawn.
+ */
+export function remoteUpdateTrackTags(
+  trackId: string,
+  edit: RemoteTrackEdit,
+): Promise<void> {
+  return invoke<void>("remote_update_track_tags", { trackId, edit });
+}
+
 /**
  * Create a remote playlist.
  *

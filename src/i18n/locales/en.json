@@ -2392,6 +2392,12 @@
         "unknown_verdict": "Answer this build does not know: {{count}}",
         "failed": "Failed: {{count}}"
       }
+    },
+    "tags": {
+      "action": "Correct metadata",
+      "title": "Server metadata",
+      "subtitle": "The correction is stored on the server, not in the file.",
+      "help": "These corrections survive the server's scans and are visible to every member of the library. Clearing a field removes the correction: the file's own value comes back."
     }
   }
 }

@@ -2392,6 +2392,12 @@
         "unknown_verdict": "Bu sürümün bilmediği yanıt: {{count}}",
         "failed": "Başarısız: {{count}}"
       }
+    },
+    "tags": {
+      "action": "Üst verileri düzelt",
+      "title": "Sunucu üst verileri",
+      "subtitle": "Düzeltme dosyaya değil, sunucuya kaydedilir.",
+      "help": "Bu düzeltmeler sunucunun taramalarından etkilenmez ve kitaplığın tüm üyeleri tarafından görülür. Bir alanı boşaltmak düzeltmeyi kaldırır: dosyadaki değer geri gelir."
     }
   }
 }

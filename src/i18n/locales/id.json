@@ -2371,6 +2371,12 @@
         "unknown_verdict": "Jawaban yang tak dikenal versi ini: {{count}}",
         "failed": "Gagal: {{count}}"
       }
+    },
+    "tags": {
+      "action": "Perbaiki metadata",
+      "title": "Metadata server",
+      "subtitle": "Koreksi disimpan di server, bukan di berkas.",
+      "help": "Koreksi ini bertahan dari pemindaian server dan terlihat oleh semua anggota pustaka. Mengosongkan sebuah bidang menghapus koreksinya: nilai dari berkas akan muncul kembali."
     }
   }
 }
