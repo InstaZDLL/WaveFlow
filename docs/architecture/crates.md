@@ -37,7 +37,7 @@ src-tauri/
         ├── tauri.conf.json
         ├── capabilities/  icons/  build.rs
         └── src/
-            ├── audio/                 (real-time cpal + rtrb pipeline, EQ, WASAPI exclusive)
+            ├── audio/                 (real-time cpal + rtrb pipeline, EQ, exclusive backends)
             ├── commands/              (#[tauri::command] handlers, thin over core)
             ├── db/                    (per-profile pool wiring + migration_heal)
             ├── dlna/                  (MediaServer worker thread)
@@ -79,7 +79,7 @@ Lyrics providers that are query-based rather than exact metadata clients. The cr
 Anything tied to the Tauri runtime, the real-time audio engine, or the desktop OS:
 
 - **Every `#[tauri::command]`** — even when the body is a thin call into a core function. The IPC bridge contract is desktop-specific.
-- **Real-time audio engine** — `audio/{decoder,output,engine,crossfade,eq,resampler,spectrum,state,wasapi_exclusive,analytics}.rs`. The `cpal` callback and the WASAPI exclusive thread must not allocate / log / lock; the surrounding decoder + state machinery only makes sense alongside them.
+- **Real-time audio engine** — `audio/{decoder,output,engine,crossfade,eq,resampler,spectrum,state,analytics}.rs` plus the per-OS exclusive backends `audio/{wasapi,alsa,coreaudio}_exclusive.rs`. The `cpal` callback and the exclusive output threads must not allocate / log / lock; the surrounding decoder + state machinery only makes sense alongside them.
 - **OS media controls** — souvlaki (`media_controls.rs`), Discord Rich Presence named-pipe client (`discord_presence.rs`), system notification plugin bridge (`notifications.rs`).
 - **DLNA / UPnP MediaServer** — `dlna/` is integrated as a worker thread driven by the Tauri runtime.
 - **Filesystem watcher** — `watcher.rs` wires `notify` events into `library:rescanned` Tauri events.

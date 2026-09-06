@@ -266,7 +266,7 @@ Hovering (or keyboard-focusing) the footer opens [`AudioPipelinePopover`](../../
 Two things have to hold, and the pill used to check only the first:
 
 1. **Nothing in our pipeline touches the samples** — no processing chip is active and the source rate matches the output rate. Any single chip lit (including `EQ` and `Speed`) suppresses it.
-2. **Nothing downstream touches them either** — the stream owns the device (`PlayerStateSnapshot.exclusive_active`, WASAPI Exclusive today; native DoP implies an exclusive backend and qualifies on its own).
+2. **Nothing downstream touches them either** — the stream owns the device (`PlayerStateSnapshot.exclusive_active` — WASAPI Exclusive, a raw ALSA `hw:` device or CoreAudio hog mode, whichever the platform has; native DoP implies an exclusive backend and qualifies on its own).
 
 The second condition is what makes the claim true. A shared-mode stream at the same nominal rate still passes through the system mixer, which re-clocks it and mixes in every other sound on the machine — and that was being badged `Bit-perfect`. When the pipeline is clean but the device is shared, the pill reads `Sortie partagée (mixeur système)` instead, so the reason the green one is absent is on screen rather than left to guess.
 
@@ -371,7 +371,7 @@ Opt-in scheduled mirror of the manual export so the user's playlists / likes / r
 | Tab            | Houses                                                                                                  |
 | -------------- | ------------------------------------------------------------------------------------------------------- |
 | `library`      | Library folders, scan-on-start, file watcher                                                            |
-| `playback`     | EQ, crossfade, ReplayGain, normalisation, WASAPI exclusive, mono                                        |
+| `playback`     | EQ, crossfade, ReplayGain, normalisation, exclusive output, mono                                        |
 | `integrations` | Last.fm, Discord RPC, Deezer enrichment, DLNA media server                                              |
 | `appearance`   | Theme picker (14 presets) + player-bar layout                                                           |
 | `data`         | Profile export / import, auto-backup, statistics export, offline                                        |

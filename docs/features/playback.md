@@ -80,29 +80,31 @@ On Linux, enumeration uses ALSA's hint database (`snd_device_name_hint("pcm")`) 
 
 ## Output-stream lifecycle & recovery
 
-Three paths replace the output stream, and they must all end in the same place: `wasapi_exclusive_active` updated and a `player:audio-mode-changed` event emitted, because that event is the only thing that keeps Settings' Exclusive-mode toggle honest ([`ExclusiveModeCard`](../../src/components/views/settings/ExclusiveModeCard.tsx) re-reads on it).
+Three paths replace the output stream, and they must all end in the same place: `exclusive_output_active` updated and a `player:audio-mode-changed` event emitted, because that event is the only thing that keeps Settings' Exclusive-output toggle honest ([`ExclusiveModeCard`](../../src/components/views/settings/ExclusiveModeCard.tsx) re-reads on it).
 
 | Path                   | Trigger                                 | Order                                                                                                                    |
 | ---------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `set_output_device`    | user picks another endpoint             | spawn first, then release — the two streams target different devices, so a failed spawn can roll back to the working one |
-| `set_wasapi_exclusive` | user toggles the mode                   | **release first when the old stream is exclusive**, then spawn                                                           |
+| `set_exclusive_output` | user toggles the mode                   | **release first when the old stream is exclusive**, then spawn                                                           |
 | `force_rebuild_output` | automatic recovery after a device error | **release first when the old stream is exclusive**, then spawn                                                           |
 
-The release-first rule is the #322 / #405 lesson: a WASAPI exclusive client owns its endpoint outright, so no other client — shared _or_ exclusive — can open it until that client is released. Re-opening the **same** endpoint while an exclusive stream still holds it always fails, and when it failed inside `set_wasapi_exclusive` the command returned `Err` before persisting anything, leaving the toggle latched on the mode the user was trying to leave (#405).
+The release-first rule is the #322 / #405 lesson: a WASAPI exclusive client owns its endpoint outright, so no other client — shared _or_ exclusive — can open it until that client is released. Re-opening the **same** endpoint while an exclusive stream still holds it always fails, and when it failed inside `set_exclusive_output` the command returned `Err` before persisting anything, leaving the toggle latched on the mode the user was trying to leave (#405).
+
+The rule turned out to be **load-bearing on macOS for a different reason**. CoreAudio registers hog mode against a **PID**, not a stream, so a second open from our own process is not evicted — it is admitted onto a device we already hold and then renders nothing: no sound, and the position counter frozen. Windows and Linux happen to survive spawn-before-release (the seized endpoint kicks the outgoing shared client off; the reservation protocol makes the sound server hand the card back), which is exactly why the macOS case stayed hidden until PCM hog mode existed.
 
 Device loss reaches the recovery path from two independent places, since the two backends have separate failure surfaces:
 
 - **cpal shared** — the stream's `err_fn` callback fires on an arbitrary thread.
-- **WASAPI exclusive** — [`wasapi_exclusive::run_event_loop`](../../src-tauri/crates/app/src/audio/wasapi_exclusive.rs) returns an `ExitReason`; `DeviceLost` covers a failed `wait_for_event` / `write_to_device`. Each is re-checked against the shutdown channel first so a deliberate teardown isn't mistaken for a failure.
+- **Exclusive backends** — each output loop returns an `ExitReason` whose `DeviceLost` variant is re-checked against the shutdown channel first, so a deliberate teardown isn't mistaken for a failure: [`wasapi_exclusive`](../../src-tauri/crates/app/src/audio/wasapi_exclusive.rs) (a failed `wait_for_event` / `write_to_device`), [`alsa_exclusive`](../../src-tauri/crates/app/src/audio/alsa_exclusive.rs) (a write that fails past recovery), [`coreaudio_exclusive`](../../src-tauri/crates/app/src/audio/coreaudio_exclusive.rs) (the `IsAlive` property listener, with a periodic `get_hogging_pid` query as fallback).
 
 Both then call the shared [`output::notify_device_lost`](../../src-tauri/crates/app/src/audio/output.rs) (park the player, emit `player:state` + `player:error`, sync the OS media controls) and [`output::schedule_device_rebuild`](../../src-tauri/crates/app/src/audio/output.rs) (300 ms backoff, then a same-device rebuild).
 
 Two gates keep the recovery from thrashing:
 
 - **`RebuildGate`** (`REBUILD_SETTLE_WINDOW`, 2 s) — one rebuild per burst of device errors. `begin_deliberate_output_change()` opens the same window around a mode toggle, because seizing the endpoint exclusively kicks the outgoing shared client off it and that self-inflicted `DeviceNotAvailable` would otherwise schedule a rebuild that undoes the switch.
-- **`FlapWindow`** (`EXCLUSIVE_FLAP_THRESHOLD` / `EXCLUSIVE_FLAP_WINDOW`) — a device that resets on every exclusive grab gives up on exclusive for the rest of the session. Cleared by an explicit toggle or device switch.
+- **`FlapWindow`** (`EXCLUSIVE_FLAP_THRESHOLD` / `EXCLUSIVE_FLAP_WINDOW`) — a device that resets on every exclusive grab gives up on exclusive for the rest of the session (session-only: the persisted preference is untouched, so the next launch tries again). Cleared by an explicit toggle or device switch.
 
-Every failure path that ends with no output thread at all publishes `wasapi_exclusive_active = false` + the event before returning the error — a toggle describing a stream that no longer exists is the exact shape of #405.
+Every failure path that ends with no output thread at all publishes `exclusive_output_active = false` + the event before returning the error — a toggle describing a stream that no longer exists is the exact shape of #405.
 
 ## OS media controls
 

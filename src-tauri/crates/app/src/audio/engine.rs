@@ -341,11 +341,10 @@ pub struct AudioEngine {
     app: AppHandle,
     /// Opt-in: own the output device outright rather than share it
     /// with the system mixer — WASAPI Exclusive Mode on Windows, a raw
-    /// `hw:` device on Linux. Read at boot from
+    /// `hw:` device on Linux, hog mode on macOS. Read at boot from
     /// `profile_setting['audio.exclusive_output']`, flipped by
     /// `set_exclusive_output`. Used by `set_output_device` to preserve
-    /// the mode across hot-swaps. Still a no-op on macOS, whose
-    /// exclusive backend carries DoP only.
+    /// the mode across hot-swaps.
     exclusive_output: std::sync::atomic::AtomicBool,
     /// Whether the current output stream really owns its device. This
     /// can differ from the preference when init falls back to cpal
@@ -761,7 +760,7 @@ impl AudioEngine {
                 self.exclusive_suppressed.store(true, Ordering::Relaxed);
                 exclusive = false;
                 tracing::warn!(
-                    "WASAPI exclusive disabled for this session after repeated device \
+                    "Exclusive output disabled for this session after repeated device \
                      flaps; staying on shared mode. Re-enable it in Settings to retry."
                 );
             }

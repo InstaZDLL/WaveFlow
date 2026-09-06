@@ -463,10 +463,10 @@ export function playerSetOutputDevice(deviceId: string | null): Promise<void> {
 /**
  * Toggle exclusive output: own the device rather than share it with
  * the system mixer — WASAPI Exclusive on Windows, a raw ALSA `hw:`
- * device on Linux. The backend persists the value on every platform
- * but only re-opens the stream where a backend exists (macOS still
- * has one for DoP only). Falls back to cpal shared if exclusive init
- * fails (device busy, no supported format).
+ * device on Linux, CoreAudio hog mode on macOS. The backend persists
+ * the value on every platform, including any without an exclusive
+ * backend. Falls back to cpal shared if exclusive init fails (device
+ * busy, no supported format).
  */
 export function playerSetExclusiveOutput(enabled: boolean): Promise<void> {
   return invoke<void>("player_set_exclusive_output", { enabled });

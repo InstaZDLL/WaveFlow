@@ -2561,8 +2561,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               <EqualizerCard />
             </div>
 
-            {/* Exclusive output — Windows and Linux; the card hides
-              itself where there's no backend for it, via UA sniff. */}
+            {/* Exclusive output — every desktop platform has a
+              backend now, so the card no longer hides itself. */}
             <ExclusiveModeCard />
 
             {/* Audio mono */}

@@ -1831,14 +1831,16 @@ pub async fn player_set_output_device(
 ///   shared-mode mix format (#409) — see `audio/wasapi_exclusive.rs`.
 /// - **Linux**, a raw `hw:` ALSA device, asking the sound server to
 ///   release the card first — see `audio/alsa_exclusive.rs`.
+/// - **macOS**, CoreAudio hog mode, which leaves the device's physical
+///   format alone — see `audio/coreaudio_exclusive.rs`.
 ///
 /// Either way no other app can mix in, DSP or resample our audio. Falls
 /// back silently to cpal shared mode if init fails (device busy,
 /// unsupported format, no exclusive support in the driver).
 ///
-/// Still a no-op on macOS, whose exclusive backend carries DoP only;
-/// the persisted setting is written on every platform so the value
-/// follows the user across machines.
+/// The persisted setting is written on every platform, including those
+/// with no exclusive backend at all, so the value follows the user
+/// across machines.
 ///
 /// Persisted in `profile_setting['audio.exclusive_output']`. The boot
 /// read in `lib.rs` also accepts the legacy `audio.wasapi_exclusive`
@@ -1854,7 +1856,7 @@ pub async fn player_set_exclusive_output(
     // down a WASAPI stream blocks for a few hundred ms.
     tokio::task::spawn_blocking(move || engine_clone.set_exclusive_output(enabled))
         .await
-        .map_err(|e| AppError::Audio(format!("set wasapi exclusive task: {e}")))??;
+        .map_err(|e| AppError::Audio(format!("set exclusive output task: {e}")))??;
     if let Ok(pool) = state.require_profile_pool().await {
         let now = chrono::Utc::now().timestamp_millis();
         let stored = if enabled { "1" } else { "0" };

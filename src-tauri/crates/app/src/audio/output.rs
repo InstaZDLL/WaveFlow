@@ -462,13 +462,10 @@ pub(super) fn schedule_device_rebuild(app: &AppHandle, target: RebuildTarget) {
     });
 }
 
-/// Handle retained by the engine so it can tear the output thread down
-/// cleanly on shutdown or device switch. Separate from the decoder-side
-/// `Producer` which is handed off independently — see the tuple returned
-/// from [`spawn_output_thread`].
 /// Drain one period out of the ring into `samples`, applying the same
-/// per-sample chain the cpal callback and the WASAPI backend apply:
-/// volume, the normalize attenuation, and the optional mono downmix.
+/// per-sample chain the cpal callback applies: volume, the normalize
+/// attenuation, and the optional mono downmix. Shared by all three
+/// exclusive backends.
 ///
 /// Returns how many samples were actually pulled. Silence written
 /// because the ring ran dry is deliberately NOT counted — every backend
@@ -523,6 +520,10 @@ pub(super) fn fill_pcm_period(
     written
 }
 
+/// Handle retained by the engine so it can tear the output thread down
+/// cleanly on shutdown or device switch. Separate from the decoder-side
+/// `Producer` which is handed off independently — see the tuple returned
+/// from [`spawn_output_thread`].
 pub struct OutputHandle {
     pub shutdown_tx: Sender<()>,
     pub join: JoinHandle<()>,
