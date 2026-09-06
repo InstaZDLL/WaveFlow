@@ -838,7 +838,9 @@
     "coverChange": "写真を変更",
     "coverRemove": "写真を削除",
     "coverAutoHint": "自動カバー — 内容に合わせて更新されます",
-    "coverManualHint": "カスタム画像"
+    "coverManualHint": "カスタム画像",
+    "alsoOnServer": "{{server}} にも作成",
+    "alsoOnServerFallback": "リモートサーバー"
   },
   "playlistView": {
     "badge": "プレイリスト",
@@ -2210,7 +2212,8 @@
       },
       "awaitingMetadata_other": "{{count}} 曲がメタデータを待機中 — 次のパスで解決されます。",
       "pendingChanges_other": "{{count}} 件のローカル変更が送信待ちです。",
-      "failedChanges_other": "{{count}} 件のローカル変更が拒否され、再試行されません。"
+      "failedChanges_other": "{{count}} 件のローカル変更が拒否され、再試行されません。",
+      "failedChangesDismiss": "閉じる"
     },
     "queue": {
       "empty": "キューは空です。",
@@ -2380,6 +2383,7 @@
       "help": "これらの修正はサーバーのスキャンでも失われず、ライブラリのすべてのメンバーに表示されます。項目を空にすると修正が取り消され、ファイル本来の値に戻ります。",
       "missing": "この曲はまだサーバーのミラーにありません。カタログの取得を実行してから、もう一度お試しください。",
       "invalidNumber": "年、トラック番号、ディスク番号は整数で入力してください。"
-    }
+    },
+    "needsMirror": "先に上のサーバーカタログをコピーしてください。このセクションはファイルをローカルミラーと照合しますが、まだ空です。"
   }
 }

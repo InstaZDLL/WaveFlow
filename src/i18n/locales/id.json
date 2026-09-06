@@ -838,7 +838,9 @@
     "coverChange": "Ganti foto",
     "coverRemove": "Hapus foto",
     "coverAutoHint": "Sampul otomatis — menyesuaikan kontennya",
-    "coverManualHint": "Gambar kustom"
+    "coverManualHint": "Gambar kustom",
+    "alsoOnServer": "Buat juga di {{server}}",
+    "alsoOnServerFallback": "server jarak jauh"
   },
   "playlistView": {
     "badge": "Daftar putar",
@@ -2210,7 +2212,8 @@
       },
       "awaitingMetadata_other": "{{count}} lagu menunggu metadata — beres pada pass berikutnya.",
       "pendingChanges_other": "{{count}} perubahan lokal menunggu dikirim.",
-      "failedChanges_other": "{{count}} perubahan lokal ditolak dan tidak akan dicoba lagi."
+      "failedChanges_other": "{{count}} perubahan lokal ditolak dan tidak akan dicoba lagi.",
+      "failedChangesDismiss": "Abaikan"
     },
     "queue": {
       "empty": "Tidak ada antrean.",
@@ -2380,6 +2383,7 @@
       "help": "Koreksi ini bertahan dari pemindaian server dan terlihat oleh semua anggota pustaka. Mengosongkan sebuah bidang menghapus koreksinya: nilai dari berkas akan muncul kembali.",
       "missing": "Trek ini belum ada di cermin server. Jalankan penelusuran katalog, lalu coba lagi.",
       "invalidNumber": "Tahun serta nomor trek dan cakram harus berupa bilangan bulat."
-    }
+    },
+    "needsMirror": "Salin dulu katalog server di atas: bagian ini membandingkan berkas Anda dengan cermin lokal, yang masih kosong."
   }
 }

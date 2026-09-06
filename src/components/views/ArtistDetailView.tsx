@@ -21,7 +21,6 @@ import { HiResBadge } from "../common/HiResBadge";
 import { PlayingIndicator } from "../common/PlayingIndicator";
 import { Lightbox } from "../common/Lightbox";
 import { usePlayer } from "../../hooks/usePlayer";
-import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useArtistBioCollapsed } from "../../hooks/useArtistBioCollapsed";
@@ -47,6 +46,7 @@ import {
   toggleLikeTrack,
   type Track,
 } from "../../lib/tauri/track";
+import { createPlaylistFromModal } from "../../lib/createPlaylistFromModal";
 
 /**
  * A server artist in the shape the view already speaks.
@@ -134,7 +134,6 @@ export function ArtistDetailView({
     remoteArtistId != null ? `remote:${remoteArtistId}` : `local:${artistId}`;
   const { playTracks, currentTrack, toggleShuffle, isShuffled, isPlaying } =
     usePlayer();
-  const { createPlaylist } = usePlaylist();
 
   const [artist, setArtist] = useState<ArtistDetail | null>(null);
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
@@ -784,12 +783,7 @@ export function ArtistDetailView({
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={async (data) => {
           try {
-            await createPlaylist({
-              name: data.name,
-              description: data.description || null,
-              color_id: data.colorId,
-              icon_id: data.iconId,
-            });
+            await createPlaylistFromModal(data);
           } catch (err) {
             console.error("[ArtistDetailView] create playlist failed", err);
           }

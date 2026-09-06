@@ -6,7 +6,6 @@ import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { usePlayer } from "../../hooks/usePlayer";
-import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import {
@@ -20,6 +19,7 @@ import {
   listLikedTrackIds,
   type Track,
 } from "../../lib/tauri/track";
+import { createPlaylistFromModal } from "../../lib/createPlaylistFromModal";
 
 interface HistoryViewProps {
   onNavigateToAlbum: (albumId: number) => void;
@@ -104,7 +104,6 @@ export function HistoryView({
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const { playbackState, currentTrack, playTracks } = usePlayer();
-  const { createPlaylist } = usePlaylist();
 
   const [rows, setRows] = useState<PlayHistoryRow[]>([]);
   const [months, setMonths] = useState<PlayHistoryMonth[]>([]);
@@ -385,12 +384,7 @@ export function HistoryView({
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={async (data) => {
           try {
-            await createPlaylist({
-              name: data.name,
-              description: data.description || null,
-              color_id: data.colorId,
-              icon_id: data.iconId,
-            });
+            await createPlaylistFromModal(data);
           } catch (err) {
             console.error("[HistoryView] create playlist failed", err);
           }

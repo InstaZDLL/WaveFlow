@@ -838,7 +838,9 @@
     "coverChange": "更換照片",
     "coverRemove": "移除照片",
     "coverAutoHint": "自動封面 — 隨內容自動更新",
-    "coverManualHint": "自訂圖片"
+    "coverManualHint": "自訂圖片",
+    "alsoOnServer": "同時在 {{server}} 上建立",
+    "alsoOnServerFallback": "遠端伺服器"
   },
   "playlistView": {
     "badge": "播放清單",
@@ -2210,7 +2212,8 @@
       },
       "awaitingMetadata_other": "{{count}} 首曲目正在等待中繼資料 — 下次同步時會清除。",
       "pendingChanges_other": "{{count}} 項本機變更待傳送。",
-      "failedChanges_other": "{{count}} 項本機變更遭拒，且不會重試。"
+      "failedChanges_other": "{{count}} 項本機變更遭拒，且不會重試。",
+      "failedChangesDismiss": "忽略"
     },
     "queue": {
       "empty": "佇列中沒有項目。",
@@ -2380,6 +2383,7 @@
       "help": "這些修正不會被伺服器的掃描覆蓋，媒體庫的所有成員都看得到。清空某個欄位即撤銷該項修正，檔案本身的值會重新顯示。",
       "missing": "此曲目尚未收錄到伺服器鏡像中。請先執行一次目錄掃描，然後重試。",
       "invalidNumber": "年份、曲目編號與光碟編號必須是整數。"
-    }
+    },
+    "needsMirror": "請先複製上方的伺服器目錄：本節會將您的檔案與本機鏡像比對，而鏡像目前仍是空的。"
   }
 }

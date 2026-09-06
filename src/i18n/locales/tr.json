@@ -838,7 +838,9 @@
     "coverChange": "Kapağı değiştir",
     "coverRemove": "Kapağı kaldır",
     "coverAutoHint": "Otomatik kapak — içeriğe göre güncellenir",
-    "coverManualHint": "Özel görsel"
+    "coverManualHint": "Özel görsel",
+    "alsoOnServer": "{{server}} üzerinde de oluştur",
+    "alsoOnServerFallback": "uzak sunucu"
   },
   "playlistView": {
     "badge": "Çalma listesi",
@@ -2220,7 +2222,8 @@
       "pendingChanges_one": "{{count}} yerel değişiklik gönderilmeyi bekliyor.",
       "pendingChanges_other": "{{count}} yerel değişiklik gönderilmeyi bekliyor.",
       "failedChanges_one": "{{count}} yerel değişiklik reddedildi ve yeniden denenmeyecek.",
-      "failedChanges_other": "{{count}} yerel değişiklik reddedildi ve yeniden denenmeyecek."
+      "failedChanges_other": "{{count}} yerel değişiklik reddedildi ve yeniden denenmeyecek.",
+      "failedChangesDismiss": "Yoksay"
     },
     "queue": {
       "empty": "Kuyrukta hiçbir şey yok.",
@@ -2401,6 +2404,7 @@
       "help": "Bu düzeltmeler sunucunun taramalarından etkilenmez ve kitaplığın tüm üyeleri tarafından görülür. Bir alanı boşaltmak düzeltmeyi kaldırır: dosyadaki değer geri gelir.",
       "missing": "Bu parça henüz sunucu aynasında yok. Bir katalog taraması çalıştırıp yeniden deneyin.",
       "invalidNumber": "Yıl ile parça ve disk numaraları tam sayı olmalıdır."
-    }
+    },
+    "needsMirror": "Önce yukarıdaki sunucu kataloğunu kopyalayın: bu bölüm dosyalarınızı henüz boş olan yerel yansıyla karşılaştırır."
   }
 }

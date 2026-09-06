@@ -838,7 +838,9 @@
     "coverChange": "更换照片",
     "coverRemove": "移除照片",
     "coverAutoHint": "自动封面 —— 随内容自动更新",
-    "coverManualHint": "自定义图片"
+    "coverManualHint": "自定义图片",
+    "alsoOnServer": "同时在 {{server}} 上创建",
+    "alsoOnServerFallback": "远程服务器"
   },
   "playlistView": {
     "badge": "播放列表",
@@ -2210,7 +2212,8 @@
       },
       "awaitingMetadata_other": "{{count}} 首曲目正在等待元数据——将在下次同步时处理。",
       "pendingChanges_other": "{{count}} 项本地更改等待发送。",
-      "failedChanges_other": "{{count}} 项本地更改被拒绝，且不会重试。"
+      "failedChanges_other": "{{count}} 项本地更改被拒绝，且不会重试。",
+      "failedChangesDismiss": "忽略"
     },
     "queue": {
       "empty": "队列为空。",
@@ -2380,6 +2383,7 @@
       "help": "这些修正不会被服务器的扫描覆盖，媒体库的所有成员都能看到。清空某个字段即撤销该项修正，文件本身的值会重新显示。",
       "missing": "该曲目尚未收录到服务器镜像中。请先执行一次目录遍历，然后重试。",
       "invalidNumber": "年份、音轨号和碟片号必须为整数。"
-    }
+    },
+    "needsMirror": "请先复制上方的服务器目录：本节将您的文件与本地镜像比对，而镜像目前仍为空。"
   }
 }

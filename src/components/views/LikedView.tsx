@@ -7,7 +7,6 @@ import { ArtistLink } from "../common/ArtistLink";
 import { HiResBadge } from "../common/HiResBadge";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { usePlayer } from "../../hooks/usePlayer";
-import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useLikedChanged } from "../../hooks/useLikedTracks";
@@ -17,6 +16,7 @@ import {
   formatDuration,
   type Track,
 } from "../../lib/tauri/track";
+import { createPlaylistFromModal } from "../../lib/createPlaylistFromModal";
 
 interface LikedViewProps {
   onNavigateToAlbum: (albumId: number) => void;
@@ -29,7 +29,6 @@ export function LikedView({
 }: LikedViewProps) {
   const { t } = useTranslation();
   const { playTracks, currentTrack, playbackState } = usePlayer();
-  const { createPlaylist } = usePlaylist();
   const [tracks, setTracks] = useState<Track[]>([]);
   // Init to `true` so the skeleton paints on first render — otherwise
   // we'd flash the empty-state for one frame before the effect schedules.
@@ -271,12 +270,7 @@ export function LikedView({
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={async (data) => {
           try {
-            await createPlaylist({
-              name: data.name,
-              description: data.description || null,
-              color_id: data.colorId,
-              icon_id: data.iconId,
-            });
+            await createPlaylistFromModal(data);
           } catch (err) {
             console.error("[LikedView] create playlist failed", err);
           }

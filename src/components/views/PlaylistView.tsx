@@ -107,6 +107,7 @@ import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { isRemoteTrack } from "../../lib/playerSources";
 import { notifyRemoteChanged } from "../../hooks/useRemoteSource";
 import { useSortMemory } from "../../hooks/useSortMemory";
+import { createPlaylistFromModal } from "../../lib/createPlaylistFromModal";
 
 /**
  * Sort modes for the playlist track list. "custom" preserves the
@@ -312,7 +313,6 @@ export function PlaylistView({
     getPlaylistTracks,
     playlists,
     removeTrackFromPlaylist,
-    createPlaylist,
     refresh: refreshPlaylists,
   } = usePlaylist();
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
@@ -1557,12 +1557,7 @@ export function PlaylistView({
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={async (data) => {
           try {
-            await createPlaylist({
-              name: data.name,
-              description: data.description || null,
-              color_id: data.colorId,
-              icon_id: data.iconId,
-            });
+            await createPlaylistFromModal(data);
           } catch (err) {
             console.error("[PlaylistView] create playlist failed", err);
           }

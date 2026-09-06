@@ -28,7 +28,6 @@ import { SelectionActionBar } from "../common/SelectionActionBar";
 import { Lightbox } from "../common/Lightbox";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { usePlayer } from "../../hooks/usePlayer";
-import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useMultiSelect } from "../../hooks/useMultiSelect";
@@ -44,6 +43,7 @@ import {
   toggleLikeTrack,
   type Track,
 } from "../../lib/tauri/track";
+import { createPlaylistFromModal } from "../../lib/createPlaylistFromModal";
 
 /**
  * A server album in the shape the view already speaks.
@@ -140,7 +140,6 @@ export function AlbumDetailView({
   const remote = remoteAlbumId != null;
   const { playTracks, currentTrack, toggleShuffle, isShuffled, isPlaying } =
     usePlayer();
-  const { createPlaylist } = usePlaylist();
 
   const [album, setAlbum] = useState<AlbumDetail | null>(null);
   // The server's artist identifier, kept beside the mapped album: it is a
@@ -583,12 +582,7 @@ export function AlbumDetailView({
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={async (data) => {
           try {
-            await createPlaylist({
-              name: data.name,
-              description: data.description || null,
-              color_id: data.colorId,
-              icon_id: data.iconId,
-            });
+            await createPlaylistFromModal(data);
           } catch (err) {
             console.error("[AlbumDetailView] create playlist failed", err);
           }
