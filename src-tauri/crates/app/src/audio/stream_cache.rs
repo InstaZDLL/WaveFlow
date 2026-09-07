@@ -477,9 +477,17 @@ mod tests {
         assert!(lookup(dir.path(), &name).is_none());
     }
 
-    /// Unix only: Windows path components are UTF-16 and cannot carry the
-    /// byte sequences this guards against.
-    #[cfg(unix)]
+    /// Linux only, and the exclusions are for two different reasons.
+    /// Windows path components are UTF-16 and cannot carry the byte
+    /// sequences this guards against at all. macOS can express them but
+    /// APFS refuses to store them: `create_dir_all` fails outright, so
+    /// the test cannot even set its scene there. `cfg(unix)` covered both
+    /// Unixes and was red on macOS from the day it landed — invisibly,
+    /// since no CI job builds this project on a Mac.
+    ///
+    /// The code under test still matters on macOS: a path can be handed
+    /// to us from outside the filesystem's own naming rules.
+    #[cfg(all(unix, not(target_os = "macos")))]
     #[test]
     fn a_parent_directory_that_is_not_utf8_does_not_hide_a_working_file() {
         use std::os::unix::ffi::OsStrExt;

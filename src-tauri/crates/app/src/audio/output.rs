@@ -240,10 +240,11 @@ pub struct DopFormat {
 }
 
 /// Pick the right output backend based on the runtime preference.
-/// On Windows + `exclusive=true`, tries the WASAPI Exclusive backend
-/// first and falls back to cpal shared if init fails (device busy, no
-/// exclusive format support, COM apartment conflict, …). On other
-/// platforms or with `exclusive=false`, always uses cpal.
+/// With `exclusive=true`, tries the platform's exclusive backend first
+/// and falls back to cpal shared if init fails (device busy, no
+/// supported format, COM apartment conflict, …): WASAPI Exclusive on
+/// Windows, a raw `hw:` device on Linux, hog mode on macOS. With
+/// `exclusive=false`, always cpal.
 ///
 /// The fallback is silent at the caller level — the warning is logged
 /// so the user can see in `waveflow.log` why exclusive didn't engage.
@@ -271,13 +272,18 @@ pub fn spawn_output_with_mode(
             Some(dop),
         );
         #[cfg(target_os = "linux")]
-        return super::alsa_exclusive::spawn_alsa_dop_output_thread(shared, app, device_name, dop);
-        #[cfg(target_os = "macos")]
-        return super::coreaudio_exclusive::spawn_coreaudio_dop_output_thread(
+        return super::alsa_exclusive::spawn_alsa_exclusive_output_thread(
             shared,
             app,
             device_name,
-            dop,
+            Some(dop),
+        );
+        #[cfg(target_os = "macos")]
+        return super::coreaudio_exclusive::spawn_coreaudio_exclusive_output_thread(
+            shared,
+            app,
+            device_name,
+            Some(dop),
         );
         #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
         {
@@ -308,8 +314,58 @@ pub fn spawn_output_with_mode(
             }
         }
     }
-    #[cfg(not(target_os = "windows"))]
-    let _ = exclusive; // unused on non-Windows targets
+    // Linux: the same bargain through a raw `hw:` device. The card is
+    // usually held by PipeWire or PulseAudio at this point, so the
+    // backend asks for it through the reservation protocol before
+    // concluding it can't be had.
+    #[cfg(target_os = "linux")]
+    if exclusive {
+        match super::alsa_exclusive::spawn_alsa_exclusive_output_thread(
+            shared.clone(),
+            app.clone(),
+            device_name.clone(),
+            None,
+        ) {
+            Ok(pair) => {
+                tracing::info!("audio output: ALSA exclusive (raw hw:) engaged");
+                return Ok(pair);
+            }
+            Err(err) => {
+                tracing::warn!(
+                    %err,
+                    "ALSA exclusive init failed, falling back to shared mode"
+                );
+            }
+        }
+    }
+
+    // macOS: hog mode, which stops the system mixing anything else into
+    // the device. Unlike the DoP path it leaves the device's physical
+    // format alone — re-clocking a device the whole machine shares is a
+    // price only a marker cadence justifies paying.
+    #[cfg(target_os = "macos")]
+    if exclusive {
+        match super::coreaudio_exclusive::spawn_coreaudio_exclusive_output_thread(
+            shared.clone(),
+            app.clone(),
+            device_name.clone(),
+            None,
+        ) {
+            Ok(pair) => {
+                tracing::info!("audio output: CoreAudio exclusive (hog mode) engaged");
+                return Ok(pair);
+            }
+            Err(err) => {
+                tracing::warn!(
+                    %err,
+                    "CoreAudio exclusive init failed, falling back to shared mode"
+                );
+            }
+        }
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
+    let _ = exclusive; // no exclusive PCM backend on this target
 
     spawn_output_thread(shared, app, device_name)
 }
@@ -340,7 +396,7 @@ pub(super) fn notify_device_lost(app: &AppHandle, shared: &Arc<SharedPlayback>, 
 /// - the cpal error callback and the WASAPI-exclusive `DeviceLost` exit
 ///   both fire while the (now-dead) handle is still parked in
 ///   `self.output`, so its `device_name` is still readable → [`Resolve`];
-/// - the `set_wasapi_exclusive` failure path has already `take()`n the
+/// - the `set_exclusive_output` failure path has already `take()`n the
 ///   old handle, emptying `self.output`, so a self-resolve would return
 ///   `None` and reopen the OS default instead of the user's pick (#405)
 ///   → [`Device`] carries the device captured before the teardown.
@@ -406,6 +462,64 @@ pub(super) fn schedule_device_rebuild(app: &AppHandle, target: RebuildTarget) {
     });
 }
 
+/// Drain one period out of the ring into `samples`, applying the same
+/// per-sample chain the cpal callback applies: volume, the normalize
+/// attenuation, and the optional mono downmix. Shared by all three
+/// exclusive backends.
+///
+/// Returns how many samples were actually pulled. Silence written
+/// because the ring ran dry is deliberately NOT counted — every backend
+/// agrees on that, because `samples_played` is the only clock the
+/// progress bar, the lyrics sync and play-event crediting have, and
+/// crediting an underrun would make the track run ahead of itself.
+pub(super) fn fill_pcm_period(
+    shared: &SharedPlayback,
+    consumer: &mut Consumer<f32>,
+    samples: &mut [f32],
+    channels: usize,
+) -> u64 {
+    let volume = shared.volume();
+    let normalize = shared.normalize_enabled.load(Ordering::Relaxed);
+    let mono = shared.mono_enabled.load(Ordering::Relaxed);
+    // Normalization applies a -3 dB reduction to leave headroom.
+    let norm_gain: f32 = if normalize { 0.707 } else { 1.0 };
+    let mut written: u64 = 0;
+
+    if mono && channels >= 2 {
+        for frame in samples.chunks_mut(channels) {
+            let mut sum = 0.0_f32;
+            let mut got = 0usize;
+            for _ in 0..frame.len() {
+                if let Ok(s) = consumer.pop() {
+                    sum += s;
+                    got += 1;
+                }
+            }
+            let value = if got > 0 {
+                written += got as u64;
+                (sum / channels as f32) * volume * norm_gain
+            } else {
+                0.0
+            };
+            for slot in frame.iter_mut() {
+                *slot = value;
+            }
+        }
+    } else {
+        for slot in samples.iter_mut() {
+            *slot = match consumer.pop() {
+                Ok(s) => {
+                    written += 1;
+                    s * volume * norm_gain
+                }
+                Err(_) => 0.0,
+            };
+        }
+    }
+
+    written
+}
+
 /// Handle retained by the engine so it can tear the output thread down
 /// cleanly on shutdown or device switch. Separate from the decoder-side
 /// `Producer` which is handed off independently — see the tuple returned
@@ -417,10 +531,11 @@ pub struct OutputHandle {
     /// `None` means the OS default device. Saved so a hot-swap can
     /// no-op when the user picks the same device again.
     pub device_name: Option<String>,
-    /// Whether this handle is really using WASAPI Exclusive Mode.
-    /// The user preference can request exclusive mode, but startup may
-    /// fall back to cpal shared mode when the device rejects it.
-    pub wasapi_exclusive: bool,
+    /// Whether this handle really owns its device — WASAPI Exclusive
+    /// Mode on Windows, a raw `hw:` handle on Linux. The user
+    /// preference can request it, but startup may fall back to cpal
+    /// shared mode when the device rejects it.
+    pub exclusive: bool,
     /// `Some(fmt)` when this output is carrying a DoP (DSD over PCM)
     /// stream, opened at exactly that rate (`dsd_rate / 16`) and channel
     /// count, #495. `None` for every ordinary PCM output. The engine
@@ -492,7 +607,7 @@ pub fn spawn_output_thread(
                 shutdown_tx,
                 join,
                 device_name,
-                wasapi_exclusive: false,
+                exclusive: false,
                 dop: None,
             },
         )),
@@ -758,4 +873,53 @@ where
         .map_err(|e| AppError::Audio(format!("build_output_stream: {e}")))?;
 
     Ok(stream)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::fill_pcm_period;
+    use crate::audio::state::SharedPlayback;
+    use rtrb::RingBuffer;
+
+    #[test]
+    fn a_dry_ring_yields_silence_that_is_not_credited() {
+        // The counter drives the progress bar and play crediting: an
+        // underrun must leave the track where it was, not advance it.
+        let shared = SharedPlayback::new();
+        let (_producer, mut consumer) = RingBuffer::<f32>::new(8);
+        let mut samples = [1.0_f32; 4];
+        let written = fill_pcm_period(&shared, &mut consumer, &mut samples, 2);
+        assert_eq!(written, 0);
+        assert_eq!(samples, [0.0; 4]);
+    }
+
+    #[test]
+    fn volume_is_applied_here_because_a_raw_device_has_no_mixer() {
+        let shared = SharedPlayback::new();
+        shared.set_volume(0.5);
+        let (mut producer, mut consumer) = RingBuffer::<f32>::new(8);
+        for _ in 0..4 {
+            producer.push(1.0).expect("ring has room");
+        }
+        let mut samples = [0.0_f32; 4];
+        let written = fill_pcm_period(&shared, &mut consumer, &mut samples, 2);
+        assert_eq!(written, 4);
+        assert_eq!(samples, [0.5; 4]);
+    }
+
+    #[test]
+    fn the_mono_downmix_averages_the_frame_across_every_channel() {
+        let shared = SharedPlayback::new();
+        shared
+            .mono_enabled
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        let (mut producer, mut consumer) = RingBuffer::<f32>::new(8);
+        // One stereo frame, hard-panned left.
+        producer.push(1.0).expect("ring has room");
+        producer.push(0.0).expect("ring has room");
+        let mut samples = [0.0_f32; 2];
+        let written = fill_pcm_period(&shared, &mut consumer, &mut samples, 2);
+        assert_eq!(written, 2);
+        assert_eq!(samples, [0.5, 0.5]);
+    }
 }

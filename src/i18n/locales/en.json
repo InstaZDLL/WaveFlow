@@ -1520,8 +1520,8 @@
       "decibels": "{{value}} dB"
     },
     "exclusive": {
-      "title": "WASAPI exclusive mode (Windows)",
-      "subtitle": "Bit-perfect: bypass the Windows mixer for interference-free output. Falls back to shared mode if the device rejects exclusive access.",
+      "title": "Exclusive output",
+      "subtitle": "Takes the device for this app alone instead of sharing it with the system mixer. Falls back to shared mode if the device refuses.",
       "fallback": "The device doesn't accept exclusive mode. Falling back to shared mode."
     },
     "mono": {

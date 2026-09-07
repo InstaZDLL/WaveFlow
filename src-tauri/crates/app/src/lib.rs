@@ -254,7 +254,7 @@ pub fn run() {
             // last picked instead of the OS default. Empty string in
             // the row means "follow the OS default" — see
             // `player_set_output_device`.
-            let (persisted_device, persisted_wasapi_exclusive) =
+            let (persisted_device, persisted_exclusive_output) =
                 tauri::async_runtime::block_on(async {
                     let state = app.state::<AppState>();
                     let Ok(pool) = state.require_profile_pool().await else {
@@ -268,8 +268,17 @@ pub fn run() {
                     .ok()
                     .flatten()
                     .filter(|s: &String| !s.is_empty());
+                    // Two keys because the setting outgrew its name: it
+                    // was `audio.wasapi_exclusive` while exclusive output
+                    // existed only on Windows. Reading both carries a
+                    // Windows user's opt-in across the rename, and the
+                    // current name wins when both rows exist — the legacy
+                    // one is then whatever they had before the last toggle.
                     let exclusive: bool = sqlx::query_scalar::<_, String>(
-                        "SELECT value FROM profile_setting WHERE key = 'audio.wasapi_exclusive'",
+                        "SELECT value FROM profile_setting
+                          WHERE key IN ('audio.exclusive_output', 'audio.wasapi_exclusive')
+                          ORDER BY key = 'audio.exclusive_output' DESC
+                          LIMIT 1",
                     )
                     .fetch_optional(&*pool)
                     .await
@@ -282,7 +291,7 @@ pub fn run() {
             let engine: Arc<AudioEngine> = AudioEngine::new_with_device(
                 engine_handle,
                 persisted_device,
-                persisted_wasapi_exclusive,
+                persisted_exclusive_output,
             );
             app.manage(engine);
 
@@ -974,8 +983,8 @@ pub fn run() {
             commands::player::player_get_audio_settings,
             commands::player::player_list_output_devices,
             commands::player::player_set_output_device,
-            commands::player::player_set_wasapi_exclusive,
-            commands::player::player_get_wasapi_exclusive,
+            commands::player::player_set_exclusive_output,
+            commands::player::player_get_exclusive_output,
             commands::stats::stats_overview,
             commands::stats::stats_top_tracks,
             commands::stats::stats_top_artists,

@@ -1520,8 +1520,8 @@
       "decibels": "{{value}} dB"
     },
     "exclusive": {
-      "title": "Mode eksklusif WASAPI (Windows)",
-      "subtitle": "Bit-perfect: melewati mixer Windows untuk keluaran tanpa gangguan. Kembali ke mode bersama jika perangkat menolak akses eksklusif.",
+      "title": "Keluaran eksklusif",
+      "subtitle": "Mengambil perangkat hanya untuk aplikasi ini alih-alih membaginya dengan mixer sistem. Kembali ke mode berbagi jika perangkat menolak.",
       "fallback": "Perangkat tidak menerima mode eksklusif. Kembali ke mode bersama."
     },
     "mono": {

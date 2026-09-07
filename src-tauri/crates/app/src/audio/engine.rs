@@ -339,15 +339,17 @@ pub struct AudioEngine {
     /// `set_output_device` without plumbing the handle through every
     /// Tauri command call site.
     app: AppHandle,
-    /// Windows-only opt-in: WASAPI Exclusive Mode preference. Read
-    /// at boot from `profile_setting['audio.wasapi_exclusive']`,
-    /// flipped by `set_wasapi_exclusive`. Used by `set_output_device`
-    /// to preserve the mode across hot-swaps.
-    wasapi_exclusive: std::sync::atomic::AtomicBool,
-    /// Whether the current output stream is actually running in
-    /// WASAPI Exclusive Mode. This can differ from the preference
-    /// when init falls back to cpal shared mode.
-    wasapi_exclusive_active: std::sync::atomic::AtomicBool,
+    /// Opt-in: own the output device outright rather than share it
+    /// with the system mixer — WASAPI Exclusive Mode on Windows, a raw
+    /// `hw:` device on Linux, hog mode on macOS. Read at boot from
+    /// `profile_setting['audio.exclusive_output']`, flipped by
+    /// `set_exclusive_output`. Used by `set_output_device` to preserve
+    /// the mode across hot-swaps.
+    exclusive_output: std::sync::atomic::AtomicBool,
+    /// Whether the current output stream really owns its device. This
+    /// can differ from the preference when init falls back to cpal
+    /// shared mode.
+    exclusive_output_active: std::sync::atomic::AtomicBool,
     /// Debounce guard for [`Self::try_rebuild_after_device_error`]
     /// (#175). Windows session resets and USB DAC flaps fire the
     /// cpal `DeviceNotAvailable` callback on a random thread; the
@@ -355,9 +357,9 @@ pub struct AudioEngine {
     /// flap would otherwise queue two concurrent rebuilds that
     /// each interrupt the same track.
     rebuild_in_progress: std::sync::atomic::AtomicBool,
-    /// Session-only kill switch for WASAPI Exclusive after a flap storm
+    /// Session-only kill switch for exclusive output after a flap storm
     /// (#322). Once tripped, every rebuild / hot-swap stays on cpal
-    /// shared regardless of the `wasapi_exclusive` preference, so a
+    /// shared regardless of the `exclusive_output` preference, so a
     /// device that resets on every exclusive grab (Realtek onboard)
     /// stops thrashing and playback survives. Reset when the user
     /// re-toggles exclusive or picks a device. Does NOT touch the
@@ -375,7 +377,7 @@ pub struct AudioEngine {
     rebuild_gate: Mutex<RebuildGate>,
     /// Last non-library source captured at the boundary of [`Self::send`]
     /// (#230). The three output-rebuild paths
-    /// ([`Self::set_output_device`], [`Self::set_wasapi_exclusive`],
+    /// ([`Self::set_output_device`], [`Self::set_exclusive_output`],
     /// [`Self::force_rebuild_output`]) snapshot
     /// `shared.current_track_id`; for radio and remote queues that id is a
     /// negative sentinel from
@@ -488,14 +490,14 @@ impl AudioEngine {
     /// startup once the persisted `audio.output_device` profile setting
     /// is known. `None` means "use the OS default".
     ///
-    /// `wasapi_exclusive` is the persisted opt-in for Windows
-    /// Exclusive Mode (silently no-op on Linux/macOS). On a failing
-    /// init the engine falls back to cpal shared mode automatically;
-    /// see [`spawn_output_with_mode`] for the contract.
+    /// `exclusive_output` is the persisted opt-in for owning the
+    /// device (silently no-op where no exclusive PCM backend exists).
+    /// On a failing init the engine falls back to cpal shared mode
+    /// automatically; see [`spawn_output_with_mode`] for the contract.
     pub fn new_with_device(
         app: AppHandle,
         device_name: Option<String>,
-        wasapi_exclusive: bool,
+        exclusive_output: bool,
     ) -> Arc<Self> {
         let (cmd_tx, cmd_rx) = unbounded::<AudioCmd>();
         let shared = Arc::new(SharedPlayback::new());
@@ -505,15 +507,15 @@ impl AudioEngine {
         // rows and self-send the next `LoadAndPlay`.
         let (analytics_tx, analytics_rx) = unbounded_channel::<AnalyticsMsg>();
 
-        let (output, decoder, wasapi_exclusive_active) = match spawn_output_with_mode(
+        let (output, decoder, exclusive_output_active) = match spawn_output_with_mode(
             shared.clone(),
             app.clone(),
             device_name,
-            wasapi_exclusive,
+            exclusive_output,
             None,
         ) {
             Ok((producer, handle)) => {
-                let active = handle.wasapi_exclusive;
+                let active = handle.exclusive;
                 // `spawn_output_thread` returns only after the cpal
                 // stream has opened, so `shared.sample_rate` /
                 // `shared.channels` are already populated by the time
@@ -548,8 +550,8 @@ impl AudioEngine {
             output: Mutex::new(output),
             decoder: Mutex::new(decoder),
             app,
-            wasapi_exclusive: std::sync::atomic::AtomicBool::new(wasapi_exclusive),
-            wasapi_exclusive_active: std::sync::atomic::AtomicBool::new(wasapi_exclusive_active),
+            exclusive_output: std::sync::atomic::AtomicBool::new(exclusive_output),
+            exclusive_output_active: std::sync::atomic::AtomicBool::new(exclusive_output_active),
             rebuild_in_progress: std::sync::atomic::AtomicBool::new(false),
             exclusive_suppressed: std::sync::atomic::AtomicBool::new(false),
             exclusive_flaps: Mutex::new(FlapWindow::default()),
@@ -740,7 +742,7 @@ impl AudioEngine {
             super::output::RebuildTarget::Resolve => self.current_output_device(),
             super::output::RebuildTarget::Device(device) => device,
         };
-        let pref_exclusive = self.wasapi_exclusive.load(Ordering::Relaxed);
+        let pref_exclusive = self.exclusive_output.load(Ordering::Relaxed);
 
         // #322: an exclusive-mode flap storm. A device that resets on every
         // exclusive grab fires DeviceNotAvailable ~300 ms after each
@@ -758,7 +760,7 @@ impl AudioEngine {
                 self.exclusive_suppressed.store(true, Ordering::Relaxed);
                 exclusive = false;
                 tracing::warn!(
-                    "WASAPI exclusive disabled for this session after repeated device \
+                    "Exclusive output disabled for this session after repeated device \
                      flaps; staying on shared mode. Re-enable it in Settings to retry."
                 );
             }
@@ -812,7 +814,7 @@ impl AudioEngine {
     /// stream was given up and the flag is still accurate.
     fn publish_output_lost_if_gone(&self, guard: &Option<OutputHandle>) {
         if guard.is_none() {
-            self.wasapi_exclusive_active
+            self.exclusive_output_active
                 .store(false, std::sync::atomic::Ordering::Release);
             let _ = self.app.emit("player:audio-mode-changed", ());
         }
@@ -894,7 +896,7 @@ impl AudioEngine {
         // engages the exclusive path (raw `hw:` / hog mode), so nothing
         // else gates it. On any other platform DoP can't run at all.
         #[cfg(target_os = "windows")]
-        let exclusive_available = self.wasapi_exclusive.load(Ordering::Relaxed);
+        let exclusive_available = self.exclusive_output.load(Ordering::Relaxed);
         // Linux (raw `hw:`) and macOS (CoreAudio hog mode) engage the
         // exclusive path from the DoP toggle itself — no separate opt-in.
         #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -932,7 +934,7 @@ impl AudioEngine {
         // previous exclusive client still holds the device, so release it
         // first (#322 reasoning) — this path always replaces the stream.
         let device = guard.as_ref().and_then(|h| h.device_name.clone());
-        let pref_exclusive = self.wasapi_exclusive.load(Ordering::Relaxed);
+        let pref_exclusive = self.exclusive_output.load(Ordering::Relaxed);
         if let Some(old) = guard.take() {
             old.stop();
         }
@@ -947,8 +949,8 @@ impl AudioEngine {
                 Some(dop_fmt),
             ) {
                 Ok((producer, handle)) => {
-                    self.wasapi_exclusive_active
-                        .store(handle.wasapi_exclusive, Ordering::Release);
+                    self.exclusive_output_active
+                        .store(handle.exclusive, Ordering::Release);
                     *guard = Some(handle);
                     let _ = self.app.emit("player:audio-mode-changed", ());
                     tracing::info!(
@@ -978,8 +980,8 @@ impl AudioEngine {
             None,
         ) {
             Ok((producer, handle)) => {
-                self.wasapi_exclusive_active
-                    .store(handle.wasapi_exclusive, Ordering::Release);
+                self.exclusive_output_active
+                    .store(handle.exclusive, Ordering::Release);
                 *guard = Some(handle);
                 let _ = self.app.emit("player:audio-mode-changed", ());
                 Ok((Some(producer), false))
@@ -1024,8 +1026,10 @@ impl AudioEngine {
         // path only runs after a DeviceNotAvailable error, so the old stream
         // is already dead — there's no working state to roll back to. When
         // the old stream is shared we keep the spawn-first order so a failed
-        // spawn can still roll back.
-        let pre_release = guard.as_ref().is_some_and(|h| h.wasapi_exclusive);
+        // spawn can still roll back — except where entering exclusive can't
+        // evict it, see [`must_release_before_reopening`].
+        let pre_release =
+            must_release_before_reopening(guard.as_ref().map(|h| h.exclusive), exclusive);
         if pre_release {
             if was_playing {
                 self.cmd_tx
@@ -1081,8 +1085,8 @@ impl AudioEngine {
             return Err(err);
         }
         *guard = Some(handle);
-        self.wasapi_exclusive_active.store(
-            guard.as_ref().map(|h| h.wasapi_exclusive).unwrap_or(false),
+        self.exclusive_output_active.store(
+            guard.as_ref().map(|h| h.exclusive).unwrap_or(false),
             std::sync::atomic::Ordering::Release,
         );
         // Settings' exclusive-mode toggle only re-reads its state on
@@ -1092,7 +1096,7 @@ impl AudioEngine {
         let _ = self.app.emit("player:audio-mode-changed", ());
 
         // Resume best-effort. Same async pattern as
-        // `set_output_device` and `set_wasapi_exclusive` — pull the
+        // `set_output_device` and `set_exclusive_output` — pull the
         // track row off the synchronous path so a slow DB doesn't
         // hold the audio recovery up. Radio sessions resume by
         // re-dispatching the cached `LoadUrlAndPlay` instead of
@@ -1126,7 +1130,7 @@ impl AudioEngine {
                         // Fetch ReplayGain at resume time so a user who
                         // enabled the toggle keeps their analysed gain
                         // across an unintended device flap — matches
-                        // set_output_device and set_wasapi_exclusive.
+                        // set_output_device and set_exclusive_output.
                         let replay_gain =
                             crate::commands::player::fetch_replay_gain(&pool, track_id).await;
                         let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
@@ -1197,7 +1201,7 @@ impl AudioEngine {
             self.shared.clone(),
             self.app.clone(),
             device_name,
-            self.wasapi_exclusive
+            self.exclusive_output
                 .load(std::sync::atomic::Ordering::Relaxed),
             None,
         )?;
@@ -1232,7 +1236,7 @@ impl AudioEngine {
         })();
         if let Err(err) = send_result {
             handle.stop();
-            // Mirror force_rebuild_output / set_wasapi_exclusive: if the
+            // Mirror force_rebuild_output / set_exclusive_output: if the
             // SwapProducer send failed the closure had already run
             // `guard.take()`, so no output thread remains — the exclusive
             // flag must stop claiming one and Settings must re-read (#405).
@@ -1243,8 +1247,8 @@ impl AudioEngine {
         }
 
         *guard = Some(handle);
-        self.wasapi_exclusive_active.store(
-            guard.as_ref().map(|h| h.wasapi_exclusive).unwrap_or(false),
+        self.exclusive_output_active.store(
+            guard.as_ref().map(|h| h.exclusive).unwrap_or(false),
             std::sync::atomic::Ordering::Release,
         );
         // See force_rebuild_output's comment (issue #405) — a device
@@ -1306,9 +1310,9 @@ impl AudioEngine {
     /// Flip the WASAPI Exclusive Mode preference and re-open the
     /// output stream using the new mode. No-ops on non-Windows.
     /// Re-uses the active device name so the user keeps their pick.
-    pub fn set_wasapi_exclusive(&self, enabled: bool) -> AppResult<()> {
+    pub fn set_exclusive_output(&self, enabled: bool) -> AppResult<()> {
         let previous = self
-            .wasapi_exclusive
+            .exclusive_output
             .swap(enabled, std::sync::atomic::Ordering::Relaxed);
         if previous == enabled {
             return Ok(());
@@ -1345,11 +1349,14 @@ impl AudioEngine {
         // order that's correct for a device *switch*, where the two streams
         // target different endpoints — therefore fails every time here. The
         // command returned `Err`, so the preference was never persisted and
-        // `wasapi_exclusive_active` kept reporting the old mode: the toggle
+        // `exclusive_output_active` kept reporting the old mode: the toggle
         // sat latched on the very mode the user was trying to leave, with a
         // restart as the only way out. Release the old exclusive stream
-        // FIRST so the new open finds a free device.
-        let pre_release = guard.as_ref().is_some_and(|h| h.wasapi_exclusive);
+        // FIRST so the new open finds a free device — and on macOS the
+        // other direction needs it too, see
+        // [`must_release_before_reopening`].
+        let pre_release =
+            must_release_before_reopening(guard.as_ref().map(|h| h.exclusive), enabled);
         if pre_release {
             if was_playing {
                 if let Err(e) = self.cmd_tx.send(AudioCmd::Stop) {
@@ -1362,7 +1369,7 @@ impl AudioEngine {
                     // apply. (The spawn / send_result failure paths below
                     // deliberately keep the new pref instead, because by
                     // then the old stream is already gone.)
-                    self.wasapi_exclusive
+                    self.exclusive_output
                         .store(previous, std::sync::atomic::Ordering::Relaxed);
                     return Err(AppError::Audio(format!(
                         "audio command channel closed: {e}"
@@ -1408,7 +1415,7 @@ impl AudioEngine {
                     // handle, so there is no output thread at all. Tell
                     // Settings the flag is stale (#405), then schedule a
                     // rebuild that re-opens in the mode now recorded in
-                    // `wasapi_exclusive`. Pass `active` explicitly: the
+                    // `exclusive_output`. Pass `active` explicitly: the
                     // teardown emptied `self.output`, so a self-resolve
                     // would reopen the OS default instead of the user's
                     // device.
@@ -1424,13 +1431,13 @@ impl AudioEngine {
                     // as the failed-Stop path — otherwise a later
                     // device-error rebuild would read the new pref and flip
                     // to the exclusive mode this toggle never applied.
-                    self.wasapi_exclusive
+                    self.exclusive_output
                         .store(previous, std::sync::atomic::Ordering::Relaxed);
                 }
                 return Err(err);
             }
         };
-        let active_mode = handle.wasapi_exclusive;
+        let active_mode = handle.exclusive;
 
         // Group the whole hand-off so ANY failing step still runs the
         // `handle.stop()` below. `handle` owns a live output thread on a
@@ -1464,7 +1471,7 @@ impl AudioEngine {
             return Err(err);
         }
         *guard = Some(handle);
-        self.wasapi_exclusive_active
+        self.exclusive_output_active
             .store(active_mode, std::sync::atomic::Ordering::Release);
         // Redundant with the caller's own re-read after a manual toggle
         // (ExclusiveModeCard.tsx), but kept for consistency with the
@@ -1521,12 +1528,48 @@ impl AudioEngine {
         Ok(())
     }
 
-    /// Whether the current output stream is actually running in
-    /// WASAPI Exclusive Mode. Always `false` on Linux / macOS and
-    /// also `false` after a Windows fallback to cpal shared mode.
-    pub fn wasapi_exclusive(&self) -> bool {
-        self.wasapi_exclusive_active
+    /// Whether the current output stream really owns its device —
+    /// `false` after a fallback to cpal shared mode, and on any
+    /// platform with no exclusive PCM backend.
+    pub fn exclusive_output(&self) -> bool {
+        self.exclusive_output_active
             .load(std::sync::atomic::Ordering::Acquire)
+    }
+}
+
+/// Whether the old output has to be released *before* the new one is
+/// opened, rather than the other way round. `old_is_exclusive` is `None`
+/// when there is no stream installed at all.
+///
+/// Spawn-first is the order we want wherever it works: a failed open then
+/// costs nothing, because the stream the user is listening to is still
+/// installed and still playing. Two situations take that away.
+///
+/// - **The old stream is exclusive**, on any platform. It owns the device
+///   outright and nothing — shared or exclusive — can open that device
+///   until it lets go (#322, then #405 for the other direction).
+/// - **We are entering exclusive on macOS.** Hog mode is recorded as a
+///   *pid*, and the client it would have to evict here is our own cpal
+///   stream, in this very process — so it evicts nothing. Windows kicks
+///   the shared client off when the endpoint is seized, and on Linux the
+///   reservation protocol makes the sound server hand the card over;
+///   macOS has neither. The new AudioUnit then comes up on a device our
+///   old one is still driving and renders nothing: no sound, and a
+///   position counter frozen where it stood.
+///
+///   Measured on a MacBook Air, and only on the toggle. Armed before
+///   launch the same code opens on an idle device and plays, which is
+///   what made this look like a backend fault rather than an ordering
+///   one.
+///
+/// Releasing first is safe in the second case because
+/// [`spawn_output_with_mode`] falls back to shared mode on its own, so
+/// the caller still comes back holding a stream.
+fn must_release_before_reopening(old_is_exclusive: Option<bool>, entering_exclusive: bool) -> bool {
+    match old_is_exclusive {
+        None => false,
+        Some(true) => true,
+        Some(false) => cfg!(target_os = "macos") && entering_exclusive,
     }
 }
 
@@ -1603,6 +1646,43 @@ fn apply_radio_resume_update(snapshot: &Mutex<Option<RadioResumeState>>, cmd: &A
             }
         }
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod reopen_order_tests {
+    use super::must_release_before_reopening;
+
+    #[test]
+    fn nothing_to_release_when_no_stream_is_installed() {
+        assert!(!must_release_before_reopening(None, true));
+        assert!(!must_release_before_reopening(None, false));
+    }
+
+    #[test]
+    fn an_exclusive_stream_is_always_released_first() {
+        // It owns the device outright: no open of any kind succeeds until
+        // it lets go. True in both directions and on every platform.
+        assert!(must_release_before_reopening(Some(true), true));
+        assert!(must_release_before_reopening(Some(true), false));
+    }
+
+    #[test]
+    fn entering_exclusive_over_a_shared_stream_depends_on_the_platform() {
+        // Windows evicts the shared client when the endpoint is seized and
+        // Linux asks the sound server for the card, so both keep the
+        // spawn-first order and the rollback it buys. macOS records hog
+        // mode against a pid and would be asked to evict this very
+        // process, so it cannot.
+        assert_eq!(
+            must_release_before_reopening(Some(false), true),
+            cfg!(target_os = "macos")
+        );
+    }
+
+    #[test]
+    fn shared_to_shared_has_nothing_to_reorder() {
+        assert!(!must_release_before_reopening(Some(false), false));
     }
 }
 

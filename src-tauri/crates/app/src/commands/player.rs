@@ -84,12 +84,14 @@ pub struct PlayerStateSnapshot {
     /// True when the active output is shipping native DSD via DoP
     /// (#495) — reflects what really engaged, not just the opt-in.
     pub dop_active: bool,
-    /// True when the stream really owns the device: WASAPI Exclusive on
-    /// Windows, false everywhere else and false after a fallback to
-    /// shared mode. Without it the UI cannot tell a stream that reaches
-    /// the DAC untouched from one the system mixer re-clocks on its way
-    /// there, which is the difference between bit-perfect and merely
-    /// un-processed.
+    /// True when the stream really owns the device — WASAPI Exclusive
+    /// on Windows, a raw `hw:` ALSA device on Linux, CoreAudio hog mode
+    /// on macOS. Read from the engine's *active* state, not the opt-in,
+    /// so it is false after a silent fallback to shared mode and on any
+    /// platform with no exclusive backend. Without it the UI cannot tell
+    /// a stream that reaches the DAC untouched from one the system mixer
+    /// re-clocks on its way there, which is the difference between
+    /// bit-perfect and merely un-processed.
     pub exclusive_active: bool,
 }
 
@@ -726,7 +728,7 @@ pub async fn player_get_state(
         repeat_mode,
         current_track,
         engine.current_output_is_dop(),
-        engine.wasapi_exclusive(),
+        engine.exclusive_output(),
     );
     // When the engine is Idle but we resolved a resume point, use the
     // persisted position instead of the (zero) live counter.
@@ -1819,23 +1821,34 @@ pub async fn player_set_output_device(
     Ok(())
 }
 
-/// Toggle WASAPI Exclusive Mode (Windows-only audiophile path).
+/// Toggle exclusive output — the audiophile path where the app owns
+/// the device instead of sharing it with the system mixer.
 ///
-/// Re-opens the active output stream in exclusive event-driven mode,
-/// negotiating the layout from the endpoint's own format
-/// (`PKEY_AudioEngine_DeviceFormat`) first and only then the
-/// shared-mode mix format (#409). Bypasses the Windows audio
-/// engine so no other app can mix in / DSP / resample our audio.
-/// Falls back silently to cpal shared mode if init fails (device
-/// busy, unsupported format, no exclusive support on the driver) —
-/// see `audio/wasapi_exclusive.rs` for the contract.
+/// Re-opens the active output stream through the platform's exclusive
+/// backend:
 ///
-/// No-op on Linux / macOS; the persisted setting is still written so
-/// the value follows the user across platforms.
+/// - **Windows**, WASAPI Exclusive Mode, event-driven, negotiating the
+///   layout from the endpoint's own format
+///   (`PKEY_AudioEngine_DeviceFormat`) first and only then the
+///   shared-mode mix format (#409) — see `audio/wasapi_exclusive.rs`.
+/// - **Linux**, a raw `hw:` ALSA device, asking the sound server to
+///   release the card first — see `audio/alsa_exclusive.rs`.
+/// - **macOS**, CoreAudio hog mode, which leaves the device's physical
+///   format alone — see `audio/coreaudio_exclusive.rs`.
 ///
-/// Persisted in `profile_setting['audio.wasapi_exclusive']`.
+/// Either way no other app can mix in, DSP or resample our audio. Falls
+/// back silently to cpal shared mode if init fails (device busy,
+/// unsupported format, no exclusive support in the driver).
+///
+/// The persisted setting is written on every platform, including those
+/// with no exclusive backend at all, so the value follows the user
+/// across machines.
+///
+/// Persisted in `profile_setting['audio.exclusive_output']`. The boot
+/// read in `lib.rs` also accepts the legacy `audio.wasapi_exclusive`
+/// row, from when this was a Windows-only setting.
 #[tauri::command]
-pub async fn player_set_wasapi_exclusive(
+pub async fn player_set_exclusive_output(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
@@ -1843,15 +1856,15 @@ pub async fn player_set_wasapi_exclusive(
     let engine_clone: Arc<AudioEngine> = engine.inner().clone();
     // Same rationale as `player_set_output_device`: opening / tearing
     // down a WASAPI stream blocks for a few hundred ms.
-    tokio::task::spawn_blocking(move || engine_clone.set_wasapi_exclusive(enabled))
+    tokio::task::spawn_blocking(move || engine_clone.set_exclusive_output(enabled))
         .await
-        .map_err(|e| AppError::Audio(format!("set wasapi exclusive task: {e}")))??;
+        .map_err(|e| AppError::Audio(format!("set exclusive output task: {e}")))??;
     if let Ok(pool) = state.require_profile_pool().await {
         let now = chrono::Utc::now().timestamp_millis();
         let stored = if enabled { "1" } else { "0" };
         let _ = sqlx::query(
             "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES ('audio.wasapi_exclusive', ?, 'bool', ?)
+             VALUES ('audio.exclusive_output', ?, 'bool', ?)
              ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
         )
         .bind(stored)
@@ -1862,13 +1875,12 @@ pub async fn player_set_wasapi_exclusive(
     Ok(())
 }
 
-/// Read the current WASAPI Exclusive Mode state from the audio engine.
-/// Always `false` on Linux / macOS. Used by the Settings card to
-/// reflect whether the engine actually engaged exclusive mode (the
-/// init could have silently fallen back to shared).
+/// Read from the audio engine whether the output really owns its
+/// device. Used by the Settings card to reflect what actually engaged,
+/// since init can have silently fallen back to shared mode.
 #[tauri::command]
-pub fn player_get_wasapi_exclusive(engine: tauri::State<'_, Arc<AudioEngine>>) -> bool {
-    engine.inner().wasapi_exclusive()
+pub fn player_get_exclusive_output(engine: tauri::State<'_, Arc<AudioEngine>>) -> bool {
+    engine.inner().exclusive_output()
 }
 
 /// Replace the queue with the given track list and start playing at

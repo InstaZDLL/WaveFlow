@@ -1520,8 +1520,8 @@
       "decibels": "{{value}} dB"
     },
     "exclusive": {
-      "title": "WASAPI özel modu (Windows)",
-      "subtitle": "Bit-perfect: parazitsiz çıkış için Windows mikserini atlar. Cihaz özel erişimi reddederse paylaşımlı moda geri döner.",
+      "title": "Özel çıkış",
+      "subtitle": "Aygıtı sistem karıştırıcısıyla paylaşmak yerine yalnızca bu uygulama için alır. Aygıt reddederse paylaşımlı moda döner.",
       "fallback": "Cihaz özel modu kabul etmiyor. Paylaşımlı moda geri dönülüyor."
     },
     "mono": {

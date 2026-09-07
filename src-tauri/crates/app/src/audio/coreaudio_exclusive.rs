@@ -1,4 +1,5 @@
-//! macOS-only CoreAudio hog-mode DoP output backend (#495 / #497).
+//! macOS-only CoreAudio hog-mode output backend (#495 / #497 for DoP,
+//! then ordinary PCM).
 //!
 //! The macOS equivalent of [`super::wasapi_exclusive`] / [`super::alsa_exclusive`]:
 //! it takes **hog mode** on the output device (exclusive access — the
@@ -19,6 +20,13 @@
 //! If hog mode is unavailable (another app holds the device) or the DAC
 //! won't accept the DoP rate in 32-bit, the open fails and the engine
 //! falls back to the ordinary DSD → PCM path.
+//!
+//! **Ordinary PCM** goes through [`open_and_run_pcm`] instead, and the
+//! difference is what it does *not* do: it takes hog mode and leaves the
+//! device's physical format exactly as it found it. Re-clocking a device
+//! the whole machine shares is a price only a marker cadence justifies;
+//! for PCM the decoder meets the device instead. A failed open there
+//! falls back to cpal shared mode.
 //!
 //! Same SPSC ring contract as the other backends (`Producer<f32>` →
 //! `Consumer<f32>`, words carried as `f32` bit patterns).
@@ -61,11 +69,11 @@ const DEVICE_POLL_INTERVAL: Duration = Duration::from_secs(1);
 /// [`OutputHandle`], or an error (device busy / hog denied / format
 /// unsupported) surfaced synchronously so the caller can fall back to
 /// DSD → PCM.
-pub fn spawn_coreaudio_dop_output_thread(
+pub fn spawn_coreaudio_exclusive_output_thread(
     shared: Arc<SharedPlayback>,
     app: AppHandle,
     device_name: Option<String>,
-    dop: DopFormat,
+    dop: Option<DopFormat>,
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
     let (producer, consumer) = RingBuffer::<f32>::new(RING_CAPACITY);
     let (shutdown_tx, shutdown_rx) = bounded::<()>(1);
@@ -75,7 +83,10 @@ pub fn spawn_coreaudio_dop_output_thread(
     let thread_app = app.clone();
     let thread_device = device_name.clone();
     let join: JoinHandle<()> = std::thread::Builder::new()
-        .name("waveflow-coreaudio-dop".into())
+        .name(match dop {
+            Some(_) => "waveflow-coreaudio-dop".into(),
+            None => "waveflow-coreaudio-exclusive".to_string(),
+        })
         .spawn(move || {
             output_thread_main(
                 thread_shared,
@@ -87,7 +98,7 @@ pub fn spawn_coreaudio_dop_output_thread(
                 dop,
             )
         })
-        .map_err(|e| AppError::Audio(format!("spawn coreaudio dop thread: {e}")))?;
+        .map_err(|e| AppError::Audio(format!("spawn coreaudio exclusive thread: {e}")))?;
 
     match init_rx.recv() {
         Ok(Ok(())) => Ok((
@@ -96,8 +107,12 @@ pub fn spawn_coreaudio_dop_output_thread(
                 shutdown_tx,
                 join,
                 device_name,
-                wasapi_exclusive: false,
-                dop: Some(dop),
+                // Hog mode means the system stops mixing anything
+                // else into this device — the same ownership WASAPI
+                // and ALSA report. It used to say `false` here, which
+                // had the pipeline panel deny a grab that had happened.
+                exclusive: true,
+                dop,
             },
         )),
         Ok(Err(err)) => {
@@ -105,7 +120,7 @@ pub fn spawn_coreaudio_dop_output_thread(
             Err(err)
         }
         Err(_) => Err(AppError::Audio(
-            "coreaudio dop thread died before reporting init result".into(),
+            "coreaudio exclusive thread died before reporting init result".into(),
         )),
     }
 }
@@ -117,13 +132,13 @@ fn output_thread_main(
     init_tx: Sender<AppResult<()>>,
     app: AppHandle,
     device_name: Option<String>,
-    dop: DopFormat,
+    dop: Option<DopFormat>,
 ) {
     let device_id = match resolve_device(&device_name) {
         Some(id) => id,
         None => {
             let _ = init_tx.send(Err(AppError::Audio(
-                "coreaudio: no output device found for DoP".into(),
+                "coreaudio: no output device found".into(),
             )));
             return;
         }
@@ -137,12 +152,15 @@ fn output_thread_main(
     }
 
     // Everything past hog acquisition must release it on the way out.
-    let result = open_and_run(&shared, consumer, &shutdown_rx, &init_tx, device_id, dop);
+    let result = match dop {
+        Some(dop) => open_and_run(&shared, consumer, &shutdown_rx, &init_tx, device_id, dop),
+        None => open_and_run_pcm(&shared, consumer, &shutdown_rx, &init_tx, device_id),
+    };
 
     release_hog(device_id);
 
     match result {
-        Ok(ExitReason::Shutdown) => tracing::debug!("coreaudio dop output thread exiting"),
+        Ok(ExitReason::Shutdown) => tracing::debug!("coreaudio exclusive output thread exiting"),
         // Same contract as the WASAPI / ALSA backends (#405): a device
         // that vanishes mid-stream must be reported, or the engine keeps
         // a handle to a thread that no longer feeds anything and the UI
@@ -150,7 +168,7 @@ fn output_thread_main(
         Ok(ExitReason::DeviceLost(reason)) => {
             tracing::warn!(
                 %reason,
-                "coreaudio dop output thread lost the device; requesting rebuild"
+                "coreaudio exclusive output thread lost the device; requesting rebuild"
             );
             super::output::notify_device_lost(
                 &app,
@@ -159,7 +177,7 @@ fn output_thread_main(
             );
             super::output::schedule_device_rebuild(&app, super::output::RebuildTarget::Resolve);
         }
-        Err(err) => tracing::warn!(%err, "coreaudio dop output thread stopped on error"),
+        Err(err) => tracing::warn!(%err, "coreaudio exclusive output thread stopped on error"),
     }
 }
 
@@ -300,15 +318,156 @@ fn open_and_run(
     // Init succeeded — tell the spawn call, then park until teardown.
     let _ = init_tx.send(Ok(()));
 
-    // CoreAudio doesn't error into our thread when the DAC is unplugged:
-    // it simply stops pulling the render callback, which would leave us
-    // parked forever on a dead output. `AliveListener` subscribes to the
-    // device's `IsAlive` property, so the loss arrives as a flag flip and
-    // the wait below only decides how soon we look at it.
-    //
-    // It registers a listener holding a pointer to itself, so it must not
-    // move afterwards — it stays a local of this frame, and its `Drop`
-    // unregisters.
+    let exit = park_until_the_device_goes(shutdown_rx, device_id);
+
+    // Stop + drop the unit here (frees the render callback + its captured
+    // ring consumer) before the caller releases hog mode.
+    let _ = audio_unit.stop();
+    drop(audio_unit);
+    Ok(exit)
+}
+
+/// The ordinary-PCM half: hog the device and feed it `f32` at whatever
+/// rate it is already running.
+///
+/// Deliberately lighter than [`open_and_run`]. DoP has to pin the
+/// device's *physical* format, because a marker cadence that gets
+/// resampled is noise; ordinary PCM does not, and pinning it would
+/// re-clock a device the rest of the machine shares for no gain — our
+/// decoder can meet the device instead. So this takes the rate and the
+/// channel count the device already has, publishes them, and lets the
+/// resampler do the meeting. What exclusive buys here is hog mode: the
+/// system stops mixing anything else in.
+fn open_and_run_pcm(
+    shared: &Arc<SharedPlayback>,
+    mut consumer: Consumer<f32>,
+    shutdown_rx: &Receiver<()>,
+    init_tx: &Sender<AppResult<()>>,
+    device_id: AudioDeviceID,
+) -> AppResult<ExitReason> {
+    // Read, don't set: this is the device's own current format, and the
+    // whole point of the PCM path is that we leave it alone.
+    let current = read_physical_stream_format(device_id).map_err(|e| {
+        AppError::Audio(format!(
+            "coreaudio: can't read the device's current physical format ({e})"
+        ))
+    })?;
+
+    // A device reporting neither is one we can't describe to the
+    // decoder. Falling back to invented numbers would publish a rate the
+    // hardware isn't running at, and every track would play at the wrong
+    // speed rather than not at all.
+    let sample_rate = current.mSampleRate;
+    if !(sample_rate.is_finite() && sample_rate > 0.0) {
+        return Err(AppError::Audio(format!(
+            "coreaudio: device reports a {sample_rate} Hz format"
+        )));
+    }
+    let channels = current.mChannelsPerFrame;
+    if channels == 0 {
+        return Err(AppError::Audio(
+            "coreaudio: device reports zero channels".into(),
+        ));
+    }
+
+    let stream_format = StreamFormat {
+        sample_rate,
+        sample_format: SampleFormat::F32,
+        flags: LinearPcmFlags::IS_FLOAT | LinearPcmFlags::IS_PACKED,
+        channels,
+    };
+
+    let mut audio_unit = audio_unit_from_device_id_uninitialized(device_id, false)
+        .map_err(|e| AppError::Audio(format!("coreaudio audio unit: {e}")))?;
+    audio_unit
+        .set_stream_format(stream_format, Scope::Input, Element::Output)
+        .map_err(|e| AppError::Audio(format!("coreaudio set stream format: {e}")))?;
+
+    // Runs on CoreAudio's realtime thread: ring pops and atomics only,
+    // no allocation and no locking.
+    let cb_shared = shared.clone();
+    audio_unit
+        .set_render_callback(move |args: Args<data::Interleaved<f32>>| {
+            let Args {
+                data: data::Interleaved {
+                    buffer, channels, ..
+                },
+                num_frames,
+                ..
+            } = args;
+            // Never trust the two to agree: a shorter buffer than the
+            // frame count implies would panic on the slice, on the one
+            // thread that must not.
+            let wanted = num_frames.saturating_mul(channels).min(buffer.len());
+            let buffer = &mut buffer[..wanted];
+
+            let paused = cb_shared.paused_output.load(Ordering::Acquire);
+            let draining = cb_shared.drain_silent.load(Ordering::Acquire);
+            if paused || draining {
+                if draining {
+                    while consumer.pop().is_ok() {}
+                }
+                buffer.fill(0.0);
+            } else {
+                let written =
+                    super::output::fill_pcm_period(&cb_shared, &mut consumer, buffer, channels);
+                if written > 0 {
+                    cb_shared
+                        .samples_played
+                        .fetch_add(written, Ordering::Relaxed);
+                }
+            }
+            Ok(())
+        })
+        .map_err(|e| AppError::Audio(format!("coreaudio set render callback: {e}")))?;
+
+    audio_unit
+        .initialize()
+        .map_err(|e| AppError::Audio(format!("coreaudio initialize: {e}")))?;
+
+    // Published as integers because that is what the rest of the engine
+    // speaks; CoreAudio carries the rate as a float, and a device on a
+    // fractional rate would be rounded here rather than silently
+    // mismatched later.
+    shared
+        .sample_rate
+        .store(sample_rate.round() as u32, Ordering::Release);
+    shared.channels.store(channels as u16, Ordering::Release);
+
+    audio_unit
+        .start()
+        .map_err(|e| AppError::Audio(format!("coreaudio start: {e}")))?;
+
+    tracing::info!(
+        device_id,
+        sample_rate,
+        channels,
+        "coreaudio exclusive stream opened"
+    );
+
+    let _ = init_tx.send(Ok(()));
+
+    let exit = park_until_the_device_goes(shutdown_rx, device_id);
+
+    // Stop + drop the unit here (frees the render callback and the ring
+    // consumer it captured) before the caller releases hog mode.
+    let _ = audio_unit.stop();
+    drop(audio_unit);
+    Ok(exit)
+}
+
+/// Park until the engine asks us to stop, or the device goes away.
+///
+/// CoreAudio doesn't error into our thread when the DAC is unplugged: it
+/// simply stops pulling the render callback, which would leave us parked
+/// forever on a dead output. `AliveListener` subscribes to the device's
+/// `IsAlive` property, so the loss arrives as a flag flip and the wait
+/// below only decides how soon we look at it.
+///
+/// The listener registers a pointer to itself, so it must not move once
+/// registered — it stays a local of this frame, and its `Drop`
+/// unregisters.
+fn park_until_the_device_goes(shutdown_rx: &Receiver<()>, device_id: AudioDeviceID) -> ExitReason {
     let mut alive = AliveListener::new(device_id);
     let watching = match alive.register() {
         Ok(()) => true,
@@ -321,7 +480,7 @@ fn open_and_run(
         }
     };
 
-    let exit = loop {
+    loop {
         match shutdown_rx.recv_timeout(DEVICE_POLL_INTERVAL) {
             Ok(()) | Err(RecvTimeoutError::Disconnected) => break ExitReason::Shutdown,
             Err(RecvTimeoutError::Timeout) => {
@@ -337,13 +496,7 @@ fn open_and_run(
                 }
             }
         }
-    };
-
-    // Stop + drop the unit here (frees the render callback + its captured
-    // ring consumer) before the caller releases hog mode.
-    let _ = audio_unit.stop();
-    drop(audio_unit);
-    Ok(exit)
+    }
 }
 
 /// Puts the device's physical stream format back when the DoP stream

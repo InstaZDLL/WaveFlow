@@ -1520,8 +1520,8 @@
       "decibels": "{{value}} dB"
     },
     "exclusive": {
-      "title": "WASAPI exclusive-modus (Windows)",
-      "subtitle": "Bit-perfect: omzeilt de Windows-mixer voor een storingsvrije uitvoer. Valt terug op shared-modus als het apparaat exclusive-toegang weigert.",
+      "title": "Exclusieve uitvoer",
+      "subtitle": "Neemt het apparaat alleen voor deze app in plaats van het te delen met de systeemmixer. Valt terug op de gedeelde modus als het apparaat weigert.",
       "fallback": "Het apparaat accepteert geen exclusive-modus. Terugvallen op shared-modus."
     },
     "mono": {

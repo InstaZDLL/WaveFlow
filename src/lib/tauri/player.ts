@@ -41,10 +41,12 @@ export interface PlayerStateSnapshot {
   /** True when the output is shipping native DSD via DoP (#495). */
   dop_active: boolean;
   /**
-   * True when the stream really owns the device (WASAPI Exclusive
-   * today). False on Linux / macOS and after a fallback to shared mode.
-   * What separates a bit-perfect stream from one the system mixer
-   * re-clocks on its way to the DAC.
+   * True when the stream really owns the device — WASAPI Exclusive on
+   * Windows, a raw ALSA `hw:` device on Linux, CoreAudio hog mode on
+   * macOS. This is what actually engaged, not the opt-in, so it is
+   * false after a silent fallback to shared mode. What separates a
+   * bit-perfect stream from one the system mixer re-clocks on its way
+   * to the DAC.
    */
   exclusive_active: boolean;
 }
@@ -461,21 +463,23 @@ export function playerSetOutputDevice(deviceId: string | null): Promise<void> {
 }
 
 /**
- * Toggle WASAPI Exclusive Mode (Windows only). The backend persists
- * the value across platforms but only re-opens the output stream on
- * Windows. Falls back to cpal shared if exclusive init fails (device
- * busy, no exclusive format support).
+ * Toggle exclusive output: own the device rather than share it with
+ * the system mixer — WASAPI Exclusive on Windows, a raw ALSA `hw:`
+ * device on Linux, CoreAudio hog mode on macOS. The backend persists
+ * the value on every platform, including any without an exclusive
+ * backend. Falls back to cpal shared if exclusive init fails (device
+ * busy, no supported format).
  */
-export function playerSetWasapiExclusive(enabled: boolean): Promise<void> {
-  return invoke<void>("player_set_wasapi_exclusive", { enabled });
+export function playerSetExclusiveOutput(enabled: boolean): Promise<void> {
+  return invoke<void>("player_set_exclusive_output", { enabled });
 }
 
 /**
- * Read whether WASAPI Exclusive Mode is currently engaged. Always
- * `false` on Linux / macOS. Useful for the Settings card to show
- * what's actually active (a failed exclusive init silently falls
- * back to shared, so the toggle could be on but the mode off).
+ * Read whether the output really owns its device right now. Useful for
+ * the Settings card to show what's actually active: a failed exclusive
+ * init silently falls back to shared, so the toggle can be on while
+ * the mode is off.
  */
-export function playerGetWasapiExclusive(): Promise<boolean> {
-  return invoke<boolean>("player_get_wasapi_exclusive");
+export function playerGetExclusiveOutput(): Promise<boolean> {
+  return invoke<boolean>("player_get_exclusive_output");
 }

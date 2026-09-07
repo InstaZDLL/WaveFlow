@@ -4,17 +4,19 @@ import { Lock } from "lucide-react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import {
-  playerGetWasapiExclusive,
-  playerSetWasapiExclusive,
+  playerGetExclusiveOutput,
+  playerSetExclusiveOutput,
 } from "../../../lib/tauri/player";
 import { ToggleSwitch } from "../../common/ToggleSwitch";
 
 /**
- * WASAPI Exclusive Mode card — Windows-only audiophile path.
+ * Exclusive output card — the audiophile path where the app owns the
+ * device instead of sharing it with the system mixer.
  *
- * Detection: we check `navigator.userAgent` for "Windows" since the
- * setting is silently no-op on Linux / macOS and showing it there
- * would mislead users.
+ * Shown on every desktop platform, because every one of them now has a
+ * backend: WASAPI Exclusive on Windows, a raw ALSA `hw:` device on
+ * Linux, hog mode on macOS. The card used to sniff the user agent to
+ * hide itself where the toggle did nothing.
  *
  * The toggle calls the backend which:
  *   1. Persists the preference in `profile_setting`.
@@ -29,22 +31,14 @@ export function ExclusiveModeCard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Windows-only gate. Sniffing UA is fine here — Tauri's WebView is
-  // platform-pinned, so the result is stable for the lifetime of the
-  // process.
-  const isWindows =
-    typeof navigator !== "undefined" &&
-    navigator.userAgent.toLowerCase().includes("windows");
-
   useEffect(() => {
-    if (!isWindows) return;
-    playerGetWasapiExclusive()
+    playerGetExclusiveOutput()
       .then(setEnabled)
       .catch((err) => {
         console.error("[ExclusiveModeCard] get failed", err);
         setEnabled(false);
       });
-  }, [isWindows]);
+  }, []);
 
   // The engine can rebuild the output stream on its own — a device
   // flap (issue #405), a device switch from the output-device picker —
@@ -55,7 +49,6 @@ export function ExclusiveModeCard() {
   // carries no payload; a re-fetch here mirrors the one `toggle()`
   // already does after a manual click.
   useEffect(() => {
-    if (!isWindows) return;
     let unlisten: UnlistenFn | null = null;
     // `listen()` is async, so the effect can unmount before it resolves.
     // Without this flag the cleanup below runs while `unlisten` is still
@@ -66,7 +59,7 @@ export function ExclusiveModeCard() {
     (async () => {
       try {
         const stop = await listen("player:audio-mode-changed", () => {
-          playerGetWasapiExclusive()
+          playerGetExclusiveOutput()
             .then(setEnabled)
             .catch((err) => {
               console.error(
@@ -88,18 +81,16 @@ export function ExclusiveModeCard() {
       cancelled = true;
       if (unlisten) unlisten();
     };
-  }, [isWindows]);
-
-  if (!isWindows) return null;
+  }, []);
 
   const toggle = async (next: boolean) => {
     setBusy(true);
     setError(null);
     try {
-      await playerSetWasapiExclusive(next);
+      await playerSetExclusiveOutput(next);
       // Re-read so the displayed state reflects the engine's actual
       // mode after fallback.
-      const actual = await playerGetWasapiExclusive();
+      const actual = await playerGetExclusiveOutput();
       setEnabled(actual);
       if (next && !actual) {
         setError(t("settings.exclusive.fallback"));
@@ -113,7 +104,7 @@ export function ExclusiveModeCard() {
       // otherwise the switch keeps showing the mode the user just tried
       // to leave and looks stuck.
       try {
-        setEnabled(await playerGetWasapiExclusive());
+        setEnabled(await playerGetExclusiveOutput());
       } catch (refreshErr) {
         console.error(
           "[ExclusiveModeCard] refresh after failed toggle",
@@ -128,9 +119,13 @@ export function ExclusiveModeCard() {
   return (
     <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Lock size={20} className="text-zinc-500 dark:text-zinc-400" />
-          <div>
+        <div className="flex items-center space-x-4 min-w-0">
+          <Lock
+            size={20}
+            className="shrink-0 text-zinc-500 dark:text-zinc-400"
+            aria-hidden="true"
+          />
+          <div className="min-w-0">
             <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
               {t("settings.exclusive.title")}
             </p>
