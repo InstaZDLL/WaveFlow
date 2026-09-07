@@ -98,7 +98,9 @@ Two things the DoP path had worked out first are now shared rather than duplicat
 - **The reservation protocol** ([`device_reservation.rs`](../../src-tauri/crates/app/src/audio/device_reservation.rs)) — PipeWire and PulseAudio hold every card from login, so a bare `hw:` open returns `EBUSY` on any desktop. Taking the `org.freedesktop.ReserveDevice1.Audio<N>` bus name is the protocol both servers watch in order to release a device; the open is then retried for up to a second while the server finishes letting go. The reservation is bound to the stream and released with it.
 - **Partial writes** — re-offering only the frames the device declined.
 
-**Period and buffer must both be asked for.** `HwParams::any` leaves them at whatever the driver offers, and `snd_pcm_hw_params` then takes its **maximum** — a 16 384-frame period was observed, which is a ten-second start / seek / track change. The second effect is quieter: one period is drained from the ring in a single pass and whatever the ring can't supply is written as silence, so a period worth two thirds of [`RING_CAPACITY`](#ring-buffer-sizing) makes underruns the norm rather than the exception. `set_period_and_buffer` asks for 1024 frames (~23 ms at 44.1 kHz) and a buffer of 4 periods.
+**Period and buffer must both be asked for.** `HwParams::any` leaves them at whatever the driver offers, and `snd_pcm_hw_params` then takes its **maximum** for both. Measured on a `snd-dummy` card: a 16 384-frame period — ~370 ms at 44.1 kHz — and a buffer deep enough that starting a track, seeking and changing track each took about ten seconds. That wait was **the buffer draining**, not the period.
+
+The period has its own, quieter effect: one period is drained from the ring in a single pass, and whatever the ring can't supply is written as silence. A period that size was two thirds of [`RING_CAPACITY`](#ring-buffer-sizing) on the card measured, which makes an underrun the normal case rather than the exception. `set_period_and_buffer` asks for 1024 frames (~23 ms at 44.1 kHz) and a buffer of 4 periods.
 
 ### macOS: hog mode, and nothing else
 

@@ -84,12 +84,14 @@ pub struct PlayerStateSnapshot {
     /// True when the active output is shipping native DSD via DoP
     /// (#495) — reflects what really engaged, not just the opt-in.
     pub dop_active: bool,
-    /// True when the stream really owns the device: WASAPI Exclusive on
-    /// Windows, false everywhere else and false after a fallback to
-    /// shared mode. Without it the UI cannot tell a stream that reaches
-    /// the DAC untouched from one the system mixer re-clocks on its way
-    /// there, which is the difference between bit-perfect and merely
-    /// un-processed.
+    /// True when the stream really owns the device — WASAPI Exclusive
+    /// on Windows, a raw `hw:` ALSA device on Linux, CoreAudio hog mode
+    /// on macOS. Read from the engine's *active* state, not the opt-in,
+    /// so it is false after a silent fallback to shared mode and on any
+    /// platform with no exclusive backend. Without it the UI cannot tell
+    /// a stream that reaches the DAC untouched from one the system mixer
+    /// re-clocks on its way there, which is the difference between
+    /// bit-perfect and merely un-processed.
     pub exclusive_active: bool,
 }
 

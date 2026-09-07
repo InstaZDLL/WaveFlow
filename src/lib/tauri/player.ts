@@ -41,10 +41,12 @@ export interface PlayerStateSnapshot {
   /** True when the output is shipping native DSD via DoP (#495). */
   dop_active: boolean;
   /**
-   * True when the stream really owns the device (WASAPI Exclusive
-   * today). False on Linux / macOS and after a fallback to shared mode.
-   * What separates a bit-perfect stream from one the system mixer
-   * re-clocks on its way to the DAC.
+   * True when the stream really owns the device — WASAPI Exclusive on
+   * Windows, a raw ALSA `hw:` device on Linux, CoreAudio hog mode on
+   * macOS. This is what actually engaged, not the opt-in, so it is
+   * false after a silent fallback to shared mode. What separates a
+   * bit-perfect stream from one the system mixer re-clocks on its way
+   * to the DAC.
    */
   exclusive_active: boolean;
 }
