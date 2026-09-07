@@ -1,4 +1,4 @@
-# Passation — 2026-09-06
+# Passation — 2026-09-07
 
 Document de reprise roulant. Il décrit l'état du chantier au moment où il a
 été écrit, pas le produit : la documentation de produit vit dans
@@ -9,74 +9,59 @@ remplacé à chaque passation.
 
 ## 1. Où en est le travail
 
-`main` = `b550693b`, CI verte, **aucune issue ouverte** sur les quatre dépôts
+`main` = `fd61a631`, CI verte, **aucune issue ouverte** sur les quatre dépôts
 sauf `waveflow-android#32` (inclusion F-Droid).
 
 ### PR ouvertes
 
 | PR | Sujet | État |
 | --- | --- | --- |
-| **#486** | `chore(main): release 1.8.0` (release-please) | ouverte depuis la 1.7.0. **Ne jamais couper sans demande explicite.** |
-| **#577** | Sortie exclusive PCM sur Linux et macOS | **brouillon**, validée sur matériel |
+| **#486** | `chore(main): release 1.8.0` (release-please) | ouverte depuis la 1.7.0. **Ne jamais couper sans demande explicite.** Redemandé le 2026-09-07 : réponse « pas maintenant ». |
 
-### PR #577 en deux lignes
-
-La sortie exclusive existait sur Linux et macOS **pour le DoP uniquement** :
-un fichier DSD pouvait prendre le DAC en exclusif, un FLAC non. Le
-répartiteur le disait franchement — la branche `if exclusive` de
-`spawn_output_with_mode` était `#[cfg(target_os = "windows")]`, et partout
-ailleurs `let _ = exclusive;`. Les deux backends portent maintenant du PCM
-ordinaire.
-
-**Validé sur matériel réel, son entendu, sur les deux plateformes** :
-
-- **Linux** — la carte est réclamée à PipeWire par le protocole de
-  réservation, `S32_LE` négocié au taux du périphérique, latence correcte,
-  bascule en cours de lecture propre.
-- **macOS** — hog mode pris et rendu, AudioUnit au taux du périphérique, et
-  le périphérique redevient disponible aux autres applications à la mort du
-  processus (vérifié après un `SIGTERM`, donc sans passer par notre propre
-  libération).
-
-Au dernier point de contrôle : CI Windows et Frontend vertes, job Ubuntu
-encore en cours. **Vérifier `gh pr checks 577` avant de conclure quoi que ce
-soit** — le job Rust ubuntu est le seul qui exécute les tests du crate
-`app`, et il est déjà resté rouge sans que personne le voie.
-
-### Ce que #577 ne prétend pas
-
-Le taux d'échantillonnage reste une **préférence** côté PCM : on prend ce que
-le périphérique propose et le rééchantillonneur s'y adapte. C'est l'absence
-du mixeur système, **pas** le taux source honoré de bout en bout. Le mot
-« bit-perfect » a été retiré des libellés — il était déjà abusif sous
-Windows, où le backend ouvre au format de l'endpoint et laisse rubato
-convertir. Faire suivre le taux source impose de rouvrir le périphérique à
-chaque piste : c'est la phase suivante, et c'est elle qui rendrait le mot
+**#577 est mergée** (`fd61a631`, 2026-09-07) : sortie exclusive PCM sur Linux
+et macOS. Elle existait pour le DoP uniquement — un fichier DSD pouvait
+prendre le DAC en exclusif, un FLAC non. Validée sur matériel réel, son
+entendu, sur les deux plateformes. Ce qu'elle ne prétend pas : le taux
+d'échantillonnage reste une **préférence** côté PCM, c'est l'absence du
+mixeur système et **pas** le taux source honoré de bout en bout. Le mot
+« bit-perfect » a été retiré des libellés du réglage — la pastille du
+pipeline peut encore l'afficher, mais elle vérifie en plus l'égalité des
+taux. Faire suivre le taux source impose de rouvrir le périphérique à
+chaque piste : c'est le chantier suivant, et c'est lui qui rendrait le mot
 vrai.
 
----
+## 2. Ce qui est en cours
 
-## 2. La suite immédiate
+### 2.1 Deux alertes CodeQL ouvertes — le sujet du moment
 
-### 2.1 Fermer #577
+Les deux sont `rust/non-https-url`, gravité haute, ouvertes depuis ~2
+semaines. **Aucune des deux ne se corrige en forçant https.**
 
-1. Sortir du brouillon (déclenche le robot de revue — répondre aux fils
-   **avec une mention `@coderabbitai`**, sinon il ne voit jamais la réponse).
-2. Merger **sur demande explicite uniquement**.
+- **#23 — `core/src/artwork/motion_cache.rs:226`. Faux positif.**
+  `cache_mp4` rejette toute URL non-`https://` à son entrée (`is_safe_motion_url`,
+  qui refuse aussi loopback / privé / lien-local) **avant** le moindre accès
+  réseau ou disque, et chaque saut de redirection est revalidé par
+  `redirect_decision`. Les deux comportements sont couverts par des tests.
+  CodeQL ne relie simplement pas la garde au point d'appel.
+- **#24 — `app/src/audio/http_source.rs:268`. Capacité voulue.**
+  Ce chemin sert la Web Radio (les mounts Icecast / Shoutcast sont en clair
+  dans leur immense majorité) **et** le serveur WaveFlow distant, que les
+  utilisateurs hébergent couramment en HTTP sur leur réseau local
+  (`remote/playback.rs:294`). Forcer https casserait les deux
+  fonctionnalités. reqwest limite déjà les schémas à http/https, donc pas
+  de `file://` possible.
+
+Décision attendue : classer les deux avec ces justifications, ou
+restructurer #23 pour que la garde devienne structurelle (un type validé
+plutôt qu'un `return` anticipé) — sans garantie que CodeQL le voie.
 
 ### 2.2 Le cut 1.8.0
 
-Les bloqueurs avaient été arbitrés le 2026-08-30 : **underruns audio** et
-**audio exclusif ALSA / CoreAudio**.
-
-- Les **underruns sont écartés** (2026-09-06) : le symptôme venait d'un câble
-  HDMI défectueux qui faisait bégayer l'affichage des paroles, pas l'anneau
-  audio. Ce n'était pas un défaut de WaveFlow.
-- L'**audio exclusif** est traité par #577.
-
-Donc **plus aucun bloqueur arbitré ne reste ouvert** une fois #577 mergée.
-Cela ne veut pas dire « couper » : #486 attend une décision explicite, et
-elle seule.
+**Plus aucun bloqueur arbitré ne reste ouvert.** Les deux bloqueurs du
+2026-08-30 sont tombés : les **underruns** étaient un câble HDMI défectueux
+chez l'utilisateur, pas un défaut de WaveFlow ; l'**audio exclusif
+ALSA / CoreAudio** est livré par #577. Cela ne veut pas dire « couper » :
+#486 attend une décision explicite, et elle seule.
 
 Dettes réelles mais **non bloquantes**, à ne pas re-promouvoir sans
 arbitrage : rotation et révocation des jetons de synchronisation v2 (jamais
@@ -96,29 +81,34 @@ même être lancée en interface depuis une session SSH. **Les coordonnées
 d'accès sont dans la mémoire de l'agent, délibérément pas ici** — ce dépôt
 est public.
 
----
-
-## 3. Le chantier suivant : les reprises de l'audit croisé
+## 3. L'audit croisé — EN PAUSE
 
 Un audit croisé d'un lecteur concurrent (nommé uniquement dans la mémoire de
 l'agent — **consigne ferme de ne le citer nulle part** dans le code, les
 commits, les PR ou la documentation) avait produit trois rangs d'items.
 
-- **Rang 1 : clos.** PR #539 — 12 défauts dont trois pertes de données déjà
-  livrées : le genre du fichier effacé à l'enregistrement des propriétés, les
-  images intégrées détruites au changement de pochette, et les tags TXXX /
-  Vorbis non standard perdus par le `Tag` générique de lofty.
-- **ReplayGain aux standards : clos.** PR #545 — BS.1770-4 complet, mode
-  album explicitement reporté à une seconde PR.
-- **Restent 4 items rang 2 et 4 items rang 3.**
+**Décision du 2026-09-07 : on met le rang 2 de côté**, parce qu'il faudra
+d'abord repasser sur ce dépôt concurrent (il a bougé depuis la v0.2.1 sur
+laquelle l'audit a été fait). **Ne rien lancer du rang 2 sans que ce
+nouveau passage ait eu lieu.**
+
+- **Rang 1 : clos.** PR #539 — 12 défauts dont trois pertes de données.
+- **ReplayGain aux standards : clos.** PR #545 — BS.1770-4 complet.
+- **Restent 4 items rang 2 et 4 items rang 3**, plus un cinquième chantier
+  distinct :
+  **le mode album de ReplayGain**, explicitement reporté à une 2ᵉ PR lors de
+  l'arbitrage de #545 le 2026-08-24. Vérifié dans le code le 2026-09-07 :
+  `rg_album_gain_db` / `rg_album_peak` sont lues des tags et stockées par le
+  scanner, mais **rien ne les consomme à la lecture** — `TrackGain` ne porte
+  qu'un couple gain/peak et `audio/` n'a aucune occurrence de `album_gain`.
 
 ### Rang 2 — bon rapport valeur / effort
 
 1. **Rendre les dégradations visibles** — le backend réellement engagé
    affiché dans le lecteur (badge à 5 états), et un vrai retour d'erreur sur
    `player:error`, qui ne fait aujourd'hui qu'un `console.error`.
-   *Recommandation posée : suite logique de #539 et #545, tient en une PR,
-   défaut invisible tant qu'on ne le cherche pas.*
+   *Recommandation posée, et #577 la renforce : il y a maintenant trois
+   backends exclusifs capables de replier en silence.*
 2. **Sentinelle GPU et bascule logicielle** — filet générique pour ce que le
    correctif AppImage ne couvre pas. Peu coûteux, parce que le signal dont le
    mécanisme a besoin existe déjà (`app://ready`). À retenir : un plantage du
@@ -143,17 +133,9 @@ commits, les PR ou la documentation) avait produit trois rangs d'items.
    table latin-1. Prérequis : la sûreté d'écriture du rang 2.
 2. **Atelier de tags** — tableur, audit « à corriger », règles de nettoyage,
    renommage par motif, journal annulable. Plusieurs PR.
-3. **Exclusif PCM piloté par le taux SOURCE** — la phase suivante de #577,
-   décrite en 1. C'est le sens audiophile de « bit-perfect ».
+3. **Exclusif PCM piloté par le taux SOURCE** — **la moitié PCM est livrée
+   par #577** ; reste la négociation au taux source, décrite en 1.
 4. Mode contraste élevé ; barre d'état de tâches multiples avec annulation.
-
-### Blocage à lever avant de démarrer un item du rang 2
-
-L'utilisateur avait annoncé le 2026-08-24 vouloir **statuer sur autre chose
-d'abord**, sans préciser quoi. Reposé le 2026-09-06, toujours sans réponse.
-**Lui redemander avant de lancer quoi que ce soit du rang 2.**
-
----
 
 ## 4. Autres chantiers ouverts
 
@@ -176,7 +158,13 @@ d'abord**, sans préciser quoi. Reposé le 2026-09-06, toujours sans réponse.
 
 - **Refus silencieux hors bornes** : une année à 99999 passe la validation de
   la modale et meurt en 422 côté serveur. Le compteur des réglages dit qu'il
-  y a eu des refus, jamais lesquels ni pourquoi.
+  y a eu des refus, jamais lesquels ni pourquoi. **Même famille** : les
+  écritures de `profile_setting` sont best-effort dans 17 commandes de
+  `commands/player.rs` (`if let Ok(pool)` + `let _ = sqlx::query`) contre 11
+  qui propagent. Le partage est délibéré — best-effort là où le moteur a
+  **déjà** changé, propagation là où rien n'a encore eu lieu — mais un échec
+  d'écriture ne laisse aucune trace. À traiter en classe, sur les 17 sites,
+  pas un à la fois.
 - **Fin de RFC-006** : la génération par entité. Allégée par une découverte —
   la bijection complète absorbe déjà l'essentiel de l'ambiguïté, il ne reste
   que le cas étroit d'un ensemble entièrement examiné **puis** modifié.
@@ -185,49 +173,73 @@ d'abord**, sans préciser quoi. Reposé le 2026-09-06, toujours sans réponse.
 - Store de plugins phases 2 et 3 ; refonte des paroles traduites ; CI Gradle
   Android et inclusion F-Droid.
 
----
-
 ## 5. Pièges techniques appris récemment
+
+### La machine de développement Linux est partagée
+
+Elle a **11 Go de RAM et l'agent `waveflow-server` compile dessus en même
+temps** (ses `ld` prennent ~1 Go pièce). Un `cargo test --workspace` sur le
+crate `app` s'y fait tuer par le gestionnaire de mémoire, même en `-j 2`, et
+les tâches de fond sont tuées avec lui — y compris les veilleurs de CI, ce
+qui donne l'illusion d'un problème de CI. Réflexes : `free -g` avant toute
+compilation Rust ; ne jamais tuer les processus de l'autre agent ; valider
+par `cargo fmt --check` + `cargo clippy` (qui type-vérifie aussi les tests)
+et laisser les **tests** du crate `app` au job CI `Rust (ubuntu-latest)`,
+seul endroit où ils tournent de toute façon ; une vérification ponctuelle de
+la CI plutôt qu'un poller.
 
 ### Audio
 
 - **Ne jamais ouvrir un périphérique ALSA `hw:` sans demander une taille de
   période ET de tampon.** `HwParams::any` les laisse à ce que le pilote
-  offre, et `snd_pcm_hw_params` prend alors son **maximum** : période de
-  16 384 trames observée, et démarrage / recherche / changement de piste à
-  dix secondes. Second effet, moins visible : **une période est tirée de
-  l'anneau en une seule passe**, et ce que l'anneau ne fournit pas est écrit
-  en silence — une période valant les deux tiers de l'anneau rend l'underrun
-  normal plutôt qu'exceptionnel.
+  offre, et `snd_pcm_hw_params` prend alors son **maximum** pour les deux.
+  Mesuré sur `snd-dummy` : période de 16 384 trames — soit ~370 ms à
+  44,1 kHz — et un tampon assez profond pour que démarrer, chercher et
+  changer de piste prennent une dizaine de secondes. **Cette attente était le
+  tampon qui se vidait, pas la période.** La période a son propre effet, plus
+  discret : elle est tirée de l'anneau en une seule passe et ce que l'anneau
+  ne fournit pas est écrit en silence, ce qui rend l'underrun normal plutôt
+  qu'exceptionnel.
 - **ALSA et WASAPI alignent le 24 bits à l'envers l'un de l'autre.**
   `SND_PCM_FORMAT_S24_LE` place les 24 bits dans les trois octets **bas** du
   mot de 32 ; `WAVEFORMATEXTENSIBLE` dans les trois **hauts**. Recopier le
   décalage de l'autre backend multiplie chaque échantillon par 256 ; l'oubli
-  dans l'autre sens atténue de 48 dB. Les deux conventions coexistent dans le
-  même moteur, à deux fichiers d'écart.
+  dans l'autre sens atténue de 48 dB.
 - **Le hog mode macOS s'enregistre contre un PID**, il n'éjecte donc pas un
-  flux de notre propre processus. Le moteur ouvre le nouveau flux avant de
-  fermer l'ancien — ce qui marche sous Windows (l'endpoint saisi éjecte le
-  client partagé) et sous Linux (la réservation fait rendre la carte), mais
-  produisait sous macOS un AudioUnit qui ne rend rien : pas de son, et le
-  compteur de position gelé. La règle « libérer d'abord » couvre désormais ce
-  cas.
+  flux de notre propre processus. `must_release_before_reopening` répond
+  « libérer d'abord » dans **deux** cas, pas un : un flux sortant exclusif sur
+  n'importe quelle plateforme, **et** l'entrée en exclusif sous macOS depuis
+  un flux **partagé**. Windows et Linux n'ont pas besoin de cet
+  élargissement, ce qui explique que le cas macOS soit resté caché jusqu'à
+  l'arrivée du PCM en hog mode.
 - **Un underrun est aujourd'hui invisible** : anneau vide = `Err(_) => 0.0`
   dans le callback, sans compteur ni journal. Si le sujet revient,
-  instrumenter **avant** de corriger, sinon on corrige à l'aveugle et on ne
-  sait pas si ça a marché.
+  instrumenter **avant** de corriger.
 
 ### Méthode
 
+- **Vérifier chaque retour de revue contre le code, dans les deux sens.** Sur
+  les 7 findings du robot sur #577, 5 étaient réels et 2 non — et
+  inversement, une relecture de la PR avant sa sortie de brouillon a trouvé 4
+  écarts que le robot n'a pas vus (trois commentaires macOS périmés, un
+  commentaire de doc orphelin par insertion de fonction, un commentaire
+  décrivant un reniflage d'UA que la PR supprimait).
+- **La documentation ne suit pas toute seule.** #577 renommait un réglage,
+  ajoutait deux backends et retirait « bit-perfect » des libellés sans
+  toucher un seul fichier de doc. Vérifier `CLAUDE.md`, `docs/**` et le
+  README à chaque changement.
+- **Se méfier de ce document autant que du code.** Sa version précédente
+  attribuait les dix secondes de démarrage ALSA à la période ; le
+  commentaire source disait le contraire. Une passation recopiée n'est pas
+  une vérification.
 - **Exécuter les tests avant de les pousser, même quand la plateforme ne les
   exécute pas.** Les tests du crate `app` ne tournent pas sous Windows
-  (`STATUS_ENTRYPOINT_NOT_FOUND`, DLL Tauri), et un module `cfg(linux)` ne s'y
-  compile même pas. La parade qui a payé deux fois : extraire les fonctions
-  pures dans un **crate jetable du scratchpad** et les exécuter là. Sans ça,
-  trois tests avaient été poussés faux, chacun d'une manière différente.
+  (`STATUS_ENTRYPOINT_NOT_FOUND`, DLL Tauri), et un module `cfg(linux)` ne
+  s'y compile même pas. La parade : extraire les fonctions pures dans un
+  **crate jetable du scratchpad**.
 - **`sqlx::query` n'est pas vérifié à la compilation** (contrairement à
   `sqlx::query!`) : un nom de colonne faux survit à `cargo check` et à
-  clippy, et ne se manifeste qu'à l'exécution.
+  clippy.
 - **Un symptôme rapporté n'est pas un défaut localisé.** Un des deux
   bloqueurs 1.8.0 s'est révélé être du matériel défectueux chez
   l'utilisateur. Demander système, périphérique, moment et format avant
@@ -235,10 +247,7 @@ d'abord**, sans préciser quoi. Reposé le 2026-09-06, toujours sans réponse.
 - **APFS refuse un nom de fichier qui n'est pas de l'UTF-8 valide.** Un test
   `cfg(unix)` qui en crée un passe sous Linux et échoue sous macOS.
 - **`cargo fmt` n'est pas optionnel** : première étape du job Rust, invisible
-  pour `cargo check` comme pour clippy, et un fichier non formaté fait
-  échouer tout le job avant le moindre test.
-
----
+  pour `cargo check` comme pour clippy.
 
 ## 6. Règles de travail à respecter
 
@@ -251,6 +260,8 @@ d'abord**, sans préciser quoi. Reposé le 2026-09-06, toujours sans réponse.
   suite vitest ou jest, ne pas ouvrir d'issue de suivi pour ça.
 - **Pas de backticks dans `git commit -m`** : le shell les exécute et avale
   le mot. Passer par `git commit -F` ou un heredoc cité.
+- **Répondre aux fils du robot de revue avec une mention `@coderabbitai`**,
+  sinon il ne voit jamais la réponse et le fil reste ouvert.
 - **Ne pas valoriser les lecteurs concurrents**, en particulier ceux à source
   ouverte, et **ne jamais nommer** celui de l'audit croisé.
 - **Grouper les PR** plutôt que de les multiplier : le robot de revue est
