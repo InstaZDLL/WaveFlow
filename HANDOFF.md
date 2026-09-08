@@ -1,4 +1,4 @@
-# Passation — 2026-09-07
+# Passation — 2026-09-08
 
 Document de reprise roulant. Il décrit l'état du chantier au moment où il a
 été écrit, pas le produit : la documentation de produit vit dans
@@ -9,8 +9,26 @@ remplacé à chaque passation.
 
 ## 1. Où en est le travail
 
-`main` = `fd61a631`, CI verte, **aucune issue ouverte** sur les quatre dépôts
-sauf `waveflow-android#32` (inclusion F-Droid).
+`main` = `bbc1773a`, CI verte. **Zéro alerte de sécurité ouverte** (voir 2.1).
+
+### Issues ouvertes — toutes issues du triage des discussions
+
+| Issue | Sujet | État |
+| --- | --- | --- |
+| **#578** | arbre de dossiers dans la bibliothèque | `planned` |
+| **#579** | recherche chinoise par sous-chaîne + pinyin | `planned` |
+| **#580** | paroles dans le mini-lecteur (ouverte par jo-el414) | `planned` |
+| **#581** | lecture Opus | `planned` |
+| **#582** | fenêtre de paroles flottante | `status: stalled` |
+| **#583** | boutons de lecture sur la vignette de barre des tâches Windows | `planned` |
+
+Plus `waveflow-android#32` (inclusion F-Droid) sur l'autre dépôt.
+
+**Le triage des discussions est complet** : #557 → #578/#579, #519 → #581/#583
+(son 3ᵉ point, la détection du `.lrc` homonyme, était déjà livré), #503 → #582,
+#572 en `status: stalled` en attendant que son auteur teste ses touches
+multimédia, #488 et #344 en `implemented`. Les trois auteurs ont eu une
+réponse.
 
 ### PR ouvertes
 
@@ -32,28 +50,27 @@ vrai.
 
 ## 2. Ce qui est en cours
 
-### 2.1 Deux alertes CodeQL ouvertes — le sujet du moment
+### 2.1 Les deux alertes CodeQL sont classées — ne pas les rouvrir par réflexe
 
-Les deux sont `rust/non-https-url`, gravité haute, ouvertes depuis ~2
-semaines. **Aucune des deux ne se corrige en forçant https.**
+Les deux étaient `rust/non-https-url`, gravité haute. **Aucune ne se corrigeait
+en forçant https**, et les deux sont classées avec leur justification dans
+l'onglet sécurité. Si l'un de ces chemins change, l'alerte reviendra avec le
+raisonnement qui l'avait fermée.
 
-- **#23 — `core/src/artwork/motion_cache.rs:226`. Faux positif.**
-  `cache_mp4` rejette toute URL non-`https://` à son entrée (`is_safe_motion_url`,
-  qui refuse aussi loopback / privé / lien-local) **avant** le moindre accès
-  réseau ou disque, et chaque saut de redirection est revalidé par
+- **#23 — `core/src/artwork/motion_cache.rs:226` → faux positif.** `cache_mp4`
+  rejette toute URL non-`https://` à son entrée (`is_safe_motion_url`, qui
+  refuse aussi loopback / privé / lien-local) **avant** le moindre accès réseau
+  ou disque, et chaque saut de redirection est revalidé par
   `redirect_decision`. Les deux comportements sont couverts par des tests.
-  CodeQL ne relie simplement pas la garde au point d'appel.
-- **#24 — `app/src/audio/http_source.rs:268`. Capacité voulue.**
-  Ce chemin sert la Web Radio (les mounts Icecast / Shoutcast sont en clair
-  dans leur immense majorité) **et** le serveur WaveFlow distant, que les
-  utilisateurs hébergent couramment en HTTP sur leur réseau local
-  (`remote/playback.rs:294`). Forcer https casserait les deux
-  fonctionnalités. reqwest limite déjà les schémas à http/https, donc pas
-  de `file://` possible.
+  CodeQL ne relie pas la garde au point d'appel.
+- **#24 — `app/src/audio/http_source.rs:268` → *won't fix*.** Ce chemin sert la
+  Web Radio (les mounts Icecast / Shoutcast sont en clair dans leur immense
+  majorité) **et** le serveur WaveFlow distant, couramment hébergé en HTTP sur
+  un réseau local (`remote/playback.rs:294`). Le restreindre casserait les deux
+  fonctionnalités. reqwest limite déjà les schémas à http/https.
 
-Décision attendue : classer les deux avec ces justifications, ou
-restructurer #23 pour que la garde devienne structurelle (un type validé
-plutôt qu'un `return` anticipé) — sans garantie que CodeQL le voie.
+À noter : les 22 alertes précédentes du dépôt sont toutes en `fixed`. Ces deux
+là sont les premières écartées plutôt que corrigées.
 
 ### 2.2 Le cut 1.8.0
 
@@ -218,6 +235,15 @@ la CI plutôt qu'un poller.
 
 ### Méthode
 
+- **Une référence de mesure se vérifie comme le reste.** Le codec Opus (#581)
+  a été remesuré parce que quelqu'un a reproposé un décodeur pur-Rust. La
+  mesure précédente comparait au décodage de `ffmpeg -f f32le` — donc au
+  décodeur **natif** de ffmpeg, pas à libopus. Or le natif diverge lui-même de
+  libopus de **2,6 dB** sur du SILK, tout en s'accordant à 79,5 dB sur du CELT.
+  Une partie du verdict d'alors mesurait ffmpeg plutôt que le crate.
+  **Toujours `-c:a libopus` avant `-i`.** Le protocole complet est dans le
+  corps de #581, y compris le contrôle interne qui aurait dû alerter : si le
+  CELT n'atteint pas le plafond de la référence, c'est le harnais qui est faux.
 - **Vérifier chaque retour de revue contre le code, dans les deux sens.** Sur
   les 7 findings du robot sur #577, 5 étaient réels et 2 non — et
   inversement, une relecture de la PR avant sa sortie de brouillon a trouvé 4
@@ -262,6 +288,12 @@ la CI plutôt qu'un poller.
   le mot. Passer par `git commit -F` ou un heredoc cité.
 - **Répondre aux fils du robot de revue avec une mention `@coderabbitai`**,
   sinon il ne voit jamais la réponse et le fil reste ouvert.
+- **Répondre aux contributeurs en quelques lignes chaleureuses, pas en dossier
+  technique.** Quelqu'un qui relance en deux lignes amicales attend « c'est
+  retenu, et voilà pourquoi ta proposition compte » — pas des noms de hooks ni
+  des cadences d'événements. Le détail va dans le corps des issues qu'on écrit
+  soi-même (#578 à #583 en sont l'exemple), où il sert à qui va coder. Ne vaut
+  pas pour les fils de revue de code, où le détail est justement attendu.
 - **Ne pas valoriser les lecteurs concurrents**, en particulier ceux à source
   ouverte, et **ne jamais nommer** celui de l'audit croisé.
 - **Grouper les PR** plutôt que de les multiplier : le robot de revue est
