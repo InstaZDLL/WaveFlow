@@ -156,7 +156,12 @@ nouveau passage ait eu lieu.**
 
 ## 4. Autres chantiers ouverts
 
-### Demandes au serveur — le desktop est prêt, le serveur doit bouger
+### Demandes au serveur — désormais OUVERTES SUR SON DÉPÔT
+
+Elles ne vivaient que dans ce fichier, donc l'agent serveur n'en avait aucune
+trace. Ouvertes le 2026-09-08 : **waveflow-server#177** (le `PATCH`),
+**#178** (le watermark), **#179** (`/api/v2/songs`). Le détail reste ici parce
+que c'est le desktop qui en subit les conséquences.
 
 1. **Route « corrections brutes » de piste — la plus solide.** Le `PATCH` de
    piste est **wholesale** : le corps est l'ensemble complet des corrections,
@@ -168,8 +173,13 @@ nouveau passage ait eu lieu.**
    mentionne que le titre.
 2. **Watermark du flux d'événements non exposé** — le client ne peut pas
    savoir à quel point son curseur est proche du refus.
-3. `GET /api/v2/songs` exige un paramètre `genre` qui devrait être facultatif
-   (n'affecte pas le desktop).
+3. `GET /api/v2/songs` exige un paramètre `genre`, donc ne sait pas lister les
+   morceaux. Vérifié le 2026-09-08 : `("genre" = String, Query)` avec un `400
+   "genre is required"`, handler nommé `list_songs_by_genre`, alors que
+   `/songs/random` prend déjà `Option<String>`. Le vrai écart est entre le
+   chemin et l'intention — soit la route devient `/by-genre`, soit le
+   paramètre devient un filtre ; relâcher l'un sans renommer l'autre serait
+   pire que les deux. N'affecte pas le desktop.
 
 ### Desktop
 
