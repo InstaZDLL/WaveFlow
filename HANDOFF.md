@@ -182,6 +182,21 @@ nouveau passage ait eu lieu.**
   **déjà** changé, propagation là où rien n'a encore eu lieu — mais un échec
   d'écriture ne laisse aucune trace. À traiter en classe, sur les 17 sites,
   pas un à la fois.
+- **RFC-004 (base communautaire) : une question de provenance à trancher AVANT
+  de brancher le premier contributeur.** La RFC est écrite depuis juin, statut
+  Draft, et **rien n'est commencé** — zéro ligne de code des deux côtés,
+  vérifié. Elle raisonne sur des contributions **saisies par un humain**, motif
+  LRCLIB. Or le plan pour #584 est d'alimenter la base depuis un service **sous
+  licence** : ce n'est pas la même chose, et récupérer pour soi n'est pas
+  rediffuser à des gens qui n'ont pas d'abonnement. Le risque est concret parce
+  que la donnée est **identifiable à la source** — minutages au mot, chanteur
+  par ligne, chœurs marqués, clés de ligne : ça ne ressemble pas à des
+  transcriptions communautaires. Piste qui sauve l'essentiel de la valeur :
+  contribuer **l'alignement** et non le texte, le texte étant la partie
+  protégée et le minutage un fait sur l'enregistrement — un client qui a déjà
+  les paroles par LRCLIB ou par ses tags obtiendrait le karaoké au mot.
+  Précédent interne : la RFC a déjà repoussé `cover_art` en v2 pour revue
+  juridique, donc le réflexe existe, il faut juste l'appliquer à ce cas.
 - **Fin de RFC-006** : la génération par entité. Allégée par une découverte —
   la bijection complète absorbe déjà l'essentiel de l'ambiguïté, il ne reste
   que le cas étroit d'un ensemble entièrement examiné **puis** modifié.
