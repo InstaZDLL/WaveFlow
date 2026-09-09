@@ -170,31 +170,26 @@ l'agent :
 | Mode contraste élevé | **#596** |
 | Atelier de tags | **#589** pour la moitié « inventaire » seulement |
 
-**Cinq items n'ont AUCUNE issue.** Ce ne sont pas des oublis mais ils ne sont
-tracés nulle part ailleurs qu'ici :
+**Les cinq derniers ont été ouverts le 2026-09-09** — ils étaient passés à
+travers parce que le rapport de rescan était cadré en « qu'ont-ils que nous
+n'avons pas », et que trois d'entre eux sont des constats sur **notre** code
+plutôt que des fonctionnalités à reprendre :
 
-1. **Rendre les dégradations visibles** — le backend réellement engagé affiché
-   dans le lecteur (badge à 5 états) et un vrai retour d'erreur sur
-   `player:error`, qui ne fait aujourd'hui qu'un `console.error`. C'était la
-   recommandation n° 1 de l'audit d'août, et #577 l'a renforcée : il y a
-   maintenant **trois** backends exclusifs capables de replier en silence.
-2. **Sûreté d'écriture fichier** — `sync_all()` avant renommage, report des
-   permissions, levée temporaire de l'attribut lecture seule sous Windows,
-   réessais anti-antivirus. **À ne pas confondre avec #590**, qui traite la
-   *vitesse* d'écriture (en place plutôt que réécriture) et non sa *robustesse*.
-   Les deux sont des préalables du travail par lot, pour des raisons
-   différentes.
-3. **Récupération de tags en ligne avec écran de revue.** Partir de leur module
-   d'appariement (385 lignes, agnostique de la source) : trois indices pondérés
-   — titre 0,60 / durée 0,25 / numéro 0,15 —, donnée absente = 0,5 et non 0,
-   affectation gloutonne globale où chaque piste distante est consommée une
-   seule fois (ce qui empêche « Intro » de capturer un autre morceau), seuils
-   0,85 sûr et 0,55 douteux. **Porter sur notre `normalize_name`**, qui gère les
-   marques combinantes NFD mieux que leur table latin-1. Prérequis : l'item 2.
-4. **Exclusif PCM piloté par le taux SOURCE** — la moitié PCM est livrée par
-   #577 ; reste de rouvrir le périphérique au taux de chaque piste. C'est ce qui
-   rendrait le mot « bit-perfect » vrai.
-5. **Barre d'état de tâches multiples avec annulation.**
+| Item d'origine | Devenu |
+| --- | --- |
+| Rendre les dégradations visibles | **#597** |
+| Sûreté d'écriture fichier | **#598** — à ne pas confondre avec #590 |
+| Récupération de tags en ligne avec écran de revue | **#599** |
+| Exclusif PCM piloté par le taux source | **#600** |
+| Barre de tâches multiples avec annulation | **#601** |
+
+**#590 traite la *vitesse* d'écriture, #598 sa *robustesse*.** Les deux sont des
+préalables du travail par lot, pour des raisons différentes, et les confondre
+ferait croire le second couvert par le premier.
+
+**Il ne reste donc plus rien des rangs 2 et 3 sans issue**, à une exception
+assumée : l'atelier de tags complet, dont seule la moitié « inventaire » est
+ouverte (#589), le reste dépendant de #590 et #598.
 
 ## 4. Autres chantiers ouverts
 
