@@ -11,9 +11,9 @@
 //!   dialog to show pre-computed values without re-running the
 //!   analysis on every open.
 //! - `analyze_library`: iterates over every available track whose
-//!   measurements are missing *or* were produced by a superseded pass
-//!   (`analysis_version IS NULL`), emitting progress events the UI can
-//!   wire to a progress bar.
+//!   measurements are missing *or* were produced by a pass older than
+//!   [`ANALYSIS_VERSION`], emitting progress events the UI can wire to
+//!   a progress bar.
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -277,21 +277,31 @@ pub async fn run_analyze_library(
     ANALYSIS_CANCEL.store(false, Ordering::SeqCst);
     let _guard = RunningGuard;
 
-    // Never measured, or measured by a pass whose numbers we no longer
-    // trust. A versionless row is the second case: its peak came from a
-    // mono downmix, and until it is re-measured clipping prevention has
-    // to refuse the boost that peak appears to allow. Re-measuring is
-    // the only thing that lifts that restriction, so the sweep has to
-    // pick those rows up — but it still never *deletes* one, which was
-    // the decision taken when #545 shipped.
+    // Never measured, or measured by a pass older than the current one.
+    // A versionless row is the case this was built for: its peak came
+    // from a mono downmix, and until it is re-measured clipping
+    // prevention has to refuse the boost that peak appears to allow.
+    // Re-measuring is the only thing that lifts that restriction, so
+    // the sweep has to pick those rows up — but it still never
+    // *deletes* one, which was the decision taken when #545 shipped.
+    //
+    // Strictly older, not merely different: a profile carried back from
+    // a build ahead of this one holds measurements we have no better
+    // replacement for, and re-running an older analyzer over them would
+    // downgrade the data. Playback stays safe in that case anyway —
+    // `fetch_replay_gain` distrusts any version it doesn't recognise.
+    // NULL needs its own arm because `NULL < ?` is NULL, not true.
     let pending: Vec<(i64, String)> = sqlx::query_as(
         "SELECT t.id, t.file_path
            FROM track t
            LEFT JOIN track_analysis ta ON ta.track_id = t.id
           WHERE t.is_available = 1
-            AND (ta.track_id IS NULL OR ta.analysis_version IS NULL)
+            AND (ta.track_id IS NULL
+                 OR ta.analysis_version IS NULL
+                 OR ta.analysis_version < ?)
           ORDER BY t.id",
     )
+    .bind(ANALYSIS_VERSION)
     .fetch_all(pool)
     .await?;
 

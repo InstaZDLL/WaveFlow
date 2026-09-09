@@ -17,6 +17,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::{
+    analysis::ANALYSIS_VERSION,
     audio::{engine::AudioCmd, replay_gain::TrackGain, state::SharedPlayback, AudioEngine},
     error::{AppError, AppResult},
     paths::AppPaths,
@@ -71,16 +72,21 @@ pub(crate) async fn fetch_replay_gain(pool: &sqlx::SqlitePool, track_id: i64) ->
         TrackGain {
             gain_db: analysis_gain,
             peak: analysis_peak,
-            // A row with no version predates the column, so its peak
-            // came from the mono downmix the pass used before #545 and
-            // reads lower than the real one. Clipping prevention takes
-            // it as a lower bound instead of a measurement, and the
-            // library sweep will re-measure the row when it next runs.
+            // Anything that is not the generation we know, we cannot
+            // vouch for. NULL is the case this was built for — a row
+            // predating the column, whose peak came from the mono
+            // downmix used before #545 and reads lower than the real
+            // one. But the test is deliberately not `is_none()`: a row
+            // left by a *different* version is equally unaccounted for,
+            // whether older (a bump we made) or newer (a profile
+            // restored from a build ahead of this one). Clipping
+            // prevention then reads the peak as a lower bound rather
+            // than a measurement.
             //
             // `LEFT JOIN` also yields NULL when there is no analysis row
             // at all — harmless, because `peak` is then NULL too and the
             // flag never gets read.
-            peak_unverified: analysis_version.is_none(),
+            peak_unverified: analysis_version != Some(ANALYSIS_VERSION),
         },
     )
 }
