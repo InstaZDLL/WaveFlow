@@ -9,9 +9,9 @@ remplacé à chaque passation.
 
 ## 1. Où en est le travail
 
-`main` = `319a6996`, CI verte. **Zéro alerte de sécurité ouverte** (voir 2.1).
+`main` = `bbdf7bb1`, CI verte. **Zéro alerte de sécurité ouverte** (voir 2.1).
 
-### Issues ouvertes — 19, toutes en `planned` sauf #582
+### Issues ouvertes — 22, toutes en `planned` sauf #582
 
 **Aucune n'est commencée.** « planned » veut dire triée, pas entamée.
 
@@ -21,7 +21,6 @@ Issues du triage des discussions (2026-09-07/08) :
 | --- | --- |
 | **#578** | arbre de dossiers dans la bibliothèque |
 | **#579** | recherche chinoise par sous-chaîne + pinyin |
-| **#580** | paroles dans le mini-lecteur (ouverte par jo-el414) |
 | **#581** | lecture Opus |
 | **#582** | fenêtre de paroles flottante — `status: stalled` |
 | **#583** | boutons de lecture sur la vignette de barre des tâches Windows |
@@ -32,8 +31,7 @@ Issues nées de l'analyse audio (2026-09-08) :
 
 | Issue | Sujet |
 | --- | --- |
-| **#586** | les vieilles lignes d'analyse peuvent défaire l'anti-écrêtage — `bug` |
-| **#587** | mode album de ReplayGain |
+| **#587** | mode album de ReplayGain — **héritera de `peak_unverified`, voir plus bas** |
 
 Issues du rescan de l'audit croisé (2026-09-09, voir §3) :
 
@@ -48,6 +46,16 @@ Issues du rescan de l'audit croisé (2026-09-09, voir §3) :
 | **#594** | filtrage des alias ALSA virtuels |
 | **#595** | repli en rendu logiciel après un plantage GPU au démarrage |
 | **#596** | mode contraste élevé |
+
+Issues nées de la relecture de ce rapport (2026-09-09, voir §3) :
+
+| Issue | Sujet |
+| --- | --- |
+| **#597** | rendre les dégradations de lecture visibles au lieu de les journaliser |
+| **#598** | écritures fichier qui survivent à l'interruption, aux droits et à l'antivirus |
+| **#599** | récupération de tags en ligne avec écran de revue — dépend de #598 |
+| **#600** | sortie exclusive rouverte au taux source de chaque piste |
+| **#601** | barre de tâches longues, avec annulation |
 
 Plus `waveflow-android#32` (inclusion F-Droid) et **trois issues serveur** —
 `waveflow-server#177` (le `PATCH` wholesale, seule à perdre des données), `#178`
@@ -64,6 +72,44 @@ réponse.
 | PR | Sujet | État |
 | --- | --- | --- |
 | **#486** | `chore(main): release 1.8.0` (release-please) | ouverte depuis la 1.7.0. **Ne jamais couper sans demande explicite.** Redemandé le 2026-09-07 : réponse « pas maintenant ». |
+
+### Livré le 2026-09-09 — les deux premières issues de la liste
+
+Ce sont les seules entamées à ce jour ; les 22 restantes ne le sont pas.
+
+**#580 — paroles dans le mini-lecteur** (PR #602, ouverte par jo-el414). Une
+bascule `Mic2` dans la barre du haut ouvre les paroles dans le créneau que la
+file d'attente occupait déjà. Trois décisions qui ne se lisent pas dans le
+diff :
+
+- **L'overlay n'est monté que quand il est ouvert.** Le mini-lecteur est une
+  **seconde webview** : son instance de `useTrackLyrics` est une requête
+  réellement distincte, pas un second consommateur de celle de la fenêtre
+  principale. Le laisser monté derrière un overlay fermé aurait déclenché un
+  `fetch_lyrics` de plus par piste, pour des paroles que personne ne regarde.
+- **Un seul créneau d'état** (`"none" | "queue" | "lyrics"`) au lieu d'un
+  booléen par panneau : les deux couvrent la même zone, deux drapeaux
+  indépendants les laissaient s'empiler. Effet de bord : la zone
+  pochette/titre/seek passe `inert` quel que soit l'overlay ouvert, alors que
+  la file ne le faisait qu'en lecture locale.
+- **Le mot actif prend le remplissage karaoké progressif**, via
+  `useKaraokeWordFill`. Le panneau latéral garde volontairement la version
+  discrète — c'est une bande à côté d'autre chose ; le mini-lecteur est une
+  surface de lecture dédiée.
+
+**#586 — un pic mesuré par l'analyse périmée n'est plus cru** (PR #603).
+`track_analysis` porte désormais `analysis_version`, écrit par les deux chemins
+de persistance depuis une constante posée à côté de `analyze_file`. Les lignes
+antérieures lisent `NULL`, ce qui était exactement le signal manquant.
+`TrackGain::peak_unverified` marque leur pic, et le limiteur le lit comme une
+**borne inférieure** : plafond à 0 dB donc aucune amplification ne survit, mais
+l'atténuation réclamée passe intégralement — un downmix qui dépasse déjà le
+pleine échelle décrit un master qui écrête encore plus fort. Le balayage
+reprend ces lignes pour qu'elles guérissent en étant re-mesurées ; il n'en
+supprime toujours aucune, décision prise à #545 et non rouverte. La note de
+`library.md` qui prétendait que l'écart résiduel était « borné par la
+prévention d'écrêtage de toute façon » est corrigée : elle était fausse pour la
+valeur dont cette prévention est **calculée**.
 
 **#577 est mergée** (`fd61a631`, 2026-09-07) : sortie exclusive PCM sur Linux
 et macOS. Elle existait pour le DoP uniquement — un fichier DSD pouvait
@@ -158,7 +204,10 @@ l'agent :
 - **Rang 1 : clos.** PR #539 — 12 défauts dont trois pertes de données.
 - **ReplayGain aux standards : clos.** PR #545 — BS.1770-4 complet. Son mode
   album, reporté à une 2ᵉ PR le 2026-08-24, est maintenant **#587** ; la
-  fraîcheur des vieilles lignes d'analyse est **#586**.
+  fraîcheur des vieilles lignes d'analyse était **#586**, **livrée** (PR #603).
+  #587 en hérite : le mode album doit plafonner avec le pic **d'album**, qui a
+  exactement le même problème de fraîcheur dès qu'il est mesuré plutôt que lu
+  dans un tag.
 
 ### Ce que les rangs 2 et 3 sont devenus — et ce qui reste sans issue
 
@@ -328,6 +377,21 @@ la CI plutôt qu'un poller.
 - **`sqlx::query` n'est pas vérifié à la compilation** (contrairement à
   `sqlx::query!`) : un nom de colonne faux survit à `cargo check` et à
   clippy.
+- **Un marqueur de version testé contre `NULL` seul se désarme au premier
+  bump.** Les deux sites de #586 comparaient `analysis_version IS NULL` :
+  comportement identique en l'état, puisque `NULL` est la seule autre valeur
+  qui existe — et identique pour toujours, ce qui était le défaut. Un passage
+  de la constante à `2` aurait laissé les lignes en version 1 ni re-balayées ni
+  méfiées, alors que le doc-commentaire de cette constante dit justement de la
+  bumper. **Comparer à la constante**, et pas symétriquement : la **lecture**
+  se méfie de toute génération inconnue (`!= Some(V)`, plus ancienne comme plus
+  récente — refuser une amplification ne coûte rien quand on se trompe), la
+  **ré-écriture** ne reprend que le strictement plus ancien (`IS NULL OR < V`)
+  pour ne pas écraser les mesures d'un profil rapatrié d'un build plus récent.
+  `NULL` garde toujours sa propre branche : `NULL < ?` vaut `NULL`, pas vrai.
+  La vérification qui prouve le point : monter la constante d'un cran dans une
+  requête jetée sur une vraie base, et voir l'ancienne génération redevenir
+  éligible.
 - **Un symptôme rapporté n'est pas un défaut localisé.** Un des deux
   bloqueurs 1.8.0 s'est révélé être du matériel défectueux chez
   l'utilisateur. Demander système, périphérique, moment et format avant
