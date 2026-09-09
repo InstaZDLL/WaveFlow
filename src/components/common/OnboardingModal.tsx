@@ -142,8 +142,7 @@ type ScanState =
   | { kind: "error"; message: string };
 
 /**
- * Multi-step first-run wizard. Inspired by Lokal's onboarding flow,
- * adapted to WaveFlow's feature set:
+ * Multi-step first-run wizard, shaped around WaveFlow's feature set:
  *
  *   1. welcome   — branding + skip-or-start
  *   2. language  — confirm the auto-detected UI language with a green
