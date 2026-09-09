@@ -1127,6 +1127,9 @@
       "toggle": "Cola de reproducción",
       "title": "A continuación · {{count}}",
       "empty": "Nada más en la cola"
+    },
+    "lyrics": {
+      "empty": "No hay letra para esta canción"
     }
   },
   "sleepTimer": {

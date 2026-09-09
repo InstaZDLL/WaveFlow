@@ -1127,6 +1127,9 @@
       "toggle": "Wachtrij",
       "title": "Volgende · {{count}}",
       "empty": "Niets meer in de wachtrij"
+    },
+    "lyrics": {
+      "empty": "Geen songtekst voor dit nummer"
     }
   },
   "sleepTimer": {

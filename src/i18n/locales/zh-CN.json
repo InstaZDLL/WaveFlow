@@ -1127,6 +1127,9 @@
       "toggle": "播放队列",
       "title": "即将播放 · {{count}}",
       "empty": "队列中没有其他内容"
+    },
+    "lyrics": {
+      "empty": "此曲目没有歌词"
     }
   },
   "sleepTimer": {
