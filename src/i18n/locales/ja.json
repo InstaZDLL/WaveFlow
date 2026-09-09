@@ -1127,6 +1127,9 @@
       "toggle": "再生キュー",
       "title": "次に再生 · {{count}}",
       "empty": "キューには他に何もありません"
+    },
+    "lyrics": {
+      "empty": "この曲の歌詞はありません"
     }
   },
   "sleepTimer": {

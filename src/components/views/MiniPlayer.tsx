@@ -1,4 +1,5 @@
 import {
+  Fragment,
   useCallback,
   useEffect,
   useMemo,
@@ -22,6 +23,7 @@ import {
   Repeat1,
   Shuffle,
   ListMusic,
+  Mic2,
   Radio,
   Volume1,
   Volume2,
@@ -32,6 +34,8 @@ import { Window as TauriWindow } from "@tauri-apps/api/window";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useLikedTracks } from "../../hooks/useLikedTracks";
+import { useTrackLyrics } from "../../hooks/useTrackLyrics";
+import { useKaraokeWordFill } from "../../hooks/useKaraokeWordFill";
 import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
 import {
   isRadioTrack,
@@ -100,13 +104,19 @@ export function MiniPlayer() {
     if (currentTrack) void toggleLike(currentTrack.id);
   };
 
+  // ── Content overlays (one slot, not a flag each) ────────────────
+  // Up-next and lyrics both cover the whole content area, so two
+  // independent booleans would let them stack. Mirrors how
+  // `PlayerContext` mutexes the main window's three right-edge panels.
+  const [overlay, setOverlay] = useState<MiniOverlay>("none");
+  const showQueue = overlay === "queue";
+
   // ── Up-next queue (own webview = own fetch + event subscription) ─
   // Mirrors QueuePanel: load once, refetch on `player:queue-changed`,
   // guarded by a seq counter so overlapping refetches (rapid Next)
   // never resolve out of order. Spotify playback uses a different
   // queue source, so the panel is local-library only — matching how
   // the like button is gated above.
-  const [showQueue, setShowQueue] = useState(false);
   const [queue, setQueue] = useState<PlayerQueueSnapshot | null>(null);
   const queueSeqRef = useRef(0);
 
@@ -325,10 +335,11 @@ export function MiniPlayer() {
   const displayMs = dragMs ?? positionMs;
   const progressPct = durationMs > 0 ? (displayMs / durationMs) * 100 : 0;
 
-  // When the up-next overlay is open it visually covers the cover /
-  // title / seek controls — mark that subtree inert so keyboard and
-  // screen-reader focus can't reach the hidden buttons behind it.
-  const contentInert = showQueue && !isSpotify;
+  // An open overlay visually covers the cover / title / seek controls —
+  // mark that subtree inert so keyboard and screen-reader focus can't
+  // reach the hidden buttons behind it. The up-next list is gated on
+  // local playback, so a Spotify session never actually renders it.
+  const contentInert = overlay === "lyrics" || (showQueue && !isSpotify);
 
   return (
     <div
@@ -380,10 +391,28 @@ export function MiniPlayer() {
           ))}
         </div>
         <div className="flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() =>
+              setOverlay((v) => (v === "lyrics" ? "none" : "lyrics"))
+            }
+            aria-label={t("lyrics.title")}
+            title={t("lyrics.title")}
+            aria-pressed={overlay === "lyrics"}
+            className={`p-1 rounded-full transition-colors ${
+              overlay === "lyrics"
+                ? "text-emerald-400 hover:bg-white/10"
+                : "text-white/60 hover:text-white hover:bg-white/10"
+            }`}
+          >
+            <Mic2 size={12} />
+          </button>
           {!isSpotify && (
             <button
               type="button"
-              onClick={() => setShowQueue((v) => !v)}
+              onClick={() =>
+                setOverlay((v) => (v === "queue" ? "none" : "queue"))
+              }
               aria-label={t("miniPlayer.upNext.toggle")}
               title={t("miniPlayer.upNext.toggle")}
               aria-pressed={showQueue}
@@ -592,7 +621,7 @@ export function MiniPlayer() {
             </span>
             <button
               type="button"
-              onClick={() => setShowQueue(false)}
+              onClick={() => setOverlay("none")}
               aria-label={t("common.close")}
               className="p-1 -mr-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
             >
@@ -628,6 +657,192 @@ export function MiniPlayer() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Lyrics overlay — same slot as up-next, mutually exclusive with
+          it. Mounted only while open (see the component's note). */}
+      {overlay === "lyrics" && (
+        <MiniLyricsOverlay onClose={() => setOverlay("none")} />
+      )}
+    </div>
+  );
+}
+
+/** The mini-player's content area holds one full-cover overlay at a time. */
+type MiniOverlay = "none" | "queue" | "lyrics";
+
+/**
+ * Lyrics inside the mini-player (issue #580).
+ *
+ * **Mounted only while open, and that is the point.** `useTrackLyrics`
+ * fetches on every track change, so keeping it mounted behind a closed
+ * overlay would fire a second `fetch_lyrics` per track from this webview
+ * on top of the main window's. Unmounting means the cost lands only when
+ * the user actually asked for lyrics, and the backend cache absorbs the
+ * overlap when both surfaces are open at once.
+ *
+ * The window defaults to 280x380 and can be dragged down to 240x320, so
+ * there is no room for the side panel's source label, provider picker or
+ * the import / refetch / clear actions. Those stay in the main window —
+ * this is a reading surface, not an editing one.
+ */
+function MiniLyricsOverlay({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
+  const { currentTrack } = usePlayer();
+  const {
+    payload,
+    isFetching,
+    error,
+    lrcLines,
+    isSynced,
+    radioPlainText,
+    activeIndex,
+    activeWordIndex,
+    seekToLine,
+  } = useTrackLyrics();
+
+  // Auto-scroll is view-local by the hook's contract: it owns
+  // `activeIndex`, each consumer scrolls its own nodes. This one has its
+  // own scroller, so it needs its own ref array.
+  const lineRefs = useRef<Array<HTMLLIElement | null>>([]);
+  useEffect(() => {
+    if (!isSynced || activeIndex < 0) return;
+    lineRefs.current[activeIndex]?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }, [activeIndex, isSynced]);
+
+  // Progressive word fill on the active word only — the same hook the
+  // immersive column uses, so the sweep stays continuous between the
+  // 4 Hz `player:position` events instead of stepping every 250 ms.
+  const wordFillRef = useKaraokeWordFill(
+    isSynced ? lrcLines[activeIndex]?.words?.[activeWordIndex] : undefined,
+  );
+
+  // Plain text covers three cases that all render the same way: an
+  // unsynced payload, a radio session (whose position can't align to a
+  // song joined mid-play, so the hook hands back a timestamp-stripped
+  // read), and a synced payload we failed to parse into lines.
+  const plainText =
+    radioPlainText ?? (isSynced ? null : (payload?.content ?? null));
+
+  return (
+    <div className="absolute inset-x-0 bottom-0 top-7 z-20 flex flex-col bg-black/55 backdrop-blur-md animate-fade-in">
+      <div className="flex items-center justify-between px-3 py-2 shrink-0">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">
+          {t("lyrics.title")}
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={t("common.close")}
+          className="p-1 -mr-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+        >
+          <X size={13} />
+        </button>
+      </div>
+
+      {currentTrack == null ? (
+        <div className="flex-1 flex items-center justify-center px-4 text-center text-[11px] text-white/50">
+          {t("lyrics.noTrack")}
+        </div>
+      ) : isFetching && !payload ? (
+        <div className="flex-1 flex items-center justify-center px-4 text-center text-[11px] text-white/50">
+          {t("lyrics.loading")}
+        </div>
+      ) : error ? (
+        <div className="flex-1 flex items-center justify-center px-4 text-center text-[11px] text-white/50">
+          {t("lyrics.fetchError")}
+        </div>
+      ) : isSynced && lrcLines.length > 0 ? (
+        <ul className="flex-1 overflow-y-auto scrollbar-hide px-3 pb-3 space-y-1.5">
+          {lrcLines.map((line, index) => {
+            const isActive = index === activeIndex;
+            const isPast = activeIndex >= 0 && index < activeIndex;
+            const hasWords = isActive && (line.words?.length ?? 0) > 0;
+            return (
+              <li
+                key={`${line.timeMs}-${index}`}
+                ref={(el) => {
+                  lineRefs.current[index] = el;
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => seekToLine(line)}
+                  className={`block w-full text-left text-xs leading-snug rounded transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/70 ${
+                    isActive
+                      ? "text-white font-semibold"
+                      : isPast
+                        ? "text-white/35"
+                        : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  {hasWords ? (
+                    <span>
+                      {line.words!.map((word, wi) => {
+                        const isActiveWord = wi === activeWordIndex;
+                        // A literal space between boxes: `inline-block`
+                        // strips the JSX whitespace, and many Enhanced
+                        // LRC sources omit spaces between word stamps.
+                        return (
+                          <Fragment key={wi}>
+                            <span className="karaoke-word">
+                              {/* Opacity lives on the layers, never on
+                                  the box — a parent's opacity applies to
+                                  its whole subtree, so dimming the box
+                                  would dim the sung overlay with it and
+                                  no fill could ever read as brighter. */}
+                              <span
+                                style={{
+                                  opacity:
+                                    wi < activeWordIndex
+                                      ? 0.8
+                                      : isActiveWord
+                                        ? 0.5
+                                        : 0.45,
+                                  transition: "opacity 150ms ease",
+                                }}
+                              >
+                                {word.text}
+                              </span>
+                              {isActiveWord && (
+                                // `aria-hidden` because the base layer
+                                // already carries the text — without it
+                                // a screen reader reads the word twice.
+                                <span
+                                  ref={wordFillRef}
+                                  aria-hidden="true"
+                                  className="karaoke-word__fill"
+                                >
+                                  {word.text}
+                                </span>
+                              )}
+                            </span>
+                            {wi < line.words!.length - 1 && " "}
+                          </Fragment>
+                        );
+                      })}
+                    </span>
+                  ) : (
+                    line.text || " "
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : plainText ? (
+        <div className="flex-1 overflow-y-auto scrollbar-hide px-3 pb-3">
+          <p className="text-xs leading-relaxed text-white/75 whitespace-pre-line">
+            {plainText}
+          </p>
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center px-4 text-center text-[11px] text-white/50">
+          {t("miniPlayer.lyrics.empty")}
         </div>
       )}
     </div>
@@ -844,7 +1059,9 @@ function MiniVolume({
         aria-label={
           volume === 0 ? t("player.volume.unmute") : t("player.volume.mute")
         }
-        title={volume === 0 ? t("player.volume.unmute") : t("player.volume.mute")}
+        title={
+          volume === 0 ? t("player.volume.unmute") : t("player.volume.mute")
+        }
         className="p-1 -m-1 shrink-0 rounded-full text-white/80 hover:text-white transition-colors"
       >
         <Icon size={14} />

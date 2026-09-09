@@ -1127,6 +1127,9 @@
       "toggle": "Antrean",
       "title": "Berikutnya · {{count}}",
       "empty": "Tidak ada lagi di antrean"
+    },
+    "lyrics": {
+      "empty": "Tidak ada lirik untuk lagu ini"
     }
   },
   "sleepTimer": {

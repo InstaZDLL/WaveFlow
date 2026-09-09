@@ -1127,6 +1127,9 @@
       "toggle": "Up next queue",
       "title": "Up next · {{count}}",
       "empty": "Nothing else in the queue"
+    },
+    "lyrics": {
+      "empty": "No lyrics for this track"
     }
   },
   "sleepTimer": {

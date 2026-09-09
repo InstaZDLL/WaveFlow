@@ -1127,6 +1127,9 @@
       "toggle": "재생 대기열",
       "title": "다음 트랙 · {{count}}",
       "empty": "대기열에 더 이상 없습니다"
+    },
+    "lyrics": {
+      "empty": "이 트랙의 가사가 없습니다"
     }
   },
   "sleepTimer": {

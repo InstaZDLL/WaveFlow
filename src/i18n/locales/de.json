@@ -1127,6 +1127,9 @@
       "toggle": "Warteschlange",
       "title": "Als Nächstes · {{count}}",
       "empty": "Nichts weiter in der Warteschlange"
+    },
+    "lyrics": {
+      "empty": "Kein Songtext für diesen Titel"
     }
   },
   "sleepTimer": {

@@ -179,7 +179,7 @@ interface SettingsViewProps {
 
 /**
  * Settings categories — surfaced as a horizontal tab bar at the top
- * of the page (Lokal-style). Only one section is mounted at a time
+ * of the page. Only one section is mounted at a time
  * so heavy subviews (EQ visualizer, backup card, shortcuts editor)
  * don't run their effects until the user actually opens that tab.
  */
@@ -1944,7 +1944,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         </div>
       </div>
 
-      {/* Category tabs (Lokal-style). Horizontal pill bar that
+      {/* Category tabs. Horizontal pill bar that
           swaps which section is visible. The mounted-on-demand model
           keeps heavy effects (EQ spectrum, backup card, shortcuts
           editor) idle until the user actually opens their tab. */}
