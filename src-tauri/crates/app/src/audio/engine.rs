@@ -1869,6 +1869,7 @@ mod radio_resume_tests {
             replay_gain: TrackGain {
                 gain_db: Some(-4.0),
                 peak: None,
+                peak_unverified: false,
             },
         }
     }

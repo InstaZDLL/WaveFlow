@@ -10,9 +10,10 @@
 //! - `get_track_analysis`: cheap lookup, used by the Properties
 //!   dialog to show pre-computed values without re-running the
 //!   analysis on every open.
-//! - `analyze_library`: iterates over every available track that
-//!   doesn't have a `track_analysis` row yet, emitting progress
-//!   events the UI can wire to a progress bar.
+//! - `analyze_library`: iterates over every available track whose
+//!   measurements are missing *or* were produced by a superseded pass
+//!   (`analysis_version IS NULL`), emitting progress events the UI can
+//!   wire to a progress bar.
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -24,7 +25,7 @@ use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::{
-    analysis::{analyze_file, AnalysisResult},
+    analysis::{analyze_file, AnalysisResult, ANALYSIS_VERSION},
     error::{AppError, AppResult},
     state::AppState,
 };
@@ -189,14 +190,15 @@ pub async fn analyze_track(
     sqlx::query(
         "INSERT INTO track_analysis
             (track_id, bpm, musical_key, loudness_lufs, replay_gain_db,
-             peak, analyzed_at)
-         VALUES (?, ?, NULL, ?, ?, ?, ?)
+             peak, analyzed_at, analysis_version)
+         VALUES (?, ?, NULL, ?, ?, ?, ?, ?)
          ON CONFLICT(track_id) DO UPDATE SET
-            bpm            = excluded.bpm,
-            loudness_lufs  = excluded.loudness_lufs,
-            replay_gain_db = excluded.replay_gain_db,
-            peak           = excluded.peak,
-            analyzed_at    = excluded.analyzed_at",
+            bpm              = excluded.bpm,
+            loudness_lufs    = excluded.loudness_lufs,
+            replay_gain_db   = excluded.replay_gain_db,
+            peak             = excluded.peak,
+            analyzed_at      = excluded.analyzed_at,
+            analysis_version = excluded.analysis_version",
     )
     .bind(track_id)
     .bind(result.bpm)
@@ -204,6 +206,7 @@ pub async fn analyze_track(
     .bind(result.replay_gain_db)
     .bind(result.peak)
     .bind(now)
+    .bind(ANALYSIS_VERSION)
     .execute(&*pool)
     .await?;
 
@@ -274,11 +277,19 @@ pub async fn run_analyze_library(
     ANALYSIS_CANCEL.store(false, Ordering::SeqCst);
     let _guard = RunningGuard;
 
+    // Never measured, or measured by a pass whose numbers we no longer
+    // trust. A versionless row is the second case: its peak came from a
+    // mono downmix, and until it is re-measured clipping prevention has
+    // to refuse the boost that peak appears to allow. Re-measuring is
+    // the only thing that lifts that restriction, so the sweep has to
+    // pick those rows up — but it still never *deletes* one, which was
+    // the decision taken when #545 shipped.
     let pending: Vec<(i64, String)> = sqlx::query_as(
         "SELECT t.id, t.file_path
            FROM track t
            LEFT JOIN track_analysis ta ON ta.track_id = t.id
-          WHERE t.is_available = 1 AND ta.track_id IS NULL
+          WHERE t.is_available = 1
+            AND (ta.track_id IS NULL OR ta.analysis_version IS NULL)
           ORDER BY t.id",
     )
     .fetch_all(pool)
@@ -440,14 +451,15 @@ async fn persist_batch_once(
         sqlx::query(
             "INSERT INTO track_analysis
                 (track_id, bpm, musical_key, loudness_lufs,
-                 replay_gain_db, peak, analyzed_at)
-             VALUES (?, ?, NULL, ?, ?, ?, ?)
+                 replay_gain_db, peak, analyzed_at, analysis_version)
+             VALUES (?, ?, NULL, ?, ?, ?, ?, ?)
              ON CONFLICT(track_id) DO UPDATE SET
                 bpm = excluded.bpm,
                 loudness_lufs = excluded.loudness_lufs,
                 replay_gain_db = excluded.replay_gain_db,
                 peak = excluded.peak,
-                analyzed_at = excluded.analyzed_at",
+                analyzed_at = excluded.analyzed_at,
+                analysis_version = excluded.analysis_version",
         )
         .bind(p.track_id)
         .bind(p.result.bpm)
@@ -455,6 +467,7 @@ async fn persist_batch_once(
         .bind(p.result.replay_gain_db)
         .bind(p.result.peak)
         .bind(p.analyzed_at)
+        .bind(ANALYSIS_VERSION)
         .execute(&mut *tx)
         .await?;
     }

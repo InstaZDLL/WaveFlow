@@ -1,0 +1,20 @@
+-- Which generation of the analysis pass produced each `track_analysis`
+-- row.
+--
+-- Rows written before this column existed read as NULL, and that is the
+-- whole point: the analysis changed twice in #545 — loudness moved to
+-- ITU-R BS.1770-4, and `peak` moved from a mono downmix to the maximum
+-- across every channel — with no way afterwards to tell an old row from
+-- a new one. Comparing `analyzed_at` against the date #545 shipped was
+-- the only option, and it breaks on a restored backup, a profile carried
+-- between machines, a late upgrade or a wrong clock.
+--
+-- The peak is the one that matters. Clipping prevention caps the gain at
+-- -20*log10(peak); a mono downmix under-reports the peak of an
+-- out-of-phase mix, so the cap computed from an old row is too generous
+-- and the boost it allows clips for real. A NULL here is what lets the
+-- player decline to boost until the row has been measured again.
+--
+-- Additive by necessity: `track_analysis` is a child of `track`, and
+-- `foreign_keys = ON` turns dropping a parent into a cascading delete.
+ALTER TABLE track_analysis ADD COLUMN analysis_version INTEGER;
