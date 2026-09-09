@@ -1,4 +1,4 @@
-# Passation — 2026-09-08
+# Passation — 2026-09-09
 
 Document de reprise roulant. Il décrit l'état du chantier au moment où il a
 été écrit, pas le produit : la documentation de produit vit dans
@@ -9,20 +9,49 @@ remplacé à chaque passation.
 
 ## 1. Où en est le travail
 
-`main` = `bbc1773a`, CI verte. **Zéro alerte de sécurité ouverte** (voir 2.1).
+`main` = `319a6996`, CI verte. **Zéro alerte de sécurité ouverte** (voir 2.1).
 
-### Issues ouvertes — toutes issues du triage des discussions
+### Issues ouvertes — 19, toutes en `planned` sauf #582
 
-| Issue | Sujet | État |
-| --- | --- | --- |
-| **#578** | arbre de dossiers dans la bibliothèque | `planned` |
-| **#579** | recherche chinoise par sous-chaîne + pinyin | `planned` |
-| **#580** | paroles dans le mini-lecteur (ouverte par jo-el414) | `planned` |
-| **#581** | lecture Opus | `planned` |
-| **#582** | fenêtre de paroles flottante | `status: stalled` |
-| **#583** | boutons de lecture sur la vignette de barre des tâches Windows | `planned` |
+**Aucune n'est commencée.** « planned » veut dire triée, pas entamée.
 
-Plus `waveflow-android#32` (inclusion F-Droid) sur l'autre dépôt.
+Issues du triage des discussions (2026-09-07/08) :
+
+| Issue | Sujet |
+| --- | --- |
+| **#578** | arbre de dossiers dans la bibliothèque |
+| **#579** | recherche chinoise par sous-chaîne + pinyin |
+| **#580** | paroles dans le mini-lecteur (ouverte par jo-el414) |
+| **#581** | lecture Opus |
+| **#582** | fenêtre de paroles flottante — `status: stalled` |
+| **#583** | boutons de lecture sur la vignette de barre des tâches Windows |
+| **#584** | paroles Apple Music mot à mot — **bloquée par #585** |
+| **#585** | un monde de plugin capable de porter des paroles au mot |
+
+Issues nées de l'analyse audio (2026-09-08) :
+
+| Issue | Sujet |
+| --- | --- |
+| **#586** | les vieilles lignes d'analyse peuvent défaire l'anti-écrêtage — `bug` |
+| **#587** | mode album de ReplayGain |
+
+Issues du rescan de l'audit croisé (2026-09-09, voir §3) :
+
+| Issue | Sujet |
+| --- | --- |
+| **#588** | colonnes au choix, réordonnables et redimensionnables |
+| **#589** | inventaire « à corriger » de la bibliothèque |
+| **#590** | écriture des tags en place — **préalable du travail par lot** |
+| **#591** | plus de champs de règle + compteur vivant (playlists intelligentes) |
+| **#592** | écriture des tags dans les fichiers DSD |
+| **#593** | capacités réelles de chaque périphérique de sortie |
+| **#594** | filtrage des alias ALSA virtuels |
+| **#595** | repli en rendu logiciel après un plantage GPU au démarrage |
+| **#596** | mode contraste élevé |
+
+Plus `waveflow-android#32` (inclusion F-Droid) et **trois issues serveur** —
+`waveflow-server#177` (le `PATCH` wholesale, seule à perdre des données), `#178`
+(watermark) et `#179` (`/api/v2/songs`).
 
 **Le triage des discussions est complet** : #557 → #578/#579, #519 → #581/#583
 (son 3ᵉ point, la détection du `.lrc` homonyme, était déjà livré), #503 → #582,
@@ -98,61 +127,74 @@ même être lancée en interface depuis une session SSH. **Les coordonnées
 d'accès sont dans la mémoire de l'agent, délibérément pas ici** — ce dépôt
 est public.
 
-## 3. L'audit croisé — EN PAUSE
+## 3. L'audit croisé — RESCAN FAIT, LE BLOCAGE EST LEVÉ
 
 Un audit croisé d'un lecteur concurrent (nommé uniquement dans la mémoire de
 l'agent — **consigne ferme de ne le citer nulle part** dans le code, les
 commits, les PR ou la documentation) avait produit trois rangs d'items.
 
-**Décision du 2026-09-07 : on met le rang 2 de côté**, parce qu'il faudra
-d'abord repasser sur ce dépôt concurrent (il a bougé depuis la v0.2.1 sur
-laquelle l'audit a été fait). **Ne rien lancer du rang 2 sans que ce
-nouveau passage ait eu lieu.**
+**Le rescan que le rang 2 attendait a eu lieu le 2026-09-09**, sur leur 0.2.3.
+Il n'y a donc plus rien qui bloque : les reprises retenues sont devenues les
+neuf issues **#588 à #596**, et le rang 2 comme le rang 3 n'existent plus comme
+listes séparées.
+
+**Rapport complet publié** :
+https://claude.ai/code/artifact/80235e3e-11e3-436e-bbd6-d540a82d7e39
+
+Trois choses à retenir de ce rescan, toutes détaillées dans la mémoire de
+l'agent :
+
+- **Leurs deux changelogs diffèrent.** Celui du dépôt couvre 14 versions contre
+  7 sur le site, garde les *pourquoi*, et la date de la 0.1.9 diverge d'un mois.
+  Lire les deux, et partir du code avant les deux.
+- **Cinq « manques » n'en étaient pas** — demi-étoiles, downmix BS.775,
+  sélection par plage, compteur d'écoutes, mesure ReplayGain. Vérifiés dans
+  notre code. **Ne pas les rouvrir.**
+- **Trois constats sont écartés volontairement** et n'ont pas d'issue : profils
+  de qualité audio adaptés à la machine, décodage DSD multicanal parallèle,
+  export sélectif et portable. Plus **l'atelier de tags complet**, non ouvert
+  parce qu'il dépend de #590.
 
 - **Rang 1 : clos.** PR #539 — 12 défauts dont trois pertes de données.
-- **ReplayGain aux standards : clos.** PR #545 — BS.1770-4 complet.
-- **Restent 4 items rang 2 et 4 items rang 3**, plus un cinquième chantier
-  distinct :
-  **le mode album de ReplayGain**, explicitement reporté à une 2ᵉ PR lors de
-  l'arbitrage de #545 le 2026-08-24. Vérifié dans le code le 2026-09-07 :
-  `rg_album_gain_db` / `rg_album_peak` sont lues des tags et stockées par le
-  scanner, mais **rien ne les consomme à la lecture** — `TrackGain` ne porte
-  qu'un couple gain/peak et `audio/` n'a aucune occurrence de `album_gain`.
+- **ReplayGain aux standards : clos.** PR #545 — BS.1770-4 complet. Son mode
+  album, reporté à une 2ᵉ PR le 2026-08-24, est maintenant **#587** ; la
+  fraîcheur des vieilles lignes d'analyse est **#586**.
 
-### Rang 2 — bon rapport valeur / effort
+### Ce que les rangs 2 et 3 sont devenus — et ce qui reste sans issue
 
-1. **Rendre les dégradations visibles** — le backend réellement engagé
-   affiché dans le lecteur (badge à 5 états), et un vrai retour d'erreur sur
-   `player:error`, qui ne fait aujourd'hui qu'un `console.error`.
-   *Recommandation posée, et #577 la renforce : il y a maintenant trois
-   backends exclusifs capables de replier en silence.*
-2. **Sentinelle GPU et bascule logicielle** — filet générique pour ce que le
-   correctif AppImage ne couvre pas. Peu coûteux, parce que le signal dont le
-   mécanisme a besoin existe déjà (`app://ready`). À retenir : un plantage du
-   processus WebKit doit **bloquer** le désarmement à la fermeture, sinon
-   fermer la fenêtre blanche efface la trace.
-3. **Sûreté d'écriture fichier** — `sync_all()` avant renommage, report des
+| Item d'origine | Devenu |
+| --- | --- |
+| Sentinelle GPU et bascule logicielle | **#595** |
+| Filtrage des alias ALSA virtuels | **#594** |
+| Capacités par périphérique, sondées à la demande | **#593** |
+| Mode contraste élevé | **#596** |
+| Atelier de tags | **#589** pour la moitié « inventaire » seulement |
+
+**Cinq items n'ont AUCUNE issue.** Ce ne sont pas des oublis mais ils ne sont
+tracés nulle part ailleurs qu'ici :
+
+1. **Rendre les dégradations visibles** — le backend réellement engagé affiché
+   dans le lecteur (badge à 5 états) et un vrai retour d'erreur sur
+   `player:error`, qui ne fait aujourd'hui qu'un `console.error`. C'était la
+   recommandation n° 1 de l'audit d'août, et #577 l'a renforcée : il y a
+   maintenant **trois** backends exclusifs capables de replier en silence.
+2. **Sûreté d'écriture fichier** — `sync_all()` avant renommage, report des
    permissions, levée temporaire de l'attribut lecture seule sous Windows,
-   réessais anti-antivirus. *Préalable au rang 3.*
-4. **Filtrage des alias ALSA virtuels**, et capacités par périphérique
-   **sondées à la demande** — pas à l'énumération : notre raccourci par les
-   indices ALSA évite un gel de une à deux secondes et doit être préservé.
-
-### Rang 3 — vrais chantiers
-
-1. **Récupération de tags en ligne avec écran de revue.** Partir de leur
-   module d'appariement (385 lignes, agnostique de la source) : trois indices
-   pondérés — titre 0,60 / durée 0,25 / numéro 0,15 —, donnée absente = 0,5
-   et non 0, affectation gloutonne globale où chaque piste distante est
-   consommée une seule fois (ce qui empêche « Intro » de capturer un autre
-   morceau), seuils 0,85 sûr et 0,55 douteux. **Porter sur notre
-   `normalize_name`**, qui gère les marques combinantes NFD mieux que leur
-   table latin-1. Prérequis : la sûreté d'écriture du rang 2.
-2. **Atelier de tags** — tableur, audit « à corriger », règles de nettoyage,
-   renommage par motif, journal annulable. Plusieurs PR.
-3. **Exclusif PCM piloté par le taux SOURCE** — **la moitié PCM est livrée
-   par #577** ; reste la négociation au taux source, décrite en 1.
-4. Mode contraste élevé ; barre d'état de tâches multiples avec annulation.
+   réessais anti-antivirus. **À ne pas confondre avec #590**, qui traite la
+   *vitesse* d'écriture (en place plutôt que réécriture) et non sa *robustesse*.
+   Les deux sont des préalables du travail par lot, pour des raisons
+   différentes.
+3. **Récupération de tags en ligne avec écran de revue.** Partir de leur module
+   d'appariement (385 lignes, agnostique de la source) : trois indices pondérés
+   — titre 0,60 / durée 0,25 / numéro 0,15 —, donnée absente = 0,5 et non 0,
+   affectation gloutonne globale où chaque piste distante est consommée une
+   seule fois (ce qui empêche « Intro » de capturer un autre morceau), seuils
+   0,85 sûr et 0,55 douteux. **Porter sur notre `normalize_name`**, qui gère les
+   marques combinantes NFD mieux que leur table latin-1. Prérequis : l'item 2.
+4. **Exclusif PCM piloté par le taux SOURCE** — la moitié PCM est livrée par
+   #577 ; reste de rouvrir le périphérique au taux de chaque piste. C'est ce qui
+   rendrait le mot « bit-perfect » vrai.
+5. **Barre d'état de tâches multiples avec annulation.**
 
 ## 4. Autres chantiers ouverts
 
