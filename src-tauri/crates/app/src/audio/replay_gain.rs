@@ -41,6 +41,16 @@ pub struct TrackGain {
     pub gain_db: Option<f64>,
     /// Linear sample peak. Above 1.0 on clipped masters.
     pub peak: Option<f64>,
+    /// Set when `peak` came from an analysis row written before we
+    /// started recording which pass produced it (`analysis_version IS
+    /// NULL`). Such a peak was taken over a mono downmix, which
+    /// **under-reports** an out-of-phase mix — the samples sit at full
+    /// scale while the sum is near silent. Clipping prevention treats
+    /// it as a lower bound rather than a measurement: see
+    /// [`effective_gain_db`].
+    ///
+    /// Meaningless on its own — always read together with `peak`.
+    pub peak_unverified: bool,
 }
 
 impl TrackGain {
@@ -56,6 +66,15 @@ impl TrackGain {
         Self {
             gain_db: tag.gain_db.or(analysis.gain_db),
             peak: tag.peak.or(analysis.peak),
+            // The doubt travels with the peak it belongs to, so a file
+            // carrying its own `REPLAYGAIN_TRACK_PEAK` clears it: that
+            // number came from a tagger, not from our superseded pass,
+            // and it wins here anyway.
+            peak_unverified: if tag.peak.is_some() {
+                false
+            } else {
+                analysis.peak_unverified
+            },
         }
     }
 }
@@ -118,7 +137,15 @@ pub fn effective_gain_db(track: TrackGain, settings: GainSettings) -> f64 {
             // scale. Negative for a track that already clips, which
             // correctly asks for attenuation. `min` only ever lowers,
             // so an absurdly small peak can't turn into a boost.
-            let headroom_db = -20.0 * peak.log10();
+            let mut headroom_db = -20.0 * peak.log10();
+            if track.peak_unverified {
+                // The measurement is a lower bound, not a peak, so the
+                // headroom derived from it is an over-estimate. Refuse
+                // the boost it seems to allow, and keep any attenuation
+                // it asks for: a downmix that still reports above full
+                // scale means the real peak is higher again.
+                headroom_db = headroom_db.min(0.0);
+            }
             gain = gain.min(headroom_db);
         }
     }
@@ -162,6 +189,7 @@ mod tests {
         let track = TrackGain {
             gain_db: Some(-9.0),
             peak: Some(0.5),
+            peak_unverified: false,
         };
         let settings = GainSettings {
             enabled: false,
@@ -185,6 +213,7 @@ mod tests {
             TrackGain {
                 gain_db: Some(6.0),
                 peak: None,
+                peak_unverified: false,
             },
             settings,
         );
@@ -192,6 +221,7 @@ mod tests {
             TrackGain {
                 gain_db: Some(-6.0),
                 peak: None,
+                peak_unverified: false,
             },
             settings,
         );
@@ -201,7 +231,8 @@ mod tests {
             effective_linear(
                 TrackGain {
                     gain_db: Some(0.0),
-                    peak: None
+                    peak: None,
+                    peak_unverified: false,
                 },
                 settings
             ),
@@ -214,6 +245,7 @@ mod tests {
         let track = TrackGain {
             gain_db: Some(-8.0),
             peak: None,
+            peak_unverified: false,
         };
         let settings = GainSettings {
             preamp_db: 3.0,
@@ -231,6 +263,7 @@ mod tests {
         let track = TrackGain {
             gain_db: Some(12.0),
             peak: Some(0.5),
+            peak_unverified: false,
         };
         let capped = effective_gain_db(track, on());
         assert!(
@@ -251,6 +284,7 @@ mod tests {
         let track = TrackGain {
             gain_db: Some(9.0),
             peak: Some(0.5),
+            peak_unverified: false,
         };
         let settings = GainSettings {
             prevent_clipping: false,
@@ -266,6 +300,7 @@ mod tests {
         let track = TrackGain {
             gain_db: Some(-6.0),
             peak: Some(0.1),
+            peak_unverified: false,
         };
         assert!(approx(effective_gain_db(track, on()), -6.0));
     }
@@ -278,6 +313,7 @@ mod tests {
         let track = TrackGain {
             gain_db: Some(0.0),
             peak: Some(1.25),
+            peak_unverified: false,
         };
         let gain = effective_gain_db(track, on());
         assert!(gain < -1.9 && gain > -2.0, "expected ~-1.94 dB, got {gain}");
@@ -300,10 +336,12 @@ mod tests {
         let tag = TrackGain {
             gain_db: Some(-7.0),
             peak: None,
+            peak_unverified: false,
         };
         let analysis = TrackGain {
             gain_db: Some(-3.0),
             peak: Some(0.9),
+            peak_unverified: false,
         };
         let merged = TrackGain::prefer_tag(tag, analysis);
         // Gain from the tag, peak from the analysis — a tagger that
@@ -320,12 +358,14 @@ mod tests {
         let loud = TrackGain {
             gain_db: Some(40.0),
             peak: None,
+            peak_unverified: false,
         };
         assert!(approx(effective_gain_db(loud, on()), MAX_TOTAL_GAIN_DB));
 
         let silent = TrackGain {
             gain_db: Some(-90.0),
             peak: None,
+            peak_unverified: false,
         };
         assert!(approx(effective_gain_db(silent, on()), MIN_TOTAL_GAIN_DB));
     }
@@ -340,6 +380,7 @@ mod tests {
             let track = TrackGain {
                 gain_db: Some(0.0),
                 peak: Some(peak),
+                peak_unverified: false,
             };
             let headroom_db = -20.0 * peak.log10();
             let gain = effective_gain_db(track, on());
@@ -368,6 +409,7 @@ mod tests {
             let track = TrackGain {
                 gain_db: Some(bogus),
                 peak: None,
+                peak_unverified: false,
             };
             assert!(
                 approx(effective_gain_db(track, settings), -5.0),
@@ -384,6 +426,7 @@ mod tests {
             let track = TrackGain {
                 gain_db: Some(3.0),
                 peak: Some(peak),
+                peak_unverified: false,
             };
             assert!(
                 approx(effective_gain_db(track, on()), 3.0),
@@ -391,5 +434,89 @@ mod tests {
             );
             assert!(effective_linear(track, on()).is_finite());
         }
+    }
+
+    /// The bug this flag exists for. A pre-#545 row measured its peak
+    /// over a mono downmix, so a quiet-summing mix reports far below
+    /// the level its samples actually reach — and the headroom derived
+    /// from it invites a boost that clips.
+    #[test]
+    fn an_unverified_peak_never_licenses_a_boost() {
+        let settings = GainSettings {
+            preamp_db: 6.0,
+            ..on()
+        };
+        // A downmix peak of 0.1 claims 20 dB of headroom.
+        let stale = TrackGain {
+            gain_db: Some(3.0),
+            peak: Some(0.1),
+            peak_unverified: true,
+        };
+        assert!(
+            approx(effective_gain_db(stale, settings), 0.0),
+            "an unverified peak must cap at unity, not at its own headroom"
+        );
+        // The same numbers from the current pass are trusted, so the
+        // +9 dB fits inside the 20 dB the peak leaves.
+        let fresh = TrackGain {
+            peak_unverified: false,
+            ..stale
+        };
+        assert!(approx(effective_gain_db(fresh, settings), 9.0));
+    }
+
+    /// Refusing the boost must not also refuse the attenuation. A
+    /// downmix under-reports, so a stale row that *still* reads above
+    /// full scale describes a master that clips even harder than it
+    /// says — that request is honoured in full.
+    #[test]
+    fn an_unverified_peak_still_asks_for_its_attenuation() {
+        let track = TrackGain {
+            gain_db: Some(0.0),
+            peak: Some(2.0),
+            peak_unverified: true,
+        };
+        // -20*log10(2) = -6.02 dB, unchanged by the unity cap.
+        assert!(approx(effective_gain_db(track, on()), -20.0 * 2f64.log10()));
+    }
+
+    /// Turning clipping prevention off turns off the restriction with
+    /// it: the flag is an input to the limiter, not a separate one.
+    #[test]
+    fn an_unverified_peak_is_moot_without_clipping_prevention() {
+        let track = TrackGain {
+            gain_db: Some(5.0),
+            peak: Some(0.1),
+            peak_unverified: true,
+        };
+        let settings = GainSettings {
+            prevent_clipping: false,
+            ..on()
+        };
+        assert!(approx(effective_gain_db(track, settings), 5.0));
+    }
+
+    /// The doubt belongs to the peak, so a file carrying its own
+    /// `REPLAYGAIN_TRACK_PEAK` clears it — that number never came from
+    /// our superseded pass, and it is the one being used.
+    #[test]
+    fn a_tag_peak_clears_the_doubt_the_analysis_carried() {
+        let tag = TrackGain {
+            gain_db: None,
+            peak: Some(0.5),
+            peak_unverified: false,
+        };
+        let analysis = TrackGain {
+            gain_db: Some(4.0),
+            peak: Some(0.1),
+            peak_unverified: true,
+        };
+        let merged = TrackGain::prefer_tag(tag, analysis);
+        assert_eq!(merged.peak, Some(0.5));
+        assert!(!merged.peak_unverified);
+
+        // With no tag peak to replace it, the doubt survives the merge.
+        let no_tag_peak = TrackGain { peak: None, ..tag };
+        assert!(TrackGain::prefer_tag(no_tag_peak, analysis).peak_unverified);
     }
 }

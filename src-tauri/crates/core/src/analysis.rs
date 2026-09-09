@@ -38,6 +38,26 @@ pub mod loudness;
 
 use loudness::LoudnessMeter;
 
+/// Which generation of this module produced a given measurement.
+///
+/// Stored alongside every row [`analyze_file`] feeds, so a later build
+/// can tell what a stored number was measured *by* rather than guessing
+/// from its timestamp. Rows written before the column existed read as
+/// `NULL`, which is the "older than the versioning" signal.
+///
+/// - `NULL` — unweighted RMS loudness over a mono sum, and a peak taken
+///   over that same downmix. Both superseded by #545. The peak is the
+///   dangerous one: a downmix under-reports an out-of-phase mix, so
+///   clipping prevention computed from it hands out a gain that clips.
+/// - `1` — the current pass: BS.1770-4 K-weighted gated loudness, and a
+///   peak across every channel.
+///
+/// **Bump this whenever a change here would move a stored number**, and
+/// only then — the value exists so a sweep can find rows worth
+/// re-measuring, so bumping it for a refactor costs every user a full
+/// re-decode of their library.
+pub const ANALYSIS_VERSION: i64 = 1;
+
 /// ReplayGain 2.0 reference level. A track measured at exactly this
 /// loudness gets a gain of 0 dB.
 const REPLAY_GAIN_TARGET_LUFS: f64 = -18.0;

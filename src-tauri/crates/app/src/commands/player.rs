@@ -17,6 +17,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::{
+    analysis::ANALYSIS_VERSION,
     audio::{engine::AudioCmd, replay_gain::TrackGain, state::SharedPlayback, AudioEngine},
     error::{AppError, AppResult},
     paths::AppPaths,
@@ -36,9 +37,19 @@ use crate::{
 /// Called at every `LoadAndPlay` / `SetNextTrack` dispatch site so the
 /// decoder thread never has to reach into SQLite from the audio path.
 pub(crate) async fn fetch_replay_gain(pool: &sqlx::SqlitePool, track_id: i64) -> TrackGain {
-    let row = sqlx::query_as::<_, (Option<f64>, Option<f64>, Option<f64>, Option<f64>)>(
+    #[allow(clippy::type_complexity)]
+    let row = sqlx::query_as::<
+        _,
+        (
+            Option<f64>,
+            Option<f64>,
+            Option<f64>,
+            Option<f64>,
+            Option<i64>,
+        ),
+    >(
         "SELECT t.rg_track_gain_db, t.rg_track_peak,
-                a.replay_gain_db, a.peak
+                a.replay_gain_db, a.peak, a.analysis_version
            FROM track t
            LEFT JOIN track_analysis a ON a.track_id = t.id
           WHERE t.id = ?",
@@ -49,17 +60,33 @@ pub(crate) async fn fetch_replay_gain(pool: &sqlx::SqlitePool, track_id: i64) ->
     .ok()
     .flatten();
 
-    let Some((tag_gain, tag_peak, analysis_gain, analysis_peak)) = row else {
+    let Some((tag_gain, tag_peak, analysis_gain, analysis_peak, analysis_version)) = row else {
         return TrackGain::default();
     };
     TrackGain::prefer_tag(
         TrackGain {
             gain_db: tag_gain,
             peak: tag_peak,
+            peak_unverified: false,
         },
         TrackGain {
             gain_db: analysis_gain,
             peak: analysis_peak,
+            // Anything that is not the generation we know, we cannot
+            // vouch for. NULL is the case this was built for — a row
+            // predating the column, whose peak came from the mono
+            // downmix used before #545 and reads lower than the real
+            // one. But the test is deliberately not `is_none()`: a row
+            // left by a *different* version is equally unaccounted for,
+            // whether older (a bump we made) or newer (a profile
+            // restored from a build ahead of this one). Clipping
+            // prevention then reads the peak as a lower bound rather
+            // than a measurement.
+            //
+            // `LEFT JOIN` also yields NULL when there is no analysis row
+            // at all — harmless, because `peak` is then NULL too and the
+            // flag never gets read.
+            peak_unverified: analysis_version != Some(ANALYSIS_VERSION),
         },
     )
 }
