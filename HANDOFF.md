@@ -1,4 +1,4 @@
-# Passation — 2026-09-09
+# Passation — 2026-09-10
 
 Document de reprise roulant. Il décrit l'état du chantier au moment où il a
 été écrit, pas le produit : la documentation de produit vit dans
@@ -7,9 +7,36 @@ remplacé à chaque passation.
 
 ---
 
+## 0. À lire en premier — cette session tourne sous Windows
+
+**Ça change ce qui est possible.** Les trois sessions précédentes étaient sous
+Linux, et #604 est resté au stade de la lecture de journaux parce que personne
+ne pouvait le reproduire. Vous, si : il faut WASAPI et un périphérique
+Bluetooth, et vous avez les deux.
+
+**#604 est donc la seule tâche que vous êtes seul à pouvoir faire.** Tout le
+reste de la liste attendra aussi bien la session suivante. Le détail est en
+§1 ; ce qui compte ici, c'est que la valeur de cette session est là.
+
+Trois contraintes qui vous concernent et pas les sessions Linux :
+
+- **Les tests du crate `app` ne s'exécutent pas chez vous**
+  (`STATUS_ENTRYPOINT_NOT_FOUND`, DLL Tauri), et un module `cfg(linux)` ne s'y
+  compile même pas. Valider par `cargo fmt --check` + `cargo clippy`, laisser
+  les tests au job CI `Rust (ubuntu-latest)`. Pour *exécuter* un module pur,
+  le copier dans un crate jetable du scratchpad — c'est ce qui a servi à
+  valider `replay_gain` et `search` cette semaine.
+- **`E:\Workspace\WaveFlow` est partagée** avec l'agent serveur : ne jamais y
+  changer de branche, passer par `git worktree`.
+- **Pas de backticks dans `git commit -m`** : le shell les exécute et avale le
+  mot. Passer par `git commit -F` ou un heredoc cité.
+
+Le paragraphe de §5 sur la pression mémoire de la machine Linux **ne vous
+concerne pas** — il est marqué comme tel.
+
 ## 1. Où en est le travail
 
-`main` = `cb3b7476`, CI verte. **Zéro alerte de sécurité ouverte** (voir 2.1).
+`main` = `49cfdc9e`, CI verte. **Zéro alerte de sécurité ouverte** (voir 2.1).
 
 ### Issues ouvertes — 23, toutes en `planned` sauf #582 et #604
 
@@ -178,9 +205,38 @@ rétablit le son. Les journaux sont dans l'issue et ils sont exploitables.
   douze secondes, sans jamais incrémenter le compteur. La garde de #322/#346
   compte donc une seule des deux formes de tempête.
 
-Ce qui reste à établir : **qui** tient le périphérique en exclusif. Le suspect
-le plus simple est un flux WaveFlow précédent dont la libération n'est pas
-encore effective côté Windows.
+Ce qui reste à établir : **qui** tient le périphérique en exclusif.
+
+**L'indice le plus fort vient de l'utilisateur lui-même** : tuer WaveFlow par le
+gestionnaire de tâches puis relancer rétablit le son. Si un tiers tenait le
+périphérique, redémarrer *notre* processus ne changerait rien. Donc le suspect
+premier est **un de nos propres flux**, dont Windows n'a pas terminé la
+libération quand on retente l'ouverture.
+
+Piste d'attaque, dans cet ordre :
+
+1. **Reproduire** — quitter, déconnecter le Bluetooth, ouvrir WaveFlow, lancer
+   un FLAC. C'est la séquence exacte de l'utilisateur, et vous êtes la première
+   session à pouvoir la jouer.
+2. **Vérifier l'ordre libération / réouverture** sur le chemin « périphérique
+   épinglé disparu ». `must_release_before_reopening` (`engine.rs`) répond
+   « libérer d'abord » quand l'ancien flux était exclusif — mais confirmer que
+   ce chemin-là passe bien par elle, et que le `drop` de l'ancien `IAudioClient`
+   est **terminé** avant la nouvelle tentative. Un `AUDCLNT_E_DEVICE_IN_USE`
+   contre soi-même est la signature d'une libération encore en vol.
+3. **Traiter `0x8889000A` comme un flap.** `FlapWindow::record` n'est appelée
+   que dans le chemin `DeviceNotAvailable` ; la faire compter aussi cette
+   forme-là arrêterait la boucle au bout de trois tours au lieu d'une dizaine.
+   C'est le correctif le moins risqué et il tient en quelques lignes.
+4. **Rendre le repli visible** — c'est #597, et #604 en est la démonstration
+   grandeur nature. Un utilisateur qui voit « repli sur les haut-parleurs »
+   n'ouvre pas un ticket intitulé « pas de son ».
+
+Ce qui n'est **pas** établi et ne doit pas être supposé : que le silence total
+et la tempête d'ouvertures aient la même cause. Les journaux montrent deux
+moments distincts (04:58 pour la bascule silencieuse, 06:20 pour la boucle), et
+l'utilisateur ne décrit qu'un symptôme. Demander confirmation avant de traiter
+les deux comme un seul défaut.
 
 ## 2. Ce qui est en cours
 
@@ -362,7 +418,7 @@ que c'est le desktop qui en subit les conséquences.
 
 ## 5. Pièges techniques appris récemment
 
-### La machine de développement Linux est partagée
+### La machine de développement Linux est partagée _(sessions Linux uniquement)_
 
 Elle a **11 Go de RAM et l'agent `waveflow-server` compile dessus en même
 temps** (ses `ld` prennent ~1 Go pièce). Un `cargo test --workspace` sur le
