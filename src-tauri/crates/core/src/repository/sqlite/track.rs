@@ -6,9 +6,13 @@ use sqlx::SqlitePool;
 use crate::{
     domain::track::TrackRow,
     error::CoreResult,
+    repository::sqlite::search::{
+        fts5_expression, like_patterns, LIKE_TERM_BINDS, LIKE_TERM_CLAUSE,
+    },
     repository::track::{
         SortDirection, TrackListFilter, TrackRepository, TrackSort, TrackSortColumn, TrackSource,
     },
+    search::SearchPlan,
 };
 
 #[derive(Debug, Clone)]
@@ -157,29 +161,60 @@ impl TrackRepository for SqliteTrackRepository {
         Ok(rows)
     }
 
-    async fn search_fts(&self, fts_query: &str, limit: i64) -> CoreResult<Vec<TrackRow>> {
+    async fn search(&self, plan: &SearchPlan, limit: i64) -> CoreResult<Vec<TrackRow>> {
         // Clamp `limit` so a caller passing 0 or a negative value (SQLite
         // treats negative LIMIT as "no limit") can't accidentally fetch
-        // the entire FTS index. The upper bound stays open since legitimate
+        // the entire index. The upper bound stays open since legitimate
         // callers want to pick their own ceiling.
         let bounded = limit.max(1);
-        let sql = format!(
-            "{SELECT_TRACK_ROW} \
-             FROM track_fts fts \
-             JOIN track   t  ON t.id  = fts.rowid \
-             LEFT JOIN album   al ON al.id = t.album_id \
-             LEFT JOIN artist  ar ON ar.id = t.primary_artist \
-             LEFT JOIN artwork aw ON aw.id = al.artwork_id \
-             WHERE track_fts MATCH ? AND t.is_available = 1 \
-             ORDER BY rank \
-             LIMIT ?"
-        );
-        let rows = sqlx::query_as::<_, TrackRow>(sqlx::AssertSqlSafe(sql))
-            .bind(fts_query)
-            .bind(bounded)
-            .fetch_all(&self.pool)
-            .await?;
-        Ok(rows)
+        match plan {
+            SearchPlan::Indexed(terms) => {
+                let sql = format!(
+                    "{SELECT_TRACK_ROW} \
+                     FROM track_fts fts \
+                     JOIN track   t  ON t.id  = fts.rowid \
+                     LEFT JOIN album   al ON al.id = t.album_id \
+                     LEFT JOIN artist  ar ON ar.id = t.primary_artist \
+                     LEFT JOIN artwork aw ON aw.id = al.artwork_id \
+                     WHERE track_fts MATCH ? AND t.is_available = 1 \
+                     ORDER BY rank \
+                     LIMIT ?"
+                );
+                let rows = sqlx::query_as::<_, TrackRow>(sqlx::AssertSqlSafe(sql))
+                    .bind(fts5_expression(terms))
+                    .bind(bounded)
+                    .fetch_all(&self.pool)
+                    .await?;
+                Ok(rows)
+            }
+            SearchPlan::Scanned(_) => {
+                let patterns = like_patterns(plan);
+                // Straight off `track`, not off `track_fts`: below three
+                // characters no index applies either way, and the real
+                // columns are already joined here. `ORDER BY rank` is not
+                // available on this route — there is no FTS match to rank
+                // — so the order is the deterministic one.
+                let mut sql = String::with_capacity(SELECT_TRACK_ROW.len() + 512);
+                sql.push_str(SELECT_TRACK_ROW);
+                sql.push_str(FROM_TRACK_BASE);
+                sql.push_str("WHERE t.is_available = 1\n");
+                for _ in &patterns {
+                    sql.push_str("  AND ");
+                    sql.push_str(LIKE_TERM_CLAUSE);
+                    sql.push('\n');
+                }
+                sql.push_str("ORDER BY t.title COLLATE NOCASE\nLIMIT ?");
+
+                let mut q = sqlx::query_as::<_, TrackRow>(sqlx::AssertSqlSafe(sql));
+                for p in &patterns {
+                    for _ in 0..LIKE_TERM_BINDS {
+                        q = q.bind(p);
+                    }
+                }
+                let rows = q.bind(bounded).fetch_all(&self.pool).await?;
+                Ok(rows)
+            }
+        }
     }
 
     async fn list_ids_in_source(&self, source: TrackSource) -> CoreResult<Vec<i64>> {
@@ -255,5 +290,207 @@ impl TrackRepository for SqliteTrackRepository {
             .execute(&self.pool)
             .await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::search::plan_search;
+
+    /// Enough of the profile schema for `SELECT_TRACK_ROW` to resolve,
+    /// plus the FTS index the search actually reads.
+    ///
+    /// The `track_fts` definition here MUST stay identical to
+    /// `migrations/profile/20260910090000_track_fts_trigram.sql`. The
+    /// migrations live in the app crate, out of reach from
+    /// `waveflow-core` (same constraint the scanner fixtures note), so
+    /// this is a copy — if the tokenizer changes there, change it here.
+    async fn fixture_pool() -> SqlitePool {
+        let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+        sqlx::raw_sql(
+            "PRAGMA foreign_keys = ON;
+             CREATE TABLE artwork (
+                 id INTEGER PRIMARY KEY,
+                 hash TEXT NOT NULL,
+                 format TEXT NOT NULL
+             );
+             CREATE TABLE artist (
+                 id INTEGER PRIMARY KEY,
+                 name TEXT NOT NULL
+             );
+             CREATE TABLE album (
+                 id INTEGER PRIMARY KEY,
+                 title TEXT NOT NULL,
+                 artist_id INTEGER REFERENCES artist(id),
+                 artwork_id INTEGER REFERENCES artwork(id)
+             );
+             CREATE TABLE track (
+                 id INTEGER PRIMARY KEY,
+                 library_id INTEGER NOT NULL,
+                 title TEXT NOT NULL,
+                 album_id INTEGER REFERENCES album(id),
+                 primary_artist INTEGER REFERENCES artist(id),
+                 duration_ms INTEGER NOT NULL DEFAULT 0,
+                 track_number INTEGER, disc_number INTEGER, year INTEGER,
+                 bitrate INTEGER, sample_rate INTEGER, channels INTEGER,
+                 bit_depth INTEGER, codec TEXT, musical_key TEXT,
+                 file_path TEXT NOT NULL, file_size INTEGER NOT NULL DEFAULT 0,
+                 added_at INTEGER NOT NULL DEFAULT 0,
+                 rating INTEGER,
+                 is_available INTEGER NOT NULL DEFAULT 1
+             );
+             CREATE TABLE track_artist (
+                 track_id INTEGER NOT NULL,
+                 artist_id INTEGER NOT NULL,
+                 position INTEGER NOT NULL
+             );
+             CREATE VIRTUAL TABLE track_fts USING fts5(
+                 title, album_title, artist_name,
+                 tokenize='trigram remove_diacritics 1'
+             );",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        pool
+    }
+
+    /// One Chinese track, one Latin track, one unavailable track.
+    async fn seed(pool: &SqlitePool) {
+        sqlx::raw_sql(
+            "INSERT INTO artist (id, name) VALUES (1, '周杰伦'), (2, 'U2');
+             INSERT INTO album (id, title, artist_id) VALUES (1, '叶惠美', 1), (2, 'War', 2);
+             INSERT INTO track (id, library_id, title, album_id, primary_artist, file_path)
+             VALUES (1, 1, '中国人民解放军进行曲', 1, 1, '/a.flac'),
+                    (2, 1, 'Sunday Bloody Sunday', 2, 2, '/b.flac');
+             INSERT INTO track (id, library_id, title, album_id, primary_artist,
+                                file_path, is_available)
+             VALUES (3, 1, '中国人民解放军进行曲 (live)', 1, 1, '/c.flac', 0);
+             INSERT INTO track_artist (track_id, artist_id, position)
+             VALUES (1, 1, 0), (2, 2, 0), (3, 1, 0);
+             INSERT INTO track_fts (rowid, title, album_title, artist_name)
+             SELECT t.id, t.title,
+                    COALESCE(al.title, ''), COALESCE(ar.name, '')
+               FROM track t
+               LEFT JOIN album  al ON al.id = t.album_id
+               LEFT JOIN artist ar ON ar.id = t.primary_artist;",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+    }
+
+    async fn ids_for(pool: &SqlitePool, query: &str) -> Vec<i64> {
+        let plan = plan_search(query).expect("query should produce a plan");
+        let repo = SqliteTrackRepository::new(pool.clone());
+        repo.search(&plan, 50)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|r| r.id)
+            .collect()
+    }
+
+    /// The whole point of #579: characters from the MIDDLE of a Chinese
+    /// title find it. Before trigram this returned nothing.
+    #[tokio::test]
+    async fn a_chinese_title_is_found_by_its_middle() {
+        let pool = fixture_pool().await;
+        seed(&pool).await;
+        assert_eq!(ids_for(&pool, "人民解").await, vec![1]);
+        // ...and by its start, which already worked and must not break.
+        assert_eq!(ids_for(&pool, "中国人").await, vec![1]);
+    }
+
+    /// The fallback route is not a formality: two Han characters is the
+    /// common shape of a Chinese word, and `MATCH` cannot serve it.
+    #[tokio::test]
+    async fn a_two_character_query_takes_the_like_route_and_still_matches() {
+        let pool = fixture_pool().await;
+        seed(&pool).await;
+        assert_eq!(ids_for(&pool, "人民").await, vec![1]);
+        // Short Latin names go the same way rather than regressing.
+        assert_eq!(ids_for(&pool, "u2").await, vec![2]);
+    }
+
+    /// Album and artist are indexed alongside the title on the MATCH
+    /// route, and searched alongside it on the LIKE one.
+    #[tokio::test]
+    async fn both_routes_reach_album_and_artist() {
+        let pool = fixture_pool().await;
+        seed(&pool).await;
+        assert_eq!(ids_for(&pool, "叶惠美").await, vec![1]); // album, indexed
+        assert_eq!(ids_for(&pool, "惠美").await, vec![1]); // album, scanned
+        assert_eq!(ids_for(&pool, "周杰伦").await, vec![1]); // artist, indexed
+                                                             // The artist column on the scanned route. `u2` covers it too,
+                                                             // but only incidentally — this is the assertion that fails if
+                                                             // `ar.name` ever drops out of `LIKE_TERM_CLAUSE`.
+        assert_eq!(ids_for(&pool, "周杰").await, vec![1]);
+    }
+
+    /// A known limitation, pinned so it stays deliberate: SQLite's
+    /// `LIKE` folds case for ASCII only, so on the scanned route a
+    /// lowercase accented term does not find its capitalised form.
+    ///
+    /// It affects terms of one or two characters and nothing else — from
+    /// three characters up the trigram index answers, and it was built
+    /// with `remove_diacritics 1`, which folds both case and accents.
+    /// Before #579 the old tokenizer folded at every length, so this is
+    /// the one place the change gives something up.
+    ///
+    /// Closing it needs a folded column on `track` (the shape `album`
+    /// and `artist` already have in `canonical_title` / `canonical_name`),
+    /// which is a migration and a scanner change rather than a tweak
+    /// here. Tracked on #579.
+    #[tokio::test]
+    async fn a_short_accented_term_does_not_fold_case_on_the_scanned_route() {
+        let pool = fixture_pool().await;
+        seed(&pool).await;
+        sqlx::raw_sql(
+            "INSERT INTO track (id, library_id, title, file_path)
+             VALUES (4, 1, 'Été indien', '/d.flac');
+             INSERT INTO track_fts (rowid, title, album_title, artist_name)
+             VALUES (4, 'Été indien', '', '');",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // Three characters: the index answers, and folds.
+        assert_eq!(ids_for(&pool, "ete").await, vec![4]);
+        assert_eq!(ids_for(&pool, "ÉTÉ").await, vec![4]);
+        // Two characters: a scan, and `É` no longer matches `é`.
+        assert_eq!(ids_for(&pool, "Ét").await, vec![4]);
+        assert!(ids_for(&pool, "ét").await.is_empty());
+    }
+
+    /// Multiple terms are an AND on both routes, not an OR.
+    #[tokio::test]
+    async fn terms_are_combined_with_and() {
+        let pool = fixture_pool().await;
+        seed(&pool).await;
+        assert_eq!(ids_for(&pool, "sunday bloody").await, vec![2]);
+        assert!(ids_for(&pool, "sunday 人民解").await.is_empty());
+    }
+
+    /// A track whose file went missing must not surface on either route
+    /// — the seed has one, indexed, deliberately.
+    #[tokio::test]
+    async fn unavailable_tracks_stay_out_of_both_routes() {
+        let pool = fixture_pool().await;
+        seed(&pool).await;
+        assert_eq!(ids_for(&pool, "解放军进").await, vec![1]);
+        assert_eq!(ids_for(&pool, "人民").await, vec![1]);
+    }
+
+    /// An unescaped `%` on the LIKE route would return the whole
+    /// library. It reaches SQLite as a literal instead.
+    #[tokio::test]
+    async fn a_percent_sign_is_not_a_wildcard() {
+        let pool = fixture_pool().await;
+        seed(&pool).await;
+        assert!(ids_for(&pool, "%").await.is_empty());
+        assert!(ids_for(&pool, "_").await.is_empty());
     }
 }

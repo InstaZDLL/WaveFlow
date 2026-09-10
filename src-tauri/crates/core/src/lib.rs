@@ -29,5 +29,6 @@ pub mod metadata;
 pub mod plugin;
 pub mod repository;
 pub mod scanner;
+pub mod search;
 pub mod smart_playlists;
 pub mod sync;

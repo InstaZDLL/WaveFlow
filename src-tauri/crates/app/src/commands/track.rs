@@ -4,9 +4,13 @@ use std::path::Path;
 use waveflow_core::{
     domain::track::TrackRow,
     repository::{
-        sqlite::SqliteTrackRepository,
+        sqlite::{
+            search::{fts5_expression, like_patterns, LIKE_TERM_BINDS, LIKE_TERM_CLAUSE},
+            SqliteTrackRepository,
+        },
         track::{SortDirection, TrackListFilter, TrackRepository, TrackSort, TrackSortColumn},
     },
+    search::{plan_search, SearchPlan},
 };
 
 use crate::{error::AppResult, state::AppState};
@@ -219,32 +223,27 @@ pub async fn get_track_genres(
     Ok(names)
 }
 
-/// Full-text search via the `track_fts` FTS5 virtual table (kept in sync
-/// by triggers). Returns up to 50 matching tracks, ranked by relevance.
-/// The query is sanitized: double-quotes are stripped and a trailing `*`
-/// is appended for prefix matching so "moon" finds "Moonlight".
+/// Text search over title / album / artist, up to 50 tracks.
+///
+/// The shape of the query — which route it takes, how each term is
+/// quoted or escaped — is decided by [`waveflow_core::search::plan_search`],
+/// which is where the reasoning lives. Since #579 a term matches
+/// anywhere in a field rather than only at its start, which is what
+/// makes a Chinese title findable by its middle characters.
 #[tauri::command]
 pub async fn search_tracks(
     state: tauri::State<'_, AppState>,
     query: String,
 ) -> AppResult<Vec<Track>> {
-    let trimmed = query.trim().replace('"', "");
-    if trimmed.is_empty() {
+    let Some(plan) = plan_search(&query) else {
         return Ok(vec![]);
-    }
+    };
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
-    // Build FTS5 query: split words and add * for prefix matching.
-    let fts_query = trimmed
-        .split_whitespace()
-        .map(|w| format!("{w}*"))
-        .collect::<Vec<_>>()
-        .join(" ");
-
     let rows = SqliteTrackRepository::new((*pool).clone())
-        .search_fts(&fts_query, 50)
+        .search(&plan, 50)
         .await?;
     Ok(rows
         .into_iter()
@@ -303,18 +302,8 @@ pub async fn search_tracks_advanced(
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
-    // Build the FTS query string. Empty/whitespace → pure-filter mode.
-    let fts_query: Option<String> = filters
-        .query
-        .as_deref()
-        .map(|q| q.trim().replace('"', ""))
-        .filter(|q| !q.is_empty())
-        .map(|q| {
-            q.split_whitespace()
-                .map(|w| format!("{w}*"))
-                .collect::<Vec<_>>()
-                .join(" ")
-        });
+    // Empty / whitespace → pure-filter mode, no text clause at all.
+    let plan: Option<SearchPlan> = filters.query.as_deref().and_then(plan_search);
 
     let mut sql = String::with_capacity(1024);
     sql.push_str(
@@ -342,7 +331,9 @@ pub async fn search_tracks_advanced(
                 t.rating  AS rating\n",
     );
 
-    if fts_query.is_some() {
+    // Only the MATCH route needs the index table joined in; the LIKE
+    // route reads the real columns, which the joins below already bring.
+    if matches!(plan, Some(SearchPlan::Indexed(_))) {
         sql.push_str("FROM track_fts fts JOIN track t ON t.id = fts.rowid\n");
     } else {
         sql.push_str("FROM track t\n");
@@ -364,9 +355,22 @@ pub async fn search_tracks_advanced(
     let mut binds: Vec<Bind> = Vec::new();
 
     sql.push_str("WHERE t.is_available = 1\n");
-    if let Some(q) = &fts_query {
-        sql.push_str("  AND track_fts MATCH ?\n");
-        binds.push(Bind::Str(q.clone()));
+    match &plan {
+        Some(SearchPlan::Indexed(terms)) => {
+            sql.push_str("  AND track_fts MATCH ?\n");
+            binds.push(Bind::Str(fts5_expression(terms)));
+        }
+        Some(p @ SearchPlan::Scanned(_)) => {
+            for pattern in like_patterns(p) {
+                sql.push_str("  AND ");
+                sql.push_str(LIKE_TERM_CLAUSE);
+                sql.push('\n');
+                for _ in 0..LIKE_TERM_BINDS {
+                    binds.push(Bind::Str(pattern.clone()));
+                }
+            }
+        }
+        None => {}
     }
 
     if let Some(ids) = filters.genre_ids.as_ref().filter(|v| !v.is_empty()) {
@@ -438,7 +442,8 @@ pub async fn search_tracks_advanced(
         sql.push_str("  AND EXISTS (SELECT 1 FROM liked_track lt WHERE lt.track_id = t.id)\n");
     }
 
-    if fts_query.is_some() {
+    // `rank` exists only where an FTS match produced it.
+    if matches!(plan, Some(SearchPlan::Indexed(_))) {
         sql.push_str("ORDER BY rank\n");
     } else {
         sql.push_str(

@@ -6,7 +6,7 @@
 
 use async_trait::async_trait;
 
-use crate::{domain::track::TrackRow, error::CoreResult};
+use crate::{domain::track::TrackRow, error::CoreResult, search::SearchPlan};
 
 /// Insert payload for the multi-tenant server's track CRUD. Mirrors
 /// the columns the Postgres repository writes; joined fields
@@ -133,11 +133,15 @@ pub trait TrackRepository: Send + Sync {
     /// Every liked track, most-recently-liked first.
     async fn list_liked(&self) -> CoreResult<Vec<TrackRow>>;
 
-    /// FTS5 search. `fts_query` is expected to already carry the
-    /// `*` prefix-matching shape the caller wants — the repository
-    /// does *not* tokenise / escape it because what counts as a
-    /// "word" is a frontend UX decision.
-    async fn search_fts(&self, fts_query: &str, limit: i64) -> CoreResult<Vec<TrackRow>>;
+    /// Text search over title / album / artist.
+    ///
+    /// Takes a [`SearchPlan`] rather than a string: what counts as a
+    /// "word" is a UX decision made in [`crate::search`], and the two
+    /// routes it can produce need different SQL — the `MATCH` one is
+    /// answered by the trigram index and ranked, the `LIKE` one is a
+    /// scan that exists so terms too short to be a trigram still find
+    /// something (see the module docs for why that is not an edge case).
+    async fn search(&self, plan: &SearchPlan, limit: i64) -> CoreResult<Vec<TrackRow>>;
 
     /// Track ids belonging to a folder / album / artist. The variant
     /// picks the column; ordering follows the natural "Disc → Track →
