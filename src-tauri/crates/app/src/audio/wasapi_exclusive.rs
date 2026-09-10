@@ -807,7 +807,7 @@ fn run_event_loop(
             // left uncredited. It lives in `output` so the three
             // exclusive paths and the cpal callback can't drift apart.
             let written =
-                super::output::fill_pcm_period(&shared, &mut consumer, &mut samples, channels);
+                super::output::fill_pcm_period(shared, &mut consumer, &mut samples, channels);
 
             // Pack `samples` into the byte layout the negotiated
             // exclusive format expects (#174). Hot path: no
