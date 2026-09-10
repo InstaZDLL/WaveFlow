@@ -1192,19 +1192,63 @@ impl AudioEngine {
             .load(std::sync::atomic::Ordering::Acquire);
         let position_ms = self.shared.current_position_ms();
 
-        // Step 2 — open the new output thread first. The old one is
-        // still running, which is fine: PipeWire / PulseAudio / ALSA
-        // dmix all support multiple concurrent streams, and the two
-        // streams target different devices anyway. If this fails we
-        // return immediately without disturbing the working stream.
-        let (producer, handle) = spawn_output_with_mode(
+        // Step 2 — release the old stream first when the new one cannot be
+        // opened alongside it, then open the replacement.
+        //
+        // Spawn-first is the order we want for a device *switch*: the two
+        // streams target different endpoints, so a failed open costs
+        // nothing and the stream the user is listening to survives. PipeWire,
+        // PulseAudio and ALSA dmix all take concurrent streams, and Windows
+        // has no quarrel with two clients on two endpoints.
+        //
+        // A vanished device breaks that premise, and #604 is what it looks
+        // like. When the name we were asked for is no longer enumerated,
+        // `pick_device` falls back to the **default** endpoint — which can
+        // be the one the old stream is holding exclusively. The open is then
+        // refused with `AUDCLNT_E_DEVICE_IN_USE` against ourselves, we drop
+        // to shared mode, and nothing tells the user why.
+        //
+        // Measured on Windows 11 rather than assumed: an exclusive client
+        // does block a second exclusive open of the same endpoint, a
+        // *shared* client does not block one at all, and the block clears
+        // about 19 ms after the client is dropped. So the conflict is real,
+        // it is ours, and releasing first is enough to clear it.
+        let entering_exclusive = self
+            .exclusive_output
+            .load(std::sync::atomic::Ordering::Relaxed);
+        let pre_release =
+            must_release_before_reopening(guard.as_ref().map(|h| h.exclusive), entering_exclusive);
+        // Stop is sent here rather than twice: the step below skips its own
+        // send when this one already happened.
+        let stopped_early = pre_release && was_playing;
+        if pre_release {
+            if was_playing {
+                self.cmd_tx
+                    .send(AudioCmd::Stop)
+                    .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
+            }
+            if let Some(old) = guard.take() {
+                old.stop();
+            }
+        }
+
+        let (producer, handle) = match spawn_output_with_mode(
             self.shared.clone(),
             self.app.clone(),
             device_name,
-            self.exclusive_output
-                .load(std::sync::atomic::Ordering::Relaxed),
+            entering_exclusive,
             None,
-        )?;
+        ) {
+            Ok(pair) => pair,
+            Err(err) => {
+                // After a pre-release there is no output at all, and the
+                // toggle must stop claiming one (#405). Without one the old
+                // stream is still installed and still playing, and this
+                // no-ops.
+                self.publish_output_lost_if_gone(&guard);
+                return Err(err);
+            }
+        };
 
         // Step 3 — interrupt any current playback. The decoder will
         // walk back out of `play_track` and start polling for fresh
@@ -1216,7 +1260,7 @@ impl AudioEngine {
         // has died (engine teardown / crash). Tear the freshly opened
         // output back down so it doesn't outlive the engine.
         let send_result = (|| {
-            if was_playing {
+            if was_playing && !stopped_early {
                 self.cmd_tx
                     .send(AudioCmd::Stop)
                     .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
@@ -1550,21 +1594,29 @@ impl AudioEngine {
 ///   until it lets go (#322, then #405 for the other direction).
 /// - **We are entering exclusive on macOS.** Hog mode is recorded as a
 ///   *pid*, and the client it would have to evict here is our own cpal
-///   stream, in this very process — so it evicts nothing. Windows kicks
-///   the shared client off when the endpoint is seized, and on Linux the
-///   reservation protocol makes the sound server hand the card over;
-///   macOS has neither. The new AudioUnit then comes up on a device our
-///   old one is still driving and renders nothing: no sound, and a
-///   position counter frozen where it stood.
+///   stream, in this very process — so it evicts nothing. On Linux the
+///   reservation protocol makes the sound server hand the card over, and
+///   on Windows a shared client is simply no obstacle (below); macOS has
+///   neither. The new AudioUnit then comes up on a device our old one is
+///   still driving and renders nothing: no sound, and a position counter
+///   frozen where it stood.
 ///
 ///   Measured on a MacBook Air, and only on the toggle. Armed before
 ///   launch the same code opens on an idle device and plays, which is
 ///   what made this look like a backend fault rather than an ordering
 ///   one.
 ///
-/// Releasing first is safe in the second case because
-/// [`spawn_output_with_mode`] falls back to shared mode on its own, so
-/// the caller still comes back holding a stream.
+/// A **shared** stream is deliberately not a reason to release first, and
+/// that is measured rather than assumed. On Windows 11, `Initialize` in
+/// exclusive mode succeeds while one of our own shared clients is open and
+/// running on the same endpoint; only an *exclusive* client draws
+/// `AUDCLNT_E_DEVICE_IN_USE`, and it stops doing so about 19 ms after that
+/// client is dropped. Keeping spawn-first here is what preserves the
+/// rollback for the ordinary case.
+///
+/// Releasing first is safe wherever it applies because
+/// [`spawn_output_with_mode`] falls back to shared mode on its own, so the
+/// caller still comes back holding a stream.
 fn must_release_before_reopening(old_is_exclusive: Option<bool>, entering_exclusive: bool) -> bool {
     match old_is_exclusive {
         None => false,
@@ -1669,11 +1721,12 @@ mod reopen_order_tests {
 
     #[test]
     fn entering_exclusive_over_a_shared_stream_depends_on_the_platform() {
-        // Windows evicts the shared client when the endpoint is seized and
-        // Linux asks the sound server for the card, so both keep the
-        // spawn-first order and the rollback it buys. macOS records hog
-        // mode against a pid and would be asked to evict this very
-        // process, so it cannot.
+        // A shared client blocks nothing on Windows (measured: an
+        // exclusive `Initialize` succeeds alongside one) and Linux asks
+        // the sound server for the card, so both keep the spawn-first
+        // order and the rollback it buys. macOS records hog mode against
+        // a pid and would be asked to evict this very process, so it
+        // cannot.
         assert_eq!(
             must_release_before_reopening(Some(false), true),
             cfg!(target_os = "macos")
