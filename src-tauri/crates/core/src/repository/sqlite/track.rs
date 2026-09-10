@@ -6,10 +6,13 @@ use sqlx::SqlitePool;
 use crate::{
     domain::track::TrackRow,
     error::CoreResult,
+    repository::sqlite::search::{
+        fts5_expression, like_patterns, LIKE_TERM_BINDS, LIKE_TERM_CLAUSE,
+    },
     repository::track::{
         SortDirection, TrackListFilter, TrackRepository, TrackSort, TrackSortColumn, TrackSource,
     },
-    search::{SearchPlan, LIKE_TERM_BINDS, LIKE_TERM_CLAUSE},
+    search::SearchPlan,
 };
 
 #[derive(Debug, Clone)]
@@ -165,7 +168,7 @@ impl TrackRepository for SqliteTrackRepository {
         // callers want to pick their own ceiling.
         let bounded = limit.max(1);
         match plan {
-            SearchPlan::Match(expr) => {
+            SearchPlan::Indexed(terms) => {
                 let sql = format!(
                     "{SELECT_TRACK_ROW} \
                      FROM track_fts fts \
@@ -178,13 +181,14 @@ impl TrackRepository for SqliteTrackRepository {
                      LIMIT ?"
                 );
                 let rows = sqlx::query_as::<_, TrackRow>(sqlx::AssertSqlSafe(sql))
-                    .bind(expr)
+                    .bind(fts5_expression(terms))
                     .bind(bounded)
                     .fetch_all(&self.pool)
                     .await?;
                 Ok(rows)
             }
-            SearchPlan::Like(patterns) => {
+            SearchPlan::Scanned(_) => {
+                let patterns = like_patterns(plan);
                 // Straight off `track`, not off `track_fts`: below three
                 // characters no index applies either way, and the real
                 // columns are already joined here. `ORDER BY rank` is not
@@ -194,7 +198,7 @@ impl TrackRepository for SqliteTrackRepository {
                 sql.push_str(SELECT_TRACK_ROW);
                 sql.push_str(FROM_TRACK_BASE);
                 sql.push_str("WHERE t.is_available = 1\n");
-                for _ in patterns {
+                for _ in &patterns {
                     sql.push_str("  AND ");
                     sql.push_str(LIKE_TERM_CLAUSE);
                     sql.push('\n');
@@ -202,7 +206,7 @@ impl TrackRepository for SqliteTrackRepository {
                 sql.push_str("ORDER BY t.title COLLATE NOCASE\nLIMIT ?");
 
                 let mut q = sqlx::query_as::<_, TrackRow>(sqlx::AssertSqlSafe(sql));
-                for p in patterns {
+                for p in &patterns {
                     for _ in 0..LIKE_TERM_BINDS {
                         q = q.bind(p);
                     }
@@ -416,9 +420,49 @@ mod tests {
     async fn both_routes_reach_album_and_artist() {
         let pool = fixture_pool().await;
         seed(&pool).await;
-        assert_eq!(ids_for(&pool, "叶惠美").await, vec![1]); // album, MATCH
-        assert_eq!(ids_for(&pool, "惠美").await, vec![1]); // album, LIKE
-        assert_eq!(ids_for(&pool, "周杰伦").await, vec![1]); // artist, MATCH
+        assert_eq!(ids_for(&pool, "叶惠美").await, vec![1]); // album, indexed
+        assert_eq!(ids_for(&pool, "惠美").await, vec![1]); // album, scanned
+        assert_eq!(ids_for(&pool, "周杰伦").await, vec![1]); // artist, indexed
+                                                             // The artist column on the scanned route. `u2` covers it too,
+                                                             // but only incidentally — this is the assertion that fails if
+                                                             // `ar.name` ever drops out of `LIKE_TERM_CLAUSE`.
+        assert_eq!(ids_for(&pool, "周杰").await, vec![1]);
+    }
+
+    /// A known limitation, pinned so it stays deliberate: SQLite's
+    /// `LIKE` folds case for ASCII only, so on the scanned route a
+    /// lowercase accented term does not find its capitalised form.
+    ///
+    /// It affects terms of one or two characters and nothing else — from
+    /// three characters up the trigram index answers, and it was built
+    /// with `remove_diacritics 1`, which folds both case and accents.
+    /// Before #579 the old tokenizer folded at every length, so this is
+    /// the one place the change gives something up.
+    ///
+    /// Closing it needs a folded column on `track` (the shape `album`
+    /// and `artist` already have in `canonical_title` / `canonical_name`),
+    /// which is a migration and a scanner change rather than a tweak
+    /// here. Tracked on #579.
+    #[tokio::test]
+    async fn a_short_accented_term_does_not_fold_case_on_the_scanned_route() {
+        let pool = fixture_pool().await;
+        seed(&pool).await;
+        sqlx::raw_sql(
+            "INSERT INTO track (id, library_id, title, file_path)
+             VALUES (4, 1, 'Été indien', '/d.flac');
+             INSERT INTO track_fts (rowid, title, album_title, artist_name)
+             VALUES (4, 'Été indien', '', '');",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // Three characters: the index answers, and folds.
+        assert_eq!(ids_for(&pool, "ete").await, vec![4]);
+        assert_eq!(ids_for(&pool, "ÉTÉ").await, vec![4]);
+        // Two characters: a scan, and `É` no longer matches `é`.
+        assert_eq!(ids_for(&pool, "Ét").await, vec![4]);
+        assert!(ids_for(&pool, "ét").await.is_empty());
     }
 
     /// Multiple terms are an AND on both routes, not an OR.

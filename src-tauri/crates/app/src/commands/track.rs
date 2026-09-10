@@ -4,10 +4,13 @@ use std::path::Path;
 use waveflow_core::{
     domain::track::TrackRow,
     repository::{
-        sqlite::SqliteTrackRepository,
+        sqlite::{
+            search::{fts5_expression, like_patterns, LIKE_TERM_BINDS, LIKE_TERM_CLAUSE},
+            SqliteTrackRepository,
+        },
         track::{SortDirection, TrackListFilter, TrackRepository, TrackSort, TrackSortColumn},
     },
-    search::{plan_search, SearchPlan, LIKE_TERM_BINDS, LIKE_TERM_CLAUSE},
+    search::{plan_search, SearchPlan},
 };
 
 use crate::{error::AppResult, state::AppState};
@@ -330,7 +333,7 @@ pub async fn search_tracks_advanced(
 
     // Only the MATCH route needs the index table joined in; the LIKE
     // route reads the real columns, which the joins below already bring.
-    if matches!(plan, Some(SearchPlan::Match(_))) {
+    if matches!(plan, Some(SearchPlan::Indexed(_))) {
         sql.push_str("FROM track_fts fts JOIN track t ON t.id = fts.rowid\n");
     } else {
         sql.push_str("FROM track t\n");
@@ -353,12 +356,12 @@ pub async fn search_tracks_advanced(
 
     sql.push_str("WHERE t.is_available = 1\n");
     match &plan {
-        Some(SearchPlan::Match(expr)) => {
+        Some(SearchPlan::Indexed(terms)) => {
             sql.push_str("  AND track_fts MATCH ?\n");
-            binds.push(Bind::Str(expr.clone()));
+            binds.push(Bind::Str(fts5_expression(terms)));
         }
-        Some(SearchPlan::Like(patterns)) => {
-            for pattern in patterns {
+        Some(p @ SearchPlan::Scanned(_)) => {
+            for pattern in like_patterns(p) {
                 sql.push_str("  AND ");
                 sql.push_str(LIKE_TERM_CLAUSE);
                 sql.push('\n');
@@ -440,7 +443,7 @@ pub async fn search_tracks_advanced(
     }
 
     // `rank` exists only where an FTS match produced it.
-    if matches!(plan, Some(SearchPlan::Match(_))) {
+    if matches!(plan, Some(SearchPlan::Indexed(_))) {
         sql.push_str("ORDER BY rank\n");
     } else {
         sql.push_str(

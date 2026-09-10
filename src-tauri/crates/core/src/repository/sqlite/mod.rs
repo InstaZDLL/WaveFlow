@@ -12,6 +12,7 @@
 pub mod library;
 pub mod playlist;
 pub mod profile;
+pub mod search;
 pub mod track;
 
 pub use library::SqliteLibraryRepository;
