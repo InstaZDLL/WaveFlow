@@ -11,7 +11,7 @@ remplacé à chaque passation.
 
 `main` = `cb3b7476`, CI verte. **Zéro alerte de sécurité ouverte** (voir 2.1).
 
-### Issues ouvertes — 22, toutes en `planned` sauf #582
+### Issues ouvertes — 23, toutes en `planned` sauf #582 et #604
 
 **Aucune n'est commencée.** « planned » veut dire triée, pas entamée.
 
@@ -46,6 +46,12 @@ Issues du rescan de l'audit croisé (2026-09-09, voir §3) :
 | **#594** | filtrage des alias ALSA virtuels |
 | **#595** | repli en rendu logiciel après un plantage GPU au démarrage |
 | **#596** | mode contraste élevé |
+
+Remontée par un utilisateur, **non triée** :
+
+| Issue | Sujet |
+| --- | --- |
+| **#604** | pas de son après une déconnexion Bluetooth, ouverte par zipedguy — `bug` |
 
 Issues nées de la relecture de ce rapport (2026-09-09, voir §3) :
 
@@ -151,6 +157,30 @@ pipeline peut encore l'afficher, mais elle vérifie en plus l'égalité des
 taux. Faire suivre le taux source impose de rouvrir le périphérique à
 chaque piste : c'est le chantier suivant, et c'est lui qui rendrait le mot
 vrai.
+
+### #604 — deux constats déjà vérifiés dans le code
+
+Windows 11, 1.7.0, casque Bluetooth. L'utilisateur décrit : au démarrage le son
+bascule sur les haut-parleurs et **rien ne sort** ; resélectionner le casque ne
+change rien ; seul un `quit` par le gestionnaire de tâches puis un relancement
+rétablit le son. Les journaux sont dans l'issue et ils sont exploitables.
+
+- **Le repli de périphérique est silencieux.**
+  `wasapi_exclusive.rs:705` journalise « requested device not found, falling
+  back to default » puis rend le périphérique par défaut. Côté interface, le
+  casque reste affiché comme sélectionné. C'est exactement la classe de **#597**,
+  cette fois observée chez un utilisateur.
+- **La garde anti-flap ne couvre pas cette forme-là.** `FlapWindow::record`
+  n'est appelée que dans le chemin `DeviceNotAvailable` (`engine.rs:752`). Or le
+  journal montre une autre boucle : l'ouverture exclusive échoue en
+  `0x8889000A` (**`AUDCLNT_E_DEVICE_IN_USE`**, le périphérique est déjà tenu en
+  exclusif), on retombe en partagé, et ça recommence — une dizaine de fois en
+  douze secondes, sans jamais incrémenter le compteur. La garde de #322/#346
+  compte donc une seule des deux formes de tempête.
+
+Ce qui reste à établir : **qui** tient le périphérique en exclusif. Le suspect
+le plus simple est un flux WaveFlow précédent dont la libération n'est pas
+encore effective côté Windows.
 
 ## 2. Ce qui est en cours
 
