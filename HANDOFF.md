@@ -9,7 +9,7 @@ remplacé à chaque passation.
 
 ## 1. Où en est le travail
 
-`main` = `bbdf7bb1`, CI verte. **Zéro alerte de sécurité ouverte** (voir 2.1).
+`main` = `cb3b7476`, CI verte. **Zéro alerte de sécurité ouverte** (voir 2.1).
 
 ### Issues ouvertes — 22, toutes en `planned` sauf #582
 
@@ -20,7 +20,7 @@ Issues du triage des discussions (2026-09-07/08) :
 | Issue | Sujet |
 | --- | --- |
 | **#578** | arbre de dossiers dans la bibliothèque |
-| **#579** | recherche chinoise par sous-chaîne + pinyin |
+| **#579** | recherche chinoise — **moitié sous-chaîne livrée**, reste le pinyin |
 | **#581** | lecture Opus |
 | **#582** | fenêtre de paroles flottante — `status: stalled` |
 | **#583** | boutons de lecture sur la vignette de barre des tâches Windows |
@@ -73,9 +73,38 @@ réponse.
 | --- | --- | --- |
 | **#486** | `chore(main): release 1.8.0` (release-please) | ouverte depuis la 1.7.0. **Ne jamais couper sans demande explicite.** Redemandé le 2026-09-07 : réponse « pas maintenant ». |
 
-### Livré le 2026-09-09 — les deux premières issues de la liste
+### Livré — trois issues entamées, deux closes
 
-Ce sont les seules entamées à ce jour ; les 22 restantes ne le sont pas.
+Les autres ne le sont pas. #579 est la seule ouverte à être à moitié faite.
+
+**#579 (moitié sous-chaîne) — trouver une piste par le milieu de son titre**
+(PR #605, 2026-09-10). `track_fts` passe en `trigram` et **possède désormais son
+contenu**. Les deux étaient contraints, pas choisis :
+
+- `unicode61` ne segmente pas le CJK — une suite ininterrompue de sinogrammes
+  était **un seul token**, donc `人民` ne trouvait rien dans `中国人民解放军`
+  alors que `中国` trouvait. Silencieusement, ce qui est la pire forme d'échec
+  pour une recherche. Le défaut était en plus **asymétrique** :
+  `search_albums` / `search_artists` utilisent `instr()`, donc la même requête
+  trouvait l'album et pas la piste.
+- Une table contentless ne rend pas ses colonnes : elles se relisent `NULL`,
+  donc `LIKE` — la voie qui sert les termes sous le plancher de trois
+  caractères de trigram — y renvoie **zéro**. D'où la table à contenu.
+- `MATCH` ne trouve **rien** sous trois caractères, pas « moins bien ». C'est la
+  forme courante d'un mot chinois, et `U2` / `M83` auraient régressé.
+
+Mesures sur 50 000 pistes, qui ont tranché la question laissée ouverte par
+l'issue : index 2,3 → 8,6 Mo, reconstruction **0,23 s** — donc dans la
+migration, pas en backfill de fond. `MATCH` ~0,2 ms, scan ~26 ms.
+
+**Une limite connue, volontairement non fermée** : `LIKE` ne replie la casse que
+pour l'ASCII, donc un terme accentué de 1-2 caractères ne trouve plus sa forme
+capitalisée (`ét` rate `Été indien`, `Ét` le trouve). Au-delà de 3 caractères
+l'index replie casse **et** accents. La fermer demande une **colonne repliée sur
+`track`** — la forme que `album` et `artist` ont déjà — soit une migration plus
+une modification du scanner. Un test la fige, `library.md` la dit, et **le
+pinyin a besoin de la même colonne**, donc les deux se feront probablement d'un
+seul tenant.
 
 **#580 — paroles dans le mini-lecteur** (PR #602, ouverte par jo-el414). Une
 bascule `Mic2` dans la barre du haut ouvre les paroles dans le créneau que la
@@ -377,6 +406,20 @@ la CI plutôt qu'un poller.
 - **`sqlx::query` n'est pas vérifié à la compilation** (contrairement à
   `sqlx::query!`) : un nom de colonne faux survit à `cargo check` et à
   clippy.
+- **Mesurer avant d'annoncer une solution, pas seulement avant de la coder.**
+  Pour #579 j'avais annoncé « trigram + `LIKE` » comme la clé ; la moitié était
+  fausse pour ce schéma, parce qu'une table FTS5 **contentless ne rend pas ses
+  colonnes** — elles se relisent `NULL` et `LIKE` y renvoie zéro. Trois autres
+  faits du même genre, tous invisibles sans essai : `ESCAPE` **désactive**
+  l'optimisation d'index du trigram (chercher le `:L0` dans
+  `EXPLAIN QUERY PLAN`) ; `MATCH` ne renvoie **rien** sous trois caractères ;
+  `LIKE` et `LOWER()` ne replient la casse que pour l'ASCII
+  (`LOWER('ÉTÉ')` = `'ÉtÉ'`). Détail complet en mémoire d'agent.
+- **Reconstruire une table FTS** : droper les triggers **d'abord**, puis la
+  table (virtuelle et sans clé étrangère entrante, donc l'invariant « ne jamais
+  droper une table parente » ne s'applique pas), recréer, repeupler. Vérifier
+  avec `INSERT INTO t(t) VALUES('integrity-check')` **et** depuis une base déjà
+  peuplée : c'est le seul test qui prouve le chemin de mise à jour.
 - **Un marqueur de version testé contre `NULL` seul se désarme au premier
   bump.** Les deux sites de #586 comparaient `analysis_version IS NULL` :
   comportement identique en l'état, puisque `NULL` est la seule autre valeur
