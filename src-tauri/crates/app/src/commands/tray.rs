@@ -33,8 +33,11 @@ pub struct TrayLabels {
     pub show: String,
     pub quit: String,
     /// The taskbar play/pause button shows one or the other, following
-    /// the player state, where the tray menu has a single entry.
+    /// the player state, where the tray menu has a single entry. Only
+    /// Windows has that button; elsewhere the frontend still sends both.
+    #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     pub play: String,
+    #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     pub pause: String,
 }
 
