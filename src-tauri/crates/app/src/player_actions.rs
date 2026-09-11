@@ -134,6 +134,17 @@ pub fn toggle_play_pause(app: &AppHandle, label: &str) {
 pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
     let state = app.state::<AppState>();
     let engine = app.state::<Arc<AudioEngine>>();
+    // One resume at a time (#609). Two Play events landing together — a
+    // double tap on the OS overlay, a client sending `play` twice — both
+    // read `Idle` and both land here, and each awaits the database below
+    // before sending its `LoadAndPlay`, so the second would restart the
+    // track the first just started. Guarding here rather than in `play`
+    // covers every caller: the tray, the taskbar buttons and the in-app
+    // button through `player_resume_last`.
+    let Some(_resume) = engine.begin_resume() else {
+        tracing::debug!("resume already in flight; ignoring this play");
+        return Ok(());
+    };
     // One lock for both: two awaits could straddle a profile switch and
     // pair one profile's resume point with the other's id.
     let (pool, profile_id) = state.require_profile_snapshot().await?;

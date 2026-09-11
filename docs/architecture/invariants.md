@@ -66,7 +66,9 @@ That sequence was copy-pasted in `lib.rs` and `media_controls.rs` until #471 (th
 
 They're `async` and await rather than spawn: sync callers (souvlaki, tray, taskbar buttons) wrap in `tauri::async_runtime::spawn` themselves, async ones report the outcome back to their client. `player_actions::toggle_play_pause`, shared by the tray and the taskbar buttons, is sync: it pauses or resumes directly, and only spawns `player_actions::resume_last` from `Idle` / `Ended`. From those states the decoder has no track open and drops `AudioCmd::Resume`, so resuming means loading the persisted resume point — what the in-app Play button does through `player_resume_last`.
 
-`player_actions::play` is the same shape for surfaces with a *separate* Play button (the OS media overlay, MPD's `play` / `pause 0`): it resumes or loads the resume point and never pauses, so Play on a playing track does nothing instead of pausing it. Sending `AudioCmd::Resume` straight to the engine from those surfaces is what #609 was.
+`player_actions::play` is the same shape for surfaces with a _separate_ Play button (the OS media overlay, MPD's `play` / `pause 0`): it resumes or loads the resume point and never pauses, so Play on a playing track does nothing instead of pausing it. Sending `AudioCmd::Resume` straight to the engine from those surfaces is what #609 was.
+
+Both funnel into `resume_last`, which holds a one-at-a-time guard (`AudioEngine::begin_resume`, released on every exit path). Two Play events landing together would otherwise each read `Idle`, each await the database, and the second would restart the track the first had just started.
 
 ---
 
