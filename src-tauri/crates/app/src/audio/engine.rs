@@ -1221,6 +1221,10 @@ impl AudioEngine {
         // Stop is sent here rather than twice: the step below skips its own
         // send when this one already happened.
         let stopped_early = pre_release && was_playing;
+        // The device to put back if the replacement will not open at all.
+        // Only a pre-release needs one: spawn-first leaves the old stream
+        // installed when the new one fails.
+        let mut previous_device = None;
         if pre_release {
             if was_playing {
                 self.cmd_tx
@@ -1228,10 +1232,15 @@ impl AudioEngine {
                     .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
             }
             if let Some(old) = guard.take() {
+                previous_device = Some(old.device_name.clone());
                 old.stop();
             }
         }
 
+        // Set when the replacement failed and the previous device came back
+        // instead: playback carries on there, and the caller still gets the
+        // error, so the new choice is not persisted.
+        let mut switch_error = None;
         let (producer, handle) = match spawn_output_with_mode(
             self.shared.clone(),
             self.app.clone(),
@@ -1241,12 +1250,50 @@ impl AudioEngine {
         ) {
             Ok(pair) => pair,
             Err(err) => {
-                // After a pre-release there is no output at all, and the
-                // toggle must stop claiming one (#405). Without one the old
-                // stream is still installed and still playing, and this
-                // no-ops.
-                self.publish_output_lost_if_gone(&guard);
-                return Err(err);
+                // Releasing first gave up the rollback that spawn-first gets
+                // for free, so buy it back by reopening the previous device.
+                // A target that will not open at all, such as a headset still
+                // listed but already gone, must not cost the user the output
+                // they were listening to.
+                //
+                // Keyed on the release rather than on comparing endpoints: a
+                // name is no identity (ALSA reaches one card as `default`,
+                // `plughw:0,0` and `hw:0,0`), and a wrong "different" verdict
+                // would put #604 back.
+                let reopened = previous_device.and_then(|previous| {
+                    spawn_output_with_mode(
+                        self.shared.clone(),
+                        self.app.clone(),
+                        previous,
+                        entering_exclusive,
+                        None,
+                    )
+                    .inspect_err(|reopen_err| {
+                        tracing::warn!(
+                            %reopen_err,
+                            "set_output_device: the previous device did not reopen either"
+                        );
+                    })
+                    .ok()
+                });
+                match reopened {
+                    Some(pair) => {
+                        tracing::warn!(
+                            %err,
+                            "set_output_device: the new device did not open, back on the previous one"
+                        );
+                        switch_error = Some(err);
+                        pair
+                    }
+                    None => {
+                        // No output at all now, and the toggle must stop
+                        // claiming one (#405). Without a pre-release the old
+                        // stream is still installed and still playing, and
+                        // this no-ops.
+                        self.publish_output_lost_if_gone(&guard);
+                        return Err(err);
+                    }
+                }
             }
         };
 
@@ -1348,7 +1395,12 @@ impl AudioEngine {
             }
         }
 
-        Ok(())
+        // Back on the previous device after a failed switch: playback is
+        // restored, but the switch itself did not happen.
+        match switch_error {
+            Some(err) => Err(err),
+            None => Ok(()),
+        }
     }
 
     /// Flip the WASAPI Exclusive Mode preference and re-open the

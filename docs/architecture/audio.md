@@ -106,7 +106,7 @@ The period has its own, quieter effect: one period is drained from the ring in a
 
 `open_and_run_pcm` takes hog mode and leaves the device's **physical format exactly as it found it**, reading the rate and channel count the device already runs at and publishing them for the decoder to meet. The DoP path does pin the format — a marker cadence that gets resampled is noise — but re-clocking a device the whole machine shares is a price only that cadence justifies.
 
-**Hog mode is registered against a PID**, so it does not evict a stream from our own process. The engine's spawn-before-release order — which works on Windows (the seized endpoint kicks the outgoing shared client off) and on Linux (the reservation makes the server hand the card back) — produced an `AudioUnit` here that rendered nothing at all: no sound, position counter frozen. The release-first rule in [playback / Output-stream lifecycle](../features/playback.md#output-stream-lifecycle--recovery) now covers this case too.
+**Hog mode is registered against a PID**, so it does not evict a stream from our own process. The engine's spawn-before-release order — which works on Windows (a shared client doesn't block the exclusive open at all) and on Linux (the reservation makes the server hand the card back) — produced an `AudioUnit` here that rendered nothing at all: no sound, position counter frozen. The release-first rule in [playback / Output-stream lifecycle](../features/playback.md#output-stream-lifecycle--recovery) now covers this case too.
 
 ### Shared by all three
 
