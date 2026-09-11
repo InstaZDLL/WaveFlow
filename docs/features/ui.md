@@ -141,6 +141,17 @@ Splash window background is opaque on purpose: `"transparent": true` forces an a
 
 Quick playback controls (Play/Pause, Previous, Next, Quitter). Close-to-tray is the default close behaviour — the `WindowEvent::CloseRequested` handler hides the window unless the tray "Quitter" item armed `QuitGate`. Tray ID is `waveflow`.
 
+## Taskbar thumbnail buttons (Windows)
+
+Hovering the taskbar icon shows Previous / Play-Pause / Next under the window preview ([`taskbar_buttons.rs`](../../src-tauri/crates/app/src/taskbar_buttons.rs), #583). No progress bar and no overlay badge on the taskbar icon: only the three buttons.
+
+- **Clicks** reach the window procedure as `WM_COMMAND` / `THBN_CLICKED`. Tauri has no hook for that (tao's `msg_hook` is Tauri's own, and only sees posted messages), so the main window is subclassed with `SetWindowSubclass` from `setup`, on the thread that created it. Clicks go through [`player_actions`](../../src-tauri/crates/app/src/player_actions.rs) like the tray's.
+- **The toolbar goes on at `TaskbarButtonCreated`**: before the taskbar button exists, `ThumbBarAddButtons` fails. `main` starts hidden, so that is the splash handoff.
+- **Play/pause follows `player:state`**, the event the in-app button follows, not the last click. `loading` is ignored so the icon doesn't flicker between two tracks.
+- **Icons** are drawn at runtime with `tiny-skia` at the small-icon size, white on a dark taskbar and near-black on a light one (`SystemUsesLightTheme`), and redrawn on `WM_SETTINGCHANGE`.
+- **Tooltips** ride on the tray's label push (`set_tray_labels`) and reuse `player.controls.{play,pause}` plus the tray's previous / next strings, so no new keys.
+- Every COM and icon call stays on the window's thread; the `player:state` listener and the label command only update shared state and post a refresh message to the window.
+
 ## Statistics view
 
 [`StatisticsView.tsx`](../../src/components/views/StatisticsView.tsx) projects from `play_event`:

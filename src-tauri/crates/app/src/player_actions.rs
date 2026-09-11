@@ -1,7 +1,8 @@
 //! Player actions shared by every *non-frontend* control surface.
 //!
 //! The tray menu ([`crate::lib`]), the OS media keys
-//! ([`crate::media_controls`]) and the MPD server ([`crate::mpd`]) all
+//! ([`crate::media_controls`]), the taskbar thumbnail buttons on Windows
+//! (`crate::taskbar_buttons`) and the MPD server ([`crate::mpd`]) all
 //! need the same "advance the queue, tell the UI, hand the track to the
 //! decoder" sequence that `commands::player` performs for the frontend.
 //!
@@ -15,15 +16,18 @@
 //! sync callback thread (souvlaki, the tray) wrap these in
 //! `tauri::async_runtime::spawn` themselves, and callers already inside
 //! a task (MPD) just await, which lets them report success back to
-//! their client.
+//! their client. [`toggle_play_pause`] is the exception: a menu item or
+//! a window message calls it, so it is sync and spawns the one branch
+//! that needs the database.
 
 use std::sync::Arc;
 
 use tauri::{AppHandle, Manager};
 
 use crate::{
-    audio::{engine::AudioCmd, AudioEngine},
+    audio::{engine::AudioCmd, AudioEngine, PlayerState},
     commands,
+    error::{AppError, AppResult},
     queue::{self, Direction, QueueTrack},
     state::AppState,
 };
@@ -45,6 +49,68 @@ pub enum Moved {
     Restarted,
     /// Nothing to move to — empty queue, or at an edge with repeat off.
     Nothing,
+}
+
+/// Pause when playing, resume when paused, otherwise start the resume
+/// point — the rule the in-app Play button follows.
+///
+/// Reads the engine's state (an atomic) at click time, so a surface can
+/// offer one "play / pause" control instead of two stateful ones it would
+/// have to keep in sync.
+///
+/// `AudioCmd::Resume` only reaches a paused track. From `Idle` or `Ended`
+/// the decoder has no track open and drops it, which left this control
+/// dead after launch and at the end of the queue; those states load the
+/// persisted resume point through [`resume_last`] instead. `Loading` is
+/// left alone: a track is already on its way.
+pub fn toggle_play_pause(app: &AppHandle, label: &str) {
+    let Some(engine) = app.try_state::<Arc<AudioEngine>>() else {
+        return;
+    };
+    let cmd = match engine.shared().state() {
+        PlayerState::Playing => AudioCmd::Pause,
+        PlayerState::Paused => AudioCmd::Resume,
+        PlayerState::Idle | PlayerState::Ended => {
+            let app = app.clone();
+            let label = label.to_owned();
+            tauri::async_runtime::spawn(async move {
+                if let Err(err) = resume_last(&app).await {
+                    tracing::warn!(%err, "{label} play_pause: resume failed");
+                }
+            });
+            return;
+        }
+        PlayerState::Loading => return,
+    };
+    if let Err(err) = engine.send(cmd) {
+        tracing::warn!(%err, "{label} play_pause: send failed");
+    }
+}
+
+/// Load the persisted last track at its saved position and play it.
+///
+/// Behind both the in-app Play button from idle
+/// (`commands::player::player_resume_last`) and [`toggle_play_pause`].
+pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
+    let state = app.state::<AppState>();
+    let engine = app.state::<Arc<AudioEngine>>();
+    // One lock for both: two awaits could straddle a profile switch and
+    // pair one profile's resume point with the other's id.
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
+    let Some((track, position_ms)) = queue::restore_state(&pool).await? else {
+        return Err(AppError::Other("no resume point available".into()));
+    };
+    commands::player::emit_track_changed(app, &state.paths, &track, Some(profile_id));
+    let replay_gain = commands::player::fetch_replay_gain(&pool, track.id).await;
+    engine.send(AudioCmd::LoadAndPlay {
+        path: track.as_path(),
+        start_ms: position_ms,
+        track_id: track.id,
+        duration_ms: track.duration_ms.max(0) as u64,
+        source_type: "manual".into(),
+        source_id: None,
+        replay_gain,
+    })
 }
 
 /// Hand a track to the decoder and tell every listener about it.

@@ -6,6 +6,9 @@ export interface TrayLabels {
   next: string;
   show: string;
   quit: string;
+  /** Tooltips of the Windows taskbar thumbnail's play/pause button. */
+  play: string;
+  pause: string;
 }
 
 export function setTrayLabels(labels: TrayLabels): Promise<void> {

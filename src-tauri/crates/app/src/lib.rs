@@ -40,6 +40,8 @@ mod smart_playlists;
 // passes raw `&SqlitePool` handles in lieu of `&AppState`. Same pattern
 // as `waveflow-syncedlyrics`.
 mod state;
+#[cfg(target_os = "windows")]
+mod taskbar_buttons;
 // Multi-device sync v1 (Phase 1.f, RFC-003) was retired in the RFC-005
 // cutover — the server no longer speaks its protocol. `mod sync` is now
 // permanently `sync_stub.rs`, a no-op surface matching the old public
@@ -377,6 +379,14 @@ pub fn run() {
                 app.manage(controls);
             }
 
+            // Previous / play-pause / next under the taskbar thumbnail.
+            // Subclasses the main window, so it has to run on the thread
+            // that created it — `setup` does. Non-fatal as well.
+            #[cfg(target_os = "windows")]
+            if let Some(buttons) = taskbar_buttons::init(app) {
+                app.manage(buttons);
+            }
+
             // Discord Rich Presence. Always spawn the worker thread —
             // it stays idle until the user flips the opt-in toggle.
             // Reading the persisted flag here means the activity is
@@ -502,7 +512,7 @@ pub fn run() {
                 .show_menu_on_left_click(false)
                 .tooltip("WaveFlow")
                 .on_menu_event(|app, event| match event.id.as_ref() {
-                    "play_pause" => toggle_play_pause(app),
+                    "play_pause" => player_actions::toggle_play_pause(app, "tray"),
                     "previous" => spawn_previous(app),
                     "next" => spawn_next(app),
                     "show" => show_main_window(app),
@@ -1359,23 +1369,6 @@ fn reveal_main_close_splash(app: &AppHandle) -> bool {
         }
     }
     true
-}
-
-/// Toggle Pause / Resume from the tray. Looks at the engine's current
-/// state (atomic, no async needed) so the menu item works as a single
-/// "Lecture / Pause" entry instead of two stateful labels we'd have to
-/// keep in sync.
-fn toggle_play_pause(app: &AppHandle) {
-    let engine = app.state::<Arc<AudioEngine>>();
-    let cmd = match engine.shared().state() {
-        audio::PlayerState::Playing => AudioCmd::Pause,
-        audio::PlayerState::Paused | audio::PlayerState::Idle => AudioCmd::Resume,
-        // Loading / Ended → leave the decoder alone, it'll settle.
-        _ => return,
-    };
-    if let Err(err) = engine.send(cmd) {
-        tracing::warn!(%err, "tray play_pause: send failed");
-    }
 }
 
 /// Tray "Suivant" — advance the queue and play what lands.
