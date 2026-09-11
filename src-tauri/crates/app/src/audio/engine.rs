@@ -1260,7 +1260,7 @@ impl AudioEngine {
                 // name is no identity (ALSA reaches one card as `default`,
                 // `plughw:0,0` and `hw:0,0`), and a wrong "different" verdict
                 // would put #604 back.
-                let reopened = previous_device.and_then(|previous| {
+                let reopened = previous_device.clone().and_then(|previous| {
                     spawn_output_with_mode(
                         self.shared.clone(),
                         self.app.clone(),
@@ -1291,6 +1291,18 @@ impl AudioEngine {
                         // stream is still installed and still playing, and
                         // this no-ops.
                         self.publish_output_lost_if_gone(&guard);
+                        // Same recovery as `set_exclusive_output`'s: retry the
+                        // previous device once the OS has settled, instead of
+                        // leaving the engine with no output until the user
+                        // picks again. Passed explicitly because the release
+                        // emptied `self.output`, so a self-resolve would
+                        // reopen the OS default instead of that device (#405).
+                        if let Some(previous) = previous_device {
+                            super::output::schedule_device_rebuild(
+                                &self.app,
+                                super::output::RebuildTarget::Device(previous),
+                            );
+                        }
                         return Err(err);
                     }
                 }
