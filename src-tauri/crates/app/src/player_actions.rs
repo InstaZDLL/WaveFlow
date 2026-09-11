@@ -94,12 +94,13 @@ pub fn toggle_play_pause(app: &AppHandle, label: &str) {
 pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
     let state = app.state::<AppState>();
     let engine = app.state::<Arc<AudioEngine>>();
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await.ok();
+    // One lock for both: two awaits could straddle a profile switch and
+    // pair one profile's resume point with the other's id.
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let Some((track, position_ms)) = queue::restore_state(&pool).await? else {
         return Err(AppError::Other("no resume point available".into()));
     };
-    commands::player::emit_track_changed(app, &state.paths, &track, profile_id);
+    commands::player::emit_track_changed(app, &state.paths, &track, Some(profile_id));
     let replay_gain = commands::player::fetch_replay_gain(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
         path: track.as_path(),
