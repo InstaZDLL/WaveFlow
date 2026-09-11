@@ -1006,19 +1006,20 @@ impl AudioEngine {
             .lock()
             .map_err(|_| AppError::Audio("output mutex poisoned".into()))?;
 
+        let track_id = self
+            .shared
+            .current_track_id
+            .load(std::sync::atomic::Ordering::Acquire);
         let resume = rebuild_resume(
             self.shared.state(),
             self.shared
                 .paused_output
                 .load(std::sync::atomic::Ordering::Acquire),
+            track_id > 0,
         );
         // Both a session that was playing and one the user paused hold a
         // track the rebuild has to interrupt; only what follows differs.
         let was_playing = resume != RebuildResume::Nothing;
-        let track_id = self
-            .shared
-            .current_track_id
-            .load(std::sync::atomic::Ordering::Acquire);
         let position_ms = self.shared.current_position_ms();
 
         // #322: a WASAPI *exclusive* client locks the device entirely — no
@@ -1119,12 +1120,23 @@ impl AudioEngine {
                 super::state::PlayerState::Idle,
                 Some(track_id),
             );
-            if track_id > 0 {
+            // Pin the write to the profile that was playing, captured without
+            // waiting: this runs on a blocking thread, and a lock it cannot
+            // take means a switch is under way. That profile must not receive
+            // this track's resume point, so the write is skipped (#485).
+            use tauri::Manager as _;
+            let profile_id = self
+                .app
+                .state::<crate::state::AppState>()
+                .profile
+                .try_read()
+                .ok()
+                .and_then(|active| active.as_ref().map(|p| p.profile_id));
+            if let Some(profile_id) = profile_id {
                 let app = self.app.clone();
                 tauri::async_runtime::spawn(async move {
-                    use tauri::Manager as _;
                     let state = app.state::<crate::state::AppState>();
-                    let saved = match state.require_profile_pool().await {
+                    let saved = match state.require_profile_pool_for(Some(profile_id)).await {
                         Ok(pool) => {
                             crate::queue::persist_resume_point(&pool, track_id, position_ms).await
                         }
@@ -1731,7 +1743,7 @@ enum RebuildResume {
     Nothing,
     /// The session was playing: pick the track back up where it was.
     Play,
-    /// The user had paused it: keep it that way (#611).
+    /// The user had paused a library track: keep it that way (#611).
     StayPaused,
 }
 
@@ -1745,10 +1757,22 @@ enum RebuildResume {
 /// playback path only the decoder's own `Pause` raises it, and nothing on
 /// the device-loss path touches it (shutdown and `reset_app` raise it too,
 /// but neither is followed by a rebuild).
-fn rebuild_resume(state: super::state::PlayerState, paused_output: bool) -> RebuildResume {
+///
+/// Only a library track stays paused. What keeps it resumable is the
+/// persisted resume point `resume_last` loads, and that point is always a
+/// library track's: a radio station or a server track parked the same way
+/// would come back as the last library track instead. Those keep being
+/// picked back up, as they were before #611.
+fn rebuild_resume(
+    state: super::state::PlayerState,
+    paused_output: bool,
+    library_track: bool,
+) -> RebuildResume {
     use super::state::PlayerState;
     match state {
-        PlayerState::Playing | PlayerState::Paused if paused_output => RebuildResume::StayPaused,
+        PlayerState::Playing | PlayerState::Paused if paused_output && library_track => {
+            RebuildResume::StayPaused
+        }
         PlayerState::Playing | PlayerState::Paused => RebuildResume::Play,
         PlayerState::Idle | PlayerState::Loading | PlayerState::Ended => RebuildResume::Nothing,
     }
@@ -1879,11 +1903,11 @@ mod rebuild_resume_tests {
         // parked a playing session as `Paused` without raising
         // `paused_output`.
         assert_eq!(
-            rebuild_resume(PlayerState::Paused, false),
+            rebuild_resume(PlayerState::Paused, false, true),
             RebuildResume::Play
         );
         assert_eq!(
-            rebuild_resume(PlayerState::Playing, false),
+            rebuild_resume(PlayerState::Playing, false, true),
             RebuildResume::Play
         );
     }
@@ -1893,15 +1917,25 @@ mod rebuild_resume_tests {
         // #611: resuming this one started the music on whatever device the
         // system fell back to.
         assert_eq!(
-            rebuild_resume(PlayerState::Paused, true),
+            rebuild_resume(PlayerState::Paused, true, true),
             RebuildResume::StayPaused
+        );
+    }
+
+    #[test]
+    fn a_paused_radio_or_server_track_is_still_picked_back_up() {
+        // Parked idle it would come back as the last library track: the
+        // resume point `resume_last` loads is never a radio station's.
+        assert_eq!(
+            rebuild_resume(PlayerState::Paused, true, false),
+            RebuildResume::Play
         );
     }
 
     #[test]
     fn nothing_loaded_means_nothing_to_resume() {
         for state in [PlayerState::Idle, PlayerState::Loading, PlayerState::Ended] {
-            assert_eq!(rebuild_resume(state, false), RebuildResume::Nothing);
+            assert_eq!(rebuild_resume(state, false, true), RebuildResume::Nothing);
         }
     }
 }
