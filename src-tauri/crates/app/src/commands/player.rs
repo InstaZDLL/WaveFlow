@@ -779,14 +779,22 @@ pub async fn player_get_state(
             snapshot.current_track.as_ref(),
             app.try_state::<crate::media_controls::MediaControlsHandle>(),
         ) {
-            controls.update_metadata(
-                track.title.clone(),
-                track.artist_name.clone(),
-                track.album_title.clone(),
-                track.artwork_path.clone(),
-                track.duration_ms,
-            );
-            controls.update_playback(crate::audio::PlayerState::Paused, snapshot.position_ms);
+            // Re-read the engine immediately before publishing. This
+            // command has just spent its time in the database, and a
+            // surface outside the window — a media key, MPD — can have
+            // started playback since the snapshot was taken. Laying a
+            // stale "restored track, paused" over a session that is
+            // already playing is worse than publishing nothing at all.
+            if engine.shared().state() == crate::audio::PlayerState::Idle {
+                controls.update_metadata(
+                    track.title.clone(),
+                    track.artist_name.clone(),
+                    track.album_title.clone(),
+                    track.artwork_path.clone(),
+                    track.duration_ms,
+                );
+                controls.update_playback(crate::audio::PlayerState::Paused, snapshot.position_ms);
+            }
         }
     }
 

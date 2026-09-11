@@ -63,31 +63,34 @@ pub enum Moved {
 /// The decoder only handles it inside the pause loop, so with nothing
 /// open it was dropped and Play did nothing at all: after a launch, and
 /// at the end of the queue (#609).
+/// Sync wrapper for callback threads (souvlaki, the tray): spawns
+/// [`play_and_wait`] and logs what it returns. A caller already inside a
+/// task awaits that directly instead, and can answer its client.
 pub fn play(app: &AppHandle, label: &str) {
+    let app = app.clone();
+    let label = label.to_owned();
+    tauri::async_runtime::spawn(async move {
+        if let Err(err) = play_and_wait(&app).await {
+            tracing::warn!(%err, "{label} play: failed");
+        }
+    });
+}
+
+/// [`play`]'s rule, awaited, so MPD can answer its client once the work
+/// is done rather than once it is queued.
+pub async fn play_and_wait(app: &AppHandle) -> AppResult<()> {
     let Some(engine) = app.try_state::<Arc<AudioEngine>>() else {
-        return;
+        return Ok(());
     };
     match engine.shared().state() {
         // Already playing, or a track is already on its way: Play is a
         // no-op here, not a restart.
-        PlayerState::Playing | PlayerState::Loading => {}
-        PlayerState::Paused => {
-            if let Err(err) = engine.send(AudioCmd::Resume) {
-                tracing::warn!(%err, "{label} play: send failed");
-            }
-        }
+        PlayerState::Playing | PlayerState::Loading => Ok(()),
+        PlayerState::Paused => engine.send(AudioCmd::Resume),
         // No track open: `AudioCmd::Resume` would be dropped, so load the
         // persisted resume point instead — what the in-app Play button
         // does through `player_resume_last`.
-        PlayerState::Idle | PlayerState::Ended => {
-            let app = app.clone();
-            let label = label.to_owned();
-            tauri::async_runtime::spawn(async move {
-                if let Err(err) = resume_last(&app).await {
-                    tracing::warn!(%err, "{label} play: resume failed");
-                }
-            });
-        }
+        PlayerState::Idle | PlayerState::Ended => resume_last(app).await,
     }
 }
 

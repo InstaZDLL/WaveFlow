@@ -461,7 +461,16 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 // Bare `play` resumes. Through `player_actions` because a
                 // bare `AudioCmd::Resume` is dropped when no track is
                 // open, so `mpc play` did nothing after a launch (#609).
-                None => player_actions::play(&ctx.app, SURFACE),
+                None => {
+                    // Awaited, not spawned: MPD answers its client once the
+                    // work is done, so `status` and the `idle` notification
+                    // below describe the load that actually happened. A
+                    // failure is logged rather than ACKed — real MPD answers
+                    // OK to a bare `play` with nothing to play.
+                    if let Err(err) = player_actions::play_and_wait(&ctx.app).await {
+                        tracing::warn!(%err, surface = SURFACE, "mpd play: resume failed");
+                    }
+                }
                 Some(p) => {
                     // A position past the end is an argument error in MPD, not
                     // a silent no-op / clamp. One snapshot for the bounds check
@@ -489,7 +498,16 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
         Command::PlayId(id) => {
             match id {
                 // Bare `playid` resumes, same as bare `play` (#609).
-                None => player_actions::play(&ctx.app, SURFACE),
+                None => {
+                    // Awaited, not spawned: MPD answers its client once the
+                    // work is done, so `status` and the `idle` notification
+                    // below describe the load that actually happened. A
+                    // failure is logged rather than ACKed — real MPD answers
+                    // OK to a bare `play` with nothing to play.
+                    if let Err(err) = player_actions::play_and_wait(&ctx.app).await {
+                        tracing::warn!(%err, surface = SURFACE, "mpd play: resume failed");
+                    }
+                }
                 Some(id) => {
                     // One snapshot for the id→position lookup AND the jump, so
                     // the position can't be resolved against one profile then
@@ -523,7 +541,16 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 // which is what a remote's single play/pause button sends.
                 // Both go through `player_actions` so they start the resume
                 // point when the decoder has nothing open (#609).
-                Some(false) => player_actions::play(&ctx.app, SURFACE),
+                Some(false) => {
+                    // Awaited, not spawned: MPD answers its client once the
+                    // work is done, so `status` and the `idle` notification
+                    // below describe the load that actually happened. A
+                    // failure is logged rather than ACKed — real MPD answers
+                    // OK to a bare `play` with nothing to play.
+                    if let Err(err) = player_actions::play_and_wait(&ctx.app).await {
+                        tracing::warn!(%err, surface = SURFACE, "mpd play: resume failed");
+                    }
+                }
                 None => player_actions::toggle_play_pause(&ctx.app, SURFACE),
             }
             ctx.idle.notify(Subsystem::Player);
