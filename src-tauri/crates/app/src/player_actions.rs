@@ -153,7 +153,17 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
     };
     commands::player::emit_track_changed(app, &state.paths, &track, Some(profile_id));
     let replay_gain = commands::player::fetch_replay_gain(&pool, track.id).await;
-    engine.send(AudioCmd::LoadAndPlay {
+    // The guard above can't cover the last stretch: once the command is in
+    // the channel, the decoder still has to pick it up, and until it
+    // transitions to `Loading` a Play landing in between reads `Idle` and
+    // starts a second resume. Publishing `Loading` here closes that window
+    // for every surface that gates on the state — `play`, the tray's
+    // `toggle_play_pause` — and the decoder emits the matching
+    // `player:state` a beat later. Restored if the send fails, so a dead
+    // channel can't leave the player claiming to load forever.
+    let previous = engine.shared().state();
+    engine.shared().set_state(PlayerState::Loading);
+    let sent = engine.send(AudioCmd::LoadAndPlay {
         path: track.as_path(),
         start_ms: position_ms,
         track_id: track.id,
@@ -161,7 +171,11 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
         source_type: "manual".into(),
         source_id: None,
         replay_gain,
-    })
+    });
+    if sent.is_err() {
+        engine.shared().set_state(previous);
+    }
+    sent
 }
 
 /// Hand a track to the decoder and tell every listener about it.
