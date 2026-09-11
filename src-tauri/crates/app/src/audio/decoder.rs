@@ -153,7 +153,7 @@ fn handle_playback_outcome(
 
 /// Transition [`SharedPlayback`] state and emit a `player:state` event
 /// in one place so the UI always sees transitions in order.
-fn transition_state(
+pub(super) fn transition_state(
     shared: &SharedPlayback,
     app: &AppHandle,
     state: PlayerState,

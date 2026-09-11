@@ -1006,14 +1006,20 @@ impl AudioEngine {
             .lock()
             .map_err(|_| AppError::Audio("output mutex poisoned".into()))?;
 
-        let was_playing = matches!(
-            self.shared.state(),
-            super::state::PlayerState::Playing | super::state::PlayerState::Paused
-        );
         let track_id = self
             .shared
             .current_track_id
             .load(std::sync::atomic::Ordering::Acquire);
+        let resume = rebuild_resume(
+            self.shared.state(),
+            self.shared
+                .paused_output
+                .load(std::sync::atomic::Ordering::Acquire),
+            track_id > 0,
+        );
+        // Both a session that was playing and one the user paused hold a
+        // track the rebuild has to interrupt; only what follows differs.
+        let was_playing = resume != RebuildResume::Nothing;
         let position_ms = self.shared.current_position_ms();
 
         // #322: a WASAPI *exclusive* client locks the device entirely — no
@@ -1101,7 +1107,48 @@ impl AudioEngine {
         // hold the audio recovery up. Radio sessions resume by
         // re-dispatching the cached `LoadUrlAndPlay` instead of
         // looking up a (non-existent) `track` row.
-        if was_playing {
+        if resume == RebuildResume::StayPaused {
+            // The user had paused (#611), so the track is not picked back
+            // up. The Stop above did unload it, though, and the decoder
+            // ignores a Resume with nothing loaded: leaving `Paused` on
+            // screen would make play a dead button. Land where a launch
+            // leaves the player instead — idle, with the resume point
+            // saved — so play goes through `resume_last`.
+            super::decoder::transition_state(
+                &self.shared,
+                &self.app,
+                super::state::PlayerState::Idle,
+                Some(track_id),
+            );
+            // Pin the write to the profile that was playing, captured without
+            // waiting: this runs on a blocking thread, and a lock it cannot
+            // take means a switch is under way. That profile must not receive
+            // this track's resume point, so the write is skipped (#485).
+            use tauri::Manager as _;
+            let profile_id = self
+                .app
+                .state::<crate::state::AppState>()
+                .profile
+                .try_read()
+                .ok()
+                .and_then(|active| active.as_ref().map(|p| p.profile_id));
+            if let Some(profile_id) = profile_id {
+                let app = self.app.clone();
+                tauri::async_runtime::spawn(async move {
+                    let state = app.state::<crate::state::AppState>();
+                    let saved = match state.require_profile_pool_for(Some(profile_id)).await {
+                        Ok(pool) => {
+                            crate::queue::persist_resume_point(&pool, track_id, position_ms).await
+                        }
+                        Err(err) => Err(err),
+                    };
+                    if let Err(err) = saved {
+                        tracing::warn!(%err, "device-error rebuild: paused resume point not saved");
+                    }
+                });
+            }
+        }
+        if resume == RebuildResume::Play {
             if track_id < 0 {
                 if let Some(state) = self.snapshot_radio_resume() {
                     let _ = self.cmd_tx.send(state.into_command(position_ms));
@@ -1689,6 +1736,48 @@ fn must_release_before_reopening(old_is_exclusive: Option<bool>, entering_exclus
     }
 }
 
+/// What a device-error rebuild does with the session it interrupts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RebuildResume {
+    /// Nothing was loaded: reopen the output and stop there.
+    Nothing,
+    /// The session was playing: pick the track back up where it was.
+    Play,
+    /// The user had paused a library track: keep it that way (#611).
+    StayPaused,
+}
+
+/// Decide [`RebuildResume`] from what the rebuild finds.
+///
+/// The state alone cannot tell the two sessions apart:
+/// [`super::output::notify_device_lost`] has already turned a playing one
+/// into `Paused` by the time the rebuild runs, so both arrive as `Paused`,
+/// and resuming both started music the user had paused on whatever device
+/// the system fell back to. `paused_output` does tell them apart. On the
+/// playback path only the decoder's own `Pause` raises it, and nothing on
+/// the device-loss path touches it (shutdown and `reset_app` raise it too,
+/// but neither is followed by a rebuild).
+///
+/// Only a library track stays paused. What keeps it resumable is the
+/// persisted resume point `resume_last` loads, and that point is always a
+/// library track's: a radio station or a server track parked the same way
+/// would come back as the last library track instead. Those keep being
+/// picked back up, as they were before #611.
+fn rebuild_resume(
+    state: super::state::PlayerState,
+    paused_output: bool,
+    library_track: bool,
+) -> RebuildResume {
+    use super::state::PlayerState;
+    match state {
+        PlayerState::Playing | PlayerState::Paused if paused_output && library_track => {
+            RebuildResume::StayPaused
+        }
+        PlayerState::Playing | PlayerState::Paused => RebuildResume::Play,
+        PlayerState::Idle | PlayerState::Loading | PlayerState::Ended => RebuildResume::Nothing,
+    }
+}
+
 /// Update the [`AudioEngine::radio_resume`] snapshot in place
 /// according to the command about to be sent. Lifted out of the
 /// `send` method as a free function so the lifecycle invariant
@@ -1800,6 +1889,54 @@ mod reopen_order_tests {
     #[test]
     fn shared_to_shared_has_nothing_to_reorder() {
         assert!(!must_release_before_reopening(Some(false), false));
+    }
+}
+
+#[cfg(test)]
+mod rebuild_resume_tests {
+    use super::super::state::PlayerState;
+    use super::{rebuild_resume, RebuildResume};
+
+    #[test]
+    fn a_session_that_was_playing_picks_back_up() {
+        // By the time the rebuild runs, `notify_device_lost` has already
+        // parked a playing session as `Paused` without raising
+        // `paused_output`.
+        assert_eq!(
+            rebuild_resume(PlayerState::Paused, false, true),
+            RebuildResume::Play
+        );
+        assert_eq!(
+            rebuild_resume(PlayerState::Playing, false, true),
+            RebuildResume::Play
+        );
+    }
+
+    #[test]
+    fn a_session_the_user_paused_stays_paused() {
+        // #611: resuming this one started the music on whatever device the
+        // system fell back to.
+        assert_eq!(
+            rebuild_resume(PlayerState::Paused, true, true),
+            RebuildResume::StayPaused
+        );
+    }
+
+    #[test]
+    fn a_paused_radio_or_server_track_is_still_picked_back_up() {
+        // Parked idle it would come back as the last library track: the
+        // resume point `resume_last` loads is never a radio station's.
+        assert_eq!(
+            rebuild_resume(PlayerState::Paused, true, false),
+            RebuildResume::Play
+        );
+    }
+
+    #[test]
+    fn nothing_loaded_means_nothing_to_resume() {
+        for state in [PlayerState::Idle, PlayerState::Loading, PlayerState::Ended] {
+            assert_eq!(rebuild_resume(state, false, true), RebuildResume::Nothing);
+        }
     }
 }
 

@@ -178,6 +178,7 @@ export function LibraryView({
     createLibrary,
     importFolder,
     rescanLibrary,
+    refresh: refreshLibraries,
   } = useLibrary();
   const { playTracks, currentTrack, isPlaying } = usePlayer();
   const {
@@ -658,10 +659,17 @@ export function LibraryView({
     try {
       await scanFolder(folderId, true);
       // scan_folder doesn't emit `library:rescanned` (only folder
-      // removal / tag edits do), so the row's last-scan date and track
-      // count would otherwise stay stale until some unrelated refresh —
-      // same refetch the mount effect above uses.
-      const list = await listFolders(null);
+      // removal / tag edits do), and it doesn't touch `library.updated_at`
+      // either, so `librariesSignature` never moves. Without refetching
+      // here the new tracks reached the database while the Songs, Albums
+      // and Artists lists kept the old ones (#613): bump the same refetch
+      // an import uses, refresh the library rows for their counts, and
+      // reload the folder rows for their last-scan date and track count.
+      setEditRefetch((k) => k + 1);
+      const [list] = await Promise.all([
+        listFolders(null),
+        refreshLibraries(),
+      ]);
       setFolders(list);
     } catch (err) {
       console.error("[LibraryView] deep rescan failed", err);

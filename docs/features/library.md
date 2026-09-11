@@ -34,7 +34,7 @@ A **deep rescan** bypasses `(mtime, size)` entirely and re-hashes + re-reads eve
 
 Two entry points, in different places:
 
-- **per folder** — the magnifier button on a folder row, under **My music → Folders** (`scan_folder` with `deep: true`). Appears on row hover;
+- **per folder** — the magnifier button on a folder row, under **My music → Folders** (`scan_folder` with `deep: true`). Appears on row hover. `scan_folder` neither emits `library:rescanned` nor touches `library.updated_at`, so the view refetches its lists and library rows itself afterwards — without that the new tracks reached the database but not the Songs, Albums and Artists lists (#613);
 - **whole library** — the second button next to Rescan in the **My music header**, so it is reachable from any tab, not just Folders (`rescan_library` with `deep: true`). Added in issue #457: until then the bypass existed per folder only, so the library-wide button users actually reach for could never see mtime-preserving edits.
 
 Both are mutually exclusive with each other and with a plain rescan — `scan_folder_inner` writes, and SQLite takes one writer at a time.
