@@ -230,7 +230,14 @@ export function ProfileSelectorModal({
                         >
                           <button
                             type="button"
-                            onClick={() => handleSelectProfile(profile)}
+                            // Manage mode labels every deletable profile
+                            // "Tap to delete", so tapping it has to do that
+                            // rather than switch to it (#614).
+                            onClick={() =>
+                              canDelete
+                                ? handleRequestDelete(profile)
+                                : handleSelectProfile(profile)
+                            }
                             disabled={showManageControls && isActive}
                             className="flex flex-col items-center space-y-3 disabled:cursor-not-allowed"
                           >
