@@ -38,6 +38,8 @@ For contrast: a player whose audio lives in the webview (an `<audio>` element) h
 
 `next` / `previous` / `play <pos>` go through [`player_actions`](../../src-tauri/crates/app/src/player_actions.rs), shared with the tray menu and the OS media controls. That sequence (advance the queue → `emit_track_changed` → `emit_queue_changed` → hand the track to the decoder) used to be copy-pasted in `lib.rs` and `media_controls.rs`; MPD would have made it a third copy, each free to forget an emit and desync a surface. Any new non-frontend control surface should call into that module rather than re-deriving it.
 
+`play` / `playid` with no argument, `pause 0` and a bare `pause` go through it too. They used to send `AudioCmd::Resume` to the engine, which the decoder drops when no track is open, so `mpc play` did nothing after a launch or at the end of the queue (#609).
+
 ## Configuration
 
 Persisted in the global `app_setting` table — the listener is process-wide, not per-profile.

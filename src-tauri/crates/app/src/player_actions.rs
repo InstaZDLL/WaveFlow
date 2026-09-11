@@ -16,9 +16,9 @@
 //! sync callback thread (souvlaki, the tray) wrap these in
 //! `tauri::async_runtime::spawn` themselves, and callers already inside
 //! a task (MPD) just await, which lets them report success back to
-//! their client. [`toggle_play_pause`] is the exception: a menu item or
-//! a window message calls it, so it is sync and spawns the one branch
-//! that needs the database.
+//! their client. [`play`] and [`toggle_play_pause`] are the exceptions:
+//! a menu item, a window message or an OS-overlay callback calls them,
+//! so they are sync and spawn the one branch that needs the database.
 
 use std::sync::Arc;
 
@@ -49,6 +49,46 @@ pub enum Moved {
     Restarted,
     /// Nothing to move to — empty queue, or at an edge with repeat off.
     Nothing,
+}
+
+/// Start playing: resume a paused track, or load the resume point when
+/// nothing is open. Never pauses.
+///
+/// The counterpart of [`toggle_play_pause`] for surfaces that expose a
+/// *separate* Play button — the OS media overlay, MPD's `play` and
+/// `pause 0` — where a toggle would pause a playing track instead of
+/// doing nothing.
+///
+/// Those surfaces used to send `AudioCmd::Resume` straight to the engine.
+/// The decoder only handles it inside the pause loop, so with nothing
+/// open it was dropped and Play did nothing at all: after a launch, and
+/// at the end of the queue (#609).
+pub fn play(app: &AppHandle, label: &str) {
+    let Some(engine) = app.try_state::<Arc<AudioEngine>>() else {
+        return;
+    };
+    match engine.shared().state() {
+        // Already playing, or a track is already on its way: Play is a
+        // no-op here, not a restart.
+        PlayerState::Playing | PlayerState::Loading => {}
+        PlayerState::Paused => {
+            if let Err(err) = engine.send(AudioCmd::Resume) {
+                tracing::warn!(%err, "{label} play: send failed");
+            }
+        }
+        // No track open: `AudioCmd::Resume` would be dropped, so load the
+        // persisted resume point instead — what the in-app Play button
+        // does through `player_resume_last`.
+        PlayerState::Idle | PlayerState::Ended => {
+            let app = app.clone();
+            let label = label.to_owned();
+            tauri::async_runtime::spawn(async move {
+                if let Err(err) = resume_last(&app).await {
+                    tracing::warn!(%err, "{label} play: resume failed");
+                }
+            });
+        }
+    }
 }
 
 /// Pause when playing, resume when paused, otherwise start the resume

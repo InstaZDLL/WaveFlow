@@ -458,9 +458,10 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
 
         Command::Play(pos) => {
             match pos {
-                None => {
-                    let _ = ctx.engine().send(AudioCmd::Resume);
-                }
+                // Bare `play` resumes. Through `player_actions` because a
+                // bare `AudioCmd::Resume` is dropped when no track is
+                // open, so `mpc play` did nothing after a launch (#609).
+                None => player_actions::play(&ctx.app, SURFACE),
                 Some(p) => {
                     // A position past the end is an argument error in MPD, not
                     // a silent no-op / clamp. One snapshot for the bounds check
@@ -487,9 +488,8 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
 
         Command::PlayId(id) => {
             match id {
-                None => {
-                    let _ = ctx.engine().send(AudioCmd::Resume);
-                }
+                // Bare `playid` resumes, same as bare `play` (#609).
+                None => player_actions::play(&ctx.app, SURFACE),
                 Some(id) => {
                     // One snapshot for the id→position lookup AND the jump, so
                     // the position can't be resolved against one profile then
@@ -515,18 +515,17 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
         }
 
         Command::Pause(want) => {
-            let engine = ctx.engine();
-            let cmd = match want {
-                Some(true) => AudioCmd::Pause,
-                Some(false) => AudioCmd::Resume,
-                // Bare `pause` toggles, which is what a remote's single
-                // play/pause button sends.
-                None => match engine.shared().state() {
-                    PlayerState::Playing => AudioCmd::Pause,
-                    _ => AudioCmd::Resume,
-                },
-            };
-            let _ = engine.send(cmd);
+            match want {
+                Some(true) => {
+                    let _ = ctx.engine().send(AudioCmd::Pause);
+                }
+                // `pause 0` is an explicit resume; a bare `pause` toggles,
+                // which is what a remote's single play/pause button sends.
+                // Both go through `player_actions` so they start the resume
+                // point when the decoder has nothing open (#609).
+                Some(false) => player_actions::play(&ctx.app, SURFACE),
+                None => player_actions::toggle_play_pause(&ctx.app, SURFACE),
+            }
             ctx.idle.notify(Subsystem::Player);
             Ok(Response::new())
         }
