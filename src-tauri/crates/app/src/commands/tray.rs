@@ -7,6 +7,10 @@
 //! `languageChanged`. The `MenuItem` handles are stashed in
 //! [`TrayMenuItems`] so this command can call `set_text` without
 //! rebuilding the menu.
+//!
+//! The same push carries the tooltips of the playback buttons under the
+//! taskbar thumbnail on Windows (`crate::taskbar_buttons`), which are
+//! built at startup for the same reason.
 
 use tauri::{menu::MenuItem, AppHandle, Manager, Runtime, State};
 
@@ -28,10 +32,23 @@ pub struct TrayLabels {
     pub next: String,
     pub show: String,
     pub quit: String,
+    /// The taskbar play/pause button shows one or the other, following
+    /// the player state, where the tray menu has a single entry.
+    pub play: String,
+    pub pause: String,
 }
 
 #[tauri::command]
 pub fn set_tray_labels<R: Runtime>(app: AppHandle<R>, labels: TrayLabels) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    if let Some(buttons) = app.try_state::<crate::taskbar_buttons::TaskbarButtons>() {
+        buttons.set_labels(crate::taskbar_buttons::Labels {
+            previous: labels.previous.clone(),
+            play: labels.play.clone(),
+            pause: labels.pause.clone(),
+            next: labels.next.clone(),
+        });
+    }
     let Some(items) = app.try_state::<TrayMenuItems<R>>() else {
         return Ok(());
     };

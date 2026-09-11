@@ -312,6 +312,12 @@ windows = { version = "0.62", features = [
     "Win32_System_Com",
     "Win32_System_Threading",
     "Win32_Storage_FileSystem",
+    # Playback buttons under the taskbar thumbnail (`taskbar_buttons.rs`):
+    # ITaskbarList3 + window subclassing, the icons, the taskbar theme.
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Graphics_Gdi",
+    "Win32_System_Registry",
 ] }
 
 # macOS-only: opt-in bit-perfect native DSD via DoP (#495 / #497).

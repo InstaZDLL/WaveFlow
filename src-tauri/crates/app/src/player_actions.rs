@@ -1,7 +1,8 @@
 //! Player actions shared by every *non-frontend* control surface.
 //!
 //! The tray menu ([`crate::lib`]), the OS media keys
-//! ([`crate::media_controls`]) and the MPD server ([`crate::mpd`]) all
+//! ([`crate::media_controls`]), the taskbar thumbnail buttons on Windows
+//! (`crate::taskbar_buttons`) and the MPD server ([`crate::mpd`]) all
 //! need the same "advance the queue, tell the UI, hand the track to the
 //! decoder" sequence that `commands::player` performs for the frontend.
 //!
@@ -15,14 +16,15 @@
 //! sync callback thread (souvlaki, the tray) wrap these in
 //! `tauri::async_runtime::spawn` themselves, and callers already inside
 //! a task (MPD) just await, which lets them report success back to
-//! their client.
+//! their client. [`toggle_play_pause`] is the exception: it only sends
+//! one command to the engine, so it is sync.
 
 use std::sync::Arc;
 
 use tauri::{AppHandle, Manager};
 
 use crate::{
-    audio::{engine::AudioCmd, AudioEngine},
+    audio::{engine::AudioCmd, AudioEngine, PlayerState},
     commands,
     queue::{self, Direction, QueueTrack},
     state::AppState,
@@ -45,6 +47,26 @@ pub enum Moved {
     Restarted,
     /// Nothing to move to — empty queue, or at an edge with repeat off.
     Nothing,
+}
+
+/// Pause when playing, resume when paused or idle.
+///
+/// Reads the engine's state (an atomic) at click time, so a surface can
+/// offer one "play / pause" control instead of two stateful ones it would
+/// have to keep in sync. `Loading` and `Ended` are left alone: the decoder
+/// is about to settle on its own.
+pub fn toggle_play_pause(app: &AppHandle, label: &str) {
+    let Some(engine) = app.try_state::<Arc<AudioEngine>>() else {
+        return;
+    };
+    let cmd = match engine.shared().state() {
+        PlayerState::Playing => AudioCmd::Pause,
+        PlayerState::Paused | PlayerState::Idle => AudioCmd::Resume,
+        PlayerState::Loading | PlayerState::Ended => return,
+    };
+    if let Err(err) = engine.send(cmd) {
+        tracing::warn!(%err, "{label} play_pause: send failed");
+    }
 }
 
 /// Hand a track to the decoder and tell every listener about it.

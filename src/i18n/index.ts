@@ -160,7 +160,9 @@ function applyDocumentLanguage(code: string | undefined) {
 // Push the localised tray menu labels to the Rust backend. The tray
 // is built at startup with English seed strings (frontend hasn't had
 // time to load i18next yet); this re-titles each item once the user
-// language is known and on every subsequent `languageChanged`.
+// language is known and on every subsequent `languageChanged`. The
+// Windows taskbar thumbnail buttons take their tooltips from the same
+// push.
 function pushTrayLabels() {
   setTrayLabels({
     playPause: i18n.t("system.tray.playPause"),
@@ -168,6 +170,8 @@ function pushTrayLabels() {
     next: i18n.t("system.tray.next"),
     show: i18n.t("system.tray.show"),
     quit: i18n.t("system.tray.quit"),
+    play: i18n.t("player.controls.play"),
+    pause: i18n.t("player.controls.pause"),
   }).catch(() => {
     // Tauri command unavailable (e.g. running outside the desktop
     // shell during a Vite-only dev session) — drop silently.
