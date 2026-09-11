@@ -106,6 +106,8 @@ Device loss reaches the recovery path from two independent places, since the two
 
 Both then call the shared [`output::notify_device_lost`](../../src-tauri/crates/app/src/audio/output.rs) (park the player, emit `player:state` + `player:error`, sync the OS media controls) and [`output::schedule_device_rebuild`](../../src-tauri/crates/app/src/audio/output.rs) (300 ms backoff, then a same-device rebuild).
 
+The rebuild picks the track back up only for a session that was playing. By then `notify_device_lost` has turned a playing session into `Paused` too, so the decision reads `paused_output`, which on the playback path only the decoder's own pause raises: a session the user paused comes back **idle with its resume point saved**, and play goes through `resume_last` exactly as after a launch (#611). It can't stay `Paused`, because the rebuild's `Stop` unloads the track and the decoder ignores a `Resume` with nothing loaded.
+
 Two gates keep the recovery from thrashing:
 
 - **`RebuildGate`** (`REBUILD_SETTLE_WINDOW`, 2 s) — one rebuild per burst of device errors. `begin_deliberate_output_change()` opens the same window around a mode toggle, because seizing the endpoint exclusively kicks the outgoing shared client off it and that self-inflicted `DeviceNotAvailable` would otherwise schedule a rebuild that undoes the switch.
