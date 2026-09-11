@@ -362,6 +362,21 @@ The verify step asserts the sealed-resources / `app.waveflow` / designated-requi
   NSIS dialog.
 - **Windows Authenticode signing** is wired through the release
   workflow via `SIGNTOOL_PFX_BASE64` + `SIGNTOOL_PFX_PASSWORD`
-  secrets. SmartScreen still warns on first install with a fresh
-  cert until enough downloads accumulate reputation; an EV cert
-  shortcuts that.
+  secrets. **The certificate in those secrets is self-signed**, so
+  the builds are signed but not trusted: the chain doesn't end at a
+  CA in Microsoft's Trusted Root Program, and Windows treats WaveFlow
+  as coming from an unknown publisher. Downloads won't change that.
+  Smart App Control blocks the app whenever Microsoft's online
+  reputation service has no positive verdict for the build, which is
+  why it fails on some days and works on others (#610). Microsoft's
+  own comparison lists a self-signed certificate as blocking
+  installation for public users.
+- **What fixes it** is a code-signing certificate from a CA in the
+  Trusted Root Program: with that, Smart App Control allows the app
+  even without any reputation. EV is no shortcut: SmartScreen has
+  treated EV and OV the same since 2024. Every executable file that
+  ships must carry the signature, not only the installer: the app
+  binary, DLLs and the uninstaller too. To check a release,
+  `Get-AuthenticodeSignature` on the installer and on the installed
+  `waveflow.exe` must report `Valid`; the self-signed certificate
+  reports `UnknownError` (untrusted root).
