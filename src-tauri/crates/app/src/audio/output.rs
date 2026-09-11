@@ -527,9 +527,12 @@ pub(super) fn fill_pcm_period(
 pub struct OutputHandle {
     pub shutdown_tx: Sender<()>,
     pub join: JoinHandle<()>,
-    /// Resolved device name actually used by this output thread —
-    /// `None` means the OS default device. Saved so a hot-swap can
-    /// no-op when the user picks the same device again.
+    /// Device name this output was *asked* for — `None` means the OS
+    /// default. It stays the request even when the backend fell back to
+    /// the default because the name was no longer enumerated: the picker
+    /// highlights it, a same-device pick no-ops on it, and a rebuild or a
+    /// DoP reopen goes back to it, so the user's pin survives until the
+    /// device returns. That also makes it no endpoint identity.
     pub device_name: Option<String>,
     /// Whether this handle really owns its device — WASAPI Exclusive
     /// Mode on Windows, a raw `hw:` handle on Linux. The user
