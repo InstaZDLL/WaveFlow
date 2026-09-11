@@ -479,12 +479,14 @@ async fn send(
             disc_number,
         } => {
             let path = format!("/api/v2/tracks/{track_id}");
-            // Every field, nulls included, because this endpoint is
-            // wholesale: the body states the corrections the track
-            // should carry afterwards, so an omitted field and a null
-            // one both say "no correction here". Spelling the nulls out
-            // makes the request say what it means instead of leaving it
-            // to be inferred from what is missing.
+            // Every field, nulls included. The endpoint is a partial
+            // patch in three states: absent leaves a correction alone,
+            // `null` removes it, a value sets it. `None` here means the
+            // editor emptied the field, which is a removal, so it has to
+            // reach the server as `null` — skipped, it would read as
+            // "leave it alone" and keep the old correction. A server
+            // from before waveflow-server #177 erased absent fields
+            // instead; the explicit null means the same on both.
             let song = client
                 .send_json(client.mutate(reqwest::Method::PATCH, &path, op).json(
                     &serde_json::json!({

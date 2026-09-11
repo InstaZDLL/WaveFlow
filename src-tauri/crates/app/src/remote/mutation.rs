@@ -159,37 +159,42 @@ pub enum Mutation {
     },
     /// Corrections for one server track.
     ///
-    /// ## `None` means the opposite of what it means above
+    /// ## `None` is a removal, and must never become an omission
     ///
     /// Every other update in this enum is incremental: a field left
     /// `None` is unchanged, and emptying one needs its own `clear_*`
     /// verb because the server coalesces an absent field with an
-    /// explicit null. `PATCH /tracks/{id}` is **wholesale** — the body
-    /// is the complete set of corrections the track should carry
-    /// afterwards, so a field left out is not a field left alone, it is
-    /// a correction *removed*. That is why there are no `clear_*` flags
-    /// here, and why there must never be any: the empty value already
-    /// says it.
+    /// explicit null.
     ///
-    /// The consequence for callers is that they may not send a diff.
-    /// The whole form goes, or the corrections it failed to mention are
-    /// silently dropped.
+    /// `PATCH /tracks/{id}` distinguishes the two
+    /// (waveflow-server #177): a field **absent** from the body leaves
+    /// that correction alone, an explicit **`null`** removes it, and a
+    /// value sets it. `None` here is sent as that explicit `null` —
+    /// `drain.rs` spells every field out — so in this variant `None`
+    /// means "remove the correction", which is what an emptied input in
+    /// the tag editor means.
+    ///
+    /// **Never skip `None` fields when serialising, and never turn this
+    /// into a diff that omits the unchanged ones.** The server reads an
+    /// omitted field as "leave it alone": an editor that emptied a box
+    /// and sent nothing for it would keep the old correction, silently.
+    /// That is also why there are no `clear_*` flags here — the
+    /// explicit `null` already says it.
     ///
     /// ## Why only six fields
     ///
     /// The server also stores `sort_title`, `comment` and
     /// `musicbrainz_recording_id`. They are absent here because the tag
-    /// editor has no input for them, and under wholesale semantics
-    /// sending a field we cannot show the user is indistinguishable
-    /// from clearing it.
+    /// editor has no input for them, and left out of the body they are
+    /// left alone — so a correction another client made to one of them
+    /// survives an edit made here.
     ///
-    /// **That is sound only while this application is the sole writer
-    /// of `track_override`** — which it is today: the server's own web
-    /// client sends no such patch. The day a second writer appears,
-    /// this quietly erases somebody else's corrections, and the fix is
-    /// a server route returning the raw overrides. The track endpoint
-    /// cannot stand in for it: it answers the *merged* values, in which
-    /// a correction is indistinguishable from what the file said.
+    /// A server from before #177 treated the body as the complete set
+    /// and *erased* an omitted field, which is how those three used to
+    /// be dropped. The explicit nulls behave the same on both. The raw
+    /// corrections, beside what the file says, are at
+    /// `GET /tracks/{id}/overrides` for an editor that has to show
+    /// which is which.
     UpdateTrackMetadata {
         track_id: String,
         title: Option<String>,
