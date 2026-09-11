@@ -850,29 +850,12 @@ pub async fn player_get_queue(state: tauri::State<'_, AppState>) -> AppResult<Pl
 
 /// Resume playback from the persisted last-track + position. Used by
 /// the frontend when the user hits Play from the idle state without
-/// having clicked a specific track yet.
+/// having clicked a specific track yet. The tray and the taskbar's
+/// play/pause share the same sequence through
+/// [`crate::player_actions::resume_last`].
 #[tauri::command]
-pub async fn player_resume_last(
-    app: AppHandle,
-    state: tauri::State<'_, AppState>,
-    engine: tauri::State<'_, Arc<AudioEngine>>,
-) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await.ok();
-    let Some((track, position_ms)) = queue::restore_state(&pool).await? else {
-        return Err(AppError::Other("no resume point available".into()));
-    };
-    emit_track_changed(&app, &state.paths, &track, profile_id);
-    let replay_gain = fetch_replay_gain(&pool, track.id).await;
-    engine.send(AudioCmd::LoadAndPlay {
-        path: track.as_path(),
-        start_ms: position_ms,
-        track_id: track.id,
-        duration_ms: track.duration_ms.max(0) as u64,
-        source_type: "manual".into(),
-        source_id: None,
-        replay_gain,
-    })
+pub async fn player_resume_last(app: AppHandle) -> AppResult<()> {
+    crate::player_actions::resume_last(&app).await
 }
 
 /// Flip shuffle on or off. Returns the new state. When turning on,

@@ -64,7 +64,7 @@ The tray menu, the OS media keys, the Windows taskbar thumbnail buttons and the 
 
 That sequence was copy-pasted in `lib.rs` and `media_controls.rs` until #471 (the second copy was literally commented "Mirror of `lib.rs::spawn_next`") and the two had already drifted. Forgetting one emit leaves a surface showing the previous track — exactly the bug duplication kept producing. So a new surface calls [`player_actions::{next, previous, play_at_index}`](../../src-tauri/crates/app/src/player_actions.rs) rather than re-deriving it.
 
-They're `async` and await rather than spawn: sync callers (souvlaki, tray, taskbar buttons) wrap in `tauri::async_runtime::spawn` themselves, async ones report the outcome back to their client. `player_actions::toggle_play_pause` is the one sync action — a single engine command — shared by the tray and the taskbar buttons.
+They're `async` and await rather than spawn: sync callers (souvlaki, tray, taskbar buttons) wrap in `tauri::async_runtime::spawn` themselves, async ones report the outcome back to their client. `player_actions::toggle_play_pause`, shared by the tray and the taskbar buttons, is sync: it pauses or resumes directly, and only spawns `player_actions::resume_last` from `Idle` / `Ended`. From those states the decoder has no track open and drops `AudioCmd::Resume`, so resuming means loading the persisted resume point — what the in-app Play button does through `player_resume_last`.
 
 ---
 
