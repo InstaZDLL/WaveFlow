@@ -562,6 +562,34 @@ pub fn run() {
                 ready_for_event.notify_one();
             });
 
+            // Write the resume point while playback runs, not only on the
+            // way out (#624). A crash, a kill or a power loss leaves no exit
+            // event to hook at all, and ten seconds is close enough that what
+            // comes back is where the user was.
+            let resume_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let mut ticker = tokio::time::interval(Duration::from_secs(10));
+                // The first tick fires immediately and nothing has played yet.
+                ticker.tick().await;
+                let mut last: Option<(i64, u64)> = None;
+                loop {
+                    ticker.tick().await;
+                    // Skip the write when neither the track nor the second it
+                    // sits on has moved: paused and idle sessions would
+                    // otherwise hit the single SQLite writer every ten
+                    // seconds for nothing.
+                    let Some(point) = current_resume_point(&resume_handle) else {
+                        continue;
+                    };
+                    let coarse = (point.0, point.1 / 1000);
+                    if last == Some(coarse) {
+                        continue;
+                    }
+                    write_resume_point(&resume_handle).await;
+                    last = Some(coarse);
+                }
+            });
+
             let reveal_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 // `notify_one` stores a permit even when it fires before
@@ -1063,7 +1091,6 @@ pub fn run() {
                     return;
                 }
                 let _ = tauri::async_runtime::block_on(async move {
-                    let state = app.state::<AppState>();
                     let engine = app.state::<Arc<AudioEngine>>();
 
                     // Silence the cpal output IMMEDIATELY. The rtrb
@@ -1075,23 +1102,63 @@ pub fn run() {
                     // at shutdown.
                     engine.shared().paused_output.store(true, Ordering::Release);
 
-                    let track_id = engine.shared().current_track_id.load(Ordering::Acquire);
-                    let position_ms = engine.shared().current_position_ms();
-                    if track_id > 0 {
-                        if let Ok(pool) = state.require_profile_pool().await {
-                            let _ = queue::persist_resume_point(&pool, track_id, position_ms).await;
-                        }
-                    }
-                    // Tell the decoder thread to stop and drop the
-                    // cpal stream cleanly.
+                    // The resume point is written from `RunEvent::Exit`
+                    // below, which this path reaches too — and which the
+                    // tray's Quit reaches *only* through there (#624).
+                    // Tell the decoder thread to stop and drop the cpal
+                    // stream cleanly.
                     let _ = engine.send(AudioCmd::Shutdown);
                     Ok::<_, error::AppError>(())
                 });
             }
             _ => {}
         })
-        .run(context)
-        .expect("error while running tauri application");
+        .build(context)
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // Every way out lands here: the tray's "Quit" (which calls
+            // `AppHandle::exit`), a window close that isn't close-to-tray, a
+            // session logout. `WindowEvent::Destroyed` does not — `exit`
+            // triggers `RunEvent::ExitRequested` / `Exit` instead, which is
+            // why the resume point was never written (#624).
+            if matches!(event, tauri::RunEvent::Exit) {
+                tauri::async_runtime::block_on(write_resume_point(app));
+            }
+        });
+}
+
+/// The track and position a resume point would name right now, or `None`
+/// when there is nothing to come back to.
+///
+/// Radio and the remote queue use negative sentinels and nothing loaded is
+/// `0`; neither has a `track` row for [`queue::restore_state`] to find.
+fn current_resume_point(app: &AppHandle) -> Option<(i64, u64)> {
+    let engine = app.try_state::<Arc<AudioEngine>>()?;
+    let track_id = engine
+        .shared()
+        .current_track_id
+        .load(std::sync::atomic::Ordering::Acquire);
+    if track_id <= 0 {
+        return None;
+    }
+    Some((track_id, engine.shared().current_position_ms()))
+}
+
+/// Persist where playback is, so the next launch can offer it back.
+///
+/// Idempotent, so every caller can write without coordinating with the
+/// others: the exit event, and the ten-second ticker spawned in `setup`.
+async fn write_resume_point(app: &AppHandle) {
+    let Some((track_id, position_ms)) = current_resume_point(app) else {
+        return;
+    };
+    let state = app.state::<AppState>();
+    let Ok(pool) = state.require_profile_pool().await else {
+        return;
+    };
+    if let Err(err) = queue::persist_resume_point(&pool, track_id, position_ms).await {
+        tracing::warn!(%err, "resume point not persisted");
+    }
 }
 
 /// Minimum logical-pixel overlap for a saved window position to be considered

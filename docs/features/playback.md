@@ -179,3 +179,15 @@ UI is a tri-state click cycle in [`AbLoopButton`](../../src/components/player/Ab
 - `append_to_user_queue` (Add to queue, context-menu action) finds the boundary `MIN(position) WHERE position > current AND source_type != 'manual'` — i.e. the first context-tail item — and inserts the new picks right before it with `source_type = 'manual'`. Falls back to `append` when the entire post-cursor tail is already manual (or there's nothing past the cursor), and to `fill_queue` when the queue is empty.
 
 Net effect matches Spotify's behaviour: the manual block stacks between Now Playing and the album / playlist tail. "Play next" pushes to the top of that block, "Add to queue" stacks at the bottom, and the album resumes once the user queue drains. No tracks get banished to the very end past the rest of the album any more.
+
+### Resume point
+
+Where playback was, kept in two `profile_setting` rows — `player.last_track_id` and `player.last_position_ms`, written by `queue::persist_resume_point`. `queue::restore_state` prefers that pair at mount, falls back to the queue's current track at 0 ms when the track is gone, and gives up when the queue is empty too. `player_actions::resume_last` loads the same pair, so every surface that offers to pick playback back up — the in-app Play from idle, the tray, the taskbar buttons, the OS overlay, MPD — starts from it.
+
+Three sites write it, and none coordinates with the others, because writing the same pair twice costs nothing:
+
+- **`RunEvent::Exit`** in [`lib.rs`](../../src-tauri/crates/app/src/lib.rs) — every way out of the app reaches it. Until #624 the only writer was `WindowEvent::Destroyed`, which `AppHandle::exit` (the tray's Quit) never triggers and a close-to-tray X never reaches either, so the pair sat at its initial `0` and every launch fell through to the queue's current track at the start.
+- **A ten-second ticker** spawned in `setup` — a crash, a kill or a power loss leaves no exit event to hook at all. It skips the write while neither the track nor the second it sits on has moved, so a paused or idle session doesn't wake the [single SQLite writer](../architecture/invariants.md#single-writer-to-sqlite) for nothing.
+- **The device-loss rebuild** in [`audio/engine.rs`](../../src-tauri/crates/app/src/audio/engine.rs) — parks a user-paused library track idle with its position saved, pinned to the profile that was active when the rebuild ran (see [Output-stream lifecycle & recovery](#output-stream-lifecycle--recovery) above).
+
+Only a real library track is worth saving: radio and the remote queue use negative ids and nothing loaded is `0`, and `restore_state` has no `track` row to find for either, so the write is skipped there.
