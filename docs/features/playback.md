@@ -112,7 +112,7 @@ The pin needs to survive the handle because the handle really does go away — `
 
 `set_exclusive_output` used to read the active device with one acquisition, release it, then take the lock again to rebuild. In between, `player_set_output_device` could install **and persist** device B; the toggle then rebuilt on A, the name it had captured, and the stream contradicted the saved preference until something else rebuilt (#629). It now resolves its target from the slot **after** taking the lock, the same cure `reopen_output_device` took with `RebuildDevice::Pinned`.
 
-That leaves the whole surface honest: `set_output_device` holds one acquisition throughout, the device-error recovery computes its own target deliberately, and these three are every entry point that mutates the handle.
+That leaves the whole surface honest: `set_output_device` holds one acquisition throughout, and the device-error recovery computes its own target deliberately. Those three are every entry point that changes the **device**; `switch_output_for_track` replaces the handle too — it is the DoP re-open, driven by the track rather than by the user — and it follows the same discipline, resolving its target from the slot inside the acquisition it rebuilds under.
 
 ### Re-selecting the active device
 
