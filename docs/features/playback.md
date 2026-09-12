@@ -276,7 +276,19 @@ leave every surface that gates on `Loading` dead for the session. The check
 is best effort by nature (only the decoder knows what it was handed), so
 the `Loading` write itself goes through `SharedPlayback::try_set_state`: a
 compare-exchange, so it can never overwrite a transition published for
-another track. The paths that only emit a *label* are a known gap, tracked
+another track. The same rule covers the one producer whose publication is
+not cosmetic: starting a **remote session** installs a queue that takes
+over next / previous and end-of-track for every surface, so
+`remote::playback::play_entries` installs nothing when its intent is
+already superseded, and rolls its install back — through
+`RemotePlayback::clear_if`, which undoes only *its own*, since a newer
+session may hold the queue by then — when it is superseded during the
+ticket round-trip. Without that, a remote start the user had already
+abandoned would reinstall itself on top of the clear
+`emit_track_changed` performs, which is the invariant that module
+documents.
+
+The paths that only emit a *label* are a known gap, tracked
 separately — they mutate the queue cursor before sending, so bailing out
 halfway is not the answer there.
 

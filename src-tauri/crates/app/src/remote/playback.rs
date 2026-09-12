@@ -45,10 +45,37 @@ pub async fn play_entries(
         return Err(crate::error::AppError::Other("no tracks to play".into()));
     }
     let index = start_index.min(entries.len() - 1);
-    app.state::<AppState>()
+    let engine = app.state::<Arc<AudioEngine>>();
+
+    // Installing a session is not a neutral act: while one is active it
+    // takes over next / previous and end-of-track for every surface. The
+    // module's contract is that a session the user has moved on from can
+    // never drive the next advance — `emit_track_changed` clears it the
+    // instant a library track becomes current. A preparation that finishes
+    // after that clear would put the abandoned session back on top of it,
+    // and a superseded intent says that is exactly what this one is (#622).
+    // Nothing has been mutated yet, so giving up here is total.
+    if engine.load_intent_superseded(intent) {
+        tracing::debug!("remote session superseded before it started; not installing it");
+        return Ok(());
+    }
+
+    let install = app
+        .state::<AppState>()
         .remote_playback
         .set(RemoteQueue { entries, index });
-    play_current(app, intent).await
+    let played = play_current(app, intent).await;
+
+    // The check above cannot cover `play_current` itself: minting a ticket
+    // is an HTTP round-trip, and a local pick landing during it leaves the
+    // session installed over a track it never played. Undo it — but only
+    // our own install, since a newer session may hold the queue by now.
+    if engine.load_intent_superseded(intent)
+        && app.state::<AppState>().remote_playback.clear_if(install)
+    {
+        tracing::debug!("remote session superseded while starting; rolled it back");
+    }
+    played
 }
 
 /// Start playing a projected remote playlist from `start_index`, filling
