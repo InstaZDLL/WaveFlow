@@ -674,11 +674,22 @@ impl AudioEngine {
     /// that is no longer enumerated is replaced by the default endpoint
     /// on open, and ticking the pin then described a device playing
     /// nothing (#612).
-    pub fn current_output_opened_device(&self) -> Option<String> {
+    /// Returned as `(opened, pinned)` under a **single** lock.
+    ///
+    /// Reading the two names through separate accessors let a rebuild
+    /// swap the handle in between, pairing the old stream's opened name
+    /// with the new stream's pin — the picker would then tick one row
+    /// and mark another as pinned, each describing a different stream.
+    pub fn current_output_devices(&self) -> (Option<String>, Option<String>) {
         self.output
             .lock()
             .ok()
-            .and_then(|guard| guard.as_ref().and_then(|h| h.opened_device.clone()))
+            .and_then(|guard| {
+                guard
+                    .as_ref()
+                    .map(|h| (h.opened_device.clone(), h.device_name.clone()))
+            })
+            .unwrap_or((None, None))
     }
 
     /// Re-open the output on the device it is already pinned to.

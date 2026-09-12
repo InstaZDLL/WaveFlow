@@ -1805,9 +1805,11 @@ pub async fn player_list_output_devices(
     engine: tauri::State<'_, Arc<AudioEngine>>,
 ) -> AppResult<Vec<OutputDeviceRow>> {
     // Two different questions: where the audio actually goes, and what
-    // the user asked for. They diverge after a silent fallback (#612).
-    let playing = engine.current_output_opened_device();
-    let pinned = engine.current_output_device();
+    // the user asked for. They diverge after a silent fallback (#612),
+    // and they are read under one lock — taken separately, a rebuild
+    // landing in between would pair one stream's endpoint with the
+    // other's pin.
+    let (playing, pinned) = engine.current_output_devices();
     // cpal enumeration walks the OS audio stack and can block for
     // ~100 ms+ on Linux. Push it onto the blocking pool so the tokio
     // runtime stays responsive — without this the WebView freezes
