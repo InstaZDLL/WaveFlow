@@ -19,7 +19,7 @@ use tauri::{AppHandle, Manager};
 use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::{
-    audio::engine::AudioCmd,
+    audio::engine::{AudioCmd, LoadIntent},
     audio::AudioEngine,
     commands::player::{emit_queue_changed, emit_track_changed},
     queue::{self, Direction, QueueTrack},
@@ -42,6 +42,15 @@ pub enum AnalyticsMsg {
         listened_ms: u64,
         source_type: String,
         source_id: Option<i64>,
+        /// Ordering token for the auto-advance this message triggers,
+        /// claimed by the decoder when the track ended (#622).
+        ///
+        /// It cannot be claimed on the receiving side: this message crosses
+        /// a channel and the task then writes the `play_event`, reads the
+        /// repeat mode, advances the queue and looks the gain up before
+        /// sending anything. An intent claimed there would rank the
+        /// auto-advance above a Next the user pressed in between.
+        intent: LoadIntent,
     },
     /// A track was interrupted by the user (Next, jump, new load)
     /// BUT had been listened to long enough to count as a "real"
@@ -63,7 +72,12 @@ pub enum AnalyticsMsg {
     /// queue is active this drives its auto-advance. Radio is infinite
     /// and does not reach here on its own; a dropped radio connection
     /// can, and is ignored when no remote queue is active.
-    RemoteTrackEnded { track_id: i64 },
+    RemoteTrackEnded {
+        track_id: i64,
+        /// Same as [`Self::TrackEnded::intent`]: the remote auto-advance
+        /// this drives has to be ordered from the moment the track ended.
+        intent: LoadIntent,
+    },
     /// Sent by the decoder right after the crossfade swap has
     /// happened and the second decoder is now the primary. Writes a
     /// `play_event` for the just-faded-out track AND advances the
@@ -105,10 +119,11 @@ async fn handle_message(
     // needs no profile pool. Handle it before acquiring the pool so a
     // missing or momentarily-unavailable profile can't strand remote
     // auto-advance (a plain radio stream ending here is a no-op).
-    if let AnalyticsMsg::RemoteTrackEnded { .. } = msg {
+    if let AnalyticsMsg::RemoteTrackEnded { intent, .. } = msg {
         #[cfg(feature = "sync_v2")]
         if state.remote_playback.is_active() {
-            if let Err(err) = crate::remote::playback::advance(app, Direction::Next).await {
+            if let Err(err) = crate::remote::playback::advance(app, Direction::Next, *intent).await
+            {
                 tracing::warn!(%err, "remote auto-advance failed");
             }
         }
@@ -131,6 +146,7 @@ async fn handle_message(
             listened_ms,
             source_type,
             source_id,
+            intent,
         } => {
             insert_play_event(
                 &pool,
@@ -174,6 +190,7 @@ async fn handle_message(
                     let replay_gain =
                         crate::commands::player::fetch_replay_gain(&pool, track.id).await;
                     let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
+                        intent: *intent,
                         path: track.as_path(),
                         start_ms: 0,
                         track_id: track.id,

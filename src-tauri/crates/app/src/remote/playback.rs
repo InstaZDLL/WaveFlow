@@ -18,7 +18,10 @@ use sqlx::Row;
 use tauri::{AppHandle, Manager};
 
 use crate::{
-    audio::{engine::AudioCmd, AudioEngine},
+    audio::{
+        engine::{AudioCmd, LoadIntent},
+        AudioEngine,
+    },
     error::AppResult,
     queue::Direction,
     remote_playback::{RemoteEntry, RemoteQueue},
@@ -27,25 +30,63 @@ use crate::{
 
 /// Install `entries` as the remote queue and start playing at `start_index`.
 /// The shared tail of every "start a remote session" path.
+///
+/// `intent` comes from the caller, not from here (#622): both callers read
+/// the entries out of SQLite first — `play_track_ids` one query per track —
+/// and an intent claimed at the end of that would outrank a local track the
+/// user picked while it ran, then discard their pick.
 pub async fn play_entries(
     app: &AppHandle,
     entries: Vec<RemoteEntry>,
     start_index: usize,
+    intent: LoadIntent,
 ) -> AppResult<()> {
     if entries.is_empty() {
         return Err(crate::error::AppError::Other("no tracks to play".into()));
     }
     let index = start_index.min(entries.len() - 1);
-    app.state::<AppState>()
+    let engine = app.state::<Arc<AudioEngine>>();
+
+    // Installing a session is not a neutral act: while one is active it
+    // takes over next / previous and end-of-track for every surface. The
+    // module's contract is that a session the user has moved on from can
+    // never drive the next advance — `emit_track_changed` clears it the
+    // instant a library track becomes current. A preparation that finishes
+    // after that clear would put the abandoned session back on top of it,
+    // and a superseded intent says that is exactly what this one is (#622).
+    // Nothing has been mutated yet, so giving up here is total.
+    if engine.load_intent_superseded(intent) {
+        tracing::debug!("remote session superseded before it started; not installing it");
+        return Ok(());
+    }
+
+    let revision = app
+        .state::<AppState>()
         .remote_playback
         .set(RemoteQueue { entries, index });
-    play_current(app).await
+    let played = play_current(app, intent).await;
+
+    // The check above cannot cover `play_current` itself: minting a ticket
+    // is an HTTP round-trip, and a local pick landing during it leaves the
+    // session installed over a track it never played. Undo it — but only
+    // the session as we installed it: `clear_if` no longer matches once
+    // someone else has installed another, or the user has navigated inside
+    // this one, and either of those is the queue they can now hear.
+    if engine.load_intent_superseded(intent)
+        && app.state::<AppState>().remote_playback.clear_if(revision)
+    {
+        tracing::debug!("remote session superseded while starting; rolled it back");
+    }
+    played
 }
 
 /// Start playing a projected remote playlist from `start_index`, filling
 /// the remote queue from the projection so subsequent tracks auto-advance.
 pub async fn start(app: &AppHandle, playlist_id: &str, start_index: usize) -> AppResult<()> {
     let state = app.state::<AppState>();
+    // Before the projection read below (#622). Its Tauri command is a
+    // one-line wrapper with no await of its own, so this is the click.
+    let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
     let entries = {
         let pool = state.require_profile_pool().await?;
         let mut conn = pool.acquire().await?;
@@ -62,7 +103,7 @@ pub async fn start(app: &AppHandle, playlist_id: &str, start_index: usize) -> Ap
             })
             .collect::<Vec<_>>()
     };
-    play_entries(app, entries, start_index).await
+    play_entries(app, entries, start_index, intent).await
 }
 
 /// Start a remote session from an explicit list of track ids, reading each
@@ -76,6 +117,9 @@ pub async fn play_track_ids(
     start_index: usize,
 ) -> AppResult<()> {
     let state = app.state::<AppState>();
+    // Before the loop below, which is one query per track id — a whole
+    // album's worth of round-trips for a local pick to land in (#622).
+    let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
     let entries = {
         let pool = state.require_profile_pool().await?;
         let mut conn = pool.acquire().await?;
@@ -113,15 +157,16 @@ pub async fn play_track_ids(
         }
         entries
     };
-    play_entries(app, entries, start_index).await
+    play_entries(app, entries, start_index, intent).await
 }
 
 /// Move the cursor to an absolute position and play it. Backs the queue
 /// panel's click-to-jump on a remote session.
 pub async fn jump_to(app: &AppHandle, index: usize) -> AppResult<()> {
     let state = app.state::<AppState>();
+    let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
     match state.remote_playback.seek_to(index) {
-        Some(_) => play_current(app).await,
+        Some(_) => play_current(app, intent).await,
         None => Ok(()),
     }
 }
@@ -134,7 +179,10 @@ pub async fn jump_to(app: &AppHandle, index: usize) -> AppResult<()> {
 /// the session on a track it never played: the engine is stopped and the
 /// session cleared before the error propagates, so the next action starts
 /// clean rather than acting on a phantom cursor.
-pub async fn advance(app: &AppHandle, direction: Direction) -> AppResult<bool> {
+/// `intent` comes from the caller, not from here (#622): a Next claims it
+/// when the key is pressed and the auto-advance when the track ended, both
+/// of which are earlier than this call and are what has to be ordered.
+pub async fn advance(app: &AppHandle, direction: Direction, intent: LoadIntent) -> AppResult<bool> {
     let state = app.state::<AppState>();
     let repeat = {
         let pool = state.require_profile_pool().await?;
@@ -142,7 +190,7 @@ pub async fn advance(app: &AppHandle, direction: Direction) -> AppResult<bool> {
     };
     match state.remote_playback.step(direction, repeat) {
         Some(_) => {
-            if let Err(err) = play_current(app).await {
+            if let Err(err) = play_current(app, intent).await {
                 let engine = app.state::<Arc<AudioEngine>>();
                 let _ = engine.send(AudioCmd::Stop);
                 state.remote_playback.clear();
@@ -163,7 +211,7 @@ pub async fn advance(app: &AppHandle, direction: Direction) -> AppResult<bool> {
 /// remote sentinel and metadata path, so queue controls and auto-advance stay
 /// remote. When online, a best-effort ticket accompanies the local command as
 /// a decoder-level fallback if the file disappears or fails to decode.
-async fn play_current(app: &AppHandle) -> AppResult<()> {
+async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
     let state = app.state::<AppState>();
     let Some(entry) = state.remote_playback.current() else {
         return Ok(());
@@ -195,6 +243,7 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
             }
         };
         engine.send(AudioCmd::LoadRemoteFileAndPlay {
+            intent,
             path: local.path,
             start_ms: 0,
             track_id,
@@ -234,6 +283,7 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
         if let Some(path) = crate::remote::download::lookup(&mut conn, &entry.id).await {
             drop(conn);
             engine.send(AudioCmd::LoadRemoteFileAndPlay {
+                intent,
                 path,
                 start_ms: 0,
                 track_id,
@@ -268,6 +318,7 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
                 .ok()
         };
         engine.send(AudioCmd::LoadRemoteFileAndPlay {
+            intent,
             path,
             start_ms: 0,
             track_id,
@@ -292,6 +343,7 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
 
     let url = crate::remote::stream::ticket_url(&state, &entry.id).await?;
     engine.send(AudioCmd::LoadUrlAndPlay {
+        intent,
         // Fill the cache from the blocks this playback was going to read
         // anyway. Nothing extra is fetched and nothing is delayed.
         cache: Some(crate::audio::stream_cache::CacheTarget {

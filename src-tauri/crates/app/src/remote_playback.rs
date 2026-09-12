@@ -30,6 +30,17 @@
 //! stream is started (`player_play_url`), so a stale session can never
 //! hijack the next advance.
 //!
+//! Clearing alone stopped being enough once loads became ordered (#622):
+//! a remote start whose own load is dropped as superseded would install
+//! its session *after* that clear and take the transport back. So the
+//! install is guarded on both sides — `remote::playback::play_entries`
+//! installs nothing when its intent is already superseded, and undoes its
+//! install through [`RemotePlayback::clear_if`] when it is superseded
+//! while starting. `clear_if` rather than `clear` because by then the
+//! session may be a newer one someone else installed — or the same one
+//! the user has navigated inside, which is why every navigation takes a
+//! fresh revision too.
+//!
 //! This module holds only plain data (no dependency on the `sync_v2`-gated
 //! [`crate::remote`] tree) so it can be compiled unconditionally and read
 //! from the always-present control seams. The orchestration that mints
@@ -44,6 +55,7 @@
 // same reason, as `queue.rs` and `remote/mod.rs`.
 #![allow(dead_code)]
 
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
 use crate::queue::{Direction, RepeatMode};
@@ -94,6 +106,20 @@ pub struct RemoteStreamMeta {
 #[derive(Default)]
 pub struct RemotePlayback {
     inner: Mutex<Option<RemoteQueue>>,
+    /// Names the current state of the session, so a caller can undo its
+    /// own work and nobody else's — see [`Self::set`] and
+    /// [`Self::clear_if`].
+    ///
+    /// **Every mutation that makes the session somebody else's business
+    /// bumps this**, not just an install: a navigation counts too. A token
+    /// that survived a `seek_to` would let a start whose load was
+    /// superseded clear the session the user has since jumped inside, and
+    /// nothing would be driving the queue they can hear.
+    ///
+    /// Written only while holding `inner`, so a reader holding that same
+    /// lock sees the queue and the number naming it as one consistent
+    /// pair.
+    revisions: AtomicU64,
 }
 
 impl RemotePlayback {
@@ -112,9 +138,33 @@ impl RemotePlayback {
             .is_some()
     }
 
-    /// Install a fresh queue, replacing any current one.
-    pub fn set(&self, queue: RemoteQueue) {
-        *self.inner.lock().expect("remote_playback poisoned") = Some(queue);
+    /// Install a fresh queue, replacing any current one. Returns the
+    /// revision naming the session it just installed, for
+    /// [`Self::clear_if`].
+    pub fn set(&self, queue: RemoteQueue) -> u64 {
+        let mut guard = self.inner.lock().expect("remote_playback poisoned");
+        let revision = self.revisions.fetch_add(1, Ordering::AcqRel) + 1;
+        *guard = Some(queue);
+        revision
+    }
+
+    /// Drop the session only if `revision` still names it — the rollback
+    /// half of [`Self::set`].
+    ///
+    /// A caller that installed a session and then found out it should not
+    /// have (its load was superseded, #622) cannot simply
+    /// [`clear`](Self::clear): by then the session may be a newer one
+    /// someone else installed, or the same one the user has navigated
+    /// inside, and dropping either would strand the queue they are
+    /// actually listening to. Returns whether it cleared anything.
+    pub fn clear_if(&self, revision: u64) -> bool {
+        let mut guard = self.inner.lock().expect("remote_playback poisoned");
+        if self.revisions.load(Ordering::Acquire) != revision {
+            return false;
+        }
+        let had = guard.is_some();
+        *guard = None;
+        had
     }
 
     /// The entry the cursor points at, cloned out of the lock.
@@ -154,6 +204,9 @@ impl RemotePlayback {
         if queue.entries.is_empty() {
             return None;
         }
+        // A navigation makes the session the navigator's, so it takes a
+        // fresh revision: an earlier start's rollback must no longer match.
+        self.revisions.fetch_add(1, Ordering::AcqRel);
         queue.index = index.min(queue.entries.len() - 1);
         queue.entries.get(queue.index).cloned()
     }
@@ -165,6 +218,9 @@ impl RemotePlayback {
     pub fn step(&self, direction: Direction, repeat: RepeatMode) -> Option<RemoteEntry> {
         let mut guard = self.inner.lock().expect("remote_playback poisoned");
         let queue = guard.as_mut()?;
+        // Same as `seek_to`: stepping is a navigation, and the session that
+        // comes out of it is no longer the one an earlier start installed.
+        self.revisions.fetch_add(1, Ordering::AcqRel);
         match advance_index(queue.entries.len(), queue.index, direction, repeat) {
             Some(next) => {
                 queue.index = next;
@@ -217,6 +273,75 @@ fn advance_index(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn clear_if_undoes_only_its_own_install() {
+        let playback = RemotePlayback::default();
+        let mine = playback.set(RemoteQueue {
+            entries: vec![entry("a")],
+            index: 0,
+        });
+        assert!(playback.clear_if(mine), "its own install is undone");
+        assert!(!playback.is_active());
+    }
+
+    #[test]
+    fn clear_if_leaves_a_session_the_user_navigated_alone() {
+        // The start that installed the session is rolling back because its
+        // own load was superseded — by a jump inside that very session.
+        // Its queue is the one playing, so the rollback must not fire
+        // (#622). Counting installs alone would have missed this: a
+        // navigation does not install anything.
+        let playback = RemotePlayback::default();
+        let installed = playback.set(RemoteQueue {
+            entries: vec![entry("a"), entry("b")],
+            index: 0,
+        });
+        assert_eq!(playback.seek_to(1).map(|e| e.id).as_deref(), Some("b"));
+        assert!(
+            !playback.clear_if(installed),
+            "the jump made the session the navigator's"
+        );
+        assert!(playback.is_active(), "the queue the user can hear survives");
+        assert_eq!(playback.current().map(|e| e.id).as_deref(), Some("b"));
+    }
+
+    #[test]
+    fn clear_if_leaves_a_session_that_was_stepped_alone() {
+        // Same through `step`, which is the auto-advance's path.
+        let playback = RemotePlayback::default();
+        let installed = playback.set(RemoteQueue {
+            entries: vec![entry("a"), entry("b")],
+            index: 0,
+        });
+        assert_eq!(
+            playback
+                .step(Direction::Next, RepeatMode::Off)
+                .map(|e| e.id)
+                .as_deref(),
+            Some("b")
+        );
+        assert!(!playback.clear_if(installed));
+        assert!(playback.is_active());
+    }
+
+    #[test]
+    fn clear_if_leaves_a_newer_session_alone() {
+        // A remote start whose load was superseded rolls back, but by then
+        // the session in place belongs to whoever came after it. Dropping
+        // that one would strand the queue the user is listening to (#622).
+        let playback = RemotePlayback::default();
+        let stale = playback.set(RemoteQueue {
+            entries: vec![entry("a")],
+            index: 0,
+        });
+        let _newer = playback.set(RemoteQueue {
+            entries: vec![entry("b")],
+            index: 0,
+        });
+        assert!(!playback.clear_if(stale), "nothing of ours left to undo");
+        assert_eq!(playback.current().map(|e| e.id).as_deref(), Some("b"));
+    }
 
     #[test]
     fn next_off_stops_at_the_end() {
@@ -279,7 +404,7 @@ mod tests {
     #[test]
     fn step_clears_when_it_runs_off_the_end() {
         let playback = RemotePlayback::default();
-        playback.set(RemoteQueue {
+        let _ = playback.set(RemoteQueue {
             entries: vec![entry("a"), entry("b")],
             index: 1,
         });
@@ -292,7 +417,7 @@ mod tests {
     #[test]
     fn step_advances_and_reports_the_landing_entry() {
         let playback = RemotePlayback::default();
-        playback.set(RemoteQueue {
+        let _ = playback.set(RemoteQueue {
             entries: vec![entry("a"), entry("b"), entry("c")],
             index: 0,
         });
