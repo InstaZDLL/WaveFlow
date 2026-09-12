@@ -310,6 +310,10 @@ wasapi = "0.24"
 windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_System_Com",
+    # `IMMDeviceEnumerator` + `IMMNotificationClient`, so an unpinned
+    # output can follow the system's default endpoint (#627). Already in
+    # the graph via `wasapi`; named here because we call it directly.
+    "Win32_Media_Audio",
     "Win32_System_Threading",
     "Win32_Storage_FileSystem",
     # Playback buttons under the taskbar thumbnail (`taskbar_buttons.rs`):
@@ -319,6 +323,16 @@ windows = { version = "0.62", features = [
     "Win32_Graphics_Gdi",
     "Win32_System_Registry",
 ] }
+# The COM plumbing `windows` is itself built on, at the very version it
+# uses. Needed because `#[implement]` — which builds the
+# `IMMNotificationClient` sink of #627 — expands to `::windows_core::`
+# paths, so the crate has to be nameable from our own root. Taking it
+# through `windows::core` is not an option: the macro writes the path.
+# Pinning the same 0.62 keeps one copy in the graph; a mismatched one
+# would compile into a *different* `IUnknownImpl` and the sink would no
+# longer satisfy the interface. Already in the lockfile as a dependency
+# of `windows` itself, so this adds a name, not a crate.
+windows-core = "0.62"
 
 # macOS-only: opt-in bit-perfect native DSD via DoP (#495 / #497).
 # `coreaudio-rs` (lib name `coreaudio`) wraps Apple's CoreAudio HAL. We

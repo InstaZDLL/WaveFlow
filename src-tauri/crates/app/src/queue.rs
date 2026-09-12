@@ -794,6 +794,86 @@ pub async fn jump_to(pool: &SqlitePool, position: i64) -> AppResult<Option<Queue
     track_at_position(pool, clamped).await
 }
 
+/// What an absolute jump *would* land on, **without moving the cursor**
+/// — the [`peek_step`] sibling for [`jump_to`], and the same reason
+/// (#632).
+pub async fn peek_jump(pool: &SqlitePool, position: i64) -> AppResult<Option<(i64, QueueTrack)>> {
+    let length = queue_length(pool).await?;
+    if length == 0 {
+        return Ok(None);
+    }
+    let clamped = position.clamp(0, length - 1);
+    Ok(track_at_position(pool, clamped)
+        .await?
+        .map(|track| (clamped, track)))
+}
+
+/// Where a step lands, or `None` when it runs off the end with repeat
+/// off. Pure, so the rule is testable without a database.
+///
+/// `current` is clamped into the queue first: a stale
+/// `queue.current_index` — a queue that shrank under it — would
+/// otherwise step from a row that no longer exists.
+pub(crate) fn stepped_index(
+    length: i64,
+    current: i64,
+    direction: Direction,
+    repeat: RepeatMode,
+) -> Option<i64> {
+    if length <= 0 {
+        return None;
+    }
+    let current = current.clamp(0, length - 1);
+    match (direction, repeat) {
+        // Repeat-one re-plays the same slot regardless of direction.
+        (_, RepeatMode::One) => Some(current),
+        (Direction::Next, RepeatMode::Off) => {
+            if current + 1 >= length {
+                None
+            } else {
+                Some(current + 1)
+            }
+        }
+        (Direction::Next, RepeatMode::All) => Some((current + 1) % length),
+        (Direction::Previous, RepeatMode::Off) => Some((current - 1).max(0)),
+        (Direction::Previous, RepeatMode::All) => Some(if current == 0 {
+            length - 1
+        } else {
+            current - 1
+        }),
+    }
+}
+
+/// What a next / previous step *would* land on, **without moving the
+/// cursor**: the index and the track there.
+///
+/// Split out of [`advance`] for the callers that must not write anything
+/// until they know their load will be the one that plays (#632). They
+/// peek, claim the dispatch, then [`commit_index`]. A caller with nothing
+/// to arbitrate keeps using `advance`.
+pub async fn peek_step(
+    pool: &SqlitePool,
+    direction: Direction,
+    repeat: RepeatMode,
+) -> AppResult<Option<(i64, QueueTrack)>> {
+    let length = queue_length(pool).await?;
+    let current = read_setting_i64(pool, "queue.current_index")
+        .await?
+        .unwrap_or(0);
+    let Some(index) = stepped_index(length, current, direction, repeat) else {
+        return Ok(None);
+    };
+    Ok(track_at_position(pool, index)
+        .await?
+        .map(|track| (index, track)))
+}
+
+/// Move the cursor to an index [`peek_step`] or [`stepped_index`] already
+/// resolved. Writes nothing else.
+pub async fn commit_index(pool: &SqlitePool, index: i64) -> AppResult<()> {
+    write_setting_i64(pool, "queue.current_index", index).await
+}
+
 /// Apply a next / previous step to the queue cursor respecting the
 /// repeat mode. Returns the newly-current track, or `None` if the
 /// queue is empty / the step runs off the end with `RepeatMode::Off`.
@@ -804,36 +884,11 @@ pub async fn advance(
     direction: Direction,
     repeat: RepeatMode,
 ) -> AppResult<Option<QueueTrack>> {
-    let length = queue_length(pool).await?;
-    if length == 0 {
+    let Some((index, track)) = peek_step(pool, direction, repeat).await? else {
         return Ok(None);
-    }
-    let current = read_setting_i64(pool, "queue.current_index")
-        .await?
-        .unwrap_or(0);
-
-    let new_index = match (direction, repeat) {
-        // Repeat-one re-plays the same slot regardless of direction.
-        (_, RepeatMode::One) => current,
-        (Direction::Next, RepeatMode::Off) => {
-            if current + 1 >= length {
-                return Ok(None);
-            }
-            current + 1
-        }
-        (Direction::Next, RepeatMode::All) => (current + 1) % length,
-        (Direction::Previous, RepeatMode::Off) => (current - 1).max(0),
-        (Direction::Previous, RepeatMode::All) => {
-            if current == 0 {
-                length - 1
-            } else {
-                current - 1
-            }
-        }
     };
-
-    write_setting_i64(pool, "queue.current_index", new_index).await?;
-    track_at_position(pool, new_index).await
+    commit_index(pool, index).await?;
+    Ok(Some(track))
 }
 
 /// Non-mutating sibling of [`advance`]: returns what the next track
@@ -1266,5 +1321,75 @@ mod tests {
         assert_eq!(cursor_after_removal(2, 1, 3, 2, 2), 1);
         // Delete the whole queue → clamp to 0.
         assert_eq!(cursor_after_removal(0, 0, 4, 4, 0), 0);
+    }
+}
+
+#[cfg(test)]
+mod step_tests {
+    use super::{stepped_index, Direction, RepeatMode};
+
+    #[test]
+    fn next_stops_at_the_end_with_repeat_off() {
+        assert_eq!(
+            stepped_index(3, 2, Direction::Next, RepeatMode::Off),
+            None,
+            "the step runs off the end, so there is nothing to commit"
+        );
+        assert_eq!(
+            stepped_index(3, 1, Direction::Next, RepeatMode::Off),
+            Some(2)
+        );
+    }
+
+    #[test]
+    fn repeat_all_wraps_both_ways() {
+        assert_eq!(
+            stepped_index(3, 2, Direction::Next, RepeatMode::All),
+            Some(0)
+        );
+        assert_eq!(
+            stepped_index(3, 0, Direction::Previous, RepeatMode::All),
+            Some(2)
+        );
+    }
+
+    #[test]
+    fn repeat_one_stays_put_whichever_way_you_step() {
+        assert_eq!(
+            stepped_index(3, 1, Direction::Next, RepeatMode::One),
+            Some(1)
+        );
+        assert_eq!(
+            stepped_index(3, 1, Direction::Previous, RepeatMode::One),
+            Some(1)
+        );
+    }
+
+    #[test]
+    fn previous_clamps_at_the_start_with_repeat_off() {
+        assert_eq!(
+            stepped_index(3, 0, Direction::Previous, RepeatMode::Off),
+            Some(0)
+        );
+    }
+
+    #[test]
+    fn a_cursor_past_the_end_steps_from_inside_the_queue() {
+        // `queue.current_index` can outlive the rows it pointed at — a
+        // queue that shrank under it. Stepping from there would otherwise
+        // read a row that no longer exists.
+        assert_eq!(
+            stepped_index(3, 99, Direction::Next, RepeatMode::All),
+            Some(0)
+        );
+        assert_eq!(
+            stepped_index(3, 99, Direction::Previous, RepeatMode::Off),
+            Some(1)
+        );
+    }
+
+    #[test]
+    fn an_empty_queue_has_nowhere_to_step() {
+        assert_eq!(stepped_index(0, 0, Direction::Next, RepeatMode::All), None);
     }
 }

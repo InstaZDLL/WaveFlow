@@ -162,17 +162,20 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
     let Some((track, position_ms)) = queue::restore_state(&pool).await? else {
         return Err(AppError::Other("no resume point available".into()));
     };
+    let replay_gain = commands::player::fetch_replay_gain(&pool, track.id).await;
     // A Next pressed while this resume was in the database has already
-    // reached the decoder, which means the load below will be dropped
-    // (#622). Publish nothing then: emitting the resumed track would
+    // claimed the dispatch, which means the load below would be dropped
+    // (#622, #632). Publish nothing then: emitting the resumed track would
     // relabel the player bar over the track that is actually playing, and
-    // `Loading` would strand every surface that gates on it.
-    if engine.load_intent_superseded(intent) {
+    // `Loading` would strand every surface that gates on it. Claiming
+    // rather than merely reading also stops a *later* resume-shaped
+    // producer from publishing over this one.
+    let _publish = engine.lock_publish().await;
+    if !engine.claim_dispatch(intent) {
         tracing::debug!("resume superseded by a newer playback intent; dropping it");
         return Ok(());
     }
     commands::player::emit_track_changed(app, &state.paths, &track, Some(profile_id));
-    let replay_gain = commands::player::fetch_replay_gain(&pool, track.id).await;
     // The guard above can't cover the last stretch: once the command is in
     // the channel, the decoder still has to pick it up, and until it
     // transitions to `Loading` a Play landing in between reads `Idle` and
@@ -261,14 +264,29 @@ pub async fn step(app: &AppHandle, direction: Direction, label: &str) -> Moved {
         }
     };
     let repeat = queue::read_repeat_mode(&pool).await;
-    let track = match queue::advance(&pool, direction, repeat).await {
-        Ok(Some(track)) => track,
+    let engine = app.state::<Arc<AudioEngine>>();
+    // Peeked, then committed only once this load has claimed the dispatch
+    // (#632): a step whose load the decoder would drop must not leave the
+    // cursor on a track nothing is playing. Held from before the peek to
+    // past `load_and_play`, so the index cannot be committed onto a queue
+    // somebody else replaced in between.
+    let _publish = engine.lock_publish().await;
+    let (index, track) = match queue::peek_step(&pool, direction, repeat).await {
+        Ok(Some(pair)) => pair,
         Ok(None) => return Moved::Nothing,
         Err(err) => {
             tracing::warn!(%err, surface = label, "player action: advance failed");
             return Moved::Nothing;
         }
     };
+    if !engine.claim_dispatch(intent) {
+        tracing::debug!(surface = label, "step superseded by a newer selection");
+        return Moved::Nothing;
+    }
+    if let Err(err) = queue::commit_index(&pool, index).await {
+        tracing::warn!(%err, surface = label, "player action: cursor write failed");
+        return Moved::Nothing;
+    }
     load_and_play(app, &pool, track, Some(profile_id), intent).await;
     Moved::Track
 }
@@ -341,14 +359,25 @@ pub async fn play_at_index_with(
     label: &str,
 ) -> Moved {
     let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
-    let track = match queue::jump_to(pool, position).await {
-        Ok(Some(track)) => track,
+    // Same as `step`: lock, peek, claim, then move the cursor (#632).
+    let engine = app.state::<Arc<AudioEngine>>();
+    let _publish = engine.lock_publish().await;
+    let (index, track) = match queue::peek_jump(pool, position).await {
+        Ok(Some(pair)) => pair,
         Ok(None) => return Moved::Nothing,
         Err(err) => {
             tracing::warn!(%err, surface = label, "player action: jump_to failed");
             return Moved::Nothing;
         }
     };
+    if !engine.claim_dispatch(intent) {
+        tracing::debug!(surface = label, "jump superseded by a newer selection");
+        return Moved::Nothing;
+    }
+    if let Err(err) = queue::commit_index(pool, index).await {
+        tracing::warn!(%err, surface = label, "player action: cursor write failed");
+        return Moved::Nothing;
+    }
     load_and_play(app, pool, track, Some(profile_id), intent).await;
     Moved::Track
 }

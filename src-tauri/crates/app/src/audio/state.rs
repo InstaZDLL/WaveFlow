@@ -83,11 +83,23 @@ pub struct SharedPlayback {
     /// Highest [`LoadIntent`](super::engine::LoadIntent) the decoder has
     /// been handed, `0` before the first load (#622).
     ///
-    /// The decoder thread is its only reader and its only writer — every
-    /// load arrives on the command channel, which it alone drains. It lives
-    /// here rather than in a local because loads are received at three
-    /// separate points (the idle loop, the drain between packets, and the
-    /// drain inside the pause loop) and all three already hold this struct.
+    /// It lives here rather than in a local because the decoder receives
+    /// loads at three separate points (the idle loop, the drain between
+    /// packets, and the drain inside the pause loop) and all three already
+    /// hold this struct.
+    ///
+    /// **Two kinds of writer, on purpose** (#632). The decoder raises it
+    /// through [`accept_load`](super::decoder) for every load it accepts,
+    /// and a *producer* raises it through [`Self::try_claim_load`] —
+    /// `AudioEngine::claim_dispatch`, called from the Tauri commands and
+    /// from the analytics task — when it commits to publishing one. Both
+    /// halves of the rule therefore compare against the same word: the
+    /// producer's claim is what keeps a load that will be dropped from
+    /// relabelling the player bar or moving the queue cursor first.
+    ///
+    /// Synchronisation: every write is a release and every read an
+    /// acquire, and the producer side goes through a compare-and-set, so
+    /// a claim can only ever move it forward.
     pub newest_load_intent: AtomicU64,
     pub base_offset_ms: AtomicU64,
     /// ID of the track currently loaded in the decoder (0 = none).
@@ -323,6 +335,21 @@ impl SharedPlayback {
         self.state.store(state as u8, Ordering::Release);
     }
 
+    /// Claim the dispatch for `intent`, publishing the claim in the same
+    /// operation (#632). Fails when a newer load has already claimed it.
+    ///
+    /// Lives here, beside the mark the decoder arbitrates against, so both
+    /// halves of the rule read the same word: a producer raises it when it
+    /// commits to publishing, and [`accept_load`](super::decoder) drops
+    /// anything that arrives below it.
+    pub fn try_claim_load(&self, intent: u64) -> bool {
+        self.newest_load_intent
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |newest| {
+                (intent >= newest).then_some(intent)
+            })
+            .is_ok()
+    }
+
     /// Move the state from `from` to `to`, or report that someone else got
     /// there first.
     ///
@@ -519,5 +546,52 @@ mod tests {
         assert_eq!(s.current_position_ms(), 1_000);
         s.set_playback_speed(2.0);
         assert_eq!(s.current_position_ms(), 1_000);
+    }
+}
+
+#[cfg(test)]
+mod claim_tests {
+    use super::SharedPlayback;
+
+    #[test]
+    fn the_first_claim_of_a_session_succeeds() {
+        let shared = SharedPlayback::new();
+        assert!(shared.try_claim_load(1));
+    }
+
+    #[test]
+    fn an_older_intent_cannot_claim_after_a_newer_one() {
+        // #632: the older producer is about to write the queue cursor and
+        // relabel the player bar for a load the decoder would drop. It has
+        // to find out here, before any of that.
+        let shared = SharedPlayback::new();
+        assert!(shared.try_claim_load(7));
+        assert!(!shared.try_claim_load(5));
+    }
+
+    #[test]
+    fn the_same_intent_can_claim_twice() {
+        // `player_play_tracks` claims before filling the queue and again
+        // before publishing, because reads separate the two.
+        let shared = SharedPlayback::new();
+        assert!(shared.try_claim_load(4));
+        assert!(shared.try_claim_load(4));
+    }
+
+    #[test]
+    fn a_failed_claim_leaves_the_mark_alone() {
+        let shared = SharedPlayback::new();
+        assert!(shared.try_claim_load(9));
+        assert!(!shared.try_claim_load(2));
+        // Still 9, so the load that did claim is still the newest.
+        assert!(shared.try_claim_load(9));
+    }
+
+    #[test]
+    fn a_newer_intent_takes_the_claim_over() {
+        let shared = SharedPlayback::new();
+        assert!(shared.try_claim_load(3));
+        assert!(shared.try_claim_load(4));
+        assert!(!shared.try_claim_load(3));
     }
 }

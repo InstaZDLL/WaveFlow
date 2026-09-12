@@ -75,27 +75,51 @@ pub async fn wait() {
     gate().notify.notified().await;
 }
 
+/// The frontend's own view of where its startup time went, in
+/// milliseconds since navigation. `None` from the event transport, which
+/// carries no payload, and for a mark that was never reached.
+#[derive(Debug, Default, Clone, Copy, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FrontendTimings {
+    /// React committed — the signal itself.
+    pub since_navigation_ms: Option<u64>,
+    /// The entry module started executing: document and static imports in.
+    pub bundle_ms: Option<u64>,
+    /// i18next resolved. `main.tsx` renders behind it, so nothing commits
+    /// earlier than this.
+    pub i18n_ms: Option<u64>,
+}
+
 /// Record the signal, whichever transport carried it.
 ///
-/// `source` names that transport so a log tells the two apart, and
-/// `since_navigation_ms` is the frontend's own measurement when it has one
-/// (the event path carries no payload).
-pub fn signal(source: &'static str, since_navigation_ms: Option<u64>) {
+/// `source` names that transport so a log tells the two apart. The
+/// timings are the frontend's, and reading them against
+/// `since_launch_ms` is what names the slow phase: three measured
+/// launches had the signal land 20-27 s after navigation with `setup`
+/// finished inside two seconds, which rules out both the transport and
+/// the backend and leaves the webview's own startup.
+pub fn signal(source: &'static str, timings: FrontendTimings) {
     tracing::info!(
         source,
         since_launch_ms = since_launch_ms(),
-        since_navigation_ms,
+        since_navigation_ms = timings.since_navigation_ms,
+        bundle_ms = timings.bundle_ms,
+        i18n_ms = timings.i18n_ms,
         "splash handoff: frontend reported ready"
     );
     gate().notify.notify_one();
 }
 
-/// Called by the frontend once React has committed its first render.
-///
-/// `since_navigation_ms` is `performance.now()` at that moment: the time
-/// the webview spent from navigation to first commit, which is the half
-/// this side cannot see.
+/// Called by the frontend once React has committed its first render,
+/// with its own measurements of the startup this side cannot see.
 #[tauri::command]
-pub fn app_ready(since_navigation_ms: Option<u64>) {
-    signal("command", since_navigation_ms);
+pub fn app_ready(since_navigation_ms: Option<u64>, bundle_ms: Option<u64>, i18n_ms: Option<u64>) {
+    signal(
+        "command",
+        FrontendTimings {
+            since_navigation_ms,
+            bundle_ms,
+            i18n_ms,
+        },
+    );
 }

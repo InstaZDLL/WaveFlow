@@ -297,6 +297,12 @@ pub fn run() {
             );
             app.manage(engine);
 
+            // Follow the system's default output while nothing is pinned
+            // (#627). Spawned after the engine is in state so the first
+            // notification finds it; one that arrives earlier is a
+            // no-op, the open that follows reads the default anyway.
+            audio::default_device::spawn(app.handle().clone());
+
             // Filesystem watcher manager. Holds one notify watcher per
             // `library_folder.is_watched=1` row in the active profile;
             // the boot-time hydration walks the DB and arms each one
@@ -563,7 +569,7 @@ pub fn run() {
             // and ignores duplicates, so having both costs nothing and the
             // splash is not worth a single point of failure (#626).
             app.listen("app://ready", move |_event| {
-                commands::ready::signal("event", None);
+                commands::ready::signal("event", Default::default());
             });
 
             // Write the resume point while playback runs, not only on the

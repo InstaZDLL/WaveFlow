@@ -120,7 +120,26 @@ That leaves the whole surface honest: `set_output_device` holds one acquisition 
 
 Two details make that reopen safe. It carries the guards every deliberate swap needs and that `force_rebuild_output` doesn't own — `begin_deliberate_output_change()` around it, cancelled if nothing was installed, and the exclusive preference ANDed with the `#322` session suppression so a click can't revive a mode a flap storm gave up on. And it names its target as `RebuildDevice::Pinned` rather than reading the pin beforehand: that read would take the output lock and give it back, and a device pick landing in the gap installs *and persists* another device, after which the rebuild would reinstall the stale one. `Explicit` keeps the recovery path's own deliberately computed target. The same window still exists in `set_exclusive_output`, which predates this and does its teardown inline — #629.
 
-What this does **not** do is follow the OS default as it changes: nothing subscribes to endpoint notifications (cpal 0.17.1 exposes none), so a default that moves under a `None` pin still leaves the stream where it was. That half is #627, and it needs raw COM on Windows plus a property listener on macOS — routed through the existing `RebuildGate`, since a default change fires several times for one physical event and our own reopen triggers another.
+### Following the OS default
+
+A stream opened with no pin is bound to whatever endpoint was the default **at that moment**, and it stays there. cpal 0.17 exposes no notification API at all, so before #627 a default that moved — a headset waking, an HDMI sink appearing — left playback on the old device; after #612 the picker at least said which one that was.
+
+[`audio::default_device`](../../src-tauri/crates/app/src/audio/default_device.rs) is the subscription, one implementation per platform:
+
+| Platform | Mechanism |
+| -------- | --------- |
+| Windows  | `IMMNotificationClient` registered on the `IMMDeviceEnumerator`, on a thread of its own |
+| macOS    | a HAL property listener on `kAudioHardwarePropertyDefaultOutputDevice` |
+| Linux    | nothing — PipeWire and PulseAudio migrate a running stream to the new default sink themselves, and ours is one of their clients (cpal opens the `default` alias) |
+
+Four things about it are load-bearing:
+
+- **Only the console role.** Windows fires `OnDefaultDeviceChanged` once **per role** for a single physical change, and we keep `eRender` + `eConsole` only — because that is the role both of our open paths ask for: cpal's `default_output_device` calls `GetDefaultAudioEndpoint(flow, eConsole)`, and so does `wasapi::get_default_device` on the exclusive side. Reacting to multimedia or communications would rebuild for a default we would never have opened.
+- **The listener rebuilds nothing.** Both platforms hand the event to `output::schedule_default_device_follow`, which takes the same 300 ms backoff and the same `RebuildGate` the device-loss recovery takes. That matters more here than there: one physical change can produce several notifications, and our own reopen makes the outgoing stream fail, which schedules a recovery rebuild of its own.
+
+  Two details keep the shared gate honest in both directions. It is armed **only once the cheap checks say a rebuild will really happen** — arming for a follow that turns out to be a no-op would open a settle window a genuine `DeviceNotAvailable` gets swallowed by, dropped and never retried, which is silence until the user intervenes. And a gate that is busy makes the follow **defer, not drop**: `FollowOutcome::Deferred` sends the scheduler back after the settle window, three times at most. A default moved twice inside two seconds is two notifications, not a repeating signal, so a dropped one would leave the stream on the intermediate device for good. Every retry re-reads the pin and the default, so it converges on the current state rather than replaying a stale one.
+- **Only while nothing is pinned**, and the decision is made **inside the lock that installs pins**. A user who picked a device asked for that device. `AudioEngine::follow_os_default_output` reads the pin first, but that read is advisory — a pick landing between it and the rebuild would slip through; `RebuildDevice::OsDefaultIfUnpinned` asks again under `force_rebuild_output`'s own acquisition, and that answer is the binding one. Same lesson as #629 above.
+- **Nothing that changes is left unchanged, nothing else is touched.** A default that is already the endpoint we are playing on is not reopened (a rebuild is an audible gap), and a default that vanished entirely is not followed at all — rebuilding onto "no device" would drop audio we still have, and a device we really lost arrives as `DeviceNotAvailable`, which owns its own recovery. `should_follow_default` is that decision, pure and unit-tested. Exclusive output follows the preference minus the #322 session suppression, but does **not** reset it and does **not** record a flap: the system moving its default is not a device resetting under us, and counting it would let a few legitimate switches disable exclusive for the session.
 
 ## Output-stream lifecycle & recovery
 
@@ -152,7 +171,7 @@ The rebuild picks the track back up only for a session that was playing. By then
 
 Two gates keep the recovery from thrashing:
 
-- **`RebuildGate`** (`REBUILD_SETTLE_WINDOW`, 2 s) — one rebuild per burst of device errors. `begin_deliberate_output_change()` opens the same window around a mode toggle, because seizing the endpoint exclusively kicks the outgoing shared client off it and that self-inflicted `DeviceNotAvailable` would otherwise schedule a rebuild that undoes the switch.
+- **`RebuildGate`** (`REBUILD_SETTLE_WINDOW`, 2 s) — one rebuild per burst of device errors, and also the gate a default-device change goes through (see above). `begin_deliberate_output_change()` opens the same window around a mode toggle, because seizing the endpoint exclusively kicks the outgoing shared client off it and that self-inflicted `DeviceNotAvailable` would otherwise schedule a rebuild that undoes the switch. Both paths that arm the gate release it through `RebuildGateGuard`, on every exit including a panic — a rebuild that bailed out while `armed` stayed latched would leave no later device event able to schedule anything.
 - **`FlapWindow`** (`EXCLUSIVE_FLAP_THRESHOLD` / `EXCLUSIVE_FLAP_WINDOW`) — a device that resets on every exclusive grab gives up on exclusive for the rest of the session (session-only: the persisted preference is untouched, so the next launch tries again). Cleared by an explicit toggle or device switch.
 
 Every failure path that ends with no output thread at all publishes `exclusive_output_active = false` + the event before returning the error — a toggle describing a stream that no longer exists is the exact shape of #405.
@@ -308,9 +327,79 @@ abandoned would reinstall itself on top of the clear
 `emit_track_changed` performs, which is the invariant that module
 documents.
 
-The paths that only emit a *label* are a known gap, tracked
-separately — they mutate the queue cursor before sending, so bailing out
-halfway is not the answer there.
+### Claiming the dispatch before publishing it
+
+Dropping the load was only half the cure. The producer of that dropped
+load had already published: `emit_track_changed` had put its title in the
+player bar, and the queue paths had already written `queue.current_index`.
+So the interface named one track while another played, and the cursor sat
+on a row nothing was playing — which is where the *next* auto-advance
+stepped from (#632).
+
+So the arbitration moves one step earlier, to the producer:
+`AudioEngine::claim_dispatch` is a compare-and-set on the **same**
+high-water mark the decoder reads. It succeeds only for an intent at least
+as new as the newest already claimed, publishes that claim in the same
+operation, and is called immediately before the **first side effect** —
+after which a `false` means give up entirely. It does not replace the
+decoder's check: two claims can succeed in order and still reach the
+channel out of order, and only the decoder sees what was delivered.
+
+The shape every producer takes:
+
+```
+peek where the step lands   →  fetch ReplayGain
+  →  take the publish lock  →  claim  →  write the cursor  →  emit  →  send
+```
+
+Two things make that sequence hold:
+
+- **Peek and commit are separate.** `queue.rs` grew `peek_step`,
+  `peek_jump` and `commit_index` beside `advance` / `jump_to`, with the
+  arithmetic itself in a pure `stepped_index` (so wrap-around, repeat-one
+  and the empty queue are unit-tested without a database). A producer
+  that never claims still uses the old pair.
+- **The publish half runs under one lock**
+  (`AudioEngine::lock_publish`), held across the claim and everything it
+  authorizes. The claim cannot order that by itself, for two reasons that
+  both bite: `commit_index` is a database write, so an older producer can
+  be overtaken *during* it and land its cursor write last; and the
+  runtime is multi-threaded, so "no await between the claim and the send"
+  buys nothing against a producer running on another worker. Under the
+  lock, claim order **is** publish order — and the claim keeps its own
+  job, because lock acquisition can invert intent order and something has
+  to tell the older one to stop.
+
+**What the lock covers is the queue snapshot and everything downstream of
+it.** It is taken before the `peek_*` that reads the queue, so the index a
+producer commits always belongs to the queue it read that index from —
+committing it after somebody else replaced the queue would put the cursor
+on a track this load never resolved. The ReplayGain lookup sits inside the
+serialized section at the stepping paths (`player_next`,
+`player_previous`, `player_jump_to_index`, `player_actions::step`, the
+auto-advance), because it happens after the lock is taken; it is a single
+indexed read, and the alternative — dropping the lock for it and taking it
+again — would reopen the window it exists to close.
+
+What stays outside is the preparation that precedes the queue: the profile
+snapshot and the pool lease. Two paths are shaped differently, each
+because one genuinely slow step must not be serialized:
+
+- **`player_play_tracks` claims twice.** It cannot peek — replacing the
+  queue *is* its effect — so it claims before `fill_queue`, the last
+  moment at which giving up is free, and holds the lock across the
+  replacement — `fill_queue` is inside the serialized section, and a Next
+  pressed during it waits, then steps through the album it was given
+  rather than the one it replaced. The lock then goes back the moment the
+  queue is replaced and the panel told, because what follows can be slow
+  in a way no other surface should wait on: the ReplayGain read, and, when
+  the file is gone, an HTTP round-trip to mint a streaming ticket. Both
+  branches re-take it and re-claim immediately before they publish, and
+  the same intent re-claims successfully as long as nothing newer did.
+- **A remote session rolls back instead.** `play_entries` claims, then
+  mints a streaming ticket over HTTP; holding the publish lock across a
+  network call would park every other surface, so it keeps the
+  `load_intent_superseded` + `clear_if` rollback described above.
 
 `SetNextTrack` is deliberately outside all of this: it arms the gapless
 prefetch rather than taking over, and dropping one would cost a gapless

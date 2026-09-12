@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { readStartupTimings } from "../startupTiming";
 
 /**
  * Tell the backend the frontend has rendered, so it reveals the main
@@ -12,11 +13,19 @@ import { invoke } from "@tauri-apps/api/core";
  * the user then waits out the 15 s safety net.
  *
  * `sinceNavigationMs` is this side's own measurement of how long it took
- * to get here. The backend logs it next to its own elapsed time, which is
- * what tells "the frontend was slow" apart from "the signal was lost".
+ * to get here, and the two marks that come with it say where that time
+ * went: the entry module executing, and i18next resolving. Measured
+ * launches put the ready signal 20 to 27 s after navigation with `setup`
+ * long finished, so the split is the only way to name the phase that is
+ * slow rather than guess at it.
  */
 export async function markFrontendReady(
   sinceNavigationMs: number,
 ): Promise<void> {
-  await invoke("app_ready", { sinceNavigationMs });
+  const { bundleMs, i18nMs } = readStartupTimings();
+  await invoke("app_ready", {
+    sinceNavigationMs,
+    bundleMs,
+    i18nMs,
+  });
 }
