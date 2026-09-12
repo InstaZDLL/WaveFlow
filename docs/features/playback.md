@@ -95,7 +95,24 @@ So the handle now carries both. `device_name` is still the pin. `opened_device` 
 
 A pin that has vanished matches no enumerated row, so the listing appends it as a row of its own — `is_pinned`, never `is_active`, since it isn't there to be playing. Without that the flag would be absent in the one case it exists for, and the menu would say nothing at all about the fallback.
 
-Both names come from `current_output_devices()`, which reads them under a **single** lock on the handle. Two separate reads let a rebuild swap the handle in between, and the listing would then describe one stream's endpoint next to another stream's pin.
+Both names come from `current_output_devices()`, which reads them under a **single** lock. Two separate reads let a rebuild swap the handle in between, and the listing would then describe one stream's endpoint next to another stream's pin.
+
+### The pin outlives the handle
+
+`self.output` holds an `OutputSlot`, not a bare handle: the installed stream **and** the device the user picked, under one lock.
+
+The pin needs to survive the handle because the handle really does go away — `publish_output_lost_if_gone` exists for exactly that state, and both `force_rebuild_output` and `set_output_device` reach it when a spawn fails after the old stream was released. While the pin lived only inside `OutputHandle`, the engine answered "nothing pinned" in that window: a forced reopen targeted the OS default rather than the user's device, the picker could not flag the pinned row it had just failed to open — the very case the marker above was written for — and MPD reported no device at all (#630). The persisted `profile_setting['audio.output_device']` was read exactly once, at startup, and never consulted again.
+
+`OutputSlot::pinned_device()` answers from the live handle first and falls back to the seeded pin, and it is what `RebuildDevice::Pinned`, the DoP re-open and both accessors resolve through. Two details are deliberate:
+
+- **One lock, not two.** A separate mutex for the pin would let a reader pair "nothing is playing" with a pin read after a new stream was installed — the same shape of defect the single-lock read above had to fix.
+- **`set_output_device` still compares the *handle*, not `pinned_device()`.** With no stream installed, picking the pinned device again has to reach the rebuild; comparing against the pin would early-return on the equality check and leave the user no way back.
+
+### Reading the device under the lock that replaces it
+
+`set_exclusive_output` used to read the active device with one acquisition, release it, then take the lock again to rebuild. In between, `player_set_output_device` could install **and persist** device B; the toggle then rebuilt on A, the name it had captured, and the stream contradicted the saved preference until something else rebuilt (#629). It now resolves its target from the slot **after** taking the lock, the same cure `reopen_output_device` took with `RebuildDevice::Pinned`.
+
+That leaves the whole surface honest: `set_output_device` holds one acquisition throughout, and the device-error recovery computes its own target deliberately. Those three are every entry point that changes the **device**; `switch_output_for_track` replaces the handle too — it is the DoP re-open, driven by the track rather than by the user — and it follows the same discipline, resolving its target from the slot inside the acquisition it rebuilds under.
 
 ### Re-selecting the active device
 

@@ -437,7 +437,7 @@ impl RebuildGate {
 pub struct AudioEngine {
     cmd_tx: Sender<AudioCmd>,
     pub(crate) shared: Arc<SharedPlayback>,
-    output: Mutex<Option<OutputHandle>>,
+    output: Mutex<OutputSlot>,
     decoder: Mutex<Option<JoinHandle<()>>>,
     /// AppHandle clone so we can rebuild the cpal output thread from
     /// `set_output_device` without plumbing the handle through every
@@ -499,6 +499,44 @@ pub struct AudioEngine {
     /// [`AudioCmd::LoadAndPlay`] so a local-track switch doesn't
     /// resurrect the dead radio session on a later rebuild.
     radio_resume: Mutex<Option<RadioResumeState>>,
+}
+
+/// The output slot: the installed stream, and the device the user picked.
+///
+/// Both under **one** lock on purpose. The pin has to outlive the handle
+/// (#630) — `self.handle` is empty whenever a spawn failed after the old
+/// stream was released, which is the state `publish_output_lost_if_gone`
+/// exists for — and every question worth asking pairs the two: what is
+/// playing *and* what was asked for. Keeping the pin in its own lock would
+/// let a reader match one against a stale view of the other, which is the
+/// defect #628 had to fix in the picker.
+struct OutputSlot {
+    handle: Option<OutputHandle>,
+    /// The user's device choice, `None` for "the OS default".
+    ///
+    /// Seeded at construction from `profile_setting['audio.output_device']`
+    /// and updated by [`AudioEngine::set_output_device`] when a pick
+    /// succeeds. Before #630 the pin lived only inside `OutputHandle`, so
+    /// with no stream installed the engine answered "nothing pinned": a
+    /// forced reopen targeted the OS default instead of the user's device,
+    /// the picker could not flag the pinned row it had just failed to open,
+    /// and MPD reported no device at all.
+    pinned: Option<String>,
+}
+
+impl OutputSlot {
+    /// The device the user is pinned to: the live handle's name while a
+    /// stream is installed, the seeded pin otherwise.
+    ///
+    /// The handle comes first because it is the one `set_output_device`
+    /// and the rebuilds keep in step with the stream; `pinned` is the
+    /// answer for the window where there is no stream at all.
+    fn pinned_device(&self) -> Option<String> {
+        self.handle
+            .as_ref()
+            .and_then(|h| h.device_name.clone())
+            .or_else(|| self.pinned.clone())
+    }
 }
 
 /// Snapshot of an active non-library source, retained by the engine so output
@@ -613,6 +651,9 @@ impl AudioEngine {
         device_name: Option<String>,
         exclusive_output: bool,
     ) -> Arc<Self> {
+        // Kept before `device_name` is handed to the spawn: this is the
+        // persisted pin, and it must survive an open that fails (#630).
+        let pinned = device_name.clone();
         let (cmd_tx, cmd_rx) = unbounded::<AudioCmd>();
         let shared = Arc::new(SharedPlayback::new());
 
@@ -661,7 +702,10 @@ impl AudioEngine {
         Arc::new(Self {
             cmd_tx,
             shared,
-            output: Mutex::new(output),
+            output: Mutex::new(OutputSlot {
+                handle: output,
+                pinned,
+            }),
             decoder: Mutex::new(decoder),
             app,
             exclusive_output: std::sync::atomic::AtomicBool::new(exclusive_output),
@@ -802,7 +846,7 @@ impl AudioEngine {
         self.output
             .lock()
             .ok()
-            .and_then(|guard| guard.as_ref().and_then(|h| h.device_name.clone()))
+            .and_then(|guard| guard.pinned_device())
     }
 
     /// The device the output is really driving, when the backend could
@@ -823,10 +867,11 @@ impl AudioEngine {
         self.output
             .lock()
             .ok()
-            .and_then(|guard| {
-                guard
-                    .as_ref()
-                    .map(|h| (h.opened_device.clone(), h.device_name.clone()))
+            .map(|guard| {
+                (
+                    guard.handle.as_ref().and_then(|h| h.opened_device.clone()),
+                    guard.pinned_device(),
+                )
             })
             .unwrap_or((None, None))
     }
@@ -881,7 +926,7 @@ impl AudioEngine {
         self.output
             .lock()
             .ok()
-            .and_then(|guard| guard.as_ref().map(|h| h.dop.is_some()))
+            .and_then(|guard| guard.handle.as_ref().map(|h| h.dop.is_some()))
             .unwrap_or(false)
     }
 
@@ -1144,13 +1189,13 @@ impl AudioEngine {
             .lock()
             .map_err(|_| AppError::Audio("output mutex poisoned".into()))?;
 
-        let has_output = guard.is_some();
+        let has_output = guard.handle.is_some();
         // Compared as a whole `DopFormat`, not just the rate: an
         // exclusive DoP stream is opened for a fixed interleave, so two
         // consecutive DSD tracks at the same DoP rate but different
         // channel counts still need a re-open (reusing the stereo stream
         // for a multichannel one would tear frames across channels).
-        let current_dop = guard.as_ref().and_then(|h| h.dop);
+        let current_dop = guard.handle.as_ref().and_then(|h| h.dop);
         let want_dop = dop;
 
         // Already in the right shape: nothing to do. An ordinary PCM track
@@ -1163,9 +1208,12 @@ impl AudioEngine {
         // the old handle. A DoP (exclusive) open can't proceed while the
         // previous exclusive client still holds the device, so release it
         // first (#322 reasoning) — this path always replaces the stream.
-        let device = guard.as_ref().and_then(|h| h.device_name.clone());
+        // Resolved from the slot, so a DoP re-open while no stream is
+        // installed still targets the user's device rather than the OS
+        // default (#630).
+        let device = guard.pinned_device();
         let pref_exclusive = self.exclusive_output.load(Ordering::Relaxed);
-        if let Some(old) = guard.take() {
+        if let Some(old) = guard.handle.take() {
             old.stop();
         }
 
@@ -1181,7 +1229,7 @@ impl AudioEngine {
                 Ok((producer, handle)) => {
                     self.exclusive_output_active
                         .store(handle.exclusive, Ordering::Release);
-                    *guard = Some(handle);
+                    guard.handle = Some(handle);
                     let _ = self.app.emit("player:audio-mode-changed", ());
                     tracing::info!(
                         rate = dop_fmt.sample_rate,
@@ -1212,14 +1260,14 @@ impl AudioEngine {
             Ok((producer, handle)) => {
                 self.exclusive_output_active
                     .store(handle.exclusive, Ordering::Release);
-                *guard = Some(handle);
+                guard.handle = Some(handle);
                 let _ = self.app.emit("player:audio-mode-changed", ());
                 Ok((Some(producer), false))
             }
             Err(err) => {
                 // No output at all now — surface the loss like the other
                 // rebuild paths so the UI doesn't think playback is live.
-                self.publish_output_lost_if_gone(&guard);
+                self.publish_output_lost_if_gone(&guard.handle);
                 Err(err)
             }
         }
@@ -1238,7 +1286,7 @@ impl AudioEngine {
         // Resolve the target under the very lock this is about to swap
         // the handle with, so nothing can move it in between (#612).
         let device_name = match device {
-            RebuildDevice::Pinned => guard.as_ref().and_then(|h| h.device_name.clone()),
+            RebuildDevice::Pinned => guard.pinned_device(),
             RebuildDevice::Explicit(name) => name,
         };
 
@@ -1279,14 +1327,14 @@ impl AudioEngine {
         // spawn can still roll back — except where entering exclusive can't
         // evict it, see [`must_release_before_reopening`].
         let pre_release =
-            must_release_before_reopening(guard.as_ref().map(|h| h.exclusive), exclusive);
+            must_release_before_reopening(guard.handle.as_ref().map(|h| h.exclusive), exclusive);
         if pre_release {
             if was_playing {
                 self.cmd_tx
                     .send(AudioCmd::Stop)
                     .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
             }
-            if let Some(old) = guard.take() {
+            if let Some(old) = guard.handle.take() {
                 old.stop();
             }
         }
@@ -1302,7 +1350,7 @@ impl AudioEngine {
             Err(err) => {
                 // `pre_release` (an old exclusive stream) already took the
                 // handle above, so this is the no-output-at-all case.
-                self.publish_output_lost_if_gone(&guard);
+                self.publish_output_lost_if_gone(&guard.handle);
                 return Err(err);
             }
         };
@@ -1321,7 +1369,7 @@ impl AudioEngine {
                     .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
             }
             // No-op when `pre_release` already took the old handle above.
-            if let Some(old) = guard.take() {
+            if let Some(old) = guard.handle.take() {
                 old.stop();
             }
             self.cmd_tx
@@ -1331,12 +1379,12 @@ impl AudioEngine {
         })();
         if let Err(err) = send_result {
             handle.stop();
-            self.publish_output_lost_if_gone(&guard);
+            self.publish_output_lost_if_gone(&guard.handle);
             return Err(err);
         }
-        *guard = Some(handle);
+        guard.handle = Some(handle);
         self.exclusive_output_active.store(
-            guard.as_ref().map(|h| h.exclusive).unwrap_or(false),
+            guard.handle.as_ref().map(|h| h.exclusive).unwrap_or(false),
             std::sync::atomic::Ordering::Release,
         );
         // Settings' exclusive-mode toggle only re-reads its state on
@@ -1463,11 +1511,24 @@ impl AudioEngine {
 
         // Same device? Nothing to do. Compare both sides as `Option<&str>`
         // so an empty-string DB read can't masquerade as a real change.
-        let current = guard.as_ref().and_then(|h| h.device_name.as_deref());
+        //
+        // Two things about this comparison are deliberate. It reads the
+        // handle rather than `pinned_device()`, so that with no stream
+        // installed — an open that failed — picking the pinned device again
+        // still reaches the rebuild instead of early-returning on the pin
+        // (#612, #630). And it only short-circuits **while a handle
+        // exists**: without one, `current` is `None`, so a user asking for
+        // the OS default matched `None == None` and got a no-op in exactly
+        // the state they were trying to recover from. Spamming the menu is
+        // only worth a no-op when there is a stream to leave alone.
+        let current = guard.handle.as_ref().and_then(|h| h.device_name.as_deref());
         let requested = device_name.as_deref();
-        if current == requested {
+        if guard.handle.is_some() && current == requested {
             return Ok(());
         }
+        // Kept before the spawn below consumes `device_name`: this is the
+        // pin to record once the pick succeeds (#630).
+        let pinned_pick = device_name.clone();
 
         // A different device may support exclusive fine — clear any #322
         // flap-storm suppression tied to the previous device.
@@ -1516,8 +1577,10 @@ impl AudioEngine {
         let entering_exclusive = self
             .exclusive_output
             .load(std::sync::atomic::Ordering::Relaxed);
-        let pre_release =
-            must_release_before_reopening(guard.as_ref().map(|h| h.exclusive), entering_exclusive);
+        let pre_release = must_release_before_reopening(
+            guard.handle.as_ref().map(|h| h.exclusive),
+            entering_exclusive,
+        );
         // Stop is sent here rather than twice: the step below skips its own
         // send when this one already happened.
         let stopped_early = pre_release && was_playing;
@@ -1531,7 +1594,7 @@ impl AudioEngine {
                     .send(AudioCmd::Stop)
                     .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
             }
-            if let Some(old) = guard.take() {
+            if let Some(old) = guard.handle.take() {
                 previous_device = Some(old.device_name.clone());
                 old.stop();
             }
@@ -1590,7 +1653,7 @@ impl AudioEngine {
                         // claiming one (#405). Without a pre-release the old
                         // stream is still installed and still playing, and
                         // this no-ops.
-                        self.publish_output_lost_if_gone(&guard);
+                        self.publish_output_lost_if_gone(&guard.handle);
                         // Same recovery as `set_exclusive_output`'s: retry the
                         // previous device once the OS has settled, instead of
                         // leaving the engine with no output until the user
@@ -1628,7 +1691,7 @@ impl AudioEngine {
             // device). Done before SwapProducer so the decoder
             // doesn't briefly hold two ring producers; doing this
             // here also keeps the failure path tidy.
-            if let Some(old) = guard.take() {
+            if let Some(old) = guard.handle.take() {
                 old.stop();
             }
             // Step 5 — hand the fresh producer over to the decoder.
@@ -1645,13 +1708,30 @@ impl AudioEngine {
             // flag must stop claiming one and Settings must re-read (#405).
             // No-ops when an earlier Stop send failed before guard.take(),
             // where the old stream is still installed and the flag accurate.
-            self.publish_output_lost_if_gone(&guard);
+            self.publish_output_lost_if_gone(&guard.handle);
             return Err(err);
         }
 
-        *guard = Some(handle);
+        guard.handle = Some(handle);
+        // The pick becomes the pin, written under the same lock as the
+        // handle it belongs to (#630). This is what lets the engine still
+        // name the user's device after an open that fails and leaves no
+        // handle behind: the picker keeps flagging its pinned row, a forced
+        // reopen targets that device instead of the OS default, and MPD
+        // stops answering "no device".
+        //
+        // Only on a switch that actually happened. `switch_error` is set
+        // when the requested device refused to open and the previous one
+        // was reopened in its place: the stream, and the persisted setting
+        // the command leaves alone on `Err`, both still say the old device,
+        // so recording the refused one would make `pinned_device()` name a
+        // device nothing is using and send the next forced reopen straight
+        // back at it.
+        if switch_error.is_none() {
+            guard.pinned = pinned_pick;
+        }
         self.exclusive_output_active.store(
-            guard.as_ref().map(|h| h.exclusive).unwrap_or(false),
+            guard.handle.as_ref().map(|h| h.exclusive).unwrap_or(false),
             std::sync::atomic::Ordering::Release,
         );
         // See force_rebuild_output's comment (issue #405) — a device
@@ -1732,14 +1812,18 @@ impl AudioEngine {
         // temporarily yielding `None` would change the device picker
         // semantics. Instead, the engine's existing teardown path is
         // what we need: snapshot the device, drop the handle, rebuild.
-        let active = self.current_output_device();
-        // `set_output_device` early-exits when current == requested.
-        // Bypass that by toggling to `None` then back if needed —
-        // simpler: drop the handle and rebuild via the helper.
         let mut guard = self
             .output
             .lock()
             .map_err(|_| AppError::Audio("output mutex poisoned".into()))?;
+        // Resolved under the very lock this method rebuilds with (#629).
+        // Reading it before taking the lock left a window in which
+        // `set_output_device` could install *and persist* device B; this
+        // toggle then rebuilt on A, the name it had captured, and the
+        // stream ended up contradicting the saved preference until
+        // something else rebuilt. Same cure as `reopen_output_device`
+        // took in #628: let the rebuild resolve its own target.
+        let active = guard.pinned_device();
         let was_playing = matches!(
             self.shared.state(),
             super::state::PlayerState::Playing | super::state::PlayerState::Paused
@@ -1773,7 +1857,7 @@ impl AudioEngine {
         // other direction needs it too, see
         // [`must_release_before_reopening`].
         let pre_release =
-            must_release_before_reopening(guard.as_ref().map(|h| h.exclusive), enabled);
+            must_release_before_reopening(guard.handle.as_ref().map(|h| h.exclusive), enabled);
         if pre_release {
             if was_playing {
                 if let Err(e) = self.cmd_tx.send(AudioCmd::Stop) {
@@ -1793,7 +1877,7 @@ impl AudioEngine {
                     )));
                 }
             }
-            if let Some(old) = guard.take() {
+            if let Some(old) = guard.handle.take() {
                 old.stop();
             }
         }
@@ -1827,7 +1911,7 @@ impl AudioEngine {
                 // where even the shared fallback failed, `guard` still
                 // holds it) or on the recovery we schedule below.
                 self.cancel_deliberate_output_change();
-                if guard.is_none() {
+                if guard.handle.is_none() {
                     // `pre_release` already released the old exclusive
                     // handle, so there is no output thread at all. Tell
                     // Settings the flag is stale (#405), then schedule a
@@ -1836,7 +1920,7 @@ impl AudioEngine {
                     // teardown emptied `self.output`, so a self-resolve
                     // would reopen the OS default instead of the user's
                     // device.
-                    self.publish_output_lost_if_gone(&guard);
+                    self.publish_output_lost_if_gone(&guard.handle);
                     super::output::schedule_device_rebuild(
                         &self.app,
                         super::output::RebuildTarget::Device(active),
@@ -1870,7 +1954,7 @@ impl AudioEngine {
                     .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
             }
             // No-op when `pre_release` already took the old handle above.
-            if let Some(old) = guard.take() {
+            if let Some(old) = guard.handle.take() {
                 old.stop();
             }
             self.cmd_tx
@@ -1884,10 +1968,10 @@ impl AudioEngine {
             // so `guard` still describes a live stream and the flag stays
             // accurate; the later steps leave no output at all. The helper
             // tells those two apart and only publishes for the second.
-            self.publish_output_lost_if_gone(&guard);
+            self.publish_output_lost_if_gone(&guard.handle);
             return Err(err);
         }
-        *guard = Some(handle);
+        guard.handle = Some(handle);
         self.exclusive_output_active
             .store(active_mode, std::sync::atomic::Ordering::Release);
         // Redundant with the caller's own re-read after a manual toggle
@@ -2559,5 +2643,38 @@ mod radio_resume_tests {
             baseline, after,
             "non-Load* commands must not touch the snapshot"
         );
+    }
+}
+
+#[cfg(test)]
+mod output_slot_tests {
+    use super::OutputSlot;
+
+    // Only the handle-less branch is exercised here: an `OutputHandle`
+    // owns a live output thread, so it cannot be built in a unit test.
+    // That branch is the one that regressed, though — the other reads the
+    // handle the rebuilds keep in step with the stream.
+
+    #[test]
+    fn the_pin_survives_a_missing_handle() {
+        // #630: with no stream installed — a spawn that failed after the
+        // old one was released — the engine must still name the device the
+        // user picked. Answering "nothing pinned" sent a forced reopen to
+        // the OS default, cost the picker the pinned row it had just
+        // failed to open, and made MPD report no device at all.
+        let slot = OutputSlot {
+            handle: None,
+            pinned: Some("Speakers (USB DAC)".to_string()),
+        };
+        assert_eq!(slot.pinned_device().as_deref(), Some("Speakers (USB DAC)"));
+    }
+
+    #[test]
+    fn no_handle_and_no_pin_means_the_os_default() {
+        let slot = OutputSlot {
+            handle: None,
+            pinned: None,
+        };
+        assert!(slot.pinned_device().is_none());
     }
 }

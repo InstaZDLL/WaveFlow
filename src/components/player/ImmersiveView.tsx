@@ -139,6 +139,12 @@ export function ImmersiveView({
   //    unchanged — no panel, no queue).
   const dual = mergedLyrics && !narrow;
 
+  // Static source for the blurred backdrop: a pre-resized variant or
+  // nothing. Never `artwork_path`, which can be the animated file the
+  // cover picker accepts — see the background comment below (#615).
+  const staticBackdrop =
+    currentTrack?.artwork_path_2x ?? currentTrack?.artwork_path_1x ?? null;
+
   // Dual: which tab the control panel shows + whether it's open.
   const [activeTab, setActiveTab] = useState<ImmersiveTab>("lyrics");
   const [panelOpen, setPanelOpen] = useState(true);
@@ -229,14 +235,30 @@ export function ImmersiveView({
     >
       {/* Blurred artwork background — flat dark gradient fallback. Same
           recipe as the old overlays. `animate-fade-in` lives here so the
-          opaque `bg-zinc-950` above paints solid from frame 1. */}
+          opaque `bg-zinc-950` above paints solid from frame 1.
+
+          Deliberately a pre-resized variant, and **only** one: behind
+          `blur-3xl` at 150% scale a 128 px source is indistinguishable,
+          and the thumbnails the artwork pipeline generates are
+          single-frame. An animated cover — what "Change cover → Local
+          file" accepts, since it takes webp and refuses video — was
+          otherwise decoded frame by frame *and* blurred over the whole
+          screen, which is the stutter reported in #615.
+
+          Hence the branch on `staticBackdrop` rather than on
+          `artwork_path`, and no `path` passed at all: `size="2x"` falls
+          back to the full source when neither thumbnail exists, which
+          would have put the animated file right back here on an album the
+          thumbnail worker has not caught up with. No static variant means
+          the gradient, not the animation. It still plays, once, on the
+          foreground cover. */}
       <div className="absolute inset-0 overflow-hidden animate-fade-in">
-        {currentTrack?.artwork_path ? (
+        {staticBackdrop ? (
           <Artwork
-            path={currentTrack.artwork_path}
-            path1x={currentTrack.artwork_path_1x}
-            path2x={currentTrack.artwork_path_2x}
-            size="full"
+            path={null}
+            path1x={currentTrack?.artwork_path_1x}
+            path2x={currentTrack?.artwork_path_2x}
+            size="2x"
             className="w-full h-full scale-150 blur-3xl"
             alt=""
             rounded="md"

@@ -9,6 +9,7 @@ import {
   setAlbumMotionArtworkFromFile,
 } from "../../lib/tauri/plugins";
 import { pickFile } from "../../lib/tauri/dialog";
+import { invalidateAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
 
 interface MotionCoverPickerModalProps {
   albumId: number;
@@ -43,6 +44,10 @@ export function MotionCoverPickerModal({
       setIsApplying(true);
       setError(null);
       await setAlbumMotionArtworkFromFile(albumId, path);
+      // The hook remembers "this album has none" for the session, so
+      // without this the file we just set would not show up until a
+      // restart (#615).
+      invalidateAlbumMotionArtwork(albumId);
       onSuccess();
       onClose();
     } catch (err) {
@@ -59,6 +64,8 @@ export function MotionCoverPickerModal({
     setError(null);
     try {
       await clearAlbumMotionArtwork(albumId);
+      // Symmetric: the remembered answer is now wrong the other way.
+      invalidateAlbumMotionArtwork(albumId);
       onSuccess();
       onClose();
     } catch (err) {
