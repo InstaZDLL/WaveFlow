@@ -73,6 +73,13 @@ pub struct SharedPlayback {
     pub channels: AtomicU16,
     pub volume_bits: AtomicU32,
     pub seek_generation: AtomicU64,
+    /// Monotonic source of [`LoadIntent`](super::engine::LoadIntent)s
+    /// (#622), claimed at the start of every playback intent.
+    ///
+    /// Here rather than on `AudioEngine` because the decoder thread claims
+    /// one too — the auto-advance's intent starts when a track ends, and
+    /// at that point the decoder holds this struct and no engine handle.
+    pub load_intents: AtomicU64,
     /// Highest [`LoadIntent`](super::engine::LoadIntent) the decoder has
     /// been handed, `0` before the first load (#622).
     ///
@@ -235,6 +242,7 @@ impl SharedPlayback {
             channels: AtomicU16::new(0),
             volume_bits: AtomicU32::new(1.0_f32.to_bits()),
             seek_generation: AtomicU64::new(0),
+            load_intents: AtomicU64::new(0),
             newest_load_intent: AtomicU64::new(0),
             base_offset_ms: AtomicU64::new(0),
             current_track_id: AtomicI64::new(0),
@@ -313,6 +321,22 @@ impl SharedPlayback {
 
     pub fn set_state(&self, state: PlayerState) {
         self.state.store(state as u8, Ordering::Release);
+    }
+
+    /// Move the state from `from` to `to`, or report that someone else got
+    /// there first.
+    ///
+    /// For the writers that are not the decoder. They publish a state
+    /// ahead of the decoder to close a window — `resume_last` parks on
+    /// `Loading` so a second Play cannot read `Idle` (#609) — and a blind
+    /// store there can overwrite a transition the decoder has *already*
+    /// published for a different track: the player would claim to be
+    /// loading while it is playing, and every surface that treats
+    /// `Loading` as "a track is on its way" goes dead.
+    pub fn try_set_state(&self, from: PlayerState, to: PlayerState) -> bool {
+        self.state
+            .compare_exchange(from as u8, to as u8, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok()
     }
 
     pub fn volume(&self) -> f32 {

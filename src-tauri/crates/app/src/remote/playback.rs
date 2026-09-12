@@ -139,11 +139,11 @@ pub async fn jump_to(app: &AppHandle, index: usize) -> AppResult<()> {
 /// the session on a track it never played: the engine is stopped and the
 /// session cleared before the error propagates, so the next action starts
 /// clean rather than acting on a phantom cursor.
-pub async fn advance(app: &AppHandle, direction: Direction) -> AppResult<bool> {
+/// `intent` comes from the caller, not from here (#622): a Next claims it
+/// when the key is pressed and the auto-advance when the track ended, both
+/// of which are earlier than this call and are what has to be ordered.
+pub async fn advance(app: &AppHandle, direction: Direction, intent: LoadIntent) -> AppResult<bool> {
     let state = app.state::<AppState>();
-    // Before the repeat-mode read and everything `play_current` does after
-    // it — a ticket round-trip, a reconciliation lookup (#622).
-    let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
     let repeat = {
         let pool = state.require_profile_pool().await?;
         crate::queue::read_repeat_mode(&pool).await

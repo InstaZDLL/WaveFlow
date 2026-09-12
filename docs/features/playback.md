@@ -224,6 +224,25 @@ has been handed in `SharedPlayback::newest_load_intent` and drops any load
 below it, so a preparation that finishes late is discarded instead of
 overwriting a newer selection.
 
+**Where "the intent starts" actually is** takes care in three places that
+are not a Tauri command:
+
+- **The auto-advance** starts when the track *ends*, so the decoder claims
+  the intent there (`handle_playback_outcome`) and it travels inside the
+  `TrackEnded` / `RemoteTrackEnded` message. Claiming it in the analytics
+  task instead would put it after the channel hop *and* after the
+  `play_event` write, the repeat-mode read and the queue advance — ranking
+  the auto-advance above a Next the user pressed in between.
+- **An output rebuild** (a device error, a device switch, the exclusive
+  toggle) claims its intent with the **track snapshot** it will
+  re-dispatch, before the stop, the device open and the producer swap. An
+  exclusive open costs tens to hundreds of milliseconds, and an intent
+  claimed after it would rank the resume above a track the user picked
+  while the device was reopening.
+- **`remote::playback::advance`** claims none of its own: the intent comes
+  from the caller, because a Next claims it when the key is pressed and the
+  auto-advance when the track ended, and those are the moments to order.
+
 Three details are what make it hold:
 
 - **The token is compulsory.** `LoadIntent`'s field is private, so a load
@@ -241,6 +260,21 @@ Three details are what make it hold:
   allocation counter. An intent can be claimed and never sent — Next on an
   exhausted queue, a track row that has since vanished — and that must not
   silence a load still on its way.
+
+**A producer must not publish for a load that will be dropped.**
+`resume_last` is the one path that publishes state ahead of the decoder —
+it parks the player on `Loading` so a second Play cannot read `Idle`
+(#609) — and it now checks `load_intent_superseded` first: a resume whose
+load the decoder is going to drop emits no track change and touches no
+state, because relabelling the player bar over the track that is actually
+playing, or parking `Loading` on top of the decoder's own transition, would
+leave every surface that gates on `Loading` dead for the session. The check
+is best effort by nature (only the decoder knows what it was handed), so
+the `Loading` write itself goes through `SharedPlayback::try_set_state`: a
+compare-exchange, so it can never overwrite a transition published for
+another track. The paths that only emit a *label* are a known gap, tracked
+separately — they mutate the queue cursor before sending, so bailing out
+halfway is not the answer there.
 
 `SetNextTrack` is deliberately outside all of this: it arms the gapless
 prefetch rather than taking over, and dropping one would cost a gapless

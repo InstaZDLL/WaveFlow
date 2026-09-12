@@ -162,6 +162,15 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
     let Some((track, position_ms)) = queue::restore_state(&pool).await? else {
         return Err(AppError::Other("no resume point available".into()));
     };
+    // A Next pressed while this resume was in the database has already
+    // reached the decoder, which means the load below will be dropped
+    // (#622). Publish nothing then: emitting the resumed track would
+    // relabel the player bar over the track that is actually playing, and
+    // `Loading` would strand every surface that gates on it.
+    if engine.load_intent_superseded(intent) {
+        tracing::debug!("resume superseded by a newer playback intent; dropping it");
+        return Ok(());
+    }
     commands::player::emit_track_changed(app, &state.paths, &track, Some(profile_id));
     let replay_gain = commands::player::fetch_replay_gain(&pool, track.id).await;
     // The guard above can't cover the last stretch: once the command is in
@@ -172,8 +181,16 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
     // `toggle_play_pause` — and the decoder emits the matching
     // `player:state` a beat later. Restored if the send fails, so a dead
     // channel can't leave the player claiming to load forever.
+    //
+    // Conditional on the state not having moved since: the check above
+    // closes the window that lasts as long as a database read, but the
+    // decoder can still be handed a newer load in the instant that
+    // follows, and a blind store would then overwrite the transition it
+    // published for that other track.
     let previous = engine.shared().state();
-    engine.shared().set_state(PlayerState::Loading);
+    let published = engine
+        .shared()
+        .try_set_state(previous, PlayerState::Loading);
     let sent = engine.send(AudioCmd::LoadAndPlay {
         intent,
         path: track.as_path(),
@@ -184,8 +201,11 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
         source_id: None,
         replay_gain,
     });
-    if sent.is_err() {
-        engine.shared().set_state(previous);
+    if sent.is_err() && published {
+        // Only ours to undo, and only while it is still what we wrote.
+        engine
+            .shared()
+            .try_set_state(PlayerState::Loading, previous);
     }
     sent
 }
@@ -284,7 +304,12 @@ async fn try_remote_advance(app: &AppHandle, direction: Direction, label: &str) 
     if !app.state::<AppState>().remote_playback.is_active() {
         return None;
     }
-    match crate::remote::playback::advance(app, direction).await {
+    // Claimed here, which is still the moment of the key press: everything
+    // above it is a synchronous read. `advance` mints none of its own so
+    // that a Next and an auto-advance are each ordered from their own
+    // origin (#622).
+    let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
+    match crate::remote::playback::advance(app, direction, intent).await {
         // A track was actually loaded.
         Ok(true) => Some(Moved::Track),
         // End of queue (repeat off) — the session stopped, nothing new plays.

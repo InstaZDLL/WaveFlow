@@ -27,7 +27,7 @@ use waveflow_core::audio_format::dsd::parser::{parse_dff, parse_dsf};
 
 use super::analytics::AnalyticsMsg;
 use super::crossfade::{equal_power_gains, ActiveStream};
-use super::engine::AudioCmd;
+use super::engine::{AudioCmd, LoadIntent};
 use super::events::{emit_radio_metadata, RadioMetadataPayload};
 use super::output::DopFormat;
 use super::replay_gain::{effective_linear, TrackGain};
@@ -89,6 +89,13 @@ fn handle_playback_outcome(
                 completed,
                 "play_track ended naturally"
             );
+            // The auto-advance starts here, where the track ended, so its
+            // intent is claimed here too (#622). Claiming it on the
+            // analytics side would put it after the channel hop and after
+            // the queue work, and rank it above a Next the user pressed in
+            // between. Claimed once for both branches: exactly one of them
+            // sends, and an intent that is never sent orders nothing.
+            let intent = LoadIntent::claim(shared);
             if finished.track_id > 0 {
                 let _ = analytics_tx.send(AnalyticsMsg::TrackEnded {
                     track_id: finished.track_id,
@@ -96,6 +103,7 @@ fn handle_playback_outcome(
                     listened_ms,
                     source_type: finished.source_type,
                     source_id: finished.source_id,
+                    intent,
                 });
             } else {
                 // A finite non-library stream reached EOF. Radio is
@@ -105,6 +113,7 @@ fn handle_playback_outcome(
                 // active). Route it to the remote auto-advance.
                 let _ = analytics_tx.send(AnalyticsMsg::RemoteTrackEnded {
                     track_id: finished.track_id,
+                    intent,
                 });
             }
         }

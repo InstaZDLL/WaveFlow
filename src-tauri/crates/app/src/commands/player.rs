@@ -2157,16 +2157,16 @@ pub async fn player_next(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
 ) -> AppResult<()> {
+    // Claimed with the invocation, before either branch (#622) — the
+    // remote queue needs it too, and it mints none of its own.
+    let intent = engine.next_load_intent();
     // A remote play queue takes over next/previous while it is active: its
     // tracks stream by URL and have no row in the local `queue_item` table.
     #[cfg(feature = "sync_v2")]
     if state.remote_playback.is_active() {
-        crate::remote::playback::advance(&app, Direction::Next).await?;
+        crate::remote::playback::advance(&app, Direction::Next, intent).await?;
         return Ok(());
     }
-    // After the remote-queue branch, which mints its own intent, and
-    // before this path's first await (#622).
-    let intent = engine.next_load_intent();
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();
     let repeat = queue::read_repeat_mode(&pool).await;
@@ -2209,6 +2209,10 @@ pub async fn player_previous(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
 ) -> AppResult<()> {
+    // As in `player_next`: claimed with the invocation, before every
+    // branch (#622). The restart-in-place branch below sends no load, and
+    // an intent that is never sent orders nothing.
+    let intent = engine.next_load_intent();
     // Same restart-vs-step rule as the local queue applies to a remote
     // one: past 3 s, "previous" restarts the current track.
     if engine.shared().current_position_ms() > 3000 {
@@ -2216,12 +2220,9 @@ pub async fn player_previous(
     }
     #[cfg(feature = "sync_v2")]
     if state.remote_playback.is_active() {
-        crate::remote::playback::advance(&app, Direction::Previous).await?;
+        crate::remote::playback::advance(&app, Direction::Previous, intent).await?;
         return Ok(());
     }
-    // Same as `player_next`: past the restart-in-place and remote-queue
-    // branches, before this path's first await (#622).
-    let intent = engine.next_load_intent();
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();
     let repeat = queue::read_repeat_mode(&pool).await;

@@ -54,6 +54,22 @@ impl LoadIntent {
         self.0
     }
 
+    /// Claim the next intent from the engine's shared counter.
+    ///
+    /// Lives here rather than on [`SharedPlayback`] so the tuple field
+    /// stays private to this module: a load command still cannot be built
+    /// without asking for an intent. Takes the shared state because the
+    /// decoder thread has that and no engine handle — it claims the
+    /// auto-advance's intent at the moment a track ends.
+    pub(crate) fn claim(shared: &SharedPlayback) -> Self {
+        Self(
+            shared
+                .load_intents
+                .fetch_add(1, std::sync::atomic::Ordering::AcqRel)
+                + 1,
+        )
+    }
+
     /// Build an intent from a raw number — tests only. Production code
     /// goes through [`AudioEngine::next_load_intent`] so every intent on
     /// one engine comes from the same monotonic counter.
@@ -259,9 +275,15 @@ impl std::fmt::Debug for AudioCmd {
                 intent,
                 ..
             } => {
+                // Redacted, not printed raw: a remote-queue URL is an
+                // HMAC-signed streaming ticket and the signature rides in
+                // its query string. This `Debug` is what every `?cmd` /
+                // `?err` logger reaches, so the redaction belongs here
+                // rather than at each call site.
                 write!(
                     f,
-                    "LoadUrlAndPlay {{ track_id: {track_id}, url: {url}, intent: {} }}",
+                    "LoadUrlAndPlay {{ track_id: {track_id}, url: {}, intent: {} }}",
+                    crate::audio::http_source::redact_url(url),
                     intent.get()
                 )
             }
@@ -477,10 +499,6 @@ pub struct AudioEngine {
     /// [`AudioCmd::LoadAndPlay`] so a local-track switch doesn't
     /// resurrect the dead radio session on a later rebuild.
     radio_resume: Mutex<Option<RadioResumeState>>,
-    /// Monotonic source of [`LoadIntent`]s (#622). Handed out by
-    /// [`Self::next_load_intent`] at the start of every playback intent, so
-    /// the decoder can tell a late preparation from a newer selection.
-    load_intents: std::sync::atomic::AtomicU64,
 }
 
 /// Snapshot of an active non-library source, retained by the engine so output
@@ -654,7 +672,6 @@ impl AudioEngine {
             exclusive_flaps: Mutex::new(FlapWindow::default()),
             rebuild_gate: Mutex::new(RebuildGate::default()),
             radio_resume: Mutex::new(None),
-            load_intents: std::sync::atomic::AtomicU64::new(0),
         })
     }
 
@@ -680,11 +697,24 @@ impl AudioEngine {
     /// Starts at 1, so the decoder's "nothing seen yet" high-water mark of
     /// 0 accepts the first load of the session.
     pub fn next_load_intent(&self) -> LoadIntent {
-        LoadIntent(
-            self.load_intents
-                .fetch_add(1, std::sync::atomic::Ordering::AcqRel)
-                + 1,
-        )
+        LoadIntent::claim(&self.shared)
+    }
+
+    /// Whether a newer load has already been handed to the decoder, so
+    /// `intent`'s own load is going to be dropped (#622).
+    ///
+    /// Best effort by nature — only the decoder knows what it has been
+    /// delivered, and it can be handed a newer load the instant after this
+    /// returns. It exists for the one thing a producer must not do on a
+    /// doomed load: publish. A caller that has already spent its
+    /// preparation and is about to relabel the player bar, or to park the
+    /// state on `Loading`, checks here first and gives up instead.
+    pub fn load_intent_superseded(&self, intent: LoadIntent) -> bool {
+        intent.get()
+            < self
+                .shared
+                .newest_load_intent
+                .load(std::sync::atomic::Ordering::Acquire)
     }
 
     pub fn send(&self, cmd: AudioCmd) -> AppResult<()> {
@@ -1227,6 +1257,14 @@ impl AudioEngine {
         // track the rebuild has to interrupt; only what follows differs.
         let was_playing = resume != RebuildResume::Nothing;
         let position_ms = self.shared.current_position_ms();
+        // The intent of the resume at the bottom belongs here, with the
+        // snapshot it will re-dispatch (#622) — not further down, past the
+        // stop, the device open and the producer swap. An exclusive open
+        // costs tens to hundreds of milliseconds; a track the user picks
+        // during it is a newer choice than this resume, and an intent
+        // claimed afterwards would have made the resume look like the
+        // newer one and dropped the user's pick.
+        let intent = self.next_load_intent();
 
         // #322: a WASAPI *exclusive* client locks the device entirely — no
         // other client, exclusive OR shared, can open it until that client
@@ -1355,11 +1393,6 @@ impl AudioEngine {
             }
         }
         if resume == RebuildResume::Play {
-            // One intent for this resume, taken before either branch
-            // prepares anything (#622). The local-track branch reads the
-            // row back out of SQLite, and that read must not land on top of
-            // a selection the user made while it was in flight.
-            let intent = self.next_load_intent();
             if track_id < 0 {
                 if let Some(state) = self.snapshot_radio_resume() {
                     let _ = self.cmd_tx.send(state.into_command(position_ms, intent));
@@ -1450,6 +1483,14 @@ impl AudioEngine {
             .current_track_id
             .load(std::sync::atomic::Ordering::Acquire);
         let position_ms = self.shared.current_position_ms();
+        // The intent of the resume at the bottom belongs here, with the
+        // snapshot it will re-dispatch (#622) — not further down, past the
+        // stop, the device open and the producer swap. An exclusive open
+        // costs tens to hundreds of milliseconds; a track the user picks
+        // during it is a newer choice than this resume, and an intent
+        // claimed afterwards would have made the resume look like the
+        // newer one and dropped the user's pick.
+        let intent = self.next_load_intent();
 
         // Step 2 — release the old stream first when the new one cannot be
         // opened alongside it, then open the replacement.
@@ -1622,11 +1663,6 @@ impl AudioEngine {
         // `LoadUrlAndPlay`; local tracks (positive id) hit the
         // SQLite-keyed async resume.
         if was_playing {
-            // One intent for this resume, taken before either branch
-            // prepares anything (#622). The local-track branch reads the
-            // row back out of SQLite, and that read must not land on top of
-            // a selection the user made while it was in flight.
-            let intent = self.next_load_intent();
             if track_id < 0 {
                 if let Some(state) = self.snapshot_radio_resume() {
                     let _ = self.cmd_tx.send(state.into_command(position_ms, intent));
@@ -1713,6 +1749,14 @@ impl AudioEngine {
             .current_track_id
             .load(std::sync::atomic::Ordering::Acquire);
         let position_ms = self.shared.current_position_ms();
+        // The intent of the resume at the bottom belongs here, with the
+        // snapshot it will re-dispatch (#622) — not further down, past the
+        // stop, the device open and the producer swap. An exclusive open
+        // costs tens to hundreds of milliseconds; a track the user picks
+        // during it is a newer choice than this resume, and an intent
+        // claimed afterwards would have made the resume look like the
+        // newer one and dropped the user's pick.
+        let intent = self.next_load_intent();
 
         // #405 — the stuck Settings toggle. Leaving exclusive mode re-opens
         // the SAME endpoint in shared mode, and a WASAPI exclusive client
@@ -1856,11 +1900,6 @@ impl AudioEngine {
         // the WASAPI flip doesn't drop the user off the stream.
         // Local tracks hit the existing SQLite-keyed async resume.
         if was_playing {
-            // One intent for this resume, taken before either branch
-            // prepares anything (#622). The local-track branch reads the
-            // row back out of SQLite, and that read must not land on top of
-            // a selection the user made while it was in flight.
-            let intent = self.next_load_intent();
             if track_id < 0 {
                 if let Some(state) = self.snapshot_radio_resume() {
                     let _ = self.cmd_tx.send(state.into_command(position_ms, intent));
