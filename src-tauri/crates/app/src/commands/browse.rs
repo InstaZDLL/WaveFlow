@@ -2042,6 +2042,25 @@ const FOLDER_CHILDREN_SQL: &str = r#"
      ORDER BY name COLLATE NOCASE
 "#;
 
+/// SQL for the library root that contains a path.
+///
+/// Longest match wins: a user may have added both a parent and a child
+/// directory as roots, and the breadcrumb has to stop at the nearer one.
+///
+/// `rtrim(path, sep)` because a stored root may already end with the
+/// separator -- a whole volume is `E:\` on Windows, and a folder picker
+/// can hand back a trailing slash anywhere. Appending a second one would
+/// make the comparison miss and leave the browser with no root at all:
+/// no breadcrumb anchor, and nothing to stop the walk up.
+const FOLDER_ROOT_SQL: &str = r#"
+    SELECT id, path
+      FROM library_folder
+     WHERE (? IS NULL OR library_id = ?)
+       AND instr(? || ?, rtrim(path, ?) || ?) = 1
+     ORDER BY length(path) DESC
+     LIMIT 1
+"#;
+
 /// List the directories directly inside `path`.
 ///
 /// The tree is derived at query time from `track.file_path`; nothing is
@@ -2059,29 +2078,19 @@ pub async fn browse_folders(
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
-    // The longest configured root that prefixes this path. Longest,
-    // because a user may have added both a parent and a child directory
-    // as roots, and the breadcrumb has to stop at the nearer one.
-    let root: Option<(i64, String)> = sqlx::query_as(
-        r#"
-        SELECT id, path
-          FROM library_folder
-         WHERE (? IS NULL OR library_id = ?)
-           AND instr(? || ?, path || ?) = 1
-         ORDER BY length(path) DESC
-         LIMIT 1
-        "#,
-    )
-    .bind(library_id)
-    .bind(library_id)
-    .bind(&path)
-    .bind(std::path::MAIN_SEPARATOR.to_string())
-    .bind(std::path::MAIN_SEPARATOR.to_string())
-    .fetch_optional(&*pool)
-    .await?;
+    // See [`FOLDER_ROOT_SQL`] for why the stored path is trimmed.
+    let sep = std::path::MAIN_SEPARATOR.to_string();
+    let root: Option<(i64, String)> = sqlx::query_as(FOLDER_ROOT_SQL)
+        .bind(library_id)
+        .bind(library_id)
+        .bind(&path)
+        .bind(&sep)
+        .bind(&sep)
+        .bind(&sep)
+        .fetch_optional(&*pool)
+        .await?;
 
     let (low, high) = folder_prefix_range(&path);
-    let sep = std::path::MAIN_SEPARATOR.to_string();
     // Characters, not bytes: SQLite's `substr` and `instr` count
     // characters, so a path with an accent would be cut mid-name by a
     // byte length.
@@ -3362,6 +3371,61 @@ mod tests {
         // And with a trailing separator on either side, same answer.
         let with_sep = format!("{root}{}", std::path::MAIN_SEPARATOR);
         assert!(folder_parent(&with_sep, Some(&root)).is_none());
+    }
+
+    /// The root lookup, bound exactly as `browse_folders` binds it.
+    async fn root_for(pool: &SqlitePool, dir: &str) -> Option<(i64, String)> {
+        let sep = std::path::MAIN_SEPARATOR_STR;
+        sqlx::query_as(FOLDER_ROOT_SQL)
+            .bind(Some(1_i64))
+            .bind(Some(1_i64))
+            .bind(dir)
+            .bind(sep)
+            .bind(sep)
+            .bind(sep)
+            .fetch_optional(pool)
+            .await
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn a_root_stored_with_a_trailing_separator_still_matches() {
+        let pool = pool().await;
+        seed_folders(&pool).await;
+        // A whole volume is `E:\` on Windows, and a folder picker can
+        // hand back a trailing slash anywhere. Without the trim the
+        // comparison appends a second separator, finds no root, and the
+        // browser loses both its breadcrumb anchor and its stopping
+        // point on the way up.
+        let with_sep = format!("{}{}", p(&["", "m", "Jazz"]), std::path::MAIN_SEPARATOR);
+        sqlx::query(
+            "INSERT INTO library_folder (id, library_id, path, last_scanned_at, is_watched)
+             VALUES (2, 1, ?, 0, 0)",
+        )
+        .bind(&with_sep)
+        .execute(&pool)
+        .await
+        .unwrap();
+        let found = root_for(&pool, &p(&["", "m", "Jazz", "Miles"])).await;
+        assert_eq!(found.map(|(id, _)| id), Some(2));
+    }
+
+    #[tokio::test]
+    async fn the_nearest_root_wins_when_two_are_nested() {
+        let pool = pool().await;
+        seed_folders(&pool).await;
+        // Both a parent and a child can be configured roots; the
+        // breadcrumb has to stop at the nearer one.
+        sqlx::query(
+            "INSERT INTO library_folder (id, library_id, path, last_scanned_at, is_watched)
+             VALUES (2, 1, ?, 0, 0)",
+        )
+        .bind(p(&["", "m", "Rock", "Album A"]))
+        .execute(&pool)
+        .await
+        .unwrap();
+        let found = root_for(&pool, &p(&["", "m", "Rock", "Album A", "Live"])).await;
+        assert_eq!(found.map(|(id, _)| id), Some(2));
     }
 
     #[tokio::test]

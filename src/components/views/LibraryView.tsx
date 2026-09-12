@@ -374,9 +374,12 @@ export function LibraryView({
   const [editRefetch, setEditRefetch] = useState(0);
   useTrackUpdated(useCallback(() => setEditRefetch((k) => k + 1), []));
   const clearSelection = selection.clear;
+  // Also on `folderPath`: a selection is a set of track ids, and the
+  // action bar it feeds would otherwise act on tracks the user can no
+  // longer see after walking into another folder (#578).
   useEffect(() => {
     clearSelection();
-  }, [activeTab, clearSelection]);
+  }, [activeTab, folderPath, clearSelection]);
 
   const { available: remoteAvailable } = useRemoteSource();
 
@@ -603,7 +606,17 @@ export function LibraryView({
       .finally(() => {
         if (folderRequest.current === mine) setFolderBusy(false);
       });
-  }, [folderPath, tracksSort.isLoaded, tracksSort.sort]);
+    // `librariesSignature` and `editRefetch` for the same reason every
+    // other tab watches them: a rescan or a tag edit changes what is in
+    // the folder, and a view that only reloads on navigation would show
+    // the user their own edit as missing.
+  }, [
+    folderPath,
+    tracksSort.isLoaded,
+    tracksSort.sort,
+    librariesSignature,
+    editRefetch,
+  ]);
 
   /** Everything under a folder, for the actions that take ids. */
   const idsUnderFolder = useCallback(
@@ -3588,6 +3601,17 @@ function FolderBrowser({
 }: FolderBrowserProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Escape closes it, like every other menu here. Bound only while it is
+  // open, so the app carries no listener for a menu nobody opened.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
+
   // Crumbs from the library root down to here. Built from the two paths
   // rather than from a stack of visited folders, so arriving by any
   // route -- a click, a restored state, a deep link later -- gives the
@@ -3596,8 +3620,11 @@ function FolderBrowser({
     if (!listing) return [] as { label: string; path: string }[];
     const sep = listing.path.includes("\\") ? "\\" : "/";
     const root = listing.root_path ?? "";
+    // `||`, not `??`: an empty root leaves an empty last segment, which
+    // is a value rather than a missing one, and would render a crumb
+    // with no label at all.
     const rootLabel =
-      root.split(sep).filter(Boolean).pop() ?? root ?? listing.path;
+      root.split(sep).filter(Boolean).pop() || root || listing.path;
     const out = [{ label: rootLabel, path: root || listing.path }];
     if (listing.path.length > root.length) {
       const rest = listing.path.slice(root.length).split(sep).filter(Boolean);
@@ -3769,17 +3796,22 @@ function FolderBrowser({
                         setMenuOpen(false);
                       }}
                     />
-                    {playlists.map((playlist) => (
-                      <MenuActionItem
-                        key={playlist.id}
-                        icon={<ListMusic size={15} />}
-                        label={playlist.name}
-                        onClick={() => {
-                          onAddToPlaylist(playlist.id, here);
-                          setMenuOpen(false);
-                        }}
-                      />
-                    ))}
+                    {/* Bounded like `AddToPlaylistPopover`: a user with
+                        fifty playlists would otherwise get a menu taller
+                        than the window, with its last rows unreachable. */}
+                    <div className="max-h-64 overflow-y-auto">
+                      {playlists.map((playlist) => (
+                        <MenuActionItem
+                          key={playlist.id}
+                          icon={<ListMusic size={15} />}
+                          label={playlist.name}
+                          onClick={() => {
+                            onAddToPlaylist(playlist.id, here);
+                            setMenuOpen(false);
+                          }}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </>
               )}
