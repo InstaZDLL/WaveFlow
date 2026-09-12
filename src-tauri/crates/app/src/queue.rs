@@ -119,7 +119,12 @@ async fn read_setting_i64(pool: &SqlitePool, key: &str) -> AppResult<Option<i64>
     }
 }
 
-async fn write_setting_i64(pool: &SqlitePool, key: &str, value: i64) -> AppResult<()> {
+/// Generic over the executor so a caller that needs several rows to land
+/// together can pass its transaction instead of the pool.
+async fn write_setting_i64<'e, E>(executor: E, key: &str, value: i64) -> AppResult<()>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Sqlite>,
+{
     let now = Utc::now().timestamp_millis();
     sqlx::query(
         "UPDATE profile_setting
@@ -129,7 +134,7 @@ async fn write_setting_i64(pool: &SqlitePool, key: &str, value: i64) -> AppResul
     .bind(value.to_string())
     .bind(now)
     .bind(key)
-    .execute(pool)
+    .execute(executor)
     .await?;
     Ok(())
 }
@@ -920,8 +925,13 @@ pub async fn persist_resume_point(
     track_id: i64,
     position_ms: u64,
 ) -> AppResult<()> {
-    write_setting_i64(pool, "player.last_track_id", track_id).await?;
-    write_setting_i64(pool, "player.last_position_ms", position_ms as i64).await?;
+    // Both rows in one transaction. Three callers can be writing — the
+    // ten-second ticker, the exit event and the device-error rebuild — and
+    // a half-applied pair would name one track beside another's position.
+    let mut tx = pool.begin().await?;
+    write_setting_i64(&mut *tx, "player.last_track_id", track_id).await?;
+    write_setting_i64(&mut *tx, "player.last_position_ms", position_ms as i64).await?;
+    tx.commit().await?;
     Ok(())
 }
 
