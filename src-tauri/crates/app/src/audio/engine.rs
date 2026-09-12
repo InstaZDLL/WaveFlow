@@ -426,6 +426,26 @@ impl RebuildGate {
     }
 }
 
+/// Releases the [`RebuildGate`] on **every** exit path of a rebuild,
+/// including the early returns and a panic.
+///
+/// Held by both paths that arm the gate — the device-error recovery and
+/// the default-device follow (#627). Without it a rebuild that bailed
+/// out would leave `armed` latched and no later device event could ever
+/// schedule anything again. Declare it FIRST in the function so it drops
+/// last, after the `output` lock has been released: the settle window
+/// should start when the rebuild is really over.
+struct RebuildGateGuard<'a>(&'a Mutex<RebuildGate>);
+
+impl Drop for RebuildGateGuard<'_> {
+    fn drop(&mut self) {
+        self.0
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .finish(Instant::now());
+    }
+}
+
 /// Handle stored in Tauri state. Cloning an `Arc<AudioEngine>` is cheap.
 ///
 /// The cpal `Stream` is NOT stored here — it lives on a dedicated output
@@ -1037,22 +1057,9 @@ impl AudioEngine {
     ) -> AppResult<()> {
         use std::sync::atomic::Ordering;
 
-        // Release the #365 gate on EVERY exit path below (including the
-        // early `return`s and any panic), otherwise `armed` stays latched
-        // and no later device error could ever schedule a recovery again.
-        // Declared first so it drops last, after `force_rebuild_output`
-        // has released the `output` lock — the settle window should start
-        // when the rebuild is really over.
-        struct GateGuard<'a>(&'a Mutex<RebuildGate>);
-        impl Drop for GateGuard<'_> {
-            fn drop(&mut self) {
-                self.0
-                    .lock()
-                    .unwrap_or_else(|poisoned| poisoned.into_inner())
-                    .finish(Instant::now());
-            }
-        }
-        let _gate = GateGuard(&self.rebuild_gate);
+        // Release the #365 gate on EVERY exit path below, including the
+        // early `return`s and any panic.
+        let _gate = RebuildGateGuard(&self.rebuild_gate);
 
         // Acquire the debounce slot. `swap(true)` returns the
         // previous value, so a `true` here means somebody else is
@@ -1142,6 +1149,84 @@ impl AudioEngine {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .try_arm(Instant::now(), REBUILD_SETTLE_WINDOW)
+    }
+
+    /// Move an unpinned output onto the system's new default device
+    /// (#627).
+    ///
+    /// Called (after a backoff) by
+    /// [`super::output::schedule_default_device_follow`] when the
+    /// platform listener in [`super::default_device`] reports that the
+    /// system default moved. Four questions, in this order:
+    ///
+    /// 1. **is anything pinned?** A user who picked a device asked for
+    ///    that device; following the system would undo the pin. The
+    ///    answer here is advisory — a pick landing between this read and
+    ///    the rebuild would slip through it — so the rebuild asks again
+    ///    under the lock that installs pins, and that answer is the
+    ///    binding one. This early read only keeps the common case from
+    ///    doing any work.
+    /// 2. **would the move change anything?** Interrupting playback to
+    ///    reopen the endpoint we are already on is a gap in the music
+    ///    for no reason, and a default that disappeared entirely is
+    ///    nothing to follow. See [`should_follow_default`].
+    /// 3. **exclusive?** The preference, minus the #322 session
+    ///    suppression — exactly what [`Self::reopen_output_device`]
+    ///    computes. The suppression is honoured but NOT reset: this is
+    ///    the system's decision, not the fresh chance a re-toggle or a
+    ///    device pick is. No flap is recorded either; a default change
+    ///    is not a device resetting under us, and counting it would let
+    ///    a few legitimate device switches disable exclusive for the
+    ///    session.
+    /// 4. **is a rebuild already under way?** Only then is the #365 gate
+    ///    armed — see the call.
+    pub(super) fn follow_os_default_output(&self) -> AppResult<()> {
+        use std::sync::atomic::Ordering;
+
+        let (opened, pinned) = self.current_output_devices();
+        if let Some(pinned) = pinned {
+            tracing::debug!(
+                device = %pinned,
+                "default output device changed, but a device is pinned; staying on it"
+            );
+            return Ok(());
+        }
+
+        let new_default = super::output::os_default_output_name();
+        if !should_follow_default(opened.as_deref(), new_default.as_deref()) {
+            tracing::debug!(
+                opened = opened.as_deref().unwrap_or("<unnamed>"),
+                new_default = new_default.as_deref().unwrap_or("<none>"),
+                "default output device change needs no rebuild"
+            );
+            return Ok(());
+        }
+
+        // Only now is the #365 gate armed, and only now is its release
+        // owed: everything above is a cheap read, and arming for a
+        // follow that then does nothing would open a settle window a
+        // real device loss gets swallowed by — dropped, and never
+        // retried, which is silence until the user intervenes. Arming
+        // here still collapses a burst, since every notification of the
+        // same change reaches this point and only the first one arms.
+        if !self.try_arm_device_rebuild() {
+            tracing::debug!(
+                "default-device follow: a rebuild is already armed or the settle \
+                 window is open; ignoring this default change"
+            );
+            return Ok(());
+        }
+        let _gate = RebuildGateGuard(&self.rebuild_gate);
+
+        let exclusive = self.exclusive_output.load(Ordering::Relaxed)
+            && !self.exclusive_suppressed.load(Ordering::Relaxed);
+        tracing::info!(
+            from = opened.as_deref().unwrap_or("<unnamed>"),
+            to = new_default.as_deref().unwrap_or("<none>"),
+            exclusive,
+            "following the system's new default output device"
+        );
+        self.force_rebuild_output(RebuildDevice::OsDefaultIfUnpinned, exclusive)
     }
 
     /// Publish "no output thread at all" when a rebuild bailed out after
@@ -1353,6 +1438,21 @@ impl AudioEngine {
         let device_name = match device {
             RebuildDevice::Pinned => guard.pinned_device(),
             RebuildDevice::Explicit(name) => name,
+            // Decided under the very lock a successful pick installs the
+            // pin with (#627), which is what makes "only when nothing is
+            // pinned" true rather than probable: a device chosen between
+            // the notification and here must not be undone by a rebuild
+            // aimed at the system default.
+            RebuildDevice::OsDefaultIfUnpinned => {
+                if let Some(pinned) = guard.pinned_device() {
+                    tracing::debug!(
+                        device = %pinned,
+                        "default-device follow abandoned: a device was pinned meanwhile"
+                    );
+                    return Ok(());
+                }
+                None
+            }
         };
 
         let track_id = self
@@ -2172,6 +2272,41 @@ enum RebuildDevice {
     /// A target the caller computed deliberately — the device-error
     /// recovery resolves its own and has to keep it.
     Explicit(Option<String>),
+    /// The OS default, but only while nothing is pinned — the
+    /// default-device follow (#627). The condition is re-checked inside
+    /// the rebuild's own lock, so a pin installed in the meantime wins
+    /// and no rebuild happens at all.
+    OsDefaultIfUnpinned,
+}
+
+/// Whether a default-device change is worth a rebuild.
+///
+/// Pure so the decision can be tested without a sound card;
+/// [`AudioEngine::follow_os_default_output`] adds the pin check, which
+/// needs the engine's lock.
+///
+/// - a default the host cannot name (`None`) is nothing to follow:
+///   tearing down a working stream to open "no device" would lose the
+///   audio we still have;
+/// - an output the backend cannot name (`None`) cannot be compared, and
+///   "cannot tell" must not mean "do nothing" in the one feature whose
+///   whole job is to move — CoreAudio hog mode with no pin lands here;
+/// - otherwise the names decide.
+///
+/// The two names do not always come from the same call: the shared cpal
+/// path fills `opened_device` through the same `device_display_name` the
+/// default lookup uses, while WASAPI exclusive names itself through
+/// `Device::get_friendlyname()`. Both read Windows' friendly name, so
+/// they normally agree — and if they ever didn't, the cost is a
+/// redundant rebuild on a default change that really happened, never a
+/// missed one. Which is why this compares exactly and normalises
+/// nothing: a smarter match could only hide a real change.
+fn should_follow_default(opened: Option<&str>, new_default: Option<&str>) -> bool {
+    match (opened, new_default) {
+        (_, None) => false,
+        (None, Some(_)) => true,
+        (Some(opened), Some(new_default)) => opened != new_default,
+    }
 }
 
 /// What a device-error rebuild does with the session it interrupts.
@@ -2741,5 +2876,49 @@ mod output_slot_tests {
             pinned: None,
         };
         assert!(slot.pinned_device().is_none());
+    }
+}
+
+#[cfg(test)]
+mod default_follow_tests {
+    use super::should_follow_default;
+
+    #[test]
+    fn a_new_default_is_followed() {
+        assert!(should_follow_default(Some("Speakers"), Some("USB DAC")));
+    }
+
+    #[test]
+    fn the_same_default_is_not_reopened() {
+        // The notification fires for changes that leave the endpoint we
+        // are on as the default — and a rebuild is an audible gap, so
+        // "nothing to do" has to stay nothing.
+        assert!(!should_follow_default(Some("USB DAC"), Some("USB DAC")));
+    }
+
+    #[test]
+    fn an_unnamed_output_is_followed() {
+        // CoreAudio hog mode with no pin reports no opened name (#612:
+        // inventing one was the original defect). Unknown must not mean
+        // "stay put" here.
+        assert!(should_follow_default(None, Some("USB DAC")));
+    }
+
+    #[test]
+    fn a_vanished_default_is_not_followed() {
+        // Windows sends the notification with no device when the last
+        // endpoint goes away. Rebuilding onto nothing would drop audio
+        // that is still playing; a device we really lost arrives as
+        // `DeviceNotAvailable` instead, which owns its own recovery.
+        assert!(!should_follow_default(Some("USB DAC"), None));
+        assert!(!should_follow_default(None, None));
+    }
+
+    #[test]
+    fn the_comparison_is_exact() {
+        // Both names come from the same accessor, so they are the same
+        // string for the same endpoint — no normalisation to hide a
+        // genuine change behind.
+        assert!(should_follow_default(Some("USB DAC"), Some("USB  DAC")));
     }
 }

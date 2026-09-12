@@ -120,7 +120,24 @@ That leaves the whole surface honest: `set_output_device` holds one acquisition 
 
 Two details make that reopen safe. It carries the guards every deliberate swap needs and that `force_rebuild_output` doesn't own — `begin_deliberate_output_change()` around it, cancelled if nothing was installed, and the exclusive preference ANDed with the `#322` session suppression so a click can't revive a mode a flap storm gave up on. And it names its target as `RebuildDevice::Pinned` rather than reading the pin beforehand: that read would take the output lock and give it back, and a device pick landing in the gap installs *and persists* another device, after which the rebuild would reinstall the stale one. `Explicit` keeps the recovery path's own deliberately computed target. The same window still exists in `set_exclusive_output`, which predates this and does its teardown inline — #629.
 
-What this does **not** do is follow the OS default as it changes: nothing subscribes to endpoint notifications (cpal 0.17.1 exposes none), so a default that moves under a `None` pin still leaves the stream where it was. That half is #627, and it needs raw COM on Windows plus a property listener on macOS — routed through the existing `RebuildGate`, since a default change fires several times for one physical event and our own reopen triggers another.
+### Following the OS default
+
+A stream opened with no pin is bound to whatever endpoint was the default **at that moment**, and it stays there. cpal 0.17 exposes no notification API at all, so before #627 a default that moved — a headset waking, an HDMI sink appearing — left playback on the old device; after #612 the picker at least said which one that was.
+
+[`audio::default_device`](../../src-tauri/crates/app/src/audio/default_device.rs) is the subscription, one implementation per platform:
+
+| Platform | Mechanism |
+| -------- | --------- |
+| Windows  | `IMMNotificationClient` registered on the `IMMDeviceEnumerator`, on a thread of its own |
+| macOS    | a HAL property listener on `kAudioHardwarePropertyDefaultOutputDevice` |
+| Linux    | nothing — PipeWire and PulseAudio migrate a running stream to the new default sink themselves, and ours is one of their clients (cpal opens the `default` alias) |
+
+Four things about it are load-bearing:
+
+- **Only the console role.** Windows fires `OnDefaultDeviceChanged` once **per role** for a single physical change, and we keep `eRender` + `eConsole` only — because that is the role both of our open paths ask for: cpal's `default_output_device` calls `GetDefaultAudioEndpoint(flow, eConsole)`, and so does `wasapi::get_default_device` on the exclusive side. Reacting to multimedia or communications would rebuild for a default we would never have opened.
+- **The listener rebuilds nothing.** Both platforms hand the event to `output::schedule_default_device_follow`, which takes the same 300 ms backoff and the same `RebuildGate` the device-loss recovery takes. That matters more here than there: one physical change can produce several notifications, and our own reopen makes the outgoing stream fail, which schedules a recovery rebuild of its own.
+- **Only while nothing is pinned**, and the decision is made **inside the lock that installs pins**. A user who picked a device asked for that device. `AudioEngine::follow_os_default_output` reads the pin first, but that read is advisory — a pick landing between it and the rebuild would slip through; `RebuildDevice::OsDefaultIfUnpinned` asks again under `force_rebuild_output`'s own acquisition, and that answer is the binding one. Same lesson as #629 above.
+- **Nothing that changes is left unchanged, nothing else is touched.** A default that is already the endpoint we are playing on is not reopened (a rebuild is an audible gap), and a default that vanished entirely is not followed at all — rebuilding onto "no device" would drop audio we still have, and a device we really lost arrives as `DeviceNotAvailable`, which owns its own recovery. `should_follow_default` is that decision, pure and unit-tested. Exclusive output follows the preference minus the #322 session suppression, but does **not** reset it and does **not** record a flap: the system moving its default is not a device resetting under us, and counting it would let a few legitimate switches disable exclusive for the session.
 
 ## Output-stream lifecycle & recovery
 
@@ -152,7 +169,7 @@ The rebuild picks the track back up only for a session that was playing. By then
 
 Two gates keep the recovery from thrashing:
 
-- **`RebuildGate`** (`REBUILD_SETTLE_WINDOW`, 2 s) — one rebuild per burst of device errors. `begin_deliberate_output_change()` opens the same window around a mode toggle, because seizing the endpoint exclusively kicks the outgoing shared client off it and that self-inflicted `DeviceNotAvailable` would otherwise schedule a rebuild that undoes the switch.
+- **`RebuildGate`** (`REBUILD_SETTLE_WINDOW`, 2 s) — one rebuild per burst of device errors, and also the gate a default-device change goes through (see above). `begin_deliberate_output_change()` opens the same window around a mode toggle, because seizing the endpoint exclusively kicks the outgoing shared client off it and that self-inflicted `DeviceNotAvailable` would otherwise schedule a rebuild that undoes the switch. Both paths that arm the gate release it through `RebuildGateGuard`, on every exit including a panic — a rebuild that bailed out while `armed` stayed latched would leave no later device event able to schedule anything.
 - **`FlapWindow`** (`EXCLUSIVE_FLAP_THRESHOLD` / `EXCLUSIVE_FLAP_WINDOW`) — a device that resets on every exclusive grab gives up on exclusive for the rest of the session (session-only: the persisted preference is untouched, so the next launch tries again). Cleared by an explicit toggle or device switch.
 
 Every failure path that ends with no output thread at all publishes `exclusive_output_active = false` + the event before returning the error — a toggle describing a stream that no longer exists is the exact shape of #405.

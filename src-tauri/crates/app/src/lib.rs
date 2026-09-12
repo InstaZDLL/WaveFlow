@@ -297,6 +297,12 @@ pub fn run() {
             );
             app.manage(engine);
 
+            // Follow the system's default output while nothing is pinned
+            // (#627). Spawned after the engine is in state so the first
+            // notification finds it; one that arrives earlier is a
+            // no-op, the open that follows reads the default anyway.
+            audio::default_device::spawn(app.handle().clone());
+
             // Filesystem watcher manager. Holds one notify watcher per
             // `library_folder.is_watched=1` row in the active profile;
             // the boot-time hydration walks the DB and arms each one

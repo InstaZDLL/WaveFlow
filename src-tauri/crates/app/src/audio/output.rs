@@ -462,6 +462,81 @@ pub(super) fn schedule_device_rebuild(app: &AppHandle, target: RebuildTarget) {
     });
 }
 
+/// Name of the OS default output device, as the pickers and the open
+/// paths see it.
+///
+/// Same accessor the device listing flags its default row with, so a
+/// name from here is comparable with `OutputHandle::opened_device`
+/// (#627) — the shared cpal path fills that field from
+/// [`device_display_name`] too. `None` means the host reports no
+/// default output at all.
+pub(super) fn os_default_output_name() -> Option<String> {
+    #[cfg(target_os = "linux")]
+    {
+        // Wrapped for the same reason the listing wraps it: opening the
+        // `default` alias can make ALSA chatter on stderr.
+        silence_alsa_stderr(|| {
+            cpal::default_host()
+                .default_output_device()
+                .and_then(|d| device_display_name(&d))
+        })
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        cpal::default_host()
+            .default_output_device()
+            .and_then(|d| device_display_name(&d))
+    }
+}
+
+/// Schedule a move onto the system's new default output (#627).
+/// Returns immediately — the work happens on a tokio task.
+///
+/// Called from the platform listeners in
+/// [`super::default_device`], which run on an OS thread and must not
+/// block. Everything that decides *whether* to move lives in
+/// [`super::AudioEngine::follow_os_default_output`]; this function is
+/// only the hop onto our own runtime, plus the two delays that make the
+/// storm survivable:
+///
+/// - the same 300 ms backoff the device-loss recovery takes, because a
+///   default change arrives while the OS is still settling — Windows
+///   fires the notification per role, and a freshly connected endpoint
+///   is not necessarily openable the instant it becomes the default;
+/// - the #365 rebuild gate, which collapses the burst to one rebuild
+///   and then holds a settle window over the device error our own
+///   reopen provokes on the outgoing stream.
+pub(super) fn schedule_default_device_follow(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+        let Some(engine) = app.try_state::<std::sync::Arc<super::AudioEngine>>() else {
+            // A notification during boot, before the engine reached
+            // Tauri state. Nothing to move: the open that follows will
+            // read the new default anyway.
+            return;
+        };
+        // The #365 gate is NOT armed here. `follow_os_default_output`
+        // arms it itself, once its cheap checks say a rebuild is really
+        // going to happen: arming for a follow that turns out to be a
+        // no-op — a pinned device, a default that is already the endpoint
+        // we are on — would open a settle window for nothing, and a real
+        // `DeviceNotAvailable` landing inside it is dropped and never
+        // retried, leaving the user with no output at all.
+        //
+        // Synchronous and genuinely slow — it joins the old output
+        // thread and opens the device inline — so it goes to the
+        // blocking pool rather than parking a tokio worker.
+        let engine = engine.inner().clone();
+        let _ = tokio::task::spawn_blocking(move || {
+            if let Err(err) = engine.follow_os_default_output() {
+                tracing::warn!(%err, "following the new default output device failed");
+            }
+        })
+        .await;
+    });
+}
+
 /// Drain one period out of the ring into `samples`, applying the same
 /// per-sample chain the cpal callback applies: volume, the normalize
 /// attenuation, and the optional mono downmix. Shared by all three
