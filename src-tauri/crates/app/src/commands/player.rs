@@ -1815,7 +1815,7 @@ pub async fn player_list_output_devices(
     let devices = tokio::task::spawn_blocking(crate::audio::list_output_devices)
         .await
         .map_err(|e| AppError::Audio(format!("device enumeration task: {e}")))??;
-    Ok(devices
+    let mut rows: Vec<OutputDeviceRow> = devices
         .into_iter()
         .map(|d| {
             // When the engine isn't pinned to a specific device
@@ -1842,7 +1842,24 @@ pub async fn player_list_output_devices(
                 is_default: d.is_default,
             }
         })
-        .collect())
+        .collect();
+    // A pin that is no longer enumerated matches no row, so without this
+    // the list carries no `is_pinned` at all — in precisely the fallback
+    // case this is meant to report. Add the absent device back as its own
+    // row so the menu can say it is unavailable rather than stay silent
+    // about it (#612). It is never `is_active`: it isn't there to play.
+    if let Some(name) = pinned.as_deref() {
+        if !rows.iter().any(|r| r.id == name) {
+            rows.push(OutputDeviceRow {
+                id: name.to_string(),
+                name: name.to_string(),
+                is_default: false,
+                is_active: false,
+                is_pinned: true,
+            });
+        }
+    }
+    Ok(rows)
 }
 
 /// Switch playback to a different cpal output device. `device_id =

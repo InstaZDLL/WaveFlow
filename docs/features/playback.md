@@ -93,6 +93,8 @@ So the handle now carries both. `device_name` is still the pin. `opened_device` 
 
 `player_list_output_devices` flags `is_active` from the opened device (falling back to the pin, then to the OS default) and `is_pinned` from the pin. They differ exactly during a fallback, which is what lets the menu mark the pinned row unavailable rather than pretend it is playing.
 
+A pin that has vanished matches no enumerated row, so the listing appends it as a row of its own — `is_pinned`, never `is_active`, since it isn't there to be playing. Without that the flag would be absent in the one case it exists for, and the menu would say nothing at all about the fallback.
+
 ### Re-selecting the active device
 
 `set_output_device` returns early when the pick equals the current pin, which is right — but the picker also disabled its active row, so a user whose audio had drifted onto another endpoint had no way to force a fresh lookup except picking another device and coming back. The row is now clickable and calls `player_reopen_output_device`, which goes to `force_rebuild_output` — the same path device-error recovery uses. It changes no preference, so nothing is persisted.

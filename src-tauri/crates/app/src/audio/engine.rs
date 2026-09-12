@@ -690,12 +690,33 @@ impl AudioEngine {
     /// row, so "choose another device, then choose this one again" was
     /// the only cure (#612). This goes straight to the rebuild path that
     /// device-error recovery already uses.
+    /// Carries the same two protections every other deliberate rebuild
+    /// has, because `force_rebuild_output` owns neither: its recovery
+    /// caller computes them.
     pub fn reopen_output_device(&self) -> AppResult<()> {
         let pinned = self.current_output_device();
+        // Honour the #322 session kill switch. A flap storm that gave up
+        // on exclusive for this session must not be undone by a click
+        // that only asks for the same device again — this is not the
+        // fresh chance a re-toggle or a device pick is, so the
+        // suppression also isn't reset here.
         let exclusive = self
             .exclusive_output
-            .load(std::sync::atomic::Ordering::Relaxed);
-        self.force_rebuild_output(pinned, exclusive)
+            .load(std::sync::atomic::Ordering::Relaxed)
+            && !self
+                .exclusive_suppressed
+                .load(std::sync::atomic::Ordering::Relaxed);
+        // Replacing the stream disturbs the outgoing one on purpose, and
+        // that self-inflicted device error would otherwise schedule a
+        // recovery rebuild fighting this one — the #405 echo. Reopen the
+        // window when nothing got installed, so a genuine error still
+        // reaches the recovery path.
+        self.begin_deliberate_output_change();
+        let result = self.force_rebuild_output(pinned, exclusive);
+        if result.is_err() {
+            self.cancel_deliberate_output_change();
+        }
+        result
     }
 
     /// True when the active output is currently carrying a native DSD
