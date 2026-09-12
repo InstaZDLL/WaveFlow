@@ -1203,9 +1203,9 @@ pub(crate) async fn scan_folder_inner(
                     bit_depth, codec, musical_key,
                     rating,
                     rg_track_gain_db, rg_track_peak, rg_album_gain_db, rg_album_peak,
-                    added_at, is_available
+                    added_at, pinyin, is_available
                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                           ?, ?, ?, ?, ?, 1)",
+                           ?, ?, ?, ?, ?, ?, 1)",
             )
             .bind(library_id)
             .bind(folder_id)
@@ -1232,6 +1232,11 @@ pub(crate) async fn scan_folder_inner(
             .bind(extracted.replay_gain.album_gain_db)
             .bind(extracted.replay_gain.album_peak)
             .bind(now)
+            // Written with the row, so a freshly scanned Chinese title is
+            // searchable by pinyin without waiting for a backfill (#579).
+            .bind(
+                waveflow_core::scanner::pinyin_blob(&extracted.title).unwrap_or_default(),
+            )
             .execute(&mut *tx)
             .await?;
             let track_id = insert.last_insert_rowid();

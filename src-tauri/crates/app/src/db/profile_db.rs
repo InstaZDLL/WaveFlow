@@ -82,5 +82,15 @@ pub async fn open(path: &Path, app_db_path: &Path) -> AppResult<SqlitePool> {
     super::migration_heal::heal_line_ending_drift(&pool, &migrator).await?;
     migrator.run(&pool).await?;
 
+    // Pinyin for the rows that predate the column (#579). Detached, and
+    // deliberately not awaited: a library scanned before the feature
+    // existed needs one pass over three tables, and nothing here has to
+    // wait for it -- a search running meanwhile simply does not reach
+    // the rows it has not filled yet, and this same launch fills them.
+    let backfill_pool = pool.clone();
+    tokio::spawn(async move {
+        super::pinyin_backfill::run(&backfill_pool).await;
+    });
+
     Ok(pool)
 }

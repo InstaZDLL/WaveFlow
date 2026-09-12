@@ -458,6 +458,21 @@
       "removeConfirmWithPlays_one": "Klik lagi untuk mengonfirmasi. {{count}} pemutaran akan disimpan dan dihubungkan kembali pada pemindaian berikutnya.",
       "removeConfirmWithPlays_other": "Klik lagi untuk mengonfirmasi. {{count}} pemutaran akan disimpan dan dihubungkan kembali pada pemindaian berikutnya."
     },
+    "folderBrowser": {
+      "open": "Jelajahi folder ini",
+      "breadcrumb": "Jalur folder",
+      "roots": "Semua folder",
+      "up": "Folder induk",
+      "density": "Kepadatan tampilan",
+      "densityGrid": "Kisi",
+      "actions": "Tindakan folder",
+      "play": "Putar folder",
+      "queue": "Tambahkan ke antrean",
+      "playNext": "Putar selanjutnya",
+      "newPlaylist": "Daftar putar baru",
+      "batchTag": "Sunting tag massal",
+      "densityList": "Daftar"
+    },
     "skeletonAriaLabel": "Memuat {{name}}…",
     "playlistsGrid": {
       "emptyTitle": "Belum ada playlist",

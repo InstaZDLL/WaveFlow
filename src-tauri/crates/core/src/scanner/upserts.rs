@@ -212,9 +212,13 @@ pub async fn upsert_artist(
         return Ok(Some(id));
     }
 
-    let result = sqlx::query("INSERT INTO artist (name, canonical_name) VALUES (?, ?)")
+    // `pinyin` travels with `canonical_name`, always: the rule is that
+    // wherever one is written the other is too, which is why they sit in
+    // the same module (#579).
+    let result = sqlx::query("INSERT INTO artist (name, canonical_name, pinyin) VALUES (?, ?, ?)")
         .bind(name)
         .bind(&canon)
+        .bind(super::canonical::pinyin_blob(name).unwrap_or_default())
         .execute(&mut *conn)
         .await?;
     Ok(Some(result.last_insert_rowid()))
@@ -337,8 +341,9 @@ pub async fn upsert_album(
     }
 
     let result = sqlx::query(
-        "INSERT INTO album (title, canonical_title, artist_id, year, album_artist, is_compilation)
-         VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO album (title, canonical_title, artist_id, year, album_artist,
+                            is_compilation, pinyin)
+         VALUES (?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(title)
     .bind(&canon)
@@ -346,6 +351,8 @@ pub async fn upsert_album(
     .bind(year)
     .bind(album_artist_display.as_deref())
     .bind(if is_compilation { 1_i64 } else { 0_i64 })
+    // Beside `canonical_title`, for the same reason (#579).
+    .bind(super::canonical::pinyin_blob(title).unwrap_or_default())
     .execute(&mut *conn)
     .await?;
     Ok(Some(result.last_insert_rowid()))

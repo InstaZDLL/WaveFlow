@@ -458,6 +458,21 @@
       "removeConfirmWithPlays_one": "再次点击以确认。{{count}} 条播放记录将被保留，并在下次扫描时重新关联。",
       "removeConfirmWithPlays_other": "再次点击以确认。{{count}} 条播放记录将被保留，并在下次扫描时重新关联。"
     },
+    "folderBrowser": {
+      "open": "浏览此文件夹",
+      "breadcrumb": "文件夹路径",
+      "roots": "所有文件夹",
+      "up": "上级文件夹",
+      "density": "显示密度",
+      "densityGrid": "网格",
+      "actions": "文件夹操作",
+      "play": "播放文件夹",
+      "queue": "添加到队列",
+      "playNext": "播放下一首",
+      "newPlaylist": "新建播放列表",
+      "batchTag": "批量编辑标签",
+      "densityList": "列表"
+    },
     "skeletonAriaLabel": "正在加载{{name}}…",
     "playlistsGrid": {
       "emptyTitle": "暂无播放列表",

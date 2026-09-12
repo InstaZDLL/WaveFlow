@@ -302,7 +302,8 @@ mod tests {
     /// plus the FTS index the search actually reads.
     ///
     /// The `track_fts` definition here MUST stay identical to
-    /// `migrations/profile/20260910090000_track_fts_trigram.sql`. The
+    /// `migrations/profile/20260912210000_pinyin_search.sql` (which
+    /// rebuilt it with a fourth column). The
     /// migrations live in the app crate, out of reach from
     /// `waveflow-core` (same constraint the scanner fixtures note), so
     /// this is a copy — if the tokenizer changes there, change it here.
@@ -317,13 +318,15 @@ mod tests {
              );
              CREATE TABLE artist (
                  id INTEGER PRIMARY KEY,
-                 name TEXT NOT NULL
+                 name TEXT NOT NULL,
+                 pinyin TEXT
              );
              CREATE TABLE album (
                  id INTEGER PRIMARY KEY,
                  title TEXT NOT NULL,
                  artist_id INTEGER REFERENCES artist(id),
-                 artwork_id INTEGER REFERENCES artwork(id)
+                 artwork_id INTEGER REFERENCES artwork(id),
+                 pinyin TEXT
              );
              CREATE TABLE track (
                  id INTEGER PRIMARY KEY,
@@ -338,6 +341,7 @@ mod tests {
                  file_path TEXT NOT NULL, file_size INTEGER NOT NULL DEFAULT 0,
                  added_at INTEGER NOT NULL DEFAULT 0,
                  rating INTEGER,
+                 pinyin TEXT,
                  is_available INTEGER NOT NULL DEFAULT 1
              );
              CREATE TABLE track_artist (
@@ -346,7 +350,7 @@ mod tests {
                  position INTEGER NOT NULL
              );
              CREATE VIRTUAL TABLE track_fts USING fts5(
-                 title, album_title, artist_name,
+                 title, album_title, artist_name, pinyin,
                  tokenize='trigram remove_diacritics 1'
              );",
         )
@@ -359,19 +363,26 @@ mod tests {
     /// One Chinese track, one Latin track, one unavailable track.
     async fn seed(pool: &SqlitePool) {
         sqlx::raw_sql(
-            "INSERT INTO artist (id, name) VALUES (1, '周杰伦'), (2, 'U2');
-             INSERT INTO album (id, title, artist_id) VALUES (1, '叶惠美', 1), (2, 'War', 2);
-             INSERT INTO track (id, library_id, title, album_id, primary_artist, file_path)
-             VALUES (1, 1, '中国人民解放军进行曲', 1, 1, '/a.flac'),
-                    (2, 1, 'Sunday Bloody Sunday', 2, 2, '/b.flac');
+            "INSERT INTO artist (id, name, pinyin)
+             VALUES (1, '周杰伦', 'zhoujielun zjl'), (2, 'U2', '');
+             INSERT INTO album (id, title, artist_id, pinyin)
+             VALUES (1, '叶惠美', 1, 'yehuimei yhm'), (2, 'War', 2, '');
+             INSERT INTO track (id, library_id, title, album_id, primary_artist, file_path,
+                                pinyin)
+             VALUES (1, 1, '中国人民解放军进行曲', 1, 1, '/a.flac',
+                     'zhongguorenminjiefangjunjinxingqu zgrmjfjjxq'),
+                    (2, 1, 'Sunday Bloody Sunday', 2, 2, '/b.flac', '');
              INSERT INTO track (id, library_id, title, album_id, primary_artist,
-                                file_path, is_available)
-             VALUES (3, 1, '中国人民解放军进行曲 (live)', 1, 1, '/c.flac', 0);
+                                file_path, pinyin, is_available)
+             VALUES (3, 1, '中国人民解放军进行曲 (live)', 1, 1, '/c.flac',
+                     'zhongguorenminjiefangjunjinxingqu zgrmjfjjxq', 0);
              INSERT INTO track_artist (track_id, artist_id, position)
              VALUES (1, 1, 0), (2, 2, 0), (3, 1, 0);
-             INSERT INTO track_fts (rowid, title, album_title, artist_name)
+             INSERT INTO track_fts (rowid, title, album_title, artist_name, pinyin)
              SELECT t.id, t.title,
-                    COALESCE(al.title, ''), COALESCE(ar.name, '')
+                    COALESCE(al.title, ''), COALESCE(ar.name, ''),
+                    COALESCE(t.pinyin, '') || ' ' || COALESCE(al.pinyin, '') || ' '
+                        || COALESCE(ar.pinyin, '')
                FROM track t
                LEFT JOIN album  al ON al.id = t.album_id
                LEFT JOIN artist ar ON ar.id = t.primary_artist;",
@@ -390,6 +401,43 @@ mod tests {
             .into_iter()
             .map(|r| r.id)
             .collect()
+    }
+
+    /// The other half of #579: typing the romanisation, on a Latin
+    /// keyboard, without switching input method.
+    #[tokio::test]
+    async fn a_pinyin_query_finds_a_chinese_title() {
+        let pool = fixture_pool().await;
+        seed(&pool).await;
+        // Syllables, from the start and from the middle -- the blob is
+        // indexed with the same trigram tokenizer as the text.
+        assert_eq!(ids_for(&pool, "zhongguo").await, vec![1]);
+        assert_eq!(ids_for(&pool, "jiefang").await, vec![1]);
+        // Initials, which is what someone types when they know the
+        // title but not how to spell it out.
+        assert_eq!(ids_for(&pool, "zgrmjfjjxq").await, vec![1]);
+        // And the Latin track is not dragged in by either.
+        assert!(!ids_for(&pool, "zhongguo").await.contains(&2));
+    }
+
+    /// A two-character term is below the trigram floor, so it takes the
+    /// scanned route -- which is exactly where a short pinyin initialism
+    /// lands, and why the `LIKE` clause had to learn the blob columns.
+    #[tokio::test]
+    async fn short_pinyin_initials_take_the_like_route() {
+        let pool = fixture_pool().await;
+        seed(&pool).await;
+        assert_eq!(ids_for(&pool, "zg").await, vec![1]);
+    }
+
+    /// The blob of an album or an artist reaches their tracks, because
+    /// the index carries all three concatenated.
+    #[tokio::test]
+    async fn an_album_or_artist_romanisation_reaches_the_track() {
+        let pool = fixture_pool().await;
+        seed(&pool).await;
+        assert_eq!(ids_for(&pool, "zhoujielun").await, vec![1]);
+        assert_eq!(ids_for(&pool, "yehuimei").await, vec![1]);
     }
 
     /// The whole point of #579: characters from the MIDDLE of a Chinese

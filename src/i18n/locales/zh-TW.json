@@ -458,6 +458,21 @@
       "removeConfirmWithPlays_one": "再次點擊以確認。{{count}} 筆播放記錄將被保留，並在下次掃描時重新關聯。",
       "removeConfirmWithPlays_other": "再次點擊以確認。{{count}} 筆播放記錄將被保留，並在下次掃描時重新關聯。"
     },
+    "folderBrowser": {
+      "open": "瀏覽此資料夾",
+      "breadcrumb": "資料夾路徑",
+      "roots": "所有資料夾",
+      "up": "上層資料夾",
+      "density": "顯示密度",
+      "densityGrid": "格狀",
+      "actions": "資料夾操作",
+      "play": "播放資料夾",
+      "queue": "加入佇列",
+      "playNext": "播放下一首",
+      "newPlaylist": "新播放清單",
+      "batchTag": "批次編輯標籤",
+      "densityList": "清單"
+    },
     "skeletonAriaLabel": "正在載入{{name}}…",
     "playlistsGrid": {
       "emptyTitle": "尚無播放清單",
