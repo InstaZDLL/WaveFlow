@@ -358,21 +358,18 @@ fn push_metadata(controls: &mut MediaControls, cached: &CachedMetadata) {
 /// profile DB pool is dispatched onto Tauri's tokio runtime.
 fn handle_event(event: MediaControlEvent, app: AppHandle) {
     match event {
-        MediaControlEvent::Play => {
-            let engine = app.state::<Arc<AudioEngine>>();
-            let _ = engine.send(AudioCmd::Resume);
-        }
+        // Both go through `player_actions`: a bare `AudioCmd::Resume` is
+        // dropped by the decoder when no track is open, which left Play
+        // dead on the overlay after a launch and at the end of the queue
+        // (#609). `play` resumes or loads the resume point and never
+        // pauses; `toggle_play_pause` is the rule the tray follows.
+        MediaControlEvent::Play => crate::player_actions::play(&app, "media_controls"),
         MediaControlEvent::Pause => {
             let engine = app.state::<Arc<AudioEngine>>();
             let _ = engine.send(AudioCmd::Pause);
         }
         MediaControlEvent::Toggle => {
-            let engine = app.state::<Arc<AudioEngine>>();
-            let cmd = match engine.shared().state() {
-                PlayerState::Playing => AudioCmd::Pause,
-                _ => AudioCmd::Resume,
-            };
-            let _ = engine.send(cmd);
+            crate::player_actions::toggle_play_pause(&app, "media_controls")
         }
         MediaControlEvent::Stop => {
             let engine = app.state::<Arc<AudioEngine>>();

@@ -357,6 +357,12 @@ pub struct AudioEngine {
     /// flap would otherwise queue two concurrent rebuilds that
     /// each interrupt the same track.
     rebuild_in_progress: std::sync::atomic::AtomicBool,
+    /// One resume at a time (#609). Two Play events landing together — a
+    /// double tap on the OS overlay, a client sending `play` twice — both
+    /// read `Idle` and both spawn `player_actions::resume_last`, which
+    /// awaits the database before sending its `LoadAndPlay`. The second
+    /// would restart the track the first just started.
+    resume_in_flight: std::sync::atomic::AtomicBool,
     /// Session-only kill switch for exclusive output after a flap storm
     /// (#322). Once tripped, every rebuild / hot-swap stays on cpal
     /// shared regardless of the `exclusive_output` preference, so a
@@ -553,6 +559,7 @@ impl AudioEngine {
             exclusive_output: std::sync::atomic::AtomicBool::new(exclusive_output),
             exclusive_output_active: std::sync::atomic::AtomicBool::new(exclusive_output_active),
             rebuild_in_progress: std::sync::atomic::AtomicBool::new(false),
+            resume_in_flight: std::sync::atomic::AtomicBool::new(false),
             exclusive_suppressed: std::sync::atomic::AtomicBool::new(false),
             exclusive_flaps: Mutex::new(FlapWindow::default()),
             rebuild_gate: Mutex::new(RebuildGate::default()),
@@ -586,6 +593,22 @@ impl AudioEngine {
     /// has played since.
     fn snapshot_radio_resume(&self) -> Option<RadioResumeState> {
         self.radio_resume.lock().ok().and_then(|g| g.clone())
+    }
+
+    /// Claim the right to run one resume, or `None` when another is
+    /// already in flight (#609).
+    ///
+    /// The guard clears the slot on every exit path, including the `?`
+    /// returns inside [`crate::player_actions::resume_last`] and a panic.
+    /// A leaked slot would leave Play dead for the rest of the session,
+    /// which is worse than the double load it prevents.
+    pub fn begin_resume(&self) -> Option<ResumeGuard<'_>> {
+        use std::sync::atomic::Ordering;
+        if self.resume_in_flight.swap(true, Ordering::AcqRel) {
+            None
+        } else {
+            Some(ResumeGuard(&self.resume_in_flight))
+        }
     }
 
     /// Borrow the shared atomic state — used by commands that need to read
@@ -1692,6 +1715,15 @@ impl AudioEngine {
     }
 }
 
+/// Releases the slot [`AudioEngine::begin_resume`] took, when dropped.
+pub struct ResumeGuard<'a>(&'a std::sync::atomic::AtomicBool);
+
+impl Drop for ResumeGuard<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, std::sync::atomic::Ordering::Release);
+    }
+}
+
 /// Whether the old output has to be released *before* the new one is
 /// opened, rather than the other way round. `old_is_exclusive` is `None`
 /// when there is no stream installed at all.
@@ -1889,6 +1921,29 @@ mod reopen_order_tests {
     #[test]
     fn shared_to_shared_has_nothing_to_reorder() {
         assert!(!must_release_before_reopening(Some(false), false));
+    }
+}
+
+#[cfg(test)]
+mod resume_guard_tests {
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    use super::ResumeGuard;
+
+    #[test]
+    fn the_slot_is_taken_once_and_released_on_drop() {
+        let slot = AtomicBool::new(false);
+        // The first Play claims it.
+        assert!(!slot.swap(true, Ordering::AcqRel));
+        {
+            let _guard = ResumeGuard(&slot);
+            // A second Play landing while the first resume is still
+            // awaiting the database finds the slot taken and backs off.
+            assert!(slot.swap(true, Ordering::AcqRel));
+        }
+        // Released on drop, including the `?` paths inside `resume_last`:
+        // a leaked slot would leave Play dead for the whole session.
+        assert!(!slot.load(Ordering::Acquire));
     }
 }
 

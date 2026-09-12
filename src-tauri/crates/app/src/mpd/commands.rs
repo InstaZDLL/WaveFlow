@@ -458,8 +458,18 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
 
         Command::Play(pos) => {
             match pos {
+                // Bare `play` resumes. Through `player_actions` because a
+                // bare `AudioCmd::Resume` is dropped when no track is
+                // open, so `mpc play` did nothing after a launch (#609).
                 None => {
-                    let _ = ctx.engine().send(AudioCmd::Resume);
+                    // Awaited, not spawned: MPD answers its client once the
+                    // work is done, so `status` and the `idle` notification
+                    // below describe the load that actually happened. A
+                    // failure is logged rather than ACKed — real MPD answers
+                    // OK to a bare `play` with nothing to play.
+                    if let Err(err) = player_actions::play_and_wait(&ctx.app).await {
+                        tracing::warn!(%err, surface = SURFACE, "mpd play: resume failed");
+                    }
                 }
                 Some(p) => {
                     // A position past the end is an argument error in MPD, not
@@ -487,8 +497,16 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
 
         Command::PlayId(id) => {
             match id {
+                // Bare `playid` resumes, same as bare `play` (#609).
                 None => {
-                    let _ = ctx.engine().send(AudioCmd::Resume);
+                    // Awaited, not spawned: MPD answers its client once the
+                    // work is done, so `status` and the `idle` notification
+                    // below describe the load that actually happened. A
+                    // failure is logged rather than ACKed — real MPD answers
+                    // OK to a bare `play` with nothing to play.
+                    if let Err(err) = player_actions::play_and_wait(&ctx.app).await {
+                        tracing::warn!(%err, surface = SURFACE, "mpd play: resume failed");
+                    }
                 }
                 Some(id) => {
                     // One snapshot for the id→position lookup AND the jump, so
@@ -515,18 +533,26 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
         }
 
         Command::Pause(want) => {
-            let engine = ctx.engine();
-            let cmd = match want {
-                Some(true) => AudioCmd::Pause,
-                Some(false) => AudioCmd::Resume,
-                // Bare `pause` toggles, which is what a remote's single
-                // play/pause button sends.
-                None => match engine.shared().state() {
-                    PlayerState::Playing => AudioCmd::Pause,
-                    _ => AudioCmd::Resume,
-                },
-            };
-            let _ = engine.send(cmd);
+            match want {
+                Some(true) => {
+                    let _ = ctx.engine().send(AudioCmd::Pause);
+                }
+                // `pause 0` is an explicit resume; a bare `pause` toggles,
+                // which is what a remote's single play/pause button sends.
+                // Both go through `player_actions` so they start the resume
+                // point when the decoder has nothing open (#609).
+                Some(false) => {
+                    // Awaited, not spawned: MPD answers its client once the
+                    // work is done, so `status` and the `idle` notification
+                    // below describe the load that actually happened. A
+                    // failure is logged rather than ACKed — real MPD answers
+                    // OK to a bare `play` with nothing to play.
+                    if let Err(err) = player_actions::play_and_wait(&ctx.app).await {
+                        tracing::warn!(%err, surface = SURFACE, "mpd play: resume failed");
+                    }
+                }
+                None => player_actions::toggle_play_pause(&ctx.app, SURFACE),
+            }
             ctx.idle.notify(Subsystem::Player);
             Ok(Response::new())
         }

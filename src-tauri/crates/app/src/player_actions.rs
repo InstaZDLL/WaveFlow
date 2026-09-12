@@ -16,9 +16,9 @@
 //! sync callback thread (souvlaki, the tray) wrap these in
 //! `tauri::async_runtime::spawn` themselves, and callers already inside
 //! a task (MPD) just await, which lets them report success back to
-//! their client. [`toggle_play_pause`] is the exception: a menu item or
-//! a window message calls it, so it is sync and spawns the one branch
-//! that needs the database.
+//! their client. [`play`] and [`toggle_play_pause`] are the exceptions:
+//! a menu item, a window message or an OS-overlay callback calls them,
+//! so they are sync and spawn the one branch that needs the database.
 
 use std::sync::Arc;
 
@@ -49,6 +49,49 @@ pub enum Moved {
     Restarted,
     /// Nothing to move to — empty queue, or at an edge with repeat off.
     Nothing,
+}
+
+/// Start playing: resume a paused track, or load the resume point when
+/// nothing is open. Never pauses.
+///
+/// The counterpart of [`toggle_play_pause`] for surfaces that expose a
+/// *separate* Play button — the OS media overlay, MPD's `play` and
+/// `pause 0` — where a toggle would pause a playing track instead of
+/// doing nothing.
+///
+/// Those surfaces used to send `AudioCmd::Resume` straight to the engine.
+/// The decoder only handles it inside the pause loop, so with nothing
+/// open it was dropped and Play did nothing at all: after a launch, and
+/// at the end of the queue (#609).
+/// Sync wrapper for callback threads (souvlaki, the tray): spawns
+/// [`play_and_wait`] and logs what it returns. A caller already inside a
+/// task awaits that directly instead, and can answer its client.
+pub fn play(app: &AppHandle, label: &str) {
+    let app = app.clone();
+    let label = label.to_owned();
+    tauri::async_runtime::spawn(async move {
+        if let Err(err) = play_and_wait(&app).await {
+            tracing::warn!(%err, "{label} play: failed");
+        }
+    });
+}
+
+/// [`play`]'s rule, awaited, so MPD can answer its client once the work
+/// is done rather than once it is queued.
+pub async fn play_and_wait(app: &AppHandle) -> AppResult<()> {
+    let Some(engine) = app.try_state::<Arc<AudioEngine>>() else {
+        return Ok(());
+    };
+    match engine.shared().state() {
+        // Already playing, or a track is already on its way: Play is a
+        // no-op here, not a restart.
+        PlayerState::Playing | PlayerState::Loading => Ok(()),
+        PlayerState::Paused => engine.send(AudioCmd::Resume),
+        // No track open: `AudioCmd::Resume` would be dropped, so load the
+        // persisted resume point instead — what the in-app Play button
+        // does through `player_resume_last`.
+        PlayerState::Idle | PlayerState::Ended => resume_last(app).await,
+    }
 }
 
 /// Pause when playing, resume when paused, otherwise start the resume
@@ -94,6 +137,17 @@ pub fn toggle_play_pause(app: &AppHandle, label: &str) {
 pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
     let state = app.state::<AppState>();
     let engine = app.state::<Arc<AudioEngine>>();
+    // One resume at a time (#609). Two Play events landing together — a
+    // double tap on the OS overlay, a client sending `play` twice — both
+    // read `Idle` and both land here, and each awaits the database below
+    // before sending its `LoadAndPlay`, so the second would restart the
+    // track the first just started. Guarding here rather than in `play`
+    // covers every caller: the tray, the taskbar buttons and the in-app
+    // button through `player_resume_last`.
+    let Some(_resume) = engine.begin_resume() else {
+        tracing::debug!("resume already in flight; ignoring this play");
+        return Ok(());
+    };
     // One lock for both: two awaits could straddle a profile switch and
     // pair one profile's resume point with the other's id.
     let (pool, profile_id) = state.require_profile_snapshot().await?;
@@ -102,7 +156,17 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
     };
     commands::player::emit_track_changed(app, &state.paths, &track, Some(profile_id));
     let replay_gain = commands::player::fetch_replay_gain(&pool, track.id).await;
-    engine.send(AudioCmd::LoadAndPlay {
+    // The guard above can't cover the last stretch: once the command is in
+    // the channel, the decoder still has to pick it up, and until it
+    // transitions to `Loading` a Play landing in between reads `Idle` and
+    // starts a second resume. Publishing `Loading` here closes that window
+    // for every surface that gates on the state — `play`, the tray's
+    // `toggle_play_pause` — and the decoder emits the matching
+    // `player:state` a beat later. Restored if the send fails, so a dead
+    // channel can't leave the player claiming to load forever.
+    let previous = engine.shared().state();
+    engine.shared().set_state(PlayerState::Loading);
+    let sent = engine.send(AudioCmd::LoadAndPlay {
         path: track.as_path(),
         start_ms: position_ms,
         track_id: track.id,
@@ -110,7 +174,11 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
         source_type: "manual".into(),
         source_id: None,
         replay_gain,
-    })
+    });
+    if sent.is_err() {
+        engine.shared().set_state(previous);
+    }
+    sent
 }
 
 /// Hand a track to the decoder and tell every listener about it.

@@ -125,6 +125,10 @@ Every failure path that ends with no output thread at all publishes `exclusive_o
 
 Initialised after the main window exists (needs an HWND on Windows). State transitions are driven through `transition_state()` so the OS overlay flips at the same instant as the in-app controls; the brief `Loading` state is skipped to avoid a 50 ms "controls flash off" between tracks.
 
+Play and Toggle from the overlay go through [`player_actions`](../../src-tauri/crates/app/src/player_actions.rs) rather than sending `AudioCmd::Resume` to the engine. The decoder only handles `Resume` inside its pause loop, so with nothing open it was dropped and Play did nothing at all — after a launch, and at the end of the queue (#609). `player_actions::play` resumes or loads the persisted resume point and never pauses; Toggle follows the tray's rule.
+
+The overlay also learns about the restored track **at launch**: `player_get_state` publishes it paused, at its persisted position, starting no audio — and only while the engine holds nothing, since once a track is loaded the decoder's own transitions own the overlay, and that command runs again on profile switch and re-hydration. Before that the only caller of `update_metadata` outside live radio was `emit_track_changed`, on an actual track start, so there was no session for Play to appear on (#609). What the `PlatformConfig` souvlaki is given here cannot express is advertising Previous / Next only when they would do something.
+
 The same `transition_state()` hook also feeds [`discord_presence.rs`](../../src-tauri/crates/app/src/discord_presence.rs) so the user's Discord profile mirrors the playing/paused state. Documented separately under [Integrations → Discord Rich Presence](integrations.md#discord-rich-presence).
 
 ## Playback speed (0.5× – 2×)
