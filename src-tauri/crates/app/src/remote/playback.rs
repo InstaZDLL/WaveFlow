@@ -30,10 +30,16 @@ use crate::{
 
 /// Install `entries` as the remote queue and start playing at `start_index`.
 /// The shared tail of every "start a remote session" path.
+///
+/// `intent` comes from the caller, not from here (#622): both callers read
+/// the entries out of SQLite first — `play_track_ids` one query per track —
+/// and an intent claimed at the end of that would outrank a local track the
+/// user picked while it ran, then discard their pick.
 pub async fn play_entries(
     app: &AppHandle,
     entries: Vec<RemoteEntry>,
     start_index: usize,
+    intent: LoadIntent,
 ) -> AppResult<()> {
     if entries.is_empty() {
         return Err(crate::error::AppError::Other("no tracks to play".into()));
@@ -42,7 +48,6 @@ pub async fn play_entries(
     app.state::<AppState>()
         .remote_playback
         .set(RemoteQueue { entries, index });
-    let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
     play_current(app, intent).await
 }
 
@@ -50,6 +55,9 @@ pub async fn play_entries(
 /// the remote queue from the projection so subsequent tracks auto-advance.
 pub async fn start(app: &AppHandle, playlist_id: &str, start_index: usize) -> AppResult<()> {
     let state = app.state::<AppState>();
+    // Before the projection read below (#622). Its Tauri command is a
+    // one-line wrapper with no await of its own, so this is the click.
+    let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
     let entries = {
         let pool = state.require_profile_pool().await?;
         let mut conn = pool.acquire().await?;
@@ -66,7 +74,7 @@ pub async fn start(app: &AppHandle, playlist_id: &str, start_index: usize) -> Ap
             })
             .collect::<Vec<_>>()
     };
-    play_entries(app, entries, start_index).await
+    play_entries(app, entries, start_index, intent).await
 }
 
 /// Start a remote session from an explicit list of track ids, reading each
@@ -80,6 +88,9 @@ pub async fn play_track_ids(
     start_index: usize,
 ) -> AppResult<()> {
     let state = app.state::<AppState>();
+    // Before the loop below, which is one query per track id — a whole
+    // album's worth of round-trips for a local pick to land in (#622).
+    let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
     let entries = {
         let pool = state.require_profile_pool().await?;
         let mut conn = pool.acquire().await?;
@@ -117,7 +128,7 @@ pub async fn play_track_ids(
         }
         entries
     };
-    play_entries(app, entries, start_index).await
+    play_entries(app, entries, start_index, intent).await
 }
 
 /// Move the cursor to an absolute position and play it. Backs the queue

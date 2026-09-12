@@ -239,9 +239,13 @@ are not a Tauri command:
   exclusive open costs tens to hundreds of milliseconds, and an intent
   claimed after it would rank the resume above a track the user picked
   while the device was reopening.
-- **`remote::playback::advance`** claims none of its own: the intent comes
-  from the caller, because a Next claims it when the key is pressed and the
-  auto-advance when the track ended, and those are the moments to order.
+- **The remote module's shared tails** claim none of their own. `advance`
+  takes the intent from its caller, because a Next claims it when the key is
+  pressed and the auto-advance when the track ended; `play_entries` takes it
+  for the same reason — `start` and `play_track_ids` read their entries out
+  of SQLite first (one query per track, for a whole album), and an intent
+  claimed at the end of that would outrank a local track the user picked
+  while it ran.
 
 Three details are what make it hold:
 
