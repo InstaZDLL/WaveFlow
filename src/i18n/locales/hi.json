@@ -458,6 +458,21 @@
       "removeConfirmWithPlays_one": "पुष्टि के लिए फिर से क्लिक करें। {{count}} प्ले सहेजा जाएगा और अगले स्कैन में फिर से जोड़ा जाएगा।",
       "removeConfirmWithPlays_other": "पुष्टि के लिए फिर से क्लिक करें। {{count}} प्ले सहेजे जाएंगे और अगले स्कैन में फिर से जोड़े जाएंगे।"
     },
+    "folderBrowser": {
+      "open": "इस फ़ोल्डर को ब्राउज़ करें",
+      "breadcrumb": "फ़ोल्डर पथ",
+      "roots": "सभी फ़ोल्डर",
+      "up": "मूल फ़ोल्डर",
+      "density": "प्रदर्शन घनत्व",
+      "densityGrid": "ग्रिड",
+      "actions": "फ़ोल्डर क्रियाएँ",
+      "play": "फ़ोल्डर चलाएँ",
+      "queue": "क्यू में जोड़ें",
+      "playNext": "अगला चलाएँ",
+      "newPlaylist": "नई प्लेलिस्ट",
+      "batchTag": "एकसाथ टैग संपादन",
+      "densityList": "सूची"
+    },
     "skeletonAriaLabel": "{{name}} लोड हो रहे हैं…",
     "playlistsGrid": {
       "emptyTitle": "अभी कोई प्लेलिस्ट नहीं",

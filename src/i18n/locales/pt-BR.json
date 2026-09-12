@@ -458,6 +458,21 @@
       "removeConfirmWithPlays_one": "Clique novamente para confirmar. {{count}} reprodução será mantida e reassociada na próxima análise.",
       "removeConfirmWithPlays_other": "Clique novamente para confirmar. {{count}} reproduções serão mantidas e reassociadas na próxima análise."
     },
+    "folderBrowser": {
+      "open": "Explorar esta pasta",
+      "breadcrumb": "Caminho da pasta",
+      "roots": "Todas as pastas",
+      "up": "Pasta anterior",
+      "density": "Densidade de exibição",
+      "densityGrid": "Grade",
+      "actions": "Ações da pasta",
+      "play": "Reproduzir a pasta",
+      "queue": "Adicionar à fila",
+      "playNext": "Reproduzir a seguir",
+      "newPlaylist": "Nova playlist",
+      "batchTag": "Editar tags em lote",
+      "densityList": "Lista"
+    },
     "skeletonAriaLabel": "Carregando {{name}}…",
     "playlistsGrid": {
       "emptyTitle": "Nenhuma playlist ainda",

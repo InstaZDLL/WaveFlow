@@ -458,6 +458,21 @@
       "removeConfirmWithPlays_one": "Klik nogmaals om te bevestigen. {{count}} luisterbeurt blijft bewaard en wordt bij de volgende scan opnieuw gekoppeld.",
       "removeConfirmWithPlays_other": "Klik nogmaals om te bevestigen. {{count}} luisterbeurten blijven bewaard en worden bij de volgende scan opnieuw gekoppeld."
     },
+    "folderBrowser": {
+      "open": "Deze map verkennen",
+      "breadcrumb": "Mappad",
+      "roots": "Alle mappen",
+      "up": "Bovenliggende map",
+      "density": "Weergavedichtheid",
+      "densityGrid": "Raster",
+      "actions": "Mapacties",
+      "play": "Map afspelen",
+      "queue": "Toevoegen aan wachtrij",
+      "playNext": "Hierna afspelen",
+      "newPlaylist": "Nieuwe afspeellijst",
+      "batchTag": "Tags batchgewijs bewerken",
+      "densityList": "Lijst"
+    },
     "skeletonAriaLabel": "{{name}} laden…",
     "playlistsGrid": {
       "emptyTitle": "Nog geen playlists",

@@ -458,6 +458,21 @@
       "removeConfirmWithPlays_one": "Click again to confirm. {{count}} play will be kept and re-attached on the next scan.",
       "removeConfirmWithPlays_other": "Click again to confirm. {{count}} plays will be kept and re-attached on the next scan."
     },
+    "folderBrowser": {
+      "open": "Browse this folder",
+      "breadcrumb": "Folder path",
+      "roots": "All folders",
+      "up": "Parent folder",
+      "density": "Display density",
+      "densityGrid": "Grid",
+      "actions": "Folder actions",
+      "play": "Play folder",
+      "queue": "Add to queue",
+      "playNext": "Play next",
+      "newPlaylist": "New playlist",
+      "batchTag": "Batch edit tags",
+      "densityList": "List"
+    },
     "skeletonAriaLabel": "Loading {{name}}…",
     "playlistsGrid": {
       "emptyTitle": "No playlists yet",

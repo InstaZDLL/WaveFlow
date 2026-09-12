@@ -431,6 +431,14 @@ export async function listLibraryTracks(
     orderBy: options?.orderBy ?? null,
     direction: options?.direction ?? null,
   });
+  return expandLibraryTrackRows(resp);
+}
+
+/** Wire-format rows to UI rows. Shared by the library listing and the
+ *  folder listing (#578) so the two cannot drift on artwork paths. */
+function expandLibraryTrackRows(
+  resp: ListLibraryTracksResponse,
+): LibraryTrackRow[] {
   const sep = pathSep(resp.artwork_base);
   return resp.items.map((item) => {
     const local = item.source === "local";
@@ -458,6 +466,124 @@ export async function listLibraryTracks(
       artwork_hash: local ? null : artwork_hash,
     };
   });
+}
+
+/** A directory inside a library root, as the folder browser shows it
+ *  (#578). UI-facing shape: artwork paths are rebuilt here from the slim
+ *  wire row, like every other listing. */
+export interface FolderNode {
+  path: string;
+  name: string;
+  /** Indexed, available tracks anywhere beneath it -- not files on disk.
+   *  The tree is derived from what the scanner indexed, so a directory
+   *  holding only skipped files never appears and no row reads `0`. */
+  track_count: number;
+  /** Bytes of those same tracks. */
+  total_size: number;
+  artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
+}
+
+interface FolderNodeSlim
+  extends Omit<
+    FolderNode,
+    "artwork_path" | "artwork_path_1x" | "artwork_path_2x"
+  > {
+  artwork_hash: string | null;
+  artwork_format: string | null;
+  artwork_has_1x: boolean;
+  artwork_has_2x: boolean;
+}
+
+/** Where the browser is, how to get back, and what is directly inside. */
+export interface FolderListing {
+  /** Echoed back, so a late response can be matched against the folder
+   *  the user is now looking at. */
+  path: string;
+  /** One level up, `null` at the library root: the browser stops there
+   *  rather than walking out of the library. */
+  parent: string | null;
+  root_id: number | null;
+  root_path: string | null;
+  folders: FolderNode[];
+}
+
+interface FolderListingResponse
+  extends Omit<FolderListing, "folders"> {
+  artwork_base: string;
+  folders: FolderNodeSlim[];
+}
+
+/** List the directories directly inside `path`. */
+export async function browseFolders(
+  libraryId: number | null,
+  path: string,
+): Promise<FolderListing> {
+  const resp = await invoke<FolderListingResponse>("browse_folders", {
+    libraryId,
+    path,
+  });
+  const sep = pathSep(resp.artwork_base);
+  return {
+    path: resp.path,
+    parent: resp.parent,
+    root_id: resp.root_id,
+    root_path: resp.root_path,
+    folders: resp.folders.map((f) => ({
+      path: f.path,
+      name: f.name,
+      track_count: f.track_count,
+      total_size: f.total_size,
+      artwork_path:
+        f.artwork_hash && f.artwork_format
+          ? `${resp.artwork_base}${sep}${f.artwork_hash}.${f.artwork_format}`
+          : null,
+      artwork_path_1x:
+        f.artwork_hash && f.artwork_has_1x
+          ? `${resp.artwork_base}${sep}${f.artwork_hash}_1x.jpg`
+          : null,
+      artwork_path_2x:
+        f.artwork_hash && f.artwork_has_2x
+          ? `${resp.artwork_base}${sep}${f.artwork_hash}_2x.jpg`
+          : null,
+    })),
+  };
+}
+
+/** The tracks of one directory, in the same shape the Tracks tab uses --
+ *  so the folder view renders the same table, with the same columns,
+ *  sort, context menu and properties modal.
+ *
+ *  `recursive` decides what a folder is for this call: the browser lists
+ *  the files directly inside (`false`), because the directories shown
+ *  beside them are not double-counted. */
+export async function listFolderTracks(
+  libraryId: number | null,
+  path: string,
+  options?: {
+    recursive?: boolean;
+    orderBy?: string;
+    direction?: "asc" | "desc";
+  },
+): Promise<LibraryTrackRow[]> {
+  const resp = await invoke<ListLibraryTracksResponse>("list_folder_tracks", {
+    libraryId,
+    path,
+    recursive: options?.recursive ?? false,
+    orderBy: options?.orderBy ?? null,
+    direction: options?.direction ?? null,
+  });
+  return expandLibraryTrackRows(resp);
+}
+
+/** Every track under `path`, recursively, in the order the files sit on
+ *  disk. What play / queue / add-to-playlist / batch-tag act on. */
+export function folderTrackIds(
+  libraryId: number | null,
+  path: string,
+): Promise<number[]> {
+  return invoke<number[]>("folder_track_ids", { libraryId, path });
 }
 
 /** An artist of the library, from either source. Same contract as

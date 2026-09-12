@@ -458,6 +458,21 @@
       "removeConfirmWithPlays_one": "Zur Bestätigung erneut klicken. {{count}} Wiedergabe bleibt erhalten und wird beim nächsten Scan neu zugeordnet.",
       "removeConfirmWithPlays_other": "Zur Bestätigung erneut klicken. {{count}} Wiedergaben bleiben erhalten und werden beim nächsten Scan neu zugeordnet."
     },
+    "folderBrowser": {
+      "open": "Diesen Ordner durchsuchen",
+      "breadcrumb": "Ordnerpfad",
+      "roots": "Alle Ordner",
+      "up": "Übergeordneter Ordner",
+      "density": "Anzeigedichte",
+      "densityGrid": "Raster",
+      "actions": "Ordneraktionen",
+      "play": "Ordner abspielen",
+      "queue": "Zur Warteschlange hinzufügen",
+      "playNext": "Als Nächstes spielen",
+      "newPlaylist": "Neue Playlist",
+      "batchTag": "Tags stapelweise bearbeiten",
+      "densityList": "Liste"
+    },
     "skeletonAriaLabel": "{{name}} werden geladen…",
     "playlistsGrid": {
       "emptyTitle": "Noch keine Playlists",

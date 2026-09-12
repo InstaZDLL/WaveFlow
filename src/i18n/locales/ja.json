@@ -458,6 +458,21 @@
       "removeConfirmWithPlays_one": "もう一度クリックして確認します。{{count}} 件の再生履歴は保持され、次回のスキャンで再び関連付けられます。",
       "removeConfirmWithPlays_other": "もう一度クリックして確認します。{{count}} 件の再生履歴は保持され、次回のスキャンで再び関連付けられます。"
     },
+    "folderBrowser": {
+      "open": "このフォルダーを開く",
+      "breadcrumb": "フォルダーのパス",
+      "roots": "すべてのフォルダー",
+      "up": "親フォルダー",
+      "density": "表示密度",
+      "densityGrid": "グリッド",
+      "actions": "フォルダーの操作",
+      "play": "フォルダーを再生",
+      "queue": "キューに追加",
+      "playNext": "次を再生",
+      "newPlaylist": "新しいプレイリスト",
+      "batchTag": "タグの一括編集",
+      "densityList": "一覧"
+    },
     "skeletonAriaLabel": "{{name}}を読み込み中…",
     "playlistsGrid": {
       "emptyTitle": "プレイリストがありません",
