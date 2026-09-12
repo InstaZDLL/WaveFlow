@@ -180,15 +180,35 @@ async fn handle_message(
             } else {
                 // Auto-advance.
                 let repeat = queue::read_repeat_mode(&pool).await;
-                let next: Option<QueueTrack> = queue::advance(&pool, Direction::Next, repeat)
+                // No engine means no claim to make and no one to send to:
+                // the auto-advance simply does not happen.
+                let Some(engine) = engine.as_deref() else {
+                    tracing::debug!("auto-advance with no engine in state; skipping it");
+                    return Ok(());
+                };
+                // Peeked, and under the publish lock from here: the cursor
+                // moves only once this auto-advance has claimed the
+                // dispatch (#632), and the index it commits has to belong
+                // to the queue it was read from. A track that ends while
+                // the user is picking something else must not leave the
+                // queue pointing at its successor.
+                let _publish = engine.lock_publish().await;
+                let next = queue::peek_step(&pool, Direction::Next, repeat)
                     .await
                     .map_err(|e| format!("advance: {e}"))?;
-                if let Some(track) = next {
+                if let Some((index, track)) = next {
                     let profile_id = state.require_profile_id().await.ok();
-                    emit_track_changed(app, &state.paths, &track, profile_id);
-                    emit_queue_changed(app);
                     let replay_gain =
                         crate::commands::player::fetch_replay_gain(&pool, track.id).await;
+                    if !engine.claim_dispatch(*intent) {
+                        tracing::debug!("auto-advance superseded by a newer selection");
+                        return Ok(());
+                    }
+                    queue::commit_index(&pool, index)
+                        .await
+                        .map_err(|e| format!("cursor: {e}"))?;
+                    emit_track_changed(app, &state.paths, &track, profile_id);
+                    emit_queue_changed(app);
                     let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
                         intent: *intent,
                         path: track.as_path(),

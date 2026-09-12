@@ -816,12 +816,29 @@ pub async fn player_jump_to_index(
     let intent = engine.next_load_intent();
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();
-    let Some(track) = queue::jump_to(&pool, position).await? else {
+    // The lock covers the whole queue half of the dispatch, not just its
+    // tail (#632): the index below is read from the queue as it stands
+    // now, and committing it after another producer replaced that queue
+    // would put the cursor on a track this load never resolved.
+    let _publish = engine.lock_publish().await;
+    // Peeked, not applied: the cursor moves below, once this load is
+    // known to be the one that will play (#632).
+    let Some((index, track)) = queue::peek_jump(&pool, position).await? else {
         return Err(AppError::Other("queue is empty".into()));
     };
+    let replay_gain = fetch_replay_gain(&pool, track.id).await;
+    // Nothing has been written yet, so this is the last moment at which
+    // giving up costs nothing (#632). Past it the gain is in hand and the
+    // lock is still held, so the cursor write, the emits and the send are
+    // one step: either this load is the one that plays and all four
+    // happen, or none of them does.
+    if !engine.claim_dispatch(intent) {
+        tracing::debug!("jump superseded by a newer selection; leaving the queue alone");
+        return Ok(());
+    }
+    queue::commit_index(&pool, index).await?;
     emit_track_changed(&app, &state.paths, &track, profile_id);
     emit_queue_changed(&app);
-    let replay_gain = fetch_replay_gain(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
         intent,
         path: track.as_path(),
@@ -2011,6 +2028,20 @@ pub async fn player_play_tracks(
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();
 
+    // This path cannot peek: replacing the queue is the point. So it
+    // claims before the first write instead, which is the last moment at
+    // which giving up is free (#632) — and it holds the publish lock
+    // across the replacement, because that is precisely what must not
+    // happen underneath another producer: a Next that peeked the old
+    // queue and committed its index onto the new one would leave the
+    // cursor on a track it never resolved. A Next pressed during the fill
+    // therefore waits, and then steps through the album it was given
+    // rather than the one it replaced.
+    let publish = engine.lock_publish().await;
+    if !engine.claim_dispatch(intent) {
+        tracing::debug!("play_tracks superseded before filling the queue; leaving it alone");
+        return Ok(());
+    }
     queue::fill_queue(&pool, &source_type, source_id, &track_ids, start_index).await?;
 
     // Spotify-style: if the user has shuffle enabled, randomize the
@@ -2042,6 +2073,14 @@ pub async fn player_play_tracks(
     // both just changed.
     emit_queue_changed(&app);
 
+    // The queue is replaced and the panel has been told; what is left to
+    // publish is the label and the load. The lock goes back here, because
+    // what comes next can be slow in a way no other surface should wait
+    // on: a ReplayGain read, and — when the file is gone — an HTTP
+    // round-trip to mint a streaming ticket. Both branches below re-take
+    // it and re-claim immediately before they publish.
+    drop(publish);
+
     let pb = std::path::PathBuf::from(&track.file_path);
     if !pb.is_file() {
         // The file is gone, but the recording may not be: if this track was
@@ -2055,8 +2094,15 @@ pub async fn player_play_tracks(
                 path = %track.file_path,
                 "local file missing; playing the linked server copy"
             );
-            emit_track_changed(&app, &state.paths, &track, profile_id);
             let replay_gain = fetch_replay_gain(&pool, track.id).await;
+            // Both slow reads are done, so the lock comes back for the
+            // publish itself.
+            let _publish = engine.lock_publish().await;
+            if !engine.claim_dispatch(intent) {
+                tracing::debug!("play_tracks superseded before the server stand-in");
+                return Ok(());
+            }
+            emit_track_changed(&app, &state.paths, &track, profile_id);
             return engine.send(AudioCmd::LoadRemoteFileAndPlay {
                 intent,
                 // The missing path on purpose: the decoder's repair path
@@ -2081,12 +2127,22 @@ pub async fn player_play_tracks(
         )));
     }
 
+    let replay_gain = fetch_replay_gain(&pool, track.id).await;
+    // Claimed again, because the reads above are awaits: the queue is
+    // already replaced and there is no undoing that, but the label and
+    // the load are still ours to withhold if a newer selection has taken
+    // over since (#632). The same intent re-claims successfully as long as
+    // nothing newer did. The lock comes back for the publish, now that
+    // the gain is in hand.
+    let _publish = engine.lock_publish().await;
+    if !engine.claim_dispatch(intent) {
+        tracing::debug!("play_tracks superseded while resolving its first track");
+        return Ok(());
+    }
     // Tell the frontend about the new track BEFORE dispatching the
     // decoder command so the PlayerBar updates without waiting on
     // the first position/state event.
     emit_track_changed(&app, &state.paths, &track, profile_id);
-
-    let replay_gain = fetch_replay_gain(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
         intent,
         path: pb,
@@ -2170,10 +2226,15 @@ pub async fn player_next(
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();
     let repeat = queue::read_repeat_mode(&pool).await;
+    // The lock covers the whole queue half of the dispatch, not just its
+    // tail (#632): the index below is read from the queue as it stands
+    // now, and committing it after another producer replaced that queue
+    // would put the cursor on a track this load never resolved.
+    let _publish = engine.lock_publish().await;
     let queue_len = queue::queue_length(&pool).await?;
-    let next_opt = queue::advance(&pool, Direction::Next, repeat).await?;
+    let next_opt = queue::peek_step(&pool, Direction::Next, repeat).await?;
     match &next_opt {
-        Some(track) => tracing::info!(
+        Some((_, track)) => tracing::info!(
             next_track_id = track.id,
             next_title = %track.title,
             queue_len,
@@ -2182,12 +2243,22 @@ pub async fn player_next(
         ),
         None => tracing::info!(queue_len, ?repeat, "player_next: queue exhausted, no-op"),
     }
-    let Some(track) = next_opt else {
+    let Some((index, track)) = next_opt else {
         return Ok(());
     };
+    let replay_gain = fetch_replay_gain(&pool, track.id).await;
+    // Nothing has been written yet, so this is the last moment at which
+    // giving up costs nothing (#632). Past it the gain is in hand and the
+    // lock is still held, so the cursor write, the emits and the send are
+    // one step: either this load is the one that plays and all four
+    // happen, or none of them does.
+    if !engine.claim_dispatch(intent) {
+        tracing::debug!("next superseded by a newer selection; leaving the queue alone");
+        return Ok(());
+    }
+    queue::commit_index(&pool, index).await?;
     emit_track_changed(&app, &state.paths, &track, profile_id);
     emit_queue_changed(&app);
-    let replay_gain = fetch_replay_gain(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
         intent,
         path: track.as_path(),
@@ -2226,12 +2297,27 @@ pub async fn player_previous(
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();
     let repeat = queue::read_repeat_mode(&pool).await;
-    let Some(track) = queue::advance(&pool, Direction::Previous, repeat).await? else {
+    // The lock covers the whole queue half of the dispatch, not just its
+    // tail (#632): the index below is read from the queue as it stands
+    // now, and committing it after another producer replaced that queue
+    // would put the cursor on a track this load never resolved.
+    let _publish = engine.lock_publish().await;
+    let Some((index, track)) = queue::peek_step(&pool, Direction::Previous, repeat).await? else {
         return Ok(());
     };
+    let replay_gain = fetch_replay_gain(&pool, track.id).await;
+    // Nothing has been written yet, so this is the last moment at which
+    // giving up costs nothing (#632). Past it the gain is in hand and the
+    // lock is still held, so the cursor write, the emits and the send are
+    // one step: either this load is the one that plays and all four
+    // happen, or none of them does.
+    if !engine.claim_dispatch(intent) {
+        tracing::debug!("previous superseded by a newer selection; leaving the queue alone");
+        return Ok(());
+    }
+    queue::commit_index(&pool, index).await?;
     emit_track_changed(&app, &state.paths, &track, profile_id);
     emit_queue_changed(&app);
-    let replay_gain = fetch_replay_gain(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
         intent,
         path: track.as_path(),

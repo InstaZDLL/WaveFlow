@@ -165,13 +165,22 @@ is private, so no load can be built without one) but it cannot tell whether
 you claimed it early enough; that part is on the author of each new load
 site.
 
+**And a producer publishes nothing for a load that will be dropped.**
+`AudioEngine::claim_dispatch` is a compare-and-set on the same mark the
+decoder reads: call it immediately before the first side effect — the
+queue cursor, the label, a state change — and abandon the whole dispatch
+when it returns `false`. Hold `AudioEngine::lock_publish` across the
+claim and everything it authorizes, because the cursor write is an await
+and the runtime is multi-threaded: without it, an older producer can be
+overtaken mid-write and still land its cursor last. Never hold it across
+the preparation that precedes the claim (#632).
+
 Detail, and why `SetNextTrack` is excluded: [ordering the
 loads](../features/playback.md#ordering-the-loads).
 
 Wider topology: [audio architecture](audio.md).
 
 ---
-
 ## Frontend
 
 ### Virtual scroll everywhere

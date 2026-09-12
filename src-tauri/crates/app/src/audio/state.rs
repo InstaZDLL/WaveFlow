@@ -323,6 +323,21 @@ impl SharedPlayback {
         self.state.store(state as u8, Ordering::Release);
     }
 
+    /// Claim the dispatch for `intent`, publishing the claim in the same
+    /// operation (#632). Fails when a newer load has already claimed it.
+    ///
+    /// Lives here, beside the mark the decoder arbitrates against, so both
+    /// halves of the rule read the same word: a producer raises it when it
+    /// commits to publishing, and [`accept_load`](super::decoder) drops
+    /// anything that arrives below it.
+    pub fn try_claim_load(&self, intent: u64) -> bool {
+        self.newest_load_intent
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |newest| {
+                (intent >= newest).then_some(intent)
+            })
+            .is_ok()
+    }
+
     /// Move the state from `from` to `to`, or report that someone else got
     /// there first.
     ///
@@ -519,5 +534,52 @@ mod tests {
         assert_eq!(s.current_position_ms(), 1_000);
         s.set_playback_speed(2.0);
         assert_eq!(s.current_position_ms(), 1_000);
+    }
+}
+
+#[cfg(test)]
+mod claim_tests {
+    use super::SharedPlayback;
+
+    #[test]
+    fn the_first_claim_of_a_session_succeeds() {
+        let shared = SharedPlayback::new();
+        assert!(shared.try_claim_load(1));
+    }
+
+    #[test]
+    fn an_older_intent_cannot_claim_after_a_newer_one() {
+        // #632: the older producer is about to write the queue cursor and
+        // relabel the player bar for a load the decoder would drop. It has
+        // to find out here, before any of that.
+        let shared = SharedPlayback::new();
+        assert!(shared.try_claim_load(7));
+        assert!(!shared.try_claim_load(5));
+    }
+
+    #[test]
+    fn the_same_intent_can_claim_twice() {
+        // `player_play_tracks` claims before filling the queue and again
+        // before publishing, because reads separate the two.
+        let shared = SharedPlayback::new();
+        assert!(shared.try_claim_load(4));
+        assert!(shared.try_claim_load(4));
+    }
+
+    #[test]
+    fn a_failed_claim_leaves_the_mark_alone() {
+        let shared = SharedPlayback::new();
+        assert!(shared.try_claim_load(9));
+        assert!(!shared.try_claim_load(2));
+        // Still 9, so the load that did claim is still the newest.
+        assert!(shared.try_claim_load(9));
+    }
+
+    #[test]
+    fn a_newer_intent_takes_the_claim_over() {
+        let shared = SharedPlayback::new();
+        assert!(shared.try_claim_load(3));
+        assert!(shared.try_claim_load(4));
+        assert!(!shared.try_claim_load(3));
     }
 }

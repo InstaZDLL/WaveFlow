@@ -308,9 +308,64 @@ abandoned would reinstall itself on top of the clear
 `emit_track_changed` performs, which is the invariant that module
 documents.
 
-The paths that only emit a *label* are a known gap, tracked
-separately — they mutate the queue cursor before sending, so bailing out
-halfway is not the answer there.
+### Claiming the dispatch before publishing it
+
+Dropping the load was only half the cure. The producer of that dropped
+load had already published: `emit_track_changed` had put its title in the
+player bar, and the queue paths had already written `queue.current_index`.
+So the interface named one track while another played, and the cursor sat
+on a row nothing was playing — which is where the *next* auto-advance
+stepped from (#632).
+
+So the arbitration moves one step earlier, to the producer:
+`AudioEngine::claim_dispatch` is a compare-and-set on the **same**
+high-water mark the decoder reads. It succeeds only for an intent at least
+as new as the newest already claimed, publishes that claim in the same
+operation, and is called immediately before the **first side effect** —
+after which a `false` means give up entirely. It does not replace the
+decoder's check: two claims can succeed in order and still reach the
+channel out of order, and only the decoder sees what was delivered.
+
+The shape every producer takes:
+
+```
+peek where the step lands   →  fetch ReplayGain
+  →  take the publish lock  →  claim  →  write the cursor  →  emit  →  send
+```
+
+Two things make that sequence hold:
+
+- **Peek and commit are separate.** `queue.rs` grew `peek_step`,
+  `peek_jump` and `commit_index` beside `advance` / `jump_to`, with the
+  arithmetic itself in a pure `stepped_index` (so wrap-around, repeat-one
+  and the empty queue are unit-tested without a database). A producer
+  that never claims still uses the old pair.
+- **The publish half runs under one lock**
+  (`AudioEngine::lock_publish`), held across the claim and everything it
+  authorizes. The claim cannot order that by itself, for two reasons that
+  both bite: `commit_index` is a database write, so an older producer can
+  be overtaken *during* it and land its cursor write last; and the
+  runtime is multi-threaded, so "no await between the claim and the send"
+  buys nothing against a producer running on another worker. Under the
+  lock, claim order **is** publish order — and the claim keeps its own
+  job, because lock acquisition can invert intent order and something has
+  to tell the older one to stop.
+
+The lock deliberately does **not** cover the preparation before the claim
+(reading the track, the ReplayGain lookup, filling a queue). Those awaits
+are why the claim exists; serializing them would make a Next wait behind a
+ten-thousand-row queue fill instead of superseding it. Two paths are
+shaped differently for the same reason:
+
+- **`player_play_tracks` claims twice.** It cannot peek — replacing the
+  queue *is* its effect — so it claims before `fill_queue`, the last
+  moment at which giving up is free, and again under the publish lock
+  before the label and the load. The same intent re-claims successfully
+  as long as nothing newer did.
+- **A remote session rolls back instead.** `play_entries` claims, then
+  mints a streaming ticket over HTTP; holding the publish lock across a
+  network call would park every other surface, so it keeps the
+  `load_intent_superseded` + `clear_if` rollback described above.
 
 `SetNextTrack` is deliberately outside all of this: it arms the gapless
 prefetch rather than taking over, and dropping one would cost a gapless

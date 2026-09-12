@@ -485,6 +485,10 @@ pub struct AudioEngine {
     /// This gate spans the whole arm → delay → run lifecycle plus a
     /// settle window, so one burst of device errors yields one rebuild.
     rebuild_gate: Mutex<RebuildGate>,
+    /// Serializes the *publish* half of a dispatch (#632): the claim,
+    /// the queue cursor, the events, and the command that carries the
+    /// load. See [`Self::lock_publish`].
+    publish: tokio::sync::Mutex<()>,
     /// Last non-library source captured at the boundary of [`Self::send`]
     /// (#230). The three output-rebuild paths
     /// ([`Self::set_output_device`], [`Self::set_exclusive_output`],
@@ -715,6 +719,7 @@ impl AudioEngine {
             exclusive_suppressed: std::sync::atomic::AtomicBool::new(false),
             exclusive_flaps: Mutex::new(FlapWindow::default()),
             rebuild_gate: Mutex::new(RebuildGate::default()),
+            publish: tokio::sync::Mutex::new(()),
             radio_resume: Mutex::new(None),
         })
     }
@@ -744,15 +749,39 @@ impl AudioEngine {
         LoadIntent::claim(&self.shared)
     }
 
-    /// Whether a newer load has already been handed to the decoder, so
-    /// `intent`'s own load is going to be dropped (#622).
+    /// Claim the right to dispatch `intent`, or report that a newer load
+    /// has already taken it (#632).
     ///
-    /// Best effort by nature — only the decoder knows what it has been
-    /// delivered, and it can be handed a newer load the instant after this
-    /// returns. It exists for the one thing a producer must not do on a
-    /// doomed load: publish. A caller that has already spent its
-    /// preparation and is about to relabel the player bar, or to park the
-    /// state on `Loading`, checks here first and gives up instead.
+    /// Every load path publishes on its way to the decoder — it relabels
+    /// the player bar, and the queue-moving ones write
+    /// `queue.current_index` before they send. Since #622 the decoder drops
+    /// a load older than one already delivered, and those side effects
+    /// survived it: the UI named one track while another played, and the
+    /// cursor sat on a row nothing was playing, so the next auto-advance
+    /// stepped from the wrong place.
+    ///
+    /// So the arbitration moves one step earlier. This is a
+    /// compare-and-set on the same high-water mark the decoder reads: it
+    /// succeeds only for an intent at least as new as the newest already
+    /// claimed, and it publishes that claim in the same operation. **Call
+    /// it immediately before the first side effect** — the queue write,
+    /// the emit, the state change — and give up entirely when it returns
+    /// `false`.
+    ///
+    /// It does not replace the decoder's own check. Two claims can succeed
+    /// in order and still reach the channel out of order, and only the
+    /// decoder sees what was actually delivered. What this removes is the
+    /// window that lasts as long as a database read.
+    ///
+    /// It also does not, on its own, order what comes *after* it: see
+    /// [`Self::lock_publish`], which every caller holds across the claim
+    /// and the publish that follows.
+    /// Whether a newer load has claimed the dispatch since `intent` did.
+    ///
+    /// The read-only sibling of [`Self::claim_dispatch`], for the caller
+    /// that has already claimed and needs to know whether it was overtaken
+    /// **after** that — a rollback, typically. Claiming again would
+    /// succeed on its own mark and answer nothing.
     pub fn load_intent_superseded(&self, intent: LoadIntent) -> bool {
         intent.get()
             < self
@@ -761,11 +790,47 @@ impl AudioEngine {
                 .load(std::sync::atomic::Ordering::Acquire)
     }
 
+    pub fn claim_dispatch(&self, intent: LoadIntent) -> bool {
+        self.shared.try_claim_load(intent.get())
+    }
+
     pub fn send(&self, cmd: AudioCmd) -> AppResult<()> {
         apply_radio_resume_update(&self.radio_resume, &cmd);
         self.cmd_tx
             .send(cmd)
             .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))
+    }
+
+    /// Take the publish lock: hold it across [`Self::claim_dispatch`]
+    /// and everything that claim authorizes — the queue cursor, the
+    /// `track:changed` / `queue:changed` emits, and the `AudioCmd` that
+    /// carries the load.
+    ///
+    /// The claim cannot order those by itself, for two reasons that both
+    /// bite:
+    ///
+    /// - `queue::commit_index` is a **database write**, so it is an
+    ///   await. An older producer that claimed first can be overtaken
+    ///   during it, and its cursor write then lands *after* the newer
+    ///   one's — leaving the cursor (and then the label) on a track the
+    ///   decoder is about to drop, which is the whole defect #632 is
+    ///   about.
+    /// - the runtime is **multi-threaded**. Even with no await between
+    ///   the claim and the send, two producers run on two workers, so
+    ///   "this task does not yield" buys nothing against the other one.
+    ///
+    /// Under the lock, claim order and publish order are the same order,
+    /// and the claim keeps its own job: lock acquisition can invert
+    /// intent order — a newer selection may well get the lock first —
+    /// and the claim is what makes the older one then give up.
+    ///
+    /// Deliberately **not** held across the preparation that precedes
+    /// the claim: reading the track, fetching ReplayGain, filling a
+    /// queue. Those awaits are the reason the claim exists in the first
+    /// place, and serializing them would make a Next wait behind a
+    /// ten-thousand-row queue fill instead of superseding it.
+    pub async fn lock_publish(&self) -> tokio::sync::MutexGuard<'_, ()> {
+        self.publish.lock().await
     }
 
     /// Cheap clone of the last Web Radio session captured by

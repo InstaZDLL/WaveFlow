@@ -55,7 +55,13 @@ pub async fn play_entries(
     // after that clear would put the abandoned session back on top of it,
     // and a superseded intent says that is exactly what this one is (#622).
     // Nothing has been mutated yet, so giving up here is total.
-    if engine.load_intent_superseded(intent) {
+    //
+    // No publish lock here, unlike every local producer (#632): what
+    // follows the claim is an HTTP round-trip to mint a ticket, and
+    // holding the lock across it would park every other surface for the
+    // length of a network call. This path arbitrates by rolling back
+    // instead — see the `clear_if` below.
+    if !engine.claim_dispatch(intent) {
         tracing::debug!("remote session superseded before it started; not installing it");
         return Ok(());
     }
