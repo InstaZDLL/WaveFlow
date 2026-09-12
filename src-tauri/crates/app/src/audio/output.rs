@@ -489,6 +489,17 @@ pub(super) fn os_default_output_name() -> Option<String> {
     }
 }
 
+/// How many times a deferred default-device follow comes back before
+/// giving up. Three attempts spread over ~6 s outlast one rebuild and
+/// its settle window; past that, a gate this busy means device errors
+/// are storming, and the recovery — which reopens the OS default when
+/// nothing is pinned — is the better judge of where to land.
+const FOLLOW_DEFAULT_ATTEMPTS: usize = 3;
+
+/// Added to the settle window before a retry, so the retry wakes just
+/// *after* it rather than racing its boundary.
+const FOLLOW_RETRY_MARGIN: std::time::Duration = std::time::Duration::from_millis(100);
+
 /// Schedule a move onto the system's new default output (#627).
 /// Returns immediately — the work happens on a tokio task.
 ///
@@ -506,6 +517,14 @@ pub(super) fn os_default_output_name() -> Option<String> {
 /// - the #365 rebuild gate, which collapses the burst to one rebuild
 ///   and then holds a settle window over the device error our own
 ///   reopen provokes on the outgoing stream.
+///
+/// A gate that is busy defers rather than drops: the follow is retried
+/// after the settle window, a bounded number of times. Without that, a
+/// default moved twice inside two seconds — or moved while the recovery
+/// was rebuilding — would leave the stream on the intermediate device
+/// for good, because each change is one notification and not a
+/// repeating signal. Each retry re-reads the pin and the default, so it
+/// converges on the current state rather than replaying a stale one.
 pub(super) fn schedule_default_device_follow(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
@@ -528,12 +547,43 @@ pub(super) fn schedule_default_device_follow(app: &AppHandle) {
         // thread and opens the device inline — so it goes to the
         // blocking pool rather than parking a tokio worker.
         let engine = engine.inner().clone();
-        let _ = tokio::task::spawn_blocking(move || {
-            if let Err(err) = engine.follow_os_default_output() {
-                tracing::warn!(%err, "following the new default output device failed");
+        for attempt in 1..=FOLLOW_DEFAULT_ATTEMPTS {
+            let engine = engine.clone();
+            let joined =
+                tokio::task::spawn_blocking(move || engine.follow_os_default_output()).await;
+            let outcome = match joined {
+                Ok(outcome) => outcome,
+                Err(err) => {
+                    // The blocking task panicked or was cancelled. Say so
+                    // rather than reporting a follow that never ran as a
+                    // settled one, and stop: a retry would most likely
+                    // panic in the same place.
+                    tracing::warn!(%err, "default-device follow task did not finish");
+                    return;
+                }
+            };
+            match outcome {
+                Ok(super::engine::FollowOutcome::Settled) => return,
+                Ok(super::engine::FollowOutcome::Deferred) => {
+                    if attempt == FOLLOW_DEFAULT_ATTEMPTS {
+                        tracing::warn!(
+                            attempts = FOLLOW_DEFAULT_ATTEMPTS,
+                            "gave up following the new default output device: the rebuild \
+                             gate stayed busy"
+                        );
+                        return;
+                    }
+                    // Wake just past the settle window the busy rebuild
+                    // opened, so the retry finds the gate free.
+                    tokio::time::sleep(super::engine::REBUILD_SETTLE_WINDOW + FOLLOW_RETRY_MARGIN)
+                        .await;
+                }
+                Err(err) => {
+                    tracing::warn!(%err, "following the new default output device failed");
+                    return;
+                }
             }
-        })
-        .await;
+        }
     });
 }
 

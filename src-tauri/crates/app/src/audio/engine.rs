@@ -362,7 +362,7 @@ impl FlapWindow {
 ///
 /// 2 s is long enough to cover such a self-inflicted reset and short
 /// enough that a genuine unplug still recovers promptly.
-const REBUILD_SETTLE_WINDOW: Duration = Duration::from_secs(2);
+pub(super) const REBUILD_SETTLE_WINDOW: Duration = Duration::from_secs(2);
 
 /// Single-owner gate for the automatic post-`DeviceNotAvailable` rebuild
 /// (#365).
@@ -769,6 +769,20 @@ impl AudioEngine {
         LoadIntent::claim(&self.shared)
     }
 
+    /// Whether a newer load has claimed the dispatch since `intent` did.
+    ///
+    /// The read-only sibling of [`Self::claim_dispatch`], for the caller
+    /// that has already claimed and needs to know whether it was overtaken
+    /// **after** that — a rollback, typically. Claiming again would
+    /// succeed on its own mark and answer nothing.
+    pub fn load_intent_superseded(&self, intent: LoadIntent) -> bool {
+        intent.get()
+            < self
+                .shared
+                .newest_load_intent
+                .load(std::sync::atomic::Ordering::Acquire)
+    }
+
     /// Claim the right to dispatch `intent`, or report that a newer load
     /// has already taken it (#632).
     ///
@@ -796,20 +810,6 @@ impl AudioEngine {
     /// It also does not, on its own, order what comes *after* it: see
     /// [`Self::lock_publish`], which every caller holds across the claim
     /// and the publish that follows.
-    /// Whether a newer load has claimed the dispatch since `intent` did.
-    ///
-    /// The read-only sibling of [`Self::claim_dispatch`], for the caller
-    /// that has already claimed and needs to know whether it was overtaken
-    /// **after** that — a rollback, typically. Claiming again would
-    /// succeed on its own mark and answer nothing.
-    pub fn load_intent_superseded(&self, intent: LoadIntent) -> bool {
-        intent.get()
-            < self
-                .shared
-                .newest_load_intent
-                .load(std::sync::atomic::Ordering::Acquire)
-    }
-
     pub fn claim_dispatch(&self, intent: LoadIntent) -> bool {
         self.shared.try_claim_load(intent.get())
     }
@@ -1179,8 +1179,11 @@ impl AudioEngine {
     ///    a few legitimate device switches disable exclusive for the
     ///    session.
     /// 4. **is a rebuild already under way?** Only then is the #365 gate
-    ///    armed — see the call.
-    pub(super) fn follow_os_default_output(&self) -> AppResult<()> {
+    ///    armed — and a `false` there is reported as
+    ///    [`FollowOutcome::Deferred`] rather than swallowed, because the
+    ///    system default and the open device would otherwise stay apart
+    ///    for good.
+    pub(super) fn follow_os_default_output(&self) -> AppResult<FollowOutcome> {
         use std::sync::atomic::Ordering;
 
         let (opened, pinned) = self.current_output_devices();
@@ -1189,7 +1192,7 @@ impl AudioEngine {
                 device = %pinned,
                 "default output device changed, but a device is pinned; staying on it"
             );
-            return Ok(());
+            return Ok(FollowOutcome::Settled);
         }
 
         let new_default = super::output::os_default_output_name();
@@ -1199,7 +1202,7 @@ impl AudioEngine {
                 new_default = new_default.as_deref().unwrap_or("<none>"),
                 "default output device change needs no rebuild"
             );
-            return Ok(());
+            return Ok(FollowOutcome::Settled);
         }
 
         // Only now is the #365 gate armed, and only now is its release
@@ -1210,11 +1213,18 @@ impl AudioEngine {
         // here still collapses a burst, since every notification of the
         // same change reaches this point and only the first one arms.
         if !self.try_arm_device_rebuild() {
+            // Not "ignore": a rebuild in flight, or the quiet period after
+            // one, would otherwise swallow the change for good and leave
+            // the stream on a device the system no longer prefers. The
+            // caller comes back once the window is over, and everything
+            // above is re-read then, so the retry converges on whatever
+            // the default is at that point rather than on this
+            // notification's idea of it.
             tracing::debug!(
                 "default-device follow: a rebuild is already armed or the settle \
-                 window is open; ignoring this default change"
+                 window is open; deferring this default change"
             );
-            return Ok(());
+            return Ok(FollowOutcome::Deferred);
         }
         let _gate = RebuildGateGuard(&self.rebuild_gate);
 
@@ -1226,7 +1236,8 @@ impl AudioEngine {
             exclusive,
             "following the system's new default output device"
         );
-        self.force_rebuild_output(RebuildDevice::OsDefaultIfUnpinned, exclusive)
+        self.force_rebuild_output(RebuildDevice::OsDefaultIfUnpinned, exclusive)?;
+        Ok(FollowOutcome::Settled)
     }
 
     /// Publish "no output thread at all" when a rebuild bailed out after
@@ -2277,6 +2288,19 @@ enum RebuildDevice {
     /// the rebuild's own lock, so a pin installed in the meantime wins
     /// and no rebuild happens at all.
     OsDefaultIfUnpinned,
+}
+
+/// What a default-device follow did, so its caller knows whether the
+/// change was actually dealt with (#627).
+pub(super) enum FollowOutcome {
+    /// Dealt with: a rebuild ran, or the checks said none was needed.
+    Settled,
+    /// Not dealt with — the rebuild gate was busy. Nothing was changed,
+    /// and the caller has to come back, or the system default and the
+    /// open device stay apart until the next notification, which may
+    /// never come: moving the default twice in quick succession is one
+    /// notification per change, not a repeating signal.
+    Deferred,
 }
 
 /// Whether a default-device change is worth a rebuild.

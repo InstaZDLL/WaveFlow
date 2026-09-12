@@ -136,6 +136,8 @@ Four things about it are load-bearing:
 
 - **Only the console role.** Windows fires `OnDefaultDeviceChanged` once **per role** for a single physical change, and we keep `eRender` + `eConsole` only — because that is the role both of our open paths ask for: cpal's `default_output_device` calls `GetDefaultAudioEndpoint(flow, eConsole)`, and so does `wasapi::get_default_device` on the exclusive side. Reacting to multimedia or communications would rebuild for a default we would never have opened.
 - **The listener rebuilds nothing.** Both platforms hand the event to `output::schedule_default_device_follow`, which takes the same 300 ms backoff and the same `RebuildGate` the device-loss recovery takes. That matters more here than there: one physical change can produce several notifications, and our own reopen makes the outgoing stream fail, which schedules a recovery rebuild of its own.
+
+  Two details keep the shared gate honest in both directions. It is armed **only once the cheap checks say a rebuild will really happen** — arming for a follow that turns out to be a no-op would open a settle window a genuine `DeviceNotAvailable` gets swallowed by, dropped and never retried, which is silence until the user intervenes. And a gate that is busy makes the follow **defer, not drop**: `FollowOutcome::Deferred` sends the scheduler back after the settle window, three times at most. A default moved twice inside two seconds is two notifications, not a repeating signal, so a dropped one would leave the stream on the intermediate device for good. Every retry re-reads the pin and the default, so it converges on the current state rather than replaying a stale one.
 - **Only while nothing is pinned**, and the decision is made **inside the lock that installs pins**. A user who picked a device asked for that device. `AudioEngine::follow_os_default_output` reads the pin first, but that read is advisory — a pick landing between it and the rebuild would slip through; `RebuildDevice::OsDefaultIfUnpinned` asks again under `force_rebuild_output`'s own acquisition, and that answer is the binding one. Same lesson as #629 above.
 - **Nothing that changes is left unchanged, nothing else is touched.** A default that is already the endpoint we are playing on is not reopened (a rebuild is an audible gap), and a default that vanished entirely is not followed at all — rebuilding onto "no device" would drop audio we still have, and a device we really lost arrives as `DeviceNotAvailable`, which owns its own recovery. `should_follow_default` is that decision, pure and unit-tested. Exclusive output follows the preference minus the #322 session suppression, but does **not** reset it and does **not** record a flap: the system moving its default is not a device resetting under us, and counting it would let a few legitimate switches disable exclusive for the session.
 
@@ -368,17 +370,32 @@ Two things make that sequence hold:
   job, because lock acquisition can invert intent order and something has
   to tell the older one to stop.
 
-The lock deliberately does **not** cover the preparation before the claim
-(reading the track, the ReplayGain lookup, filling a queue). Those awaits
-are why the claim exists; serializing them would make a Next wait behind a
-ten-thousand-row queue fill instead of superseding it. Two paths are
-shaped differently for the same reason:
+**What the lock covers is the queue snapshot and everything downstream of
+it.** It is taken before the `peek_*` that reads the queue, so the index a
+producer commits always belongs to the queue it read that index from —
+committing it after somebody else replaced the queue would put the cursor
+on a track this load never resolved. The ReplayGain lookup sits inside the
+serialized section at the stepping paths (`player_next`,
+`player_previous`, `player_jump_to_index`, `player_actions::step`, the
+auto-advance), because it happens after the lock is taken; it is a single
+indexed read, and the alternative — dropping the lock for it and taking it
+again — would reopen the window it exists to close.
+
+What stays outside is the preparation that precedes the queue: the profile
+snapshot and the pool lease. Two paths are shaped differently, each
+because one genuinely slow step must not be serialized:
 
 - **`player_play_tracks` claims twice.** It cannot peek — replacing the
   queue *is* its effect — so it claims before `fill_queue`, the last
-  moment at which giving up is free, and again under the publish lock
-  before the label and the load. The same intent re-claims successfully
-  as long as nothing newer did.
+  moment at which giving up is free, and holds the lock across the
+  replacement — `fill_queue` is inside the serialized section, and a Next
+  pressed during it waits, then steps through the album it was given
+  rather than the one it replaced. The lock then goes back the moment the
+  queue is replaced and the panel told, because what follows can be slow
+  in a way no other surface should wait on: the ReplayGain read, and, when
+  the file is gone, an HTTP round-trip to mint a streaming ticket. Both
+  branches re-take it and re-claim immediately before they publish, and
+  the same intent re-claims successfully as long as nothing newer did.
 - **A remote session rolls back instead.** `play_entries` claims, then
   mints a streaming ticket over HTTP; holding the publish lock across a
   network call would park every other surface, so it keeps the
