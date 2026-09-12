@@ -769,7 +769,9 @@
     "activeLabel": "Sortie active",
     "loading": "Recherche des périphériques…",
     "empty": "Aucun périphérique de sortie disponible",
-    "systemDefault": "Par défaut"
+    "systemDefault": "Par défaut",
+    "pinnedUnavailable": "Épinglé, indisponible",
+    "reopen": "Rouvrir ce périphérique"
   },
   "profiles": {
     "select": {

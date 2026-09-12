@@ -835,7 +835,9 @@
     "activeLabel": "Активный выход",
     "loading": "Поиск устройств…",
     "empty": "Нет доступных устройств вывода",
-    "systemDefault": "По умолчанию"
+    "systemDefault": "По умолчанию",
+    "pinnedUnavailable": "Закреплено, недоступно",
+    "reopen": "Переоткрыть это устройство"
   },
   "profiles": {
     "select": {

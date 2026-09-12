@@ -769,7 +769,9 @@
     "activeLabel": "当前输出设备",
     "loading": "正在搜索设备……",
     "empty": "没有可用的输出设备",
-    "systemDefault": "默认"
+    "systemDefault": "默认",
+    "pinnedUnavailable": "已固定，不可用",
+    "reopen": "重新打开此设备"
   },
   "profiles": {
     "select": {

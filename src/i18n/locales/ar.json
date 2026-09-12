@@ -872,7 +872,9 @@
     "activeLabel": "الخرج النشط",
     "loading": "جارٍ البحث عن الأجهزة…",
     "empty": "لا يوجد جهاز خرج متاح",
-    "systemDefault": "افتراضي النظام"
+    "systemDefault": "افتراضي النظام",
+    "pinnedUnavailable": "مثبّت، غير متاح",
+    "reopen": "إعادة فتح هذا الجهاز"
   },
   "profiles": {
     "select": {

@@ -769,7 +769,9 @@
     "activeLabel": "Uscita attiva",
     "loading": "Ricerca dei dispositivi…",
     "empty": "Nessun dispositivo di uscita disponibile",
-    "systemDefault": "Predefinito del sistema"
+    "systemDefault": "Predefinito del sistema",
+    "pinnedUnavailable": "Fissato, non disponibile",
+    "reopen": "Riapri questo dispositivo"
   },
   "profiles": {
     "select": {

@@ -769,7 +769,9 @@
     "activeLabel": "Output aktif",
     "loading": "Mencari perangkat…",
     "empty": "Tidak ada perangkat output yang tersedia",
-    "systemDefault": "Default sistem"
+    "systemDefault": "Default sistem",
+    "pinnedUnavailable": "Disematkan, tidak tersedia",
+    "reopen": "Buka ulang perangkat ini"
   },
   "profiles": {
     "select": {

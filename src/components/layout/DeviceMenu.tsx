@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Volume2, Speaker, Check, Loader2 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import {
+  playerReopenOutputDevice,
   playerSetOutputDevice,
   type OutputDevice,
 } from "../../lib/tauri/player";
@@ -29,11 +30,19 @@ export function DeviceMenu() {
   const activeDevice = outputDevices.find((d) => d.is_active) ?? null;
 
   const handleSelect = async (device: OutputDevice) => {
-    if (device.is_active || switching != null) return;
+    if (switching != null) return;
     setSwitching(device.id);
     try {
-      await playerSetOutputDevice(device.id);
-      // Refresh so the active flag moves to the chosen row. The
+      // Clicking the row that is already playing means "open it again".
+      // The pick itself would be a no-op in the engine, which is exactly
+      // why a user whose audio had drifted elsewhere had to select
+      // another device and come back (#612).
+      if (device.is_active) {
+        await playerReopenOutputDevice();
+      } else {
+        await playerSetOutputDevice(device.id);
+      }
+      // Refresh so the active flag follows what actually opened. The
       // backend already persisted the pick + restarted the cpal
       // stream by the time this resolves.
       await refreshOutputDevices();
@@ -88,16 +97,22 @@ export function DeviceMenu() {
                 key={device.id}
                 type="button"
                 onClick={() => handleSelect(device)}
-                disabled={device.is_active || switching != null}
-                className={`px-4 py-2 text-sm cursor-pointer flex items-center space-x-3 transition-colors text-left ${
+                disabled={switching != null}
+                title={device.is_active ? t("deviceMenu.reopen") : undefined}
+                className={`px-4 py-2 text-sm cursor-pointer flex items-center space-x-3 transition-colors text-left disabled:opacity-60 disabled:cursor-wait ${
                   device.is_active
-                    ? "text-emerald-500 cursor-default"
-                    : "hover:bg-emerald-500 hover:text-white disabled:opacity-60 disabled:cursor-wait"
+                    ? "text-emerald-500 hover:bg-emerald-500/10"
+                    : "hover:bg-emerald-500 hover:text-white"
                 }`}
               >
                 <Speaker size={16} className="opacity-70 shrink-0" />
                 <span className="truncate flex-1">{device.name}</span>
-                {device.is_default && !device.is_active && (
+                {device.is_pinned && !device.is_active && (
+                  <span className="text-[10px] uppercase tracking-wide text-amber-500 shrink-0">
+                    {t("deviceMenu.pinnedUnavailable")}
+                  </span>
+                )}
+                {device.is_default && !device.is_active && !device.is_pinned && (
                   <span className="text-[10px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500 shrink-0">
                     {t("deviceMenu.systemDefault")}
                   </span>

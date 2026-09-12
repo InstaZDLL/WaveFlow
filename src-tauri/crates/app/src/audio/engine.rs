@@ -666,6 +666,74 @@ impl AudioEngine {
             .and_then(|guard| guard.as_ref().and_then(|h| h.device_name.clone()))
     }
 
+    /// The device the output is really driving, when the backend could
+    /// name it — as opposed to [`Self::current_output_device`], which is
+    /// the user's pin and survives a fallback.
+    ///
+    /// The picker flags its active row from this one: a pinned device
+    /// that is no longer enumerated is replaced by the default endpoint
+    /// on open, and ticking the pin then described a device playing
+    /// nothing (#612).
+    /// Returned as `(opened, pinned)` under a **single** lock.
+    ///
+    /// Reading the two names through separate accessors let a rebuild
+    /// swap the handle in between, pairing the old stream's opened name
+    /// with the new stream's pin — the picker would then tick one row
+    /// and mark another as pinned, each describing a different stream.
+    pub fn current_output_devices(&self) -> (Option<String>, Option<String>) {
+        self.output
+            .lock()
+            .ok()
+            .and_then(|guard| {
+                guard
+                    .as_ref()
+                    .map(|h| (h.opened_device.clone(), h.device_name.clone()))
+            })
+            .unwrap_or((None, None))
+    }
+
+    /// Re-open the output on the device it is already pinned to.
+    ///
+    /// [`Self::set_output_device`] short-circuits when the request
+    /// equals the current pin. That is right for a pick, but it left the
+    /// user no way back when the stream was bound to an endpoint that is
+    /// no longer the one they want — and the picker disabled its active
+    /// row, so "choose another device, then choose this one again" was
+    /// the only cure (#612). This goes straight to the rebuild path that
+    /// device-error recovery already uses.
+    /// Carries the same two protections every other deliberate rebuild
+    /// has, because `force_rebuild_output` owns neither: its recovery
+    /// caller computes them.
+    pub fn reopen_output_device(&self) -> AppResult<()> {
+        // Honour the #322 session kill switch. A flap storm that gave up
+        // on exclusive for this session must not be undone by a click
+        // that only asks for the same device again — this is not the
+        // fresh chance a re-toggle or a device pick is, so the
+        // suppression also isn't reset here.
+        let exclusive = self
+            .exclusive_output
+            .load(std::sync::atomic::Ordering::Relaxed)
+            && !self
+                .exclusive_suppressed
+                .load(std::sync::atomic::Ordering::Relaxed);
+        // Replacing the stream disturbs the outgoing one on purpose, and
+        // that self-inflicted device error would otherwise schedule a
+        // recovery rebuild fighting this one — the #405 echo. Reopen the
+        // window when nothing got installed, so a genuine error still
+        // reaches the recovery path.
+        self.begin_deliberate_output_change();
+        // The device is resolved by the rebuild, under the same lock it
+        // swaps the handle with. Reading it here first would leave a
+        // window where a device pick installs and persists another one,
+        // after which this would reinstall the stale device and leave the
+        // stream disagreeing with the saved preference.
+        let result = self.force_rebuild_output(RebuildDevice::Pinned, exclusive);
+        if result.is_err() {
+            self.cancel_deliberate_output_change();
+        }
+        result
+    }
+
     /// True when the active output is currently carrying a native DSD
     /// stream via DoP (#495). Reflects what actually engaged — a DAC
     /// that refused the DoP format leaves this `false` even with the
@@ -798,7 +866,7 @@ impl AudioEngine {
         // Force-rebuild path: bypasses set_output_device's no-op
         // shortcut for "same device" because the device is the
         // same — we just need a fresh stream after the OS reset.
-        self.force_rebuild_output(pinned, exclusive)
+        self.force_rebuild_output(RebuildDevice::Explicit(pinned), exclusive)
     }
 
     /// Ask permission to schedule a deferred rebuild after a cpal
@@ -1019,15 +1087,21 @@ impl AudioEngine {
     }
 
     /// Internal helper: rebuild the output stream against the given
-    /// (device_name, exclusive) tuple, bypassing the same-device
+    /// ([`RebuildDevice`], exclusive) pair, bypassing the same-device
     /// no-op check. Shared by [`Self::try_rebuild_after_device_error`]
-    /// and (in the future) any other "rebuild without changing the
-    /// user preference" path.
-    fn force_rebuild_output(&self, device_name: Option<String>, exclusive: bool) -> AppResult<()> {
+    /// and [`Self::reopen_output_device`].
+    fn force_rebuild_output(&self, device: RebuildDevice, exclusive: bool) -> AppResult<()> {
         let mut guard = self
             .output
             .lock()
             .map_err(|_| AppError::Audio("output mutex poisoned".into()))?;
+
+        // Resolve the target under the very lock this is about to swap
+        // the handle with, so nothing can move it in between (#612).
+        let device_name = match device {
+            RebuildDevice::Pinned => guard.as_ref().and_then(|h| h.device_name.clone()),
+            RebuildDevice::Explicit(name) => name,
+        };
 
         let track_id = self
             .shared
@@ -1766,6 +1840,23 @@ fn must_release_before_reopening(old_is_exclusive: Option<bool>, entering_exclus
         Some(true) => true,
         Some(false) => cfg!(target_os = "macos") && entering_exclusive,
     }
+}
+
+/// Which device a forced rebuild targets.
+///
+/// `Pinned` exists so a caller doesn't have to read the name first. That
+/// read takes the output lock and gives it back, and a device pick
+/// landing in the gap installs *and persists* another device — after
+/// which the rebuild would reinstall the stale one, leaving the stream
+/// disagreeing with the saved preference. Resolving inside the rebuild's
+/// own acquisition closes the window (#612).
+enum RebuildDevice {
+    /// Whatever the installed handle is pinned to, read under the
+    /// rebuild's lock.
+    Pinned,
+    /// A target the caller computed deliberately — the device-error
+    /// recovery resolves its own and has to keep it.
+    Explicit(Option<String>),
 }
 
 /// What a device-error rebuild does with the session it interrupts.

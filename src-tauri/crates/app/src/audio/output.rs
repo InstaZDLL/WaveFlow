@@ -534,6 +534,16 @@ pub struct OutputHandle {
     /// DoP reopen goes back to it, so the user's pin survives until the
     /// device returns. That also makes it no endpoint identity.
     pub device_name: Option<String>,
+    /// Device this output actually opened, when the backend could name
+    /// it. Distinct from [`Self::device_name`] on purpose: that one is
+    /// the user's pin and must survive a fallback, this one is where
+    /// the audio really goes. They differ whenever the pinned name was
+    /// no longer enumerated and the backend silently took the default
+    /// instead — the case where the picker used to tick a device that
+    /// was not playing anything (#612). `None` means the backend opened
+    /// something it cannot name, which is reported as "unknown" rather
+    /// than guessed.
+    pub opened_device: Option<String>,
     /// Whether this handle really owns its device — WASAPI Exclusive
     /// Mode on Windows, a raw `hw:` handle on Linux. The user
     /// preference can request it, but startup may fall back to cpal
@@ -582,7 +592,7 @@ pub fn spawn_output_thread(
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
     let (producer, consumer) = RingBuffer::<f32>::new(RING_CAPACITY);
     let (shutdown_tx, shutdown_rx) = bounded::<()>(1);
-    let (init_tx, init_rx) = bounded::<AppResult<()>>(1);
+    let (init_tx, init_rx) = bounded::<AppResult<Option<String>>>(1);
 
     let thread_shared = shared.clone();
     let thread_app = app.clone();
@@ -604,12 +614,13 @@ pub fn spawn_output_thread(
     // Block until the thread reports whether the Stream opened cleanly.
     // Any failure here means we never reached `stream.play()`.
     match init_rx.recv() {
-        Ok(Ok(())) => Ok((
+        Ok(Ok(opened_device)) => Ok((
             producer,
             OutputHandle {
                 shutdown_tx,
                 join,
                 device_name,
+                opened_device,
                 exclusive: false,
                 dop: None,
             },
@@ -631,17 +642,18 @@ fn output_thread_main(
     shared: Arc<SharedPlayback>,
     consumer: Consumer<f32>,
     shutdown_rx: Receiver<()>,
-    init_tx: Sender<AppResult<()>>,
+    init_tx: Sender<AppResult<Option<String>>>,
     app: AppHandle,
     device_name: Option<String>,
 ) {
-    let stream = match build_stream(shared.clone(), consumer, app.clone(), device_name) {
-        Ok(s) => s,
-        Err(err) => {
-            let _ = init_tx.send(Err(err));
-            return;
-        }
-    };
+    let (stream, opened_device) =
+        match build_stream(shared.clone(), consumer, app.clone(), device_name) {
+            Ok(pair) => pair,
+            Err(err) => {
+                let _ = init_tx.send(Err(err));
+                return;
+            }
+        };
 
     if let Err(err) = stream
         .play()
@@ -651,8 +663,9 @@ fn output_thread_main(
         return;
     }
 
-    // Signal successful initialization.
-    let _ = init_tx.send(Ok(()));
+    // Signal successful initialization, naming the endpoint that really
+    // opened so the engine can report it rather than the request.
+    let _ = init_tx.send(Ok(opened_device));
 
     // Park until the engine says shutdown. The Stream runs its callback
     // on its own (WASAPI-managed) thread on Windows, so we just need to
@@ -663,12 +676,17 @@ fn output_thread_main(
 }
 
 /// Build the cpal `Stream`. Called only from inside the output thread.
+///
+/// Returns the device actually opened alongside the stream: the lookup
+/// below falls back to the default endpoint when the pinned name is no
+/// longer enumerated, and the caller has no other way to learn that
+/// (#612).
 fn build_stream(
     shared: Arc<SharedPlayback>,
     consumer: Consumer<f32>,
     app: AppHandle,
     device_name: Option<String>,
-) -> AppResult<Stream> {
+) -> AppResult<(Stream, Option<String>)> {
     silence_alsa_stderr(|| build_stream_inner(shared, consumer, app, device_name))
 }
 
@@ -677,7 +695,7 @@ fn build_stream_inner(
     consumer: Consumer<f32>,
     app: AppHandle,
     device_name: Option<String>,
-) -> AppResult<Stream> {
+) -> AppResult<(Stream, Option<String>)> {
     let host = cpal::default_host();
     // If a specific device was requested, look it up by name. If the
     // user picked a device that since vanished (USB DAC unplugged
@@ -711,6 +729,11 @@ fn build_stream_inner(
             .ok_or_else(|| AppError::Audio("no default audio output device".into()))?,
     };
 
+    // Read the name off the device we ended up with, not the one we
+    // asked for. These differ exactly when the fallback above fired,
+    // which is the case the picker used to misreport (#612).
+    let opened_device = device_display_name(&device);
+
     let default_cfg = device
         .default_output_config()
         .map_err(|e| AppError::Audio(format!("default output config: {e}")))?;
@@ -732,14 +755,15 @@ fn build_stream_inner(
         "cpal output stream opened"
     );
 
-    match sample_format {
+    let stream = match sample_format {
         SampleFormat::F32 => open_stream::<f32>(&device, &config, consumer, shared, app),
         SampleFormat::I16 => open_stream::<i16>(&device, &config, consumer, shared, app),
         SampleFormat::U16 => open_stream::<u16>(&device, &config, consumer, shared, app),
         other => Err(AppError::Audio(format!(
             "unsupported sample format: {other:?}"
         ))),
-    }
+    }?;
+    Ok((stream, opened_device))
 }
 
 /// Generic stream builder parameterized by the device's native sample

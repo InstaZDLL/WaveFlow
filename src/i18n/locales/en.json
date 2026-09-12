@@ -769,7 +769,9 @@
     "activeLabel": "Active output",
     "loading": "Searching for devices…",
     "empty": "No output device available",
-    "systemDefault": "System default"
+    "systemDefault": "System default",
+    "pinnedUnavailable": "Pinned, unavailable",
+    "reopen": "Reopen this device"
   },
   "profiles": {
     "select": {

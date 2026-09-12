@@ -80,6 +80,31 @@ The chosen device's name is persisted in `profile_setting['audio.output_device']
 
 On Linux, enumeration uses ALSA's hint database (`snd_device_name_hint("pcm")`) instead of cpal's `output_devices()` to avoid a 1-2 s freeze + `pcm_dmix` / `pcm_route` stderr spam from probing every PCM card.
 
+### The pin and the endpoint are two different things
+
+Every open path falls back to the default endpoint when the pinned name is no longer enumerated — `build_stream_inner` in shared mode, `pick_device` under WASAPI, `resolve_device` under CoreAudio — and each used to leave nothing behind but a `warn!`. `OutputHandle` kept the **requested** name, deliberately, so the pin survives until the device comes back; the picker read that field and ticked a device that was playing nothing (#612).
+
+So the handle now carries both. `device_name` is still the pin. `opened_device` is what the backend actually opened, and each backend fills it with what it can honestly claim:
+
+- **cpal shared** — the display name read back off the device that was chosen, so a fallback names the endpoint it landed on.
+- **WASAPI** — `Device::get_friendlyname()` on the endpoint `pick_device` returned.
+- **ALSA** — the pin itself: `resolve_hw_device` either places it on a real card or fails outright, never quietly taking another. An absent pin lands on card 0, which has no name in the picker's terms, so it reports unknown.
+- **CoreAudio** — the pin when it matched, unknown after the fallback: a device id is all we have there, and inventing a name would be the very bug.
+
+`player_list_output_devices` flags `is_active` from the opened device (falling back to the pin, then to the OS default) and `is_pinned` from the pin. They differ exactly during a fallback, which is what lets the menu mark the pinned row unavailable rather than pretend it is playing.
+
+A pin that has vanished matches no enumerated row, so the listing appends it as a row of its own — `is_pinned`, never `is_active`, since it isn't there to be playing. Without that the flag would be absent in the one case it exists for, and the menu would say nothing at all about the fallback.
+
+Both names come from `current_output_devices()`, which reads them under a **single** lock on the handle. Two separate reads let a rebuild swap the handle in between, and the listing would then describe one stream's endpoint next to another stream's pin.
+
+### Re-selecting the active device
+
+`set_output_device` returns early when the pick equals the current pin, which is right — but the picker also disabled its active row, so a user whose audio had drifted onto another endpoint had no way to force a fresh lookup except picking another device and coming back. The row is now clickable and calls `player_reopen_output_device`, which goes to `force_rebuild_output` — the same path device-error recovery uses. It changes no preference, so nothing is persisted.
+
+Two details make that reopen safe. It carries the guards every deliberate swap needs and that `force_rebuild_output` doesn't own — `begin_deliberate_output_change()` around it, cancelled if nothing was installed, and the exclusive preference ANDed with the `#322` session suppression so a click can't revive a mode a flap storm gave up on. And it names its target as `RebuildDevice::Pinned` rather than reading the pin beforehand: that read would take the output lock and give it back, and a device pick landing in the gap installs *and persists* another device, after which the rebuild would reinstall the stale one. `Explicit` keeps the recovery path's own deliberately computed target. The same window still exists in `set_exclusive_output`, which predates this and does its teardown inline — #629.
+
+What this does **not** do is follow the OS default as it changes: nothing subscribes to endpoint notifications (cpal 0.17.1 exposes none), so a default that moves under a `None` pin still leaves the stream where it was. That half is #627, and it needs raw COM on Windows plus a property listener on macOS — routed through the existing `RebuildGate`, since a default change fires several times for one physical event and our own reopen triggers another.
+
 ## Output-stream lifecycle & recovery
 
 Three paths replace the output stream, and they must all end in the same place: `exclusive_output_active` updated and a `player:audio-mode-changed` event emitted, because that event is the only thing that keeps Settings' Exclusive-output toggle honest ([`ExclusiveModeCard`](../../src/components/views/settings/ExclusiveModeCard.tsx) re-reads on it).

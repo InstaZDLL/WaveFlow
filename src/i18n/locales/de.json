@@ -769,7 +769,9 @@
     "activeLabel": "Aktive Ausgabe",
     "loading": "Geräte werden gesucht…",
     "empty": "Kein Ausgabegerät verfügbar",
-    "systemDefault": "Systemstandard"
+    "systemDefault": "Systemstandard",
+    "pinnedUnavailable": "Angeheftet, nicht verfügbar",
+    "reopen": "Gerät erneut öffnen"
   },
   "profiles": {
     "select": {
