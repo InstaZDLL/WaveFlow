@@ -205,6 +205,50 @@ UI is a tri-state click cycle in [`AbLoopButton`](../../src/components/player/Ab
 
 Net effect matches Spotify's behaviour: the manual block stacks between Now Playing and the album / playlist tail. "Play next" pushes to the top of that block, "Add to queue" stacks at the bottom, and the album resumes once the user queue drains. No tracks get banished to the very end past the rest of the album any more.
 
+### Ordering the loads
+
+Handing a track to the decoder is never immediate: a profile snapshot, the
+queue read, a ReplayGain lookup — and for a remote queue a reconciliation
+lookup and a streaming ticket — all happen first. Seventeen sites do this,
+and each of them used to send its load whenever its own preparation
+finished, so two loads started close together reached the decoder in the
+order they got *ready*, not the order they were asked for. Press Play from a
+stopped player and then Next within a few tens of milliseconds, or send
+`play` then `next` from a client, and the slower of the two ended up in
+charge: the track the user had already left behind started playing (#622).
+
+Every load now carries a **`LoadIntent`**, a monotonic number claimed from
+`AudioEngine::next_load_intent` **when the intent starts** — before the
+first await, not before the send. The decoder keeps the highest intent it
+has been handed in `SharedPlayback::newest_load_intent` and drops any load
+below it, so a preparation that finishes late is discarded instead of
+overwriting a newer selection.
+
+Three details are what make it hold:
+
+- **The token is compulsory.** `LoadIntent`'s field is private, so a load
+  command cannot be built without asking the engine for one. Serialising
+  only the two paths a bug report names would leave the other fifteen
+  reordering exactly as before, while reading as though ordering were
+  guaranteed.
+- **Arbitration happens at receipt, not at execution.** The drain returns
+  `ControlFlow::LoadNext`, which stops the current track before anything
+  looks at the payload; a load discarded any later would leave the decoder
+  with nothing playing at all. The three receive points — the idle loop,
+  the drain between packets, the drain inside the pause loop — all go
+  through `accept_load`.
+- **The comparison is against what arrived**, never against the engine's
+  allocation counter. An intent can be claimed and never sent — Next on an
+  exhausted queue, a track row that has since vanished — and that must not
+  silence a load still on its way.
+
+`SetNextTrack` is deliberately outside all of this: it arms the gapless
+prefetch rather than taking over, and dropping one would cost a gapless
+hand-off to prevent nothing audible. The decoder's own repair path (a
+reconciled file that will not open, falling back to the server) re-sends
+under the **same** intent it was handed — it is continuing that load, not
+starting a newer one.
+
 ### Resume point
 
 Where playback was, kept in two `profile_setting` rows — `player.last_track_id` and `player.last_position_ms`, written by `queue::persist_resume_point`. `queue::restore_state` prefers that pair at mount, falls back to the queue's current track at 0 ms when the track is gone, and gives up when the queue is empty too. `player_actions::resume_last` loads the same pair, so every surface that offers to pick playback back up — the in-app Play from idle, the tray, the taskbar buttons, the OS overlay, MPD — starts from it.

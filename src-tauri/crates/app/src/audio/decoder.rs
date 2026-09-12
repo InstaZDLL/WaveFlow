@@ -295,8 +295,18 @@ fn decoder_loop(
             },
         };
 
+        // Loads reach this loop too — from an idle player, and from a
+        // `pending_cmd` the drain just stashed. Same arbitration (#622); a
+        // command that was already accepted carries the newest intent and
+        // passes unchanged.
+        if !accept_load(&cmd, &shared) {
+            continue;
+        }
+
         match cmd {
             AudioCmd::LoadAndPlay {
+                // Arbitrated on receipt (#622); nothing below needs it.
+                intent: _,
                 path,
                 start_ms,
                 track_id,
@@ -426,6 +436,9 @@ fn decoder_loop(
                 );
             }
             AudioCmd::LoadRemoteFileAndPlay {
+                // Kept: the two repair paths below re-send under this same
+                // intent rather than claiming a newer one (#622).
+                intent,
                 path,
                 start_ms,
                 track_id,
@@ -512,6 +525,10 @@ fn decoder_loop(
                         discard_unplayable(&path, discard_on_failure);
                         if let Some(url) = fallback_url.filter(|_| !crate::offline::is_offline()) {
                             pending_cmd = Some(AudioCmd::LoadUrlAndPlay {
+                                // The repair path continues the load it was
+                                // handed, so it keeps that load's intent
+                                // rather than claiming a newer one (#622).
+                                intent,
                                 url,
                                 ext_hint: None,
                                 track_id,
@@ -563,6 +580,8 @@ fn decoder_loop(
                         );
                         discard_unplayable(&path, discard_on_failure);
                         pending_cmd = Some(AudioCmd::LoadUrlAndPlay {
+                            // See above: the same load, continued.
+                            intent,
                             url,
                             ext_hint: None,
                             replay_gain,
@@ -587,6 +606,8 @@ fn decoder_loop(
                 );
             }
             AudioCmd::LoadUrlAndPlay {
+                // Arbitrated on receipt (#622).
+                intent: _,
                 url,
                 ext_hint,
                 track_id,
@@ -1933,6 +1954,44 @@ enum ControlFlow {
     LoadNext,
 }
 
+/// Arbitrate one incoming command against the newest load the decoder
+/// has already been handed (#622).
+///
+/// Returns `false` only for a load whose [`LoadIntent`] is older than one
+/// already delivered — an asynchronous preparation that finished late.
+/// Every other command is accepted, and so is a re-check of the same
+/// intent: a load stashed in `pending_cmd` passes again when the decoder
+/// loop looks at it.
+///
+/// The comparison is against what has actually *arrived*, never against
+/// the engine's allocation counter. An intent can be claimed and never
+/// sent — Next on an exhausted queue, a track row that no longer exists —
+/// and that must not silence a load still on its way.
+///
+/// This has to happen at the moment of *receipt*, not where the command is
+/// executed: the drain returns [`ControlFlow::LoadNext`], which stops the
+/// current track before anything looks at the payload. Dropping a stale
+/// load later would leave the decoder with nothing playing at all.
+fn accept_load(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
+    let Some(intent) = cmd.load_intent() else {
+        return true;
+    };
+    let newest = shared.newest_load_intent.load(Ordering::Acquire);
+    if intent.get() < newest {
+        tracing::debug!(
+            intent = intent.get(),
+            newest,
+            ?cmd,
+            "dropping a load a newer playback intent has already superseded"
+        );
+        return false;
+    }
+    shared
+        .newest_load_intent
+        .store(intent.get(), Ordering::Release);
+    true
+}
+
 /// Drain pending commands without blocking. Returns:
 /// - `Continue` to keep decoding
 /// - `Break` to stop the current track but keep the decoder alive
@@ -1962,17 +2021,19 @@ fn drain_commands(
             Ok(AudioCmd::Shutdown) => return ControlFlow::Shutdown,
             Ok(AudioCmd::Stop) => return ControlFlow::Break,
             Ok(AudioCmd::Seek(ms)) => return ControlFlow::Seek(ms),
-            Ok(cmd @ AudioCmd::LoadAndPlay { .. }) => {
-                shared.paused_output.store(false, Ordering::Release);
-                *pending_cmd = Some(cmd);
-                return ControlFlow::LoadNext;
-            }
-            Ok(cmd @ AudioCmd::LoadRemoteFileAndPlay { .. }) => {
-                shared.paused_output.store(false, Ordering::Release);
-                *pending_cmd = Some(cmd);
-                return ControlFlow::LoadNext;
-            }
-            Ok(cmd @ AudioCmd::LoadUrlAndPlay { .. }) => {
+            // One arm for the three loads: whichever arrives takes over
+            // from the track being decoded. A load older than one already
+            // delivered is skipped and decoding continues — acting on it
+            // would stop the current track to install a selection the user
+            // had already replaced (#622).
+            Ok(
+                cmd @ (AudioCmd::LoadAndPlay { .. }
+                | AudioCmd::LoadRemoteFileAndPlay { .. }
+                | AudioCmd::LoadUrlAndPlay { .. }),
+            ) => {
+                if !accept_load(&cmd, shared) {
+                    continue;
+                }
                 shared.paused_output.store(false, Ordering::Release);
                 *pending_cmd = Some(cmd);
                 return ControlFlow::LoadNext;
@@ -2057,17 +2118,18 @@ fn drain_commands(
                             shared.gapless_enabled.store(on, Ordering::Release)
                         }
                         Ok(AudioCmd::SetSpeed(v)) => shared.set_playback_speed(v),
-                        Ok(cmd @ AudioCmd::LoadAndPlay { .. }) => {
-                            shared.paused_output.store(false, Ordering::Release);
-                            *pending_cmd = Some(cmd);
-                            return ControlFlow::LoadNext;
-                        }
-                        Ok(cmd @ AudioCmd::LoadRemoteFileAndPlay { .. }) => {
-                            shared.paused_output.store(false, Ordering::Release);
-                            *pending_cmd = Some(cmd);
-                            return ControlFlow::LoadNext;
-                        }
-                        Ok(cmd @ AudioCmd::LoadUrlAndPlay { .. }) => {
+                        // Same three-in-one arm as above. A stale load
+                        // found while paused is skipped without clearing
+                        // `paused_output`: the player stays paused rather
+                        // than resuming on a superseded selection (#622).
+                        Ok(
+                            cmd @ (AudioCmd::LoadAndPlay { .. }
+                            | AudioCmd::LoadRemoteFileAndPlay { .. }
+                            | AudioCmd::LoadUrlAndPlay { .. }),
+                        ) => {
+                            if !accept_load(&cmd, shared) {
+                                continue;
+                            }
                             shared.paused_output.store(false, Ordering::Release);
                             *pending_cmd = Some(cmd);
                             return ControlFlow::LoadNext;
@@ -2485,5 +2547,99 @@ mod tests {
             downmix_frame_to_stereo(&[1.0, 2.0, 0.4, 9.9, 0.6, 0.8, 0.1, 0.2, 0.05, 0.07]);
         approx(lo, 1.0 + K * (0.4 + 0.6 + 0.1 + 0.05));
         approx(ro, 2.0 + K * (0.4 + 0.8 + 0.2 + 0.07));
+    }
+}
+#[cfg(test)]
+mod load_ordering_tests {
+    use std::path::PathBuf;
+
+    use super::accept_load;
+    use crate::audio::engine::{AudioCmd, LoadIntent};
+    use crate::audio::replay_gain::TrackGain;
+    use crate::audio::state::SharedPlayback;
+
+    fn load(intent: u64, track_id: i64) -> AudioCmd {
+        AudioCmd::LoadAndPlay {
+            intent: LoadIntent::from_raw(intent),
+            path: PathBuf::from("/dev/null"),
+            start_ms: 0,
+            track_id,
+            duration_ms: 1_000,
+            source_type: "test".into(),
+            source_id: None,
+            replay_gain: TrackGain::default(),
+        }
+    }
+
+    #[test]
+    fn the_first_load_of_a_session_is_accepted() {
+        let shared = SharedPlayback::new();
+        assert!(accept_load(&load(1, 42), &shared));
+    }
+
+    #[test]
+    fn a_preparation_that_finishes_late_is_dropped() {
+        // Issue #622 verbatim. Play from a stopped player claims intent 1
+        // and goes to the database; Next claims intent 2, prepares faster
+        // and reaches the decoder first; Play's load arrives last and used
+        // to win, so the track the user had left behind played.
+        let shared = SharedPlayback::new();
+        assert!(accept_load(&load(2, 42), &shared));
+        assert!(!accept_load(&load(1, 7), &shared));
+    }
+
+    #[test]
+    fn the_newest_load_still_wins_when_it_arrives_last() {
+        // The ordinary case, which must keep working: the newer intent is
+        // also the later arrival and takes over from the older one.
+        let shared = SharedPlayback::new();
+        assert!(accept_load(&load(1, 7), &shared));
+        assert!(accept_load(&load(2, 42), &shared));
+    }
+
+    #[test]
+    fn the_same_intent_passes_a_second_time() {
+        // A load the drain stashed in `pending_cmd` is examined again at
+        // the top of the decoder loop. Re-checking must not drop it.
+        let shared = SharedPlayback::new();
+        assert!(accept_load(&load(3, 42), &shared));
+        assert!(accept_load(&load(3, 42), &shared));
+    }
+
+    #[test]
+    fn an_intent_claimed_but_never_sent_blocks_nothing() {
+        // Next on an exhausted queue claims intent 2 and returns without
+        // sending anything. Intent 1, still preparing, is the only load
+        // there will be — arbitrating against the allocation counter
+        // instead of against what arrived would have silenced it.
+        let shared = SharedPlayback::new();
+        assert!(accept_load(&load(1, 7), &shared));
+    }
+
+    #[test]
+    fn commands_that_are_not_loads_are_never_arbitrated() {
+        // Pause, Seek and friends act on whatever is current, so they are
+        // always meant for the state they find.
+        let shared = SharedPlayback::new();
+        assert!(accept_load(&load(5, 42), &shared));
+        assert!(accept_load(&AudioCmd::Pause, &shared));
+        assert!(accept_load(&AudioCmd::Seek(1_000), &shared));
+        assert!(accept_load(&AudioCmd::Stop, &shared));
+        assert!(accept_load(&AudioCmd::SetVolume(0.5), &shared));
+        // ...and none of them moved the high-water mark.
+        assert!(!accept_load(&load(4, 7), &shared));
+    }
+
+    #[test]
+    fn every_older_intent_stays_dropped() {
+        let shared = SharedPlayback::new();
+        assert!(accept_load(&load(10, 42), &shared));
+        for stale in 1..10 {
+            assert!(
+                !accept_load(&load(stale, 7), &shared),
+                "intent {stale} must stay superseded by 10"
+            );
+        }
+        assert!(accept_load(&load(11, 99), &shared));
     }
 }

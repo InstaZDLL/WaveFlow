@@ -23,10 +23,52 @@ use super::output::{spawn_output_with_mode, DopFormat, OutputHandle};
 use super::replay_gain::TrackGain;
 use super::state::SharedPlayback;
 
+/// Sequence number identifying one playback intent (#622).
+///
+/// Every path that hands a track to the decoder prepares it
+/// asynchronously first — a profile snapshot, queue reads, a ReplayGain
+/// lookup — so two loads started close together reach the decoder in the
+/// order their *preparation* finished, not the order they were asked for.
+/// Pressing Play from a stopped player and then Next a few tens of
+/// milliseconds later left whichever prepared slower in charge, and the
+/// wrong track played.
+///
+/// Take one with [`AudioEngine::next_load_intent`] **when the intent
+/// starts** — before the first await, not just before the send — and carry
+/// it into the load command. The decoder drops any load older than the
+/// newest one it has already been handed, so a preparation that finishes
+/// late is discarded instead of overwriting a newer selection.
+///
+/// The field is private on purpose: a load command cannot be built without
+/// asking the engine for an intent first. Seventeen sites send loads, and
+/// serialising only the ones a bug report happens to name would leave the
+/// rest reordering exactly as before while reading as though ordering were
+/// guaranteed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct LoadIntent(u64);
+
+impl LoadIntent {
+    /// The raw sequence number, for logs and for the decoder's
+    /// `AtomicU64` high-water mark.
+    pub(crate) fn get(self) -> u64 {
+        self.0
+    }
+
+    /// Build an intent from a raw number — tests only. Production code
+    /// goes through [`AudioEngine::next_load_intent`] so every intent on
+    /// one engine comes from the same monotonic counter.
+    #[cfg(test)]
+    pub(crate) fn from_raw(n: u64) -> Self {
+        Self(n)
+    }
+}
+
 /// Commands accepted by the decoder thread.
 #[allow(dead_code)]
 pub enum AudioCmd {
     LoadAndPlay {
+        /// Ordering token for this load — see [`LoadIntent`].
+        intent: LoadIntent,
         path: PathBuf,
         start_ms: u64,
         track_id: i64,
@@ -51,6 +93,8 @@ pub enum AudioCmd {
     /// the decoder fall back to the server if the local file can no longer
     /// be opened between selection and playback.
     LoadRemoteFileAndPlay {
+        /// Ordering token for this load — see [`LoadIntent`].
+        intent: LoadIntent,
         path: PathBuf,
         start_ms: u64,
         track_id: i64,
@@ -114,6 +158,8 @@ pub enum AudioCmd {
     ///   the OS media overlay + Discord RPC + UI can be populated
     ///   without a DB lookup.
     LoadUrlAndPlay {
+        /// Ordering token for this load — see [`LoadIntent`].
+        intent: LoadIntent,
         url: String,
         /// File-extension hint forwarded to the symphonia probe (e.g.
         /// "mp3", "aac"). Many Icecast streams need this to probe
@@ -174,16 +220,24 @@ impl std::fmt::Debug for AudioCmd {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             AudioCmd::LoadAndPlay {
-                track_id, start_ms, ..
+                track_id,
+                start_ms,
+                intent,
+                ..
             } => write!(
                 f,
-                "LoadAndPlay {{ track_id: {track_id}, start_ms: {start_ms} }}"
+                "LoadAndPlay {{ track_id: {track_id}, start_ms: {start_ms}, intent: {} }}",
+                intent.get()
             ),
             AudioCmd::LoadRemoteFileAndPlay {
-                track_id, start_ms, ..
+                track_id,
+                start_ms,
+                intent,
+                ..
             } => write!(
                 f,
-                "LoadRemoteFileAndPlay {{ track_id: {track_id}, start_ms: {start_ms} }}"
+                "LoadRemoteFileAndPlay {{ track_id: {track_id}, start_ms: {start_ms}, intent: {} }}",
+                intent.get()
             ),
             AudioCmd::Pause => write!(f, "Pause"),
             AudioCmd::Resume => write!(f, "Resume"),
@@ -199,11 +253,39 @@ impl std::fmt::Debug for AudioCmd {
             AudioCmd::SetNextTrack { track_id, .. } => {
                 write!(f, "SetNextTrack {{ track_id: {track_id} }}")
             }
-            AudioCmd::LoadUrlAndPlay { url, track_id, .. } => {
-                write!(f, "LoadUrlAndPlay {{ track_id: {track_id}, url: {url} }}")
+            AudioCmd::LoadUrlAndPlay {
+                url,
+                track_id,
+                intent,
+                ..
+            } => {
+                write!(
+                    f,
+                    "LoadUrlAndPlay {{ track_id: {track_id}, url: {url}, intent: {} }}",
+                    intent.get()
+                )
             }
             AudioCmd::SwapProducer(_) => write!(f, "SwapProducer(<producer>)"),
             AudioCmd::Shutdown => write!(f, "Shutdown"),
+        }
+    }
+}
+
+impl AudioCmd {
+    /// The ordering token of a load command, `None` for everything else.
+    ///
+    /// Only the three loads are arbitrated: they are the commands that
+    /// *replace* what is playing. Pause, Seek, a volume change and the
+    /// rest act on whatever is current, so they are always meant for the
+    /// state they find. `SetNextTrack` is deliberately absent too — it
+    /// arms the gapless prefetch rather than taking over, and dropping one
+    /// would cost a gapless hand-off to prevent nothing audible.
+    pub(crate) fn load_intent(&self) -> Option<LoadIntent> {
+        match self {
+            AudioCmd::LoadAndPlay { intent, .. }
+            | AudioCmd::LoadRemoteFileAndPlay { intent, .. }
+            | AudioCmd::LoadUrlAndPlay { intent, .. } => Some(*intent),
+            _ => None,
         }
     }
 }
@@ -395,6 +477,10 @@ pub struct AudioEngine {
     /// [`AudioCmd::LoadAndPlay`] so a local-track switch doesn't
     /// resurrect the dead radio session on a later rebuild.
     radio_resume: Mutex<Option<RadioResumeState>>,
+    /// Monotonic source of [`LoadIntent`]s (#622). Handed out by
+    /// [`Self::next_load_intent`] at the start of every playback intent, so
+    /// the decoder can tell a late preparation from a newer selection.
+    load_intents: std::sync::atomic::AtomicU64,
 }
 
 /// Snapshot of an active non-library source, retained by the engine so output
@@ -432,7 +518,9 @@ pub(crate) enum RadioResumeSource {
 }
 
 impl RadioResumeState {
-    fn into_command(self, position_ms: u64) -> AudioCmd {
+    /// Rebuild the command that resumes this session, stamped with the
+    /// `intent` of the rebuild asking for it (#622).
+    fn into_command(self, position_ms: u64, intent: LoadIntent) -> AudioCmd {
         match self.source {
             RadioResumeSource::Url {
                 url,
@@ -441,6 +529,7 @@ impl RadioResumeState {
                 duration_ms,
                 seekable_file,
             } => AudioCmd::LoadUrlAndPlay {
+                intent,
                 url,
                 ext_hint,
                 track_id: self.track_id,
@@ -463,6 +552,7 @@ impl RadioResumeState {
                 fallback_url,
                 replay_gain,
             } => AudioCmd::LoadRemoteFileAndPlay {
+                intent,
                 // Radio resume never restores a cache entry.
                 discard_on_failure: false,
                 path,
@@ -564,6 +654,7 @@ impl AudioEngine {
             exclusive_flaps: Mutex::new(FlapWindow::default()),
             rebuild_gate: Mutex::new(RebuildGate::default()),
             radio_resume: Mutex::new(None),
+            load_intents: std::sync::atomic::AtomicU64::new(0),
         })
     }
 
@@ -578,6 +669,24 @@ impl AudioEngine {
     /// snapshot. Capture happens before the channel send so a failed
     /// send still leaves the snapshot consistent with what the user
     /// asked for.
+    /// Claim the next playback intent (#622).
+    ///
+    /// Call this **at the start of the intent** — before the profile
+    /// snapshot, the queue read and the ReplayGain lookup — and carry the
+    /// result into the load command. Taking it just before the send would
+    /// stamp the order in which preparations *finished*, which is the very
+    /// order that plays the wrong track.
+    ///
+    /// Starts at 1, so the decoder's "nothing seen yet" high-water mark of
+    /// 0 accepts the first load of the session.
+    pub fn next_load_intent(&self) -> LoadIntent {
+        LoadIntent(
+            self.load_intents
+                .fetch_add(1, std::sync::atomic::Ordering::AcqRel)
+                + 1,
+        )
+    }
+
     pub fn send(&self, cmd: AudioCmd) -> AppResult<()> {
         apply_radio_resume_update(&self.radio_resume, &cmd);
         self.cmd_tx
@@ -1246,9 +1355,14 @@ impl AudioEngine {
             }
         }
         if resume == RebuildResume::Play {
+            // One intent for this resume, taken before either branch
+            // prepares anything (#622). The local-track branch reads the
+            // row back out of SQLite, and that read must not land on top of
+            // a selection the user made while it was in flight.
+            let intent = self.next_load_intent();
             if track_id < 0 {
                 if let Some(state) = self.snapshot_radio_resume() {
-                    let _ = self.cmd_tx.send(state.into_command(position_ms));
+                    let _ = self.cmd_tx.send(state.into_command(position_ms, intent));
                 }
             } else if track_id > 0 {
                 let app = self.app.clone();
@@ -1278,6 +1392,7 @@ impl AudioEngine {
                         let replay_gain =
                             crate::commands::player::fetch_replay_gain(&pool, track_id).await;
                         let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
+                            intent,
                             path: std::path::PathBuf::from(file_path),
                             start_ms: position_ms,
                             track_id,
@@ -1507,9 +1622,14 @@ impl AudioEngine {
         // `LoadUrlAndPlay`; local tracks (positive id) hit the
         // SQLite-keyed async resume.
         if was_playing {
+            // One intent for this resume, taken before either branch
+            // prepares anything (#622). The local-track branch reads the
+            // row back out of SQLite, and that read must not land on top of
+            // a selection the user made while it was in flight.
+            let intent = self.next_load_intent();
             if track_id < 0 {
                 if let Some(state) = self.snapshot_radio_resume() {
-                    let _ = self.cmd_tx.send(state.into_command(position_ms));
+                    let _ = self.cmd_tx.send(state.into_command(position_ms, intent));
                 }
             } else if track_id > 0 {
                 // Best-effort: pull file path + RG from the active profile
@@ -1539,6 +1659,7 @@ impl AudioEngine {
                     let replay_gain =
                         crate::commands::player::fetch_replay_gain(&pool, track_id).await;
                     let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
+                        intent,
                         path: std::path::PathBuf::from(file_path),
                         start_ms: position_ms,
                         track_id,
@@ -1735,9 +1856,14 @@ impl AudioEngine {
         // the WASAPI flip doesn't drop the user off the stream.
         // Local tracks hit the existing SQLite-keyed async resume.
         if was_playing {
+            // One intent for this resume, taken before either branch
+            // prepares anything (#622). The local-track branch reads the
+            // row back out of SQLite, and that read must not land on top of
+            // a selection the user made while it was in flight.
+            let intent = self.next_load_intent();
             if track_id < 0 {
                 if let Some(state) = self.snapshot_radio_resume() {
-                    let _ = self.cmd_tx.send(state.into_command(position_ms));
+                    let _ = self.cmd_tx.send(state.into_command(position_ms, intent));
                 }
             } else if track_id > 0 {
                 let app = self.app.clone();
@@ -1765,6 +1891,7 @@ impl AudioEngine {
                     let replay_gain =
                         crate::commands::player::fetch_replay_gain(&pool, track_id).await;
                     let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
+                        intent,
                         path: std::path::PathBuf::from(file_path),
                         start_ms: position_ms,
                         track_id,
@@ -1909,6 +2036,8 @@ fn rebuild_resume(
 fn apply_radio_resume_update(snapshot: &Mutex<Option<RadioResumeState>>, cmd: &AudioCmd) {
     match cmd {
         AudioCmd::LoadUrlAndPlay {
+            // The rebuild that resumes this session mints its own (#622).
+            intent: _,
             url,
             ext_hint,
             track_id,
@@ -2230,6 +2359,7 @@ mod radio_resume_tests {
 
     fn url_cmd(url: &str, track_id: i64) -> AudioCmd {
         AudioCmd::LoadUrlAndPlay {
+            intent: LoadIntent::from_raw(1),
             url: url.to_string(),
             ext_hint: Some("mp3".to_string()),
             track_id,
@@ -2245,6 +2375,7 @@ mod radio_resume_tests {
 
     fn local_cmd(track_id: i64) -> AudioCmd {
         AudioCmd::LoadAndPlay {
+            intent: LoadIntent::from_raw(1),
             path: PathBuf::from("/dev/null"),
             start_ms: 0,
             track_id,
@@ -2257,6 +2388,7 @@ mod radio_resume_tests {
 
     fn remote_local_cmd(fallback_url: Option<&str>, track_id: i64) -> AudioCmd {
         AudioCmd::LoadRemoteFileAndPlay {
+            intent: LoadIntent::from_raw(1),
             path: PathBuf::from("/dev/null"),
             start_ms: 0,
             track_id,
@@ -2323,7 +2455,7 @@ mod radio_resume_tests {
             &remote_local_cmd(Some("https://server.invalid/stream"), -3),
         );
         let snap = lock.lock().unwrap().clone().expect("snapshot stored");
-        match snap.into_command(4_321) {
+        match snap.into_command(4_321, LoadIntent::from_raw(9)) {
             AudioCmd::LoadRemoteFileAndPlay {
                 path,
                 start_ms,
@@ -2353,7 +2485,7 @@ mod radio_resume_tests {
         apply_radio_resume_update(&lock, &url_cmd("https://radio.invalid/", -1));
         apply_radio_resume_update(&lock, &remote_local_cmd(None, -3));
         let snap = lock.lock().unwrap().clone().expect("local snapshot stored");
-        match snap.into_command(7_654) {
+        match snap.into_command(7_654, LoadIntent::from_raw(9)) {
             AudioCmd::LoadRemoteFileAndPlay {
                 path,
                 start_ms,

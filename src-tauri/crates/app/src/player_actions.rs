@@ -25,7 +25,10 @@ use std::sync::Arc;
 use tauri::{AppHandle, Manager};
 
 use crate::{
-    audio::{engine::AudioCmd, AudioEngine, PlayerState},
+    audio::{
+        engine::{AudioCmd, LoadIntent},
+        AudioEngine, PlayerState,
+    },
     commands,
     error::{AppError, AppResult},
     queue::{self, Direction, QueueTrack},
@@ -148,6 +151,11 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
         tracing::debug!("resume already in flight; ignoring this play");
         return Ok(());
     };
+    // The intent starts here, not at the send below (#622). Everything
+    // between the two is database work, and a Next pressed during it is a
+    // newer choice than this resume — the guard above only stops a second
+    // resume, not a different action.
+    let intent = engine.next_load_intent();
     // One lock for both: two awaits could straddle a profile switch and
     // pair one profile's resume point with the other's id.
     let (pool, profile_id) = state.require_profile_snapshot().await?;
@@ -167,6 +175,7 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
     let previous = engine.shared().state();
     engine.shared().set_state(PlayerState::Loading);
     let sent = engine.send(AudioCmd::LoadAndPlay {
+        intent,
         path: track.as_path(),
         start_ms: position_ms,
         track_id: track.id,
@@ -193,12 +202,14 @@ async fn load_and_play(
     pool: &sqlx::SqlitePool,
     track: QueueTrack,
     profile_id: Option<i64>,
+    intent: LoadIntent,
 ) {
     let engine = app.state::<Arc<AudioEngine>>();
     commands::player::emit_track_changed(app, &app.state::<AppState>().paths, &track, profile_id);
     commands::player::emit_queue_changed(app);
     let replay_gain = commands::player::fetch_replay_gain(pool, track.id).await;
     let _ = engine.send(AudioCmd::LoadAndPlay {
+        intent,
         path: track.as_path(),
         start_ms: 0,
         track_id: track.id,
@@ -215,6 +226,10 @@ async fn load_and_play(
 /// the surface that triggered it (`"tray"`, `"mpd"`, …).
 pub async fn step(app: &AppHandle, direction: Direction, label: &str) -> Moved {
     let state = app.state::<AppState>();
+    // Claimed with the key press (#622), before the profile snapshot and
+    // the queue advance below — a resume still preparing when this lands
+    // is older than this step, however much faster it finishes.
+    let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
     // One atomic snapshot: the pool and the profile id come from the same
     // read guard, so a profile switch can't slip a mismatched pair between
     // two separate `require_*` calls.
@@ -234,7 +249,7 @@ pub async fn step(app: &AppHandle, direction: Direction, label: &str) -> Moved {
             return Moved::Nothing;
         }
     };
-    load_and_play(app, &pool, track, Some(profile_id)).await;
+    load_and_play(app, &pool, track, Some(profile_id), intent).await;
     Moved::Track
 }
 
@@ -300,6 +315,7 @@ pub async fn play_at_index_with(
     position: i64,
     label: &str,
 ) -> Moved {
+    let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
     let track = match queue::jump_to(pool, position).await {
         Ok(Some(track)) => track,
         Ok(None) => return Moved::Nothing,
@@ -308,6 +324,6 @@ pub async fn play_at_index_with(
             return Moved::Nothing;
         }
     };
-    load_and_play(app, pool, track, Some(profile_id)).await;
+    load_and_play(app, pool, track, Some(profile_id), intent).await;
     Moved::Track
 }

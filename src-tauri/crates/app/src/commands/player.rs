@@ -811,6 +811,9 @@ pub async fn player_jump_to_index(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     position: i64,
 ) -> AppResult<()> {
+    // Before the first await (#622): the queue read and the ReplayGain
+    // lookup below are exactly where a newer click overtakes this one.
+    let intent = engine.next_load_intent();
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();
     let Some(track) = queue::jump_to(&pool, position).await? else {
@@ -820,6 +823,7 @@ pub async fn player_jump_to_index(
     emit_queue_changed(&app);
     let replay_gain = fetch_replay_gain(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
+        intent,
         path: track.as_path(),
         start_ms: 0,
         track_id: track.id,
@@ -2000,6 +2004,10 @@ pub async fn player_play_tracks(
     track_ids: Vec<i64>,
     start_index: usize,
 ) -> AppResult<()> {
+    // Claimed before the queue is even filled (#622): this command does
+    // the most preparation of any load path, so it is the one most likely
+    // to finish after a Next the user pressed while waiting for it.
+    let intent = engine.next_load_intent();
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();
 
@@ -2050,6 +2058,7 @@ pub async fn player_play_tracks(
             emit_track_changed(&app, &state.paths, &track, profile_id);
             let replay_gain = fetch_replay_gain(&pool, track.id).await;
             return engine.send(AudioCmd::LoadRemoteFileAndPlay {
+                intent,
                 // The missing path on purpose: the decoder's repair path
                 // is exactly this situation, and reusing it keeps one
                 // implementation of "try the file, then the server".
@@ -2079,6 +2088,7 @@ pub async fn player_play_tracks(
 
     let replay_gain = fetch_replay_gain(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
+        intent,
         path: pb,
         start_ms: 0,
         track_id: track.id,
@@ -2154,6 +2164,9 @@ pub async fn player_next(
         crate::remote::playback::advance(&app, Direction::Next).await?;
         return Ok(());
     }
+    // After the remote-queue branch, which mints its own intent, and
+    // before this path's first await (#622).
+    let intent = engine.next_load_intent();
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();
     let repeat = queue::read_repeat_mode(&pool).await;
@@ -2176,6 +2189,7 @@ pub async fn player_next(
     emit_queue_changed(&app);
     let replay_gain = fetch_replay_gain(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
+        intent,
         path: track.as_path(),
         start_ms: 0,
         track_id: track.id,
@@ -2205,6 +2219,9 @@ pub async fn player_previous(
         crate::remote::playback::advance(&app, Direction::Previous).await?;
         return Ok(());
     }
+    // Same as `player_next`: past the restart-in-place and remote-queue
+    // branches, before this path's first await (#622).
+    let intent = engine.next_load_intent();
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();
     let repeat = queue::read_repeat_mode(&pool).await;
@@ -2215,6 +2232,7 @@ pub async fn player_previous(
     emit_queue_changed(&app);
     let replay_gain = fetch_replay_gain(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
+        intent,
         path: track.as_path(),
         start_ms: 0,
         track_id: track.id,
@@ -2299,6 +2317,10 @@ pub async fn player_play_url(
     }
 
     let track_id = next_radio_track_id();
+    // A station's HTTP probe happens on the decoder thread, but the
+    // metadata push below is not free — and a click on a library track
+    // must still be able to overtake this one (#622).
+    let intent = engine.next_load_intent();
 
     // Push the metadata to the OS overlay before dispatching the
     // command so the SMTC / MPRIS tile updates while the HTTP probe
@@ -2326,6 +2348,7 @@ pub async fn player_play_url(
 
     tracing::info!(track_id, "dispatching AudioCmd::LoadUrlAndPlay");
     engine.send(AudioCmd::LoadUrlAndPlay {
+        intent,
         // Radio: an endless body has no length and no end, so nothing here
         // could ever be published as a complete entry, and nothing to seek.
         cache: None,

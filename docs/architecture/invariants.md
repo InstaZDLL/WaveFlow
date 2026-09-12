@@ -148,6 +148,26 @@ The cpal callback (and the WASAPI exclusive thread) MUST NOT allocate, lock, or 
 
 The decoder's last stage is a `[-1.0, 1.0]` safety clamp ([`decoder::clamp_to_unity`](../../src-tauri/crates/app/src/audio/decoder.rs)) applied to every buffer right before `push_samples` — identity for an untouched stream (so bit-perfect output is preserved), it only bites when a gain stage overshoots unity and would otherwise hard-clip the DAC.
 
+### Every load command carries its intent
+
+A command that hands the decoder a track — `LoadAndPlay`,
+`LoadRemoteFileAndPlay`, `LoadUrlAndPlay` — MUST carry a `LoadIntent`
+claimed from `AudioEngine::next_load_intent` **at the moment the intent
+starts**: before the profile snapshot, the queue read and the ReplayGain
+lookup, not just before the send. The decoder drops any load older than one
+it has already been handed.
+
+Taking the token late is the failure mode, not a style question. Every load
+path prepares asynchronously first, so a token claimed just before the send
+records the order preparations *finished* — which is exactly the order that
+plays the wrong track (#622). The type makes the token compulsory (its field
+is private, so no load can be built without one) but it cannot tell whether
+you claimed it early enough; that part is on the author of each new load
+site.
+
+Detail, and why `SetNextTrack` is excluded: [ordering the
+loads](../features/playback.md#ordering-the-loads).
+
 Wider topology: [audio architecture](audio.md).
 
 ---

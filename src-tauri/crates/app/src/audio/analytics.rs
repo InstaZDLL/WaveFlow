@@ -101,6 +101,17 @@ async fn handle_message(
 ) -> Result<(), String> {
     let state = app.state::<AppState>();
 
+    // The auto-advance's intent belongs to the moment the track ended, not
+    // to the moment its replacement is finally ready (#622): the play_event
+    // write, the repeat-mode read, the queue advance and the ReplayGain
+    // lookup all sit in between, and a Next pressed during them is newer.
+    //
+    // `None` only while the engine has not been registered in Tauri's state
+    // yet, which is before anything can have played — the same reason the
+    // sleep-timer read below tolerates it.
+    let engine = app.try_state::<std::sync::Arc<crate::audio::AudioEngine>>();
+    let intent = engine.as_deref().map(|e| e.next_load_intent());
+
     // A remote-queue track has no library row: it writes no play_event and
     // needs no profile pool. Handle it before acquiring the pool so a
     // missing or momentarily-unavailable profile can't strand remote
@@ -150,7 +161,6 @@ async fn handle_message(
             // pause. swap()'ing the flag means each arm is honoured
             // exactly once — the user can re-arm without it
             // sticking around forever.
-            let engine = app.try_state::<std::sync::Arc<crate::audio::AudioEngine>>();
             let pause_after = engine
                 .as_deref()
                 .map(|e| {
@@ -168,12 +178,16 @@ async fn handle_message(
                     .await
                     .map_err(|e| format!("advance: {e}"))?;
                 if let Some(track) = next {
+                    let Some(intent) = intent else {
+                        return Err("auto-advance has no engine to load through".into());
+                    };
                     let profile_id = state.require_profile_id().await.ok();
                     emit_track_changed(app, &state.paths, &track, profile_id);
                     emit_queue_changed(app);
                     let replay_gain =
                         crate::commands::player::fetch_replay_gain(&pool, track.id).await;
                     let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
+                        intent,
                         path: track.as_path(),
                         start_ms: 0,
                         track_id: track.id,

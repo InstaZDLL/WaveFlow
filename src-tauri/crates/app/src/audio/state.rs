@@ -73,6 +73,15 @@ pub struct SharedPlayback {
     pub channels: AtomicU16,
     pub volume_bits: AtomicU32,
     pub seek_generation: AtomicU64,
+    /// Highest [`LoadIntent`](super::engine::LoadIntent) the decoder has
+    /// been handed, `0` before the first load (#622).
+    ///
+    /// The decoder thread is its only reader and its only writer — every
+    /// load arrives on the command channel, which it alone drains. It lives
+    /// here rather than in a local because loads are received at three
+    /// separate points (the idle loop, the drain between packets, and the
+    /// drain inside the pause loop) and all three already hold this struct.
+    pub newest_load_intent: AtomicU64,
     pub base_offset_ms: AtomicU64,
     /// ID of the track currently loaded in the decoder (0 = none).
     /// Written by the decoder thread at `LoadAndPlay` time, read by
@@ -226,6 +235,7 @@ impl SharedPlayback {
             channels: AtomicU16::new(0),
             volume_bits: AtomicU32::new(1.0_f32.to_bits()),
             seek_generation: AtomicU64::new(0),
+            newest_load_intent: AtomicU64::new(0),
             base_offset_ms: AtomicU64::new(0),
             current_track_id: AtomicI64::new(0),
             paused_output: AtomicBool::new(false),

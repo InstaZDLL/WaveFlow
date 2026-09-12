@@ -18,7 +18,10 @@ use sqlx::Row;
 use tauri::{AppHandle, Manager};
 
 use crate::{
-    audio::{engine::AudioCmd, AudioEngine},
+    audio::{
+        engine::{AudioCmd, LoadIntent},
+        AudioEngine,
+    },
     error::AppResult,
     queue::Direction,
     remote_playback::{RemoteEntry, RemoteQueue},
@@ -39,7 +42,8 @@ pub async fn play_entries(
     app.state::<AppState>()
         .remote_playback
         .set(RemoteQueue { entries, index });
-    play_current(app).await
+    let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
+    play_current(app, intent).await
 }
 
 /// Start playing a projected remote playlist from `start_index`, filling
@@ -120,8 +124,9 @@ pub async fn play_track_ids(
 /// panel's click-to-jump on a remote session.
 pub async fn jump_to(app: &AppHandle, index: usize) -> AppResult<()> {
     let state = app.state::<AppState>();
+    let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
     match state.remote_playback.seek_to(index) {
-        Some(_) => play_current(app).await,
+        Some(_) => play_current(app, intent).await,
         None => Ok(()),
     }
 }
@@ -136,13 +141,16 @@ pub async fn jump_to(app: &AppHandle, index: usize) -> AppResult<()> {
 /// clean rather than acting on a phantom cursor.
 pub async fn advance(app: &AppHandle, direction: Direction) -> AppResult<bool> {
     let state = app.state::<AppState>();
+    // Before the repeat-mode read and everything `play_current` does after
+    // it — a ticket round-trip, a reconciliation lookup (#622).
+    let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
     let repeat = {
         let pool = state.require_profile_pool().await?;
         crate::queue::read_repeat_mode(&pool).await
     };
     match state.remote_playback.step(direction, repeat) {
         Some(_) => {
-            if let Err(err) = play_current(app).await {
+            if let Err(err) = play_current(app, intent).await {
                 let engine = app.state::<Arc<AudioEngine>>();
                 let _ = engine.send(AudioCmd::Stop);
                 state.remote_playback.clear();
@@ -163,7 +171,7 @@ pub async fn advance(app: &AppHandle, direction: Direction) -> AppResult<bool> {
 /// remote sentinel and metadata path, so queue controls and auto-advance stay
 /// remote. When online, a best-effort ticket accompanies the local command as
 /// a decoder-level fallback if the file disappears or fails to decode.
-async fn play_current(app: &AppHandle) -> AppResult<()> {
+async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
     let state = app.state::<AppState>();
     let Some(entry) = state.remote_playback.current() else {
         return Ok(());
@@ -195,6 +203,7 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
             }
         };
         engine.send(AudioCmd::LoadRemoteFileAndPlay {
+            intent,
             path: local.path,
             start_ms: 0,
             track_id,
@@ -234,6 +243,7 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
         if let Some(path) = crate::remote::download::lookup(&mut conn, &entry.id).await {
             drop(conn);
             engine.send(AudioCmd::LoadRemoteFileAndPlay {
+                intent,
                 path,
                 start_ms: 0,
                 track_id,
@@ -268,6 +278,7 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
                 .ok()
         };
         engine.send(AudioCmd::LoadRemoteFileAndPlay {
+            intent,
             path,
             start_ms: 0,
             track_id,
@@ -292,6 +303,7 @@ async fn play_current(app: &AppHandle) -> AppResult<()> {
 
     let url = crate::remote::stream::ticket_url(&state, &entry.id).await?;
     engine.send(AudioCmd::LoadUrlAndPlay {
+        intent,
         // Fill the cache from the blocks this playback was going to read
         // anyway. Nothing extra is fetched and nothing is delayed.
         cache: Some(crate::audio::stream_cache::CacheTarget {
