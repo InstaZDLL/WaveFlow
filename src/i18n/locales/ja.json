@@ -769,7 +769,9 @@
     "activeLabel": "アクティブ出力",
     "loading": "デバイスの検索中…",
     "empty": "利用可能な出力デバイスがありません",
-    "systemDefault": "デフォルト"
+    "systemDefault": "デフォルト",
+    "pinnedUnavailable": "固定中・利用不可",
+    "reopen": "このデバイスを開き直す"
   },
   "profiles": {
     "select": {

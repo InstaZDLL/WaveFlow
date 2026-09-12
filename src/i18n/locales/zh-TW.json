@@ -769,7 +769,9 @@
     "activeLabel": "作用中的輸出",
     "loading": "正在搜尋裝置……",
     "empty": "沒有可用的輸出裝置",
-    "systemDefault": "預設"
+    "systemDefault": "預設",
+    "pinnedUnavailable": "已釘選，無法使用",
+    "reopen": "重新開啟此裝置"
   },
   "profiles": {
     "select": {

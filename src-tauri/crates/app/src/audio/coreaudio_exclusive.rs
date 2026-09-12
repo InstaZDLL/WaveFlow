@@ -77,7 +77,7 @@ pub fn spawn_coreaudio_exclusive_output_thread(
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
     let (producer, consumer) = RingBuffer::<f32>::new(RING_CAPACITY);
     let (shutdown_tx, shutdown_rx) = bounded::<()>(1);
-    let (init_tx, init_rx) = bounded::<AppResult<()>>(1);
+    let (init_tx, init_rx) = bounded::<AppResult<Option<String>>>(1);
 
     let thread_shared = shared.clone();
     let thread_app = app.clone();
@@ -101,12 +101,13 @@ pub fn spawn_coreaudio_exclusive_output_thread(
         .map_err(|e| AppError::Audio(format!("spawn coreaudio exclusive thread: {e}")))?;
 
     match init_rx.recv() {
-        Ok(Ok(())) => Ok((
+        Ok(Ok(opened_device)) => Ok((
             producer,
             OutputHandle {
                 shutdown_tx,
                 join,
                 device_name,
+                opened_device,
                 // Hog mode means the system stops mixing anything
                 // else into this device — the same ownership WASAPI
                 // and ALSA report. It used to say `false` here, which
@@ -129,13 +130,16 @@ fn output_thread_main(
     shared: Arc<SharedPlayback>,
     consumer: Consumer<f32>,
     shutdown_rx: Receiver<()>,
-    init_tx: Sender<AppResult<()>>,
+    init_tx: Sender<AppResult<Option<String>>>,
     app: AppHandle,
     device_name: Option<String>,
     dop: Option<DopFormat>,
 ) {
-    let device_id = match resolve_device(&device_name) {
-        Some(id) => id,
+    // `resolve_device` hands back the name only when the pin matched; a
+    // fallback to the default output reports `None`, which the picker
+    // shows as unknown rather than as the pin (#612).
+    let (device_id, opened_device) = match resolve_device(&device_name) {
+        Some(resolved) => resolved,
         None => {
             let _ = init_tx.send(Err(AppError::Audio(
                 "coreaudio: no output device found".into(),
@@ -153,8 +157,23 @@ fn output_thread_main(
 
     // Everything past hog acquisition must release it on the way out.
     let result = match dop {
-        Some(dop) => open_and_run(&shared, consumer, &shutdown_rx, &init_tx, device_id, dop),
-        None => open_and_run_pcm(&shared, consumer, &shutdown_rx, &init_tx, device_id),
+        Some(dop) => open_and_run(
+            &shared,
+            consumer,
+            &shutdown_rx,
+            &init_tx,
+            device_id,
+            opened_device,
+            dop,
+        ),
+        None => open_and_run_pcm(
+            &shared,
+            consumer,
+            &shutdown_rx,
+            &init_tx,
+            device_id,
+            opened_device,
+        ),
     };
 
     release_hog(device_id);
@@ -197,8 +216,9 @@ fn open_and_run(
     shared: &Arc<SharedPlayback>,
     mut consumer: Consumer<f32>,
     shutdown_rx: &Receiver<()>,
-    init_tx: &Sender<AppResult<()>>,
+    init_tx: &Sender<AppResult<Option<String>>>,
     device_id: AudioDeviceID,
+    opened_device: Option<String>,
     dop: DopFormat,
 ) -> AppResult<ExitReason> {
     let channels = dop.channels as usize;
@@ -316,7 +336,7 @@ fn open_and_run(
     );
 
     // Init succeeded — tell the spawn call, then park until teardown.
-    let _ = init_tx.send(Ok(()));
+    let _ = init_tx.send(Ok(opened_device));
 
     let exit = park_until_the_device_goes(shutdown_rx, device_id);
 
@@ -342,8 +362,9 @@ fn open_and_run_pcm(
     shared: &Arc<SharedPlayback>,
     mut consumer: Consumer<f32>,
     shutdown_rx: &Receiver<()>,
-    init_tx: &Sender<AppResult<()>>,
+    init_tx: &Sender<AppResult<Option<String>>>,
     device_id: AudioDeviceID,
+    opened_device: Option<String>,
 ) -> AppResult<ExitReason> {
     // Read, don't set: this is the device's own current format, and the
     // whole point of the PCM path is that we leave it alone.
@@ -445,7 +466,7 @@ fn open_and_run_pcm(
         "coreaudio exclusive stream opened"
     );
 
-    let _ = init_tx.send(Ok(()));
+    let _ = init_tx.send(Ok(opened_device));
 
     let exit = park_until_the_device_goes(shutdown_rx, device_id);
 
@@ -569,19 +590,24 @@ fn read_physical_stream_format(
     Ok(unsafe { asbd.assume_init() })
 }
 
-/// Resolve the persisted device name to a CoreAudio device id, or the
-/// default output when unset / not found.
-fn resolve_device(device_name: &Option<String>) -> Option<AudioDeviceID> {
+/// Resolve the persisted device name to a CoreAudio device id, plus the
+/// name of what actually opened: `Some(pin)` when the pinned name
+/// matched, `None` when we fell through to the default output, which we
+/// have no name for here.
+///
+/// The picker needs that distinction — ticking the pin after a silent
+/// fallback described a device playing nothing (#612).
+fn resolve_device(device_name: &Option<String>) -> Option<(AudioDeviceID, Option<String>)> {
     if let Some(name) = device_name.as_deref().filter(|n| !n.is_empty()) {
         if let Some(id) = get_device_id_from_name(name, false) {
-            return Some(id);
+            return Some((id, Some(name.to_string())));
         }
         tracing::warn!(
             requested = name,
             "coreaudio: requested device not found, using default output"
         );
     }
-    get_default_device_id(false)
+    get_default_device_id(false).map(|id| (id, None))
 }
 
 /// Take hog mode (exclusive access). Errors if another process already

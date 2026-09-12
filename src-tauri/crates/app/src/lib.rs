@@ -1025,6 +1025,7 @@ pub fn run() {
             commands::player::player_get_audio_settings,
             commands::player::player_list_output_devices,
             commands::player::player_set_output_device,
+            commands::player::player_reopen_output_device,
             commands::player::player_set_exclusive_output,
             commands::player::player_get_exclusive_output,
             commands::stats::stats_overview,

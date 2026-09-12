@@ -1775,7 +1775,16 @@ pub struct OutputDeviceRow {
     pub id: String,
     pub name: String,
     pub is_default: bool,
+    /// The device audio really comes out of, read from what the backend
+    /// opened rather than what it was asked for. A pinned device that is
+    /// no longer enumerated is replaced by the default endpoint on open,
+    /// and flagging the pin then described a device playing nothing
+    /// (#612).
     pub is_active: bool,
+    /// The device the user picked, whether or not it could be opened.
+    /// Differs from [`Self::is_active`] exactly during such a fallback,
+    /// which is what lets the picker say so instead of hiding it.
+    pub is_pinned: bool,
 }
 
 /// Enumerate every output device and flag which one the engine is
@@ -1795,7 +1804,10 @@ pub struct OutputDeviceRow {
 pub async fn player_list_output_devices(
     engine: tauri::State<'_, Arc<AudioEngine>>,
 ) -> AppResult<Vec<OutputDeviceRow>> {
-    let active = engine.current_output_device();
+    // Two different questions: where the audio actually goes, and what
+    // the user asked for. They diverge after a silent fallback (#612).
+    let playing = engine.current_output_opened_device();
+    let pinned = engine.current_output_device();
     // cpal enumeration walks the OS audio stack and can block for
     // ~100 ms+ on Linux. Push it onto the blocking pool so the tokio
     // runtime stays responsive — without this the WebView freezes
@@ -1812,12 +1824,19 @@ pub async fn player_list_output_devices(
             // header reads "Active output" with nothing highlighted
             // on first open, which looks broken even though playback
             // works fine.
-            let is_active = match active.as_deref() {
+            // Prefer what actually opened. A backend that cannot name it
+            // leaves the pin as the best answer available, and with no
+            // pin either the engine is tracking the OS default.
+            let is_active = match playing.as_deref() {
                 Some(name) => d.id == name,
-                None => d.is_default,
+                None => match pinned.as_deref() {
+                    Some(name) => d.id == name,
+                    None => d.is_default,
+                },
             };
             OutputDeviceRow {
                 is_active,
+                is_pinned: pinned.as_deref().is_some_and(|name| d.id == name),
                 id: d.id,
                 name: d.name,
                 is_default: d.is_default,
@@ -1865,6 +1884,25 @@ pub async fn player_set_output_device(
         .await;
     }
     Ok(())
+}
+
+/// Re-open the output stream on the device that is already selected.
+///
+/// The picker's active row used to be inert, so a user whose audio had
+/// drifted onto another endpoint had to select a different device and
+/// then select theirs again to force a real lookup (#612). Clicking the
+/// active row lands here instead. The selection itself doesn't change,
+/// so nothing is persisted.
+#[tauri::command]
+pub async fn player_reopen_output_device(
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+) -> AppResult<()> {
+    let engine_clone: Arc<AudioEngine> = engine.inner().clone();
+    // Same rationale as the two commands above: opening and tearing down
+    // a stream blocks, and the runtime must not wedge behind it.
+    tokio::task::spawn_blocking(move || engine_clone.reopen_output_device())
+        .await
+        .map_err(|e| AppError::Audio(format!("reopen output device task: {e}")))?
 }
 
 /// Toggle exclusive output — the audiophile path where the app owns

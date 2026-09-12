@@ -66,7 +66,7 @@ pub fn spawn_exclusive_output_thread(
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
     let (producer, consumer) = RingBuffer::<f32>::new(RING_CAPACITY);
     let (shutdown_tx, shutdown_rx) = bounded::<()>(1);
-    let (init_tx, init_rx) = bounded::<AppResult<()>>(1);
+    let (init_tx, init_rx) = bounded::<AppResult<Option<String>>>(1);
 
     let thread_shared = shared.clone();
     let thread_app = app.clone();
@@ -87,12 +87,13 @@ pub fn spawn_exclusive_output_thread(
         .map_err(|e| AppError::Audio(format!("spawn wasapi exclusive thread: {e}")))?;
 
     match init_rx.recv() {
-        Ok(Ok(())) => Ok((
+        Ok(Ok(opened_device)) => Ok((
             producer,
             OutputHandle {
                 shutdown_tx,
                 join,
                 device_name,
+                opened_device,
                 exclusive: true,
                 dop,
             },
@@ -112,7 +113,7 @@ fn output_thread_main(
     shared: Arc<SharedPlayback>,
     consumer: Consumer<f32>,
     shutdown_rx: Receiver<()>,
-    init_tx: Sender<AppResult<()>>,
+    init_tx: Sender<AppResult<Option<String>>>,
     app: AppHandle,
     device_name: Option<String>,
     dop: Option<DopFormat>,
@@ -138,8 +139,9 @@ fn output_thread_main(
     };
 
     // Signal a successful init back to the caller so the engine can
-    // proceed to spawn the decoder thread.
-    let _ = init_tx.send(Ok(()));
+    // proceed to spawn the decoder thread, naming the endpoint that
+    // really opened rather than the one that was requested (#612).
+    let _ = init_tx.send(Ok(session.opened_device.clone()));
 
     tracing::info!(
         sample_rate = session.sample_rate,
@@ -407,6 +409,11 @@ struct ExclusiveSession {
     client: AudioClient,
     render: AudioRenderClient,
     event: Handle,
+    /// Friendly name of the endpoint that actually opened. `pick_device`
+    /// takes the default when the pinned name is no longer enumerated,
+    /// and the picker has to tick what is playing rather than what was
+    /// asked for (#612).
+    opened_device: Option<String>,
     sample_rate: u32,
     channels: u16,
     buffer_frames: u32,
@@ -444,6 +451,10 @@ fn open_exclusive_session(
     dop: Option<DopFormat>,
 ) -> AppResult<ExclusiveSession> {
     let device = pick_device(device_name)?;
+    // Read the name back off the endpoint we were handed: this is the
+    // only place that knows whether the fallback inside `pick_device`
+    // fired (#612).
+    let opened_device = device.get_friendlyname().ok();
 
     // DoP (#495) pins both axes: the layout is the exact DoP format
     // (`dsd_rate / 16`, source channels) and the bit-depth chain is
@@ -500,6 +511,7 @@ fn open_exclusive_session(
                         client,
                         render,
                         event,
+                        opened_device,
                         sample_rate: layout.sample_rate as u32,
                         channels: layout.channels as u16,
                         buffer_frames,

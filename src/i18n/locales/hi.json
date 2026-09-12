@@ -769,7 +769,9 @@
     "activeLabel": "सक्रिय आउटपुट",
     "loading": "डिवाइस खोज रहे हैं…",
     "empty": "कोई आउटपुट डिवाइस उपलब्ध नहीं है।",
-    "systemDefault": "डिफ़ॉल्ट"
+    "systemDefault": "डिफ़ॉल्ट",
+    "pinnedUnavailable": "पिन किया गया, अनुपलब्ध",
+    "reopen": "इस डिवाइस को फिर से खोलें"
   },
   "profiles": {
     "select": {

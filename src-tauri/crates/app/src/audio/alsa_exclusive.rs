@@ -107,6 +107,13 @@ pub fn spawn_alsa_exclusive_output_thread(
             OutputHandle {
                 shutdown_tx,
                 join,
+                // `resolve_hw_device` either places the pinned name on a
+                // real card or fails outright — it never quietly takes a
+                // different one — so a pin that reached this point is
+                // what plays. An absent pin lands on card 0, which has no
+                // name in the picker's terms, so this reports unknown
+                // instead of guessing one (#612).
+                opened_device: device_name.clone(),
                 device_name,
                 // We hold the card through a raw `hw:` handle: nothing
                 // else can mix into it while this thread lives. That is

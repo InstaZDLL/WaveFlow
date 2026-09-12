@@ -769,7 +769,9 @@
     "activeLabel": "Actieve uitvoer",
     "loading": "Apparaten zoeken…",
     "empty": "Geen uitvoerapparaat beschikbaar",
-    "systemDefault": "Systeemstandaard"
+    "systemDefault": "Systeemstandaard",
+    "pinnedUnavailable": "Vastgezet, niet beschikbaar",
+    "reopen": "Dit apparaat opnieuw openen"
   },
   "profiles": {
     "select": {

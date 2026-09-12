@@ -446,7 +446,13 @@ export interface OutputDevice {
   id: string;
   name: string;
   is_default: boolean;
+  /** The device audio really comes out of, read from what the backend
+   *  opened. A pinned device that has vanished is replaced by the
+   *  default endpoint, so this can differ from `is_pinned` (#612). */
   is_active: boolean;
+  /** The device the user picked, opened or not. Differs from
+   *  `is_active` exactly during such a fallback. */
+  is_pinned: boolean;
 }
 
 export function playerListOutputDevices(): Promise<OutputDevice[]> {
@@ -460,6 +466,16 @@ export function playerListOutputDevices(): Promise<OutputDevice[]> {
  */
 export function playerSetOutputDevice(deviceId: string | null): Promise<void> {
   return invoke<void>("player_set_output_device", { deviceId });
+}
+
+/**
+ * Re-open the stream on the device that is already selected. Picking
+ * the same device is a no-op in the engine, which left no way back when
+ * the audio had drifted onto another endpoint (#612). Changes no
+ * preference, so nothing is persisted.
+ */
+export function playerReopenOutputDevice(): Promise<void> {
+  return invoke<void>("player_reopen_output_device");
 }
 
 /**

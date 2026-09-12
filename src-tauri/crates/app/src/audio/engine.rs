@@ -666,6 +666,38 @@ impl AudioEngine {
             .and_then(|guard| guard.as_ref().and_then(|h| h.device_name.clone()))
     }
 
+    /// The device the output is really driving, when the backend could
+    /// name it — as opposed to [`Self::current_output_device`], which is
+    /// the user's pin and survives a fallback.
+    ///
+    /// The picker flags its active row from this one: a pinned device
+    /// that is no longer enumerated is replaced by the default endpoint
+    /// on open, and ticking the pin then described a device playing
+    /// nothing (#612).
+    pub fn current_output_opened_device(&self) -> Option<String> {
+        self.output
+            .lock()
+            .ok()
+            .and_then(|guard| guard.as_ref().and_then(|h| h.opened_device.clone()))
+    }
+
+    /// Re-open the output on the device it is already pinned to.
+    ///
+    /// [`Self::set_output_device`] short-circuits when the request
+    /// equals the current pin. That is right for a pick, but it left the
+    /// user no way back when the stream was bound to an endpoint that is
+    /// no longer the one they want — and the picker disabled its active
+    /// row, so "choose another device, then choose this one again" was
+    /// the only cure (#612). This goes straight to the rebuild path that
+    /// device-error recovery already uses.
+    pub fn reopen_output_device(&self) -> AppResult<()> {
+        let pinned = self.current_output_device();
+        let exclusive = self
+            .exclusive_output
+            .load(std::sync::atomic::Ordering::Relaxed);
+        self.force_rebuild_output(pinned, exclusive)
+    }
+
     /// True when the active output is currently carrying a native DSD
     /// stream via DoP (#495). Reflects what actually engaged — a DAC
     /// that refused the DoP format leaves this `false` even with the

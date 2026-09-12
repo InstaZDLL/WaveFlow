@@ -769,7 +769,9 @@
     "activeLabel": "활성 출력",
     "loading": "장치 검색 중…",
     "empty": "사용 가능한 출력 장치가 없습니다",
-    "systemDefault": "기본값"
+    "systemDefault": "기본값",
+    "pinnedUnavailable": "고정됨, 사용 불가",
+    "reopen": "이 장치 다시 열기"
   },
   "profiles": {
     "select": {

@@ -769,7 +769,9 @@
     "activeLabel": "Etkin çıkış",
     "loading": "Cihazlar aranıyor…",
     "empty": "Kullanılabilir çıkış cihazı yok",
-    "systemDefault": "Sistem varsayılanı"
+    "systemDefault": "Sistem varsayılanı",
+    "pinnedUnavailable": "Sabitlendi, kullanılamıyor",
+    "reopen": "Bu aygıtı yeniden aç"
   },
   "profiles": {
     "select": {
