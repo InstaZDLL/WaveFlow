@@ -39,6 +39,7 @@ pub mod preferences;
 pub mod profile;
 pub mod profile_io;
 pub mod radio;
+pub mod ready;
 // Remote server binding + PKCE sign-in (RFC-005). Gated on `sync_v2`,
 // which is now in the default feature set — a build can still compile it
 // out via `--no-default-features`.

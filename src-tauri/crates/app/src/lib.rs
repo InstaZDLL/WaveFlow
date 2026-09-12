@@ -87,6 +87,11 @@ pub fn run() {
     // because `exit` runs no destructors at all.
     let _log_guard = logging::init_tracing();
 
+    // Start the splash-handoff clock before anything else, so the timings
+    // logged when the frontend reports ready are measured from the process
+    // start rather than from whichever half touched the gate first (#626).
+    commands::ready::mark_launch();
+
     // Resolved up front because the pre-flight below needs the bundle
     // identifier to find the app-data root — `tauri.conf.json` stays
     // its single source of truth — and because everything this call
@@ -156,8 +161,9 @@ pub fn run() {
             // Block on the async init — this runs once at startup before any
             // command can be dispatched, so blocking here is acceptable.
             let state =
-                match tauri::async_runtime::block_on(async move { AppState::init(&init_handle).await })
-                {
+                match tauri::async_runtime::block_on(
+                    async move { AppState::init(&init_handle).await },
+                ) {
                     Ok(state) => state,
                     Err(err) => {
                         // The database from a newer build is normally
@@ -212,15 +218,9 @@ pub fn run() {
             // handle keeps no allocator pressure.
             let plugin_ticker_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                let runtime = plugin_ticker_handle
-                    .state::<AppState>()
-                    .plugins
-                    .clone();
-                let mut interval =
-                    tokio::time::interval(std::time::Duration::from_millis(10));
-                interval.set_missed_tick_behavior(
-                    tokio::time::MissedTickBehavior::Skip,
-                );
+                let runtime = plugin_ticker_handle.state::<AppState>().plugins.clone();
+                let mut interval = tokio::time::interval(std::time::Duration::from_millis(10));
+                interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
                 loop {
                     interval.tick().await;
                     runtime.tick_epoch();
@@ -556,10 +556,14 @@ pub fn run() {
             // task then failed, nobody retried and the user was stuck on
             // the splash (issue #363). One owner + retry-until-success
             // removes both the race and the double-reveal window.
-            let ready = Arc::new(tokio::sync::Notify::new());
-            let ready_for_event = ready.clone();
+            // Second transport, kept on purpose. The primary one is the
+            // `app_ready` command: `generate_handler!` registers it at build
+            // time, so unlike this listener it cannot be registered *after*
+            // the webview has already signalled. The rendezvous is one-shot
+            // and ignores duplicates, so having both costs nothing and the
+            // splash is not worth a single point of failure (#626).
             app.listen("app://ready", move |_event| {
-                ready_for_event.notify_one();
+                commands::ready::signal("event", None);
             });
 
             // Write the resume point while playback runs, not only on the
@@ -597,13 +601,18 @@ pub fn run() {
             let reveal_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 // `notify_one` stores a permit even when it fires before
-                // we reach this await, so an early `app://ready` (racing
-                // the heavy first-launch init) is never lost.
+                // we reach this await, so a signal that arrives during the
+                // heavy first-launch init is never lost.
                 tokio::select! {
-                    _ = ready.notified() => {}
+                    _ = commands::ready::wait() => {}
                     _ = tokio::time::sleep(Duration::from_secs(15)) => {
+                        // Left exactly as it was: it is what keeps a launch
+                        // merely slow instead of stuck. The elapsed time is
+                        // logged so this line can be read against the
+                        // frontend's own measurement (#626).
                         tracing::warn!(
-                            "splash handoff: `app://ready` never fired in 15s, force-revealing main window"
+                            since_launch_ms = commands::ready::since_launch_ms(),
+                            "splash handoff: no ready signal in 15s, force-revealing main window"
                         );
                     }
                 }
@@ -626,6 +635,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::ready::app_ready,
             commands::app_info::get_app_info,
             commands::app_info::open_data_folder,
             commands::changelog::get_changelog,
