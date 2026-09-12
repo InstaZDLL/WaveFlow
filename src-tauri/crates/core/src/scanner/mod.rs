@@ -22,7 +22,7 @@ pub mod replay_gain;
 #[cfg(feature = "sqlite")]
 pub mod upserts;
 
-pub use canonical::canonical_name;
+pub use canonical::{canonical_name, pinyin_blob};
 pub use extract::{
     extension_for_mime, extract_artist_image, extract_compilation_flag, extract_cover,
     extract_folder_cover, extract_musical_key, extract_rating, file_type_label,

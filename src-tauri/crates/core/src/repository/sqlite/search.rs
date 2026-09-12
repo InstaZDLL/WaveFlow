@@ -25,10 +25,18 @@ pub const LIKE_ESCAPE: char = '\\';
 /// `track`, `al` for `album`, `ar` for `artist`.
 pub const LIKE_TERM_CLAUSE: &str = "(t.title LIKE ? ESCAPE '\\' \
      OR al.title LIKE ? ESCAPE '\\' \
-     OR ar.name  LIKE ? ESCAPE '\\')";
+     OR ar.name  LIKE ? ESCAPE '\\' \
+     OR t.pinyin LIKE ? ESCAPE '\\' \
+     OR al.pinyin LIKE ? ESCAPE '\\' \
+     OR ar.pinyin LIKE ? ESCAPE '\\')";
 
 /// How many values [`LIKE_TERM_CLAUSE`] expects, one per column.
-pub const LIKE_TERM_BINDS: usize = 3;
+///
+/// Six since #579: the three texts, and the three pinyin blobs beside
+/// them. The blobs matter most on this route — a term below the trigram
+/// floor is exactly the shape a two-character word's initials take
+/// (`zg`), and the index holds nothing to look it up in.
+pub const LIKE_TERM_BINDS: usize = 6;
 
 /// The FTS5 expression for an indexed plan.
 ///

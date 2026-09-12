@@ -709,6 +709,10 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
     let mut sets: Vec<&str> = Vec::new();
     if edit.title.is_some() {
         sets.push("title = ?");
+        // A renamed title has a different romanisation, and the backfill
+        // only ever looks at NULLs -- so a stale blob would stay stale
+        // for good if it were not rewritten here (#579).
+        sets.push("pinyin = ?");
     }
     if edit.year.is_some() {
         sets.push("year = ?");
@@ -734,6 +738,7 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
         let mut q = sqlx::query(sqlx::AssertSqlSafe(sql));
         if let Some(t) = edit.title.as_ref() {
             q = q.bind(t.trim());
+            q = q.bind(waveflow_core::scanner::pinyin_blob(t.trim()).unwrap_or_default());
         }
         if let Some(y) = edit.year {
             q = q.bind(if y > 0 { Some(y) } else { None });

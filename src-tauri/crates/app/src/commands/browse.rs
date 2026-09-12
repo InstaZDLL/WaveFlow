@@ -3484,6 +3484,166 @@ mod tests {
         assert_eq!(ids, vec![11, 12, 13, 14, 10]);
     }
 
+    // ── Pinyin search (#579) ────────────────────────────────────────
+
+    /// Every FTS row that matches `query`, through the index the search
+    /// command's indexed route uses.
+    async fn fts_hits(pool: &SqlitePool, query: &str) -> Vec<i64> {
+        sqlx::query_scalar("SELECT rowid FROM track_fts WHERE track_fts MATCH ? ORDER BY rowid")
+            .bind(query)
+            .fetch_all(pool)
+            .await
+            .unwrap()
+    }
+
+    /// A library that predates the pinyin column: rows in place, blobs
+    /// still NULL, exactly what the migration leaves behind.
+    async fn seed_chinese(pool: &SqlitePool) {
+        for statement in [
+            "INSERT INTO library (id, name, color_id, icon_id, created_at, updated_at,
+                                  hlc_wall, hlc_logical)
+             VALUES (1, 'L', 1, 1, 0, 0, 0, 0)",
+            "INSERT INTO artist (id, name, canonical_name) VALUES (1, '周杰伦', '周杰伦')",
+            "INSERT INTO album (id, title, canonical_title, artist_id, is_compilation)
+             VALUES (1, '范特西', '范特西', 1, 0)",
+            "INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
+                                title, album_id, primary_artist, duration_ms, added_at,
+                                is_available, hlc_wall, hlc_logical,
+                                rating_hlc_wall, rating_hlc_logical)
+             VALUES (1, 1, '/m/1.flac', 'h1', 1, 0, '中国人民解放军', 1, 1, 1000, 0, 1,
+                     0, 0, 0, 0)",
+        ] {
+            sqlx::raw_sql(statement).execute(pool).await.unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn a_backfilled_track_becomes_searchable_by_pinyin() {
+        let pool = pool().await;
+        seed_chinese(&pool).await;
+
+        // Before the backfill the blob is NULL, so the index holds
+        // nothing to match -- the state every existing library is in the
+        // moment the migration lands.
+        assert!(fts_hits(&pool, "\"zhongguoren\"").await.is_empty());
+
+        // What the backfill does, and the only thing it does.
+        sqlx::query("UPDATE track SET pinyin = ? WHERE id = 1")
+            .bind("zhongguoren zgr")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        // The trigger has to have carried it into the index: without
+        // `pinyin` in its watched columns, a backfilled row would stay
+        // unsearchable until something else touched its title.
+        assert_eq!(fts_hits(&pool, "\"zhongguoren\"").await, vec![1]);
+        // And the syllables are reachable from the middle, because the
+        // tokenizer is trigram.
+        assert_eq!(fts_hits(&pool, "\"guoren\"").await, vec![1]);
+    }
+
+    #[tokio::test]
+    async fn initials_reach_the_track_too() {
+        let pool = pool().await;
+        seed_chinese(&pool).await;
+        sqlx::query("UPDATE track SET pinyin = ? WHERE id = 1")
+            .bind("zhongguoren zgr")
+            .execute(&pool)
+            .await
+            .unwrap();
+        // The form the request actually asked for: three initials, which
+        // is also the shortest thing trigram can answer.
+        assert_eq!(fts_hits(&pool, "\"zgr\"").await, vec![1]);
+    }
+
+    #[tokio::test]
+    async fn an_artist_or_album_blob_reaches_its_tracks() {
+        let pool = pool().await;
+        seed_chinese(&pool).await;
+
+        // The backfill walks three tables; these are the other two, and
+        // each has its own trigger to carry the blob onto every track
+        // that points at it.
+        sqlx::query("UPDATE artist SET pinyin = ? WHERE id = 1")
+            .bind("zhoujielun zjl")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert_eq!(fts_hits(&pool, "\"zhoujielun\"").await, vec![1]);
+
+        sqlx::query("UPDATE album SET pinyin = ? WHERE id = 1")
+            .bind("fantexi ftx")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert_eq!(fts_hits(&pool, "\"fantexi\"").await, vec![1]);
+        // The album write must not have cost the artist's blob: the
+        // trigger rebuilds the whole concatenation from the row, so all
+        // three sources survive each other.
+        assert_eq!(fts_hits(&pool, "\"zhoujielun\"").await, vec![1]);
+    }
+
+    #[tokio::test]
+    async fn a_scanned_track_carries_its_pinyin_without_a_backfill() {
+        let pool = pool().await;
+        seed_chinese(&pool).await;
+        // What the scanner writes: the blob is part of the INSERT, so
+        // the insert trigger indexes it immediately.
+        sqlx::query(
+            "INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
+                                title, album_id, primary_artist, duration_ms, added_at,
+                                is_available, pinyin, hlc_wall, hlc_logical,
+                                rating_hlc_wall, rating_hlc_logical)
+             VALUES (2, 1, '/m/2.flac', 'h2', 1, 0, '稻香', 1, 1, 1000, 0, 1, ?, 0, 0, 0, 0)",
+        )
+        .bind("daoxiang dx")
+        .execute(&pool)
+        .await
+        .unwrap();
+        assert_eq!(fts_hits(&pool, "\"daoxiang\"").await, vec![2]);
+    }
+
+    #[tokio::test]
+    async fn a_renamed_title_does_not_leave_a_stale_blob() {
+        let pool = pool().await;
+        seed_chinese(&pool).await;
+        sqlx::query("UPDATE track SET pinyin = ? WHERE id = 1")
+            .bind("zhongguoren zgr")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        // The tag editor rewrites both columns together. The old
+        // romanisation must not answer any more -- the backfill only
+        // looks at NULLs, so a blob left behind here would stay wrong
+        // for the life of the library.
+        sqlx::query("UPDATE track SET title = ?, pinyin = ? WHERE id = 1")
+            .bind("稻香")
+            .bind("daoxiang dx")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert!(fts_hits(&pool, "\"zhongguoren\"").await.is_empty());
+        assert_eq!(fts_hits(&pool, "\"daoxiang\"").await, vec![1]);
+    }
+
+    #[tokio::test]
+    async fn the_text_route_still_works_beside_the_pinyin_one() {
+        let pool = pool().await;
+        seed_chinese(&pool).await;
+        sqlx::query("UPDATE track SET pinyin = ? WHERE id = 1")
+            .bind("zhongguoren zgr")
+            .execute(&pool)
+            .await
+            .unwrap();
+        // The defect the trigram rebuild fixed, re-checked with a fourth
+        // column in the table: characters from the MIDDLE of the title.
+        // Three of them, because that is trigram's floor -- two would
+        // match nothing here and take the LIKE route in the real search.
+        assert_eq!(fts_hits(&pool, "\"民解放\"").await, vec![1]);
+    }
+
     async fn albums(
         pool: &SqlitePool,
         library_id: Option<i64>,
