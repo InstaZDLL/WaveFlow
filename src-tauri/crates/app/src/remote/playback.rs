@@ -60,7 +60,7 @@ pub async fn play_entries(
         return Ok(());
     }
 
-    let install = app
+    let revision = app
         .state::<AppState>()
         .remote_playback
         .set(RemoteQueue { entries, index });
@@ -69,9 +69,11 @@ pub async fn play_entries(
     // The check above cannot cover `play_current` itself: minting a ticket
     // is an HTTP round-trip, and a local pick landing during it leaves the
     // session installed over a track it never played. Undo it — but only
-    // our own install, since a newer session may hold the queue by now.
+    // the session as we installed it: `clear_if` no longer matches once
+    // someone else has installed another, or the user has navigated inside
+    // this one, and either of those is the queue they can now hear.
     if engine.load_intent_superseded(intent)
-        && app.state::<AppState>().remote_playback.clear_if(install)
+        && app.state::<AppState>().remote_playback.clear_if(revision)
     {
         tracing::debug!("remote session superseded while starting; rolled it back");
     }

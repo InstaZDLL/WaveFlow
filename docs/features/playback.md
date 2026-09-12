@@ -281,9 +281,12 @@ not cosmetic: starting a **remote session** installs a queue that takes
 over next / previous and end-of-track for every surface, so
 `remote::playback::play_entries` installs nothing when its intent is
 already superseded, and rolls its install back — through
-`RemotePlayback::clear_if`, which undoes only *its own*, since a newer
-session may hold the queue by then — when it is superseded during the
-ticket round-trip. Without that, a remote start the user had already
+`RemotePlayback::clear_if`, which fires only while the session is still
+the one it installed — when it is superseded during the ticket
+round-trip. "Still the one it installed" counts navigations, not just
+installs: a jump or a step inside that session makes it the navigator's,
+and a rollback that ignored them would clear the queue the user can
+hear. Without that, a remote start the user had already
 abandoned would reinstall itself on top of the clear
 `emit_track_changed` performs, which is the invariant that module
 documents.
