@@ -37,6 +37,11 @@ import "@fontsource/space-mono/700.css";
 // any new size shows up in the UI.
 import "@fontsource-variable/dm-sans/opsz.css";
 import { i18nReady } from "./i18n";
+import { markBundleReady, markI18nReady } from "./lib/startupTiming";
+
+// First statement that runs once the entry module is executing: the
+// document and every static import above are in (#626).
+markBundleReady();
 
 // The mini-player runs in a second WebviewWindow that loads the same
 // bundle with `?mini=1` in the URL. We branch here so it boots into
@@ -56,6 +61,9 @@ i18nReady
     console.error("[i18n] initialization failed", err);
   })
   .finally(() => {
+    // Nothing can commit before this resolves, so it is the second half of
+    // the split (#626).
+    markI18nReady();
     const root = ReactDOM.createRoot(
       document.getElementById("root") as HTMLElement,
     );

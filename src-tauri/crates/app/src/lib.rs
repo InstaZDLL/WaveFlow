@@ -563,7 +563,7 @@ pub fn run() {
             // and ignores duplicates, so having both costs nothing and the
             // splash is not worth a single point of failure (#626).
             app.listen("app://ready", move |_event| {
-                commands::ready::signal("event", None);
+                commands::ready::signal("event", Default::default());
             });
 
             // Write the resume point while playback runs, not only on the
