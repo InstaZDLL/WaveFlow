@@ -80,6 +80,16 @@ The chosen device's name is persisted in `profile_setting['audio.output_device']
 
 On Linux, enumeration uses ALSA's hint database (`snd_device_name_hint("pcm")`) instead of cpal's `output_devices()` to avoid a 1-2 s freeze + `pcm_dmix` / `pcm_route` stderr spam from probing every PCM card.
 
+### What the Linux list shows, and what it hides
+
+The hint database answers with ALSA's whole namespace, and most of it is not a device. One sound card came back as six lines — `hw:`, `plughw:`, `dmix:`, `dsnoop:`, `surround40:`, `front:` — under names that mean nothing to the person choosing, and three of those route through the software mixer, so picking one **silently defeats the exclusive output the user has just turned on** (#594).
+
+`present_alsa_hints` is that filter, pure and unit-tested, applied to the rows after the walk rather than during it — the enumeration itself must not change, since reading hints instead of opening every PCM is what keeps the menu from freezing. Three passes:
+
+1. **Routing families go.** `plughw` (a conversion plug), `dmix` / `dsnoop` (the mixer itself), `surround*`, `usbstream`, `null`, and the rate/format plugins. What deliberately stays: `default`, `pulse` and `pipewire` — not hardware, but the right answer for most people most of the time, and on a PipeWire desktop often the only one that works; and `hdmi` / `iec958`, which are how those outputs are reached at all.
+2. **A wrapper over hardware already on the list goes.** `front:CARD=PCH,DEV=0` beside `hw:CARD=PCH,DEV=0` is the same output twice, and the `hw` spelling is the one exclusive output can use. The names share nothing, so the pairing is done on the **card token** — the closest thing a hint carries to a driver identity — with a missing `DEV` read as `0`, which is what `sysdefault:CARD=X` means. A card with no `hw:` row keeps its wrapper: hiding the only way to reach a device would be worse than showing an alias.
+3. **Rows that would read identically are disambiguated.** Two of the same DAC describe themselves with the same string; the ids differ so both picks work, but the list showed one line twice and the second device was effectively invisible. The card token is appended to both.
+
 ### The pin and the endpoint are two different things
 
 Every open path falls back to the default endpoint when the pinned name is no longer enumerated — `build_stream_inner` in shared mode, `pick_device` under WASAPI, `resolve_device` under CoreAudio — and each used to leave nothing behind but a `warn!`. `OutputHandle` kept the **requested** name, deliberately, so the pin survives until the device comes back; the picker read that field and ticked a device that was playing nothing (#612).
