@@ -96,16 +96,29 @@ impl<'a> ReadOnlyGuard<'a> {
     }
 }
 
-impl Drop for ReadOnlyGuard<'_> {
-    fn drop(&mut self) {
-        if !self.lifted {
-            return;
-        }
-        #[cfg(windows)]
+impl ReadOnlyGuard<'_> {
+    #[cfg(windows)]
+    fn restore(&self) {
         if let Ok(metadata) = std::fs::metadata(self.path) {
             let mut permissions = metadata.permissions();
             permissions.set_readonly(true);
             let _ = std::fs::set_permissions(self.path, permissions);
+        }
+    }
+
+    /// Nothing to restore: `lift` never clears anything off Windows.
+    ///
+    /// A separate function rather than a `#[cfg]` block inside `drop`,
+    /// because emptying the tail of that function turns the guard clause
+    /// above it into a `needless_return` that only Linux sees.
+    #[cfg(not(windows))]
+    fn restore(&self) {}
+}
+
+impl Drop for ReadOnlyGuard<'_> {
+    fn drop(&mut self) {
+        if self.lifted {
+            self.restore();
         }
     }
 }
