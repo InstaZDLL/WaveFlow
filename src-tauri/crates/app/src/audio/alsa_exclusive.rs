@@ -384,8 +384,11 @@ pub(super) fn probe_capabilities(
     // keeps a `default` row on purpose (#594), so this is reachable from
     // the menu, not just from an unpinned call. The two other backends
     // already refuse their own fallback for the same reason.
-    let pinned = requested.as_deref().filter(|n| !n.is_empty());
-    if pinned.is_none_or(|n| n.eq_ignore_ascii_case("default")) {
+    let describes_hardware = requested
+        .as_deref()
+        .filter(|n| !n.is_empty())
+        .is_some_and(|n| !n.eq_ignore_ascii_case("default"));
+    if !describes_hardware {
         return Err(AppError::Audio(
             "no pinned ALSA card to describe — \"default\" is routed, not hardware".to_string(),
         ));
