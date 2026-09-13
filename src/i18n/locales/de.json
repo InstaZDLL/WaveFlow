@@ -757,7 +757,25 @@
       "custom": "Eigene Geschwindigkeit",
       "pitchHint": "Tonhöhe folgt der Geschwindigkeit (kein Time-Stretching)."
     },
-    "seek": "Suchlauf"
+    "seek": "Suchlauf",
+    "alert": {
+      "error": {
+        "device-lost": "Das Audiogerät wurde getrennt",
+        "track-failed": "Dieser Titel konnte nicht abgespielt werden",
+        "stream-failed": "Dieser Stream konnte nicht geöffnet werden",
+        "decoder-crashed": "Die Audio-Engine wurde neu gestartet",
+        "decoder-stopped": "Die Audio-Engine wurde nach wiederholten Fehlern gestoppt",
+        "offline": "Der Offline-Modus ist aktiviert",
+        "unknown": "Die Wiedergabe ist fehlgeschlagen"
+      },
+      "notice": {
+        "exclusive-refused": "Dieses Gerät verweigert den Exklusivmodus: Wiedergabe im geteilten Modus",
+        "dop-refused": "Dieser DAC verweigert natives DSD: Umwandlung in PCM",
+        "paused-device-lost": "Gerät getrennt: Wiedergabe pausiert",
+        "unknown": "Die Audioausgabe hat sich geändert"
+      },
+      "dismiss": "Schließen"
+    }
   },
   "queue": {
     "title": "Warteschlange",
@@ -1132,6 +1150,11 @@
         "speed": "Geschwindigkeit {{value}}×",
         "dopNative": "Natives DSD"
       }
+    },
+    "outputMode": {
+      "exclusive": "Exklusiv",
+      "dop": "Natives DSD",
+      "exclusiveRefused": "Exklusiv verweigert"
     }
   },
   "miniPlayer": {

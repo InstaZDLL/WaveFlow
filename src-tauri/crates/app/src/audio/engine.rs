@@ -539,6 +539,10 @@ pub struct AudioEngine {
     /// track's, so parking one of those and pressing Play used to bring
     /// back the last library track instead.
     parked_resume: Mutex<Option<ParkedSession>>,
+    /// The last thing we told the user about the output (#597), so a
+    /// state that persists is announced once instead of at every track.
+    /// `None` means "nothing to say", which is also what clears it.
+    last_output_notice: Mutex<Option<PlaybackNotice>>,
 }
 
 /// A session a rebuild parked — the load, and where to pick it up.
@@ -632,6 +636,72 @@ impl OutputSlot {
             .and_then(|h| h.device_name.clone())
             .or_else(|| self.pinned.clone())
     }
+}
+
+/// What the output really is right now (#597).
+///
+/// Computed by the engine rather than by the UI, so the badge in the
+/// player, the notice the user gets when something silently degrades and
+/// the Settings card cannot drift apart — they all read the same rule.
+/// Serialised in kebab-case, the shape the frontend switches on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum OutputMode {
+    /// The system mixer is in the path, which is the normal case.
+    Shared,
+    /// The stream owns the device: WASAPI Exclusive, a raw ALSA `hw:`,
+    /// CoreAudio hog mode.
+    Exclusive,
+    /// Native DSD is reaching the DAC over DoP (#495). It implies
+    /// exclusive, and says more, so it is reported instead.
+    Dop,
+    /// Exclusive was asked for and the device would not give it. Nothing
+    /// failed — playback is fine, in shared mode — but the user chose
+    /// otherwise and nothing told them (#597).
+    ExclusiveRefused,
+}
+
+/// The rule behind [`AudioEngine::output_mode`], pure so it can be
+/// tested without a sound card.
+///
+/// DoP first: on Linux and macOS the DoP toggle engages the exclusive
+/// path by itself, so `requested_exclusive` can be false while the DAC
+/// is being handed native DSD.
+fn output_mode_of(
+    requested_exclusive: bool,
+    engaged_exclusive: bool,
+    engaged_dop: bool,
+) -> OutputMode {
+    if engaged_dop {
+        OutputMode::Dop
+    } else if engaged_exclusive {
+        OutputMode::Exclusive
+    } else if requested_exclusive {
+        OutputMode::ExclusiveRefused
+    } else {
+        OutputMode::Shared
+    }
+}
+
+/// Something the user should know about playback that is **not** a
+/// failure (#597).
+///
+/// Deliberately a different register from `player:error`: losing the
+/// device is a fault, falling back to shared mode is normal operation
+/// that happens to contradict a choice the user made. Announced once per
+/// transition — a DAC that refuses exclusive refuses it at every track,
+/// and saying so every time is nagging.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PlaybackNotice {
+    /// Exclusive was requested, the device opened shared.
+    ExclusiveRefused,
+    /// A DSD track was offered over DoP and the DAC would not take it;
+    /// it is being converted to PCM instead.
+    DopRefused,
+    /// The output device went away and playback was parked rather than
+    /// moved onto whatever the system fell back to (#617).
+    PausedDeviceLost,
 }
 
 /// What the decoder is playing, captured when it accepts a load (#634).
@@ -1025,6 +1095,7 @@ impl AudioEngine {
             pause_on_device_loss: std::sync::atomic::AtomicBool::new(true),
             last_device_loss: Mutex::new(None),
             parked_resume: Mutex::new(None),
+            last_output_notice: Mutex::new(None),
         })
     }
 
@@ -1130,6 +1201,101 @@ impl AudioEngine {
     /// ten-thousand-row queue fill instead of superseding it.
     pub async fn lock_publish(&self) -> tokio::sync::MutexGuard<'_, ()> {
         self.publish.lock().await
+    }
+
+    /// What the output really is right now (#597) — what the badge in
+    /// the player shows, and what the Settings card means by "engaged".
+    ///
+    /// One acquisition for both halves of the answer: read separately, a
+    /// rebuild landing in between could pair the old stream's exclusive
+    /// flag with the new stream's DoP one.
+    pub fn output_mode(&self) -> OutputMode {
+        let (engaged_exclusive, engaged_dop) = self
+            .output
+            .lock()
+            .ok()
+            .and_then(|guard| {
+                guard
+                    .handle
+                    .as_ref()
+                    .map(|handle| (handle.exclusive, handle.dop.is_some()))
+            })
+            .unwrap_or((false, false));
+        output_mode_of(
+            self.exclusive_output
+                .load(std::sync::atomic::Ordering::Relaxed),
+            engaged_exclusive,
+            engaged_dop,
+        )
+    }
+
+    /// Record what the output actually opened as, and tell the user when
+    /// that is not what they asked for (#405, #597).
+    ///
+    /// The single place `exclusive_output_active` is written on a
+    /// successful open, because three things have to stay in step: the
+    /// flag the Settings card reads, the `player:audio-mode-changed`
+    /// event that makes it re-read — a rebuild can flip the engaged mode
+    /// behind its back — and the notice that says so in words.
+    ///
+    /// `handle` is `None` only when a caller has already given the stream
+    /// up, which the loss path reports separately.
+    fn publish_output_mode(
+        &self,
+        requested_exclusive: bool,
+        requested_dop: bool,
+        handle: Option<&OutputHandle>,
+    ) {
+        let engaged_exclusive = handle.is_some_and(|handle| handle.exclusive);
+        let engaged_dop = handle.is_some_and(|handle| handle.dop.is_some());
+        self.exclusive_output_active
+            .store(engaged_exclusive, std::sync::atomic::Ordering::Release);
+        // Settings' exclusive-mode toggle only re-reads its state on
+        // mount and after a manual click (issue #405) — this is the one
+        // signal that tells it a rebuild just happened behind its back,
+        // whether that landed in exclusive or fell back to shared.
+        let _ = self.app.emit("player:audio-mode-changed", ());
+
+        // What to say about it, in the order of what the user loses
+        // most: a DSD stream converted to PCM, then an exclusive path
+        // they asked for and did not get.
+        let notice = if requested_dop && !engaged_dop {
+            Some(PlaybackNotice::DopRefused)
+        } else if requested_exclusive && !engaged_exclusive && handle.is_some() {
+            Some(PlaybackNotice::ExclusiveRefused)
+        } else {
+            None
+        };
+        self.announce_output_notice(notice);
+    }
+
+    /// Emit `notice` only when it changes what the user was last told
+    /// (#597). `None` clears the memory without saying anything, so a
+    /// device that starts accepting exclusive again can be reported when
+    /// it next refuses.
+    fn announce_output_notice(&self, notice: Option<PlaybackNotice>) {
+        let changed = match self.last_output_notice.lock() {
+            Ok(mut guard) => {
+                let changed = *guard != notice;
+                *guard = notice;
+                changed
+            }
+            // A poisoned lock costs a repeat, never a silence.
+            Err(_) => true,
+        };
+        if let (true, Some(notice)) = (changed, notice) {
+            self.emit_playback_notice(notice);
+        }
+    }
+
+    /// Tell the UI about `notice`, unconditionally. For the one-shot
+    /// events that are not a persisting state — see
+    /// [`Self::announce_output_notice`] for the ones that are.
+    pub(super) fn emit_playback_notice(&self, notice: PlaybackNotice) {
+        tracing::info!(?notice, "playback notice");
+        let _ = self
+            .app
+            .emit("player:notice", serde_json::json!({ "kind": notice }));
     }
 
     /// Whether a device that goes away should park playback instead of
@@ -1861,10 +2027,8 @@ impl AudioEngine {
                 Some(dop_fmt),
             ) {
                 Ok((producer, handle)) => {
-                    self.exclusive_output_active
-                        .store(handle.exclusive, Ordering::Release);
                     guard.handle = Some(handle);
-                    let _ = self.app.emit("player:audio-mode-changed", ());
+                    self.publish_output_mode(pref_exclusive, true, guard.handle.as_ref());
                     tracing::info!(
                         rate = dop_fmt.sample_rate,
                         channels = dop_fmt.channels,
@@ -1892,10 +2056,11 @@ impl AudioEngine {
             None,
         ) {
             Ok((producer, handle)) => {
-                self.exclusive_output_active
-                    .store(handle.exclusive, Ordering::Release);
                 guard.handle = Some(handle);
-                let _ = self.app.emit("player:audio-mode-changed", ());
+                // `dop.is_some()` here means the DoP open above was tried
+                // and refused: the track is DSD, the opt-in is on, and it
+                // is about to be converted to PCM without a word (#597).
+                self.publish_output_mode(pref_exclusive, dop.is_some(), guard.handle.as_ref());
                 Ok((Some(producer), false))
             }
             Err(err) => {
@@ -2046,15 +2211,7 @@ impl AudioEngine {
             return Err(err);
         }
         guard.handle = Some(handle);
-        self.exclusive_output_active.store(
-            guard.handle.as_ref().map(|h| h.exclusive).unwrap_or(false),
-            std::sync::atomic::Ordering::Release,
-        );
-        // Settings' exclusive-mode toggle only re-reads its state on
-        // mount and after a manual click (issue #405) — this is the
-        // one signal that tells it a rebuild just happened behind its
-        // back, whether that landed in exclusive or fell back to shared.
-        let _ = self.app.emit("player:audio-mode-changed", ());
+        self.publish_output_mode(exclusive, false, guard.handle.as_ref());
 
         // Resume best-effort. Same async pattern as
         // `set_output_device` and `set_exclusive_output` — pull the
@@ -2086,6 +2243,11 @@ impl AudioEngine {
                     to = landed_on.unwrap_or("<unnamed>"),
                     "the output device went away and the fallback is another one; parking playback"
                 );
+                // Playback stopping on its own needs a reason on screen,
+                // not just in the log (#597). Not deduplicated: this one
+                // is an event, not a state, and it answers a question the
+                // user is asking right now.
+                self.emit_playback_notice(PlaybackNotice::PausedDeviceLost);
                 self.park_session(live, track_id);
             } else {
                 self.resume_after_rebuild(live);
@@ -2326,13 +2488,7 @@ impl AudioEngine {
         if switch_error.is_none() {
             guard.pinned = pinned_pick;
         }
-        self.exclusive_output_active.store(
-            guard.handle.as_ref().map(|h| h.exclusive).unwrap_or(false),
-            std::sync::atomic::Ordering::Release,
-        );
-        // See force_rebuild_output's comment (issue #405) — a device
-        // switch can also flip the actually-engaged exclusive mode.
-        let _ = self.app.emit("player:audio-mode-changed", ());
+        self.publish_output_mode(entering_exclusive, false, guard.handle.as_ref());
 
         // Step 6 — put back whatever the decoder is on. Not necessarily
         // the track this method snapshotted: a pick made during the open
@@ -2522,13 +2678,16 @@ impl AudioEngine {
             return Err(err);
         }
         guard.handle = Some(handle);
-        self.exclusive_output_active
-            .store(active_mode, std::sync::atomic::Ordering::Release);
-        // Redundant with the caller's own re-read after a manual toggle
-        // (ExclusiveModeCard.tsx), but kept for consistency with the
-        // other two write sites (issue #405) in case this is ever
-        // called from somewhere that doesn't already refresh itself.
-        let _ = self.app.emit("player:audio-mode-changed", ());
+        // The event is redundant with the caller's own re-read after a
+        // manual toggle (ExclusiveModeCard.tsx), and kept for every other
+        // caller. The notice is not redundant: a toggle that lands in
+        // shared mode is precisely the silent degradation #597 is about.
+        self.publish_output_mode(enabled, false, guard.handle.as_ref());
+        debug_assert_eq!(
+            active_mode,
+            self.exclusive_output_active
+                .load(std::sync::atomic::Ordering::Acquire)
+        );
 
         // The mode flip must not drop the user off what they are
         // listening to — radio included, which is why this re-dispatches
@@ -3261,6 +3420,42 @@ mod output_slot_tests {
             pinned: None,
         };
         assert!(slot.pinned_device().is_none());
+    }
+}
+
+#[cfg(test)]
+mod output_mode_tests {
+    use super::{output_mode_of, OutputMode};
+
+    #[test]
+    fn nothing_asked_for_is_shared() {
+        assert_eq!(output_mode_of(false, false, false), OutputMode::Shared);
+    }
+
+    #[test]
+    fn asked_and_granted_is_exclusive() {
+        assert_eq!(output_mode_of(true, true, false), OutputMode::Exclusive);
+    }
+
+    #[test]
+    fn asked_and_refused_is_its_own_state() {
+        // The one #597 exists for: playback is fine, in shared mode, and
+        // until now the only trace of the user's choice not being honoured
+        // was a `tracing::warn!` line.
+        assert_eq!(
+            output_mode_of(true, false, false),
+            OutputMode::ExclusiveRefused
+        );
+    }
+
+    #[test]
+    fn dop_outranks_the_rest() {
+        // On Linux and macOS the DoP toggle engages the exclusive path by
+        // itself, so the exclusive preference can be off while the DAC is
+        // being handed native DSD. Reporting "shared" there would be a lie
+        // about the most demanding mode we have.
+        assert_eq!(output_mode_of(false, true, true), OutputMode::Dop);
+        assert_eq!(output_mode_of(true, true, true), OutputMode::Dop);
     }
 }
 

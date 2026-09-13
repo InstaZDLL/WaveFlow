@@ -199,6 +199,17 @@ Two gates keep the recovery from thrashing:
 
 Every failure path that ends with no output thread at all publishes `exclusive_output_active = false` + the event before returning the error — a toggle describing a stream that no longer exists is the exact shape of #405.
 
+#### Saying what actually happened
+
+Playback can become something other than what was asked for, and for a long time the only trace was a log line — `player:error` reached a `console.error` and stopped there, and the three exclusive backends each fall back to shared mode on their own. #597 closes that, with two registers that must not be confused:
+
+- **`player:error` is a fault.** The device went away, the file would not open, the decoder crashed. It carries a technical `message` — kept, because that is what a bug report needs — and a `kind` (`device-lost`, `track-failed`, `stream-failed`, `decoder-crashed`, `decoder-stopped`, `offline`) the UI turns into a sentence in the user's language. The message rides in the tooltip; the sentence is what is on screen. An unknown kind falls back to a generic sentence rather than rendering a raw key, so a frontend and a backend of different vintages still say something sane.
+- **`player:notice` is not.** Exclusive requested and refused, DoP refused by the DAC, playback parked because the device went away (#617). Nothing failed — playback works — it simply contradicts a choice the user made, and that reads differently. `AudioEngine::publish_output_mode` decides, because it is the single place a successful open records what it opened *as*, and `announce_output_notice` emits **only on a transition**: a DAC that never accepts exclusive says so once, not at every track.
+
+`AudioEngine::output_mode` is the same question asked as state rather than as an event: `shared`, `exclusive`, `dop`, or `exclusive-refused`. It is computed in the engine, under one acquisition of the output lock, so the badge in the player, the notice and the Settings card cannot drift apart. `exclusive-refused` is precisely the state the UI could not name before: `player_get_exclusive_output` reports what *engaged*, and nothing reported what was *asked for*.
+
+On screen, `PlayerContext` owns both listeners and keeps one slot — the newest message describes the situation, and stacking them would nag. `PlaybackAlertToast` renders it in the two registers; `AudioQualityFooter` carries the badge, for the three modes that say something. Shared mode gets no chip: it is the normal case, and a badge on every track is noise rather than information.
+
 ## OS media controls
 
 [`media_controls.rs`](../../src-tauri/crates/app/src/media_controls.rs) bridges the engine to [`souvlaki 0.8`](https://crates.io/crates/souvlaki):

@@ -66,6 +66,27 @@ struct TrackEndedPayload {
 #[derive(Serialize, Clone)]
 struct ErrorPayload {
     message: String,
+    /// Which failure this is, so the UI can say it in the user's own
+    /// language instead of showing a backend string (#597). The message
+    /// stays, and stays technical — it is what a bug report needs.
+    kind: &'static str,
+}
+
+impl ErrorPayload {
+    /// A track that will not play. The common case on this thread: the
+    /// file would not open, the decode failed, no output could be built
+    /// for it.
+    fn track_failed(message: String) -> Self {
+        Self {
+            message,
+            kind: "track-failed",
+        }
+    }
+
+    /// Anything else, named explicitly.
+    fn of(kind: &'static str, message: String) -> Self {
+        Self { message, kind }
+    }
 }
 
 /// Common path for `LoadAndPlay` / `LoadUrlAndPlay` — fire the right
@@ -139,12 +160,7 @@ fn handle_playback_outcome(
                 source = source_label.as_deref().unwrap_or(""),
                 "playback failed"
             );
-            let _ = app.emit(
-                EVENT_ERROR,
-                ErrorPayload {
-                    message: err.clone(),
-                },
-            );
+            let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err.clone()));
             // Read the live `current_track_id` rather than the
             // id passed in from the original `LoadAndPlay` /
             // `LoadUrlAndPlay` command: `play_track`'s crossfade
@@ -244,9 +260,10 @@ pub fn spawn_decoder_thread(
                         tracing::error!(%message, panic_count, "audio decoder thread panicked");
                         let _ = app.emit(
                             EVENT_ERROR,
-                            ErrorPayload {
-                                message: format!("audio decoder crashed: {message}"),
-                            },
+                            ErrorPayload::of(
+                                "decoder-crashed",
+                                format!("audio decoder crashed: {message}"),
+                            ),
                         );
                         transition_state(&shared, &app, PlayerState::Idle, None);
                         if panic_count >= MAX_DECODER_PANICS {
@@ -256,10 +273,10 @@ pub fn spawn_decoder_thread(
                             );
                             let _ = app.emit(
                                 EVENT_ERROR,
-                                ErrorPayload {
-                                    message: "audio decoder stopped after repeated crashes"
-                                        .to_string(),
-                                },
+                                ErrorPayload::of(
+                                    "decoder-stopped",
+                                    "audio decoder stopped after repeated crashes".to_string(),
+                                ),
                             );
                             break;
                         }
@@ -380,7 +397,7 @@ fn decoder_loop(
                     Ok(engaged) => engaged,
                     Err(err) => {
                         tracing::warn!(%err, path = %path.display(), "no output for this track");
-                        let _ = app.emit(EVENT_ERROR, ErrorPayload { message: err });
+                        let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err));
                         transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                         continue;
                     }
@@ -399,7 +416,7 @@ fn decoder_loop(
                     Ok(s) => s,
                     Err(err) => {
                         tracing::warn!(?err, path = %path.display(), "open failed");
-                        let _ = app.emit(EVENT_ERROR, ErrorPayload { message: err });
+                        let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err));
                         transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                         continue;
                     }
@@ -480,7 +497,7 @@ fn decoder_loop(
                 shared.current_track_id.store(track_id, Ordering::Release);
                 if let Err(err) = restore_pcm_output(&app, producer) {
                     tracing::warn!(%err, "no output for this remote track");
-                    let _ = app.emit(EVENT_ERROR, ErrorPayload { message: err });
+                    let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err));
                     transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                     continue;
                 }
@@ -565,7 +582,7 @@ fn decoder_loop(
                             });
                             continue;
                         }
-                        let _ = app.emit(EVENT_ERROR, ErrorPayload { message: err });
+                        let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err));
                         transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                         continue;
                     }
@@ -654,7 +671,7 @@ fn decoder_loop(
                 shared.current_track_id.store(track_id, Ordering::Release);
                 if let Err(err) = restore_pcm_output(&app, producer) {
                     tracing::warn!(%err, "no output for this stream");
-                    let _ = app.emit(EVENT_ERROR, ErrorPayload { message: err });
+                    let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err));
                     transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                     continue;
                 }
@@ -670,9 +687,7 @@ fn decoder_loop(
                 if crate::offline::is_offline() {
                     let _ = app.emit(
                         EVENT_ERROR,
-                        ErrorPayload {
-                            message: "offline mode is enabled".to_string(),
-                        },
+                        ErrorPayload::of("offline", "offline mode is enabled".to_string()),
                     );
                     transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                     continue;
@@ -779,9 +794,7 @@ fn decoder_loop(
                         tracing::warn!(?err, url = %redacted, "url stream open failed");
                         let _ = app.emit(
                             EVENT_ERROR,
-                            ErrorPayload {
-                                message: format!("url stream open: {err}"),
-                            },
+                            ErrorPayload::of("stream-failed", format!("url stream open: {err}")),
                         );
                         transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                         continue;
@@ -808,9 +821,7 @@ fn decoder_loop(
                         tracing::warn!(?err, url = %redacted, "radio stream probe failed");
                         let _ = app.emit(
                             EVENT_ERROR,
-                            ErrorPayload {
-                                message: format!("radio stream probe: {err}"),
-                            },
+                            ErrorPayload::of("stream-failed", format!("radio stream probe: {err}")),
                         );
                         transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                         continue;
@@ -1185,12 +1196,7 @@ fn play_dop_track(
             }
             Ok(false) => {}
             Err(err) => {
-                let _ = app.emit(
-                    EVENT_ERROR,
-                    ErrorPayload {
-                        message: err.clone(),
-                    },
-                );
+                let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err.clone()));
                 return Err(err);
             }
         }

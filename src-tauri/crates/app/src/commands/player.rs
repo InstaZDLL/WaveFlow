@@ -120,6 +120,12 @@ pub struct PlayerStateSnapshot {
     /// re-clocks on its way there, which is the difference between
     /// bit-perfect and merely un-processed.
     pub exclusive_active: bool,
+    /// What the output really is right now, as one value (#597): shared,
+    /// exclusive, native DoP, or exclusive asked for and refused. The
+    /// badge in the player reads this rather than re-deriving it from the
+    /// two flags above, which is how the UI and the engine used to end up
+    /// disagreeing about what "engaged" meant.
+    pub output_mode: crate::audio::OutputMode,
 }
 
 /// Subset of [`crate::queue::QueueTrack`] flattened into the shape
@@ -159,6 +165,7 @@ impl PlayerStateSnapshot {
         current_track: Option<QueueTrackPayload>,
         dop_active: bool,
         exclusive_active: bool,
+        output_mode: crate::audio::OutputMode,
     ) -> Self {
         Self {
             state: shared.state().as_str().to_string(),
@@ -173,6 +180,7 @@ impl PlayerStateSnapshot {
             current_track,
             dop_active,
             exclusive_active,
+            output_mode,
         }
     }
 }
@@ -757,6 +765,7 @@ pub async fn player_get_state(
         current_track,
         engine.current_output_is_dop(),
         engine.exclusive_output(),
+        engine.output_mode(),
     );
     // When the engine is Idle but we resolved a resume point, use the
     // persisted position instead of the (zero) live counter.

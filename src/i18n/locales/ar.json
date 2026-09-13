@@ -854,7 +854,25 @@
       "custom": "سرعة مخصصة",
       "pitchHint": "تتبع الطبقة الصوتية للسرعة (دون تغيير المدة)."
     },
-    "seek": "الموضع"
+    "seek": "الموضع",
+    "alert": {
+      "error": {
+        "device-lost": "تم فصل جهاز الصوت",
+        "track-failed": "تعذّر تشغيل هذا المقطع",
+        "stream-failed": "تعذّر فتح هذا البث",
+        "decoder-crashed": "أُعيد تشغيل محرك الصوت",
+        "decoder-stopped": "توقف محرك الصوت بعد أخطاء متكررة",
+        "offline": "وضع عدم الاتصال مفعّل",
+        "unknown": "فشل التشغيل"
+      },
+      "notice": {
+        "exclusive-refused": "هذا الجهاز يرفض الوضع الحصري: التشغيل في الوضع المشترك",
+        "dop-refused": "هذا المحوّل يرفض DSD الأصلي: يجري التحويل إلى PCM",
+        "paused-device-lost": "تم فصل الجهاز: أُوقف التشغيل مؤقتًا",
+        "unknown": "تغيّر مخرج الصوت"
+      },
+      "dismiss": "إغلاق"
+    }
   },
   "queue": {
     "title": "قائمة الانتظار",
@@ -1260,6 +1278,11 @@
         "speed": "السرعة {{value}}×",
         "dopNative": "DSD أصلي"
       }
+    },
+    "outputMode": {
+      "exclusive": "حصري",
+      "dop": "DSD الأصلي",
+      "exclusiveRefused": "رُفض الوضع الحصري"
     }
   },
   "miniPlayer": {

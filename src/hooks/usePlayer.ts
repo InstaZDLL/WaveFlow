@@ -1,10 +1,29 @@
 import { createContext, useContext } from "react";
 import type { Track } from "../lib/tauri/track";
-import type { OutputDevice, QueueSource } from "../lib/tauri/player";
+import type { OutputDevice, OutputMode, QueueSource } from "../lib/tauri/player";
 import type { SpotifyTrackLite } from "../lib/tauri/spotify";
 import type { PluginFavorite } from "../lib/tauri/plugins";
 
 export type RepeatMode = "off" | "all" | "one";
+
+/**
+ * Something playback needs to tell the user (#597).
+ *
+ * `severity` keeps the two registers apart: `error` is a fault — the
+ * device went away, the track would not open — and `info` is playback
+ * quietly becoming something other than what was asked for, which is
+ * normal operation and must not read as a fault.
+ *
+ * `detail` is the backend's own message. It stays out of the visible
+ * sentence and goes where a bug report can find it.
+ */
+export interface PlaybackAlert {
+  /** Distinguishes one occurrence from the next, so a repeat re-shows. */
+  id: number;
+  severity: "error" | "info";
+  kind: string;
+  detail?: string;
+}
 export type ActiveProvider = "local" | "spotify";
 
 /** Aggregate `state` field driven by backend `player:state` events. */
@@ -76,6 +95,20 @@ interface PlayerContextValue {
   // the first stream has opened; UI must skip the "0 kHz" display.
   deviceSampleRate: number | null;
   deviceChannels: number | null;
+
+  /**
+   * What the output really engaged as (#597) — read from the engine, not
+   * derived here, and refreshed on `player:audio-mode-changed` because a
+   * rebuild can change it without anyone touching a setting.
+   */
+  outputMode: OutputMode;
+
+  /**
+   * The last thing playback had to say for itself (#597): a failure, or
+   * a silent degradation the user chose against. `null` once dismissed.
+   */
+  playbackAlert: PlaybackAlert | null;
+  dismissPlaybackAlert: () => void;
 
   // Shuffle / repeat are backend-synced via player_toggle_shuffle /
   // player_cycle_repeat. The UI flips optimistically and rolls back

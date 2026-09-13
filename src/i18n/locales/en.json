@@ -757,7 +757,25 @@
       "custom": "Custom speed",
       "pitchHint": "Pitch follows speed (no time-stretching)."
     },
-    "seek": "Seek"
+    "seek": "Seek",
+    "alert": {
+      "error": {
+        "device-lost": "The audio device was disconnected",
+        "track-failed": "This track could not be played",
+        "stream-failed": "This stream could not be opened",
+        "decoder-crashed": "The audio engine restarted",
+        "decoder-stopped": "The audio engine stopped after repeated errors",
+        "offline": "Offline mode is on",
+        "unknown": "Playback failed"
+      },
+      "notice": {
+        "exclusive-refused": "This device refuses exclusive mode: playing in shared mode",
+        "dop-refused": "This DAC refuses native DSD: converting to PCM",
+        "paused-device-lost": "Device disconnected: playback paused",
+        "unknown": "The audio output changed"
+      },
+      "dismiss": "Dismiss"
+    }
   },
   "queue": {
     "title": "Play queue",
@@ -1132,6 +1150,11 @@
         "speed": "Speed {{value}}×",
         "dopNative": "Native DSD"
       }
+    },
+    "outputMode": {
+      "exclusive": "Exclusive",
+      "dop": "Native DSD",
+      "exclusiveRefused": "Exclusive refused"
     }
   },
   "miniPlayer": {

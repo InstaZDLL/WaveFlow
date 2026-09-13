@@ -41,7 +41,7 @@ const HOVER_CLOSE_DELAY_MS = 200;
  */
 export function AudioQualityFooter({ track }: AudioQualityFooterProps) {
   const { t } = useTranslation();
-  const { deviceSampleRate } = usePlayer();
+  const { deviceSampleRate, outputMode } = usePlayer();
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const openTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
@@ -149,6 +149,26 @@ export function AudioQualityFooter({ track }: AudioQualityFooterProps) {
 
   const hiRes = isHiRes(track.bit_depth, track.sample_rate);
 
+  // What the output really engaged as (#597). Shared mode carries no
+  // chip: it is the normal case, and a badge on every track would be
+  // noise rather than information. The three that say something do —
+  // including the one that says the user's choice was refused, which
+  // until now only ever reached a log line.
+  const outputBadge =
+    outputMode === "dop"
+      ? { label: t("playerBar.outputMode.dop"), tone: "emerald" as const }
+      : outputMode === "exclusive"
+        ? {
+            label: t("playerBar.outputMode.exclusive"),
+            tone: "emerald" as const,
+          }
+        : outputMode === "exclusive-refused"
+          ? {
+              label: t("playerBar.outputMode.exclusiveRefused"),
+              tone: "amber" as const,
+            }
+          : null;
+
   return (
     <div
       className="relative h-5 px-4 flex items-center justify-between text-[10px] text-zinc-500 dark:text-zinc-400 border-t border-zinc-100 dark:border-zinc-800/60 bg-white dark:bg-surface-dark-elevated cursor-help"
@@ -164,6 +184,17 @@ export function AudioQualityFooter({ track }: AudioQualityFooterProps) {
         {hiRes && (
           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500 text-white">
             Hi-Res
+          </span>
+        )}
+        {outputBadge && (
+          <span
+            className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+              outputBadge.tone === "emerald"
+                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+            }`}
+          >
+            {outputBadge.label}
           </span>
         )}
         <span className="truncate">{rightBits.join(" · ")}</span>

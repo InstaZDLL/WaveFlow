@@ -757,7 +757,25 @@
       "custom": "Velocità personalizzata",
       "pitchHint": "L'intonazione segue la velocità (nessun time-stretching)."
     },
-    "seek": "Posizione"
+    "seek": "Posizione",
+    "alert": {
+      "error": {
+        "device-lost": "Il dispositivo audio è stato disconnesso",
+        "track-failed": "Impossibile riprodurre questo brano",
+        "stream-failed": "Impossibile aprire questo flusso",
+        "decoder-crashed": "Il motore audio è stato riavviato",
+        "decoder-stopped": "Il motore audio si è fermato dopo ripetuti errori",
+        "offline": "La modalità offline è attiva",
+        "unknown": "Riproduzione non riuscita"
+      },
+      "notice": {
+        "exclusive-refused": "Questo dispositivo rifiuta la modalità esclusiva: riproduzione in modalità condivisa",
+        "dop-refused": "Questo DAC rifiuta il DSD nativo: conversione in PCM",
+        "paused-device-lost": "Dispositivo disconnesso: riproduzione in pausa",
+        "unknown": "L'uscita audio è cambiata"
+      },
+      "dismiss": "Chiudi"
+    }
   },
   "queue": {
     "title": "Coda di riproduzione",
@@ -1132,6 +1150,11 @@
         "speed": "Velocità {{value}}×",
         "dopNative": "DSD nativo"
       }
+    },
+    "outputMode": {
+      "exclusive": "Esclusiva",
+      "dop": "DSD nativo",
+      "exclusiveRefused": "Esclusiva rifiutata"
     }
   },
   "miniPlayer": {

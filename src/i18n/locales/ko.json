@@ -757,7 +757,25 @@
       "custom": "사용자 정의 속도",
       "pitchHint": "속도에 따라 피치가 변합니다 (타임 스트레칭 없음)."
     },
-    "seek": "탐색"
+    "seek": "탐색",
+    "alert": {
+      "error": {
+        "device-lost": "오디오 장치의 연결이 끊어졌습니다",
+        "track-failed": "이 트랙을 재생할 수 없습니다",
+        "stream-failed": "이 스트림을 열 수 없습니다",
+        "decoder-crashed": "오디오 엔진이 다시 시작되었습니다",
+        "decoder-stopped": "오류가 반복되어 오디오 엔진이 중지되었습니다",
+        "offline": "오프라인 모드가 켜져 있습니다",
+        "unknown": "재생에 실패했습니다"
+      },
+      "notice": {
+        "exclusive-refused": "이 장치는 배타 모드를 허용하지 않습니다. 공유 모드로 재생합니다",
+        "dop-refused": "이 DAC는 네이티브 DSD를 허용하지 않습니다. PCM으로 변환합니다",
+        "paused-device-lost": "장치 연결 끊김: 재생을 일시정지했습니다",
+        "unknown": "오디오 출력이 변경되었습니다"
+      },
+      "dismiss": "닫기"
+    }
   },
   "queue": {
     "title": "재생 큐",
@@ -1132,6 +1150,11 @@
         "speed": "속도 {{value}}×",
         "dopNative": "네이티브 DSD"
       }
+    },
+    "outputMode": {
+      "exclusive": "배타",
+      "dop": "네이티브 DSD",
+      "exclusiveRefused": "배타 거부됨"
     }
   },
   "miniPlayer": {

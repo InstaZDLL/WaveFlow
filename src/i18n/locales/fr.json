@@ -757,7 +757,25 @@
       "custom": "Vitesse personnalisée",
       "pitchHint": "La hauteur suit la vitesse (pas d'étirement temporel)."
     },
-    "seek": "Position"
+    "seek": "Position",
+    "alert": {
+      "error": {
+        "device-lost": "Le périphérique audio a été déconnecté",
+        "track-failed": "Impossible de lire ce titre",
+        "stream-failed": "Impossible d'ouvrir ce flux",
+        "decoder-crashed": "Le moteur audio a redémarré",
+        "decoder-stopped": "Le moteur audio s'est arrêté après plusieurs erreurs",
+        "offline": "Le mode hors ligne est activé",
+        "unknown": "La lecture a échoué"
+      },
+      "notice": {
+        "exclusive-refused": "Ce périphérique refuse le mode exclusif : lecture en mode partagé",
+        "dop-refused": "Ce DAC refuse le DSD natif : conversion en PCM",
+        "paused-device-lost": "Périphérique déconnecté : lecture mise en pause",
+        "unknown": "La sortie audio a changé"
+      },
+      "dismiss": "Fermer"
+    }
   },
   "queue": {
     "title": "File d'attente",
@@ -1132,6 +1150,11 @@
         "speed": "Vitesse {{value}}×",
         "dopNative": "DSD natif"
       }
+    },
+    "outputMode": {
+      "exclusive": "Exclusif",
+      "dop": "DSD natif",
+      "exclusiveRefused": "Exclusif refusé"
     }
   },
   "miniPlayer": {

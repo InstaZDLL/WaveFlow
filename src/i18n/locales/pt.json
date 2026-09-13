@@ -757,7 +757,25 @@
       "custom": "Velocidade personalizada",
       "pitchHint": "O tom acompanha a velocidade (sem alteração de tempo)."
     },
-    "seek": "Posição"
+    "seek": "Posição",
+    "alert": {
+      "error": {
+        "device-lost": "O dispositivo de áudio foi desligado",
+        "track-failed": "Não foi possível reproduzir esta faixa",
+        "stream-failed": "Não foi possível abrir esta transmissão",
+        "decoder-crashed": "O motor de áudio reiniciou",
+        "decoder-stopped": "O motor de áudio parou após vários erros",
+        "offline": "O modo offline está ativado",
+        "unknown": "A reprodução falhou"
+      },
+      "notice": {
+        "exclusive-refused": "Este dispositivo recusa o modo exclusivo: a reproduzir em modo partilhado",
+        "dop-refused": "Este DAC recusa o DSD nativo: a converter para PCM",
+        "paused-device-lost": "Dispositivo desligado: reprodução em pausa",
+        "unknown": "A saída de áudio mudou"
+      },
+      "dismiss": "Fechar"
+    }
   },
   "queue": {
     "title": "Fila de reprodução",
@@ -1132,6 +1150,11 @@
         "speed": "Velocidade {{value}}×",
         "dopNative": "DSD nativo"
       }
+    },
+    "outputMode": {
+      "exclusive": "Exclusivo",
+      "dop": "DSD nativo",
+      "exclusiveRefused": "Exclusivo recusado"
     }
   },
   "miniPlayer": {

@@ -8,6 +8,7 @@ import {
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import {
   PlayerContext,
+  type PlaybackAlert,
   type PlaybackState,
   type RepeatMode,
 } from "../hooks/usePlayer";
@@ -35,6 +36,8 @@ import {
   fetchRadioArtwork,
   type OutputDevice,
   type PlayerErrorPayload,
+  type PlayerNoticePayload,
+  type OutputMode,
   type PlayerPositionPayload,
   type PlayerStatePayload,
   type QueueSource,
@@ -225,6 +228,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // and on every `player:track-changed` because WASAPI exclusive
   // mode can re-open the device at the new track's native rate.
   const [deviceSampleRate, setDeviceSampleRate] = useState<number | null>(null);
+  // What the output really engaged as (#597). Read from the engine
+  // rather than derived here: exclusive can fall back to shared on its
+  // own, and only the engine knows the difference between "shared" and
+  // "shared because this device refused".
+  const [outputMode, setOutputMode] = useState<OutputMode>("shared");
+  // The last thing playback had to say for itself (#597). One slot, not
+  // a queue: the newest message is the one that describes the situation,
+  // and stacking them would nag.
+  const [playbackAlert, setPlaybackAlert] = useState<PlaybackAlert | null>(
+    null,
+  );
+  const alertSeqRef = useRef(0);
+  const dismissPlaybackAlert = useCallback(() => setPlaybackAlert(null), []);
   const [deviceChannels, setDeviceChannels] = useState<number | null>(null);
   // Monotonic token for in-flight `playerGetState` refreshes triggered
   // by `player:track-changed`. If the user fires three skips in a row,
@@ -339,6 +355,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         // downstream UI can skip the "0 kHz" display.
         setDeviceSampleRate(snap.sample_rate > 0 ? snap.sample_rate : null);
         setDeviceChannels(snap.channels > 0 ? snap.channels : null);
+        setOutputMode(snap.output_mode);
         if (snap.current_track) {
           setCurrentTrack(queuePayloadToTrack(snap.current_track));
           setDurationMs(snap.current_track.duration_ms);
@@ -474,6 +491,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                   snap.sample_rate > 0 ? snap.sample_rate : null,
                 );
                 setDeviceChannels(snap.channels > 0 ? snap.channels : null);
+                setOutputMode(snap.output_mode);
               } catch (err) {
                 console.error(
                   "[PlayerContext] refresh device rate failed",
@@ -512,8 +530,52 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           }),
         );
         unlisten.push(
+          // The engine rebuilds the output on its own — a device flap, a
+          // device that refuses exclusive, the DoP re-open a DSD track
+          // forces — and each of those can change what actually engaged
+          // without anyone touching a setting. Same token as the
+          // track-change refresh, so the two cannot land out of order.
+          await listen("player:audio-mode-changed", () => {
+            const reqToken = ++deviceRefreshTokenRef.current;
+            void (async () => {
+              try {
+                const snap = await playerGetState();
+                if (reqToken !== deviceRefreshTokenRef.current) return;
+                setDeviceSampleRate(
+                  snap.sample_rate > 0 ? snap.sample_rate : null,
+                );
+                setDeviceChannels(snap.channels > 0 ? snap.channels : null);
+                setOutputMode(snap.output_mode);
+              } catch (err) {
+                console.error("[PlayerContext] refresh output mode failed", err);
+              }
+            })();
+          }),
+        );
+        unlisten.push(
           await listen<PlayerErrorPayload>("player:error", (e) => {
+            // Kept: the message is technical, and this is where a bug
+            // report goes looking for it. What the user sees is the
+            // translated sentence the toast builds from `kind` (#597).
             console.error("[player:error]", e.payload.message);
+            setPlaybackAlert({
+              id: ++alertSeqRef.current,
+              severity: "error",
+              kind: e.payload.kind ?? "unknown",
+              detail: e.payload.message,
+            });
+          }),
+        );
+        unlisten.push(
+          await listen<PlayerNoticePayload>("player:notice", (e) => {
+            // Not a failure: playback works, it is just not what was
+            // asked for. The engine only sends these on a transition, so
+            // a DAC that refuses exclusive says so once, not per track.
+            setPlaybackAlert({
+              id: ++alertSeqRef.current,
+              severity: "info",
+              kind: e.payload.kind,
+            });
           }),
         );
       } catch (err) {
@@ -892,6 +954,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         setPlaybackSpeed,
         deviceSampleRate,
         deviceChannels,
+        outputMode,
+        playbackAlert,
+        dismissPlaybackAlert,
         isShuffled,
         toggleShuffle,
         repeatMode,

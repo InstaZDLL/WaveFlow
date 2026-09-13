@@ -757,7 +757,25 @@
       "custom": "自定义速度",
       "pitchHint": "音高随速度变化（无时间拉伸）。"
     },
-    "seek": "跳转"
+    "seek": "跳转",
+    "alert": {
+      "error": {
+        "device-lost": "音频设备已断开",
+        "track-failed": "无法播放此曲目",
+        "stream-failed": "无法打开此流",
+        "decoder-crashed": "音频引擎已重启",
+        "decoder-stopped": "多次出错后音频引擎已停止",
+        "offline": "离线模式已开启",
+        "unknown": "播放失败"
+      },
+      "notice": {
+        "exclusive-refused": "此设备不接受独占模式：以共享模式播放",
+        "dop-refused": "此 DAC 不接受原生 DSD：转换为 PCM",
+        "paused-device-lost": "设备已断开：播放已暂停",
+        "unknown": "音频输出已改变"
+      },
+      "dismiss": "关闭"
+    }
   },
   "queue": {
     "title": "播放队列",
@@ -1132,6 +1150,11 @@
         "speed": "速度 {{value}}×",
         "dopNative": "原生 DSD"
       }
+    },
+    "outputMode": {
+      "exclusive": "独占",
+      "dop": "原生 DSD",
+      "exclusiveRefused": "独占被拒绝"
     }
   },
   "miniPlayer": {

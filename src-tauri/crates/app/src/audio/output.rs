@@ -392,7 +392,13 @@ pub(super) fn notify_device_lost(app: &AppHandle, shared: &Arc<SharedPlayback>, 
         "player:state",
         json!({ "state": "paused", "track_id": null }),
     );
-    let _ = app.emit("player:error", json!({ "message": message }));
+    // The message is technical on purpose — it is what a bug report
+    // needs — and `kind` is what the UI turns into a sentence the user
+    // can act on (#597).
+    let _ = app.emit(
+        "player:error",
+        json!({ "message": message, "kind": "device-lost" }),
+    );
     if let Some(controls) = app.try_state::<crate::media_controls::MediaControlsHandle>() {
         controls.update_playback(PlayerState::Paused, shared.current_position_ms());
     }

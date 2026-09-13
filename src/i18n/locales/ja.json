@@ -757,7 +757,25 @@
       "custom": "カスタム速度",
       "pitchHint": "ピッチは速度に追従します（タイムストレッチなし）。"
     },
-    "seek": "再生位置"
+    "seek": "再生位置",
+    "alert": {
+      "error": {
+        "device-lost": "オーディオデバイスが切断されました",
+        "track-failed": "このトラックを再生できませんでした",
+        "stream-failed": "このストリームを開けませんでした",
+        "decoder-crashed": "オーディオエンジンを再起動しました",
+        "decoder-stopped": "エラーが続いたためオーディオエンジンを停止しました",
+        "offline": "オフラインモードが有効です",
+        "unknown": "再生に失敗しました"
+      },
+      "notice": {
+        "exclusive-refused": "このデバイスは排他モードを受け付けません。共有モードで再生します",
+        "dop-refused": "このDACはネイティブDSDを受け付けません。PCMに変換します",
+        "paused-device-lost": "デバイスが切断されました。再生を一時停止しました",
+        "unknown": "オーディオ出力が変わりました"
+      },
+      "dismiss": "閉じる"
+    }
   },
   "queue": {
     "title": "再生キュー",
@@ -1132,6 +1150,11 @@
         "speed": "速度 {{value}}×",
         "dopNative": "ネイティブDSD"
       }
+    },
+    "outputMode": {
+      "exclusive": "排他",
+      "dop": "ネイティブDSD",
+      "exclusiveRefused": "排他を拒否"
     }
   },
   "miniPlayer": {

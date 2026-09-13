@@ -757,7 +757,25 @@
       "custom": "Özel hız",
       "pitchHint": "Ton, hızı takip eder (zaman genişletme yok)."
     },
-    "seek": "İlerlet"
+    "seek": "İlerlet",
+    "alert": {
+      "error": {
+        "device-lost": "Ses aygıtının bağlantısı kesildi",
+        "track-failed": "Bu parça çalınamadı",
+        "stream-failed": "Bu akış açılamadı",
+        "decoder-crashed": "Ses motoru yeniden başlatıldı",
+        "decoder-stopped": "Ses motoru tekrarlanan hatalardan sonra durdu",
+        "offline": "Çevrimdışı mod açık",
+        "unknown": "Oynatma başarısız oldu"
+      },
+      "notice": {
+        "exclusive-refused": "Bu aygıt özel modu kabul etmiyor: paylaşımlı modda çalınıyor",
+        "dop-refused": "Bu DAC yerel DSD'yi kabul etmiyor: PCM'e dönüştürülüyor",
+        "paused-device-lost": "Aygıt bağlantısı kesildi: oynatma duraklatıldı",
+        "unknown": "Ses çıkışı değişti"
+      },
+      "dismiss": "Kapat"
+    }
   },
   "queue": {
     "title": "Çalma sırası",
@@ -1132,6 +1150,11 @@
         "speed": "Hız {{value}}×",
         "dopNative": "Yerel DSD"
       }
+    },
+    "outputMode": {
+      "exclusive": "Özel",
+      "dop": "Yerel DSD",
+      "exclusiveRefused": "Özel reddedildi"
     }
   },
   "miniPlayer": {

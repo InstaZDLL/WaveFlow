@@ -757,7 +757,25 @@
       "custom": "Kecepatan kustom",
       "pitchHint": "Pitch mengikuti kecepatan (tanpa time-stretching)."
     },
-    "seek": "Geser posisi"
+    "seek": "Geser posisi",
+    "alert": {
+      "error": {
+        "device-lost": "Perangkat audio terputus",
+        "track-failed": "Trek ini tidak dapat diputar",
+        "stream-failed": "Aliran ini tidak dapat dibuka",
+        "decoder-crashed": "Mesin audio dimulai ulang",
+        "decoder-stopped": "Mesin audio berhenti setelah beberapa kesalahan",
+        "offline": "Mode luring aktif",
+        "unknown": "Pemutaran gagal"
+      },
+      "notice": {
+        "exclusive-refused": "Perangkat ini menolak mode eksklusif: memutar dalam mode berbagi",
+        "dop-refused": "DAC ini menolak DSD asli: mengonversi ke PCM",
+        "paused-device-lost": "Perangkat terputus: pemutaran dijeda",
+        "unknown": "Keluaran audio berubah"
+      },
+      "dismiss": "Tutup"
+    }
   },
   "queue": {
     "title": "Antrean putar",
@@ -1132,6 +1150,11 @@
         "speed": "Kecepatan {{value}}×",
         "dopNative": "DSD asli"
       }
+    },
+    "outputMode": {
+      "exclusive": "Eksklusif",
+      "dop": "DSD asli",
+      "exclusiveRefused": "Eksklusif ditolak"
     }
   },
   "miniPlayer": {

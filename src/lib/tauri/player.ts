@@ -40,6 +40,8 @@ export interface PlayerStateSnapshot {
   current_track: QueueTrackPayload | null;
   /** True when the output is shipping native DSD via DoP (#495). */
   dop_active: boolean;
+  /** What the output really is right now (#597). */
+  output_mode: OutputMode;
   /**
    * True when the stream really owns the device — WASAPI Exclusive on
    * Windows, a raw ALSA `hw:` device on Linux, CoreAudio hog mode on
@@ -65,8 +67,38 @@ export interface PlayerTrackEndedPayload {
   listened_ms: number;
 }
 export interface PlayerErrorPayload {
+  /** The technical message, for the console and for bug reports. */
   message: string;
+  /**
+   * What kind of failure this is, so the UI can say it in the user's
+   * language instead of showing the message above (#597). Optional
+   * because the UI must keep working against an older backend, and
+   * unknown values fall back to the generic sentence.
+   */
+  kind?: string;
 }
+
+/**
+ * Playback is not what the user asked for, but nothing failed (#597).
+ *
+ * A separate register from {@link PlayerErrorPayload}: losing the device
+ * is a fault, falling back to shared mode is normal operation that
+ * happens to contradict a choice. The engine emits each one once per
+ * transition, not at every track.
+ */
+export interface PlayerNoticePayload {
+  kind: string;
+}
+
+/**
+ * What the output really is right now (#597) — computed by the engine so
+ * the badge, the notice and the Settings card cannot disagree.
+ */
+export type OutputMode =
+  | "shared"
+  | "exclusive"
+  | "dop"
+  | "exclusive-refused";
 
 /** `queue_item.source_type` values the backend accepts. */
 export type QueueSource =
