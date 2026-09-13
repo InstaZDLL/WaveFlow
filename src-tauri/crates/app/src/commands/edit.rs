@@ -626,10 +626,25 @@ fn apply_patch_id3(tag: &mut id3::Tag, patch: &TagPatch<'_>) {
 ///
 /// A cleared year clears both, so a stale `TYER` cannot outlive the
 /// date it duplicated.
-fn mirror_year_for_legacy(tag: &mut id3::Tag, version: id3::Version) {
+///
+/// **Only when the edit touched the year.** A genuine 2.3 tag carries
+/// `TYER` and no `TDRC` at all — that is the normal shape, not an odd
+/// one — so a mirror that ran on every save read "no date" from a file
+/// that had a perfectly good year and removed it. Editing a title, or
+/// setting a cover, would have quietly erased the year of every 2.3 DSF
+/// it touched.
+fn mirror_year_for_legacy(tag: &mut id3::Tag, patch: &TagPatch<'_>, version: id3::Version) {
     use id3::TagLike;
 
     if !matches!(version, id3::Version::Id3v22 | id3::Version::Id3v23) {
+        return;
+    }
+    // A cover carries no year, and a field edit that left `year` at
+    // `None` is asking for the year to stay exactly as it is.
+    let TagPatch::Fields(edit) = patch else {
+        return;
+    };
+    if edit.year.is_none() {
         return;
     }
     match tag.date_recorded() {
@@ -684,7 +699,7 @@ fn patch_dsf(
                 .map_or(id3::Version::Id3v24, id3::Tag::version);
             let mut tag = existing.unwrap_or_default();
             apply_patch_id3(&mut tag, patch);
-            mirror_year_for_legacy(&mut tag, version);
+            mirror_year_for_legacy(&mut tag, patch, version);
             let mut bytes = Vec::new();
             tag.write_to(&mut bytes, version)?;
             waveflow_core::tagio::write_dsf_id3v2(handle, &bytes)?;
@@ -1402,7 +1417,7 @@ mod patch_agreement_tests {
             ..Default::default()
         };
         apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
-        mirror_year_for_legacy(&mut tag, id3::Version::Id3v23);
+        mirror_year_for_legacy(&mut tag, &TagPatch::Fields(&edit), id3::Version::Id3v23);
 
         let mut bytes = Vec::new();
         tag.write_to(&mut bytes, id3::Version::Id3v23)
@@ -1434,7 +1449,7 @@ mod patch_agreement_tests {
             ..Default::default()
         };
         apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
-        mirror_year_for_legacy(&mut tag, id3::Version::Id3v23);
+        mirror_year_for_legacy(&mut tag, &TagPatch::Fields(&edit), id3::Version::Id3v23);
 
         assert_eq!(tag.year(), None);
         assert_eq!(tag.date_recorded(), None);
@@ -1452,10 +1467,48 @@ mod patch_agreement_tests {
             ..Default::default()
         };
         apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
-        mirror_year_for_legacy(&mut tag, id3::Version::Id3v24);
+        mirror_year_for_legacy(&mut tag, &TagPatch::Fields(&edit), id3::Version::Id3v24);
 
         assert_eq!(tag.date_recorded().map(|d| d.year), Some(2011));
         assert_eq!(tag.year(), None, "no TYER in a 2.4 tag");
+    }
+
+    #[test]
+    fn a_cover_edit_does_not_erase_a_v23_tag_s_year() {
+        // The shape that matters: a genuine 2.3 tag carries TYER and no
+        // TDRC. A mirror that ran on every save would read "no date"
+        // from it and remove the year — so setting a cover, or fixing a
+        // title, silently erased the year of the file it was helping.
+        use id3::TagLike;
+
+        let mut tag = id3::Tag::new();
+        tag.set_year(1997);
+        let mime = lofty::picture::MimeType::Jpeg;
+        let patch = TagPatch::Cover {
+            bytes: &[1, 2, 3],
+            mime: &mime,
+        };
+        apply_patch_id3(&mut tag, &patch);
+        mirror_year_for_legacy(&mut tag, &patch, id3::Version::Id3v23);
+
+        assert_eq!(tag.year(), Some(1997), "the year the edit never mentioned");
+    }
+
+    #[test]
+    fn a_title_only_edit_does_not_erase_a_v23_tag_s_year() {
+        use id3::TagLike;
+
+        let mut tag = id3::Tag::new();
+        tag.set_year(1997);
+        let edit = TrackEdit {
+            title: Some("New Title".into()),
+            ..Default::default()
+        };
+        apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
+        mirror_year_for_legacy(&mut tag, &TagPatch::Fields(&edit), id3::Version::Id3v23);
+
+        assert_eq!(tag.year(), Some(1997));
+        assert_eq!(tag.title(), Some("New Title"));
     }
 
     #[test]
