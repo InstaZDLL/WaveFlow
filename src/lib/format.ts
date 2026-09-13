@@ -13,9 +13,17 @@
  * same in every locale WaveFlow ships, and a key per unit would be four
  * keys × 17 files that always hold the same value.
  */
-export function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number, locale?: string): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
-  if (bytes < 1024) return `${bytes} B`;
+  // The number is formatted for the language the UI is in, not the one
+  // the browser reports: WaveFlow ships 17 locales and the user picks
+  // one, and half of them write "9,4 GB" rather than "9.4 GB".
+  const format = (value: number, digits: number) =>
+    new Intl.NumberFormat(locale, {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    }).format(value);
+  if (bytes < 1024) return `${format(bytes, 0)} B`;
   const units = ["KB", "MB", "GB", "TB"];
   let value = bytes / 1024;
   let unit = 0;
@@ -25,5 +33,5 @@ export function formatBytes(bytes: number): string {
   }
   // One decimal below 100, none above: "9.4 GB" is worth the digit,
   // "184.0 GB" is not.
-  return `${value < 100 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`;
+  return `${format(value, value < 100 ? 1 : 0)} ${units[unit]}`;
 }

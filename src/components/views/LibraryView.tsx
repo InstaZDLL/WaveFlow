@@ -184,7 +184,7 @@ export function LibraryView({
   onNavigateToGenre,
   onNavigateToPlaylist,
 }: LibraryViewProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const createFromModal = useCreatePlaylistFromModal();
   const {
     libraries,
@@ -1259,6 +1259,7 @@ export function LibraryView({
                 density={folderDensity}
                 onDensity={setFolderDensity}
                 t={t}
+                locale={i18n.resolvedLanguage ?? i18n.language}
                 onOpen={setFolderPath}
                 onRoots={() => setFolderPath(null)}
                 playlists={playlists}
@@ -3551,6 +3552,10 @@ interface FolderBrowserProps {
   density: "grid" | "list";
   onDensity: (density: "grid" | "list") => void;
   t: Translator;
+  /** The UI's language, for the sizes: a decimal separator is not the
+   *  same in every locale WaveFlow ships, and the browser's own locale
+   *  is not necessarily the one the user picked here. */
+  locale: string;
   /** Descend into a child directory. */
   onOpen: (path: string) => void;
   /** Back out to the list of configured roots. */
@@ -3589,6 +3594,7 @@ function FolderBrowser({
   density,
   onDensity,
   t,
+  locale,
   onOpen,
   onRoots,
   playlists,
@@ -3619,13 +3625,20 @@ function FolderBrowser({
   const crumbs = useMemo(() => {
     if (!listing) return [] as { label: string; path: string }[];
     const sep = listing.path.includes("\\") ? "\\" : "/";
-    const root = listing.root_path ?? "";
-    // `||`, not `??`: an empty root leaves an empty last segment, which
+    const root = listing.root_path;
+    // No root means the backend matched none -- a folder outside every
+    // configured root. Splitting the whole absolute path then invents
+    // crumbs whose targets are relative fragments (`m`, `m/Rock`) that
+    // lead nowhere, so the trail stops at where we actually are.
+    if (!root) {
+      const here = listing.path.split(sep).filter(Boolean).pop();
+      return [{ label: here || listing.path, path: listing.path }];
+    }
+    // `||`, not `??`: a root of `/` leaves an empty last segment, which
     // is a value rather than a missing one, and would render a crumb
     // with no label at all.
-    const rootLabel =
-      root.split(sep).filter(Boolean).pop() || root || listing.path;
-    const out = [{ label: rootLabel, path: root || listing.path }];
+    const rootLabel = root.split(sep).filter(Boolean).pop() || root;
+    const out = [{ label: rootLabel, path: root }];
     if (listing.path.length > root.length) {
       const rest = listing.path.slice(root.length).split(sep).filter(Boolean);
       let walked = root;
@@ -3734,7 +3747,6 @@ function FolderBrowser({
                 <button
                   type="button"
                   onClick={() => setMenuOpen((open) => !open)}
-                  aria-haspopup="menu"
                   aria-expanded={menuOpen}
                   aria-label={t("library.folderBrowser.actions")}
                   className="p-1.5 rounded-md text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
@@ -3751,10 +3763,11 @@ function FolderBrowser({
                     className="fixed inset-0 z-40 cursor-default"
                     onClick={() => setMenuOpen(false)}
                   />
-                  <div
-                    role="menu"
-                    className="absolute right-0 top-full mt-1 z-50 w-60 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
-                  >
+                  {/* A plain group of buttons, not `role="menu"`:
+                      `MenuActionItem` renders a button with no
+                      `menuitem` role, and announcing a menu promises
+                      arrow-key navigation nothing here implements. */}
+                  <div className="absolute right-0 top-full mt-1 z-50 w-60 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
                     <MenuActionItem
                       icon={<Play size={15} />}
                       label={t("library.folderBrowser.play")}
@@ -3835,6 +3848,7 @@ function FolderBrowser({
                 key={folder.path}
                 folder={folder}
                 t={t}
+                locale={locale}
                 onOpen={onOpen}
               />
             ))}
@@ -3865,7 +3879,7 @@ function FolderBrowser({
                       count: folder.track_count,
                     })}
                     {" · "}
-                    {formatBytes(folder.total_size)}
+                    {formatBytes(folder.total_size, locale)}
                   </span>
                 </span>
                 <ChevronRight
@@ -3885,10 +3899,12 @@ function FolderBrowser({
 function FolderTile({
   folder,
   t,
+  locale,
   onOpen,
 }: {
   folder: FolderNode;
   t: Translator;
+  locale: string;
   onOpen: (path: string) => void;
 }) {
   return (
@@ -3911,7 +3927,7 @@ function FolderTile({
       <div className="text-xs text-zinc-500 truncate">
         {t("library.folderList.trackCount", { count: folder.track_count })}
         {" · "}
-        {formatBytes(folder.total_size)}
+        {formatBytes(folder.total_size, locale)}
       </div>
     </button>
   );
