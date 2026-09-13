@@ -557,7 +557,9 @@ export interface DeviceCapabilities {
   /** Every rate accepted in *some* format — the union, for the tiers. */
   sample_rates: number[];
   max_channels: number;
-  buffer_frames: number | null;
+  /** The smallest period the device will take, in frames — one quantity
+   *  asked the same way of every backend. */
+  min_period_frames: number | null;
   /** Technical, for the tooltip — the UI says it in its own words. */
   unavailable_reason: string | null;
 }

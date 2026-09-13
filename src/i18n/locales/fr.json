@@ -811,7 +811,7 @@
       "details": "Détails du périphérique",
       "summary": "{{bits}} bit · {{rate}} kHz",
       "channels": "Canaux : {{value}}",
-      "buffer": "Tampon : {{value}} trames",
+      "minPeriod": "Période minimale : {{value}} trames",
       "formats": "Formats",
       "rates": "Taux d'échantillonnage",
       "caveat": "Ce qu'un pilote déclare et ce qu'il accepte en mode exclusif sont deux questions différentes.",
@@ -1645,7 +1645,7 @@
     },
     "matchSourceRate": {
       "title": "Suivre le taux d'échantillonnage des pistes",
-      "subtitle": "En sortie exclusive, rouvre le périphérique au taux de chaque piste : plus aucun rééchantillonnage, mais une coupure à chaque changement de taux"
+      "subtitle": "En sortie exclusive, rouvre le périphérique au taux de chaque piste : aucun rééchantillonnage quand il l'accepte, une coupure à chaque changement de taux"
     },
     "mono": {
       "title": "Audio mono",

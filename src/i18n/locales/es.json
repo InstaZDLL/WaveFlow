@@ -811,7 +811,7 @@
       "details": "Detalles del dispositivo",
       "summary": "{{bits}} bit · {{rate}} kHz",
       "channels": "Canales: {{value}}",
-      "buffer": "Búfer: {{value}} tramas",
+      "minPeriod": "Período mínimo: {{value}} tramas",
       "formats": "Formatos",
       "rates": "Frecuencias de muestreo",
       "caveat": "Lo que un controlador declara y lo que acepta en modo exclusivo son dos preguntas distintas.",
@@ -1592,7 +1592,7 @@
     },
     "matchSourceRate": {
       "title": "Seguir la frecuencia de muestreo de cada pista",
-      "subtitle": "En salida exclusiva, reabre el dispositivo a la frecuencia de cada pista: sin remuestreo, pero con un corte en cada cambio de frecuencia"
+      "subtitle": "En salida exclusiva, reabre el dispositivo a la frecuencia de cada pista: sin remuestreo cuando la acepta, con un corte en cada cambio de frecuencia"
     },
     "mono": {
       "title": "Audio mono",

@@ -394,13 +394,44 @@ fn open_and_run_pcm(
     };
     let current = match requested_rate {
         Some(rate) if f64::from(rate) != current.mSampleRate => {
-            let wanted = StreamFormat {
-                sample_rate: f64::from(rate),
-                sample_format: SampleFormat::F32,
-                flags: LinearPcmFlags::IS_FLOAT | LinearPcmFlags::IS_PACKED,
-                channels: current.mChannelsPerFrame,
-            };
-            match find_matching_physical_format(device_id, wanted) {
+            // `find_matching_physical_format` matches the depth and the
+            // number type exactly — only the flags are ignored — so
+            // asking for 32-bit float alone finds nothing on a DAC whose
+            // physical formats are integer, which is most of them. The
+            // rate is what we are after; the depth is whatever the device
+            // offers at it, deepest first, exactly as the DoP path walks
+            // its own chain.
+            let wanted = [
+                (
+                    SampleFormat::F32,
+                    LinearPcmFlags::IS_FLOAT | LinearPcmFlags::IS_PACKED,
+                ),
+                (
+                    SampleFormat::I32,
+                    LinearPcmFlags::IS_SIGNED_INTEGER | LinearPcmFlags::IS_PACKED,
+                ),
+                (
+                    SampleFormat::I24,
+                    LinearPcmFlags::IS_SIGNED_INTEGER | LinearPcmFlags::IS_PACKED,
+                ),
+                (
+                    SampleFormat::I16,
+                    LinearPcmFlags::IS_SIGNED_INTEGER | LinearPcmFlags::IS_PACKED,
+                ),
+            ]
+            .into_iter()
+            .find_map(|(sample_format, flags)| {
+                find_matching_physical_format(
+                    device_id,
+                    StreamFormat {
+                        sample_rate: f64::from(rate),
+                        sample_format,
+                        flags,
+                        channels: current.mChannelsPerFrame,
+                    },
+                )
+            });
+            match wanted {
                 Some(asbd) => match set_device_physical_stream_format(device_id, asbd) {
                     Ok(()) => {
                         format_guard.previous = Some(current);
@@ -777,7 +808,7 @@ pub(super) fn probe_capabilities(
         // CoreAudio's buffer size is the *client's* to choose rather than
         // the device's to declare, so there is nothing honest to put
         // here.
-        buffer_frames: None,
+        min_period_frames: None,
         unavailable_reason: None,
     })
 }

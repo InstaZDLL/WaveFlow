@@ -92,7 +92,7 @@ The hint database answers with ALSA's whole namespace, and most of it is not a d
 
 ### What a device says it can do
 
-The picker listed names, and someone choosing between three outputs on an audiophile player is choosing on facts a name does not carry (#593). `audio/capabilities.rs` answers for one device at a time: the formats it accepts, the rates, the channel count, and the buffer when it has one to report.
+The picker listed names, and someone choosing between three outputs on an audiophile player is choosing on facts a name does not carry (#593). `audio/capabilities.rs` answers for one device at a time: the formats it accepts, the rates **each of those formats** runs at, the channel count, and the smallest period the device will take — one quantity asked the same way of every backend, since a sheet showing a minimum on one platform and a maximum on another invites a comparison that means nothing.
 
 **Asked on demand, never during enumeration.** Filling a capability table while listing would bring back exactly the one-to-two second freeze the ALSA-hint shortcut exists to prevent — for every device, every time the menu opens. So it is its own command, called per device once the menu is open, answered on the blocking pool, and memoised for the session. Only real answers are memoised: a device another client was holding must be asked again rather than remembered as unavailable for the rest of the run.
 
@@ -104,7 +104,7 @@ The picker listed names, and someone choosing between three outputs on an audiop
 | Linux | `snd_pcm_hw_params` on the raw `hw:` device | The hardware itself, with no plug layer. Opened **non-blocking** so a busy device answers `EBUSY` at once instead of waiting — which also means the device we are playing on exclusively cannot answer, and says so. |
 | macOS | the physical stream formats and nominal rates | What the device reports to the HAL. There is no exclusive-mode question to ask: hog mode takes the device as it is rather than negotiating a format. |
 
-The rates are kept **per format**, not per device, because the two are not independent: a DAC that takes 32-bit to 96 kHz and 24-bit to 192 kHz accepts neither pair the two maxima would suggest. In the menu, each row therefore carries its deepest format and the top rate *that format* runs at, with the Hi-Res marker decided on that same pair; the sheet behind it adds the channel count, the buffer, the formats as a set, and the rates **grouped into named tiers** — CD quality, Hi-Res, Studio, Ultra Hi-Res — with the numbers themselves on the tooltip. A column running from 44.1 to 384 tells an expert something and a normal user nothing; the tiers tell both.
+The rates are kept **per format**, not per device, because the two are not independent: a DAC that takes 32-bit to 96 kHz and 24-bit to 192 kHz accepts neither pair the two maxima would suggest. In the menu, each row therefore carries its deepest format and the top rate *that format* runs at, with the Hi-Res marker decided on that same pair; the sheet behind it adds the channel count, the smallest period the device takes, the formats as a set, and the rates **grouped into named tiers** — CD quality, Hi-Res, Studio, Ultra Hi-Res — with the numbers themselves on the tooltip. A column running from 44.1 to 384 tells an expert something and a normal user nothing; the tiers tell both.
 
 ### The pin and the endpoint are two different things
 

@@ -422,11 +422,12 @@ pub(super) fn probe_capabilities(
         formats,
         sample_rates: sample_rates.into_iter().collect(),
         max_channels: hwp.get_channels_max().unwrap_or(0) as u16,
-        // The largest period the hardware will take, in frames. Not the
-        // one we ask for when playing — see `TARGET_PERIOD_FRAMES` — but
-        // the device's own limit, which is what a capability sheet is
-        // describing.
-        buffer_frames: hwp.get_period_size_max().ok().map(|frames| frames as u32),
+        // The **smallest** period the hardware will take, which is the
+        // one quantity every backend can answer — see
+        // `DeviceCapabilities::min_period_frames`. Not the period we ask
+        // for when playing (`TARGET_PERIOD_FRAMES`): that one is ours,
+        // and this sheet describes the device.
+        min_period_frames: hwp.get_period_size_min().ok().map(|frames| frames as u32),
         unavailable_reason: None,
     })
 }

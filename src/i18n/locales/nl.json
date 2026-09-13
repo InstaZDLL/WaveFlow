@@ -811,7 +811,7 @@
       "details": "Apparaatdetails",
       "summary": "{{bits}} bit · {{rate}} kHz",
       "channels": "Kanalen: {{value}}",
-      "buffer": "Buffer: {{value}} frames",
+      "minPeriod": "Minimale periode: {{value}} frames",
       "formats": "Formaten",
       "rates": "Bemonsteringsfrequenties",
       "caveat": "Wat een stuurprogramma opgeeft en wat het in exclusieve modus accepteert, zijn twee verschillende vragen.",
@@ -1592,7 +1592,7 @@
     },
     "matchSourceRate": {
       "title": "Bemonsteringsfrequentie van elk nummer volgen",
-      "subtitle": "Bij exclusieve uitvoer wordt het apparaat opnieuw geopend op de frequentie van elk nummer: geen herbemonstering, maar een onderbreking bij elke wisseling"
+      "subtitle": "Bij exclusieve uitvoer wordt het apparaat opnieuw geopend op de frequentie van elk nummer: geen herbemonstering als het apparaat die accepteert, maar een onderbreking bij elke wisseling"
     },
     "mono": {
       "title": "Mono-audio",

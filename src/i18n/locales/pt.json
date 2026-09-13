@@ -811,7 +811,7 @@
       "details": "Detalhes do dispositivo",
       "summary": "{{bits}} bit · {{rate}} kHz",
       "channels": "Canais: {{value}}",
-      "buffer": "Buffer: {{value}} tramas",
+      "minPeriod": "Período mínimo: {{value}} tramas",
       "formats": "Formatos",
       "rates": "Taxas de amostragem",
       "caveat": "O que um controlador declara e o que aceita em modo exclusivo são duas perguntas diferentes.",
@@ -1600,7 +1600,7 @@
     },
     "matchSourceRate": {
       "title": "Seguir a taxa de amostragem de cada faixa",
-      "subtitle": "Na saída exclusiva, reabre o dispositivo à taxa de cada faixa: sem reamostragem, mas com um corte a cada mudança de taxa"
+      "subtitle": "Na saída exclusiva, reabre o dispositivo à taxa de cada faixa: sem reamostragem quando a aceita, com um corte a cada mudança de taxa"
     },
     "mono": {
       "title": "Áudio mono",

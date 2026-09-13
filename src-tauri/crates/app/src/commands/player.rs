@@ -581,6 +581,24 @@ pub async fn player_get_state(
                     .match_source_rate
                     .store(match_rate, std::sync::atomic::Ordering::Release);
             }
+            // Pause on device loss (#617). It lives on the engine rather
+            // than in `SharedPlayback`, but it is profile-scoped like the
+            // two above, and this block is the one that runs on a profile
+            // *switch* — the boot read in `lib.rs` only covers the first
+            // profile of the session, so without this the second profile
+            // kept the first one's answer. Absent means on.
+            {
+                let pause_on_loss = sqlx::query_scalar::<_, String>(
+                    "SELECT value FROM profile_setting WHERE key = 'audio.pause_on_device_loss'",
+                )
+                .fetch_optional(&*pool)
+                .await
+                .ok()
+                .flatten()
+                .map(|v| v == "1" || v == "true")
+                .unwrap_or(true);
+                engine.set_pause_on_device_loss(pause_on_loss);
+            }
             // Every ReplayGain setting resolves to its default when the
             // row is missing or unparseable, and is stored either way —
             // the `dsd_dop` pattern above, for the same reason: this
@@ -2066,22 +2084,27 @@ pub async fn player_set_match_source_rate(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
+    // Written before it is applied, and the error propagates. A
+    // preference the UI believes it saved, and that comes back to its
+    // old value at the next launch or the next profile switch, is worse
+    // than a toggle that visibly refuses — and this one takes effect on
+    // the next track, so there is nothing to undo in the engine when the
+    // write fails.
+    let pool = state.require_profile_pool().await?;
+    let now = chrono::Utc::now().timestamp_millis();
+    sqlx::query(
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.match_source_rate', ?, 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(if enabled { "true" } else { "false" })
+    .bind(now)
+    .execute(&*pool)
+    .await?;
     engine
         .shared()
         .match_source_rate
         .store(enabled, std::sync::atomic::Ordering::Release);
-    if let Ok(pool) = state.require_profile_pool().await {
-        let now = chrono::Utc::now().timestamp_millis();
-        let _ = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES ('audio.match_source_rate', ?, 'bool', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
-        )
-        .bind(if enabled { "true" } else { "false" })
-        .bind(now)
-        .execute(&*pool)
-        .await;
-    }
     Ok(())
 }
 
@@ -2126,20 +2149,22 @@ pub async fn player_set_pause_on_device_loss(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
-    engine.set_pause_on_device_loss(enabled);
-    if let Ok(pool) = state.require_profile_pool().await {
-        let now = chrono::Utc::now().timestamp_millis();
-        let stored = if enabled { "1" } else { "0" };
-        let _ = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+    // Persisted first, same as `player_set_match_source_rate` and for
+    // the same reason: a setting that only ever lived in memory is a
+    // setting the user will find undone.
+    let pool = state.require_profile_pool().await?;
+    let now = chrono::Utc::now().timestamp_millis();
+    let stored = if enabled { "1" } else { "0" };
+    sqlx::query(
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
              VALUES ('audio.pause_on_device_loss', ?, 'bool', ?)
              ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
-        )
-        .bind(stored)
-        .bind(now)
-        .execute(&*pool)
-        .await;
-    }
+    )
+    .bind(stored)
+    .bind(now)
+    .execute(&*pool)
+    .await?;
+    engine.set_pause_on_device_loss(enabled);
     Ok(())
 }
 

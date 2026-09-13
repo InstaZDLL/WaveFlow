@@ -811,7 +811,7 @@
       "details": "Device details",
       "summary": "{{bits}} bit · {{rate}} kHz",
       "channels": "Channels: {{value}}",
-      "buffer": "Buffer: {{value}} frames",
+      "minPeriod": "Minimum period: {{value}} frames",
       "formats": "Formats",
       "rates": "Sample rates",
       "caveat": "What a driver declares and what it accepts in exclusive mode are two different questions.",
@@ -1592,7 +1592,7 @@
     },
     "matchSourceRate": {
       "title": "Match each track's sample rate",
-      "subtitle": "In exclusive output, reopens the device at each track's rate: no resampling at all, but a gap at every rate change"
+      "subtitle": "In exclusive output, reopens the device at each track's rate: no resampling when the device accepts it, and a gap at every rate change"
     },
     "mono": {
       "title": "Mono audio",

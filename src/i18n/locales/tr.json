@@ -811,7 +811,7 @@
       "details": "Aygıt ayrıntıları",
       "summary": "{{bits}} bit · {{rate}} kHz",
       "channels": "Kanal: {{value}}",
-      "buffer": "Arabellek: {{value}} çerçeve",
+      "minPeriod": "En küçük periyot: {{value}} çerçeve",
       "formats": "Biçimler",
       "rates": "Örnekleme hızları",
       "caveat": "Bir sürücünün bildirdiği ile özel modda kabul ettiği iki ayrı sorudur.",
@@ -1592,7 +1592,7 @@
     },
     "matchSourceRate": {
       "title": "Her parçanın örnekleme hızını kullan",
-      "subtitle": "Özel çıkışta aygıt her parçanın hızında yeniden açılır: hiç yeniden örnekleme yok, ama her hız değişiminde bir kesinti olur"
+      "subtitle": "Özel çıkışta aygıt her parçanın hızında yeniden açılır: aygıt kabul ederse yeniden örnekleme olmaz, her hız değişiminde bir kesinti olur"
     },
     "mono": {
       "title": "Mono ses",

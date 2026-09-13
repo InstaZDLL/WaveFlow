@@ -811,7 +811,7 @@
       "details": "Detail perangkat",
       "summary": "{{bits}} bit · {{rate}} kHz",
       "channels": "Kanal: {{value}}",
-      "buffer": "Bufer: {{value}} bingkai",
+      "minPeriod": "Periode minimum: {{value}} bingkai",
       "formats": "Format",
       "rates": "Laju pencuplikan",
       "caveat": "Apa yang dinyatakan driver dan apa yang diterimanya dalam mode eksklusif adalah dua pertanyaan berbeda.",
@@ -1592,7 +1592,7 @@
     },
     "matchSourceRate": {
       "title": "Ikuti laju pencuplikan tiap trek",
-      "subtitle": "Pada keluaran eksklusif, perangkat dibuka ulang pada laju tiap trek: tanpa pencuplikan ulang, tetapi ada jeda pada setiap perubahan laju"
+      "subtitle": "Pada keluaran eksklusif, perangkat dibuka ulang pada laju tiap trek: tanpa pencuplikan ulang bila perangkat menerimanya, dengan jeda pada setiap perubahan laju"
     },
     "mono": {
       "title": "Audio mono",

@@ -113,10 +113,10 @@ function CapabilitySheet({
                 value: caps.max_channels,
               })}
             </span>
-            {caps.buffer_frames != null && (
+            {caps.min_period_frames != null && (
               <span>
-                {t("deviceMenu.capabilities.buffer", {
-                  value: caps.buffer_frames,
+                {t("deviceMenu.capabilities.minPeriod", {
+                  value: caps.min_period_frames,
                 })}
               </span>
             )}
@@ -215,11 +215,18 @@ export function DeviceMenu() {
         try {
           const caps = await playerProbeOutputDevice(device.id);
           if (cancelled) return;
-          capabilitiesRef.current = {
-            ...capabilitiesRef.current,
-            [device.id]: caps,
-          };
-          setCapabilities(capabilitiesRef.current);
+          setCapabilities((previous) => ({ ...previous, [device.id]: caps }));
+          // Only a real answer is remembered. A device another client
+          // was holding, or one unplugged mid-probe, answers nothing
+          // *now* — keeping that would leave the row saying so for as
+          // long as the menu lives, long after the device came back.
+          // The backend memo makes the same distinction.
+          if (caps.source !== "unavailable") {
+            capabilitiesRef.current = {
+              ...capabilitiesRef.current,
+              [device.id]: caps,
+            };
+          }
         } catch (err) {
           console.error("[DeviceMenu] probe failed", device.id, err);
         }

@@ -811,7 +811,7 @@
       "details": "Gerätedetails",
       "summary": "{{bits}} Bit · {{rate}} kHz",
       "channels": "Kanäle: {{value}}",
-      "buffer": "Puffer: {{value}} Frames",
+      "minPeriod": "Minimale Periode: {{value}} Frames",
       "formats": "Formate",
       "rates": "Abtastraten",
       "caveat": "Was ein Treiber angibt und was er im Exklusivmodus akzeptiert, sind zwei verschiedene Fragen.",
@@ -1592,7 +1592,7 @@
     },
     "matchSourceRate": {
       "title": "Abtastrate jedes Titels übernehmen",
-      "subtitle": "Bei exklusiver Ausgabe wird das Gerät mit der Rate jedes Titels neu geöffnet: kein Resampling, dafür eine Lücke bei jedem Ratenwechsel"
+      "subtitle": "Bei exklusiver Ausgabe wird das Gerät mit der Rate jedes Titels neu geöffnet: kein Resampling, wenn es sie annimmt, dafür eine Lücke bei jedem Ratenwechsel"
     },
     "mono": {
       "title": "Mono-Audio",

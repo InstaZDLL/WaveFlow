@@ -1905,23 +1905,51 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     });
   }, [mono]);
 
+  // Both of these are profile-scoped settings written by a backend
+  // command, so they take the same discipline `handleToggleDsdDop`
+  // established below: writes chained rather than fired in parallel, so
+  // two fast clicks cannot leave the persisted value on the *first* one,
+  // and a conditional rollback so a stale failure cannot clobber a newer
+  // click. Each entry carries the profile it was scheduled under — the
+  // queue outlives a switch, and a late write (or its rollback) would
+  // otherwise put profile A's value into profile B.
+  const matchSourceRateWrite = useRef<Promise<void>>(Promise.resolve());
   const handleToggleMatchSourceRate = useCallback(() => {
-    const next = !matchSourceRate;
+    const prev = matchSourceRate;
+    const next = !prev;
+    const profileId = activeProfile?.id;
     setMatchSourceRate(next);
-    playerSetMatchSourceRate(next).catch((err) => {
-      console.error("[Settings] set match source rate failed", err);
-      setMatchSourceRate(!next);
-    });
-  }, [matchSourceRate]);
+    matchSourceRateWrite.current = matchSourceRateWrite.current
+      .catch(() => {})
+      .then(() => {
+        if (activeProfileIdRef.current !== profileId) return;
+        return playerSetMatchSourceRate(next);
+      })
+      .catch((err) => {
+        console.error("[Settings] set match source rate failed", err);
+        if (activeProfileIdRef.current !== profileId) return;
+        setMatchSourceRate((cur) => (cur === next ? prev : cur));
+      });
+  }, [matchSourceRate, activeProfile?.id]);
 
+  const pauseOnDeviceLossWrite = useRef<Promise<void>>(Promise.resolve());
   const handleTogglePauseOnDeviceLoss = useCallback(() => {
-    const next = !pauseOnDeviceLoss;
+    const prev = pauseOnDeviceLoss;
+    const next = !prev;
+    const profileId = activeProfile?.id;
     setPauseOnDeviceLoss(next);
-    playerSetPauseOnDeviceLoss(next).catch((err) => {
-      console.error("[Settings] set pause on device loss failed", err);
-      setPauseOnDeviceLoss(!next);
-    });
-  }, [pauseOnDeviceLoss]);
+    pauseOnDeviceLossWrite.current = pauseOnDeviceLossWrite.current
+      .catch(() => {})
+      .then(() => {
+        if (activeProfileIdRef.current !== profileId) return;
+        return playerSetPauseOnDeviceLoss(next);
+      })
+      .catch((err) => {
+        console.error("[Settings] set pause on device loss failed", err);
+        if (activeProfileIdRef.current !== profileId) return;
+        setPauseOnDeviceLoss((cur) => (cur === next ? prev : cur));
+      });
+  }, [pauseOnDeviceLoss, activeProfile?.id]);
 
   // Debounce crossfade slider changes to avoid spamming the backend.
   const crossfadeTimerRef = useRef<number | null>(null);

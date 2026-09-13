@@ -1368,8 +1368,16 @@ impl AudioEngine {
     /// the moment the user picks anything else, this snapshot describes a
     /// session they have moved on from, and handing it to Play would
     /// start the wrong thing.
-    pub(crate) fn take_parked_resume(&self) -> Option<ParkedSession> {
-        let parked = self.parked_resume.lock().ok()?.take()?;
+    /// Read the parked session **without spending it** (#611, #617).
+    ///
+    /// Split from [`Self::clear_parked_resume`] on purpose: the caller
+    /// has to claim the dispatch before it can act on this, and a claim
+    /// can fail — or succeed and then be abandoned by whoever won it.
+    /// Consuming the park first meant losing the session with nothing
+    /// playing, and the next Play falling back to the persisted resume
+    /// point, which is always a library track.
+    pub(crate) fn peek_parked_resume(&self) -> Option<ParkedSession> {
+        let parked = self.parked_resume.lock().ok()?.clone()?;
         if self.load_intent_superseded(parked.intent()) {
             tracing::debug!("parked session superseded by a newer load; dropping it");
             return None;
@@ -1487,7 +1495,7 @@ impl AudioEngine {
         });
     }
 
-    fn clear_parked_resume(&self) {
+    pub(crate) fn clear_parked_resume(&self) {
         if let Ok(mut guard) = self.parked_resume.lock() {
             *guard = None;
         }

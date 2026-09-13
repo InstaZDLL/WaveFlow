@@ -811,7 +811,7 @@
       "details": "Dettagli del dispositivo",
       "summary": "{{bits}} bit · {{rate}} kHz",
       "channels": "Canali: {{value}}",
-      "buffer": "Buffer: {{value}} frame",
+      "minPeriod": "Periodo minimo: {{value}} frame",
       "formats": "Formati",
       "rates": "Frequenze di campionamento",
       "caveat": "Ciò che un driver dichiara e ciò che accetta in modalità esclusiva sono due domande diverse.",
@@ -1592,7 +1592,7 @@
     },
     "matchSourceRate": {
       "title": "Segui la frequenza di campionamento di ogni brano",
-      "subtitle": "In uscita esclusiva riapre il dispositivo alla frequenza di ogni brano: nessun ricampionamento, ma un'interruzione a ogni cambio di frequenza"
+      "subtitle": "In uscita esclusiva riapre il dispositivo alla frequenza di ogni brano: nessun ricampionamento quando la accetta, con un'interruzione a ogni cambio di frequenza"
     },
     "mono": {
       "title": "Audio mono",

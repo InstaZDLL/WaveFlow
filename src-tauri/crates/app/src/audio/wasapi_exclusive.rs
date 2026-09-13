@@ -800,6 +800,18 @@ pub(super) fn probe_capabilities(
         .get_mixformat()
         .map_err(|e| AppError::Audio(format!("get mix format: {e:?}")))?;
     let channels = mix.get_nchannels();
+    // The mix format's channel count is what the *probe* asks at — the
+    // layout exclusive mode actually wants (#409) — but it is not a
+    // maximum: an eight-channel endpoint whose Windows default format is
+    // stereo reports two. The sheet says "max channels", so it takes the
+    // widest layout the device reports for itself, which is what the two
+    // other backends answer with.
+    let max_channels = collect_layout_candidates(&device)
+        .iter()
+        .map(|layout| layout.channels as u16)
+        .chain(std::iter::once(channels))
+        .max()
+        .unwrap_or(channels);
     let device_period = client.get_device_period().ok();
 
     let mut formats = Vec::new();
@@ -842,12 +854,15 @@ pub(super) fn probe_capabilities(
         }
     }
 
-    // The period comes back in 100-nanosecond units; frames are what a
-    // buffer size means to anyone reading it. Expressed at the device's
-    // own mix rate, which is the rate that period was measured for.
-    let buffer_frames = device_period.map(|(default_period, _min)| {
+    // The **minimum** period, not the default one: that is the quantity
+    // every backend can answer, so it is the one the sheet shows (see
+    // `DeviceCapabilities::min_period_frames`). It comes back in
+    // 100-nanosecond units; frames are what a buffer means to anyone
+    // reading it, at the device's own mix rate — the rate that period
+    // was measured for.
+    let min_period_frames = device_period.map(|(_default, min_period)| {
         let rate = mix.get_samplespersec() as i64;
-        ((default_period.max(0) * rate) / 10_000_000) as u32
+        ((min_period.max(0) * rate) / 10_000_000) as u32
     });
 
     Ok(DeviceCapabilities {
@@ -855,8 +870,8 @@ pub(super) fn probe_capabilities(
         source: CapabilitySource::WasapiExclusive,
         formats,
         sample_rates: rates.into_iter().collect(),
-        max_channels: channels,
-        buffer_frames,
+        max_channels,
+        min_period_frames,
         unavailable_reason: None,
     })
 }

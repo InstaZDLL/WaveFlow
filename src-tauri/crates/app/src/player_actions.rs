@@ -162,12 +162,21 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
     // neither of which the resume point can describe, since it only ever
     // names a library track. Nothing was relabelled when the session was
     // parked, so this needs no `track:changed` of its own either.
-    if let Some(parked) = engine.take_parked_resume() {
+    if let Some(parked) = engine.peek_parked_resume() {
         let _publish = engine.lock_publish().await;
         if !engine.claim_dispatch(intent) {
             tracing::debug!("parked resume superseded by a newer playback intent; dropping it");
             return Ok(());
         }
+        // Only now is it spent. Taking it before the claim looked
+        // equivalent — a newer selection is playing something else
+        // anyway — but a producer can claim and then give up without
+        // loading (a queue step whose cursor write fails, for one), and
+        // the park would be gone with nothing playing. The next Play
+        // would then fall back to the persisted resume point, which is
+        // always a library track: exactly the radio-comes-back-as-a-local-track
+        // case #617 set out to fix.
+        engine.clear_parked_resume();
         let previous = engine.shared().state();
         let published = engine
             .shared()

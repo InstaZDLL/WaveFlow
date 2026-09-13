@@ -259,13 +259,42 @@ fn present_alsa_hints(rows: Vec<AlsaHintRow>) -> Vec<AlsaHintRow> {
         .filter(|(_, count)| *count > 1)
         .map(|(display, _)| display.to_string())
         .collect();
-    for row in &mut kept {
+    // How many of the colliding rows each card token accounts for: a
+    // token shared by two of them tells them apart no better than the
+    // description did.
+    let mut by_card: HashMap<(&str, &str), usize> = HashMap::new();
+    for row in &kept {
         if ambiguous.contains(&row.display) {
-            // The card token when there is one, the raw name otherwise:
-            // whatever tells the two apart is better than a list with
-            // the same line twice.
             let endpoint = parse_alsa_hint_name(&row.id);
-            let suffix = endpoint.card.unwrap_or(row.id.as_str());
+            if let Some(card) = endpoint.card {
+                *by_card.entry((row.display.as_str(), card)).or_default() += 1;
+            }
+        }
+    }
+    let suffixes: Vec<Option<String>> = kept
+        .iter()
+        .map(|row| {
+            if !ambiguous.contains(&row.display) {
+                return None;
+            }
+            let endpoint = parse_alsa_hint_name(&row.id);
+            // The card token when it is the thing that differs — two
+            // cards of the same model — and the raw name otherwise. A
+            // card with two devices under one description
+            // (`hw:CARD=PCH,DEV=0` and `,DEV=2`) would be given the same
+            // token twice, which is the duplicate all over again; the id
+            // is unique by construction.
+            match endpoint
+                .card
+                .filter(|card| by_card.get(&(row.display.as_str(), *card)) == Some(&1))
+            {
+                Some(card) => Some(card.to_string()),
+                None => Some(row.id.clone()),
+            }
+        })
+        .collect();
+    for (row, suffix) in kept.iter_mut().zip(suffixes) {
+        if let Some(suffix) = suffix {
             row.display = format!("{} ({suffix})", row.display);
         }
     }
@@ -1401,6 +1430,25 @@ mod alsa_hint_tests {
             row("pipewire", "PipeWire Sound Server"),
         ]);
         assert_eq!(ids(&kept), ["default", "pulse", "pipewire"]);
+    }
+
+    #[test]
+    fn two_devices_on_one_card_are_told_apart_by_their_names() {
+        // The card token is no help here — both rows carry it — so the
+        // suffix falls back to the id, which is unique by construction.
+        // Before, the list read "USB Audio (PCH)" twice, which is the
+        // duplicate this pass exists to remove.
+        let kept = present_alsa_hints(vec![
+            row("hw:CARD=PCH,DEV=0", "USB Audio"),
+            row("hw:CARD=PCH,DEV=2", "USB Audio"),
+        ]);
+        assert_eq!(
+            kept.iter().map(|r| r.display.as_str()).collect::<Vec<_>>(),
+            [
+                "USB Audio (hw:CARD=PCH,DEV=0)",
+                "USB Audio (hw:CARD=PCH,DEV=2)"
+            ]
+        );
     }
 
     #[test]

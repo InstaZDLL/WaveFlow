@@ -92,8 +92,16 @@ pub struct DeviceCapabilities {
     /// the sheet groups by and the wrong one for naming a pair.
     pub sample_rates: Vec<u32>,
     pub max_channels: u16,
-    /// The device's own buffer, in frames, when it has one to report.
-    pub buffer_frames: Option<u32>,
+    /// The **smallest period the device will take**, in frames.
+    ///
+    /// One quantity, asked the same way of every backend, because a
+    /// sheet that showed the minimum on one platform and the maximum on
+    /// another would invite a comparison that means nothing. This one is
+    /// the device's latency floor, which is what an audiophile sheet is
+    /// being asked for. `None` where the platform does not answer it —
+    /// CoreAudio's buffer size is the client's to choose rather than the
+    /// device's to declare.
+    pub min_period_frames: Option<u32>,
     /// Why the answer is empty. Technical, for the tooltip and the bug
     /// report — the UI says it in words of its own, like every other
     /// backend message the user can see (#597).
@@ -109,7 +117,7 @@ impl DeviceCapabilities {
             formats: Vec::new(),
             sample_rates: Vec::new(),
             max_channels: 0,
-            buffer_frames: None,
+            min_period_frames: None,
             unavailable_reason: Some(reason),
         }
     }
@@ -226,7 +234,7 @@ mod tests {
             }],
             sample_rates: vec![44_100, 48_000],
             max_channels: 2,
-            buffer_frames: Some(480),
+            min_period_frames: Some(480),
             unavailable_reason: None,
         };
         assert!(answered.is_answer());
