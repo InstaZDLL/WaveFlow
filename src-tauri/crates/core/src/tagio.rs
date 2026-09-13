@@ -310,8 +310,34 @@ where
 
     let mut temp = temp;
     rename_over(&temp.path, path).map_err(E::from)?;
+    sync_directory(directory).map_err(E::from)?;
     temp.committed = true;
     Ok(())
+}
+
+/// Make a rename durable, not just visible.
+///
+/// `sync_all` on the temporary file puts its *contents* on the disk; the
+/// rename is a change to the **directory**, and on Unix that is a
+/// separate write which a crash can lose — leaving a name that still
+/// points at the old inode, with the new one unreferenced.
+///
+/// Windows has no directory handle to sync. `fs::rename` there goes
+/// through `MoveFileExW`, which commits the replacement as one
+/// operation; what it does not do is flush the volume's metadata, so the
+/// same crash window is narrower rather than closed. Opening a directory
+/// fails outright on Windows, so this is Unix-only rather than
+/// best-effort everywhere.
+fn sync_directory(directory: &Path) -> io::Result<()> {
+    #[cfg(unix)]
+    {
+        std::fs::File::open(directory)?.sync_all()
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = directory;
+        Ok(())
+    }
 }
 
 /// `rename`, waiting out the same transient lock an open does.
@@ -863,6 +889,9 @@ pub struct DsfLayout {
     pub total_size: u64,
     /// Where the ID3v2 tag starts, or `0` for a file that has none.
     pub metadata_offset: u64,
+    /// Where the `data` chunk ends, read from the chunk chain. A tag can
+    /// only ever be written at or after this — see [`read_dsf_layout`].
+    pub audio_end: u64,
 }
 
 /// The fixed part of a DSF header: magic, chunk size, file size, and the
@@ -898,13 +927,64 @@ pub fn read_dsf_layout(file: &mut std::fs::File) -> io::Result<Option<DsfLayout>
         return Ok(None);
     }
     let metadata_offset = read_u64(20);
-    if metadata_offset != 0 && (metadata_offset < DSF_HEADER_LEN || metadata_offset > len) {
+    // Where the audio ends, read from the chunk chain rather than
+    // trusted from the pointer. A header claiming its tag starts inside
+    // the data chunk is not merely odd: writing there would overwrite
+    // audio and then truncate the file to the end of the tag, which
+    // destroys the track. Nothing but the chunk chain can tell us that
+    // the pointer is wrong.
+    let audio_end = read_dsf_audio_end(file, len)?;
+    let Some(audio_end) = audio_end else {
+        return Ok(None);
+    };
+    if metadata_offset != 0 && (metadata_offset < audio_end || metadata_offset > len) {
         return Ok(None);
     }
     Ok(Some(DsfLayout {
         total_size: read_u64(12),
         metadata_offset,
+        audio_end,
     }))
+}
+
+/// Walk a DSF's chunk chain and report where the `data` chunk ends.
+///
+/// `Ok(None)` for a chain this cannot follow — a truncated file, a chunk
+/// whose declared size runs past the end, or one with no `data` chunk at
+/// all. Each of those is a file whose audio boundary we do not know, and
+/// not knowing it is the whole reason to refuse.
+fn read_dsf_audio_end(file: &mut std::fs::File, len: u64) -> io::Result<Option<u64>> {
+    use std::io::{Read, Seek, SeekFrom};
+
+    let mut at = DSF_HEADER_LEN;
+    loop {
+        if at >= len {
+            return Ok(None);
+        }
+        file.seek(SeekFrom::Start(at))?;
+        let mut header = [0u8; 12];
+        match file.read_exact(&mut header) {
+            Ok(()) => {}
+            Err(err) if err.kind() == io::ErrorKind::UnexpectedEof => return Ok(None),
+            Err(err) => return Err(err),
+        }
+        let mut size_bytes = [0u8; 8];
+        size_bytes.copy_from_slice(&header[4..12]);
+        let size = u64::from_le_bytes(size_bytes);
+        // A chunk smaller than its own header, or one running past the
+        // end of the file, means the chain is not one to follow.
+        if size < 12 {
+            return Ok(None);
+        }
+        let end = match at.checked_add(size) {
+            Some(end) if end <= len => end,
+            _ => return Ok(None),
+        };
+        if &header[0..4] == b"data" {
+            return Ok(Some(end));
+        }
+        at = end;
+    }
 }
 
 /// Replace a DSF file's ID3v2 tag, and tell the header about it (#592).
@@ -925,12 +1005,13 @@ pub fn write_dsf_id3v2(file: &mut std::fs::File, tag: &[u8]) -> io::Result<()> {
             "not a DSF file, or its header does not describe itself",
         ));
     };
-    // With no tag on record, the tag goes where the file currently ends
-    // — which is the end of the audio.
+    // With no tag on record, the tag goes right after the audio — read
+    // from the chunk chain, not taken from the file's length, so trailing
+    // junk is replaced rather than preserved ahead of the tag.
     let offset = if layout.metadata_offset != 0 {
         layout.metadata_offset
     } else {
-        file.metadata()?.len()
+        layout.audio_end
     };
 
     file.seek(SeekFrom::Start(offset))?;
@@ -952,25 +1033,98 @@ pub fn write_dsf_id3v2(file: &mut std::fs::File, tag: &[u8]) -> io::Result<()> {
 mod dsf_tests {
     use super::*;
 
-    /// A file shaped like a DSF: the DSD chunk, bytes standing in for
-    /// the fmt/data chunks, then a tag at the declared offset.
+    /// The `fmt ` chunk a real DSF carries: a 12-byte header and a
+    /// 40-byte payload the guard never looks inside.
+    const FMT_CHUNK_LEN: u64 = 52;
+
+    /// Where the audio ends in a file built by [`dsf_file`].
+    fn audio_end_of(audio: &[u8]) -> u64 {
+        DSF_HEADER_LEN + FMT_CHUNK_LEN + 12 + audio.len() as u64
+    }
+
+    /// A file shaped like a DSF, chunk chain included — the guard reads
+    /// it now, so a fixture without one would only ever prove refusals.
     fn dsf_file(audio: &[u8], tag: &[u8]) -> (tempfile::TempDir, std::path::PathBuf) {
+        dsf_file_with_pointer(audio, tag, None)
+    }
+
+    /// Same, with the metadata pointer forced to a value of our choosing
+    /// — for the headers that lie about where their tag is.
+    fn dsf_file_with_pointer(
+        audio: &[u8],
+        tag: &[u8],
+        pointer: Option<u64>,
+    ) -> (tempfile::TempDir, std::path::PathBuf) {
         let dir = tempfile::tempdir().expect("tempdir");
         let path = dir.path().join("track.dsf");
-        let offset = if tag.is_empty() {
-            0
-        } else {
-            DSF_HEADER_LEN + audio.len() as u64
+        let audio_end = audio_end_of(audio);
+        let offset = match pointer {
+            Some(forced) => forced,
+            None if tag.is_empty() => 0,
+            None => audio_end,
         };
-        let total = DSF_HEADER_LEN + audio.len() as u64 + tag.len() as u64;
+        let total = audio_end + tag.len() as u64;
+
         let mut bytes = b"DSD ".to_vec();
         bytes.extend_from_slice(&DSF_HEADER_LEN.to_le_bytes());
         bytes.extend_from_slice(&total.to_le_bytes());
         bytes.extend_from_slice(&offset.to_le_bytes());
+
+        bytes.extend_from_slice(b"fmt ");
+        bytes.extend_from_slice(&FMT_CHUNK_LEN.to_le_bytes());
+        bytes.extend_from_slice(&[0u8; (FMT_CHUNK_LEN - 12) as usize]);
+
+        bytes.extend_from_slice(b"data");
+        bytes.extend_from_slice(&(12 + audio.len() as u64).to_le_bytes());
         bytes.extend_from_slice(audio);
+
         bytes.extend_from_slice(tag);
         std::fs::write(&path, &bytes).expect("seed");
         (dir, path)
+    }
+
+    #[test]
+    fn a_pointer_into_the_audio_is_refused() {
+        // The dangerous header. Writing at a pointer inside the data
+        // chunk would overwrite audio and then cut the file back to the
+        // end of the tag — the track destroyed by an edit to its title.
+        // Only the chunk chain can say the pointer is wrong.
+        let audio: Vec<u8> = (0..2048u32).map(|i| (i % 193) as u8 + 1).collect();
+        let into_audio = DSF_HEADER_LEN + FMT_CHUNK_LEN + 12 + 512;
+        let (_dir, path) = dsf_file_with_pointer(&audio, b"a tag", Some(into_audio));
+        let before = std::fs::read(&path).expect("read");
+
+        let mut file = open(&path);
+        assert!(
+            read_dsf_layout(&mut file).expect("layout").is_none(),
+            "a pointer inside the data chunk is not a tag location"
+        );
+        assert!(write_dsf_id3v2(&mut file, b"replacement").is_err());
+        drop(file);
+        assert_eq!(
+            std::fs::read(&path).expect("read"),
+            before,
+            "the refusal left the file exactly as it was"
+        );
+    }
+
+    #[test]
+    fn a_file_with_no_data_chunk_is_refused() {
+        // No data chunk means no audio boundary, and no boundary means
+        // no safe place to put a tag.
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("chainless.dsf");
+        let mut bytes = b"DSD ".to_vec();
+        bytes.extend_from_slice(&DSF_HEADER_LEN.to_le_bytes());
+        bytes.extend_from_slice(&80u64.to_le_bytes());
+        bytes.extend_from_slice(&0u64.to_le_bytes());
+        bytes.extend_from_slice(b"fmt ");
+        bytes.extend_from_slice(&FMT_CHUNK_LEN.to_le_bytes());
+        bytes.extend_from_slice(&[0u8; (FMT_CHUNK_LEN - 12) as usize]);
+        std::fs::write(&path, &bytes).expect("seed");
+
+        let mut file = open(&path);
+        assert!(read_dsf_layout(&mut file).expect("layout").is_none());
     }
 
     fn open(path: &std::path::Path) -> std::fs::File {
@@ -994,19 +1148,17 @@ mod dsf_tests {
         drop(file);
 
         let after = std::fs::read(&path).expect("read");
+        let audio_at = (audio_end_of(&audio) - audio.len() as u64) as usize;
         assert_eq!(
-            &after[DSF_HEADER_LEN as usize..DSF_HEADER_LEN as usize + audio.len()],
+            &after[audio_at..audio_at + audio.len()],
             &audio[..],
             "the audio is byte for byte what it was"
         );
-        assert_eq!(
-            &after[DSF_HEADER_LEN as usize + audio.len()..],
-            &replacement[..]
-        );
+        assert_eq!(&after[audio_end_of(&audio) as usize..], &replacement[..]);
 
         let mut file = open(&path);
         let layout = read_dsf_layout(&mut file).expect("layout").expect("a DSF");
-        assert_eq!(layout.metadata_offset, DSF_HEADER_LEN + audio.len() as u64);
+        assert_eq!(layout.metadata_offset, audio_end_of(&audio));
         assert_eq!(
             layout.total_size,
             after.len() as u64,
@@ -1024,11 +1176,9 @@ mod dsf_tests {
         drop(file);
 
         let after = std::fs::read(&path).expect("read");
-        assert_eq!(after.len() as u64, DSF_HEADER_LEN + audio.len() as u64 + 4);
-        assert_eq!(
-            &after[DSF_HEADER_LEN as usize..DSF_HEADER_LEN as usize + audio.len()],
-            &audio[..]
-        );
+        assert_eq!(after.len() as u64, audio_end_of(&audio) + 4);
+        let audio_at = (audio_end_of(&audio) - audio.len() as u64) as usize;
+        assert_eq!(&after[audio_at..audio_at + audio.len()], &audio[..]);
     }
 
     #[test]
@@ -1049,7 +1199,7 @@ mod dsf_tests {
 
         let mut file = open(&path);
         let layout = read_dsf_layout(&mut file).expect("layout").expect("a DSF");
-        assert_eq!(layout.metadata_offset, DSF_HEADER_LEN + audio.len() as u64);
+        assert_eq!(layout.metadata_offset, audio_end_of(&audio));
         let after = std::fs::read(&path).expect("read");
         assert_eq!(
             &after[layout.metadata_offset as usize..],
@@ -1072,10 +1222,10 @@ mod dsf_tests {
             layout.metadata_offset, 0,
             "zero is how a DSF says it has none"
         );
-        assert_eq!(layout.total_size, DSF_HEADER_LEN + audio.len() as u64);
+        assert_eq!(layout.total_size, audio_end_of(&audio));
         assert_eq!(
             std::fs::read(&path).expect("read").len() as u64,
-            DSF_HEADER_LEN + audio.len() as u64
+            audio_end_of(&audio)
         );
     }
 

@@ -635,20 +635,29 @@ fn patch_dsf(
         |handle| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             let layout = waveflow_core::tagio::read_dsf_layout(handle)?
                 .ok_or("this DSF file's header does not describe itself")?;
-            let mut tag = if layout.metadata_offset != 0 {
+            let existing = if layout.metadata_offset != 0 {
                 use std::io::{Seek, SeekFrom};
                 handle.seek(SeekFrom::Start(layout.metadata_offset))?;
                 // A tag we cannot parse is not a reason to refuse the
                 // edit: the pointer may be stale, or the tag empty. What
                 // we must not do is carry half of it forward, so the
                 // fallback is a fresh tag rather than a partial one.
-                id3::Tag::read_from2(&mut *handle).unwrap_or_default()
+                id3::Tag::read_from2(&mut *handle).ok()
             } else {
-                id3::Tag::new()
+                None
             };
+            // Write back the version the file already used. A DSF tagged
+            // as ID3v2.3 rewritten as 2.4 is a file some hardware DSD
+            // players stop reading, and an edit to a title is not the
+            // place to make that decision for the user. Only a tag we
+            // are creating gets our own choice.
+            let version = existing
+                .as_ref()
+                .map_or(id3::Version::Id3v24, id3::Tag::version);
+            let mut tag = existing.unwrap_or_default();
             apply_patch_id3(&mut tag, patch);
             let mut bytes = Vec::new();
-            tag.write_to(&mut bytes, id3::Version::Id3v24)?;
+            tag.write_to(&mut bytes, version)?;
             waveflow_core::tagio::write_dsf_id3v2(handle, &bytes)?;
             Ok(())
         },
