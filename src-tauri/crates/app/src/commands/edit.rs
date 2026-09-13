@@ -638,11 +638,14 @@ fn patch_dsf(
             let existing = if layout.metadata_offset != 0 {
                 use std::io::{Seek, SeekFrom};
                 handle.seek(SeekFrom::Start(layout.metadata_offset))?;
-                // A tag we cannot parse is not a reason to refuse the
-                // edit: the pointer may be stale, or the tag empty. What
-                // we must not do is carry half of it forward, so the
-                // fallback is a fresh tag rather than a partial one.
-                id3::Tag::read_from2(&mut *handle).ok()
+                // A tag we cannot parse stops the edit. Carrying on with
+                // a fresh one looks like resilience and is the opposite:
+                // the write replaces the whole tag, so every frame we
+                // failed to read — the cover, the ratings, the
+                // MusicBrainz identifiers — would be dropped to save a
+                // title. Refusing leaves the file exactly as it is, and
+                // says why.
+                Some(id3::Tag::read_from2(&mut *handle)?)
             } else {
                 None
             };

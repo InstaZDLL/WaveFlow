@@ -297,7 +297,21 @@ where
 
     // A copy rather than an empty file: lofty reads the container it is
     // about to rewrite from the same handle it writes to.
-    std::fs::copy(path, &temp.path).map_err(E::from)?;
+    std::fs::copy(path, &temp.path)
+        .map_err(|err| {
+            // Without this, the message names a `.wf-tmp` path the user
+            // has never seen and did not ask for. The operation they did
+            // ask for is the one worth naming, and the directory is the
+            // thing that has to be writable.
+            io::Error::new(
+                err.kind(),
+                format!(
+                    "could not create the temporary copy the rewrite needs, beside {}: {err}",
+                    path.display()
+                ),
+            )
+        })
+        .map_err(E::from)?;
     {
         let mut file = std::fs::OpenOptions::new()
             .read(true)
