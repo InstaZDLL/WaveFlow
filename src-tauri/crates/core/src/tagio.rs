@@ -293,6 +293,181 @@ pub fn try_id3v2_in_place(
     Ok(true)
 }
 
+/// FLAC metadata block types this module needs to tell apart. The rest
+/// are carried through untouched, so they never need naming.
+const FLAC_BLOCK_PADDING: u8 = 1;
+const FLAC_BLOCK_VORBIS_COMMENT: u8 = 4;
+/// A metadata region larger than this is not something to buffer in
+/// memory on the strength of a length field we have not validated.
+const FLAC_MAX_METADATA: u64 = 64 * 1024 * 1024;
+
+/// One metadata block as it sits on disk: its type, and its contents
+/// byte for byte.
+struct FlacBlock {
+    ty: u8,
+    content: Vec<u8>,
+}
+
+/// Serialise a Vorbis comment block's contents.
+///
+/// Little-endian lengths throughout, which is the one thing FLAC borrows
+/// from Ogg rather than from its own big-endian headers — getting it
+/// backwards produces a block every player rejects.
+fn encode_vorbis_comments(comments: &lofty::ogg::tag::VorbisComments) -> Vec<u8> {
+    let mut out = Vec::new();
+    let vendor = comments.vendor().as_bytes();
+    out.extend_from_slice(&(vendor.len() as u32).to_le_bytes());
+    out.extend_from_slice(vendor);
+    // The count has to be written before the items, and the items are
+    // behind an iterator, so they are gathered first.
+    let mut entries: Vec<Vec<u8>> = Vec::new();
+    for (key, value) in comments.items() {
+        let mut entry = Vec::with_capacity(key.len() + value.len() + 1);
+        entry.extend_from_slice(key.as_bytes());
+        entry.push(b'=');
+        entry.extend_from_slice(value.as_bytes());
+        entries.push(entry);
+    }
+    out.extend_from_slice(&(entries.len() as u32).to_le_bytes());
+    for entry in entries {
+        out.extend_from_slice(&(entry.len() as u32).to_le_bytes());
+        out.extend_from_slice(&entry);
+    }
+    out
+}
+
+/// Read the metadata blocks at the head of a FLAC file.
+///
+/// `Ok(None)` for anything this path should not touch — a file that does
+/// not start with `fLaC` (an ID3v2-prefixed FLAC lands here), or a
+/// metadata region whose declared size is not credible.
+fn read_flac_blocks(file: &mut std::fs::File) -> io::Result<Option<Vec<FlacBlock>>> {
+    use std::io::{Read, Seek, SeekFrom};
+
+    file.seek(SeekFrom::Start(0))?;
+    let mut magic = [0u8; 4];
+    match file.read_exact(&mut magic) {
+        Ok(()) => {}
+        Err(err) if err.kind() == io::ErrorKind::UnexpectedEof => return Ok(None),
+        Err(err) => return Err(err),
+    }
+    if &magic != b"fLaC" {
+        return Ok(None);
+    }
+
+    let mut blocks = Vec::new();
+    let mut total: u64 = 0;
+    loop {
+        let mut header = [0u8; 4];
+        file.read_exact(&mut header)?;
+        let last = header[0] & 0x80 != 0;
+        let ty = header[0] & 0x7f;
+        let len = u32::from(header[1]) << 16 | u32::from(header[2]) << 8 | u32::from(header[3]);
+        total += u64::from(len) + 4;
+        if total > FLAC_MAX_METADATA {
+            return Ok(None);
+        }
+        let mut content = vec![0u8; len as usize];
+        file.read_exact(&mut content)?;
+        blocks.push(FlacBlock { ty, content });
+        if last {
+            break;
+        }
+    }
+    Ok(Some(blocks))
+}
+
+/// Write `comments` into the metadata region a FLAC file already has,
+/// absorbing the size difference into its PADDING block (#590).
+/// `Ok(false)` when it does not fit and the caller must fall back.
+///
+/// This is lofty's own open TODO (`lofty-rs#445`): its writer builds the
+/// new block set and then calls a `replace_range` that shifts **every
+/// audio byte** whenever the new metadata differs in size from the old,
+/// in 64 KB chunks over the whole file. Padding exists precisely so that
+/// never has to happen, and every tagger leaves some.
+///
+/// Only the comment block is regenerated. Pictures, seek table, cue
+/// sheet and application blocks are copied through byte for byte, which
+/// is both faster and the only way to honour the rule that an edit to a
+/// title never costs a cover or a MusicBrainz identifier. A cover edit
+/// therefore does not come here — regenerating picture blocks is the
+/// rewrite's job.
+pub fn try_flac_in_place(
+    file: &mut std::fs::File,
+    comments: &lofty::ogg::tag::VorbisComments,
+) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    use std::io::{Seek, SeekFrom, Write};
+
+    let Some(blocks) = read_flac_blocks(file)? else {
+        return Ok(false);
+    };
+    // Everything the region holds today, headers included. This is the
+    // budget the replacement has to land inside.
+    let region: u64 = blocks
+        .iter()
+        .map(|block| block.content.len() as u64 + 4)
+        .sum();
+
+    let encoded = encode_vorbis_comments(comments);
+    // A block's length field is 24 bits; a comment set larger than that
+    // cannot be written as one block at all.
+    if encoded.len() > 0x00ff_ffff {
+        return Ok(false);
+    }
+
+    // The comment block is replaced and the padding is recomputed;
+    // everything else stays exactly as it was.
+    let kept: Vec<&FlacBlock> = blocks
+        .iter()
+        .filter(|block| block.ty != FLAC_BLOCK_VORBIS_COMMENT && block.ty != FLAC_BLOCK_PADDING)
+        .collect();
+    let fixed: u64 = kept
+        .iter()
+        .map(|block| block.content.len() as u64 + 4)
+        .sum::<u64>()
+        + encoded.len() as u64
+        + 4;
+
+    let padding = match region.checked_sub(fixed) {
+        // An exact fit needs no padding block at all.
+        Some(0) => None,
+        // A padding block cannot be smaller than its own header.
+        Some(slack) if slack >= 4 => Some(slack - 4),
+        _ => return Ok(false),
+    };
+    if padding.is_some_and(|len| len > 0x00ff_ffff) {
+        return Ok(false);
+    }
+
+    let mut out: Vec<u8> = Vec::with_capacity(region as usize);
+    let write_block = |out: &mut Vec<u8>, ty: u8, content: &[u8], last: bool| {
+        let len = content.len() as u32;
+        out.push(if last { ty | 0x80 } else { ty });
+        out.extend_from_slice(&[(len >> 16) as u8, (len >> 8) as u8, len as u8]);
+        out.extend_from_slice(content);
+    };
+    let has_padding = padding.is_some();
+    for block in &kept {
+        write_block(&mut out, block.ty, &block.content, false);
+    }
+    write_block(&mut out, FLAC_BLOCK_VORBIS_COMMENT, &encoded, !has_padding);
+    if let Some(len) = padding {
+        write_block(&mut out, FLAC_BLOCK_PADDING, &vec![0u8; len as usize], true);
+    }
+
+    // Same reasoning as the ID3v2 path: a region of the wrong length
+    // written here would run into the audio frames behind it, so a
+    // surprise sends us to the slow path rather than to the disk.
+    if out.len() as u64 != region {
+        return Ok(false);
+    }
+
+    file.seek(SeekFrom::Start(4))?;
+    file.write_all(&out)?;
+    Ok(true)
+}
+
 #[cfg(test)]
 mod in_place_tests {
     use super::*;
@@ -416,6 +591,180 @@ mod in_place_tests {
         assert_eq!(
             std::fs::read(&path).expect("read"),
             b"no tag here, just audio"
+        );
+    }
+}
+
+#[cfg(test)]
+mod flac_tests {
+    use super::*;
+    use lofty::ogg::tag::VorbisComments;
+
+    fn block(ty: u8, content: &[u8], last: bool) -> Vec<u8> {
+        let len = content.len() as u32;
+        let mut out = vec![
+            if last { ty | 0x80 } else { ty },
+            (len >> 16) as u8,
+            (len >> 8) as u8,
+            len as u8,
+        ];
+        out.extend_from_slice(content);
+        out
+    }
+
+    /// A file shaped like a tagged FLAC: the magic, a stand-in
+    /// STREAMINFO, a comment block, a padding block, then bytes standing
+    /// in for audio frames.
+    fn flac_file(padding: usize, audio: &[u8]) -> (tempfile::TempDir, std::path::PathBuf) {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("track.flac");
+        let mut comments = VorbisComments::default();
+        comments.push("TITLE".to_string(), "Before".to_string());
+
+        let mut bytes = b"fLaC".to_vec();
+        bytes.extend_from_slice(&block(0, &[0u8; 34], false));
+        bytes.extend_from_slice(&block(
+            FLAC_BLOCK_VORBIS_COMMENT,
+            &encode_vorbis_comments(&comments),
+            false,
+        ));
+        bytes.extend_from_slice(&block(FLAC_BLOCK_PADDING, &vec![0u8; padding], true));
+        bytes.extend_from_slice(audio);
+        std::fs::write(&path, &bytes).expect("seed");
+        (dir, path)
+    }
+
+    fn open(path: &std::path::Path) -> std::fs::File {
+        std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(path)
+            .expect("open")
+    }
+
+    #[test]
+    fn an_edit_that_fits_the_padding_leaves_the_audio_alone() {
+        // The claim the benchmark in the issue rests on: the write
+        // touches the metadata region and nothing else, so the cost is
+        // the region rather than the file.
+        let audio: Vec<u8> = (0..8192u32).map(|i| (i % 241) as u8 + 1).collect();
+        let (_dir, path) = flac_file(1024, &audio);
+        let before_len = std::fs::metadata(&path).expect("meta").len();
+
+        let mut comments = VorbisComments::default();
+        comments.push("TITLE".to_string(), "After the edit".to_string());
+        comments.push("ARTIST".to_string(), "Someone".to_string());
+
+        let mut file = open(&path);
+        assert!(try_flac_in_place(&mut file, &comments).expect("in place"));
+        file.sync_all().expect("sync");
+        drop(file);
+
+        let after = std::fs::read(&path).expect("read");
+        assert_eq!(
+            after.len() as u64,
+            before_len,
+            "the file did not change length"
+        );
+        assert_eq!(
+            &after[after.len() - audio.len()..],
+            &audio[..],
+            "every audio byte is where it was"
+        );
+
+        // And the region still parses as blocks, ending on a last-block
+        // flag — a region that did not close would take the first audio
+        // bytes with it on the next read.
+        let mut file = open(&path);
+        let blocks = read_flac_blocks(&mut file).expect("read").expect("blocks");
+        let region: usize = blocks.iter().map(|b| b.content.len() + 4).sum();
+        assert_eq!(region + 4 + audio.len(), after.len());
+        let comment = blocks
+            .iter()
+            .find(|b| b.ty == FLAC_BLOCK_VORBIS_COMMENT)
+            .expect("a comment block");
+        assert!(
+            comment.content.windows(14).any(|w| w == b"After the edit"),
+            "the new title is in the block"
+        );
+    }
+
+    #[test]
+    fn an_edit_too_big_for_the_padding_asks_for_the_rewrite() {
+        // No slack at all, and far more to write than there was: this is
+        // the case that has to move the file, and saying so is the only
+        // safe answer.
+        let (_dir, path) = flac_file(0, b"audio bytes");
+        let before = std::fs::read(&path).expect("read");
+
+        let mut comments = VorbisComments::default();
+        comments.push("TITLE".to_string(), "T".repeat(4096));
+
+        let mut file = open(&path);
+        assert!(!try_flac_in_place(&mut file, &comments).expect("in place"));
+        drop(file);
+        assert_eq!(
+            std::fs::read(&path).expect("read"),
+            before,
+            "refusing must not have written anything"
+        );
+    }
+
+    #[test]
+    fn a_file_that_is_not_flac_is_left_alone() {
+        // An ID3v2-prefixed FLAC lands here too: the magic is not at
+        // byte zero, so the region offsets would all be wrong.
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("not.flac");
+        std::fs::write(&path, b"ID3\x04\x00\x00\x00\x00\x00\x00rest").expect("seed");
+        let mut file = open(&path);
+        assert!(!try_flac_in_place(&mut file, &VorbisComments::default()).expect("in place"));
+    }
+
+    #[test]
+    fn the_blocks_we_did_not_edit_are_copied_through_byte_for_byte() {
+        // The rule the whole tag path follows: correcting a title never
+        // costs a cover or a MusicBrainz identifier.
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("rich.flac");
+        let picture: Vec<u8> = (0..300u32).map(|i| (i % 255) as u8).collect();
+        let seektable: Vec<u8> = vec![0xAB; 180];
+
+        let mut comments = VorbisComments::default();
+        comments.push("TITLE".to_string(), "Before".to_string());
+        let mut bytes = b"fLaC".to_vec();
+        bytes.extend_from_slice(&block(0, &[0u8; 34], false));
+        bytes.extend_from_slice(&block(3, &seektable, false));
+        bytes.extend_from_slice(&block(6, &picture, false));
+        bytes.extend_from_slice(&block(
+            FLAC_BLOCK_VORBIS_COMMENT,
+            &encode_vorbis_comments(&comments),
+            false,
+        ));
+        bytes.extend_from_slice(&block(FLAC_BLOCK_PADDING, &vec![0u8; 512], true));
+        std::fs::write(&path, &bytes).expect("seed");
+
+        let mut edited = VorbisComments::default();
+        edited.push("TITLE".to_string(), "After".to_string());
+        let mut file = open(&path);
+        assert!(try_flac_in_place(&mut file, &edited).expect("in place"));
+        drop(file);
+
+        let mut file = open(&path);
+        let blocks = read_flac_blocks(&mut file).expect("read").expect("blocks");
+        assert_eq!(
+            blocks.iter().find(|b| b.ty == 6).expect("picture").content,
+            picture,
+            "the cover survived a title edit"
+        );
+        assert_eq!(
+            blocks
+                .iter()
+                .find(|b| b.ty == 3)
+                .expect("seektable")
+                .content,
+            seektable,
+            "the seek table survived a title edit"
         );
     }
 }

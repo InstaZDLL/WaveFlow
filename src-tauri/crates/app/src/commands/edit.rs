@@ -568,13 +568,13 @@ fn patch_file(
     // handle itself at the top of its writer, so reading and writing
     // through the same one is what it expects.
     macro_rules! with_file {
-        ($ty:ty, |$f:ident| $body:block) => {{
+        ($ty:ty, |$f:ident, $h:ident| $body:block) => {{
             waveflow_core::tagio::with_writable_file(
                 path,
-                |handle| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-                    let mut $f = <$ty>::read_from(handle, ParseOptions::new())?;
+                |$h| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                    let mut $f = <$ty>::read_from($h, ParseOptions::new())?;
                     $body
-                    $f.save_to(handle, WriteOptions::default())?;
+                    $f.save_to($h, WriteOptions::default())?;
                     Ok(())
                 },
             )?;
@@ -611,7 +611,7 @@ fn patch_file(
     match file_type {
         FileType::Mpeg => with_id3v2_file!(lofty::mpeg::MpegFile),
         FileType::Aac => with_id3v2_file!(lofty::aac::AacFile),
-        FileType::Mp4 => with_file!(lofty::mp4::Mp4File, |f| {
+        FileType::Mp4 => with_file!(lofty::mp4::Mp4File, |f, handle| {
             patch_slot!(f, remove_ilst, set_ilst);
         }),
         // WAV and AIFF can carry both an ID3v2 chunk and their native
@@ -619,35 +619,45 @@ fn patch_file(
         // only the primary would leave the other one contradicting it,
         // so both get the edit whenever both exist; a file with neither
         // gets the ID3v2 chunk lofty treats as primary.
-        FileType::Wav => with_file!(lofty::iff::wav::WavFile, |f| {
+        FileType::Wav => with_file!(lofty::iff::wav::WavFile, |f, handle| {
             if f.riff_info().is_some() {
                 patch_slot!(f, remove_riff_info, set_riff_info);
             }
             patch_slot!(f, remove_id3v2, set_id3v2);
         }),
-        FileType::Aiff => with_file!(lofty::iff::aiff::AiffFile, |f| {
+        FileType::Aiff => with_file!(lofty::iff::aiff::AiffFile, |f, handle| {
             if f.text_chunks().is_some() {
                 patch_slot!(f, remove_text_chunks, set_text_chunks);
             }
             patch_slot!(f, remove_id3v2, set_id3v2);
         }),
-        FileType::Vorbis => with_file!(lofty::ogg::VorbisFile, |f| {
+        FileType::Vorbis => with_file!(lofty::ogg::VorbisFile, |f, handle| {
             patch_required_slot!(f, remove_vorbis_comments, set_vorbis_comments);
         }),
-        FileType::Opus => with_file!(lofty::ogg::OpusFile, |f| {
+        FileType::Opus => with_file!(lofty::ogg::OpusFile, |f, handle| {
             patch_required_slot!(f, remove_vorbis_comments, set_vorbis_comments);
         }),
-        FileType::Speex => with_file!(lofty::ogg::SpeexFile, |f| {
+        FileType::Speex => with_file!(lofty::ogg::SpeexFile, |f, handle| {
             patch_required_slot!(f, remove_vorbis_comments, set_vorbis_comments);
         }),
         // FLAC keeps its pictures in their own metadata blocks, which
         // lofty exposes on the file and not on the tag — a cover pushed
         // into the Vorbis comments here would be written *alongside* the
         // blocks already there rather than replacing the front cover.
-        FileType::Flac => with_file!(lofty::flac::FlacFile, |f| {
+        FileType::Flac => with_file!(lofty::flac::FlacFile, |f, handle| {
             match patch {
                 TagPatch::Fields(_) => {
                     patch_slot!(f, remove_vorbis_comments, set_vorbis_comments);
+                    // Absorb the size change into the padding block the
+                    // file already carries, so not one audio byte moves
+                    // (#590). Fields only: a cover edit regenerates
+                    // picture blocks, which the fast path deliberately
+                    // copies through rather than rebuilds.
+                    if let Some(comments) = f.vorbis_comments() {
+                        if waveflow_core::tagio::try_flac_in_place(handle, comments)? {
+                            return Ok(());
+                        }
+                    }
                 }
                 TagPatch::Cover { bytes, mime } => {
                     use lofty::ogg::OggPictureStorage;
