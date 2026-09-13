@@ -5364,6 +5364,19 @@
     {
         "type": "archive",
         "archive-type": "tar-gzip",
+        "url": "https://static.crates.io/crates/pinyin/pinyin-0.11.0.crate",
+        "sha256": "e225f595052d9c46045755be4b8d7950b6d9f3c33e0c0b74ba58f11bbfa8c64b",
+        "dest": "cargo/vendor/pinyin-0.11.0"
+    },
+    {
+        "type": "inline",
+        "contents": "{\"package\": \"e225f595052d9c46045755be4b8d7950b6d9f3c33e0c0b74ba58f11bbfa8c64b\", \"files\": {}}",
+        "dest": "cargo/vendor/pinyin-0.11.0",
+        "dest-filename": ".cargo-checksum.json"
+    },
+    {
+        "type": "archive",
+        "archive-type": "tar-gzip",
         "url": "https://static.crates.io/crates/piper/piper-0.2.5.crate",
         "sha256": "c835479a4443ded371d6c535cbfd8d31ad92c5d23ae9770a61bc155e4992a3c1",
         "dest": "cargo/vendor/piper-0.2.5"

@@ -458,6 +458,21 @@
       "removeConfirmWithPlays_one": "Fai di nuovo clic per confermare. {{count}} ascolto verrà conservato e ricollegato alla prossima scansione.",
       "removeConfirmWithPlays_other": "Fai di nuovo clic per confermare. {{count}} ascolti verranno conservati e ricollegati alla prossima scansione."
     },
+    "folderBrowser": {
+      "open": "Esplora questa cartella",
+      "breadcrumb": "Percorso della cartella",
+      "roots": "Tutte le cartelle",
+      "up": "Cartella superiore",
+      "density": "Densità di visualizzazione",
+      "densityGrid": "Griglia",
+      "actions": "Azioni della cartella",
+      "play": "Riproduci la cartella",
+      "queue": "Aggiungi alla coda",
+      "playNext": "Riproduci dopo",
+      "newPlaylist": "Nuova playlist",
+      "batchTag": "Modifica i tag in batch",
+      "densityList": "Elenco"
+    },
     "skeletonAriaLabel": "Caricamento {{name}}…",
     "playlistsGrid": {
       "emptyTitle": "Nessuna playlist",

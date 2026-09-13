@@ -199,6 +199,7 @@ wasmtime = { version = "48", default-features = false, features = [
 # resources reachable unless the manifest explicitly asked for
 # them".
 wasmtime-wasi = { version = "48", default-features = false, optional = true }
+pinyin = { version = "0.11.0", default-features = false, features = ["plain"] }
 
 [dev-dependencies]
 # Sandboxed scratch directories for the smart-playlist cover render

@@ -458,6 +458,21 @@
       "removeConfirmWithPlays_one": "Cliquez à nouveau pour confirmer. {{count}} écoute sera conservée et rattachée au prochain scan.",
       "removeConfirmWithPlays_other": "Cliquez à nouveau pour confirmer. {{count}} écoutes seront conservées et rattachées au prochain scan."
     },
+    "folderBrowser": {
+      "open": "Parcourir ce dossier",
+      "breadcrumb": "Chemin du dossier",
+      "roots": "Tous les dossiers",
+      "up": "Dossier parent",
+      "density": "Densité d'affichage",
+      "densityGrid": "Grille",
+      "actions": "Actions du dossier",
+      "play": "Lire le dossier",
+      "queue": "Ajouter à la file d'attente",
+      "playNext": "Lire ensuite",
+      "newPlaylist": "Nouvelle playlist",
+      "batchTag": "Modifier les tags en lot",
+      "densityList": "Liste"
+    },
     "skeletonAriaLabel": "Chargement de {{name}}…",
     "playlistsGrid": {
       "emptyTitle": "Aucune playlist",

@@ -523,6 +523,21 @@
       "removeConfirmWithPlays_many": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ بـ {{count}} استماعًا وإعادة ربطها في الفحص التالي.",
       "removeConfirmWithPlays_other": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ بـ {{count}} استماع وإعادة ربطها في الفحص التالي."
     },
+    "folderBrowser": {
+      "open": "استعراض هذا المجلد",
+      "breadcrumb": "مسار المجلد",
+      "roots": "كل المجلدات",
+      "up": "المجلد الأصل",
+      "density": "كثافة العرض",
+      "densityGrid": "شبكة",
+      "actions": "إجراءات المجلد",
+      "play": "تشغيل المجلد",
+      "queue": "إضافة إلى قائمة الانتظار",
+      "playNext": "تشغيل التالي",
+      "newPlaylist": "قائمة تشغيل جديدة",
+      "batchTag": "تعديل الوسوم بشكل جماعي",
+      "densityList": "قائمة"
+    },
     "skeletonAriaLabel": "جارٍ تحميل {{name}}…",
     "playlistsGrid": {
       "emptyTitle": "لا توجد قوائم تشغيل بعد",

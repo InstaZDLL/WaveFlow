@@ -458,6 +458,21 @@
       "removeConfirmWithPlays_one": "다시 클릭하여 확인하세요. 재생 기록 {{count}}개가 유지되며 다음 검사에서 다시 연결됩니다.",
       "removeConfirmWithPlays_other": "다시 클릭하여 확인하세요. 재생 기록 {{count}}개가 유지되며 다음 검사에서 다시 연결됩니다."
     },
+    "folderBrowser": {
+      "open": "이 폴더 탐색",
+      "breadcrumb": "폴더 경로",
+      "roots": "모든 폴더",
+      "up": "상위 폴더",
+      "density": "표시 밀도",
+      "densityGrid": "그리드",
+      "actions": "폴더 작업",
+      "play": "폴더 재생",
+      "queue": "재생 큐에 추가",
+      "playNext": "다음 곡으로 재생",
+      "newPlaylist": "새 재생 목록",
+      "batchTag": "태그 일괄 편집",
+      "densityList": "목록"
+    },
     "skeletonAriaLabel": "{{name}} 불러오는 중…",
     "playlistsGrid": {
       "emptyTitle": "플레이리스트가 없습니다",
