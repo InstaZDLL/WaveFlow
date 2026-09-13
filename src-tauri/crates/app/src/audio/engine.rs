@@ -2278,12 +2278,6 @@ impl AudioEngine {
         guard.handle = Some(handle);
         self.publish_output_mode(None, false, exclusive, guard.handle.as_ref());
 
-        // Resume best-effort. Same async pattern as
-        // `set_output_device` and `set_exclusive_output` — pull the
-        // track row off the synchronous path so a slow DB doesn't
-        // hold the audio recovery up. Radio sessions resume by
-        // re-dispatching the cached `LoadUrlAndPlay` instead of
-        // looking up a (non-existent) `track` row.
         // Re-read the decision now rather than trust the one taken
         // before the open. An exclusive open costs tens to hundreds of
         // milliseconds, and a Pause the user hits during it reaches the
