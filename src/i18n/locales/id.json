@@ -1592,7 +1592,7 @@
     },
     "matchSourceRate": {
       "title": "Ikuti laju pencuplikan tiap trek",
-      "subtitle": "Pada keluaran eksklusif, perangkat dibuka ulang pada laju tiap trek: tanpa pencuplikan ulang bila perangkat menerimanya, dengan jeda pada setiap perubahan laju"
+      "subtitle": "Pada keluaran eksklusif, perangkat dibuka ulang pada laju tiap trek: menghindari pencuplikan ulang bila perangkat menerimanya, dengan jeda pada setiap perubahan laju"
     },
     "mono": {
       "title": "Audio mono",

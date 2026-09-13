@@ -1592,7 +1592,7 @@
     },
     "matchSourceRate": {
       "title": "Bemonsteringsfrequentie van elk nummer volgen",
-      "subtitle": "Bij exclusieve uitvoer wordt het apparaat opnieuw geopend op de frequentie van elk nummer: geen herbemonstering als het apparaat die accepteert, maar een onderbreking bij elke wisseling"
+      "subtitle": "Bij exclusieve uitvoer wordt het apparaat opnieuw geopend op de frequentie van elk nummer: voorkomt herbemonstering als het apparaat die accepteert, maar met een onderbreking bij elke wisseling"
     },
     "mono": {
       "title": "Mono-audio",

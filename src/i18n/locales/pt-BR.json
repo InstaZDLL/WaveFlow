@@ -1600,7 +1600,7 @@
     },
     "matchSourceRate": {
       "title": "Seguir a taxa de amostragem de cada faixa",
-      "subtitle": "Na saída exclusiva, reabre o dispositivo na taxa de cada faixa: sem reamostragem quando ele a aceita, com um corte a cada mudança de taxa"
+      "subtitle": "Na saída exclusiva, reabre o dispositivo na taxa de cada faixa: evita a reamostragem quando ele a aceita, com um corte a cada mudança de taxa"
     },
     "mono": {
       "title": "Áudio mono",

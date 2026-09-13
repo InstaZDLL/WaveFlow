@@ -2284,6 +2284,20 @@ impl AudioEngine {
         // hold the audio recovery up. Radio sessions resume by
         // re-dispatching the cached `LoadUrlAndPlay` instead of
         // looking up a (non-existent) `track` row.
+        // Re-read the decision now rather than trust the one taken
+        // before the open. An exclusive open costs tens to hundreds of
+        // milliseconds, and a Pause the user hits during it reaches the
+        // decoder first: resuming on the strength of a stale `Play`
+        // would start a track they had just stopped. The `Stop` above
+        // does not clear either input — it unloads the track without
+        // touching the state or `paused_output` — so this reads what the
+        // user last asked for.
+        let resume = rebuild_resume(
+            self.shared.state(),
+            self.shared
+                .paused_output
+                .load(std::sync::atomic::Ordering::Acquire),
+        );
         if resume == RebuildResume::StayPaused {
             // The user had paused it (#611): the rebuild reopens the
             // output and hands the session to Play, it does not start
@@ -2569,6 +2583,20 @@ impl AudioEngine {
         }
         self.publish_output_mode(None, false, entering_exclusive, guard.handle.as_ref());
 
+        // Re-read the decision now rather than trust the one taken
+        // before the open. An exclusive open costs tens to hundreds of
+        // milliseconds, and a Pause the user hits during it reaches the
+        // decoder first: resuming on the strength of a stale `Play`
+        // would start a track they had just stopped. The `Stop` above
+        // does not clear either input — it unloads the track without
+        // touching the state or `paused_output` — so this reads what the
+        // user last asked for.
+        let resume = rebuild_resume(
+            self.shared.state(),
+            self.shared
+                .paused_output
+                .load(std::sync::atomic::Ordering::Acquire),
+        );
         // Step 6 — put back whatever the decoder is on. Not necessarily
         // the track this method snapshotted: a pick made during the open
         // is what the decoder accepted, and resuming the older snapshot
@@ -2780,6 +2808,20 @@ impl AudioEngine {
         // shared mode is precisely the silent degradation #597 is about.
         self.publish_output_mode(None, false, enabled, guard.handle.as_ref());
 
+        // Re-read the decision now rather than trust the one taken
+        // before the open. An exclusive open costs tens to hundreds of
+        // milliseconds, and a Pause the user hits during it reaches the
+        // decoder first: resuming on the strength of a stale `Play`
+        // would start a track they had just stopped. The `Stop` above
+        // does not clear either input — it unloads the track without
+        // touching the state or `paused_output` — so this reads what the
+        // user last asked for.
+        let resume = rebuild_resume(
+            self.shared.state(),
+            self.shared
+                .paused_output
+                .load(std::sync::atomic::Ordering::Acquire),
+        );
         // The mode flip must not drop the user off what they are
         // listening to — radio included, which is why this re-dispatches
         // the decoder's own load rather than looking a `track` row up by

@@ -1592,7 +1592,7 @@
     },
     "matchSourceRate": {
       "title": "Segui la frequenza di campionamento di ogni brano",
-      "subtitle": "In uscita esclusiva riapre il dispositivo alla frequenza di ogni brano: nessun ricampionamento quando la accetta, con un'interruzione a ogni cambio di frequenza"
+      "subtitle": "In uscita esclusiva riapre il dispositivo alla frequenza di ogni brano: evita il ricampionamento quando la accetta, con un'interruzione a ogni cambio di frequenza"
     },
     "mono": {
       "title": "Audio mono",

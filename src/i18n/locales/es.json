@@ -1592,7 +1592,7 @@
     },
     "matchSourceRate": {
       "title": "Seguir la frecuencia de muestreo de cada pista",
-      "subtitle": "En salida exclusiva, reabre el dispositivo a la frecuencia de cada pista: sin remuestreo cuando la acepta, con un corte en cada cambio de frecuencia"
+      "subtitle": "En salida exclusiva, reabre el dispositivo a la frecuencia de cada pista: evita el remuestreo cuando la acepta, con un corte en cada cambio de frecuencia"
     },
     "mono": {
       "title": "Audio mono",

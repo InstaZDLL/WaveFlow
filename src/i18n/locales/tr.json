@@ -1592,7 +1592,7 @@
     },
     "matchSourceRate": {
       "title": "Her parçanın örnekleme hızını kullan",
-      "subtitle": "Özel çıkışta aygıt her parçanın hızında yeniden açılır: aygıt kabul ederse yeniden örnekleme olmaz, her hız değişiminde bir kesinti olur"
+      "subtitle": "Özel çıkışta aygıt her parçanın hızında yeniden açılır: aygıt kabul ederse yeniden örneklemeden kaçınır, her hız değişiminde bir kesinti olur"
     },
     "mono": {
       "title": "Mono ses",

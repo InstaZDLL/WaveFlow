@@ -1236,6 +1236,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // the database until the next hydration. Cleared when a read starts,
   // and consulted when it resolves.
   const audioSettingsTouched = useRef<Set<string>>(new Set());
+  // Bumped when one of those writes fails, to re-run the read below. The
+  // optimistic rollback restores the value the click replaced, and after
+  // a failed write that value may itself never have been persisted — so
+  // the panel is refilled from the backend rather than from a guess.
+  const [audioSettingsNonce, setAudioSettingsNonce] = useState(0);
   // #600. Off, like the engine: a reopen costs an audible gap, so this
   // is a trade rather than an improvement.
   const [matchSourceRate, setMatchSourceRate] = useState(false);
@@ -1712,7 +1717,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     return () => {
       stale = true;
     };
-  }, [activeProfile?.id]);
+  }, [activeProfile?.id, audioSettingsNonce]);
 
   const handleToggleNormalize = useCallback(() => {
     const next = !normalize;
@@ -1942,6 +1947,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         console.error("[Settings] set match source rate failed", err);
         if (activeProfileIdRef.current !== profileId) return;
         setMatchSourceRate((cur) => (cur === next ? prev : cur));
+        // …and then ask the backend what it really holds: `prev` is the
+        // value this click replaced, which after a failed write may
+        // never have been persisted either.
+        setAudioSettingsNonce((n) => n + 1);
       });
   }, [matchSourceRate, activeProfile?.id]);
 
@@ -1962,6 +1971,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         console.error("[Settings] set pause on device loss failed", err);
         if (activeProfileIdRef.current !== profileId) return;
         setPauseOnDeviceLoss((cur) => (cur === next ? prev : cur));
+        setAudioSettingsNonce((n) => n + 1);
       });
   }, [pauseOnDeviceLoss, activeProfile?.id]);
 
