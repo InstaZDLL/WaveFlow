@@ -1229,6 +1229,13 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // #617. Mirrors the engine's own default, so the row does not flip
   // under the user between the first paint and the read below.
   const [pauseOnDeviceLoss, setPauseOnDeviceLoss] = useState(true);
+  // Which of these two the user has touched since the audio-settings
+  // read in flight started. That read is an IPC round trip, and a toggle
+  // during it would otherwise be painted over by the value it just
+  // replaced — the write still lands, so the UI would then disagree with
+  // the database until the next hydration. Cleared when a read starts,
+  // and consulted when it resolves.
+  const audioSettingsTouched = useRef<Set<string>>(new Set());
   // #600. Off, like the engine: a reopen costs an audible gap, so this
   // is a trade rather than an improvement.
   const [matchSourceRate, setMatchSourceRate] = useState(false);
@@ -1673,13 +1680,18 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // that belongs to the profile we just left.
   useEffect(() => {
     let stale = false;
+    audioSettingsTouched.current = new Set();
     playerGetAudioSettings()
       .then((s) => {
         if (stale) return;
         setNormalize(s.normalize);
         setMono(s.mono);
-        setPauseOnDeviceLoss(s.pause_on_device_loss);
-        setMatchSourceRate(s.match_source_rate);
+        if (!audioSettingsTouched.current.has("pauseOnDeviceLoss")) {
+          setPauseOnDeviceLoss(s.pause_on_device_loss);
+        }
+        if (!audioSettingsTouched.current.has("matchSourceRate")) {
+          setMatchSourceRate(s.match_source_rate);
+        }
         setCrossfadeSec(Math.round(s.crossfade_ms / 1000));
         setReplayGain(s.replaygain);
         setReplayGainPreamp(s.replaygain_preamp_db);
@@ -1918,6 +1930,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     const prev = matchSourceRate;
     const next = !prev;
     const profileId = activeProfile?.id;
+    audioSettingsTouched.current.add("matchSourceRate");
     setMatchSourceRate(next);
     matchSourceRateWrite.current = matchSourceRateWrite.current
       .catch(() => {})
@@ -1937,6 +1950,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     const prev = pauseOnDeviceLoss;
     const next = !prev;
     const profileId = activeProfile?.id;
+    audioSettingsTouched.current.add("pauseOnDeviceLoss");
     setPauseOnDeviceLoss(next);
     pauseOnDeviceLossWrite.current = pauseOnDeviceLossWrite.current
       .catch(() => {})

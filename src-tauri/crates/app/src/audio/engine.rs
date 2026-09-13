@@ -2362,10 +2362,24 @@ impl AudioEngine {
         self.reset_exclusive_suppression();
 
         // Snapshot what's playing so we can resume on the new device.
-        let was_playing = matches!(
+        // What this rebuild owes the session, by the same rule the
+        // device-error path uses (#611): a session the user had paused
+        // is parked, not started. Picking a device or flipping the mode
+        // is a deliberate act on the *output*, never a request to play —
+        // and this path resumed a paused track into audible playback.
+        let resume = rebuild_resume(
             self.shared.state(),
-            super::state::PlayerState::Playing | super::state::PlayerState::Paused
+            self.shared
+                .paused_output
+                .load(std::sync::atomic::Ordering::Acquire),
         );
+        // Both a session that was playing and one the user paused hold a
+        // track the rebuild has to interrupt; only what follows differs.
+        let was_playing = resume != RebuildResume::Nothing;
+        let track_id = self
+            .shared
+            .current_track_id
+            .load(std::sync::atomic::Ordering::Acquire);
         // Read here, before the stop: opening the replacement writes its
         // own sample rate into the shared block, and a position derived
         // from the old rate's sample count against the new one is simply a
@@ -2558,9 +2572,13 @@ impl AudioEngine {
         // Step 6 — put back whatever the decoder is on. Not necessarily
         // the track this method snapshotted: a pick made during the open
         // is what the decoder accepted, and resuming the older snapshot
-        // instead is what left nothing playing at all (#634).
-        if was_playing {
-            self.resume_after_rebuild(live);
+        // instead is what left nothing playing at all (#634). A session
+        // the user had paused is parked instead, so a device pick never
+        // starts music (#611).
+        match resume {
+            RebuildResume::Play => self.resume_after_rebuild(live),
+            RebuildResume::StayPaused => self.park_session(live, track_id),
+            RebuildResume::Nothing => {}
         }
 
         // Back on the previous device after a failed switch: playback is
@@ -2599,10 +2617,24 @@ impl AudioEngine {
         // something else rebuilt. Same cure as `reopen_output_device`
         // took in #628: let the rebuild resolve its own target.
         let active = guard.pinned_device();
-        let was_playing = matches!(
+        // What this rebuild owes the session, by the same rule the
+        // device-error path uses (#611): a session the user had paused
+        // is parked, not started. Picking a device or flipping the mode
+        // is a deliberate act on the *output*, never a request to play —
+        // and this path resumed a paused track into audible playback.
+        let resume = rebuild_resume(
             self.shared.state(),
-            super::state::PlayerState::Playing | super::state::PlayerState::Paused
+            self.shared
+                .paused_output
+                .load(std::sync::atomic::Ordering::Acquire),
         );
+        // Both a session that was playing and one the user paused hold a
+        // track the rebuild has to interrupt; only what follows differs.
+        let was_playing = resume != RebuildResume::Nothing;
+        let track_id = self
+            .shared
+            .current_track_id
+            .load(std::sync::atomic::Ordering::Acquire);
         // Read here, before the stop: opening the replacement writes its
         // own sample rate into the shared block, and a position derived
         // from the old rate's sample count against the new one is simply a
@@ -2751,9 +2783,12 @@ impl AudioEngine {
         // The mode flip must not drop the user off what they are
         // listening to — radio included, which is why this re-dispatches
         // the decoder's own load rather than looking a `track` row up by
-        // an id a stream does not have.
-        if was_playing {
-            self.resume_after_rebuild(live);
+        // an id a stream does not have. And it must not start what they
+        // had paused either: that one is parked (#611).
+        match resume {
+            RebuildResume::Play => self.resume_after_rebuild(live),
+            RebuildResume::StayPaused => self.park_session(live, track_id),
+            RebuildResume::Nothing => {}
         }
 
         Ok(())
