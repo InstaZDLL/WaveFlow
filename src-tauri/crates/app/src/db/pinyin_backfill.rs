@@ -95,8 +95,11 @@ async fn fill_table(pool: &SqlitePool, table: &str, column: &str) -> Result<usiz
             })
             .collect();
 
-        write_batch(pool, &update, &blobs).await?;
-        written += blobs.len();
+        // The count comes back from the database, not from the batch:
+        // since the write is guarded on `pinyin IS NULL`, a row somebody
+        // else filled in the meantime is skipped, and reporting it as
+        // written would make the log line a guess.
+        written += write_batch(pool, &update, &blobs).await? as usize;
     }
 }
 
@@ -118,11 +121,11 @@ async fn write_batch(
     pool: &SqlitePool,
     update: &str,
     blobs: &[(i64, String)],
-) -> Result<(), sqlx::Error> {
+) -> Result<u64, sqlx::Error> {
     let mut backoff = std::time::Duration::from_millis(50);
     for attempt in 1..=MAX_ATTEMPTS {
         match write_batch_once(pool, update, blobs).await {
-            Ok(()) => return Ok(()),
+            Ok(written) => return Ok(written),
             Err(err) if is_busy(&err) && attempt < MAX_ATTEMPTS => {
                 tokio::time::sleep(backoff).await;
                 backoff *= 2;
@@ -137,16 +140,19 @@ async fn write_batch_once(
     pool: &SqlitePool,
     update: &str,
     blobs: &[(i64, String)],
-) -> Result<(), sqlx::Error> {
+) -> Result<u64, sqlx::Error> {
     let mut tx = pool.begin().await?;
+    let mut written = 0_u64;
     for (id, blob) in blobs {
-        sqlx::query(sqlx::AssertSqlSafe(update.to_owned()))
+        written += sqlx::query(sqlx::AssertSqlSafe(update.to_owned()))
             .bind(blob)
             .bind(id)
             .execute(&mut *tx)
-            .await?;
+            .await?
+            .rows_affected();
     }
-    tx.commit().await
+    tx.commit().await?;
+    Ok(written)
 }
 
 /// Busy / locked, in any of SQLite's flavours: the primary result code
@@ -250,14 +256,16 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        let written = sqlx::query(sqlx::AssertSqlSafe(update_sql("track")))
-            .bind("zhongguoren zgr")
-            .bind(1_i64)
-            .execute(&pool)
-            .await
-            .unwrap()
-            .rows_affected();
+        let written = write_batch(
+            &pool,
+            &update_sql("track"),
+            &[(1, "zhongguoren zgr".to_string())],
+        )
+        .await
+        .unwrap();
 
+        // Zero, and reported as zero: the count comes back from the
+        // database, so a skipped row cannot inflate the log line.
         assert_eq!(written, 0, "the row no longer qualifies");
         assert_eq!(pinyin_of(&pool, 1).await.as_deref(), Some("daoxiang dx"));
     }
