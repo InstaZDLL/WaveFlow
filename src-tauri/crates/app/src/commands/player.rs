@@ -1763,6 +1763,7 @@ pub async fn player_get_audio_settings(
         gapless,
         dsd_taps,
         dsd_dop,
+        pause_on_device_loss: engine.pause_on_device_loss(),
     })
 }
 
@@ -1783,6 +1784,9 @@ pub struct AudioSettingsSnapshot {
     pub dsd_taps: u32,
     /// Native DSD via DoP opt-in (#495), default false.
     pub dsd_dop: bool,
+    /// Park playback when the output device goes away (#617), default
+    /// true.
+    pub pause_on_device_loss: bool,
 }
 
 /// One row in the output-device picker that powers the PlayerBar
@@ -2005,6 +2009,40 @@ pub async fn player_set_exclusive_output(
 #[tauri::command]
 pub fn player_get_exclusive_output(engine: tauri::State<'_, Arc<AudioEngine>>) -> bool {
     engine.inner().exclusive_output()
+}
+
+/// Pause instead of following the music onto another device when the one
+/// it is playing on goes away (#617).
+///
+/// Applies to the next device loss and rebuilds nothing now: the setting
+/// describes what to do when something else happens. A device that flaps
+/// and comes back is still picked up where it was — only a fallback onto
+/// a *different* endpoint parks the session.
+///
+/// Persisted in `profile_setting['audio.pause_on_device_loss']`, read at
+/// boot in `lib.rs`, and on by default: it is what people expect from
+/// headphones, and the reported defect is the other behaviour.
+#[tauri::command]
+pub async fn player_set_pause_on_device_loss(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+) -> AppResult<()> {
+    engine.set_pause_on_device_loss(enabled);
+    if let Ok(pool) = state.require_profile_pool().await {
+        let now = chrono::Utc::now().timestamp_millis();
+        let stored = if enabled { "1" } else { "0" };
+        let _ = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.pause_on_device_loss', ?, 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(stored)
+        .bind(now)
+        .execute(&*pool)
+        .await;
+    }
+    Ok(())
 }
 
 /// Replace the queue with the given track list and start playing at

@@ -1,12 +1,21 @@
 //! Shared state between the decoder thread and the real-time cpal callback.
 //!
-//! Every field is an atomic because the cpal audio callback MUST NOT take
-//! any locks. The decoder thread and tauri command handlers write, the
-//! audio callback and UI reads.
+//! Every field the audio callback reads is an atomic, because that
+//! callback MUST NOT take any locks. The decoder thread and tauri command
+//! handlers write, the audio callback and UI read.
+//!
+//! [`SharedPlayback::last_load`] is the one exception, and it is one
+//! because the callback never looks at it: it is written by the decoder
+//! when it accepts a load and read by the output-rebuild paths, both of
+//! which are allowed to block. Nothing that runs inside the callback may
+//! touch it.
 
 use std::sync::atomic::{
     AtomicBool, AtomicI64, AtomicU16, AtomicU32, AtomicU64, AtomicU8, Ordering,
 };
+use std::sync::Mutex;
+
+use super::engine::{AudioCmd, LastLoad};
 
 /// High-level player lifecycle. Stored as `AtomicU8` — see [`PlayerState::from_u8`]
 /// for the inverse of `as u8`.
@@ -101,6 +110,22 @@ pub struct SharedPlayback {
     /// acquire, and the producer side goes through a compare-and-set, so
     /// a claim can only ever move it forward.
     pub newest_load_intent: AtomicU64,
+    /// The load the decoder has most recently **accepted**, payload
+    /// included, so an output rebuild can put back exactly what its
+    /// `Stop` took away (#634). `None` until the first load of the
+    /// session.
+    ///
+    /// Written by the decoder in [`accept_load`](super::decoder), which is
+    /// the single funnel every load passes through — including the
+    /// auto-advance, whose `LoadAndPlay` goes straight down the channel
+    /// without passing through [`AudioEngine::send`](super::engine::AudioEngine::send).
+    /// Recording it there rather than at send time is what makes it "what
+    /// is playing" rather than "what was asked for": a load superseded on
+    /// the way in never reaches this field.
+    ///
+    /// The one lock in this struct — see the module note. The audio
+    /// callback must never read it.
+    last_load: Mutex<Option<LastLoad>>,
     pub base_offset_ms: AtomicU64,
     /// ID of the track currently loaded in the decoder (0 = none).
     /// Written by the decoder thread at `LoadAndPlay` time, read by
@@ -256,6 +281,7 @@ impl SharedPlayback {
             seek_generation: AtomicU64::new(0),
             load_intents: AtomicU64::new(0),
             newest_load_intent: AtomicU64::new(0),
+            last_load: Mutex::new(None),
             base_offset_ms: AtomicU64::new(0),
             current_track_id: AtomicI64::new(0),
             paused_output: AtomicBool::new(false),
@@ -329,6 +355,37 @@ impl SharedPlayback {
 
     pub fn state(&self) -> PlayerState {
         PlayerState::from_u8(self.state.load(Ordering::Acquire))
+    }
+
+    /// Record the load the decoder has just accepted (#634). A command
+    /// that is not a load leaves the snapshot alone — including `Stop`,
+    /// which is precisely what a rebuild sends before asking for this
+    /// back.
+    ///
+    /// A poisoned lock is ignored rather than propagated: the only cost is
+    /// a rebuild resuming an older load, and panicking the decoder thread
+    /// over it would cost the user every future track.
+    pub fn record_accepted_load(&self, cmd: &AudioCmd) {
+        let Some(load) = LastLoad::capture(cmd) else {
+            return;
+        };
+        if let Ok(mut guard) = self.last_load.lock() {
+            *guard = Some(load);
+        }
+    }
+
+    /// The load the decoder is on, for the output rebuilds (#634).
+    pub fn last_load(&self) -> Option<LastLoad> {
+        self.last_load.lock().ok().and_then(|guard| guard.clone())
+    }
+
+    /// Just the intent of [`Self::last_load`], for pairing the playback
+    /// position with the load it belongs to without cloning the payload.
+    pub fn last_load_intent(&self) -> Option<super::engine::LoadIntent> {
+        self.last_load
+            .lock()
+            .ok()
+            .and_then(|guard| guard.as_ref().map(|load| load.intent))
     }
 
     pub fn set_state(&self, state: PlayerState) {

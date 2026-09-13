@@ -1548,6 +1548,10 @@
       "title": "Mono ses",
       "subtitle": "Sol ve sağ kanalları tek bir sinyalde birleştirir"
     },
+    "pauseOnDeviceLoss": {
+      "title": "Çıkış aygıtı ayrıldığında duraklat",
+      "subtitle": "Ses çıkışı kaybolduğunda, oynatma başka bir aygıta geçmek yerine durur"
+    },
     "language": {
       "title": "Dil",
       "subtitle": "Arayüz dili"

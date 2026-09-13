@@ -1548,6 +1548,10 @@
       "title": "Mono-audio",
       "subtitle": "Combineert de linker- en rechterkanalen tot één signaal"
     },
+    "pauseOnDeviceLoss": {
+      "title": "Pauzeren als het uitvoerapparaat wordt losgekoppeld",
+      "subtitle": "Verdwijnt de audio-uitvoer, dan stopt het afspelen in plaats van over te gaan op een ander apparaat"
+    },
     "language": {
       "title": "Taal",
       "subtitle": "Interfacetaal"

@@ -1601,6 +1601,10 @@
       "title": "Audio mono",
       "subtitle": "Mélange les canaux gauche et droit en un signal unique"
     },
+    "pauseOnDeviceLoss": {
+      "title": "Pause si le périphérique est déconnecté",
+      "subtitle": "Quand la sortie audio disparaît, la lecture s'arrête au lieu de passer sur un autre périphérique"
+    },
     "language": {
       "title": "Langue",
       "subtitle": "Langue de l'interface"

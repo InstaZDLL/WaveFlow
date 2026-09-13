@@ -156,6 +156,30 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
     // newer choice than this resume — the guard above only stops a second
     // resume, not a different action.
     let intent = engine.next_load_intent();
+    // A rebuild parked a session rather than resuming it (#611, #617).
+    // That snapshot beats the persisted resume point: it is the very load
+    // that was interrupted, radio stations and server tracks included —
+    // neither of which the resume point can describe, since it only ever
+    // names a library track. Nothing was relabelled when the session was
+    // parked, so this needs no `track:changed` of its own either.
+    if let Some(parked) = engine.take_parked_resume() {
+        let _publish = engine.lock_publish().await;
+        if !engine.claim_dispatch(intent) {
+            tracing::debug!("parked resume superseded by a newer playback intent; dropping it");
+            return Ok(());
+        }
+        let previous = engine.shared().state();
+        let published = engine
+            .shared()
+            .try_set_state(previous, PlayerState::Loading);
+        let sent = engine.send(parked.into_command(intent));
+        if sent.is_err() && published {
+            engine
+                .shared()
+                .try_set_state(PlayerState::Loading, previous);
+        }
+        return sent;
+    }
     // One lock for both: two awaits could straddle a profile switch and
     // pair one profile's resume point with the other's id.
     let (pool, profile_id) = state.require_profile_snapshot().await?;

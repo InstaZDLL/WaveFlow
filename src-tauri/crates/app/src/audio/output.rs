@@ -378,6 +378,15 @@ pub fn spawn_output_with_mode(
 /// loss identically — the exclusive thread used to just exit, leaving
 /// the UI convinced playback was still running.
 pub(super) fn notify_device_lost(app: &AppHandle, shared: &Arc<SharedPlayback>, message: String) {
+    // Stamped here, at the error itself, rather than in the recovery that
+    // follows 300 ms later: the same unplug also moves the system default,
+    // and the follow that reacts to that (#627) has to know this is a
+    // device going away, not a preference changing (#617). The engine can
+    // be missing while `AudioEngine::new` is still running, which is the
+    // one window where no recovery is scheduled either.
+    if let Some(engine) = app.try_state::<std::sync::Arc<super::AudioEngine>>() {
+        engine.note_device_loss();
+    }
     shared.set_state(PlayerState::Paused);
     let _ = app.emit(
         "player:state",

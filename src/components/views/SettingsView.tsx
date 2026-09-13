@@ -16,6 +16,7 @@ import {
   Volume2,
   AudioWaveform,
   Headphones,
+  Unplug,
   Shuffle,
   Radio,
   Eye,
@@ -66,6 +67,7 @@ import {
   playerGetAudioSettings,
   playerSetNormalize,
   playerSetMono,
+  playerSetPauseOnDeviceLoss,
   playerSetCrossfade,
   playerSetGapless,
   playerSetReplayGain,
@@ -1223,6 +1225,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // Audio settings — hydrated from backend at mount.
   const [normalize, setNormalize] = useState(false);
   const [mono, setMono] = useState(false);
+  // #617. Mirrors the engine's own default, so the row does not flip
+  // under the user between the first paint and the read below.
+  const [pauseOnDeviceLoss, setPauseOnDeviceLoss] = useState(true);
   const [crossfadeSec, setCrossfadeSec] = useState(0);
   const [replayGain, setReplayGain] = useState(false);
   const [replayGainPreamp, setReplayGainPreamp] = useState(0);
@@ -1669,6 +1674,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         if (stale) return;
         setNormalize(s.normalize);
         setMono(s.mono);
+        setPauseOnDeviceLoss(s.pause_on_device_loss);
         setCrossfadeSec(Math.round(s.crossfade_ms / 1000));
         setReplayGain(s.replaygain);
         setReplayGainPreamp(s.replaygain_preamp_db);
@@ -1893,6 +1899,15 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       setMono(!next);
     });
   }, [mono]);
+
+  const handleTogglePauseOnDeviceLoss = useCallback(() => {
+    const next = !pauseOnDeviceLoss;
+    setPauseOnDeviceLoss(next);
+    playerSetPauseOnDeviceLoss(next).catch((err) => {
+      console.error("[Settings] set pause on device loss failed", err);
+      setPauseOnDeviceLoss(!next);
+    });
+  }, [pauseOnDeviceLoss]);
 
   // Debounce crossfade slider changes to avoid spamming the backend.
   const crossfadeTimerRef = useRef<number | null>(null);
@@ -2586,6 +2601,26 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 enabled={mono}
                 onToggle={handleToggleMono}
                 label={t("settings.mono.title")}
+              />
+            </div>
+
+            {/* Pause when the output device disconnects (#617) */}
+            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <div className="flex items-center space-x-4">
+                <Unplug size={20} className="text-zinc-400" aria-hidden="true" />
+                <div>
+                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                    {t("settings.pauseOnDeviceLoss.title")}
+                  </div>
+                  <div className="text-xs text-zinc-400">
+                    {t("settings.pauseOnDeviceLoss.subtitle")}
+                  </div>
+                </div>
+              </div>
+              <ToggleSwitch
+                enabled={pauseOnDeviceLoss}
+                onToggle={handleTogglePauseOnDeviceLoss}
+                label={t("settings.pauseOnDeviceLoss.title")}
               />
             </div>
 

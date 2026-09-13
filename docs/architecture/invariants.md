@@ -175,8 +175,19 @@ and the runtime is multi-threaded: without it, an older producer can be
 overtaken mid-write and still land its cursor last. Never hold it across
 the preparation that precedes the claim (#632).
 
+**An output rebuild re-dispatches the decoder's own load, under that
+load's own intent.** It is the one place a load is sent without a fresh
+token, and deliberately so: the rebuild is putting back what its `Stop`
+took away, so it has to be accepted when nothing newer has arrived and to
+give way when something has. Read what to put back from
+`SharedPlayback::last_load` — written by the decoder at receipt, so it
+already names the track a user picked mid-rebuild — never from a snapshot
+taken before the stop, which is what left nothing playing at all (#634).
+
 Detail, and why `SetNextTrack` is excluded: [ordering the
-loads](../features/playback.md#ordering-the-loads).
+loads](../features/playback.md#ordering-the-loads). What a rebuild puts
+back, and the two sessions it parks instead: [what a rebuild puts
+back](../features/playback.md#what-a-rebuild-puts-back).
 
 Wider topology: [audio architecture](audio.md).
 

@@ -1548,6 +1548,10 @@
       "title": "Mono-Audio",
       "subtitle": "Mischt den linken und rechten Kanal zu einem einzigen Signal"
     },
+    "pauseOnDeviceLoss": {
+      "title": "Pausieren, wenn das Ausgabegerät getrennt wird",
+      "subtitle": "Verschwindet die Audioausgabe, stoppt die Wiedergabe, statt auf ein anderes Gerät zu wechseln"
+    },
     "language": {
       "title": "Sprache",
       "subtitle": "Sprache der Oberfläche"

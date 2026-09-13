@@ -1527,6 +1527,10 @@
       "title": "單聲道音訊",
       "subtitle": "將左右聲道混合成單一訊號"
     },
+    "pauseOnDeviceLoss": {
+      "title": "輸出裝置中斷時暫停",
+      "subtitle": "音訊輸出消失時停止播放，而不是切換到其他裝置"
+    },
     "language": {
       "title": "語言",
       "subtitle": "介面語言"

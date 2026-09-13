@@ -1556,6 +1556,10 @@
       "title": "모노 오디오",
       "subtitle": "좌우 채널을 하나의 신호로 합칩니다"
     },
+    "pauseOnDeviceLoss": {
+      "title": "출력 장치가 연결 해제되면 일시정지",
+      "subtitle": "오디오 출력이 사라지면 다른 장치로 옮기지 않고 재생을 멈춥니다"
+    },
     "language": {
       "title": "언어",
       "subtitle": "인터페이스 언어"

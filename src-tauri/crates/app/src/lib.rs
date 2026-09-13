@@ -256,11 +256,11 @@ pub fn run() {
             // last picked instead of the OS default. Empty string in
             // the row means "follow the OS default" — see
             // `player_set_output_device`.
-            let (persisted_device, persisted_exclusive_output) =
+            let (persisted_device, persisted_exclusive_output, persisted_pause_on_loss) =
                 tauri::async_runtime::block_on(async {
                     let state = app.state::<AppState>();
                     let Ok(pool) = state.require_profile_pool().await else {
-                        return (None, false);
+                        return (None, false, true);
                     };
                     let device: Option<String> = sqlx::query_scalar(
                         "SELECT value FROM profile_setting WHERE key = 'audio.output_device'",
@@ -288,13 +288,29 @@ pub fn run() {
                     .flatten()
                     .map(|s| s == "1" || s == "true")
                     .unwrap_or(false);
-                    (device, exclusive)
+                    // #617. Absent means on: what people expect from
+                    // headphones, and the behaviour the defect reported.
+                    let pause_on_loss: bool = sqlx::query_scalar::<_, String>(
+                        "SELECT value FROM profile_setting
+                          WHERE key = 'audio.pause_on_device_loss'",
+                    )
+                    .fetch_optional(&*pool)
+                    .await
+                    .ok()
+                    .flatten()
+                    .map(|s| s == "1" || s == "true")
+                    .unwrap_or(true);
+                    (device, exclusive, pause_on_loss)
                 });
             let engine: Arc<AudioEngine> = AudioEngine::new_with_device(
                 engine_handle,
                 persisted_device,
                 persisted_exclusive_output,
             );
+            // Applied rather than passed to the constructor: it changes
+            // what a *future* device loss does, so nothing has to be
+            // opened differently for it.
+            engine.set_pause_on_device_loss(persisted_pause_on_loss);
             app.manage(engine);
 
             // Follow the system's default output while nothing is pinned
@@ -1047,6 +1063,7 @@ pub fn run() {
             commands::player::player_reopen_output_device,
             commands::player::player_set_exclusive_output,
             commands::player::player_get_exclusive_output,
+            commands::player::player_set_pause_on_device_loss,
             commands::stats::stats_overview,
             commands::stats::stats_top_tracks,
             commands::stats::stats_top_artists,

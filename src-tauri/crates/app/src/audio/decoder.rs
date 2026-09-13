@@ -1998,6 +1998,12 @@ fn accept_load(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
     shared
         .newest_load_intent
         .store(intent.get(), Ordering::Release);
+    // Accepted, so this is now what the decoder plays — and what an output
+    // rebuild has to put back after its `Stop` (#634). Recorded here, at
+    // the single point every load passes through, rather than at send
+    // time: a load superseded on the way in must not become the thing a
+    // rebuild resumes.
+    shared.record_accepted_load(cmd);
     true
 }
 

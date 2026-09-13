@@ -341,6 +341,8 @@ export interface AudioSettingsSnapshot {
   dsd_taps: number;
   /** Native DSD via DoP opt-in (#495), default false. */
   dsd_dop: boolean;
+  /** Park playback when the output device goes away (#617), default true. */
+  pause_on_device_loss: boolean;
 }
 
 /** Allowed DSD → PCM precision tiers (FIR tap counts). */
@@ -357,6 +359,18 @@ export function playerSetNormalize(enabled: boolean): Promise<void> {
 
 export function playerSetMono(enabled: boolean): Promise<void> {
   return invoke<void>("player_set_mono", { enabled });
+}
+
+/**
+ * Park playback instead of letting it follow the system onto another
+ * device when the one it is playing on disconnects (#617).
+ *
+ * Applies to the next device loss — nothing is rebuilt now. A device
+ * that flaps and comes back is still picked up where it was; only a
+ * fallback onto a different endpoint parks the session.
+ */
+export function playerSetPauseOnDeviceLoss(enabled: boolean): Promise<void> {
+  return invoke<void>("player_set_pause_on_device_loss", { enabled });
 }
 
 export function playerSetCrossfade(seconds: number): Promise<void> {

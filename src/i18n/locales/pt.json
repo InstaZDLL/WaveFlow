@@ -1556,6 +1556,10 @@
       "title": "Áudio mono",
       "subtitle": "Mistura os canais esquerdo e direito num único sinal"
     },
+    "pauseOnDeviceLoss": {
+      "title": "Pausar se o dispositivo for desligado",
+      "subtitle": "Quando a saída de áudio desaparece, a reprodução para em vez de passar para outro dispositivo"
+    },
     "language": {
       "title": "Idioma",
       "subtitle": "Idioma da interface"
