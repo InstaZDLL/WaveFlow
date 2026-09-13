@@ -613,21 +613,23 @@ fn apply_patch_id3(tag: &mut id3::Tag, patch: &TagPatch<'_>) {
     }
 }
 
-/// Put the year where an ID3v2.3 reader will look for it.
+/// Put the year where a pre-2.4 reader will look for it.
 ///
 /// `TDRC` is a 2.4 frame. The `id3` crate writes whatever frames the tag
 /// holds, version target or not, so a 2.3 tag built from a `TDRC` comes
 /// back out carrying `TDRC` — and a reader that only knows 2.3 finds no
 /// year at all (measured: `year()` answers `None` after that round
 /// trip). Since a DSF now keeps the version it arrived with, the year
-/// has to be mirrored into `TYER`, which is the frame 2.3 defines.
+/// has to be mirrored into `TYER`, which is the frame the older
+/// versions define — 2.2 among them, where the writer shortens it to
+/// `TYE` on the way out.
 ///
 /// A cleared year clears both, so a stale `TYER` cannot outlive the
 /// date it duplicated.
-fn mirror_year_for_v23(tag: &mut id3::Tag, version: id3::Version) {
+fn mirror_year_for_legacy(tag: &mut id3::Tag, version: id3::Version) {
     use id3::TagLike;
 
-    if version != id3::Version::Id3v23 {
+    if !matches!(version, id3::Version::Id3v22 | id3::Version::Id3v23) {
         return;
     }
     match tag.date_recorded() {
@@ -682,7 +684,7 @@ fn patch_dsf(
                 .map_or(id3::Version::Id3v24, id3::Tag::version);
             let mut tag = existing.unwrap_or_default();
             apply_patch_id3(&mut tag, patch);
-            mirror_year_for_v23(&mut tag, version);
+            mirror_year_for_legacy(&mut tag, version);
             let mut bytes = Vec::new();
             tag.write_to(&mut bytes, version)?;
             waveflow_core::tagio::write_dsf_id3v2(handle, &bytes)?;
@@ -791,6 +793,19 @@ fn patch_file(
     // either way and taggers leave kilobytes of slack — and it is the
     // only path that touches neither the audio nor the file's length.
     // `false` means "could not", and the rewrite below takes over.
+    //
+    // An **error** here fails the edit rather than falling through, and
+    // that is deliberate. The rewrite opens the same container with the
+    // same parser on a copy of the same bytes, so a parse or encode
+    // failure would simply happen again one file later. The one error
+    // that would genuinely behave differently is the open: `rewrite_via
+    // _temp` never opens the original for writing, only for reading, so
+    // it would succeed on a file the user has deliberately made
+    // read-only on Unix — replacing it through a rename the directory
+    // permits. Turning "you may not write this file" into a silent
+    // replacement is not a fallback, it is a way around the answer.
+    // Windows is the exception the guard already handles: there
+    // read-only is a single attribute we lift and put back.
     macro_rules! try_in_place_id3v2 {
         ($ty:ty) => {{
             waveflow_core::tagio::with_writable_file(
@@ -1387,7 +1402,7 @@ mod patch_agreement_tests {
             ..Default::default()
         };
         apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
-        mirror_year_for_v23(&mut tag, id3::Version::Id3v23);
+        mirror_year_for_legacy(&mut tag, id3::Version::Id3v23);
 
         let mut bytes = Vec::new();
         tag.write_to(&mut bytes, id3::Version::Id3v23)
@@ -1403,7 +1418,7 @@ mod patch_agreement_tests {
     }
 
     #[test]
-    fn clearing_the_year_clears_both_frames_in_v23() {
+    fn clearing_the_year_clears_both_frames_in_a_legacy_tag() {
         // A stale TYER outliving the date it duplicated would show the
         // old year to exactly the readers the mirror exists for.
         use id3::TagLike;
@@ -1419,7 +1434,7 @@ mod patch_agreement_tests {
             ..Default::default()
         };
         apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
-        mirror_year_for_v23(&mut tag, id3::Version::Id3v23);
+        mirror_year_for_legacy(&mut tag, id3::Version::Id3v23);
 
         assert_eq!(tag.year(), None);
         assert_eq!(tag.date_recorded(), None);
@@ -1437,7 +1452,7 @@ mod patch_agreement_tests {
             ..Default::default()
         };
         apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
-        mirror_year_for_v23(&mut tag, id3::Version::Id3v24);
+        mirror_year_for_legacy(&mut tag, id3::Version::Id3v24);
 
         assert_eq!(tag.date_recorded().map(|d| d.year), Some(2011));
         assert_eq!(tag.year(), None, "no TYER in a 2.4 tag");
