@@ -757,7 +757,25 @@
       "custom": "Eigene Geschwindigkeit",
       "pitchHint": "Tonhöhe folgt der Geschwindigkeit (kein Time-Stretching)."
     },
-    "seek": "Suchlauf"
+    "seek": "Suchlauf",
+    "alert": {
+      "error": {
+        "device-lost": "Das Audiogerät wurde getrennt",
+        "track-failed": "Dieser Titel konnte nicht abgespielt werden",
+        "stream-failed": "Dieser Stream konnte nicht geöffnet werden",
+        "decoder-crashed": "Die Audio-Engine wurde neu gestartet",
+        "decoder-stopped": "Die Audio-Engine wurde nach wiederholten Fehlern gestoppt",
+        "offline": "Der Offline-Modus ist aktiviert",
+        "unknown": "Die Wiedergabe ist fehlgeschlagen"
+      },
+      "notice": {
+        "exclusive-refused": "Dieses Gerät verweigert den Exklusivmodus: Wiedergabe im geteilten Modus",
+        "dop-refused": "Dieser DAC verweigert natives DSD: Umwandlung in PCM",
+        "paused-device-lost": "Gerät getrennt: Wiedergabe pausiert",
+        "unknown": "Die Audioausgabe hat sich geändert"
+      },
+      "dismiss": "Schließen"
+    }
   },
   "queue": {
     "title": "Warteschlange",
@@ -786,7 +804,30 @@
     "empty": "Kein Ausgabegerät verfügbar",
     "systemDefault": "Systemstandard",
     "pinnedUnavailable": "Angeheftet, nicht verfügbar",
-    "reopen": "Gerät erneut öffnen"
+    "reopen": "Gerät erneut öffnen",
+    "capabilities": {
+      "probing": "Fähigkeiten werden gelesen…",
+      "unavailable": "Fähigkeiten nicht verfügbar",
+      "details": "Gerätedetails",
+      "summary": "{{bits}} Bit · {{rate}} kHz",
+      "channels": "Kanäle: {{value}}",
+      "minPeriod": "Minimale Periode: {{value}} Frames",
+      "formats": "Formate",
+      "rates": "Abtastraten",
+      "caveat": "Was ein Treiber angibt und was er im Exklusivmodus akzeptiert, sind zwei verschiedene Fragen.",
+      "source": {
+        "wasapiExclusive": "Im Exklusivmodus beim Treiber abgefragt.",
+        "alsaHardware": "ALSA-Hardwareparameter, ohne Konvertierungsschicht.",
+        "coreAudio": "Was das Gerät dem System meldet.",
+        "unavailable": "Gerät belegt oder nicht vorhanden: nichts konnte gelesen werden."
+      },
+      "tier": {
+        "cd": "CD-Qualität",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {
@@ -1132,6 +1173,11 @@
         "speed": "Geschwindigkeit {{value}}×",
         "dopNative": "Natives DSD"
       }
+    },
+    "outputMode": {
+      "exclusive": "Exklusiv",
+      "dop": "Natives DSD",
+      "exclusiveRefused": "Exklusiv verweigert"
     }
   },
   "miniPlayer": {
@@ -1544,9 +1590,17 @@
       "subtitle": "Übernimmt das Gerät allein für diese App, statt es mit dem System-Mixer zu teilen. Fällt auf den gemeinsamen Modus zurück, wenn das Gerät ablehnt.",
       "fallback": "Das Gerät akzeptiert den Exklusivmodus nicht. Es wird auf den Shared-Modus ausgewichen."
     },
+    "matchSourceRate": {
+      "title": "Abtastrate jedes Titels übernehmen",
+      "subtitle": "Bei exklusiver Ausgabe wird das Gerät mit der Rate jedes Titels neu geöffnet: vermeidet Resampling, wenn es sie annimmt, dafür eine Lücke bei jedem Ratenwechsel"
+    },
     "mono": {
       "title": "Mono-Audio",
       "subtitle": "Mischt den linken und rechten Kanal zu einem einzigen Signal"
+    },
+    "pauseOnDeviceLoss": {
+      "title": "Pausieren, wenn das Ausgabegerät getrennt wird",
+      "subtitle": "Verschwindet die Audioausgabe, wird die Wiedergabe pausiert, statt auf ein anderes Gerät zu wechseln"
     },
     "language": {
       "title": "Sprache",

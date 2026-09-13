@@ -120,6 +120,12 @@ pub struct PlayerStateSnapshot {
     /// re-clocks on its way there, which is the difference between
     /// bit-perfect and merely un-processed.
     pub exclusive_active: bool,
+    /// What the output really is right now, as one value (#597): shared,
+    /// exclusive, native DoP, or exclusive asked for and refused. The
+    /// badge in the player reads this rather than re-deriving it from the
+    /// two flags above, which is how the UI and the engine used to end up
+    /// disagreeing about what "engaged" meant.
+    pub output_mode: crate::audio::OutputMode,
 }
 
 /// Subset of [`crate::queue::QueueTrack`] flattened into the shape
@@ -159,6 +165,7 @@ impl PlayerStateSnapshot {
         current_track: Option<QueueTrackPayload>,
         dop_active: bool,
         exclusive_active: bool,
+        output_mode: crate::audio::OutputMode,
     ) -> Self {
         Self {
             state: shared.state().as_str().to_string(),
@@ -173,6 +180,7 @@ impl PlayerStateSnapshot {
             current_track,
             dop_active,
             exclusive_active,
+            output_mode,
         }
     }
 }
@@ -555,6 +563,42 @@ pub async fn player_get_state(
                     .dsd_dop_enabled
                     .store(dop, std::sync::atomic::Ordering::Release);
             }
+            // Per-track rate matching (#600), same shape and same
+            // reasoning as `dsd_dop` above: stored either way, so a
+            // profile switch cannot leak the previous profile's opt-in.
+            {
+                let match_rate = sqlx::query_scalar::<_, String>(
+                    "SELECT value FROM profile_setting WHERE key = 'audio.match_source_rate'",
+                )
+                .fetch_optional(&*pool)
+                .await
+                .ok()
+                .flatten()
+                .map(|v| v == "true")
+                .unwrap_or(false);
+                engine
+                    .shared()
+                    .match_source_rate
+                    .store(match_rate, std::sync::atomic::Ordering::Release);
+            }
+            // Pause on device loss (#617). It lives on the engine rather
+            // than in `SharedPlayback`, but it is profile-scoped like the
+            // two above, and this block is the one that runs on a profile
+            // *switch* — the boot read in `lib.rs` only covers the first
+            // profile of the session, so without this the second profile
+            // kept the first one's answer. Absent means on.
+            {
+                let pause_on_loss = sqlx::query_scalar::<_, String>(
+                    "SELECT value FROM profile_setting WHERE key = 'audio.pause_on_device_loss'",
+                )
+                .fetch_optional(&*pool)
+                .await
+                .ok()
+                .flatten()
+                .map(|v| v == "1" || v == "true")
+                .unwrap_or(true);
+                engine.set_pause_on_device_loss(pause_on_loss);
+            }
             // Every ReplayGain setting resolves to its default when the
             // row is missing or unparseable, and is stored either way —
             // the `dsd_dop` pattern above, for the same reason: this
@@ -757,6 +801,7 @@ pub async fn player_get_state(
         current_track,
         engine.current_output_is_dop(),
         engine.exclusive_output(),
+        engine.output_mode(),
     );
     // When the engine is Idle but we resolved a resume point, use the
     // persisted position instead of the (zero) live counter.
@@ -1737,6 +1782,9 @@ pub async fn player_get_audio_settings(
     let dsd_dop = shared
         .dsd_dop_enabled
         .load(std::sync::atomic::Ordering::Relaxed);
+    let match_source_rate = shared
+        .match_source_rate
+        .load(std::sync::atomic::Ordering::Relaxed);
 
     let mut crossfade_ms: i64 = 0;
     if let Ok(pool) = state.require_profile_pool().await {
@@ -1763,6 +1811,8 @@ pub async fn player_get_audio_settings(
         gapless,
         dsd_taps,
         dsd_dop,
+        match_source_rate,
+        pause_on_device_loss: engine.pause_on_device_loss(),
     })
 }
 
@@ -1783,6 +1833,11 @@ pub struct AudioSettingsSnapshot {
     pub dsd_taps: u32,
     /// Native DSD via DoP opt-in (#495), default false.
     pub dsd_dop: bool,
+    /// Open the output at each track's own rate (#600), default false.
+    pub match_source_rate: bool,
+    /// Park playback when the output device goes away (#617), default
+    /// true.
+    pub pause_on_device_loss: bool,
 }
 
 /// One row in the output-device picker that powers the PlayerBar
@@ -2005,6 +2060,123 @@ pub async fn player_set_exclusive_output(
 #[tauri::command]
 pub fn player_get_exclusive_output(engine: tauri::State<'_, Arc<AudioEngine>>) -> bool {
     engine.inner().exclusive_output()
+}
+
+/// Open the output at each track's own rate instead of taking whatever
+/// the device offers (#600).
+///
+/// With this on, and only while the output really owns its device, a
+/// 44.1 kHz track plays at 44.1 and a 96 kHz track at 96, with nothing
+/// resampling in between. A device that refuses the track's rate falls
+/// back to one it does offer and the decoder's resampler meets it, as it
+/// always did — that fallback is what makes this a preference rather
+/// than DoP's demand.
+///
+/// Off by default, and not because it is worse: reopening the device
+/// costs an audible gap, so every rate change becomes a break in the
+/// music. For most listeners our own resampler, with nothing else mixed
+/// in, is the better trade. Takes effect on the next track.
+///
+/// Persisted in `profile_setting['audio.match_source_rate']`.
+#[tauri::command]
+pub async fn player_set_match_source_rate(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+) -> AppResult<()> {
+    // Written before it is applied, and the error propagates. A
+    // preference the UI believes it saved, and that comes back to its
+    // old value at the next launch or the next profile switch, is worse
+    // than a toggle that visibly refuses — and this one takes effect on
+    // the next track, so there is nothing to undo in the engine when the
+    // write fails.
+    let pool = state.require_profile_pool().await?;
+    let now = chrono::Utc::now().timestamp_millis();
+    sqlx::query(
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.match_source_rate', ?, 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(if enabled { "true" } else { "false" })
+    .bind(now)
+    .execute(&*pool)
+    .await?;
+    engine
+        .shared()
+        .match_source_rate
+        .store(enabled, std::sync::atomic::Ordering::Release);
+    Ok(())
+}
+
+/// What one output device accepts — formats, rates, channels (#593).
+///
+/// **One device at a time, on demand.** The listing deliberately never
+/// asks this: on Linux it reads ALSA's hint database precisely to avoid
+/// opening every PCM, and filling a capability table while enumerating
+/// would bring back the one-to-two second freeze that shortcut exists to
+/// prevent. The answer is memoised for the session, so the second look at
+/// the same device is free.
+///
+/// Blocking work — a COM round trip per format on Windows, an open on
+/// Linux — so it runs on the blocking pool. It never fails: a device that
+/// cannot be asked comes back with `source: "unavailable"` and the
+/// reason, because "we could not ask" is an answer the sheet has to show.
+#[tauri::command]
+pub async fn player_probe_output_device(
+    device_id: Option<String>,
+) -> AppResult<crate::audio::capabilities::DeviceCapabilities> {
+    let probed = {
+        let device_id = device_id.clone();
+        tokio::task::spawn_blocking(move || {
+            crate::audio::capabilities::probe_output_device(device_id.as_deref())
+        })
+        .await
+    };
+    // A panicked or cancelled blocking task is one more way of not being
+    // able to ask — so it comes back as the same answer as a busy device
+    // rather than as a rejected promise the caller has no branch for.
+    Ok(probed.unwrap_or_else(|e| {
+        crate::audio::capabilities::DeviceCapabilities::unavailable(
+            device_id,
+            format!("probe output device task: {e}"),
+        )
+    }))
+}
+
+/// Pause instead of following the music onto another device when the one
+/// it is playing on goes away (#617).
+///
+/// Applies to the next device loss and rebuilds nothing now: the setting
+/// describes what to do when something else happens. A device that flaps
+/// and comes back is still picked up where it was — only a fallback onto
+/// a *different* endpoint parks the session.
+///
+/// Persisted in `profile_setting['audio.pause_on_device_loss']`, read at
+/// boot in `lib.rs`, and on by default: it is what people expect from
+/// headphones, and the reported defect is the other behaviour.
+#[tauri::command]
+pub async fn player_set_pause_on_device_loss(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+) -> AppResult<()> {
+    // Persisted first, same as `player_set_match_source_rate` and for
+    // the same reason: a setting that only ever lived in memory is a
+    // setting the user will find undone.
+    let pool = state.require_profile_pool().await?;
+    let now = chrono::Utc::now().timestamp_millis();
+    let stored = if enabled { "1" } else { "0" };
+    sqlx::query(
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.pause_on_device_loss', ?, 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(stored)
+    .bind(now)
+    .execute(&*pool)
+    .await?;
+    engine.set_pause_on_device_loss(enabled);
+    Ok(())
 }
 
 /// Replace the queue with the given track list and start playing at

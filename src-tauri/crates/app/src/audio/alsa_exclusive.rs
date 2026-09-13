@@ -52,7 +52,7 @@ use crossbeam_channel::{bounded, Receiver, Sender};
 use rtrb::{Consumer, Producer, RingBuffer};
 use tauri::AppHandle;
 
-use super::output::{DopFormat, OutputHandle, RING_CAPACITY};
+use super::output::{DopFormat, OutputHandle, RequestedFormat, RING_CAPACITY};
 use super::state::SharedPlayback;
 use crate::error::{AppError, AppResult};
 
@@ -66,7 +66,7 @@ pub fn spawn_alsa_exclusive_output_thread(
     shared: Arc<SharedPlayback>,
     app: AppHandle,
     device_name: Option<String>,
-    dop: Option<DopFormat>,
+    requested: Option<RequestedFormat>,
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
     let (producer, consumer) = RingBuffer::<f32>::new(RING_CAPACITY);
     let (shutdown_tx, shutdown_rx) = bounded::<()>(1);
@@ -76,11 +76,11 @@ pub fn spawn_alsa_exclusive_output_thread(
     let thread_app = app.clone();
     let thread_device = device_name.clone();
     let join: JoinHandle<()> = std::thread::Builder::new()
-        .name(match dop {
-            Some(_) => "waveflow-alsa-dop".into(),
-            None => "waveflow-alsa-exclusive".to_string(),
+        .name(match requested {
+            Some(r) if r.dop => "waveflow-alsa-dop".into(),
+            _ => "waveflow-alsa-exclusive".to_string(),
         })
-        .spawn(move || match dop {
+        .spawn(move || match requested.and_then(RequestedFormat::as_dop) {
             Some(dop) => output_thread_main(
                 thread_shared,
                 consumer,
@@ -90,6 +90,9 @@ pub fn spawn_alsa_exclusive_output_thread(
                 thread_device,
                 dop,
             ),
+            // #600: a rate request rides into the PCM path as the rate to
+            // ask the card for, ahead of whatever the last stream opened
+            // at.
             None => pcm_output_thread_main(
                 thread_shared,
                 consumer,
@@ -97,6 +100,7 @@ pub fn spawn_alsa_exclusive_output_thread(
                 init_tx,
                 thread_app,
                 thread_device,
+                requested.map(|r| r.sample_rate),
             ),
         })
         .map_err(|e| AppError::Audio(format!("spawn alsa exclusive thread: {e}")))?;
@@ -122,7 +126,9 @@ pub fn spawn_alsa_exclusive_output_thread(
                 // grab that had in fact happened (WASAPI has always
                 // reported `true` for both).
                 exclusive: true,
-                dop,
+                // A rate request is not DoP however exact it lands: the
+                // handle records the packing, not the accuracy.
+                dop: requested.and_then(RequestedFormat::as_dop),
             },
         )),
         Ok(Err(err)) => {
@@ -348,6 +354,101 @@ fn hw_card_index(dev: &str) -> Option<i32> {
         return Some(index);
     }
     find_card_index(first.strip_prefix("CARD=")?)
+}
+
+/// Ask the hardware itself what it accepts (#593).
+///
+/// Asked of the raw `hw:` device, so the answer describes the hardware
+/// with no plug layer in between — which is the whole reason exclusive
+/// output targets `hw:` in the first place. A device another client is
+/// holding cannot answer at all, and says so rather than guessing.
+///
+/// Opened **non-blocking**: a busy device must come back immediately with
+/// `EBUSY`, not park the caller on an open that waits for the other
+/// client to finish. Nothing is configured and nothing is written — the
+/// PCM is closed as soon as the parameters have been read.
+pub(super) fn probe_capabilities(
+    device_name: Option<&str>,
+) -> AppResult<super::capabilities::DeviceCapabilities> {
+    use super::capabilities::{CapabilitySource, DeviceCapabilities, DeviceFormat, PROBE_RATES};
+    use std::collections::BTreeSet;
+
+    let requested = device_name.map(str::to_string);
+    // `resolve_hw_device` answers `hw:0,0` for both no name and the name
+    // "default" — a sound choice when something has to be *opened*, and
+    // the wrong one for a sheet: card 0 is not what `default` reaches,
+    // which is whatever the plug layer routes to, and that can be a
+    // sound server feeding another card entirely. Describing card 0
+    // under the name "default" would be a sheet about hardware the user
+    // may never hear, and it is memoised for the session. The listing
+    // keeps a `default` row on purpose (#594), so this is reachable from
+    // the menu, not just from an unpinned call. The two other backends
+    // already refuse their own fallback for the same reason.
+    let describes_hardware = requested
+        .as_deref()
+        .filter(|n| !n.is_empty())
+        .is_some_and(|n| !n.eq_ignore_ascii_case("default"));
+    if !describes_hardware {
+        return Err(AppError::Audio(
+            "no pinned ALSA card to describe — \"default\" is routed, not hardware".to_string(),
+        ));
+    }
+    let hw = resolve_hw_device(&requested)?;
+    let pcm = PCM::new(&hw, Direction::Playback, true)
+        .map_err(|e| AppError::Audio(format!("open {hw} to read its capabilities: {e}")))?;
+    let hwp = HwParams::any(&pcm)
+        .map_err(|e| AppError::Audio(format!("read {hw} hardware parameters: {e}")))?;
+
+    // One parameter set per format, and the rates asked of *that* set:
+    // narrowing the space to a format first is what makes the answer a
+    // pair the card really accepts, rather than two independent maxima
+    // that suggest one it never has.
+    let mut formats: Vec<DeviceFormat> = Vec::new();
+    let mut sample_rates: BTreeSet<u32> = BTreeSet::new();
+    for format in FORMAT_FALLBACK_CHAIN {
+        let Ok(params) = HwParams::any(&pcm) else {
+            continue;
+        };
+        if params.set_format(format.to_alsa()).is_err() {
+            continue;
+        }
+        let accepted: Vec<u32> = PROBE_RATES
+            .iter()
+            .copied()
+            .filter(|&rate| params.test_rate(rate).is_ok())
+            .collect();
+        if accepted.is_empty() {
+            continue;
+        }
+        sample_rates.extend(accepted.iter().copied());
+        formats.push(DeviceFormat {
+            label: format.label().to_string(),
+            // What the format carries, not what it occupies: `S24_LE`
+            // spends four bytes on twenty-four bits of audio.
+            bits: match format {
+                AlsaSampleFormat::F32 | AlsaSampleFormat::S32 => 32,
+                AlsaSampleFormat::S24Packed | AlsaSampleFormat::S24In32 => 24,
+                AlsaSampleFormat::S16 => 16,
+            },
+            float: matches!(format, AlsaSampleFormat::F32),
+            sample_rates: accepted,
+        });
+    }
+
+    Ok(DeviceCapabilities {
+        device_id: requested,
+        source: CapabilitySource::AlsaHardware,
+        formats,
+        sample_rates: sample_rates.into_iter().collect(),
+        max_channels: hwp.get_channels_max().unwrap_or(0) as u16,
+        // The **smallest** period the hardware will take, which is the
+        // one quantity every backend can answer — see
+        // `DeviceCapabilities::min_period_frames`. Not the period we ask
+        // for when playing (`TARGET_PERIOD_FRAMES`): that one is ours,
+        // and this sheet describes the device.
+        min_period_frames: hwp.get_period_size_min().ok().map(|frames| frames as u32),
+        unavailable_reason: None,
+    })
 }
 
 /// A failed open, plus the one thing the caller has to branch on: a
@@ -898,6 +999,11 @@ fn pcm_output_thread_main(
     init_tx: Sender<AppResult<()>>,
     app: AppHandle,
     device_name: Option<String>,
+    // `requested_rate`: the rate the track being loaded is in, when the
+    // user asked us to open at it (#600). A preference, not a demand —
+    // `set_rate` is asked with `ValueOr::Nearest`, so a card that cannot
+    // do it opens at what it can and the decoder's resampler meets that.
+    requested_rate: Option<u32>,
 ) {
     let dev = match resolve_hw_device(&device_name) {
         Ok(dev) => dev,
@@ -908,12 +1014,14 @@ fn pcm_output_thread_main(
         }
     };
 
-    // Ask for what the engine is already running at — the cpal default,
-    // or whatever a previous output negotiated — so that turning
-    // exclusive on doesn't also silently change the resampler's target.
-    // Both can still be zero here, meaning nothing has opened an output
-    // yet; `open_pcm_negotiated` owns that reading.
-    let preferred_rate = shared.sample_rate.load(Ordering::Acquire);
+    // The track's own rate when one was asked for (#600), and otherwise
+    // what the engine is already running at — the cpal default, or
+    // whatever a previous output negotiated — so that turning exclusive
+    // on doesn't also silently change the resampler's target. Both can
+    // still be zero here, meaning nothing has opened an output yet;
+    // `open_pcm_negotiated` owns that reading.
+    let preferred_rate =
+        requested_rate.unwrap_or_else(|| shared.sample_rate.load(Ordering::Acquire));
     let preferred_channels = shared.channels.load(Ordering::Acquire);
 
     let (_reservation, opened) = match open_reserving_the_card(&dev, "pcm", || {

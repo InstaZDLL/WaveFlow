@@ -19,7 +19,7 @@ use crate::error::{AppError, AppResult};
 
 use super::analytics::{analytics_task, AnalyticsMsg};
 use super::decoder::spawn_decoder_thread;
-use super::output::{spawn_output_with_mode, DopFormat, OutputHandle};
+use super::output::{spawn_output_with_mode, OutputHandle, RequestedFormat};
 use super::replay_gain::TrackGain;
 use super::state::SharedPlayback;
 
@@ -509,20 +509,137 @@ pub struct AudioEngine {
     /// the queue cursor, the events, and the command that carries the
     /// load. See [`Self::lock_publish`].
     publish: tokio::sync::Mutex<()>,
-    /// Last non-library source captured at the boundary of [`Self::send`]
-    /// (#230). The three output-rebuild paths
-    /// ([`Self::set_output_device`], [`Self::set_exclusive_output`],
-    /// [`Self::force_rebuild_output`]) snapshot
-    /// `shared.current_track_id`; for radio and remote queues that id is a
-    /// negative sentinel from
-    /// [`crate::commands::player::next_radio_track_id`] with no
-    /// matching `track` row, so a plain `WHERE id = ?` resume
-    /// returns nothing and the rebuild silently drops the user
-    /// off the stream. Holding the originating URL or reconciled-file payload
-    /// lets those paths re-dispatch the same source instead. Cleared on the next
-    /// [`AudioCmd::LoadAndPlay`] so a local-track switch doesn't
-    /// resurrect the dead radio session on a later rebuild.
-    radio_resume: Mutex<Option<RadioResumeState>>,
+    /// Orders [`Self::pause_pending`] against the channel it describes.
+    ///
+    /// The two are separate synchronisation domains — an atomic and a
+    /// queue — so without this, two producers sending a `Pause` and a
+    /// `Resume` at the same instant can leave the flag saying one thing
+    /// while the decoder receives the other order, and a rebuild reading
+    /// the flag then decides against what the user actually asked for.
+    ///
+    /// A leaf lock held across two statements and nothing else: no await
+    /// inside, no other lock taken under it. It is deliberately **not**
+    /// [`Self::publish`], which is an async mutex a producer already
+    /// holds when it calls [`Self::send`] — taking that one here would
+    /// deadlock on the spot.
+    dispatch: Mutex<()>,
+    /// #617: park playback rather than carry it onto another endpoint
+    /// when the one it was playing on goes away. Seeded at boot from
+    /// `profile_setting['audio.pause_on_device_loss']`, default on.
+    ///
+    /// It only ever applies to a rebuild that *moved*: a device that
+    /// flaps and comes back is reopened and picked up where it was, which
+    /// is the automatic recovery #175 exists for. What it stops is the
+    /// reported case — headphones unplugged, Windows falls back to the
+    /// built-in speakers, and the music carries on out loud.
+    pause_on_device_loss: std::sync::atomic::AtomicBool,
+    /// When a device loss was last reported, so the default-device follow
+    /// can stay out of the recovery's way (#617).
+    ///
+    /// Unplugging a device raises both signals at once: the stream breaks
+    /// (`DeviceNotAvailable`) *and* the system default moves. They are not
+    /// the same event — a device that DISAPPEARS is not a default that
+    /// CHANGES — and whichever rebuild arms first would otherwise decide
+    /// what happens, so the pause would land or not land on a coin toss.
+    /// The loss owns the recovery for a short window; the follow stands
+    /// down.
+    last_device_loss: Mutex<Option<Instant>>,
+    /// A session a rebuild parked instead of resuming: the user had
+    /// paused it (#611), or its endpoint went away and the preference
+    /// above says not to follow (#617).
+    ///
+    /// This is what makes Play work afterwards for a radio stream or a
+    /// server track: the persisted resume point is always a *library*
+    /// track's, so parking one of those and pressing Play used to bring
+    /// back the last library track instead.
+    parked_resume: Mutex<Option<ParkedSession>>,
+    /// The last thing we told the user about the output (#597), so a
+    /// state that persists is announced once instead of at every track.
+    /// `None` means "nothing to say", which is also what clears it.
+    last_output_notice: Mutex<Option<PlaybackNotice>>,
+    /// A pause the user has asked for that the decoder has not acted on
+    /// yet (#611).
+    ///
+    /// `SharedPlayback::paused_output` is the decoder's answer, and it
+    /// lags by design: it is raised when the `Pause` is *processed*,
+    /// which can be a decode cycle or a ring-poll interval after it was
+    /// sent. A rebuild reading it inside that gap decides `Play` for a
+    /// session the user has just paused — and its resume then clears the
+    /// flag and starts the music, so the pause disappears. This is the
+    /// same question asked one step earlier, on the side where the
+    /// answer is already known.
+    ///
+    /// Maintained at the [`Self::send`] boundary, which every `Pause`,
+    /// `Resume` and user-facing load passes through. The two paths that
+    /// bypass it hold the channel directly — the auto-advance and a
+    /// rebuild's own resume — and neither can run against a paused
+    /// session: a paused track never ends, and a rebuild only resumes
+    /// when it has just decided the session was not paused.
+    pause_pending: std::sync::atomic::AtomicBool,
+    /// The rate the last output open was *asked* for, `0` for "nothing
+    /// in particular" (#600).
+    ///
+    /// The per-track re-open compares against this rather than against
+    /// the rate the stream actually runs at, and the difference is the
+    /// whole guard: a device that refused 96 kHz once refuses it every
+    /// time, so comparing against the running rate would tear the output
+    /// down and rebuild it for every single track, forever.
+    last_requested_rate: std::sync::atomic::AtomicU32,
+}
+
+/// A session a rebuild parked — the load, and where to pick it up.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct ParkedSession {
+    load: LastLoad,
+    start_ms: u64,
+}
+
+impl ParkedSession {
+    /// The track this park is holding, for the caller that has to decide
+    /// whether it is still the right thing to resume.
+    pub(crate) fn intent(&self) -> LoadIntent {
+        self.load.intent
+    }
+
+    /// The command that resumes it, under a **fresh** intent: unlike a
+    /// rebuild's own resume, this one is a user action, and it has to
+    /// outrank anything claimed before it.
+    pub(crate) fn into_command(self, intent: LoadIntent) -> AudioCmd {
+        let start_ms = self.start_ms;
+        self.load.into_command(intent, start_ms)
+    }
+}
+
+/// How long a device loss owns the recovery, keeping the default-device
+/// follow off the same rebuild (#617). Comfortably longer than the
+/// recovery's own 300 ms backoff, short enough that a default change a
+/// few seconds later is still followed normally.
+const DEVICE_LOSS_OWNERSHIP: Duration = Duration::from_secs(3);
+
+/// Why the output is being rebuilt. It changes exactly one decision:
+/// whether landing on a *different* endpoint should park playback
+/// instead of resuming it (#617).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RebuildCause {
+    /// The stream we were playing on failed — the device may be gone.
+    DeviceLost,
+    /// We are moving on purpose: the user asked for a reopen, or the
+    /// system's default changed while nothing was pinned (#627). Neither
+    /// is a device disappearing, and neither pauses anything.
+    Deliberate,
+}
+
+/// Whether a rebuild put the audio on a different endpoint than the one
+/// it was on.
+///
+/// Unknown on either side means "not moved", deliberately: the names
+/// come from different backends (cpal's display name, WASAPI's friendly
+/// name, and hog mode can name nothing at all), and the cost of a wrong
+/// "moved" is playback stopping for a user who asked for none of this.
+/// A wrong "not moved" only costs the pause #617 adds, leaving the
+/// behaviour that shipped before it.
+fn endpoint_moved(before: Option<&str>, after: Option<&str>) -> bool {
+    matches!((before, after), (Some(before), Some(after)) if before != after)
 }
 
 /// The output slot: the installed stream, and the device the user picked.
@@ -563,19 +680,124 @@ impl OutputSlot {
     }
 }
 
-/// Snapshot of an active non-library source, retained by the engine so output
-/// rebuilds can resume either the server URL or a reconciled local file.
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) struct RadioResumeState {
-    pub source: RadioResumeSource,
-    pub track_id: i64,
-    pub title: Option<String>,
-    pub artist: Option<String>,
-    pub artwork_url: Option<String>,
+/// What the output really is right now (#597).
+///
+/// Computed by the engine rather than by the UI, so the badge in the
+/// player, the notice the user gets when something silently degrades and
+/// the Settings card cannot drift apart — they all read the same rule.
+/// Serialised in kebab-case, the shape the frontend switches on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum OutputMode {
+    /// The system mixer is in the path, which is the normal case.
+    Shared,
+    /// The stream owns the device: WASAPI Exclusive, a raw ALSA `hw:`,
+    /// CoreAudio hog mode.
+    Exclusive,
+    /// Native DSD is reaching the DAC over DoP (#495). It implies
+    /// exclusive, and says more, so it is reported instead.
+    Dop,
+    /// Exclusive was asked for and the device would not give it. Nothing
+    /// failed — playback is fine, in shared mode — but the user chose
+    /// otherwise and nothing told them (#597).
+    ExclusiveRefused,
 }
 
+/// The rule behind [`AudioEngine::output_mode`], pure so it can be
+/// tested without a sound card.
+///
+/// DoP first: on Linux and macOS the DoP toggle engages the exclusive
+/// path by itself, so `requested_exclusive` can be false while the DAC
+/// is being handed native DSD.
+fn output_mode_of(
+    requested_exclusive: bool,
+    engaged_exclusive: bool,
+    engaged_dop: bool,
+) -> OutputMode {
+    if engaged_dop {
+        OutputMode::Dop
+    } else if engaged_exclusive {
+        OutputMode::Exclusive
+    } else if requested_exclusive {
+        OutputMode::ExclusiveRefused
+    } else {
+        OutputMode::Shared
+    }
+}
+
+/// Something the user should know about playback that is **not** a
+/// failure (#597).
+///
+/// Deliberately a different register from `player:error`: losing the
+/// device is a fault, falling back to shared mode is normal operation
+/// that happens to contradict a choice the user made. Announced once per
+/// transition — a DAC that refuses exclusive refuses it at every track,
+/// and saying so every time is nagging.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PlaybackNotice {
+    /// Exclusive was requested, the device opened shared.
+    ExclusiveRefused,
+    /// A DSD track was offered over DoP and the DAC would not take it;
+    /// it is being converted to PCM instead.
+    DopRefused,
+    /// The output device went away and playback was parked rather than
+    /// moved onto whatever the system fell back to (#617).
+    PausedDeviceLost,
+}
+
+/// What the decoder is playing, captured when it accepts a load (#634).
+///
+/// The three output-rebuild paths ([`AudioEngine::set_output_device`],
+/// [`AudioEngine::set_exclusive_output`],
+/// [`AudioEngine::force_rebuild_output`]) have to put back what the `Stop`
+/// they send takes away, and each of them used to re-dispatch a snapshot
+/// taken *before* that stop. A track the user picked in between was
+/// therefore loaded, unloaded by the stop, and its only replacement — the
+/// rebuild's own, older resume — was dropped on arrival by `accept_load`,
+/// correctly, because the user's intent was the newer one. Nothing played,
+/// while the player bar named the track the user had just picked.
+///
+/// So a rebuild resumes **what the decoder accepted**, payload and all,
+/// rather than what was current when it started. Two properties make that
+/// safe:
+///
+/// - it is written by the decoder at the moment of receipt, so it can
+///   never name a load that was superseded on the way in, and it covers
+///   the auto-advance, whose `LoadAndPlay` goes straight down the channel
+///   without passing through [`AudioEngine::send`];
+/// - it is re-dispatched **with its own intent**, never a fresh one. An
+///   intent already delivered is accepted again — the decoder drops what
+///   is *older* than the newest it has seen, and this is not older — while
+///   a genuinely newer pick still supersedes it. Minting a new intent here
+///   would do the opposite: it would outrank a pick that claimed before us
+///   and had not reached the channel yet, which is the defect #632 closed
+///   one step earlier.
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) enum RadioResumeSource {
+pub struct LastLoad {
+    /// The intent this load carried, re-emitted as-is — see above.
+    pub(crate) intent: LoadIntent,
+    pub(crate) track_id: i64,
+    /// Where the load itself asked to start. Used when the live position
+    /// cannot be paired with this load — see [`resume_start_ms`].
+    pub(crate) start_ms: u64,
+    pub(crate) title: Option<String>,
+    pub(crate) artist: Option<String>,
+    pub(crate) artwork_url: Option<String>,
+    pub(crate) source: LastLoadSource,
+}
+
+/// The payload half of [`LastLoad`], one variant per load command.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum LastLoadSource {
+    /// A library track, keyed by its own row.
+    Local {
+        path: PathBuf,
+        duration_ms: u64,
+        source_type: String,
+        source_id: Option<i64>,
+        replay_gain: TrackGain,
+    },
     Url {
         url: String,
         ext_hint: Option<String>,
@@ -597,12 +819,140 @@ pub(crate) enum RadioResumeSource {
     },
 }
 
-impl RadioResumeState {
-    /// Rebuild the command that resumes this session, stamped with the
-    /// `intent` of the rebuild asking for it (#622).
-    fn into_command(self, position_ms: u64, intent: LoadIntent) -> AudioCmd {
+impl LastLoad {
+    /// Capture a load command, or `None` for anything that is not one.
+    ///
+    /// Free of the engine on purpose, so the lifecycle can be unit-tested
+    /// without standing up a Tauri [`AppHandle`].
+    pub(crate) fn capture(cmd: &AudioCmd) -> Option<Self> {
+        match cmd {
+            AudioCmd::LoadAndPlay {
+                intent,
+                path,
+                start_ms,
+                track_id,
+                duration_ms,
+                source_type,
+                source_id,
+                replay_gain,
+            } => Some(Self {
+                intent: *intent,
+                track_id: *track_id,
+                start_ms: *start_ms,
+                // A library track carries none of the three: the player
+                // bar reads them from the `track` row instead.
+                title: None,
+                artist: None,
+                artwork_url: None,
+                source: LastLoadSource::Local {
+                    path: path.clone(),
+                    duration_ms: *duration_ms,
+                    source_type: source_type.clone(),
+                    source_id: *source_id,
+                    replay_gain: *replay_gain,
+                },
+            }),
+            AudioCmd::LoadUrlAndPlay {
+                intent,
+                url,
+                ext_hint,
+                track_id,
+                title,
+                artist,
+                artwork_url,
+                replay_gain,
+                // A cache target belongs to one open response and does not
+                // survive into a new one. Everything else about the stream
+                // does: flattening it to "radio" here is what would bring a
+                // finite server track back forward-only and ICY-parsed, just
+                // because the audio device changed.
+                cache: _,
+                duration_ms,
+                seekable_file,
+            } => Some(Self {
+                intent: *intent,
+                track_id: *track_id,
+                // A stream starts where the server is, not where we left
+                // off; the resume ignores this for `Url` anyway.
+                start_ms: 0,
+                title: title.clone(),
+                artist: artist.clone(),
+                artwork_url: artwork_url.clone(),
+                source: LastLoadSource::Url {
+                    url: url.clone(),
+                    ext_hint: ext_hint.clone(),
+                    replay_gain: *replay_gain,
+                    duration_ms: *duration_ms,
+                    seekable_file: *seekable_file,
+                },
+            }),
+            AudioCmd::LoadRemoteFileAndPlay {
+                intent,
+                path,
+                start_ms,
+                track_id,
+                duration_ms,
+                title,
+                artist,
+                artwork_url,
+                fallback_url,
+                // Recorded whatever it was, and re-dispatched as `false` —
+                // see `into_command`.
+                discard_on_failure: _,
+                replay_gain,
+            } => Some(Self {
+                intent: *intent,
+                track_id: *track_id,
+                start_ms: *start_ms,
+                title: title.clone(),
+                artist: artist.clone(),
+                artwork_url: artwork_url.clone(),
+                source: LastLoadSource::RemoteFile {
+                    path: path.clone(),
+                    duration_ms: *duration_ms,
+                    fallback_url: fallback_url.clone(),
+                    replay_gain: *replay_gain,
+                },
+            }),
+            _ => None,
+        }
+    }
+
+    /// Rebuild the command that resumes this load at `start_ms`.
+    ///
+    /// The intent is the caller's to choose, and the two callers choose
+    /// differently: a rebuild passes the load's **own** intent, because
+    /// it is putting back what it interrupted and must give way to
+    /// anything newer (#634); Play passes a **fresh** one, because a user
+    /// action outranks what came before it.
+    fn into_command(self, intent: LoadIntent, start_ms: u64) -> AudioCmd {
         match self.source {
-            RadioResumeSource::Url {
+            LastLoadSource::Local {
+                path,
+                duration_ms,
+                source_type,
+                source_id,
+                replay_gain,
+            } => AudioCmd::LoadAndPlay {
+                intent,
+                path,
+                start_ms,
+                track_id: self.track_id,
+                duration_ms,
+                // The source the track really came from, not the rebuild.
+                // A play credited to "device-rebuild" — which is what the
+                // three paths used to stamp — hides an album or a playlist
+                // play from every statistic that filters on it, for the
+                // sole reason that the audio device changed underneath.
+                source_type,
+                source_id,
+                // The gain captured with the load. Re-reading it from the
+                // database mid-rebuild, as the old resume did, only ever
+                // mattered because that path had to go to the database
+                // anyway for the file path.
+                replay_gain,
+            },
+            LastLoadSource::Url {
                 url,
                 ext_hint,
                 replay_gain,
@@ -626,17 +976,21 @@ impl RadioResumeState {
                 duration_ms,
                 seekable_file,
             },
-            RadioResumeSource::RemoteFile {
+            LastLoadSource::RemoteFile {
                 path,
                 duration_ms,
                 fallback_url,
                 replay_gain,
             } => AudioCmd::LoadRemoteFileAndPlay {
                 intent,
-                // Radio resume never restores a cache entry.
+                // Never `true` on a resume. The flag authorises deleting the
+                // file when it will not decode, and that is a judgement about
+                // a copy we just fetched — not about one we are re-opening
+                // because the audio device moved. A stream-cache entry that
+                // really is bad still falls back to `fallback_url`.
                 discard_on_failure: false,
                 path,
-                start_ms: position_ms,
+                start_ms,
                 track_id: self.track_id,
                 duration_ms,
                 title: self.title,
@@ -646,6 +1000,42 @@ impl RadioResumeState {
                 replay_gain,
             },
         }
+    }
+}
+
+/// The playback position, together with what it was the position *of*
+/// (#634). Captured by a rebuild before it stops the decoder.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct LivePosition {
+    /// The intent of the load the decoder had accepted at that moment.
+    intent: Option<LoadIntent>,
+    /// The track the decoder had actually started at that moment.
+    track_id: i64,
+    position_ms: u64,
+}
+
+/// Where a rebuild's resume should start.
+///
+/// The two halves cannot be read at the same moment. The **position** has
+/// to be taken before the stop: opening the replacement writes its own
+/// sample rate into the shared block, and a position derived from the old
+/// rate's sample count against the new rate is simply a wrong number. The
+/// **load** can only be taken after the swap, since the whole point of
+/// #634 is to resume what the decoder accepted in between. So they are
+/// paired explicitly rather than assumed to match: the position belongs to
+/// this load only if the decoder had accepted it (same intent) *and* had
+/// started it (same track) when the position was read.
+///
+/// Otherwise the load's own `start_ms` wins, which for a freshly picked
+/// track is the beginning of it. That covers both mismatches: a different
+/// track picked during the rebuild, and the same track picked again —
+/// where the intent differs even though the id does not, and resuming at
+/// the old position would ignore the restart the user asked for.
+fn resume_start_ms(load: &LastLoad, live: LivePosition) -> u64 {
+    if live.intent == Some(load.intent) && live.track_id == load.track_id {
+        live.position_ms
+    } else {
+        load.start_ms
     }
 }
 
@@ -740,21 +1130,20 @@ impl AudioEngine {
             exclusive_flaps: Mutex::new(FlapWindow::default()),
             rebuild_gate: Mutex::new(RebuildGate::default()),
             publish: tokio::sync::Mutex::new(()),
-            radio_resume: Mutex::new(None),
+            dispatch: Mutex::new(()),
+            // On unless the profile says otherwise: what people expect
+            // from headphones, and the reported defect is the other
+            // behaviour. Seeded properly in `lib.rs` once the profile
+            // pool is up.
+            pause_on_device_loss: std::sync::atomic::AtomicBool::new(true),
+            last_device_loss: Mutex::new(None),
+            parked_resume: Mutex::new(None),
+            last_output_notice: Mutex::new(None),
+            pause_pending: std::sync::atomic::AtomicBool::new(false),
+            last_requested_rate: std::sync::atomic::AtomicU32::new(0),
         })
     }
 
-    /// Send a command to the decoder. Returns `AppError::Audio` if the
-    /// channel is disconnected (decoder thread has exited).
-    ///
-    /// Side-effect: maintains the [`Self::radio_resume`] snapshot at
-    /// the boundary. A `LoadUrlAndPlay` overwrites the previous radio
-    /// session; a `LoadAndPlay` clears it (the user moved to a local
-    /// track — resurrecting the dead radio URL on a future output
-    /// rebuild would be wrong). Other variants don't touch the
-    /// snapshot. Capture happens before the channel send so a failed
-    /// send still leaves the snapshot consistent with what the user
-    /// asked for.
     /// Claim the next playback intent (#622).
     ///
     /// Call this **at the start of the intent** — before the profile
@@ -814,11 +1203,36 @@ impl AudioEngine {
         self.shared.try_claim_load(intent.get())
     }
 
+    /// Send a command to the decoder. Returns `AppError::Audio` if the
+    /// channel is disconnected (decoder thread has exited).
+    ///
+    /// Not the only way in: the analytics task's auto-advance and the
+    /// output rebuilds hold their own clone of the channel. Anything that
+    /// has to see *every* load therefore belongs on the receiving side —
+    /// which is where [`LastLoad`] is recorded.
     pub fn send(&self, cmd: AudioCmd) -> AppResult<()> {
-        apply_radio_resume_update(&self.radio_resume, &cmd);
-        self.cmd_tx
-            .send(cmd)
-            .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))
+        // One critical section for both writes — see [`Self::dispatch`].
+        // The user's intent is recorded before the decoder has acted on
+        // it (see [`Self::pause_pending`]), and it has to reach the flag
+        // in the order it reaches the channel.
+        let _dispatch = self
+            .dispatch
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let previous = self
+            .pause_pending
+            .load(std::sync::atomic::Ordering::Acquire);
+        self.pause_pending.store(
+            pause_pending_after(&cmd, previous),
+            std::sync::atomic::Ordering::Release,
+        );
+        self.cmd_tx.send(cmd).map_err(|e| {
+            // Nothing was queued, so the intent this recorded is one the
+            // decoder will never see either.
+            self.pause_pending
+                .store(previous, std::sync::atomic::Ordering::Release);
+            AppError::Audio(format!("audio command channel closed: {e}"))
+        })
     }
 
     /// Take the publish lock: hold it across [`Self::claim_dispatch`]
@@ -853,14 +1267,304 @@ impl AudioEngine {
         self.publish.lock().await
     }
 
-    /// Cheap clone of the last Web Radio session captured by
-    /// [`Self::send`]. Used by the three output-rebuild paths to
-    /// decide between re-dispatching `LoadUrlAndPlay` (radio) or
-    /// the SQLite-keyed `LoadAndPlay` (local track). `None` means
-    /// no radio session has run on this engine, or a local track
-    /// has played since.
-    fn snapshot_radio_resume(&self) -> Option<RadioResumeState> {
-        self.radio_resume.lock().ok().and_then(|g| g.clone())
+    /// What the output really is right now (#597) — what the badge in
+    /// the player shows, and what the Settings card means by "engaged".
+    ///
+    /// One acquisition for both halves of the answer: read separately, a
+    /// rebuild landing in between could pair the old stream's exclusive
+    /// flag with the new stream's DoP one.
+    pub fn output_mode(&self) -> OutputMode {
+        let (engaged_exclusive, engaged_dop) = self
+            .output
+            .lock()
+            .ok()
+            .and_then(|guard| {
+                guard
+                    .handle
+                    .as_ref()
+                    .map(|handle| (handle.exclusive, handle.dop.is_some()))
+            })
+            .unwrap_or((false, false));
+        output_mode_of(
+            self.exclusive_output
+                .load(std::sync::atomic::Ordering::Relaxed),
+            engaged_exclusive,
+            engaged_dop,
+        )
+    }
+
+    /// Record what the output actually opened as, and tell the user when
+    /// that is not what they asked for (#405, #597).
+    ///
+    /// The single place `exclusive_output_active` is written on a
+    /// successful open, because three things have to stay in step: the
+    /// flag the Settings card reads, the `player:audio-mode-changed`
+    /// event that makes it re-read — a rebuild can flip the engaged mode
+    /// behind its back — and the notice that says so in words.
+    ///
+    /// `handle` is `None` only when a caller has already given the stream
+    /// up, which the loss path reports separately.
+    fn publish_output_mode(
+        &self,
+        requested: Option<RequestedFormat>,
+        dop_requested: bool,
+        requested_exclusive: bool,
+        handle: Option<&OutputHandle>,
+    ) {
+        let engaged_exclusive = handle.is_some_and(|handle| handle.exclusive);
+        let engaged_dop = handle.is_some_and(|handle| handle.dop.is_some());
+        // What **this** open asked for, which is what the next track
+        // compares against (#600) — see `last_requested_rate`. Recorded
+        // here rather than at each call site so an open that asks for
+        // nothing in particular, like a device switch, clears it: leaving
+        // a stale rate there would make the next track think its rate was
+        // already installed.
+        //
+        // Deliberately not `dop_requested`, which is a separate argument
+        // for exactly this reason: the PCM open that follows a *refused*
+        // DoP asked for no rate at all. Recording the DoP rate there left
+        // every following track disagreeing with it, and rebuilding the
+        // output — an audible gap per track — to install nothing new.
+        self.last_requested_rate.store(
+            requested.map_or(0, |r| r.sample_rate),
+            std::sync::atomic::Ordering::Relaxed,
+        );
+        self.exclusive_output_active
+            .store(engaged_exclusive, std::sync::atomic::Ordering::Release);
+        // Settings' exclusive-mode toggle only re-reads its state on
+        // mount and after a manual click (issue #405) — this is the one
+        // signal that tells it a rebuild just happened behind its back,
+        // whether that landed in exclusive or fell back to shared.
+        let _ = self.app.emit("player:audio-mode-changed", ());
+
+        // What to say about it, in the order of what the user loses
+        // most: a DSD stream converted to PCM, then an exclusive path
+        // they asked for and did not get.
+        let notice = if dop_requested && !engaged_dop {
+            Some(PlaybackNotice::DopRefused)
+        } else if requested_exclusive && !engaged_exclusive && handle.is_some() {
+            Some(PlaybackNotice::ExclusiveRefused)
+        } else {
+            None
+        };
+        self.announce_output_notice(notice);
+    }
+
+    /// Emit `notice` only when it changes what the user was last told
+    /// (#597). `None` clears the memory without saying anything, so a
+    /// device that starts accepting exclusive again can be reported when
+    /// it next refuses.
+    fn announce_output_notice(&self, notice: Option<PlaybackNotice>) {
+        let changed = match self.last_output_notice.lock() {
+            Ok(mut guard) => {
+                let changed = *guard != notice;
+                *guard = notice;
+                changed
+            }
+            // A poisoned lock costs a repeat, never a silence.
+            Err(_) => true,
+        };
+        if let (true, Some(notice)) = (changed, notice) {
+            self.emit_playback_notice(notice);
+        }
+    }
+
+    /// Tell the UI about `notice`, unconditionally. For the one-shot
+    /// events that are not a persisting state — see
+    /// [`Self::announce_output_notice`] for the ones that are.
+    pub(super) fn emit_playback_notice(&self, notice: PlaybackNotice) {
+        tracing::info!(?notice, "playback notice");
+        let _ = self
+            .app
+            .emit("player:notice", serde_json::json!({ "kind": notice }));
+    }
+
+    /// Whether a device that goes away should park playback instead of
+    /// letting it move to whatever the system falls back to (#617).
+    pub fn pause_on_device_loss(&self) -> bool {
+        self.pause_on_device_loss
+            .load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Apply the preference. Takes effect on the next device loss;
+    /// nothing is rebuilt, since the setting describes what to do when
+    /// something else happens.
+    pub fn set_pause_on_device_loss(&self, enabled: bool) {
+        self.pause_on_device_loss
+            .store(enabled, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    /// Record that a device loss was just reported (#617). Called from
+    /// [`super::output::notify_device_lost`], i.e. by every backend, and
+    /// at the moment of the error rather than after the recovery's
+    /// backoff — that is what makes it beat the default-change
+    /// notification the same unplug raises.
+    pub(super) fn note_device_loss(&self) {
+        if let Ok(mut guard) = self.last_device_loss.lock() {
+            *guard = Some(Instant::now());
+        }
+    }
+
+    /// Whether a device loss is still being recovered — see
+    /// [`DEVICE_LOSS_OWNERSHIP`].
+    fn device_loss_in_flight(&self) -> bool {
+        self.last_device_loss
+            .lock()
+            .ok()
+            .and_then(|guard| *guard)
+            .is_some_and(|at| at.elapsed() < DEVICE_LOSS_OWNERSHIP)
+    }
+
+    /// Take the session a rebuild parked, if it is still the right thing
+    /// to resume (#611, #617).
+    ///
+    /// A park is only valid while nothing newer has claimed the dispatch:
+    /// the moment the user picks anything else, this snapshot describes a
+    /// session they have moved on from, and handing it to Play would
+    /// start the wrong thing.
+    /// Read the parked session **without spending it** (#611, #617).
+    ///
+    /// Split from [`Self::clear_parked_resume`] on purpose: the caller
+    /// has to claim the dispatch before it can act on this, and a claim
+    /// can fail — or succeed and then be abandoned by whoever won it.
+    /// Consuming the park first meant losing the session with nothing
+    /// playing, and the next Play falling back to the persisted resume
+    /// point, which is always a library track.
+    pub(crate) fn peek_parked_resume(&self) -> Option<ParkedSession> {
+        let parked = self.parked_resume.lock().ok()?.clone()?;
+        if self.load_intent_superseded(parked.intent()) {
+            tracing::debug!("parked session superseded by a newer load; dropping it");
+            return None;
+        }
+        Some(parked)
+    }
+
+    /// Whether this session counts as paused for a rebuild's decision:
+    /// what the decoder has acted on, or what the user has asked for and
+    /// it has not reached yet (#611).
+    fn paused_for_rebuild(&self) -> bool {
+        self.shared
+            .paused_output
+            .load(std::sync::atomic::Ordering::Acquire)
+            || self
+                .pause_pending
+                .load(std::sync::atomic::Ordering::Acquire)
+    }
+
+    /// The position, stamped with the load it belongs to (#634).
+    ///
+    /// Read by a rebuild **before** it stops the decoder — see
+    /// [`resume_start_ms`] for why the two halves of a resume cannot be
+    /// read at the same moment.
+    fn live_position(&self) -> LivePosition {
+        LivePosition {
+            intent: self.shared.last_load_intent(),
+            track_id: self
+                .shared
+                .current_track_id
+                .load(std::sync::atomic::Ordering::Acquire),
+            position_ms: self.shared.current_position_ms(),
+        }
+    }
+
+    /// Put back what a rebuild's `Stop` took away (#634).
+    ///
+    /// Called after the producer swap, with the position captured before
+    /// the stop. Re-dispatches the load the decoder accepted — which is
+    /// the track the user picked mid-rebuild when there was one, and the
+    /// track that was already playing otherwise — carrying that load's own
+    /// intent, so a pick that is newer still wins and this one gives way.
+    ///
+    /// Sends nothing when the decoder has no load on record: a rebuild on
+    /// a player that has never loaded anything has nothing to resume.
+    fn resume_after_rebuild(&self, live: LivePosition) {
+        let Some(load) = self.shared.last_load() else {
+            tracing::debug!("output rebuild: no load on record, nothing to resume");
+            return;
+        };
+        // Whatever was parked is answered by this resume, and keeping it
+        // would let a later Play start a session that is already running.
+        self.clear_parked_resume();
+        let start_ms = resume_start_ms(&load, live);
+        tracing::info!(
+            track_id = load.track_id,
+            start_ms,
+            "resuming the decoder's current load after an output rebuild"
+        );
+        // Its own intent, never a fresh one — see [`LastLoad`].
+        let intent = load.intent;
+        let _ = self.cmd_tx.send(load.into_command(intent, start_ms));
+    }
+
+    /// Park the session a rebuild interrupted instead of resuming it:
+    /// the user had paused it (#611), or its endpoint went away and the
+    /// preference says not to carry the music onto another one (#617).
+    ///
+    /// Three things, and the set matters more than the order:
+    ///
+    /// - the load is kept, so Play picks *this* session back up. A radio
+    ///   stream and a server track both need that: the persisted resume
+    ///   point is always a library track's, so parking one of those and
+    ///   pressing Play brought back the last library track instead, which
+    ///   is why #611 could only ever park a library track;
+    /// - the state lands on `Idle`, not `Paused`. The `Stop` this rebuild
+    ///   sent unloaded the track and the decoder ignores a `Resume` with
+    ///   nothing loaded, so `Paused` on screen would make Play a dead
+    ///   button;
+    /// - a library track's resume point is written, so the session
+    ///   survives a restart too.
+    fn park_session(&self, live: LivePosition, track_id: i64) {
+        if let Some(load) = self.shared.last_load() {
+            let start_ms = resume_start_ms(&load, live);
+            if let Ok(mut guard) = self.parked_resume.lock() {
+                *guard = Some(ParkedSession { load, start_ms });
+            }
+        }
+        super::decoder::transition_state(
+            &self.shared,
+            &self.app,
+            super::state::PlayerState::Idle,
+            Some(track_id),
+        );
+        // Only a library track has a row to write against; a radio
+        // station or a server track is held by the park above and by
+        // nothing else.
+        if track_id <= 0 {
+            return;
+        }
+        // Pin the write to the profile that was playing, captured without
+        // waiting: this runs on a blocking thread, and a lock it cannot
+        // take means a switch is under way. That profile must not receive
+        // this track's resume point, so the write is skipped (#485).
+        use tauri::Manager as _;
+        let profile_id = self
+            .app
+            .state::<crate::state::AppState>()
+            .profile
+            .try_read()
+            .ok()
+            .and_then(|active| active.as_ref().map(|p| p.profile_id));
+        let Some(profile_id) = profile_id else {
+            return;
+        };
+        let app = self.app.clone();
+        let position_ms = live.position_ms;
+        tauri::async_runtime::spawn(async move {
+            let state = app.state::<crate::state::AppState>();
+            let saved = match state.require_profile_pool_for(Some(profile_id)).await {
+                Ok(pool) => crate::queue::persist_resume_point(&pool, track_id, position_ms).await,
+                Err(err) => Err(err),
+            };
+            if let Err(err) = saved {
+                tracing::warn!(%err, "output rebuild: paused resume point not saved");
+            }
+        });
+    }
+
+    pub(crate) fn clear_parked_resume(&self) {
+        if let Ok(mut guard) = self.parked_resume.lock() {
+            *guard = None;
+        }
     }
 
     /// Claim the right to run one resume, or `None` when another is
@@ -996,7 +1700,10 @@ impl AudioEngine {
         // window where a device pick installs and persists another one,
         // after which this would reinstall the stale device and leave the
         // stream disagreeing with the saved preference.
-        let result = self.force_rebuild_output(RebuildDevice::Pinned, exclusive);
+        // Deliberate: the user asked for this device, so landing on it
+        // is the point and nothing here pauses (#617).
+        let result =
+            self.force_rebuild_output(RebuildDevice::Pinned, exclusive, RebuildCause::Deliberate);
         if result.is_err() {
             self.cancel_deliberate_output_change();
         }
@@ -1122,7 +1829,16 @@ impl AudioEngine {
         // Force-rebuild path: bypasses set_output_device's no-op
         // shortcut for "same device" because the device is the
         // same — we just need a fresh stream after the OS reset.
-        self.force_rebuild_output(RebuildDevice::Explicit(pinned), exclusive)
+        //
+        // The one caller that can land somewhere else than it asked for:
+        // when the pinned endpoint is really gone, the backend falls back
+        // to the default, and that is the move #617 refuses to follow the
+        // music onto.
+        self.force_rebuild_output(
+            RebuildDevice::Explicit(pinned),
+            exclusive,
+            RebuildCause::DeviceLost,
+        )
     }
 
     /// Ask permission to schedule a deferred rebuild after a cpal
@@ -1195,6 +1911,22 @@ impl AudioEngine {
             return Ok(FollowOutcome::Settled);
         }
 
+        // Unplugging a device raises both signals at once: the stream
+        // breaks and the default moves. They are not the same event — a
+        // device that disappears is not a default that changes — and
+        // without this, whichever rebuild armed first would decide, so
+        // #617's pause would land or not land on a coin toss. The loss
+        // recovery owns it; this one stands down rather than deferring,
+        // because the recovery ends on the endpoint the system fell back
+        // to anyway, which is exactly what this follow would have opened.
+        if self.device_loss_in_flight() {
+            tracing::debug!(
+                "default output device changed while a device loss is being recovered; \
+                 leaving it to the recovery"
+            );
+            return Ok(FollowOutcome::Settled);
+        }
+
         let new_default = super::output::os_default_output_name();
         if !should_follow_default(opened.as_deref(), new_default.as_deref()) {
             tracing::debug!(
@@ -1236,7 +1968,15 @@ impl AudioEngine {
             exclusive,
             "following the system's new default output device"
         );
-        self.force_rebuild_output(RebuildDevice::OsDefaultIfUnpinned, exclusive)?;
+        // Deliberate: the system default moved while the device we were
+        // on is still there. Following it is the whole feature (#627),
+        // and #617 has nothing to say about it — see the loss check at
+        // the top of this method for the case where the two coincide.
+        self.force_rebuild_output(
+            RebuildDevice::OsDefaultIfUnpinned,
+            exclusive,
+            RebuildCause::Deliberate,
+        )?;
         Ok(FollowOutcome::Settled)
     }
 
@@ -1320,7 +2060,7 @@ impl AudioEngine {
     /// caller whether to open the stream as DoP or DSD → PCM.
     pub(crate) fn switch_output_for_track(
         &self,
-        dop: Option<DopFormat>,
+        requested: Option<RequestedFormat>,
     ) -> AppResult<(Option<rtrb::Producer<f32>>, bool)> {
         use std::sync::atomic::Ordering;
 
@@ -1339,11 +2079,14 @@ impl AudioEngine {
         let exclusive_available = true;
         #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
         let exclusive_available = false;
-        let dop = if dop.is_some() && exclusive_available {
-            dop
-        } else {
-            None
+        // The gate is DoP's alone: a rate request (#600) is only ever
+        // made when an exclusive stream is already open, and it is a
+        // preference rather than a format the platform has to support.
+        let requested = match requested {
+            Some(r) if r.dop && !exclusive_available => None,
+            other => other,
         };
+        let dop = requested.and_then(RequestedFormat::as_dop);
 
         let mut guard = self
             .output
@@ -1359,9 +2102,17 @@ impl AudioEngine {
         let current_dop = guard.handle.as_ref().and_then(|h| h.dop);
         let want_dop = dop;
 
+        // The rate this open would ask for, compared against what the
+        // last one asked for — not against what it got (#600). A device
+        // that refused the track's rate has its own rate installed, and
+        // comparing against that would rebuild the output on every
+        // single track for as long as the preference stayed on.
+        let want_rate = requested.map_or(0, |r| r.sample_rate);
+        let rate_unchanged = self.last_requested_rate.load(Ordering::Relaxed) == want_rate;
+
         // Already in the right shape: nothing to do. An ordinary PCM track
         // following another PCM track lands here and pays nothing.
-        if has_output && current_dop == want_dop {
+        if has_output && current_dop == want_dop && rate_unchanged {
             return Ok((None, dop.is_some()));
         }
 
@@ -1385,13 +2136,16 @@ impl AudioEngine {
                 self.app.clone(),
                 device.clone(),
                 pref_exclusive,
-                Some(dop_fmt),
+                Some(RequestedFormat::dop(dop_fmt)),
             ) {
                 Ok((producer, handle)) => {
-                    self.exclusive_output_active
-                        .store(handle.exclusive, Ordering::Release);
                     guard.handle = Some(handle);
-                    let _ = self.app.emit("player:audio-mode-changed", ());
+                    self.publish_output_mode(
+                        Some(RequestedFormat::dop(dop_fmt)),
+                        true,
+                        pref_exclusive,
+                        guard.handle.as_ref(),
+                    );
                     tracing::info!(
                         rate = dop_fmt.sample_rate,
                         channels = dop_fmt.channels,
@@ -1410,19 +2164,34 @@ impl AudioEngine {
             }
         }
 
-        // Normal PCM output: DoP wasn't requested, or was refused.
+        // Normal PCM output: DoP wasn't requested, or was refused. A
+        // rate request rides along — the backends treat it as a
+        // preference and fall back to a rate the device does offer.
+        let pcm_request = requested.filter(|r| !r.dop);
         match spawn_output_with_mode(
             self.shared.clone(),
             self.app.clone(),
             device,
             pref_exclusive,
-            None,
+            pcm_request,
         ) {
             Ok((producer, handle)) => {
-                self.exclusive_output_active
-                    .store(handle.exclusive, Ordering::Release);
                 guard.handle = Some(handle);
-                let _ = self.app.emit("player:audio-mode-changed", ());
+                // Two different facts, and they must not be conflated.
+                // `dop.is_some()` here means a DoP open was tried and
+                // refused — the track is DSD, the opt-in is on, and it is
+                // about to be converted to PCM without a word (#597), so
+                // the notice needs it. The *rate* this open asked for is
+                // `pcm_request`, which in that case is none at all:
+                // recording the DoP rate instead left every following
+                // track disagreeing with the guard and rebuilding the
+                // output for nothing.
+                self.publish_output_mode(
+                    pcm_request,
+                    dop.is_some(),
+                    pref_exclusive,
+                    guard.handle.as_ref(),
+                );
                 Ok((Some(producer), false))
             }
             Err(err) => {
@@ -1436,9 +2205,17 @@ impl AudioEngine {
 
     /// Internal helper: rebuild the output stream against the given
     /// ([`RebuildDevice`], exclusive) pair, bypassing the same-device
-    /// no-op check. Shared by [`Self::try_rebuild_after_device_error`]
-    /// and [`Self::reopen_output_device`].
-    fn force_rebuild_output(&self, device: RebuildDevice, exclusive: bool) -> AppResult<()> {
+    /// no-op check. Shared by [`Self::try_rebuild_after_device_error`],
+    /// [`Self::reopen_output_device`] and the default-device follow.
+    ///
+    /// `cause` decides one thing only: whether ending up on a *different*
+    /// endpoint parks playback rather than resuming it (#617).
+    fn force_rebuild_output(
+        &self,
+        device: RebuildDevice,
+        exclusive: bool,
+        cause: RebuildCause,
+    ) -> AppResult<()> {
         let mut guard = self
             .output
             .lock()
@@ -1470,25 +2247,26 @@ impl AudioEngine {
             .shared
             .current_track_id
             .load(std::sync::atomic::Ordering::Acquire);
-        let resume = rebuild_resume(
-            self.shared.state(),
-            self.shared
-                .paused_output
-                .load(std::sync::atomic::Ordering::Acquire),
-            track_id > 0,
-        );
+        let resume = rebuild_resume(self.shared.state(), self.paused_for_rebuild());
+        // Where the audio actually was, read before the handle goes: it
+        // is the only half of "did we move?" that disappears with it
+        // (#617).
+        let previous_endpoint = guard
+            .handle
+            .as_ref()
+            .and_then(|handle| handle.opened_device.clone());
         // Both a session that was playing and one the user paused hold a
         // track the rebuild has to interrupt; only what follows differs.
         let was_playing = resume != RebuildResume::Nothing;
-        let position_ms = self.shared.current_position_ms();
-        // The intent of the resume at the bottom belongs here, with the
-        // snapshot it will re-dispatch (#622) — not further down, past the
-        // stop, the device open and the producer swap. An exclusive open
-        // costs tens to hundreds of milliseconds; a track the user picks
-        // during it is a newer choice than this resume, and an intent
-        // claimed afterwards would have made the resume look like the
-        // newer one and dropped the user's pick.
-        let intent = self.next_load_intent();
+        // Read here, before the stop: opening the replacement writes its
+        // own sample rate into the shared block, and a position derived
+        // from the old rate's sample count against the new one is simply a
+        // wrong number. What it is the position *of* is stamped onto it,
+        // because the load to resume can only be read after the swap
+        // (#634) — an exclusive open costs tens to hundreds of
+        // milliseconds, and a track the user picks during it is what the
+        // decoder will be holding by then.
+        let live = self.live_position();
 
         // #322: a WASAPI *exclusive* client locks the device entirely — no
         // other client, exclusive OR shared, can open it until that client
@@ -1559,112 +2337,49 @@ impl AudioEngine {
             return Err(err);
         }
         guard.handle = Some(handle);
-        self.exclusive_output_active.store(
-            guard.handle.as_ref().map(|h| h.exclusive).unwrap_or(false),
-            std::sync::atomic::Ordering::Release,
-        );
-        // Settings' exclusive-mode toggle only re-reads its state on
-        // mount and after a manual click (issue #405) — this is the
-        // one signal that tells it a rebuild just happened behind its
-        // back, whether that landed in exclusive or fell back to shared.
-        let _ = self.app.emit("player:audio-mode-changed", ());
+        self.publish_output_mode(None, false, exclusive, guard.handle.as_ref());
 
-        // Resume best-effort. Same async pattern as
-        // `set_output_device` and `set_exclusive_output` — pull the
-        // track row off the synchronous path so a slow DB doesn't
-        // hold the audio recovery up. Radio sessions resume by
-        // re-dispatching the cached `LoadUrlAndPlay` instead of
-        // looking up a (non-existent) `track` row.
+        // Re-read the decision now rather than trust the one taken
+        // before the open. An exclusive open costs tens to hundreds of
+        // milliseconds, and a Pause the user hits during it reaches the
+        // decoder first: resuming on the strength of a stale `Play`
+        // would start a track they had just stopped. The `Stop` above
+        // does not clear either input — it unloads the track without
+        // touching the state or `paused_output` — so this reads what the
+        // user last asked for.
+        let resume = rebuild_resume(self.shared.state(), self.paused_for_rebuild());
         if resume == RebuildResume::StayPaused {
-            // The user had paused (#611), so the track is not picked back
-            // up. The Stop above did unload it, though, and the decoder
-            // ignores a Resume with nothing loaded: leaving `Paused` on
-            // screen would make play a dead button. Land where a launch
-            // leaves the player instead — idle, with the resume point
-            // saved — so play goes through `resume_last`.
-            super::decoder::transition_state(
-                &self.shared,
-                &self.app,
-                super::state::PlayerState::Idle,
-                Some(track_id),
-            );
-            // Pin the write to the profile that was playing, captured without
-            // waiting: this runs on a blocking thread, and a lock it cannot
-            // take means a switch is under way. That profile must not receive
-            // this track's resume point, so the write is skipped (#485).
-            use tauri::Manager as _;
-            let profile_id = self
-                .app
-                .state::<crate::state::AppState>()
-                .profile
-                .try_read()
-                .ok()
-                .and_then(|active| active.as_ref().map(|p| p.profile_id));
-            if let Some(profile_id) = profile_id {
-                let app = self.app.clone();
-                tauri::async_runtime::spawn(async move {
-                    let state = app.state::<crate::state::AppState>();
-                    let saved = match state.require_profile_pool_for(Some(profile_id)).await {
-                        Ok(pool) => {
-                            crate::queue::persist_resume_point(&pool, track_id, position_ms).await
-                        }
-                        Err(err) => Err(err),
-                    };
-                    if let Err(err) = saved {
-                        tracing::warn!(%err, "device-error rebuild: paused resume point not saved");
-                    }
-                });
-            }
+            // The user had paused it (#611): the rebuild reopens the
+            // output and hands the session to Play, it does not start
+            // music nobody asked to hear.
+            self.park_session(live, track_id);
         }
         if resume == RebuildResume::Play {
-            if track_id < 0 {
-                if let Some(state) = self.snapshot_radio_resume() {
-                    let _ = self.cmd_tx.send(state.into_command(position_ms, intent));
-                }
-            } else if track_id > 0 {
-                let app = self.app.clone();
-                let cmd_tx = self.cmd_tx.clone();
-                tauri::async_runtime::spawn(async move {
-                    use tauri::Manager as _;
-                    let state = app.state::<crate::state::AppState>();
-                    let pool = match state.require_profile_pool().await {
-                        Ok(p) => p,
-                        Err(err) => {
-                            tracing::warn!(%err, "device-error rebuild: no profile pool, skipping resume");
-                            return;
-                        }
-                    };
-                    let row: Option<(String, i64)> =
-                        sqlx::query_as("SELECT file_path, duration_ms FROM track WHERE id = ?")
-                            .bind(track_id)
-                            .fetch_optional(&*pool)
-                            .await
-                            .ok()
-                            .flatten();
-                    if let Some((file_path, duration_ms)) = row {
-                        // Fetch ReplayGain at resume time so a user who
-                        // enabled the toggle keeps their analysed gain
-                        // across an unintended device flap — matches
-                        // set_output_device and set_exclusive_output.
-                        let replay_gain =
-                            crate::commands::player::fetch_replay_gain(&pool, track_id).await;
-                        let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
-                            intent,
-                            path: std::path::PathBuf::from(file_path),
-                            start_ms: position_ms,
-                            track_id,
-                            // `duration_ms` is stored as `i64` in SQLite
-                            // (no `u64` column type). Saturate to 0 before
-                            // casting so a corrupted negative row can't
-                            // wrap into a huge `u64` and confuse the
-                            // decoder's end-of-track guard.
-                            duration_ms: duration_ms.max(0) as u64,
-                            source_type: "device-rebuild".into(),
-                            source_id: None,
-                            replay_gain,
-                        });
-                    }
-                });
+            // #617 — the device that went away is not the device we came
+            // back on, so the music would be playing somewhere the user
+            // did not choose. That is the reported case: headphones off,
+            // Windows falls back to the speakers, the album keeps going
+            // out loud. A device that flapped and came back is a
+            // different matter, and lands here as "not moved".
+            let landed_on = guard
+                .handle
+                .as_ref()
+                .and_then(|handle| handle.opened_device.as_deref());
+            let moved = endpoint_moved(previous_endpoint.as_deref(), landed_on);
+            if cause == RebuildCause::DeviceLost && moved && self.pause_on_device_loss() {
+                tracing::info!(
+                    from = previous_endpoint.as_deref().unwrap_or("<unnamed>"),
+                    to = landed_on.unwrap_or("<unnamed>"),
+                    "the output device went away and the fallback is another one; parking playback"
+                );
+                // Playback stopping on its own needs a reason on screen,
+                // not just in the log (#597). Not deduplicated: this one
+                // is an event, not a state, and it answers a question the
+                // user is asking right now.
+                self.emit_playback_notice(PlaybackNotice::PausedDeviceLost);
+                self.park_session(live, track_id);
+            } else {
+                self.resume_after_rebuild(live);
             }
         }
 
@@ -1711,23 +2426,28 @@ impl AudioEngine {
         self.reset_exclusive_suppression();
 
         // Snapshot what's playing so we can resume on the new device.
-        let was_playing = matches!(
-            self.shared.state(),
-            super::state::PlayerState::Playing | super::state::PlayerState::Paused
-        );
+        // What this rebuild owes the session, by the same rule the
+        // device-error path uses (#611): a session the user had paused
+        // is parked, not started. Picking a device or flipping the mode
+        // is a deliberate act on the *output*, never a request to play —
+        // and this path resumed a paused track into audible playback.
+        let resume = rebuild_resume(self.shared.state(), self.paused_for_rebuild());
+        // Both a session that was playing and one the user paused hold a
+        // track the rebuild has to interrupt; only what follows differs.
+        let was_playing = resume != RebuildResume::Nothing;
         let track_id = self
             .shared
             .current_track_id
             .load(std::sync::atomic::Ordering::Acquire);
-        let position_ms = self.shared.current_position_ms();
-        // The intent of the resume at the bottom belongs here, with the
-        // snapshot it will re-dispatch (#622) — not further down, past the
-        // stop, the device open and the producer swap. An exclusive open
-        // costs tens to hundreds of milliseconds; a track the user picks
-        // during it is a newer choice than this resume, and an intent
-        // claimed afterwards would have made the resume look like the
-        // newer one and dropped the user's pick.
-        let intent = self.next_load_intent();
+        // Read here, before the stop: opening the replacement writes its
+        // own sample rate into the shared block, and a position derived
+        // from the old rate's sample count against the new one is simply a
+        // wrong number. What it is the position *of* is stamped onto it,
+        // because the load to resume can only be read after the swap
+        // (#634) — an exclusive open costs tens to hundreds of
+        // milliseconds, and a track the user picks during it is what the
+        // decoder will be holding by then.
+        let live = self.live_position();
 
         // Step 2 — release the old stream first when the new one cannot be
         // opened alongside it, then open the replacement.
@@ -1906,62 +2626,27 @@ impl AudioEngine {
         if switch_error.is_none() {
             guard.pinned = pinned_pick;
         }
-        self.exclusive_output_active.store(
-            guard.handle.as_ref().map(|h| h.exclusive).unwrap_or(false),
-            std::sync::atomic::Ordering::Release,
-        );
-        // See force_rebuild_output's comment (issue #405) — a device
-        // switch can also flip the actually-engaged exclusive mode.
-        let _ = self.app.emit("player:audio-mode-changed", ());
+        self.publish_output_mode(None, false, entering_exclusive, guard.handle.as_ref());
 
-        // Step 6 — resume the previous track if we were playing one.
-        // Radio (negative sentinel id) re-dispatches the cached
-        // `LoadUrlAndPlay`; local tracks (positive id) hit the
-        // SQLite-keyed async resume.
-        if was_playing {
-            if track_id < 0 {
-                if let Some(state) = self.snapshot_radio_resume() {
-                    let _ = self.cmd_tx.send(state.into_command(position_ms, intent));
-                }
-            } else if track_id > 0 {
-                // Best-effort: pull file path + RG from the active profile
-                // so the decoder gets everything it needs.
-                let app = self.app.clone();
-                let cmd_tx = self.cmd_tx.clone();
-                tauri::async_runtime::spawn(async move {
-                    use tauri::Manager as _;
-                    let state = app.state::<crate::state::AppState>();
-                    let pool = match state.require_profile_pool().await {
-                        Ok(p) => p,
-                        Err(err) => {
-                            tracing::warn!(%err, "set_output_device: no profile pool, skipping resume");
-                            return;
-                        }
-                    };
-                    let row: Option<(String, i64)> =
-                        sqlx::query_as("SELECT file_path, duration_ms FROM track WHERE id = ?")
-                            .bind(track_id)
-                            .fetch_optional(&*pool)
-                            .await
-                            .ok()
-                            .flatten();
-                    let Some((file_path, duration_ms)) = row else {
-                        return;
-                    };
-                    let replay_gain =
-                        crate::commands::player::fetch_replay_gain(&pool, track_id).await;
-                    let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
-                        intent,
-                        path: std::path::PathBuf::from(file_path),
-                        start_ms: position_ms,
-                        track_id,
-                        duration_ms: duration_ms.max(0) as u64,
-                        source_type: "manual".into(),
-                        source_id: None,
-                        replay_gain,
-                    });
-                });
-            }
+        // Re-read the decision now rather than trust the one taken
+        // before the open. An exclusive open costs tens to hundreds of
+        // milliseconds, and a Pause the user hits during it reaches the
+        // decoder first: resuming on the strength of a stale `Play`
+        // would start a track they had just stopped. The `Stop` above
+        // does not clear either input — it unloads the track without
+        // touching the state or `paused_output` — so this reads what the
+        // user last asked for.
+        let resume = rebuild_resume(self.shared.state(), self.paused_for_rebuild());
+        // Step 6 — put back whatever the decoder is on. Not necessarily
+        // the track this method snapshotted: a pick made during the open
+        // is what the decoder accepted, and resuming the older snapshot
+        // instead is what left nothing playing at all (#634). A session
+        // the user had paused is parked instead, so a device pick never
+        // starts music (#611).
+        match resume {
+            RebuildResume::Play => self.resume_after_rebuild(live),
+            RebuildResume::StayPaused => self.park_session(live, track_id),
+            RebuildResume::Nothing => {}
         }
 
         // Back on the previous device after a failed switch: playback is
@@ -2000,23 +2685,28 @@ impl AudioEngine {
         // something else rebuilt. Same cure as `reopen_output_device`
         // took in #628: let the rebuild resolve its own target.
         let active = guard.pinned_device();
-        let was_playing = matches!(
-            self.shared.state(),
-            super::state::PlayerState::Playing | super::state::PlayerState::Paused
-        );
+        // What this rebuild owes the session, by the same rule the
+        // device-error path uses (#611): a session the user had paused
+        // is parked, not started. Picking a device or flipping the mode
+        // is a deliberate act on the *output*, never a request to play —
+        // and this path resumed a paused track into audible playback.
+        let resume = rebuild_resume(self.shared.state(), self.paused_for_rebuild());
+        // Both a session that was playing and one the user paused hold a
+        // track the rebuild has to interrupt; only what follows differs.
+        let was_playing = resume != RebuildResume::Nothing;
         let track_id = self
             .shared
             .current_track_id
             .load(std::sync::atomic::Ordering::Acquire);
-        let position_ms = self.shared.current_position_ms();
-        // The intent of the resume at the bottom belongs here, with the
-        // snapshot it will re-dispatch (#622) — not further down, past the
-        // stop, the device open and the producer swap. An exclusive open
-        // costs tens to hundreds of milliseconds; a track the user picks
-        // during it is a newer choice than this resume, and an intent
-        // claimed afterwards would have made the resume look like the
-        // newer one and dropped the user's pick.
-        let intent = self.next_load_intent();
+        // Read here, before the stop: opening the replacement writes its
+        // own sample rate into the shared block, and a position derived
+        // from the old rate's sample count against the new one is simply a
+        // wrong number. What it is the position *of* is stamped onto it,
+        // because the load to resume can only be read after the swap
+        // (#634) — an exclusive open costs tens to hundreds of
+        // milliseconds, and a track the user picks during it is what the
+        // decoder will be holding by then.
+        let live = self.live_position();
 
         // #405 — the stuck Settings toggle. Leaving exclusive mode re-opens
         // the SAME endpoint in shared mode, and a WASAPI exclusive client
@@ -2114,7 +2804,6 @@ impl AudioEngine {
                 return Err(err);
             }
         };
-        let active_mode = handle.exclusive;
 
         // Group the whole hand-off so ANY failing step still runs the
         // `handle.stop()` below. `handle` owns a live output thread on a
@@ -2148,59 +2837,30 @@ impl AudioEngine {
             return Err(err);
         }
         guard.handle = Some(handle);
-        self.exclusive_output_active
-            .store(active_mode, std::sync::atomic::Ordering::Release);
-        // Redundant with the caller's own re-read after a manual toggle
-        // (ExclusiveModeCard.tsx), but kept for consistency with the
-        // other two write sites (issue #405) in case this is ever
-        // called from somewhere that doesn't already refresh itself.
-        let _ = self.app.emit("player:audio-mode-changed", ());
+        // The event is redundant with the caller's own re-read after a
+        // manual toggle (ExclusiveModeCard.tsx), and kept for every other
+        // caller. The notice is not redundant: a toggle that lands in
+        // shared mode is precisely the silent degradation #597 is about.
+        self.publish_output_mode(None, false, enabled, guard.handle.as_ref());
 
-        // Radio sessions re-dispatch `LoadUrlAndPlay` directly so
-        // the WASAPI flip doesn't drop the user off the stream.
-        // Local tracks hit the existing SQLite-keyed async resume.
-        if was_playing {
-            if track_id < 0 {
-                if let Some(state) = self.snapshot_radio_resume() {
-                    let _ = self.cmd_tx.send(state.into_command(position_ms, intent));
-                }
-            } else if track_id > 0 {
-                let app = self.app.clone();
-                let cmd_tx = self.cmd_tx.clone();
-                // Resolve track metadata async — same pattern as
-                // `set_output_device`. Off the synchronous path so a slow
-                // DB doesn't block the setting toggle.
-                tauri::async_runtime::spawn(async move {
-                    use tauri::Manager as _;
-                    let state = app.state::<crate::state::AppState>();
-                    let pool = match state.require_profile_pool().await {
-                        Ok(p) => p,
-                        Err(_) => return,
-                    };
-                    let row: Option<(String, i64)> =
-                        sqlx::query_as("SELECT file_path, duration_ms FROM track WHERE id = ?")
-                            .bind(track_id)
-                            .fetch_optional(&*pool)
-                            .await
-                            .ok()
-                            .flatten();
-                    let Some((file_path, duration_ms)) = row else {
-                        return;
-                    };
-                    let replay_gain =
-                        crate::commands::player::fetch_replay_gain(&pool, track_id).await;
-                    let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
-                        intent,
-                        path: std::path::PathBuf::from(file_path),
-                        start_ms: position_ms,
-                        track_id,
-                        duration_ms: duration_ms.max(0) as u64,
-                        source_type: "manual".into(),
-                        source_id: None,
-                        replay_gain,
-                    });
-                });
-            }
+        // Re-read the decision now rather than trust the one taken
+        // before the open. An exclusive open costs tens to hundreds of
+        // milliseconds, and a Pause the user hits during it reaches the
+        // decoder first: resuming on the strength of a stale `Play`
+        // would start a track they had just stopped. The `Stop` above
+        // does not clear either input — it unloads the track without
+        // touching the state or `paused_output` — so this reads what the
+        // user last asked for.
+        let resume = rebuild_resume(self.shared.state(), self.paused_for_rebuild());
+        // The mode flip must not drop the user off what they are
+        // listening to — radio included, which is why this re-dispatches
+        // the decoder's own load rather than looking a `track` row up by
+        // an id a stream does not have. And it must not start what they
+        // had paused either: that one is parked (#611).
+        match resume {
+            RebuildResume::Play => self.resume_after_rebuild(live),
+            RebuildResume::StayPaused => self.park_session(live, track_id),
+            RebuildResume::Nothing => {}
         }
 
         Ok(())
@@ -2303,6 +2963,27 @@ pub(super) enum FollowOutcome {
     Deferred,
 }
 
+/// How a command leaves the pending-pause flag (#611).
+///
+/// A `Pause` raises it, and everything that asks for playback clears it:
+/// `Resume`, and any load, because a load is a request to play — which
+/// is also when the decoder clears its own `paused_output`. Every other
+/// command leaves it alone; a `Stop` in particular, since the rebuilds
+/// send one and it decides nothing about whether the user wants to hear
+/// anything afterwards.
+///
+/// Pure so the lifecycle can be exercised without an engine.
+fn pause_pending_after(cmd: &AudioCmd, current: bool) -> bool {
+    match cmd {
+        AudioCmd::Pause => true,
+        AudioCmd::Resume
+        | AudioCmd::LoadAndPlay { .. }
+        | AudioCmd::LoadRemoteFileAndPlay { .. }
+        | AudioCmd::LoadUrlAndPlay { .. } => false,
+        _ => current,
+    }
+}
+
 /// Whether a default-device change is worth a rebuild.
 ///
 /// Pure so the decision can be tested without a sound card;
@@ -2355,101 +3036,38 @@ enum RebuildResume {
 /// the device-loss path touches it (shutdown and `reset_app` raise it too,
 /// but neither is followed by a rebuild).
 ///
-/// Only a library track stays paused. What keeps it resumable is the
-/// persisted resume point `resume_last` loads, and that point is always a
-/// library track's: a radio station or a server track parked the same way
-/// would come back as the last library track instead. Those keep being
-/// picked back up, as they were before #611.
-fn rebuild_resume(
-    state: super::state::PlayerState,
-    paused_output: bool,
-    library_track: bool,
-) -> RebuildResume {
+/// **`Loading` counts as a session**, and the reason is not about the
+/// resume at all — it is about the `Stop`. The decoder is inside
+/// `play_track` from the moment it accepts a load, and a `SwapProducer`
+/// that reaches it there is dropped on the floor: both drains fall
+/// through to a catch-all, on the stated assumption that the engine
+/// always sends a `Stop` first. Answering `Nothing` for a track that was
+/// still loading broke that assumption, so the swap was lost and the
+/// decoder kept writing into a ring whose consumer had just been torn
+/// down — silence until something else rebuilt the output. Resuming is
+/// then the right answer too: the load is in `last_load` and goes back
+/// out under its own intent.
+///
+/// `Ended` and `Idle` stay outside: there is no session to interrupt,
+/// the decoder is parked at the top-level loop where a `SwapProducer` is
+/// handled properly, and resuming would restart a track that had
+/// finished.
+///
+/// Until #617 only a *library* track could stay paused, because what made
+/// it resumable afterwards was the persisted resume point `resume_last`
+/// loads — and that point is always a library track's, so a radio station
+/// or a server track parked the same way came back as the last library
+/// track instead. Both are now held by
+/// [`AudioEngine::park_session`](AudioEngine::park_session) itself, so a
+/// session the user paused stays paused whatever it is playing.
+fn rebuild_resume(state: super::state::PlayerState, paused_output: bool) -> RebuildResume {
     use super::state::PlayerState;
     match state {
-        PlayerState::Playing | PlayerState::Paused if paused_output && library_track => {
+        PlayerState::Playing | PlayerState::Paused | PlayerState::Loading if paused_output => {
             RebuildResume::StayPaused
         }
-        PlayerState::Playing | PlayerState::Paused => RebuildResume::Play,
-        PlayerState::Idle | PlayerState::Loading | PlayerState::Ended => RebuildResume::Nothing,
-    }
-}
-
-/// Update the [`AudioEngine::radio_resume`] snapshot in place
-/// according to the command about to be sent. Lifted out of the
-/// `send` method as a free function so the lifecycle invariant
-/// can be unit-tested without standing up a Tauri [`AppHandle`]
-/// (which the engine itself owns).
-fn apply_radio_resume_update(snapshot: &Mutex<Option<RadioResumeState>>, cmd: &AudioCmd) {
-    match cmd {
-        AudioCmd::LoadUrlAndPlay {
-            // The rebuild that resumes this session mints its own (#622).
-            intent: _,
-            url,
-            ext_hint,
-            track_id,
-            title,
-            artist,
-            artwork_url,
-            replay_gain,
-            // A cache target belongs to one open response and does not
-            // survive into a new one. Everything else about the stream does:
-            // flattening it to "radio" here is what would bring a finite
-            // server track back forward-only and ICY-parsed, just because
-            // the audio device changed.
-            cache: _,
-            duration_ms,
-            seekable_file,
-        } => {
-            if let Ok(mut guard) = snapshot.lock() {
-                *guard = Some(RadioResumeState {
-                    source: RadioResumeSource::Url {
-                        url: url.clone(),
-                        ext_hint: ext_hint.clone(),
-                        replay_gain: *replay_gain,
-                        duration_ms: *duration_ms,
-                        seekable_file: *seekable_file,
-                    },
-                    track_id: *track_id,
-                    title: title.clone(),
-                    artist: artist.clone(),
-                    artwork_url: artwork_url.clone(),
-                });
-            }
-        }
-        AudioCmd::LoadRemoteFileAndPlay {
-            discard_on_failure: false,
-            path,
-            duration_ms,
-            fallback_url,
-            replay_gain,
-            track_id,
-            title,
-            artist,
-            artwork_url,
-            ..
-        } => {
-            if let Ok(mut guard) = snapshot.lock() {
-                *guard = Some(RadioResumeState {
-                    source: RadioResumeSource::RemoteFile {
-                        path: path.clone(),
-                        duration_ms: *duration_ms,
-                        fallback_url: fallback_url.clone(),
-                        replay_gain: *replay_gain,
-                    },
-                    track_id: *track_id,
-                    title: title.clone(),
-                    artist: artist.clone(),
-                    artwork_url: artwork_url.clone(),
-                });
-            }
-        }
-        AudioCmd::LoadAndPlay { .. } => {
-            if let Ok(mut guard) = snapshot.lock() {
-                *guard = None;
-            }
-        }
-        _ => {}
+        PlayerState::Playing | PlayerState::Paused | PlayerState::Loading => RebuildResume::Play,
+        PlayerState::Idle | PlayerState::Ended => RebuildResume::Nothing,
     }
 }
 
@@ -2517,7 +3135,10 @@ mod resume_guard_tests {
 #[cfg(test)]
 mod rebuild_resume_tests {
     use super::super::state::PlayerState;
-    use super::{rebuild_resume, RebuildResume};
+    use super::{
+        endpoint_moved, pause_pending_after, rebuild_resume, AudioCmd, LoadIntent, RebuildResume,
+        TrackGain,
+    };
 
     #[test]
     fn a_session_that_was_playing_picks_back_up() {
@@ -2525,11 +3146,11 @@ mod rebuild_resume_tests {
         // parked a playing session as `Paused` without raising
         // `paused_output`.
         assert_eq!(
-            rebuild_resume(PlayerState::Paused, false, true),
+            rebuild_resume(PlayerState::Paused, false),
             RebuildResume::Play
         );
         assert_eq!(
-            rebuild_resume(PlayerState::Playing, false, true),
+            rebuild_resume(PlayerState::Playing, false),
             RebuildResume::Play
         );
     }
@@ -2539,26 +3160,115 @@ mod rebuild_resume_tests {
         // #611: resuming this one started the music on whatever device the
         // system fell back to.
         assert_eq!(
-            rebuild_resume(PlayerState::Paused, true, true),
+            rebuild_resume(PlayerState::Paused, true),
             RebuildResume::StayPaused
         );
     }
 
     #[test]
-    fn a_paused_radio_or_server_track_is_still_picked_back_up() {
-        // Parked idle it would come back as the last library track: the
-        // resume point `resume_last` loads is never a radio station's.
+    fn a_paused_radio_session_stays_paused_too() {
+        // It did not, until #617: parking it left Play to the persisted
+        // resume point, which is always a library track's, so the station
+        // came back as the last local track. The park now holds the load
+        // itself, so what the user paused is what Play picks up — and a
+        // device flap no longer restarts a stream they had stopped.
         assert_eq!(
-            rebuild_resume(PlayerState::Paused, true, false),
-            RebuildResume::Play
+            rebuild_resume(PlayerState::Playing, true),
+            RebuildResume::StayPaused
         );
     }
 
     #[test]
     fn nothing_loaded_means_nothing_to_resume() {
-        for state in [PlayerState::Idle, PlayerState::Loading, PlayerState::Ended] {
-            assert_eq!(rebuild_resume(state, false, true), RebuildResume::Nothing);
+        // `Loading` is deliberately not here — see below.
+        for state in [PlayerState::Idle, PlayerState::Ended] {
+            assert_eq!(rebuild_resume(state, false), RebuildResume::Nothing);
         }
+    }
+
+    #[test]
+    fn a_track_still_loading_is_still_a_session() {
+        // Not about the resume: about the `Stop`. The decoder is inside
+        // `play_track` from the moment it accepts a load, and a
+        // `SwapProducer` that reaches it there is dropped — both drains
+        // fall through to a catch-all, assuming the engine sent a `Stop`
+        // first. Answering `Nothing` here broke that assumption, so the
+        // rebuild swapped nothing and the decoder went on writing into a
+        // ring whose consumer had just been torn down: silence until
+        // something else rebuilt the output.
+        assert_eq!(
+            rebuild_resume(PlayerState::Loading, false),
+            RebuildResume::Play
+        );
+        assert_eq!(
+            rebuild_resume(PlayerState::Loading, true),
+            RebuildResume::StayPaused
+        );
+    }
+
+    #[test]
+    fn a_pause_the_decoder_has_not_reached_yet_still_counts() {
+        // `paused_output` is the decoder's answer and it lags: a rebuild
+        // reading it in the gap decided `Play` for a session the user had
+        // just paused, and its resume then cleared the flag and started
+        // the music. The engine reads both, and this is the half it owns.
+        assert!(pause_pending_after(&AudioCmd::Pause, false));
+        assert!(pause_pending_after(&AudioCmd::Pause, true));
+    }
+
+    #[test]
+    fn anything_that_asks_for_playback_clears_it() {
+        assert!(!pause_pending_after(&AudioCmd::Resume, true));
+        // A load is a request to play — the same moment the decoder
+        // clears its own `paused_output`.
+        let load = AudioCmd::LoadAndPlay {
+            intent: LoadIntent::from_raw(1),
+            path: std::path::PathBuf::from("/dev/null"),
+            start_ms: 0,
+            track_id: 42,
+            duration_ms: 1000,
+            source_type: "album".into(),
+            source_id: None,
+            replay_gain: TrackGain::default(),
+        };
+        assert!(!pause_pending_after(&load, true));
+    }
+
+    #[test]
+    fn a_stop_decides_nothing_about_the_pause() {
+        // The rebuilds send one, and it says nothing about whether the
+        // user wants to hear anything afterwards. Clearing on it would
+        // undo the pause this flag exists to carry.
+        assert!(pause_pending_after(&AudioCmd::Stop, true));
+        assert!(!pause_pending_after(&AudioCmd::Stop, false));
+        assert!(pause_pending_after(&AudioCmd::Seek(1_000), true));
+        assert!(pause_pending_after(&AudioCmd::SetVolume(0.5), true));
+    }
+
+    #[test]
+    fn coming_back_on_the_same_endpoint_is_not_a_move() {
+        // A device that flaps and comes back: the automatic recovery #175
+        // exists for, and nothing #617 should pause.
+        assert!(!endpoint_moved(Some("USB DAC"), Some("USB DAC")));
+    }
+
+    #[test]
+    fn landing_on_another_endpoint_is_a_move() {
+        // The reported case: headphones off, Windows falls back to the
+        // built-in speakers.
+        assert!(endpoint_moved(Some("Headphones"), Some("Speakers")));
+    }
+
+    #[test]
+    fn an_endpoint_nobody_can_name_is_never_a_move() {
+        // Hog mode can name nothing at all, and the two sides do not
+        // always come from the same backend accessor. A wrong "moved"
+        // stops the music for a user who asked for none of this; a wrong
+        // "not moved" only costs the pause, leaving the behaviour that
+        // shipped before #617.
+        assert!(!endpoint_moved(None, Some("Speakers")));
+        assert!(!endpoint_moved(Some("Headphones"), None));
+        assert!(!endpoint_moved(None, None));
     }
 }
 
@@ -2700,13 +3410,13 @@ mod rebuild_gate_tests {
 }
 
 #[cfg(test)]
-mod radio_resume_tests {
+mod last_load_tests {
     use super::*;
     use std::path::PathBuf;
 
-    fn url_cmd(url: &str, track_id: i64) -> AudioCmd {
+    fn url_cmd(url: &str, track_id: i64, intent: u64) -> AudioCmd {
         AudioCmd::LoadUrlAndPlay {
-            intent: LoadIntent::from_raw(1),
+            intent: LoadIntent::from_raw(intent),
             url: url.to_string(),
             ext_hint: Some("mp3".to_string()),
             track_id,
@@ -2720,15 +3430,15 @@ mod radio_resume_tests {
         }
     }
 
-    fn local_cmd(track_id: i64) -> AudioCmd {
+    fn local_cmd(track_id: i64, intent: u64, start_ms: u64) -> AudioCmd {
         AudioCmd::LoadAndPlay {
-            intent: LoadIntent::from_raw(1),
+            intent: LoadIntent::from_raw(intent),
             path: PathBuf::from("/dev/null"),
-            start_ms: 0,
+            start_ms,
             track_id,
             duration_ms: 1000,
-            source_type: "test".into(),
-            source_id: None,
+            source_type: "album".into(),
+            source_id: Some(7),
             replay_gain: TrackGain::default(),
         }
     }
@@ -2753,56 +3463,109 @@ mod radio_resume_tests {
         }
     }
 
-    #[test]
-    fn load_url_writes_snapshot_verbatim() {
-        let lock: Mutex<Option<RadioResumeState>> = Mutex::new(None);
-        apply_radio_resume_update(&lock, &url_cmd("https://radio.invalid/live", -1));
-        let snap = lock.lock().unwrap().clone().expect("snapshot stored");
-        assert_eq!(snap.track_id, -1);
-        assert_eq!(snap.title.as_deref(), Some("Test stream"));
-        match snap.source {
-            RadioResumeSource::Url { url, ext_hint, .. } => {
-                assert_eq!(url, "https://radio.invalid/live");
-                assert_eq!(ext_hint.as_deref(), Some("mp3"));
-            }
-            RadioResumeSource::RemoteFile { .. } => panic!("expected URL resume"),
+    fn live(intent: u64, track_id: i64, position_ms: u64) -> LivePosition {
+        LivePosition {
+            intent: Some(LoadIntent::from_raw(intent)),
+            track_id,
+            position_ms,
         }
     }
 
     #[test]
-    fn load_url_overwrites_previous_radio_session() {
-        let lock: Mutex<Option<RadioResumeState>> = Mutex::new(None);
-        apply_radio_resume_update(&lock, &url_cmd("https://first.invalid/", -1));
-        apply_radio_resume_update(&lock, &url_cmd("https://second.invalid/", -2));
-        let snap = lock.lock().unwrap().clone().expect("snapshot present");
-        assert_eq!(snap.track_id, -2);
+    fn a_url_load_is_captured_verbatim() {
+        let snap = LastLoad::capture(&url_cmd("https://radio.invalid/live", -1, 1))
+            .expect("a load is captured");
+        assert_eq!(snap.track_id, -1);
+        assert_eq!(snap.title.as_deref(), Some("Test stream"));
+        match snap.source {
+            LastLoadSource::Url { url, ext_hint, .. } => {
+                assert_eq!(url, "https://radio.invalid/live");
+                assert_eq!(ext_hint.as_deref(), Some("mp3"));
+            }
+            _ => panic!("expected a URL load"),
+        }
+    }
+
+    #[test]
+    fn a_library_track_is_captured_too() {
+        // It was not, before #634: the snapshot existed only to resume
+        // radio, and a local `LoadAndPlay` wiped it. The rebuild then went
+        // to the database for the track it had noted the id of — which is
+        // exactly the older snapshot that left nothing playing.
+        let snap = LastLoad::capture(&local_cmd(42, 3, 0)).expect("a load is captured");
+        assert_eq!(snap.track_id, 42);
         assert!(matches!(
             snap.source,
-            RadioResumeSource::Url { ref url, .. } if url == "https://second.invalid/"
+            LastLoadSource::Local { ref path, .. } if path == &PathBuf::from("/dev/null")
         ));
     }
 
     #[test]
-    fn load_and_play_clears_snapshot() {
-        let lock: Mutex<Option<RadioResumeState>> = Mutex::new(None);
-        apply_radio_resume_update(&lock, &url_cmd("https://radio.invalid/", -1));
-        assert!(lock.lock().unwrap().is_some());
-        apply_radio_resume_update(&lock, &local_cmd(42));
-        assert!(
-            lock.lock().unwrap().is_none(),
-            "local-track LoadAndPlay must wipe the radio resume cache",
+    fn nothing_but_a_load_is_captured() {
+        // `Stop` above all: it is what a rebuild sends just before asking
+        // for this snapshot back, and clearing on it would leave every
+        // rebuild with nothing to resume.
+        for cmd in [
+            AudioCmd::Pause,
+            AudioCmd::Resume,
+            AudioCmd::Stop,
+            AudioCmd::Seek(123),
+            AudioCmd::SetVolume(0.5),
+            AudioCmd::SetMono(true),
+        ] {
+            assert!(
+                LastLoad::capture(&cmd).is_none(),
+                "{cmd:?} is not a load and must leave the snapshot alone"
+            );
+        }
+    }
+
+    #[test]
+    fn the_resume_carries_the_load_s_own_intent() {
+        // The heart of #634. A fresh intent would rank this resume above a
+        // pick that claimed before it and has not reached the channel yet;
+        // the original is accepted again — the decoder drops what is
+        // *older* than the newest it has been handed — and gives way to a
+        // genuinely newer one.
+        let snap = LastLoad::capture(&local_cmd(42, 9, 0)).expect("a load is captured");
+        let intent = snap.intent;
+        assert_eq!(intent, LoadIntent::from_raw(9));
+        assert_eq!(
+            snap.into_command(intent, 1_000).load_intent(),
+            Some(LoadIntent::from_raw(9))
         );
     }
 
     #[test]
+    fn a_resumed_library_track_keeps_the_source_it_came_from() {
+        // Stamping "device-rebuild" on it, as the three paths used to,
+        // hides an album play from every statistic that filters on the
+        // source — for the sole reason that the audio device changed.
+        let snap = LastLoad::capture(&local_cmd(42, 1, 0)).expect("a load is captured");
+        let intent = snap.intent;
+        match snap.into_command(intent, 2_500) {
+            AudioCmd::LoadAndPlay {
+                source_type,
+                source_id,
+                start_ms,
+                track_id,
+                ..
+            } => {
+                assert_eq!(source_type, "album");
+                assert_eq!(source_id, Some(7));
+                assert_eq!(start_ms, 2_500);
+                assert_eq!(track_id, 42);
+            }
+            _ => panic!("a library track resumes as LoadAndPlay"),
+        }
+    }
+
+    #[test]
     fn online_device_change_reemits_remote_local_command_with_fallback() {
-        let lock: Mutex<Option<RadioResumeState>> = Mutex::new(None);
-        apply_radio_resume_update(
-            &lock,
-            &remote_local_cmd(Some("https://server.invalid/stream"), -3),
-        );
-        let snap = lock.lock().unwrap().clone().expect("snapshot stored");
-        match snap.into_command(4_321, LoadIntent::from_raw(9)) {
+        let snap = LastLoad::capture(&remote_local_cmd(Some("https://server.invalid/stream"), -3))
+            .expect("a load is captured");
+        let intent = snap.intent;
+        match snap.into_command(intent, 4_321) {
             AudioCmd::LoadRemoteFileAndPlay {
                 path,
                 start_ms,
@@ -2810,6 +3573,7 @@ mod radio_resume_tests {
                 duration_ms,
                 fallback_url,
                 replay_gain,
+                discard_on_failure,
                 ..
             } => {
                 assert_eq!(path, PathBuf::from("/dev/null"));
@@ -2821,6 +3585,10 @@ mod radio_resume_tests {
                     Some("https://server.invalid/stream")
                 );
                 assert_eq!(replay_gain.gain_db, Some(-4.0));
+                assert!(
+                    !discard_on_failure,
+                    "a resume never authorises deleting the file it re-opens"
+                );
             }
             _ => panic!("device change must resume the reconciled local file"),
         }
@@ -2828,11 +3596,9 @@ mod radio_resume_tests {
 
     #[test]
     fn offline_device_change_reemits_remote_local_command_without_fallback() {
-        let lock: Mutex<Option<RadioResumeState>> = Mutex::new(None);
-        apply_radio_resume_update(&lock, &url_cmd("https://radio.invalid/", -1));
-        apply_radio_resume_update(&lock, &remote_local_cmd(None, -3));
-        let snap = lock.lock().unwrap().clone().expect("local snapshot stored");
-        match snap.into_command(7_654, LoadIntent::from_raw(9)) {
+        let snap = LastLoad::capture(&remote_local_cmd(None, -3)).expect("a load is captured");
+        let intent = snap.intent;
+        match snap.into_command(intent, 7_654) {
             AudioCmd::LoadRemoteFileAndPlay {
                 path,
                 start_ms,
@@ -2848,25 +3614,48 @@ mod radio_resume_tests {
     }
 
     #[test]
-    fn unrelated_cmds_leave_snapshot_untouched() {
-        let lock: Mutex<Option<RadioResumeState>> = Mutex::new(None);
-        apply_radio_resume_update(&lock, &url_cmd("https://radio.invalid/", -1));
-        let baseline = lock.lock().unwrap().clone();
-        for cmd in [
-            AudioCmd::Pause,
-            AudioCmd::Resume,
-            AudioCmd::Stop,
-            AudioCmd::Seek(123),
-            AudioCmd::SetVolume(0.5),
-            AudioCmd::SetMono(true),
-        ] {
-            apply_radio_resume_update(&lock, &cmd);
-        }
-        let after = lock.lock().unwrap().clone();
-        assert_eq!(
-            baseline, after,
-            "non-Load* commands must not touch the snapshot"
-        );
+    fn the_position_is_kept_for_the_load_it_belongs_to() {
+        let snap = LastLoad::capture(&local_cmd(42, 5, 0)).expect("a load is captured");
+        assert_eq!(resume_start_ms(&snap, live(5, 42, 90_000)), 90_000);
+    }
+
+    #[test]
+    fn a_track_picked_during_the_rebuild_starts_at_its_own_beginning() {
+        // The position was read while track 42 was playing; what the
+        // decoder accepted since is track 77, at 0. Handing it 42's
+        // position would drop the user into the middle of a track they
+        // just picked — or past its end.
+        let snap = LastLoad::capture(&local_cmd(77, 6, 0)).expect("a load is captured");
+        assert_eq!(resume_start_ms(&snap, live(5, 42, 90_000)), 0);
+    }
+
+    #[test]
+    fn re_picking_the_same_track_restarts_it() {
+        // Same id, different intent: the user asked for the track again,
+        // and resuming at the old position would quietly ignore that.
+        let snap = LastLoad::capture(&local_cmd(42, 6, 0)).expect("a load is captured");
+        assert_eq!(resume_start_ms(&snap, live(5, 42, 90_000)), 0);
+    }
+
+    #[test]
+    fn a_load_accepted_but_not_yet_started_uses_its_own_start() {
+        // The window between "the decoder accepted this load" and "the
+        // decoder started it": the intent already matches, the track id
+        // does not yet, and the position still belongs to the previous
+        // track. Both halves have to agree before the position is trusted.
+        let snap = LastLoad::capture(&local_cmd(77, 5, 30_000)).expect("a load is captured");
+        assert_eq!(resume_start_ms(&snap, live(5, 42, 90_000)), 30_000);
+    }
+
+    #[test]
+    fn a_decoder_with_no_load_on_record_pairs_with_nothing() {
+        let snap = LastLoad::capture(&local_cmd(42, 5, 12_000)).expect("a load is captured");
+        let live = LivePosition {
+            intent: None,
+            track_id: 42,
+            position_ms: 90_000,
+        };
+        assert_eq!(resume_start_ms(&snap, live), 12_000);
     }
 }
 
@@ -2900,6 +3689,42 @@ mod output_slot_tests {
             pinned: None,
         };
         assert!(slot.pinned_device().is_none());
+    }
+}
+
+#[cfg(test)]
+mod output_mode_tests {
+    use super::{output_mode_of, OutputMode};
+
+    #[test]
+    fn nothing_asked_for_is_shared() {
+        assert_eq!(output_mode_of(false, false, false), OutputMode::Shared);
+    }
+
+    #[test]
+    fn asked_and_granted_is_exclusive() {
+        assert_eq!(output_mode_of(true, true, false), OutputMode::Exclusive);
+    }
+
+    #[test]
+    fn asked_and_refused_is_its_own_state() {
+        // The one #597 exists for: playback is fine, in shared mode, and
+        // until now the only trace of the user's choice not being honoured
+        // was a `tracing::warn!` line.
+        assert_eq!(
+            output_mode_of(true, false, false),
+            OutputMode::ExclusiveRefused
+        );
+    }
+
+    #[test]
+    fn dop_outranks_the_rest() {
+        // On Linux and macOS the DoP toggle engages the exclusive path by
+        // itself, so the exclusive preference can be off while the DAC is
+        // being handed native DSD. Reporting "shared" there would be a lie
+        // about the most demanding mode we have.
+        assert_eq!(output_mode_of(false, true, true), OutputMode::Dop);
+        assert_eq!(output_mode_of(true, true, true), OutputMode::Dop);
     }
 }
 

@@ -757,7 +757,25 @@
       "custom": "Velocidade personalizada",
       "pitchHint": "O tom acompanha a velocidade (sem time-stretching)."
     },
-    "seek": "Posição"
+    "seek": "Posição",
+    "alert": {
+      "error": {
+        "device-lost": "O dispositivo de áudio foi desconectado",
+        "track-failed": "Não foi possível reproduzir esta faixa",
+        "stream-failed": "Não foi possível abrir esta transmissão",
+        "decoder-crashed": "O motor de áudio reiniciou",
+        "decoder-stopped": "O motor de áudio parou após vários erros",
+        "offline": "O modo offline está ativado",
+        "unknown": "A reprodução falhou"
+      },
+      "notice": {
+        "exclusive-refused": "Este dispositivo recusa o modo exclusivo: reproduzindo em modo compartilhado",
+        "dop-refused": "Este DAC recusa o DSD nativo: convertendo para PCM",
+        "paused-device-lost": "Dispositivo desconectado: reprodução pausada",
+        "unknown": "A saída de áudio mudou"
+      },
+      "dismiss": "Fechar"
+    }
   },
   "queue": {
     "title": "Fila de reprodução",
@@ -786,7 +804,30 @@
     "empty": "Nenhum dispositivo de saída disponível",
     "systemDefault": "Padrão do sistema",
     "pinnedUnavailable": "Fixado, indisponível",
-    "reopen": "Reabrir este dispositivo"
+    "reopen": "Reabrir este dispositivo",
+    "capabilities": {
+      "probing": "Lendo as capacidades…",
+      "unavailable": "Capacidades indisponíveis",
+      "details": "Detalhes do dispositivo",
+      "summary": "{{bits}} bit · {{rate}} kHz",
+      "channels": "Canais: {{value}}",
+      "minPeriod": "Período mínimo: {{value}} quadros",
+      "formats": "Formatos",
+      "rates": "Taxas de amostragem",
+      "caveat": "O que um driver declara e o que ele aceita em modo exclusivo são duas perguntas diferentes.",
+      "source": {
+        "wasapiExclusive": "Testado com o driver em modo exclusivo.",
+        "alsaHardware": "Parâmetros do hardware ALSA, sem camada de conversão.",
+        "coreAudio": "O que o dispositivo declara ao sistema.",
+        "unavailable": "Dispositivo ocupado ou ausente: nada pôde ser lido."
+      },
+      "tier": {
+        "cd": "Qualidade CD",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {
@@ -1132,6 +1173,11 @@
         "speed": "Velocidade {{value}}×",
         "dopNative": "DSD nativo"
       }
+    },
+    "outputMode": {
+      "exclusive": "Exclusivo",
+      "dop": "DSD nativo",
+      "exclusiveRefused": "Exclusivo recusado"
     }
   },
   "miniPlayer": {
@@ -1552,9 +1598,17 @@
       "subtitle": "Assume o dispositivo só para este aplicativo em vez de compartilhá-lo com o mixer do sistema. Volta ao modo compartilhado se o dispositivo recusar.",
       "fallback": "O dispositivo não aceita o modo exclusivo. Voltando ao modo compartilhado."
     },
+    "matchSourceRate": {
+      "title": "Seguir a taxa de amostragem de cada faixa",
+      "subtitle": "Na saída exclusiva, reabre o dispositivo na taxa de cada faixa: evita a reamostragem quando ele a aceita, com um corte a cada mudança de taxa"
+    },
     "mono": {
       "title": "Áudio mono",
       "subtitle": "Mistura os canais esquerdo e direito em um único sinal"
+    },
+    "pauseOnDeviceLoss": {
+      "title": "Pausar se o dispositivo for desconectado",
+      "subtitle": "Quando a saída de áudio desaparece, a reprodução é pausada em vez de passar para outro dispositivo"
     },
     "language": {
       "title": "Idioma",

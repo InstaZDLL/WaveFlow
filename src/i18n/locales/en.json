@@ -757,7 +757,25 @@
       "custom": "Custom speed",
       "pitchHint": "Pitch follows speed (no time-stretching)."
     },
-    "seek": "Seek"
+    "seek": "Seek",
+    "alert": {
+      "error": {
+        "device-lost": "The audio device was disconnected",
+        "track-failed": "This track could not be played",
+        "stream-failed": "This stream could not be opened",
+        "decoder-crashed": "The audio engine restarted",
+        "decoder-stopped": "The audio engine stopped after repeated errors",
+        "offline": "Offline mode is on",
+        "unknown": "Playback failed"
+      },
+      "notice": {
+        "exclusive-refused": "This device refuses exclusive mode: playing in shared mode",
+        "dop-refused": "This DAC refuses native DSD: converting to PCM",
+        "paused-device-lost": "Device disconnected: playback paused",
+        "unknown": "The audio output changed"
+      },
+      "dismiss": "Dismiss"
+    }
   },
   "queue": {
     "title": "Play queue",
@@ -786,7 +804,30 @@
     "empty": "No output device available",
     "systemDefault": "System default",
     "pinnedUnavailable": "Pinned, unavailable",
-    "reopen": "Reopen this device"
+    "reopen": "Reopen this device",
+    "capabilities": {
+      "probing": "Reading capabilities…",
+      "unavailable": "Capabilities unavailable",
+      "details": "Device details",
+      "summary": "{{bits}} bit · {{rate}} kHz",
+      "channels": "Channels: {{value}}",
+      "minPeriod": "Minimum period: {{value}} frames",
+      "formats": "Formats",
+      "rates": "Sample rates",
+      "caveat": "What a driver declares and what it accepts in exclusive mode are two different questions.",
+      "source": {
+        "wasapiExclusive": "Tested against the driver in exclusive mode.",
+        "alsaHardware": "ALSA hardware parameters, with no conversion layer.",
+        "coreAudio": "What the device reports to the system.",
+        "unavailable": "Device busy or missing: nothing could be read."
+      },
+      "tier": {
+        "cd": "CD quality",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {
@@ -1132,6 +1173,11 @@
         "speed": "Speed {{value}}×",
         "dopNative": "Native DSD"
       }
+    },
+    "outputMode": {
+      "exclusive": "Exclusive",
+      "dop": "Native DSD",
+      "exclusiveRefused": "Exclusive refused"
     }
   },
   "miniPlayer": {
@@ -1544,9 +1590,17 @@
       "subtitle": "Takes the device for this app alone instead of sharing it with the system mixer. Falls back to shared mode if the device refuses.",
       "fallback": "The device doesn't accept exclusive mode. Falling back to shared mode."
     },
+    "matchSourceRate": {
+      "title": "Match each track's sample rate",
+      "subtitle": "In exclusive output, reopens the device at each track's rate: avoids resampling when the device accepts it, at the cost of a gap at every rate change"
+    },
     "mono": {
       "title": "Mono audio",
       "subtitle": "Mixes the left and right channels into a single signal"
+    },
+    "pauseOnDeviceLoss": {
+      "title": "Pause when the output device disconnects",
+      "subtitle": "When the audio output goes away, playback pauses instead of moving to another device"
     },
     "language": {
       "title": "Language",

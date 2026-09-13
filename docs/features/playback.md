@@ -80,6 +80,32 @@ The chosen device's name is persisted in `profile_setting['audio.output_device']
 
 On Linux, enumeration uses ALSA's hint database (`snd_device_name_hint("pcm")`) instead of cpal's `output_devices()` to avoid a 1-2 s freeze + `pcm_dmix` / `pcm_route` stderr spam from probing every PCM card.
 
+### What the Linux list shows, and what it hides
+
+The hint database answers with ALSA's whole namespace, and most of it is not a device. One sound card came back as six lines — `hw:`, `plughw:`, `dmix:`, `dsnoop:`, `surround40:`, `front:` — under names that mean nothing to the person choosing, and three of those route through the software mixer, so picking one **silently defeats the exclusive output the user has just turned on** (#594).
+
+`present_alsa_hints` is that filter, pure and unit-tested, applied to the rows after the walk rather than during it — the enumeration itself must not change, since reading hints instead of opening every PCM is what keeps the menu from freezing. Three passes:
+
+1. **Routing families go.** `plughw` (a conversion plug), `dmix` / `dsnoop` (the mixer itself), `surround*`, `usbstream`, `null`, and the rate/format plugins. What deliberately stays: `default`, `pulse` and `pipewire` — not hardware, but the right answer for most people most of the time, and on a PipeWire desktop often the only one that works; and `hdmi` / `iec958`, which are how those outputs are reached at all.
+2. **A wrapper over hardware already on the list goes.** `front:CARD=PCH,DEV=0` beside `hw:CARD=PCH,DEV=0` is the same output twice, and the `hw` spelling is the one exclusive output can use. The names share nothing, so the pairing is done on the **card token** — the closest thing a hint carries to a driver identity — with a missing `DEV` read as `0`, which is what `sysdefault:CARD=X` means. A card with no `hw:` row keeps its wrapper: hiding the only way to reach a device would be worse than showing an alias.
+3. **Rows that would read identically are disambiguated.** Two of the same DAC describe themselves with the same string; the ids differ so both picks work, but the list showed one line twice and the second device was effectively invisible. The card token is appended to both.
+
+### What a device says it can do
+
+The picker listed names, and someone choosing between three outputs on an audiophile player is choosing on facts a name does not carry (#593). `audio/capabilities.rs` answers for one device at a time: the formats it accepts, the rates **each of those formats** runs at, the channel count, and the smallest period the device will take — one quantity asked the same way of every backend, since a sheet showing a minimum on one platform and a maximum on another invites a comparison that means nothing.
+
+**Asked on demand, never during enumeration.** Filling a capability table while listing would bring back exactly the one-to-two second freeze the ALSA-hint shortcut exists to prevent — for every device, every time the menu opens. So it is its own command, called per device once the menu is open, answered on the blocking pool, and memoised for the session. Only real answers are memoised: a device another client was holding must be asked again rather than remembered as unavailable for the rest of the run.
+
+**And the sheet says which question was asked**, because what a driver *declares* and what it will *accept in exclusive mode* are different questions, and a shared-mode path can advertise rates it reaches by resampling. `CapabilitySource` carries that:
+
+| Platform | How | What it means |
+| -------- | --- | ------------- |
+| Windows | `is_supported_exclusive_with_quirks` per (format, rate) | The strongest of the three: the same call the real open makes, quirks and all (#405). Nothing is initialised, so it is safe while the device plays — including while we hold it exclusively. |
+| Linux | `snd_pcm_hw_params` on the raw `hw:` device | The hardware itself, with no plug layer. Opened **non-blocking** so a busy device answers `EBUSY` at once instead of waiting — which also means the device we are playing on exclusively cannot answer, and says so. A name the plug layer *routes* rather than names — `default`, or no pin at all — has no hardware sheet to show: it resolves to card 0, which is not necessarily what it plays through, so it answers unavailable rather than describing the wrong card. |
+| macOS | the physical stream formats and nominal rates | What the device reports to the HAL. There is no exclusive-mode question to ask: hog mode takes the device as it is rather than negotiating a format. |
+
+The rates are kept **per format**, not per device, because the two are not independent: a DAC that takes 32-bit to 96 kHz and 24-bit to 192 kHz accepts neither pair the two maxima would suggest. In the menu, each row therefore carries its deepest format and the top rate *that format* runs at, with the Hi-Res marker decided on that same pair; the sheet behind it adds the channel count, the smallest period the device takes, the formats as a set, and the rates **grouped into named tiers** — CD quality, Hi-Res, Studio, Ultra Hi-Res — with the numbers themselves on the tooltip. A column running from 44.1 to 384 tells an expert something and a normal user nothing; the tiers tell both.
+
 ### The pin and the endpoint are two different things
 
 Every open path falls back to the default endpoint when the pinned name is no longer enumerated — `build_stream_inner` in shared mode, `pick_device` under WASAPI, `resolve_device` under CoreAudio — and each used to leave nothing behind but a `warn!`. `OutputHandle` kept the **requested** name, deliberately, so the pin survives until the device comes back; the picker read that field and ticked a device that was playing nothing (#612).
@@ -167,7 +193,32 @@ Device loss reaches the recovery path from two independent places, since the two
 
 Both then call the shared [`output::notify_device_lost`](../../src-tauri/crates/app/src/audio/output.rs) (park the player, emit `player:state` + `player:error`, sync the OS media controls) and [`output::schedule_device_rebuild`](../../src-tauri/crates/app/src/audio/output.rs) (300 ms backoff, then a same-device rebuild).
 
-The rebuild picks the track back up only for a session that was playing. By then `notify_device_lost` has turned a playing session into `Paused` too, so the decision reads `paused_output`, which on the playback path only the decoder's own pause raises: a session the user paused comes back **idle with its resume point saved**, and play goes through `resume_last` exactly as after a launch (#611). It can't stay `Paused`, because the rebuild's `Stop` unloads the track and the decoder ignores a `Resume` with nothing loaded. Only a **library** track gets that treatment: the resume point `resume_last` loads is a library track's, so a paused radio station or server track parked idle would come back as the last library track instead. Those are still picked back up after a device loss, paused or not. The resume point is written against the profile that was active when the rebuild ran (`require_profile_pool_for`), and skipped when that can't be read without waiting — a switch is then under way, and must not receive it.
+### What a rebuild puts back
+
+Every rebuild interrupts the decoder with a `Stop` before it can swap the ring producer, so it owes the session something afterwards. **What it owes is whatever the decoder was actually holding, not what was playing when the rebuild started** (#634).
+
+The difference is a few hundred milliseconds wide — the cost of an exclusive open — and a track picked inside it used to disappear entirely: it was delivered before the `Stop`, loaded, unloaded by that `Stop`, and the rebuild's own resume, carrying an older intent, was then dropped on arrival exactly as [the ordering rule](#ordering-the-loads) requires. Nothing played, while the player bar named the track the user had just picked. The engine could not re-dispatch that track either, because only its producer knew the payload — a path, or a URL plus a fallback and a ReplayGain value.
+
+So the decoder records it. `SharedPlayback::last_load` holds the load it most recently **accepted**, payload included, written inside `accept_load` — the one funnel every load passes through, including the auto-advance, which sends straight down the channel without going through `AudioEngine::send`. A rebuild reads it after the swap and re-dispatches it **with that load's own intent**, never a fresh one: an intent already delivered is accepted again (the rule drops what is *older*), while a pick that claimed after it still wins. Minting a new intent there would do the opposite and outrank a selection that had not reached the channel yet.
+
+Two things fell out of that. The resume no longer goes to the database for a file path, so it is synchronous and keeps the gain and the **source** the track came from — a play credited to `device-rebuild` was hidden from every statistic that filters on the source, because the audio device changed. And the position, which has to be read *before* the stop (opening the replacement writes its own sample rate into the shared block, and a position derived from the old rate's sample count is simply a wrong number), is stamped with the load it belongs to: `resume_start_ms` uses it only when the decoder was on that same load, by intent *and* by track, and otherwise starts where the load itself asked to.
+
+A rebuild also has to **interrupt** a session that is still loading, and that is a separate question from what it resumes. The decoder is inside `play_track` from the moment it accepts a load, and a `SwapProducer` that reaches it there is dropped: both drains fall through to a catch-all, on the stated assumption that the engine always sends a `Stop` first. Treating a loading track as "nothing playing" broke that assumption — the swap was lost, and the decoder went on writing into a ring whose consumer had just been torn down, which is silence until something else rebuilds the output. `Loading` therefore counts as a session, and resuming it is the right answer too: the load is in `last_load` and goes back out under its own intent.
+
+### What a rebuild does **not** put back
+
+Two sessions are parked instead of resumed, and `AudioEngine::park_session` handles both: it keeps the load so play picks up *this* session, lands the state on `Idle` (it cannot stay `Paused` — the `Stop` unloaded the track and the decoder ignores a `Resume` with nothing loaded, so the button would be dead), and writes a library track's resume point so the session survives a restart. `resume_last` prefers that park over the persisted resume point, which is what lets a radio station or a server track be parked at all: the resume point is always a *library* track's, so before #617 parking one of those brought back the last local track instead, and they were resumed unconditionally.
+
+- **The user had paused it** (#611), whichever rebuild is running. The question is asked of two sources, because one of them lags: `paused_output` is the decoder's answer, raised when the `Pause` is *processed*, and `AudioEngine::pause_pending` is the user's, recorded at the `send` boundary. A rebuild reading only the first inside that gap decided `Play` for a session that had just been paused — and its resume then cleared the flag and started the music. `notify_device_lost` has turned a playing session into `Paused` by the time the recovery runs, so the decision reads `paused_output`, which on the playback path only the decoder's own pause raises. Resuming these started music on whatever device the system fell back to — and the same was true of a *deliberate* rebuild: picking a device or flipping the exclusive toggle while paused started the track, because those two paths asked "was something loaded" rather than "was it playing". All three now run the same `rebuild_resume` and park what they should not start.
+- **The device went away and the fallback is a different one** (#617), while `audio.pause_on_device_loss` is on — it is, unless the profile says otherwise. This is the reported case: headphones off, Windows moves the output to the built-in speakers, the album keeps playing out loud. A device that flaps and comes back is *not* this case: the rebuild reopens the same endpoint, `endpoint_moved` says no, and the automatic recovery of #175 works as it always did. An endpoint neither side can name never counts as a move either — a wrong "moved" stops the music for a user who asked for none of this, a wrong "not moved" only costs the pause.
+
+The resume point is written against the profile that was active when the rebuild ran (`require_profile_pool_for`), and skipped when that can't be read without waiting — a switch is then under way, and must not receive it.
+
+### A device that disappears is not a default that changes
+
+Unplugging raises both signals at once: the stream breaks, **and** the system default moves. They arrive on two independent paths — the device-loss recovery above, and the [default-device follow](#following-the-os-default) — and each one takes the same `RebuildGate`, so whichever armed first decided what happened: the pause would land, or not, on a coin toss.
+
+`notify_device_lost` therefore stamps `AudioEngine::note_device_loss` at the moment of the error, before either backoff, and the follow stands down for `DEVICE_LOSS_OWNERSHIP` (3 s). It settles rather than defers: the recovery ends on the endpoint the system fell back to, which is the very endpoint this follow would have opened. The follow keeps its own job — a default the user re-points elsewhere while the device they were on is still there is not a loss, and playback follows it without pausing.
 
 Two gates keep the recovery from thrashing:
 
@@ -175,6 +226,35 @@ Two gates keep the recovery from thrashing:
 - **`FlapWindow`** (`EXCLUSIVE_FLAP_THRESHOLD` / `EXCLUSIVE_FLAP_WINDOW`) — a device that resets on every exclusive grab gives up on exclusive for the rest of the session (session-only: the persisted preference is untouched, so the next launch tries again). Cleared by an explicit toggle or device switch.
 
 Every failure path that ends with no output thread at all publishes `exclusive_output_active = false` + the event before returning the error — a toggle describing a stream that no longer exists is the exact shape of #405.
+
+### Saying what actually happened
+
+Playback can become something other than what was asked for, and for a long time the only trace was a log line — `player:error` reached a `console.error` and stopped there, and the three exclusive backends each fall back to shared mode on their own. #597 closes that, with two registers that must not be confused:
+
+- **`player:error` is a fault.** The device went away, the file would not open, the decoder crashed. It carries a technical `message` — kept, because that is what a bug report needs — and a `kind` (`device-lost`, `track-failed`, `stream-failed`, `decoder-crashed`, `decoder-stopped`, `offline`) the UI turns into a sentence in the user's language. The message rides in the tooltip; the sentence is what is on screen. An unknown kind falls back to a generic sentence rather than rendering a raw key, so a frontend and a backend of different vintages still say something sane.
+- **`player:notice` is not.** Exclusive requested and refused, DoP refused by the DAC, playback parked because the device went away (#617). Nothing failed — playback works — it simply contradicts a choice the user made, and that reads differently. `AudioEngine::publish_output_mode` decides, because it is the single place a successful open records what it opened *as*, and `announce_output_notice` emits **only on a transition**: a DAC that never accepts exclusive says so once, not at every track.
+
+`AudioEngine::output_mode` is the same question asked as state rather than as an event: `shared`, `exclusive`, `dop`, or `exclusive-refused`. It is computed in the engine, under one acquisition of the output lock, so the badge in the player, the notice and the Settings card cannot drift apart. `exclusive-refused` is precisely the state the UI could not name before: `player_get_exclusive_output` reports what *engaged*, and nothing reported what was *asked for*.
+
+On screen, `PlayerContext` owns both listeners and keeps one slot — the newest message describes the situation, and stacking them would nag. `PlaybackAlertToast` renders it in the two registers; `AudioQualityFooter` carries the badge, for the three modes that say something. Shared mode gets no chip: it is the normal case, and a badge on every track is noise rather than information.
+
+### Playing at the track's own rate
+
+Exclusive output takes the system mixer out of the path, but the sample rate stayed a **preference**: every backend opened at a rate the *device* offered and the decoder's resampler met it. Better than the system doing it — it is our resampler and nothing else is mixed in — but not the same as the source reaching the DAC untouched, which is why the word "bit-perfect" left the exclusive-output copy in #577.
+
+`audio.match_source_rate` (#600) is the other half, and it is **off by default**. Not because it is worse: reopening the device costs an audible gap, so every rate change becomes a break in the music, and for most listeners our resampler with nothing else in the path is the better trade. The preference is what decides, and the decision is stated rather than discovered.
+
+It avoids the resampler rather than abolishing it: a playback speed other than 1× feeds rubato a deliberately false source rate whatever the device is opened at, and that is the user asking for it. With it on, the decoder asks for the track's rate **after** `ActiveStream::open` — that is when the container has told us what it is — and before the first packet, because the resampler is built against whatever the output ends up at. Four conditions rule it out, in order: the preference, a DoP format that already pinned the rate (a demand must not be fought by a preference), an output that does not own its device (in shared mode the mixer is in the path whatever we open at), and a container that declares no rate at all — AAC in MP4 only reveals its rate once decoding starts, and re-clocking a DAC to a guess is worse than resampling.
+
+`RequestedFormat` is what carries either demand to the backends, and the difference between them is what a refusal means: DoP fails the open (the caller then plays DSD → PCM), a rate request falls back to a rate the device does offer. Per backend:
+
+- **WASAPI** — the track's rate goes to the head of the candidate list, on each layout the device offered, with the device's own rates kept behind it (`layouts_at_requested_rate`, pure and unit-tested). Deduped on the (rate, channels) pair actually probed, since each probe is a COM round trip.
+- **ALSA** — the rate rides into `open_pcm_negotiated` as the one to ask the card for, ahead of whatever the last stream opened at. `set_rate` is asked with `ValueOr::Nearest`, so a card that cannot do it opens at what it can.
+- **CoreAudio** — the device is re-clocked through the same `find_matching_physical_format` + `set_device_physical_stream_format` the DoP path uses, with the same guard putting the old format back on every exit path. Without that, quitting a 96 kHz track would leave every other app on the machine talking to a DAC clocked at 96 kHz.
+
+**The guard that keeps this from thrashing** is `AudioEngine::last_requested_rate`: the next track compares against what the last open *asked* for, never against what it got. A device that refused 96 kHz has its own rate installed, and comparing against that would tear the output down and rebuild it for every single track, forever. It is recorded inside `publish_output_mode`, so an open that asks for nothing in particular — a device switch, a mode toggle — clears it rather than leaving a stale rate behind.
+
+The pill in the pipeline popover needs no change: it already compares the source rate against the output rate, so it starts telling the truth when this is on and stops the moment a device refuses.
 
 ## OS media controls
 

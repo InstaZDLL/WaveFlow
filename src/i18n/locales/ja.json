@@ -757,7 +757,25 @@
       "custom": "カスタム速度",
       "pitchHint": "ピッチは速度に追従します（タイムストレッチなし）。"
     },
-    "seek": "再生位置"
+    "seek": "再生位置",
+    "alert": {
+      "error": {
+        "device-lost": "オーディオデバイスが切断されました",
+        "track-failed": "このトラックを再生できませんでした",
+        "stream-failed": "このストリームを開けませんでした",
+        "decoder-crashed": "オーディオエンジンを再起動しました",
+        "decoder-stopped": "エラーが続いたためオーディオエンジンを停止しました",
+        "offline": "オフラインモードが有効です",
+        "unknown": "再生に失敗しました"
+      },
+      "notice": {
+        "exclusive-refused": "このデバイスは排他モードを受け付けません。共有モードで再生します",
+        "dop-refused": "このDACはネイティブDSDを受け付けません。PCMに変換します",
+        "paused-device-lost": "デバイスが切断されました。再生を一時停止しました",
+        "unknown": "オーディオ出力が変わりました"
+      },
+      "dismiss": "閉じる"
+    }
   },
   "queue": {
     "title": "再生キュー",
@@ -786,7 +804,30 @@
     "empty": "利用可能な出力デバイスがありません",
     "systemDefault": "デフォルト",
     "pinnedUnavailable": "固定中・利用不可",
-    "reopen": "このデバイスを開き直す"
+    "reopen": "このデバイスを開き直す",
+    "capabilities": {
+      "probing": "対応状況を読み取り中…",
+      "unavailable": "対応状況を取得できません",
+      "details": "デバイスの詳細",
+      "summary": "{{bits}} ビット · {{rate}} kHz",
+      "channels": "チャンネル数: {{value}}",
+      "minPeriod": "最小周期: {{value}} フレーム",
+      "formats": "フォーマット",
+      "rates": "サンプリング周波数",
+      "caveat": "ドライバーが公称する内容と、排他モードで実際に受け付ける内容は別の問題です。",
+      "source": {
+        "wasapiExclusive": "排他モードでドライバーに問い合わせた結果です。",
+        "alsaHardware": "変換層を挟まない ALSA のハードウェアパラメーターです。",
+        "coreAudio": "デバイスがシステムに申告している内容です。",
+        "unavailable": "デバイスが使用中か見つかりません。何も読み取れませんでした。"
+      },
+      "tier": {
+        "cd": "CD品質",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {
@@ -1132,6 +1173,11 @@
         "speed": "速度 {{value}}×",
         "dopNative": "ネイティブDSD"
       }
+    },
+    "outputMode": {
+      "exclusive": "排他",
+      "dop": "ネイティブDSD",
+      "exclusiveRefused": "排他を拒否"
     }
   },
   "miniPlayer": {
@@ -1523,9 +1569,17 @@
       "subtitle": "システムミキサーと共有せず、デバイスをこのアプリだけで占有します。デバイスが拒否した場合は共有モードに戻ります。",
       "fallback": "デバイスが排他モードを受け付けません。共有モードに戻ります。"
     },
+    "matchSourceRate": {
+      "title": "各トラックのサンプリング周波数に合わせる",
+      "subtitle": "排他出力でトラックごとの周波数でデバイスを開き直します。デバイスが受け付ければリサンプリングを避け、周波数が変わるたびに音が途切れます"
+    },
     "mono": {
       "title": "モノラル音声",
       "subtitle": "左右のチャンネルを1つの信号にミックスする"
+    },
+    "pauseOnDeviceLoss": {
+      "title": "出力デバイスが切断されたら一時停止",
+      "subtitle": "オーディオ出力がなくなったとき、別のデバイスに移らずに再生を一時停止します"
     },
     "language": {
       "title": "言語",

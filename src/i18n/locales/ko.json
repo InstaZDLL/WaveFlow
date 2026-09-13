@@ -757,7 +757,25 @@
       "custom": "사용자 정의 속도",
       "pitchHint": "속도에 따라 피치가 변합니다 (타임 스트레칭 없음)."
     },
-    "seek": "탐색"
+    "seek": "탐색",
+    "alert": {
+      "error": {
+        "device-lost": "오디오 장치의 연결이 끊어졌습니다",
+        "track-failed": "이 트랙을 재생할 수 없습니다",
+        "stream-failed": "이 스트림을 열 수 없습니다",
+        "decoder-crashed": "오디오 엔진이 다시 시작되었습니다",
+        "decoder-stopped": "오류가 반복되어 오디오 엔진이 중지되었습니다",
+        "offline": "오프라인 모드가 켜져 있습니다",
+        "unknown": "재생에 실패했습니다"
+      },
+      "notice": {
+        "exclusive-refused": "이 장치는 배타 모드를 허용하지 않습니다. 공유 모드로 재생합니다",
+        "dop-refused": "이 DAC는 네이티브 DSD를 허용하지 않습니다. PCM으로 변환합니다",
+        "paused-device-lost": "장치 연결 끊김: 재생을 일시정지했습니다",
+        "unknown": "오디오 출력이 변경되었습니다"
+      },
+      "dismiss": "닫기"
+    }
   },
   "queue": {
     "title": "재생 큐",
@@ -786,7 +804,30 @@
     "empty": "사용 가능한 출력 장치가 없습니다",
     "systemDefault": "기본값",
     "pinnedUnavailable": "고정됨, 사용 불가",
-    "reopen": "이 장치 다시 열기"
+    "reopen": "이 장치 다시 열기",
+    "capabilities": {
+      "probing": "지원 정보를 읽는 중…",
+      "unavailable": "지원 정보를 확인할 수 없음",
+      "details": "장치 세부 정보",
+      "summary": "{{bits}} 비트 · {{rate}} kHz",
+      "channels": "채널: {{value}}",
+      "minPeriod": "최소 주기: {{value}} 프레임",
+      "formats": "형식",
+      "rates": "샘플링 주파수",
+      "caveat": "드라이버가 표기하는 것과 배타 모드에서 실제로 받아들이는 것은 서로 다른 문제입니다.",
+      "source": {
+        "wasapiExclusive": "배타 모드로 드라이버에 직접 확인했습니다.",
+        "alsaHardware": "변환 계층 없는 ALSA 하드웨어 매개변수입니다.",
+        "coreAudio": "장치가 시스템에 보고하는 정보입니다.",
+        "unavailable": "장치가 사용 중이거나 없습니다. 아무것도 읽지 못했습니다."
+      },
+      "tier": {
+        "cd": "CD 품질",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {
@@ -1132,6 +1173,11 @@
         "speed": "속도 {{value}}×",
         "dopNative": "네이티브 DSD"
       }
+    },
+    "outputMode": {
+      "exclusive": "배타",
+      "dop": "네이티브 DSD",
+      "exclusiveRefused": "배타 거부됨"
     }
   },
   "miniPlayer": {
@@ -1552,9 +1598,17 @@
       "subtitle": "장치를 시스템 믹서와 공유하지 않고 이 앱만 사용합니다. 장치가 거부하면 공유 모드로 돌아갑니다.",
       "fallback": "장치가 독점 모드를 허용하지 않습니다. 공유 모드로 돌아갑니다."
     },
+    "matchSourceRate": {
+      "title": "각 트랙의 샘플링 주파수에 맞추기",
+      "subtitle": "배타 출력에서 트랙마다 해당 주파수로 장치를 다시 엽니다. 장치가 받아들이면 리샘플링을 피하고, 주파수가 바뀔 때마다 끊깁니다"
+    },
     "mono": {
       "title": "모노 오디오",
       "subtitle": "좌우 채널을 하나의 신호로 합칩니다"
+    },
+    "pauseOnDeviceLoss": {
+      "title": "출력 장치가 연결 해제되면 일시정지",
+      "subtitle": "오디오 출력이 사라지면 다른 장치로 옮기지 않고 재생을 일시정지합니다"
     },
     "language": {
       "title": "언어",

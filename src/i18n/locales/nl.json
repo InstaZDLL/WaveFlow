@@ -757,7 +757,25 @@
       "custom": "Aangepaste snelheid",
       "pitchHint": "Toonhoogte volgt de snelheid (geen time-stretching)."
     },
-    "seek": "Spoelen"
+    "seek": "Spoelen",
+    "alert": {
+      "error": {
+        "device-lost": "Het audioapparaat is losgekoppeld",
+        "track-failed": "Dit nummer kon niet worden afgespeeld",
+        "stream-failed": "Deze stream kon niet worden geopend",
+        "decoder-crashed": "De audio-engine is opnieuw gestart",
+        "decoder-stopped": "De audio-engine is gestopt na herhaalde fouten",
+        "offline": "Offlinemodus staat aan",
+        "unknown": "Afspelen is mislukt"
+      },
+      "notice": {
+        "exclusive-refused": "Dit apparaat weigert de exclusieve modus: afspelen in gedeelde modus",
+        "dop-refused": "Deze DAC weigert native DSD: omzetting naar PCM",
+        "paused-device-lost": "Apparaat losgekoppeld: afspelen gepauzeerd",
+        "unknown": "De audio-uitvoer is gewijzigd"
+      },
+      "dismiss": "Sluiten"
+    }
   },
   "queue": {
     "title": "Afspeelwachtrij",
@@ -786,7 +804,30 @@
     "empty": "Geen uitvoerapparaat beschikbaar",
     "systemDefault": "Systeemstandaard",
     "pinnedUnavailable": "Vastgezet, niet beschikbaar",
-    "reopen": "Dit apparaat opnieuw openen"
+    "reopen": "Dit apparaat opnieuw openen",
+    "capabilities": {
+      "probing": "Mogelijkheden worden gelezen…",
+      "unavailable": "Mogelijkheden niet beschikbaar",
+      "details": "Apparaatdetails",
+      "summary": "{{bits}} bit · {{rate}} kHz",
+      "channels": "Kanalen: {{value}}",
+      "minPeriod": "Minimale periode: {{value}} frames",
+      "formats": "Formaten",
+      "rates": "Bemonsteringsfrequenties",
+      "caveat": "Wat een stuurprogramma opgeeft en wat het in exclusieve modus accepteert, zijn twee verschillende vragen.",
+      "source": {
+        "wasapiExclusive": "Getest bij het stuurprogramma in exclusieve modus.",
+        "alsaHardware": "ALSA-hardwareparameters, zonder conversielaag.",
+        "coreAudio": "Wat het apparaat aan het systeem meldt.",
+        "unavailable": "Apparaat bezet of afwezig: er kon niets worden gelezen."
+      },
+      "tier": {
+        "cd": "Cd-kwaliteit",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {
@@ -1132,6 +1173,11 @@
         "speed": "Snelheid {{value}}×",
         "dopNative": "Native DSD"
       }
+    },
+    "outputMode": {
+      "exclusive": "Exclusief",
+      "dop": "Native DSD",
+      "exclusiveRefused": "Exclusief geweigerd"
     }
   },
   "miniPlayer": {
@@ -1544,9 +1590,17 @@
       "subtitle": "Neemt het apparaat alleen voor deze app in plaats van het te delen met de systeemmixer. Valt terug op de gedeelde modus als het apparaat weigert.",
       "fallback": "Het apparaat accepteert geen exclusive-modus. Terugvallen op shared-modus."
     },
+    "matchSourceRate": {
+      "title": "Bemonsteringsfrequentie van elk nummer volgen",
+      "subtitle": "Bij exclusieve uitvoer wordt het apparaat opnieuw geopend op de frequentie van elk nummer: voorkomt herbemonstering als het apparaat die accepteert, maar met een onderbreking bij elke wisseling"
+    },
     "mono": {
       "title": "Mono-audio",
       "subtitle": "Combineert de linker- en rechterkanalen tot één signaal"
+    },
+    "pauseOnDeviceLoss": {
+      "title": "Pauzeren als het uitvoerapparaat wordt losgekoppeld",
+      "subtitle": "Verdwijnt de audio-uitvoer, dan wordt het afspelen gepauzeerd in plaats van over te gaan op een ander apparaat"
     },
     "language": {
       "title": "Taal",

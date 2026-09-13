@@ -757,7 +757,25 @@
       "custom": "自訂速度",
       "pitchHint": "音高隨速度變化（無時間拉伸）。"
     },
-    "seek": "跳轉"
+    "seek": "跳轉",
+    "alert": {
+      "error": {
+        "device-lost": "音訊裝置已中斷",
+        "track-failed": "無法播放此曲目",
+        "stream-failed": "無法開啟此串流",
+        "decoder-crashed": "音訊引擎已重新啟動",
+        "decoder-stopped": "多次錯誤後音訊引擎已停止",
+        "offline": "離線模式已開啟",
+        "unknown": "播放失敗"
+      },
+      "notice": {
+        "exclusive-refused": "此裝置不接受獨佔模式：以共用模式播放",
+        "dop-refused": "此 DAC 不接受原生 DSD：轉換為 PCM",
+        "paused-device-lost": "裝置已中斷：播放已暫停",
+        "unknown": "音訊輸出已變更"
+      },
+      "dismiss": "關閉"
+    }
   },
   "queue": {
     "title": "播放佇列",
@@ -786,7 +804,30 @@
     "empty": "沒有可用的輸出裝置",
     "systemDefault": "預設",
     "pinnedUnavailable": "已釘選，無法使用",
-    "reopen": "重新開啟此裝置"
+    "reopen": "重新開啟此裝置",
+    "capabilities": {
+      "probing": "正在讀取裝置能力…",
+      "unavailable": "無法取得裝置能力",
+      "details": "裝置詳細資料",
+      "summary": "{{bits}} 位元 · {{rate}} kHz",
+      "channels": "聲道：{{value}}",
+      "minPeriod": "最小週期：{{value}} 影格",
+      "formats": "格式",
+      "rates": "取樣率",
+      "caveat": "驅動聲稱支援什麼，和它在獨佔模式下實際接受什麼，是兩個不同的問題。",
+      "source": {
+        "wasapiExclusive": "已在獨佔模式下向驅動求證。",
+        "alsaHardware": "ALSA 硬體參數，不經任何轉換層。",
+        "coreAudio": "裝置向系統申報的資訊。",
+        "unavailable": "裝置忙碌或不存在：什麼也讀不到。"
+      },
+      "tier": {
+        "cd": "CD 音質",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {
@@ -1132,6 +1173,11 @@
         "speed": "速度 {{value}}×",
         "dopNative": "原生 DSD"
       }
+    },
+    "outputMode": {
+      "exclusive": "獨佔",
+      "dop": "原生 DSD",
+      "exclusiveRefused": "獨佔遭拒"
     }
   },
   "miniPlayer": {
@@ -1523,9 +1569,17 @@
       "subtitle": "讓本應用程式獨佔裝置，而不是與系統混音器共用。裝置拒絕時會回到共用模式。",
       "fallback": "裝置不接受獨佔模式，正在退回共用模式。"
     },
+    "matchSourceRate": {
+      "title": "跟隨每首曲目的取樣率",
+      "subtitle": "在獨佔輸出下，依每首曲目的取樣率重新開啟裝置：裝置接受時避免重新取樣，每次取樣率改變都會中斷一次"
+    },
     "mono": {
       "title": "單聲道音訊",
       "subtitle": "將左右聲道混合成單一訊號"
+    },
+    "pauseOnDeviceLoss": {
+      "title": "輸出裝置中斷時暫停",
+      "subtitle": "音訊輸出消失時暫停播放，而不是切換到其他裝置"
     },
     "language": {
       "title": "語言",

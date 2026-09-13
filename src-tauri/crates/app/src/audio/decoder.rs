@@ -66,6 +66,27 @@ struct TrackEndedPayload {
 #[derive(Serialize, Clone)]
 struct ErrorPayload {
     message: String,
+    /// Which failure this is, so the UI can say it in the user's own
+    /// language instead of showing a backend string (#597). The message
+    /// stays, and stays technical — it is what a bug report needs.
+    kind: &'static str,
+}
+
+impl ErrorPayload {
+    /// A track that will not play. The common case on this thread: the
+    /// file would not open, the decode failed, no output could be built
+    /// for it.
+    fn track_failed(message: String) -> Self {
+        Self {
+            message,
+            kind: "track-failed",
+        }
+    }
+
+    /// Anything else, named explicitly.
+    fn of(kind: &'static str, message: String) -> Self {
+        Self { message, kind }
+    }
 }
 
 /// Common path for `LoadAndPlay` / `LoadUrlAndPlay` — fire the right
@@ -139,12 +160,7 @@ fn handle_playback_outcome(
                 source = source_label.as_deref().unwrap_or(""),
                 "playback failed"
             );
-            let _ = app.emit(
-                EVENT_ERROR,
-                ErrorPayload {
-                    message: err.clone(),
-                },
-            );
+            let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err.clone()));
             // Read the live `current_track_id` rather than the
             // id passed in from the original `LoadAndPlay` /
             // `LoadUrlAndPlay` command: `play_track`'s crossfade
@@ -244,9 +260,10 @@ pub fn spawn_decoder_thread(
                         tracing::error!(%message, panic_count, "audio decoder thread panicked");
                         let _ = app.emit(
                             EVENT_ERROR,
-                            ErrorPayload {
-                                message: format!("audio decoder crashed: {message}"),
-                            },
+                            ErrorPayload::of(
+                                "decoder-crashed",
+                                format!("audio decoder crashed: {message}"),
+                            ),
                         );
                         transition_state(&shared, &app, PlayerState::Idle, None);
                         if panic_count >= MAX_DECODER_PANICS {
@@ -256,10 +273,10 @@ pub fn spawn_decoder_thread(
                             );
                             let _ = app.emit(
                                 EVENT_ERROR,
-                                ErrorPayload {
-                                    message: "audio decoder stopped after repeated crashes"
-                                        .to_string(),
-                                },
+                                ErrorPayload::of(
+                                    "decoder-stopped",
+                                    "audio decoder stopped after repeated crashes".to_string(),
+                                ),
                             );
                             break;
                         }
@@ -380,7 +397,7 @@ fn decoder_loop(
                     Ok(engaged) => engaged,
                     Err(err) => {
                         tracing::warn!(%err, path = %path.display(), "no output for this track");
-                        let _ = app.emit(EVENT_ERROR, ErrorPayload { message: err });
+                        let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err));
                         transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                         continue;
                     }
@@ -399,11 +416,26 @@ fn decoder_loop(
                     Ok(s) => s,
                     Err(err) => {
                         tracing::warn!(?err, path = %path.display(), "open failed");
-                        let _ = app.emit(EVENT_ERROR, ErrorPayload { message: err });
+                        let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err));
                         transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                         continue;
                     }
                 };
+
+                // #600: now that the container has told us the track's
+                // rate, ask the device for it. After the open rather
+                // than before, because that is when the rate is known —
+                // and before the first packet, because the resampler the
+                // decoder builds on it has to target the rate we end up
+                // with.
+                if let Err(err) =
+                    maybe_match_source_rate(&app, &shared, &stream, dop_engaged, producer)
+                {
+                    tracing::warn!(%err, path = %path.display(), "no output for this track");
+                    let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err));
+                    transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
+                    continue;
+                }
 
                 if dop_engaged {
                     let outcome = play_dop_track(
@@ -480,7 +512,7 @@ fn decoder_loop(
                 shared.current_track_id.store(track_id, Ordering::Release);
                 if let Err(err) = restore_pcm_output(&app, producer) {
                     tracing::warn!(%err, "no output for this remote track");
-                    let _ = app.emit(EVENT_ERROR, ErrorPayload { message: err });
+                    let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err));
                     transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                     continue;
                 }
@@ -565,7 +597,7 @@ fn decoder_loop(
                             });
                             continue;
                         }
-                        let _ = app.emit(EVENT_ERROR, ErrorPayload { message: err });
+                        let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err));
                         transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                         continue;
                     }
@@ -654,7 +686,7 @@ fn decoder_loop(
                 shared.current_track_id.store(track_id, Ordering::Release);
                 if let Err(err) = restore_pcm_output(&app, producer) {
                     tracing::warn!(%err, "no output for this stream");
-                    let _ = app.emit(EVENT_ERROR, ErrorPayload { message: err });
+                    let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err));
                     transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                     continue;
                 }
@@ -670,9 +702,7 @@ fn decoder_loop(
                 if crate::offline::is_offline() {
                     let _ = app.emit(
                         EVENT_ERROR,
-                        ErrorPayload {
-                            message: "offline mode is enabled".to_string(),
-                        },
+                        ErrorPayload::of("offline", "offline mode is enabled".to_string()),
                     );
                     transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                     continue;
@@ -779,9 +809,7 @@ fn decoder_loop(
                         tracing::warn!(?err, url = %redacted, "url stream open failed");
                         let _ = app.emit(
                             EVENT_ERROR,
-                            ErrorPayload {
-                                message: format!("url stream open: {err}"),
-                            },
+                            ErrorPayload::of("stream-failed", format!("url stream open: {err}")),
                         );
                         transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                         continue;
@@ -808,9 +836,7 @@ fn decoder_loop(
                         tracing::warn!(?err, url = %redacted, "radio stream probe failed");
                         let _ = app.emit(
                             EVENT_ERROR,
-                            ErrorPayload {
-                                message: format!("radio stream probe: {err}"),
-                            },
+                            ErrorPayload::of("stream-failed", format!("radio stream probe: {err}")),
                         );
                         transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                         continue;
@@ -969,12 +995,62 @@ fn maybe_switch_dop_output(
         // — stay on the current output and the PCM path.
         return Ok(false);
     };
-    match engine.switch_output_for_track(want) {
+    match engine.switch_output_for_track(want.map(super::output::RequestedFormat::dop)) {
         Ok((new_producer, engaged)) => {
             if let Some(p) = new_producer {
                 *producer = p;
             }
             Ok(engaged)
+        }
+        Err(err) => Err(format!("audio output switch failed: {err}")),
+    }
+}
+
+/// Reopen the output at this track's own rate, so nothing resamples
+/// (#600).
+///
+/// Four conditions, all of them cheap, and the order is the order they
+/// rule things out:
+///
+/// - the user asked for it — this is a preference, because a reopen
+///   costs an audible gap and every rate change becomes one;
+/// - DoP did not already pin the format, which would be a demand
+///   fighting a preference;
+/// - the output really owns its device. In shared mode the system mixer
+///   is in the path whatever rate we open at, so the gap would buy
+///   nothing;
+/// - the container declared a rate at all. AAC in MP4 does not until
+///   decoding starts, and re-clocking a DAC to a guess is worse than
+///   resampling.
+///
+/// Errors for the same reason as [`maybe_switch_dop_output`]: by the
+/// time the engine fails, the previous output is gone and there is no
+/// device on the other end of `producer`.
+fn maybe_match_source_rate(
+    app: &AppHandle,
+    shared: &SharedPlayback,
+    stream: &ActiveStream,
+    dop_engaged: bool,
+    producer: &mut Producer<f32>,
+) -> Result<(), String> {
+    if dop_engaged || !shared.match_source_rate.load(Ordering::Acquire) {
+        return Ok(());
+    }
+    let Some(rate) = stream.declared_sample_rate.filter(|&rate| rate > 0) else {
+        return Ok(());
+    };
+    let Some(engine) = app.try_state::<Arc<AudioEngine>>() else {
+        return Ok(());
+    };
+    if !engine.exclusive_output() {
+        return Ok(());
+    }
+    match engine.switch_output_for_track(Some(super::output::RequestedFormat::source_rate(rate))) {
+        Ok((new_producer, _)) => {
+            if let Some(p) = new_producer {
+                *producer = p;
+            }
+            Ok(())
         }
         Err(err) => Err(format!("audio output switch failed: {err}")),
     }
@@ -1185,12 +1261,7 @@ fn play_dop_track(
             }
             Ok(false) => {}
             Err(err) => {
-                let _ = app.emit(
-                    EVENT_ERROR,
-                    ErrorPayload {
-                        message: err.clone(),
-                    },
-                );
+                let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err.clone()));
                 return Err(err);
             }
         }
@@ -1998,6 +2069,12 @@ fn accept_load(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
     shared
         .newest_load_intent
         .store(intent.get(), Ordering::Release);
+    // Accepted, so this is now what the decoder plays — and what an output
+    // rebuild has to put back after its `Stop` (#634). Recorded here, at
+    // the single point every load passes through, rather than at send
+    // time: a load superseded on the way in must not become the thing a
+    // rebuild resumes.
+    shared.record_accepted_load(cmd);
     true
 }
 

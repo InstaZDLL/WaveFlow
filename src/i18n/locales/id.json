@@ -757,7 +757,25 @@
       "custom": "Kecepatan kustom",
       "pitchHint": "Pitch mengikuti kecepatan (tanpa time-stretching)."
     },
-    "seek": "Geser posisi"
+    "seek": "Geser posisi",
+    "alert": {
+      "error": {
+        "device-lost": "Perangkat audio terputus",
+        "track-failed": "Trek ini tidak dapat diputar",
+        "stream-failed": "Aliran ini tidak dapat dibuka",
+        "decoder-crashed": "Mesin audio dimulai ulang",
+        "decoder-stopped": "Mesin audio berhenti setelah beberapa kesalahan",
+        "offline": "Mode luring aktif",
+        "unknown": "Pemutaran gagal"
+      },
+      "notice": {
+        "exclusive-refused": "Perangkat ini menolak mode eksklusif: memutar dalam mode berbagi",
+        "dop-refused": "DAC ini menolak DSD asli: mengonversi ke PCM",
+        "paused-device-lost": "Perangkat terputus: pemutaran dijeda",
+        "unknown": "Keluaran audio berubah"
+      },
+      "dismiss": "Tutup"
+    }
   },
   "queue": {
     "title": "Antrean putar",
@@ -786,7 +804,30 @@
     "empty": "Tidak ada perangkat output yang tersedia",
     "systemDefault": "Default sistem",
     "pinnedUnavailable": "Disematkan, tidak tersedia",
-    "reopen": "Buka ulang perangkat ini"
+    "reopen": "Buka ulang perangkat ini",
+    "capabilities": {
+      "probing": "Membaca kemampuan…",
+      "unavailable": "Kemampuan tidak tersedia",
+      "details": "Detail perangkat",
+      "summary": "{{bits}} bit · {{rate}} kHz",
+      "channels": "Kanal: {{value}}",
+      "minPeriod": "Periode minimum: {{value}} bingkai",
+      "formats": "Format",
+      "rates": "Laju pencuplikan",
+      "caveat": "Apa yang dinyatakan driver dan apa yang diterimanya dalam mode eksklusif adalah dua pertanyaan berbeda.",
+      "source": {
+        "wasapiExclusive": "Diuji pada driver dalam mode eksklusif.",
+        "alsaHardware": "Parameter perangkat keras ALSA, tanpa lapisan konversi.",
+        "coreAudio": "Apa yang dilaporkan perangkat ke sistem.",
+        "unavailable": "Perangkat sibuk atau tidak ada: tidak ada yang bisa dibaca."
+      },
+      "tier": {
+        "cd": "Kualitas CD",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {
@@ -1132,6 +1173,11 @@
         "speed": "Kecepatan {{value}}×",
         "dopNative": "DSD asli"
       }
+    },
+    "outputMode": {
+      "exclusive": "Eksklusif",
+      "dop": "DSD asli",
+      "exclusiveRefused": "Eksklusif ditolak"
     }
   },
   "miniPlayer": {
@@ -1544,9 +1590,17 @@
       "subtitle": "Mengambil perangkat hanya untuk aplikasi ini alih-alih membaginya dengan mixer sistem. Kembali ke mode berbagi jika perangkat menolak.",
       "fallback": "Perangkat tidak menerima mode eksklusif. Kembali ke mode bersama."
     },
+    "matchSourceRate": {
+      "title": "Ikuti laju pencuplikan tiap trek",
+      "subtitle": "Pada keluaran eksklusif, perangkat dibuka ulang pada laju tiap trek: menghindari pencuplikan ulang bila perangkat menerimanya, dengan jeda pada setiap perubahan laju"
+    },
     "mono": {
       "title": "Audio mono",
       "subtitle": "Menggabungkan kanal kiri dan kanan menjadi satu sinyal"
+    },
+    "pauseOnDeviceLoss": {
+      "title": "Jeda saat perangkat keluaran terputus",
+      "subtitle": "Saat keluaran audio hilang, pemutaran dijeda alih-alih pindah ke perangkat lain"
     },
     "language": {
       "title": "Bahasa",

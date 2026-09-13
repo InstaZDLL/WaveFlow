@@ -16,6 +16,7 @@ import {
   Volume2,
   AudioWaveform,
   Headphones,
+  Unplug,
   Shuffle,
   Radio,
   Eye,
@@ -66,6 +67,8 @@ import {
   playerGetAudioSettings,
   playerSetNormalize,
   playerSetMono,
+  playerSetPauseOnDeviceLoss,
+  playerSetMatchSourceRate,
   playerSetCrossfade,
   playerSetGapless,
   playerSetReplayGain,
@@ -1223,6 +1226,24 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // Audio settings — hydrated from backend at mount.
   const [normalize, setNormalize] = useState(false);
   const [mono, setMono] = useState(false);
+  // #617. Mirrors the engine's own default, so the row does not flip
+  // under the user between the first paint and the read below.
+  const [pauseOnDeviceLoss, setPauseOnDeviceLoss] = useState(true);
+  // Which of these two the user has touched since the audio-settings
+  // read in flight started. That read is an IPC round trip, and a toggle
+  // during it would otherwise be painted over by the value it just
+  // replaced — the write still lands, so the UI would then disagree with
+  // the database until the next hydration. Cleared when a read starts,
+  // and consulted when it resolves.
+  const audioSettingsTouched = useRef<Set<string>>(new Set());
+  // Bumped when one of those writes fails, to re-run the read below. The
+  // optimistic rollback restores the value the click replaced, and after
+  // a failed write that value may itself never have been persisted — so
+  // the panel is refilled from the backend rather than from a guess.
+  const [audioSettingsNonce, setAudioSettingsNonce] = useState(0);
+  // #600. Off, like the engine: a reopen costs an audible gap, so this
+  // is a trade rather than an improvement.
+  const [matchSourceRate, setMatchSourceRate] = useState(false);
   const [crossfadeSec, setCrossfadeSec] = useState(0);
   const [replayGain, setReplayGain] = useState(false);
   const [replayGainPreamp, setReplayGainPreamp] = useState(0);
@@ -1664,11 +1685,18 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // that belongs to the profile we just left.
   useEffect(() => {
     let stale = false;
+    audioSettingsTouched.current = new Set();
     playerGetAudioSettings()
       .then((s) => {
         if (stale) return;
         setNormalize(s.normalize);
         setMono(s.mono);
+        if (!audioSettingsTouched.current.has("pauseOnDeviceLoss")) {
+          setPauseOnDeviceLoss(s.pause_on_device_loss);
+        }
+        if (!audioSettingsTouched.current.has("matchSourceRate")) {
+          setMatchSourceRate(s.match_source_rate);
+        }
         setCrossfadeSec(Math.round(s.crossfade_ms / 1000));
         setReplayGain(s.replaygain);
         setReplayGainPreamp(s.replaygain_preamp_db);
@@ -1689,7 +1717,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     return () => {
       stale = true;
     };
-  }, [activeProfile?.id]);
+  }, [activeProfile?.id, audioSettingsNonce]);
 
   const handleToggleNormalize = useCallback(() => {
     const next = !normalize;
@@ -1893,6 +1921,59 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       setMono(!next);
     });
   }, [mono]);
+
+  // Both of these are profile-scoped settings written by a backend
+  // command, so they take the same discipline `handleToggleDsdDop`
+  // established below: writes chained rather than fired in parallel, so
+  // two fast clicks cannot leave the persisted value on the *first* one,
+  // and a conditional rollback so a stale failure cannot clobber a newer
+  // click. Each entry carries the profile it was scheduled under — the
+  // queue outlives a switch, and a late write (or its rollback) would
+  // otherwise put profile A's value into profile B.
+  const matchSourceRateWrite = useRef<Promise<void>>(Promise.resolve());
+  const handleToggleMatchSourceRate = useCallback(() => {
+    const prev = matchSourceRate;
+    const next = !prev;
+    const profileId = activeProfile?.id;
+    audioSettingsTouched.current.add("matchSourceRate");
+    setMatchSourceRate(next);
+    matchSourceRateWrite.current = matchSourceRateWrite.current
+      .catch(() => {})
+      .then(() => {
+        if (activeProfileIdRef.current !== profileId) return;
+        return playerSetMatchSourceRate(next);
+      })
+      .catch((err) => {
+        console.error("[Settings] set match source rate failed", err);
+        if (activeProfileIdRef.current !== profileId) return;
+        setMatchSourceRate((cur) => (cur === next ? prev : cur));
+        // …and then ask the backend what it really holds: `prev` is the
+        // value this click replaced, which after a failed write may
+        // never have been persisted either.
+        setAudioSettingsNonce((n) => n + 1);
+      });
+  }, [matchSourceRate, activeProfile?.id]);
+
+  const pauseOnDeviceLossWrite = useRef<Promise<void>>(Promise.resolve());
+  const handleTogglePauseOnDeviceLoss = useCallback(() => {
+    const prev = pauseOnDeviceLoss;
+    const next = !prev;
+    const profileId = activeProfile?.id;
+    audioSettingsTouched.current.add("pauseOnDeviceLoss");
+    setPauseOnDeviceLoss(next);
+    pauseOnDeviceLossWrite.current = pauseOnDeviceLossWrite.current
+      .catch(() => {})
+      .then(() => {
+        if (activeProfileIdRef.current !== profileId) return;
+        return playerSetPauseOnDeviceLoss(next);
+      })
+      .catch((err) => {
+        console.error("[Settings] set pause on device loss failed", err);
+        if (activeProfileIdRef.current !== profileId) return;
+        setPauseOnDeviceLoss((cur) => (cur === next ? prev : cur));
+        setAudioSettingsNonce((n) => n + 1);
+      });
+  }, [pauseOnDeviceLoss, activeProfile?.id]);
 
   // Debounce crossfade slider changes to avoid spamming the backend.
   const crossfadeTimerRef = useRef<number | null>(null);
@@ -2565,6 +2646,28 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               backend now, so the card no longer hides itself. */}
             <ExclusiveModeCard />
 
+            {/* Match each track's sample rate (#600) — right after the
+                exclusive card, because it only does anything while the
+                output owns its device. */}
+            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <div className="flex items-center space-x-4">
+                <Gauge size={20} className="text-zinc-400" aria-hidden="true" />
+                <div>
+                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                    {t("settings.matchSourceRate.title")}
+                  </div>
+                  <div className="text-xs text-zinc-400">
+                    {t("settings.matchSourceRate.subtitle")}
+                  </div>
+                </div>
+              </div>
+              <ToggleSwitch
+                enabled={matchSourceRate}
+                onToggle={handleToggleMatchSourceRate}
+                label={t("settings.matchSourceRate.title")}
+              />
+            </div>
+
             {/* Audio mono */}
             <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
               <div className="flex items-center space-x-4">
@@ -2586,6 +2689,26 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 enabled={mono}
                 onToggle={handleToggleMono}
                 label={t("settings.mono.title")}
+              />
+            </div>
+
+            {/* Pause when the output device disconnects (#617) */}
+            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <div className="flex items-center space-x-4">
+                <Unplug size={20} className="text-zinc-400" aria-hidden="true" />
+                <div>
+                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                    {t("settings.pauseOnDeviceLoss.title")}
+                  </div>
+                  <div className="text-xs text-zinc-400">
+                    {t("settings.pauseOnDeviceLoss.subtitle")}
+                  </div>
+                </div>
+              </div>
+              <ToggleSwitch
+                enabled={pauseOnDeviceLoss}
+                onToggle={handleTogglePauseOnDeviceLoss}
+                label={t("settings.pauseOnDeviceLoss.title")}
               />
             </div>
 

@@ -33,6 +33,7 @@ import { ProfileSelectorModal } from "../common/ProfileSelectorModal";
 import { LastfmReauthBanner } from "../common/LastfmReauthBanner";
 import { UpdateBanner } from "../common/UpdateBanner";
 import { ScanProgressToast } from "../common/ScanProgressToast";
+import { PlaybackAlertToast } from "../common/PlaybackAlertToast";
 import { OnboardingModal } from "../common/OnboardingModal";
 import { ViewSuspenseFallback } from "../common/ViewSuspenseFallback";
 import { PageScrollContext } from "../../contexts/PageScrollContext";
@@ -794,6 +795,7 @@ export function AppLayout() {
         <LastfmReauthBanner onGoToSettings={() => setActiveView("settings")} />
         <UpdateBanner />
         <ScanProgressToast />
+        <PlaybackAlertToast />
         {showOnboarding && <OnboardingModal onSkip={dismissOnboarding} />}
       </div>
     </SkinMotionWrapper>

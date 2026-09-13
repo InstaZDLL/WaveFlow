@@ -757,7 +757,25 @@
       "custom": "Vitesse personnalisée",
       "pitchHint": "La hauteur suit la vitesse (pas d'étirement temporel)."
     },
-    "seek": "Position"
+    "seek": "Position",
+    "alert": {
+      "error": {
+        "device-lost": "Le périphérique audio a été déconnecté",
+        "track-failed": "Impossible de lire ce titre",
+        "stream-failed": "Impossible d'ouvrir ce flux",
+        "decoder-crashed": "Le moteur audio a redémarré",
+        "decoder-stopped": "Le moteur audio s'est arrêté après plusieurs erreurs",
+        "offline": "Le mode hors ligne est activé",
+        "unknown": "La lecture a échoué"
+      },
+      "notice": {
+        "exclusive-refused": "Ce périphérique refuse le mode exclusif : lecture en mode partagé",
+        "dop-refused": "Ce DAC refuse le DSD natif : conversion en PCM",
+        "paused-device-lost": "Périphérique déconnecté : lecture mise en pause",
+        "unknown": "La sortie audio a changé"
+      },
+      "dismiss": "Fermer"
+    }
   },
   "queue": {
     "title": "File d'attente",
@@ -786,7 +804,30 @@
     "empty": "Aucun périphérique de sortie disponible",
     "systemDefault": "Par défaut",
     "pinnedUnavailable": "Épinglé, indisponible",
-    "reopen": "Rouvrir ce périphérique"
+    "reopen": "Rouvrir ce périphérique",
+    "capabilities": {
+      "probing": "Lecture des capacités…",
+      "unavailable": "Capacités indisponibles",
+      "details": "Détails du périphérique",
+      "summary": "{{bits}} bit · {{rate}} kHz",
+      "channels": "Canaux : {{value}}",
+      "minPeriod": "Période minimale : {{value}} trames",
+      "formats": "Formats",
+      "rates": "Taux d'échantillonnage",
+      "caveat": "Ce qu'un pilote déclare et ce qu'il accepte en mode exclusif sont deux questions différentes.",
+      "source": {
+        "wasapiExclusive": "Testé auprès du pilote en mode exclusif.",
+        "alsaHardware": "Paramètres du matériel ALSA, sans couche de conversion.",
+        "coreAudio": "Ce que le périphérique déclare au système.",
+        "unavailable": "Périphérique occupé ou absent : rien n'a pu être lu."
+      },
+      "tier": {
+        "cd": "Qualité CD",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {
@@ -1132,6 +1173,11 @@
         "speed": "Vitesse {{value}}×",
         "dopNative": "DSD natif"
       }
+    },
+    "outputMode": {
+      "exclusive": "Exclusif",
+      "dop": "DSD natif",
+      "exclusiveRefused": "Exclusif refusé"
     }
   },
   "miniPlayer": {
@@ -1597,9 +1643,17 @@
       "subtitle": "Prend le périphérique pour cette application seule au lieu de le partager avec le mixeur du système. Revient au mode partagé si le périphérique refuse.",
       "fallback": "Le périphérique n'accepte pas le mode exclusif. Retour en mode partagé."
     },
+    "matchSourceRate": {
+      "title": "Suivre le taux d'échantillonnage des pistes",
+      "subtitle": "En sortie exclusive, rouvre le périphérique au taux de chaque piste : évite le rééchantillonnage quand il l'accepte, au prix d'une coupure à chaque changement de taux"
+    },
     "mono": {
       "title": "Audio mono",
       "subtitle": "Mélange les canaux gauche et droit en un signal unique"
+    },
+    "pauseOnDeviceLoss": {
+      "title": "Pause si le périphérique est déconnecté",
+      "subtitle": "Quand la sortie audio disparaît, la lecture est mise en pause au lieu de passer sur un autre périphérique"
     },
     "language": {
       "title": "Langue",

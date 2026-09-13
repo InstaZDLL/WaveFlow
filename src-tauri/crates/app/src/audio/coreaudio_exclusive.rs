@@ -55,7 +55,7 @@ use objc2_core_audio_types::AudioStreamBasicDescription;
 use rtrb::{Consumer, Producer, RingBuffer};
 use tauri::AppHandle;
 
-use super::output::{DopFormat, OutputHandle, RING_CAPACITY};
+use super::output::{DopFormat, OutputHandle, RequestedFormat, RING_CAPACITY};
 use super::state::SharedPlayback;
 use crate::error::{AppError, AppResult};
 
@@ -73,7 +73,7 @@ pub fn spawn_coreaudio_exclusive_output_thread(
     shared: Arc<SharedPlayback>,
     app: AppHandle,
     device_name: Option<String>,
-    dop: Option<DopFormat>,
+    requested: Option<RequestedFormat>,
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
     let (producer, consumer) = RingBuffer::<f32>::new(RING_CAPACITY);
     let (shutdown_tx, shutdown_rx) = bounded::<()>(1);
@@ -83,9 +83,9 @@ pub fn spawn_coreaudio_exclusive_output_thread(
     let thread_app = app.clone();
     let thread_device = device_name.clone();
     let join: JoinHandle<()> = std::thread::Builder::new()
-        .name(match dop {
-            Some(_) => "waveflow-coreaudio-dop".into(),
-            None => "waveflow-coreaudio-exclusive".to_string(),
+        .name(match requested {
+            Some(r) if r.dop => "waveflow-coreaudio-dop".into(),
+            _ => "waveflow-coreaudio-exclusive".to_string(),
         })
         .spawn(move || {
             output_thread_main(
@@ -95,7 +95,7 @@ pub fn spawn_coreaudio_exclusive_output_thread(
                 init_tx,
                 thread_app,
                 thread_device,
-                dop,
+                requested,
             )
         })
         .map_err(|e| AppError::Audio(format!("spawn coreaudio exclusive thread: {e}")))?;
@@ -113,7 +113,9 @@ pub fn spawn_coreaudio_exclusive_output_thread(
                 // and ALSA report. It used to say `false` here, which
                 // had the pipeline panel deny a grab that had happened.
                 exclusive: true,
-                dop,
+                // A rate request is not DoP however exact it lands: the
+                // handle records the packing, not the accuracy.
+                dop: requested.and_then(RequestedFormat::as_dop),
             },
         )),
         Ok(Err(err)) => {
@@ -133,7 +135,7 @@ fn output_thread_main(
     init_tx: Sender<AppResult<Option<String>>>,
     app: AppHandle,
     device_name: Option<String>,
-    dop: Option<DopFormat>,
+    requested: Option<RequestedFormat>,
 ) {
     // `resolve_device` hands back the name only when the pin matched; a
     // fallback to the default output reports `None`, which the picker
@@ -156,7 +158,7 @@ fn output_thread_main(
     }
 
     // Everything past hog acquisition must release it on the way out.
-    let result = match dop {
+    let result = match requested.and_then(RequestedFormat::as_dop) {
         Some(dop) => open_and_run(
             &shared,
             consumer,
@@ -173,6 +175,7 @@ fn output_thread_main(
             &init_tx,
             device_id,
             opened_device,
+            requested.map(|r| r.sample_rate),
         ),
     };
 
@@ -365,14 +368,100 @@ fn open_and_run_pcm(
     init_tx: &Sender<AppResult<Option<String>>>,
     device_id: AudioDeviceID,
     opened_device: Option<String>,
+    requested_rate: Option<u32>,
 ) -> AppResult<ExitReason> {
-    // Read, don't set: this is the device's own current format, and the
-    // whole point of the PCM path is that we leave it alone.
+    // Read, don't set: this is the device's own current format, and by
+    // default the whole point of the PCM path is that we leave it alone.
     let current = read_physical_stream_format(device_id).map_err(|e| {
         AppError::Audio(format!(
             "coreaudio: can't read the device's current physical format ({e})"
         ))
     })?;
+
+    // …unless the user asked us to play every track at its own rate
+    // (#600). Then the device has to be re-clocked, exactly as the DoP
+    // path does it — and, exactly as there, put back afterwards: pinning
+    // the physical format is a change to the *device*, so without the
+    // guard below, quitting a 96 kHz track would leave every other app on
+    // the machine talking to a DAC clocked at 96 kHz.
+    //
+    // Best-effort by design. A device with no matching physical format
+    // keeps the one it has and the decoder resamples, which is the
+    // fallback that makes this a preference rather than a demand.
+    let mut format_guard = PhysicalFormatGuard {
+        device_id,
+        previous: None,
+    };
+    let current = match requested_rate {
+        Some(rate) if f64::from(rate) != current.mSampleRate => {
+            // `find_matching_physical_format` matches the depth and the
+            // number type exactly — only the flags are ignored — so
+            // asking for 32-bit float alone finds nothing on a DAC whose
+            // physical formats are integer, which is most of them. The
+            // rate is what we are after; the depth is whatever the device
+            // offers at it, deepest first, exactly as the DoP path walks
+            // its own chain.
+            let wanted = [
+                (
+                    SampleFormat::F32,
+                    LinearPcmFlags::IS_FLOAT | LinearPcmFlags::IS_PACKED,
+                ),
+                (
+                    SampleFormat::I32,
+                    LinearPcmFlags::IS_SIGNED_INTEGER | LinearPcmFlags::IS_PACKED,
+                ),
+                (
+                    SampleFormat::I24,
+                    LinearPcmFlags::IS_SIGNED_INTEGER | LinearPcmFlags::IS_PACKED,
+                ),
+                (
+                    SampleFormat::I16,
+                    LinearPcmFlags::IS_SIGNED_INTEGER | LinearPcmFlags::IS_PACKED,
+                ),
+            ]
+            .into_iter()
+            .find_map(|(sample_format, flags)| {
+                find_matching_physical_format(
+                    device_id,
+                    StreamFormat {
+                        sample_rate: f64::from(rate),
+                        sample_format,
+                        flags,
+                        channels: current.mChannelsPerFrame,
+                    },
+                )
+            });
+            match wanted {
+                Some(asbd) => match set_device_physical_stream_format(device_id, asbd) {
+                    Ok(()) => {
+                        format_guard.previous = Some(current);
+                        tracing::info!(rate, "coreaudio: device re-clocked to the track's rate");
+                        // Read back rather than assume: the device
+                        // answers with what it actually took, and every
+                        // number the decoder is handed below has to be
+                        // that one.
+                        read_physical_stream_format(device_id).unwrap_or(asbd)
+                    }
+                    Err(err) => {
+                        tracing::warn!(
+                            %err,
+                            rate,
+                            "coreaudio: device refused the track's rate; playing at its own"
+                        );
+                        current
+                    }
+                },
+                None => {
+                    tracing::debug!(
+                        rate,
+                        "coreaudio: device has no physical format at the track's rate"
+                    );
+                    current
+                }
+            }
+        }
+        _ => current,
+    };
 
     // A device reporting neither is one we can't describe to the
     // decoder. Falling back to invented numbers would publish a rate the
@@ -608,6 +697,120 @@ fn resolve_device(device_name: &Option<String>) -> Option<(AudioDeviceID, Option
         );
     }
     get_default_device_id(false).map(|id| (id, None))
+}
+
+/// Ask the HAL what the device reports (#593).
+///
+/// The weakest of the three probes, and the sheet says so: these are the
+/// physical stream formats and nominal rates the device *declares*, not
+/// an acceptance test. macOS has no exclusive-mode question to ask —
+/// hog mode takes the device as it is rather than negotiating a format —
+/// so declaring is all there is.
+///
+/// Nothing is opened and hog mode is not touched, so this is safe while
+/// the device is playing.
+pub(super) fn probe_capabilities(
+    device_name: Option<&str>,
+) -> AppResult<super::capabilities::DeviceCapabilities> {
+    use super::capabilities::{CapabilitySource, DeviceCapabilities, DeviceFormat, PROBE_RATES};
+    use coreaudio::audio_unit::macos_helpers::{
+        get_available_sample_rates, get_supported_physical_stream_formats,
+    };
+    use std::collections::{BTreeMap, BTreeSet};
+
+    let requested = device_name.map(str::to_string);
+    let (device_id, opened) = resolve_device(&requested)
+        .ok_or_else(|| AppError::Audio("no CoreAudio output device to describe".to_string()))?;
+    // `resolve_device` falls back to the default output when the pinned
+    // name no longer resolves, and reports that by handing back no name
+    // (#612). Describing *that* device under the name we were asked
+    // about would be a sheet about the wrong hardware — and the answer is
+    // memoised for the session, so the lie would outlive the fallback.
+    if requested.as_deref().is_some_and(|name| !name.is_empty()) && opened.is_none() {
+        return Err(AppError::Audio(
+            "the requested CoreAudio device is no longer present".to_string(),
+        ));
+    }
+
+    let supported = get_supported_physical_stream_formats(device_id)
+        .map_err(|e| AppError::Audio(format!("read the device's physical formats: {e:?}")))?;
+
+    // Rates per format, not per device: each ranged description pairs a
+    // depth with the rates that depth runs at, and merging them would
+    // let the sheet name a pair the device never reports — 32-bit at the
+    // top rate of the 24-bit entry, say.
+    let mut by_format: BTreeMap<(u16, bool), BTreeSet<u32>> = BTreeMap::new();
+    let mut channels: u16 = 0;
+    let mut rates: BTreeSet<u32> = BTreeSet::new();
+    for ranged in &supported {
+        let asbd = ranged.mFormat;
+        let float = asbd.mFormatFlags & LinearPcmFlags::IS_FLOAT.bits() != 0;
+        channels = channels.max(asbd.mChannelsPerFrame as u16);
+        // A discrete-rate device reports the same value twice; a device
+        // with a continuous range reports its ends, and the rates we
+        // would ever ask for inside it are the ones worth listing.
+        let (min, max) = (
+            ranged.mSampleRateRange.mMinimum,
+            ranged.mSampleRateRange.mMaximum,
+        );
+        let accepted: Vec<u32> = if (min - max).abs() < f64::EPSILON {
+            vec![min.round() as u32]
+        } else {
+            PROBE_RATES
+                .iter()
+                .copied()
+                .filter(|&rate| f64::from(rate) >= min && f64::from(rate) <= max)
+                .collect()
+        };
+        rates.extend(accepted.iter().copied());
+        by_format
+            .entry((asbd.mBitsPerChannel as u16, float))
+            .or_default()
+            .extend(accepted);
+    }
+
+    // The nominal rates are the device's own list, and a device that
+    // reports one format over a range still has them. Union rather than
+    // replacement: neither source is complete on its own.
+    if let Ok(nominal) = get_available_sample_rates(device_id) {
+        for range in nominal {
+            if (range.mMinimum - range.mMaximum).abs() < f64::EPSILON {
+                rates.insert(range.mMinimum.round() as u32);
+            } else {
+                rates.extend(PROBE_RATES.iter().copied().filter(|&rate| {
+                    f64::from(rate) >= range.mMinimum && f64::from(rate) <= range.mMaximum
+                }));
+            }
+        }
+    }
+
+    let formats = by_format
+        .into_iter()
+        .rev()
+        .map(|((bits, float), format_rates)| DeviceFormat {
+            label: if float {
+                format!("F{bits}")
+            } else {
+                format!("S{bits}")
+            },
+            bits,
+            float,
+            sample_rates: format_rates.into_iter().collect(),
+        })
+        .collect();
+
+    Ok(DeviceCapabilities {
+        device_id: requested,
+        source: CapabilitySource::CoreAudio,
+        formats,
+        sample_rates: rates.into_iter().collect(),
+        max_channels: channels,
+        // CoreAudio's buffer size is the *client's* to choose rather than
+        // the device's to declare, so there is nothing honest to put
+        // here.
+        min_period_frames: None,
+        unavailable_reason: None,
+    })
 }
 
 /// Take hog mode (exclusive access). Errors if another process already

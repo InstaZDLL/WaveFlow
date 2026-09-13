@@ -43,7 +43,7 @@ use wasapi::{
     StreamMode, WaveFormat,
 };
 
-use super::output::{DopFormat, OutputHandle, RING_CAPACITY};
+use super::output::{OutputHandle, RequestedFormat, RING_CAPACITY};
 use super::state::SharedPlayback;
 use crate::error::{AppError, AppResult};
 
@@ -62,7 +62,7 @@ pub fn spawn_exclusive_output_thread(
     shared: Arc<SharedPlayback>,
     app: AppHandle,
     device_name: Option<String>,
-    dop: Option<DopFormat>,
+    requested: Option<RequestedFormat>,
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
     let (producer, consumer) = RingBuffer::<f32>::new(RING_CAPACITY);
     let (shutdown_tx, shutdown_rx) = bounded::<()>(1);
@@ -81,7 +81,7 @@ pub fn spawn_exclusive_output_thread(
                 init_tx,
                 thread_app,
                 thread_device,
-                dop,
+                requested,
             )
         })
         .map_err(|e| AppError::Audio(format!("spawn wasapi exclusive thread: {e}")))?;
@@ -95,7 +95,9 @@ pub fn spawn_exclusive_output_thread(
                 device_name,
                 opened_device,
                 exclusive: true,
-                dop,
+                // A rate request is not DoP however exact it lands: the
+                // handle records the packing, not the accuracy.
+                dop: requested.and_then(RequestedFormat::as_dop),
             },
         )),
         Ok(Err(err)) => {
@@ -116,7 +118,7 @@ fn output_thread_main(
     init_tx: Sender<AppResult<Option<String>>>,
     app: AppHandle,
     device_name: Option<String>,
-    dop: Option<DopFormat>,
+    requested: Option<RequestedFormat>,
 ) {
     // COM init for this thread. MTA is the right choice for an audio
     // worker that doesn't touch UI. Any HRESULT other than S_OK /
@@ -128,8 +130,15 @@ fn output_thread_main(
         ))));
         return;
     }
+    // Declared here so it drops last, after the session it guards. The
+    // event loops used to call `deinitialize()` by hand at their end —
+    // with the client and render interfaces still alive in that scope,
+    // so they were released *after* `CoUninitialize`. And the early
+    // return below, which a busy device takes every time, never
+    // balanced the init at all.
+    let _com = ComApartment;
 
-    let session = match open_exclusive_session(&device_name, &shared, dop) {
+    let session = match open_exclusive_session(&device_name, &shared, requested) {
         Ok(s) => s,
         Err(err) => {
             tracing::warn!(?err, "wasapi exclusive init failed");
@@ -311,6 +320,45 @@ struct LayoutCandidate {
 /// majority of machines, where the two agree anyway), and a plain
 /// stereo entry closes the list for drivers that report a
 /// multi-channel default no application can open.
+/// Put the track's own rate at the head of the candidate list (#600).
+///
+/// Every layout the device offered is kept, in its own order, behind a
+/// copy of itself at the requested rate — so a device that takes 96 kHz
+/// on its stereo layout is asked for that first, and a device that takes
+/// none of it still opens at the rate it does offer and lets the
+/// decoder's resampler meet it. That fallback is the difference between
+/// a preference and DoP's demand.
+///
+/// Pure so the ordering can be tested without a sound card.
+fn layouts_at_requested_rate(base: &[LayoutCandidate], sample_rate: u32) -> Vec<LayoutCandidate> {
+    // Deduped on the pair the driver is actually asked about, not on the
+    // whole candidate: the origin is a label for the log, and a track
+    // already at the device's own rate must not have the same pair
+    // probed twice — each probe is a COM round trip, and a duplicate is
+    // a rejection asked for a second time.
+    fn holds(list: &[LayoutCandidate], rate: usize, channels: usize) -> bool {
+        list.iter()
+            .any(|l| l.sample_rate == rate && l.channels == channels)
+    }
+
+    let mut layouts: Vec<LayoutCandidate> = Vec::with_capacity(base.len() * 2);
+    for candidate in base {
+        if !holds(&layouts, sample_rate as usize, candidate.channels) {
+            layouts.push(LayoutCandidate {
+                sample_rate: sample_rate as usize,
+                channels: candidate.channels,
+                origin: "source-rate",
+            });
+        }
+    }
+    for candidate in base {
+        if !holds(&layouts, candidate.sample_rate, candidate.channels) {
+            layouts.push(*candidate);
+        }
+    }
+    layouts
+}
+
 fn collect_layout_candidates(device: &Device) -> Vec<LayoutCandidate> {
     // A device with no property store, or a driver that doesn't
     // publish the key, is a soft failure — the mix format still gets
@@ -448,7 +496,7 @@ struct ExclusiveSession {
 fn open_exclusive_session(
     device_name: &Option<String>,
     shared: &Arc<SharedPlayback>,
-    dop: Option<DopFormat>,
+    requested: Option<RequestedFormat>,
 ) -> AppResult<ExclusiveSession> {
     let device = pick_device(device_name)?;
     // Read the name back off the endpoint we were handed: this is the
@@ -463,23 +511,31 @@ fn open_exclusive_session(
     // truncate the low DSD byte, so neither can carry it. If the DAC
     // refuses 24-bit at the DoP rate the whole open fails and the
     // caller falls back to DSD → PCM (it never drops to shared mode).
-    let (layouts, formats): (Vec<LayoutCandidate>, &[ExclusiveSampleFormat]) = match dop {
-        Some(d) => (
+    let (layouts, formats): (Vec<LayoutCandidate>, &[ExclusiveSampleFormat]) = match requested {
+        Some(r) if r.dop => (
             vec![LayoutCandidate {
-                sample_rate: d.sample_rate as usize,
-                channels: d.channels as usize,
+                sample_rate: r.sample_rate as usize,
+                channels: r.channels.unwrap_or(2) as usize,
                 origin: "dop",
             }],
             &DOP_FORMAT_CHAIN,
         ),
-        None => {
-            let layouts = collect_layout_candidates(&device);
-            if layouts.is_empty() {
+        other => {
+            let base = collect_layout_candidates(&device);
+            if base.is_empty() {
                 return Err(AppError::Audio(
                     "wasapi exclusive: device reported no usable sample rate / channel layout"
                         .into(),
                 ));
             }
+            // #600: the track's own rate first, on each layout the device
+            // offered, with the device's own rates kept behind it. A
+            // driver that refuses the source rate therefore falls back
+            // rather than failing, which is what makes this a preference.
+            let layouts = match other {
+                Some(r) => layouts_at_requested_rate(&base, r.sample_rate),
+                None => base,
+            };
             (layouts, &FORMAT_FALLBACK_CHAIN)
         }
     };
@@ -516,7 +572,7 @@ fn open_exclusive_session(
                         channels: layout.channels as u16,
                         buffer_frames,
                         format,
-                        dop: dop.is_some(),
+                        dop: requested.is_some_and(|r| r.dop),
                     });
                 }
                 Err(err) => {
@@ -698,6 +754,160 @@ fn init_stream(
     Ok((client, render, event, buffer_frames))
 }
 
+/// Balances one [`wasapi::initialize_mta`] on every way out of a scope —
+/// the `?` returns and an unwind included — and, because a guard drops
+/// after the locals declared under it, only once every interface opened
+/// inside that scope is released. Releasing one *after* `CoUninitialize`
+/// is undefined, which is what hand-written pairings kept getting wrong
+/// here: the event loops called `deinitialize()` while their client and
+/// render interfaces were still alive.
+///
+/// It matters most in [`probe_capabilities`], which has a dozen exits
+/// and runs on a **tokio blocking-pool thread**: pooled, long-lived, and
+/// reused by everything else that blocks. An unbalanced init there
+/// leaves that thread inside an apartment it never asked for, and raises
+/// COM's reference count once per probe for the life of the process.
+struct ComApartment;
+
+impl Drop for ComApartment {
+    fn drop(&mut self) {
+        wasapi::deinitialize();
+    }
+}
+
+/// Ask the driver what it accepts **in exclusive mode** (#593).
+///
+/// The strongest of the three capability probes, because it is the same
+/// call the real open makes: `is_supported_exclusive_with_quirks` offers
+/// each (format, rate) pair to the driver and reports what came back,
+/// working around the `WAVEFORMATEXTENSIBLE` and channel-mask quirks that
+/// otherwise hide behind a generic unsupported-format error (#405). No
+/// stream is initialised and nothing is opened, so this is safe to run
+/// while the device is playing — including while *we* hold it
+/// exclusively.
+///
+/// Blocking, and not cheap: one COM round trip per pair. It belongs
+/// behind [`super::capabilities::probe_output_device`], which asks once
+/// per device and remembers the answer.
+pub(super) fn probe_capabilities(
+    device_name: Option<&str>,
+) -> AppResult<super::capabilities::DeviceCapabilities> {
+    use super::capabilities::{CapabilitySource, DeviceCapabilities, DeviceFormat, PROBE_RATES};
+    use std::collections::BTreeSet;
+
+    // The probe can run on any thread the command hands it, so it
+    // initialises COM like the render thread does. Already-initialised is
+    // not an error.
+    wasapi::initialize_mta()
+        .ok()
+        .map_err(|e| AppError::Audio(format!("CoInitializeEx(MTA) failed: {e:?}")))?;
+    // Declared *before* every COM object below, so that it drops last:
+    // locals are destroyed in reverse declaration order, and releasing an
+    // interface after `CoUninitialize` is undefined behaviour.
+    let _com = ComApartment;
+
+    let requested = device_name.map(str::to_string);
+    let device = pick_device(&requested)?;
+    // `pick_device` falls back to the default endpoint when the name it
+    // was given is no longer enumerated. Describing that endpoint under
+    // the requested name would be a sheet about the wrong hardware, and
+    // the answer is memoised for the session — so the mismatch is an
+    // error rather than a silent substitution.
+    if let Some(name) = requested.as_deref().filter(|name| !name.is_empty()) {
+        let opened = device.get_friendlyname().ok();
+        if opened.as_deref() != Some(name) {
+            return Err(AppError::Audio(format!(
+                "the requested device is no longer present (opened {} instead)",
+                opened.as_deref().unwrap_or("<unnamed>")
+            )));
+        }
+    }
+    let client = device
+        .get_iaudioclient()
+        .map_err(|e| AppError::Audio(format!("get IAudioClient: {e:?}")))?;
+    // The mix format is the device's own idea of its shape: it is where
+    // the channel count comes from, and probing at a channel count the
+    // endpoint does not have would fail every pair for the wrong reason.
+    let mix = client
+        .get_mixformat()
+        .map_err(|e| AppError::Audio(format!("get mix format: {e:?}")))?;
+    let channels = mix.get_nchannels();
+    // The mix format's channel count is what the *probe* asks at — the
+    // layout exclusive mode actually wants (#409) — but it is not a
+    // maximum: an eight-channel endpoint whose Windows default format is
+    // stereo reports two. The sheet says "max channels", so it takes the
+    // widest layout the device reports for itself, which is what the two
+    // other backends answer with.
+    let max_channels = collect_layout_candidates(&device)
+        .iter()
+        .map(|layout| layout.channels as u16)
+        .chain(std::iter::once(channels))
+        .max()
+        .unwrap_or(channels);
+    let device_period = client.get_device_period().ok();
+
+    let mut formats = Vec::new();
+    let mut rates: BTreeSet<u32> = BTreeSet::new();
+    for format in FORMAT_FALLBACK_CHAIN {
+        // Kept per format, not merged into the set below: a DAC that
+        // takes 32-bit to 96 kHz and 24-bit to 192 kHz accepts neither
+        // pair the two maxima would suggest.
+        let mut accepted_rates = Vec::new();
+        for &rate in PROBE_RATES {
+            let wave = format.to_wave_format(rate as usize, channels as usize);
+            // A fresh client per probe, for the same reason the open path
+            // takes one: a client that has been refused is not reliably
+            // reusable, and some drivers leave it in a state where every
+            // later question answers no.
+            let Ok(probe) = device.get_iaudioclient() else {
+                continue;
+            };
+            if probe.is_supported_exclusive_with_quirks(&wave).is_ok() {
+                accepted_rates.push(rate);
+                rates.insert(rate);
+            }
+        }
+        if !accepted_rates.is_empty() {
+            let (bits, float) = match format {
+                ExclusiveSampleFormat::Float32 => (32, true),
+                // 24 in both layouts: the padding byte of `S24_4LE` is
+                // not resolution.
+                ExclusiveSampleFormat::Pcm24Packed | ExclusiveSampleFormat::Pcm24Padded => {
+                    (24, false)
+                }
+                ExclusiveSampleFormat::Pcm16 => (16, false),
+            };
+            formats.push(DeviceFormat {
+                label: format.label().to_string(),
+                bits,
+                float,
+                sample_rates: accepted_rates,
+            });
+        }
+    }
+
+    // The **minimum** period, not the default one: that is the quantity
+    // every backend can answer, so it is the one the sheet shows (see
+    // `DeviceCapabilities::min_period_frames`). It comes back in
+    // 100-nanosecond units; frames are what a buffer means to anyone
+    // reading it, at the device's own mix rate — the rate that period
+    // was measured for.
+    let min_period_frames = device_period.map(|(_default, min_period)| {
+        let rate = mix.get_samplespersec() as i64;
+        ((min_period.max(0) * rate) / 10_000_000) as u32
+    });
+
+    Ok(DeviceCapabilities {
+        device_id: requested,
+        source: CapabilitySource::WasapiExclusive,
+        formats,
+        sample_rates: rates.into_iter().collect(),
+        max_channels,
+        min_period_frames,
+        unavailable_reason: None,
+    })
+}
+
 fn pick_device(device_name: &Option<String>) -> AppResult<Device> {
     // wasapi 0.23 removed the free `get_default_device` / `DeviceCollection`
     // entry points; everything now goes through a `DeviceEnumerator`
@@ -855,10 +1065,11 @@ fn run_event_loop(
     // for the device. Errors are non-fatal — we're tearing down anyway.
     let _ = client.stop_stream();
     let _ = event; // released with the function frame
-                   // Wait briefly so a slow `stop_stream` settles before COM
-                   // uninit; not strictly required, but tidier under tracing.
+                   // Wait briefly so a slow `stop_stream` settles before the
+                   // interfaces drop; not strictly required, but tidier under
+                   // tracing. COM itself is left to `ComApartment`, up in the
+                   // thread body, so it outlives everything it opened.
     std::thread::sleep(Duration::from_millis(5));
-    wasapi::deinitialize();
 
     exit
 }
@@ -968,7 +1179,6 @@ fn run_dop_event_loop(
     let _ = client.stop_stream();
     let _ = event;
     std::thread::sleep(Duration::from_millis(5));
-    wasapi::deinitialize();
 
     exit
 }
@@ -1058,6 +1268,34 @@ mod tests {
             ],
             "the endpoint's own format must be candidate #1"
         );
+    }
+
+    /// #600: the track's rate goes first, on every layout the device
+    /// offered, and the device's own rates stay behind it. That tail is
+    /// the fallback that makes this a preference rather than a demand.
+    #[test]
+    fn the_track_s_rate_leads_and_the_device_s_own_rates_follow() {
+        let base = build_layout_candidates(Some((48_000, 2)), Some((48_000, 8)));
+        let with_rate = layouts_at_requested_rate(&base, 96_000);
+        assert_eq!(
+            layouts(&with_rate),
+            vec![
+                (96_000, 2, "source-rate"),
+                (96_000, 8, "source-rate"),
+                (48_000, 2, "endpoint"),
+                (48_000, 8, "mix"),
+            ]
+        );
+    }
+
+    /// A track already at the device's rate must not produce the same
+    /// layout twice: the probe is a COM round trip per pair, and a
+    /// duplicate is a rejection asked for twice.
+    #[test]
+    fn a_track_already_at_the_device_s_rate_adds_nothing() {
+        let base = build_layout_candidates(Some((44_100, 2)), None);
+        let with_rate = layouts_at_requested_rate(&base, 44_100);
+        assert_eq!(layouts(&with_rate), vec![(44_100, 2, "source-rate")]);
     }
 
     /// The common case: nothing is intercepting the stream, both

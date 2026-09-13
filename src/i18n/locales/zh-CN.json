@@ -757,7 +757,25 @@
       "custom": "自定义速度",
       "pitchHint": "音高随速度变化（无时间拉伸）。"
     },
-    "seek": "跳转"
+    "seek": "跳转",
+    "alert": {
+      "error": {
+        "device-lost": "音频设备已断开",
+        "track-failed": "无法播放此曲目",
+        "stream-failed": "无法打开此流",
+        "decoder-crashed": "音频引擎已重启",
+        "decoder-stopped": "多次出错后音频引擎已停止",
+        "offline": "离线模式已开启",
+        "unknown": "播放失败"
+      },
+      "notice": {
+        "exclusive-refused": "此设备不接受独占模式：以共享模式播放",
+        "dop-refused": "此 DAC 不接受原生 DSD：转换为 PCM",
+        "paused-device-lost": "设备已断开：播放已暂停",
+        "unknown": "音频输出已改变"
+      },
+      "dismiss": "关闭"
+    }
   },
   "queue": {
     "title": "播放队列",
@@ -786,7 +804,30 @@
     "empty": "没有可用的输出设备",
     "systemDefault": "默认",
     "pinnedUnavailable": "已固定，不可用",
-    "reopen": "重新打开此设备"
+    "reopen": "重新打开此设备",
+    "capabilities": {
+      "probing": "正在读取设备能力…",
+      "unavailable": "无法获取设备能力",
+      "details": "设备详情",
+      "summary": "{{bits}} 位 · {{rate}} kHz",
+      "channels": "声道：{{value}}",
+      "minPeriod": "最小周期：{{value}} 帧",
+      "formats": "格式",
+      "rates": "采样率",
+      "caveat": "驱动声称支持什么，和它在独占模式下实际接受什么，是两个不同的问题。",
+      "source": {
+        "wasapiExclusive": "已在独占模式下向驱动求证。",
+        "alsaHardware": "ALSA 硬件参数，不经任何转换层。",
+        "coreAudio": "设备向系统申报的信息。",
+        "unavailable": "设备被占用或不存在：什么也读不到。"
+      },
+      "tier": {
+        "cd": "CD 音质",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {
@@ -1132,6 +1173,11 @@
         "speed": "速度 {{value}}×",
         "dopNative": "原生 DSD"
       }
+    },
+    "outputMode": {
+      "exclusive": "独占",
+      "dop": "原生 DSD",
+      "exclusiveRefused": "独占被拒绝"
     }
   },
   "miniPlayer": {
@@ -1523,9 +1569,17 @@
       "subtitle": "让本应用独占设备，而不是与系统混音器共享。设备拒绝时回退到共享模式。",
       "fallback": "设备不接受独占模式，正在回退到共享模式。"
     },
+    "matchSourceRate": {
+      "title": "跟随每首曲目的采样率",
+      "subtitle": "在独占输出下，按每首曲目的采样率重新打开设备：设备接受时避免重采样，每次采样率改变都会有一次中断"
+    },
     "mono": {
       "title": "单声道",
       "subtitle": "将左右声道混合为单一信号"
+    },
+    "pauseOnDeviceLoss": {
+      "title": "输出设备断开时暂停",
+      "subtitle": "音频输出消失时暂停播放，而不是切换到其他设备"
     },
     "language": {
       "title": "语言",

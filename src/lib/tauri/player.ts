@@ -40,6 +40,8 @@ export interface PlayerStateSnapshot {
   current_track: QueueTrackPayload | null;
   /** True when the output is shipping native DSD via DoP (#495). */
   dop_active: boolean;
+  /** What the output really is right now (#597). */
+  output_mode: OutputMode;
   /**
    * True when the stream really owns the device — WASAPI Exclusive on
    * Windows, a raw ALSA `hw:` device on Linux, CoreAudio hog mode on
@@ -65,8 +67,38 @@ export interface PlayerTrackEndedPayload {
   listened_ms: number;
 }
 export interface PlayerErrorPayload {
+  /** The technical message, for the console and for bug reports. */
   message: string;
+  /**
+   * What kind of failure this is, so the UI can say it in the user's
+   * language instead of showing the message above (#597). Optional
+   * because the UI must keep working against an older backend, and
+   * unknown values fall back to the generic sentence.
+   */
+  kind?: string;
 }
+
+/**
+ * Playback is not what the user asked for, but nothing failed (#597).
+ *
+ * A separate register from {@link PlayerErrorPayload}: losing the device
+ * is a fault, falling back to shared mode is normal operation that
+ * happens to contradict a choice. The engine emits each one once per
+ * transition, not at every track.
+ */
+export interface PlayerNoticePayload {
+  kind: string;
+}
+
+/**
+ * What the output really is right now (#597) — computed by the engine so
+ * the badge, the notice and the Settings card cannot disagree.
+ */
+export type OutputMode =
+  | "shared"
+  | "exclusive"
+  | "dop"
+  | "exclusive-refused";
 
 /** `queue_item.source_type` values the backend accepts. */
 export type QueueSource =
@@ -341,6 +373,10 @@ export interface AudioSettingsSnapshot {
   dsd_taps: number;
   /** Native DSD via DoP opt-in (#495), default false. */
   dsd_dop: boolean;
+  /** Open the output at each track's own rate (#600), default false. */
+  match_source_rate: boolean;
+  /** Park playback when the output device goes away (#617), default true. */
+  pause_on_device_loss: boolean;
 }
 
 /** Allowed DSD → PCM precision tiers (FIR tap counts). */
@@ -357,6 +393,35 @@ export function playerSetNormalize(enabled: boolean): Promise<void> {
 
 export function playerSetMono(enabled: boolean): Promise<void> {
   return invoke<void>("player_set_mono", { enabled });
+}
+
+/**
+ * Open the output at each track's own rate instead of taking whatever
+ * the device offers (#600).
+ *
+ * Only while the output really owns its device: in shared mode the
+ * system mixer is in the path whatever rate we open at. A device that
+ * refuses the track's rate falls back to one it does offer and the
+ * decoder resamples, as it always did.
+ *
+ * Off by default, and not because it is worse — reopening the device
+ * costs an audible gap, so every rate change becomes a break in the
+ * music. Takes effect on the next track.
+ */
+export function playerSetMatchSourceRate(enabled: boolean): Promise<void> {
+  return invoke<void>("player_set_match_source_rate", { enabled });
+}
+
+/**
+ * Park playback instead of letting it follow the system onto another
+ * device when the one it is playing on disconnects (#617).
+ *
+ * Applies to the next device loss — nothing is rebuilt now. A device
+ * that flaps and comes back is still picked up where it was; only a
+ * fallback onto a different endpoint parks the session.
+ */
+export function playerSetPauseOnDeviceLoss(enabled: boolean): Promise<void> {
+  return invoke<void>("player_set_pause_on_device_loss", { enabled });
 }
 
 export function playerSetCrossfade(seconds: number): Promise<void> {
@@ -453,6 +518,63 @@ export interface OutputDevice {
   /** The device the user picked, opened or not. Differs from
    *  `is_active` exactly during such a fallback. */
   is_pinned: boolean;
+}
+
+/**
+ * Which question a capability answer came from (#593).
+ *
+ * Stated rather than implied, because what a driver *declares* and what
+ * it *accepts in exclusive mode* are different questions — a shared-mode
+ * path can advertise rates it reaches by resampling.
+ */
+export type CapabilitySource =
+  | "wasapi-exclusive"
+  | "alsa-hardware"
+  | "coreaudio"
+  | "unavailable";
+
+export interface DeviceFormat {
+  /** The backend's own spelling: `S24_3LE`, `F32`, … */
+  label: string;
+  /** Bits of real audio per sample — 24 for both 24-bit layouts. */
+  bits: number;
+  float: boolean;
+  /**
+   * The rates accepted **in this format**, ascending.
+   *
+   * Per format because the two are not independent: a DAC that takes
+   * 32-bit to 96 kHz and 24-bit to 192 kHz accepts neither pair the two
+   * maxima would suggest.
+   */
+  sample_rates: number[];
+}
+
+/** What one output device accepts (#593). */
+export interface DeviceCapabilities {
+  device_id: string | null;
+  source: CapabilitySource;
+  formats: DeviceFormat[];
+  /** Every rate accepted in *some* format — the union, for the tiers. */
+  sample_rates: number[];
+  max_channels: number;
+  /** The smallest period the device will take, in frames — one quantity
+   *  asked the same way of every backend. */
+  min_period_frames: number | null;
+  /** Technical, for the tooltip — the UI says it in its own words. */
+  unavailable_reason: string | null;
+}
+
+/**
+ * Ask one device what it accepts (#593).
+ *
+ * On demand and one device at a time: the listing never does this, since
+ * probing during enumeration is what the ALSA-hint shortcut exists to
+ * avoid. The backend memoises the answer for the session.
+ */
+export function playerProbeOutputDevice(
+  deviceId: string | null,
+): Promise<DeviceCapabilities> {
+  return invoke<DeviceCapabilities>("player_probe_output_device", { deviceId });
 }
 
 export function playerListOutputDevices(): Promise<OutputDevice[]> {
