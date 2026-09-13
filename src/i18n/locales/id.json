@@ -1600,7 +1600,7 @@
     },
     "pauseOnDeviceLoss": {
       "title": "Jeda saat perangkat keluaran terputus",
-      "subtitle": "Saat keluaran audio hilang, pemutaran berhenti alih-alih pindah ke perangkat lain"
+      "subtitle": "Saat keluaran audio hilang, pemutaran dijeda alih-alih pindah ke perangkat lain"
     },
     "language": {
       "title": "Bahasa",

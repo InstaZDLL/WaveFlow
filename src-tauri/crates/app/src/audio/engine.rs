@@ -1253,18 +1253,24 @@ impl AudioEngine {
     fn publish_output_mode(
         &self,
         requested: Option<RequestedFormat>,
+        dop_requested: bool,
         requested_exclusive: bool,
         handle: Option<&OutputHandle>,
     ) {
-        let requested_dop = requested.is_some_and(|r| r.dop);
         let engaged_exclusive = handle.is_some_and(|handle| handle.exclusive);
         let engaged_dop = handle.is_some_and(|handle| handle.dop.is_some());
-        // What this open *asked* for, which is what the next track
+        // What **this** open asked for, which is what the next track
         // compares against (#600) — see `last_requested_rate`. Recorded
         // here rather than at each call site so an open that asks for
         // nothing in particular, like a device switch, clears it: leaving
         // a stale rate there would make the next track think its rate was
         // already installed.
+        //
+        // Deliberately not `dop_requested`, which is a separate argument
+        // for exactly this reason: the PCM open that follows a *refused*
+        // DoP asked for no rate at all. Recording the DoP rate there left
+        // every following track disagreeing with it, and rebuilding the
+        // output — an audible gap per track — to install nothing new.
         self.last_requested_rate.store(
             requested.map_or(0, |r| r.sample_rate),
             std::sync::atomic::Ordering::Relaxed,
@@ -1280,7 +1286,7 @@ impl AudioEngine {
         // What to say about it, in the order of what the user loses
         // most: a DSD stream converted to PCM, then an exclusive path
         // they asked for and did not get.
-        let notice = if requested_dop && !engaged_dop {
+        let notice = if dop_requested && !engaged_dop {
             Some(PlaybackNotice::DopRefused)
         } else if requested_exclusive && !engaged_exclusive && handle.is_some() {
             Some(PlaybackNotice::ExclusiveRefused)
@@ -2062,6 +2068,7 @@ impl AudioEngine {
                     guard.handle = Some(handle);
                     self.publish_output_mode(
                         Some(RequestedFormat::dop(dop_fmt)),
+                        true,
                         pref_exclusive,
                         guard.handle.as_ref(),
                     );
@@ -2096,13 +2103,18 @@ impl AudioEngine {
         ) {
             Ok((producer, handle)) => {
                 guard.handle = Some(handle);
-                // A DoP request that reached this open was tried and
-                // refused: the track is DSD, the opt-in is on, and it is
-                // about to be converted to PCM without a word (#597). The
-                // notice reads that from the request, so it is the DoP
-                // one that is passed here when there was one.
+                // Two different facts, and they must not be conflated.
+                // `dop.is_some()` here means a DoP open was tried and
+                // refused — the track is DSD, the opt-in is on, and it is
+                // about to be converted to PCM without a word (#597), so
+                // the notice needs it. The *rate* this open asked for is
+                // `pcm_request`, which in that case is none at all:
+                // recording the DoP rate instead left every following
+                // track disagreeing with the guard and rebuilding the
+                // output for nothing.
                 self.publish_output_mode(
-                    dop.map(RequestedFormat::dop).or(pcm_request),
+                    pcm_request,
+                    dop.is_some(),
                     pref_exclusive,
                     guard.handle.as_ref(),
                 );
@@ -2256,7 +2268,7 @@ impl AudioEngine {
             return Err(err);
         }
         guard.handle = Some(handle);
-        self.publish_output_mode(None, exclusive, guard.handle.as_ref());
+        self.publish_output_mode(None, false, exclusive, guard.handle.as_ref());
 
         // Resume best-effort. Same async pattern as
         // `set_output_device` and `set_exclusive_output` — pull the
@@ -2533,7 +2545,7 @@ impl AudioEngine {
         if switch_error.is_none() {
             guard.pinned = pinned_pick;
         }
-        self.publish_output_mode(None, entering_exclusive, guard.handle.as_ref());
+        self.publish_output_mode(None, false, entering_exclusive, guard.handle.as_ref());
 
         // Step 6 — put back whatever the decoder is on. Not necessarily
         // the track this method snapshotted: a pick made during the open
@@ -2689,7 +2701,6 @@ impl AudioEngine {
                 return Err(err);
             }
         };
-        let active_mode = handle.exclusive;
 
         // Group the whole hand-off so ANY failing step still runs the
         // `handle.stop()` below. `handle` owns a live output thread on a
@@ -2727,12 +2738,7 @@ impl AudioEngine {
         // manual toggle (ExclusiveModeCard.tsx), and kept for every other
         // caller. The notice is not redundant: a toggle that lands in
         // shared mode is precisely the silent degradation #597 is about.
-        self.publish_output_mode(None, enabled, guard.handle.as_ref());
-        debug_assert_eq!(
-            active_mode,
-            self.exclusive_output_active
-                .load(std::sync::atomic::Ordering::Acquire)
-        );
+        self.publish_output_mode(None, false, enabled, guard.handle.as_ref());
 
         // The mode flip must not drop the user off what they are
         // listening to — radio included, which is why this re-dispatches

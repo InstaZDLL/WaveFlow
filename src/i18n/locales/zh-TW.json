@@ -1579,7 +1579,7 @@
     },
     "pauseOnDeviceLoss": {
       "title": "輸出裝置中斷時暫停",
-      "subtitle": "音訊輸出消失時停止播放，而不是切換到其他裝置"
+      "subtitle": "音訊輸出消失時暫停播放，而不是切換到其他裝置"
     },
     "language": {
       "title": "語言",

@@ -11,10 +11,9 @@ import {
   type OutputDevice,
 } from "../../lib/tauri/player";
 import {
-  bestFormatBits,
+  bestFormatPair,
   rateKHz,
   rateTiers,
-  topSampleRate,
 } from "../../lib/deviceCapabilities";
 import { isHiRes } from "../../lib/hiRes";
 
@@ -30,9 +29,10 @@ const SOURCE_KEY: Record<DeviceCapabilities["source"], string> = {
 };
 
 /**
- * The one line a row carries: the deepest format, the top rate, and
- * whether that combination is Hi-Res. Enough to choose between three
- * outputs without opening anything.
+ * The one line a row carries: the deepest format, the top rate **that
+ * format runs at**, and whether that pair is Hi-Res. Enough to choose
+ * between three outputs without opening anything — and a pair the device
+ * really accepts, rather than two maxima it may never have combined.
  */
 function CapabilitySummary({
   caps,
@@ -48,9 +48,8 @@ function CapabilitySummary({
       </span>
     );
   }
-  const bits = bestFormatBits(caps);
-  const rate = topSampleRate(caps);
-  if (caps.source === "unavailable" || bits == null || rate == null) {
+  const best = bestFormatPair(caps);
+  if (caps.source === "unavailable" || best == null) {
     return (
       <span
         className="text-[10px] opacity-60"
@@ -66,11 +65,11 @@ function CapabilitySummary({
     <span className="text-[10px] opacity-70 flex items-center gap-1.5">
       <span className="tabular-nums">
         {t("deviceMenu.capabilities.summary", {
-          bits,
-          rate: rateKHz(rate),
+          bits: best.bits,
+          rate: rateKHz(best.rate),
         })}
       </span>
-      {isHiRes(bits, rate) && (
+      {isHiRes(best.bits, best.rate) && (
         <span className="px-1 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold">
           Hi-Res
         </span>

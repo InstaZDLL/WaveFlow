@@ -1600,7 +1600,7 @@
     },
     "pauseOnDeviceLoss": {
       "title": "Çıkış aygıtı ayrıldığında duraklat",
-      "subtitle": "Ses çıkışı kaybolduğunda, oynatma başka bir aygıta geçmek yerine durur"
+      "subtitle": "Ses çıkışı kaybolduğunda, oynatma başka bir aygıta geçmek yerine duraklatılır"
     },
     "language": {
       "title": "Dil",

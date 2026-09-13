@@ -539,6 +539,14 @@ export interface DeviceFormat {
   /** Bits of real audio per sample — 24 for both 24-bit layouts. */
   bits: number;
   float: boolean;
+  /**
+   * The rates accepted **in this format**, ascending.
+   *
+   * Per format because the two are not independent: a DAC that takes
+   * 32-bit to 96 kHz and 24-bit to 192 kHz accepts neither pair the two
+   * maxima would suggest.
+   */
+  sample_rates: number[];
 }
 
 /** What one output device accepts (#593). */
@@ -546,6 +554,7 @@ export interface DeviceCapabilities {
   device_id: string | null;
   source: CapabilitySource;
   formats: DeviceFormat[];
+  /** Every rate accepted in *some* format — the union, for the tiers. */
   sample_rates: number[];
   max_channels: number;
   buffer_frames: number | null;

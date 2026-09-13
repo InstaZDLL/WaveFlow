@@ -371,6 +371,7 @@ pub(super) fn probe_capabilities(
     device_name: Option<&str>,
 ) -> AppResult<super::capabilities::DeviceCapabilities> {
     use super::capabilities::{CapabilitySource, DeviceCapabilities, DeviceFormat, PROBE_RATES};
+    use std::collections::BTreeSet;
 
     let requested = device_name.map(str::to_string);
     let hw = resolve_hw_device(&requested)?;
@@ -379,10 +380,29 @@ pub(super) fn probe_capabilities(
     let hwp = HwParams::any(&pcm)
         .map_err(|e| AppError::Audio(format!("read {hw} hardware parameters: {e}")))?;
 
-    let formats: Vec<DeviceFormat> = FORMAT_FALLBACK_CHAIN
-        .iter()
-        .filter(|format| hwp.test_format(format.to_alsa()).is_ok())
-        .map(|format| DeviceFormat {
+    // One parameter set per format, and the rates asked of *that* set:
+    // narrowing the space to a format first is what makes the answer a
+    // pair the card really accepts, rather than two independent maxima
+    // that suggest one it never has.
+    let mut formats: Vec<DeviceFormat> = Vec::new();
+    let mut sample_rates: BTreeSet<u32> = BTreeSet::new();
+    for format in FORMAT_FALLBACK_CHAIN {
+        let Ok(params) = HwParams::any(&pcm) else {
+            continue;
+        };
+        if params.set_format(format.to_alsa()).is_err() {
+            continue;
+        }
+        let accepted: Vec<u32> = PROBE_RATES
+            .iter()
+            .copied()
+            .filter(|&rate| params.test_rate(rate).is_ok())
+            .collect();
+        if accepted.is_empty() {
+            continue;
+        }
+        sample_rates.extend(accepted.iter().copied());
+        formats.push(DeviceFormat {
             label: format.label().to_string(),
             // What the format carries, not what it occupies: `S24_LE`
             // spends four bytes on twenty-four bits of audio.
@@ -392,20 +412,15 @@ pub(super) fn probe_capabilities(
                 AlsaSampleFormat::S16 => 16,
             },
             float: matches!(format, AlsaSampleFormat::F32),
-        })
-        .collect();
-
-    let sample_rates: Vec<u32> = PROBE_RATES
-        .iter()
-        .copied()
-        .filter(|&rate| hwp.test_rate(rate).is_ok())
-        .collect();
+            sample_rates: accepted,
+        });
+    }
 
     Ok(DeviceCapabilities {
         device_id: requested,
         source: CapabilitySource::AlsaHardware,
         formats,
-        sample_rates,
+        sample_rates: sample_rates.into_iter().collect(),
         max_channels: hwp.get_channels_max().unwrap_or(0) as u16,
         // The largest period the hardware will take, in frames. Not the
         // one we ask for when playing — see `TARGET_PERIOD_FRAMES` — but

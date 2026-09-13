@@ -1600,7 +1600,7 @@
     },
     "pauseOnDeviceLoss": {
       "title": "Pauzeren als het uitvoerapparaat wordt losgekoppeld",
-      "subtitle": "Verdwijnt de audio-uitvoer, dan stopt het afspelen in plaats van over te gaan op een ander apparaat"
+      "subtitle": "Verdwijnt de audio-uitvoer, dan wordt het afspelen gepauzeerd in plaats van over te gaan op een ander apparaat"
     },
     "language": {
       "title": "Taal",

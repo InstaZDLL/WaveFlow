@@ -1600,7 +1600,7 @@
     },
     "pauseOnDeviceLoss": {
       "title": "Pause when the output device disconnects",
-      "subtitle": "When the audio output goes away, playback stops instead of moving to another device"
+      "subtitle": "When the audio output goes away, playback pauses instead of moving to another device"
     },
     "language": {
       "title": "Language",

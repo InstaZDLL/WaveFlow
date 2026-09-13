@@ -1653,7 +1653,7 @@
     },
     "pauseOnDeviceLoss": {
       "title": "Pause si le périphérique est déconnecté",
-      "subtitle": "Quand la sortie audio disparaît, la lecture s'arrête au lieu de passer sur un autre périphérique"
+      "subtitle": "Quand la sortie audio disparaît, la lecture est mise en pause au lieu de passer sur un autre périphérique"
     },
     "language": {
       "title": "Langue",

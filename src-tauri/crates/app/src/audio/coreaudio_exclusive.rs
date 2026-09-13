@@ -685,22 +685,35 @@ pub(super) fn probe_capabilities(
     use coreaudio::audio_unit::macos_helpers::{
         get_available_sample_rates, get_supported_physical_stream_formats,
     };
-    use std::collections::BTreeSet;
+    use std::collections::{BTreeMap, BTreeSet};
 
     let requested = device_name.map(str::to_string);
-    let (device_id, _opened) = resolve_device(&requested)
+    let (device_id, opened) = resolve_device(&requested)
         .ok_or_else(|| AppError::Audio("no CoreAudio output device to describe".to_string()))?;
+    // `resolve_device` falls back to the default output when the pinned
+    // name no longer resolves, and reports that by handing back no name
+    // (#612). Describing *that* device under the name we were asked
+    // about would be a sheet about the wrong hardware — and the answer is
+    // memoised for the session, so the lie would outlive the fallback.
+    if requested.as_deref().is_some_and(|name| !name.is_empty()) && opened.is_none() {
+        return Err(AppError::Audio(
+            "the requested CoreAudio device is no longer present".to_string(),
+        ));
+    }
 
     let supported = get_supported_physical_stream_formats(device_id)
         .map_err(|e| AppError::Audio(format!("read the device's physical formats: {e:?}")))?;
 
-    let mut labels: BTreeSet<(u16, bool)> = BTreeSet::new();
+    // Rates per format, not per device: each ranged description pairs a
+    // depth with the rates that depth runs at, and merging them would
+    // let the sheet name a pair the device never reports — 32-bit at the
+    // top rate of the 24-bit entry, say.
+    let mut by_format: BTreeMap<(u16, bool), BTreeSet<u32>> = BTreeMap::new();
     let mut channels: u16 = 0;
     let mut rates: BTreeSet<u32> = BTreeSet::new();
     for ranged in &supported {
         let asbd = ranged.mFormat;
         let float = asbd.mFormatFlags & LinearPcmFlags::IS_FLOAT.bits() != 0;
-        labels.insert((asbd.mBitsPerChannel as u16, float));
         channels = channels.max(asbd.mChannelsPerFrame as u16);
         // A discrete-rate device reports the same value twice; a device
         // with a continuous range reports its ends, and the rates we
@@ -709,16 +722,20 @@ pub(super) fn probe_capabilities(
             ranged.mSampleRateRange.mMinimum,
             ranged.mSampleRateRange.mMaximum,
         );
-        if (min - max).abs() < f64::EPSILON {
-            rates.insert(min.round() as u32);
+        let accepted: Vec<u32> = if (min - max).abs() < f64::EPSILON {
+            vec![min.round() as u32]
         } else {
-            rates.extend(
-                PROBE_RATES
-                    .iter()
-                    .copied()
-                    .filter(|&rate| f64::from(rate) >= min && f64::from(rate) <= max),
-            );
-        }
+            PROBE_RATES
+                .iter()
+                .copied()
+                .filter(|&rate| f64::from(rate) >= min && f64::from(rate) <= max)
+                .collect()
+        };
+        rates.extend(accepted.iter().copied());
+        by_format
+            .entry((asbd.mBitsPerChannel as u16, float))
+            .or_default()
+            .extend(accepted);
     }
 
     // The nominal rates are the device's own list, and a device that
@@ -736,10 +753,10 @@ pub(super) fn probe_capabilities(
         }
     }
 
-    let formats = labels
+    let formats = by_format
         .into_iter()
         .rev()
-        .map(|(bits, float)| DeviceFormat {
+        .map(|((bits, float), format_rates)| DeviceFormat {
             label: if float {
                 format!("F{bits}")
             } else {
@@ -747,6 +764,7 @@ pub(super) fn probe_capabilities(
             },
             bits,
             float,
+            sample_rates: format_rates.into_iter().collect(),
         })
         .collect();
 

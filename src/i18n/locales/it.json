@@ -1600,7 +1600,7 @@
     },
     "pauseOnDeviceLoss": {
       "title": "Metti in pausa se il dispositivo si disconnette",
-      "subtitle": "Quando l'uscita audio scompare, la riproduzione si ferma invece di passare a un altro dispositivo"
+      "subtitle": "Quando l'uscita audio scompare, la riproduzione viene messa in pausa invece di passare a un altro dispositivo"
     },
     "language": {
       "title": "Lingua",

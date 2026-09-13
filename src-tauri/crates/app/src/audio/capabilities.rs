@@ -68,6 +68,14 @@ pub struct DeviceFormat {
     /// the padding is not resolution.
     pub bits: u16,
     pub float: bool,
+    /// The rates accepted **in this format**, ascending.
+    ///
+    /// Per format rather than per device, because the two are not
+    /// independent: a DAC that takes 32-bit up to 96 kHz and 24-bit up
+    /// to 192 kHz accepts neither "32-bit at 192 kHz" nor anything else
+    /// the two maxima would suggest. A summary built from separate
+    /// maxima would name a pair the device has never accepted.
+    pub sample_rates: Vec<u32>,
 }
 
 /// What one output device accepts (#593).
@@ -79,7 +87,9 @@ pub struct DeviceCapabilities {
     /// Accepted formats, best first, as the backend's own fallback chain
     /// orders them.
     pub formats: Vec<DeviceFormat>,
-    /// Accepted rates from [`PROBE_RATES`], ascending.
+    /// Every rate accepted in **some** format, ascending — the union of
+    /// the per-format lists above, which is the right set for the tiers
+    /// the sheet groups by and the wrong one for naming a pair.
     pub sample_rates: Vec<u32>,
     pub max_channels: u16,
     /// The device's own buffer, in frames, when it has one to report.
@@ -212,6 +222,7 @@ mod tests {
                 label: "S24_4LE".into(),
                 bits: 24,
                 float: false,
+                sample_rates: vec![44_100, 48_000],
             }],
             sample_rates: vec![44_100, 48_000],
             max_channels: 2,

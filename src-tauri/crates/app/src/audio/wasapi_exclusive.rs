@@ -776,6 +776,20 @@ pub(super) fn probe_capabilities(
 
     let requested = device_name.map(str::to_string);
     let device = pick_device(&requested)?;
+    // `pick_device` falls back to the default endpoint when the name it
+    // was given is no longer enumerated. Describing that endpoint under
+    // the requested name would be a sheet about the wrong hardware, and
+    // the answer is memoised for the session — so the mismatch is an
+    // error rather than a silent substitution.
+    if let Some(name) = requested.as_deref().filter(|name| !name.is_empty()) {
+        let opened = device.get_friendlyname().ok();
+        if opened.as_deref() != Some(name) {
+            return Err(AppError::Audio(format!(
+                "the requested device is no longer present (opened {} instead)",
+                opened.as_deref().unwrap_or("<unnamed>")
+            )));
+        }
+    }
     let client = device
         .get_iaudioclient()
         .map_err(|e| AppError::Audio(format!("get IAudioClient: {e:?}")))?;
@@ -791,7 +805,10 @@ pub(super) fn probe_capabilities(
     let mut formats = Vec::new();
     let mut rates: BTreeSet<u32> = BTreeSet::new();
     for format in FORMAT_FALLBACK_CHAIN {
-        let mut accepted = false;
+        // Kept per format, not merged into the set below: a DAC that
+        // takes 32-bit to 96 kHz and 24-bit to 192 kHz accepts neither
+        // pair the two maxima would suggest.
+        let mut accepted_rates = Vec::new();
         for &rate in PROBE_RATES {
             let wave = format.to_wave_format(rate as usize, channels as usize);
             // A fresh client per probe, for the same reason the open path
@@ -802,11 +819,11 @@ pub(super) fn probe_capabilities(
                 continue;
             };
             if probe.is_supported_exclusive_with_quirks(&wave).is_ok() {
-                accepted = true;
+                accepted_rates.push(rate);
                 rates.insert(rate);
             }
         }
-        if accepted {
+        if !accepted_rates.is_empty() {
             let (bits, float) = match format {
                 ExclusiveSampleFormat::Float32 => (32, true),
                 // 24 in both layouts: the padding byte of `S24_4LE` is
@@ -820,6 +837,7 @@ pub(super) fn probe_capabilities(
                 label: format.label().to_string(),
                 bits,
                 float,
+                sample_rates: accepted_rates,
             });
         }
     }

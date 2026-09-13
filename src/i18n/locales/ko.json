@@ -806,8 +806,8 @@
     "pinnedUnavailable": "고정됨, 사용 불가",
     "reopen": "이 장치 다시 열기",
     "capabilities": {
-      "probing": "성능을 읽는 중…",
-      "unavailable": "성능을 확인할 수 없음",
+      "probing": "지원 정보를 읽는 중…",
+      "unavailable": "지원 정보를 확인할 수 없음",
       "details": "장치 세부 정보",
       "summary": "{{bits}} 비트 · {{rate}} kHz",
       "channels": "채널: {{value}}",
@@ -1608,7 +1608,7 @@
     },
     "pauseOnDeviceLoss": {
       "title": "출력 장치가 연결 해제되면 일시정지",
-      "subtitle": "오디오 출력이 사라지면 다른 장치로 옮기지 않고 재생을 멈춥니다"
+      "subtitle": "오디오 출력이 사라지면 다른 장치로 옮기지 않고 재생을 일시정지합니다"
     },
     "language": {
       "title": "언어",

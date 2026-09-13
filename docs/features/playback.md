@@ -104,7 +104,7 @@ The picker listed names, and someone choosing between three outputs on an audiop
 | Linux | `snd_pcm_hw_params` on the raw `hw:` device | The hardware itself, with no plug layer. Opened **non-blocking** so a busy device answers `EBUSY` at once instead of waiting — which also means the device we are playing on exclusively cannot answer, and says so. |
 | macOS | the physical stream formats and nominal rates | What the device reports to the HAL. There is no exclusive-mode question to ask: hog mode takes the device as it is rather than negotiating a format. |
 
-In the menu, each row carries its deepest format, its top rate and a Hi-Res marker; the sheet behind it adds the channel count, the buffer, the formats as a set, and the rates **grouped into named tiers** — CD quality, Hi-Res, Studio, Ultra Hi-Res — with the numbers themselves on the tooltip. A column running from 44.1 to 384 tells an expert something and a normal user nothing; the tiers tell both.
+The rates are kept **per format**, not per device, because the two are not independent: a DAC that takes 32-bit to 96 kHz and 24-bit to 192 kHz accepts neither pair the two maxima would suggest. In the menu, each row therefore carries its deepest format and the top rate *that format* runs at, with the Hi-Res marker decided on that same pair; the sheet behind it adds the channel count, the buffer, the formats as a set, and the rates **grouped into named tiers** — CD quality, Hi-Res, Studio, Ultra Hi-Res — with the numbers themselves on the tooltip. A column running from 44.1 to 384 tells an expert something and a normal user nothing; the tiers tell both.
 
 ### The pin and the endpoint are two different things
 
@@ -193,7 +193,7 @@ Device loss reaches the recovery path from two independent places, since the two
 
 Both then call the shared [`output::notify_device_lost`](../../src-tauri/crates/app/src/audio/output.rs) (park the player, emit `player:state` + `player:error`, sync the OS media controls) and [`output::schedule_device_rebuild`](../../src-tauri/crates/app/src/audio/output.rs) (300 ms backoff, then a same-device rebuild).
 
-#### What a rebuild puts back
+### What a rebuild puts back
 
 Every rebuild interrupts the decoder with a `Stop` before it can swap the ring producer, so it owes the session something afterwards. **What it owes is whatever the decoder was actually holding, not what was playing when the rebuild started** (#634).
 
@@ -203,7 +203,7 @@ So the decoder records it. `SharedPlayback::last_load` holds the load it most re
 
 Two things fell out of that. The resume no longer goes to the database for a file path, so it is synchronous and keeps the gain and the **source** the track came from — a play credited to `device-rebuild` was hidden from every statistic that filters on the source, because the audio device changed. And the position, which has to be read *before* the stop (opening the replacement writes its own sample rate into the shared block, and a position derived from the old rate's sample count is simply a wrong number), is stamped with the load it belongs to: `resume_start_ms` uses it only when the decoder was on that same load, by intent *and* by track, and otherwise starts where the load itself asked to.
 
-#### What a rebuild does **not** put back
+### What a rebuild does **not** put back
 
 Two sessions are parked instead of resumed, and `AudioEngine::park_session` handles both: it keeps the load so play picks up *this* session, lands the state on `Idle` (it cannot stay `Paused` — the `Stop` unloaded the track and the decoder ignores a `Resume` with nothing loaded, so the button would be dead), and writes a library track's resume point so the session survives a restart. `resume_last` prefers that park over the persisted resume point, which is what lets a radio station or a server track be parked at all: the resume point is always a *library* track's, so before #617 parking one of those brought back the last local track instead, and they were resumed unconditionally.
 
@@ -212,7 +212,7 @@ Two sessions are parked instead of resumed, and `AudioEngine::park_session` hand
 
 The resume point is written against the profile that was active when the rebuild ran (`require_profile_pool_for`), and skipped when that can't be read without waiting — a switch is then under way, and must not receive it.
 
-#### A device that disappears is not a default that changes
+### A device that disappears is not a default that changes
 
 Unplugging raises both signals at once: the stream breaks, **and** the system default moves. They arrive on two independent paths — the device-loss recovery above, and the [default-device follow](#following-the-os-default) — and each one takes the same `RebuildGate`, so whichever armed first decided what happened: the pause would land, or not, on a coin toss.
 
@@ -225,7 +225,7 @@ Two gates keep the recovery from thrashing:
 
 Every failure path that ends with no output thread at all publishes `exclusive_output_active = false` + the event before returning the error — a toggle describing a stream that no longer exists is the exact shape of #405.
 
-#### Saying what actually happened
+### Saying what actually happened
 
 Playback can become something other than what was asked for, and for a long time the only trace was a log line — `player:error` reached a `console.error` and stopped there, and the three exclusive backends each fall back to shared mode on their own. #597 closes that, with two registers that must not be confused:
 

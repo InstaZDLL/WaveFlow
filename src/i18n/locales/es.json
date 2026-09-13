@@ -1600,7 +1600,7 @@
     },
     "pauseOnDeviceLoss": {
       "title": "Pausar si el dispositivo se desconecta",
-      "subtitle": "Cuando la salida de audio desaparece, la reproducción se detiene en lugar de pasar a otro dispositivo"
+      "subtitle": "Cuando la salida de audio desaparece, la reproducción se pausa en lugar de pasar a otro dispositivo"
     },
     "language": {
       "title": "Idioma",

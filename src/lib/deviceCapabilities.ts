@@ -39,21 +39,38 @@ export function rateTiers(rates: number[]): RateTier[] {
   }));
 }
 
+/** A depth and a rate the device accepts **together**. */
+export interface FormatPair {
+  bits: number;
+  rate: number;
+}
+
 /**
- * The deepest format the device takes, in bits of real audio.
+ * The best pair the device actually accepts: the deepest format, and the
+ * top rate that format runs at.
+ *
+ * A pair, not two maxima. A DAC that takes 32-bit to 96 kHz and 24-bit
+ * to 192 kHz would otherwise be summarised as "32 bit · 192 kHz", which
+ * it has never accepted — and the Hi-Res marker would be decided on that
+ * same invented combination.
  *
  * `null` when nothing was learned, which is a different statement from
  * "16 bit" and has to stay distinguishable.
  */
-export function bestFormatBits(caps: DeviceCapabilities): number | null {
-  if (caps.formats.length === 0) return null;
-  return caps.formats.reduce((best, format) => Math.max(best, format.bits), 0);
-}
-
-/** The top rate the device takes, `null` when nothing was learned. */
-export function topSampleRate(caps: DeviceCapabilities): number | null {
-  if (caps.sample_rates.length === 0) return null;
-  return caps.sample_rates.reduce((best, rate) => Math.max(best, rate), 0);
+export function bestFormatPair(caps: DeviceCapabilities): FormatPair | null {
+  let best: FormatPair | null = null;
+  for (const format of caps.formats) {
+    const rate = format.sample_rates.reduce((top, r) => Math.max(top, r), 0);
+    if (rate <= 0) continue;
+    if (
+      best == null ||
+      format.bits > best.bits ||
+      (format.bits === best.bits && rate > best.rate)
+    ) {
+      best = { bits: format.bits, rate };
+    }
+  }
+  return best;
 }
 
 /** "192" / "44.1" — the compact spelling the player already uses. */

@@ -1600,7 +1600,7 @@
     },
     "pauseOnDeviceLoss": {
       "title": "Pausieren, wenn das Ausgabegerät getrennt wird",
-      "subtitle": "Verschwindet die Audioausgabe, stoppt die Wiedergabe, statt auf ein anderes Gerät zu wechseln"
+      "subtitle": "Verschwindet die Audioausgabe, wird die Wiedergabe pausiert, statt auf ein anderes Gerät zu wechseln"
     },
     "language": {
       "title": "Sprache",
