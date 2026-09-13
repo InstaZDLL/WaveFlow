@@ -509,6 +509,20 @@ pub struct AudioEngine {
     /// the queue cursor, the events, and the command that carries the
     /// load. See [`Self::lock_publish`].
     publish: tokio::sync::Mutex<()>,
+    /// Orders [`Self::pause_pending`] against the channel it describes.
+    ///
+    /// The two are separate synchronisation domains — an atomic and a
+    /// queue — so without this, two producers sending a `Pause` and a
+    /// `Resume` at the same instant can leave the flag saying one thing
+    /// while the decoder receives the other order, and a rebuild reading
+    /// the flag then decides against what the user actually asked for.
+    ///
+    /// A leaf lock held across two statements and nothing else: no await
+    /// inside, no other lock taken under it. It is deliberately **not**
+    /// [`Self::publish`], which is an async mutex a producer already
+    /// holds when it calls [`Self::send`] — taking that one here would
+    /// deadlock on the spot.
+    dispatch: Mutex<()>,
     /// #617: park playback rather than carry it onto another endpoint
     /// when the one it was playing on goes away. Seeded at boot from
     /// `profile_setting['audio.pause_on_device_loss']`, default on.
@@ -1116,6 +1130,7 @@ impl AudioEngine {
             exclusive_flaps: Mutex::new(FlapWindow::default()),
             rebuild_gate: Mutex::new(RebuildGate::default()),
             publish: tokio::sync::Mutex::new(()),
+            dispatch: Mutex::new(()),
             // On unless the profile says otherwise: what people expect
             // from headphones, and the reported defect is the other
             // behaviour. Seeded properly in `lib.rs` once the profile
@@ -1196,19 +1211,28 @@ impl AudioEngine {
     /// has to see *every* load therefore belongs on the receiving side —
     /// which is where [`LastLoad`] is recorded.
     pub fn send(&self, cmd: AudioCmd) -> AppResult<()> {
-        // The user's intent, recorded before the decoder has acted on it
-        // — see [`Self::pause_pending`].
+        // One critical section for both writes — see [`Self::dispatch`].
+        // The user's intent is recorded before the decoder has acted on
+        // it (see [`Self::pause_pending`]), and it has to reach the flag
+        // in the order it reaches the channel.
+        let _dispatch = self
+            .dispatch
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let previous = self
+            .pause_pending
+            .load(std::sync::atomic::Ordering::Acquire);
         self.pause_pending.store(
-            pause_pending_after(
-                &cmd,
-                self.pause_pending
-                    .load(std::sync::atomic::Ordering::Acquire),
-            ),
+            pause_pending_after(&cmd, previous),
             std::sync::atomic::Ordering::Release,
         );
-        self.cmd_tx
-            .send(cmd)
-            .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))
+        self.cmd_tx.send(cmd).map_err(|e| {
+            // Nothing was queued, so the intent this recorded is one the
+            // decoder will never see either.
+            self.pause_pending
+                .store(previous, std::sync::atomic::Ordering::Release);
+            AppError::Audio(format!("audio command channel closed: {e}"))
+        })
     }
 
     /// Take the publish lock: hold it across [`Self::claim_dispatch`]
@@ -3012,6 +3036,23 @@ enum RebuildResume {
 /// the device-loss path touches it (shutdown and `reset_app` raise it too,
 /// but neither is followed by a rebuild).
 ///
+/// **`Loading` counts as a session**, and the reason is not about the
+/// resume at all — it is about the `Stop`. The decoder is inside
+/// `play_track` from the moment it accepts a load, and a `SwapProducer`
+/// that reaches it there is dropped on the floor: both drains fall
+/// through to a catch-all, on the stated assumption that the engine
+/// always sends a `Stop` first. Answering `Nothing` for a track that was
+/// still loading broke that assumption, so the swap was lost and the
+/// decoder kept writing into a ring whose consumer had just been torn
+/// down — silence until something else rebuilt the output. Resuming is
+/// then the right answer too: the load is in `last_load` and goes back
+/// out under its own intent.
+///
+/// `Ended` and `Idle` stay outside: there is no session to interrupt,
+/// the decoder is parked at the top-level loop where a `SwapProducer` is
+/// handled properly, and resuming would restart a track that had
+/// finished.
+///
 /// Until #617 only a *library* track could stay paused, because what made
 /// it resumable afterwards was the persisted resume point `resume_last`
 /// loads — and that point is always a library track's, so a radio station
@@ -3022,9 +3063,11 @@ enum RebuildResume {
 fn rebuild_resume(state: super::state::PlayerState, paused_output: bool) -> RebuildResume {
     use super::state::PlayerState;
     match state {
-        PlayerState::Playing | PlayerState::Paused if paused_output => RebuildResume::StayPaused,
-        PlayerState::Playing | PlayerState::Paused => RebuildResume::Play,
-        PlayerState::Idle | PlayerState::Loading | PlayerState::Ended => RebuildResume::Nothing,
+        PlayerState::Playing | PlayerState::Paused | PlayerState::Loading if paused_output => {
+            RebuildResume::StayPaused
+        }
+        PlayerState::Playing | PlayerState::Paused | PlayerState::Loading => RebuildResume::Play,
+        PlayerState::Idle | PlayerState::Ended => RebuildResume::Nothing,
     }
 }
 
@@ -3137,9 +3180,30 @@ mod rebuild_resume_tests {
 
     #[test]
     fn nothing_loaded_means_nothing_to_resume() {
-        for state in [PlayerState::Idle, PlayerState::Loading, PlayerState::Ended] {
+        // `Loading` is deliberately not here — see below.
+        for state in [PlayerState::Idle, PlayerState::Ended] {
             assert_eq!(rebuild_resume(state, false), RebuildResume::Nothing);
         }
+    }
+
+    #[test]
+    fn a_track_still_loading_is_still_a_session() {
+        // Not about the resume: about the `Stop`. The decoder is inside
+        // `play_track` from the moment it accepts a load, and a
+        // `SwapProducer` that reaches it there is dropped — both drains
+        // fall through to a catch-all, assuming the engine sent a `Stop`
+        // first. Answering `Nothing` here broke that assumption, so the
+        // rebuild swapped nothing and the decoder went on writing into a
+        // ring whose consumer had just been torn down: silence until
+        // something else rebuilt the output.
+        assert_eq!(
+            rebuild_resume(PlayerState::Loading, false),
+            RebuildResume::Play
+        );
+        assert_eq!(
+            rebuild_resume(PlayerState::Loading, true),
+            RebuildResume::StayPaused
+        );
     }
 
     #[test]
