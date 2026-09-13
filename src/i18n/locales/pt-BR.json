@@ -804,7 +804,30 @@
     "empty": "Nenhum dispositivo de saída disponível",
     "systemDefault": "Padrão do sistema",
     "pinnedUnavailable": "Fixado, indisponível",
-    "reopen": "Reabrir este dispositivo"
+    "reopen": "Reabrir este dispositivo",
+    "capabilities": {
+      "probing": "Lendo as capacidades…",
+      "unavailable": "Capacidades indisponíveis",
+      "details": "Detalhes do dispositivo",
+      "summary": "{{bits}} bit · {{rate}} kHz",
+      "channels": "Canais: {{value}}",
+      "buffer": "Buffer: {{value}} quadros",
+      "formats": "Formatos",
+      "rates": "Taxas de amostragem",
+      "caveat": "O que um driver declara e o que ele aceita em modo exclusivo são duas perguntas diferentes.",
+      "source": {
+        "wasapiExclusive": "Testado com o driver em modo exclusivo.",
+        "alsaHardware": "Parâmetros do hardware ALSA, sem camada de conversão.",
+        "coreAudio": "O que o dispositivo declara ao sistema.",
+        "unavailable": "Dispositivo ocupado ou ausente: nada pôde ser lido."
+      },
+      "tier": {
+        "cd": "Qualidade CD",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {

@@ -2020,6 +2020,30 @@ pub fn player_get_exclusive_output(engine: tauri::State<'_, Arc<AudioEngine>>) -
     engine.inner().exclusive_output()
 }
 
+/// What one output device accepts — formats, rates, channels (#593).
+///
+/// **One device at a time, on demand.** The listing deliberately never
+/// asks this: on Linux it reads ALSA's hint database precisely to avoid
+/// opening every PCM, and filling a capability table while enumerating
+/// would bring back the one-to-two second freeze that shortcut exists to
+/// prevent. The answer is memoised for the session, so the second look at
+/// the same device is free.
+///
+/// Blocking work — a COM round trip per format on Windows, an open on
+/// Linux — so it runs on the blocking pool. It never fails: a device that
+/// cannot be asked comes back with `source: "unavailable"` and the
+/// reason, because "we could not ask" is an answer the sheet has to show.
+#[tauri::command]
+pub async fn player_probe_output_device(
+    device_id: Option<String>,
+) -> AppResult<crate::audio::capabilities::DeviceCapabilities> {
+    tokio::task::spawn_blocking(move || {
+        crate::audio::capabilities::probe_output_device(device_id.as_deref())
+    })
+    .await
+    .map_err(|e| AppError::Audio(format!("probe output device task: {e}")))
+}
+
 /// Pause instead of following the music onto another device when the one
 /// it is playing on goes away (#617).
 ///

@@ -90,6 +90,22 @@ The hint database answers with ALSA's whole namespace, and most of it is not a d
 2. **A wrapper over hardware already on the list goes.** `front:CARD=PCH,DEV=0` beside `hw:CARD=PCH,DEV=0` is the same output twice, and the `hw` spelling is the one exclusive output can use. The names share nothing, so the pairing is done on the **card token** — the closest thing a hint carries to a driver identity — with a missing `DEV` read as `0`, which is what `sysdefault:CARD=X` means. A card with no `hw:` row keeps its wrapper: hiding the only way to reach a device would be worse than showing an alias.
 3. **Rows that would read identically are disambiguated.** Two of the same DAC describe themselves with the same string; the ids differ so both picks work, but the list showed one line twice and the second device was effectively invisible. The card token is appended to both.
 
+### What a device says it can do
+
+The picker listed names, and someone choosing between three outputs on an audiophile player is choosing on facts a name does not carry (#593). `audio/capabilities.rs` answers for one device at a time: the formats it accepts, the rates, the channel count, and the buffer when it has one to report.
+
+**Asked on demand, never during enumeration.** Filling a capability table while listing would bring back exactly the one-to-two second freeze the ALSA-hint shortcut exists to prevent — for every device, every time the menu opens. So it is its own command, called per device once the menu is open, answered on the blocking pool, and memoised for the session. Only real answers are memoised: a device another client was holding must be asked again rather than remembered as unavailable for the rest of the run.
+
+**And the sheet says which question was asked**, because what a driver *declares* and what it will *accept in exclusive mode* are different questions, and a shared-mode path can advertise rates it reaches by resampling. `CapabilitySource` carries that:
+
+| Platform | How | What it means |
+| -------- | --- | ------------- |
+| Windows | `is_supported_exclusive_with_quirks` per (format, rate) | The strongest of the three: the same call the real open makes, quirks and all (#405). Nothing is initialised, so it is safe while the device plays — including while we hold it exclusively. |
+| Linux | `snd_pcm_hw_params` on the raw `hw:` device | The hardware itself, with no plug layer. Opened **non-blocking** so a busy device answers `EBUSY` at once instead of waiting — which also means the device we are playing on exclusively cannot answer, and says so. |
+| macOS | the physical stream formats and nominal rates | What the device reports to the HAL. There is no exclusive-mode question to ask: hog mode takes the device as it is rather than negotiating a format. |
+
+In the menu, each row carries its deepest format, its top rate and a Hi-Res marker; the sheet behind it adds the channel count, the buffer, the formats as a set, and the rates **grouped into named tiers** — CD quality, Hi-Res, Studio, Ultra Hi-Res — with the numbers themselves on the tooltip. A column running from 44.1 to 384 tells an expert something and a normal user nothing; the tiers tell both.
+
 ### The pin and the endpoint are two different things
 
 Every open path falls back to the default endpoint when the pinned name is no longer enumerated — `build_stream_inner` in shared mode, `pick_device` under WASAPI, `resolve_device` under CoreAudio — and each used to leave nothing behind but a `warn!`. `OutputHandle` kept the **requested** name, deliberately, so the pin survives until the device comes back; the picker read that field and ticked a device that was playing nothing (#612).

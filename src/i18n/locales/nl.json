@@ -804,7 +804,30 @@
     "empty": "Geen uitvoerapparaat beschikbaar",
     "systemDefault": "Systeemstandaard",
     "pinnedUnavailable": "Vastgezet, niet beschikbaar",
-    "reopen": "Dit apparaat opnieuw openen"
+    "reopen": "Dit apparaat opnieuw openen",
+    "capabilities": {
+      "probing": "Mogelijkheden worden gelezen…",
+      "unavailable": "Mogelijkheden niet beschikbaar",
+      "details": "Apparaatdetails",
+      "summary": "{{bits}} bit · {{rate}} kHz",
+      "channels": "Kanalen: {{value}}",
+      "buffer": "Buffer: {{value}} frames",
+      "formats": "Formaten",
+      "rates": "Bemonsteringsfrequenties",
+      "caveat": "Wat een stuurprogramma opgeeft en wat het in exclusieve modus accepteert, zijn twee verschillende vragen.",
+      "source": {
+        "wasapiExclusive": "Getest bij het stuurprogramma in exclusieve modus.",
+        "alsaHardware": "ALSA-hardwareparameters, zonder conversielaag.",
+        "coreAudio": "Wat het apparaat aan het systeem meldt.",
+        "unavailable": "Apparaat bezet of afwezig: er kon niets worden gelezen."
+      },
+      "tier": {
+        "cd": "Cd-kwaliteit",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {

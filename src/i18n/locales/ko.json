@@ -804,7 +804,30 @@
     "empty": "사용 가능한 출력 장치가 없습니다",
     "systemDefault": "기본값",
     "pinnedUnavailable": "고정됨, 사용 불가",
-    "reopen": "이 장치 다시 열기"
+    "reopen": "이 장치 다시 열기",
+    "capabilities": {
+      "probing": "성능을 읽는 중…",
+      "unavailable": "성능을 확인할 수 없음",
+      "details": "장치 세부 정보",
+      "summary": "{{bits}} 비트 · {{rate}} kHz",
+      "channels": "채널: {{value}}",
+      "buffer": "버퍼: {{value}} 프레임",
+      "formats": "형식",
+      "rates": "샘플링 주파수",
+      "caveat": "드라이버가 표기하는 것과 배타 모드에서 실제로 받아들이는 것은 서로 다른 문제입니다.",
+      "source": {
+        "wasapiExclusive": "배타 모드로 드라이버에 직접 확인했습니다.",
+        "alsaHardware": "변환 계층 없는 ALSA 하드웨어 매개변수입니다.",
+        "coreAudio": "장치가 시스템에 보고하는 정보입니다.",
+        "unavailable": "장치가 사용 중이거나 없습니다. 아무것도 읽지 못했습니다."
+      },
+      "tier": {
+        "cd": "CD 품질",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {

@@ -350,6 +350,66 @@ fn hw_card_index(dev: &str) -> Option<i32> {
     find_card_index(first.strip_prefix("CARD=")?)
 }
 
+/// Ask the hardware itself what it accepts (#593).
+///
+/// Asked of the raw `hw:` device, so the answer describes the hardware
+/// with no plug layer in between — which is the whole reason exclusive
+/// output targets `hw:` in the first place. A device another client is
+/// holding cannot answer at all, and says so rather than guessing.
+///
+/// Opened **non-blocking**: a busy device must come back immediately with
+/// `EBUSY`, not park the caller on an open that waits for the other
+/// client to finish. Nothing is configured and nothing is written — the
+/// PCM is closed as soon as the parameters have been read.
+pub(super) fn probe_capabilities(
+    device_name: Option<&str>,
+) -> AppResult<super::capabilities::DeviceCapabilities> {
+    use super::capabilities::{CapabilitySource, DeviceCapabilities, DeviceFormat, PROBE_RATES};
+
+    let requested = device_name.map(str::to_string);
+    let hw = resolve_hw_device(&requested)?;
+    let pcm = PCM::new(&hw, Direction::Playback, true)
+        .map_err(|e| AppError::Audio(format!("open {hw} to read its capabilities: {e}")))?;
+    let hwp = HwParams::any(&pcm)
+        .map_err(|e| AppError::Audio(format!("read {hw} hardware parameters: {e}")))?;
+
+    let formats: Vec<DeviceFormat> = FORMAT_FALLBACK_CHAIN
+        .iter()
+        .filter(|format| hwp.test_format(format.to_alsa()).is_ok())
+        .map(|format| DeviceFormat {
+            label: format.label().to_string(),
+            // What the format carries, not what it occupies: `S24_LE`
+            // spends four bytes on twenty-four bits of audio.
+            bits: match format {
+                AlsaSampleFormat::F32 | AlsaSampleFormat::S32 => 32,
+                AlsaSampleFormat::S24Packed | AlsaSampleFormat::S24In32 => 24,
+                AlsaSampleFormat::S16 => 16,
+            },
+            float: matches!(format, AlsaSampleFormat::F32),
+        })
+        .collect();
+
+    let sample_rates: Vec<u32> = PROBE_RATES
+        .iter()
+        .copied()
+        .filter(|&rate| hwp.test_rate(rate).is_ok())
+        .collect();
+
+    Ok(DeviceCapabilities {
+        device_id: requested,
+        source: CapabilitySource::AlsaHardware,
+        formats,
+        sample_rates,
+        max_channels: hwp.get_channels_max().unwrap_or(0) as u16,
+        // The largest period the hardware will take, in frames. Not the
+        // one we ask for when playing — see `TARGET_PERIOD_FRAMES` — but
+        // the device's own limit, which is what a capability sheet is
+        // describing.
+        buffer_frames: hwp.get_period_size_max().ok().map(|frames| frames as u32),
+        unavailable_reason: None,
+    })
+}
+
 /// A failed open, plus the one thing the caller has to branch on: a
 /// device another client is holding can be asked for, a device that
 /// can't do this DoP rate cannot.

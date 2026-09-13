@@ -804,7 +804,30 @@
     "empty": "No output device available",
     "systemDefault": "System default",
     "pinnedUnavailable": "Pinned, unavailable",
-    "reopen": "Reopen this device"
+    "reopen": "Reopen this device",
+    "capabilities": {
+      "probing": "Reading capabilities…",
+      "unavailable": "Capabilities unavailable",
+      "details": "Device details",
+      "summary": "{{bits}} bit · {{rate}} kHz",
+      "channels": "Channels: {{value}}",
+      "buffer": "Buffer: {{value}} frames",
+      "formats": "Formats",
+      "rates": "Sample rates",
+      "caveat": "What a driver declares and what it accepts in exclusive mode are two different questions.",
+      "source": {
+        "wasapiExclusive": "Tested against the driver in exclusive mode.",
+        "alsaHardware": "ALSA hardware parameters, with no conversion layer.",
+        "coreAudio": "What the device reports to the system.",
+        "unavailable": "Device busy or missing: nothing could be read."
+      },
+      "tier": {
+        "cd": "CD quality",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {

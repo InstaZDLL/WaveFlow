@@ -17,6 +17,9 @@
 #[cfg(target_os = "linux")]
 pub mod alsa_exclusive;
 pub mod analytics;
+// What a device accepts, asked one device at a time and never during
+// enumeration (#593).
+pub mod capabilities;
 #[cfg(target_os = "macos")]
 pub mod coreaudio_exclusive;
 pub mod crossfade;

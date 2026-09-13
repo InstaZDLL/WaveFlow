@@ -804,7 +804,30 @@
     "empty": "Kullanılabilir çıkış cihazı yok",
     "systemDefault": "Sistem varsayılanı",
     "pinnedUnavailable": "Sabitlendi, kullanılamıyor",
-    "reopen": "Bu aygıtı yeniden aç"
+    "reopen": "Bu aygıtı yeniden aç",
+    "capabilities": {
+      "probing": "Yetenekler okunuyor…",
+      "unavailable": "Yetenekler kullanılamıyor",
+      "details": "Aygıt ayrıntıları",
+      "summary": "{{bits}} bit · {{rate}} kHz",
+      "channels": "Kanal: {{value}}",
+      "buffer": "Arabellek: {{value}} çerçeve",
+      "formats": "Biçimler",
+      "rates": "Örnekleme hızları",
+      "caveat": "Bir sürücünün bildirdiği ile özel modda kabul ettiği iki ayrı sorudur.",
+      "source": {
+        "wasapiExclusive": "Özel modda sürücüye sorularak sınandı.",
+        "alsaHardware": "ALSA donanım parametreleri, dönüştürme katmanı olmadan.",
+        "coreAudio": "Aygıtın sisteme bildirdiği bilgiler.",
+        "unavailable": "Aygıt meşgul veya yok: hiçbir şey okunamadı."
+      },
+      "tier": {
+        "cd": "CD kalitesi",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {

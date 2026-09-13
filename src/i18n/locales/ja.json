@@ -804,7 +804,30 @@
     "empty": "利用可能な出力デバイスがありません",
     "systemDefault": "デフォルト",
     "pinnedUnavailable": "固定中・利用不可",
-    "reopen": "このデバイスを開き直す"
+    "reopen": "このデバイスを開き直す",
+    "capabilities": {
+      "probing": "対応状況を読み取り中…",
+      "unavailable": "対応状況を取得できません",
+      "details": "デバイスの詳細",
+      "summary": "{{bits}} ビット · {{rate}} kHz",
+      "channels": "チャンネル数: {{value}}",
+      "buffer": "バッファ: {{value}} フレーム",
+      "formats": "フォーマット",
+      "rates": "サンプリング周波数",
+      "caveat": "ドライバーが公称する内容と、排他モードで実際に受け付ける内容は別の問題です。",
+      "source": {
+        "wasapiExclusive": "排他モードでドライバーに問い合わせた結果です。",
+        "alsaHardware": "変換層を挟まない ALSA のハードウェアパラメーターです。",
+        "coreAudio": "デバイスがシステムに申告している内容です。",
+        "unavailable": "デバイスが使用中か見つかりません。何も読み取れませんでした。"
+      },
+      "tier": {
+        "cd": "CD品質",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {

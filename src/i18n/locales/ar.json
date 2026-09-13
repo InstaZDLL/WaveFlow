@@ -907,7 +907,30 @@
     "empty": "لا يوجد جهاز خرج متاح",
     "systemDefault": "افتراضي النظام",
     "pinnedUnavailable": "مثبّت، غير متاح",
-    "reopen": "إعادة فتح هذا الجهاز"
+    "reopen": "إعادة فتح هذا الجهاز",
+    "capabilities": {
+      "probing": "جارٍ قراءة القدرات…",
+      "unavailable": "القدرات غير متاحة",
+      "details": "تفاصيل الجهاز",
+      "summary": "{{bits}} بت · {{rate}} كيلوهرتز",
+      "channels": "القنوات: {{value}}",
+      "buffer": "المخزن المؤقت: {{value}} إطارًا",
+      "formats": "الصيغ",
+      "rates": "معدلات العينة",
+      "caveat": "ما يعلنه المشغّل وما يقبله فعليًا في الوضع الحصري سؤالان مختلفان.",
+      "source": {
+        "wasapiExclusive": "تم اختباره لدى المشغّل في الوضع الحصري.",
+        "alsaHardware": "معاملات عتاد ALSA، دون أي طبقة تحويل.",
+        "coreAudio": "ما يعلنه الجهاز للنظام.",
+        "unavailable": "الجهاز مشغول أو غير موجود: تعذّرت قراءة أي شيء."
+      },
+      "tier": {
+        "cd": "جودة CD",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {

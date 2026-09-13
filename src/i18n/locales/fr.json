@@ -804,7 +804,30 @@
     "empty": "Aucun périphérique de sortie disponible",
     "systemDefault": "Par défaut",
     "pinnedUnavailable": "Épinglé, indisponible",
-    "reopen": "Rouvrir ce périphérique"
+    "reopen": "Rouvrir ce périphérique",
+    "capabilities": {
+      "probing": "Lecture des capacités…",
+      "unavailable": "Capacités indisponibles",
+      "details": "Détails du périphérique",
+      "summary": "{{bits}} bit · {{rate}} kHz",
+      "channels": "Canaux : {{value}}",
+      "buffer": "Tampon : {{value}} trames",
+      "formats": "Formats",
+      "rates": "Taux d'échantillonnage",
+      "caveat": "Ce qu'un pilote déclare et ce qu'il accepte en mode exclusif sont deux questions différentes.",
+      "source": {
+        "wasapiExclusive": "Testé auprès du pilote en mode exclusif.",
+        "alsaHardware": "Paramètres du matériel ALSA, sans couche de conversion.",
+        "coreAudio": "Ce que le périphérique déclare au système.",
+        "unavailable": "Périphérique occupé ou absent : rien n'a pu être lu."
+      },
+      "tier": {
+        "cd": "Qualité CD",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {

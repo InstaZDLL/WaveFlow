@@ -804,7 +804,30 @@
     "empty": "沒有可用的輸出裝置",
     "systemDefault": "預設",
     "pinnedUnavailable": "已釘選，無法使用",
-    "reopen": "重新開啟此裝置"
+    "reopen": "重新開啟此裝置",
+    "capabilities": {
+      "probing": "正在讀取裝置能力…",
+      "unavailable": "無法取得裝置能力",
+      "details": "裝置詳細資料",
+      "summary": "{{bits}} 位元 · {{rate}} kHz",
+      "channels": "聲道：{{value}}",
+      "buffer": "緩衝區：{{value}} 影格",
+      "formats": "格式",
+      "rates": "取樣率",
+      "caveat": "驅動聲稱支援什麼，和它在獨佔模式下實際接受什麼，是兩個不同的問題。",
+      "source": {
+        "wasapiExclusive": "已在獨佔模式下向驅動求證。",
+        "alsaHardware": "ALSA 硬體參數，不經任何轉換層。",
+        "coreAudio": "裝置向系統申報的資訊。",
+        "unavailable": "裝置忙碌或不存在：什麼也讀不到。"
+      },
+      "tier": {
+        "cd": "CD 音質",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {

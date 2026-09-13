@@ -610,6 +610,102 @@ fn resolve_device(device_name: &Option<String>) -> Option<(AudioDeviceID, Option
     get_default_device_id(false).map(|id| (id, None))
 }
 
+/// Ask the HAL what the device reports (#593).
+///
+/// The weakest of the three probes, and the sheet says so: these are the
+/// physical stream formats and nominal rates the device *declares*, not
+/// an acceptance test. macOS has no exclusive-mode question to ask —
+/// hog mode takes the device as it is rather than negotiating a format —
+/// so declaring is all there is.
+///
+/// Nothing is opened and hog mode is not touched, so this is safe while
+/// the device is playing.
+pub(super) fn probe_capabilities(
+    device_name: Option<&str>,
+) -> AppResult<super::capabilities::DeviceCapabilities> {
+    use super::capabilities::{CapabilitySource, DeviceCapabilities, DeviceFormat, PROBE_RATES};
+    use coreaudio::audio_unit::macos_helpers::{
+        get_available_sample_rates, get_supported_physical_stream_formats,
+    };
+    use std::collections::BTreeSet;
+
+    let requested = device_name.map(str::to_string);
+    let (device_id, _opened) = resolve_device(&requested)
+        .ok_or_else(|| AppError::Audio("no CoreAudio output device to describe".to_string()))?;
+
+    let supported = get_supported_physical_stream_formats(device_id)
+        .map_err(|e| AppError::Audio(format!("read the device's physical formats: {e:?}")))?;
+
+    let mut labels: BTreeSet<(u16, bool)> = BTreeSet::new();
+    let mut channels: u16 = 0;
+    let mut rates: BTreeSet<u32> = BTreeSet::new();
+    for ranged in &supported {
+        let asbd = ranged.mFormat;
+        let float = asbd.mFormatFlags & LinearPcmFlags::IS_FLOAT.bits() != 0;
+        labels.insert((asbd.mBitsPerChannel as u16, float));
+        channels = channels.max(asbd.mChannelsPerFrame as u16);
+        // A discrete-rate device reports the same value twice; a device
+        // with a continuous range reports its ends, and the rates we
+        // would ever ask for inside it are the ones worth listing.
+        let (min, max) = (
+            ranged.mSampleRateRange.mMinimum,
+            ranged.mSampleRateRange.mMaximum,
+        );
+        if (min - max).abs() < f64::EPSILON {
+            rates.insert(min.round() as u32);
+        } else {
+            rates.extend(
+                PROBE_RATES
+                    .iter()
+                    .copied()
+                    .filter(|&rate| f64::from(rate) >= min && f64::from(rate) <= max),
+            );
+        }
+    }
+
+    // The nominal rates are the device's own list, and a device that
+    // reports one format over a range still has them. Union rather than
+    // replacement: neither source is complete on its own.
+    if let Ok(nominal) = get_available_sample_rates(device_id) {
+        for range in nominal {
+            if (range.mMinimum - range.mMaximum).abs() < f64::EPSILON {
+                rates.insert(range.mMinimum.round() as u32);
+            } else {
+                rates.extend(PROBE_RATES.iter().copied().filter(|&rate| {
+                    f64::from(rate) >= range.mMinimum && f64::from(rate) <= range.mMaximum
+                }));
+            }
+        }
+    }
+
+    let formats = labels
+        .into_iter()
+        .rev()
+        .map(|(bits, float)| DeviceFormat {
+            label: if float {
+                format!("F{bits}")
+            } else {
+                format!("S{bits}")
+            },
+            bits,
+            float,
+        })
+        .collect();
+
+    Ok(DeviceCapabilities {
+        device_id: requested,
+        source: CapabilitySource::CoreAudio,
+        formats,
+        sample_rates: rates.into_iter().collect(),
+        max_channels: channels,
+        // CoreAudio's buffer size is the *client's* to choose rather than
+        // the device's to declare, so there is nothing honest to put
+        // here.
+        buffer_frames: None,
+        unavailable_reason: None,
+    })
+}
+
 /// Take hog mode (exclusive access). Errors if another process already
 /// owns it or the toggle didn't land on us — the caller then falls back
 /// to DSD → PCM instead of fighting for the device.

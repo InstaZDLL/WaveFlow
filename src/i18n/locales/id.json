@@ -804,7 +804,30 @@
     "empty": "Tidak ada perangkat output yang tersedia",
     "systemDefault": "Default sistem",
     "pinnedUnavailable": "Disematkan, tidak tersedia",
-    "reopen": "Buka ulang perangkat ini"
+    "reopen": "Buka ulang perangkat ini",
+    "capabilities": {
+      "probing": "Membaca kemampuan…",
+      "unavailable": "Kemampuan tidak tersedia",
+      "details": "Detail perangkat",
+      "summary": "{{bits}} bit · {{rate}} kHz",
+      "channels": "Kanal: {{value}}",
+      "buffer": "Bufer: {{value}} bingkai",
+      "formats": "Format",
+      "rates": "Laju pencuplikan",
+      "caveat": "Apa yang dinyatakan driver dan apa yang diterimanya dalam mode eksklusif adalah dua pertanyaan berbeda.",
+      "source": {
+        "wasapiExclusive": "Diuji pada driver dalam mode eksklusif.",
+        "alsaHardware": "Parameter perangkat keras ALSA, tanpa lapisan konversi.",
+        "coreAudio": "Apa yang dilaporkan perangkat ke sistem.",
+        "unavailable": "Perangkat sibuk atau tidak ada: tidak ada yang bisa dibaca."
+      },
+      "tier": {
+        "cd": "Kualitas CD",
+        "hiRes": "Hi-Res",
+        "studio": "Studio",
+        "ultra": "Ultra Hi-Res"
+      }
+    }
   },
   "profiles": {
     "select": {

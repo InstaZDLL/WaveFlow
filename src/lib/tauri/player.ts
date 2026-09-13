@@ -501,6 +501,52 @@ export interface OutputDevice {
   is_pinned: boolean;
 }
 
+/**
+ * Which question a capability answer came from (#593).
+ *
+ * Stated rather than implied, because what a driver *declares* and what
+ * it *accepts in exclusive mode* are different questions — a shared-mode
+ * path can advertise rates it reaches by resampling.
+ */
+export type CapabilitySource =
+  | "wasapi-exclusive"
+  | "alsa-hardware"
+  | "coreaudio"
+  | "unavailable";
+
+export interface DeviceFormat {
+  /** The backend's own spelling: `S24_3LE`, `F32`, … */
+  label: string;
+  /** Bits of real audio per sample — 24 for both 24-bit layouts. */
+  bits: number;
+  float: boolean;
+}
+
+/** What one output device accepts (#593). */
+export interface DeviceCapabilities {
+  device_id: string | null;
+  source: CapabilitySource;
+  formats: DeviceFormat[];
+  sample_rates: number[];
+  max_channels: number;
+  buffer_frames: number | null;
+  /** Technical, for the tooltip — the UI says it in its own words. */
+  unavailable_reason: string | null;
+}
+
+/**
+ * Ask one device what it accepts (#593).
+ *
+ * On demand and one device at a time: the listing never does this, since
+ * probing during enumeration is what the ALSA-hint shortcut exists to
+ * avoid. The backend memoises the answer for the session.
+ */
+export function playerProbeOutputDevice(
+  deviceId: string | null,
+): Promise<DeviceCapabilities> {
+  return invoke<DeviceCapabilities>("player_probe_output_device", { deviceId });
+}
+
 export function playerListOutputDevices(): Promise<OutputDevice[]> {
   return invoke<OutputDevice[]>("player_list_output_devices");
 }
