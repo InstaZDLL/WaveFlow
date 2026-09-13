@@ -581,13 +581,36 @@ fn patch_file(
         }};
     }
 
+    // The two containers whose whole tag is an ID3v2 block at the head
+    // of the file, which is the shape the in-place path needs (#590).
+    // Everything else falls through to the rewrite below.
+    macro_rules! with_id3v2_file {
+        ($ty:ty) => {{
+            waveflow_core::tagio::with_writable_file(
+                path,
+                |handle| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                    let mut f = <$ty>::read_from(handle, ParseOptions::new())?;
+                    patch_slot!(f, remove_id3v2, set_id3v2);
+                    // Try to lay the new tag over the old one first. It
+                    // fits whenever the edit did not outgrow the padding
+                    // already in the file, which is the common case: a
+                    // corrected title is usually a few bytes either way,
+                    // and taggers leave kilobytes of slack.
+                    if let Some(tag) = f.id3v2() {
+                        if waveflow_core::tagio::try_id3v2_in_place(handle, tag)? {
+                            return Ok(());
+                        }
+                    }
+                    f.save_to(handle, WriteOptions::default())?;
+                    Ok(())
+                },
+            )?;
+        }};
+    }
+
     match file_type {
-        FileType::Mpeg => with_file!(lofty::mpeg::MpegFile, |f| {
-            patch_slot!(f, remove_id3v2, set_id3v2);
-        }),
-        FileType::Aac => with_file!(lofty::aac::AacFile, |f| {
-            patch_slot!(f, remove_id3v2, set_id3v2);
-        }),
+        FileType::Mpeg => with_id3v2_file!(lofty::mpeg::MpegFile),
+        FileType::Aac => with_id3v2_file!(lofty::aac::AacFile),
         FileType::Mp4 => with_file!(lofty::mp4::Mp4File, |f| {
             patch_slot!(f, remove_ilst, set_ilst);
         }),
