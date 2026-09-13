@@ -613,6 +613,29 @@ fn apply_patch_id3(tag: &mut id3::Tag, patch: &TagPatch<'_>) {
     }
 }
 
+/// Put the year where an ID3v2.3 reader will look for it.
+///
+/// `TDRC` is a 2.4 frame. The `id3` crate writes whatever frames the tag
+/// holds, version target or not, so a 2.3 tag built from a `TDRC` comes
+/// back out carrying `TDRC` — and a reader that only knows 2.3 finds no
+/// year at all (measured: `year()` answers `None` after that round
+/// trip). Since a DSF now keeps the version it arrived with, the year
+/// has to be mirrored into `TYER`, which is the frame 2.3 defines.
+///
+/// A cleared year clears both, so a stale `TYER` cannot outlive the
+/// date it duplicated.
+fn mirror_year_for_v23(tag: &mut id3::Tag, version: id3::Version) {
+    use id3::TagLike;
+
+    if version != id3::Version::Id3v23 {
+        return;
+    }
+    match tag.date_recorded() {
+        Some(date) => tag.set_year(date.year),
+        None => tag.remove_year(),
+    }
+}
+
 /// Write a patch into a DSF file (#592).
 ///
 /// The easy container, once someone writes the twenty lines for it: the
@@ -659,6 +682,7 @@ fn patch_dsf(
                 .map_or(id3::Version::Id3v24, id3::Tag::version);
             let mut tag = existing.unwrap_or_default();
             apply_patch_id3(&mut tag, patch);
+            mirror_year_for_v23(&mut tag, version);
             let mut bytes = Vec::new();
             tag.write_to(&mut bytes, version)?;
             waveflow_core::tagio::write_dsf_id3v2(handle, &bytes)?;
@@ -1345,6 +1369,78 @@ mod patch_agreement_tests {
         apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
         let date = tag.date_recorded().expect("a date");
         assert_eq!((date.year, date.month, date.day), (1997, Some(6), Some(14)));
+    }
+
+    #[test]
+    fn an_id3v23_tag_keeps_its_year_where_a_v23_reader_looks() {
+        // TDRC is a 2.4 frame. The `id3` crate writes the frames the tag
+        // holds whatever version it is told to target, so a 2.3 tag built
+        // from a TDRC comes back out carrying TDRC — and `year()`, which
+        // reads TYER, answers None. Measured, not assumed: that is what
+        // the round trip below asserted before the mirror existed.
+        use id3::TagLike;
+
+        let mut tag = id3::Tag::new();
+        tag.set_title("Before");
+        let edit = TrackEdit {
+            year: Some(1997),
+            ..Default::default()
+        };
+        apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
+        mirror_year_for_v23(&mut tag, id3::Version::Id3v23);
+
+        let mut bytes = Vec::new();
+        tag.write_to(&mut bytes, id3::Version::Id3v23)
+            .expect("write");
+        let back = id3::Tag::read_from2(std::io::Cursor::new(&bytes)).expect("read");
+
+        assert_eq!(back.year(), Some(1997), "a 2.3 reader finds the year");
+        assert_eq!(
+            back.date_recorded().map(|d| d.year),
+            Some(1997),
+            "and the 2.4 frame still agrees with it"
+        );
+    }
+
+    #[test]
+    fn clearing_the_year_clears_both_frames_in_v23() {
+        // A stale TYER outliving the date it duplicated would show the
+        // old year to exactly the readers the mirror exists for.
+        use id3::TagLike;
+
+        let mut tag = id3::Tag::new();
+        tag.set_year(1997);
+        tag.set_date_recorded(id3::Timestamp {
+            year: 1997,
+            ..Default::default()
+        });
+        let edit = TrackEdit {
+            year: Some(0),
+            ..Default::default()
+        };
+        apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
+        mirror_year_for_v23(&mut tag, id3::Version::Id3v23);
+
+        assert_eq!(tag.year(), None);
+        assert_eq!(tag.date_recorded(), None);
+    }
+
+    #[test]
+    fn a_v24_tag_is_left_with_the_frame_its_version_defines() {
+        // The mirror is a 2.3 accommodation and must not add a legacy
+        // frame to a tag that has no use for one.
+        use id3::TagLike;
+
+        let mut tag = id3::Tag::new();
+        let edit = TrackEdit {
+            year: Some(2011),
+            ..Default::default()
+        };
+        apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
+        mirror_year_for_v23(&mut tag, id3::Version::Id3v24);
+
+        assert_eq!(tag.date_recorded().map(|d| d.year), Some(2011));
+        assert_eq!(tag.year(), None, "no TYER in a 2.4 tag");
     }
 
     #[test]
