@@ -558,18 +558,15 @@ fn patch_file(
         }};
     }
 
-    // Read the concrete file, run the body over it, save it back.
-    //
-    // One handle for both halves, taken through
-    // [`waveflow_core::tagio::with_writable_file`] (#598): it lifts the
-    // Windows read-only attribute, waits out the sharing violation a
-    // virus scanner causes, and — the part nothing else did — calls
-    // `sync_all` before we report success and re-hash. lofty rewinds the
-    // handle itself at the top of its writer, so reading and writing
-    // through the same one is what it expects.
+    // The rewrite: read the concrete file, run the body over it, save it
+    // back — through a copy that replaces the original in one `rename`
+    // (#598). lofty's own rewrite truncates the file it is rewriting, so
+    // the original has to stay out of its reach until the new bytes are
+    // on the disk. lofty rewinds the handle itself at the top of its
+    // writer, so reading and writing through the same one is expected.
     macro_rules! with_file {
         ($ty:ty, |$f:ident, $h:ident| $body:block) => {{
-            waveflow_core::tagio::with_writable_file(
+            waveflow_core::tagio::rewrite_via_temp(
                 path,
                 |$h| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     let mut $f = <$ty>::read_from($h, ParseOptions::new())?;
@@ -581,36 +578,60 @@ fn patch_file(
         }};
     }
 
-    // The two containers whose whole tag is an ID3v2 block at the head
-    // of the file, which is the shape the in-place path needs (#590).
-    // Everything else falls through to the rewrite below.
-    macro_rules! with_id3v2_file {
+    // First pass: lay the new tag over the one already in the file,
+    // which works whenever the edit did not outgrow the padding there
+    // (#590). That is the common case — a corrected title is a few bytes
+    // either way and taggers leave kilobytes of slack — and it is the
+    // only path that touches neither the audio nor the file's length.
+    // `false` means "could not", and the rewrite below takes over.
+    macro_rules! try_in_place_id3v2 {
         ($ty:ty) => {{
             waveflow_core::tagio::with_writable_file(
                 path,
-                |handle| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                |handle| -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
                     let mut f = <$ty>::read_from(handle, ParseOptions::new())?;
                     patch_slot!(f, remove_id3v2, set_id3v2);
-                    // Try to lay the new tag over the old one first. It
-                    // fits whenever the edit did not outgrow the padding
-                    // already in the file, which is the common case: a
-                    // corrected title is usually a few bytes either way,
-                    // and taggers leave kilobytes of slack.
-                    if let Some(tag) = f.id3v2() {
-                        if waveflow_core::tagio::try_id3v2_in_place(handle, tag)? {
-                            return Ok(());
-                        }
+                    match f.id3v2() {
+                        Some(tag) => waveflow_core::tagio::try_id3v2_in_place(handle, tag),
+                        None => Ok(false),
                     }
-                    f.save_to(handle, WriteOptions::default())?;
-                    Ok(())
                 },
-            )?;
+            )?
         }};
     }
 
+    let written_in_place = match file_type {
+        FileType::Mpeg => try_in_place_id3v2!(lofty::mpeg::MpegFile),
+        FileType::Aac => try_in_place_id3v2!(lofty::aac::AacFile),
+        // Fields only. A cover edit regenerates picture blocks, which
+        // the FLAC fast path deliberately copies through rather than
+        // rebuilds, so it has nothing to offer there.
+        FileType::Flac if matches!(patch, TagPatch::Fields(_)) => {
+            waveflow_core::tagio::with_writable_file(
+                path,
+                |handle| -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+                    let mut f = lofty::flac::FlacFile::read_from(handle, ParseOptions::new())?;
+                    patch_slot!(f, remove_vorbis_comments, set_vorbis_comments);
+                    match f.vorbis_comments() {
+                        Some(comments) => waveflow_core::tagio::try_flac_in_place(handle, comments),
+                        None => Ok(false),
+                    }
+                },
+            )?
+        }
+        _ => false,
+    };
+    if written_in_place {
+        return Ok(());
+    }
+
     match file_type {
-        FileType::Mpeg => with_id3v2_file!(lofty::mpeg::MpegFile),
-        FileType::Aac => with_id3v2_file!(lofty::aac::AacFile),
+        FileType::Mpeg => with_file!(lofty::mpeg::MpegFile, |f, handle| {
+            patch_slot!(f, remove_id3v2, set_id3v2);
+        }),
+        FileType::Aac => with_file!(lofty::aac::AacFile, |f, handle| {
+            patch_slot!(f, remove_id3v2, set_id3v2);
+        }),
         FileType::Mp4 => with_file!(lofty::mp4::Mp4File, |f, handle| {
             patch_slot!(f, remove_ilst, set_ilst);
         }),
@@ -648,16 +669,6 @@ fn patch_file(
             match patch {
                 TagPatch::Fields(_) => {
                     patch_slot!(f, remove_vorbis_comments, set_vorbis_comments);
-                    // Absorb the size change into the padding block the
-                    // file already carries, so not one audio byte moves
-                    // (#590). Fields only: a cover edit regenerates
-                    // picture blocks, which the fast path deliberately
-                    // copies through rather than rebuilds.
-                    if let Some(comments) = f.vorbis_comments() {
-                        if waveflow_core::tagio::try_flac_in_place(handle, comments)? {
-                            return Ok(());
-                        }
-                    }
                 }
                 TagPatch::Cover { bytes, mime } => {
                     use lofty::ogg::OggPictureStorage;

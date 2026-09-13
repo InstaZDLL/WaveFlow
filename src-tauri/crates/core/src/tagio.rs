@@ -140,7 +140,10 @@ fn open_for_write(path: &Path) -> io::Result<std::fs::File> {
 /// the one the user's permissions, ACLs, extended attributes and hard
 /// links are attached to, and rewriting through a temporary file would
 /// hand all of that back changed unless every piece of it were copied
-/// across by hand. What in-place costs is atomicity against a crash.
+/// across by hand. What in-place costs is atomicity against a crash, so
+/// this is for writes that cannot destroy the file if they stop half way
+/// — the padding paths below. Everything else goes through
+/// [`rewrite_via_temp`].
 ///
 /// `sync_all` before returning, not after: the caller re-hashes the file
 /// and writes that hash to the database, and a hash of bytes that never
@@ -157,6 +160,108 @@ where
     let value = body(&mut file)?;
     file.sync_all().map_err(E::from)?;
     Ok(value)
+}
+
+/// A scratch file that deletes itself unless it was renamed into place.
+///
+/// Without this, every early return between the copy and the rename
+/// leaves a `.wf-tmp` beside the user's music — next to the original, in
+/// their library folder, where the scanner will eventually find it.
+struct TempFile {
+    path: std::path::PathBuf,
+    committed: bool,
+}
+
+impl Drop for TempFile {
+    fn drop(&mut self) {
+        if !self.committed {
+            let _ = std::fs::remove_file(&self.path);
+        }
+    }
+}
+
+/// Rewrite `path` through a copy, so an interruption cannot destroy it
+/// (#598).
+///
+/// For the writes that cannot be done in place. It matters most for
+/// ID3v2, whose rewrite in lofty reads the whole file into memory,
+/// **truncates the original to zero**, and writes it back: a crash, a
+/// full disk or a killed process anywhere in there leaves a truncated
+/// audio file. Here the original is untouched until a single `rename`
+/// replaces it, and the bytes are on the disk before that happens.
+///
+/// The cost is a second copy of the file, which is why it is the
+/// fallback: the in-place paths (#590) mean most edits never come here.
+///
+/// What a rename cannot carry across is worth naming. The file keeps its
+/// contents and its permission bits, but it is a new inode: hard links
+/// to the old one still point at the old content, and ACLs or extended
+/// attributes beyond the permission bits do not follow. That is the
+/// trade against losing the file altogether, and it is only paid on the
+/// path that would otherwise have rewritten the file in place anyway.
+pub fn rewrite_via_temp<E>(
+    path: &Path,
+    body: impl FnOnce(&mut std::fs::File) -> Result<(), E>,
+) -> Result<(), E>
+where
+    E: From<io::Error>,
+{
+    // Lifted first so it is restored last — after the rename, so the
+    // attribute lands on the file that ends up in place.
+    let _readonly = ReadOnlyGuard::lift(path).map_err(E::from)?;
+
+    let directory = path.parent().unwrap_or_else(|| Path::new("."));
+    let stem = path
+        .file_name()
+        .unwrap_or_else(|| std::ffi::OsStr::new("track"));
+    // Beside the original, never in the system temp directory: `rename`
+    // is only atomic within a filesystem, and a music library is
+    // routinely on a different one than `/tmp`.
+    let mut name = std::ffi::OsString::from(".");
+    name.push(stem);
+    name.push(format!(".{}.wf-tmp", std::process::id()));
+    let temp = TempFile {
+        path: directory.join(name),
+        committed: false,
+    };
+
+    // A copy rather than an empty file: lofty reads the container it is
+    // about to rewrite from the same handle it writes to.
+    std::fs::copy(path, &temp.path).map_err(E::from)?;
+    {
+        let mut file = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&temp.path)
+            .map_err(E::from)?;
+        body(&mut file)?;
+        file.sync_all().map_err(E::from)?;
+    }
+
+    let mut temp = temp;
+    rename_over(&temp.path, path).map_err(E::from)?;
+    temp.committed = true;
+    Ok(())
+}
+
+/// `rename`, waiting out the same transient lock an open does.
+///
+/// The target is the file we are replacing, and on Windows a scanner
+/// holding it open refuses the replacement exactly as it refuses an
+/// open — with the difference that here the new content already exists
+/// and giving up would discard it.
+fn rename_over(from: &Path, to: &Path) -> io::Result<()> {
+    let mut attempt = 0;
+    loop {
+        match std::fs::rename(from, to) {
+            Ok(()) => return Ok(()),
+            Err(err) if attempt < LOCK_RETRIES && is_transient_lock(&err) => {
+                attempt += 1;
+                std::thread::sleep(LOCK_BACKOFF);
+            }
+            Err(err) => return Err(err),
+        }
+    }
 }
 
 /// The ID3v2 tag already on disk, as a span of bytes at the head of the
@@ -591,6 +696,95 @@ mod in_place_tests {
         assert_eq!(
             std::fs::read(&path).expect("read"),
             b"no tag here, just audio"
+        );
+    }
+}
+
+#[cfg(test)]
+mod rewrite_tests {
+    use super::*;
+
+    #[test]
+    fn a_failed_rewrite_leaves_the_original_exactly_as_it_was() {
+        // The whole point. lofty's own rewrite truncates the file it is
+        // rewriting before it writes anything back, so a body that fails
+        // half way used to be the difference between an edit and a
+        // ruined track.
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("track.mp3");
+        std::fs::write(&path, b"the original bytes").expect("seed");
+
+        let outcome: Result<(), io::Error> = rewrite_via_temp(&path, |file| {
+            use std::io::Write;
+            // Do real damage first, then fail: a body that fails before
+            // touching anything would prove nothing.
+            file.set_len(0)?;
+            file.write_all(b"half")?;
+            Err(io::Error::other("the write gave up here"))
+        });
+
+        assert!(outcome.is_err());
+        assert_eq!(
+            std::fs::read(&path).expect("read"),
+            b"the original bytes",
+            "the original is untouched until the rename"
+        );
+    }
+
+    #[test]
+    fn nothing_is_left_beside_the_users_music() {
+        // A scratch file dropped in a library folder is one the scanner
+        // eventually finds, so it has to go on every way out.
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("track.mp3");
+        std::fs::write(&path, b"original").expect("seed");
+
+        let _ = rewrite_via_temp(&path, |_| -> Result<(), io::Error> {
+            Err(io::Error::other("no"))
+        });
+        rewrite_via_temp(&path, |file| -> Result<(), io::Error> {
+            use std::io::Write;
+            file.set_len(0)?;
+            file.write_all(b"rewritten")
+        })
+        .expect("rewrite");
+
+        let left: Vec<_> = std::fs::read_dir(dir.path())
+            .expect("read_dir")
+            .filter_map(Result::ok)
+            .map(|entry| entry.file_name())
+            .collect();
+        assert_eq!(left.len(), 1, "only the track remains: {left:?}");
+        assert_eq!(std::fs::read(&path).expect("read"), b"rewritten");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn the_read_only_attribute_lands_on_the_file_that_ends_up_in_place() {
+        // The rename replaces the inode, so restoring the attribute has
+        // to happen after it — on the new file, not the one that is
+        // already gone.
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("track.mp3");
+        std::fs::write(&path, b"original").expect("seed");
+        let mut permissions = std::fs::metadata(&path).expect("meta").permissions();
+        permissions.set_readonly(true);
+        std::fs::set_permissions(&path, permissions).expect("set read-only");
+
+        rewrite_via_temp(&path, |file| -> Result<(), io::Error> {
+            use std::io::Write;
+            file.set_len(0)?;
+            file.write_all(b"rewritten")
+        })
+        .expect("rewrite");
+
+        assert_eq!(std::fs::read(&path).expect("read"), b"rewritten");
+        assert!(
+            std::fs::metadata(&path)
+                .expect("meta")
+                .permissions()
+                .readonly(),
+            "the attribute the user set is back on the file that replaced it"
         );
     }
 }
