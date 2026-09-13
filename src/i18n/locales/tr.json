@@ -757,7 +757,7 @@
       "custom": "Özel hız",
       "pitchHint": "Ton, hızı takip eder (zaman genişletme yok)."
     },
-    "seek": "İlerlet",
+    "seek": "Oynatma konumu",
     "alert": {
       "error": {
         "device-lost": "Ses aygıtının bağlantısı kesildi",
