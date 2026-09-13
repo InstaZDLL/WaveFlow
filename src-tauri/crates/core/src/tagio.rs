@@ -748,6 +748,58 @@ mod in_place_tests {
     }
 
     #[test]
+    fn a_cover_survives_the_in_place_write() {
+        // Why the ID3v2 fast path takes covers and the FLAC one does
+        // not: here the picture is an APIC frame *inside* the tag, so
+        // `dump_to` writes it with everything else. The FLAC guard
+        // exists because that encoder rebuilds only the comment block
+        // and pictures live in blocks of their own — a different gap,
+        // not a symmetry to copy.
+        use lofty::id3::v2::{AttachedPictureFrame, Frame};
+        use lofty::picture::{MimeType, Picture, PictureType};
+        use lofty::TextEncoding;
+
+        let audio: Vec<u8> = (0..2048u32).map(|i| (i % 199) as u8 + 1).collect();
+        let (_dir, path) = tagged_file("Before", 8192, &audio);
+        let before_len = std::fs::metadata(&path).expect("meta").len();
+
+        let mut tag = Id3v2Tag::default();
+        tag.set_title("After".to_string());
+        let cover: Vec<u8> = (0..512u32).map(|i| (i % 251) as u8 + 2).collect();
+        tag.insert(Frame::Picture(AttachedPictureFrame::new(
+            TextEncoding::UTF8,
+            Picture::unchecked(cover.clone())
+                .pic_type(PictureType::CoverFront)
+                .mime_type(MimeType::Jpeg)
+                .build(),
+        )));
+
+        let mut file = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&path)
+            .expect("open");
+        let span = read_id3v2_span(&mut file).expect("span").expect("a tag");
+        assert!(try_id3v2_in_place(&mut file, &tag).expect("in place"));
+        file.sync_all().expect("sync");
+        drop(file);
+
+        let after = std::fs::read(&path).expect("read");
+        assert_eq!(after.len() as u64, before_len);
+        assert_eq!(
+            &after[span.total as usize..],
+            &audio[..],
+            "the audio is untouched"
+        );
+        assert!(
+            after[..span.total as usize]
+                .windows(cover.len())
+                .any(|w| w == &cover[..]),
+            "the cover went into the file with the rest of the tag"
+        );
+    }
+
+    #[test]
     fn an_edit_that_outgrows_the_padding_asks_for_the_rewrite() {
         // No padding to grow into, and a title far longer than the one
         // it replaces: this is the case the slow path exists for, and
