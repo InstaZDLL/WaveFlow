@@ -543,6 +543,25 @@ pub struct AudioEngine {
     /// state that persists is announced once instead of at every track.
     /// `None` means "nothing to say", which is also what clears it.
     last_output_notice: Mutex<Option<PlaybackNotice>>,
+    /// A pause the user has asked for that the decoder has not acted on
+    /// yet (#611).
+    ///
+    /// `SharedPlayback::paused_output` is the decoder's answer, and it
+    /// lags by design: it is raised when the `Pause` is *processed*,
+    /// which can be a decode cycle or a ring-poll interval after it was
+    /// sent. A rebuild reading it inside that gap decides `Play` for a
+    /// session the user has just paused — and its resume then clears the
+    /// flag and starts the music, so the pause disappears. This is the
+    /// same question asked one step earlier, on the side where the
+    /// answer is already known.
+    ///
+    /// Maintained at the [`Self::send`] boundary, which every `Pause`,
+    /// `Resume` and user-facing load passes through. The two paths that
+    /// bypass it hold the channel directly — the auto-advance and a
+    /// rebuild's own resume — and neither can run against a paused
+    /// session: a paused track never ends, and a rebuild only resumes
+    /// when it has just decided the session was not paused.
+    pause_pending: std::sync::atomic::AtomicBool,
     /// The rate the last output open was *asked* for, `0` for "nothing
     /// in particular" (#600).
     ///
@@ -1105,6 +1124,7 @@ impl AudioEngine {
             last_device_loss: Mutex::new(None),
             parked_resume: Mutex::new(None),
             last_output_notice: Mutex::new(None),
+            pause_pending: std::sync::atomic::AtomicBool::new(false),
             last_requested_rate: std::sync::atomic::AtomicU32::new(0),
         })
     }
@@ -1176,6 +1196,16 @@ impl AudioEngine {
     /// has to see *every* load therefore belongs on the receiving side —
     /// which is where [`LastLoad`] is recorded.
     pub fn send(&self, cmd: AudioCmd) -> AppResult<()> {
+        // The user's intent, recorded before the decoder has acted on it
+        // — see [`Self::pause_pending`].
+        self.pause_pending.store(
+            pause_pending_after(
+                &cmd,
+                self.pause_pending
+                    .load(std::sync::atomic::Ordering::Acquire),
+            ),
+            std::sync::atomic::Ordering::Release,
+        );
         self.cmd_tx
             .send(cmd)
             .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))
@@ -1383,6 +1413,18 @@ impl AudioEngine {
             return None;
         }
         Some(parked)
+    }
+
+    /// Whether this session counts as paused for a rebuild's decision:
+    /// what the decoder has acted on, or what the user has asked for and
+    /// it has not reached yet (#611).
+    fn paused_for_rebuild(&self) -> bool {
+        self.shared
+            .paused_output
+            .load(std::sync::atomic::Ordering::Acquire)
+            || self
+                .pause_pending
+                .load(std::sync::atomic::Ordering::Acquire)
     }
 
     /// The position, stamped with the load it belongs to (#634).
@@ -2181,12 +2223,7 @@ impl AudioEngine {
             .shared
             .current_track_id
             .load(std::sync::atomic::Ordering::Acquire);
-        let resume = rebuild_resume(
-            self.shared.state(),
-            self.shared
-                .paused_output
-                .load(std::sync::atomic::Ordering::Acquire),
-        );
+        let resume = rebuild_resume(self.shared.state(), self.paused_for_rebuild());
         // Where the audio actually was, read before the handle goes: it
         // is the only half of "did we move?" that disappears with it
         // (#617).
@@ -2286,12 +2323,7 @@ impl AudioEngine {
         // does not clear either input — it unloads the track without
         // touching the state or `paused_output` — so this reads what the
         // user last asked for.
-        let resume = rebuild_resume(
-            self.shared.state(),
-            self.shared
-                .paused_output
-                .load(std::sync::atomic::Ordering::Acquire),
-        );
+        let resume = rebuild_resume(self.shared.state(), self.paused_for_rebuild());
         if resume == RebuildResume::StayPaused {
             // The user had paused it (#611): the rebuild reopens the
             // output and hands the session to Play, it does not start
@@ -2375,12 +2407,7 @@ impl AudioEngine {
         // is parked, not started. Picking a device or flipping the mode
         // is a deliberate act on the *output*, never a request to play —
         // and this path resumed a paused track into audible playback.
-        let resume = rebuild_resume(
-            self.shared.state(),
-            self.shared
-                .paused_output
-                .load(std::sync::atomic::Ordering::Acquire),
-        );
+        let resume = rebuild_resume(self.shared.state(), self.paused_for_rebuild());
         // Both a session that was playing and one the user paused hold a
         // track the rebuild has to interrupt; only what follows differs.
         let was_playing = resume != RebuildResume::Nothing;
@@ -2585,12 +2612,7 @@ impl AudioEngine {
         // does not clear either input — it unloads the track without
         // touching the state or `paused_output` — so this reads what the
         // user last asked for.
-        let resume = rebuild_resume(
-            self.shared.state(),
-            self.shared
-                .paused_output
-                .load(std::sync::atomic::Ordering::Acquire),
-        );
+        let resume = rebuild_resume(self.shared.state(), self.paused_for_rebuild());
         // Step 6 — put back whatever the decoder is on. Not necessarily
         // the track this method snapshotted: a pick made during the open
         // is what the decoder accepted, and resuming the older snapshot
@@ -2644,12 +2666,7 @@ impl AudioEngine {
         // is parked, not started. Picking a device or flipping the mode
         // is a deliberate act on the *output*, never a request to play —
         // and this path resumed a paused track into audible playback.
-        let resume = rebuild_resume(
-            self.shared.state(),
-            self.shared
-                .paused_output
-                .load(std::sync::atomic::Ordering::Acquire),
-        );
+        let resume = rebuild_resume(self.shared.state(), self.paused_for_rebuild());
         // Both a session that was playing and one the user paused hold a
         // track the rebuild has to interrupt; only what follows differs.
         let was_playing = resume != RebuildResume::Nothing;
@@ -2810,12 +2827,7 @@ impl AudioEngine {
         // does not clear either input — it unloads the track without
         // touching the state or `paused_output` — so this reads what the
         // user last asked for.
-        let resume = rebuild_resume(
-            self.shared.state(),
-            self.shared
-                .paused_output
-                .load(std::sync::atomic::Ordering::Acquire),
-        );
+        let resume = rebuild_resume(self.shared.state(), self.paused_for_rebuild());
         // The mode flip must not drop the user off what they are
         // listening to — radio included, which is why this re-dispatches
         // the decoder's own load rather than looking a `track` row up by
@@ -2925,6 +2937,27 @@ pub(super) enum FollowOutcome {
     /// never come: moving the default twice in quick succession is one
     /// notification per change, not a repeating signal.
     Deferred,
+}
+
+/// How a command leaves the pending-pause flag (#611).
+///
+/// A `Pause` raises it, and everything that asks for playback clears it:
+/// `Resume`, and any load, because a load is a request to play — which
+/// is also when the decoder clears its own `paused_output`. Every other
+/// command leaves it alone; a `Stop` in particular, since the rebuilds
+/// send one and it decides nothing about whether the user wants to hear
+/// anything afterwards.
+///
+/// Pure so the lifecycle can be exercised without an engine.
+fn pause_pending_after(cmd: &AudioCmd, current: bool) -> bool {
+    match cmd {
+        AudioCmd::Pause => true,
+        AudioCmd::Resume
+        | AudioCmd::LoadAndPlay { .. }
+        | AudioCmd::LoadRemoteFileAndPlay { .. }
+        | AudioCmd::LoadUrlAndPlay { .. } => false,
+        _ => current,
+    }
 }
 
 /// Whether a default-device change is worth a rebuild.
@@ -3059,7 +3092,10 @@ mod resume_guard_tests {
 #[cfg(test)]
 mod rebuild_resume_tests {
     use super::super::state::PlayerState;
-    use super::{endpoint_moved, rebuild_resume, RebuildResume};
+    use super::{
+        endpoint_moved, pause_pending_after, rebuild_resume, AudioCmd, LoadIntent, RebuildResume,
+        TrackGain,
+    };
 
     #[test]
     fn a_session_that_was_playing_picks_back_up() {
@@ -3104,6 +3140,45 @@ mod rebuild_resume_tests {
         for state in [PlayerState::Idle, PlayerState::Loading, PlayerState::Ended] {
             assert_eq!(rebuild_resume(state, false), RebuildResume::Nothing);
         }
+    }
+
+    #[test]
+    fn a_pause_the_decoder_has_not_reached_yet_still_counts() {
+        // `paused_output` is the decoder's answer and it lags: a rebuild
+        // reading it in the gap decided `Play` for a session the user had
+        // just paused, and its resume then cleared the flag and started
+        // the music. The engine reads both, and this is the half it owns.
+        assert!(pause_pending_after(&AudioCmd::Pause, false));
+        assert!(pause_pending_after(&AudioCmd::Pause, true));
+    }
+
+    #[test]
+    fn anything_that_asks_for_playback_clears_it() {
+        assert!(!pause_pending_after(&AudioCmd::Resume, true));
+        // A load is a request to play — the same moment the decoder
+        // clears its own `paused_output`.
+        let load = AudioCmd::LoadAndPlay {
+            intent: LoadIntent::from_raw(1),
+            path: std::path::PathBuf::from("/dev/null"),
+            start_ms: 0,
+            track_id: 42,
+            duration_ms: 1000,
+            source_type: "album".into(),
+            source_id: None,
+            replay_gain: TrackGain::default(),
+        };
+        assert!(!pause_pending_after(&load, true));
+    }
+
+    #[test]
+    fn a_stop_decides_nothing_about_the_pause() {
+        // The rebuilds send one, and it says nothing about whether the
+        // user wants to hear anything afterwards. Clearing on it would
+        // undo the pause this flag exists to carry.
+        assert!(pause_pending_after(&AudioCmd::Stop, true));
+        assert!(!pause_pending_after(&AudioCmd::Stop, false));
+        assert!(pause_pending_after(&AudioCmd::Seek(1_000), true));
+        assert!(pause_pending_after(&AudioCmd::SetVolume(0.5), true));
     }
 
     #[test]
