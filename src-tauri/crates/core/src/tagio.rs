@@ -142,6 +142,46 @@ fn open_for_write(path: &Path) -> io::Result<std::fs::File> {
     }
 }
 
+/// The lock protecting one file's rewrite, shared by everyone editing
+/// that file.
+///
+/// Three commands reach a tag write — a single edit, a batch, and a
+/// cover — and each hands it to the blocking pool, so two of them can be
+/// inside this module on the same file at the same time. Without this
+/// they interleave a copy with a write and race on the rename, and the
+/// loser's edit disappears into a file the winner replaced. Keyed by
+/// path rather than global, so editing two different files still
+/// proceeds in parallel.
+///
+/// `Weak` values, swept on each insert: a session editing thousands of
+/// files must not end up holding one mutex per file forever.
+fn rewrite_locks() -> &'static std::sync::Mutex<
+    std::collections::HashMap<std::path::PathBuf, std::sync::Weak<std::sync::Mutex<()>>>,
+> {
+    static LOCKS: std::sync::OnceLock<
+        std::sync::Mutex<
+            std::collections::HashMap<std::path::PathBuf, std::sync::Weak<std::sync::Mutex<()>>>,
+        >,
+    > = std::sync::OnceLock::new();
+    LOCKS.get_or_init(Default::default)
+}
+
+fn lock_for(path: &Path) -> std::sync::Arc<std::sync::Mutex<()>> {
+    // Canonicalised so two spellings of one file — a different case on
+    // Windows, a `..` segment — take the same lock rather than two.
+    let key = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    let mut map = rewrite_locks()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    if let Some(existing) = map.get(&key).and_then(std::sync::Weak::upgrade) {
+        return existing;
+    }
+    let fresh = std::sync::Arc::new(std::sync::Mutex::new(()));
+    map.insert(key, std::sync::Arc::downgrade(&fresh));
+    map.retain(|_, weak| weak.strong_count() > 0);
+    fresh
+}
+
 /// Run `body` against `path` opened for writing, and do not return
 /// success until the bytes it wrote are on the disk.
 ///
@@ -168,6 +208,10 @@ pub fn with_writable_file<T, E>(
 where
     E: From<io::Error>,
 {
+    let serialised = lock_for(path);
+    let _serialised = serialised
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     let _readonly = ReadOnlyGuard::lift(path).map_err(E::from)?;
     let mut file = open_for_write(path).map_err(E::from)?;
     let value = body(&mut file)?;
@@ -219,6 +263,13 @@ pub fn rewrite_via_temp<E>(
 where
     E: From<io::Error>,
 {
+    // One rewrite of this file at a time: see [`lock_for`]. Taken before
+    // anything is created, so the copy, the write, the rename and the
+    // cleanup are one sequence rather than four interleavable steps.
+    let serialised = lock_for(path);
+    let _serialised = serialised
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     // Lifted first so it is restored last — after the rename, so the
     // attribute lands on the file that ends up in place.
     let _readonly = ReadOnlyGuard::lift(path).map_err(E::from)?;
@@ -232,7 +283,13 @@ where
     // routinely on a different one than `/tmp`.
     let mut name = std::ffi::OsString::from(".");
     name.push(stem);
-    name.push(format!(".{}.wf-tmp", std::process::id()));
+    // The pid separates two WaveFlow processes; the counter separates
+    // two calls inside one, which the lock above already serialises —
+    // belt and braces for the case where two spellings of a path did not
+    // canonicalise to the same lock key.
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let ticket = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    name.push(format!(".{}.{ticket}.wf-tmp", std::process::id()));
     let temp = TempFile {
         path: directory.join(name),
         committed: false,
@@ -1019,6 +1076,66 @@ mod rewrite_tests {
             .collect();
         assert_eq!(left.len(), 1, "only the track remains: {left:?}");
         assert_eq!(std::fs::read(&path).expect("read"), b"rewritten");
+    }
+
+    #[test]
+    fn two_rewrites_of_one_file_take_turns() {
+        // Three commands reach a tag write and each hands it to the
+        // blocking pool, so two can be here on the same file at once.
+        // Interleaved, they race on the rename and one edit vanishes;
+        // worse, each temp file is deleted by the other's cleanup.
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("contested.mp3");
+        std::fs::write(&path, b"original").expect("seed");
+
+        let inside = Arc::new(AtomicUsize::new(0));
+        let overlapped = Arc::new(AtomicUsize::new(0));
+
+        let threads: Vec<_> = (0..4)
+            .map(|i| {
+                let path = path.clone();
+                let inside = Arc::clone(&inside);
+                let overlapped = Arc::clone(&overlapped);
+                std::thread::spawn(move || {
+                    rewrite_via_temp(&path, |file| -> Result<(), io::Error> {
+                        use std::io::Write;
+                        if inside.fetch_add(1, Ordering::SeqCst) != 0 {
+                            overlapped.fetch_add(1, Ordering::SeqCst);
+                        }
+                        // Long enough that an unserialised pair would
+                        // certainly be caught overlapping.
+                        std::thread::sleep(std::time::Duration::from_millis(30));
+                        file.set_len(0)?;
+                        let written = format!("written by {i}");
+                        file.write_all(written.as_bytes())?;
+                        inside.fetch_sub(1, Ordering::SeqCst);
+                        Ok(())
+                    })
+                })
+            })
+            .collect();
+        for thread in threads {
+            thread.join().expect("join").expect("rewrite");
+        }
+
+        assert_eq!(
+            overlapped.load(Ordering::SeqCst),
+            0,
+            "two rewrites of the same file were inside at once"
+        );
+        // And the file is one writer's whole output, not a blend.
+        let after = std::fs::read(&path).expect("read");
+        let text = String::from_utf8(after).expect("utf8");
+        assert!(text.starts_with("written by "), "got {text:?}");
+        let left: Vec<_> = std::fs::read_dir(dir.path())
+            .expect("read_dir")
+            .filter_map(Result::ok)
+            .map(|entry| entry.file_name())
+            .collect();
+        assert_eq!(left.len(), 1, "no scratch file survived: {left:?}");
     }
 
     #[cfg(windows)]
