@@ -52,7 +52,7 @@ use crossbeam_channel::{bounded, Receiver, Sender};
 use rtrb::{Consumer, Producer, RingBuffer};
 use tauri::AppHandle;
 
-use super::output::{DopFormat, OutputHandle, RING_CAPACITY};
+use super::output::{DopFormat, OutputHandle, RequestedFormat, RING_CAPACITY};
 use super::state::SharedPlayback;
 use crate::error::{AppError, AppResult};
 
@@ -66,7 +66,7 @@ pub fn spawn_alsa_exclusive_output_thread(
     shared: Arc<SharedPlayback>,
     app: AppHandle,
     device_name: Option<String>,
-    dop: Option<DopFormat>,
+    requested: Option<RequestedFormat>,
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
     let (producer, consumer) = RingBuffer::<f32>::new(RING_CAPACITY);
     let (shutdown_tx, shutdown_rx) = bounded::<()>(1);
@@ -76,11 +76,11 @@ pub fn spawn_alsa_exclusive_output_thread(
     let thread_app = app.clone();
     let thread_device = device_name.clone();
     let join: JoinHandle<()> = std::thread::Builder::new()
-        .name(match dop {
-            Some(_) => "waveflow-alsa-dop".into(),
-            None => "waveflow-alsa-exclusive".to_string(),
+        .name(match requested {
+            Some(r) if r.dop => "waveflow-alsa-dop".into(),
+            _ => "waveflow-alsa-exclusive".to_string(),
         })
-        .spawn(move || match dop {
+        .spawn(move || match requested.and_then(RequestedFormat::as_dop) {
             Some(dop) => output_thread_main(
                 thread_shared,
                 consumer,
@@ -90,6 +90,9 @@ pub fn spawn_alsa_exclusive_output_thread(
                 thread_device,
                 dop,
             ),
+            // #600: a rate request rides into the PCM path as the rate to
+            // ask the card for, ahead of whatever the last stream opened
+            // at.
             None => pcm_output_thread_main(
                 thread_shared,
                 consumer,
@@ -97,6 +100,7 @@ pub fn spawn_alsa_exclusive_output_thread(
                 init_tx,
                 thread_app,
                 thread_device,
+                requested.map(|r| r.sample_rate),
             ),
         })
         .map_err(|e| AppError::Audio(format!("spawn alsa exclusive thread: {e}")))?;
@@ -122,7 +126,9 @@ pub fn spawn_alsa_exclusive_output_thread(
                 // grab that had in fact happened (WASAPI has always
                 // reported `true` for both).
                 exclusive: true,
-                dop,
+                // A rate request is not DoP however exact it lands: the
+                // handle records the packing, not the accuracy.
+                dop: requested.and_then(RequestedFormat::as_dop),
             },
         )),
         Ok(Err(err)) => {
@@ -958,6 +964,11 @@ fn pcm_output_thread_main(
     init_tx: Sender<AppResult<()>>,
     app: AppHandle,
     device_name: Option<String>,
+    // `requested_rate`: the rate the track being loaded is in, when the
+    // user asked us to open at it (#600). A preference, not a demand —
+    // `set_rate` is asked with `ValueOr::Nearest`, so a card that cannot
+    // do it opens at what it can and the decoder's resampler meets that.
+    requested_rate: Option<u32>,
 ) {
     let dev = match resolve_hw_device(&device_name) {
         Ok(dev) => dev,
@@ -968,12 +979,14 @@ fn pcm_output_thread_main(
         }
     };
 
-    // Ask for what the engine is already running at — the cpal default,
-    // or whatever a previous output negotiated — so that turning
-    // exclusive on doesn't also silently change the resampler's target.
-    // Both can still be zero here, meaning nothing has opened an output
-    // yet; `open_pcm_negotiated` owns that reading.
-    let preferred_rate = shared.sample_rate.load(Ordering::Acquire);
+    // The track's own rate when one was asked for (#600), and otherwise
+    // what the engine is already running at — the cpal default, or
+    // whatever a previous output negotiated — so that turning exclusive
+    // on doesn't also silently change the resampler's target. Both can
+    // still be zero here, meaning nothing has opened an output yet;
+    // `open_pcm_negotiated` owns that reading.
+    let preferred_rate =
+        requested_rate.unwrap_or_else(|| shared.sample_rate.load(Ordering::Acquire));
     let preferred_channels = shared.channels.load(Ordering::Acquire);
 
     let (_reservation, opened) = match open_reserving_the_card(&dev, "pcm", || {

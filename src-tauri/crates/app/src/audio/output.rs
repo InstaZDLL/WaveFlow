@@ -400,6 +400,59 @@ pub struct DopFormat {
     pub channels: u16,
 }
 
+/// A format the caller demands of the output for one track.
+///
+/// Two demands ride this, and they differ in what a refusal means:
+///
+/// - **DoP** (#495) pins the rate *and* the channel layout, and must not
+///   fall back to another rate — a marker cadence that gets resampled is
+///   white noise — so a refusal fails the open outright and the caller
+///   plays the track as DSD → PCM instead.
+/// - **The track's own rate** (#600) pins the rate only, and is a
+///   preference: a device that will not open at it falls back to the
+///   rates it does offer, and the decoder's resampler meets it exactly as
+///   it always did. The channel layout stays the device's business.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RequestedFormat {
+    pub sample_rate: u32,
+    /// Part of the format for DoP; `None` for a rate request.
+    pub channels: Option<u16>,
+    /// Whether a refusal is fatal — see above.
+    pub dop: bool,
+}
+
+impl RequestedFormat {
+    /// A DoP demand: both axes pinned, no fallback.
+    pub fn dop(format: DopFormat) -> Self {
+        Self {
+            sample_rate: format.sample_rate,
+            channels: Some(format.channels),
+            dop: true,
+        }
+    }
+
+    /// A request to open at this track's own rate (#600).
+    pub fn source_rate(sample_rate: u32) -> Self {
+        Self {
+            sample_rate,
+            channels: None,
+            dop: false,
+        }
+    }
+
+    /// The DoP format this request carries, for the handle's record and
+    /// for the backends that branch on it. `None` for a rate request,
+    /// which is not DoP however exact it turns out to be.
+    pub fn as_dop(self) -> Option<DopFormat> {
+        self.dop.then_some(DopFormat {
+            sample_rate: self.sample_rate,
+            // A DoP request always carries its channel count; two is the
+            // only sane reading of a malformed one.
+            channels: self.channels.unwrap_or(2),
+        })
+    }
+}
+
 /// Pick the right output backend based on the runtime preference.
 /// With `exclusive=true`, tries the platform's exclusive backend first
 /// and falls back to cpal shared if init fails (device busy, no
@@ -414,7 +467,7 @@ pub fn spawn_output_with_mode(
     app: AppHandle,
     device_name: Option<String>,
     exclusive: bool,
-    dop: Option<DopFormat>,
+    requested: Option<RequestedFormat>,
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
     // DoP (#495) is a hard requirement, not a preference: a DoP stream
     // that can't open its exact rate in exclusive form must NOT fall back
@@ -424,7 +477,11 @@ pub fn spawn_output_with_mode(
     // platform's exclusive backend only, and surface its error verbatim:
     // WASAPI Exclusive on Windows, a raw `hw:` device on Linux (ALSA),
     // hog mode on macOS (CoreAudio).
-    if let Some(dop) = dop {
+    //
+    // A *rate* request (#600) is the other kind and deliberately does not
+    // take this branch: it is a preference, so it goes down the ordinary
+    // path below and keeps the shared-mode fallback that path provides.
+    if let Some(dop) = requested.filter(|r| r.dop) {
         #[cfg(target_os = "windows")]
         return super::wasapi_exclusive::spawn_exclusive_output_thread(
             shared,
@@ -461,7 +518,7 @@ pub fn spawn_output_with_mode(
             shared.clone(),
             app.clone(),
             device_name.clone(),
-            None,
+            requested,
         ) {
             Ok(pair) => {
                 tracing::info!("audio output: WASAPI Exclusive Mode engaged");
@@ -485,7 +542,7 @@ pub fn spawn_output_with_mode(
             shared.clone(),
             app.clone(),
             device_name.clone(),
-            None,
+            requested,
         ) {
             Ok(pair) => {
                 tracing::info!("audio output: ALSA exclusive (raw hw:) engaged");
@@ -510,7 +567,7 @@ pub fn spawn_output_with_mode(
             shared.clone(),
             app.clone(),
             device_name.clone(),
-            None,
+            requested,
         ) {
             Ok(pair) => {
                 tracing::info!("audio output: CoreAudio exclusive (hog mode) engaged");
@@ -526,7 +583,7 @@ pub fn spawn_output_with_mode(
     }
 
     #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
-    let _ = exclusive; // no exclusive PCM backend on this target
+    let _ = (exclusive, requested); // no exclusive PCM backend on this target
 
     spawn_output_thread(shared, app, device_name)
 }

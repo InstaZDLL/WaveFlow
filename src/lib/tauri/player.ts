@@ -373,6 +373,8 @@ export interface AudioSettingsSnapshot {
   dsd_taps: number;
   /** Native DSD via DoP opt-in (#495), default false. */
   dsd_dop: boolean;
+  /** Open the output at each track's own rate (#600), default false. */
+  match_source_rate: boolean;
   /** Park playback when the output device goes away (#617), default true. */
   pause_on_device_loss: boolean;
 }
@@ -391,6 +393,23 @@ export function playerSetNormalize(enabled: boolean): Promise<void> {
 
 export function playerSetMono(enabled: boolean): Promise<void> {
   return invoke<void>("player_set_mono", { enabled });
+}
+
+/**
+ * Open the output at each track's own rate instead of taking whatever
+ * the device offers (#600).
+ *
+ * Only while the output really owns its device: in shared mode the
+ * system mixer is in the path whatever rate we open at. A device that
+ * refuses the track's rate falls back to one it does offer and the
+ * decoder resamples, as it always did.
+ *
+ * Off by default, and not because it is worse — reopening the device
+ * costs an audible gap, so every rate change becomes a break in the
+ * music. Takes effect on the next track.
+ */
+export function playerSetMatchSourceRate(enabled: boolean): Promise<void> {
+  return invoke<void>("player_set_match_source_rate", { enabled });
 }
 
 /**

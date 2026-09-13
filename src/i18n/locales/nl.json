@@ -1590,6 +1590,10 @@
       "subtitle": "Neemt het apparaat alleen voor deze app in plaats van het te delen met de systeemmixer. Valt terug op de gedeelde modus als het apparaat weigert.",
       "fallback": "Het apparaat accepteert geen exclusive-modus. Terugvallen op shared-modus."
     },
+    "matchSourceRate": {
+      "title": "Bemonsteringsfrequentie van elk nummer volgen",
+      "subtitle": "Bij exclusieve uitvoer wordt het apparaat opnieuw geopend op de frequentie van elk nummer: geen herbemonstering, maar een onderbreking bij elke wisseling"
+    },
     "mono": {
       "title": "Mono-audio",
       "subtitle": "Combineert de linker- en rechterkanalen tot één signaal"

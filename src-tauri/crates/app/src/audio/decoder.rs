@@ -422,6 +422,21 @@ fn decoder_loop(
                     }
                 };
 
+                // #600: now that the container has told us the track's
+                // rate, ask the device for it. After the open rather
+                // than before, because that is when the rate is known —
+                // and before the first packet, because the resampler the
+                // decoder builds on it has to target the rate we end up
+                // with.
+                if let Err(err) =
+                    maybe_match_source_rate(&app, &shared, &stream, dop_engaged, producer)
+                {
+                    tracing::warn!(%err, path = %path.display(), "no output for this track");
+                    let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err));
+                    transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
+                    continue;
+                }
+
                 if dop_engaged {
                     let outcome = play_dop_track(
                         stream,
@@ -980,12 +995,62 @@ fn maybe_switch_dop_output(
         // — stay on the current output and the PCM path.
         return Ok(false);
     };
-    match engine.switch_output_for_track(want) {
+    match engine.switch_output_for_track(want.map(super::output::RequestedFormat::dop)) {
         Ok((new_producer, engaged)) => {
             if let Some(p) = new_producer {
                 *producer = p;
             }
             Ok(engaged)
+        }
+        Err(err) => Err(format!("audio output switch failed: {err}")),
+    }
+}
+
+/// Reopen the output at this track's own rate, so nothing resamples
+/// (#600).
+///
+/// Four conditions, all of them cheap, and the order is the order they
+/// rule things out:
+///
+/// - the user asked for it — this is a preference, because a reopen
+///   costs an audible gap and every rate change becomes one;
+/// - DoP did not already pin the format, which would be a demand
+///   fighting a preference;
+/// - the output really owns its device. In shared mode the system mixer
+///   is in the path whatever rate we open at, so the gap would buy
+///   nothing;
+/// - the container declared a rate at all. AAC in MP4 does not until
+///   decoding starts, and re-clocking a DAC to a guess is worse than
+///   resampling.
+///
+/// Errors for the same reason as [`maybe_switch_dop_output`]: by the
+/// time the engine fails, the previous output is gone and there is no
+/// device on the other end of `producer`.
+fn maybe_match_source_rate(
+    app: &AppHandle,
+    shared: &SharedPlayback,
+    stream: &ActiveStream,
+    dop_engaged: bool,
+    producer: &mut Producer<f32>,
+) -> Result<(), String> {
+    if dop_engaged || !shared.match_source_rate.load(Ordering::Acquire) {
+        return Ok(());
+    }
+    let Some(rate) = stream.declared_sample_rate.filter(|&rate| rate > 0) else {
+        return Ok(());
+    };
+    let Some(engine) = app.try_state::<Arc<AudioEngine>>() else {
+        return Ok(());
+    };
+    if !engine.exclusive_output() {
+        return Ok(());
+    }
+    match engine.switch_output_for_track(Some(super::output::RequestedFormat::source_rate(rate))) {
+        Ok((new_producer, _)) => {
+            if let Some(p) = new_producer {
+                *producer = p;
+            }
+            Ok(())
         }
         Err(err) => Err(format!("audio output switch failed: {err}")),
     }

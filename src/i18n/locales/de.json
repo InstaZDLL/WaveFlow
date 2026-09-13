@@ -1590,6 +1590,10 @@
       "subtitle": "Übernimmt das Gerät allein für diese App, statt es mit dem System-Mixer zu teilen. Fällt auf den gemeinsamen Modus zurück, wenn das Gerät ablehnt.",
       "fallback": "Das Gerät akzeptiert den Exklusivmodus nicht. Es wird auf den Shared-Modus ausgewichen."
     },
+    "matchSourceRate": {
+      "title": "Abtastrate jedes Titels übernehmen",
+      "subtitle": "Bei exklusiver Ausgabe wird das Gerät mit der Rate jedes Titels neu geöffnet: kein Resampling, dafür eine Lücke bei jedem Ratenwechsel"
+    },
     "mono": {
       "title": "Mono-Audio",
       "subtitle": "Mischt den linken und rechten Kanal zu einem einzigen Signal"

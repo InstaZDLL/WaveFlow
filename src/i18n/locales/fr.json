@@ -1643,6 +1643,10 @@
       "subtitle": "Prend le périphérique pour cette application seule au lieu de le partager avec le mixeur du système. Revient au mode partagé si le périphérique refuse.",
       "fallback": "Le périphérique n'accepte pas le mode exclusif. Retour en mode partagé."
     },
+    "matchSourceRate": {
+      "title": "Suivre le taux d'échantillonnage des pistes",
+      "subtitle": "En sortie exclusive, rouvre le périphérique au taux de chaque piste : plus aucun rééchantillonnage, mais une coupure à chaque changement de taux"
+    },
     "mono": {
       "title": "Audio mono",
       "subtitle": "Mélange les canaux gauche et droit en un signal unique"

@@ -1590,6 +1590,10 @@
       "subtitle": "Aygıtı sistem karıştırıcısıyla paylaşmak yerine yalnızca bu uygulama için alır. Aygıt reddederse paylaşımlı moda döner.",
       "fallback": "Cihaz özel modu kabul etmiyor. Paylaşımlı moda geri dönülüyor."
     },
+    "matchSourceRate": {
+      "title": "Her parçanın örnekleme hızını kullan",
+      "subtitle": "Özel çıkışta aygıt her parçanın hızında yeniden açılır: hiç yeniden örnekleme yok, ama her hız değişiminde bir kesinti olur"
+    },
     "mono": {
       "title": "Mono ses",
       "subtitle": "Sol ve sağ kanalları tek bir sinyalde birleştirir"

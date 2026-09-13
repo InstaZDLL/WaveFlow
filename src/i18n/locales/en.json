@@ -1590,6 +1590,10 @@
       "subtitle": "Takes the device for this app alone instead of sharing it with the system mixer. Falls back to shared mode if the device refuses.",
       "fallback": "The device doesn't accept exclusive mode. Falling back to shared mode."
     },
+    "matchSourceRate": {
+      "title": "Match each track's sample rate",
+      "subtitle": "In exclusive output, reopens the device at each track's rate: no resampling at all, but a gap at every rate change"
+    },
     "mono": {
       "title": "Mono audio",
       "subtitle": "Mixes the left and right channels into a single signal"

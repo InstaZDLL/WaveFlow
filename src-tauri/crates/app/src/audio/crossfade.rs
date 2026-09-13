@@ -105,6 +105,16 @@ pub struct ActiveStream {
     /// playback speed mid-track. `0` before the first packet is
     /// decoded.
     pub src_sample_rate: u32,
+    /// The rate the container declares for this track, known **before
+    /// the first packet** — which is what makes it usable for the
+    /// per-track output re-open (#600), where the device has to be
+    /// asked for a rate before anything is decoded.
+    ///
+    /// `None` when the container does not say: AAC in MP4 reveals its
+    /// rate only once decoding starts, and a guess there would re-clock
+    /// the device to the wrong number. [`Self::src_sample_rate`] is the
+    /// measured truth and stays the one the resampler uses.
+    pub declared_sample_rate: Option<u32>,
     /// Active playback speed used the last time the resampler was
     /// built. Mirrored here so the decoder loop can skip rebuilds
     /// when nothing changed.
@@ -339,6 +349,10 @@ impl ActiveStream {
             .as_ref()
             .and_then(|p| p.audio())
             .ok_or_else(|| "track has no audio codec params".to_string())?;
+        // Read before the reader is moved into the struct below: the
+        // params borrow it. `None` for a container that does not say —
+        // AAC in MP4 only reveals its rate once decoding starts (#600).
+        let declared_sample_rate = audio_params.sample_rate;
         let decoder = symphonia::default::get_codecs()
             .make_audio_decoder(audio_params, &AudioDecoderOptions::default())
             .map_err(|e| format!("codec init: {e}"))?;
@@ -361,6 +375,7 @@ impl ActiveStream {
             source_id,
             replay_gain,
             src_sample_rate: 0,
+            declared_sample_rate,
             playback_speed: 1.0,
         })
     }
@@ -418,10 +433,18 @@ impl ActiveStream {
                 // DoP is bit-exact — no gain stage runs on it at all.
                 replay_gain: super::replay_gain::TrackGain::default(),
                 src_sample_rate: 0,
+                // DoP has already pinned the output's rate: asking for
+                // another one on top would fight it.
+                declared_sample_rate: None,
                 playback_speed: 1.0,
             });
         }
         let converter = Box::new(DsdToPcm::new_with_taps(&layout, dsd_taps));
+        // What this stream will hand the ring: the DSD bitstream's rate
+        // divided down by the converter (44.1 kHz for DSD64, 88.2 for
+        // DSD128, …), which is the rate the device should be asked for
+        // when the user wants no resampling (#600).
+        let declared_sample_rate = Some(converter.output_rate_hz);
         Ok(Self {
             backend: StreamBackend::Dsd {
                 file,
@@ -444,6 +467,7 @@ impl ActiveStream {
             source_id,
             replay_gain,
             src_sample_rate: 0,
+            declared_sample_rate,
             playback_speed: 1.0,
         })
     }

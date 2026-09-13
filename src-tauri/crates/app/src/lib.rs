@@ -1065,6 +1065,7 @@ pub fn run() {
             commands::player::player_get_exclusive_output,
             commands::player::player_set_pause_on_device_loss,
             commands::player::player_probe_output_device,
+            commands::player::player_set_match_source_rate,
             commands::stats::stats_overview,
             commands::stats::stats_top_tracks,
             commands::stats::stats_top_artists,

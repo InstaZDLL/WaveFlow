@@ -43,7 +43,7 @@ use wasapi::{
     StreamMode, WaveFormat,
 };
 
-use super::output::{DopFormat, OutputHandle, RING_CAPACITY};
+use super::output::{OutputHandle, RequestedFormat, RING_CAPACITY};
 use super::state::SharedPlayback;
 use crate::error::{AppError, AppResult};
 
@@ -62,7 +62,7 @@ pub fn spawn_exclusive_output_thread(
     shared: Arc<SharedPlayback>,
     app: AppHandle,
     device_name: Option<String>,
-    dop: Option<DopFormat>,
+    requested: Option<RequestedFormat>,
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
     let (producer, consumer) = RingBuffer::<f32>::new(RING_CAPACITY);
     let (shutdown_tx, shutdown_rx) = bounded::<()>(1);
@@ -81,7 +81,7 @@ pub fn spawn_exclusive_output_thread(
                 init_tx,
                 thread_app,
                 thread_device,
-                dop,
+                requested,
             )
         })
         .map_err(|e| AppError::Audio(format!("spawn wasapi exclusive thread: {e}")))?;
@@ -95,7 +95,9 @@ pub fn spawn_exclusive_output_thread(
                 device_name,
                 opened_device,
                 exclusive: true,
-                dop,
+                // A rate request is not DoP however exact it lands: the
+                // handle records the packing, not the accuracy.
+                dop: requested.and_then(RequestedFormat::as_dop),
             },
         )),
         Ok(Err(err)) => {
@@ -116,7 +118,7 @@ fn output_thread_main(
     init_tx: Sender<AppResult<Option<String>>>,
     app: AppHandle,
     device_name: Option<String>,
-    dop: Option<DopFormat>,
+    requested: Option<RequestedFormat>,
 ) {
     // COM init for this thread. MTA is the right choice for an audio
     // worker that doesn't touch UI. Any HRESULT other than S_OK /
@@ -129,7 +131,7 @@ fn output_thread_main(
         return;
     }
 
-    let session = match open_exclusive_session(&device_name, &shared, dop) {
+    let session = match open_exclusive_session(&device_name, &shared, requested) {
         Ok(s) => s,
         Err(err) => {
             tracing::warn!(?err, "wasapi exclusive init failed");
@@ -311,6 +313,45 @@ struct LayoutCandidate {
 /// majority of machines, where the two agree anyway), and a plain
 /// stereo entry closes the list for drivers that report a
 /// multi-channel default no application can open.
+/// Put the track's own rate at the head of the candidate list (#600).
+///
+/// Every layout the device offered is kept, in its own order, behind a
+/// copy of itself at the requested rate — so a device that takes 96 kHz
+/// on its stereo layout is asked for that first, and a device that takes
+/// none of it still opens at the rate it does offer and lets the
+/// decoder's resampler meet it. That fallback is the difference between
+/// a preference and DoP's demand.
+///
+/// Pure so the ordering can be tested without a sound card.
+fn layouts_at_requested_rate(base: &[LayoutCandidate], sample_rate: u32) -> Vec<LayoutCandidate> {
+    // Deduped on the pair the driver is actually asked about, not on the
+    // whole candidate: the origin is a label for the log, and a track
+    // already at the device's own rate must not have the same pair
+    // probed twice — each probe is a COM round trip, and a duplicate is
+    // a rejection asked for a second time.
+    fn holds(list: &[LayoutCandidate], rate: usize, channels: usize) -> bool {
+        list.iter()
+            .any(|l| l.sample_rate == rate && l.channels == channels)
+    }
+
+    let mut layouts: Vec<LayoutCandidate> = Vec::with_capacity(base.len() * 2);
+    for candidate in base {
+        if !holds(&layouts, sample_rate as usize, candidate.channels) {
+            layouts.push(LayoutCandidate {
+                sample_rate: sample_rate as usize,
+                channels: candidate.channels,
+                origin: "source-rate",
+            });
+        }
+    }
+    for candidate in base {
+        if !holds(&layouts, candidate.sample_rate, candidate.channels) {
+            layouts.push(*candidate);
+        }
+    }
+    layouts
+}
+
 fn collect_layout_candidates(device: &Device) -> Vec<LayoutCandidate> {
     // A device with no property store, or a driver that doesn't
     // publish the key, is a soft failure — the mix format still gets
@@ -448,7 +489,7 @@ struct ExclusiveSession {
 fn open_exclusive_session(
     device_name: &Option<String>,
     shared: &Arc<SharedPlayback>,
-    dop: Option<DopFormat>,
+    requested: Option<RequestedFormat>,
 ) -> AppResult<ExclusiveSession> {
     let device = pick_device(device_name)?;
     // Read the name back off the endpoint we were handed: this is the
@@ -463,23 +504,31 @@ fn open_exclusive_session(
     // truncate the low DSD byte, so neither can carry it. If the DAC
     // refuses 24-bit at the DoP rate the whole open fails and the
     // caller falls back to DSD → PCM (it never drops to shared mode).
-    let (layouts, formats): (Vec<LayoutCandidate>, &[ExclusiveSampleFormat]) = match dop {
-        Some(d) => (
+    let (layouts, formats): (Vec<LayoutCandidate>, &[ExclusiveSampleFormat]) = match requested {
+        Some(r) if r.dop => (
             vec![LayoutCandidate {
-                sample_rate: d.sample_rate as usize,
-                channels: d.channels as usize,
+                sample_rate: r.sample_rate as usize,
+                channels: r.channels.unwrap_or(2) as usize,
                 origin: "dop",
             }],
             &DOP_FORMAT_CHAIN,
         ),
-        None => {
-            let layouts = collect_layout_candidates(&device);
-            if layouts.is_empty() {
+        other => {
+            let base = collect_layout_candidates(&device);
+            if base.is_empty() {
                 return Err(AppError::Audio(
                     "wasapi exclusive: device reported no usable sample rate / channel layout"
                         .into(),
                 ));
             }
+            // #600: the track's own rate first, on each layout the device
+            // offered, with the device's own rates kept behind it. A
+            // driver that refuses the source rate therefore falls back
+            // rather than failing, which is what makes this a preference.
+            let layouts = match other {
+                Some(r) => layouts_at_requested_rate(&base, r.sample_rate),
+                None => base,
+            };
             (layouts, &FORMAT_FALLBACK_CHAIN)
         }
     };
@@ -516,7 +565,7 @@ fn open_exclusive_session(
                         channels: layout.channels as u16,
                         buffer_frames,
                         format,
-                        dop: dop.is_some(),
+                        dop: requested.is_some_and(|r| r.dop),
                     });
                 }
                 Err(err) => {
@@ -1154,6 +1203,34 @@ mod tests {
             ],
             "the endpoint's own format must be candidate #1"
         );
+    }
+
+    /// #600: the track's rate goes first, on every layout the device
+    /// offered, and the device's own rates stay behind it. That tail is
+    /// the fallback that makes this a preference rather than a demand.
+    #[test]
+    fn the_track_s_rate_leads_and_the_device_s_own_rates_follow() {
+        let base = build_layout_candidates(Some((48_000, 2)), Some((48_000, 8)));
+        let with_rate = layouts_at_requested_rate(&base, 96_000);
+        assert_eq!(
+            layouts(&with_rate),
+            vec![
+                (96_000, 2, "source-rate"),
+                (96_000, 8, "source-rate"),
+                (48_000, 2, "endpoint"),
+                (48_000, 8, "mix"),
+            ]
+        );
+    }
+
+    /// A track already at the device's rate must not produce the same
+    /// layout twice: the probe is a COM round trip per pair, and a
+    /// duplicate is a rejection asked for twice.
+    #[test]
+    fn a_track_already_at_the_device_s_rate_adds_nothing() {
+        let base = build_layout_candidates(Some((44_100, 2)), None);
+        let with_rate = layouts_at_requested_rate(&base, 44_100);
+        assert_eq!(layouts(&with_rate), vec![(44_100, 2, "source-rate")]);
     }
 
     /// The common case: nothing is intercepting the stream, both

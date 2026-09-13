@@ -1590,6 +1590,10 @@
       "subtitle": "Mengambil perangkat hanya untuk aplikasi ini alih-alih membaginya dengan mixer sistem. Kembali ke mode berbagi jika perangkat menolak.",
       "fallback": "Perangkat tidak menerima mode eksklusif. Kembali ke mode bersama."
     },
+    "matchSourceRate": {
+      "title": "Ikuti laju pencuplikan tiap trek",
+      "subtitle": "Pada keluaran eksklusif, perangkat dibuka ulang pada laju tiap trek: tanpa pencuplikan ulang, tetapi ada jeda pada setiap perubahan laju"
+    },
     "mono": {
       "title": "Audio mono",
       "subtitle": "Menggabungkan kanal kiri dan kanan menjadi satu sinyal"

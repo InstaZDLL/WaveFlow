@@ -1598,6 +1598,10 @@
       "subtitle": "Assume o dispositivo só para este aplicativo em vez de compartilhá-lo com o mixer do sistema. Volta ao modo compartilhado se o dispositivo recusar.",
       "fallback": "O dispositivo não aceita o modo exclusivo. Voltando ao modo compartilhado."
     },
+    "matchSourceRate": {
+      "title": "Seguir a taxa de amostragem de cada faixa",
+      "subtitle": "Na saída exclusiva, reabre o dispositivo na taxa de cada faixa: sem reamostragem, mas com um corte a cada mudança de taxa"
+    },
     "mono": {
       "title": "Áudio mono",
       "subtitle": "Mistura os canais esquerdo e direito em um único sinal"

@@ -563,6 +563,24 @@ pub async fn player_get_state(
                     .dsd_dop_enabled
                     .store(dop, std::sync::atomic::Ordering::Release);
             }
+            // Per-track rate matching (#600), same shape and same
+            // reasoning as `dsd_dop` above: stored either way, so a
+            // profile switch cannot leak the previous profile's opt-in.
+            {
+                let match_rate = sqlx::query_scalar::<_, String>(
+                    "SELECT value FROM profile_setting WHERE key = 'audio.match_source_rate'",
+                )
+                .fetch_optional(&*pool)
+                .await
+                .ok()
+                .flatten()
+                .map(|v| v == "true")
+                .unwrap_or(false);
+                engine
+                    .shared()
+                    .match_source_rate
+                    .store(match_rate, std::sync::atomic::Ordering::Release);
+            }
             // Every ReplayGain setting resolves to its default when the
             // row is missing or unparseable, and is stored either way —
             // the `dsd_dop` pattern above, for the same reason: this
@@ -1746,6 +1764,9 @@ pub async fn player_get_audio_settings(
     let dsd_dop = shared
         .dsd_dop_enabled
         .load(std::sync::atomic::Ordering::Relaxed);
+    let match_source_rate = shared
+        .match_source_rate
+        .load(std::sync::atomic::Ordering::Relaxed);
 
     let mut crossfade_ms: i64 = 0;
     if let Ok(pool) = state.require_profile_pool().await {
@@ -1772,6 +1793,7 @@ pub async fn player_get_audio_settings(
         gapless,
         dsd_taps,
         dsd_dop,
+        match_source_rate,
         pause_on_device_loss: engine.pause_on_device_loss(),
     })
 }
@@ -1793,6 +1815,8 @@ pub struct AudioSettingsSnapshot {
     pub dsd_taps: u32,
     /// Native DSD via DoP opt-in (#495), default false.
     pub dsd_dop: bool,
+    /// Open the output at each track's own rate (#600), default false.
+    pub match_source_rate: bool,
     /// Park playback when the output device goes away (#617), default
     /// true.
     pub pause_on_device_loss: bool,
@@ -2018,6 +2042,47 @@ pub async fn player_set_exclusive_output(
 #[tauri::command]
 pub fn player_get_exclusive_output(engine: tauri::State<'_, Arc<AudioEngine>>) -> bool {
     engine.inner().exclusive_output()
+}
+
+/// Open the output at each track's own rate instead of taking whatever
+/// the device offers (#600).
+///
+/// With this on, and only while the output really owns its device, a
+/// 44.1 kHz track plays at 44.1 and a 96 kHz track at 96, with nothing
+/// resampling in between. A device that refuses the track's rate falls
+/// back to one it does offer and the decoder's resampler meets it, as it
+/// always did — that fallback is what makes this a preference rather
+/// than DoP's demand.
+///
+/// Off by default, and not because it is worse: reopening the device
+/// costs an audible gap, so every rate change becomes a break in the
+/// music. For most listeners our own resampler, with nothing else mixed
+/// in, is the better trade. Takes effect on the next track.
+///
+/// Persisted in `profile_setting['audio.match_source_rate']`.
+#[tauri::command]
+pub async fn player_set_match_source_rate(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+) -> AppResult<()> {
+    engine
+        .shared()
+        .match_source_rate
+        .store(enabled, std::sync::atomic::Ordering::Release);
+    if let Ok(pool) = state.require_profile_pool().await {
+        let now = chrono::Utc::now().timestamp_millis();
+        let _ = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.match_source_rate', ?, 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(if enabled { "true" } else { "false" })
+        .bind(now)
+        .execute(&*pool)
+        .await;
+    }
+    Ok(())
 }
 
 /// What one output device accepts — formats, rates, channels (#593).

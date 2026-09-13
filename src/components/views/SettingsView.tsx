@@ -68,6 +68,7 @@ import {
   playerSetNormalize,
   playerSetMono,
   playerSetPauseOnDeviceLoss,
+  playerSetMatchSourceRate,
   playerSetCrossfade,
   playerSetGapless,
   playerSetReplayGain,
@@ -1228,6 +1229,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // #617. Mirrors the engine's own default, so the row does not flip
   // under the user between the first paint and the read below.
   const [pauseOnDeviceLoss, setPauseOnDeviceLoss] = useState(true);
+  // #600. Off, like the engine: a reopen costs an audible gap, so this
+  // is a trade rather than an improvement.
+  const [matchSourceRate, setMatchSourceRate] = useState(false);
   const [crossfadeSec, setCrossfadeSec] = useState(0);
   const [replayGain, setReplayGain] = useState(false);
   const [replayGainPreamp, setReplayGainPreamp] = useState(0);
@@ -1675,6 +1679,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         setNormalize(s.normalize);
         setMono(s.mono);
         setPauseOnDeviceLoss(s.pause_on_device_loss);
+        setMatchSourceRate(s.match_source_rate);
         setCrossfadeSec(Math.round(s.crossfade_ms / 1000));
         setReplayGain(s.replaygain);
         setReplayGainPreamp(s.replaygain_preamp_db);
@@ -1899,6 +1904,15 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       setMono(!next);
     });
   }, [mono]);
+
+  const handleToggleMatchSourceRate = useCallback(() => {
+    const next = !matchSourceRate;
+    setMatchSourceRate(next);
+    playerSetMatchSourceRate(next).catch((err) => {
+      console.error("[Settings] set match source rate failed", err);
+      setMatchSourceRate(!next);
+    });
+  }, [matchSourceRate]);
 
   const handleTogglePauseOnDeviceLoss = useCallback(() => {
     const next = !pauseOnDeviceLoss;
@@ -2579,6 +2593,28 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             {/* Exclusive output — every desktop platform has a
               backend now, so the card no longer hides itself. */}
             <ExclusiveModeCard />
+
+            {/* Match each track's sample rate (#600) — right after the
+                exclusive card, because it only does anything while the
+                output owns its device. */}
+            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <div className="flex items-center space-x-4">
+                <Gauge size={20} className="text-zinc-400" aria-hidden="true" />
+                <div>
+                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                    {t("settings.matchSourceRate.title")}
+                  </div>
+                  <div className="text-xs text-zinc-400">
+                    {t("settings.matchSourceRate.subtitle")}
+                  </div>
+                </div>
+              </div>
+              <ToggleSwitch
+                enabled={matchSourceRate}
+                onToggle={handleToggleMatchSourceRate}
+                label={t("settings.matchSourceRate.title")}
+              />
+            </div>
 
             {/* Audio mono */}
             <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">

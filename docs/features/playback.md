@@ -236,6 +236,24 @@ Playback can become something other than what was asked for, and for a long time
 
 On screen, `PlayerContext` owns both listeners and keeps one slot — the newest message describes the situation, and stacking them would nag. `PlaybackAlertToast` renders it in the two registers; `AudioQualityFooter` carries the badge, for the three modes that say something. Shared mode gets no chip: it is the normal case, and a badge on every track is noise rather than information.
 
+### Playing at the track's own rate
+
+Exclusive output takes the system mixer out of the path, but the sample rate stayed a **preference**: every backend opened at a rate the *device* offered and the decoder's resampler met it. Better than the system doing it — it is our resampler and nothing else is mixed in — but not the same as the source reaching the DAC untouched, which is why the word "bit-perfect" left the exclusive-output copy in #577.
+
+`audio.match_source_rate` (#600) is the other half, and it is **off by default**. Not because it is worse: reopening the device costs an audible gap, so every rate change becomes a break in the music, and for most listeners our resampler with nothing else in the path is the better trade. The preference is what decides, and the decision is stated rather than discovered.
+
+With it on, the decoder asks for the track's rate **after** `ActiveStream::open` — that is when the container has told us what it is — and before the first packet, because the resampler is built against whatever the output ends up at. Four conditions rule it out, in order: the preference, a DoP format that already pinned the rate (a demand must not be fought by a preference), an output that does not own its device (in shared mode the mixer is in the path whatever we open at), and a container that declares no rate at all — AAC in MP4 only reveals its rate once decoding starts, and re-clocking a DAC to a guess is worse than resampling.
+
+`RequestedFormat` is what carries either demand to the backends, and the difference between them is what a refusal means: DoP fails the open (the caller then plays DSD → PCM), a rate request falls back to a rate the device does offer. Per backend:
+
+- **WASAPI** — the track's rate goes to the head of the candidate list, on each layout the device offered, with the device's own rates kept behind it (`layouts_at_requested_rate`, pure and unit-tested). Deduped on the (rate, channels) pair actually probed, since each probe is a COM round trip.
+- **ALSA** — the rate rides into `open_pcm_negotiated` as the one to ask the card for, ahead of whatever the last stream opened at. `set_rate` is asked with `ValueOr::Nearest`, so a card that cannot do it opens at what it can.
+- **CoreAudio** — the device is re-clocked through the same `find_matching_physical_format` + `set_device_physical_stream_format` the DoP path uses, with the same guard putting the old format back on every exit path. Without that, quitting a 96 kHz track would leave every other app on the machine talking to a DAC clocked at 96 kHz.
+
+**The guard that keeps this from thrashing** is `AudioEngine::last_requested_rate`: the next track compares against what the last open *asked* for, never against what it got. A device that refused 96 kHz has its own rate installed, and comparing against that would tear the output down and rebuild it for every single track, forever. It is recorded inside `publish_output_mode`, so an open that asks for nothing in particular — a device switch, a mode toggle — clears it rather than leaving a stale rate behind.
+
+The pill in the pipeline popover needs no change: it already compares the source rate against the output rate, so it starts telling the truth when this is on and stops the moment a device refuses.
+
 ## OS media controls
 
 [`media_controls.rs`](../../src-tauri/crates/app/src/media_controls.rs) bridges the engine to [`souvlaki 0.8`](https://crates.io/crates/souvlaki):

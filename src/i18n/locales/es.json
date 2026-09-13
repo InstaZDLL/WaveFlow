@@ -1590,6 +1590,10 @@
       "subtitle": "Toma el dispositivo solo para esta aplicación en lugar de compartirlo con el mezclador del sistema. Vuelve al modo compartido si el dispositivo lo rechaza.",
       "fallback": "El dispositivo no acepta el modo exclusivo. Cambiando al modo compartido."
     },
+    "matchSourceRate": {
+      "title": "Seguir la frecuencia de muestreo de cada pista",
+      "subtitle": "En salida exclusiva, reabre el dispositivo a la frecuencia de cada pista: sin remuestreo, pero con un corte en cada cambio de frecuencia"
+    },
     "mono": {
       "title": "Audio mono",
       "subtitle": "Mezcla los canales izquierdo y derecho en una sola señal"

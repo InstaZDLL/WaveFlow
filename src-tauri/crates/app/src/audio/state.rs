@@ -268,6 +268,16 @@ pub struct SharedPlayback {
     /// stream (not in the hot path). Persisted in
     /// `profile_setting['audio.dsd_dop']`, default OFF.
     pub dsd_dop_enabled: AtomicBool,
+    /// Open the output at each track's own rate rather than taking
+    /// whatever the device offers (#600). Read by the decoder at every
+    /// load; default off.
+    ///
+    /// Off is not a lesser setting, it is a different trade. Reopening
+    /// the device costs an audible gap, so every rate change becomes a
+    /// break in the music — which is why this is a preference and not
+    /// the behaviour: for most listeners, our own resampler with nothing
+    /// else mixed in is the better deal.
+    pub match_source_rate: AtomicBool,
 }
 
 impl SharedPlayback {
@@ -307,6 +317,7 @@ impl SharedPlayback {
             speed_dirty: AtomicBool::new(false),
             dsd_taps: AtomicU32::new(256),
             dsd_dop_enabled: AtomicBool::new(false),
+            match_source_rate: AtomicBool::new(false),
         }
     }
 
