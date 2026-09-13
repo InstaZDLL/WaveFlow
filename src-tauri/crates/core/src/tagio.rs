@@ -700,6 +700,256 @@ mod in_place_tests {
     }
 }
 
+/// Where a DSF file keeps its tag (#592).
+///
+/// DSF is the one container here whose metadata sits **after** the
+/// audio, at an offset the header declares. That makes writing it the
+/// easy case rather than the hard one: the tag can grow or shrink freely
+/// and not one audio byte moves, because there is nothing behind it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DsfLayout {
+    /// The size the header claims the file is. Updated with the tag,
+    /// because a player that trusts it and finds something else has
+    /// every reason to call the file damaged.
+    pub total_size: u64,
+    /// Where the ID3v2 tag starts, or `0` for a file that has none.
+    pub metadata_offset: u64,
+}
+
+/// The fixed part of a DSF header: magic, chunk size, file size, and the
+/// metadata pointer.
+const DSF_HEADER_LEN: u64 = 28;
+
+/// Read the DSD chunk at the head of a DSF file.
+///
+/// `Ok(None)` when this is not a DSF at all, or when the header's own
+/// numbers do not agree with the file — a metadata pointer past the end,
+/// or one pointing into the header itself. Those are not files to write
+/// a tag into on the strength of the pointer.
+pub fn read_dsf_layout(file: &mut std::fs::File) -> io::Result<Option<DsfLayout>> {
+    use std::io::{Read, Seek, SeekFrom};
+
+    let len = file.metadata()?.len();
+    file.seek(SeekFrom::Start(0))?;
+    let mut header = [0u8; DSF_HEADER_LEN as usize];
+    match file.read_exact(&mut header) {
+        Ok(()) => {}
+        Err(err) if err.kind() == io::ErrorKind::UnexpectedEof => return Ok(None),
+        Err(err) => return Err(err),
+    }
+    if &header[0..4] != b"DSD " {
+        return Ok(None);
+    }
+    let read_u64 = |at: usize| {
+        let mut buf = [0u8; 8];
+        buf.copy_from_slice(&header[at..at + 8]);
+        u64::from_le_bytes(buf)
+    };
+    if read_u64(4) != DSF_HEADER_LEN {
+        return Ok(None);
+    }
+    let metadata_offset = read_u64(20);
+    if metadata_offset != 0 && (metadata_offset < DSF_HEADER_LEN || metadata_offset > len) {
+        return Ok(None);
+    }
+    Ok(Some(DsfLayout {
+        total_size: read_u64(12),
+        metadata_offset,
+    }))
+}
+
+/// Replace a DSF file's ID3v2 tag, and tell the header about it (#592).
+///
+/// An empty `tag` removes it: the file is cut back to the end of the
+/// audio and the pointer set to zero, which is how a DSF says it has no
+/// metadata.
+///
+/// The two header fields are written **after** the tag, so a file
+/// interrupted mid-write still declares the tag it had rather than
+/// pointing at half of a new one.
+pub fn write_dsf_id3v2(file: &mut std::fs::File, tag: &[u8]) -> io::Result<()> {
+    use std::io::{Seek, SeekFrom, Write};
+
+    let Some(layout) = read_dsf_layout(file)? else {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "not a DSF file, or its header does not describe itself",
+        ));
+    };
+    // With no tag on record, the tag goes where the file currently ends
+    // — which is the end of the audio.
+    let offset = if layout.metadata_offset != 0 {
+        layout.metadata_offset
+    } else {
+        file.metadata()?.len()
+    };
+
+    file.seek(SeekFrom::Start(offset))?;
+    file.write_all(tag)?;
+    let new_len = offset + tag.len() as u64;
+    // Only ever cuts the tag region: `offset` is at or after the end of
+    // the audio by construction.
+    file.set_len(new_len)?;
+
+    file.seek(SeekFrom::Start(12))?;
+    file.write_all(&new_len.to_le_bytes())?;
+    file.seek(SeekFrom::Start(20))?;
+    let pointer = if tag.is_empty() { 0 } else { offset };
+    file.write_all(&pointer.to_le_bytes())?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod dsf_tests {
+    use super::*;
+
+    /// A file shaped like a DSF: the DSD chunk, bytes standing in for
+    /// the fmt/data chunks, then a tag at the declared offset.
+    fn dsf_file(audio: &[u8], tag: &[u8]) -> (tempfile::TempDir, std::path::PathBuf) {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("track.dsf");
+        let offset = if tag.is_empty() {
+            0
+        } else {
+            DSF_HEADER_LEN + audio.len() as u64
+        };
+        let total = DSF_HEADER_LEN + audio.len() as u64 + tag.len() as u64;
+        let mut bytes = b"DSD ".to_vec();
+        bytes.extend_from_slice(&DSF_HEADER_LEN.to_le_bytes());
+        bytes.extend_from_slice(&total.to_le_bytes());
+        bytes.extend_from_slice(&offset.to_le_bytes());
+        bytes.extend_from_slice(audio);
+        bytes.extend_from_slice(tag);
+        std::fs::write(&path, &bytes).expect("seed");
+        (dir, path)
+    }
+
+    fn open(path: &std::path::Path) -> std::fs::File {
+        std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(path)
+            .expect("open")
+    }
+
+    #[test]
+    fn a_bigger_tag_does_not_disturb_the_audio() {
+        // The property that makes DSF the easy container: the tag is
+        // last, so it can grow without anything moving.
+        let audio: Vec<u8> = (0..4096u32).map(|i| (i % 253) as u8 + 1).collect();
+        let (_dir, path) = dsf_file(&audio, b"small tag");
+
+        let mut file = open(&path);
+        let replacement = vec![0x42u8; 8192];
+        write_dsf_id3v2(&mut file, &replacement).expect("write");
+        drop(file);
+
+        let after = std::fs::read(&path).expect("read");
+        assert_eq!(
+            &after[DSF_HEADER_LEN as usize..DSF_HEADER_LEN as usize + audio.len()],
+            &audio[..],
+            "the audio is byte for byte what it was"
+        );
+        assert_eq!(
+            &after[DSF_HEADER_LEN as usize + audio.len()..],
+            &replacement[..]
+        );
+
+        let mut file = open(&path);
+        let layout = read_dsf_layout(&mut file).expect("layout").expect("a DSF");
+        assert_eq!(layout.metadata_offset, DSF_HEADER_LEN + audio.len() as u64);
+        assert_eq!(
+            layout.total_size,
+            after.len() as u64,
+            "the header declares the size the file actually is"
+        );
+    }
+
+    #[test]
+    fn a_smaller_tag_cuts_only_the_tag() {
+        let audio: Vec<u8> = (0..1024u32).map(|i| (i % 97) as u8 + 1).collect();
+        let (_dir, path) = dsf_file(&audio, &vec![0xEEu8; 4096]);
+
+        let mut file = open(&path);
+        write_dsf_id3v2(&mut file, b"tiny").expect("write");
+        drop(file);
+
+        let after = std::fs::read(&path).expect("read");
+        assert_eq!(after.len() as u64, DSF_HEADER_LEN + audio.len() as u64 + 4);
+        assert_eq!(
+            &after[DSF_HEADER_LEN as usize..DSF_HEADER_LEN as usize + audio.len()],
+            &audio[..]
+        );
+    }
+
+    #[test]
+    fn a_file_that_had_no_tag_gets_one_at_the_end() {
+        let audio: Vec<u8> = (0..512u32).map(|i| (i % 71) as u8 + 1).collect();
+        let (_dir, path) = dsf_file(&audio, b"");
+
+        let mut file = open(&path);
+        assert_eq!(
+            read_dsf_layout(&mut file)
+                .expect("layout")
+                .expect("a DSF")
+                .metadata_offset,
+            0
+        );
+        write_dsf_id3v2(&mut file, b"a brand new tag").expect("write");
+        drop(file);
+
+        let mut file = open(&path);
+        let layout = read_dsf_layout(&mut file).expect("layout").expect("a DSF");
+        assert_eq!(layout.metadata_offset, DSF_HEADER_LEN + audio.len() as u64);
+        let after = std::fs::read(&path).expect("read");
+        assert_eq!(
+            &after[layout.metadata_offset as usize..],
+            b"a brand new tag"
+        );
+    }
+
+    #[test]
+    fn an_empty_tag_removes_it_and_says_so() {
+        let audio: Vec<u8> = vec![7; 256];
+        let (_dir, path) = dsf_file(&audio, b"an existing tag");
+
+        let mut file = open(&path);
+        write_dsf_id3v2(&mut file, b"").expect("write");
+        drop(file);
+
+        let mut file = open(&path);
+        let layout = read_dsf_layout(&mut file).expect("layout").expect("a DSF");
+        assert_eq!(
+            layout.metadata_offset, 0,
+            "zero is how a DSF says it has none"
+        );
+        assert_eq!(layout.total_size, DSF_HEADER_LEN + audio.len() as u64);
+        assert_eq!(
+            std::fs::read(&path).expect("read").len() as u64,
+            DSF_HEADER_LEN + audio.len() as u64
+        );
+    }
+
+    #[test]
+    fn a_header_that_does_not_describe_itself_is_refused() {
+        // A pointer past the end of the file, or into the header: the
+        // write would either land in the audio or past it, and neither
+        // is a tag edit.
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("bad.dsf");
+        let mut bytes = b"DSD ".to_vec();
+        bytes.extend_from_slice(&DSF_HEADER_LEN.to_le_bytes());
+        bytes.extend_from_slice(&100u64.to_le_bytes());
+        bytes.extend_from_slice(&9_000u64.to_le_bytes()); // past the end
+        bytes.extend_from_slice(&[0u8; 64]);
+        std::fs::write(&path, &bytes).expect("seed");
+
+        let mut file = open(&path);
+        assert!(read_dsf_layout(&mut file).expect("layout").is_none());
+        assert!(write_dsf_id3v2(&mut file, b"tag").is_err());
+    }
+}
+
 #[cfg(test)]
 mod rewrite_tests {
     use super::*;

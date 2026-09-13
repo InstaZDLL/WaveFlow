@@ -344,7 +344,7 @@ struct TrackRow {
 /// DSD metadata is parsed by `waveflow_core::audio_format::dsd`, which is
 /// read-only, so there is no fallback to reach for: refusing before we
 /// touch the file is the whole of the honest answer.
-const UNTAGGABLE_EXTENSIONS: &[&str] = &["dsf", "dff"];
+const UNTAGGABLE_EXTENSIONS: &[&str] = &["dff"];
 
 /// `Err` when `path` names a container this build can index but not write
 /// tags into. The message is user-facing — it reaches the properties
@@ -495,6 +495,160 @@ fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
     }
 }
 
+/// Apply a patch to an [`id3::Tag`], for the one container lofty cannot
+/// write (#592).
+///
+/// The mirror of [`apply_patch`], deliberately kept beside it. DSF keeps
+/// its metadata as a plain ID3v2 tag at an offset its header declares,
+/// and lofty has no `FileType` for it at all — so the tag has to be
+/// parsed and re-encoded by the `id3` crate the DSD reader already uses.
+/// Two tag models, one set of edit semantics: a test asserts the two
+/// appliers agree field by field, because a divergence here would mean
+/// the same edit meaning different things depending on the container.
+///
+/// Frames this does not name are carried through untouched, which is
+/// what `id3` does by holding the frames it parsed.
+fn apply_patch_id3(tag: &mut id3::Tag, patch: &TagPatch<'_>) {
+    use id3::TagLike;
+
+    let edit = match patch {
+        TagPatch::Fields(edit) => edit,
+        TagPatch::Cover { bytes, mime } => {
+            // Replace the cover, not the artwork — the same rule, and
+            // the same reason: a release with a booklet, a back cover or
+            // an artist shot carries several pictures and nothing brings
+            // them back. `id3` removes pictures all at once, so the ones
+            // that survive are put back rather than left alone.
+            let kept: Vec<id3::frame::Picture> = tag
+                .pictures()
+                .filter(|picture| {
+                    !matches!(
+                        picture.picture_type,
+                        id3::frame::PictureType::CoverFront | id3::frame::PictureType::Other
+                    )
+                })
+                .cloned()
+                .collect();
+            tag.remove_all_pictures();
+            for picture in kept {
+                tag.add_frame(picture);
+            }
+            tag.add_frame(id3::frame::Picture {
+                mime_type: mime.to_string(),
+                picture_type: id3::frame::PictureType::CoverFront,
+                description: String::new(),
+                data: bytes.to_vec(),
+            });
+            return;
+        }
+    };
+
+    if let Some(t) = edit.title.as_ref() {
+        if t.trim().is_empty() {
+            tag.remove_title();
+        } else {
+            tag.set_title(t.trim());
+        }
+    }
+    if let Some(a) = edit.artist.as_ref() {
+        if a.trim().is_empty() {
+            tag.remove_artist();
+        } else {
+            tag.set_artist(a.trim());
+        }
+    }
+    if let Some(al) = edit.album.as_ref() {
+        if al.trim().is_empty() {
+            tag.remove_album();
+        } else {
+            tag.set_album(al.trim());
+        }
+    }
+    if let Some(y) = edit.year {
+        // The date item, not the bare year, for the same reason the
+        // lofty side uses it: that is what the scanner reads back. The
+        // legacy `TYER` is cleared alongside so a stale value cannot
+        // outlive the one the user just removed.
+        if y <= 0 {
+            tag.remove_date_recorded();
+            tag.remove_year();
+        } else if let Ok(year) = i32::try_from(y) {
+            match tag.date_recorded() {
+                // A save that changed only the title must not truncate a
+                // full release date to its year.
+                Some(existing) if existing.year == year => {}
+                _ => tag.set_date_recorded(id3::Timestamp {
+                    year,
+                    ..Default::default()
+                }),
+            }
+        }
+    }
+    if let Some(n) = edit.track_number {
+        if n > 0 {
+            tag.set_track(n as u32);
+        } else {
+            tag.remove_track();
+        }
+    }
+    if let Some(n) = edit.disc_number {
+        if n > 0 {
+            tag.set_disc(n as u32);
+        } else {
+            tag.remove_disc();
+        }
+    }
+    if let Some(g) = edit.genre.as_ref() {
+        if g.trim().is_empty() {
+            tag.remove_genre();
+        } else {
+            tag.set_genre(g.trim());
+        }
+    }
+}
+
+/// Write a patch into a DSF file (#592).
+///
+/// The easy container, once someone writes the twenty lines for it: the
+/// tag lives *after* the audio at an offset the header declares, so it
+/// can grow or shrink without a single audio byte moving. That is why
+/// this path does not need the in-place/rewrite split the others do —
+/// every DSF write is already the cheap kind.
+///
+/// `.dff` is still refused. It has no ID3 by convention, its metadata
+/// lives in its own chunk structure, and some taggers append an ID3
+/// chunk anyway — so "which shape do we write" is a real question with
+/// no obvious answer, and half an answer would be worse than today's
+/// clear no.
+fn patch_dsf(
+    path: &std::path::Path,
+    patch: &TagPatch<'_>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    waveflow_core::tagio::with_writable_file(
+        path,
+        |handle| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            let layout = waveflow_core::tagio::read_dsf_layout(handle)?
+                .ok_or("this DSF file's header does not describe itself")?;
+            let mut tag = if layout.metadata_offset != 0 {
+                use std::io::{Seek, SeekFrom};
+                handle.seek(SeekFrom::Start(layout.metadata_offset))?;
+                // A tag we cannot parse is not a reason to refuse the
+                // edit: the pointer may be stale, or the tag empty. What
+                // we must not do is carry half of it forward, so the
+                // fallback is a fresh tag rather than a partial one.
+                id3::Tag::read_from2(&mut *handle).unwrap_or_default()
+            } else {
+                id3::Tag::new()
+            };
+            apply_patch_id3(&mut tag, patch);
+            let mut bytes = Vec::new();
+            tag.write_to(&mut bytes, id3::Version::Id3v24)?;
+            waveflow_core::tagio::write_dsf_id3v2(handle, &bytes)?;
+            Ok(())
+        },
+    )
+}
+
 /// Apply `patch` to the file at `path`, keeping every field the generic
 /// [`lofty::tag::Tag`] shape cannot model.
 ///
@@ -529,6 +683,17 @@ fn patch_file(
     use lofty::probe::Probe;
 
     reject_untaggable(path)?;
+
+    // DSF before the probe: lofty has no FileType for it, so asking it
+    // to guess would fail with "unrecognised container" on a file we
+    // can in fact write (#592).
+    if path
+        .extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| e.eq_ignore_ascii_case("dsf"))
+    {
+        return patch_dsf(path, patch);
+    }
 
     let file_type = Probe::open(path)?
         .guess_file_type()?
@@ -1043,5 +1208,170 @@ fn sniff_image_mime(bytes: &[u8], path: &str) -> (lofty::picture::MimeType, &'st
         (MimeType::Unknown("image/webp".into()), "webp")
     } else {
         (MimeType::Jpeg, "jpg")
+    }
+}
+
+#[cfg(test)]
+mod patch_agreement_tests {
+    use super::*;
+
+    /// Every field the dialog can send, set to something distinctive.
+    fn full_edit() -> TrackEdit {
+        TrackEdit {
+            title: Some("  A Title  ".into()),
+            artist: Some("Artist A, Artist B".into()),
+            album: Some("An Album".into()),
+            year: Some(1997),
+            track_number: Some(4),
+            disc_number: Some(2),
+            genre: Some(" Jazz ".into()),
+        }
+    }
+
+    /// The same fields, all asking to be cleared.
+    fn clearing_edit() -> TrackEdit {
+        TrackEdit {
+            title: Some("   ".into()),
+            artist: Some(String::new()),
+            album: Some(String::new()),
+            year: Some(0),
+            track_number: Some(0),
+            disc_number: Some(0),
+            genre: Some("  ".into()),
+        }
+    }
+
+    /// What a tag says, in the only terms both models share.
+    #[derive(Debug, PartialEq, Eq)]
+    struct Fields {
+        title: Option<String>,
+        artist: Option<String>,
+        album: Option<String>,
+        year: Option<i32>,
+        track: Option<u32>,
+        disc: Option<u32>,
+        genre: Option<String>,
+    }
+
+    fn through_lofty(edit: &TrackEdit) -> Fields {
+        use lofty::prelude::*;
+        let mut tag = lofty::tag::Tag::new(lofty::tag::TagType::Id3v2);
+        apply_patch(&mut tag, &TagPatch::Fields(edit));
+        Fields {
+            title: tag.title().map(|v| v.to_string()),
+            artist: tag.artist().map(|v| v.to_string()),
+            album: tag.album().map(|v| v.to_string()),
+            year: tag.date().map(|d| i32::from(d.year)),
+            track: tag.track(),
+            disc: tag.disk(),
+            genre: tag.genre().map(|v| v.to_string()),
+        }
+    }
+
+    fn through_id3(edit: &TrackEdit) -> Fields {
+        use id3::TagLike;
+        let mut tag = id3::Tag::new();
+        apply_patch_id3(&mut tag, &TagPatch::Fields(edit));
+        Fields {
+            title: tag.title().map(|v| v.to_string()),
+            artist: tag.artist().map(|v| v.to_string()),
+            album: tag.album().map(|v| v.to_string()),
+            year: tag.date_recorded().map(|d| d.year),
+            track: tag.track(),
+            disc: tag.disc(),
+            genre: tag.genre().map(|v| v.to_string()),
+        }
+    }
+
+    #[test]
+    fn both_appliers_agree_on_a_full_edit() {
+        // Two tag models, one set of edit semantics. A divergence would
+        // mean the same edit meaning different things depending on
+        // whether the file is an MP3 or a DSF — which nobody would look
+        // for, because the dialog is the same one.
+        let edit = full_edit();
+        assert_eq!(through_lofty(&edit), through_id3(&edit));
+    }
+
+    #[test]
+    fn both_appliers_agree_on_clearing_every_field() {
+        // The half that is easy to get wrong: "empty means clear" has to
+        // be the same decision on both sides, including the year, where
+        // 0 means remove rather than write a year zero.
+        let edit = clearing_edit();
+        let cleared = through_lofty(&edit);
+        assert_eq!(cleared, through_id3(&edit));
+        assert_eq!(cleared.title, None);
+        assert_eq!(cleared.year, None);
+        assert_eq!(cleared.track, None);
+    }
+
+    #[test]
+    fn a_title_only_save_does_not_truncate_a_full_release_date() {
+        // The dialog sends the year on every save, so both appliers have
+        // to leave an existing day-precision date alone when the year
+        // they were handed is the one already there.
+        use id3::TagLike;
+        let mut tag = id3::Tag::new();
+        tag.set_date_recorded(id3::Timestamp {
+            year: 1997,
+            month: Some(6),
+            day: Some(14),
+            ..Default::default()
+        });
+        let edit = TrackEdit {
+            title: Some("New Title".into()),
+            year: Some(1997),
+            ..Default::default()
+        };
+        apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
+        let date = tag.date_recorded().expect("a date");
+        assert_eq!((date.year, date.month, date.day), (1997, Some(6), Some(14)));
+    }
+
+    #[test]
+    fn a_dsf_cover_replaces_the_front_and_keeps_the_rest() {
+        // Same rule as the lofty side: a booklet or a back cover is not
+        // the front cover, and nothing brings it back.
+        use id3::TagLike;
+        let mut tag = id3::Tag::new();
+        tag.add_frame(id3::frame::Picture {
+            mime_type: "image/jpeg".into(),
+            picture_type: id3::frame::PictureType::CoverBack,
+            description: String::new(),
+            data: vec![1, 2, 3],
+        });
+        tag.add_frame(id3::frame::Picture {
+            mime_type: "image/jpeg".into(),
+            picture_type: id3::frame::PictureType::CoverFront,
+            description: String::new(),
+            data: vec![9, 9, 9],
+        });
+
+        let mime = lofty::picture::MimeType::Jpeg;
+        apply_patch_id3(
+            &mut tag,
+            &TagPatch::Cover {
+                bytes: &[4, 5, 6],
+                mime: &mime,
+            },
+        );
+
+        let pictures: Vec<_> = tag.pictures().collect();
+        assert_eq!(pictures.len(), 2);
+        assert!(
+            pictures
+                .iter()
+                .any(|p| p.picture_type == id3::frame::PictureType::CoverBack
+                    && p.data == vec![1, 2, 3]),
+            "the back cover survived"
+        );
+        assert!(
+            pictures
+                .iter()
+                .any(|p| p.picture_type == id3::frame::PictureType::CoverFront
+                    && p.data == vec![4, 5, 6]),
+            "the front cover is the new one"
+        );
     }
 }
