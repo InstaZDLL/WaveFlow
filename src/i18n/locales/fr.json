@@ -1645,7 +1645,7 @@
     },
     "matchSourceRate": {
       "title": "Suivre le taux d'échantillonnage des pistes",
-      "subtitle": "En sortie exclusive, rouvre le périphérique au taux de chaque piste : évite le rééchantillonnage quand il l'accepte, une coupure à chaque changement de taux"
+      "subtitle": "En sortie exclusive, rouvre le périphérique au taux de chaque piste : évite le rééchantillonnage quand il l'accepte, au prix d'une coupure à chaque changement de taux"
     },
     "mono": {
       "title": "Audio mono",

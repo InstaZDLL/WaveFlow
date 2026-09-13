@@ -374,6 +374,22 @@ pub(super) fn probe_capabilities(
     use std::collections::BTreeSet;
 
     let requested = device_name.map(str::to_string);
+    // `resolve_hw_device` answers `hw:0,0` for both no name and the name
+    // "default" — a sound choice when something has to be *opened*, and
+    // the wrong one for a sheet: card 0 is not what `default` reaches,
+    // which is whatever the plug layer routes to, and that can be a
+    // sound server feeding another card entirely. Describing card 0
+    // under the name "default" would be a sheet about hardware the user
+    // may never hear, and it is memoised for the session. The listing
+    // keeps a `default` row on purpose (#594), so this is reachable from
+    // the menu, not just from an unpinned call. The two other backends
+    // already refuse their own fallback for the same reason.
+    let pinned = requested.as_deref().filter(|n| !n.is_empty());
+    if pinned.is_none_or(|n| n.eq_ignore_ascii_case("default")) {
+        return Err(AppError::Audio(
+            "no pinned ALSA card to describe — \"default\" is routed, not hardware".to_string(),
+        ));
+    }
     let hw = resolve_hw_device(&requested)?;
     let pcm = PCM::new(&hw, Direction::Playback, true)
         .map_err(|e| AppError::Audio(format!("open {hw} to read its capabilities: {e}")))?;

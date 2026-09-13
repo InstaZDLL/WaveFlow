@@ -212,23 +212,39 @@ export function DeviceMenu() {
       for (const device of outputDevices) {
         if (cancelled) return;
         if (capabilitiesRef.current[device.id] != null) continue;
+        // The command answers "unavailable" rather than rejecting, so a
+        // rejection here is the IPC bridge itself failing. It still has
+        // to become an answer: a row left on "reading…" for something
+        // that will never arrive is the one outcome the sheet cannot
+        // recover from. One write site for both, so the rule below
+        // applies to either.
+        let caps: DeviceCapabilities;
         try {
-          const caps = await playerProbeOutputDevice(device.id);
-          if (cancelled) return;
-          setCapabilities((previous) => ({ ...previous, [device.id]: caps }));
-          // Only a real answer is remembered. A device another client
-          // was holding, or one unplugged mid-probe, answers nothing
-          // *now* — keeping that would leave the row saying so for as
-          // long as the menu lives, long after the device came back.
-          // The backend memo makes the same distinction.
-          if (caps.source !== "unavailable") {
-            capabilitiesRef.current = {
-              ...capabilitiesRef.current,
-              [device.id]: caps,
-            };
-          }
+          caps = await playerProbeOutputDevice(device.id);
         } catch (err) {
           console.error("[DeviceMenu] probe failed", device.id, err);
+          caps = {
+            device_id: device.id,
+            source: "unavailable",
+            formats: [],
+            sample_rates: [],
+            max_channels: 0,
+            min_period_frames: null,
+            unavailable_reason: String(err),
+          };
+        }
+        if (cancelled) return;
+        setCapabilities((previous) => ({ ...previous, [device.id]: caps }));
+        // Only a real answer is remembered. A device another client was
+        // holding, one unplugged mid-probe, or a bridge that dropped the
+        // call answers nothing *now* — keeping that would leave the row
+        // saying so for as long as the menu lives, long after the device
+        // came back. The backend memo makes the same distinction.
+        if (caps.source !== "unavailable") {
+          capabilitiesRef.current = {
+            ...capabilitiesRef.current,
+            [device.id]: caps,
+          };
         }
       }
     })();

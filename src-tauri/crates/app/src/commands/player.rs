@@ -2125,11 +2125,22 @@ pub async fn player_set_match_source_rate(
 pub async fn player_probe_output_device(
     device_id: Option<String>,
 ) -> AppResult<crate::audio::capabilities::DeviceCapabilities> {
-    tokio::task::spawn_blocking(move || {
-        crate::audio::capabilities::probe_output_device(device_id.as_deref())
-    })
-    .await
-    .map_err(|e| AppError::Audio(format!("probe output device task: {e}")))
+    let probed = {
+        let device_id = device_id.clone();
+        tokio::task::spawn_blocking(move || {
+            crate::audio::capabilities::probe_output_device(device_id.as_deref())
+        })
+        .await
+    };
+    // A panicked or cancelled blocking task is one more way of not being
+    // able to ask — so it comes back as the same answer as a busy device
+    // rather than as a rejected promise the caller has no branch for.
+    Ok(probed.unwrap_or_else(|e| {
+        crate::audio::capabilities::DeviceCapabilities::unavailable(
+            device_id,
+            format!("probe output device task: {e}"),
+        )
+    }))
 }
 
 /// Pause instead of following the music onto another device when the one

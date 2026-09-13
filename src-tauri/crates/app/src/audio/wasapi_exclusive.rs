@@ -130,6 +130,13 @@ fn output_thread_main(
         ))));
         return;
     }
+    // Declared here so it drops last, after the session it guards. The
+    // event loops used to call `deinitialize()` by hand at their end —
+    // with the client and render interfaces still alive in that scope,
+    // so they were released *after* `CoUninitialize`. And the early
+    // return below, which a busy device takes every time, never
+    // balanced the init at all.
+    let _com = ComApartment;
 
     let session = match open_exclusive_session(&device_name, &shared, requested) {
         Ok(s) => s,
@@ -747,6 +754,27 @@ fn init_stream(
     Ok((client, render, event, buffer_frames))
 }
 
+/// Balances one [`wasapi::initialize_mta`] on every way out of a scope —
+/// the `?` returns and an unwind included — and, because a guard drops
+/// after the locals declared under it, only once every interface opened
+/// inside that scope is released. Releasing one *after* `CoUninitialize`
+/// is undefined, which is what hand-written pairings kept getting wrong
+/// here: the event loops called `deinitialize()` while their client and
+/// render interfaces were still alive.
+///
+/// It matters most in [`probe_capabilities`], which has a dozen exits
+/// and runs on a **tokio blocking-pool thread**: pooled, long-lived, and
+/// reused by everything else that blocks. An unbalanced init there
+/// leaves that thread inside an apartment it never asked for, and raises
+/// COM's reference count once per probe for the life of the process.
+struct ComApartment;
+
+impl Drop for ComApartment {
+    fn drop(&mut self) {
+        wasapi::deinitialize();
+    }
+}
+
 /// Ask the driver what it accepts **in exclusive mode** (#593).
 ///
 /// The strongest of the three capability probes, because it is the same
@@ -773,6 +801,10 @@ pub(super) fn probe_capabilities(
     wasapi::initialize_mta()
         .ok()
         .map_err(|e| AppError::Audio(format!("CoInitializeEx(MTA) failed: {e:?}")))?;
+    // Declared *before* every COM object below, so that it drops last:
+    // locals are destroyed in reverse declaration order, and releasing an
+    // interface after `CoUninitialize` is undefined behaviour.
+    let _com = ComApartment;
 
     let requested = device_name.map(str::to_string);
     let device = pick_device(&requested)?;
@@ -1033,10 +1065,11 @@ fn run_event_loop(
     // for the device. Errors are non-fatal — we're tearing down anyway.
     let _ = client.stop_stream();
     let _ = event; // released with the function frame
-                   // Wait briefly so a slow `stop_stream` settles before COM
-                   // uninit; not strictly required, but tidier under tracing.
+                   // Wait briefly so a slow `stop_stream` settles before the
+                   // interfaces drop; not strictly required, but tidier under
+                   // tracing. COM itself is left to `ComApartment`, up in the
+                   // thread body, so it outlives everything it opened.
     std::thread::sleep(Duration::from_millis(5));
-    wasapi::deinitialize();
 
     exit
 }
@@ -1146,7 +1179,6 @@ fn run_dop_event_loop(
     let _ = client.stop_stream();
     let _ = event;
     std::thread::sleep(Duration::from_millis(5));
-    wasapi::deinitialize();
 
     exit
 }

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, Info, X } from "lucide-react";
 
@@ -74,7 +75,12 @@ export function PlaybackAlertToast() {
     `player.alert.${isError ? "error" : "notice"}.${known ? kind : "unknown"}`,
   );
 
-  return (
+  // Portalled, not merely z-100: the toast mounts inside the skin's
+  // motion wrapper, and any `transform` or `backdrop-filter` ancestor
+  // caps the stacking context its z-index is measured in — so a panel
+  // far below it in the layer scale can still cover it. See the overlay
+  // invariant in CLAUDE.md.
+  return createPortal(
     <div
       role={isError ? "alert" : "status"}
       aria-live={isError ? "assertive" : "polite"}
@@ -116,6 +122,7 @@ export function PlaybackAlertToast() {
           <X size={16} />
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

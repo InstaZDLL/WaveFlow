@@ -1592,7 +1592,7 @@
     },
     "matchSourceRate": {
       "title": "Match each track's sample rate",
-      "subtitle": "In exclusive output, reopens the device at each track's rate: avoids resampling when the device accepts it, and a gap at every rate change"
+      "subtitle": "In exclusive output, reopens the device at each track's rate: avoids resampling when the device accepts it, at the cost of a gap at every rate change"
     },
     "mono": {
       "title": "Mono audio",
