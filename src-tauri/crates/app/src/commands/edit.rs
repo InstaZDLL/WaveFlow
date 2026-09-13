@@ -7,12 +7,21 @@
 //! existing triggers on `track`, `album.title`, and `artist.name`.
 //!
 //! File-lock dance: the audio engine may have the file open if the
-//! edited track is currently playing. lofty's `save_to_path` uses
-//! atomic rename on POSIX but needs an exclusive handle on Windows, so
-//! we pause playback before writing whenever the engine reports the
-//! same `current_track_id`. Resume is left to the user — silently
-//! restarting after a save would be surprising and could re-lock the
-//! file before the rename completed.
+//! edited track is currently playing. A tag write opens the real file
+//! for writing and rewrites it **in place** — there is no temporary
+//! file and no rename on any platform, whatever an older comment here
+//! claimed — so on Windows the engine's read handle is enough to refuse
+//! the open outright. We pause playback before writing whenever the
+//! engine reports the same `current_track_id`. Resume is left to the
+//! user: silently restarting after a save would be surprising, and
+//! would re-open the file while we are still writing it.
+//!
+//! What in-place buys is everything attached to the inode — the
+//! permissions, the ACL, the extended attributes, the hard links — kept
+//! without having to copy each one across by hand. What it costs is
+//! atomicity: an interrupted write leaves a file that is neither the old
+//! one nor the new one. [`waveflow_core::tagio`] covers the failures
+//! that are survivable (#598); the crash case is the one it cannot.
 
 use std::sync::Arc;
 
@@ -76,7 +85,7 @@ pub(crate) async fn rehash_track_file(
 /// field" (where applicable). The frontend sends whatever's currently
 /// in the form input on save, so we always get every field set when
 /// the user explicitly hits Save.
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 #[serde(default)]
 pub struct TrackEdit {
     pub title: Option<String>,
@@ -136,8 +145,8 @@ pub async fn update_track_tags(
     let path = std::path::PathBuf::from(&row.file_path);
 
     // 2. If the engine is playing this track, pause before opening.
-    //    Releases the file handle so lofty's atomic rename succeeds
-    //    on Windows. Resume is the user's call — see module doc.
+    //    Releases the read handle that would otherwise refuse our write
+    //    open on Windows. Resume is the user's call — see module doc.
     let active = engine
         .shared()
         .current_track_id
@@ -154,8 +163,17 @@ pub async fn update_track_tags(
     //    container at all (corrupt header), surface the error — we
     //    don't want to update the DB to values the file doesn't
     //    actually carry.
-    write_tags_to_file(&path, &edit)
-        .map_err(|e| AppError::Other(format!("tag write failed: {e}")))?;
+    // On a blocking thread, not here: this reaches the disk, and on the
+    // network share the whole of #590 is about it can take seconds. An
+    // async worker parked on it is one fewer for every other command.
+    {
+        let path = path.clone();
+        let edit = edit.clone();
+        tokio::task::spawn_blocking(move || write_tags_to_file(&path, &edit))
+            .await
+            .map_err(|e| AppError::Other(format!("tag write join: {e}")))?
+            .map_err(|e| AppError::Other(format!("tag write failed: {e}")))?;
+    }
 
     // 3b. The file has changed on disk; recompute its hash so the
     //     scanner's (mtime, size, hash) fast path keeps matching and
@@ -254,11 +272,25 @@ pub async fn update_tracks_batch(
         };
         let path = std::path::PathBuf::from(&row.file_path);
 
-        if let Err(err) = write_tags_to_file(&path, &edit) {
-            summary
-                .errors
-                .push((*track_id, format!("tag write failed: {err}")));
-            continue;
+        let written = {
+            let path = path.clone();
+            let edit = edit.clone();
+            tokio::task::spawn_blocking(move || write_tags_to_file(&path, &edit)).await
+        };
+        match written {
+            Ok(Ok(())) => {}
+            Ok(Err(err)) => {
+                summary
+                    .errors
+                    .push((*track_id, format!("tag write failed: {err}")));
+                continue;
+            }
+            Err(err) => {
+                summary
+                    .errors
+                    .push((*track_id, format!("tag write join: {err}")));
+                continue;
+            }
         }
 
         // Rehash the file before the DB sync so the new hash lands
@@ -527,11 +559,25 @@ fn patch_file(
     }
 
     // Read the concrete file, run the body over it, save it back.
+    //
+    // One handle for both halves, taken through
+    // [`waveflow_core::tagio::with_writable_file`] (#598): it lifts the
+    // Windows read-only attribute, waits out the sharing violation a
+    // virus scanner causes, and — the part nothing else did — calls
+    // `sync_all` before we report success and re-hash. lofty rewinds the
+    // handle itself at the top of its writer, so reading and writing
+    // through the same one is what it expects.
     macro_rules! with_file {
         ($ty:ty, |$f:ident| $body:block) => {{
-            let mut $f = <$ty>::read_from(&mut std::fs::File::open(path)?, ParseOptions::new())?;
-            $body
-            $f.save_to_path(path, WriteOptions::default())?;
+            waveflow_core::tagio::with_writable_file(
+                path,
+                |handle| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                    let mut $f = <$ty>::read_from(handle, ParseOptions::new())?;
+                    $body
+                    $f.save_to(handle, WriteOptions::default())?;
+                    Ok(())
+                },
+            )?;
         }};
     }
 
@@ -842,8 +888,8 @@ pub async fn update_track_cover(
     }
     let (mime, ext) = sniff_image_mime(&bytes, &image_path);
 
-    // Pause if the engine has the file open — same Windows-rename
-    // dance as the tag-edit path.
+    // Pause if the engine has the file open — same reason as the
+    // tag-edit path: the write opens the real file.
     let active = engine
         .shared()
         .current_track_id
@@ -853,8 +899,17 @@ pub async fn update_track_cover(
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     }
 
-    write_cover_to_file(std::path::Path::new(&file_path), &bytes, &mime)
-        .map_err(|e| AppError::Other(format!("cover tag write failed: {e}")))?;
+    // A cover is the largest thing we ever push into a tag, so this is
+    // the write least suited to an async worker.
+    {
+        let path = std::path::PathBuf::from(&file_path);
+        let bytes = bytes.clone();
+        let mime = mime.clone();
+        tokio::task::spawn_blocking(move || write_cover_to_file(&path, &bytes, &mime))
+            .await
+            .map_err(|e| AppError::Other(format!("cover tag write join: {e}")))?
+            .map_err(|e| AppError::Other(format!("cover tag write failed: {e}")))?;
+    }
 
     // The audio file itself just changed (a new picture frame was
     // embedded), so its blake3 hash drifted. Recompute and persist so

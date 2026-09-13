@@ -32,3 +32,4 @@ pub mod scanner;
 pub mod search;
 pub mod smart_playlists;
 pub mod sync;
+pub mod tagio;
