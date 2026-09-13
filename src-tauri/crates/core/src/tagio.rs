@@ -530,11 +530,25 @@ fn read_flac_blocks(file: &mut std::fs::File) -> io::Result<Option<Vec<FlacBlock
         return Ok(None);
     }
 
+    // A read that runs out of file is this function's own answer — the
+    // container is not one we can splice — and not an error the edit
+    // should fail on. Anything else is a real I/O failure and is
+    // propagated.
+    macro_rules! read_or_decline {
+        ($buf:expr) => {
+            match file.read_exact($buf) {
+                Ok(()) => {}
+                Err(err) if err.kind() == io::ErrorKind::UnexpectedEof => return Ok(None),
+                Err(err) => return Err(err),
+            }
+        };
+    }
+
     let mut blocks = Vec::new();
     let mut total: u64 = 0;
     loop {
         let mut header = [0u8; 4];
-        file.read_exact(&mut header)?;
+        read_or_decline!(&mut header);
         let last = header[0] & 0x80 != 0;
         let ty = header[0] & 0x7f;
         let len = u32::from(header[1]) << 16 | u32::from(header[2]) << 8 | u32::from(header[3]);
@@ -543,7 +557,7 @@ fn read_flac_blocks(file: &mut std::fs::File) -> io::Result<Option<Vec<FlacBlock
             return Ok(None);
         }
         let mut content = vec![0u8; len as usize];
-        file.read_exact(&mut content)?;
+        read_or_decline!(&mut content);
         blocks.push(FlacBlock { ty, content });
         if last {
             break;
@@ -572,6 +586,7 @@ pub fn try_flac_in_place(
     file: &mut std::fs::File,
     comments: &lofty::ogg::tag::VorbisComments,
 ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    use lofty::ogg::OggPictureStorage;
     use std::io::{Seek, SeekFrom, Write};
 
     let Some(blocks) = read_flac_blocks(file)? else {
@@ -583,6 +598,18 @@ pub fn try_flac_in_place(
         .iter()
         .map(|block| block.content.len() as u64 + 4)
         .sum();
+
+    // FLAC normally keeps its pictures in their own metadata blocks,
+    // which is why they are copied through untouched above. But a
+    // `VorbisComments` can carry pictures too — some taggers write the
+    // base64 `METADATA_BLOCK_PICTURE` comment even in a FLAC, and lofty's
+    // split/merge round trip can hand them back on the tag — and the
+    // encoder here writes only the vendor string and the items. Encoding
+    // a set that has pictures would drop them, which is the one thing
+    // this path must never do. The rewrite knows how to write them.
+    if !comments.pictures().is_empty() {
+        return Ok(false);
+    }
 
     let encoded = encode_vorbis_comments(comments);
     // A block's length field is 24 bits; a comment set larger than that
@@ -1293,6 +1320,64 @@ mod flac_tests {
         std::fs::write(&path, b"ID3\x04\x00\x00\x00\x00\x00\x00rest").expect("seed");
         let mut file = open(&path);
         assert!(!try_flac_in_place(&mut file, &VorbisComments::default()).expect("in place"));
+    }
+
+    #[test]
+    fn a_comment_set_carrying_a_picture_asks_for_the_rewrite() {
+        // FLAC normally keeps pictures in their own blocks, which is why
+        // this path copies those through untouched. But a VorbisComments
+        // can carry them too, and the encoder here writes only the
+        // vendor and the items — so encoding a set that has pictures
+        // would drop them. Losing a cover to a title edit is the one
+        // thing this path must never do.
+        use lofty::ogg::OggPictureStorage;
+        use lofty::picture::{Picture, PictureInformation, PictureType};
+
+        let audio: Vec<u8> = vec![3; 512];
+        let (_dir, path) = flac_file(4096, &audio);
+        let before = std::fs::read(&path).expect("read");
+
+        let mut comments = VorbisComments::default();
+        comments.push("TITLE".to_string(), "After".to_string());
+        let picture = Picture::unchecked(vec![0xFF; 64])
+            .pic_type(PictureType::CoverFront)
+            .mime_type(lofty::picture::MimeType::Jpeg)
+            .build();
+        comments
+            .insert_picture(picture, Some(PictureInformation::default()))
+            .expect("insert");
+
+        let mut file = open(&path);
+        assert!(!try_flac_in_place(&mut file, &comments).expect("in place"));
+        drop(file);
+        assert_eq!(
+            std::fs::read(&path).expect("read"),
+            before,
+            "declining must not have written anything"
+        );
+    }
+
+    #[test]
+    fn a_truncated_file_asks_for_the_rewrite_instead_of_failing() {
+        // A block header that runs off the end is this function saying
+        // "not a container I can splice", not an I/O failure the edit
+        // should die on.
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("cut.flac");
+        let mut bytes = b"fLaC".to_vec();
+        bytes.extend_from_slice(&block(0, &[0u8; 34], false));
+        // A header promising far more content than the file holds.
+        bytes.extend_from_slice(&[FLAC_BLOCK_VORBIS_COMMENT, 0x00, 0xFF, 0x00]);
+        bytes.extend_from_slice(b"only a few bytes");
+        std::fs::write(&path, &bytes).expect("seed");
+
+        let mut file = open(&path);
+        assert!(read_flac_blocks(&mut file).expect("read").is_none());
+        let mut file = open(&path);
+        assert!(
+            !try_flac_in_place(&mut file, &VorbisComments::default()).expect("in place"),
+            "a truncated file declines rather than erroring"
+        );
     }
 
     #[test]
