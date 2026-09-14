@@ -59,6 +59,11 @@ const ALBUM_MIN_ANALYSED: i64 = 3;
 /// track.
 const ALBUM_POOL_SIZE: i64 = 60;
 
+/// Album mode: records per primary artist. Lower than
+/// [`PER_ARTIST_CAP`] because a record is already several tracks of
+/// the same artist in a row.
+const ALBUM_PER_ARTIST_CAP: usize = 2;
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Mood {
@@ -254,10 +259,7 @@ async fn mood_radio_by_album(pool: &SqlitePool, f: &MoodFilter) -> AppResult<Vec
         .into_iter()
         .filter(|row| {
             let count = per_artist.entry(row.primary_artist).or_insert(0);
-            // Two records rather than the four tracks the track-based
-            // cap allows: a record is already several tracks of the
-            // same artist in a row.
-            if *count >= 2 {
+            if *count >= ALBUM_PER_ARTIST_CAP {
                 return false;
             }
             *count += 1;

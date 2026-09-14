@@ -145,6 +145,30 @@ impl ShuffleMode {
         self != Self::Off
     }
 
+    /// The form the decoder thread reads, out of a plain integer
+    /// atomic. Nothing but
+    /// [`SharedPlayback`](crate::audio::state::SharedPlayback) should
+    /// care what number a mode is.
+    pub fn as_bits(self) -> u8 {
+        match self {
+            Self::Off => 0,
+            Self::Tracks => 1,
+            Self::Albums => 2,
+        }
+    }
+
+    /// Inverse of [`Self::as_bits`], total on purpose: an unknown
+    /// number means the atomic was written by code this build does not
+    /// have, and `Off` is a better answer than a panic on the audio
+    /// path.
+    pub fn from_bits(bits: u8) -> Self {
+        match bits {
+            1 => Self::Tracks,
+            2 => Self::Albums,
+            _ => Self::Off,
+        }
+    }
+
     /// The grouping half, as persisted. `Off` has none — turning
     /// shuffle off is not a third way of grouping, it is the absence
     /// of grouping, and the flavour the listener picked is kept so it
@@ -1523,9 +1547,14 @@ async fn write_queue_order(
         i64,
         std::collections::VecDeque<(String, Option<i64>)>,
     > = std::collections::HashMap::new();
+    //
+    // Read *inside* the transaction that rewrites them, so the rows
+    // put back describe the queue being replaced rather than one that
+    // changed in between.
+    let mut tx = pool.begin().await?;
     let existing: Vec<(i64, String, Option<i64>)> =
         sqlx::query_as("SELECT track_id, source_type, source_id FROM queue_item ORDER BY position")
-            .fetch_all(pool)
+            .fetch_all(&mut *tx)
             .await?;
     for (track_id, source_type, source_id) in existing {
         sources
@@ -1534,7 +1563,6 @@ async fn write_queue_order(
             .push_back((source_type, source_id));
     }
 
-    let mut tx = pool.begin().await?;
     sqlx::query("DELETE FROM queue_item")
         .execute(&mut *tx)
         .await?;

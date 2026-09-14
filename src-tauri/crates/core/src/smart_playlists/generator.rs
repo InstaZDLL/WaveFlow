@@ -524,9 +524,14 @@ pub(super) async fn first_track_artwork_paths(
 /// by the bucket's artists whose measured tracks mostly sit inside the
 /// bucket's tempo window.
 ///
-/// `track_count` counts every playable track on the record, analysed
-/// or not, because that is what will actually be queued — the fit
-/// fraction is measured over the analysed ones alone.
+/// **The artists pick the records, and stop there.** Once an album is
+/// a candidate, `track_count` and the tempo fit are measured over
+/// *every* playable track on it, including the ones by other artists —
+/// because that is what [`tracks_in_album_order`] will queue. Pushing
+/// the artist filter down into the aggregates instead made a
+/// compilation count two tracks and contribute twenty, and decided its
+/// tempo from whichever two those were. Hence the subquery: it selects
+/// albums without narrowing what is then counted.
 async fn pick_albums_for_artists(
     pool: &SqlitePool,
     artist_ids: &[i64],
@@ -544,11 +549,18 @@ async fn pick_albums_for_artists(
         SELECT t.album_id AS album_id,
                COUNT(*)   AS track_count
           FROM track t
-          JOIN track_artist tar ON tar.track_id = t.id AND tar.position = 0
           LEFT JOIN track_analysis ta ON ta.track_id = t.id
-         WHERE tar.artist_id IN ({placeholders})
-           AND t.is_available = 1
+         WHERE t.is_available = 1
            AND t.album_id IS NOT NULL
+           AND t.album_id IN (
+                 SELECT seed.album_id
+                   FROM track seed
+                   JOIN track_artist tar
+                     ON tar.track_id = seed.id AND tar.position = 0
+                  WHERE tar.artist_id IN ({placeholders})
+                    AND seed.is_available = 1
+                    AND seed.album_id IS NOT NULL
+               )
          GROUP BY t.album_id
         HAVING SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?
            AND SUM(CASE WHEN ta.bpm IS NOT NULL
@@ -556,6 +568,12 @@ async fn pick_albums_for_artists(
                          AND (? IS NULL OR ta.bpm < ?)
                         THEN 1 ELSE 0 END) * 1.0
                / SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?
+         -- Ordered before the cut, because the cut has to fall in the
+         -- same place twice: a Daily Mix that reshuffles itself every
+         -- time the user reopens it is the flicker `shuffle_with_seed`
+         -- exists to prevent, and `LIMIT` without `ORDER BY` picks
+         -- whichever 60 rows SQLite happened to produce.
+         ORDER BY t.album_id
          LIMIT 60
         "#,
     );

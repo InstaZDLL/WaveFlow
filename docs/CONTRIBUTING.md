@@ -21,8 +21,15 @@ audio:
 
 ```bash
 sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
-  libayatana-appindicator3-dev librsvg2-dev libasound2-dev libssl-dev pkg-config
+  libayatana-appindicator3-dev librsvg2-dev libasound2-dev libssl-dev pkg-config \
+  cmake
 ```
+
+`cmake` builds the vendored libopus that ships the Opus decoder — see
+[playback](features/playback.md#opus-581). It is the only build-time
+tool here rather than a library, and the only one the packaged builds
+do not need: the Linux packages repackage a binary rather than
+compiling.
 
 ### Install
 

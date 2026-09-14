@@ -349,7 +349,10 @@ impl OpusDecoder {
             // Whatever the reader already trimmed counts toward the
             // priming, so a mapper that one day starts reporting a
             // discard for Opus does not make us drop it twice.
-            let reported = packet.trim_start.get() as usize;
+            // Bounded by what was actually decoded: a reader that
+            // reports more priming than the packet produced must not
+            // be able to ask for a trim past the end of the buffer.
+            let reported = (packet.trim_start.get() as usize).min(frames);
             let still_owed = (self.pending_discard as usize).saturating_sub(reported);
             let extra = still_owed.min(frames.saturating_sub(reported));
             self.pending_discard = self

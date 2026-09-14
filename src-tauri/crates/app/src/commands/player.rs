@@ -480,14 +480,14 @@ pub(crate) async fn set_shuffle_mode(
     Ok(())
 }
 
-/// Mirror just the grouping, without touching the queue or the
-/// database — for the boot-time and profile-switch restore, where the
-/// persisted state is already the truth.
+/// Mirror just the mode, without touching the queue or the database —
+/// for the boot-time and profile-switch restore, where the persisted
+/// state is already the truth.
 pub(crate) fn publish_shuffle_grouping(engine: &AudioEngine, mode: queue::ShuffleMode) {
-    engine.shared().shuffle_by_album.store(
-        mode == queue::ShuffleMode::Albums,
-        std::sync::atomic::Ordering::Relaxed,
-    );
+    engine
+        .shared()
+        .shuffle_mode_bits
+        .store(mode.as_bits(), std::sync::atomic::Ordering::Relaxed);
 }
 
 /// Emit an empty `player:queue-changed` signal. The frontend uses

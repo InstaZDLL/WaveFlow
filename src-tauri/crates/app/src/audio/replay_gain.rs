@@ -208,7 +208,14 @@ impl TrackGain {
             GainMode::Album => true,
             GainMode::Auto => listening == Listening::ToAnAlbum,
         };
-        let Some(album_gain_db) = self.album_gain_db.filter(|_| wants_album) else {
+        // A non-finite album gain counts as absent rather than as a
+        // choice. Selecting it would hand `effective_gain_db` a pair
+        // it has to throw away — and the fallback it lands on is
+        // `fallback_db`, not this file's perfectly good track gain.
+        let Some(album_gain_db) = self
+            .album_gain_db
+            .filter(|gain| wants_album && gain.is_finite())
+        else {
             return self;
         };
         Self {
