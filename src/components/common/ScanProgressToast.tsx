@@ -62,7 +62,13 @@ export function ScanProgressToast() {
     };
   }, []);
 
-  if (progress == null || dismissed) return null;
+  // Live progress belongs to the task status bar since #601, which
+  // lists every long operation in one place — two bars counting the
+  // same files is exactly the inconsistency that issue was about. What
+  // the bar cannot show is the *outcome*: a row vanishes when its task
+  // ends, and "412 added, 3 errors" is the part worth reading. So this
+  // toast now appears only once the scan is done.
+  if (progress == null || dismissed || !progress.done) return null;
 
   const { current, total, added, updated, skipped, errors, done, current_dir } =
     progress;

@@ -160,6 +160,12 @@ fn read_inner(path: &Path) -> Option<Vec<(String, String)>> {
         FileType::Mpeg => {
             let file = lofty::mpeg::MpegFile::read_from(&mut handle, options).ok()?;
             id3v2_into(file.id3v2(), &mut out);
+            // An MP3 can carry an APEv2 tag beside its ID3v2 one, and
+            // taggers that write custom fields there do exist. Read
+            // second, so a key present in both keeps the ID3v2 value —
+            // `keep` lets the first writer win, and ID3v2 is what every
+            // other reader in WaveFlow looks at.
+            ape_into(file.ape(), &mut out);
         }
         FileType::Aac => {
             let file = lofty::aac::AacFile::read_from(&mut handle, options).ok()?;

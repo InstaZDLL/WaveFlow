@@ -2381,8 +2381,14 @@ function TrackTable({
                 // z-index, so the popover's own `z-50` can't escape its
                 // row's stacking context — bumping the row itself does.
                 zIndex: isMenuOpen ? 20 : undefined,
+                // Inline, like the header's. Since #588 `gridCols` is a
+                // CSS track list built from the layout, not a Tailwind
+                // class -- interpolating it into `className` produced a
+                // garbage class name and every row silently fell back
+                // to a single-column grid.
+                gridTemplateColumns: gridCols,
               }}
-              className={`group grid ${gridCols} gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
+              className={`group grid gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
                 isRowSelected
                   ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"
                   : isCurrent

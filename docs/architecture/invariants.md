@@ -292,6 +292,8 @@ Four rules, each of which is a visible defect when broken:
 - **Cancelling must leave consistent state, and "between two items" is not always enough.** The library scan is the worked example: its missing-file sweep marks everything the walk did not reach as `is_available = 0`, so a scan stopped halfway would mark a working library unavailable *because the user pressed stop*. Its safe point is not between two files — it is **before that pass**, which is why `ScanSummary::cancelled` gates it.
 - **Progress is throttled in the registry, not at the call site.** A scan ticks every 25 files; `tasks:changed` goes out at most every 250 ms, except for start, finish and a counter reaching its total, which are immediate so a finished task never leaves a half-drawn bar on screen.
 
+The scan's own toast now shows only the *outcome* — "412 added, 3 errors" — and leaves live progress to the bar: two surfaces counting the same files is the inconsistency this was written to remove, but a task row vanishes when its task ends, so the summary needs somewhere else to live.
+
 The frontend subscribes to `tasks:changed` **before** calling `list_tasks` — see [Events](#events); Tauri replays nothing to a listener that registered a moment too late.
 
 ---
