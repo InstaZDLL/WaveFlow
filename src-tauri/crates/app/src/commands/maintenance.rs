@@ -3,7 +3,7 @@
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -30,16 +30,19 @@ pub async fn regenerate_thumbnails(
     app: AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> AppResult<u32> {
-    // No cancel callback: the pass runs one directory at a time inside
-    // `spawn_blocking`, so the only reachable stopping point is between
-    // two directories — on most libraries, one or two moments in the
-    // whole run. A button honoured that rarely reads as broken, so the
-    // row shows the work and no button (#601).
+    // Stops between two files. The first version of this registered no
+    // callback on the reasoning that the only stopping point was
+    // between directories — which was wrong: `regen_in_dir` loops over
+    // files, and that loop is where the time goes.
+    let stop = Arc::new(AtomicBool::new(false));
+    let stop_for_cancel = Arc::clone(&stop);
     let _task = crate::tasks::start(
         &app,
         crate::tasks::TaskKind::Thumbnails,
         0,
-        crate::tasks::Cancellation::None,
+        crate::tasks::cancel_fn(move || {
+            stop_for_cancel.store(true, Ordering::Relaxed);
+        }),
     );
     let mut total: u32 = 0;
 
@@ -51,9 +54,11 @@ pub async fn regenerate_thumbnails(
     // stall every other command queued behind it. Run each batch through
     // `spawn_blocking` so the runtime stays responsive.
     let metadata_dir = state.paths.metadata_artwork_dir.clone();
-    let metadata_total = tokio::task::spawn_blocking(move || regen_in_dir(&metadata_dir))
-        .await
-        .map_err(|e| AppError::Other(format!("regen_thumbnails join: {e}")))??;
+    let stop_meta = Arc::clone(&stop);
+    let metadata_total =
+        tokio::task::spawn_blocking(move || regen_in_dir(&metadata_dir, Some(&stop_meta)))
+            .await
+            .map_err(|e| AppError::Other(format!("regen_thumbnails join: {e}")))??;
     total = total.saturating_add(metadata_total);
 
     let profile_ids: Vec<i64> = sqlx::query_scalar("SELECT id FROM profile")
@@ -61,10 +66,17 @@ pub async fn regenerate_thumbnails(
         .await
         .unwrap_or_default();
     for pid in profile_ids {
+        // The inner loop stops at the file it is on; this stops the
+        // outer one from starting the next profile's directory.
+        if stop.load(Ordering::Relaxed) {
+            break;
+        }
         let dir = state.paths.profile_artwork_dir(pid);
-        let profile_total = tokio::task::spawn_blocking(move || regen_in_dir(&dir))
-            .await
-            .map_err(|e| AppError::Other(format!("regen_thumbnails join: {e}")))??;
+        let stop_profile = Arc::clone(&stop);
+        let profile_total =
+            tokio::task::spawn_blocking(move || regen_in_dir(&dir, Some(&stop_profile)))
+                .await
+                .map_err(|e| AppError::Other(format!("regen_thumbnails join: {e}")))??;
         total = total.saturating_add(profile_total);
     }
 
@@ -588,7 +600,7 @@ fn sanitize_filename(name: &str) -> String {
     }
 }
 
-fn regen_in_dir(dir: &Path) -> AppResult<u32> {
+fn regen_in_dir(dir: &Path, stop: Option<&AtomicBool>) -> AppResult<u32> {
     if !dir.exists() {
         return Ok(0);
     }
@@ -599,6 +611,15 @@ fn regen_in_dir(dir: &Path) -> AppResult<u32> {
 
     let mut count: u32 = 0;
     for entry in entries {
+        // Between two files, which is a real stopping point rather than
+        // a theoretical one: the pass decodes and re-encodes each
+        // image, so a large library spends minutes here and every
+        // iteration is an opportunity to let go (#601). Nothing
+        // half-written is left behind — a thumbnail is written whole or
+        // not at all.
+        if stop.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
+            break;
+        }
         let entry = match entry {
             Ok(e) => e,
             Err(err) => {

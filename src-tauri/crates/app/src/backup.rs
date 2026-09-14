@@ -261,16 +261,22 @@ pub async fn run_one_backup(
     std::fs::create_dir_all(&folder)
         .map_err(|e| AppError::Other(format!("create backup folder: {e}")))?;
 
-    // No cancel callback: a backup writes one archive per profile and
-    // the unit of work is a whole archive, so the only honest stopping
-    // point is "after the current profile" — and with one or two
-    // profiles that is the end anyway. The status bar shows it without
-    // a button rather than a button that does nothing (#601).
+    // Stops after the archive it is on. One whole archive is the unit
+    // of work — a half-written `.waveflow` is worse than a slow one —
+    // so on a single-profile install this is the end anyway. It is
+    // still offered: a multi-profile backup of a large library is
+    // exactly the run somebody wants their machine back from, and a
+    // button that stops at the next boundary is honest about that
+    // (#601).
+    let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let stop_for_cancel = std::sync::Arc::clone(&stop);
     let _task = crate::tasks::start(
         handle,
         crate::tasks::TaskKind::Backup,
         0,
-        crate::tasks::Cancellation::None,
+        crate::tasks::cancel_fn(move || {
+            stop_for_cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+        }),
     );
 
     // Active profile gets a WAL checkpoint so the bundled DB captures
@@ -302,6 +308,13 @@ pub async fn run_one_backup(
     let mut bundle_metadata_artwork = config.include_metadata_artwork;
 
     for (profile_id, profile_name) in profiles {
+        // Between two archives, never inside one: a half-written
+        // `.waveflow` looks like a backup and restores like nothing.
+        // The archives already written stay, and they are each complete.
+        if stop.load(std::sync::atomic::Ordering::Relaxed) {
+            tracing::info!("backup stopped by the user between profiles");
+            break;
+        }
         let safe = sanitize_for_filename(&profile_name);
         let target = folder.join(format!("{safe}-{ts}.waveflow"));
 

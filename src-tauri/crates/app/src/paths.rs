@@ -165,7 +165,7 @@ impl AppPaths {
     /// its path relative to that root.
     ///
     /// The app-wide ones only. Per-profile caches are enumerated by
-    /// [`Self::profile_cache_dirs`], because there is no list of profile
+    /// [`Self::profile_cache_dir`], because there is no list of profile
     /// ids at this level.
     ///
     /// Used by the move: copying and verifying walk the same list the

@@ -639,11 +639,17 @@ pub(crate) fn library_track_order_clause(
 
     // The library's natural reading order, and the answer for any key
     // that is not a sortable column.
+    // `source, id` here too, for the reason the explicit clauses carry
+    // it: this is the order most lists are rendered in, so it is the one
+    // where a pair of rows swapping places between two refreshes would
+    // be seen most often.
     const DEFAULT: &str = "ORDER BY sort_artist COLLATE NOCASE,
                   sort_album COLLATE NOCASE,
                   disc_number,
                   track_number,
-                  title COLLATE NOCASE";
+                  title COLLATE NOCASE,
+                  source,
+                  id";
 
     let Some((expr, nulls_last)) = order_by.and_then(track_sort_expr) else {
         return DEFAULT.to_string();

@@ -261,7 +261,13 @@ pub async fn resolve_cache_root(
     if configured == paths.root {
         return (paths, None);
     }
-    match is_usable(&configured).and_then(|()| claim(&configured)) {
+    match is_usable(&configured).and_then(|()| {
+        if configured == paths.root {
+            Ok(())
+        } else {
+            claim(&configured)
+        }
+    }) {
         Ok(()) => (paths.with_cache_root(configured), None),
         Err(reason) => {
             tracing::warn!(
@@ -571,7 +577,15 @@ pub async fn set_cache_location(
     // holds one of the layout's names and was not made by us is refused
     // outright, because adopting it would put a later reset in a
     // position to delete what is there.
-    claim(&target).map_err(AppError::Other)?;
+    //
+    // Except the app-data root, which WaveFlow owns by construction and
+    // where no marker is written — the same exception `owned_for_removal`
+    // makes. Without it, "back to default" is *refused*: that root does
+    // hold a `profiles/` directory, and it has no marker to explain
+    // itself.
+    if target != paths.root {
+        claim(&target).map_err(AppError::Other)?;
+    }
     if is_within(&target, &paths.cache_root) {
         return Err(AppError::Other(format!(
             "{} is inside the folder being moved",

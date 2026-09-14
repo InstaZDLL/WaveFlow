@@ -318,6 +318,12 @@ pub async fn run_analyze_library(
             ANALYSIS_CANCEL.store(true, Ordering::SeqCst);
         }),
     );
+    if let Some(task) = task.as_ref() {
+        // Paints the bar at 0 / N straight away rather than leaving it
+        // blank until the first track is decoded, which on a cold cache
+        // is several seconds.
+        task.progress(0, total as u64);
+    }
     let mut processed = 0u32;
     let mut failed = 0u32;
     let mut cancelled = false;

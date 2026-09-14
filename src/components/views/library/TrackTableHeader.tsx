@@ -75,6 +75,16 @@ export function TrackTableHeader({
     null,
   );
 
+  /** The column's width on screen right now.
+   *
+   *  A drag has to start from what the user sees, not from the spec's
+   *  default: the title column is flexible, so its rendered width is
+   *  whatever the grid gave it — starting the drag at 280px makes it
+   *  jump the moment the pointer moves. Falls back to the declared
+   *  width when the element cannot be measured. */
+  const startWidthFor = (element: Element | null, fallback: number) =>
+    element?.parentElement?.getBoundingClientRect().width ?? fallback;
+
   const onPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>, id: ColumnId, width: number) => {
       // Left button only: a right-click on a handle is a context menu,
@@ -82,7 +92,11 @@ export function TrackTableHeader({
       if (event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();
-      drag.current = { id, startX: event.clientX, startWidth: width };
+      drag.current = {
+        id,
+        startX: event.clientX,
+        startWidth: startWidthFor(event.currentTarget, width),
+      };
       // Captured on the handle, so the pointer can leave the element —
       // which it does immediately, since the column is growing out from
       // under it.
@@ -119,14 +133,17 @@ export function TrackTableHeader({
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>, id: ColumnId, width: number) => {
       const spec = specFor(id);
+      // Same reason as the drag: an arrow key on a flexible column has
+      // to move from where it is, not from where its default says.
+      const from = startWidthFor(event.currentTarget, width);
       const step = event.shiftKey ? KEY_STEP_LARGE : KEY_STEP;
       let next: number;
       switch (event.key) {
         case "ArrowLeft":
-          next = width - step;
+          next = from - step;
           break;
         case "ArrowRight":
-          next = width + step;
+          next = from + step;
           break;
         case "Home":
           // The keyboard's equivalent of the double-click. `Home`

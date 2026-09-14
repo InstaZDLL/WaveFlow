@@ -48,6 +48,43 @@ use lofty::tag::SplitTag;
 const MAX_KEY: usize = 64;
 const MAX_VALUE: usize = 512;
 
+/// `ItemKey`s WaveFlow already stores in `track`, `album` or `artist`.
+///
+/// These have their own columns and their own UI, so a `tag:` column
+/// for one of them would be a second, stale copy of something the
+/// library models properly. Everything else lofty *can* map is fair
+/// game — and that is where the issue's own headline example lives:
+/// `Composer` has an `ItemKey`, so it never reaches the remainder, and
+/// a version of this that only read the remainder missed the one field
+/// the issue opens with.
+fn is_modelled(key: lofty::tag::ItemKey) -> bool {
+    use lofty::tag::ItemKey as K;
+    matches!(
+        key,
+        K::TrackTitle
+            | K::TrackArtist
+            | K::TrackArtists
+            | K::AlbumTitle
+            | K::AlbumArtist
+            | K::TrackNumber
+            | K::TrackTotal
+            | K::DiscNumber
+            | K::DiscTotal
+            | K::Genre
+            | K::Year
+            | K::RecordingDate
+            | K::ReleaseDate
+            | K::Popularimeter
+            | K::InitialKey
+            | K::FlagCompilation
+            | K::Lyrics
+            | K::ReplayGainTrackGain
+            | K::ReplayGainTrackPeak
+            | K::ReplayGainAlbumGain
+            | K::ReplayGainAlbumPeak
+    )
+}
+
 /// Keys we never store, because WaveFlow already owns the value and a
 /// column for it would show a stale copy of something the library
 /// models properly.
@@ -174,11 +211,42 @@ fn read_inner(path: &Path) -> Option<Vec<(String, String)>> {
     Some(out)
 }
 
+/// The half of a split that lofty *could* map, minus what WaveFlow
+/// already stores.
+///
+/// Composer, Comment, Publisher, ISRC, Lyricist, Conductor, Mood,
+/// Barcode, CatalogNumber — all of these have an `ItemKey`, so none of
+/// them lands in the remainder, and none of them has a column of its
+/// own in WaveFlow. They are exactly the fields somebody organises a
+/// library around, which is what this feature is for.
+///
+/// Named through `map_key(TagType::VorbisComments)` so the same field
+/// reads as the same key whatever container it came from — `COMPOSER`
+/// for a FLAC and for an MP3 alike, rather than `COMPOSER` and `TCOM`
+/// being offered as two different columns.
+fn generic_into(tag: &lofty::tag::Tag, out: &mut Vec<(String, String)>) {
+    use lofty::tag::{ItemValue, TagType};
+    for item in tag.items() {
+        if is_modelled(item.key()) {
+            continue;
+        }
+        let ItemValue::Text(value) = item.value() else {
+            continue;
+        };
+        let Some(name) = item.key().map_key(TagType::VorbisComments) else {
+            continue;
+        };
+        keep(out, name, value);
+    }
+}
+
 fn id3v2_into(tag: Option<&lofty::id3::v2::Id3v2Tag>, out: &mut Vec<(String, String)>) {
     let Some(tag) = tag else { return };
-    // The remainder of the split: what lofty could not map onto an
-    // `ItemKey`, which is exactly the definition of a custom tag here.
-    let (remainder, _) = tag.clone().split_tag();
+    // Both halves of the split: the remainder holds what lofty could
+    // not map at all, the generic half holds what it mapped onto a key
+    // WaveFlow has no column for.
+    let (remainder, generic) = tag.clone().split_tag();
+    generic_into(&generic, out);
     // `SplitTagRemainder` derefs to the concrete tag, which is what
     // carries the iterator.
     for frame in &*remainder {
@@ -190,7 +258,8 @@ fn id3v2_into(tag: Option<&lofty::id3::v2::Id3v2Tag>, out: &mut Vec<(String, Str
 
 fn vorbis_into(tag: Option<&lofty::ogg::tag::VorbisComments>, out: &mut Vec<(String, String)>) {
     let Some(tag) = tag else { return };
-    let (remainder, _) = tag.clone().split_tag();
+    let (remainder, generic) = tag.clone().split_tag();
+    generic_into(&generic, out);
     for (key, value) in remainder.items() {
         // Vorbis comment names are case-insensitive by spec, so
         // `SOURCE` and `source` are one field — and a file written by
@@ -204,7 +273,8 @@ fn vorbis_into(tag: Option<&lofty::ogg::tag::VorbisComments>, out: &mut Vec<(Str
 
 fn ilst_into(tag: Option<&lofty::mp4::Ilst>, out: &mut Vec<(String, String)>) {
     let Some(tag) = tag else { return };
-    let (remainder, _) = tag.clone().split_tag();
+    let (remainder, generic) = tag.clone().split_tag();
+    generic_into(&generic, out);
     for atom in &*remainder {
         // Only the freeform atoms carry a name a user would recognise;
         // a four-character code like `©too` is an encoder string, not a
@@ -223,7 +293,8 @@ fn ilst_into(tag: Option<&lofty::mp4::Ilst>, out: &mut Vec<(String, String)>) {
 
 fn ape_into(tag: Option<&lofty::ape::ApeTag>, out: &mut Vec<(String, String)>) {
     let Some(tag) = tag else { return };
-    let (remainder, _) = tag.clone().split_tag();
+    let (remainder, generic) = tag.clone().split_tag();
+    generic_into(&generic, out);
     for item in &*remainder {
         if let lofty::tag::ItemValue::Text(value) = item.value() {
             keep(out, item.key(), value);

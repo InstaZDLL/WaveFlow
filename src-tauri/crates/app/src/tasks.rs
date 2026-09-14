@@ -116,16 +116,19 @@ type CancelFn = Arc<dyn Fn() + Send + Sync>;
 
 /// How a task can be stopped.
 ///
-/// Three cases and not two, because the middle one is real and the
-/// first version of this got it wrong: the library scan has no
-/// mechanism of its own and polls the registry's own flag, so it was
-/// registered with no callback — and [`TaskRegistry::cancel`] returns
-/// early when there is no callback, so the flag was never set and the
-/// button never appeared. Naming the case makes that unrepresentable.
+/// Two cases, and the distinction is not cosmetic: the first version of
+/// this had only "a callback or nothing", and the library scan — whose
+/// mechanism *is* the registry's own flag — was registered with
+/// nothing. [`TaskRegistry::cancel`] returns early when there is no
+/// callback, so the flag was never set and the stop button never
+/// appeared at all.
+///
+/// Every long operation in the app turned out to have an honest
+/// stopping point once each was looked at, down to the thumbnail pass,
+/// which stops between two files. If one ever genuinely has none, a
+/// third variant belongs here — and the status bar already renders a
+/// row with no button when `cancellable` is false.
 pub enum Cancellation {
-    /// No honest stopping point. The status bar shows no button rather
-    /// than one that does nothing.
-    None,
     /// The task polls [`TaskHandle::is_cancelling`]. Used by work that
     /// had no `cancel_*` command of its own.
     Flag,
@@ -153,7 +156,11 @@ impl TaskEntry {
             detail: self.detail.clone(),
             current: self.current,
             total: self.total,
-            cancellable: !matches!(self.cancel, Cancellation::None),
+            // Always true today: every long operation turned out to
+            // have an honest stopping point. Kept on the wire because
+            // the frontend renders a row with no button when it is
+            // false, which is what a future task without one needs.
+            cancellable: true,
             cancelling: self.cancelling,
         }
     }
@@ -173,6 +180,15 @@ struct Inner {
 /// The registry itself. Managed by Tauri and cloned freely.
 pub struct TaskRegistry {
     inner: Mutex<Inner>,
+    /// Held across "take a snapshot, then emit it".
+    ///
+    /// Without it two threads can snapshot in one order and emit in the
+    /// other, so the status bar settles on the *older* list — a task
+    /// that has finished stays on screen with a cancel button that does
+    /// nothing. A second lock rather than widening `inner`, because
+    /// `emit` is arbitrary runtime code and holding the state lock
+    /// across it is how a deadlock gets built.
+    emit: Mutex<()>,
     next_id: AtomicU64,
     app: AppHandle,
 }
@@ -181,6 +197,7 @@ impl TaskRegistry {
     pub fn new(app: AppHandle) -> Arc<Self> {
         Arc::new(Self {
             inner: Mutex::new(Inner::default()),
+            emit: Mutex::new(()),
             next_id: AtomicU64::new(1),
             app,
         })
@@ -241,7 +258,6 @@ impl TaskRegistry {
                 return false;
             }
             let callback = match &entry.cancel {
-                Cancellation::None => return false,
                 // The flag *is* the mechanism: setting `cancelling`
                 // below is the whole of it, and the task sees it on its
                 // next poll.
@@ -270,6 +286,7 @@ impl TaskRegistry {
     }
 
     fn emit_now(&self) {
+        let _order = self.emit.lock().unwrap_or_else(|e| e.into_inner());
         {
             let mut inner = self.lock();
             inner.last_emit = Some(Instant::now());
@@ -279,6 +296,7 @@ impl TaskRegistry {
 
     /// Emit unless one went out very recently. Progress only.
     fn emit_throttled(&self) {
+        let _order = self.emit.lock().unwrap_or_else(|e| e.into_inner());
         {
             let mut inner = self.lock();
             if inner
@@ -412,7 +430,7 @@ mod tests {
                     detail: None,
                     current: 0,
                     total: 0,
-                    cancel: Cancellation::None,
+                    cancel: Cancellation::Flag,
                     cancelling: false,
                 },
             );

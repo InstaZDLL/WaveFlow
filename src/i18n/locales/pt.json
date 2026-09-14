@@ -524,7 +524,7 @@
           "help": "O álbum não tem imagem."
         },
         "untaggable": {
-          "label": "Formato não editável",
+          "label": "Etiquetas não editáveis",
           "help": "As etiquetas destes ficheiros não podem ser reescritas."
         },
         "album_year_conflict": {

@@ -310,15 +310,25 @@ pub async fn delete_profile(state: tauri::State<'_, AppState>, profile_id: i64) 
     let cache_dir = state.paths.profile_cache_dir(profile_id);
     if cache_dir != state.paths.profile_dir(profile_id) && cache_dir.exists() {
         let for_blocking = cache_dir.clone();
-        if let Err(err) =
-            tokio::task::spawn_blocking(move || std::fs::remove_dir_all(&for_blocking)).await
-        {
-            tracing::warn!(
+        // Both failures, not only the join: the inner `io::Error` is the
+        // one that actually happens (a file held open, a permission),
+        // and swallowing it would leave the directory behind with
+        // nothing in the log to say why.
+        match tokio::task::spawn_blocking(move || std::fs::remove_dir_all(&for_blocking)).await {
+            Ok(Ok(())) => {}
+            Ok(Err(err)) if err.kind() == std::io::ErrorKind::NotFound => {}
+            Ok(Err(err)) => tracing::warn!(
                 profile_id,
                 path = %cache_dir.display(),
                 %err,
                 "removing the profile's relocated cache directory failed"
-            );
+            ),
+            Err(join_err) => tracing::warn!(
+                profile_id,
+                path = %cache_dir.display(),
+                %join_err,
+                "relocated-cache removal task failed; the directory may be partially removed"
+            ),
         }
     }
 
