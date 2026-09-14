@@ -757,7 +757,11 @@ pub async fn player_get_state(
             // come: a profile that starts up with album shuffle on
             // would otherwise get track gain until something touched
             // the setting.
-            publish_shuffle_grouping(&engine, queue::read_shuffle_mode(&pool).await);
+            // The value this call already resolved for the snapshot,
+            // not a second read of the same row: the mirror and what
+            // the UI is told must describe one state, and two reads
+            // could straddle a change.
+            publish_shuffle_grouping(&engine, shuffle);
             // Gapless defaults to ON, so only override the boot-time
             // default when an explicit `false` row is found.
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
