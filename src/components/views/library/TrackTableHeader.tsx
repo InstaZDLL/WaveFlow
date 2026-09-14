@@ -1,11 +1,17 @@
 import { useCallback, useRef } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import {
+  MAX_COLUMN_WIDTH,
   specFor,
   tagKeyOf,
   type ColumnId,
   type ColumnLayout,
 } from "../../../lib/trackColumns";
+
+/** How much one arrow key moves a column edge. `Shift` multiplies it,
+ *  which is the convention every slider in the app already uses. */
+const KEY_STEP = 8;
+const KEY_STEP_LARGE = 48;
 
 /** The narrow slice of `t` this file needs. Mirrors the local alias in
  *  `LibraryView`, which is where this header is rendered from: importing
@@ -46,6 +52,11 @@ interface TrackTableHeaderProps {
  *   it means nothing, and that goes double for a column the user chose
  *   themselves out of their own file tags. `top-16` because the TopBar
  *   is `sticky top-0 h-16` and owns the space above.
+ * - **The handle is reachable from the keyboard.** A drag is not an
+ *   interaction everyone can perform, and a column that can only be
+ *   widened with a pointer is a column some users cannot read. Arrow
+ *   keys move the edge, `Home` fits it to its content — the same thing
+ *   a double-click does.
  */
 export function TrackTableHeader({
   layout,
@@ -85,9 +96,9 @@ export function TrackTableHeader({
       const current = drag.current;
       if (!current) return;
       const spec = specFor(current.id);
-      const next = Math.max(
-        spec.minWidth,
-        current.startWidth + (event.clientX - current.startX),
+      const next = Math.min(
+        MAX_COLUMN_WIDTH,
+        Math.max(spec.minWidth, current.startWidth + (event.clientX - current.startX)),
       );
       onResize(current.id, next);
     },
@@ -103,6 +114,39 @@ export function TrackTableHeader({
       }
     },
     [],
+  );
+
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>, id: ColumnId, width: number) => {
+      const spec = specFor(id);
+      const step = event.shiftKey ? KEY_STEP_LARGE : KEY_STEP;
+      let next: number;
+      switch (event.key) {
+        case "ArrowLeft":
+          next = width - step;
+          break;
+        case "ArrowRight":
+          next = width + step;
+          break;
+        case "Home":
+          // The keyboard's equivalent of the double-click. `Home`
+          // rather than `Enter`, which a screen reader sends to
+          // activate and would then mean two different things.
+          event.preventDefault();
+          onFit(id);
+          return;
+        default:
+          return;
+      }
+      // Only once a key is actually handled: leaving this at the top
+      // would swallow Tab and trap focus on the handle.
+      event.preventDefault();
+      onResize(
+        id,
+        Math.min(MAX_COLUMN_WIDTH, Math.max(spec.minWidth, next)),
+      );
+    },
+    [onFit, onResize],
   );
 
   return (
@@ -173,6 +217,11 @@ export function TrackTableHeader({
               role="separator"
               aria-orientation="vertical"
               aria-label={t("library.columns.resize", { column: label })}
+              tabIndex={0}
+              aria-valuenow={width}
+              aria-valuemin={spec.minWidth}
+              aria-valuemax={MAX_COLUMN_WIDTH}
+              onKeyDown={(event) => onKeyDown(event, id, width)}
               onPointerDown={(event) => onPointerDown(event, id, width)}
               onPointerMove={onPointerMove}
               onPointerUp={endDrag}
@@ -182,7 +231,7 @@ export function TrackTableHeader({
                 event.stopPropagation();
                 onFit(id);
               }}
-              className="absolute -right-2 top-0 bottom-0 w-3 cursor-col-resize touch-none after:content-[''] after:absolute after:inset-y-1 after:left-1/2 after:w-px after:bg-transparent hover:after:bg-emerald-500"
+              className="absolute -right-2 top-0 bottom-0 w-3 cursor-col-resize touch-none focus:outline-none focus-visible:after:bg-emerald-500 after:content-[''] after:absolute after:inset-y-1 after:left-1/2 after:w-px after:bg-transparent hover:after:bg-emerald-500"
             />
           </div>
         );

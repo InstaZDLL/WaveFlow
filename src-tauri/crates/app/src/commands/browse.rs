@@ -668,6 +668,14 @@ pub(crate) fn library_track_order_clause(
         Some("title") => {}
         _ => clause.push_str(", title COLLATE NOCASE"),
     }
+    // ...and then a **total** order. Two tracks of the same album with
+    // the same disc and track number, or two files with the same title,
+    // are ordinary in a library with duplicates -- which is precisely
+    // the library whose owner is most likely to be sorting a column to
+    // find them. `source` before `id` because the two halves of the
+    // union number independently: a local rowid and a server UUID can
+    // read as equal text.
+    clause.push_str(", source, id");
     clause
 }
 

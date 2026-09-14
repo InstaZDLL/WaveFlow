@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { Loader2, X, ChevronDown, ChevronUp } from "lucide-react";
+import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import {
   listTasks,
   cancelTask,
@@ -42,14 +43,22 @@ export function TaskStatusBar() {
   useEffect(() => {
     let cancelled = false;
     let unlisten: UnlistenFn | null = null;
+    // Subscribing first closes one window and opens another: an event
+    // can now land *while* `listTasks` is in flight, and the snapshot
+    // that comes back describes an older moment. Applying it would
+    // resurrect a task that has just finished, with a cancel button
+    // that does nothing. So the snapshot only paints if nothing newer
+    // arrived first.
+    let eventSeen = false;
     (async () => {
       try {
         // Order matters — see the component docs.
         unlisten = await listen<TaskSnapshot[]>(TASKS_CHANGED, (event) => {
+          eventSeen = true;
           if (!cancelled) setTasks(event.payload);
         });
         const initial = await listTasks();
-        if (!cancelled) setTasks(initial);
+        if (!cancelled && !eventSeen) setTasks(initial);
       } catch (err) {
         console.warn("[TaskStatusBar] subscribe failed", err);
       }
@@ -108,6 +117,10 @@ function TaskRow({
   onStop: (id: number) => void;
 }) {
   const { t } = useTranslation();
+  // Both indicators here are ambient, continuous motion — the kind
+  // `prefers-reduced-motion` exists for. The counter and the bar still
+  // say everything the animation was decorating.
+  const reducedMotion = usePrefersReducedMotion();
   // `0` is the wire's way of saying "no idea how much there is" — a
   // mirror walk does not know its page count until the server answers.
   const determinate = task.total > 0;
@@ -123,7 +136,7 @@ function TaskRow({
     <div className="flex items-center gap-3">
       <Loader2
         size={14}
-        className="shrink-0 animate-spin text-emerald-500"
+        className={`shrink-0 text-emerald-500 ${reducedMotion ? "" : "animate-spin"}`}
         aria-hidden="true"
       />
       <div className="min-w-0 flex-1">
@@ -157,7 +170,9 @@ function TaskRow({
             className={
               determinate
                 ? "h-full bg-emerald-500 transition-[width] duration-300"
-                : "h-full w-1/3 bg-emerald-500 animate-pulse"
+                : `h-full w-1/3 bg-emerald-500 ${
+                    reducedMotion ? "opacity-70" : "animate-pulse"
+                  }`
             }
             style={determinate ? { width: `${percent}%` } : undefined}
           />

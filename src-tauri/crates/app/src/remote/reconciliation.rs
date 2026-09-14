@@ -529,9 +529,13 @@ fn hash_local_tracks(
             if let Some(app) = app {
                 let processed = hashed.len() + unreadable;
                 let _ = app.emit("reconcile:progress", ReconcileProgress { processed, total });
-                if let Some(task) = task {
-                    task.progress(processed as u64, total as u64);
-                }
+            }
+            // Outside the `app` guard: the status bar is fed by the
+            // registry, not by the event, so a run with no `AppHandle`
+            // (the test path) must not be the only thing deciding
+            // whether progress moves.
+            if let Some(task) = task {
+                task.progress((hashed.len() + unreadable) as u64, total as u64);
             }
             continue;
         }
@@ -553,6 +557,12 @@ fn hash_local_tracks(
         if let Some(app) = app {
             let processed = hashed.len() + unreadable;
             let _ = app.emit("reconcile:progress", ReconcileProgress { processed, total });
+        }
+        // The branch above returns early on a cached digest, so this is
+        // the other half — the freshly hashed files, which are the slow
+        // ones and therefore the ones the user is watching.
+        if let Some(task) = task {
+            task.progress((hashed.len() + unreadable) as u64, total as u64);
         }
     }
     // A cancel arriving while the LAST file hashes would never be seen by the

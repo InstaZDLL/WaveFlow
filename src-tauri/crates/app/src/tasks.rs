@@ -114,12 +114,34 @@ pub struct TaskSnapshot {
 
 type CancelFn = Arc<dyn Fn() + Send + Sync>;
 
+/// How a task can be stopped.
+///
+/// Three cases and not two, because the middle one is real and the
+/// first version of this got it wrong: the library scan has no
+/// mechanism of its own and polls the registry's own flag, so it was
+/// registered with no callback — and [`TaskRegistry::cancel`] returns
+/// early when there is no callback, so the flag was never set and the
+/// button never appeared. Naming the case makes that unrepresentable.
+pub enum Cancellation {
+    /// No honest stopping point. The status bar shows no button rather
+    /// than one that does nothing.
+    None,
+    /// The task polls [`TaskHandle::is_cancelling`]. Used by work that
+    /// had no `cancel_*` command of its own.
+    Flag,
+    /// The task's existing stopping mechanism. The registry calls it
+    /// and nothing else — a reconciliation may only stop between
+    /// batches, a mirror walk between albums, an upload after the
+    /// current track, and those rules stay where they are defined.
+    Callback(CancelFn),
+}
+
 struct TaskEntry {
     kind: TaskKind,
     detail: Option<String>,
     current: u64,
     total: u64,
-    cancel: Option<CancelFn>,
+    cancel: Cancellation,
     cancelling: bool,
 }
 
@@ -131,7 +153,7 @@ impl TaskEntry {
             detail: self.detail.clone(),
             current: self.current,
             total: self.total,
-            cancellable: self.cancel.is_some(),
+            cancellable: !matches!(self.cancel, Cancellation::None),
             cancelling: self.cancelling,
         }
     }
@@ -170,16 +192,8 @@ impl TaskRegistry {
     /// honest answer for a mirror walk whose page count is unknown
     /// until the server has been asked.
     ///
-    /// `cancel` is the task's own stopping mechanism — usually the
-    /// existing `cancel_*` function. `None` marks the task as one that
-    /// cannot be interrupted, and the status bar then shows no button
-    /// rather than one that does nothing.
-    pub fn start(
-        self: &Arc<Self>,
-        kind: TaskKind,
-        total: u64,
-        cancel: Option<CancelFn>,
-    ) -> TaskHandle {
+    /// `cancel` says how this task stops — see [`Cancellation`].
+    pub fn start(self: &Arc<Self>, kind: TaskKind, total: u64, cancel: Cancellation) -> TaskHandle {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         {
             let mut inner = self.lock();
@@ -226,8 +240,13 @@ impl TaskRegistry {
             if entry.cancelling {
                 return false;
             }
-            let Some(callback) = entry.cancel.clone() else {
-                return false;
+            let callback = match &entry.cancel {
+                Cancellation::None => return false,
+                // The flag *is* the mechanism: setting `cancelling`
+                // below is the whole of it, and the task sees it on its
+                // next poll.
+                Cancellation::Flag => None,
+                Cancellation::Callback(f) => Some(Arc::clone(f)),
             };
             entry.cancelling = true;
             callback
@@ -235,7 +254,9 @@ impl TaskRegistry {
         // Outside the lock: a callback flips an atomic today, but
         // holding the registry's mutex across arbitrary user code is
         // how a deadlock gets built one honest refactor at a time.
-        callback();
+        if let Some(callback) = callback {
+            callback();
+        }
         self.emit_now();
         true
     }
@@ -352,21 +373,21 @@ pub fn start(
     app: &AppHandle,
     kind: TaskKind,
     total: u64,
-    cancel: Option<CancelFn>,
+    cancel: Cancellation,
 ) -> Option<TaskHandle> {
     use tauri::Manager;
     app.try_state::<Arc<TaskRegistry>>()
         .map(|registry| registry.inner().start(kind, total, cancel))
 }
 
-/// Wrap a plain `fn()` stopping function into the registry's callback
-/// shape. Exists so a call site reads `cancel_fn(cancel_lyrics_prefetch)`
-/// instead of a turbofished `Arc::new`.
-pub fn cancel_fn<F>(f: F) -> Option<CancelFn>
+/// Wrap a plain `fn()` stopping function into a [`Cancellation`].
+/// Exists so a call site reads `cancel_fn(request_cancel)` rather than
+/// a turbofished `Arc::new`.
+pub fn cancel_fn<F>(f: F) -> Cancellation
 where
     F: Fn() + Send + Sync + 'static,
 {
-    Some(Arc::new(f))
+    Cancellation::Callback(Arc::new(f))
 }
 
 #[cfg(test)]
@@ -391,7 +412,7 @@ mod tests {
                     detail: None,
                     current: 0,
                     total: 0,
-                    cancel: None,
+                    cancel: Cancellation::None,
                     cancelling: false,
                 },
             );

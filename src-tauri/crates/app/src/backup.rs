@@ -266,7 +266,12 @@ pub async fn run_one_backup(
     // point is "after the current profile" — and with one or two
     // profiles that is the end anyway. The status bar shows it without
     // a button rather than a button that does nothing (#601).
-    let _task = crate::tasks::start(handle, crate::tasks::TaskKind::Backup, 0, None);
+    let _task = crate::tasks::start(
+        handle,
+        crate::tasks::TaskKind::Backup,
+        0,
+        crate::tasks::Cancellation::None,
+    );
 
     // Active profile gets a WAL checkpoint so the bundled DB captures
     // every committed page. Inactive profiles are cold on disk — their

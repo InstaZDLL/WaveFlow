@@ -255,9 +255,13 @@ pub struct ExtractedFile {
     pub replay_gain: super::replay_gain::ReplayGainTags,
     /// Tags the file carries that the generic `Tag` cannot model, as
     /// `(key, value)` sorted by key (#588). Read from the concrete
-    /// container by [`super::extra_tags`]; empty for a format that has
-    /// no notion of one, and for any file whose second parse failed.
-    pub extra_tags: Vec<(String, String)>,
+    /// container by [`super::extra_tags`].
+    ///
+    /// `None` means the second parse could not read them — which is not
+    /// the same as the file having none, and the scanner must not treat
+    /// it as such: the write is delete-then-insert, so a failed read
+    /// folded into "no tags" would erase what is stored.
+    pub extra_tags: Option<Vec<(String, String)>>,
 }
 
 pub struct ExtractedCover {

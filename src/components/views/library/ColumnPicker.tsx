@@ -55,6 +55,22 @@ export function ColumnPicker({
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
+    // The popover is `fixed` and anchored to where the button was when
+    // it opened. Scrolling the page or resizing the window moves the
+    // button and leaves the popover behind, floating over unrelated
+    // content. Closing is the honest answer -- re-anchoring on every
+    // scroll frame would have it chase the button up the page, which is
+    // worse. `capture` so a scroll inside any container is seen, and
+    // the popover's own scrolling is excluded by the target check.
+    const onReflow = (event: Event) => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest?.("[data-column-picker]")
+      ) {
+        return;
+      }
+      setOpen(false);
+    };
     const onClick = (event: MouseEvent) => {
       if (!(event.target instanceof Node)) return;
       if (buttonRef.current?.contains(event.target)) return;
@@ -66,9 +82,13 @@ export function ColumnPicker({
     };
     document.addEventListener("keydown", onKey);
     document.addEventListener("mousedown", onClick);
+    document.addEventListener("scroll", onReflow, true);
+    window.addEventListener("resize", onReflow);
     return () => {
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("scroll", onReflow, true);
+      window.removeEventListener("resize", onReflow);
     };
   }, [open]);
 

@@ -285,8 +285,11 @@ pub async fn inventory_tracks(
     order_by: Option<String>,
     direction: Option<String>,
 ) -> AppResult<ListLibraryTracksResponse> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    // One snapshot rather than two resolutions: taken separately, a
+    // profile switch landing between them hands this query profile A's
+    // pool and profile B's artwork directory, and every cover path in
+    // the answer points at the wrong profile.
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     let order_clause = library_track_order_clause(order_by.as_deref(), direction.as_deref());
 

@@ -95,12 +95,16 @@ fn keep(out: &mut Vec<(String, String)>, key: &str, value: &str) {
 
 /// Read the custom tags of one file.
 ///
-/// Returns an empty vector for a container we do not handle, for a file
-/// with no tag, and for any parse failure: this feeds an optional set of
-/// columns, and a file whose custom frames cannot be read is still a
-/// perfectly good track.
-pub fn read_extra_tags(path: &Path) -> Vec<(String, String)> {
-    read_inner(path).unwrap_or_default()
+/// `None` means **could not read** — an unsupported container, a parse
+/// failure, a file that vanished. `Some(vec![])` means read, and there
+/// were none.
+///
+/// The distinction is not pedantry: the scanner writes these by
+/// delete-then-insert, so folding a failure into "no tags" would erase
+/// a track's existing tags every time a file happened to be locked by
+/// another process for the length of one parse.
+pub fn read_extra_tags(path: &Path) -> Option<Vec<(String, String)>> {
+    read_inner(path)
 }
 
 fn read_inner(path: &Path) -> Option<Vec<(String, String)>> {
@@ -276,7 +280,9 @@ mod tests {
     /// An unreadable or unsupported file is a track with no custom
     /// tags, never an error: this feeds an optional column set.
     #[test]
-    fn an_unreadable_file_yields_nothing() {
-        assert!(read_extra_tags(Path::new("no-such-file.flac")).is_empty());
+    fn an_unreadable_file_is_none_not_empty() {
+        // `None` and `Some(vec![])` drive different writes: one leaves
+        // the stored tags alone, the other replaces them with nothing.
+        assert!(read_extra_tags(Path::new("no-such-file.flac")).is_none());
     }
 }

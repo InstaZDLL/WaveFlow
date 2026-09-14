@@ -217,6 +217,16 @@ export const DEFAULT_COLUMNS: ColumnId[] = [
   "duration_ms",
 ];
 
+/**
+ * The widest a column may be made.
+ *
+ * Shared by the drag, the keyboard and the fit so all three agree —
+ * and so the handle can honestly declare an `aria-valuemax`. Without a
+ * ceiling, one column can be dragged wide enough to push every other
+ * one out of the viewport, with no way back except the reset.
+ */
+export const MAX_COLUMN_WIDTH = 640;
+
 /** Widths are stored per column id, so hiding and re-showing a column
  *  brings back the width the user gave it. */
 export interface ColumnLayout {
@@ -229,9 +239,17 @@ export const DEFAULT_LAYOUT: ColumnLayout = {
   widths: {},
 };
 
-/** A custom tag column's key, or `null` for a built-in one. */
+/**
+ * A custom tag column's key, or `null` for a built-in one.
+ *
+ * A bare `"tag:"` is not a tag column: it would render a header with no
+ * label and a cell that can never match a key, so it reads as `null`
+ * and `sanitizeLayout` drops it.
+ */
 export function tagKeyOf(id: ColumnId): string | null {
-  return id.startsWith("tag:") ? id.slice(4) : null;
+  if (!id.startsWith("tag:")) return null;
+  const key = id.slice(4);
+  return key.length > 0 ? key : null;
 }
 
 /**
@@ -286,7 +304,7 @@ export function trackSizeFor(id: ColumnId, layout: ColumnLayout): string {
   const spec = specFor(id);
   const stored = layout.widths[id];
   if (typeof stored === "number" && stored > 0) {
-    return `${Math.max(stored, spec.minWidth)}px`;
+    return `${Math.min(MAX_COLUMN_WIDTH, Math.max(stored, spec.minWidth))}px`;
   }
   return spec.flexible
     ? `minmax(${spec.minWidth}px, 1fr)`

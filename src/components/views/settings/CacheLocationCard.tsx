@@ -49,6 +49,11 @@ export function CacheLocationCard({ language }: { language: string }) {
         if (!cancelled) setLocation(next);
       } catch (err) {
         console.warn("[CacheLocationCard] read failed", err);
+        // Kept in state, not only in the console: `if (!location)
+        // return null` below would otherwise make the whole row vanish
+        // from Settings, which reads as the feature not existing rather
+        // than as a read having failed.
+        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       }
     })();
     return () => {
@@ -76,7 +81,31 @@ export function CacheLocationCard({ language }: { language: string }) {
     if (picked) await move(picked);
   }, [move, t]);
 
-  if (!location) return null;
+  if (!location) {
+    if (!error) return null;
+    return (
+      <section
+        aria-label={t("settings.cacheLocation.title")}
+        className="py-5 px-4 rounded-xl"
+      >
+        <div className="flex items-start gap-3">
+          <HardDrive
+            size={20}
+            className="text-zinc-400 mt-0.5 shrink-0"
+            aria-hidden="true"
+          />
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-zinc-900 dark:text-white">
+              {t("settings.cacheLocation.title")}
+            </div>
+            <p className="text-xs text-red-600 dark:text-red-400 mt-1" role="alert">
+              {error}
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const moved = location.configured_root !== null;
 

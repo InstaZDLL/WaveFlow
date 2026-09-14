@@ -35,7 +35,12 @@ pub async fn regenerate_thumbnails(
     // two directories — on most libraries, one or two moments in the
     // whole run. A button honoured that rarely reads as broken, so the
     // row shows the work and no button (#601).
-    let _task = crate::tasks::start(&app, crate::tasks::TaskKind::Thumbnails, 0, None);
+    let _task = crate::tasks::start(
+        &app,
+        crate::tasks::TaskKind::Thumbnails,
+        0,
+        crate::tasks::Cancellation::None,
+    );
     let mut total: u32 = 0;
 
     // `regen_in_dir` is intentionally synchronous (walks the directory
@@ -318,15 +323,27 @@ pub async fn reset_app(
     // another drive is exactly the disk usage the user moved it there to
     // control, and a reset that leaves gigabytes of artwork on `D:` has
     // not reset anything they can see.
-    for dir in cache_roots {
-        if let Err(err) = std::fs::remove_dir_all(&dir) {
-            if err.kind() != std::io::ErrorKind::NotFound {
-                tracing::warn!(
-                    path = %dir.display(),
-                    ?err,
-                    "could not remove a relocated cache directory during reset",
-                );
+    //
+    // On the blocking pool for the same reason the root wipe below is:
+    // these are thousands of small files, and `remove_dir_all` would
+    // hold the runtime for as long as it takes.
+    if !cache_roots.is_empty() {
+        let removal = tokio::task::spawn_blocking(move || {
+            for dir in cache_roots {
+                if let Err(err) = std::fs::remove_dir_all(&dir) {
+                    if err.kind() != std::io::ErrorKind::NotFound {
+                        tracing::warn!(
+                            path = %dir.display(),
+                            ?err,
+                            "could not remove a relocated cache directory during reset",
+                        );
+                    }
+                }
             }
+        })
+        .await;
+        if let Err(err) = removal {
+            tracing::error!(?err, "relocated-cache removal task failed during reset");
         }
     }
 

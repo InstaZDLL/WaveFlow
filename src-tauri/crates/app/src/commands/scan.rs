@@ -243,8 +243,11 @@ fn extract_dsd_file(
         replay_gain: ReplayGainTags::default(),
         // Same limitation again: the DSD reader surfaces the handful of
         // fields it models and nothing else, so there is no remainder
-        // to offer as a custom column (#588).
-        extra_tags: Vec::new(),
+        // to offer as a custom column (#588). `Some(empty)` and not
+        // `None`: this is "read, and there are none", which is true --
+        // `None` would mean "could not read", and would stop the
+        // scanner from ever clearing a stale row.
+        extra_tags: Some(Vec::new()),
     })
 }
 
@@ -258,8 +261,12 @@ fn extract_dsd_file(
 async fn write_extra_tags(
     tx: &mut sqlx::SqliteConnection,
     track_id: i64,
-    tags: &[(String, String)],
+    tags: Option<&Vec<(String, String)>>,
 ) -> AppResult<()> {
+    // A read that failed leaves what is stored alone. Replacing it with
+    // nothing would lose a track's tags to a file that happened to be
+    // locked for the length of one parse.
+    let Some(tags) = tags else { return Ok(()) };
     sqlx::query("DELETE FROM track_tag WHERE track_id = ?")
         .bind(track_id)
         .execute(&mut *tx)
@@ -549,8 +556,14 @@ pub(crate) async fn scan_folder_inner(
     // panic. A scan that leaves a ghost row behind is worse than one
     // that reports nothing: the user gets a spinner that never ends and
     // a stop button that does nothing.
-    let task = app_handle
-        .and_then(|app| crate::tasks::start(app, crate::tasks::TaskKind::LibraryScan, 0, None));
+    let task = app_handle.and_then(|app| {
+        crate::tasks::start(
+            app,
+            crate::tasks::TaskKind::LibraryScan,
+            0,
+            crate::tasks::Cancellation::Flag,
+        )
+    });
     let cancelled = || task.as_ref().is_some_and(|t| t.is_cancelling());
 
     // Belt-and-braces: the directory is created at profile bootstrap, but a
@@ -1089,6 +1102,15 @@ pub(crate) async fn scan_folder_inner(
                     .await?;
                 }
 
+                // Written even here, and this is the point: a library
+                // that predates #588 has files whose mtime and hash have
+                // not moved, so every one of them lands in this branch.
+                // A deep rescan re-reads the file -- `extracted` is
+                // fresh -- and without this the tags it just read would
+                // be thrown away and the columns would stay empty
+                // forever.
+                write_extra_tags(&mut tx, existing_track_id, extracted.extra_tags.as_ref()).await?;
+
                 summary.skipped += 1;
                 tx_count += 1;
             } else {
@@ -1190,7 +1212,7 @@ pub(crate) async fn scan_folder_inner(
                 .execute(&mut *tx)
                 .await?;
 
-                write_extra_tags(&mut tx, existing_track_id, &extracted.extra_tags).await?;
+                write_extra_tags(&mut tx, existing_track_id, extracted.extra_tags.as_ref()).await?;
 
                 sqlx::query("DELETE FROM track_artist WHERE track_id = ?")
                     .bind(existing_track_id)
@@ -1363,7 +1385,7 @@ pub(crate) async fn scan_folder_inner(
             // write — outbox rolls back with the track row if the
             // commit fails. Skipped gracefully when sync isn't
             // configured.
-            write_extra_tags(&mut tx, track_id, &extracted.extra_tags).await?;
+            write_extra_tags(&mut tx, track_id, extracted.extra_tags.as_ref()).await?;
 
             emit_track_insert_from_extracted(&mut tx, library_id, track_id, &extracted, now)
                 .await?;

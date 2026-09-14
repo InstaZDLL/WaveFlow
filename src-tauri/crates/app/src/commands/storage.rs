@@ -296,6 +296,18 @@ fn dir_size(root: &Path) -> u64 {
     total
 }
 
+/// Total bytes of a set of directories, off the async runtime.
+///
+/// A populated artwork tree is tens of thousands of small files, and
+/// walking it in place would hold the runtime for the whole read —
+/// which on the Settings page means every other command queued behind
+/// a number nobody is waiting on.
+async fn measure(dirs: Vec<(String, PathBuf)>) -> u64 {
+    tokio::task::spawn_blocking(move || dirs.iter().map(|(_, path)| dir_size(path)).sum::<u64>())
+        .await
+        .unwrap_or(0)
+}
+
 /// Every cache directory that currently exists, app-wide and per
 /// profile.
 ///
@@ -377,17 +389,26 @@ pub async fn get_cache_location(state: tauri::State<'_, AppState>) -> AppResult<
     let paths = &state.paths;
     let configured = load_cache_root(&state.app_db).await;
     let dirs = cache_dirs(paths, &state.app_db).await;
-    let size_bytes = dirs.iter().map(|(_, path)| dir_size(path)).sum();
+    let size_bytes = measure(dirs).await;
+
+    // A stored choice that differs from the active root has two very
+    // different causes, and telling the user the wrong one is worse
+    // than saying nothing: either this session could not use it (the
+    // drive is not there), or a move completed and is waiting for the
+    // restart that adopts it. The pending-cleanup marker is what
+    // separates them — it exists only after a successful move.
+    let move_pending = load_path(&state.app_db, KEY_CACHE_PENDING).await.is_some();
+    let diverged = configured
+        .as_ref()
+        .is_some_and(|chosen| chosen != &paths.cache_root);
 
     Ok(CacheLocation {
         active_root: paths.cache_root.to_string_lossy().to_string(),
         default_root: paths.root.to_string_lossy().to_string(),
-        fell_back: configured
-            .as_ref()
-            .is_some_and(|chosen| chosen != &paths.cache_root),
+        fell_back: diverged && !move_pending,
         configured_root: configured.map(|p| p.to_string_lossy().to_string()),
         fallback_reason: state.cache_root_fallback.clone(),
-        restart_required: false,
+        restart_required: move_pending,
         size_bytes,
     })
 }
@@ -419,13 +440,18 @@ pub async fn set_cache_location(
     if target == paths.cache_root {
         return get_cache_location(state).await;
     }
+    // Created *before* the containment check, not after: `canonicalize`
+    // fails on a directory that does not exist, and the fallback to the
+    // literal paths cannot see through a symlink, a junction, or a
+    // difference in case on a case-insensitive filesystem — all of
+    // which would let the copy run into its own source.
+    is_usable(&target).map_err(AppError::Other)?;
     if is_within(&target, &paths.cache_root) {
         return Err(AppError::Other(format!(
             "{} is inside the folder being moved",
             target.display()
         )));
     }
-    is_usable(&target).map_err(AppError::Other)?;
 
     let moved = paths.clone().with_cache_root(target.clone());
     let sources = cache_dirs(&paths, &state.app_db).await;
@@ -458,7 +484,7 @@ pub async fn set_cache_location(
     store_path(&state.app_db, KEY_CACHE_PENDING, Some(&paths.cache_root)).await?;
     grant_asset_scope(&app, &moved);
 
-    let size_bytes = destinations.iter().map(|(_, path)| dir_size(path)).sum();
+    let size_bytes = measure(destinations).await;
     Ok(CacheLocation {
         active_root: moved.cache_root.to_string_lossy().to_string(),
         default_root: moved.root.to_string_lossy().to_string(),

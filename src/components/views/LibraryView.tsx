@@ -16,13 +16,14 @@ import { useTrackColumns } from "../../hooks/useTrackColumns";
 import { listTrackTagKeys, listTrackTagValues } from "../../lib/tauri/trackTags";
 import {
   cellText,
+  MAX_COLUMN_WIDTH,
   specFor,
   tagKeyOf,
   trackSizeFor,
   type ColumnId,
   type ColumnLayout,
 } from "../../lib/trackColumns";
-import { fitWidth, fontOf } from "../../lib/measureText";
+import { fitWidth, styleOf } from "../../lib/measureText";
 import {
   inventorySummary,
   inventoryTracks,
@@ -1054,8 +1055,13 @@ export function LibraryView({
     onPlayRow: (index: number) => void,
   ) => (
       <TrackTable
-        tracks={rows}
-        isLoading={busy}
+        // Nothing paints until the stored column choice has been read
+        // for the active profile. `useProfileSetting` answers with the
+        // default until then, so rendering would lay out one frame of
+        // default columns and then move every one of them -- under the
+        // pointer, and on every profile switch.
+        tracks={trackColumns.ready ? rows : []}
+        isLoading={busy || !trackColumns.ready}
         view={tracksView}
         t={t}
         locale={i18n.resolvedLanguage ?? i18n.language}
@@ -2226,13 +2232,13 @@ function TrackTable({
       const width = fitWidth({
         values: tracks.map((row) => textFor(id, row)),
         headerLabel: label,
-        cellFont: fontOf(cell),
-        headerFont: fontOf(header),
+        cell: styleOf(cell),
+        header: styleOf(header),
         // The cell's own gap, plus room for the sort caret the header
         // draws beside its label.
         padding: 28,
         min: spec.minWidth,
-        max: 640,
+        max: MAX_COLUMN_WIDTH,
       });
       if (width !== null) onResizeColumn(id, width);
     },
