@@ -297,9 +297,15 @@ pub async fn resolve_cache_root(
 /// root may well be the app-data root itself, which still holds
 /// `app.db` and every profile.
 ///
-/// Best-effort throughout: the key is cleared whatever happens, because
-/// a stale tree is wasted space and retrying forever on a directory the
-/// user has since locked or deleted would be worse.
+/// The marker is kept when a removal was attempted and failed, so the
+/// next startup tries again: a directory held open by an indexer or a
+/// virus scanner is the normal case, it clears by itself, and giving up
+/// after one attempt would strand a whole artwork tree for good. A root
+/// we *refuse* to touch (no ownership marker, drive gone) clears it
+/// instead -- retrying that one would never succeed.
+///
+/// Keeping it is only safe because `restart_required` no longer reads
+/// this key on its own; see [`get_cache_location`].
 pub async fn cleanup_moved_caches(active: &AppPaths, app_db: &SqlitePool) {
     let Some(previous) = load_path(app_db, KEY_CACHE_PENDING).await else {
         return;
@@ -318,7 +324,8 @@ pub async fn cleanup_moved_caches(active: &AppPaths, app_db: &SqlitePool) {
         // this one runs inside `AppState::init`, so walking a whole
         // artwork tree in place would hold the runtime through startup
         // -- the one moment the app has nothing else to show for it.
-        let _ = tokio::task::spawn_blocking(move || {
+        let all_gone = tokio::task::spawn_blocking(move || {
+            let mut all_gone = true;
             for (name, dir) in dirs {
                 if !dir.exists() {
                     continue;
@@ -327,16 +334,29 @@ pub async fn cleanup_moved_caches(active: &AppPaths, app_db: &SqlitePool) {
                     Ok(()) => {
                         tracing::info!(path = %dir.display(), %name, "removed moved-from cache")
                     }
-                    Err(e) => tracing::warn!(
-                        path = %dir.display(),
-                        %name,
-                        %e,
-                        "could not remove a cache directory left behind by a move",
-                    ),
+                    Err(e) => {
+                        all_gone = false;
+                        tracing::warn!(
+                            path = %dir.display(),
+                            %name,
+                            %e,
+                            "could not remove a cache directory left behind by a move",
+                        );
+                    }
                 }
             }
+            all_gone
         })
-        .await;
+        .await
+        // A join failure is a panic in the loop above, which says
+        // nothing about what is left on disk. Treated as unfinished.
+        .unwrap_or(false);
+        if !all_gone {
+            tracing::warn!(
+                "keeping the cache-cleanup marker; the next startup will try the rest again"
+            );
+            return;
+        }
     }
     if let Err(e) = store_path(app_db, KEY_CACHE_PENDING, None).await {
         tracing::warn!(%e, "could not clear the pending cache-cleanup marker");
@@ -570,7 +590,12 @@ pub async fn get_cache_location(state: tauri::State<'_, AppState>) -> AppResult<
         fallback_reason: (diverged && fell_back)
             .then(|| state.cache_root_fallback.clone())
             .flatten(),
-        restart_required: move_pending && !fell_back,
+        // `diverged` as well as the marker, and that is what lets
+        // `cleanup_moved_caches` keep the marker across a failed
+        // removal: once the process has adopted the configured root,
+        // the active and configured roots agree and no restart is
+        // outstanding, whatever is still sitting in the old tree.
+        restart_required: move_pending && diverged && !fell_back,
         size_bytes,
     })
 }

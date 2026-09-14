@@ -2478,6 +2478,7 @@
     "runningTitle": "جارٍ فحص المكتبة…",
     "runningSubtitle": "{{current}} / {{total}} ملف",
     "doneTitle": "اكتمل الفحص",
+    "cancelledTitle": "تم إيقاف الفحص",
     "doneSubtitle": "{{added}} مضاف · {{updated}} محدّث · {{skipped}} متخطّى",
     "scanningIn": "جارٍ فحص {{dir}}",
     "doneErrors_zero": "لم يفشل أي ملف",

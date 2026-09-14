@@ -88,6 +88,12 @@ pub struct ScanProgress {
     pub skipped: u32,
     pub errors: u32,
     pub done: bool,
+    /// The scan stopped because the user asked it to (#601). Carried
+    /// beside `done` rather than folded into it: the run *is* over, and
+    /// what it managed to write is committed and correct, but a toast
+    /// reading "scan complete" over a full bar would be claiming the
+    /// library was walked when it was not.
+    pub cancelled: bool,
     /// Absolute path of the directory the scan is currently in — the
     /// parent of the file just processed. Lets the toast show a live
     /// "scanning …/Album" line instead of a bare counter (#430). `None`
@@ -127,6 +133,7 @@ fn maybe_emit_progress(
             skipped: summary.skipped,
             errors: summary.errors,
             done: false,
+            cancelled: false,
             current_dir,
         },
     );
@@ -704,6 +711,7 @@ pub(crate) async fn scan_folder_inner(
                 skipped: 0,
                 errors: 0,
                 done: false,
+                cancelled: false,
                 current_dir: None,
             },
         );
@@ -1676,13 +1684,21 @@ pub(crate) async fn scan_folder_inner(
             "scan:progress",
             ScanProgress {
                 folder_id,
-                current: total_files,
+                // The files actually walked, not the whole folder. A
+                // stopped scan sitting at 100% is the same lie as the
+                // title, one line further down.
+                current: if summary.cancelled {
+                    summary.scanned as usize
+                } else {
+                    total_files
+                },
                 total: total_files,
                 added: summary.added,
                 updated: summary.updated,
                 skipped: summary.skipped,
                 errors: summary.errors,
                 done: true,
+                cancelled: summary.cancelled,
                 current_dir: None,
             },
         );

@@ -2309,6 +2309,7 @@
     "runningTitle": "Bibliotheek wordt gescand…",
     "runningSubtitle": "{{current}} / {{total}} bestanden",
     "doneTitle": "Scan voltooid",
+    "cancelledTitle": "Scan gestopt",
     "doneSubtitle": "{{added}} toegevoegd · {{updated}} bijgewerkt · {{skipped}} overgeslagen",
     "scanningIn": "Bezig met {{dir}}",
     "doneErrors_one": "{{count}} bestand mislukt",

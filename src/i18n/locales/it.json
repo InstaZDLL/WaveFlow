@@ -2309,6 +2309,7 @@
     "runningTitle": "Scansione della libreria…",
     "runningSubtitle": "{{current}} / {{total}} file",
     "doneTitle": "Scansione completata",
+    "cancelledTitle": "Scansione interrotta",
     "doneSubtitle": "{{added}} aggiunti · {{updated}} aggiornati · {{skipped}} saltati",
     "scanningIn": "Scansione di {{dir}}",
     "doneErrors_one": "{{count}} file non riuscito",

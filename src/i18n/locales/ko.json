@@ -2309,6 +2309,7 @@
     "runningTitle": "라이브러리 스캔 중…",
     "runningSubtitle": "{{current}} / {{total}}개 파일",
     "doneTitle": "스캔 완료",
+    "cancelledTitle": "스캔 중지됨",
     "doneSubtitle": "{{added}}개 추가 · {{updated}}개 업데이트 · {{skipped}}개 건너뜀",
     "scanningIn": "{{dir}} 스캔 중",
     "doneErrors_one": "{{count}}개 파일 실패",

@@ -2309,6 +2309,7 @@
     "runningTitle": "Kütüphane taranıyor…",
     "runningSubtitle": "{{current}} / {{total}} dosya",
     "doneTitle": "Tarama tamamlandı",
+    "cancelledTitle": "Tarama durduruldu",
     "doneSubtitle": "{{added}} eklendi · {{updated}} güncellendi · {{skipped}} atlandı",
     "scanningIn": "Taranıyor: {{dir}}",
     "doneErrors_one": "{{count}} dosya başarısız",

@@ -2309,6 +2309,7 @@
     "runningTitle": "A analisar biblioteca…",
     "runningSubtitle": "{{current}} / {{total}} ficheiros",
     "doneTitle": "Análise concluída",
+    "cancelledTitle": "Análise interrompida",
     "doneSubtitle": "{{added}} adicionados · {{updated}} atualizados · {{skipped}} ignorados",
     "scanningIn": "A analisar {{dir}}",
     "doneErrors_one": "{{count}} ficheiro falhou",

@@ -2309,6 +2309,7 @@
     "runningTitle": "Analyse en cours…",
     "runningSubtitle": "{{current}} / {{total}} fichiers",
     "doneTitle": "Analyse terminée",
+    "cancelledTitle": "Analyse arrêtée",
     "doneSubtitle": "{{added}} ajoutés · {{updated}} mis à jour · {{skipped}} ignorés",
     "scanningIn": "Analyse de {{dir}}",
     "doneErrors_one": "{{count}} fichier en échec",

@@ -2309,6 +2309,7 @@
     "runningTitle": "Scanning library…",
     "runningSubtitle": "{{current}} / {{total}} files",
     "doneTitle": "Scan complete",
+    "cancelledTitle": "Scan stopped",
     "doneSubtitle": "{{added}} added · {{updated}} updated · {{skipped}} skipped",
     "scanningIn": "Scanning {{dir}}",
     "doneErrors_one": "{{count}} file failed",

@@ -2309,6 +2309,7 @@
     "runningTitle": "लाइब्रेरी स्कैन हो रही है…",
     "runningSubtitle": "{{current}} / {{total}} फ़ाइलें",
     "doneTitle": "स्कैन पूर्ण",
+    "cancelledTitle": "स्कैन रोका गया",
     "doneSubtitle": "{{added}} जोड़े · {{updated}} अपडेट · {{skipped}} छोड़े",
     "scanningIn": "{{dir}} स्कैन हो रहा है",
     "doneErrors_one": "{{count}} फ़ाइल विफल",

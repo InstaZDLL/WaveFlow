@@ -2309,6 +2309,7 @@
     "runningTitle": "Escaneando biblioteca…",
     "runningSubtitle": "{{current}} / {{total}} arquivos",
     "doneTitle": "Escaneamento concluído",
+    "cancelledTitle": "Varredura interrompida",
     "doneSubtitle": "{{added}} adicionados · {{updated}} atualizados · {{skipped}} ignorados",
     "scanningIn": "Analisando {{dir}}",
     "doneErrors_one": "{{count}} arquivo falhou",

@@ -12,6 +12,9 @@ interface ScanProgress {
   skipped: number;
   errors: number;
   done: boolean;
+  /** The user stopped it. The counts below are still what the run
+   *  managed to write, and they are still worth showing. */
+  cancelled?: boolean;
   current_dir?: string | null;
 }
 
@@ -75,8 +78,17 @@ export function ScanProgressToast() {
   // the place that depends on it.
   if (progress == null || dismissed || !progress.done) return null;
 
-  const { current, total, added, updated, skipped, errors, done, current_dir } =
-    progress;
+  const {
+    current,
+    total,
+    added,
+    updated,
+    skipped,
+    errors,
+    done,
+    cancelled,
+    current_dir,
+  } = progress;
   const percent =
     total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
   // A finished scan that hit per-file failures. The backend reports it
@@ -128,9 +140,17 @@ export function ScanProgressToast() {
           >
             {partial
               ? t("scanProgress.doneErrors", { count: errors })
-              : done
-                ? t("scanProgress.doneTitle")
-                : t("scanProgress.runningTitle")}
+              : cancelled
+                ? // "Scan complete" over a full bar, for a walk that
+                  // stopped halfway, would be the card telling the user
+                  // their library was gone through when it was not --
+                  // and this toast is the only outcome they get. The
+                  // counts underneath stay: what was written before the
+                  // stop is committed and correct.
+                  t("scanProgress.cancelledTitle")
+                : done
+                  ? t("scanProgress.doneTitle")
+                  : t("scanProgress.runningTitle")}
           </div>
           <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
             {done

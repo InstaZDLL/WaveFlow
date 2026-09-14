@@ -2309,6 +2309,7 @@
     "runningTitle": "Memindai pustaka…",
     "runningSubtitle": "{{current}} / {{total}} berkas",
     "doneTitle": "Pemindaian selesai",
+    "cancelledTitle": "Pemindaian dihentikan",
     "doneSubtitle": "{{added}} ditambahkan · {{updated}} diperbarui · {{skipped}} dilewati",
     "scanningIn": "Memindai {{dir}}",
     "doneErrors_one": "{{count}} berkas gagal",

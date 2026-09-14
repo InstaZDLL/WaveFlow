@@ -498,6 +498,18 @@ pub async fn import_paths(
                 total.skipped += summary.skipped;
                 total.errors += summary.errors;
                 total.removed += summary.removed;
+                // Stopping one folder's scan stops the import (#601).
+                // Each folder registers its own task, so cancelling the
+                // one on screen leaves the next folder's flag clear and
+                // it would start immediately -- the user would press
+                // stop and watch the import carry on into a folder that
+                // had not begun. Reported too, so the caller's summary
+                // does not read as a completed import.
+                if summary.cancelled {
+                    total.cancelled = true;
+                    tracing::info!("import stopped by the user between folders");
+                    break;
+                }
             }
             Err(err) => {
                 tracing::warn!(folder_id, path = %path, %err, "import_paths: scan failed");

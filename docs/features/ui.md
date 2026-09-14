@@ -48,6 +48,39 @@ Two surfaces needed more than a key handler: history rows had no `tabIndex` at a
 - [`LyricsPanel`](../../src/components/layout/LyricsPanel.tsx) — synced or static lyrics with auto-scroll.
 - [`NowPlayingChevronTab`](../../src/components/layout/NowPlayingChevronTab.tsx) — right-edge floating tab visible only when no panel is open.
 
+## Long-running tasks
+
+One status bar for every operation that takes long enough to wonder about
+(issue #601): the library scan, the analysis sweep, lyrics prefetch, the
+catalogue mirror, reconciliation, uploads, backups, the thumbnail pass.
+[`TaskStatusBar`](../../src/components/layout/TaskStatusBar.tsx) subscribes to
+`tasks:changed` before asking for a snapshot, so a task that starts between the
+two is not missed.
+
+The registry ([`tasks.rs`](../../src-tauri/crates/app/src/tasks.rs)) deliberately
+does **not** implement cancellation. Five of these operations already had a
+stopping point of their own, each in a different place, so a task registers how
+it stops and the registry routes to it — re-deriving five stopping points would
+have got at least one wrong. A task whose whole mechanism is a flag registers
+`Cancellation::Flag` and polls `is_cancelling()`.
+
+Two things a stopping point has to respect, both learned the hard way:
+
+- **A scan's safe stopping point is not between two files.** The scan ends with
+  a pass that marks everything the walk did not reach as `is_available = 0`.
+  Stopping halfway and letting that run marks a working library unavailable
+  *because the user pressed stop*. The sweep is skipped entirely on a cancelled
+  scan, and the one-off ReplayGain and custom-tag backfill markers are not
+  written either — they never run twice, so recording them would leave those
+  tracks without their data permanently.
+- **A cancellation callback is bound to the run that registered it.** The
+  stopping flags are process-wide statics shared by every run of their
+  operation, so a callback picked up as its task retires could otherwise land on
+  the next run and stop an analysis nobody asked to stop.
+
+Progress is throttled to 250 ms, except the final tick, so a task that ends on a
+full bar shows a full bar.
+
 ## Immersive view
 
 [`ImmersiveView`](../../src/components/player/ImmersiveView.tsx) (`fixed inset-0 z-100`) is the Apple-Music-TV-style fullscreen view that turns the current track into the focal point: the cover hero + metadata + transport centred as one group on the left, and a **tabbed control panel on the right** — Lyrics / Queue (issue #328). Background is a blurred copy of the artwork (with a 65% black wash) so the view stays visually anchored without extra theming.

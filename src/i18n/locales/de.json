@@ -2309,6 +2309,7 @@
     "runningTitle": "Bibliothek wird gescannt…",
     "runningSubtitle": "{{current}} / {{total}} Dateien",
     "doneTitle": "Scan abgeschlossen",
+    "cancelledTitle": "Scan gestoppt",
     "doneSubtitle": "{{added}} hinzugefügt · {{updated}} aktualisiert · {{skipped}} übersprungen",
     "scanningIn": "Durchsuche {{dir}}",
     "doneErrors_one": "{{count}} Datei fehlgeschlagen",

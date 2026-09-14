@@ -2413,6 +2413,7 @@
     "runningTitle": "Сканирование библиотеки…",
     "runningSubtitle": "{{current}} / {{total}} файлов",
     "doneTitle": "Сканирование завершено",
+    "cancelledTitle": "Сканирование остановлено",
     "doneSubtitle": "Добавлено: {{added}} · Обновлено: {{updated}} · Пропущено: {{skipped}}",
     "scanningIn": "Сканирование {{dir}}",
     "doneErrors_one": "{{count}} файл не удалось обработать",

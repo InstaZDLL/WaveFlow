@@ -2295,6 +2295,7 @@
     "runningTitle": "正在掃描音樂庫…",
     "runningSubtitle": "{{current}} / {{total}} 個檔案",
     "doneTitle": "掃描完成",
+    "cancelledTitle": "已停止掃描",
     "doneSubtitle": "已新增 {{added}} · 已更新 {{updated}} · 已略過 {{skipped}}",
     "scanningIn": "正在掃描 {{dir}}",
     "doneErrors_one": "{{count}} 個檔案失敗",

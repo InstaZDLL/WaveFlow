@@ -280,6 +280,16 @@ pub async fn delete_profile(state: tauri::State<'_, AppState>, profile_id: i64) 
         ));
     }
 
+    // Held across the row removal *and* the directory sweep below.
+    // `set_cache_location` takes the same lock, and the two read the
+    // same list: it snapshots the profiles to copy, this one deletes
+    // one of them. Interleaved, the copy recreates a deleted profile's
+    // cache at the destination after the sweep has been past -- and
+    // nothing enumerates a deleted profile afterwards, so it would stay
+    // there for good. Both are rare and user-driven; serialising them
+    // costs nothing anyone can perceive.
+    let _serialized = state.cache_move_lock.clone().lock_owned().await;
+
     let repo = profile_repo(&state);
     match repo.delete_guarded(profile_id).await? {
         ProfileDeleteOutcome::Deleted => {}

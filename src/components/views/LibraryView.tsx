@@ -1606,13 +1606,18 @@ export function LibraryView({
                 categories={inventory}
                 isLoading={loading["a-corriger"]}
                 activeKey={inventoryCategory}
-                onSelect={(key) =>
+                onSelect={(key) => {
                   // Clicking the open category closes it, so the user
                   // gets back to the overview without a second control.
-                  setInventoryCategory((current) =>
-                    current === key ? null : key,
-                  )
-                }
+                  const next = inventoryCategory === key ? null : key;
+                  // The rows belong to the category that was open, and
+                  // the query replacing them runs over the whole
+                  // library. Left in place, the table spends that time
+                  // showing one category's tracks under another's name
+                  // -- and a click plays them.
+                  setInventoryRows([]);
+                  setInventoryCategory(next);
+                }}
                 t={t}
               />
               {/* The library's own table, so a category is an entry
