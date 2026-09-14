@@ -2569,6 +2569,7 @@ function TrackTable({
                       }
                       fallback={unknown}
                       className="text-sm text-zinc-500 truncate"
+                      cellId={id}
                     />
                   );
                 }
@@ -2589,6 +2590,7 @@ function TrackTable({
                       }
                       fallback={unknown}
                       className="text-sm text-zinc-500 truncate"
+                      cellId={id}
                     />
                   );
                 }

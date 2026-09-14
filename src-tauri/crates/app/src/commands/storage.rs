@@ -698,6 +698,20 @@ pub async fn set_cache_location(
     }
 
     is_usable(&target).map_err(AppError::Other)?;
+    // Refused *before* the claim below, not after. `claim` writes the
+    // ownership marker, and the marker is what makes a folder
+    // deletable: leaving one behind in a directory whose move was
+    // rejected would hand a later reset permission to wipe a folder
+    // WaveFlow never adopted. The check needs `is_usable` to have run
+    // first, since `canonicalize` cannot see through a junction or a
+    // case difference on a directory that does not exist yet -- which
+    // is exactly how a copy ends up running into its own source.
+    if is_within(&target, &paths.cache_root) {
+        return Err(AppError::Other(format!(
+            "{} is inside the folder being moved",
+            target.display()
+        )));
+    }
     // Claimed before anything is copied into it: a folder that already
     // holds one of the layout's names and was not made by us is refused
     // outright, because adopting it would put a later reset in a
@@ -710,12 +724,6 @@ pub async fn set_cache_location(
     // itself.
     if target != paths.root {
         claim(&target).map_err(AppError::Other)?;
-    }
-    if is_within(&target, &paths.cache_root) {
-        return Err(AppError::Other(format!(
-            "{} is inside the folder being moved",
-            target.display()
-        )));
     }
 
     let moved = paths.clone().with_cache_root(target.clone());

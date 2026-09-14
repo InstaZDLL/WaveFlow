@@ -401,7 +401,7 @@
         "playlists_few": "{{count}} قوائم تشغيل",
         "playlists_many": "{{count}} قائمة تشغيل",
         "playlists_other": "{{count}} قائمة تشغيل",
-        "a-corriger_zero": "لا نقاط للتصحيح",
+        "a-corriger_zero": "لا شيء يُذكر: المكتبة مكتملة.",
         "a-corriger_one": "{{count}} نقطة للتصحيح",
         "a-corriger_other": "{{count}} نقطة للتصحيح",
         "a-corriger_two": "نقطتان للتصحيح",

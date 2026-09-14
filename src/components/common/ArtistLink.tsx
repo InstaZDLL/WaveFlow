@@ -22,6 +22,11 @@ interface ArtistLinkProps {
   fallback?: string;
   /** Optional class applied to the wrapper span. */
   className?: string;
+  /** Stamped as `data-track-cell` on the wrapper, so the column-fitting
+   *  measurement can find this cell and read the font it is actually
+   *  drawn in. Without it the fit falls back to a generic style and
+   *  sizes the column to a width it never renders at. */
+  cellId?: string;
 }
 
 /**
@@ -43,14 +48,19 @@ export function ArtistLink({
   onNavigateRemote,
   fallback = "—",
   className = "",
+  cellId,
 }: ArtistLinkProps) {
   if (!name || !name.trim()) {
-    return <span className={className}>{fallback}</span>;
+    return (
+      <span className={className} data-track-cell={cellId}>
+        {fallback}
+      </span>
+    );
   }
 
   if (onNavigateRemote) {
     return (
-      <span className={className}>
+      <span className={className} data-track-cell={cellId}>
         <button
           type="button"
           onClick={(e) => {
@@ -78,7 +88,7 @@ export function ArtistLink({
   };
 
   return (
-    <span className={className}>
+    <span className={className} data-track-cell={cellId}>
       {names.map((part, index) => {
         const id = ids[index] ?? null;
         return (
