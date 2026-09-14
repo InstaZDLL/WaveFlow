@@ -2524,5 +2524,23 @@
       "invalidNumber": "Jahr sowie Titel- und CD-Nummer müssen ganze Zahlen sein."
     },
     "needsMirror": "Kopieren Sie zuerst den Serverkatalog oben: Dieser Abschnitt vergleicht Ihre Dateien mit dem lokalen Spiegel, der noch leer ist."
+  },
+  "tasks": {
+    "barLabel": "Laufende Aufgaben",
+    "cancel": "{{task}} stoppen",
+    "stopping": "Wird gestoppt…",
+    "collapse": "Einklappen",
+    "more_one": "{{count}} weitere Aufgabe",
+    "more_other": "{{count}} weitere Aufgaben",
+    "kinds": {
+      "library_scan": "Bibliotheksscan",
+      "analysis": "Audioanalyse",
+      "lyrics_prefetch": "Liedtexte laden",
+      "catalogue_mirror": "Katalogspiegel",
+      "reconcile": "Abgleich",
+      "upload": "Hochladen",
+      "backup": "Sicherung",
+      "thumbnails": "Miniaturen"
+    }
   }
 }

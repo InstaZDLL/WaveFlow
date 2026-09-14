@@ -26,7 +26,16 @@ use crate::{
 ///
 /// Returns the number of source images successfully (re)processed.
 #[tauri::command]
-pub async fn regenerate_thumbnails(state: tauri::State<'_, AppState>) -> AppResult<u32> {
+pub async fn regenerate_thumbnails(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<u32> {
+    // No cancel callback: the pass runs one directory at a time inside
+    // `spawn_blocking`, so the only reachable stopping point is between
+    // two directories — on most libraries, one or two moments in the
+    // whole run. A button honoured that rarely reads as broken, so the
+    // row shows the work and no button (#601).
+    let _task = crate::tasks::start(&app, crate::tasks::TaskKind::Thumbnails, 0, None);
     let mut total: u32 = 0;
 
     // `regen_in_dir` is intentionally synchronous (walks the directory

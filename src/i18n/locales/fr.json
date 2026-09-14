@@ -2524,5 +2524,23 @@
       "invalidNumber": "L'année et les numéros de piste et de disque doivent être des nombres entiers."
     },
     "needsMirror": "Recopiez d'abord le catalogue du serveur, ci-dessus : cette section compare vos fichiers au miroir local, qui est encore vide."
+  },
+  "tasks": {
+    "barLabel": "Tâches en cours",
+    "cancel": "Arrêter {{task}}",
+    "stopping": "Arrêt en cours…",
+    "collapse": "Réduire",
+    "more_one": "{{count}} autre tâche",
+    "more_other": "{{count}} autres tâches",
+    "kinds": {
+      "library_scan": "Analyse de la bibliothèque",
+      "analysis": "Analyse audio",
+      "lyrics_prefetch": "Récupération des paroles",
+      "catalogue_mirror": "Miroir du catalogue",
+      "reconcile": "Réconciliation",
+      "upload": "Téléversement",
+      "backup": "Sauvegarde",
+      "thumbnails": "Vignettes"
+    }
   }
 }

@@ -314,6 +314,19 @@ pub async fn mirror_catalogue(state: &AppState, app: AppHandle) -> AppResult<Mir
     }
     let _guard = PhaseGuard;
 
+    // Announced *after* the slot is claimed, so a second call that bails
+    // with `already_running` does not put a second row in the status bar
+    // for one walk (#601). Total unknown until the server has been asked
+    // how many pages there are.
+    let _task = crate::tasks::start(
+        &app,
+        crate::tasks::TaskKind::CatalogueMirror,
+        0,
+        crate::tasks::cancel_fn(|| {
+            request_cancel();
+        }),
+    );
+
     // Pin the session and the pool to one profile for the whole walk: a
     // profile switch mid-walk must not read one profile's credentials and
     // write into another's projection.

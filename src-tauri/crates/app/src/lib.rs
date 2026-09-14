@@ -42,6 +42,7 @@ mod smart_playlists;
 mod state;
 #[cfg(target_os = "windows")]
 mod taskbar_buttons;
+mod tasks;
 // Multi-device sync v1 (Phase 1.f, RFC-003) was retired in the RFC-005
 // cutover — the server no longer speaks its protocol. `mod sync` is now
 // permanently `sync_stub.rs`, a no-op surface matching the old public
@@ -214,6 +215,13 @@ pub fn run() {
             // the frontend exists, and on every start, because the grant
             // lives in the process rather than on disk.
             commands::storage::grant_asset_scope(app.handle(), &state.paths);
+
+            // One registry every long operation reports into (#601), so
+            // the status bar can answer "why is this machine busy"
+            // without each task inventing its own surface. Managed
+            // before `state` so a task started during the rest of setup
+            // already has somewhere to announce itself.
+            app.manage(tasks::TaskRegistry::new(app.handle().clone()));
 
             app.manage(state);
 
@@ -1078,6 +1086,8 @@ pub fn run() {
             commands::player::player_set_pause_on_device_loss,
             commands::player::player_probe_output_device,
             commands::player::player_set_match_source_rate,
+            commands::tasks::list_tasks,
+            commands::tasks::cancel_task,
             commands::storage::get_cache_location,
             commands::storage::set_cache_location,
             commands::storage::restart_for_cache_move,

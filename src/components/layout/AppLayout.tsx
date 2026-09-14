@@ -33,6 +33,7 @@ import { ProfileSelectorModal } from "../common/ProfileSelectorModal";
 import { LastfmReauthBanner } from "../common/LastfmReauthBanner";
 import { UpdateBanner } from "../common/UpdateBanner";
 import { ScanProgressToast } from "../common/ScanProgressToast";
+import { TaskStatusBar } from "./TaskStatusBar";
 import { PlaybackAlertToast } from "../common/PlaybackAlertToast";
 import { OnboardingModal } from "../common/OnboardingModal";
 import { ViewSuspenseFallback } from "../common/ViewSuspenseFallback";
@@ -782,6 +783,12 @@ export function AppLayout() {
               {activeRightPanel === "lyrics" && <LyricsPanel />}
             </AnimatePresence>
           </div>
+
+          {/* One line saying what is running, above the player bar
+            (#601). A flex sibling rather than an overlay: it pushes the
+            content up instead of covering the last row of a list, and
+            it renders nothing at all when nothing is running. */}
+          <TaskStatusBar />
 
           {/* Bottom Player Bar */}
           <PlayerBar onNavigateToArtist={navigateToArtist} />

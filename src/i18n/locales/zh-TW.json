@@ -2503,5 +2503,23 @@
       "invalidNumber": "年份、曲目編號與光碟編號必須是整數。"
     },
     "needsMirror": "請先複製上方的伺服器目錄：本節會將您的檔案與本機鏡像比對，而鏡像目前仍是空的。"
+  },
+  "tasks": {
+    "barLabel": "進行中的工作",
+    "cancel": "停止{{task}}",
+    "stopping": "正在停止…",
+    "collapse": "收合",
+    "more_one": "另有 {{count}} 項",
+    "more_other": "另有 {{count}} 項",
+    "kinds": {
+      "library_scan": "掃描音樂庫",
+      "analysis": "音訊分析",
+      "lyrics_prefetch": "預先擷取歌詞",
+      "catalogue_mirror": "目錄鏡像",
+      "reconcile": "比對",
+      "upload": "上傳",
+      "backup": "備份",
+      "thumbnails": "縮圖"
+    }
   }
 }

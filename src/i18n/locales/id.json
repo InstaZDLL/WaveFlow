@@ -2503,5 +2503,23 @@
       "invalidNumber": "Tahun serta nomor trek dan cakram harus berupa bilangan bulat."
     },
     "needsMirror": "Salin dulu katalog server di atas: bagian ini membandingkan berkas Anda dengan cermin lokal, yang masih kosong."
+  },
+  "tasks": {
+    "barLabel": "Tugas berjalan",
+    "cancel": "Hentikan {{task}}",
+    "stopping": "Menghentikan…",
+    "collapse": "Ciutkan",
+    "more_one": "{{count}} tugas lagi",
+    "more_other": "{{count}} tugas lagi",
+    "kinds": {
+      "library_scan": "Pemindaian pustaka",
+      "analysis": "Analisis audio",
+      "lyrics_prefetch": "Pengambilan lirik",
+      "catalogue_mirror": "Cermin katalog",
+      "reconcile": "Rekonsiliasi",
+      "upload": "Unggah",
+      "backup": "Cadangan",
+      "thumbnails": "Gambar mini"
+    }
   }
 }

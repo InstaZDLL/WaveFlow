@@ -2503,5 +2503,23 @@
       "invalidNumber": "年份、音轨号和碟片号必须为整数。"
     },
     "needsMirror": "请先复制上方的服务器目录：本节将您的文件与本地镜像比对，而镜像目前仍为空。"
+  },
+  "tasks": {
+    "barLabel": "正在进行的任务",
+    "cancel": "停止{{task}}",
+    "stopping": "正在停止…",
+    "collapse": "收起",
+    "more_one": "另有 {{count}} 项",
+    "more_other": "另有 {{count}} 项",
+    "kinds": {
+      "library_scan": "扫描媒体库",
+      "analysis": "音频分析",
+      "lyrics_prefetch": "预取歌词",
+      "catalogue_mirror": "目录镜像",
+      "reconcile": "比对",
+      "upload": "上传",
+      "backup": "备份",
+      "thumbnails": "缩略图"
+    }
   }
 }

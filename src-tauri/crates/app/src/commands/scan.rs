@@ -147,6 +147,10 @@ pub struct ScanSummary {
     /// liked / playlist / play-event history) so the user can recover
     /// it by putting the file back.
     pub removed: u32,
+    /// The user stopped this scan (issue #601). Everything written
+    /// before the stop is committed and correct; what the walk had not
+    /// reached yet is simply untouched, and the next scan picks it up.
+    pub cancelled: bool,
 }
 
 /// Build the standard `ExtractedFile` payload for a DSF / DFF file.
@@ -485,6 +489,20 @@ pub(crate) async fn scan_folder_inner(
     // SQLite writer. Dropped on every exit path (RAII).
     let _scan_guard = ScanInFlightGuard::new();
 
+    // Announce the scan so the status bar can show it and offer a stop
+    // (#601). Unlike the five operations that already had a `cancel_*`
+    // command, this one had no mechanism of its own, so the registry's
+    // own flag *is* the mechanism here — hence the `None` callback and
+    // the `is_cancelling` polling further down.
+    //
+    // The handle retires the row on every exit path, including `?` and
+    // panic. A scan that leaves a ghost row behind is worse than one
+    // that reports nothing: the user gets a spinner that never ends and
+    // a stop button that does nothing.
+    let task = app_handle
+        .and_then(|app| crate::tasks::start(app, crate::tasks::TaskKind::LibraryScan, 0, None));
+    let cancelled = || task.as_ref().is_some_and(|t| t.is_cancelling());
+
     // Belt-and-braces: the directory is created at profile bootstrap, but a
     // user fiddling with the data folder could have deleted it.
     std::fs::create_dir_all(artwork_dir)?;
@@ -580,6 +598,10 @@ pub(crate) async fn scan_folder_inner(
     let meta_load_ms = t_scan.elapsed().as_millis();
 
     let total_files = audio_files.len();
+    if let Some(task) = task.as_ref() {
+        task.progress(0, total_files as u64);
+        task.detail(folder_path.clone());
+    }
 
     // Initial tick so the frontend's progress toast can size itself
     // even before the first file is processed (helps when the loop is
@@ -626,6 +648,14 @@ pub(crate) async fn scan_folder_inner(
     // exposed path, not just the ones that happened to change.
     let mut to_extract: Vec<PathBuf> = Vec::with_capacity(audio_files.len());
     for (idx, path) in audio_files.into_iter().enumerate() {
+        // Between two files is a safe stopping point for this half: the
+        // triage loop only decides what to extract and has written
+        // nothing. What it has *not* done is the important part — see
+        // the guard on the missing-file sweep at the end.
+        if cancelled() {
+            summary.cancelled = true;
+            break;
+        }
         summary.scanned += 1;
         let path_str = path.to_string_lossy().into_owned();
         let stored = existing_meta.remove(&path_str);
@@ -653,6 +683,9 @@ pub(crate) async fn scan_folder_inner(
                             &summary,
                             Some(&path),
                         );
+                        if let Some(task) = task.as_ref() {
+                            task.progress(idx as u64 + 1, total_files as u64);
+                        }
                         continue;
                     }
                 }
@@ -782,7 +815,14 @@ pub(crate) async fn scan_folder_inner(
     let mut rg_backfill_failed = false;
 
     while let Some((path, result)) = extraction_stream.next().await {
+        if cancelled() {
+            summary.cancelled = true;
+            break;
+        }
         processed += 1;
+        if let Some(task) = task.as_ref() {
+            task.progress(processed as u64, total_files as u64);
+        }
         let extracted = match result {
             Ok(Ok(e)) => e,
             Ok(Err(err)) => {
@@ -1309,11 +1349,24 @@ pub(crate) async fn scan_folder_inner(
     // Anything still in the map was on disk last time but isn't now.
     // Mark it unavailable rather than deleting — preserves play_event
     // history and lets the user "undelete" by restoring the file.
+    //
+    // **Skipped entirely on a cancelled scan** (#601). The map is
+    // "everything the walk has not reached", and after a stop that is
+    // most of the folder — running the sweep would mark a working
+    // library unavailable because the user pressed a stop button. This
+    // is the concrete shape of "cancelling must leave consistent
+    // state": the safe stopping point for a scan is not merely between
+    // two files, it is *before this pass*.
     // SQLite caps bound parameters at ~999, so we update one row at a
     // time. Removed counts are normally tiny (a handful per scan); for
     // bulk wipes the loop is still acceptable since we're already
     // off the audio thread.
-    for missing_path in existing_meta.keys() {
+    let sweep: Vec<&String> = if summary.cancelled {
+        Vec::new()
+    } else {
+        existing_meta.keys().collect()
+    };
+    for missing_path in sweep {
         let res = sqlx::query(
             "UPDATE track SET is_available = 0
               WHERE folder_id = ? AND file_path = ? AND is_available = 1",

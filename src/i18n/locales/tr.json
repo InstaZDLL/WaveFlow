@@ -2524,5 +2524,23 @@
       "invalidNumber": "Yıl ile parça ve disk numaraları tam sayı olmalıdır."
     },
     "needsMirror": "Önce yukarıdaki sunucu kataloğunu kopyalayın: bu bölüm dosyalarınızı henüz boş olan yerel yansıyla karşılaştırır."
+  },
+  "tasks": {
+    "barLabel": "Süren görevler",
+    "cancel": "{{task}} durdur",
+    "stopping": "Durduruluyor…",
+    "collapse": "Daralt",
+    "more_one": "{{count}} görev daha",
+    "more_other": "{{count}} görev daha",
+    "kinds": {
+      "library_scan": "Kitaplık taraması",
+      "analysis": "Ses çözümlemesi",
+      "lyrics_prefetch": "Şarkı sözü indirme",
+      "catalogue_mirror": "Katalog yansısı",
+      "reconcile": "Eşleştirme",
+      "upload": "Yükleme",
+      "backup": "Yedekleme",
+      "thumbnails": "Küçük resimler"
+    }
   }
 }

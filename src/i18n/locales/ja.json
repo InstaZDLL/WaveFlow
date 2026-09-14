@@ -2503,5 +2503,23 @@
       "invalidNumber": "年、トラック番号、ディスク番号は整数で入力してください。"
     },
     "needsMirror": "先に上のサーバーカタログをコピーしてください。このセクションはファイルをローカルミラーと照合しますが、まだ空です。"
+  },
+  "tasks": {
+    "barLabel": "実行中のタスク",
+    "cancel": "{{task}}を停止",
+    "stopping": "停止しています…",
+    "collapse": "折りたたむ",
+    "more_one": "他 {{count}} 件",
+    "more_other": "他 {{count}} 件",
+    "kinds": {
+      "library_scan": "ライブラリのスキャン",
+      "analysis": "音声解析",
+      "lyrics_prefetch": "歌詞の先読み",
+      "catalogue_mirror": "カタログのミラー",
+      "reconcile": "照合",
+      "upload": "アップロード",
+      "backup": "バックアップ",
+      "thumbnails": "サムネイル"
+    }
   }
 }

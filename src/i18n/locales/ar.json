@@ -2782,5 +2782,27 @@
       "invalidNumber": "يجب أن تكون السنة ورقم المقطع ورقم القرص أعدادًا صحيحة."
     },
     "needsMirror": "انسخ أولًا فهرس الخادم أعلاه: يقارن هذا القسم ملفاتك بالمرآة المحلية، وهي ما تزال فارغة."
+  },
+  "tasks": {
+    "barLabel": "المهام الجارية",
+    "cancel": "إيقاف {{task}}",
+    "stopping": "جارٍ الإيقاف…",
+    "collapse": "طيّ",
+    "more_one": "مهمة {{count}} أخرى",
+    "more_other": "{{count}} مهام أخرى",
+    "kinds": {
+      "library_scan": "فحص المكتبة",
+      "analysis": "تحليل الصوت",
+      "lyrics_prefetch": "جلب كلمات الأغاني",
+      "catalogue_mirror": "مرآة الفهرس",
+      "reconcile": "المطابقة",
+      "upload": "الرفع",
+      "backup": "النسخ الاحتياطي",
+      "thumbnails": "الصور المصغّرة"
+    },
+    "more_zero": "لا مهام أخرى",
+    "more_two": "مهمتان أخريان",
+    "more_few": "{{count}} مهام أخرى",
+    "more_many": "{{count}} مهمة أخرى"
   }
 }

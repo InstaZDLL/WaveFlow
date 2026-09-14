@@ -2524,5 +2524,23 @@
       "invalidNumber": "O ano e os números de faixa e de disco precisam ser números inteiros."
     },
     "needsMirror": "Copie primeiro o catálogo do servidor, acima: esta seção compara seus arquivos com o espelho local, que ainda está vazio."
+  },
+  "tasks": {
+    "barLabel": "Tarefas em andamento",
+    "cancel": "Parar {{task}}",
+    "stopping": "Parando…",
+    "collapse": "Recolher",
+    "more_one": "Mais {{count}} tarefa",
+    "more_other": "Mais {{count}} tarefas",
+    "kinds": {
+      "library_scan": "Varredura da biblioteca",
+      "analysis": "Análise de áudio",
+      "lyrics_prefetch": "Busca de letras",
+      "catalogue_mirror": "Espelho do catálogo",
+      "reconcile": "Reconciliação",
+      "upload": "Envio",
+      "backup": "Backup",
+      "thumbnails": "Miniaturas"
+    }
   }
 }

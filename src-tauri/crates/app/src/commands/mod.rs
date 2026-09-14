@@ -52,6 +52,7 @@ pub mod smart_playlists;
 pub mod spotify;
 pub mod stats;
 pub mod storage;
+pub mod tasks;
 pub mod track;
 pub mod tray;
 pub mod updater;

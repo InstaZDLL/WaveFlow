@@ -1678,6 +1678,20 @@ async fn run_prefetch(
 ) -> AppResult<LyricsPrefetchSummary> {
     let pool = state.require_profile_pool().await?;
 
+    // Announced with an unknown total: the pending list is only built
+    // by the query below, and a row that appears in the status bar the
+    // moment the work starts is more useful than one that appears
+    // after a multi-second query with an exact count (#601). The total
+    // is filled in as soon as it is known.
+    let task = crate::tasks::start(
+        app,
+        crate::tasks::TaskKind::LyricsPrefetch,
+        0,
+        crate::tasks::cancel_fn(|| {
+            PREFETCH_CANCEL.store(true, std::sync::atomic::Ordering::SeqCst);
+        }),
+    );
+
     // Pending = available tracks without a cached lyric row, deduped by
     // `file_hash` (the cache key). We pick the lowest `track.id` per
     // hash to get a stable representative.
@@ -1727,6 +1741,10 @@ async fn run_prefetch(
         },
     );
 
+    if let Some(task) = task.as_ref() {
+        task.progress(0, total as u64);
+    }
+
     let client = LrclibClient::new();
     let mut cancelled = false;
 
@@ -1747,6 +1765,10 @@ async fn run_prefetch(
                 current_title: Some(title.clone()),
             },
         );
+        if let Some(task) = task.as_ref() {
+            task.progress(processed as u64, total as u64);
+            task.detail(title.clone());
+        }
 
         // 1. Embedded tag (free, no network).
         let path_clone = file_path.clone();

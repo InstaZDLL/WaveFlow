@@ -2524,5 +2524,23 @@
       "invalidNumber": "Het jaar en de track- en schijfnummers moeten hele getallen zijn."
     },
     "needsMirror": "Kopieer eerst de catalogus van de server hierboven: dit onderdeel vergelijkt je bestanden met de lokale spiegel, die nog leeg is."
+  },
+  "tasks": {
+    "barLabel": "Lopende taken",
+    "cancel": "{{task}} stoppen",
+    "stopping": "Bezig met stoppen…",
+    "collapse": "Inklappen",
+    "more_one": "Nog {{count}} taak",
+    "more_other": "Nog {{count}} taken",
+    "kinds": {
+      "library_scan": "Bibliotheekscan",
+      "analysis": "Audioanalyse",
+      "lyrics_prefetch": "Songteksten ophalen",
+      "catalogue_mirror": "Catalogusspiegel",
+      "reconcile": "Afstemming",
+      "upload": "Uploaden",
+      "backup": "Back-up",
+      "thumbnails": "Miniaturen"
+    }
   }
 }

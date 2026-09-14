@@ -2503,5 +2503,23 @@
       "invalidNumber": "연도와 트랙 번호, 디스크 번호는 정수여야 합니다."
     },
     "needsMirror": "먼저 위에서 서버 카탈로그를 복사하세요. 이 섹션은 파일을 로컬 미러와 비교하는데, 아직 비어 있습니다."
+  },
+  "tasks": {
+    "barLabel": "실행 중인 작업",
+    "cancel": "{{task}} 중지",
+    "stopping": "중지하는 중…",
+    "collapse": "접기",
+    "more_one": "{{count}}개 더",
+    "more_other": "{{count}}개 더",
+    "kinds": {
+      "library_scan": "라이브러리 검색",
+      "analysis": "오디오 분석",
+      "lyrics_prefetch": "가사 미리 가져오기",
+      "catalogue_mirror": "카탈로그 미러",
+      "reconcile": "대조",
+      "upload": "업로드",
+      "backup": "백업",
+      "thumbnails": "썸네일"
+    }
   }
 }

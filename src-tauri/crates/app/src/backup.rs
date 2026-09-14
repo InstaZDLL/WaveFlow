@@ -261,6 +261,13 @@ pub async fn run_one_backup(
     std::fs::create_dir_all(&folder)
         .map_err(|e| AppError::Other(format!("create backup folder: {e}")))?;
 
+    // No cancel callback: a backup writes one archive per profile and
+    // the unit of work is a whole archive, so the only honest stopping
+    // point is "after the current profile" — and with one or two
+    // profiles that is the end anyway. The status bar shows it without
+    // a button rather than a button that does nothing (#601).
+    let _task = crate::tasks::start(handle, crate::tasks::TaskKind::Backup, 0, None);
+
     // Active profile gets a WAL checkpoint so the bundled DB captures
     // every committed page. Inactive profiles are cold on disk — their
     // last checkpoint already ran at switch/shutdown.

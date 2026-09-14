@@ -2524,5 +2524,23 @@
       "invalidNumber": "The year and the track and disc numbers must be whole numbers."
     },
     "needsMirror": "Copy the server's catalogue first, above: this section compares your files against the local mirror, which is still empty."
+  },
+  "tasks": {
+    "barLabel": "Running tasks",
+    "cancel": "Stop {{task}}",
+    "stopping": "Stopping…",
+    "collapse": "Collapse",
+    "more_one": "{{count}} more task",
+    "more_other": "{{count}} more tasks",
+    "kinds": {
+      "library_scan": "Library scan",
+      "analysis": "Audio analysis",
+      "lyrics_prefetch": "Lyrics prefetch",
+      "catalogue_mirror": "Catalogue mirror",
+      "reconcile": "Reconciliation",
+      "upload": "Upload",
+      "backup": "Backup",
+      "thumbnails": "Thumbnails"
+    }
   }
 }

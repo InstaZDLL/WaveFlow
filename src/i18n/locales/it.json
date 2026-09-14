@@ -2524,5 +2524,23 @@
       "invalidNumber": "L'anno e i numeri di traccia e disco devono essere numeri interi."
     },
     "needsMirror": "Copia prima il catalogo del server, qui sopra: questa sezione confronta i tuoi file con il mirror locale, ancora vuoto."
+  },
+  "tasks": {
+    "barLabel": "Attività in corso",
+    "cancel": "Ferma {{task}}",
+    "stopping": "Arresto in corso…",
+    "collapse": "Comprimi",
+    "more_one": "{{count}} altra attività",
+    "more_other": "{{count}} altre attività",
+    "kinds": {
+      "library_scan": "Scansione della libreria",
+      "analysis": "Analisi audio",
+      "lyrics_prefetch": "Recupero dei testi",
+      "catalogue_mirror": "Mirror del catalogo",
+      "reconcile": "Riconciliazione",
+      "upload": "Caricamento",
+      "backup": "Backup",
+      "thumbnails": "Miniature"
+    }
   }
 }
