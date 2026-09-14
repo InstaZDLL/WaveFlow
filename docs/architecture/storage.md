@@ -44,6 +44,7 @@ Four things follow from that, each of which is a silent failure if skipped:
 - **The asset scope has to be widened at runtime.** See below.
 - **A missing drive falls back without forgetting.** `resolve_cache_root` drops to the default location for that session and leaves the stored choice alone, so plugging the drive back in is enough. The Settings card says so: caches reappearing at the default location is, from the user's side, indistinguishable from them having been wiped.
 - **`reset_app` has to wipe both roots.** It removes `AppPaths::root`, which stopped being the whole story here; `wipe_targets_outside_root` covers the difference.
+- **Nothing outside the app-data tree is deleted without an ownership marker.** The cache layout is a set of ordinary names — `metadata_artwork`, `motion_cache`, `profiles` — under a folder the user picked in a file dialog, so a root that already contains a `profiles/` directory would otherwise have it removed by a reset. `.waveflow-cache` at the root says WaveFlow created the tree; a folder holding one of those names *without* the marker is refused at adoption rather than silently taken over, and every recursive delete checks for it first.
 
 The startup order matters and is easy to get backwards: `app.db` lives at the *default* root, so it is opened first, and only then is the cache root read out of it. `ensure_dirs` therefore runs after that read — running it before would create the cache tree at the default location a moment before learning it belongs somewhere else.
 

@@ -2600,7 +2600,7 @@
     "more_one": "{{count}}개 더",
     "more_other": "{{count}}개 더",
     "kinds": {
-      "library_scan": "라이브러리 검색",
+      "library_scan": "라이브러리 스캔",
       "analysis": "오디오 분석",
       "lyrics_prefetch": "가사 미리 가져오기",
       "catalogue_mirror": "카탈로그 미러",

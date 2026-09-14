@@ -53,10 +53,19 @@ export function TaskStatusBar() {
     (async () => {
       try {
         // Order matters — see the component docs.
-        unlisten = await listen<TaskSnapshot[]>(TASKS_CHANGED, (event) => {
+        const off = await listen<TaskSnapshot[]>(TASKS_CHANGED, (event) => {
           eventSeen = true;
           if (!cancelled) setTasks(event.payload);
         });
+        // The component can unmount while `listen` is still in flight,
+        // and the cleanup below would then have nothing to call — the
+        // listener outlives the component that made it, for the life of
+        // the window. Detached here instead.
+        if (cancelled) {
+          off();
+          return;
+        }
+        unlisten = off;
         const initial = await listTasks();
         if (!cancelled && !eventSeen) setTasks(initial);
       } catch (err) {

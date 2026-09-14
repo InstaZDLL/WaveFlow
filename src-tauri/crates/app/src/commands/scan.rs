@@ -658,6 +658,28 @@ pub(crate) async fn scan_folder_inner(
             .flatten()
             .is_none();
 
+    // Custom tags (#588) land in `track_tag` at scan time, and every
+    // file of a library that predates the feature still matches on
+    // mtime and size — so the fast path would skip all of them and the
+    // columns would stay empty until the user happened to run a deep
+    // rescan of every folder. One forced pass per folder, marked so it
+    // never repeats, in the shape the ReplayGain backfill above already
+    // established.
+    //
+    // Unlike that one this cannot narrow to the affected rows: a track
+    // with no custom tags has no `track_tag` rows either, so "has none"
+    // and "was never read" are the same shape. The marker is the only
+    // thing that separates a first pass from a second.
+    let tag_backfill_key = format!("scan.tag_backfill_done.{folder_id}");
+    let tag_backfill_pending =
+        sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
+            .bind(&tag_backfill_key)
+            .fetch_optional(pool)
+            .await
+            .ok()
+            .flatten()
+            .is_none();
+
     let meta_load_ms = t_scan.elapsed().as_millis();
 
     let total_files = audio_files.len();
@@ -736,6 +758,7 @@ pub(crate) async fn scan_folder_inner(
                     if disk_size == stored_size
                         && disk_mtime_ms == stored_mtime
                         && !needs_rg_backfill
+                        && !tag_backfill_pending
                     {
                         summary.skipped += 1;
                         maybe_emit_progress(
@@ -1521,6 +1544,35 @@ pub(crate) async fn scan_folder_inner(
     // written off. The marker is still set when files simply turned
     // out to carry no tags: re-reading those on every future scan is
     // exactly what it exists to prevent.
+    // Marked whatever the individual files turned out to hold: the
+    // point of the pass is that every file was *read once*, and a
+    // folder of tracks that carry no custom tags must not be re-read on
+    // every future scan for the rest of the install's life.
+    //
+    // Not marked when the scan was stopped, though — a cancelled pass
+    // did not reach most of the folder, and recording it as done would
+    // leave those files without their tags permanently.
+    if tag_backfill_pending && !summary.cancelled {
+        if let Err(err) = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES (?, 'true', 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(&tag_backfill_key)
+        .bind(now_millis())
+        .execute(pool)
+        .await
+        {
+            tracing::warn!(
+                ?err,
+                folder_id,
+                key = %tag_backfill_key,
+                "could not persist the custom-tag backfill marker (non-fatal); \
+                 the next scan will run the pass again"
+            );
+        }
+    }
+
     if rg_backfill_pending && !rg_backfill_failed {
         // Non-fatal: the scan itself is already committed, and losing
         // the marker only costs one more backfill pass. But it must

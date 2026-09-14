@@ -89,6 +89,61 @@ const KEY_CACHE_PENDING: &str = "storage.cache_root_pending_cleanup";
 /// destroying a file in it is not one to take on a name collision.
 const PROBE_PREFIX: &str = ".waveflow-write-probe";
 
+/// File written at the root of a cache location WaveFlow manages.
+///
+/// The guard on every recursive delete in this module, and the reason
+/// it exists: the cache layout is a set of ordinary directory names —
+/// `metadata_artwork`, `motion_cache`, `profiles` — derived from a root
+/// the user picked in a file dialog. Pick a folder that already has a
+/// `profiles/` directory in it and, without this marker, a reset would
+/// remove it. The marker says "WaveFlow made this tree"; nothing
+/// without it is ever deleted, and a root that already holds one of our
+/// names but no marker is refused rather than adopted.
+const OWNER_MARKER: &str = ".waveflow-cache";
+
+/// Directory names the cache layout occupies directly under its root.
+const OWNED_NAMES: &[&str] = &[
+    "metadata_artwork",
+    "motion_cache",
+    "canvas_cache",
+    "profiles",
+];
+
+/// Is this a cache root WaveFlow created?
+fn is_owned(root: &Path) -> bool {
+    root.join(OWNER_MARKER).is_file()
+}
+
+/// Claim a directory as ours, or explain why it cannot be.
+///
+/// Adoptable means: already marked, or holding none of the names the
+/// layout would occupy. A folder with an unrelated `profiles/` in it is
+/// refused — not because writing there would fail, but because a later
+/// reset would delete it.
+fn claim(root: &Path) -> Result<(), String> {
+    if is_owned(root) {
+        return Ok(());
+    }
+    if let Ok(entries) = std::fs::read_dir(root) {
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if OWNED_NAMES.iter().any(|owned| name.as_ref() == *owned) {
+                return Err(format!(
+                    "{} already contains a \"{name}\" folder that WaveFlow did not create",
+                    root.display()
+                ));
+            }
+        }
+    }
+    std::fs::write(
+        root.join(OWNER_MARKER),
+        b"WaveFlow cache directory. Removing this file makes WaveFlow \
+refuse to manage or clean this folder.\n",
+    )
+    .map_err(|e| format!("cannot mark {} as a cache folder: {e}", root.display()))
+}
+
 /// What the Settings card needs to render the current state.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CacheLocation {
@@ -206,7 +261,7 @@ pub async fn resolve_cache_root(
     if configured == paths.root {
         return (paths, None);
     }
-    match is_usable(&configured) {
+    match is_usable(&configured).and_then(|()| claim(&configured)) {
         Ok(()) => (paths.with_cache_root(configured), None),
         Err(reason) => {
             tracing::warn!(
@@ -237,9 +292,9 @@ pub async fn cleanup_moved_caches(active: &AppPaths, app_db: &SqlitePool) {
     let Some(previous) = load_path(app_db, KEY_CACHE_PENDING).await else {
         return;
     };
-    if previous != active.cache_root {
+    if previous != active.cache_root && owned_for_removal(&previous, active) {
         let stale = active.clone().with_cache_root(previous);
-        for (name, dir) in cache_dirs(&stale, app_db).await {
+        for (name, dir) in cache_dirs(&stale, app_db).await.unwrap_or_default() {
             if !dir.exists() {
                 continue;
             }
@@ -257,6 +312,27 @@ pub async fn cleanup_moved_caches(active: &AppPaths, app_db: &SqlitePool) {
     if let Err(e) = store_path(app_db, KEY_CACHE_PENDING, None).await {
         tracing::warn!(%e, "could not clear the pending cache-cleanup marker");
     }
+}
+
+/// May a recursive delete run under this root?
+///
+/// Only when WaveFlow created the tree — or when the root *is* the
+/// app-data root, which WaveFlow owns by construction and where no
+/// marker is written. Every other answer is no, and the caller skips
+/// the removal rather than taking a chance with a folder it did not
+/// make.
+fn owned_for_removal(root: &Path, paths: &AppPaths) -> bool {
+    if root == paths.root {
+        return true;
+    }
+    if is_owned(root) {
+        return true;
+    }
+    tracing::warn!(
+        path = %root.display(),
+        "refusing to remove cache directories under a folder WaveFlow did not create",
+    );
+    false
 }
 
 /// Let the asset protocol read from the cache root.
@@ -348,7 +424,11 @@ async fn measure(dirs: Vec<(String, PathBuf)>) -> u64 {
 /// Built from [`AppPaths`] rather than from a second hand-written list,
 /// so a directory added to the layout cannot be left out of the move or
 /// the size reading.
-async fn cache_dirs(paths: &AppPaths, app_db: &SqlitePool) -> Vec<(String, PathBuf)> {
+/// The profile enumeration is **propagated**, not swallowed: a move
+/// that silently saw no profiles would copy the shared caches, persist
+/// the new location, and let the startup pass delete every profile's
+/// artwork from the old one — none of it ever having been copied.
+async fn cache_dirs(paths: &AppPaths, app_db: &SqlitePool) -> AppResult<Vec<(String, PathBuf)>> {
     let mut dirs: Vec<(String, PathBuf)> = paths
         .shared_cache_dirs()
         .iter()
@@ -357,8 +437,7 @@ async fn cache_dirs(paths: &AppPaths, app_db: &SqlitePool) -> Vec<(String, PathB
 
     let profile_ids: Vec<i64> = sqlx::query_scalar("SELECT id FROM profile ORDER BY id")
         .fetch_all(app_db)
-        .await
-        .unwrap_or_default();
+        .await?;
 
     for id in profile_ids {
         let rel = format!("profiles/{id}");
@@ -373,7 +452,7 @@ async fn cache_dirs(paths: &AppPaths, app_db: &SqlitePool) -> Vec<(String, PathB
             paths.profile_remote_stream_dir(id),
         ));
     }
-    dirs
+    Ok(dirs)
 }
 
 /// Copy a directory tree. Returns the number of files written.
@@ -422,7 +501,7 @@ fn is_within(inner: &Path, outer: &Path) -> bool {
 pub async fn get_cache_location(state: tauri::State<'_, AppState>) -> AppResult<CacheLocation> {
     let paths = &state.paths;
     let configured = load_cache_root(&state.app_db).await;
-    let dirs = cache_dirs(paths, &state.app_db).await;
+    let dirs = cache_dirs(paths, &state.app_db).await?;
     let size_bytes = measure(dirs).await;
 
     // A stored choice that differs from the active root has two very
@@ -471,7 +550,15 @@ pub async fn set_cache_location(
         None => paths.root.clone(),
     };
 
-    if target == paths.cache_root {
+    // Compared against the *stored* choice, not only the active root. A
+    // session that fell back is already running on the default, so
+    // "back to default" would look like a no-op and leave the setting
+    // pointing at the drive that is not there — which is the one moment
+    // the user is most likely to press it.
+    let stored_now = load_cache_root(&state.app_db).await;
+    let already_there = target == paths.cache_root
+        && stored_now.as_deref() == (target != paths.root).then_some(target.as_path());
+    if already_there {
         return get_cache_location(state).await;
     }
     // Created *before* the containment check, not after: `canonicalize`
@@ -480,6 +567,11 @@ pub async fn set_cache_location(
     // difference in case on a case-insensitive filesystem — all of
     // which would let the copy run into its own source.
     is_usable(&target).map_err(AppError::Other)?;
+    // Claimed before anything is copied into it: a folder that already
+    // holds one of the layout's names and was not made by us is refused
+    // outright, because adopting it would put a later reset in a
+    // position to delete what is there.
+    claim(&target).map_err(AppError::Other)?;
     if is_within(&target, &paths.cache_root) {
         return Err(AppError::Other(format!(
             "{} is inside the folder being moved",
@@ -488,8 +580,8 @@ pub async fn set_cache_location(
     }
 
     let moved = paths.clone().with_cache_root(target.clone());
-    let sources = cache_dirs(&paths, &state.app_db).await;
-    let destinations = cache_dirs(&moved, &state.app_db).await;
+    let sources = cache_dirs(&paths, &state.app_db).await?;
+    let destinations = cache_dirs(&moved, &state.app_db).await?;
 
     // Copy on the blocking pool: a library's worth of artwork is
     // thousands of small files, which would stall the runtime.
@@ -561,8 +653,23 @@ pub async fn wipe_targets_outside_root(state: &AppState) -> Vec<PathBuf> {
     if state.paths.cache_root == state.paths.root {
         return Vec::new();
     }
+    // The same guard the deferred cleanup uses. A reset is the most
+    // destructive path in the app, and the cache root is a folder the
+    // user picked — if WaveFlow did not create the tree, it does not
+    // get to remove it.
+    if !owned_for_removal(&state.paths.cache_root, &state.paths) {
+        return Vec::new();
+    }
+    // A failure to enumerate profiles here means the reset removes
+    // only what it could name. Logged rather than propagated: the wipe
+    // is already under way and stopping it halfway is worse than
+    // leaving a cache behind.
     cache_dirs(&state.paths, &state.app_db)
         .await
+        .unwrap_or_else(|err| {
+            tracing::warn!(%err, "could not enumerate relocated cache directories for the reset");
+            Vec::new()
+        })
         .into_iter()
         .map(|(_, path)| path)
         .collect()
