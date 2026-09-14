@@ -343,13 +343,18 @@ struct TrackRow {
     album_id: Option<i64>,
 }
 
-/// Containers the library indexes but lofty cannot tag. lofty 0.25's
-/// `FileType` carries no DSD variant, so `read_from_path` on a `.dsf` /
-/// `.dff` fails with a generic "unknown format" — accurate, but it reads
-/// as a corrupt file rather than as a format we never supported writing.
-/// DSD metadata is parsed by `waveflow_core::audio_format::dsd`, which is
-/// read-only, so there is no fallback to reach for: refusing before we
-/// touch the file is the whole of the honest answer.
+/// Containers the library indexes but nothing here can tag.
+///
+/// lofty 0.25's `FileType` carries no DSD variant, so asking it about a
+/// `.dsf` or a `.dff` fails with a generic "unknown format" — accurate,
+/// but it reads as a corrupt file rather than as a format we never
+/// supported writing. `.dsf` no longer needs lofty: its tag is a plain
+/// ID3v2 block after the audio and [`patch_dsf`] writes it (#592).
+///
+/// `.dff` stays here. It carries no ID3 by convention, its metadata
+/// lives in its own chunk structure, and some taggers append an ID3
+/// chunk anyway — so which shape to write is a real question with no
+/// obvious answer, and half an answer would be worse than a clear no.
 const UNTAGGABLE_EXTENSIONS: &[&str] = &["dff"];
 
 /// `Err` when `path` names a container this build can index but not write
