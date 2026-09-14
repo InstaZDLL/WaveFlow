@@ -269,6 +269,14 @@ impl OpusDecoder {
             )
         };
         if state.is_null() || error != opusic_sys::OPUS_OK {
+            if !state.is_null() {
+                // libopus documents a null return on failure, so this
+                // pairing should not occur — freeing it anyway keeps
+                // ownership a local rule rather than one inherited from
+                // the library's contract.
+                // SAFETY: non-null, owned, and not yet handed anywhere.
+                unsafe { opusic_sys::opus_multistream_decoder_destroy(state) };
+            }
             return decode_error(opus_message(error));
         }
 

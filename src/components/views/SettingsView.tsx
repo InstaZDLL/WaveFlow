@@ -1802,7 +1802,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       setReplayGainMode(next);
       playerSetReplayGainMode(next).catch((err) => {
         console.error("[Settings] set replaygain mode failed", err);
-        setReplayGainMode(previous); // rollback
+        // Only roll back if no newer selection superseded this one —
+        // a stale failure must not clobber a later successful click.
+        // Same rule as `handleSetDsdPrecision`.
+        setReplayGainMode((cur) => (cur === next ? previous : cur));
       });
     },
     [replayGainMode],
