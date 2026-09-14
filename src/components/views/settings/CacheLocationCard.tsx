@@ -53,7 +53,8 @@ export function CacheLocationCard({ language }: { language: string }) {
         // return null` below would otherwise make the whole row vanish
         // from Settings, which reads as the feature not existing rather
         // than as a read having failed.
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+        if (!cancelled)
+          setError(err instanceof Error ? err.message : String(err));
       }
     })();
     return () => {
@@ -61,20 +62,17 @@ export function CacheLocationCard({ language }: { language: string }) {
     };
   }, []);
 
-  const move = useCallback(
-    async (root: string | null) => {
-      setBusy(true);
-      setError(null);
-      try {
-        setLocation(await setCacheLocation(root));
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setBusy(false);
-      }
-    },
-    [],
-  );
+  const move = useCallback(async (root: string | null) => {
+    setBusy(true);
+    setError(null);
+    try {
+      setLocation(await setCacheLocation(root));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }, []);
 
   const onChoose = useCallback(async () => {
     try {
@@ -105,7 +103,10 @@ export function CacheLocationCard({ language }: { language: string }) {
             <div className="text-sm font-medium text-zinc-900 dark:text-white">
               {t("settings.cacheLocation.title")}
             </div>
-            <p className="text-xs text-red-600 dark:text-red-400 mt-1" role="alert">
+            <p
+              className="text-xs text-red-600 dark:text-red-400 mt-1"
+              role="alert"
+            >
               {error}
             </p>
           </div>
@@ -186,7 +187,11 @@ export function CacheLocationCard({ language }: { language: string }) {
           className="flex items-start gap-2 text-xs text-amber-600 dark:text-amber-400 mt-3"
           role="status"
         >
-          <AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <AlertTriangle
+            size={14}
+            className="mt-0.5 shrink-0"
+            aria-hidden="true"
+          />
           <span>
             {t("settings.cacheLocation.fellBack", {
               path: location.configured_root ?? "",
@@ -219,10 +224,7 @@ export function CacheLocationCard({ language }: { language: string }) {
       )}
 
       {error && (
-        <p
-          className="text-xs text-red-600 dark:text-red-400 mt-3"
-          role="alert"
-        >
+        <p className="text-xs text-red-600 dark:text-red-400 mt-3" role="alert">
           {error}
         </p>
       )}

@@ -23,7 +23,7 @@ const MODES: ContrastMode[] = ["auto", "normal", "high"];
  */
 export function ContrastCard() {
   const { t } = useTranslation();
-  const { mode, setMode } = useContrastMode();
+  const { mode, ready, setMode } = useContrastMode();
 
   return (
     <section aria-label={t("settings.contrast.title")} className="px-4 py-3">
@@ -46,7 +46,8 @@ export function ContrastCard() {
           <div
             role="radiogroup"
             aria-labelledby="settings-contrast-label"
-            className="mt-3 flex flex-col gap-2"
+            aria-busy={!ready}
+            className={`mt-3 flex flex-col gap-2 ${ready ? "" : "opacity-50"}`}
           >
             {MODES.map((option) => (
               <label
@@ -58,10 +59,15 @@ export function ContrastCard() {
                   name="wf-contrast"
                   value={option}
                   checked={mode === option}
+                  // Inert until the active profile's row has been read:
+                  // the hook answers with the default meanwhile, so a
+                  // click before that lands would persist a choice the
+                  // user never made over one they did.
+                  disabled={!ready}
                   onChange={() => {
                     void setMode(option);
                   }}
-                  className="mt-0.5 w-4 h-4 accent-emerald-500 cursor-pointer shrink-0"
+                  className="mt-0.5 w-4 h-4 accent-emerald-500 cursor-pointer shrink-0 disabled:cursor-default"
                 />
                 <span className="min-w-0">
                   <span className="block text-sm text-zinc-800 dark:text-zinc-200">

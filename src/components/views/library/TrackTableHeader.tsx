@@ -29,7 +29,12 @@ interface TrackTableHeaderProps {
   gridCols: string;
   sort: TrackSort | null;
   onSort: (orderBy: string) => void;
-  onResize: (id: ColumnId, width: number) => void;
+  /** Called on every pointer move and every arrow key. Renders, does
+   *  not persist. */
+  onPreview: (id: ColumnId, width: number) => void;
+  /** Called once when the gesture ends. Persists whatever the last
+   *  preview showed. */
+  onCommit: (id: ColumnId) => void;
   /** Double-click on a handle: fit the column to its content. Returns
    *  nothing — the caller measures and persists. */
   onFit: (id: ColumnId) => void;
@@ -57,13 +62,19 @@ interface TrackTableHeaderProps {
  *   widened with a pointer is a column some users cannot read. Arrow
  *   keys move the edge, `Home` fits it to its content — the same thing
  *   a double-click does.
+ * - **A drag is not persisted on every pointer move.** `onResize` writes
+ *   through `useProfileSetting`, which serializes one database write per
+ *   call — a single drag across the table would queue hundreds of them,
+ *   each one a round trip. The width in flight is local state; the
+ *   commit happens once, on release.
  */
 export function TrackTableHeader({
   layout,
   gridCols,
   sort,
   onSort,
-  onResize,
+  onPreview,
+  onCommit,
   onFit,
   leadingSpacers,
   t,
@@ -71,9 +82,11 @@ export function TrackTableHeader({
   // The drag in flight. A ref rather than state: this updates on every
   // pointer move, and re-rendering the whole header at pointer rate
   // would drop frames on a long list.
-  const drag = useRef<{ id: ColumnId; startX: number; startWidth: number } | null>(
-    null,
-  );
+  const drag = useRef<{
+    id: ColumnId;
+    startX: number;
+    startWidth: number;
+  } | null>(null);
 
   /** The column's width on screen right now.
    *
@@ -86,7 +99,11 @@ export function TrackTableHeader({
     element?.parentElement?.getBoundingClientRect().width ?? fallback;
 
   const onPointerDown = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>, id: ColumnId, width: number) => {
+    (
+      event: React.PointerEvent<HTMLDivElement>,
+      id: ColumnId,
+      width: number,
+    ) => {
       // Left button only: a right-click on a handle is a context menu,
       // and a middle-click is a paste on X11.
       if (event.button !== 0) return;
@@ -112,26 +129,38 @@ export function TrackTableHeader({
       const spec = specFor(current.id);
       const next = Math.min(
         MAX_COLUMN_WIDTH,
-        Math.max(spec.minWidth, current.startWidth + (event.clientX - current.startX)),
+        Math.max(
+          spec.minWidth,
+          current.startWidth + (event.clientX - current.startX),
+        ),
       );
-      onResize(current.id, next);
+      // Not persisted: the parent renders this immediately, and the
+      // write happens once on release.
+      onPreview(current.id, next);
     },
-    [onResize],
+    [onPreview],
   );
 
   const endDrag = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       if (!drag.current) return;
+      const finished = drag.current;
       drag.current = null;
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
+      // The one write of the whole gesture.
+      onCommit(finished.id);
     },
-    [],
+    [onCommit],
   );
 
   const onKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>, id: ColumnId, width: number) => {
+    (
+      event: React.KeyboardEvent<HTMLDivElement>,
+      id: ColumnId,
+      width: number,
+    ) => {
       const spec = specFor(id);
       // Same reason as the drag: an arrow key on a flexible column has
       // to move from where it is, not from where its default says.
@@ -158,12 +187,15 @@ export function TrackTableHeader({
       // Only once a key is actually handled: leaving this at the top
       // would swallow Tab and trap focus on the handle.
       event.preventDefault();
-      onResize(
-        id,
-        Math.min(MAX_COLUMN_WIDTH, Math.max(spec.minWidth, next)),
-      );
+      const clamped = Math.min(MAX_COLUMN_WIDTH, Math.max(spec.minWidth, next));
+      // One keypress is one complete gesture, so it previews and
+      // commits in the same breath. Holding a key repeats it, which
+      // `useProfileSetting` serializes — at key-repeat rate, not at
+      // pointer rate.
+      onPreview(id, clamped);
+      onCommit(id);
     },
-    [onFit, onResize],
+    [onCommit, onFit, onPreview],
   );
 
   return (
@@ -182,8 +214,12 @@ export function TrackTableHeader({
       {layout.order.map((id) => {
         const spec = specFor(id);
         const tag = tagKeyOf(id);
-        const label = tag !== null ? tag : t(`library.columns.${spec.labelKey}`);
+        const label =
+          tag !== null ? tag : t(`library.columns.${spec.labelKey}`);
         const active = sort && spec.sortKey === sort.orderBy;
+        // `layout` already carries the width in flight: the parent
+        // merges it in before building the grid, so the header, the
+        // rows and this handle all read the same number.
         const width = layout.widths[id] ?? spec.defaultWidth;
         const justify =
           spec.align === "right"

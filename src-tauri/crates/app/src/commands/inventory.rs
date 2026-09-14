@@ -81,7 +81,14 @@ fn where_for(key: &str) -> Option<&'static str> {
         // Year `0` is what several taggers write for "unknown", so it is
         // missing rather than a date.
         "missing_year" => "AND source = 'local' AND (year IS NULL OR year = 0)",
-        "missing_track_number" => "AND source = 'local' AND track_number IS NULL",
+        // `<= 0` and not only NULL: several taggers write `0` for
+        // "unknown", the same convention the year check above already
+        // allows for. The album-level checks below exclude those too,
+        // or a disc full of zeroes would read as a pile of duplicates
+        // and a gap spanning the whole numbering.
+        "missing_track_number" => {
+            "AND source = 'local' AND (track_number IS NULL OR track_number <= 0)"
+        }
         "missing_cover" => "AND source = 'local' AND artwork_hash IS NULL",
         // Formats we cannot write tags into. Somebody deciding how to
         // fix their library deserves to know which files they cannot fix
@@ -113,7 +120,7 @@ fn where_for(key: &str) -> Option<&'static str> {
         "duplicate_track_number" => {
             "AND source = 'local' AND CAST(id AS INTEGER) IN (
                  SELECT t.id FROM track t
-                  WHERE t.album_id IS NOT NULL AND t.track_number IS NOT NULL
+                  WHERE t.album_id IS NOT NULL AND t.track_number > 0
                     AND t.is_available = 1
                     AND EXISTS (
                         SELECT 1 FROM track o
@@ -146,11 +153,11 @@ fn where_for(key: &str) -> Option<&'static str> {
         "track_number_gap" => {
             "AND source = 'local' AND CAST(id AS INTEGER) IN (
                  SELECT t.id FROM track t
-                  WHERE t.album_id IS NOT NULL AND t.track_number IS NOT NULL
+                  WHERE t.album_id IS NOT NULL AND t.track_number > 0
                     AND t.is_available = 1
                     AND (t.album_id, COALESCE(t.disc_number, 1)) IN (
                         SELECT album_id, COALESCE(disc_number, 1) FROM track
-                         WHERE album_id IS NOT NULL AND track_number IS NOT NULL
+                         WHERE album_id IS NOT NULL AND track_number > 0
                            AND is_available = 1
                          GROUP BY album_id, COALESCE(disc_number, 1)
                         HAVING MAX(track_number) - MIN(track_number) + 1

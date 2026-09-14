@@ -391,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "Tidak ada apa pun dari sumber ini. Ganti sumber di atas, atau salin katalog server dari pengaturan."
+      },
+      "a-corriger": {
+        "title": "Tidak ada yang perlu diperbaiki",
+        "description": "Pustaka Anda tidak menunjukkan masalah yang bisa kami deteksi."
       }
     },
     "actions": {

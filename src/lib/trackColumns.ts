@@ -269,9 +269,7 @@ export function specFor(id: ColumnId): ColumnSpec {
       minWidth: 72,
     };
   }
-  return (
-    BUILTIN_COLUMNS[id as BuiltinColumnId] ?? BUILTIN_COLUMNS.title
-  );
+  return BUILTIN_COLUMNS[id as BuiltinColumnId] ?? BUILTIN_COLUMNS.title;
 }
 
 /**

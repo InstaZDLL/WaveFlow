@@ -391,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "Nada de esta fuente. Cambia de fuente arriba o copia el catálogo del servidor desde los ajustes."
+      },
+      "a-corriger": {
+        "title": "Nada que corregir",
+        "description": "Tu biblioteca no presenta ningún problema detectable."
       }
     },
     "actions": {

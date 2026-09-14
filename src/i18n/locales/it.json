@@ -391,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "Nulla da questa sorgente. Cambia sorgente qui sopra o copia il catalogo del server dalle impostazioni."
+      },
+      "a-corriger": {
+        "title": "Niente da correggere",
+        "description": "La tua libreria non presenta problemi rilevabili."
       }
     },
     "actions": {

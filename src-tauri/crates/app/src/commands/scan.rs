@@ -1581,7 +1581,11 @@ pub(crate) async fn scan_folder_inner(
         }
     }
 
-    if rg_backfill_pending && !rg_backfill_failed {
+    // `!summary.cancelled` since the scan became interruptible (#601):
+    // a stopped pass never reached most of the folder, and recording
+    // the backfill as done would leave those files without their
+    // ReplayGain columns permanently — the pass only ever runs once.
+    if rg_backfill_pending && !rg_backfill_failed && !summary.cancelled {
         // Non-fatal: the scan itself is already committed, and losing
         // the marker only costs one more backfill pass. But it must
         // not be lost silently — an unwritable marker makes every

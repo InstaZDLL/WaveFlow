@@ -391,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "Aucun résultat pour cette source. Changez de source ci-dessus, ou recopiez le catalogue du serveur depuis les réglages."
+      },
+      "a-corriger": {
+        "title": "Rien à corriger",
+        "description": "Votre bibliothèque ne présente aucun problème détectable."
       }
     },
     "actions": {

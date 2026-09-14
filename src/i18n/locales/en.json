@@ -391,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "Nothing from this source. Switch source above, or copy the server's catalogue from the settings."
+      },
+      "a-corriger": {
+        "title": "Nothing to fix",
+        "description": "Your library shows no problem we can detect."
       }
     },
     "actions": {

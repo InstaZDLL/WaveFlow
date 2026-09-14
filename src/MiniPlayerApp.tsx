@@ -34,11 +34,11 @@ export function MiniPlayerApp() {
             attribute is not shared. Someone who needs high contrast
             needs it in both windows. */}
         <ContrastProvider>
-        <SpotifyProvider>
-          <PlayerProvider>
-            <MiniPlayer />
-          </PlayerProvider>
-        </SpotifyProvider>
+          <SpotifyProvider>
+            <PlayerProvider>
+              <MiniPlayer />
+            </PlayerProvider>
+          </SpotifyProvider>
         </ContrastProvider>
       </ThemeProvider>
     </ProfileProvider>

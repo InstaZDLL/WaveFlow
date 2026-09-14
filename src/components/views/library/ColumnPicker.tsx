@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   ChevronDown,
@@ -54,12 +54,24 @@ export function ColumnPicker({
     null,
   );
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const dragFrom = useRef<number | null>(null);
+
+  /** Close, and put focus back where it came from.
+   *
+   *  Every close goes through here — Escape, a click outside, a scroll.
+   *  Without it a keyboard user who opens the picker and presses Escape
+   *  loses focus to the document body and has to tab from the top of
+   *  the page to get back. */
+  const close = useCallback(() => {
+    setOpen(false);
+    buttonRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") close();
     };
     // The popover is `fixed` and anchored to where the button was when
     // it opened. Scrolling the page or resizing the window moves the
@@ -96,6 +108,17 @@ export function ColumnPicker({
       document.removeEventListener("scroll", onReflow, true);
       window.removeEventListener("resize", onReflow);
     };
+  }, [open, close]);
+
+  // Entering the dialog on open. Without it the picker is unreachable
+  // from the keyboard: the button opens a portalled panel that sits at
+  // the end of the document, so Tab would walk the whole page first.
+  useEffect(() => {
+    if (!open) return;
+    const first = dialogRef.current?.querySelector<HTMLElement>(
+      "input, button, [tabindex]:not([tabindex='-1'])",
+    );
+    (first ?? dialogRef.current)?.focus();
   }, [open]);
 
   const toggleOpen = () => {
@@ -137,8 +160,11 @@ export function ColumnPicker({
         anchor &&
         createPortal(
           <div
+            ref={dialogRef}
             data-column-picker
             role="dialog"
+            aria-modal="false"
+            tabIndex={-1}
             aria-label={t("library.columns.choose")}
             style={{ top: anchor.top, right: anchor.right }}
             className="fixed z-100 w-72 max-h-[70vh] overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-2xl p-3 space-y-3"

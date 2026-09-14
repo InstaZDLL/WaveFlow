@@ -391,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "Nada desta origem. Mude de origem acima ou copie o catálogo do servidor nas definições."
+      },
+      "a-corriger": {
+        "title": "Nada a corrigir",
+        "description": "A sua biblioteca não apresenta problemas detetáveis."
       }
     },
     "actions": {

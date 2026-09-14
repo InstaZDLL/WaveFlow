@@ -391,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "Bu kaynakta bir şey yok. Yukarıdan kaynağı değiştirin ya da ayarlardan sunucu kataloğunu kopyalayın."
+      },
+      "a-corriger": {
+        "title": "Düzeltilecek bir şey yok",
+        "description": "Kitaplığınızda saptanabilir bir sorun yok."
       }
     },
     "actions": {

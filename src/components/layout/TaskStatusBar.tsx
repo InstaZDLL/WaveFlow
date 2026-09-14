@@ -200,7 +200,9 @@ function TaskRow({
           disabled={task.cancelling}
           aria-label={t("tasks.cancel", { task: label })}
           title={
-            task.cancelling ? t("tasks.stopping") : t("tasks.cancel", { task: label })
+            task.cancelling
+              ? t("tasks.stopping")
+              : t("tasks.cancel", { task: label })
           }
           className="shrink-0 p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200 disabled:opacity-40 disabled:hover:bg-transparent dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
         >

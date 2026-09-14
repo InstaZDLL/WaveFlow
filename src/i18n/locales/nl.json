@@ -391,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "Niets uit deze bron. Wissel hierboven van bron of kopieer de servercatalogus via de instellingen."
+      },
+      "a-corriger": {
+        "title": "Niets te verbeteren",
+        "description": "In je bibliotheek is geen detecteerbaar probleem."
       }
     },
     "actions": {

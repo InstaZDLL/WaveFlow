@@ -391,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "該來源沒有內容。請在上方切換來源，或在設定中複製伺服器曲庫。"
+      },
+      "a-corriger": {
+        "title": "沒有需要修正的地方",
+        "description": "音樂庫中沒有可偵測到的問題。"
       }
     },
     "actions": {

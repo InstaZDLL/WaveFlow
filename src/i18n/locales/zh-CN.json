@@ -391,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "该来源没有内容。请在上方切换来源，或在设置中复制服务器曲库。"
+      },
+      "a-corriger": {
+        "title": "没有需要修正的地方",
+        "description": "媒体库中没有可检测到的问题。"
       }
     },
     "actions": {

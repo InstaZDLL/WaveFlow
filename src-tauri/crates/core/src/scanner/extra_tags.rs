@@ -151,7 +151,13 @@ fn read_inner(path: &Path) -> Option<Vec<(String, String)>> {
         .ok()?
         .file_type()?;
     let mut handle = std::fs::File::open(path).ok()?;
-    let options = ParseOptions::new();
+    // Tags only. This is a *second* parse of every file in the scan's
+    // hot path, and the first one already read the properties and
+    // lifted the cover art — doing either again would double the one
+    // cost this feature adds for nothing.
+    let options = ParseOptions::new()
+        .read_properties(false)
+        .read_cover_art(false);
     let mut out = Vec::new();
 
     match file_type {
@@ -174,6 +180,24 @@ fn read_inner(path: &Path) -> Option<Vec<(String, String)>> {
         FileType::Wav => {
             let file = lofty::iff::wav::WavFile::read_from(&mut handle, options).ok()?;
             id3v2_into(file.id3v2(), &mut out);
+            // A WAV's native tag is its RIFF INFO chunk; the ID3v2 one
+            // is the bolt-on. Read second so an ID3v2 value wins a
+            // collision, matching the MP3 branch.
+            //
+            // Iterated directly rather than through `split_tag`: RIFF
+            // INFO's remainder is a unit struct, so the split throws
+            // away every key lofty cannot map — which is exactly the
+            // set this function exists to find.
+            if let Some(riff) = file.riff_info() {
+                for (key, value) in riff {
+                    let modelled =
+                        lofty::tag::ItemKey::from_key(lofty::tag::TagType::RiffInfo, key)
+                            .is_some_and(is_modelled);
+                    if !modelled {
+                        keep(&mut out, &key.to_ascii_uppercase(), value);
+                    }
+                }
+            }
         }
         // Vorbis comments: the key is the comment name, so anything
         // non-standard is already in the shape we want.

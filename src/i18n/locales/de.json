@@ -391,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "Nichts aus dieser Quelle. Wechsle oben die Quelle oder kopiere den Server-Katalog in den Einstellungen."
+      },
+      "a-corriger": {
+        "title": "Nichts zu korrigieren",
+        "description": "In Ihrer Bibliothek ist kein erkennbares Problem."
       }
     },
     "actions": {
