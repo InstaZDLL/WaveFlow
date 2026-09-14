@@ -900,6 +900,12 @@ pub(crate) async fn scan_folder_inner(
     // its empty ReplayGain columns for good.
     let mut rg_backfill_failed = false;
 
+    // Same idea for the custom-tag pass: a file it was meant to read
+    // but could not must stop the marker being written, or that track
+    // keeps empty columns for the life of the install — the pass never
+    // runs twice.
+    let mut tag_backfill_failed = false;
+
     while let Some((path, result)) = extraction_stream.next().await {
         if cancelled() {
             summary.cancelled = true;
@@ -916,6 +922,7 @@ pub(crate) async fn scan_folder_inner(
                 if rg_backfill_pending && rg_missing.contains(path.to_string_lossy().as_ref()) {
                     rg_backfill_failed = true;
                 }
+                tag_backfill_failed = true;
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -925,6 +932,7 @@ pub(crate) async fn scan_folder_inner(
                 if rg_backfill_pending && rg_missing.contains(path.to_string_lossy().as_ref()) {
                     rg_backfill_failed = true;
                 }
+                tag_backfill_failed = true;
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -1552,7 +1560,7 @@ pub(crate) async fn scan_folder_inner(
     // Not marked when the scan was stopped, though — a cancelled pass
     // did not reach most of the folder, and recording it as done would
     // leave those files without their tags permanently.
-    if tag_backfill_pending && !summary.cancelled {
+    if tag_backfill_pending && !summary.cancelled && !tag_backfill_failed {
         if let Err(err) = sqlx::query(
             "INSERT INTO profile_setting (key, value, value_type, updated_at)
              VALUES (?, 'true', 'bool', ?)

@@ -98,8 +98,12 @@ export function measureText(
   if (!c) return null;
   c.font = style.font;
   const drawn = applyTransform(text, style);
-  // Letter-spacing applies after every character, the last one
-  // included, which is what the layout engine does too.
+  // Every character, the last one included — not `n - 1` gaps. CSS
+  // letter-spacing is specified as space added *after* each character,
+  // and Chromium and WebKit both include the trailing one in the
+  // element's content width. Measuring `n - 1` would come out narrower
+  // than the box the browser actually lays out, and a column fitted
+  // from it would truncate by exactly that much.
   return c.measureText(drawn).width + drawn.length * style.letterSpacing;
 }
 

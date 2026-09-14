@@ -77,8 +77,15 @@ export function CacheLocationCard({ language }: { language: string }) {
   );
 
   const onChoose = useCallback(async () => {
-    const picked = await pickFolder(t("settings.cacheLocation.pickTitle"));
-    if (picked) await move(picked);
+    try {
+      const picked = await pickFolder(t("settings.cacheLocation.pickTitle"));
+      if (picked) await move(picked);
+    } catch (err) {
+      // The native picker can fail outright — no portal on a headless
+      // Linux session, a denied permission on macOS. Silently doing
+      // nothing reads as a dead button.
+      setError(err instanceof Error ? err.message : String(err));
+    }
   }, [move, t]);
 
   if (!location) {

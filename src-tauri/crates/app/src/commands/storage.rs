@@ -581,7 +581,14 @@ pub async fn set_cache_location(
 
     let moved = paths.clone().with_cache_root(target.clone());
     let sources = cache_dirs(&paths, &state.app_db).await?;
-    let destinations = cache_dirs(&moved, &state.app_db).await?;
+    // Derived from the sources by their relative name, not read a
+    // second time: a profile created or deleted between two calls would
+    // shift one list against the other, and the `zip` below would then
+    // copy one profile's artwork into another's directory.
+    let destinations: Vec<(String, PathBuf)> = sources
+        .iter()
+        .map(|(name, _)| (name.clone(), target.join(name)))
+        .collect();
 
     // Copy on the blocking pool: a library's worth of artwork is
     // thousands of small files, which would stall the runtime.

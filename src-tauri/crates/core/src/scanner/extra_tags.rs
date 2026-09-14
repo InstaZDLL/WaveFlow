@@ -192,7 +192,13 @@ fn vorbis_into(tag: Option<&lofty::ogg::tag::VorbisComments>, out: &mut Vec<(Str
     let Some(tag) = tag else { return };
     let (remainder, _) = tag.clone().split_tag();
     for (key, value) in remainder.items() {
-        keep(out, key, value);
+        // Vorbis comment names are case-insensitive by spec, so
+        // `SOURCE` and `source` are one field — and a file written by
+        // two taggers routinely carries both spellings. Upper-cased
+        // here and not in `keep`, which also serves ID3v2, where a
+        // `TXXX` description *is* case-sensitive and folding it would
+        // merge two genuinely different frames.
+        keep(out, &key.to_ascii_uppercase(), value);
     }
 }
 

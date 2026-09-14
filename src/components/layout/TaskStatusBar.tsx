@@ -182,7 +182,9 @@ function TaskRow({
           <div
             className={
               determinate
-                ? "h-full bg-emerald-500 transition-[width] duration-300"
+                ? `h-full bg-emerald-500 ${
+                    reducedMotion ? "" : "transition-[width] duration-300"
+                  }`
                 : `h-full w-1/3 bg-emerald-500 ${
                     reducedMotion ? "opacity-70" : "animate-pulse"
                   }`

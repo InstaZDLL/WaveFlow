@@ -303,6 +303,25 @@ pub async fn delete_profile(state: tauri::State<'_, AppState>, profile_id: i64) 
     .execute(&state.app_db)
     .await?;
 
+    // The caches can live outside the app-data tree since #619, and
+    // `profile_dir` no longer covers them. Removed first and
+    // best-effort: a deleted profile's artwork left on another drive is
+    // exactly the disk usage the user moved it there to control.
+    let cache_dir = state.paths.profile_cache_dir(profile_id);
+    if cache_dir != state.paths.profile_dir(profile_id) && cache_dir.exists() {
+        let for_blocking = cache_dir.clone();
+        if let Err(err) =
+            tokio::task::spawn_blocking(move || std::fs::remove_dir_all(&for_blocking)).await
+        {
+            tracing::warn!(
+                profile_id,
+                path = %cache_dir.display(),
+                %err,
+                "removing the profile's relocated cache directory failed"
+            );
+        }
+    }
+
     let dir = state.paths.profile_dir(profile_id);
     if dir.exists() {
         // `remove_dir_all` walks the tree synchronously — on a profile

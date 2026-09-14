@@ -576,6 +576,9 @@ export function LibraryView({
     inventoryCategory,
     tracksSort.sort,
     tracksSort.isLoaded,
+    // A rescan changes what a category holds, and the open category is
+    // the one the user is looking at while it runs.
+    librariesSignature,
     editRefetch,
   ]);
 
