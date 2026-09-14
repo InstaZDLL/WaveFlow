@@ -16,9 +16,8 @@ export const CONTRAST_EVENT = "waveflow:contrast";
 export interface ContrastPreference {
   mode: ContrastMode;
   /** `false` until the stored choice has been read for the active
-   *  profile. Nothing gates on it today — the attribute is already
-   *  correct from the bootstrap cache — but a consumer that renders
-   *  different copy per mode would need it. */
+   *  profile. Until then the attribute belongs to the bootstrap, which
+   *  already stamped the cached choice — see the effect below. */
   ready: boolean;
   setMode: (next: ContrastMode) => Promise<void>;
 }
@@ -52,15 +51,29 @@ export function useContrastMode(): ContrastPreference {
   // value comes back from the database and the one a profile switch
   // brings. The bootstrap already stamped the previous profile's cached
   // choice, so this is what corrects it.
+  //
+  // Gated on `ready`, and that gate is the whole point: before the read
+  // lands, `value` is the *default*, `auto`. Painting it would resolve
+  // against the OS and write `normal` over the `high` the bootstrap
+  // just stamped — a flash of ordinary contrast on every launch, for
+  // the one user who asked for the opposite, which is precisely the
+  // flicker the bootstrap exists to prevent.
+  //
+  // The cache is written from here rather than from `setMode`, so it
+  // only ever holds a value React is actually showing: a write that
+  // fails is rolled back by `useProfileSetting`, this effect re-runs
+  // with the restored value, and the cache follows it back.
   useEffect(() => {
+    if (!ready) return;
     applyContrast(value);
-  }, [value]);
+    writeCachedContrast(value);
+  }, [ready, value]);
 
   // In `auto`, the OS is the input and it can change while the app is
   // running. Bound only in that mode, so an explicit choice carries no
   // listener at all.
   useEffect(() => {
-    if (value !== "auto") return;
+    if (!ready || value !== "auto") return;
     if (typeof window === "undefined" || !window.matchMedia) return;
     let query: MediaQueryList;
     try {
@@ -71,15 +84,16 @@ export function useContrastMode(): ContrastPreference {
     const onChange = () => applyContrast("auto");
     query.addEventListener("change", onChange);
     return () => query.removeEventListener("change", onChange);
-  }, [value]);
+  }, [ready, value]);
 
   const setMode = useCallback(
     async (next: ContrastMode) => {
-      // Cache and paint before the write: the visual answer to a click
-      // on an accessibility control should not wait on a database round
-      // trip, and a failed write rolls the value back through
-      // `useProfileSetting`, which re-runs the effect above.
-      writeCachedContrast(next);
+      // Painted before the write: the visual answer to a click on an
+      // accessibility control should not wait on a database round trip.
+      // The cache is left to the effect above, which runs on the same
+      // optimistic state change and, on a failed write, runs again on
+      // the rollback — so what is persisted for the next launch can
+      // never outlive what the user is looking at.
       applyContrast(next);
       await setValue(next);
     },

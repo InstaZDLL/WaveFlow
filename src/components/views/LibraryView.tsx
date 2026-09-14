@@ -336,6 +336,16 @@ export function LibraryView({
     id: ColumnId;
     width: number;
   } | null>(null);
+  // The same value again, in a ref, and both spellings are needed.
+  //
+  // The state is what the table renders from. The ref is what the
+  // commit reads, because neither of the other two ways of reading it
+  // works: a functional updater would put a database write inside an
+  // updater React is free to replay, and the render closure would be a
+  // tick behind for the keyboard, which previews and commits back to
+  // back with no render in between -- an arrow key would persist the
+  // width before the one it just asked for.
+  const columnPreviewRef = useRef<{ id: ColumnId; width: number } | null>(null);
   // The layout as it looks right now, preview included. Everything that
   // lays the table out reads this, so the header, the rows and the
   // resize handle cannot disagree mid-drag.
@@ -454,7 +464,12 @@ export function LibraryView({
   // Bumped when a tag edit elsewhere fires `track:updated` so the
   // active tab re-fetches and shows the new metadata.
   const [editRefetch, setEditRefetch] = useState(0);
-  useTrackUpdated(useCallback(() => setEditRefetch((k) => k + 1), []));
+  // `setEditRefetch` is listed even though a state setter is stable:
+  // the React Compiler infers it as a dependency, and a manual list
+  // that does not match makes it skip optimizing the whole component.
+  useTrackUpdated(
+    useCallback(() => setEditRefetch((k) => k + 1), [setEditRefetch]),
+  );
   const clearSelection = selection.clear;
   // Also on `folderPath`: a selection is a set of track ids, and the
   // action bar it feeds would otherwise act on tracks the user can no
@@ -571,6 +586,22 @@ export function LibraryView({
       cancelled = true;
     };
   }, [activeTab, librariesSignature, editRefetch]);
+
+  // Fixing the last track in a category is the success case, and it is
+  // the one that leaves the view wrong: the counts come back with that
+  // category at zero, `InventoryCategories` greys its button out, and
+  // the table underneath stays mounted on an empty list under a chip
+  // that can no longer be clicked to close it. So an emptied category
+  // closes itself, which puts the user back on the overview -- where
+  // the count they just drove to zero is the thing worth seeing.
+  useEffect(() => {
+    if (inventoryCategory == null) return;
+    const open = inventory.find((c) => c.key === inventoryCategory);
+    if (open && open.count > 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setInventoryCategory(null);
+    setInventoryRows([]);
+  }, [inventory, inventoryCategory]);
 
   // Opening a category. Guarded on the key rather than on a request
   // token: a second click on the same category is a no-op, and a click
@@ -1118,14 +1149,17 @@ export function LibraryView({
               : "asc",
         })
       }
-      onPreviewColumn={(id, width) => setColumnPreview({ id, width })}
+      onPreviewColumn={(id, width) => {
+        columnPreviewRef.current = { id, width };
+        setColumnPreview({ id, width });
+      }}
       onCommitColumn={(id) => {
-        setColumnPreview((current) => {
-          if (current && current.id === id) {
-            void trackColumns.setWidth(id, current.width);
-          }
-          return null;
-        });
+        const current = columnPreviewRef.current;
+        columnPreviewRef.current = null;
+        if (current && current.id === id) {
+          void trackColumns.setWidth(id, current.width);
+        }
+        setColumnPreview(null);
       }}
       tagValues={tagValues}
       onPlayTrack={(index) => onPlayRow(index)}

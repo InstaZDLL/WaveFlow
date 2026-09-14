@@ -259,6 +259,9 @@ export function tagKeyOf(id: ColumnId): string | null {
  * a side table the listing query does not join, so offering a sort that
  * the backend would silently ignore is worse than offering none.
  */
+const hasOwn = (target: object, key: string) =>
+  Object.prototype.hasOwnProperty.call(target, key);
+
 export function specFor(id: ColumnId): ColumnSpec {
   const tag = tagKeyOf(id);
   if (tag !== null) {
@@ -269,7 +272,15 @@ export function specFor(id: ColumnId): ColumnSpec {
       minWidth: 72,
     };
   }
-  return BUILTIN_COLUMNS[id as BuiltinColumnId] ?? BUILTIN_COLUMNS.title;
+  // An own-property test, not `in` and not a bare lookup: the ids come
+  // from a stored JSON preference, and `"toString"` reaches
+  // `Object.prototype` — which answers with a *function*, so `??` never
+  // fires and the caller goes on to read `undefined` off
+  // `spec.minWidth`. Spelt through `call` rather than `Object.hasOwn`,
+  // which is ES2022 and the project targets ES2020.
+  return hasOwn(BUILTIN_COLUMNS, id)
+    ? BUILTIN_COLUMNS[id as BuiltinColumnId]
+    : BUILTIN_COLUMNS.title;
 }
 
 /**
@@ -287,7 +298,7 @@ export function sanitizeLayout(layout: ColumnLayout | null): ColumnLayout {
   const order = layout.order.filter((id) => {
     if (typeof id !== "string" || seen.has(id)) return false;
     seen.add(id);
-    return tagKeyOf(id) !== null || id in BUILTIN_COLUMNS;
+    return tagKeyOf(id) !== null || hasOwn(BUILTIN_COLUMNS, id);
   });
   if (!order.includes("title")) order.unshift("title");
   return {

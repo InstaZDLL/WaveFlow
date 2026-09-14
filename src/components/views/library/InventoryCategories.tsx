@@ -71,7 +71,7 @@ export function InventoryCategories({
         {Array.from({ length: 6 }, (_, i) => (
           <div
             key={i}
-            className="h-16 rounded-xl bg-zinc-100 dark:bg-zinc-800/50 animate-pulse"
+            className="h-16 rounded-xl bg-zinc-100 dark:bg-zinc-800/50 motion-safe:animate-pulse"
           />
         ))}
       </div>

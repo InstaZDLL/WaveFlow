@@ -146,6 +146,9 @@ struct TaskEntry {
     total: u64,
     cancel: Cancellation,
     cancelling: bool,
+    /// True until this task's [`TaskHandle`] is dropped. See
+    /// [`TaskRegistry::cancel`] for why a bool needs a mutex of its own.
+    live: Arc<Mutex<bool>>,
 }
 
 impl TaskEntry {
@@ -212,6 +215,7 @@ impl TaskRegistry {
     /// `cancel` says how this task stops — see [`Cancellation`].
     pub fn start(self: &Arc<Self>, kind: TaskKind, total: u64, cancel: Cancellation) -> TaskHandle {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
+        let live = Arc::new(Mutex::new(true));
         {
             let mut inner = self.lock();
             inner.entries.insert(
@@ -223,6 +227,7 @@ impl TaskRegistry {
                     total,
                     cancel,
                     cancelling: false,
+                    live: Arc::clone(&live),
                 },
             );
             inner.order.push(id);
@@ -230,6 +235,7 @@ impl TaskRegistry {
         self.emit_now();
         TaskHandle {
             id,
+            live,
             registry: Arc::clone(self),
         }
     }
@@ -249,7 +255,7 @@ impl TaskRegistry {
     /// cancelling answers `false`: the callback has been called, and
     /// calling it again cannot make the task stop sooner.
     pub fn cancel(&self, id: u64) -> bool {
-        let callback = {
+        let found = {
             let mut inner = self.lock();
             let Some(entry) = inner.entries.get_mut(&id) else {
                 return false;
@@ -265,13 +271,27 @@ impl TaskRegistry {
                 Cancellation::Callback(f) => Some(Arc::clone(f)),
             };
             entry.cancelling = true;
-            callback
+            callback.map(|callback| (callback, Arc::clone(&entry.live)))
         };
-        // Outside the lock: a callback flips an atomic today, but
-        // holding the registry's mutex across arbitrary user code is
-        // how a deadlock gets built one honest refactor at a time.
-        if let Some(callback) = callback {
-            callback();
+        // Outside the registry's lock: a callback flips an atomic today,
+        // but holding that mutex across arbitrary user code is how a
+        // deadlock gets built one honest refactor at a time.
+        //
+        // Under the task's *own* lock, though, and only while the task
+        // is still live. The stopping flags these callbacks set are
+        // process-wide statics shared by every run of their operation
+        // (`ANALYSIS_CANCEL`, `PREFETCH_CANCEL`), and each run clears
+        // its flag on the way in. Without this gate, a callback picked
+        // up here could fire after the run it belongs to had finished
+        // and a *new* one had started — stopping a fresh analysis the
+        // user never asked to stop. `Drop` takes this same lock to
+        // clear the flag, and neither side ever holds both mutexes at
+        // once, so the two can only order, not deadlock.
+        if let Some((callback, live)) = found {
+            let live = live.lock().unwrap_or_else(|e| e.into_inner());
+            if *live {
+                callback();
+            }
         }
         self.emit_now();
         true
@@ -323,6 +343,10 @@ impl TaskRegistry {
 /// Keeps one task's row alive. Dropping it retires the row.
 pub struct TaskHandle {
     id: u64,
+    /// Set to `false` before the row is retired, so a cancellation that
+    /// is already on its way cannot land on the next run. See
+    /// [`TaskRegistry::cancel`].
+    live: Arc<Mutex<bool>>,
     registry: Arc<TaskRegistry>,
 }
 
@@ -376,6 +400,13 @@ impl TaskHandle {
 
 impl Drop for TaskHandle {
     fn drop(&mut self) {
+        // Before the row goes, and in its own scope: the guard must be
+        // released before `finish` takes the registry's lock, or the two
+        // orders would close a cycle with `cancel`.
+        {
+            let mut live = self.live.lock().unwrap_or_else(|e| e.into_inner());
+            *live = false;
+        }
         self.registry.finish(self.id);
     }
 }
@@ -432,6 +463,7 @@ mod tests {
                     total: 0,
                     cancel: Cancellation::Flag,
                     cancelling: false,
+                    live: Arc::new(Mutex::new(true)),
                 },
             );
             inner.order.push(id);

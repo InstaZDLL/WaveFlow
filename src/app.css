@@ -675,3 +675,21 @@
 :root[data-contrast="high"] .wf-glass {
   background-color: var(--wf-contrast-surface);
 }
+
+/* The mini-player window paints itself with a gradient sampled from the
+   current cover, which is the one surface in the app whose contrast is
+   decided by the user's music rather than by us: a bright album puts
+   white text on a bright ground. In high contrast it becomes a flat
+   dark panel.
+
+   `!important` and `background-image` both: the gradient is an inline
+   style, which no ordinary rule can outrank, and it is written with the
+   `background` shorthand -- so a background-color alone would sit
+   behind an image that is still there. Dark rather than
+   `--wf-contrast-surface`, because everything in that window is
+   `text-white`; the light value of that token would be the same defect
+   with the colours swapped. */
+:root[data-contrast="high"] .wf-mini-player-surface {
+  background-image: none !important;
+  background-color: var(--color-surface-dark) !important;
+}

@@ -109,7 +109,25 @@ fn keep(out: &mut Vec<(String, String)>, key: &str, value: &str) {
     if key.is_empty() || value.is_empty() || key.len() > MAX_KEY || is_boring(key) {
         return;
     }
-    if out.iter().any(|(existing, _)| existing == key) {
+    // Compared without regard to case, which is not the same question
+    // as how the key is *stored*. The halves feeding one file name the
+    // same field differently: the generic half comes through
+    // `map_key`, which answers in upper case, the APEv2 and Vorbis
+    // halves are upper-cased at their call sites, and a `TXXX`
+    // description keeps whatever case the tagger wrote. So `COMPOSER`
+    // from a `TCOM` frame and `Composer` from a `TXXX` frame are one
+    // field arriving twice, and a case-sensitive test would offer the
+    // user two columns for it — the exact duplication the upper-casing
+    // exists to prevent.
+    //
+    // Two `TXXX` frames differing only in case are, by the letter of
+    // ID3v2, two distinct frames. They are still not two columns: a
+    // column is one cell, so the rule below covers them as it covers
+    // any repeated key.
+    if out
+        .iter()
+        .any(|(existing, _)| existing.eq_ignore_ascii_case(key))
+    {
         // A repeated key is a multi-value field. The first wins rather
         // than the values being joined: a column is one cell, and
         // joining would make a cell that is right for nobody.
@@ -190,11 +208,22 @@ fn read_inner(path: &Path) -> Option<Vec<(String, String)>> {
             // set this function exists to find.
             if let Some(riff) = file.riff_info() {
                 for (key, value) in riff {
-                    let modelled =
-                        lofty::tag::ItemKey::from_key(lofty::tag::TagType::RiffInfo, key)
-                            .is_some_and(is_modelled);
-                    if !modelled {
-                        keep(&mut out, &key.to_ascii_uppercase(), value);
+                    // `IENG` is the same field a FLAC spells
+                    // `ENGINEER`, and offering them as two columns is
+                    // the split `generic_into` goes out of its way to
+                    // avoid. So a recognised chunk id is renamed the
+                    // way that half names things, and only a code lofty
+                    // has no mapping for keeps its raw spelling.
+                    match lofty::tag::ItemKey::from_key(lofty::tag::TagType::RiffInfo, key) {
+                        Some(item_key) if is_modelled(item_key) => {}
+                        Some(item_key) => {
+                            let name = item_key
+                                .map_key(lofty::tag::TagType::VorbisComments)
+                                .map(str::to_string)
+                                .unwrap_or_else(|| key.to_ascii_uppercase());
+                            keep(&mut out, &name, value);
+                        }
+                        None => keep(&mut out, &key.to_ascii_uppercase(), value),
                     }
                 }
             }
@@ -294,9 +323,11 @@ fn vorbis_into(tag: Option<&lofty::ogg::tag::VorbisComments>, out: &mut Vec<(Str
         // Vorbis comment names are case-insensitive by spec, so
         // `SOURCE` and `source` are one field — and a file written by
         // two taggers routinely carries both spellings. Upper-cased
-        // here and not in `keep`, which also serves ID3v2, where a
-        // `TXXX` description *is* case-sensitive and folding it would
-        // merge two genuinely different frames.
+        // here rather than left to `keep`'s case-insensitive dedupe,
+        // because that one only decides what to *drop*: the spelling
+        // that reaches the column picker is whichever arrived first,
+        // and for a Vorbis comment it should be the canonical one
+        // whatever the file happens to say.
         keep(out, &key.to_ascii_uppercase(), value);
     }
 }
@@ -358,6 +389,20 @@ mod tests {
         keep(&mut out, "SOURCE", "CD");
         keep(&mut out, "SOURCE", "Vinyl");
         assert_eq!(out, vec![("SOURCE".to_string(), "CD".to_string())]);
+    }
+
+    /// The same field reaching `keep` under two spellings is one
+    /// column, not two. An MP3 carrying `TCOM` and a `TXXX:Composer`
+    /// is the case that motivated this: the generic half names the
+    /// first `COMPOSER`, the remainder hands over the description
+    /// verbatim, and a case-sensitive test would offer both.
+    #[test]
+    fn a_key_repeated_in_another_case_is_the_same_key() {
+        let mut out = Vec::new();
+        keep(&mut out, "COMPOSER", "Ravel");
+        keep(&mut out, "Composer", "Maurice Ravel");
+        keep(&mut out, "composer", "M. Ravel");
+        assert_eq!(out, vec![("COMPOSER".to_string(), "Ravel".to_string())]);
     }
 
     #[test]

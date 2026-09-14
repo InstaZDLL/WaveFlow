@@ -38,7 +38,7 @@ Artwork landed on the system drive whatever drive WaveFlow was installed on, and
 
 **The split is not "big things move" — it is *evictable moves, chosen stays*.** Everything under `cache_root` is content-addressed or LRU-evicted, so the worst case of a failed move, a missing drive or a half-copy is a re-fetch. Databases, hand-picked motion covers and Canvas clips, and offline downloads would have to be recreated by hand, so moving them would be a migration rather than a setting — that is the heavier option the issue offers, and deliberately not the one taken.
 
-Four things follow from that, each of which is a silent failure if skipped:
+Five things follow from that, each of which is a silent failure if skipped:
 
 - **The move copies, persists, restarts, and only then deletes.** `AppState` hands out a plain `AppPaths` captured at boot and ~95 call sites read it directly, so the running process cannot adopt a new root; the old tree is removed by a startup pass (`cleanup_moved_caches`) once a fresh process is reading the new one. Power loss between any two steps leaves a whole copy on disk and a setting naming a whole copy.
 - **The asset scope has to be widened at runtime.** See below.

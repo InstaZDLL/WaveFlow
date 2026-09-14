@@ -521,9 +521,21 @@ pub async fn get_cache_location(state: tauri::State<'_, AppState>) -> AppResult<
     // different causes, and telling the user the wrong one is worse
     // than saying nothing: either this session could not use it (the
     // drive is not there), or a move completed and is waiting for the
-    // restart that adopts it. The pending-cleanup marker is what
-    // separates them — it exists only after a successful move.
+    // restart that adopts it.
+    //
+    // The pending-cleanup marker alone does not separate them, because
+    // the two states overlap: a move to a drive that is unplugged
+    // before the restart comes back to a session that fell back *and*
+    // still carries the marker — [`cleanup_moved_caches`] deliberately
+    // keeps it there, since the copy it names is the one being read.
+    // Reading the marker on its own would then leave "restart WaveFlow"
+    // on the card for good, and hide the fallback that is the thing
+    // actually happening. `cache_root_fallback` is set by
+    // [`resolve_cache_root`] in exactly the case that overlaps, so it
+    // is the discriminator: a restart is pending only when this session
+    // did not fall back.
     let move_pending = load_path(&state.app_db, KEY_CACHE_PENDING).await.is_some();
+    let fell_back = state.cache_root_fallback.is_some();
     let diverged = configured
         .as_ref()
         .is_some_and(|chosen| chosen != &paths.cache_root);
@@ -531,10 +543,10 @@ pub async fn get_cache_location(state: tauri::State<'_, AppState>) -> AppResult<
     Ok(CacheLocation {
         active_root: paths.cache_root.to_string_lossy().to_string(),
         default_root: paths.root.to_string_lossy().to_string(),
-        fell_back: diverged && !move_pending,
+        fell_back: diverged && fell_back,
         configured_root: configured.map(|p| p.to_string_lossy().to_string()),
         fallback_reason: state.cache_root_fallback.clone(),
-        restart_required: move_pending,
+        restart_required: move_pending && !fell_back,
         size_bytes,
     })
 }
@@ -557,6 +569,11 @@ pub async fn set_cache_location(
     state: tauri::State<'_, AppState>,
     root: Option<String>,
 ) -> AppResult<CacheLocation> {
+    // Held from before the pending-move check to past the last
+    // persistence write. Everything between them is a check followed by
+    // a side effect, across awaits — see `AppState::cache_move_lock`.
+    let _serialized = state.cache_move_lock.clone().lock_owned().await;
+
     let paths = state.paths.clone();
     let target = match root.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
         Some(value) => PathBuf::from(value),
@@ -676,6 +693,44 @@ pub async fn set_cache_location(
 #[tauri::command]
 pub async fn restart_for_cache_move(app: AppHandle) -> AppResult<()> {
     app.restart();
+}
+
+/// Every place a deleted profile's caches can still be sitting.
+///
+/// `profile_dir` covers the app-data tree, and that used to be the
+/// whole answer. Since #619 there are two more roots to look under, and
+/// they can both hold a full copy at the same time:
+///
+/// - the **active** cache root, which is where this session has been
+///   reading and writing;
+/// - the **configured** one, when it differs — which happens while a
+///   move is staged and waiting for the restart that adopts it, and
+///   again whenever a session falls back because the drive is not
+///   plugged in.
+///
+/// Missing the second is not a small leak: nothing enumerates a deleted
+/// profile afterwards — [`cache_dirs`] builds its list from the
+/// `profile` table — so a whole artwork tree would stay there with
+/// nothing left that could ever name it.
+///
+/// Each root is gated by the same ownership check every other recursive
+/// delete in this module uses, because one of them is a folder the user
+/// picked in a dialog.
+pub async fn profile_cache_dirs_elsewhere(state: &AppState, profile_id: i64) -> Vec<PathBuf> {
+    let mut roots: Vec<PathBuf> = vec![state.paths.cache_root.clone()];
+    if let Some(configured) = load_cache_root(&state.app_db).await {
+        if !roots.contains(&configured) {
+            roots.push(configured);
+        }
+    }
+    roots
+        .into_iter()
+        // The app-data root is what `profile_dir` already removes;
+        // naming it again would mean deleting the same tree twice.
+        .filter(|root| *root != state.paths.root)
+        .filter(|root| owned_for_removal(root, &state.paths))
+        .map(|root| state.paths.clone().with_cache_root(root).profile_cache_dir(profile_id))
+        .collect()
 }
 
 /// Cache directories that a full reset would otherwise miss.

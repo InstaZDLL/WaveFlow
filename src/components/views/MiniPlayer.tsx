@@ -343,7 +343,12 @@ export function MiniPlayer() {
 
   return (
     <div
-      className="relative h-screen w-screen flex flex-col overflow-hidden text-white select-none"
+      // `wf-mini-player-surface` is the hook high contrast needs: the
+      // background below is sampled from the cover, so a pale album
+      // gives white text on a pale ground -- in the one mode whose
+      // entire promise is that it will not. The class lets a stylesheet
+      // replace it, which an inline style otherwise makes impossible.
+      className="wf-mini-player-surface relative h-screen w-screen flex flex-col overflow-hidden text-white select-none"
       style={{ background: gradient }}
     >
       {/* Top bar. The middle dot strip is the OS-level drag region;

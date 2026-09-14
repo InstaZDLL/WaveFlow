@@ -230,6 +230,17 @@ pub struct AppState {
     /// is, from the user side, indistinguishable from them having been
     /// wiped.
     pub cache_root_fallback: Option<String>,
+    /// Serializes [`crate::commands::storage::set_cache_location`].
+    ///
+    /// That command reads the pending-move marker, copies a whole cache
+    /// tree, then writes the marker back — a sequence with awaits all
+    /// the way through. Two calls with different destinations would both
+    /// pass the read, both copy, and the second write would name the
+    /// only destination anyone remembers: the first one's copy of the
+    /// entire artwork tree would sit on disk with nothing pointing at
+    /// it. The frontend's own busy flag does not help, because it
+    /// guards a button and not the IPC surface behind it.
+    pub cache_move_lock: Arc<tokio::sync::Mutex<()>>,
     pub app_db: SqlitePool,
     pub profile: Arc<RwLock<Option<ActiveProfile>>>,
     /// DLNA / UPnP MediaServer worker. Always present (the worker
@@ -456,6 +467,7 @@ impl AppState {
         let state = Self {
             paths,
             cache_root_fallback,
+            cache_move_lock: Arc::new(tokio::sync::Mutex::new(())),
             app_db,
             profile: Arc::new(RwLock::new(None)),
             dlna: DlnaServer::spawn(),

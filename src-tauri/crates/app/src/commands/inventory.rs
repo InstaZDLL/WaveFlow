@@ -340,3 +340,135 @@ pub async fn inventory_tracks(
         items,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+    use sqlx::SqlitePool;
+    use std::str::FromStr;
+
+    /// The repo's own profile migrations, with `foreign_keys` on.
+    ///
+    /// A hand-written fixture would let these clauses pass against a
+    /// schema the app never has -- which is how `album.album_artist_id`
+    /// survived being written down at all: the column does not exist.
+    async fn pool() -> SqlitePool {
+        let options = SqliteConnectOptions::from_str(":memory:")
+            .unwrap()
+            .foreign_keys(true);
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(options)
+            .await
+            .unwrap();
+        sqlx::migrate!("../../migrations/profile")
+            .run(&pool)
+            .await
+            .unwrap();
+        pool
+    }
+
+    /// Four discs chosen for what they must *not* trigger:
+    ///
+    /// - album 1 disc 3 numbered 20-22: complete, and the case that
+    ///   `MAX > COUNT(DISTINCT)` reports as missing nineteen tracks;
+    /// - album 1 disc 1 numbered 1-2: proof the rule splits per disc
+    ///   rather than per album;
+    /// - album 2 disc 1 numbered 1, 2, 4: the genuine hole;
+    /// - album 3 disc 1 with two tracks both claiming slot 8: a clash,
+    ///   and deliberately not also a gap.
+    async fn seed(pool: &SqlitePool) {
+        for statement in [
+            "INSERT INTO library (id, name, color_id, icon_id, created_at, updated_at,
+                                  hlc_wall, hlc_logical)
+             VALUES (1, 'L', 1, 1, 0, 0, 0, 0)",
+            "INSERT INTO artist (id, name, canonical_name) VALUES (1, 'A', 'a')",
+            "INSERT INTO album (id, title, canonical_title, artist_id, year, is_compilation)
+             VALUES (1, 'Box Set', 'box set', 1, 1999, 0)",
+            "INSERT INTO album (id, title, canonical_title, artist_id, year, is_compilation)
+             VALUES (2, 'Gappy', 'gappy', 1, 2000, 0)",
+            "INSERT INTO album (id, title, canonical_title, artist_id, year, is_compilation)
+             VALUES (3, 'Clashing', 'clashing', 1, 2001, 0)",
+        ] {
+            sqlx::raw_sql(statement).execute(pool).await.unwrap();
+        }
+
+        for (id, album, disc, number) in [
+            (1i64, 1i64, 3i64, 20i64),
+            (2, 1, 3, 21),
+            (3, 1, 3, 22),
+            (4, 1, 1, 1),
+            (5, 1, 1, 2),
+            (6, 2, 1, 1),
+            (7, 2, 1, 2),
+            (8, 2, 1, 4),
+            (9, 3, 1, 8),
+            (10, 3, 1, 8),
+        ] {
+            sqlx::query(
+                "INSERT INTO track (id, library_id, file_path, file_hash, file_size,
+                                    file_modified, title, album_id, disc_number,
+                                    track_number, primary_artist, duration_ms, added_at,
+                                    is_available, hlc_wall, hlc_logical, rating_hlc_wall,
+                                    rating_hlc_logical)
+                 VALUES (?, 1, ?, ?, 1, 0, ?, ?, ?, ?, 1, 300000, 0, 1, 0, 0, 0, 0)",
+            )
+            .bind(id)
+            .bind(format!("/m/{id}.flac"))
+            .bind(format!("h{id}"))
+            .bind(format!("T{id}"))
+            .bind(album)
+            .bind(disc)
+            .bind(number)
+            .execute(pool)
+            .await
+            .unwrap();
+            sqlx::query(
+                "INSERT INTO track_artist (track_id, artist_id, position) VALUES (?, 1, 0)",
+            )
+            .bind(id)
+            .execute(pool)
+            .await
+            .unwrap();
+        }
+    }
+
+    /// The ids one category holds, through the exact query the command
+    /// runs -- clause, wrapper and bound parameters alike.
+    async fn ids_for(pool: &SqlitePool, key: &str) -> Vec<i64> {
+        let clause = where_for(key).expect("known category");
+        let sql = format!(
+            "SELECT CAST(id AS INTEGER) FROM ({}) ORDER BY 1",
+            library_tracks_sql_where(clause, "")
+        );
+        sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql))
+            .bind(Option::<i64>::None)
+            .bind(Option::<i64>::None)
+            .bind(Option::<i64>::None)
+            .bind(Option::<String>::None)
+            .bind(Option::<String>::None)
+            .fetch_all(pool)
+            .await
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn a_gap_is_measured_inside_the_observed_range() {
+        let pool = pool().await;
+        seed(&pool).await;
+        // Album 2's disc only. A disc starting at 20 is complete, and a
+        // disc whose only fault is a repeated number is not a hole.
+        assert_eq!(ids_for(&pool, "track_number_gap").await, vec![6, 7, 8]);
+    }
+
+    #[tokio::test]
+    async fn a_clash_is_scoped_to_one_disc_of_one_album() {
+        let pool = pool().await;
+        seed(&pool).await;
+        // Both sides of the clash, and nothing from the box set -- whose
+        // discs 1 and 3 each hold a track numbered differently but would
+        // collide if the check grouped by album alone.
+        assert_eq!(ids_for(&pool, "duplicate_track_number").await, vec![9, 10]);
+    }
+}

@@ -307,8 +307,16 @@ pub async fn delete_profile(state: tauri::State<'_, AppState>, profile_id: i64) 
     // `profile_dir` no longer covers them. Removed first and
     // best-effort: a deleted profile's artwork left on another drive is
     // exactly the disk usage the user moved it there to control.
-    let cache_dir = state.paths.profile_cache_dir(profile_id);
-    if cache_dir != state.paths.profile_dir(profile_id) && cache_dir.exists() {
+    //
+    // Plural, and asked for rather than derived here: a staged move and
+    // a fallen-back session both leave a second copy under the
+    // *configured* root while the app reads the active one, and after
+    // this command nothing can enumerate a deleted profile any more.
+    for cache_dir in crate::commands::storage::profile_cache_dirs_elsewhere(&state, profile_id)
+        .await
+        .into_iter()
+        .filter(|dir| dir.exists())
+    {
         let for_blocking = cache_dir.clone();
         // Both failures, not only the join: the inner `io::Error` is the
         // one that actually happens (a file held open, a permission),

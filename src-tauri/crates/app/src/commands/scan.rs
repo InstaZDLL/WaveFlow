@@ -770,7 +770,18 @@ pub(crate) async fn scan_folder_inner(
                             Some(&path),
                         );
                         if let Some(task) = task.as_ref() {
-                            task.progress(idx as u64 + 1, total_files as u64);
+                            // The count of files *finished*, not of
+                            // files looked at. `idx` climbs past every
+                            // path the walk touches, including the ones
+                            // being queued for extraction -- and the
+                            // extraction loop below then resumes from
+                            // `summary.skipped`, which is lower. On any
+                            // library where an unchanged file follows a
+                            // changed one, that makes the bar run
+                            // forward and then jump back. The status
+                            // bar is the whole of #601; a bar that goes
+                            // backwards is worse than no bar.
+                            task.progress(summary.skipped as u64, total_files as u64);
                         }
                         continue;
                     }
