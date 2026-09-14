@@ -539,9 +539,20 @@ async fn pick_albums_for_artists(
     let sql = format!(
         r#"
         SELECT t.album_id AS album_id,
-               COUNT(*)   AS track_count
+               COUNT(*)   AS track_count,
+               COALESCE(pl.plays, 0) AS plays
           FROM track t
           LEFT JOIN track_analysis ta ON ta.track_id = t.id
+          -- Grouped once and joined, not correlated per row: a
+          -- per-album subquery would re-count play_event for every
+          -- track the outer scan touches.
+          LEFT JOIN (
+                 SELECT pt.album_id AS aid, COUNT(*) AS plays
+                   FROM play_event pe
+                   JOIN track pt ON pt.id = pe.track_id
+                  WHERE pt.album_id IS NOT NULL
+                  GROUP BY pt.album_id
+               ) pl ON pl.aid = t.album_id
          WHERE t.is_available = 1
            AND t.album_id IS NOT NULL
            AND t.album_id IN (
@@ -560,12 +571,16 @@ async fn pick_albums_for_artists(
                          AND (? IS NULL OR ta.bpm < ?)
                         THEN 1 ELSE 0 END) * 1.0
                / SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?
-         -- Ordered before the cut, because the cut has to fall in the
+         -- Most-listened first, matching what `pick_tracks_for_artists`
+         -- does on the track side: without it the cut took whichever
+         -- 60 records SQLite happened to produce, so a deep cut was as
+         -- likely as the album the mix is supposed to be built around.
+         --
+         -- The album id breaks ties, because the cut has to fall in the
          -- same place twice: a Daily Mix that reshuffles itself every
          -- time the user reopens it is the flicker `shuffle_with_seed`
-         -- exists to prevent, and `LIMIT` without `ORDER BY` picks
-         -- whichever 60 rows SQLite happened to produce.
-         ORDER BY t.album_id
+         -- exists to prevent.
+         ORDER BY plays DESC, t.album_id
          LIMIT 60
         "#,
     );

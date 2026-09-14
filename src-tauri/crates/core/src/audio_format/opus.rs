@@ -400,7 +400,7 @@ impl AudioDecoder for OpusDecoder {
         // than poisoning the stream: the worst outcome is the stale
         // overlap this is trying to avoid, which is a glitch and not a
         // silence.
-        if let Ok(mut fresh) = Self::try_new(&self.params.clone(), &self.opts) {
+        if let Ok(mut fresh) = Self::try_new(&self.params, &self.opts) {
             // The priming belongs to the start of the stream. A reset
             // means a seek landed us in the middle of one, where there
             // is nothing to drop — re-applying the pre-skip here would

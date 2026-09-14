@@ -1713,7 +1713,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         setReplayGainPreamp(s.replaygain_preamp_db);
         setReplayGainFallback(s.replaygain_fallback_db);
         setReplayGainPreventClipping(s.replaygain_prevent_clipping);
-        setReplayGainMode(s.replaygain_mode);
+        if (!audioSettingsTouched.current.has("replayGainMode")) {
+          setReplayGainMode(s.replaygain_mode);
+        }
         setGapless(s.gapless);
         // Guard against a stale / out-of-set value from the backend.
         setDsdTaps(
@@ -1799,6 +1801,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const handleReplayGainModeChange = useCallback(
     (next: ReplayGainMode) => {
       const previous = replayGainMode;
+      // Before the write, so a hydration response still in flight
+      // cannot land on top of a choice the user has already made.
+      audioSettingsTouched.current.add("replayGainMode");
       setReplayGainMode(next);
       playerSetReplayGainMode(next).catch((err) => {
         console.error("[Settings] set replaygain mode failed", err);
