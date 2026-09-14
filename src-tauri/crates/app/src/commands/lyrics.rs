@@ -1147,6 +1147,13 @@ async fn read_cached(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option
     // A cached row that is a distribution service's credit rather than
     // lyrics is dropped and re-resolved, rather than served forever.
     //
+    // Only here, and deliberately: `run_prefetch` picks its work with
+    // `WHERE l.file_hash IS NULL`, so it still skips a track holding
+    // one of these rows. Teaching it otherwise would mean spelling the
+    // recogniser a second time in SQL, and two spellings of one
+    // predicate drift. The healing happens when the panel is opened,
+    // which is the moment the wrong text would have been read.
+    //
     // Fixing `read_description_lyrics` alone would only have helped
     // tracks nobody had opened yet: the waterfall never refetches once
     // a row exists, so the person who reported this would have seen
