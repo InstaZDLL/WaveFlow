@@ -7,9 +7,12 @@
 //!   3. Local sidecar file — `{stem}.lrc` / `{stem}.txt` next to the
 //!      audio file, or inside a `Lyrics/` (case-insensitive) subfolder
 //!      next to it. `.lrc` wins over `.txt` (timing info).
-//!   4. Musixmatch Enhanced LRC when word-level timing exists
-//!   5. LRCLIB public API (matched by artist + track + album + duration)
-//!   6. Query-based external providers before caching a network miss
+//!   4. The generic `description` field — last of the local tiers,
+//!      because it is the only one that is a guess about a field meant
+//!      for something else
+//!   5. Musixmatch Enhanced LRC when word-level timing exists
+//!   6. LRCLIB public API (matched by artist + track + album + duration)
+//!   7. Query-based external providers before caching a network miss
 //!
 //! Whichever tier hits first becomes the cached entry. We never refetch
 //! once a row exists — the user can manually overwrite by importing a
@@ -22,8 +25,8 @@
 //! manual refetch could clear.
 //!
 //! **Prefer-LRCLIB toggle** (`profile_setting['lyrics.prefer_lrclib']`,
-//! issue #378): when on, [`fetch_lyrics`] flips tiers 2–3 (embedded +
-//! sidecar) to run *after* the online providers — LRCLIB / Musixmatch /
+//! issue #378): when on, [`fetch_lyrics`] flips tiers 2–4 (the local
+//! ones) to run *after* the online providers — LRCLIB / Musixmatch /
 //! the fallback chain win, and the local tiers become the fallback used
 //! only when the network has nothing (so a track LRCLIB doesn't carry
 //! still shows its own embedded lyrics rather than nothing). Default off
@@ -647,11 +650,19 @@ async fn read_prefer_lrclib(pool: &sqlx::SqlitePool) -> AppResult<bool> {
     Ok(value.map(|v| v == "true" || v == "1").unwrap_or(false))
 }
 
-/// Local tiers (embedded tag → sidecar `.lrc`/`.txt`). Returns the first
-/// hit, already cached, or `None` when neither is present. Shared by the
-/// default (local-first) order and the `lyrics.prefer_lrclib`
-/// (local-as-fallback) order so the two never drift on how a local hit is
-/// read + persisted.
+/// Local tiers, in order: embedded lyrics tag → sidecar `.lrc`/`.txt`
+/// → the generic description field. Returns the first hit, already
+/// cached, or `None` when none is present. Shared by the default
+/// (local-first) order and the `lyrics.prefer_lrclib`
+/// (local-as-fallback) order so the two never drift on how a local hit
+/// is read + persisted.
+///
+/// The description comes last, and that ordering is the fix for a
+/// reported bug rather than a detail: it is the one tier that is a
+/// guess about a field meant for something else, and it used to sit
+/// inside the embedded tier ahead of the sidecar — so a `yt-dlp` rip
+/// showed its YouTube blurb and never read the `.lrc` sitting beside
+/// it.
 async fn try_local_lyrics(
     pool: &sqlx::SqlitePool,
     track_id: i64,
@@ -690,6 +701,31 @@ async fn try_local_lyrics(
     if let Some(content) = sidecar {
         let format = detect_format(&content);
         let source = LyricsSource::LrcFile;
+        upsert_lyrics(pool, &meta.file_hash, &content, &format, &source, None).await?;
+        return Ok(Some(LyricsPayload {
+            track_id,
+            content,
+            format,
+            source,
+            provider: None,
+            tag_write_skipped: None,
+            sidecar_write_skipped: None,
+        }));
+    }
+
+    // Last: the generic description field, which is a guess about a
+    // field meant for something else. Reached only when the track
+    // carries no real lyrics tag and the user has placed no sidecar.
+    let path_for_description = meta.file_path.clone();
+    let description = tokio::task::spawn_blocking(move || {
+        read_description_lyrics(Path::new(&path_for_description))
+    })
+    .await
+    .ok()
+    .flatten();
+    if let Some(content) = description {
+        let format = detect_format(&content);
+        let source = LyricsSource::Embedded;
         upsert_lyrics(pool, &meta.file_hash, &content, &format, &source, None).await?;
         return Ok(Some(LyricsPayload {
             track_id,
@@ -829,7 +865,16 @@ fn read_custom_lyrics_tag(
 ///   4. TXXX / Vorbis custom `LYRICS` / `UNSYNCEDLYRICS` frames (legacy
 ///      Mp3tag / foobar2000 / lame --tg output common on K-Pop / J-Pop
 ///      rips) that the generic tag doesn't surface.
-///   5. Generic `Description` field as last resort.
+///
+/// The generic `Description` field used to be a fifth tier here. It is
+/// not a lyrics field, and reading it as one cost a real user their
+/// lyrics: a `.m4a` pulled with `yt-dlp` carries the "Provided to
+/// YouTube by…" blurb in `description`, which is comfortably more than
+/// three lines, so it won — and because the embedded tier runs before
+/// the sidecar, the `.lrc` they had put next to the file was never
+/// read. It now lives in [`read_description_lyrics`], behind the
+/// sidecar, so a file the user placed deliberately always beats a
+/// field we are guessing about.
 fn read_embedded_lyrics(path: &Path) -> Option<String> {
     let probe = Probe::open(path).ok()?.guess_file_type().ok()?;
     let file_type = probe.file_type();
@@ -858,7 +903,21 @@ fn read_embedded_lyrics(path: &Path) -> Option<String> {
         None
     };
 
-    let from_description = tagged
+    resolve_embedded_lyrics([from_synced, from_known_key, from_custom_unsynced])
+}
+
+/// Last-resort lyrics from the generic `Description` field, read only
+/// once the real lyrics tags and the sidecar have both come up empty.
+///
+/// Some rips really do put lyrics there, which is why this survives at
+/// all. But a description field is a description field: the length
+/// check below is the whole of what separates "someone pasted lyrics
+/// into it" from "this is a sleeve note", and it is a guess. Ranking
+/// it under the sidecar is what makes the guess safe — a `.lrc` the
+/// user put next to the track is a statement, not a guess.
+fn read_description_lyrics(path: &Path) -> Option<String> {
+    let tagged = Probe::open(path).ok()?.read().ok()?;
+    let text = tagged
         .primary_tag()
         .or_else(|| tagged.first_tag())
         .and_then(|tag| {
@@ -866,14 +925,31 @@ fn read_embedded_lyrics(path: &Path) -> Option<String> {
             tag.get_string(ItemKey::Description)
                 .filter(|s| s.lines().count() > 3)
                 .map(|s| s.to_string())
-        });
+        })?;
+    if is_service_blurb(&text) {
+        return None;
+    }
+    let trimmed = text.trim();
+    (!trimmed.is_empty()).then(|| trimmed.to_string())
+}
 
-    resolve_embedded_lyrics([
-        from_synced,
-        from_known_key,
-        from_custom_unsynced,
-        from_description,
-    ])
+/// Whether a description is a distribution service's boilerplate
+/// rather than anything a listener wants to read along to.
+///
+/// Narrow on purpose. This is not an attempt to tell prose from verse
+/// — it recognises the one blurb that reliably fills this field on
+/// files people actually have, the auto-generated YouTube credit that
+/// `yt-dlp` copies into `description`. Anything it does not recognise
+/// still gets through, because the cost of a false positive here is
+/// losing real lyrics.
+fn is_service_blurb(text: &str) -> bool {
+    const MARKERS: &[&str] = &[
+        "provided to youtube by",
+        "auto-generated by youtube",
+        "released on:",
+    ];
+    let head: String = text.chars().take(400).collect::<String>().to_lowercase();
+    MARKERS.iter().any(|marker| head.contains(marker))
 }
 
 /// Pick the first non-blank value among the standard lyric keys on a tag:
@@ -891,10 +967,10 @@ fn known_key_lyrics(tag: &lofty::tag::Tag) -> Option<String> {
 }
 
 /// Choose the embedded lyrics body from the candidate sources in priority
-/// order (synced → standard USLT/Lyrics → custom TXXX/Vorbis → Description),
+/// order (synced → standard USLT/Lyrics → custom TXXX/Vorbis),
 /// trimming each and treating blank/whitespace-only values as absent so a
 /// stale empty tag can never win over a later valid one.
-fn resolve_embedded_lyrics(candidates: [Option<String>; 4]) -> Option<String> {
+fn resolve_embedded_lyrics(candidates: [Option<String>; 3]) -> Option<String> {
     candidates
         .into_iter()
         .flatten()
@@ -2827,32 +2903,65 @@ mod tests {
         );
     }
 
+    /// Reported on discussion #519: a `.m4a` pulled with `yt-dlp`
+    /// carries the auto-generated YouTube credit in `description`,
+    /// which is several lines long and was therefore read as lyrics —
+    /// ahead of the `.lrc` the user had placed next to the file.
+    ///
+    /// Two things had to be wrong at once: a description field counted
+    /// as a lyrics source, and it was consulted before the sidecar.
+    /// The blurb is now refused outright, and the tier that remains
+    /// sits behind the sidecar.
+    #[test]
+    fn a_youtube_credit_is_not_lyrics() {
+        let blurb = "Provided to YouTube by RCA Records Label\n\n\
+             Sorry · Nothing But Thieves\n\n\
+             Broken Machine (Deluxe)\n\n\
+             ℗ 2017 Sony Music Entertainment UK Limited\n\n\
+             Released on: 2017-09-08";
+        assert!(is_service_blurb(blurb));
+        assert!(is_service_blurb(
+            "Auto-generated by YouTube.\nfoo\nbar\nbaz"
+        ));
+
+        // And the check stays narrow: anything it does not recognise
+        // goes through, because a false positive here costs someone
+        // their real lyrics.
+        assert!(!is_service_blurb(
+            "I found a love for me\nDarling just dive right in\nAnd follow my lead"
+        ));
+        assert!(!is_service_blurb(""));
+
+        // A song that happens to say the words much later is not
+        // boilerplate: the markers are looked for near the top, where
+        // the credit always sits.
+        let long_song = "la la la\n".repeat(200) + "provided to youtube by nobody";
+        assert!(!is_service_blurb(&long_song));
+    }
+
     #[test]
     fn embedded_lyrics_resolution_prioritizes_synced_and_skips_blanks() {
         let s = |x: &str| Some(x.to_string());
 
         // Synced wins over an unsynced standard tag (the Antra case, #378).
         assert_eq!(
-            resolve_embedded_lyrics([s("[00:01.00]timed"), s("plain body"), None, None]),
+            resolve_embedded_lyrics([s("[00:01.00]timed"), s("plain body"), None]),
             Some("[00:01.00]timed".to_string())
         );
         // A whitespace-only standard tag is treated as absent, so a valid
         // custom TXXX/Vorbis value is selected instead of returning nothing
         // (the whitespace-masks-fallback bug from the CR).
         assert_eq!(
-            resolve_embedded_lyrics([None, s("   \n\t  "), s("from txxx"), None]),
+            resolve_embedded_lyrics([None, s("   \n\t  "), s("from txxx")]),
             Some("from txxx".to_string())
         );
         // Unsynced-only falls back to the standard key.
         assert_eq!(
-            resolve_embedded_lyrics([None, s("just words"), None, None]),
+            resolve_embedded_lyrics([None, s("just words"), None]),
             Some("just words".to_string())
         );
         // Every candidate blank/absent → None.
-        assert_eq!(
-            resolve_embedded_lyrics([None, s("  "), None, s("\t")]),
-            None
-        );
+        assert_eq!(resolve_embedded_lyrics([None, s("  "), s("\t")]), None);
         // The synced body is detected as timed LRC downstream.
         assert_eq!(detect_format("[00:01.00]timed"), LyricsFormat::Lrc);
     }
