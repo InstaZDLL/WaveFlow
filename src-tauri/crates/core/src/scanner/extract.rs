@@ -21,29 +21,30 @@ use super::canonical::canonical_name;
 /// formats the symphonia + cpal engine can actually decode and play,
 /// so the library never displays tracks that would error at play time.
 ///
-/// What is absent, and why — three different reasons that are worth not
-/// confusing, because only one of them is a licence question:
+/// What is absent, and why:
 ///
-/// - **Opus** is missing for a purely technical reason: symphonia ships
-///   no Opus decoder. Not a licence issue in any sense — Opus is an IETF
-///   standard (RFC 6716), royalty-free by design, and `libopus` is BSD.
-///   Playing it means an out-of-tree decoder, the way DSD is handled
-///   below. The gap that leaves — `.ogg` is accepted for Vorbis, and an
-///   extension cannot tell Vorbis from Opus inside the container — is
-///   why this list is no longer the whole filter: [`is_scannable_audio`]
-///   reads the stream of an ambiguous container before believing it.
 /// - **WMA** is genuinely proprietary: Microsoft, unpublished
-///   specification, patent-encumbered. This one stays out.
-/// - **AIFF** is neither. It is a container, not a codec — Apple's
-///   answer to WAV, holding the same PCM — and symphonia reads it from
+///   specification, patent-encumbered. This one stays out, and it is
+///   the only entry here that is a licence question.
+/// - **AIFF** is not. It is a container, not a codec — Apple's answer
+///   to WAV, holding the same PCM — and symphonia reads it from
 ///   `symphonia-format-riff`, the crate `wav` already pulls in.
+///
+/// **Opus** used to be absent, for a purely technical reason:
+/// symphonia ships no Opus decoder. We do now — `libopus` through
+/// [`crate::audio_format::opus`], the way DSD is handled below — so
+/// the extension is accepted and [`undecodable_stream`] no longer
+/// refuses the stream. The ambiguity that outlived it is still real
+/// and still handled: `.ogg` names a container, not a codec, so
+/// [`is_scannable_audio`] reads the stream before believing the
+/// extension.
 ///
 /// `.aifc` is deliberately not listed. symphonia's AIFC support covers
 /// the PCM-shaped compression types (`none`, `sowt`, `twos`, `fl32`,
 /// `alaw`, …) and refuses the rest, so accepting the extension would
 /// index files that cannot play, on a format nobody writes any more.
 pub const AUDIO_EXTENSIONS: &[&str] = &[
-    "mp3", "flac", "wav", "aiff", "aif", "ogg", "oga", "m4a", "mp4", "aac",
+    "mp3", "flac", "wav", "aiff", "aif", "ogg", "oga", "opus", "m4a", "mp4", "aac",
     // DSD: handled by the in-tree audio::dsd pipeline (symphonia
     // doesn't decode DSD), with metadata read via audio::dsd::metadata.
     "dsf", "dff",
@@ -65,7 +66,7 @@ const AMBIGUOUS_CONTAINERS: &[&str] = &["ogg", "oga"];
 /// identifies and this build ships no decoder for.
 pub fn undecodable_stream(file_type: &FileType) -> Option<&'static str> {
     match file_type {
-        FileType::Opus => Some("Opus"),
+        // Opus came off this list when the decoder landed (#581).
         FileType::Speex => Some("Speex"),
         _ => None,
     }
@@ -746,6 +747,16 @@ mod tests {
         packet
     }
 
+    fn speex_identification() -> Vec<u8> {
+        let mut packet = b"Speex   ".to_vec();
+        packet.extend_from_slice(&[0u8; 20]); // version string
+        packet.extend_from_slice(&1u32.to_le_bytes()); // version id
+        packet.extend_from_slice(&80u32.to_le_bytes()); // header size
+        packet.extend_from_slice(&16_000u32.to_le_bytes()); // rate
+        packet.extend_from_slice(&[0u8; 40]); // the rest, unread here
+        packet
+    }
+
     fn vorbis_identification() -> Vec<u8> {
         let mut packet = vec![1];
         packet.extend_from_slice(b"vorbis");
@@ -758,9 +769,14 @@ mod tests {
         packet
     }
 
-    /// The bug this guards: `.ogg` names a container, not a codec, so an
-    /// Opus stream reached a list built for Vorbis, was indexed, and then
-    /// failed the moment it was played.
+    /// The bug this guards: `.ogg` names a container, not a codec, so a
+    /// stream we cannot decode reached a list built for Vorbis, was
+    /// indexed, and then failed the moment it was played.
+    ///
+    /// Opus used to be that stream and is now the counter-example — the
+    /// decoder landed in #581 — so the case is kept as proof the check
+    /// judges by what we can actually play rather than by a fixed list
+    /// of codecs. Speex takes over as the refused one.
     #[test]
     fn an_ogg_is_judged_by_its_stream_and_not_by_its_extension() {
         let dir = tempfile::tempdir().expect("tempdir");
@@ -768,8 +784,15 @@ mod tests {
         let opus = dir.path().join("opus-in-disguise.ogg");
         write_bytes(&opus, &ogg_page(&opus_identification()));
         assert!(
-            !is_scannable_audio(&opus),
-            "an Opus stream in an .ogg container is not indexed"
+            is_scannable_audio(&opus),
+            "an Opus stream is playable now, whatever the extension says"
+        );
+
+        let speex = dir.path().join("speex-in-disguise.ogg");
+        write_bytes(&speex, &ogg_page(&speex_identification()));
+        assert!(
+            !is_scannable_audio(&speex),
+            "a stream with no decoder must not be indexed"
         );
 
         let vorbis = dir.path().join("really-vorbis.ogg");
@@ -878,7 +901,7 @@ mod tests {
             .and_then(|p| p.audio())
             .expect("audio codec params")
             .clone();
-        let mut decoder = symphonia::default::get_codecs()
+        let mut decoder = crate::audio_format::opus::codecs()
             .make_audio_decoder(&params, &AudioDecoderOptions::default())
             .expect("AIFF holds the PCM `wav` already decodes");
 
@@ -897,17 +920,18 @@ mod tests {
     /// widen by accident.
     #[test]
     fn the_extension_list_admits_aiff_and_still_refuses_what_cannot_play() {
-        for accepted in ["aiff", "aif", "wav", "flac", "mp3"] {
+        for accepted in ["aiff", "aif", "wav", "flac", "mp3", "opus"] {
             assert!(
                 AUDIO_EXTENSIONS.contains(&accepted),
                 "{accepted} is playable and must be indexed"
             );
         }
         for refused in [
-            // No symphonia decoder at all.
-            "opus", // Proprietary, and staying out.
-            "wma",  // AIFC's compressed forms are refused by the reader, so
-            // accepting the extension would index files that cannot play.
+            // Proprietary, and staying out.
+            "wma",
+            // AIFC's compressed forms are refused by the reader, so
+            // accepting the extension would index files that cannot
+            // play.
             "aifc",
         ] {
             assert!(

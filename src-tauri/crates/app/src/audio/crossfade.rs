@@ -353,7 +353,9 @@ impl ActiveStream {
         // params borrow it. `None` for a container that does not say —
         // AAC in MP4 only reveals its rate once decoding starts (#600).
         let declared_sample_rate = audio_params.sample_rate;
-        let decoder = symphonia::default::get_codecs()
+        // The app's registry, not symphonia's: it is the one that
+        // carries Opus (#581).
+        let decoder = waveflow_core::audio_format::opus::codecs()
             .make_audio_decoder(audio_params, &AudioDecoderOptions::default())
             .map_err(|e| format!("codec init: {e}"))?;
 
