@@ -579,6 +579,18 @@ pub async fn set_cache_location(
     // literal paths cannot see through a symlink, a junction, or a
     // difference in case on a case-insensitive filesystem — all of
     // which would let the copy run into its own source.
+    // One staged move at a time. A second one before the restart would
+    // overwrite the record of what to clean up, and the first
+    // destination's copy would be orphaned on disk with nothing left
+    // pointing at it — the caches are rebuildable, but leaving a
+    // duplicate of a whole artwork tree behind is the opposite of what
+    // the person moving them asked for.
+    if load_path(&state.app_db, KEY_CACHE_PENDING).await.is_some() {
+        return Err(AppError::Other(
+            "a cache move is already staged; restart WaveFlow to finish it".into(),
+        ));
+    }
+
     is_usable(&target).map_err(AppError::Other)?;
     // Claimed before anything is copied into it: a folder that already
     // holds one of the layout's names and was not made by us is refused

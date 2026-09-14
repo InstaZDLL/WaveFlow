@@ -312,8 +312,13 @@ pub async fn run_one_backup(
         // `.waveflow` looks like a backup and restores like nothing.
         // The archives already written stay, and they are each complete.
         if stop.load(std::sync::atomic::Ordering::Relaxed) {
+            // Returned, not broken out of: falling through would reach
+            // `stamp_last_run` and record the schedule as having run,
+            // so the next automatic backup would be skipped on the
+            // strength of a pass the user stopped. The archives already
+            // written are complete and are returned.
             tracing::info!("backup stopped by the user between profiles");
-            break;
+            return Ok(created);
         }
         let safe = sanitize_for_filename(&profile_name);
         let target = folder.join(format!("{safe}-{ts}.waveflow"));

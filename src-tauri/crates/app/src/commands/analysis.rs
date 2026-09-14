@@ -277,6 +277,22 @@ pub async fn run_analyze_library(
     ANALYSIS_CANCEL.store(false, Ordering::SeqCst);
     let _guard = RunningGuard;
 
+    // Announced before the query, with an unknown total. That query is
+    // a join over every track in the library, which on a large one
+    // takes long enough that a status bar staying empty through it
+    // reads as nothing having started (#601). The sweep already had a
+    // stopping mechanism and a progress event of its own; the registry
+    // routes to the first and mirrors the second. Dropped at the end of
+    // the function, on every exit path.
+    let task = crate::tasks::start(
+        app,
+        crate::tasks::TaskKind::Analysis,
+        0,
+        crate::tasks::cancel_fn(|| {
+            ANALYSIS_CANCEL.store(true, Ordering::SeqCst);
+        }),
+    );
+
     // Never measured, or measured by a pass older than the current one.
     // A versionless row is the case this was built for: its peak came
     // from a mono downmix, and until it is re-measured clipping
@@ -306,22 +322,9 @@ pub async fn run_analyze_library(
     .await?;
 
     let total = pending.len() as u32;
-    // The sweep already had a stopping mechanism and a progress event
-    // of its own; the registry routes to the first and mirrors the
-    // second, so the status bar can list it beside everything else
-    // (#601). Dropped at the end of the function, on every exit path.
-    let task = crate::tasks::start(
-        app,
-        crate::tasks::TaskKind::Analysis,
-        total as u64,
-        crate::tasks::cancel_fn(|| {
-            ANALYSIS_CANCEL.store(true, Ordering::SeqCst);
-        }),
-    );
     if let Some(task) = task.as_ref() {
-        // Paints the bar at 0 / N straight away rather than leaving it
-        // blank until the first track is decoded, which on a cold cache
-        // is several seconds.
+        // The count is only knowable now, so the row that has been
+        // sitting there indeterminate gets its total here.
         task.progress(0, total as u64);
     }
     let mut processed = 0u32;
