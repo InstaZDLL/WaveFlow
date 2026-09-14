@@ -1024,9 +1024,15 @@ fn read_dsf_audio_end(file: &mut std::fs::File, len: u64) -> io::Result<Option<u
 /// audio and the pointer set to zero, which is how a DSF says it has no
 /// metadata.
 ///
-/// The two header fields are written **after** the tag, so a file
-/// interrupted mid-write still declares the tag it had rather than
-/// pointing at half of a new one.
+/// Ordered so that an interruption always leaves the header declaring
+/// **less** than the file physically holds, never more. The bytes go
+/// down first, then the header fields, and the truncation last: a
+/// reader trusts the declared size, so trailing bytes past it are
+/// ignored, while a `total_size` larger than the file is what makes a
+/// player call the file damaged.
+///
+/// This is not atomic — nothing in place can be — but every window it
+/// leaves is one a reader survives.
 pub fn write_dsf_id3v2(file: &mut std::fs::File, tag: &[u8]) -> io::Result<()> {
     use std::io::{Seek, SeekFrom, Write};
 
@@ -1048,15 +1054,17 @@ pub fn write_dsf_id3v2(file: &mut std::fs::File, tag: &[u8]) -> io::Result<()> {
     file.seek(SeekFrom::Start(offset))?;
     file.write_all(tag)?;
     let new_len = offset + tag.len() as u64;
-    // Only ever cuts the tag region: `offset` is at or after the end of
-    // the audio by construction.
-    file.set_len(new_len)?;
 
     file.seek(SeekFrom::Start(12))?;
     file.write_all(&new_len.to_le_bytes())?;
     file.seek(SeekFrom::Start(20))?;
     let pointer = if tag.is_empty() { 0 } else { offset };
     file.write_all(&pointer.to_le_bytes())?;
+
+    // Last, so the header never describes a file longer than it is.
+    // Only ever cuts the tag region: `offset` is at or after the end of
+    // the audio by construction.
+    file.set_len(new_len)?;
     Ok(())
 }
 
@@ -1210,6 +1218,31 @@ mod dsf_tests {
         assert_eq!(after.len() as u64, audio_end_of(&audio) + 4);
         let audio_at = (audio_end_of(&audio) - audio.len() as u64) as usize;
         assert_eq!(&after[audio_at..audio_at + audio.len()], &audio[..]);
+    }
+
+    #[test]
+    fn the_header_never_claims_more_than_the_file_holds() {
+        // The ordering property. The write is not atomic — nothing in
+        // place can be — so what matters is which side of the truth an
+        // interruption leaves it on. A reader trusts the declared size,
+        // so trailing bytes past it are ignored; a total_size larger
+        // than the file is what makes a player call it damaged.
+        let audio: Vec<u8> = vec![9; 1024];
+        let (_dir, path) = dsf_file(&audio, &vec![0xCCu8; 4096]);
+
+        let mut file = open(&path);
+        write_dsf_id3v2(&mut file, b"much shorter").expect("write");
+        drop(file);
+
+        let physical = std::fs::metadata(&path).expect("meta").len();
+        let mut file = open(&path);
+        let layout = read_dsf_layout(&mut file).expect("layout").expect("a DSF");
+        assert!(
+            layout.total_size <= physical,
+            "declared {} against a file of {physical}",
+            layout.total_size
+        );
+        assert_eq!(layout.total_size, physical, "and here they agree exactly");
     }
 
     #[test]
