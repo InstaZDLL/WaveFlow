@@ -3459,6 +3459,7 @@ mod last_load_tests {
                 gain_db: Some(-4.0),
                 peak: None,
                 peak_unverified: false,
+                ..Default::default()
             },
         }
     }

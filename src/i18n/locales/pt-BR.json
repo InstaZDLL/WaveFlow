@@ -1591,6 +1591,15 @@
         "title": "Evitar distorção",
         "subtitle": "Limitar o ganho à margem deixada pelo pico da faixa"
       },
+      "mode": {
+        "title": "Ganho a aplicar",
+        "auto": "Automático",
+        "track": "Por faixa",
+        "album": "Por álbum",
+        "autoHint": "Ganho de álbum enquanto um disco é ouvido por inteiro; de faixa nos demais casos",
+        "trackHint": "Nivela cada faixa em relação a todas as outras",
+        "albumHint": "Um único ganho por disco, que preserva suas diferenças de nível internas"
+      },
       "decibels": "{{value}} dB"
     },
     "exclusive": {

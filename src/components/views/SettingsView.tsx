@@ -73,11 +73,14 @@ import {
   playerSetGapless,
   playerSetReplayGain,
   playerSetReplayGainOptions,
+  playerSetReplayGainMode,
+  REPLAYGAIN_MODES,
   REPLAYGAIN_ADJUST_LIMIT_DB,
   playerSetDsdPrecision,
   playerSetDsdDop,
   DSD_PRECISION_TAPS,
   type DsdPrecisionTaps,
+  type ReplayGainMode,
 } from "../../lib/tauri/player";
 import {
   getDiscordRpcEnabled,
@@ -1248,6 +1251,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [replayGain, setReplayGain] = useState(false);
   const [replayGainPreamp, setReplayGainPreamp] = useState(0);
   const [replayGainFallback, setReplayGainFallback] = useState(0);
+  const [replayGainMode, setReplayGainMode] =
+    useState<ReplayGainMode>("auto");
   const [replayGainPreventClipping, setReplayGainPreventClipping] =
     useState(true);
   const replayGainOptionsDebounce = useRef<number | null>(null);
@@ -1702,6 +1707,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         setReplayGainPreamp(s.replaygain_preamp_db);
         setReplayGainFallback(s.replaygain_fallback_db);
         setReplayGainPreventClipping(s.replaygain_prevent_clipping);
+        setReplayGainMode(s.replaygain_mode);
         setGapless(s.gapless);
         // Guard against a stale / out-of-set value from the backend.
         setDsdTaps(
@@ -1782,6 +1788,18 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       pushReplayGainOptions(replayGainPreamp, value, replayGainPreventClipping);
     },
     [pushReplayGainOptions, replayGainPreamp, replayGainPreventClipping],
+  );
+
+  const handleReplayGainModeChange = useCallback(
+    (next: ReplayGainMode) => {
+      const previous = replayGainMode;
+      setReplayGainMode(next);
+      playerSetReplayGainMode(next).catch((err) => {
+        console.error("[Settings] set replaygain mode failed", err);
+        setReplayGainMode(previous); // rollback
+      });
+    },
+    [replayGainMode],
   );
 
   const handleToggleReplayGainPreventClipping = useCallback(() => {
@@ -2616,6 +2634,37 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                       })}
                     </span>
                   </div>
+                </div>
+
+                {/* Track gain vs album gain (#587) */}
+                <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="min-w-0">
+                    <label
+                      htmlFor="replaygain-mode-select"
+                      className="text-sm font-medium text-zinc-900 dark:text-white"
+                    >
+                      {t("settings.replayGain.mode.title")}
+                    </label>
+                    <div className="text-xs text-zinc-400">
+                      {t(`settings.replayGain.mode.${replayGainMode}Hint`)}
+                    </div>
+                  </div>
+                  <select
+                    id="replaygain-mode-select"
+                    value={replayGainMode}
+                    onChange={(e) =>
+                      handleReplayGainModeChange(
+                        e.target.value as ReplayGainMode,
+                      )
+                    }
+                    className="shrink-0 px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  >
+                    {REPLAYGAIN_MODES.map((mode) => (
+                      <option key={mode} value={mode}>
+                        {t(`settings.replayGain.mode.${mode}`)}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Clipping prevention */}

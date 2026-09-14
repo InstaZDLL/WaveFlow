@@ -18,7 +18,12 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::{
     analysis::ANALYSIS_VERSION,
-    audio::{engine::AudioCmd, replay_gain::TrackGain, state::SharedPlayback, AudioEngine},
+    audio::{
+        engine::AudioCmd,
+        replay_gain::{GainMode, TrackGain},
+        state::SharedPlayback,
+        AudioEngine,
+    },
     error::{AppError, AppResult},
     paths::AppPaths,
     queue::{self, Direction, QueueTrack},
@@ -45,10 +50,16 @@ pub(crate) async fn fetch_replay_gain(pool: &sqlx::SqlitePool, track_id: i64) ->
             Option<f64>,
             Option<f64>,
             Option<f64>,
+            Option<f64>,
+            Option<f64>,
             Option<i64>,
         ),
     >(
+        // The album pair has no analysis counterpart to join against:
+        // our pass measures one track at a time, so album gain is
+        // whatever a tagger wrote into the file, or nothing.
         "SELECT t.rg_track_gain_db, t.rg_track_peak,
+                t.rg_album_gain_db, t.rg_album_peak,
                 a.replay_gain_db, a.peak, a.analysis_version
            FROM track t
            LEFT JOIN track_analysis a ON a.track_id = t.id
@@ -60,7 +71,16 @@ pub(crate) async fn fetch_replay_gain(pool: &sqlx::SqlitePool, track_id: i64) ->
     .ok()
     .flatten();
 
-    let Some((tag_gain, tag_peak, analysis_gain, analysis_peak, analysis_version)) = row else {
+    let Some((
+        tag_gain,
+        tag_peak,
+        tag_album_gain,
+        tag_album_peak,
+        analysis_gain,
+        analysis_peak,
+        analysis_version,
+    )) = row
+    else {
         return TrackGain::default();
     };
     TrackGain::prefer_tag(
@@ -68,6 +88,8 @@ pub(crate) async fn fetch_replay_gain(pool: &sqlx::SqlitePool, track_id: i64) ->
             gain_db: tag_gain,
             peak: tag_peak,
             peak_unverified: false,
+            album_gain_db: tag_album_gain,
+            album_peak: tag_album_peak,
         },
         TrackGain {
             gain_db: analysis_gain,
@@ -87,6 +109,9 @@ pub(crate) async fn fetch_replay_gain(pool: &sqlx::SqlitePool, track_id: i64) ->
             // at all — harmless, because `peak` is then NULL too and the
             // flag never gets read.
             peak_unverified: analysis_version != Some(ANALYSIS_VERSION),
+            // Never set on this side: see the comment on the query.
+            album_gain_db: None,
+            album_peak: None,
         },
     )
 }
@@ -658,6 +683,23 @@ pub async fn player_get_state(
                 shared
                     .replaygain_prevent_clipping
                     .store(prevent_clipping, std::sync::atomic::Ordering::Release);
+
+                // Which of a file's two gains to apply. Defaults to
+                // `Auto`, and an unparseable row reads as the default
+                // rather than as an error — same rule as the knobs
+                // above, and the reason this is stored unconditionally.
+                let mode = sqlx::query_scalar::<_, String>(
+                    "SELECT value FROM profile_setting WHERE key = 'audio.replaygain_mode'",
+                )
+                .fetch_optional(&*pool)
+                .await
+                .ok()
+                .flatten()
+                .map(|v| GainMode::from_setting(&v))
+                .unwrap_or_default();
+                shared
+                    .replaygain_mode_bits
+                    .store(mode.as_bits(), std::sync::atomic::Ordering::Release);
             }
             // Gapless defaults to ON, so only override the boot-time
             // default when an explicit `false` row is found.
@@ -1377,6 +1419,46 @@ pub async fn player_set_replaygain_options(
     Ok(())
 }
 
+/// Choose which of a file's two ReplayGain measurements to apply:
+/// `"track"`, `"album"`, or `"auto"` (album gain while a record plays
+/// through, track gain otherwise).
+///
+/// Written straight into `SharedPlayback` like the other knobs — the
+/// decoder re-reads it per buffer, so the change is audible on the
+/// track already playing rather than at the next one.
+///
+/// An unrecognised value resolves to `auto` rather than failing: this
+/// is a preference, and the only thing worse than the wrong mode is no
+/// sound while the frontend and the backend argue about a string.
+///
+/// Persisted in `profile_setting['audio.replaygain_mode']`.
+#[tauri::command]
+pub async fn player_set_replaygain_mode(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    mode: String,
+) -> AppResult<()> {
+    let mode = GainMode::from_setting(&mode);
+    engine
+        .shared()
+        .replaygain_mode_bits
+        .store(mode.as_bits(), std::sync::atomic::Ordering::Relaxed);
+
+    if let Ok(pool) = state.require_profile_pool().await {
+        let now = chrono::Utc::now().timestamp_millis();
+        let _ = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.replaygain_mode', ?, 'string', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(mode.as_setting())
+        .bind(now)
+        .execute(&*pool)
+        .await;
+    }
+    Ok(())
+}
+
 /// Keep a pre-amp / fallback value inside the supported range, and
 /// turn a non-finite one into a no-op rather than into silence.
 fn clamp_replaygain_adjust(db: f32) -> f32 {
@@ -1808,6 +1890,7 @@ pub async fn player_get_audio_settings(
         replaygain_preamp_db: replay_gain_settings.preamp_db as f32,
         replaygain_fallback_db: replay_gain_settings.fallback_db as f32,
         replaygain_prevent_clipping: replay_gain_settings.prevent_clipping,
+        replaygain_mode: replay_gain_settings.mode.as_setting().to_string(),
         gapless,
         dsd_taps,
         dsd_dop,
@@ -1828,6 +1911,8 @@ pub struct AudioSettingsSnapshot {
     pub replaygain_fallback_db: f32,
     /// Hold gains back to the headroom each track's peak leaves.
     pub replaygain_prevent_clipping: bool,
+    /// `"track"` / `"album"` / `"auto"` — see [`GainMode`].
+    pub replaygain_mode: String,
     pub gapless: bool,
     /// Active DSD → PCM FIR tap count (256 / 1024 / 2048).
     pub dsd_taps: u32,

@@ -1583,6 +1583,15 @@
         "title": "Evitare la saturazione",
         "subtitle": "Limitare il guadagno al margine lasciato dal picco del brano"
       },
+      "mode": {
+        "title": "Guadagno da applicare",
+        "auto": "Automatico",
+        "track": "Per brano",
+        "album": "Per album",
+        "autoHint": "Guadagno dell'album mentre un disco viene ascoltato per intero, altrimenti quello del brano",
+        "trackHint": "Uniforma ogni brano rispetto a tutti gli altri",
+        "albumHint": "Un solo guadagno per disco, che ne conserva i rapporti di livello interni"
+      },
       "decibels": "{{value}} dB"
     },
     "exclusive": {

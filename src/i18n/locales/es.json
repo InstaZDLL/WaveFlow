@@ -1583,6 +1583,15 @@
         "title": "Evitar la saturación",
         "subtitle": "Limitar la ganancia al margen que deja el pico de la pista"
       },
+      "mode": {
+        "title": "Ganancia que aplicar",
+        "auto": "Automática",
+        "track": "Por pista",
+        "album": "Por álbum",
+        "autoHint": "Ganancia de álbum cuando un disco se escucha entero; de pista en los demás casos",
+        "trackHint": "Iguala cada pista con respecto a todas las demás",
+        "albumHint": "Una sola ganancia por disco, que conserva sus diferencias de nivel internas"
+      },
       "decibels": "{{value}} dB"
     },
     "exclusive": {

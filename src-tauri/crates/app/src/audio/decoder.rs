@@ -1605,11 +1605,7 @@ fn play_track(
                     dst_sample_rate,
                     dst_channels,
                 )?;
-                apply_replay_gain(
-                    &mut primary_resampled[prev_len..],
-                    shared,
-                    stream.replay_gain,
-                );
+                apply_replay_gain(&mut primary_resampled[prev_len..], shared, &stream);
             }
             let secondary = pending_next
                 .as_mut()
@@ -1624,11 +1620,7 @@ fn play_track(
                     dst_sample_rate,
                     dst_channels,
                 )?;
-                apply_replay_gain(
-                    &mut secondary_resampled[prev_len..],
-                    shared,
-                    secondary.replay_gain,
-                );
+                apply_replay_gain(&mut secondary_resampled[prev_len..], shared, secondary);
             }
 
             let primary_frames = primary_resampled.len() / dst_channels;
@@ -1801,11 +1793,7 @@ fn play_track(
                     dst_sample_rate,
                     dst_channels,
                 )?;
-                apply_replay_gain(
-                    &mut primary_resampled[prev_len..],
-                    shared,
-                    stream.replay_gain,
-                );
+                apply_replay_gain(&mut primary_resampled[prev_len..], shared, &stream);
             }
             if primary_resampled.is_empty() && primary_at_eof {
                 // Gapless hand-off: if a next track was pre-fetched
@@ -2258,9 +2246,19 @@ fn drain_commands(
 /// track, so baking it in at load time would leave the pre-amp slider
 /// doing nothing until the next track. One `powf` per decoded buffer
 /// is nothing next to the decode that produced it.
+///
+/// Takes the whole stream rather than just its [`TrackGain`] so the
+/// gain and the listening context can only ever come from the *same*
+/// track: during a crossfade two streams are being gained in the same
+/// loop, and a pair of arguments would let one track's record context
+/// be applied to the other one's gain.
 #[inline]
-fn apply_replay_gain(buf: &mut [f32], shared: &SharedPlayback, track: TrackGain) {
-    let gain = effective_linear(track, shared.replay_gain_settings());
+fn apply_replay_gain(buf: &mut [f32], shared: &SharedPlayback, stream: &ActiveStream) {
+    let gain = effective_linear(
+        stream.replay_gain,
+        shared.replay_gain_settings(),
+        shared.listening_to(&stream.source_type),
+    );
     if gain == 1.0 {
         return;
     }

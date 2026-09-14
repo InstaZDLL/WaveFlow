@@ -1562,6 +1562,15 @@
         "title": "防止削波",
         "subtitle": "将增益限制在曲目峰值留出的余量之内"
       },
+      "mode": {
+        "title": "应用的增益",
+        "auto": "自动",
+        "track": "按单曲",
+        "album": "按专辑",
+        "autoHint": "整张专辑连续播放时用专辑增益，其余情况用单曲增益",
+        "trackHint": "让每首曲目与其他所有曲目响度一致",
+        "albumHint": "每张专辑一个增益，保留专辑内部的音量落差"
+      },
       "decibels": "{{value}} dB"
     },
     "exclusive": {

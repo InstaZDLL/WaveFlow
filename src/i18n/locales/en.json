@@ -1583,6 +1583,15 @@
         "title": "Prevent clipping",
         "subtitle": "Hold the gain back to the headroom the track's peak leaves"
       },
+      "mode": {
+        "title": "Gain to apply",
+        "auto": "Automatic",
+        "track": "Per track",
+        "album": "Per album",
+        "autoHint": "Album gain while a record plays through, track gain otherwise",
+        "trackHint": "Levels every track against every other one",
+        "albumHint": "One gain per record, preserving its internal level differences"
+      },
       "decibels": "{{value}} dB"
     },
     "exclusive": {

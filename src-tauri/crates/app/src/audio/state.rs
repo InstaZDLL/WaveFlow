@@ -173,6 +173,22 @@ pub struct SharedPlayback {
     /// so a boost never pushes samples past full scale and into the
     /// decoder's final clamp. On by default.
     pub replaygain_prevent_clipping: AtomicBool,
+    /// Which of a file's two gains to apply, as
+    /// [`GainMode::as_bits`](super::replay_gain::GainMode::as_bits).
+    /// Stored as a plain integer rather than behind a lock for the
+    /// same reason as the knobs above: the decoder thread is the only
+    /// reader, and a switch that lands one buffer late is inaudible.
+    pub replaygain_mode_bits: AtomicU8,
+    /// `true` while shuffle is grouping whole records instead of
+    /// individual tracks (#618).
+    ///
+    /// Lives here, next to the gain knobs, because that is the only
+    /// thing on the decoder thread that reads it: a queue playing
+    /// album-ordered runs *is* a record being played through, whatever
+    /// the queue was originally built from, and ReplayGain's automatic
+    /// mode needs to know. The queue ordering itself is decided in
+    /// [`crate::queue`] and never read back from here.
+    pub shuffle_by_album: AtomicBool,
     /// When `true`, the decoder pre-fetches the next queued track
     /// ~500 ms before the current one ends and swaps to it the
     /// instant primary EOFs — no analytics → LoadAndPlay round trip,
@@ -303,6 +319,8 @@ impl SharedPlayback {
             replaygain_preamp_db_bits: AtomicU32::new(0.0_f32.to_bits()),
             replaygain_fallback_db_bits: AtomicU32::new(0.0_f32.to_bits()),
             replaygain_prevent_clipping: AtomicBool::new(true),
+            replaygain_mode_bits: AtomicU8::new(super::replay_gain::GainMode::default().as_bits()),
+            shuffle_by_album: AtomicBool::new(false),
             gapless_enabled: AtomicBool::new(true),
             eq: super::eq::EqShared::new(),
             pause_after_current_track: AtomicBool::new(false),
@@ -445,10 +463,10 @@ impl SharedPlayback {
 
     /// Snapshot of the ReplayGain knobs for one decoded buffer.
     ///
-    /// Read as four independent atomics rather than behind a lock:
-    /// the decoder thread is the only reader, and the worst a torn
-    /// read can do is apply the old pre-amp to one buffer and the new
-    /// one to the next — inaudible, and gone by the following packet.
+    /// Read as independent atomics rather than behind a lock: the
+    /// decoder thread is the only reader, and the worst a torn read
+    /// can do is apply the old pre-amp to one buffer and the new one
+    /// to the next — inaudible, and gone by the following packet.
     pub fn replay_gain_settings(&self) -> super::replay_gain::GainSettings {
         super::replay_gain::GainSettings {
             enabled: self.replaygain_enabled.load(Ordering::Relaxed),
@@ -459,6 +477,25 @@ impl SharedPlayback {
                 self.replaygain_fallback_db_bits.load(Ordering::Relaxed),
             )),
             prevent_clipping: self.replaygain_prevent_clipping.load(Ordering::Relaxed),
+            mode: super::replay_gain::GainMode::from_bits(
+                self.replaygain_mode_bits.load(Ordering::Relaxed),
+            ),
+        }
+    }
+
+    /// How the track currently decoding is being listened to, for
+    /// [`GainMode::Auto`](super::replay_gain::GainMode::Auto).
+    ///
+    /// Two ways a track counts as part of a record. Its queue entry
+    /// says so — `source_type == "album"`, the column that already
+    /// travels from the queue to the decoder — or shuffle is grouping
+    /// by album, in which case whole records play in their own order
+    /// whatever the queue was built from.
+    pub fn listening_to(&self, source_type: &str) -> super::replay_gain::Listening {
+        if source_type == "album" || self.shuffle_by_album.load(Ordering::Relaxed) {
+            super::replay_gain::Listening::ToAnAlbum
+        } else {
+            super::replay_gain::Listening::ToATrack
         }
     }
 

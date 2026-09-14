@@ -1636,6 +1636,15 @@
         "title": "Éviter la saturation",
         "subtitle": "Limiter le gain à la marge que laisse le pic du morceau"
       },
+      "mode": {
+        "title": "Gain à appliquer",
+        "auto": "Automatique",
+        "track": "Par morceau",
+        "album": "Par album",
+        "autoHint": "Gain d'album quand un disque s'écoute en entier, gain du morceau sinon",
+        "trackHint": "Égalise chaque morceau par rapport à tous les autres",
+        "albumHint": "Un seul gain par disque, qui préserve ses écarts de niveau internes"
+      },
       "decibels": "{{value}} dB"
     },
     "exclusive": {

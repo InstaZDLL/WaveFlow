@@ -368,6 +368,8 @@ export interface AudioSettingsSnapshot {
   replaygain_fallback_db: number;
   /** Hold gains back to the headroom each track's peak leaves. */
   replaygain_prevent_clipping: boolean;
+  /** Which of a file's two gains to apply — see {@link ReplayGainMode}. */
+  replaygain_mode: ReplayGainMode;
   gapless: boolean;
   /** Active DSD → PCM FIR tap count (256 / 1024 / 2048). */
   dsd_taps: number;
@@ -453,6 +455,30 @@ export function playerSetReplayGainOptions(
     fallbackDb: options.fallbackDb,
     preventClipping: options.preventClipping,
   });
+}
+
+/**
+ * Which of the two gains a file can carry gets applied.
+ *
+ * - `track` levels every track against every other one.
+ * - `album` applies one gain across a whole record, keeping the level
+ *   relationships the mastering engineer put inside it.
+ * - `auto` picks per track from how it is being played: album gain
+ *   while a record plays through, track gain for the same song heard
+ *   between two unrelated ones.
+ */
+export type ReplayGainMode = "track" | "album" | "auto";
+
+export const REPLAYGAIN_MODES: readonly ReplayGainMode[] = [
+  "auto",
+  "track",
+  "album",
+];
+
+export function playerSetReplayGainMode(
+  mode: ReplayGainMode,
+): Promise<void> {
+  return invoke<void>("player_set_replaygain_mode", { mode });
 }
 
 export function playerSetGapless(enabled: boolean): Promise<void> {

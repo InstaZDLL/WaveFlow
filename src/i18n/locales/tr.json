@@ -1583,6 +1583,15 @@
         "title": "Bozulmayı önle",
         "subtitle": "Kazancı, parçanın tepe değerinin bıraktığı boşlukla sınırla"
       },
+      "mode": {
+        "title": "Uygulanacak kazanç",
+        "auto": "Otomatik",
+        "track": "Parça başına",
+        "album": "Albüm başına",
+        "autoHint": "Bir albüm baştan sona çalarken albüm kazancı, aksi hâlde parça kazancı",
+        "trackHint": "Her parçayı diğerlerine göre eşitler",
+        "albumHint": "Albüm başına tek kazanç; albümün kendi içindeki seviye farklarını korur"
+      },
       "decibels": "{{value}} dB"
     },
     "exclusive": {
