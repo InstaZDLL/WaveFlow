@@ -308,20 +308,16 @@ pub async fn write_repeat_mode(pool: &SqlitePool, mode: RepeatMode) -> AppResult
     Ok(())
 }
 
-pub async fn write_shuffle(pool: &SqlitePool, shuffle: bool) -> AppResult<()> {
-    write_shuffle_mode(
-        pool,
-        if shuffle {
-            ShuffleMode::Tracks
-        } else {
-            ShuffleMode::Off
-        },
-    )
-    .await
-}
-
 /// Persist a shuffle state: the switch always, the grouping only when
 /// there is one to record.
+///
+/// The only setter, on purpose. A boolean one used to sit next to it
+/// and now has no callers — and leaving it would have been a trap
+/// rather than a convenience: `write_shuffle(pool, true)` forces the
+/// `Tracks` grouping, so a future caller reaching for the obvious name
+/// would silently throw away a listener's preference for whole
+/// records. Turning shuffle on without choosing a grouping is
+/// [`read_shuffle_grouping_preference`] followed by this.
 ///
 /// Turning shuffle off deliberately leaves `player.shuffle_grouping`
 /// alone — see [`read_shuffle_mode`] for why the listener's choice is
@@ -351,15 +347,6 @@ pub async fn write_shuffle_mode(pool: &SqlitePool, mode: ShuffleMode) -> AppResu
     .execute(pool)
     .await?;
     Ok(())
-}
-
-/// Turn shuffle on without changing which grouping it uses — the
-/// meaning of every "Shuffle" button that sits on an album, an artist
-/// or a playlist. Returns the mode that ended up in force.
-pub async fn enable_shuffle(pool: &SqlitePool) -> AppResult<ShuffleMode> {
-    let mode = read_shuffle_grouping_preference(pool).await;
-    write_shuffle_mode(pool, mode).await?;
-    Ok(mode)
 }
 
 /// Reorder the queue to match `mode`. The one place that knows which
