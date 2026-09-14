@@ -39,7 +39,8 @@ pub const ALBUM_MIN_ANALYSED: i64 = 3;
 
 /// An album that qualified, with enough of it measured to be worth
 /// trusting.
-#[derive(Debug, Clone, PartialEq, sqlx::FromRow)]
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(any(feature = "sqlite", feature = "postgres"), derive(sqlx::FromRow))]
 pub struct AlbumCandidate {
     pub album_id: i64,
     /// Every playable track on the record, analysed or not.

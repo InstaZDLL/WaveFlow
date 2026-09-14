@@ -1252,8 +1252,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [replayGain, setReplayGain] = useState(false);
   const [replayGainPreamp, setReplayGainPreamp] = useState(0);
   const [replayGainFallback, setReplayGainFallback] = useState(0);
-  const { enabled: generatorAlbumMode, setEnabled: setGeneratorAlbumMode } =
-    useGeneratorAlbumMode();
+  const {
+    enabled: generatorAlbumMode,
+    resolved: generatorAlbumModeResolved,
+    setEnabled: setGeneratorAlbumMode,
+  } = useGeneratorAlbumMode();
   const [replayGainMode, setReplayGainMode] =
     useState<ReplayGainMode>("auto");
   const [replayGainPreventClipping, setReplayGainPreventClipping] =
@@ -2709,6 +2712,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               <ToggleSwitch
                 enabled={generatorAlbumMode}
                 onToggle={() => void setGeneratorAlbumMode(!generatorAlbumMode)}
+                disabled={!generatorAlbumModeResolved}
                 label={t("settings.generatorAlbumMode.title")}
               />
             </div>

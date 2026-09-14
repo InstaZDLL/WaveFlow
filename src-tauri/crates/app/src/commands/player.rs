@@ -474,8 +474,15 @@ pub(crate) async fn set_shuffle_mode(
     engine: &AudioEngine,
     mode: queue::ShuffleMode,
 ) -> AppResult<()> {
-    queue::write_shuffle_mode(pool, mode).await?;
+    // Reorder first, and only then record it. The reorder is the part
+    // that can fail; doing it first means a failure leaves the
+    // persisted mode, the queue order and the engine's mirror all
+    // still describing the state the user was already in, with nothing
+    // to roll back. `apply_shuffle_mode` takes the mode as an argument
+    // and reads nothing persisted, so there is no reason for the write
+    // to come first.
     queue::apply_shuffle_mode(pool, mode).await?;
+    queue::write_shuffle_mode(pool, mode).await?;
     publish_shuffle_grouping(engine, mode);
     Ok(())
 }

@@ -27,9 +27,18 @@ sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
 
 `cmake` builds the vendored libopus that ships the Opus decoder — see
 [playback](features/playback.md#opus-581). It is the only build-time
-tool here rather than a library, and the only one the packaged builds
-do not need: the Linux packages repackage a binary rather than
+tool in that list rather than a library, and the only one the packaged
+builds do not need: the Linux packages repackage a binary rather than
 compiling.
+
+**It is needed on macOS and Windows too**, and neither comes with it:
+a clean macOS install has neither `cmake` nor Homebrew, so
+`brew install cmake` — or [the official
+installer](https://cmake.org/download/) — is a prerequisite there, and
+on Windows `choco install cmake` or the same installer. One caveat on
+Windows: MSVC fails with `C1083: Cannot open compiler generated file`
+when the build directory path is long, so keep the checkout somewhere
+short rather than nested deep under a temp directory.
 
 ### Install
 
