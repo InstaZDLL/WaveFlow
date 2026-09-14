@@ -690,7 +690,16 @@ fn patch_dsf(
                 // MusicBrainz identifiers — would be dropped to save a
                 // title. Refusing leaves the file exactly as it is, and
                 // says why.
-                Some(id3::Tag::read_from2(&mut *handle)?)
+                //
+                // `NoTag` is the exception, and the only one: a pointer
+                // leading to no tag at all describes a file with no
+                // metadata, not one whose metadata we failed to read.
+                // There is nothing there to lose, so it starts fresh.
+                match id3::Tag::read_from2(&mut *handle) {
+                    Ok(tag) => Some(tag),
+                    Err(err) if matches!(err.kind, id3::ErrorKind::NoTag) => None,
+                    Err(err) => return Err(err.into()),
+                }
             } else {
                 None
             };

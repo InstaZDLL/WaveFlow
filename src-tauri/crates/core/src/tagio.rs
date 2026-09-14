@@ -274,6 +274,16 @@ where
     // attribute lands on the file that ends up in place.
     let _readonly = ReadOnlyGuard::lift(path).map_err(E::from)?;
 
+    // Ask for the write permission this path does not otherwise need.
+    // A rename only requires a writable *directory*, so without this the
+    // rewrite would happily replace a file the user had deliberately
+    // made read-only — while the in-place path, which opens the file
+    // itself, refuses it. "You may not write this file" has to mean the
+    // same thing whichever path the container happens to take. The
+    // handle is dropped immediately: holding it open would make the
+    // rename fail on Windows.
+    drop(open_for_write(path).map_err(E::from)?);
+
     let directory = path.parent().unwrap_or_else(|| Path::new("."));
     let stem = path
         .file_name()
