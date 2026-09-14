@@ -2185,6 +2185,18 @@
           "description": "無論佈景主題與外觀為何，都加強對比。"
         }
       }
+    },
+    "cacheLocation": {
+      "title": "快取位置",
+      "subtitle": "封面、動態封面與 Canvas 片段。這些都能重新取得，移動不會遺失任何內容。資料庫與你手動挑選的檔案仍留在原處。",
+      "pickTitle": "選擇快取資料夾",
+      "choose": "移動…",
+      "reset": "回復預設",
+      "size": "已用 {{size}}",
+      "copying": "正在複製…… 原檔案要到下次啟動才會刪除。",
+      "fellBack": "設定的位置無法存取（{{path}}），本次執行改用預設位置。你的選擇已保留。",
+      "restartNeeded": "複製完成。重新啟動後使用新位置。",
+      "restartNow": "重新啟動"
     }
   },
   "scanProgress": {

@@ -11,16 +11,41 @@ use crate::error::{AppError, AppResult};
 /// Layout (on Windows example, equivalent on macOS/Linux via Tauri's data dir):
 ///
 /// ```text
-/// <app_data>/waveflow/
+/// <app_data>/waveflow/                 <- `root`
 /// ├── app.db                    (global registry + app settings)
 /// ├── avatars/                  (shared profile avatars, hash-addressed)
-/// ├── metadata_artwork/         (shared remote artwork cache, hash-addressed)
 /// └── profiles/
 ///     └── <profile_id>/
 ///         ├── data.db           (per-profile database)
+///         ├── motion/           (per-profile manual motion covers, never evicted)
+///         ├── canvas/           (per-profile manual Canvas clips, never evicted)
+///         └── remote-downloads/ (offline copies the user asked for)
+///
+/// <cache_root>/                        <- `root` unless the user moved it
+/// ├── metadata_artwork/         (shared remote artwork cache, hash-addressed)
+/// ├── motion_cache/             (shared animated-cover LRU)
+/// ├── canvas_cache/             (shared per-track Canvas LRU)
+/// └── profiles/
+///     └── <profile_id>/
 ///         ├── artwork/          (per-profile artwork cache)
-///         └── motion/           (per-profile manual motion covers, never evicted)
+///         ├── remote-artwork/   (per-profile remote cover cache)
+///         └── remote-stream/    (per-profile remote audio cache)
 /// ```
+///
+/// # Why two roots (issue #619)
+///
+/// Artwork landed on the system drive whatever drive WaveFlow itself was
+/// installed on, and a `C:` that is critically low on space takes the
+/// whole machine down with it. So the growing, *rebuildable* part of the
+/// tree can be pointed somewhere else.
+///
+/// The split is not "big things move". It is **evictable moves, chosen
+/// stays**: every directory under `cache_root` is content-addressed or
+/// LRU-evicted, so the worst case of a failed or missing move is a
+/// re-fetch. The databases, the manual motion covers, the manual Canvas
+/// clips and the offline downloads are things the user would have to
+/// recreate by hand, so moving them would be a migration rather than a
+/// setting, and they stay put.
 ///
 /// `bundled_plugins_dir` is resolved separately against
 /// [`BaseDirectory::Resource`] and points at the installer-shipped
@@ -34,6 +59,9 @@ use crate::error::{AppError, AppResult};
 #[derive(Debug, Clone)]
 pub struct AppPaths {
     pub root: PathBuf,
+    /// Where the rebuildable caches live. Equal to [`Self::root`] unless
+    /// the user moved them (issue #619).
+    pub cache_root: PathBuf,
     pub app_db: PathBuf,
     pub avatars_dir: PathBuf,
     pub metadata_artwork_dir: PathBuf,
@@ -53,6 +81,10 @@ impl AppPaths {
     ///
     /// Does **not** create any directories on disk. Call [`Self::ensure_dirs`]
     /// after construction to materialize the layout.
+    ///
+    /// Caches resolve under the same root; [`Self::with_cache_root`]
+    /// moves them afterwards, once `app.db` has been opened and the
+    /// stored choice read.
     pub fn from_handle(handle: &AppHandle) -> AppResult<Self> {
         let data_dir = handle
             .path()
@@ -110,8 +142,41 @@ impl AppPaths {
             canvas_cache_dir: root.join("canvas_cache"),
             profiles_dir: root.join("profiles"),
             bundled_plugins_dir,
+            cache_root: root.clone(),
             root,
         }
+    }
+
+    /// Same layout with the caches rooted somewhere else (issue #619).
+    ///
+    /// Only the evictable directories move — see the type-level docs for
+    /// why. Passing the default root back in is a no-op, which is what
+    /// the "put it back" path in Settings does.
+    #[must_use]
+    pub fn with_cache_root(mut self, cache_root: PathBuf) -> Self {
+        self.metadata_artwork_dir = cache_root.join("metadata_artwork");
+        self.motion_cache_dir = cache_root.join("motion_cache");
+        self.canvas_cache_dir = cache_root.join("canvas_cache");
+        self.cache_root = cache_root;
+        self
+    }
+
+    /// Every directory that moves with [`Self::cache_root`], paired with
+    /// its path relative to that root.
+    ///
+    /// The app-wide ones only. Per-profile caches are enumerated by
+    /// [`Self::profile_cache_dirs`], because there is no list of profile
+    /// ids at this level.
+    ///
+    /// Used by the move: copying and verifying walk the same list the
+    /// layout is built from, so a directory added to one is impossible
+    /// to forget in the other.
+    pub fn shared_cache_dirs(&self) -> [(&'static str, &PathBuf); 3] {
+        [
+            ("metadata_artwork", &self.metadata_artwork_dir),
+            ("motion_cache", &self.motion_cache_dir),
+            ("canvas_cache", &self.canvas_cache_dir),
+        ]
     }
 
     /// The app-data root for a bundle identifier, without a running app.
@@ -137,6 +202,7 @@ impl AppPaths {
     /// don't have to special-case a missing tree on a fresh install.
     pub fn ensure_dirs(&self) -> AppResult<()> {
         std::fs::create_dir_all(&self.root)?;
+        std::fs::create_dir_all(&self.cache_root)?;
         std::fs::create_dir_all(&self.avatars_dir)?;
         std::fs::create_dir_all(&self.metadata_artwork_dir)?;
         std::fs::create_dir_all(&self.motion_cache_dir)?;
@@ -157,9 +223,22 @@ impl AppPaths {
         self.profile_dir(profile_id).join("data.db")
     }
 
+    /// Directory holding a profile's *caches* (e.g.
+    /// `<cache_root>/profiles/42`).
+    ///
+    /// Identical to [`Self::profile_dir`] until the user moves the
+    /// caches; the two diverge from that point on, which is why every
+    /// evictable per-profile directory below is built from this one and
+    /// every kept one from `profile_dir`.
+    pub fn profile_cache_dir(&self, profile_id: i64) -> PathBuf {
+        self.cache_root
+            .join("profiles")
+            .join(profile_id.to_string())
+    }
+
     /// Per-profile artwork cache directory.
     pub fn profile_artwork_dir(&self, profile_id: i64) -> PathBuf {
-        self.profile_dir(profile_id).join("artwork")
+        self.profile_cache_dir(profile_id).join("artwork")
     }
 
     /// Per-profile directory for user-supplied animated album covers
@@ -185,7 +264,7 @@ impl AppPaths {
     /// content-addressed and reproducible, so this one *is* evictable — on
     /// the same terms as [`Self::motion_cache_dir`].
     pub fn profile_remote_artwork_dir(&self, profile_id: i64) -> PathBuf {
-        self.profile_dir(profile_id).join("remote-artwork")
+        self.profile_cache_dir(profile_id).join("remote-artwork")
     }
 
     /// Downloaded copies of the bound server's tracks — the managed folder.
@@ -211,12 +290,13 @@ impl AppPaths {
     /// Only the remote source uses this, so it does not exist without it.
     #[cfg(feature = "sync_v2")]
     pub fn profile_remote_stream_dir(&self, profile_id: i64) -> PathBuf {
-        self.profile_dir(profile_id).join("remote-stream")
+        self.profile_cache_dir(profile_id).join("remote-stream")
     }
 
     /// Create the directory layout required for a brand-new profile.
     pub fn ensure_profile_dirs(&self, profile_id: i64) -> AppResult<()> {
         std::fs::create_dir_all(self.profile_dir(profile_id))?;
+        std::fs::create_dir_all(self.profile_cache_dir(profile_id))?;
         std::fs::create_dir_all(self.profile_artwork_dir(profile_id))?;
         std::fs::create_dir_all(self.profile_motion_dir(profile_id))?;
         std::fs::create_dir_all(self.profile_canvas_dir(profile_id))?;

@@ -2185,6 +2185,18 @@
           "description": "无论主题与皮肤如何，都加强对比度。"
         }
       }
+    },
+    "cacheLocation": {
+      "title": "缓存位置",
+      "subtitle": "封面、动态封面和 Canvas 片段。这些都可以重新获取，移动不会丢失任何内容。数据库和你手动选择的文件仍留在原处。",
+      "pickTitle": "选择缓存文件夹",
+      "choose": "移动…",
+      "reset": "恢复默认",
+      "size": "已用 {{size}}",
+      "copying": "正在复制…… 原文件要到下次启动才会删除。",
+      "fellBack": "设定的位置无法访问（{{path}}），本次运行改用默认位置。你的选择已保留。",
+      "restartNeeded": "复制完成。重启后使用新位置。",
+      "restartNow": "重启"
     }
   },
   "scanProgress": {

@@ -2185,6 +2185,18 @@
           "description": "Kontras diperkuat, apa pun tema dan skin-nya."
         }
       }
+    },
+    "cacheLocation": {
+      "title": "Lokasi singgahan",
+      "subtitle": "Sampul, sampul bergerak, dan klip Canvas. Semuanya bisa dibangun ulang, jadi memindahkannya tidak menghilangkan apa pun. Basis data dan berkas yang Anda pilih sendiri tetap di tempatnya.",
+      "pickTitle": "Pilih folder singgahan",
+      "choose": "Pindahkan…",
+      "reset": "Kembali ke bawaan",
+      "size": "{{size}} terpakai",
+      "copying": "Menyalin… aslinya baru dihapus pada peluncuran berikutnya.",
+      "fellBack": "Lokasi yang diatur tidak dapat dijangkau ({{path}}), jadi singgahan memakai lokasi bawaan untuk sesi ini. Pilihan Anda tetap tersimpan.",
+      "restartNeeded": "Penyalinan selesai. Mulai ulang untuk memakai lokasi baru.",
+      "restartNow": "Mulai ulang"
     }
   },
   "spotify": {

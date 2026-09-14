@@ -2185,6 +2185,18 @@
           "description": "Contraste reforzado, sea cual sea el tema o el aspecto."
         }
       }
+    },
+    "cacheLocation": {
+      "title": "Ubicación de la caché",
+      "subtitle": "Carátulas, portadas animadas y clips de Canvas. Todo es reconstruible, así que moverlo no pierde nada. Las bases de datos y los archivos que elegiste a mano se quedan donde están.",
+      "pickTitle": "Elegir la carpeta de caché",
+      "choose": "Mover…",
+      "reset": "Volver al valor predeterminado",
+      "size": "{{size}} en uso",
+      "copying": "Copiando… el original solo se elimina en el próximo inicio.",
+      "fellBack": "La ubicación configurada no está accesible ({{path}}), así que la caché usa la predeterminada en esta sesión. Tu elección se ha conservado.",
+      "restartNeeded": "Copia terminada. Reinicia para usar la nueva ubicación.",
+      "restartNow": "Reiniciar"
     }
   },
   "spotify": {

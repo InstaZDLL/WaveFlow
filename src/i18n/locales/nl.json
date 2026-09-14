@@ -2185,6 +2185,18 @@
           "description": "Versterkt contrast, ongeacht thema en skin."
         }
       }
+    },
+    "cacheLocation": {
+      "title": "Cachelocatie",
+      "subtitle": "Hoesafbeeldingen, bewegende covers en Canvas-clips. Alles is opnieuw op te bouwen, dus verplaatsen kost niets. Databases en zelf gekozen bestanden blijven waar ze zijn.",
+      "pickTitle": "Cachemap kiezen",
+      "choose": "Verplaatsen…",
+      "reset": "Terug naar standaard",
+      "size": "{{size}} in gebruik",
+      "copying": "Bezig met kopiëren… het origineel wordt pas bij de volgende start verwijderd.",
+      "fellBack": "De ingestelde locatie is onbereikbaar ({{path}}), dus de cache gebruikt deze sessie de standaardlocatie. Je keuze is bewaard.",
+      "restartNeeded": "Kopiëren voltooid. Start opnieuw op om de nieuwe locatie te gebruiken.",
+      "restartNow": "Opnieuw starten"
     }
   },
   "spotify": {

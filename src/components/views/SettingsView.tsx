@@ -171,6 +171,7 @@ import { HiResBadgeCard } from "./settings/HiResBadgeCard";
 import { StatsKpiVisibilityCard } from "./settings/StatsKpiVisibilityCard";
 import { SkinPickerCard } from "./settings/SkinPickerCard";
 import { ContrastCard } from "./settings/ContrastCard";
+import { CacheLocationCard } from "./settings/CacheLocationCard";
 import { FullscreenLyricsCenteringCard } from "./settings/FullscreenLyricsCenteringCard";
 import { ImmersiveViewCard } from "./settings/ImmersiveViewCard";
 import { CoverSlideshowCard } from "./settings/CoverSlideshowCard";
@@ -4274,6 +4275,14 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             {/* Offline Web Radio catalogue — download the station directory
               for offline browse + search (#289). */}
             <RadioCatalogueCard
+              language={i18n.resolvedLanguage ?? i18n.language}
+            />
+
+            {/* Where artwork and the rebuildable caches live (#619). Sits
+              beside the data-folder row it qualifies: that one opens the
+              app-data tree, this one is why the caches may no longer be
+              inside it. */}
+            <CacheLocationCard
               language={i18n.resolvedLanguage ?? i18n.language}
             />
 

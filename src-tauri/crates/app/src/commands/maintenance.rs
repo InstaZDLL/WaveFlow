@@ -297,9 +297,29 @@ pub async fn reset_app(
     }
 
     let root = state.paths.root.clone();
+    // The caches can live outside the app-data tree since #619, and
+    // `root` no longer covers them. Collected before the pools close,
+    // because listing the profiles needs `app.db`.
+    let cache_roots = super::storage::wipe_targets_outside_root(&state).await;
 
     state.deactivate_profile().await;
     state.app_db.close().await;
+
+    // Best-effort, and before the main wipe: a cache left behind on
+    // another drive is exactly the disk usage the user moved it there to
+    // control, and a reset that leaves gigabytes of artwork on `D:` has
+    // not reset anything they can see.
+    for dir in cache_roots {
+        if let Err(err) = std::fs::remove_dir_all(&dir) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                tracing::warn!(
+                    path = %dir.display(),
+                    ?err,
+                    "could not remove a relocated cache directory during reset",
+                );
+            }
+        }
+    }
 
     let wipe_root = root.clone();
     match tokio::task::spawn_blocking(move || std::fs::remove_dir_all(&wipe_root)).await {

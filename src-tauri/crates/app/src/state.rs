@@ -224,6 +224,12 @@ impl ActiveProfile {
 /// - an optional, swappable per-profile `data.db` pool
 pub struct AppState {
     pub paths: AppPaths,
+    /// Why a stored cache location could not be used this session, when
+    /// that happened (issue #619). Kept so the Settings card can name
+    /// the reason: caches quietly reappearing at the default location
+    /// is, from the user side, indistinguishable from them having been
+    /// wiped.
+    pub cache_root_fallback: Option<String>,
     pub app_db: SqlitePool,
     pub profile: Arc<RwLock<Option<ActiveProfile>>>,
     /// DLNA / UPnP MediaServer worker. Always present (the worker
@@ -349,7 +355,13 @@ impl AppState {
     ///    most-recently-used profile is activated as a fallback.
     pub async fn init(handle: &AppHandle) -> AppResult<Self> {
         let paths = AppPaths::from_handle(handle)?;
-        paths.ensure_dirs()?;
+        // The app-data root has to exist before `app.db` can be opened,
+        // and `app.db` has to be open before the cache root can be read
+        // out of it (issue #619) — so this is deliberately not the full
+        // `ensure_dirs`, which would create the cache tree at the
+        // default location a moment before learning it belongs
+        // somewhere else.
+        std::fs::create_dir_all(&paths.root)?;
 
         // One-shot cleanup for the 1.5.0 → 1.5.1 transition: before
         // this release, `ensure_bundled_plugins` copied every bundled
@@ -371,6 +383,17 @@ impl AppState {
         }
 
         let app_db = db::app_db::open(&paths.app_db).await?;
+
+        // Now that the setting is readable, settle where the caches
+        // live and materialise the layout. A stored choice that cannot
+        // be used this session (drive unplugged, share offline) falls
+        // back to the default without clearing the choice; the reason
+        // is kept so the frontend can say so rather than leaving the
+        // user to conclude their artwork was deleted.
+        let (paths, cache_root_fallback) =
+            crate::commands::storage::resolve_cache_root(paths, &app_db).await;
+        paths.ensure_dirs()?;
+        crate::commands::storage::cleanup_moved_caches(&paths, &app_db).await;
 
         // Hydrate the global offline-mode flag from app_setting so
         // any outbound HTTP call honours the persisted preference
@@ -432,6 +455,7 @@ impl AppState {
 
         let state = Self {
             paths,
+            cache_root_fallback,
             app_db,
             profile: Arc::new(RwLock::new(None)),
             dlna: DlnaServer::spawn(),

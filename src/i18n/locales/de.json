@@ -2185,6 +2185,18 @@
           "description": "Verstärkter Kontrast, unabhängig von Design und Skin."
         }
       }
+    },
+    "cacheLocation": {
+      "title": "Speicherort des Caches",
+      "subtitle": "Cover, animierte Cover und Canvas-Clips. Alles davon lässt sich neu aufbauen, ein Verschieben verliert also nichts. Datenbanken und selbst ausgewählte Dateien bleiben, wo sie sind.",
+      "pickTitle": "Cache-Ordner wählen",
+      "choose": "Verschieben…",
+      "reset": "Auf Standard zurücksetzen",
+      "size": "{{size}} belegt",
+      "copying": "Wird kopiert… das Original wird erst beim nächsten Start entfernt.",
+      "fellBack": "Der eingestellte Ort ist nicht erreichbar ({{path}}), daher nutzt der Cache in dieser Sitzung den Standardort. Ihre Auswahl bleibt erhalten.",
+      "restartNeeded": "Kopie abgeschlossen. Zum Verwenden des neuen Orts neu starten.",
+      "restartNow": "Neu starten"
     }
   },
   "spotify": {

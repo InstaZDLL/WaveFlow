@@ -2185,6 +2185,18 @@
           "description": "Tema ve görünüm ne olursa olsun güçlendirilmiş karşıtlık."
         }
       }
+    },
+    "cacheLocation": {
+      "title": "Önbellek konumu",
+      "subtitle": "Kapak görselleri, hareketli kapaklar ve Canvas klipleri. Hepsi yeniden oluşturulabilir, bu yüzden taşımak hiçbir şey kaybettirmez. Veritabanları ve elle seçtiğiniz dosyalar yerinde kalır.",
+      "pickTitle": "Önbellek klasörünü seç",
+      "choose": "Taşı…",
+      "reset": "Varsayılana dön",
+      "size": "{{size}} kullanımda",
+      "copying": "Kopyalanıyor… özgün klasör yalnızca sonraki açılışta silinir.",
+      "fellBack": "Ayarlanan konuma erişilemiyor ({{path}}); bu oturumda önbellek varsayılan konumu kullanıyor. Seçiminiz korundu.",
+      "restartNeeded": "Kopyalama bitti. Yeni konumu kullanmak için yeniden başlatın.",
+      "restartNow": "Yeniden başlat"
     }
   },
   "spotify": {

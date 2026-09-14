@@ -1,0 +1,503 @@
+//! Where the rebuildable caches live (issue #619).
+//!
+//! Reported by email: WaveFlow stores artwork on the system drive even
+//! when it is itself installed on another one, and a `C:` that is
+//! critically low on space takes the whole machine down with it.
+//!
+//! # What moves, and why that is the line
+//!
+//! Only the **evictable** directories move. Every one of them is
+//! content-addressed or LRU-evicted, so the worst outcome of a failed
+//! move, a missing drive or a half-copy is a re-fetch. The databases,
+//! the manually chosen motion covers and Canvas clips, and the offline
+//! downloads all stay in the app-data tree: recreating those means the
+//! user redoing work by hand, so moving them would be a migration
+//! rather than a setting — with a restart, a schema guard to satisfy,
+//! and a failure mode that loses data. That is the second option the
+//! issue offers, and it is deliberately not the one taken here.
+//!
+//! # The three hazards, and where each is handled
+//!
+//! - **A move must never destroy the only copy.** [`set_cache_location`]
+//!   copies, then persists the new location, and leaves the removal to
+//!   the next startup. An interruption at any point leaves a whole copy
+//!   on disk and a setting that names a whole copy.
+//! - **The asset protocol has a static scope.** `tauri.conf.json` only
+//!   allows `$APPDATA/…` and `$APPLOCALDATA/…`, so artwork served from
+//!   another drive would silently fail to load — no error, no console
+//!   message, just an image that never appears. [`grant_asset_scope`]
+//!   widens it at runtime, which means every startup: a scope grant
+//!   lives in the process, not on disk.
+//! - **`AppPaths` is captured once, at boot.** `AppState` hands out a
+//!   plain `AppPaths` and 95 call sites read it directly, so a move
+//!   cannot take effect in the running process: every write after it
+//!   would still land at the old root, and a background task holding a
+//!   clone could split one batch of files across both. So the move
+//!   copies and persists, and the *process restarts* to adopt the new
+//!   location — after which a startup pass removes the old copy, at a
+//!   moment when nothing is reading it. Deleting it eagerly, before the
+//!   restart, would point the still-running app at directories that no
+//!   longer exist.
+//! - **A removable or network drive can be missing at launch.**
+//!   [`resolve_cache_root`] falls back to the default location for that
+//!   session *without clearing the stored choice*, so plugging the drive
+//!   back in and relaunching picks it up again. The frontend is told,
+//!   because a silent fallback looks exactly like the caches having been
+//!   wiped.
+
+use std::path::{Path, PathBuf};
+
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
+use sqlx::SqlitePool;
+use tauri::{AppHandle, Manager};
+
+use crate::{
+    error::{AppError, AppResult},
+    paths::AppPaths,
+    state::AppState,
+};
+
+/// `app_setting` key holding the user's chosen cache root.
+///
+/// App-wide rather than per-profile: the shared caches have no profile,
+/// and a per-profile answer would mean one profile's artwork on `D:` and
+/// another's on `C:` for no benefit anyone asked for.
+const KEY_CACHE_ROOT: &str = "storage.cache_root";
+
+/// `app_setting` key holding the cache root a completed move left
+/// behind, pending removal at the next startup.
+///
+/// It stores the old *cache root*, never a directory to delete outright:
+/// moving away from the default would otherwise record the app-data root
+/// itself, and removing that would take `app.db` and every profile with
+/// it. The cleanup rebuilds the cache layout under the recorded root and
+/// removes only those directories.
+const KEY_CACHE_PENDING: &str = "storage.cache_root_pending_cleanup";
+
+/// Name of the probe file [`is_usable`] writes and removes.
+///
+/// A directory can exist, be listable, and still refuse writes — a
+/// read-only network share, a drive mounted by another user, a folder
+/// inside a container the app has no grant for. Only a write answers the
+/// question the caller is actually asking.
+const PROBE_NAME: &str = ".waveflow-write-probe";
+
+/// What the Settings card needs to render the current state.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CacheLocation {
+    /// Where the caches are being read and written right now.
+    pub active_root: String,
+    /// Where they live when nothing has been chosen.
+    pub default_root: String,
+    /// The stored choice, when there is one. Present *and* different from
+    /// `active_root` means this session fell back.
+    pub configured_root: Option<String>,
+    /// True when a stored choice could not be used this session.
+    pub fell_back: bool,
+    /// Why, when it did. Shown verbatim: "drive not found" and
+    /// "permission denied" call for different actions from the user.
+    pub fallback_reason: Option<String>,
+    /// True once a move has been staged and the process has to restart
+    /// before it takes effect.
+    pub restart_required: bool,
+    /// Total bytes currently under `active_root`, for the four cache
+    /// families together.
+    pub size_bytes: u64,
+}
+
+async fn load_path(app_db: &SqlitePool, key: &str) -> Option<PathBuf> {
+    sqlx::query_scalar::<_, String>("SELECT value FROM app_setting WHERE key = ?")
+        .bind(key)
+        .fetch_optional(app_db)
+        .await
+        .ok()
+        .flatten()
+        .filter(|value| !value.trim().is_empty())
+        .map(PathBuf::from)
+}
+
+/// Read the stored choice. `None` means "wherever the default is".
+pub async fn load_cache_root(app_db: &SqlitePool) -> Option<PathBuf> {
+    load_path(app_db, KEY_CACHE_ROOT).await
+}
+
+async fn store_path(app_db: &SqlitePool, key: &str, root: Option<&Path>) -> AppResult<()> {
+    match root {
+        Some(path) => {
+            sqlx::query(
+                "INSERT INTO app_setting (key, value, value_type, updated_at)
+                 VALUES (?, ?, 'string', ?)
+                 ON CONFLICT(key) DO UPDATE
+                   SET value = excluded.value,
+                       value_type = excluded.value_type,
+                       updated_at = excluded.updated_at",
+            )
+            .bind(key)
+            .bind(path.to_string_lossy().to_string())
+            .bind(Utc::now().timestamp())
+            .execute(app_db)
+            .await?;
+        }
+        // Deleting rather than storing an empty string: "no row" is
+        // already the shape `load_cache_root` treats as the default, and
+        // two spellings of the same state is how a reset ends up half
+        // applied.
+        None => {
+            sqlx::query("DELETE FROM app_setting WHERE key = ?")
+                .bind(key)
+                .execute(app_db)
+                .await?;
+        }
+    }
+    Ok(())
+}
+
+/// Can we actually put cache files here?
+///
+/// Creates the directory if it is missing, then writes and removes a
+/// probe file. Returns the reason on failure so the caller can log or
+/// show something better than "it did not work".
+fn is_usable(root: &Path) -> Result<(), String> {
+    std::fs::create_dir_all(root).map_err(|e| format!("cannot create {}: {e}", root.display()))?;
+    let probe = root.join(PROBE_NAME);
+    std::fs::write(&probe, b"waveflow")
+        .map_err(|e| format!("cannot write to {}: {e}", root.display()))?;
+    // A failure to clean up is not a failure to be usable — the probe is
+    // eight bytes and the next run overwrites it.
+    let _ = std::fs::remove_file(&probe);
+    Ok(())
+}
+
+/// Decide where the caches live for this session.
+///
+/// Returns the paths to use and, when a stored choice had to be
+/// ignored, the reason — which the caller surfaces rather than
+/// swallowing: caches silently reappearing at the default location is
+/// indistinguishable, from the user's side, from them having been
+/// deleted.
+pub async fn resolve_cache_root(
+    paths: AppPaths,
+    app_db: &SqlitePool,
+) -> (AppPaths, Option<String>) {
+    let Some(configured) = load_cache_root(app_db).await else {
+        return (paths, None);
+    };
+    if configured == paths.root {
+        return (paths, None);
+    }
+    match is_usable(&configured) {
+        Ok(()) => (paths.with_cache_root(configured), None),
+        Err(reason) => {
+            tracing::warn!(
+                path = %configured.display(),
+                %reason,
+                "configured cache root unusable; falling back to the app-data tree for this session",
+            );
+            // The stored choice is deliberately left alone: the drive may
+            // simply not be plugged in, and clearing it would turn a
+            // temporary absence into a permanent reset.
+            (paths, Some(reason))
+        }
+    }
+}
+
+/// Remove the cache tree a completed move left behind.
+///
+/// Runs at startup, once the active root is known, which is the only
+/// moment nothing is reading the old copy. Removes the cache
+/// directories under the recorded root and nothing else — the recorded
+/// root may well be the app-data root itself, which still holds
+/// `app.db` and every profile.
+///
+/// Best-effort throughout: the key is cleared whatever happens, because
+/// a stale tree is wasted space and retrying forever on a directory the
+/// user has since locked or deleted would be worse.
+pub async fn cleanup_moved_caches(active: &AppPaths, app_db: &SqlitePool) {
+    let Some(previous) = load_path(app_db, KEY_CACHE_PENDING).await else {
+        return;
+    };
+    if previous != active.cache_root {
+        let stale = active.clone().with_cache_root(previous);
+        for (name, dir) in cache_dirs(&stale, app_db).await {
+            if !dir.exists() {
+                continue;
+            }
+            match std::fs::remove_dir_all(&dir) {
+                Ok(()) => tracing::info!(path = %dir.display(), %name, "removed moved-from cache"),
+                Err(e) => tracing::warn!(
+                    path = %dir.display(),
+                    %name,
+                    %e,
+                    "could not remove a cache directory left behind by a move",
+                ),
+            }
+        }
+    }
+    if let Err(e) = store_path(app_db, KEY_CACHE_PENDING, None).await {
+        tracing::warn!(%e, "could not clear the pending cache-cleanup marker");
+    }
+}
+
+/// Let the asset protocol read from the cache root.
+///
+/// Artwork reaches the frontend through `convertFileSrc`, which goes via
+/// `asset://` and is gated by the scope declared in `tauri.conf.json` —
+/// a static list of `$APPDATA` / `$APPLOCALDATA` patterns. A cache root
+/// on another drive matches none of them, and the failure mode is an
+/// image that never loads with nothing in the console, so this has to be
+/// granted explicitly every time the process starts.
+///
+/// A no-op when the caches sit at the default location: the static scope
+/// already covers that, and re-granting it costs a needless pattern.
+pub fn grant_asset_scope(handle: &AppHandle, paths: &AppPaths) {
+    if paths.cache_root == paths.root {
+        return;
+    }
+    if let Err(e) = handle
+        .asset_protocol_scope()
+        .allow_directory(&paths.cache_root, true)
+    {
+        tracing::error!(
+            path = %paths.cache_root.display(),
+            %e,
+            "could not widen the asset scope to the cache root; artwork stored there will not load",
+        );
+    }
+}
+
+/// Recursive byte total, ignoring anything unreadable.
+///
+/// Iterative rather than recursive so a pathological tree cannot blow
+/// the stack, and errors are skipped rather than propagated: this feeds
+/// a number in a settings card, and one unreadable file should not turn
+/// the whole reading into an error message.
+fn dir_size(root: &Path) -> u64 {
+    let mut total = 0u64;
+    let mut stack = vec![root.to_path_buf()];
+    while let Some(dir) = stack.pop() {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            match entry.file_type() {
+                Ok(ft) if ft.is_dir() => stack.push(entry.path()),
+                Ok(ft) if ft.is_file() => {
+                    if let Ok(meta) = entry.metadata() {
+                        total = total.saturating_add(meta.len());
+                    }
+                }
+                // Symlinks are not followed: a link into the music
+                // library would report the library's size as cache.
+                _ => {}
+            }
+        }
+    }
+    total
+}
+
+/// Every cache directory that currently exists, app-wide and per
+/// profile.
+///
+/// Built from [`AppPaths`] rather than from a second hand-written list,
+/// so a directory added to the layout cannot be left out of the move or
+/// the size reading.
+async fn cache_dirs(paths: &AppPaths, app_db: &SqlitePool) -> Vec<(String, PathBuf)> {
+    let mut dirs: Vec<(String, PathBuf)> = paths
+        .shared_cache_dirs()
+        .iter()
+        .map(|(name, path)| ((*name).to_string(), (*path).clone()))
+        .collect();
+
+    let profile_ids: Vec<i64> = sqlx::query_scalar("SELECT id FROM profile ORDER BY id")
+        .fetch_all(app_db)
+        .await
+        .unwrap_or_default();
+
+    for id in profile_ids {
+        let rel = format!("profiles/{id}");
+        dirs.push((format!("{rel}/artwork"), paths.profile_artwork_dir(id)));
+        dirs.push((
+            format!("{rel}/remote-artwork"),
+            paths.profile_remote_artwork_dir(id),
+        ));
+        #[cfg(feature = "sync_v2")]
+        dirs.push((
+            format!("{rel}/remote-stream"),
+            paths.profile_remote_stream_dir(id),
+        ));
+    }
+    dirs
+}
+
+/// Copy a directory tree. Returns the number of files written.
+fn copy_tree(from: &Path, to: &Path) -> AppResult<u64> {
+    if !from.exists() {
+        return Ok(0);
+    }
+    std::fs::create_dir_all(to)?;
+    let mut copied = 0u64;
+    let mut stack = vec![(from.to_path_buf(), to.to_path_buf())];
+    while let Some((src, dst)) = stack.pop() {
+        for entry in std::fs::read_dir(&src)? {
+            let entry = entry?;
+            let target = dst.join(entry.file_name());
+            let file_type = entry.file_type()?;
+            if file_type.is_dir() {
+                std::fs::create_dir_all(&target)?;
+                stack.push((entry.path(), target));
+            } else if file_type.is_file() {
+                std::fs::copy(entry.path(), &target)?;
+                copied += 1;
+            }
+            // Symlinks are skipped rather than followed or recreated: a
+            // cache holds files we downloaded, so a link in there is
+            // either someone's manual tinkering or a loop.
+        }
+    }
+    Ok(copied)
+}
+
+/// Is `inner` the same as, or underneath, `outer`?
+///
+/// Used to refuse a move into the tree being moved, which would copy
+/// files into their own destination for as long as the disk lasted. The
+/// comparison is on the paths as given, canonicalised where possible —
+/// `canonicalize` fails on a directory that does not exist yet, which is
+/// the normal case for a freshly picked target, so a failure falls back
+/// to the literal paths rather than refusing the move.
+fn is_within(inner: &Path, outer: &Path) -> bool {
+    let a = inner.canonicalize().unwrap_or_else(|_| inner.to_path_buf());
+    let b = outer.canonicalize().unwrap_or_else(|_| outer.to_path_buf());
+    a.starts_with(&b)
+}
+
+#[tauri::command]
+pub async fn get_cache_location(state: tauri::State<'_, AppState>) -> AppResult<CacheLocation> {
+    let paths = &state.paths;
+    let configured = load_cache_root(&state.app_db).await;
+    let dirs = cache_dirs(paths, &state.app_db).await;
+    let size_bytes = dirs.iter().map(|(_, path)| dir_size(path)).sum();
+
+    Ok(CacheLocation {
+        active_root: paths.cache_root.to_string_lossy().to_string(),
+        default_root: paths.root.to_string_lossy().to_string(),
+        fell_back: configured
+            .as_ref()
+            .is_some_and(|chosen| chosen != &paths.cache_root),
+        configured_root: configured.map(|p| p.to_string_lossy().to_string()),
+        fallback_reason: state.cache_root_fallback.clone(),
+        restart_required: false,
+        size_bytes,
+    })
+}
+
+/// Point the caches at `root` — or back at the default when it is
+/// `None` — copying what is already there.
+///
+/// Copy, persist, restart, and only then delete. Power loss between any
+/// two of those steps leaves a complete copy on disk and a setting that
+/// names a complete copy; nothing is removed until a fresh process has
+/// adopted the new location.
+///
+/// Returns with `restart_required` set rather than restarting here, so
+/// the caller can say what is about to happen — a move can take a while
+/// on a large library, and a window that vanishes without warning at the
+/// end of it reads as a crash.
+#[tauri::command]
+pub async fn set_cache_location(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+    root: Option<String>,
+) -> AppResult<CacheLocation> {
+    let paths = state.paths.clone();
+    let target = match root.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        Some(value) => PathBuf::from(value),
+        None => paths.root.clone(),
+    };
+
+    if target == paths.cache_root {
+        return get_cache_location(state).await;
+    }
+    if is_within(&target, &paths.cache_root) {
+        return Err(AppError::Other(format!(
+            "{} is inside the folder being moved",
+            target.display()
+        )));
+    }
+    is_usable(&target).map_err(AppError::Other)?;
+
+    let moved = paths.clone().with_cache_root(target.clone());
+    let sources = cache_dirs(&paths, &state.app_db).await;
+    let destinations = cache_dirs(&moved, &state.app_db).await;
+
+    // Copy on the blocking pool: a library's worth of artwork is
+    // thousands of small files, which would stall the runtime.
+    let plan: Vec<(String, PathBuf, PathBuf)> = sources
+        .iter()
+        .zip(destinations.iter())
+        .map(|((name, from), (_, to))| (name.clone(), from.clone(), to.clone()))
+        .collect();
+    tokio::task::spawn_blocking(move || -> AppResult<()> {
+        for (name, from, to) in plan {
+            copy_tree(&from, &to).map_err(|e| {
+                AppError::Other(format!("copying {name} to {} failed: {e}", to.display()))
+            })?;
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("cache copy task failed: {e}")))??;
+
+    // Persist the destination and the tree to clean up, in that order:
+    // a crash after the first write comes back reading the copy, which
+    // is whole. A crash after the second leaves a stale tree, which
+    // costs space and nothing else.
+    let stored = (target != paths.root).then(|| target.clone());
+    store_path(&state.app_db, KEY_CACHE_ROOT, stored.as_deref()).await?;
+    store_path(&state.app_db, KEY_CACHE_PENDING, Some(&paths.cache_root)).await?;
+    grant_asset_scope(&app, &moved);
+
+    let size_bytes = destinations.iter().map(|(_, path)| dir_size(path)).sum();
+    Ok(CacheLocation {
+        active_root: moved.cache_root.to_string_lossy().to_string(),
+        default_root: moved.root.to_string_lossy().to_string(),
+        configured_root: stored.map(|p| p.to_string_lossy().to_string()),
+        fell_back: false,
+        fallback_reason: None,
+        restart_required: true,
+        size_bytes,
+    })
+}
+
+/// Restart so the new cache location takes effect.
+///
+/// Separate from [`set_cache_location`] because that one has to be able
+/// to return: the frontend tells the user a restart is coming, and the
+/// restart happens when they say so. Diverges — the process is replaced.
+#[tauri::command]
+pub async fn restart_for_cache_move(app: AppHandle) -> AppResult<()> {
+    app.restart();
+}
+
+/// Cache directories that a full reset would otherwise miss.
+///
+/// `reset_app` removes [`AppPaths::root`], which used to be the whole
+/// story. Since the caches can be moved off that tree (#619), a reset
+/// that only wipes `root` leaves gigabytes of artwork on whichever drive
+/// the user moved them to — which is precisely the disk usage they moved
+/// them there to control.
+///
+/// Returns the moved-to directories only: when the caches sit at the
+/// default location, `remove_dir_all(root)` already covers them and
+/// naming them again would mean deleting the same tree twice.
+pub async fn wipe_targets_outside_root(state: &AppState) -> Vec<PathBuf> {
+    if state.paths.cache_root == state.paths.root {
+        return Vec::new();
+    }
+    cache_dirs(&state.paths, &state.app_db)
+        .await
+        .into_iter()
+        .map(|(_, path)| path)
+        .collect()
+}

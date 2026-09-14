@@ -2185,6 +2185,18 @@
           "description": "Contrasto rafforzato, qualunque sia il tema o lo stile."
         }
       }
+    },
+    "cacheLocation": {
+      "title": "Posizione della cache",
+      "subtitle": "Copertine, copertine animate e clip Canvas. È tutto ricostruibile, quindi spostarlo non perde nulla. I database e i file scelti a mano restano dove sono.",
+      "pickTitle": "Scegli la cartella della cache",
+      "choose": "Sposta…",
+      "reset": "Torna al valore predefinito",
+      "size": "{{size}} in uso",
+      "copying": "Copia in corso… l'originale viene rimosso solo al prossimo avvio.",
+      "fellBack": "La posizione configurata non è raggiungibile ({{path}}), quindi per questa sessione la cache usa quella predefinita. La tua scelta è stata conservata.",
+      "restartNeeded": "Copia completata. Riavvia per usare la nuova posizione.",
+      "restartNow": "Riavvia"
     }
   },
   "spotify": {

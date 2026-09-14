@@ -2185,6 +2185,18 @@
           "description": "Contraste renforcé, quels que soient le thème et l'habillage."
         }
       }
+    },
+    "cacheLocation": {
+      "title": "Emplacement des caches",
+      "subtitle": "Pochettes, couvertures animées et clips Canvas. Contenu reconstructible : le déplacer ne perd rien. Les bases de données et vos fichiers choisis à la main restent en place.",
+      "pickTitle": "Choisir le dossier des caches",
+      "choose": "Déplacer…",
+      "reset": "Revenir par défaut",
+      "size": "{{size}} utilisés",
+      "copying": "Copie en cours… l'original n'est supprimé qu'au prochain démarrage.",
+      "fellBack": "Emplacement configuré inaccessible ({{path}}) : les caches repartent de l'emplacement par défaut pour cette session. Le choix est conservé.",
+      "restartNeeded": "Copie terminée. Redémarrez pour utiliser le nouvel emplacement.",
+      "restartNow": "Redémarrer"
     }
   },
   "spotify": {

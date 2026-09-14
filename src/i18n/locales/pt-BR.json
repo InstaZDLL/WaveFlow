@@ -2185,6 +2185,18 @@
           "description": "Contraste reforçado, qualquer que seja o tema ou a aparência."
         }
       }
+    },
+    "cacheLocation": {
+      "title": "Local do cache",
+      "subtitle": "Capas, capas animadas e clipes do Canvas. Tudo é reconstruível, então mover não perde nada. Os bancos de dados e os arquivos que você escolheu à mão continuam onde estão.",
+      "pickTitle": "Escolher a pasta do cache",
+      "choose": "Mover…",
+      "reset": "Voltar ao padrão",
+      "size": "{{size}} em uso",
+      "copying": "Copiando… o original só é removido na próxima inicialização.",
+      "fellBack": "O local configurado está inacessível ({{path}}), então o cache usa o padrão nesta sessão. Sua escolha foi mantida.",
+      "restartNeeded": "Cópia concluída. Reinicie para usar o novo local.",
+      "restartNow": "Reiniciar"
     }
   },
   "spotify": {

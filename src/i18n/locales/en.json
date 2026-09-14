@@ -2185,6 +2185,18 @@
           "description": "Raised contrast, whichever theme and skin are active."
         }
       }
+    },
+    "cacheLocation": {
+      "title": "Cache location",
+      "subtitle": "Artwork, animated covers and Canvas clips. All of it is rebuildable, so moving it loses nothing. Databases and the files you picked by hand stay where they are.",
+      "pickTitle": "Choose the cache folder",
+      "choose": "Move…",
+      "reset": "Back to default",
+      "size": "{{size}} in use",
+      "copying": "Copying… the original is only removed on the next launch.",
+      "fellBack": "The configured location is unreachable ({{path}}), so the caches are using the default one for this session. Your choice has been kept.",
+      "restartNeeded": "Copy finished. Restart to use the new location.",
+      "restartNow": "Restart"
     }
   },
   "spotify": {

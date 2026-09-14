@@ -205,6 +205,16 @@ pub fn run() {
                 minimize_to_tray,
             ));
 
+            // Artwork reaches the webview through `convertFileSrc`, which
+            // the asset protocol gates on the static scope in
+            // `tauri.conf.json` — `$APPDATA` and `$APPLOCALDATA` only. A
+            // cache root on another drive (#619) matches none of those
+            // patterns, and the failure is silent: no error, no console
+            // message, just covers that never appear. Widen it before
+            // the frontend exists, and on every start, because the grant
+            // lives in the process rather than on disk.
+            commands::storage::grant_asset_scope(app.handle(), &state.paths);
+
             app.manage(state);
 
             // Plugin SDK epoch ticker. Wasmtime's epoch-interruption
@@ -1068,6 +1078,9 @@ pub fn run() {
             commands::player::player_set_pause_on_device_loss,
             commands::player::player_probe_output_device,
             commands::player::player_set_match_source_rate,
+            commands::storage::get_cache_location,
+            commands::storage::set_cache_location,
+            commands::storage::restart_for_cache_move,
             commands::stats::stats_overview,
             commands::stats::stats_top_tracks,
             commands::stats::stats_top_artists,
