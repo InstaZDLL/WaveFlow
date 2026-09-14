@@ -18,10 +18,11 @@ interface ScanProgress {
 /**
  * Bottom-right toast that surfaces backend `scan:progress` events.
  *
- * Shows up the moment a library scan starts, ticks the count as files
- * are processed, and flips into a "done" state for ~4 s when the scan
- * finishes (so the user can read the summary). Dismissable manually
- * via the X — the next scan re-opens it automatically.
+ * Appears when a scan *finishes*, and holds the summary for ~4 s so
+ * the user can read it. Live progress moved to the task status bar
+ * with #601, which lists every long operation in one place; two bars
+ * counting the same files is the inconsistency that issue was about.
+ * Dismissable manually via the X — the next scan re-opens it.
  *
  * Mounted once at the AppLayout level; no per-page wiring needed
  * because the listener is global.
@@ -36,19 +37,24 @@ export function ScanProgressToast() {
     let unlisten: (() => void) | null = null;
     listen<ScanProgress>("scan:progress", (e) => {
       const next = e.payload;
+      // Only the terminal event. A running scan's ticks are the status
+      // bar's job, so they have nothing to render here -- but taking
+      // them would blank a summary still on screen and cancel the timer
+      // holding it, losing the one line that reports per-file failures
+      // to a scan the user has not finished reading. The watcher starts
+      // a rescan on its own, so this is not a rare sequence.
+      if (!next.done) return;
       setProgress(next);
       setDismissed(false);
       if (autoHideTimer.current != null) {
         window.clearTimeout(autoHideTimer.current);
         autoHideTimer.current = null;
       }
-      if (next.done) {
-        // Hold the success card for a few seconds so the user has
-        // time to read the summary, then fade it out.
-        autoHideTimer.current = window.setTimeout(() => {
-          setDismissed(true);
-        }, 4000);
-      }
+      // Hold the success card for a few seconds so the user has time
+      // to read the summary, then fade it out.
+      autoHideTimer.current = window.setTimeout(() => {
+        setDismissed(true);
+      }, 4000);
     })
       .then((fn) => {
         unlisten = fn;
@@ -62,12 +68,11 @@ export function ScanProgressToast() {
     };
   }, []);
 
-  // Live progress belongs to the task status bar since #601, which
-  // lists every long operation in one place — two bars counting the
-  // same files is exactly the inconsistency that issue was about. What
-  // the bar cannot show is the *outcome*: a row vanishes when its task
-  // ends, and "412 added, 3 errors" is the part worth reading. So this
-  // toast now appears only once the scan is done.
+  // What the status bar cannot show is the *outcome*: a row vanishes
+  // when its task ends, and "412 added, 3 errors" is the part worth
+  // reading. `done` is still tested here as well as in the listener --
+  // the state can only hold a terminal event now, and this says so at
+  // the place that depends on it.
   if (progress == null || dismissed || !progress.done) return null;
 
   const { current, total, added, updated, skipped, errors, done, current_dir } =

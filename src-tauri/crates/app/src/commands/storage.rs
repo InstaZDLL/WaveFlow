@@ -561,7 +561,15 @@ pub async fn get_cache_location(state: tauri::State<'_, AppState>) -> AppResult<
         default_root: paths.root.to_string_lossy().to_string(),
         fell_back: diverged && fell_back,
         configured_root: configured.map(|p| p.to_string_lossy().to_string()),
-        fallback_reason: state.cache_root_fallback.clone(),
+        // Tied to the same condition as the flag above, not reported on
+        // its own: `cache_root_fallback` is fixed at startup and cannot
+        // know that the user has since cleared the choice it refers to.
+        // Cancelling a staged move does exactly that, and leaving the
+        // reason behind would hand the card a sentence about a drive it
+        // is no longer describing.
+        fallback_reason: (diverged && fell_back)
+            .then(|| state.cache_root_fallback.clone())
+            .flatten(),
         restart_required: move_pending && !fell_back,
         size_bytes,
     })
