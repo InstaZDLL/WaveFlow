@@ -135,15 +135,40 @@ Triggered from [`emit_track_changed`](../../src-tauri/crates/app/src/commands/pl
 1. **Cache** — `app.lyrics` row keyed by `track.file_hash` (BLAKE3). No TTL, shared across profiles.
 2. **Embedded** — `LYRICS` / `USLT` / `©lyr` tag in the file (lofty), incl. synced `LRC` blocks. Lookup tries `ItemKey::UnsyncLyrics` first (the only key that maps to ID3v2's `USLT` in lofty 0.24), then `ItemKey::Lyrics` for Vorbis / MP4. For MP3s tagged with Mp3tag / foobar2000 / lame `--tg`, lyrics often live in a TXXX user-defined frame named `LYRICS` or `UNSYNCEDLYRICS` (common on K-Pop / J-Pop rips); these are invisible to the generic `Tag` interface so [`commands/lyrics.rs::read_id3v2_txxx_lyrics`](../../src-tauri/crates/app/src/commands/lyrics.rs) re-opens the file as `MpegFile`, downcasts to `Id3v2Tag`, and scans the TXXX descriptions explicitly.
 3. **Sidecar file** — `{stem}.lrc` / `{stem}.txt` next to the audio file (e.g. `01 Song.mp3` + `01 Song.lrc`), or inside a sibling `Lyrics/` folder (case-insensitive, so `lyrics/` is also matched — common Linux convention). Stem matching is also case-insensitive so `Song.MP3` finds `song.lrc` on case-sensitive filesystems. `.lrc` wins over `.txt` at every probed directory because it carries timing info; same-folder hits beat `Lyrics/` hits. Format is auto-detected via `detect_format` and the row is cached with `source = lrc_file`. Whitespace-only files are treated as misses so the waterfall keeps falling through. `save_lyrics` still writes back only to the embedded tag — the sidecar file remains read-only — so a user who edits via the in-app editor sees the new content immediately (from the freshly-hashed cache row), and the old sidecar copy is silently superseded by the new embedded tag on subsequent re-hashes.
-4. **Musixmatch Enhanced** — asks for word-level karaoke first. It only wins early when the result is actually Enhanced LRC; regular line-level LRC from Musixmatch falls through so LRCLIB's stricter metadata match can still win.
-5. **LRCLIB** — synced lyrics first, falls back to plain text. Result cached as a new row.
-6. **Query-based fallback providers** — LRCLIB (again), then NetEase, Megalobiz, then Genius. This broader scan only runs after tier 5 returns 404 or an empty payload, and prefers synced content over plain text. Musixmatch is deliberately absent: tier 4 owns it, and listing it here would re-issue an identical request.
 
-   LRCLIB leads the chain even though tier 5 just asked it, because **the two ask differently**: tier 5 uses `/api/get`, which matches on artist + track + album + duration and 404s when any of them disagrees with the file's tags — a remaster, a `Deluxe` album name, a rip a few seconds off. This tier goes through the provider's `/api/search`, which is fuzzy. Without it, that 404 fell straight through to providers that answer for almost any query, so a track LRCLIB _does_ carry came back from Genius while picking LRCLIB by hand in the panel found it instantly (issue #463).
+4. **Generic `description` field** — last of the local tiers, and the
+   only one that is a guess about a field meant for something else.
+
+   It used to sit *inside* the embedded tier, ahead of the sidecar, and
+   that cost a real user their lyrics (reported on discussion #519): a
+   `.m4a` pulled with `yt-dlp` carries the auto-generated "Provided to
+   YouTube by…" credit in `description`, which is comfortably more than
+   the three lines that were the whole test — so it won, and the `.lrc`
+   the user had placed next to the file was never read at all.
+
+   Two things were wrong at once, and both are fixed. A guess no longer
+   outranks an explicit statement: a file the user put there beats a
+   field we are interpreting. And the blurb itself is refused, by a
+   recogniser that stays deliberately narrow and only looks near the
+   top of the text, where the credit always sits — a false positive
+   here costs someone their real lyrics, which is worse than the bug.
+
+   The wrong text was also **cached**, and the waterfall never
+   refetches once a row exists — so fixing the reader alone would have
+   reached only tracks nobody had opened yet. A cached `embedded` row
+   that the same recogniser identifies as a service credit is
+   therefore dropped on read and re-resolved: the next `fetch_lyrics`
+   repairs it and falls through to the sidecar, with nothing for the
+   listener to do.
+5. **Musixmatch Enhanced** — asks for word-level karaoke first. It only wins early when the result is actually Enhanced LRC; regular line-level LRC from Musixmatch falls through so LRCLIB's stricter metadata match can still win.
+6. **LRCLIB** — synced lyrics first, falls back to plain text. Result cached as a new row.
+7. **Query-based fallback providers** — LRCLIB (again), then NetEase, Megalobiz, then Genius. This broader scan only runs after tier 6 returns 404 or an empty payload, and prefers synced content over plain text. Musixmatch is deliberately absent: tier 5 owns it, and listing it here would re-issue an identical request.
+
+   LRCLIB leads the chain even though tier 6 just asked it, because **the two ask differently**: tier 6 uses `/api/get`, which matches on artist + track + album + duration and 404s when any of them disagrees with the file's tags — a remaster, a `Deluxe` album name, a rip a few seconds off. This tier goes through the provider's `/api/search`, which is fuzzy. Without it, that 404 fell straight through to providers that answer for almost any query, so a track LRCLIB _does_ carry came back from Genius while picking LRCLIB by hand in the panel found it instantly (issue #463).
 
 ### Prefer-LRCLIB toggle (online-first order)
 
-`profile_setting['lyrics.prefer_lrclib']`, default off, Settings → Playback (issue #378). When on, the on-demand [`fetch_lyrics`](../../src-tauri/crates/app/src/commands/lyrics.rs) flips the waterfall so the online providers (tiers 4–6) run **before** the embedded + sidecar tiers, which become the fallback used only when the network has nothing — so a track LRCLIB doesn't carry still shows its own embedded lyrics. The cache tier stays first either way.
+`profile_setting['lyrics.prefer_lrclib']`, default off, Settings → Playback (issue #378). When on, the on-demand [`fetch_lyrics`](../../src-tauri/crates/app/src/commands/lyrics.rs) flips the waterfall so the online providers (tiers 5–7) run **before** the local ones (embedded, sidecar, description), which become the fallback used only when the network has nothing — so a track LRCLIB doesn't carry still shows its own embedded lyrics. The cache tier stays first either way.
 
 The bulk `run_prefetch` gap-filler stays local-first regardless of the toggle: it walks the whole library, and paying a network round-trip per track that already ships its lyrics would be both slow and impolite to the providers.
 

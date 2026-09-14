@@ -21,6 +21,12 @@
 app-id: app.waveflow.WaveFlow
 runtime: org.gnome.Platform
 runtime-version: "50"
+# Build-time tools beyond the Rust / node SDK extensions below:
+# `cmake`, which `opusic-sys` uses to build the vendored libopus that
+# ships the Opus decoder. Taken from the SDK rather than declared as a
+# module — and worth knowing that **no CI job builds this manifest**,
+# so if a Flathub build ever fails looking for cmake, this is the line
+# that assumed it was there.
 sdk: org.gnome.Sdk
 sdk-extensions:
   # rust-stable bundles rustc + cargo + clang + lld; covers every

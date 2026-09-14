@@ -10,3 +10,7 @@
 //! transcoding DSD uploads.
 
 pub mod dsd;
+// Opus decoding over libopus (#581). symphonia reads the containers
+// but ships no Opus decoder, so this one is registered into a custom
+// codec registry alongside the built-ins.
+pub mod opus;

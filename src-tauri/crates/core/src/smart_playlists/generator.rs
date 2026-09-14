@@ -18,6 +18,9 @@ use sqlx::{FromRow, SqlitePool};
 
 use super::cover;
 use super::SmartPlaylistRules;
+use crate::album_playback::{
+    fit_albums_to_budget, tracks_in_album_order, AlbumCandidate, ALBUM_FIT, ALBUM_MIN_ANALYSED,
+};
 use crate::error::CoreResult;
 use crate::smart_playlists::PathsContext;
 
@@ -116,6 +119,19 @@ impl Bucket {
             Bucket::Energy => bpm >= 130.0,
         }
     }
+
+    /// The same partition as [`Self::matches`], as a pair SQL can bind.
+    /// `None` means unbounded on that side.
+    ///
+    /// Kept next to `matches` on purpose: the two describe one
+    /// partition, and a test asserts they still agree.
+    fn bounds(self) -> (Option<f64>, Option<f64>) {
+        match self {
+            Bucket::Calm => (None, Some(95.0)),
+            Bucket::Groove => (Some(95.0), Some(130.0)),
+            Bucket::Energy => (Some(130.0), None),
+        }
+    }
 }
 
 /// Regenerate every Daily Mix slot from the active profile's listening
@@ -132,6 +148,10 @@ pub async fn regenerate_daily_mixes(
     profile_id: i64,
 ) -> CoreResult<Vec<i64>> {
     let cutoff_ms = Utc::now().timestamp_millis() - (LOOKBACK_DAYS * 86_400_000);
+    // Read once for the whole regen rather than per bucket: three
+    // slots reading the same row could otherwise straddle a change and
+    // produce a set of mixes built two different ways.
+    let album_mode = crate::album_playback::album_mode_enabled(pool).await;
 
     // Top artists by total listened time over the lookback window. We join
     // out to `track_analysis` to pull the median BPM per artist (used for
@@ -179,7 +199,8 @@ pub async fn regenerate_daily_mixes(
         // such slots instead of pushing a sentinel `0` into the result
         // vector — the Home view would otherwise try to navigate to
         // playlist id 0.
-        if let Some(id) = generate_one_mix(pool, paths, profile_id, bucket, &bucket_artists).await?
+        if let Some(id) =
+            generate_one_mix(pool, paths, profile_id, bucket, &bucket_artists, album_mode).await?
         {
             created.push(id);
         }
@@ -190,12 +211,31 @@ pub async fn regenerate_daily_mixes(
 /// Build (or refresh) the playlist for a single bucket and return its id.
 /// Returns `None` when no playable tracks could be picked for the bucket —
 /// any stale playlist row for the slot is removed in that case.
+/// The bucket's tracks, deterministically shuffled and capped.
+///
+/// A function rather than a closure because it is called twice: once
+/// as the track-mode selection, and once as album mode's fallback.
+/// Deterministic so the same input set produces the same listening
+/// order — no flicker when the user revisits the playlist mid-session.
+async fn tracks_for_bucket(
+    pool: &SqlitePool,
+    artist_ids: &[i64],
+    bucket: Bucket,
+) -> CoreResult<Vec<i64>> {
+    let tracks = pick_tracks_for_artists(pool, artist_ids).await?;
+    let mut ids: Vec<i64> = tracks.iter().map(|t| t.track_id).collect();
+    shuffle_with_seed(&mut ids, SHUFFLE_SEED ^ bucket.slot() as u64);
+    ids.truncate(TRACKS_PER_MIX);
+    Ok(ids)
+}
+
 async fn generate_one_mix(
     pool: &SqlitePool,
     paths: &PathsContext,
     profile_id: i64,
     bucket: Bucket,
     artists: &[&ArtistListenRow],
+    album_mode: bool,
 ) -> CoreResult<Option<i64>> {
     let top_artist_ids: Vec<i64> = artists
         .iter()
@@ -203,17 +243,41 @@ async fn generate_one_mix(
         .map(|a| a.artist_id)
         .collect();
 
-    let tracks = pick_tracks_for_artists(pool, &top_artist_ids).await?;
-    if tracks.is_empty() {
+    // In album mode only the order of the records is shuffled, and the
+    // cap is spent in whole records — truncating at `TRACKS_PER_MIX`
+    // would end the mix halfway through one, which is the single thing
+    // album mode exists to prevent.
+    let mut shuffled: Vec<i64> = if album_mode {
+        let mut albums = pick_albums_for_artists(pool, &top_artist_ids, bucket).await?;
+        shuffle_with_seed(&mut albums, SHUFFLE_SEED ^ bucket.slot() as u64);
+        let chosen = fit_albums_to_budget(&albums, TRACKS_PER_MIX);
+        tracks_in_album_order(pool, &chosen).await?
+    } else {
+        tracks_for_bucket(pool, &top_artist_ids, bucket).await?
+    };
+
+    if album_mode && shuffled.is_empty() {
+        // Album mode is a preference, not a contract — the same rule
+        // Mood Radio follows. A library whose records are mostly
+        // unanalysed can fill a bucket track by track while no whole
+        // record qualifies, and an empty Daily Mix slot is a worse
+        // answer than a track-based one.
+        tracing::info!(
+            slot = bucket.slot(),
+            "smart playlists: no record fits this bucket, falling back to tracks"
+        );
+        shuffled = tracks_for_bucket(pool, &top_artist_ids, bucket).await?;
+    }
+
+    if shuffled.is_empty() {
+        tracing::info!(
+            slot = bucket.slot(),
+            album_mode,
+            "smart playlists: no candidates for this bucket, clearing the slot"
+        );
         delete_existing_slot(pool, bucket.slot()).await?;
         return Ok(None);
     }
-
-    // Deterministic shuffle so the same input set produces the same listening
-    // order — no flicker when the user revisits the playlist mid-session.
-    let mut shuffled: Vec<i64> = tracks.iter().map(|t| t.track_id).collect();
-    shuffle_with_seed(&mut shuffled, SHUFFLE_SEED ^ bucket.slot() as u64);
-    shuffled.truncate(TRACKS_PER_MIX);
 
     // Cover image source priority:
     //  1. Top 3 artists' Deezer pictures (shared metadata cache) — looks
@@ -468,6 +532,93 @@ pub(super) async fn first_track_artwork_paths(
     out
 }
 
+/// The album-mode counterpart of [`pick_tracks_for_artists`]: records
+/// by the bucket's artists whose measured tracks mostly sit inside the
+/// bucket's tempo window.
+///
+/// **The artists pick the records, and stop there.** Once an album is
+/// a candidate, `track_count` and the tempo fit are measured over
+/// *every* playable track on it, including the ones by other artists —
+/// because that is what [`tracks_in_album_order`] will queue. Pushing
+/// the artist filter down into the aggregates instead made a
+/// compilation count two tracks and contribute twenty, and decided its
+/// tempo from whichever two those were. Hence the subquery: it selects
+/// albums without narrowing what is then counted.
+async fn pick_albums_for_artists(
+    pool: &SqlitePool,
+    artist_ids: &[i64],
+    bucket: Bucket,
+) -> CoreResult<Vec<AlbumCandidate>> {
+    if artist_ids.is_empty() {
+        return Ok(vec![]);
+    }
+    let placeholders = std::iter::repeat("?")
+        .take(artist_ids.len())
+        .collect::<Vec<_>>()
+        .join(",");
+    let sql = format!(
+        r#"
+        SELECT t.album_id AS album_id,
+               COUNT(*)   AS track_count,
+               COALESCE(pl.plays, 0) AS plays
+          FROM track t
+          LEFT JOIN track_analysis ta ON ta.track_id = t.id
+          -- Grouped once and joined, not correlated per row: a
+          -- per-album subquery would re-count play_event for every
+          -- track the outer scan touches.
+          LEFT JOIN (
+                 SELECT pt.album_id AS aid, COUNT(*) AS plays
+                   FROM play_event pe
+                   JOIN track pt ON pt.id = pe.track_id
+                  WHERE pt.album_id IS NOT NULL
+                  GROUP BY pt.album_id
+               ) pl ON pl.aid = t.album_id
+         WHERE t.is_available = 1
+           AND t.album_id IS NOT NULL
+           AND t.album_id IN (
+                 SELECT seed.album_id
+                   FROM track seed
+                   JOIN track_artist tar
+                     ON tar.track_id = seed.id AND tar.position = 0
+                  WHERE tar.artist_id IN ({placeholders})
+                    AND seed.is_available = 1
+                    AND seed.album_id IS NOT NULL
+               )
+         GROUP BY t.album_id
+        HAVING SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?
+           AND SUM(CASE WHEN ta.bpm IS NOT NULL
+                         AND (? IS NULL OR ta.bpm >= ?)
+                         AND (? IS NULL OR ta.bpm < ?)
+                        THEN 1 ELSE 0 END) * 1.0
+               / SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?
+         -- Most-listened first, matching what `pick_tracks_for_artists`
+         -- does on the track side: without it the cut took whichever
+         -- 60 records SQLite happened to produce, so a deep cut was as
+         -- likely as the album the mix is supposed to be built around.
+         --
+         -- The album id breaks ties, because the cut has to fall in the
+         -- same place twice: a Daily Mix that reshuffles itself every
+         -- time the user reopens it is the flicker `shuffle_with_seed`
+         -- exists to prevent.
+         ORDER BY plays DESC, t.album_id
+         LIMIT 60
+        "#,
+    );
+    let (low, high) = bucket.bounds();
+    let mut query = sqlx::query_as::<_, AlbumCandidate>(sqlx::AssertSqlSafe(sql));
+    for id in artist_ids {
+        query = query.bind(*id);
+    }
+    query = query
+        .bind(ALBUM_MIN_ANALYSED)
+        .bind(low)
+        .bind(low)
+        .bind(high)
+        .bind(high)
+        .bind(ALBUM_FIT);
+    Ok(query.fetch_all(pool).await?)
+}
+
 async fn pick_tracks_for_artists(
     pool: &SqlitePool,
     artist_ids: &[i64],
@@ -664,6 +815,31 @@ mod tests {
             json.contains("\"slot\":2"),
             "slot serialized incorrectly: {json}"
         );
+    }
+
+    /// `bounds` is the SQL spelling of `matches`, so album mode and
+    /// track mode must place the same record in the same mix. Two
+    /// descriptions of one partition drift silently otherwise — the
+    /// bug would be a Daily Mix whose albums and tracks disagree about
+    /// what "calm" means.
+    #[test]
+    fn the_sql_bounds_agree_with_the_rust_predicate() {
+        for bucket in Bucket::ALL {
+            let (low, high) = bucket.bounds();
+            for bpm in [
+                0.0, 40.0, 94.9, 95.0, 95.1, 129.9, 130.0, 130.1, 200.0, 400.0,
+            ] {
+                // Spelled without `Option` combinators: the MSRV in
+                // clippy.toml is 1.80, and `is_none_or` landed in 1.82.
+                let by_bounds =
+                    low.unwrap_or(f64::NEG_INFINITY) <= bpm && bpm < high.unwrap_or(f64::INFINITY);
+                assert_eq!(
+                    by_bounds,
+                    bucket.matches(bpm),
+                    "{bucket:?} disagrees with itself at {bpm} BPM"
+                );
+            }
+        }
     }
 
     #[test]

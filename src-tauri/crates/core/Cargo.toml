@@ -113,6 +113,15 @@ uuid = { version = "1", features = ["v4", "v5", "serde"] }
 # Per-track audio analysis (ReplayGain, BPM): decode the file with
 # symphonia, compute peak / loudness / BPM. Same codec feature set
 # the desktop runtime needs — Cargo unifies them.
+# Opus, which symphonia has no decoder for (#581). `bundled` builds
+# libopus 1.6.1 from the source the crate vendors, on every platform:
+# the Linux packages repackage the release binary rather than building
+# from source, so linking against a system libopus would mean adding a
+# runtime dependency to three packaging manifests and bundling the
+# library into the AppImage, to gain nothing. Needs cmake at build
+# time, which every build environment already has.
+opusic-sys = { version = "0.7", features = ["bundled"] }
+
 symphonia = { version = "0.6", default-features = false, features = [
     "mp3",
     "flac",

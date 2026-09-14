@@ -46,7 +46,8 @@ jobs:
             librsvg2-dev \
             libfuse2 \
             squashfs-tools \
-            libasound2-dev
+            libasound2-dev \
+            cmake
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # stable

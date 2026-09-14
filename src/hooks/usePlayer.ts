@@ -1,10 +1,20 @@
 import { createContext, useContext } from "react";
 import type { Track } from "../lib/tauri/track";
-import type { OutputDevice, OutputMode, QueueSource } from "../lib/tauri/player";
+import type {
+  OutputDevice,
+  OutputMode,
+  QueueSource,
+  ShuffleMode,
+} from "../lib/tauri/player";
 import type { SpotifyTrackLite } from "../lib/tauri/spotify";
 import type { PluginFavorite } from "../lib/tauri/plugins";
 
 export type RepeatMode = "off" | "all" | "one";
+
+// Re-exported so consumers of the player hook get the shuffle mode
+// from the same place as the repeat mode, rather than reaching past
+// it into the Tauri wrapper.
+export type { ShuffleMode };
 
 /**
  * Something playback needs to tell the user (#597).
@@ -115,6 +125,10 @@ interface PlayerContextValue {
   // on backend error.
   isShuffled: boolean;
   toggleShuffle: () => Promise<void>;
+  /** How shuffle groups the queue (#618). */
+  shuffleMode: ShuffleMode;
+  /** Step the player control through off → tracks → albums → off. */
+  cycleShuffleMode: () => Promise<void>;
   repeatMode: RepeatMode;
   cycleRepeatMode: () => Promise<void>;
 

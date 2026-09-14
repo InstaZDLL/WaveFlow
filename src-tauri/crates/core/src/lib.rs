@@ -10,6 +10,7 @@
 //! the Tauri runtime or to the real-time `cpal` audio engine stays in
 //! `crates/app`.
 
+pub mod album_playback;
 pub mod analysis;
 pub mod artwork;
 pub mod audio_format;

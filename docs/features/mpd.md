@@ -83,6 +83,13 @@ Control and queue inspection. Advertised through `commands`, so clients hide UI 
 | Mixer      | `setvol` · `getvol` · `volume`                                                        |
 | Queue write| `clear` · `delete <range>` · `deleteid` · `move` · `moveid` · `shuffle`               |
 | Options    | `random` · `repeat` · `single`                                                        |
+
+**`random` is a boolean, and shuffle is not** (#618). WaveFlow shuffles
+either tracks or whole albums; MPD's flag can only say on or off. So
+`random 1` turns shuffle on using whichever grouping was last picked in
+the app rather than forcing tracks — a remote that cannot express the
+grouping should not quietly undo it — and `random` reads back as 1 for
+either grouping. `player.shuffle` remains the row both sides agree on.
 | Idle       | `idle [subsystems]` · `noidle`                                                        |
 
 Command lists (`command_list_begin` / `command_list_ok_begin` … `command_list_end`) are supported.

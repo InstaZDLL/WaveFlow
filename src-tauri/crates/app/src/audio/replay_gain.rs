@@ -32,6 +32,96 @@ const MAX_TOTAL_GAIN_DB: f64 = 12.0;
 /// and a value below it is a broken tag rather than a quiet track.
 const MIN_TOTAL_GAIN_DB: f64 = -30.0;
 
+/// Which of the two measurements a file can carry should be applied.
+///
+/// Track gain levels every track against every other one, which is
+/// what you want when a song comes up shuffled between two unrelated
+/// things. Album gain applies **one** gain across a whole record,
+/// preserving the level relationships the mastering engineer put
+/// inside it — the hushed intro stays quieter than the single — at
+/// the cost of two different records no longer matching each other.
+///
+/// Neither is right in general, because the right answer depends on
+/// *why* the track is playing. That is what [`GainMode::Auto`] is
+/// for, and it is the default: the context is already known where the
+/// gain is applied, so there is nothing for the listener to manage.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum GainMode {
+    /// Always the track's own gain.
+    Track,
+    /// Always the album gain, falling back to the track's own on files
+    /// that carry none.
+    Album,
+    /// Album gain while a record is being played through, track gain
+    /// otherwise.
+    #[default]
+    Auto,
+}
+
+impl GainMode {
+    /// Parse the persisted form. Anything unrecognised — including a
+    /// row written by a future build — reads as the default rather
+    /// than as an error: a setting nobody can spell is still a setting
+    /// the user has to listen to.
+    pub fn from_setting(value: &str) -> Self {
+        match value {
+            "track" => Self::Track,
+            "album" => Self::Album,
+            _ => Self::Auto,
+        }
+    }
+
+    /// The persisted form. Stable — it is written into
+    /// `profile_setting` and read back by older builds.
+    pub fn as_setting(self) -> &'static str {
+        match self {
+            Self::Track => "track",
+            Self::Album => "album",
+            Self::Auto => "auto",
+        }
+    }
+
+    /// The form the decoder thread reads, out of a plain integer
+    /// atomic. Private to this pairing — nothing but
+    /// [`SharedPlayback`](crate::audio::state::SharedPlayback) should
+    /// care what number a mode is.
+    pub fn as_bits(self) -> u8 {
+        match self {
+            Self::Auto => 0,
+            Self::Track => 1,
+            Self::Album => 2,
+        }
+    }
+
+    /// Inverse of [`Self::as_bits`], total on purpose: an unknown
+    /// number means the atomic was written by code this build does not
+    /// have, and the default is a better answer than a panic on the
+    /// audio path.
+    pub fn from_bits(bits: u8) -> Self {
+        match bits {
+            1 => Self::Track,
+            2 => Self::Album,
+            _ => Self::Auto,
+        }
+    }
+}
+
+/// Whether the track currently decoding is being listened to *as part
+/// of its record*, which is the whole input [`GainMode::Auto`] keys
+/// off.
+///
+/// Deliberately not a bare `bool` at the call sites: `effective_linear(
+/// gain, settings, true)` says nothing about what is true.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Listening {
+    /// A record playing through in its own order — the queue was built
+    /// from an album, or shuffle is grouping by album so whole records
+    /// play in sequence.
+    ToAnAlbum,
+    /// One track among unrelated ones.
+    ToATrack,
+}
+
 /// What is known about one track's loudness, whichever source it came
 /// from. Both fields are independent: plenty of files carry a gain
 /// with no peak.
@@ -51,6 +141,21 @@ pub struct TrackGain {
     ///
     /// Meaningless on its own — always read together with `peak`.
     pub peak_unverified: bool,
+    /// Gain in dB for the **whole record** this track belongs to, on
+    /// the same scale as [`Self::gain_db`].
+    ///
+    /// Tag-only, and that is not an oversight: our analysis pass runs
+    /// per track and has no notion of an album, so there is nothing of
+    /// our own to fall back on. A file gets album gain when a tagger
+    /// wrote `REPLAYGAIN_ALBUM_GAIN` into it, and otherwise does not.
+    pub album_gain_db: Option<f64>,
+    /// Linear sample peak across the whole record — the loudest sample
+    /// of its loudest track, so never below [`Self::peak`].
+    ///
+    /// Tag-only for the same reason, and never unverified: the doubt
+    /// [`Self::peak_unverified`] carries belongs to a measurement we
+    /// made, and we never made this one.
+    pub album_peak: Option<f64>,
 }
 
 impl TrackGain {
@@ -75,6 +180,58 @@ impl TrackGain {
             } else {
                 analysis.peak_unverified
             },
+            // Straight from the tag, with no `or` to fall back on:
+            // the analysis side of this merge never carries album
+            // numbers, so an `analysis.album_gain_db` would only ever
+            // be `None` pretending to be a decision.
+            album_gain_db: tag.album_gain_db,
+            album_peak: tag.album_peak,
+        }
+    }
+
+    /// The gain and peak to actually apply, given the mode and how the
+    /// track is being listened to.
+    ///
+    /// Two fallbacks, each for its own reason:
+    ///
+    /// - **No album gain → the track's own.** Album mode would
+    ///   otherwise do nothing at all on an untagged file, and a
+    ///   library that is half-tagged would jump every time it crossed
+    ///   the line. Same reasoning as `fallback_db`.
+    /// - **No album peak → the track's own peak.** This is the one
+    ///   place the uniformity argument below is knowingly traded away:
+    ///   an uneven cap is a cosmetic defect, and the cap only ever
+    ///   binds where the alternative is audible clipping.
+    fn resolved(self, mode: GainMode, listening: Listening) -> Self {
+        let wants_album = match mode {
+            GainMode::Track => false,
+            GainMode::Album => true,
+            GainMode::Auto => listening == Listening::ToAnAlbum,
+        };
+        // A non-finite album gain counts as absent rather than as a
+        // choice. Selecting it would hand `effective_gain_db` a pair
+        // it has to throw away — and the fallback it lands on is
+        // `fallback_db`, not this file's perfectly good track gain.
+        let Some(album_gain_db) = self
+            .album_gain_db
+            .filter(|gain| wants_album && gain.is_finite())
+        else {
+            return self;
+        };
+        Self {
+            gain_db: Some(album_gain_db),
+            // The **album** peak, which is the same number for every
+            // track on the record. Capping each track by its own peak
+            // instead would pull tracks down according to their own
+            // loudest sample — re-introducing exactly the per-track
+            // variation album mode exists to remove.
+            peak: self.album_peak.or(self.peak),
+            peak_unverified: if self.album_peak.is_some() {
+                false
+            } else {
+                self.peak_unverified
+            },
+            ..self
         }
     }
 }
@@ -91,6 +248,8 @@ pub struct GainSettings {
     pub fallback_db: f64,
     /// Hold the gain back so the track's peak stays under full scale.
     pub prevent_clipping: bool,
+    /// Which of a file's two gains to apply.
+    pub mode: GainMode,
 }
 
 impl Default for GainSettings {
@@ -102,6 +261,7 @@ impl Default for GainSettings {
             // On by default: a user who turns ReplayGain on is asking
             // for even loudness, not for distortion on the loud ones.
             prevent_clipping: true,
+            mode: GainMode::Auto,
         }
     }
 }
@@ -109,10 +269,15 @@ impl Default for GainSettings {
 /// The gain to apply, in dB. Split out from [`effective_linear`] so
 /// the decision is testable and can be logged in dB, which is the
 /// unit everything about ReplayGain is expressed in.
-pub fn effective_gain_db(track: TrackGain, settings: GainSettings) -> f64 {
+pub fn effective_gain_db(track: TrackGain, settings: GainSettings, listening: Listening) -> f64 {
     if !settings.enabled {
         return 0.0;
     }
+
+    // Which of the file's two measurements the mode asks for. Done
+    // first so everything below reads one pair of numbers and cannot
+    // accidentally mix an album gain with a track peak.
+    let track = track.resolved(settings.mode, listening);
 
     // A track with no gain from either source falls back rather than
     // playing at unity: a library where half the tracks are normalised
@@ -156,8 +321,8 @@ pub fn effective_gain_db(track: TrackGain, settings: GainSettings) -> f64 {
 /// The linear scalar for the decoder's multiply. Returns exactly
 /// `1.0` when there is nothing to do, which lets the caller skip the
 /// buffer walk entirely.
-pub fn effective_linear(track: TrackGain, settings: GainSettings) -> f32 {
-    let db = effective_gain_db(track, settings);
+pub fn effective_linear(track: TrackGain, settings: GainSettings, listening: Listening) -> f32 {
+    let db = effective_gain_db(track, settings, listening);
     if db == 0.0 {
         return 1.0;
     }
@@ -172,6 +337,17 @@ pub fn effective_linear(track: TrackGain, settings: GainSettings) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Every test below this point describes a track heard on its own,
+    /// which is what the whole file did before album mode existed.
+    /// The album cases spell their context out instead.
+    fn as_track_db(track: TrackGain, settings: GainSettings) -> f64 {
+        effective_gain_db(track, settings, Listening::ToATrack)
+    }
+
+    fn as_track_linear(track: TrackGain, settings: GainSettings) -> f32 {
+        effective_linear(track, settings, Listening::ToATrack)
+    }
 
     fn on() -> GainSettings {
         GainSettings {
@@ -190,15 +366,17 @@ mod tests {
             gain_db: Some(-9.0),
             peak: Some(0.5),
             peak_unverified: false,
+            ..Default::default()
         };
         let settings = GainSettings {
             enabled: false,
             preamp_db: 6.0,
             fallback_db: -3.0,
             prevent_clipping: true,
+            mode: GainMode::Auto,
         };
-        assert!(approx(effective_gain_db(track, settings), 0.0));
-        assert_eq!(effective_linear(track, settings), 1.0);
+        assert!(approx(as_track_db(track, settings), 0.0));
+        assert_eq!(as_track_linear(track, settings), 1.0);
     }
 
     /// The dB → linear conversion itself, in both directions:
@@ -209,30 +387,33 @@ mod tests {
             prevent_clipping: false,
             ..on()
         };
-        let up = effective_linear(
+        let up = as_track_linear(
             TrackGain {
                 gain_db: Some(6.0),
                 peak: None,
                 peak_unverified: false,
+                ..Default::default()
             },
             settings,
         );
-        let down = effective_linear(
+        let down = as_track_linear(
             TrackGain {
                 gain_db: Some(-6.0),
                 peak: None,
                 peak_unverified: false,
+                ..Default::default()
             },
             settings,
         );
         assert!((up - 1.995).abs() < 0.01, "+6 dB gave {up}");
         assert!((down - 0.501).abs() < 0.01, "-6 dB gave {down}");
         assert_eq!(
-            effective_linear(
+            as_track_linear(
                 TrackGain {
                     gain_db: Some(0.0),
                     peak: None,
                     peak_unverified: false,
+                    ..Default::default()
                 },
                 settings
             ),
@@ -246,12 +427,13 @@ mod tests {
             gain_db: Some(-8.0),
             peak: None,
             peak_unverified: false,
+            ..Default::default()
         };
         let settings = GainSettings {
             preamp_db: 3.0,
             ..on()
         };
-        assert!(approx(effective_gain_db(track, settings), -5.0));
+        assert!(approx(as_track_db(track, settings), -5.0));
     }
 
     /// The point of the whole exercise: a boost that would push the
@@ -264,15 +446,16 @@ mod tests {
             gain_db: Some(12.0),
             peak: Some(0.5),
             peak_unverified: false,
+            ..Default::default()
         };
-        let capped = effective_gain_db(track, on());
+        let capped = as_track_db(track, on());
         assert!(
             (capped - 6.0206).abs() < 1e-3,
             "expected the 6 dB of headroom above a 0.5 peak, got {capped}"
         );
 
         // And the sample that peaked now lands at unity, not past it.
-        let linear = effective_linear(track, on());
+        let linear = as_track_linear(track, on());
         assert!(
             (f64::from(linear) * 0.5 - 1.0).abs() < 1e-3,
             "0.5 scaled by {linear} should reach full scale"
@@ -285,12 +468,13 @@ mod tests {
             gain_db: Some(9.0),
             peak: Some(0.5),
             peak_unverified: false,
+            ..Default::default()
         };
         let settings = GainSettings {
             prevent_clipping: false,
             ..on()
         };
-        assert!(approx(effective_gain_db(track, settings), 9.0));
+        assert!(approx(as_track_db(track, settings), 9.0));
     }
 
     /// Attenuation is never held back by the peak — a quiet-peaking
@@ -301,8 +485,9 @@ mod tests {
             gain_db: Some(-6.0),
             peak: Some(0.1),
             peak_unverified: false,
+            ..Default::default()
         };
-        assert!(approx(effective_gain_db(track, on()), -6.0));
+        assert!(approx(as_track_db(track, on()), -6.0));
     }
 
     /// A master that already clips has negative headroom, so the
@@ -314,8 +499,9 @@ mod tests {
             gain_db: Some(0.0),
             peak: Some(1.25),
             peak_unverified: false,
+            ..Default::default()
         };
-        let gain = effective_gain_db(track, on());
+        let gain = as_track_db(track, on());
         assert!(gain < -1.9 && gain > -2.0, "expected ~-1.94 dB, got {gain}");
     }
 
@@ -325,10 +511,7 @@ mod tests {
             fallback_db: -4.0,
             ..on()
         };
-        assert!(approx(
-            effective_gain_db(TrackGain::default(), settings),
-            -4.0
-        ));
+        assert!(approx(as_track_db(TrackGain::default(), settings), -4.0));
     }
 
     #[test]
@@ -337,11 +520,13 @@ mod tests {
             gain_db: Some(-7.0),
             peak: None,
             peak_unverified: false,
+            ..Default::default()
         };
         let analysis = TrackGain {
             gain_db: Some(-3.0),
             peak: Some(0.9),
             peak_unverified: false,
+            ..Default::default()
         };
         let merged = TrackGain::prefer_tag(tag, analysis);
         // Gain from the tag, peak from the analysis — a tagger that
@@ -359,15 +544,17 @@ mod tests {
             gain_db: Some(40.0),
             peak: None,
             peak_unverified: false,
+            ..Default::default()
         };
-        assert!(approx(effective_gain_db(loud, on()), MAX_TOTAL_GAIN_DB));
+        assert!(approx(as_track_db(loud, on()), MAX_TOTAL_GAIN_DB));
 
         let silent = TrackGain {
             gain_db: Some(-90.0),
             peak: None,
             peak_unverified: false,
+            ..Default::default()
         };
-        assert!(approx(effective_gain_db(silent, on()), MIN_TOTAL_GAIN_DB));
+        assert!(approx(as_track_db(silent, on()), MIN_TOTAL_GAIN_DB));
     }
 
     /// The floor must not undo the limiter. A peak above 31.62 needs
@@ -381,16 +568,17 @@ mod tests {
                 gain_db: Some(0.0),
                 peak: Some(peak),
                 peak_unverified: false,
+                ..Default::default()
             };
             let headroom_db = -20.0 * peak.log10();
-            let gain = effective_gain_db(track, on());
+            let gain = as_track_db(track, on());
             assert!(
                 gain <= headroom_db + 1e-9,
                 "peak {peak} leaves {headroom_db} dB of headroom but the gain came out {gain}"
             );
             // And the loudest sample really does stay at or under
             // full scale.
-            let scaled = f64::from(effective_linear(track, on())) * peak;
+            let scaled = f64::from(as_track_linear(track, on())) * peak;
             assert!(scaled <= 1.0 + 1e-6, "peak {peak} scaled to {scaled}");
         }
     }
@@ -410,9 +598,10 @@ mod tests {
                 gain_db: Some(bogus),
                 peak: None,
                 peak_unverified: false,
+                ..Default::default()
             };
             assert!(
-                approx(effective_gain_db(track, settings), -5.0),
+                approx(as_track_db(track, settings), -5.0),
                 "gain {bogus} should have fallen back"
             );
         }
@@ -427,12 +616,13 @@ mod tests {
                 gain_db: Some(3.0),
                 peak: Some(peak),
                 peak_unverified: false,
+                ..Default::default()
             };
             assert!(
-                approx(effective_gain_db(track, on()), 3.0),
+                approx(as_track_db(track, on()), 3.0),
                 "peak {peak} should have been ignored"
             );
-            assert!(effective_linear(track, on()).is_finite());
+            assert!(as_track_linear(track, on()).is_finite());
         }
     }
 
@@ -451,9 +641,10 @@ mod tests {
             gain_db: Some(3.0),
             peak: Some(0.1),
             peak_unverified: true,
+            ..Default::default()
         };
         assert!(
-            approx(effective_gain_db(stale, settings), 0.0),
+            approx(as_track_db(stale, settings), 0.0),
             "an unverified peak must cap at unity, not at its own headroom"
         );
         // The same numbers from the current pass are trusted, so the
@@ -462,7 +653,7 @@ mod tests {
             peak_unverified: false,
             ..stale
         };
-        assert!(approx(effective_gain_db(fresh, settings), 9.0));
+        assert!(approx(as_track_db(fresh, settings), 9.0));
     }
 
     /// Refusing the boost must not also refuse the attenuation. A
@@ -475,9 +666,10 @@ mod tests {
             gain_db: Some(0.0),
             peak: Some(2.0),
             peak_unverified: true,
+            ..Default::default()
         };
         // -20*log10(2) = -6.02 dB, unchanged by the unity cap.
-        assert!(approx(effective_gain_db(track, on()), -20.0 * 2f64.log10()));
+        assert!(approx(as_track_db(track, on()), -20.0 * 2f64.log10()));
     }
 
     /// Turning clipping prevention off turns off the restriction with
@@ -488,12 +680,13 @@ mod tests {
             gain_db: Some(5.0),
             peak: Some(0.1),
             peak_unverified: true,
+            ..Default::default()
         };
         let settings = GainSettings {
             prevent_clipping: false,
             ..on()
         };
-        assert!(approx(effective_gain_db(track, settings), 5.0));
+        assert!(approx(as_track_db(track, settings), 5.0));
     }
 
     /// The doubt belongs to the peak, so a file carrying its own
@@ -505,11 +698,13 @@ mod tests {
             gain_db: None,
             peak: Some(0.5),
             peak_unverified: false,
+            ..Default::default()
         };
         let analysis = TrackGain {
             gain_db: Some(4.0),
             peak: Some(0.1),
             peak_unverified: true,
+            ..Default::default()
         };
         let merged = TrackGain::prefer_tag(tag, analysis);
         assert_eq!(merged.peak, Some(0.5));
@@ -518,5 +713,238 @@ mod tests {
         // With no tag peak to replace it, the doubt survives the merge.
         let no_tag_peak = TrackGain { peak: None, ..tag };
         assert!(TrackGain::prefer_tag(no_tag_peak, analysis).peak_unverified);
+    }
+
+    // ------------------------------------------------------------------
+    // Album mode (#587)
+    // ------------------------------------------------------------------
+
+    /// A record: quieter than most, so its album gain asks for a boost,
+    /// and one track on it peaks much higher than this one does.
+    fn record() -> TrackGain {
+        TrackGain {
+            gain_db: Some(-3.0),
+            peak: Some(0.4),
+            peak_unverified: false,
+            album_gain_db: Some(-7.0),
+            album_peak: Some(0.98),
+        }
+    }
+
+    fn with_mode(mode: GainMode) -> GainSettings {
+        GainSettings { mode, ..on() }
+    }
+
+    /// The point of the feature: the same file gets a different gain
+    /// depending on which measurement the mode asks for.
+    #[test]
+    fn the_mode_chooses_which_of_the_two_gains_applies() {
+        let track = TrackGain {
+            peak: None,
+            album_peak: None,
+            ..record()
+        };
+        assert!(approx(
+            effective_gain_db(track, with_mode(GainMode::Track), Listening::ToAnAlbum),
+            -3.0,
+        ));
+        assert!(approx(
+            effective_gain_db(track, with_mode(GainMode::Album), Listening::ToATrack),
+            -7.0,
+        ));
+    }
+
+    /// `Auto` reads the context instead of asking the listener: album
+    /// gain while the record plays through, track gain for the same
+    /// file heard between two unrelated things.
+    #[test]
+    fn automatic_follows_the_listening_context() {
+        let track = TrackGain {
+            peak: None,
+            album_peak: None,
+            ..record()
+        };
+        let auto = with_mode(GainMode::Auto);
+        assert!(approx(
+            effective_gain_db(track, auto, Listening::ToAnAlbum),
+            -7.0
+        ));
+        assert!(approx(
+            effective_gain_db(track, auto, Listening::ToATrack),
+            -3.0
+        ));
+    }
+
+    /// The trap the issue names. Clipping prevention must cap by the
+    /// **album** peak in album mode: the album peak is the same number
+    /// for every track on the record, so the cap is uniform. Capping
+    /// each track by its own peak would pull tracks down according to
+    /// their own loudest sample — which is exactly the per-track
+    /// variation album mode exists to remove.
+    #[test]
+    fn album_mode_caps_by_the_album_peak_not_the_track_peak() {
+        let loud_preamp = GainSettings {
+            preamp_db: 12.0,
+            ..with_mode(GainMode::Album)
+        };
+        let gain = effective_gain_db(record(), loud_preamp, Listening::ToAnAlbum);
+
+        // 0.98 leaves 0.175 dB of headroom; the track's own 0.4 peak
+        // would have licensed almost 8 dB.
+        let album_headroom = -20.0 * 0.98_f64.log10();
+        assert!(
+            approx(gain, album_headroom),
+            "expected the album's {album_headroom} dB of headroom, got {gain}"
+        );
+
+        // And the whole record shares that cap, so two tracks with very
+        // different peaks of their own still come out level.
+        let quiet_track = TrackGain {
+            peak: Some(0.05),
+            ..record()
+        };
+        assert!(approx(
+            effective_gain_db(quiet_track, loud_preamp, Listening::ToAnAlbum),
+            gain,
+        ));
+    }
+
+    /// Album gain exists only where a tagger wrote it, because our own
+    /// analysis pass measures one track at a time. A file without it
+    /// falls back to its track gain rather than to nothing — otherwise
+    /// album mode would do nothing at all on a half-tagged library,
+    /// which is the jump `fallback_db` exists to prevent.
+    #[test]
+    fn a_file_with_no_album_gain_falls_back_to_its_own() {
+        let untagged = TrackGain {
+            album_gain_db: None,
+            album_peak: None,
+            ..record()
+        };
+        assert!(approx(
+            effective_gain_db(untagged, with_mode(GainMode::Album), Listening::ToAnAlbum),
+            -3.0,
+        ));
+    }
+
+    /// The peak falls back with it, and this one is a deliberate trade
+    /// against the uniformity argument above: an uneven cap is
+    /// cosmetic, and the cap only ever binds where the alternative is
+    /// audible clipping.
+    #[test]
+    fn an_album_gain_without_an_album_peak_still_gets_clipping_prevention() {
+        let no_album_peak = TrackGain {
+            album_peak: None,
+            peak: Some(0.5),
+            ..record()
+        };
+        // The pre-amp has to be big enough for the cap to actually
+        // bind, or this proves nothing: the record's own -7 dB plus
+        // 12 dB of pre-amp lands at 5 dB, under the 6.02 dB a 0.5 peak
+        // leaves, so the limiter would never be consulted.
+        let settings = GainSettings {
+            preamp_db: 15.0,
+            ..with_mode(GainMode::Album)
+        };
+        let gain = effective_gain_db(no_album_peak, settings, Listening::ToAnAlbum);
+        let headroom = -20.0 * 0.5_f64.log10();
+        assert!(
+            approx(gain, headroom),
+            "expected the track peak to stand in at {headroom} dB, got {gain}"
+        );
+        // …and it really is the cap talking, not the raw sum.
+        assert!(gain < -7.0 + 15.0);
+    }
+
+    /// The doubt on a pre-#545 analysis peak belongs to a measurement
+    /// we made, and we never measured an album — so an album peak read
+    /// from a tag clears it, exactly as a track tag peak does.
+    #[test]
+    fn an_album_peak_is_never_unverified() {
+        let stale = TrackGain {
+            peak: Some(0.1),
+            peak_unverified: true,
+            album_peak: Some(0.5),
+            ..record()
+        };
+        // Same reason as above: enough pre-amp that the cap decides.
+        let settings = GainSettings {
+            preamp_db: 15.0,
+            ..with_mode(GainMode::Album)
+        };
+        let gain = effective_gain_db(stale, settings, Listening::ToAnAlbum);
+        assert!(
+            approx(gain, -20.0 * 0.5_f64.log10()),
+            "the tagged album peak should be trusted in full, got {gain}"
+        );
+
+        // With no album peak to replace it, the doubt survives and the
+        // boost is refused.
+        let no_album_peak = TrackGain {
+            album_peak: None,
+            ..stale
+        };
+        assert!(approx(
+            effective_gain_db(no_album_peak, settings, Listening::ToAnAlbum),
+            0.0,
+        ));
+    }
+
+    /// Album numbers are tag-only, so the merge must not invent an
+    /// analysis side for them.
+    #[test]
+    fn the_album_pair_comes_from_the_tag_alone() {
+        let tag = TrackGain {
+            gain_db: None,
+            peak: None,
+            peak_unverified: false,
+            album_gain_db: Some(-5.0),
+            album_peak: Some(0.9),
+        };
+        let analysis = TrackGain {
+            gain_db: Some(-2.0),
+            peak: Some(0.3),
+            peak_unverified: false,
+            album_gain_db: None,
+            album_peak: None,
+        };
+        let merged = TrackGain::prefer_tag(tag, analysis);
+        assert_eq!(merged.album_gain_db, Some(-5.0));
+        assert_eq!(merged.album_peak, Some(0.9));
+        // …and the track pair still comes from the analysis.
+        assert_eq!(merged.gain_db, Some(-2.0));
+        assert_eq!(merged.peak, Some(0.3));
+    }
+
+    /// The mode is persisted as a string other builds read back, so the
+    /// round trip is part of the contract. An unknown value is the
+    /// default, not an error: a row written by a future build must not
+    /// leave the listener without a setting.
+    #[test]
+    fn the_persisted_mode_round_trips_and_tolerates_nonsense() {
+        for mode in [GainMode::Track, GainMode::Album, GainMode::Auto] {
+            assert_eq!(GainMode::from_setting(mode.as_setting()), mode);
+            assert_eq!(GainMode::from_bits(mode.as_bits()), mode);
+        }
+        for junk in ["", "ALBUM", "per-album", "3"] {
+            assert_eq!(GainMode::from_setting(junk), GainMode::Auto);
+        }
+        for junk in [3u8, 7, 255] {
+            assert_eq!(GainMode::from_bits(junk), GainMode::Auto);
+        }
+    }
+
+    /// Off is off, whatever the mode says.
+    #[test]
+    fn the_mode_does_nothing_while_replaygain_is_disabled() {
+        let settings = GainSettings {
+            enabled: false,
+            mode: GainMode::Album,
+            ..Default::default()
+        };
+        assert!(approx(
+            effective_gain_db(record(), settings, Listening::ToAnAlbum),
+            0.0
+        ));
     }
 }

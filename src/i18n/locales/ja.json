@@ -739,8 +739,9 @@
       "pause": "一時停止",
       "previous": "前へ",
       "next": "次へ",
-      "shuffleOn": "シャッフルを無効にする",
-      "shuffleOff": "シャッフルを有効にする",
+      "shuffleOff": "シャッフルオフ",
+      "shuffleTracks": "トラックをシャッフル",
+      "shuffleAlbums": "アルバムをシャッフル",
       "repeatOff": "リピートオフ",
       "repeatAll": "すべてリピート",
       "repeatOne": "1曲リピート"
@@ -1562,7 +1563,20 @@
         "title": "クリッピングを防ぐ",
         "subtitle": "トラックのピークが残す余裕までゲインを抑えます"
       },
+      "mode": {
+        "title": "適用するゲイン",
+        "auto": "自動",
+        "track": "トラックごと",
+        "album": "アルバムごと",
+        "autoHint": "アルバムを通して聴いている間はアルバムゲイン、それ以外はトラックゲイン",
+        "trackHint": "すべてのトラックを互いに同じ音量にそろえます",
+        "albumHint": "アルバムごとに 1 つのゲイン。作品内の音量差はそのまま残ります"
+      },
       "decibels": "{{value}} dB"
+    },
+    "generatorAlbumMode": {
+      "title": "アルバム単位でセッションを組む",
+      "subtitle": "ムードラジオと Daily Mix が、ばらばらの曲ではなくアルバムを選んで順番に再生します"
     },
     "exclusive": {
       "title": "排他出力",

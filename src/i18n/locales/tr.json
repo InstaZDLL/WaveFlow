@@ -739,8 +739,9 @@
       "pause": "Duraklat",
       "previous": "Önceki",
       "next": "Sonraki",
-      "shuffleOn": "Karışık çalmayı kapat",
-      "shuffleOff": "Karışık çalmayı aç",
+      "shuffleOff": "Karışık çalma kapalı",
+      "shuffleTracks": "Parçalar karışık",
+      "shuffleAlbums": "Albümler karışık",
       "repeatOff": "Tekrar kapalı",
       "repeatAll": "Tümünü tekrarla",
       "repeatOne": "Bir parçayı tekrarla"
@@ -1583,7 +1584,20 @@
         "title": "Bozulmayı önle",
         "subtitle": "Kazancı, parçanın tepe değerinin bıraktığı boşlukla sınırla"
       },
+      "mode": {
+        "title": "Uygulanacak kazanç",
+        "auto": "Otomatik",
+        "track": "Parça başına",
+        "album": "Albüm başına",
+        "autoHint": "Bir albüm baştan sona çalarken albüm kazancı, aksi hâlde parça kazancı",
+        "trackHint": "Her parçayı diğerlerine göre eşitler",
+        "albumHint": "Albüm başına tek kazanç; albümün kendi içindeki seviye farklarını korur"
+      },
       "decibels": "{{value}} dB"
+    },
+    "generatorAlbumMode": {
+      "title": "Oturumları tam albümlerden kur",
+      "subtitle": "Mod radyosu ve Daily Mix, dağınık parçalar yerine albümler seçip sırayla çalar"
     },
     "exclusive": {
       "title": "Özel çıkış",

@@ -36,6 +36,8 @@ export interface PlayerStateSnapshot {
   sample_rate: number;
   channels: number;
   shuffle: boolean;
+  /** How shuffle groups the queue — see {@link ShuffleMode}. */
+  shuffle_mode: ShuffleMode;
   repeat_mode: "off" | "all" | "one";
   current_track: QueueTrackPayload | null;
   /** True when the output is shipping native DSD via DoP (#495). */
@@ -322,9 +324,39 @@ export function playerPrevious(): Promise<void> {
   return invoke<void>("player_previous");
 }
 
-/** Returns the new shuffle state (true = shuffled). */
-export function playerToggleShuffle(): Promise<boolean> {
-  return invoke<boolean>("player_toggle_shuffle");
+/**
+ * How shuffle reorders the queue (#618).
+ *
+ * `tracks` is the shuffle that has always existed. `albums` randomises
+ * only the order of the records — inside each one the tracks keep disc
+ * and track order, so an album still plays the way it was pressed.
+ */
+export type ShuffleMode = "off" | "tracks" | "albums";
+
+/** The order the player control cycles through. */
+export const SHUFFLE_MODES: readonly ShuffleMode[] = [
+  "off",
+  "tracks",
+  "albums",
+];
+
+/** Returns the mode in force. */
+export function playerSetShuffleMode(
+  mode: ShuffleMode,
+): Promise<ShuffleMode> {
+  return invoke<ShuffleMode>("player_set_shuffle_mode", { mode });
+}
+
+/**
+ * Turn shuffle on or off without choosing a grouping — what every
+ * "Shuffle" button on an album, an artist or a playlist means.
+ *
+ * Returns the mode that ended up in force rather than a boolean:
+ * turning shuffle on restores whichever grouping was last picked, and
+ * only the backend knows which that was.
+ */
+export function playerToggleShuffle(): Promise<ShuffleMode> {
+  return invoke<ShuffleMode>("player_toggle_shuffle");
 }
 
 /** Returns the new repeat mode. */
@@ -368,6 +400,8 @@ export interface AudioSettingsSnapshot {
   replaygain_fallback_db: number;
   /** Hold gains back to the headroom each track's peak leaves. */
   replaygain_prevent_clipping: boolean;
+  /** Which of a file's two gains to apply — see {@link ReplayGainMode}. */
+  replaygain_mode: ReplayGainMode;
   gapless: boolean;
   /** Active DSD → PCM FIR tap count (256 / 1024 / 2048). */
   dsd_taps: number;
@@ -453,6 +487,30 @@ export function playerSetReplayGainOptions(
     fallbackDb: options.fallbackDb,
     preventClipping: options.preventClipping,
   });
+}
+
+/**
+ * Which of the two gains a file can carry gets applied.
+ *
+ * - `track` levels every track against every other one.
+ * - `album` applies one gain across a whole record, keeping the level
+ *   relationships the mastering engineer put inside it.
+ * - `auto` picks per track from how it is being played: album gain
+ *   while a record plays through, track gain for the same song heard
+ *   between two unrelated ones.
+ */
+export type ReplayGainMode = "track" | "album" | "auto";
+
+export const REPLAYGAIN_MODES: readonly ReplayGainMode[] = [
+  "auto",
+  "track",
+  "album",
+];
+
+export function playerSetReplayGainMode(
+  mode: ReplayGainMode,
+): Promise<void> {
+  return invoke<void>("player_set_replaygain_mode", { mode });
 }
 
 export function playerSetGapless(enabled: boolean): Promise<void> {

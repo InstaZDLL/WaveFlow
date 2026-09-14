@@ -189,6 +189,37 @@ loads](../features/playback.md#ordering-the-loads). What a rebuild puts
 back, and the two sessions it parks instead: [what a rebuild puts
 back](../features/playback.md#what-a-rebuild-puts-back).
 
+### One codec registry for the whole app
+
+Anything that opens an audio stream MUST go through
+[`waveflow_core::audio_format::opus::codecs()`](../../src-tauri/crates/core/src/audio_format/opus.rs),
+never `symphonia::default::get_codecs()`.
+
+There are three such places and they answer three different questions
+about the same file: **playback** (`ActiveStream::open`), the
+**analysis** pass, and the **scanner**'s probe. They have to agree on
+what this build can decode, because the disagreement is not abstract —
+a scanner that believes in a codec playback does not have is exactly
+how an unplayable track gets into a library, which is the single thing
+[`AUDIO_EXTENSIONS`](../features/library.md#scanning) exists to
+prevent.
+
+Each of the three used to build its own decoder from symphonia's
+default registry, which was harmless only for as long as the app
+shipped no decoder of its own. Opus (#581) is one, so it is not
+harmless any more.
+
+Two consequences worth stating:
+
+- **Adding a decoder means one registration**, not three, and the
+  scanner's extension list plus
+  [`undecodable_stream`](../../src-tauri/crates/core/src/scanner/extract.rs)
+  have to move with it — those two are the scanner's half of the same
+  agreement.
+- **The registry lives in `core`**, not in the app, because the
+  analysis pass and the scanner are core's and the future
+  `waveflow-server` transcoder will want the same answer.
+
 Wider topology: [audio architecture](audio.md).
 
 ---

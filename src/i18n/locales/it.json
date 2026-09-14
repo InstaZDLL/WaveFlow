@@ -739,8 +739,9 @@
       "pause": "Pausa",
       "previous": "Precedente",
       "next": "Successivo",
-      "shuffleOn": "Disattiva riproduzione casuale",
-      "shuffleOff": "Attiva riproduzione casuale",
+      "shuffleOff": "Riproduzione casuale disattivata",
+      "shuffleTracks": "Brani in ordine casuale",
+      "shuffleAlbums": "Album in ordine casuale",
       "repeatOff": "Ripetizione disattivata",
       "repeatAll": "Ripeti tutto",
       "repeatOne": "Ripeti brano"
@@ -1583,7 +1584,20 @@
         "title": "Evitare la saturazione",
         "subtitle": "Limitare il guadagno al margine lasciato dal picco del brano"
       },
+      "mode": {
+        "title": "Guadagno da applicare",
+        "auto": "Automatico",
+        "track": "Per brano",
+        "album": "Per album",
+        "autoHint": "Guadagno dell'album mentre un disco viene ascoltato per intero, altrimenti quello del brano",
+        "trackHint": "Uniforma ogni brano rispetto a tutti gli altri",
+        "albumHint": "Un solo guadagno per disco, che ne conserva i rapporti di livello interni"
+      },
       "decibels": "{{value}} dB"
+    },
+    "generatorAlbumMode": {
+      "title": "Sessioni con album interi",
+      "subtitle": "La radio d'atmosfera e i Daily Mix scelgono album e li riproducono in ordine, invece di brani sparsi"
     },
     "exclusive": {
       "title": "Uscita esclusiva",

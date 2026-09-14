@@ -71,7 +71,7 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev \
             libasound2-dev \
-            pkg-config
+            pkg-config cmake
 
       - name: Refresh Cargo.lock against bumped Cargo.toml
         run: cargo check --manifest-path src-tauri/Cargo.toml --workspace --all-targets

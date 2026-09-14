@@ -11,6 +11,7 @@ import {
   type PlaybackAlert,
   type PlaybackState,
   type RepeatMode,
+  type ShuffleMode,
 } from "../hooks/usePlayer";
 import { useProfile } from "../hooks/useProfile";
 import { useSpotify } from "../hooks/useSpotify";
@@ -32,6 +33,8 @@ import {
   playerSetSpeed,
   playerSetVolume,
   playerToggleShuffle,
+  playerSetShuffleMode,
+  SHUFFLE_MODES,
   getCurrentRadioMetadata,
   fetchRadioArtwork,
   type OutputDevice,
@@ -214,6 +217,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   // Shuffle / repeat — local for checkpoint 11, backend-wired in CP12
   const [isShuffled, setIsShuffled] = useState(false);
+  const [shuffleMode, setShuffleMode] = useState<ShuffleMode>("off");
   const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
 
   // Playback speed (0.5×–2×). Pushed to backend immediately — no
@@ -349,6 +353,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         setVolumeState(Math.round(snap.volume * 100));
         previousVolumeRef.current = Math.round(snap.volume * 100);
         setIsShuffled(snap.shuffle);
+        setShuffleMode(snap.shuffle_mode);
         setRepeatMode(snap.repeat_mode);
         // Device-side audio fields are unset (0) before the first
         // stream opens; null'ing them out keeps the type honest so
@@ -438,13 +443,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           // Repeat / shuffle changed outside the frontend (an MPD client) —
           // the in-app buttons update optimistically, so this only fires for
           // external surfaces.
-          await listen<{ repeatMode: RepeatMode; shuffle: boolean }>(
-            "player:options-changed",
-            (e) => {
-              setRepeatMode(e.payload.repeatMode);
-              setIsShuffled(e.payload.shuffle);
-            },
-          ),
+          await listen<{
+            repeatMode: RepeatMode;
+            shuffle: boolean;
+            shuffleMode: ShuffleMode;
+          }>("player:options-changed", (e) => {
+            setRepeatMode(e.payload.repeatMode);
+            setIsShuffled(e.payload.shuffle);
+            setShuffleMode(e.payload.shuffleMode);
+          }),
         );
         unlisten.push(
           // Volume changed anywhere — the other window's slider, the
@@ -802,17 +809,46 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // --- Shuffle / repeat (backend-wired) ---
+  //
+  // Two ways in, because "shuffle" is asked for in two different
+  // senses. The Shuffle button on an album, an artist or a playlist
+  // means *turn it on* and says nothing about grouping, so it toggles
+  // and the backend keeps whichever grouping was last picked. The
+  // player control selects among the three.
   const toggleShuffle = useCallback(async () => {
     // Optimistic UI flip; on backend error we rollback.
     setIsShuffled((prev) => !prev);
     try {
+      // The mode, not a boolean: turning shuffle on restores whichever
+      // grouping was last picked, which the optimistic flip above
+      // could not have known.
       const next = await playerToggleShuffle();
-      setIsShuffled(next);
+      setShuffleMode(next);
+      setIsShuffled(next !== "off");
     } catch (err) {
       console.error("[PlayerContext] toggle shuffle failed", err);
       setIsShuffled((prev) => !prev);
     }
   }, []);
+
+  const cycleShuffleMode = useCallback(async () => {
+    const previous = shuffleMode;
+    const next =
+      SHUFFLE_MODES[
+        (SHUFFLE_MODES.indexOf(previous) + 1) % SHUFFLE_MODES.length
+      ];
+    setShuffleMode(next);
+    setIsShuffled(next !== "off");
+    try {
+      const settled = await playerSetShuffleMode(next);
+      setShuffleMode(settled);
+      setIsShuffled(settled !== "off");
+    } catch (err) {
+      console.error("[PlayerContext] set shuffle mode failed", err);
+      setShuffleMode(previous);
+      setIsShuffled(previous !== "off");
+    }
+  }, [shuffleMode]);
 
   const cycleRepeatMode = useCallback(async () => {
     const nextMode: RepeatMode =
@@ -959,6 +995,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         dismissPlaybackAlert,
         isShuffled,
         toggleShuffle,
+        shuffleMode,
+        cycleShuffleMode,
         repeatMode,
         cycleRepeatMode,
         playTracks,

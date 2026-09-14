@@ -100,6 +100,88 @@ impl RepeatMode {
     }
 }
 
+/// How shuffle reorders the queue. Mirrors the `player.shuffle_mode`
+/// profile_setting string.
+///
+/// Three-way rather than the boolean it replaces, because "shuffle" was
+/// answering two different questions with one switch (#618). Shuffling
+/// individual tracks is right for a playlist; on a library full of
+/// records it takes every album apart, which is the opposite of what
+/// someone who listens to albums wants.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum ShuffleMode {
+    /// The queue plays in the order it was built.
+    #[default]
+    Off,
+    /// Individual tracks, in no relation to each other.
+    Tracks,
+    /// Whole records. Only the order of the albums is randomised —
+    /// inside each one the tracks keep disc and track order.
+    Albums,
+}
+
+impl ShuffleMode {
+    pub fn from_str(s: &str) -> Self {
+        match s {
+            "tracks" => Self::Tracks,
+            "albums" => Self::Albums,
+            _ => Self::Off,
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Off => "off",
+            Self::Tracks => "tracks",
+            Self::Albums => "albums",
+        }
+    }
+
+    /// Whether anything is being shuffled at all.
+    ///
+    /// This is the whole of what the older `player.shuffle` boolean
+    /// could say, and what MPD's `random` flag can carry.
+    pub fn is_on(self) -> bool {
+        self != Self::Off
+    }
+
+    /// The form the decoder thread reads, out of a plain integer
+    /// atomic. Nothing but
+    /// [`SharedPlayback`](crate::audio::state::SharedPlayback) should
+    /// care what number a mode is.
+    pub fn as_bits(self) -> u8 {
+        match self {
+            Self::Off => 0,
+            Self::Tracks => 1,
+            Self::Albums => 2,
+        }
+    }
+
+    /// Inverse of [`Self::as_bits`], total on purpose: an unknown
+    /// number means the atomic was written by code this build does not
+    /// have, and `Off` is a better answer than a panic on the audio
+    /// path.
+    pub fn from_bits(bits: u8) -> Self {
+        match bits {
+            1 => Self::Tracks,
+            2 => Self::Albums,
+            _ => Self::Off,
+        }
+    }
+
+    /// The grouping half, as persisted. `Off` has none — turning
+    /// shuffle off is not a third way of grouping, it is the absence
+    /// of grouping, and the flavour the listener picked is kept so it
+    /// survives an off/on.
+    fn grouping(self) -> Option<&'static str> {
+        match self {
+            Self::Off => None,
+            Self::Tracks => Some("tracks"),
+            Self::Albums => Some("albums"),
+        }
+    }
+}
+
 // ---------------------------------------------------------------------
 // Helpers: typed wrappers around profile_setting string values
 // ---------------------------------------------------------------------
@@ -167,10 +249,49 @@ pub async fn read_repeat_mode(pool: &SqlitePool) -> RepeatMode {
 }
 
 pub async fn read_shuffle(pool: &SqlitePool) -> bool {
-    matches!(
+    read_shuffle_mode(pool).await.is_on()
+}
+
+/// The shuffle state in force: the existing on/off switch crossed
+/// with the grouping the listener picked.
+///
+/// Kept as two rows rather than one three-valued one, for three
+/// reasons. `player.shuffle` is still what MPD's `random` flag maps
+/// onto and what a build without album shuffle reads, so it stays
+/// authoritative for "is shuffle on". The grouping is remembered
+/// while shuffle is off, so someone who listens to records does not
+/// have to re-pick it every time they turn shuffle back on. And a
+/// profile that predates this upgrade needs no migration: no grouping
+/// row means tracks, which is what shuffle has always done.
+pub async fn read_shuffle_mode(pool: &SqlitePool) -> ShuffleMode {
+    let on = matches!(
         read_setting_string(pool, "player.shuffle").await,
         Ok(Some(ref s)) if s == "true"
-    )
+    );
+    if !on {
+        return ShuffleMode::Off;
+    }
+    match read_shuffle_grouping_preference(pool).await {
+        ShuffleMode::Off => ShuffleMode::Tracks,
+        grouping => grouping,
+    }
+}
+
+/// The remembered grouping on its own, ignoring whether shuffle is on.
+/// Never `Off` in practice — an absent or unreadable row reads as
+/// `Tracks`, which is what shuffle did before album grouping existed.
+///
+/// This is what "turn shuffle on" means for every surface that can
+/// only say on: the player button, an MPD `random 1`, the Shuffle
+/// action on an album or a playlist.
+pub async fn read_shuffle_grouping_preference(pool: &SqlitePool) -> ShuffleMode {
+    match read_setting_string(pool, "player.shuffle_grouping").await {
+        Ok(Some(ref s)) => match ShuffleMode::from_str(s) {
+            ShuffleMode::Off => ShuffleMode::Tracks,
+            grouping => grouping,
+        },
+        _ => ShuffleMode::Tracks,
+    }
 }
 
 pub async fn write_repeat_mode(pool: &SqlitePool, mode: RepeatMode) -> AppResult<()> {
@@ -187,18 +308,57 @@ pub async fn write_repeat_mode(pool: &SqlitePool, mode: RepeatMode) -> AppResult
     Ok(())
 }
 
-pub async fn write_shuffle(pool: &SqlitePool, shuffle: bool) -> AppResult<()> {
+/// Persist a shuffle state: the switch always, the grouping only when
+/// there is one to record.
+///
+/// The only setter, on purpose. A boolean one used to sit next to it
+/// and now has no callers — and leaving it would have been a trap
+/// rather than a convenience: `write_shuffle(pool, true)` forces the
+/// `Tracks` grouping, so a future caller reaching for the obvious name
+/// would silently throw away a listener's preference for whole
+/// records. Turning shuffle on without choosing a grouping is
+/// [`read_shuffle_grouping_preference`] followed by this.
+///
+/// Turning shuffle off deliberately leaves `player.shuffle_grouping`
+/// alone — see [`read_shuffle_mode`] for why the listener's choice is
+/// worth remembering.
+pub async fn write_shuffle_mode(pool: &SqlitePool, mode: ShuffleMode) -> AppResult<()> {
     let now = Utc::now().timestamp_millis();
+    if let Some(grouping) = mode.grouping() {
+        // Upserted rather than updated: this key is new, so no
+        // migration seeded a row for it to update.
+        sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('player.shuffle_grouping', ?, 'string', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(grouping)
+        .bind(now)
+        .execute(pool)
+        .await?;
+    }
     sqlx::query(
         "UPDATE profile_setting
             SET value = ?, updated_at = ?
           WHERE key = 'player.shuffle'",
     )
-    .bind(if shuffle { "true" } else { "false" })
+    .bind(if mode.is_on() { "true" } else { "false" })
     .bind(now)
     .execute(pool)
     .await?;
     Ok(())
+}
+
+/// Reorder the queue to match `mode`. The one place that knows which
+/// of the three orderings a mode means, so the toggle, the MPD
+/// `random` command and [`crate::commands::player::player_play_tracks`]
+/// cannot drift on it.
+pub async fn apply_shuffle_mode(pool: &SqlitePool, mode: ShuffleMode) -> AppResult<()> {
+    match mode {
+        ShuffleMode::Off => unshuffle(pool).await,
+        ShuffleMode::Tracks => shuffle(pool).await,
+        ShuffleMode::Albums => shuffle_by_album(pool).await,
+    }
 }
 
 /// Read the persisted player volume (`player.volume` key, stored as
@@ -1016,11 +1176,7 @@ pub async fn shuffle(pool: &SqlitePool) -> AppResult<()> {
         .unwrap_or(0)
         .clamp(0, rows.len() as i64 - 1) as usize;
 
-    // Snapshot the pre-shuffle order for unshuffle.
-    let preshuffle_json: String =
-        serde_json::to_string(&rows.iter().map(|(_, id)| *id).collect::<Vec<_>>())
-            .map_err(|e| AppError::Other(format!("preshuffle json: {e}")))?;
-    write_setting_string(pool, "queue.preshuffle", &preshuffle_json).await?;
+    snapshot_preshuffle_order(pool, &rows.iter().map(|(_, id)| *id).collect::<Vec<_>>()).await?;
 
     // Build the new ordering: [current, ...shuffled rest].
     let mut ids: Vec<i64> = rows.iter().map(|(_, id)| *id).collect();
@@ -1031,6 +1187,159 @@ pub async fn shuffle(pool: &SqlitePool) -> AppResult<()> {
     new_ids.extend(ids);
 
     write_queue_order(pool, &new_ids, 0).await
+}
+
+/// Take the pre-shuffle snapshot, unless one is already held.
+///
+/// `queue.preshuffle` records the order the listener actually built,
+/// so [`unshuffle`] can give it back. It must be taken **once**, on
+/// the way into shuffle: re-taking it while already shuffled would
+/// record the shuffled order as the original one, and turning shuffle
+/// off would then restore the mess instead of undoing it.
+///
+/// That became reachable when shuffle grew a third state (#618) — you
+/// can now go from grouping tracks to grouping albums without passing
+/// through off. The queue-replacing paths clear the key, so "a
+/// snapshot exists" means "we are already shuffled" and nothing else.
+async fn snapshot_preshuffle_order(pool: &SqlitePool, ids: &[i64]) -> AppResult<()> {
+    if read_setting_string(pool, "queue.preshuffle")
+        .await?
+        .is_some()
+    {
+        return Ok(());
+    }
+    let json =
+        serde_json::to_string(ids).map_err(|e| AppError::Other(format!("preshuffle json: {e}")))?;
+    write_setting_string(pool, "queue.preshuffle", &json).await
+}
+
+/// Shuffle whole records instead of individual tracks (#618).
+///
+/// Only the order of the albums is randomised. Inside each one the
+/// tracks are put back into disc and track order, so a record that
+/// arrived in the queue scrambled still plays the way it was pressed.
+///
+/// Two rules the plain track shuffle does not have to answer:
+///
+/// - **The record you are in continues.** The current track stays at
+///   position 0, the rest of its album follows from the next track
+///   onward, and the tracks before it come after the last one — a
+///   rotation, so nothing is dropped and the album still plays in
+///   order from where you are.
+/// - **A track with no album is its own record.** Loose files then
+///   shuffle exactly as they would have under track shuffle, instead
+///   of being welded into one arbitrary block by a shared NULL.
+pub async fn shuffle_by_album(pool: &SqlitePool) -> AppResult<()> {
+    // `position` decides ties inside a record, so a pair of tracks that
+    // both lack a track number keeps the order it already had rather
+    // than depending on how the rows came back.
+    let rows: Vec<QueuedAlbumTrack> = sqlx::query_as(
+        "SELECT q.track_id, q.position, t.album_id, t.disc_number, t.track_number
+           FROM queue_item q
+           LEFT JOIN track t ON t.id = q.track_id
+          ORDER BY q.position",
+    )
+    .fetch_all(pool)
+    .await?;
+    if rows.len() < 2 {
+        return Ok(());
+    }
+
+    let current_index = read_setting_i64(pool, "queue.current_index")
+        .await?
+        .unwrap_or(0)
+        .clamp(0, rows.len() as i64 - 1) as usize;
+    let current_id = rows[current_index].0;
+
+    // The order the listener built, so turning shuffle off restores it
+    // exactly as it does after a track shuffle.
+    snapshot_preshuffle_order(pool, &rows.iter().map(|(id, ..)| *id).collect::<Vec<_>>()).await?;
+
+    let mut groups = album_runs(&rows, current_id);
+    // Only the order of the records is random; `album_runs` has
+    // already settled everything inside them.
+    let tail = &mut groups[1..];
+    fisher_yates(tail);
+
+    let ordered: Vec<i64> = groups.into_iter().flatten().collect();
+    write_queue_order(pool, &ordered, 0).await
+}
+
+/// One queue row, as [`album_runs`] needs it: the track, where it sits
+/// now, and what the library knows about its place on a record.
+type QueuedAlbumTrack = (i64, i64, Option<i64>, Option<i64>, Option<i64>);
+
+/// Split a queue into records, each in the order it was pressed in,
+/// with the record being listened to first and rotated onto the
+/// current track.
+///
+/// Pure so the grouping and the rotation are testable without a
+/// database — the same reason [`cursor_after_removal`] is. Everything
+/// random about album shuffle is the caller's single `fisher_yates`
+/// over the returned tail; nothing here depends on chance, so a
+/// failure is reproducible.
+///
+/// The first run is always the one holding `current_id`, so callers
+/// can shuffle `[1..]` and leave the current track at position 0.
+fn album_runs(rows: &[QueuedAlbumTrack], current_id: i64) -> Vec<Vec<i64>> {
+    // First-appearance order, so the grouping itself is deterministic.
+    let mut groups: Vec<Vec<&QueuedAlbumTrack>> = Vec::new();
+    let mut index_of: std::collections::HashMap<i64, usize> = std::collections::HashMap::new();
+    for row in rows {
+        match row.2 {
+            Some(album) => match index_of.get(&album) {
+                Some(&at) => groups[at].push(row),
+                None => {
+                    index_of.insert(album, groups.len());
+                    groups.push(vec![row]);
+                }
+            },
+            // A track with no album is its own record. Grouping them
+            // all under one NULL would weld unrelated loose files into
+            // a single block that always plays together.
+            None => groups.push(vec![row]),
+        }
+    }
+
+    for group in &mut groups {
+        group.sort_by_key(|(_, position, _, disc, track_no)| {
+            // A missing disc or track number sorts after every numbered
+            // track rather than before it: an untagged bonus track
+            // belongs at the end, not in front of track 1. `position`
+            // breaks the remaining ties, so two equally untagged tracks
+            // keep the order they already had instead of depending on
+            // how the rows came back.
+            (
+                disc.unwrap_or(i64::MAX),
+                track_no.unwrap_or(i64::MAX),
+                *position,
+            )
+        });
+    }
+
+    let current_group = groups
+        .iter()
+        .position(|group| group.iter().any(|(id, ..)| *id == current_id))
+        .unwrap_or(0);
+    let mut ordered: Vec<Vec<i64>> = Vec::with_capacity(groups.len());
+    let mut first: Vec<i64> = groups
+        .remove(current_group)
+        .into_iter()
+        .map(|(id, ..)| *id)
+        .collect();
+    // Carry on from where the listener is, then wrap to the start of
+    // the record. Nothing is dropped — a shuffle is a permutation —
+    // and the album still plays in order from the current track.
+    if let Some(at) = first.iter().position(|id| *id == current_id) {
+        first.rotate_left(at);
+    }
+    ordered.push(first);
+    ordered.extend(
+        groups
+            .into_iter()
+            .map(|group| group.into_iter().map(|(id, ..)| *id).collect()),
+    );
+    ordered
 }
 
 /// Restore the pre-shuffle order from `queue.preshuffle` and re-home
@@ -1229,18 +1538,54 @@ async fn write_queue_order(
     ordered_ids: &[i64],
     new_current: usize,
 ) -> AppResult<()> {
+    // Where each track came from, kept across the reorder. Writing
+    // every row back as 'manual' would throw away two things that are
+    // read later: the source a play_event is attributed to, and the
+    // boundary `fill_queue` uses to tell queued-up "play next" items
+    // from the source queue they were dropped into.
+    //
+    // Keyed by track id with one entry per occurrence, in position
+    // order, so a queue holding the same track twice hands each copy
+    // back its own source rather than the first one's.
+    let mut sources: std::collections::HashMap<
+        i64,
+        std::collections::VecDeque<(String, Option<i64>)>,
+    > = std::collections::HashMap::new();
+    //
+    // Read *inside* the transaction that rewrites them, so the rows
+    // put back describe the queue being replaced rather than one that
+    // changed in between.
     let mut tx = pool.begin().await?;
+    let existing: Vec<(i64, String, Option<i64>)> =
+        sqlx::query_as("SELECT track_id, source_type, source_id FROM queue_item ORDER BY position")
+            .fetch_all(&mut *tx)
+            .await?;
+    for (track_id, source_type, source_id) in existing {
+        sources
+            .entry(track_id)
+            .or_default()
+            .push_back((source_type, source_id));
+    }
+
     sqlx::query("DELETE FROM queue_item")
         .execute(&mut *tx)
         .await?;
     let now = Utc::now().timestamp_millis();
     for (pos, track_id) in ordered_ids.iter().enumerate() {
+        // 'manual' only for a track the old queue did not hold, which
+        // is not something any caller here does today.
+        let (source_type, source_id) = sources
+            .get_mut(track_id)
+            .and_then(|queued| queued.pop_front())
+            .unwrap_or_else(|| ("manual".to_string(), None));
         sqlx::query(
             "INSERT INTO queue_item (track_id, position, source_type, source_id, added_at)
-             VALUES (?, ?, 'manual', NULL, ?)",
+             VALUES (?, ?, ?, ?, ?)",
         )
         .bind(track_id)
         .bind(pos as i64)
+        .bind(source_type)
+        .bind(source_id)
         .bind(now)
         .execute(&mut *tx)
         .await?;
@@ -1287,6 +1632,153 @@ fn _type_check() -> Option<PlayerStateSnapshot> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ------------------------------------------------------------------
+    // Album shuffle (#618)
+    // ------------------------------------------------------------------
+
+    /// `(track_id, position, album_id, disc, track_no)` — the shape
+    /// the queue query hands [`album_runs`].
+    fn queued(
+        id: i64,
+        position: i64,
+        album: Option<i64>,
+        disc: Option<i64>,
+        track_no: Option<i64>,
+    ) -> QueuedAlbumTrack {
+        (id, position, album, disc, track_no)
+    }
+
+    /// Two records interleaved in the queue come back as two blocks,
+    /// each in its own disc/track order rather than the order the
+    /// queue happened to hold.
+    #[test]
+    fn album_runs_group_records_and_restore_their_order() {
+        let rows = vec![
+            queued(30, 0, Some(1), Some(1), Some(3)),
+            queued(20, 1, Some(2), Some(1), Some(2)),
+            queued(10, 2, Some(1), Some(1), Some(1)),
+            queued(21, 3, Some(2), Some(1), Some(1)),
+            queued(11, 4, Some(1), Some(1), Some(2)),
+        ];
+        let runs = album_runs(&rows, 10);
+        assert_eq!(runs.len(), 2, "two albums, two runs");
+        assert_eq!(runs[0], vec![10, 11, 30], "album 1 in track order");
+        assert!(
+            runs[1..].iter().any(|r| *r == vec![21, 20]),
+            "album 2 in track order, got {runs:?}"
+        );
+    }
+
+    /// The record being listened to comes first, and carries on from
+    /// the current track rather than restarting: a rotation, so the
+    /// tracks already behind you come back round at the end instead of
+    /// vanishing from the queue.
+    #[test]
+    fn the_current_record_continues_from_where_it_is() {
+        let rows = vec![
+            queued(1, 0, Some(7), Some(1), Some(1)),
+            queued(2, 1, Some(7), Some(1), Some(2)),
+            queued(3, 2, Some(7), Some(1), Some(3)),
+            queued(4, 3, Some(7), Some(1), Some(4)),
+            queued(99, 4, Some(8), Some(1), Some(1)),
+        ];
+        let runs = album_runs(&rows, 3);
+        assert_eq!(runs[0], vec![3, 4, 1, 2]);
+        assert_eq!(runs[0][0], 3, "the current track keeps position 0");
+    }
+
+    /// A shuffle is a permutation. Whatever the grouping does, every
+    /// track that went in comes back out exactly once — the bug that
+    /// would quietly shorten someone's queue.
+    #[test]
+    fn every_track_survives_the_grouping_exactly_once() {
+        let rows = vec![
+            queued(1, 0, Some(7), Some(1), Some(2)),
+            queued(2, 1, None, None, None),
+            queued(3, 2, Some(7), Some(2), Some(1)),
+            queued(4, 3, Some(8), None, None),
+            queued(5, 4, None, None, None),
+            queued(6, 5, Some(7), Some(1), Some(1)),
+        ];
+        let mut seen: Vec<i64> = album_runs(&rows, 3).into_iter().flatten().collect();
+        seen.sort_unstable();
+        assert_eq!(seen, vec![1, 2, 3, 4, 5, 6]);
+    }
+
+    /// A track with no album is its own record. Grouping every NULL
+    /// together would weld unrelated loose files into one block that
+    /// always plays in the same order — the opposite of shuffling.
+    #[test]
+    fn tracks_with_no_album_are_each_their_own_record() {
+        let rows = vec![
+            queued(1, 0, None, None, None),
+            queued(2, 1, None, None, None),
+            queued(3, 2, None, None, None),
+        ];
+        let runs = album_runs(&rows, 1);
+        assert_eq!(runs.len(), 3, "three loose files, three runs");
+        assert!(runs.iter().all(|r| r.len() == 1));
+    }
+
+    /// Disc order beats track order, and an untagged track sorts after
+    /// every numbered one — a bonus track with no number belongs at
+    /// the end of the record, not in front of track 1.
+    #[test]
+    fn discs_come_in_order_and_untagged_tracks_go_last() {
+        let rows = vec![
+            queued(40, 0, Some(1), None, None),
+            queued(21, 1, Some(1), Some(2), Some(1)),
+            queued(12, 2, Some(1), Some(1), Some(2)),
+            queued(11, 3, Some(1), Some(1), Some(1)),
+            queued(41, 4, Some(1), None, None),
+        ];
+        let runs = album_runs(&rows, 11);
+        assert_eq!(runs.len(), 1);
+        // Rotated onto the current track, which is already first here.
+        assert_eq!(runs[0], vec![11, 12, 21, 40, 41]);
+    }
+
+    /// Two untagged tracks keep the order the queue already had, so the
+    /// result does not depend on how the rows came back.
+    #[test]
+    fn ties_fall_back_to_the_position_the_queue_already_had() {
+        let rows = vec![
+            queued(50, 3, Some(1), None, None),
+            queued(51, 1, Some(1), None, None),
+            queued(52, 2, Some(1), None, None),
+        ];
+        let runs = album_runs(&rows, 51);
+        assert_eq!(runs[0], vec![51, 52, 50]);
+    }
+
+    /// The current track not being in the queue at all should not
+    /// panic or drop a record — the first run is simply whichever came
+    /// first.
+    #[test]
+    fn an_absent_current_track_still_yields_every_run() {
+        let rows = vec![
+            queued(1, 0, Some(7), Some(1), Some(1)),
+            queued(2, 1, Some(8), Some(1), Some(1)),
+        ];
+        let runs = album_runs(&rows, 999);
+        assert_eq!(runs.len(), 2);
+        assert_eq!(runs[0], vec![1]);
+    }
+
+    /// The mode is persisted as a string other surfaces read back.
+    #[test]
+    fn shuffle_mode_round_trips_through_string() {
+        for mode in [ShuffleMode::Off, ShuffleMode::Tracks, ShuffleMode::Albums] {
+            assert_eq!(ShuffleMode::from_str(mode.as_str()), mode);
+        }
+        for junk in ["", "album", "ALBUMS", "true"] {
+            assert_eq!(ShuffleMode::from_str(junk), ShuffleMode::Off);
+        }
+        assert!(!ShuffleMode::Off.is_on());
+        assert!(ShuffleMode::Tracks.is_on());
+        assert!(ShuffleMode::Albums.is_on());
+    }
 
     #[test]
     fn repeat_mode_round_trips_through_string() {

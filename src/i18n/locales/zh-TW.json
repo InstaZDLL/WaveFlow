@@ -739,8 +739,9 @@
       "pause": "暫停",
       "previous": "上一首",
       "next": "下一首",
-      "shuffleOn": "停用隨機播放",
-      "shuffleOff": "啟用隨機播放",
+      "shuffleOff": "隨機播放已關閉",
+      "shuffleTracks": "隨機播放單曲",
+      "shuffleAlbums": "隨機播放專輯",
       "repeatOff": "重複關閉",
       "repeatAll": "全部重複",
       "repeatOne": "單曲重複"
@@ -1562,7 +1563,20 @@
         "title": "避免削波",
         "subtitle": "將增益限制在曲目峰值留下的餘裕之內"
       },
+      "mode": {
+        "title": "套用的增益",
+        "auto": "自動",
+        "track": "依單曲",
+        "album": "依專輯",
+        "autoHint": "整張專輯連續播放時用專輯增益，其餘情況用單曲增益",
+        "trackHint": "讓每首曲目與其他所有曲目響度一致",
+        "albumHint": "每張專輯一個增益，保留專輯內部的音量落差"
+      },
       "decibels": "{{value}} dB"
+    },
+    "generatorAlbumMode": {
+      "title": "以整張專輯組建播放",
+      "subtitle": "心情電台和 Daily Mix 會挑選專輯並依序播放，而不是零散的單曲"
     },
     "exclusive": {
       "title": "獨佔輸出",

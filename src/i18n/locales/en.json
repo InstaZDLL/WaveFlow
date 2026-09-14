@@ -739,8 +739,9 @@
       "pause": "Pause",
       "previous": "Previous",
       "next": "Next",
-      "shuffleOn": "Disable shuffle",
-      "shuffleOff": "Enable shuffle",
+      "shuffleOff": "Shuffle off",
+      "shuffleTracks": "Shuffle tracks",
+      "shuffleAlbums": "Shuffle albums",
       "repeatOff": "Repeat off",
       "repeatAll": "Repeat all",
       "repeatOne": "Repeat one"
@@ -1583,7 +1584,20 @@
         "title": "Prevent clipping",
         "subtitle": "Hold the gain back to the headroom the track's peak leaves"
       },
+      "mode": {
+        "title": "Gain to apply",
+        "auto": "Automatic",
+        "track": "Per track",
+        "album": "Per album",
+        "autoHint": "Album gain while a record plays through, track gain otherwise",
+        "trackHint": "Levels every track against every other one",
+        "albumHint": "One gain per record, preserving its internal level differences"
+      },
       "decibels": "{{value}} dB"
+    },
+    "generatorAlbumMode": {
+      "title": "Build sessions from whole albums",
+      "subtitle": "Mood radio and Daily Mix pick albums and play them in order, instead of scattered tracks"
     },
     "exclusive": {
       "title": "Exclusive output",

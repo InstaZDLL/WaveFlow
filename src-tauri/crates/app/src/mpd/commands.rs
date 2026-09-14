@@ -785,15 +785,19 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .require_profile_pool()
                 .await
                 .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "random", "no active profile"))?;
-            queue::write_shuffle(&pool, on)
+            // MPD's `random` is a boolean, so it can only say on or
+            // off. Turning it on keeps whichever grouping the listener
+            // picked in the app rather than forcing tracks — an MPD
+            // remote should not quietly undo a preference it has no
+            // way to express.
+            let mode = if on {
+                queue::read_shuffle_grouping_preference(&pool).await
+            } else {
+                queue::ShuffleMode::Off
+            };
+            crate::commands::player::set_shuffle_mode(&pool, &ctx.engine(), mode)
                 .await
                 .map_err(|e| ack_arg("random", &e.to_string()))?;
-            let result = if on {
-                queue::shuffle(&pool).await
-            } else {
-                queue::unshuffle(&pool).await
-            };
-            result.map_err(|e| ack_arg("random", &e.to_string()))?;
             crate::commands::player::emit_options_changed(&ctx.app, &pool).await;
             drop(pool);
             crate::commands::player::emit_queue_changed(&ctx.app);

@@ -173,6 +173,26 @@ pub struct SharedPlayback {
     /// so a boost never pushes samples past full scale and into the
     /// decoder's final clamp. On by default.
     pub replaygain_prevent_clipping: AtomicBool,
+    /// Which of a file's two gains to apply, as
+    /// [`GainMode::as_bits`](super::replay_gain::GainMode::as_bits).
+    /// Stored as a plain integer rather than behind a lock for the
+    /// same reason as the knobs above: the decoder thread is the only
+    /// reader, and a switch that lands one buffer late is inaudible.
+    pub replaygain_mode_bits: AtomicU8,
+    /// The shuffle mode in force, as
+    /// [`ShuffleMode::as_bits`](crate::queue::ShuffleMode::as_bits)
+    /// (#618).
+    ///
+    /// All three states, not a boolean for "albums": each one says
+    /// something different about how the record is being listened to,
+    /// and the middle one is the reason this is not a flag. See
+    /// [`Self::listening_to`].
+    ///
+    /// Lives here, next to the gain knobs, because that is the only
+    /// thing on the decoder thread that reads it. The queue ordering
+    /// itself is decided in [`crate::queue`] and never read back from
+    /// here.
+    pub shuffle_mode_bits: AtomicU8,
     /// When `true`, the decoder pre-fetches the next queued track
     /// ~500 ms before the current one ends and swaps to it the
     /// instant primary EOFs — no analytics → LoadAndPlay round trip,
@@ -303,6 +323,8 @@ impl SharedPlayback {
             replaygain_preamp_db_bits: AtomicU32::new(0.0_f32.to_bits()),
             replaygain_fallback_db_bits: AtomicU32::new(0.0_f32.to_bits()),
             replaygain_prevent_clipping: AtomicBool::new(true),
+            replaygain_mode_bits: AtomicU8::new(super::replay_gain::GainMode::default().as_bits()),
+            shuffle_mode_bits: AtomicU8::new(crate::queue::ShuffleMode::Off.as_bits()),
             gapless_enabled: AtomicBool::new(true),
             eq: super::eq::EqShared::new(),
             pause_after_current_track: AtomicBool::new(false),
@@ -445,10 +467,10 @@ impl SharedPlayback {
 
     /// Snapshot of the ReplayGain knobs for one decoded buffer.
     ///
-    /// Read as four independent atomics rather than behind a lock:
-    /// the decoder thread is the only reader, and the worst a torn
-    /// read can do is apply the old pre-amp to one buffer and the new
-    /// one to the next — inaudible, and gone by the following packet.
+    /// Read as independent atomics rather than behind a lock: the
+    /// decoder thread is the only reader, and the worst a torn read
+    /// can do is apply the old pre-amp to one buffer and the new one
+    /// to the next — inaudible, and gone by the following packet.
     pub fn replay_gain_settings(&self) -> super::replay_gain::GainSettings {
         super::replay_gain::GainSettings {
             enabled: self.replaygain_enabled.load(Ordering::Relaxed),
@@ -459,6 +481,35 @@ impl SharedPlayback {
                 self.replaygain_fallback_db_bits.load(Ordering::Relaxed),
             )),
             prevent_clipping: self.replaygain_prevent_clipping.load(Ordering::Relaxed),
+            mode: super::replay_gain::GainMode::from_bits(
+                self.replaygain_mode_bits.load(Ordering::Relaxed),
+            ),
+        }
+    }
+
+    /// How the track currently decoding is being listened to, for
+    /// [`GainMode::Auto`](super::replay_gain::GainMode::Auto).
+    ///
+    /// Shuffle answers first, and all three of its states matter:
+    ///
+    /// - **Albums** — whole records play in their own order, whatever
+    ///   the queue was built from. That is a record being played
+    ///   through.
+    /// - **Tracks** — the record has been taken apart, so it is *not*,
+    ///   even though its queue entries still say `'album'`. This is
+    ///   the case a boolean for "album grouping" got wrong, and it
+    ///   only became reachable once a reorder started preserving
+    ///   `source_type` (before that the column was flattened to
+    ///   `'manual'` and the right answer came out by accident).
+    /// - **Off** — the queue plays in the order it was built, so its
+    ///   own `source_type` is the answer.
+    pub fn listening_to(&self, source_type: &str) -> super::replay_gain::Listening {
+        use super::replay_gain::Listening;
+        match crate::queue::ShuffleMode::from_bits(self.shuffle_mode_bits.load(Ordering::Relaxed)) {
+            crate::queue::ShuffleMode::Albums => Listening::ToAnAlbum,
+            crate::queue::ShuffleMode::Tracks => Listening::ToATrack,
+            crate::queue::ShuffleMode::Off if source_type == "album" => Listening::ToAnAlbum,
+            crate::queue::ShuffleMode::Off => Listening::ToATrack,
         }
     }
 
@@ -514,6 +565,66 @@ impl Default for SharedPlayback {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The three-state rule behind automatic ReplayGain (#587 × #618),
+    /// and the regression it exists for.
+    ///
+    /// Track shuffle is the case a boolean for "album grouping" got
+    /// wrong: an album queue that has been shuffled track-by-track
+    /// still carries `source_type = 'album'` on every row, so reading
+    /// only the source said "record playing through" about a record
+    /// that had just been taken apart.
+    ///
+    /// It was not reachable before this branch, either — a reorder
+    /// used to flatten `source_type` to `'manual'`, so the right
+    /// answer came out by accident. Preserving the column is what
+    /// exposed it.
+    #[test]
+    fn the_listening_context_reads_all_three_shuffle_states() {
+        use super::super::replay_gain::Listening;
+        use crate::queue::ShuffleMode;
+
+        let shared = SharedPlayback::new();
+        let set = |mode: ShuffleMode| {
+            shared
+                .shuffle_mode_bits
+                .store(mode.as_bits(), Ordering::Relaxed);
+        };
+
+        // Off: the queue plays as built, so its own source decides.
+        set(ShuffleMode::Off);
+        assert_eq!(shared.listening_to("album"), Listening::ToAnAlbum);
+        assert_eq!(shared.listening_to("playlist"), Listening::ToATrack);
+        assert_eq!(shared.listening_to("library"), Listening::ToATrack);
+
+        // Albums: a record is playing through whatever the queue was
+        // built from.
+        set(ShuffleMode::Albums);
+        assert_eq!(shared.listening_to("album"), Listening::ToAnAlbum);
+        assert_eq!(shared.listening_to("playlist"), Listening::ToAnAlbum);
+
+        // Tracks: the record has been taken apart. This is the one
+        // that used to be wrong.
+        set(ShuffleMode::Tracks);
+        assert_eq!(
+            shared.listening_to("album"),
+            Listening::ToATrack,
+            "a shuffled album is not a record playing through"
+        );
+        assert_eq!(shared.listening_to("playlist"), Listening::ToATrack);
+    }
+
+    /// A fresh engine has shuffle off, so nothing claims to be an
+    /// album before a profile is loaded.
+    #[test]
+    fn a_new_shared_state_starts_with_shuffle_off() {
+        use crate::queue::ShuffleMode;
+        let shared = SharedPlayback::new();
+        assert_eq!(
+            ShuffleMode::from_bits(shared.shuffle_mode_bits.load(Ordering::Relaxed)),
+            ShuffleMode::Off
+        );
+    }
 
     #[test]
     fn position_zero_when_idle() {

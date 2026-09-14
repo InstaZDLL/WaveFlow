@@ -54,6 +54,28 @@ Artists with **no** analysed BPM fall back to slot 2. Same for ties — a missin
 
 For each bucket: take the top 12 artists, fetch up to 200 of their tracks ordered by `play_count DESC, t.id ASC`, deterministic-shuffle (xorshift seeded with `SHUFFLE_SEED ^ slot`), truncate to 50.
 
+**Album mode** (#618, `profile_setting['playback.generator_album_mode']`,
+default off) replaces that with whole records: albums by the bucket's
+artists, shuffled as units and played in disc / track order. One
+setting covers the Daily Mix and Mood Radio both, because it is one
+preference — someone who listens to albums wants albums from anything
+that builds them a session.
+
+A record belongs to a bucket when **most of what we have measured of
+it** sits inside that bucket's tempo window (60 %, over at least three
+analysed tracks). A fraction rather than a median: a median says
+nothing about spread, so a record that is half ambient and half thrash
+lands in the middle and would be offered for a mood neither of its
+halves belongs to. Asking that most of it actually fits rejects that
+record from every bucket, which is the right answer.
+
+The 50-track cap is then spent in whole albums
+([`album_playback::fit_albums_to_budget`](../../src-tauri/crates/core/src/album_playback.rs)) —
+truncating the track list would end the mix halfway through a record,
+which is the single thing album mode exists to prevent. An album longer
+than the whole budget is still taken, because an empty mix is worse
+than a long one, and that exception is spent once.
+
 Determinism matters: the same input set always produces the same listening order, so the user doesn't see a "different mix" mid-session if the playlist re-renders. A second regen against the same listening data rewrites the rows in place.
 
 ### 4. Cover composition

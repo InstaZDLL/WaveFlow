@@ -118,7 +118,7 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
         .as_ref()
         .and_then(|p| p.audio())
         .ok_or_else(|| "track has no audio codec params".to_string())?;
-    let mut decoder = symphonia::default::get_codecs()
+    let mut decoder = crate::audio_format::opus::codecs()
         .make_audio_decoder(audio_params, &AudioDecoderOptions::default())
         .map_err(|e| format!("codec init: {e}"))?;
 

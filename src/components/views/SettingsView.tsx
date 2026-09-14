@@ -73,11 +73,14 @@ import {
   playerSetGapless,
   playerSetReplayGain,
   playerSetReplayGainOptions,
+  playerSetReplayGainMode,
+  REPLAYGAIN_MODES,
   REPLAYGAIN_ADJUST_LIMIT_DB,
   playerSetDsdPrecision,
   playerSetDsdDop,
   DSD_PRECISION_TAPS,
   type DsdPrecisionTaps,
+  type ReplayGainMode,
 } from "../../lib/tauri/player";
 import {
   getDiscordRpcEnabled,
@@ -136,6 +139,7 @@ import {
 import { listen } from "@tauri-apps/api/event";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
+import { useGeneratorAlbumMode } from "../../hooks/useGeneratorAlbumMode";
 import { invoke } from "@tauri-apps/api/core";
 import {
   regenerateThumbnails,
@@ -1248,6 +1252,13 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [replayGain, setReplayGain] = useState(false);
   const [replayGainPreamp, setReplayGainPreamp] = useState(0);
   const [replayGainFallback, setReplayGainFallback] = useState(0);
+  const {
+    enabled: generatorAlbumMode,
+    resolved: generatorAlbumModeResolved,
+    setEnabled: setGeneratorAlbumMode,
+  } = useGeneratorAlbumMode();
+  const [replayGainMode, setReplayGainMode] =
+    useState<ReplayGainMode>("auto");
   const [replayGainPreventClipping, setReplayGainPreventClipping] =
     useState(true);
   const replayGainOptionsDebounce = useRef<number | null>(null);
@@ -1702,6 +1713,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         setReplayGainPreamp(s.replaygain_preamp_db);
         setReplayGainFallback(s.replaygain_fallback_db);
         setReplayGainPreventClipping(s.replaygain_prevent_clipping);
+        if (!audioSettingsTouched.current.has("replayGainMode")) {
+          setReplayGainMode(s.replaygain_mode);
+        }
         setGapless(s.gapless);
         // Guard against a stale / out-of-set value from the backend.
         setDsdTaps(
@@ -1784,6 +1798,40 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     [pushReplayGainOptions, replayGainPreamp, replayGainPreventClipping],
   );
 
+  // Which profile is live, readable from inside a callback that was
+  // scheduled under a different one. Declared here rather than beside
+  // its first user further down: every handler below captures the id
+  // at click time and compares against this, and `react-hooks`
+  // reasons about the whole component — a ref first referenced above
+  // its own declaration makes the rule treat it as frozen.
+  const activeProfileIdRef = useRef(activeProfile?.id);
+  useEffect(() => {
+    activeProfileIdRef.current = activeProfile?.id;
+  }, [activeProfile?.id]);
+
+  const handleReplayGainModeChange = useCallback(
+    (next: ReplayGainMode) => {
+      const previous = replayGainMode;
+      // Captured at click time: a profile switch while the write is in
+      // flight must not let this land on, or roll back into, someone
+      // else's settings. Same guard as the toggles below.
+      const profileId = activeProfile?.id;
+      // Before the write, so a hydration response still in flight
+      // cannot land on top of a choice the user has already made.
+      audioSettingsTouched.current.add("replayGainMode");
+      setReplayGainMode(next);
+      playerSetReplayGainMode(next).catch((err) => {
+        console.error("[Settings] set replaygain mode failed", err);
+        if (activeProfileIdRef.current !== profileId) return;
+        // Only roll back if no newer selection superseded this one —
+        // a stale failure must not clobber a later successful click.
+        // Same rule as `handleSetDsdPrecision`.
+        setReplayGainMode((cur) => (cur === next ? previous : cur));
+      });
+    },
+    [replayGainMode, activeProfile?.id],
+  );
+
   const handleToggleReplayGainPreventClipping = useCallback(() => {
     const next = !replayGainPreventClipping;
     setReplayGainPreventClipping(next);
@@ -1820,10 +1868,6 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // and a queued write landing after the switch would put profile A's
   // value into profile B — as would its rollback.
   const dsdDopWrite = useRef<Promise<void>>(Promise.resolve());
-  const activeProfileIdRef = useRef(activeProfile?.id);
-  useEffect(() => {
-    activeProfileIdRef.current = activeProfile?.id;
-  }, [activeProfile?.id]);
   const handleToggleDsdDop = useCallback(() => {
     const prev = dsdDop;
     const next = !prev;
@@ -2618,6 +2662,37 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                   </div>
                 </div>
 
+                {/* Track gain vs album gain (#587) */}
+                <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="min-w-0">
+                    <label
+                      htmlFor="replaygain-mode-select"
+                      className="text-sm font-medium text-zinc-900 dark:text-white"
+                    >
+                      {t("settings.replayGain.mode.title")}
+                    </label>
+                    <div className="text-xs text-zinc-400">
+                      {t(`settings.replayGain.mode.${replayGainMode}Hint`)}
+                    </div>
+                  </div>
+                  <select
+                    id="replaygain-mode-select"
+                    value={replayGainMode}
+                    onChange={(e) =>
+                      handleReplayGainModeChange(
+                        e.target.value as ReplayGainMode,
+                      )
+                    }
+                    className="shrink-0 px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  >
+                    {REPLAYGAIN_MODES.map((mode) => (
+                      <option key={mode} value={mode}>
+                        {t(`settings.replayGain.mode.${mode}`)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Clipping prevention */}
                 <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
                   <div>
@@ -2636,6 +2711,31 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 </div>
               </div>
             )}
+
+            {/* Whole-album sessions for the generators (#618) */}
+            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <div className="flex items-center space-x-4 flex-1 min-w-0">
+                <Disc3
+                  size={20}
+                  className="text-zinc-400 shrink-0"
+                  aria-hidden="true"
+                />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                    {t("settings.generatorAlbumMode.title")}
+                  </div>
+                  <div className="text-xs text-zinc-400">
+                    {t("settings.generatorAlbumMode.subtitle")}
+                  </div>
+                </div>
+              </div>
+              <ToggleSwitch
+                enabled={generatorAlbumMode}
+                onToggle={() => void setGeneratorAlbumMode(!generatorAlbumMode)}
+                disabled={!generatorAlbumModeResolved}
+                label={t("settings.generatorAlbumMode.title")}
+              />
+            </div>
 
             {/* Equalizer */}
             <div className="px-4">

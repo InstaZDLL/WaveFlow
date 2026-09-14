@@ -739,8 +739,9 @@
       "pause": "Pause",
       "previous": "Vorheriger",
       "next": "Nächster",
-      "shuffleOn": "Zufallswiedergabe deaktivieren",
-      "shuffleOff": "Zufallswiedergabe aktivieren",
+      "shuffleOff": "Zufallswiedergabe aus",
+      "shuffleTracks": "Titel zufällig",
+      "shuffleAlbums": "Alben zufällig",
       "repeatOff": "Wiederholung aus",
       "repeatAll": "Alle wiederholen",
       "repeatOne": "Einen Titel wiederholen"
@@ -1583,7 +1584,20 @@
         "title": "Übersteuerung vermeiden",
         "subtitle": "Den Gain auf den Spielraum begrenzen, den der Spitzenpegel des Titels lässt"
       },
+      "mode": {
+        "title": "Anzuwendende Verstärkung",
+        "auto": "Automatisch",
+        "track": "Pro Titel",
+        "album": "Pro Album",
+        "autoHint": "Album-Verstärkung, solange ein Album durchläuft, sonst die des Titels",
+        "trackHint": "Gleicht jeden Titel gegenüber allen anderen an",
+        "albumHint": "Eine Verstärkung pro Album, die dessen interne Lautstärkeverhältnisse erhält"
+      },
       "decibels": "{{value}} dB"
+    },
+    "generatorAlbumMode": {
+      "title": "Sessions aus ganzen Alben",
+      "subtitle": "Stimmungsradio und Daily Mix wählen Alben und spielen sie der Reihe nach, statt einzelner Titel"
     },
     "exclusive": {
       "title": "Exklusive Ausgabe",

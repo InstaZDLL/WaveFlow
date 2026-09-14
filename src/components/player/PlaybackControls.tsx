@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import {
   Shuffle,
+  Disc3,
   SkipBack,
   Play,
   Pause,
@@ -19,7 +20,8 @@ export function PlaybackControls() {
     playbackState,
     togglePlayback,
     isShuffled,
-    toggleShuffle,
+    shuffleMode,
+    cycleShuffleMode,
     repeatMode,
     cycleRepeatMode,
     next,
@@ -43,6 +45,15 @@ export function PlaybackControls() {
   // remote queue in the backend), so it is NOT gated like radio — only
   // Shuffle stays off, since the remote queue has no shuffle yet.
   const isRemote = isRemoteTrack(currentTrack);
+  // State labels, like the repeat control next to it — with three
+  // positions, "enable / disable" no longer says which one you are in.
+  const shuffleLabel = t(
+    shuffleMode === "albums"
+      ? "player.controls.shuffleAlbums"
+      : shuffleMode === "tracks"
+        ? "player.controls.shuffleTracks"
+        : "player.controls.shuffleOff",
+  );
   const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
   const isRepeatActive = repeatMode !== "off";
 
@@ -50,21 +61,28 @@ export function PlaybackControls() {
     <div className="flex items-center space-x-5 mb-1.5">
       <button
         type="button"
-        onClick={toggleShuffle}
+        onClick={cycleShuffleMode}
         disabled={isSpotify || isRadio || isRemote}
         aria-pressed={isShuffled}
-        aria-label={
-          isShuffled
-            ? t("player.controls.shuffleOn")
-            : t("player.controls.shuffleOff")
-        }
-        className={`transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+        aria-label={shuffleLabel}
+        title={shuffleLabel}
+        className={`relative transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
           isShuffled
             ? "text-emerald-500 hover:text-emerald-400"
             : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
         }`}
       >
         <Shuffle size={20} />
+        {/* Album grouping is still shuffle, so it keeps the shuffle
+            icon and earns a mark rather than a different one — the
+            same way Repeat One stays a repeat. */}
+        {shuffleMode === "albums" && (
+          <Disc3
+            size={11}
+            className="absolute -top-1 -right-1.5"
+            aria-hidden="true"
+          />
+        )}
       </button>
       <button
         type="button"

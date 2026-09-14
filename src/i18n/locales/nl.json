@@ -739,8 +739,9 @@
       "pause": "Pauzeren",
       "previous": "Vorige",
       "next": "Volgende",
-      "shuffleOn": "Willekeurig uitschakelen",
-      "shuffleOff": "Willekeurig inschakelen",
+      "shuffleOff": "Willekeurig afspelen uit",
+      "shuffleTracks": "Nummers willekeurig",
+      "shuffleAlbums": "Albums willekeurig",
       "repeatOff": "Herhalen uit",
       "repeatAll": "Alles herhalen",
       "repeatOne": "Eén nummer herhalen"
@@ -1583,7 +1584,20 @@
         "title": "Vervorming voorkomen",
         "subtitle": "De versterking beperken tot de ruimte die de piek van het nummer overlaat"
       },
+      "mode": {
+        "title": "Toe te passen versterking",
+        "auto": "Automatisch",
+        "track": "Per nummer",
+        "album": "Per album",
+        "autoHint": "Albumversterking zolang een plaat wordt doorgespeeld, anders die van het nummer",
+        "trackHint": "Stemt elk nummer af op alle andere",
+        "albumHint": "Eén versterking per plaat, die de onderlinge niveauverschillen behoudt"
+      },
       "decibels": "{{value}} dB"
+    },
+    "generatorAlbumMode": {
+      "title": "Sessies uit hele albums",
+      "subtitle": "Stemmingsradio en Daily Mix kiezen albums en spelen ze op volgorde af, in plaats van losse nummers"
     },
     "exclusive": {
       "title": "Exclusieve uitvoer",

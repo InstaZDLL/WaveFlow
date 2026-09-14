@@ -141,7 +141,32 @@ jobs:
             libfuse2 \
             squashfs-tools \
             zsync \
-            libasound2-dev
+            libasound2-dev \
+            cmake
+
+      # libopus is built from source by `opusic-sys`, so cmake has to
+      # exist before `tauri build`. The Linux job installs it with the
+      # other dependencies above; here it comes from the runner image,
+      # which is worth not taking on trust — a plain macOS install has
+      # neither cmake nor Homebrew, so "it is a Mac" guarantees
+      # nothing. Costs one version check when it is already present.
+      - name: Ensure cmake is available
+        shell: bash
+        run: |
+          if ! cmake --version >/dev/null 2>&1; then
+            echo "cmake missing on ${{ matrix.platform }}, installing"
+            if [ "${{ matrix.platform }}" = "macos" ]; then
+              brew install cmake
+            else
+              choco install cmake --no-progress -y
+              # GITHUB_PATH only reaches *later* steps, so the check at
+              # the end of this one would still not find it — export to
+              # this shell as well.
+              echo "C:/Program Files/CMake/bin" >> "$GITHUB_PATH"
+              export PATH="/c/Program Files/CMake/bin:$PATH"
+            fi
+          fi
+          cmake --version
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # stable
