@@ -2944,15 +2944,6 @@ mod tests {
         );
     }
 
-    /// Reported on discussion #519: a `.m4a` pulled with `yt-dlp`
-    /// carries the auto-generated YouTube credit in `description`,
-    /// which is several lines long and was therefore read as lyrics —
-    /// ahead of the `.lrc` the user had placed next to the file.
-    ///
-    /// Two things had to be wrong at once: a description field counted
-    /// as a lyrics source, and it was consulted before the sidecar.
-    /// The blurb is now refused outright, and the tier that remains
-    /// sits behind the sidecar.
     /// The cached half of the same bug. The waterfall never refetches
     /// once a row exists, so correcting the reader alone would have
     /// left every already-affected track showing the credit forever —
@@ -2972,6 +2963,15 @@ mod tests {
         assert!(!is_service_blurb("Real lyrics\nsecond line"));
     }
 
+    /// Reported on discussion #519: a `.m4a` pulled with `yt-dlp`
+    /// carries the auto-generated YouTube credit in `description`,
+    /// which is several lines long and was therefore read as lyrics —
+    /// ahead of the `.lrc` the user had placed next to the file.
+    ///
+    /// Two things had to be wrong at once: a description field counted
+    /// as a lyrics source, and it was consulted before the sidecar.
+    /// The blurb is now refused outright, and the tier that remains
+    /// sits behind the sidecar.
     #[test]
     fn a_youtube_credit_is_not_lyrics() {
         let blurb = "Provided to YouTube by RCA Records Label\n\n\

@@ -128,7 +128,18 @@ pub async fn start_mood_radio(
     let f = mood.filter();
 
     if waveflow_core::album_playback::album_mode_enabled(&pool).await {
-        return mood_radio_by_album(&pool, &f).await;
+        // Album mode is a preference, not a contract: a library whose
+        // records are mostly unanalysed can satisfy the mood track by
+        // track while no whole record qualifies. Falling through then
+        // plays music instead of returning an error — and if there is
+        // genuinely nothing, the track path says so in the words that
+        // actually apply ("no tracks match this mood") rather than
+        // blaming the albums.
+        let by_album = mood_radio_by_album(&pool, &f).await?;
+        if !by_album.is_empty() {
+            return Ok(by_album);
+        }
+        tracing::info!("no record fits this mood; falling back to individual tracks");
     }
 
     // Pull the candidate pool. `bpm IS NOT NULL` is mandatory — we
@@ -234,9 +245,9 @@ async fn mood_radio_by_album(pool: &SqlitePool, f: &MoodFilter) -> AppResult<Vec
     .await?;
 
     if rows.is_empty() {
-        return Err(AppError::Other(
-            "no album matches this mood — run BPM analysis on your library first".into(),
-        ));
+        // Empty rather than an error: the caller decides what an empty
+        // album selection means, and it means "try tracks".
+        return Ok(vec![]);
     }
 
     let mut per_artist: std::collections::HashMap<i64, usize> = std::collections::HashMap::new();

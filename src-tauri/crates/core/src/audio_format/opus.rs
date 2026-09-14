@@ -221,6 +221,13 @@ pub struct OpusDecoder {
     /// the Vorbis parser next to it, which is why the Vorbis decoder
     /// can simply honour `packet.trim_start`. Left to itself the
     /// stream plays 312 frames of priming at the head of every track.
+    ///
+    /// One consequence worth knowing: resuming a track at a saved
+    /// position seeks without resetting the decoder (the PCM path
+    /// does, unlike the DoP one), so this counter is still owed and
+    /// the first 312 frames after the resume are trimmed instead. That
+    /// is 6.5 ms, in the direction RFC 7845 §4.2 asks for at a seek
+    /// anyway — not worth changing a seek path every codec shares.
     pending_discard: u32,
     /// libopus writes interleaved; symphonia wants planes. One scratch
     /// buffer, allocated once.
