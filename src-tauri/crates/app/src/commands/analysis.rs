@@ -363,10 +363,6 @@ pub async fn run_analyze_library(
                 failed,
             },
         );
-        if let Some(task) = task.as_ref() {
-            task.progress(processed as u64, total as u64);
-        }
-
         let path_buf = PathBuf::from(file_path);
         let join = tokio::task::spawn_blocking(move || analyze_file(&path_buf)).await;
         match join {
@@ -390,6 +386,13 @@ pub async fn run_analyze_library(
             }
         }
         processed += 1;
+        // After the increment, so the last track moves the bar to full
+        // rather than leaving it one short for the instant before the
+        // row retires. `TaskHandle::progress` does not throttle the
+        // tick that completes a task, which is what makes that visible.
+        if let Some(task) = task.as_ref() {
+            task.progress(processed as u64, total as u64);
+        }
 
         // Cooperative scheduling pair: yield to give other tokio
         // tasks (UI events, drain ticks, playback commands) a turn

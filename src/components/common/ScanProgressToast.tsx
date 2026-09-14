@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
-import { FolderSearch, X, CheckCircle2, AlertTriangle } from "lucide-react";
+import { X, CheckCircle2, AlertTriangle } from "lucide-react";
 
 interface ScanProgress {
   folder_id: number;
@@ -78,28 +78,15 @@ export function ScanProgressToast() {
   // the place that depends on it.
   if (progress == null || dismissed || !progress.done) return null;
 
-  const {
-    current,
-    total,
-    added,
-    updated,
-    skipped,
-    errors,
-    done,
-    cancelled,
-    current_dir,
-  } = progress;
+  const { current, total, added, updated, skipped, errors, cancelled } =
+    progress;
+  // How far the walk got. Only meaningful for a scan that stopped:
+  // a completed one is at 100% by definition, and says so in words.
   const percent =
     total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
-  // A finished scan that hit per-file failures. The backend reports it
-  // as done regardless, so this is the only signal the user gets.
-  const partial = done && errors > 0;
-  // Show the last two path segments (…/Parent/Album) so the user sees the
-  // scan walking through folders without the toast overflowing on a deep
-  // absolute path; the full path rides in the title tooltip. (#430)
-  const dirLabel = current_dir
-    ? current_dir.split(/[\\/]/).filter(Boolean).slice(-2).join("/")
-    : null;
+  // Per-file failures. The scan reports itself as finished either
+  // way, so this card is the only signal the user gets.
+  const partial = errors > 0;
 
   return (
     <div
@@ -112,18 +99,10 @@ export function ScanProgressToast() {
           className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${
             partial
               ? "bg-amber-500/15 text-amber-500"
-              : done
-                ? "bg-emerald-500/15 text-emerald-500"
-                : "bg-emerald-500/10 text-emerald-500"
+              : "bg-emerald-500/15 text-emerald-500"
           }`}
         >
-          {partial ? (
-            <AlertTriangle size={18} />
-          ) : done ? (
-            <CheckCircle2 size={18} />
-          ) : (
-            <FolderSearch size={18} className="animate-pulse" />
-          )}
+          {partial ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
         </div>
         <div className="flex-1 min-w-0">
           {/* A scan that hit errors must not read as a plain success:
@@ -138,43 +117,36 @@ export function ScanProgressToast() {
                 : "text-zinc-900 dark:text-zinc-100"
             }`}
           >
+            {/* "Scan complete" for a walk the user stopped halfway
+                would tell them their library had been gone through when
+                it had not -- and this card is the only outcome they
+                get, since the status-bar row leaves with the task. */}
             {partial
               ? t("scanProgress.doneErrors", { count: errors })
               : cancelled
-                ? // "Scan complete" over a full bar, for a walk that
-                  // stopped halfway, would be the card telling the user
-                  // their library was gone through when it was not --
-                  // and this toast is the only outcome they get. The
-                  // counts underneath stay: what was written before the
-                  // stop is committed and correct.
-                  t("scanProgress.cancelledTitle")
-                : done
-                  ? t("scanProgress.doneTitle")
-                  : t("scanProgress.runningTitle")}
+                ? t("scanProgress.cancelledTitle")
+                : t("scanProgress.doneTitle")}
           </div>
           <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            {done
-              ? t("scanProgress.doneSubtitle", { added, updated, skipped })
-              : t("scanProgress.runningSubtitle", {
-                  current,
-                  total,
-                })}
+            {/* What the run managed to write, which is committed and
+                correct whether or not it reached the end. */}
+            {t("scanProgress.doneSubtitle", { added, updated, skipped })}
           </div>
-          {!done && (
-            <div className="mt-2 h-1.5 w-full rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
-              <div
-                className="h-full bg-emerald-500 transition-[width] duration-200"
-                style={{ width: `${percent}%` }}
-              />
-            </div>
-          )}
-          {!done && dirLabel && (
-            <div
-              className="mt-1.5 text-[11px] text-zinc-400 dark:text-zinc-500 truncate"
-              title={current_dir ?? undefined}
-            >
-              {t("scanProgress.scanningIn", { dir: dirLabel })}
-            </div>
+          {cancelled && (
+            <>
+              {/* The one place the distance covered is worth a bar: a
+                  finished scan is full by definition, so this renders
+                  only for a stopped one. */}
+              <div className="mt-2 h-1.5 w-full rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
+                <div
+                  className="h-full bg-emerald-500"
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+              <div className="mt-1.5 text-[11px] text-zinc-400 dark:text-zinc-500">
+                {t("scanProgress.runningSubtitle", { current, total })}
+              </div>
+            </>
           )}
         </div>
         <button

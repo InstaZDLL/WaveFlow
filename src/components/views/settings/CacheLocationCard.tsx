@@ -34,6 +34,8 @@ export function CacheLocationCard({ language }: { language: string }) {
   const { t } = useTranslation();
   const [location, setLocation] = useState<CacheLocation | null>(null);
   const [busy, setBusy] = useState(false);
+  /** The native folder dialog is up. See `onChoose`. */
+  const [picking, setPicking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // The initial read, inside an async IIFE rather than behind a
@@ -75,6 +77,13 @@ export function CacheLocationCard({ language }: { language: string }) {
   }, []);
 
   const onChoose = useCallback(async () => {
+    // Separate from `busy`, which means "a copy is running" and drives
+    // the message under the buttons. This one only has to keep a second
+    // native dialog from opening behind the first: the button stays
+    // clickable for as long as the picker is up, and two moves staged
+    // from one card is the exact race the backend mutex had to be added
+    // for.
+    setPicking(true);
     try {
       const picked = await pickFolder(t("settings.cacheLocation.pickTitle"));
       if (picked) await move(picked);
@@ -83,6 +92,8 @@ export function CacheLocationCard({ language }: { language: string }) {
       // Linux session, a denied permission on macOS. Silently doing
       // nothing reads as a dead button.
       setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPicking(false);
     }
   }, [move, t]);
 
@@ -153,7 +164,7 @@ export function CacheLocationCard({ language }: { language: string }) {
           <button
             type="button"
             onClick={() => void onChoose()}
-            disabled={busy}
+            disabled={busy || picking}
             className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           >
             <FolderOpen size={14} aria-hidden="true" />
@@ -163,7 +174,7 @@ export function CacheLocationCard({ language }: { language: string }) {
             <button
               type="button"
               onClick={() => void move(null)}
-              disabled={busy}
+              disabled={busy || picking}
               className="flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-zinc-500 hover:text-zinc-800 disabled:opacity-50 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
             >
               <RotateCcw size={14} aria-hidden="true" />

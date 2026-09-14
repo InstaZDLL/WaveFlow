@@ -120,8 +120,12 @@ export function ColumnPicker({
   // the end of the document, so Tab would walk the whole page first.
   useEffect(() => {
     if (!open) return;
+    // The first *checkbox*, not simply the first focusable thing: the
+    // panel opens with its "reset widths" button, so a plain focusable
+    // query lands the keyboard on the one control here that discards
+    // work, before the list it was opened for.
     const first = dialogRef.current?.querySelector<HTMLElement>(
-      "input, button, [tabindex]:not([tabindex='-1'])",
+      'input[type="checkbox"]',
     );
     (first ?? dialogRef.current)?.focus();
   }, [open]);
@@ -203,8 +207,15 @@ export function ColumnPicker({
                   <li
                     key={id}
                     draggable
-                    onDragStart={() => {
+                    onDragStart={(event) => {
                       dragFrom.current = index;
+                      // WebKit refuses to start a drag that carries no
+                      // data, so on macOS the rows simply would not
+                      // move. The payload is never read -- the source
+                      // index below is what reorders -- but it has to
+                      // be there.
+                      event.dataTransfer.effectAllowed = "move";
+                      event.dataTransfer.setData("text/plain", id);
                     }}
                     // Fires on every end, including a cancel and a drop
                     // outside the list. Without it the index survives,
@@ -214,7 +225,10 @@ export function ColumnPicker({
                       dragFrom.current = null;
                     }}
                     onDragOver={(event) => event.preventDefault()}
-                    onDrop={() => {
+                    onDrop={(event) => {
+                      // Without it the browser follows the payload set
+                      // in `onDragStart` and tries to navigate to it.
+                      event.preventDefault();
                       if (dragFrom.current !== null) {
                         move(dragFrom.current, index);
                       }

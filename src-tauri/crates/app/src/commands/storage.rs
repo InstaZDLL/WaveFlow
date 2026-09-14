@@ -575,6 +575,13 @@ pub async fn get_cache_location(state: tauri::State<'_, AppState>) -> AppResult<
     let diverged = configured
         .as_ref()
         .is_some_and(|chosen| chosen != &paths.cache_root);
+    // Where the *next* session will read from, which is not the same
+    // question as whether a choice is stored: going back to the default
+    // clears the row rather than changing it, so `configured` is then
+    // `None` and `diverged` is false while the running process is still
+    // reading the old root. Testing divergence alone would drop the
+    // restart notice for exactly the move most likely to be made twice.
+    let next_root = configured.clone().unwrap_or_else(|| paths.root.clone());
 
     Ok(CacheLocation {
         active_root: paths.cache_root.to_string_lossy().to_string(),
@@ -590,12 +597,13 @@ pub async fn get_cache_location(state: tauri::State<'_, AppState>) -> AppResult<
         fallback_reason: (diverged && fell_back)
             .then(|| state.cache_root_fallback.clone())
             .flatten(),
-        // `diverged` as well as the marker, and that is what lets
+        // Compared against where the next session will read from, not
+        // against the marker alone -- that is what lets
         // `cleanup_moved_caches` keep the marker across a failed
-        // removal: once the process has adopted the configured root,
-        // the active and configured roots agree and no restart is
-        // outstanding, whatever is still sitting in the old tree.
-        restart_required: move_pending && diverged && !fell_back,
+        // removal: once the process has adopted the new root, the two
+        // agree and no restart is outstanding, whatever is still
+        // sitting in the old tree.
+        restart_required: move_pending && !fell_back && next_root != paths.cache_root,
         size_bytes,
     })
 }

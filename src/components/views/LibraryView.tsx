@@ -2298,11 +2298,19 @@ function TrackTable({
       const spec = specFor(id);
       const tag = tagKeyOf(id);
       const label = tag !== null ? tag : t(`library.columns.${spec.labelKey}`);
-      const cell = bodyRef.current?.querySelector("[data-track-cell]") ?? null;
+      // This column's own cell, not simply the first one on screen.
+      // The first is the title of the first row, which is a different
+      // weight when that row is the one playing and a different variant
+      // from any right-aligned column's `tabular-nums` -- so the
+      // measurement would be taken in a font the column never uses.
+      const cell =
+        bodyRef.current?.querySelector(
+          `[data-track-cell="${CSS.escape(id)}"]`,
+        ) ?? null;
       const header =
         bodyRef.current
           ?.closest("[data-track-table]")
-          ?.querySelector("[role='columnheader']") ?? null;
+          ?.querySelector(`[data-track-header="${CSS.escape(id)}"]`) ?? null;
       // A bounded sample, not the whole list. Each value is a canvas
       // measurement and this runs synchronously on a double-click, so
       // a fifty-thousand-track library would freeze the window for the
@@ -2521,7 +2529,7 @@ function TrackTable({
                   return (
                     <span
                       key={id}
-                      data-track-cell
+                      data-track-cell={id}
                       className={`text-sm truncate flex items-center gap-2 ${
                         isCurrent
                           ? "text-emerald-600 dark:text-emerald-400 font-semibold"
@@ -2633,7 +2641,7 @@ function TrackTable({
                 return (
                   <span
                     key={id}
-                    data-track-cell
+                    data-track-cell={id}
                     title={text || undefined}
                     className={`text-sm truncate text-zinc-400 ${align} ${
                       spec.align === "right" ? "tabular-nums" : ""

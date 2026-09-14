@@ -284,13 +284,23 @@ export function specFor(id: ColumnId): ColumnSpec {
 }
 
 /**
- * Drop ids we no longer know about, and guarantee the title survives.
+ * Drop built-in ids we no longer know about, and guarantee the title
+ * survives.
  *
- * Both halves matter for a stored preference. An id can disappear
- * between versions — a tag the user deleted from their files, a column
- * we removed — and rendering an unknown id paints an empty band nothing
- * explains. And a layout with no title is a table of metadata about
- * songs it does not name, which is reachable by unticking one box.
+ * Both halves matter for a stored preference. A built-in id can
+ * disappear between versions, and rendering one paints an empty band
+ * nothing explains. And a layout with no title is a table of metadata
+ * about songs it does not name, which is reachable by unticking one
+ * box.
+ *
+ * A `tag:` id is deliberately **kept** even when no track carries that
+ * key any more, and that is not the same case. The key came from the
+ * user's own files: a column that empties out is telling them the tag
+ * is gone from their library, which is worth knowing and is a thing
+ * they can put back. Dropping it would hide that, and dropping it
+ * *persistently* — the layout is written back — would destroy the
+ * column set on any read that came back empty for an unrelated reason.
+ * Removing one is a click in the picker.
  */
 export function sanitizeLayout(layout: ColumnLayout | null): ColumnLayout {
   if (!layout || !Array.isArray(layout.order)) return DEFAULT_LAYOUT;

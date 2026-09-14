@@ -199,8 +199,15 @@ export function TrackTableHeader({
   );
 
   return (
+    // No `role="row"`, and no `columnheader` below it. ARIA's grid
+    // roles only mean anything inside a `table` / `grid` ancestor, and
+    // this is not one: the body rows are `role="button"`, because a
+    // row here is a thing you activate rather than a cell you navigate.
+    // An orphaned `row` makes the whole structure invalid, and the
+    // `aria-sort` it carried was silently ignored -- leaving the sort
+    // direction announced by nothing at all, since the arrow is
+    // `aria-hidden`. It rides in the button's accessible name instead.
     <div
-      role="row"
       className="sticky top-16 z-20 grid gap-4 px-5 py-3 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-100 dark:border-zinc-800 bg-white dark:bg-surface-dark"
       style={{ gridTemplateColumns: gridCols }}
     >
@@ -230,20 +237,31 @@ export function TrackTableHeader({
         return (
           <div
             key={id}
-            role="columnheader"
-            aria-sort={
-              active
-                ? sort.direction === "asc"
-                  ? "ascending"
-                  : "descending"
-                : undefined
-            }
+            // Not decoration: `fitColumn` reads this cell's computed
+            // style to measure the header label in the font it is
+            // actually drawn in. It used to find it by `role`, which
+            // was the wrong thing to hang a measurement on and is gone
+            // now anyway.
+            data-track-header={id}
             className={`relative flex items-center ${justify} min-w-0`}
           >
             {spec.sortKey ? (
               <button
                 type="button"
                 onClick={() => onSort(spec.sortKey as string)}
+                // The label alone for an unsorted column; the label and
+                // the direction for the active one. Only set when it
+                // says more than the text already does, so an ordinary
+                // column keeps its own content as its name.
+                aria-label={
+                  active
+                    ? `${label} — ${t(
+                        sort.direction === "asc"
+                          ? "sort.ascending"
+                          : "sort.descending",
+                      )}`
+                    : undefined
+                }
                 className={`flex items-center gap-1 min-w-0 rounded hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                   active ? "text-zinc-700 dark:text-zinc-200" : ""
                 }`}
@@ -279,6 +297,15 @@ export function TrackTableHeader({
               onPointerMove={onPointerMove}
               onPointerUp={endDrag}
               onPointerCancel={endDrag}
+              // Capture can be lost without either of the two above:
+              // the browser takes it back for a system gesture, or the
+              // handle re-renders under the pointer. `drag.current`
+              // would survive, and the next pointermove -- with no
+              // pointerdown before it -- would resize from a start
+              // position taken minutes ago. `endDrag` returns early
+              // when there is no drag, so the ordinary release path
+              // reaching this second is a no-op.
+              onLostPointerCapture={endDrag}
               onDoubleClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
