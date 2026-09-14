@@ -1147,6 +1147,16 @@ async fn read_cached(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option
     // A cached row that is a distribution service's credit rather than
     // lyrics is dropped and re-resolved, rather than served forever.
     //
+    // The predicate keys on `source = 'embedded'`, which is also what
+    // the description tier stores under — `lyrics.source` is
+    // CHECK-constrained to four values, and giving the description its
+    // own would mean rebuilding a shared cache table for a
+    // classification nicety. The practical consequence is one absurd
+    // edge: a genuine `USLT` tag whose opening really is a YouTube
+    // credit gets dropped and re-read from the file on every panel
+    // open. The listener sees the same text either way; it costs one
+    // file read.
+    //
     // Only here, and deliberately: `run_prefetch` picks its work with
     // `WHERE l.file_hash IS NULL`, so it still skips a track holding
     // one of these rows. Teaching it otherwise would mean spelling the

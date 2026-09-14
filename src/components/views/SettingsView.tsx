@@ -1798,22 +1798,38 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     [pushReplayGainOptions, replayGainPreamp, replayGainPreventClipping],
   );
 
+  // Which profile is live, readable from inside a callback that was
+  // scheduled under a different one. Declared here rather than beside
+  // its first user further down: every handler below captures the id
+  // at click time and compares against this, and `react-hooks`
+  // reasons about the whole component — a ref first referenced above
+  // its own declaration makes the rule treat it as frozen.
+  const activeProfileIdRef = useRef(activeProfile?.id);
+  useEffect(() => {
+    activeProfileIdRef.current = activeProfile?.id;
+  }, [activeProfile?.id]);
+
   const handleReplayGainModeChange = useCallback(
     (next: ReplayGainMode) => {
       const previous = replayGainMode;
+      // Captured at click time: a profile switch while the write is in
+      // flight must not let this land on, or roll back into, someone
+      // else's settings. Same guard as the toggles below.
+      const profileId = activeProfile?.id;
       // Before the write, so a hydration response still in flight
       // cannot land on top of a choice the user has already made.
       audioSettingsTouched.current.add("replayGainMode");
       setReplayGainMode(next);
       playerSetReplayGainMode(next).catch((err) => {
         console.error("[Settings] set replaygain mode failed", err);
+        if (activeProfileIdRef.current !== profileId) return;
         // Only roll back if no newer selection superseded this one —
         // a stale failure must not clobber a later successful click.
         // Same rule as `handleSetDsdPrecision`.
         setReplayGainMode((cur) => (cur === next ? previous : cur));
       });
     },
-    [replayGainMode],
+    [replayGainMode, activeProfile?.id],
   );
 
   const handleToggleReplayGainPreventClipping = useCallback(() => {
@@ -1852,10 +1868,6 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // and a queued write landing after the switch would put profile A's
   // value into profile B — as would its rollback.
   const dsdDopWrite = useRef<Promise<void>>(Promise.resolve());
-  const activeProfileIdRef = useRef(activeProfile?.id);
-  useEffect(() => {
-    activeProfileIdRef.current = activeProfile?.id;
-  }, [activeProfile?.id]);
   const handleToggleDsdDop = useCallback(() => {
     const prev = dsdDop;
     const next = !prev;

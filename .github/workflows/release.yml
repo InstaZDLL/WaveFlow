@@ -159,7 +159,11 @@ jobs:
               brew install cmake
             else
               choco install cmake --no-progress -y
+              # GITHUB_PATH only reaches *later* steps, so the check at
+              # the end of this one would still not find it — export to
+              # this shell as well.
               echo "C:/Program Files/CMake/bin" >> "$GITHUB_PATH"
+              export PATH="/c/Program Files/CMake/bin:$PATH"
             fi
           fi
           cmake --version
