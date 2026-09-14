@@ -175,6 +175,13 @@ export function ColumnPicker({
                     onDragStart={() => {
                       dragFrom.current = index;
                     }}
+                    // Fires on every end, including a cancel and a drop
+                    // outside the list. Without it the index survives,
+                    // and the *next* drop -- possibly on a list that has
+                    // changed since -- moves whatever now sits there.
+                    onDragEnd={() => {
+                      dragFrom.current = null;
+                    }}
                     onDragOver={(event) => event.preventDefault()}
                     onDrop={() => {
                       if (dragFrom.current !== null) {

@@ -297,7 +297,11 @@ fn ape_into(tag: Option<&lofty::ape::ApeTag>, out: &mut Vec<(String, String)>) {
     generic_into(&generic, out);
     for item in &*remainder {
         if let lofty::tag::ItemValue::Text(value) = item.value() {
-            keep(out, item.key(), value);
+            // Upper-cased for the same reason as the Vorbis half:
+            // lofty compares APEv2 keys without regard to case, so
+            // `SOURCE` and `source` are one field and must not be
+            // offered as two columns.
+            keep(out, &item.key().to_ascii_uppercase(), value);
         }
     }
 }

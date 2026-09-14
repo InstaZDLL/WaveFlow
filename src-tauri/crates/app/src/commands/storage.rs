@@ -298,7 +298,14 @@ pub async fn cleanup_moved_caches(active: &AppPaths, app_db: &SqlitePool) {
     let Some(previous) = load_path(app_db, KEY_CACHE_PENDING).await else {
         return;
     };
-    if previous != active.cache_root && owned_for_removal(&previous, active) {
+    // Kept when the cleanup cannot run — which is exactly the case a
+    // session that fell back is in: `active.cache_root` is then the
+    // default, `previous` is the default too, and clearing the marker
+    // here would leave the copy that the move made behind for good.
+    if previous == active.cache_root {
+        return;
+    }
+    if owned_for_removal(&previous, active) {
         let stale = active.clone().with_cache_root(previous);
         for (name, dir) in cache_dirs(&stale, app_db).await.unwrap_or_default() {
             if !dir.exists() {
