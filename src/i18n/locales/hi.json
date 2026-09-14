@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} फ़ोल्डर",
         "playlists_zero": "0 प्लेलिस्ट",
         "playlists_one": "{{count}} प्लेलिस्ट",
-        "playlists_other": "{{count}} प्लेलिस्ट"
+        "playlists_other": "{{count}} प्लेलिस्ट",
+        "a-corriger_zero": "कुछ नहीं मिला: लाइब्रेरी पूरी है।",
+        "a-corriger_one": "{{count}} बात सुधारने को",
+        "a-corriger_other": "{{count}} बातें सुधारने को"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "कलाकार",
       "genres": "शैलियाँ",
       "dossiers": "फ़ोल्डर",
-      "playlists": "प्लेलिस्ट"
+      "playlists": "प्लेलिस्ट",
+      "a-corriger": "ध्यान चाहिए"
     },
     "empty": {
       "morceaux": {
@@ -487,7 +491,64 @@
       "local": "यह डिवाइस",
       "remote": "सर्वर"
     },
-    "open": "{{name}} खोलें"
+    "open": "{{name}} खोलें",
+    "inventory": {
+      "allClear": "कुछ नहीं मिला: लाइब्रेरी पूरी है।",
+      "summary_one": "{{count}} बात सुधारने को",
+      "summary_other": "{{count}} बातें सुधारने को",
+      "trackCount_one": "{{count}} ट्रैक",
+      "trackCount_other": "{{count}} ट्रैक",
+      "categories": {
+        "missing_title": {
+          "label": "शीर्षक नहीं",
+          "help": "फ़ाइल में कोई शीर्षक ही नहीं है।"
+        },
+        "missing_artist": {
+          "label": "कलाकार नहीं",
+          "help": "किसी का श्रेय नहीं दिया गया।"
+        },
+        "missing_album": {
+          "label": "एल्बम नहीं",
+          "help": "यह ट्रैक किसी एल्बम का नहीं है।"
+        },
+        "missing_year": {
+          "label": "वर्ष नहीं",
+          "help": "कोई वर्ष नहीं, या वर्ष शून्य है।"
+        },
+        "missing_track_number": {
+          "label": "ट्रैक संख्या नहीं",
+          "help": "डिस्क में इसका स्थान अज्ञात है।"
+        },
+        "missing_cover": {
+          "label": "आवरण नहीं",
+          "help": "एल्बम की कोई छवि नहीं है।"
+        },
+        "untaggable": {
+          "label": "टैग नहीं लिखे जा सकते",
+          "help": "इन फ़ाइलों के टैग दोबारा नहीं लिखे जा सकते।"
+        },
+        "album_year_conflict": {
+          "label": "वर्ष असंगत",
+          "help": "एक ही एल्बम के ट्रैक अलग-अलग वर्ष बताते हैं।"
+        },
+        "compilation_no_album_artist": {
+          "label": "एल्बम कलाकार बिना संकलन",
+          "help": "ऐसा संकलन जिसका एल्बम कलाकार तय नहीं है।"
+        },
+        "duplicate_track_number": {
+          "label": "दोहरी ट्रैक संख्या",
+          "help": "दो ट्रैक एक ही स्थान का दावा करते हैं।"
+        },
+        "track_number_gap": {
+          "label": "क्रमांकन में खाली जगह",
+          "help": "डिस्क के पहले और अंतिम के बीच एक संख्या नहीं है।"
+        },
+        "probable_duplicate": {
+          "label": "संभावित नकल",
+          "help": "वही शीर्षक, वही कलाकार, लगभग वही अवधि।"
+        }
+      }
+    }
   },
   "liked": {
     "badge": "संग्रह",

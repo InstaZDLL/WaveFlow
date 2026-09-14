@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} pastas",
         "playlists_zero": "0 playlists",
         "playlists_one": "{{count}} playlist",
-        "playlists_other": "{{count}} playlists"
+        "playlists_other": "{{count}} playlists",
+        "a-corriger_zero": "Nada a assinalar: a biblioteca está completa.",
+        "a-corriger_one": "{{count}} ponto a corrigir",
+        "a-corriger_other": "{{count}} pontos a corrigir"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "Artistas",
       "genres": "Géneros",
       "dossiers": "Pastas",
-      "playlists": "Playlists"
+      "playlists": "Playlists",
+      "a-corriger": "A corrigir"
     },
     "empty": {
       "morceaux": {
@@ -487,7 +491,64 @@
       "local": "Este dispositivo",
       "remote": "Servidor"
     },
-    "open": "Abrir {{name}}"
+    "open": "Abrir {{name}}",
+    "inventory": {
+      "allClear": "Nada a assinalar: a biblioteca está completa.",
+      "summary_one": "{{count}} ponto a corrigir",
+      "summary_other": "{{count}} pontos a corrigir",
+      "trackCount_one": "{{count}} faixa",
+      "trackCount_other": "{{count}} faixas",
+      "categories": {
+        "missing_title": {
+          "label": "Sem título",
+          "help": "O ficheiro não tem qualquer título."
+        },
+        "missing_artist": {
+          "label": "Sem artista",
+          "help": "Não há ninguém creditado."
+        },
+        "missing_album": {
+          "label": "Sem álbum",
+          "help": "A faixa não pertence a nenhum álbum."
+        },
+        "missing_year": {
+          "label": "Sem ano",
+          "help": "Sem ano, ou com ano zero."
+        },
+        "missing_track_number": {
+          "label": "Sem número de faixa",
+          "help": "Desconhece-se o lugar no disco."
+        },
+        "missing_cover": {
+          "label": "Sem capa",
+          "help": "O álbum não tem imagem."
+        },
+        "untaggable": {
+          "label": "Formato não editável",
+          "help": "As etiquetas destes ficheiros não podem ser reescritas."
+        },
+        "album_year_conflict": {
+          "label": "Anos divergentes",
+          "help": "Faixas do mesmo álbum indicam anos diferentes."
+        },
+        "compilation_no_album_artist": {
+          "label": "Coletânea sem artista de álbum",
+          "help": "Uma coletânea cujo artista de álbum não está definido."
+        },
+        "duplicate_track_number": {
+          "label": "Números repetidos",
+          "help": "Duas faixas ocupam o mesmo lugar no disco."
+        },
+        "track_number_gap": {
+          "label": "Numeração com falhas",
+          "help": "Falta um número entre o primeiro e o último do disco."
+        },
+        "probable_duplicate": {
+          "label": "Duplicados prováveis",
+          "help": "Mesmo título, mesmo artista, duração quase igual."
+        }
+      }
+    }
   },
   "liked": {
     "badge": "Coleção",

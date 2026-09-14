@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} mappen",
         "playlists_zero": "0 playlists",
         "playlists_one": "{{count}} playlist",
-        "playlists_other": "{{count}} playlists"
+        "playlists_other": "{{count}} playlists",
+        "a-corriger_zero": "Niets te melden: de bibliotheek is compleet.",
+        "a-corriger_one": "{{count}} punt te verbeteren",
+        "a-corriger_other": "{{count}} punten te verbeteren"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "Artiesten",
       "genres": "Genres",
       "dossiers": "Mappen",
-      "playlists": "Playlists"
+      "playlists": "Playlists",
+      "a-corriger": "Te verbeteren"
     },
     "empty": {
       "morceaux": {
@@ -487,7 +491,64 @@
       "local": "Dit apparaat",
       "remote": "Server"
     },
-    "open": "{{name}} openen"
+    "open": "{{name}} openen",
+    "inventory": {
+      "allClear": "Niets te melden: de bibliotheek is compleet.",
+      "summary_one": "{{count}} punt te verbeteren",
+      "summary_other": "{{count}} punten te verbeteren",
+      "trackCount_one": "{{count}} nummer",
+      "trackCount_other": "{{count}} nummers",
+      "categories": {
+        "missing_title": {
+          "label": "Zonder titel",
+          "help": "Het bestand heeft helemaal geen titel."
+        },
+        "missing_artist": {
+          "label": "Zonder artiest",
+          "help": "Er is niemand vermeld."
+        },
+        "missing_album": {
+          "label": "Zonder album",
+          "help": "Het nummer hoort bij geen enkel album."
+        },
+        "missing_year": {
+          "label": "Zonder jaar",
+          "help": "Geen jaar, of een jaar van nul."
+        },
+        "missing_track_number": {
+          "label": "Zonder nummering",
+          "help": "De plek op de schijf is onbekend."
+        },
+        "missing_cover": {
+          "label": "Zonder hoes",
+          "help": "Het album heeft geen afbeelding."
+        },
+        "untaggable": {
+          "label": "Niet te taggen",
+          "help": "De tags van deze bestanden zijn niet herschrijfbaar."
+        },
+        "album_year_conflict": {
+          "label": "Jaren spreken elkaar tegen",
+          "help": "Nummers van één album noemen verschillende jaren."
+        },
+        "compilation_no_album_artist": {
+          "label": "Verzamelalbum zonder albumartiest",
+          "help": "Een verzamelalbum zonder ingestelde albumartiest."
+        },
+        "duplicate_track_number": {
+          "label": "Dubbele nummers",
+          "help": "Twee nummers claimen dezelfde plek."
+        },
+        "track_number_gap": {
+          "label": "Gat in de nummering",
+          "help": "Tussen eerste en laatste ontbreekt een nummer."
+        },
+        "probable_duplicate": {
+          "label": "Waarschijnlijke duplicaten",
+          "help": "Zelfde titel, zelfde artiest, bijna zelfde lengte."
+        }
+      }
+    }
   },
   "liked": {
     "badge": "Verzameling",

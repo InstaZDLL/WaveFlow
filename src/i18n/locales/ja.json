@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}}個",
         "playlists_zero": "0 個のプレイリスト",
         "playlists_one": "{{count}} 個のプレイリスト",
-        "playlists_other": "{{count}} 個のプレイリスト"
+        "playlists_other": "{{count}} 個のプレイリスト",
+        "a-corriger_zero": "問題はありません。ライブラリは揃っています。",
+        "a-corriger_one": "要確認 {{count}} 件",
+        "a-corriger_other": "要確認 {{count}} 件"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "アーティスト",
       "genres": "ジャンル",
       "dossiers": "フォルダ",
-      "playlists": "プレイリスト"
+      "playlists": "プレイリスト",
+      "a-corriger": "要確認"
     },
     "empty": {
       "morceaux": {
@@ -487,7 +491,64 @@
       "local": "このデバイス",
       "remote": "サーバー"
     },
-    "open": "{{name}} を開く"
+    "open": "{{name}} を開く",
+    "inventory": {
+      "allClear": "問題はありません。ライブラリは揃っています。",
+      "summary_one": "要確認 {{count}} 件",
+      "summary_other": "要確認 {{count}} 件",
+      "trackCount_one": "{{count}} 曲",
+      "trackCount_other": "{{count}} 曲",
+      "categories": {
+        "missing_title": {
+          "label": "タイトルなし",
+          "help": "ファイルにタイトルがありません。"
+        },
+        "missing_artist": {
+          "label": "アーティストなし",
+          "help": "誰もクレジットされていません。"
+        },
+        "missing_album": {
+          "label": "アルバムなし",
+          "help": "どのアルバムにも属していません。"
+        },
+        "missing_year": {
+          "label": "年なし",
+          "help": "年がない、または 0 です。"
+        },
+        "missing_track_number": {
+          "label": "トラック番号なし",
+          "help": "ディスク上の位置が不明です。"
+        },
+        "missing_cover": {
+          "label": "アートワークなし",
+          "help": "アルバムに画像がありません。"
+        },
+        "untaggable": {
+          "label": "タグを書けない形式",
+          "help": "これらのファイルのタグは書き換えられません。"
+        },
+        "album_year_conflict": {
+          "label": "年が食い違う",
+          "help": "同じアルバムの曲が別々の年を示しています。"
+        },
+        "compilation_no_album_artist": {
+          "label": "アルバムアーティスト未設定のコンピレーション",
+          "help": "アルバムアーティストが設定されていないコンピレーションです。"
+        },
+        "duplicate_track_number": {
+          "label": "番号の重複",
+          "help": "2 曲が同じ位置を主張しています。"
+        },
+        "track_number_gap": {
+          "label": "番号の抜け",
+          "help": "ディスクの最初と最後の間に欠番があります。"
+        },
+        "probable_duplicate": {
+          "label": "重複の疑い",
+          "help": "同じ曲名、同じアーティスト、ほぼ同じ長さ。"
+        }
+      }
+    }
   },
   "liked": {
     "badge": "コレクション",

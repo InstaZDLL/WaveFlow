@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} 个文件夹",
         "playlists_zero": "0 个播放列表",
         "playlists_one": "{{count}} 个播放列表",
-        "playlists_other": "{{count}} 个播放列表"
+        "playlists_other": "{{count}} 个播放列表",
+        "a-corriger_zero": "没有问题：媒体库很完整。",
+        "a-corriger_one": "{{count}} 处待修正",
+        "a-corriger_other": "{{count}} 处待修正"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "艺人",
       "genres": "类型",
       "dossiers": "文件夹",
-      "playlists": "播放列表"
+      "playlists": "播放列表",
+      "a-corriger": "待修正"
     },
     "empty": {
       "morceaux": {
@@ -487,7 +491,64 @@
       "local": "本机",
       "remote": "服务器"
     },
-    "open": "打开 {{name}}"
+    "open": "打开 {{name}}",
+    "inventory": {
+      "allClear": "没有问题：媒体库很完整。",
+      "summary_one": "{{count}} 处待修正",
+      "summary_other": "{{count}} 处待修正",
+      "trackCount_one": "{{count}} 首",
+      "trackCount_other": "{{count}} 首",
+      "categories": {
+        "missing_title": {
+          "label": "没有标题",
+          "help": "文件完全没有标题。"
+        },
+        "missing_artist": {
+          "label": "没有艺人",
+          "help": "没有署名任何人。"
+        },
+        "missing_album": {
+          "label": "没有专辑",
+          "help": "该曲目不属于任何专辑。"
+        },
+        "missing_year": {
+          "label": "没有年份",
+          "help": "没有年份，或年份为零。"
+        },
+        "missing_track_number": {
+          "label": "没有音轨号",
+          "help": "不知道它在碟片中的位置。"
+        },
+        "missing_cover": {
+          "label": "没有封面",
+          "help": "专辑没有图片。"
+        },
+        "untaggable": {
+          "label": "无法写入标签",
+          "help": "这些文件的标签无法改写。"
+        },
+        "album_year_conflict": {
+          "label": "年份不一致",
+          "help": "同一专辑的曲目标注了不同年份。"
+        },
+        "compilation_no_album_artist": {
+          "label": "合辑缺少专辑艺人",
+          "help": "一张未设置专辑艺人的合辑。"
+        },
+        "duplicate_track_number": {
+          "label": "音轨号重复",
+          "help": "两首曲目占用同一个位置。"
+        },
+        "track_number_gap": {
+          "label": "编号有缺口",
+          "help": "碟片首尾之间缺了一个编号。"
+        },
+        "probable_duplicate": {
+          "label": "疑似重复",
+          "help": "标题相同、艺人相同、时长几乎一致。"
+        }
+      }
+    }
   },
   "liked": {
     "badge": "收藏",

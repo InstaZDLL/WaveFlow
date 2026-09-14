@@ -383,7 +383,12 @@
         "playlists_one": "{{count}} плейлист",
         "playlists_few": "{{count}} плейлиста",
         "playlists_many": "{{count}} плейлистов",
-        "playlists_other": "{{count}} плейлистов"
+        "playlists_other": "{{count}} плейлистов",
+        "a-corriger_zero": "Замечаний нет: медиатека заполнена полностью.",
+        "a-corriger_one": "{{count}} замечание",
+        "a-corriger_other": "{{count}} замечаний",
+        "a-corriger_few": "{{count}} замечания",
+        "a-corriger_many": "{{count}} замечаний"
       }
     },
     "tabs": {
@@ -392,7 +397,8 @@
       "artistes": "Исполнители",
       "genres": "Жанры",
       "dossiers": "Папки",
-      "playlists": "Плейлисты"
+      "playlists": "Плейлисты",
+      "a-corriger": "Требует внимания"
     },
     "empty": {
       "morceaux": {
@@ -531,7 +537,68 @@
       "local": "Это устройство",
       "remote": "Сервер"
     },
-    "open": "Открыть «{{name}}»"
+    "open": "Открыть «{{name}}»",
+    "inventory": {
+      "allClear": "Замечаний нет: медиатека заполнена полностью.",
+      "summary_one": "{{count}} замечание",
+      "summary_other": "{{count}} замечаний",
+      "trackCount_one": "{{count}} трек",
+      "trackCount_other": "{{count}} треков",
+      "categories": {
+        "missing_title": {
+          "label": "Без названия",
+          "help": "У файла нет названия."
+        },
+        "missing_artist": {
+          "label": "Без исполнителя",
+          "help": "Исполнитель не указан."
+        },
+        "missing_album": {
+          "label": "Без альбома",
+          "help": "Трек не относится ни к одному альбому."
+        },
+        "missing_year": {
+          "label": "Без года",
+          "help": "Года нет либо он равен нулю."
+        },
+        "missing_track_number": {
+          "label": "Без номера трека",
+          "help": "Место на диске неизвестно."
+        },
+        "missing_cover": {
+          "label": "Без обложки",
+          "help": "У альбома нет изображения."
+        },
+        "untaggable": {
+          "label": "Теги не записываются",
+          "help": "Теги этих файлов нельзя перезаписать."
+        },
+        "album_year_conflict": {
+          "label": "Расхождение по годам",
+          "help": "Треки одного альбома указывают разные годы."
+        },
+        "compilation_no_album_artist": {
+          "label": "Сборник без исполнителя альбома",
+          "help": "Сборник, у которого не задан исполнитель альбома."
+        },
+        "duplicate_track_number": {
+          "label": "Повтор номеров",
+          "help": "Два трека претендуют на одно место."
+        },
+        "track_number_gap": {
+          "label": "Пропуск в нумерации",
+          "help": "Между первым и последним номером диска не хватает одного."
+        },
+        "probable_duplicate": {
+          "label": "Вероятные дубликаты",
+          "help": "То же название, тот же исполнитель, почти та же длительность."
+        }
+      },
+      "summary_few": "{{count}} замечания",
+      "summary_many": "{{count}} замечаний",
+      "trackCount_few": "{{count}} трека",
+      "trackCount_many": "{{count}} треков"
+    }
   },
   "liked": {
     "badge": "Коллекция",

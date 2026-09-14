@@ -9,6 +9,12 @@ import {
 import { createPortal } from "react-dom";
 
 import { PlaylistGrid } from "./library/PlaylistGrid";
+import { InventoryCategories } from "./library/InventoryCategories";
+import {
+  inventorySummary,
+  inventoryTracks,
+  type InventoryCategory,
+} from "../../lib/tauri/inventory";
 import { useLibraryPlaylists } from "../../hooks/useLibraryPlaylists";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
@@ -17,6 +23,7 @@ import {
   Mic2,
   Tags,
   Folder,
+  AlertTriangle,
   RefreshCcw,
   FileSearch,
   ListMusic,
@@ -153,6 +160,7 @@ const tabConfig: { id: LibraryTab; icon: typeof Music2 }[] = [
   { id: "genres", icon: Tags },
   { id: "playlists", icon: ListMusic },
   { id: "dossiers", icon: Folder },
+  { id: "a-corriger", icon: AlertTriangle },
 ];
 
 const emptyStateIcons: Record<LibraryTab, typeof Music2> = {
@@ -162,6 +170,7 @@ const emptyStateIcons: Record<LibraryTab, typeof Music2> = {
   genres: Tags,
   playlists: ListMusic,
   dossiers: Folder,
+  "a-corriger": AlertTriangle,
 };
 
 const headerIcons: Record<LibraryTab, typeof Music2> = {
@@ -171,6 +180,7 @@ const headerIcons: Record<LibraryTab, typeof Music2> = {
   genres: Tags,
   playlists: ListMusic,
   dossiers: Folder,
+  "a-corriger": AlertTriangle,
 };
 
 export function LibraryView({
@@ -289,7 +299,24 @@ export function LibraryView({
     // fetch of our own to wait on, so this tab never shows a skeleton.
     playlists: false,
     dossiers: true,
+    // The only tab that does NOT prefetch. Its counts are album-level
+    // aggregates plus a walk over every track to chain probable
+    // duplicates, so paying for them on every mount of the library --
+    // which is what the other five do -- would tax people who never
+    // open it. `false` so the tab paints its categories rather than a
+    // skeleton before the first fetch is even asked for.
+    "a-corriger": false,
   });
+  // Inventory tab (#589). Three pieces of state rather than one: the
+  // categories survive a category being opened and closed, so reopening
+  // one does not re-run the expensive summary.
+  const [inventory, setInventory] = useState<InventoryCategory[]>([]);
+  const [inventoryCategory, setInventoryCategory] = useState<string | null>(
+    null,
+  );
+  const [inventoryRows, setInventoryRows] = useState<LibraryTrackRow[]>([]);
+  const [inventoryBusy, setInventoryBusy] = useState(false);
+
   const [tracksView, setTracksView] = useState<TracksView>("list");
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const selection = useMultiSelect<Track>();
@@ -403,6 +430,58 @@ export function LibraryView({
       cancelled = true;
     };
   }, [remoteAvailable]);
+
+  // The inventory is the one tab that fetches on activation rather than
+  // in parallel with the others: its counts are album-level aggregates
+  // plus a walk over every track, so prefetching them would tax everyone
+  // who never opens it. Re-runs when the library changes underneath, and
+  // after a tag edit, because fixing something is the whole point and a
+  // count that does not move reads as the fix not having worked.
+  useEffect(() => {
+    if (activeTab !== "a-corriger") return;
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading((p) => ({ ...p, "a-corriger": true }));
+    inventorySummary()
+      .then((list) => {
+        if (!cancelled) setInventory(list);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          console.error("[LibraryView] inventorySummary failed", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading((p) => ({ ...p, "a-corriger": false }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, librariesSignature, editRefetch]);
+
+  // Opening a category. Guarded on the key rather than on a request
+  // token: a second click on the same category is a no-op, and a click
+  // on another one replaces the rows wholesale, so a slow answer for a
+  // category the user has left must not paint.
+  useEffect(() => {
+    if (activeTab !== "a-corriger" || inventoryCategory == null) return;
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setInventoryBusy(true);
+    inventoryTracks(inventoryCategory, tracksSort.sort)
+      .then((rows) => {
+        if (!cancelled) setInventoryRows(rows);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          console.error("[LibraryView] inventoryTracks failed", err);
+      })
+      .finally(() => {
+        if (!cancelled) setInventoryBusy(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, inventoryCategory, tracksSort.sort, editRefetch]);
 
   // Per-tab parallel fetchers — each runs independently of `activeTab`,
   // so navigating into LibraryView fires all 5 SQL queries at once and
@@ -665,6 +744,13 @@ export function LibraryView({
         return libraryPlaylists.length;
       case "dossiers":
         return folders.length;
+      case "a-corriger":
+        // The number the header should carry is "how many tracks need
+        // attention", which is the sum of the categories — and a
+        // category can list a track that another one lists too, so this
+        // is a count of findings rather than of distinct tracks. The
+        // subtext key says so.
+        return inventory.reduce((sum, category) => sum + category.count, 0);
     }
   };
   const headerSubtext =
@@ -845,7 +931,14 @@ export function LibraryView({
     // Inside a folder there is always something to show -- a
     // breadcrumb and a way back at the very least -- even when the
     // folder itself holds nothing.
-    (activeTab === "dossiers" && (folders.length > 0 || folderPath != null));
+    (activeTab === "dossiers" && (folders.length > 0 || folderPath != null)) ||
+    // The inventory always has something to show: the categories
+    // themselves, including the "nothing to fix" reading, which is the
+    // answer to the question the user came here with. Listing it here
+    // also keeps `activeTab` from being narrowed out of the branch that
+    // renders it — `hasContent` is a `const` built from comparisons, so
+    // TypeScript treats it as a discriminant.
+    activeTab === "a-corriger";
 
   /** Play a file of the folder being browsed, from that folder's own
    *  list: the queue a click builds is the folder the user is looking
@@ -1306,6 +1399,35 @@ export function LibraryView({
                 (folderTracks.length > 0 || folderBusy) &&
                 renderTrackTable(folderTracks, folderBusy, playFolderRow)}
             </>
+          )}
+          {activeTab === "a-corriger" && (
+            <div className="space-y-4">
+              <InventoryCategories
+                categories={inventory}
+                isLoading={loading["a-corriger"]}
+                activeKey={inventoryCategory}
+                onSelect={(key) =>
+                  // Clicking the open category closes it, so the user
+                  // gets back to the overview without a second control.
+                  setInventoryCategory((current) =>
+                    current === key ? null : key,
+                  )
+                }
+                t={t}
+              />
+              {/* The library's own table, so a category is an entry
+                  point and not a report: same columns, same sort, same
+                  context menu, same properties modal -- which is what
+                  makes fixing a track from here possible at all. */}
+              {inventoryCategory != null &&
+                renderTrackTable(inventoryRows, inventoryBusy, (index) => {
+                  void playTracks(
+                    inventoryRows.map(toLocalTrack),
+                    index,
+                    { type: "library", id: null },
+                  );
+                })}
+            </div>
           )}
           {activeTab === "dossiers" && folderPath == null && (
             <FolderList

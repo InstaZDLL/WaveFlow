@@ -524,7 +524,7 @@ pub struct ListLibraryTracksResponse {
 }
 
 #[derive(sqlx::FromRow)]
-struct LibraryTrackRawRow {
+pub(crate) struct LibraryTrackRawRow {
     source: String,
     id: String,
     library_id: Option<i64>,
@@ -559,7 +559,10 @@ struct LibraryTrackRawRow {
 /// no canonical form for it either. Consistency per column is what matters —
 /// normalising one side of a comparison and not the other is exactly how an
 /// artist ends up in two places.
-fn library_track_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'static str {
+pub(crate) fn library_track_order_clause(
+    order_by: Option<&str>,
+    direction: Option<&str>,
+) -> &'static str {
     // `duration_ms` is the column name, and it is what the sort dropdown and
     // the persisted preference both carry. Matching on "duration" here sent
     // every duration sort to the fallback clause instead.
@@ -628,7 +631,7 @@ fn library_tracks_sql(order_clause: &str) -> String {
 /// `extra_where` is composed at the call site, never from user input: it
 /// holds `AND ...` fragments whose values are bound, and its `?`
 /// placeholders bind *after* the union's own five.
-fn library_tracks_sql_where(extra_where: &str, order_clause: &str) -> String {
+pub(crate) fn library_tracks_sql_where(extra_where: &str, order_clause: &str) -> String {
     format!(
         r#"
         SELECT source, id, library_id, title, album_id, album_title, artist_id, artist_name,
@@ -782,7 +785,7 @@ pub async fn list_library_tracks(
 
 /// Stitch thumbnail-existence flags onto the local half only. See
 /// [`expand_library_album_rows`].
-async fn expand_library_track_rows(
+pub(crate) async fn expand_library_track_rows(
     raw: Vec<LibraryTrackRawRow>,
     artwork_dir: PathBuf,
 ) -> AppResult<Vec<LibraryTrackRow>> {

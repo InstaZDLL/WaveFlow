@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} folders",
         "playlists_zero": "0 playlists",
         "playlists_one": "{{count}} playlist",
-        "playlists_other": "{{count}} playlists"
+        "playlists_other": "{{count}} playlists",
+        "a-corriger_zero": "Nothing to report: the library is complete.",
+        "a-corriger_one": "{{count}} thing to fix",
+        "a-corriger_other": "{{count}} things to fix"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "Artists",
       "genres": "Genres",
       "dossiers": "Folders",
-      "playlists": "Playlists"
+      "playlists": "Playlists",
+      "a-corriger": "Needs attention"
     },
     "empty": {
       "morceaux": {
@@ -487,7 +491,64 @@
       "local": "This device",
       "remote": "Server"
     },
-    "open": "Open {{name}}"
+    "open": "Open {{name}}",
+    "inventory": {
+      "allClear": "Nothing to report: the library is complete.",
+      "summary_one": "{{count}} thing to fix",
+      "summary_other": "{{count}} things to fix",
+      "trackCount_one": "{{count}} track",
+      "trackCount_other": "{{count}} tracks",
+      "categories": {
+        "missing_title": {
+          "label": "No title",
+          "help": "The file carries no title at all."
+        },
+        "missing_artist": {
+          "label": "No artist",
+          "help": "Nobody is credited."
+        },
+        "missing_album": {
+          "label": "No album",
+          "help": "The track belongs to no album."
+        },
+        "missing_year": {
+          "label": "No year",
+          "help": "No year, or a year of zero."
+        },
+        "missing_track_number": {
+          "label": "No track number",
+          "help": "Where the track sits on the disc is unknown."
+        },
+        "missing_cover": {
+          "label": "No cover",
+          "help": "The album has no artwork."
+        },
+        "untaggable": {
+          "label": "Cannot be tagged",
+          "help": "Tags in these files cannot be rewritten."
+        },
+        "album_year_conflict": {
+          "label": "Years disagree",
+          "help": "Tracks of one album claim different years."
+        },
+        "compilation_no_album_artist": {
+          "label": "Compilation with no album artist",
+          "help": "A compilation whose album artist is not set."
+        },
+        "duplicate_track_number": {
+          "label": "Duplicate track numbers",
+          "help": "Two tracks claim the same slot on the disc."
+        },
+        "track_number_gap": {
+          "label": "Gap in the numbering",
+          "help": "A number is missing between the disc's first and last."
+        },
+        "probable_duplicate": {
+          "label": "Probable duplicates",
+          "help": "Same title, same artist, nearly the same length."
+        }
+      }
+    }
   },
   "liked": {
     "badge": "Collection",

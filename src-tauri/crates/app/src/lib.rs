@@ -1086,6 +1086,8 @@ pub fn run() {
             commands::player::player_set_pause_on_device_loss,
             commands::player::player_probe_output_device,
             commands::player::player_set_match_source_rate,
+            commands::inventory::inventory_summary,
+            commands::inventory::inventory_tracks,
             commands::tasks::list_tasks,
             commands::tasks::cancel_task,
             commands::storage::get_cache_location,

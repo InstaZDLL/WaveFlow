@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} klasör",
         "playlists_zero": "0 çalma listesi",
         "playlists_one": "{{count}} çalma listesi",
-        "playlists_other": "{{count}} çalma listesi"
+        "playlists_other": "{{count}} çalma listesi",
+        "a-corriger_zero": "Bildirilecek bir şey yok: kitaplık eksiksiz.",
+        "a-corriger_one": "{{count}} sorun",
+        "a-corriger_other": "{{count}} sorun"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "Sanatçılar",
       "genres": "Türler",
       "dossiers": "Klasörler",
-      "playlists": "Çalma listeleri"
+      "playlists": "Çalma listeleri",
+      "a-corriger": "Düzeltilecekler"
     },
     "empty": {
       "morceaux": {
@@ -487,7 +491,64 @@
       "local": "Bu cihaz",
       "remote": "Sunucu"
     },
-    "open": "{{name}} öğesini aç"
+    "open": "{{name}} öğesini aç",
+    "inventory": {
+      "allClear": "Bildirilecek bir şey yok: kitaplık eksiksiz.",
+      "summary_one": "{{count}} sorun",
+      "summary_other": "{{count}} sorun",
+      "trackCount_one": "{{count}} parça",
+      "trackCount_other": "{{count}} parça",
+      "categories": {
+        "missing_title": {
+          "label": "Başlıksız",
+          "help": "Dosyanın hiç başlığı yok."
+        },
+        "missing_artist": {
+          "label": "Sanatçısız",
+          "help": "Kimse belirtilmemiş."
+        },
+        "missing_album": {
+          "label": "Albümsüz",
+          "help": "Parça hiçbir albüme ait değil."
+        },
+        "missing_year": {
+          "label": "Yılsız",
+          "help": "Yıl yok ya da sıfır."
+        },
+        "missing_track_number": {
+          "label": "Parça numarası yok",
+          "help": "Diskteki yeri bilinmiyor."
+        },
+        "missing_cover": {
+          "label": "Kapaksız",
+          "help": "Albümün görseli yok."
+        },
+        "untaggable": {
+          "label": "Etiketlenemez",
+          "help": "Bu dosyaların etiketleri yeniden yazılamaz."
+        },
+        "album_year_conflict": {
+          "label": "Yıllar çelişiyor",
+          "help": "Aynı albümün parçaları farklı yıl bildiriyor."
+        },
+        "compilation_no_album_artist": {
+          "label": "Albüm sanatçısı olmayan derleme",
+          "help": "Albüm sanatçısı ayarlanmamış bir derleme."
+        },
+        "duplicate_track_number": {
+          "label": "Yinelenen numara",
+          "help": "İki parça aynı yeri istiyor."
+        },
+        "track_number_gap": {
+          "label": "Numaralamada boşluk",
+          "help": "Diskin ilk ve son numarası arasında bir numara eksik."
+        },
+        "probable_duplicate": {
+          "label": "Olası kopyalar",
+          "help": "Aynı başlık, aynı sanatçı, neredeyse aynı süre."
+        }
+      }
+    }
   },
   "liked": {
     "badge": "Koleksiyon",

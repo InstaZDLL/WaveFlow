@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} Ordner",
         "playlists_zero": "0 Playlists",
         "playlists_one": "{{count}} Playlist",
-        "playlists_other": "{{count}} Playlists"
+        "playlists_other": "{{count}} Playlists",
+        "a-corriger_zero": "Nichts zu melden: die Bibliothek ist vollständig.",
+        "a-corriger_one": "{{count}} Punkt zu korrigieren",
+        "a-corriger_other": "{{count}} Punkte zu korrigieren"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "Künstler",
       "genres": "Genres",
       "dossiers": "Ordner",
-      "playlists": "Playlists"
+      "playlists": "Playlists",
+      "a-corriger": "Zu korrigieren"
     },
     "empty": {
       "morceaux": {
@@ -487,7 +491,64 @@
       "local": "Dieses Gerät",
       "remote": "Server"
     },
-    "open": "{{name}} öffnen"
+    "open": "{{name}} öffnen",
+    "inventory": {
+      "allClear": "Nichts zu melden: die Bibliothek ist vollständig.",
+      "summary_one": "{{count}} Punkt zu korrigieren",
+      "summary_other": "{{count}} Punkte zu korrigieren",
+      "trackCount_one": "{{count}} Titel",
+      "trackCount_other": "{{count}} Titel",
+      "categories": {
+        "missing_title": {
+          "label": "Ohne Titel",
+          "help": "Die Datei trägt überhaupt keinen Titel."
+        },
+        "missing_artist": {
+          "label": "Ohne Interpret",
+          "help": "Es ist niemand angegeben."
+        },
+        "missing_album": {
+          "label": "Ohne Album",
+          "help": "Der Titel gehört zu keinem Album."
+        },
+        "missing_year": {
+          "label": "Ohne Jahr",
+          "help": "Kein Jahr, oder ein Jahr von null."
+        },
+        "missing_track_number": {
+          "label": "Ohne Titelnummer",
+          "help": "Der Platz auf der Disc ist unbekannt."
+        },
+        "missing_cover": {
+          "label": "Ohne Cover",
+          "help": "Das Album hat kein Bild."
+        },
+        "untaggable": {
+          "label": "Nicht beschreibbar",
+          "help": "Die Tags dieser Dateien lassen sich nicht neu schreiben."
+        },
+        "album_year_conflict": {
+          "label": "Widersprüchliche Jahre",
+          "help": "Titel eines Albums nennen unterschiedliche Jahre."
+        },
+        "compilation_no_album_artist": {
+          "label": "Sampler ohne Album-Interpret",
+          "help": "Eine Kompilation ohne gesetzten Album-Interpreten."
+        },
+        "duplicate_track_number": {
+          "label": "Doppelte Titelnummern",
+          "help": "Zwei Titel beanspruchen denselben Platz."
+        },
+        "track_number_gap": {
+          "label": "Lücke in der Nummerierung",
+          "help": "Zwischen erster und letzter Nummer fehlt eine."
+        },
+        "probable_duplicate": {
+          "label": "Wahrscheinliche Duplikate",
+          "help": "Gleicher Titel, gleicher Interpret, fast gleiche Länge."
+        }
+      }
+    }
   },
   "liked": {
     "badge": "Sammlung",

@@ -353,7 +353,10 @@
         "dossiers_other": "폴더 {{count}}개",
         "playlists_zero": "플레이리스트 0개",
         "playlists_one": "플레이리스트 {{count}}개",
-        "playlists_other": "플레이리스트 {{count}}개"
+        "playlists_other": "플레이리스트 {{count}}개",
+        "a-corriger_zero": "보고할 것이 없습니다. 라이브러리가 완전합니다.",
+        "a-corriger_one": "확인할 항목 {{count}}개",
+        "a-corriger_other": "확인할 항목 {{count}}개"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "아티스트",
       "genres": "장르",
       "dossiers": "폴더",
-      "playlists": "플레이리스트"
+      "playlists": "플레이리스트",
+      "a-corriger": "확인 필요"
     },
     "empty": {
       "morceaux": {
@@ -487,7 +491,64 @@
       "local": "이 기기",
       "remote": "서버"
     },
-    "open": "{{name}} 열기"
+    "open": "{{name}} 열기",
+    "inventory": {
+      "allClear": "보고할 것이 없습니다. 라이브러리가 완전합니다.",
+      "summary_one": "확인할 항목 {{count}}개",
+      "summary_other": "확인할 항목 {{count}}개",
+      "trackCount_one": "{{count}}곡",
+      "trackCount_other": "{{count}}곡",
+      "categories": {
+        "missing_title": {
+          "label": "제목 없음",
+          "help": "파일에 제목이 전혀 없습니다."
+        },
+        "missing_artist": {
+          "label": "아티스트 없음",
+          "help": "아무도 표기되지 않았습니다."
+        },
+        "missing_album": {
+          "label": "앨범 없음",
+          "help": "어느 앨범에도 속하지 않습니다."
+        },
+        "missing_year": {
+          "label": "연도 없음",
+          "help": "연도가 없거나 0입니다."
+        },
+        "missing_track_number": {
+          "label": "트랙 번호 없음",
+          "help": "디스크에서의 위치를 알 수 없습니다."
+        },
+        "missing_cover": {
+          "label": "커버 없음",
+          "help": "앨범에 이미지가 없습니다."
+        },
+        "untaggable": {
+          "label": "태그 기록 불가",
+          "help": "이 파일들의 태그는 다시 쓸 수 없습니다."
+        },
+        "album_year_conflict": {
+          "label": "연도 불일치",
+          "help": "같은 앨범의 곡이 서로 다른 연도를 가리킵니다."
+        },
+        "compilation_no_album_artist": {
+          "label": "앨범 아티스트 없는 컴필레이션",
+          "help": "앨범 아티스트가 설정되지 않은 컴필레이션입니다."
+        },
+        "duplicate_track_number": {
+          "label": "번호 중복",
+          "help": "두 곡이 같은 자리를 차지합니다."
+        },
+        "track_number_gap": {
+          "label": "번호 누락",
+          "help": "디스크의 처음과 끝 사이에 번호가 빠졌습니다."
+        },
+        "probable_duplicate": {
+          "label": "중복 가능성",
+          "help": "같은 제목, 같은 아티스트, 거의 같은 길이."
+        }
+      }
+    }
   },
   "liked": {
     "badge": "컬렉션",

@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} folder",
         "playlists_zero": "0 playlist",
         "playlists_one": "{{count}} playlist",
-        "playlists_other": "{{count}} playlist"
+        "playlists_other": "{{count}} playlist",
+        "a-corriger_zero": "Tidak ada yang perlu dilaporkan: pustaka sudah lengkap.",
+        "a-corriger_one": "{{count}} hal untuk diperbaiki",
+        "a-corriger_other": "{{count}} hal untuk diperbaiki"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "Artis",
       "genres": "Genre",
       "dossiers": "Folder",
-      "playlists": "Playlist"
+      "playlists": "Playlist",
+      "a-corriger": "Perlu diperbaiki"
     },
     "empty": {
       "morceaux": {
@@ -487,7 +491,64 @@
       "local": "Perangkat ini",
       "remote": "Server"
     },
-    "open": "Buka {{name}}"
+    "open": "Buka {{name}}",
+    "inventory": {
+      "allClear": "Tidak ada yang perlu dilaporkan: pustaka sudah lengkap.",
+      "summary_one": "{{count}} hal untuk diperbaiki",
+      "summary_other": "{{count}} hal untuk diperbaiki",
+      "trackCount_one": "{{count}} lagu",
+      "trackCount_other": "{{count}} lagu",
+      "categories": {
+        "missing_title": {
+          "label": "Tanpa judul",
+          "help": "Berkas tidak memiliki judul sama sekali."
+        },
+        "missing_artist": {
+          "label": "Tanpa artis",
+          "help": "Tidak ada yang dikreditkan."
+        },
+        "missing_album": {
+          "label": "Tanpa album",
+          "help": "Lagu ini tidak termasuk album mana pun."
+        },
+        "missing_year": {
+          "label": "Tanpa tahun",
+          "help": "Tidak ada tahun, atau tahunnya nol."
+        },
+        "missing_track_number": {
+          "label": "Tanpa nomor lagu",
+          "help": "Letaknya dalam cakram tidak diketahui."
+        },
+        "missing_cover": {
+          "label": "Tanpa sampul",
+          "help": "Album tidak punya gambar."
+        },
+        "untaggable": {
+          "label": "Tak bisa ditandai",
+          "help": "Tag berkas ini tidak dapat ditulis ulang."
+        },
+        "album_year_conflict": {
+          "label": "Tahun bertentangan",
+          "help": "Lagu satu album menyebut tahun berbeda."
+        },
+        "compilation_no_album_artist": {
+          "label": "Kompilasi tanpa artis album",
+          "help": "Kompilasi yang artis albumnya belum diisi."
+        },
+        "duplicate_track_number": {
+          "label": "Nomor ganda",
+          "help": "Dua lagu menempati posisi yang sama."
+        },
+        "track_number_gap": {
+          "label": "Penomoran berlubang",
+          "help": "Ada nomor yang hilang antara yang pertama dan terakhir."
+        },
+        "probable_duplicate": {
+          "label": "Kemungkinan duplikat",
+          "help": "Judul sama, artis sama, durasi hampir sama."
+        }
+      }
+    }
   },
   "liked": {
     "badge": "Koleksi",

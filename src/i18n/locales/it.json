@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} cartelle",
         "playlists_zero": "0 playlist",
         "playlists_one": "{{count}} playlist",
-        "playlists_other": "{{count}} playlist"
+        "playlists_other": "{{count}} playlist",
+        "a-corriger_zero": "Nulla da segnalare: la libreria è completa.",
+        "a-corriger_one": "{{count}} punto da correggere",
+        "a-corriger_other": "{{count}} punti da correggere"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "Artisti",
       "genres": "Generi",
       "dossiers": "Cartelle",
-      "playlists": "Playlist"
+      "playlists": "Playlist",
+      "a-corriger": "Da correggere"
     },
     "empty": {
       "morceaux": {
@@ -487,7 +491,64 @@
       "local": "Questo dispositivo",
       "remote": "Server"
     },
-    "open": "Apri {{name}}"
+    "open": "Apri {{name}}",
+    "inventory": {
+      "allClear": "Nulla da segnalare: la libreria è completa.",
+      "summary_one": "{{count}} punto da correggere",
+      "summary_other": "{{count}} punti da correggere",
+      "trackCount_one": "{{count}} brano",
+      "trackCount_other": "{{count}} brani",
+      "categories": {
+        "missing_title": {
+          "label": "Senza titolo",
+          "help": "Il file non ha alcun titolo."
+        },
+        "missing_artist": {
+          "label": "Senza artista",
+          "help": "Non è accreditato nessuno."
+        },
+        "missing_album": {
+          "label": "Senza album",
+          "help": "Il brano non appartiene a nessun album."
+        },
+        "missing_year": {
+          "label": "Senza anno",
+          "help": "Nessun anno, oppure anno zero."
+        },
+        "missing_track_number": {
+          "label": "Senza numero di traccia",
+          "help": "Il posto sul disco è sconosciuto."
+        },
+        "missing_cover": {
+          "label": "Senza copertina",
+          "help": "L'album non ha immagine."
+        },
+        "untaggable": {
+          "label": "Formato non scrivibile",
+          "help": "I tag di questi file non possono essere riscritti."
+        },
+        "album_year_conflict": {
+          "label": "Anni discordanti",
+          "help": "I brani di uno stesso album indicano anni diversi."
+        },
+        "compilation_no_album_artist": {
+          "label": "Raccolta senza artista dell'album",
+          "help": "Una raccolta il cui artista dell'album non è impostato."
+        },
+        "duplicate_track_number": {
+          "label": "Numeri duplicati",
+          "help": "Due brani occupano lo stesso posto sul disco."
+        },
+        "track_number_gap": {
+          "label": "Numerazione con buchi",
+          "help": "Manca un numero fra il primo e l'ultimo del disco."
+        },
+        "probable_duplicate": {
+          "label": "Probabili duplicati",
+          "help": "Stesso titolo, stesso artista, durata quasi identica."
+        }
+      }
+    }
   },
   "liked": {
     "badge": "Raccolta",

@@ -16,6 +16,7 @@ pub mod artwork;
 pub mod audio_format;
 pub mod domain;
 pub mod error;
+pub mod inventory;
 pub mod metadata;
 // `plugin` carries the wasmtime + Cranelift + WASI stack (~5 MiB
 // of native codegen). Gated so `waveflow-server` (which never

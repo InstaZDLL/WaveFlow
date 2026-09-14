@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} 個資料夾",
         "playlists_zero": "0 個播放清單",
         "playlists_one": "{{count}} 個播放清單",
-        "playlists_other": "{{count}} 個播放清單"
+        "playlists_other": "{{count}} 個播放清單",
+        "a-corriger_zero": "沒有問題：音樂庫很完整。",
+        "a-corriger_one": "{{count}} 處待修正",
+        "a-corriger_other": "{{count}} 處待修正"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "藝人",
       "genres": "曲風",
       "dossiers": "資料夾",
-      "playlists": "播放清單"
+      "playlists": "播放清單",
+      "a-corriger": "待修正"
     },
     "empty": {
       "morceaux": {
@@ -487,7 +491,64 @@
       "local": "本機",
       "remote": "伺服器"
     },
-    "open": "開啟 {{name}}"
+    "open": "開啟 {{name}}",
+    "inventory": {
+      "allClear": "沒有問題：音樂庫很完整。",
+      "summary_one": "{{count}} 處待修正",
+      "summary_other": "{{count}} 處待修正",
+      "trackCount_one": "{{count}} 首",
+      "trackCount_other": "{{count}} 首",
+      "categories": {
+        "missing_title": {
+          "label": "沒有標題",
+          "help": "檔案完全沒有標題。"
+        },
+        "missing_artist": {
+          "label": "沒有演出者",
+          "help": "沒有署名任何人。"
+        },
+        "missing_album": {
+          "label": "沒有專輯",
+          "help": "這首曲目不屬於任何專輯。"
+        },
+        "missing_year": {
+          "label": "沒有年份",
+          "help": "沒有年份，或年份為零。"
+        },
+        "missing_track_number": {
+          "label": "沒有曲目編號",
+          "help": "不知道它在唱片中的位置。"
+        },
+        "missing_cover": {
+          "label": "沒有封面",
+          "help": "專輯沒有圖片。"
+        },
+        "untaggable": {
+          "label": "無法寫入標籤",
+          "help": "這些檔案的標籤無法改寫。"
+        },
+        "album_year_conflict": {
+          "label": "年份不一致",
+          "help": "同一張專輯的曲目標示了不同年份。"
+        },
+        "compilation_no_album_artist": {
+          "label": "合輯缺少專輯演出者",
+          "help": "一張未設定專輯演出者的合輯。"
+        },
+        "duplicate_track_number": {
+          "label": "曲目編號重複",
+          "help": "兩首曲目佔用同一個位置。"
+        },
+        "track_number_gap": {
+          "label": "編號有缺口",
+          "help": "唱片首尾之間少了一個編號。"
+        },
+        "probable_duplicate": {
+          "label": "疑似重複",
+          "help": "標題相同、演出者相同、長度幾乎一致。"
+        }
+      }
+    }
   },
   "liked": {
     "badge": "收藏",
