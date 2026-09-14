@@ -334,8 +334,15 @@ where
 
     let mut temp = temp;
     rename_over(&temp.path, path).map_err(E::from)?;
-    sync_directory(directory).map_err(E::from)?;
+    // The rename is the commit: past it the replacement has happened and
+    // the scratch file is gone, so the cleanup must not run.
     temp.committed = true;
+    // Durability on top of a change that has already taken effect. A
+    // failure here means the rename may not survive a power cut, not
+    // that it did not happen — and reporting it as a write failure would
+    // leave the caller skipping the re-hash and the database sync for a
+    // file that really did change.
+    let _ = sync_directory(directory);
     Ok(())
 }
 

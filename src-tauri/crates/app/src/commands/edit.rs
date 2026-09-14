@@ -653,7 +653,18 @@ fn mirror_year_for_legacy(tag: &mut id3::Tag, patch: &TagPatch<'_>, version: id3
         return;
     }
     match tag.date_recorded() {
-        Some(date) => tag.set_year(date.year),
+        Some(date) => {
+            tag.set_year(date.year);
+            // 2.2 frame IDs are three characters, and `TDRC` has no
+            // three-character form — so the writer does not drop it, it
+            // refuses the whole tag: "Unable to downgrade frame ID to
+            // ID3v2.2" (measured). Editing the year of a 2.2 file failed
+            // outright because of a frame we had just added. `TYER`
+            // carries the year now, so the frame goes back out.
+            if version == id3::Version::Id3v22 {
+                tag.remove_date_recorded();
+            }
+        }
         None => tag.remove_year(),
     }
 }
@@ -1485,6 +1496,30 @@ mod patch_agreement_tests {
 
         assert_eq!(tag.date_recorded().map(|d| d.year), Some(2011));
         assert_eq!(tag.year(), None, "no TYER in a 2.4 tag");
+    }
+
+    #[test]
+    fn an_id3v22_tag_can_actually_be_written() {
+        // Not a conformance nicety: the writer refuses a tag carrying a
+        // frame it cannot downgrade, so a TDRC we added ourselves failed
+        // the whole edit on a 2.2 file.
+        use id3::TagLike;
+
+        let mut tag = id3::Tag::new();
+        tag.set_title("Before");
+        let edit = TrackEdit {
+            year: Some(1997),
+            ..Default::default()
+        };
+        apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
+        mirror_year_for_legacy(&mut tag, &TagPatch::Fields(&edit), id3::Version::Id3v22);
+
+        let mut bytes = Vec::new();
+        tag.write_to(&mut bytes, id3::Version::Id3v22)
+            .expect("a 2.2 tag we built must be writable as 2.2");
+        let back = id3::Tag::read_from2(std::io::Cursor::new(&bytes)).expect("read");
+        assert_eq!(back.year(), Some(1997));
+        assert_eq!(back.title(), Some("Before"));
     }
 
     #[test]
