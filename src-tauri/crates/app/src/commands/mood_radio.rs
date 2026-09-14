@@ -210,7 +210,11 @@ async fn mood_radio_by_album(pool: &SqlitePool, f: &MoodFilter) -> AppResult<Vec
         /// is the budgeting unit, and it has to match what actually
         /// gets queued.
         track_count: i64,
-        primary_artist: i64,
+        /// `track.primary_artist` is nullable (`ON DELETE SET NULL`),
+        /// so an album whose tracks have all lost theirs aggregates to
+        /// NULL. Decoding that into an `i64` fails the whole query,
+        /// which would take the radio down with it.
+        primary_artist: Option<i64>,
     }
 
     let rows: Vec<Row> = sqlx::query_as::<_, Row>(
@@ -250,10 +254,15 @@ async fn mood_radio_by_album(pool: &SqlitePool, f: &MoodFilter) -> AppResult<Vec
         return Ok(vec![]);
     }
 
-    let mut per_artist: std::collections::HashMap<i64, usize> = std::collections::HashMap::new();
+    let mut per_artist: std::collections::HashMap<Option<i64>, usize> =
+        std::collections::HashMap::new();
     let candidates: Vec<waveflow_core::album_playback::AlbumCandidate> = rows
         .into_iter()
         .filter(|row| {
+            // Records with no artist at all share one bucket rather
+            // than each counting as a different artist: that is the
+            // conservative reading, and it keeps a pile of untagged
+            // rips from filling the radio between them.
             let count = per_artist.entry(row.primary_artist).or_insert(0);
             if *count >= ALBUM_PER_ARTIST_CAP {
                 return false;

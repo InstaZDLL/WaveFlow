@@ -211,6 +211,24 @@ pub async fn regenerate_daily_mixes(
 /// Build (or refresh) the playlist for a single bucket and return its id.
 /// Returns `None` when no playable tracks could be picked for the bucket —
 /// any stale playlist row for the slot is removed in that case.
+/// The bucket's tracks, deterministically shuffled and capped.
+///
+/// A function rather than a closure because it is called twice: once
+/// as the track-mode selection, and once as album mode's fallback.
+/// Deterministic so the same input set produces the same listening
+/// order — no flicker when the user revisits the playlist mid-session.
+async fn tracks_for_bucket(
+    pool: &SqlitePool,
+    artist_ids: &[i64],
+    bucket: Bucket,
+) -> CoreResult<Vec<i64>> {
+    let tracks = pick_tracks_for_artists(pool, artist_ids).await?;
+    let mut ids: Vec<i64> = tracks.iter().map(|t| t.track_id).collect();
+    shuffle_with_seed(&mut ids, SHUFFLE_SEED ^ bucket.slot() as u64);
+    ids.truncate(TRACKS_PER_MIX);
+    Ok(ids)
+}
+
 async fn generate_one_mix(
     pool: &SqlitePool,
     paths: &PathsContext,
@@ -229,27 +247,29 @@ async fn generate_one_mix(
     // cap is spent in whole records — truncating at `TRACKS_PER_MIX`
     // would end the mix halfway through one, which is the single thing
     // album mode exists to prevent.
-    let shuffled: Vec<i64> = if album_mode {
+    let mut shuffled: Vec<i64> = if album_mode {
         let mut albums = pick_albums_for_artists(pool, &top_artist_ids, bucket).await?;
         shuffle_with_seed(&mut albums, SHUFFLE_SEED ^ bucket.slot() as u64);
         let chosen = fit_albums_to_budget(&albums, TRACKS_PER_MIX);
         tracks_in_album_order(pool, &chosen).await?
     } else {
-        let tracks = pick_tracks_for_artists(pool, &top_artist_ids).await?;
-        // Deterministic shuffle so the same input set produces the same
-        // listening order — no flicker when the user revisits the
-        // playlist mid-session.
-        let mut shuffled: Vec<i64> = tracks.iter().map(|t| t.track_id).collect();
-        shuffle_with_seed(&mut shuffled, SHUFFLE_SEED ^ bucket.slot() as u64);
-        shuffled.truncate(TRACKS_PER_MIX);
-        shuffled
+        tracks_for_bucket(pool, &top_artist_ids, bucket).await?
     };
+
+    if album_mode && shuffled.is_empty() {
+        // Album mode is a preference, not a contract — the same rule
+        // Mood Radio follows. A library whose records are mostly
+        // unanalysed can fill a bucket track by track while no whole
+        // record qualifies, and an empty Daily Mix slot is a worse
+        // answer than a track-based one.
+        tracing::info!(
+            slot = bucket.slot(),
+            "smart playlists: no record fits this bucket, falling back to tracks"
+        );
+        shuffled = tracks_for_bucket(pool, &top_artist_ids, bucket).await?;
+    }
+
     if shuffled.is_empty() {
-        // Album mode can come up empty on a library whose records are
-        // mostly unanalysed, where track mode would still have found
-        // something. Falling back silently would make the setting look
-        // broken in the other direction, so the slot is cleared and the
-        // reason is logged.
         tracing::info!(
             slot = bucket.slot(),
             album_mode,

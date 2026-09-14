@@ -912,6 +912,22 @@ fn read_embedded_lyrics(path: &Path) -> Option<String> {
     resolve_embedded_lyrics([from_synced, from_known_key, from_custom_unsynced])
 }
 
+/// The local tiers below the embedded tag, in order: sidecar first,
+/// then the generic description field.
+///
+/// Exists because [`run_prefetch`] walks the same waterfall as
+/// [`try_local_lyrics`] but spells it out itself, and the description
+/// tier was silently lost from it when it moved out of
+/// [`read_embedded_lyrics`] — a second caller of a function whose
+/// contract had changed. One helper now holds the order, so the two
+/// cannot disagree about it again.
+fn read_local_after_embedded(path: &Path) -> Option<(String, LyricsSource)> {
+    if let Some(content) = read_sidecar_lyrics(path) {
+        return Some((content, LyricsSource::LrcFile));
+    }
+    read_description_lyrics(path).map(|content| (content, LyricsSource::Embedded))
+}
+
 /// Last-resort lyrics from the generic `Description` field, read only
 /// once the real lyrics tags and the sidecar have both come up empty.
 ///
@@ -1758,14 +1774,14 @@ async fn run_prefetch(
         //    network so a user prefetching with bundled lyrics never
         //    hits LRCLIB unnecessarily.
         let path_for_sidecar = file_path.clone();
-        let sidecar =
-            tokio::task::spawn_blocking(move || read_sidecar_lyrics(Path::new(&path_for_sidecar)))
-                .await
-                .ok()
-                .flatten();
-        if let Some(content) = sidecar {
+        let local = tokio::task::spawn_blocking(move || {
+            read_local_after_embedded(Path::new(&path_for_sidecar))
+        })
+        .await
+        .ok()
+        .flatten();
+        if let Some((content, source)) = local {
             let format = detect_format(&content);
-            let source = LyricsSource::LrcFile;
             if let Err(e) = upsert_lyrics(&pool, &file_hash, &content, &format, &source, None).await
             {
                 tracing::warn!(track_id, ?e, "persist sidecar lyrics failed");

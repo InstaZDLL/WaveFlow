@@ -153,14 +153,18 @@ Triggered from [`emit_track_changed`](../../src-tauri/crates/app/src/commands/pl
    top of the text, where the credit always sits — a false positive
    here costs someone their real lyrics, which is worse than the bug.
 
-   Note that the wrong text was **cached**, and the cache is never
-   refetched once a row exists, so an already-affected track needs one
-   refetch before the sidecar is read.
+   The wrong text was also **cached**, and the waterfall never
+   refetches once a row exists — so fixing the reader alone would have
+   reached only tracks nobody had opened yet. A cached `embedded` row
+   that the same recogniser identifies as a service credit is
+   therefore dropped on read and re-resolved: the next `fetch_lyrics`
+   repairs it and falls through to the sidecar, with nothing for the
+   listener to do.
 5. **Musixmatch Enhanced** — asks for word-level karaoke first. It only wins early when the result is actually Enhanced LRC; regular line-level LRC from Musixmatch falls through so LRCLIB's stricter metadata match can still win.
 6. **LRCLIB** — synced lyrics first, falls back to plain text. Result cached as a new row.
 7. **Query-based fallback providers** — LRCLIB (again), then NetEase, Megalobiz, then Genius. This broader scan only runs after tier 6 returns 404 or an empty payload, and prefers synced content over plain text. Musixmatch is deliberately absent: tier 5 owns it, and listing it here would re-issue an identical request.
 
-   LRCLIB leads the chain even though tier 5 just asked it, because **the two ask differently**: tier 5 uses `/api/get`, which matches on artist + track + album + duration and 404s when any of them disagrees with the file's tags — a remaster, a `Deluxe` album name, a rip a few seconds off. This tier goes through the provider's `/api/search`, which is fuzzy. Without it, that 404 fell straight through to providers that answer for almost any query, so a track LRCLIB _does_ carry came back from Genius while picking LRCLIB by hand in the panel found it instantly (issue #463).
+   LRCLIB leads the chain even though tier 6 just asked it, because **the two ask differently**: tier 6 uses `/api/get`, which matches on artist + track + album + duration and 404s when any of them disagrees with the file's tags — a remaster, a `Deluxe` album name, a rip a few seconds off. This tier goes through the provider's `/api/search`, which is fuzzy. Without it, that 404 fell straight through to providers that answer for almost any query, so a track LRCLIB _does_ carry came back from Genius while picking LRCLIB by hand in the panel found it instantly (issue #463).
 
 ### Prefer-LRCLIB toggle (online-first order)
 
