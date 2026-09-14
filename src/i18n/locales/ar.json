@@ -627,6 +627,31 @@
       "trackCount_two": "مقطوعتان",
       "trackCount_few": "{{count}} مقطوعات",
       "trackCount_many": "{{count}} مقطوعة"
+    },
+    "columns": {
+      "choose": "الأعمدة",
+      "shown": "المعروضة",
+      "available": "المتاحة",
+      "fromYourFiles": "من ملفاتك",
+      "resetWidths": "إعادة ضبط العروض",
+      "resize": "تغيير عرض عمود {{column}}",
+      "title": "العنوان",
+      "artist": "الفنان",
+      "album": "الألبوم",
+      "year": "السنة",
+      "trackNumber": "رقم المقطوعة",
+      "discNumber": "رقم القرص",
+      "duration": "المدة",
+      "rating": "التقييم",
+      "bitrate": "معدل البِت",
+      "sampleRate": "معدل العيّنات",
+      "bitDepth": "عمق البِت",
+      "channels": "القنوات",
+      "codec": "المرمِّز",
+      "musicalKey": "المقام",
+      "fileSize": "الحجم",
+      "addedAt": "أُضيف في",
+      "filePath": "المسار"
     }
   },
   "liked": {

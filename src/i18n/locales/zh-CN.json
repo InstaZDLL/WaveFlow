@@ -548,6 +548,31 @@
           "help": "标题相同、艺人相同、时长几乎一致。"
         }
       }
+    },
+    "columns": {
+      "choose": "列",
+      "shown": "已显示",
+      "available": "可添加",
+      "fromYourFiles": "来自你的文件",
+      "resetWidths": "重置列宽",
+      "resize": "调整“{{column}}”列宽",
+      "title": "标题",
+      "artist": "艺人",
+      "album": "专辑",
+      "year": "年份",
+      "trackNumber": "音轨号",
+      "discNumber": "碟片号",
+      "duration": "时长",
+      "rating": "评分",
+      "bitrate": "比特率",
+      "sampleRate": "采样率",
+      "bitDepth": "位深",
+      "channels": "声道",
+      "codec": "编码",
+      "musicalKey": "调性",
+      "fileSize": "大小",
+      "addedAt": "添加时间",
+      "filePath": "路径"
     }
   },
   "liked": {

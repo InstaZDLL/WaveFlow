@@ -1,4 +1,3 @@
-import type { TFunction } from "i18next";
 import {
   AlertTriangle,
   CalendarX,
@@ -48,12 +47,15 @@ const ICONS: Record<string, typeof AlertTriangle> = {
   probable_duplicate: CopyCheck,
 };
 
+/** See the note in `TrackTableHeader`. */
+type Translator = (key: string, options?: Record<string, unknown>) => string;
+
 interface InventoryCategoriesProps {
   categories: InventoryCategory[];
   isLoading: boolean;
   activeKey: string | null;
   onSelect: (key: string) => void;
-  t: TFunction;
+  t: Translator;
 }
 
 export function InventoryCategories({

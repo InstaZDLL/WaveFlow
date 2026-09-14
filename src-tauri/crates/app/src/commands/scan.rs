@@ -241,7 +241,38 @@ fn extract_dsd_file(
         // surface arbitrary tag items. A DSD track falls back to the
         // analysis pass like it did before.
         replay_gain: ReplayGainTags::default(),
+        // Same limitation again: the DSD reader surfaces the handful of
+        // fields it models and nothing else, so there is no remainder
+        // to offer as a custom column (#588).
+        extra_tags: Vec::new(),
     })
+}
+
+/// Replace a track's custom tags with what the file now carries (#588).
+///
+/// Delete-then-insert rather than an upsert: a tag the user *removed*
+/// from the file has to disappear from the column too, and an upsert
+/// leaves it behind forever. The pair runs inside the scan's own
+/// transaction, so a track never has half its old tags and half its new
+/// ones.
+async fn write_extra_tags(
+    tx: &mut sqlx::SqliteConnection,
+    track_id: i64,
+    tags: &[(String, String)],
+) -> AppResult<()> {
+    sqlx::query("DELETE FROM track_tag WHERE track_id = ?")
+        .bind(track_id)
+        .execute(&mut *tx)
+        .await?;
+    for (key, value) in tags {
+        sqlx::query("INSERT INTO track_tag (track_id, key, value) VALUES (?, ?, ?)")
+            .bind(track_id)
+            .bind(key)
+            .bind(value)
+            .execute(&mut *tx)
+            .await?;
+    }
+    Ok(())
 }
 
 /// Single-file extraction dispatcher: branches DSF/DFF onto the
@@ -256,6 +287,13 @@ fn extract_dsd_file(
 struct ScanTimings {
     hash_us: AtomicU64,
     tag_us: AtomicU64,
+    /// The second, concrete tag parse that reads the custom frames
+    /// (#588). Timed apart from `tag_us` on purpose: it is the one cost
+    /// that column feature adds to every scan, and burying it inside
+    /// the total would make it impossible to answer whether it is worth
+    /// paying. Summed across the parallel extraction tasks, like
+    /// `tag_us`.
+    extra_tag_us: AtomicU64,
     /// Wall time spent on the SERIAL per-track DB work in the consumer
     /// loop (the `SELECT existing` probe + every `upsert_*` + the row
     /// INSERT/UPDATE + the periodic `TX_BATCH` commit). Unlike
@@ -371,6 +409,17 @@ fn extract_file(
         ),
     };
 
+    // The custom frames, from a second parse of the concrete container
+    // (#588). They are not in what lofty just handed back: the generic
+    // `Tag` drops everything it cannot map onto an `ItemKey`, and the
+    // remainder it keeps for some formats is `pub(crate)`. Best-effort —
+    // a file whose custom frames cannot be read is still a good track.
+    let t_extra = Instant::now();
+    let extra_tags = waveflow_core::scanner::extra_tags::read_extra_tags(path);
+    timings
+        .extra_tag_us
+        .fetch_add(t_extra.elapsed().as_micros() as u64, Ordering::Relaxed);
+
     // Folder cover fallback: scan the track's parent directory for a
     // sidecar cover.jpg / folder.png / front.webp / ... when the tag had
     // no embedded picture. Common for CD rips and lossless libraries
@@ -410,6 +459,7 @@ fn extract_file(
         cover_art,
         rating,
         replay_gain,
+        extra_tags,
     })
 }
 
@@ -1140,6 +1190,8 @@ pub(crate) async fn scan_folder_inner(
                 .execute(&mut *tx)
                 .await?;
 
+                write_extra_tags(&mut tx, existing_track_id, &extracted.extra_tags).await?;
+
                 sqlx::query("DELETE FROM track_artist WHERE track_id = ?")
                     .bind(existing_track_id)
                     .execute(&mut *tx)
@@ -1311,6 +1363,8 @@ pub(crate) async fn scan_folder_inner(
             // write — outbox rolls back with the track row if the
             // commit fails. Skipped gracefully when sync isn't
             // configured.
+            write_extra_tags(&mut tx, track_id, &extracted.extra_tags).await?;
+
             emit_track_insert_from_extracted(&mut tx, library_id, track_id, &extracted, now)
                 .await?;
 
@@ -1496,6 +1550,7 @@ pub(crate) async fn scan_folder_inner(
         total_ms = t_scan.elapsed().as_millis(),
         hash_cpu_ms_total = timings.hash_us.load(Ordering::Relaxed) / 1000,
         tag_cpu_ms_total = timings.tag_us.load(Ordering::Relaxed) / 1000,
+        extra_tag_cpu_ms_total = timings.extra_tag_us.load(Ordering::Relaxed) / 1000,
         // Serial single-writer DB time — already wall-clock (one
         // consumer task). The slice of `extract_db_ms` NOT covered by
         // this is the parallel extraction (hash + cover) the consumer

@@ -55,6 +55,7 @@ pub mod stats;
 pub mod storage;
 pub mod tasks;
 pub mod track;
+pub mod track_tags;
 pub mod tray;
 pub mod updater;
 pub mod web_radio_catalogue;

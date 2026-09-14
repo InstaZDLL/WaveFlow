@@ -10,6 +10,19 @@ import { createPortal } from "react-dom";
 
 import { PlaylistGrid } from "./library/PlaylistGrid";
 import { InventoryCategories } from "./library/InventoryCategories";
+import { TrackTableHeader } from "./library/TrackTableHeader";
+import { ColumnPicker } from "./library/ColumnPicker";
+import { useTrackColumns } from "../../hooks/useTrackColumns";
+import { listTrackTagKeys, listTrackTagValues } from "../../lib/tauri/trackTags";
+import {
+  cellText,
+  specFor,
+  tagKeyOf,
+  trackSizeFor,
+  type ColumnId,
+  type ColumnLayout,
+} from "../../lib/trackColumns";
+import { fitWidth, fontOf } from "../../lib/measureText";
 import {
   inventorySummary,
   inventoryTracks,
@@ -27,7 +40,6 @@ import {
   RefreshCcw,
   FileSearch,
   ListMusic,
-  Clock,
   LayoutList,
   AlignJustify,
   Plus,
@@ -307,6 +319,20 @@ export function LibraryView({
     // skeleton before the first fetch is even asked for.
     "a-corriger": false,
   });
+  // Which columns the track table shows, in what order and how wide
+  // (#588). One preference for every list that renders the shared
+  // table, so the library, the folder browser and the inventory agree.
+  const trackColumns = useTrackColumns();
+  // Tag keys the library actually holds, offered in the picker with a
+  // count each. Read once per library change: it is a GROUP BY over a
+  // side table, and it only moves when a scan has run.
+  const [tagKeys, setTagKeys] = useState<{ key: string; count: number }[]>([]);
+  // Values for the chosen `tag:` columns only. Empty -- and never
+  // fetched -- while no such column is shown, which is the common case.
+  const [tagValues, setTagValues] = useState<
+    Map<string, Record<string, string>>
+  >(new Map());
+
   // Inventory tab (#589). Three pieces of state rather than one: the
   // categories survive a category being opened and closed, so reopening
   // one does not re-run the expensive summary.
@@ -430,6 +456,65 @@ export function LibraryView({
       cancelled = true;
     };
   }, [remoteAvailable]);
+
+  // Which custom tag keys the library holds. Only moves when a scan
+  // has run, so it follows the library signature rather than any
+  // render.
+  useEffect(() => {
+    let cancelled = false;
+    listTrackTagKeys()
+      .then((keys) => {
+        if (!cancelled) setTagKeys(keys);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          console.error("[LibraryView] listTrackTagKeys failed", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [librariesSignature, editRefetch]);
+
+  // Values for the chosen `tag:` columns. Nothing is fetched while none
+  // is shown, which is the common case -- and the dependency is the
+  // sorted key list rather than the layout, so reordering or resizing a
+  // column does not re-query the whole library.
+  // The chosen tag keys, as a value that only changes when the SET
+  // changes -- reordering or resizing a column must not re-query the
+  // whole library. `JSON.stringify` of a sorted array rather than a
+  // joined string, because a tag key can contain any character a tagger
+  // chose to write and there is no separator that is safe by
+  // construction.
+  const chosenTagKeys = useMemo(
+    () =>
+      JSON.stringify(
+        trackColumns.layout.order
+          .map((id) => (id.startsWith("tag:") ? id.slice(4) : null))
+          .filter((key): key is string => key !== null)
+          .sort(),
+      ),
+    [trackColumns.layout.order],
+  );
+  useEffect(() => {
+    const keys = JSON.parse(chosenTagKeys) as string[];
+    if (keys.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTagValues(new Map());
+      return;
+    }
+    let cancelled = false;
+    listTrackTagValues(keys)
+      .then((byTrack) => {
+        if (!cancelled) setTagValues(new Map(Object.entries(byTrack)));
+      })
+      .catch((err) => {
+        if (!cancelled)
+          console.error("[LibraryView] listTrackTagValues failed", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [chosenTagKeys, librariesSignature, editRefetch]);
 
   // The inventory is the one tab that fetches on activation rather than
   // in parallel with the others: its counts are album-level aggregates
@@ -973,6 +1058,26 @@ export function LibraryView({
         isLoading={busy}
         view={tracksView}
         t={t}
+        locale={i18n.resolvedLanguage ?? i18n.language}
+        layout={trackColumns.layout}
+        sort={tracksSort.sort}
+        onSort={(orderBy) =>
+          // Clicking the active column flips the direction; clicking
+          // another one starts it at whatever reads as "most first"
+          // for that column, which the backend decides.
+          tracksSort.setSort({
+            orderBy,
+            direction:
+              tracksSort.sort.orderBy === orderBy &&
+              tracksSort.sort.direction === "asc"
+                ? "desc"
+                : "asc",
+          })
+        }
+        onResizeColumn={(id, width) => {
+          void trackColumns.setWidth(id, width);
+        }}
+        tagValues={tagValues}
         onPlayTrack={(index) => onPlayRow(index)}
         currentTrackId={currentTrack?.id ?? null}
         isPlaying={isPlaying}
@@ -1212,6 +1317,28 @@ export function LibraryView({
           >
             <AlignJustify size={18} />
           </button>
+          {/* Beside the density toggle, because both answer "how should
+              this list look" -- and only on the tabs that render the
+              track table, since on an album or artist grid the control
+              would have nothing to configure. */}
+          {(activeTab === "morceaux" ||
+            activeTab === "dossiers" ||
+            activeTab === "a-corriger") && (
+            <ColumnPicker
+              layout={trackColumns.layout}
+              tagKeys={tagKeys}
+              onToggle={(id) => {
+                void trackColumns.toggle(id);
+              }}
+              onReorder={(order) => {
+                void trackColumns.setOrder(order);
+              }}
+              onResetWidths={() => {
+                void trackColumns.resetWidths();
+              }}
+              t={t}
+            />
+          )}
         </div>
       </div>
 
@@ -1915,6 +2042,18 @@ interface TrackTableProps {
   downloadingRemote: Set<string>;
   /** Server tracks already kept offline. */
   downloadedRemote: Set<string>;
+  /** For the date and byte-size columns (#588). */
+  locale: string;
+  /** Which columns to show, in what order, and how wide (#588). */
+  layout: ColumnLayout;
+  /** The active sort, so the header can mark the column and its
+   *  direction. `null` in the lists that have no sort of their own. */
+  sort: { orderBy: string; direction: "asc" | "desc" } | null;
+  onSort: (orderBy: string) => void;
+  onResizeColumn: (id: ColumnId, width: number) => void;
+  /** Values of the chosen custom-tag columns, keyed by track id then
+   *  tag key. Empty unless a `tag:` column is shown. */
+  tagValues: Map<string, Record<string, string>>;
 }
 
 function TrackTable({
@@ -1945,6 +2084,12 @@ function TrackTable({
   onEditRemoteTags,
   downloadingRemote,
   downloadedRemote,
+  locale,
+  layout,
+  sort,
+  onSort,
+  onResizeColumn,
+  tagValues,
 }: TrackTableProps) {
   "use no memo";
   const unknown = t("library.table.unknown");
@@ -2028,36 +2173,97 @@ function TrackTable({
   // buttons there (keep offline, import, correct tags) at 28px each, so
   // the 2.5rem it used to be overflowed into the heart beside it — it
   // already did with two, and a third made it plain.
-  const gridCols =
-    view === "list"
-      ? "grid-cols-[3rem_2.75rem_1fr_1fr_1fr_7rem_5rem_2rem_5.5rem]"
-      : "grid-cols-[3rem_1fr_1fr_1fr_7rem_5rem_2rem_5.5rem]";
+  //
+  // Built from the layout since #588, so a `grid-cols-[...]` utility
+  // can no longer be the source of truth. The chrome keeps its fixed
+  // tracks at both ends -- the index, the thumbnail the list view
+  // shows, the heart, the actions -- because none of it carries a value
+  // and none of it sorts.
+  const leadingSpacers = view === "list" ? 2 : 1;
+  const gridCols = [
+    "3rem",
+    ...(view === "list" ? ["2.75rem"] : []),
+    ...layout.order.map((id) => trackSizeFor(id, layout)),
+    "2rem",
+    "5.5rem",
+  ].join(" ");
+
+  // Formatters for the text a column shows, and for measuring it.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const textFor = useCallback(
+    (id: ColumnId, row: LibraryTrackRow) =>
+      cellText(id, row, {
+        duration: formatDuration,
+        bytes: (n) => formatBytes(n, locale),
+        date: (epoch) =>
+          new Date(epoch * 1000).toLocaleDateString(locale, {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          }),
+        tag: (r, key) => tagValues.get(r.id)?.[key] ?? null,
+      }),
+    [locale, tagValues],
+  );
+
+  /** Double-click on a resize handle: size the column to its content.
+   *
+   *  Measured through a canvas rather than off the DOM, because the
+   *  rows are virtualised -- the ones outside the viewport have no
+   *  computed layout, so a DOM measurement would size the column to
+   *  whatever happens to be on screen. The header label is measured
+   *  too, in its own font: a column fitted to short content otherwise
+   *  shows a truncated title, which reads as the fit having failed. */
+  const fitColumn = useCallback(
+    (id: ColumnId) => {
+      const spec = specFor(id);
+      const tag = tagKeyOf(id);
+      const label = tag !== null ? tag : t(`library.columns.${spec.labelKey}`);
+      const cell = bodyRef.current?.querySelector("[data-track-cell]") ?? null;
+      const header = bodyRef.current
+        ?.closest("[data-track-table]")
+        ?.querySelector("[role='columnheader']") ?? null;
+      const width = fitWidth({
+        values: tracks.map((row) => textFor(id, row)),
+        headerLabel: label,
+        cellFont: fontOf(cell),
+        headerFont: fontOf(header),
+        // The cell's own gap, plus room for the sort caret the header
+        // draws beside its label.
+        padding: 28,
+        min: spec.minWidth,
+        max: 640,
+      });
+      if (width !== null) onResizeColumn(id, width);
+    },
+    [onResizeColumn, t, tracks, textFor],
+  );
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40 overflow-hidden">
-      {/* Fixed header */}
-      <div
-        className={`grid ${gridCols} gap-4 px-5 py-3 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-100 dark:border-zinc-800`}
-      >
-        <span className="text-right">{t("library.table.number")}</span>
-        {view === "list" && <span aria-hidden="true" />}
-        <span>{t("library.table.title")}</span>
-        <span>{t("library.table.artist")}</span>
-        <span>{t("library.table.album")}</span>
-        <span>{t("library.rating")}</span>
-        <span
-          className="flex justify-end"
-          aria-label={t("library.table.duration")}
-        >
-          <Clock size={14} />
-        </span>
-        <span aria-hidden="true" />
-        <span aria-hidden="true" />
-      </div>
+    <div
+      data-track-table
+      className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40"
+    >
+      {/* Sticky, not fixed. `overflow-hidden` had to go with it: it
+          clips a sticky descendant against its own rounded corners, and
+          the header then stops sticking at all. */}
+      <TrackTableHeader
+        layout={layout}
+        gridCols={gridCols}
+        sort={sort}
+        onSort={onSort}
+        onResize={onResizeColumn}
+        onFit={fitColumn}
+        leadingSpacers={leadingSpacers}
+        t={t}
+      />
 
       {/* Virtualized body */}
       <div
-        ref={parentRef}
+        ref={(node) => {
+          parentRef.current = node;
+          bodyRef.current = node;
+        }}
         className={isLoading ? "opacity-50" : ""}
         style={{
           height: `${virtualizer.getTotalSize()}px`,
@@ -2193,87 +2399,147 @@ function TrackTable({
                     iconSize={18}
                   />
                 ))}
-              <span
-                className={`text-sm truncate flex items-center gap-2 ${
-                  isCurrent
-                    ? "text-emerald-600 dark:text-emerald-400 font-semibold"
-                    : "text-zinc-800 dark:text-zinc-200"
-                }`}
-              >
-                <span className="truncate">{track.title}</span>
-                {/* One list, and every row says where it comes from. */}
-                {!local && (
-                  <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
-                    {t("library.source.remote")}
+              {/* One cell per chosen column, in the chosen order
+                  (#588). The five that used to be hard-coded here keep
+                  their exact markup -- the title still carries the
+                  source badge and the Hi-Res pill, the artist and album
+                  are still links, the rating is still writable -- so
+                  making the set configurable changed what is rendered
+                  and not how any of it behaves. */}
+              {layout.order.map((id) => {
+                const spec = specFor(id);
+                const align =
+                  spec.align === "right"
+                    ? "text-right"
+                    : spec.align === "center"
+                      ? "text-center"
+                      : "";
+                if (id === "title") {
+                  return (
+                    <span
+                      key={id}
+                      data-track-cell
+                      className={`text-sm truncate flex items-center gap-2 ${
+                        isCurrent
+                          ? "text-emerald-600 dark:text-emerald-400 font-semibold"
+                          : "text-zinc-800 dark:text-zinc-200"
+                      }`}
+                    >
+                      <span className="truncate">{track.title}</span>
+                      {/* One list, and every row says where it comes from. */}
+                      {!local && (
+                        <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                          {t("library.source.remote")}
+                        </span>
+                      )}
+                      <HiResBadge
+                        bitDepth={track.bit_depth}
+                        sampleRate={track.sample_rate}
+                        codec={track.codec}
+                        variant="inline"
+                      />
+                    </span>
+                  );
+                }
+                if (id === "artist") {
+                  return (
+                    <ArtistLink
+                      key={id}
+                      name={track.artist_name}
+                      artistIds={local ? track.artist_ids : null}
+                      onNavigate={onNavigateToArtist}
+                      onNavigateRemote={
+                        local || !track.artist_id
+                          ? undefined
+                          : () =>
+                              onNavigateToRemoteArtist(
+                                track.artist_id as string,
+                              )
+                      }
+                      fallback={unknown}
+                      className="text-sm text-zinc-500 truncate"
+                    />
+                  );
+                }
+                if (id === "album") {
+                  return (
+                    <AlbumLink
+                      key={id}
+                      title={track.album_title}
+                      albumId={
+                        local && track.album_id ? Number(track.album_id) : null
+                      }
+                      onNavigate={onNavigateToAlbum}
+                      onNavigateRemote={
+                        local || !track.album_id
+                          ? undefined
+                          : () =>
+                              onNavigateToRemoteAlbum(track.album_id as string)
+                      }
+                      fallback={unknown}
+                      className="text-sm text-zinc-500 truncate"
+                    />
+                  );
+                }
+                if (id === "rating") {
+                  return (
+                    <div
+                      key={id}
+                      className="flex items-center"
+                      onDoubleClick={(e) => e.stopPropagation()}
+                    >
+                      {/* Rating writes a POPM frame into the file. A
+                          server track has no file here, so the control
+                          is absent rather than inert -- five hollow
+                          stars that do nothing read as "unrated". */}
+                      {localId !== null && (
+                        <StarRating
+                          value={
+                            ratingOverrides.has(localId)
+                              ? (ratingOverrides.get(localId) ?? null)
+                              : track.rating
+                          }
+                          size="sm"
+                          onChange={(rating) => {
+                            setRatingOverrides((prev) => {
+                              const next = new Map(prev);
+                              next.set(localId, rating);
+                              return next;
+                            });
+                            setTrackRating(localId, rating).catch((err) => {
+                              console.error(
+                                "[LibraryView] set rating failed",
+                                err,
+                              );
+                              setRatingOverrides((prev) => {
+                                const next = new Map(prev);
+                                next.delete(localId);
+                                return next;
+                              });
+                            });
+                          }}
+                        />
+                      )}
+                    </div>
+                  );
+                }
+                // Everything else is text, and goes through the same
+                // formatter the column measurement uses -- so a column
+                // fitted to its content is fitted to what it shows.
+                const text = textFor(id, track);
+                return (
+                  <span
+                    key={id}
+                    data-track-cell
+                    title={text || undefined}
+                    className={`text-sm truncate text-zinc-400 ${align} ${
+                      spec.align === "right" ? "tabular-nums" : ""
+                    }`}
+                  >
+                    {text}
                   </span>
-                )}
-                <HiResBadge
-                  bitDepth={track.bit_depth}
-                  sampleRate={track.sample_rate}
-                  codec={track.codec}
-                  variant="inline"
-                />
-              </span>
-              <ArtistLink
-                name={track.artist_name}
-                artistIds={local ? track.artist_ids : null}
-                onNavigate={onNavigateToArtist}
-                onNavigateRemote={
-                  local || !track.artist_id
-                    ? undefined
-                    : () => onNavigateToRemoteArtist(track.artist_id as string)
-                }
-                fallback={unknown}
-                className="text-sm text-zinc-500 truncate"
-              />
-              <AlbumLink
-                title={track.album_title}
-                albumId={local && track.album_id ? Number(track.album_id) : null}
-                onNavigate={onNavigateToAlbum}
-                onNavigateRemote={
-                  local || !track.album_id
-                    ? undefined
-                    : () => onNavigateToRemoteAlbum(track.album_id as string)
-                }
-                fallback={unknown}
-                className="text-sm text-zinc-500 truncate"
-              />
-              <div
-                className="flex items-center"
-                onDoubleClick={(e) => e.stopPropagation()}
-              >
-                {/* Rating writes a POPM frame into the file. A server track has
-                    no file here, so the control is absent rather than inert —
-                    five hollow stars that do nothing read as "unrated". */}
-                {localId !== null && (
-                <StarRating
-                  value={
-                    ratingOverrides.has(localId)
-                      ? (ratingOverrides.get(localId) ?? null)
-                      : track.rating
-                  }
-                  size="sm"
-                  onChange={(rating) => {
-                    setRatingOverrides((prev) => {
-                      const next = new Map(prev);
-                      next.set(localId, rating);
-                      return next;
-                    });
-                    setTrackRating(localId, rating).catch((err) => {
-                      console.error("[LibraryView] set rating failed", err);
-                      setRatingOverrides((prev) => {
-                        const next = new Map(prev);
-                        next.delete(localId);
-                        return next;
-                      });
-                    });
-                  }}
-                />
-                )}
-              </div>
-              <span className="text-sm tabular-nums text-zinc-400 text-right">
-                {formatDuration(track.duration_ms)}
-              </span>
+                );
+              })}
               <div className="flex justify-center">
                 {localId !== null && (
                 <button

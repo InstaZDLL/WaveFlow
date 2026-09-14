@@ -548,6 +548,31 @@
           "help": "Gleicher Titel, gleicher Interpret, fast gleiche Länge."
         }
       }
+    },
+    "columns": {
+      "choose": "Spalten",
+      "shown": "Angezeigt",
+      "available": "Verfügbar",
+      "fromYourFiles": "Aus Ihren Dateien",
+      "resetWidths": "Breiten zurücksetzen",
+      "resize": "Spalte {{column}} anpassen",
+      "title": "Titel",
+      "artist": "Interpret",
+      "album": "Album",
+      "year": "Jahr",
+      "trackNumber": "Titelnr.",
+      "discNumber": "CD-Nr.",
+      "duration": "Dauer",
+      "rating": "Bewertung",
+      "bitrate": "Bitrate",
+      "sampleRate": "Abtastrate",
+      "bitDepth": "Bittiefe",
+      "channels": "Kanäle",
+      "codec": "Codec",
+      "musicalKey": "Tonart",
+      "fileSize": "Größe",
+      "addedAt": "Hinzugefügt",
+      "filePath": "Pfad"
     }
   },
   "liked": {

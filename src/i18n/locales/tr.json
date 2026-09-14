@@ -548,6 +548,31 @@
           "help": "Aynı başlık, aynı sanatçı, neredeyse aynı süre."
         }
       }
+    },
+    "columns": {
+      "choose": "Sütunlar",
+      "shown": "Gösterilen",
+      "available": "Kullanılabilir",
+      "fromYourFiles": "Dosyalarınızdan",
+      "resetWidths": "Genişlikleri sıfırla",
+      "resize": "{{column}} sütununu yeniden boyutlandır",
+      "title": "Başlık",
+      "artist": "Sanatçı",
+      "album": "Albüm",
+      "year": "Yıl",
+      "trackNumber": "Parça no",
+      "discNumber": "Disk no",
+      "duration": "Süre",
+      "rating": "Puan",
+      "bitrate": "Bit hızı",
+      "sampleRate": "Örnekleme",
+      "bitDepth": "Bit derinliği",
+      "channels": "Kanal",
+      "codec": "Kodek",
+      "musicalKey": "Ton",
+      "fileSize": "Boyut",
+      "addedAt": "Eklenme",
+      "filePath": "Yol"
     }
   },
   "liked": {

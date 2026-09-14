@@ -598,6 +598,31 @@
       "summary_many": "{{count}} замечаний",
       "trackCount_few": "{{count}} трека",
       "trackCount_many": "{{count}} треков"
+    },
+    "columns": {
+      "choose": "Столбцы",
+      "shown": "Показаны",
+      "available": "Доступны",
+      "fromYourFiles": "Из ваших файлов",
+      "resetWidths": "Сбросить ширину",
+      "resize": "Изменить ширину столбца «{{column}}»",
+      "title": "Название",
+      "artist": "Исполнитель",
+      "album": "Альбом",
+      "year": "Год",
+      "trackNumber": "№ трека",
+      "discNumber": "№ диска",
+      "duration": "Длительность",
+      "rating": "Оценка",
+      "bitrate": "Битрейт",
+      "sampleRate": "Частота",
+      "bitDepth": "Разрядность",
+      "channels": "Каналы",
+      "codec": "Кодек",
+      "musicalKey": "Тональность",
+      "fileSize": "Размер",
+      "addedAt": "Добавлено",
+      "filePath": "Путь"
     }
   },
   "liked": {

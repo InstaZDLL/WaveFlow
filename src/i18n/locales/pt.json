@@ -548,6 +548,31 @@
           "help": "Mesmo título, mesmo artista, duração quase igual."
         }
       }
+    },
+    "columns": {
+      "choose": "Colunas",
+      "shown": "Visíveis",
+      "available": "Disponíveis",
+      "fromYourFiles": "Dos seus ficheiros",
+      "resetWidths": "Repor larguras",
+      "resize": "Redimensionar a coluna {{column}}",
+      "title": "Título",
+      "artist": "Artista",
+      "album": "Álbum",
+      "year": "Ano",
+      "trackNumber": "N.º de faixa",
+      "discNumber": "N.º de disco",
+      "duration": "Duração",
+      "rating": "Classificação",
+      "bitrate": "Taxa de bits",
+      "sampleRate": "Amostragem",
+      "bitDepth": "Profundidade",
+      "channels": "Canais",
+      "codec": "Códec",
+      "musicalKey": "Tonalidade",
+      "fileSize": "Tamanho",
+      "addedAt": "Adicionado",
+      "filePath": "Caminho"
     }
   },
   "liked": {

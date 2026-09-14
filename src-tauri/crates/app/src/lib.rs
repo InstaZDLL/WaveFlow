@@ -1088,6 +1088,8 @@ pub fn run() {
             commands::player::player_set_match_source_rate,
             commands::inventory::inventory_summary,
             commands::inventory::inventory_tracks,
+            commands::track_tags::list_track_tag_keys,
+            commands::track_tags::list_track_tag_values,
             commands::tasks::list_tasks,
             commands::tasks::cancel_task,
             commands::storage::get_cache_location,

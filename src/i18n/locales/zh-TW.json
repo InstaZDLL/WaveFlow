@@ -548,6 +548,31 @@
           "help": "標題相同、演出者相同、長度幾乎一致。"
         }
       }
+    },
+    "columns": {
+      "choose": "欄",
+      "shown": "已顯示",
+      "available": "可加入",
+      "fromYourFiles": "來自你的檔案",
+      "resetWidths": "重設欄寬",
+      "resize": "調整「{{column}}」欄寬",
+      "title": "標題",
+      "artist": "演出者",
+      "album": "專輯",
+      "year": "年份",
+      "trackNumber": "曲目編號",
+      "discNumber": "碟片編號",
+      "duration": "長度",
+      "rating": "評分",
+      "bitrate": "位元率",
+      "sampleRate": "取樣率",
+      "bitDepth": "位元深度",
+      "channels": "聲道",
+      "codec": "編碼",
+      "musicalKey": "調性",
+      "fileSize": "大小",
+      "addedAt": "加入時間",
+      "filePath": "路徑"
     }
   },
   "liked": {

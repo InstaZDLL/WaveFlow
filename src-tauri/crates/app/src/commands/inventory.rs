@@ -314,7 +314,7 @@ pub async fn inventory_tracks(
             .ok_or_else(|| AppError::Other(format!("unknown inventory category: {category}")))?
     };
 
-    let sql = library_tracks_sql_where(clause, order_clause);
+    let sql = library_tracks_sql_where(clause, &order_clause);
     let raw = sqlx::query_as::<_, LibraryTrackRawRow>(sqlx::AssertSqlSafe(sql))
         .bind(Option::<i64>::None)
         .bind(Option::<i64>::None)

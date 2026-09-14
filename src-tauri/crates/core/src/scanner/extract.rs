@@ -253,6 +253,11 @@ pub struct ExtractedFile {
     /// prefers it over our own analysis, which is why it is read here
     /// rather than only when the user asks for an analysis pass.
     pub replay_gain: super::replay_gain::ReplayGainTags,
+    /// Tags the file carries that the generic `Tag` cannot model, as
+    /// `(key, value)` sorted by key (#588). Read from the concrete
+    /// container by [`super::extra_tags`]; empty for a format that has
+    /// no notion of one, and for any file whose second parse failed.
+    pub extra_tags: Vec<(String, String)>,
 }
 
 pub struct ExtractedCover {

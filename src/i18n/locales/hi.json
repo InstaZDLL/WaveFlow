@@ -548,6 +548,31 @@
           "help": "वही शीर्षक, वही कलाकार, लगभग वही अवधि।"
         }
       }
+    },
+    "columns": {
+      "choose": "स्तंभ",
+      "shown": "दिखाए गए",
+      "available": "उपलब्ध",
+      "fromYourFiles": "आपकी फ़ाइलों से",
+      "resetWidths": "चौड़ाइयाँ रीसेट करें",
+      "resize": "{{column}} स्तंभ की चौड़ाई बदलें",
+      "title": "शीर्षक",
+      "artist": "कलाकार",
+      "album": "एल्बम",
+      "year": "वर्ष",
+      "trackNumber": "ट्रैक क्रमांक",
+      "discNumber": "डिस्क क्रमांक",
+      "duration": "अवधि",
+      "rating": "रेटिंग",
+      "bitrate": "बिटरेट",
+      "sampleRate": "सैंपल दर",
+      "bitDepth": "बिट गहराई",
+      "channels": "चैनल",
+      "codec": "कोडेक",
+      "musicalKey": "स्वरग्राम",
+      "fileSize": "आकार",
+      "addedAt": "जोड़ा गया",
+      "filePath": "पथ"
     }
   },
   "liked": {

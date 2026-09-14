@@ -548,6 +548,31 @@
           "help": "Judul sama, artis sama, durasi hampir sama."
         }
       }
+    },
+    "columns": {
+      "choose": "Kolom",
+      "shown": "Ditampilkan",
+      "available": "Tersedia",
+      "fromYourFiles": "Dari berkas Anda",
+      "resetWidths": "Setel ulang lebar",
+      "resize": "Ubah lebar kolom {{column}}",
+      "title": "Judul",
+      "artist": "Artis",
+      "album": "Album",
+      "year": "Tahun",
+      "trackNumber": "No. lagu",
+      "discNumber": "No. cakram",
+      "duration": "Durasi",
+      "rating": "Nilai",
+      "bitrate": "Bitrate",
+      "sampleRate": "Laju cuplik",
+      "bitDepth": "Kedalaman bit",
+      "channels": "Kanal",
+      "codec": "Kodek",
+      "musicalKey": "Nada dasar",
+      "fileSize": "Ukuran",
+      "addedAt": "Ditambahkan",
+      "filePath": "Jalur"
     }
   },
   "liked": {

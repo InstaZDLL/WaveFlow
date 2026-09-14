@@ -175,6 +175,34 @@ Auto-creates a default library on the very first drop when the profile has none,
 
 UI: emerald drop overlay in [`AppLayout`](../../src/components/layout/AppLayout.tsx) renders a fade-in border + drop hint while the user is dragging, then a spinner while the backend scan runs. `pointer-events: none` on the overlay so the drop still hits Tauri's native handler.
 
+## Track-list columns
+
+Which columns the track table shows, in what order and how wide, per profile in `profile_setting['ui.track_columns']` (#588). One preference for every list that renders the shared table — the Tracks tab, the folder browser, the inventory — so the three cannot drift. Model in [`src/lib/trackColumns.ts`](../../src/lib/trackColumns.ts), header in [`TrackTableHeader`](../../src/components/views/library/TrackTableHeader.tsx), picker in [`ColumnPicker`](../../src/components/views/library/ColumnPicker.tsx).
+
+**The row's chrome is not a column.** The index / playing indicator, the artwork thumbnail, the like heart and the overflow menu stay pinned at the two ends: none carries a value, none sorts, and hiding the overflow menu would remove the only way to reach half the row's actions.
+
+Five things that are easy to get wrong here, and are not:
+
+- **Sorting happens in SQL, over a whitelist.** `browse::track_sort_expr` maps a column id to an expression; anything unmatched falls back to the default clause, which is the only reason the caller may hand the result to `AssertSqlSafe`. Nullable columns put their NULLs last **in both directions** — an untagged track is not a track with the smallest value — and every sort carries a tie-break so two identical queries cannot return two different orders. The previous shape spelled out two `match` arms per column and had quietly stopped at seven of them.
+- **The resize handle lives outside the sort button.** Inside it, a press to widen the column fires the sort on release, so every resize reorders the list.
+- **"Fit to content" measures through a canvas, not the DOM.** The rows are virtualised, so the ones outside the viewport have no computed layout and a DOM measurement would size the column to whatever happened to be on screen. The **header label is measured too**, in the header's own (uppercase, bold, letter-spaced) font: a column fitted to short content otherwise shows a truncated title, which reads as the fit having failed.
+- **The title column is flexible and has a floor, and cannot be removed.** It is the only one that takes leftover space, so without a `minmax()` floor it absorbs every pixel the others take and disappears once a few columns are added; and a table of metadata about songs it does not name is reachable by unticking one box, so `sanitizeLayout` puts it back.
+- **The header is sticky at `top-16`**, under the TopBar. The table's `overflow-hidden` had to go with it: it clips a sticky descendant against its own rounded corners, and the header then stops sticking at all.
+
+### Columns from the user's own tags
+
+An id of the form `tag:<key>` shows a frame from the user's files. Keys are offered from what the library **actually holds**, with a count each ([`commands/track_tags.rs`](../../src-tauri/crates/app/src/commands/track_tags.rs)) — the theoretical list of frames each format allows would bury the five useful ones under thirty-five nobody has.
+
+**Reading those tags needs a second parse of the file, and this is the part the issue mispredicted.** It assumed the reading already existed because `edit.rs` goes through the concrete tag type per format so non-standard frames survive a save — true of the *writer*. The scanner reads through `lofty::read_from_path`, which hands back generic `Tag`s produced by splitting each concrete tag: `ItemKey` has no `Unknown` variant, and the remainder is stashed in a `pub(crate)` companion slot (and for Vorbis comments not kept at all). The custom frames are therefore simply absent from what the scanner parsed.
+
+[`waveflow_core::scanner::extra_tags`](../../src-tauri/crates/core/src/scanner/extra_tags.rs) opens the concrete container and reads the remainder — `TXXX` descriptions for ID3v2, comment names for Vorbis, freeform atoms for MP4, items for APE. Consequences worth knowing:
+
+- **A rescan is needed** before a tag column has anything to show: values land in `track_tag` at scan time.
+- **The cost is one extra tag parse per file**, over the header region the first parse has just pulled into the page cache. It is timed separately as `extra_tag_cpu_ms_total` in the scan log, on purpose: it is the one cost this feature adds to every scan, and burying it in the total would make it impossible to answer whether it is worth paying.
+- **Writes are delete-then-insert**, so a tag the user *removed* from a file disappears from the column too; an upsert would leave it behind for good.
+- **A tag column does not sort.** Its values live in a side table the listing query does not join, and a control that silently does nothing is worse than no control.
+- Keys WaveFlow already models (`REPLAYGAIN_*`, `MUSICBRAINZ*`, lyrics, cue sheets) are skipped: a column for one of those would show a stale copy of something the library models properly.
+
 ## "Needs attention" inventory
 
 [`commands/inventory.rs`](../../src-tauri/crates/app/src/commands/inventory.rs), surfaced as the library's last tab (#589). Twelve counted categories you click into — six "missing field" checks, one for formats we cannot write tags into, four album-level inconsistencies, and probable duplicates.

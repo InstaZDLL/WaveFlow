@@ -10,6 +10,7 @@
 //! and the row upserts that wrap each helper for transactional writes.
 
 pub mod canonical;
+pub mod extra_tags;
 pub mod extract;
 pub mod replay_gain;
 

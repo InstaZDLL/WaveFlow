@@ -548,6 +548,31 @@
           "help": "같은 제목, 같은 아티스트, 거의 같은 길이."
         }
       }
+    },
+    "columns": {
+      "choose": "열",
+      "shown": "표시 중",
+      "available": "사용 가능",
+      "fromYourFiles": "파일의 태그에서",
+      "resetWidths": "너비 초기화",
+      "resize": "{{column}} 열 너비 조절",
+      "title": "제목",
+      "artist": "아티스트",
+      "album": "앨범",
+      "year": "연도",
+      "trackNumber": "트랙 번호",
+      "discNumber": "디스크 번호",
+      "duration": "길이",
+      "rating": "별점",
+      "bitrate": "비트레이트",
+      "sampleRate": "샘플레이트",
+      "bitDepth": "비트 깊이",
+      "channels": "채널",
+      "codec": "코덱",
+      "musicalKey": "조성",
+      "fileSize": "크기",
+      "addedAt": "추가한 날짜",
+      "filePath": "경로"
     }
   },
   "liked": {

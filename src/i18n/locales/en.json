@@ -548,6 +548,31 @@
           "help": "Same title, same artist, nearly the same length."
         }
       }
+    },
+    "columns": {
+      "choose": "Columns",
+      "shown": "Shown",
+      "available": "Available",
+      "fromYourFiles": "From your files",
+      "resetWidths": "Reset widths",
+      "resize": "Resize the {{column}} column",
+      "title": "Title",
+      "artist": "Artist",
+      "album": "Album",
+      "year": "Year",
+      "trackNumber": "Track no.",
+      "discNumber": "Disc no.",
+      "duration": "Length",
+      "rating": "Rating",
+      "bitrate": "Bitrate",
+      "sampleRate": "Sample rate",
+      "bitDepth": "Bit depth",
+      "channels": "Channels",
+      "codec": "Codec",
+      "musicalKey": "Key",
+      "fileSize": "Size",
+      "addedAt": "Added",
+      "filePath": "Path"
     }
   },
   "liked": {

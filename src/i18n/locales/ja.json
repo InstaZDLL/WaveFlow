@@ -548,6 +548,31 @@
           "help": "同じ曲名、同じアーティスト、ほぼ同じ長さ。"
         }
       }
+    },
+    "columns": {
+      "choose": "列",
+      "shown": "表示中",
+      "available": "利用可能",
+      "fromYourFiles": "ファイルのタグから",
+      "resetWidths": "幅をリセット",
+      "resize": "{{column}} 列の幅を変更",
+      "title": "タイトル",
+      "artist": "アーティスト",
+      "album": "アルバム",
+      "year": "年",
+      "trackNumber": "トラック番号",
+      "discNumber": "ディスク番号",
+      "duration": "長さ",
+      "rating": "評価",
+      "bitrate": "ビットレート",
+      "sampleRate": "サンプルレート",
+      "bitDepth": "ビット深度",
+      "channels": "チャンネル",
+      "codec": "コーデック",
+      "musicalKey": "キー",
+      "fileSize": "サイズ",
+      "addedAt": "追加日",
+      "filePath": "パス"
     }
   },
   "liked": {

@@ -548,6 +548,31 @@
           "help": "Zelfde titel, zelfde artiest, bijna zelfde lengte."
         }
       }
+    },
+    "columns": {
+      "choose": "Kolommen",
+      "shown": "Getoond",
+      "available": "Beschikbaar",
+      "fromYourFiles": "Uit je bestanden",
+      "resetWidths": "Breedtes herstellen",
+      "resize": "Kolom {{column}} verbreden of versmallen",
+      "title": "Titel",
+      "artist": "Artiest",
+      "album": "Album",
+      "year": "Jaar",
+      "trackNumber": "Nr.",
+      "discNumber": "Schijf",
+      "duration": "Duur",
+      "rating": "Waardering",
+      "bitrate": "Bitrate",
+      "sampleRate": "Samplerate",
+      "bitDepth": "Bitdiepte",
+      "channels": "Kanalen",
+      "codec": "Codec",
+      "musicalKey": "Toonsoort",
+      "fileSize": "Grootte",
+      "addedAt": "Toegevoegd",
+      "filePath": "Pad"
     }
   },
   "liked": {
