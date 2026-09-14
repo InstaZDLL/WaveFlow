@@ -4,7 +4,7 @@ The audio path lives in [`src-tauri/crates/app/src/audio/`](../../src-tauri/crat
 
 ## Decoding & output
 
-- **Decoder** — [`symphonia 0.6`](https://crates.io/crates/symphonia) over MP3, FLAC, WAV, OGG Vorbis, AAC, ALAC (M4A). Source samples are converted to interleaved `f32`, channel-mapped (mono ↔ stereo, and any multichannel source — 3.0 / quad / 5.0 / 5.1 / 6.1 / 7.1 — folded to stereo Lo/Ro per ITU-R BS.775, centre + surrounds at −3 dB, LFE dropped), then resampled to the device rate by [`rubato 2.0`](https://crates.io/crates/rubato) (`Fft<f32>` + `FixedSync::Input`, with a fast `Passthrough` variant when source rate already matches the device). **Network pre-load**: when the source lives on a network share (Windows UNC / mapped `DRIVE_REMOTE` drive, or a Linux gvfs / SMB mount), [`ActiveStream::open`](../../src-tauri/crates/app/src/audio/crossfade.rs) reads the whole file into RAM (under a 512 MiB cap) and decodes from an in-memory `Cursor` instead of streaming — high-latency per-packet reads over the link would otherwise stutter mid-playback. Best-effort: oversize / unreadable files fall back to ordinary streaming. DSD keeps streaming (multi-GB files would blow the cap).
+- **Decoder** — [`symphonia 0.6`](https://crates.io/crates/symphonia) over MP3, FLAC, WAV, OGG Vorbis, AAC, ALAC (M4A), plus **Opus** through an out-of-tree decoder (see below). Source samples are converted to interleaved `f32`, channel-mapped (mono ↔ stereo, and any multichannel source — 3.0 / quad / 5.0 / 5.1 / 6.1 / 7.1 — folded to stereo Lo/Ro per ITU-R BS.775, centre + surrounds at −3 dB, LFE dropped), then resampled to the device rate by [`rubato 2.0`](https://crates.io/crates/rubato) (`Fft<f32>` + `FixedSync::Input`, with a fast `Passthrough` variant when source rate already matches the device). **Network pre-load**: when the source lives on a network share (Windows UNC / mapped `DRIVE_REMOTE` drive, or a Linux gvfs / SMB mount), [`ActiveStream::open`](../../src-tauri/crates/app/src/audio/crossfade.rs) reads the whole file into RAM (under a 512 MiB cap) and decodes from an in-memory `Cursor` instead of streaming — high-latency per-packet reads over the link would otherwise stutter mid-playback. Best-effort: oversize / unreadable files fall back to ordinary streaming. DSD keeps streaming (multi-GB files would blow the cap).
 - **DSD pipeline** — symphonia doesn't decode 1-bit DSD, so DSF (Sony) and DFF (Philips) containers route through [`audio/dsd/`](../../src-tauri/crates/core/src/audio_format/dsd/): a custom container parser reads the layout (DSD64 → DSD1024, mono / stereo / multichannel), and a windowed-sinc FIR with a Blackman-Harris envelope (256 taps by default, user-selectable up to 1024 / 2048 via Settings → Playback — persisted in `profile_setting['audio.dsd_precision']`, mirrored into the `SharedPlayback.dsd_taps` atomic and read at stream-open by [`DsdToPcm::new_with_taps`](../../src-tauri/crates/core/src/audio_format/dsd/pcm.rs); DSD-only, symphonia formats ignore it, and more taps buy a sharper transition band at linear CPU cost) decimates the bitstream by 64 to land DSD64 at 44.1 kHz, DSD128 at 88.2 kHz, etc. The resulting PCM joins the same channel-convert + resample + ring-buffer pipeline as symphonia output. `ActiveStream` carries a `StreamBackend` enum (Symphonia / Dsd / Dop) so seeking and decoder reset stay uniform from the engine's perspective. **Limitation**: real audiophile players use multi-stage halfband cascades for lower CPU at the same SNR; ours prioritises code clarity.
 - **Native DSD via DoP** (DSD over PCM, #495, opt-in `profile_setting['audio.dsd_dop']` default OFF) — when the toggle is on AND the active output has exclusive device access AND the DAC accepts the format, a DSD track skips the FIR entirely: [`DsdToDop`](../../src-tauri/crates/core/src/audio_format/dsd/dop.rs) repackages the raw 1-bit stream into 24-bit DoP frames (marker `0x05`/`0xFA` alternating per frame, payload MSB-first — DFF verbatim, DSF bit-reversed) at `dsd_rate / 16` (DSD64 → 176.4 kHz, DSD128 → 352.8, DSD256 → 705.6), and the DAC reconstructs the 1-bit stream in hardware (truly bit-perfect, nothing on our side filters / resamples / gains it). **Per-platform exclusive backend** — DoP needs a mixer-free path to the DAC, so each OS has its own: **Windows** = WASAPI Exclusive ([`run_dop_event_loop`](../../src-tauri/crates/app/src/audio/wasapi_exclusive.rs)); **Linux** = a raw `hw:` ALSA device at `S32_LE`, marker MSB-justified ([`alsa_exclusive`](../../src-tauri/crates/app/src/audio/alsa_exclusive.rs)); **macOS** = CoreAudio **hog mode** + a forced physical stream format at the DoP rate in 32-bit int, fed through an `AudioUnit` render callback ([`coreaudio_exclusive`](../../src-tauri/crates/app/src/audio/coreaudio_exclusive.rs)); that format is a property of the **device**, so the previous one is saved and restored on teardown — otherwise the rest of the machine keeps talking to a DAC clocked for DoP — and device loss normally arrives through an `IsAlive` property listener, with a periodic `get_hogging_pid` query as the fallback when the listener can't be registered. All three ship the DoP words MSB-justified (marker in the top byte) and share the byte/idle packing in [`audio/dop_pack`](../../src-tauri/crates/app/src/audio/dop_pack.rs), which is also where the `0x05`/`0xFA` marker is **re-stamped** onto every outgoing frame from a single running counter: the encoder's own phase restarts on each seek and never sees the idle frames generated on pause / underrun, so letting both sides number frames independently would repeat or skip a marker exactly at those seams and drop the DAC out of DSD lock. On a cold `LoadAndPlay`, [`maybe_switch_dop_output`](../../src-tauri/crates/app/src/audio/decoder.rs) parses the DSD header for the DoP rate and asks the engine to re-open the exclusive output at that exact format ([`AudioEngine::switch_output_for_track`](../../src-tauri/crates/app/src/audio/engine.rs), which hands the fresh ring producer straight back rather than via the `SwapProducer` channel); the backend ships the words bit-exact and emits marker-carrying DoP idle frames (`0x69` payload) on pause/underrun so the DAC keeps DoP lock. **Linux: the card is asked for, not given up on.** PipeWire / PulseAudio hold every card from login, so the raw `hw:` open returned `EBUSY` on any desktop and DoP fell back silently — the toggle did nothing and said nothing. [`device_reservation`](../../src-tauri/crates/app/src/audio/device_reservation.rs) now takes the `org.freedesktop.ReserveDevice1.Audio<N>` name on the session bus, which is the protocol both servers watch in order to release a device, then the open is retried for up to a second while the server finishes letting go (releasing is asynchronous on its side). The reservation is bound to the stream and released with it. No session bus, or an owner that refuses to be replaced, lands exactly where the code was before. **Fully fail-soft**: a DAC that refuses the DoP rate, a non-exclusive output, or a platform without a DoP backend all fall back transparently to the DSD → PCM path above. The two load paths that never negotiate a format — remote files and HTTP streams — force the output back to PCM before opening, since a leftover DoP output would read their PCM samples as 24-bit words and ship them to the DAC as noise. On Windows DoP rides the separate WASAPI Exclusive opt-in; on Linux and macOS the DoP toggle itself engages the exclusive path (raw `hw:` / hog mode). DoP tracks never crossfade / gaplessly prefetch (the words can't be mixed), so they always transition through a cold load + output re-open; EQ / ReplayGain / normalize / mono / speed are bypassed (bit-perfect, volume is the DAC's job — and playback speed is pinned to 1× for the track, since the resampler that implements it isn't in the chain and only the reported position would move). Seeking is the one transport action that survives untouched, so **A-B repeat works on DoP tracks** just like on PCM ones. The pipeline popover shows a "Native DSD" pill sourced from `player_get_state.dop_active` — what actually engaged, not just the opt-in. **Playing DoP to a non-DoP DAC produces white noise**, so the toggle is opt-in and default OFF for users who know their DAC supports it.
 - **Output** — [`cpal 0.17`](https://crates.io/crates/cpal) on a dedicated thread because `cpal::Stream` is `!Send` on Windows. Samples cross the thread via an [`rtrb 0.3`](https://crates.io/crates/rtrb) SPSC ring (`RING_CAPACITY = 96 000` `f32`s ≈ 1 s @ 48 kHz stereo).
@@ -44,6 +44,58 @@ Smart and dynamic crossfade compose: the album skip wins (it's a hard "no fade" 
 
 ReplayGain is applied **per-stream before the mix** so the two tracks can have very different gains without the louder one swamping the fade.
 
+## Opus (#581)
+
+symphonia reads Opus containers perfectly well — `symphonia-format-ogg`
+ships a complete Opus mapper, so tags and durations were already right
+— but it ships no Opus decoder, and `symphonia-codec-opus` does not
+exist. So [`audio_format::opus`](../../src-tauri/crates/core/src/audio_format/opus.rs)
+implements one over **libopus 1.6.1**, vendored and built statically by
+[`opusic-sys`](https://crates.io/crates/opusic-sys).
+
+**Why a C binding.** Two pure-Rust decoders were measured against a
+libopus reference rather than assessed from their READMEs. `libopus-rs`
+covers CELT only and refuses honestly outside that range — too narrow
+to ship, but it fails loudly. `opus-rs` decodes everything and **never
+returns an error**, including on the files it gets wrong: a 48 kb/s
+stereo file that is 94 % CELT and 6 % hybrid scores 30 dB. Silent audio
+corruption with nothing for the player to catch.
+
+**Static on every platform**, which is a packaging decision rather than
+a technical one: the Linux packages repackage the release binary rather
+than building from source, so a system libopus would mean a runtime
+dependency added to three packaging manifests and a library bundled
+into the AppImage, to gain nothing. The cost is `cmake` at build time,
+which every build environment already has.
+
+**The pre-skip is ours to drop, and that is not obvious.** Every Opus
+stream opens with encoder priming that must never be played. The Ogg
+reader turns `OpusHead`'s pre-skip into `Track::delay` and hands each
+packet a `trim_start` — which is exactly how the Vorbis decoder next
+door disposes of its own priming — but the Opus packet parser in
+`symphonia-format-ogg` 0.6.1 reports a discard of **zero** for every
+packet, so that trim is always empty. Measured: a 3-second file decoded
+to 144 312 frames instead of 144 000, the difference being precisely
+the 312-frame priming. The decoder counts it itself, credits whatever
+the reader did report against what is owed so a future upstream fix
+cannot make it drop twice, and does **not** re-apply it after a seek,
+where there is nothing to drop and doing so would eat real audio.
+
+RFC 7845 also suggests decoding ~80 ms before a seek point and
+discarding it so the decoder has converged. We deliberately do not:
+that is audio the listener asked for, and the convergence artefact is
+brief and bounded where the loss would not be.
+
+`OpusHead`'s output gain is applied, by libopus itself — RFC 7845 says
+a player SHOULD always apply it, because it is part of the file's
+intended level rather than a ReplayGain-style suggestion.
+
+**One registry for the whole app.** Playback, the analysis pass and the
+scanner's probe each used to reach for `symphonia::default::get_codecs`.
+They now share [`audio_format::opus::codecs`](../../src-tauri/crates/core/src/audio_format/opus.rs),
+because those three have to agree on what this build can play — a
+disagreement between them is what puts an unplayable track in a library.
+
 ## ReplayGain
 
 Off by default; the switch lives in Settings → Playback and persists in `profile_setting['audio.replaygain']`.
@@ -51,6 +103,37 @@ Off by default; the switch lives in Settings → Playback and persists in `profi
 **Two sources, one scale.** The gain comes from the file's own tags when it has them and from our analysis pass otherwise — [`TrackGain::prefer_tag`](../../src-tauri/crates/app/src/audio/replay_gain.rs). The scanner reads `REPLAYGAIN_TRACK_GAIN` / `_TRACK_PEAK` / `_ALBUM_GAIN` / `_ALBUM_PEAK` and the Opus/Vorbis `R128_*` pair through [`scanner::replay_gain`](../../src-tauri/crates/core/src/scanner/replay_gain.rs) into four columns on `track`, refreshed on every (re)scan. An `R128_*` value is a Q7.8 integer of 1/256 LU referenced to −23 LUFS; it is converted to dB against −18 LUFS on the way in, so everything downstream — tags, `R128`, our own measurement — is on the ReplayGain 2.0 scale. Where both exist the textual tag wins, since it is already on that scale and is what other players will use on the same file. Each field falls back independently: a tagger that wrote a gain but no peak still gets clipping prevention from our analysis.
 
 **An Opus caveat**: the stream header also carries an `output gain` a decoder is required to apply, and adding `R128_TRACK_GAIN` on top of a non-zero one would adjust the same stream twice. Only `R128_TRACK_GAIN` is processed, so **an Opus file with a non-zero header output gain is not supported**: the header value is neither read nor compensated for, and such a file gets no gain from us rather than a doubly-applied one. Taggers overwhelmingly leave the header at 0 and write the tag, which is the case this is built for.
+
+**Track gain or album gain** (#587, `profile_setting['audio.replaygain_mode']`).
+Track gain levels every track against every other one, which is what
+you want when a song comes up shuffled between two unrelated things. On
+a record mastered as a whole it is the wrong answer: the hushed
+interlude gets pushed up to meet the single, flattening exactly what
+the mastering engineer put there. Album gain applies one gain across
+the whole record instead.
+
+Which is right depends on **why** the track is playing, and that was
+already known where the gain is applied — `queue_item.source_type`
+travels all the way to the decoder. So the default is `auto`: album
+gain while a record plays through, track gain otherwise, with no
+setting for the listener to manage. Shuffle-by-album counts as a record
+playing through, since that is precisely what it produces. `track` and
+`album` force the choice.
+
+**The clipping cap switches with the gain**, and this is the part that
+is easy to get wrong. In album mode it caps by the **album** peak,
+which is the same number for every track on the record, so the cap is
+uniform. Capping each track by its own peak would pull tracks down
+according to their own loudest sample — re-introducing exactly the
+per-track variation album mode exists to remove.
+
+Album numbers are tag-only: our analysis pass measures one track at a
+time and has no notion of a record, so a file gets album gain when a
+tagger wrote `REPLAYGAIN_ALBUM_GAIN` into it and otherwise falls back
+to its track gain — album mode would otherwise do nothing at all on a
+half-tagged library. The peak falls back with it, which is a deliberate
+trade the other way: an uneven cap is cosmetic, and the cap only ever
+binds where the alternative is audible clipping.
 
 **Three knobs on top of the switch** (`player_set_replaygain_options`, persisted per profile, clamped to ±15 dB on the way in and again on the way out of the database):
 
@@ -311,7 +394,36 @@ UI is a tri-state click cycle in [`AbLoopButton`](../../src/components/player/Ab
 
 ## Queue
 
-[`queue.rs`](../../src-tauri/crates/app/src/queue.rs) — persistent SQLite-backed queue with shuffle (Fisher-Yates with seeded xorshift), repeat (off/all/one), auto-advance and drag-and-drop reorder. The frontend operates on a virtualised list so a 6000-track shuffle doesn't lock the UI.
+[`queue.rs`](../../src-tauri/crates/app/src/queue.rs) — persistent SQLite-backed queue with shuffle (Fisher-Yates with seeded xorshift), repeat (off/all/one), auto-advance and drag-and-drop reorder.
+
+**Shuffle is three-way** (#618): off, tracks, albums. In album mode
+only the order of the records is randomised — inside each one the
+tracks are put back into disc and track order, so a record that arrived
+in the queue scrambled still plays the way it was pressed. The record
+you are in carries on rather than restarting: the current track keeps
+position 0, the rest of its album follows, and the tracks before it
+come round at the end. A track with no album is its own record, so
+loose files still shuffle like tracks instead of being welded into one
+block that always plays together. The grouping is a pure function
+([`album_runs`](../../src-tauri/crates/app/src/queue.rs)) so it is
+testable without a database and nothing about it depends on chance.
+
+Persisted as the existing on/off switch crossed with a grouping rather
+than one three-valued key. `player.shuffle` stays authoritative for "is
+shuffle on", which is what MPD's `random` flag maps onto and what an
+older build reads; `player.shuffle_grouping` is remembered while
+shuffle is off, so a preference for whole records survives an off/on;
+and a profile that predates this needs no migration. MPD's `random 1`
+therefore turns shuffle on **without** forcing tracks — a remote that
+cannot express the grouping should not quietly undo it.
+
+**A reorder keeps each row's source.** `write_queue_order` used to
+write every row back as `source_type = 'manual'`, which threw away the
+source a `play_event` is attributed to and the boundary `fill_queue`
+uses to tell queued-up "play next" items from the source queue around
+them — so shuffling an album silently cost both. Sources now survive,
+one per occurrence, so a queue holding the same track twice hands each
+copy back its own. The frontend operates on a virtualised list so a 6000-track shuffle doesn't lock the UI.
 
 **User queue vs context tail.** Every `queue_item` carries a `source_type` (`'album'`, `'playlist'`, `'smart'`, `'manual'`, …). The Spotify-style split flows out of that flag:
 
