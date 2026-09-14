@@ -52,5 +52,7 @@ pub async fn run_backup_now(
     app: tauri::AppHandle,
 ) -> AppResult<Vec<String>> {
     let config = read_config(&state, &app).await?;
-    run_one_backup(&state, &app, &config).await
+    // Only the paths: a manual run shows a toast naming the archives,
+    // and a run the user stopped themselves needs no separate telling.
+    Ok(run_one_backup(&state, &app, &config).await?.created)
 }

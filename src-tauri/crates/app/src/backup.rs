@@ -242,17 +242,37 @@ fn sanitize_for_filename(name: &str) -> String {
     }
 }
 
+/// How long the scheduler waits before reconsidering a pass the user
+/// stopped.
+///
+/// A cancelled pass deliberately does not stamp `backup.last_run_at` --
+/// the schedule did not run, and recording otherwise would skip the
+/// next backup on the strength of one the user interrupted. But that
+/// leaves a deadline already in the past, so the loop would come
+/// straight back and start the same backup again, which is not what
+/// pressing stop means. Short against an interval measured in days,
+/// long enough that "stop" gives the machine back.
+const CANCEL_BACKOFF: Duration = Duration::from_secs(60 * 60);
+
+/// What one backup pass did.
+pub struct BackupPass {
+    /// Archive paths created, one per profile that succeeded.
+    pub created: Vec<String>,
+    /// True when the user stopped the pass between two archives. The
+    /// archives in `created` are each complete regardless.
+    pub cancelled: bool,
+}
+
 /// Run a single backup pass over every profile in the install.
 ///
-/// Returns the list of archive paths created (one per profile that
-/// succeeded). Failures on individual profiles are logged but don't
-/// abort the pass — a corrupt or detached profile shouldn't stop the
-/// healthy ones from being saved.
+/// Failures on individual profiles are logged but don't abort the pass
+/// — a corrupt or detached profile shouldn't stop the healthy ones from
+/// being saved.
 pub async fn run_one_backup(
     state: &AppState,
     handle: &AppHandle,
     config: &BackupConfig,
-) -> AppResult<Vec<String>> {
+) -> AppResult<BackupPass> {
     let folder = if config.folder.is_empty() {
         default_backup_folder(handle)
     } else {
@@ -270,7 +290,7 @@ pub async fn run_one_backup(
     // (#601).
     let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let stop_for_cancel = std::sync::Arc::clone(&stop);
-    let _task = crate::tasks::start(
+    let task = crate::tasks::start(
         handle,
         crate::tasks::TaskKind::Backup,
         0,
@@ -299,6 +319,14 @@ pub async fn run_one_backup(
     let ts = Utc::now().format("%Y-%m-%dT%H-%M-%S").to_string();
     let app_version = env!("CARGO_PKG_VERSION").to_string();
     let mut created = Vec::with_capacity(profiles.len());
+    // The count is known before the first archive, so the row can show
+    // a real total rather than the unknown one `start` was given. One
+    // archive is the unit of work here, so that is what the bar counts.
+    let total = profiles.len() as u64;
+    let mut done = 0u64;
+    if let Some(task) = task.as_ref() {
+        task.progress(0, total);
+    }
 
     // The metadata_artwork cache is shared across all profiles, so we
     // bundle it once — in the first archive of the pass. The others stay
@@ -318,7 +346,13 @@ pub async fn run_one_backup(
             // strength of a pass the user stopped. The archives already
             // written are complete and are returned.
             tracing::info!("backup stopped by the user between profiles");
-            return Ok(created);
+            return Ok(BackupPass {
+                created,
+                cancelled: true,
+            });
+        }
+        if let Some(task) = task.as_ref() {
+            task.detail(profile_name.clone());
         }
         let safe = sanitize_for_filename(&profile_name);
         let target = folder.join(format!("{safe}-{ts}.waveflow"));
@@ -378,10 +412,18 @@ pub async fn run_one_backup(
         if let Err(err) = prune_old_backups(&folder, &safe, config.retention as usize).await {
             tracing::warn!(?err, "auto backup retention sweep failed");
         }
+
+        done += 1;
+        if let Some(task) = task.as_ref() {
+            task.progress(done, total);
+        }
     }
 
     stamp_last_run(state).await?;
-    Ok(created)
+    Ok(BackupPass {
+        created,
+        cancelled: false,
+    })
 }
 
 async fn prune_old_backups(
@@ -508,9 +550,24 @@ pub fn spawn_backup_loop(handle: AppHandle, backup_handle: BackupHandle) {
             }
 
             match run_one_backup(&state, &handle, &config).await {
-                Ok(paths) => {
-                    tracing::info!(count = paths.len(), "auto backup run finished");
-                    let _ = handle.emit("backup:completed", paths);
+                Ok(pass) => {
+                    tracing::info!(count = pass.created.len(), "auto backup run finished");
+                    let cancelled = pass.cancelled;
+                    let _ = handle.emit("backup:completed", pass.created);
+                    if cancelled {
+                        // `last_run_at` was deliberately left alone, so
+                        // the deadline this loop just woke on is still
+                        // in the past: without the wait below, stopping
+                        // a backup would start the same backup again
+                        // within milliseconds, for as long as the user
+                        // kept pressing the button. Cut short if they
+                        // change the settings in the meantime.
+                        tracing::info!("auto backup cancelled; backing off before reconsidering");
+                        tokio::select! {
+                            _ = tokio::time::sleep(CANCEL_BACKOFF) => {}
+                            _ = backup_handle.notify.notified() => {}
+                        }
+                    }
                 }
                 Err(err) => {
                     tracing::warn!(?err, "auto backup run failed");

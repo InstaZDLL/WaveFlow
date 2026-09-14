@@ -15,9 +15,20 @@
 -- `ON DELETE CASCADE` so removing a track takes its tags with it -- the
 -- rows describe a file, and they mean nothing once the file's row is
 -- gone.
+--
+-- `key` is `COLLATE NOCASE`, and that collation is the whole of what
+-- makes a column one column. The scanner folds spellings *within* one
+-- file, but the four halves it reads from name the same field
+-- differently across files -- `COMPOSER` from a FLAC, `Composer` from
+-- an MP3 whose tagger wrote a `TXXX` description. The picker groups by
+-- this column and the cells look values up by it, so under the default
+-- BINARY collation one field would be offered as two columns and a
+-- stored layout naming one spelling would find no values for the
+-- other. The index below inherits the collation from the column, so
+-- both stay index-backed.
 CREATE TABLE track_tag (
     track_id  INTEGER NOT NULL REFERENCES track(id) ON DELETE CASCADE,
-    key       TEXT NOT NULL,
+    key       TEXT NOT NULL COLLATE NOCASE,
     value     TEXT NOT NULL,
     PRIMARY KEY (track_id, key)
 ) WITHOUT ROWID;

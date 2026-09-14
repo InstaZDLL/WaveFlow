@@ -462,6 +462,81 @@ mod tests {
         assert_eq!(ids_for(&pool, "track_number_gap").await, vec![6, 7, 8]);
     }
 
+    /// The SQL half of the probable-duplicate rule: what lands in a
+    /// bucket together. The chaining itself is tested in
+    /// `waveflow_core::inventory`; what is tested here is that two
+    /// recordings reach the same bucket at all.
+    async fn seed_duplicates(pool: &SqlitePool) {
+        for statement in [
+            "INSERT INTO library (id, name, color_id, icon_id, created_at, updated_at,
+                                  hlc_wall, hlc_logical)
+             VALUES (1, 'L', 1, 1, 0, 0, 0, 0)",
+            "INSERT INTO artist (id, name, canonical_name) VALUES (1, 'A', 'a')",
+            "INSERT INTO artist (id, name, canonical_name) VALUES (2, 'B', 'b')",
+        ] {
+            sqlx::raw_sql(statement).execute(pool).await.unwrap();
+        }
+
+        // 1-3: one recording three times, 180 s / 181.5 s / 183 s. The
+        // outer pair is 3 s apart, so a pairwise tolerance splits them;
+        // the chain must not. Their titles differ only by the case and
+        // punctuation `normalize_name` folds, and their two artists are
+        // credited in opposite orders -- the bucket key sorts by artist
+        // id, so a credit is a set and not a display string.
+        //
+        // 4-5: no credited artist at all, same title and length. Two
+        // untagged copies of one file are exactly what this should
+        // surface, so they share the empty-credit bucket rather than
+        // being skipped.
+        //
+        // 6: same title, far too long to be the same recording.
+        let tracks: &[(i64, &str, i64, &[(i64, i64)])] = &[
+            (1, "Blue Monday", 180_000, &[(1, 0), (2, 1)]),
+            (2, "blue monday!", 181_500, &[(2, 0), (1, 1)]),
+            (3, "Blue  Monday", 183_000, &[(1, 0), (2, 1)]),
+            (4, "Untitled", 200_000, &[]),
+            (5, "Untitled", 200_500, &[]),
+            (6, "Blue Monday", 400_000, &[(1, 0)]),
+        ];
+        for (id, title, duration, credits) in tracks {
+            sqlx::query(
+                "INSERT INTO track (id, library_id, file_path, file_hash, file_size,
+                                    file_modified, title, duration_ms, added_at,
+                                    is_available, hlc_wall, hlc_logical, rating_hlc_wall,
+                                    rating_hlc_logical)
+                 VALUES (?, 1, ?, ?, 1, 0, ?, ?, 0, 1, 0, 0, 0, 0)",
+            )
+            .bind(id)
+            .bind(format!("/d/{id}.flac"))
+            .bind(format!("d{id}"))
+            .bind(title)
+            .bind(duration)
+            .execute(pool)
+            .await
+            .unwrap();
+            for (artist_id, position) in *credits {
+                sqlx::query(
+                    "INSERT INTO track_artist (track_id, artist_id, position)
+                     VALUES (?, ?, ?)",
+                )
+                .bind(id)
+                .bind(artist_id)
+                .bind(position)
+                .execute(pool)
+                .await
+                .unwrap();
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn probable_duplicates_chain_and_ignore_credit_order() {
+        let pool = pool().await;
+        seed_duplicates(&pool).await;
+        let ids = probable_duplicate_ids(&pool).await.unwrap();
+        assert_eq!(ids, vec![1, 2, 3, 4, 5]);
+    }
+
     #[tokio::test]
     async fn a_clash_is_scoped_to_one_disc_of_one_album() {
         let pool = pool().await;

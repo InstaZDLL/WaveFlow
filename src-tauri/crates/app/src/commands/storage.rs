@@ -124,16 +124,22 @@ fn claim(root: &Path) -> Result<(), String> {
     if is_owned(root) {
         return Ok(());
     }
-    if let Ok(entries) = std::fs::read_dir(root) {
-        for entry in entries.flatten() {
-            let name = entry.file_name();
-            let name = name.to_string_lossy();
-            if OWNED_NAMES.iter().any(|owned| name.as_ref() == *owned) {
-                return Err(format!(
-                    "{} already contains a \"{name}\" folder that WaveFlow did not create",
-                    root.display()
-                ));
-            }
+    // Propagated, not swallowed. This loop is the whole of the guard:
+    // it answers "is there something here we would later delete?", and
+    // a directory we could not enumerate has not answered it. Writing
+    // the marker anyway would adopt -- and make deletable -- a folder
+    // whose contents we never managed to look at.
+    let entries =
+        std::fs::read_dir(root).map_err(|e| format!("cannot inspect {}: {e}", root.display()))?;
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("cannot inspect {}: {e}", root.display()))?;
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if OWNED_NAMES.iter().any(|owned| name.as_ref() == *owned) {
+            return Err(format!(
+                "{} already contains a \"{name}\" folder that WaveFlow did not create",
+                root.display()
+            ));
         }
     }
     std::fs::write(
@@ -307,20 +313,30 @@ pub async fn cleanup_moved_caches(active: &AppPaths, app_db: &SqlitePool) {
     }
     if owned_for_removal(&previous, active) {
         let stale = active.clone().with_cache_root(previous);
-        for (name, dir) in cache_dirs(&stale, app_db).await.unwrap_or_default() {
-            if !dir.exists() {
-                continue;
+        let dirs = cache_dirs(&stale, app_db).await.unwrap_or_default();
+        // On the blocking pool, like every other recursive delete here:
+        // this one runs inside `AppState::init`, so walking a whole
+        // artwork tree in place would hold the runtime through startup
+        // -- the one moment the app has nothing else to show for it.
+        let _ = tokio::task::spawn_blocking(move || {
+            for (name, dir) in dirs {
+                if !dir.exists() {
+                    continue;
+                }
+                match std::fs::remove_dir_all(&dir) {
+                    Ok(()) => {
+                        tracing::info!(path = %dir.display(), %name, "removed moved-from cache")
+                    }
+                    Err(e) => tracing::warn!(
+                        path = %dir.display(),
+                        %name,
+                        %e,
+                        "could not remove a cache directory left behind by a move",
+                    ),
+                }
             }
-            match std::fs::remove_dir_all(&dir) {
-                Ok(()) => tracing::info!(path = %dir.display(), %name, "removed moved-from cache"),
-                Err(e) => tracing::warn!(
-                    path = %dir.display(),
-                    %name,
-                    %e,
-                    "could not remove a cache directory left behind by a move",
-                ),
-            }
-        }
+        })
+        .await;
     }
     if let Err(e) = store_path(app_db, KEY_CACHE_PENDING, None).await {
         tracing::warn!(%e, "could not clear the pending cache-cleanup marker");
@@ -591,6 +607,38 @@ pub async fn set_cache_location(
     if already_there {
         return get_cache_location(state).await;
     }
+
+    // Asking for the root the caches are *already* at. Two different
+    // people arrive here, and neither can be served by the copy below:
+    //
+    // - somebody cancelling a move they staged a minute ago and have
+    //   not restarted for;
+    // - somebody whose chosen drive was missing at launch, so this
+    //   session fell back to the default and they are now asking to
+    //   stay there.
+    //
+    // Both were previously refused outright -- by the staged-move guard
+    // below, and then again by the containment check, which is right to
+    // call a tree "inside the folder being moved" when it *is* that
+    // folder. The second case is a dead end with no way out of it:
+    // restarting cannot finish a move whose destination is unplugged,
+    // and no other destination could be chosen either.
+    //
+    // Nothing is copied, because source and destination are one tree
+    // and `copy_tree` would walk it copying every file onto itself. All
+    // that changes is the stored choice -- and the cleanup marker,
+    // which is retargeted at the abandoned destination so the copy
+    // staged there is removed at the next startup instead of being
+    // orphaned.
+    if target == paths.cache_root {
+        let abandoned = load_cache_root(&state.app_db)
+            .await
+            .filter(|configured| configured != &paths.cache_root);
+        let stored = (target != paths.root).then(|| target.clone());
+        store_path(&state.app_db, KEY_CACHE_ROOT, stored.as_deref()).await?;
+        store_path(&state.app_db, KEY_CACHE_PENDING, abandoned.as_deref()).await?;
+        return get_cache_location(state).await;
+    }
     // Created *before* the containment check, not after: `canonicalize`
     // fails on a directory that does not exist, and the fallback to the
     // literal paths cannot see through a symlink, a junction, or a
@@ -745,27 +793,45 @@ pub async fn profile_cache_dirs_elsewhere(state: &AppState, profile_id: i64) -> 
 /// default location, `remove_dir_all(root)` already covers them and
 /// naming them again would mean deleting the same tree twice.
 pub async fn wipe_targets_outside_root(state: &AppState) -> Vec<PathBuf> {
-    if state.paths.cache_root == state.paths.root {
-        return Vec::new();
+    // Both roots, for the same reason `profile_cache_dirs_elsewhere`
+    // takes both: while a move waits for its restart -- and again
+    // whenever a session falls back -- a full copy exists under the
+    // active root *and* under the configured one. Keyed only on the
+    // active root, a reset staged right after a move would wipe the old
+    // tree and leave the new one untouched, which is the copy the user
+    // is about to start reading.
+    let mut roots: Vec<PathBuf> = vec![state.paths.cache_root.clone()];
+    if let Some(configured) = load_cache_root(&state.app_db).await {
+        if !roots.contains(&configured) {
+            roots.push(configured);
+        }
     }
-    // The same guard the deferred cleanup uses. A reset is the most
-    // destructive path in the app, and the cache root is a folder the
-    // user picked — if WaveFlow did not create the tree, it does not
-    // get to remove it.
-    if !owned_for_removal(&state.paths.cache_root, &state.paths) {
-        return Vec::new();
+
+    let mut targets = Vec::new();
+    for root in roots {
+        // The app-data root is what `reset_app` removes wholesale;
+        // naming it here would mean deleting the same tree twice.
+        if root == state.paths.root {
+            continue;
+        }
+        // The same guard the deferred cleanup uses. A reset is the most
+        // destructive path in the app, and the cache root is a folder
+        // the user picked — if WaveFlow did not create the tree, it does
+        // not get to remove it.
+        if !owned_for_removal(&root, &state.paths) {
+            continue;
+        }
+        // A failure to enumerate profiles here means the reset removes
+        // only what it could name. Logged rather than propagated: the
+        // wipe is already under way and stopping it halfway is worse
+        // than leaving a cache behind.
+        let dirs = cache_dirs(&state.paths.clone().with_cache_root(root), &state.app_db)
+            .await
+            .unwrap_or_else(|err| {
+                tracing::warn!(%err, "could not enumerate relocated cache directories for the reset");
+                Vec::new()
+            });
+        targets.extend(dirs.into_iter().map(|(_, path)| path));
     }
-    // A failure to enumerate profiles here means the reset removes
-    // only what it could name. Logged rather than propagated: the wipe
-    // is already under way and stopping it halfway is worse than
-    // leaving a cache behind.
-    cache_dirs(&state.paths, &state.app_db)
-        .await
-        .unwrap_or_else(|err| {
-            tracing::warn!(%err, "could not enumerate relocated cache directories for the reset");
-            Vec::new()
-        })
-        .into_iter()
-        .map(|(_, path)| path)
-        .collect()
+    targets
 }

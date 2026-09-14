@@ -950,6 +950,19 @@ pub(crate) async fn scan_folder_inner(
             }
         };
 
+        // A file whose custom tags could not be read is not a file
+        // with no custom tags: `read_extra_tags` answers `None` only
+        // for "could not read", and every container it has no reader
+        // for answers `Some(vec![])` instead. `write_extra_tags`
+        // already leaves the stored rows alone in that case -- but the
+        // one-off pass below would still be marked done, and it never
+        // runs twice, so those tracks would keep empty columns for the
+        // life of the install. The same rule the ReplayGain backfill
+        // beside it follows.
+        if extracted.extra_tags.is_none() {
+            tag_backfill_failed = true;
+        }
+
         // Redundant with Phase 1's unconditional removal above (every
         // walked path is already gone from `existing_meta` by this
         // point) — left as a harmless no-op safety net rather than

@@ -2298,8 +2298,15 @@ function TrackTable({
         bodyRef.current
           ?.closest("[data-track-table]")
           ?.querySelector("[role='columnheader']") ?? null;
+      // A bounded sample, not the whole list. Each value is a canvas
+      // measurement and this runs synchronously on a double-click, so
+      // a fifty-thousand-track library would freeze the window for the
+      // length of it. The widest cell in two thousand rows is the
+      // widest cell for any practical purpose, and `fitWidth` caps the
+      // answer at `MAX_COLUMN_WIDTH` regardless.
+      const FIT_SAMPLE = 2000;
       const width = fitWidth({
-        values: tracks.map((row) => textFor(id, row)),
+        values: tracks.slice(0, FIT_SAMPLE).map((row) => textFor(id, row)),
         headerLabel: label,
         cell: styleOf(cell),
         header: styleOf(header),

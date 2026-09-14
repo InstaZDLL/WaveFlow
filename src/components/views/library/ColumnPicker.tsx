@@ -59,10 +59,15 @@ export function ColumnPicker({
 
   /** Close, and put focus back where it came from.
    *
-   *  Every close goes through here — Escape, a click outside, a scroll.
-   *  Without it a keyboard user who opens the picker and presses Escape
-   *  loses focus to the document body and has to tab from the top of
-   *  the page to get back. */
+   *  For the closes the user did not aim: Escape, and a scroll or
+   *  resize that moves the anchor out from under the popover. Without
+   *  it, focus is sitting inside a subtree that just unmounted and
+   *  falls to the document body, leaving a keyboard user to tab from
+   *  the top of the page to get back.
+   *
+   *  A click outside is the exception and closes directly: the user
+   *  aimed at something, and pulling focus back to the button would
+   *  take it off whatever they just clicked. */
   const close = useCallback(() => {
     setOpen(false);
     buttonRef.current?.focus();
@@ -87,7 +92,7 @@ export function ColumnPicker({
       ) {
         return;
       }
-      setOpen(false);
+      close();
     };
     const onClick = (event: MouseEvent) => {
       if (!(event.target instanceof Node)) return;
