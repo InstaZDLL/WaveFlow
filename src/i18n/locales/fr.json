@@ -2167,6 +2167,24 @@
       "kbps": "{{rate}} kbit/s",
       "activeNotice": "Les pistes distantes sont réencodées : elles sont lues en dessous de leur qualité d'origine. Les fichiers locaux ne sont jamais transcodés.",
       "unsupported": "Ce serveur a été construit sans FFmpeg et ne peut pas transcoder. Les pistes distantes arrivent toujours dans leur format d'origine."
+    },
+    "contrast": {
+      "title": "Contraste",
+      "subtitle": "Relève le contraste de toute l'interface d'un coup : texte secondaire lisible, arrière-plans sans flou, focus clavier bien visible.",
+      "modes": {
+        "auto": {
+          "label": "Automatique",
+          "description": "Suit le réglage de contraste du système."
+        },
+        "normal": {
+          "label": "Normal",
+          "description": "La palette par défaut, plus nuancée."
+        },
+        "high": {
+          "label": "Élevé",
+          "description": "Contraste renforcé, quels que soient le thème et l'habillage."
+        }
+      }
     }
   },
   "spotify": {

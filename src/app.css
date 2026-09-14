@@ -74,6 +74,150 @@
   --color-emerald-800: var(--accent-800);
   --color-emerald-900: var(--accent-900);
   --color-emerald-950: var(--accent-950);
+  --color-zinc-300: var(--wf-zinc-300);
+  --color-zinc-400: var(--wf-zinc-400);
+  --color-zinc-500: var(--wf-zinc-500);
+  --color-zinc-600: var(--wf-zinc-600);
+}
+
+/* ============================================================
+   High-contrast mode (issue #596)
+   ============================================================
+
+   Our secondary text is grey on grey by design, and for someone with
+   low vision that design is the problem. This lifts contrast across the
+   whole interface at once.
+
+   ## Why only four shades
+
+   The issue assumed colour already lived in WaveFlow's theme tokens.
+   It does not — only the accent does. The greys are raw Tailwind
+   utilities, ~1 900 of them, so the lever is Tailwind's own
+   `--color-zinc-*` scale, re-pointed above at variables we own.
+
+   But a shade is not a role. Measured across `src/`:
+
+     zinc-300   138 text ·  23 border ·   8 bg
+     zinc-400   603 text ·  10 placeholder ·  2 bg
+     zinc-500   347 text ·   8 placeholder ·  3 bg
+     zinc-600    85 text ·  19 border ·   4 bg
+     zinc-700   180 border · 137 text · 128 bg     <- not remapped
+     zinc-800   361 bg · 146 text · 130 border     <- not remapped
+     zinc-900   210 text ·  69 bg                  <- not remapped
+
+   300-600 are secondary *text* almost exclusively, which is exactly
+   what the issue is about. 700-900 carry three roles at once, and one
+   value cannot make a border more visible and a background deeper at
+   the same time — remapping them would trade the legibility win for a
+   set of surfaces that no longer separate. So they keep their values,
+   and the handful of borders riding on 300-600 move in the helpful
+   direction anyway (lighter on dark, darker on light).
+
+   ## Why the shades move in opposite directions
+
+   The same shade is secondary text on a dark ground and a border on a
+   light one, so "more contrast" means lighter in dark mode and darker
+   in light mode. Dark-mode detection has to cover the dark-only skins
+   too: `applyTheme` puts `.dark` on the root for dark *themes*, but
+   Lounge and Pulse are dark by skin and never set it — the `dark:`
+   custom variant at the top of this file already draws that
+   distinction, and so must this, or the mode inverts on two of the
+   five skins. */
+:root {
+  --wf-zinc-300: oklch(87.1% 0.006 286.286);
+  --wf-zinc-400: oklch(70.5% 0.015 286.067);
+  --wf-zinc-500: oklch(55.2% 0.016 285.938);
+  --wf-zinc-600: oklch(44.2% 0.017 285.786);
+}
+
+/* Light ground: push secondary text toward black. Targets are ~7:1
+   against white — the AAA floor for body text — where the default
+   palette sits near 4.5:1. 300 is left alone here: on a light ground it
+   is a border and a divider, not text. */
+:root[data-contrast="high"] {
+  --wf-zinc-400: oklch(38% 0.008 286.067);
+  --wf-zinc-500: oklch(31% 0.008 285.938);
+  --wf-zinc-600: oklch(26% 0.008 285.786);
+}
+
+/* Dark ground: push secondary text toward white. */
+:root[data-contrast="high"]:where(
+    .dark,
+    [data-skin="lounge"],
+    [data-skin="pulse"]
+  ) {
+  --wf-zinc-300: oklch(95% 0.004 286.286);
+  --wf-zinc-400: oklch(89% 0.006 286.067);
+  --wf-zinc-500: oklch(82% 0.008 285.938);
+  --wf-zinc-600: oklch(74% 0.01 285.786);
+}
+
+/* Blur off. `backdrop-filter` behind text is the single biggest
+   legibility cost in the current design and it buys nothing to someone
+   who needs the contrast.
+
+   Removing it is not enough on its own: the surfaces carrying a blur
+   are also translucent, and an unblurred translucent header shows the
+   content scrolling underneath the text rather than a soft wash of it —
+   worse than where we started. So the text-bearing chrome is forced
+   opaque in the same breath (rules further down, next to the skin
+   overrides). Purely decorative translucency over a hero gradient
+   (Wrapped, the artist header) is left alone: white text on a dark
+   gradient is already well past the contrast floor.
+
+   (`--skin-backdrop` is deliberately not touched here: `applySkin`
+   writes it onto `documentElement.style`, which no stylesheet rule can
+   outrank, and no CSS reads the token today anyway.) */
+:root[data-contrast="high"] *,
+:root[data-contrast="high"] *::before,
+:root[data-contrast="high"] *::after {
+  /* Prefixed first, standard last — the order Tailwind's own
+     `backdrop-blur-*` utility uses. Written the other way round, the
+     minifier folds the two into one declaration and emits only the
+     prefixed form, so an engine that honours the standard property
+     alone would keep its blur and this rule would silently do nothing
+     on exactly the surfaces it exists for. Verified in the built CSS. */
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Keyboard focus becomes unmistakable — a real outline on every
+   surface, not a subtle ring. `outline` rather than `box-shadow` so it
+   survives an `overflow: hidden` ancestor, and offset so it never sits
+   on the control's own edge. */
+:root[data-contrast="high"] :focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Controls that rely on subtlety get redrawn. The switch reads as
+   "filled versus not filled", which is a colour-only distinction: here
+   it gains an edge in both states and a mark in the on state, so the
+   state survives without colour vision. Keyed on the ARIA role, which
+   the shared `ToggleSwitch` and every inline copy already carry, rather
+   than on a class only one of them has. */
+:root[data-contrast="high"] [role="switch"] {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+:root[data-contrast="high"] [role="switch"][aria-checked="true"]::after {
+  content: "";
+  position: absolute;
+  left: 0.6rem;
+  top: 50%;
+  width: 0.3rem;
+  height: 0.6rem;
+  translate: 0 -60%;
+  rotate: 45deg;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+}
+
+:root[data-contrast="high"] input[type="checkbox"],
+:root[data-contrast="high"] input[type="radio"] {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
 }
 
 @theme {
@@ -498,4 +642,36 @@
   outline: 2px solid var(--accent-500);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* Glassy chrome, opted in by the surfaces that carry a translucent
+   background *behind text* (issue #596).
+ *
+ * High-contrast mode turns every `backdrop-filter` off. On a surface
+ * that is also translucent that is a downgrade rather than a fix: the
+ * blur was what turned the content scrolling underneath into a soft
+ * wash, and without it the text sits directly over moving artwork and
+ * rows. These surfaces therefore go fully opaque in the same breath.
+ *
+ * A marker class rather than a structural selector (`header.sticky`,
+ * `div > div:first-child`) because the contract is "this surface is
+ * legible only thanks to its blur", which is a property of the surface
+ * and not of where it happens to sit in the tree. Decorative
+ * translucency over a hero gradient does not take the class: white text
+ * on a dark gradient is already past the contrast floor, and forcing it
+ * opaque would flatten the hero for no legibility gain. */
+:root[data-contrast="high"] {
+  --wf-contrast-surface: var(--color-surface-light);
+}
+
+:root[data-contrast="high"]:where(
+    .dark,
+    [data-skin="lounge"],
+    [data-skin="pulse"]
+  ) {
+  --wf-contrast-surface: var(--color-surface-dark);
+}
+
+:root[data-contrast="high"] .wf-glass {
+  background-color: var(--wf-contrast-surface);
 }

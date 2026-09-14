@@ -2167,6 +2167,24 @@
       "kbps": "{{rate}} kbps",
       "activeNotice": "Las pistas remotas se recodifican: suenan por debajo de su calidad original. Los archivos locales nunca se transcodifican.",
       "unsupported": "Este servidor se compiló sin FFmpeg y no puede transcodificar. Las pistas remotas llegan siempre en su formato original."
+    },
+    "contrast": {
+      "title": "Contraste",
+      "subtitle": "Aumenta el contraste de toda la interfaz de una vez: texto secundario legible, fondos sin desenfoque, foco de teclado inconfundible.",
+      "modes": {
+        "auto": {
+          "label": "Automático",
+          "description": "Sigue el ajuste de contraste del sistema."
+        },
+        "normal": {
+          "label": "Normal",
+          "description": "La paleta predeterminada, más matizada."
+        },
+        "high": {
+          "label": "Alto",
+          "description": "Contraste reforzado, sea cual sea el tema o el aspecto."
+        }
+      }
     }
   },
   "spotify": {

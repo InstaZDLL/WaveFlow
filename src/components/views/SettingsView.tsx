@@ -170,6 +170,7 @@ import { WrappedBannerCard } from "./settings/WrappedBannerCard";
 import { HiResBadgeCard } from "./settings/HiResBadgeCard";
 import { StatsKpiVisibilityCard } from "./settings/StatsKpiVisibilityCard";
 import { SkinPickerCard } from "./settings/SkinPickerCard";
+import { ContrastCard } from "./settings/ContrastCard";
 import { FullscreenLyricsCenteringCard } from "./settings/FullscreenLyricsCenteringCard";
 import { ImmersiveViewCard } from "./settings/ImmersiveViewCard";
 import { CoverSlideshowCard } from "./settings/CoverSlideshowCard";
@@ -3645,6 +3646,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           </div>
 
           <SkinPickerCard />
+
+          <ContrastCard />
 
           <PlayerBarLayoutCard />
 

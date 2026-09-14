@@ -2167,6 +2167,24 @@
       "kbps": "{{rate}} kbit/s",
       "activeNotice": "Externe nummers worden opnieuw gecodeerd en klinken dus onder hun oorspronkelijke kwaliteit. Lokale bestanden worden nooit getranscodeerd.",
       "unsupported": "Deze server is gebouwd zonder FFmpeg en kan niet transcoderen. Externe nummers komen altijd in hun originele formaat aan."
+    },
+    "contrast": {
+      "title": "Contrast",
+      "subtitle": "Verhoogt het contrast van de hele interface in één keer: leesbare secundaire tekst, achtergronden zonder vervaging, onmiskenbare toetsenbordfocus.",
+      "modes": {
+        "auto": {
+          "label": "Automatisch",
+          "description": "Volgt de contrastinstelling van het systeem."
+        },
+        "normal": {
+          "label": "Normaal",
+          "description": "Het standaardpalet, met meer nuance."
+        },
+        "high": {
+          "label": "Hoog",
+          "description": "Versterkt contrast, ongeacht thema en skin."
+        }
+      }
     }
   },
   "spotify": {

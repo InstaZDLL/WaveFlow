@@ -614,7 +614,7 @@ export function MiniPlayer() {
           bar (which stays reachable so the toggle/close still work).
           Local-library only; gated with the toggle button above. */}
       {showQueue && !isSpotify && (
-        <div className="absolute inset-x-0 bottom-0 top-7 z-20 flex flex-col bg-black/55 backdrop-blur-md animate-fade-in">
+        <div className="absolute inset-x-0 bottom-0 top-7 z-20 flex flex-col bg-black/55 backdrop-blur-md animate-fade-in wf-glass">
           <div className="flex items-center justify-between px-3 py-2 shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">
               {t("miniPlayer.upNext.title", { count: upNext.length })}
@@ -729,7 +729,7 @@ function MiniLyricsOverlay({ onClose }: { onClose: () => void }) {
     radioPlainText ?? (isSynced ? null : (payload?.content ?? null));
 
   return (
-    <div className="absolute inset-x-0 bottom-0 top-7 z-20 flex flex-col bg-black/55 backdrop-blur-md animate-fade-in">
+    <div className="absolute inset-x-0 bottom-0 top-7 z-20 flex flex-col bg-black/55 backdrop-blur-md animate-fade-in wf-glass">
       <div className="flex items-center justify-between px-3 py-2 shrink-0">
         <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">
           {t("lyrics.title")}

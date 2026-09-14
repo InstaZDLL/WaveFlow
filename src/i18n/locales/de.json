@@ -2167,6 +2167,24 @@
       "kbps": "{{rate}} kbit/s",
       "activeNotice": "Externe Titel werden neu kodiert und spielen daher unterhalb ihrer ursprünglichen Qualität. Lokale Dateien werden nie transkodiert.",
       "unsupported": "Dieser Server wurde ohne FFmpeg gebaut und kann nicht transkodieren. Externe Titel kommen immer im Originalformat an."
+    },
+    "contrast": {
+      "title": "Kontrast",
+      "subtitle": "Hebt den Kontrast der gesamten Oberfläche auf einmal an: lesbarer Sekundärtext, Hintergründe ohne Weichzeichner, deutlich sichtbarer Tastaturfokus.",
+      "modes": {
+        "auto": {
+          "label": "Automatisch",
+          "description": "Folgt der Kontrasteinstellung des Systems."
+        },
+        "normal": {
+          "label": "Normal",
+          "description": "Die feiner abgestufte Standardpalette."
+        },
+        "high": {
+          "label": "Hoch",
+          "description": "Verstärkter Kontrast, unabhängig von Design und Skin."
+        }
+      }
     }
   },
   "spotify": {

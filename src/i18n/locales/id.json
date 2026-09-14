@@ -2167,6 +2167,24 @@
       "kbps": "{{rate}} kbit/dtk",
       "activeNotice": "Lagu jarak jauh dikodekan ulang, jadi diputar di bawah kualitas aslinya. Berkas lokal tidak pernah ditranskode.",
       "unsupported": "Server ini dibangun tanpa FFmpeg dan tidak bisa mentranskode. Lagu jarak jauh selalu tiba dalam format aslinya."
+    },
+    "contrast": {
+      "title": "Kontras",
+      "subtitle": "Menaikkan kontras seluruh antarmuka sekaligus: teks sekunder terbaca, latar tanpa buram, fokus papan ketik yang jelas.",
+      "modes": {
+        "auto": {
+          "label": "Otomatis",
+          "description": "Mengikuti pengaturan kontras sistem."
+        },
+        "normal": {
+          "label": "Normal",
+          "description": "Palet bawaan yang lebih lembut."
+        },
+        "high": {
+          "label": "Tinggi",
+          "description": "Kontras diperkuat, apa pun tema dan skin-nya."
+        }
+      }
     }
   },
   "spotify": {

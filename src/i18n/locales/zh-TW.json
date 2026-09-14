@@ -2167,6 +2167,24 @@
       "kbps": "{{rate}} kbps",
       "activeNotice": "遠端曲目會重新編碼，因此播放音質低於原始檔案。本機檔案永遠不會被轉碼。",
       "unsupported": "此伺服器建置時未包含 FFmpeg，無法轉碼。遠端曲目一律以原始格式送達。"
+    },
+    "contrast": {
+      "title": "對比",
+      "subtitle": "一次提升整個介面的對比：次要文字更清晰，背景不再模糊，鍵盤焦點一目了然。",
+      "modes": {
+        "auto": {
+          "label": "自動",
+          "description": "跟隨系統的對比設定。"
+        },
+        "normal": {
+          "label": "一般",
+          "description": "預設的、層次更細膩的配色。"
+        },
+        "high": {
+          "label": "高",
+          "description": "無論佈景主題與外觀為何，都加強對比。"
+        }
+      }
     }
   },
   "scanProgress": {

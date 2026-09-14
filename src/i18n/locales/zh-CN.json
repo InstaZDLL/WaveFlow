@@ -2167,6 +2167,24 @@
       "kbps": "{{rate}} kbps",
       "activeNotice": "远程曲目会被重新编码，因此播放音质低于原始文件。本地文件永远不会被转码。",
       "unsupported": "该服务器在构建时未包含 FFmpeg，无法转码。远程曲目始终以原始格式送达。"
+    },
+    "contrast": {
+      "title": "对比度",
+      "subtitle": "一次性提升整个界面的对比度：次要文字更清晰，背景不再模糊，键盘焦点一目了然。",
+      "modes": {
+        "auto": {
+          "label": "自动",
+          "description": "跟随系统的对比度设置。"
+        },
+        "normal": {
+          "label": "普通",
+          "description": "默认的、层次更细腻的配色。"
+        },
+        "high": {
+          "label": "高",
+          "description": "无论主题与皮肤如何，都加强对比度。"
+        }
+      }
     }
   },
   "scanProgress": {

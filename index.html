@@ -70,10 +70,30 @@
           // value can't land on `data-skin` and silently break
           // every `[data-skin="<known>"]` rule. Must stay in
           // sync with `SKIN_PRESETS` in `src/lib/skins.ts`.
-          var VALID_SKINS = { studio: 1, editorial: 1, lounge: 1, pulse: 1 };
+          var VALID_SKINS = { studio: 1, editorial: 1, lounge: 1, pulse: 1, liquid: 1 };
           var skin = localStorage.getItem("waveflow.skin.id");
           if (!skin || !VALID_SKINS[skin]) skin = "studio";
           root.setAttribute("data-skin", skin);
+
+          // Contrast bootstrap (#596) — stamp `data-contrast` before
+          // React mounts. This matters more than the theme's own
+          // bootstrap does: a flash of low-contrast chrome is exactly
+          // what the person who turned this on cannot read.
+          //
+          // `auto` (the default) defers to the OS, so the attribute
+          // carries the RESOLVED state, never the stored choice — the
+          // stylesheet keys on "high" / "normal" and must not have to
+          // know what `auto` resolved to. `ContrastProvider` re-stamps
+          // it a few ms later from the database row, which is what
+          // corrects a stale cache after a profile switch.
+          var contrast = localStorage.getItem("waveflow.contrast");
+          if (contrast !== "high" && contrast !== "normal") contrast = "auto";
+          var high =
+            contrast === "high" ||
+            (contrast === "auto" &&
+              window.matchMedia &&
+              window.matchMedia("(prefers-contrast: more)").matches);
+          root.setAttribute("data-contrast", high ? "high" : "normal");
         } catch (_) {
           // localStorage unavailable — fall through to :root defaults.
         }

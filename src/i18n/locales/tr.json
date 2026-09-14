@@ -2167,6 +2167,24 @@
       "kbps": "{{rate}} kbit/sn",
       "activeNotice": "Uzak parçalar yeniden kodlanır, yani özgün kalitelerinin altında çalar. Yerel dosyalar hiçbir zaman yeniden kodlanmaz.",
       "unsupported": "Bu sunucu FFmpeg olmadan derlenmiş ve yeniden kodlama yapamıyor. Uzak parçalar her zaman özgün biçiminde gelir."
+    },
+    "contrast": {
+      "title": "Karşıtlık",
+      "subtitle": "Tüm arayüzün karşıtlığını tek seferde yükseltir: okunaklı ikincil metin, bulanıklıksız arka planlar, açıkça görülen klavye odağı.",
+      "modes": {
+        "auto": {
+          "label": "Otomatik",
+          "description": "Sistemin karşıtlık ayarını izler."
+        },
+        "normal": {
+          "label": "Normal",
+          "description": "Daha yumuşak olan varsayılan palet."
+        },
+        "high": {
+          "label": "Yüksek",
+          "description": "Tema ve görünüm ne olursa olsun güçlendirilmiş karşıtlık."
+        }
+      }
     }
   },
   "spotify": {

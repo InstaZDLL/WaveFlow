@@ -1,4 +1,5 @@
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { ContrastProvider } from "./contexts/ContrastContext";
 import { SkinProvider } from "./contexts/SkinContext";
 import { PlayerProvider } from "./contexts/PlayerContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
@@ -19,6 +20,12 @@ export default function App() {
     // the active profile differs from the cached one.
     <ProfileProvider>
       <ThemeProvider>
+        {/* Contrast composes with theme and skin rather than replacing
+            either -- it owns its own `data-contrast` attribute and
+            neither of the two below writes it. Inside ThemeProvider
+            because the high-contrast palette differs by mode, so the
+            `dark` class has to be settled before it is read. */}
+        <ContrastProvider>
         {/* SkinProvider sits inside ThemeProvider so a future
             theme-aware skin (e.g. a skin that adjusts surface
             contrast for the active theme's mode) can read
@@ -41,6 +48,7 @@ export default function App() {
             </PlaylistProvider>
           </LibraryProvider>
         </SkinProvider>
+        </ContrastProvider>
       </ThemeProvider>
     </ProfileProvider>
   );

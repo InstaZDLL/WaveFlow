@@ -1223,7 +1223,7 @@ export function LibraryView({
                     onLetterClick={(idx) => {
                       artistScrollToIndexRef.current?.(idx);
                     }}
-                    className="hidden md:flex fixed right-6 top-1/2 -translate-y-1/2 z-30 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm rounded-full py-2 px-1.5 shadow-sm"
+                    className="hidden md:flex fixed right-6 top-1/2 -translate-y-1/2 z-30 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm wf-glass rounded-full py-2 px-1.5 shadow-sm"
                   />
                 )}
               </div>

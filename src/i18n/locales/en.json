@@ -2167,6 +2167,24 @@
       "kbps": "{{rate}} kbps",
       "activeNotice": "Remote tracks are re-encoded, so they play below their original quality. Local files are never transcoded.",
       "unsupported": "This server was built without FFmpeg and cannot transcode. Remote tracks always arrive in their original format."
+    },
+    "contrast": {
+      "title": "Contrast",
+      "subtitle": "Lifts contrast across the whole interface at once: legible secondary text, no background blur, unmistakable keyboard focus.",
+      "modes": {
+        "auto": {
+          "label": "Automatic",
+          "description": "Follows the system contrast setting."
+        },
+        "normal": {
+          "label": "Normal",
+          "description": "The default, more nuanced palette."
+        },
+        "high": {
+          "label": "High",
+          "description": "Raised contrast, whichever theme and skin are active."
+        }
+      }
     }
   },
   "spotify": {
