@@ -838,15 +838,22 @@ mod tests {
             peak: Some(0.5),
             ..record()
         };
+        // The pre-amp has to be big enough for the cap to actually
+        // bind, or this proves nothing: the record's own -7 dB plus
+        // 12 dB of pre-amp lands at 5 dB, under the 6.02 dB a 0.5 peak
+        // leaves, so the limiter would never be consulted.
         let settings = GainSettings {
-            preamp_db: 12.0,
+            preamp_db: 15.0,
             ..with_mode(GainMode::Album)
         };
         let gain = effective_gain_db(no_album_peak, settings, Listening::ToAnAlbum);
+        let headroom = -20.0 * 0.5_f64.log10();
         assert!(
-            approx(gain, -20.0 * 0.5_f64.log10()),
-            "expected the track peak to stand in, got {gain}"
+            approx(gain, headroom),
+            "expected the track peak to stand in at {headroom} dB, got {gain}"
         );
+        // …and it really is the cap talking, not the raw sum.
+        assert!(gain < -7.0 + 15.0);
     }
 
     /// The doubt on a pre-#545 analysis peak belongs to a measurement
@@ -860,8 +867,9 @@ mod tests {
             album_peak: Some(0.5),
             ..record()
         };
+        // Same reason as above: enough pre-amp that the cap decides.
         let settings = GainSettings {
-            preamp_db: 12.0,
+            preamp_db: 15.0,
             ..with_mode(GainMode::Album)
         };
         let gain = effective_gain_db(stale, settings, Listening::ToAnAlbum);
