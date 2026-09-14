@@ -134,7 +134,7 @@ Two rules ride along in the same function:
 - **The year goes on the date item**, not `ItemKey::Year`. `Year` has no ID3v2 mapping at all, so writing it there dropped the value silently while the database happily recorded the new year.
 - **A cover replaces the front cover, not the artwork.** Clearing `tag.pictures()` to make room for one image also threw away the booklet, the back cover and the artist shot. Only `CoverFront` and the untyped `Other` are removed.
 
-Containers the scanner indexes but lofty cannot tag (`.dsf` / `.dff` — lofty's `FileType` has no DSD variant) are refused up front with a message that says so, instead of failing later as an unrelated "unknown format".
+Containers the scanner indexes but nothing can tag are refused up front with a message that says so, instead of failing later as an unrelated "unknown format". That is `.dff` alone now: `.dsf` has a writer of its own (#592), because its tag is a plain ID3v2 block at an offset the header declares rather than something lofty has to understand.
 
 Deep dive: [library § tag editing](../features/library.md#tag-editing).
 

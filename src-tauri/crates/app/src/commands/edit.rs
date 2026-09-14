@@ -7,12 +7,27 @@
 //! existing triggers on `track`, `album.title`, and `artist.name`.
 //!
 //! File-lock dance: the audio engine may have the file open if the
-//! edited track is currently playing. lofty's `save_to_path` uses
-//! atomic rename on POSIX but needs an exclusive handle on Windows, so
-//! we pause playback before writing whenever the engine reports the
-//! same `current_track_id`. Resume is left to the user — silently
-//! restarting after a save would be surprising and could re-lock the
-//! file before the rename completed.
+//! edited track is currently playing. Either way the write needs the
+//! real file — in place, or as the target of a rename — so on Windows
+//! the engine's read handle is enough to refuse it. We pause playback
+//! before writing whenever the engine reports the same
+//! `current_track_id`. Resume is left to the user: silently restarting
+//! after a save would be surprising, and would re-open the file while we
+//! are still writing it.
+//!
+//! **Two ways of writing, and which one runs matters to the file's
+//! identity.** [`patch_file`] tries the in-place path first (#590): the
+//! new tag is laid over the one already there, which works whenever it
+//! fits the padding, and keeps the inode — with it the permissions, the
+//! ACL, the extended attributes and the hard links. When it does not
+//! fit, the rewrite runs through
+//! [`waveflow_core::tagio::rewrite_via_temp`] (#598): a sibling
+//! `.wf-tmp` beside the original, replaced by a single `rename`. That
+//! one cannot be interrupted into a half-written file, which is the
+//! point — but it hands back a **new inode**, so hard links to the old
+//! one keep the old content and anything past the permission bits does
+//! not follow. DSF is neither: its tag sits after the audio, so it is
+//! always written in place ([`patch_dsf`], #592).
 
 use std::sync::Arc;
 
@@ -76,7 +91,7 @@ pub(crate) async fn rehash_track_file(
 /// field" (where applicable). The frontend sends whatever's currently
 /// in the form input on save, so we always get every field set when
 /// the user explicitly hits Save.
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 #[serde(default)]
 pub struct TrackEdit {
     pub title: Option<String>,
@@ -136,8 +151,8 @@ pub async fn update_track_tags(
     let path = std::path::PathBuf::from(&row.file_path);
 
     // 2. If the engine is playing this track, pause before opening.
-    //    Releases the file handle so lofty's atomic rename succeeds
-    //    on Windows. Resume is the user's call — see module doc.
+    //    Releases the read handle that would otherwise refuse our write
+    //    open on Windows. Resume is the user's call — see module doc.
     let active = engine
         .shared()
         .current_track_id
@@ -154,8 +169,17 @@ pub async fn update_track_tags(
     //    container at all (corrupt header), surface the error — we
     //    don't want to update the DB to values the file doesn't
     //    actually carry.
-    write_tags_to_file(&path, &edit)
-        .map_err(|e| AppError::Other(format!("tag write failed: {e}")))?;
+    // On a blocking thread, not here: this reaches the disk, and on the
+    // network share the whole of #590 is about it can take seconds. An
+    // async worker parked on it is one fewer for every other command.
+    {
+        let path = path.clone();
+        let edit = edit.clone();
+        tokio::task::spawn_blocking(move || write_tags_to_file(&path, &edit))
+            .await
+            .map_err(|e| AppError::Other(format!("tag write join: {e}")))?
+            .map_err(|e| AppError::Other(format!("tag write failed: {e}")))?;
+    }
 
     // 3b. The file has changed on disk; recompute its hash so the
     //     scanner's (mtime, size, hash) fast path keeps matching and
@@ -254,11 +278,25 @@ pub async fn update_tracks_batch(
         };
         let path = std::path::PathBuf::from(&row.file_path);
 
-        if let Err(err) = write_tags_to_file(&path, &edit) {
-            summary
-                .errors
-                .push((*track_id, format!("tag write failed: {err}")));
-            continue;
+        let written = {
+            let path = path.clone();
+            let edit = edit.clone();
+            tokio::task::spawn_blocking(move || write_tags_to_file(&path, &edit)).await
+        };
+        match written {
+            Ok(Ok(())) => {}
+            Ok(Err(err)) => {
+                summary
+                    .errors
+                    .push((*track_id, format!("tag write failed: {err}")));
+                continue;
+            }
+            Err(err) => {
+                summary
+                    .errors
+                    .push((*track_id, format!("tag write join: {err}")));
+                continue;
+            }
         }
 
         // Rehash the file before the DB sync so the new hash lands
@@ -305,14 +343,19 @@ struct TrackRow {
     album_id: Option<i64>,
 }
 
-/// Containers the library indexes but lofty cannot tag. lofty 0.25's
-/// `FileType` carries no DSD variant, so `read_from_path` on a `.dsf` /
-/// `.dff` fails with a generic "unknown format" — accurate, but it reads
-/// as a corrupt file rather than as a format we never supported writing.
-/// DSD metadata is parsed by `waveflow_core::audio_format::dsd`, which is
-/// read-only, so there is no fallback to reach for: refusing before we
-/// touch the file is the whole of the honest answer.
-const UNTAGGABLE_EXTENSIONS: &[&str] = &["dsf", "dff"];
+/// Containers the library indexes but nothing here can tag.
+///
+/// lofty 0.25's `FileType` carries no DSD variant, so asking it about a
+/// `.dsf` or a `.dff` fails with a generic "unknown format" — accurate,
+/// but it reads as a corrupt file rather than as a format we never
+/// supported writing. `.dsf` no longer needs lofty: its tag is a plain
+/// ID3v2 block after the audio and [`patch_dsf`] writes it (#592).
+///
+/// `.dff` stays here. It carries no ID3 by convention, its metadata
+/// lives in its own chunk structure, and some taggers append an ID3
+/// chunk anyway — so which shape to write is a real question with no
+/// obvious answer, and half an answer would be worse than a clear no.
+const UNTAGGABLE_EXTENSIONS: &[&str] = &["dff"];
 
 /// `Err` when `path` names a container this build can index but not write
 /// tags into. The message is user-facing — it reaches the properties
@@ -463,6 +506,233 @@ fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
     }
 }
 
+/// Apply a patch to an [`id3::Tag`], for the one container lofty cannot
+/// write (#592).
+///
+/// The mirror of [`apply_patch`], deliberately kept beside it. DSF keeps
+/// its metadata as a plain ID3v2 tag at an offset its header declares,
+/// and lofty has no `FileType` for it at all — so the tag has to be
+/// parsed and re-encoded by the `id3` crate the DSD reader already uses.
+/// Two tag models, one set of edit semantics: a test asserts the two
+/// appliers agree field by field, because a divergence here would mean
+/// the same edit meaning different things depending on the container.
+///
+/// Frames this does not name are carried through untouched, which is
+/// what `id3` does by holding the frames it parsed.
+fn apply_patch_id3(tag: &mut id3::Tag, patch: &TagPatch<'_>) {
+    use id3::TagLike;
+
+    let edit = match patch {
+        TagPatch::Fields(edit) => edit,
+        TagPatch::Cover { bytes, mime } => {
+            // Replace the cover, not the artwork — the same rule, and
+            // the same reason: a release with a booklet, a back cover or
+            // an artist shot carries several pictures and nothing brings
+            // them back. `id3` removes pictures all at once, so the ones
+            // that survive are put back rather than left alone.
+            let kept: Vec<id3::frame::Picture> = tag
+                .pictures()
+                .filter(|picture| {
+                    !matches!(
+                        picture.picture_type,
+                        id3::frame::PictureType::CoverFront | id3::frame::PictureType::Other
+                    )
+                })
+                .cloned()
+                .collect();
+            tag.remove_all_pictures();
+            for picture in kept {
+                tag.add_frame(picture);
+            }
+            tag.add_frame(id3::frame::Picture {
+                mime_type: mime.to_string(),
+                picture_type: id3::frame::PictureType::CoverFront,
+                description: String::new(),
+                data: bytes.to_vec(),
+            });
+            return;
+        }
+    };
+
+    if let Some(t) = edit.title.as_ref() {
+        if t.trim().is_empty() {
+            tag.remove_title();
+        } else {
+            tag.set_title(t.trim());
+        }
+    }
+    if let Some(a) = edit.artist.as_ref() {
+        if a.trim().is_empty() {
+            tag.remove_artist();
+        } else {
+            tag.set_artist(a.trim());
+        }
+    }
+    if let Some(al) = edit.album.as_ref() {
+        if al.trim().is_empty() {
+            tag.remove_album();
+        } else {
+            tag.set_album(al.trim());
+        }
+    }
+    if let Some(y) = edit.year {
+        // The date item, not the bare year, for the same reason the
+        // lofty side uses it: that is what the scanner reads back. The
+        // legacy `TYER` is cleared alongside so a stale value cannot
+        // outlive the one the user just removed.
+        if y <= 0 {
+            tag.remove_date_recorded();
+            tag.remove_year();
+        } else if let Ok(year) = i32::try_from(y) {
+            match tag.date_recorded() {
+                // A save that changed only the title must not truncate a
+                // full release date to its year.
+                Some(existing) if existing.year == year => {}
+                _ => tag.set_date_recorded(id3::Timestamp {
+                    year,
+                    ..Default::default()
+                }),
+            }
+        }
+    }
+    if let Some(n) = edit.track_number {
+        if n > 0 {
+            tag.set_track(n as u32);
+        } else {
+            tag.remove_track();
+        }
+    }
+    if let Some(n) = edit.disc_number {
+        if n > 0 {
+            tag.set_disc(n as u32);
+        } else {
+            tag.remove_disc();
+        }
+    }
+    if let Some(g) = edit.genre.as_ref() {
+        if g.trim().is_empty() {
+            tag.remove_genre();
+        } else {
+            tag.set_genre(g.trim());
+        }
+    }
+}
+
+/// Put the year where a pre-2.4 reader will look for it.
+///
+/// `TDRC` is a 2.4 frame. The `id3` crate writes whatever frames the tag
+/// holds, version target or not, so a 2.3 tag built from a `TDRC` comes
+/// back out carrying `TDRC` — and a reader that only knows 2.3 finds no
+/// year at all (measured: `year()` answers `None` after that round
+/// trip). Since a DSF now keeps the version it arrived with, the year
+/// has to be mirrored into `TYER`, which is the frame the older
+/// versions define — 2.2 among them, where the writer shortens it to
+/// `TYE` on the way out.
+///
+/// A cleared year clears both, so a stale `TYER` cannot outlive the
+/// date it duplicated.
+///
+/// **Only when the edit touched the year.** A genuine 2.3 tag carries
+/// `TYER` and no `TDRC` at all — that is the normal shape, not an odd
+/// one — so a mirror that ran on every save read "no date" from a file
+/// that had a perfectly good year and removed it. Editing a title, or
+/// setting a cover, would have quietly erased the year of every 2.3 DSF
+/// it touched.
+fn mirror_year_for_legacy(tag: &mut id3::Tag, patch: &TagPatch<'_>, version: id3::Version) {
+    use id3::TagLike;
+
+    if !matches!(version, id3::Version::Id3v22 | id3::Version::Id3v23) {
+        return;
+    }
+    // A cover carries no year, and a field edit that left `year` at
+    // `None` is asking for the year to stay exactly as it is.
+    let TagPatch::Fields(edit) = patch else {
+        return;
+    };
+    if edit.year.is_none() {
+        return;
+    }
+    match tag.date_recorded() {
+        Some(date) => {
+            tag.set_year(date.year);
+            // 2.2 frame IDs are three characters, and `TDRC` has no
+            // three-character form — so the writer does not drop it, it
+            // refuses the whole tag: "Unable to downgrade frame ID to
+            // ID3v2.2" (measured). Editing the year of a 2.2 file failed
+            // outright because of a frame we had just added. `TYER`
+            // carries the year now, so the frame goes back out.
+            if version == id3::Version::Id3v22 {
+                tag.remove_date_recorded();
+            }
+        }
+        None => tag.remove_year(),
+    }
+}
+
+/// Write a patch into a DSF file (#592).
+///
+/// The easy container, once someone writes the twenty lines for it: the
+/// tag lives *after* the audio at an offset the header declares, so it
+/// can grow or shrink without a single audio byte moving. That is why
+/// this path does not need the in-place/rewrite split the others do —
+/// every DSF write is already the cheap kind.
+///
+/// `.dff` is still refused. It has no ID3 by convention, its metadata
+/// lives in its own chunk structure, and some taggers append an ID3
+/// chunk anyway — so "which shape do we write" is a real question with
+/// no obvious answer, and half an answer would be worse than today's
+/// clear no.
+fn patch_dsf(
+    path: &std::path::Path,
+    patch: &TagPatch<'_>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    waveflow_core::tagio::with_writable_file(
+        path,
+        |handle| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            let layout = waveflow_core::tagio::read_dsf_layout(handle)?
+                .ok_or("this DSF file's header does not describe itself")?;
+            let existing = if layout.metadata_offset != 0 {
+                use std::io::{Seek, SeekFrom};
+                handle.seek(SeekFrom::Start(layout.metadata_offset))?;
+                // A tag we cannot parse stops the edit. Carrying on with
+                // a fresh one looks like resilience and is the opposite:
+                // the write replaces the whole tag, so every frame we
+                // failed to read — the cover, the ratings, the
+                // MusicBrainz identifiers — would be dropped to save a
+                // title. Refusing leaves the file exactly as it is, and
+                // says why.
+                //
+                // `NoTag` is the exception, and the only one: a pointer
+                // leading to no tag at all describes a file with no
+                // metadata, not one whose metadata we failed to read.
+                // There is nothing there to lose, so it starts fresh.
+                match id3::Tag::read_from2(&mut *handle) {
+                    Ok(tag) => Some(tag),
+                    Err(err) if matches!(err.kind, id3::ErrorKind::NoTag) => None,
+                    Err(err) => return Err(err.into()),
+                }
+            } else {
+                None
+            };
+            // Write back the version the file already used. A DSF tagged
+            // as ID3v2.3 rewritten as 2.4 is a file some hardware DSD
+            // players stop reading, and an edit to a title is not the
+            // place to make that decision for the user. Only a tag we
+            // are creating gets our own choice.
+            let version = existing
+                .as_ref()
+                .map_or(id3::Version::Id3v24, id3::Tag::version);
+            let mut tag = existing.unwrap_or_default();
+            apply_patch_id3(&mut tag, patch);
+            mirror_year_for_legacy(&mut tag, patch, version);
+            let mut bytes = Vec::new();
+            tag.write_to(&mut bytes, version)?;
+            waveflow_core::tagio::write_dsf_id3v2(handle, &bytes)?;
+            Ok(())
+        },
+    )
+}
+
 /// Apply `patch` to the file at `path`, keeping every field the generic
 /// [`lofty::tag::Tag`] shape cannot model.
 ///
@@ -498,6 +768,17 @@ fn patch_file(
 
     reject_untaggable(path)?;
 
+    // DSF before the probe: lofty has no FileType for it, so asking it
+    // to guess would fail with "unrecognised container" on a file we
+    // can in fact write (#592).
+    if path
+        .extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| e.eq_ignore_ascii_case("dsf"))
+    {
+        return patch_dsf(path, patch);
+    }
+
     let file_type = Probe::open(path)?
         .guess_file_type()?
         .file_type()
@@ -526,23 +807,94 @@ fn patch_file(
         }};
     }
 
-    // Read the concrete file, run the body over it, save it back.
+    // The rewrite: read the concrete file, run the body over it, save it
+    // back — through a copy that replaces the original in one `rename`
+    // (#598). lofty's own rewrite truncates the file it is rewriting, so
+    // the original has to stay out of its reach until the new bytes are
+    // on the disk. lofty rewinds the handle itself at the top of its
+    // writer, so reading and writing through the same one is expected.
     macro_rules! with_file {
-        ($ty:ty, |$f:ident| $body:block) => {{
-            let mut $f = <$ty>::read_from(&mut std::fs::File::open(path)?, ParseOptions::new())?;
-            $body
-            $f.save_to_path(path, WriteOptions::default())?;
+        ($ty:ty, |$f:ident, $h:ident| $body:block) => {{
+            waveflow_core::tagio::rewrite_via_temp(
+                path,
+                |$h| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                    let mut $f = <$ty>::read_from($h, ParseOptions::new())?;
+                    $body
+                    $f.save_to($h, WriteOptions::default())?;
+                    Ok(())
+                },
+            )?;
         }};
     }
 
+    // First pass: lay the new tag over the one already in the file,
+    // which works whenever the edit did not outgrow the padding there
+    // (#590). That is the common case — a corrected title is a few bytes
+    // either way and taggers leave kilobytes of slack — and it is the
+    // only path that touches neither the audio nor the file's length.
+    // `false` means "could not", and the rewrite below takes over.
+    //
+    // An **error** here fails the edit rather than falling through, and
+    // that is deliberate. The rewrite opens the same container with the
+    // same parser on a copy of the same bytes, so a parse or encode
+    // failure would simply happen again one file later. The one error
+    // that would genuinely behave differently is the open: `rewrite_via
+    // _temp` never opens the original for writing, only for reading, so
+    // it would succeed on a file the user has deliberately made
+    // read-only on Unix — replacing it through a rename the directory
+    // permits. Turning "you may not write this file" into a silent
+    // replacement is not a fallback, it is a way around the answer.
+    // Windows is the exception the guard already handles: there
+    // read-only is a single attribute we lift and put back.
+    macro_rules! try_in_place_id3v2 {
+        ($ty:ty) => {{
+            waveflow_core::tagio::with_writable_file(
+                path,
+                |handle| -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+                    let mut f = <$ty>::read_from(handle, ParseOptions::new())?;
+                    patch_slot!(f, remove_id3v2, set_id3v2);
+                    match f.id3v2() {
+                        Some(tag) => waveflow_core::tagio::try_id3v2_in_place(handle, tag),
+                        None => Ok(false),
+                    }
+                },
+            )?
+        }};
+    }
+
+    let written_in_place = match file_type {
+        FileType::Mpeg => try_in_place_id3v2!(lofty::mpeg::MpegFile),
+        FileType::Aac => try_in_place_id3v2!(lofty::aac::AacFile),
+        // Fields only. A cover edit regenerates picture blocks, which
+        // the FLAC fast path deliberately copies through rather than
+        // rebuilds, so it has nothing to offer there.
+        FileType::Flac if matches!(patch, TagPatch::Fields(_)) => {
+            waveflow_core::tagio::with_writable_file(
+                path,
+                |handle| -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+                    let mut f = lofty::flac::FlacFile::read_from(handle, ParseOptions::new())?;
+                    patch_slot!(f, remove_vorbis_comments, set_vorbis_comments);
+                    match f.vorbis_comments() {
+                        Some(comments) => waveflow_core::tagio::try_flac_in_place(handle, comments),
+                        None => Ok(false),
+                    }
+                },
+            )?
+        }
+        _ => false,
+    };
+    if written_in_place {
+        return Ok(());
+    }
+
     match file_type {
-        FileType::Mpeg => with_file!(lofty::mpeg::MpegFile, |f| {
+        FileType::Mpeg => with_file!(lofty::mpeg::MpegFile, |f, handle| {
             patch_slot!(f, remove_id3v2, set_id3v2);
         }),
-        FileType::Aac => with_file!(lofty::aac::AacFile, |f| {
+        FileType::Aac => with_file!(lofty::aac::AacFile, |f, handle| {
             patch_slot!(f, remove_id3v2, set_id3v2);
         }),
-        FileType::Mp4 => with_file!(lofty::mp4::Mp4File, |f| {
+        FileType::Mp4 => with_file!(lofty::mp4::Mp4File, |f, handle| {
             patch_slot!(f, remove_ilst, set_ilst);
         }),
         // WAV and AIFF can carry both an ID3v2 chunk and their native
@@ -550,32 +902,32 @@ fn patch_file(
         // only the primary would leave the other one contradicting it,
         // so both get the edit whenever both exist; a file with neither
         // gets the ID3v2 chunk lofty treats as primary.
-        FileType::Wav => with_file!(lofty::iff::wav::WavFile, |f| {
+        FileType::Wav => with_file!(lofty::iff::wav::WavFile, |f, handle| {
             if f.riff_info().is_some() {
                 patch_slot!(f, remove_riff_info, set_riff_info);
             }
             patch_slot!(f, remove_id3v2, set_id3v2);
         }),
-        FileType::Aiff => with_file!(lofty::iff::aiff::AiffFile, |f| {
+        FileType::Aiff => with_file!(lofty::iff::aiff::AiffFile, |f, handle| {
             if f.text_chunks().is_some() {
                 patch_slot!(f, remove_text_chunks, set_text_chunks);
             }
             patch_slot!(f, remove_id3v2, set_id3v2);
         }),
-        FileType::Vorbis => with_file!(lofty::ogg::VorbisFile, |f| {
+        FileType::Vorbis => with_file!(lofty::ogg::VorbisFile, |f, handle| {
             patch_required_slot!(f, remove_vorbis_comments, set_vorbis_comments);
         }),
-        FileType::Opus => with_file!(lofty::ogg::OpusFile, |f| {
+        FileType::Opus => with_file!(lofty::ogg::OpusFile, |f, handle| {
             patch_required_slot!(f, remove_vorbis_comments, set_vorbis_comments);
         }),
-        FileType::Speex => with_file!(lofty::ogg::SpeexFile, |f| {
+        FileType::Speex => with_file!(lofty::ogg::SpeexFile, |f, handle| {
             patch_required_slot!(f, remove_vorbis_comments, set_vorbis_comments);
         }),
         // FLAC keeps its pictures in their own metadata blocks, which
         // lofty exposes on the file and not on the tag — a cover pushed
         // into the Vorbis comments here would be written *alongside* the
         // blocks already there rather than replacing the front cover.
-        FileType::Flac => with_file!(lofty::flac::FlacFile, |f| {
+        FileType::Flac => with_file!(lofty::flac::FlacFile, |f, handle| {
             match patch {
                 TagPatch::Fields(_) => {
                     patch_slot!(f, remove_vorbis_comments, set_vorbis_comments);
@@ -842,8 +1194,8 @@ pub async fn update_track_cover(
     }
     let (mime, ext) = sniff_image_mime(&bytes, &image_path);
 
-    // Pause if the engine has the file open — same Windows-rename
-    // dance as the tag-edit path.
+    // Pause if the engine has the file open — same reason as the
+    // tag-edit path: the write opens the real file.
     let active = engine
         .shared()
         .current_track_id
@@ -853,8 +1205,17 @@ pub async fn update_track_cover(
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     }
 
-    write_cover_to_file(std::path::Path::new(&file_path), &bytes, &mime)
-        .map_err(|e| AppError::Other(format!("cover tag write failed: {e}")))?;
+    // A cover is the largest thing we ever push into a tag, so this is
+    // the write least suited to an async worker.
+    {
+        let path = std::path::PathBuf::from(&file_path);
+        let bytes = bytes.clone();
+        let mime = mime.clone();
+        tokio::task::spawn_blocking(move || write_cover_to_file(&path, &bytes, &mime))
+            .await
+            .map_err(|e| AppError::Other(format!("cover tag write join: {e}")))?
+            .map_err(|e| AppError::Other(format!("cover tag write failed: {e}")))?;
+    }
 
     // The audio file itself just changed (a new picture frame was
     // embedded), so its blake3 hash drifted. Recompute and persist so
@@ -944,5 +1305,304 @@ fn sniff_image_mime(bytes: &[u8], path: &str) -> (lofty::picture::MimeType, &'st
         (MimeType::Unknown("image/webp".into()), "webp")
     } else {
         (MimeType::Jpeg, "jpg")
+    }
+}
+
+#[cfg(test)]
+mod patch_agreement_tests {
+    use super::*;
+
+    /// Every field the dialog can send, set to something distinctive.
+    fn full_edit() -> TrackEdit {
+        TrackEdit {
+            title: Some("  A Title  ".into()),
+            artist: Some("Artist A, Artist B".into()),
+            album: Some("An Album".into()),
+            year: Some(1997),
+            track_number: Some(4),
+            disc_number: Some(2),
+            genre: Some(" Jazz ".into()),
+        }
+    }
+
+    /// The same fields, all asking to be cleared.
+    fn clearing_edit() -> TrackEdit {
+        TrackEdit {
+            title: Some("   ".into()),
+            artist: Some(String::new()),
+            album: Some(String::new()),
+            year: Some(0),
+            track_number: Some(0),
+            disc_number: Some(0),
+            genre: Some("  ".into()),
+        }
+    }
+
+    /// What a tag says, in the only terms both models share.
+    #[derive(Debug, PartialEq, Eq)]
+    struct Fields {
+        title: Option<String>,
+        artist: Option<String>,
+        album: Option<String>,
+        year: Option<i32>,
+        track: Option<u32>,
+        disc: Option<u32>,
+        genre: Option<String>,
+    }
+
+    fn through_lofty(edit: &TrackEdit) -> Fields {
+        use lofty::prelude::*;
+        let mut tag = lofty::tag::Tag::new(lofty::tag::TagType::Id3v2);
+        apply_patch(&mut tag, &TagPatch::Fields(edit));
+        Fields {
+            title: tag.title().map(|v| v.to_string()),
+            artist: tag.artist().map(|v| v.to_string()),
+            album: tag.album().map(|v| v.to_string()),
+            year: tag.date().map(|d| i32::from(d.year)),
+            track: tag.track(),
+            disc: tag.disk(),
+            genre: tag.genre().map(|v| v.to_string()),
+        }
+    }
+
+    fn through_id3(edit: &TrackEdit) -> Fields {
+        use id3::TagLike;
+        let mut tag = id3::Tag::new();
+        apply_patch_id3(&mut tag, &TagPatch::Fields(edit));
+        Fields {
+            title: tag.title().map(|v| v.to_string()),
+            artist: tag.artist().map(|v| v.to_string()),
+            album: tag.album().map(|v| v.to_string()),
+            year: tag.date_recorded().map(|d| d.year),
+            track: tag.track(),
+            disc: tag.disc(),
+            genre: tag.genre().map(|v| v.to_string()),
+        }
+    }
+
+    #[test]
+    fn both_appliers_agree_on_a_full_edit() {
+        // Two tag models, one set of edit semantics. A divergence would
+        // mean the same edit meaning different things depending on
+        // whether the file is an MP3 or a DSF — which nobody would look
+        // for, because the dialog is the same one.
+        let edit = full_edit();
+        assert_eq!(through_lofty(&edit), through_id3(&edit));
+    }
+
+    #[test]
+    fn both_appliers_agree_on_clearing_every_field() {
+        // The half that is easy to get wrong: "empty means clear" has to
+        // be the same decision on both sides, including the year, where
+        // 0 means remove rather than write a year zero.
+        let edit = clearing_edit();
+        let cleared = through_lofty(&edit);
+        assert_eq!(cleared, through_id3(&edit));
+        assert_eq!(cleared.title, None);
+        assert_eq!(cleared.year, None);
+        assert_eq!(cleared.track, None);
+    }
+
+    #[test]
+    fn a_title_only_save_does_not_truncate_a_full_release_date() {
+        // The dialog sends the year on every save, so both appliers have
+        // to leave an existing day-precision date alone when the year
+        // they were handed is the one already there.
+        use id3::TagLike;
+        let mut tag = id3::Tag::new();
+        tag.set_date_recorded(id3::Timestamp {
+            year: 1997,
+            month: Some(6),
+            day: Some(14),
+            ..Default::default()
+        });
+        let edit = TrackEdit {
+            title: Some("New Title".into()),
+            year: Some(1997),
+            ..Default::default()
+        };
+        apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
+        let date = tag.date_recorded().expect("a date");
+        assert_eq!((date.year, date.month, date.day), (1997, Some(6), Some(14)));
+    }
+
+    #[test]
+    fn an_id3v23_tag_keeps_its_year_where_a_v23_reader_looks() {
+        // TDRC is a 2.4 frame. The `id3` crate writes the frames the tag
+        // holds whatever version it is told to target, so a 2.3 tag built
+        // from a TDRC comes back out carrying TDRC — and `year()`, which
+        // reads TYER, answers None. Measured, not assumed: that is what
+        // the round trip below asserted before the mirror existed.
+        use id3::TagLike;
+
+        let mut tag = id3::Tag::new();
+        tag.set_title("Before");
+        let edit = TrackEdit {
+            year: Some(1997),
+            ..Default::default()
+        };
+        apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
+        mirror_year_for_legacy(&mut tag, &TagPatch::Fields(&edit), id3::Version::Id3v23);
+
+        let mut bytes = Vec::new();
+        tag.write_to(&mut bytes, id3::Version::Id3v23)
+            .expect("write");
+        let back = id3::Tag::read_from2(std::io::Cursor::new(&bytes)).expect("read");
+
+        assert_eq!(back.year(), Some(1997), "a 2.3 reader finds the year");
+        assert_eq!(
+            back.date_recorded().map(|d| d.year),
+            Some(1997),
+            "and the 2.4 frame still agrees with it"
+        );
+    }
+
+    #[test]
+    fn clearing_the_year_clears_both_frames_in_a_legacy_tag() {
+        // A stale TYER outliving the date it duplicated would show the
+        // old year to exactly the readers the mirror exists for.
+        use id3::TagLike;
+
+        let mut tag = id3::Tag::new();
+        tag.set_year(1997);
+        tag.set_date_recorded(id3::Timestamp {
+            year: 1997,
+            ..Default::default()
+        });
+        let edit = TrackEdit {
+            year: Some(0),
+            ..Default::default()
+        };
+        apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
+        mirror_year_for_legacy(&mut tag, &TagPatch::Fields(&edit), id3::Version::Id3v23);
+
+        assert_eq!(tag.year(), None);
+        assert_eq!(tag.date_recorded(), None);
+    }
+
+    #[test]
+    fn a_v24_tag_is_left_with_the_frame_its_version_defines() {
+        // The mirror is a 2.3 accommodation and must not add a legacy
+        // frame to a tag that has no use for one.
+        use id3::TagLike;
+
+        let mut tag = id3::Tag::new();
+        let edit = TrackEdit {
+            year: Some(2011),
+            ..Default::default()
+        };
+        apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
+        mirror_year_for_legacy(&mut tag, &TagPatch::Fields(&edit), id3::Version::Id3v24);
+
+        assert_eq!(tag.date_recorded().map(|d| d.year), Some(2011));
+        assert_eq!(tag.year(), None, "no TYER in a 2.4 tag");
+    }
+
+    #[test]
+    fn an_id3v22_tag_can_actually_be_written() {
+        // Not a conformance nicety: the writer refuses a tag carrying a
+        // frame it cannot downgrade, so a TDRC we added ourselves failed
+        // the whole edit on a 2.2 file.
+        use id3::TagLike;
+
+        let mut tag = id3::Tag::new();
+        tag.set_title("Before");
+        let edit = TrackEdit {
+            year: Some(1997),
+            ..Default::default()
+        };
+        apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
+        mirror_year_for_legacy(&mut tag, &TagPatch::Fields(&edit), id3::Version::Id3v22);
+
+        let mut bytes = Vec::new();
+        tag.write_to(&mut bytes, id3::Version::Id3v22)
+            .expect("a 2.2 tag we built must be writable as 2.2");
+        let back = id3::Tag::read_from2(std::io::Cursor::new(&bytes)).expect("read");
+        assert_eq!(back.year(), Some(1997));
+        assert_eq!(back.title(), Some("Before"));
+    }
+
+    #[test]
+    fn a_cover_edit_does_not_erase_a_v23_tag_s_year() {
+        // The shape that matters: a genuine 2.3 tag carries TYER and no
+        // TDRC. A mirror that ran on every save would read "no date"
+        // from it and remove the year — so setting a cover, or fixing a
+        // title, silently erased the year of the file it was helping.
+        use id3::TagLike;
+
+        let mut tag = id3::Tag::new();
+        tag.set_year(1997);
+        let mime = lofty::picture::MimeType::Jpeg;
+        let patch = TagPatch::Cover {
+            bytes: &[1, 2, 3],
+            mime: &mime,
+        };
+        apply_patch_id3(&mut tag, &patch);
+        mirror_year_for_legacy(&mut tag, &patch, id3::Version::Id3v23);
+
+        assert_eq!(tag.year(), Some(1997), "the year the edit never mentioned");
+    }
+
+    #[test]
+    fn a_title_only_edit_does_not_erase_a_v23_tag_s_year() {
+        use id3::TagLike;
+
+        let mut tag = id3::Tag::new();
+        tag.set_year(1997);
+        let edit = TrackEdit {
+            title: Some("New Title".into()),
+            ..Default::default()
+        };
+        apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
+        mirror_year_for_legacy(&mut tag, &TagPatch::Fields(&edit), id3::Version::Id3v23);
+
+        assert_eq!(tag.year(), Some(1997));
+        assert_eq!(tag.title(), Some("New Title"));
+    }
+
+    #[test]
+    fn a_dsf_cover_replaces_the_front_and_keeps_the_rest() {
+        // Same rule as the lofty side: a booklet or a back cover is not
+        // the front cover, and nothing brings it back.
+        use id3::TagLike;
+        let mut tag = id3::Tag::new();
+        tag.add_frame(id3::frame::Picture {
+            mime_type: "image/jpeg".into(),
+            picture_type: id3::frame::PictureType::CoverBack,
+            description: String::new(),
+            data: vec![1, 2, 3],
+        });
+        tag.add_frame(id3::frame::Picture {
+            mime_type: "image/jpeg".into(),
+            picture_type: id3::frame::PictureType::CoverFront,
+            description: String::new(),
+            data: vec![9, 9, 9],
+        });
+
+        let mime = lofty::picture::MimeType::Jpeg;
+        apply_patch_id3(
+            &mut tag,
+            &TagPatch::Cover {
+                bytes: &[4, 5, 6],
+                mime: &mime,
+            },
+        );
+
+        let pictures: Vec<_> = tag.pictures().collect();
+        assert_eq!(pictures.len(), 2);
+        assert!(
+            pictures
+                .iter()
+                .any(|p| p.picture_type == id3::frame::PictureType::CoverBack
+                    && p.data == vec![1, 2, 3]),
+            "the back cover survived"
+        );
+        assert!(
+            pictures
+                .iter()
+                .any(|p| p.picture_type == id3::frame::PictureType::CoverFront
+                    && p.data == vec![4, 5, 6]),
+            "the front cover is the new one"
+        );
     }
 }
