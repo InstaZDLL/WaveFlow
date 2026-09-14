@@ -572,7 +572,9 @@
       "musicalKey": "Ton",
       "fileSize": "Boyut",
       "addedAt": "Eklenme",
-      "filePath": "Yol"
+      "filePath": "Yol",
+      "moveUp": "{{column}} sütununu yukarı taşı",
+      "moveDown": "{{column}} sütununu aşağı taşı"
     }
   },
   "liked": {

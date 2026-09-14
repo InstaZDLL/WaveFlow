@@ -159,9 +159,15 @@ fn read_inner(path: &Path) -> Option<Vec<(String, String)>> {
             let file = lofty::ape::ApeFile::read_from(&mut handle, options).ok()?;
             ape_into(file.ape(), &mut out);
         }
-        // Everything else — including DSF and DFF, which have their own
-        // pipeline and no notion of a custom frame we can reach.
-        _ => return None,
+        // A container we do not read custom frames from — DSF and DFF,
+        // which have their own pipeline, and anything lofty recognises
+        // that we have not wired up. Falls through to `Some(vec![])`,
+        // not `None`: we opened the file and there is nothing here to
+        // offer, which is what lets the scanner clear rows a file kept
+        // from before it was re-encoded into such a container. `None`
+        // stays reserved for "could not read", which leaves the stored
+        // rows alone.
+        _ => {}
     }
 
     out.sort_by(|a, b| a.0.cmp(&b.0));

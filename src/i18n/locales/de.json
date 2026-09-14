@@ -572,7 +572,9 @@
       "musicalKey": "Tonart",
       "fileSize": "Größe",
       "addedAt": "Hinzugefügt",
-      "filePath": "Pfad"
+      "filePath": "Pfad",
+      "moveUp": "Spalte {{column}} nach oben",
+      "moveDown": "Spalte {{column}} nach unten"
     }
   },
   "liked": {

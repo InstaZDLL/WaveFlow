@@ -75,13 +75,19 @@ const KEY_CACHE_ROOT: &str = "storage.cache_root";
 /// removes only those directories.
 const KEY_CACHE_PENDING: &str = "storage.cache_root_pending_cleanup";
 
-/// Name of the probe file [`is_usable`] writes and removes.
+/// Prefix of the probe file [`is_usable`] creates and removes.
 ///
 /// A directory can exist, be listable, and still refuse writes — a
 /// read-only network share, a drive mounted by another user, a folder
 /// inside a container the app has no grant for. Only a write answers the
 /// question the caller is actually asking.
-const PROBE_NAME: &str = ".waveflow-write-probe";
+///
+/// The name is made unique per call and the file is created with
+/// `create_new`, so the probe can never truncate or delete something
+/// the user already had there. The directory being probed is one they
+/// just picked in a file dialog; writing into it is a liberty, and
+/// destroying a file in it is not one to take on a name collision.
+const PROBE_PREFIX: &str = ".waveflow-write-probe";
 
 /// What the Settings card needs to render the current state.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -159,14 +165,28 @@ async fn store_path(app_db: &SqlitePool, key: &str, root: Option<&Path>) -> AppR
 /// probe file. Returns the reason on failure so the caller can log or
 /// show something better than "it did not work".
 fn is_usable(root: &Path) -> Result<(), String> {
+    use std::io::Write;
+
     std::fs::create_dir_all(root).map_err(|e| format!("cannot create {}: {e}", root.display()))?;
-    let probe = root.join(PROBE_NAME);
-    std::fs::write(&probe, b"waveflow")
+    let unique = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let probe = root.join(format!("{PROBE_PREFIX}-{unique}"));
+
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&probe)
         .map_err(|e| format!("cannot write to {}: {e}", root.display()))?;
-    // A failure to clean up is not a failure to be usable — the probe is
-    // eight bytes and the next run overwrites it.
+    let written = file
+        .write_all(b"waveflow")
+        .map_err(|e| format!("cannot write to {}: {e}", root.display()));
+    drop(file);
+    // Removed whatever the write did, since this call is what created
+    // it. A failure to clean up is not a failure to be usable.
     let _ = std::fs::remove_file(&probe);
-    Ok(())
+    written
 }
 
 /// Decide where the caches live for this session.
@@ -254,15 +274,29 @@ pub fn grant_asset_scope(handle: &AppHandle, paths: &AppPaths) {
     if paths.cache_root == paths.root {
         return;
     }
-    if let Err(e) = handle
-        .asset_protocol_scope()
-        .allow_directory(&paths.cache_root, true)
-    {
-        tracing::error!(
-            path = %paths.cache_root.display(),
-            %e,
-            "could not widen the asset scope to the cache root; artwork stored there will not load",
-        );
+    // The cache *subdirectories*, never the root itself. The root is a
+    // folder the user picked in a file dialog, and it can perfectly
+    // well be `D:\` or their home directory — granting the webview
+    // recursive read access to all of it would hand every page in the
+    // app a way to read the user's documents. Each of these is a
+    // directory WaveFlow created and owns.
+    let scope = handle.asset_protocol_scope();
+    let profiles = paths.cache_root.join("profiles");
+    let mut grants: Vec<&Path> = paths
+        .shared_cache_dirs()
+        .iter()
+        .map(|(_, path)| path.as_path())
+        .collect();
+    grants.push(profiles.as_path());
+
+    for dir in grants {
+        if let Err(e) = scope.allow_directory(dir, true) {
+            tracing::error!(
+                path = %dir.display(),
+                %e,
+                "could not widen the asset scope to a cache directory; artwork stored there will not load",
+            );
+        }
     }
 }
 
@@ -484,9 +518,15 @@ pub async fn set_cache_location(
     store_path(&state.app_db, KEY_CACHE_PENDING, Some(&paths.cache_root)).await?;
     grant_asset_scope(&app, &moved);
 
+    // `active_root` is still the old one, and saying otherwise would be
+    // a lie with consequences: the process keeps reading and writing
+    // there until it restarts, so a card showing the new path while the
+    // next cover lands at the old one is exactly the confusion the
+    // restart notice exists to prevent. The destination is reported as
+    // `configured_root`, which is what it is.
     let size_bytes = measure(destinations).await;
     Ok(CacheLocation {
-        active_root: moved.cache_root.to_string_lossy().to_string(),
+        active_root: paths.cache_root.to_string_lossy().to_string(),
         default_root: moved.root.to_string_lossy().to_string(),
         configured_root: stored.map(|p| p.to_string_lossy().to_string()),
         fell_back: false,

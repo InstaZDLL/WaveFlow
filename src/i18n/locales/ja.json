@@ -572,7 +572,9 @@
       "musicalKey": "キー",
       "fileSize": "サイズ",
       "addedAt": "追加日",
-      "filePath": "パス"
+      "filePath": "パス",
+      "moveUp": "{{column}} 列を上へ",
+      "moveDown": "{{column}} 列を下へ"
     }
   },
   "liked": {

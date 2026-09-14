@@ -622,7 +622,9 @@
       "musicalKey": "Тональность",
       "fileSize": "Размер",
       "addedAt": "Добавлено",
-      "filePath": "Путь"
+      "filePath": "Путь",
+      "moveUp": "Переместить столбец «{{column}}» выше",
+      "moveDown": "Переместить столбец «{{column}}» ниже"
     }
   },
   "liked": {

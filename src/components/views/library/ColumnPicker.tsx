@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Columns3, GripVertical, RotateCcw } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Columns3,
+  GripVertical,
+  RotateCcw,
+} from "lucide-react";
 import {
   BUILTIN_COLUMNS,
   specFor,
@@ -196,6 +202,35 @@ export function ColumnPicker({
                     />
                     <span className="text-sm text-zinc-800 dark:text-zinc-200 truncate">
                       {label}
+                    </span>
+                    {/* Reordering has to be reachable without a drag.
+                        A drag is a gesture not everyone can perform,
+                        and it is the only way to change the order --
+                        so without these the feature is closed to
+                        keyboard and switch users entirely. */}
+                    <span className="ml-auto flex shrink-0 items-center">
+                      <button
+                        type="button"
+                        onClick={() => move(index, index - 1)}
+                        disabled={index === 0}
+                        aria-label={t("library.columns.moveUp", {
+                          column: label,
+                        })}
+                        className="p-0.5 rounded text-zinc-400 hover:text-zinc-800 disabled:opacity-30 dark:hover:text-zinc-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                      >
+                        <ChevronUp size={13} aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => move(index, index + 1)}
+                        disabled={index === layout.order.length - 1}
+                        aria-label={t("library.columns.moveDown", {
+                          column: label,
+                        })}
+                        className="p-0.5 rounded text-zinc-400 hover:text-zinc-800 disabled:opacity-30 dark:hover:text-zinc-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                      >
+                        <ChevronDown size={13} aria-hidden="true" />
+                      </button>
                     </span>
                   </li>
                 );

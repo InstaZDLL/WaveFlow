@@ -572,7 +572,9 @@
       "musicalKey": "Toonsoort",
       "fileSize": "Grootte",
       "addedAt": "Toegevoegd",
-      "filePath": "Pad"
+      "filePath": "Pad",
+      "moveUp": "Kolom {{column}} omhoog",
+      "moveDown": "Kolom {{column}} omlaag"
     }
   },
   "liked": {

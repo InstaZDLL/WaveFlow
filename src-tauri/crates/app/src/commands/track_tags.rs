@@ -77,6 +77,18 @@ pub async fn list_track_tag_values(
     state: tauri::State<'_, AppState>,
     keys: Vec<String>,
 ) -> AppResult<TagValues> {
+    // Deduplicated and capped before a placeholder is built for each:
+    // `keys` is the frontend's stored column layout, and SQLite refuses
+    // a statement with more than 999 bound parameters. A layout with a
+    // thousand tag columns is absurd, but the failure it would cause is
+    // a query error rather than a missing column, which is far harder
+    // to read. `MAX_KEYS` is the same ceiling the picker offers.
+    let mut seen = std::collections::HashSet::new();
+    let keys: Vec<String> = keys
+        .into_iter()
+        .filter(|key| !key.is_empty() && seen.insert(key.clone()))
+        .take(MAX_KEYS as usize)
+        .collect();
     if keys.is_empty() {
         return Ok(TagValues::new());
     }

@@ -572,7 +572,9 @@
       "musicalKey": "स्वरग्राम",
       "fileSize": "आकार",
       "addedAt": "जोड़ा गया",
-      "filePath": "पथ"
+      "filePath": "पथ",
+      "moveUp": "{{column}} स्तंभ ऊपर ले जाएँ",
+      "moveDown": "{{column}} स्तंभ नीचे ले जाएँ"
     }
   },
   "liked": {

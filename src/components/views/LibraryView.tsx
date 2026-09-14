@@ -550,6 +550,10 @@ export function LibraryView({
   // category the user has left must not paint.
   useEffect(() => {
     if (activeTab !== "a-corriger" || inventoryCategory == null) return;
+    // Same gate the other lists use: firing before the stored sort has
+    // been read loads the whole category once in the default order and
+    // again in the right one.
+    if (!tracksSort.isLoaded) return;
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setInventoryBusy(true);
@@ -567,7 +571,13 @@ export function LibraryView({
     return () => {
       cancelled = true;
     };
-  }, [activeTab, inventoryCategory, tracksSort.sort, editRefetch]);
+  }, [
+    activeTab,
+    inventoryCategory,
+    tracksSort.sort,
+    tracksSort.isLoaded,
+    editRefetch,
+  ]);
 
   // Per-tab parallel fetchers — each runs independently of `activeTab`,
   // so navigating into LibraryView fires all 5 SQL queries at once and

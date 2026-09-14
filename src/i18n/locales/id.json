@@ -572,7 +572,9 @@
       "musicalKey": "Nada dasar",
       "fileSize": "Ukuran",
       "addedAt": "Ditambahkan",
-      "filePath": "Jalur"
+      "filePath": "Jalur",
+      "moveUp": "Naikkan kolom {{column}}",
+      "moveDown": "Turunkan kolom {{column}}"
     }
   },
   "liked": {

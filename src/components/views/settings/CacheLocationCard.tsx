@@ -196,7 +196,14 @@ export function CacheLocationCard({ language }: { language: string }) {
           </p>
           <button
             type="button"
-            onClick={() => void restartForCacheMove()}
+            onClick={() => {
+              // The command replaces the process and normally never
+              // resolves; a rejection means it could not, and the user
+              // is left looking at a button that did nothing.
+              restartForCacheMove().catch((err) => {
+                setError(err instanceof Error ? err.message : String(err));
+              });
+            }}
             className="shrink-0 px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-medium hover:bg-emerald-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           >
             {t("settings.cacheLocation.restartNow")}

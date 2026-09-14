@@ -572,7 +572,9 @@
       "musicalKey": "Key",
       "fileSize": "Size",
       "addedAt": "Added",
-      "filePath": "Path"
+      "filePath": "Path",
+      "moveUp": "Move the {{column}} column up",
+      "moveDown": "Move the {{column}} column down"
     }
   },
   "liked": {

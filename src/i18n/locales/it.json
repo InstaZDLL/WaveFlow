@@ -572,7 +572,9 @@
       "musicalKey": "Tonalità",
       "fileSize": "Dimensione",
       "addedAt": "Aggiunto",
-      "filePath": "Percorso"
+      "filePath": "Percorso",
+      "moveUp": "Sposta la colonna {{column}} in alto",
+      "moveDown": "Sposta la colonna {{column}} in basso"
     }
   },
   "liked": {

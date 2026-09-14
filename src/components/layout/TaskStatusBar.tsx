@@ -81,9 +81,13 @@ export function TaskStatusBar() {
   const hidden = tasks.length - shown.length;
 
   return (
-    <div
-      role="status"
-      aria-live="polite"
+    // Not a live region. The counters inside change several times a
+    // second, and `aria-live` on a container that holds them makes a
+    // screen reader read the whole bar out over and over — which is
+    // worse than silence for the user it was meant to help. The
+    // progress semantics live on each row's `role="progressbar"`, which
+    // assistive technology reports on demand.
+    <section
       aria-label={t("tasks.barLabel")}
       className="shrink-0 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-4 py-2 space-y-2"
     >
@@ -105,7 +109,7 @@ export function TaskStatusBar() {
           </span>
         </button>
       )}
-    </div>
+    </section>
   );
 }
 

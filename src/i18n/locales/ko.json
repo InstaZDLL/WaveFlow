@@ -572,7 +572,9 @@
       "musicalKey": "조성",
       "fileSize": "크기",
       "addedAt": "추가한 날짜",
-      "filePath": "경로"
+      "filePath": "경로",
+      "moveUp": "{{column}} 열을 위로",
+      "moveDown": "{{column}} 열을 아래로"
     }
   },
   "liked": {

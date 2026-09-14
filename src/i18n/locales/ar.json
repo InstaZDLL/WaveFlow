@@ -651,7 +651,9 @@
       "musicalKey": "المقام",
       "fileSize": "الحجم",
       "addedAt": "أُضيف في",
-      "filePath": "المسار"
+      "filePath": "المسار",
+      "moveUp": "نقل عمود {{column}} لأعلى",
+      "moveDown": "نقل عمود {{column}} لأسفل"
     }
   },
   "liked": {

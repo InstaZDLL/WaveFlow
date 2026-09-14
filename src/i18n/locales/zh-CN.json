@@ -572,7 +572,9 @@
       "musicalKey": "调性",
       "fileSize": "大小",
       "addedAt": "添加时间",
-      "filePath": "路径"
+      "filePath": "路径",
+      "moveUp": "上移“{{column}}”列",
+      "moveDown": "下移“{{column}}”列"
     }
   },
   "liked": {
