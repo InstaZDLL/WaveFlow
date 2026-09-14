@@ -18,6 +18,12 @@
 //! once a row exists — the user can manually overwrite by importing a
 //! `.lrc` file via [`import_lrc_file`].
 //!
+//! One exception, and it is narrow: a cached `embedded` row that is a
+//! distribution service's credit rather than lyrics is dropped on
+//! read and re-resolved. Those rows were written by a bug in tier 4
+//! (see below), and without this the fix would only have reached
+//! tracks nobody had opened yet.
+//!
 //! Because of that cache-first rule, **only a confirmed negative may be
 //! cached** (#391). A provider outage is `Unavailable`, not a miss: it
 //! persists nothing, so the next panel open retries. Caching it would
@@ -1137,6 +1143,34 @@ async fn read_cached(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option
     .bind(track_id)
     .fetch_optional(pool)
     .await?;
+
+    // A cached row that is a distribution service's credit rather than
+    // lyrics is dropped and re-resolved, rather than served forever.
+    //
+    // Fixing `read_description_lyrics` alone would only have helped
+    // tracks nobody had opened yet: the waterfall never refetches once
+    // a row exists, so the person who reported this would have seen
+    // nothing change. The row is *provably* not lyrics — it is the
+    // auto-generated YouTube credit — which is what makes deleting it
+    // safe rather than presumptuous, and it costs one string scan on a
+    // path that already does a join.
+    if let Some((content, _, source, _)) = row.as_ref() {
+        if source == "embedded" && is_service_blurb(content) {
+            let _ = sqlx::query(
+                "DELETE FROM app.lyrics
+                  WHERE file_hash = (SELECT file_hash FROM track WHERE id = ?)",
+            )
+            .bind(track_id)
+            .execute(pool)
+            .await;
+            tracing::info!(
+                track_id,
+                "dropped a cached service credit that had been stored as lyrics"
+            );
+            return Ok(None);
+        }
+    }
+
     Ok(row.map(|(content, fmt, src, provider)| LyricsPayload {
         track_id,
         content,
@@ -2912,6 +2946,25 @@ mod tests {
     /// as a lyrics source, and it was consulted before the sidecar.
     /// The blurb is now refused outright, and the tier that remains
     /// sits behind the sidecar.
+    /// The cached half of the same bug. The waterfall never refetches
+    /// once a row exists, so correcting the reader alone would have
+    /// left every already-affected track showing the credit forever —
+    /// including the reporter's.
+    ///
+    /// The recogniser is the same one the reader uses, which is what
+    /// keeps "what we refuse to store" and "what we refuse to serve"
+    /// from drifting apart.
+    #[test]
+    fn a_cached_blurb_is_recognised_by_the_same_test_that_refuses_it() {
+        let blurb = "Provided to YouTube by Some Label\n\nSong · Artist\n\nAlbum";
+        assert!(is_service_blurb(blurb), "refused on the way in");
+        // …and therefore recognised on the way out, by definition.
+        // The deletion itself needs a database and is covered by the
+        // app-crate suite; what matters here is that one predicate
+        // governs both directions.
+        assert!(!is_service_blurb("Real lyrics\nsecond line"));
+    }
+
     #[test]
     fn a_youtube_credit_is_not_lyrics() {
         let blurb = "Provided to YouTube by RCA Records Label\n\n\

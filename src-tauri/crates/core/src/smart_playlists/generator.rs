@@ -18,7 +18,9 @@ use sqlx::{FromRow, SqlitePool};
 
 use super::cover;
 use super::SmartPlaylistRules;
-use crate::album_playback::{fit_albums_to_budget, tracks_in_album_order, AlbumCandidate};
+use crate::album_playback::{
+    fit_albums_to_budget, tracks_in_album_order, AlbumCandidate, ALBUM_FIT, ALBUM_MIN_ANALYSED,
+};
 use crate::error::CoreResult;
 use crate::smart_playlists::PathsContext;
 
@@ -131,16 +133,6 @@ impl Bucket {
         }
     }
 }
-
-/// Album mode: how much of a record has to sit inside the bucket's BPM
-/// window for the record to belong to that mix. See the note on the
-/// same constant in `commands::mood_radio` for why this is a fraction
-/// rather than a median.
-const ALBUM_FIT: f64 = 0.6;
-
-/// Album mode: fewest analysed tracks before a record's fit is worth
-/// believing.
-const ALBUM_MIN_ANALYSED: i64 = 3;
 
 /// Regenerate every Daily Mix slot from the active profile's listening
 /// history. Returns the playlist ids that were created or refreshed, in slot

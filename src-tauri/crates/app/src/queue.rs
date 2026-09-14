@@ -1176,11 +1176,7 @@ pub async fn shuffle(pool: &SqlitePool) -> AppResult<()> {
         .unwrap_or(0)
         .clamp(0, rows.len() as i64 - 1) as usize;
 
-    // Snapshot the pre-shuffle order for unshuffle.
-    let preshuffle_json: String =
-        serde_json::to_string(&rows.iter().map(|(_, id)| *id).collect::<Vec<_>>())
-            .map_err(|e| AppError::Other(format!("preshuffle json: {e}")))?;
-    write_setting_string(pool, "queue.preshuffle", &preshuffle_json).await?;
+    snapshot_preshuffle_order(pool, &rows.iter().map(|(_, id)| *id).collect::<Vec<_>>()).await?;
 
     // Build the new ordering: [current, ...shuffled rest].
     let mut ids: Vec<i64> = rows.iter().map(|(_, id)| *id).collect();
@@ -1191,6 +1187,30 @@ pub async fn shuffle(pool: &SqlitePool) -> AppResult<()> {
     new_ids.extend(ids);
 
     write_queue_order(pool, &new_ids, 0).await
+}
+
+/// Take the pre-shuffle snapshot, unless one is already held.
+///
+/// `queue.preshuffle` records the order the listener actually built,
+/// so [`unshuffle`] can give it back. It must be taken **once**, on
+/// the way into shuffle: re-taking it while already shuffled would
+/// record the shuffled order as the original one, and turning shuffle
+/// off would then restore the mess instead of undoing it.
+///
+/// That became reachable when shuffle grew a third state (#618) — you
+/// can now go from grouping tracks to grouping albums without passing
+/// through off. The queue-replacing paths clear the key, so "a
+/// snapshot exists" means "we are already shuffled" and nothing else.
+async fn snapshot_preshuffle_order(pool: &SqlitePool, ids: &[i64]) -> AppResult<()> {
+    if read_setting_string(pool, "queue.preshuffle")
+        .await?
+        .is_some()
+    {
+        return Ok(());
+    }
+    let json =
+        serde_json::to_string(ids).map_err(|e| AppError::Other(format!("preshuffle json: {e}")))?;
+    write_setting_string(pool, "queue.preshuffle", &json).await
 }
 
 /// Shuffle whole records instead of individual tracks (#618).
@@ -1231,12 +1251,9 @@ pub async fn shuffle_by_album(pool: &SqlitePool) -> AppResult<()> {
         .clamp(0, rows.len() as i64 - 1) as usize;
     let current_id = rows[current_index].0;
 
-    // Snapshot the pre-shuffle order, so turning shuffle off restores
-    // it exactly as it does after a track shuffle.
-    let preshuffle_json: String =
-        serde_json::to_string(&rows.iter().map(|(id, ..)| *id).collect::<Vec<_>>())
-            .map_err(|e| AppError::Other(format!("preshuffle json: {e}")))?;
-    write_setting_string(pool, "queue.preshuffle", &preshuffle_json).await?;
+    // The order the listener built, so turning shuffle off restores it
+    // exactly as it does after a track shuffle.
+    snapshot_preshuffle_order(pool, &rows.iter().map(|(id, ..)| *id).collect::<Vec<_>>()).await?;
 
     let mut groups = album_runs(&rows, current_id);
     // Only the order of the records is random; `album_runs` has

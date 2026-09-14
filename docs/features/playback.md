@@ -65,8 +65,12 @@ corruption with nothing for the player to catch.
 a technical one: the Linux packages repackage the release binary rather
 than building from source, so a system libopus would mean a runtime
 dependency added to three packaging manifests and a library bundled
-into the AppImage, to gain nothing. The cost is `cmake` at build time,
-which every build environment already has.
+into the AppImage, to gain nothing. The cost is `cmake` at build time. It is
+installed explicitly by the five Linux workflows and listed in
+[CONTRIBUTING](../CONTRIBUTING.md); on the Windows and macOS runners it
+comes with the image. The one place it is taken on trust is the Flatpak
+SDK — **no CI job builds that manifest**, so a Flathub build is the
+first thing that would ever say otherwise.
 
 **The pre-skip is ours to drop, and that is not obvious.** Every Opus
 stream opens with encoder priming that must never be played. The Ogg

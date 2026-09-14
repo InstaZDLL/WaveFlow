@@ -37,22 +37,7 @@ const PER_ARTIST_CAP: usize = 4;
 /// sweet spot for libraries up to ~50k tracks.
 const POOL_SIZE: i64 = 400;
 
-/// Album mode: how much of a record has to sit inside the mood's BPM
-/// window for the record to count as fitting it.
-///
-/// A fraction rather than the median the issue suggested. A median
-/// says nothing about spread: a record that is half ambient and half
-/// thrash has a median in the middle and would be offered for a mood
-/// neither of its halves belongs to. Asking that most of it actually
-/// fits rejects that record from every mood, which is the right
-/// answer.
-const ALBUM_FIT: f64 = 0.6;
-
-/// Album mode: fewest analysed tracks before a record's fit is worth
-/// believing. Below this one outlier decides the whole thing, and a
-/// single-track "album" would qualify for whatever mood it happens to
-/// match.
-const ALBUM_MIN_ANALYSED: i64 = 3;
+use waveflow_core::album_playback::{ALBUM_FIT, ALBUM_MIN_ANALYSED};
 
 /// Album mode: albums pulled before budgeting. Smaller than
 /// [`POOL_SIZE`] because each row is a whole record rather than one

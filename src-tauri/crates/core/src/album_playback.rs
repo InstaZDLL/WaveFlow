@@ -18,14 +18,37 @@ use sqlx::SqlitePool;
 #[cfg(feature = "sqlite")]
 use crate::error::CoreResult;
 
+/// How much of a record has to sit inside a tempo window for the
+/// record to count as fitting it.
+///
+/// A fraction rather than a median. A median says nothing about
+/// spread: a record that is half ambient and half thrash has a median
+/// in the middle and would be offered for a mood neither of its halves
+/// belongs to. Asking that most of it actually fits rejects that
+/// record from every mood, which is the right answer.
+///
+/// Lives here rather than in each caller because Mood Radio and the
+/// Daily Mix have to agree on it — two copies of a threshold is two
+/// answers to one question, and they drift.
+pub const ALBUM_FIT: f64 = 0.6;
+
+/// Fewest analysed tracks before a record's fit is worth believing.
+/// Below this one outlier decides the whole thing, and a single-track
+/// "album" would qualify for whatever window it happens to match.
+pub const ALBUM_MIN_ANALYSED: i64 = 3;
+
 /// An album that qualified, with enough of it measured to be worth
 /// trusting.
 #[derive(Debug, Clone, PartialEq, sqlx::FromRow)]
 pub struct AlbumCandidate {
     pub album_id: i64,
-    /// How many of its tracks are playable and analysed. Used as the
-    /// budgeting unit, so the caller never has to guess an album's
-    /// length.
+    /// Every playable track on the record, analysed or not.
+    ///
+    /// Deliberately not "the analysed ones": this is the budgeting
+    /// unit, so it has to match what
+    /// [`tracks_in_album_order`] will actually queue. The fit fraction
+    /// is measured over the analysed subset, which is a different
+    /// count and a different question.
     pub track_count: i64,
 }
 
