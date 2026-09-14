@@ -311,6 +311,12 @@ pub async fn inventory_tracks(
             // Interpolated rather than bound: the list is variable
             // length, and these are `i64` values this process just read
             // out of its own database — there is no string to escape.
+            //
+            // The cost is that the SQL text varies with the number of
+            // ids, so SQLite prepares it afresh per distinct count.
+            // That is one prepare per click on this category, against
+            // pulling in a `json_each` dependency for the only query in
+            // the app that would use it.
             let list = ids
                 .iter()
                 .map(|id| id.to_string())

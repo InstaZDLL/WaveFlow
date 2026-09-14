@@ -941,7 +941,17 @@ pub(crate) async fn scan_folder_inner(
                 if rg_backfill_pending && rg_missing.contains(path.to_string_lossy().as_ref()) {
                     rg_backfill_failed = true;
                 }
-                tag_backfill_failed = true;
+                // Deliberately *not* blocking the custom-tag marker. A
+                // file that failed extraction got nothing at all from
+                // this scan, not merely its tags, and it is already
+                // counted in `summary.errors`. Holding the marker back
+                // for it would re-run the forced full-folder tag pass
+                // on every scan for the rest of the install, because a
+                // file that is permanently unreadable fails every time
+                // -- one corrupt file quietly costing a whole folder
+                // its fast path. The case that does block it is below:
+                // extraction succeeded and only the tag read failed,
+                // which nothing else reports and nothing else retries.
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -951,7 +961,6 @@ pub(crate) async fn scan_folder_inner(
                 if rg_backfill_pending && rg_missing.contains(path.to_string_lossy().as_ref()) {
                     rg_backfill_failed = true;
                 }
-                tag_backfill_failed = true;
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -967,7 +976,7 @@ pub(crate) async fn scan_folder_inner(
         // runs twice, so those tracks would keep empty columns for the
         // life of the install. The same rule the ReplayGain backfill
         // beside it follows.
-        if extracted.extra_tags.is_none() {
+        if tag_backfill_pending && extracted.extra_tags.is_none() {
             tag_backfill_failed = true;
         }
 

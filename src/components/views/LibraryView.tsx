@@ -539,6 +539,16 @@ export function LibraryView({
       ),
     [trackColumns.layout.order],
   );
+  // Every track's values for the chosen tag columns, in one read.
+  //
+  // Deliberately not scoped to the rows on screen, which looks like the
+  // obvious saving and is not one here: `tracks` already holds every
+  // row in the library: the virtualizer windows the *render*, not the
+  // data. These values are a few short strings per track against some
+  // twenty fields per row, so bounding them alone would make the tag
+  // columns the one part of the table fetched per scroll, against a
+  // design where the rows arrive once. If the memory matters, it is the
+  // row list that has to give first, and then this follows it.
   useEffect(() => {
     const keys = JSON.parse(chosenTagKeys) as string[];
     if (keys.length === 0) {

@@ -120,12 +120,15 @@ export function ColumnPicker({
   // the end of the document, so Tab would walk the whole page first.
   useEffect(() => {
     if (!open) return;
-    // The first *checkbox*, not simply the first focusable thing: the
-    // panel opens with its "reset widths" button, so a plain focusable
-    // query lands the keyboard on the one control here that discards
-    // work, before the list it was opened for.
+    // The first *enabled* checkbox, and both halves are load-bearing.
+    // Not simply the first focusable thing, because the panel opens
+    // with its "reset widths" button and the keyboard would land on the
+    // one control here that discards work. And not simply the first
+    // checkbox, because that one is the title's and it is disabled --
+    // `focus()` on a disabled input does nothing at all, which leaves
+    // the picker exactly as unreachable as having no effect here.
     const first = dialogRef.current?.querySelector<HTMLElement>(
-      'input[type="checkbox"]',
+      'input[type="checkbox"]:not(:disabled)',
     );
     (first ?? dialogRef.current)?.focus();
   }, [open]);
