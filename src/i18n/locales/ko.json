@@ -739,8 +739,9 @@
       "pause": "일시 정지",
       "previous": "이전",
       "next": "다음",
-      "shuffleOn": "셔플 비활성화",
-      "shuffleOff": "셔플 활성화",
+      "shuffleOff": "셔플 끔",
+      "shuffleTracks": "트랙 셔플",
+      "shuffleAlbums": "앨범 셔플",
       "repeatOff": "반복 끔",
       "repeatAll": "전체 반복",
       "repeatOne": "한 곡 반복"
@@ -1601,6 +1602,10 @@
         "albumHint": "앨범당 게인 하나로, 앨범 안의 음량 차이를 그대로 남깁니다"
       },
       "decibels": "{{value}} dB"
+    },
+    "generatorAlbumMode": {
+      "title": "앨범 단위로 세션 구성",
+      "subtitle": "무드 라디오와 Daily Mix가 흩어진 트랙 대신 앨범을 골라 순서대로 재생합니다"
     },
     "exclusive": {
       "title": "독점 출력",

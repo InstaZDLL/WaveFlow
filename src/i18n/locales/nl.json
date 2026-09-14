@@ -739,8 +739,9 @@
       "pause": "Pauzeren",
       "previous": "Vorige",
       "next": "Volgende",
-      "shuffleOn": "Willekeurig uitschakelen",
-      "shuffleOff": "Willekeurig inschakelen",
+      "shuffleOff": "Willekeurig afspelen uit",
+      "shuffleTracks": "Nummers willekeurig",
+      "shuffleAlbums": "Albums willekeurig",
       "repeatOff": "Herhalen uit",
       "repeatAll": "Alles herhalen",
       "repeatOne": "Eén nummer herhalen"
@@ -1593,6 +1594,10 @@
         "albumHint": "Eén versterking per plaat, die de onderlinge niveauverschillen behoudt"
       },
       "decibels": "{{value}} dB"
+    },
+    "generatorAlbumMode": {
+      "title": "Sessies uit hele albums",
+      "subtitle": "Stemmingsradio en Daily Mix kiezen albums en spelen ze op volgorde af, in plaats van losse nummers"
     },
     "exclusive": {
       "title": "Exclusieve uitvoer",

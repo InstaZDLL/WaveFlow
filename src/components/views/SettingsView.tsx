@@ -139,6 +139,7 @@ import {
 import { listen } from "@tauri-apps/api/event";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
+import { useGeneratorAlbumMode } from "../../hooks/useGeneratorAlbumMode";
 import { invoke } from "@tauri-apps/api/core";
 import {
   regenerateThumbnails,
@@ -1251,6 +1252,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [replayGain, setReplayGain] = useState(false);
   const [replayGainPreamp, setReplayGainPreamp] = useState(0);
   const [replayGainFallback, setReplayGainFallback] = useState(0);
+  const { enabled: generatorAlbumMode, setEnabled: setGeneratorAlbumMode } =
+    useGeneratorAlbumMode();
   const [replayGainMode, setReplayGainMode] =
     useState<ReplayGainMode>("auto");
   const [replayGainPreventClipping, setReplayGainPreventClipping] =
@@ -2685,6 +2688,30 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 </div>
               </div>
             )}
+
+            {/* Whole-album sessions for the generators (#618) */}
+            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <div className="flex items-center space-x-4 flex-1 min-w-0">
+                <Disc3
+                  size={20}
+                  className="text-zinc-400 shrink-0"
+                  aria-hidden="true"
+                />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                    {t("settings.generatorAlbumMode.title")}
+                  </div>
+                  <div className="text-xs text-zinc-400">
+                    {t("settings.generatorAlbumMode.subtitle")}
+                  </div>
+                </div>
+              </div>
+              <ToggleSwitch
+                enabled={generatorAlbumMode}
+                onToggle={() => void setGeneratorAlbumMode(!generatorAlbumMode)}
+                label={t("settings.generatorAlbumMode.title")}
+              />
+            </div>
 
             {/* Equalizer */}
             <div className="px-4">

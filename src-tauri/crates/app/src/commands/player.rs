@@ -131,6 +131,9 @@ pub struct PlayerStateSnapshot {
     pub sample_rate: u32,
     pub channels: u16,
     pub shuffle: bool,
+    /// `"off"` / `"tracks"` / `"albums"` (#618). `shuffle` stays the
+    /// plain on/off, because that is all an MPD client can express.
+    pub shuffle_mode: String,
     pub repeat_mode: String,
     pub current_track: Option<QueueTrackPayload>,
     /// True when the active output is shipping native DSD via DoP
@@ -185,7 +188,7 @@ pub struct QueueTrackPayload {
 impl PlayerStateSnapshot {
     fn from_shared(
         shared: &SharedPlayback,
-        shuffle: bool,
+        shuffle: queue::ShuffleMode,
         repeat_mode: queue::RepeatMode,
         current_track: Option<QueueTrackPayload>,
         dop_active: bool,
@@ -200,7 +203,8 @@ impl PlayerStateSnapshot {
                 .sample_rate
                 .load(std::sync::atomic::Ordering::Relaxed),
             channels: shared.channels.load(std::sync::atomic::Ordering::Relaxed),
-            shuffle,
+            shuffle: shuffle.is_on(),
+            shuffle_mode: shuffle.as_str().to_string(),
             repeat_mode: repeat_mode.as_str().to_string(),
             current_track,
             dop_active,
@@ -453,6 +457,39 @@ fn schedule_now_playing(app: &AppHandle, track: &QueueTrack) {
     });
 }
 
+/// Put a shuffle mode in force: persist it, reorder the queue to
+/// match, and mirror the grouping into the engine.
+///
+/// The single funnel on purpose. Three surfaces change shuffle — the
+/// player controls, an MPD client's `random`, and the reshuffle
+/// [`player_play_tracks`] does after filling a queue — and each of
+/// them used to spell out its own persist-then-reorder pair. The
+/// mirror is the part that most wants a single home: the decoder
+/// thread reads it to decide whether a record is playing through
+/// (#587), and a surface that forgot it would leave ReplayGain
+/// applying track gain to an album-ordered queue with nothing to
+/// show for it.
+pub(crate) async fn set_shuffle_mode(
+    pool: &sqlx::SqlitePool,
+    engine: &AudioEngine,
+    mode: queue::ShuffleMode,
+) -> AppResult<()> {
+    queue::write_shuffle_mode(pool, mode).await?;
+    queue::apply_shuffle_mode(pool, mode).await?;
+    publish_shuffle_grouping(engine, mode);
+    Ok(())
+}
+
+/// Mirror just the grouping, without touching the queue or the
+/// database — for the boot-time and profile-switch restore, where the
+/// persisted state is already the truth.
+pub(crate) fn publish_shuffle_grouping(engine: &AudioEngine, mode: queue::ShuffleMode) {
+    engine.shared().shuffle_by_album.store(
+        mode == queue::ShuffleMode::Albums,
+        std::sync::atomic::Ordering::Relaxed,
+    );
+}
+
 /// Emit an empty `player:queue-changed` signal. The frontend uses
 /// this as "refetch the queue" — payload is intentionally empty so
 /// the event bus doesn't carry the full 100+ track list.
@@ -476,16 +513,21 @@ pub(crate) fn emit_queue_changed(app: &AppHandle) {
 struct OptionsChangedPayload {
     repeat_mode: String,
     shuffle: bool,
+    /// `"off"` / `"tracks"` / `"albums"`. Sent alongside `shuffle`
+    /// rather than instead of it: an MPD client can only ever say
+    /// on or off, so the boolean stays the one it drives.
+    shuffle_mode: String,
 }
 
 pub(crate) async fn emit_options_changed(app: &AppHandle, pool: &sqlx::SqlitePool) {
     let repeat_mode = queue::read_repeat_mode(pool).await.as_str().to_string();
-    let shuffle = queue::read_shuffle(pool).await;
+    let mode = queue::read_shuffle_mode(pool).await;
     let _ = app.emit(
         "player:options-changed",
         OptionsChangedPayload {
             repeat_mode,
-            shuffle,
+            shuffle: mode.is_on(),
+            shuffle_mode: mode.as_str().to_string(),
         },
     );
 }
@@ -504,7 +546,7 @@ pub async fn player_get_state(
     let pool_result = state.require_profile_pool().await;
     let (shuffle, repeat_mode, current_track, resumed_position) = match pool_result {
         Ok(pool) => {
-            let shuffle = queue::read_shuffle(&pool).await;
+            let shuffle = queue::read_shuffle_mode(&pool).await;
             let repeat_mode = queue::read_repeat_mode(&pool).await;
             let profile_id = state.require_profile_id().await.ok();
 
@@ -701,6 +743,14 @@ pub async fn player_get_state(
                     .replaygain_mode_bits
                     .store(mode.as_bits(), std::sync::atomic::Ordering::Release);
             }
+            // Album grouping is persisted per profile like everything
+            // above, and the decoder reads it to tell a record playing
+            // through from a shuffled playlist (#587). Mirrored here
+            // rather than left to the first toggle, which may never
+            // come: a profile that starts up with album shuffle on
+            // would otherwise get track gain until something touched
+            // the setting.
+            publish_shuffle_grouping(&engine, queue::read_shuffle_mode(&pool).await);
             // Gapless defaults to ON, so only override the boot-time
             // default when an explicit `false` row is found.
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
@@ -834,7 +884,7 @@ pub async fn player_get_state(
             let payload = restored.map(|t| queue_track_to_payload(&state, t, profile_id));
             (shuffle, repeat_mode, payload, position)
         }
-        Err(_) => (false, queue::RepeatMode::Off, None, 0),
+        Err(_) => (queue::ShuffleMode::Off, queue::RepeatMode::Off, None, 0),
     };
     let mut snapshot = PlayerStateSnapshot::from_shared(
         engine.shared(),
@@ -1002,23 +1052,28 @@ pub async fn player_resume_last(app: AppHandle) -> AppResult<()> {
     crate::player_actions::resume_last(&app).await
 }
 
-/// Flip shuffle on or off. Returns the new state. When turning on,
+/// Flip shuffle on or off. Returns the mode now in force — not a
+/// boolean, because turning shuffle *on* restores whichever grouping
+/// the listener last picked, and only the backend knows which that
+/// was. When turning on,
 /// randomizes the existing queue in place (keeping the current track
 /// in slot 0). When turning off, restores the pre-shuffle order.
 #[tauri::command]
 pub async fn player_toggle_shuffle(
     app: AppHandle,
     state: tauri::State<'_, AppState>,
-) -> AppResult<bool> {
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+) -> AppResult<String> {
     let pool = state.require_profile_pool().await?;
-    let current = queue::read_shuffle(&pool).await;
-    let next = !current;
-    queue::write_shuffle(&pool, next).await?;
-    if next {
-        queue::shuffle(&pool).await?;
+    let next = if queue::read_shuffle(&pool).await {
+        queue::ShuffleMode::Off
     } else {
-        queue::unshuffle(&pool).await?;
-    }
+        // On, using whichever grouping the listener last picked — a
+        // preference for whole records should not be forgotten every
+        // time shuffle is switched off and back on.
+        queue::read_shuffle_grouping_preference(&pool).await
+    };
+    set_shuffle_mode(&pool, &engine, next).await?;
     // Queue content changed (reordered in place) — tell the panel.
     emit_queue_changed(&app);
     // …and the other windows. Each one runs its own `PlayerContext` with
@@ -1026,7 +1081,34 @@ pub async fn player_toggle_shuffle(
     // and the main window disagree about shuffle while sharing one queue
     // (#523). Cheap: two setting reads, only on an explicit toggle.
     emit_options_changed(&app, &pool).await;
-    Ok(next)
+    Ok(next.as_str().to_string())
+}
+
+/// Choose how shuffle groups the queue: `"off"`, `"tracks"` or
+/// `"albums"`. Returns the mode in force.
+///
+/// Distinct from [`player_toggle_shuffle`], which is the on/off any
+/// "Shuffle" button on an album or a playlist means. This one is the
+/// player control that cycles through the three, and it is also the
+/// only way to switch grouping without passing through off — which
+/// would otherwise re-shuffle the queue twice.
+///
+/// An unrecognised value reads as `"off"` rather than failing: the
+/// worst outcome of a frontend/backend disagreement here should be an
+/// unshuffled queue, not a dead button.
+#[tauri::command]
+pub async fn player_set_shuffle_mode(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    mode: String,
+) -> AppResult<String> {
+    let pool = state.require_profile_pool().await?;
+    let mode = queue::ShuffleMode::from_str(&mode);
+    set_shuffle_mode(&pool, &engine, mode).await?;
+    emit_queue_changed(&app);
+    emit_options_changed(&app, &pool).await;
+    Ok(mode.as_str().to_string())
 }
 
 /// Cycle `off → all → one → off` and return the new mode as a string.
@@ -2306,9 +2388,13 @@ pub async fn player_play_tracks(
     // they clicked in position 0. Without this, enabling shuffle
     // before clicking a track would leave the queue sequential and
     // Next would advance alphabetically — visibly "not random".
-    let shuffled = queue::read_shuffle(&pool).await;
+    let mode = queue::read_shuffle_mode(&pool).await;
+    let shuffled = mode.is_on();
     if shuffled {
-        queue::shuffle(&pool).await?;
+        // The queue was just replaced, so only the ordering is at
+        // stake here — the mode is already persisted and already
+        // mirrored into the engine.
+        queue::apply_shuffle_mode(&pool, mode).await?;
     }
 
     let track = queue::current_track(&pool)

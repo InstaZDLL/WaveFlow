@@ -739,8 +739,9 @@
       "pause": "Pause",
       "previous": "Previous",
       "next": "Next",
-      "shuffleOn": "Disable shuffle",
-      "shuffleOff": "Enable shuffle",
+      "shuffleOff": "Shuffle off",
+      "shuffleTracks": "Shuffle tracks",
+      "shuffleAlbums": "Shuffle albums",
       "repeatOff": "Repeat off",
       "repeatAll": "Repeat all",
       "repeatOne": "Repeat one"
@@ -1593,6 +1594,10 @@
         "albumHint": "One gain per record, preserving its internal level differences"
       },
       "decibels": "{{value}} dB"
+    },
+    "generatorAlbumMode": {
+      "title": "Build sessions from whole albums",
+      "subtitle": "Mood radio and Daily Mix pick albums and play them in order, instead of scattered tracks"
     },
     "exclusive": {
       "title": "Exclusive output",

@@ -739,8 +739,9 @@
       "pause": "पॉज़",
       "previous": "पिछला",
       "next": "अगला",
-      "shuffleOn": "शफल अक्षम करें",
-      "shuffleOff": "शफल सक्षम करें",
+      "shuffleOff": "शफ़ल बंद",
+      "shuffleTracks": "ट्रैक शफ़ल करें",
+      "shuffleAlbums": "एल्बम शफ़ल करें",
       "repeatOff": "दोहराव बंद",
       "repeatAll": "सभी दोहराएँ",
       "repeatOne": "एक ट्रैक दोहराएँ"
@@ -1601,6 +1602,10 @@
         "albumHint": "प्रति एल्बम एक ही गेन, जो उसके भीतर के स्तर-अंतर बनाए रखता है"
       },
       "decibels": "{{value}} dB"
+    },
+    "generatorAlbumMode": {
+      "title": "पूरे एल्बम से सत्र बनाएँ",
+      "subtitle": "मूड रेडियो और Daily Mix बिखरे ट्रैक के बजाय एल्बम चुनकर क्रम से बजाते हैं"
     },
     "exclusive": {
       "title": "अनन्य आउटपुट",

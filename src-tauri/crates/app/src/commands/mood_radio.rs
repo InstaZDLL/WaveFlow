@@ -37,6 +37,28 @@ const PER_ARTIST_CAP: usize = 4;
 /// sweet spot for libraries up to ~50k tracks.
 const POOL_SIZE: i64 = 400;
 
+/// Album mode: how much of a record has to sit inside the mood's BPM
+/// window for the record to count as fitting it.
+///
+/// A fraction rather than the median the issue suggested. A median
+/// says nothing about spread: a record that is half ambient and half
+/// thrash has a median in the middle and would be offered for a mood
+/// neither of its halves belongs to. Asking that most of it actually
+/// fits rejects that record from every mood, which is the right
+/// answer.
+const ALBUM_FIT: f64 = 0.6;
+
+/// Album mode: fewest analysed tracks before a record's fit is worth
+/// believing. Below this one outlier decides the whole thing, and a
+/// single-track "album" would qualify for whatever mood it happens to
+/// match.
+const ALBUM_MIN_ANALYSED: i64 = 3;
+
+/// Album mode: albums pulled before budgeting. Smaller than
+/// [`POOL_SIZE`] because each row is a whole record rather than one
+/// track.
+const ALBUM_POOL_SIZE: i64 = 60;
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Mood {
@@ -115,6 +137,10 @@ pub async fn start_mood_radio(
     let pool = state.require_profile_pool().await?;
     let f = mood.filter();
 
+    if waveflow_core::album_playback::album_mode_enabled(&pool).await {
+        return mood_radio_by_album(&pool, &f).await;
+    }
+
     // Pull the candidate pool. `bpm IS NOT NULL` is mandatory — we
     // can't honour a tempo-based mood without it. LUFS is optional
     // (NULL passes through when no ceiling is set, otherwise the
@@ -165,6 +191,86 @@ pub async fn start_mood_radio(
     }
 
     Ok(out)
+}
+
+/// The same radio, built out of whole records (#618).
+///
+/// Selection is per album rather than per track: a record qualifies
+/// when most of what we have measured of it sits inside the mood's
+/// window, and it then plays in the order it was pressed. The
+/// per-artist cap becomes a cap on records, for the same reason —
+/// without it a heavy listener's mood radio is one artist's
+/// discography.
+async fn mood_radio_by_album(pool: &SqlitePool, f: &MoodFilter) -> AppResult<Vec<i64>> {
+    #[derive(sqlx::FromRow)]
+    struct Row {
+        album_id: i64,
+        /// Every playable track on the record, analysed or not — this
+        /// is the budgeting unit, and it has to match what actually
+        /// gets queued.
+        track_count: i64,
+        primary_artist: i64,
+    }
+
+    let rows: Vec<Row> = sqlx::query_as::<_, Row>(
+        r#"
+        SELECT t.album_id       AS album_id,
+               COUNT(*)         AS track_count,
+               MIN(t.primary_artist) AS primary_artist
+          FROM track t
+          LEFT JOIN track_analysis ta ON ta.track_id = t.id
+         WHERE t.is_available = 1
+           AND t.album_id IS NOT NULL
+         GROUP BY t.album_id
+        HAVING SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?5
+           AND SUM(CASE WHEN ta.bpm IS NOT NULL
+                         AND (?1 IS NULL OR ta.bpm >= ?1)
+                         AND (?2 IS NULL OR ta.bpm <= ?2)
+                         AND (?3 IS NULL OR ta.loudness_lufs IS NULL
+                              OR ta.loudness_lufs <= ?3)
+                        THEN 1 ELSE 0 END) * 1.0
+               / SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?4
+         ORDER BY RANDOM()
+         LIMIT ?6
+        "#,
+    )
+    .bind(f.bpm_min)
+    .bind(f.bpm_max)
+    .bind(f.lufs_max)
+    .bind(ALBUM_FIT)
+    .bind(ALBUM_MIN_ANALYSED)
+    .bind(ALBUM_POOL_SIZE)
+    .fetch_all(pool)
+    .await?;
+
+    if rows.is_empty() {
+        return Err(AppError::Other(
+            "no album matches this mood — run BPM analysis on your library first".into(),
+        ));
+    }
+
+    let mut per_artist: std::collections::HashMap<i64, usize> = std::collections::HashMap::new();
+    let candidates: Vec<waveflow_core::album_playback::AlbumCandidate> = rows
+        .into_iter()
+        .filter(|row| {
+            let count = per_artist.entry(row.primary_artist).or_insert(0);
+            // Two records rather than the four tracks the track-based
+            // cap allows: a record is already several tracks of the
+            // same artist in a row.
+            if *count >= 2 {
+                return false;
+            }
+            *count += 1;
+            true
+        })
+        .map(|row| waveflow_core::album_playback::AlbumCandidate {
+            album_id: row.album_id,
+            track_count: row.track_count,
+        })
+        .collect();
+
+    let chosen = waveflow_core::album_playback::fit_albums_to_budget(&candidates, TARGET_LEN);
+    Ok(waveflow_core::album_playback::tracks_in_album_order(pool, &chosen).await?)
 }
 
 #[derive(Debug, Clone, sqlx::FromRow)]

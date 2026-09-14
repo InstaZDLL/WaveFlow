@@ -1033,6 +1033,7 @@ pub fn run() {
             commands::player::player_next,
             commands::player::player_previous,
             commands::player::player_toggle_shuffle,
+            commands::player::player_set_shuffle_mode,
             commands::player::player_cycle_repeat,
             commands::player::player_resume_last,
             commands::player::player_get_queue,

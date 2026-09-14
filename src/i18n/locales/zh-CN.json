@@ -739,8 +739,9 @@
       "pause": "暂停",
       "previous": "上一首",
       "next": "下一首",
-      "shuffleOn": "禁用随机播放",
-      "shuffleOff": "启用随机播放",
+      "shuffleOff": "随机播放已关闭",
+      "shuffleTracks": "随机播放单曲",
+      "shuffleAlbums": "随机播放专辑",
       "repeatOff": "关闭循环",
       "repeatAll": "列表循环",
       "repeatOne": "单曲循环"
@@ -1572,6 +1573,10 @@
         "albumHint": "每张专辑一个增益，保留专辑内部的音量落差"
       },
       "decibels": "{{value}} dB"
+    },
+    "generatorAlbumMode": {
+      "title": "以整张专辑组建播放",
+      "subtitle": "心情电台和 Daily Mix 会挑选专辑并按顺序播放，而不是零散的单曲"
     },
     "exclusive": {
       "title": "独占输出",

@@ -739,8 +739,9 @@
       "pause": "Pause",
       "previous": "Précédent",
       "next": "Suivant",
-      "shuffleOn": "Désactiver la lecture aléatoire",
-      "shuffleOff": "Activer la lecture aléatoire",
+      "shuffleOff": "Lecture aléatoire désactivée",
+      "shuffleTracks": "Morceaux dans le désordre",
+      "shuffleAlbums": "Albums dans le désordre",
       "repeatOff": "Répétition désactivée",
       "repeatAll": "Répéter tout",
       "repeatOne": "Répéter le titre"
@@ -1646,6 +1647,10 @@
         "albumHint": "Un seul gain par disque, qui préserve ses écarts de niveau internes"
       },
       "decibels": "{{value}} dB"
+    },
+    "generatorAlbumMode": {
+      "title": "Sessions par albums entiers",
+      "subtitle": "La radio d'humeur et les Daily Mix choisissent des albums et les jouent dans l'ordre, au lieu de morceaux isolés"
     },
     "exclusive": {
       "title": "Sortie exclusive",

@@ -18,6 +18,7 @@ use sqlx::{FromRow, SqlitePool};
 
 use super::cover;
 use super::SmartPlaylistRules;
+use crate::album_playback::{fit_albums_to_budget, tracks_in_album_order, AlbumCandidate};
 use crate::error::CoreResult;
 use crate::smart_playlists::PathsContext;
 
@@ -116,7 +117,30 @@ impl Bucket {
             Bucket::Energy => bpm >= 130.0,
         }
     }
+
+    /// The same partition as [`Self::matches`], as a pair SQL can bind.
+    /// `None` means unbounded on that side.
+    ///
+    /// Kept next to `matches` on purpose: the two describe one
+    /// partition, and a test asserts they still agree.
+    fn bounds(self) -> (Option<f64>, Option<f64>) {
+        match self {
+            Bucket::Calm => (None, Some(95.0)),
+            Bucket::Groove => (Some(95.0), Some(130.0)),
+            Bucket::Energy => (Some(130.0), None),
+        }
+    }
 }
+
+/// Album mode: how much of a record has to sit inside the bucket's BPM
+/// window for the record to belong to that mix. See the note on the
+/// same constant in `commands::mood_radio` for why this is a fraction
+/// rather than a median.
+const ALBUM_FIT: f64 = 0.6;
+
+/// Album mode: fewest analysed tracks before a record's fit is worth
+/// believing.
+const ALBUM_MIN_ANALYSED: i64 = 3;
 
 /// Regenerate every Daily Mix slot from the active profile's listening
 /// history. Returns the playlist ids that were created or refreshed, in slot
@@ -132,6 +156,10 @@ pub async fn regenerate_daily_mixes(
     profile_id: i64,
 ) -> CoreResult<Vec<i64>> {
     let cutoff_ms = Utc::now().timestamp_millis() - (LOOKBACK_DAYS * 86_400_000);
+    // Read once for the whole regen rather than per bucket: three
+    // slots reading the same row could otherwise straddle a change and
+    // produce a set of mixes built two different ways.
+    let album_mode = crate::album_playback::album_mode_enabled(pool).await;
 
     // Top artists by total listened time over the lookback window. We join
     // out to `track_analysis` to pull the median BPM per artist (used for
@@ -179,7 +207,8 @@ pub async fn regenerate_daily_mixes(
         // such slots instead of pushing a sentinel `0` into the result
         // vector — the Home view would otherwise try to navigate to
         // playlist id 0.
-        if let Some(id) = generate_one_mix(pool, paths, profile_id, bucket, &bucket_artists).await?
+        if let Some(id) =
+            generate_one_mix(pool, paths, profile_id, bucket, &bucket_artists, album_mode).await?
         {
             created.push(id);
         }
@@ -196,6 +225,7 @@ async fn generate_one_mix(
     profile_id: i64,
     bucket: Bucket,
     artists: &[&ArtistListenRow],
+    album_mode: bool,
 ) -> CoreResult<Option<i64>> {
     let top_artist_ids: Vec<i64> = artists
         .iter()
@@ -203,17 +233,39 @@ async fn generate_one_mix(
         .map(|a| a.artist_id)
         .collect();
 
-    let tracks = pick_tracks_for_artists(pool, &top_artist_ids).await?;
-    if tracks.is_empty() {
+    // In album mode only the order of the records is shuffled, and the
+    // cap is spent in whole records — truncating at `TRACKS_PER_MIX`
+    // would end the mix halfway through one, which is the single thing
+    // album mode exists to prevent.
+    let shuffled: Vec<i64> = if album_mode {
+        let mut albums = pick_albums_for_artists(pool, &top_artist_ids, bucket).await?;
+        shuffle_with_seed(&mut albums, SHUFFLE_SEED ^ bucket.slot() as u64);
+        let chosen = fit_albums_to_budget(&albums, TRACKS_PER_MIX);
+        tracks_in_album_order(pool, &chosen).await?
+    } else {
+        let tracks = pick_tracks_for_artists(pool, &top_artist_ids).await?;
+        // Deterministic shuffle so the same input set produces the same
+        // listening order — no flicker when the user revisits the
+        // playlist mid-session.
+        let mut shuffled: Vec<i64> = tracks.iter().map(|t| t.track_id).collect();
+        shuffle_with_seed(&mut shuffled, SHUFFLE_SEED ^ bucket.slot() as u64);
+        shuffled.truncate(TRACKS_PER_MIX);
+        shuffled
+    };
+    if shuffled.is_empty() {
+        // Album mode can come up empty on a library whose records are
+        // mostly unanalysed, where track mode would still have found
+        // something. Falling back silently would make the setting look
+        // broken in the other direction, so the slot is cleared and the
+        // reason is logged.
+        tracing::info!(
+            slot = bucket.slot(),
+            album_mode,
+            "smart playlists: no candidates for this bucket, clearing the slot"
+        );
         delete_existing_slot(pool, bucket.slot()).await?;
         return Ok(None);
     }
-
-    // Deterministic shuffle so the same input set produces the same listening
-    // order — no flicker when the user revisits the playlist mid-session.
-    let mut shuffled: Vec<i64> = tracks.iter().map(|t| t.track_id).collect();
-    shuffle_with_seed(&mut shuffled, SHUFFLE_SEED ^ bucket.slot() as u64);
-    shuffled.truncate(TRACKS_PER_MIX);
 
     // Cover image source priority:
     //  1. Top 3 artists' Deezer pictures (shared metadata cache) — looks
@@ -468,6 +520,60 @@ pub(super) async fn first_track_artwork_paths(
     out
 }
 
+/// The album-mode counterpart of [`pick_tracks_for_artists`]: records
+/// by the bucket's artists whose measured tracks mostly sit inside the
+/// bucket's tempo window.
+///
+/// `track_count` counts every playable track on the record, analysed
+/// or not, because that is what will actually be queued — the fit
+/// fraction is measured over the analysed ones alone.
+async fn pick_albums_for_artists(
+    pool: &SqlitePool,
+    artist_ids: &[i64],
+    bucket: Bucket,
+) -> CoreResult<Vec<AlbumCandidate>> {
+    if artist_ids.is_empty() {
+        return Ok(vec![]);
+    }
+    let placeholders = std::iter::repeat("?")
+        .take(artist_ids.len())
+        .collect::<Vec<_>>()
+        .join(",");
+    let sql = format!(
+        r#"
+        SELECT t.album_id AS album_id,
+               COUNT(*)   AS track_count
+          FROM track t
+          JOIN track_artist tar ON tar.track_id = t.id AND tar.position = 0
+          LEFT JOIN track_analysis ta ON ta.track_id = t.id
+         WHERE tar.artist_id IN ({placeholders})
+           AND t.is_available = 1
+           AND t.album_id IS NOT NULL
+         GROUP BY t.album_id
+        HAVING SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?
+           AND SUM(CASE WHEN ta.bpm IS NOT NULL
+                         AND (? IS NULL OR ta.bpm >= ?)
+                         AND (? IS NULL OR ta.bpm < ?)
+                        THEN 1 ELSE 0 END) * 1.0
+               / SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?
+         LIMIT 60
+        "#,
+    );
+    let (low, high) = bucket.bounds();
+    let mut query = sqlx::query_as::<_, AlbumCandidate>(sqlx::AssertSqlSafe(sql));
+    for id in artist_ids {
+        query = query.bind(*id);
+    }
+    query = query
+        .bind(ALBUM_MIN_ANALYSED)
+        .bind(low)
+        .bind(low)
+        .bind(high)
+        .bind(high)
+        .bind(ALBUM_FIT);
+    Ok(query.fetch_all(pool).await?)
+}
+
 async fn pick_tracks_for_artists(
     pool: &SqlitePool,
     artist_ids: &[i64],
@@ -664,6 +770,31 @@ mod tests {
             json.contains("\"slot\":2"),
             "slot serialized incorrectly: {json}"
         );
+    }
+
+    /// `bounds` is the SQL spelling of `matches`, so album mode and
+    /// track mode must place the same record in the same mix. Two
+    /// descriptions of one partition drift silently otherwise — the
+    /// bug would be a Daily Mix whose albums and tracks disagree about
+    /// what "calm" means.
+    #[test]
+    fn the_sql_bounds_agree_with_the_rust_predicate() {
+        for bucket in Bucket::ALL {
+            let (low, high) = bucket.bounds();
+            for bpm in [
+                0.0, 40.0, 94.9, 95.0, 95.1, 129.9, 130.0, 130.1, 200.0, 400.0,
+            ] {
+                // Spelled without `Option` combinators: the MSRV in
+                // clippy.toml is 1.80, and `is_none_or` landed in 1.82.
+                let by_bounds =
+                    low.unwrap_or(f64::NEG_INFINITY) <= bpm && bpm < high.unwrap_or(f64::INFINITY);
+                assert_eq!(
+                    by_bounds,
+                    bucket.matches(bpm),
+                    "{bucket:?} disagrees with itself at {bpm} BPM"
+                );
+            }
+        }
     }
 
     #[test]

@@ -739,8 +739,9 @@
       "pause": "Pausa",
       "previous": "Anterior",
       "next": "Seguinte",
-      "shuffleOn": "Desativar o modo aleatório",
-      "shuffleOff": "Ativar o modo aleatório",
+      "shuffleOff": "Reprodução aleatória desativada",
+      "shuffleTracks": "Faixas ao acaso",
+      "shuffleAlbums": "Álbuns ao acaso",
       "repeatOff": "Repetição desativada",
       "repeatAll": "Repetir tudo",
       "repeatOne": "Repetir uma faixa"
@@ -1601,6 +1602,10 @@
         "albumHint": "Um único ganho por disco, que preserva as suas diferenças de nível internas"
       },
       "decibels": "{{value}} dB"
+    },
+    "generatorAlbumMode": {
+      "title": "Sessões com álbuns completos",
+      "subtitle": "A rádio de ambiente e os Daily Mix escolhem álbuns e reproduzem-nos por ordem, em vez de faixas soltas"
     },
     "exclusive": {
       "title": "Saída exclusiva",

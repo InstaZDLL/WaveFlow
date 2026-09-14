@@ -739,8 +739,9 @@
       "pause": "Jeda",
       "previous": "Sebelumnya",
       "next": "Berikutnya",
-      "shuffleOn": "Matikan acak",
-      "shuffleOff": "Aktifkan acak",
+      "shuffleOff": "Acak mati",
+      "shuffleTracks": "Lagu diacak",
+      "shuffleAlbums": "Album diacak",
       "repeatOff": "Pengulangan mati",
       "repeatAll": "Ulang semua",
       "repeatOne": "Ulang satu lagu"
@@ -1593,6 +1594,10 @@
         "albumHint": "Satu penguatan per album, menjaga selisih level di dalamnya"
       },
       "decibels": "{{value}} dB"
+    },
+    "generatorAlbumMode": {
+      "title": "Susun sesi dari album utuh",
+      "subtitle": "Radio suasana dan Daily Mix memilih album dan memutarnya berurutan, bukan lagu terpisah"
     },
     "exclusive": {
       "title": "Keluaran eksklusif",
