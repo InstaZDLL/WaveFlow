@@ -277,6 +277,11 @@ const CANCEL_BACKOFF: Duration = Duration::from_secs(60 * 60);
 pub struct BackupPass {
     /// Archive paths created, one per profile that succeeded.
     pub created: Vec<String>,
+    /// Profiles whose archive could not be written. A pass carries on
+    /// past one of these by design, so without the count a partly
+    /// failed run is indistinguishable from a clean one: every caller
+    /// sees archives and nothing says some are missing.
+    pub failed: u32,
     /// True when the user stopped the pass between two archives. The
     /// archives in `created` are each complete regardless.
     pub cancelled: bool,
@@ -347,6 +352,7 @@ pub async fn run_one_backup(
     let ts = Utc::now().format("%Y-%m-%dT%H-%M-%S").to_string();
     let app_version = env!("CARGO_PKG_VERSION").to_string();
     let mut created = Vec::with_capacity(profiles.len());
+    let mut failed: u32 = 0;
     // The count is known before the first archive, so the row can show
     // a real total rather than the unknown one `start` was given. One
     // archive is the unit of work here, so that is what the bar counts.
@@ -376,6 +382,7 @@ pub async fn run_one_backup(
             tracing::info!("backup stopped by the user between profiles");
             return Ok(BackupPass {
                 created,
+                failed,
                 cancelled: true,
             });
         }
@@ -431,6 +438,7 @@ pub async fn run_one_backup(
             }
             Err(err) => {
                 tracing::warn!(profile_id, ?err, "auto backup failed");
+                failed += 1;
             }
         }
 
@@ -450,6 +458,7 @@ pub async fn run_one_backup(
     stamp_last_run(state).await?;
     Ok(BackupPass {
         created,
+        failed,
         cancelled: false,
     })
 }

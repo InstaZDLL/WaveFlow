@@ -1961,6 +1961,7 @@
       "runNow": "Nu een back-up maken",
       "runOk_one": "{{count}} archief geschreven.",
       "runOk_other": "{{count}} archieven geschreven.",
+      "runPartial": "{{created}} geschreven, {{failed}} mislukt. Bekijk de logs.",
       "errors": {
         "loadFailed": "De back-upconfiguratie kon niet worden geladen.",
         "saveFailed": "Opslaan mislukt. Probeer het opnieuw.",

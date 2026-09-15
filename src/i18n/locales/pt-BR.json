@@ -1961,6 +1961,7 @@
       "runNow": "Fazer backup agora",
       "runOk_one": "{{count}} arquivo gravado.",
       "runOk_other": "{{count}} arquivos gravados.",
+      "runPartial": "{{created}} criado(s), {{failed}} com falha. Confira os logs.",
       "errors": {
         "loadFailed": "Não foi possível carregar a configuração.",
         "saveFailed": "Falha ao salvar. Tente novamente.",

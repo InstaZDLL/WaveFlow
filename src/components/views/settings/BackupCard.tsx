@@ -90,8 +90,20 @@ export function BackupCard({ language }: BackupCardProps) {
     setRunning(true);
     setStatus(null);
     try {
-      const { created, cancelled } = await runBackupNow();
-      if (created.length > 0) {
+      const { created, failed, cancelled } = await runBackupNow();
+      if (failed > 0) {
+        // Ahead of the success line, and deliberately: a pass carries on
+        // past a profile it could not write, so "3 archives written" is
+        // true and still hides that two profiles have none. The count
+        // that is missing is the one worth saying first.
+        setStatus({
+          kind: "error",
+          message: t("settings.backup.runPartial", {
+            created: created.length,
+            failed,
+          }),
+        });
+      } else if (created.length > 0) {
         setStatus({
           kind: "ok",
           message: t("settings.backup.runOk", { count: created.length }),

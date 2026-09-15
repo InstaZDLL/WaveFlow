@@ -1899,6 +1899,7 @@
       "runNow": "立即备份",
       "runOk_one": "已写入 {{count}} 个存档。",
       "runOk_other": "已写入 {{count}} 个存档。",
+      "runPartial": "已写入 {{created}} 个，{{failed}} 个失败。请查看日志。",
       "errors": {
         "loadFailed": "无法加载备份配置。",
         "saveFailed": "保存失败。请重试。",

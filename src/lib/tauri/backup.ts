@@ -34,6 +34,10 @@ export function setBackupConfig(input: {
  *  stopped the pass, or every profile failed. */
 export interface BackupPass {
   created: string[];
+  /** Profiles whose archive could not be written. A pass carries on past
+   *  one of these, so without the count a partly failed run looks
+   *  exactly like a clean one. */
+  failed: number;
   cancelled: boolean;
 }
 

@@ -1961,6 +1961,7 @@
       "runNow": "Hacer copia ahora",
       "runOk_one": "{{count}} archivo escrito.",
       "runOk_other": "{{count}} archivos escritos.",
+      "runPartial": "{{created}} escrita(s), {{failed}} con error. Revisa los logs.",
       "errors": {
         "loadFailed": "No se ha podido cargar la configuración de copia.",
         "saveFailed": "No se ha podido guardar. Inténtalo de nuevo.",

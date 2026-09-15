@@ -1961,6 +1961,7 @@
       "runNow": "Cadangkan sekarang",
       "runOk_one": "{{count}} arsip ditulis.",
       "runOk_other": "{{count}} arsip ditulis.",
+      "runPartial": "{{created}} ditulis, {{failed}} gagal. Periksa log.",
       "errors": {
         "loadFailed": "Tidak dapat memuat konfigurasi cadangan.",
         "saveFailed": "Gagal menyimpan. Coba lagi.",
