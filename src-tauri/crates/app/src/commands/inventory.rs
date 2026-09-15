@@ -72,10 +72,13 @@ pub struct InventoryCategory {
 /// on a rowid.
 fn where_for(key: &str) -> Option<&'static str> {
     Some(match key {
-        // The scanner falls back to the file stem when a file carries no
-        // title, so an empty string is the only shape "no title" can
-        // take here.
-        "missing_title" => "AND source = 'local' AND trim(title) = ''",
+        // Two shapes, because the scanner substitutes the file stem
+        // when a file has no title tag at all: without the flag this
+        // category could only ever find the rarer fault, a title tag
+        // that is present and empty. The flag is set at scan time --
+        // see `ExtractedFile::title_from_filename` for why it cannot be
+        // worked out afterwards from the path.
+        "missing_title" => "AND source = 'local' AND (trim(title) = '' OR title_from_filename = 1)",
         "missing_artist" => "AND source = 'local' AND artist_name IS NULL",
         "missing_album" => "AND source = 'local' AND album_id IS NULL",
         // Year `0` is what several taggers write for "unknown", so it is
@@ -533,6 +536,47 @@ mod tests {
                 .unwrap();
             }
         }
+    }
+
+    /// Both shapes of "no title", and nothing else.
+    #[tokio::test]
+    async fn an_untitled_file_is_found_whichever_way_it_is_untitled() {
+        let pool = pool().await;
+        sqlx::raw_sql(
+            "INSERT INTO library (id, name, color_id, icon_id, created_at, updated_at,
+                                  hlc_wall, hlc_logical)
+             VALUES (1, 'L', 1, 1, 0, 0, 0, 0)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // 1: properly titled. 2: the title tag was there and empty.
+        // 3: no title tag at all, so the scanner wrote the file stem --
+        // the common case, and the one a text test cannot see.
+        for (id, title, from_filename) in [
+            (1i64, "Real Title", 0i64),
+            (2, "", 0),
+            (3, "03 - untagged", 1),
+        ] {
+            sqlx::query(
+                "INSERT INTO track (id, library_id, file_path, file_hash, file_size,
+                                    file_modified, title, title_from_filename, duration_ms,
+                                    added_at, is_available, hlc_wall, hlc_logical,
+                                    rating_hlc_wall, rating_hlc_logical)
+                 VALUES (?, 1, ?, ?, 1, 0, ?, ?, 1000, 0, 1, 0, 0, 0, 0)",
+            )
+            .bind(id)
+            .bind(format!("/t/{id}.flac"))
+            .bind(format!("t{id}"))
+            .bind(title)
+            .bind(from_filename)
+            .execute(&pool)
+            .await
+            .unwrap();
+        }
+
+        assert_eq!(ids_for(&pool, "missing_title").await, vec![2, 3]);
     }
 
     #[tokio::test]

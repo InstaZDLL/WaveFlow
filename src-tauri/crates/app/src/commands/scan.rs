@@ -192,6 +192,9 @@ fn extract_dsd_file(
     };
     let meta = read_metadata(&mut file, layout.container).unwrap_or_default();
 
+    // `is_none`, not "is empty": a tag holding an empty string is a
+    // different fault, and `trim(title) = ''` already finds that one.
+    let title_from_filename = meta.title.is_none();
     let title = meta.title.clone().unwrap_or_else(|| {
         path.file_stem()
             .and_then(|s| s.to_str())
@@ -209,6 +212,7 @@ fn extract_dsd_file(
         });
 
     Ok(ExtractedFile {
+        title_from_filename,
         abs_path: path.to_string_lossy().to_string(),
         size,
         modified_ms,
@@ -441,7 +445,9 @@ fn extract_file(
     let cover_art = cover_art.or_else(|| extract_folder_cover(path, artwork_dir));
 
     // Fall back to the file stem when the tag has no title — better than
-    // displaying an empty string in the library grid.
+    // displaying an empty string in the library grid. Remembered, so
+    // the inventory can still tell the two apart.
+    let title_from_filename = title.is_none();
     let title = title.unwrap_or_else(|| {
         path.file_stem()
             .and_then(|s| s.to_str())
@@ -450,6 +456,7 @@ fn extract_file(
     });
 
     Ok(ExtractedFile {
+        title_from_filename,
         abs_path: path.to_string_lossy().to_string(),
         size,
         modified_ms,
@@ -1241,7 +1248,7 @@ pub(crate) async fn scan_folder_inner(
                     "UPDATE track SET
                         folder_id = ?,
                         file_hash = ?, file_size = ?, file_modified = ?,
-                        title = ?, album_id = ?, primary_artist = ?,
+                        title = ?, title_from_filename = ?, album_id = ?, primary_artist = ?,
                         track_number = ?, disc_number = ?, year = ?,
                         duration_ms = ?, bitrate = ?, sample_rate = ?, channels = ?,
                         bit_depth = ?, codec = ?,
@@ -1262,6 +1269,7 @@ pub(crate) async fn scan_folder_inner(
                 .bind(extracted.size)
                 .bind(extracted.modified_ms)
                 .bind(&extracted.title)
+                .bind(extracted.title_from_filename)
                 .bind(album_id)
                 .bind(artist_id)
                 .bind(extracted.track_number)
@@ -1389,7 +1397,7 @@ pub(crate) async fn scan_folder_inner(
             let insert = sqlx::query(
                 "INSERT INTO track (
                     library_id, folder_id, file_path, file_hash, file_size, file_modified,
-                    title, album_id, primary_artist,
+                    title, title_from_filename, album_id, primary_artist,
                     track_number, disc_number, year,
                     duration_ms, bitrate, sample_rate, channels,
                     bit_depth, codec, musical_key,
@@ -1397,7 +1405,7 @@ pub(crate) async fn scan_folder_inner(
                     rg_track_gain_db, rg_track_peak, rg_album_gain_db, rg_album_peak,
                     added_at, pinyin, is_available
                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                           ?, ?, ?, ?, ?, ?, 1)",
+                           ?, ?, ?, ?, ?, ?, ?, 1)",
             )
             .bind(library_id)
             .bind(folder_id)
@@ -1406,6 +1414,7 @@ pub(crate) async fn scan_folder_inner(
             .bind(extracted.size)
             .bind(extracted.modified_ms)
             .bind(&extracted.title)
+            .bind(extracted.title_from_filename)
             .bind(album_id)
             .bind(artist_id)
             .bind(extracted.track_number)

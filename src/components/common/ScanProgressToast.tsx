@@ -121,10 +121,15 @@ export function ScanProgressToast() {
                 would tell them their library had been gone through when
                 it had not -- and this card is the only outcome they
                 get, since the status-bar row leaves with the task. */}
-            {partial
-              ? t("scanProgress.doneErrors", { count: errors })
-              : cancelled
-                ? t("scanProgress.cancelledTitle")
+            {cancelled
+              ? // Ahead of the error count, because the two answer
+                // different questions and only one of them is in doubt:
+                // "some files failed" still says the folder was walked.
+                // The amber icon stays, so a stopped scan that also hit
+                // failures still reads as one that needs looking at.
+                t("scanProgress.cancelledTitle")
+              : partial
+                ? t("scanProgress.doneErrors", { count: errors })
                 : t("scanProgress.doneTitle")}
           </div>
           <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
