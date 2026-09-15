@@ -1707,24 +1707,28 @@ pub(crate) async fn scan_folder_inner(
     //
     // Not marked when the scan was stopped, though — a cancelled pass
     // did not reach most of the folder, and recording it as done would
-    // leave those files without their tags permanently.
-    // A cancelled pass is never marked: it did not reach most of the
-    // folder, and the attempt counter is not bumped either -- the user
-    // stopping a scan must not spend one of the folder's retries.
-    if tag_backfill_pending && !summary.cancelled && tag_backfill_failed {
+    // leave those files without their tags permanently. A stop does not
+    // spend one of the folder's retries either.
+    let spent_attempts = if tag_backfill_pending && !summary.cancelled && tag_backfill_failed {
         let spent = tag_backfill_attempts + 1;
         if let Err(err) = write_counter(pool, &tag_backfill_attempt_key, spent).await {
             tracing::warn!(?err, folder_id, "could not record a tag-backfill attempt");
         }
-        if spent >= TAG_BACKFILL_MAX_ATTEMPTS {
-            tracing::info!(
-                folder_id,
-                attempts = spent,
-                "some files' tags stayed unreadable across several scans;                  accepting the folder as read so the pass stops repeating"
-            );
-        }
+        spent
+    } else {
+        tag_backfill_attempts
+    };
+    // Out of retries: some files stayed unreadable across several
+    // scans, so the folder is accepted as read rather than re-walked in
+    // full forever.
+    let give_up = tag_backfill_failed && spent_attempts >= TAG_BACKFILL_MAX_ATTEMPTS;
+    if give_up {
+        tracing::info!(
+            folder_id,
+            attempts = spent_attempts,
+            "tags stayed unreadable across several scans; accepting the folder as read"
+        );
     }
-    let give_up = tag_backfill_attempts + 1 >= TAG_BACKFILL_MAX_ATTEMPTS;
     if tag_backfill_pending && !summary.cancelled && (!tag_backfill_failed || give_up) {
         if let Err(err) = sqlx::query(
             "INSERT INTO profile_setting (key, value, value_type, updated_at)
