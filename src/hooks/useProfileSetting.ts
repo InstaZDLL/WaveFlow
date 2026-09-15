@@ -191,13 +191,27 @@ export function useProfileSetting<T>(
         const parsed = parse(raw);
         commit(parsed);
         confirmedRef.current = parsed;
-        setRevision((r) => r + 1);
       } catch (err) {
         console.error(`[${optionsRef.current.label}] read failed`, err);
       } finally {
         // Ready either way: a failed read leaves the default in place,
         // and never flipping this would gate the consumer forever.
-        if (!cancelled) setReady(true);
+        //
+        // And `revision` either way, for a reason that is not symmetry.
+        // The read this counter exists to serve is the one a rollback
+        // broadcasts, and a write and the read behind it fail for the
+        // same reasons -- a closed pool, a profile going away. Bumping
+        // only on success would leave the case it was added for exactly
+        // as broken as before, and precisely when it is most likely.
+        // The consumer re-applies from the value it still holds, which
+        // on a failed read is its last confirmed one: the right value
+        // to put back. Bumped on a stale read too; the effects keyed on
+        // it are idempotent, and one redundant re-apply is cheaper than
+        // a missed one.
+        if (!cancelled) {
+          setReady(true);
+          setRevision((r) => r + 1);
+        }
       }
     };
     void refresh();
