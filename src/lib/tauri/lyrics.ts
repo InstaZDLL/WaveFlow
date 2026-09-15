@@ -40,6 +40,13 @@ export const LYRICS_PROVIDERS: LyricsProvider[] = [
  */
 export type PluginLyricsProvider = `plugin:${string}`;
 
+/**
+ * The prefix that distinguishes a plugin id from a built-in provider id
+ * in `LyricsPayload.provider`. Kept beside the type so the two cannot
+ * drift, and exported because the source badge has to recognise it.
+ */
+export const PLUGIN_PROVIDER_PREFIX = "plugin:";
+
 /** What an extra document is, relative to the primary lyrics. */
 export type AssociatedLyricsKind = "translation" | "pronunciation";
 
