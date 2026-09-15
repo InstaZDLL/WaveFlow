@@ -84,6 +84,11 @@ export function TrackTableHeader({
   // would drop frames on a long list.
   const drag = useRef<{
     id: ColumnId;
+    /** The pointer that started it. A second one -- another finger, a
+     *  pen alongside a touch -- reaches the same handlers, and without
+     *  this its coordinates would be measured against a gesture it has
+     *  nothing to do with. */
+    pointerId: number;
     startX: number;
     startWidth: number;
     /** The document was right-to-left when the gesture began. Read once,
@@ -124,8 +129,11 @@ export function TrackTableHeader({
       if (event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();
+      // Already dragging: a second pointer does not take over.
+      if (drag.current) return;
       drag.current = {
         id,
+        pointerId: event.pointerId,
         startX: event.clientX,
         startWidth: startWidthFor(event.currentTarget, width),
         rtl: isRtl(),
@@ -141,7 +149,7 @@ export function TrackTableHeader({
   const onPointerMove = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       const current = drag.current;
-      if (!current) return;
+      if (!current || current.pointerId !== event.pointerId) return;
       const spec = specFor(current.id);
       // Away from the column's *start* edge widens it, and which edge
       // that is depends on the direction: in RTL the handle sits on the
@@ -161,7 +169,7 @@ export function TrackTableHeader({
 
   const endDrag = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      if (!drag.current) return;
+      if (!drag.current || drag.current.pointerId !== event.pointerId) return;
       const finished = drag.current;
       drag.current = null;
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {

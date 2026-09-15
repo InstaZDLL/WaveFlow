@@ -319,9 +319,18 @@ export function sanitizeLayout(layout: ColumnLayout | null): ColumnLayout {
   const widths: Record<string, number> = {};
   const stored = layout.widths;
   if (stored && typeof stored === "object") {
-    for (const id of order) {
-      const value = (stored as Record<string, unknown>)[id];
+    // Every recognised entry, not only the visible ones. A width
+    // belongs to a column, not to the column being on screen: keyed on
+    // `order`, unticking a column in the picker would silently throw
+    // its width away and ticking it back would return it at the
+    // default, which is a stored preference quietly losing what the
+    // user set.
+    for (const [rawId, value] of Object.entries(
+      stored as Record<string, unknown>,
+    )) {
       if (typeof value !== "number" || !Number.isFinite(value)) continue;
+      const id = rawId as ColumnId;
+      if (tagKeyOf(id) === null && !hasOwn(BUILTIN_COLUMNS, id)) continue;
       const spec = specFor(id);
       widths[id] = Math.min(
         MAX_COLUMN_WIDTH,
