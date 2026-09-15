@@ -203,24 +203,34 @@ export function useProfileSetting<T>(
         // newer has claimed it since.
         if (ownerSeqRef.current === seq) ownerSeqRef.current = seq - 1;
       } finally {
-        // Ready on any outcome, stale reads included. A failed read
-        // leaves the default in place and never flipping this would
-        // gate the consumer forever; a stale one only ever arrives
-        // after something newer already owns the value, so it cannot
-        // announce a value that is not there yet.
+        // Ready on any OUTCOME -- a read that failed leaves the
+        // default in place, and never flipping this would gate the
+        // consumer forever -- but only from the read that still owns
+        // the value.
         //
-        // And `revision` either way, for a reason that is not symmetry.
-        // The read this counter exists to serve is the one a rollback
-        // broadcasts, and a write and the read behind it fail for the
-        // same reasons -- a closed pool, a profile going away. Bumping
-        // only on success would leave the case it was added for exactly
-        // as broken as before, and precisely when it is most likely.
-        // The consumer re-applies from the value it still holds, which
-        // on a failed read is its last confirmed one: the right value
-        // to put back. Bumped on a stale read too; the effects keyed on
-        // it are idempotent, and one redundant re-apply is cheaper than
-        // a missed one.
-        if (!cancelled) {
+        // Owning is not the same as having committed, which is what an
+        // earlier version of this comment got wrong. Between the
+        // effect's `commit(defaultValue)` and the newest read landing,
+        // `value` is the default; a stale read announcing ready in that
+        // window hands the consumer the default as though it were the
+        // stored answer. For `useContrastMode` that is the flash of
+        // ordinary contrast the gate exists to prevent, written over
+        // what the bootstrap had already stamped correctly.
+        //
+        // Nothing is gated forever by this: whatever took ownership
+        // either lands its own read, or is a write, and every write
+        // broadcasts -- on success and, since the rollback path does it
+        // too, on failure -- which brings a fresh read that flips it.
+        //
+        // `revision` follows the same gate, and matters for a reason
+        // that is not symmetry: the read this counter serves is the one
+        // a rollback broadcasts, and a write and the read behind it
+        // fail for the same reasons -- a closed pool, a profile going
+        // away. Bumping only on success would leave the case it exists
+        // for broken exactly when it is most likely. On a failed read
+        // the consumer re-applies its last confirmed value, which is
+        // the right one to put back.
+        if (!cancelled && ownerSeqRef.current === seq) {
           setReady(true);
           setRevision((r) => r + 1);
         }
