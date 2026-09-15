@@ -29,6 +29,17 @@ export const LYRICS_PROVIDERS: LyricsProvider[] = [
   "genius",
 ];
 
+/**
+ * A `lyrics.provider` value naming a plugin rather than one of the
+ * built-in network providers — `"plugin:"` followed by the plugin id.
+ *
+ * The two namespaces share the column, so the prefix is what keeps them
+ * apart. Anything matching it is NOT in `LYRICS_PROVIDERS` and must not
+ * be looked up there; `refetch_lyrics` accepts it and re-runs that
+ * plugin.
+ */
+export type PluginLyricsProvider = `plugin:${string}`;
+
 /** What an extra document is, relative to the primary lyrics. */
 export type AssociatedLyricsKind = "translation" | "pronunciation";
 
@@ -62,7 +73,7 @@ export interface LyricsPayload {
    * "LRCLIB" the panel previously always showed) and to drive the
    * default selection of the provider picker.
    */
-  provider?: LyricsProvider | null;
+  provider?: LyricsProvider | PluginLyricsProvider | null;
   /**
    * Set by `save_lyrics` when the user picked destination = `"tag"`
    * but the audio container can't carry the chosen format (currently

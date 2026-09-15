@@ -980,17 +980,6 @@ pub async fn set_plugin_option(
 // frontend-side. Each reloads the component per call, same as the
 // source surface (a click is human-paced, not a hot loop).
 
-/// The manifest label `ui`-world plugins declare. Used to enumerate UI
-/// plugins for the sidebar.
-///
-/// The EXACT label, not a prefix. It used to be `"waveflow:ui"` on the
-/// reasoning that a future `/v2` should be picked up too — but a version
-/// label exists precisely because the two are not ABI-compatible, so a
-/// `/v2` plugin matched this way would be instantiated against `/v1`
-/// bindings. Each version gets its own constant and its own call when
-/// one arrives.
-const UI_WORLD_V1: &str = "waveflow:ui/v1";
-
 /// Owned mirror of `waveflow:ui/extension/mount-point` for the
 /// frontend — where a UI plugin plants its navigable sidebar entry.
 #[derive(Debug, Serialize)]
@@ -1121,7 +1110,7 @@ fn validate_ui_descriptor(plugin_id: &str, descriptor: &str) -> AppResult<()> {
 /// whole sidebar build, so one broken plugin can't blank the nav.
 #[tauri::command]
 pub async fn list_ui_plugins(state: State<'_, AppState>) -> AppResult<Vec<PluginUiRegistration>> {
-    let ids = enabled_plugin_ids_for_world(&state, UI_WORLD_V1).await?;
+    let ids = enabled_plugin_ids_for_world(&state, waveflow_core::plugin::worlds::UI_V1).await?;
     let mut out = Vec::with_capacity(ids.len());
     for plugin_id in ids {
         let runtime = state.plugins.clone();

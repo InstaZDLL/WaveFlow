@@ -645,6 +645,36 @@ define_instantiate!(
     crate::plugin::bindings::metadata_v2::Plugin
 );
 
+/// Call a v2 guest's `album-info(artist, title)`.
+///
+/// v2 is a superset of v1, so it exports this too. Without a v2 path the
+/// motion-artwork surface would enumerate v1 plugins only, and the first
+/// plugin to migrate — `apple-artwork`, which is the reason the world
+/// exists — would stop serving animated covers with nothing to say why.
+pub fn metadata_v2_album_info(
+    runtime: &PluginRuntime,
+    paths: &PluginPaths,
+    plugin_id: &str,
+    artist: &str,
+    title: &str,
+) -> Result<AlbumInfo, SourceError> {
+    let (mut store, plugin) = instantiate_metadata_v2(runtime, paths, plugin_id)?;
+    let result = plugin
+        .waveflow_metadata_enricher()
+        .call_album_info(&mut store, artist, title)
+        .map_err(|e| SourceError::Trap(e.to_string()))?;
+    match result {
+        Ok(info) => Ok(AlbumInfo {
+            description: info.description,
+            cover_url: info.cover_url,
+            track_count: info.track_count,
+            motion_cover_url: info.motion_cover_url,
+            motion_cover_tall_url: info.motion_cover_tall_url,
+        }),
+        Err(msg) => Err(SourceError::Plugin(msg)),
+    }
+}
+
 /// Call the guest's `lyrics(artist, title)`.
 ///
 /// `Ok(None)` is the provider saying it has nothing for this track — a

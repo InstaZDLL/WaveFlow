@@ -543,6 +543,55 @@ async fn cache_external_lyrics(
     })
 }
 
+/// Marks a `lyrics.provider` value as a plugin id rather than one of the
+/// built-in network providers. The two namespaces share a column and
+/// nothing else: `Provider::from_id` knows only its own.
+const PLUGIN_PROVIDER_PREFIX: &str = "plugin:";
+
+/// Write the primary lyrics row. The one spelling of that statement.
+///
+/// Takes the connection rather than the pool so both callers can run it
+/// inside their own transaction — `upsert_lyrics` pairs it with clearing
+/// the bundle, `cache_lyrics_bundle` with inserting a new one, and
+/// neither can be allowed to commit half of that.
+///
+/// `language` is what the SOURCE said, not a user preference: only the
+/// v2 plugin world reports one today, and every other tier passes `None`
+/// exactly as this row has always been written.
+#[allow(clippy::too_many_arguments)]
+async fn write_primary_lyrics(
+    conn: &mut sqlx::SqliteConnection,
+    file_hash: &str,
+    content: &str,
+    format: &LyricsFormat,
+    source: &LyricsSource,
+    provider: Option<&str>,
+    language: Option<&str>,
+    fetched_at: i64,
+) -> AppResult<()> {
+    sqlx::query(
+        "INSERT INTO app.lyrics (file_hash, content, format, source, provider, language, fetched_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(file_hash) DO UPDATE SET
+            content = excluded.content,
+            format = excluded.format,
+            source = excluded.source,
+            provider = excluded.provider,
+            language = excluded.language,
+            fetched_at = excluded.fetched_at",
+    )
+    .bind(file_hash)
+    .bind(content)
+    .bind(format_to_db(format))
+    .bind(source_to_db(source))
+    .bind(provider)
+    .bind(language)
+    .bind(fetched_at)
+    .execute(&mut *conn)
+    .await?;
+    Ok(())
+}
+
 /// Map the `waveflow:metadata/v2` format enum onto the host's.
 fn plugin_format_to_app(f: PluginLyricsFormat) -> LyricsFormat {
     match f {
@@ -634,26 +683,26 @@ async fn cache_lyrics_bundle(
         })
         .collect();
 
+    // A plugin id is not a `Provider` id, and both land in the same
+    // column. Namespacing it keeps the two apart: `Provider::from_id`
+    // can never accidentally match one, the badge can tell the user a
+    // plugin answered, and `refetch_lyrics` knows to re-run the plugin
+    // tier rather than reject the value as an unknown network provider.
+    let provider_id = format!("{PLUGIN_PROVIDER_PREFIX}{plugin_id}");
+
     let now = now_ms();
     let mut tx = pool.begin().await?;
 
-    sqlx::query(
-        "INSERT INTO app.lyrics (file_hash, content, format, source, provider, language, fetched_at)
-         VALUES (?, ?, ?, ?, ?, NULL, ?)
-         ON CONFLICT(file_hash) DO UPDATE SET
-            content = excluded.content,
-            format = excluded.format,
-            source = excluded.source,
-            provider = excluded.provider,
-            fetched_at = excluded.fetched_at",
+    write_primary_lyrics(
+        &mut tx,
+        file_hash,
+        &bundle.primary.content,
+        &primary_format,
+        &LyricsSource::Api,
+        Some(&provider_id),
+        bundle.primary.language.as_deref(),
+        now,
     )
-    .bind(file_hash)
-    .bind(&bundle.primary.content)
-    .bind(format_to_db(&primary_format))
-    .bind(source_to_db(&LyricsSource::Api))
-    .bind(plugin_id)
-    .bind(now)
-    .execute(&mut *tx)
     .await?;
 
     sqlx::query("DELETE FROM app.lyrics_associated WHERE file_hash = ?")
@@ -689,7 +738,7 @@ async fn cache_lyrics_bundle(
         content: bundle.primary.content,
         format: primary_format,
         source: LyricsSource::Api,
-        provider: Some(plugin_id.to_string()),
+        provider: Some(provider_id),
         tag_write_skipped: None,
         sidecar_write_skipped: None,
         associated: accepted,
@@ -1341,23 +1390,16 @@ async fn upsert_lyrics(
     provider: Option<&str>,
 ) -> AppResult<()> {
     let mut tx = pool.begin().await?;
-    sqlx::query(
-        "INSERT INTO app.lyrics (file_hash, content, format, source, provider, language, fetched_at)
-         VALUES (?, ?, ?, ?, ?, NULL, ?)
-         ON CONFLICT(file_hash) DO UPDATE SET
-            content = excluded.content,
-            format = excluded.format,
-            source = excluded.source,
-            provider = excluded.provider,
-            fetched_at = excluded.fetched_at",
+    write_primary_lyrics(
+        &mut tx,
+        file_hash,
+        content,
+        format,
+        source,
+        provider,
+        None,
+        now_ms(),
     )
-    .bind(file_hash)
-    .bind(content)
-    .bind(format_to_db(format))
-    .bind(source_to_db(source))
-    .bind(provider)
-    .bind(now_ms())
-    .execute(&mut *tx)
     .await?;
     // Replacing the primary document ends the bundle it belonged to.
     // Translations and pronunciations are cached as part of ONE fetch
@@ -1536,12 +1578,21 @@ async fn try_plugin_lyrics(
     pool: &sqlx::SqlitePool,
     track_id: i64,
     meta: &TrackMeta,
+    only: Option<&str>,
 ) -> AppResult<Option<LyricsPayload>> {
-    let plugin_ids = super::plugins::enabled_plugin_ids_for_world(
+    let mut plugin_ids = super::plugins::enabled_plugin_ids_for_world(
         state,
         waveflow_core::plugin::worlds::METADATA_V2,
     )
     .await?;
+    // `refetch_lyrics` pins the plugin that answered last time. Filtering
+    // the enumeration rather than taking the id on trust means a plugin
+    // that has since been disabled or uninstalled simply drops out, and
+    // the caller gets the same "nothing found" it would get for any other
+    // silent provider — no separate not-installed path to keep correct.
+    if let Some(wanted) = only {
+        plugin_ids.retain(|id| id == wanted);
+    }
     if plugin_ids.is_empty() {
         return Ok(None);
     }
@@ -1659,7 +1710,7 @@ pub async fn fetch_lyrics(
     //    host imports: a guest that ignores a denied fetch would still
     //    burn the timeout.
     if !crate::offline::is_offline() {
-        if let Some(payload) = try_plugin_lyrics(&state, &pool, track_id, &meta).await? {
+        if let Some(payload) = try_plugin_lyrics(&state, &pool, track_id, &meta, None).await? {
             return Ok(Some(payload));
         }
     }
@@ -1880,6 +1931,22 @@ pub async fn refetch_lyrics(
     let Some(provider_str) = provider.as_deref() else {
         return fetch_lyrics(state, track_id).await;
     };
+
+    // A pinned plugin is not a `Provider`: the two namespaces share the
+    // `lyrics.provider` column and nothing else. Without this branch the
+    // prefix would fall through to `Provider::from_id`, which knows only
+    // its own ids, and re-fetching lyrics a plugin had supplied would
+    // fail as "unknown lyrics provider" — for a value this code wrote.
+    if let Some(plugin_id) = provider_str.strip_prefix(PLUGIN_PROVIDER_PREFIX) {
+        if crate::offline::is_offline() {
+            return Ok(None);
+        }
+        let meta = match read_track_meta(&pool, track_id).await? {
+            Some(m) => m,
+            None => return Ok(None),
+        };
+        return try_plugin_lyrics(&state, &pool, track_id, &meta, Some(plugin_id)).await;
+    }
 
     let Some(provider) = Provider::from_id(provider_str) else {
         return Err(AppError::Other(format!(
