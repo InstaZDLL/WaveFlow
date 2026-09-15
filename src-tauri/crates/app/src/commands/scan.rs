@@ -139,13 +139,6 @@ fn maybe_emit_progress(
     );
 }
 
-/// Has this folder's one-off pass never run?
-///
-/// A read that fails answers "never run", which forces the pass again —
-/// the safe side, since the alternative is recording work that did not
-/// happen. But it is logged rather than swallowed: a marker that cannot
-/// be read makes every future scan re-read the whole folder, and that
-/// looks exactly like the fast path being broken for no reason.
 /// Read a small integer counter out of `profile_setting`.
 ///
 /// A missing or unreadable row answers `0`: the counter only ever
@@ -179,6 +172,13 @@ async fn write_counter(pool: &sqlx::SqlitePool, key: &str, value: i64) -> Result
     .map(|_| ())
 }
 
+/// Has this folder's one-off pass never run?
+///
+/// A read that fails answers "never run", which forces the pass again —
+/// the safe side, since the alternative is recording work that did not
+/// happen. But it is logged rather than swallowed: a marker that cannot
+/// be read makes every future scan re-read the whole folder, and that
+/// looks exactly like the fast path being broken for no reason.
 async fn marker_absent(pool: &sqlx::SqlitePool, key: &str, folder_id: i64) -> bool {
     match sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
         .bind(key)

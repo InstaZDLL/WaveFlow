@@ -747,7 +747,7 @@ pub async fn set_cache_location(
         // restart into the same refusal.
         return Err(AppError::Other(
             if state.cache_root_fallback.is_some() {
-                "a cache move is staged for a folder that is not available;                  choose the folder in use now to cancel it, then pick a new one"
+                "a cache move is staged for a folder that is not available; choose the folder in use now to cancel it, then pick a new one"
             } else {
                 "a cache move is already staged; restart WaveFlow to finish it"
             }

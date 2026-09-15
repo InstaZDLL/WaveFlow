@@ -1109,6 +1109,14 @@
    translucency after losing its blur is less readable than it was
    before, not more.
 
+   Narrowing it has been proposed to protect the colour of buttons,
+   badges and selected states caught by `rounded-*`. Those colours are
+   already gone by the time this rule runs: the glass rule above sets
+   `background-color: color-mix(... 10%, transparent) !important` on
+   that exact selector list, so an accent button inside `main` is
+   repainted by the skin itself, one rule earlier. This one only decides
+   whether what replaced it is 10% tint or opaque.
+
    No `[class*="dark:bg-"]` in the sticky list either, and it would
    change nothing: `[class*=…]` matches anywhere in the attribute, so
    `bg-zinc` already finds `dark:bg-zinc-900`. */
