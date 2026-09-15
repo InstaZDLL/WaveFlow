@@ -2611,6 +2611,7 @@ function TrackTable({
                   return (
                     <div
                       key={id}
+                      data-track-cell={id}
                       className="flex items-center"
                       onDoubleClick={(e) => e.stopPropagation()}
                     >

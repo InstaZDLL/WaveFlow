@@ -260,7 +260,7 @@ fn is_usable(root: &Path) -> Result<(), String> {
 pub async fn resolve_cache_root(
     paths: AppPaths,
     app_db: &SqlitePool,
-) -> (AppPaths, Option<String>) {
+) -> (AppPaths, Option<(PathBuf, String)>) {
     let Some(configured) = load_cache_root(app_db).await else {
         return (paths, None);
     };
@@ -284,7 +284,10 @@ pub async fn resolve_cache_root(
             // The stored choice is deliberately left alone: the drive may
             // simply not be plugged in, and clearing it would turn a
             // temporary absence into a permanent reset.
-            (paths, Some(reason))
+            //
+            // Returned with the root it refers to: see
+            // `AppState::cache_root_fallback`.
+            (paths, Some((configured, reason)))
         }
     }
 }
@@ -590,7 +593,13 @@ pub async fn get_cache_location(state: tauri::State<'_, AppState>) -> AppResult<
     // is the discriminator: a restart is pending only when this session
     // did not fall back.
     let move_pending = load_path(&state.app_db, KEY_CACHE_PENDING).await.is_some();
-    let fell_back = state.cache_root_fallback.is_some();
+    // Only while the root that could not be used is still the chosen
+    // one. Moving somewhere else answers the fallback, and a stale flag
+    // would then both misreport it and swallow the restart notice.
+    let fell_back = state
+        .cache_root_fallback
+        .as_ref()
+        .is_some_and(|(root, _)| configured.as_ref() == Some(root));
     let diverged = configured
         .as_ref()
         .is_some_and(|chosen| chosen != &paths.cache_root);
@@ -607,14 +616,16 @@ pub async fn get_cache_location(state: tauri::State<'_, AppState>) -> AppResult<
         default_root: paths.root.to_string_lossy().to_string(),
         fell_back: diverged && fell_back,
         configured_root: configured.map(|p| p.to_string_lossy().to_string()),
-        // Tied to the same condition as the flag above, not reported on
-        // its own: `cache_root_fallback` is fixed at startup and cannot
-        // know that the user has since cleared the choice it refers to.
-        // Cancelling a staged move does exactly that, and leaving the
-        // reason behind would hand the card a sentence about a drive it
-        // is no longer describing.
+        // Tied to the same condition as the flag above: a reason shown
+        // beside a `fell_back` of `false` is a sentence about a drive
+        // the card is no longer describing.
         fallback_reason: (diverged && fell_back)
-            .then(|| state.cache_root_fallback.clone())
+            .then(|| {
+                state
+                    .cache_root_fallback
+                    .as_ref()
+                    .map(|(_, why)| why.clone())
+            })
             .flatten(),
         // Compared against where the next session will read from, not
         // against the marker alone -- that is what lets

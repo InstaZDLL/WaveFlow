@@ -229,7 +229,16 @@ pub struct AppState {
     /// the reason: caches quietly reappearing at the default location
     /// is, from the user side, indistinguishable from them having been
     /// wiped.
-    pub cache_root_fallback: Option<String>,
+    /// Paired with the root it is about, not stored on its own. The
+    /// field is a snapshot taken at startup and there is no moment
+    /// afterwards that could refresh it -- so a bare reason outlives
+    /// the situation it describes: move away from the drive that was
+    /// missing and the card would go on reporting a fallback, and
+    /// (because a fallback suppresses it) hide the restart the new move
+    /// is waiting for. Carrying the root makes the snapshot
+    /// self-invalidating: it applies only while that root is still the
+    /// chosen one.
+    pub cache_root_fallback: Option<(std::path::PathBuf, String)>,
     /// Serializes [`crate::commands::storage::set_cache_location`].
     ///
     /// That command reads the pending-move marker, copies a whole cache
