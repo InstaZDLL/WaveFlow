@@ -331,9 +331,10 @@ windows = { version = "0.62", features = [
 # Pinning the same 0.62 keeps one copy in the graph; a mismatched one
 # would compile into a *different* `IUnknownImpl` and the sink would no
 # longer satisfy the interface. Already in the lockfile as a dependency
-# of `windows` itself, so this adds a name, not a crate. Dependabot is told
-# to skip majors here for the same reason (`.github/dependabot.yml`): moving
-# this line alone is never valid, whichever of the two upstream releases first.
+# of `windows` itself, so this adds a name, not a crate. Dependabot is held
+# back from both names above patch level for the same reason
+# (`.github/dependabot.yml`): moving either line on its own is never valid,
+# so the pair is bumped by hand when windows-rs realigns them.
 windows-core = "0.62"
 
 # macOS-only: opt-in bit-perfect native DSD via DoP (#495 / #497).
