@@ -56,7 +56,11 @@ export function SmartRuleSummary({ playlist }: { playlist: Playlist }) {
     return () => {
       alive = false;
     };
-  }, [playlist, isCustom, t, locale]);
+    // Keyed on the identity and the rules, not on the playlist object:
+    // the view re-fetches the row on every library change, and a new
+    // object with the same contents would re-run the whole read for a
+    // sentence that cannot have changed.
+  }, [playlist.id, playlist.smart_rules, isCustom, t, locale]);
 
   if (!isCustom || summary?.id !== playlist.id) return null;
   return (

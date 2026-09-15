@@ -141,7 +141,7 @@ function describePredicate(pred: Predicate, ctx: SummaryContext): string {
     case "hi_res":
       return p("hiRes");
     case "sample_rate_min":
-      return p("sampleRateMin", { value: (pred.value / 1000).toFixed(1) });
+      return p("sampleRateMin", { value: kilohertz(pred.value, ctx) });
     case "bit_depth_min":
       return p("bitDepthMin", { value: pred.value });
     case "bpm_min":
@@ -189,6 +189,20 @@ function minutes(ms: number, ctx: SummaryContext): string {
 
 function formatNumber(value: number, ctx: SummaryContext): string {
   return new Intl.NumberFormat(ctx.locale).format(value);
+}
+
+/**
+ * A sample rate in kHz, with the reader's decimal separator.
+ *
+ * `toFixed` always writes a dot, so 88.2 kHz reached a French or German
+ * reader as "88.2" in a sentence where every other number is written
+ * with a comma.
+ */
+function kilohertz(hz: number, ctx: SummaryContext): string {
+  return new Intl.NumberFormat(ctx.locale, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(hz / 1000);
 }
 
 function sortKey(sort: CustomSort | null | undefined): string {

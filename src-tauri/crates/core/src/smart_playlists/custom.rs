@@ -444,6 +444,44 @@ fn build_node_sql(node: &RuleNode, binds: &mut Vec<BindValue>, now_ms: i64) -> S
     }
 }
 
+/// The escape character for every `LIKE` pattern the builder emits.
+///
+/// `!` rather than the usual backslash because the one pattern most
+/// likely to contain a backslash is a path, and a rule reading
+/// `LIKE ? ESCAPE '\\'` over a Windows path is a trap waiting for
+/// whoever touches the separator folding next.
+#[cfg(feature = "sqlite")]
+const LIKE_ESCAPE: char = '!';
+
+/// A user's text as a `LIKE` pattern: metacharacters made literal, then
+/// wrapped in wildcards.
+///
+/// Without this, `%` and `_` typed into a "contains" field are
+/// wildcards — and `_` is not an exotic character in a filename or a
+/// catalogue number. A rule for `My_Music` would quietly also take in
+/// `MyXMusic`, which nobody asked for and nothing on screen would
+/// explain. The escape character is escaped first, or escaping the
+/// others would corrupt any literal `!` the user typed.
+#[cfg(feature = "sqlite")]
+fn like_contains(value: &str) -> String {
+    let escaped = value
+        .trim()
+        .replace(LIKE_ESCAPE, &format!("{LIKE_ESCAPE}{LIKE_ESCAPE}"))
+        .replace('%', &format!("{LIKE_ESCAPE}%"))
+        .replace('_', &format!("{LIKE_ESCAPE}_"));
+    format!("%{escaped}%")
+}
+
+/// The `LIKE` operator with its escape clause, for a column expression.
+///
+/// Kept in one place so the two halves can never drift apart: a
+/// pattern escaped without the clause matches the escape character
+/// literally, which is worse than not escaping at all.
+#[cfg(feature = "sqlite")]
+fn like_clause(column: &str) -> String {
+    format!("{column} LIKE ? ESCAPE '{LIKE_ESCAPE}' COLLATE NOCASE")
+}
+
 /// Epoch milliseconds `days` before `now_ms`, the cut-off of a relative
 /// window. Saturating so an absurd day count clamps instead of wrapping
 /// into the future, which would turn "in the last N days" into a rule
@@ -471,19 +509,23 @@ fn days_ago_ms(now_ms: i64, days: i64) -> i64 {
 fn build_predicate_sql(pred: &Predicate, binds: &mut Vec<BindValue>, now_ms: i64) -> String {
     match pred {
         Predicate::TitleContains { value } => {
-            binds.push(BindValue::Text(format!("%{}%", value.trim())));
-            "t.title LIKE ? COLLATE NOCASE".to_string()
+            binds.push(BindValue::Text(like_contains(value)));
+            like_clause("t.title")
         }
         Predicate::ArtistContains { value } => {
-            binds.push(BindValue::Text(format!("%{}%", value.trim())));
-            "EXISTS (SELECT 1 FROM track_artist ta JOIN artist ar ON ar.id = ta.artist_id \
-             WHERE ta.track_id = t.id AND ar.name LIKE ? COLLATE NOCASE)"
-                .to_string()
+            binds.push(BindValue::Text(like_contains(value)));
+            format!(
+                "EXISTS (SELECT 1 FROM track_artist ta JOIN artist ar ON ar.id = ta.artist_id \
+                 WHERE ta.track_id = t.id AND {})",
+                like_clause("ar.name")
+            )
         }
         Predicate::AlbumContains { value } => {
-            binds.push(BindValue::Text(format!("%{}%", value.trim())));
-            "EXISTS (SELECT 1 FROM album WHERE album.id = t.album_id AND album.title LIKE ? COLLATE NOCASE)"
-                .to_string()
+            binds.push(BindValue::Text(like_contains(value)));
+            format!(
+                "EXISTS (SELECT 1 FROM album WHERE album.id = t.album_id AND {})",
+                like_clause("album.title")
+            )
         }
         Predicate::GenreIs { value } => {
             binds.push(BindValue::Int(*value));
@@ -575,9 +617,8 @@ fn build_predicate_sql(pred: &Predicate, binds: &mut Vec<BindValue>, now_ms: i64
         // escapes inside a string literal, so `'\\'` here is one
         // backslash in the SQL.
         Predicate::PathContains { value } => {
-            let needle = value.trim().replace('\\', "/");
-            binds.push(BindValue::Text(format!("%{needle}%")));
-            "REPLACE(t.file_path, '\\', '/') LIKE ? COLLATE NOCASE".to_string()
+            binds.push(BindValue::Text(like_contains(&value.replace('\\', "/"))));
+            like_clause("REPLACE(t.file_path, '\\', '/')")
         }
         // `track_tag.key` is declared `COLLATE NOCASE`, so the equality
         // below is case-insensitive *and* index-backed on
@@ -590,10 +631,12 @@ fn build_predicate_sql(pred: &Predicate, binds: &mut Vec<BindValue>, now_ms: i64
         }
         Predicate::TagContains { key, value } => {
             binds.push(BindValue::Text(key.trim().to_string()));
-            binds.push(BindValue::Text(format!("%{}%", value.trim())));
-            "EXISTS (SELECT 1 FROM track_tag tt WHERE tt.track_id = t.id \
-             AND tt.key = ? AND tt.value LIKE ? COLLATE NOCASE)"
-                .to_string()
+            binds.push(BindValue::Text(like_contains(value)));
+            format!(
+                "EXISTS (SELECT 1 FROM track_tag tt WHERE tt.track_id = t.id \
+                 AND tt.key = ? AND {})",
+                like_clause("tt.value")
+            )
         }
     }
 }
@@ -833,7 +876,17 @@ mod tests {
                     value: "foo".into(),
                 },
             };
-            assert_eq!(sql_of(&n), "t.title LIKE ? COLLATE NOCASE");
+            assert_eq!(sql_of(&n), "t.title LIKE ? ESCAPE '!' COLLATE NOCASE");
+        }
+
+        /// A `LIKE` metacharacter typed into a "contains" field is a
+        /// character, not a wildcard — and the escape character itself
+        /// has to survive being typed.
+        #[test]
+        fn a_contains_pattern_escapes_its_metacharacters() {
+            assert_eq!(like_contains("My_Music"), "%My!_Music%");
+            assert_eq!(like_contains("100%"), "%100!%%");
+            assert_eq!(like_contains("Hey!"), "%Hey!!%");
         }
 
         #[test]
@@ -1161,6 +1214,33 @@ mod tests {
             )
             .await
             .is_empty());
+
+            // An underscore is a character in a path, not a wildcard —
+            // and this is the assertion that proves the `ESCAPE` clause
+            // reached the SQL, since a pattern escaped without one
+            // matches the escape character literally.
+            assert!(
+                matched(
+                    &pool,
+                    leaf(Predicate::PathContains {
+                        value: "M_sic".into()
+                    })
+                )
+                .await
+                .is_empty(),
+                "an underscore must not match an arbitrary character"
+            );
+            assert_eq!(
+                matched(
+                    &pool,
+                    leaf(Predicate::PathContains {
+                        value: "Music".into()
+                    })
+                )
+                .await,
+                vec![1, 2],
+                "and the same rule without it still matches"
+            );
         }
 
         /// "Forgotten" — played once, but not lately. The template of

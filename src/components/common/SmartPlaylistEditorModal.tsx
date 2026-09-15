@@ -155,10 +155,10 @@ export function SmartPlaylistEditorModal({
           if (countTokenRef.current !== token) return;
           console.error("[SmartPlaylistEditor] count failed", err);
           // The count is an aid, not a gate: a failed one leaves the
-          // last good number visible and says nothing, rather than
-          // pushing an error banner over an editor that still works
-          // and still saves.
-          setCount(null);
+          // last good number where it was and says nothing, rather
+          // than pushing an error banner over an editor that still
+          // works and still saves. Clearing it here would have shown
+          // "counting…" for good, since nothing is counting any more.
           setIsCounting(false);
         });
     }, COUNT_DEBOUNCE_MS);
@@ -396,7 +396,11 @@ function MatchCount({
     >
       {isCounting && <Loader2 size={14} className="animate-spin shrink-0" />}
       {count == null ? (
-        <span>{t("smartPlaylistEditor.counting")}</span>
+        // Nothing counted yet — either the first query is in flight, or
+        // it failed and there is no number to show. Neither is worth an
+        // error; the dash says "unknown" without claiming work is
+        // happening.
+        <span>{isCounting ? t("smartPlaylistEditor.counting") : "—"}</span>
       ) : count.kept < count.total ? (
         <span>
           {t("smartPlaylistEditor.matchCountLimited", {

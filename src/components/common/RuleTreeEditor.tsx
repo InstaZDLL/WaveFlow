@@ -359,6 +359,21 @@ const PREDICATE_GROUPS: { key: string; options: PredicateOption[] }[] = [
   },
 ];
 
+/**
+ * The i18n suffix of a predicate kind, from the catalogue above.
+ *
+ * The catalogue is the only list of the pairing, so looking the suffix
+ * up in it is what keeps a label from going stale when a predicate is
+ * renamed — a second mapping would be a second thing to forget.
+ */
+function predicateLabelKey(kind: PredicateKind): string {
+  for (const group of PREDICATE_GROUPS) {
+    const found = group.options.find((o) => o.kind === kind);
+    if (found) return found.key;
+  }
+  return kind;
+}
+
 /** Sample rates worth offering — the ones files are actually made at. */
 const SAMPLE_RATE_OPTIONS = [44100, 48000, 88200, 96000, 176400, 192000];
 const BIT_DEPTH_OPTIONS = [16, 24, 32];
@@ -506,7 +521,19 @@ function PredicateValue({
   genres: GenreRow[];
   tagKeys: TrackTagKey[];
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // The reader's decimal separator, not a dot: `toFixed` would write
+  // 88.2 into an editor where every other number is localized.
+  const kHz = new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+  // Every value widget names itself: the predicate select next to it
+  // carries the meaning visually, but a screen reader reaching the
+  // second control of the pair would announce only its value.
+  const label = t(
+    `smartPlaylistEditor.predicates.${predicateLabelKey(predicate.kind)}`,
+  );
   const inputCls =
     "text-xs rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-500";
 
@@ -530,6 +557,7 @@ function PredicateValue({
           value={predicate.value}
           onChange={(e) => onChange({ ...predicate, value: e.target.value })}
           placeholder={t("smartPlaylistEditor.tree.pathPlaceholder")}
+          aria-label={label}
           className={`${inputCls} flex-1 min-w-0`}
         />
       );
@@ -611,6 +639,7 @@ function PredicateValue({
                 value: parseInt(e.target.value, 10) || 0,
               })
             }
+            aria-label={label}
             className={`${inputCls} w-20`}
           />
           <span className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -625,11 +654,12 @@ function PredicateValue({
           onChange={(e) =>
             onChange({ ...predicate, value: Number(e.target.value) })
           }
+          aria-label={label}
           className={inputCls}
         >
           {SAMPLE_RATE_OPTIONS.map((hz) => (
             <option key={hz} value={hz}>
-              {`${(hz / 1000).toFixed(1)} kHz`}
+              {`${kHz.format(hz / 1000)} kHz`}
             </option>
           ))}
         </select>
@@ -641,6 +671,7 @@ function PredicateValue({
           onChange={(e) =>
             onChange({ ...predicate, value: Number(e.target.value) })
           }
+          aria-label={label}
           className={inputCls}
         >
           {BIT_DEPTH_OPTIONS.map((bits) => (
@@ -673,6 +704,7 @@ function PredicateValue({
             value={predicate.value}
             onChange={(e) => onChange({ ...predicate, value: e.target.value })}
             placeholder={t("smartPlaylistEditor.tree.contains")}
+            aria-label={label}
             className={`${inputCls} flex-1 min-w-0`}
           />
         </>
