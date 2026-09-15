@@ -78,7 +78,21 @@ fn where_for(key: &str) -> Option<&'static str> {
         // that is present and empty. The flag is set at scan time --
         // see `ExtractedFile::title_from_filename` for why it cannot be
         // worked out afterwards from the path.
-        "missing_title" => "AND source = 'local' AND (trim(title) = '' OR title_from_filename = 1)",
+        //
+        // Reached through a subquery on `track` rather than named
+        // directly: the clause is applied to the projection
+        // `library_tracks_sql_where` builds, which unions local and
+        // remote rows and exposes only the columns both can answer.
+        // Widening that projection for one category would change the
+        // shape of every library listing in the app.
+        "missing_title" => {
+            "AND source = 'local' AND (
+                 trim(title) = ''
+                 OR CAST(id AS INTEGER) IN (
+                     SELECT t.id FROM track t WHERE t.title_from_filename = 1
+                 )
+             )"
+        }
         "missing_artist" => "AND source = 'local' AND artist_name IS NULL",
         "missing_album" => "AND source = 'local' AND album_id IS NULL",
         // Year `0` is what several taggers write for "unknown", so it is
