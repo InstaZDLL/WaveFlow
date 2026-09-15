@@ -374,6 +374,24 @@ function predicateLabelKey(kind: PredicateKind): string {
   return kind;
 }
 
+/**
+ * The smallest value a predicate can hold, where it has one.
+ *
+ * `undefined` means the field takes any number — a year or a duration,
+ * where the whole range says something.
+ */
+function numericFloor(kind: PredicateKind): number | undefined {
+  switch (kind) {
+    case "play_count_min":
+    case "play_count_max":
+      return 0;
+    case "disc_number_is":
+      return 1;
+    default:
+      return undefined;
+  }
+}
+
 /** Sample rates worth offering — the ones files are actually made at. */
 const SAMPLE_RATE_OPTIONS = [44100, 48000, 88200, 96000, 176400, 192000];
 const BIT_DEPTH_OPTIONS = [16, 24, 32];
@@ -607,10 +625,21 @@ function PredicateValue({
       return (
         <input
           type="number"
+          // A floor where one exists: a play count cannot be negative
+          // and a disc is numbered from one. Both of those write a rule
+          // that matches nothing rather than a wrong rule, which is the
+          // harder kind to notice. Years and durations keep the shared
+          // behaviour, where every value means something.
+          min={numericFloor(predicate.kind)}
           value={predicate.value}
-          onChange={(e) =>
-            onChange({ ...predicate, value: parseInt(e.target.value, 10) || 0 })
-          }
+          onChange={(e) => {
+            const parsed = parseInt(e.target.value, 10) || 0;
+            const floor = numericFloor(predicate.kind);
+            onChange({
+              ...predicate,
+              value: floor === undefined ? parsed : Math.max(floor, parsed),
+            });
+          }}
           aria-label={label}
           className={`${inputCls} w-28`}
         />
