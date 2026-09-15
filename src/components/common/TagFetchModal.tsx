@@ -544,18 +544,33 @@ function editFragment(proposal: TrackProposal, field: TagField): TrackEdit {
   }
 }
 
+/** The library's one spelling for a multi-artist credit. */
+const MULTI_ARTIST_SEPARATOR = "; ";
+
 /**
  * What arrives pre-accepted.
  *
  * Confident matches, and only those: a doubtful pairing is worth
  * showing and not worth applying on the user's behalf, which is the
  * entire reason the matcher reports two thresholds rather than one.
+ *
+ * With one exception. Deezer gives a track **one** artist, and a local
+ * credit of "A; B" therefore always reads as a change — so a confident
+ * match would arrive with "replace both names with the first" already
+ * ticked. The row stays visible and can still be accepted by hand; it
+ * is only the default that refuses to throw away a credit the library
+ * models better than the catalogue does.
  */
 function defaultAcceptance(proposals: AlbumProposals): Accepted {
   const out: Accepted = {};
   for (const proposal of proposals.tracks) {
     if (proposal.confidence !== "confident") continue;
-    const fields = changedFields(proposal);
+    const multiArtist = (proposal.current.artist ?? "").includes(
+      MULTI_ARTIST_SEPARATOR,
+    );
+    const fields = changedFields(proposal).filter(
+      (f) => !(f === "artist" && multiArtist),
+    );
     if (fields.length === 0) continue;
     out[proposal.track_id] = Object.fromEntries(
       fields.map((f) => [f, true]),

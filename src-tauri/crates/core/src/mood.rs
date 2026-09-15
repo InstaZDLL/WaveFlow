@@ -141,7 +141,18 @@ pub fn fit_score(profile: &MoodProfile, candidate: &MoodCandidate) -> f64 {
 /// its window. A track at the centre scores 1, one at the edge scores
 /// close to 0, and the fall is linear because nothing about a tempo
 /// preference justifies a sharper curve.
+///
+/// **An unbounded side has no "too far".** Sleep has no floor, so a
+/// 30 BPM drone is not a worse fit for it than one at its 52 BPM
+/// centre — measuring the distance anyway scored the slowest tracks in
+/// the library worst for the mood built on slowness.
 fn tempo_score(profile: &MoodProfile, bpm: f64) -> f64 {
+    if bpm < profile.bpm_centre && profile.bpm_min.is_none() {
+        return 1.0;
+    }
+    if bpm > profile.bpm_centre && profile.bpm_max.is_none() {
+        return 1.0;
+    }
     let reach = half_width(profile);
     if reach <= 0.0 {
         return 1.0;
@@ -366,6 +377,33 @@ mod tests {
             "its weaker track must be the one cut"
         );
         assert!(picked.contains(&12), "another artist is unaffected");
+    }
+
+    /// A mood open on one side does not punish tracks that go further
+    /// that way. Sleep is the case: it has no floor, and scoring by
+    /// distance from its centre made the slowest track in the library
+    /// the worst fit for the mood built on slowness.
+    #[test]
+    fn an_unbounded_side_has_no_too_far() {
+        const SLEEP: MoodProfile = MoodProfile {
+            bpm_min: None,
+            bpm_max: Some(68.0),
+            bpm_centre: 52.0,
+            lufs_max: Some(-18.0),
+            lufs_min: None,
+            genre_words: &[],
+        };
+        let centre = fit_score(&SLEEP, &candidate(1, 52.0, Some(-20.0)));
+        let slower = fit_score(&SLEEP, &candidate(2, 30.0, Some(-20.0)));
+        assert_eq!(
+            slower, centre,
+            "below the centre, with no floor, is as good"
+        );
+        let edge = fit_score(&SLEEP, &candidate(3, 68.0, Some(-20.0)));
+        assert!(
+            edge < centre,
+            "the bounded side still ranks: {edge} vs {centre}"
+        );
     }
 
     /// Tracks that lost their artist share one bucket, rather than

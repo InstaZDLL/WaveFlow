@@ -28,6 +28,12 @@ pub struct DeezerClient {
 #[derive(Debug, Deserialize)]
 pub struct DeezerSearchResponse<T> {
     pub data: Vec<T>,
+    /// Link to the following page, absent on the last one. Deezer sends
+    /// it on every list endpoint; the search paths here read one page
+    /// on purpose, so it is only consulted where a short answer would
+    /// be a wrong answer.
+    #[serde(default)]
+    pub next: Option<String>,
 }
 
 /// Deezer's in-band error object.
@@ -325,18 +331,49 @@ impl DeezerClient {
         Self::fetch(self.http.get(format!("{BASE_URL}/album/{deezer_id}"))).await
     }
 
-    /// The tracks of an album, in the catalogue's own order.
+    /// The tracks of an album, in the catalogue's own order, **every
+    /// page of them**.
     ///
     /// `/album/{id}/tracks` rather than the `tracks` field of
-    /// `/album/{id}`: the embedded list is capped, and a box set read
-    /// through it comes back short with nothing to say it was cut.
+    /// `/album/{id}`: the embedded list is capped. But so is this one —
+    /// it is a paged list like every other Deezer collection, and a box
+    /// set read as one page comes back short with nothing in the
+    /// response to say it was cut. The pages are walked until the API
+    /// stops offering a next one.
+    ///
+    /// The following page is requested by `index`, computed here,
+    /// rather than by following the `next` URL the response carries: it
+    /// keeps every request this client makes one this code built, and
+    /// it costs a line.
     pub async fn get_album_tracks(&self, deezer_id: i64) -> DeezerResult<Vec<DeezerAlbumTrack>> {
-        let resp: DeezerSearchResponse<DeezerAlbumTrack> = Self::fetch(
-            self.http
-                .get(format!("{BASE_URL}/album/{deezer_id}/tracks")),
-        )
-        .await?;
-        Ok(resp.data)
+        /// Deezer's own maximum page size for a collection.
+        const PAGE: usize = 100;
+        /// Ten thousand tracks. A real release is three orders of
+        /// magnitude below this; the cap is here so a catalogue that
+        /// keeps saying "there is more" cannot spin forever.
+        const MAX_PAGES: usize = 100;
+
+        let mut out: Vec<DeezerAlbumTrack> = Vec::new();
+        for page in 0..MAX_PAGES {
+            let resp: DeezerSearchResponse<DeezerAlbumTrack> = Self::fetch(
+                self.http
+                    .get(format!("{BASE_URL}/album/{deezer_id}/tracks"))
+                    .query(&[
+                        ("index", (page * PAGE).to_string()),
+                        ("limit", PAGE.to_string()),
+                    ]),
+            )
+            .await?;
+            let received = resp.data.len();
+            out.extend(resp.data);
+            // Two independent stops, because either alone has been seen
+            // to lie: a short page is the end whatever `next` says, and
+            // a full page with no `next` is the end too.
+            if received < PAGE || resp.next.is_none() {
+                break;
+            }
+        }
+        Ok(out)
     }
 
     /// Fetch artists Deezer reports as related to the given artist.

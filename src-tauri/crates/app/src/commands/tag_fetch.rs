@@ -300,6 +300,13 @@ struct LocalTrack {
 /// library's one spelling for a multi-artist credit — reading
 /// `track.primary_artist` instead would offer to replace a full credit
 /// with its first name, which is a silent loss dressed as a fix.
+///
+/// The ordering goes in an **inner subquery**, the shape the rest of
+/// the codebase uses: an `ORDER BY` in the aggregate's own query runs
+/// after the aggregation and orders one row, so the names inside the
+/// string come out in whatever order the scan happened to reach them.
+/// Ordering inside the aggregate call is SQLite 3.44, newer than what
+/// we can require.
 async fn local_tracks(pool: &SqlitePool, album_id: i64) -> AppResult<Vec<LocalTrack>> {
     #[derive(sqlx::FromRow)]
     struct Row {
@@ -321,11 +328,13 @@ async fn local_tracks(pool: &SqlitePool, album_id: i64) -> AppResult<Vec<LocalTr
                t.duration_ms   AS duration_ms,
                t.track_number  AS track_number,
                t.year          AS year,
-               (SELECT GROUP_CONCAT(ar.name, '; ')
-                  FROM track_artist ta
-                  JOIN artist ar ON ar.id = ta.artist_id
-                 WHERE ta.track_id = t.id
-                 ORDER BY ta.position) AS artists,
+               (SELECT GROUP_CONCAT(name, '; ') FROM (
+                   SELECT ar.name AS name
+                     FROM track_artist ta
+                     JOIN artist ar ON ar.id = ta.artist_id
+                    WHERE ta.track_id = t.id
+                    ORDER BY ta.position
+               )) AS artists,
                al.title        AS album
           FROM track t
           LEFT JOIN album al ON al.id = t.album_id
