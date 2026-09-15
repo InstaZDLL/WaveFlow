@@ -541,4 +541,10 @@
     [class*="rounded-3xl"]
   ) {
   background-color: var(--wf-contrast-surface) !important;
+  /* The opaque colour alone does not get there: this skin's TopBar and
+     PlayerBar each carry a `background-image` gradient, which paints
+     over whatever `background-color` is underneath. Lounge is the only
+     one of the five that needs saying -- Pulse and Liquid already set
+     `background-image: none` on their own chrome. */
+  background-image: none !important;
 }

@@ -670,7 +670,11 @@ pub(crate) fn library_track_order_clause(
     // places between two identical queries. Album sorts read down the
     // disc, everything else falls back to the title.
     match order_by {
-        Some("album") => clause.push_str(", disc_number, track_number"),
+        // `sort_artist` first, exactly as DEFAULT above orders it:
+        // album titles are not unique across artists (`Greatest Hits`,
+        // `Live`, an untitled rip), and without it two such albums
+        // interleave track 1 against track 1 all the way down.
+        Some("album") => clause.push_str(", sort_artist COLLATE NOCASE, disc_number, track_number"),
         Some("title") => {}
         _ => clause.push_str(", title COLLATE NOCASE"),
     }
@@ -3308,9 +3312,14 @@ mod tests {
                 "{key} has no tie-break: {clause}"
             );
         }
-        // An album sort reads down the disc instead.
+        // An album sort reads down the disc instead -- but only after
+        // the artist, or two albums sharing a title (`Greatest Hits`)
+        // interleave their track 1s.
         let album = library_track_order_clause(Some("album"), Some("asc"));
-        assert!(album.contains("disc_number, track_number"), "{album}");
+        assert!(
+            album.contains("sort_artist COLLATE NOCASE, disc_number, track_number"),
+            "{album}"
+        );
     }
 
     use super::*;

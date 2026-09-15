@@ -715,8 +715,15 @@ pub async fn set_cache_location(
             .await
             .filter(|configured| configured != &paths.cache_root);
         let stored = (target != paths.root).then(|| target.clone());
-        store_path(&state.app_db, KEY_CACHE_ROOT, stored.as_deref()).await?;
-        store_path(&state.app_db, KEY_CACHE_PENDING, abandoned.as_deref()).await?;
+        // One transaction, like the staging path below. Written apart,
+        // a crash between them leaves the choice cancelled while the
+        // marker still names a destination -- and the "one staged move
+        // at a time" guard would then refuse every later move, with no
+        // way to clear what it is reading.
+        let mut tx = state.app_db.begin().await?;
+        store_path_in(&mut *tx, KEY_CACHE_ROOT, stored.as_deref()).await?;
+        store_path_in(&mut *tx, KEY_CACHE_PENDING, abandoned.as_deref()).await?;
+        tx.commit().await?;
         return get_cache_location(state).await;
     }
     // Created *before* the containment check, not after: `canonicalize`
