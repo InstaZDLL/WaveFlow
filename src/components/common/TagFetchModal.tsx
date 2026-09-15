@@ -221,7 +221,7 @@ export function TagFetchModal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={closeUnlessBusy}
             disabled={busy}
             className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors disabled:opacity-50"
             aria-label={t("common.close")}
@@ -254,7 +254,7 @@ export function TagFetchModal({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={closeUnlessBusy}
               disabled={busy}
               className="px-4 py-2 rounded-full text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
             >
