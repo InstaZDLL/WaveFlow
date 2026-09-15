@@ -348,14 +348,36 @@ pub async fn reset_app(
     // hold the runtime for as long as it takes.
     if !cache_roots.is_empty() {
         let removal = tokio::task::spawn_blocking(move || {
-            for dir in cache_roots {
-                if let Err(err) = std::fs::remove_dir_all(&dir) {
-                    if err.kind() != std::io::ErrorKind::NotFound {
-                        tracing::warn!(
-                            path = %dir.display(),
-                            ?err,
-                            "could not remove a relocated cache directory during reset",
-                        );
+            for entry in cache_roots {
+                let mut all_gone = true;
+                for dir in &entry.dirs {
+                    if let Err(err) = std::fs::remove_dir_all(dir) {
+                        if err.kind() != std::io::ErrorKind::NotFound {
+                            tracing::warn!(
+                                path = %dir.display(),
+                                ?err,
+                                "could not remove a relocated cache directory during reset",
+                            );
+                            all_gone = false;
+                        }
+                    }
+                }
+                // The folder is the user's own, and after a reset
+                // WaveFlow has nothing left in it: leaving the marker
+                // behind leaves a file that grants permission to delete
+                // inside a directory the app no longer manages. Kept
+                // when a directory survived, exactly as the deferred
+                // cleanup keeps it -- the marker is what still entitles
+                // a later pass to finish the job.
+                if all_gone {
+                    if let Err(err) = std::fs::remove_file(&entry.marker) {
+                        if err.kind() != std::io::ErrorKind::NotFound {
+                            tracing::warn!(
+                                path = %entry.marker.display(),
+                                ?err,
+                                "could not remove a relocated cache marker during reset",
+                            );
+                        }
                     }
                 }
             }

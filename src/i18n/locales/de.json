@@ -557,7 +557,7 @@
       "choose": "Spalten",
       "shown": "Angezeigt",
       "available": "Verfügbar",
-      "fromYourFiles": "Aus Ihren Dateien",
+      "fromYourFiles": "Aus deinen Dateien",
       "resetWidths": "Breiten zurücksetzen",
       "resize": "Spalte {{column}} anpassen",
       "title": "Titel",
@@ -2286,7 +2286,7 @@
       "reset": "Auf Standard zurücksetzen",
       "size": "{{size}} belegt",
       "copying": "Wird kopiert… das Original wird erst beim nächsten Start entfernt.",
-      "fellBack": "Der eingestellte Ort ist nicht erreichbar ({{path}}), daher nutzt der Cache in dieser Sitzung den Standardort. Ihre Auswahl bleibt erhalten.",
+      "fellBack": "Der eingestellte Ort ist nicht erreichbar ({{path}}), daher nutzt der Cache in dieser Sitzung den Standardort. Deine Auswahl bleibt erhalten.",
       "restartNeeded": "Kopie abgeschlossen. Zum Verwenden des neuen Orts neu starten.",
       "restartNow": "Neu starten"
     }
@@ -2613,10 +2613,10 @@
       "title": "Server-Metadaten",
       "subtitle": "Die Korrektur wird auf dem Server gespeichert, nicht in der Datei.",
       "help": "Diese Korrekturen überstehen die Scans des Servers und sind für alle Mitglieder der Bibliothek sichtbar. Ein leeres Feld entfernt die Korrektur: Der Wert aus der Datei erscheint wieder.",
-      "missing": "Dieser Titel ist noch nicht im Spiegel des Servers. Führen Sie einen Katalogdurchlauf aus und versuchen Sie es erneut.",
+      "missing": "Dieser Titel ist noch nicht im Spiegel des Servers. Führe einen Katalogdurchlauf aus und versuche es erneut.",
       "invalidNumber": "Jahr sowie Titel- und CD-Nummer müssen ganze Zahlen sein."
     },
-    "needsMirror": "Kopieren Sie zuerst den Serverkatalog oben: Dieser Abschnitt vergleicht Ihre Dateien mit dem lokalen Spiegel, der noch leer ist."
+    "needsMirror": "Kopiere zuerst den Serverkatalog oben: Dieser Abschnitt vergleicht deine Dateien mit dem lokalen Spiegel, der noch leer ist."
   },
   "tasks": {
     "barLabel": "Laufende Aufgaben",

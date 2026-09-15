@@ -743,6 +743,19 @@ pub async fn set_cache_location(
         ));
     }
 
+    // The probes from here to `claim` are synchronous `std::fs` on the
+    // async runtime, and they stay that way. Gathering them into one
+    // `spawn_blocking` would mean moving the sequence below into a
+    // closure -- and that sequence is not arbitrary: `target_existed`
+    // is read before `is_usable` creates anything, the containment
+    // check runs before `claim` so a refused move leaves no marker,
+    // and `marker_existed` is read before the write it rolls back.
+    // Three review passes put those in that order, each after getting
+    // it wrong. This is one folder the user just picked in a settings
+    // dialog, probed with stat and one `read_dir`; the copy that
+    // follows, which is the part that takes time, already runs on the
+    // blocking pool.
+    //
     // Whether the folder was already there, read before `is_usable`
     // creates it: a move refused below must not leave a directory
     // behind, and must not remove one the user already had.
@@ -966,7 +979,17 @@ pub async fn profile_cache_dirs_elsewhere(state: &AppState, profile_id: i64) -> 
 /// Returns the moved-to directories only: when the caches sit at the
 /// default location, `remove_dir_all(root)` already covers them and
 /// naming them again would mean deleting the same tree twice.
-pub async fn wipe_targets_outside_root(state: &AppState) -> Vec<PathBuf> {
+/// One relocated cache root a reset has to clear: its cache
+/// directories, and the ownership marker that authorised removing them.
+pub(crate) struct RelocatedCache {
+    /// Removed once the directories are gone -- never before. A marker
+    /// deleted while a directory it vouches for survives would leave
+    /// that tree with nothing left in the app entitled to remove it.
+    pub marker: PathBuf,
+    pub dirs: Vec<PathBuf>,
+}
+
+pub async fn wipe_targets_outside_root(state: &AppState) -> Vec<RelocatedCache> {
     // Both roots, for the same reason `profile_cache_dirs_elsewhere`
     // takes both: while a move waits for its restart -- and again
     // whenever a session falls back -- a full copy exists under the
@@ -994,13 +1017,19 @@ pub async fn wipe_targets_outside_root(state: &AppState) -> Vec<PathBuf> {
         // only what it could name. Logged rather than propagated: the
         // wipe is already under way and stopping it halfway is worse
         // than leaving a cache behind.
-        let dirs = cache_dirs(&state.paths.clone().with_cache_root(root), &state.app_db)
-            .await
-            .unwrap_or_else(|err| {
-                tracing::warn!(%err, "could not enumerate relocated cache directories for the reset");
-                Vec::new()
-            });
-        targets.extend(dirs.into_iter().map(|(_, path)| path));
+        let dirs = cache_dirs(
+            &state.paths.clone().with_cache_root(root.clone()),
+            &state.app_db,
+        )
+        .await
+        .unwrap_or_else(|err| {
+            tracing::warn!(%err, "could not enumerate relocated cache directories for the reset");
+            Vec::new()
+        });
+        targets.push(RelocatedCache {
+            marker: root.join(OWNER_MARKER),
+            dirs: dirs.into_iter().map(|(_, path)| path).collect(),
+        });
     }
     targets
 }
