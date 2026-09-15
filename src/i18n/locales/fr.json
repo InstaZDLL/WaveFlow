@@ -1859,7 +1859,7 @@
       "runNow": "Sauvegarder maintenant",
       "runOk_one": "{{count}} archive écrite.",
       "runOk_other": "{{count}} archives écrites.",
-      "runPartial": "{{created}} écrite(s), {{failed}} en échec. Voir les logs.",
+      "runPartial": "Écrites : {{created}}, échecs : {{failed}}. Voir les logs.",
       "errors": {
         "loadFailed": "Impossible de lire la configuration de sauvegarde.",
         "saveFailed": "Échec de l'enregistrement. Réessayez.",

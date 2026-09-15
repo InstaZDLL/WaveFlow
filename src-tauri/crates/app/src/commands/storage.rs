@@ -738,8 +738,20 @@ pub async fn set_cache_location(
     // duplicate of a whole artwork tree behind is the opposite of what
     // the person moving them asked for.
     if load_path(&state.app_db, KEY_CACHE_PENDING).await.is_some() {
+        // Two different messages, because "restart to finish it" is not
+        // true when the session already fell back: the destination is
+        // the drive that was missing at launch, and no restart can
+        // complete a copy onto it. The way out is to pick the folder in
+        // use right now, which the branch above treats as cancelling
+        // the staged move -- so say that instead of sending someone to
+        // restart into the same refusal.
         return Err(AppError::Other(
-            "a cache move is already staged; restart WaveFlow to finish it".into(),
+            if state.cache_root_fallback.is_some() {
+                "a cache move is staged for a folder that is not available;                  choose the folder in use now to cancel it, then pick a new one"
+            } else {
+                "a cache move is already staged; restart WaveFlow to finish it"
+            }
+            .into(),
         ));
     }
 

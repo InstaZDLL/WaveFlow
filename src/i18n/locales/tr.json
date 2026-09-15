@@ -1961,7 +1961,7 @@
       "runNow": "Şimdi yedekle",
       "runOk_one": "{{count}} arşiv yazıldı.",
       "runOk_other": "{{count}} arşiv yazıldı.",
-      "runPartial": "{{created}} yazıldı, {{failed}} başarısız. Günlükleri kontrol et.",
+      "runPartial": "Yazılan: {{created}}, başarısız: {{failed}}. Günlükleri kontrol et.",
       "errors": {
         "loadFailed": "Yedekleme yapılandırması yüklenemedi.",
         "saveFailed": "Kaydetme başarısız oldu. Tekrar dene.",

@@ -1899,7 +1899,7 @@
       "runNow": "今すぐバックアップ",
       "runOk_one": "{{count}}件のアーカイブを保存しました。",
       "runOk_other": "{{count}}件のアーカイブを保存しました。",
-      "runPartial": "{{created}} 件作成、{{failed}} 件失敗。ログを確認してください。",
+      "runPartial": "作成: {{created}} 件、失敗: {{failed}} 件。ログを確認してください。",
       "errors": {
         "loadFailed": "バックアップ設定を読み込めませんでした。",
         "saveFailed": "保存に失敗しました。もう一度お試しください。",

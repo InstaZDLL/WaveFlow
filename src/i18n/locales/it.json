@@ -1961,7 +1961,7 @@
       "runNow": "Esegui backup ora",
       "runOk_one": "{{count}} archivio scritto.",
       "runOk_other": "{{count}} archivi scritti.",
-      "runPartial": "{{created}} scritti, {{failed}} non riusciti. Controlla i log.",
+      "runPartial": "Scritti: {{created}}, non riusciti: {{failed}}. Controlla i log.",
       "errors": {
         "loadFailed": "Impossibile caricare la configurazione di backup.",
         "saveFailed": "Salvataggio non riuscito. Riprova.",

@@ -1961,7 +1961,7 @@
       "runNow": "Back up now",
       "runOk_one": "{{count}} archive written.",
       "runOk_other": "{{count}} archives written.",
-      "runPartial": "{{created}} written, {{failed}} failed. Check the logs.",
+      "runPartial": "Written: {{created}}, failed: {{failed}}. Check the logs.",
       "errors": {
         "loadFailed": "Could not load the backup configuration.",
         "saveFailed": "Failed to save. Try again.",

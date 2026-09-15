@@ -146,6 +146,39 @@ fn maybe_emit_progress(
 /// happen. But it is logged rather than swallowed: a marker that cannot
 /// be read makes every future scan re-read the whole folder, and that
 /// looks exactly like the fast path being broken for no reason.
+/// Read a small integer counter out of `profile_setting`.
+///
+/// A missing or unreadable row answers `0`: the counter only ever
+/// shortens a retry loop, so failing to read it must cost another
+/// attempt rather than end the loop early.
+async fn read_counter(pool: &sqlx::SqlitePool, key: &str, folder_id: i64) -> i64 {
+    match sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
+        .bind(key)
+        .fetch_optional(pool)
+        .await
+    {
+        Ok(value) => value.and_then(|v| v.parse::<i64>().ok()).unwrap_or(0),
+        Err(err) => {
+            tracing::warn!(?err, folder_id, %key, "could not read a backfill counter");
+            0
+        }
+    }
+}
+
+async fn write_counter(pool: &sqlx::SqlitePool, key: &str, value: i64) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'number', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(key)
+    .bind(value.to_string())
+    .bind(now_millis())
+    .execute(pool)
+    .await
+    .map(|_| ())
+}
+
 async fn marker_absent(pool: &sqlx::SqlitePool, key: &str, folder_id: i64) -> bool {
     match sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
         .bind(key)
@@ -712,6 +745,21 @@ pub(crate) async fn scan_folder_inner(
     // thing that separates a first pass from a second.
     let tag_backfill_key = format!("scan.tag_backfill_done.{folder_id}");
     let tag_backfill_pending = marker_absent(pool, &tag_backfill_key, folder_id).await;
+    // How many passes have already been spent on this folder without
+    // reading every file. A file whose tags cannot be read is usually
+    // transient -- an antivirus holding it, a share that dropped -- so
+    // the pass is worth repeating. But some are not: a truncated
+    // container fails identically every time, and holding the marker
+    // back for it makes every future scan of that folder re-read every
+    // file in it, for the life of the install. Retry a few times, then
+    // accept the folder as read.
+    let tag_backfill_attempt_key = format!("scan.tag_backfill_attempts.{folder_id}");
+    let tag_backfill_attempts = if tag_backfill_pending {
+        read_counter(pool, &tag_backfill_attempt_key, folder_id).await
+    } else {
+        0
+    };
+    const TAG_BACKFILL_MAX_ATTEMPTS: i64 = 3;
 
     let meta_load_ms = t_scan.elapsed().as_millis();
 
@@ -1660,7 +1708,24 @@ pub(crate) async fn scan_folder_inner(
     // Not marked when the scan was stopped, though — a cancelled pass
     // did not reach most of the folder, and recording it as done would
     // leave those files without their tags permanently.
-    if tag_backfill_pending && !summary.cancelled && !tag_backfill_failed {
+    // A cancelled pass is never marked: it did not reach most of the
+    // folder, and the attempt counter is not bumped either -- the user
+    // stopping a scan must not spend one of the folder's retries.
+    if tag_backfill_pending && !summary.cancelled && tag_backfill_failed {
+        let spent = tag_backfill_attempts + 1;
+        if let Err(err) = write_counter(pool, &tag_backfill_attempt_key, spent).await {
+            tracing::warn!(?err, folder_id, "could not record a tag-backfill attempt");
+        }
+        if spent >= TAG_BACKFILL_MAX_ATTEMPTS {
+            tracing::info!(
+                folder_id,
+                attempts = spent,
+                "some files' tags stayed unreadable across several scans;                  accepting the folder as read so the pass stops repeating"
+            );
+        }
+    }
+    let give_up = tag_backfill_attempts + 1 >= TAG_BACKFILL_MAX_ATTEMPTS;
+    if tag_backfill_pending && !summary.cancelled && (!tag_backfill_failed || give_up) {
         if let Err(err) = sqlx::query(
             "INSERT INTO profile_setting (key, value, value_type, updated_at)
              VALUES (?, 'true', 'bool', ?)

@@ -1961,7 +1961,7 @@
       "runNow": "अभी बैकअप लें",
       "runOk_one": "{{count}} आर्काइव लिखा गया।",
       "runOk_other": "{{count}} आर्काइव लिखे गए।",
-      "runPartial": "{{created}} लिखे गए, {{failed}} विफल। लॉग देखें।",
+      "runPartial": "लिखे गए: {{created}}, विफल: {{failed}}। लॉग देखें।",
       "errors": {
         "loadFailed": "बैकअप कॉन्फ़िगरेशन लोड नहीं हो सका।",
         "saveFailed": "सहेजने में विफल। फिर से कोशिश करें।",

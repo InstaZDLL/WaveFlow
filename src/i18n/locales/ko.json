@@ -1961,7 +1961,7 @@
       "runNow": "지금 백업",
       "runOk_one": "{{count}}개 아카이브가 저장되었습니다.",
       "runOk_other": "{{count}}개 아카이브가 저장되었습니다.",
-      "runPartial": "{{created}}개 작성, {{failed}}개 실패. 로그를 확인하세요.",
+      "runPartial": "작성: {{created}}개, 실패: {{failed}}개. 로그를 확인하세요.",
       "errors": {
         "loadFailed": "백업 설정을 불러올 수 없습니다.",
         "saveFailed": "저장에 실패했습니다. 다시 시도하세요.",

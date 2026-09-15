@@ -1899,7 +1899,7 @@
       "runNow": "立即備份",
       "runOk_one": "已寫入 {{count}} 個封存。",
       "runOk_other": "已寫入 {{count}} 個封存。",
-      "runPartial": "已寫入 {{created}} 個，{{failed}} 個失敗。請檢查記錄。",
+      "runPartial": "已寫入 {{created}} 個，失敗 {{failed}} 個。請檢查記錄。",
       "errors": {
         "loadFailed": "無法載入備份設定。",
         "saveFailed": "儲存失敗。請重試。",

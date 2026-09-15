@@ -1961,7 +1961,7 @@
       "runNow": "Jetzt sichern",
       "runOk_one": "{{count}} Archiv geschrieben.",
       "runOk_other": "{{count}} Archive geschrieben.",
-      "runPartial": "{{created}} geschrieben, {{failed}} fehlgeschlagen. Prüfe die Logs.",
+      "runPartial": "Geschrieben: {{created}}, fehlgeschlagen: {{failed}}. Prüfe die Logs.",
       "errors": {
         "loadFailed": "Sicherungskonfiguration konnte nicht geladen werden.",
         "saveFailed": "Speichern fehlgeschlagen. Versuche es erneut.",

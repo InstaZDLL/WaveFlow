@@ -1961,7 +1961,7 @@
       "runNow": "Fazer cópia agora",
       "runOk_one": "{{count}} arquivo escrito.",
       "runOk_other": "{{count}} arquivos escritos.",
-      "runPartial": "{{created}} criado(s), {{failed}} com falha. Consulta os registos.",
+      "runPartial": "Criados: {{created}}, com falha: {{failed}}. Consulta os registos.",
       "errors": {
         "loadFailed": "Não foi possível ler a configuração de cópias.",
         "saveFailed": "Falha ao guardar. Tenta de novo.",
