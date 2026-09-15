@@ -309,20 +309,28 @@ export function ColumnPicker({
                       className="shrink-0 text-zinc-400 cursor-grab"
                       aria-hidden="true"
                     />
-                    <input
-                      type="checkbox"
-                      checked
-                      // The title is the row's identity: a table of
-                      // metadata about songs it does not name is
-                      // reachable by unticking one box.
-                      disabled={id === "title"}
-                      onChange={() => toggleAndKeepFocus(id)}
-                      aria-label={label}
-                      className="w-3.5 h-3.5 accent-emerald-500 shrink-0 disabled:opacity-40"
-                    />
-                    <span className="text-sm text-zinc-800 dark:text-zinc-200 truncate">
-                      {label}
-                    </span>
+                    {/* The name is part of the control, not a caption
+                        beside it: without this the only thing you can
+                        hit is a 14px box, a poor target with a mouse
+                        and a bad one with a finger. The handle and the
+                        reorder buttons stay outside it, or clicking
+                        them would toggle the column. */}
+                    <label className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked
+                        // The title is the row's identity: a table of
+                        // metadata about songs it does not name is
+                        // reachable by unticking one box.
+                        disabled={id === "title"}
+                        onChange={() => toggleAndKeepFocus(id)}
+                        aria-label={label}
+                        className="w-3.5 h-3.5 accent-emerald-500 shrink-0 disabled:opacity-40"
+                      />
+                      <span className="text-sm text-zinc-800 dark:text-zinc-200 truncate">
+                        {label}
+                      </span>
+                    </label>
                     {/* Reordering has to be reachable without a drag.
                         A drag is a gesture not everyone can perform,
                         and it is the only way to change the order --

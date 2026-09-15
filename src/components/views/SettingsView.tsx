@@ -799,10 +799,21 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     setIsRescanning(true);
     try {
       for (const lib of libraries) {
-        const summary = await rescanLibrary(lib.id);
-        // Stopping the scan stops the whole rescan, not just the
-        // library it happened to be on.
-        if (summary.cancelled) break;
+        // Per library, like the two loops in `LibraryView`: one
+        // unreadable library used to abort the rescan of every library
+        // after it, and the user was told nothing about the ones that
+        // never ran.
+        try {
+          const summary = await rescanLibrary(lib.id);
+          // Stopping the scan stops the whole rescan, not just the
+          // library it happened to be on.
+          if (summary.cancelled) break;
+        } catch (err) {
+          console.error(
+            `[SettingsView] rescan failed for library ${lib.id}`,
+            err,
+          );
+        }
       }
     } catch (err) {
       console.error("[SettingsView] rescan failed", err);

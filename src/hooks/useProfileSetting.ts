@@ -194,8 +194,11 @@ export function useProfileSetting<T>(
       } catch (err) {
         console.error(`[${optionsRef.current.label}] read failed`, err);
       } finally {
-        // Ready either way: a failed read leaves the default in place,
-        // and never flipping this would gate the consumer forever.
+        // Ready on any outcome, stale reads included. A failed read
+        // leaves the default in place and never flipping this would
+        // gate the consumer forever; a stale one only ever arrives
+        // after something newer already owns the value, so it cannot
+        // announce a value that is not there yet.
         //
         // And `revision` either way, for a reason that is not symmetry.
         // The read this counter exists to serve is the one a rollback
