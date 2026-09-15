@@ -656,6 +656,18 @@ async fn cache_lyrics_bundle(
         return Ok(None);
     }
 
+    // One document per (kind, language), decided HERE rather than left to
+    // the unique index. The insert below is `OR IGNORE`, so the database
+    // would keep the first and drop the rest in silence — but the payload
+    // returned to the caller is built from this list, so without the same
+    // rule the panel would show two French translations now and one after
+    // the next reload, with the cache and the response disagreeing about
+    // what was fetched.
+    //
+    // NULL and "no language" are one slot, matching `COALESCE(language,
+    // '')` in the index; otherwise two untagged pronunciations would both
+    // pass here and only one would survive the write.
+    let mut claimed: std::collections::HashSet<(String, String)> = std::collections::HashSet::new();
     let accepted: Vec<AssociatedLyrics> = bundle
         .associated
         .into_iter()
@@ -671,11 +683,25 @@ async fn cache_lyrics_bundle(
                 );
                 return None;
             }
+            let kind = match a.kind {
+                PluginAssociatedKind::Translation => "translation".to_string(),
+                PluginAssociatedKind::Pronunciation => "pronunciation".to_string(),
+            };
+            let slot = (
+                kind.clone(),
+                a.document.language.clone().unwrap_or_default(),
+            );
+            if !claimed.insert(slot) {
+                tracing::warn!(
+                    plugin = %plugin_id,
+                    %kind,
+                    language = ?a.document.language,
+                    "plugin lyrics: dropping a second document for a slot already filled"
+                );
+                return None;
+            }
             Some(AssociatedLyrics {
-                kind: match a.kind {
-                    PluginAssociatedKind::Translation => "translation".to_string(),
-                    PluginAssociatedKind::Pronunciation => "pronunciation".to_string(),
-                },
+                kind,
                 language: a.document.language,
                 content: a.document.content,
                 format,
@@ -3613,6 +3639,76 @@ mod tests {
             0,
             "companions must not outlive the lyrics they belong to"
         );
+    }
+
+    fn plugin_doc(
+        content: &str,
+        language: Option<&str>,
+    ) -> waveflow_core::plugin::runtime::LyricsDocument {
+        waveflow_core::plugin::runtime::LyricsDocument {
+            content: content.to_string(),
+            format: PluginLyricsFormat::Lrc,
+            language: language.map(str::to_string),
+        }
+    }
+
+    /// What `cache_lyrics_bundle` returns must be what it stored.
+    ///
+    /// The insert is `OR IGNORE`, so a provider sending two documents for
+    /// one slot has the second dropped by the database whatever the host
+    /// does. If the payload were built from the unfiltered list, the
+    /// panel would show both until the next reload and one after it, and
+    /// nothing would explain the difference. This pins the two together.
+    #[tokio::test]
+    async fn a_returned_bundle_matches_what_was_cached() {
+        use waveflow_core::plugin::runtime::{AssociatedDocument, LyricsBundle};
+
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+
+        let bundle = LyricsBundle {
+            primary: plugin_doc("[00:12.00]Original", Some("ja")),
+            associated: vec![
+                AssociatedDocument {
+                    kind: PluginAssociatedKind::Translation,
+                    document: plugin_doc("[00:12.00]Premiere", Some("fr")),
+                },
+                // Same slot as the one above — the provider contradicting
+                // itself, which is the case the two rules have to agree on.
+                AssociatedDocument {
+                    kind: PluginAssociatedKind::Translation,
+                    document: plugin_doc("[00:12.00]Seconde", Some("fr")),
+                },
+                AssociatedDocument {
+                    kind: PluginAssociatedKind::Pronunciation,
+                    document: plugin_doc("[00:12.00]Romaji", None),
+                },
+            ],
+        };
+
+        let payload = cache_lyrics_bundle(&pool, 1, "hash-d", bundle, "apple-lyrics")
+            .await
+            .unwrap()
+            .expect("the primary document is valid LRC");
+
+        assert_eq!(
+            payload.associated.len(),
+            2,
+            "the duplicate slot must be dropped before the payload is built"
+        );
+        assert_eq!(
+            payload.associated.len() as i64,
+            associated_count(&pool, "hash-d").await,
+            "the payload and the cache must agree on what was stored"
+        );
+        assert_eq!(
+            payload.associated[0].content, "[00:12.00]Premiere",
+            "the first document for a slot is the one kept"
+        );
+
+        // Provenance is namespaced so `Provider::from_id` can never take a
+        // plugin id for one of its own.
+        assert_eq!(payload.provider.as_deref(), Some("plugin:apple-lyrics"));
     }
 
     /// One document per (kind, language) — and NULL is one slot, not a
