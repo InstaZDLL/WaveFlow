@@ -81,6 +81,16 @@ pub struct PluginPaths {
     pub data_root: PathBuf,
 }
 
+/// The plugin world labels, re-exported from the SDK.
+///
+/// The app crate does not depend on `waveflow-plugin-sdk` directly, and
+/// enumerating plugins by world needs the exact label — matching by
+/// prefix would hand a `/v2` plugin to `/v1` bindings, which is the one
+/// thing a version label exists to prevent. Re-exporting here keeps a
+/// single catalog rather than string literals spread across command
+/// modules.
+pub use waveflow_plugin_sdk::worlds;
+
 /// `plugin_id` failed the path-shape check inside [`PluginPaths`].
 /// Callers should treat this the same as "manifest is invalid" —
 /// refuse to load the plugin.

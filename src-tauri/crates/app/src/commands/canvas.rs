@@ -163,8 +163,11 @@ pub async fn fetch_track_canvas(
     let cache_locally = canvas_cache_enabled(&state).await;
     let cache_dir = state.paths.canvas_cache_dir.clone();
 
-    let plugin_ids =
-        super::plugins::enabled_plugin_ids_for_world(&state, "waveflow:canvas").await?;
+    let plugin_ids = super::plugins::enabled_plugin_ids_for_world(
+        &state,
+        waveflow_core::plugin::worlds::CANVAS_V1,
+    )
+    .await?;
     if plugin_ids.is_empty() {
         return Ok(None);
     }

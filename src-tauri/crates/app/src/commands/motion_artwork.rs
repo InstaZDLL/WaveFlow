@@ -91,8 +91,11 @@ pub async fn fetch_album_motion_artwork(
     let cache_locally = motion_cache_enabled(&state).await;
     let cache_dir = state.paths.motion_cache_dir.clone();
 
-    let plugin_ids =
-        super::plugins::enabled_plugin_ids_for_world(&state, "waveflow:metadata").await?;
+    let plugin_ids = super::plugins::enabled_plugin_ids_for_world(
+        &state,
+        waveflow_core::plugin::worlds::METADATA_V1,
+    )
+    .await?;
 
     tracing::debug!(
         %artist,

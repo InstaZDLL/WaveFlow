@@ -1,0 +1,11 @@
+{
+  "$comment": "Generated source of truth for the plugin world labels. Checked against waveflow_plugin_sdk::worlds::ALL by a unit test; the waveflow-plugins registry schema generates its `world` enum from this file instead of keeping its own copy. Do not hand-edit without updating the constant.",
+  "schema_version": 1,
+  "worlds": [
+    "waveflow:source/v1",
+    "waveflow:metadata/v1",
+    "waveflow:metadata/v2",
+    "waveflow:ui/v1",
+    "waveflow:canvas/v1"
+  ]
+}

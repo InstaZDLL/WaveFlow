@@ -58,6 +58,16 @@ pub mod worlds {
     /// `wit/waveflow-metadata.wit`.
     pub const METADATA_V1: &str = "waveflow:metadata/v1";
 
+    /// `waveflow:metadata/v2` — same job as [`METADATA_V1`], with a
+    /// `lyrics` function that can carry what a word-level provider
+    /// actually holds: the document verbatim plus its translations and
+    /// pronunciation (issue #585). See `wit/metadata-v2/`.
+    ///
+    /// **[`METADATA_V1`] is deprecated and kept loadable only while its
+    /// one published consumer (`apple-artwork`) migrates.** It goes at
+    /// the next breaking release; do not write new plugins against it.
+    pub const METADATA_V2: &str = "waveflow:metadata/v2";
+
     /// `waveflow:ui/v1` — UI extensions (custom views, panels). Return
     /// view descriptors the host renders. See `wit/waveflow-ui.wit`.
     pub const UI_V1: &str = "waveflow:ui/v1";
@@ -75,8 +85,21 @@ pub mod worlds {
     /// different namespace; see module-level doc for the mapping
     /// convention.
     pub fn is_known(world: &str) -> bool {
-        matches!(world, SOURCE_V1 | METADATA_V1 | UI_V1 | CANVAS_V1)
+        ALL.contains(&world)
     }
+
+    /// Every label this SDK accepts, in the order they are published.
+    ///
+    /// This is the single source of truth for the set. `is_known`
+    /// answers from it, and `worlds.json` beside the crate is checked
+    /// against it by [`worlds_manifest_matches_the_catalog`] — the
+    /// plugin registry generates its `world` enum from that file rather
+    /// than keeping a hand-written copy. The two lists had already
+    /// drifted once: `waveflow:canvas/v1` was accepted here and absent
+    /// from the published schema, so a Canvas plugin would have been
+    /// rejected at publication by a registry that the host would have
+    /// loaded happily.
+    pub const ALL: &[&str] = &[SOURCE_V1, METADATA_V1, METADATA_V2, UI_V1, CANVAS_V1];
 }
 
 /// Host permission identifiers (manifest `[permissions]` table).
@@ -138,9 +161,47 @@ mod tests {
     fn known_worlds_round_trip() {
         assert!(worlds::is_known(worlds::SOURCE_V1));
         assert!(worlds::is_known(worlds::METADATA_V1));
+        assert!(worlds::is_known(worlds::METADATA_V2));
         assert!(worlds::is_known(worlds::UI_V1));
         assert!(worlds::is_known(worlds::CANVAS_V1));
         assert!(!worlds::is_known("waveflow:bogus/v1"));
+    }
+
+    /// `worlds.json` is what the plugin registry generates its `world`
+    /// enum from, so a label added here and not there is a plugin the
+    /// host loads and the registry refuses to publish. That exact
+    /// divergence already happened once with `waveflow:canvas/v1`,
+    /// which is why the file exists and why this test does.
+    ///
+    /// Reads the file at compile time — the check has to hold for the
+    /// committed tree, not for whatever a test runner's working
+    /// directory happens to be.
+    #[test]
+    fn worlds_manifest_matches_the_catalog() {
+        const MANIFEST: &str = include_str!("../worlds.json");
+
+        // Deliberately not serde: the SDK has no JSON dependency and
+        // this file is ours, one flat array of strings.
+        let listed: Vec<&str> = MANIFEST
+            .split_once("\"worlds\"")
+            .expect("worlds.json has a `worlds` key")
+            .1
+            .split_once('[')
+            .expect("`worlds` is an array")
+            .1
+            .split_once(']')
+            .expect("the array is closed")
+            .0
+            .split(',')
+            .map(|s| s.trim().trim_matches('"'))
+            .filter(|s| !s.is_empty())
+            .collect();
+
+        assert_eq!(
+            listed,
+            worlds::ALL,
+            "worlds.json and worlds::ALL disagree — update both, then regenerate the registry schema in waveflow-plugins"
+        );
     }
 
     #[test]

@@ -589,6 +589,118 @@ pub fn metadata_album_info(
     }
 }
 
+// ----- metadata-v2 invocation helpers -------------------------------------
+//
+// The v2 world (issue #585) adds the `lyrics` call v1 declared and never
+// wired. Owned mirrors of its records so the command layer never depends on
+// wasmtime; the app crate maps these onto its own `LyricsFormat` and
+// validates each document with `detect_format` before anything is cached.
+
+/// Owned mirror of `waveflow:metadata/enricher/lyrics-format` (2.0.0).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LyricsDocFormat {
+    Plain,
+    Lrc,
+    EnhancedLrc,
+    Ttml,
+}
+
+/// Owned mirror of `associated-kind` (2.0.0).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AssociatedKind {
+    Translation,
+    Pronunciation,
+}
+
+/// Owned mirror of `lyrics-document` (2.0.0).
+///
+/// `content` is whatever the provider served, untouched — TTML carries
+/// per-word timing, singer attribution and background vocals that no
+/// model on this side represents yet, and re-serialising would drop them.
+#[derive(Debug, Clone)]
+pub struct LyricsDocument {
+    pub content: String,
+    pub format: LyricsDocFormat,
+    pub language: Option<String>,
+}
+
+/// Owned mirror of `associated-document` (2.0.0).
+#[derive(Debug, Clone)]
+pub struct AssociatedDocument {
+    pub kind: AssociatedKind,
+    pub document: LyricsDocument,
+}
+
+/// Owned mirror of `lyrics-bundle` (2.0.0) — one fetch result, cached and
+/// replaced as a unit so a primary document is never left paired with
+/// another provider's translation.
+#[derive(Debug, Clone)]
+pub struct LyricsBundle {
+    pub primary: LyricsDocument,
+    pub associated: Vec<AssociatedDocument>,
+}
+
+define_instantiate!(
+    instantiate_metadata_v2,
+    crate::plugin::bindings::metadata_v2::Plugin
+);
+
+/// Call the guest's `lyrics(artist, title)`.
+///
+/// `Ok(None)` is the provider saying it has nothing for this track — a
+/// real negative the caller may remember. `Err` means the lookup could
+/// not be made, and nothing should be written.
+pub fn metadata_v2_lyrics(
+    runtime: &PluginRuntime,
+    paths: &PluginPaths,
+    plugin_id: &str,
+    artist: &str,
+    title: &str,
+) -> Result<Option<LyricsBundle>, SourceError> {
+    use crate::plugin::bindings::metadata_v2::exports::waveflow::metadata::enricher as guest;
+
+    fn map_format(f: guest::LyricsFormat) -> LyricsDocFormat {
+        match f {
+            guest::LyricsFormat::Plain => LyricsDocFormat::Plain,
+            guest::LyricsFormat::Lrc => LyricsDocFormat::Lrc,
+            guest::LyricsFormat::EnhancedLrc => LyricsDocFormat::EnhancedLrc,
+            guest::LyricsFormat::Ttml => LyricsDocFormat::Ttml,
+        }
+    }
+
+    fn map_doc(d: guest::LyricsDocument) -> LyricsDocument {
+        LyricsDocument {
+            content: d.content,
+            format: map_format(d.format),
+            language: d.language,
+        }
+    }
+
+    let (mut store, plugin) = instantiate_metadata_v2(runtime, paths, plugin_id)?;
+    let result = plugin
+        .waveflow_metadata_enricher()
+        .call_lyrics(&mut store, artist, title)
+        .map_err(|e| SourceError::Trap(e.to_string()))?;
+    match result {
+        Ok(None) => Ok(None),
+        Ok(Some(bundle)) => Ok(Some(LyricsBundle {
+            primary: map_doc(bundle.primary),
+            associated: bundle
+                .associated
+                .into_iter()
+                .map(|a| AssociatedDocument {
+                    kind: match a.kind {
+                        guest::AssociatedKind::Translation => AssociatedKind::Translation,
+                        guest::AssociatedKind::Pronunciation => AssociatedKind::Pronunciation,
+                    },
+                    document: map_doc(a.document),
+                })
+                .collect(),
+        })),
+        Err(msg) => Err(SourceError::Plugin(msg)),
+    }
+}
+
 // ----- ui-v1 invocation helpers -------------------------------------------
 //
 // Instantiates + calls the `waveflow:ui/extension` exports. A UI

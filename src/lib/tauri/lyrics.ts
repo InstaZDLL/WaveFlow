@@ -29,6 +29,26 @@ export const LYRICS_PROVIDERS: LyricsProvider[] = [
   "genius",
 ];
 
+/** What an extra document is, relative to the primary lyrics. */
+export type AssociatedLyricsKind = "translation" | "pronunciation";
+
+/**
+ * A translation or pronunciation that came with the lyrics, as the
+ * provider served it (issue #585).
+ *
+ * `content` is a document in its own right — parse it with the same
+ * `parseLrc` / TTML path as the primary one rather than assuming it
+ * lines up positionally: a localized document may omit lines the
+ * original has, so pairing them by index is wrong.
+ */
+export interface AssociatedLyrics {
+  kind: AssociatedLyricsKind;
+  /** BCP-47 tag when the provider named one. */
+  language?: string;
+  content: string;
+  format: LyricsFormat;
+}
+
 export interface LyricsPayload {
   track_id: number;
   content: string;
@@ -51,6 +71,16 @@ export interface LyricsPayload {
    * touched. Absent on every other return path.
    */
   tag_write_skipped?: boolean;
+  /**
+   * Translations and pronunciations cached with these lyrics. Absent
+   * or empty for every source that yields a single document, which is
+   * all of them except a `waveflow:metadata/v2` plugin.
+   *
+   * Cached and replaced as a unit with `content`, so these always come
+   * from the same fetch — never a leftover companion from whichever
+   * provider answered last time.
+   */
+  associated?: AssociatedLyrics[];
   /**
    * Set by `save_lyrics` when the user picked destination = `"sidecar"`
    * but the chosen format can't ride a `.lrc` / `.txt` companion
