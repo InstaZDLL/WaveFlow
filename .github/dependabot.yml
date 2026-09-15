@@ -38,6 +38,29 @@ updates:
         update-types:
           - minor
           - patch
+    # `windows-core` is not an independent dependency. `crates/app/Cargo.toml`
+    # declares it only so the copy that `windows` already pulls in is nameable
+    # from our own crate root, because `#[implement]` expands to absolute
+    # `::windows_core::` paths. Both names must resolve to the SAME version:
+    # a mismatched one compiles the generated sink against a different
+    # `IUnknownImpl` than the interface it implements, and the COM device
+    # watcher stops satisfying its own trait bounds. #642 failed exactly that
+    # way, and the comment at the dependency itself predicted it.
+    #
+    # windows-rs versions its support crates on their own lines, and 0.100.0
+    # renumbered that entire layer (windows-core, -implement, -interface,
+    # -result, -link) while the generated-bindings crates above it stayed
+    # put -- `windows` is still 0.62.2. So a major for `windows-core` alone
+    # is never mergeable. Grouping does not help: a group still opens a PR
+    # when only one of its members has a release.
+    #
+    # `windows` itself is deliberately NOT ignored. The day it offers a major
+    # is the day the pair can move, and that PR is the signal to bump both by
+    # hand, in one commit.
+    ignore:
+      - dependency-name: "windows-core"
+        update-types:
+          - "version-update:semver-major"
 
   - package-ecosystem: github-actions
     directory: "/"
