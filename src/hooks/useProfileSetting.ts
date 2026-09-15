@@ -73,6 +73,14 @@ export interface ProfileSetting<T> {
    * Never rejects: failures are logged and rolled back internally.
    */
   setValue: (next: T | ((previous: T) => T)) => Promise<void>;
+  /** Bumped every time a read lands, whatever it read. A consumer whose
+   *  value has effects outside React state -- a document attribute, a
+   *  cache the next launch reads -- keys on this as well as on `value`,
+   *  because the case that needs re-applying is exactly the one where
+   *  the value did not change: a rollback broadcast reaches an instance
+   *  that never saw the optimistic value, so its own state is already
+   *  correct while the document is not. */
+  revision: number;
 }
 
 /** Parse a persisted boolean. Anything other than the two truthy forms
@@ -140,6 +148,11 @@ export function useProfileSetting<T>(
     setValueState(next);
   }, []);
 
+  // See `revision` on the returned shape: a counter, not a value, so
+  // that a read landing on an unchanged value still wakes the consumers
+  // whose side effects live outside React state.
+  const [revision, setRevision] = useState(0);
+
   // Last value the backend acknowledged — the rollback target.
   const confirmedRef = useRef<T>(options.defaultValue);
   const writeChainRef = useRef<Promise<unknown>>(Promise.resolve());
@@ -178,6 +191,7 @@ export function useProfileSetting<T>(
         const parsed = parse(raw);
         commit(parsed);
         confirmedRef.current = parsed;
+        setRevision((r) => r + 1);
       } catch (err) {
         console.error(`[${optionsRef.current.label}] read failed`, err);
       } finally {
@@ -255,5 +269,5 @@ export function useProfileSetting<T>(
     [commit, key, valueType, event],
   );
 
-  return { value, ready, setValue };
+  return { value, ready, revision, setValue };
 }

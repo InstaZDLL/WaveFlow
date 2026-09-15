@@ -156,6 +156,13 @@ export function ScanProgressToast() {
                   style={{ width: `${percent}%` }}
                 />
               </div>
+              {/* `runningSubtitle` deliberately, not a key of its own:
+                  it is "{{current}} / {{total}} files", a ratio with no
+                  verb and no tense, and it reads the same whether the
+                  scan is still going or stopped. A second key would be
+                  17 locales carrying the identical string, and one more
+                  place for them to drift apart. The title above is what
+                  says the scan was stopped. */}
               <div className="mt-1.5 text-[11px] text-zinc-400 dark:text-zinc-500">
                 {t("scanProgress.runningSubtitle", { current, total })}
               </div>

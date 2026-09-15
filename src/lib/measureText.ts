@@ -91,7 +91,17 @@ function applyTransform(text: string, style: TextMetricsStyle): string {
     case "lowercase":
       return text.toLowerCase();
     case "capitalize":
-      return text.replace(/\b\p{L}/gu, (c) => c.toUpperCase());
+      // Anchored on the start of the string or on whatever precedes a
+      // letter, not on `\b`: that boundary is defined over ASCII word
+      // characters, so a word opening on an accented letter has no
+      // boundary before it and the match lands on the SECOND letter
+      // instead -- capitalising the middle of the word and measuring a
+      // string the page will never draw.
+      return text.replace(
+        /(^|\P{L})(\p{L})/gu,
+        (_match: string, before: string, first: string) =>
+          before + first.toUpperCase(),
+      );
     default:
       return text;
   }

@@ -34,6 +34,13 @@ pub async fn regenerate_thumbnails(
     // callback on the reasoning that the only stopping point was
     // between directories — which was wrong: `regen_in_dir` loops over
     // files, and that loop is where the time goes.
+    // Registered with a total of `0`, which is the wire's word for
+    // "indeterminate" and what the task bar renders as such. Not an
+    // omission: `regen_in_dir` walks a directory it has not counted, so
+    // the only total available before the pass is the number of
+    // directories -- two or three -- which would show a bar jumping
+    // half the way across on the first one. Indeterminate says less and
+    // none of it wrong.
     let stop = Arc::new(AtomicBool::new(false));
     let stop_for_cancel = Arc::clone(&stop);
     let _task = crate::tasks::start(

@@ -37,7 +37,7 @@ const serialize = (value: ContrastMode) => value;
  * reads on the next launch.
  */
 export function useContrastMode(): ContrastPreference {
-  const { value, ready, setValue } = useProfileSetting<ContrastMode>({
+  const { value, ready, revision, setValue } = useProfileSetting<ContrastMode>({
     key: CONTRAST_SETTING_KEY,
     defaultValue: DEFAULT_CONTRAST_MODE,
     parse,
@@ -63,11 +63,18 @@ export function useContrastMode(): ContrastPreference {
   // only ever holds a value React is actually showing: a write that
   // fails is rolled back by `useProfileSetting`, this effect re-runs
   // with the restored value, and the cache follows it back.
+  //
+  // `revision` is in the deps for the case `value` cannot cover: the
+  // Settings card paints optimistically and is unmounted before a
+  // failed write rolls back, so the rollback broadcast arrives here at
+  // an instance that never held the optimistic value. Its `value` is
+  // already right, the document is not, and without a dep that moves
+  // anyway this effect would not run.
   useEffect(() => {
     if (!ready) return;
     applyContrast(value);
     writeCachedContrast(value);
-  }, [ready, value]);
+  }, [ready, value, revision]);
 
   // In `auto`, the OS is the input and it can change while the app is
   // running. Bound only in that mode, so an explicit choice carries no
