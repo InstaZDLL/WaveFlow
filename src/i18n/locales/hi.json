@@ -1425,7 +1425,7 @@
       "pathPlaceholder": "फ़ोल्डर या पथ…",
       "bits": "{{value}} बिट",
       "pickTag": "टैग चुनें…",
-      "days_one": "दिनों में",
+      "days_one": "दिन में",
       "days_other": "दिनों में"
     },
     "predicates": {

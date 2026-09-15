@@ -636,7 +636,11 @@ function PredicateValue({
             onChange={(e) =>
               onChange({
                 ...predicate,
-                value: parseInt(e.target.value, 10) || 0,
+                // Never zero. `min` on the input is a hint the keyboard
+                // can walk past, and a window of no days is not a wide
+                // rule or a narrow one — it is a rule that matches
+                // nothing, with nothing on screen to say why.
+                value: Math.max(1, parseInt(e.target.value, 10) || 1),
               })
             }
             aria-label={label}
@@ -765,19 +769,26 @@ function TagKeyPicker({
   className: string;
 }) {
   const { t } = useTranslation();
-  const known = tagKeys.some(
+  // The rule matches case-insensitively, the `<select>` does not. A rule
+  // naming `Composer` against a library that stored `COMPOSER` is one
+  // key — but the option carries the stored spelling, so the select
+  // would find no match and render blank, as if the rule named nothing.
+  // Display the canonical spelling; the rule keeps the one it has,
+  // which `track_tag.key COLLATE NOCASE` resolves either way.
+  const canonical = tagKeys.find(
     (k) => k.key.toLowerCase() === value.toLowerCase(),
-  );
+  )?.key;
+  const selected = canonical ?? value;
   return (
     <select
-      value={value}
+      value={selected}
       onChange={(e) => onChange(e.target.value)}
       className={className}
       aria-label={t("smartPlaylistEditor.tree.pickTag")}
     >
-      {(value === "" || !known) && (
-        <option value={value}>
-          {value === "" ? t("smartPlaylistEditor.tree.pickTag") : value}
+      {canonical === undefined && (
+        <option value={selected}>
+          {selected === "" ? t("smartPlaylistEditor.tree.pickTag") : selected}
         </option>
       )}
       {tagKeys.map((k) => (
