@@ -61,6 +61,24 @@ const ALBUM_POOL_SIZE: i64 = 60;
 /// the same artist in a row.
 const ALBUM_PER_ARTIST_CAP: usize = 2;
 
+/// The tempo gate, in SQL: does any octave reading of `ta.bpm` fall
+/// inside `?1 .. ?2`?
+///
+/// Written once because three queries ask it — the track pool, the
+/// album pool and the count behind the home tile — and a copy that
+/// drifted would make a mood report a number it cannot deliver, or
+/// hide one it can. A macro rather than a `const`, so the fragment is
+/// pasted by `concat!` and every query stays a `&'static str` literal:
+/// building the string at runtime would mean handing sqlx SQL it
+/// cannot verify.
+macro_rules! bpm_any_octave {
+    () => {
+        "(   ((?1 IS NULL OR ta.bpm       >= ?1) AND (?2 IS NULL OR ta.bpm       <= ?2)) \
+          OR ((?1 IS NULL OR ta.bpm * 2.0 >= ?1) AND (?2 IS NULL OR ta.bpm * 2.0 <= ?2)) \
+          OR ((?1 IS NULL OR ta.bpm / 2.0 >= ?1) AND (?2 IS NULL OR ta.bpm / 2.0 <= ?2)))"
+    };
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Mood {
@@ -251,27 +269,24 @@ async fn candidate_pool(
         genres: Option<String>,
     }
 
-    let rows: Vec<Row> = sqlx::query_as::<_, Row>(
-        r#"
-        SELECT t.id                AS track_id,
-               t.primary_artist    AS primary_artist,
-               ta.bpm              AS bpm,
-               ta.loudness_lufs    AS loudness_lufs,
-               (SELECT GROUP_CONCAT(g.name, ' ')
-                  FROM track_genre tg JOIN genre g ON g.id = tg.genre_id
-                 WHERE tg.track_id = t.id) AS genres
-          FROM track t
-          JOIN track_analysis ta ON ta.track_id = t.id
-         WHERE t.is_available = 1
-           AND ta.bpm IS NOT NULL
-           AND ta.bpm > 0
-           AND (   ((?1 IS NULL OR ta.bpm       >= ?1) AND (?2 IS NULL OR ta.bpm       <= ?2))
-                OR ((?1 IS NULL OR ta.bpm * 2.0 >= ?1) AND (?2 IS NULL OR ta.bpm * 2.0 <= ?2))
-                OR ((?1 IS NULL OR ta.bpm / 2.0 >= ?1) AND (?2 IS NULL OR ta.bpm / 2.0 <= ?2)))
-         ORDER BY RANDOM()
-         LIMIT ?3
-        "#,
-    )
+    let rows: Vec<Row> = sqlx::query_as::<_, Row>(concat!(
+        "SELECT t.id                AS track_id,
+                t.primary_artist    AS primary_artist,
+                ta.bpm              AS bpm,
+                ta.loudness_lufs    AS loudness_lufs,
+                (SELECT GROUP_CONCAT(g.name, ' ')
+                   FROM track_genre tg JOIN genre g ON g.id = tg.genre_id
+                  WHERE tg.track_id = t.id) AS genres
+           FROM track t
+           JOIN track_analysis ta ON ta.track_id = t.id
+          WHERE t.is_available = 1
+            AND ta.bpm IS NOT NULL
+            AND ta.bpm > 0
+            AND ",
+        bpm_any_octave!(),
+        " ORDER BY RANDOM()
+          LIMIT ?3"
+    ))
     .bind(profile.bpm_min)
     .bind(profile.bpm_max)
     .bind(limit)
@@ -320,32 +335,25 @@ async fn mood_radio_by_album(pool: &SqlitePool, profile: &MoodProfile) -> AppRes
         avg_lufs: Option<f64>,
     }
 
-    let rows: Vec<Row> = sqlx::query_as::<_, Row>(
-        r#"
-        SELECT t.album_id             AS album_id,
-               COUNT(*)               AS track_count,
-               MIN(t.primary_artist)  AS primary_artist,
-               AVG(ta.bpm)            AS avg_bpm,
-               AVG(ta.loudness_lufs)  AS avg_lufs
-          FROM track t
-          LEFT JOIN track_analysis ta ON ta.track_id = t.id
-         WHERE t.is_available = 1
-           AND t.album_id IS NOT NULL
-         GROUP BY t.album_id
-        HAVING SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?4
-           AND SUM(CASE WHEN ta.bpm IS NOT NULL AND ta.bpm > 0
-                         AND (   ((?1 IS NULL OR ta.bpm       >= ?1)
-                              AND (?2 IS NULL OR ta.bpm       <= ?2))
-                              OR ((?1 IS NULL OR ta.bpm * 2.0 >= ?1)
-                              AND (?2 IS NULL OR ta.bpm * 2.0 <= ?2))
-                              OR ((?1 IS NULL OR ta.bpm / 2.0 >= ?1)
-                              AND (?2 IS NULL OR ta.bpm / 2.0 <= ?2)))
-                        THEN 1 ELSE 0 END) * 1.0
-               / SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?3
-         ORDER BY RANDOM()
-         LIMIT ?5
-        "#,
-    )
+    let rows: Vec<Row> = sqlx::query_as::<_, Row>(concat!(
+        "SELECT t.album_id             AS album_id,
+                COUNT(*)               AS track_count,
+                MIN(t.primary_artist)  AS primary_artist,
+                AVG(ta.bpm)            AS avg_bpm,
+                AVG(ta.loudness_lufs)  AS avg_lufs
+           FROM track t
+           LEFT JOIN track_analysis ta ON ta.track_id = t.id
+          WHERE t.is_available = 1
+            AND t.album_id IS NOT NULL
+          GROUP BY t.album_id
+         HAVING SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?4
+            AND SUM(CASE WHEN ta.bpm IS NOT NULL AND ta.bpm > 0 AND ",
+        bpm_any_octave!(),
+        "          THEN 1 ELSE 0 END) * 1.0
+                / SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?3
+          ORDER BY RANDOM()
+          LIMIT ?5"
+    ))
     .bind(profile.bpm_min)
     .bind(profile.bpm_max)
     .bind(ALBUM_FIT)
@@ -460,22 +468,114 @@ async fn analysis_coverage(pool: &SqlitePool) -> AppResult<(i64, i64)> {
 }
 
 async fn count_for_mood(pool: &SqlitePool, profile: &MoodProfile) -> AppResult<i64> {
-    let n: i64 = sqlx::query_scalar(
-        r#"
-        SELECT COUNT(*)
-          FROM track t
-          JOIN track_analysis ta ON ta.track_id = t.id
-         WHERE t.is_available = 1
-           AND ta.bpm IS NOT NULL
-           AND ta.bpm > 0
-           AND (   ((?1 IS NULL OR ta.bpm       >= ?1) AND (?2 IS NULL OR ta.bpm       <= ?2))
-                OR ((?1 IS NULL OR ta.bpm * 2.0 >= ?1) AND (?2 IS NULL OR ta.bpm * 2.0 <= ?2))
-                OR ((?1 IS NULL OR ta.bpm / 2.0 >= ?1) AND (?2 IS NULL OR ta.bpm / 2.0 <= ?2)))
-        "#,
-    )
+    let n: i64 = sqlx::query_scalar(concat!(
+        "SELECT COUNT(*)
+           FROM track t
+           JOIN track_analysis ta ON ta.track_id = t.id
+          WHERE t.is_available = 1
+            AND ta.bpm IS NOT NULL
+            AND ta.bpm > 0
+            AND ",
+        bpm_any_octave!()
+    ))
     .bind(profile.bpm_min)
     .bind(profile.bpm_max)
     .fetch_one(pool)
     .await?;
     Ok(n)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+    use std::str::FromStr;
+
+    /// The repo's own profile migrations, with `foreign_keys` on.
+    ///
+    /// A hand-written fixture would let these queries pass against a
+    /// schema the app never has — the same reason the inventory tests
+    /// run the real migrations.
+    async fn pool() -> SqlitePool {
+        let options = SqliteConnectOptions::from_str(":memory:")
+            .unwrap()
+            .foreign_keys(true);
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(options)
+            .await
+            .unwrap();
+        sqlx::migrate!("../../migrations/profile")
+            .run(&pool)
+            .await
+            .unwrap();
+        pool
+    }
+
+    /// Every query in this module runs, against the real schema, for
+    /// every mood.
+    ///
+    /// The tempo gate is pasted into three statements by a macro and
+    /// none of them is a compile-time-checked query: a missing
+    /// parenthesis or a column that does not exist would compile
+    /// perfectly and fail the first time a user pressed a mood tile.
+    /// An empty library is enough to prove the SQL parses and that the
+    /// placeholders line up with the binds.
+    #[tokio::test]
+    async fn every_mood_query_parses_and_binds() {
+        let pool = pool().await;
+        for mood in [
+            Mood::Focus,
+            Mood::Chill,
+            Mood::Workout,
+            Mood::Party,
+            Mood::Sleep,
+        ] {
+            let profile = mood.profile();
+            assert!(candidate_pool(&pool, &profile, 10)
+                .await
+                .unwrap()
+                .is_empty());
+            assert!(mood_radio_by_album(&pool, &profile)
+                .await
+                .unwrap()
+                .is_empty());
+            assert_eq!(count_for_mood(&pool, &profile).await.unwrap(), 0);
+        }
+        assert_eq!(analysis_coverage(&pool).await.unwrap(), (0, 0));
+    }
+
+    /// An octave-out tempo reaches the pool, which is what the gate in
+    /// SQL exists for — the scorer cannot rescue a row the query never
+    /// returned.
+    #[tokio::test]
+    async fn the_pool_accepts_a_doubled_tempo() {
+        let pool = pool().await;
+        sqlx::query(
+            "INSERT INTO library (id, name, path, created_at) VALUES (1, 'l', '/l', 0);
+             INSERT INTO track (id, library_id, file_path, file_hash, file_size,
+                                file_modified, title, duration_ms, added_at)
+                  VALUES (1, 1, '/l/a.flac', 'h1', 1, 0, 'Fast', 200000, 0),
+                         (2, 1, '/l/b.flac', 'h2', 1, 0, 'Slow', 200000, 0);
+             INSERT INTO track_analysis (track_id, bpm, analyzed_at)
+                  VALUES (1, 170.0, 0), (2, 40.0, 0);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let focus = Mood::Focus.profile();
+        let ids: Vec<i64> = candidate_pool(&pool, &focus, 10)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|c| c.track_id)
+            .collect();
+        assert!(
+            ids.contains(&1),
+            "170 BPM must reach a mood built on 88, as a halved reading"
+        );
+        assert!(!ids.contains(&2), "40 BPM is out under every reading");
+        assert_eq!(count_for_mood(&pool, &focus).await.unwrap(), 1);
+    }
 }
