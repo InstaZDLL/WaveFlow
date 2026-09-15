@@ -98,6 +98,12 @@ export function CacheLocationCard({ language }: { language: string }) {
   }, [move, t]);
 
   if (!location) {
+    // No retry button here, and that is deliberate. The read is a
+    // SELECT on `app.db`; when it fails the card renders the reason and
+    // nothing else, and re-entering Settings re-runs it -- so the
+    // recovery exists, it just is not a button. Adding one costs a new
+    // string in seventeen locales for a path the user reaches by
+    // navigating away and back.
     if (!error) return null;
     return (
       <section

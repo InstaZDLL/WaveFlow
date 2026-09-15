@@ -764,6 +764,10 @@ pub async fn set_cache_location(
     // makes. Without it, "back to default" is *refused*: that root does
     // hold a `profiles/` directory, and it has no marker to explain
     // itself.
+    // Whether the marker was already there, so a failure below removes
+    // only what this attempt wrote. Read before `claim`, which is what
+    // writes it.
+    let marker_existed = is_owned(&target);
     if target != paths.root {
         claim(&target).map_err(AppError::Other)?;
     }
@@ -786,7 +790,12 @@ pub async fn set_cache_location(
         .zip(destinations.iter())
         .map(|((name, from), (_, to))| (name.clone(), from.clone(), to.clone()))
         .collect();
-    tokio::task::spawn_blocking(move || -> AppResult<()> {
+    // Which destinations were already on disk, for the same reason as
+    // the marker: a folder the user had before this attempt is not ours
+    // to remove when it fails.
+    let pre_existing: Vec<bool> = destinations.iter().map(|(_, to)| to.exists()).collect();
+
+    let copy = tokio::task::spawn_blocking(move || -> AppResult<()> {
         for (name, from, to) in plan {
             copy_tree(&from, &to).map_err(|e| {
                 AppError::Other(format!("copying {name} to {} failed: {e}", to.display()))
@@ -795,7 +804,25 @@ pub async fn set_cache_location(
         Ok(())
     })
     .await
-    .map_err(|e| AppError::Other(format!("cache copy task failed: {e}")))??;
+    .map_err(|e| AppError::Other(format!("cache copy task failed: {e}")));
+
+    // A copy that stopped part-way has adopted a folder and filled some
+    // of it, and nothing records either: the setting is written further
+    // down and only on success, so without this the user is left with a
+    // half-copied artwork tree and a marker saying WaveFlow owns the
+    // folder -- which is the one file that lets a later reset delete it.
+    // Rolled back to exactly what was there before, never further.
+    if let Err(err) = copy.and_then(|inner| inner) {
+        for ((_, dir), existed) in destinations.iter().zip(pre_existing.iter()) {
+            if !existed {
+                let _ = std::fs::remove_dir_all(dir);
+            }
+        }
+        if !marker_existed && target != paths.root {
+            let _ = std::fs::remove_file(target.join(OWNER_MARKER));
+        }
+        return Err(err);
+    }
 
     // Persist the destination and the tree to clean up, in that order:
     // a crash after the first write comes back reading the copy, which

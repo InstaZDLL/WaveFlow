@@ -163,12 +163,15 @@ pub fn read_extra_tags(path: &Path) -> Option<Vec<(String, String)>> {
 }
 
 fn read_inner(path: &Path) -> Option<Vec<(String, String)>> {
-    let file_type = Probe::open(path)
-        .ok()?
-        .guess_file_type()
-        .ok()?
-        .file_type()?;
-    let mut handle = std::fs::File::open(path).ok()?;
+    // One open, not two. `Probe::open` already has the file, and
+    // `guess_inner` restores the stream position it read from -- so the
+    // reader it hands back is at the start and ready to parse. Opening
+    // the path a second time costs a syscall per track in the scan's
+    // hot path, and races anything that moves the file between the two.
+    // It is a `BufReader` besides, which the bare `File` was not.
+    let probe = Probe::open(path).ok()?.guess_file_type().ok()?;
+    let file_type = probe.file_type()?;
+    let mut handle = probe.into_inner();
     // Tags only. This is a *second* parse of every file in the scan's
     // hot path, and the first one already read the properties and
     // lifted the cover art — doing either again would double the one
