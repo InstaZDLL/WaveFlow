@@ -25,6 +25,7 @@
 //! the loop costs nothing while the user hasn't opted in.
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -46,12 +47,23 @@ pub struct BackupHandle {
     /// next backup deadline is recomputed without waiting for the old
     /// sleep to expire.
     pub notify: Arc<Notify>,
+    /// Bumped with every `notify_one` above, and read by the waiter that
+    /// has to tell a real change from a leftover.
+    ///
+    /// `Notify` stores one permit when nobody is waiting, so a settings
+    /// change made *while a backup was running* arms the next
+    /// `notified()` to return at once -- including the cancel back-off,
+    /// which exists precisely to stop a cancelled backup restarting
+    /// immediately. Comparing this counter is how that wait knows the
+    /// wake-up carried news.
+    pub config_generation: Arc<AtomicU64>,
 }
 
 impl BackupHandle {
     pub fn new() -> Self {
         Self {
             notify: Arc::new(Notify::new()),
+            config_generation: Arc::new(AtomicU64::new(0)),
         }
     }
 }
@@ -195,6 +207,9 @@ pub async fn write_config(
     }
     tx.commit().await?;
 
+    // Counter first: a waiter woken by the notify must never read a
+    // generation that has not moved yet.
+    handle.config_generation.fetch_add(1, Ordering::AcqRel);
     handle.notify.notify_one();
     Ok(())
 }
@@ -583,9 +598,29 @@ pub fn spawn_backup_loop(handle: AppHandle, backup_handle: BackupHandle) {
                         // kept pressing the button. Cut short if they
                         // change the settings in the meantime.
                         tracing::info!("auto backup cancelled; backing off before reconsidering");
-                        tokio::select! {
-                            _ = tokio::time::sleep(CANCEL_BACKOFF) => {}
-                            _ = backup_handle.notify.notified() => {}
+                        let generation_at_wait =
+                            backup_handle.config_generation.load(Ordering::Acquire);
+                        let until = tokio::time::Instant::now() + CANCEL_BACKOFF;
+                        loop {
+                            tokio::select! {
+                                _ = tokio::time::sleep_until(until) => break,
+                                _ = backup_handle.notify.notified() => {
+                                    // A wake-up is only a reason to stop
+                                    // waiting if the settings actually
+                                    // moved. `Notify` hands out a permit
+                                    // stored before this wait began --
+                                    // a change made while the pass was
+                                    // running -- and honouring that
+                                    // would cut the back-off to nothing
+                                    // and restart the backup the user
+                                    // just stopped.
+                                    if backup_handle.config_generation.load(Ordering::Acquire)
+                                        != generation_at_wait
+                                    {
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
                 }

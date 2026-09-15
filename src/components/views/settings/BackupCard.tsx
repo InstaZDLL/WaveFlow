@@ -106,9 +106,11 @@ export function BackupCard({ language }: BackupCardProps) {
           message: t("settings.backup.errors.runFailed"),
         });
       }
-      // A stop the user asked for gets no status at all: the task bar
-      // already showed it, and the archives that did land are each
-      // complete.
+      // A stop that wrote nothing gets no status at all -- the task bar
+      // already showed it. A stop that did write archives still reports
+      // them, through the branch above: each one is complete, and "2
+      // archives written" after stopping at the third profile is the
+      // useful half of the answer, not a claim the pass finished.
       // Refresh config so `last_run_at` updates.
       const fresh = await getBackupConfig();
       setConfig(fresh);

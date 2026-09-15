@@ -140,6 +140,17 @@ export function ScanProgressToast() {
                 ? t("scanProgress.doneErrors", { count: errors })
                 : t("scanProgress.doneTitle")}
           </div>
+          {cancelled && errors > 0 && (
+            // The title gave the stop precedence, which is right -- but
+            // it also meant a stopped scan never said how many files had
+            // failed, and that count is the only trace those failures
+            // leave the user. On its own line, so neither answer has to
+            // give way to the other. Same key the completed-with-errors
+            // title uses, so no locale gains a string.
+            <div className="text-xs text-amber-700 dark:text-amber-500 mt-0.5">
+              {t("scanProgress.doneErrors", { count: errors })}
+            </div>
+          )}
           <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
             {/* What the run managed to write, which is committed and
                 correct whether or not it reached the end. */}
