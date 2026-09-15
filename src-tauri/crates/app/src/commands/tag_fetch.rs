@@ -411,8 +411,10 @@ mod tests {
         sqlx::raw_sql(
             "INSERT INTO library (id, name, created_at, updated_at)
                   VALUES (1, 'l', 0, 0);
-             INSERT INTO artist (id, name) VALUES (1, 'Second'), (2, 'First');
-             INSERT INTO album (id, title, artist_id) VALUES (1, 'Record', 2);
+             INSERT INTO artist (id, name, canonical_name)
+                  VALUES (1, 'Second', 'second'), (2, 'First', 'first');
+             INSERT INTO album (id, title, canonical_title, artist_id)
+                  VALUES (1, 'Record', 'record', 2);
              INSERT INTO track (id, library_id, file_path, file_hash, file_size,
                                 file_modified, title, duration_ms, added_at,
                                 album_id, track_number, year)
