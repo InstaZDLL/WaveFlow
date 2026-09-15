@@ -446,6 +446,24 @@ function defaultPredicateFor(
   }
 }
 
+/**
+ * Which predicate groups this leaf may offer.
+ *
+ * A library whose files carry no custom tag has nothing to put in a tag
+ * rule, and the default key would be the empty string — a rule that
+ * matches nothing, saved without a word. The group is therefore hidden
+ * until the library has keys. It comes back for a leaf that already
+ * *is* a tag rule (a rule from another machine, or from before the
+ * files moved), because dropping the option from the select under a
+ * value that uses it is what makes a select render blank.
+ */
+function groupsFor(kind: PredicateKind, tagKeys: TrackTagKey[]) {
+  if (tagKeys.length > 0 || kind === "tag_present" || kind === "tag_contains") {
+    return PREDICATE_GROUPS;
+  }
+  return PREDICATE_GROUPS.filter((group) => group.key !== "tags");
+}
+
 function LeafView({
   node,
   onChange,
@@ -471,7 +489,7 @@ function LeafView({
           onChange={(e) => setKind(e.target.value as PredicateKind)}
           className="text-xs rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-500"
         >
-          {PREDICATE_GROUPS.map((group) => (
+          {groupsFor(pred.kind, tagKeys).map((group) => (
             <optgroup
               key={group.key}
               label={t(`smartPlaylistEditor.predicateGroups.${group.key}`)}
@@ -568,6 +586,7 @@ function PredicateValue({
           onChange={(e) =>
             onChange({ ...predicate, value: Number(e.target.value) })
           }
+          aria-label={label}
           className={inputCls}
         >
           <option value={0}>{t("smartPlaylistEditor.tree.pickGenre")}</option>
@@ -592,6 +611,7 @@ function PredicateValue({
           onChange={(e) =>
             onChange({ ...predicate, value: parseInt(e.target.value, 10) || 0 })
           }
+          aria-label={label}
           className={`${inputCls} w-28`}
         />
       );
@@ -605,6 +625,7 @@ function PredicateValue({
           onChange={(e) =>
             onChange({ ...predicate, value: Number(e.target.value) || 0 })
           }
+          aria-label={label}
           className={`${inputCls} w-24`}
         />
       );
@@ -613,6 +634,7 @@ function PredicateValue({
         <select
           value={predicate.value}
           onChange={(e) => onChange({ ...predicate, value: e.target.value })}
+          aria-label={label}
           className={inputCls}
         >
           {FORMAT_OPTIONS.map((f) => (
