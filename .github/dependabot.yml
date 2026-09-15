@@ -54,6 +54,16 @@ updates:
     # is never mergeable. Grouping does not help: a group still opens a PR
     # when only one of its members has a release.
     #
+    # "Major" covers more than it looks. For a 0.x crate Dependabot treats
+    # the minor position as the breaking one, so 0.62 -> 0.63 is a
+    # semver-major update here just as 0.62 -> 0.100 is. Every 0.x bump of
+    # that shape in this repository has arrived as its own PR instead of
+    # inside cargo-patch-and-minor (quick-xml 0.41 -> 0.42, lofty 0.24 ->
+    # 0.25, wasapi 0.23 -> 0.24), which is what that classification looks
+    # like from the outside. Adding semver-minor to the rule would suppress
+    # nothing extra, and would risk holding this name back while `windows`
+    # moved -- the same desync, mirrored.
+    #
     # `windows` itself is deliberately NOT ignored. The day it offers a major
     # is the day the pair can move, and that PR is the signal to bump both by
     # hand, in one commit.
