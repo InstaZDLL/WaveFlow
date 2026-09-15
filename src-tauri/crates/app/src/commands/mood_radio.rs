@@ -73,9 +73,28 @@ const ALBUM_PER_ARTIST_CAP: usize = 2;
 /// cannot verify.
 macro_rules! bpm_any_octave {
     () => {
-        "(   ((?1 IS NULL OR ta.bpm       >= ?1) AND (?2 IS NULL OR ta.bpm       <= ?2)) \
-          OR ((?1 IS NULL OR ta.bpm * 2.0 >= ?1) AND (?2 IS NULL OR ta.bpm * 2.0 <= ?2)) \
-          OR ((?1 IS NULL OR ta.bpm / 2.0 >= ?1) AND (?2 IS NULL OR ta.bpm / 2.0 <= ?2)))"
+        concat!(
+            "(   ",
+            bpm_plain_in_window!(),
+            " OR ((?1 IS NULL OR ta.bpm * 2.0 >= ?1) AND (?2 IS NULL OR ta.bpm * 2.0 <= ?2))",
+            " OR ((?1 IS NULL OR ta.bpm / 2.0 >= ?1) AND (?2 IS NULL OR ta.bpm / 2.0 <= ?2)))"
+        )
+    };
+}
+
+/// The tempo gate for the **measured** reading alone.
+///
+/// Half of [`bpm_any_octave!`], and also what orders the draw: a
+/// corrected reading is a guess, and a guess must not take a place in
+/// the pool from a track that really is this tempo. Sleep is where it
+/// shows — its window has no floor, so everything up to 136 BPM
+/// qualifies once halved, which is most of a library. Drawing at
+/// random across all of that would fill the mood built on slowness
+/// with halved dance records whenever the genuinely slow ones are
+/// rare, which is the complaint the issue opened on.
+macro_rules! bpm_plain_in_window {
+    () => {
+        "((?1 IS NULL OR ta.bpm >= ?1) AND (?2 IS NULL OR ta.bpm <= ?2))"
     };
 }
 
@@ -284,7 +303,15 @@ async fn candidate_pool(
             AND ta.bpm > 0
             AND ",
         bpm_any_octave!(),
-        " ORDER BY RANDOM()
+        // Measured matches first, still shuffled among themselves; the
+        // corrected ones only top up what is left. The album path does
+        // not need this: it is ranked on the record's average tempo,
+        // which the scorer discounts the same way, and its gate already
+        // asks that most of the record fit — a record of corrected
+        // readings rarely clears that.
+        " ORDER BY CASE WHEN ",
+        bpm_plain_in_window!(),
+        " THEN 0 ELSE 1 END, RANDOM()
           LIMIT ?3"
     ))
     .bind(profile.bpm_min)
@@ -556,9 +583,12 @@ mod tests {
              INSERT INTO track (id, library_id, file_path, file_hash, file_size,
                                 file_modified, title, duration_ms, added_at)
                   VALUES (1, 1, '/l/a.flac', 'h1', 1, 0, 'Fast', 200000, 0),
-                         (2, 1, '/l/b.flac', 'h2', 1, 0, 'Slow', 200000, 0);
+                         (2, 1, '/l/b.flac', 'h2', 1, 0, 'Slow', 200000, 0),
+                         (3, 1, '/l/c.flac', 'h3', 1, 0, 'Plain', 200000, 0);
+             -- 30 BPM, not 40: doubled, 40 lands on 80, which is
+             -- inside Focus. Every reading of 30 (30, 60, 15) is out.
              INSERT INTO track_analysis (track_id, bpm, analyzed_at)
-                  VALUES (1, 170.0, 0), (2, 40.0, 0);",
+                  VALUES (1, 170.0, 0), (2, 30.0, 0), (3, 90.0, 0);",
         )
         .execute(&pool)
         .await
@@ -575,7 +605,16 @@ mod tests {
             ids.contains(&1),
             "170 BPM must reach a mood built on 88, as a halved reading"
         );
-        assert!(!ids.contains(&2), "40 BPM is out under every reading");
-        assert_eq!(count_for_mood(&pool, &focus).await.unwrap(), 1);
+        assert!(!ids.contains(&2), "30 BPM is out under every reading");
+        assert_eq!(count_for_mood(&pool, &focus).await.unwrap(), 2);
+
+        // A measured match comes before a corrected one, whatever the
+        // shuffle does inside each group: a guess must not take a place
+        // in the pool from a track that really is this tempo.
+        assert_eq!(
+            ids.first(),
+            Some(&3),
+            "90 BPM is measured inside the window; 170 is a rescue"
+        );
     }
 }
