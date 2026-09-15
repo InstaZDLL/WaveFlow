@@ -1063,19 +1063,33 @@ pub(crate) async fn scan_folder_inner(
                 // the row stays hidden forever (issue #366, symptom B).
                 sqlx::query(
                     "UPDATE track
-                        SET bit_depth        = COALESCE(bit_depth, ?),
-                            codec            = COALESCE(codec, ?),
-                            musical_key      = COALESCE(musical_key, ?),
-                            rg_track_gain_db = ?,
-                            rg_track_peak    = ?,
-                            rg_album_gain_db = ?,
-                            rg_album_peak    = ?,
-                            is_available     = 1
+                        SET bit_depth           = COALESCE(bit_depth, ?),
+                            codec               = COALESCE(codec, ?),
+                            musical_key         = COALESCE(musical_key, ?),
+                            title_from_filename = ?,
+                            rg_track_gain_db    = ?,
+                            rg_track_peak       = ?,
+                            rg_album_gain_db    = ?,
+                            rg_album_peak       = ?,
+                            is_available        = 1
                       WHERE id = ?",
                 )
                 .bind(extracted.bit_depth)
                 .bind(extracted.codec.as_deref())
                 .bind(extracted.musical_key.as_deref())
+                // The one backfill site for the flag, and the only one
+                // that can reach a library scanned before the column
+                // existed. Those rows took the `NOT NULL DEFAULT 0` of
+                // the migration while their titles were in fact file
+                // stems; bytes that never change never reach the
+                // rewrite branch, so without this line they would stay
+                // at `0` for the life of the install and the inventory
+                // category the column exists for would keep reporting
+                // zero -- the very fault it was added to repair.
+                //
+                // Assigned, not COALESCEd: the column is NOT NULL, so
+                // it is never `NULL` to fall through.
+                .bind(extracted.title_from_filename)
                 // Assigned rather than COALESCEd: this branch runs on a
                 // file whose bytes are unchanged but whose row may be
                 // stale, and a tagger that *removed* a gain has to be

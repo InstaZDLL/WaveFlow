@@ -342,6 +342,19 @@
   }
 }
 
+/* The fade carries an 8px rise, which is movement, so it belongs to the
+   same family as the four blocks further down. Disabled here rather
+   than by tagging call sites with `motion-safe:`: the utility has ~30
+   of them across the app -- overlays, panels, the mini-player -- and a
+   per-site variant would cover whichever ones someone remembered.
+   `animation: none` lands the element on the `to` state, so the content
+   appears in place instead of not appearing at all. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in {
+    animation: none;
+  }
+}
+
 /* Progressive karaoke word fill (issue #491) — a continuous sweep
    across the word being sung, instead of a step at the word boundary.
 
