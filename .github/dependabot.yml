@@ -50,27 +50,38 @@ updates:
     # windows-rs versions its support crates on their own lines, and 0.100.0
     # renumbered that entire layer (windows-core, -implement, -interface,
     # -result, -link) while the generated-bindings crates above it stayed
-    # put -- `windows` is still 0.62.2. So a major for `windows-core` alone
-    # is never mergeable. Grouping does not help: a group still opens a PR
-    # when only one of its members has a release.
+    # put -- `windows` is still 0.62.2. So neither name can move on its own,
+    # in either direction, and a group does not express that: a group still
+    # opens a PR when only one of its members has a release.
     #
-    # "Major" covers more than it looks. For a 0.x crate Dependabot treats
-    # the minor position as the breaking one, so 0.62 -> 0.63 is a
-    # semver-major update here just as 0.62 -> 0.100 is. Every 0.x bump of
+    # Hence BOTH are held back from everything but patches, and the pair is
+    # bumped by hand, in one commit, when upstream realigns. Patches stay
+    # automatic and are safe by construction: both names remain inside
+    # 0.62.x, which Cargo unifies onto a single version anyway.
+    #
+    # Major *and* minor, because which of the two a 0.x bump like
+    # 0.62 -> 0.63 counts as is NOT settled. GitHub documents SemVer as
+    # plain major.minor.patch, which makes it minor; yet every 0.x bump of
     # that shape in this repository has arrived as its own PR instead of
     # inside cargo-patch-and-minor (quick-xml 0.41 -> 0.42, lofty 0.24 ->
-    # 0.25, wasapi 0.23 -> 0.24), which is what that classification looks
-    # like from the outside. Adding semver-minor to the rule would suppress
-    # nothing extra, and would risk holding this name back while `windows`
-    # moved -- the same desync, mirrored.
+    # 0.25, wasapi 0.23 -> 0.24), which is what "major" looks like from the
+    # outside -- and `groups` and `ignore` are not obliged to classify
+    # alike. Naming both costs nothing and is correct under either reading.
+    # Do not "simplify" this back to majors only without settling that.
     #
-    # `windows` itself is deliberately NOT ignored. The day it offers a major
-    # is the day the pair can move, and that PR is the signal to bump both by
-    # hand, in one commit.
+    # Known cost, accepted: an ignore rule can also hold back a security
+    # update that needs a minor bump. Patch-level advisories still flow, and
+    # a desync is a build failure on every Windows job, which a stale
+    # binding is not.
     ignore:
+      - dependency-name: "windows"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
       - dependency-name: "windows-core"
         update-types:
           - "version-update:semver-major"
+          - "version-update:semver-minor"
 
   - package-ecosystem: github-actions
     directory: "/"
