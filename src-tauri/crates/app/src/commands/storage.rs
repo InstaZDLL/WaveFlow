@@ -716,6 +716,10 @@ pub async fn set_cache_location(
         ));
     }
 
+    // Whether the folder was already there, read before `is_usable`
+    // creates it: a move refused below must not leave a directory
+    // behind, and must not remove one the user already had.
+    let target_existed = target.exists();
     is_usable(&target).map_err(AppError::Other)?;
     // Refused *before* the claim below, not after. `claim` writes the
     // ownership marker, and the marker is what makes a folder
@@ -726,6 +730,14 @@ pub async fn set_cache_location(
     // case difference on a directory that does not exist yet -- which
     // is exactly how a copy ends up running into its own source.
     if is_within(&target, &paths.cache_root) {
+        // `remove_dir`, never `remove_dir_all`, and only for a
+        // directory this call brought into being: it refuses a
+        // non-empty one, so the worst case of getting the ownership
+        // question wrong is an empty folder left behind rather than
+        // somebody's files gone.
+        if !target_existed {
+            let _ = std::fs::remove_dir(&target);
+        }
         return Err(AppError::Other(format!(
             "{} is inside the folder being moved",
             target.display()
@@ -811,6 +823,38 @@ pub async fn restart_for_cache_move(app: AppHandle) -> AppResult<()> {
     app.restart();
 }
 
+/// Every root a cache tree of ours can be sitting under right now.
+///
+/// Three, and each is reachable on its own:
+///
+/// - the **active** root, which this session reads and writes;
+/// - the **configured** one, which differs while a move waits for its
+///   restart and again whenever a session falls back;
+/// - the root a completed move left behind. Normally gone by the time
+///   anything asks — [`cleanup_moved_caches`] empties it at the next
+///   startup — but it survives a removal that failed, and then neither
+///   of the other two names it. A tree nothing can name is a tree
+///   nothing will ever remove.
+///
+/// Deduplicated, in that order. The callers filter and gate it: none of
+/// them may touch a root without an ownership marker, and none of them
+/// wants the app-data root, which their own wholesale delete covers.
+async fn candidate_cache_roots(state: &AppState) -> Vec<PathBuf> {
+    let mut roots: Vec<PathBuf> = vec![state.paths.cache_root.clone()];
+    for extra in [
+        load_cache_root(&state.app_db).await,
+        load_path(&state.app_db, KEY_CACHE_PENDING).await,
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if !roots.contains(&extra) {
+            roots.push(extra);
+        }
+    }
+    roots
+}
+
 /// Every place a deleted profile's caches can still be sitting.
 ///
 /// `profile_dir` covers the app-data tree, and that used to be the
@@ -833,23 +877,7 @@ pub async fn restart_for_cache_move(app: AppHandle) -> AppResult<()> {
 /// delete in this module uses, because one of them is a folder the user
 /// picked in a dialog.
 pub async fn profile_cache_dirs_elsewhere(state: &AppState, profile_id: i64) -> Vec<PathBuf> {
-    let mut roots: Vec<PathBuf> = vec![state.paths.cache_root.clone()];
-    for extra in [
-        load_cache_root(&state.app_db).await,
-        // The root a completed move left behind. Normally gone by the
-        // time anything asks -- `cleanup_moved_caches` empties it at the
-        // next startup -- but it survives a removal that failed, and
-        // then neither the active nor the configured root names it. A
-        // tree nothing can name is a tree nothing will ever remove.
-        load_path(&state.app_db, KEY_CACHE_PENDING).await,
-    ]
-    .into_iter()
-    .flatten()
-    {
-        if !roots.contains(&extra) {
-            roots.push(extra);
-        }
-    }
+    let roots = candidate_cache_roots(state).await;
     roots
         .into_iter()
         // The app-data root is what `profile_dir` already removes;
@@ -879,23 +907,7 @@ pub async fn wipe_targets_outside_root(state: &AppState) -> Vec<PathBuf> {
     // active root, a reset staged right after a move would wipe the old
     // tree and leave the new one untouched, which is the copy the user
     // is about to start reading.
-    let mut roots: Vec<PathBuf> = vec![state.paths.cache_root.clone()];
-    for extra in [
-        load_cache_root(&state.app_db).await,
-        // The root a completed move left behind. Normally gone by the
-        // time anything asks -- `cleanup_moved_caches` empties it at the
-        // next startup -- but it survives a removal that failed, and
-        // then neither the active nor the configured root names it. A
-        // tree nothing can name is a tree nothing will ever remove.
-        load_path(&state.app_db, KEY_CACHE_PENDING).await,
-    ]
-    .into_iter()
-    .flatten()
-    {
-        if !roots.contains(&extra) {
-            roots.push(extra);
-        }
-    }
+    let roots = candidate_cache_roots(state).await;
 
     let mut targets = Vec::new();
     for root in roots {

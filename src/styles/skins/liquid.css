@@ -1090,7 +1090,6 @@
   margin-top: 2.5rem !important;
 }
 
-
 /* ============================================================
    High contrast (issue #596)
    ============================================================
@@ -1116,7 +1115,7 @@
     [class*="rounded-xl"],
     [class*="rounded-2xl"],
     [class*="rounded-3xl"]
-  ),
+  ):not([data-immersive] *),
 :root[data-skin="liquid"][data-contrast="high"]
   [class*="sticky"]:where(
     [class*="bg-white"],
@@ -1130,6 +1129,6 @@
     [class*="shadow-lg"],
     [class*="shadow-xl"],
     [class*="shadow-2xl"]
-  ) {
+  ):not([data-immersive]):not([data-immersive] *) {
   background-color: var(--wf-contrast-surface) !important;
 }

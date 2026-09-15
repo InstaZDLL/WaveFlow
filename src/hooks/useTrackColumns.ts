@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import { useProfileSetting } from "./useProfileSetting";
 import {
   DEFAULT_LAYOUT,
+  MAX_COLUMN_WIDTH,
   sanitizeLayout,
   specFor,
   type ColumnId,
@@ -92,7 +93,14 @@ export function useTrackColumns(): TrackColumns {
         ...layout,
         widths: {
           ...layout.widths,
-          [id]: Math.max(specFor(id).minWidth, Math.round(width)),
+          // Both bounds, like the header's drag and arrow keys. This
+          // is the single place a width is persisted, so a caller that
+          // clamps only one of them cannot store something the table
+          // will refuse to render.
+          [id]: Math.min(
+            MAX_COLUMN_WIDTH,
+            Math.max(specFor(id).minWidth, Math.round(width)),
+          ),
         },
       }),
     [layout, setValue],
