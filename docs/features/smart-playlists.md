@@ -244,9 +244,11 @@ pool rather than the first forty drawn out of it (#616).
 | Party | 110–132 | 122 | prefers ≥ −12 LUFS |
 | Sleep | ≤ 68 | 52 | prefers ≤ −18 LUFS |
 
-The pool is still drawn with `ORDER BY RANDOM() LIMIT 400`, which is
-what keeps two runs of one mood from being the same queue; the ranking
-then decides which of it plays.
+The pool of 400 is drawn **measured readings first**, shuffled within
+each group, and the ranking then decides which forty of it play. The
+shuffle is what keeps two runs of one mood from being the same queue;
+the priority is what stops a guess from taking a slot from a track that
+really is this tempo — see the octave note below.
 
 ### Why only tempo gates
 

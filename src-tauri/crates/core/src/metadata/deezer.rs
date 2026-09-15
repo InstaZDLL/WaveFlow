@@ -354,24 +354,26 @@ impl DeezerClient {
         const MAX_PAGES: usize = 100;
 
         let mut out: Vec<DeezerAlbumTrack> = Vec::new();
-        for page in 0..MAX_PAGES {
+        let mut index = 0usize;
+        for _ in 0..MAX_PAGES {
             let resp: DeezerSearchResponse<DeezerAlbumTrack> = Self::fetch(
                 self.http
                     .get(format!("{BASE_URL}/album/{deezer_id}/tracks"))
-                    .query(&[
-                        ("index", (page * PAGE).to_string()),
-                        ("limit", PAGE.to_string()),
-                    ]),
+                    .query(&[("index", index.to_string()), ("limit", PAGE.to_string())]),
             )
             .await?;
             let received = resp.data.len();
             out.extend(resp.data);
-            // Two independent stops, because either alone has been seen
-            // to lie: a short page is the end whatever `next` says, and
-            // a full page with no `next` is the end too.
-            if received < PAGE || resp.next.is_none() {
+            // `next` is the authority on whether there is more — a page
+            // shorter than asked for is not the end, and treating it as
+            // one truncated the listing. The offset advances by what
+            // actually arrived rather than by the page size, or a short
+            // page would leave a hole. An empty page stops the walk
+            // whatever `next` claims, since nothing else would.
+            if resp.next.is_none() || received == 0 {
                 break;
             }
+            index += received;
         }
         Ok(out)
     }

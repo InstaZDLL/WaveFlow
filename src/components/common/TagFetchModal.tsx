@@ -53,11 +53,23 @@ export function TagFetchModal({
   onApplied,
 }: TagFetchModalProps) {
   const { t } = useTranslation();
-  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
+  const [busy, setBusy] = useState(false);
+  /**
+   * Dismissal, unless a write is in flight.
+   *
+   * Apply walks the album one file at a time and closing does not stop
+   * it: the loop keeps writing into a folder whose review screen is
+   * gone, and the summary of what was written and what failed is lost
+   * with it. Every path is routed through here — the X, the footer
+   * button, the backdrop, and the Escape key `useModalA11y` binds.
+   */
+  const closeUnlessBusy = () => {
+    if (!busy) onClose();
+  };
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, closeUnlessBusy);
   const [sources, setSources] = useState<AlbumSource[] | null>(null);
   const [proposals, setProposals] = useState<AlbumProposals | null>(null);
   const [accepted, setAccepted] = useState<Accepted>({});
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [applied, setApplied] = useState<{
     ok: number;
@@ -179,7 +191,7 @@ export function TagFetchModal({
   };
 
   return (
-    <AnimatedModalShell isOpen={isOpen} onBackdropClick={onClose}>
+    <AnimatedModalShell isOpen={isOpen} onBackdropClick={closeUnlessBusy}>
       <AnimatedModalContent
         ref={dialogRef}
         role="dialog"
@@ -210,7 +222,8 @@ export function TagFetchModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+            disabled={busy}
+            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors disabled:opacity-50"
             aria-label={t("common.close")}
           >
             <X size={18} />
@@ -242,7 +255,8 @@ export function TagFetchModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-full text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              disabled={busy}
+              className="px-4 py-2 rounded-full text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
             >
               {applied ? t("common.close") : t("common.cancel")}
             </button>
