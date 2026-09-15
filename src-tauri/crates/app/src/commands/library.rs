@@ -524,7 +524,11 @@ pub async fn import_paths(
     // tracks ship without waiting on the drain's idle poll.
     state.drain.notify();
 
-    if total.added > 0 {
+    // Not after an import the user stopped. Some tracks did land, so
+    // `added` is positive -- but answering a stop by starting the
+    // library-wide analysis sweep is the opposite of what was asked,
+    // and that sweep is the longest job in the app.
+    if total.added > 0 && !total.cancelled {
         crate::commands::analysis::maybe_auto_analyze(&app);
     }
     Ok(total)

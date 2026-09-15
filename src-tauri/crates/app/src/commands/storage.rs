@@ -318,6 +318,7 @@ pub async fn cleanup_moved_caches(active: &AppPaths, app_db: &SqlitePool) {
         return;
     }
     if owned_for_removal(&previous, active) {
+        let stale_root = previous.clone();
         let stale = active.clone().with_cache_root(previous);
         let dirs = cache_dirs(&stale, app_db).await.unwrap_or_default();
         // On the blocking pool, like every other recursive delete here:
@@ -356,6 +357,24 @@ pub async fn cleanup_moved_caches(active: &AppPaths, app_db: &SqlitePool) {
                 "keeping the cache-cleanup marker; the next startup will try the rest again"
             );
             return;
+        }
+        // The tree is gone, so the claim on it goes too. Left behind,
+        // `.waveflow-cache` keeps saying "WaveFlow owns this folder"
+        // about a folder WaveFlow no longer uses -- which is the one
+        // file that makes a recursive delete permissible here, sitting
+        // in a directory the user picked and may well put something
+        // else in. Never written at the app-data root, so never removed
+        // from it either.
+        if stale_root != active.root {
+            match std::fs::remove_file(stale_root.join(OWNER_MARKER)) {
+                Ok(()) => {}
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => tracing::warn!(
+                    path = %stale_root.display(),
+                    %e,
+                    "could not remove the ownership marker from the moved-from cache root",
+                ),
+            }
         }
     }
     if let Err(e) = store_path(app_db, KEY_CACHE_PENDING, None).await {
@@ -815,9 +834,20 @@ pub async fn restart_for_cache_move(app: AppHandle) -> AppResult<()> {
 /// picked in a dialog.
 pub async fn profile_cache_dirs_elsewhere(state: &AppState, profile_id: i64) -> Vec<PathBuf> {
     let mut roots: Vec<PathBuf> = vec![state.paths.cache_root.clone()];
-    if let Some(configured) = load_cache_root(&state.app_db).await {
-        if !roots.contains(&configured) {
-            roots.push(configured);
+    for extra in [
+        load_cache_root(&state.app_db).await,
+        // The root a completed move left behind. Normally gone by the
+        // time anything asks -- `cleanup_moved_caches` empties it at the
+        // next startup -- but it survives a removal that failed, and
+        // then neither the active nor the configured root names it. A
+        // tree nothing can name is a tree nothing will ever remove.
+        load_path(&state.app_db, KEY_CACHE_PENDING).await,
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if !roots.contains(&extra) {
+            roots.push(extra);
         }
     }
     roots
@@ -850,9 +880,20 @@ pub async fn wipe_targets_outside_root(state: &AppState) -> Vec<PathBuf> {
     // tree and leave the new one untouched, which is the copy the user
     // is about to start reading.
     let mut roots: Vec<PathBuf> = vec![state.paths.cache_root.clone()];
-    if let Some(configured) = load_cache_root(&state.app_db).await {
-        if !roots.contains(&configured) {
-            roots.push(configured);
+    for extra in [
+        load_cache_root(&state.app_db).await,
+        // The root a completed move left behind. Normally gone by the
+        // time anything asks -- `cleanup_moved_caches` empties it at the
+        // next startup -- but it survives a removal that failed, and
+        // then neither the active nor the configured root names it. A
+        // tree nothing can name is a tree nothing will ever remove.
+        load_path(&state.app_db, KEY_CACHE_PENDING).await,
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if !roots.contains(&extra) {
+            roots.push(extra);
         }
     }
 

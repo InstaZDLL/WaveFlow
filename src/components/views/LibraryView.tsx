@@ -1408,7 +1408,10 @@ export function LibraryView({
               track table, since on an album or artist grid the control
               would have nothing to configure. */}
           {(activeTab === "morceaux" ||
-            activeTab === "dossiers" ||
+            // The folders tab shows the table only once a folder is
+            // open; above that it is a list of directories, and a
+            // column picker there configures nothing on screen.
+            (activeTab === "dossiers" && folderPath != null) ||
             activeTab === "a-corriger") && (
             <ColumnPicker
               layout={trackColumns.layout}
