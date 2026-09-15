@@ -234,7 +234,22 @@ export function useProfileSetting<T>(
         // Roll back only when nothing newer took ownership. Comparing
         // the token rather than the value itself is what makes this work
         // for primitives, where two writes of `true` are indistinguishable.
-        if (ownerSeq === ownerSeqRef.current) commit(confirmedRef.current);
+        if (ownerSeq === ownerSeqRef.current) {
+          commit(confirmedRef.current);
+          // Broadcast the rollback too, not just the success. Other
+          // mounted consumers of this key were never told about the
+          // optimistic value, so they cannot undo it on their own --
+          // and the instance that *can* may be gone: a settings card
+          // that started a write and was unmounted when its panel
+          // closed never runs its own rollback, leaving whatever side
+          // effect it painted (a document attribute, a cached choice)
+          // describing a value the database refused. Guarded like the
+          // success path, so a stale failure cannot pull everyone back
+          // over a newer write.
+          if (writeSeq === writeSeqRef.current) {
+            window.dispatchEvent(new CustomEvent(event));
+          }
+        }
       }
     },
     [commit, key, valueType, event],
