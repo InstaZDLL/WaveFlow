@@ -579,7 +579,7 @@ mod tests {
     async fn the_pool_accepts_a_doubled_tempo() {
         let pool = pool().await;
         sqlx::query(
-            "INSERT INTO library (id, name, path, created_at) VALUES (1, 'l', '/l', 0);
+            "INSERT INTO library (id, name, created_at, updated_at) VALUES (1, 'l', 0, 0);
              INSERT INTO track (id, library_id, file_path, file_hash, file_size,
                                 file_modified, title, duration_ms, added_at)
                   VALUES (1, 1, '/l/a.flac', 'h1', 1, 0, 'Fast', 200000, 0),
