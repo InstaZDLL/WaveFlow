@@ -133,6 +133,22 @@ export function ColumnPicker({
     (first ?? dialogRef.current)?.focus();
   }, [open]);
 
+  /** Toggle, then put focus back inside the panel.
+   *
+   *  A checkbox here always *moves*: ticking a column sends it from the
+   *  available list to the chosen one and unmounts the input the
+   *  pointer or the keyboard was on. Focus would land on the document
+   *  body, and the panel is portalled to the end of the document, so
+   *  the next Tab walks the whole page. The panel itself carries
+   *  `tabIndex={-1}` for exactly this. */
+  const toggleAndKeepFocus = useCallback(
+    (id: ColumnId) => {
+      onToggle(id);
+      dialogRef.current?.focus();
+    },
+    [onToggle],
+  );
+
   const toggleOpen = () => {
     const rect = buttonRef.current?.getBoundingClientRect();
     if (rect) {
@@ -251,7 +267,7 @@ export function ColumnPicker({
                       // metadata about songs it does not name is
                       // reachable by unticking one box.
                       disabled={id === "title"}
-                      onChange={() => onToggle(id)}
+                      onChange={() => toggleAndKeepFocus(id)}
                       aria-label={label}
                       className="w-3.5 h-3.5 accent-emerald-500 shrink-0 disabled:opacity-40"
                     />
@@ -303,7 +319,7 @@ export function ColumnPicker({
                       <input
                         type="checkbox"
                         checked={false}
-                        onChange={() => onToggle(id)}
+                        onChange={() => toggleAndKeepFocus(id)}
                         className="w-3.5 h-3.5 accent-emerald-500 shrink-0"
                       />
                       <span className="text-sm text-zinc-600 dark:text-zinc-300 truncate">
@@ -329,7 +345,7 @@ export function ColumnPicker({
                           <input
                             type="checkbox"
                             checked={false}
-                            onChange={() => onToggle(`tag:${key}`)}
+                            onChange={() => toggleAndKeepFocus(`tag:${key}`)}
                             className="w-3.5 h-3.5 accent-emerald-500 shrink-0"
                           />
                           <span className="text-sm text-zinc-600 dark:text-zinc-300 truncate">

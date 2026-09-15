@@ -2309,7 +2309,7 @@
     "runningTitle": "Escaneando biblioteca…",
     "runningSubtitle": "{{current}} / {{total}} archivos",
     "doneTitle": "Escaneo completado",
-    "cancelledTitle": "Análisis detenido",
+    "cancelledTitle": "Escaneo detenido",
     "doneSubtitle": "{{added}} añadidos · {{updated}} actualizados · {{skipped}} omitidos",
     "scanningIn": "Analizando {{dir}}",
     "doneErrors_one": "{{count}} archivo con error",

@@ -95,8 +95,13 @@ export function TrackTableHeader({
    *  whatever the grid gave it — starting the drag at 280px makes it
    *  jump the moment the pointer moves. Falls back to the declared
    *  width when the element cannot be measured. */
-  const startWidthFor = (element: Element | null, fallback: number) =>
-    element?.parentElement?.getBoundingClientRect().width ?? fallback;
+  const startWidthFor = (element: Element | null, fallback: number) => {
+    const measured = element?.parentElement?.getBoundingClientRect().width;
+    // `0` is what an element that is not laid out measures, and it is a
+    // number -- so `??` alone would take it and start the gesture from
+    // zero, snapping the column shut on the first pointer move.
+    return measured != null && measured > 0 ? measured : fallback;
+  };
 
   const onPointerDown = useCallback(
     (

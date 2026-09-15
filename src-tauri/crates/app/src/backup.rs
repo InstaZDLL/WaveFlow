@@ -278,9 +278,6 @@ pub async fn run_one_backup(
     } else {
         PathBuf::from(&config.folder)
     };
-    std::fs::create_dir_all(&folder)
-        .map_err(|e| AppError::Other(format!("create backup folder: {e}")))?;
-
     // Stops after the archive it is on. One whole archive is the unit
     // of work — a half-written `.waveflow` is worse than a slow one —
     // so on a single-profile install this is the end anyway. It is
@@ -298,6 +295,18 @@ pub async fn run_one_backup(
             stop_for_cancel.store(true, std::sync::atomic::Ordering::Relaxed);
         }),
     );
+
+    // Announced before the folder is touched, and the touch is on the
+    // blocking pool. A backup folder is routinely a network share or an
+    // external disk, and `create_dir_all` on one that has gone away
+    // blocks for as long as the filesystem takes to give up — on a
+    // runtime thread, with nothing in the status bar to say what the
+    // app is waiting for. That is the case the bar exists for.
+    let folder_for_create = folder.clone();
+    tokio::task::spawn_blocking(move || std::fs::create_dir_all(&folder_for_create))
+        .await
+        .map_err(|e| AppError::Other(format!("create backup folder task: {e}")))?
+        .map_err(|e| AppError::Other(format!("create backup folder: {e}")))?;
 
     // Active profile gets a WAL checkpoint so the bundled DB captures
     // every committed page. Inactive profiles are cold on disk — their

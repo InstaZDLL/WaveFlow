@@ -1693,11 +1693,17 @@ pub(crate) async fn scan_folder_inner(
             "scan:progress",
             ScanProgress {
                 folder_id,
-                // The files actually walked, not the whole folder. A
-                // stopped scan sitting at 100% is the same lie as the
-                // title, one line further down.
+                // The files actually dealt with, not the whole folder:
+                // a stopped scan sitting at 100% is the same lie as the
+                // title one line down.
+                //
+                // `processed` and not `summary.scanned`, which counts
+                // the triage loop -- and that loop runs to completion
+                // before extraction starts, so for any stop taken
+                // during extraction, where the time actually goes, it
+                // already equals `total_files`.
                 current: if summary.cancelled {
-                    summary.scanned as usize
+                    processed
                 } else {
                     total_files
                 },
