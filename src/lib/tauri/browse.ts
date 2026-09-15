@@ -407,7 +407,7 @@ interface LibraryTrackRowSlim
   artwork_has_2x: boolean;
 }
 
-interface ListLibraryTracksResponse {
+export interface ListLibraryTracksResponse {
   artwork_base: string;
   items: LibraryTrackRowSlim[];
 }
@@ -434,9 +434,11 @@ export async function listLibraryTracks(
   return expandLibraryTrackRows(resp);
 }
 
-/** Wire-format rows to UI rows. Shared by the library listing and the
- *  folder listing (#578) so the two cannot drift on artwork paths. */
-function expandLibraryTrackRows(
+/** Wire-format rows to UI rows. Shared by the library listing, the
+ *  folder listing (#578) and the inventory (#589) so they cannot drift
+ *  on artwork paths. Exported for the third one, which lives in its own
+ *  module. */
+export function expandLibraryTrackRows(
   resp: ListLibraryTracksResponse,
 ): LibraryTrackRow[] {
   const sep = pathSep(resp.artwork_base);

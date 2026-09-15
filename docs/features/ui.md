@@ -48,6 +48,39 @@ Two surfaces needed more than a key handler: history rows had no `tabIndex` at a
 - [`LyricsPanel`](../../src/components/layout/LyricsPanel.tsx) — synced or static lyrics with auto-scroll.
 - [`NowPlayingChevronTab`](../../src/components/layout/NowPlayingChevronTab.tsx) — right-edge floating tab visible only when no panel is open.
 
+## Long-running tasks
+
+One status bar for every operation that takes long enough to wonder about
+(issue #601): the library scan, the analysis sweep, lyrics prefetch, the
+catalogue mirror, reconciliation, uploads, backups, the thumbnail pass.
+[`TaskStatusBar`](../../src/components/layout/TaskStatusBar.tsx) subscribes to
+`tasks:changed` before asking for a snapshot, so a task that starts between the
+two is not missed.
+
+The registry ([`tasks.rs`](../../src-tauri/crates/app/src/tasks.rs)) deliberately
+does **not** implement cancellation. Five of these operations already had a
+stopping point of their own, each in a different place, so a task registers how
+it stops and the registry routes to it — re-deriving five stopping points would
+have got at least one wrong. A task whose whole mechanism is a flag registers
+`Cancellation::Flag` and polls `is_cancelling()`.
+
+Two things a stopping point has to respect, both learned the hard way:
+
+- **A scan's safe stopping point is not between two files.** The scan ends with
+  a pass that marks everything the walk did not reach as `is_available = 0`.
+  Stopping halfway and letting that run marks a working library unavailable
+  *because the user pressed stop*. The sweep is skipped entirely on a cancelled
+  scan, and the one-off ReplayGain and custom-tag backfill markers are not
+  written either — they never run twice, so recording them would leave those
+  tracks without their data permanently.
+- **A cancellation callback is bound to the run that registered it.** The
+  stopping flags are process-wide statics shared by every run of their
+  operation, so a callback picked up as its task retires could otherwise land on
+  the next run and stop an analysis nobody asked to stop.
+
+Progress is throttled to 250 ms, except the final tick, so a task that ends on a
+full bar shows a full bar.
+
 ## Immersive view
 
 [`ImmersiveView`](../../src/components/player/ImmersiveView.tsx) (`fixed inset-0 z-100`) is the Apple-Music-TV-style fullscreen view that turns the current track into the focal point: the cover hero + metadata + transport centred as one group on the left, and a **tabbed control panel on the right** — Lyrics / Queue (issue #328). Background is a blurred copy of the artwork (with a 65% black wash) so the view stays visually anchored without extra theming.
@@ -306,6 +339,19 @@ User overrides are stored per-profile in `profile_setting['ui.shortcuts']` as a 
 - **Single-click play** — optional Settings toggle; the default is double-click to mirror Apple Music / Finder.
 - **Framer Motion** — `motion/react` provides micro-interactions (sidebar nav reorder, modal open, view fade-in, queue drag). One global [`SkinMotionWrapper`](../../src/components/layout/SkinMotionWrapper.tsx) feeds skin-specific `transition` config to the `MotionConfig` provider so per-skin springs (Pulse uses `cubic-bezier(0.34, 1.56, 0.64, 1)`, Lounge stays tame, etc.) apply automatically without touching call sites.
 
+## High contrast
+
+A third axis alongside theme and skin (#596): **`auto` / `normal` / `high`**, per profile, in Settings → Appearance. `auto` is the default and defers to the OS `prefers-contrast: more`; the other two are explicit and win over the OS in both directions. [`applyContrast()`](../../src/lib/contrast.ts) writes the *resolved* state (`high` or `normal`, never `auto`) to `data-contrast` on `<html>`, so no stylesheet has to know what `auto` resolved to.
+
+What the mode changes:
+
+- **Secondary text**. Tailwind's `--color-zinc-{300,400,500,600}` are re-pointed at `--wf-zinc-*` through `@theme inline`, the same lever that lets a theme re-tint every `bg-emerald-*`. Those four shades are ~1 100 *text* uses and almost nothing else; 700-900 are deliberately left alone because each of them is a background, a border **and** text at once, and one value cannot deepen a surface and lighten a border at the same time. Light ground darkens, dark ground lightens — which means the dark-ground selector has to include `[data-skin="lounge"]` and `[data-skin="pulse"]`, since those two are dark by skin and never carry the `.dark` class.
+- **Blur off**, plus opacity. `backdrop-filter` is reset globally, and every surface that was legible *only* thanks to its blur is forced opaque in the same breath — `.wf-glass` for the app's own chrome, and a per-skin block in `liquid.css` / `pulse.css` / `lounge.css` for theirs. Skipping the second half is worse than doing nothing: Pulse's sticky header is `transparent` and Liquid's chrome is a 8-16 % tint, so unblurring alone puts their text straight onto the content scrolling underneath. Purely decorative translucency over a hero gradient is left as it is.
+- **Focus** becomes a 3 px `outline` (not a ring — an outline survives an `overflow: hidden` ancestor).
+- **Switches and checkboxes** gain an edge in both states and a mark in the on state, so "filled versus not filled" stops being the only signal. Keyed on `[role="switch"]`, which the shared [`ToggleSwitch`](../../src/components/common/ToggleSwitch.tsx) and every inline copy already carry.
+
+The first paint is handled by the bootstrap script in `index.html` alongside the theme and skin stamps; [`ContrastProvider`](../../src/contexts/ContrastContext.tsx) re-stamps it from the profile row a few ms later, and is mounted in the mini-player's tree too — that window has its own document, so it needs its own stamp.
+
 ## Skins
 
 Skins are an **orthogonal axis to the 14 colour themes**: a skin re-skins surfaces, typography, motion and signature elements (e.g. Editorial's drop caps, Pulse's vinyl-spin cover); the theme picks the OKLCH accent. Every skin × theme combination is valid → **5 × 14 = 70 visual identities**.
@@ -325,7 +371,7 @@ Skins are an **orthogonal axis to the 14 colour themes**: a skin re-skins surfac
 **Architecture** :
 
 - Token system + `SkinId` union live in [`src/lib/skins.ts`](../../src/lib/skins.ts); `applySkin()` writes `data-skin` on `<html>`.
-- Per-skin overrides live in `src/styles/skins/{editorial,lounge,pulse,liquid}.css` (Studio = no overrides, baseline). The four files are imported from `src/app.css`.
+- Per-skin overrides live in `src/styles/skins/{editorial,lounge,pulse,liquid}.css` (Studio = no overrides, baseline). The four files are imported from `src/app.css`. Three of them also carry a high-contrast block (see above) — a skin that adds a glass surface has to add it there too, or that surface becomes unreadable in the mode.
 - [`src/app.css`](../../src/app.css) extends the Tailwind `dark` variant via `@custom-variant dark (.dark, .dark *, :root[data-skin="lounge"] *, :root[data-skin="pulse"] *)` — Lounge/Pulse fire `dark:*` utilities automatically because they're always "dark" by design (Liquid stays theme-aware).
 - **Local-first typography** — all skin fonts are bundled via `@fontsource` / `@fontsource-variable` (Playfair Display, Lora, Space Grotesk, Space Mono, DM Sans Variable) and imported at the top of [`src/main.tsx`](../../src/main.tsx). Zero network at runtime — no Google Fonts request.
 - **Motion** — each skin declares its own `MotionConfig` spring in `SkinMotionWrapper`. Skins with strong identity (Pulse, Editorial) override the spring; calmer skins (Studio, Lounge, Liquid) inherit the soft default.

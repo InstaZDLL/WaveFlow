@@ -280,6 +280,16 @@ pub async fn delete_profile(state: tauri::State<'_, AppState>, profile_id: i64) 
         ));
     }
 
+    // Held across the row removal *and* the directory sweep below.
+    // `set_cache_location` takes the same lock, and the two read the
+    // same list: it snapshots the profiles to copy, this one deletes
+    // one of them. Interleaved, the copy recreates a deleted profile's
+    // cache at the destination after the sweep has been past -- and
+    // nothing enumerates a deleted profile afterwards, so it would stay
+    // there for good. Both are rare and user-driven; serialising them
+    // costs nothing anyone can perceive.
+    let _serialized = state.cache_move_lock.clone().lock_owned().await;
+
     let repo = profile_repo(&state);
     match repo.delete_guarded(profile_id).await? {
         ProfileDeleteOutcome::Deleted => {}
@@ -302,6 +312,43 @@ pub async fn delete_profile(state: tauri::State<'_, AppState>, profile_id: i64) 
     .bind(profile_id.to_string())
     .execute(&state.app_db)
     .await?;
+
+    // The caches can live outside the app-data tree since #619, and
+    // `profile_dir` no longer covers them. Removed first and
+    // best-effort: a deleted profile's artwork left on another drive is
+    // exactly the disk usage the user moved it there to control.
+    //
+    // Plural, and asked for rather than derived here: a staged move and
+    // a fallen-back session both leave a second copy under the
+    // *configured* root while the app reads the active one, and after
+    // this command nothing can enumerate a deleted profile any more.
+    for cache_dir in crate::commands::storage::profile_cache_dirs_elsewhere(&state, profile_id)
+        .await
+        .into_iter()
+        .filter(|dir| dir.exists())
+    {
+        let for_blocking = cache_dir.clone();
+        // Both failures, not only the join: the inner `io::Error` is the
+        // one that actually happens (a file held open, a permission),
+        // and swallowing it would leave the directory behind with
+        // nothing in the log to say why.
+        match tokio::task::spawn_blocking(move || std::fs::remove_dir_all(&for_blocking)).await {
+            Ok(Ok(())) => {}
+            Ok(Err(err)) if err.kind() == std::io::ErrorKind::NotFound => {}
+            Ok(Err(err)) => tracing::warn!(
+                profile_id,
+                path = %cache_dir.display(),
+                %err,
+                "removing the profile's relocated cache directory failed"
+            ),
+            Err(join_err) => tracing::warn!(
+                profile_id,
+                path = %cache_dir.display(),
+                %join_err,
+                "relocated-cache removal task failed; the directory may be partially removed"
+            ),
+        }
+    }
 
     let dir = state.paths.profile_dir(profile_id);
     if dir.exists() {

@@ -3,14 +3,25 @@
 ## On-disk layout
 
 ```bash
-<app_data_dir>/waveflow/
+<app_data_dir>/waveflow/                 # AppPaths::root
 ├── app.db                       (global registry + app settings)
 ├── avatars/                     (shared profile avatars, blake3-hash-addressed)
-├── metadata_artwork/            (shared remote artwork cache, blake3-hash-addressed)
 └── profiles/
     └── <profile_id>/
         ├── data.db              (per-profile database)
-        └── artwork/             (per-profile embedded artwork cache)
+        ├── motion/              (motion covers the user picked, never evicted)
+        ├── canvas/              (Canvas clips the user picked, never evicted)
+        └── remote-downloads/    (offline copies the user asked for)
+
+<cache_root>/                            # AppPaths::cache_root — `root` unless moved
+├── metadata_artwork/            (shared remote artwork cache, blake3-hash-addressed)
+├── motion_cache/                (shared animated-cover LRU)
+├── canvas_cache/                (shared per-track Canvas LRU)
+└── profiles/
+    └── <profile_id>/
+        ├── artwork/             (per-profile embedded artwork cache)
+        ├── remote-artwork/      (per-profile remote cover cache)
+        └── remote-stream/       (per-profile remote audio cache)
 ```
 
 `<app_data_dir>` resolves via Tauri's `app_data_dir()`, which honours the bundle identifier (`app.waveflow`):
@@ -20,6 +31,22 @@
 - Linux: `~/.local/share/app.waveflow/waveflow/`
 
 The inner `waveflow/` segment is a hardcoded subdirectory in [`paths.rs`](../../src-tauri/crates/app/src/paths.rs). Don't rename it — existing user libraries point at it. The product display name is `WaveFlow` ([`tauri.conf.json`](../../src-tauri/crates/app/tauri.conf.json)) but the path stays lowercase for backwards compatibility.
+
+## Moving the caches (#619)
+
+Artwork landed on the system drive whatever drive WaveFlow was installed on, and a `C:` that is critically low on space takes the machine down with it. Settings → Data can point `cache_root` elsewhere; the choice lives in `app_setting['storage.cache_root']`, app-wide.
+
+**The split is not "big things move" — it is *evictable moves, chosen stays*.** Everything under `cache_root` is content-addressed or LRU-evicted, so the worst case of a failed move, a missing drive or a half-copy is a re-fetch. Databases, hand-picked motion covers and Canvas clips, and offline downloads would have to be recreated by hand, so moving them would be a migration rather than a setting — that is the heavier option the issue offers, and deliberately not the one taken.
+
+Five things follow from that, each of which is a silent failure if skipped:
+
+- **The move copies, persists, restarts, and only then deletes.** `AppState` hands out a plain `AppPaths` captured at boot and ~95 call sites read it directly, so the running process cannot adopt a new root; the old tree is removed by a startup pass (`cleanup_moved_caches`) once a fresh process is reading the new one. Power loss between any two steps leaves a whole copy on disk and a setting naming a whole copy.
+- **The asset scope has to be widened at runtime.** See below.
+- **A missing drive falls back without forgetting.** `resolve_cache_root` drops to the default location for that session and leaves the stored choice alone, so plugging the drive back in is enough. The Settings card says so: caches reappearing at the default location is, from the user's side, indistinguishable from them having been wiped.
+- **`reset_app` has to wipe both roots.** It removes `AppPaths::root`, which stopped being the whole story here; `wipe_targets_outside_root` covers the difference.
+- **Nothing outside the app-data tree is deleted without an ownership marker.** The cache layout is a set of ordinary names — `metadata_artwork`, `motion_cache`, `profiles` — under a folder the user picked in a file dialog, so a root that already contains a `profiles/` directory would otherwise have it removed by a reset. `.waveflow-cache` at the root says WaveFlow created the tree; a folder holding one of those names *without* the marker is refused at adoption rather than silently taken over, and every recursive delete checks for it first.
+
+The startup order matters and is easy to get backwards: `app.db` lives at the *default* root, so it is opened first, and only then is the cache root read out of it. `ensure_dirs` therefore runs after that read — running it before would create the cache tree at the default location a moment before learning it belongs somewhere else.
 
 ## Two databases
 
@@ -34,7 +61,7 @@ Migrations: [`src-tauri/migrations/app/`](../../src-tauri/migrations/app).
 
 ### `data.db` (per-profile)
 
-- Library: `library`, `library_folder`, `track` (which also carries the ReplayGain the file's own tags declare, in `rg_track_gain_db` / `rg_track_peak` / `rg_album_gain_db` / `rg_album_peak` — a property of the file, refreshed by every scan, as opposed to what `track_analysis` measured), `artist`, `album`, `genre`, `track_artist`, `track_genre`, `artwork`, `track_analysis`, `playlist`, `playlist_track`, `liked_track`, `queue_item`, `play_event`, `scrobble_queue`, `profile_setting`, `track_fts` (FTS5, **trigram**-tokenised and content-owning since #579 — see [library.md](../features/library.md#search) for why neither is optional).
+- Library: `library`, `library_folder`, `track` (which also carries the ReplayGain the file's own tags declare, in `rg_track_gain_db` / `rg_track_peak` / `rg_album_gain_db` / `rg_album_peak` — a property of the file, refreshed by every scan, as opposed to what `track_analysis` measured), `artist`, `album`, `genre`, `track_artist`, `track_genre`, `track_tag` (custom tags read from the user's own files, #588 — one row per `(track_id, key)`, written by the scanner from the *concrete* tag's remainder, cascade-deleted with its track), `artwork`, `track_analysis`, `playlist`, `playlist_track`, `liked_track`, `queue_item`, `play_event`, `scrobble_queue`, `profile_setting`, `track_fts` (FTS5, **trigram**-tokenised and content-owning since #579 — see [library.md](../features/library.md#search) for why neither is optional).
 - Remote covers (`sync_v2`): `profiles/<id>/remote-artwork/`, an evictable disk cache of the server's hash-addressed cover art. Unlike `motion/` and `canvas/`, nothing here was chosen by the user — every file is a reproducible download ([RFC-005](../rfcs/RFC-005-remote-source-and-sync-v2.md#cover-art-is-cached-on-disk-not-inlined)).
 - Remote source (`sync_v2`): `remote_binding`, `remote_playlist`, `remote_playlist_track`, `remote_favorite`, `remote_rating`, `remote_history`, `remote_queue`, `remote_queue_track`, `remote_share`, `remote_share_track`, `remote_track`, `remote_album`, `remote_library`, `remote_mutation`, `remote_track_link`. All derived from the server and droppable — dropping them and re-fetching a snapshot is always a valid recovery. `remote_track.in_catalogue` marks the rows the catalogue walk owns, so purging the mirror cannot take a playlist's titles with it ([RFC-005](../rfcs/RFC-005-remote-source-and-sync-v2.md#the-catalogue-mirror)).
 - Profile-scoped pool: every command that touches user data goes through `state.require_profile_pool().await?`.
@@ -108,3 +135,5 @@ Both follow the same `INSERT … ON CONFLICT DO UPDATE` typed-value pattern (`va
 Files under `metadata_artwork/`, `avatars/` and `profiles/<id>/artwork/` are served to the renderer via Tauri's asset protocol (`tauri.conf.json::app.security.assetProtocol`). Frontend code uses [`convertFileSrc()`](https://tauri.app/v2/api/js/core#convertfilesrc) to map an absolute path to an `asset://` URL the `<img>` tag can load.
 
 Smart-playlist covers reuse `metadata_artwork/` (no extra scope needed).
+
+**The declared scope is static, and a moved cache root matches none of it.** `tauri.conf.json` lists `$APPDATA/…` and `$APPLOCALDATA/…` patterns only, so artwork on another drive fails to load with no error and no console message — just an image that never appears. `commands::storage::grant_asset_scope` widens the scope at startup through `asset_protocol_scope().allow_directory(…)`. It runs on **every** launch: a scope grant lives in the process, not on disk.

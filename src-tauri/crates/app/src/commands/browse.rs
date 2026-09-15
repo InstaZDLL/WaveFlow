@@ -524,7 +524,7 @@ pub struct ListLibraryTracksResponse {
 }
 
 #[derive(sqlx::FromRow)]
-struct LibraryTrackRawRow {
+pub(crate) struct LibraryTrackRawRow {
     source: String,
     id: String,
     library_id: Option<i64>,
@@ -559,58 +559,134 @@ struct LibraryTrackRawRow {
 /// no canonical form for it either. Consistency per column is what matters —
 /// normalising one side of a comparison and not the other is exactly how an
 /// artist ends up in two places.
-fn library_track_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'static str {
-    // `duration_ms` is the column name, and it is what the sort dropdown and
-    // the persisted preference both carry. Matching on "duration" here sent
-    // every duration sort to the fallback clause instead.
-    let dir_default_desc = matches!(
-        order_by,
-        Some("duration_ms") | Some("added_at") | Some("year") | Some("rating")
-    );
+/// The SQL expression a column sorts on, or `None` when the key is not
+/// a sortable column.
+///
+/// A **whitelist**, and the only reason the caller may hand its result
+/// to `AssertSqlSafe`: `order_by` reaches here from the frontend, so
+/// anything that is not matched here must produce the default clause
+/// rather than reaching a query.
+///
+/// Text columns sort case-insensitively; numeric ones do not, and every
+/// nullable one puts its NULLs last in both directions — an untagged
+/// track is not a track with the smallest value, and burying a run of
+/// blanks at the top of an ascending sort is the fastest way to make a
+/// column look broken (#588).
+fn track_sort_expr(key: &str) -> Option<(&'static str, bool)> {
+    // (expression, nulls_last)
+    Some(match key {
+        "title" => ("title COLLATE NOCASE", false),
+        "artist" => ("sort_artist COLLATE NOCASE", true),
+        "album" => ("sort_album COLLATE NOCASE", true),
+        "duration_ms" => ("duration_ms", false),
+        "year" => ("year", true),
+        "added_at" => ("added_at", false),
+        // Local-only: a server track has no rating, and an unratable row
+        // is not a badly-rated one.
+        "rating" => ("rating", true),
+        "track_number" => ("track_number", true),
+        "disc_number" => ("disc_number", true),
+        "bitrate" => ("bitrate", true),
+        "sample_rate" => ("sample_rate", true),
+        "bit_depth" => ("bit_depth", true),
+        "channels" => ("channels", true),
+        "codec" => ("codec COLLATE NOCASE", true),
+        "musical_key" => ("musical_key COLLATE NOCASE", true),
+        "file_size" => ("file_size", true),
+        "file_path" => ("file_path COLLATE NOCASE", true),
+        _ => return None,
+    })
+}
+
+/// Columns that read as "most first": clicking one of these the first
+/// time should give the newest, the longest, the best rated — not the
+/// oldest.
+fn sorts_descending_by_default(key: Option<&str>) -> bool {
+    matches!(
+        key,
+        Some("duration_ms")
+            | Some("added_at")
+            | Some("year")
+            | Some("rating")
+            | Some("bitrate")
+            | Some("sample_rate")
+            | Some("bit_depth")
+            | Some("file_size")
+    )
+}
+
+/// The `ORDER BY` for a track listing.
+///
+/// Returns an owned string rather than a `&'static str` since #588: the
+/// sortable set is every column the table can show, and spelling out
+/// two match arms per column was how the previous shape quietly stopped
+/// at seven of them.
+pub(crate) fn library_track_order_clause(
+    order_by: Option<&str>,
+    direction: Option<&str>,
+) -> String {
     let dir = match direction {
         Some(d) if d.eq_ignore_ascii_case("asc") => "ASC",
         Some(d) if d.eq_ignore_ascii_case("desc") => "DESC",
         _ => {
-            if dir_default_desc {
+            if sorts_descending_by_default(order_by) {
                 "DESC"
             } else {
                 "ASC"
             }
         }
     };
-    match (order_by, dir) {
-        (Some("title"), "ASC") => "ORDER BY title COLLATE NOCASE ASC",
-        (Some("title"), "DESC") => "ORDER BY title COLLATE NOCASE DESC",
-        (Some("artist"), "ASC") => {
-            "ORDER BY sort_artist COLLATE NOCASE ASC, title COLLATE NOCASE"
-        }
-        (Some("artist"), "DESC") => {
-            "ORDER BY sort_artist COLLATE NOCASE DESC, title COLLATE NOCASE"
-        }
-        (Some("album"), "ASC") => {
-            "ORDER BY sort_album COLLATE NOCASE ASC, disc_number, track_number"
-        }
-        (Some("album"), "DESC") => {
-            "ORDER BY sort_album COLLATE NOCASE DESC, disc_number, track_number"
-        }
-        (Some("duration_ms"), "ASC") => "ORDER BY duration_ms ASC",
-        (Some("duration_ms"), "DESC") => "ORDER BY duration_ms DESC",
-        (Some("year"), "ASC") => "ORDER BY year ASC, title COLLATE NOCASE",
-        (Some("year"), "DESC") => "ORDER BY year DESC, title COLLATE NOCASE",
-        (Some("added_at"), "ASC") => "ORDER BY added_at ASC",
-        (Some("added_at"), "DESC") => "ORDER BY added_at DESC",
-        // Rating is local-only, so a server track has none. NULLs last in
-        // either direction: an unratable row is not a badly-rated one.
-        (Some("rating"), "ASC") => {
-            "ORDER BY rating IS NULL, rating ASC, title COLLATE NOCASE"
-        }
-        (Some("rating"), "DESC") => {
-            "ORDER BY rating IS NULL, rating DESC, title COLLATE NOCASE"
-        }
-        _ => {
-            "ORDER BY sort_artist COLLATE NOCASE,\n                  sort_album COLLATE NOCASE,\n                  disc_number,\n                  track_number,\n                  title COLLATE NOCASE"
-        }
+
+    // The library's natural reading order, and the answer for any key
+    // that is not a sortable column.
+    // `source, id` here too, for the reason the explicit clauses carry
+    // it: this is the order most lists are rendered in, so it is the one
+    // where a pair of rows swapping places between two refreshes would
+    // be seen most often.
+    const DEFAULT: &str = "ORDER BY sort_artist COLLATE NOCASE,
+                  sort_album COLLATE NOCASE,
+                  disc_number,
+                  track_number,
+                  title COLLATE NOCASE,
+                  source,
+                  id";
+
+    let Some((expr, nulls_last)) = order_by.and_then(track_sort_expr) else {
+        return DEFAULT.to_string();
+    };
+
+    let mut clause = String::from("ORDER BY ");
+    if nulls_last {
+        // SQLite has `NULLS LAST` from 3.30, but `expr IS NULL` works on
+        // every build and is what the rest of this file already uses.
+        clause.push_str(expr);
+        clause.push_str(" IS NULL, ");
     }
+    clause.push_str(expr);
+    clause.push(' ');
+    clause.push_str(dir);
+
+    // A stable tie-break, so two rows that compare equal do not swap
+    // places between two identical queries. Album sorts read down the
+    // disc, everything else falls back to the title.
+    match order_by {
+        // `sort_artist` first, exactly as DEFAULT above orders it:
+        // album titles are not unique across artists (`Greatest Hits`,
+        // `Live`, an untitled rip), and without it two such albums
+        // interleave track 1 against track 1 all the way down.
+        Some("album") => clause.push_str(", sort_artist COLLATE NOCASE, disc_number, track_number"),
+        Some("title") => {}
+        _ => clause.push_str(", title COLLATE NOCASE"),
+    }
+    // ...and then a **total** order. Two tracks of the same album with
+    // the same disc and track number, or two files with the same title,
+    // are ordinary in a library with duplicates -- which is precisely
+    // the library whose owner is most likely to be sorting a column to
+    // find them. `source` before `id` because the two halves of the
+    // union number independently: a local rowid and a server UUID can
+    // read as equal text.
+    clause.push_str(", source, id");
+    clause
 }
 
 /// Both halves of the track listing, as one compound select.
@@ -628,7 +704,7 @@ fn library_tracks_sql(order_clause: &str) -> String {
 /// `extra_where` is composed at the call site, never from user input: it
 /// holds `AND ...` fragments whose values are bound, and its `?`
 /// placeholders bind *after* the union's own five.
-fn library_tracks_sql_where(extra_where: &str, order_clause: &str) -> String {
+pub(crate) fn library_tracks_sql_where(extra_where: &str, order_clause: &str) -> String {
     format!(
         r#"
         SELECT source, id, library_id, title, album_id, album_title, artist_id, artist_name,
@@ -761,7 +837,7 @@ pub async fn list_library_tracks(
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let order_clause = library_track_order_clause(order_by.as_deref(), direction.as_deref());
-    let sql = library_tracks_sql(order_clause);
+    let sql = library_tracks_sql(&order_clause);
 
     let raw = sqlx::query_as::<_, LibraryTrackRawRow>(sqlx::AssertSqlSafe(sql))
         .bind(library_id)
@@ -782,7 +858,7 @@ pub async fn list_library_tracks(
 
 /// Stitch thumbnail-existence flags onto the local half only. See
 /// [`expand_library_album_rows`].
-async fn expand_library_track_rows(
+pub(crate) async fn expand_library_track_rows(
     raw: Vec<LibraryTrackRawRow>,
     artwork_dir: PathBuf,
 ) -> AppResult<Vec<LibraryTrackRow>> {
@@ -2182,7 +2258,7 @@ pub async fn list_folder_tracks(
             AND file_path >= ?
             AND file_path <  ?
             AND (? = 1 OR instr(substr(file_path, ?), ?) = 0)",
-        order_clause,
+        &order_clause,
     );
 
     let (low, high) = folder_prefix_range(&path);
@@ -3143,6 +3219,109 @@ pub async fn play_history_months(
 
 #[cfg(test)]
 mod tests {
+    use super::{library_track_order_clause, track_sort_expr};
+
+    /// The security property, not a style one: `order_by` arrives from
+    /// the frontend and the result is handed to `AssertSqlSafe`, so
+    /// anything outside the whitelist has to fall back to the default
+    /// clause rather than reach a query (#588).
+    #[test]
+    fn an_unknown_sort_key_falls_back_to_the_default_order() {
+        for key in [
+            "nonsense",
+            "title; DROP TABLE track",
+            "1) UNION SELECT 1 --",
+            "",
+            "TITLE",
+        ] {
+            let clause = library_track_order_clause(Some(key), Some("asc"));
+            assert!(
+                clause.starts_with("ORDER BY sort_artist COLLATE NOCASE"),
+                "{key:?} produced {clause:?}"
+            );
+            assert!(!clause.contains(key) || key.is_empty(), "{key:?} leaked");
+        }
+    }
+
+    /// Every sortable column must be reachable. The previous shape spelled
+    /// out two match arms per column and quietly stopped at seven, which is
+    /// what this pins.
+    #[test]
+    fn every_column_the_table_can_show_is_sortable() {
+        for key in [
+            "title",
+            "artist",
+            "album",
+            "duration_ms",
+            "year",
+            "added_at",
+            "rating",
+            "track_number",
+            "disc_number",
+            "bitrate",
+            "sample_rate",
+            "bit_depth",
+            "channels",
+            "codec",
+            "musical_key",
+            "file_size",
+            "file_path",
+        ] {
+            assert!(track_sort_expr(key).is_some(), "{key} is not sortable");
+            let clause = library_track_order_clause(Some(key), Some("asc"));
+            assert!(
+                !clause.starts_with("ORDER BY sort_artist COLLATE NOCASE,"),
+                "{key} fell through to the default"
+            );
+        }
+    }
+
+    /// An untagged track is not a track with the smallest value. A run of
+    /// blanks at the top of an ascending sort is the fastest way to make a
+    /// column look broken.
+    #[test]
+    fn nullable_columns_sort_their_blanks_last_in_both_directions() {
+        for dir in ["asc", "desc"] {
+            let clause = library_track_order_clause(Some("bitrate"), Some(dir));
+            assert!(clause.contains("bitrate IS NULL"), "{clause}");
+        }
+        // Not nullable, so no guard — `duration_ms` is `NOT NULL`.
+        let clause = library_track_order_clause(Some("duration_ms"), Some("asc"));
+        assert!(!clause.contains("IS NULL"), "{clause}");
+    }
+
+    /// Clicking "added" or "duration" for the first time should give the
+    /// newest and the longest, not the oldest and the shortest.
+    #[test]
+    fn some_columns_default_to_descending() {
+        assert!(library_track_order_clause(Some("added_at"), None).contains("DESC"));
+        assert!(library_track_order_clause(Some("rating"), None).contains("DESC"));
+        assert!(library_track_order_clause(Some("title"), None).contains("ASC"));
+        assert!(library_track_order_clause(Some("codec"), None).contains("ASC"));
+    }
+
+    /// Two rows that compare equal must not swap places between two
+    /// identical queries — a list that reshuffles on every refresh is a
+    /// list nobody trusts.
+    #[test]
+    fn every_sort_carries_a_tie_break() {
+        for key in ["artist", "year", "bitrate", "codec"] {
+            let clause = library_track_order_clause(Some(key), Some("asc"));
+            assert!(
+                clause.contains("title COLLATE NOCASE"),
+                "{key} has no tie-break: {clause}"
+            );
+        }
+        // An album sort reads down the disc instead -- but only after
+        // the artist, or two albums sharing a title (`Greatest Hits`)
+        // interleave their track 1s.
+        let album = library_track_order_clause(Some("album"), Some("asc"));
+        assert!(
+            album.contains("sort_artist COLLATE NOCASE, disc_number, track_number"),
+            "{album}"
+        );
+    }
+
     use super::*;
     use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
     use sqlx::{Row, SqlitePool};
@@ -3842,7 +4021,7 @@ mod tests {
         let pool = pool().await;
         seed(&pool).await;
 
-        let rows = tracks(&pool, None, None, library_track_order_clause(None, None)).await;
+        let rows = tracks(&pool, None, None, &library_track_order_clause(None, None)).await;
         // "aphex twin" before "bjork", from the normalised keys on both sides.
         assert_eq!(
             rows.iter().map(|row| row.1.as_str()).collect::<Vec<_>>(),
@@ -3860,11 +4039,12 @@ mod tests {
         let pool = pool().await;
         seed(&pool).await;
 
-        let titles: Vec<String> = tracks(&pool, None, None, library_track_order_clause(None, None))
-            .await
-            .into_iter()
-            .map(|row| row.1)
-            .collect();
+        let titles: Vec<String> =
+            tracks(&pool, None, None, &library_track_order_clause(None, None))
+                .await
+                .into_iter()
+                .map(|row| row.1)
+                .collect();
         assert!(!titles.iter().any(|title| title == "Not in the catalogue"));
     }
 
@@ -3886,11 +4066,12 @@ mod tests {
         .await
         .unwrap();
 
-        let titles: Vec<String> = tracks(&pool, None, None, library_track_order_clause(None, None))
-            .await
-            .into_iter()
-            .map(|row| row.1)
-            .collect();
+        let titles: Vec<String> =
+            tracks(&pool, None, None, &library_track_order_clause(None, None))
+                .await
+                .into_iter()
+                .map(|row| row.1)
+                .collect();
         assert_eq!(titles, vec!["R2".to_string(), "T1".to_string()]);
     }
 
@@ -3912,7 +4093,7 @@ mod tests {
         .await
         .unwrap();
         // A stale link is a guess. Hiding on a guess loses the track.
-        let stale: Vec<String> = tracks(&pool, None, None, library_track_order_clause(None, None))
+        let stale: Vec<String> = tracks(&pool, None, None, &library_track_order_clause(None, None))
             .await
             .into_iter()
             .map(|row| row.1)
@@ -3930,7 +4111,7 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        let gone: Vec<String> = tracks(&pool, None, None, library_track_order_clause(None, None))
+        let gone: Vec<String> = tracks(&pool, None, None, &library_track_order_clause(None, None))
             .await
             .into_iter()
             .map(|row| row.1)
@@ -4262,7 +4443,7 @@ mod tests {
                 &pool,
                 None,
                 None,
-                library_track_order_clause(Some("rating"), Some(direction)),
+                &library_track_order_clause(Some("rating"), Some(direction)),
             )
             .await;
             assert_eq!(rows[0].1, "T1", "{direction}: the rated track leads");
@@ -4287,7 +4468,7 @@ mod tests {
             &pool,
             None,
             None,
-            library_track_order_clause(Some("duration_ms"), Some("desc")),
+            &library_track_order_clause(Some("duration_ms"), Some("desc")),
         )
         .await;
         assert_eq!(longest.first().map(|row| row.1.as_str()), Some("R1"));
@@ -4296,7 +4477,7 @@ mod tests {
             &pool,
             None,
             None,
-            library_track_order_clause(Some("duration_ms"), Some("asc")),
+            &library_track_order_clause(Some("duration_ms"), Some("asc")),
         )
         .await;
         assert_eq!(shortest.last().map(|row| row.1.as_str()), Some("R1"));
@@ -4308,15 +4489,15 @@ mod tests {
         seed(&pool).await;
         let order = library_track_order_clause(None, None);
 
-        let local = tracks(&pool, None, Some("local"), order).await;
+        let local = tracks(&pool, None, Some("local"), &order).await;
         assert_eq!(local.len(), 1);
         assert_eq!(local[0].0, "local");
 
-        let remote = tracks(&pool, None, Some("remote"), order).await;
+        let remote = tracks(&pool, None, Some("remote"), &order).await;
         assert_eq!(remote.len(), 2);
         assert!(remote.iter().all(|row| row.0 == "remote"));
 
-        let scoped = tracks(&pool, Some(1), None, order).await;
+        let scoped = tracks(&pool, Some(1), None, &order).await;
         assert_eq!(scoped.len(), 1);
         assert_eq!(scoped[0].0, "local");
     }

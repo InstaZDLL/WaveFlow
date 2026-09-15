@@ -952,3 +952,21 @@
   background-color: var(--pulse-magenta);
   color: var(--pulse-bg);
 }
+
+/* ============================================================
+   High contrast (issue #596)
+   ============================================================
+
+   Pulse's sticky header is `transparent` and relies entirely on its
+   blur to separate itself from the content scrolling under it, so
+   turning the blur off without this would leave the header's text
+   sitting directly on the page. Its own background colour is the
+   opaque answer — the neon blobs stay, they are behind `body`. */
+:root[data-skin="pulse"][data-contrast="high"] {
+  --wf-contrast-surface: var(--pulse-bg);
+}
+
+:root[data-skin="pulse"][data-contrast="high"] header[class*="sticky"],
+:root[data-skin="pulse"][data-contrast="high"] footer {
+  background-color: var(--wf-contrast-surface) !important;
+}

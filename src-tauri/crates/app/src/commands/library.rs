@@ -35,6 +35,10 @@ pub struct RescanSummary {
     pub skipped: u32,
     pub errors: u32,
     pub removed: u32,
+    /// Set when a folder scan was stopped from the task bar. The walk
+    /// gives up at that point, so the counters describe the folders it
+    /// got through, not the library.
+    pub cancelled: bool,
 }
 
 fn now_millis() -> i64 {
@@ -354,6 +358,7 @@ pub async fn rescan_library(
                     skipped,
                     errors,
                     removed,
+                    cancelled,
                     ..
                 } = summary;
                 total.scanned += scanned;
@@ -362,6 +367,15 @@ pub async fn rescan_library(
                 total.skipped += skipped;
                 total.errors += errors;
                 total.removed += removed;
+                // `cancelled` used to be dropped by the `..` here, and
+                // the loop walked on to the next folder. Stopping a
+                // library-wide rescan then killed one folder and
+                // started the next, so on a library of many folders
+                // the button did nothing the user could see.
+                if cancelled {
+                    total.cancelled = true;
+                    break;
+                }
             }
             Err(err) => {
                 tracing::warn!(folder_id, error = %err, "rescan folder failed");
@@ -380,7 +394,10 @@ pub async fn rescan_library(
     // file already follows.
     state.drain.notify();
 
-    if total.added > 0 {
+    // Same rule as the import path below and the single-folder scan
+    // in `commands/scan.rs`: a stop is not a cue to start the longest
+    // job in the app.
+    if total.added > 0 && !total.cancelled {
         crate::commands::analysis::maybe_auto_analyze(&app);
     }
 
@@ -498,6 +515,18 @@ pub async fn import_paths(
                 total.skipped += summary.skipped;
                 total.errors += summary.errors;
                 total.removed += summary.removed;
+                // Stopping one folder's scan stops the import (#601).
+                // Each folder registers its own task, so cancelling the
+                // one on screen leaves the next folder's flag clear and
+                // it would start immediately -- the user would press
+                // stop and watch the import carry on into a folder that
+                // had not begun. Reported too, so the caller's summary
+                // does not read as a completed import.
+                if summary.cancelled {
+                    total.cancelled = true;
+                    tracing::info!("import stopped by the user between folders");
+                    break;
+                }
             }
             Err(err) => {
                 tracing::warn!(folder_id, path = %path, %err, "import_paths: scan failed");
@@ -512,7 +541,11 @@ pub async fn import_paths(
     // tracks ship without waiting on the drain's idle poll.
     state.drain.notify();
 
-    if total.added > 0 {
+    // Not after an import the user stopped. Some tracks did land, so
+    // `added` is positive -- but answering a stop by starting the
+    // library-wide analysis sweep is the opposite of what was asked,
+    // and that sweep is the longest job in the app.
+    if total.added > 0 && !total.cancelled {
         crate::commands::analysis::maybe_auto_analyze(&app);
     }
     Ok(total)

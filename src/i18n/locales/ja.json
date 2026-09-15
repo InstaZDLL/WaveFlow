@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}}個",
         "playlists_zero": "0 個のプレイリスト",
         "playlists_one": "{{count}} 個のプレイリスト",
-        "playlists_other": "{{count}} 個のプレイリスト"
+        "playlists_other": "{{count}} 個のプレイリスト",
+        "a-corriger_zero": "問題はありません。ライブラリは揃っています。",
+        "a-corriger_one": "要確認 {{count}} 件",
+        "a-corriger_other": "要確認 {{count}} 件"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "アーティスト",
       "genres": "ジャンル",
       "dossiers": "フォルダ",
-      "playlists": "プレイリスト"
+      "playlists": "プレイリスト",
+      "a-corriger": "要確認"
     },
     "empty": {
       "morceaux": {
@@ -387,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "このソースには何もありません。上でソースを切り替えるか、設定からサーバーのカタログを複製してください。"
+      },
+      "a-corriger": {
+        "title": "修正するものはありません",
+        "description": "検出できる問題はライブラリにありません。"
       }
     },
     "actions": {
@@ -487,7 +495,91 @@
       "local": "このデバイス",
       "remote": "サーバー"
     },
-    "open": "{{name}} を開く"
+    "open": "{{name}} を開く",
+    "inventory": {
+      "allClear": "問題はありません。ライブラリは揃っています。",
+      "summary_one": "要確認 {{count}} 件",
+      "summary_other": "要確認 {{count}} 件",
+      "trackCount_one": "{{count}} 曲",
+      "trackCount_other": "{{count}} 曲",
+      "categories": {
+        "missing_title": {
+          "label": "タイトルなし",
+          "help": "ファイルにタイトルがありません。"
+        },
+        "missing_artist": {
+          "label": "アーティストなし",
+          "help": "誰もクレジットされていません。"
+        },
+        "missing_album": {
+          "label": "アルバムなし",
+          "help": "どのアルバムにも属していません。"
+        },
+        "missing_year": {
+          "label": "年なし",
+          "help": "年がない、または 0 です。"
+        },
+        "missing_track_number": {
+          "label": "トラック番号なし",
+          "help": "ディスク上の位置が不明です。"
+        },
+        "missing_cover": {
+          "label": "アートワークなし",
+          "help": "アルバムに画像がありません。"
+        },
+        "untaggable": {
+          "label": "タグを書けない形式",
+          "help": "これらのファイルのタグは書き換えられません。"
+        },
+        "album_year_conflict": {
+          "label": "年が食い違う",
+          "help": "同じアルバムの曲が別々の年を示しています。"
+        },
+        "compilation_no_album_artist": {
+          "label": "アルバムアーティスト未設定のコンピレーション",
+          "help": "アルバムアーティストが設定されていないコンピレーションです。"
+        },
+        "duplicate_track_number": {
+          "label": "番号の重複",
+          "help": "2 曲が同じ位置を主張しています。"
+        },
+        "track_number_gap": {
+          "label": "番号の抜け",
+          "help": "ディスクの最初と最後の間に欠番があります。"
+        },
+        "probable_duplicate": {
+          "label": "重複の疑い",
+          "help": "同じ曲名、同じアーティスト、ほぼ同じ長さ。"
+        }
+      }
+    },
+    "columns": {
+      "choose": "列",
+      "shown": "表示中",
+      "available": "利用可能",
+      "fromYourFiles": "ファイルのタグから",
+      "resetWidths": "幅をリセット",
+      "resize": "{{column}} 列の幅を変更",
+      "title": "タイトル",
+      "artist": "アーティスト",
+      "album": "アルバム",
+      "year": "年",
+      "trackNumber": "トラック番号",
+      "discNumber": "ディスク番号",
+      "duration": "長さ",
+      "rating": "評価",
+      "bitrate": "ビットレート",
+      "sampleRate": "サンプルレート",
+      "bitDepth": "ビット深度",
+      "channels": "チャンネル",
+      "codec": "コーデック",
+      "musicalKey": "キー",
+      "fileSize": "サイズ",
+      "addedAt": "追加日",
+      "filePath": "パス",
+      "moveUp": "{{column}} 列を上へ",
+      "moveDown": "{{column}} 列を下へ"
+    }
   },
   "liked": {
     "badge": "コレクション",
@@ -1807,6 +1899,7 @@
       "runNow": "今すぐバックアップ",
       "runOk_one": "{{count}}件のアーカイブを保存しました。",
       "runOk_other": "{{count}}件のアーカイブを保存しました。",
+      "runPartial": "作成: {{created}} 件、失敗: {{failed}} 件。ログを確認してください。",
       "errors": {
         "loadFailed": "バックアップ設定を読み込めませんでした。",
         "saveFailed": "保存に失敗しました。もう一度お試しください。",
@@ -2167,12 +2260,43 @@
       "kbps": "{{rate}} kbps",
       "activeNotice": "リモートの楽曲は再エンコードされるため、本来の音質より下がった状態で再生されます。ローカルのファイルがトランスコードされることはありません。",
       "unsupported": "このサーバーは FFmpeg なしでビルドされているため、トランスコードできません。リモートの楽曲は常に元の形式で届きます。"
+    },
+    "contrast": {
+      "title": "コントラスト",
+      "subtitle": "インターフェイス全体のコントラストを一度に引き上げます。補助テキストが読みやすくなり、背景のぼかしが消え、キーボードフォーカスがはっきりします。",
+      "modes": {
+        "auto": {
+          "label": "自動",
+          "description": "システムのコントラスト設定に従います。"
+        },
+        "normal": {
+          "label": "標準",
+          "description": "既定の、より繊細な配色。"
+        },
+        "high": {
+          "label": "高",
+          "description": "テーマやスキンを問わずコントラストを強めます。"
+        }
+      }
+    },
+    "cacheLocation": {
+      "title": "キャッシュの保存場所",
+      "subtitle": "アートワーク、動くカバー、Canvas クリップ。いずれも作り直せるため、移動しても失われるものはありません。データベースと手動で選んだファイルはそのまま残ります。",
+      "pickTitle": "キャッシュ用フォルダーを選択",
+      "choose": "移動…",
+      "reset": "既定に戻す",
+      "size": "{{size}} 使用中",
+      "copying": "コピー中… 元のファイルは次回起動時にのみ削除されます。",
+      "fellBack": "設定された場所に到達できません（{{path}}）。このセッションでは既定の場所を使います。設定は保持されています。",
+      "restartNeeded": "コピーが完了しました。新しい場所を使うには再起動してください。",
+      "restartNow": "再起動"
     }
   },
   "scanProgress": {
     "runningTitle": "ライブラリをスキャン中…",
     "runningSubtitle": "{{current}} / {{total}} ファイル",
     "doneTitle": "スキャン完了",
+    "cancelledTitle": "スキャンを停止しました",
     "doneSubtitle": "{{added}} 追加 · {{updated}} 更新 · {{skipped}} スキップ",
     "scanningIn": "{{dir}} をスキャン中",
     "doneErrors_one": "{{count}} 件のファイルが失敗",
@@ -2473,5 +2597,23 @@
       "invalidNumber": "年、トラック番号、ディスク番号は整数で入力してください。"
     },
     "needsMirror": "先に上のサーバーカタログをコピーしてください。このセクションはファイルをローカルミラーと照合しますが、まだ空です。"
+  },
+  "tasks": {
+    "barLabel": "実行中のタスク",
+    "cancel": "{{task}}を停止",
+    "stopping": "停止しています…",
+    "collapse": "折りたたむ",
+    "more_one": "他 {{count}} 件",
+    "more_other": "他 {{count}} 件",
+    "kinds": {
+      "library_scan": "ライブラリのスキャン",
+      "analysis": "音声解析",
+      "lyrics_prefetch": "歌詞の先読み",
+      "catalogue_mirror": "カタログのミラー",
+      "reconcile": "照合",
+      "upload": "アップロード",
+      "backup": "バックアップ",
+      "thumbnails": "サムネイル"
+    }
   }
 }

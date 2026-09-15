@@ -3,7 +3,7 @@
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -26,7 +26,31 @@ use crate::{
 ///
 /// Returns the number of source images successfully (re)processed.
 #[tauri::command]
-pub async fn regenerate_thumbnails(state: tauri::State<'_, AppState>) -> AppResult<u32> {
+pub async fn regenerate_thumbnails(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<u32> {
+    // Stops between two files. The first version of this registered no
+    // callback on the reasoning that the only stopping point was
+    // between directories — which was wrong: `regen_in_dir` loops over
+    // files, and that loop is where the time goes.
+    // Registered with a total of `0`, which is the wire's word for
+    // "indeterminate" and what the task bar renders as such. Not an
+    // omission: `regen_in_dir` walks a directory it has not counted, so
+    // the only total available before the pass is the number of
+    // directories -- two or three -- which would show a bar jumping
+    // half the way across on the first one. Indeterminate says less and
+    // none of it wrong.
+    let stop = Arc::new(AtomicBool::new(false));
+    let stop_for_cancel = Arc::clone(&stop);
+    let _task = crate::tasks::start(
+        &app,
+        crate::tasks::TaskKind::Thumbnails,
+        0,
+        crate::tasks::cancel_fn(move || {
+            stop_for_cancel.store(true, Ordering::Relaxed);
+        }),
+    );
     let mut total: u32 = 0;
 
     // `regen_in_dir` is intentionally synchronous (walks the directory
@@ -37,9 +61,11 @@ pub async fn regenerate_thumbnails(state: tauri::State<'_, AppState>) -> AppResu
     // stall every other command queued behind it. Run each batch through
     // `spawn_blocking` so the runtime stays responsive.
     let metadata_dir = state.paths.metadata_artwork_dir.clone();
-    let metadata_total = tokio::task::spawn_blocking(move || regen_in_dir(&metadata_dir))
-        .await
-        .map_err(|e| AppError::Other(format!("regen_thumbnails join: {e}")))??;
+    let stop_meta = Arc::clone(&stop);
+    let metadata_total =
+        tokio::task::spawn_blocking(move || regen_in_dir(&metadata_dir, Some(&stop_meta)))
+            .await
+            .map_err(|e| AppError::Other(format!("regen_thumbnails join: {e}")))??;
     total = total.saturating_add(metadata_total);
 
     let profile_ids: Vec<i64> = sqlx::query_scalar("SELECT id FROM profile")
@@ -47,10 +73,17 @@ pub async fn regenerate_thumbnails(state: tauri::State<'_, AppState>) -> AppResu
         .await
         .unwrap_or_default();
     for pid in profile_ids {
+        // The inner loop stops at the file it is on; this stops the
+        // outer one from starting the next profile's directory.
+        if stop.load(Ordering::Relaxed) {
+            break;
+        }
         let dir = state.paths.profile_artwork_dir(pid);
-        let profile_total = tokio::task::spawn_blocking(move || regen_in_dir(&dir))
-            .await
-            .map_err(|e| AppError::Other(format!("regen_thumbnails join: {e}")))??;
+        let stop_profile = Arc::clone(&stop);
+        let profile_total =
+            tokio::task::spawn_blocking(move || regen_in_dir(&dir, Some(&stop_profile)))
+                .await
+                .map_err(|e| AppError::Other(format!("regen_thumbnails join: {e}")))??;
         total = total.saturating_add(profile_total);
     }
 
@@ -297,9 +330,63 @@ pub async fn reset_app(
     }
 
     let root = state.paths.root.clone();
+    // The caches can live outside the app-data tree since #619, and
+    // `root` no longer covers them. Collected before the pools close,
+    // because listing the profiles needs `app.db`.
+    let cache_roots = super::storage::wipe_targets_outside_root(&state).await;
 
     state.deactivate_profile().await;
     state.app_db.close().await;
+
+    // Best-effort, and before the main wipe: a cache left behind on
+    // another drive is exactly the disk usage the user moved it there to
+    // control, and a reset that leaves gigabytes of artwork on `D:` has
+    // not reset anything they can see.
+    //
+    // On the blocking pool for the same reason the root wipe below is:
+    // these are thousands of small files, and `remove_dir_all` would
+    // hold the runtime for as long as it takes.
+    if !cache_roots.is_empty() {
+        let removal = tokio::task::spawn_blocking(move || {
+            for entry in cache_roots {
+                let mut all_gone = true;
+                for dir in &entry.dirs {
+                    if let Err(err) = std::fs::remove_dir_all(dir) {
+                        if err.kind() != std::io::ErrorKind::NotFound {
+                            tracing::warn!(
+                                path = %dir.display(),
+                                ?err,
+                                "could not remove a relocated cache directory during reset",
+                            );
+                            all_gone = false;
+                        }
+                    }
+                }
+                // The folder is the user's own, and after a reset
+                // WaveFlow has nothing left in it: leaving the marker
+                // behind leaves a file that grants permission to delete
+                // inside a directory the app no longer manages. Kept
+                // when a directory survived, exactly as the deferred
+                // cleanup keeps it -- the marker is what still entitles
+                // a later pass to finish the job.
+                if all_gone {
+                    if let Err(err) = std::fs::remove_file(&entry.marker) {
+                        if err.kind() != std::io::ErrorKind::NotFound {
+                            tracing::warn!(
+                                path = %entry.marker.display(),
+                                ?err,
+                                "could not remove a relocated cache marker during reset",
+                            );
+                        }
+                    }
+                }
+            }
+        })
+        .await;
+        if let Err(err) = removal {
+            tracing::error!(?err, "relocated-cache removal task failed during reset");
+        }
+    }
 
     let wipe_root = root.clone();
     match tokio::task::spawn_blocking(move || std::fs::remove_dir_all(&wipe_root)).await {
@@ -542,7 +629,7 @@ fn sanitize_filename(name: &str) -> String {
     }
 }
 
-fn regen_in_dir(dir: &Path) -> AppResult<u32> {
+fn regen_in_dir(dir: &Path, stop: Option<&AtomicBool>) -> AppResult<u32> {
     if !dir.exists() {
         return Ok(0);
     }
@@ -553,6 +640,15 @@ fn regen_in_dir(dir: &Path) -> AppResult<u32> {
 
     let mut count: u32 = 0;
     for entry in entries {
+        // Between two files, which is a real stopping point rather than
+        // a theoretical one: the pass decodes and re-encodes each
+        // image, so a large library spends minutes here and every
+        // iteration is an opportunity to let go (#601). Nothing
+        // half-written is left behind — a thumbnail is written whole or
+        // not at all.
+        if stop.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
+            break;
+        }
         let entry = match entry {
             Ok(e) => e,
             Err(err) => {

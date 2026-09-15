@@ -1,4 +1,5 @@
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { ContrastProvider } from "./contexts/ContrastContext";
 import { PlayerProvider } from "./contexts/PlayerContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
 import { SpotifyProvider } from "./contexts/SpotifyContext";
@@ -28,11 +29,17 @@ export function MiniPlayerApp() {
   return (
     <ProfileProvider>
       <ThemeProvider>
-        <SpotifyProvider>
-          <PlayerProvider>
-            <MiniPlayer />
-          </PlayerProvider>
-        </SpotifyProvider>
+        {/* The mini-player is a second WebviewWindow with its own
+            document, so it needs its own stamp -- the main window's
+            attribute is not shared. Someone who needs high contrast
+            needs it in both windows. */}
+        <ContrastProvider>
+          <SpotifyProvider>
+            <PlayerProvider>
+              <MiniPlayer />
+            </PlayerProvider>
+          </SpotifyProvider>
+        </ContrastProvider>
       </ThemeProvider>
     </ProfileProvider>
   );

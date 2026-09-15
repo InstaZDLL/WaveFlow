@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} Ordner",
         "playlists_zero": "0 Playlists",
         "playlists_one": "{{count}} Playlist",
-        "playlists_other": "{{count}} Playlists"
+        "playlists_other": "{{count}} Playlists",
+        "a-corriger_zero": "Nichts zu melden: die Bibliothek ist vollständig.",
+        "a-corriger_one": "{{count}} Punkt zu korrigieren",
+        "a-corriger_other": "{{count}} Punkte zu korrigieren"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "Künstler",
       "genres": "Genres",
       "dossiers": "Ordner",
-      "playlists": "Playlists"
+      "playlists": "Playlists",
+      "a-corriger": "Zu korrigieren"
     },
     "empty": {
       "morceaux": {
@@ -387,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "Nichts aus dieser Quelle. Wechsle oben die Quelle oder kopiere den Server-Katalog in den Einstellungen."
+      },
+      "a-corriger": {
+        "title": "Nichts zu korrigieren",
+        "description": "In deiner Bibliothek ist kein erkennbares Problem."
       }
     },
     "actions": {
@@ -487,7 +495,91 @@
       "local": "Dieses Gerät",
       "remote": "Server"
     },
-    "open": "{{name}} öffnen"
+    "open": "{{name}} öffnen",
+    "inventory": {
+      "allClear": "Nichts zu melden: die Bibliothek ist vollständig.",
+      "summary_one": "{{count}} Punkt zu korrigieren",
+      "summary_other": "{{count}} Punkte zu korrigieren",
+      "trackCount_one": "{{count}} Titel",
+      "trackCount_other": "{{count}} Titel",
+      "categories": {
+        "missing_title": {
+          "label": "Ohne Titel",
+          "help": "Die Datei trägt überhaupt keinen Titel."
+        },
+        "missing_artist": {
+          "label": "Ohne Interpret",
+          "help": "Es ist niemand angegeben."
+        },
+        "missing_album": {
+          "label": "Ohne Album",
+          "help": "Der Titel gehört zu keinem Album."
+        },
+        "missing_year": {
+          "label": "Ohne Jahr",
+          "help": "Kein Jahr, oder ein Jahr von null."
+        },
+        "missing_track_number": {
+          "label": "Ohne Titelnummer",
+          "help": "Der Platz auf der Disc ist unbekannt."
+        },
+        "missing_cover": {
+          "label": "Ohne Cover",
+          "help": "Das Album hat kein Bild."
+        },
+        "untaggable": {
+          "label": "Nicht beschreibbar",
+          "help": "Die Tags dieser Dateien lassen sich nicht neu schreiben."
+        },
+        "album_year_conflict": {
+          "label": "Widersprüchliche Jahre",
+          "help": "Titel eines Albums nennen unterschiedliche Jahre."
+        },
+        "compilation_no_album_artist": {
+          "label": "Sampler ohne Album-Interpret",
+          "help": "Eine Kompilation ohne gesetzten Album-Interpreten."
+        },
+        "duplicate_track_number": {
+          "label": "Doppelte Titelnummern",
+          "help": "Zwei Titel beanspruchen denselben Platz."
+        },
+        "track_number_gap": {
+          "label": "Lücke in der Nummerierung",
+          "help": "Zwischen erster und letzter Nummer fehlt eine."
+        },
+        "probable_duplicate": {
+          "label": "Wahrscheinliche Duplikate",
+          "help": "Gleicher Titel, gleicher Interpret, fast gleiche Länge."
+        }
+      }
+    },
+    "columns": {
+      "choose": "Spalten",
+      "shown": "Angezeigt",
+      "available": "Verfügbar",
+      "fromYourFiles": "Aus deinen Dateien",
+      "resetWidths": "Breiten zurücksetzen",
+      "resize": "Spalte {{column}} anpassen",
+      "title": "Titel",
+      "artist": "Interpret",
+      "album": "Album",
+      "year": "Jahr",
+      "trackNumber": "Titelnr.",
+      "discNumber": "CD-Nr.",
+      "duration": "Dauer",
+      "rating": "Bewertung",
+      "bitrate": "Bitrate",
+      "sampleRate": "Abtastrate",
+      "bitDepth": "Bittiefe",
+      "channels": "Kanäle",
+      "codec": "Codec",
+      "musicalKey": "Tonart",
+      "fileSize": "Größe",
+      "addedAt": "Hinzugefügt",
+      "filePath": "Pfad",
+      "moveUp": "Spalte {{column}} nach oben",
+      "moveDown": "Spalte {{column}} nach unten"
+    }
   },
   "liked": {
     "badge": "Sammlung",
@@ -1869,6 +1961,7 @@
       "runNow": "Jetzt sichern",
       "runOk_one": "{{count}} Archiv geschrieben.",
       "runOk_other": "{{count}} Archive geschrieben.",
+      "runPartial": "Geschrieben: {{created}}, fehlgeschlagen: {{failed}}. Prüfe die Logs.",
       "errors": {
         "loadFailed": "Sicherungskonfiguration konnte nicht geladen werden.",
         "saveFailed": "Speichern fehlgeschlagen. Versuche es erneut.",
@@ -2167,6 +2260,36 @@
       "kbps": "{{rate}} kbit/s",
       "activeNotice": "Externe Titel werden neu kodiert und spielen daher unterhalb ihrer ursprünglichen Qualität. Lokale Dateien werden nie transkodiert.",
       "unsupported": "Dieser Server wurde ohne FFmpeg gebaut und kann nicht transkodieren. Externe Titel kommen immer im Originalformat an."
+    },
+    "contrast": {
+      "title": "Kontrast",
+      "subtitle": "Hebt den Kontrast der gesamten Oberfläche auf einmal an: lesbarer Sekundärtext, Hintergründe ohne Weichzeichner, deutlich sichtbarer Tastaturfokus.",
+      "modes": {
+        "auto": {
+          "label": "Automatisch",
+          "description": "Folgt der Kontrasteinstellung des Systems."
+        },
+        "normal": {
+          "label": "Normal",
+          "description": "Die feiner abgestufte Standardpalette."
+        },
+        "high": {
+          "label": "Hoch",
+          "description": "Verstärkter Kontrast, unabhängig von Design und Skin."
+        }
+      }
+    },
+    "cacheLocation": {
+      "title": "Speicherort des Caches",
+      "subtitle": "Cover, animierte Cover und Canvas-Clips. Alles davon lässt sich neu aufbauen, ein Verschieben verliert also nichts. Datenbanken und selbst ausgewählte Dateien bleiben, wo sie sind.",
+      "pickTitle": "Cache-Ordner wählen",
+      "choose": "Verschieben…",
+      "reset": "Auf Standard zurücksetzen",
+      "size": "{{size}} belegt",
+      "copying": "Wird kopiert… das Original wird erst beim nächsten Start entfernt.",
+      "fellBack": "Der eingestellte Ort ist nicht erreichbar ({{path}}), daher nutzt der Cache in dieser Sitzung den Standardort. Deine Auswahl bleibt erhalten.",
+      "restartNeeded": "Kopie abgeschlossen. Zum Verwenden des neuen Orts neu starten.",
+      "restartNow": "Neu starten"
     }
   },
   "spotify": {
@@ -2187,6 +2310,7 @@
     "runningTitle": "Bibliothek wird gescannt…",
     "runningSubtitle": "{{current}} / {{total}} Dateien",
     "doneTitle": "Scan abgeschlossen",
+    "cancelledTitle": "Scan gestoppt",
     "doneSubtitle": "{{added}} hinzugefügt · {{updated}} aktualisiert · {{skipped}} übersprungen",
     "scanningIn": "Durchsuche {{dir}}",
     "doneErrors_one": "{{count}} Datei fehlgeschlagen",
@@ -2490,9 +2614,27 @@
       "title": "Server-Metadaten",
       "subtitle": "Die Korrektur wird auf dem Server gespeichert, nicht in der Datei.",
       "help": "Diese Korrekturen überstehen die Scans des Servers und sind für alle Mitglieder der Bibliothek sichtbar. Ein leeres Feld entfernt die Korrektur: Der Wert aus der Datei erscheint wieder.",
-      "missing": "Dieser Titel ist noch nicht im Spiegel des Servers. Führen Sie einen Katalogdurchlauf aus und versuchen Sie es erneut.",
+      "missing": "Dieser Titel ist noch nicht im Spiegel des Servers. Führe einen Katalogdurchlauf aus und versuche es erneut.",
       "invalidNumber": "Jahr sowie Titel- und CD-Nummer müssen ganze Zahlen sein."
     },
-    "needsMirror": "Kopieren Sie zuerst den Serverkatalog oben: Dieser Abschnitt vergleicht Ihre Dateien mit dem lokalen Spiegel, der noch leer ist."
+    "needsMirror": "Kopiere zuerst den Serverkatalog oben: Dieser Abschnitt vergleicht deine Dateien mit dem lokalen Spiegel, der noch leer ist."
+  },
+  "tasks": {
+    "barLabel": "Laufende Aufgaben",
+    "cancel": "{{task}} stoppen",
+    "stopping": "Wird gestoppt…",
+    "collapse": "Einklappen",
+    "more_one": "{{count}} weitere Aufgabe",
+    "more_other": "{{count}} weitere Aufgaben",
+    "kinds": {
+      "library_scan": "Bibliotheksscan",
+      "analysis": "Audioanalyse",
+      "lyrics_prefetch": "Liedtexte laden",
+      "catalogue_mirror": "Katalogspiegel",
+      "reconcile": "Abgleich",
+      "upload": "Hochladen",
+      "backup": "Sicherung",
+      "thumbnails": "Miniaturen"
+    }
   }
 }

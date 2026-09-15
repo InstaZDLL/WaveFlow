@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} 个文件夹",
         "playlists_zero": "0 个播放列表",
         "playlists_one": "{{count}} 个播放列表",
-        "playlists_other": "{{count}} 个播放列表"
+        "playlists_other": "{{count}} 个播放列表",
+        "a-corriger_zero": "没有问题：媒体库很完整。",
+        "a-corriger_one": "{{count}} 处待修正",
+        "a-corriger_other": "{{count}} 处待修正"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "艺人",
       "genres": "类型",
       "dossiers": "文件夹",
-      "playlists": "播放列表"
+      "playlists": "播放列表",
+      "a-corriger": "待修正"
     },
     "empty": {
       "morceaux": {
@@ -387,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "该来源没有内容。请在上方切换来源，或在设置中复制服务器曲库。"
+      },
+      "a-corriger": {
+        "title": "没有需要修正的地方",
+        "description": "媒体库中没有可检测到的问题。"
       }
     },
     "actions": {
@@ -487,7 +495,91 @@
       "local": "本机",
       "remote": "服务器"
     },
-    "open": "打开 {{name}}"
+    "open": "打开 {{name}}",
+    "inventory": {
+      "allClear": "没有问题：媒体库很完整。",
+      "summary_one": "{{count}} 处待修正",
+      "summary_other": "{{count}} 处待修正",
+      "trackCount_one": "{{count}} 首",
+      "trackCount_other": "{{count}} 首",
+      "categories": {
+        "missing_title": {
+          "label": "没有标题",
+          "help": "文件完全没有标题。"
+        },
+        "missing_artist": {
+          "label": "没有艺人",
+          "help": "没有署名任何人。"
+        },
+        "missing_album": {
+          "label": "没有专辑",
+          "help": "该曲目不属于任何专辑。"
+        },
+        "missing_year": {
+          "label": "没有年份",
+          "help": "没有年份，或年份为零。"
+        },
+        "missing_track_number": {
+          "label": "没有音轨号",
+          "help": "不知道它在碟片中的位置。"
+        },
+        "missing_cover": {
+          "label": "没有封面",
+          "help": "专辑没有图片。"
+        },
+        "untaggable": {
+          "label": "无法写入标签",
+          "help": "这些文件的标签无法改写。"
+        },
+        "album_year_conflict": {
+          "label": "年份不一致",
+          "help": "同一专辑的曲目标注了不同年份。"
+        },
+        "compilation_no_album_artist": {
+          "label": "合辑缺少专辑艺人",
+          "help": "一张未设置专辑艺人的合辑。"
+        },
+        "duplicate_track_number": {
+          "label": "音轨号重复",
+          "help": "两首曲目占用同一个位置。"
+        },
+        "track_number_gap": {
+          "label": "编号有缺口",
+          "help": "碟片首尾之间缺了一个编号。"
+        },
+        "probable_duplicate": {
+          "label": "疑似重复",
+          "help": "标题相同、艺人相同、时长几乎一致。"
+        }
+      }
+    },
+    "columns": {
+      "choose": "列",
+      "shown": "已显示",
+      "available": "可添加",
+      "fromYourFiles": "来自你的文件",
+      "resetWidths": "重置列宽",
+      "resize": "调整“{{column}}”列宽",
+      "title": "标题",
+      "artist": "艺人",
+      "album": "专辑",
+      "year": "年份",
+      "trackNumber": "音轨号",
+      "discNumber": "碟片号",
+      "duration": "时长",
+      "rating": "评分",
+      "bitrate": "比特率",
+      "sampleRate": "采样率",
+      "bitDepth": "位深",
+      "channels": "声道",
+      "codec": "编码",
+      "musicalKey": "调性",
+      "fileSize": "大小",
+      "addedAt": "添加时间",
+      "filePath": "路径",
+      "moveUp": "上移“{{column}}”列",
+      "moveDown": "下移“{{column}}”列"
+    }
   },
   "liked": {
     "badge": "收藏",
@@ -1807,6 +1899,7 @@
       "runNow": "立即备份",
       "runOk_one": "已写入 {{count}} 个存档。",
       "runOk_other": "已写入 {{count}} 个存档。",
+      "runPartial": "已写入 {{created}} 个，失败 {{failed}} 个。请查看日志。",
       "errors": {
         "loadFailed": "无法加载备份配置。",
         "saveFailed": "保存失败。请重试。",
@@ -2167,12 +2260,43 @@
       "kbps": "{{rate}} kbps",
       "activeNotice": "远程曲目会被重新编码，因此播放音质低于原始文件。本地文件永远不会被转码。",
       "unsupported": "该服务器在构建时未包含 FFmpeg，无法转码。远程曲目始终以原始格式送达。"
+    },
+    "contrast": {
+      "title": "对比度",
+      "subtitle": "一次性提升整个界面的对比度：次要文字更清晰，背景不再模糊，键盘焦点一目了然。",
+      "modes": {
+        "auto": {
+          "label": "自动",
+          "description": "跟随系统的对比度设置。"
+        },
+        "normal": {
+          "label": "普通",
+          "description": "默认的、层次更细腻的配色。"
+        },
+        "high": {
+          "label": "高",
+          "description": "无论主题与皮肤如何，都加强对比度。"
+        }
+      }
+    },
+    "cacheLocation": {
+      "title": "缓存位置",
+      "subtitle": "封面、动态封面和 Canvas 片段。这些都可以重新获取，移动不会丢失任何内容。数据库和你手动选择的文件仍留在原处。",
+      "pickTitle": "选择缓存文件夹",
+      "choose": "移动…",
+      "reset": "恢复默认",
+      "size": "已用 {{size}}",
+      "copying": "正在复制…… 原文件要到下次启动才会删除。",
+      "fellBack": "设定的位置无法访问（{{path}}），本次运行改用默认位置。你的选择已保留。",
+      "restartNeeded": "复制完成。重启后使用新位置。",
+      "restartNow": "重启"
     }
   },
   "scanProgress": {
     "runningTitle": "正在扫描音乐库…",
     "runningSubtitle": "{{current}} / {{total}} 个文件",
     "doneTitle": "扫描完成",
+    "cancelledTitle": "已停止扫描",
     "doneSubtitle": "已添加 {{added}} · 已更新 {{updated}} · 已跳过 {{skipped}}",
     "scanningIn": "正在扫描 {{dir}}",
     "doneErrors_one": "{{count}} 个文件失败",
@@ -2473,5 +2597,23 @@
       "invalidNumber": "年份、音轨号和碟片号必须为整数。"
     },
     "needsMirror": "请先复制上方的服务器目录：本节将您的文件与本地镜像比对，而镜像目前仍为空。"
+  },
+  "tasks": {
+    "barLabel": "正在进行的任务",
+    "cancel": "停止{{task}}",
+    "stopping": "正在停止…",
+    "collapse": "收起",
+    "more_one": "另有 {{count}} 项",
+    "more_other": "另有 {{count}} 项",
+    "kinds": {
+      "library_scan": "扫描媒体库",
+      "analysis": "音频分析",
+      "lyrics_prefetch": "预取歌词",
+      "catalogue_mirror": "目录镜像",
+      "reconcile": "比对",
+      "upload": "上传",
+      "backup": "备份",
+      "thumbnails": "缩略图"
+    }
   }
 }

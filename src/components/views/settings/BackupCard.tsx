@@ -90,14 +90,49 @@ export function BackupCard({ language }: BackupCardProps) {
     setRunning(true);
     setStatus(null);
     try {
-      const paths = await runBackupNow();
-      setStatus({
-        kind: "ok",
-        message: t("settings.backup.runOk", { count: paths.length }),
-      });
-      // Refresh config so `last_run_at` updates.
-      const fresh = await getBackupConfig();
-      setConfig(fresh);
+      const { created, failed, cancelled } = await runBackupNow();
+      if (failed > 0) {
+        // Ahead of the success line, and deliberately: a pass carries on
+        // past a profile it could not write, so "3 archives written" is
+        // true and still hides that two profiles have none. The count
+        // that is missing is the one worth saying first.
+        setStatus({
+          kind: "error",
+          message: t("settings.backup.runPartial", {
+            created: created.length,
+            failed,
+          }),
+        });
+      } else if (created.length > 0) {
+        setStatus({
+          kind: "ok",
+          message: t("settings.backup.runOk", { count: created.length }),
+        });
+      } else if (!cancelled) {
+        // Nothing written and nobody stopped it: every profile failed.
+        // `run_one_backup` logs each one and carries on, so the command
+        // resolves rather than throwing and the catch below never sees
+        // it -- this is the only place that can say so.
+        setStatus({
+          kind: "error",
+          message: t("settings.backup.errors.runFailed"),
+        });
+      }
+      // A stop that wrote nothing gets no status at all -- the task bar
+      // already showed it. A stop that did write archives still reports
+      // them, through the branch above: each one is complete, and "2
+      // archives written" after stopping at the third profile is the
+      // useful half of the answer, not a claim the pass finished.
+      // Its own try: this refresh is a courtesy -- it repaints
+      // `last_run_at` -- and letting it fall into the catch below would
+      // replace everything decided above with "the backup failed", for
+      // a run that had just succeeded.
+      try {
+        const fresh = await getBackupConfig();
+        setConfig(fresh);
+      } catch (err) {
+        console.error("[BackupCard] config refresh after run failed", err);
+      }
     } catch (err) {
       console.error("[BackupCard] run_backup_now failed", err);
       setStatus({

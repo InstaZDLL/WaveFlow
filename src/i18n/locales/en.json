@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} folders",
         "playlists_zero": "0 playlists",
         "playlists_one": "{{count}} playlist",
-        "playlists_other": "{{count}} playlists"
+        "playlists_other": "{{count}} playlists",
+        "a-corriger_zero": "Nothing to report: the library is complete.",
+        "a-corriger_one": "{{count}} thing to fix",
+        "a-corriger_other": "{{count}} things to fix"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "Artists",
       "genres": "Genres",
       "dossiers": "Folders",
-      "playlists": "Playlists"
+      "playlists": "Playlists",
+      "a-corriger": "Needs attention"
     },
     "empty": {
       "morceaux": {
@@ -387,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "Nothing from this source. Switch source above, or copy the server's catalogue from the settings."
+      },
+      "a-corriger": {
+        "title": "Nothing to fix",
+        "description": "Your library shows no problem we can detect."
       }
     },
     "actions": {
@@ -487,7 +495,91 @@
       "local": "This device",
       "remote": "Server"
     },
-    "open": "Open {{name}}"
+    "open": "Open {{name}}",
+    "inventory": {
+      "allClear": "Nothing to report: the library is complete.",
+      "summary_one": "{{count}} thing to fix",
+      "summary_other": "{{count}} things to fix",
+      "trackCount_one": "{{count}} track",
+      "trackCount_other": "{{count}} tracks",
+      "categories": {
+        "missing_title": {
+          "label": "No title",
+          "help": "The file carries no title at all."
+        },
+        "missing_artist": {
+          "label": "No artist",
+          "help": "Nobody is credited."
+        },
+        "missing_album": {
+          "label": "No album",
+          "help": "The track belongs to no album."
+        },
+        "missing_year": {
+          "label": "No year",
+          "help": "No year, or a year of zero."
+        },
+        "missing_track_number": {
+          "label": "No track number",
+          "help": "Where the track sits on the disc is unknown."
+        },
+        "missing_cover": {
+          "label": "No cover",
+          "help": "The album has no artwork."
+        },
+        "untaggable": {
+          "label": "Cannot be tagged",
+          "help": "Tags in these files cannot be rewritten."
+        },
+        "album_year_conflict": {
+          "label": "Years disagree",
+          "help": "Tracks of one album claim different years."
+        },
+        "compilation_no_album_artist": {
+          "label": "Compilation with no album artist",
+          "help": "A compilation whose album artist is not set."
+        },
+        "duplicate_track_number": {
+          "label": "Duplicate track numbers",
+          "help": "Two tracks claim the same slot on the disc."
+        },
+        "track_number_gap": {
+          "label": "Gap in the numbering",
+          "help": "A number is missing between the disc's first and last."
+        },
+        "probable_duplicate": {
+          "label": "Probable duplicates",
+          "help": "Same title, same artist, nearly the same length."
+        }
+      }
+    },
+    "columns": {
+      "choose": "Columns",
+      "shown": "Shown",
+      "available": "Available",
+      "fromYourFiles": "From your files",
+      "resetWidths": "Reset widths",
+      "resize": "Resize the {{column}} column",
+      "title": "Title",
+      "artist": "Artist",
+      "album": "Album",
+      "year": "Year",
+      "trackNumber": "Track no.",
+      "discNumber": "Disc no.",
+      "duration": "Length",
+      "rating": "Rating",
+      "bitrate": "Bitrate",
+      "sampleRate": "Sample rate",
+      "bitDepth": "Bit depth",
+      "channels": "Channels",
+      "codec": "Codec",
+      "musicalKey": "Key",
+      "fileSize": "Size",
+      "addedAt": "Added",
+      "filePath": "Path",
+      "moveUp": "Move the {{column}} column up",
+      "moveDown": "Move the {{column}} column down"
+    }
   },
   "liked": {
     "badge": "Collection",
@@ -1869,6 +1961,7 @@
       "runNow": "Back up now",
       "runOk_one": "{{count}} archive written.",
       "runOk_other": "{{count}} archives written.",
+      "runPartial": "Written: {{created}}, failed: {{failed}}. Check the logs.",
       "errors": {
         "loadFailed": "Could not load the backup configuration.",
         "saveFailed": "Failed to save. Try again.",
@@ -2167,6 +2260,36 @@
       "kbps": "{{rate}} kbps",
       "activeNotice": "Remote tracks are re-encoded, so they play below their original quality. Local files are never transcoded.",
       "unsupported": "This server was built without FFmpeg and cannot transcode. Remote tracks always arrive in their original format."
+    },
+    "contrast": {
+      "title": "Contrast",
+      "subtitle": "Lifts contrast across the whole interface at once: legible secondary text, no background blur, unmistakable keyboard focus.",
+      "modes": {
+        "auto": {
+          "label": "Automatic",
+          "description": "Follows the system contrast setting."
+        },
+        "normal": {
+          "label": "Normal",
+          "description": "The default, more nuanced palette."
+        },
+        "high": {
+          "label": "High",
+          "description": "Raised contrast, whichever theme and skin are active."
+        }
+      }
+    },
+    "cacheLocation": {
+      "title": "Cache location",
+      "subtitle": "Artwork, animated covers and Canvas clips. All of it is rebuildable, so moving it loses nothing. Databases and the files you picked by hand stay where they are.",
+      "pickTitle": "Choose the cache folder",
+      "choose": "Move…",
+      "reset": "Back to default",
+      "size": "{{size}} in use",
+      "copying": "Copying… the original is only removed on the next launch.",
+      "fellBack": "The configured location is unreachable ({{path}}), so the caches are using the default one for this session. Your choice has been kept.",
+      "restartNeeded": "Copy finished. Restart to use the new location.",
+      "restartNow": "Restart"
     }
   },
   "spotify": {
@@ -2187,6 +2310,7 @@
     "runningTitle": "Scanning library…",
     "runningSubtitle": "{{current}} / {{total}} files",
     "doneTitle": "Scan complete",
+    "cancelledTitle": "Scan stopped",
     "doneSubtitle": "{{added}} added · {{updated}} updated · {{skipped}} skipped",
     "scanningIn": "Scanning {{dir}}",
     "doneErrors_one": "{{count}} file failed",
@@ -2494,5 +2618,23 @@
       "invalidNumber": "The year and the track and disc numbers must be whole numbers."
     },
     "needsMirror": "Copy the server's catalogue first, above: this section compares your files against the local mirror, which is still empty."
+  },
+  "tasks": {
+    "barLabel": "Running tasks",
+    "cancel": "Stop {{task}}",
+    "stopping": "Stopping…",
+    "collapse": "Collapse",
+    "more_one": "{{count}} more task",
+    "more_other": "{{count}} more tasks",
+    "kinds": {
+      "library_scan": "Library scan",
+      "analysis": "Audio analysis",
+      "lyrics_prefetch": "Lyrics prefetch",
+      "catalogue_mirror": "Catalogue mirror",
+      "reconcile": "Reconciliation",
+      "upload": "Upload",
+      "backup": "Backup",
+      "thumbnails": "Thumbnails"
+    }
   }
 }

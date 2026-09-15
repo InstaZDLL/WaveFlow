@@ -60,6 +60,8 @@ export interface RescanSummary {
   skipped: number;
   errors: number;
   removed: number;
+  /** The walk stopped early, so the counters cover only the folders it reached. */
+  cancelled: boolean;
 }
 
 export function listLibraries(): Promise<Library[]> {

@@ -43,6 +43,7 @@ pub mod ready;
 // Remote server binding + PKCE sign-in (RFC-005). Gated on `sync_v2`,
 // which is now in the default feature set — a build can still compile it
 // out via `--no-default-features`.
+pub mod inventory;
 #[cfg(feature = "sync_v2")]
 pub mod remote_auth;
 pub mod scan;
@@ -51,7 +52,10 @@ pub mod similar;
 pub mod smart_playlists;
 pub mod spotify;
 pub mod stats;
+pub mod storage;
+pub mod tasks;
 pub mod track;
+pub mod track_tags;
 pub mod tray;
 pub mod updater;
 pub mod web_radio_catalogue;

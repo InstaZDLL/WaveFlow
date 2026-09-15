@@ -393,8 +393,23 @@ pub async fn upload(
     }
     let _guard = RunGuard::claim()
         .ok_or_else(|| AppError::Other("an upload sweep is already running".into()))?;
+
+    // After the guard, so a second call that bails with "already
+    // running" does not put a second row in the status bar for one
+    // sweep. Stops after the track it is on, never mid-track: a
+    // committed upload stays committed and an interrupted one is
+    // resumable, so the registry routes straight to the existing
+    // mechanism (#601).
+    let task = crate::tasks::start(
+        app,
+        crate::tasks::TaskKind::Upload,
+        track_ids.len() as u64,
+        crate::tasks::cancel_fn(request_cancel),
+    );
     let (pool, _) = state.require_profile_snapshot().await?;
 
+    let total = track_ids.len() as u64;
+    let mut processed = 0u64;
     let mut outcome = UploadOutcome::default();
     for track_id in track_ids {
         if cancelled() {
@@ -422,6 +437,14 @@ pub async fn upload(
                     reason: UploadRefusal::Failed,
                 });
             }
+        }
+        // After the match, so every outcome counts once — uploaded,
+        // refused and failed alike. Counting only the successes would
+        // leave the bar short of its total on any sweep that skipped
+        // something, which is most of them.
+        processed += 1;
+        if let Some(task) = task.as_ref() {
+            task.progress(processed, total);
         }
     }
     Ok(outcome)

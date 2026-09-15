@@ -9,6 +9,29 @@ import {
 import { createPortal } from "react-dom";
 
 import { PlaylistGrid } from "./library/PlaylistGrid";
+import { InventoryCategories } from "./library/InventoryCategories";
+import { TrackTableHeader } from "./library/TrackTableHeader";
+import { ColumnPicker } from "./library/ColumnPicker";
+import { useTrackColumns } from "../../hooks/useTrackColumns";
+import {
+  listTrackTagKeys,
+  listTrackTagValues,
+} from "../../lib/tauri/trackTags";
+import {
+  cellText,
+  MAX_COLUMN_WIDTH,
+  specFor,
+  tagKeyOf,
+  trackSizeFor,
+  type ColumnId,
+  type ColumnLayout,
+} from "../../lib/trackColumns";
+import { fitWidth, styleOf } from "../../lib/measureText";
+import {
+  inventorySummary,
+  inventoryTracks,
+  type InventoryCategory,
+} from "../../lib/tauri/inventory";
 import { useLibraryPlaylists } from "../../hooks/useLibraryPlaylists";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
@@ -17,10 +40,10 @@ import {
   Mic2,
   Tags,
   Folder,
+  AlertTriangle,
   RefreshCcw,
   FileSearch,
   ListMusic,
-  Clock,
   LayoutList,
   AlignJustify,
   Plus,
@@ -153,6 +176,7 @@ const tabConfig: { id: LibraryTab; icon: typeof Music2 }[] = [
   { id: "genres", icon: Tags },
   { id: "playlists", icon: ListMusic },
   { id: "dossiers", icon: Folder },
+  { id: "a-corriger", icon: AlertTriangle },
 ];
 
 const emptyStateIcons: Record<LibraryTab, typeof Music2> = {
@@ -162,6 +186,7 @@ const emptyStateIcons: Record<LibraryTab, typeof Music2> = {
   genres: Tags,
   playlists: ListMusic,
   dossiers: Folder,
+  "a-corriger": AlertTriangle,
 };
 
 const headerIcons: Record<LibraryTab, typeof Music2> = {
@@ -171,6 +196,7 @@ const headerIcons: Record<LibraryTab, typeof Music2> = {
   genres: Tags,
   playlists: ListMusic,
   dossiers: Folder,
+  "a-corriger": AlertTriangle,
 };
 
 export function LibraryView({
@@ -289,7 +315,75 @@ export function LibraryView({
     // fetch of our own to wait on, so this tab never shows a skeleton.
     playlists: false,
     dossiers: true,
+    // The only tab that does NOT prefetch. Its counts are album-level
+    // aggregates plus a walk over every track to chain probable
+    // duplicates, so paying for them on every mount of the library --
+    // which is what the other six do -- would tax people who never open
+    // it. That is about the *fetch*, not about this flag: `true`,
+    // because an inventory nobody has asked for yet is an empty list,
+    // and an empty list is what "nothing to fix" looks like. The first
+    // paint would congratulate the user before a single count existed.
+    "a-corriger": true,
   });
+  // Which columns the track table shows, in what order and how wide
+  // (#588). One preference for every list that renders the shared
+  // table, so the library, the folder browser and the inventory agree.
+  const trackColumns = useTrackColumns();
+  // The width of the column currently being dragged, before it is
+  // persisted. `useProfileSetting` serializes one database write per
+  // call, so writing on every pointer move would queue hundreds of
+  // round trips for a single gesture — this is what the table renders
+  // from meanwhile, and the commit on release is the only write.
+  const [columnPreview, setColumnPreview] = useState<{
+    id: ColumnId;
+    width: number;
+  } | null>(null);
+  // The same value again, in a ref, and both spellings are needed.
+  //
+  // The state is what the table renders from. The ref is what the
+  // commit reads, because neither of the other two ways of reading it
+  // works: a functional updater would put a database write inside an
+  // updater React is free to replay, and the render closure would be a
+  // tick behind for the keyboard, which previews and commits back to
+  // back with no render in between -- an arrow key would persist the
+  // width before the one it just asked for.
+  const columnPreviewRef = useRef<{ id: ColumnId; width: number } | null>(null);
+  // The layout as it looks right now, preview included. Everything that
+  // lays the table out reads this, so the header, the rows and the
+  // resize handle cannot disagree mid-drag.
+  const liveColumnLayout = useMemo(
+    () =>
+      columnPreview
+        ? {
+            ...trackColumns.layout,
+            widths: {
+              ...trackColumns.layout.widths,
+              [columnPreview.id]: columnPreview.width,
+            },
+          }
+        : trackColumns.layout,
+    [trackColumns.layout, columnPreview],
+  );
+  // Tag keys the library actually holds, offered in the picker with a
+  // count each. Read once per library change: it is a GROUP BY over a
+  // side table, and it only moves when a scan has run.
+  const [tagKeys, setTagKeys] = useState<{ key: string; count: number }[]>([]);
+  // Values for the chosen `tag:` columns only. Empty -- and never
+  // fetched -- while no such column is shown, which is the common case.
+  const [tagValues, setTagValues] = useState<
+    Map<string, Record<string, string>>
+  >(new Map());
+
+  // Inventory tab (#589). Three pieces of state rather than one: the
+  // categories survive a category being opened and closed, so reopening
+  // one does not re-run the expensive summary.
+  const [inventory, setInventory] = useState<InventoryCategory[]>([]);
+  const [inventoryCategory, setInventoryCategory] = useState<string | null>(
+    null,
+  );
+  const [inventoryRows, setInventoryRows] = useState<LibraryTrackRow[]>([]);
+  const [inventoryBusy, setInventoryBusy] = useState(false);
+
   const [tracksView, setTracksView] = useState<TracksView>("list");
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const selection = useMultiSelect<Track>();
@@ -372,7 +466,12 @@ export function LibraryView({
   // Bumped when a tag edit elsewhere fires `track:updated` so the
   // active tab re-fetches and shows the new metadata.
   const [editRefetch, setEditRefetch] = useState(0);
-  useTrackUpdated(useCallback(() => setEditRefetch((k) => k + 1), []));
+  // `setEditRefetch` is listed even though a state setter is stable:
+  // the React Compiler infers it as a dependency, and a manual list
+  // that does not match makes it skip optimizing the whole component.
+  useTrackUpdated(
+    useCallback(() => setEditRefetch((k) => k + 1), [setEditRefetch]),
+  );
   const clearSelection = selection.clear;
   // Also on `folderPath`: a selection is a set of track ids, and the
   // action bar it feeds would otherwise act on tracks the user can no
@@ -403,6 +502,156 @@ export function LibraryView({
       cancelled = true;
     };
   }, [remoteAvailable]);
+
+  // Which custom tag keys the library holds. Only moves when a scan
+  // has run, so it follows the library signature rather than any
+  // render.
+  useEffect(() => {
+    let cancelled = false;
+    listTrackTagKeys()
+      .then((keys) => {
+        if (!cancelled) setTagKeys(keys);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          console.error("[LibraryView] listTrackTagKeys failed", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [librariesSignature, editRefetch]);
+
+  // Values for the chosen `tag:` columns. Nothing is fetched while none
+  // is shown, which is the common case -- and the dependency is the
+  // sorted key list rather than the layout, so reordering or resizing a
+  // column does not re-query the whole library.
+  // The chosen tag keys, as a value that only changes when the SET
+  // changes -- reordering or resizing a column must not re-query the
+  // whole library. `JSON.stringify` of a sorted array rather than a
+  // joined string, because a tag key can contain any character a tagger
+  // chose to write and there is no separator that is safe by
+  // construction.
+  const chosenTagKeys = useMemo(
+    () =>
+      JSON.stringify(
+        trackColumns.layout.order
+          .map((id) => (id.startsWith("tag:") ? id.slice(4) : null))
+          .filter((key): key is string => key !== null)
+          .sort(),
+      ),
+    [trackColumns.layout.order],
+  );
+  // Every track's values for the chosen tag columns, in one read.
+  //
+  // Deliberately not scoped to the rows on screen, which looks like the
+  // obvious saving and is not one here: `tracks` already holds every
+  // row in the library: the virtualizer windows the *render*, not the
+  // data. These values are a few short strings per track against some
+  // twenty fields per row, so bounding them alone would make the tag
+  // columns the one part of the table fetched per scroll, against a
+  // design where the rows arrive once. If the memory matters, it is the
+  // row list that has to give first, and then this follows it.
+  useEffect(() => {
+    const keys = JSON.parse(chosenTagKeys) as string[];
+    if (keys.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTagValues(new Map());
+      return;
+    }
+    let cancelled = false;
+    listTrackTagValues(keys)
+      .then((byTrack) => {
+        if (!cancelled) setTagValues(new Map(Object.entries(byTrack)));
+      })
+      .catch((err) => {
+        if (!cancelled)
+          console.error("[LibraryView] listTrackTagValues failed", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [chosenTagKeys, librariesSignature, editRefetch]);
+
+  // The inventory is the one tab that fetches on activation rather than
+  // in parallel with the others: its counts are album-level aggregates
+  // plus a walk over every track, so prefetching them would tax everyone
+  // who never opens it. Re-runs when the library changes underneath, and
+  // after a tag edit, because fixing something is the whole point and a
+  // count that does not move reads as the fix not having worked.
+  useEffect(() => {
+    if (activeTab !== "a-corriger") return;
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading((p) => ({ ...p, "a-corriger": true }));
+    inventorySummary()
+      .then((list) => {
+        if (!cancelled) setInventory(list);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          console.error("[LibraryView] inventorySummary failed", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading((p) => ({ ...p, "a-corriger": false }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, librariesSignature, editRefetch]);
+
+  // Fixing the last track in a category is the success case, and it is
+  // the one that leaves the view wrong: the counts come back with that
+  // category at zero, `InventoryCategories` greys its button out, and
+  // the table underneath stays mounted on an empty list under a chip
+  // that can no longer be clicked to close it. So an emptied category
+  // closes itself, which puts the user back on the overview -- where
+  // the count they just drove to zero is the thing worth seeing.
+  useEffect(() => {
+    if (inventoryCategory == null) return;
+    const open = inventory.find((c) => c.key === inventoryCategory);
+    if (open && open.count > 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setInventoryCategory(null);
+    setInventoryRows([]);
+  }, [inventory, inventoryCategory]);
+
+  // Opening a category. Guarded on the key rather than on a request
+  // token: a second click on the same category is a no-op, and a click
+  // on another one replaces the rows wholesale, so a slow answer for a
+  // category the user has left must not paint.
+  useEffect(() => {
+    if (activeTab !== "a-corriger" || inventoryCategory == null) return;
+    // Same gate the other lists use: firing before the stored sort has
+    // been read loads the whole category once in the default order and
+    // again in the right one.
+    if (!tracksSort.isLoaded) return;
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setInventoryBusy(true);
+    inventoryTracks(inventoryCategory, tracksSort.sort)
+      .then((rows) => {
+        if (!cancelled) setInventoryRows(rows);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          console.error("[LibraryView] inventoryTracks failed", err);
+      })
+      .finally(() => {
+        if (!cancelled) setInventoryBusy(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeTab,
+    inventoryCategory,
+    tracksSort.sort,
+    tracksSort.isLoaded,
+    // A rescan changes what a category holds, and the open category is
+    // the one the user is looking at while it runs.
+    librariesSignature,
+    editRefetch,
+  ]);
 
   // Per-tab parallel fetchers — each runs independently of `activeTab`,
   // so navigating into LibraryView fires all 5 SQL queries at once and
@@ -665,8 +914,21 @@ export function LibraryView({
         return libraryPlaylists.length;
       case "dossiers":
         return folders.length;
+      case "a-corriger":
+        // The number the header should carry is "how many tracks need
+        // attention", which is the sum of the categories — and a
+        // category can list a track that another one lists too, so this
+        // is a count of findings rather than of distinct tracks. The
+        // subtext key says so.
+        return inventory.reduce((sum, category) => sum + category.count, 0);
     }
   };
+  // Built from the tab id, so no literal key for the other tabs
+  // appears anywhere in the source -- a search for
+  // `library.header.subtext.a-corriger` finds nothing and proves
+  // nothing. Each tab's entry is in all 17 locale files, and as CLDR
+  // plural forms (`_zero` / `_one` / `_other`, plus `_few` and `_many`
+  // where the language has them), because `count` is passed.
   const headerSubtext =
     activeTab === "dossiers"
       ? t("library.header.subtext.dossiers", { count: countForTab("dossiers") })
@@ -721,6 +983,11 @@ export function LibraryView({
         try {
           const summary = await rescanLibrary(lib.id, true);
           failedFolders += summary.errors;
+          // The walk inside one library already gives up when the user
+          // stops it; this loop is the one above it, and without this
+          // a stop would kill this library and start the next. Same
+          // rule, one level up.
+          if (summary.cancelled) break;
         } catch (err) {
           console.error(
             `[LibraryView] deep rescan failed for library ${lib.id}`,
@@ -750,6 +1017,11 @@ export function LibraryView({
         try {
           const summary = await rescanLibrary(lib.id);
           failedFolders += summary.errors;
+          // The walk inside one library already gives up when the user
+          // stops it; this loop is the one above it, and without this
+          // a stop would kill this library and start the next. Same
+          // rule, one level up.
+          if (summary.cancelled) break;
         } catch (err) {
           console.error(
             `[LibraryView] rescan failed for library ${lib.id}`,
@@ -780,10 +1052,7 @@ export function LibraryView({
       // an import uses, refresh the library rows for their counts, and
       // reload the folder rows for their last-scan date and track count.
       setEditRefetch((k) => k + 1);
-      const [list] = await Promise.all([
-        listFolders(null),
-        refreshLibraries(),
-      ]);
+      const [list] = await Promise.all([listFolders(null), refreshLibraries()]);
       setFolders(list);
     } catch (err) {
       console.error("[LibraryView] deep rescan failed", err);
@@ -845,7 +1114,14 @@ export function LibraryView({
     // Inside a folder there is always something to show -- a
     // breadcrumb and a way back at the very least -- even when the
     // folder itself holds nothing.
-    (activeTab === "dossiers" && (folders.length > 0 || folderPath != null));
+    (activeTab === "dossiers" && (folders.length > 0 || folderPath != null)) ||
+    // The inventory always has something to show: the categories
+    // themselves, including the "nothing to fix" reading, which is the
+    // answer to the question the user came here with. Listing it here
+    // also keeps `activeTab` from being narrowed out of the branch that
+    // renders it — `hasContent` is a `const` built from comparisons, so
+    // TypeScript treats it as a discriminant.
+    activeTab === "a-corriger";
 
   /** Play a file of the folder being browsed, from that folder's own
    *  list: the queue a click builds is the folder the user is looking
@@ -875,118 +1151,144 @@ export function LibraryView({
     busy: boolean,
     onPlayRow: (index: number) => void,
   ) => (
-      <TrackTable
-        tracks={rows}
-        isLoading={busy}
-        view={tracksView}
-        t={t}
-        onPlayTrack={(index) => onPlayRow(index)}
-        currentTrackId={currentTrack?.id ?? null}
-        isPlaying={isPlaying}
-        likedIds={likedIds}
-        onToggleLike={async (trackId) => {
-          try {
-            const nowLiked = await toggleLikeTrack(trackId);
-            setLikedIds((prev) => {
+    <TrackTable
+      // Nothing paints until the stored column choice has been read
+      // for the active profile. `useProfileSetting` answers with the
+      // default until then, so rendering would lay out one frame of
+      // default columns and then move every one of them -- under the
+      // pointer, and on every profile switch.
+      tracks={trackColumns.ready ? rows : []}
+      isLoading={busy || !trackColumns.ready}
+      view={tracksView}
+      t={t}
+      locale={i18n.resolvedLanguage ?? i18n.language}
+      layout={liveColumnLayout}
+      sort={tracksSort.sort}
+      onSort={(orderBy) =>
+        // Clicking the active column flips the direction; clicking
+        // another one starts it at whatever reads as "most first"
+        // for that column, which the backend decides.
+        tracksSort.setSort({
+          orderBy,
+          direction:
+            tracksSort.sort.orderBy === orderBy &&
+            tracksSort.sort.direction === "asc"
+              ? "desc"
+              : "asc",
+        })
+      }
+      onPreviewColumn={(id, width) => {
+        columnPreviewRef.current = { id, width };
+        setColumnPreview({ id, width });
+      }}
+      onCommitColumn={(id) => {
+        const current = columnPreviewRef.current;
+        columnPreviewRef.current = null;
+        if (current && current.id === id) {
+          void trackColumns.setWidth(id, current.width);
+        }
+        setColumnPreview(null);
+      }}
+      tagValues={tagValues}
+      onPlayTrack={(index) => onPlayRow(index)}
+      currentTrackId={currentTrack?.id ?? null}
+      isPlaying={isPlaying}
+      likedIds={likedIds}
+      onToggleLike={async (trackId) => {
+        try {
+          const nowLiked = await toggleLikeTrack(trackId);
+          setLikedIds((prev) => {
+            const next = new Set(prev);
+            if (nowLiked) next.add(trackId);
+            else next.delete(trackId);
+            return next;
+          });
+        } catch (err) {
+          console.error("[LibraryView] toggle like failed", err);
+        }
+      }}
+      playlists={playlists}
+      onAddToPlaylist={async (playlistId, trackId) => {
+        try {
+          await addTracksToPlaylist(playlistId, [trackId]);
+        } catch (err) {
+          console.error("[LibraryView] add to playlist failed", err);
+        }
+      }}
+      onRemoveFromPlaylist={async (playlistId, trackId) => {
+        try {
+          await removeTrackFromPlaylist(playlistId, trackId);
+        } catch (err) {
+          console.error("[LibraryView] remove from playlist failed", err);
+        }
+      }}
+      onCreatePlaylist={(trackId) => {
+        setPendingSourceForCreate({ kind: "tracks", ids: [trackId] });
+        setIsCreatePlaylistModalOpen(true);
+      }}
+      onNavigateToAlbum={onNavigateToAlbum}
+      onNavigateToArtist={onNavigateToArtist}
+      onContextMenuRow={trackContextMenu.open}
+      onRowMenuKey={trackContextMenu.openFromKeyboard}
+      isSelected={selection.isSelected}
+      onNavigateToRemoteAlbum={onNavigateToRemoteAlbum}
+      onNavigateToRemoteArtist={onNavigateToRemoteArtist}
+      downloadingRemote={downloadingRemote}
+      downloadedRemote={downloadedRemote}
+      onDownloadRemote={(remoteTrackId) => {
+        setDownloadingRemote((prev) => new Set(prev).add(remoteTrackId));
+        void remoteDownloadTrack(remoteTrackId)
+          .then(() => {
+            setDownloadedRemote((prev) => new Set(prev).add(remoteTrackId));
+          })
+          .catch((err) => {
+            console.error("[LibraryView] download failed", err);
+          })
+          .finally(() => {
+            setDownloadingRemote((prev) => {
               const next = new Set(prev);
-              if (nowLiked) next.add(trackId);
-              else next.delete(trackId);
+              next.delete(remoteTrackId);
               return next;
             });
-          } catch (err) {
-            console.error("[LibraryView] toggle like failed", err);
-          }
-        }}
-        playlists={playlists}
-        onAddToPlaylist={async (playlistId, trackId) => {
-          try {
-            await addTracksToPlaylist(playlistId, [trackId]);
-          } catch (err) {
-            console.error("[LibraryView] add to playlist failed", err);
-          }
-        }}
-        onRemoveFromPlaylist={async (playlistId, trackId) => {
-          try {
-            await removeTrackFromPlaylist(playlistId, trackId);
-          } catch (err) {
-            console.error(
-              "[LibraryView] remove from playlist failed",
-              err,
-            );
-          }
-        }}
-        onCreatePlaylist={(trackId) => {
-          setPendingSourceForCreate({ kind: "tracks", ids: [trackId] });
-          setIsCreatePlaylistModalOpen(true);
-        }}
-        onNavigateToAlbum={onNavigateToAlbum}
-        onNavigateToArtist={onNavigateToArtist}
-        onContextMenuRow={trackContextMenu.open}
-        onRowMenuKey={trackContextMenu.openFromKeyboard}
-        isSelected={selection.isSelected}
-        onNavigateToRemoteAlbum={onNavigateToRemoteAlbum}
-        onNavigateToRemoteArtist={onNavigateToRemoteArtist}
-        downloadingRemote={downloadingRemote}
-        downloadedRemote={downloadedRemote}
-        onDownloadRemote={(remoteTrackId) => {
-          setDownloadingRemote((prev) =>
-            new Set(prev).add(remoteTrackId),
-          );
-          void remoteDownloadTrack(remoteTrackId)
-            .then(() => {
-              setDownloadedRemote((prev) =>
-                new Set(prev).add(remoteTrackId),
-              );
-            })
-            .catch((err) => {
-              console.error("[LibraryView] download failed", err);
-            })
-            .finally(() => {
-              setDownloadingRemote((prev) => {
-                const next = new Set(prev);
-                next.delete(remoteTrackId);
-                return next;
-              });
-            });
-        }}
-        onImportRemote={(row) => {
-          setImportTargets({
-            ids: [String(row.id)],
-            label: row.title,
           });
-        }}
-        onEditRemoteTags={setRemoteTagsTrackId}
-        singleClickPlay={singleClickPlay}
-        onRowSelect={(track, e) => {
-          // Modifier-driven selection always wins so multi-select
-          // remains accessible even with single-click play on.
-          // Selection, and everything it feeds, speaks in local
-          // rowids. The table only hands us local rows here — a remote
-          // one has no `Track` to pass — so the list it ranges over is
-          // narrowed to match.
-          const localRows = rows
-            .filter((row) => row.source === "local")
-            .map(toLocalTrack);
-          if (e.shiftKey) {
-            selection.selectRange(track.id, localRows);
-            return;
-          }
-          if (e.ctrlKey || e.metaKey) {
-            selection.toggleOne(track.id);
-            return;
-          }
-          if (singleClickPlay) {
-            const idx = rows.findIndex(
-              (row) =>
-                row.source === "local" && Number(row.id) === track.id,
-            );
-            if (idx >= 0) onPlayRow(idx);
-            selection.clear();
-            return;
-          }
-          selection.setSingle(track.id);
-        }}
-      />
+      }}
+      onImportRemote={(row) => {
+        setImportTargets({
+          ids: [String(row.id)],
+          label: row.title,
+        });
+      }}
+      onEditRemoteTags={setRemoteTagsTrackId}
+      singleClickPlay={singleClickPlay}
+      onRowSelect={(track, e) => {
+        // Modifier-driven selection always wins so multi-select
+        // remains accessible even with single-click play on.
+        // Selection, and everything it feeds, speaks in local
+        // rowids. The table only hands us local rows here — a remote
+        // one has no `Track` to pass — so the list it ranges over is
+        // narrowed to match.
+        const localRows = rows
+          .filter((row) => row.source === "local")
+          .map(toLocalTrack);
+        if (e.shiftKey) {
+          selection.selectRange(track.id, localRows);
+          return;
+        }
+        if (e.ctrlKey || e.metaKey) {
+          selection.toggleOne(track.id);
+          return;
+        }
+        if (singleClickPlay) {
+          const idx = rows.findIndex(
+            (row) => row.source === "local" && Number(row.id) === track.id,
+          );
+          if (idx >= 0) onPlayRow(idx);
+          selection.clear();
+          return;
+        }
+        selection.setSingle(track.id);
+      }}
+    />
   );
 
   return (
@@ -1119,6 +1421,31 @@ export function LibraryView({
           >
             <AlignJustify size={18} />
           </button>
+          {/* Beside the density toggle, because both answer "how should
+              this list look" -- and only on the tabs that render the
+              track table, since on an album or artist grid the control
+              would have nothing to configure. */}
+          {(activeTab === "morceaux" ||
+            // The folders tab shows the table only once a folder is
+            // open; above that it is a list of directories, and a
+            // column picker there configures nothing on screen.
+            (activeTab === "dossiers" && folderPath != null) ||
+            activeTab === "a-corriger") && (
+            <ColumnPicker
+              layout={trackColumns.layout}
+              tagKeys={tagKeys}
+              onToggle={(id) => {
+                void trackColumns.toggle(id);
+              }}
+              onReorder={(from, to) => {
+                void trackColumns.move(from, to);
+              }}
+              onResetWidths={() => {
+                void trackColumns.resetWidths();
+              }}
+              t={t}
+            />
+          )}
         </div>
       </div>
 
@@ -1174,9 +1501,7 @@ export function LibraryView({
       {hasContent ? (
         <>
           {activeTab === "morceaux" && (
-            <>
-              {renderTrackTable(tracks, loading.morceaux, playRow)}
-            </>
+            <>{renderTrackTable(tracks, loading.morceaux, playRow)}</>
           )}
           {activeTab === "albums" && (
             <>
@@ -1223,7 +1548,7 @@ export function LibraryView({
                     onLetterClick={(idx) => {
                       artistScrollToIndexRef.current?.(idx);
                     }}
-                    className="hidden md:flex fixed right-6 top-1/2 -translate-y-1/2 z-30 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm rounded-full py-2 px-1.5 shadow-sm"
+                    className="hidden md:flex fixed right-6 top-1/2 -translate-y-1/2 z-30 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm wf-glass rounded-full py-2 px-1.5 shadow-sm"
                   />
                 )}
               </div>
@@ -1239,7 +1564,6 @@ export function LibraryView({
           )}
           {activeTab === "playlists" && (
             <>
-
               <PlaylistGrid
                 playlists={libraryPlaylists}
                 sort={playlistsSort.sort}
@@ -1306,6 +1630,39 @@ export function LibraryView({
                 (folderTracks.length > 0 || folderBusy) &&
                 renderTrackTable(folderTracks, folderBusy, playFolderRow)}
             </>
+          )}
+          {activeTab === "a-corriger" && (
+            <div className="space-y-4">
+              <InventoryCategories
+                categories={inventory}
+                isLoading={loading["a-corriger"]}
+                activeKey={inventoryCategory}
+                onSelect={(key) => {
+                  // Clicking the open category closes it, so the user
+                  // gets back to the overview without a second control.
+                  const next = inventoryCategory === key ? null : key;
+                  // The rows belong to the category that was open, and
+                  // the query replacing them runs over the whole
+                  // library. Left in place, the table spends that time
+                  // showing one category's tracks under another's name
+                  // -- and a click plays them.
+                  setInventoryRows([]);
+                  setInventoryCategory(next);
+                }}
+                t={t}
+              />
+              {/* The library's own table, so a category is an entry
+                  point and not a report: same columns, same sort, same
+                  context menu, same properties modal -- which is what
+                  makes fixing a track from here possible at all. */}
+              {inventoryCategory != null &&
+                renderTrackTable(inventoryRows, inventoryBusy, (index) => {
+                  void playTracks(inventoryRows.map(toLocalTrack), index, {
+                    type: "library",
+                    id: null,
+                  });
+                })}
+            </div>
           )}
           {activeTab === "dossiers" && folderPath == null && (
             <FolderList
@@ -1793,6 +2150,19 @@ interface TrackTableProps {
   downloadingRemote: Set<string>;
   /** Server tracks already kept offline. */
   downloadedRemote: Set<string>;
+  /** For the date and byte-size columns (#588). */
+  locale: string;
+  /** Which columns to show, in what order, and how wide (#588). */
+  layout: ColumnLayout;
+  /** The active sort, so the header can mark the column and its
+   *  direction. `null` in the lists that have no sort of their own. */
+  sort: { orderBy: string; direction: "asc" | "desc" } | null;
+  onSort: (orderBy: string) => void;
+  onPreviewColumn: (id: ColumnId, width: number) => void;
+  onCommitColumn: (id: ColumnId) => void;
+  /** Values of the chosen custom-tag columns, keyed by track id then
+   *  tag key. Empty unless a `tag:` column is shown. */
+  tagValues: Map<string, Record<string, string>>;
 }
 
 function TrackTable({
@@ -1823,6 +2193,13 @@ function TrackTable({
   onEditRemoteTags,
   downloadingRemote,
   downloadedRemote,
+  locale,
+  layout,
+  sort,
+  onSort,
+  onPreviewColumn,
+  onCommitColumn,
+  tagValues,
 }: TrackTableProps) {
   "use no memo";
   const unknown = t("library.table.unknown");
@@ -1906,36 +2283,122 @@ function TrackTable({
   // buttons there (keep offline, import, correct tags) at 28px each, so
   // the 2.5rem it used to be overflowed into the heart beside it — it
   // already did with two, and a third made it plain.
-  const gridCols =
-    view === "list"
-      ? "grid-cols-[3rem_2.75rem_1fr_1fr_1fr_7rem_5rem_2rem_5.5rem]"
-      : "grid-cols-[3rem_1fr_1fr_1fr_7rem_5rem_2rem_5.5rem]";
+  //
+  // Built from the layout since #588, so a `grid-cols-[...]` utility
+  // can no longer be the source of truth. The chrome keeps its fixed
+  // tracks at both ends -- the index, the thumbnail the list view
+  // shows, the heart, the actions -- because none of it carries a value
+  // and none of it sorts.
+  const leadingSpacers = view === "list" ? 2 : 1;
+  const gridCols = [
+    "3rem",
+    ...(view === "list" ? ["2.75rem"] : []),
+    ...layout.order.map((id) => trackSizeFor(id, layout)),
+    "2rem",
+    "5.5rem",
+  ].join(" ");
+
+  // Formatters for the text a column shows, and for measuring it.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const textFor = useCallback(
+    (id: ColumnId, row: LibraryTrackRow) =>
+      cellText(id, row, {
+        duration: formatDuration,
+        bytes: (n) => formatBytes(n, locale),
+        // Milliseconds, not seconds: `track.added_at` is written by
+        // `now_millis()` on the Rust side, and `TrackPropertiesModal`
+        // has always fed it to `Date` unscaled. Multiplying here put
+        // the "Added" column tens of thousands of years out.
+        date: (epochMs) =>
+          new Date(epochMs).toLocaleDateString(locale, {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          }),
+        tag: (r, key) => tagValues.get(r.id)?.[key] ?? null,
+      }),
+    [locale, tagValues],
+  );
+
+  /** Double-click on a resize handle: size the column to its content.
+   *
+   *  Measured through a canvas rather than off the DOM, because the
+   *  rows are virtualised -- the ones outside the viewport have no
+   *  computed layout, so a DOM measurement would size the column to
+   *  whatever happens to be on screen. The header label is measured
+   *  too, in its own font: a column fitted to short content otherwise
+   *  shows a truncated title, which reads as the fit having failed. */
+  const fitColumn = useCallback(
+    (id: ColumnId) => {
+      const spec = specFor(id);
+      const tag = tagKeyOf(id);
+      const label = tag !== null ? tag : t(`library.columns.${spec.labelKey}`);
+      // This column's own cell, not simply the first one on screen.
+      // The first is the title of the first row, which is a different
+      // weight when that row is the one playing and a different variant
+      // from any right-aligned column's `tabular-nums` -- so the
+      // measurement would be taken in a font the column never uses.
+      const cell =
+        bodyRef.current?.querySelector(
+          `[data-track-cell="${CSS.escape(id)}"]`,
+        ) ?? null;
+      const header =
+        bodyRef.current
+          ?.closest("[data-track-table]")
+          ?.querySelector(`[data-track-header="${CSS.escape(id)}"]`) ?? null;
+      // A bounded sample, not the whole list. Each value is a canvas
+      // measurement and this runs synchronously on a double-click, so
+      // a fifty-thousand-track library would freeze the window for the
+      // length of it. The widest cell in two thousand rows is the
+      // widest cell for any practical purpose, and `fitWidth` caps the
+      // answer at `MAX_COLUMN_WIDTH` regardless.
+      const FIT_SAMPLE = 2000;
+      const width = fitWidth({
+        values: tracks.slice(0, FIT_SAMPLE).map((row) => textFor(id, row)),
+        headerLabel: label,
+        cell: styleOf(cell),
+        header: styleOf(header),
+        // The cell's own gap, plus room for the sort caret the header
+        // draws beside its label.
+        padding: 28,
+        min: spec.minWidth,
+        max: MAX_COLUMN_WIDTH,
+      });
+      if (width === null) return;
+      // A fit is a complete gesture on its own: preview so the header
+      // shows it at once, commit so it survives.
+      onPreviewColumn(id, width);
+      onCommitColumn(id);
+    },
+    [onCommitColumn, onPreviewColumn, t, tracks, textFor],
+  );
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40 overflow-hidden">
-      {/* Fixed header */}
-      <div
-        className={`grid ${gridCols} gap-4 px-5 py-3 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-100 dark:border-zinc-800`}
-      >
-        <span className="text-right">{t("library.table.number")}</span>
-        {view === "list" && <span aria-hidden="true" />}
-        <span>{t("library.table.title")}</span>
-        <span>{t("library.table.artist")}</span>
-        <span>{t("library.table.album")}</span>
-        <span>{t("library.rating")}</span>
-        <span
-          className="flex justify-end"
-          aria-label={t("library.table.duration")}
-        >
-          <Clock size={14} />
-        </span>
-        <span aria-hidden="true" />
-        <span aria-hidden="true" />
-      </div>
+    <div
+      data-track-table
+      className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40"
+    >
+      {/* Sticky, not fixed. `overflow-hidden` had to go with it: it
+          clips a sticky descendant against its own rounded corners, and
+          the header then stops sticking at all. */}
+      <TrackTableHeader
+        layout={layout}
+        gridCols={gridCols}
+        sort={sort}
+        onSort={onSort}
+        onPreview={onPreviewColumn}
+        onCommit={onCommitColumn}
+        onFit={fitColumn}
+        leadingSpacers={leadingSpacers}
+        t={t}
+      />
 
       {/* Virtualized body */}
       <div
-        ref={parentRef}
+        ref={(node) => {
+          parentRef.current = node;
+          bodyRef.current = node;
+        }}
         className={isLoading ? "opacity-50" : ""}
         style={{
           height: `${virtualizer.getTotalSize()}px`,
@@ -1976,7 +2439,12 @@ function TrackTable({
                 // rather than as an unselectable one. Modifier clicks stay
                 // inert: they are selection gestures, and there is no
                 // selection here to extend.
-                if (singleClickPlay && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+                if (
+                  singleClickPlay &&
+                  !e.shiftKey &&
+                  !e.ctrlKey &&
+                  !e.metaKey
+                ) {
                   onPlayTrack(index);
                 }
               }}
@@ -2034,8 +2502,14 @@ function TrackTable({
                 // z-index, so the popover's own `z-50` can't escape its
                 // row's stacking context — bumping the row itself does.
                 zIndex: isMenuOpen ? 20 : undefined,
+                // Inline, like the header's. Since #588 `gridCols` is a
+                // CSS track list built from the layout, not a Tailwind
+                // class -- interpolating it into `className` produced a
+                // garbage class name and every row silently fell back
+                // to a single-column grid.
+                gridTemplateColumns: gridCols,
               }}
-              className={`group grid ${gridCols} gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
+              className={`group grid gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
                 isRowSelected
                   ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"
                   : isCurrent
@@ -2071,109 +2545,174 @@ function TrackTable({
                     iconSize={18}
                   />
                 ))}
-              <span
-                className={`text-sm truncate flex items-center gap-2 ${
-                  isCurrent
-                    ? "text-emerald-600 dark:text-emerald-400 font-semibold"
-                    : "text-zinc-800 dark:text-zinc-200"
-                }`}
-              >
-                <span className="truncate">{track.title}</span>
-                {/* One list, and every row says where it comes from. */}
-                {!local && (
-                  <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
-                    {t("library.source.remote")}
+              {/* One cell per chosen column, in the chosen order
+                  (#588). The five that used to be hard-coded here keep
+                  their exact markup -- the title still carries the
+                  source badge and the Hi-Res pill, the artist and album
+                  are still links, the rating is still writable -- so
+                  making the set configurable changed what is rendered
+                  and not how any of it behaves. */}
+              {layout.order.map((id) => {
+                const spec = specFor(id);
+                const align =
+                  spec.align === "right"
+                    ? "text-right"
+                    : spec.align === "center"
+                      ? "text-center"
+                      : "";
+                if (id === "title") {
+                  return (
+                    <span
+                      key={id}
+                      data-track-cell={id}
+                      className={`text-sm truncate flex items-center gap-2 ${
+                        isCurrent
+                          ? "text-emerald-600 dark:text-emerald-400 font-semibold"
+                          : "text-zinc-800 dark:text-zinc-200"
+                      }`}
+                    >
+                      <span className="truncate">{track.title}</span>
+                      {/* One list, and every row says where it comes from. */}
+                      {!local && (
+                        <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                          {t("library.source.remote")}
+                        </span>
+                      )}
+                      <HiResBadge
+                        bitDepth={track.bit_depth}
+                        sampleRate={track.sample_rate}
+                        codec={track.codec}
+                        variant="inline"
+                      />
+                    </span>
+                  );
+                }
+                if (id === "artist") {
+                  return (
+                    <ArtistLink
+                      key={id}
+                      name={track.artist_name}
+                      artistIds={local ? track.artist_ids : null}
+                      onNavigate={onNavigateToArtist}
+                      onNavigateRemote={
+                        local || !track.artist_id
+                          ? undefined
+                          : () =>
+                              onNavigateToRemoteArtist(
+                                track.artist_id as string,
+                              )
+                      }
+                      fallback={unknown}
+                      className="text-sm text-zinc-500 truncate"
+                      cellId={id}
+                    />
+                  );
+                }
+                if (id === "album") {
+                  return (
+                    <AlbumLink
+                      key={id}
+                      title={track.album_title}
+                      albumId={
+                        local && track.album_id ? Number(track.album_id) : null
+                      }
+                      onNavigate={onNavigateToAlbum}
+                      onNavigateRemote={
+                        local || !track.album_id
+                          ? undefined
+                          : () =>
+                              onNavigateToRemoteAlbum(track.album_id as string)
+                      }
+                      fallback={unknown}
+                      className="text-sm text-zinc-500 truncate"
+                      cellId={id}
+                    />
+                  );
+                }
+                if (id === "rating") {
+                  return (
+                    <div
+                      key={id}
+                      data-track-cell={id}
+                      className="flex items-center"
+                      onDoubleClick={(e) => e.stopPropagation()}
+                    >
+                      {/* Rating writes a POPM frame into the file. A
+                          server track has no file here, so the control
+                          is absent rather than inert -- five hollow
+                          stars that do nothing read as "unrated". */}
+                      {localId !== null && (
+                        <StarRating
+                          value={
+                            ratingOverrides.has(localId)
+                              ? (ratingOverrides.get(localId) ?? null)
+                              : track.rating
+                          }
+                          size="sm"
+                          onChange={(rating) => {
+                            setRatingOverrides((prev) => {
+                              const next = new Map(prev);
+                              next.set(localId, rating);
+                              return next;
+                            });
+                            setTrackRating(localId, rating).catch((err) => {
+                              console.error(
+                                "[LibraryView] set rating failed",
+                                err,
+                              );
+                              setRatingOverrides((prev) => {
+                                const next = new Map(prev);
+                                next.delete(localId);
+                                return next;
+                              });
+                            });
+                          }}
+                        />
+                      )}
+                    </div>
+                  );
+                }
+                // Everything else is text, and goes through the same
+                // formatter the column measurement uses -- so a column
+                // fitted to its content is fitted to what it shows.
+                const text = textFor(id, track);
+                return (
+                  <span
+                    key={id}
+                    data-track-cell={id}
+                    title={text || undefined}
+                    className={`text-sm truncate text-zinc-400 ${align} ${
+                      spec.align === "right" ? "tabular-nums" : ""
+                    }`}
+                  >
+                    {text}
                   </span>
-                )}
-                <HiResBadge
-                  bitDepth={track.bit_depth}
-                  sampleRate={track.sample_rate}
-                  codec={track.codec}
-                  variant="inline"
-                />
-              </span>
-              <ArtistLink
-                name={track.artist_name}
-                artistIds={local ? track.artist_ids : null}
-                onNavigate={onNavigateToArtist}
-                onNavigateRemote={
-                  local || !track.artist_id
-                    ? undefined
-                    : () => onNavigateToRemoteArtist(track.artist_id as string)
-                }
-                fallback={unknown}
-                className="text-sm text-zinc-500 truncate"
-              />
-              <AlbumLink
-                title={track.album_title}
-                albumId={local && track.album_id ? Number(track.album_id) : null}
-                onNavigate={onNavigateToAlbum}
-                onNavigateRemote={
-                  local || !track.album_id
-                    ? undefined
-                    : () => onNavigateToRemoteAlbum(track.album_id as string)
-                }
-                fallback={unknown}
-                className="text-sm text-zinc-500 truncate"
-              />
-              <div
-                className="flex items-center"
-                onDoubleClick={(e) => e.stopPropagation()}
-              >
-                {/* Rating writes a POPM frame into the file. A server track has
-                    no file here, so the control is absent rather than inert —
-                    five hollow stars that do nothing read as "unrated". */}
-                {localId !== null && (
-                <StarRating
-                  value={
-                    ratingOverrides.has(localId)
-                      ? (ratingOverrides.get(localId) ?? null)
-                      : track.rating
-                  }
-                  size="sm"
-                  onChange={(rating) => {
-                    setRatingOverrides((prev) => {
-                      const next = new Map(prev);
-                      next.set(localId, rating);
-                      return next;
-                    });
-                    setTrackRating(localId, rating).catch((err) => {
-                      console.error("[LibraryView] set rating failed", err);
-                      setRatingOverrides((prev) => {
-                        const next = new Map(prev);
-                        next.delete(localId);
-                        return next;
-                      });
-                    });
-                  }}
-                />
-                )}
-              </div>
-              <span className="text-sm tabular-nums text-zinc-400 text-right">
-                {formatDuration(track.duration_ms)}
-              </span>
+                );
+              })}
               <div className="flex justify-center">
                 {localId !== null && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleLike(localId);
-                  }}
-                  aria-label={
-                    likedIds.has(localId) ? t("liked.unlike") : t("liked.like")
-                  }
-                  className={`p-1 rounded-full transition-colors ${
-                    likedIds.has(localId)
-                      ? "text-pink-500"
-                      : "text-zinc-300 dark:text-zinc-600 hover:text-pink-500"
-                  }`}
-                >
-                  <Heart
-                    size={14}
-                    className={likedIds.has(localId) ? "fill-current" : ""}
-                  />
-                </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleLike(localId);
+                    }}
+                    aria-label={
+                      likedIds.has(localId)
+                        ? t("liked.unlike")
+                        : t("liked.like")
+                    }
+                    className={`p-1 rounded-full transition-colors ${
+                      likedIds.has(localId)
+                        ? "text-pink-500"
+                        : "text-zinc-300 dark:text-zinc-600 hover:text-pink-500"
+                    }`}
+                  >
+                    <Heart
+                      size={14}
+                      className={likedIds.has(localId) ? "fill-current" : ""}
+                    />
+                  </button>
                 )}
               </div>
               <div className="relative flex justify-center">
@@ -2261,81 +2800,81 @@ function TrackTable({
                 {/* A local playlist holds local tracks; the picker cannot
                     accept a server one. */}
                 {localId !== null && (
-                <>
-                <button
-                  type="button"
-                  data-add-to-playlist-trigger
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const opening = !isMenuOpen;
-                    setOpenMenuTrackId(opening ? localId : null);
-                    // Lazy-fetch membership the first time this track's
-                    // popover is opened. Subsequent opens reuse the cached
-                    // set (kept in sync via optimistic updates on toggle).
-                    if (opening && !trackMembership.has(localId)) {
-                      listPlaylistsContainingTrack(localId)
-                        .then((ids) => {
+                  <>
+                    <button
+                      type="button"
+                      data-add-to-playlist-trigger
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const opening = !isMenuOpen;
+                        setOpenMenuTrackId(opening ? localId : null);
+                        // Lazy-fetch membership the first time this track's
+                        // popover is opened. Subsequent opens reuse the cached
+                        // set (kept in sync via optimistic updates on toggle).
+                        if (opening && !trackMembership.has(localId)) {
+                          listPlaylistsContainingTrack(localId)
+                            .then((ids) => {
+                              setTrackMembership((prev) => {
+                                const next = new Map(prev);
+                                next.set(localId, new Set(ids));
+                                return next;
+                              });
+                            })
+                            .catch((err) => {
+                              console.error(
+                                "[LibraryView] load membership failed",
+                                err,
+                              );
+                            });
+                        }
+                      }}
+                      aria-label={t("trackActions.addToPlaylist")}
+                      aria-haspopup="menu"
+                      aria-expanded={isMenuOpen}
+                      className={`p-1.5 rounded-full transition-all focus-visible:opacity-100 ${
+                        isMenuOpen
+                          ? "opacity-100 bg-zinc-100 dark:bg-zinc-700 text-zinc-800 dark:text-white"
+                          : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                      }`}
+                    >
+                      <Plus size={16} />
+                    </button>
+                    {isMenuOpen && (
+                      <AddToPlaylistPopover
+                        playlists={playlists}
+                        trackId={localId}
+                        memberPlaylistIds={trackMembership.get(localId)}
+                        onPick={(playlistId) => {
+                          const members = trackMembership.get(localId);
+                          const isMember = members?.has(playlistId) ?? false;
+                          // Optimistic membership flip — the underlying mutations
+                          // are idempotent on the backend, so a failed RPC just
+                          // means the visual state will drift until the next
+                          // popover open, which is the worst-case loss for a
+                          // single click.
                           setTrackMembership((prev) => {
                             const next = new Map(prev);
-                            next.set(localId, new Set(ids));
+                            const set = new Set(next.get(localId) ?? []);
+                            if (isMember) set.delete(playlistId);
+                            else set.add(playlistId);
+                            next.set(localId, set);
                             return next;
                           });
-                        })
-                        .catch((err) => {
-                          console.error(
-                            "[LibraryView] load membership failed",
-                            err,
-                          );
-                        });
-                    }
-                  }}
-                  aria-label={t("trackActions.addToPlaylist")}
-                  aria-haspopup="menu"
-                  aria-expanded={isMenuOpen}
-                  className={`p-1.5 rounded-full transition-all focus-visible:opacity-100 ${
-                    isMenuOpen
-                      ? "opacity-100 bg-zinc-100 dark:bg-zinc-700 text-zinc-800 dark:text-white"
-                      : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  <Plus size={16} />
-                </button>
-                {isMenuOpen && (
-                  <AddToPlaylistPopover
-                    playlists={playlists}
-                    trackId={localId}
-                    memberPlaylistIds={trackMembership.get(localId)}
-                    onPick={(playlistId) => {
-                      const members = trackMembership.get(localId);
-                      const isMember = members?.has(playlistId) ?? false;
-                      // Optimistic membership flip — the underlying mutations
-                      // are idempotent on the backend, so a failed RPC just
-                      // means the visual state will drift until the next
-                      // popover open, which is the worst-case loss for a
-                      // single click.
-                      setTrackMembership((prev) => {
-                        const next = new Map(prev);
-                        const set = new Set(next.get(localId) ?? []);
-                        if (isMember) set.delete(playlistId);
-                        else set.add(playlistId);
-                        next.set(localId, set);
-                        return next;
-                      });
-                      if (isMember) {
-                        void onRemoveFromPlaylist(playlistId, localId);
-                      } else {
-                        void onAddToPlaylist(playlistId, localId);
-                      }
-                      setOpenMenuTrackId(null);
-                    }}
-                    onCreate={() => {
-                      setOpenMenuTrackId(null);
-                      onCreatePlaylist(localId);
-                    }}
-                    t={t}
-                  />
-                )}
-                </>
+                          if (isMember) {
+                            void onRemoveFromPlaylist(playlistId, localId);
+                          } else {
+                            void onAddToPlaylist(playlistId, localId);
+                          }
+                          setOpenMenuTrackId(null);
+                        }}
+                        onCreate={() => {
+                          setOpenMenuTrackId(null);
+                          onCreatePlaylist(localId);
+                        }}
+                        t={t}
+                      />
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -2909,9 +3448,11 @@ function AlbumGrid({
  * cache to invalidate.
  */
 function ArtistAvatar({ artist }: { artist: LibraryArtistRow }) {
-  const { src: remoteSrc, onError, onLoad } = useRemoteArtworkSrc(
-    artist.artwork_hash,
-  );
+  const {
+    src: remoteSrc,
+    onError,
+    onLoad,
+  } = useRemoteArtworkSrc(artist.artwork_hash);
   // Use the full-resolution source so HiDPI screens render the avatar crisp at
   // any column width — same trade-off documented on `AlbumGrid`'s Artwork
   // usage. The 128 px 2x thumbnail upscaled soft on the 180–220 px tiles.
@@ -3119,26 +3660,26 @@ function ArtistList({
             className="absolute inset-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
           />
           {localId !== null && (
-          <button
-            type="button"
-            data-add-to-playlist-trigger
-            ref={(el) => {
-              if (el) triggerRefs.current.set(localId, el);
-              else triggerRefs.current.delete(localId);
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpenMenuArtistId(isMenuOpen ? null : localId);
-            }}
-            aria-label={t("trackActions.addToPlaylist")}
-            className={`absolute bottom-1 right-1 p-1.5 rounded-full shadow-sm transition-all focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${
-              isMenuOpen
-                ? "opacity-100 bg-emerald-500 text-white"
-                : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
-            }`}
-          >
-            <Plus size={16} />
-          </button>
+            <button
+              type="button"
+              data-add-to-playlist-trigger
+              ref={(el) => {
+                if (el) triggerRefs.current.set(localId, el);
+                else triggerRefs.current.delete(localId);
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpenMenuArtistId(isMenuOpen ? null : localId);
+              }}
+              aria-label={t("trackActions.addToPlaylist")}
+              className={`absolute bottom-1 right-1 p-1.5 rounded-full shadow-sm transition-all focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${
+                isMenuOpen
+                  ? "opacity-100 bg-emerald-500 text-white"
+                  : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
+              }`}
+            >
+              <Plus size={16} />
+            </button>
           )}
         </div>
         {/* Mouse-only, like the album card: the overlay above is the

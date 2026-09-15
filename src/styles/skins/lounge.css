@@ -510,3 +510,41 @@
     opacity: 1;
   }
 }
+
+/* ============================================================
+   High contrast (issue #596)
+   ============================================================
+
+   Same shape as Pulse: the sidebar shell is `transparent` and the
+   header sits at 72% opacity, both leaning on the blur. Lounge paints
+   `body` with a gradient rather than a flat colour, so there is no
+   token to reuse — this is the darkest of its three stops, which keeps
+   the chrome in the skin's own family instead of dropping a neutral
+   grey into it. */
+:root[data-skin="lounge"][data-contrast="high"] {
+  --wf-contrast-surface: rgb(12 6 11);
+}
+
+/* Both: the shell carries the blur and is `transparent` by the skin's
+   own rule, so with the blur off it would let the page through the
+   gutter around the panel; the `aside` inside it is the translucent
+   surface the labels actually sit on. Liquid forces the same pair. */
+:root[data-skin="lounge"][data-contrast="high"] .lounge-sidebar-shell,
+:root[data-skin="lounge"][data-contrast="high"] .lounge-sidebar-shell > aside,
+:root[data-skin="lounge"][data-contrast="high"] header[class*="sticky"],
+:root[data-skin="lounge"][data-contrast="high"] footer,
+:root[data-skin="lounge"][data-contrast="high"]
+  main
+  :where(
+    [class*="rounded-xl"],
+    [class*="rounded-2xl"],
+    [class*="rounded-3xl"]
+  ) {
+  background-color: var(--wf-contrast-surface) !important;
+  /* The opaque colour alone does not get there: this skin's TopBar and
+     PlayerBar each carry a `background-image` gradient, which paints
+     over whatever `background-color` is underneath. Lounge is the only
+     one of the five that needs saying -- Pulse and Liquid already set
+     `background-image: none` on their own chrome. */
+  background-image: none !important;
+}

@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} 個資料夾",
         "playlists_zero": "0 個播放清單",
         "playlists_one": "{{count}} 個播放清單",
-        "playlists_other": "{{count}} 個播放清單"
+        "playlists_other": "{{count}} 個播放清單",
+        "a-corriger_zero": "沒有問題：音樂庫很完整。",
+        "a-corriger_one": "{{count}} 處待修正",
+        "a-corriger_other": "{{count}} 處待修正"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "藝人",
       "genres": "曲風",
       "dossiers": "資料夾",
-      "playlists": "播放清單"
+      "playlists": "播放清單",
+      "a-corriger": "待修正"
     },
     "empty": {
       "morceaux": {
@@ -387,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "該來源沒有內容。請在上方切換來源，或在設定中複製伺服器曲庫。"
+      },
+      "a-corriger": {
+        "title": "沒有需要修正的地方",
+        "description": "音樂庫中沒有可偵測到的問題。"
       }
     },
     "actions": {
@@ -487,7 +495,91 @@
       "local": "本機",
       "remote": "伺服器"
     },
-    "open": "開啟 {{name}}"
+    "open": "開啟 {{name}}",
+    "inventory": {
+      "allClear": "沒有問題：音樂庫很完整。",
+      "summary_one": "{{count}} 處待修正",
+      "summary_other": "{{count}} 處待修正",
+      "trackCount_one": "{{count}} 首",
+      "trackCount_other": "{{count}} 首",
+      "categories": {
+        "missing_title": {
+          "label": "沒有標題",
+          "help": "檔案完全沒有標題。"
+        },
+        "missing_artist": {
+          "label": "沒有演出者",
+          "help": "沒有署名任何人。"
+        },
+        "missing_album": {
+          "label": "沒有專輯",
+          "help": "這首曲目不屬於任何專輯。"
+        },
+        "missing_year": {
+          "label": "沒有年份",
+          "help": "沒有年份，或年份為零。"
+        },
+        "missing_track_number": {
+          "label": "沒有曲目編號",
+          "help": "不知道它在唱片中的位置。"
+        },
+        "missing_cover": {
+          "label": "沒有封面",
+          "help": "專輯沒有圖片。"
+        },
+        "untaggable": {
+          "label": "無法寫入標籤",
+          "help": "這些檔案的標籤無法改寫。"
+        },
+        "album_year_conflict": {
+          "label": "年份不一致",
+          "help": "同一張專輯的曲目標示了不同年份。"
+        },
+        "compilation_no_album_artist": {
+          "label": "合輯缺少專輯演出者",
+          "help": "一張未設定專輯演出者的合輯。"
+        },
+        "duplicate_track_number": {
+          "label": "曲目編號重複",
+          "help": "兩首曲目佔用同一個位置。"
+        },
+        "track_number_gap": {
+          "label": "編號有缺口",
+          "help": "唱片首尾之間少了一個編號。"
+        },
+        "probable_duplicate": {
+          "label": "疑似重複",
+          "help": "標題相同、演出者相同、長度幾乎一致。"
+        }
+      }
+    },
+    "columns": {
+      "choose": "欄",
+      "shown": "已顯示",
+      "available": "可加入",
+      "fromYourFiles": "來自你的檔案",
+      "resetWidths": "重設欄寬",
+      "resize": "調整「{{column}}」欄寬",
+      "title": "標題",
+      "artist": "演出者",
+      "album": "專輯",
+      "year": "年份",
+      "trackNumber": "曲目編號",
+      "discNumber": "碟片編號",
+      "duration": "長度",
+      "rating": "評分",
+      "bitrate": "位元率",
+      "sampleRate": "取樣率",
+      "bitDepth": "位元深度",
+      "channels": "聲道",
+      "codec": "編碼",
+      "musicalKey": "調性",
+      "fileSize": "大小",
+      "addedAt": "加入時間",
+      "filePath": "路徑",
+      "moveUp": "上移「{{column}}」欄",
+      "moveDown": "下移「{{column}}」欄"
+    }
   },
   "liked": {
     "badge": "收藏",
@@ -1807,6 +1899,7 @@
       "runNow": "立即備份",
       "runOk_one": "已寫入 {{count}} 個封存。",
       "runOk_other": "已寫入 {{count}} 個封存。",
+      "runPartial": "已寫入 {{created}} 個，失敗 {{failed}} 個。請檢查記錄。",
       "errors": {
         "loadFailed": "無法載入備份設定。",
         "saveFailed": "儲存失敗。請重試。",
@@ -2167,12 +2260,43 @@
       "kbps": "{{rate}} kbps",
       "activeNotice": "遠端曲目會重新編碼，因此播放音質低於原始檔案。本機檔案永遠不會被轉碼。",
       "unsupported": "此伺服器建置時未包含 FFmpeg，無法轉碼。遠端曲目一律以原始格式送達。"
+    },
+    "contrast": {
+      "title": "對比",
+      "subtitle": "一次提升整個介面的對比：次要文字更清晰，背景不再模糊，鍵盤焦點一目了然。",
+      "modes": {
+        "auto": {
+          "label": "自動",
+          "description": "跟隨系統的對比設定。"
+        },
+        "normal": {
+          "label": "一般",
+          "description": "預設的、層次更細膩的配色。"
+        },
+        "high": {
+          "label": "高",
+          "description": "無論佈景主題與外觀為何，都加強對比。"
+        }
+      }
+    },
+    "cacheLocation": {
+      "title": "快取位置",
+      "subtitle": "封面、動態封面與 Canvas 片段。這些都能重新取得，移動不會遺失任何內容。資料庫與你手動挑選的檔案仍留在原處。",
+      "pickTitle": "選擇快取資料夾",
+      "choose": "移動…",
+      "reset": "回復預設",
+      "size": "已用 {{size}}",
+      "copying": "正在複製…… 原檔案要到下次啟動才會刪除。",
+      "fellBack": "設定的位置無法存取（{{path}}），本次執行改用預設位置。你的選擇已保留。",
+      "restartNeeded": "複製完成。重新啟動後使用新位置。",
+      "restartNow": "重新啟動"
     }
   },
   "scanProgress": {
     "runningTitle": "正在掃描音樂庫…",
     "runningSubtitle": "{{current}} / {{total}} 個檔案",
     "doneTitle": "掃描完成",
+    "cancelledTitle": "已停止掃描",
     "doneSubtitle": "已新增 {{added}} · 已更新 {{updated}} · 已略過 {{skipped}}",
     "scanningIn": "正在掃描 {{dir}}",
     "doneErrors_one": "{{count}} 個檔案失敗",
@@ -2473,5 +2597,23 @@
       "invalidNumber": "年份、曲目編號與光碟編號必須是整數。"
     },
     "needsMirror": "請先複製上方的伺服器目錄：本節會將您的檔案與本機鏡像比對，而鏡像目前仍是空的。"
+  },
+  "tasks": {
+    "barLabel": "進行中的工作",
+    "cancel": "停止{{task}}",
+    "stopping": "正在停止…",
+    "collapse": "收合",
+    "more_one": "另有 {{count}} 項",
+    "more_other": "另有 {{count}} 項",
+    "kinds": {
+      "library_scan": "掃描音樂庫",
+      "analysis": "音訊分析",
+      "lyrics_prefetch": "預先擷取歌詞",
+      "catalogue_mirror": "目錄鏡像",
+      "reconcile": "比對",
+      "upload": "上傳",
+      "backup": "備份",
+      "thumbnails": "縮圖"
+    }
   }
 }

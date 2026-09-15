@@ -3,7 +3,7 @@
 //! harness without Tauri can still exercise the logic.
 
 use crate::{
-    backup::{read_config, run_one_backup, write_config, BackupConfig, BackupHandle},
+    backup::{read_config, run_one_backup, write_config, BackupConfig, BackupHandle, BackupPass},
     error::AppResult,
     state::AppState,
 };
@@ -43,14 +43,23 @@ pub async fn set_backup_config(
     .await
 }
 
-/// Manual "Run backup now" trigger. Returns the list of created
-/// archive paths so the frontend can show a toast like "3 backups
-/// written to <folder>".
+/// Manual "Run backup now" trigger. Returns the created archive paths
+/// so the frontend can show a toast like "3 backups written", and
+/// whether the user stopped the pass.
+///
+/// Both, because the paths alone cannot be read. An empty list means
+/// either "you stopped it before the first archive finished" or "every
+/// profile failed" -- `run_one_backup` logs a failing profile and
+/// carries on, by design, so a pass where all of them fail returns
+/// exactly what a cancelled one does. Saying nothing in both cases
+/// leaves a real failure silent; saying "0 archives written" in both
+/// answers a deliberate stop with a result. The flag is what tells
+/// them apart.
 #[tauri::command]
 pub async fn run_backup_now(
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
-) -> AppResult<Vec<String>> {
+) -> AppResult<BackupPass> {
     let config = read_config(&state, &app).await?;
     run_one_backup(&state, &app, &config).await
 }

@@ -1089,3 +1089,62 @@
 :root[data-skin="liquid"] main > div > * + * {
   margin-top: 2.5rem !important;
 }
+
+/* ============================================================
+   High contrast (issue #596)
+   ============================================================
+
+   Liquid is the skin that suffers most from `backdrop-filter: none`:
+   its chrome is 8-16% tint over the page, and the blur is the only
+   reason text on it is readable at all. At high contrast those
+   surfaces go fully opaque instead. Liquid follows the theme mode
+   (`:not(.dark)` blocks above), so it inherits the shared
+   `--wf-contrast-surface` rather than declaring its own.
+
+   The selector list mirrors the `backdrop-filter: blur(...)` rules
+   above one for one — if a glass surface is added there, it belongs
+   here too, or it becomes unreadable in this mode. That mirroring is
+   also why it is not narrowed to a glass-only marker class: the blur
+   rules themselves target `rounded-*`, and a surface that keeps its
+   translucency after losing its blur is less readable than it was
+   before, not more.
+
+   Narrowing it has been proposed to protect the colour of buttons,
+   badges and selected states caught by `rounded-*`. Those colours are
+   already gone by the time this rule runs: the glass rule above sets
+   `background-color: color-mix(... 10%, transparent) !important` on
+   that exact selector list, so an accent button inside `main` is
+   repainted by the skin itself, one rule earlier. This one only decides
+   whether what replaced it is 10% tint or opaque.
+
+   No `[class*="dark:bg-"]` in the sticky list either, and it would
+   change nothing: `[class*=…]` matches anywhere in the attribute, so
+   `bg-zinc` already finds `dark:bg-zinc-900`. */
+:root[data-skin="liquid"][data-contrast="high"] .skin-sidebar-shell > aside,
+:root[data-skin="liquid"][data-contrast="high"] header[class*="sticky"],
+:root[data-skin="liquid"][data-contrast="high"] footer,
+:root[data-skin="liquid"][data-contrast="high"] .liquid-mood-tile,
+:root[data-skin="liquid"][data-contrast="high"] .liquid-mood-icon,
+:root[data-skin="liquid"][data-contrast="high"]
+  main
+  :where(
+    [class*="rounded-xl"],
+    [class*="rounded-2xl"],
+    [class*="rounded-3xl"]
+  ):not([data-immersive] *),
+:root[data-skin="liquid"][data-contrast="high"]
+  [class*="sticky"]:where(
+    [class*="bg-white"],
+    [class*="bg-zinc"],
+    [class*="bg-surface"]
+  ),
+:root[data-skin="liquid"][data-contrast="high"]
+  :where(
+    [role="dialog"],
+    [role="tooltip"],
+    [class*="shadow-lg"],
+    [class*="shadow-xl"],
+    [class*="shadow-2xl"]
+  ):not([data-immersive]):not([data-immersive] *) {
+  background-color: var(--wf-contrast-surface) !important;
+}

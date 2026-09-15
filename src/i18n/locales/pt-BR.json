@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} pastas",
         "playlists_zero": "0 playlists",
         "playlists_one": "{{count}} playlist",
-        "playlists_other": "{{count}} playlists"
+        "playlists_other": "{{count}} playlists",
+        "a-corriger_zero": "Nada a relatar: a biblioteca está completa.",
+        "a-corriger_one": "{{count}} ponto a corrigir",
+        "a-corriger_other": "{{count}} pontos a corrigir"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "Artistas",
       "genres": "Gêneros",
       "dossiers": "Pastas",
-      "playlists": "Playlists"
+      "playlists": "Playlists",
+      "a-corriger": "A corrigir"
     },
     "empty": {
       "morceaux": {
@@ -387,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "Nada desta origem. Mude a origem acima ou copie o catálogo do servidor nas configurações."
+      },
+      "a-corriger": {
+        "title": "Nada a corrigir",
+        "description": "Sua biblioteca não apresenta problemas detectáveis."
       }
     },
     "actions": {
@@ -487,7 +495,91 @@
       "local": "Este dispositivo",
       "remote": "Servidor"
     },
-    "open": "Abrir {{name}}"
+    "open": "Abrir {{name}}",
+    "inventory": {
+      "allClear": "Nada a relatar: a biblioteca está completa.",
+      "summary_one": "{{count}} ponto a corrigir",
+      "summary_other": "{{count}} pontos a corrigir",
+      "trackCount_one": "{{count}} faixa",
+      "trackCount_other": "{{count}} faixas",
+      "categories": {
+        "missing_title": {
+          "label": "Sem título",
+          "help": "O arquivo não tem título algum."
+        },
+        "missing_artist": {
+          "label": "Sem artista",
+          "help": "Ninguém está creditado."
+        },
+        "missing_album": {
+          "label": "Sem álbum",
+          "help": "A faixa não pertence a nenhum álbum."
+        },
+        "missing_year": {
+          "label": "Sem ano",
+          "help": "Sem ano, ou com ano zero."
+        },
+        "missing_track_number": {
+          "label": "Sem número de faixa",
+          "help": "O lugar no disco é desconhecido."
+        },
+        "missing_cover": {
+          "label": "Sem capa",
+          "help": "O álbum não tem imagem."
+        },
+        "untaggable": {
+          "label": "Tags não editáveis",
+          "help": "As tags desses arquivos não podem ser reescritas."
+        },
+        "album_year_conflict": {
+          "label": "Anos divergentes",
+          "help": "Faixas do mesmo álbum indicam anos diferentes."
+        },
+        "compilation_no_album_artist": {
+          "label": "Coletânea sem artista do álbum",
+          "help": "Uma coletânea cujo artista do álbum não foi definido."
+        },
+        "duplicate_track_number": {
+          "label": "Números repetidos",
+          "help": "Duas faixas ocupam o mesmo lugar no disco."
+        },
+        "track_number_gap": {
+          "label": "Numeração com falhas",
+          "help": "Falta um número entre o primeiro e o último do disco."
+        },
+        "probable_duplicate": {
+          "label": "Duplicatas prováveis",
+          "help": "Mesmo título, mesmo artista, duração quase igual."
+        }
+      }
+    },
+    "columns": {
+      "choose": "Colunas",
+      "shown": "Exibidas",
+      "available": "Disponíveis",
+      "fromYourFiles": "Dos seus arquivos",
+      "resetWidths": "Redefinir larguras",
+      "resize": "Redimensionar a coluna {{column}}",
+      "title": "Título",
+      "artist": "Artista",
+      "album": "Álbum",
+      "year": "Ano",
+      "trackNumber": "Nº da faixa",
+      "discNumber": "Nº do disco",
+      "duration": "Duração",
+      "rating": "Avaliação",
+      "bitrate": "Taxa de bits",
+      "sampleRate": "Amostragem",
+      "bitDepth": "Profundidade",
+      "channels": "Canais",
+      "codec": "Códec",
+      "musicalKey": "Tonalidade",
+      "fileSize": "Tamanho",
+      "addedAt": "Adicionado",
+      "filePath": "Caminho",
+      "moveUp": "Mover a coluna {{column}} para cima",
+      "moveDown": "Mover a coluna {{column}} para baixo"
+    }
   },
   "liked": {
     "badge": "Coleção",
@@ -1869,6 +1961,7 @@
       "runNow": "Fazer backup agora",
       "runOk_one": "{{count}} arquivo gravado.",
       "runOk_other": "{{count}} arquivos gravados.",
+      "runPartial": "Criados: {{created}}, com falha: {{failed}}. Confira os logs.",
       "errors": {
         "loadFailed": "Não foi possível carregar a configuração.",
         "saveFailed": "Falha ao salvar. Tente novamente.",
@@ -2167,6 +2260,36 @@
       "kbps": "{{rate}} kbit/s",
       "activeNotice": "As faixas remotas são recodificadas: tocam abaixo da qualidade original. Os arquivos locais nunca são transcodificados.",
       "unsupported": "Este servidor foi compilado sem FFmpeg e não consegue transcodificar. As faixas remotas chegam sempre no formato original."
+    },
+    "contrast": {
+      "title": "Contraste",
+      "subtitle": "Aumenta o contraste de toda a interface de uma vez: texto secundário legível, fundos sem desfoque, foco de teclado inconfundível.",
+      "modes": {
+        "auto": {
+          "label": "Automático",
+          "description": "Segue a configuração de contraste do sistema."
+        },
+        "normal": {
+          "label": "Normal",
+          "description": "A paleta padrão, mais sutil."
+        },
+        "high": {
+          "label": "Alto",
+          "description": "Contraste reforçado, qualquer que seja o tema ou a aparência."
+        }
+      }
+    },
+    "cacheLocation": {
+      "title": "Local do cache",
+      "subtitle": "Capas, capas animadas e clipes do Canvas. Tudo é reconstruível, então mover não perde nada. Os bancos de dados e os arquivos que você escolheu à mão continuam onde estão.",
+      "pickTitle": "Escolher a pasta do cache",
+      "choose": "Mover…",
+      "reset": "Voltar ao padrão",
+      "size": "{{size}} em uso",
+      "copying": "Copiando… o original só é removido na próxima inicialização.",
+      "fellBack": "O local configurado está inacessível ({{path}}), então o cache usa o padrão nesta sessão. Sua escolha foi mantida.",
+      "restartNeeded": "Cópia concluída. Reinicie para usar o novo local.",
+      "restartNow": "Reiniciar"
     }
   },
   "spotify": {
@@ -2187,6 +2310,7 @@
     "runningTitle": "Escaneando biblioteca…",
     "runningSubtitle": "{{current}} / {{total}} arquivos",
     "doneTitle": "Escaneamento concluído",
+    "cancelledTitle": "Escaneamento interrompido",
     "doneSubtitle": "{{added}} adicionados · {{updated}} atualizados · {{skipped}} ignorados",
     "scanningIn": "Analisando {{dir}}",
     "doneErrors_one": "{{count}} arquivo falhou",
@@ -2494,5 +2618,23 @@
       "invalidNumber": "O ano e os números de faixa e de disco precisam ser números inteiros."
     },
     "needsMirror": "Copie primeiro o catálogo do servidor, acima: esta seção compara seus arquivos com o espelho local, que ainda está vazio."
+  },
+  "tasks": {
+    "barLabel": "Tarefas em andamento",
+    "cancel": "Parar {{task}}",
+    "stopping": "Parando…",
+    "collapse": "Recolher",
+    "more_one": "Mais {{count}} tarefa",
+    "more_other": "Mais {{count}} tarefas",
+    "kinds": {
+      "library_scan": "Varredura da biblioteca",
+      "analysis": "Análise de áudio",
+      "lyrics_prefetch": "Busca de letras",
+      "catalogue_mirror": "Espelho do catálogo",
+      "reconcile": "Reconciliação",
+      "upload": "Envio",
+      "backup": "Backup",
+      "thumbnails": "Miniaturas"
+    }
   }
 }

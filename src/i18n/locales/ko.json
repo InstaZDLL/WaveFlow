@@ -353,7 +353,10 @@
         "dossiers_other": "폴더 {{count}}개",
         "playlists_zero": "플레이리스트 0개",
         "playlists_one": "플레이리스트 {{count}}개",
-        "playlists_other": "플레이리스트 {{count}}개"
+        "playlists_other": "플레이리스트 {{count}}개",
+        "a-corriger_zero": "보고할 것이 없습니다. 라이브러리가 완전합니다.",
+        "a-corriger_one": "확인할 항목 {{count}}개",
+        "a-corriger_other": "확인할 항목 {{count}}개"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "아티스트",
       "genres": "장르",
       "dossiers": "폴더",
-      "playlists": "플레이리스트"
+      "playlists": "플레이리스트",
+      "a-corriger": "확인 필요"
     },
     "empty": {
       "morceaux": {
@@ -387,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "이 소스에는 아무것도 없습니다. 위에서 소스를 바꾸거나 설정에서 서버 카탈로그를 복사하세요."
+      },
+      "a-corriger": {
+        "title": "고칠 것이 없습니다",
+        "description": "라이브러리에서 감지할 수 있는 문제가 없습니다."
       }
     },
     "actions": {
@@ -487,7 +495,91 @@
       "local": "이 기기",
       "remote": "서버"
     },
-    "open": "{{name}} 열기"
+    "open": "{{name}} 열기",
+    "inventory": {
+      "allClear": "보고할 것이 없습니다. 라이브러리가 완전합니다.",
+      "summary_one": "확인할 항목 {{count}}개",
+      "summary_other": "확인할 항목 {{count}}개",
+      "trackCount_one": "{{count}}곡",
+      "trackCount_other": "{{count}}곡",
+      "categories": {
+        "missing_title": {
+          "label": "제목 없음",
+          "help": "파일에 제목이 전혀 없습니다."
+        },
+        "missing_artist": {
+          "label": "아티스트 없음",
+          "help": "아무도 표기되지 않았습니다."
+        },
+        "missing_album": {
+          "label": "앨범 없음",
+          "help": "어느 앨범에도 속하지 않습니다."
+        },
+        "missing_year": {
+          "label": "연도 없음",
+          "help": "연도가 없거나 0입니다."
+        },
+        "missing_track_number": {
+          "label": "트랙 번호 없음",
+          "help": "디스크에서의 위치를 알 수 없습니다."
+        },
+        "missing_cover": {
+          "label": "커버 없음",
+          "help": "앨범에 이미지가 없습니다."
+        },
+        "untaggable": {
+          "label": "태그 기록 불가",
+          "help": "이 파일들의 태그는 다시 쓸 수 없습니다."
+        },
+        "album_year_conflict": {
+          "label": "연도 불일치",
+          "help": "같은 앨범의 곡이 서로 다른 연도를 가리킵니다."
+        },
+        "compilation_no_album_artist": {
+          "label": "앨범 아티스트 없는 컴필레이션",
+          "help": "앨범 아티스트가 설정되지 않은 컴필레이션입니다."
+        },
+        "duplicate_track_number": {
+          "label": "번호 중복",
+          "help": "두 곡이 같은 자리를 차지합니다."
+        },
+        "track_number_gap": {
+          "label": "번호 누락",
+          "help": "디스크의 처음과 끝 사이에 번호가 빠졌습니다."
+        },
+        "probable_duplicate": {
+          "label": "중복 가능성",
+          "help": "같은 제목, 같은 아티스트, 거의 같은 길이."
+        }
+      }
+    },
+    "columns": {
+      "choose": "열",
+      "shown": "표시 중",
+      "available": "사용 가능",
+      "fromYourFiles": "파일의 태그에서",
+      "resetWidths": "너비 초기화",
+      "resize": "{{column}} 열 너비 조절",
+      "title": "제목",
+      "artist": "아티스트",
+      "album": "앨범",
+      "year": "연도",
+      "trackNumber": "트랙 번호",
+      "discNumber": "디스크 번호",
+      "duration": "길이",
+      "rating": "별점",
+      "bitrate": "비트레이트",
+      "sampleRate": "샘플레이트",
+      "bitDepth": "비트 깊이",
+      "channels": "채널",
+      "codec": "코덱",
+      "musicalKey": "조성",
+      "fileSize": "크기",
+      "addedAt": "추가한 날짜",
+      "filePath": "경로",
+      "moveUp": "{{column}} 열을 위로",
+      "moveDown": "{{column}} 열을 아래로"
+    }
   },
   "liked": {
     "badge": "컬렉션",
@@ -1869,6 +1961,7 @@
       "runNow": "지금 백업",
       "runOk_one": "{{count}}개 아카이브가 저장되었습니다.",
       "runOk_other": "{{count}}개 아카이브가 저장되었습니다.",
+      "runPartial": "작성: {{created}}개, 실패: {{failed}}개. 로그를 확인하세요.",
       "errors": {
         "loadFailed": "백업 설정을 불러올 수 없습니다.",
         "saveFailed": "저장에 실패했습니다. 다시 시도하세요.",
@@ -2167,6 +2260,36 @@
       "kbps": "{{rate}} kbps",
       "activeNotice": "원격 트랙은 다시 인코딩되므로 원래 음질보다 낮게 재생됩니다. 로컬 파일은 트랜스코딩되지 않습니다.",
       "unsupported": "이 서버는 FFmpeg 없이 빌드되어 트랜스코딩할 수 없습니다. 원격 트랙은 항상 원본 형식으로 도착합니다."
+    },
+    "contrast": {
+      "title": "대비",
+      "subtitle": "인터페이스 전체의 대비를 한 번에 높입니다. 보조 텍스트가 또렷해지고 배경 흐림이 사라지며 키보드 포커스가 분명해집니다.",
+      "modes": {
+        "auto": {
+          "label": "자동",
+          "description": "시스템 대비 설정을 따릅니다."
+        },
+        "normal": {
+          "label": "보통",
+          "description": "기본값인 더 부드러운 색상."
+        },
+        "high": {
+          "label": "높음",
+          "description": "테마와 스킨에 관계없이 대비를 강화합니다."
+        }
+      }
+    },
+    "cacheLocation": {
+      "title": "캐시 위치",
+      "subtitle": "아트워크, 움직이는 커버, Canvas 클립. 모두 다시 만들 수 있으므로 옮겨도 잃는 것이 없습니다. 데이터베이스와 직접 고른 파일은 그대로 남습니다.",
+      "pickTitle": "캐시 폴더 선택",
+      "choose": "옮기기…",
+      "reset": "기본값으로",
+      "size": "{{size}} 사용 중",
+      "copying": "복사 중… 원본은 다음 실행 때에만 삭제됩니다.",
+      "fellBack": "설정된 위치에 접근할 수 없어({{path}}) 이번 세션에는 기본 위치를 사용합니다. 선택은 유지됩니다.",
+      "restartNeeded": "복사가 끝났습니다. 새 위치를 쓰려면 다시 시작하세요.",
+      "restartNow": "다시 시작"
     }
   },
   "spotify": {
@@ -2187,6 +2310,7 @@
     "runningTitle": "라이브러리 스캔 중…",
     "runningSubtitle": "{{current}} / {{total}}개 파일",
     "doneTitle": "스캔 완료",
+    "cancelledTitle": "스캔 중지됨",
     "doneSubtitle": "{{added}}개 추가 · {{updated}}개 업데이트 · {{skipped}}개 건너뜀",
     "scanningIn": "{{dir}} 스캔 중",
     "doneErrors_one": "{{count}}개 파일 실패",
@@ -2473,5 +2597,23 @@
       "invalidNumber": "연도와 트랙 번호, 디스크 번호는 정수여야 합니다."
     },
     "needsMirror": "먼저 위에서 서버 카탈로그를 복사하세요. 이 섹션은 파일을 로컬 미러와 비교하는데, 아직 비어 있습니다."
+  },
+  "tasks": {
+    "barLabel": "실행 중인 작업",
+    "cancel": "{{task}} 중지",
+    "stopping": "중지하는 중…",
+    "collapse": "접기",
+    "more_one": "{{count}}개 더",
+    "more_other": "{{count}}개 더",
+    "kinds": {
+      "library_scan": "라이브러리 스캔",
+      "analysis": "오디오 분석",
+      "lyrics_prefetch": "가사 미리 가져오기",
+      "catalogue_mirror": "카탈로그 미러",
+      "reconcile": "대조",
+      "upload": "업로드",
+      "backup": "백업",
+      "thumbnails": "썸네일"
+    }
   }
 }

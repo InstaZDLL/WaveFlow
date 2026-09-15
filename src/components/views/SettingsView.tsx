@@ -170,6 +170,8 @@ import { WrappedBannerCard } from "./settings/WrappedBannerCard";
 import { HiResBadgeCard } from "./settings/HiResBadgeCard";
 import { StatsKpiVisibilityCard } from "./settings/StatsKpiVisibilityCard";
 import { SkinPickerCard } from "./settings/SkinPickerCard";
+import { ContrastCard } from "./settings/ContrastCard";
+import { CacheLocationCard } from "./settings/CacheLocationCard";
 import { FullscreenLyricsCenteringCard } from "./settings/FullscreenLyricsCenteringCard";
 import { ImmersiveViewCard } from "./settings/ImmersiveViewCard";
 import { CoverSlideshowCard } from "./settings/CoverSlideshowCard";
@@ -797,7 +799,21 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     setIsRescanning(true);
     try {
       for (const lib of libraries) {
-        await rescanLibrary(lib.id);
+        // Per library, like the two loops in `LibraryView`: one
+        // unreadable library used to abort the rescan of every library
+        // after it, and the user was told nothing about the ones that
+        // never ran.
+        try {
+          const summary = await rescanLibrary(lib.id);
+          // Stopping the scan stops the whole rescan, not just the
+          // library it happened to be on.
+          if (summary.cancelled) break;
+        } catch (err) {
+          console.error(
+            `[SettingsView] rescan failed for library ${lib.id}`,
+            err,
+          );
+        }
       }
     } catch (err) {
       console.error("[SettingsView] rescan failed", err);
@@ -1257,8 +1273,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     resolved: generatorAlbumModeResolved,
     setEnabled: setGeneratorAlbumMode,
   } = useGeneratorAlbumMode();
-  const [replayGainMode, setReplayGainMode] =
-    useState<ReplayGainMode>("auto");
+  const [replayGainMode, setReplayGainMode] = useState<ReplayGainMode>("auto");
   const [replayGainPreventClipping, setReplayGainPreventClipping] =
     useState(true);
   const replayGainOptionsDebounce = useRef<number | null>(null);
@@ -1785,7 +1800,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const handleReplayGainPreampChange = useCallback(
     (value: number) => {
       setReplayGainPreamp(value);
-      pushReplayGainOptions(value, replayGainFallback, replayGainPreventClipping);
+      pushReplayGainOptions(
+        value,
+        replayGainFallback,
+        replayGainPreventClipping,
+      );
     },
     [pushReplayGainOptions, replayGainFallback, replayGainPreventClipping],
   );
@@ -2795,7 +2814,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             {/* Pause when the output device disconnects (#617) */}
             <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
               <div className="flex items-center space-x-4">
-                <Unplug size={20} className="text-zinc-400" aria-hidden="true" />
+                <Unplug
+                  size={20}
+                  className="text-zinc-400"
+                  aria-hidden="true"
+                />
                 <div>
                   <div className="text-sm font-medium text-zinc-900 dark:text-white">
                     {t("settings.pauseOnDeviceLoss.title")}
@@ -3646,6 +3669,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
 
           <SkinPickerCard />
 
+          <ContrastCard />
+
           <PlayerBarLayoutCard />
 
           <HiResBadgeCard />
@@ -4271,6 +4296,14 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             {/* Offline Web Radio catalogue — download the station directory
               for offline browse + search (#289). */}
             <RadioCatalogueCard
+              language={i18n.resolvedLanguage ?? i18n.language}
+            />
+
+            {/* Where artwork and the rebuildable caches live (#619). Sits
+              beside the data-folder row it qualifies: that one opens the
+              app-data tree, this one is why the caches may no longer be
+              inside it. */}
+            <CacheLocationCard
               language={i18n.resolvedLanguage ?? i18n.language}
             />
 

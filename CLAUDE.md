@@ -85,6 +85,7 @@ One line each. **The reasoning, the failure mode and the exceptions are in [`doc
 - **Right panels are flex siblings, not overlays** — the center column carries `min-w-0`. [→](docs/architecture/invariants.md#right-panels-are-flex-siblings-not-overlays)
 - **Process-wide offline mode** — every outbound HTTP path checks `offline::is_offline()` first. [→](docs/architecture/invariants.md#process-wide-offline-mode)
 - **Non-frontend control surfaces go through [`player_actions`](src-tauri/crates/app/src/player_actions.rs)** — tray, media keys, taskbar thumbnail buttons and MPD must not re-derive the advance + emit sequence. [→](docs/architecture/invariants.md#non-frontend-control-surfaces-go-through-player_actions)
+- **Long-running work announces itself** — a scan, a sweep, a prefetch, a mirror walk, a backup takes a `TaskHandle` from `tasks.rs`; the registry routes cancellation to the task's own stopping point rather than inventing one. [→](docs/architecture/invariants.md#a-long-operation-announces-itself-to-the-task-registry)
 - **New player-bar action** — lands in the "⋯" overflow menu first, promoted only when usage warrants it. [→](docs/architecture/invariants.md#adding-a-new-player-bar-action)
 - **Plugins** — loaded at runtime, distributed from separate repos, blake3-pinned by the _registry_; published manifest strings use `*_i18n` siblings; `ui` plugins return a JSON descriptor and get only redacted library reads; `canvas` fan-out is fail-soft. [→](docs/architecture/invariants.md#plugins) · [full surface](docs/features/plugins.md)
 

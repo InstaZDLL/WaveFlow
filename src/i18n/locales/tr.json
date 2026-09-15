@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} klasör",
         "playlists_zero": "0 çalma listesi",
         "playlists_one": "{{count}} çalma listesi",
-        "playlists_other": "{{count}} çalma listesi"
+        "playlists_other": "{{count}} çalma listesi",
+        "a-corriger_zero": "Bildirilecek bir şey yok: kitaplık eksiksiz.",
+        "a-corriger_one": "{{count}} sorun",
+        "a-corriger_other": "{{count}} sorun"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "Sanatçılar",
       "genres": "Türler",
       "dossiers": "Klasörler",
-      "playlists": "Çalma listeleri"
+      "playlists": "Çalma listeleri",
+      "a-corriger": "Düzeltilecekler"
     },
     "empty": {
       "morceaux": {
@@ -387,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "Bu kaynakta bir şey yok. Yukarıdan kaynağı değiştirin ya da ayarlardan sunucu kataloğunu kopyalayın."
+      },
+      "a-corriger": {
+        "title": "Düzeltilecek bir şey yok",
+        "description": "Kitaplığınızda saptanabilir bir sorun yok."
       }
     },
     "actions": {
@@ -487,7 +495,91 @@
       "local": "Bu cihaz",
       "remote": "Sunucu"
     },
-    "open": "{{name}} öğesini aç"
+    "open": "{{name}} öğesini aç",
+    "inventory": {
+      "allClear": "Bildirilecek bir şey yok: kitaplık eksiksiz.",
+      "summary_one": "{{count}} sorun",
+      "summary_other": "{{count}} sorun",
+      "trackCount_one": "{{count}} parça",
+      "trackCount_other": "{{count}} parça",
+      "categories": {
+        "missing_title": {
+          "label": "Başlıksız",
+          "help": "Dosyanın hiç başlığı yok."
+        },
+        "missing_artist": {
+          "label": "Sanatçısız",
+          "help": "Kimse belirtilmemiş."
+        },
+        "missing_album": {
+          "label": "Albümsüz",
+          "help": "Parça hiçbir albüme ait değil."
+        },
+        "missing_year": {
+          "label": "Yılsız",
+          "help": "Yıl yok ya da sıfır."
+        },
+        "missing_track_number": {
+          "label": "Parça numarası yok",
+          "help": "Diskteki yeri bilinmiyor."
+        },
+        "missing_cover": {
+          "label": "Kapaksız",
+          "help": "Albümün görseli yok."
+        },
+        "untaggable": {
+          "label": "Etiketlenemez",
+          "help": "Bu dosyaların etiketleri yeniden yazılamaz."
+        },
+        "album_year_conflict": {
+          "label": "Yıllar çelişiyor",
+          "help": "Aynı albümün parçaları farklı yıl bildiriyor."
+        },
+        "compilation_no_album_artist": {
+          "label": "Albüm sanatçısı olmayan derleme",
+          "help": "Albüm sanatçısı ayarlanmamış bir derleme."
+        },
+        "duplicate_track_number": {
+          "label": "Yinelenen numara",
+          "help": "İki parça aynı yeri istiyor."
+        },
+        "track_number_gap": {
+          "label": "Numaralamada boşluk",
+          "help": "Diskin ilk ve son numarası arasında bir numara eksik."
+        },
+        "probable_duplicate": {
+          "label": "Olası kopyalar",
+          "help": "Aynı başlık, aynı sanatçı, neredeyse aynı süre."
+        }
+      }
+    },
+    "columns": {
+      "choose": "Sütunlar",
+      "shown": "Gösterilen",
+      "available": "Kullanılabilir",
+      "fromYourFiles": "Dosyalarınızdan",
+      "resetWidths": "Genişlikleri sıfırla",
+      "resize": "{{column}} sütununu yeniden boyutlandır",
+      "title": "Başlık",
+      "artist": "Sanatçı",
+      "album": "Albüm",
+      "year": "Yıl",
+      "trackNumber": "Parça no",
+      "discNumber": "Disk no",
+      "duration": "Süre",
+      "rating": "Puan",
+      "bitrate": "Bit hızı",
+      "sampleRate": "Örnekleme",
+      "bitDepth": "Bit derinliği",
+      "channels": "Kanal",
+      "codec": "Kodek",
+      "musicalKey": "Ton",
+      "fileSize": "Boyut",
+      "addedAt": "Eklenme",
+      "filePath": "Yol",
+      "moveUp": "{{column}} sütununu yukarı taşı",
+      "moveDown": "{{column}} sütununu aşağı taşı"
+    }
   },
   "liked": {
     "badge": "Koleksiyon",
@@ -1869,6 +1961,7 @@
       "runNow": "Şimdi yedekle",
       "runOk_one": "{{count}} arşiv yazıldı.",
       "runOk_other": "{{count}} arşiv yazıldı.",
+      "runPartial": "Yazılan: {{created}}, başarısız: {{failed}}. Günlükleri kontrol et.",
       "errors": {
         "loadFailed": "Yedekleme yapılandırması yüklenemedi.",
         "saveFailed": "Kaydetme başarısız oldu. Tekrar dene.",
@@ -2167,6 +2260,36 @@
       "kbps": "{{rate}} kbit/sn",
       "activeNotice": "Uzak parçalar yeniden kodlanır, yani özgün kalitelerinin altında çalar. Yerel dosyalar hiçbir zaman yeniden kodlanmaz.",
       "unsupported": "Bu sunucu FFmpeg olmadan derlenmiş ve yeniden kodlama yapamıyor. Uzak parçalar her zaman özgün biçiminde gelir."
+    },
+    "contrast": {
+      "title": "Karşıtlık",
+      "subtitle": "Tüm arayüzün karşıtlığını tek seferde yükseltir: okunaklı ikincil metin, bulanıklıksız arka planlar, açıkça görülen klavye odağı.",
+      "modes": {
+        "auto": {
+          "label": "Otomatik",
+          "description": "Sistemin karşıtlık ayarını izler."
+        },
+        "normal": {
+          "label": "Normal",
+          "description": "Daha yumuşak olan varsayılan palet."
+        },
+        "high": {
+          "label": "Yüksek",
+          "description": "Tema ve görünüm ne olursa olsun güçlendirilmiş karşıtlık."
+        }
+      }
+    },
+    "cacheLocation": {
+      "title": "Önbellek konumu",
+      "subtitle": "Kapak görselleri, hareketli kapaklar ve Canvas klipleri. Hepsi yeniden oluşturulabilir, bu yüzden taşımak hiçbir şey kaybettirmez. Veritabanları ve elle seçtiğiniz dosyalar yerinde kalır.",
+      "pickTitle": "Önbellek klasörünü seç",
+      "choose": "Taşı…",
+      "reset": "Varsayılana dön",
+      "size": "{{size}} kullanımda",
+      "copying": "Kopyalanıyor… özgün klasör yalnızca sonraki açılışta silinir.",
+      "fellBack": "Ayarlanan konuma erişilemiyor ({{path}}); bu oturumda önbellek varsayılan konumu kullanıyor. Seçiminiz korundu.",
+      "restartNeeded": "Kopyalama bitti. Yeni konumu kullanmak için yeniden başlatın.",
+      "restartNow": "Yeniden başlat"
     }
   },
   "spotify": {
@@ -2187,6 +2310,7 @@
     "runningTitle": "Kütüphane taranıyor…",
     "runningSubtitle": "{{current}} / {{total}} dosya",
     "doneTitle": "Tarama tamamlandı",
+    "cancelledTitle": "Tarama durduruldu",
     "doneSubtitle": "{{added}} eklendi · {{updated}} güncellendi · {{skipped}} atlandı",
     "scanningIn": "Taranıyor: {{dir}}",
     "doneErrors_one": "{{count}} dosya başarısız",
@@ -2494,5 +2618,23 @@
       "invalidNumber": "Yıl ile parça ve disk numaraları tam sayı olmalıdır."
     },
     "needsMirror": "Önce yukarıdaki sunucu kataloğunu kopyalayın: bu bölüm dosyalarınızı henüz boş olan yerel yansıyla karşılaştırır."
+  },
+  "tasks": {
+    "barLabel": "Süren görevler",
+    "cancel": "{{task}} durdur",
+    "stopping": "Durduruluyor…",
+    "collapse": "Daralt",
+    "more_one": "{{count}} görev daha",
+    "more_other": "{{count}} görev daha",
+    "kinds": {
+      "library_scan": "Kitaplık taraması",
+      "analysis": "Ses çözümlemesi",
+      "lyrics_prefetch": "Şarkı sözü indirme",
+      "catalogue_mirror": "Katalog yansısı",
+      "reconcile": "Eşleştirme",
+      "upload": "Yükleme",
+      "backup": "Yedekleme",
+      "thumbnails": "Küçük resimler"
+    }
   }
 }

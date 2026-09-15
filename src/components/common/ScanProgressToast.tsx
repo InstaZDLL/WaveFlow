@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
-import { FolderSearch, X, CheckCircle2, AlertTriangle } from "lucide-react";
+import { X, CheckCircle2, AlertTriangle } from "lucide-react";
 
 interface ScanProgress {
   folder_id: number;
@@ -12,16 +12,20 @@ interface ScanProgress {
   skipped: number;
   errors: number;
   done: boolean;
+  /** The user stopped it. The counts below are still what the run
+   *  managed to write, and they are still worth showing. */
+  cancelled?: boolean;
   current_dir?: string | null;
 }
 
 /**
  * Bottom-right toast that surfaces backend `scan:progress` events.
  *
- * Shows up the moment a library scan starts, ticks the count as files
- * are processed, and flips into a "done" state for ~4 s when the scan
- * finishes (so the user can read the summary). Dismissable manually
- * via the X — the next scan re-opens it automatically.
+ * Appears when a scan *finishes*, and holds the summary for ~4 s so
+ * the user can read it. Live progress moved to the task status bar
+ * with #601, which lists every long operation in one place; two bars
+ * counting the same files is the inconsistency that issue was about.
+ * Dismissable manually via the X — the next scan re-opens it.
  *
  * Mounted once at the AppLayout level; no per-page wiring needed
  * because the listener is global.
@@ -36,19 +40,28 @@ export function ScanProgressToast() {
     let unlisten: (() => void) | null = null;
     listen<ScanProgress>("scan:progress", (e) => {
       const next = e.payload;
+      // Only the terminal event. A running scan's ticks are the status
+      // bar's job, so they have nothing to render here -- but taking
+      // them would blank a summary still on screen and cancel the timer
+      // holding it, losing the one line that reports per-file failures
+      // to a scan the user has not finished reading. The watcher starts
+      // a rescan on its own, so this is not a rare sequence.
+      if (!next.done) return;
       setProgress(next);
       setDismissed(false);
       if (autoHideTimer.current != null) {
         window.clearTimeout(autoHideTimer.current);
         autoHideTimer.current = null;
       }
-      if (next.done) {
-        // Hold the success card for a few seconds so the user has
-        // time to read the summary, then fade it out.
-        autoHideTimer.current = window.setTimeout(() => {
-          setDismissed(true);
-        }, 4000);
-      }
+      // Only a clean run fades on its own. A stopped scan, or one
+      // that hit errors, leaves this card as its ONLY report -- the
+      // status-bar row goes with the task -- so taking it away after
+      // four seconds can lose the count of what failed to someone who
+      // happened to be looking elsewhere. Those wait to be dismissed.
+      if (next.cancelled || next.errors > 0) return;
+      autoHideTimer.current = window.setTimeout(() => {
+        setDismissed(true);
+      }, 4000);
     })
       .then((fn) => {
         unlisten = fn;
@@ -62,21 +75,26 @@ export function ScanProgressToast() {
     };
   }, []);
 
-  if (progress == null || dismissed) return null;
+  // What the status bar cannot show is the *outcome*: a row vanishes
+  // when its task ends, and "412 added, 3 errors" is the part worth
+  // reading. `done` is still tested here as well as in the listener --
+  // the state can only hold a terminal event now, and this says so at
+  // the place that depends on it.
+  if (progress == null || dismissed || !progress.done) return null;
 
-  const { current, total, added, updated, skipped, errors, done, current_dir } =
+  const { current, total, added, updated, skipped, errors, cancelled } =
     progress;
+  // How far the walk got. Only meaningful for a scan that stopped:
+  // a completed one is at 100% by definition, and says so in words.
   const percent =
     total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
-  // A finished scan that hit per-file failures. The backend reports it
-  // as done regardless, so this is the only signal the user gets.
-  const partial = done && errors > 0;
-  // Show the last two path segments (…/Parent/Album) so the user sees the
-  // scan walking through folders without the toast overflowing on a deep
-  // absolute path; the full path rides in the title tooltip. (#430)
-  const dirLabel = current_dir
-    ? current_dir.split(/[\\/]/).filter(Boolean).slice(-2).join("/")
-    : null;
+  // Per-file failures. The scan reports itself as finished either
+  // way, so this card is the only signal the user gets.
+  const partial = errors > 0;
+  // What the icon and the title colour key on. A stopped scan is not a
+  // success even when nothing failed, and a green tick beside "Scan
+  // stopped" is the card disagreeing with itself.
+  const needsAttention = partial || cancelled;
 
   return (
     <div
@@ -87,19 +105,15 @@ export function ScanProgressToast() {
       <div className="flex items-start gap-3">
         <div
           className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${
-            partial
+            needsAttention
               ? "bg-amber-500/15 text-amber-500"
-              : done
-                ? "bg-emerald-500/15 text-emerald-500"
-                : "bg-emerald-500/10 text-emerald-500"
+              : "bg-emerald-500/15 text-emerald-500"
           }`}
         >
-          {partial ? (
+          {needsAttention ? (
             <AlertTriangle size={18} />
-          ) : done ? (
-            <CheckCircle2 size={18} />
           ) : (
-            <FolderSearch size={18} className="animate-pulse" />
+            <CheckCircle2 size={18} />
           )}
         </div>
         <div className="flex-1 min-w-0">
@@ -110,40 +124,64 @@ export function ScanProgressToast() {
               added/updated/skipped line stays below as context. */}
           <div
             className={`text-sm font-semibold ${
-              partial
+              needsAttention
                 ? "text-amber-700 dark:text-amber-500"
                 : "text-zinc-900 dark:text-zinc-100"
             }`}
           >
-            {partial
-              ? t("scanProgress.doneErrors", { count: errors })
-              : done
-                ? t("scanProgress.doneTitle")
-                : t("scanProgress.runningTitle")}
+            {/* "Scan complete" for a walk the user stopped halfway
+                would tell them their library had been gone through when
+                it had not -- and this card is the only outcome they
+                get, since the status-bar row leaves with the task. */}
+            {cancelled
+              ? // Ahead of the error count, because the two answer
+                // different questions and only one of them is in doubt:
+                // "some files failed" still says the folder was walked.
+                // The amber icon stays, so a stopped scan that also hit
+                // failures still reads as one that needs looking at.
+                t("scanProgress.cancelledTitle")
+              : partial
+                ? t("scanProgress.doneErrors", { count: errors })
+                : t("scanProgress.doneTitle")}
           </div>
-          <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            {done
-              ? t("scanProgress.doneSubtitle", { added, updated, skipped })
-              : t("scanProgress.runningSubtitle", {
-                  current,
-                  total,
-                })}
-          </div>
-          {!done && (
-            <div className="mt-2 h-1.5 w-full rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
-              <div
-                className="h-full bg-emerald-500 transition-[width] duration-200"
-                style={{ width: `${percent}%` }}
-              />
+          {cancelled && errors > 0 && (
+            // The title gave the stop precedence, which is right -- but
+            // it also meant a stopped scan never said how many files had
+            // failed, and that count is the only trace those failures
+            // leave the user. On its own line, so neither answer has to
+            // give way to the other. Same key the completed-with-errors
+            // title uses, so no locale gains a string.
+            <div className="text-xs text-amber-700 dark:text-amber-500 mt-0.5">
+              {t("scanProgress.doneErrors", { count: errors })}
             </div>
           )}
-          {!done && dirLabel && (
-            <div
-              className="mt-1.5 text-[11px] text-zinc-400 dark:text-zinc-500 truncate"
-              title={current_dir ?? undefined}
-            >
-              {t("scanProgress.scanningIn", { dir: dirLabel })}
-            </div>
+          <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+            {/* What the run managed to write, which is committed and
+                correct whether or not it reached the end. */}
+            {t("scanProgress.doneSubtitle", { added, updated, skipped })}
+          </div>
+          {cancelled && (
+            <>
+              {/* The one place the distance covered is worth a bar: a
+                  finished scan is full by definition, so this renders
+                  only for a stopped one. */}
+              <div className="mt-2 h-1.5 w-full rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
+                <div
+                  className="h-full bg-emerald-500"
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+              {/* `runningSubtitle` deliberately, not a key of its own:
+                  it is "{{current}} / {{total}} files", a ratio with no
+                  verb and no tense, and it reads the same whether the
+                  scan is still going or stopped. A second key would be
+                  17 locales carrying the identical string, and one more
+                  place for them to drift apart. The title above is what
+                  says the scan was stopped. */}
+              <div className="mt-1.5 text-[11px] text-zinc-400 dark:text-zinc-500">
+                {t("scanProgress.runningSubtitle", { current, total })}
+              </div>
+            </>
           )}
         </div>
         <button

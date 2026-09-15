@@ -29,6 +29,18 @@ export function setBackupConfig(input: {
 }
 
 /** Trigger a backup pass immediately. Returns the list of archive paths. */
-export function runBackupNow(): Promise<string[]> {
-  return invoke<string[]>("run_backup_now");
+/** Outcome of one manual backup pass. `created` can be empty for two
+ *  different reasons, which is why `cancelled` comes with it: the user
+ *  stopped the pass, or every profile failed. */
+export interface BackupPass {
+  created: string[];
+  /** Profiles whose archive could not be written. A pass carries on past
+   *  one of these, so without the count a partly failed run looks
+   *  exactly like a clean one. */
+  failed: number;
+  cancelled: boolean;
+}
+
+export function runBackupNow(): Promise<BackupPass> {
+  return invoke<BackupPass>("run_backup_now");
 }

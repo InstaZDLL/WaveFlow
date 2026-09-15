@@ -224,6 +224,32 @@ impl ActiveProfile {
 /// - an optional, swappable per-profile `data.db` pool
 pub struct AppState {
     pub paths: AppPaths,
+    /// Why a stored cache location could not be used this session, when
+    /// that happened (issue #619). Kept so the Settings card can name
+    /// the reason: caches quietly reappearing at the default location
+    /// is, from the user side, indistinguishable from them having been
+    /// wiped.
+    /// Paired with the root it is about, not stored on its own. The
+    /// field is a snapshot taken at startup and there is no moment
+    /// afterwards that could refresh it -- so a bare reason outlives
+    /// the situation it describes: move away from the drive that was
+    /// missing and the card would go on reporting a fallback, and
+    /// (because a fallback suppresses it) hide the restart the new move
+    /// is waiting for. Carrying the root makes the snapshot
+    /// self-invalidating: it applies only while that root is still the
+    /// chosen one.
+    pub cache_root_fallback: Option<(std::path::PathBuf, String)>,
+    /// Serializes [`crate::commands::storage::set_cache_location`].
+    ///
+    /// That command reads the pending-move marker, copies a whole cache
+    /// tree, then writes the marker back — a sequence with awaits all
+    /// the way through. Two calls with different destinations would both
+    /// pass the read, both copy, and the second write would name the
+    /// only destination anyone remembers: the first one's copy of the
+    /// entire artwork tree would sit on disk with nothing pointing at
+    /// it. The frontend's own busy flag does not help, because it
+    /// guards a button and not the IPC surface behind it.
+    pub cache_move_lock: Arc<tokio::sync::Mutex<()>>,
     pub app_db: SqlitePool,
     pub profile: Arc<RwLock<Option<ActiveProfile>>>,
     /// DLNA / UPnP MediaServer worker. Always present (the worker
@@ -349,7 +375,13 @@ impl AppState {
     ///    most-recently-used profile is activated as a fallback.
     pub async fn init(handle: &AppHandle) -> AppResult<Self> {
         let paths = AppPaths::from_handle(handle)?;
-        paths.ensure_dirs()?;
+        // The app-data root has to exist before `app.db` can be opened,
+        // and `app.db` has to be open before the cache root can be read
+        // out of it (issue #619) — so this is deliberately not the full
+        // `ensure_dirs`, which would create the cache tree at the
+        // default location a moment before learning it belongs
+        // somewhere else.
+        std::fs::create_dir_all(&paths.root)?;
 
         // One-shot cleanup for the 1.5.0 → 1.5.1 transition: before
         // this release, `ensure_bundled_plugins` copied every bundled
@@ -371,6 +403,17 @@ impl AppState {
         }
 
         let app_db = db::app_db::open(&paths.app_db).await?;
+
+        // Now that the setting is readable, settle where the caches
+        // live and materialise the layout. A stored choice that cannot
+        // be used this session (drive unplugged, share offline) falls
+        // back to the default without clearing the choice; the reason
+        // is kept so the frontend can say so rather than leaving the
+        // user to conclude their artwork was deleted.
+        let (paths, cache_root_fallback) =
+            crate::commands::storage::resolve_cache_root(paths, &app_db).await;
+        paths.ensure_dirs()?;
+        crate::commands::storage::cleanup_moved_caches(&paths, &app_db).await;
 
         // Hydrate the global offline-mode flag from app_setting so
         // any outbound HTTP call honours the persisted preference
@@ -432,6 +475,8 @@ impl AppState {
 
         let state = Self {
             paths,
+            cache_root_fallback,
+            cache_move_lock: Arc::new(tokio::sync::Mutex::new(())),
             app_db,
             profile: Arc::new(RwLock::new(None)),
             dlna: DlnaServer::spawn(),

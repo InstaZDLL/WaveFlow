@@ -88,6 +88,12 @@ pub struct ScanProgress {
     pub skipped: u32,
     pub errors: u32,
     pub done: bool,
+    /// The scan stopped because the user asked it to (#601). Carried
+    /// beside `done` rather than folded into it: the run *is* over, and
+    /// what it managed to write is committed and correct, but a toast
+    /// reading "scan complete" over a full bar would be claiming the
+    /// library was walked when it was not.
+    pub cancelled: bool,
     /// Absolute path of the directory the scan is currently in — the
     /// parent of the file just processed. Lets the toast show a live
     /// "scanning …/Album" line instead of a bare counter (#430). `None`
@@ -127,9 +133,69 @@ fn maybe_emit_progress(
             skipped: summary.skipped,
             errors: summary.errors,
             done: false,
+            cancelled: false,
             current_dir,
         },
     );
+}
+
+/// Read a small integer counter out of `profile_setting`.
+///
+/// A missing or unreadable row answers `0`: the counter only ever
+/// shortens a retry loop, so failing to read it must cost another
+/// attempt rather than end the loop early.
+async fn read_counter(pool: &sqlx::SqlitePool, key: &str, folder_id: i64) -> i64 {
+    match sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
+        .bind(key)
+        .fetch_optional(pool)
+        .await
+    {
+        Ok(value) => value.and_then(|v| v.parse::<i64>().ok()).unwrap_or(0),
+        Err(err) => {
+            tracing::warn!(?err, folder_id, %key, "could not read a backfill counter");
+            0
+        }
+    }
+}
+
+async fn write_counter(pool: &sqlx::SqlitePool, key: &str, value: i64) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'number', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(key)
+    .bind(value.to_string())
+    .bind(now_millis())
+    .execute(pool)
+    .await
+    .map(|_| ())
+}
+
+/// Has this folder's one-off pass never run?
+///
+/// A read that fails answers "never run", which forces the pass again —
+/// the safe side, since the alternative is recording work that did not
+/// happen. But it is logged rather than swallowed: a marker that cannot
+/// be read makes every future scan re-read the whole folder, and that
+/// looks exactly like the fast path being broken for no reason.
+async fn marker_absent(pool: &sqlx::SqlitePool, key: &str, folder_id: i64) -> bool {
+    match sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
+        .bind(key)
+        .fetch_optional(pool)
+        .await
+    {
+        Ok(value) => value.is_none(),
+        Err(err) => {
+            tracing::warn!(
+                ?err,
+                folder_id,
+                %key,
+                "could not read a backfill marker; running the pass again"
+            );
+            true
+        }
+    }
 }
 
 /// Outcome of a `scan_folder` call, returned to the frontend so the UI can
@@ -147,6 +213,10 @@ pub struct ScanSummary {
     /// liked / playlist / play-event history) so the user can recover
     /// it by putting the file back.
     pub removed: u32,
+    /// The user stopped this scan (issue #601). Everything written
+    /// before the stop is committed and correct; what the walk had not
+    /// reached yet is simply untouched, and the next scan picks it up.
+    pub cancelled: bool,
 }
 
 /// Build the standard `ExtractedFile` payload for a DSF / DFF file.
@@ -181,6 +251,9 @@ fn extract_dsd_file(
     };
     let meta = read_metadata(&mut file, layout.container).unwrap_or_default();
 
+    // `is_none`, not "is empty": a tag holding an empty string is a
+    // different fault, and `trim(title) = ''` already finds that one.
+    let title_from_filename = meta.title.is_none();
     let title = meta.title.clone().unwrap_or_else(|| {
         path.file_stem()
             .and_then(|s| s.to_str())
@@ -198,6 +271,7 @@ fn extract_dsd_file(
         });
 
     Ok(ExtractedFile {
+        title_from_filename,
         abs_path: path.to_string_lossy().to_string(),
         size,
         modified_ms,
@@ -237,7 +311,45 @@ fn extract_dsd_file(
         // surface arbitrary tag items. A DSD track falls back to the
         // analysis pass like it did before.
         replay_gain: ReplayGainTags::default(),
+        // Same limitation again: the DSD reader surfaces the handful of
+        // fields it models and nothing else, so there is no remainder
+        // to offer as a custom column (#588). `Some(empty)` and not
+        // `None`: this is "read, and there are none", which is true --
+        // `None` would mean "could not read", and would stop the
+        // scanner from ever clearing a stale row.
+        extra_tags: Some(Vec::new()),
     })
+}
+
+/// Replace a track's custom tags with what the file now carries (#588).
+///
+/// Delete-then-insert rather than an upsert: a tag the user *removed*
+/// from the file has to disappear from the column too, and an upsert
+/// leaves it behind forever. The pair runs inside the scan's own
+/// transaction, so a track never has half its old tags and half its new
+/// ones.
+async fn write_extra_tags(
+    tx: &mut sqlx::SqliteConnection,
+    track_id: i64,
+    tags: Option<&Vec<(String, String)>>,
+) -> AppResult<()> {
+    // A read that failed leaves what is stored alone. Replacing it with
+    // nothing would lose a track's tags to a file that happened to be
+    // locked for the length of one parse.
+    let Some(tags) = tags else { return Ok(()) };
+    sqlx::query("DELETE FROM track_tag WHERE track_id = ?")
+        .bind(track_id)
+        .execute(&mut *tx)
+        .await?;
+    for (key, value) in tags {
+        sqlx::query("INSERT INTO track_tag (track_id, key, value) VALUES (?, ?, ?)")
+            .bind(track_id)
+            .bind(key)
+            .bind(value)
+            .execute(&mut *tx)
+            .await?;
+    }
+    Ok(())
 }
 
 /// Single-file extraction dispatcher: branches DSF/DFF onto the
@@ -252,6 +364,13 @@ fn extract_dsd_file(
 struct ScanTimings {
     hash_us: AtomicU64,
     tag_us: AtomicU64,
+    /// The second, concrete tag parse that reads the custom frames
+    /// (#588). Timed apart from `tag_us` on purpose: it is the one cost
+    /// that column feature adds to every scan, and burying it inside
+    /// the total would make it impossible to answer whether it is worth
+    /// paying. Summed across the parallel extraction tasks, like
+    /// `tag_us`.
+    extra_tag_us: AtomicU64,
     /// Wall time spent on the SERIAL per-track DB work in the consumer
     /// loop (the `SELECT existing` probe + every `upsert_*` + the row
     /// INSERT/UPDATE + the periodic `TX_BATCH` commit). Unlike
@@ -367,6 +486,17 @@ fn extract_file(
         ),
     };
 
+    // The custom frames, from a second parse of the concrete container
+    // (#588). They are not in what lofty just handed back: the generic
+    // `Tag` drops everything it cannot map onto an `ItemKey`, and the
+    // remainder it keeps for some formats is `pub(crate)`. Best-effort —
+    // a file whose custom frames cannot be read is still a good track.
+    let t_extra = Instant::now();
+    let extra_tags = waveflow_core::scanner::extra_tags::read_extra_tags(path);
+    timings
+        .extra_tag_us
+        .fetch_add(t_extra.elapsed().as_micros() as u64, Ordering::Relaxed);
+
     // Folder cover fallback: scan the track's parent directory for a
     // sidecar cover.jpg / folder.png / front.webp / ... when the tag had
     // no embedded picture. Common for CD rips and lossless libraries
@@ -374,7 +504,9 @@ fn extract_file(
     let cover_art = cover_art.or_else(|| extract_folder_cover(path, artwork_dir));
 
     // Fall back to the file stem when the tag has no title — better than
-    // displaying an empty string in the library grid.
+    // displaying an empty string in the library grid. Remembered, so
+    // the inventory can still tell the two apart.
+    let title_from_filename = title.is_none();
     let title = title.unwrap_or_else(|| {
         path.file_stem()
             .and_then(|s| s.to_str())
@@ -383,6 +515,7 @@ fn extract_file(
     });
 
     Ok(ExtractedFile {
+        title_from_filename,
         abs_path: path.to_string_lossy().to_string(),
         size,
         modified_ms,
@@ -406,6 +539,7 @@ fn extract_file(
         cover_art,
         rating,
         replay_gain,
+        extra_tags,
     })
 }
 
@@ -456,7 +590,13 @@ pub async fn scan_folder(
     // Fire the auto-analyzer in the background when the user has
     // opted in. Spawned so the IPC reply doesn't block on a
     // potentially long analysis pass.
-    if summary.added > 0 {
+    // Not after a scan the user stopped. Some tracks did land, so
+    // `added` is positive -- but answering a stop by starting the
+    // library-wide analysis sweep is the opposite of what was asked,
+    // and that sweep is the longest job in the app (a full Symphonia
+    // decode of every track; issue #286). Same rule as the import
+    // path in `commands/library.rs`.
+    if summary.added > 0 && !summary.cancelled {
         crate::commands::analysis::maybe_auto_analyze(&app);
     }
     Ok(summary)
@@ -484,6 +624,26 @@ pub(crate) async fn scan_folder_inner(
     // analyzer parks itself instead of contending on CPU + the single
     // SQLite writer. Dropped on every exit path (RAII).
     let _scan_guard = ScanInFlightGuard::new();
+
+    // Announce the scan so the status bar can show it and offer a stop
+    // (#601). Unlike the five operations that already had a `cancel_*`
+    // command, this one had no mechanism of its own, so the registry's
+    // own flag *is* the mechanism here — hence the `None` callback and
+    // the `is_cancelling` polling further down.
+    //
+    // The handle retires the row on every exit path, including `?` and
+    // panic. A scan that leaves a ghost row behind is worse than one
+    // that reports nothing: the user gets a spinner that never ends and
+    // a stop button that does nothing.
+    let task = app_handle.and_then(|app| {
+        crate::tasks::start(
+            app,
+            crate::tasks::TaskKind::LibraryScan,
+            0,
+            crate::tasks::Cancellation::Flag,
+        )
+    });
+    let cancelled = || task.as_ref().is_some_and(|t| t.is_cancelling());
 
     // Belt-and-braces: the directory is created at profile bootstrap, but a
     // user fiddling with the data folder could have deleted it.
@@ -568,18 +728,46 @@ pub(crate) async fn scan_folder_inner(
     // otherwise re-read every file on every scan and lose the fast
     // path permanently.
     let rg_backfill_key = format!("scan.rg_backfill_done.{folder_id}");
-    let rg_backfill_pending = !rg_missing.is_empty()
-        && sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
-            .bind(&rg_backfill_key)
-            .fetch_optional(pool)
-            .await
-            .ok()
-            .flatten()
-            .is_none();
+    let rg_backfill_pending =
+        !rg_missing.is_empty() && marker_absent(pool, &rg_backfill_key, folder_id).await;
+
+    // Custom tags (#588) land in `track_tag` at scan time, and every
+    // file of a library that predates the feature still matches on
+    // mtime and size — so the fast path would skip all of them and the
+    // columns would stay empty until the user happened to run a deep
+    // rescan of every folder. One forced pass per folder, marked so it
+    // never repeats, in the shape the ReplayGain backfill above already
+    // established.
+    //
+    // Unlike that one this cannot narrow to the affected rows: a track
+    // with no custom tags has no `track_tag` rows either, so "has none"
+    // and "was never read" are the same shape. The marker is the only
+    // thing that separates a first pass from a second.
+    let tag_backfill_key = format!("scan.tag_backfill_done.{folder_id}");
+    let tag_backfill_pending = marker_absent(pool, &tag_backfill_key, folder_id).await;
+    // How many passes have already been spent on this folder without
+    // reading every file. A file whose tags cannot be read is usually
+    // transient -- an antivirus holding it, a share that dropped -- so
+    // the pass is worth repeating. But some are not: a truncated
+    // container fails identically every time, and holding the marker
+    // back for it makes every future scan of that folder re-read every
+    // file in it, for the life of the install. Retry a few times, then
+    // accept the folder as read.
+    let tag_backfill_attempt_key = format!("scan.tag_backfill_attempts.{folder_id}");
+    let tag_backfill_attempts = if tag_backfill_pending {
+        read_counter(pool, &tag_backfill_attempt_key, folder_id).await
+    } else {
+        0
+    };
+    const TAG_BACKFILL_MAX_ATTEMPTS: i64 = 3;
 
     let meta_load_ms = t_scan.elapsed().as_millis();
 
     let total_files = audio_files.len();
+    if let Some(task) = task.as_ref() {
+        task.progress(0, total_files as u64);
+        task.detail(folder_path.clone());
+    }
 
     // Initial tick so the frontend's progress toast can size itself
     // even before the first file is processed (helps when the loop is
@@ -597,6 +785,7 @@ pub(crate) async fn scan_folder_inner(
                 skipped: 0,
                 errors: 0,
                 done: false,
+                cancelled: false,
                 current_dir: None,
             },
         );
@@ -626,6 +815,14 @@ pub(crate) async fn scan_folder_inner(
     // exposed path, not just the ones that happened to change.
     let mut to_extract: Vec<PathBuf> = Vec::with_capacity(audio_files.len());
     for (idx, path) in audio_files.into_iter().enumerate() {
+        // Between two files is a safe stopping point for this half: the
+        // triage loop only decides what to extract and has written
+        // nothing. What it has *not* done is the important part — see
+        // the guard on the missing-file sweep at the end.
+        if cancelled() {
+            summary.cancelled = true;
+            break;
+        }
         summary.scanned += 1;
         let path_str = path.to_string_lossy().into_owned();
         let stored = existing_meta.remove(&path_str);
@@ -643,6 +840,7 @@ pub(crate) async fn scan_folder_inner(
                     if disk_size == stored_size
                         && disk_mtime_ms == stored_mtime
                         && !needs_rg_backfill
+                        && !tag_backfill_pending
                     {
                         summary.skipped += 1;
                         maybe_emit_progress(
@@ -653,6 +851,20 @@ pub(crate) async fn scan_folder_inner(
                             &summary,
                             Some(&path),
                         );
+                        if let Some(task) = task.as_ref() {
+                            // The count of files *finished*, not of
+                            // files looked at. `idx` climbs past every
+                            // path the walk touches, including the ones
+                            // being queued for extraction -- and the
+                            // extraction loop below then resumes from
+                            // `summary.skipped`, which is lower. On any
+                            // library where an unchanged file follows a
+                            // changed one, that makes the bar run
+                            // forward and then jump back. The status
+                            // bar is the whole of #601; a bar that goes
+                            // backwards is worse than no bar.
+                            task.progress(summary.skipped as u64, total_files as u64);
+                        }
                         continue;
                     }
                 }
@@ -781,8 +993,45 @@ pub(crate) async fn scan_folder_inner(
     // its empty ReplayGain columns for good.
     let mut rg_backfill_failed = false;
 
+    // Same idea for the custom-tag pass: a file it was meant to read
+    // but could not must stop the marker being written, or that track
+    // keeps empty columns for the life of the install — the pass never
+    // runs twice.
+    let mut tag_backfill_failed = false;
+
     while let Some((path, result)) = extraction_stream.next().await {
+        if cancelled() {
+            summary.cancelled = true;
+            // Deliberately dropping the stream with extractions still
+            // in flight, rather than awaiting them first.
+            //
+            // Awaiting would not stop them: `spawn_blocking` work is
+            // uncancellable, so those files get hashed either way and
+            // the only question is whether the user waits for them.
+            // And "drain the stream" is not the same as "await what
+            // already started" -- `buffered` pulls a new path from the
+            // source every time a slot frees, so draining to
+            // completion would extract the whole remaining folder.
+            // On a large library that turns the stop button into the
+            // longest operation of the scan.
+            //
+            // What gets abandoned is bounded and harmless: at most
+            // `parallelism` extractions, none of which touch SQLite
+            // (`extract_file` reads the file, hashes it, and writes
+            // hash-addressed artwork). So releasing `SCANS_IN_FLIGHT`
+            // before they finish cannot cost analysis rows to writer
+            // contention, which is the reason that counter exists. The
+            // worst case is a few cover files with no row pointing at
+            // them, which the artwork sweep already collects.
+            //
+            // Every `?` in this loop drops the stream the same way; a
+            // stop is not a new shape of exit.
+            break;
+        }
         processed += 1;
+        if let Some(task) = task.as_ref() {
+            task.progress(processed as u64, total_files as u64);
+        }
         let extracted = match result {
             Ok(Ok(e)) => e,
             Ok(Err(err)) => {
@@ -790,6 +1039,17 @@ pub(crate) async fn scan_folder_inner(
                 if rg_backfill_pending && rg_missing.contains(path.to_string_lossy().as_ref()) {
                     rg_backfill_failed = true;
                 }
+                // Deliberately *not* blocking the custom-tag marker. A
+                // file that failed extraction got nothing at all from
+                // this scan, not merely its tags, and it is already
+                // counted in `summary.errors`. Holding the marker back
+                // for it would re-run the forced full-folder tag pass
+                // on every scan for the rest of the install, because a
+                // file that is permanently unreadable fails every time
+                // -- one corrupt file quietly costing a whole folder
+                // its fast path. The case that does block it is below:
+                // extraction succeeded and only the tag read failed,
+                // which nothing else reports and nothing else retries.
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -804,6 +1064,19 @@ pub(crate) async fn scan_folder_inner(
                 continue;
             }
         };
+
+        // A file whose custom tags could not be read is not a file
+        // with no custom tags: `read_extra_tags` answers `None` only
+        // for "could not read", and every container it has no reader
+        // for answers `Some(vec![])` instead. `write_extra_tags`
+        // already leaves the stored rows alone in that case -- but the
+        // one-off pass below would still be marked done, and it never
+        // runs twice, so those tracks would keep empty columns for the
+        // life of the install. The same rule the ReplayGain backfill
+        // beside it follows.
+        if tag_backfill_pending && extracted.extra_tags.is_none() {
+            tag_backfill_failed = true;
+        }
 
         // Redundant with Phase 1's unconditional removal above (every
         // walked path is already gone from `existing_meta` by this
@@ -868,19 +1141,33 @@ pub(crate) async fn scan_folder_inner(
                 // the row stays hidden forever (issue #366, symptom B).
                 sqlx::query(
                     "UPDATE track
-                        SET bit_depth        = COALESCE(bit_depth, ?),
-                            codec            = COALESCE(codec, ?),
-                            musical_key      = COALESCE(musical_key, ?),
-                            rg_track_gain_db = ?,
-                            rg_track_peak    = ?,
-                            rg_album_gain_db = ?,
-                            rg_album_peak    = ?,
-                            is_available     = 1
+                        SET bit_depth           = COALESCE(bit_depth, ?),
+                            codec               = COALESCE(codec, ?),
+                            musical_key         = COALESCE(musical_key, ?),
+                            title_from_filename = ?,
+                            rg_track_gain_db    = ?,
+                            rg_track_peak       = ?,
+                            rg_album_gain_db    = ?,
+                            rg_album_peak       = ?,
+                            is_available        = 1
                       WHERE id = ?",
                 )
                 .bind(extracted.bit_depth)
                 .bind(extracted.codec.as_deref())
                 .bind(extracted.musical_key.as_deref())
+                // The one backfill site for the flag, and the only one
+                // that can reach a library scanned before the column
+                // existed. Those rows took the `NOT NULL DEFAULT 0` of
+                // the migration while their titles were in fact file
+                // stems; bytes that never change never reach the
+                // rewrite branch, so without this line they would stay
+                // at `0` for the life of the install and the inventory
+                // category the column exists for would keep reporting
+                // zero -- the very fault it was added to repair.
+                //
+                // Assigned, not COALESCEd: the column is NOT NULL, so
+                // it is never `NULL` to fall through.
+                .bind(extracted.title_from_filename)
                 // Assigned rather than COALESCEd: this branch runs on a
                 // file whose bytes are unchanged but whose row may be
                 // stale, and a tagger that *removed* a gain has to be
@@ -999,6 +1286,15 @@ pub(crate) async fn scan_folder_inner(
                     .await?;
                 }
 
+                // Written even here, and this is the point: a library
+                // that predates #588 has files whose mtime and hash have
+                // not moved, so every one of them lands in this branch.
+                // A deep rescan re-reads the file -- `extracted` is
+                // fresh -- and without this the tags it just read would
+                // be thrown away and the columns would stay empty
+                // forever.
+                write_extra_tags(&mut tx, existing_track_id, extracted.extra_tags.as_ref()).await?;
+
                 summary.skipped += 1;
                 tx_count += 1;
             } else {
@@ -1057,7 +1353,7 @@ pub(crate) async fn scan_folder_inner(
                     "UPDATE track SET
                         folder_id = ?,
                         file_hash = ?, file_size = ?, file_modified = ?,
-                        title = ?, album_id = ?, primary_artist = ?,
+                        title = ?, title_from_filename = ?, album_id = ?, primary_artist = ?,
                         track_number = ?, disc_number = ?, year = ?,
                         duration_ms = ?, bitrate = ?, sample_rate = ?, channels = ?,
                         bit_depth = ?, codec = ?,
@@ -1078,6 +1374,7 @@ pub(crate) async fn scan_folder_inner(
                 .bind(extracted.size)
                 .bind(extracted.modified_ms)
                 .bind(&extracted.title)
+                .bind(extracted.title_from_filename)
                 .bind(album_id)
                 .bind(artist_id)
                 .bind(extracted.track_number)
@@ -1099,6 +1396,8 @@ pub(crate) async fn scan_folder_inner(
                 .bind(existing_track_id)
                 .execute(&mut *tx)
                 .await?;
+
+                write_extra_tags(&mut tx, existing_track_id, extracted.extra_tags.as_ref()).await?;
 
                 sqlx::query("DELETE FROM track_artist WHERE track_id = ?")
                     .bind(existing_track_id)
@@ -1203,7 +1502,7 @@ pub(crate) async fn scan_folder_inner(
             let insert = sqlx::query(
                 "INSERT INTO track (
                     library_id, folder_id, file_path, file_hash, file_size, file_modified,
-                    title, album_id, primary_artist,
+                    title, title_from_filename, album_id, primary_artist,
                     track_number, disc_number, year,
                     duration_ms, bitrate, sample_rate, channels,
                     bit_depth, codec, musical_key,
@@ -1211,7 +1510,7 @@ pub(crate) async fn scan_folder_inner(
                     rg_track_gain_db, rg_track_peak, rg_album_gain_db, rg_album_peak,
                     added_at, pinyin, is_available
                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                           ?, ?, ?, ?, ?, ?, 1)",
+                           ?, ?, ?, ?, ?, ?, ?, 1)",
             )
             .bind(library_id)
             .bind(folder_id)
@@ -1220,6 +1519,7 @@ pub(crate) async fn scan_folder_inner(
             .bind(extracted.size)
             .bind(extracted.modified_ms)
             .bind(&extracted.title)
+            .bind(extracted.title_from_filename)
             .bind(album_id)
             .bind(artist_id)
             .bind(extracted.track_number)
@@ -1271,6 +1571,8 @@ pub(crate) async fn scan_folder_inner(
             // write — outbox rolls back with the track row if the
             // commit fails. Skipped gracefully when sync isn't
             // configured.
+            write_extra_tags(&mut tx, track_id, extracted.extra_tags.as_ref()).await?;
+
             emit_track_insert_from_extracted(&mut tx, library_id, track_id, &extracted, now)
                 .await?;
 
@@ -1309,11 +1611,24 @@ pub(crate) async fn scan_folder_inner(
     // Anything still in the map was on disk last time but isn't now.
     // Mark it unavailable rather than deleting — preserves play_event
     // history and lets the user "undelete" by restoring the file.
+    //
+    // **Skipped entirely on a cancelled scan** (#601). The map is
+    // "everything the walk has not reached", and after a stop that is
+    // most of the folder — running the sweep would mark a working
+    // library unavailable because the user pressed a stop button. This
+    // is the concrete shape of "cancelling must leave consistent
+    // state": the safe stopping point for a scan is not merely between
+    // two files, it is *before this pass*.
     // SQLite caps bound parameters at ~999, so we update one row at a
     // time. Removed counts are normally tiny (a handful per scan); for
     // bulk wipes the loop is still acceptable since we're already
     // off the audio thread.
-    for missing_path in existing_meta.keys() {
+    let sweep: Vec<&String> = if summary.cancelled {
+        Vec::new()
+    } else {
+        existing_meta.keys().collect()
+    };
+    for missing_path in sweep {
         let res = sqlx::query(
             "UPDATE track SET is_available = 0
               WHERE folder_id = ? AND file_path = ? AND is_available = 1",
@@ -1385,14 +1700,69 @@ pub(crate) async fn scan_folder_inner(
         }
     };
 
+    // Marked whatever the individual files turned out to hold: the
+    // point of the pass is that every file was *read once*, and a
+    // folder of tracks that carry no custom tags must not be re-read on
+    // every future scan for the rest of the install's life.
+    //
+    // Not marked when the scan was stopped, though — a cancelled pass
+    // did not reach most of the folder, and recording it as done would
+    // leave those files without their tags permanently. A stop does not
+    // spend one of the folder's retries either.
+    let spent_attempts = if tag_backfill_pending && !summary.cancelled && tag_backfill_failed {
+        let spent = tag_backfill_attempts + 1;
+        if let Err(err) = write_counter(pool, &tag_backfill_attempt_key, spent).await {
+            tracing::warn!(?err, folder_id, "could not record a tag-backfill attempt");
+        }
+        spent
+    } else {
+        tag_backfill_attempts
+    };
+    // Out of retries: some files stayed unreadable across several
+    // scans, so the folder is accepted as read rather than re-walked in
+    // full forever.
+    let give_up = tag_backfill_failed && spent_attempts >= TAG_BACKFILL_MAX_ATTEMPTS;
+    if give_up {
+        tracing::info!(
+            folder_id,
+            attempts = spent_attempts,
+            "tags stayed unreadable across several scans; accepting the folder as read"
+        );
+    }
+    if tag_backfill_pending && !summary.cancelled && (!tag_backfill_failed || give_up) {
+        if let Err(err) = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES (?, 'true', 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(&tag_backfill_key)
+        .bind(now_millis())
+        .execute(pool)
+        .await
+        {
+            tracing::warn!(
+                ?err,
+                folder_id,
+                key = %tag_backfill_key,
+                "could not persist the custom-tag backfill marker (non-fatal); \
+                 the next scan will run the pass again"
+            );
+        }
+    }
+
     // Mark the one-off ReplayGain backfill done for this folder — but
-    // only if every track it was meant to re-read actually got read.
-    // A file that failed extraction this time (locked, unreadable,
-    // mid-write) must be picked up by the next scan rather than be
-    // written off. The marker is still set when files simply turned
-    // out to carry no tags: re-reading those on every future scan is
+    // only if every track it was meant to re-read actually got read. A
+    // file that failed extraction this time (locked, unreadable,
+    // mid-write) must be picked up by the next scan rather than written
+    // off. The marker is still set when a file turned out to carry no
+    // ReplayGain tags at all: re-reading those on every future scan is
     // exactly what it exists to prevent.
-    if rg_backfill_pending && !rg_backfill_failed {
+    //
+    // `!summary.cancelled` since the scan became interruptible (#601):
+    // a stopped pass never reached most of the folder, and recording
+    // the backfill as done would leave those files without their
+    // ReplayGain columns permanently — the pass only ever runs once.
+    if rg_backfill_pending && !rg_backfill_failed && !summary.cancelled {
         // Non-fatal: the scan itself is already committed, and losing
         // the marker only costs one more backfill pass. But it must
         // not be lost silently — an unwritable marker makes every
@@ -1443,6 +1813,7 @@ pub(crate) async fn scan_folder_inner(
         total_ms = t_scan.elapsed().as_millis(),
         hash_cpu_ms_total = timings.hash_us.load(Ordering::Relaxed) / 1000,
         tag_cpu_ms_total = timings.tag_us.load(Ordering::Relaxed) / 1000,
+        extra_tag_cpu_ms_total = timings.extra_tag_us.load(Ordering::Relaxed) / 1000,
         // Serial single-writer DB time — already wall-clock (one
         // consumer task). The slice of `extract_db_ms` NOT covered by
         // this is the parallel extraction (hash + cover) the consumer
@@ -1458,13 +1829,27 @@ pub(crate) async fn scan_folder_inner(
             "scan:progress",
             ScanProgress {
                 folder_id,
-                current: total_files,
+                // The files actually dealt with, not the whole folder:
+                // a stopped scan sitting at 100% is the same lie as the
+                // title one line down.
+                //
+                // `processed` and not `summary.scanned`, which counts
+                // the triage loop -- and that loop runs to completion
+                // before extraction starts, so for any stop taken
+                // during extraction, where the time actually goes, it
+                // already equals `total_files`.
+                current: if summary.cancelled {
+                    processed
+                } else {
+                    total_files
+                },
                 total: total_files,
                 added: summary.added,
                 updated: summary.updated,
                 skipped: summary.skipped,
                 errors: summary.errors,
                 done: true,
+                cancelled: summary.cancelled,
                 current_dir: None,
             },
         );

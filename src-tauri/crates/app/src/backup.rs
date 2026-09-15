@@ -25,6 +25,7 @@
 //! the loop costs nothing while the user hasn't opted in.
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -46,12 +47,23 @@ pub struct BackupHandle {
     /// next backup deadline is recomputed without waiting for the old
     /// sleep to expire.
     pub notify: Arc<Notify>,
+    /// Bumped with every `notify_one` above, and read by the waiter that
+    /// has to tell a real change from a leftover.
+    ///
+    /// `Notify` stores one permit when nobody is waiting, so a settings
+    /// change made *while a backup was running* arms the next
+    /// `notified()` to return at once -- including the cancel back-off,
+    /// which exists precisely to stop a cancelled backup restarting
+    /// immediately. Comparing this counter is how that wait knows the
+    /// wake-up carried news.
+    pub config_generation: Arc<AtomicU64>,
 }
 
 impl BackupHandle {
     pub fn new() -> Self {
         Self {
             notify: Arc::new(Notify::new()),
+            config_generation: Arc::new(AtomicU64::new(0)),
         }
     }
 }
@@ -195,6 +207,9 @@ pub async fn write_config(
     }
     tx.commit().await?;
 
+    // Counter first: a waiter woken by the notify must never read a
+    // generation that has not moved yet.
+    handle.config_generation.fetch_add(1, Ordering::AcqRel);
     handle.notify.notify_one();
     Ok(())
 }
@@ -242,23 +257,79 @@ fn sanitize_for_filename(name: &str) -> String {
     }
 }
 
+/// How long the scheduler waits before reconsidering a pass the user
+/// stopped.
+///
+/// A cancelled pass deliberately does not stamp `backup.last_run_at` --
+/// the schedule did not run, and recording otherwise would skip the
+/// next backup on the strength of one the user interrupted. But that
+/// leaves a deadline already in the past, so the loop would come
+/// straight back and start the same backup again, which is not what
+/// pressing stop means. Short against an interval measured in days,
+/// long enough that "stop" gives the machine back.
+const CANCEL_BACKOFF: Duration = Duration::from_secs(60 * 60);
+
+/// What one backup pass did.
+///
+/// Serialised: `run_backup_now` hands it to the frontend, which cannot
+/// read an empty `created` without `cancelled` beside it.
+#[derive(Serialize)]
+pub struct BackupPass {
+    /// Archive paths created, one per profile that succeeded.
+    pub created: Vec<String>,
+    /// Profiles whose archive could not be written. A pass carries on
+    /// past one of these by design, so without the count a partly
+    /// failed run is indistinguishable from a clean one: every caller
+    /// sees archives and nothing says some are missing.
+    pub failed: u32,
+    /// True when the user stopped the pass between two archives. The
+    /// archives in `created` are each complete regardless.
+    pub cancelled: bool,
+}
+
 /// Run a single backup pass over every profile in the install.
 ///
-/// Returns the list of archive paths created (one per profile that
-/// succeeded). Failures on individual profiles are logged but don't
-/// abort the pass — a corrupt or detached profile shouldn't stop the
-/// healthy ones from being saved.
+/// Failures on individual profiles are logged but don't abort the pass
+/// — a corrupt or detached profile shouldn't stop the healthy ones from
+/// being saved.
 pub async fn run_one_backup(
     state: &AppState,
     handle: &AppHandle,
     config: &BackupConfig,
-) -> AppResult<Vec<String>> {
+) -> AppResult<BackupPass> {
     let folder = if config.folder.is_empty() {
         default_backup_folder(handle)
     } else {
         PathBuf::from(&config.folder)
     };
-    std::fs::create_dir_all(&folder)
+    // Stops after the archive it is on. One whole archive is the unit
+    // of work — a half-written `.waveflow` is worse than a slow one —
+    // so on a single-profile install this is the end anyway. It is
+    // still offered: a multi-profile backup of a large library is
+    // exactly the run somebody wants their machine back from, and a
+    // button that stops at the next boundary is honest about that
+    // (#601).
+    let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let stop_for_cancel = std::sync::Arc::clone(&stop);
+    let task = crate::tasks::start(
+        handle,
+        crate::tasks::TaskKind::Backup,
+        0,
+        crate::tasks::cancel_fn(move || {
+            stop_for_cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+        }),
+    );
+
+    // Announced before the folder is touched, and the touch is on the
+    // blocking pool. A backup folder is routinely a network share or an
+    // external disk, and `create_dir_all` on one that has gone away
+    // blocks for as long as the filesystem takes to give up — on a
+    // runtime thread, with nothing in the status bar to say what the
+    // app is waiting for. That is the case the bar exists for.
+    let folder_for_create = folder.clone();
+    tokio::task::spawn_blocking(move || std::fs::create_dir_all(&folder_for_create))
+        .await
+        .map_err(|e| AppError::Other(format!("create backup folder task: {e}")))?
         .map_err(|e| AppError::Other(format!("create backup folder: {e}")))?;
 
     // Active profile gets a WAL checkpoint so the bundled DB captures
@@ -281,6 +352,15 @@ pub async fn run_one_backup(
     let ts = Utc::now().format("%Y-%m-%dT%H-%M-%S").to_string();
     let app_version = env!("CARGO_PKG_VERSION").to_string();
     let mut created = Vec::with_capacity(profiles.len());
+    let mut failed: u32 = 0;
+    // The count is known before the first archive, so the row can show
+    // a real total rather than the unknown one `start` was given. One
+    // archive is the unit of work here, so that is what the bar counts.
+    let total = profiles.len() as u64;
+    let mut done = 0u64;
+    if let Some(task) = task.as_ref() {
+        task.progress(0, total);
+    }
 
     // The metadata_artwork cache is shared across all profiles, so we
     // bundle it once — in the first archive of the pass. The others stay
@@ -290,6 +370,25 @@ pub async fn run_one_backup(
     let mut bundle_metadata_artwork = config.include_metadata_artwork;
 
     for (profile_id, profile_name) in profiles {
+        // Between two archives, never inside one: a half-written
+        // `.waveflow` looks like a backup and restores like nothing.
+        // The archives already written stay, and they are each complete.
+        if stop.load(std::sync::atomic::Ordering::Relaxed) {
+            // Returned, not broken out of: falling through would reach
+            // `stamp_last_run` and record the schedule as having run,
+            // so the next automatic backup would be skipped on the
+            // strength of a pass the user stopped. The archives already
+            // written are complete and are returned.
+            tracing::info!("backup stopped by the user between profiles");
+            return Ok(BackupPass {
+                created,
+                failed,
+                cancelled: true,
+            });
+        }
+        if let Some(task) = task.as_ref() {
+            task.detail(profile_name.clone());
+        }
         let safe = sanitize_for_filename(&profile_name);
         let target = folder.join(format!("{safe}-{ts}.waveflow"));
 
@@ -339,6 +438,7 @@ pub async fn run_one_backup(
             }
             Err(err) => {
                 tracing::warn!(profile_id, ?err, "auto backup failed");
+                failed += 1;
             }
         }
 
@@ -348,10 +448,31 @@ pub async fn run_one_backup(
         if let Err(err) = prune_old_backups(&folder, &safe, config.retention as usize).await {
             tracing::warn!(?err, "auto backup retention sweep failed");
         }
+
+        done += 1;
+        if let Some(task) = task.as_ref() {
+            task.progress(done, total);
+        }
     }
 
+    // Stamped even when profiles failed, and that is a decision, not
+    // an oversight. Leaving it unstamped puts the deadline in the past,
+    // so the loop comes straight back and runs the same pass again --
+    // and a profile that fails because its database is corrupt fails
+    // identically every time, which turns a broken backup into a
+    // permanent loop. That is the shape this file already had to fix
+    // once, with the cancel back-off above.
+    //
+    // The cost is that the profiles that failed wait a full interval
+    // for their next attempt. Answering that properly means a failure
+    // back-off of its own -- shorter than the interval, longer than
+    // nothing -- which is more than this belongs in.
     stamp_last_run(state).await?;
-    Ok(created)
+    Ok(BackupPass {
+        created,
+        failed,
+        cancelled: false,
+    })
 }
 
 async fn prune_old_backups(
@@ -478,9 +599,61 @@ pub fn spawn_backup_loop(handle: AppHandle, backup_handle: BackupHandle) {
             }
 
             match run_one_backup(&state, &handle, &config).await {
-                Ok(paths) => {
-                    tracing::info!(count = paths.len(), "auto backup run finished");
-                    let _ = handle.emit("backup:completed", paths);
+                Ok(pass) => {
+                    tracing::info!(
+                        count = pass.created.len(),
+                        failed = pass.failed,
+                        "auto backup run finished"
+                    );
+                    let cancelled = pass.cancelled;
+                    // Not for a pass the user stopped: the event is what
+                    // the frontend turns into "backups written", and the
+                    // archives that did land are complete but are not
+                    // the run that was scheduled. Stopping it is already
+                    // its own answer.
+                    if !cancelled {
+                        // The whole pass, not just the paths it managed
+                        // to write: a run where two profiles failed and
+                        // three succeeded used to be indistinguishable
+                        // from a clean one on this event, exactly as it
+                        // was on the settings card before it learned to
+                        // count failures.
+                        let _ = handle.emit("backup:completed", &pass);
+                    }
+                    if cancelled {
+                        // `last_run_at` was deliberately left alone, so
+                        // the deadline this loop just woke on is still
+                        // in the past: without the wait below, stopping
+                        // a backup would start the same backup again
+                        // within milliseconds, for as long as the user
+                        // kept pressing the button. Cut short if they
+                        // change the settings in the meantime.
+                        tracing::info!("auto backup cancelled; backing off before reconsidering");
+                        let generation_at_wait =
+                            backup_handle.config_generation.load(Ordering::Acquire);
+                        let until = tokio::time::Instant::now() + CANCEL_BACKOFF;
+                        loop {
+                            tokio::select! {
+                                _ = tokio::time::sleep_until(until) => break,
+                                _ = backup_handle.notify.notified() => {
+                                    // A wake-up is only a reason to stop
+                                    // waiting if the settings actually
+                                    // moved. `Notify` hands out a permit
+                                    // stored before this wait began --
+                                    // a change made while the pass was
+                                    // running -- and honouring that
+                                    // would cut the back-off to nothing
+                                    // and restart the backup the user
+                                    // just stopped.
+                                    if backup_handle.config_generation.load(Ordering::Acquire)
+                                        != generation_at_wait
+                                    {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 Err(err) => {
                     tracing::warn!(?err, "auto backup run failed");

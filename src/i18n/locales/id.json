@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} folder",
         "playlists_zero": "0 playlist",
         "playlists_one": "{{count}} playlist",
-        "playlists_other": "{{count}} playlist"
+        "playlists_other": "{{count}} playlist",
+        "a-corriger_zero": "Tidak ada yang perlu dilaporkan: pustaka sudah lengkap.",
+        "a-corriger_one": "{{count}} hal untuk diperbaiki",
+        "a-corriger_other": "{{count}} hal untuk diperbaiki"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "Artis",
       "genres": "Genre",
       "dossiers": "Folder",
-      "playlists": "Playlist"
+      "playlists": "Playlist",
+      "a-corriger": "Perlu diperbaiki"
     },
     "empty": {
       "morceaux": {
@@ -387,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "Tidak ada apa pun dari sumber ini. Ganti sumber di atas, atau salin katalog server dari pengaturan."
+      },
+      "a-corriger": {
+        "title": "Tidak ada yang perlu diperbaiki",
+        "description": "Pustaka Anda tidak menunjukkan masalah yang bisa kami deteksi."
       }
     },
     "actions": {
@@ -487,7 +495,91 @@
       "local": "Perangkat ini",
       "remote": "Server"
     },
-    "open": "Buka {{name}}"
+    "open": "Buka {{name}}",
+    "inventory": {
+      "allClear": "Tidak ada yang perlu dilaporkan: pustaka sudah lengkap.",
+      "summary_one": "{{count}} hal untuk diperbaiki",
+      "summary_other": "{{count}} hal untuk diperbaiki",
+      "trackCount_one": "{{count}} lagu",
+      "trackCount_other": "{{count}} lagu",
+      "categories": {
+        "missing_title": {
+          "label": "Tanpa judul",
+          "help": "Berkas tidak memiliki judul sama sekali."
+        },
+        "missing_artist": {
+          "label": "Tanpa artis",
+          "help": "Tidak ada yang dikreditkan."
+        },
+        "missing_album": {
+          "label": "Tanpa album",
+          "help": "Lagu ini tidak termasuk album mana pun."
+        },
+        "missing_year": {
+          "label": "Tanpa tahun",
+          "help": "Tidak ada tahun, atau tahunnya nol."
+        },
+        "missing_track_number": {
+          "label": "Tanpa nomor lagu",
+          "help": "Letaknya dalam cakram tidak diketahui."
+        },
+        "missing_cover": {
+          "label": "Tanpa sampul",
+          "help": "Album tidak punya gambar."
+        },
+        "untaggable": {
+          "label": "Tak bisa ditandai",
+          "help": "Tag berkas ini tidak dapat ditulis ulang."
+        },
+        "album_year_conflict": {
+          "label": "Tahun bertentangan",
+          "help": "Lagu satu album menyebut tahun berbeda."
+        },
+        "compilation_no_album_artist": {
+          "label": "Kompilasi tanpa artis album",
+          "help": "Kompilasi yang artis albumnya belum diisi."
+        },
+        "duplicate_track_number": {
+          "label": "Nomor ganda",
+          "help": "Dua lagu menempati posisi yang sama."
+        },
+        "track_number_gap": {
+          "label": "Penomoran berlubang",
+          "help": "Ada nomor yang hilang antara yang pertama dan terakhir."
+        },
+        "probable_duplicate": {
+          "label": "Kemungkinan duplikat",
+          "help": "Judul sama, artis sama, durasi hampir sama."
+        }
+      }
+    },
+    "columns": {
+      "choose": "Kolom",
+      "shown": "Ditampilkan",
+      "available": "Tersedia",
+      "fromYourFiles": "Dari berkas Anda",
+      "resetWidths": "Setel ulang lebar",
+      "resize": "Ubah lebar kolom {{column}}",
+      "title": "Judul",
+      "artist": "Artis",
+      "album": "Album",
+      "year": "Tahun",
+      "trackNumber": "No. lagu",
+      "discNumber": "No. cakram",
+      "duration": "Durasi",
+      "rating": "Nilai",
+      "bitrate": "Bitrate",
+      "sampleRate": "Laju cuplik",
+      "bitDepth": "Kedalaman bit",
+      "channels": "Kanal",
+      "codec": "Kodek",
+      "musicalKey": "Nada dasar",
+      "fileSize": "Ukuran",
+      "addedAt": "Ditambahkan",
+      "filePath": "Jalur",
+      "moveUp": "Naikkan kolom {{column}}",
+      "moveDown": "Turunkan kolom {{column}}"
+    }
   },
   "liked": {
     "badge": "Koleksi",
@@ -1869,6 +1961,7 @@
       "runNow": "Cadangkan sekarang",
       "runOk_one": "{{count}} arsip ditulis.",
       "runOk_other": "{{count}} arsip ditulis.",
+      "runPartial": "Ditulis: {{created}}, gagal: {{failed}}. Periksa log.",
       "errors": {
         "loadFailed": "Tidak dapat memuat konfigurasi cadangan.",
         "saveFailed": "Gagal menyimpan. Coba lagi.",
@@ -2167,6 +2260,36 @@
       "kbps": "{{rate}} kbit/dtk",
       "activeNotice": "Lagu jarak jauh dikodekan ulang, jadi diputar di bawah kualitas aslinya. Berkas lokal tidak pernah ditranskode.",
       "unsupported": "Server ini dibangun tanpa FFmpeg dan tidak bisa mentranskode. Lagu jarak jauh selalu tiba dalam format aslinya."
+    },
+    "contrast": {
+      "title": "Kontras",
+      "subtitle": "Menaikkan kontras seluruh antarmuka sekaligus: teks sekunder terbaca, latar tanpa buram, fokus papan ketik yang jelas.",
+      "modes": {
+        "auto": {
+          "label": "Otomatis",
+          "description": "Mengikuti pengaturan kontras sistem."
+        },
+        "normal": {
+          "label": "Normal",
+          "description": "Palet bawaan yang lebih lembut."
+        },
+        "high": {
+          "label": "Tinggi",
+          "description": "Kontras diperkuat, apa pun tema dan skin-nya."
+        }
+      }
+    },
+    "cacheLocation": {
+      "title": "Lokasi singgahan",
+      "subtitle": "Sampul, sampul bergerak, dan klip Canvas. Semuanya bisa dibangun ulang, jadi memindahkannya tidak menghilangkan apa pun. Basis data dan berkas yang Anda pilih sendiri tetap di tempatnya.",
+      "pickTitle": "Pilih folder singgahan",
+      "choose": "Pindahkan…",
+      "reset": "Kembali ke bawaan",
+      "size": "{{size}} terpakai",
+      "copying": "Menyalin… aslinya baru dihapus pada peluncuran berikutnya.",
+      "fellBack": "Lokasi yang diatur tidak dapat dijangkau ({{path}}), jadi singgahan memakai lokasi bawaan untuk sesi ini. Pilihan Anda tetap tersimpan.",
+      "restartNeeded": "Penyalinan selesai. Mulai ulang untuk memakai lokasi baru.",
+      "restartNow": "Mulai ulang"
     }
   },
   "spotify": {
@@ -2187,6 +2310,7 @@
     "runningTitle": "Memindai pustaka…",
     "runningSubtitle": "{{current}} / {{total}} berkas",
     "doneTitle": "Pemindaian selesai",
+    "cancelledTitle": "Pemindaian dihentikan",
     "doneSubtitle": "{{added}} ditambahkan · {{updated}} diperbarui · {{skipped}} dilewati",
     "scanningIn": "Memindai {{dir}}",
     "doneErrors_one": "{{count}} berkas gagal",
@@ -2473,5 +2597,23 @@
       "invalidNumber": "Tahun serta nomor trek dan cakram harus berupa bilangan bulat."
     },
     "needsMirror": "Salin dulu katalog server di atas: bagian ini membandingkan berkas Anda dengan cermin lokal, yang masih kosong."
+  },
+  "tasks": {
+    "barLabel": "Tugas berjalan",
+    "cancel": "Hentikan {{task}}",
+    "stopping": "Menghentikan…",
+    "collapse": "Ciutkan",
+    "more_one": "{{count}} tugas lagi",
+    "more_other": "{{count}} tugas lagi",
+    "kinds": {
+      "library_scan": "Pemindaian pustaka",
+      "analysis": "Analisis audio",
+      "lyrics_prefetch": "Pengambilan lirik",
+      "catalogue_mirror": "Cermin katalog",
+      "reconcile": "Rekonsiliasi",
+      "upload": "Unggah",
+      "backup": "Cadangan",
+      "thumbnails": "Gambar mini"
+    }
   }
 }

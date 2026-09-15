@@ -204,6 +204,16 @@ pub struct ExtractedFile {
     pub modified_ms: i64,
     pub hash: String,
     pub title: String,
+    /// `title` is the file's own name, because the tag had none.
+    ///
+    /// The fallback is right for display -- an empty row in the library
+    /// grid helps nobody -- but it erases the difference between a file
+    /// that is titled and one that is not, and that difference is
+    /// exactly what the "needs attention" inventory is asked for
+    /// (#589). Recorded here rather than recovered later: comparing the
+    /// stored title against the path in SQL would report every single
+    /// correctly tagged `Song.mp3` as untitled.
+    pub title_from_filename: bool,
     pub artist: Option<String>,
     pub album: Option<String>,
     /// Raw Album Artist text from the source tag (`TPE2` / `aART` /
@@ -253,6 +263,15 @@ pub struct ExtractedFile {
     /// prefers it over our own analysis, which is why it is read here
     /// rather than only when the user asks for an analysis pass.
     pub replay_gain: super::replay_gain::ReplayGainTags,
+    /// Tags the file carries that the generic `Tag` cannot model, as
+    /// `(key, value)` sorted by key (#588). Read from the concrete
+    /// container by [`super::extra_tags`].
+    ///
+    /// `None` means the second parse could not read them — which is not
+    /// the same as the file having none, and the scanner must not treat
+    /// it as such: the write is delete-then-insert, so a failed read
+    /// folded into "no tags" would erase what is stored.
+    pub extra_tags: Option<Vec<(String, String)>>,
 }
 
 pub struct ExtractedCover {

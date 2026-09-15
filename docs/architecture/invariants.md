@@ -279,6 +279,25 @@ The ~70 CRUD emit call sites still call `crate::sync::*`, but those now resolve 
 
 ---
 
+## Long-running work
+
+### A long operation announces itself to the task registry
+
+Anything that can run for more than a moment — a scan, an analysis sweep, a lyrics prefetch, a catalogue mirror, a reconciliation, an upload, a backup, a thumbnail pass — takes a [`TaskHandle`](../../src-tauri/crates/app/src/tasks.rs) so the status bar above the player can say what the machine is busy with. Before this there were three separate progress surfaces and several tasks that reported nowhere at all, which is why "why is this busy" had no answer.
+
+Four rules, each of which is a visible defect when broken:
+
+- **The handle is held for the whole operation, and dropped by scope.** `Drop` retires the row on every exit path, `?` and panic included. A task that leaves a ghost row behind is worse than one that reports nothing: the user gets a spinner that never resolves and a stop button that does nothing.
+- **The registry does not implement cancellation — it routes to it.** Five of these operations already had a `cancel_*` command, each with its own safe stopping point: a reconciliation may only stop between batches, a mirror walk between albums, an upload after the current track. A task registers a **callback**; the safe stopping point stays where it is defined. Every long operation in the app turned out to have one once it was looked at — down to the thumbnail pass, which stops between two files — so `Cancellation` currently has no "cannot be stopped" variant. If a task ever genuinely has none, that variant belongs there and the status bar already renders a row without a button.
+- **Cancelling must leave consistent state, and "between two items" is not always enough.** The library scan is the worked example: its missing-file sweep marks everything the walk did not reach as `is_available = 0`, so a scan stopped halfway would mark a working library unavailable *because the user pressed stop*. Its safe point is not between two files — it is **before that pass**, which is why `ScanSummary::cancelled` gates it.
+- **Progress is throttled in the registry, not at the call site.** A scan ticks every 25 files; `tasks:changed` goes out at most every 250 ms, except for start, finish and a counter reaching its total, which are immediate so a finished task never leaves a half-drawn bar on screen.
+
+The scan's own toast now shows only the *outcome* — "412 added, 3 errors" — and leaves live progress to the bar: two surfaces counting the same files is the inconsistency this was written to remove, but a task row vanishes when its task ends, so the summary needs somewhere else to live.
+
+The frontend subscribes to `tasks:changed` **before** calling `list_tasks` — see [Events](#events); Tauri replays nothing to a listener that registered a moment too late.
+
+---
+
 ## Plugins
 
 Full surface — worlds, store, options, security model — in [features/plugins.md](../features/plugins.md). The invariants that bite:

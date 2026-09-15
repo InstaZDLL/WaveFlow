@@ -1,0 +1,29 @@
+-- Did this track's title come from its filename? (#589)
+--
+-- The scanner falls back to the file stem when a file carries no title
+-- tag, which is right for display -- an empty cell in the library grid
+-- helps nobody -- but it erases the difference between a titled file
+-- and an untitled one. The inventory's "missing title" category is
+-- asked for exactly that difference, and without this column it could
+-- only find files whose title tag is present but empty: a real fault,
+-- and by far the rarer of the two.
+--
+-- Not recoverable after the fact. Comparing the stored title against
+-- the path in SQL would report every correctly tagged `Song.mp3` as
+-- untitled, which is the common shape for singles.
+--
+-- `ADD COLUMN`, never a table rebuild: `foreign_keys = ON` turns a
+-- `DROP TABLE` on a parent into a cascading delete.
+--
+-- Existing rows default to `0`, so the category under-reports until
+-- each folder is scanned again -- the same caveat the custom-tag
+-- columns carry, and for the same reason. The scanner backfills the
+-- flag on the unchanged-file path, so an ordinary rescan is enough; no
+-- file has to change for the count to come right.
+--
+-- Deliberately NOT a marker that forces a full rescan of every folder
+-- at the next launch. That is minutes of disk on a large library,
+-- unasked for, to populate one advisory count -- and it would fire for
+-- every install on upgrade, including the ones that never open this
+-- tab.
+ALTER TABLE track ADD COLUMN title_from_filename INTEGER NOT NULL DEFAULT 0;

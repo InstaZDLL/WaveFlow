@@ -277,6 +277,22 @@ pub async fn run_analyze_library(
     ANALYSIS_CANCEL.store(false, Ordering::SeqCst);
     let _guard = RunningGuard;
 
+    // Announced before the query, with an unknown total. That query is
+    // a join over every track in the library, which on a large one
+    // takes long enough that a status bar staying empty through it
+    // reads as nothing having started (#601). The sweep already had a
+    // stopping mechanism and a progress event of its own; the registry
+    // routes to the first and mirrors the second. Dropped at the end of
+    // the function, on every exit path.
+    let task = crate::tasks::start(
+        app,
+        crate::tasks::TaskKind::Analysis,
+        0,
+        crate::tasks::cancel_fn(|| {
+            ANALYSIS_CANCEL.store(true, Ordering::SeqCst);
+        }),
+    );
+
     // Never measured, or measured by a pass older than the current one.
     // A versionless row is the case this was built for: its peak came
     // from a mono downmix, and until it is re-measured clipping
@@ -306,6 +322,11 @@ pub async fn run_analyze_library(
     .await?;
 
     let total = pending.len() as u32;
+    if let Some(task) = task.as_ref() {
+        // The count is only knowable now, so the row that has been
+        // sitting there indeterminate gets its total here.
+        task.progress(0, total as u64);
+    }
     let mut processed = 0u32;
     let mut failed = 0u32;
     let mut cancelled = false;
@@ -342,7 +363,6 @@ pub async fn run_analyze_library(
                 failed,
             },
         );
-
         let path_buf = PathBuf::from(file_path);
         let join = tokio::task::spawn_blocking(move || analyze_file(&path_buf)).await;
         match join {
@@ -366,6 +386,13 @@ pub async fn run_analyze_library(
             }
         }
         processed += 1;
+        // After the increment, so the last track moves the bar to full
+        // rather than leaving it one short for the instant before the
+        // row retires. `TaskHandle::progress` does not throttle the
+        // tick that completes a task, which is what makes that visible.
+        if let Some(task) = task.as_ref() {
+            task.progress(processed as u64, total as u64);
+        }
 
         // Cooperative scheduling pair: yield to give other tokio
         // tasks (UI events, drain ticks, playback commands) a turn

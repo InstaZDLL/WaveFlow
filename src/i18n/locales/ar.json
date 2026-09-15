@@ -400,7 +400,13 @@
         "playlists_two": "قائمتا تشغيل",
         "playlists_few": "{{count}} قوائم تشغيل",
         "playlists_many": "{{count}} قائمة تشغيل",
-        "playlists_other": "{{count}} قائمة تشغيل"
+        "playlists_other": "{{count}} قائمة تشغيل",
+        "a-corriger_zero": "لا شيء يُذكر: المكتبة مكتملة.",
+        "a-corriger_one": "{{count}} نقطة للتصحيح",
+        "a-corriger_other": "{{count}} نقطة للتصحيح",
+        "a-corriger_two": "نقطتان للتصحيح",
+        "a-corriger_few": "{{count}} نقاط للتصحيح",
+        "a-corriger_many": "{{count}} نقطة للتصحيح"
       }
     },
     "tabs": {
@@ -409,7 +415,8 @@
       "artistes": "الفنانون",
       "genres": "الأنواع",
       "dossiers": "المجلدات",
-      "playlists": "قوائم التشغيل"
+      "playlists": "قوائم التشغيل",
+      "a-corriger": "بحاجة إلى مراجعة"
     },
     "empty": {
       "morceaux": {
@@ -434,6 +441,10 @@
       },
       "sourceFiltered": {
         "description": "لا شيء من هذا المصدر. غيّر المصدر بالأعلى، أو انسخ فهرس الخادم من الإعدادات."
+      },
+      "a-corriger": {
+        "title": "لا شيء للتصحيح",
+        "description": "لا توجد في مكتبتك مشكلة يمكننا رصدها."
       }
     },
     "actions": {
@@ -555,7 +566,99 @@
       "local": "هذا الجهاز",
       "remote": "الخادم"
     },
-    "open": "فتح {{name}}"
+    "open": "فتح {{name}}",
+    "inventory": {
+      "allClear": "لا شيء يُذكر: المكتبة مكتملة.",
+      "summary_one": "{{count}} نقطة للتصحيح",
+      "summary_other": "{{count}} نقطة للتصحيح",
+      "trackCount_one": "مقطوعة واحدة",
+      "trackCount_other": "{{count}} مقطوعة",
+      "categories": {
+        "missing_title": {
+          "label": "بلا عنوان",
+          "help": "الملف لا يحمل أي عنوان."
+        },
+        "missing_artist": {
+          "label": "بلا فنان",
+          "help": "لم يُنسب العمل إلى أحد."
+        },
+        "missing_album": {
+          "label": "بلا ألبوم",
+          "help": "المقطوعة لا تنتمي إلى أي ألبوم."
+        },
+        "missing_year": {
+          "label": "بلا سنة",
+          "help": "لا توجد سنة، أو أنها صفر."
+        },
+        "missing_track_number": {
+          "label": "بلا رقم مسار",
+          "help": "موضعها في القرص غير معروف."
+        },
+        "missing_cover": {
+          "label": "بلا غلاف",
+          "help": "لا صورة للألبوم."
+        },
+        "untaggable": {
+          "label": "لا تقبل الوسوم",
+          "help": "وسوم هذه الملفات لا يمكن إعادة كتابتها."
+        },
+        "album_year_conflict": {
+          "label": "سنوات متعارضة",
+          "help": "مقطوعات الألبوم الواحد تذكر سنوات مختلفة."
+        },
+        "compilation_no_album_artist": {
+          "label": "مجموعة بلا فنان ألبوم",
+          "help": "مجموعة لم يُضبط فيها فنان الألبوم."
+        },
+        "duplicate_track_number": {
+          "label": "أرقام مكرّرة",
+          "help": "مقطوعتان تدّعيان الموضع نفسه."
+        },
+        "track_number_gap": {
+          "label": "ثغرة في الترقيم",
+          "help": "ينقص رقم بين أول القرص وآخره."
+        },
+        "probable_duplicate": {
+          "label": "تكرار مرجّح",
+          "help": "العنوان نفسه والفنان نفسه ومدة شبه متطابقة."
+        }
+      },
+      "summary_zero": "لا نقاط للتصحيح",
+      "summary_two": "نقطتان للتصحيح",
+      "summary_few": "{{count}} نقاط للتصحيح",
+      "summary_many": "{{count}} نقطة للتصحيح",
+      "trackCount_zero": "لا مقطوعات",
+      "trackCount_two": "مقطوعتان",
+      "trackCount_few": "{{count}} مقطوعات",
+      "trackCount_many": "{{count}} مقطوعة"
+    },
+    "columns": {
+      "choose": "الأعمدة",
+      "shown": "المعروضة",
+      "available": "المتاحة",
+      "fromYourFiles": "من ملفاتك",
+      "resetWidths": "إعادة ضبط العروض",
+      "resize": "تغيير عرض عمود {{column}}",
+      "title": "العنوان",
+      "artist": "الفنان",
+      "album": "الألبوم",
+      "year": "السنة",
+      "trackNumber": "رقم المقطوعة",
+      "discNumber": "رقم القرص",
+      "duration": "المدة",
+      "rating": "التقييم",
+      "bitrate": "معدل البِت",
+      "sampleRate": "معدل العيّنات",
+      "bitDepth": "عمق البِت",
+      "channels": "القنوات",
+      "codec": "المرمِّز",
+      "musicalKey": "المقام",
+      "fileSize": "الحجم",
+      "addedAt": "أُضيف في",
+      "filePath": "المسار",
+      "moveUp": "نقل عمود {{column}} لأعلى",
+      "moveDown": "نقل عمود {{column}} لأسفل"
+    }
   },
   "liked": {
     "badge": "المجموعة",
@@ -2011,6 +2114,7 @@
       "runNow": "إنشاء نسخة احتياطية الآن",
       "runOk_one": "تمت كتابة أرشيف واحد.",
       "runOk_other": "تمت كتابة {{count}} أرشيف.",
+      "runPartial": "نسخ احتياطية: {{created}}، إخفاقات: {{failed}}. راجع السجلات.",
       "errors": {
         "loadFailed": "تعذّر تحميل إعدادات النسخ الاحتياطي.",
         "saveFailed": "فشل الحفظ. حاول مجددًا.",
@@ -2325,6 +2429,36 @@
       "kbps": "{{rate}} كيلوبت/ث",
       "activeNotice": "تُعاد ترميز المقاطع البعيدة، فتُشغَّل بجودة أقل من الأصل. أما الملفات المحلية فلا يُعاد ترميزها أبدًا.",
       "unsupported": "بُني هذا الخادم دون FFmpeg ولا يمكنه إعادة الترميز. تصل المقاطع البعيدة دائمًا بتنسيقها الأصلي."
+    },
+    "contrast": {
+      "title": "التباين",
+      "subtitle": "يرفع تباين الواجهة كاملةً دفعةً واحدة: نص ثانوي مقروء، وخلفيات بلا ضبابية، وتركيز لوحة مفاتيح واضح لا يخطئه النظر.",
+      "modes": {
+        "auto": {
+          "label": "تلقائي",
+          "description": "يتبع إعداد التباين في النظام."
+        },
+        "normal": {
+          "label": "عادي",
+          "description": "اللوحة الافتراضية الأكثر تدرّجًا."
+        },
+        "high": {
+          "label": "عالٍ",
+          "description": "تباين مُعزَّز مهما كانت السمة والمظهر."
+        }
+      }
+    },
+    "cacheLocation": {
+      "title": "موقع ذاكرة التخزين المؤقت",
+      "subtitle": "أغلفة الألبومات والأغلفة المتحركة ومقاطع Canvas. كلّها قابلة لإعادة البناء، فنقلها لا يفقدك شيئًا. أمّا قواعد البيانات والملفات التي اخترتها بنفسك فتبقى مكانها.",
+      "pickTitle": "اختيار مجلد ذاكرة التخزين المؤقت",
+      "choose": "نقل…",
+      "reset": "العودة إلى الافتراضي",
+      "size": "{{size}} مستخدمة",
+      "copying": "جارٍ النسخ… لن يُحذف الأصل إلا عند التشغيل التالي.",
+      "fellBack": "الموقع المُعدّ غير متاح ({{path}})، لذا تستخدم الذاكرة المؤقتة الموقع الافتراضي في هذه الجلسة. وقد حُفظ اختيارك.",
+      "restartNeeded": "اكتمل النسخ. أعد التشغيل لاستخدام الموقع الجديد.",
+      "restartNow": "إعادة التشغيل"
     }
   },
   "spotify": {
@@ -2345,6 +2479,7 @@
     "runningTitle": "جارٍ فحص المكتبة…",
     "runningSubtitle": "{{current}} / {{total}} ملف",
     "doneTitle": "اكتمل الفحص",
+    "cancelledTitle": "تم إيقاف الفحص",
     "doneSubtitle": "{{added}} مضاف · {{updated}} محدّث · {{skipped}} متخطّى",
     "scanningIn": "جارٍ فحص {{dir}}",
     "doneErrors_zero": "لم يفشل أي ملف",
@@ -2752,5 +2887,27 @@
       "invalidNumber": "يجب أن تكون السنة ورقم المقطع ورقم القرص أعدادًا صحيحة."
     },
     "needsMirror": "انسخ أولًا فهرس الخادم أعلاه: يقارن هذا القسم ملفاتك بالمرآة المحلية، وهي ما تزال فارغة."
+  },
+  "tasks": {
+    "barLabel": "المهام الجارية",
+    "cancel": "إيقاف {{task}}",
+    "stopping": "جارٍ الإيقاف…",
+    "collapse": "طيّ",
+    "more_one": "مهمة {{count}} أخرى",
+    "more_other": "{{count}} مهام أخرى",
+    "kinds": {
+      "library_scan": "فحص المكتبة",
+      "analysis": "تحليل الصوت",
+      "lyrics_prefetch": "جلب كلمات الأغاني",
+      "catalogue_mirror": "مرآة الفهرس",
+      "reconcile": "المطابقة",
+      "upload": "الرفع",
+      "backup": "النسخ الاحتياطي",
+      "thumbnails": "الصور المصغّرة"
+    },
+    "more_zero": "لا مهام أخرى",
+    "more_two": "مهمتان أخريان",
+    "more_few": "{{count}} مهام أخرى",
+    "more_many": "{{count}} مهمة أخرى"
   }
 }

@@ -11,6 +11,8 @@ interface AlbumLinkProps {
   onNavigateRemote?: () => void;
   fallback?: string;
   className?: string;
+  /** Stamped as `data-track-cell` on the wrapper; see `ArtistLink`. */
+  cellId?: string;
 }
 
 /**
@@ -26,12 +28,21 @@ export function AlbumLink({
   onNavigateRemote,
   fallback = "—",
   className = "",
+  cellId,
 }: AlbumLinkProps) {
   if (!title || !title.trim()) {
-    return <span className={className}>{fallback}</span>;
+    return (
+      <span className={className} data-track-cell={cellId}>
+        {fallback}
+      </span>
+    );
   }
   if (albumId == null && !onNavigateRemote) {
-    return <span className={className}>{title}</span>;
+    return (
+      <span className={className} data-track-cell={cellId}>
+        {title}
+      </span>
+    );
   }
   const handleClick = (e: MouseEvent) => {
     e.stopPropagation();
@@ -42,7 +53,7 @@ export function AlbumLink({
     if (albumId != null) onNavigate(albumId);
   };
   return (
-    <span className={className}>
+    <span className={className} data-track-cell={cellId}>
       <button
         type="button"
         onClick={handleClick}

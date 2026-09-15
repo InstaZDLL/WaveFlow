@@ -342,6 +342,27 @@ async fn discover_inner(
     app: Option<AppHandle>,
     cancellable: bool,
 ) -> AppResult<ReconciliationReport> {
+    // Only the cancellable path announces itself: the other one is a
+    // synchronous helper with no user-visible duration, and a row that
+    // appears and vanishes within a frame is noise (#601). Routed to
+    // the existing `request_cancel`, which knows the scan may only stop
+    // between batches.
+    let task = app.as_ref().filter(|_| cancellable).and_then(|handle| {
+        crate::tasks::start(
+            handle,
+            crate::tasks::TaskKind::Reconcile,
+            0,
+            crate::tasks::cancel_fn(|| {
+                request_cancel();
+            }),
+        )
+        // Behind an `Arc` because the hashing pass runs on the blocking
+        // pool and needs an owned, `'static` reference to report into.
+        // The row still retires when the last clone drops, which is the
+        // end of this function either way.
+        .map(std::sync::Arc::new)
+    });
+
     let remote_tracks = load_remote_tracks(pool).await?;
     if remote_tracks.is_empty() {
         // Nothing to reconcile, but this is still a terminal point: arbitrate
@@ -377,8 +398,16 @@ async fn discover_inner(
         .filter(|id| unlinked.contains(id))
         .collect();
     let known = super::hashing::cached_digests(pool, &ids).await?;
+    let hash_task = task.clone();
     let scan = tokio::task::spawn_blocking(move || {
-        hash_local_tracks(local_tracks, known, app.as_ref(), total, cancellable)
+        hash_local_tracks(
+            local_tracks,
+            known,
+            app.as_ref(),
+            hash_task.as_deref(),
+            total,
+            cancellable,
+        )
     })
     .await
     .map_err(|err| AppError::Other(format!("reconciliation hash task failed: {err}")))?;
@@ -476,6 +505,7 @@ fn hash_local_tracks(
     tracks: Vec<LocalTrack>,
     known: HashMap<i64, String>,
     app: Option<&AppHandle>,
+    task: Option<&crate::tasks::TaskHandle>,
     total: usize,
     cancellable: bool,
 ) -> HashScan {
@@ -500,6 +530,13 @@ fn hash_local_tracks(
                 let processed = hashed.len() + unreadable;
                 let _ = app.emit("reconcile:progress", ReconcileProgress { processed, total });
             }
+            // Outside the `app` guard: the status bar is fed by the
+            // registry, not by the event, so a run with no `AppHandle`
+            // (the test path) must not be the only thing deciding
+            // whether progress moves.
+            if let Some(task) = task {
+                task.progress((hashed.len() + unreadable) as u64, total as u64);
+            }
             continue;
         }
         match waveflow_core::scanner::hash_file_full(Path::new(&track.file_path)) {
@@ -520,6 +557,12 @@ fn hash_local_tracks(
         if let Some(app) = app {
             let processed = hashed.len() + unreadable;
             let _ = app.emit("reconcile:progress", ReconcileProgress { processed, total });
+        }
+        // The branch above returns early on a cached digest, so this is
+        // the other half — the freshly hashed files, which are the slow
+        // ones and therefore the ones the user is watching.
+        if let Some(task) = task {
+            task.progress((hashed.len() + unreadable) as u64, total as u64);
         }
     }
     // A cancel arriving while the LAST file hashes would never be seen by the
@@ -1663,7 +1706,7 @@ mod tests {
 
         let locals = load_local_candidates(&pool).await.unwrap();
         let ids: Vec<i64> = locals.iter().map(|track| track.id).collect();
-        let scan = hash_local_tracks(locals, HashMap::new(), None, 0, false);
+        let scan = hash_local_tracks(locals, HashMap::new(), None, None, 0, false);
         assert_eq!(scan.computed.len(), 1, "the first sweep reads the file");
         super::super::hashing::remember(&pool, &scan.computed)
             .await
@@ -1674,7 +1717,7 @@ mod tests {
             .await
             .unwrap();
         let locals = load_local_candidates(&pool).await.unwrap();
-        let second = hash_local_tracks(locals, known, None, 0, false);
+        let second = hash_local_tracks(locals, known, None, None, 0, false);
         assert_eq!(
             second.hashed.len(),
             1,
@@ -1703,7 +1746,7 @@ mod tests {
         // Hash to completion on the non-cancellable path (never reads the phase),
         // so the cancel below can only be caught by reconcile's pre-commit CAS.
         let locals = load_local_candidates(&pool).await.unwrap();
-        let scan = hash_local_tracks(locals, HashMap::new(), None, 0, false);
+        let scan = hash_local_tracks(locals, HashMap::new(), None, None, 0, false);
         assert_eq!(scan.hashed.len(), 1);
         let remotes = load_remote_tracks(&pool).await.unwrap();
 

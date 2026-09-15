@@ -73,6 +73,14 @@ export interface ProfileSetting<T> {
    * Never rejects: failures are logged and rolled back internally.
    */
   setValue: (next: T | ((previous: T) => T)) => Promise<void>;
+  /** Bumped every time a read lands, whatever it read. A consumer whose
+   *  value has effects outside React state -- a document attribute, a
+   *  cache the next launch reads -- keys on this as well as on `value`,
+   *  because the case that needs re-applying is exactly the one where
+   *  the value did not change: a rollback broadcast reaches an instance
+   *  that never saw the optimistic value, so its own state is already
+   *  correct while the document is not. */
+  revision: number;
 }
 
 /** Parse a persisted boolean. Anything other than the two truthy forms
@@ -140,6 +148,11 @@ export function useProfileSetting<T>(
     setValueState(next);
   }, []);
 
+  // See `revision` on the returned shape: a counter, not a value, so
+  // that a read landing on an unchanged value still wakes the consumers
+  // whose side effects live outside React state.
+  const [revision, setRevision] = useState(0);
+
   // Last value the backend acknowledged — the rollback target.
   const confirmedRef = useRef<T>(options.defaultValue);
   const writeChainRef = useRef<Promise<unknown>>(Promise.resolve());
@@ -169,21 +182,74 @@ export function useProfileSetting<T>(
     confirmedRef.current = defaultValue;
 
     const refresh = async () => {
-      const seq = ++ownerSeqRef.current;
+      // A read does NOT take the token on the way in; it notes what the
+      // token was and claims it only when it has an answer to commit.
+      //
+      // Taking it up front and handing it back on failure -- which is
+      // what this did -- moves the counter backwards, and everything
+      // here relies on it only ever going up. Two reads in flight, the
+      // newer one failing and rewinding, left the token reading exactly
+      // what the OLDER one had claimed: that one then passed the
+      // ownership test and committed a value it had read before the
+      // newer read was even sent.
+      //
+      // Claiming late costs nothing, because a read has nothing to
+      // protect until it commits: a write claims up front instead, and
+      // must, since it paints its value immediately.
+      const startedAt = ownerSeqRef.current;
+      let relevant = false;
       try {
         const raw = await getProfileSetting(key, activeProfileId);
-        // Stale: a write (or a newer read) happened while we awaited and
-        // owns the value now.
-        if (cancelled || ownerSeqRef.current !== seq) return;
+        // Stale: a write (or a newer read) took the token while we
+        // awaited and owns the value now.
+        if (cancelled || ownerSeqRef.current !== startedAt) return;
+        relevant = true;
+        ownerSeqRef.current += 1;
         const parsed = parse(raw);
         commit(parsed);
         confirmedRef.current = parsed;
       } catch (err) {
         console.error(`[${optionsRef.current.label}] read failed`, err);
+        // Nothing to hand back -- this read never took the token. It
+        // still gets to finalise if nobody claimed one while it was
+        // away, which is what "still the read that matters" means here.
+        // And because it took nothing, a write in flight keeps the
+        // token it claimed, so its rollback is still recognised as
+        // wanted rather than skipped over an optimistic value the
+        // database had refused.
+        relevant = ownerSeqRef.current === startedAt;
       } finally {
-        // Ready either way: a failed read leaves the default in place,
-        // and never flipping this would gate the consumer forever.
-        if (!cancelled) setReady(true);
+        // Ready on any OUTCOME -- a read that failed leaves the
+        // default in place, and never flipping this would gate the
+        // consumer forever -- but only from the read that still owns
+        // the value.
+        //
+        // Owning is not the same as having committed, which is what an
+        // earlier version of this comment got wrong. Between the
+        // effect's `commit(defaultValue)` and the newest read landing,
+        // `value` is the default; a stale read announcing ready in that
+        // window hands the consumer the default as though it were the
+        // stored answer. For `useContrastMode` that is the flash of
+        // ordinary contrast the gate exists to prevent, written over
+        // what the bootstrap had already stamped correctly.
+        //
+        // Nothing is gated forever by this: whatever took ownership
+        // either lands its own read, or is a write, and every write
+        // broadcasts -- on success and, since the rollback path does it
+        // too, on failure -- which brings a fresh read that flips it.
+        //
+        // `revision` follows the same gate, and matters for a reason
+        // that is not symmetry: the read this counter serves is the one
+        // a rollback broadcasts, and a write and the read behind it
+        // fail for the same reasons -- a closed pool, a profile going
+        // away. Bumping only on success would leave the case it exists
+        // for broken exactly when it is most likely. On a failed read
+        // the consumer re-applies its last confirmed value, which is
+        // the right one to put back.
+        if (!cancelled && relevant) {
+          setReady(true);
+          setRevision((r) => r + 1);
+        }
       }
     };
     void refresh();
@@ -234,11 +300,26 @@ export function useProfileSetting<T>(
         // Roll back only when nothing newer took ownership. Comparing
         // the token rather than the value itself is what makes this work
         // for primitives, where two writes of `true` are indistinguishable.
-        if (ownerSeq === ownerSeqRef.current) commit(confirmedRef.current);
+        if (ownerSeq === ownerSeqRef.current) {
+          commit(confirmedRef.current);
+          // Broadcast the rollback too, not just the success. Other
+          // mounted consumers of this key were never told about the
+          // optimistic value, so they cannot undo it on their own --
+          // and the instance that *can* may be gone: a settings card
+          // that started a write and was unmounted when its panel
+          // closed never runs its own rollback, leaving whatever side
+          // effect it painted (a document attribute, a cached choice)
+          // describing a value the database refused. Guarded like the
+          // success path, so a stale failure cannot pull everyone back
+          // over a newer write.
+          if (writeSeq === writeSeqRef.current) {
+            window.dispatchEvent(new CustomEvent(event));
+          }
+        }
       }
     },
     [commit, key, valueType, event],
   );
 
-  return { value, ready, setValue };
+  return { value, ready, revision, setValue };
 }

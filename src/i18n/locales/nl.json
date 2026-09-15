@@ -353,7 +353,10 @@
         "dossiers_other": "{{count}} mappen",
         "playlists_zero": "0 playlists",
         "playlists_one": "{{count}} playlist",
-        "playlists_other": "{{count}} playlists"
+        "playlists_other": "{{count}} playlists",
+        "a-corriger_zero": "Niets te melden: de bibliotheek is compleet.",
+        "a-corriger_one": "{{count}} punt te verbeteren",
+        "a-corriger_other": "{{count}} punten te verbeteren"
       }
     },
     "tabs": {
@@ -362,7 +365,8 @@
       "artistes": "Artiesten",
       "genres": "Genres",
       "dossiers": "Mappen",
-      "playlists": "Playlists"
+      "playlists": "Playlists",
+      "a-corriger": "Te verbeteren"
     },
     "empty": {
       "morceaux": {
@@ -387,6 +391,10 @@
       },
       "sourceFiltered": {
         "description": "Niets uit deze bron. Wissel hierboven van bron of kopieer de servercatalogus via de instellingen."
+      },
+      "a-corriger": {
+        "title": "Niets te verbeteren",
+        "description": "In je bibliotheek is geen detecteerbaar probleem."
       }
     },
     "actions": {
@@ -487,7 +495,91 @@
       "local": "Dit apparaat",
       "remote": "Server"
     },
-    "open": "{{name}} openen"
+    "open": "{{name}} openen",
+    "inventory": {
+      "allClear": "Niets te melden: de bibliotheek is compleet.",
+      "summary_one": "{{count}} punt te verbeteren",
+      "summary_other": "{{count}} punten te verbeteren",
+      "trackCount_one": "{{count}} nummer",
+      "trackCount_other": "{{count}} nummers",
+      "categories": {
+        "missing_title": {
+          "label": "Zonder titel",
+          "help": "Het bestand heeft helemaal geen titel."
+        },
+        "missing_artist": {
+          "label": "Zonder artiest",
+          "help": "Er is niemand vermeld."
+        },
+        "missing_album": {
+          "label": "Zonder album",
+          "help": "Het nummer hoort bij geen enkel album."
+        },
+        "missing_year": {
+          "label": "Zonder jaar",
+          "help": "Geen jaar, of een jaar van nul."
+        },
+        "missing_track_number": {
+          "label": "Zonder nummering",
+          "help": "De plek op de schijf is onbekend."
+        },
+        "missing_cover": {
+          "label": "Zonder hoes",
+          "help": "Het album heeft geen afbeelding."
+        },
+        "untaggable": {
+          "label": "Niet te taggen",
+          "help": "De tags van deze bestanden zijn niet herschrijfbaar."
+        },
+        "album_year_conflict": {
+          "label": "Jaren spreken elkaar tegen",
+          "help": "Nummers van één album noemen verschillende jaren."
+        },
+        "compilation_no_album_artist": {
+          "label": "Verzamelalbum zonder albumartiest",
+          "help": "Een verzamelalbum zonder ingestelde albumartiest."
+        },
+        "duplicate_track_number": {
+          "label": "Dubbele nummers",
+          "help": "Twee nummers claimen dezelfde plek."
+        },
+        "track_number_gap": {
+          "label": "Gat in de nummering",
+          "help": "Tussen eerste en laatste ontbreekt een nummer."
+        },
+        "probable_duplicate": {
+          "label": "Waarschijnlijke duplicaten",
+          "help": "Zelfde titel, zelfde artiest, bijna zelfde lengte."
+        }
+      }
+    },
+    "columns": {
+      "choose": "Kolommen",
+      "shown": "Getoond",
+      "available": "Beschikbaar",
+      "fromYourFiles": "Uit je bestanden",
+      "resetWidths": "Breedtes herstellen",
+      "resize": "Kolom {{column}} verbreden of versmallen",
+      "title": "Titel",
+      "artist": "Artiest",
+      "album": "Album",
+      "year": "Jaar",
+      "trackNumber": "Nr.",
+      "discNumber": "Schijf",
+      "duration": "Duur",
+      "rating": "Waardering",
+      "bitrate": "Bitrate",
+      "sampleRate": "Samplerate",
+      "bitDepth": "Bitdiepte",
+      "channels": "Kanalen",
+      "codec": "Codec",
+      "musicalKey": "Toonsoort",
+      "fileSize": "Grootte",
+      "addedAt": "Toegevoegd",
+      "filePath": "Pad",
+      "moveUp": "Kolom {{column}} omhoog",
+      "moveDown": "Kolom {{column}} omlaag"
+    }
   },
   "liked": {
     "badge": "Verzameling",
@@ -1869,6 +1961,7 @@
       "runNow": "Nu een back-up maken",
       "runOk_one": "{{count}} archief geschreven.",
       "runOk_other": "{{count}} archieven geschreven.",
+      "runPartial": "Geschreven: {{created}}, mislukt: {{failed}}. Bekijk de logs.",
       "errors": {
         "loadFailed": "De back-upconfiguratie kon niet worden geladen.",
         "saveFailed": "Opslaan mislukt. Probeer het opnieuw.",
@@ -2167,6 +2260,36 @@
       "kbps": "{{rate}} kbit/s",
       "activeNotice": "Externe nummers worden opnieuw gecodeerd en klinken dus onder hun oorspronkelijke kwaliteit. Lokale bestanden worden nooit getranscodeerd.",
       "unsupported": "Deze server is gebouwd zonder FFmpeg en kan niet transcoderen. Externe nummers komen altijd in hun originele formaat aan."
+    },
+    "contrast": {
+      "title": "Contrast",
+      "subtitle": "Verhoogt het contrast van de hele interface in één keer: leesbare secundaire tekst, achtergronden zonder vervaging, onmiskenbare toetsenbordfocus.",
+      "modes": {
+        "auto": {
+          "label": "Automatisch",
+          "description": "Volgt de contrastinstelling van het systeem."
+        },
+        "normal": {
+          "label": "Normaal",
+          "description": "Het standaardpalet, met meer nuance."
+        },
+        "high": {
+          "label": "Hoog",
+          "description": "Versterkt contrast, ongeacht thema en skin."
+        }
+      }
+    },
+    "cacheLocation": {
+      "title": "Cachelocatie",
+      "subtitle": "Hoesafbeeldingen, bewegende covers en Canvas-clips. Alles is opnieuw op te bouwen, dus verplaatsen kost niets. Databases en zelf gekozen bestanden blijven waar ze zijn.",
+      "pickTitle": "Cachemap kiezen",
+      "choose": "Verplaatsen…",
+      "reset": "Terug naar standaard",
+      "size": "{{size}} in gebruik",
+      "copying": "Bezig met kopiëren… het origineel wordt pas bij de volgende start verwijderd.",
+      "fellBack": "De ingestelde locatie is onbereikbaar ({{path}}), dus de cache gebruikt deze sessie de standaardlocatie. Je keuze is bewaard.",
+      "restartNeeded": "Kopiëren voltooid. Start opnieuw op om de nieuwe locatie te gebruiken.",
+      "restartNow": "Opnieuw starten"
     }
   },
   "spotify": {
@@ -2187,6 +2310,7 @@
     "runningTitle": "Bibliotheek wordt gescand…",
     "runningSubtitle": "{{current}} / {{total}} bestanden",
     "doneTitle": "Scan voltooid",
+    "cancelledTitle": "Scan gestopt",
     "doneSubtitle": "{{added}} toegevoegd · {{updated}} bijgewerkt · {{skipped}} overgeslagen",
     "scanningIn": "Bezig met {{dir}}",
     "doneErrors_one": "{{count}} bestand mislukt",
@@ -2494,5 +2618,23 @@
       "invalidNumber": "Het jaar en de track- en schijfnummers moeten hele getallen zijn."
     },
     "needsMirror": "Kopieer eerst de catalogus van de server hierboven: dit onderdeel vergelijkt je bestanden met de lokale spiegel, die nog leeg is."
+  },
+  "tasks": {
+    "barLabel": "Lopende taken",
+    "cancel": "{{task}} stoppen",
+    "stopping": "Bezig met stoppen…",
+    "collapse": "Inklappen",
+    "more_one": "Nog {{count}} taak",
+    "more_other": "Nog {{count}} taken",
+    "kinds": {
+      "library_scan": "Bibliotheekscan",
+      "analysis": "Audioanalyse",
+      "lyrics_prefetch": "Songteksten ophalen",
+      "catalogue_mirror": "Catalogusspiegel",
+      "reconcile": "Afstemming",
+      "upload": "Uploaden",
+      "backup": "Back-up",
+      "thumbnails": "Miniaturen"
+    }
   }
 }
