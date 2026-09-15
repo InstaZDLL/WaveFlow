@@ -190,6 +190,15 @@ pub async fn load_cache_root(app_db: &SqlitePool) -> Option<PathBuf> {
 }
 
 async fn store_path(app_db: &SqlitePool, key: &str, root: Option<&Path>) -> AppResult<()> {
+    store_path_in(app_db, key, root).await
+}
+
+/// The same write against any executor, so two of them can share one
+/// transaction. See the pair in [`set_cache_location`].
+async fn store_path_in<'e, E>(executor: E, key: &str, root: Option<&Path>) -> AppResult<()>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Sqlite>,
+{
     match root {
         Some(path) => {
             sqlx::query(
@@ -203,7 +212,7 @@ async fn store_path(app_db: &SqlitePool, key: &str, root: Option<&Path>) -> AppR
             .bind(key)
             .bind(path.to_string_lossy().to_string())
             .bind(Utc::now().timestamp())
-            .execute(app_db)
+            .execute(executor)
             .await?;
         }
         // Deleting rather than storing an empty string: "no row" is
@@ -213,7 +222,7 @@ async fn store_path(app_db: &SqlitePool, key: &str, root: Option<&Path>) -> AppR
         None => {
             sqlx::query("DELETE FROM app_setting WHERE key = ?")
                 .bind(key)
-                .execute(app_db)
+                .execute(executor)
                 .await?;
         }
     }
@@ -824,13 +833,17 @@ pub async fn set_cache_location(
         return Err(err);
     }
 
-    // Persist the destination and the tree to clean up, in that order:
-    // a crash after the first write comes back reading the copy, which
-    // is whole. A crash after the second leaves a stale tree, which
-    // costs space and nothing else.
+    // Both writes or neither. They used to go one after the other, on
+    // the reasoning that landing only the first comes back reading a
+    // whole copy -- true, but it also comes back with no record of the
+    // tree left behind, and since the cleanup marker is now one of the
+    // roots `candidate_cache_roots` reports, losing it means a full
+    // artwork tree that no sweep in the app can name.
     let stored = (target != paths.root).then(|| target.clone());
-    store_path(&state.app_db, KEY_CACHE_ROOT, stored.as_deref()).await?;
-    store_path(&state.app_db, KEY_CACHE_PENDING, Some(&paths.cache_root)).await?;
+    let mut tx = state.app_db.begin().await?;
+    store_path_in(&mut *tx, KEY_CACHE_ROOT, stored.as_deref()).await?;
+    store_path_in(&mut *tx, KEY_CACHE_PENDING, Some(&paths.cache_root)).await?;
+    tx.commit().await?;
     grant_asset_scope(&app, &moved);
 
     // `active_root` is still the old one, and saying otherwise would be

@@ -311,11 +311,25 @@ export function sanitizeLayout(layout: ColumnLayout | null): ColumnLayout {
     return tagKeyOf(id) !== null || hasOwn(BUILTIN_COLUMNS, id);
   });
   if (!order.includes("title")) order.unshift("title");
-  return {
-    order,
-    widths:
-      layout.widths && typeof layout.widths === "object" ? layout.widths : {},
-  };
+  // Widths are validated here or nowhere. `trackSizeFor` happens to
+  // reject a non-number on its own, but the header reads
+  // `widths[id] ?? defaultWidth` -- and `??` takes a `NaN`, which then
+  // becomes the width a drag starts from. A stored preference is
+  // whatever the last version, or a hand-edited row, left behind.
+  const widths: Record<string, number> = {};
+  const stored = layout.widths;
+  if (stored && typeof stored === "object") {
+    for (const id of order) {
+      const value = (stored as Record<string, unknown>)[id];
+      if (typeof value !== "number" || !Number.isFinite(value)) continue;
+      const spec = specFor(id);
+      widths[id] = Math.min(
+        MAX_COLUMN_WIDTH,
+        Math.max(spec.minWidth, Math.round(value)),
+      );
+    }
+  }
+  return { order, widths };
 }
 
 /** The CSS `grid-template-columns` track for one column. */

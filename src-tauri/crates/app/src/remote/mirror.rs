@@ -205,13 +205,27 @@ struct MirrorProgress {
     total: i64,
 }
 
-fn emit(app: &AppHandle, phase: &'static str, done: i64, total: i64) {
+fn emit(
+    app: &AppHandle,
+    task: Option<&crate::tasks::TaskHandle>,
+    phase: &'static str,
+    done: i64,
+    total: i64,
+) {
     // Progress is decoration: a listener that has gone away must not turn a
     // successful walk into an error.
     let _ = app.emit(
         "remote:mirror-progress",
         MirrorProgress { phase, done, total },
     );
+    // And the same count into the status bar (#601), which otherwise
+    // shows the longest operation in the app as a label that never
+    // moves. `total` stays whatever the caller has -- `0` while the
+    // server has not said how many pages there are, which the registry
+    // documents as the honest answer rather than a guess.
+    if let Some(task) = task {
+        task.progress(done.max(0) as u64, total.max(0) as u64);
+    }
 }
 
 /// One library the account can see.
@@ -318,7 +332,7 @@ pub async fn mirror_catalogue(state: &AppState, app: AppHandle) -> AppResult<Mir
     // with `already_running` does not put a second row in the status bar
     // for one walk (#601). Total unknown until the server has been asked
     // how many pages there are.
-    let _task = crate::tasks::start(
+    let task = crate::tasks::start(
         &app,
         crate::tasks::TaskKind::CatalogueMirror,
         0,
@@ -376,13 +390,13 @@ pub async fn mirror_catalogue(state: &AppState, app: AppHandle) -> AppResult<Mir
 
     // Artists first: one request per page, nothing to fetch per row, and the
     // album walk that follows is the long one.
-    walk_artists(&client, &pool, &app, &mut report).await?;
+    walk_artists(&client, &pool, &app, task.as_ref(), &mut report).await?;
     if cancelled() {
         report.cancelled = true;
         return Ok(report);
     }
 
-    walk_albums(&client, &pool, &app, &mut report).await?;
+    walk_albums(&client, &pool, &app, task.as_ref(), &mut report).await?;
     if cancelled() {
         report.cancelled = true;
         return Ok(report);
@@ -394,7 +408,7 @@ pub async fn mirror_catalogue(state: &AppState, app: AppHandle) -> AppResult<Mir
     // answers with none is one this account cannot browse, not one whose
     // catalogue is empty.
     if !libraries.is_empty() {
-        sweep_libraries(&client, &pool, &app, &libraries, &mut report).await?;
+        sweep_libraries(&client, &pool, &app, task.as_ref(), &libraries, &mut report).await?;
     }
     report.cancelled = cancelled();
     Ok(report)
@@ -501,6 +515,7 @@ async fn walk_albums(
     client: &RemoteClient<'_>,
     pool: &SqlitePool,
     app: &AppHandle,
+    task: Option<&crate::tasks::TaskHandle>,
     report: &mut MirrorReport,
 ) -> AppResult<()> {
     let known = known_albums(pool).await?;
@@ -554,7 +569,7 @@ async fn walk_albums(
         // Advance by the page, once the page is done: the count the card shows
         // is albums accounted for, and every album of the page now is.
         processed += page.len() as i64;
-        emit(app, "albums", processed, 0);
+        emit(app, task, "albums", processed, 0);
 
         // A short page is the last page. Asking for one more would cost a
         // round-trip to be told the same thing.
@@ -575,6 +590,7 @@ async fn walk_artists(
     client: &RemoteClient<'_>,
     pool: &SqlitePool,
     app: &AppHandle,
+    task: Option<&crate::tasks::TaskHandle>,
     report: &mut MirrorReport,
 ) -> AppResult<()> {
     let mut seen: HashSet<String> = HashSet::new();
@@ -606,7 +622,7 @@ async fn walk_artists(
         tx.commit().await?;
 
         report.artists_seen += page.len() as i64;
-        emit(app, "artists", report.artists_seen, 0);
+        emit(app, task, "artists", report.artists_seen, 0);
 
         if (page.len() as i64) < ALBUM_PAGE {
             break;
@@ -764,6 +780,7 @@ async fn sweep_libraries(
     client: &RemoteClient<'_>,
     pool: &SqlitePool,
     app: &AppHandle,
+    task: Option<&crate::tasks::TaskHandle>,
     libraries: &[LibraryAccessDto],
     report: &mut MirrorReport,
 ) -> AppResult<()> {
@@ -796,7 +813,7 @@ async fn sweep_libraries(
             for record in page.iter().filter(|record| record.available) {
                 seen.insert(record.id.clone());
             }
-            emit(app, "sweep", seen.len() as i64, 0);
+            emit(app, task, "sweep", seen.len() as i64, 0);
             if (page.len() as i64) < TRACK_PAGE {
                 break;
             }
