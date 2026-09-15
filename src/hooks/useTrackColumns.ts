@@ -31,12 +31,14 @@ const serialize = (value: ColumnLayout) => JSON.stringify(value);
 
 export interface TrackColumns {
   layout: ColumnLayout;
+  /** Move the column at `from` to `to`, resolved against the stored
+   *  order rather than the one the caller last rendered. */
+  move: (from: number, to: number) => Promise<void>;
   /** `false` until the stored choice has been read for the active
    *  profile. The table waits on it: painting the default set first and
    *  the stored one a moment later moves every column under the
    *  pointer. */
   ready: boolean;
-  setOrder: (order: ColumnId[]) => Promise<void>;
   toggle: (id: ColumnId) => Promise<void>;
   setWidth: (id: ColumnId, width: number) => Promise<void>;
   /** Put every width back to its default, keeping the chosen columns. */
@@ -72,11 +74,22 @@ export function useTrackColumns(): TrackColumns {
   // and the column picker is where that matters: ticking three boxes in
   // quick succession queues three writes, and off a render-lagged
   // snapshot the last would land carrying none of the other two.
-  const setOrder = useCallback(
-    (order: ColumnId[]) =>
-      setValue((previous) =>
-        sanitizeLayout({ ...sanitizeLayout(previous), order }),
-      ),
+  // Indices, not the reordered array: computing the array needs an
+  // order to splice, and a caller can only splice the one its render
+  // captured -- which puts the snapshot back that the functional update
+  // exists to avoid. Two quick drags would then land the second on a
+  // list that never had the first.
+  const move = useCallback(
+    (from: number, to: number) =>
+      setValue((previous) => {
+        const base = sanitizeLayout(previous);
+        if (from === to || from < 0 || from >= base.order.length) return base;
+        if (to < 0 || to >= base.order.length) return base;
+        const order = [...base.order];
+        const [moved] = order.splice(from, 1);
+        order.splice(to, 0, moved);
+        return sanitizeLayout({ ...base, order });
+      }),
     [setValue],
   );
 
@@ -130,5 +143,5 @@ export function useTrackColumns(): TrackColumns {
 
   const reset = useCallback(() => setValue(DEFAULT_LAYOUT), [setValue]);
 
-  return { layout, ready, setOrder, toggle, setWidth, resetWidths, reset };
+  return { layout, ready, move, toggle, setWidth, resetWidths, reset };
 }

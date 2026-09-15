@@ -1437,8 +1437,8 @@ export function LibraryView({
               onToggle={(id) => {
                 void trackColumns.toggle(id);
               }}
-              onReorder={(order) => {
-                void trackColumns.setOrder(order);
+              onReorder={(from, to) => {
+                void trackColumns.move(from, to);
               }}
               onResetWidths={() => {
                 void trackColumns.resetWidths();

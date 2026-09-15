@@ -988,19 +988,7 @@ pub async fn profile_cache_dirs_elsewhere(state: &AppState, profile_id: i64) -> 
         .collect()
 }
 
-/// Cache directories that a full reset would otherwise miss.
-///
-/// `reset_app` removes [`AppPaths::root`], which used to be the whole
-/// story. Since the caches can be moved off that tree (#619), a reset
-/// that only wipes `root` leaves gigabytes of artwork on whichever drive
-/// the user moved them to — which is precisely the disk usage they moved
-/// them there to control.
-///
-/// Returns the moved-to directories only: when the caches sit at the
-/// default location, `remove_dir_all(root)` already covers them and
-/// naming them again would mean deleting the same tree twice.
-/// One relocated cache root a reset has to clear: its cache
-/// directories, and the ownership marker that authorised removing them.
+/// One relocated cache root a reset has to clear.
 pub(crate) struct RelocatedCache {
     /// Removed once the directories are gone -- never before. A marker
     /// deleted while a directory it vouches for survives would leave
@@ -1009,6 +997,17 @@ pub(crate) struct RelocatedCache {
     pub dirs: Vec<PathBuf>,
 }
 
+/// What a full reset would otherwise miss, one relocated root at a time.
+///
+/// `reset_app` removes [`AppPaths::root`], which used to be the whole
+/// story. Since the caches can be moved off that tree (#619), a reset
+/// that only wipes `root` leaves gigabytes of artwork on whichever drive
+/// the user moved them to — which is precisely the disk usage they moved
+/// them there to control.
+///
+/// Returns moved-to roots only: when the caches sit at the default
+/// location, `remove_dir_all(root)` already covers them and naming them
+/// again would mean deleting the same tree twice.
 pub async fn wipe_targets_outside_root(state: &AppState) -> Vec<RelocatedCache> {
     // Both roots, for the same reason `profile_cache_dirs_elsewhere`
     // takes both: while a move waits for its restart -- and again

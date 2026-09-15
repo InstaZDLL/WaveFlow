@@ -90,18 +90,25 @@ export function BackupCard({ language }: BackupCardProps) {
     setRunning(true);
     setStatus(null);
     try {
-      const paths = await runBackupNow();
-      // Nothing written means the run was stopped before its first
-      // archive finished -- the only way to reach zero here. Reporting
-      // "0 archives written" in the success style answers a deliberate
-      // stop with what reads as a result; the task bar already showed
-      // the stop.
-      if (paths.length > 0) {
+      const { created, cancelled } = await runBackupNow();
+      if (created.length > 0) {
         setStatus({
           kind: "ok",
-          message: t("settings.backup.runOk", { count: paths.length }),
+          message: t("settings.backup.runOk", { count: created.length }),
+        });
+      } else if (!cancelled) {
+        // Nothing written and nobody stopped it: every profile failed.
+        // `run_one_backup` logs each one and carries on, so the command
+        // resolves rather than throwing and the catch below never sees
+        // it -- this is the only place that can say so.
+        setStatus({
+          kind: "error",
+          message: t("settings.backup.errors.runFailed"),
         });
       }
+      // A stop the user asked for gets no status at all: the task bar
+      // already showed it, and the archives that did land are each
+      // complete.
       // Refresh config so `last_run_at` updates.
       const fresh = await getBackupConfig();
       setConfig(fresh);

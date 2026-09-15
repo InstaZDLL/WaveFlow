@@ -255,6 +255,10 @@ fn sanitize_for_filename(name: &str) -> String {
 const CANCEL_BACKOFF: Duration = Duration::from_secs(60 * 60);
 
 /// What one backup pass did.
+///
+/// Serialised: `run_backup_now` hands it to the frontend, which cannot
+/// read an empty `created` without `cancelled` beside it.
+#[derive(Serialize)]
 pub struct BackupPass {
     /// Archive paths created, one per profile that succeeded.
     pub created: Vec<String>,

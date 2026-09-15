@@ -26,7 +26,7 @@ interface ColumnPickerProps {
    *  useful ones under thirty-five nobody has. */
   tagKeys: { key: string; count: number }[];
   onToggle: (id: ColumnId) => void;
-  onReorder: (order: ColumnId[]) => void;
+  onReorder: (from: number, to: number) => void;
   onResetWidths: () => void;
   t: Translator;
 }
@@ -195,11 +195,10 @@ export function ColumnPicker({
   const chosen = new Set(layout.order);
 
   const move = (from: number, to: number) => {
+    // Bounds only. The splice itself happens against the stored order,
+    // not this render's copy -- see `move` in `useTrackColumns`.
     if (from === to || to < 0 || to >= layout.order.length) return;
-    const next = [...layout.order];
-    const [moved] = next.splice(from, 1);
-    next.splice(to, 0, moved);
-    onReorder(next);
+    onReorder(from, to);
   };
 
   /** Reorder, then put focus back in the panel.
