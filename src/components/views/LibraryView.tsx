@@ -318,10 +318,12 @@ export function LibraryView({
     // The only tab that does NOT prefetch. Its counts are album-level
     // aggregates plus a walk over every track to chain probable
     // duplicates, so paying for them on every mount of the library --
-    // which is what the other five do -- would tax people who never
-    // open it. `false` so the tab paints its categories rather than a
-    // skeleton before the first fetch is even asked for.
-    "a-corriger": false,
+    // which is what the other six do -- would tax people who never open
+    // it. That is about the *fetch*, not about this flag: `true`,
+    // because an inventory nobody has asked for yet is an empty list,
+    // and an empty list is what "nothing to fix" looks like. The first
+    // paint would congratulate the user before a single count existed.
+    "a-corriger": true,
   });
   // Which columns the track table shows, in what order and how wide
   // (#588). One preference for every list that renders the shared

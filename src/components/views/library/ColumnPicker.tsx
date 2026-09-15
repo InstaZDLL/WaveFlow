@@ -170,6 +170,20 @@ export function ColumnPicker({
     onReorder(next);
   };
 
+  /** Reorder, then put focus back in the panel.
+   *
+   *  A column that reaches either end disables the very button that was
+   *  clicked, and a disabled element does not keep focus -- so the
+   *  keyboard would land on the document body, outside a portalled
+   *  panel. Same reason as `toggleAndKeepFocus`, and only at the ends:
+   *  a move in the middle leaves the button alive and focused. */
+  const moveAndKeepFocus = (from: number, to: number) => {
+    move(from, to);
+    if (to <= 0 || to >= layout.order.length - 1) {
+      dialogRef.current?.focus();
+    }
+  };
+
   return (
     <>
       <button
@@ -282,7 +296,7 @@ export function ColumnPicker({
                     <span className="ml-auto flex shrink-0 items-center">
                       <button
                         type="button"
-                        onClick={() => move(index, index - 1)}
+                        onClick={() => moveAndKeepFocus(index, index - 1)}
                         disabled={index === 0}
                         aria-label={t("library.columns.moveUp", {
                           column: label,
@@ -293,7 +307,7 @@ export function ColumnPicker({
                       </button>
                       <button
                         type="button"
-                        onClick={() => move(index, index + 1)}
+                        onClick={() => moveAndKeepFocus(index, index + 1)}
                         disabled={index === layout.order.length - 1}
                         aria-label={t("library.columns.moveDown", {
                           column: label,
