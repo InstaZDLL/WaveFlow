@@ -798,7 +798,20 @@ pub async fn set_cache_location(
     // writes it.
     let marker_existed = is_owned(&target);
     if target != paths.root {
-        claim(&target).map_err(AppError::Other)?;
+        if let Err(err) = claim(&target) {
+            // `is_usable` created the folder if it was missing, and a
+            // bare `?` here walks out leaving it -- an empty directory
+            // appearing in the user's chosen location as the reward for
+            // a move that was refused. Same cleanup as the containment
+            // refusal above, and the same `remove_dir` rather than
+            // `remove_dir_all`: it declines a non-empty directory, so
+            // getting the ownership question wrong costs an empty
+            // folder and never somebody's files.
+            if !target_existed {
+                let _ = std::fs::remove_dir(&target);
+            }
+            return Err(AppError::Other(err));
+        }
     }
 
     let moved = paths.clone().with_cache_root(target.clone());
@@ -849,6 +862,13 @@ pub async fn set_cache_location(
         }
         if !marker_existed && target != paths.root {
             let _ = std::fs::remove_file(target.join(OWNER_MARKER));
+        }
+        // And the folder itself, for the same reason: `is_usable` is
+        // what brought it into being, so a failed move must not leave
+        // it standing. Last, because it can only go once the copies and
+        // the marker inside it are gone.
+        if !target_existed {
+            let _ = std::fs::remove_dir(&target);
         }
         return Err(err);
     }

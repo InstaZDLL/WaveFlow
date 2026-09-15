@@ -66,49 +66,66 @@ export function useTrackColumns(): TrackColumns {
 
   const layout = useMemo(() => sanitizeLayout(value), [value]);
 
+  // Every action below writes through a functional update rather than
+  // the `layout` this render captured. `useProfileSetting` serialises
+  // writes precisely so each one can start from the result of the last,
+  // and the column picker is where that matters: ticking three boxes in
+  // quick succession queues three writes, and off a render-lagged
+  // snapshot the last would land carrying none of the other two.
   const setOrder = useCallback(
-    (order: ColumnId[]) => setValue(sanitizeLayout({ ...layout, order })),
-    [layout, setValue],
+    (order: ColumnId[]) =>
+      setValue((previous) =>
+        sanitizeLayout({ ...sanitizeLayout(previous), order }),
+      ),
+    [setValue],
   );
 
   const toggle = useCallback(
-    (id: ColumnId) => {
-      const present = layout.order.includes(id);
-      // Removing the title is reachable by unticking one box and leaves
-      // a table of metadata about songs it does not name, so
-      // `sanitizeLayout` puts it back — silently, because the checkbox
-      // for it is disabled and this path is only reachable through a
-      // stored value.
-      const order = present
-        ? layout.order.filter((other) => other !== id)
-        : [...layout.order, id];
-      return setValue(sanitizeLayout({ ...layout, order }));
-    },
-    [layout, setValue],
+    (id: ColumnId) =>
+      setValue((previous) => {
+        // The add-or-remove decision is read from `previous` too, not
+        // just the list it edits: judged against a stale snapshot, two
+        // quick toggles of the same column would both decide "add".
+        const base = sanitizeLayout(previous);
+        const present = base.order.includes(id);
+        // Removing the title is reachable by unticking one box and
+        // leaves a table of metadata about songs it does not name, so
+        // `sanitizeLayout` puts it back — silently, because the
+        // checkbox for it is disabled and this path is only reachable
+        // through a stored value.
+        const order = present
+          ? base.order.filter((other) => other !== id)
+          : [...base.order, id];
+        return sanitizeLayout({ ...base, order });
+      }),
+    [setValue],
   );
 
   const setWidth = useCallback(
     (id: ColumnId, width: number) =>
-      setValue({
-        ...layout,
-        widths: {
-          ...layout.widths,
-          // Both bounds, like the header's drag and arrow keys. This
-          // is the single place a width is persisted, so a caller that
-          // clamps only one of them cannot store something the table
-          // will refuse to render.
-          [id]: Math.min(
-            MAX_COLUMN_WIDTH,
-            Math.max(specFor(id).minWidth, Math.round(width)),
-          ),
-        },
+      setValue((previous) => {
+        const base = sanitizeLayout(previous);
+        return {
+          ...base,
+          widths: {
+            ...base.widths,
+            // Both bounds, like the header's drag and arrow keys. This
+            // is the single place a width is persisted, so a caller that
+            // clamps only one of them cannot store something the table
+            // will refuse to render.
+            [id]: Math.min(
+              MAX_COLUMN_WIDTH,
+              Math.max(specFor(id).minWidth, Math.round(width)),
+            ),
+          },
+        };
       }),
-    [layout, setValue],
+    [setValue],
   );
 
   const resetWidths = useCallback(
-    () => setValue({ ...layout, widths: {} }),
-    [layout, setValue],
+    () => setValue((previous) => ({ ...sanitizeLayout(previous), widths: {} })),
+    [setValue],
   );
 
   const reset = useCallback(() => setValue(DEFAULT_LAYOUT), [setValue]);

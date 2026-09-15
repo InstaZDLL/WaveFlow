@@ -112,6 +112,12 @@ export function TaskStatusBar() {
         >
           {expanded ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
           <span>
+            {/* `tasks.more` has no entry of its own in the locale
+                files and is not supposed to: passing `count` makes
+                i18next resolve the CLDR plural suffixes, so what the
+                17 files carry is `more_one` / `more_other` (and the
+                four Russian and six Arabic categories). Looking for
+                the bare key finds nothing and means nothing. */}
             {expanded
               ? t("tasks.collapse")
               : t("tasks.more", { count: hidden })}
