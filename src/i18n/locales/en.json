@@ -2678,7 +2678,6 @@
     "or": " or ",
     "not": "except {{inner}}",
     "limit": "at most {{value}}",
-    "minutes": "{{value}} min",
     "sort": {
       "addedDesc": "newest additions first",
       "addedAsc": "oldest additions first",

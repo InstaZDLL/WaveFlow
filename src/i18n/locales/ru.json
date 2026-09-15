@@ -2840,7 +2840,6 @@
     "or": " или ",
     "not": "кроме {{inner}}",
     "limit": "не более {{value}}",
-    "minutes": "{{value}} мин",
     "sort": {
       "addedDesc": "сначала недавно добавленные",
       "addedAsc": "сначала давно добавленные",
@@ -2880,11 +2879,11 @@
       "playCountMax_few": "прослушан не более {{count}} раза",
       "playCountMax_many": "прослушан не более {{count}} раз",
       "playCountMax_other": "прослушан не более {{count}} раз",
-      "playedInLastDays_one": "прослушан за последний {{count}} день",
+      "playedInLastDays_one": "прослушан за последний день",
       "playedInLastDays_few": "прослушан за последние {{count}} дня",
       "playedInLastDays_many": "прослушан за последние {{count}} дней",
       "playedInLastDays_other": "прослушан за последние {{count}} дней",
-      "addedInLastDays_one": "добавлен за последний {{count}} день",
+      "addedInLastDays_one": "добавлен за последний день",
       "addedInLastDays_few": "добавлен за последние {{count}} дня",
       "addedInLastDays_many": "добавлен за последние {{count}} дней",
       "addedInLastDays_other": "добавлен за последние {{count}} дней"

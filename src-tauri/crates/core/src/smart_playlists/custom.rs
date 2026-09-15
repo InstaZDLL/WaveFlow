@@ -564,7 +564,15 @@ fn build_predicate_sql(pred: &Predicate, binds: &mut Vec<BindValue>, now_ms: i64
             binds.push(BindValue::Text(value.to_lowercase()));
             "LOWER(t.codec) = ?".to_string()
         }
-        Predicate::HiRes => "(t.sample_rate >= 88200 OR t.bit_depth >= 24)".to_string(),
+        // Guarded like every other nullable bound, and for the same
+        // reason: a file with neither figure recorded used to fall out
+        // of this rule AND out of its negation, since `NULL OR NULL` is
+        // NULL and so is `NOT (NULL)`. The positive answer is unchanged
+        // — `TRUE OR NULL` was already TRUE — so only the negation
+        // moves, and it moves to include the tracks nobody could see.
+        Predicate::HiRes => "((t.sample_rate IS NOT NULL AND t.sample_rate >= 88200) \
+             OR (t.bit_depth IS NOT NULL AND t.bit_depth >= 24))"
+            .to_string(),
         Predicate::Liked => {
             "EXISTS (SELECT 1 FROM liked_track lt WHERE lt.track_id = t.id)".to_string()
         }
@@ -970,6 +978,7 @@ mod tests {
                 Predicate::SampleRateMin { value: 88_200 },
                 Predicate::BitDepthMin { value: 24 },
                 Predicate::DiscNumberIs { value: 2 },
+                Predicate::HiRes,
             ] {
                 let s = sql_of(&leaf(p.clone()));
                 assert!(s.contains("IS NOT NULL"), "{p:?} must guard its NULLs: {s}");
@@ -1180,6 +1189,20 @@ mod tests {
                 .await,
                 vec![2],
                 "a track with no bit depth belongs to the negation"
+            );
+            // The same question asked of `hi_res`, which is two bounds
+            // at once: track 2 has a sample rate and no bit depth, and
+            // is hi-res by neither.
+            assert_eq!(
+                matched(
+                    &pool,
+                    RuleNode::Not {
+                        child: Box::new(leaf(Predicate::HiRes))
+                    }
+                )
+                .await,
+                vec![2],
+                "a track that is hi-res by neither figure belongs to the negation"
             );
 
             // The key is stored upper-cased and asked for in lower —

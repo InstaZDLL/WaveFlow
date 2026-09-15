@@ -1425,8 +1425,8 @@
       "pathPlaceholder": "폴더 또는 경로…",
       "bits": "{{value}}비트",
       "pickTag": "태그 선택…",
-      "days_one": "일",
-      "days_other": "일"
+      "days_one": "일 이내",
+      "days_other": "일 이내"
     },
     "predicates": {
       "titleContains": "제목 포함",
@@ -1445,12 +1445,12 @@
       "ratingMin": "평점 ≥",
       "pathContains": "경로 포함",
       "discNumberIs": "디스크 =",
-      "addedInLastDays": "추가된 기간",
+      "addedInLastDays": "추가: 최근",
       "sampleRateMin": "샘플레이트 ≥",
       "bitDepthMin": "비트 깊이 ≥",
       "playCountMin": "재생 횟수 ≥",
       "playCountMax": "재생 횟수 ≤",
-      "playedInLastDays": "재생된 기간",
+      "playedInLastDays": "재생: 최근",
       "tagPresent": "태그 있음",
       "tagContains": "태그 포함"
     },
@@ -2657,7 +2657,6 @@
     "or": " 또는 ",
     "not": "{{inner}} 제외",
     "limit": "최대 {{value}}곡",
-    "minutes": "{{value}}분",
     "sort": {
       "addedDesc": "최근 추가순",
       "addedAsc": "오래된 추가순",

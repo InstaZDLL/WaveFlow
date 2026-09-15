@@ -1425,8 +1425,8 @@
       "pathPlaceholder": "Klasör veya yol…",
       "bits": "{{value}} bit",
       "pickTag": "Bir etiket seçin…",
-      "days_one": "gün",
-      "days_other": "gün"
+      "days_one": "gün içinde",
+      "days_other": "gün içinde"
     },
     "predicates": {
       "titleContains": "Başlık içerir",
@@ -1445,12 +1445,12 @@
       "ratingMin": "Puan ≥",
       "pathContains": "Yol şunu içerir",
       "discNumberIs": "Disk =",
-      "addedInLastDays": "Şu süre içinde eklendi",
+      "addedInLastDays": "Eklendi: son",
       "sampleRateMin": "Örnekleme ≥",
       "bitDepthMin": "Bit derinliği ≥",
       "playCountMin": "Çalma sayısı ≥",
       "playCountMax": "Çalma sayısı ≤",
-      "playedInLastDays": "Şu süre içinde çalındı",
+      "playedInLastDays": "Çalındı: son",
       "tagPresent": "Şu etikete sahip",
       "tagContains": "Etiket şunu içerir"
     },
@@ -2678,7 +2678,6 @@
     "or": " veya ",
     "not": "{{inner}} hariç",
     "limit": "en fazla {{value}}",
-    "minutes": "{{value}} dk",
     "sort": {
       "addedDesc": "önce son eklenenler",
       "addedAsc": "önce ilk eklenenler",

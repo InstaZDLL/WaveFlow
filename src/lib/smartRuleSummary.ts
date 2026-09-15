@@ -6,6 +6,7 @@ import type {
   RuleNode,
 } from "./tauri/smart_playlists";
 import type { GenreRow } from "./tauri/browse";
+import { formatDuration } from "./tauri/track";
 
 /**
  * A smart playlist said in words, for the playlist header.
@@ -149,9 +150,9 @@ function describePredicate(pred: Predicate, ctx: SummaryContext): string {
     case "bpm_max":
       return p("bpmMax", { value: formatNumber(pred.value, ctx) });
     case "duration_min_ms":
-      return p("durationMinMs", { value: minutes(pred.value, ctx) });
+      return p("durationMinMs", { value: formatDuration(pred.value) });
     case "duration_max_ms":
-      return p("durationMaxMs", { value: minutes(pred.value, ctx) });
+      return p("durationMaxMs", { value: formatDuration(pred.value) });
     case "play_count_min":
       return p("playCountMin", { count: pred.value });
     case "play_count_max":
@@ -179,12 +180,6 @@ function genreName(id: number, ctx: SummaryContext): string {
 function stars(popm: number): string {
   const n = Math.max(1, Math.min(5, Math.round((popm / 255) * 5)));
   return "★".repeat(n);
-}
-
-function minutes(ms: number, ctx: SummaryContext): string {
-  return ctx.t("smartRuleSummary.minutes", {
-    value: formatNumber(Math.round(ms / 60_000), ctx),
-  });
 }
 
 function formatNumber(value: number, ctx: SummaryContext): string {

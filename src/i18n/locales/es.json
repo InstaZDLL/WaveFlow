@@ -1445,12 +1445,12 @@
       "ratingMin": "Valoración ≥",
       "pathContains": "La ruta contiene",
       "discNumberIs": "Disco =",
-      "addedInLastDays": "Añadido hace",
+      "addedInLastDays": "Añadido en los últimos",
       "sampleRateMin": "Frecuencia ≥",
       "bitDepthMin": "Profundidad ≥",
       "playCountMin": "Reproducciones ≥",
       "playCountMax": "Reproducciones ≤",
-      "playedInLastDays": "Reproducido hace",
+      "playedInLastDays": "Reproducido en los últimos",
       "tagPresent": "Tiene la etiqueta",
       "tagContains": "La etiqueta contiene"
     },
@@ -2678,7 +2678,6 @@
     "or": " o ",
     "not": "excepto {{inner}}",
     "limit": "{{value}} como máximo",
-    "minutes": "{{value}} min",
     "sort": {
       "addedDesc": "los últimos añadidos",
       "addedAsc": "los primeros añadidos",
@@ -2714,9 +2713,9 @@
       "playCountMin_other": "reproducido al menos {{count}} veces",
       "playCountMax_one": "reproducido como máximo {{count}} vez",
       "playCountMax_other": "reproducido como máximo {{count}} veces",
-      "playedInLastDays_one": "reproducido en el último {{count}} día",
+      "playedInLastDays_one": "reproducido en el último día",
       "playedInLastDays_other": "reproducido en los últimos {{count}} días",
-      "addedInLastDays_one": "añadido en el último {{count}} día",
+      "addedInLastDays_one": "añadido en el último día",
       "addedInLastDays_other": "añadido en los últimos {{count}} días"
     }
   }

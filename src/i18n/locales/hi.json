@@ -1425,8 +1425,8 @@
       "pathPlaceholder": "फ़ोल्डर या पथ…",
       "bits": "{{value}} बिट",
       "pickTag": "टैग चुनें…",
-      "days_one": "दिन",
-      "days_other": "दिन"
+      "days_one": "दिनों में",
+      "days_other": "दिनों में"
     },
     "predicates": {
       "titleContains": "शीर्षक में शामिल है",
@@ -1445,12 +1445,12 @@
       "ratingMin": "रेटिंग ≥",
       "pathContains": "पथ में शामिल",
       "discNumberIs": "डिस्क =",
-      "addedInLastDays": "इतने दिनों में जोड़ा",
+      "addedInLastDays": "जोड़ा गया: पिछले",
       "sampleRateMin": "सैंपल दर ≥",
       "bitDepthMin": "बिट गहराई ≥",
       "playCountMin": "प्ले ≥",
       "playCountMax": "प्ले ≤",
-      "playedInLastDays": "इतने दिनों में चलाया",
+      "playedInLastDays": "चलाया गया: पिछले",
       "tagPresent": "टैग मौजूद",
       "tagContains": "टैग में शामिल"
     },
@@ -2678,7 +2678,6 @@
     "or": " या ",
     "not": "{{inner}} को छोड़कर",
     "limit": "अधिकतम {{value}}",
-    "minutes": "{{value}} मि",
     "sort": {
       "addedDesc": "हाल में जोड़े गए पहले",
       "addedAsc": "पहले जोड़े गए पहले",

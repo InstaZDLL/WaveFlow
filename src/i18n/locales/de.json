@@ -1445,12 +1445,12 @@
       "ratingMin": "Bewertung ≥",
       "pathContains": "Pfad enthält",
       "discNumberIs": "CD =",
-      "addedInLastDays": "Hinzugefügt seit",
+      "addedInLastDays": "Hinzugefügt in den letzten",
       "sampleRateMin": "Abtastrate ≥",
       "bitDepthMin": "Bittiefe ≥",
       "playCountMin": "Wiedergaben ≥",
       "playCountMax": "Wiedergaben ≤",
-      "playedInLastDays": "Gespielt seit",
+      "playedInLastDays": "Gespielt in den letzten",
       "tagPresent": "Hat Tag",
       "tagContains": "Tag enthält"
     },
@@ -2678,7 +2678,6 @@
     "or": " oder ",
     "not": "außer {{inner}}",
     "limit": "höchstens {{value}}",
-    "minutes": "{{value}} Min.",
     "sort": {
       "addedDesc": "zuletzt hinzugefügt zuerst",
       "addedAsc": "zuerst hinzugefügt zuerst",
@@ -2714,9 +2713,9 @@
       "playCountMin_other": "mindestens {{count}} Mal gespielt",
       "playCountMax_one": "höchstens {{count}} Mal gespielt",
       "playCountMax_other": "höchstens {{count}} Mal gespielt",
-      "playedInLastDays_one": "in den letzten {{count}} Tag gespielt",
+      "playedInLastDays_one": "am letzten Tag gespielt",
       "playedInLastDays_other": "in den letzten {{count}} Tagen gespielt",
-      "addedInLastDays_one": "in den letzten {{count}} Tag hinzugefügt",
+      "addedInLastDays_one": "am letzten Tag hinzugefügt",
       "addedInLastDays_other": "in den letzten {{count}} Tagen hinzugefügt"
     }
   }

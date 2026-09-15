@@ -657,6 +657,16 @@ function PredicateValue({
           aria-label={label}
           className={inputCls}
         >
+          {/* A stored rule can name a rate this list does not offer —
+              a hand-edited rule set, or a list that changes under a
+              playlist. A controlled select with no matching option
+              renders blank and rewrites the rule on the next change,
+              so the value is kept as an option of its own. */}
+          {!SAMPLE_RATE_OPTIONS.includes(predicate.value) && (
+            <option value={predicate.value}>
+              {`${kHz.format(predicate.value / 1000)} kHz`}
+            </option>
+          )}
           {SAMPLE_RATE_OPTIONS.map((hz) => (
             <option key={hz} value={hz}>
               {`${kHz.format(hz / 1000)} kHz`}
@@ -674,6 +684,11 @@ function PredicateValue({
           aria-label={label}
           className={inputCls}
         >
+          {!BIT_DEPTH_OPTIONS.includes(predicate.value) && (
+            <option value={predicate.value}>
+              {t("smartPlaylistEditor.tree.bits", { value: predicate.value })}
+            </option>
+          )}
           {BIT_DEPTH_OPTIONS.map((bits) => (
             <option key={bits} value={bits}>
               {t("smartPlaylistEditor.tree.bits", { value: bits })}

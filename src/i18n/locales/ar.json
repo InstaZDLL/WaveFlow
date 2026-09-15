@@ -2959,7 +2959,6 @@
     "or": " أو ",
     "not": "باستثناء {{inner}}",
     "limit": "{{value}} كحد أقصى",
-    "minutes": "{{value}} د",
     "sort": {
       "addedDesc": "الأحدث إضافة أولًا",
       "addedAsc": "الأقدم إضافة أولًا",

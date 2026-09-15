@@ -1425,8 +1425,8 @@
       "pathPlaceholder": "フォルダまたはパス…",
       "bits": "{{value}} ビット",
       "pickTag": "タグを選択…",
-      "days_one": "日間",
-      "days_other": "日間"
+      "days_one": "日以内",
+      "days_other": "日以内"
     },
     "predicates": {
       "titleContains": "タイトルに含む",
@@ -1445,12 +1445,12 @@
       "ratingMin": "評価 ≥",
       "pathContains": "パスに含む",
       "discNumberIs": "ディスク =",
-      "addedInLastDays": "追加から",
+      "addedInLastDays": "追加: 過去",
       "sampleRateMin": "サンプリング ≥",
       "bitDepthMin": "ビット深度 ≥",
       "playCountMin": "再生回数 ≥",
       "playCountMax": "再生回数 ≤",
-      "playedInLastDays": "再生から",
+      "playedInLastDays": "再生: 過去",
       "tagPresent": "タグを持つ",
       "tagContains": "タグに含む"
     },
@@ -2657,7 +2657,6 @@
     "or": " または ",
     "not": "{{inner}} を除く",
     "limit": "最大 {{value}} 曲",
-    "minutes": "{{value}} 分",
     "sort": {
       "addedDesc": "追加が新しい順",
       "addedAsc": "追加が古い順",

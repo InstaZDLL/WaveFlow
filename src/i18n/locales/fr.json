@@ -1423,12 +1423,12 @@
       "ratingMin": "Note ≥",
       "pathContains": "Chemin contient",
       "discNumberIs": "Disque =",
-      "addedInLastDays": "Ajouté depuis",
+      "addedInLastDays": "Ajouté depuis moins de",
       "sampleRateMin": "Échantillonnage ≥",
       "bitDepthMin": "Profondeur ≥",
       "playCountMin": "Écoutes ≥",
       "playCountMax": "Écoutes ≤",
-      "playedInLastDays": "Écouté depuis",
+      "playedInLastDays": "Écouté depuis moins de",
       "tagPresent": "Possède le tag",
       "tagContains": "Tag contient"
     },
@@ -2678,7 +2678,6 @@
     "or": " ou ",
     "not": "sauf {{inner}}",
     "limit": "{{value}} maximum",
-    "minutes": "{{value}} min",
     "sort": {
       "addedDesc": "les derniers ajoutés",
       "addedAsc": "les premiers ajoutés",
@@ -2714,10 +2713,10 @@
       "playCountMin_other": "écouté au moins {{count}} fois",
       "playCountMax_one": "écouté au plus {{count}} fois",
       "playCountMax_other": "écouté au plus {{count}} fois",
-      "playedInLastDays_one": "écouté depuis {{count}} jour",
-      "playedInLastDays_other": "écouté depuis {{count}} jours",
-      "addedInLastDays_one": "ajouté depuis {{count}} jour",
-      "addedInLastDays_other": "ajouté depuis {{count}} jours"
+      "playedInLastDays_one": "écouté il y a moins de {{count}} jour",
+      "playedInLastDays_other": "écouté il y a moins de {{count}} jours",
+      "addedInLastDays_one": "ajouté il y a moins de {{count}} jour",
+      "addedInLastDays_other": "ajouté il y a moins de {{count}} jours"
     }
   }
 }

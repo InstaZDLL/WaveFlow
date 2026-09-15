@@ -2657,7 +2657,6 @@
     "or": " 或 ",
     "not": "{{inner}} 除外",
     "limit": "最多 {{value}} 首",
-    "minutes": "{{value}} 分钟",
     "sort": {
       "addedDesc": "最近添加优先",
       "addedAsc": "最早添加优先",

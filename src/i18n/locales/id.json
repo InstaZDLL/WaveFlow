@@ -2657,7 +2657,6 @@
     "or": " atau ",
     "not": "kecuali {{inner}}",
     "limit": "maksimal {{value}}",
-    "minutes": "{{value}} mnt",
     "sort": {
       "addedDesc": "terbaru ditambahkan dulu",
       "addedAsc": "terlama ditambahkan dulu",
@@ -2677,7 +2676,7 @@
       "yearMax": "tahun ≤ {{value}}",
       "discNumberIs": "disk {{value}}",
       "liked": "disukai",
-      "ratingMin": "peringkat ≥ {{value}}",
+      "ratingMin": "penilaian ≥ {{value}}",
       "format": "format {{value}}",
       "hiRes": "hi-res",
       "sampleRateMin": "≥ {{value}} kHz",
