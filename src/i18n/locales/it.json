@@ -1364,8 +1364,6 @@
     "createTitle": "Nuova playlist intelligente",
     "editTitle": "Modifica playlist intelligente",
     "create": "Crea",
-    "preview": "Anteprima",
-    "previewCount": "{{count}} brani corrispondono",
     "nameRequired": "Il nome è obbligatorio",
     "fields": {
       "name": "Nome",
@@ -1423,7 +1421,13 @@
       "addGroupOr": "Gruppo O",
       "addNot": "NON",
       "contains": "Contiene…",
-      "pickGenre": "Scegli un genere…"
+      "pickGenre": "Scegli un genere…",
+      "pathPlaceholder": "Cartella o percorso…",
+      "bits": "{{value}} bit",
+      "pickTag": "Scegli un tag…",
+      "days_one": "giorno",
+      "days_other": "giorni",
+      "days_many": "giorni"
     },
     "predicates": {
       "titleContains": "Il titolo contiene",
@@ -1439,8 +1443,40 @@
       "format": "Formato =",
       "hiRes": "Hi-Res",
       "liked": "Preferito",
-      "ratingMin": "Valutazione ≥"
-    }
+      "ratingMin": "Valutazione ≥",
+      "pathContains": "Percorso contiene",
+      "discNumberIs": "Disco =",
+      "addedInLastDays": "Aggiunto negli ultimi",
+      "sampleRateMin": "Campionamento ≥",
+      "bitDepthMin": "Profondità ≥",
+      "playCountMin": "Ascolti ≥",
+      "playCountMax": "Ascolti ≤",
+      "playedInLastDays": "Ascoltato negli ultimi",
+      "tagPresent": "Ha il tag",
+      "tagContains": "Il tag contiene"
+    },
+    "counting": "Calcolo in corso…",
+    "matchCountLimited": "{{kept}} su {{total}} corrispondenze",
+    "templates": {
+      "label": "Modello",
+      "placeholder": "Partire da un modello…",
+      "recentlyAdded": "Aggiunti di recente",
+      "neverPlayed": "Mai ascoltati",
+      "favourites": "Preferiti",
+      "forgotten": "Dimenticati",
+      "hiRes": "Alta risoluzione",
+      "upTempo": "Tempo sostenuto"
+    },
+    "predicateGroups": {
+      "text": "Testo",
+      "library": "Libreria",
+      "audio": "Audio",
+      "history": "Ascolti",
+      "tags": "Tag"
+    },
+    "matchCount_one": "{{count}} brano corrisponde",
+    "matchCount_other": "{{count}} brani corrispondono",
+    "matchCount_many": "{{count}} brani corrispondono"
   },
   "lyricsEditor": {
     "title": "Editor dei testi",
@@ -2635,6 +2671,58 @@
       "upload": "Caricamento",
       "backup": "Backup",
       "thumbnails": "Miniature"
+    }
+  },
+  "smartRuleSummary": {
+    "everything": "tutta la libreria",
+    "nothing": "nessun brano",
+    "and": " e ",
+    "or": " o ",
+    "not": "tranne {{inner}}",
+    "limit": "massimo {{value}}",
+    "sort": {
+      "addedDesc": "gli ultimi aggiunti",
+      "addedAsc": "i primi aggiunti",
+      "yearDesc": "i più recenti",
+      "yearAsc": "i più vecchi",
+      "titleAsc": "per titolo",
+      "artistAsc": "per artista",
+      "random": "a caso"
+    },
+    "predicates": {
+      "titleContains": "il titolo contiene «{{value}}»",
+      "artistContains": "l'artista contiene «{{value}}»",
+      "albumContains": "l'album contiene «{{value}}»",
+      "pathContains": "il percorso contiene «{{value}}»",
+      "genreIs": "genere {{value}}",
+      "yearMin": "anno ≥ {{value}}",
+      "yearMax": "anno ≤ {{value}}",
+      "discNumberIs": "disco {{value}}",
+      "liked": "preferito",
+      "ratingMin": "voto ≥ {{value}}",
+      "format": "formato {{value}}",
+      "hiRes": "alta risoluzione",
+      "sampleRateMin": "≥ {{value}} kHz",
+      "bitDepthMin": "≥ {{value}} bit",
+      "bpmMin": "BPM ≥ {{value}}",
+      "bpmMax": "BPM ≤ {{value}}",
+      "durationMinMs": "durata ≥ {{value}}",
+      "durationMaxMs": "durata ≤ {{value}}",
+      "neverPlayed": "mai ascoltato",
+      "tagPresent": "ha il tag {{key}}",
+      "tagContains": "il tag {{key}} contiene «{{value}}»",
+      "playCountMin_one": "ascoltato almeno {{count}} volta",
+      "playCountMin_other": "ascoltato almeno {{count}} volte",
+      "playCountMax_one": "ascoltato al massimo {{count}} volta",
+      "playCountMax_other": "ascoltato al massimo {{count}} volte",
+      "playedInLastDays_one": "ascoltato nell'ultimo giorno",
+      "playedInLastDays_other": "ascoltato negli ultimi {{count}} giorni",
+      "addedInLastDays_one": "aggiunto nell'ultimo giorno",
+      "addedInLastDays_other": "aggiunto negli ultimi {{count}} giorni",
+      "playCountMin_many": "ascoltato almeno {{count}} volte",
+      "playCountMax_many": "ascoltato al massimo {{count}} volte",
+      "playedInLastDays_many": "ascoltato negli ultimi {{count}} giorni",
+      "addedInLastDays_many": "aggiunto negli ultimi {{count}} giorni"
     }
   }
 }

@@ -1364,8 +1364,6 @@
     "createTitle": "新建智能播放列表",
     "editTitle": "编辑智能播放列表",
     "create": "新建",
-    "preview": "预览",
-    "previewCount": "{{count}} 首匹配",
     "nameRequired": "名称为必填项",
     "fields": {
       "name": "名称",
@@ -1423,7 +1421,12 @@
       "addGroupOr": "或 分组",
       "addNot": "非",
       "contains": "包含…",
-      "pickGenre": "选择流派…"
+      "pickGenre": "选择流派…",
+      "pathPlaceholder": "文件夹或路径…",
+      "bits": "{{value}} 位",
+      "pickTag": "选择标签…",
+      "days_one": "天",
+      "days_other": "天"
     },
     "predicates": {
       "titleContains": "标题包含",
@@ -1439,8 +1442,39 @@
       "format": "格式 =",
       "hiRes": "Hi-Res",
       "liked": "已喜欢",
-      "ratingMin": "评分 ≥"
-    }
+      "ratingMin": "评分 ≥",
+      "pathContains": "路径包含",
+      "discNumberIs": "碟片 =",
+      "addedInLastDays": "添加于最近",
+      "sampleRateMin": "采样率 ≥",
+      "bitDepthMin": "位深 ≥",
+      "playCountMin": "播放次数 ≥",
+      "playCountMax": "播放次数 ≤",
+      "playedInLastDays": "播放于最近",
+      "tagPresent": "含有标签",
+      "tagContains": "标签包含"
+    },
+    "counting": "正在统计…",
+    "matchCountLimited": "{{total}} 首中的 {{kept}} 首",
+    "templates": {
+      "label": "模板",
+      "placeholder": "从模板开始…",
+      "recentlyAdded": "最近添加",
+      "neverPlayed": "从未播放",
+      "favourites": "收藏",
+      "forgotten": "久未收听",
+      "hiRes": "高解析度",
+      "upTempo": "快节奏"
+    },
+    "predicateGroups": {
+      "text": "文本",
+      "library": "音乐库",
+      "audio": "音频",
+      "history": "播放",
+      "tags": "标签"
+    },
+    "matchCount_one": "匹配 {{count}} 首",
+    "matchCount_other": "匹配 {{count}} 首"
   },
   "lyricsEditor": {
     "title": "歌词编辑器",
@@ -2614,6 +2648,54 @@
       "upload": "上传",
       "backup": "备份",
       "thumbnails": "缩略图"
+    }
+  },
+  "smartRuleSummary": {
+    "everything": "整个音乐库",
+    "nothing": "没有曲目",
+    "and": " 且 ",
+    "or": " 或 ",
+    "not": "{{inner}} 除外",
+    "limit": "最多 {{value}} 首",
+    "sort": {
+      "addedDesc": "最近添加优先",
+      "addedAsc": "最早添加优先",
+      "yearDesc": "最新发行优先",
+      "yearAsc": "最早发行优先",
+      "titleAsc": "按标题",
+      "artistAsc": "按艺人",
+      "random": "随机"
+    },
+    "predicates": {
+      "titleContains": "标题包含“{{value}}”",
+      "artistContains": "艺人包含“{{value}}”",
+      "albumContains": "专辑包含“{{value}}”",
+      "pathContains": "路径包含“{{value}}”",
+      "genreIs": "流派 {{value}}",
+      "yearMin": "年份 ≥ {{value}}",
+      "yearMax": "年份 ≤ {{value}}",
+      "discNumberIs": "碟片 {{value}}",
+      "liked": "已收藏",
+      "ratingMin": "评分 ≥ {{value}}",
+      "format": "格式 {{value}}",
+      "hiRes": "高解析度",
+      "sampleRateMin": "≥ {{value}} kHz",
+      "bitDepthMin": "≥ {{value}} 位",
+      "bpmMin": "BPM ≥ {{value}}",
+      "bpmMax": "BPM ≤ {{value}}",
+      "durationMinMs": "时长 ≥ {{value}}",
+      "durationMaxMs": "时长 ≤ {{value}}",
+      "neverPlayed": "从未播放",
+      "tagPresent": "含有 {{key}} 标签",
+      "tagContains": "{{key}} 标签包含“{{value}}”",
+      "playCountMin_one": "播放至少 {{count}} 次",
+      "playCountMin_other": "播放至少 {{count}} 次",
+      "playCountMax_one": "播放至多 {{count}} 次",
+      "playCountMax_other": "播放至多 {{count}} 次",
+      "playedInLastDays_one": "最近 {{count}} 天内播放",
+      "playedInLastDays_other": "最近 {{count}} 天内播放",
+      "addedInLastDays_one": "最近 {{count}} 天内添加",
+      "addedInLastDays_other": "最近 {{count}} 天内添加"
     }
   }
 }

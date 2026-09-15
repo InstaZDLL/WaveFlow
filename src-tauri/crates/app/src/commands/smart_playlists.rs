@@ -257,28 +257,21 @@ pub async fn get_custom_smart_playlist_rules(
     parse_custom_rules(Some(&raw))
 }
 
-/// Run the rule set against the current library without persisting
-/// anything. Powers the "Preview" button in the rule editor — returns
-/// the matched track count plus the first 200 ids so the UI can show
-/// a preview list.
-#[derive(Debug, serde::Serialize)]
-pub struct RulesPreview {
-    pub total: i64,
-    pub track_ids: Vec<i64>,
-}
-
+/// Count what the current rule set matches, without listing it.
+///
+/// The editor calls this on every edit, so it must stay cheap: no
+/// sort, no truncation, no ids crossing the IPC boundary. It also
+/// answers the question the preview list cannot — how many tracks the
+/// rules match *beyond* the limit, which is what tells the user their
+/// "50 most recent" rule is picking from three thousand and not from
+/// fifty-one.
 #[tauri::command]
-pub async fn preview_custom_smart_playlist(
+pub async fn count_custom_smart_playlist(
     state: tauri::State<'_, AppState>,
     rules: CustomRules,
-) -> AppResult<RulesPreview> {
+) -> AppResult<custom::RulesCount> {
     let pool = state.require_profile_pool().await?;
-    let ids = custom::run_query(&pool, &rules).await?;
-    let preview: Vec<i64> = ids.iter().take(200).copied().collect();
-    Ok(RulesPreview {
-        total: ids.len() as i64,
-        track_ids: preview,
-    })
+    Ok(custom::count_matches(&pool, &rules).await?)
 }
 
 fn is_custom_payload(raw: Option<&str>) -> bool {

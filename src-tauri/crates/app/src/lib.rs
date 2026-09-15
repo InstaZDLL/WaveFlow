@@ -736,7 +736,7 @@ pub fn run() {
             commands::smart_playlists::update_custom_smart_playlist,
             commands::smart_playlists::regenerate_custom_smart_playlist,
             commands::smart_playlists::get_custom_smart_playlist_rules,
-            commands::smart_playlists::preview_custom_smart_playlist,
+            commands::smart_playlists::count_custom_smart_playlist,
             commands::scan::scan_folder,
             commands::scan::rescan_local_artist_images,
             commands::deezer::search_artists_deezer,

@@ -1364,8 +1364,6 @@
     "createTitle": "Nieuwe slimme afspeellijst",
     "editTitle": "Slimme afspeellijst bewerken",
     "create": "Maken",
-    "preview": "Voorbeeld",
-    "previewCount": "{{count}} nummers komen overeen",
     "nameRequired": "Naam is verplicht",
     "fields": {
       "name": "Naam",
@@ -1423,7 +1421,12 @@
       "addGroupOr": "OF-groep",
       "addNot": "NIET",
       "contains": "Bevat…",
-      "pickGenre": "Kies een genre…"
+      "pickGenre": "Kies een genre…",
+      "pathPlaceholder": "Map of pad…",
+      "bits": "{{value}} bit",
+      "pickTag": "Kies een tag…",
+      "days_one": "dag",
+      "days_other": "dagen"
     },
     "predicates": {
       "titleContains": "Titel bevat",
@@ -1439,8 +1442,39 @@
       "format": "Formaat =",
       "hiRes": "Hi-Res",
       "liked": "Favoriet",
-      "ratingMin": "Beoordeling ≥"
-    }
+      "ratingMin": "Beoordeling ≥",
+      "pathContains": "Pad bevat",
+      "discNumberIs": "Schijf =",
+      "addedInLastDays": "Toegevoegd binnen",
+      "sampleRateMin": "Samplerate ≥",
+      "bitDepthMin": "Bitdiepte ≥",
+      "playCountMin": "Weergaven ≥",
+      "playCountMax": "Weergaven ≤",
+      "playedInLastDays": "Afgespeeld binnen",
+      "tagPresent": "Heeft tag",
+      "tagContains": "Tag bevat"
+    },
+    "counting": "Bezig met tellen…",
+    "matchCountLimited": "{{kept}} van {{total}} treffers",
+    "templates": {
+      "label": "Sjabloon",
+      "placeholder": "Begin met een sjabloon…",
+      "recentlyAdded": "Recent toegevoegd",
+      "neverPlayed": "Nooit afgespeeld",
+      "favourites": "Favorieten",
+      "forgotten": "Vergeten",
+      "hiRes": "Hi-Res",
+      "upTempo": "Hoog tempo"
+    },
+    "predicateGroups": {
+      "text": "Tekst",
+      "library": "Bibliotheek",
+      "audio": "Audio",
+      "history": "Weergaven",
+      "tags": "Tags"
+    },
+    "matchCount_one": "{{count}} nummer komt overeen",
+    "matchCount_other": "{{count}} nummers komen overeen"
   },
   "lyricsEditor": {
     "title": "Songtekstbewerker",
@@ -2635,6 +2669,54 @@
       "upload": "Uploaden",
       "backup": "Back-up",
       "thumbnails": "Miniaturen"
+    }
+  },
+  "smartRuleSummary": {
+    "everything": "de hele bibliotheek",
+    "nothing": "geen nummers",
+    "and": " en ",
+    "or": " of ",
+    "not": "behalve {{inner}}",
+    "limit": "maximaal {{value}}",
+    "sort": {
+      "addedDesc": "laatst toegevoegd eerst",
+      "addedAsc": "eerst toegevoegd eerst",
+      "yearDesc": "nieuwste eerst",
+      "yearAsc": "oudste eerst",
+      "titleAsc": "op titel",
+      "artistAsc": "op artiest",
+      "random": "willekeurig"
+    },
+    "predicates": {
+      "titleContains": "titel bevat “{{value}}”",
+      "artistContains": "artiest bevat “{{value}}”",
+      "albumContains": "album bevat “{{value}}”",
+      "pathContains": "pad bevat “{{value}}”",
+      "genreIs": "genre {{value}}",
+      "yearMin": "jaar ≥ {{value}}",
+      "yearMax": "jaar ≤ {{value}}",
+      "discNumberIs": "schijf {{value}}",
+      "liked": "favoriet",
+      "ratingMin": "waardering ≥ {{value}}",
+      "format": "formaat {{value}}",
+      "hiRes": "hi-res",
+      "sampleRateMin": "≥ {{value}} kHz",
+      "bitDepthMin": "≥ {{value}} bit",
+      "bpmMin": "BPM ≥ {{value}}",
+      "bpmMax": "BPM ≤ {{value}}",
+      "durationMinMs": "duur ≥ {{value}}",
+      "durationMaxMs": "duur ≤ {{value}}",
+      "neverPlayed": "nooit afgespeeld",
+      "tagPresent": "heeft de tag {{key}}",
+      "tagContains": "tag {{key}} bevat “{{value}}”",
+      "playCountMin_one": "minstens {{count}} keer afgespeeld",
+      "playCountMin_other": "minstens {{count}} keer afgespeeld",
+      "playCountMax_one": "hoogstens {{count}} keer afgespeeld",
+      "playCountMax_other": "hoogstens {{count}} keer afgespeeld",
+      "playedInLastDays_one": "afgespeeld in de afgelopen dag",
+      "playedInLastDays_other": "afgespeeld in de afgelopen {{count}} dagen",
+      "addedInLastDays_one": "toegevoegd in de afgelopen dag",
+      "addedInLastDays_other": "toegevoegd in de afgelopen {{count}} dagen"
     }
   }
 }

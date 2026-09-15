@@ -1364,8 +1364,6 @@
     "createTitle": "Nueva lista inteligente",
     "editTitle": "Editar lista inteligente",
     "create": "Crear",
-    "preview": "Vista previa",
-    "previewCount": "{{count}} pistas coinciden",
     "nameRequired": "El nombre es obligatorio",
     "fields": {
       "name": "Nombre",
@@ -1423,7 +1421,13 @@
       "addGroupOr": "Grupo O",
       "addNot": "NO",
       "contains": "Contiene…",
-      "pickGenre": "Elige un género…"
+      "pickGenre": "Elige un género…",
+      "pathPlaceholder": "Carpeta o ruta…",
+      "bits": "{{value}} bits",
+      "pickTag": "Elegir una etiqueta…",
+      "days_one": "día",
+      "days_other": "días",
+      "days_many": "días"
     },
     "predicates": {
       "titleContains": "El título contiene",
@@ -1439,8 +1443,40 @@
       "format": "Formato =",
       "hiRes": "Alta resolución",
       "liked": "Con Me gusta",
-      "ratingMin": "Valoración ≥"
-    }
+      "ratingMin": "Valoración ≥",
+      "pathContains": "La ruta contiene",
+      "discNumberIs": "Disco =",
+      "addedInLastDays": "Añadido en los últimos",
+      "sampleRateMin": "Frecuencia ≥",
+      "bitDepthMin": "Profundidad ≥",
+      "playCountMin": "Reproducciones ≥",
+      "playCountMax": "Reproducciones ≤",
+      "playedInLastDays": "Reproducido en los últimos",
+      "tagPresent": "Tiene la etiqueta",
+      "tagContains": "La etiqueta contiene"
+    },
+    "counting": "Calculando…",
+    "matchCountLimited": "{{kept}} de {{total}} coincidencias",
+    "templates": {
+      "label": "Plantilla",
+      "placeholder": "Partir de una plantilla…",
+      "recentlyAdded": "Añadidos recientes",
+      "neverPlayed": "Nunca reproducidos",
+      "favourites": "Favoritos",
+      "forgotten": "Olvidados",
+      "hiRes": "Alta resolución",
+      "upTempo": "Tempo alto"
+    },
+    "predicateGroups": {
+      "text": "Texto",
+      "library": "Biblioteca",
+      "audio": "Audio",
+      "history": "Reproducciones",
+      "tags": "Etiquetas"
+    },
+    "matchCount_one": "{{count}} pista coincide",
+    "matchCount_other": "{{count}} pistas coinciden",
+    "matchCount_many": "{{count}} pistas coinciden"
   },
   "lyricsEditor": {
     "title": "Editor de letras",
@@ -2635,6 +2671,58 @@
       "upload": "Subida",
       "backup": "Copia de seguridad",
       "thumbnails": "Miniaturas"
+    }
+  },
+  "smartRuleSummary": {
+    "everything": "toda la biblioteca",
+    "nothing": "ninguna pista",
+    "and": " y ",
+    "or": " o ",
+    "not": "excepto {{inner}}",
+    "limit": "{{value}} como máximo",
+    "sort": {
+      "addedDesc": "los últimos añadidos",
+      "addedAsc": "los primeros añadidos",
+      "yearDesc": "los más recientes",
+      "yearAsc": "los más antiguos",
+      "titleAsc": "por título",
+      "artistAsc": "por artista",
+      "random": "al azar"
+    },
+    "predicates": {
+      "titleContains": "el título contiene «{{value}}»",
+      "artistContains": "el artista contiene «{{value}}»",
+      "albumContains": "el álbum contiene «{{value}}»",
+      "pathContains": "la ruta contiene «{{value}}»",
+      "genreIs": "género {{value}}",
+      "yearMin": "año ≥ {{value}}",
+      "yearMax": "año ≤ {{value}}",
+      "discNumberIs": "disco {{value}}",
+      "liked": "favorito",
+      "ratingMin": "valoración ≥ {{value}}",
+      "format": "formato {{value}}",
+      "hiRes": "alta resolución",
+      "sampleRateMin": "≥ {{value}} kHz",
+      "bitDepthMin": "≥ {{value}} bits",
+      "bpmMin": "BPM ≥ {{value}}",
+      "bpmMax": "BPM ≤ {{value}}",
+      "durationMinMs": "duración ≥ {{value}}",
+      "durationMaxMs": "duración ≤ {{value}}",
+      "neverPlayed": "nunca reproducido",
+      "tagPresent": "tiene la etiqueta {{key}}",
+      "tagContains": "la etiqueta {{key}} contiene «{{value}}»",
+      "playCountMin_one": "reproducido al menos {{count}} vez",
+      "playCountMin_other": "reproducido al menos {{count}} veces",
+      "playCountMax_one": "reproducido como máximo {{count}} vez",
+      "playCountMax_other": "reproducido como máximo {{count}} veces",
+      "playedInLastDays_one": "reproducido en el último día",
+      "playedInLastDays_other": "reproducido en los últimos {{count}} días",
+      "addedInLastDays_one": "añadido en el último día",
+      "addedInLastDays_other": "añadido en los últimos {{count}} días",
+      "playCountMin_many": "reproducido al menos {{count}} veces",
+      "playCountMax_many": "reproducido como máximo {{count}} veces",
+      "playedInLastDays_many": "reproducido en los últimos {{count}} días",
+      "addedInLastDays_many": "añadido en los últimos {{count}} días"
     }
   }
 }

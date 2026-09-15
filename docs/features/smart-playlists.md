@@ -182,10 +182,20 @@ JSON shape uses an internal `type` tag (`{"type":"all","children":[…]}`). The 
 | `hi_res` (unit)                                         | `sample_rate >= 88200 OR bit_depth >= 24`.                                       |
 | `liked` (unit)                                          | `EXISTS (SELECT 1 FROM liked_track …)`.                                          |
 | `rating_min`                                            | POPM 0-255 threshold. Editor's star picker writes `Math.round(stars / 5 * 255)`. |
+| `play_count_min` / `play_count_max`                     | `COUNT(*)` over `play_event` — one row is one play, the same number Statistics shows. `play_count_max: 0` is how a rule says *never played*. |
+| `played_in_last_days` / `added_in_last_days`            | Relative windows, resolved to an absolute epoch-ms cut-off at build time. Not dates: a stored rule is re-evaluated for years, and a pinned date drifts into meaning something its author never wrote. "Not played since" is the first one under a `Not`, which also takes in what was never played. |
+| `sample_rate_min` / `bit_depth_min`                     | The two halves of `hi_res` said separately — it is the OR of two fixed thresholds and cannot express "88.2 kHz but 16-bit". |
+| `disc_number_is`                                        | One disc of a multi-disc set.                                                    |
+| `path_contains`                                         | Both sides folded to `/`, so one rule reads the same whichever separator the scanning OS wrote. The "everything under this folder" rule. |
+| `tag_present` / `tag_contains`                          | A custom tag out of `track_tag` (#588) — a rip source, a catalogue number, a mood. The **key is a bind**, not interpolated; `track_tag.key` is `COLLATE NOCASE`, so the comparison stays case-insensitive *and* index-backed. |
 
 ### SQL builder
 
 `build_node_sql` walks the tree recursively, emitting a single `WHERE` clause. Every join-needing predicate (`artist_contains`, `album_contains`, `genre_is`, `bpm_*`, `liked`) goes through an **`EXISTS` subquery** instead of a top-level JOIN — that way the tree can nest arbitrarily without DISTINCT, no Cartesian explosion regardless of how many leaves touch `track_artist` or `track_genre`. Empty `All` → `"1=1"`, empty `Any` → `"0=1"`; the editor relies on these for the "blank slate" + degenerate edge cases.
+
+Bounds on a nullable column (`sample_rate`, `bit_depth`, `disc_number`, `year`, `rating`) carry an explicit `IS NOT NULL` guard rather than being left to SQLite's three-valued logic: without it the fragment is NULL for a track missing the value, and `NOT (NULL)` is NULL too — the track would fall out of the rule **and** out of its negation, which reads as the library losing tracks.
+
+The clock is a parameter, not a call inside the builder: `run_query_at` / `count_matches_at` take `now_ms`, so the relative windows are testable against a pinned instant instead of racing midnight. `run_query` / `count_matches` read the clock and delegate.
 
 `custom::materialize` rewrites `playlist_track` in a transaction so a partial failure can't leave the playlist half-empty. `playlist.smart_rules` stores the full `Custom { rules }` JSON so a future regen pass can re-evaluate the same rule set without the editor reopening.
 
@@ -201,8 +211,18 @@ Pre-tree user data lives in flat predicates (`title_contains: "foo", year_min: 2
 - `update_custom_smart_playlist(playlist_id, input)` — update + re-materialise. Errors out when the target isn't a custom smart playlist (e.g. a Daily Mix slot or a manual playlist) so the editor never overwrites a wrong row.
 - `regenerate_custom_smart_playlist(playlist_id)` — re-runs the stored rules without changing the definition. Useful after a library import so newly added tracks get picked up.
 - `get_custom_smart_playlist_rules(playlist_id)` — rehydrates the editor.
-- `preview_custom_smart_playlist(rules)` — dry-run for the editor's count badge; returns the matched track count + the first 200 ids.
+- `count_custom_smart_playlist(rules)` — what the rules match right now, as `{ total, kept }`: every available track the tree matches, and what survives the limit. `COUNT(*)` only — no sort, no truncation, no ids crossing the IPC boundary, because the editor calls it after every edit. It replaces the old `preview_custom_smart_playlist`, whose first-200-ids half no caller ever used and whose count the live counter now serves.
 
 ### UI
 
-[`RuleTreeEditor`](../../src/components/common/RuleTreeEditor.tsx) is a recursive React component that mirrors the data shape: each level renders the right widget for `node.type` and threads an `onChange(next)` callback up to the parent. No path arithmetic — every level only knows about its direct children. Group cards (AND = emerald, OR = violet, NOT = red) tint-code their operator; clicking the operator badge toggles AND ↔ OR in place. The "+ Condition / + Group / + NOT" footer adds children below the current group. Wired into [`SmartPlaylistEditorModal`](../../src/components/common/SmartPlaylistEditorModal.tsx) with sort + limit kept at the bottom and a live preview button at the footer.
+[`RuleTreeEditor`](../../src/components/common/RuleTreeEditor.tsx) is a recursive React component that mirrors the data shape: each level renders the right widget for `node.type` and threads an `onChange(next)` callback up to the parent. No path arithmetic — every level only knows about its direct children. Group cards (AND = emerald, OR = violet, NOT = red) tint-code their operator; clicking the operator badge toggles AND ↔ OR in place. The "+ Condition / + Group / + NOT" footer adds children below the current group. Predicates are grouped into `<optgroup>` sections (text / library / audio / plays / tags) — two dozen entries in one flat list is a list nobody reads to the end. The two tag predicates offer the keys the library actually holds, each with the number of tracks carrying it (`list_track_tag_keys`): the count separates the tag on every track from the one on three, and a picker proves the key exists, where a typed one that matches nothing is a rule returning no tracks with nothing on screen to say why.
+
+Wired into [`SmartPlaylistEditorModal`](../../src/components/common/SmartPlaylistEditorModal.tsx) with sort + limit at the bottom and, at the footer, a **live match count**: debounced 350 ms, re-run on every rule edit, showing `kept / total` whenever a limit is cutting the result. The count claims a token when it starts and checks it when it lands, so a slow answer to a rule the user has already changed is dropped rather than overwriting the answer to the rule on screen. A failed count leaves the last number and says nothing — it is an aid, not a gate.
+
+[`RULE_TEMPLATES`](../../src/lib/smartPlaylistTemplates.ts) fills the "start from a template" picker on the rules section. Applying one to a playlist that already has rules **replaces** them, which is the more useful half: starting again from something known to work is what repairs a tangled rule set. Nothing is written until Save, so closing the modal undoes it — no confirmation step needed.
+
+### Rules in plain language
+
+[`describeRules`](../../src/lib/smartRuleSummary.ts) renders a rule tree as a sentence, shown by [`SmartRuleSummary`](../../src/components/common/SmartRuleSummary.tsx) under a custom smart playlist's title. Built from translated fragments — one key per predicate with its value interpolated, groups joined by a separator, nested groups parenthesised — so a translator only ever sees short phrases and the recursion stays out of the locale files.
+
+It reads the rules through `get_custom_smart_playlist_rules` rather than parsing `playlist.smart_rules`, which is already in the row: playlists created before the tree carry the v1 flat shape and **only the backend deserializer migrates it**, so reading the column here would render an empty sentence for exactly the oldest playlists.
