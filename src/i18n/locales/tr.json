@@ -276,7 +276,7 @@
     },
     "moodRadio": {
       "title": "Mod Radyosu",
-      "subtitle": "Tempo ve enerjiye göre filtrelenmiş",
+      "subtitle": "Tempo, ses düzeyi ve türe göre sıralanır",
       "trackCount_one": "{{count}} parça",
       "trackCount_other": "{{count}} parça",
       "empty": "Yeterli analiz edilmiş parça yok",
@@ -300,7 +300,8 @@
       "sleep": {
         "title": "Uyku",
         "subtitle": "Uyumak için çok yavaş ve sessiz"
-      }
+      },
+      "coverage": "{{total}} parçadan {{analysed}} tanesi analiz edildi"
     },
     "recentlyPlayed": {
       "title": "Son çalınanlar",
@@ -1133,7 +1134,8 @@
     "emptyDescription": "Bu albüm etkin profilde artık yok.",
     "emptyTracksTitle": "Parça yok",
     "emptyTracksDescription": "Bu albümde kullanılabilir parça yok.",
-    "setMotionCover": "Hareketli kapak"
+    "setMotionCover": "Hareketli kapak",
+    "fetchTags": "Etiketleri getir"
   },
   "artistDetail": {
     "badge": "Sanatçı",
@@ -2718,5 +2720,41 @@
       "addedInLastDays_one": "son {{count}} günde eklendi",
       "addedInLastDays_other": "son {{count}} günde eklendi"
     }
+  },
+  "tagFetch": {
+    "title": "Etiketleri getir",
+    "searching": "Sürümler aranıyor…",
+    "matching": "Parçalar eşleştiriliyor…",
+    "noSources": "Bu albüm için sürüm bulunamadı.",
+    "sourcesHint": "Aynı albüm çoğu zaman farklı parça listeleriyle birden çok sürümde bulunur. Kendinizinkini seçin.",
+    "back": "Başka sürüm seç",
+    "hint": "Siz uygulayana kadar hiçbir şey yazılmaz.",
+    "acceptColumn": "Tüm alan:",
+    "acceptTrack": "Tüm parça",
+    "nothingToChange": "Bu sürüm dosyalarınızın zaten söylediğini söylüyor.",
+    "trackUnchanged": "Bu parçada değiştirilecek bir şey yok.",
+    "noMatch": "{{file}} için eşleşme yok.",
+    "emptyValue": "(boş)",
+    "unmatchedRemote": "Bu sürümde var, kitaplığınızda yok: {{titles}}",
+    "apply": "Uygula",
+    "confidence": {
+      "confident": "Kesin",
+      "doubtful": "Kontrol edin"
+    },
+    "fields": {
+      "title": "Başlık",
+      "artist": "Sanatçı",
+      "album": "Albüm",
+      "year": "Yıl",
+      "track_number": "Parça no."
+    },
+    "trackCount_one": "{{count}} parça",
+    "trackCount_other": "{{count}} parça",
+    "applyCount_one": "{{count}} değişikliği uygula",
+    "applyCount_other": "{{count}} değişikliği uygula",
+    "appliedCount_one": "{{count}} parça güncellendi.",
+    "appliedCount_other": "{{count}} parça güncellendi.",
+    "failedCount_one": "{{count}} parça yazılamadı.",
+    "failedCount_other": "{{count}} parça yazılamadı."
   }
 }

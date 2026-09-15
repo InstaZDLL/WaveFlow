@@ -53,6 +53,7 @@ pub mod smart_playlists;
 pub mod spotify;
 pub mod stats;
 pub mod storage;
+pub mod tag_fetch;
 pub mod tasks;
 pub mod track;
 pub mod track_tags;

@@ -186,7 +186,7 @@ pub struct DeezerAlbumHit {
     pub artist: Option<DeezerAlbumArtist>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct DeezerAlbumArtist {
     pub name: String,
 }
@@ -213,6 +213,32 @@ pub struct DeezerTrackAlbum {
     pub cover_medium: Option<String>,
     pub cover_big: Option<String>,
     pub cover_xl: Option<String>,
+}
+
+/// One track of an album listing.
+///
+/// `duration` is in **seconds** — the only place in this file where a
+/// duration is not milliseconds, and the matcher compares against
+/// `track.duration_ms`, so the conversion has to happen at the border
+/// rather than being noticed later as "every duration disagrees".
+#[derive(Debug, Clone, Deserialize)]
+pub struct DeezerAlbumTrack {
+    pub id: i64,
+    pub title: String,
+    pub duration: Option<i64>,
+    /// Position on its disc, which is what a track number means on a
+    /// multi-disc release.
+    pub track_position: Option<i64>,
+    pub disk_number: Option<i64>,
+    pub artist: Option<DeezerAlbumArtist>,
+}
+
+impl DeezerAlbumTrack {
+    /// The track's length in milliseconds, or `None` when the
+    /// catalogue did not give one.
+    pub fn duration_ms(&self) -> Option<i64> {
+        self.duration.map(|s| s * 1000)
+    }
 }
 
 // ── Client implementation ───────────────────────────────────────────
@@ -297,6 +323,20 @@ impl DeezerClient {
     /// Fetch a single album by Deezer ID.
     pub async fn get_album(&self, deezer_id: i64) -> DeezerResult<DeezerAlbumHit> {
         Self::fetch(self.http.get(format!("{BASE_URL}/album/{deezer_id}"))).await
+    }
+
+    /// The tracks of an album, in the catalogue's own order.
+    ///
+    /// `/album/{id}/tracks` rather than the `tracks` field of
+    /// `/album/{id}`: the embedded list is capped, and a box set read
+    /// through it comes back short with nothing to say it was cut.
+    pub async fn get_album_tracks(&self, deezer_id: i64) -> DeezerResult<Vec<DeezerAlbumTrack>> {
+        let resp: DeezerSearchResponse<DeezerAlbumTrack> = Self::fetch(
+            self.http
+                .get(format!("{BASE_URL}/album/{deezer_id}/tracks")),
+        )
+        .await?;
+        Ok(resp.data)
     }
 
     /// Fetch artists Deezer reports as related to the given artist.

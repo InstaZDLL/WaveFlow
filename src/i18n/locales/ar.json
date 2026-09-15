@@ -297,7 +297,7 @@
     },
     "moodRadio": {
       "title": "راديو المزاج",
-      "subtitle": "مصفّاة حسب الإيقاع والطاقة",
+      "subtitle": "مرتّبة حسب الإيقاع ومستوى الصوت والنوع",
       "trackCount_one": "مقطع واحد",
       "trackCount_other": "{{count}} مقطع",
       "empty": "لا توجد مقاطع محللة كافية",
@@ -325,7 +325,8 @@
       "trackCount_zero": "0 مقطع",
       "trackCount_two": "مقطعان",
       "trackCount_few": "{{count}} مقاطع",
-      "trackCount_many": "{{count}} مقطعًا"
+      "trackCount_many": "{{count}} مقطعًا",
+      "coverage": "جرى تحليل {{analysed}} من أصل {{total}} مقطعًا"
     },
     "recentlyPlayed": {
       "title": "شُغّلت مؤخرًا",
@@ -1256,7 +1257,8 @@
     "setMotionCover": "غلاف متحرك",
     "trackCount_two": "مقطعان",
     "trackCount_few": "{{count}} مقاطع",
-    "trackCount_many": "{{count}} مقطعًا"
+    "trackCount_many": "{{count}} مقطعًا",
+    "fetchTags": "جلب الوسوم"
   },
   "artistDetail": {
     "badge": "الفنان",
@@ -3015,5 +3017,57 @@
       "addedInLastDays_many": "أُضيف خلال آخر {{count}} يومًا",
       "addedInLastDays_other": "أُضيف خلال آخر {{count}} يوم"
     }
+  },
+  "tagFetch": {
+    "title": "جلب الوسوم",
+    "searching": "جارٍ البحث عن الإصدارات…",
+    "matching": "جارٍ مطابقة المقاطع…",
+    "noSources": "لم يُعثر على أي إصدار لهذا الألبوم.",
+    "sourcesHint": "غالبًا ما يوجد الألبوم نفسه في إصدارات عدة بقوائم مقاطع مختلفة. اختر إصدارك.",
+    "back": "اختيار إصدار آخر",
+    "hint": "لا يُكتب أي شيء قبل التطبيق.",
+    "acceptColumn": "الحقل كاملًا:",
+    "acceptTrack": "المقطع كاملًا",
+    "nothingToChange": "هذا الإصدار يقول تمامًا ما تقوله ملفاتك.",
+    "trackUnchanged": "لا شيء لتغييره في هذا المقطع.",
+    "noMatch": "لا مطابقة للملف {{file}}.",
+    "emptyValue": "(فارغ)",
+    "unmatchedRemote": "موجود في هذا الإصدار وغير موجود في مكتبتك: {{titles}}",
+    "apply": "تطبيق",
+    "confidence": {
+      "confident": "مؤكّد",
+      "doubtful": "تحقّق"
+    },
+    "fields": {
+      "title": "العنوان",
+      "artist": "الفنان",
+      "album": "الألبوم",
+      "year": "السنة",
+      "track_number": "رقم المقطع"
+    },
+    "trackCount_zero": "{{count}} مقطع",
+    "trackCount_one": "مقطع واحد",
+    "trackCount_two": "مقطعان",
+    "trackCount_few": "{{count}} مقاطع",
+    "trackCount_many": "{{count}} مقطعًا",
+    "trackCount_other": "{{count}} مقطع",
+    "applyCount_zero": "تطبيق {{count}} تغيير",
+    "applyCount_one": "تطبيق تغيير واحد",
+    "applyCount_two": "تطبيق تغييرين",
+    "applyCount_few": "تطبيق {{count}} تغييرات",
+    "applyCount_many": "تطبيق {{count}} تغييرًا",
+    "applyCount_other": "تطبيق {{count}} تغيير",
+    "appliedCount_zero": "جرى تحديث {{count}} مقطع.",
+    "appliedCount_one": "جرى تحديث مقطع واحد.",
+    "appliedCount_two": "جرى تحديث مقطعين.",
+    "appliedCount_few": "جرى تحديث {{count}} مقاطع.",
+    "appliedCount_many": "جرى تحديث {{count}} مقطعًا.",
+    "appliedCount_other": "جرى تحديث {{count}} مقطع.",
+    "failedCount_zero": "تعذّرت كتابة {{count}} مقطع.",
+    "failedCount_one": "تعذّرت كتابة مقطع واحد.",
+    "failedCount_two": "تعذّرت كتابة مقطعين.",
+    "failedCount_few": "تعذّرت كتابة {{count}} مقاطع.",
+    "failedCount_many": "تعذّرت كتابة {{count}} مقطعًا.",
+    "failedCount_other": "تعذّرت كتابة {{count}} مقطع."
   }
 }

@@ -276,7 +276,7 @@
     },
     "moodRadio": {
       "title": "Mood-Radio",
-      "subtitle": "Gefiltert nach Tempo und Energie",
+      "subtitle": "Nach Tempo, Lautheit und Genre sortiert",
       "trackCount_one": "{{count}} Titel",
       "trackCount_other": "{{count}} Titel",
       "empty": "Nicht genug analysierte Titel",
@@ -300,7 +300,8 @@
       "sleep": {
         "title": "Schlaf",
         "subtitle": "Sehr langsam und leise zum Einschlafen"
-      }
+      },
+      "coverage": "{{analysed}} von {{total}} Titeln analysiert"
     },
     "recentlyPlayed": {
       "title": "Kürzlich gespielt",
@@ -1133,7 +1134,8 @@
     "emptyDescription": "Dieses Album ist im aktiven Profil nicht mehr verfügbar.",
     "emptyTracksTitle": "Keine Titel",
     "emptyTracksDescription": "Dieses Album enthält keine verfügbaren Titel.",
-    "setMotionCover": "Animiertes Cover"
+    "setMotionCover": "Animiertes Cover",
+    "fetchTags": "Tags abrufen"
   },
   "artistDetail": {
     "badge": "Künstler",
@@ -2718,5 +2720,41 @@
       "addedInLastDays_one": "am letzten Tag hinzugefügt",
       "addedInLastDays_other": "in den letzten {{count}} Tagen hinzugefügt"
     }
+  },
+  "tagFetch": {
+    "title": "Tags abrufen",
+    "searching": "Suche nach Veröffentlichungen…",
+    "matching": "Titel werden zugeordnet…",
+    "noSources": "Keine Veröffentlichung zu diesem Album gefunden.",
+    "sourcesHint": "Dasselbe Album gibt es oft in mehreren Veröffentlichungen mit unterschiedlichen Titellisten. Wählen Sie Ihre.",
+    "back": "Andere Veröffentlichung wählen",
+    "hint": "Es wird nichts geschrieben, bevor Sie übernehmen.",
+    "acceptColumn": "Ganzes Feld:",
+    "acceptTrack": "Ganzer Titel",
+    "nothingToChange": "Diese Veröffentlichung sagt genau das, was Ihre Dateien schon sagen.",
+    "trackUnchanged": "An diesem Titel ist nichts zu ändern.",
+    "noMatch": "Keine Entsprechung für {{file}}.",
+    "emptyValue": "(leer)",
+    "unmatchedRemote": "Auf dieser Veröffentlichung, aber nicht in Ihrer Mediathek: {{titles}}",
+    "apply": "Übernehmen",
+    "confidence": {
+      "confident": "Sicher",
+      "doubtful": "Prüfen"
+    },
+    "fields": {
+      "title": "Titel",
+      "artist": "Interpret",
+      "album": "Album",
+      "year": "Jahr",
+      "track_number": "Titelnr."
+    },
+    "trackCount_one": "{{count}} Titel",
+    "trackCount_other": "{{count}} Titel",
+    "applyCount_one": "{{count}} Änderung übernehmen",
+    "applyCount_other": "{{count}} Änderungen übernehmen",
+    "appliedCount_one": "{{count}} Titel aktualisiert.",
+    "appliedCount_other": "{{count}} Titel aktualisiert.",
+    "failedCount_one": "{{count}} Titel konnte nicht geschrieben werden.",
+    "failedCount_other": "{{count}} Titel konnten nicht geschrieben werden."
   }
 }

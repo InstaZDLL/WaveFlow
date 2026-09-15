@@ -276,7 +276,7 @@
     },
     "moodRadio": {
       "title": "心情電台",
-      "subtitle": "依節奏與能量篩選",
+      "subtitle": "依速度、響度與曲風排序",
       "trackCount_one": "{{count}} 首",
       "trackCount_other": "{{count}} 首",
       "empty": "已分析曲目不足",
@@ -300,7 +300,8 @@
       "sleep": {
         "title": "睡眠",
         "subtitle": "極慢極輕便於入睡"
-      }
+      },
+      "coverage": "已分析 {{total}} 首中的 {{analysed}} 首"
     },
     "recentlyPlayed": {
       "title": "最近播放的",
@@ -1133,7 +1134,8 @@
     "emptyDescription": "此專輯已不在目前的個人檔案中。",
     "emptyTracksTitle": "沒有任何曲目",
     "emptyTracksDescription": "這張專輯中沒有任何可供聆聽的曲目。",
-    "setMotionCover": "動態封面"
+    "setMotionCover": "動態封面",
+    "fetchTags": "取得標籤"
   },
   "artistDetail": {
     "badge": "藝人",
@@ -2697,5 +2699,41 @@
       "addedInLastDays_one": "最近 {{count}} 天內加入",
       "addedInLastDays_other": "最近 {{count}} 天內加入"
     }
+  },
+  "tagFetch": {
+    "title": "取得標籤",
+    "searching": "正在尋找版本…",
+    "matching": "正在比對曲目…",
+    "noSources": "找不到這張專輯的任何版本。",
+    "sourcesHint": "同一張專輯常有多個版本，曲目清單各不相同。請選擇你手上的那個。",
+    "back": "換一個版本",
+    "hint": "在你套用之前不會寫入任何內容。",
+    "acceptColumn": "整個欄位：",
+    "acceptTrack": "整首曲目",
+    "nothingToChange": "這個版本和你的檔案說的完全一樣。",
+    "trackUnchanged": "這首曲目沒有要改的內容。",
+    "noMatch": "沒有與 {{file}} 相符的曲目。",
+    "emptyValue": "（空）",
+    "unmatchedRemote": "此版本中有、你的音樂庫中沒有：{{titles}}",
+    "apply": "套用",
+    "confidence": {
+      "confident": "可靠",
+      "doubtful": "需核對"
+    },
+    "fields": {
+      "title": "標題",
+      "artist": "演出者",
+      "album": "專輯",
+      "year": "年份",
+      "track_number": "音軌編號"
+    },
+    "trackCount_one": "{{count}} 首",
+    "trackCount_other": "{{count}} 首",
+    "applyCount_one": "套用 {{count}} 處變更",
+    "applyCount_other": "套用 {{count}} 處變更",
+    "appliedCount_one": "已更新 {{count}} 首。",
+    "appliedCount_other": "已更新 {{count}} 首。",
+    "failedCount_one": "有 {{count}} 首無法寫入。",
+    "failedCount_other": "有 {{count}} 首無法寫入。"
   }
 }

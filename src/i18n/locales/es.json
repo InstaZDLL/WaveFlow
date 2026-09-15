@@ -276,7 +276,7 @@
     },
     "moodRadio": {
       "title": "Radio por estado de ánimo",
-      "subtitle": "Filtrada por tempo y energía",
+      "subtitle": "Ordenada por tempo, volumen y género",
       "trackCount_one": "{{count}} pista",
       "trackCount_other": "{{count}} pistas",
       "empty": "No hay suficientes pistas analizadas",
@@ -300,7 +300,8 @@
       "sleep": {
         "title": "Dormir",
         "subtitle": "Muy lento y suave para conciliar el sueño"
-      }
+      },
+      "coverage": "{{analysed}} de {{total}} pistas analizadas"
     },
     "recentlyPlayed": {
       "title": "Reproducido recientemente",
@@ -1133,7 +1134,8 @@
     "emptyDescription": "Este álbum ya no está disponible en el perfil activo.",
     "emptyTracksTitle": "Sin pistas",
     "emptyTracksDescription": "Este álbum no contiene pistas disponibles.",
-    "setMotionCover": "Portada animada"
+    "setMotionCover": "Portada animada",
+    "fetchTags": "Obtener etiquetas"
   },
   "artistDetail": {
     "badge": "Artista",
@@ -2724,5 +2726,45 @@
       "playedInLastDays_many": "reproducido en los últimos {{count}} días",
       "addedInLastDays_many": "añadido en los últimos {{count}} días"
     }
+  },
+  "tagFetch": {
+    "title": "Obtener etiquetas",
+    "searching": "Buscando ediciones…",
+    "matching": "Emparejando pistas…",
+    "noSources": "No se encontró ninguna edición de este álbum.",
+    "sourcesHint": "Un mismo álbum suele existir en varias ediciones, con listas de pistas distintas. Elige la tuya.",
+    "back": "Elegir otra edición",
+    "hint": "No se escribe nada hasta que apliques.",
+    "acceptColumn": "Todo el campo:",
+    "acceptTrack": "Toda la pista",
+    "nothingToChange": "Esta edición dice exactamente lo mismo que tus archivos.",
+    "trackUnchanged": "Nada que cambiar en esta pista.",
+    "noMatch": "Sin coincidencia para {{file}}.",
+    "emptyValue": "(vacío)",
+    "unmatchedRemote": "En esta edición pero no en tu biblioteca: {{titles}}",
+    "apply": "Aplicar",
+    "confidence": {
+      "confident": "Seguro",
+      "doubtful": "Revisar"
+    },
+    "fields": {
+      "title": "Título",
+      "artist": "Artista",
+      "album": "Álbum",
+      "year": "Año",
+      "track_number": "N.º de pista"
+    },
+    "trackCount_one": "{{count}} pista",
+    "trackCount_many": "{{count}} pistas",
+    "trackCount_other": "{{count}} pistas",
+    "applyCount_one": "Aplicar {{count}} cambio",
+    "applyCount_many": "Aplicar {{count}} cambios",
+    "applyCount_other": "Aplicar {{count}} cambios",
+    "appliedCount_one": "{{count}} pista actualizada.",
+    "appliedCount_many": "{{count}} pistas actualizadas.",
+    "appliedCount_other": "{{count}} pistas actualizadas.",
+    "failedCount_one": "No se pudo escribir {{count}} pista.",
+    "failedCount_many": "No se pudieron escribir {{count}} pistas.",
+    "failedCount_other": "No se pudieron escribir {{count}} pistas."
   }
 }

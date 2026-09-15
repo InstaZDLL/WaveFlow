@@ -276,7 +276,7 @@
     },
     "moodRadio": {
       "title": "मूड रेडियो",
-      "subtitle": "टेम्पो और ऊर्जा के आधार पर फ़िल्टर किया गया",
+      "subtitle": "टेम्पो, लाउडनेस और शैली के अनुसार क्रमित",
       "trackCount_one": "{{count}} ट्रैक",
       "trackCount_other": "{{count}} ट्रैक",
       "empty": "पर्याप्त विश्लेषित ट्रैक नहीं हैं",
@@ -300,7 +300,8 @@
       "sleep": {
         "title": "नींद",
         "subtitle": "सोने में मदद के लिए बहुत धीमा और शांत"
-      }
+      },
+      "coverage": "{{total}} में से {{analysed}} ट्रैक विश्लेषित"
     },
     "recentlyPlayed": {
       "title": "हाल ही में चलाए गए",
@@ -1133,7 +1134,8 @@
     "emptyDescription": "यह एल्बम अब सक्रिय प्रोफ़ाइल में उपलब्ध नहीं है।",
     "emptyTracksTitle": "कोई ट्रैक नहीं",
     "emptyTracksDescription": "इस एल्बम में कोई ट्रैक नहीं हैं।",
-    "setMotionCover": "मोशन कवर"
+    "setMotionCover": "मोशन कवर",
+    "fetchTags": "टैग लाएँ"
   },
   "artistDetail": {
     "badge": "कलाकार",
@@ -2718,5 +2720,41 @@
       "addedInLastDays_one": "पिछले {{count}} दिन में जोड़ा",
       "addedInLastDays_other": "पिछले {{count}} दिनों में जोड़ा"
     }
+  },
+  "tagFetch": {
+    "title": "टैग लाएँ",
+    "searching": "रिलीज़ खोजी जा रही हैं…",
+    "matching": "ट्रैक मिलाए जा रहे हैं…",
+    "noSources": "इस एल्बम के लिए कोई रिलीज़ नहीं मिली।",
+    "sourcesHint": "एक ही एल्बम अक्सर अलग-अलग ट्रैक सूची वाली कई रिलीज़ में होता है। अपनी वाली चुनें।",
+    "back": "दूसरी रिलीज़ चुनें",
+    "hint": "जब तक आप लागू नहीं करते, कुछ भी नहीं लिखा जाता।",
+    "acceptColumn": "पूरा क्षेत्र:",
+    "acceptTrack": "पूरा ट्रैक",
+    "nothingToChange": "यह रिलीज़ वही कहती है जो आपकी फ़ाइलें पहले से कहती हैं।",
+    "trackUnchanged": "इस ट्रैक में बदलने को कुछ नहीं है।",
+    "noMatch": "{{file}} के लिए कोई मेल नहीं।",
+    "emptyValue": "(खाली)",
+    "unmatchedRemote": "इस रिलीज़ में है पर आपकी लाइब्रेरी में नहीं: {{titles}}",
+    "apply": "लागू करें",
+    "confidence": {
+      "confident": "निश्चित",
+      "doubtful": "जाँचें"
+    },
+    "fields": {
+      "title": "शीर्षक",
+      "artist": "कलाकार",
+      "album": "एल्बम",
+      "year": "वर्ष",
+      "track_number": "ट्रैक क्रमांक"
+    },
+    "trackCount_one": "{{count}} ट्रैक",
+    "trackCount_other": "{{count}} ट्रैक",
+    "applyCount_one": "{{count}} बदलाव लागू करें",
+    "applyCount_other": "{{count}} बदलाव लागू करें",
+    "appliedCount_one": "{{count}} ट्रैक अपडेट हुआ।",
+    "appliedCount_other": "{{count}} ट्रैक अपडेट हुए।",
+    "failedCount_one": "{{count}} ट्रैक नहीं लिखा जा सका।",
+    "failedCount_other": "{{count}} ट्रैक नहीं लिखे जा सके।"
   }
 }

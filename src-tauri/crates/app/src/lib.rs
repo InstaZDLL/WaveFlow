@@ -1088,6 +1088,8 @@ pub fn run() {
             commands::player::player_set_match_source_rate,
             commands::inventory::inventory_summary,
             commands::inventory::inventory_tracks,
+            commands::tag_fetch::search_album_tag_sources,
+            commands::tag_fetch::fetch_album_tag_proposals,
             commands::track_tags::list_track_tag_keys,
             commands::track_tags::list_track_tag_values,
             commands::tasks::list_tasks,

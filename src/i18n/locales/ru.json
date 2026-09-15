@@ -290,7 +290,7 @@
     },
     "moodRadio": {
       "title": "Радио по настроению",
-      "subtitle": "Фильтр по темпу и энергии",
+      "subtitle": "Сортировка по темпу, громкости и жанру",
       "trackCount_one": "{{count}} трек",
       "trackCount_few": "{{count}} трека",
       "trackCount_other": "{{count}} треков",
@@ -316,7 +316,8 @@
         "title": "Сон",
         "subtitle": "Очень медленные и тихие треки для сна"
       },
-      "trackCount_many": "{{count}} треков"
+      "trackCount_many": "{{count}} треков",
+      "coverage": "Проанализировано {{analysed}} из {{total}} треков"
     },
     "recentlyPlayed": {
       "title": "Недавно проигранные",
@@ -1211,7 +1212,8 @@
     "emptyTracksTitle": "Нет треков",
     "emptyTracksDescription": "В этом альбоме нет доступных треков.",
     "setMotionCover": "Анимированная обложка",
-    "trackCount_many": "{{count}} треков"
+    "trackCount_many": "{{count}} треков",
+    "fetchTags": "Загрузить теги"
   },
   "artistDetail": {
     "badge": "Исполнитель",
@@ -2888,5 +2890,49 @@
       "addedInLastDays_many": "добавлен за последние {{count}} дней",
       "addedInLastDays_other": "добавлен за последние {{count}} дней"
     }
+  },
+  "tagFetch": {
+    "title": "Загрузить теги",
+    "searching": "Поиск изданий…",
+    "matching": "Сопоставление треков…",
+    "noSources": "Для этого альбома не найдено ни одного издания.",
+    "sourcesHint": "Один и тот же альбом часто существует в нескольких изданиях с разными списками треков. Выберите своё.",
+    "back": "Выбрать другое издание",
+    "hint": "Ничего не записывается, пока вы не примените.",
+    "acceptColumn": "Всё поле:",
+    "acceptTrack": "Весь трек",
+    "nothingToChange": "Это издание говорит ровно то же, что и ваши файлы.",
+    "trackUnchanged": "В этом треке нечего менять.",
+    "noMatch": "Нет соответствия для {{file}}.",
+    "emptyValue": "(пусто)",
+    "unmatchedRemote": "Есть в этом издании, но нет в вашей библиотеке: {{titles}}",
+    "apply": "Применить",
+    "confidence": {
+      "confident": "Уверенно",
+      "doubtful": "Проверьте"
+    },
+    "fields": {
+      "title": "Название",
+      "artist": "Исполнитель",
+      "album": "Альбом",
+      "year": "Год",
+      "track_number": "№ трека"
+    },
+    "trackCount_one": "{{count}} трек",
+    "trackCount_few": "{{count}} трека",
+    "trackCount_many": "{{count}} треков",
+    "trackCount_other": "{{count}} треков",
+    "applyCount_one": "Применить {{count}} изменение",
+    "applyCount_few": "Применить {{count}} изменения",
+    "applyCount_many": "Применить {{count}} изменений",
+    "applyCount_other": "Применить {{count}} изменений",
+    "appliedCount_one": "Обновлён {{count}} трек.",
+    "appliedCount_few": "Обновлено {{count}} трека.",
+    "appliedCount_many": "Обновлено {{count}} треков.",
+    "appliedCount_other": "Обновлено {{count}} треков.",
+    "failedCount_one": "Не удалось записать {{count}} трек.",
+    "failedCount_few": "Не удалось записать {{count}} трека.",
+    "failedCount_many": "Не удалось записать {{count}} треков.",
+    "failedCount_other": "Не удалось записать {{count}} треков."
   }
 }

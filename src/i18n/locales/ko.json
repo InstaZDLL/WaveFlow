@@ -276,7 +276,7 @@
     },
     "moodRadio": {
       "title": "분위기 라디오",
-      "subtitle": "템포와 에너지로 필터링",
+      "subtitle": "템포·음량·장르 순",
       "trackCount_one": "{{count}}곡",
       "trackCount_other": "{{count}}곡",
       "empty": "분석된 트랙이 부족합니다",
@@ -300,7 +300,8 @@
       "sleep": {
         "title": "수면",
         "subtitle": "잠들기 위한 매우 느리고 조용한 곡"
-      }
+      },
+      "coverage": "{{total}}곡 중 {{analysed}}곡 분석됨"
     },
     "recentlyPlayed": {
       "title": "최근 재생한 곡",
@@ -1133,7 +1134,8 @@
     "emptyDescription": "이 앨범은 현재 프로필에서 더 이상 존재하지 않습니다.",
     "emptyTracksTitle": "곡 없음",
     "emptyTracksDescription": "이 앨범에는 수록된 곡이 없습니다.",
-    "setMotionCover": "모션 커버"
+    "setMotionCover": "모션 커버",
+    "fetchTags": "태그 가져오기"
   },
   "artistDetail": {
     "badge": "아티스트",
@@ -2697,5 +2699,41 @@
       "addedInLastDays_one": "최근 {{count}}일 이내 추가",
       "addedInLastDays_other": "최근 {{count}}일 이내 추가"
     }
+  },
+  "tagFetch": {
+    "title": "태그 가져오기",
+    "searching": "릴리스 검색 중…",
+    "matching": "트랙 매칭 중…",
+    "noSources": "이 앨범의 릴리스를 찾을 수 없습니다.",
+    "sourcesHint": "같은 앨범이라도 수록곡이 다른 여러 릴리스가 있습니다. 보유하신 것을 고르세요.",
+    "back": "다른 릴리스 선택",
+    "hint": "적용하기 전에는 아무것도 기록되지 않습니다.",
+    "acceptColumn": "이 항목 전체:",
+    "acceptTrack": "이 트랙 전체",
+    "nothingToChange": "이 릴리스는 파일에 이미 있는 내용과 같습니다.",
+    "trackUnchanged": "이 트랙에는 바꿀 것이 없습니다.",
+    "noMatch": "{{file}}에 맞는 항목이 없습니다.",
+    "emptyValue": "(비어 있음)",
+    "unmatchedRemote": "이 릴리스에는 있지만 라이브러리에는 없는 곡: {{titles}}",
+    "apply": "적용",
+    "confidence": {
+      "confident": "확실",
+      "doubtful": "확인 필요"
+    },
+    "fields": {
+      "title": "제목",
+      "artist": "아티스트",
+      "album": "앨범",
+      "year": "연도",
+      "track_number": "트랙 번호"
+    },
+    "trackCount_one": "{{count}}곡",
+    "trackCount_other": "{{count}}곡",
+    "applyCount_one": "{{count}}건 적용",
+    "applyCount_other": "{{count}}건 적용",
+    "appliedCount_one": "{{count}}곡을 업데이트했습니다.",
+    "appliedCount_other": "{{count}}곡을 업데이트했습니다.",
+    "failedCount_one": "{{count}}곡을 기록하지 못했습니다.",
+    "failedCount_other": "{{count}}곡을 기록하지 못했습니다."
   }
 }

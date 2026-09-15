@@ -7,6 +7,7 @@ import {
   Music2,
   Heart,
   ImageIcon,
+  DownloadCloud,
   Film,
 } from "lucide-react";
 import {
@@ -20,6 +21,7 @@ import { ArtistLink } from "../common/ArtistLink";
 import { EmptyState } from "../common/EmptyState";
 import { DetailViewSkeleton } from "../common/DetailViewSkeleton";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
+import { TagFetchModal } from "../common/TagFetchModal";
 import { CoverPickerModal } from "../common/CoverPickerModal";
 import { MotionCoverPickerModal } from "../common/MotionCoverPickerModal";
 import { HiResBadge } from "../common/HiResBadge";
@@ -167,6 +169,7 @@ export function AlbumDetailView({
   // one-frame "album not found" flash before the fetch schedules.
   const [isLoading, setIsLoading] = useState(true);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+  const [isTagFetchOpen, setIsTagFetchOpen] = useState(false);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
   const [isCoverPickerOpen, setIsCoverPickerOpen] = useState(false);
@@ -535,6 +538,15 @@ export function AlbumDetailView({
                   <Film size={16} />
                   <span>{t("albumDetail.setMotionCover")}</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setIsTagFetchOpen(true)}
+                  disabled={album.tracks.length === 0}
+                  className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50"
+                >
+                  <DownloadCloud size={16} />
+                  <span>{t("albumDetail.fetchTags")}</span>
+                </button>
               </>
             )}
           </div>
@@ -578,6 +590,16 @@ export function AlbumDetailView({
         />
       )}
 
+      {!remote && albumId != null && (
+        <TagFetchModal
+          isOpen={isTagFetchOpen}
+          onClose={() => setIsTagFetchOpen(false)}
+          albumId={albumId}
+          // The rows on screen carry the old tags; a write makes them
+          // stale, and this is the same stamp a tag edit already bumps.
+          onApplied={() => setEditRefetch((n) => n + 1)}
+        />
+      )}
       <CreatePlaylistModal
         isOpen={isCreatePlaylistModalOpen}
         onClose={() => setIsCreatePlaylistModalOpen(false)}
