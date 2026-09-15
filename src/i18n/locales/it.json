@@ -1426,7 +1426,8 @@
       "bits": "{{value}} bit",
       "pickTag": "Scegli un tag…",
       "days_one": "giorno",
-      "days_other": "giorni"
+      "days_other": "giorni",
+      "days_many": "giorni"
     },
     "predicates": {
       "titleContains": "Il titolo contiene",
@@ -1474,7 +1475,8 @@
       "tags": "Tag"
     },
     "matchCount_one": "{{count}} brano corrisponde",
-    "matchCount_other": "{{count}} brani corrispondono"
+    "matchCount_other": "{{count}} brani corrispondono",
+    "matchCount_many": "{{count}} brani corrispondono"
   },
   "lyricsEditor": {
     "title": "Editor dei testi",
@@ -2716,7 +2718,11 @@
       "playedInLastDays_one": "ascoltato nell'ultimo giorno",
       "playedInLastDays_other": "ascoltato negli ultimi {{count}} giorni",
       "addedInLastDays_one": "aggiunto nell'ultimo giorno",
-      "addedInLastDays_other": "aggiunto negli ultimi {{count}} giorni"
+      "addedInLastDays_other": "aggiunto negli ultimi {{count}} giorni",
+      "playCountMin_many": "ascoltato almeno {{count}} volte",
+      "playCountMax_many": "ascoltato al massimo {{count}} volte",
+      "playedInLastDays_many": "ascoltato negli ultimi {{count}} giorni",
+      "addedInLastDays_many": "aggiunto negli ultimi {{count}} giorni"
     }
   }
 }

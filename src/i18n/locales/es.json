@@ -1426,7 +1426,8 @@
       "bits": "{{value}} bits",
       "pickTag": "Elegir una etiqueta…",
       "days_one": "día",
-      "days_other": "días"
+      "days_other": "días",
+      "days_many": "días"
     },
     "predicates": {
       "titleContains": "El título contiene",
@@ -1474,7 +1475,8 @@
       "tags": "Etiquetas"
     },
     "matchCount_one": "{{count}} pista coincide",
-    "matchCount_other": "{{count}} pistas coinciden"
+    "matchCount_other": "{{count}} pistas coinciden",
+    "matchCount_many": "{{count}} pistas coinciden"
   },
   "lyricsEditor": {
     "title": "Editor de letras",
@@ -2716,7 +2718,11 @@
       "playedInLastDays_one": "reproducido en el último día",
       "playedInLastDays_other": "reproducido en los últimos {{count}} días",
       "addedInLastDays_one": "añadido en el último día",
-      "addedInLastDays_other": "añadido en los últimos {{count}} días"
+      "addedInLastDays_other": "añadido en los últimos {{count}} días",
+      "playCountMin_many": "reproducido al menos {{count}} veces",
+      "playCountMax_many": "reproducido como máximo {{count}} veces",
+      "playedInLastDays_many": "reproducido en los últimos {{count}} días",
+      "addedInLastDays_many": "añadido en los últimos {{count}} días"
     }
   }
 }

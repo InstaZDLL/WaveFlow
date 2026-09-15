@@ -25,10 +25,19 @@ export function SmartRuleSummary({ playlist }: { playlist: Playlist }) {
    * long as the fetch takes — a wrong answer where a blank line is the
    * honest one. Stamping also keeps the "not a smart playlist" case out
    * of the effect body: it is a render-time test, not a state change.
+   *
+   * The rules and the language are part of the stamp for the same
+   * reason as the id: saving an edit, or switching language, re-runs
+   * the read, and until it lands the old sentence describes rules the
+   * playlist no longer has — under the same id, so the id alone would
+   * accept it.
    */
-  const [summary, setSummary] = useState<{ id: number; text: string } | null>(
-    null,
-  );
+  const [summary, setSummary] = useState<{
+    id: number;
+    rules: string | null;
+    locale: string;
+    text: string;
+  } | null>(null);
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const isCustom = smartPlaylistKind(playlist)?.kind === "custom";
 
@@ -45,6 +54,8 @@ export function SmartRuleSummary({ playlist }: { playlist: Playlist }) {
         if (!alive) return;
         setSummary({
           id: playlist.id,
+          rules: playlist.smart_rules,
+          locale,
           text: describeRules(rules, { t, locale, genres }),
         });
       })
@@ -62,7 +73,14 @@ export function SmartRuleSummary({ playlist }: { playlist: Playlist }) {
     // sentence that cannot have changed.
   }, [playlist.id, playlist.smart_rules, isCustom, t, locale]);
 
-  if (!isCustom || summary?.id !== playlist.id) return null;
+  if (
+    !isCustom ||
+    summary?.id !== playlist.id ||
+    summary.rules !== playlist.smart_rules ||
+    summary.locale !== locale
+  ) {
+    return null;
+  }
   return (
     <p className="flex items-start gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 mb-2">
       <Sparkles size={13} className="mt-0.5 shrink-0 text-violet-500" />
