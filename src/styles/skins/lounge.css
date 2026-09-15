@@ -511,7 +511,6 @@
   }
 }
 
-
 /* ============================================================
    High contrast (issue #596)
    ============================================================
@@ -526,7 +525,12 @@
   --wf-contrast-surface: rgb(12 6 11);
 }
 
+/* Both: the shell carries the blur and is `transparent` by the skin's
+   own rule, so with the blur off it would let the page through the
+   gutter around the panel; the `aside` inside it is the translucent
+   surface the labels actually sit on. Liquid forces the same pair. */
 :root[data-skin="lounge"][data-contrast="high"] .lounge-sidebar-shell,
+:root[data-skin="lounge"][data-contrast="high"] .lounge-sidebar-shell > aside,
 :root[data-skin="lounge"][data-contrast="high"] header[class*="sticky"],
 :root[data-skin="lounge"][data-contrast="high"] footer,
 :root[data-skin="lounge"][data-contrast="high"]

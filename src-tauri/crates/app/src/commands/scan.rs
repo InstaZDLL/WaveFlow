@@ -139,6 +139,32 @@ fn maybe_emit_progress(
     );
 }
 
+/// Has this folder's one-off pass never run?
+///
+/// A read that fails answers "never run", which forces the pass again —
+/// the safe side, since the alternative is recording work that did not
+/// happen. But it is logged rather than swallowed: a marker that cannot
+/// be read makes every future scan re-read the whole folder, and that
+/// looks exactly like the fast path being broken for no reason.
+async fn marker_absent(pool: &sqlx::SqlitePool, key: &str, folder_id: i64) -> bool {
+    match sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
+        .bind(key)
+        .fetch_optional(pool)
+        .await
+    {
+        Ok(value) => value.is_none(),
+        Err(err) => {
+            tracing::warn!(
+                ?err,
+                folder_id,
+                %key,
+                "could not read a backfill marker; running the pass again"
+            );
+            true
+        }
+    }
+}
+
 /// Outcome of a `scan_folder` call, returned to the frontend so the UI can
 /// display a toast like "120 nouveaux titres · 3 mises à jour · 1 erreur".
 #[derive(Debug, Serialize, Default)]
@@ -663,14 +689,8 @@ pub(crate) async fn scan_folder_inner(
     // otherwise re-read every file on every scan and lose the fast
     // path permanently.
     let rg_backfill_key = format!("scan.rg_backfill_done.{folder_id}");
-    let rg_backfill_pending = !rg_missing.is_empty()
-        && sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
-            .bind(&rg_backfill_key)
-            .fetch_optional(pool)
-            .await
-            .ok()
-            .flatten()
-            .is_none();
+    let rg_backfill_pending =
+        !rg_missing.is_empty() && marker_absent(pool, &rg_backfill_key, folder_id).await;
 
     // Custom tags (#588) land in `track_tag` at scan time, and every
     // file of a library that predates the feature still matches on
@@ -685,14 +705,7 @@ pub(crate) async fn scan_folder_inner(
     // and "was never read" are the same shape. The marker is the only
     // thing that separates a first pass from a second.
     let tag_backfill_key = format!("scan.tag_backfill_done.{folder_id}");
-    let tag_backfill_pending =
-        sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
-            .bind(&tag_backfill_key)
-            .fetch_optional(pool)
-            .await
-            .ok()
-            .flatten()
-            .is_none();
+    let tag_backfill_pending = marker_absent(pool, &tag_backfill_key, folder_id).await;
 
     let meta_load_ms = t_scan.elapsed().as_millis();
 

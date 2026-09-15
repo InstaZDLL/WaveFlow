@@ -104,7 +104,18 @@ fn is_boring(key: &str) -> bool {
 }
 
 fn keep(out: &mut Vec<(String, String)>, key: &str, value: &str) {
-    let key = key.trim();
+    // Upper-cased here, once, for every source. The column's *identity*
+    // is this string: it is what the picker lists, what the stored
+    // layout names, and what the cell lookup binds. `COLLATE NOCASE` on
+    // the column makes those match whatever the case, but it does not
+    // decide which spelling comes back from a `GROUP BY` -- so a
+    // library holding both `Composer` and `COMPOSER` would offer one
+    // column under a name that changes between reads. Three of the four
+    // sources already answered in upper case; this is the fourth, a
+    // `TXXX` description, brought into line rather than left to whoever
+    // wrote the file.
+    let key = key.trim().to_ascii_uppercase();
+    let key = key.as_str();
     let value = value.trim();
     if key.is_empty() || value.is_empty() || key.len() > MAX_KEY || is_boring(key) {
         return;
@@ -226,7 +237,7 @@ fn read_inner(path: &Path) -> Option<Vec<(String, String)>> {
                                 .unwrap_or_else(|| key.to_ascii_uppercase());
                             keep(&mut out, &name, value);
                         }
-                        None => keep(&mut out, &key.to_ascii_uppercase(), value),
+                        None => keep(&mut out, key, value),
                     }
                 }
             }
@@ -325,13 +336,10 @@ fn vorbis_into(tag: Option<&lofty::ogg::tag::VorbisComments>, out: &mut Vec<(Str
     for (key, value) in remainder.items() {
         // Vorbis comment names are case-insensitive by spec, so
         // `SOURCE` and `source` are one field — and a file written by
-        // two taggers routinely carries both spellings. Upper-cased
-        // here rather than left to `keep`'s case-insensitive dedupe,
-        // because that one only decides what to *drop*: the spelling
-        // that reaches the column picker is whichever arrived first,
-        // and for a Vorbis comment it should be the canonical one
-        // whatever the file happens to say.
-        keep(out, &key.to_ascii_uppercase(), value);
+        // two taggers routinely carries both spellings. `keep`
+        // normalises the case for every source, so nothing is needed
+        // here beyond handing it the name as written.
+        keep(out, key, value);
     }
 }
 
@@ -361,11 +369,11 @@ fn ape_into(tag: Option<&lofty::ape::ApeTag>, out: &mut Vec<(String, String)>) {
     generic_into(&generic, out);
     for item in &*remainder {
         if let lofty::tag::ItemValue::Text(value) = item.value() {
-            // Upper-cased for the same reason as the Vorbis half:
-            // lofty compares APEv2 keys without regard to case, so
-            // `SOURCE` and `source` are one field and must not be
-            // offered as two columns.
-            keep(out, &item.key().to_ascii_uppercase(), value);
+            // Same as the Vorbis half: lofty compares APEv2 keys
+            // without regard to case, so `SOURCE` and `source` are one
+            // field and must not become two columns. `keep` is where
+            // that is settled.
+            keep(out, item.key(), value);
         }
     }
 }
@@ -406,6 +414,17 @@ mod tests {
         keep(&mut out, "Composer", "Maurice Ravel");
         keep(&mut out, "composer", "M. Ravel");
         assert_eq!(out, vec![("COMPOSER".to_string(), "Ravel".to_string())]);
+    }
+
+    /// The stored spelling is the canonical one, not the one the
+    /// tagger happened to write. It is the column's identity -- the
+    /// picker lists it, the layout names it, the cell lookup binds it --
+    /// so it cannot depend on which file was read first.
+    #[test]
+    fn a_key_is_stored_in_its_canonical_case() {
+        let mut out = Vec::new();
+        keep(&mut out, "Ripper", "EAC");
+        assert_eq!(out, vec![("RIPPER".to_string(), "EAC".to_string())]);
     }
 
     #[test]

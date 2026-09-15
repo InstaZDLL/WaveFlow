@@ -562,7 +562,14 @@ pub fn spawn_backup_loop(handle: AppHandle, backup_handle: BackupHandle) {
                 Ok(pass) => {
                     tracing::info!(count = pass.created.len(), "auto backup run finished");
                     let cancelled = pass.cancelled;
-                    let _ = handle.emit("backup:completed", pass.created);
+                    // Not for a pass the user stopped: the event is what
+                    // the frontend turns into "backups written", and the
+                    // archives that did land are complete but are not
+                    // the run that was scheduled. Stopping it is already
+                    // its own answer.
+                    if !cancelled {
+                        let _ = handle.emit("backup:completed", pass.created);
+                    }
                     if cancelled {
                         // `last_run_at` was deliberately left alone, so
                         // the deadline this loop just woke on is still

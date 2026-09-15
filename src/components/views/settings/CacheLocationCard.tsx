@@ -225,6 +225,10 @@ export function CacheLocationCard({ language }: { language: string }) {
           </p>
           <button
             type="button"
+            // The copy has to be durable before the process may be
+            // replaced. The backend waits on the same lock, so this is
+            // the honest surface rather than the guarantee.
+            disabled={busy || picking}
             onClick={() => {
               // The command replaces the process and normally never
               // resolves; a rejection means it could not, and the user

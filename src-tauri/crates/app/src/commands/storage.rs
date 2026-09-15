@@ -870,7 +870,16 @@ pub async fn set_cache_location(
 /// to return: the frontend tells the user a restart is coming, and the
 /// restart happens when they say so. Diverges — the process is replaced.
 #[tauri::command]
-pub async fn restart_for_cache_move(app: AppHandle) -> AppResult<()> {
+pub async fn restart_for_cache_move(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<()> {
+    // Behind the same lock the move itself holds. Replacing the process
+    // mid-copy would leave a half-copied tree with neither setting
+    // written, and the command is reachable from the IPC surface
+    // whatever the button is doing. Waiting is the whole of it: the
+    // move either has not started, or this returns once it is durable.
+    let _serialized = state.cache_move_lock.clone().lock_owned().await;
     app.restart();
 }
 
