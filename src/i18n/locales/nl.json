@@ -2713,10 +2713,10 @@
       "playCountMin_other": "minstens {{count}} keer afgespeeld",
       "playCountMax_one": "hoogstens {{count}} keer afgespeeld",
       "playCountMax_other": "hoogstens {{count}} keer afgespeeld",
-      "playedInLastDays_one": "afgespeeld in de laatste dag",
-      "playedInLastDays_other": "afgespeeld in de laatste {{count}} dagen",
-      "addedInLastDays_one": "toegevoegd in de laatste dag",
-      "addedInLastDays_other": "toegevoegd in de laatste {{count}} dagen"
+      "playedInLastDays_one": "afgespeeld in de afgelopen dag",
+      "playedInLastDays_other": "afgespeeld in de afgelopen {{count}} dagen",
+      "addedInLastDays_one": "toegevoegd in de afgelopen dag",
+      "addedInLastDays_other": "toegevoegd in de afgelopen {{count}} dagen"
     }
   }
 }
