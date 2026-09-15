@@ -277,7 +277,11 @@ async fn run_scan(app: &AppHandle, folder_id: i64, library_id: i64) {
                     changed,
                 },
             );
-            if summary.added > 0 {
+            // Stopped from the task bar: don't answer that by
+            // starting the analysis sweep. A watcher rescan registers
+            // the same cancellable `LibraryScan` task a manual one
+            // does, so it is stoppable exactly the same way.
+            if summary.added > 0 && !summary.cancelled {
                 crate::commands::analysis::maybe_auto_analyze(app);
             }
         }

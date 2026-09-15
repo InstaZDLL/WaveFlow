@@ -557,7 +557,13 @@ pub async fn scan_folder(
     // Fire the auto-analyzer in the background when the user has
     // opted in. Spawned so the IPC reply doesn't block on a
     // potentially long analysis pass.
-    if summary.added > 0 {
+    // Not after a scan the user stopped. Some tracks did land, so
+    // `added` is positive -- but answering a stop by starting the
+    // library-wide analysis sweep is the opposite of what was asked,
+    // and that sweep is the longest job in the app (a full Symphonia
+    // decode of every track; issue #286). Same rule as the import
+    // path in `commands/library.rs`.
+    if summary.added > 0 && !summary.cancelled {
         crate::commands::analysis::maybe_auto_analyze(&app);
     }
     Ok(summary)
@@ -948,6 +954,30 @@ pub(crate) async fn scan_folder_inner(
     while let Some((path, result)) = extraction_stream.next().await {
         if cancelled() {
             summary.cancelled = true;
+            // Deliberately dropping the stream with extractions still
+            // in flight, rather than awaiting them first.
+            //
+            // Awaiting would not stop them: `spawn_blocking` work is
+            // uncancellable, so those files get hashed either way and
+            // the only question is whether the user waits for them.
+            // And "drain the stream" is not the same as "await what
+            // already started" -- `buffered` pulls a new path from the
+            // source every time a slot frees, so draining to
+            // completion would extract the whole remaining folder.
+            // On a large library that turns the stop button into the
+            // longest operation of the scan.
+            //
+            // What gets abandoned is bounded and harmless: at most
+            // `parallelism` extractions, none of which touch SQLite
+            // (`extract_file` reads the file, hashes it, and writes
+            // hash-addressed artwork). So releasing `SCANS_IN_FLIGHT`
+            // before they finish cannot cost analysis rows to writer
+            // contention, which is the reason that counter exists. The
+            // worst case is a few cover files with no row pointing at
+            // them, which the artwork sweep already collects.
+            //
+            // Every `?` in this loop drops the stream the same way; a
+            // stop is not a new shape of exit.
             break;
         }
         processed += 1;
