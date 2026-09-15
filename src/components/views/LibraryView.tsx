@@ -977,6 +977,11 @@ export function LibraryView({
         try {
           const summary = await rescanLibrary(lib.id, true);
           failedFolders += summary.errors;
+          // The walk inside one library already gives up when the user
+          // stops it; this loop is the one above it, and without this
+          // a stop would kill this library and start the next. Same
+          // rule, one level up.
+          if (summary.cancelled) break;
         } catch (err) {
           console.error(
             `[LibraryView] deep rescan failed for library ${lib.id}`,
@@ -1006,6 +1011,11 @@ export function LibraryView({
         try {
           const summary = await rescanLibrary(lib.id);
           failedFolders += summary.errors;
+          // The walk inside one library already gives up when the user
+          // stops it; this loop is the one above it, and without this
+          // a stop would kill this library and start the next. Same
+          // rule, one level up.
+          if (summary.cancelled) break;
         } catch (err) {
           console.error(
             `[LibraryView] rescan failed for library ${lib.id}`,

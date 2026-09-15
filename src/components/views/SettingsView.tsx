@@ -799,7 +799,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     setIsRescanning(true);
     try {
       for (const lib of libraries) {
-        await rescanLibrary(lib.id);
+        const summary = await rescanLibrary(lib.id);
+        // Stopping the scan stops the whole rescan, not just the
+        // library it happened to be on.
+        if (summary.cancelled) break;
       }
     } catch (err) {
       console.error("[SettingsView] rescan failed", err);
@@ -1259,8 +1262,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     resolved: generatorAlbumModeResolved,
     setEnabled: setGeneratorAlbumMode,
   } = useGeneratorAlbumMode();
-  const [replayGainMode, setReplayGainMode] =
-    useState<ReplayGainMode>("auto");
+  const [replayGainMode, setReplayGainMode] = useState<ReplayGainMode>("auto");
   const [replayGainPreventClipping, setReplayGainPreventClipping] =
     useState(true);
   const replayGainOptionsDebounce = useRef<number | null>(null);
@@ -1787,7 +1789,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const handleReplayGainPreampChange = useCallback(
     (value: number) => {
       setReplayGainPreamp(value);
-      pushReplayGainOptions(value, replayGainFallback, replayGainPreventClipping);
+      pushReplayGainOptions(
+        value,
+        replayGainFallback,
+        replayGainPreventClipping,
+      );
     },
     [pushReplayGainOptions, replayGainFallback, replayGainPreventClipping],
   );
@@ -2797,7 +2803,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             {/* Pause when the output device disconnects (#617) */}
             <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
               <div className="flex items-center space-x-4">
-                <Unplug size={20} className="text-zinc-400" aria-hidden="true" />
+                <Unplug
+                  size={20}
+                  className="text-zinc-400"
+                  aria-hidden="true"
+                />
                 <div>
                   <div className="text-sm font-medium text-zinc-900 dark:text-white">
                     {t("settings.pauseOnDeviceLoss.title")}

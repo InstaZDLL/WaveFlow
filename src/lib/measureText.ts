@@ -76,6 +76,14 @@ export function styleOf(element: Element | null): TextMetricsStyle {
   };
 }
 
+// Plain `toUpperCase`, not the locale-aware pair, even though CSS
+// `text-transform` does honour the element's language (Turkish `i` to
+// `İ`, and `I` back to `ı`). The difference here is a measurement of
+// width, and those glyphs carry the same advance as the ASCII ones --
+// the dot is above the x-height, the missing dot changes nothing
+// horizontally. Threading the document language into every
+// `TextMetricsStyle` would widen the contract for a column fit nobody
+// could see move.
 function applyTransform(text: string, style: TextMetricsStyle): string {
   switch (style.transform) {
     case "uppercase":
