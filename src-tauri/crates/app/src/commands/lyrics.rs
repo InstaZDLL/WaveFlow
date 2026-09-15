@@ -52,6 +52,10 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 
 use waveflow_core::metadata::lrclib::LrclibClient;
+use waveflow_core::plugin::runtime::{
+    AssociatedKind as PluginAssociatedKind, LyricsBundle as PluginLyricsBundle,
+    LyricsDocFormat as PluginLyricsFormat,
+};
 use waveflow_syncedlyrics::{
     LyricsFormat as ExternalLyricsFormat, LyricsResult as ExternalLyricsResult, Provider,
     SearchMode, SearchOptions, SyncedLyricsClient,
@@ -119,7 +123,7 @@ fn now_ms() -> i64 {
 /// `Plain` = unsynced text. `Lrc` = `[mm:ss.xx]`-prefixed lines.
 /// `EnhancedLrc` is the per-word timed variant (`[00:01.00]Hello <00:01.50>world`).
 /// `Ttml` is Apple-Music-style XML with `<span begin="…" end="…">` word timing.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LyricsFormat {
     Plain,
@@ -171,6 +175,33 @@ pub struct LyricsPayload {
     /// other return path.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sidecar_write_skipped: Option<bool>,
+    /// Translations and pronunciations that came with `content`, as the
+    /// provider served them (issue #585). Empty for every source that
+    /// only yields one document, which is all of them except a
+    /// `waveflow:metadata/v2` plugin today.
+    ///
+    /// Cached and replaced as a unit with the primary document, so these
+    /// always belong to the same fetch — a Musixmatch original can never
+    /// be shown next to a leftover Apple translation.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub associated: Vec<AssociatedLyrics>,
+}
+
+/// One extra document beside the primary lyrics.
+///
+/// No `rename_all`: [`LyricsPayload`] goes over the wire in snake_case
+/// and this rides inside it, so the two have to agree. Every field here
+/// happens to be one word, which is exactly how a mismatch would go
+/// unnoticed until someone added a two-word one.
+#[derive(Debug, Clone, Serialize)]
+pub struct AssociatedLyrics {
+    /// `"translation"` or `"pronunciation"`.
+    pub kind: String,
+    /// BCP-47 tag when the provider named one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
+    pub content: String,
+    pub format: LyricsFormat,
 }
 
 fn parse_format(s: &str) -> LyricsFormat {
@@ -508,7 +539,262 @@ async fn cache_external_lyrics(
         provider: Some(provider.to_string()),
         tag_write_skipped: None,
         sidecar_write_skipped: None,
+        associated: Vec::new(),
     })
+}
+
+/// Marks a `lyrics.provider` value as a plugin id rather than one of the
+/// built-in network providers. The two namespaces share a column and
+/// nothing else: `Provider::from_id` knows only its own.
+const PLUGIN_PROVIDER_PREFIX: &str = "plugin:";
+
+/// Write the primary lyrics row. The one spelling of that statement.
+///
+/// Takes the connection rather than the pool so both callers can run it
+/// inside their own transaction — `upsert_lyrics` pairs it with clearing
+/// the bundle, `cache_lyrics_bundle` with inserting a new one, and
+/// neither can be allowed to commit half of that.
+///
+/// `language` is what the SOURCE said, not a user preference: only the
+/// v2 plugin world reports one today, and every other tier passes `None`
+/// exactly as this row has always been written.
+#[allow(clippy::too_many_arguments)]
+async fn write_primary_lyrics(
+    conn: &mut sqlx::SqliteConnection,
+    file_hash: &str,
+    content: &str,
+    format: &LyricsFormat,
+    source: &LyricsSource,
+    provider: Option<&str>,
+    language: Option<&str>,
+    fetched_at: i64,
+) -> AppResult<()> {
+    sqlx::query(
+        "INSERT INTO app.lyrics (file_hash, content, format, source, provider, language, fetched_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(file_hash) DO UPDATE SET
+            content = excluded.content,
+            format = excluded.format,
+            source = excluded.source,
+            provider = excluded.provider,
+            language = excluded.language,
+            fetched_at = excluded.fetched_at",
+    )
+    .bind(file_hash)
+    .bind(content)
+    .bind(format_to_db(format))
+    .bind(source_to_db(source))
+    .bind(provider)
+    .bind(language)
+    .bind(fetched_at)
+    .execute(&mut *conn)
+    .await?;
+    Ok(())
+}
+
+/// Map the `waveflow:metadata/v2` format enum onto the host's.
+fn plugin_format_to_app(f: PluginLyricsFormat) -> LyricsFormat {
+    match f {
+        PluginLyricsFormat::Plain => LyricsFormat::Plain,
+        PluginLyricsFormat::Lrc => LyricsFormat::Lrc,
+        PluginLyricsFormat::EnhancedLrc => LyricsFormat::EnhancedLrc,
+        PluginLyricsFormat::Ttml => LyricsFormat::Ttml,
+    }
+}
+
+/// The whole of the host's trust in a plugin's lyrics document.
+///
+/// A plugin hands over bytes and a label; nothing parses the document
+/// into lines and words on this side, because the renderer already does
+/// that and a second model in Rust would only be a second thing to keep
+/// correct. So the check is the one that can be made cheaply and here:
+/// re-sniff the content and refuse it unless the answer matches what was
+/// declared. `detect_format` is the same routine the embedded-tag and
+/// sidecar tiers already trust, and it is deliberately conservative —
+/// brackets with no timestamp stay `plain` rather than being promoted to
+/// `lrc`.
+///
+/// What this catches: a document truncated in transit, a provider that
+/// changed format without saying, an `ttml` label on an HTML error page.
+/// What it does not: TTML that parses as XML and means nothing. That
+/// failure surfaces in the renderer, which is the only place that could
+/// have judged it anyway.
+fn document_is_what_it_claims(content: &str, declared: LyricsFormat) -> bool {
+    !content.trim().is_empty() && detect_format(content) == declared
+}
+
+/// Persist one fetch result — the primary document and everything that
+/// came with it — as a single unit.
+///
+/// The bundle replaces whatever was cached for this file: the associated
+/// rows are deleted before the new ones land, inside the same
+/// transaction as the primary upsert. Without that, switching providers
+/// would leave the previous one's translation sitting under the new
+/// original, and the panel would show two documents that were never
+/// published together.
+///
+/// Documents that fail [`document_is_what_it_claims`] are dropped, not
+/// fatal: a provider getting one translation wrong should cost that
+/// translation, not the lyrics. Each rejection is logged with the label
+/// it claimed and the one it sniffed as, because that pair is what
+/// identifies the broken provider.
+async fn cache_lyrics_bundle(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+    file_hash: &str,
+    bundle: PluginLyricsBundle,
+    plugin_id: &str,
+) -> AppResult<Option<LyricsPayload>> {
+    let primary_format = plugin_format_to_app(bundle.primary.format);
+    if !document_is_what_it_claims(&bundle.primary.content, primary_format) {
+        tracing::warn!(
+            plugin = %plugin_id,
+            declared = ?primary_format,
+            sniffed = ?detect_format(&bundle.primary.content),
+            "plugin lyrics rejected: primary document is not the format it declared"
+        );
+        return Ok(None);
+    }
+
+    // One document per (kind, language), decided HERE rather than left to
+    // the unique index. The insert below is `OR IGNORE`, so the database
+    // would keep the first and drop the rest in silence — but the payload
+    // returned to the caller is built from this list, so without the same
+    // rule the panel would show two French translations now and one after
+    // the next reload, with the cache and the response disagreeing about
+    // what was fetched.
+    //
+    // NULL and "no language" are one slot, matching `COALESCE(language,
+    // '')` in the index; otherwise two untagged pronunciations would both
+    // pass here and only one would survive the write.
+    let mut claimed: std::collections::HashSet<(String, String)> = std::collections::HashSet::new();
+    let accepted: Vec<AssociatedLyrics> = bundle
+        .associated
+        .into_iter()
+        .filter_map(|a| {
+            let format = plugin_format_to_app(a.document.format);
+            if !document_is_what_it_claims(&a.document.content, format) {
+                tracing::warn!(
+                    plugin = %plugin_id,
+                    kind = ?a.kind,
+                    declared = ?format,
+                    sniffed = ?detect_format(&a.document.content),
+                    "plugin lyrics: dropping an associated document that is not the format it declared"
+                );
+                return None;
+            }
+            let kind = match a.kind {
+                PluginAssociatedKind::Translation => "translation".to_string(),
+                PluginAssociatedKind::Pronunciation => "pronunciation".to_string(),
+            };
+            let slot = (
+                kind.clone(),
+                a.document.language.clone().unwrap_or_default(),
+            );
+            if !claimed.insert(slot) {
+                tracing::warn!(
+                    plugin = %plugin_id,
+                    %kind,
+                    language = ?a.document.language,
+                    "plugin lyrics: dropping a second document for a slot already filled"
+                );
+                return None;
+            }
+            Some(AssociatedLyrics {
+                kind,
+                language: a.document.language,
+                content: a.document.content,
+                format,
+            })
+        })
+        .collect();
+
+    // A plugin id is not a `Provider` id, and both land in the same
+    // column. Namespacing it keeps the two apart: `Provider::from_id`
+    // can never accidentally match one, the badge can tell the user a
+    // plugin answered, and `refetch_lyrics` knows to re-run the plugin
+    // tier rather than reject the value as an unknown network provider.
+    let provider_id = format!("{PLUGIN_PROVIDER_PREFIX}{plugin_id}");
+
+    let now = now_ms();
+    let mut tx = pool.begin().await?;
+
+    write_primary_lyrics(
+        &mut tx,
+        file_hash,
+        &bundle.primary.content,
+        &primary_format,
+        &LyricsSource::Api,
+        Some(&provider_id),
+        bundle.primary.language.as_deref(),
+        now,
+    )
+    .await?;
+
+    sqlx::query("DELETE FROM app.lyrics_associated WHERE file_hash = ?")
+        .bind(file_hash)
+        .execute(&mut *tx)
+        .await?;
+
+    for doc in &accepted {
+        // A provider returning two documents for the same slot would
+        // violate the unique index; the first wins and the rest are
+        // skipped rather than failing the whole bundle. Inventing a
+        // variant identity for rival versions can wait for a provider
+        // that actually produces them.
+        sqlx::query(
+            "INSERT OR IGNORE INTO app.lyrics_associated
+                (file_hash, kind, language, content, format, fetched_at)
+             VALUES (?, ?, ?, ?, ?, ?)",
+        )
+        .bind(file_hash)
+        .bind(&doc.kind)
+        .bind(doc.language.as_deref())
+        .bind(&doc.content)
+        .bind(format_to_db(&doc.format))
+        .bind(now)
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    tx.commit().await?;
+
+    Ok(Some(LyricsPayload {
+        track_id,
+        content: bundle.primary.content,
+        format: primary_format,
+        source: LyricsSource::Api,
+        provider: Some(provider_id),
+        tag_write_skipped: None,
+        sidecar_write_skipped: None,
+        associated: accepted,
+    }))
+}
+
+/// Read a cached bundle's associated documents.
+async fn read_associated(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+) -> AppResult<Vec<AssociatedLyrics>> {
+    let rows: Vec<(String, Option<String>, String, String)> = sqlx::query_as(
+        "SELECT a.kind, a.language, a.content, a.format
+           FROM track t
+           JOIN app.lyrics_associated a ON a.file_hash = t.file_hash
+          WHERE t.id = ?
+          ORDER BY a.kind, a.language",
+    )
+    .bind(track_id)
+    .fetch_all(pool)
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|(kind, language, content, format)| AssociatedLyrics {
+            kind,
+            language,
+            content,
+            format: parse_format(&format),
+        })
+        .collect())
 }
 
 /// What the post-LRCLIB fallback chain concluded (#391).
@@ -595,6 +881,7 @@ async fn cache_lyrics_miss(
         provider: None,
         tag_write_skipped: None,
         sidecar_write_skipped: None,
+        associated: Vec::new(),
     })
 }
 
@@ -693,6 +980,7 @@ async fn try_local_lyrics(
             provider: None,
             tag_write_skipped: None,
             sidecar_write_skipped: None,
+            associated: Vec::new(),
         }));
     }
 
@@ -716,6 +1004,7 @@ async fn try_local_lyrics(
             provider: None,
             tag_write_skipped: None,
             sidecar_write_skipped: None,
+            associated: Vec::new(),
         }));
     }
 
@@ -741,6 +1030,7 @@ async fn try_local_lyrics(
             provider: None,
             tag_write_skipped: None,
             sidecar_write_skipped: None,
+            associated: Vec::new(),
         }));
     }
 
@@ -1125,24 +1415,31 @@ async fn upsert_lyrics(
     source: &LyricsSource,
     provider: Option<&str>,
 ) -> AppResult<()> {
-    sqlx::query(
-        "INSERT INTO app.lyrics (file_hash, content, format, source, provider, language, fetched_at)
-         VALUES (?, ?, ?, ?, ?, NULL, ?)
-         ON CONFLICT(file_hash) DO UPDATE SET
-            content = excluded.content,
-            format = excluded.format,
-            source = excluded.source,
-            provider = excluded.provider,
-            fetched_at = excluded.fetched_at",
+    let mut tx = pool.begin().await?;
+    write_primary_lyrics(
+        &mut tx,
+        file_hash,
+        content,
+        format,
+        source,
+        provider,
+        None,
+        now_ms(),
     )
-    .bind(file_hash)
-    .bind(content)
-    .bind(format_to_db(format))
-    .bind(source_to_db(source))
-    .bind(provider)
-    .bind(now_ms())
-    .execute(pool)
     .await?;
+    // Replacing the primary document ends the bundle it belonged to.
+    // Translations and pronunciations are cached as part of ONE fetch
+    // result (issue #585), so leaving them behind would pair new lyrics
+    // with the previous provider's companions — and nothing downstream
+    // could tell they were never published together. Every tier that
+    // writes a primary comes through here, so the invariant holds
+    // without each of them having to remember it.
+    sqlx::query("DELETE FROM app.lyrics_associated WHERE file_hash = ?")
+        .bind(file_hash)
+        .execute(&mut *tx)
+        .await?;
+
+    tx.commit().await?;
     Ok(())
 }
 
@@ -1204,7 +1501,22 @@ async fn read_cached(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option
         }
     }
 
-    Ok(row.map(|(content, fmt, src, provider)| LyricsPayload {
+    let Some((content, fmt, src, provider)) = row else {
+        return Ok(None);
+    };
+
+    // The companions are read separately rather than joined in above: a
+    // bundle has zero rows in the common case, and a LEFT JOIN would
+    // multiply the primary row by however many documents came with it
+    // only to collapse it again here.
+    //
+    // Nothing needs to filter out stale ones. They cascade with the
+    // primary — including on the service-credit delete just above — and
+    // every write of a primary clears them, so a row that exists here
+    // was cached by the same fetch as the content beside it.
+    let associated = read_associated(pool, track_id).await?;
+
+    Ok(Some(LyricsPayload {
         track_id,
         content,
         format: parse_format(&fmt),
@@ -1212,6 +1524,7 @@ async fn read_cached(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option
         provider,
         tag_write_skipped: None,
         sidecar_write_skipped: None,
+        associated,
     }))
 }
 
@@ -1269,6 +1582,120 @@ pub async fn get_lyrics(
 /// Multi-tier lookup: cache → embedded tag → sidecar → enhanced/API
 /// providers. Caches the first hit and returns it. Returns `None` if
 /// local tiers fail and offline mode prevents network lookup.
+/// How long one plugin gets to answer a lyrics lookup.
+///
+/// Matches the motion-artwork budget: the call is a network round-trip
+/// inside a wasm guest, and the panel is waiting on it.
+const LYRICS_PLUGIN_TIMEOUT: Duration = Duration::from_secs(20);
+
+/// Ask every enabled `waveflow:metadata/v2` plugin for this track, and
+/// cache the first bundle that survives validation.
+///
+/// Fan-out rather than a chain: plugins are independent, so they are all
+/// asked at once and the first usable answer wins. A plugin that traps,
+/// times out, or returns a document that is not the format it claimed is
+/// skipped — one bad provider must not deny the tier.
+///
+/// `Ok(None)` means nothing was cached and the caller should carry on
+/// down the waterfall. Nothing here writes a miss: a plugin having no
+/// lyrics says nothing about whether LRCLIB does.
+async fn try_plugin_lyrics(
+    state: &AppState,
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+    meta: &TrackMeta,
+    only: Option<&str>,
+) -> AppResult<Option<LyricsPayload>> {
+    let mut plugin_ids = super::plugins::enabled_plugin_ids_for_world(
+        state,
+        waveflow_core::plugin::worlds::METADATA_V2,
+    )
+    .await?;
+    // `refetch_lyrics` pins the plugin that answered last time. Filtering
+    // the enumeration rather than taking the id on trust means a plugin
+    // that has since been disabled or uninstalled simply drops out, and
+    // the caller gets the same "nothing found" it would get for any other
+    // silent provider — no separate not-installed path to keep correct.
+    if let Some(wanted) = only {
+        plugin_ids.retain(|id| id == wanted);
+    }
+    if plugin_ids.is_empty() {
+        return Ok(None);
+    }
+
+    let artist = meta.artist_name.clone().unwrap_or_default();
+    let title = meta.title.clone();
+
+    let mut set = tokio::task::JoinSet::new();
+    for plugin_id in plugin_ids {
+        // Take the lock HANDLE here (a fast map op) and acquire the guard
+        // inside the blocking closure, so it spans the real work: the
+        // guest call is uncancellable, and an early drop on timeout would
+        // otherwise let an enable/uninstall race a call still running.
+        let lock_arc = super::plugins::plugin_lock_arc(state, &plugin_id).await;
+        let runtime = state.plugins.clone();
+        let paths = state.paths.plugin_paths();
+        let id_owned = plugin_id.clone();
+        let artist_owned = artist.clone();
+        let title_owned = title.clone();
+
+        set.spawn(async move {
+            let outcome = tokio::time::timeout(
+                LYRICS_PLUGIN_TIMEOUT,
+                tokio::task::spawn_blocking(move || {
+                    let _guard = lock_arc.blocking_lock_owned();
+                    waveflow_core::plugin::runtime::metadata_v2_lyrics(
+                        &runtime,
+                        &paths,
+                        &id_owned,
+                        &artist_owned,
+                        &title_owned,
+                    )
+                }),
+            )
+            .await;
+            (plugin_id, outcome)
+        });
+    }
+
+    while let Some(joined) = set.join_next().await {
+        let (plugin_id, outcome) = match joined {
+            Ok(v) => v,
+            Err(e) => {
+                tracing::warn!(%e, "plugin lyrics task join failed; skipping");
+                continue;
+            }
+        };
+        let bundle = match outcome {
+            Ok(Ok(Ok(Some(bundle)))) => bundle,
+            // The plugin answered and has nothing for this track.
+            Ok(Ok(Ok(None))) => continue,
+            Ok(Ok(Err(err))) => {
+                tracing::debug!(plugin = %plugin_id, ?err, "plugin lyrics lookup failed");
+                continue;
+            }
+            Ok(Err(e)) => {
+                tracing::warn!(plugin = %plugin_id, %e, "plugin lyrics task panicked");
+                continue;
+            }
+            Err(_) => {
+                tracing::warn!(plugin = %plugin_id, "plugin lyrics lookup timed out");
+                continue;
+            }
+        };
+
+        if let Some(payload) =
+            cache_lyrics_bundle(pool, track_id, &meta.file_hash, bundle, &plugin_id).await?
+        {
+            return Ok(Some(payload));
+        }
+        // Validation rejected it; `cache_lyrics_bundle` has already said
+        // why. Keep asking the others.
+    }
+
+    Ok(None)
+}
+
 #[tauri::command]
 pub async fn fetch_lyrics(
     state: tauri::State<'_, AppState>,
@@ -1300,7 +1727,21 @@ pub async fn fetch_lyrics(
         }
     }
 
-    // 4. Musixmatch enhanced fallback. This runs before LRCLIB only
+    // 4. Plugins declaring `waveflow:metadata/v2`. Ahead of every
+    //    network tier below, because a plugin is here only because the
+    //    user installed and enabled it — an explicit choice outranks a
+    //    built-in default — and because this is the only tier that can
+    //    return translations and a pronunciation alongside the lyrics
+    //    (issue #585). Offline is checked here as well as inside the
+    //    host imports: a guest that ignores a denied fetch would still
+    //    burn the timeout.
+    if !crate::offline::is_offline() {
+        if let Some(payload) = try_plugin_lyrics(&state, &pool, track_id, &meta, None).await? {
+            return Ok(Some(payload));
+        }
+    }
+
+    // 5. Musixmatch enhanced fallback. This runs before LRCLIB only
     //    when it returns true word-level LRC; regular line-level LRC
     //    still lets the stricter metadata LRCLIB lookup below win.
     if !crate::offline::is_offline() {
@@ -1341,7 +1782,7 @@ pub async fn fetch_lyrics(
         }
     }
 
-    // 5. LRCLIB fallback. Skip if we have no artist (matching is
+    // 6. LRCLIB fallback. Skip if we have no artist (matching is
     //    useless without one) or if offline mode is on. In both cases,
     //    under prefer-LRCLIB the local tiers were deferred and haven't run
     //    yet — fall back to them here so the toggle never *loses* lyrics
@@ -1425,6 +1866,7 @@ pub async fn fetch_lyrics(
             provider: Some(Provider::Lrclib.as_str().to_string()),
             tag_write_skipped: None,
             sidecar_write_skipped: None,
+            associated: Vec::new(),
         }));
     }
 
@@ -1462,6 +1904,7 @@ pub async fn fetch_lyrics(
         provider: Some(provider.to_string()),
         tag_write_skipped: None,
         sidecar_write_skipped: None,
+        associated: Vec::new(),
     }))
 }
 
@@ -1514,6 +1957,22 @@ pub async fn refetch_lyrics(
     let Some(provider_str) = provider.as_deref() else {
         return fetch_lyrics(state, track_id).await;
     };
+
+    // A pinned plugin is not a `Provider`: the two namespaces share the
+    // `lyrics.provider` column and nothing else. Without this branch the
+    // prefix would fall through to `Provider::from_id`, which knows only
+    // its own ids, and re-fetching lyrics a plugin had supplied would
+    // fail as "unknown lyrics provider" — for a value this code wrote.
+    if let Some(plugin_id) = provider_str.strip_prefix(PLUGIN_PROVIDER_PREFIX) {
+        if crate::offline::is_offline() {
+            return Ok(None);
+        }
+        let meta = match read_track_meta(&pool, track_id).await? {
+            Some(m) => m,
+            None => return Ok(None),
+        };
+        return try_plugin_lyrics(&state, &pool, track_id, &meta, Some(plugin_id)).await;
+    }
 
     let Some(provider) = Provider::from_id(provider_str) else {
         return Err(AppError::Other(format!(
@@ -1576,6 +2035,7 @@ pub async fn refetch_lyrics(
                 provider: Some(provider_id.to_string()),
                 tag_write_skipped: None,
                 sidecar_write_skipped: None,
+                associated: Vec::new(),
             }))
         }
         Err(err) => Err(err),
@@ -1618,6 +2078,7 @@ pub async fn import_lrc_file(
         provider: None,
         tag_write_skipped: None,
         sidecar_write_skipped: None,
+        associated: Vec::new(),
     })
 }
 
@@ -2198,7 +2659,7 @@ pub async fn save_lyrics(
 
             let path = std::path::PathBuf::from(&file_path);
             let content_for_write = trimmed.clone();
-            let format_for_write = format.clone();
+            let format_for_write = format;
             let written = tokio::task::spawn_blocking(move || {
                 write_lyrics_to_file(&path, &content_for_write, &format_for_write)
             })
@@ -2275,6 +2736,7 @@ pub async fn save_lyrics(
         } else {
             None
         },
+        associated: Vec::new(),
     })
 }
 
@@ -2510,6 +2972,7 @@ async fn upsert_radio_lyrics(
     format: &LyricsFormat,
     provider: Option<&str>,
 ) -> AppResult<()> {
+    let mut tx = pool.begin().await?;
     sqlx::query(
         "INSERT INTO app.radio_lyrics
             (artist_title_key, artist, title, content, format, source, provider, fetched_at)
@@ -2530,8 +2993,21 @@ async fn upsert_radio_lyrics(
     .bind(format_to_db(format))
     .bind(provider)
     .bind(now_ms())
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
+    // Replacing the primary document ends the bundle it belonged to.
+    // Translations and pronunciations are cached as part of ONE fetch
+    // result (issue #585), so leaving them behind would pair new lyrics
+    // with the previous provider's companions — and nothing downstream
+    // could tell they were never published together. Every tier that
+    // writes a primary comes through here, so the invariant holds
+    // without each of them having to remember it.
+    sqlx::query("DELETE FROM app.radio_lyrics_associated WHERE artist_title_key = ?")
+        .bind(key)
+        .execute(&mut *tx)
+        .await?;
+
+    tx.commit().await?;
     Ok(())
 }
 
@@ -2584,6 +3060,7 @@ pub async fn fetch_radio_lyrics(
             provider,
             tag_write_skipped: None,
             sidecar_write_skipped: None,
+            associated: Vec::new(),
         }));
     }
 
@@ -2642,6 +3119,7 @@ pub async fn fetch_radio_lyrics(
                 provider: Some(provider.to_string()),
                 tag_write_skipped: None,
                 sidecar_write_skipped: None,
+                associated: Vec::new(),
             }))
         }
         SearchOutcome::Miss => {
@@ -2697,6 +3175,7 @@ pub async fn fetch_remote_lyrics(
             provider: None,
             tag_write_skipped: None,
             sidecar_write_skipped: None,
+            associated: Vec::new(),
         }));
     }
 
@@ -2732,6 +3211,7 @@ pub async fn fetch_remote_lyrics(
                 provider: Some(provider),
                 tag_write_skipped: None,
                 sidecar_write_skipped: None,
+                associated: Vec::new(),
             }))
         }
         // Miss / unavailable / transient error → nothing to show.
@@ -2964,6 +3444,311 @@ pub async fn export_lyrics_to_path(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A document is accepted only if it looks like what it says it is.
+    ///
+    /// This is the whole of the host's trust in a plugin's lyrics, so
+    /// both directions matter: a correct document must not be refused,
+    /// and a mislabelled one must not get through.
+    #[test]
+    fn a_document_must_look_like_the_format_it_declares() {
+        let lrc = "[00:12.00]Hello\n[00:15.00]World";
+        let enhanced = "[00:12.00]<00:12.00>Hello <00:13.50>world";
+        let ttml = "<tt xmlns=\"http://www.w3.org/ns/ttml\"><body><div><p>Hi</p></div></body></tt>";
+
+        assert!(document_is_what_it_claims(lrc, LyricsFormat::Lrc));
+        assert!(document_is_what_it_claims(
+            enhanced,
+            LyricsFormat::EnhancedLrc
+        ));
+        assert!(document_is_what_it_claims(ttml, LyricsFormat::Ttml));
+        assert!(document_is_what_it_claims(
+            "just words",
+            LyricsFormat::Plain
+        ));
+
+        // The mislabelling that matters: a provider that served an error
+        // page, or changed format without saying.
+        assert!(!document_is_what_it_claims(ttml, LyricsFormat::Lrc));
+        assert!(!document_is_what_it_claims(
+            "just words",
+            LyricsFormat::Ttml
+        ));
+        assert!(!document_is_what_it_claims(lrc, LyricsFormat::EnhancedLrc));
+
+        // Empty is never a document, whatever it claims.
+        assert!(!document_is_what_it_claims("", LyricsFormat::Plain));
+        assert!(!document_is_what_it_claims("   \n  ", LyricsFormat::Lrc));
+    }
+
+    /// A profile pool with the real `app` schema attached, the way the
+    /// application attaches it.
+    ///
+    /// The point of the tests below is the foreign key and its cascade,
+    /// so fixtures that recreate the tables by hand would prove nothing
+    /// — they would omit the very constraint under test. Hence the real
+    /// migrations, and two details copied from `db::profile_db::open`
+    /// rather than invented here:
+    ///
+    /// `ATTACH` is per-CONNECTION, so it belongs in `after_connect`. Run
+    /// once through the pool it lands on whichever connection served it
+    /// and the next query gets `no such table: app.lyrics` — which is
+    /// exactly how the first version of this harness failed.
+    ///
+    /// Both databases are files. A `sqlite::memory:` pool gives each
+    /// connection its own empty database, so the profile schema would
+    /// have been just as absent, one connection later.
+    ///
+    /// `foreign_keys` is set explicitly: it is per-connection and off by
+    /// default, and without it every assertion below passes for the
+    /// wrong reason.
+    async fn pool_with_app_schema(dir: &std::path::Path) -> sqlx::SqlitePool {
+        use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+        use std::str::FromStr;
+
+        let opts_for = |path: &std::path::Path| {
+            SqliteConnectOptions::from_str(&format!("sqlite://{}", path.display()))
+                .unwrap()
+                .create_if_missing(true)
+                .foreign_keys(true)
+        };
+
+        let app_path = dir.join("app.db");
+        let app_pool = sqlx::SqlitePool::connect_with(opts_for(&app_path))
+            .await
+            .unwrap();
+        sqlx::migrate!("../../migrations/app")
+            .run(&app_pool)
+            .await
+            .unwrap();
+        app_pool.close().await;
+
+        let attach = format!(
+            "ATTACH DATABASE '{}' AS app",
+            app_path.display().to_string().replace('\'', "''")
+        );
+        let pool = SqlitePoolOptions::new()
+            .after_connect(move |conn, _meta| {
+                let attach = attach.clone();
+                Box::pin(async move {
+                    sqlx::query(sqlx::AssertSqlSafe(attach))
+                        .execute(&mut *conn)
+                        .await?;
+                    Ok(())
+                })
+            })
+            .connect_with(opts_for(&dir.join("profile.db")))
+            .await
+            .unwrap();
+        sqlx::migrate!("../../migrations/profile")
+            .run(&pool)
+            .await
+            .unwrap();
+        pool
+    }
+
+    async fn seed_bundle(pool: &sqlx::SqlitePool, file_hash: &str) {
+        upsert_lyrics(
+            pool,
+            file_hash,
+            "[00:12.00]Original",
+            &LyricsFormat::Lrc,
+            &LyricsSource::Api,
+            Some("apple-lyrics"),
+        )
+        .await
+        .unwrap();
+        for (kind, lang) in [("translation", Some("fr")), ("pronunciation", None)] {
+            sqlx::query(
+                "INSERT INTO app.lyrics_associated
+                    (file_hash, kind, language, content, format, fetched_at)
+                 VALUES (?, ?, ?, '[00:12.00]Companion', 'lrc', 0)",
+            )
+            .bind(file_hash)
+            .bind(kind)
+            .bind(lang)
+            .execute(pool)
+            .await
+            .unwrap();
+        }
+    }
+
+    async fn associated_count(pool: &sqlx::SqlitePool, file_hash: &str) -> i64 {
+        sqlx::query_scalar("SELECT COUNT(*) FROM app.lyrics_associated WHERE file_hash = ?")
+            .bind(file_hash)
+            .fetch_one(pool)
+            .await
+            .unwrap()
+    }
+
+    /// Writing a new primary document ends the bundle the old one
+    /// belonged to.
+    ///
+    /// Without this, switching provider leaves the previous one's
+    /// translation under the new lyrics — two documents that were never
+    /// published together, with nothing downstream able to tell. The
+    /// invariant lives in `upsert_lyrics` precisely so every tier gets
+    /// it; this test is what stops someone adding a tier that writes
+    /// the row directly.
+    #[tokio::test]
+    async fn replacing_the_primary_document_clears_its_companions() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        seed_bundle(&pool, "hash-a").await;
+        assert_eq!(associated_count(&pool, "hash-a").await, 2);
+
+        // Any other tier answering for the same file — here a manual save.
+        upsert_lyrics(
+            &pool,
+            "hash-a",
+            "Typed by hand",
+            &LyricsFormat::Plain,
+            &LyricsSource::Manual,
+            None,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            associated_count(&pool, "hash-a").await,
+            0,
+            "a new primary document must not inherit the previous bundle's companions"
+        );
+    }
+
+    /// Deleting the lyrics row takes its companions with it.
+    ///
+    /// `read_cached` deletes a cached service credit in place, and the
+    /// bundle has to follow. That is the foreign key's job rather than
+    /// the caller's — which only holds while `foreign_keys` is on, so
+    /// this asserts the behaviour rather than the schema text.
+    #[tokio::test]
+    async fn companions_cascade_when_the_lyrics_row_is_deleted() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        seed_bundle(&pool, "hash-b").await;
+
+        sqlx::query("DELETE FROM app.lyrics WHERE file_hash = ?")
+            .bind("hash-b")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            associated_count(&pool, "hash-b").await,
+            0,
+            "companions must not outlive the lyrics they belong to"
+        );
+    }
+
+    fn plugin_doc(
+        content: &str,
+        language: Option<&str>,
+    ) -> waveflow_core::plugin::runtime::LyricsDocument {
+        waveflow_core::plugin::runtime::LyricsDocument {
+            content: content.to_string(),
+            format: PluginLyricsFormat::Lrc,
+            language: language.map(str::to_string),
+        }
+    }
+
+    /// What `cache_lyrics_bundle` returns must be what it stored.
+    ///
+    /// The insert is `OR IGNORE`, so a provider sending two documents for
+    /// one slot has the second dropped by the database whatever the host
+    /// does. If the payload were built from the unfiltered list, the
+    /// panel would show both until the next reload and one after it, and
+    /// nothing would explain the difference. This pins the two together.
+    #[tokio::test]
+    async fn a_returned_bundle_matches_what_was_cached() {
+        use waveflow_core::plugin::runtime::{AssociatedDocument, LyricsBundle};
+
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+
+        let bundle = LyricsBundle {
+            primary: plugin_doc("[00:12.00]Original", Some("ja")),
+            associated: vec![
+                AssociatedDocument {
+                    kind: PluginAssociatedKind::Translation,
+                    document: plugin_doc("[00:12.00]Premiere", Some("fr")),
+                },
+                // Same slot as the one above — the provider contradicting
+                // itself, which is the case the two rules have to agree on.
+                AssociatedDocument {
+                    kind: PluginAssociatedKind::Translation,
+                    document: plugin_doc("[00:12.00]Seconde", Some("fr")),
+                },
+                AssociatedDocument {
+                    kind: PluginAssociatedKind::Pronunciation,
+                    document: plugin_doc("[00:12.00]Romaji", None),
+                },
+            ],
+        };
+
+        let payload = cache_lyrics_bundle(&pool, 1, "hash-d", bundle, "apple-lyrics")
+            .await
+            .unwrap()
+            .expect("the primary document is valid LRC");
+
+        assert_eq!(
+            payload.associated.len(),
+            2,
+            "the duplicate slot must be dropped before the payload is built"
+        );
+        assert_eq!(
+            payload.associated.len() as i64,
+            associated_count(&pool, "hash-d").await,
+            "the payload and the cache must agree on what was stored"
+        );
+        assert_eq!(
+            payload.associated[0].content, "[00:12.00]Premiere",
+            "the first document for a slot is the one kept"
+        );
+
+        // Provenance is namespaced so `Provider::from_id` can never take a
+        // plugin id for one of its own.
+        assert_eq!(payload.provider.as_deref(), Some("plugin:apple-lyrics"));
+    }
+
+    /// One document per (kind, language) — and NULL is one slot, not a
+    /// fresh one each time.
+    ///
+    /// SQLite treats NULLs as distinct in a UNIQUE index, so the index
+    /// is written over `COALESCE(language, '')`. Without that, a
+    /// provider returning two untagged pronunciations would store both
+    /// and the panel would have no way to choose.
+    #[tokio::test]
+    async fn a_bundle_holds_one_document_per_kind_and_language() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        seed_bundle(&pool, "hash-c").await;
+
+        let second_untagged = sqlx::query(
+            "INSERT INTO app.lyrics_associated
+                (file_hash, kind, language, content, format, fetched_at)
+             VALUES (?, 'pronunciation', NULL, 'Another', 'plain', 0)",
+        )
+        .bind("hash-c")
+        .execute(&pool)
+        .await;
+        assert!(
+            second_untagged.is_err(),
+            "a second untagged pronunciation must collide with the first"
+        );
+
+        // A different language is a different slot, and allowed.
+        sqlx::query(
+            "INSERT INTO app.lyrics_associated
+                (file_hash, kind, language, content, format, fetched_at)
+             VALUES (?, 'translation', 'ja', '[00:12.00]Companion', 'lrc', 0)",
+        )
+        .bind("hash-c")
+        .execute(&pool)
+        .await
+        .unwrap();
+        assert_eq!(associated_count(&pool, "hash-c").await, 3);
+    }
 
     /// The chain must consult LRCLIB before providers that answer for
     /// almost any query. Tier 5 already asked LRCLIB, but through the

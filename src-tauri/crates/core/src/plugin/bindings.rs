@@ -67,6 +67,38 @@ pub mod metadata {
     });
 }
 
+/// `waveflow:metadata/plugin@2.0.0` — the v2 enricher world (issue #585).
+///
+/// Same exports as [`metadata`] plus a `lyrics` that returns a bundle: the
+/// document a provider served, verbatim, with its translations and
+/// pronunciation alongside. v1 kept a line and an optional start time,
+/// which is what LRCLIB already gives away, so a word-level provider had
+/// to discard its timing to answer — and nothing ever called it.
+///
+/// A separate module rather than an edit to [`metadata`]: changing a
+/// record changes its Component Model type, and `apple-artwork` is
+/// published against v1. Both stay bound while it migrates; v1 goes at
+/// the next breaking release.
+///
+/// `with:` remaps the four shared `waveflow:host/*` imports onto the
+/// types [`source`] already generated, exactly as [`metadata`] does, so
+/// the cost of the second world is its EXPORT surface alone — no parallel
+/// copy of the import traits, no second `Host for HostCtx` impl, no extra
+/// linker registration.
+pub mod metadata_v2 {
+    wasmtime::component::bindgen!({
+        world: "waveflow:metadata/plugin",
+        path: "../plugin-sdk/wit/metadata-v2",
+        imports: { default: trappable },
+        with: {
+            "waveflow:host/http": crate::plugin::bindings::source::waveflow::host::http,
+            "waveflow:host/log": crate::plugin::bindings::source::waveflow::host::log,
+            "waveflow:host/storage": crate::plugin::bindings::source::waveflow::host::storage,
+            "waveflow:host/config": crate::plugin::bindings::source::waveflow::host::config,
+        },
+    });
+}
+
 /// `waveflow:ui/plugin@1.0.0` — the world UI-extension plugins export
 /// (Release Radar and any future custom-view plugin). Exported
 /// interface `extension` with `manifest` / `render` / `on-event`;

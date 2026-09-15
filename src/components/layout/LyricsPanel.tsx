@@ -20,6 +20,7 @@ import {
   type LyricsLine,
   type LyricsPayload,
   type LyricsProvider,
+  PLUGIN_PROVIDER_PREFIX,
 } from "../../lib/tauri/lyrics";
 import { LyricsEditorModal } from "../common/LyricsEditorModal";
 
@@ -469,9 +470,18 @@ function sourceLabel(
       // empty-miss rows still leave `provider` null — fall back to
       // the generic "Online source" label so the badge stays
       // informative without lying about which provider ran.
-      return payload.provider
-        ? t(`lyrics.provider.${payload.provider}`)
-        : t("lyrics.source.api");
+      if (!payload.provider) return t("lyrics.source.api");
+      // A plugin id is not one of the five built-in providers and has no
+      // translation key — `lyrics.provider.plugin:apple-lyrics` exists in
+      // none of the 17 locales, and i18next renders a missing key as the
+      // key itself, so the badge would read as that literal string.
+      // The id is shown bare instead: it is what identifies the plugin to
+      // the user in Settings, and inventing a key per plugin is not
+      // possible for something installed at runtime.
+      if (payload.provider.startsWith(PLUGIN_PROVIDER_PREFIX)) {
+        return payload.provider.slice(PLUGIN_PROVIDER_PREFIX.length);
+      }
+      return t(`lyrics.provider.${payload.provider}`);
     case "manual":
       return t("lyrics.source.manual");
   }

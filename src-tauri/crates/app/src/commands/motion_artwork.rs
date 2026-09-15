@@ -91,8 +91,23 @@ pub async fn fetch_album_motion_artwork(
     let cache_locally = motion_cache_enabled(&state).await;
     let cache_dir = state.paths.motion_cache_dir.clone();
 
-    let plugin_ids =
-        super::plugins::enabled_plugin_ids_for_world(&state, "waveflow:metadata").await?;
+    // Both metadata worlds: v2 exports `album-info` exactly as v1 does,
+    // and enumerating v1 alone would drop animated covers the moment a
+    // plugin migrated — silently, since a plugin that is never asked
+    // cannot report that it was not asked. Each id is carried with the
+    // world it declared, because the two are not interchangeable at the
+    // binding: instantiating a v2 component against v1 bindings is the
+    // one outcome a version label exists to prevent.
+    let mut plugins: Vec<(String, bool)> = Vec::new();
+    for (world, is_v2) in [
+        (waveflow_core::plugin::worlds::METADATA_V1, false),
+        (waveflow_core::plugin::worlds::METADATA_V2, true),
+    ] {
+        for id in super::plugins::enabled_plugin_ids_for_world(&state, world).await? {
+            plugins.push((id, is_v2));
+        }
+    }
+    let plugin_ids = plugins;
 
     tracing::debug!(
         %artist,
@@ -103,7 +118,7 @@ pub async fn fetch_album_motion_artwork(
     );
 
     let mut set = tokio::task::JoinSet::new();
-    for plugin_id in plugin_ids {
+    for (plugin_id, is_v2) in plugin_ids {
         // Grab the per-plugin lock HANDLE only (fast map op) — the loop must
         // not block on a contended plugin. The guard is acquired inside the
         // blocking task below so it spans the real work.
@@ -125,13 +140,23 @@ pub async fn fetch_album_motion_artwork(
                     // async timeout already fired — so an enable/uninstall
                     // can't race an in-flight lookup after an early drop.
                     let _guard = lock_arc.blocking_lock_owned();
-                    waveflow_core::plugin::runtime::metadata_album_info(
-                        &runtime,
-                        &paths,
-                        &id_owned,
-                        &artist_owned,
-                        &album_owned,
-                    )
+                    if is_v2 {
+                        waveflow_core::plugin::runtime::metadata_v2_album_info(
+                            &runtime,
+                            &paths,
+                            &id_owned,
+                            &artist_owned,
+                            &album_owned,
+                        )
+                    } else {
+                        waveflow_core::plugin::runtime::metadata_album_info(
+                            &runtime,
+                            &paths,
+                            &id_owned,
+                            &artist_owned,
+                            &album_owned,
+                        )
+                    }
                 }),
             )
             .await;

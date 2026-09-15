@@ -408,22 +408,22 @@ pub async fn list_installed_plugins(state: State<'_, AppState>) -> AppResult<Vec
 /// ids win on collision, same as [`list_installed_plugins`].
 pub(crate) async fn enabled_plugin_ids_for_world(
     state: &AppState,
-    world_prefix: &str,
+    world: &str,
 ) -> AppResult<Vec<String>> {
     let paths = state.paths.plugin_paths();
-    let prefix = world_prefix.to_string();
+    let wanted = world.to_string();
     let ids = tokio::task::spawn_blocking(move || -> AppResult<Vec<String>> {
         let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
         let mut out = Vec::new();
         if let Some(bundled_root) = paths.bundled_root.as_deref() {
             for (id, m) in walk_install_root(bundled_root)? {
-                if seen.insert(id.clone()) && m.plugin.world.starts_with(&prefix) {
+                if seen.insert(id.clone()) && m.plugin.world == wanted {
                     out.push(id);
                 }
             }
         }
         for (id, m) in walk_install_root(&paths.plugins_root)? {
-            if !seen.contains(&id) && m.plugin.world.starts_with(&prefix) {
+            if !seen.contains(&id) && m.plugin.world == wanted {
                 out.push(id);
             }
         }
@@ -980,11 +980,6 @@ pub async fn set_plugin_option(
 // frontend-side. Each reloads the component per call, same as the
 // source surface (a click is human-paced, not a hot loop).
 
-/// The manifest label prefix every `ui`-world plugin declares
-/// (`waveflow:ui/v1`, and any future `/v2`). Used to enumerate UI
-/// plugins for the sidebar.
-const UI_WORLD_PREFIX: &str = "waveflow:ui";
-
 /// Owned mirror of `waveflow:ui/extension/mount-point` for the
 /// frontend — where a UI plugin plants its navigable sidebar entry.
 #[derive(Debug, Serialize)]
@@ -1115,7 +1110,7 @@ fn validate_ui_descriptor(plugin_id: &str, descriptor: &str) -> AppResult<()> {
 /// whole sidebar build, so one broken plugin can't blank the nav.
 #[tauri::command]
 pub async fn list_ui_plugins(state: State<'_, AppState>) -> AppResult<Vec<PluginUiRegistration>> {
-    let ids = enabled_plugin_ids_for_world(&state, UI_WORLD_PREFIX).await?;
+    let ids = enabled_plugin_ids_for_world(&state, waveflow_core::plugin::worlds::UI_V1).await?;
     let mut out = Vec::with_capacity(ids.len());
     for plugin_id in ids {
         let runtime = state.plugins.clone();
