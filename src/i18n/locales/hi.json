@@ -1364,8 +1364,6 @@
     "createTitle": "नई स्मार्ट प्लेलिस्ट",
     "editTitle": "स्मार्ट प्लेलिस्ट संपादित करें",
     "create": "बनाएँ",
-    "preview": "पूर्वावलोकन",
-    "previewCount": "{{count}} ट्रैक मेल खाते हैं",
     "nameRequired": "नाम आवश्यक है",
     "fields": {
       "name": "नाम",
@@ -1423,7 +1421,12 @@
       "addGroupOr": "OR समूह",
       "addNot": "NOT",
       "contains": "शामिल है…",
-      "pickGenre": "शैली चुनें…"
+      "pickGenre": "शैली चुनें…",
+      "pathPlaceholder": "फ़ोल्डर या पथ…",
+      "bits": "{{value}} बिट",
+      "pickTag": "टैग चुनें…",
+      "days_one": "दिन",
+      "days_other": "दिन"
     },
     "predicates": {
       "titleContains": "शीर्षक में शामिल है",
@@ -1439,8 +1442,39 @@
       "format": "फ़ॉर्मेट =",
       "hiRes": "Hi-Res",
       "liked": "पसंदीदा",
-      "ratingMin": "रेटिंग ≥"
-    }
+      "ratingMin": "रेटिंग ≥",
+      "pathContains": "पथ में शामिल",
+      "discNumberIs": "डिस्क =",
+      "addedInLastDays": "इतने दिनों में जोड़ा",
+      "sampleRateMin": "सैंपल दर ≥",
+      "bitDepthMin": "बिट गहराई ≥",
+      "playCountMin": "प्ले ≥",
+      "playCountMax": "प्ले ≤",
+      "playedInLastDays": "इतने दिनों में चलाया",
+      "tagPresent": "टैग मौजूद",
+      "tagContains": "टैग में शामिल"
+    },
+    "counting": "गिना जा रहा है…",
+    "matchCountLimited": "{{total}} में से {{kept}}",
+    "templates": {
+      "label": "टेम्पलेट",
+      "placeholder": "टेम्पलेट से शुरू करें…",
+      "recentlyAdded": "हाल में जोड़े गए",
+      "neverPlayed": "कभी नहीं चलाए गए",
+      "favourites": "पसंदीदा",
+      "forgotten": "भूले हुए",
+      "hiRes": "हाई-रेज़",
+      "upTempo": "तेज़ गति"
+    },
+    "predicateGroups": {
+      "text": "पाठ",
+      "library": "लाइब्रेरी",
+      "audio": "ऑडियो",
+      "history": "प्ले",
+      "tags": "टैग"
+    },
+    "matchCount_one": "{{count}} ट्रैक मेल खाता है",
+    "matchCount_other": "{{count}} ट्रैक मेल खाते हैं"
   },
   "lyricsEditor": {
     "title": "गीत बोल संपादक",
@@ -2635,6 +2669,55 @@
       "upload": "अपलोड",
       "backup": "बैकअप",
       "thumbnails": "थंबनेल"
+    }
+  },
+  "smartRuleSummary": {
+    "everything": "पूरी लाइब्रेरी",
+    "nothing": "कोई ट्रैक नहीं",
+    "and": " और ",
+    "or": " या ",
+    "not": "{{inner}} को छोड़कर",
+    "limit": "अधिकतम {{value}}",
+    "minutes": "{{value}} मि",
+    "sort": {
+      "addedDesc": "हाल में जोड़े गए पहले",
+      "addedAsc": "पहले जोड़े गए पहले",
+      "yearDesc": "नए पहले",
+      "yearAsc": "पुराने पहले",
+      "titleAsc": "शीर्षक से",
+      "artistAsc": "कलाकार से",
+      "random": "बेतरतीब"
+    },
+    "predicates": {
+      "titleContains": "शीर्षक में “{{value}}”",
+      "artistContains": "कलाकार में “{{value}}”",
+      "albumContains": "एल्बम में “{{value}}”",
+      "pathContains": "पथ में “{{value}}”",
+      "genreIs": "शैली {{value}}",
+      "yearMin": "वर्ष ≥ {{value}}",
+      "yearMax": "वर्ष ≤ {{value}}",
+      "discNumberIs": "डिस्क {{value}}",
+      "liked": "पसंदीदा",
+      "ratingMin": "रेटिंग ≥ {{value}}",
+      "format": "प्रारूप {{value}}",
+      "hiRes": "हाई-रेज़",
+      "sampleRateMin": "≥ {{value}} kHz",
+      "bitDepthMin": "≥ {{value}} बिट",
+      "bpmMin": "BPM ≥ {{value}}",
+      "bpmMax": "BPM ≤ {{value}}",
+      "durationMinMs": "अवधि ≥ {{value}}",
+      "durationMaxMs": "अवधि ≤ {{value}}",
+      "neverPlayed": "कभी नहीं चलाया",
+      "tagPresent": "{{key}} टैग मौजूद",
+      "tagContains": "{{key}} टैग में “{{value}}”",
+      "playCountMin_one": "कम से कम {{count}} बार चलाया",
+      "playCountMin_other": "कम से कम {{count}} बार चलाया",
+      "playCountMax_one": "अधिकतम {{count}} बार चलाया",
+      "playCountMax_other": "अधिकतम {{count}} बार चलाया",
+      "playedInLastDays_one": "पिछले {{count}} दिन में चलाया",
+      "playedInLastDays_other": "पिछले {{count}} दिनों में चलाया",
+      "addedInLastDays_one": "पिछले {{count}} दिन में जोड़ा",
+      "addedInLastDays_other": "पिछले {{count}} दिनों में जोड़ा"
     }
   }
 }

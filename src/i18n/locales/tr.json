@@ -1364,8 +1364,6 @@
     "createTitle": "Yeni akıllı çalma listesi",
     "editTitle": "Akıllı çalma listesini düzenle",
     "create": "Oluştur",
-    "preview": "Önizleme",
-    "previewCount": "{{count}} parça eşleşiyor",
     "nameRequired": "Ad zorunlu",
     "fields": {
       "name": "Ad",
@@ -1423,7 +1421,12 @@
       "addGroupOr": "VEYA grubu",
       "addNot": "DEĞİL",
       "contains": "İçerir…",
-      "pickGenre": "Bir tür seç…"
+      "pickGenre": "Bir tür seç…",
+      "pathPlaceholder": "Klasör veya yol…",
+      "bits": "{{value}} bit",
+      "pickTag": "Bir etiket seçin…",
+      "days_one": "gün",
+      "days_other": "gün"
     },
     "predicates": {
       "titleContains": "Başlık içerir",
@@ -1439,8 +1442,39 @@
       "format": "Format =",
       "hiRes": "Hi-Res",
       "liked": "Beğenildi",
-      "ratingMin": "Puan ≥"
-    }
+      "ratingMin": "Puan ≥",
+      "pathContains": "Yol şunu içerir",
+      "discNumberIs": "Disk =",
+      "addedInLastDays": "Şu süre içinde eklendi",
+      "sampleRateMin": "Örnekleme ≥",
+      "bitDepthMin": "Bit derinliği ≥",
+      "playCountMin": "Çalma sayısı ≥",
+      "playCountMax": "Çalma sayısı ≤",
+      "playedInLastDays": "Şu süre içinde çalındı",
+      "tagPresent": "Şu etikete sahip",
+      "tagContains": "Etiket şunu içerir"
+    },
+    "counting": "Sayılıyor…",
+    "matchCountLimited": "{{total}} eşleşmeden {{kept}} tanesi",
+    "templates": {
+      "label": "Şablon",
+      "placeholder": "Bir şablonla başla…",
+      "recentlyAdded": "Yeni eklenenler",
+      "neverPlayed": "Hiç çalınmayanlar",
+      "favourites": "Favoriler",
+      "forgotten": "Unutulanlar",
+      "hiRes": "Yüksek çözünürlük",
+      "upTempo": "Hızlı tempo"
+    },
+    "predicateGroups": {
+      "text": "Metin",
+      "library": "Kitaplık",
+      "audio": "Ses",
+      "history": "Çalmalar",
+      "tags": "Etiketler"
+    },
+    "matchCount_one": "{{count}} parça eşleşiyor",
+    "matchCount_other": "{{count}} parça eşleşiyor"
   },
   "lyricsEditor": {
     "title": "Söz düzenleyici",
@@ -2635,6 +2669,55 @@
       "upload": "Yükleme",
       "backup": "Yedekleme",
       "thumbnails": "Küçük resimler"
+    }
+  },
+  "smartRuleSummary": {
+    "everything": "tüm kitaplık",
+    "nothing": "hiçbir parça",
+    "and": " ve ",
+    "or": " veya ",
+    "not": "{{inner}} hariç",
+    "limit": "en fazla {{value}}",
+    "minutes": "{{value}} dk",
+    "sort": {
+      "addedDesc": "önce son eklenenler",
+      "addedAsc": "önce ilk eklenenler",
+      "yearDesc": "önce yeniler",
+      "yearAsc": "önce eskiler",
+      "titleAsc": "başlığa göre",
+      "artistAsc": "sanatçıya göre",
+      "random": "rastgele"
+    },
+    "predicates": {
+      "titleContains": "başlık “{{value}}” içerir",
+      "artistContains": "sanatçı “{{value}}” içerir",
+      "albumContains": "albüm “{{value}}” içerir",
+      "pathContains": "yol “{{value}}” içerir",
+      "genreIs": "tür {{value}}",
+      "yearMin": "yıl ≥ {{value}}",
+      "yearMax": "yıl ≤ {{value}}",
+      "discNumberIs": "disk {{value}}",
+      "liked": "beğenilen",
+      "ratingMin": "puan ≥ {{value}}",
+      "format": "{{value}} biçimi",
+      "hiRes": "yüksek çözünürlük",
+      "sampleRateMin": "≥ {{value}} kHz",
+      "bitDepthMin": "≥ {{value}} bit",
+      "bpmMin": "BPM ≥ {{value}}",
+      "bpmMax": "BPM ≤ {{value}}",
+      "durationMinMs": "süre ≥ {{value}}",
+      "durationMaxMs": "süre ≤ {{value}}",
+      "neverPlayed": "hiç çalınmadı",
+      "tagPresent": "{{key}} etiketine sahip",
+      "tagContains": "{{key}} etiketi “{{value}}” içerir",
+      "playCountMin_one": "en az {{count}} kez çalındı",
+      "playCountMin_other": "en az {{count}} kez çalındı",
+      "playCountMax_one": "en fazla {{count}} kez çalındı",
+      "playCountMax_other": "en fazla {{count}} kez çalındı",
+      "playedInLastDays_one": "son {{count}} günde çalındı",
+      "playedInLastDays_other": "son {{count}} günde çalındı",
+      "addedInLastDays_one": "son {{count}} günde eklendi",
+      "addedInLastDays_other": "son {{count}} günde eklendi"
     }
   }
 }

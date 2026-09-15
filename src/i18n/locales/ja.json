@@ -1364,8 +1364,6 @@
     "createTitle": "新しいスマートプレイリスト",
     "editTitle": "スマートプレイリストを編集",
     "create": "作成",
-    "preview": "プレビュー",
-    "previewCount": "{{count}} 曲がマッチ",
     "nameRequired": "名前は必須です",
     "fields": {
       "name": "名前",
@@ -1423,7 +1421,12 @@
       "addGroupOr": "ORグループ",
       "addNot": "NOT",
       "contains": "含む…",
-      "pickGenre": "ジャンルを選択…"
+      "pickGenre": "ジャンルを選択…",
+      "pathPlaceholder": "フォルダまたはパス…",
+      "bits": "{{value}} ビット",
+      "pickTag": "タグを選択…",
+      "days_one": "日間",
+      "days_other": "日間"
     },
     "predicates": {
       "titleContains": "タイトルに含む",
@@ -1439,8 +1442,39 @@
       "format": "フォーマット =",
       "hiRes": "Hi-Res",
       "liked": "お気に入り",
-      "ratingMin": "評価 ≥"
-    }
+      "ratingMin": "評価 ≥",
+      "pathContains": "パスに含む",
+      "discNumberIs": "ディスク =",
+      "addedInLastDays": "追加から",
+      "sampleRateMin": "サンプリング ≥",
+      "bitDepthMin": "ビット深度 ≥",
+      "playCountMin": "再生回数 ≥",
+      "playCountMax": "再生回数 ≤",
+      "playedInLastDays": "再生から",
+      "tagPresent": "タグを持つ",
+      "tagContains": "タグに含む"
+    },
+    "counting": "計算中…",
+    "matchCountLimited": "{{total}} 件中 {{kept}} 件",
+    "templates": {
+      "label": "テンプレート",
+      "placeholder": "テンプレートから始める…",
+      "recentlyAdded": "最近追加",
+      "neverPlayed": "未再生",
+      "favourites": "お気に入り",
+      "forgotten": "しばらく聴いていない",
+      "hiRes": "ハイレゾ",
+      "upTempo": "アップテンポ"
+    },
+    "predicateGroups": {
+      "text": "テキスト",
+      "library": "ライブラリ",
+      "audio": "オーディオ",
+      "history": "再生",
+      "tags": "タグ"
+    },
+    "matchCount_one": "{{count}} 曲が一致",
+    "matchCount_other": "{{count}} 曲が一致"
   },
   "lyricsEditor": {
     "title": "歌詞エディタ",
@@ -2614,6 +2648,55 @@
       "upload": "アップロード",
       "backup": "バックアップ",
       "thumbnails": "サムネイル"
+    }
+  },
+  "smartRuleSummary": {
+    "everything": "ライブラリ全体",
+    "nothing": "該当なし",
+    "and": " かつ ",
+    "or": " または ",
+    "not": "{{inner}} を除く",
+    "limit": "最大 {{value}} 曲",
+    "minutes": "{{value}} 分",
+    "sort": {
+      "addedDesc": "追加が新しい順",
+      "addedAsc": "追加が古い順",
+      "yearDesc": "リリースが新しい順",
+      "yearAsc": "リリースが古い順",
+      "titleAsc": "タイトル順",
+      "artistAsc": "アーティスト順",
+      "random": "ランダム"
+    },
+    "predicates": {
+      "titleContains": "タイトルに「{{value}}」を含む",
+      "artistContains": "アーティストに「{{value}}」を含む",
+      "albumContains": "アルバムに「{{value}}」を含む",
+      "pathContains": "パスに「{{value}}」を含む",
+      "genreIs": "ジャンル {{value}}",
+      "yearMin": "年 ≥ {{value}}",
+      "yearMax": "年 ≤ {{value}}",
+      "discNumberIs": "ディスク {{value}}",
+      "liked": "お気に入り",
+      "ratingMin": "評価 ≥ {{value}}",
+      "format": "形式 {{value}}",
+      "hiRes": "ハイレゾ",
+      "sampleRateMin": "≥ {{value}} kHz",
+      "bitDepthMin": "≥ {{value}} ビット",
+      "bpmMin": "BPM ≥ {{value}}",
+      "bpmMax": "BPM ≤ {{value}}",
+      "durationMinMs": "長さ ≥ {{value}}",
+      "durationMaxMs": "長さ ≤ {{value}}",
+      "neverPlayed": "未再生",
+      "tagPresent": "{{key}} タグを持つ",
+      "tagContains": "{{key}} タグに「{{value}}」を含む",
+      "playCountMin_one": "{{count}} 回以上再生",
+      "playCountMin_other": "{{count}} 回以上再生",
+      "playCountMax_one": "{{count}} 回以下の再生",
+      "playCountMax_other": "{{count}} 回以下の再生",
+      "playedInLastDays_one": "過去 {{count}} 日以内に再生",
+      "playedInLastDays_other": "過去 {{count}} 日以内に再生",
+      "addedInLastDays_one": "過去 {{count}} 日以内に追加",
+      "addedInLastDays_other": "過去 {{count}} 日以内に追加"
     }
   }
 }

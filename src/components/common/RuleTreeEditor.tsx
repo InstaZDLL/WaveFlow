@@ -6,6 +6,7 @@ import type {
   RuleNode,
 } from "../../lib/tauri/smart_playlists";
 import type { GenreRow } from "../../lib/tauri/browse";
+import type { TrackTagKey } from "../../lib/tauri/trackTags";
 
 /**
  * Recursive visual editor for the smart playlist rule tree.
@@ -25,12 +26,15 @@ interface RuleTreeEditorProps {
   root: RuleNode;
   onChange: (next: RuleNode) => void;
   genres: GenreRow[];
+  /** Tag keys the library actually holds (#588), with their counts. */
+  tagKeys: TrackTagKey[];
 }
 
 export function RuleTreeEditor({
   root,
   onChange,
   genres,
+  tagKeys,
 }: RuleTreeEditorProps) {
   return (
     <NodeView
@@ -39,6 +43,7 @@ export function RuleTreeEditor({
       onDelete={null} // root can't be deleted
       depth={0}
       genres={genres}
+      tagKeys={tagKeys}
     />
   );
 }
@@ -55,6 +60,7 @@ interface NodeViewProps {
   onDelete: (() => void) | null;
   depth: number;
   genres: GenreRow[];
+  tagKeys: TrackTagKey[];
 }
 
 function NodeView(props: NodeViewProps) {
@@ -79,6 +85,7 @@ function GroupView({
   onDelete,
   depth,
   genres,
+  tagKeys,
 }: NodeViewProps & { node: Extract<RuleNode, { type: "all" | "any" }> }) {
   const { t } = useTranslation();
   const isAnd = node.type === "all";
@@ -190,6 +197,7 @@ function GroupView({
               onDelete={() => deleteChild(idx)}
               depth={depth + 1}
               genres={genres}
+              tagKeys={tagKeys}
             />
           ))}
         </div>
@@ -244,6 +252,7 @@ function NotView({
   onDelete,
   depth,
   genres,
+  tagKeys,
 }: NodeViewProps & { node: Extract<RuleNode, { type: "not" }> }) {
   const { t } = useTranslation();
   return (
@@ -274,6 +283,7 @@ function NotView({
           onDelete={null} // NOT can't have an empty child
           depth={depth + 1}
           genres={genres}
+          tagKeys={tagKeys}
         />
       </div>
     </div>
@@ -289,22 +299,69 @@ interface PredicateOption {
   key: string; // i18n key suffix
 }
 
-const PREDICATE_OPTIONS: PredicateOption[] = [
-  { kind: "title_contains", key: "titleContains" },
-  { kind: "artist_contains", key: "artistContains" },
-  { kind: "album_contains", key: "albumContains" },
-  { kind: "genre_is", key: "genreIs" },
-  { kind: "year_min", key: "yearMin" },
-  { kind: "year_max", key: "yearMax" },
-  { kind: "bpm_min", key: "bpmMin" },
-  { kind: "bpm_max", key: "bpmMax" },
-  { kind: "duration_min_ms", key: "durationMinMs" },
-  { kind: "duration_max_ms", key: "durationMaxMs" },
-  { kind: "format", key: "format" },
-  { kind: "hi_res", key: "hiRes" },
-  { kind: "liked", key: "liked" },
-  { kind: "rating_min", key: "ratingMin" },
+/**
+ * The predicates, in named groups.
+ *
+ * Twenty-four entries in one flat list is a list nobody reads to the
+ * end; grouped, the one being looked for is in the section its name
+ * suggests. The groups are rendered as `<optgroup>`, so the select
+ * still behaves like a select — no custom popup to keep accessible.
+ */
+const PREDICATE_GROUPS: { key: string; options: PredicateOption[] }[] = [
+  {
+    key: "text",
+    options: [
+      { kind: "title_contains", key: "titleContains" },
+      { kind: "artist_contains", key: "artistContains" },
+      { kind: "album_contains", key: "albumContains" },
+      { kind: "path_contains", key: "pathContains" },
+    ],
+  },
+  {
+    key: "library",
+    options: [
+      { kind: "genre_is", key: "genreIs" },
+      { kind: "year_min", key: "yearMin" },
+      { kind: "year_max", key: "yearMax" },
+      { kind: "disc_number_is", key: "discNumberIs" },
+      { kind: "liked", key: "liked" },
+      { kind: "rating_min", key: "ratingMin" },
+      { kind: "added_in_last_days", key: "addedInLastDays" },
+    ],
+  },
+  {
+    key: "audio",
+    options: [
+      { kind: "format", key: "format" },
+      { kind: "hi_res", key: "hiRes" },
+      { kind: "sample_rate_min", key: "sampleRateMin" },
+      { kind: "bit_depth_min", key: "bitDepthMin" },
+      { kind: "bpm_min", key: "bpmMin" },
+      { kind: "bpm_max", key: "bpmMax" },
+      { kind: "duration_min_ms", key: "durationMinMs" },
+      { kind: "duration_max_ms", key: "durationMaxMs" },
+    ],
+  },
+  {
+    key: "history",
+    options: [
+      { kind: "play_count_min", key: "playCountMin" },
+      { kind: "play_count_max", key: "playCountMax" },
+      { kind: "played_in_last_days", key: "playedInLastDays" },
+    ],
+  },
+  {
+    key: "tags",
+    options: [
+      { kind: "tag_present", key: "tagPresent" },
+      { kind: "tag_contains", key: "tagContains" },
+    ],
+  },
 ];
+
+/** Sample rates worth offering — the ones files are actually made at. */
+const SAMPLE_RATE_OPTIONS = [44100, 48000, 88200, 96000, 176400, 192000];
+const BIT_DEPTH_OPTIONS = [16, 24, 32];
 
 const FORMAT_OPTIONS = [
   "flac",
@@ -317,7 +374,10 @@ const FORMAT_OPTIONS = [
   "dff",
 ];
 
-function defaultPredicateFor(kind: PredicateKind): Predicate {
+function defaultPredicateFor(
+  kind: PredicateKind,
+  tagKeys: TrackTagKey[],
+): Predicate {
   switch (kind) {
     case "title_contains":
     case "artist_contains":
@@ -344,6 +404,30 @@ function defaultPredicateFor(kind: PredicateKind): Predicate {
       return { kind };
     case "rating_min":
       return { kind, value: 153 }; // 3 stars (3 * 255 / 5)
+    case "play_count_min":
+      return { kind, value: 10 };
+    case "play_count_max":
+      // Zero, because "never played" is the reason this predicate
+      // exists — no other rule can say it.
+      return { kind, value: 0 };
+    case "played_in_last_days":
+    case "added_in_last_days":
+      return { kind, value: 30 };
+    case "sample_rate_min":
+      return { kind, value: 88200 };
+    case "bit_depth_min":
+      return { kind, value: 24 };
+    case "disc_number_is":
+      return { kind, value: 1 };
+    case "path_contains":
+      return { kind, value: "" };
+    case "tag_present":
+      // The most-carried key, which is the one already at the top of
+      // the picker: a rule opening on a tag three files have would read
+      // as broken before the user has touched anything.
+      return { kind, key: tagKeys[0]?.key ?? "" };
+    case "tag_contains":
+      return { kind, key: tagKeys[0]?.key ?? "", value: "" };
   }
 }
 
@@ -352,12 +436,13 @@ function LeafView({
   onChange,
   onDelete,
   genres,
+  tagKeys,
 }: NodeViewProps & { node: Extract<RuleNode, { type: "leaf" }> }) {
   const { t } = useTranslation();
   const pred = node.predicate;
 
   const setKind = (kind: PredicateKind) => {
-    onChange({ ...node, predicate: defaultPredicateFor(kind) });
+    onChange({ ...node, predicate: defaultPredicateFor(kind, tagKeys) });
   };
   const updateValue = (next: Predicate) => {
     onChange({ ...node, predicate: next });
@@ -371,16 +456,24 @@ function LeafView({
           onChange={(e) => setKind(e.target.value as PredicateKind)}
           className="text-xs rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-500"
         >
-          {PREDICATE_OPTIONS.map((p) => (
-            <option key={p.kind} value={p.kind}>
-              {t(`smartPlaylistEditor.predicates.${p.key}`)}
-            </option>
+          {PREDICATE_GROUPS.map((group) => (
+            <optgroup
+              key={group.key}
+              label={t(`smartPlaylistEditor.predicateGroups.${group.key}`)}
+            >
+              {group.options.map((p) => (
+                <option key={p.kind} value={p.kind}>
+                  {t(`smartPlaylistEditor.predicates.${p.key}`)}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
         <PredicateValue
           predicate={pred}
           onChange={updateValue}
           genres={genres}
+          tagKeys={tagKeys}
         />
         <div className="flex-1" />
         {onDelete && (
@@ -406,10 +499,12 @@ function PredicateValue({
   predicate,
   onChange,
   genres,
+  tagKeys,
 }: {
   predicate: Predicate;
   onChange: (p: Predicate) => void;
   genres: GenreRow[];
+  tagKeys: TrackTagKey[];
 }) {
   const { t } = useTranslation();
   const inputCls =
@@ -425,6 +520,16 @@ function PredicateValue({
           value={predicate.value}
           onChange={(e) => onChange({ ...predicate, value: e.target.value })}
           placeholder={t("smartPlaylistEditor.tree.contains")}
+          className={`${inputCls} flex-1 min-w-0`}
+        />
+      );
+    case "path_contains":
+      return (
+        <input
+          type="text"
+          value={predicate.value}
+          onChange={(e) => onChange({ ...predicate, value: e.target.value })}
+          placeholder={t("smartPlaylistEditor.tree.pathPlaceholder")}
           className={`${inputCls} flex-1 min-w-0`}
         />
       );
@@ -449,6 +554,9 @@ function PredicateValue({
     case "year_max":
     case "duration_min_ms":
     case "duration_max_ms":
+    case "play_count_min":
+    case "play_count_max":
+    case "disc_number_is":
       return (
         <input
           type="number"
@@ -486,6 +594,89 @@ function PredicateValue({
           ))}
         </select>
       );
+    // A window is a number plus its unit, and the unit is the half that
+    // makes it readable: "30" on its own says nothing, and the field is
+    // narrow enough that the suffix has to sit outside it.
+    case "played_in_last_days":
+    case "added_in_last_days":
+      return (
+        <span className="inline-flex items-center gap-1.5">
+          <input
+            type="number"
+            min={1}
+            value={predicate.value}
+            onChange={(e) =>
+              onChange({
+                ...predicate,
+                value: parseInt(e.target.value, 10) || 0,
+              })
+            }
+            className={`${inputCls} w-20`}
+          />
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            {t("smartPlaylistEditor.tree.days", { count: predicate.value })}
+          </span>
+        </span>
+      );
+    case "sample_rate_min":
+      return (
+        <select
+          value={predicate.value}
+          onChange={(e) =>
+            onChange({ ...predicate, value: Number(e.target.value) })
+          }
+          className={inputCls}
+        >
+          {SAMPLE_RATE_OPTIONS.map((hz) => (
+            <option key={hz} value={hz}>
+              {`${(hz / 1000).toFixed(1)} kHz`}
+            </option>
+          ))}
+        </select>
+      );
+    case "bit_depth_min":
+      return (
+        <select
+          value={predicate.value}
+          onChange={(e) =>
+            onChange({ ...predicate, value: Number(e.target.value) })
+          }
+          className={inputCls}
+        >
+          {BIT_DEPTH_OPTIONS.map((bits) => (
+            <option key={bits} value={bits}>
+              {t("smartPlaylistEditor.tree.bits", { value: bits })}
+            </option>
+          ))}
+        </select>
+      );
+    case "tag_present":
+      return (
+        <TagKeyPicker
+          value={predicate.key}
+          tagKeys={tagKeys}
+          onChange={(key) => onChange({ ...predicate, key })}
+          className={inputCls}
+        />
+      );
+    case "tag_contains":
+      return (
+        <>
+          <TagKeyPicker
+            value={predicate.key}
+            tagKeys={tagKeys}
+            onChange={(key) => onChange({ ...predicate, key })}
+            className={inputCls}
+          />
+          <input
+            type="text"
+            value={predicate.value}
+            onChange={(e) => onChange({ ...predicate, value: e.target.value })}
+            placeholder={t("smartPlaylistEditor.tree.contains")}
+            className={`${inputCls} flex-1 min-w-0`}
+          />
+        </>
+      );
     case "hi_res":
     case "liked":
       return null; // unit predicate — no value
@@ -500,6 +691,55 @@ function PredicateValue({
         />
       );
   }
+}
+
+/**
+ * The tag keys the library holds, with how many tracks carry each.
+ *
+ * The count is the whole reason this is a picker and not a text field:
+ * it separates the tag on every track from the one on three, and it
+ * proves the key exists — a typed key that matches nothing is a rule
+ * that silently returns no tracks with nothing on screen to say why.
+ *
+ * A key stored in an existing rule but absent from the library (the
+ * files were removed, or the rule came from another machine) is kept as
+ * an extra option rather than dropped: opening a playlist must not
+ * rewrite its rules.
+ */
+function TagKeyPicker({
+  value,
+  tagKeys,
+  onChange,
+  className,
+}: {
+  value: string;
+  tagKeys: TrackTagKey[];
+  onChange: (key: string) => void;
+  className: string;
+}) {
+  const { t } = useTranslation();
+  const known = tagKeys.some(
+    (k) => k.key.toLowerCase() === value.toLowerCase(),
+  );
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={className}
+      aria-label={t("smartPlaylistEditor.tree.pickTag")}
+    >
+      {(value === "" || !known) && (
+        <option value={value}>
+          {value === "" ? t("smartPlaylistEditor.tree.pickTag") : value}
+        </option>
+      )}
+      {tagKeys.map((k) => (
+        <option key={k.key} value={k.key}>
+          {`${k.key} (${k.count})`}
+        </option>
+      ))}
+    </select>
+  );
 }
 
 function StarPicker({

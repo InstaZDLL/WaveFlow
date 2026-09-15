@@ -73,7 +73,24 @@ export type Predicate =
   | { kind: "format"; value: string }
   | { kind: "hi_res" }
   | { kind: "liked" }
-  | { kind: "rating_min"; value: number };
+  | { kind: "rating_min"; value: number }
+  // One `play_event` row is one play, with no minimum listened time —
+  // the same count the statistics page shows.
+  | { kind: "play_count_min"; value: number }
+  | { kind: "play_count_max"; value: number }
+  // Windows, not dates: a rule set is stored once and re-evaluated for
+  // years, and a pinned date ages into something its author never
+  // wrote. "Not played since" is `not` around `played_in_last_days`.
+  | { kind: "played_in_last_days"; value: number }
+  | { kind: "added_in_last_days"; value: number }
+  | { kind: "sample_rate_min"; value: number }
+  | { kind: "bit_depth_min"; value: number }
+  | { kind: "disc_number_is"; value: number }
+  | { kind: "path_contains"; value: string }
+  // `key` is a tag name out of `listTrackTagKeys` (#588) — a field the
+  // user's own tagger writes, which WaveFlow does not model.
+  | { kind: "tag_present"; key: string }
+  | { kind: "tag_contains"; key: string; value: string };
 
 export type PredicateKind = Predicate["kind"];
 
@@ -116,9 +133,17 @@ export interface CustomSmartPlaylistOutput {
   track_count: number;
 }
 
-export interface RulesPreview {
+/**
+ * What a rule set matches right now.
+ *
+ * `total` is every available track the rules match; `kept` is what the
+ * playlist would actually hold once the limit is applied. Showing only
+ * one of them misleads about the other — "50" hides that the rules are
+ * picking those 50 out of three thousand.
+ */
+export interface RulesCount {
   total: number;
-  track_ids: number[];
+  kept: number;
 }
 
 export function createCustomSmartPlaylist(
@@ -155,8 +180,15 @@ export function getCustomSmartPlaylistRules(
   });
 }
 
-export function previewCustomSmartPlaylist(
+/**
+ * Count the matches of a rule set without listing them.
+ *
+ * Cheap enough for the editor's live counter: it counts in SQLite and
+ * carries back two numbers rather than sorting, truncating and shipping
+ * up to five thousand ids a number on screen would throw away.
+ */
+export function countCustomSmartPlaylist(
   rules: CustomRules,
-): Promise<RulesPreview> {
-  return invoke<RulesPreview>("preview_custom_smart_playlist", { rules });
+): Promise<RulesCount> {
+  return invoke<RulesCount>("count_custom_smart_playlist", { rules });
 }

@@ -1364,8 +1364,6 @@
     "createTitle": "Neue intelligente Playlist",
     "editTitle": "Intelligente Playlist bearbeiten",
     "create": "Erstellen",
-    "preview": "Vorschau",
-    "previewCount": "{{count}} Titel passen",
     "nameRequired": "Name ist erforderlich",
     "fields": {
       "name": "Name",
@@ -1423,7 +1421,12 @@
       "addGroupOr": "ODER-Gruppe",
       "addNot": "NICHT",
       "contains": "Enthält…",
-      "pickGenre": "Genre auswählen…"
+      "pickGenre": "Genre auswählen…",
+      "pathPlaceholder": "Ordner oder Pfad…",
+      "bits": "{{value}} Bit",
+      "pickTag": "Tag wählen…",
+      "days_one": "Tag",
+      "days_other": "Tage"
     },
     "predicates": {
       "titleContains": "Titel enthält",
@@ -1439,8 +1442,39 @@
       "format": "Format =",
       "hiRes": "Hi-Res",
       "liked": "Favoriten",
-      "ratingMin": "Bewertung ≥"
-    }
+      "ratingMin": "Bewertung ≥",
+      "pathContains": "Pfad enthält",
+      "discNumberIs": "CD =",
+      "addedInLastDays": "Hinzugefügt seit",
+      "sampleRateMin": "Abtastrate ≥",
+      "bitDepthMin": "Bittiefe ≥",
+      "playCountMin": "Wiedergaben ≥",
+      "playCountMax": "Wiedergaben ≤",
+      "playedInLastDays": "Gespielt seit",
+      "tagPresent": "Hat Tag",
+      "tagContains": "Tag enthält"
+    },
+    "counting": "Wird gezählt…",
+    "matchCountLimited": "{{kept}} von {{total}} Treffern",
+    "templates": {
+      "label": "Vorlage",
+      "placeholder": "Mit einer Vorlage beginnen…",
+      "recentlyAdded": "Zuletzt hinzugefügt",
+      "neverPlayed": "Nie gespielt",
+      "favourites": "Favoriten",
+      "forgotten": "Vergessen",
+      "hiRes": "Hi-Res",
+      "upTempo": "Hohes Tempo"
+    },
+    "predicateGroups": {
+      "text": "Text",
+      "library": "Mediathek",
+      "audio": "Audio",
+      "history": "Wiedergaben",
+      "tags": "Tags"
+    },
+    "matchCount_one": "{{count}} Titel passt",
+    "matchCount_other": "{{count}} Titel passen"
   },
   "lyricsEditor": {
     "title": "Songtext-Editor",
@@ -2635,6 +2669,55 @@
       "upload": "Hochladen",
       "backup": "Sicherung",
       "thumbnails": "Miniaturen"
+    }
+  },
+  "smartRuleSummary": {
+    "everything": "die ganze Mediathek",
+    "nothing": "keine Titel",
+    "and": " und ",
+    "or": " oder ",
+    "not": "außer {{inner}}",
+    "limit": "höchstens {{value}}",
+    "minutes": "{{value}} Min.",
+    "sort": {
+      "addedDesc": "zuletzt hinzugefügt zuerst",
+      "addedAsc": "zuerst hinzugefügt zuerst",
+      "yearDesc": "neueste zuerst",
+      "yearAsc": "älteste zuerst",
+      "titleAsc": "nach Titel",
+      "artistAsc": "nach Interpret",
+      "random": "zufällig"
+    },
+    "predicates": {
+      "titleContains": "Titel enthält „{{value}}“",
+      "artistContains": "Interpret enthält „{{value}}“",
+      "albumContains": "Album enthält „{{value}}“",
+      "pathContains": "Pfad enthält „{{value}}“",
+      "genreIs": "Genre {{value}}",
+      "yearMin": "Jahr ≥ {{value}}",
+      "yearMax": "Jahr ≤ {{value}}",
+      "discNumberIs": "CD {{value}}",
+      "liked": "Favorit",
+      "ratingMin": "Bewertung ≥ {{value}}",
+      "format": "Format {{value}}",
+      "hiRes": "Hi-Res",
+      "sampleRateMin": "≥ {{value}} kHz",
+      "bitDepthMin": "≥ {{value}} Bit",
+      "bpmMin": "BPM ≥ {{value}}",
+      "bpmMax": "BPM ≤ {{value}}",
+      "durationMinMs": "Dauer ≥ {{value}}",
+      "durationMaxMs": "Dauer ≤ {{value}}",
+      "neverPlayed": "nie gespielt",
+      "tagPresent": "hat das Tag {{key}}",
+      "tagContains": "Tag {{key}} enthält „{{value}}“",
+      "playCountMin_one": "mindestens {{count}} Mal gespielt",
+      "playCountMin_other": "mindestens {{count}} Mal gespielt",
+      "playCountMax_one": "höchstens {{count}} Mal gespielt",
+      "playCountMax_other": "höchstens {{count}} Mal gespielt",
+      "playedInLastDays_one": "in den letzten {{count}} Tag gespielt",
+      "playedInLastDays_other": "in den letzten {{count}} Tagen gespielt",
+      "addedInLastDays_one": "in den letzten {{count}} Tag hinzugefügt",
+      "addedInLastDays_other": "in den letzten {{count}} Tagen hinzugefügt"
     }
   }
 }

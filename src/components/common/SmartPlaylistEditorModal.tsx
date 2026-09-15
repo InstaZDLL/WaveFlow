@@ -1,19 +1,31 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Sparkles, Loader2, Eye } from "lucide-react";
+import { X, Sparkles, Loader2, Wand2 } from "lucide-react";
 import {
+  countCustomSmartPlaylist,
   createCustomSmartPlaylist,
-  previewCustomSmartPlaylist,
   updateCustomSmartPlaylist,
   emptyTree,
   type CustomRules,
   type CustomSort,
   type RuleNode,
+  type RulesCount,
 } from "../../lib/tauri/smart_playlists";
 import { listGenres, type GenreRow } from "../../lib/tauri/browse";
+import { listTrackTagKeys, type TrackTagKey } from "../../lib/tauri/trackTags";
+import { RULE_TEMPLATES } from "../../lib/smartPlaylistTemplates";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { RuleTreeEditor } from "./RuleTreeEditor";
 import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
+
+/**
+ * How long the editor waits after a keystroke before counting.
+ *
+ * Long enough that typing a word is one query instead of six, short
+ * enough that the number moves while the eye is still on the field —
+ * which is the whole point of a live count over a button.
+ */
+const COUNT_DEBOUNCE_MS = 350;
 
 interface SmartPlaylistEditorModalProps {
   isOpen: boolean;
@@ -41,8 +53,11 @@ const SORT_OPTIONS: { value: CustomSort; key: string }[] = [
 
 /**
  * Smart playlist editor with a recursive boolean rule tree
- * (AND / OR / NOT / leaf predicates). Live preview shows how many
- * tracks the current tree matches without persisting anything.
+ * (AND / OR / NOT / leaf predicates). A live counter re-runs the rules
+ * after every edit and says how many tracks they match, without
+ * persisting anything — "at least" and "greater than" explain
+ * themselves badly, and a number falling from three thousand to twelve
+ * as the rule is typed explains them at once.
  *
  * The existing-rule path auto-migrates the v1 flat shape on read
  * (backend deserializer handles that), so opening an old playlist
@@ -62,18 +77,29 @@ export function SmartPlaylistEditorModal({
   const [sort, setSort] = useState<CustomSort>("added_desc");
   const [limit, setLimit] = useState<number | null>(null);
   const [genres, setGenres] = useState<GenreRow[]>([]);
-  const [previewCount, setPreviewCount] = useState<number | null>(null);
-  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [tagKeys, setTagKeys] = useState<TrackTagKey[]>([]);
+  const [count, setCount] = useState<RulesCount | null>(null);
+  const [isCounting, setIsCounting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
+  /**
+   * Which count is the current one.
+   *
+   * Two counts can be in flight — the second rule edit does not wait
+   * for the first query — and they can come back in either order. The
+   * token is claimed when a count *starts* and checked when it lands,
+   * so a slow answer to a rule the user has already changed is dropped
+   * instead of overwriting the answer to the rule on screen.
+   */
+  const countTokenRef = useRef(0);
 
   // ── Hydrate on open ─────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return;
     /* eslint-disable react-hooks/set-state-in-effect */
     setError(null);
-    setPreviewCount(null);
+    setCount(null);
     if (existing) {
       setName(existing.name);
       setDescription(existing.description ?? "");
@@ -93,22 +119,68 @@ export function SmartPlaylistEditorModal({
     listGenres(null)
       .then(setGenres)
       .catch(() => {});
+    // The tag keys only move when a scan has run, so they are read once
+    // per opening rather than per edit. An empty list is not an error:
+    // it is a library whose files carry no tag WaveFlow does not
+    // already model, and the two tag predicates then have nothing to
+    // offer — which the picker says by having no options.
+    listTrackTagKeys()
+      .then(setTagKeys)
+      .catch(() => {});
   }, [isOpen, existing]);
 
   const currentRules = (): CustomRules => ({ tree, sort, limit });
 
-  const handlePreview = async () => {
-    setIsPreviewing(true);
-    setError(null);
-    try {
-      const result = await previewCustomSmartPlaylist(currentRules());
-      setPreviewCount(result.total);
-    } catch (err) {
-      console.error("[SmartPlaylistEditor] preview failed", err);
-      setError(String(err));
-    } finally {
-      setIsPreviewing(false);
-    }
+  // ── Live count ──────────────────────────────────────────────────
+  //
+  // Debounced, and keyed on the rules rather than on a button: the
+  // count is only useful while the rule is being written, which is
+  // exactly when nobody stops to press anything.
+  useEffect(() => {
+    if (!isOpen) return;
+    const token = ++countTokenRef.current;
+    const timer = setTimeout(() => {
+      // The spinner is raised here rather than when the effect runs:
+      // during the debounce nothing is being counted yet, and a
+      // spinner that blinks on every keystroke says less than the
+      // number it is sitting next to.
+      setIsCounting(true);
+      countCustomSmartPlaylist({ tree, sort, limit })
+        .then((result) => {
+          if (countTokenRef.current !== token) return;
+          setCount(result);
+          setIsCounting(false);
+        })
+        .catch((err) => {
+          if (countTokenRef.current !== token) return;
+          console.error("[SmartPlaylistEditor] count failed", err);
+          // The count is an aid, not a gate: a failed one leaves the
+          // last good number visible and says nothing, rather than
+          // pushing an error banner over an editor that still works
+          // and still saves.
+          setCount(null);
+          setIsCounting(false);
+        });
+    }, COUNT_DEBOUNCE_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [isOpen, tree, sort, limit]);
+
+  /**
+   * Drop a ready-made rule set into the editor.
+   *
+   * In edit mode this replaces what the playlist had, which is the
+   * point: going back to something known to work is what repairs a
+   * tangled rule set. Nothing is written until Save, so closing the
+   * modal undoes it.
+   */
+  const applyTemplate = (key: string) => {
+    const template = RULE_TEMPLATES.find((tpl) => tpl.key === key);
+    if (!template) return;
+    setTree(template.rules.tree);
+    setSort(template.rules.sort ?? "added_desc");
+    setLimit(template.rules.limit ?? null);
   };
 
   const handleSave = async () => {
@@ -199,14 +271,40 @@ export function SmartPlaylistEditorModal({
           <Section
             title={t("smartPlaylistEditor.tree.sectionTitle")}
             hint={t("smartPlaylistEditor.tree.sectionHint")}
+            action={
+              <label className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                <Wand2 size={13} />
+                <span className="sr-only sm:not-sr-only">
+                  {t("smartPlaylistEditor.templates.label")}
+                </span>
+                <select
+                  // Uncontrolled on purpose: it is an action, not a
+                  // state. Holding the last pick would claim the rules
+                  // still match that template after they were edited.
+                  value=""
+                  onChange={(e) => {
+                    applyTemplate(e.target.value);
+                    e.target.value = "";
+                  }}
+                  className="text-xs rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                >
+                  <option value="">
+                    {t("smartPlaylistEditor.templates.placeholder")}
+                  </option>
+                  {RULE_TEMPLATES.map((tpl) => (
+                    <option key={tpl.key} value={tpl.key}>
+                      {t(`smartPlaylistEditor.templates.${tpl.key}`)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            }
           >
             <RuleTreeEditor
               root={tree}
-              onChange={(next) => {
-                setTree(next);
-                setPreviewCount(null);
-              }}
+              onChange={setTree}
               genres={genres}
+              tagKeys={tagKeys}
             />
           </Section>
 
@@ -215,10 +313,7 @@ export function SmartPlaylistEditorModal({
             <Field label={t("smartPlaylistEditor.fields.sort")}>
               <select
                 value={sort}
-                onChange={(e) => {
-                  setSort(e.target.value as CustomSort);
-                  setPreviewCount(null);
-                }}
+                onChange={(e) => setSort(e.target.value as CustomSort)}
                 className={inputClass}
               >
                 {SORT_OPTIONS.map((s) => (
@@ -234,10 +329,9 @@ export function SmartPlaylistEditorModal({
                 min={1}
                 max={5000}
                 value={limit ?? ""}
-                onChange={(e) => {
-                  setLimit(e.target.value ? Number(e.target.value) : null);
-                  setPreviewCount(null);
-                }}
+                onChange={(e) =>
+                  setLimit(e.target.value ? Number(e.target.value) : null)
+                }
                 placeholder={t("smartPlaylistEditor.placeholders.noLimit")}
                 className={inputClass}
               />
@@ -247,21 +341,7 @@ export function SmartPlaylistEditorModal({
 
         {/* Footer */}
         <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-zinc-200 dark:border-zinc-800">
-          <button
-            type="button"
-            onClick={handlePreview}
-            disabled={isPreviewing}
-            className="px-4 py-2 rounded-full text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
-          >
-            {isPreviewing ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Eye size={14} />
-            )}
-            {previewCount != null
-              ? t("smartPlaylistEditor.previewCount", { count: previewCount })
-              : t("smartPlaylistEditor.preview")}
-          </button>
+          <MatchCount count={count} isCounting={isCounting} />
           <div className="flex items-center gap-2">
             {error && (
               <span className="text-xs text-red-500 truncate max-w-xs">
@@ -291,6 +371,48 @@ export function SmartPlaylistEditorModal({
   );
 }
 
+/**
+ * The live match count.
+ *
+ * Shows both numbers when they differ, because the difference is the
+ * thing worth knowing: a limit of 50 over three thousand matches means
+ * the rules are barely filtering, and a counter saying only "50" hides
+ * exactly that. The spinner sits beside the last number rather than
+ * replacing it — a count that blanks out on every keystroke flickers,
+ * and a stale number for 350 ms is easier to read than no number.
+ */
+function MatchCount({
+  count,
+  isCounting,
+}: {
+  count: RulesCount | null;
+  isCounting: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div
+      className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400"
+      aria-live="polite"
+    >
+      {isCounting && <Loader2 size={14} className="animate-spin shrink-0" />}
+      {count == null ? (
+        <span>{t("smartPlaylistEditor.counting")}</span>
+      ) : count.kept < count.total ? (
+        <span>
+          {t("smartPlaylistEditor.matchCountLimited", {
+            kept: count.kept,
+            total: count.total,
+          })}
+        </span>
+      ) : (
+        <span>
+          {t("smartPlaylistEditor.matchCount", { count: count.total })}
+        </span>
+      )}
+    </div>
+  );
+}
+
 const inputClass =
   "w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500";
 
@@ -314,18 +436,24 @@ function Field({
 function Section({
   title,
   hint,
+  action,
   children,
 }: {
   title: string;
   hint?: string;
+  /** Rendered on the title row, right-aligned. */
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <div className="space-y-3">
       <div className="border-b border-zinc-200 dark:border-zinc-800 pb-2">
-        <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-          {title}
-        </h3>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+            {title}
+          </h3>
+          {action}
+        </div>
         {hint && (
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
             {hint}

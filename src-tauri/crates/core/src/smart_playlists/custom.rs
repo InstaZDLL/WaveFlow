@@ -128,6 +128,75 @@ pub enum Predicate {
     RatingMin {
         value: i64,
     },
+    /// At least this many plays, counted the way the rest of the app
+    /// counts them: one `play_event` row is one play, with no minimum
+    /// listened time. Statistics and Wrapped both answer `COUNT(*)`, so
+    /// a rule saying "played at least 20 times" has to agree with the
+    /// number the user just read on the statistics page.
+    PlayCountMin {
+        value: i64,
+    },
+    /// At most this many plays. `0` is the useful value — it is how a
+    /// rule says *never played*, which no combination of the other
+    /// predicates expresses.
+    PlayCountMax {
+        value: i64,
+    },
+    /// Played at least once within the last N days.
+    ///
+    /// Relative rather than absolute on purpose: a rule set is stored
+    /// once and re-evaluated for years. A rule pinned to a date drifts
+    /// into meaning something its author never wrote — "since March"
+    /// ages into "in the last four years" — while a window keeps saying
+    /// what it said the day it was built. "Not played since" is this
+    /// under a `Not`, which also takes in the tracks that were never
+    /// played at all, as it should.
+    PlayedInLastDays {
+        value: i64,
+    },
+    /// Added to the library within the last N days. Relative for the
+    /// same reason as [`Predicate::PlayedInLastDays`].
+    AddedInLastDays {
+        value: i64,
+    },
+    /// Sample rate in Hz, at least this.
+    ///
+    /// [`Predicate::HiRes`] is the OR of two fixed thresholds and
+    /// cannot say "88.2 kHz but 16-bit"; these two say it separately.
+    SampleRateMin {
+        value: i64,
+    },
+    /// Bit depth, at least this. Lossy codecs carry none, so a file
+    /// with no depth recorded matches no bound in either direction —
+    /// see the note on NULLs in `build_predicate_sql`.
+    BitDepthMin {
+        value: i64,
+    },
+    /// A specific disc of a multi-disc set.
+    DiscNumberIs {
+        value: i64,
+    },
+    /// The file's path contains this fragment — the "everything under
+    /// this folder" rule, which is otherwise unexpressible.
+    ///
+    /// Both sides are compared with `/` separators so a rule written on
+    /// one platform reads the same on another, and so the user can type
+    /// whichever slash their keyboard offers.
+    PathContains {
+        value: String,
+    },
+    /// The file carries this tag at all, whatever its value — a rip
+    /// source, a catalogue number, a mood written by the user's own
+    /// tagger. The keys come from `track_tag` (#588), so the editor can
+    /// offer the ones that are actually in the library.
+    TagPresent {
+        key: String,
+    },
+    /// The file carries this tag and its value contains this fragment.
+    TagContains {
+        key: String,
+        value: String,
+    },
 }
 
 // =============================================================================
@@ -345,35 +414,61 @@ enum BindValue {
 /// - empty `All` → `"1=1"` (matches all rows)
 /// - empty `Any` → `"0=1"` (matches nothing)
 #[cfg(feature = "sqlite")]
-fn build_node_sql(node: &RuleNode, binds: &mut Vec<BindValue>) -> String {
+fn build_node_sql(node: &RuleNode, binds: &mut Vec<BindValue>, now_ms: i64) -> String {
     match node {
         RuleNode::All { children } => {
             if children.is_empty() {
                 return "1=1".to_string();
             }
-            let parts: Vec<String> = children.iter().map(|c| build_node_sql(c, binds)).collect();
+            let parts: Vec<String> = children
+                .iter()
+                .map(|c| build_node_sql(c, binds, now_ms))
+                .collect();
             format!("({})", parts.join(" AND "))
         }
         RuleNode::Any { children } => {
             if children.is_empty() {
                 return "0=1".to_string();
             }
-            let parts: Vec<String> = children.iter().map(|c| build_node_sql(c, binds)).collect();
+            let parts: Vec<String> = children
+                .iter()
+                .map(|c| build_node_sql(c, binds, now_ms))
+                .collect();
             format!("({})", parts.join(" OR "))
         }
         RuleNode::Not { child } => {
-            let inner = build_node_sql(child, binds);
+            let inner = build_node_sql(child, binds, now_ms);
             format!("NOT ({inner})")
         }
-        RuleNode::Leaf { predicate } => build_predicate_sql(predicate, binds),
+        RuleNode::Leaf { predicate } => build_predicate_sql(predicate, binds, now_ms),
     }
+}
+
+/// Epoch milliseconds `days` before `now_ms`, the cut-off of a relative
+/// window. Saturating so an absurd day count clamps instead of wrapping
+/// into the future, which would turn "in the last N days" into a rule
+/// matching nothing — the opposite of what a very large N asks for.
+#[cfg(feature = "sqlite")]
+fn days_ago_ms(now_ms: i64, days: i64) -> i64 {
+    now_ms.saturating_sub(days.max(0).saturating_mul(86_400_000))
 }
 
 /// One SQL fragment per predicate. Every join-needing predicate uses
 /// an `EXISTS` subquery so the tree can be nested arbitrarily without
 /// row duplication at the top level.
+///
+/// # NULL columns and `Not`
+///
+/// Bounds on a nullable column are written `(col IS NOT NULL AND col >=
+/// ?)` rather than left to SQLite's three-valued logic. Without the
+/// guard the fragment evaluates to NULL for a track whose value is
+/// missing, and `NOT (NULL)` is NULL too — so such a track would fall
+/// out of a rule *and* out of its negation, which reads as the library
+/// losing tracks. With the guard the negation takes them in, which is
+/// the answer a user expects from "not hi-res" about a file whose
+/// sample rate nobody recorded.
 #[cfg(feature = "sqlite")]
-fn build_predicate_sql(pred: &Predicate, binds: &mut Vec<BindValue>) -> String {
+fn build_predicate_sql(pred: &Predicate, binds: &mut Vec<BindValue>, now_ms: i64) -> String {
     match pred {
         Predicate::TitleContains { value } => {
             binds.push(BindValue::Text(format!("%{}%", value.trim())));
@@ -435,6 +530,71 @@ fn build_predicate_sql(pred: &Predicate, binds: &mut Vec<BindValue>) -> String {
             binds.push(BindValue::Int((*value).clamp(1, 255)));
             "(t.rating IS NOT NULL AND t.rating >= ?)".to_string()
         }
+        // The count is a correlated subquery rather than an `EXISTS`
+        // because the bound can be any number, `0` included. It is
+        // served by `idx_play_event_track`, whose leading column is
+        // `track_id`, so it reads one index range per track and never
+        // the table.
+        Predicate::PlayCountMin { value } => {
+            binds.push(BindValue::Int(*value));
+            "(SELECT COUNT(*) FROM play_event pe WHERE pe.track_id = t.id) >= ?".to_string()
+        }
+        Predicate::PlayCountMax { value } => {
+            binds.push(BindValue::Int(*value));
+            "(SELECT COUNT(*) FROM play_event pe WHERE pe.track_id = t.id) <= ?".to_string()
+        }
+        // `played_at` is epoch **milliseconds** (`analytics.rs` writes
+        // `timestamp_millis`), so the cut-off is computed in the same
+        // unit. A window only needs to know whether one play falls
+        // inside it, hence `EXISTS` and not a count.
+        Predicate::PlayedInLastDays { value } => {
+            binds.push(BindValue::Int(days_ago_ms(now_ms, *value)));
+            "EXISTS (SELECT 1 FROM play_event pe WHERE pe.track_id = t.id AND pe.played_at >= ?)"
+                .to_string()
+        }
+        Predicate::AddedInLastDays { value } => {
+            binds.push(BindValue::Int(days_ago_ms(now_ms, *value)));
+            "t.added_at >= ?".to_string()
+        }
+        Predicate::SampleRateMin { value } => {
+            binds.push(BindValue::Int(*value));
+            "(t.sample_rate IS NOT NULL AND t.sample_rate >= ?)".to_string()
+        }
+        Predicate::BitDepthMin { value } => {
+            binds.push(BindValue::Int(*value));
+            "(t.bit_depth IS NOT NULL AND t.bit_depth >= ?)".to_string()
+        }
+        Predicate::DiscNumberIs { value } => {
+            binds.push(BindValue::Int(*value));
+            "(t.disc_number IS NOT NULL AND t.disc_number = ?)".to_string()
+        }
+        // Both sides are folded to `/` so one rule reads the same on
+        // every platform: the column holds whatever separator the OS
+        // that scanned the file uses, and the user types whichever one
+        // their keyboard offers. SQLite does not process backslash
+        // escapes inside a string literal, so `'\\'` here is one
+        // backslash in the SQL.
+        Predicate::PathContains { value } => {
+            let needle = value.trim().replace('\\', "/");
+            binds.push(BindValue::Text(format!("%{needle}%")));
+            "REPLACE(t.file_path, '\\', '/') LIKE ? COLLATE NOCASE".to_string()
+        }
+        // `track_tag.key` is declared `COLLATE NOCASE`, so the equality
+        // below is case-insensitive *and* index-backed on
+        // `idx_track_tag_key` — the scanner stores keys upper-cased, and
+        // a rule naming `Composer` has to find them.
+        Predicate::TagPresent { key } => {
+            binds.push(BindValue::Text(key.trim().to_string()));
+            "EXISTS (SELECT 1 FROM track_tag tt WHERE tt.track_id = t.id AND tt.key = ?)"
+                .to_string()
+        }
+        Predicate::TagContains { key, value } => {
+            binds.push(BindValue::Text(key.trim().to_string()));
+            binds.push(BindValue::Text(format!("%{}%", value.trim())));
+            "EXISTS (SELECT 1 FROM track_tag tt WHERE tt.track_id = t.id \
+             AND tt.key = ? AND tt.value LIKE ? COLLATE NOCASE)"
+                .to_string()
+        }
     }
 }
 
@@ -484,12 +644,92 @@ pub async fn materialize(
     Ok(track_ids.len() as i64)
 }
 
+/// How many tracks the rule set keeps, at a given number of matches.
+///
+/// Held apart from `total` because the two answer different questions
+/// and the difference is the whole point of showing them: a rule
+/// matching 3 000 tracks with a limit of 50 produces a playlist of 50,
+/// and a counter reporting only one of those numbers misleads about the
+/// other.
+#[cfg(feature = "sqlite")]
+fn kept_of(rules: &CustomRules, total: i64) -> i64 {
+    total.min(effective_limit(rules))
+}
+
+/// The limit actually applied by [`run_query`].
+#[cfg(feature = "sqlite")]
+fn effective_limit(rules: &CustomRules) -> i64 {
+    rules.limit.unwrap_or(HARD_LIMIT).clamp(1, HARD_LIMIT)
+}
+
+/// What the rule set matches right now, without materialising anything.
+///
+/// `total` is every available track the tree matches; `kept` is what
+/// would end up in the playlist once the limit is applied.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct RulesCount {
+    pub total: i64,
+    pub kept: i64,
+}
+
+/// Count the matches without listing them — what the editor's live
+/// counter asks for on every keystroke.
+///
+/// This is not `run_query(..).len()`: that one sorts, truncates and
+/// carries up to five thousand ids back across the IPC boundary, all of
+/// which a number on screen throws away. `COUNT(*)` also lets SQLite
+/// stop at the index for the rules that have one, and — the part that
+/// actually shows — reports the matches *above* the limit, which a
+/// truncated list cannot.
+#[cfg(feature = "sqlite")]
+pub async fn count_matches(pool: &SqlitePool, rules: &CustomRules) -> CoreResult<RulesCount> {
+    count_matches_at(pool, rules, now_ms()).await
+}
+
+/// [`count_matches`] with the clock supplied, so a test can pin the
+/// relative windows instead of racing midnight.
+#[cfg(feature = "sqlite")]
+pub async fn count_matches_at(
+    pool: &SqlitePool,
+    rules: &CustomRules,
+    now_ms: i64,
+) -> CoreResult<RulesCount> {
+    let mut binds = Vec::<BindValue>::new();
+    let tree_where = build_node_sql(&rules.tree, &mut binds, now_ms);
+
+    let mut sql = String::from("SELECT COUNT(*) FROM track t WHERE t.is_available = 1 AND ");
+    sql.push_str(&tree_where);
+
+    let total = bind_all(
+        sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+        binds,
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(|e| CoreError::Other(format!("custom smart playlist count failed: {e}")))?;
+
+    Ok(RulesCount {
+        total,
+        kept: kept_of(rules, total),
+    })
+}
+
 /// Resolve the rule set into a list of track ids in the canonical sort
 /// order. Public for the dry-run "Preview" button in the rule editor.
 #[cfg(feature = "sqlite")]
 pub async fn run_query(pool: &SqlitePool, rules: &CustomRules) -> CoreResult<Vec<i64>> {
+    run_query_at(pool, rules, now_ms()).await
+}
+
+/// [`run_query`] with the clock supplied — see [`count_matches_at`].
+#[cfg(feature = "sqlite")]
+pub async fn run_query_at(
+    pool: &SqlitePool,
+    rules: &CustomRules,
+    now_ms: i64,
+) -> CoreResult<Vec<i64>> {
     let mut binds = Vec::<BindValue>::new();
-    let tree_where = build_node_sql(&rules.tree, &mut binds);
+    let tree_where = build_node_sql(&rules.tree, &mut binds, now_ms);
 
     let mut sql = String::from("SELECT t.id FROM track t WHERE t.is_available = 1 AND ");
     sql.push_str(&tree_where);
@@ -498,11 +738,27 @@ pub async fn run_query(pool: &SqlitePool, rules: &CustomRules) -> CoreResult<Vec
         rules.sort.as_ref().unwrap_or(&CustomSort::AddedDesc),
     ));
 
-    let limit = rules.limit.unwrap_or(HARD_LIMIT).clamp(1, HARD_LIMIT);
     sql.push_str(" LIMIT ?");
-    binds.push(BindValue::Int(limit));
+    binds.push(BindValue::Int(effective_limit(rules)));
 
-    let mut q = sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql));
+    let rows = bind_all(
+        sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
+        binds,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|e| CoreError::Other(format!("custom smart playlist query failed: {e}")))?;
+    Ok(rows)
+}
+
+/// The tree emits its binds in the order its fragments appear, and the
+/// `?` placeholders are positional: the two walks must stay in step, so
+/// binding lives in one place rather than being repeated per query.
+#[cfg(feature = "sqlite")]
+fn bind_all<'q, O>(
+    mut q: sqlx::query::QueryScalar<'q, sqlx::Sqlite, O, sqlx::sqlite::SqliteArguments>,
+    binds: Vec<BindValue>,
+) -> sqlx::query::QueryScalar<'q, sqlx::Sqlite, O, sqlx::sqlite::SqliteArguments> {
     for b in binds {
         q = match b {
             BindValue::Int(v) => q.bind(v),
@@ -510,11 +766,14 @@ pub async fn run_query(pool: &SqlitePool, rules: &CustomRules) -> CoreResult<Vec
             BindValue::Text(v) => q.bind(v),
         };
     }
-    let rows = q
-        .fetch_all(pool)
-        .await
-        .map_err(|e| CoreError::Other(format!("custom smart playlist query failed: {e}")))?;
-    Ok(rows)
+    q
+}
+
+/// Wall clock in epoch milliseconds — the unit `play_event.played_at`
+/// and `track.added_at` are both stored in.
+#[cfg(feature = "sqlite")]
+fn now_ms() -> i64 {
+    chrono::Utc::now().timestamp_millis()
 }
 
 // =============================================================================
@@ -534,11 +793,27 @@ mod tests {
     mod sql_tests {
         use super::*;
 
+        /// A pinned clock, so the relative windows below assert on a
+        /// value rather than on "whatever the test machine thinks the
+        /// time is". 2026-01-01T00:00:00Z.
+        const NOW: i64 = 1_767_225_600_000;
+
         /// Helper: build SQL string from a tree (binds are discarded for
         /// readability — the tests only assert on the textual shape).
         fn sql_of(node: &RuleNode) -> String {
             let mut binds = Vec::new();
-            build_node_sql(node, &mut binds)
+            build_node_sql(node, &mut binds, NOW)
+        }
+
+        /// Helper: the binds a tree emits, in placeholder order.
+        fn binds_of(node: &RuleNode) -> Vec<BindValue> {
+            let mut binds = Vec::new();
+            build_node_sql(node, &mut binds, NOW);
+            binds
+        }
+
+        fn leaf(predicate: Predicate) -> RuleNode {
+            RuleNode::Leaf { predicate }
         }
 
         #[test]
@@ -604,6 +879,332 @@ mod tests {
             let s = sql_of(&n);
             assert!(s.starts_with("NOT ("));
             assert!(s.ends_with(')'));
+        }
+
+        /// A relative window is turned into an absolute cut-off at
+        /// build time. This pins the arithmetic — the unit is
+        /// milliseconds, and getting it wrong by a factor of 1 000
+        /// would silently widen "the last 30 days" to eighty years.
+        #[test]
+        fn a_window_binds_a_cut_off_in_milliseconds() {
+            let binds = binds_of(&leaf(Predicate::PlayedInLastDays { value: 30 }));
+            assert_eq!(binds.len(), 1);
+            let BindValue::Int(cut_off) = binds[0] else {
+                panic!("expected an integer bind");
+            };
+            assert_eq!(cut_off, NOW - 30 * 86_400_000);
+        }
+
+        /// An absurd window must clamp, not wrap. A negative cut-off
+        /// still matches every play ever recorded; a wrapped one would
+        /// land in the future and match none, which is the opposite of
+        /// what "the last four billion days" asks for.
+        #[test]
+        fn an_absurd_window_clamps_instead_of_wrapping() {
+            assert!(
+                days_ago_ms(NOW, i64::MAX) < 0,
+                "an absurd window must stay in the past"
+            );
+            assert_eq!(days_ago_ms(NOW, -5), NOW, "a negative window is no window");
+        }
+
+        /// Bounds on a nullable column carry their own NULL guard, so
+        /// that a track missing the value falls out of the rule *and*
+        /// into its negation rather than out of both.
+        #[test]
+        fn nullable_bounds_guard_their_column() {
+            for p in [
+                Predicate::SampleRateMin { value: 88_200 },
+                Predicate::BitDepthMin { value: 24 },
+                Predicate::DiscNumberIs { value: 2 },
+            ] {
+                let s = sql_of(&leaf(p.clone()));
+                assert!(s.contains("IS NOT NULL"), "{p:?} must guard its NULLs: {s}");
+            }
+        }
+
+        /// The tag name is a bind like any other value. It is the one
+        /// place where user input names a *column's content* rather
+        /// than being compared to one, so it is also the one place
+        /// where an interpolated build would be tempting.
+        #[test]
+        fn a_tag_rule_binds_its_key() {
+            let s = sql_of(&leaf(Predicate::TagContains {
+                key: "COMPOSER".into(),
+                value: "Glass".into(),
+            }));
+            assert!(
+                !s.contains("COMPOSER"),
+                "the key must not reach the SQL: {s}"
+            );
+            assert_eq!(
+                s.matches('?').count(),
+                2,
+                "one bind for the key, one for the value"
+            );
+        }
+
+        /// Both sides of a path rule are folded to `/`, so the same
+        /// rule reads the same whichever separator is on either end.
+        #[test]
+        fn a_path_rule_folds_both_separators() {
+            let binds = binds_of(&leaf(Predicate::PathContains {
+                value: r"Live\Bootlegs".into(),
+            }));
+            let BindValue::Text(needle) = &binds[0] else {
+                panic!("expected a text bind");
+            };
+            assert_eq!(needle, "%Live/Bootlegs%");
+            assert!(
+                sql_of(&leaf(Predicate::PathContains { value: "x".into() })).contains("REPLACE")
+            );
+        }
+
+        /// Enough of the profile schema for the rule queries to run.
+        ///
+        /// Hand-rolled rather than the real migrations, which live in
+        /// the app crate and are out of reach from `waveflow-core` —
+        /// the same constraint the scanner and repository fixtures
+        /// note. Only the columns the predicates read are here; the
+        /// collation on `track_tag.key` is NOT optional decoration, it
+        /// is what a tag rule depends on to match a key the scanner
+        /// stored upper-cased.
+        async fn fixture_pool(now_ms: i64) -> sqlx::SqlitePool {
+            let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
+            sqlx::raw_sql(
+                "CREATE TABLE track (
+                     id           INTEGER PRIMARY KEY,
+                     title        TEXT NOT NULL,
+                     file_path    TEXT NOT NULL,
+                     duration_ms  INTEGER NOT NULL,
+                     added_at     INTEGER NOT NULL,
+                     is_available INTEGER NOT NULL DEFAULT 1,
+                     sample_rate  INTEGER,
+                     bit_depth    INTEGER,
+                     disc_number  INTEGER,
+                     year         INTEGER,
+                     rating       INTEGER,
+                     codec        TEXT,
+                     album_id     INTEGER,
+                     primary_artist INTEGER
+                 );
+                 CREATE TABLE play_event (
+                     id        INTEGER PRIMARY KEY,
+                     track_id  INTEGER,
+                     played_at INTEGER NOT NULL
+                 );
+                 CREATE TABLE track_tag (
+                     track_id INTEGER NOT NULL,
+                     key      TEXT NOT NULL COLLATE NOCASE,
+                     value    TEXT NOT NULL,
+                     PRIMARY KEY (track_id, key)
+                 );",
+            )
+            .execute(&pool)
+            .await
+            .unwrap();
+
+            let day = 86_400_000_i64;
+            // 1 — a Windows path, hi-res, disc 2, played five days ago,
+            //     and carrying a composer tag written in upper case.
+            // 2 — a POSIX path, lossy, no bit depth, last played more
+            //     than a year ago.
+            // 3 — matches nearly everything, but the file is gone.
+            sqlx::query(
+                "INSERT INTO track
+                   (id, title, file_path, duration_ms, added_at, is_available,
+                    sample_rate, bit_depth, disc_number)
+                 VALUES
+                   (1, 'Alpha', ?, 200000, ?, 1, 96000, 24, 2),
+                   (2, 'Beta', '/home/u/Music/Studio/b.mp3', 200000, ?, 1,
+                    44100, NULL, NULL),
+                   (3, 'Gamma', '/home/u/Music/Live/Bootlegs/c.flac', 200000,
+                    ?, 0, 96000, 24, 2)",
+            )
+            .bind(r"E:\Music\Live\Bootlegs\a.flac")
+            .bind(now_ms - 10 * day)
+            .bind(now_ms - 100 * day)
+            .bind(now_ms - day)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+            sqlx::query(
+                "INSERT INTO play_event (track_id, played_at) VALUES
+                   (1, ?), (1, ?), (2, ?)",
+            )
+            .bind(now_ms - 5 * day)
+            .bind(now_ms - 400 * day)
+            .bind(now_ms - 400 * day)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+            sqlx::query("INSERT INTO track_tag (track_id, key, value) VALUES (1, 'COMPOSER', 'Philip Glass')")
+                .execute(&pool)
+                .await
+                .unwrap();
+
+            pool
+        }
+
+        fn rules(tree: RuleNode) -> CustomRules {
+            CustomRules {
+                tree,
+                sort: None,
+                limit: None,
+            }
+        }
+
+        async fn matched(pool: &sqlx::SqlitePool, tree: RuleNode) -> Vec<i64> {
+            run_query_at(pool, &rules(tree), NOW).await.unwrap()
+        }
+
+        /// The new predicates, against a real SQLite.
+        ///
+        /// The shape tests above assert on strings, which cannot tell a
+        /// valid fragment from one SQLite refuses — and `REPLACE(…,
+        /// '\\', '/')` is exactly the kind of fragment that either
+        /// parses or does not. This one executes them.
+        #[tokio::test]
+        async fn the_new_predicates_run_and_select_what_they_claim() {
+            let pool = fixture_pool(NOW).await;
+
+            // A rule typed with forward slashes finds the file whose
+            // path was written by Windows, and vice versa.
+            assert_eq!(
+                matched(
+                    &pool,
+                    leaf(Predicate::PathContains {
+                        value: "Live/Bootlegs".into()
+                    })
+                )
+                .await,
+                vec![1],
+                "the separator fold must work in both directions, and the \
+                 unavailable track must stay out"
+            );
+
+            assert_eq!(
+                matched(&pool, leaf(Predicate::PlayCountMin { value: 2 })).await,
+                vec![1]
+            );
+            assert_eq!(
+                matched(&pool, leaf(Predicate::PlayCountMax { value: 1 })).await,
+                vec![2]
+            );
+            assert_eq!(
+                matched(&pool, leaf(Predicate::PlayedInLastDays { value: 30 })).await,
+                vec![1]
+            );
+            assert_eq!(
+                matched(&pool, leaf(Predicate::AddedInLastDays { value: 30 })).await,
+                vec![1]
+            );
+            assert_eq!(
+                matched(&pool, leaf(Predicate::SampleRateMin { value: 88_200 })).await,
+                vec![1]
+            );
+            assert_eq!(
+                matched(&pool, leaf(Predicate::DiscNumberIs { value: 2 })).await,
+                vec![1]
+            );
+
+            // The NULL guard, end to end: track 2 has no bit depth, so
+            // it falls out of the bound — and INTO its negation. Left
+            // to SQLite's three-valued logic it would fall out of both.
+            assert_eq!(
+                matched(&pool, leaf(Predicate::BitDepthMin { value: 24 })).await,
+                vec![1]
+            );
+            assert_eq!(
+                matched(
+                    &pool,
+                    RuleNode::Not {
+                        child: Box::new(leaf(Predicate::BitDepthMin { value: 24 }))
+                    }
+                )
+                .await,
+                vec![2],
+                "a track with no bit depth belongs to the negation"
+            );
+
+            // The key is stored upper-cased and asked for in lower —
+            // `COLLATE NOCASE` on the column is what makes that work.
+            assert_eq!(
+                matched(
+                    &pool,
+                    leaf(Predicate::TagPresent {
+                        key: "composer".into()
+                    })
+                )
+                .await,
+                vec![1]
+            );
+            assert_eq!(
+                matched(
+                    &pool,
+                    leaf(Predicate::TagContains {
+                        key: "COMPOSER".into(),
+                        value: "glass".into(),
+                    })
+                )
+                .await,
+                vec![1]
+            );
+            assert!(matched(
+                &pool,
+                leaf(Predicate::TagContains {
+                    key: "COMPOSER".into(),
+                    value: "Reich".into(),
+                })
+            )
+            .await
+            .is_empty());
+        }
+
+        /// "Forgotten" — played once, but not lately. The template of
+        /// the same name is this tree, and it is the one shape where a
+        /// count and a window have to agree: without the count it would
+        /// also sweep in everything never played at all.
+        #[tokio::test]
+        async fn forgotten_is_played_once_but_not_lately() {
+            let pool = fixture_pool(NOW).await;
+            let tree = RuleNode::All {
+                children: vec![
+                    leaf(Predicate::PlayCountMin { value: 1 }),
+                    RuleNode::Not {
+                        child: Box::new(leaf(Predicate::PlayedInLastDays { value: 180 })),
+                    },
+                ],
+            };
+            assert_eq!(matched(&pool, tree).await, vec![2]);
+        }
+
+        /// The counter reports the matches *above* the limit, which is
+        /// the number a truncated list cannot give and the reason the
+        /// editor shows both.
+        #[tokio::test]
+        async fn the_count_separates_what_matches_from_what_is_kept() {
+            let pool = fixture_pool(NOW).await;
+            let mut r = rules(RuleNode::All { children: vec![] });
+            let all = count_matches_at(&pool, &r, NOW).await.unwrap();
+            assert_eq!(
+                all,
+                RulesCount { total: 2, kept: 2 },
+                "the unavailable track counts for neither"
+            );
+
+            r.limit = Some(1);
+            assert_eq!(
+                count_matches_at(&pool, &r, NOW).await.unwrap(),
+                RulesCount { total: 2, kept: 1 }
+            );
+            assert_eq!(
+                run_query_at(&pool, &r, NOW).await.unwrap().len(),
+                1,
+                "`kept` must be what the query actually returns"
+            );
         }
 
         #[test]

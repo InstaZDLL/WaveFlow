@@ -1364,8 +1364,6 @@
     "createTitle": "새 스마트 재생 목록",
     "editTitle": "스마트 재생 목록 편집",
     "create": "만들기",
-    "preview": "미리보기",
-    "previewCount": "{{count}}곡 일치",
     "nameRequired": "이름은 필수입니다",
     "fields": {
       "name": "이름",
@@ -1423,7 +1421,12 @@
       "addGroupOr": "OR 그룹",
       "addNot": "NOT",
       "contains": "포함…",
-      "pickGenre": "장르 선택…"
+      "pickGenre": "장르 선택…",
+      "pathPlaceholder": "폴더 또는 경로…",
+      "bits": "{{value}}비트",
+      "pickTag": "태그 선택…",
+      "days_one": "일",
+      "days_other": "일"
     },
     "predicates": {
       "titleContains": "제목 포함",
@@ -1439,8 +1442,39 @@
       "format": "포맷 =",
       "hiRes": "Hi-Res",
       "liked": "좋아요",
-      "ratingMin": "평점 ≥"
-    }
+      "ratingMin": "평점 ≥",
+      "pathContains": "경로 포함",
+      "discNumberIs": "디스크 =",
+      "addedInLastDays": "추가된 기간",
+      "sampleRateMin": "샘플레이트 ≥",
+      "bitDepthMin": "비트 깊이 ≥",
+      "playCountMin": "재생 횟수 ≥",
+      "playCountMax": "재생 횟수 ≤",
+      "playedInLastDays": "재생된 기간",
+      "tagPresent": "태그 있음",
+      "tagContains": "태그 포함"
+    },
+    "counting": "계산 중…",
+    "matchCountLimited": "{{total}}곡 중 {{kept}}곡",
+    "templates": {
+      "label": "템플릿",
+      "placeholder": "템플릿으로 시작…",
+      "recentlyAdded": "최근 추가",
+      "neverPlayed": "재생한 적 없음",
+      "favourites": "즐겨찾기",
+      "forgotten": "잊힌 곡",
+      "hiRes": "하이레스",
+      "upTempo": "빠른 템포"
+    },
+    "predicateGroups": {
+      "text": "텍스트",
+      "library": "라이브러리",
+      "audio": "오디오",
+      "history": "재생",
+      "tags": "태그"
+    },
+    "matchCount_one": "{{count}}곡 일치",
+    "matchCount_other": "{{count}}곡 일치"
   },
   "lyricsEditor": {
     "title": "가사 편집기",
@@ -2614,6 +2648,55 @@
       "upload": "업로드",
       "backup": "백업",
       "thumbnails": "썸네일"
+    }
+  },
+  "smartRuleSummary": {
+    "everything": "전체 라이브러리",
+    "nothing": "해당 곡 없음",
+    "and": " 그리고 ",
+    "or": " 또는 ",
+    "not": "{{inner}} 제외",
+    "limit": "최대 {{value}}곡",
+    "minutes": "{{value}}분",
+    "sort": {
+      "addedDesc": "최근 추가순",
+      "addedAsc": "오래된 추가순",
+      "yearDesc": "최신 발매순",
+      "yearAsc": "오래된 발매순",
+      "titleAsc": "제목순",
+      "artistAsc": "아티스트순",
+      "random": "무작위"
+    },
+    "predicates": {
+      "titleContains": "제목에 “{{value}}” 포함",
+      "artistContains": "아티스트에 “{{value}}” 포함",
+      "albumContains": "앨범에 “{{value}}” 포함",
+      "pathContains": "경로에 “{{value}}” 포함",
+      "genreIs": "장르 {{value}}",
+      "yearMin": "연도 ≥ {{value}}",
+      "yearMax": "연도 ≤ {{value}}",
+      "discNumberIs": "디스크 {{value}}",
+      "liked": "좋아요",
+      "ratingMin": "평점 ≥ {{value}}",
+      "format": "형식 {{value}}",
+      "hiRes": "하이레스",
+      "sampleRateMin": "≥ {{value}} kHz",
+      "bitDepthMin": "≥ {{value}}비트",
+      "bpmMin": "BPM ≥ {{value}}",
+      "bpmMax": "BPM ≤ {{value}}",
+      "durationMinMs": "길이 ≥ {{value}}",
+      "durationMaxMs": "길이 ≤ {{value}}",
+      "neverPlayed": "재생한 적 없음",
+      "tagPresent": "{{key}} 태그 있음",
+      "tagContains": "{{key}} 태그에 “{{value}}” 포함",
+      "playCountMin_one": "{{count}}회 이상 재생",
+      "playCountMin_other": "{{count}}회 이상 재생",
+      "playCountMax_one": "{{count}}회 이하 재생",
+      "playCountMax_other": "{{count}}회 이하 재생",
+      "playedInLastDays_one": "최근 {{count}}일 이내 재생",
+      "playedInLastDays_other": "최근 {{count}}일 이내 재생",
+      "addedInLastDays_one": "최근 {{count}}일 이내 추가",
+      "addedInLastDays_other": "최근 {{count}}일 이내 추가"
     }
   }
 }

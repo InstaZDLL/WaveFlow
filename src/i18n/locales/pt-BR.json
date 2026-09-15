@@ -1364,8 +1364,6 @@
     "createTitle": "Nova playlist inteligente",
     "editTitle": "Editar playlist inteligente",
     "create": "Criar",
-    "preview": "Pré-visualização",
-    "previewCount": "{{count}} faixas correspondem",
     "nameRequired": "Nome é obrigatório",
     "fields": {
       "name": "Nome",
@@ -1423,7 +1421,12 @@
       "addGroupOr": "Grupo OU",
       "addNot": "NÃO",
       "contains": "Contém…",
-      "pickGenre": "Escolher um gênero…"
+      "pickGenre": "Escolher um gênero…",
+      "pathPlaceholder": "Pasta ou caminho…",
+      "bits": "{{value}} bits",
+      "pickTag": "Escolher uma etiqueta…",
+      "days_one": "dia",
+      "days_other": "dias"
     },
     "predicates": {
       "titleContains": "Título contém",
@@ -1439,8 +1442,39 @@
       "format": "Formato =",
       "hiRes": "Hi-Res",
       "liked": "Curtida",
-      "ratingMin": "Avaliação ≥"
-    }
+      "ratingMin": "Avaliação ≥",
+      "pathContains": "Caminho contém",
+      "discNumberIs": "Disco =",
+      "addedInLastDays": "Adicionado há",
+      "sampleRateMin": "Amostragem ≥",
+      "bitDepthMin": "Profundidade ≥",
+      "playCountMin": "Reproduções ≥",
+      "playCountMax": "Reproduções ≤",
+      "playedInLastDays": "Reproduzido há",
+      "tagPresent": "Tem a etiqueta",
+      "tagContains": "A etiqueta contém"
+    },
+    "counting": "Contando…",
+    "matchCountLimited": "{{kept}} de {{total}} correspondências",
+    "templates": {
+      "label": "Modelo",
+      "placeholder": "Começar com um modelo…",
+      "recentlyAdded": "Adicionados recentemente",
+      "neverPlayed": "Nunca reproduzidos",
+      "favourites": "Favoritos",
+      "forgotten": "Esquecidos",
+      "hiRes": "Alta resolução",
+      "upTempo": "Ritmo acelerado"
+    },
+    "predicateGroups": {
+      "text": "Texto",
+      "library": "Biblioteca",
+      "audio": "Áudio",
+      "history": "Reproduções",
+      "tags": "Etiquetas"
+    },
+    "matchCount_one": "{{count}} faixa corresponde",
+    "matchCount_other": "{{count}} faixas correspondem"
   },
   "lyricsEditor": {
     "title": "Editor de letras",
@@ -2635,6 +2669,55 @@
       "upload": "Envio",
       "backup": "Backup",
       "thumbnails": "Miniaturas"
+    }
+  },
+  "smartRuleSummary": {
+    "everything": "toda a biblioteca",
+    "nothing": "nenhuma faixa",
+    "and": " e ",
+    "or": " ou ",
+    "not": "exceto {{inner}}",
+    "limit": "no máximo {{value}}",
+    "minutes": "{{value}} min",
+    "sort": {
+      "addedDesc": "os últimos adicionados",
+      "addedAsc": "os primeiros adicionados",
+      "yearDesc": "os mais recentes",
+      "yearAsc": "os mais antigos",
+      "titleAsc": "por título",
+      "artistAsc": "por artista",
+      "random": "ao acaso"
+    },
+    "predicates": {
+      "titleContains": "o título contém «{{value}}»",
+      "artistContains": "o artista contém «{{value}}»",
+      "albumContains": "o álbum contém «{{value}}»",
+      "pathContains": "o caminho contém «{{value}}»",
+      "genreIs": "gênero {{value}}",
+      "yearMin": "ano ≥ {{value}}",
+      "yearMax": "ano ≤ {{value}}",
+      "discNumberIs": "disco {{value}}",
+      "liked": "favorito",
+      "ratingMin": "classificação ≥ {{value}}",
+      "format": "formato {{value}}",
+      "hiRes": "alta resolução",
+      "sampleRateMin": "≥ {{value}} kHz",
+      "bitDepthMin": "≥ {{value}} bits",
+      "bpmMin": "BPM ≥ {{value}}",
+      "bpmMax": "BPM ≤ {{value}}",
+      "durationMinMs": "duração ≥ {{value}}",
+      "durationMaxMs": "duração ≤ {{value}}",
+      "neverPlayed": "nunca reproduzido",
+      "tagPresent": "tem a etiqueta {{key}}",
+      "tagContains": "a etiqueta {{key}} contém «{{value}}»",
+      "playCountMin_one": "reproduzido pelo menos {{count}} vez",
+      "playCountMin_other": "reproduzido pelo menos {{count}} vezes",
+      "playCountMax_one": "reproduzido no máximo {{count}} vez",
+      "playCountMax_other": "reproduzido no máximo {{count}} vezes",
+      "playedInLastDays_one": "reproduzido nos últimos {{count}} dia",
+      "playedInLastDays_other": "reproduzido nos últimos {{count}} dias",
+      "addedInLastDays_one": "adicionado nos últimos {{count}} dia",
+      "addedInLastDays_other": "adicionado nos últimos {{count}} dias"
     }
   }
 }

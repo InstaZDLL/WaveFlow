@@ -1364,8 +1364,6 @@
     "createTitle": "New smart playlist",
     "editTitle": "Edit smart playlist",
     "create": "Create",
-    "preview": "Preview",
-    "previewCount": "{{count}} tracks match",
     "nameRequired": "Name is required",
     "fields": {
       "name": "Name",
@@ -1423,7 +1421,12 @@
       "addGroupOr": "OR group",
       "addNot": "NOT",
       "contains": "Contains…",
-      "pickGenre": "Pick a genre…"
+      "pickGenre": "Pick a genre…",
+      "pathPlaceholder": "Folder or path…",
+      "bits": "{{value}}-bit",
+      "pickTag": "Pick a tag…",
+      "days_one": "day",
+      "days_other": "days"
     },
     "predicates": {
       "titleContains": "Title contains",
@@ -1439,8 +1442,39 @@
       "format": "Format =",
       "hiRes": "Hi-Res",
       "liked": "Liked",
-      "ratingMin": "Rating ≥"
-    }
+      "ratingMin": "Rating ≥",
+      "pathContains": "Path contains",
+      "discNumberIs": "Disc =",
+      "addedInLastDays": "Added within",
+      "sampleRateMin": "Sample rate ≥",
+      "bitDepthMin": "Bit depth ≥",
+      "playCountMin": "Plays ≥",
+      "playCountMax": "Plays ≤",
+      "playedInLastDays": "Played within",
+      "tagPresent": "Has tag",
+      "tagContains": "Tag contains"
+    },
+    "counting": "Counting…",
+    "matchCountLimited": "{{kept}} kept of {{total}} matching",
+    "templates": {
+      "label": "Template",
+      "placeholder": "Start from a template…",
+      "recentlyAdded": "Recently added",
+      "neverPlayed": "Never played",
+      "favourites": "Favourites",
+      "forgotten": "Forgotten",
+      "hiRes": "Hi-Res",
+      "upTempo": "Up-tempo"
+    },
+    "predicateGroups": {
+      "text": "Text",
+      "library": "Library",
+      "audio": "Audio",
+      "history": "Plays",
+      "tags": "Tags"
+    },
+    "matchCount_one": "{{count}} track matches",
+    "matchCount_other": "{{count}} tracks match"
   },
   "lyricsEditor": {
     "title": "Lyrics editor",
@@ -2635,6 +2669,55 @@
       "upload": "Upload",
       "backup": "Backup",
       "thumbnails": "Thumbnails"
+    }
+  },
+  "smartRuleSummary": {
+    "everything": "the whole library",
+    "nothing": "no tracks",
+    "and": " and ",
+    "or": " or ",
+    "not": "except {{inner}}",
+    "limit": "at most {{value}}",
+    "minutes": "{{value}} min",
+    "sort": {
+      "addedDesc": "newest additions first",
+      "addedAsc": "oldest additions first",
+      "yearDesc": "newest releases first",
+      "yearAsc": "oldest releases first",
+      "titleAsc": "by title",
+      "artistAsc": "by artist",
+      "random": "at random"
+    },
+    "predicates": {
+      "titleContains": "title contains “{{value}}”",
+      "artistContains": "artist contains “{{value}}”",
+      "albumContains": "album contains “{{value}}”",
+      "pathContains": "path contains “{{value}}”",
+      "genreIs": "genre {{value}}",
+      "yearMin": "year ≥ {{value}}",
+      "yearMax": "year ≤ {{value}}",
+      "discNumberIs": "disc {{value}}",
+      "liked": "liked",
+      "ratingMin": "rated ≥ {{value}}",
+      "format": "{{value}} format",
+      "hiRes": "hi-res",
+      "sampleRateMin": "≥ {{value}} kHz",
+      "bitDepthMin": "≥ {{value}}-bit",
+      "bpmMin": "BPM ≥ {{value}}",
+      "bpmMax": "BPM ≤ {{value}}",
+      "durationMinMs": "longer than {{value}}",
+      "durationMaxMs": "shorter than {{value}}",
+      "neverPlayed": "never played",
+      "tagPresent": "has the {{key}} tag",
+      "tagContains": "{{key}} tag contains “{{value}}”",
+      "playCountMin_one": "played at least {{count}} time",
+      "playCountMin_other": "played at least {{count}} times",
+      "playCountMax_one": "played at most {{count}} time",
+      "playCountMax_other": "played at most {{count}} times",
+      "playedInLastDays_one": "played in the last {{count}} day",
+      "playedInLastDays_other": "played in the last {{count}} days",
+      "addedInLastDays_one": "added in the last {{count}} day",
+      "addedInLastDays_other": "added in the last {{count}} days"
     }
   }
 }

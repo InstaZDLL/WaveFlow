@@ -58,6 +58,7 @@ import { Tooltip } from "../common/Tooltip";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { HiResBadge } from "../common/HiResBadge";
+import { SmartRuleSummary } from "../common/SmartRuleSummary";
 import { PlayingIndicator } from "../common/PlayingIndicator";
 import { SelectionActionBar } from "../common/SelectionActionBar";
 import { usePlayer } from "../../hooks/usePlayer";
@@ -1199,6 +1200,7 @@ export function PlaylistView({
                     {playlist.description}
                   </p>
                 )}
+                {!remote && <SmartRuleSummary playlist={playlist} />}
                 <div className="flex items-center text-sm text-zinc-500 space-x-2">
                   <Music2 size={16} />
                   <span>

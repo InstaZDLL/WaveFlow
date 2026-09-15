@@ -1456,8 +1456,6 @@
     "createTitle": "Новый умный плейлист",
     "editTitle": "Изменить умный плейлист",
     "create": "Создать",
-    "preview": "Предпросмотр",
-    "previewCount": "Совпадений: {{count}}",
     "nameRequired": "Название обязательно",
     "fields": {
       "name": "Название",
@@ -1517,7 +1515,14 @@
       "addNot": "НЕ",
       "contains": "Содержит…",
       "pickGenre": "Выберите жанр…",
-      "childCount_many": "{{count}} условий"
+      "childCount_many": "{{count}} условий",
+      "pathPlaceholder": "Папка или путь…",
+      "bits": "{{value}} бит",
+      "pickTag": "Выберите тег…",
+      "days_one": "день",
+      "days_few": "дня",
+      "days_many": "дней",
+      "days_other": "дней"
     },
     "predicates": {
       "titleContains": "Название содержит",
@@ -1533,8 +1538,41 @@
       "format": "Формат =",
       "hiRes": "Hi-Res",
       "liked": "Любимое",
-      "ratingMin": "Оценка ≥"
-    }
+      "ratingMin": "Оценка ≥",
+      "pathContains": "Путь содержит",
+      "discNumberIs": "Диск =",
+      "addedInLastDays": "Добавлен за",
+      "sampleRateMin": "Частота ≥",
+      "bitDepthMin": "Разрядность ≥",
+      "playCountMin": "Прослушиваний ≥",
+      "playCountMax": "Прослушиваний ≤",
+      "playedInLastDays": "Прослушан за",
+      "tagPresent": "Есть тег",
+      "tagContains": "Тег содержит"
+    },
+    "counting": "Подсчёт…",
+    "matchCountLimited": "{{kept}} из {{total}} совпадений",
+    "templates": {
+      "label": "Шаблон",
+      "placeholder": "Начать с шаблона…",
+      "recentlyAdded": "Недавно добавленные",
+      "neverPlayed": "Ни разу не прослушанные",
+      "favourites": "Избранное",
+      "forgotten": "Забытые",
+      "hiRes": "Высокое разрешение",
+      "upTempo": "Быстрый темп"
+    },
+    "predicateGroups": {
+      "text": "Текст",
+      "library": "Библиотека",
+      "audio": "Аудио",
+      "history": "Прослушивания",
+      "tags": "Теги"
+    },
+    "matchCount_one": "{{count}} трек подходит",
+    "matchCount_few": "{{count}} трека подходят",
+    "matchCount_many": "{{count}} треков подходят",
+    "matchCount_other": "{{count}} треков подходят"
   },
   "lyricsEditor": {
     "title": "Редактор текста",
@@ -2794,5 +2832,62 @@
     },
     "more_few": "Ещё {{count}} задачи",
     "more_many": "Ещё {{count}} задач"
+  },
+  "smartRuleSummary": {
+    "everything": "вся библиотека",
+    "nothing": "ни одного трека",
+    "and": " и ",
+    "or": " или ",
+    "not": "кроме {{inner}}",
+    "limit": "не более {{value}}",
+    "minutes": "{{value}} мин",
+    "sort": {
+      "addedDesc": "сначала недавно добавленные",
+      "addedAsc": "сначала давно добавленные",
+      "yearDesc": "сначала новые",
+      "yearAsc": "сначала старые",
+      "titleAsc": "по названию",
+      "artistAsc": "по исполнителю",
+      "random": "случайно"
+    },
+    "predicates": {
+      "titleContains": "название содержит «{{value}}»",
+      "artistContains": "исполнитель содержит «{{value}}»",
+      "albumContains": "альбом содержит «{{value}}»",
+      "pathContains": "путь содержит «{{value}}»",
+      "genreIs": "жанр {{value}}",
+      "yearMin": "год ≥ {{value}}",
+      "yearMax": "год ≤ {{value}}",
+      "discNumberIs": "диск {{value}}",
+      "liked": "избранное",
+      "ratingMin": "оценка ≥ {{value}}",
+      "format": "формат {{value}}",
+      "hiRes": "высокое разрешение",
+      "sampleRateMin": "≥ {{value}} кГц",
+      "bitDepthMin": "≥ {{value}} бит",
+      "bpmMin": "BPM ≥ {{value}}",
+      "bpmMax": "BPM ≤ {{value}}",
+      "durationMinMs": "длительность ≥ {{value}}",
+      "durationMaxMs": "длительность ≤ {{value}}",
+      "neverPlayed": "ни разу не прослушан",
+      "tagPresent": "есть тег {{key}}",
+      "tagContains": "тег {{key}} содержит «{{value}}»",
+      "playCountMin_one": "прослушан не менее {{count}} раза",
+      "playCountMin_few": "прослушан не менее {{count}} раз",
+      "playCountMin_many": "прослушан не менее {{count}} раз",
+      "playCountMin_other": "прослушан не менее {{count}} раз",
+      "playCountMax_one": "прослушан не более {{count}} раза",
+      "playCountMax_few": "прослушан не более {{count}} раз",
+      "playCountMax_many": "прослушан не более {{count}} раз",
+      "playCountMax_other": "прослушан не более {{count}} раз",
+      "playedInLastDays_one": "прослушан за последний {{count}} день",
+      "playedInLastDays_few": "прослушан за последние {{count}} дня",
+      "playedInLastDays_many": "прослушан за последние {{count}} дней",
+      "playedInLastDays_other": "прослушан за последние {{count}} дней",
+      "addedInLastDays_one": "добавлен за последний {{count}} день",
+      "addedInLastDays_few": "добавлен за последние {{count}} дня",
+      "addedInLastDays_many": "добавлен за последние {{count}} дней",
+      "addedInLastDays_other": "добавлен за последние {{count}} дней"
+    }
   }
 }

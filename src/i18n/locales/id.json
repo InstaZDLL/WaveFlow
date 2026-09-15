@@ -1364,8 +1364,6 @@
     "createTitle": "Daftar putar pintar baru",
     "editTitle": "Sunting daftar putar pintar",
     "create": "Buat",
-    "preview": "Pratinjau",
-    "previewCount": "{{count}} lagu cocok",
     "nameRequired": "Nama wajib diisi",
     "fields": {
       "name": "Nama",
@@ -1423,7 +1421,12 @@
       "addGroupOr": "Grup ATAU",
       "addNot": "BUKAN",
       "contains": "Mengandung…",
-      "pickGenre": "Pilih genre…"
+      "pickGenre": "Pilih genre…",
+      "pathPlaceholder": "Folder atau jalur…",
+      "bits": "{{value}} bit",
+      "pickTag": "Pilih tag…",
+      "days_one": "hari",
+      "days_other": "hari"
     },
     "predicates": {
       "titleContains": "Judul mengandung",
@@ -1439,8 +1442,39 @@
       "format": "Format =",
       "hiRes": "Hi-Res",
       "liked": "Disukai",
-      "ratingMin": "Penilaian ≥"
-    }
+      "ratingMin": "Penilaian ≥",
+      "pathContains": "Jalur berisi",
+      "discNumberIs": "Disk =",
+      "addedInLastDays": "Ditambahkan dalam",
+      "sampleRateMin": "Laju sampel ≥",
+      "bitDepthMin": "Kedalaman bit ≥",
+      "playCountMin": "Pemutaran ≥",
+      "playCountMax": "Pemutaran ≤",
+      "playedInLastDays": "Diputar dalam",
+      "tagPresent": "Punya tag",
+      "tagContains": "Tag berisi"
+    },
+    "counting": "Menghitung…",
+    "matchCountLimited": "{{kept}} dari {{total}} yang cocok",
+    "templates": {
+      "label": "Templat",
+      "placeholder": "Mulai dari templat…",
+      "recentlyAdded": "Baru ditambahkan",
+      "neverPlayed": "Belum pernah diputar",
+      "favourites": "Favorit",
+      "forgotten": "Terlupakan",
+      "hiRes": "Hi-Res",
+      "upTempo": "Tempo cepat"
+    },
+    "predicateGroups": {
+      "text": "Teks",
+      "library": "Pustaka",
+      "audio": "Audio",
+      "history": "Pemutaran",
+      "tags": "Tag"
+    },
+    "matchCount_one": "{{count}} lagu cocok",
+    "matchCount_other": "{{count}} lagu cocok"
   },
   "lyricsEditor": {
     "title": "Editor lirik",
@@ -2614,6 +2648,55 @@
       "upload": "Unggah",
       "backup": "Cadangan",
       "thumbnails": "Gambar mini"
+    }
+  },
+  "smartRuleSummary": {
+    "everything": "seluruh pustaka",
+    "nothing": "tidak ada lagu",
+    "and": " dan ",
+    "or": " atau ",
+    "not": "kecuali {{inner}}",
+    "limit": "maksimal {{value}}",
+    "minutes": "{{value}} mnt",
+    "sort": {
+      "addedDesc": "terbaru ditambahkan dulu",
+      "addedAsc": "terlama ditambahkan dulu",
+      "yearDesc": "terbaru dulu",
+      "yearAsc": "terlama dulu",
+      "titleAsc": "menurut judul",
+      "artistAsc": "menurut artis",
+      "random": "acak"
+    },
+    "predicates": {
+      "titleContains": "judul berisi “{{value}}”",
+      "artistContains": "artis berisi “{{value}}”",
+      "albumContains": "album berisi “{{value}}”",
+      "pathContains": "jalur berisi “{{value}}”",
+      "genreIs": "genre {{value}}",
+      "yearMin": "tahun ≥ {{value}}",
+      "yearMax": "tahun ≤ {{value}}",
+      "discNumberIs": "disk {{value}}",
+      "liked": "disukai",
+      "ratingMin": "peringkat ≥ {{value}}",
+      "format": "format {{value}}",
+      "hiRes": "hi-res",
+      "sampleRateMin": "≥ {{value}} kHz",
+      "bitDepthMin": "≥ {{value}} bit",
+      "bpmMin": "BPM ≥ {{value}}",
+      "bpmMax": "BPM ≤ {{value}}",
+      "durationMinMs": "durasi ≥ {{value}}",
+      "durationMaxMs": "durasi ≤ {{value}}",
+      "neverPlayed": "belum pernah diputar",
+      "tagPresent": "punya tag {{key}}",
+      "tagContains": "tag {{key}} berisi “{{value}}”",
+      "playCountMin_one": "diputar minimal {{count}} kali",
+      "playCountMin_other": "diputar minimal {{count}} kali",
+      "playCountMax_one": "diputar maksimal {{count}} kali",
+      "playCountMax_other": "diputar maksimal {{count}} kali",
+      "playedInLastDays_one": "diputar dalam {{count}} hari terakhir",
+      "playedInLastDays_other": "diputar dalam {{count}} hari terakhir",
+      "addedInLastDays_one": "ditambahkan dalam {{count}} hari terakhir",
+      "addedInLastDays_other": "ditambahkan dalam {{count}} hari terakhir"
     }
   }
 }
