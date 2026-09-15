@@ -242,6 +242,23 @@ fn read_inner(path: &Path) -> Option<Vec<(String, String)>> {
                 }
             }
         }
+        // The one container the tag editor could write and this could
+        // not read. `edit.rs` has an `AiffFile` arm, so a custom tag
+        // added through the editor landed in the file -- and then the
+        // next scan fell through to `_ => {}`, answered `Some(vec![])`,
+        // and `write_extra_tags` cleared the row for it. The value
+        // stayed in the file and vanished from the library, on every
+        // rescan, for good.
+        FileType::Aiff => {
+            let file = lofty::iff::aiff::AiffFile::read_from(&mut handle, options).ok()?;
+            // ID3v2 only, unlike the WAV arm beside it. AIFF's native
+            // metadata is its text chunks, and those are not a
+            // key-value map: `AiffTextChunks` is a struct of five fixed
+            // fields (name, author, copyright, annotations, comments),
+            // every one of them already modelled. There is no room in
+            // it for a custom key, so there is nothing there to find.
+            id3v2_into(file.id3v2(), &mut out);
+        }
         // Vorbis comments: the key is the comment name, so anything
         // non-standard is already in the shape we want.
         FileType::Flac => {
@@ -381,6 +398,95 @@ fn ape_into(tag: Option<&lofty::ape::ApeTag>, out: &mut Vec<(String, String)>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A minimal but valid AIFF, so lofty will open it and write to it.
+    fn tiny_aiff() -> Vec<u8> {
+        let frames: u32 = 8;
+        let channels: u16 = 2;
+        let sample_size: u16 = 16;
+        let data_len = frames as usize * channels as usize * 2;
+
+        let mut comm = Vec::new();
+        comm.extend_from_slice(&channels.to_be_bytes());
+        comm.extend_from_slice(&frames.to_be_bytes());
+        comm.extend_from_slice(&sample_size.to_be_bytes());
+        comm.extend_from_slice(&[0x40, 0x0E, 0xAC, 0x44, 0, 0, 0, 0, 0, 0]);
+
+        let mut ssnd = Vec::new();
+        ssnd.extend_from_slice(&0u32.to_be_bytes());
+        ssnd.extend_from_slice(&0u32.to_be_bytes());
+        ssnd.resize(8 + data_len, 0);
+
+        let mut body = Vec::new();
+        body.extend_from_slice(b"AIFF");
+        body.extend_from_slice(b"COMM");
+        body.extend_from_slice(&(comm.len() as u32).to_be_bytes());
+        body.extend_from_slice(&comm);
+        body.extend_from_slice(b"SSND");
+        body.extend_from_slice(&((8 + data_len) as u32).to_be_bytes());
+        body.extend_from_slice(&ssnd);
+
+        let mut out = Vec::new();
+        out.extend_from_slice(b"FORM");
+        out.extend_from_slice(&(body.len() as u32).to_be_bytes());
+        out.extend_from_slice(&body);
+        out
+    }
+
+    /// AIFF was the one container the tag editor could write and this
+    /// module could not read. It fell through to the catch-all arm and
+    /// answered `Some(vec![])` -- "opened it, nothing here" -- which is
+    /// the answer that tells the scanner to clear the track's stored
+    /// rows. So a custom tag added through the editor went into the
+    /// file and left the library on the next scan, every scan.
+    ///
+    /// Written with lofty and read back, rather than asserting on a
+    /// match arm: the arm existing proves nothing about whether it
+    /// finds what the writer put there.
+    #[test]
+    fn a_custom_tag_written_into_an_aiff_is_read_back() {
+        use lofty::config::WriteOptions;
+        use lofty::id3::v2::{ExtendedTextFrame, Frame, Id3v2Tag};
+        use lofty::tag::{Accessor, TagExt};
+
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("track.aiff");
+        std::fs::write(&path, tiny_aiff()).expect("write aiff");
+
+        // The concrete tag, not the generic one: `Tag` has no way to
+        // carry a `TXXX` frame -- which is the whole reason this module
+        // exists, and why writing through it would test nothing.
+        let mut tag = Id3v2Tag::default();
+        tag.set_title("Ghost".to_string());
+        tag.insert(Frame::UserText(ExtendedTextFrame::new(
+            lofty::TextEncoding::UTF8,
+            "MY_CUSTOM".to_string(),
+            "kept".to_string(),
+        )));
+        tag.save_to_path(&path, WriteOptions::default())
+            .expect("save id3v2 into the aiff");
+
+        // The file really is an AIFF lofty recognises, not something
+        // that happens to parse: a wrong answer here would make the
+        // assertion below pass for the wrong reason.
+        let probed = Probe::open(&path)
+            .expect("probe")
+            .guess_file_type()
+            .expect("guess");
+        assert_eq!(probed.file_type(), Some(FileType::Aiff));
+
+        let tags = read_extra_tags(&path).expect("aiff opened");
+        assert!(
+            tags.iter().any(|(k, v)| k == "MY_CUSTOM" && v == "kept"),
+            "custom tag lost: {tags:?}"
+        );
+        // The title is modelled, so it is not offered as a custom
+        // column -- the same rule every other container follows here.
+        assert!(
+            !tags.iter().any(|(k, _)| k.eq_ignore_ascii_case("TITLE")),
+            "a modelled field leaked into the custom set: {tags:?}"
+        );
+    }
 
     #[test]
     fn a_value_is_cut_on_a_character_boundary() {

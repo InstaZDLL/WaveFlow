@@ -193,6 +193,15 @@ export function useProfileSetting<T>(
         confirmedRef.current = parsed;
       } catch (err) {
         console.error(`[${optionsRef.current.label}] read failed`, err);
+        // Give the ownership token back. `refresh` claims it on the way
+        // in, which is what lets a stale read drop itself -- but a read
+        // that failed committed nothing, so holding the token only
+        // hides someone else's work: a write still in flight compares
+        // this token to decide whether its rollback is still wanted,
+        // and would skip it, leaving the optimistic value on screen
+        // describing a setting the database refused. Only when nothing
+        // newer has claimed it since.
+        if (ownerSeqRef.current === seq) ownerSeqRef.current = seq - 1;
       } finally {
         // Ready on any outcome, stale reads included. A failed read
         // leaves the default in place and never flipping this would
