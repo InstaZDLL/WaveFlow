@@ -923,6 +923,12 @@ export function LibraryView({
         return inventory.reduce((sum, category) => sum + category.count, 0);
     }
   };
+  // Built from the tab id, so no literal key for the other tabs
+  // appears anywhere in the source -- a search for
+  // `library.header.subtext.a-corriger` finds nothing and proves
+  // nothing. Each tab's entry is in all 17 locale files, and as CLDR
+  // plural forms (`_zero` / `_one` / `_other`, plus `_few` and `_many`
+  // where the language has them), because `count` is passed.
   const headerSubtext =
     activeTab === "dossiers"
       ? t("library.header.subtext.dossiers", { count: countForTab("dossiers") })

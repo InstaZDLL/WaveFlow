@@ -103,6 +103,23 @@ pub async fn list_track_tag_values(
         .take(keys.len())
         .collect::<Vec<_>>()
         .join(",");
+    // Every matching row, deliberately not a page and not capped.
+    //
+    // A `LIMIT` here would not make the answer smaller, it would make it
+    // wrong: the rows past the cap become blank cells in a column whose
+    // only job is to show that tag, and nothing on screen would say the
+    // value exists. Slow is recoverable, a confident blank is not.
+    //
+    // Paging by what is on screen trades that for a round trip on every
+    // scroll and every sort -- and the fit-to-content measurement reads
+    // a sample well past the viewport, so it would have to fetch again
+    // anyway.
+    //
+    // The bound is narrower than "the whole library" reads: only tracks
+    // that actually carry one of the chosen keys produce a row, only the
+    // keys shown as columns are asked for (`MAX_KEYS` of them), and
+    // nothing is fetched at all until a `tag:` column is added -- which
+    // the caller notes is the uncommon case.
     let sql = format!(
         "SELECT tt.track_id AS track_id, tt.key AS key, tt.value AS value
            FROM track_tag tt
