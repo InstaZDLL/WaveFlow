@@ -87,6 +87,10 @@ export function ScanProgressToast() {
   // Per-file failures. The scan reports itself as finished either
   // way, so this card is the only signal the user gets.
   const partial = errors > 0;
+  // What the icon and the title colour key on. A stopped scan is not a
+  // success even when nothing failed, and a green tick beside "Scan
+  // stopped" is the card disagreeing with itself.
+  const needsAttention = partial || cancelled;
 
   return (
     <div
@@ -97,12 +101,16 @@ export function ScanProgressToast() {
       <div className="flex items-start gap-3">
         <div
           className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${
-            partial
+            needsAttention
               ? "bg-amber-500/15 text-amber-500"
               : "bg-emerald-500/15 text-emerald-500"
           }`}
         >
-          {partial ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
+          {needsAttention ? (
+            <AlertTriangle size={18} />
+          ) : (
+            <CheckCircle2 size={18} />
+          )}
         </div>
         <div className="flex-1 min-w-0">
           {/* A scan that hit errors must not read as a plain success:
@@ -112,7 +120,7 @@ export function ScanProgressToast() {
               added/updated/skipped line stays below as context. */}
           <div
             className={`text-sm font-semibold ${
-              partial
+              needsAttention
                 ? "text-amber-700 dark:text-amber-500"
                 : "text-zinc-900 dark:text-zinc-100"
             }`}

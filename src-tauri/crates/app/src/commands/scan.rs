@@ -1595,13 +1595,6 @@ pub(crate) async fn scan_folder_inner(
         }
     };
 
-    // Mark the one-off ReplayGain backfill done for this folder — but
-    // only if every track it was meant to re-read actually got read.
-    // A file that failed extraction this time (locked, unreadable,
-    // mid-write) must be picked up by the next scan rather than be
-    // written off. The marker is still set when files simply turned
-    // out to carry no tags: re-reading those on every future scan is
-    // exactly what it exists to prevent.
     // Marked whatever the individual files turned out to hold: the
     // point of the pass is that every file was *read once*, and a
     // folder of tracks that carry no custom tags must not be re-read on
@@ -1631,6 +1624,14 @@ pub(crate) async fn scan_folder_inner(
         }
     }
 
+    // Mark the one-off ReplayGain backfill done for this folder — but
+    // only if every track it was meant to re-read actually got read. A
+    // file that failed extraction this time (locked, unreadable,
+    // mid-write) must be picked up by the next scan rather than written
+    // off. The marker is still set when a file turned out to carry no
+    // ReplayGain tags at all: re-reading those on every future scan is
+    // exactly what it exists to prevent.
+    //
     // `!summary.cancelled` since the scan became interruptible (#601):
     // a stopped pass never reached most of the folder, and recording
     // the backfill as done would leave those files without their

@@ -86,7 +86,17 @@ export function TrackTableHeader({
     id: ColumnId;
     startX: number;
     startWidth: number;
+    /** The document was right-to-left when the gesture began. Read once,
+     *  at `pointerdown`: the direction cannot change mid-drag, and
+     *  asking the DOM every pointer move is a layout read per frame. */
+    rtl: boolean;
   } | null>(null);
+
+  /** Is the interface running right-to-left? Arabic, of the seventeen
+   *  locales — `i18n/index.ts` stamps `dir` on the document root. */
+  const isRtl = () =>
+    typeof document !== "undefined" &&
+    document.documentElement.getAttribute("dir") === "rtl";
 
   /** The column's width on screen right now.
    *
@@ -118,6 +128,7 @@ export function TrackTableHeader({
         id,
         startX: event.clientX,
         startWidth: startWidthFor(event.currentTarget, width),
+        rtl: isRtl(),
       };
       // Captured on the handle, so the pointer can leave the element —
       // which it does immediately, since the column is growing out from
@@ -132,12 +143,14 @@ export function TrackTableHeader({
       const current = drag.current;
       if (!current) return;
       const spec = specFor(current.id);
+      // Away from the column's *start* edge widens it, and which edge
+      // that is depends on the direction: in RTL the handle sits on the
+      // left and dragging left is what makes the column bigger.
+      // Unflipped, the column shrank when the pointer said grow.
+      const delta = (event.clientX - current.startX) * (current.rtl ? -1 : 1);
       const next = Math.min(
         MAX_COLUMN_WIDTH,
-        Math.max(
-          spec.minWidth,
-          current.startWidth + (event.clientX - current.startX),
-        ),
+        Math.max(spec.minWidth, current.startWidth + delta),
       );
       // Not persisted: the parent renders this immediately, and the
       // write happens once on release.
@@ -172,11 +185,15 @@ export function TrackTableHeader({
       const from = startWidthFor(event.currentTarget, width);
       const step = event.shiftKey ? KEY_STEP_LARGE : KEY_STEP;
       let next: number;
+      // Mirrored with the layout, like the drag: the arrow pointing
+      // away from the column's start edge is the one that widens it.
+      const grow = isRtl() ? "ArrowLeft" : "ArrowRight";
+      const shrink = isRtl() ? "ArrowRight" : "ArrowLeft";
       switch (event.key) {
-        case "ArrowLeft":
+        case shrink:
           next = from - step;
           break;
-        case "ArrowRight":
+        case grow:
           next = from + step;
           break;
         case "Home":
@@ -316,7 +333,7 @@ export function TrackTableHeader({
                 event.stopPropagation();
                 onFit(id);
               }}
-              className="absolute -right-2 top-0 bottom-0 w-3 cursor-col-resize touch-none focus:outline-none focus-visible:after:bg-emerald-500 after:content-[''] after:absolute after:inset-y-1 after:left-1/2 after:w-px after:bg-transparent hover:after:bg-emerald-500"
+              className="absolute -end-2 top-0 bottom-0 w-3 cursor-col-resize touch-none focus:outline-none focus-visible:after:bg-emerald-500 after:content-[''] after:absolute after:inset-y-1 after:left-1/2 after:w-px after:bg-transparent hover:after:bg-emerald-500"
             />
           </div>
         );
