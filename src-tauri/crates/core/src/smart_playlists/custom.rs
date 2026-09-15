@@ -477,9 +477,16 @@ fn like_contains(value: &str) -> String {
 /// Kept in one place so the two halves can never drift apart: a
 /// pattern escaped without the clause matches the escape character
 /// literally, which is worse than not escaping at all.
+///
+/// No `COLLATE NOCASE`, which these fragments used to carry. SQLite's
+/// `LIKE` **ignores collating sequences** and is already
+/// case-insensitive across ASCII, so the clause never decided
+/// anything — and once `ESCAPE` follows the pattern, a trailing
+/// `COLLATE` binds to the escape character rather than to the
+/// comparison, which is a claim about the SQL that is not true.
 #[cfg(feature = "sqlite")]
 fn like_clause(column: &str) -> String {
-    format!("{column} LIKE ? ESCAPE '{LIKE_ESCAPE}' COLLATE NOCASE")
+    format!("{column} LIKE ? ESCAPE '{LIKE_ESCAPE}'")
 }
 
 /// Epoch milliseconds `days` before `now_ms`, the cut-off of a relative
@@ -884,7 +891,7 @@ mod tests {
                     value: "foo".into(),
                 },
             };
-            assert_eq!(sql_of(&n), "t.title LIKE ? ESCAPE '!' COLLATE NOCASE");
+            assert_eq!(sql_of(&n), "t.title LIKE ? ESCAPE '!'");
         }
 
         /// A `LIKE` metacharacter typed into a "contains" field is a
@@ -1145,6 +1152,22 @@ mod tests {
                 vec![1],
                 "the separator fold must work in both directions, and the \
                  unavailable track must stay out"
+            );
+
+            // Case-insensitivity comes from `LIKE` itself, not from a
+            // collation: SQLite's `LIKE` ignores collating sequences.
+            // This is the assertion that says so out loud, now that no
+            // `COLLATE` sits in the fragment to suggest otherwise.
+            assert_eq!(
+                matched(
+                    &pool,
+                    leaf(Predicate::TitleContains {
+                        value: "alpha".into()
+                    })
+                )
+                .await,
+                vec![1],
+                "a lower-case needle must find an upper-case title"
             );
 
             assert_eq!(
