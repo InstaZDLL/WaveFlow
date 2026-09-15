@@ -85,6 +85,11 @@ export function ColumnPicker({
     // scroll frame would have it chase the button up the page, which is
     // worse. `capture` so a scroll inside any container is seen, and
     // the popover's own scrolling is excluded by the target check.
+    //
+    // The check cannot swallow a page scroll that happens to start over
+    // the popover: `scroll` fires on the element that actually scrolled,
+    // never on one merely under the pointer. A wheel over a popover with
+    // nothing to scroll moves the page, and the page is the target.
     const onReflow = (event: Event) => {
       if (
         event.target instanceof Element &&

@@ -2289,8 +2289,12 @@ function TrackTable({
       cellText(id, row, {
         duration: formatDuration,
         bytes: (n) => formatBytes(n, locale),
-        date: (epoch) =>
-          new Date(epoch * 1000).toLocaleDateString(locale, {
+        // Milliseconds, not seconds: `track.added_at` is written by
+        // `now_millis()` on the Rust side, and `TrackPropertiesModal`
+        // has always fed it to `Date` unscaled. Multiplying here put
+        // the "Added" column tens of thousands of years out.
+        date: (epochMs) =>
+          new Date(epochMs).toLocaleDateString(locale, {
             year: "numeric",
             month: "short",
             day: "numeric",

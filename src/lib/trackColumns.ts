@@ -368,7 +368,8 @@ export function cellText(
   fmt: {
     duration: (ms: number) => string;
     bytes: (n: number) => string;
-    date: (epochSeconds: number) => string;
+    /** `track.added_at`, which the backend writes in milliseconds. */
+    date: (epochMs: number) => string;
     tag: (row: LibraryTrackRow, key: string) => string | null;
   },
 ): string {

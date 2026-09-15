@@ -161,9 +161,14 @@
    content scrolling underneath the text rather than a soft wash of it —
    worse than where we started. So the text-bearing chrome is forced
    opaque in the same breath (rules further down, next to the skin
-   overrides). Purely decorative translucency over a hero gradient
-   (Wrapped, the artist header) is left alone: white text on a dark
-   gradient is already well past the contrast floor.
+   overrides).
+
+   The blur removal below is universal and meant to be: someone asking
+   for high contrast is not asking for it on some surfaces. It is the
+   *opacity* forcing that is selective -- purely decorative
+   translucency over a hero gradient (Wrapped, the artist header) keeps
+   it, since white text on a dark gradient is already well past the
+   contrast floor and making it opaque would buy nothing.
 
    (`--skin-backdrop` is deliberately not touched here: `applySkin`
    writes it onto `documentElement.style`, which no stylesheet rule can
