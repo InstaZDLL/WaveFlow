@@ -53,8 +53,12 @@ export function ScanProgressToast() {
         window.clearTimeout(autoHideTimer.current);
         autoHideTimer.current = null;
       }
-      // Hold the success card for a few seconds so the user has time
-      // to read the summary, then fade it out.
+      // Only a clean run fades on its own. A stopped scan, or one
+      // that hit errors, leaves this card as its ONLY report -- the
+      // status-bar row goes with the task -- so taking it away after
+      // four seconds can lose the count of what failed to someone who
+      // happened to be looking elsewhere. Those wait to be dismissed.
+      if (next.cancelled || next.errors > 0) return;
       autoHideTimer.current = window.setTimeout(() => {
         setDismissed(true);
       }, 4000);

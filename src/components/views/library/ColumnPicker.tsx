@@ -41,6 +41,15 @@ const BUILTIN_ORDER = Object.keys(BUILTIN_COLUMNS) as BuiltinColumnId[];
  * context and would clamp this popover behind the content it opens
  * over.
  */
+/** Below this, the gap under the trigger is not worth using: the panel
+ *  would be a sliver with its own scrollbar. Flip above it instead. */
+const MIN_PANEL_HEIGHT = 220;
+/** Ceiling on the panel, so a tall window does not stretch it to the
+ *  full height of the screen. */
+const MAX_PANEL_HEIGHT = 520;
+/** Gap between the panel and both the trigger and the viewport edge. */
+const PANEL_MARGIN = 8;
+
 export function ColumnPicker({
   layout,
   tagKeys,
@@ -172,21 +181,34 @@ export function ColumnPicker({
   const toggleOpen = () => {
     const rect = buttonRef.current?.getBoundingClientRect();
     if (rect) {
-      const top = rect.bottom + 8;
+      // Below the button when there is room, above it when there is
+      // not. An earlier version only bounded the height, with a 160px
+      // floor to keep the panel usable -- but a floor is exactly what
+      // reintroduces the overflow it was meant to remove once the space
+      // below is smaller than it. Flipping gives the panel the larger
+      // of the two gaps instead of insisting on the lower one.
+      const below =
+        window.innerHeight - (rect.bottom + PANEL_MARGIN) - PANEL_MARGIN;
+      const above = rect.top - PANEL_MARGIN * 2;
+      const flip = below < MIN_PANEL_HEIGHT && above > below;
+      const top = flip
+        ? Math.max(
+            PANEL_MARGIN,
+            rect.top - PANEL_MARGIN - Math.min(above, MAX_PANEL_HEIGHT),
+          )
+        : rect.bottom + PANEL_MARGIN;
       setAnchor({
         top,
-        right: Math.max(8, window.innerWidth - rect.right),
+        right: Math.max(PANEL_MARGIN, window.innerWidth - rect.right),
         // The horizontal axis was already held inside the viewport; the
         // vertical one was not. A `fixed` panel that runs past the
         // bottom edge cannot be scrolled to -- the page scrolls, the
         // panel does not -- so its lower controls are simply gone. The
         // header is near the top at normal zoom and this changes
         // nothing there; at 300-400% it is what keeps the list
-        // reachable. Bounding the height rather than moving `top` keeps
-        // the panel under its button, and the existing `overflow-y-auto`
-        // does the rest. A resize closes the picker, so this can never
-        // be left stale.
-        maxHeight: Math.max(160, window.innerHeight - top - 8),
+        // reachable. A resize closes the picker, so none of this can be
+        // left stale.
+        maxHeight: Math.min(MAX_PANEL_HEIGHT, flip ? above : below),
       });
     }
     setOpen((value) => !value);

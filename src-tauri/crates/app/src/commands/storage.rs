@@ -745,8 +745,22 @@ pub async fn set_cache_location(
         // use right now, which the branch above treats as cancelling
         // the staged move -- so say that instead of sending someone to
         // restart into the same refusal.
+        // Scoped to the root that could not be used, the way
+        // `get_cache_location` scopes the same question: the flag is set
+        // once at startup and never cleared, so a bare `is_some` keeps
+        // answering "we fell back" for the rest of the session even
+        // after the choice has moved somewhere reachable -- and would
+        // then hand out the cancellation instruction to someone whose
+        // staged move can in fact be finished by restarting.
+        let fell_back_to_here = {
+            let chosen = load_cache_root(&state.app_db).await;
+            state
+                .cache_root_fallback
+                .as_ref()
+                .is_some_and(|(root, _)| chosen.as_ref() == Some(root))
+        };
         return Err(AppError::Other(
-            if state.cache_root_fallback.is_some() {
+            if fell_back_to_here {
                 "a cache move is staged for a folder that is not available; choose the folder in use now to cancel it, then pick a new one"
             } else {
                 "a cache move is already staged; restart WaveFlow to finish it"
@@ -1048,15 +1062,28 @@ pub async fn wipe_targets_outside_root(state: &AppState) -> Vec<RelocatedCache> 
         // only what it could name. Logged rather than propagated: the
         // wipe is already under way and stopping it halfway is worse
         // than leaving a cache behind.
-        let dirs = cache_dirs(
+        // Skipped whole, not reported with an empty list. An empty
+        // list means "this root holds nothing", and the caller reads
+        // that as every directory removed and takes the marker away --
+        // which would strand the caches actually sitting there with
+        // nothing in the app entitled to remove them. Keeping the
+        // marker leaves a later reset able to finish the job.
+        let dirs = match cache_dirs(
             &state.paths.clone().with_cache_root(root.clone()),
             &state.app_db,
         )
         .await
-        .unwrap_or_else(|err| {
-            tracing::warn!(%err, "could not enumerate relocated cache directories for the reset");
-            Vec::new()
-        });
+        {
+            Ok(dirs) => dirs,
+            Err(err) => {
+                tracing::warn!(
+                    %err,
+                    root = %root.display(),
+                    "could not enumerate relocated cache directories for the reset;                      leaving this root and its marker alone"
+                );
+                continue;
+            }
+        };
         targets.push(RelocatedCache {
             marker: root.join(OWNER_MARKER),
             dirs: dirs.into_iter().map(|(_, path)| path).collect(),

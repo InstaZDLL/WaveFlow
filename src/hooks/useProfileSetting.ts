@@ -183,11 +183,19 @@ export function useProfileSetting<T>(
 
     const refresh = async () => {
       const seq = ++ownerSeqRef.current;
+      // Decided before the catch below hands the token back, not read
+      // out of the token afterwards: the release makes the ownership
+      // test fail, so asking again in `finally` answered "stale" for a
+      // read that was the owner right up to the moment it failed -- and
+      // `ready` then never flipped at all, which is the one outcome the
+      // whole block exists to avoid.
+      let owned = false;
       try {
         const raw = await getProfileSetting(key, activeProfileId);
         // Stale: a write (or a newer read) happened while we awaited and
         // owns the value now.
         if (cancelled || ownerSeqRef.current !== seq) return;
+        owned = true;
         const parsed = parse(raw);
         commit(parsed);
         confirmedRef.current = parsed;
@@ -201,7 +209,8 @@ export function useProfileSetting<T>(
         // and would skip it, leaving the optimistic value on screen
         // describing a setting the database refused. Only when nothing
         // newer has claimed it since.
-        if (ownerSeqRef.current === seq) ownerSeqRef.current = seq - 1;
+        owned = ownerSeqRef.current === seq;
+        if (owned) ownerSeqRef.current = seq - 1;
       } finally {
         // Ready on any OUTCOME -- a read that failed leaves the
         // default in place, and never flipping this would gate the
@@ -230,7 +239,7 @@ export function useProfileSetting<T>(
         // for broken exactly when it is most likely. On a failed read
         // the consumer re-applies its last confirmed value, which is
         // the right one to put back.
-        if (!cancelled && ownerSeqRef.current === seq) {
+        if (!cancelled && owned) {
           setReady(true);
           setRevision((r) => r + 1);
         }

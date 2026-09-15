@@ -123,9 +123,16 @@ export function BackupCard({ language }: BackupCardProps) {
       // them, through the branch above: each one is complete, and "2
       // archives written" after stopping at the third profile is the
       // useful half of the answer, not a claim the pass finished.
-      // Refresh config so `last_run_at` updates.
-      const fresh = await getBackupConfig();
-      setConfig(fresh);
+      // Its own try: this refresh is a courtesy -- it repaints
+      // `last_run_at` -- and letting it fall into the catch below would
+      // replace everything decided above with "the backup failed", for
+      // a run that had just succeeded.
+      try {
+        const fresh = await getBackupConfig();
+        setConfig(fresh);
+      } catch (err) {
+        console.error("[BackupCard] config refresh after run failed", err);
+      }
     } catch (err) {
       console.error("[BackupCard] run_backup_now failed", err);
       setStatus({

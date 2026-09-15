@@ -455,6 +455,18 @@ pub async fn run_one_backup(
         }
     }
 
+    // Stamped even when profiles failed, and that is a decision, not
+    // an oversight. Leaving it unstamped puts the deadline in the past,
+    // so the loop comes straight back and runs the same pass again --
+    // and a profile that fails because its database is corrupt fails
+    // identically every time, which turns a broken backup into a
+    // permanent loop. That is the shape this file already had to fix
+    // once, with the cancel back-off above.
+    //
+    // The cost is that the profiles that failed wait a full interval
+    // for their next attempt. Answering that properly means a failure
+    // back-off of its own -- shorter than the interval, longer than
+    // nothing -- which is more than this belongs in.
     stamp_last_run(state).await?;
     Ok(BackupPass {
         created,
@@ -588,7 +600,11 @@ pub fn spawn_backup_loop(handle: AppHandle, backup_handle: BackupHandle) {
 
             match run_one_backup(&state, &handle, &config).await {
                 Ok(pass) => {
-                    tracing::info!(count = pass.created.len(), "auto backup run finished");
+                    tracing::info!(
+                        count = pass.created.len(),
+                        failed = pass.failed,
+                        "auto backup run finished"
+                    );
                     let cancelled = pass.cancelled;
                     // Not for a pass the user stopped: the event is what
                     // the frontend turns into "backups written", and the
@@ -596,7 +612,13 @@ pub fn spawn_backup_loop(handle: AppHandle, backup_handle: BackupHandle) {
                     // the run that was scheduled. Stopping it is already
                     // its own answer.
                     if !cancelled {
-                        let _ = handle.emit("backup:completed", pass.created);
+                        // The whole pass, not just the paths it managed
+                        // to write: a run where two profiles failed and
+                        // three succeeded used to be indistinguishable
+                        // from a clean one on this event, exactly as it
+                        // was on the settings card before it learned to
+                        // count failures.
+                        let _ = handle.emit("backup:completed", &pass);
                     }
                     if cancelled {
                         // `last_run_at` was deliberately left alone, so
