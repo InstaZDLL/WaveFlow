@@ -276,6 +276,17 @@ pub async fn inventory_summary(
     let pool = state.require_profile_pool().await?;
     let mut out = Vec::with_capacity(CATEGORIES.len());
 
+    // Each count runs `COUNT(*)` over the whole projection, correlated
+    // GROUP_CONCATs and all, once per category. That is more work than
+    // counting needs, and on a large library it is the slowest thing
+    // this tab does.
+    //
+    // Not fixed by giving each category its own lean query: the clauses
+    // in `where_for` are written against the PROJECTION -- that is why
+    // `missing_title` reaches the flag through a subquery rather than
+    // naming the column. A second set of filters would be a second
+    // place for those semantics to drift, and this file already paid
+    // for that once. Tracked separately instead.
     for key in CATEGORIES {
         let count = if *key == PROBABLE {
             probable_duplicate_ids(&pool).await?.len() as i64

@@ -50,9 +50,11 @@ export function ColumnPicker({
   t,
 }: ColumnPickerProps) {
   const [open, setOpen] = useState(false);
-  const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(
-    null,
-  );
+  const [anchor, setAnchor] = useState<{
+    top: number;
+    right: number;
+    maxHeight: number;
+  } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const dragFrom = useRef<number | null>(null);
@@ -107,6 +109,19 @@ export function ColumnPicker({
       // a list anyone finishes configuring.
       if ((event.target as Element).closest?.("[data-column-picker]")) return;
       setOpen(false);
+      // Clicking something that cannot take focus (plain text, a gap
+      // between controls) leaves focus on the panel, which is about to
+      // unmount -- and it lands on `<body>`, so the next Tab restarts
+      // from the top of the document. Hand it back to the trigger, but
+      // only in that case: a click on something focusable should keep
+      // it. Testing `document.activeElement` here would answer the same
+      // either way, because `mousedown` runs before the browser moves
+      // focus at all; the frame after is when the answer is real.
+      requestAnimationFrame(() => {
+        if (document.activeElement === document.body) {
+          buttonRef.current?.focus();
+        }
+      });
     };
     document.addEventListener("keydown", onKey);
     document.addEventListener("mousedown", onClick);
@@ -157,9 +172,21 @@ export function ColumnPicker({
   const toggleOpen = () => {
     const rect = buttonRef.current?.getBoundingClientRect();
     if (rect) {
+      const top = rect.bottom + 8;
       setAnchor({
-        top: rect.bottom + 8,
+        top,
         right: Math.max(8, window.innerWidth - rect.right),
+        // The horizontal axis was already held inside the viewport; the
+        // vertical one was not. A `fixed` panel that runs past the
+        // bottom edge cannot be scrolled to -- the page scrolls, the
+        // panel does not -- so its lower controls are simply gone. The
+        // header is near the top at normal zoom and this changes
+        // nothing there; at 300-400% it is what keeps the list
+        // reachable. Bounding the height rather than moving `top` keeps
+        // the panel under its button, and the existing `overflow-y-auto`
+        // does the rest. A resize closes the picker, so this can never
+        // be left stale.
+        maxHeight: Math.max(160, window.innerHeight - top - 8),
       });
     }
     setOpen((value) => !value);
@@ -213,8 +240,12 @@ export function ColumnPicker({
             aria-modal="false"
             tabIndex={-1}
             aria-label={t("library.columns.choose")}
-            style={{ top: anchor.top, right: anchor.right }}
-            className="fixed z-100 w-72 max-h-[70vh] overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-2xl p-3 space-y-3"
+            style={{
+              top: anchor.top,
+              right: anchor.right,
+              maxHeight: anchor.maxHeight,
+            }}
+            className="fixed z-100 w-72 overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-2xl p-3 space-y-3"
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">
