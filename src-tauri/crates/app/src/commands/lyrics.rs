@@ -3388,54 +3388,67 @@ mod tests {
         assert!(!document_is_what_it_claims("   \n  ", LyricsFormat::Lrc));
     }
 
-    /// A profile pool with the real `app` schema attached, not a
-    /// hand-built stand-in.
+    /// A profile pool with the real `app` schema attached, the way the
+    /// application attaches it.
     ///
     /// The point of the tests below is the foreign key and its cascade,
     /// so fixtures that recreate the tables by hand would prove nothing
-    /// — they would omit the very constraint under test. The app
-    /// database is a real file so it can be ATTACHed by path once its
-    /// own migrations have run, and `foreign_keys` is turned on
-    /// explicitly: it is per-connection and off by default, and without
-    /// it every assertion here would pass for the wrong reason.
+    /// — they would omit the very constraint under test. Hence the real
+    /// migrations, and two details copied from `db::profile_db::open`
+    /// rather than invented here:
+    ///
+    /// `ATTACH` is per-CONNECTION, so it belongs in `after_connect`. Run
+    /// once through the pool it lands on whichever connection served it
+    /// and the next query gets `no such table: app.lyrics` — which is
+    /// exactly how the first version of this harness failed.
+    ///
+    /// Both databases are files. A `sqlite::memory:` pool gives each
+    /// connection its own empty database, so the profile schema would
+    /// have been just as absent, one connection later.
+    ///
+    /// `foreign_keys` is set explicitly: it is per-connection and off by
+    /// default, and without it every assertion below passes for the
+    /// wrong reason.
     async fn pool_with_app_schema(dir: &std::path::Path) -> sqlx::SqlitePool {
-        use sqlx::sqlite::SqliteConnectOptions;
+        use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
         use std::str::FromStr;
 
-        let app_path = dir.join("app.db");
-        let app_pool = sqlx::SqlitePool::connect_with(
-            SqliteConnectOptions::from_str(&format!("sqlite://{}", app_path.display()))
+        let opts_for = |path: &std::path::Path| {
+            SqliteConnectOptions::from_str(&format!("sqlite://{}", path.display()))
                 .unwrap()
-                .create_if_missing(true),
-        )
-        .await
-        .unwrap();
+                .create_if_missing(true)
+                .foreign_keys(true)
+        };
+
+        let app_path = dir.join("app.db");
+        let app_pool = sqlx::SqlitePool::connect_with(opts_for(&app_path))
+            .await
+            .unwrap();
         sqlx::migrate!("../../migrations/app")
             .run(&app_pool)
             .await
             .unwrap();
         app_pool.close().await;
 
-        let pool = sqlx::SqlitePool::connect_with(
-            SqliteConnectOptions::from_str("sqlite::memory:")
-                .unwrap()
-                .foreign_keys(true),
-        )
-        .await
-        .unwrap();
-        sqlx::migrate!("../../migrations/profile")
-            .run(&pool)
-            .await
-            .unwrap();
         let attach = format!(
             "ATTACH DATABASE '{}' AS app",
             app_path.display().to_string().replace('\'', "''")
         );
-        // The path is ours (a tempdir we just created), not user input;
-        // the single-quote doubling above is belt-and-braces so a runner
-        // whose TMPDIR contains one cannot break the statement.
-        sqlx::query(sqlx::AssertSqlSafe(attach))
-            .execute(&pool)
+        let pool = SqlitePoolOptions::new()
+            .after_connect(move |conn, _meta| {
+                let attach = attach.clone();
+                Box::pin(async move {
+                    sqlx::query(sqlx::AssertSqlSafe(attach))
+                        .execute(&mut *conn)
+                        .await?;
+                    Ok(())
+                })
+            })
+            .connect_with(opts_for(&dir.join("profile.db")))
+            .await
+            .unwrap();
+        sqlx::migrate!("../../migrations/profile")
+            .run(&pool)
             .await
             .unwrap();
         pool
