@@ -182,35 +182,42 @@ export function useProfileSetting<T>(
     confirmedRef.current = defaultValue;
 
     const refresh = async () => {
-      const seq = ++ownerSeqRef.current;
-      // Decided before the catch below hands the token back, not read
-      // out of the token afterwards: the release makes the ownership
-      // test fail, so asking again in `finally` answered "stale" for a
-      // read that was the owner right up to the moment it failed -- and
-      // `ready` then never flipped at all, which is the one outcome the
-      // whole block exists to avoid.
-      let owned = false;
+      // A read does NOT take the token on the way in; it notes what the
+      // token was and claims it only when it has an answer to commit.
+      //
+      // Taking it up front and handing it back on failure -- which is
+      // what this did -- moves the counter backwards, and everything
+      // here relies on it only ever going up. Two reads in flight, the
+      // newer one failing and rewinding, left the token reading exactly
+      // what the OLDER one had claimed: that one then passed the
+      // ownership test and committed a value it had read before the
+      // newer read was even sent.
+      //
+      // Claiming late costs nothing, because a read has nothing to
+      // protect until it commits: a write claims up front instead, and
+      // must, since it paints its value immediately.
+      const startedAt = ownerSeqRef.current;
+      let relevant = false;
       try {
         const raw = await getProfileSetting(key, activeProfileId);
-        // Stale: a write (or a newer read) happened while we awaited and
-        // owns the value now.
-        if (cancelled || ownerSeqRef.current !== seq) return;
-        owned = true;
+        // Stale: a write (or a newer read) took the token while we
+        // awaited and owns the value now.
+        if (cancelled || ownerSeqRef.current !== startedAt) return;
+        relevant = true;
+        ownerSeqRef.current += 1;
         const parsed = parse(raw);
         commit(parsed);
         confirmedRef.current = parsed;
       } catch (err) {
         console.error(`[${optionsRef.current.label}] read failed`, err);
-        // Give the ownership token back. `refresh` claims it on the way
-        // in, which is what lets a stale read drop itself -- but a read
-        // that failed committed nothing, so holding the token only
-        // hides someone else's work: a write still in flight compares
-        // this token to decide whether its rollback is still wanted,
-        // and would skip it, leaving the optimistic value on screen
-        // describing a setting the database refused. Only when nothing
-        // newer has claimed it since.
-        owned = ownerSeqRef.current === seq;
-        if (owned) ownerSeqRef.current = seq - 1;
+        // Nothing to hand back -- this read never took the token. It
+        // still gets to finalise if nobody claimed one while it was
+        // away, which is what "still the read that matters" means here.
+        // And because it took nothing, a write in flight keeps the
+        // token it claimed, so its rollback is still recognised as
+        // wanted rather than skipped over an optimistic value the
+        // database had refused.
+        relevant = ownerSeqRef.current === startedAt;
       } finally {
         // Ready on any OUTCOME -- a read that failed leaves the
         // default in place, and never flipping this would gate the
@@ -239,7 +246,7 @@ export function useProfileSetting<T>(
         // for broken exactly when it is most likely. On a failed read
         // the consumer re-applies its last confirmed value, which is
         // the right one to put back.
-        if (!cancelled && owned) {
+        if (!cancelled && relevant) {
           setReady(true);
           setRevision((r) => r + 1);
         }

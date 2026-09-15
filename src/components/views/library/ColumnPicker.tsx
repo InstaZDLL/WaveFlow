@@ -63,6 +63,7 @@ export function ColumnPicker({
     top: number;
     right: number;
     maxHeight: number;
+    maxWidth: number;
   } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -200,6 +201,12 @@ export function ColumnPicker({
       setAnchor({
         top,
         right: Math.max(PANEL_MARGIN, window.innerWidth - rect.right),
+        // The panel has a fixed width and is anchored by its right
+        // edge, so on a viewport narrower than that width its LEFT edge
+        // goes off screen -- and nothing brings it back, because a
+        // `fixed` element does not move with the page. Reachable at the
+        // zoom levels this whole block exists for.
+        maxWidth: window.innerWidth - PANEL_MARGIN * 2,
         // The horizontal axis was already held inside the viewport; the
         // vertical one was not. A `fixed` panel that runs past the
         // bottom edge cannot be scrolled to -- the page scrolls, the
@@ -265,6 +272,7 @@ export function ColumnPicker({
               top: anchor.top,
               right: anchor.right,
               maxHeight: anchor.maxHeight,
+              maxWidth: anchor.maxWidth,
             }}
             className="fixed z-100 w-72 overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-2xl p-3 space-y-3"
           >

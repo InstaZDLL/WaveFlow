@@ -1076,12 +1076,32 @@ pub async fn wipe_targets_outside_root(state: &AppState) -> Vec<RelocatedCache> 
         {
             Ok(dirs) => dirs,
             Err(err) => {
+                // The enumeration needs `app.db` to list the profiles,
+                // and that is exactly what a reset is in the middle of
+                // closing. Skipping the root entirely was the first
+                // answer and it is worse than it looks: the caches the
+                // user moved off their system drive are the whole
+                // reason this function exists, and leaving them is
+                // leaving gigabytes behind on a reset that said it
+                // erased everything.
+                //
+                // The names are known without the database.
+                // `OWNED_NAMES` is the top level WaveFlow creates under
+                // a cache root, `claim` refuses a root where any of
+                // them already existed, and the marker checked above
+                // says WaveFlow made this tree -- so removing them by
+                // name is no broader a claim than the enumeration would
+                // have made. Only per-profile *names* are lost, and
+                // `profiles/` contains all of them.
                 tracing::warn!(
                     %err,
                     root = %root.display(),
-                    "could not enumerate relocated cache directories for the reset;                      leaving this root and its marker alone"
+                    "could not enumerate relocated cache directories for the reset;                      falling back to the owned names under this root"
                 );
-                continue;
+                OWNED_NAMES
+                    .iter()
+                    .map(|name| ((*name).to_string(), root.join(name)))
+                    .collect()
             }
         };
         targets.push(RelocatedCache {
