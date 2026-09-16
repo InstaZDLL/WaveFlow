@@ -558,6 +558,14 @@ fn remembered_after_paint(active: &Active) -> Option<RenderMode> {
 /// Called from the plugin's callback, which runs **in the instance that
 /// is staying**, and writes what that instance knows to be true: it has
 /// painted, or it is still the one attempting its own mode.
+///
+/// No process identity is stamped into the marker, and none is needed.
+/// The duplicate cannot paint — the plugin is registered first and
+/// exits it before any window is shown — so it never reaches
+/// [`mark_painted`], and its own write is always followed by this one:
+/// its decision happens before it reaches `Builder`, and this runs
+/// because it reached `Builder`. What it wrote in between is
+/// overwritten by the instance that is still here.
 pub fn restore_after_duplicate_launch() {
     let Some(active) = ACTIVE.get() else {
         return;
