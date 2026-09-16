@@ -663,6 +663,48 @@ pub fn disarm_for_deliberate_exit() {
     });
 }
 
+/// Takes the marker down if `setup` does not reach its end.
+///
+/// There are a dozen fallible steps between the top of that closure and
+/// its `Ok(())` — a tray menu item, the default window icon, the tray
+/// itself — and every one of them aborts the launch before the frontend
+/// can report a paint. Each would otherwise leave the marker armed, and
+/// a tray icon that failed to build would send the next launch into
+/// software rendering.
+///
+/// A guard rather than a call at each `?`, because the thirteenth one
+/// someone adds would not get a call. It also covers a panic, which
+/// unwinds through here.
+///
+/// It does **not** cover `std::process::exit`, which runs no
+/// destructors: the paths that leave that way disarm explicitly.
+pub struct SetupGuard {
+    reached_the_end: bool,
+}
+
+impl SetupGuard {
+    /// Arm the guard. Call first thing in `setup`.
+    pub fn new() -> Self {
+        Self {
+            reached_the_end: false,
+        }
+    }
+
+    /// `setup` finished. The window is coming, so the marker stays
+    /// armed until something paints — which is the whole point of it.
+    pub fn succeeded(mut self) {
+        self.reached_the_end = true;
+    }
+}
+
+impl Drop for SetupGuard {
+    fn drop(&mut self) {
+        if !self.reached_the_end {
+            disarm_for_deliberate_exit();
+        }
+    }
+}
+
 /// Forget that software rendering was ever needed, so the next launch
 /// tries the GPU again.
 ///

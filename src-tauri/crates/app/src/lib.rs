@@ -174,6 +174,11 @@ pub fn run() {
     builder
         .manage(QuitGate(AtomicBool::new(false)))
         .setup(|app| {
+            // Everything below can fail, and a failure here stops the
+            // launch before the frontend can report a paint. This takes
+            // the renderer marker down on any of those paths — including
+            // the ones added after this line (#595).
+            let setup_guard = render_mode::SetupGuard::new();
             let init_handle = app.handle().clone();
             let engine_handle = app.handle().clone();
 
@@ -213,12 +218,8 @@ pub fn run() {
                             logging::flush();
                             std::process::exit(1);
                         }
-                        // Every other failure leaves through Tauri's own
-                        // fatal path, which also stops before the
-                        // frontend can report a paint. A database that
-                        // would not open is not a renderer that would
-                        // not draw (#595).
-                        render_mode::disarm_for_deliberate_exit();
+                        // The marker comes down through `setup_guard`,
+                        // like every other failure in this closure.
                         return Err(Box::new(err));
                     }
                 };
@@ -699,6 +700,9 @@ pub fn run() {
                 );
             });
 
+            // Setup reached its end, so the marker stays armed until
+            // something actually paints — which is what it is for.
+            setup_guard.succeeded();
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
