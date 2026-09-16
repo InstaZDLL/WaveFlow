@@ -38,6 +38,17 @@ If you bump the pinned compiler, change `rust-toolchain.toml` **and** the
 `python3 scripts/check-toolchain-pin.py` — it is what CI runs, and it is
 there because missing one of the six sites otherwise fails silently.
 
+If you bump `windows` or `windows-core` in `src-tauri/crates/app/Cargo.toml`,
+bump **both**, in one commit, and run
+`python3 scripts/check-windows-core-pair.py`. The second is not an
+independent dependency: it is named only so `#[implement]` can expand to
+`::windows_core::` paths, so it has to resolve to the same copy `windows`
+itself was built against. Note that this is not the same as the same
+version _number_ — windows-rs numbers the two lines independently, and
+`windows 0.61.3` shipped against `windows-core 0.61.2`. The script walks
+the lockfile rather than comparing strings, and prints both observed
+versions when they part company.
+
 `rust-toolchain.toml` decides which compiler those run under, so a local
 answer and the CI answer are the same answer. Let rustup install it rather
 than reaching for your default toolchain.
