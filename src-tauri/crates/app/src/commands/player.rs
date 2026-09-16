@@ -497,6 +497,71 @@ pub(crate) fn publish_shuffle_grouping(engine: &AudioEngine, mode: queue::Shuffl
         .store(mode.as_bits(), std::sync::atomic::Ordering::Relaxed);
 }
 
+/// The same mirror for the other half of the question: whether the queue
+/// as it stands is whole records in their own order (#647).
+///
+/// Separate from the shuffle mirror because the two answer different
+/// questions and change at different moments — shuffle when the user
+/// presses the button, this when the queue is replaced.
+pub(crate) fn publish_album_ordering(engine: &AudioEngine, album_ordered: bool) {
+    engine
+        .shared()
+        .album_ordered_queue
+        .store(album_ordered, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// Whether replacing the queue from this source means playing whole
+/// records — the signal `queue_item.source_type` cannot carry, because
+/// each of its values already means something to `play_event` and an
+/// album-mode radio may not claim to be an `'album'` (#647).
+///
+/// Two halves, because the two generators know it at different times.
+/// Mood Radio knows as it answers, so its command hands the flag back
+/// and the caller declares it here. A Daily Mix does not: it is a stored
+/// playlist, and playing it a week later goes through the ordinary
+/// playlist path with nothing to distinguish it — so the answer is read
+/// back out of the rule the generator wrote.
+///
+/// Anything else is `false`, which is also what an unreadable or absent
+/// rule reads as: album gain is the answer that changes what the
+/// listener hears, so it is the one that has to be established.
+async fn queue_is_album_ordered(
+    pool: &sqlx::SqlitePool,
+    source_type: &str,
+    source_id: Option<i64>,
+    declared: Option<bool>,
+) -> bool {
+    if let Some(declared) = declared {
+        return declared;
+    }
+    if source_type != "playlist" {
+        return false;
+    }
+    let Some(playlist_id) = source_id else {
+        return false;
+    };
+    let rules: Option<String> = sqlx::query_scalar(
+        "SELECT smart_rules FROM playlist WHERE id = ? AND is_smart = 1 AND smart_rules IS NOT NULL",
+    )
+    .bind(playlist_id)
+    .fetch_optional(pool)
+    .await
+    .ok()
+    .flatten();
+    let Some(rules) = rules else {
+        return false;
+    };
+    matches!(
+        serde_json::from_str::<waveflow_core::smart_playlists::SmartPlaylistRules>(&rules),
+        Ok(
+            waveflow_core::smart_playlists::SmartPlaylistRules::DailyMix {
+                album_mode: true,
+                ..
+            }
+        )
+    )
+}
+
 /// Emit an empty `player:queue-changed` signal. The frontend uses
 /// this as "refetch the queue" — payload is intentionally empty so
 /// the event bus doesn't carry the full 100+ track list.
@@ -762,6 +827,11 @@ pub async fn player_get_state(
             // the UI is told must describe one state, and two reads
             // could straddle a change.
             publish_shuffle_grouping(&engine, shuffle);
+            // And the queue's own shape, for the same reason: a session
+            // of whole records that survives a restart has to keep its
+            // album gain across it, and the decoder cannot read the
+            // setting itself (#647).
+            publish_album_ordering(&engine, queue::read_album_ordered(&pool).await);
             // Gapless defaults to ON, so only override the boot-time
             // default when an explicit `false` row is found.
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
@@ -2361,6 +2431,11 @@ pub async fn player_set_pause_on_device_loss(
 /// `start_index`. `source_type` must match one of the enum values on
 /// `queue_item.source_type` ('album'|'playlist'|'artist'|'library'|
 /// 'liked'|'manual'|'radio').
+///
+/// `album_ordered` is for the one caller that knows something the
+/// source type cannot express: a Mood Radio answered in whole records.
+/// Omitted everywhere else, and then the answer is worked out here —
+/// see [`queue_is_album_ordered`] (#647).
 #[tauri::command]
 pub async fn player_play_tracks(
     app: AppHandle,
@@ -2370,6 +2445,7 @@ pub async fn player_play_tracks(
     source_id: Option<i64>,
     track_ids: Vec<i64>,
     start_index: usize,
+    album_ordered: Option<bool>,
 ) -> AppResult<()> {
     // Claimed before the queue is even filled (#622): this command does
     // the most preparation of any load path, so it is the one most likely
@@ -2392,7 +2468,22 @@ pub async fn player_play_tracks(
         tracing::debug!("play_tracks superseded before filling the queue; leaving it alone");
         return Ok(());
     }
-    queue::fill_queue(&pool, &source_type, source_id, &track_ids, start_index).await?;
+    let album_ordered = queue_is_album_ordered(&pool, &source_type, source_id, album_ordered).await;
+    queue::fill_queue(
+        &pool,
+        &source_type,
+        source_id,
+        &track_ids,
+        start_index,
+        album_ordered,
+    )
+    .await?;
+    // Mirrored after the write that persists it, the way the shuffle
+    // mode is: the database is what a restart reads back, and the
+    // engine's copy is what the decoder reads now. Unconditional —
+    // this is the only place the queue is replaced, so it is the only
+    // place a flag from the previous session can be cleared.
+    publish_album_ordering(&engine, album_ordered);
 
     // Spotify-style: if the user has shuffle enabled, randomize the
     // queue in place immediately after filling it, keeping the track

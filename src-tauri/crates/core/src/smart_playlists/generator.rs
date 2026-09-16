@@ -255,6 +255,11 @@ async fn generate_one_mix(
     } else {
         tracks_for_bucket(pool, &top_artist_ids, bucket).await?
     };
+    // What this mix actually is, which is not always what was asked
+    // for — the fallback below rewrites it. Stored in the rule so the
+    // gain decision weeks later describes the tracks in the playlist
+    // rather than the preference at the time (#647).
+    let mut built_from_albums = album_mode && !shuffled.is_empty();
 
     if album_mode && shuffled.is_empty() {
         // Album mode is a preference, not a contract — the same rule
@@ -267,6 +272,7 @@ async fn generate_one_mix(
             "smart playlists: no record fits this bucket, falling back to tracks"
         );
         shuffled = tracks_for_bucket(pool, &top_artist_ids, bucket).await?;
+        built_from_albums = false;
     }
 
     if shuffled.is_empty() {
@@ -331,6 +337,7 @@ async fn generate_one_mix(
 
     let rules = SmartPlaylistRules::DailyMix {
         slot: bucket.slot(),
+        album_mode: built_from_albums,
     };
     // Catch-all `Other` for serde failures (matching `on_repeat.rs`);
     // unreachable in practice but propagated rather than placeholder-ed.
@@ -806,15 +813,33 @@ mod tests {
 
     #[test]
     fn rules_json_contains_slot_for_lookup() {
-        let json = SmartPlaylistRules::DailyMix { slot: 2 }
-            .to_json()
-            .expect("serialize");
+        let json = SmartPlaylistRules::DailyMix {
+            slot: 2,
+            album_mode: true,
+        }
+        .to_json()
+        .expect("serialize");
         // The upsert query LIKEs on `"slot":N` — guard the format here so
         // a serde rename doesn't silently break refresh-in-place behaviour.
         assert!(
             json.contains("\"slot\":2"),
             "slot serialized incorrectly: {json}"
         );
+    }
+
+    /// A mix written before `album_mode` existed still has to parse, and
+    /// to read as what it was: a session of individual tracks.
+    #[test]
+    fn a_rule_without_the_album_flag_reads_as_track_mode() {
+        let parsed: SmartPlaylistRules =
+            serde_json::from_str(r#"{"kind":"daily_mix","slot":3}"#).expect("parse");
+        assert!(matches!(
+            parsed,
+            SmartPlaylistRules::DailyMix {
+                slot: 3,
+                album_mode: false
+            }
+        ));
     }
 
     /// `bounds` is the SQL spelling of `matches`, so album mode and

@@ -16,14 +16,15 @@
 //! ranked instead, which is what lets a thin library still return
 //! forty tracks, closest fits first, rather than an error.
 //!
-//! Returns the ordered `Vec<i64>` of track IDs. The frontend hands
-//! this to `player_play_tracks` with `source_type = "radio"` so
+//! Returns the ordered track IDs plus whether they are whole records
+//! ([`MoodRadioSession`]). The frontend hands both to
+//! `player_play_tracks` with `source_type = "radio"` so
 //! play_event rows still get tagged for stats — the existing CHECK
 //! constraint on `queue_item.source_type` doesn't allow a `'mood'`
 //! variant and adding one would mean a migration just for analytics
 //! granularity, which isn't worth the churn yet.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
 use waveflow_core::mood::{MoodCandidate, MoodProfile};
@@ -224,11 +225,28 @@ impl Mood {
     }
 }
 
+/// What a mood produced, and what shape it is in.
+///
+/// The track list alone could not say whether the backend answered in
+/// whole records or fell back to individual tracks — and the caller
+/// needs to know, because that is what decides whether the session gets
+/// album gain (#647). A bare `Vec<i64>` made the two look identical.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MoodRadioSession {
+    pub track_ids: Vec<i64>,
+    /// Whole records in their own order. **What was produced, not what
+    /// was asked for**: album mode is a preference and the fallback
+    /// below is deliberate, so a mood that found no qualifying record
+    /// answers `false` even with the setting on.
+    pub album_ordered: bool,
+}
+
 #[tauri::command]
 pub async fn start_mood_radio(
     state: tauri::State<'_, AppState>,
     mood: Mood,
-) -> AppResult<Vec<i64>> {
+) -> AppResult<MoodRadioSession> {
     let pool = state.require_profile_pool().await?;
     let profile = mood.profile();
 
@@ -242,7 +260,10 @@ pub async fn start_mood_radio(
         // blaming the albums.
         let by_album = mood_radio_by_album(&pool, &profile).await?;
         if !by_album.is_empty() {
-            return Ok(by_album);
+            return Ok(MoodRadioSession {
+                track_ids: by_album,
+                album_ordered: true,
+            });
         }
         tracing::info!("no record fits this mood; falling back to individual tracks");
     }
@@ -254,12 +275,12 @@ pub async fn start_mood_radio(
         ));
     }
 
-    Ok(waveflow_core::mood::rank_and_cap(
-        &profile,
-        rows,
-        TARGET_LEN,
-        PER_ARTIST_CAP,
-    ))
+    Ok(MoodRadioSession {
+        track_ids: waveflow_core::mood::rank_and_cap(&profile, rows, TARGET_LEN, PER_ARTIST_CAP),
+        // The fallback path, and every run with the setting off: a list
+        // of individual tracks, whatever they happen to be.
+        album_ordered: false,
+    })
 }
 
 /// The tracks a mood may consider, drawn at random.

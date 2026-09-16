@@ -193,6 +193,21 @@ pub struct SharedPlayback {
     /// itself is decided in [`crate::queue`] and never read back from
     /// here.
     pub shuffle_mode_bits: AtomicU8,
+    /// Whether the queue as it stands was built out of whole records.
+    ///
+    /// The queue's own `source_type` cannot answer this. A Mood Radio
+    /// session in album mode is enqueued as `'radio'` and an album-mode
+    /// Daily Mix as `'playlist'`, because each value means something to
+    /// `play_event` and neither may claim to be `'album'` — so a
+    /// session that plays records in disc order looked exactly like a
+    /// shuffled playlist to the gain decision (#647).
+    ///
+    /// Mirrored from the queue the way `shuffle_mode_bits` is, and for
+    /// the same reason: the decoder thread is the only reader, and it
+    /// cannot go to the database. Written on **every** queue
+    /// replacement, true or false — a flag only ever set would hand
+    /// album gain to the next ordinary playlist.
+    pub album_ordered_queue: AtomicBool,
     /// When `true`, the decoder pre-fetches the next queued track
     /// ~500 ms before the current one ends and swaps to it the
     /// instant primary EOFs — no analytics → LoadAndPlay round trip,
@@ -325,6 +340,7 @@ impl SharedPlayback {
             replaygain_prevent_clipping: AtomicBool::new(true),
             replaygain_mode_bits: AtomicU8::new(super::replay_gain::GainMode::default().as_bits()),
             shuffle_mode_bits: AtomicU8::new(crate::queue::ShuffleMode::Off.as_bits()),
+            album_ordered_queue: AtomicBool::new(false),
             gapless_enabled: AtomicBool::new(true),
             eq: super::eq::EqShared::new(),
             pause_after_current_track: AtomicBool::new(false),
@@ -501,14 +517,24 @@ impl SharedPlayback {
     ///   only became reachable once a reorder started preserving
     ///   `source_type` (before that the column was flattened to
     ///   `'manual'` and the right answer came out by accident).
-    /// - **Off** — the queue plays in the order it was built, so its
-    ///   own `source_type` is the answer.
+    /// - **Off** — the queue plays in the order it was built, so the
+    ///   question is what it was built out of: its own `source_type`,
+    ///   or [`Self::album_ordered_queue`] for the sessions a generator
+    ///   assembled from whole records and could not label `'album'`.
+    ///
+    /// Shuffle still answers first for those, and that is the point of
+    /// the order: `Tracks` takes a record apart whatever built it, and
+    /// `Albums` keeps one whole whatever built it.
     pub fn listening_to(&self, source_type: &str) -> super::replay_gain::Listening {
         use super::replay_gain::Listening;
         match crate::queue::ShuffleMode::from_bits(self.shuffle_mode_bits.load(Ordering::Relaxed)) {
             crate::queue::ShuffleMode::Albums => Listening::ToAnAlbum,
             crate::queue::ShuffleMode::Tracks => Listening::ToATrack,
-            crate::queue::ShuffleMode::Off if source_type == "album" => Listening::ToAnAlbum,
+            crate::queue::ShuffleMode::Off
+                if source_type == "album" || self.album_ordered_queue.load(Ordering::Relaxed) =>
+            {
+                Listening::ToAnAlbum
+            }
             crate::queue::ShuffleMode::Off => Listening::ToATrack,
         }
     }
@@ -614,12 +640,50 @@ mod tests {
         assert_eq!(shared.listening_to("playlist"), Listening::ToATrack);
     }
 
+    /// A Mood Radio or Daily Mix built out of whole records plays them
+    /// in disc order under a `source_type` that cannot say so (#647).
+    #[test]
+    fn a_generator_session_of_whole_records_is_a_record_playing_through() {
+        use super::super::replay_gain::Listening;
+        use crate::queue::ShuffleMode;
+
+        let shared = SharedPlayback::new();
+        shared
+            .shuffle_mode_bits
+            .store(ShuffleMode::Off.as_bits(), Ordering::Relaxed);
+
+        assert_eq!(
+            shared.listening_to("radio"),
+            Listening::ToATrack,
+            "a mood radio of individual tracks is exactly that"
+        );
+
+        shared.album_ordered_queue.store(true, Ordering::Relaxed);
+        assert_eq!(shared.listening_to("radio"), Listening::ToAnAlbum);
+        assert_eq!(
+            shared.listening_to("playlist"),
+            Listening::ToAnAlbum,
+            "an album-mode Daily Mix plays as a stored playlist"
+        );
+
+        // And shuffle still decides before it does: a session of whole
+        // records taken apart track by track is not one any more.
+        shared
+            .shuffle_mode_bits
+            .store(ShuffleMode::Tracks.as_bits(), Ordering::Relaxed);
+        assert_eq!(shared.listening_to("radio"), Listening::ToATrack);
+    }
+
     /// A fresh engine has shuffle off, so nothing claims to be an
     /// album before a profile is loaded.
     #[test]
     fn a_new_shared_state_starts_with_shuffle_off() {
         use crate::queue::ShuffleMode;
         let shared = SharedPlayback::new();
+        assert!(
+            !shared.album_ordered_queue.load(Ordering::Relaxed),
+            "and no queue of records either"
+        );
         assert_eq!(
             ShuffleMode::from_bits(shared.shuffle_mode_bits.load(Ordering::Relaxed)),
             ShuffleMode::Off

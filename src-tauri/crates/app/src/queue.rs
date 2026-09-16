@@ -372,6 +372,20 @@ pub async fn read_player_volume(pool: &SqlitePool) -> Option<f32> {
         .map(|v| (v.clamp(0, 100) as f32) / 100.0)
 }
 
+/// Whether the persisted queue is whole records in their own order
+/// (`queue.album_ordered`).
+///
+/// Read once per profile load and mirrored into the engine, the way the
+/// shuffle mode is. An absent or unreadable row reads as `false`:
+/// telling a listener their tracks are an album is the answer that
+/// changes the gain, so it is the one that has to be asked for.
+pub async fn read_album_ordered(pool: &SqlitePool) -> bool {
+    matches!(
+        read_setting_string(pool, "queue.album_ordered").await,
+        Ok(Some(ref value)) if value == "true"
+    )
+}
+
 /// The queue cursor (`queue.current_index`), normalized to a valid index:
 /// clamped into `[0, len)`, or `0` when the queue is empty or the stored
 /// value is unset / out of range. The single source of truth for "which
@@ -397,12 +411,25 @@ pub async fn current_index(pool: &SqlitePool) -> i64 {
 /// Clear the queue and insert new rows, one per track, with positions
 /// 0..n. Also sets `queue.current_index` to `start_index`. Runs in a
 /// single transaction so the UI never sees a partial state.
+///
+/// `album_ordered` says whether this list is whole records in their own
+/// order — what a generator produces in album mode, and what no
+/// `source_type` can express (#647). Persisted alongside the queue
+/// rather than held in memory only, for the same reason the shuffle
+/// mode is: a session survives a restart, and the gain decision has to
+/// survive with it.
+///
+/// **Every replacement writes it**, including the ones that write
+/// `false`. This is the single path that replaces the queue, which is
+/// exactly what makes it the place a stale flag cannot outlive its
+/// session.
 pub async fn fill_queue(
     pool: &SqlitePool,
     source_type: &str,
     source_id: Option<i64>,
     track_ids: &[i64],
     start_index: usize,
+    album_ordered: bool,
 ) -> AppResult<()> {
     if track_ids.is_empty() {
         return Err(AppError::Other(
@@ -443,6 +470,17 @@ pub async fn fill_queue(
           WHERE key = 'queue.current_index'",
     )
     .bind((start_index as i64).to_string())
+    .bind(now)
+    .execute(&mut *tx)
+    .await?;
+
+    sqlx::query(
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+              VALUES ('queue.album_ordered', ?, 'bool', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value,
+                                        updated_at = excluded.updated_at",
+    )
+    .bind(if album_ordered { "true" } else { "false" })
     .bind(now)
     .execute(&mut *tx)
     .await?;
@@ -668,7 +706,9 @@ pub async fn insert_after_current(
     let len = queue_length(pool).await?;
     if len == 0 {
         // No queue yet — fall back to filling it and starting at 0.
-        return fill_queue(pool, source_type, source_id, track_ids, 0).await;
+        // An empty queue filled by "play next" is a hand-built list, not
+        // a session of records — whatever the tracks happen to be.
+        return fill_queue(pool, source_type, source_id, track_ids, 0, false).await;
     }
     let current = read_setting_i64(pool, "queue.current_index")
         .await?
