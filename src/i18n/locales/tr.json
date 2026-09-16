@@ -1339,7 +1339,13 @@
       "refetch": "Tekrar ara",
       "clear": "Sözleri temizle",
       "fullscreen": "Tam ekran",
-      "edit": "Sözleri düzenle"
+      "edit": "Sözleri düzenle",
+      "cycleLocalization": "Ek okumayı değiştir"
+    },
+    "localization": {
+      "off": "Ek okuma yok",
+      "romanization": "Romanizasyon gösteriliyor",
+      "translation": "Çeviri gösteriliyor"
     },
     "source": {
       "embedded": "Dosyada gömülü sözler",

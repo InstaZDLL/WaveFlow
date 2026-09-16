@@ -1340,7 +1340,13 @@
       "refetch": "Cerca di nuovo",
       "clear": "Cancella i testi",
       "fullscreen": "Schermo intero",
-      "edit": "Modifica i testi"
+      "edit": "Modifica i testi",
+      "cycleLocalization": "Cambia la lettura aggiuntiva"
+    },
+    "localization": {
+      "off": "Nessuna lettura aggiuntiva",
+      "romanization": "Romanizzazione visibile",
+      "translation": "Traduzione visibile"
     },
     "source": {
       "embedded": "Testi incorporati nel file",

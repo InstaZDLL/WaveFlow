@@ -1339,7 +1339,13 @@
       "refetch": "重新开始搜索",
       "clear": "清除歌词",
       "fullscreen": "全屏",
-      "edit": "编辑歌词"
+      "edit": "编辑歌词",
+      "cycleLocalization": "切换附加行"
+    },
+    "localization": {
+      "off": "不显示附加行",
+      "romanization": "正在显示罗马音",
+      "translation": "正在显示翻译"
     },
     "source": {
       "embedded": "歌词已嵌入文件中",

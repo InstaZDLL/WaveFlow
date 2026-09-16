@@ -426,6 +426,24 @@ export interface LyricsWord {
  * existing call sites (`findActiveLineIndex`, panel scroll, etc.)
  * keep working without per-call casts.
  */
+/**
+ * A second reading of a line — today a romanization — which may or may
+ * not be broken into timed words.
+ *
+ * `text` is always usable; `words` is the bonus. When present it is
+ * measured to match the line word for word, sharing each word's
+ * `timeMs` / `endMs` exactly: across a full Apple document there is one
+ * transliterated span per original span with identical bounds. That is
+ * why the karaoke fill needs no second timing pass — a romanized word
+ * is driven by the clock of the word it reads out. Nothing upstream
+ * promises that, though, so a line whose counts disagree keeps its
+ * text and loses only the word split.
+ */
+export interface LyricsReading {
+  text: string;
+  words?: LyricsWord[];
+}
+
 export interface LyricsLine {
   timeMs: number;
   /** End of this line in ms. -1 if unknown (e.g. last line). */
@@ -434,6 +452,24 @@ export interface LyricsLine {
   text: string;
   /** Per-word timestamps when the source format provides them. */
   words?: LyricsWord[];
+  /**
+   * Latin-script transliteration of this line, when the document
+   * carries one (Apple TTML `<transliterations>`).
+   *
+   * `words` is present only when the document is word-timed, which is
+   * a property of the document and not of the transliteration: Apple
+   * serves both a line-timed and a syllable-timed lyric, and localizes
+   * whichever was asked for. A line-timed one romanizes the line and
+   * stops there, so the text always reads even when nothing can be
+   * highlighted inside it.
+   */
+  romanization?: LyricsReading;
+  /**
+   * Line-level translation, when the document carries one. Apple gives
+   * these as whole lines with no word split — which is also how they
+   * read on screen, one block under the line.
+   */
+  translation?: string;
 }
 
 /** Backwards-compatible alias used across the panel + fullscreen views. */
@@ -582,6 +618,184 @@ function matchedStampLength(body: string, at: number): number {
 }
 
 /**
+ * An element's name without its namespace prefix.
+ *
+ * `localName` is the right question to ask of an XML document, and
+ * `getElementsByTagName` is the wrong one: it matches the QUALIFIED
+ * name, so it finds `<translation>` and misses `<itunes:translation>`
+ * even though they are the same element. Lowercased as a courtesy to
+ * the HTML-ish documents users import by hand; XML itself is
+ * case-sensitive, and TTML spells these lowercase.
+ */
+function localNameOf(el: Element): string {
+  return (el.localName || el.tagName).toLowerCase();
+}
+
+/** Every descendant with this local name, prefix or not. */
+function byLocalName(root: Element | Document, local: string): Element[] {
+  return Array.from(root.getElementsByTagName("*")).filter(
+    (el) => localNameOf(el) === local,
+  );
+}
+
+/** Apple's private TTML namespace, where line keys and timing live. */
+const ITUNES_NS = "http://music.apple.com/lyric-ttml-internal";
+
+/**
+ * The direct `<span>` children of `el` as karaoke words, or `undefined`
+ * when it has none.
+ *
+ * Nested spans are folded into their parent's text — TTML allows
+ * `<span>` inside `<span>` for char-level timing, which we don't
+ * animate. Shared by the lines themselves and by their transliterated
+ * twins, which Apple gives the same shape.
+ */
+function ttmlWords(el: Element): LyricsWord[] | undefined {
+  const words: LyricsWord[] = [];
+  for (const child of Array.from(el.children)) {
+    if (localNameOf(child) !== "span") continue;
+    const begin = parseTtmlTime(child.getAttribute("begin"));
+    if (begin < 0) continue;
+    const end = parseTtmlTime(child.getAttribute("end"));
+    // Re-attach what sits between this span and the next, so words
+    // render with their natural spacing. Normalised rather than
+    // replaced by a fixed space: the usual case is XML indentation,
+    // which collapses to exactly that anyway, but a document that puts
+    // punctuation between the spans instead of inside them would
+    // otherwise lose it.
+    const raw = (child.textContent ?? "").replace(/\s+/g, " ");
+    const next = child.nextSibling;
+    const trailing =
+      next?.nodeType === Node.TEXT_NODE
+        ? (next.textContent ?? "").replace(/\s+/g, " ")
+        : "";
+    words.push({
+      timeMs: begin,
+      endMs: end >= 0 ? end : -1,
+      text: raw + trailing,
+    });
+  }
+  return words.length > 0 ? words : undefined;
+}
+
+/**
+ * Whether two readings of a line say the same thing.
+ *
+ * Apple localizes every line of a song, including the ones already in
+ * the target script or language: in a Korean song, an English line
+ * comes back transliterated as itself and translated to English as
+ * itself. Shown, that is a line printed twice — and worse than a plain
+ * duplicate when the syllable split differs from the word split, since
+ * the eye reads a discrepancy where there is none. Apple Music hides
+ * these, and so do we.
+ *
+ * Spacing is ignored precisely because the split is where the two
+ * disagree; case is ignored because neither a transliterator nor a
+ * translator has reason to preserve it.
+ */
+function saysTheSameThing(one: string, other: string): boolean {
+  const strip = (value: string) => value.replace(/\s+/g, "").toLowerCase();
+  return strip(one) === strip(other);
+}
+
+/**
+ * The romanization to actually attach to a line, or `undefined`.
+ *
+ * Two things can be wrong with one, and they cost different amounts.
+ *
+ * It may say nothing the line does not already say — Apple localizes
+ * every line, including those already in Latin script, so those come
+ * back as themselves. Printed under the line that is a duplicate, and a
+ * near-duplicate whenever the syllable split differs from the word
+ * split, where the eye reads a discrepancy that is not there. Nothing
+ * is lost by dropping it entirely.
+ *
+ * Or its word split may not match the line's. Measured on a full Apple
+ * document it always matches — same count, same bounds — but nothing
+ * upstream promises it, and pairing words up as far as they go would
+ * put the highlight on the wrong one, which reads as a broken
+ * transliteration rather than a missing feature. That costs the split
+ * only: the text still reads correctly under the line, so it is kept
+ * unsplit rather than thrown away.
+ */
+function usableRomanization(
+  romanized: LyricsReading | undefined,
+  words: LyricsWord[] | undefined,
+  text: string,
+): LyricsReading | undefined {
+  if (!romanized || saysTheSameThing(romanized.text, text)) return undefined;
+  if (!romanized.words) return romanized;
+  if (words && romanized.words.length === words.length) return romanized;
+  return { text: romanized.text };
+}
+
+interface ParsedLocalizations {
+  translationByKey: Map<string, string>;
+  romanizationByKey: Map<string, LyricsReading>;
+}
+
+/**
+ * Read the `<translations>` and `<transliterations>` Apple hides in
+ * `<head>`, keyed by the line key each entry points at.
+ *
+ * Both are optional, and a document that asked for neither still
+ * carries an empty `<translations>` container — so absence is the
+ * normal case, not an error.
+ *
+ * Only the FIRST of each is read, and within it the first entry per
+ * line key. Apple returns one container per request because the
+ * language is chosen in the call; a document carrying several would
+ * need the user to pick one, which is a question this parser has no way
+ * to ask. The per-key half of the rule matters less but has to agree
+ * with it: `Map.set` alone would keep the LAST entry for a duplicated
+ * key, which is the opposite policy in the same function.
+ */
+function readTtmlLocalizations(doc: Document): ParsedLocalizations {
+  const translationByKey = new Map<string, string>();
+  const romanizationByKey = new Map<string, LyricsReading>();
+
+  const translation = byLocalName(doc, "translation")[0];
+  if (translation) {
+    for (const entry of byLocalName(translation, "text")) {
+      const key = entry.getAttribute("for");
+      const text = (entry.textContent ?? "").replace(/\s+/g, " ").trim();
+      // First entry wins, matching the "first container wins" rule
+      // above. Nothing should point two entries at one line, but
+      // `Map.set` would silently keep the last, which is the opposite
+      // policy in the same function.
+      if (key && text && !translationByKey.has(key)) {
+        translationByKey.set(key, text);
+      }
+    }
+  }
+
+  const transliteration = byLocalName(doc, "transliteration")[0];
+  if (transliteration) {
+    for (const entry of byLocalName(transliteration, "text")) {
+      const key = entry.getAttribute("for");
+      if (!key) continue;
+      // Spans are how a word-timed document splits the reading, and a
+      // line-timed one has none. Keep the text either way: it reads
+      // perfectly well under the line, it just cannot be highlighted
+      // word by word — which is equally true of the line above it in
+      // such a document.
+      const words = ttmlWords(entry);
+      const text = words
+        ? words
+            .map((word) => word.text)
+            .join("")
+            .trim()
+        : (entry.textContent ?? "").replace(/\s+/g, " ").trim();
+      if (text && !romanizationByKey.has(key)) {
+        romanizationByKey.set(key, { text, words });
+      }
+    }
+  }
+
+  return { translationByKey, romanizationByKey };
+}
+
+/**
  * Parse Apple-Music-style TTML. Walks `<p>` for lines and `<span>` for
  * words. `begin`/`end` accept `HH:MM:SS.mmm`, `MM:SS.mmm`, plain
  * seconds (`12.5s`), or a bare number of seconds.
@@ -599,60 +813,84 @@ export function parseTtml(content: string): LyricsLine[] {
   const doc = new DOMParser().parseFromString(content, "application/xml");
   if (doc.querySelector("parsererror")) return [];
 
+  const localizations = readTtmlLocalizations(doc);
   const out: LyricsLine[] = [];
-  const paragraphs = doc.getElementsByTagName("p");
-  for (let i = 0; i < paragraphs.length; i += 1) {
-    const p = paragraphs[i];
+  // By local name like everything else here. A document that prefixes
+  // its TTML elements parsed to nothing before, so this loses no
+  // behaviour — but a parser that understood prefixes for the
+  // localizations and not for the lines they attach to would be the
+  // kind of half-rule that reads as a bug later.
+  const paragraphs = byLocalName(doc, "p");
+  for (const p of paragraphs) {
     const lineBegin = parseTtmlTime(p.getAttribute("begin"));
     if (lineBegin < 0) continue;
     const lineEnd = parseTtmlTime(p.getAttribute("end"));
 
-    // Direct child <span>s are the words. Nested spans are folded into
-    // their parent's text so char-level timing collapses cleanly.
-    const wordEls: Element[] = [];
-    for (const child of Array.from(p.children)) {
-      if (child.tagName.toLowerCase() === "span") wordEls.push(child);
-    }
-
-    let words: LyricsWord[] | undefined;
-    let text: string;
-    if (wordEls.length > 0) {
-      words = [];
-      for (let w = 0; w < wordEls.length; w += 1) {
-        const el = wordEls[w];
-        const wBegin = parseTtmlTime(el.getAttribute("begin"));
-        const wEnd = parseTtmlTime(el.getAttribute("end"));
-        if (wBegin < 0) continue;
-        // Re-attach the trailing whitespace that TTML strips so words
-        // render with their natural spacing.
-        const raw = (el.textContent ?? "").replace(/\s+/g, " ");
-        const trailing = el.nextSibling?.nodeType === Node.TEXT_NODE ? " " : "";
-        words.push({
-          timeMs: wBegin,
-          endMs: wEnd >= 0 ? wEnd : -1,
-          text: raw + trailing,
-        });
-      }
-      if (words.length === 0) words = undefined;
-      text = (words ?? [])
-        .map((w) => w.text)
-        .join("")
-        .trim();
-    } else {
-      text = (p.textContent ?? "").replace(/\s+/g, " ").trim();
-    }
+    const words = ttmlWords(p);
+    const text =
+      words !== undefined
+        ? words
+            .map((w) => w.text)
+            .join("")
+            .trim()
+        : (p.textContent ?? "").replace(/\s+/g, " ").trim();
 
     if (!text && (!words || words.length === 0)) continue;
+
+    // Apple keys every line so its localizations can point back at it.
+    // Joining on that key rather than on position is the whole reason
+    // this is safe: a localized document may omit a line, and matching
+    // by index would then shift every following translation onto the
+    // wrong line without anything looking broken.
+    const key =
+      p.getAttributeNS(ITUNES_NS, "key") ?? p.getAttribute("itunes:key");
+    const romanized = key
+      ? localizations.romanizationByKey.get(key)
+      : undefined;
+    const translated = key
+      ? localizations.translationByKey.get(key)
+      : undefined;
+
     out.push({
       timeMs: lineBegin,
       endMs: lineEnd >= 0 ? lineEnd : -1,
       text,
       words,
+      romanization: usableRomanization(romanized, words, text),
+      translation:
+        translated && !saysTheSameThing(translated, text)
+          ? translated
+          : undefined,
     });
   }
 
   out.sort((a, b) => a.timeMs - b.timeMs);
-  return fillEndTimestamps(out);
+  fillEndTimestamps(out);
+
+  // Only now, because `fillEndTimestamps` closes the `endMs` a source
+  // left open — on the line's own words, which it knows about, and not
+  // on the romanization, which it does not. Copying the bounds after it
+  // has run makes `LyricsReading`'s promise true by construction rather
+  // than by trusting the document: the two are measured identical
+  // anyway, so this changes no timing. It removes the way they could
+  // quietly stop being identical.
+  //
+  // Nothing reads these bounds today — the rendering follows
+  // `activeWordIndex`, computed from the line. They are here for
+  // whatever gives the romanization its own progressive fill, which is
+  // precisely the reader a leftover `-1` would bite.
+  for (const line of out) {
+    const romanized = line.romanization?.words;
+    if (!romanized || !line.words || romanized.length !== line.words.length) {
+      continue;
+    }
+    for (let i = 0; i < romanized.length; i += 1) {
+      romanized[i].timeMs = line.words[i].timeMs;
+      romanized[i].endMs = line.words[i].endMs;
+    }
+  }
+
+  return out;
 }
 
 /**

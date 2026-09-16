@@ -1339,7 +1339,13 @@
       "refetch": "重新啟動搜尋",
       "clear": "刪除歌詞",
       "fullscreen": "全螢幕",
-      "edit": "編輯歌詞"
+      "edit": "編輯歌詞",
+      "cycleLocalization": "切換附加行"
+    },
+    "localization": {
+      "off": "不顯示附加行",
+      "romanization": "正在顯示羅馬拼音",
+      "translation": "正在顯示翻譯"
     },
     "source": {
       "embedded": "歌詞已嵌入檔案中",

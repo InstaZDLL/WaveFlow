@@ -1486,7 +1486,13 @@
       "refetch": "إعادة البحث",
       "clear": "مسح الكلمات",
       "fullscreen": "ملء الشاشة",
-      "edit": "تعديل الكلمات"
+      "edit": "تعديل الكلمات",
+      "cycleLocalization": "تغيير السطر الإضافي"
+    },
+    "localization": {
+      "off": "بدون سطر إضافي",
+      "romanization": "عرض الكتابة اللاتينية",
+      "translation": "عرض الترجمة"
     },
     "source": {
       "embedded": "كلمات مدمجة في الملف",

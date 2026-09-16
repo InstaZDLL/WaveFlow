@@ -140,7 +140,7 @@ Triggered from [`emit_track_changed`](../../src-tauri/crates/app/src/commands/pl
 4. **Generic `description` field** — last of the local tiers, and the
    only one that is a guess about a field meant for something else.
 
-   It used to sit *inside* the embedded tier, ahead of the sidecar, and
+   It used to sit _inside_ the embedded tier, ahead of the sidecar, and
    that cost a real user their lyrics (reported on discussion #519): a
    `.m4a` pulled with `yt-dlp` carries the auto-generated "Provided to
    YouTube by…" credit in `description`, which is comfortably more than
@@ -161,6 +161,7 @@ Triggered from [`emit_track_changed`](../../src-tauri/crates/app/src/commands/pl
    therefore dropped on read and re-resolved: the next `fetch_lyrics`
    repairs it and falls through to the sidecar, with nothing for the
    listener to do.
+
 5. **Musixmatch Enhanced** — asks for word-level karaoke first. It only wins early when the result is actually Enhanced LRC; regular line-level LRC from Musixmatch falls through so LRCLIB's stricter metadata match can still win.
 6. **LRCLIB** — synced lyrics first, falls back to plain text. Result cached as a new row.
 7. **Query-based fallback providers** — LRCLIB (again), then NetEase, Megalobiz, then Genius. This broader scan only runs after tier 6 returns 404 or an empty payload, and prefers synced content over plain text. Musixmatch is deliberately absent: tier 5 owns it, and listing it here would re-issue an identical request.
@@ -225,6 +226,21 @@ The percentage comes from [`useKaraokeWordFill`](../../src/hooks/useKaraokeWordF
 
 Fallbacks, all landing on the plain discrete highlight: `prefers-reduced-motion`, a word with no forward-going `endMs` (the last word of a track keeps `-1`, and sloppy sources can stamp two words at the same millisecond), and the side panel, which deliberately keeps the cheap version — it's a far smaller surface (the mini-player takes the fill despite being smaller still: it is a dedicated reading surface, not a strip beside one). The clip reveals left-to-right, so right-to-left lyrics fill from the wrong edge; the word-level highlight already had that limitation, so it's tracked separately rather than half-fixed here.
 
+**Romanization and translation (issue #584).** An Apple TTML document can carry two further readings of every line, tucked in `<head>` rather than beside the lines: `<translations><translation xml:lang="…"><text for="…">` and `<transliterations><transliteration xml:lang="…"><text for="…"><span begin="…" end="…">`. Each entry points back at its line through the line's `itunes:key`, and Apple returns both from a single localized request — asking for a translation language is what brings the transliteration with it.
+
+Measured on a full document (54 lines): one entry per line for each reading, and the transliteration carries **one span per original span with identical `begin` / `end` bounds**. That is the fact the rendering rests on — a romanized word is driven by the clock of the word it reads out, so `activeWordIndex` addresses both rows and the progressive fill needs no second timing pass.
+
+Four rules are written into [`parseTtml`](../../src/lib/tauri/lyrics.ts), each guarding a way this silently goes wrong:
+
+- **Join by key, never by index.** A localized document may omit a line; matching by position would shift every following entry onto the wrong line with nothing looking broken.
+- **A word split that does not match the line costs the split, not the reading.** Pairing words up as far as they go would put the highlight on the wrong one, which reads as a broken transliteration rather than as a missing feature — so the words are discarded and the text is kept, unsplit, under the line. The same fallback a line-timed document lands on.
+- **Either reading is dropped when it says what the line already says**, ignoring spacing and case. Apple localizes _every_ line, so a line already in the target script or language comes back as itself — printed under itself, that is a duplicate, and a near-duplicate whenever the syllable split differs from the word split, where the eye reads a discrepancy that is not there.
+- **Only the first `<translation>` / `<transliteration>` is read.** Apple returns one of each because the language is chosen in the request; a document carrying several would need the user to pick, which a parser cannot ask.
+
+**Preference** — `lyrics.localization_mode` (per profile, via [`useLyricsLocalization`](../../src/hooks/useLyricsLocalization.ts)): `off` / `romanization` / `translation`, one at a time as Apple Music presents it. The toggle sits in the lyrics panel header and appears only when the current document carries something to show; [`lib/lyricsLocalization.ts`](../../src/lib/lyricsLocalization.ts) resolves the stored mode against what the document has, rather than writing it back — so the choice survives a track that has neither and applies again on the next one that does.
+
+**Limitation** — the immersive column gives the progressive fill to the original line only. `useKaraokeWordFill` returns one ref callback for one element, and the sweep belongs on the line the eye follows; the romanization takes the discrete highlight, which still marks the word being sung.
+
 **Editor — word mode.** [`LyricsEditorModal`](../../src/components/common/LyricsEditorModal.tsx) adds a granularity toggle inside the synchronized tab. In word mode:
 
 - **Space** — stamps the next un-captured word in the active line. First press also stamps the line's own `timeMs` if it's not yet captured.
@@ -264,7 +280,7 @@ the track number is corroboration from a field that is wrong often
 enough to trust least.
 
 - **Missing data scores 0.5, not 0.** A track with no number is not
-  evidence *against* a match; scoring it zero would push every untagged
+  evidence _against_ a match; scoring it zero would push every untagged
   file below the threshold and make the feature useless on exactly the
   libraries that need it.
 - **Assignment is global and greedy**, each side consumed once. Asking

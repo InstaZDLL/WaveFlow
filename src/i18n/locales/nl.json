@@ -1339,7 +1339,13 @@
       "refetch": "Opnieuw zoeken",
       "clear": "Songtekst wissen",
       "fullscreen": "Volledig scherm",
-      "edit": "Songtekst bewerken"
+      "edit": "Songtekst bewerken",
+      "cycleLocalization": "Extra regel wisselen"
+    },
+    "localization": {
+      "off": "Geen extra regel",
+      "romanization": "Romanisering wordt getoond",
+      "translation": "Vertaling wordt getoond"
     },
     "source": {
       "embedded": "Songtekst ingebed in het bestand",

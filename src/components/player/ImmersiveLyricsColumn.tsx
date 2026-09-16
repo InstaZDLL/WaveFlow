@@ -6,6 +6,11 @@ import type { Track } from "../../lib/tauri/track";
 import type { LyricsLine, LyricsPayload } from "../../lib/tauri/lyrics";
 import { useFullscreenLyricsCentering } from "../../hooks/useFullscreenLyricsCentering";
 import { useKaraokeWordFill } from "../../hooks/useKaraokeWordFill";
+import { useLyricsLocalization } from "../../hooks/useLyricsLocalization";
+import {
+  availableLocalizations,
+  effectiveLocalizationMode,
+} from "../../lib/lyricsLocalization";
 
 interface ImmersiveLyricsColumnProps {
   track: Track;
@@ -66,6 +71,14 @@ export function ImmersiveLyricsColumn({
   const { t } = useTranslation();
   // Per-profile opt-in (#168). Default OFF — see the hook.
   const { centered: syncCentered } = useFullscreenLyricsCentering();
+  // Read, not owned: the toggle lives in the docked panel's header, and
+  // both views read the same per-profile preference so opening one over
+  // the other never shows two different readings of the same line.
+  const { mode: storedLocalization } = useLyricsLocalization();
+  const localization = effectiveLocalizationMode(
+    storedLocalization,
+    availableLocalizations(lrcLines),
+  );
   const lineRefs = useRef<Array<HTMLLIElement | null>>([]);
   // Ref for the word currently being sung — attached to that word only,
   // so moving it is what tells the hook to sweep the next one (issue #491).
@@ -274,6 +287,59 @@ export function ImmersiveLyricsColumn({
                         </span>
                       ) : (
                         line.text || " "
+                      )}
+                      {localization === "romanization" && line.romanization && (
+                        <span
+                          className={`block mt-1 text-xl md:text-2xl font-semibold ${
+                            syncCentered ? "text-center" : "text-left"
+                          }`}
+                        >
+                          {line.romanization.words ? (
+                            // Word for word with the line above it,
+                            // sharing its bounds, so `activeWordIndex`
+                            // addresses both.
+                            //
+                            // No progressive fill here, deliberately:
+                            // `useKaraokeWordFill` returns one ref
+                            // callback for one element, and the sweep
+                            // belongs on the line the eye is following.
+                            // The romanization takes the discrete
+                            // highlight, which still marks the word
+                            // being sung.
+                            line.romanization.words.map((word, wi) => (
+                              <Fragment key={wi}>
+                                <span
+                                  style={{
+                                    opacity:
+                                      isActive && wi === activeWordIndex
+                                        ? 1
+                                        : isActive && wi < activeWordIndex
+                                          ? 0.7
+                                          : 0.45,
+                                    transition: "opacity 150ms ease",
+                                  }}
+                                >
+                                  {word.text}
+                                </span>
+                                {wi < line.romanization!.words!.length - 1 &&
+                                  " "}
+                              </Fragment>
+                            ))
+                          ) : (
+                            <span style={{ opacity: isActive ? 0.9 : 0.5 }}>
+                              {line.romanization.text}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                      {localization === "translation" && line.translation && (
+                        <span
+                          className={`block mt-1 text-lg md:text-xl font-normal italic text-white/60 ${
+                            syncCentered ? "text-center" : "text-left"
+                          }`}
+                        >
+                          {line.translation}
+                        </span>
                       )}
                     </button>
                   </li>

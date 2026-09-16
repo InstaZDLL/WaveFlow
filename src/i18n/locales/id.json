@@ -1339,7 +1339,13 @@
       "refetch": "Cari ulang",
       "clear": "Hapus lirik",
       "fullscreen": "Layar penuh",
-      "edit": "Sunting lirik"
+      "edit": "Sunting lirik",
+      "cycleLocalization": "Ganti baris tambahan"
+    },
+    "localization": {
+      "off": "Tanpa baris tambahan",
+      "romanization": "Menampilkan romanisasi",
+      "translation": "Menampilkan terjemahan"
     },
     "source": {
       "embedded": "Lirik tertanam di berkas",
