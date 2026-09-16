@@ -83,9 +83,15 @@ export function MoodRadioGrid() {
     if (loadingMood != null) return;
     setLoadingMood(mood);
     try {
-      const ids = await startMoodRadio(mood);
-      if (ids.length === 0) return;
-      await playerPlayTracks("radio", null, ids, 0);
+      const session = await startMoodRadio(mood);
+      if (session.trackIds.length === 0) return;
+      await playerPlayTracks(
+        "radio",
+        null,
+        session.trackIds,
+        0,
+        session.albumOrdered,
+      );
     } catch (err) {
       console.error("[MoodRadioGrid] start mood radio failed", err);
     } finally {

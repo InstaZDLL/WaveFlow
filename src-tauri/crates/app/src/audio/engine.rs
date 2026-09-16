@@ -3036,22 +3036,21 @@ enum RebuildResume {
 /// the device-loss path touches it (shutdown and `reset_app` raise it too,
 /// but neither is followed by a rebuild).
 ///
-/// **`Loading` counts as a session**, and the reason is not about the
-/// resume at all — it is about the `Stop`. The decoder is inside
-/// `play_track` from the moment it accepts a load, and a `SwapProducer`
-/// that reaches it there is dropped on the floor: both drains fall
-/// through to a catch-all, on the stated assumption that the engine
-/// always sends a `Stop` first. Answering `Nothing` for a track that was
-/// still loading broke that assumption, so the swap was lost and the
-/// decoder kept writing into a ring whose consumer had just been torn
-/// down — silence until something else rebuilt the output. Resuming is
-/// then the right answer too: the load is in `last_load` and goes back
-/// out under its own intent.
+/// **`Loading` counts as a session.** The decoder is inside `play_track`
+/// from the moment it accepts a load, so a track picked while the
+/// rebuild is between its `Stop` and its swap is a track this answer
+/// decides the fate of. It used to decide more than that: a
+/// `SwapProducer` reaching `play_track` was dropped on the floor, so
+/// answering `Nothing` here cost the swap itself and left the decoder
+/// writing into a ring whose consumer had just been torn down. That
+/// half is fixed at the source — the drains install the producer and
+/// end the track (#639) — and what is left is the plain question. The
+/// track the user picked has been stopped by the swap, `last_load`
+/// holds it, and only `Play` sends it back out, under its own intent.
 ///
 /// `Ended` and `Idle` stay outside: there is no session to interrupt,
-/// the decoder is parked at the top-level loop where a `SwapProducer` is
-/// handled properly, and resuming would restart a track that had
-/// finished.
+/// the decoder is parked at the top-level loop, and resuming would
+/// restart a track that had finished.
 ///
 /// Until #617 only a *library* track could stay paused, because what made
 /// it resumable afterwards was the persisted resume point `resume_last`
@@ -3188,14 +3187,12 @@ mod rebuild_resume_tests {
 
     #[test]
     fn a_track_still_loading_is_still_a_session() {
-        // Not about the resume: about the `Stop`. The decoder is inside
-        // `play_track` from the moment it accepts a load, and a
-        // `SwapProducer` that reaches it there is dropped — both drains
-        // fall through to a catch-all, assuming the engine sent a `Stop`
-        // first. Answering `Nothing` here broke that assumption, so the
-        // rebuild swapped nothing and the decoder went on writing into a
-        // ring whose consumer had just been torn down: silence until
-        // something else rebuilt the output.
+        // The decoder is inside `play_track` from the moment it accepts
+        // a load, so a track picked between the rebuild's `Stop` and its
+        // swap is one this answer decides for. The swap now ends that
+        // track instead of being dropped (#639), which leaves the
+        // session loaded and stopped — `Nothing` would be the one answer
+        // that never starts it again.
         assert_eq!(
             rebuild_resume(PlayerState::Loading, false),
             RebuildResume::Play

@@ -76,6 +76,15 @@ which is the single thing album mode exists to prevent. An album longer
 than the whole budget is still taken, because an empty mix is worse
 than a long one, and that exception is spent once.
 
+What the bucket actually produced is written into the playlist's own
+`smart_rules` as `album_mode` (#647). The session outlives its
+generation — a mix is a stored playlist, and playing it a week later
+goes through the ordinary playlist path — so this is the only way the
+gain decision can still tell a mix of records from a mix of tracks. It
+records the **fallback** too: a bucket where no record qualifies is
+filled track by track on purpose, and says so. See
+[playback.md](playback.md#replaygain) for what reads it.
+
 Determinism matters: the same input set always produces the same listening order, so the user doesn't see a "different mix" mid-session if the playlist re-renders. A second regen against the same listening data rewrites the rows in place.
 
 ### 4. Cover composition
@@ -265,6 +274,15 @@ used to satisfy a ceiling exactly as well as a measured quiet track**
 a track measured inside the mood, above one measured outside it, which
 is the only honest ordering and the same rule the tag matcher uses for
 missing data.
+
+### What the command answers with
+
+`start_mood_radio` returns `{ trackIds, albumOrdered }`, not a bare
+list (#647). Album mode is shared with the Daily Mix, and a mood with
+no qualifying record falls back to individual tracks on purpose — so
+the caller cannot tell the two apart from the ids, and it needs to:
+`albumOrdered` is what it hands `playerPlayTracks`, and what tells
+automatic ReplayGain that a record is playing through.
 
 ### Octave correction
 

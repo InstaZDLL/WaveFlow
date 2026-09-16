@@ -14,19 +14,34 @@ export interface MoodCounts {
   total_tracks: number;
 }
 
+export interface MoodRadioSession {
+  trackIds: number[];
+  /**
+   * Whole records in their own order, rather than individual tracks.
+   *
+   * What the backend actually produced: album mode is a preference and
+   * a mood with no qualifying record falls back to tracks on purpose,
+   * so this is `false` on that path even with the setting on. Pass it
+   * to `playerPlayTracks` — it is what tells automatic ReplayGain the
+   * session is a record playing through (#647).
+   */
+  albumOrdered: boolean;
+}
+
 /**
  * Build a mood-based radio queue (~40 tracks).
  *
  * The tempo range gates what may be considered; loudness and genre
  * then **rank** it, so the queue is the best-fitting forty of the pool
  * rather than the first forty drawn (#616). Hand the result to
- * `playerPlayTracks("radio", null, ids, 0)` to play it.
+ * `playerPlayTracks("radio", null, session.trackIds, 0,
+ * session.albumOrdered)` to play it.
  *
- * Returns an empty array if no analysed track matches the mood (the
- * UI should disable the corresponding tile when the count is zero).
+ * `trackIds` is empty if no analysed track matches the mood (the UI
+ * should disable the corresponding tile when the count is zero).
  */
-export function startMoodRadio(mood: Mood): Promise<number[]> {
-  return invoke<number[]>("start_mood_radio", { mood });
+export function startMoodRadio(mood: Mood): Promise<MoodRadioSession> {
+  return invoke<MoodRadioSession>("start_mood_radio", { mood });
 }
 
 /**

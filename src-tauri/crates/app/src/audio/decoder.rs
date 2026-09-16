@@ -1201,6 +1201,7 @@ fn play_dop_track(
     'pkt: loop {
         match drain_commands(
             cmd_rx,
+            producer,
             shared,
             app,
             stream.track_id,
@@ -1426,6 +1427,7 @@ fn play_track(
     'pkt: loop {
         match drain_commands(
             cmd_rx,
+            producer,
             shared,
             app,
             stream.track_id,
@@ -2066,6 +2068,37 @@ fn accept_load(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
     true
 }
 
+/// Install a ring producer the engine handed over while a track was
+/// playing, and end that track (#639).
+///
+/// Dropping the swap instead — which both drains used to do — leaves the
+/// decoder writing into a ring whose consumer went away with the old
+/// output thread: every `push` succeeds, nothing is ever read, and the
+/// session is silent until something else rebuilds the output. The
+/// engine sends a `Stop` before the swap precisely so this never
+/// happens, but on the pre-release branch the two are separated by a
+/// full exclusive device open, and a track the user picks inside that
+/// window puts the decoder back inside `play_track` before the producer
+/// lands.
+///
+/// **Ending the track is not incidental.** The resampler is built
+/// against the output's sample rate, read once when the track started;
+/// a producer swapped in underneath a running track would play it at
+/// the wrong speed. `Break` ends it exactly as the `Stop` the rebuild
+/// already sends does: the queue does not advance, and a listen is
+/// credited under the same 15-second rule as any other interruption —
+/// which a track the user picked inside a device open cannot have
+/// reached. The rebuild's own resume then re-dispatches `last_load`,
+/// which by then is what they picked, under its own intent.
+fn install_swapped_producer(
+    producer: &mut Producer<f32>,
+    new_producer: Producer<f32>,
+) -> ControlFlow {
+    *producer = new_producer;
+    tracing::info!("decoder picked up a new ring producer mid-track; ending it for the rebuild");
+    ControlFlow::Break
+}
+
 /// Drain pending commands without blocking. Returns:
 /// - `Continue` to keep decoding
 /// - `Break` to stop the current track but keep the decoder alive
@@ -2084,6 +2117,7 @@ fn accept_load(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
 /// local and applied immediately after Resume.
 fn drain_commands(
     cmd_rx: &Receiver<AudioCmd>,
+    producer: &mut Producer<f32>,
     shared: &SharedPlayback,
     app: &AppHandle,
     track_id: i64,
@@ -2209,14 +2243,20 @@ fn drain_commands(
                             return ControlFlow::LoadNext;
                         }
                         Ok(AudioCmd::Pause) => {}
-                        // SwapProducer can't reach this loop in
-                        // practice — `set_output_device` always sends
-                        // a `Stop` first, which breaks us out before
-                        // the new producer arrives — but the match
-                        // has to be exhaustive. Drop it on the floor;
-                        // the producer goes out of scope and tears
-                        // the orphaned ring down.
-                        Ok(AudioCmd::SwapProducer(_)) => {}
+                        // The `Stop` the engine sends first should
+                        // take us out of here before the swap arrives —
+                        // a rebuild treats a paused session as one to
+                        // park, so it does send one. This arm is what
+                        // holds if it ever does not, and it holds by
+                        // installing rather than dropping.
+                        //
+                        // `paused_output` is deliberately left raised:
+                        // ending the track here hands the rebuild a
+                        // session it will park, which is what the user
+                        // asked for by pausing it (#611).
+                        Ok(AudioCmd::SwapProducer(new_producer)) => {
+                            return install_swapped_producer(producer, new_producer)
+                        }
                         Err(_) => return ControlFlow::Shutdown,
                     }
                 }
@@ -2227,6 +2267,12 @@ fn drain_commands(
             Ok(AudioCmd::SetVolume(v)) => shared.set_volume(v),
             Ok(AudioCmd::SetNormalize(on)) => shared.normalize_enabled.store(on, Ordering::Release),
             Ok(AudioCmd::SetMono(on)) => shared.mono_enabled.store(on, Ordering::Release),
+            // Named before the catch-all, which used to swallow it: a
+            // swap that reaches a decoding track is the one command
+            // this arm must not treat as "not meaningful here".
+            Ok(AudioCmd::SwapProducer(new_producer)) => {
+                return install_swapped_producer(producer, new_producer)
+            }
             Ok(_) => {}
             Err(TryRecvError::Empty) => return ControlFlow::Continue,
             Err(TryRecvError::Disconnected) => return ControlFlow::Shutdown,
@@ -2359,7 +2405,15 @@ fn push_samples(
                     // Ring full. Yield briefly and poll commands so
                     // pause/stop/seek aren't blocked by a saturated
                     // buffer.
-                    match drain_commands(cmd_rx, shared, app, track_id, pending_cmd, pending_next) {
+                    match drain_commands(
+                        cmd_rx,
+                        producer,
+                        shared,
+                        app,
+                        track_id,
+                        pending_cmd,
+                        pending_next,
+                    ) {
                         ControlFlow::Shutdown => return PushOutcome::Shutdown,
                         ControlFlow::Break => return PushOutcome::Stop,
                         ControlFlow::Seek(ms) => return PushOutcome::Seek(ms),

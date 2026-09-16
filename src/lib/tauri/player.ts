@@ -182,18 +182,26 @@ export function playerGetAbLoop(): Promise<AbLoopSnapshot> {
 /**
  * Replace the queue with `trackIds` and start playing at
  * `startIndex`. The backend validates that `startIndex` is in range.
+ *
+ * `albumOrdered` is for the one caller that knows something
+ * `sourceType` cannot express: a Mood Radio the backend answered in
+ * whole records. Leave it out everywhere else — the backend works the
+ * answer out from the source itself, and a `false` passed here would
+ * override what a Daily Mix recorded about its own tracks (#647).
  */
 export function playerPlayTracks(
   sourceType: QueueSource,
   sourceId: number | null,
   trackIds: number[],
   startIndex: number,
+  albumOrdered?: boolean,
 ): Promise<void> {
   return invoke<void>("player_play_tracks", {
     sourceType,
     sourceId,
     trackIds,
     startIndex,
+    albumOrdered,
   });
 }
 

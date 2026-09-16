@@ -513,9 +513,11 @@ pub async fn set_track_rating(
             let _ = engine.send(crate::audio::AudioCmd::Pause);
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         }
-        // 3. Write the tag. Failures are logged + non-fatal: DSD files
-        //    have no writable rating frame, and we don't want a popup
-        //    every time a user rates a DSF.
+        // 3. Write the tag. Failures are logged + non-fatal: a `.dff`
+        //    has no writable tag block, a file can be read-only, and
+        //    neither is worth a popup over a star the database has
+        //    already recorded. `.dsf` is no longer one of these — it
+        //    takes the DSF writer like any other edit (#644).
         let path = std::path::PathBuf::from(path_str);
         let mut tag_written = true;
         if let Err(err) = write_rating_to_file(&path, rating) {
@@ -594,64 +596,23 @@ pub async fn set_track_rating(
     Ok(())
 }
 
-/// Write the rating into the file's primary tag. For ID3v2 (MP3, WAV,
-/// AAC, AIFF) the raw POPM frame body is built directly because lofty
-/// 0.24's generic `Tag` interface stores POPM as `ItemValue::Binary`
-/// without round-tripping the typed `PopularimeterFrame`. For every
-/// other container (Vorbis / MP4 / APE / WavPack) the rating is stored
-/// as plain text `RATING=0-100` under [`ItemKey::Popularimeter`], which
-/// is the same key the scanner reads back via `get_string`.
+/// Write the rating into the file's tag, through the one writer that
+/// knows every container this build indexes.
 ///
-/// `rating = None` removes any existing POPM/Rating tag.
+/// It used to reach for `lofty::read_from_path` itself, which cost it
+/// three things the properties dialog had already been given: DSD, where
+/// lofty has no `FileType` at all and a rating on a `.dsf` stayed in the
+/// database; the non-standard comments of every Vorbis-family file,
+/// which the generic tag drops on the way through; and the rewrite
+/// safety of #598. One rating is not worth its own copy of any of that
+/// (#644).
+///
+/// `rating = None` removes whatever rating the file carries.
 fn write_rating_to_file(
     path: &std::path::Path,
     rating: Option<u8>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use lofty::file::{AudioFile, TaggedFileExt};
-    use lofty::tag::{ItemKey, ItemValue, Tag, TagItem, TagType};
-
-    let mut tagged = lofty::read_from_path(path)?;
-    if tagged.primary_tag().is_none() && tagged.first_tag().is_none() {
-        let preferred = tagged.primary_tag_type();
-        tagged.insert_tag(Tag::new(preferred));
-    }
-    let tag = if tagged.primary_tag().is_some() {
-        tagged.primary_tag_mut().expect("checked primary_tag")
-    } else {
-        tagged.first_tag_mut().ok_or("no tag after insert")?
-    };
-
-    // Always start from a clean slate so a previously-written rating
-    // (possibly with a different email) doesn't shadow the new one.
-    tag.remove_key(ItemKey::Popularimeter);
-
-    if let Some(r) = rating {
-        match tag.tag_type() {
-            TagType::Id3v2 => {
-                // POPM body: <email>\0<rating:u8><counter:u32-be>.
-                // Empty email is allowed by the ID3v2 spec and means
-                // "anonymous user" — readers (foobar2000, Mp3tag,
-                // MusicBee) accept it. Counter = 0; we don't track it.
-                let bytes: Vec<u8> = std::iter::once(0u8)
-                    .chain(std::iter::once(r))
-                    .chain([0u8; 4])
-                    .collect();
-                tag.insert(TagItem::new(
-                    ItemKey::Popularimeter,
-                    ItemValue::Binary(bytes),
-                ));
-            }
-            _ => {
-                // Vorbis / MP4 / APE / WavPack: text rating on the
-                // 0-100 scale, same shape the scanner reads.
-                let as_100 = ((r as u16) * 100 / 255) as u8;
-                tag.insert_text(ItemKey::Popularimeter, as_100.to_string());
-            }
-        }
-    }
-
-    tagged.save_to_path(path, lofty::config::WriteOptions::default())?;
-    Ok(())
+    super::edit::patch_file(path, &super::edit::TagPatch::Rating(rating))
 }
 
 /// New liked state of a track, broadcast so every surface showing a

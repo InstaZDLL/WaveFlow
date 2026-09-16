@@ -380,8 +380,26 @@ fn reject_untaggable(
     Ok(())
 }
 
+/// Where a set of lyrics goes in the tag.
+///
+/// The key is decided by the caller, which is the only place that knows
+/// the format: plain text and LRC go where every player looks for
+/// lyrics, TTML needs a slot that accepts arbitrary text. Expressed as
+/// one choice rather than two optional strings so "both at once" cannot
+/// be written down.
+pub(crate) enum LyricsSlot<'a> {
+    /// Both keys go and nothing replaces them.
+    Cleared,
+    /// `USLT` for ID3v2, `UNSYNCEDLYRICS` for Vorbis, `©lyr` for MP4 —
+    /// what every other player reads.
+    Unsynchronised(&'a str),
+    /// `ItemKey::Lyrics`, the arbitrary-string slot TTML needs. Vorbis
+    /// and MP4 only; ID3v2 has nothing equivalent.
+    Arbitrary(&'a str),
+}
+
 /// One edit to a file's tags, applied through [`patch_file`].
-enum TagPatch<'a> {
+pub(crate) enum TagPatch<'a> {
     /// The metadata fields the properties dialog exposes.
     Fields(&'a TrackEdit),
     /// A new front cover. Every other embedded image survives.
@@ -389,6 +407,15 @@ enum TagPatch<'a> {
         bytes: &'a [u8],
         mime: &'a lofty::picture::MimeType,
     },
+    /// The star rating as the raw 0-255 POPM byte, or `None` to clear
+    /// it. Comes through here rather than through lofty directly so a
+    /// `.dsf` gets its rating like any other container (#644).
+    Rating(Option<u8>),
+    /// The lyrics, under the key [`LyricsSlot`] names. Same reason: the
+    /// route through `patch_file` is what gives DSD a lyrics write at
+    /// all, and what keeps the non-standard comments of every other
+    /// container from being dropped on the way (#644).
+    Lyrics(LyricsSlot<'a>),
 }
 
 /// Apply a patch to a generic [`lofty::tag::Tag`].
@@ -401,6 +428,60 @@ fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
 
     let edit = match patch {
         TagPatch::Fields(edit) => edit,
+        TagPatch::Rating(rating) => {
+            // Cleared first whatever comes next, so a rating written
+            // earlier — possibly by another tagger, under a different
+            // email — cannot shadow the new one.
+            tag.remove_key(ItemKey::Popularimeter);
+            if let Some(r) = rating {
+                // Vorbis / MP4 / APE / WavPack: text on the 0-100
+                // scale, the shape the scanner reads back.
+                //
+                // ID3v2 does not come through here at all. lofty's
+                // generic tag carries a rating as a **whole star**
+                // (`<provider>|<stars>|<counter>`), so a value on this
+                // 0-255 scale either fails to convert — which is
+                // silent, the frame simply never reaches the file — or
+                // is rounded to a star and re-encoded on the provider's
+                // own scale. Neither is the byte the user set, so that
+                // container is written as the POPM frame it is, by
+                // [`apply_rating_id3v2`].
+                let as_100 = ((*r as u16) * 100 / 255) as u8;
+                tag.insert_text(ItemKey::Popularimeter, as_100.to_string());
+            }
+            return;
+        }
+        TagPatch::Lyrics(slot) => {
+            // Both keys go before either is written. Switching format
+            // (LRC → TTML, say) moves the lyrics from one key to the
+            // other, and the reader checks `UnsyncLyrics` first — left
+            // in place, the old content would shadow the new.
+            // ID3v2 has no arbitrary-string lyrics slot — lofty says so
+            // outright — so an `Arbitrary` write there would be dropped
+            // on the way to the file, and the clear above would have
+            // spent the file's lyrics to make room for it.
+            // `write_lyrics_to_file` refuses TTML on those containers
+            // before this is called; this is the same answer the `id3`
+            // applier gives, so the two cannot disagree about it.
+            if matches!(
+                (slot, tag.tag_type()),
+                (LyricsSlot::Arbitrary(_), lofty::tag::TagType::Id3v2)
+            ) {
+                return;
+            }
+            tag.remove_key(ItemKey::UnsyncLyrics);
+            tag.remove_key(ItemKey::Lyrics);
+            match slot {
+                LyricsSlot::Cleared => {}
+                LyricsSlot::Unsynchronised(text) => {
+                    tag.insert_text(ItemKey::UnsyncLyrics, (*text).to_string());
+                }
+                LyricsSlot::Arbitrary(text) => {
+                    tag.insert_text(ItemKey::Lyrics, (*text).to_string());
+                }
+            }
+            return;
+        }
         TagPatch::Cover { bytes, mime } => {
             use lofty::picture::{Picture, PictureType};
             // Replace the cover, not the artwork. A release with a
@@ -506,6 +587,35 @@ fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
     }
 }
 
+/// Write the rating into an ID3v2 tag as the frame it is.
+///
+/// The star rating is a **0-255 POPM byte**, in half-star steps, and
+/// lofty's generic tag cannot carry one: since 0.25 it converts a POPM
+/// into `<provider>|<stars>|<counter>` and back through a whole-star
+/// `StarRating`, so a raw byte put into the generic tag is dropped on
+/// the way back to the file — measured: the frame count is zero, and
+/// nothing says so. That is why this is applied to the concrete tag,
+/// beside the reasons the rest of `patch_file` already exists for.
+///
+/// Removing by frame id takes every POPM the file holds. They are keyed
+/// by email, so a file can carry several — one per tagger — and a
+/// reader takes the first. Leaving the others would let a rating the
+/// user replaced go on being the one another player shows.
+fn apply_rating_id3v2(tag: &mut lofty::id3::v2::Id3v2Tag, rating: Option<u8>) {
+    use lofty::id3::v2::{Frame, FrameId, PopularimeterFrame};
+
+    let popm = FrameId::Valid(std::borrow::Cow::Borrowed("POPM"));
+    // Consumed, not dropped: `remove` hands back a lazy iterator over
+    // what it takes, so ignoring it removes nothing at all.
+    tag.remove(&popm).for_each(drop);
+    if let Some(rating) = rating {
+        // An empty email is the anonymous user the spec allows, and
+        // what every reader checked (foobar2000, Mp3tag, MusicBee)
+        // accepts. The counter stays 0 — we do not track plays here.
+        tag.insert(Frame::Popularimeter(PopularimeterFrame::new("", rating, 0)));
+    }
+}
+
 /// Apply a patch to an [`id3::Tag`], for the one container lofty cannot
 /// write (#592).
 ///
@@ -524,6 +634,51 @@ fn apply_patch_id3(tag: &mut id3::Tag, patch: &TagPatch<'_>) {
 
     let edit = match patch {
         TagPatch::Fields(edit) => edit,
+        TagPatch::Rating(rating) => {
+            // `id3` models POPM, so the frame is built from its fields
+            // rather than from a hand-packed body — same bytes, and the
+            // crate owns the encoding. Removing first covers the frames
+            // another tagger wrote under its own email: POPM is keyed by
+            // user, so several can sit in one tag and the reader takes
+            // the first.
+            tag.remove("POPM");
+            if let Some(r) = rating {
+                tag.add_frame(id3::Frame::with_content(
+                    "POPM",
+                    id3::Content::Popularimeter(id3::frame::Popularimeter {
+                        user: String::new(),
+                        rating: *r,
+                        counter: 0,
+                    }),
+                ));
+            }
+            return;
+        }
+        TagPatch::Lyrics(slot) => {
+            match slot {
+                LyricsSlot::Cleared => tag.remove_all_lyrics(),
+                LyricsSlot::Unsynchronised(text) => {
+                    tag.remove_all_lyrics();
+                    tag.add_frame(id3::frame::Lyrics {
+                        // `und` — undetermined. USLT keys on the
+                        // language, and claiming one we have not
+                        // detected would let a reader hide the lyrics
+                        // from someone whose player filters by it.
+                        lang: "und".to_string(),
+                        description: String::new(),
+                        text: (*text).to_string(),
+                    });
+                }
+                // ID3v2 has no arbitrary-string lyrics slot, so
+                // `write_lyrics_to_file` refuses TTML on every ID3v2
+                // container before it reaches an applier. This arm is
+                // what happens if that guard is ever moved: leave the
+                // tag exactly as it is. Clearing it would spend the
+                // lyrics already in the file on a write we cannot make.
+                LyricsSlot::Arbitrary(_) => {}
+            }
+            return;
+        }
         TagPatch::Cover { bytes, mime } => {
             // Replace the cover, not the artwork — the same rule, and
             // the same reason: a release with a booklet, a back cover or
@@ -644,7 +799,8 @@ fn mirror_year_for_legacy(tag: &mut id3::Tag, patch: &TagPatch<'_>, version: id3
     if !matches!(version, id3::Version::Id3v22 | id3::Version::Id3v23) {
         return;
     }
-    // A cover carries no year, and a field edit that left `year` at
+    // Only a field edit can carry a year at all — a cover, a rating and
+    // a set of lyrics do not — and a field edit that left `year` at
     // `None` is asking for the year to stay exactly as it is.
     let TagPatch::Fields(edit) = patch else {
         return;
@@ -686,6 +842,38 @@ fn patch_dsf(
     path: &std::path::Path,
     patch: &TagPatch<'_>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    with_dsf_tag(path, |tag, version| {
+        apply_patch_id3(tag, patch);
+        mirror_year_for_legacy(tag, patch, version);
+        // An edit the dialog sent is an edit to write, even when it
+        // happens to set what the file already said: the alternative is
+        // comparing two encodings of the same tag to save a write of a
+        // block that sits after the audio and costs nothing to move.
+        true
+    })
+}
+
+/// Read a DSF file's ID3v2 tag, let `edit` change it, write it back.
+///
+/// The read-modify-write half of [`patch_dsf`], on its own because it
+/// has a second caller: the canonical `SYNCEDLYRICS` stamp
+/// (`commands::lyrics`) is a different payload over the same container,
+/// and a second copy of this would be a second place to get the
+/// preservation rules wrong.
+///
+/// `edit` is handed the version the file arrived with, for the one
+/// decision that depends on it (`TYER` versus `TDRC`), and answers
+/// whether the tag should be written back. `false` leaves the file
+/// untouched — for the callers whose edit may turn out to be no edit at
+/// all, where rewriting would cost the user a file modification, and a
+/// re-hash, for nothing.
+pub(crate) fn with_dsf_tag<F>(
+    path: &std::path::Path,
+    edit: F,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
+where
+    F: FnOnce(&mut id3::Tag, id3::Version) -> bool,
+{
     waveflow_core::tagio::with_writable_file(
         path,
         |handle| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -723,8 +911,9 @@ fn patch_dsf(
                 .as_ref()
                 .map_or(id3::Version::Id3v24, id3::Tag::version);
             let mut tag = existing.unwrap_or_default();
-            apply_patch_id3(&mut tag, patch);
-            mirror_year_for_legacy(&mut tag, patch, version);
+            if !edit(&mut tag, version) {
+                return Ok(());
+            }
             let mut bytes = Vec::new();
             tag.write_to(&mut bytes, version)?;
             waveflow_core::tagio::write_dsf_id3v2(handle, &bytes)?;
@@ -757,7 +946,7 @@ fn patch_dsf(
 ///
 /// Only the containers the scanner indexes are handled; anything else is
 /// refused rather than written through a path we haven't checked.
-fn patch_file(
+pub(crate) fn patch_file(
     path: &std::path::Path,
     patch: &TagPatch<'_>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -794,6 +983,25 @@ fn patch_file(
             let (remainder, mut generic) = $file.$take().unwrap_or_default().split_tag();
             apply_patch(&mut generic, patch);
             $file.$set(remainder.merge_tag(generic));
+        }};
+    }
+
+    // The ID3v2 slot, which takes one payload off the generic path: a
+    // rating is written as the POPM frame it is, because lofty's
+    // generic tag cannot carry the byte. Everything else is the round
+    // trip above.
+    macro_rules! patch_id3v2_slot {
+        ($file:expr) => {{
+            let mut tag = $file.remove_id3v2().unwrap_or_default();
+            match patch {
+                TagPatch::Rating(rating) => apply_rating_id3v2(&mut tag, *rating),
+                _ => {
+                    let (remainder, mut generic) = tag.split_tag();
+                    apply_patch(&mut generic, patch);
+                    tag = remainder.merge_tag(generic);
+                }
+            }
+            $file.set_id3v2(tag);
         }};
     }
 
@@ -852,7 +1060,7 @@ fn patch_file(
                 path,
                 |handle| -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
                     let mut f = <$ty>::read_from(handle, ParseOptions::new())?;
-                    patch_slot!(f, remove_id3v2, set_id3v2);
+                    patch_id3v2_slot!(f);
                     match f.id3v2() {
                         Some(tag) => waveflow_core::tagio::try_id3v2_in_place(handle, tag),
                         None => Ok(false),
@@ -865,10 +1073,12 @@ fn patch_file(
     let written_in_place = match file_type {
         FileType::Mpeg => try_in_place_id3v2!(lofty::mpeg::MpegFile),
         FileType::Aac => try_in_place_id3v2!(lofty::aac::AacFile),
-        // Fields only. A cover edit regenerates picture blocks, which
-        // the FLAC fast path deliberately copies through rather than
-        // rebuilds, so it has nothing to offer there.
-        FileType::Flac if matches!(patch, TagPatch::Fields(_)) => {
+        // Anything but a cover. A cover edit regenerates picture
+        // blocks, which the FLAC fast path deliberately copies through
+        // rather than rebuilds, so it has nothing to offer there — a
+        // rating and a set of lyrics are comment values like any other
+        // and take the same cheap route the fields do.
+        FileType::Flac if !matches!(patch, TagPatch::Cover { .. }) => {
             waveflow_core::tagio::with_writable_file(
                 path,
                 |handle| -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
@@ -889,10 +1099,10 @@ fn patch_file(
 
     match file_type {
         FileType::Mpeg => with_file!(lofty::mpeg::MpegFile, |f, handle| {
-            patch_slot!(f, remove_id3v2, set_id3v2);
+            patch_id3v2_slot!(f);
         }),
         FileType::Aac => with_file!(lofty::aac::AacFile, |f, handle| {
-            patch_slot!(f, remove_id3v2, set_id3v2);
+            patch_id3v2_slot!(f);
         }),
         FileType::Mp4 => with_file!(lofty::mp4::Mp4File, |f, handle| {
             patch_slot!(f, remove_ilst, set_ilst);
@@ -906,13 +1116,13 @@ fn patch_file(
             if f.riff_info().is_some() {
                 patch_slot!(f, remove_riff_info, set_riff_info);
             }
-            patch_slot!(f, remove_id3v2, set_id3v2);
+            patch_id3v2_slot!(f);
         }),
         FileType::Aiff => with_file!(lofty::iff::aiff::AiffFile, |f, handle| {
             if f.text_chunks().is_some() {
                 patch_slot!(f, remove_text_chunks, set_text_chunks);
             }
-            patch_slot!(f, remove_id3v2, set_id3v2);
+            patch_id3v2_slot!(f);
         }),
         FileType::Vorbis => with_file!(lofty::ogg::VorbisFile, |f, handle| {
             patch_required_slot!(f, remove_vorbis_comments, set_vorbis_comments);
@@ -929,9 +1139,6 @@ fn patch_file(
         // blocks already there rather than replacing the front cover.
         FileType::Flac => with_file!(lofty::flac::FlacFile, |f, handle| {
             match patch {
-                TagPatch::Fields(_) => {
-                    patch_slot!(f, remove_vorbis_comments, set_vorbis_comments);
-                }
                 TagPatch::Cover { bytes, mime } => {
                     use lofty::ogg::OggPictureStorage;
                     use lofty::picture::{Picture, PictureInformation, PictureType};
@@ -948,6 +1155,11 @@ fn patch_file(
                     // the image itself.
                     let info = PictureInformation::from_picture(&picture).unwrap_or_default();
                     f.insert_picture(picture, Some(info))?;
+                }
+                // Fields, rating, lyrics: all of them are comment
+                // values, and the pictures stay where they are.
+                _ => {
+                    patch_slot!(f, remove_vorbis_comments, set_vorbis_comments);
                 }
             }
         }),
@@ -1604,5 +1816,257 @@ mod patch_agreement_tests {
                     && p.data == vec![4, 5, 6]),
             "the front cover is the new one"
         );
+    }
+
+    /// The byte the database holds is the byte another player reads, on
+    /// the container where the rating used to stop at the database (#644).
+    #[test]
+    fn a_rating_reaches_an_id3_tag_as_the_byte_it_was_given() {
+        use id3::TagLike;
+        let mut tag = id3::Tag::new();
+        tag.set_title("Keep me");
+
+        apply_patch_id3(&mut tag, &TagPatch::Rating(Some(196)));
+
+        // Through an encode/decode, because a frame the writer refuses is
+        // a frame the file never gets.
+        let mut bytes = Vec::new();
+        tag.write_to(&mut bytes, id3::Version::Id3v24)
+            .expect("write");
+        let back = id3::Tag::read_from2(std::io::Cursor::new(&bytes)).expect("read");
+
+        let popm = back
+            .frames()
+            .find_map(|frame| match frame.content() {
+                id3::Content::Popularimeter(p) => Some(p),
+                _ => None,
+            })
+            .expect("a POPM frame");
+        assert_eq!(popm.rating, 196);
+        assert_eq!(
+            back.title(),
+            Some("Keep me"),
+            "a rating is one frame, not a new tag"
+        );
+    }
+
+    /// POPM is keyed by user, so a tag can hold several and the reader
+    /// takes the first. Clearing one star out of five has to take every
+    /// one of them, or the old rating simply comes back.
+    #[test]
+    fn clearing_a_rating_takes_every_popm_frame_with_it() {
+        use id3::TagLike;
+        let mut tag = id3::Tag::new();
+        for user in ["", "someone@else"] {
+            tag.add_frame(id3::Frame::with_content(
+                "POPM",
+                id3::Content::Popularimeter(id3::frame::Popularimeter {
+                    user: user.to_string(),
+                    rating: 255,
+                    counter: 0,
+                }),
+            ));
+        }
+
+        apply_patch_id3(&mut tag, &TagPatch::Rating(None));
+
+        assert_eq!(tag.frames().filter(|f| f.id() == "POPM").count(), 0);
+    }
+
+    /// The generic side of the same edit — the containers that keep a
+    /// rating as plain text on the 0-100 scale, which is the shape the
+    /// scanner reads back from them. ID3v2 does not come through here:
+    /// see [`apply_rating_id3v2`].
+    #[test]
+    fn the_generic_applier_writes_the_text_scale() {
+        use lofty::tag::{ItemKey, Tag, TagType};
+
+        let mut vorbis = Tag::new(TagType::VorbisComments);
+        apply_patch(&mut vorbis, &TagPatch::Rating(Some(196)));
+        assert_eq!(
+            vorbis.get_string(ItemKey::Popularimeter),
+            Some("76"),
+            "196 of 255 on the 0-100 scale"
+        );
+
+        apply_patch(&mut vorbis, &TagPatch::Rating(None));
+        assert_eq!(vorbis.get_string(ItemKey::Popularimeter), None);
+    }
+
+    /// The byte the user set is the byte the frame carries.
+    ///
+    /// Measured on lofty 0.25: a rating put into the **generic** tag
+    /// does not survive the merge back — `Binary` and a plain number
+    /// both leave zero frames, and only `<provider>|<stars>|<counter>`
+    /// with a whole star between the pipes produces one, re-encoded on
+    /// that provider's scale. None of those is a 0-255 value in
+    /// half-star steps, which is what the database holds, so the frame
+    /// is built directly.
+    #[test]
+    fn a_rating_is_written_as_the_frame_it_is() {
+        use lofty::id3::v2::{Frame, Id3v2Tag};
+
+        let mut tag = Id3v2Tag::default();
+        apply_rating_id3v2(&mut tag, Some(196));
+
+        let ratings: Vec<u8> = tag
+            .iter()
+            .filter_map(|frame| match frame {
+                Frame::Popularimeter(popm) => Some(popm.rating),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(ratings, vec![196]);
+    }
+
+    /// POPM is keyed by email, so a file can hold several and a reader
+    /// takes the first. A rating the user replaced has to stop being
+    /// the one another player shows.
+    #[test]
+    fn writing_a_rating_takes_every_popm_the_file_held() {
+        use lofty::id3::v2::{Frame, Id3v2Tag, PopularimeterFrame};
+
+        let mut tag = Id3v2Tag::default();
+        tag.insert(Frame::Popularimeter(PopularimeterFrame::new(
+            "someone@else",
+            255,
+            12,
+        )));
+        tag.insert(Frame::Popularimeter(PopularimeterFrame::new("", 51, 0)));
+
+        apply_rating_id3v2(&mut tag, Some(153));
+        assert_eq!(
+            tag.iter()
+                .filter(|f| matches!(f, Frame::Popularimeter(_)))
+                .count(),
+            1
+        );
+
+        apply_rating_id3v2(&mut tag, None);
+        assert_eq!(
+            tag.iter()
+                .filter(|f| matches!(f, Frame::Popularimeter(_)))
+                .count(),
+            0,
+            "clearing the stars clears the frame"
+        );
+    }
+
+    /// The same round trip on the container that loses what it is not
+    /// asked about: `From<VorbisComments> for Tag` throws the remainder
+    /// away, which is the whole reason `patch_file` merges it back.
+    #[test]
+    fn lyrics_survive_it_on_a_vorbis_tag_and_take_nothing_else_with_them() {
+        use lofty::ogg::tag::VorbisComments;
+        use lofty::prelude::{ItemKey, SplitTag};
+        use lofty::tag::MergeTag;
+
+        let mut comments = VorbisComments::default();
+        // A comment lofty does not model, of exactly the kind a save
+        // used to drop.
+        comments.push("REPLAYGAIN_TRACK_GAIN".to_string(), "-6.5 dB".to_string());
+
+        let (remainder, mut generic) = comments.split_tag();
+        apply_patch(
+            &mut generic,
+            &TagPatch::Lyrics(LyricsSlot::Unsynchronised("the words")),
+        );
+        let concrete: VorbisComments = remainder.merge_tag(generic);
+
+        assert_eq!(
+            concrete.get("REPLAYGAIN_TRACK_GAIN"),
+            Some("-6.5 dB"),
+            "the remainder came back"
+        );
+        let (_, as_the_reader_sees_it) = concrete.split_tag();
+        assert_eq!(
+            as_the_reader_sees_it.get_string(ItemKey::UnsyncLyrics),
+            Some("the words")
+        );
+    }
+
+    /// Saving lyrics twice leaves one set, not two. USLT is keyed by
+    /// language and description, and a second frame under the same pair
+    /// is what a reader shows instead of the edit.
+    #[test]
+    fn lyrics_replace_what_the_tag_already_held() {
+        let mut tag = id3::Tag::new();
+
+        apply_patch_id3(
+            &mut tag,
+            &TagPatch::Lyrics(LyricsSlot::Unsynchronised("first take")),
+        );
+        apply_patch_id3(
+            &mut tag,
+            &TagPatch::Lyrics(LyricsSlot::Unsynchronised("second take")),
+        );
+
+        let all: Vec<_> = tag.lyrics().collect();
+        assert_eq!(all.len(), 1);
+        assert_eq!(all[0].text, "second take");
+    }
+
+    #[test]
+    fn clearing_lyrics_empties_the_frame_rather_than_blanking_it() {
+        let mut tag = id3::Tag::new();
+        apply_patch_id3(
+            &mut tag,
+            &TagPatch::Lyrics(LyricsSlot::Unsynchronised("words")),
+        );
+
+        apply_patch_id3(&mut tag, &TagPatch::Lyrics(LyricsSlot::Cleared));
+
+        assert_eq!(tag.lyrics().count(), 0);
+    }
+
+    /// The generic applier answers the same way its `id3` sibling does,
+    /// on the container where the two could have disagreed: a write
+    /// that ID3v2 silently drops must not be preceded by a clear that
+    /// it does not.
+    #[test]
+    fn an_arbitrary_slot_leaves_a_generic_id3v2_tag_alone_too() {
+        use lofty::tag::{ItemKey, Tag, TagType};
+
+        let mut id3 = Tag::new(TagType::Id3v2);
+        apply_patch(
+            &mut id3,
+            &TagPatch::Lyrics(LyricsSlot::Unsynchronised("words already there")),
+        );
+
+        apply_patch(&mut id3, &TagPatch::Lyrics(LyricsSlot::Arbitrary("<tt/>")));
+        assert_eq!(
+            id3.get_string(ItemKey::UnsyncLyrics),
+            Some("words already there")
+        );
+
+        // A container that does have the slot takes the write.
+        let mut vorbis = Tag::new(TagType::VorbisComments);
+        apply_patch(
+            &mut vorbis,
+            &TagPatch::Lyrics(LyricsSlot::Arbitrary("<tt/>")),
+        );
+        assert_eq!(vorbis.get_string(ItemKey::Lyrics), Some("<tt/>"));
+    }
+
+    /// The arm that cannot be reached today, asserted anyway: ID3v2 has
+    /// no arbitrary-string lyrics slot, and the day the guard upstream
+    /// moves, the wrong answer here is to clear a file's lyrics to make
+    /// room for a write that never happens.
+    #[test]
+    fn an_arbitrary_slot_leaves_an_id3_tag_exactly_as_it_was() {
+        let mut tag = id3::Tag::new();
+        apply_patch_id3(
+            &mut tag,
+            &TagPatch::Lyrics(LyricsSlot::Unsynchronised("words already there")),
+        );
+
+        apply_patch_id3(
+            &mut tag,
+            &TagPatch::Lyrics(LyricsSlot::Arbitrary("<tt>…</tt>")),
+        );
+
+        let all: Vec<_> = tag.lyrics().collect();
+        assert_eq!(all.len(), 1);
+        assert_eq!(all[0].text, "words already there");
     }
 }

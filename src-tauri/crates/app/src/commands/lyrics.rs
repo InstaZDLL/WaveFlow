@@ -2770,6 +2770,69 @@ fn hash_file_blake3(path: &str) -> AppResult<String> {
     Ok(blake3::hash(&bytes).to_hex().to_string())
 }
 
+/// The tag writer a file's container leads to, for the two questions
+/// this module asks about one.
+///
+/// DSD is the reason it exists. A `.dsf` keeps a plain ID3v2 tag at an
+/// offset its header declares, which lofty cannot open at all — so
+/// asking lofty what the file is answered "unrecognised container" for a
+/// file we can in fact write, and choosing "save to tag" on a DSD track
+/// failed with a message about the format rather than about the
+/// situation (#644).
+#[derive(Clone, Copy)]
+enum LyricsContainer {
+    /// Written through `edit::with_dsf_tag`, on the `id3` crate.
+    Dsf,
+    /// Anything lofty recognises, named by its file type.
+    Lofty(FileType),
+}
+
+impl LyricsContainer {
+    /// `None` when the container could not be identified, which is not
+    /// an error here: the authority on "can this file be tagged at all"
+    /// is `patch_file`, and it answers in words the dialog can show.
+    /// This only decides where lyrics may go, and a container we could
+    /// not name is not one to put XML into.
+    fn of(path: &Path) -> Option<Self> {
+        if path
+            .extension()
+            .and_then(|e| e.to_str())
+            .is_some_and(|e| e.eq_ignore_ascii_case("dsf"))
+        {
+            return Some(Self::Dsf);
+        }
+        lofty::probe::Probe::open(path)
+            .ok()?
+            .guess_file_type()
+            .ok()?
+            .file_type()
+            .map(Self::Lofty)
+    }
+
+    /// Whether the tag has a key that accepts an arbitrary string, which
+    /// is what TTML needs.
+    ///
+    /// An allow list on purpose. lofty states it outright —
+    /// "`ItemKey::Lyrics` is **not** supported in ID3v2, you must use
+    /// `ItemKey::UnsyncLyrics`" — so on an ID3v2 container the item is
+    /// dropped on the way to the file: the save reported success and
+    /// wrote nothing. A deny list that forgot a container would go on
+    /// doing that silently; forgetting one here costs an honest
+    /// "stays in-app only" instead.
+    fn carries_arbitrary_lyrics(self) -> bool {
+        matches!(
+            self,
+            Self::Lofty(
+                FileType::Flac
+                    | FileType::Vorbis
+                    | FileType::Opus
+                    | FileType::Speex
+                    | FileType::Mp4
+            )
+        )
+    }
+}
+
 /// Write the lyrics back into the audio file's tag.
 ///
 /// - Plain / LRC / Enhanced LRC → `ItemKey::UnsyncLyrics` (USLT for
@@ -2777,11 +2840,19 @@ fn hash_file_blake3(path: &str) -> AppResult<String> {
 ///   compatibility. LRC / Enhanced LRC additionally re-stamp the canonical
 ///   `SYNCEDLYRICS` custom tag (issue #378) so a synced edit round-trips
 ///   into the tag the reader prefers instead of being silently downgraded.
-/// - TTML → `ItemKey::Lyrics` for tag systems that accept arbitrary
-///   strings (Vorbis comments, MP4 `©lyr`). ID3v2 has no clean mapping
-///   for XML lyrics in lofty, so for MP3 we skip the file write and
-///   return `Ok(false)` — the DB cache still gets updated and the UI
-///   surfaces a toast so the user knows their TTML stays in-app only.
+/// - TTML → `ItemKey::Lyrics`, which only the containers in
+///   [`LyricsContainer::carries_arbitrary_lyrics`] have. Everywhere else
+///   the file write is skipped and `Ok(false)` returned — the DB cache
+///   still gets updated and the UI surfaces a toast, so the user knows
+///   their TTML stays in-app only.
+///
+/// The write itself goes through [`crate::commands::edit::patch_file`],
+/// the writer the properties dialog uses, rather than through
+/// `lofty::read_from_path` + `save_to_path` as it did. That is what
+/// gives a `.dsf` its lyrics, and it also stops a save from dropping
+/// every non-standard comment on a Vorbis-family file — the generic tag
+/// throws that remainder away, which is the whole reason `patch_file`
+/// exists (#644).
 ///
 /// Returns `Ok(true)` when the tag was rewritten on disk, `Ok(false)`
 /// when the write was intentionally skipped (TTML on a format that
@@ -2791,63 +2862,64 @@ fn write_lyrics_to_file(
     content: &str,
     format: &LyricsFormat,
 ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-    use lofty::file::{AudioFile, FileType, TaggedFileExt};
-    use lofty::tag::Tag;
+    use crate::commands::edit::{patch_file, LyricsSlot, TagPatch};
 
-    let mut tagged = lofty::read_from_path(path)?;
-    let file_type = tagged.file_type();
+    let container = LyricsContainer::of(path);
+    let empty = content.trim().is_empty();
+    let is_ttml = matches!(format, LyricsFormat::Ttml);
 
-    // Bail before touching tags when TTML hits an ID3v2-only container.
-    if matches!(format, LyricsFormat::Ttml) && file_type == FileType::Mpeg {
+    // Decided before anything is written: a TTML save that cannot land
+    // must leave the file exactly as it was, including whatever lyrics
+    // it already carries.
+    //
+    // **A clear is not such a save.** The format is the tab the user
+    // happens to be on, and emptying the editor there still means
+    // "remove the lyrics from this file" — refusing it left an MP3
+    // holding the words a previous plain save wrote, with the database
+    // saying there were none.
+    if is_ttml && !empty && !container.is_some_and(LyricsContainer::carries_arbitrary_lyrics) {
         return Ok(false);
     }
-
-    if tagged.primary_tag().is_none() && tagged.first_tag().is_none() {
-        let preferred = tagged.primary_tag_type();
-        tagged.insert_tag(Tag::new(preferred));
-    }
-    let tag = if tagged.primary_tag().is_some() {
-        tagged.primary_tag_mut().expect("checked")
-    } else {
-        tagged.first_tag_mut().ok_or("no tag")?
-    };
-
-    // Always purge both keys before writing so that switching format
-    // (e.g. plain LRC → TTML) doesn't leave a stale entry under the
-    // other key. `read_embedded_lyrics` checks UnsyncLyrics first and
-    // Lyrics second — without this clear the old content would shadow
-    // the new format on the next fetch.
-    tag.remove_key(ItemKey::UnsyncLyrics);
-    tag.remove_key(ItemKey::Lyrics);
-
-    if !content.trim().is_empty() {
-        // TTML on a container that supports `ItemKey::Lyrics` (Vorbis /
-        // MP4 / FLAC). Other formats stay in USLT, which is what every
-        // other player expects.
-        let key = if matches!(format, LyricsFormat::Ttml) {
-            ItemKey::Lyrics
+    patch_file(
+        path,
+        &TagPatch::Lyrics(if empty {
+            LyricsSlot::Cleared
+        } else if is_ttml {
+            LyricsSlot::Arbitrary(content)
         } else {
-            ItemKey::UnsyncLyrics
-        };
-        tag.insert_text(key, content.to_string());
-    }
+            LyricsSlot::Unsynchronised(content)
+        }),
+    )?;
 
-    tagged.save_to_path(path, lofty::config::WriteOptions::default())?;
-
-    // Round-trip synced edits into the canonical `SYNCEDLYRICS` tag that
-    // `read_embedded_lyrics` now prefers (issue #378). The generic
-    // `save_to_path` above can't carry it — lofty drops unmapped frames on
-    // read, so an original `SYNCEDLYRICS` (e.g. an Antra rip) is wiped on
-    // every edit — so we re-stamp it via the concrete tag. Only for synced
-    // formats: a plain/TTML save intentionally leaves none behind. Best-
-    // effort — the USLT write already landed, so a failure here still
-    // leaves the lyrics readable, just not under the synced key.
-    if matches!(format, LyricsFormat::Lrc | LyricsFormat::EnhancedLrc) && !content.trim().is_empty()
-    {
-        if let Err(err) = write_synced_lyrics_tag(path, file_type, content) {
+    // The canonical `SYNCEDLYRICS` custom tag, which
+    // `read_embedded_lyrics` prefers over every standard key (#378). It
+    // cannot ride along with the write above — lofty's generic tag has
+    // no key for a custom one — so it takes a second pass over the
+    // concrete tag.
+    //
+    // **Every save, not only the synced ones.** The pass used to run
+    // for a non-empty LRC and nothing else, which left the old synced
+    // tag in place when the user replaced those lyrics with plain ones,
+    // saved TTML, or cleared them outright — and the reader prefers it,
+    // so the edit appeared not to take and clearing brought the lyrics
+    // back. What the file says under the preferred key has to follow
+    // what was just written, including to nothing.
+    //
+    // Best-effort: the standard key already landed, so a failure here
+    // leaves the lyrics readable. It is logged loudly, because the
+    // shape it fails into is exactly the shadowing above.
+    let synced = match format {
+        LyricsFormat::Lrc | LyricsFormat::EnhancedLrc if !empty => Some(content),
+        _ => None,
+    };
+    // Always `Some` this far in — `patch_file` refused anything whose
+    // container it could not name — so this is the shape of the type
+    // rather than a case being handled.
+    if let Some(container) = container {
+        if let Err(err) = stamp_synced_lyrics(path, container, synced) {
             tracing::warn!(
                 ?err,
-                "failed to write SYNCEDLYRICS tag; lyrics still saved under the standard key"
+                "failed to update the SYNCEDLYRICS tag; the standard key is correct but a stale synced tag may still shadow it"
             );
         }
     }
@@ -2855,65 +2927,171 @@ fn write_lyrics_to_file(
     Ok(true)
 }
 
-/// Stamp `content` into the canonical `SYNCEDLYRICS` custom tag (TXXX for
-/// MP3, Vorbis comment for FLAC/Ogg/Opus/Speex), replacing any existing
-/// value. Run after the generic USLT write, which leaves the concrete tag
-/// in place, so the mutable accessor is present. `insert_user_text` /
-/// `VorbisComments::insert` both replace by key, so no explicit remove is
-/// needed. MP4 and other containers have no comparable key — skipped.
-fn write_synced_lyrics_tag(
+/// Put the `SYNCEDLYRICS` custom tag in step with what was just
+/// written: `Some` stamps the canonical key, `None` takes it away.
+///
+/// A second pass over the **concrete** tag, because lofty's generic one
+/// has no key for a custom frame — TXXX for ID3v2 (MP3 and DSF), a
+/// Vorbis comment for FLAC / Ogg / Opus / Speex. MP4 and the rest have
+/// no comparable key and are skipped.
+///
+/// **Every alias goes, not just the canonical key.** The reader accepts
+/// four spellings of it and takes the first it finds, so removing one
+/// would leave the others shadowing the lyrics the user just saved.
+/// Writing goes to the canonical one, which the reader prefers.
+///
+/// The file is rewritten through a copy that replaces the original in
+/// one rename, like every other tag write here (#598): lofty's own
+/// rewrite truncates the file it is rewriting, so an interruption — a
+/// crash, a lost USB drive, an antivirus taking the handle — between
+/// the truncate and the write left the audio gone, not just the tag.
+/// This path spent years calling `save_to_path` directly.
+///
+/// Nothing is written when nothing changed, and nothing is **copied**
+/// either — the rewrite starts by copying the file, so the question is
+/// asked read-only first. A plain-lyrics save on a file that never
+/// carried a synced tag is the common case, and it should not cost a
+/// copy of the record to find that out.
+fn stamp_synced_lyrics(
     path: &Path,
-    file_type: FileType,
-    content: &str,
+    container: LyricsContainer,
+    content: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use lofty::config::{ParseOptions, WriteOptions};
     use lofty::file::AudioFile;
 
     let key = SYNCED_LYRICS_KEYS[0]; // canonical "SYNCEDLYRICS"
 
+    let file_type = match container {
+        // DSF carries a plain ID3v2 tag; it is only kept somewhere else
+        // in the file, and `with_dsf_tag` already writes it the safe
+        // way — through the header's own pointer, without moving one
+        // audio byte.
+        LyricsContainer::Dsf => {
+            return crate::commands::edit::with_dsf_tag(path, |tag, _version| {
+                use id3::TagLike;
+                // `remove_extended_text` says nothing about what it
+                // removed, so the presence is read first — this is what
+                // decides whether the file is rewritten at all.
+                let mut changed = false;
+                for alias in SYNCED_LYRICS_KEYS {
+                    if tag.extended_texts().any(|txxx| txxx.description == *alias) {
+                        tag.remove_extended_text(Some(alias), None);
+                        changed = true;
+                    }
+                }
+                if let Some(content) = content {
+                    tag.add_frame(id3::frame::ExtendedText {
+                        description: key.to_string(),
+                        value: content.to_string(),
+                    });
+                    changed = true;
+                }
+                changed
+            });
+        }
+        LyricsContainer::Lofty(file_type) => file_type,
+    };
+
+    /// Remove every spelling of the key, then write the canonical one if
+    /// there is something to write. Answers whether the tag changed.
+    macro_rules! restamp_id3v2 {
+        ($tag:expr) => {{
+            let mut changed = false;
+            for alias in SYNCED_LYRICS_KEYS {
+                changed |= $tag.remove_user_text(alias).is_some();
+            }
+            if let Some(content) = content {
+                $tag.insert_user_text(key.to_string(), content.to_string());
+                changed = true;
+            }
+            changed
+        }};
+    }
+
+    macro_rules! restamp_vorbis {
+        ($comments:expr) => {{
+            let mut changed = false;
+            for alias in SYNCED_LYRICS_KEYS {
+                changed |= $comments.remove(alias).count() > 0;
+            }
+            if let Some(content) = content {
+                $comments.insert(key.to_string(), content.to_string());
+                changed = true;
+            }
+            changed
+        }};
+    }
+
+    /// Read the concrete file, restamp its tag, save it back — through
+    /// the temporary the rename replaces the original with.
+    ///
+    /// Asked read-only first, and that is the point of the two passes:
+    /// `rewrite_via_temp` copies the whole file before the body runs,
+    /// so deciding inside it would copy a 40 MB record to find out
+    /// there was nothing to change. Re-parsing a tag is the cheap half
+    /// of that trade by a wide margin.
+    macro_rules! rewrite {
+        ($ty:ty, |$f:ident| $restamp:block) => {{
+            let needed = {
+                let mut handle = std::fs::File::open(path)?;
+                let mut $f = <$ty>::read_from(&mut handle, ParseOptions::new())?;
+                let changed: bool = $restamp;
+                changed
+            };
+            if needed {
+                waveflow_core::tagio::rewrite_via_temp(
+                    path,
+                    |handle| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                        let mut $f = <$ty>::read_from(handle, ParseOptions::new())?;
+                        let changed: bool = $restamp;
+                        if changed {
+                            $f.save_to(handle, WriteOptions::default())?;
+                        }
+                        Ok(())
+                    },
+                )?;
+            }
+        }};
+    }
+
     match file_type {
-        FileType::Mpeg => {
-            use lofty::mpeg::MpegFile;
-            let mut file = std::fs::File::open(path)?;
-            let mut mpeg = MpegFile::read_from(&mut file, ParseOptions::new())?;
-            if let Some(tag) = mpeg.id3v2_mut() {
-                tag.insert_user_text(key.to_string(), content.to_string());
-                mpeg.save_to_path(path, WriteOptions::default())?;
+        FileType::Mpeg => rewrite!(lofty::mpeg::MpegFile, |mpeg| {
+            match mpeg.id3v2_mut() {
+                Some(tag) => restamp_id3v2!(tag),
+                // No tag at all: nothing to remove, and a file with no
+                // lyrics under any key needs no synced one either — the
+                // standard write above has already refused or created
+                // whatever the file should hold.
+                None => false,
             }
-        }
-        FileType::Flac => {
-            use lofty::flac::FlacFile;
-            let mut file = std::fs::File::open(path)?;
-            let mut flac = FlacFile::read_from(&mut file, ParseOptions::new())?;
-            if let Some(vc) = flac.vorbis_comments_mut() {
-                vc.insert(key.to_string(), content.to_string());
-                flac.save_to_path(path, WriteOptions::default())?;
+        }),
+        // The same ID3v2 tag as MP3, and `patch_file` writes the
+        // standard lyrics key there too — so this pass has the same
+        // stale stamp to clear. (Our own reader looks for the custom key
+        // in MP3 and the Vorbis families only, so what it removes here
+        // is for the other players that do read it.)
+        FileType::Aac => rewrite!(lofty::aac::AacFile, |aac| {
+            match aac.id3v2_mut() {
+                Some(tag) => restamp_id3v2!(tag),
+                None => false,
             }
-        }
-        FileType::Vorbis => {
-            use lofty::ogg::VorbisFile;
-            let mut file = std::fs::File::open(path)?;
-            let mut vf = VorbisFile::read_from(&mut file, ParseOptions::new())?;
-            vf.vorbis_comments_mut()
-                .insert(key.to_string(), content.to_string());
-            vf.save_to_path(path, WriteOptions::default())?;
-        }
-        FileType::Opus => {
-            use lofty::ogg::OpusFile;
-            let mut file = std::fs::File::open(path)?;
-            let mut of = OpusFile::read_from(&mut file, ParseOptions::new())?;
-            of.vorbis_comments_mut()
-                .insert(key.to_string(), content.to_string());
-            of.save_to_path(path, WriteOptions::default())?;
-        }
-        FileType::Speex => {
-            use lofty::ogg::SpeexFile;
-            let mut file = std::fs::File::open(path)?;
-            let mut sf = SpeexFile::read_from(&mut file, ParseOptions::new())?;
-            sf.vorbis_comments_mut()
-                .insert(key.to_string(), content.to_string());
-            sf.save_to_path(path, WriteOptions::default())?;
-        }
+        }),
+        FileType::Flac => rewrite!(lofty::flac::FlacFile, |flac| {
+            match flac.vorbis_comments_mut() {
+                Some(comments) => restamp_vorbis!(comments),
+                None => false,
+            }
+        }),
+        FileType::Vorbis => rewrite!(lofty::ogg::VorbisFile, |vorbis| {
+            restamp_vorbis!(vorbis.vorbis_comments_mut())
+        }),
+        FileType::Opus => rewrite!(lofty::ogg::OpusFile, |opus| {
+            restamp_vorbis!(opus.vorbis_comments_mut())
+        }),
+        FileType::Speex => rewrite!(lofty::ogg::SpeexFile, |speex| {
+            restamp_vorbis!(speex.vorbis_comments_mut())
+        }),
         _ => {}
     }
     Ok(())
