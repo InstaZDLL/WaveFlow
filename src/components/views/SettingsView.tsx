@@ -565,9 +565,14 @@ export function SettingsView({ onNavigate,
   // value changes once per request, so a tab the user picks afterwards
   // is not fought over.
   useEffect(() => {
-    if (!initialCategory) return;
+    // Falling back to the stored category rather than returning early:
+    // two Settings entries can sit next to each other in history — the
+    // banner pushes one while Settings is already open — and going back
+    // to the ordinary one has to leave Diagnostics rather than stay
+    // there. On a first mount this repeats what the initializer already
+    // chose, which costs nothing.
     /* eslint-disable-next-line react-hooks/set-state-in-effect */
-    setActiveCategory(initialCategory);
+    setActiveCategory(initialCategory ?? readStoredCategory());
   }, [initialCategory]);
   const handleCategoryChange = useCallback((next: SettingsCategory) => {
     setActiveCategory(next);

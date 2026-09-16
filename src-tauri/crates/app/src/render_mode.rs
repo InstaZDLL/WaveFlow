@@ -167,8 +167,8 @@ struct Active {
     path: PathBuf,
     decision: RenderDecision,
     /// What [`decide`] would have logged had there been anywhere to log
-    /// it. Drained by [`log_decision`].
-    note: Option<String>,
+    /// it. Read by [`log_decision`].
+    notes: Vec<String>,
 }
 
 static ACTIVE: std::sync::OnceLock<Active> = std::sync::OnceLock::new();
@@ -253,20 +253,26 @@ fn write_state_best_effort(path: &Path, state: &RenderState) {
 }
 
 /// Read `WAVEFLOW_RENDERER`. Anything but the three words it accepts is
-/// reported and ignored — a typo should not silently mean something.
-fn override_from_env() -> Option<RenderMode> {
-    let raw = std::env::var(OVERRIDE_VAR).ok()?;
+/// reported and ignored — a typo should not silently mean something,
+/// and the person who made it is the one person guaranteed to be
+/// reading the log.
+///
+/// The complaint is returned for the same reason [`read_state`]'s is:
+/// this runs before the logging subscriber exists.
+fn override_from_env() -> (Option<RenderMode>, Option<String>) {
+    let Ok(raw) = std::env::var(OVERRIDE_VAR) else {
+        return (None, None);
+    };
     match raw.trim().to_ascii_lowercase().as_str() {
-        "gpu" => Some(RenderMode::Gpu),
-        "software" => Some(RenderMode::Software),
-        "auto" | "" => None,
-        other => {
-            tracing::warn!(
-                value = other,
-                "{OVERRIDE_VAR} is not one of gpu / software / auto; ignoring it"
-            );
-            None
-        }
+        "gpu" => (Some(RenderMode::Gpu), None),
+        "software" => (Some(RenderMode::Software), None),
+        "auto" | "" => (None, None),
+        other => (
+            None,
+            Some(format!(
+                "{OVERRIDE_VAR} is {other:?}, not one of gpu / software / auto; ignoring it"
+            )),
+        ),
     }
 }
 
@@ -387,8 +393,10 @@ fn apply(mode: RenderMode) {
 /// commands read it back through [`current`].
 pub fn decide(root: PathBuf) -> RenderDecision {
     let path = state_path(&root);
-    let (previous, note) = read_state(&path);
-    let decision = decide_from(&previous, override_from_env(), SOFTWARE_AVAILABLE);
+    let (previous, state_note) = read_state(&path);
+    let (forced, env_note) = override_from_env();
+    let decision = decide_from(&previous, forced, SOFTWARE_AVAILABLE);
+    let notes = [env_note, state_note].into_iter().flatten().collect();
 
     // What this launch is attempting, written before the window can
     // fail to paint. The remembered mode is carried through: a launch
@@ -414,7 +422,7 @@ pub fn decide(root: PathBuf) -> RenderDecision {
     let _ = ACTIVE.set(Active {
         path,
         decision,
-        note,
+        notes,
     });
     decision
 }
@@ -431,8 +439,8 @@ pub fn log_decision() {
     let Some(active) = ACTIVE.get() else {
         return;
     };
-    if let Some(note) = &active.note {
-        tracing::warn!(note, "renderer state");
+    for note in &active.notes {
+        tracing::warn!(note, "renderer");
     }
     tracing::info!(
         mode = active.decision.mode.as_str(),
