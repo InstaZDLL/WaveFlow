@@ -152,6 +152,10 @@ export function TagFetchModal({
   }, [isOpen, albumId]);
 
   const pickSource = async (source: AlbumSource) => {
+    // Nothing is picked while this album is being written. The button
+    // that leads here is disabled too; this is the guard that holds if
+    // a keyboard or a stale render gets past it.
+    if (isApplying) return;
     const token = ++fetchTokenRef.current;
     setIsLoading(true);
     setError(null);
@@ -176,24 +180,31 @@ export function TagFetchModal({
     }));
   };
 
+  // Both toggles read what they are inverting from `prev`, inside the
+  // updater, rather than from the copy this render closed over: two
+  // clicks landing before a re-render would otherwise both decide
+  // against the same stale snapshot and the second would repeat the
+  // first instead of undoing it.
   const toggleTrack = (proposal: TrackProposal) => {
-    const fields = changedFields(proposal);
-    const allOn = fields.every((f) => accepted[proposal.track_id]?.[f]);
-    setAccepted((prev) => ({
-      ...prev,
-      [proposal.track_id]: Object.fromEntries(
-        fields.map((f) => [f, !allOn]),
-      ) as Partial<Record<TagField, boolean>>,
-    }));
+    setAccepted((prev) => {
+      const fields = changedFields(proposal);
+      const allOn = trackFullyAccepted(proposal, prev);
+      return {
+        ...prev,
+        [proposal.track_id]: Object.fromEntries(
+          fields.map((f) => [f, !allOn]),
+        ) as Partial<Record<TagField, boolean>>,
+      };
+    });
   };
 
   const toggleColumn = (field: TagField) => {
     if (!proposals) return;
-    const rows = proposals.tracks.filter((p) =>
-      changedFields(p).includes(field),
-    );
-    const allOn = rows.every((p) => accepted[p.track_id]?.[field]);
     setAccepted((prev) => {
+      const rows = proposals.tracks.filter((p) =>
+        changedFields(p).includes(field),
+      );
+      const allOn = columnFullyAccepted(proposals, prev, field);
       const next = { ...prev };
       for (const p of rows) {
         next[p.track_id] = { ...next[p.track_id], [field]: !allOn };
@@ -279,6 +290,11 @@ export function TagFetchModal({
             {proposals && !applied && (
               <button
                 type="button"
+                // Locked with the rest while a write runs: going back
+                // swaps the review screen for the source list under a
+                // loop that is still writing this album, and the
+                // summary would land on whatever came after.
+                disabled={isApplying}
                 onClick={() => {
                   setProposals(null);
                   setAccepted({});
@@ -287,7 +303,7 @@ export function TagFetchModal({
                   // failure about a choice the user has just undone.
                   setError(null);
                 }}
-                className="p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                className="p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
                 aria-label={t("tagFetch.back")}
               >
                 <ChevronLeft size={18} />
@@ -473,16 +489,28 @@ function ReviewList({
         <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {t("tagFetch.acceptColumn")}
         </span>
-        {changedAnywhere.map((field) => (
-          <button
-            key={field}
-            type="button"
-            onClick={() => onToggleColumn(field)}
-            className="px-2.5 py-1 text-xs rounded-md bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-          >
-            {t(`tagFetch.fields.${field}`)}
-          </button>
-        ))}
+        {changedAnywhere.map((field) => {
+          // A toggle with no state tells the reader nothing about what
+          // the next click will do — they have to infer it from the
+          // checkboxes below. `aria-pressed` says it outright, and the
+          // filled style says it to everyone else.
+          const allOn = columnFullyAccepted(proposals, accepted, field);
+          return (
+            <button
+              key={field}
+              type="button"
+              onClick={() => onToggleColumn(field)}
+              aria-pressed={allOn}
+              className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                allOn
+                  ? "bg-sky-500/15 text-sky-700 dark:text-sky-300 hover:bg-sky-500/25"
+                  : "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+              }`}
+            >
+              {t(`tagFetch.fields.${field}`)}
+            </button>
+          );
+        })}
       </div>
 
       <ul className="space-y-2">
@@ -512,7 +540,12 @@ function ReviewList({
                   <button
                     type="button"
                     onClick={() => onToggleTrack(proposal)}
-                    className="text-xs px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                    aria-pressed={trackFullyAccepted(proposal, accepted)}
+                    className={`text-xs px-2 py-1 rounded-md transition-colors ${
+                      trackFullyAccepted(proposal, accepted)
+                        ? "bg-sky-500/15 text-sky-700 dark:text-sky-300 hover:bg-sky-500/25"
+                        : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    }`}
                   >
                     {t("tagFetch.acceptTrack")}
                   </button>
@@ -604,6 +637,31 @@ function AppliedSummary({
 // =============================================================================
 // Field helpers
 // =============================================================================
+
+/**
+ * Is every field this track would change already accepted?
+ *
+ * Takes the map it should judge rather than reading one from a
+ * closure, so the updaters can ask it about `prev` and the render can
+ * ask it about the current state — one answer, two callers, no way for
+ * them to disagree.
+ */
+function trackFullyAccepted(proposal: TrackProposal, accepted: Accepted) {
+  const fields = changedFields(proposal);
+  return (
+    fields.length > 0 && fields.every((f) => accepted[proposal.track_id]?.[f])
+  );
+}
+
+/** The same question about one field, across every track that changes it. */
+function columnFullyAccepted(
+  proposals: AlbumProposals,
+  accepted: Accepted,
+  field: TagField,
+) {
+  const rows = proposals.tracks.filter((p) => changedFields(p).includes(field));
+  return rows.length > 0 && rows.every((p) => accepted[p.track_id]?.[field]);
+}
 
 /** The fields where the catalogue says something different. */
 function changedFields(proposal: TrackProposal): TagField[] {
