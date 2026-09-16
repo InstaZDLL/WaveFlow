@@ -106,7 +106,20 @@ pub enum RenderReason {
     /// Software did not paint either, so the GPU was not the problem
     /// and this is back on the default.
     SoftwareDidNotHelp,
+    /// The fallback was called for and this platform has none, so
+    /// nothing changed. Said rather than hidden: a launch that keeps
+    /// coming up blank is worth a reason, even when the reason is that
+    /// there is nothing here to try.
+    SoftwareUnavailable,
 }
+
+/// Whether [`apply`] has anything to set on this platform.
+///
+/// macOS is the `false`: WKWebView has no environment switch for
+/// compositing, so answering `Software` there would be a mode nothing
+/// implements — a banner announcing a downgrade that never happened,
+/// and a stored state that never lets the GPU be tried again.
+const SOFTWARE_AVAILABLE: bool = !cfg!(target_os = "macos");
 
 /// What was decided, and what the interface is told about it.
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -141,6 +154,10 @@ struct Active {
 }
 
 static ACTIVE: std::sync::OnceLock<Active> = std::sync::OnceLock::new();
+
+/// Whether this instance has reported a paint, for the one caller that
+/// has to know without writing anything itself.
+static PAINTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 fn state_path(root: &Path) -> PathBuf {
     root.join("renderer.json")
@@ -219,8 +236,29 @@ fn override_from_env() -> Option<RenderMode> {
 /// Work out what the previous launch implies, with no side effects, so
 /// the table above is testable without a filesystem or a process
 /// environment.
-fn decide_from(state: &RenderState, forced: Option<RenderMode>) -> RenderDecision {
+///
+/// `software_available` is a parameter rather than a `cfg!` read inside
+/// the body for the same reason: the platform that has no software path
+/// is the one with no CI job, and a branch only reachable there is a
+/// branch nobody runs.
+fn decide_from(
+    state: &RenderState,
+    forced: Option<RenderMode>,
+    software_available: bool,
+) -> RenderDecision {
+    // Asking for something this build cannot do is answered, not
+    // silently granted: the caller would otherwise be told it is in
+    // software rendering while nothing had been turned off.
+    let unavailable = RenderDecision {
+        mode: RenderMode::Gpu,
+        reason: RenderReason::SoftwareUnavailable,
+        can_retry_gpu: false,
+    };
+
     if let Some(mode) = forced {
+        if mode == RenderMode::Software && !software_available {
+            return unavailable;
+        }
         return RenderDecision {
             mode,
             reason: RenderReason::Forced,
@@ -230,6 +268,7 @@ fn decide_from(state: &RenderState, forced: Option<RenderMode>) -> RenderDecisio
     match state.armed {
         // The previous launch never painted. What it was attempting
         // decides what this one does.
+        Some(RenderMode::Gpu) if !software_available => unavailable,
         Some(RenderMode::Gpu) => RenderDecision {
             mode: RenderMode::Software,
             reason: RenderReason::PreviousLaunchNeverPainted,
@@ -241,6 +280,10 @@ fn decide_from(state: &RenderState, forced: Option<RenderMode>) -> RenderDecisio
             can_retry_gpu: false,
         },
         None => match state.remembered {
+            // A state file can outlive the build that wrote it — copied
+            // between machines, or carried across an update that
+            // dropped the platform's software path.
+            Some(RenderMode::Software) if !software_available => unavailable,
             Some(RenderMode::Software) => RenderDecision {
                 mode: RenderMode::Software,
                 reason: RenderReason::Remembered,
@@ -309,7 +352,7 @@ fn apply(mode: RenderMode) {
 pub fn decide(root: PathBuf) -> RenderDecision {
     let path = state_path(&root);
     let previous = read_state(&path);
-    let decision = decide_from(&previous, override_from_env());
+    let decision = decide_from(&previous, override_from_env(), SOFTWARE_AVAILABLE);
 
     // What this launch is attempting, written before the window can
     // fail to paint. The remembered mode is carried through: a launch
@@ -354,23 +397,68 @@ pub fn current() -> Option<RenderDecision> {
 /// here. Idempotent: the signal has two transports and either may
 /// arrive first, or both.
 pub fn mark_painted() {
+    PAINTED.store(true, std::sync::atomic::Ordering::Release);
     let Some(active) = ACTIVE.get() else {
         return;
     };
-    let remembered = match active.decision.mode {
+    write_state(
+        &active.path,
+        &RenderState {
+            remembered: remembered_after_paint(active),
+            armed: None,
+        },
+    );
+}
+
+/// What the file should remember, once this launch has painted.
+///
+/// A mode the **environment** forced says nothing about what the app
+/// would have chosen, so it leaves what the file already knew alone.
+/// Deriving from the mode instead made `WAVEFLOW_RENDERER=software`
+/// permanent: one launch under it wrote the fallback into the state,
+/// and removing the variable changed nothing afterwards. The arming
+/// side of `decide` already refused to do that; this side did not.
+fn remembered_after_paint(active: &Active) -> Option<RenderMode> {
+    if active.decision.reason == RenderReason::Forced {
+        return read_state(&active.path).remembered;
+    }
+    match active.decision.mode {
         // Worth remembering: the next launch should not have to fail
         // once more to learn what this one just proved.
         RenderMode::Software => Some(RenderMode::Software),
         // The GPU path works, so the file has nothing left to say.
         RenderMode::Gpu => None,
+    }
+}
+
+/// Put back what a **duplicate launch** overwrote (#595).
+///
+/// The single-instance plugin turns a second launch away from inside
+/// `Builder`, which is after this module has already armed the marker
+/// in that process. So opening the app twice left a marker armed by a
+/// process that was never going to paint, and the launch after it fell
+/// back to software for no reason at all.
+///
+/// Called from the plugin's callback, which runs **in the instance that
+/// is staying**, and writes what that instance knows to be true: it has
+/// painted, or it is still the one attempting its own mode.
+pub fn restore_after_duplicate_launch() {
+    let Some(active) = ACTIVE.get() else {
+        return;
     };
+    let painted = PAINTED.load(std::sync::atomic::Ordering::Acquire);
     write_state(
         &active.path,
         &RenderState {
-            remembered,
-            armed: None,
+            remembered: if painted {
+                remembered_after_paint(active)
+            } else {
+                read_state(&active.path).remembered
+            },
+            armed: (!painted).then_some(active.decision.mode),
         },
     );
+    tracing::debug!(painted, "renderer state restored after a duplicate launch");
 }
 
 /// Forget that software rendering was ever needed, so the next launch
@@ -408,7 +496,7 @@ mod tests {
 
     #[test]
     fn a_first_launch_uses_the_gpu() {
-        let decision = decide_from(&state(None, None), None);
+        let decision = decide_from(&state(None, None), None, true);
         assert_eq!(decision.mode, RenderMode::Gpu);
         assert_eq!(decision.reason, RenderReason::Default);
         assert!(
@@ -421,7 +509,7 @@ mod tests {
     /// path and never reported a paint.
     #[test]
     fn a_launch_that_never_painted_sends_the_next_one_to_software() {
-        let decision = decide_from(&state(None, Some(RenderMode::Gpu)), None);
+        let decision = decide_from(&state(None, Some(RenderMode::Gpu)), None, true);
         assert_eq!(decision.mode, RenderMode::Software);
         assert_eq!(decision.reason, RenderReason::PreviousLaunchNeverPainted);
         assert!(decision.can_retry_gpu);
@@ -431,7 +519,7 @@ mod tests {
     /// blank again on the launch after it — every other start.
     #[test]
     fn a_software_launch_that_painted_is_remembered() {
-        let decision = decide_from(&state(Some(RenderMode::Software), None), None);
+        let decision = decide_from(&state(Some(RenderMode::Software), None), None, true);
         assert_eq!(decision.mode, RenderMode::Software);
         assert_eq!(decision.reason, RenderReason::Remembered);
         assert!(decision.can_retry_gpu);
@@ -445,6 +533,7 @@ mod tests {
         let decision = decide_from(
             &state(Some(RenderMode::Software), Some(RenderMode::Software)),
             None,
+            true,
         );
         assert_eq!(decision.mode, RenderMode::Gpu);
         assert_eq!(decision.reason, RenderReason::SoftwareDidNotHelp);
@@ -456,7 +545,7 @@ mod tests {
     fn the_environment_decides_when_it_is_set() {
         let armed = state(Some(RenderMode::Software), Some(RenderMode::Gpu));
         for forced in [RenderMode::Gpu, RenderMode::Software] {
-            let decision = decide_from(&armed, Some(forced));
+            let decision = decide_from(&armed, Some(forced), true);
             assert_eq!(decision.mode, forced);
             assert_eq!(decision.reason, RenderReason::Forced);
             assert!(
@@ -464,5 +553,46 @@ mod tests {
                 "the file is not what is deciding, so the button would change nothing"
             );
         }
+    }
+
+    /// macOS has no environment switch for WKWebView compositing, so
+    /// the fallback there would be a mode nothing implements: a banner
+    /// announcing a downgrade that never happened, and a stored state
+    /// that never lets the GPU be tried again. Every route into
+    /// software has to answer the same way.
+    #[test]
+    fn a_platform_without_a_software_path_never_claims_to_use_one() {
+        let cases = [
+            ("the escalation", state(None, Some(RenderMode::Gpu)), None),
+            (
+                "a remembered fallback",
+                state(Some(RenderMode::Software), None),
+                None,
+            ),
+            (
+                "an explicit request",
+                state(None, None),
+                Some(RenderMode::Software),
+            ),
+        ];
+        for (label, state, forced) in cases {
+            let decision = decide_from(&state, forced, false);
+            assert_eq!(decision.mode, RenderMode::Gpu, "{label}");
+            assert_eq!(
+                decision.reason,
+                RenderReason::SoftwareUnavailable,
+                "{label}"
+            );
+            assert!(!decision.can_retry_gpu, "{label}");
+        }
+    }
+
+    /// And asking for the GPU there is still an ordinary answer — only
+    /// the software half is missing.
+    #[test]
+    fn the_gpu_can_still_be_forced_without_a_software_path() {
+        let decision = decide_from(&state(None, None), Some(RenderMode::Gpu), false);
+        assert_eq!(decision.mode, RenderMode::Gpu);
+        assert_eq!(decision.reason, RenderReason::Forced);
     }
 }

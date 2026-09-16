@@ -35,7 +35,8 @@
       "forced": "durch WAVEFLOW_RENDERER festgelegt",
       "previous-launch-never-painted": "der vorherige Start hat nichts angezeigt",
       "remembered": "vom letzten erfolgreichen Start übernommen",
-      "software-did-not-help": "Software-Rendering hat nichts geändert, zurück zur Standardeinstellung"
+      "software-did-not-help": "Software-Rendering hat nichts geändert, zurück zur Standardeinstellung",
+      "software-unavailable": "diese Plattform hat kein Software-Rendering"
     }
   },
   "updater": {

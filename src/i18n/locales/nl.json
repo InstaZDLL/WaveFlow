@@ -35,7 +35,8 @@
       "forced": "ingesteld door WAVEFLOW_RENDERER",
       "previous-launch-never-painted": "de vorige start toonde niets",
       "remembered": "overgenomen van de laatste geslaagde start",
-      "software-did-not-help": "softwarematige weergave hielp niet, terug naar de standaardinstelling"
+      "software-did-not-help": "softwarematige weergave hielp niet, terug naar de standaardinstelling",
+      "software-unavailable": "dit platform heeft geen softwarematige weergave"
     }
   },
   "updater": {

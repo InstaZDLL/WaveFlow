@@ -35,7 +35,8 @@
       "forced": "WAVEFLOW_RENDERER से तय",
       "previous-launch-never-painted": "पिछली बार कुछ भी नहीं दिखा",
       "remembered": "पिछली सफल शुरुआत से बनाए रखा गया",
-      "software-did-not-help": "सॉफ़्टवेयर रेंडरिंग से भी फ़र्क़ नहीं पड़ा, डिफ़ॉल्ट पर वापस"
+      "software-did-not-help": "सॉफ़्टवेयर रेंडरिंग से भी फ़र्क़ नहीं पड़ा, डिफ़ॉल्ट पर वापस",
+      "software-unavailable": "इस प्लैटफ़ॉर्म पर सॉफ़्टवेयर रेंडरिंग नहीं है"
     }
   },
   "updater": {

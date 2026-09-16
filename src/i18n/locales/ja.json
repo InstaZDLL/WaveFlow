@@ -35,7 +35,8 @@
       "forced": "WAVEFLOW_RENDERER による指定",
       "previous-launch-never-painted": "前回の起動で何も表示されなかったため",
       "remembered": "前回正常に起動した設定を引き継ぎ",
-      "software-did-not-help": "ソフトウェア描画でも変わらなかったため既定に戻しました"
+      "software-did-not-help": "ソフトウェア描画でも変わらなかったため既定に戻しました",
+      "software-unavailable": "このプラットフォームにソフトウェア描画はありません"
     }
   },
   "updater": {

@@ -35,7 +35,8 @@
       "forced": "definido por WAVEFLOW_RENDERER",
       "previous-launch-never-painted": "a inicialização anterior não exibiu nada",
       "remembered": "mantido da última inicialização bem-sucedida",
-      "software-did-not-help": "a renderização por software não mudou nada, de volta ao padrão"
+      "software-did-not-help": "a renderização por software não mudou nada, de volta ao padrão",
+      "software-unavailable": "esta plataforma não tem renderização por software"
     }
   },
   "updater": {

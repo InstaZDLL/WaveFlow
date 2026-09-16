@@ -14,7 +14,9 @@ export type RenderReason =
   /** A software launch painted, so this one did not try the GPU. */
   | "remembered"
   /** Software did not paint either, so this one is back on the default. */
-  | "software-did-not-help";
+  | "software-did-not-help"
+  /** The fallback was called for and this platform has none. */
+  | "software-unavailable";
 
 export interface RendererStatus {
   mode: RenderMode;

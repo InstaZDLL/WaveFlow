@@ -35,7 +35,8 @@
       "forced": "由 WAVEFLOW_RENDERER 指定",
       "previous-launch-never-painted": "上次启动没有显示任何内容",
       "remembered": "沿用上次成功启动的设置",
-      "software-did-not-help": "软件渲染也没有改善，已恢复默认设置"
+      "software-did-not-help": "软件渲染也没有改善，已恢复默认设置",
+      "software-unavailable": "此平台没有软件渲染"
     }
   },
   "updater": {

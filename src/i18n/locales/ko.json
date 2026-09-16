@@ -35,7 +35,8 @@
       "forced": "WAVEFLOW_RENDERER로 지정됨",
       "previous-launch-never-painted": "이전 실행에서 아무것도 표시되지 않음",
       "remembered": "마지막으로 성공한 실행에서 유지됨",
-      "software-did-not-help": "소프트웨어 렌더링으로도 달라지지 않아 기본값으로 되돌림"
+      "software-did-not-help": "소프트웨어 렌더링으로도 달라지지 않아 기본값으로 되돌림",
+      "software-unavailable": "이 플랫폼에는 소프트웨어 렌더링이 없습니다"
     }
   },
   "updater": {

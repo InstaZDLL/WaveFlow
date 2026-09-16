@@ -35,7 +35,8 @@
       "forced": "محدَّد عبر WAVEFLOW_RENDERER",
       "previous-launch-never-painted": "التشغيل السابق لم يُظهر أي شيء",
       "remembered": "محتفَظ به من آخر تشغيل ناجح",
-      "software-did-not-help": "العرض البرمجي لم يغيّر شيئًا، والعودة إلى الإعداد الافتراضي"
+      "software-did-not-help": "العرض البرمجي لم يغيّر شيئًا، والعودة إلى الإعداد الافتراضي",
+      "software-unavailable": "لا يوجد عرض برمجي على هذه المنصة"
     }
   },
   "updater": {

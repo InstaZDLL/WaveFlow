@@ -35,7 +35,8 @@
       "forced": "imposé par WAVEFLOW_RENDERER",
       "previous-launch-never-painted": "le démarrage précédent n'a rien affiché",
       "remembered": "retenu du dernier démarrage réussi",
-      "software-did-not-help": "le rendu logiciel n'a rien changé, retour au réglage par défaut"
+      "software-did-not-help": "le rendu logiciel n'a rien changé, retour au réglage par défaut",
+      "software-unavailable": "cette plateforme n'a pas de rendu logiciel"
     }
   },
   "updater": {

@@ -35,7 +35,8 @@
       "forced": "由 WAVEFLOW_RENDERER 指定",
       "previous-launch-never-painted": "上次啟動沒有顯示任何內容",
       "remembered": "沿用上次成功啟動的設定",
-      "software-did-not-help": "軟體繪製也沒有改善，已恢復預設設定"
+      "software-did-not-help": "軟體繪製也沒有改善，已恢復預設設定",
+      "software-unavailable": "此平台沒有軟體繪製"
     }
   },
   "updater": {

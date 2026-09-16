@@ -35,7 +35,8 @@
       "forced": "set by WAVEFLOW_RENDERER",
       "previous-launch-never-painted": "the previous start drew nothing",
       "remembered": "kept from the last successful start",
-      "software-did-not-help": "software rendering changed nothing, back to the default"
+      "software-did-not-help": "software rendering changed nothing, back to the default",
+      "software-unavailable": "this platform has no software rendering"
     }
   },
   "updater": {

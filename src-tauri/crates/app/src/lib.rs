@@ -123,6 +123,14 @@ pub fn run() {
         // exits cleanly before any heavy init (pool open, audio engine,
         // tray, watchers) runs in the duplicate process.
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            // The launch that was just turned away armed the renderer
+            // marker before this plugin could stop it — it runs from
+            // inside `Builder`, and the marker has to be on disk before
+            // any window can fail to paint. Left there, it would send
+            // the *next* launch into software rendering because someone
+            // opened the app twice (#595). This instance is the one
+            // that knows the truth, so it writes it back.
+            render_mode::restore_after_duplicate_launch();
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();
                 let _ = window.unminimize();
