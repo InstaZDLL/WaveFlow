@@ -434,29 +434,20 @@ fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
             // email — cannot shadow the new one.
             tag.remove_key(ItemKey::Popularimeter);
             if let Some(r) = rating {
-                match tag.tag_type() {
-                    lofty::tag::TagType::Id3v2 => {
-                        // POPM body: <email>\0<rating:u8><counter:u32-be>.
-                        // An empty email is what the spec calls the
-                        // anonymous user, and every reader we checked
-                        // (foobar2000, Mp3tag, MusicBee) accepts it.
-                        // Counter stays 0 — we do not track it.
-                        let bytes: Vec<u8> = std::iter::once(0u8)
-                            .chain(std::iter::once(*r))
-                            .chain([0u8; 4])
-                            .collect();
-                        tag.insert(lofty::tag::TagItem::new(
-                            ItemKey::Popularimeter,
-                            lofty::tag::ItemValue::Binary(bytes),
-                        ));
-                    }
-                    _ => {
-                        // Vorbis / MP4 / APE / WavPack: text on the
-                        // 0-100 scale, the shape the scanner reads back.
-                        let as_100 = ((*r as u16) * 100 / 255) as u8;
-                        tag.insert_text(ItemKey::Popularimeter, as_100.to_string());
-                    }
-                }
+                // Vorbis / MP4 / APE / WavPack: text on the 0-100
+                // scale, the shape the scanner reads back.
+                //
+                // ID3v2 does not come through here at all. lofty's
+                // generic tag carries a rating as a **whole star**
+                // (`<provider>|<stars>|<counter>`), so a value on this
+                // 0-255 scale either fails to convert — which is
+                // silent, the frame simply never reaches the file — or
+                // is rounded to a star and re-encoded on the provider's
+                // own scale. Neither is the byte the user set, so that
+                // container is written as the POPM frame it is, by
+                // [`apply_rating_id3v2`].
+                let as_100 = ((*r as u16) * 100 / 255) as u8;
+                tag.insert_text(ItemKey::Popularimeter, as_100.to_string());
             }
             return;
         }
@@ -593,6 +584,35 @@ fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
         } else {
             tag.set_genre(g.trim().to_string());
         }
+    }
+}
+
+/// Write the rating into an ID3v2 tag as the frame it is.
+///
+/// The star rating is a **0-255 POPM byte**, in half-star steps, and
+/// lofty's generic tag cannot carry one: since 0.25 it converts a POPM
+/// into `<provider>|<stars>|<counter>` and back through a whole-star
+/// `StarRating`, so a raw byte put into the generic tag is dropped on
+/// the way back to the file — measured: the frame count is zero, and
+/// nothing says so. That is why this is applied to the concrete tag,
+/// beside the reasons the rest of `patch_file` already exists for.
+///
+/// Removing by frame id takes every POPM the file holds. They are keyed
+/// by email, so a file can carry several — one per tagger — and a
+/// reader takes the first. Leaving the others would let a rating the
+/// user replaced go on being the one another player shows.
+fn apply_rating_id3v2(tag: &mut lofty::id3::v2::Id3v2Tag, rating: Option<u8>) {
+    use lofty::id3::v2::{Frame, FrameId, PopularimeterFrame};
+
+    let popm = FrameId::Valid(std::borrow::Cow::Borrowed("POPM"));
+    // Consumed, not dropped: `remove` hands back a lazy iterator over
+    // what it takes, so ignoring it removes nothing at all.
+    tag.remove(&popm).for_each(drop);
+    if let Some(rating) = rating {
+        // An empty email is the anonymous user the spec allows, and
+        // what every reader checked (foobar2000, Mp3tag, MusicBee)
+        // accepts. The counter stays 0 — we do not track plays here.
+        tag.insert(Frame::Popularimeter(PopularimeterFrame::new("", rating, 0)));
     }
 }
 
@@ -966,6 +986,25 @@ pub(crate) fn patch_file(
         }};
     }
 
+    // The ID3v2 slot, which takes one payload off the generic path: a
+    // rating is written as the POPM frame it is, because lofty's
+    // generic tag cannot carry the byte. Everything else is the round
+    // trip above.
+    macro_rules! patch_id3v2_slot {
+        ($file:expr) => {{
+            let mut tag = $file.remove_id3v2().unwrap_or_default();
+            match patch {
+                TagPatch::Rating(rating) => apply_rating_id3v2(&mut tag, *rating),
+                _ => {
+                    let (remainder, mut generic) = tag.split_tag();
+                    apply_patch(&mut generic, patch);
+                    tag = remainder.merge_tag(generic);
+                }
+            }
+            $file.set_id3v2(tag);
+        }};
+    }
+
     // Same, for a slot the container always has (the Ogg families carry
     // their Vorbis comments by spec, so lofty models them unwrapped).
     macro_rules! patch_required_slot {
@@ -1021,7 +1060,7 @@ pub(crate) fn patch_file(
                 path,
                 |handle| -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
                     let mut f = <$ty>::read_from(handle, ParseOptions::new())?;
-                    patch_slot!(f, remove_id3v2, set_id3v2);
+                    patch_id3v2_slot!(f);
                     match f.id3v2() {
                         Some(tag) => waveflow_core::tagio::try_id3v2_in_place(handle, tag),
                         None => Ok(false),
@@ -1060,10 +1099,10 @@ pub(crate) fn patch_file(
 
     match file_type {
         FileType::Mpeg => with_file!(lofty::mpeg::MpegFile, |f, handle| {
-            patch_slot!(f, remove_id3v2, set_id3v2);
+            patch_id3v2_slot!(f);
         }),
         FileType::Aac => with_file!(lofty::aac::AacFile, |f, handle| {
-            patch_slot!(f, remove_id3v2, set_id3v2);
+            patch_id3v2_slot!(f);
         }),
         FileType::Mp4 => with_file!(lofty::mp4::Mp4File, |f, handle| {
             patch_slot!(f, remove_ilst, set_ilst);
@@ -1077,13 +1116,13 @@ pub(crate) fn patch_file(
             if f.riff_info().is_some() {
                 patch_slot!(f, remove_riff_info, set_riff_info);
             }
-            patch_slot!(f, remove_id3v2, set_id3v2);
+            patch_id3v2_slot!(f);
         }),
         FileType::Aiff => with_file!(lofty::iff::aiff::AiffFile, |f, handle| {
             if f.text_chunks().is_some() {
                 patch_slot!(f, remove_text_chunks, set_text_chunks);
             }
-            patch_slot!(f, remove_id3v2, set_id3v2);
+            patch_id3v2_slot!(f);
         }),
         FileType::Vorbis => with_file!(lofty::ogg::VorbisFile, |f, handle| {
             patch_required_slot!(f, remove_vorbis_comments, set_vorbis_comments);
@@ -1834,20 +1873,13 @@ mod patch_agreement_tests {
         assert_eq!(tag.frames().filter(|f| f.id() == "POPM").count(), 0);
     }
 
-    /// The generic side of the same edit. ID3v2 keeps the raw POPM body,
-    /// everything else a 0-100 string — the two shapes the scanner reads
-    /// back, and the reason this applier asks the tag what it is.
+    /// The generic side of the same edit — the containers that keep a
+    /// rating as plain text on the 0-100 scale, which is the shape the
+    /// scanner reads back from them. ID3v2 does not come through here:
+    /// see [`apply_rating_id3v2`].
     #[test]
-    fn the_generic_applier_writes_the_shape_the_container_expects() {
+    fn the_generic_applier_writes_the_text_scale() {
         use lofty::tag::{ItemKey, Tag, TagType};
-
-        let mut id3 = Tag::new(TagType::Id3v2);
-        apply_patch(&mut id3, &TagPatch::Rating(Some(196)));
-        assert_eq!(
-            id3.get_binary(ItemKey::Popularimeter, false),
-            Some(&[0u8, 196, 0, 0, 0, 0][..]),
-            "<email>\0<rating><counter>"
-        );
 
         let mut vorbis = Tag::new(TagType::VorbisComments);
         apply_patch(&mut vorbis, &TagPatch::Rating(Some(196)));
@@ -1856,28 +1888,67 @@ mod patch_agreement_tests {
             Some("76"),
             "196 of 255 on the 0-100 scale"
         );
+
+        apply_patch(&mut vorbis, &TagPatch::Rating(None));
+        assert_eq!(vorbis.get_string(ItemKey::Popularimeter), None);
     }
 
-    /// The step between the applier and the file: `patch_file` splits
-    /// the concrete tag, patches the generic half and merges the
-    /// remainder back, and a payload lofty declines to carry across
-    /// that round trip is one the file never receives — silently, since
-    /// the write reports success either way. Asserted where the scanner
-    /// reads it, so this fails if either end of the mapping moves.
+    /// The byte the user set is the byte the frame carries.
+    ///
+    /// Measured on lofty 0.25: a rating put into the **generic** tag
+    /// does not survive the merge back — `Binary` and a plain number
+    /// both leave zero frames, and only `<provider>|<stars>|<counter>`
+    /// with a whole star between the pipes produces one, re-encoded on
+    /// that provider's scale. None of those is a 0-255 value in
+    /// half-star steps, which is what the database holds, so the frame
+    /// is built directly.
     #[test]
-    fn a_rating_survives_the_split_and_merge_the_writer_puts_it_through() {
-        use lofty::id3::v2::Id3v2Tag;
-        use lofty::prelude::{ItemKey, SplitTag};
-        use lofty::tag::MergeTag;
+    fn a_rating_is_written_as_the_frame_it_is() {
+        use lofty::id3::v2::{Frame, Id3v2Tag};
 
-        let (remainder, mut generic) = Id3v2Tag::default().split_tag();
-        apply_patch(&mut generic, &TagPatch::Rating(Some(196)));
-        let concrete: Id3v2Tag = remainder.merge_tag(generic);
+        let mut tag = Id3v2Tag::default();
+        apply_rating_id3v2(&mut tag, Some(196));
 
-        let (_, as_the_scanner_reads_it) = concrete.split_tag();
+        let ratings: Vec<u8> = tag
+            .iter()
+            .filter_map(|frame| match frame {
+                Frame::Popularimeter(popm) => Some(popm.rating),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(ratings, vec![196]);
+    }
+
+    /// POPM is keyed by email, so a file can hold several and a reader
+    /// takes the first. A rating the user replaced has to stop being
+    /// the one another player shows.
+    #[test]
+    fn writing_a_rating_takes_every_popm_the_file_held() {
+        use lofty::id3::v2::{Frame, Id3v2Tag, PopularimeterFrame};
+
+        let mut tag = Id3v2Tag::default();
+        tag.insert(Frame::Popularimeter(PopularimeterFrame::new(
+            "someone@else",
+            255,
+            12,
+        )));
+        tag.insert(Frame::Popularimeter(PopularimeterFrame::new("", 51, 0)));
+
+        apply_rating_id3v2(&mut tag, Some(153));
         assert_eq!(
-            as_the_scanner_reads_it.get_binary(ItemKey::Popularimeter, false),
-            Some(&[0u8, 196, 0, 0, 0, 0][..])
+            tag.iter()
+                .filter(|f| matches!(f, Frame::Popularimeter(_)))
+                .count(),
+            1
+        );
+
+        apply_rating_id3v2(&mut tag, None);
+        assert_eq!(
+            tag.iter()
+                .filter(|f| matches!(f, Frame::Popularimeter(_)))
+                .count(),
+            0,
+            "clearing the stars clears the frame"
         );
     }
 

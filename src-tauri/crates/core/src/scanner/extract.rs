@@ -651,11 +651,23 @@ pub fn write_artist_image(picked: &Path, artwork_dir: &Path) -> Option<Extracted
     })
 }
 
-/// Extract a 0-255 rating from a tag. POPM frames (ID3v2) are stored by
-/// lofty as raw `ItemValue::Binary` under `ItemKey::Popularimeter`: the
-/// frame body is `<email>\0<rating:u8><counter:u32+>`, so the rating is
-/// the byte right after the first NUL terminator. Vorbis/FLAC/MP4 expose
-/// `RATING` as plain text 0-100 which we rescale to 0-255.
+/// Extract a 0-255 rating from a tag.
+///
+/// Three shapes reach this, and the middle one is new. **lofty 0.25
+/// changed what a POPM frame looks like on the generic tag**: it used
+/// to arrive as a raw `ItemValue::Binary` holding the frame body, and
+/// it now arrives as the text `<provider>|<stars>|<counter>`, converted
+/// through a whole-star `StarRating` (lofty's own doc comment still
+/// describes the old shape). Reading only the first two is why no
+/// rating has been read out of an MP3 since that bump: `get_binary`
+/// answered `None`, and `"MusicBee|4|0"` is not a number.
+///
+/// The star form is rescaled on the same 51-per-star scale the app
+/// writes, so four stars stay four stars. It is lossy in one direction
+/// and unavoidably so: the byte another tagger wrote is mapped to a
+/// star by lofty before we ever see it, and half-stars have no
+/// representation there at all. A rating this app wrote is not affected
+/// — the file keeps the byte, and the database keeps it too.
 pub fn extract_rating(tag: &Tag) -> Option<u8> {
     if matches!(tag.tag_type(), TagType::Id3v2) {
         if let Some(bytes) = tag.get_binary(ItemKey::Popularimeter, false) {
@@ -665,6 +677,17 @@ pub fn extract_rating(tag: &Tag) -> Option<u8> {
     }
     if let Some(text) = tag.get_string(ItemKey::Popularimeter) {
         let trimmed = text.trim();
+        // The generic popularimeter: the stars sit between the two
+        // pipes, and the provider name before the first one may be
+        // empty. Tried before the plain number, since a bare `RATING`
+        // value has no pipe at all and falls through to it.
+        if let Some(stars) = trimmed.split('|').nth(1) {
+            if let Ok(stars) = stars.trim().parse::<u16>() {
+                if (1..=5).contains(&stars) {
+                    return Some((stars * 51) as u8);
+                }
+            }
+        }
         if let Ok(val) = trimmed.parse::<u16>() {
             let clamped = val.min(100);
             return Some((clamped * 255 / 100) as u8);
@@ -725,6 +748,37 @@ mod tests {
 
     fn write_bytes(path: &Path, bytes: &[u8]) {
         fs::write(path, bytes).expect("write fixture");
+    }
+
+    /// lofty 0.25 hands a POPM frame to the generic tag as
+    /// `<provider>|<stars>|<counter>` rather than as the raw frame body
+    /// it used to be, and its own documentation still describes the old
+    /// shape. Reading only the old one is why an MP3's rating came back
+    /// as nothing after that bump.
+    #[test]
+    fn a_rating_is_read_from_both_shapes_lofty_has_used() {
+        use lofty::prelude::*;
+        use lofty::tag::{Tag, TagType};
+
+        let mut id3 = Tag::new(TagType::Id3v2);
+        id3.insert_text(ItemKey::Popularimeter, "MusicBee|4|0".to_string());
+        assert_eq!(extract_rating(&id3), Some(204), "four stars of five");
+
+        // The provider name is optional, and a rating can be anonymous.
+        let mut anonymous = Tag::new(TagType::Id3v2);
+        anonymous.insert_text(ItemKey::Popularimeter, "|5|17".to_string());
+        assert_eq!(extract_rating(&anonymous), Some(255));
+
+        // A plain number is a Vorbis / MP4 `RATING`, on the 0-100 scale,
+        // and must not be read as a star count.
+        let mut vorbis = Tag::new(TagType::VorbisComments);
+        vorbis.insert_text(ItemKey::Popularimeter, "76".to_string());
+        assert_eq!(extract_rating(&vorbis), Some(193));
+
+        // Nothing that is neither.
+        let mut nonsense = Tag::new(TagType::Id3v2);
+        nonsense.insert_text(ItemKey::Popularimeter, "not a rating".to_string());
+        assert_eq!(extract_rating(&nonsense), None);
     }
 
     /// Smallest valid 1x1 JPEG — enough to satisfy the non-empty check
