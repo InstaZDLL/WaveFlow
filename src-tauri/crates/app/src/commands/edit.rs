@@ -465,6 +465,19 @@ fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
             // (LRC → TTML, say) moves the lyrics from one key to the
             // other, and the reader checks `UnsyncLyrics` first — left
             // in place, the old content would shadow the new.
+            // ID3v2 has no arbitrary-string lyrics slot — lofty says so
+            // outright — so an `Arbitrary` write there would be dropped
+            // on the way to the file, and the clear above would have
+            // spent the file's lyrics to make room for it.
+            // `write_lyrics_to_file` refuses TTML on those containers
+            // before this is called; this is the same answer the `id3`
+            // applier gives, so the two cannot disagree about it.
+            if matches!(
+                (slot, tag.tag_type()),
+                (LyricsSlot::Arbitrary(_), lofty::tag::TagType::Id3v2)
+            ) {
+                return;
+            }
             tag.remove_key(ItemKey::UnsyncLyrics);
             tag.remove_key(ItemKey::Lyrics);
             match slot {
@@ -812,6 +825,11 @@ fn patch_dsf(
     with_dsf_tag(path, |tag, version| {
         apply_patch_id3(tag, patch);
         mirror_year_for_legacy(tag, patch, version);
+        // An edit the dialog sent is an edit to write, even when it
+        // happens to set what the file already said: the alternative is
+        // comparing two encodings of the same tag to save a write of a
+        // block that sits after the audio and costs nothing to move.
+        true
     })
 }
 
@@ -824,13 +842,17 @@ fn patch_dsf(
 /// preservation rules wrong.
 ///
 /// `edit` is handed the version the file arrived with, for the one
-/// decision that depends on it (`TYER` versus `TDRC`).
+/// decision that depends on it (`TYER` versus `TDRC`), and answers
+/// whether the tag should be written back. `false` leaves the file
+/// untouched — for the callers whose edit may turn out to be no edit at
+/// all, where rewriting would cost the user a file modification, and a
+/// re-hash, for nothing.
 pub(crate) fn with_dsf_tag<F>(
     path: &std::path::Path,
     edit: F,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
 where
-    F: FnOnce(&mut id3::Tag, id3::Version),
+    F: FnOnce(&mut id3::Tag, id3::Version) -> bool,
 {
     waveflow_core::tagio::with_writable_file(
         path,
@@ -869,7 +891,9 @@ where
                 .as_ref()
                 .map_or(id3::Version::Id3v24, id3::Tag::version);
             let mut tag = existing.unwrap_or_default();
-            edit(&mut tag, version);
+            if !edit(&mut tag, version) {
+                return Ok(());
+            }
             let mut bytes = Vec::new();
             tag.write_to(&mut bytes, version)?;
             waveflow_core::tagio::write_dsf_id3v2(handle, &bytes)?;
@@ -1866,6 +1890,35 @@ mod patch_agreement_tests {
         apply_patch_id3(&mut tag, &TagPatch::Lyrics(LyricsSlot::Cleared));
 
         assert_eq!(tag.lyrics().count(), 0);
+    }
+
+    /// The generic applier answers the same way its `id3` sibling does,
+    /// on the container where the two could have disagreed: a write
+    /// that ID3v2 silently drops must not be preceded by a clear that
+    /// it does not.
+    #[test]
+    fn an_arbitrary_slot_leaves_a_generic_id3v2_tag_alone_too() {
+        use lofty::tag::{ItemKey, Tag, TagType};
+
+        let mut id3 = Tag::new(TagType::Id3v2);
+        apply_patch(
+            &mut id3,
+            &TagPatch::Lyrics(LyricsSlot::Unsynchronised("words already there")),
+        );
+
+        apply_patch(&mut id3, &TagPatch::Lyrics(LyricsSlot::Arbitrary("<tt/>")));
+        assert_eq!(
+            id3.get_string(ItemKey::UnsyncLyrics),
+            Some("words already there")
+        );
+
+        // A container that does have the slot takes the write.
+        let mut vorbis = Tag::new(TagType::VorbisComments);
+        apply_patch(
+            &mut vorbis,
+            &TagPatch::Lyrics(LyricsSlot::Arbitrary("<tt/>")),
+        );
+        assert_eq!(vorbis.get_string(ItemKey::Lyrics), Some("<tt/>"));
     }
 
     /// The arm that cannot be reached today, asserted anyway: ID3v2 has

@@ -2969,15 +2969,24 @@ fn stamp_synced_lyrics(
         LyricsContainer::Dsf => {
             return crate::commands::edit::with_dsf_tag(path, |tag, _version| {
                 use id3::TagLike;
+                // `remove_extended_text` says nothing about what it
+                // removed, so the presence is read first — this is what
+                // decides whether the file is rewritten at all.
+                let mut changed = false;
                 for alias in SYNCED_LYRICS_KEYS {
-                    tag.remove_extended_text(Some(alias), None);
+                    if tag.extended_texts().any(|txxx| txxx.description == *alias) {
+                        tag.remove_extended_text(Some(alias), None);
+                        changed = true;
+                    }
                 }
                 if let Some(content) = content {
                     tag.add_frame(id3::frame::ExtendedText {
                         description: key.to_string(),
                         value: content.to_string(),
                     });
+                    changed = true;
                 }
+                changed
             });
         }
         LyricsContainer::Lofty(file_type) => file_type,
@@ -3039,6 +3048,17 @@ fn stamp_synced_lyrics(
                 // lyrics under any key needs no synced one either — the
                 // standard write above has already refused or created
                 // whatever the file should hold.
+                None => false,
+            }
+        }),
+        // The same ID3v2 tag as MP3, and `patch_file` writes the
+        // standard lyrics key there too — so this pass has the same
+        // stale stamp to clear. (Our own reader looks for the custom key
+        // in MP3 and the Vorbis families only, so what it removes here
+        // is for the other players that do read it.)
+        FileType::Aac => rewrite!(lofty::aac::AacFile, |aac| {
+            match aac.id3v2_mut() {
+                Some(tag) => restamp_id3v2!(tag),
                 None => false,
             }
         }),
