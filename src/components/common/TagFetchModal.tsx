@@ -246,6 +246,10 @@ export function TagFetchModal({
                 onClick={() => {
                   setProposals(null);
                   setAccepted({});
+                  // The error belonged to the release being abandoned;
+                  // carrying it back would show the source list a
+                  // failure about a choice the user has just undone.
+                  setError(null);
                 }}
                 className="p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 aria-label={t("tagFetch.back")}
