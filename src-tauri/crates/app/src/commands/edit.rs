@@ -1858,6 +1858,62 @@ mod patch_agreement_tests {
         );
     }
 
+    /// The step between the applier and the file: `patch_file` splits
+    /// the concrete tag, patches the generic half and merges the
+    /// remainder back, and a payload lofty declines to carry across
+    /// that round trip is one the file never receives — silently, since
+    /// the write reports success either way. Asserted where the scanner
+    /// reads it, so this fails if either end of the mapping moves.
+    #[test]
+    fn a_rating_survives_the_split_and_merge_the_writer_puts_it_through() {
+        use lofty::id3::v2::Id3v2Tag;
+        use lofty::prelude::{ItemKey, SplitTag};
+        use lofty::tag::MergeTag;
+
+        let (remainder, mut generic) = Id3v2Tag::default().split_tag();
+        apply_patch(&mut generic, &TagPatch::Rating(Some(196)));
+        let concrete: Id3v2Tag = remainder.merge_tag(generic);
+
+        let (_, as_the_scanner_reads_it) = concrete.split_tag();
+        assert_eq!(
+            as_the_scanner_reads_it.get_binary(ItemKey::Popularimeter, false),
+            Some(&[0u8, 196, 0, 0, 0, 0][..])
+        );
+    }
+
+    /// The same round trip on the container that loses what it is not
+    /// asked about: `From<VorbisComments> for Tag` throws the remainder
+    /// away, which is the whole reason `patch_file` merges it back.
+    #[test]
+    fn lyrics_survive_it_on_a_vorbis_tag_and_take_nothing_else_with_them() {
+        use lofty::ogg::tag::VorbisComments;
+        use lofty::prelude::{ItemKey, SplitTag};
+        use lofty::tag::MergeTag;
+
+        let mut comments = VorbisComments::default();
+        // A comment lofty does not model, of exactly the kind a save
+        // used to drop.
+        comments.push("REPLAYGAIN_TRACK_GAIN".to_string(), "-6.5 dB".to_string());
+
+        let (remainder, mut generic) = comments.split_tag();
+        apply_patch(
+            &mut generic,
+            &TagPatch::Lyrics(LyricsSlot::Unsynchronised("the words")),
+        );
+        let concrete: VorbisComments = remainder.merge_tag(generic);
+
+        assert_eq!(
+            concrete.get("REPLAYGAIN_TRACK_GAIN"),
+            Some("-6.5 dB"),
+            "the remainder came back"
+        );
+        let (_, as_the_reader_sees_it) = concrete.split_tag();
+        assert_eq!(
+            as_the_reader_sees_it.get_string(ItemKey::UnsyncLyrics),
+            Some("the words")
+        );
+    }
+
     /// Saving lyrics twice leaves one set, not two. USLT is keyed by
     /// language and description, and a second frame under the same pair
     /// is what a reader shows instead of the edit.
