@@ -70,9 +70,13 @@
 //! - **macOS / WKWebView** — nothing equivalent exists, and inventing a
 //!   half-answer would be worse than the honest none.
 //!
-//! A variable the user already set is never overwritten: someone who
+//! A variable the user already set is left as it is — someone who
 //! exported one of these did so deliberately, and this is not the place
-//! to argue with them.
+//! to argue with them. The Windows one is the exception, and has to be:
+//! `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` is a list of arguments, so
+//! the flag is **appended** to whatever is already there rather than
+//! replacing it. Nothing the user put in it is lost; the variable
+//! itself does change.
 
 use std::path::{Path, PathBuf};
 

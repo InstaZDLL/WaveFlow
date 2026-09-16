@@ -547,7 +547,8 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
   );
 }
 
-export function SettingsView({ onNavigate,
+export function SettingsView({
+  onNavigate,
   initialCategory,
 }: SettingsViewProps) {
   const { t, i18n } = useTranslation();
