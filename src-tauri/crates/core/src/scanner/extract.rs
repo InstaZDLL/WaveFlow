@@ -696,7 +696,14 @@ pub fn extract_rating(tag: &Tag) -> Option<u8> {
         }
         if let Ok(val) = trimmed.parse::<u16>() {
             let clamped = val.min(100);
-            return Some((clamped * 255 / 100) as u8);
+            // Rounded to the nearest byte, not truncated. The app writes
+            // this scale as `byte * 100 / 255`, so the two halves have
+            // to meet: truncating sent 128 back as 127, and the scan
+            // that follows a tag write overwrites `track.rating` with
+            // what it read. Every value the star widget produces —
+            // whole stars and halves, 26 through 255 — now survives the
+            // round trip exactly.
+            return Some(((clamped * 255 + 50) / 100) as u8);
         }
     }
     None
@@ -756,6 +763,30 @@ mod tests {
         fs::write(path, bytes).expect("write fixture");
     }
 
+    /// The scan that follows a tag write overwrites `track.rating` with
+    /// what it reads back, so the two scales have to meet exactly. They
+    /// did not: the write truncates a byte to 0-100 and the read
+    /// truncated it back, which sent every half star down by one.
+    #[test]
+    fn every_star_the_widget_can_set_survives_the_round_trip() {
+        use lofty::prelude::*;
+        use lofty::tag::{Tag, TagType};
+
+        // What `Math.round(stars / 5 * 255)` produces, halves included.
+        for byte in [26u8, 51, 77, 102, 128, 153, 179, 204, 230, 255] {
+            // The conversion `TagPatch::Rating` writes for these
+            // containers.
+            let as_100 = ((byte as u16) * 100 / 255) as u8;
+            let mut tag = Tag::new(TagType::VorbisComments);
+            tag.insert_text(ItemKey::Popularimeter, as_100.to_string());
+            assert_eq!(
+                extract_rating(&tag),
+                Some(byte),
+                "{byte} went out as {as_100} and came back as something else"
+            );
+        }
+    }
+
     /// lofty 0.25 hands a POPM frame to the generic tag as
     /// `<provider>|<stars>|<counter>` rather than as the raw frame body
     /// it used to be, and its own documentation still describes the old
@@ -779,7 +810,7 @@ mod tests {
         // and must not be read as a star count.
         let mut vorbis = Tag::new(TagType::VorbisComments);
         vorbis.insert_text(ItemKey::Popularimeter, "76".to_string());
-        assert_eq!(extract_rating(&vorbis), Some(193));
+        assert_eq!(extract_rating(&vorbis), Some(194));
 
         // Nothing that is neither — including a string that happens to
         // carry a pipe and a digit without being a popularimeter.
