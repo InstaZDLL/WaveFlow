@@ -1339,7 +1339,13 @@
       "refetch": "検索を再開する",
       "clear": "歌詞を消去する",
       "fullscreen": "フルスクリーン",
-      "edit": "歌詞を編集"
+      "edit": "歌詞を編集",
+      "cycleLocalization": "追加表示を切り替え"
+    },
+    "localization": {
+      "off": "追加表示なし",
+      "romanization": "ローマ字を表示中",
+      "translation": "翻訳を表示中"
     },
     "source": {
       "embedded": "歌詞がファイルに組み込まれている",

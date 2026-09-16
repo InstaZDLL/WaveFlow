@@ -1340,7 +1340,13 @@
       "refetch": "Reiniciar a pesquisa",
       "clear": "Apagar a letra",
       "fullscreen": "Ecrã inteiro",
-      "edit": "Editar a letra"
+      "edit": "Editar a letra",
+      "cycleLocalization": "Mudar a leitura adicional"
+    },
+    "localization": {
+      "off": "Sem leitura adicional",
+      "romanization": "A mostrar romanização",
+      "translation": "A mostrar tradução"
     },
     "source": {
       "embedded": "Letra incluída no ficheiro",

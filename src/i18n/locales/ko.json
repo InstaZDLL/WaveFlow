@@ -1339,7 +1339,13 @@
       "refetch": "검색 다시 실행",
       "clear": "가사 지우기",
       "fullscreen": "전체 화면",
-      "edit": "가사 편집"
+      "edit": "가사 편집",
+      "cycleLocalization": "추가 표시 전환"
+    },
+    "localization": {
+      "off": "추가 표시 없음",
+      "romanization": "로마자 표기 표시 중",
+      "translation": "번역 표시 중"
     },
     "source": {
       "embedded": "파일에 가사가 포함되어 있음",

@@ -1340,7 +1340,13 @@
       "refetch": "Relancer la recherche",
       "clear": "Effacer les paroles",
       "fullscreen": "Plein écran",
-      "edit": "Éditer les paroles"
+      "edit": "Éditer les paroles",
+      "cycleLocalization": "Changer la lecture affichée"
+    },
+    "localization": {
+      "off": "Aucune lecture supplémentaire",
+      "romanization": "Romanisation affichée",
+      "translation": "Traduction affichée"
     },
     "source": {
       "embedded": "Paroles intégrées au fichier",

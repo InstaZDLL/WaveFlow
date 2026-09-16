@@ -1339,7 +1339,13 @@
       "refetch": "Erneut suchen",
       "clear": "Songtext löschen",
       "fullscreen": "Vollbild",
-      "edit": "Songtext bearbeiten"
+      "edit": "Songtext bearbeiten",
+      "cycleLocalization": "Zusatzzeile wechseln"
+    },
+    "localization": {
+      "off": "Keine Zusatzzeile",
+      "romanization": "Romanisierung wird angezeigt",
+      "translation": "Übersetzung wird angezeigt"
     },
     "source": {
       "embedded": "In Datei eingebetteter Songtext",

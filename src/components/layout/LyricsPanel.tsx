@@ -12,9 +12,16 @@ import {
   AlertCircle,
   ChevronDown,
   Check,
+  Languages,
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useTrackLyrics } from "../../hooks/useTrackLyrics";
+import { useLyricsLocalization } from "../../hooks/useLyricsLocalization";
+import {
+  availableLocalizations,
+  cycleLocalizationMode,
+  effectiveLocalizationMode,
+} from "../../lib/lyricsLocalization";
 import {
   LYRICS_PROVIDERS,
   type LyricsLine,
@@ -61,6 +68,17 @@ export function LyricsPanel() {
     seekToLine,
     applyPayload,
   } = useTrackLyrics();
+
+  // Which extra reading rides under each line. Per-profile, so it
+  // follows the reader rather than the track — resolved against what
+  // THIS document carries just below.
+  const { mode: storedLocalization, setMode: setLocalization } =
+    useLyricsLocalization();
+  const localizations = availableLocalizations(lrcLines);
+  const localization = effectiveLocalizationMode(
+    storedLocalization,
+    localizations,
+  );
 
   const [isEditing, setIsEditing] = useState(false);
   // Provider picker dropdown — opens on click of the source label so the
@@ -170,6 +188,38 @@ export function LyricsPanel() {
             )}
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            {/* Only when this document has something to show: a toggle
+                that cycles to the same state it left is worse than no
+                toggle, and most lyrics carry neither reading. */}
+            {localizations.any && (
+              <button
+                type="button"
+                onClick={() =>
+                  setLocalization(
+                    cycleLocalizationMode(localization, localizations),
+                  )
+                }
+                // Action AND state, in that order. Three states means
+                // there is no `aria-pressed` to carry the state, so
+                // neither half can be dropped: a name with only the
+                // mode leaves a screen-reader user unable to tell what
+                // pressing it does, and one with only the action leaves
+                // them unable to tell what they are looking at. The
+                // tooltip stays the state alone — a sighted user can
+                // see the button.
+                aria-label={`${t("lyrics.actions.cycleLocalization")}. ${t(
+                  `lyrics.localization.${localization}`,
+                )}`}
+                title={t(`lyrics.localization.${localization}`)}
+                className={`p-2 rounded-full transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 ${
+                  localization !== "off"
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : ""
+                }`}
+              >
+                <Languages size={16} />
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setIsEditing(true)}
@@ -288,6 +338,47 @@ export function LyricsPanel() {
                         </span>
                       ) : (
                         line.text || " "
+                      )}
+                      {localization === "romanization" && line.romanization && (
+                        <span className="block mt-0.5 text-sm font-normal">
+                          {line.romanization.words ? (
+                            // Word for word with the line above, sharing
+                            // its bounds, so `activeWordIndex` addresses
+                            // both: a romanized word lights up with the
+                            // word it reads out.
+                            line.romanization.words.map((word, wi) => (
+                              <Fragment key={wi}>
+                                <span
+                                  className={
+                                    isActive && wi === activeWordIndex
+                                      ? "text-pink-500 dark:text-pink-400"
+                                      : isActive && wi < activeWordIndex
+                                        ? ""
+                                        : "opacity-60"
+                                  }
+                                  style={{ display: "inline-block" }}
+                                >
+                                  {word.text}
+                                </span>
+                                {wi < line.romanization!.words!.length - 1 &&
+                                  " "}
+                              </Fragment>
+                            ))
+                          ) : (
+                            // A line-timed document romanizes the line
+                            // and stops there. Nothing to highlight
+                            // inside it — which is just as true of the
+                            // line above.
+                            <span className="opacity-70">
+                              {line.romanization.text}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                      {localization === "translation" && line.translation && (
+                        <span className="block mt-0.5 text-sm font-normal italic opacity-70">
+                          {line.translation}
+                        </span>
                       )}
                     </button>
                   </li>

@@ -1339,7 +1339,13 @@
       "refetch": "Search again",
       "clear": "Clear lyrics",
       "fullscreen": "Fullscreen",
-      "edit": "Edit lyrics"
+      "edit": "Edit lyrics",
+      "cycleLocalization": "Change the extra reading"
+    },
+    "localization": {
+      "off": "No extra reading",
+      "romanization": "Showing romanization",
+      "translation": "Showing translation"
     },
     "source": {
       "embedded": "Lyrics embedded in file",
