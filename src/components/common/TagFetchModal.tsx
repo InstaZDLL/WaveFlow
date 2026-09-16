@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Check, Loader2, ChevronLeft, Download } from "lucide-react";
 import {
@@ -53,20 +53,38 @@ export function TagFetchModal({
   onApplied,
 }: TagFetchModalProps) {
   const { t } = useTranslation();
-  const [busy, setBusy] = useState(false);
+  /** A catalogue round-trip is in flight. Shows a spinner, nothing more. */
+  const [isLoading, setIsLoading] = useState(false);
+  /** Files are being written. This is the one that locks the modal. */
+  const [isApplying, setIsApplying] = useState(false);
   /**
-   * Dismissal, unless a write is in flight.
+   * Dismissal, unless a **write** is in flight.
    *
    * Apply walks the album one file at a time and closing does not stop
    * it: the loop keeps writing into a folder whose review screen is
    * gone, and the summary of what was written and what failed is lost
    * with it. Every path is routed through here — the X, the footer
    * button, the backdrop, and the Escape key `useModalA11y` binds.
+   *
+   * A *fetch* in flight does not lock anything. Two Deezer calls can
+   * take ten seconds between them, and a modal that refuses Escape
+   * while it waits for a network it may never hear from is worse than
+   * one whose answer arrives to nobody — which the token below
+   * discards anyway.
    */
   const closeUnlessBusy = () => {
-    if (!busy) onClose();
+    if (!isApplying) onClose();
   };
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, closeUnlessBusy);
+  /**
+   * Which fetch is the current one.
+   *
+   * Claimed when a fetch starts and checked when it lands, so a reply
+   * to a release the user has already navigated away from — or to a
+   * modal they closed and reopened on another album — is dropped
+   * instead of appearing under the wrong record.
+   */
+  const fetchTokenRef = useRef(0);
   const [sources, setSources] = useState<AlbumSource[] | null>(null);
   const [proposals, setProposals] = useState<AlbumProposals | null>(null);
   const [accepted, setAccepted] = useState<Accepted>({});
@@ -86,16 +104,16 @@ export function TagFetchModal({
     setApplied(null);
     setError(null);
     /* eslint-enable react-hooks/set-state-in-effect */
+    const token = ++fetchTokenRef.current;
     searchAlbumTagSources(albumId)
       .then((s) => {
-        if (alive) setSources(s);
+        if (alive && fetchTokenRef.current === token) setSources(s);
       })
       .catch((err) => {
-        if (alive) {
-          console.error("[TagFetch] source search failed", err);
-          setError(String(err));
-          setSources([]);
-        }
+        if (!alive || fetchTokenRef.current !== token) return;
+        console.error("[TagFetch] source search failed", err);
+        setError(String(err));
+        setSources([]);
       });
     return () => {
       alive = false;
@@ -103,17 +121,20 @@ export function TagFetchModal({
   }, [isOpen, albumId]);
 
   const pickSource = async (source: AlbumSource) => {
-    setBusy(true);
+    const token = ++fetchTokenRef.current;
+    setIsLoading(true);
     setError(null);
     try {
       const result = await fetchAlbumTagProposals(albumId, source.deezer_id);
+      if (fetchTokenRef.current !== token) return;
       setProposals(result);
       setAccepted(defaultAcceptance(result));
     } catch (err) {
+      if (fetchTokenRef.current !== token) return;
       console.error("[TagFetch] proposals failed", err);
       setError(String(err));
     } finally {
-      setBusy(false);
+      if (fetchTokenRef.current === token) setIsLoading(false);
     }
   };
 
@@ -161,7 +182,7 @@ export function TagFetchModal({
 
   const apply = async () => {
     if (!proposals || pendingCount === 0) return;
-    setBusy(true);
+    setIsApplying(true);
     setError(null);
     let ok = 0;
     let failed = 0;
@@ -186,7 +207,7 @@ export function TagFetchModal({
       }
     }
     setApplied({ ok, failed });
-    setBusy(false);
+    setIsApplying(false);
     if (ok > 0) onApplied?.();
   };
 
@@ -222,7 +243,7 @@ export function TagFetchModal({
           <button
             type="button"
             onClick={closeUnlessBusy}
-            disabled={busy}
+            disabled={isApplying}
             className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors disabled:opacity-50"
             aria-label={t("common.close")}
           >
@@ -242,7 +263,11 @@ export function TagFetchModal({
               onToggleColumn={toggleColumn}
             />
           ) : (
-            <SourceList sources={sources} busy={busy} onPick={pickSource} />
+            <SourceList
+              sources={sources}
+              busy={isLoading}
+              onPick={pickSource}
+            />
           )}
           {error && <p className="text-xs text-red-500">{error}</p>}
         </div>
@@ -255,7 +280,7 @@ export function TagFetchModal({
             <button
               type="button"
               onClick={closeUnlessBusy}
-              disabled={busy}
+              disabled={isApplying}
               className="px-4 py-2 rounded-full text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
             >
               {applied ? t("common.close") : t("common.cancel")}
@@ -264,10 +289,10 @@ export function TagFetchModal({
               <button
                 type="button"
                 onClick={() => void apply()}
-                disabled={busy || pendingCount === 0}
+                disabled={isApplying || pendingCount === 0}
                 className="px-5 py-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-2"
               >
-                {busy && <Loader2 size={14} className="animate-spin" />}
+                {isApplying && <Loader2 size={14} className="animate-spin" />}
                 {pendingCount === 0
                   ? t("tagFetch.apply")
                   : t("tagFetch.applyCount", { count: pendingCount })}

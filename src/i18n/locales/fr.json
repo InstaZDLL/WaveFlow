@@ -301,7 +301,9 @@
         "title": "Sommeil",
         "subtitle": "Très lent et discret pour s'endormir"
       },
-      "coverage": "{{analysed}} titres analysés sur {{total}}"
+      "coverage_one": "{{analysed}} titre analysé sur {{count}}",
+      "coverage_many": "{{analysed}} titres analysés sur {{count}}",
+      "coverage_other": "{{analysed}} titres analysés sur {{count}}"
     },
     "recentlyPlayed": {
       "title": "Récemment joués",

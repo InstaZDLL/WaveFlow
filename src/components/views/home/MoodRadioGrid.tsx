@@ -133,9 +133,13 @@ export function MoodRadioGrid() {
           {partlyAnalysed && (
             <>
               <br />
+              {/* `count` is the total, because that is the number the
+                  sentence's noun agrees with — Russian and Arabic
+                  inflect "tracks" on it, and a fixed form is wrong for
+                  most of the values this line actually shows. */}
               {t("home.moodRadio.coverage", {
+                count: counts.total_tracks,
                 analysed: counts.analysed_tracks,
-                total: counts.total_tracks,
               })}
             </>
           )}

@@ -301,7 +301,8 @@
         "title": "Schlaf",
         "subtitle": "Sehr langsam und leise zum Einschlafen"
       },
-      "coverage": "{{analysed}} von {{total}} Titeln analysiert"
+      "coverage_one": "{{analysed}} von {{count}} Titel analysiert",
+      "coverage_other": "{{analysed}} von {{count}} Titeln analysiert"
     },
     "recentlyPlayed": {
       "title": "Kürzlich gespielt",

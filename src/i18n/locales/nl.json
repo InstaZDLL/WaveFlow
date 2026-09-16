@@ -301,7 +301,8 @@
         "title": "Slapen",
         "subtitle": "Heel langzaam en zacht om in slaap te vallen"
       },
-      "coverage": "{{analysed}} van {{total}} nummers geanalyseerd"
+      "coverage_one": "{{analysed}} van {{count}} nummer geanalyseerd",
+      "coverage_other": "{{analysed}} van {{count}} nummers geanalyseerd"
     },
     "recentlyPlayed": {
       "title": "Recent afgespeeld",

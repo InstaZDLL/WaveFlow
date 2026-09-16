@@ -301,7 +301,9 @@
         "title": "Dormir",
         "subtitle": "Bem lento e suave para dormir"
       },
-      "coverage": "{{analysed}} de {{total}} faixas analisadas"
+      "coverage_one": "{{analysed}} de {{count}} faixa analisada",
+      "coverage_many": "{{analysed}} de {{count}} faixas analisadas",
+      "coverage_other": "{{analysed}} de {{count}} faixas analisadas"
     },
     "recentlyPlayed": {
       "title": "Reproduzidas recentemente",

@@ -301,7 +301,8 @@
         "title": "睡眠",
         "subtitle": "极慢极轻便于入睡"
       },
-      "coverage": "已分析 {{total}} 首中的 {{analysed}} 首"
+      "coverage_one": "已分析 {{count}} 首中的 {{analysed}} 首",
+      "coverage_other": "已分析 {{count}} 首中的 {{analysed}} 首"
     },
     "recentlyPlayed": {
       "title": "最近播放的",

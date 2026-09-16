@@ -37,10 +37,10 @@ const W_NUMBER: f64 = 0.15;
 /// that need it most — the badly tagged ones.
 pub const UNKNOWN_SCORE: f64 = 0.5;
 
-/// Above this, the match is offered as settled.
+/// At or above this, the match is offered as settled.
 pub const CONFIDENT: f64 = 0.85;
-/// Above this but below [`CONFIDENT`], the match is offered for review.
-/// Below it there is no match at all.
+/// At or above this but below [`CONFIDENT`], the match is offered for
+/// review. Below it there is no match at all.
 pub const DOUBTFUL: f64 = 0.55;
 
 /// How far apart two durations may be before the signal is worthless.

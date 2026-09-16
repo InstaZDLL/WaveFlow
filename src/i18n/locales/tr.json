@@ -301,7 +301,8 @@
         "title": "Uyku",
         "subtitle": "Uyumak için çok yavaş ve sessiz"
       },
-      "coverage": "{{total}} parçadan {{analysed}} tanesi analiz edildi"
+      "coverage_one": "{{count}} parçadan {{analysed}} tanesi analiz edildi",
+      "coverage_other": "{{count}} parçadan {{analysed}} tanesi analiz edildi"
     },
     "recentlyPlayed": {
       "title": "Son çalınanlar",

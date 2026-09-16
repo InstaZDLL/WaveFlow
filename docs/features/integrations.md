@@ -271,8 +271,8 @@ enough to trust least.
   "what is the best remote track for this local one" lets a generic
   title — "Intro", "Interlude" — win against several local files at
   once and capture one that belonged to another.
-- **Two thresholds**: confident above 0.85, doubtful above 0.55,
-  nothing below. The middle band is the point — it is what the review
+- **Two thresholds**, both inclusive: confident at or above 0.85,
+  doubtful at or above 0.55, nothing below. The middle band is the point — it is what the review
   screen exists to resolve, and it is why confident matches arrive
   pre-accepted and doubtful ones do not.
 

@@ -317,7 +317,10 @@
         "subtitle": "Очень медленные и тихие треки для сна"
       },
       "trackCount_many": "{{count}} треков",
-      "coverage": "Проанализировано {{analysed}} из {{total}} треков"
+      "coverage_one": "Проанализирован {{analysed}} из {{count}} трека",
+      "coverage_few": "Проанализировано {{analysed}} из {{count}} треков",
+      "coverage_many": "Проанализировано {{analysed}} из {{count}} треков",
+      "coverage_other": "Проанализировано {{analysed}} из {{count}} треков"
     },
     "recentlyPlayed": {
       "title": "Недавно проигранные",

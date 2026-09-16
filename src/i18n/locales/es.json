@@ -301,7 +301,9 @@
         "title": "Dormir",
         "subtitle": "Muy lento y suave para conciliar el sueño"
       },
-      "coverage": "{{analysed}} de {{total}} pistas analizadas"
+      "coverage_one": "{{analysed}} de {{count}} pista analizada",
+      "coverage_many": "{{analysed}} de {{count}} pistas analizadas",
+      "coverage_other": "{{analysed}} de {{count}} pistas analizadas"
     },
     "recentlyPlayed": {
       "title": "Reproducido recientemente",

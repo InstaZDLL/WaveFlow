@@ -301,7 +301,8 @@
         "title": "수면",
         "subtitle": "잠들기 위한 매우 느리고 조용한 곡"
       },
-      "coverage": "{{total}}곡 중 {{analysed}}곡 분석됨"
+      "coverage_one": "{{count}}곡 중 {{analysed}}곡 분석됨",
+      "coverage_other": "{{count}}곡 중 {{analysed}}곡 분석됨"
     },
     "recentlyPlayed": {
       "title": "최근 재생한 곡",

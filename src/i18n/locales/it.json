@@ -301,7 +301,9 @@
         "title": "Sonno",
         "subtitle": "Molto lento e silenzioso per addormentarsi"
       },
-      "coverage": "{{analysed}} brani analizzati su {{total}}"
+      "coverage_one": "{{analysed}} brano analizzato su {{count}}",
+      "coverage_many": "{{analysed}} brani analizzati su {{count}}",
+      "coverage_other": "{{analysed}} brani analizzati su {{count}}"
     },
     "recentlyPlayed": {
       "title": "Ascoltati di recente",

@@ -301,7 +301,8 @@
         "title": "Tidur",
         "subtitle": "Sangat pelan dan lembut untuk tertidur"
       },
-      "coverage": "{{analysed}} dari {{total}} lagu dianalisis"
+      "coverage_one": "{{analysed}} dari {{count}} lagu dianalisis",
+      "coverage_other": "{{analysed}} dari {{count}} lagu dianalisis"
     },
     "recentlyPlayed": {
       "title": "Baru saja diputar",

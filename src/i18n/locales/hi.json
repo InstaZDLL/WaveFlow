@@ -301,7 +301,8 @@
         "title": "नींद",
         "subtitle": "सोने में मदद के लिए बहुत धीमा और शांत"
       },
-      "coverage": "{{total}} में से {{analysed}} ट्रैक विश्लेषित"
+      "coverage_one": "{{count}} में से {{analysed}} ट्रैक विश्लेषित",
+      "coverage_other": "{{count}} में से {{analysed}} ट्रैक विश्लेषित"
     },
     "recentlyPlayed": {
       "title": "हाल ही में चलाए गए",

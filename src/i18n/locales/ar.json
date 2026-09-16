@@ -326,7 +326,12 @@
       "trackCount_two": "مقطعان",
       "trackCount_few": "{{count}} مقاطع",
       "trackCount_many": "{{count}} مقطعًا",
-      "coverage": "جرى تحليل {{analysed}} من أصل {{total}} مقطعًا"
+      "coverage_zero": "جرى تحليل {{analysed}} من أصل {{count}} مقطع",
+      "coverage_one": "جرى تحليل {{analysed}} من أصل مقطع واحد",
+      "coverage_two": "جرى تحليل {{analysed}} من أصل مقطعين",
+      "coverage_few": "جرى تحليل {{analysed}} من أصل {{count}} مقاطع",
+      "coverage_many": "جرى تحليل {{analysed}} من أصل {{count}} مقطعًا",
+      "coverage_other": "جرى تحليل {{analysed}} من أصل {{count}} مقطع"
     },
     "recentlyPlayed": {
       "title": "شُغّلت مؤخرًا",

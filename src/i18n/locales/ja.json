@@ -301,7 +301,8 @@
         "title": "スリープ",
         "subtitle": "入眠用のとてもゆっくりで静かな曲"
       },
-      "coverage": "{{total}} 曲中 {{analysed}} 曲を解析済み"
+      "coverage_one": "{{count}} 曲中 {{analysed}} 曲を解析済み",
+      "coverage_other": "{{count}} 曲中 {{analysed}} 曲を解析済み"
     },
     "recentlyPlayed": {
       "title": "最近再生した曲",

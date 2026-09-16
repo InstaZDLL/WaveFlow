@@ -301,7 +301,8 @@
         "title": "Sleep",
         "subtitle": "Very slow and quiet for falling asleep"
       },
-      "coverage": "{{analysed}} of {{total}} tracks analysed"
+      "coverage_one": "{{analysed}} of {{count}} track analysed",
+      "coverage_other": "{{analysed}} of {{count}} tracks analysed"
     },
     "recentlyPlayed": {
       "title": "Recently played",
