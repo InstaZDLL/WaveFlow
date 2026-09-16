@@ -1925,3 +1925,67 @@ mod step_tests {
         assert_eq!(stepped_index(0, 0, Direction::Next, RepeatMode::All), None);
     }
 }
+
+#[cfg(test)]
+mod fill_queue_tests {
+    use super::{fill_queue, read_album_ordered};
+    use sqlx::SqlitePool;
+
+    /// The repo's own profile migrations, with `foreign_keys` on —
+    /// `fill_queue` writes rows that reference `track`, and the setting
+    /// it stores is written by a query nothing checks at compile time.
+    async fn migrated_pool() -> SqlitePool {
+        use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+        use std::str::FromStr;
+
+        let options = SqliteConnectOptions::from_str(":memory:")
+            .unwrap()
+            .foreign_keys(true);
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(options)
+            .await
+            .unwrap();
+        sqlx::migrate!("../../migrations/profile")
+            .run(&pool)
+            .await
+            .unwrap();
+        sqlx::raw_sql(
+            "INSERT INTO library (id, name, created_at, updated_at)
+                  VALUES (1, 'l', 0, 0);
+             INSERT INTO track (id, library_id, file_path, file_hash, file_size,
+                                file_modified, title, duration_ms, added_at)
+                  VALUES (1, 1, '/l/a.flac', 'h1', 1, 0, 'A', 1000, 0),
+                         (2, 1, '/l/b.flac', 'h2', 1, 0, 'B', 1000, 0);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        pool
+    }
+
+    /// Clearing it matters as much as setting it (#647): a flag left
+    /// raised would hand album gain to the next ordinary playlist, and
+    /// the whole reason this lives in `fill_queue` is that every queue
+    /// replacement passes through here.
+    #[tokio::test]
+    async fn the_queue_records_whether_it_was_built_from_records() {
+        let pool = migrated_pool().await;
+
+        // Nothing stored yet is not "album-ordered".
+        assert!(!read_album_ordered(&pool).await);
+
+        fill_queue(&pool, "radio", None, &[1, 2], 0, true)
+            .await
+            .unwrap();
+        assert!(read_album_ordered(&pool).await);
+
+        fill_queue(&pool, "playlist", Some(7), &[1], 0, false)
+            .await
+            .unwrap();
+        assert!(
+            !read_album_ordered(&pool).await,
+            "the next queue is not a session of records because the last one was"
+        );
+    }
+}

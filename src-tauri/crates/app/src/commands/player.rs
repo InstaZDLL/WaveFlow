@@ -2936,3 +2936,87 @@ async fn server_stand_in(
         .await
         .ok()
 }
+
+#[cfg(test)]
+mod album_ordering_tests {
+    use super::queue_is_album_ordered;
+    use sqlx::SqlitePool;
+
+    /// The real profile schema. `queue_is_album_ordered` reads
+    /// `playlist.smart_rules` through a query nothing verifies at
+    /// compile time — a wrong column name would compile, run, and
+    /// answer `false` for every Daily Mix there will ever be.
+    async fn migrated_pool() -> SqlitePool {
+        use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+        use std::str::FromStr;
+
+        let options = SqliteConnectOptions::from_str(":memory:")
+            .unwrap()
+            .foreign_keys(true);
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(options)
+            .await
+            .unwrap();
+        sqlx::migrate!("../../migrations/profile")
+            .run(&pool)
+            .await
+            .unwrap();
+        sqlx::raw_sql(
+            "INSERT INTO playlist (id, name, is_smart, smart_rules, created_at, updated_at)
+                  VALUES (1, 'Daily Mix 1', 1,
+                          '{\"kind\":\"daily_mix\",\"slot\":1,\"album_mode\":true}', 0, 0),
+                         (2, 'Daily Mix 2', 1,
+                          '{\"kind\":\"daily_mix\",\"slot\":2,\"album_mode\":false}', 0, 0),
+                         (3, 'Daily Mix 3', 1,
+                          '{\"kind\":\"daily_mix\",\"slot\":3}', 0, 0),
+                         (4, 'On Repeat', 1, '{\"kind\":\"on_repeat\"}', 0, 0),
+                         (5, 'Mine', 0, NULL, 0, 0);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        pool
+    }
+
+    /// A mix that was built out of records says so weeks later, and one
+    /// that fell back to tracks says that instead.
+    #[tokio::test]
+    async fn a_daily_mix_is_read_back_out_of_its_own_rule() {
+        let pool = migrated_pool().await;
+
+        assert!(queue_is_album_ordered(&pool, "playlist", Some(1), None).await);
+        assert!(!queue_is_album_ordered(&pool, "playlist", Some(2), None).await);
+        assert!(
+            !queue_is_album_ordered(&pool, "playlist", Some(3), None).await,
+            "a rule written before the flag existed describes a mix of tracks"
+        );
+        assert!(!queue_is_album_ordered(&pool, "playlist", Some(4), None).await);
+        assert!(!queue_is_album_ordered(&pool, "playlist", Some(5), None).await);
+        assert!(
+            !queue_is_album_ordered(&pool, "playlist", Some(404), None).await,
+            "a playlist that is not there is not a session of records"
+        );
+    }
+
+    /// Mood Radio knows as it answers, and nothing else may be asked to
+    /// guess: an album, an artist page, the library are what their own
+    /// `source_type` says.
+    #[tokio::test]
+    async fn a_declared_answer_is_taken_and_nothing_else_is_invented() {
+        let pool = migrated_pool().await;
+
+        assert!(queue_is_album_ordered(&pool, "radio", None, Some(true)).await);
+        assert!(
+            !queue_is_album_ordered(&pool, "radio", None, Some(false)).await,
+            "a mood that fell back to tracks produced tracks"
+        );
+        assert!(
+            !queue_is_album_ordered(&pool, "radio", None, None).await,
+            "and one that declares nothing is not assumed to be records"
+        );
+        for source in ["album", "artist", "library", "liked", "manual"] {
+            assert!(!queue_is_album_ordered(&pool, source, Some(1), None).await);
+        }
+    }
+}
