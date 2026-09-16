@@ -708,6 +708,68 @@ mod tests {
         assert_eq!(decision.reason, RenderReason::SoftwareDidNotHelp);
     }
 
+    /// The file is the whole memory of this mechanism, so what it does
+    /// and does not carry between two launches is the contract.
+    #[test]
+    fn the_state_file_carries_exactly_what_the_next_launch_needs() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("renderer.json");
+
+        // Nothing written yet: the default, and no complaint about it.
+        let (state, note) = read_state(&path);
+        assert!(state.remembered.is_none() && state.armed.is_none());
+        assert!(note.is_none(), "an absent file is not a problem");
+
+        write_state(
+            &path,
+            &RenderState {
+                remembered: Some(RenderMode::Software),
+                armed: Some(RenderMode::Gpu),
+            },
+        )
+        .expect("write");
+        let (state, note) = read_state(&path);
+        assert_eq!(state.remembered, Some(RenderMode::Software));
+        assert_eq!(state.armed, Some(RenderMode::Gpu));
+        assert!(note.is_none());
+
+        // Nothing left to say is the absence of the file, not an empty
+        // one: the default has to survive the state being cleared.
+        write_state(
+            &path,
+            &RenderState {
+                remembered: None,
+                armed: None,
+            },
+        )
+        .expect("clear");
+        assert!(!path.exists());
+        // And clearing what is already clear is not an error.
+        write_state(
+            &path,
+            &RenderState {
+                remembered: None,
+                armed: None,
+            },
+        )
+        .expect("clear again");
+    }
+
+    /// A file truncated by a crash mid-write, or edited by hand, must
+    /// read as "nothing known" and say so — never refuse the launch.
+    /// This runs before a window exists, so an error here is a startup
+    /// that does not happen.
+    #[test]
+    fn an_unreadable_state_file_is_a_default_and_a_complaint() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("renderer.json");
+        std::fs::write(&path, "{\"remembered\": \"softw").expect("write");
+
+        let (state, note) = read_state(&path);
+        assert!(state.remembered.is_none() && state.armed.is_none());
+        assert!(note.is_some(), "the one line that explains the default");
+    }
+
     /// The escape hatch wins over everything the file says, in both
     /// directions.
     #[test]
