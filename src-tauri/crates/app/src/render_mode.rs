@@ -489,7 +489,6 @@ pub fn retry_gpu() -> std::io::Result<()> {
     let Some(active) = ACTIVE.get() else {
         return Ok(());
     };
-    RETRY_REQUESTED.store(true, std::sync::atomic::Ordering::Release);
     // The armed marker for the *current* launch stays: this launch has
     // painted or it has not, and that question is not what is being
     // answered here.
@@ -501,6 +500,11 @@ pub fn retry_gpu() -> std::io::Result<()> {
             armed,
         },
     )?;
+    // Set only once the write landed. Raised first, a failed retry —
+    // reported as failed to the user — would still stop a later paint
+    // from restoring the fallback, and quietly perform the retry they
+    // were told had not happened.
+    RETRY_REQUESTED.store(true, std::sync::atomic::Ordering::Release);
     tracing::info!("renderer: forgot the software fallback; the next launch will try the GPU");
     Ok(())
 }

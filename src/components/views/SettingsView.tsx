@@ -559,6 +559,16 @@ export function SettingsView({ onNavigate,
   const [activeCategory, setActiveCategory] = useState<SettingsCategory>(
     () => initialCategory ?? readStoredCategory(),
   );
+  // The banner that sends people here is visible *on* this page too, so
+  // the request can arrive while Settings is already mounted — React
+  // keeps the instance and the initializer above never runs again. The
+  // value changes once per request, so a tab the user picks afterwards
+  // is not fought over.
+  useEffect(() => {
+    if (!initialCategory) return;
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
+    setActiveCategory(initialCategory);
+  }, [initialCategory]);
   const handleCategoryChange = useCallback((next: SettingsCategory) => {
     setActiveCategory(next);
     try {
