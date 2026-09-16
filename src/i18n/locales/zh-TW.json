@@ -15,6 +15,29 @@
     "message": "您的播放記錄已停止傳送。請重新登入以繼續。",
     "action": "開啟設定"
   },
+  "rendering": {
+    "banner": {
+      "title": "已切換為軟體繪製",
+      "message": "上次啟動始終沒有顯示介面。WaveFlow 已關閉硬體加速以便重新啟動，畫面可能會較慢。",
+      "action": "查看詳細資料"
+    },
+    "card": {
+      "title": "介面繪製",
+      "retryGpu": "重試 GPU",
+      "restartToApply": "下次啟動生效"
+    },
+    "mode": {
+      "gpu": "硬體加速",
+      "software": "軟體繪製"
+    },
+    "reason": {
+      "default": "預設設定",
+      "forced": "由 WAVEFLOW_RENDERER 指定",
+      "previous-launch-never-painted": "上次啟動沒有顯示任何內容",
+      "remembered": "沿用上次成功啟動的設定",
+      "software-did-not-help": "軟體繪製也沒有改善，已恢復預設設定"
+    }
+  },
   "updater": {
     "available": {
       "title": "有更新可用(版本{{version}})",

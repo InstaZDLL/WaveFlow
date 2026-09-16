@@ -15,6 +15,29 @@
     "message": "Your scrobbles are no longer being sent. Sign in again to resume.",
     "action": "Open settings"
   },
+  "rendering": {
+    "banner": {
+      "title": "Software rendering is on",
+      "message": "The previous start never drew the interface. WaveFlow turned off hardware acceleration to get going again; drawing may be slower.",
+      "action": "See the details"
+    },
+    "card": {
+      "title": "Interface rendering",
+      "retryGpu": "Try the GPU again",
+      "restartToApply": "From the next start"
+    },
+    "mode": {
+      "gpu": "Hardware acceleration",
+      "software": "Software rendering"
+    },
+    "reason": {
+      "default": "default setting",
+      "forced": "set by WAVEFLOW_RENDERER",
+      "previous-launch-never-painted": "the previous start drew nothing",
+      "remembered": "kept from the last successful start",
+      "software-did-not-help": "software rendering changed nothing, back to the default"
+    }
+  },
   "updater": {
     "available": {
       "title": "Update available (v{{version}})",

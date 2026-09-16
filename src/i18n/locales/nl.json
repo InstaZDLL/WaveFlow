@@ -15,6 +15,29 @@
     "message": "Je scrobbles worden niet meer verzonden. Log opnieuw in om door te gaan.",
     "action": "Instellingen openen"
   },
+  "rendering": {
+    "banner": {
+      "title": "Softwarematige weergave ingeschakeld",
+      "message": "De vorige start heeft de interface nooit getoond. WaveFlow heeft hardwareversnelling uitgeschakeld om weer op gang te komen; het tekenen kan trager zijn.",
+      "action": "Details bekijken"
+    },
+    "card": {
+      "title": "Weergave van de interface",
+      "retryGpu": "Gpu opnieuw proberen",
+      "restartToApply": "Bij de volgende start"
+    },
+    "mode": {
+      "gpu": "Hardwareversnelling",
+      "software": "Softwarematige weergave"
+    },
+    "reason": {
+      "default": "standaardinstelling",
+      "forced": "ingesteld door WAVEFLOW_RENDERER",
+      "previous-launch-never-painted": "de vorige start toonde niets",
+      "remembered": "overgenomen van de laatste geslaagde start",
+      "software-did-not-help": "softwarematige weergave hielp niet, terug naar de standaardinstelling"
+    }
+  },
   "updater": {
     "available": {
       "title": "Update beschikbaar (v{{version}})",

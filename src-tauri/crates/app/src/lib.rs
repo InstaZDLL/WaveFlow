@@ -21,6 +21,7 @@ mod offline;
 mod paths;
 mod player_actions;
 mod queue;
+mod render_mode;
 // Remote play queue (RFC-005). Plain in-memory data — compiled
 // unconditionally so the always-present player control seams can probe
 // and clear it; the `sync_v2`-gated orchestration lives in
@@ -105,6 +106,14 @@ pub fn run() {
     // platforms — see `report_fatal_and_exit` for why "inside `setup`"
     // is not that place (issues #526, #529).
     preflight_schema_guard(&context.config().identifier);
+
+    // Choose a renderer, and arm the marker that catches a launch which
+    // never paints (#595). Here, and not in `setup`, for two reasons
+    // that both come down to ordering: the environment variables this
+    // sets are read by the web engine when *its* process starts, and
+    // the `main` window's webview is created by `Builder::build` —
+    // before `setup` runs at all.
+    preflight_render_mode(&context.config().identifier);
 
     // `mut` is only consumed when the updater plugin is wired in (release
     // builds); the lint would fire in debug otherwise.
@@ -676,6 +685,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::ready::app_ready,
+            commands::renderer::renderer_status,
+            commands::renderer::renderer_retry_gpu,
             commands::app_info::get_app_info,
             commands::app_info::open_data_folder,
             commands::changelog::get_changelog,
@@ -1327,6 +1338,23 @@ async fn restore_bounds_and_reveal(app: AppHandle) -> bool {
 ///
 /// Anything short of a verdict — no app-data dir, no database yet, a
 /// file it can't read — proceeds to normal startup.
+/// Decide how the interface will be drawn, before anything can draw it.
+///
+/// Mirrors [`preflight_schema_guard`] in shape and in placement, and is
+/// non-fatal in every direction: a missing app-data directory means no
+/// marker can be armed, which is exactly where the app was before this
+/// existed, and is not a reason to refuse to start.
+fn preflight_render_mode(identifier: &str) {
+    match paths::AppPaths::root_for_identifier(identifier) {
+        Ok(root) => {
+            render_mode::decide(root);
+        }
+        Err(err) => {
+            tracing::warn!(%err, "no app-data dir; the renderer fallback is inactive this launch");
+        }
+    }
+}
+
 fn preflight_schema_guard(identifier: &str) {
     let root = match paths::AppPaths::root_for_identifier(identifier) {
         Ok(root) => root,

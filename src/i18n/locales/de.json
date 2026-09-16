@@ -15,6 +15,29 @@
     "message": "Deine Scrobbles werden nicht mehr gesendet. Melde dich erneut an, um fortzufahren.",
     "action": "Einstellungen öffnen"
   },
+  "rendering": {
+    "banner": {
+      "title": "Software-Rendering aktiv",
+      "message": "Der vorherige Start hat die Oberfläche nie angezeigt. WaveFlow hat die Hardwarebeschleunigung abgeschaltet, um wieder zu starten; die Darstellung kann langsamer sein.",
+      "action": "Details ansehen"
+    },
+    "card": {
+      "title": "Darstellung der Oberfläche",
+      "retryGpu": "GPU erneut versuchen",
+      "restartToApply": "Beim nächsten Start"
+    },
+    "mode": {
+      "gpu": "Hardwarebeschleunigung",
+      "software": "Software-Rendering"
+    },
+    "reason": {
+      "default": "Standardeinstellung",
+      "forced": "durch WAVEFLOW_RENDERER festgelegt",
+      "previous-launch-never-painted": "der vorherige Start hat nichts angezeigt",
+      "remembered": "vom letzten erfolgreichen Start übernommen",
+      "software-did-not-help": "Software-Rendering hat nichts geändert, zurück zur Standardeinstellung"
+    }
+  },
   "updater": {
     "available": {
       "title": "Update verfügbar (v{{version}})",

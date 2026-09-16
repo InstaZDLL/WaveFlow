@@ -31,6 +31,7 @@ import { DeviceMenu } from "./DeviceMenu";
 import { PlayerBar } from "../player/PlayerBar";
 import { ProfileSelectorModal } from "../common/ProfileSelectorModal";
 import { LastfmReauthBanner } from "../common/LastfmReauthBanner";
+import { SoftwareRenderingBanner } from "../common/SoftwareRenderingBanner";
 import { UpdateBanner } from "../common/UpdateBanner";
 import { ScanProgressToast } from "../common/ScanProgressToast";
 import { TaskStatusBar } from "./TaskStatusBar";
@@ -800,6 +801,9 @@ export function AppLayout() {
         />
 
         <LastfmReauthBanner onGoToSettings={() => setActiveView("settings")} />
+        <SoftwareRenderingBanner
+          onGoToSettings={() => setActiveView("settings")}
+        />
         <UpdateBanner />
         <ScanProgressToast />
         <PlaybackAlertToast />

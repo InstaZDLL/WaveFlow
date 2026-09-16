@@ -15,6 +15,29 @@
     "message": "Os teus scrobbles já não estão a ser enviados. Volta a iniciar sessão para continuares.",
     "action": "Abrir as definições"
   },
+  "rendering": {
+    "banner": {
+      "title": "Renderização por software ativada",
+      "message": "O arranque anterior nunca mostrou a interface. O WaveFlow desativou a aceleração por hardware para voltar a arrancar; o desenho pode ser mais lento.",
+      "action": "Ver os detalhes"
+    },
+    "card": {
+      "title": "Renderização da interface",
+      "retryGpu": "Tentar novamente a GPU",
+      "restartToApply": "No próximo arranque"
+    },
+    "mode": {
+      "gpu": "Aceleração por hardware",
+      "software": "Renderização por software"
+    },
+    "reason": {
+      "default": "definição predefinida",
+      "forced": "imposto por WAVEFLOW_RENDERER",
+      "previous-launch-never-painted": "o arranque anterior não mostrou nada",
+      "remembered": "mantido do último arranque bem-sucedido",
+      "software-did-not-help": "a renderização por software não mudou nada, regresso à predefinição"
+    }
+  },
   "updater": {
     "available": {
       "title": "Atualização disponível (v{{version}})",

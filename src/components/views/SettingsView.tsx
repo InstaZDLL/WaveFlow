@@ -109,6 +109,7 @@ import {
   batchFetchMissingArtistPictures,
 } from "../../lib/tauri/deezer";
 import { openLogFolder, readRecentLogs } from "../../lib/tauri/diagnostics";
+import { RenderingCard } from "./settings/RenderingCard";
 import { getOfflineMode, setOfflineMode } from "../../lib/tauri/offline";
 import { exportProfile, importProfile } from "../../lib/tauri/profile_io";
 import { pickFile, pickSaveFile } from "../../lib/tauri/dialog";
@@ -4418,6 +4419,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             {t("settings.sections.diagnostics")}
           </h2>
           <div className="space-y-1">
+            <RenderingCard />
             <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center space-x-4 min-w-0">
