@@ -15,6 +15,31 @@
     "message": "Scrobble'ların artık gönderilmiyor. Devam etmek için yeniden giriş yap.",
     "action": "Ayarları aç"
   },
+  "rendering": {
+    "banner": {
+      "title": "Yazılımla görüntüleme açık",
+      "message": "Önceki açılış arayüzü hiç göstermedi. WaveFlow yeniden açılabilmek için donanım hızlandırmasını kapattı; çizim daha yavaş olabilir.",
+      "action": "Ayrıntılara bak"
+    },
+    "card": {
+      "title": "Arayüz görüntüleme",
+      "retryGpu": "GPU'yu yeniden dene",
+      "restartToApply": "Bir sonraki açılışta",
+      "retryFailed": "Kaydedilemedi. Yeniden deneyin."
+    },
+    "mode": {
+      "gpu": "Donanım hızlandırma",
+      "software": "Yazılımla görüntüleme"
+    },
+    "reason": {
+      "default": "varsayılan ayar",
+      "forced": "WAVEFLOW_RENDERER ile belirlendi",
+      "previous-launch-never-painted": "önceki açılış hiçbir şey göstermedi",
+      "remembered": "son başarılı açılıştan korundu",
+      "software-did-not-help": "yazılımla görüntüleme bir şey değiştirmedi, varsayılana dönüldü",
+      "software-unavailable": "bu platformda yazılımla görüntüleme yok"
+    }
+  },
   "updater": {
     "available": {
       "title": "Güncelleme mevcut (v{{version}})",

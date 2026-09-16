@@ -15,6 +15,31 @@
     "message": "I tuoi scrobble non vengono più inviati. Accedi di nuovo per riprendere.",
     "action": "Apri le impostazioni"
   },
+  "rendering": {
+    "banner": {
+      "title": "Rendering software attivo",
+      "message": "L'avvio precedente non ha mai mostrato l'interfaccia. WaveFlow ha disattivato l'accelerazione hardware per ripartire; il disegno può essere più lento.",
+      "action": "Vedi i dettagli"
+    },
+    "card": {
+      "title": "Rendering dell'interfaccia",
+      "retryGpu": "Riprova la GPU",
+      "restartToApply": "Al prossimo avvio",
+      "retryFailed": "Salvataggio non riuscito. Riprova."
+    },
+    "mode": {
+      "gpu": "Accelerazione hardware",
+      "software": "Rendering software"
+    },
+    "reason": {
+      "default": "impostazione predefinita",
+      "forced": "imposto da WAVEFLOW_RENDERER",
+      "previous-launch-never-painted": "l'avvio precedente non ha mostrato nulla",
+      "remembered": "mantenuto dall'ultimo avvio riuscito",
+      "software-did-not-help": "il rendering software non ha cambiato nulla, ritorno all'impostazione predefinita",
+      "software-unavailable": "questa piattaforma non ha il rendering software"
+    }
+  },
   "updater": {
     "available": {
       "title": "Aggiornamento disponibile (v{{version}})",

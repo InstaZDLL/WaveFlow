@@ -15,6 +15,31 @@
     "message": "您的 Scrobble 不再被发送。请重新登录以继续。",
     "action": "打开设置"
   },
+  "rendering": {
+    "banner": {
+      "title": "已切换到软件渲染",
+      "message": "上次启动始终没有显示界面。WaveFlow 已关闭硬件加速以便重新启动，画面可能会更慢。",
+      "action": "查看详情"
+    },
+    "card": {
+      "title": "界面渲染",
+      "retryGpu": "重试 GPU",
+      "restartToApply": "下次启动生效",
+      "retryFailed": "保存失败，请重试。"
+    },
+    "mode": {
+      "gpu": "硬件加速",
+      "software": "软件渲染"
+    },
+    "reason": {
+      "default": "默认设置",
+      "forced": "由 WAVEFLOW_RENDERER 指定",
+      "previous-launch-never-painted": "上次启动没有显示任何内容",
+      "remembered": "沿用上次成功启动的设置",
+      "software-did-not-help": "软件渲染也没有改善，已恢复默认设置",
+      "software-unavailable": "此平台没有软件渲染"
+    }
+  },
   "updater": {
     "available": {
       "title": "有可用更新（版本 {{version}}）",

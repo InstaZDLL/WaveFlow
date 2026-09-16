@@ -15,6 +15,31 @@
     "message": "スクロブル（再生履歴）の送信が停止しました。再開するには再度ログインしてください。",
     "action": "設定を開く"
   },
+  "rendering": {
+    "banner": {
+      "title": "ソフトウェア描画に切り替えました",
+      "message": "前回の起動では画面が表示されませんでした。WaveFlow は起動し直すためにハードウェアアクセラレーションを無効にしています。描画が遅くなることがあります。",
+      "action": "詳細を見る"
+    },
+    "card": {
+      "title": "画面の描画",
+      "retryGpu": "GPU を再試行",
+      "restartToApply": "次回の起動から",
+      "retryFailed": "保存できませんでした。もう一度お試しください。"
+    },
+    "mode": {
+      "gpu": "ハードウェアアクセラレーション",
+      "software": "ソフトウェア描画"
+    },
+    "reason": {
+      "default": "既定の設定",
+      "forced": "WAVEFLOW_RENDERER による指定",
+      "previous-launch-never-painted": "前回の起動で何も表示されなかったため",
+      "remembered": "前回正常に起動した設定を引き継ぎ",
+      "software-did-not-help": "ソフトウェア描画でも変わらなかったため既定に戻しました",
+      "software-unavailable": "このプラットフォームにソフトウェア描画はありません"
+    }
+  },
   "updater": {
     "available": {
       "title": "アップデートが利用可能です（バージョン{{version}}）",

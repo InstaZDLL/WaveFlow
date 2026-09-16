@@ -21,6 +21,7 @@ mod offline;
 mod paths;
 mod player_actions;
 mod queue;
+mod render_mode;
 // Remote play queue (RFC-005). Plain in-memory data — compiled
 // unconditionally so the always-present player control seams can probe
 // and clear it; the `sync_v2`-gated orchestration lives in
@@ -86,18 +87,27 @@ pub fn run() {
     // ordinary return and an unwinding panic; the paths that leave
     // through `std::process::exit` call `logging::flush` themselves,
     // because `exit` runs no destructors at all.
+    // Resolved up front because the pre-flights below need the bundle
+    // identifier to find the app-data root — `tauri.conf.json` stays
+    // its single source of truth — and because everything this call
+    // does is compile-time work anyway.
+    let context = tauri::generate_context!();
+
+    // Before logging, and that ordering is the point: choosing a
+    // renderer sets process-wide environment variables (#595), and
+    // `init_tracing` starts `tracing_appender`'s worker thread. Mutating
+    // the environment while another thread may be reading it is a race
+    // this can simply avoid by going first. Nothing here logs; what it
+    // decided is reported a few lines down.
+    preflight_render_mode(&context.config().identifier);
+
     let _log_guard = logging::init_tracing();
+    render_mode::log_decision();
 
     // Start the splash-handoff clock before anything else, so the timings
     // logged when the frontend reports ready are measured from the process
     // start rather than from whichever half touched the gate first (#626).
     commands::ready::mark_launch();
-
-    // Resolved up front because the pre-flight below needs the bundle
-    // identifier to find the app-data root — `tauri.conf.json` stays
-    // its single source of truth — and because everything this call
-    // does is compile-time work anyway.
-    let context = tauri::generate_context!();
 
     // Refuse a database written by a newer build BEFORE the event loop
     // exists. This is the only startup failure with a remedy the user
@@ -114,6 +124,14 @@ pub fn run() {
         // exits cleanly before any heavy init (pool open, audio engine,
         // tray, watchers) runs in the duplicate process.
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            // The launch that was just turned away armed the renderer
+            // marker before this plugin could stop it — it runs from
+            // inside `Builder`, and the marker has to be on disk before
+            // any window can fail to paint. Left there, it would send
+            // the *next* launch into software rendering because someone
+            // opened the app twice (#595). This instance is the one
+            // that knows the truth, so it writes it back.
+            render_mode::restore_after_duplicate_launch();
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();
                 let _ = window.unminimize();
@@ -156,6 +174,11 @@ pub fn run() {
     builder
         .manage(QuitGate(AtomicBool::new(false)))
         .setup(|app| {
+            // Everything below can fail, and a failure here stops the
+            // launch before the frontend can report a paint. This takes
+            // the renderer marker down on any of those paths — including
+            // the ones added after this line (#595).
+            let setup_guard = render_mode::SetupGuard::new();
             let init_handle = app.handle().clone();
             let engine_handle = app.handle().clone();
 
@@ -185,6 +208,9 @@ pub fn run() {
                                 | AppError::SchemaWrittenElsewhere { .. }
                         ) {
                             tracing::error!(%err, "fatal startup error, exiting");
+                            // Stopping on purpose is not a launch that
+                            // failed to paint (#595).
+                            render_mode::disarm_for_deliberate_exit();
                             // `exit` runs no destructors, so the line
                             // above would die in the writer's buffer.
                             // Here it is the only account there is —
@@ -192,6 +218,8 @@ pub fn run() {
                             logging::flush();
                             std::process::exit(1);
                         }
+                        // The marker comes down through `setup_guard`,
+                        // like every other failure in this closure.
                         return Err(Box::new(err));
                     }
                 };
@@ -652,7 +680,7 @@ pub fn run() {
                         // frontend's own measurement (#626).
                         tracing::warn!(
                             since_launch_ms = commands::ready::since_launch_ms(),
-                            "splash handoff: no ready signal in 15s, force-revealing main window"
+                            "splash handoff: no ready signal in 15s, force-revealing main window; the renderer marker stays armed, so the next launch falls back to software rendering (#595)"
                         );
                     }
                 }
@@ -672,10 +700,15 @@ pub fn run() {
                 );
             });
 
+            // Setup reached its end, so the marker stays armed until
+            // something actually paints — which is what it is for.
+            setup_guard.succeeded();
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             commands::ready::app_ready,
+            commands::renderer::renderer_status,
+            commands::renderer::renderer_retry_gpu,
             commands::app_info::get_app_info,
             commands::app_info::open_data_folder,
             commands::changelog::get_changelog,
@@ -1327,6 +1360,31 @@ async fn restore_bounds_and_reveal(app: AppHandle) -> bool {
 ///
 /// Anything short of a verdict — no app-data dir, no database yet, a
 /// file it can't read — proceeds to normal startup.
+/// Decide how the interface will be drawn, before anything can draw it.
+///
+/// Runs before the webview exists, because the environment variables it
+/// sets are read by the web engine when *its* process starts and the
+/// `main` webview is created by `Builder::build` — before `setup` runs
+/// at all. And before logging, because it mutates the process
+/// environment and the logger owns a thread.
+///
+/// Non-fatal in every direction: a missing app-data directory means no
+/// marker can be armed, which is exactly where the app was before this
+/// existed, and is not a reason to refuse to start.
+fn preflight_render_mode(identifier: &str) {
+    match paths::AppPaths::root_for_identifier(identifier) {
+        Ok(root) => {
+            render_mode::decide(root);
+        }
+        Err(err) => {
+            // Logging is not up yet, so this goes to stderr — the only
+            // place there is. It is also the one case where nothing was
+            // recorded at all, so silence would leave no trace anywhere.
+            eprintln!("waveflow: no app-data dir ({err}); the renderer fallback is inactive");
+        }
+    }
+}
+
 fn preflight_schema_guard(identifier: &str) {
     let root = match paths::AppPaths::root_for_identifier(identifier) {
         Ok(root) => root,
@@ -1428,6 +1486,10 @@ fn report_fatal_and_exit(err: &AppError) -> ! {
     };
 
     show_native_error(title, body);
+
+    // The renderer marker comes down with it: this process is stopping
+    // because it was told to, not because it could not draw (#595).
+    render_mode::disarm_for_deliberate_exit();
 
     // Straight out rather than unwinding: there is no state to tear
     // down (nothing has been built yet, and the pools the pre-flight

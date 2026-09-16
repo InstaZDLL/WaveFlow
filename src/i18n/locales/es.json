@@ -15,6 +15,31 @@
     "message": "Tus scrobbles ya no se envían. Vuelve a iniciar sesión para reanudar.",
     "action": "Abrir configuración"
   },
+  "rendering": {
+    "banner": {
+      "title": "Renderizado por software activado",
+      "message": "El inicio anterior nunca mostró la interfaz. WaveFlow desactivó la aceleración por hardware para poder arrancar; el dibujado puede ser más lento.",
+      "action": "Ver los detalles"
+    },
+    "card": {
+      "title": "Renderizado de la interfaz",
+      "retryGpu": "Reintentar la GPU",
+      "restartToApply": "En el próximo inicio",
+      "retryFailed": "No se pudo guardar. Inténtalo de nuevo."
+    },
+    "mode": {
+      "gpu": "Aceleración por hardware",
+      "software": "Renderizado por software"
+    },
+    "reason": {
+      "default": "ajuste predeterminado",
+      "forced": "impuesto por WAVEFLOW_RENDERER",
+      "previous-launch-never-painted": "el inicio anterior no mostró nada",
+      "remembered": "recordado del último inicio correcto",
+      "software-did-not-help": "el renderizado por software no cambió nada, vuelta al ajuste predeterminado",
+      "software-unavailable": "esta plataforma no tiene renderizado por software"
+    }
+  },
   "updater": {
     "available": {
       "title": "Actualización disponible (v{{version}})",

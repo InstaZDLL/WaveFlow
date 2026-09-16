@@ -109,6 +109,7 @@ import {
   batchFetchMissingArtistPictures,
 } from "../../lib/tauri/deezer";
 import { openLogFolder, readRecentLogs } from "../../lib/tauri/diagnostics";
+import { RenderingCard } from "./settings/RenderingCard";
 import { getOfflineMode, setOfflineMode } from "../../lib/tauri/offline";
 import { exportProfile, importProfile } from "../../lib/tauri/profile_io";
 import { pickFile, pickSaveFile } from "../../lib/tauri/dialog";
@@ -184,6 +185,14 @@ import { ArtistBioSourceCard } from "./settings/ArtistBioSourceCard";
 
 interface SettingsViewProps {
   onNavigate: (view: ViewId) => void;
+  /**
+   * Open on this category instead of the one the user last had open.
+   *
+   * For the callers that send someone here to see a *particular* card:
+   * the remembered category is the right default for opening Settings,
+   * and the wrong one when something has just said "look at this".
+   */
+  initialCategory?: SettingsCategory;
 }
 
 /**
@@ -192,7 +201,7 @@ interface SettingsViewProps {
  * so heavy subviews (EQ visualizer, backup card, shortcuts editor)
  * don't run their effects until the user actually opens that tab.
  */
-type SettingsCategory =
+export type SettingsCategory =
   | "library"
   | "playback"
   | "integrations"
@@ -538,15 +547,34 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
   );
 }
 
-export function SettingsView({ onNavigate }: SettingsViewProps) {
+export function SettingsView({
+  onNavigate,
+  initialCategory,
+}: SettingsViewProps) {
   const { t, i18n } = useTranslation();
   const { theme, setThemeId } = useTheme();
   const { libraries, rescanLibrary } = useLibrary();
   // Category tab the user is currently viewing. Persisted to
   // localStorage so re-entering Settings lands them on the same tab
   // they last had open — small but expected polish.
-  const [activeCategory, setActiveCategory] =
-    useState<SettingsCategory>(readStoredCategory);
+  const [activeCategory, setActiveCategory] = useState<SettingsCategory>(
+    () => initialCategory ?? readStoredCategory(),
+  );
+  // The banner that sends people here is visible *on* this page too, so
+  // the request can arrive while Settings is already mounted — React
+  // keeps the instance and the initializer above never runs again. The
+  // value changes once per request, so a tab the user picks afterwards
+  // is not fought over.
+  useEffect(() => {
+    // Falling back to the stored category rather than returning early:
+    // two Settings entries can sit next to each other in history — the
+    // banner pushes one while Settings is already open — and going back
+    // to the ordinary one has to leave Diagnostics rather than stay
+    // there. On a first mount this repeats what the initializer already
+    // chose, which costs nothing.
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
+    setActiveCategory(initialCategory ?? readStoredCategory());
+  }, [initialCategory]);
   const handleCategoryChange = useCallback((next: SettingsCategory) => {
     setActiveCategory(next);
     try {
@@ -4418,6 +4446,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             {t("settings.sections.diagnostics")}
           </h2>
           <div className="space-y-1">
+            <RenderingCard />
             <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center space-x-4 min-w-0">

@@ -15,6 +15,31 @@
     "message": "Vos scrobbles ne sont plus envoyés. Reconnectez-vous pour reprendre.",
     "action": "Ouvrir les paramètres"
   },
+  "rendering": {
+    "banner": {
+      "title": "Rendu logiciel activé",
+      "message": "Le démarrage précédent n'a jamais affiché l'interface. WaveFlow a désactivé l'accélération matérielle pour repartir ; l'affichage peut être plus lent.",
+      "action": "Voir les détails"
+    },
+    "card": {
+      "title": "Rendu de l'interface",
+      "retryGpu": "Réessayer le GPU",
+      "restartToApply": "Au prochain démarrage",
+      "retryFailed": "Échec de l'enregistrement. Réessayez."
+    },
+    "mode": {
+      "gpu": "Accélération matérielle",
+      "software": "Rendu logiciel"
+    },
+    "reason": {
+      "default": "réglage par défaut",
+      "forced": "imposé par WAVEFLOW_RENDERER",
+      "previous-launch-never-painted": "le démarrage précédent n'a rien affiché",
+      "remembered": "retenu du dernier démarrage réussi",
+      "software-did-not-help": "le rendu logiciel n'a rien changé, retour au réglage par défaut",
+      "software-unavailable": "cette plateforme n'a pas de rendu logiciel"
+    }
+  },
   "updater": {
     "available": {
       "title": "Mise à jour disponible (v{{version}})",

@@ -15,6 +15,31 @@
     "message": "Scrobble kamu tidak lagi terkirim. Masuk kembali untuk melanjutkan.",
     "action": "Buka pengaturan"
   },
+  "rendering": {
+    "banner": {
+      "title": "Render perangkat lunak aktif",
+      "message": "Peluncuran sebelumnya tidak pernah menampilkan antarmuka. WaveFlow mematikan akselerasi perangkat keras agar bisa berjalan lagi; tampilan mungkin lebih lambat.",
+      "action": "Lihat detailnya"
+    },
+    "card": {
+      "title": "Render antarmuka",
+      "retryGpu": "Coba GPU lagi",
+      "restartToApply": "Pada peluncuran berikutnya",
+      "retryFailed": "Gagal menyimpan. Coba lagi."
+    },
+    "mode": {
+      "gpu": "Akselerasi perangkat keras",
+      "software": "Render perangkat lunak"
+    },
+    "reason": {
+      "default": "pengaturan bawaan",
+      "forced": "ditetapkan oleh WAVEFLOW_RENDERER",
+      "previous-launch-never-painted": "peluncuran sebelumnya tidak menampilkan apa pun",
+      "remembered": "dipertahankan dari peluncuran terakhir yang berhasil",
+      "software-did-not-help": "render perangkat lunak tidak mengubah apa pun, kembali ke pengaturan bawaan",
+      "software-unavailable": "platform ini tidak punya render perangkat lunak"
+    }
+  },
   "updater": {
     "available": {
       "title": "Pembaruan tersedia (v{{version}})",

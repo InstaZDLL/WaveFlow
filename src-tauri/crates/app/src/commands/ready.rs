@@ -99,6 +99,11 @@ pub struct FrontendTimings {
 /// finished inside two seconds, which rules out both the transport and
 /// the backend and leaves the webview's own startup.
 pub fn signal(source: &'static str, timings: FrontendTimings) {
+    // The interface painted, which is the one event that disarms the
+    // renderer marker (#595) — not a window closing, not the process
+    // exiting. Idempotent, which matters here: this function has two
+    // transports and either may arrive first, or both.
+    crate::render_mode::mark_painted();
     tracing::info!(
         source,
         since_launch_ms = since_launch_ms(),
