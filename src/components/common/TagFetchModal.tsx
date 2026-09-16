@@ -69,8 +69,10 @@ export function TagFetchModal({
    * A *fetch* in flight does not lock anything. Two Deezer calls can
    * take ten seconds between them, and a modal that refuses Escape
    * while it waits for a network it may never hear from is worse than
-   * one whose answer arrives to nobody — which the token below
-   * discards anyway.
+   * one whose answer arrives to nobody.
+   *
+   * A reply that lands after the close is dropped by the token, which
+   * the effect below retires on the way out.
    */
   const closeUnlessBusy = () => {
     if (!isApplying) onClose();
@@ -79,9 +81,9 @@ export function TagFetchModal({
   /**
    * Which fetch is the current one.
    *
-   * Claimed when a fetch starts and checked when it lands, so a reply
-   * to a release the user has already navigated away from — or to a
-   * modal they closed and reopened on another album — is dropped
+   * Claimed when a fetch starts, retired when the modal closes, and
+   * checked when the reply lands — so an answer to a release the user
+   * has already left, or to a modal they have closed, is dropped
    * instead of appearing under the wrong record.
    */
   const fetchTokenRef = useRef(0);
@@ -95,7 +97,23 @@ export function TagFetchModal({
   } | null>(null);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      // Retire the token on the way out, and here rather than in the
+      // close handler for two reasons: the handler is passed to
+      // `useModalA11y`, and a ref mutated inside a hook's argument is
+      // one the lint refuses to see mutated anywhere; and a close the
+      // parent decided — navigating away from the album — goes through
+      // no handler of ours at all.
+      //
+      // Bumping it only when a fetch *starts* left a window: a reply
+      // landing between the close and the next opening still passed
+      // its own check and wrote its proposals into state, and the next
+      // opening rendered them for a frame before the reset below
+      // cleared them — the previous album's track list, under the new
+      // album's name.
+      fetchTokenRef.current += 1;
+      return;
+    }
     let alive = true;
     /* eslint-disable react-hooks/set-state-in-effect */
     setSources(null);
