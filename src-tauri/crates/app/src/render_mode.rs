@@ -613,13 +613,16 @@ pub fn retry_gpu() -> std::io::Result<()> {
                 remembered: None,
                 armed,
             },
-        )
+        )?;
+        // Inside the lock, and only once the write landed. Raised
+        // before the write, a retry reported as failed would still stop
+        // a later paint from restoring the fallback — quietly doing
+        // what the user was told had not happened. Raised after the
+        // lock, a paint slipping into that gap would read the old value
+        // and write the fallback straight back.
+        RETRY_REQUESTED.store(true, std::sync::atomic::Ordering::Release);
+        Ok::<(), std::io::Error>(())
     })?;
-    // Set only once the write landed. Raised first, a failed retry —
-    // reported as failed to the user — would still stop a later paint
-    // from restoring the fallback, and quietly perform the retry they
-    // were told had not happened.
-    RETRY_REQUESTED.store(true, std::sync::atomic::Ordering::Release);
     tracing::info!("renderer: forgot the software fallback; the next launch will try the GPU");
     Ok(())
 }
