@@ -825,6 +825,14 @@ mod tests {
             json.contains("\"slot\":2"),
             "slot serialized incorrectly: {json}"
         );
+        // The play path reads this field back to decide the gain, and
+        // `serde(default)` means a renamed one would not fail to parse
+        // — it would quietly read as "a mix of tracks" on every record
+        // session there will ever be.
+        assert!(
+            json.contains("\"album_mode\":true"),
+            "album_mode serialized incorrectly: {json}"
+        );
     }
 
     /// A mix written before `album_mode` existed still has to parse, and
