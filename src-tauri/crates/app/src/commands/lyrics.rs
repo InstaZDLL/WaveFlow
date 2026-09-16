@@ -2865,16 +2865,21 @@ fn write_lyrics_to_file(
     use crate::commands::edit::{patch_file, LyricsSlot, TagPatch};
 
     let container = LyricsContainer::of(path);
+    let empty = content.trim().is_empty();
     let is_ttml = matches!(format, LyricsFormat::Ttml);
 
     // Decided before anything is written: a TTML save that cannot land
     // must leave the file exactly as it was, including whatever lyrics
     // it already carries.
-    if is_ttml && !container.is_some_and(LyricsContainer::carries_arbitrary_lyrics) {
+    //
+    // **A clear is not such a save.** The format is the tab the user
+    // happens to be on, and emptying the editor there still means
+    // "remove the lyrics from this file" — refusing it left an MP3
+    // holding the words a previous plain save wrote, with the database
+    // saying there were none.
+    if is_ttml && !empty && !container.is_some_and(LyricsContainer::carries_arbitrary_lyrics) {
         return Ok(false);
     }
-
-    let empty = content.trim().is_empty();
     patch_file(
         path,
         &TagPatch::Lyrics(if empty {
