@@ -144,7 +144,9 @@ back weeks later. Both describe **what was produced**, not what was
 asked for: album mode is a preference and both generators fall back to
 individual tracks when no record qualifies. Shuffle still answers
 first, so a session of records taken apart track by track is not one
-any more.
+any more — and a `'manual'` row never reads as a record whatever the
+session is, because "Play next" wedges a hand-picked track into
+whatever is running and it is not part of the record it landed beside.
 
 **The clipping cap switches with the gain**, and this is the part that
 is easy to get wrong. In album mode it caps by the **album** peak,

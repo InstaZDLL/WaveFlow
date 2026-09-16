@@ -525,14 +525,23 @@ impl SharedPlayback {
     /// Shuffle still answers first for those, and that is the point of
     /// the order: `Tracks` takes a record apart whatever built it, and
     /// `Albums` keeps one whole whatever built it.
+    ///
+    /// **A `'manual'` row is never a record playing through**, whatever
+    /// the session around it is. "Play next" and "Add to queue" wedge a
+    /// hand-picked track into whatever is running, and it is not part
+    /// of the record it landed beside — which is already how it behaves
+    /// inside an album queue, where the row says `'manual'` and the
+    /// album branch does not take it. The session flag has to answer
+    /// the same way, or a generator session would treat the one track
+    /// the listener chose by hand as part of a record.
     pub fn listening_to(&self, source_type: &str) -> super::replay_gain::Listening {
         use super::replay_gain::Listening;
         match crate::queue::ShuffleMode::from_bits(self.shuffle_mode_bits.load(Ordering::Relaxed)) {
             crate::queue::ShuffleMode::Albums => Listening::ToAnAlbum,
             crate::queue::ShuffleMode::Tracks => Listening::ToATrack,
-            crate::queue::ShuffleMode::Off
-                if source_type == "album" || self.album_ordered_queue.load(Ordering::Relaxed) =>
-            {
+            crate::queue::ShuffleMode::Off if source_type == "album" => Listening::ToAnAlbum,
+            crate::queue::ShuffleMode::Off if source_type == "manual" => Listening::ToATrack,
+            crate::queue::ShuffleMode::Off if self.album_ordered_queue.load(Ordering::Relaxed) => {
                 Listening::ToAnAlbum
             }
             crate::queue::ShuffleMode::Off => Listening::ToATrack,
@@ -664,6 +673,12 @@ mod tests {
             shared.listening_to("playlist"),
             Listening::ToAnAlbum,
             "an album-mode Daily Mix plays as a stored playlist"
+        );
+
+        assert_eq!(
+            shared.listening_to("manual"),
+            Listening::ToATrack,
+            "a track wedged in by hand is not part of the record it landed beside"
         );
 
         // And shuffle still decides before it does: a session of whole
