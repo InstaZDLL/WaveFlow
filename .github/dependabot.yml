@@ -41,11 +41,19 @@ updates:
     # `windows-core` is not an independent dependency. `crates/app/Cargo.toml`
     # declares it only so the copy that `windows` already pulls in is nameable
     # from our own crate root, because `#[implement]` expands to absolute
-    # `::windows_core::` paths. Both names must resolve to the SAME version:
-    # a mismatched one compiles the generated sink against a different
+    # `::windows_core::` paths. Our `windows-core` must therefore resolve to
+    # the SAME COPY that `windows` was built against -- not, note, to an
+    # equal version string: windows-rs numbers the two lines independently,
+    # and `windows 0.61.3` was built against `windows-core 0.61.2`. A
+    # mismatched one compiles the generated sink against a different
     # `IUnknownImpl` than the interface it implements, and the COM device
     # watcher stops satisfying its own trait bounds. #642 failed exactly that
     # way, and the comment at the dependency itself predicted it.
+    #
+    # The rules below only cover the updates Dependabot proposes, so they are
+    # half the guard. `scripts/check-windows-core-pair.py` is the other half:
+    # it walks the lockfile on every pull request and fails when the two
+    # edges part company, whichever route pulled them apart (#653).
     #
     # windows-rs versions its support crates on their own lines, and 0.100.0
     # renumbered that entire layer (windows-core, -implement, -interface,
