@@ -180,6 +180,29 @@ static PAINTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::n
 /// Whether the user asked for the GPU back during this session.
 static RETRY_REQUESTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
+/// Serialises every write that happens **after** the decision.
+///
+/// Each of them is a read-modify-write of one small file, and they run
+/// on different threads: the paint signal arrives on a command handler,
+/// the duplicate-launch restore on the event loop, the retry on another
+/// command. Without this, a second launch landing in the instant the
+/// first one paints could read "not painted yet", then write its marker
+/// back over the disarm that had just happened — arming a launch that
+/// had, in fact, painted.
+///
+/// [`decide`] does not take it: nothing else exists yet when it runs.
+static STATE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Hold [`STATE_LOCK`] across a read-modify-write, surviving a poisoned
+/// lock: what it guards is a file, not an invariant a panic could have
+/// left half-built.
+fn locked<T>(body: impl FnOnce() -> T) -> T {
+    let _guard = STATE_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    body()
+}
+
 fn state_path(root: &Path) -> PathBuf {
     root.join("renderer.json")
 }
@@ -466,13 +489,15 @@ pub fn mark_painted() {
     let Some(active) = ACTIVE.get() else {
         return;
     };
-    write_state_best_effort(
-        &active.path,
-        &RenderState {
-            remembered: remembered_after_paint(active),
-            armed: None,
-        },
-    );
+    locked(|| {
+        write_state_best_effort(
+            &active.path,
+            &RenderState {
+                remembered: remembered_after_paint(active),
+                armed: None,
+            },
+        );
+    });
 }
 
 /// What the file should remember, once this launch has painted.
@@ -520,18 +545,23 @@ pub fn restore_after_duplicate_launch() {
     let Some(active) = ACTIVE.get() else {
         return;
     };
-    let painted = PAINTED.load(std::sync::atomic::Ordering::Acquire);
-    write_state_best_effort(
-        &active.path,
-        &RenderState {
-            remembered: if painted {
-                remembered_after_paint(active)
-            } else {
-                read_state(&active.path).0.remembered
+    // Read inside the lock, so a paint landing in this instant cannot be
+    // overwritten by the state it was true in a moment ago.
+    let painted = locked(|| {
+        let painted = PAINTED.load(std::sync::atomic::Ordering::Acquire);
+        write_state_best_effort(
+            &active.path,
+            &RenderState {
+                remembered: if painted {
+                    remembered_after_paint(active)
+                } else {
+                    read_state(&active.path).0.remembered
+                },
+                armed: (!painted).then_some(active.decision.mode),
             },
-            armed: (!painted).then_some(active.decision.mode),
-        },
-    );
+        );
+        painted
+    });
     tracing::debug!(painted, "renderer state restored after a duplicate launch");
 }
 
@@ -550,13 +580,15 @@ pub fn disarm_for_deliberate_exit() {
     let Some(active) = ACTIVE.get() else {
         return;
     };
-    write_state_best_effort(
-        &active.path,
-        &RenderState {
-            remembered: read_state(&active.path).0.remembered,
-            armed: None,
-        },
-    );
+    locked(|| {
+        write_state_best_effort(
+            &active.path,
+            &RenderState {
+                remembered: read_state(&active.path).0.remembered,
+                armed: None,
+            },
+        );
+    });
 }
 
 /// Forget that software rendering was ever needed, so the next launch
@@ -573,14 +605,16 @@ pub fn retry_gpu() -> std::io::Result<()> {
     // The armed marker for the *current* launch stays: this launch has
     // painted or it has not, and that question is not what is being
     // answered here.
-    let armed = read_state(&active.path).0.armed;
-    write_state(
-        &active.path,
-        &RenderState {
-            remembered: None,
-            armed,
-        },
-    )?;
+    locked(|| {
+        let armed = read_state(&active.path).0.armed;
+        write_state(
+            &active.path,
+            &RenderState {
+                remembered: None,
+                armed,
+            },
+        )
+    })?;
     // Set only once the write landed. Raised first, a failed retry —
     // reported as failed to the user — would still stop a later paint
     // from restoring the fallback, and quietly perform the retry they
