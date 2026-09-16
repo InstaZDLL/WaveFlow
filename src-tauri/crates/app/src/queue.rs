@@ -788,6 +788,12 @@ pub async fn insert_after_current(
         .execute(&mut *tx)
         .await?;
     tx.commit().await?;
+    // The queue was not replaced, so what it is made of has not
+    // changed. The inserted rows say `'manual'`, and a `'manual'` row
+    // is never read as a record playing through whatever session it
+    // landed in — see `SharedPlayback::listening_to`. Clearing the flag
+    // here instead would take the album gain from every record still
+    // queued behind the one track the listener slipped in.
     Ok(false)
 }
 

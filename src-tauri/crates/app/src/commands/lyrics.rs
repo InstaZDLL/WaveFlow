@@ -2947,10 +2947,11 @@ fn write_lyrics_to_file(
 /// the truncate and the write left the audio gone, not just the tag.
 /// This path spent years calling `save_to_path` directly.
 ///
-/// Nothing is saved when nothing changed. A plain-lyrics save on a file
-/// that never carried a synced tag is the common case, and rewriting a
-/// file to write what it already says costs the user a second file
-/// modification for nothing.
+/// Nothing is written when nothing changed, and nothing is **copied**
+/// either — the rewrite starts by copying the file, so the question is
+/// asked read-only first. A plain-lyrics save on a file that never
+/// carried a synced tag is the common case, and it should not cost a
+/// copy of the record to find that out.
 fn stamp_synced_lyrics(
     path: &Path,
     container: LyricsContainer,
@@ -3024,19 +3025,33 @@ fn stamp_synced_lyrics(
 
     /// Read the concrete file, restamp its tag, save it back — through
     /// the temporary the rename replaces the original with.
+    ///
+    /// Asked read-only first, and that is the point of the two passes:
+    /// `rewrite_via_temp` copies the whole file before the body runs,
+    /// so deciding inside it would copy a 40 MB record to find out
+    /// there was nothing to change. Re-parsing a tag is the cheap half
+    /// of that trade by a wide margin.
     macro_rules! rewrite {
         ($ty:ty, |$f:ident| $restamp:block) => {{
-            waveflow_core::tagio::rewrite_via_temp(
-                path,
-                |handle| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-                    let mut $f = <$ty>::read_from(handle, ParseOptions::new())?;
-                    let changed: bool = $restamp;
-                    if changed {
-                        $f.save_to(handle, WriteOptions::default())?;
-                    }
-                    Ok(())
-                },
-            )?;
+            let needed = {
+                let mut handle = std::fs::File::open(path)?;
+                let mut $f = <$ty>::read_from(&mut handle, ParseOptions::new())?;
+                let changed: bool = $restamp;
+                changed
+            };
+            if needed {
+                waveflow_core::tagio::rewrite_via_temp(
+                    path,
+                    |handle| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                        let mut $f = <$ty>::read_from(handle, ParseOptions::new())?;
+                        let changed: bool = $restamp;
+                        if changed {
+                            $f.save_to(handle, WriteOptions::default())?;
+                        }
+                        Ok(())
+                    },
+                )?;
+            }
         }};
     }
 
