@@ -24,7 +24,8 @@
     "card": {
       "title": "Darstellung der Oberfläche",
       "retryGpu": "GPU erneut versuchen",
-      "restartToApply": "Beim nächsten Start"
+      "restartToApply": "Beim nächsten Start",
+      "retryFailed": "Konnte nicht gespeichert werden. Erneut versuchen."
     },
     "mode": {
       "gpu": "Hardwarebeschleunigung",

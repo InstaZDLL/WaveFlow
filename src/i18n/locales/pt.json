@@ -24,7 +24,8 @@
     "card": {
       "title": "Renderização da interface",
       "retryGpu": "Tentar novamente a GPU",
-      "restartToApply": "No próximo arranque"
+      "restartToApply": "No próximo arranque",
+      "retryFailed": "Não foi possível guardar. Tente novamente."
     },
     "mode": {
       "gpu": "Aceleração por hardware",

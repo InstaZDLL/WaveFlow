@@ -24,7 +24,8 @@
     "card": {
       "title": "画面の描画",
       "retryGpu": "GPU を再試行",
-      "restartToApply": "次回の起動から"
+      "restartToApply": "次回の起動から",
+      "retryFailed": "保存できませんでした。もう一度お試しください。"
     },
     "mode": {
       "gpu": "ハードウェアアクセラレーション",

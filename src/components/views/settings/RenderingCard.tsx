@@ -21,6 +21,7 @@ export function RenderingCard() {
   const { t } = useTranslation();
   const [status, setStatus] = useState<RendererStatus | null>(null);
   const [retried, setRetried] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,11 +36,17 @@ export function RenderingCard() {
   }, []);
 
   const handleRetry = useCallback(async () => {
+    setFailed(false);
     try {
       await rendererRetryGpu();
       setRetried(true);
     } catch (err) {
+      // The backend refuses rather than pretends when the state file
+      // cannot be written, so a failure here is real and the button is
+      // the only place it can be seen. Saying nothing would leave the
+      // user clicking something that does nothing.
       console.error("[RenderingCard] retry failed", err);
+      setFailed(true);
     }
   }, []);
 
@@ -68,7 +75,18 @@ export function RenderingCard() {
           </div>
         </div>
         {status.canRetryGpu && (
-          <div className="shrink-0">
+          // The message is a message and the button stays a button:
+          // `role="alert"` on the control itself would announce the
+          // failure as the thing you activate.
+          <div className="shrink-0 flex items-center gap-3">
+            {failed && (
+              <span
+                role="alert"
+                className="text-xs text-rose-600 dark:text-rose-400"
+              >
+                {t("rendering.card.retryFailed")}
+              </span>
+            )}
             {retried ? (
               <span className="text-xs text-emerald-600 dark:text-emerald-400">
                 {t("rendering.card.restartToApply")}

@@ -24,7 +24,8 @@
     "card": {
       "title": "화면 렌더링",
       "retryGpu": "GPU 다시 시도",
-      "restartToApply": "다음 실행부터"
+      "restartToApply": "다음 실행부터",
+      "retryFailed": "저장하지 못했습니다. 다시 시도해 주세요."
     },
     "mode": {
       "gpu": "하드웨어 가속",

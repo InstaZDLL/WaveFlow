@@ -24,7 +24,8 @@
     "card": {
       "title": "界面渲染",
       "retryGpu": "重试 GPU",
-      "restartToApply": "下次启动生效"
+      "restartToApply": "下次启动生效",
+      "retryFailed": "保存失败，请重试。"
     },
     "mode": {
       "gpu": "硬件加速",

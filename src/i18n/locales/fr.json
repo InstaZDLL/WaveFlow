@@ -24,7 +24,8 @@
     "card": {
       "title": "Rendu de l'interface",
       "retryGpu": "Réessayer le GPU",
-      "restartToApply": "Au prochain démarrage"
+      "restartToApply": "Au prochain démarrage",
+      "retryFailed": "Échec de l'enregistrement. Réessayez."
     },
     "mode": {
       "gpu": "Accélération matérielle",

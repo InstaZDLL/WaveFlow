@@ -24,7 +24,8 @@
     "card": {
       "title": "Interface rendering",
       "retryGpu": "Try the GPU again",
-      "restartToApply": "From the next start"
+      "restartToApply": "From the next start",
+      "retryFailed": "Could not save it. Try again."
     },
     "mode": {
       "gpu": "Hardware acceleration",

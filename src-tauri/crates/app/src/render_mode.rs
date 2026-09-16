@@ -36,6 +36,21 @@
 //! would degrade rendering for a fault it does not address — so that
 //! goes back to the default and says so in the log.
 //!
+//! ## What this catches, and what it does not
+//!
+//! The marker is disarmed by the frontend reporting its first committed
+//! render, which is the strongest signal this side has and is not the
+//! same thing as pixels reaching the screen. A failure that leaves
+//! JavaScript running while nothing composites would still report a
+//! paint, and the fallback would not engage — what it catches is the
+//! shape actually reported: a launch that gets far enough to open a
+//! window and never gets far enough to render into it.
+//!
+//! Waiting for the native reveal instead would not fix that: `show()`
+//! returning `Ok` proves no more about pixels than a React commit does.
+//! Nothing available here can prove it, so the honest answer is to say
+//! which signal is used and what it means.
+//!
 //! ## What "software" actually sets
 //!
 //! Environment variables, read by the web engine when its process
@@ -151,6 +166,9 @@ struct RenderState {
 struct Active {
     path: PathBuf,
     decision: RenderDecision,
+    /// What [`decide`] would have logged had there been anywhere to log
+    /// it. Drained by [`log_decision`].
+    note: Option<String>,
 }
 
 static ACTIVE: std::sync::OnceLock<Active> = std::sync::OnceLock::new();
@@ -166,22 +184,33 @@ fn state_path(root: &Path) -> PathBuf {
     root.join("renderer.json")
 }
 
-fn read_state(path: &Path) -> RenderState {
-    // Anything unreadable — absent, truncated by a crash mid-write,
-    // hand-edited into nonsense — reads as "nothing known". This runs
-    // before the window exists, so a parse error here is a startup that
-    // never happens; the default is the safe answer and the log says it
-    // was taken.
+/// Read the file, and say what went wrong rather than logging it.
+///
+/// Anything unreadable — absent, truncated by a crash mid-write,
+/// hand-edited into nonsense — reads as "nothing known": the default is
+/// the safe answer, and refusing to start over a state file would be
+/// worse than the blank window this exists to survive.
+///
+/// The complaint is **returned** because the first call happens before
+/// the logging subscriber exists — see [`decide`] — and a `warn!` there
+/// would go nowhere at all. The caller that runs later logs it as it
+/// arrives.
+fn read_state(path: &Path) -> (RenderState, Option<String>) {
     match std::fs::read_to_string(path) {
-        Ok(raw) => serde_json::from_str(&raw).unwrap_or_else(|err| {
-            tracing::warn!(%err, path = %path.display(), "renderer state unreadable; starting from the default");
-            RenderState::default()
-        }),
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => RenderState::default(),
-        Err(err) => {
-            tracing::warn!(%err, path = %path.display(), "renderer state could not be read");
-            RenderState::default()
-        }
+        Ok(raw) => match serde_json::from_str(&raw) {
+            Ok(state) => (state, None),
+            Err(err) => (
+                RenderState::default(),
+                Some(format!(
+                    "renderer state unreadable, using the default: {err}"
+                )),
+            ),
+        },
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => (RenderState::default(), None),
+        Err(err) => (
+            RenderState::default(),
+            Some(format!("renderer state could not be read: {err}")),
+        ),
     }
 }
 
@@ -318,7 +347,6 @@ fn decide_from(
 #[cfg(target_os = "linux")]
 fn set_unless_present(key: &str, value: &str) {
     if std::env::var_os(key).is_some() {
-        tracing::debug!(key, "already set in the environment; leaving it alone");
         return;
     }
     std::env::set_var(key, value);
@@ -359,7 +387,7 @@ fn apply(mode: RenderMode) {
 /// commands read it back through [`current`].
 pub fn decide(root: PathBuf) -> RenderDecision {
     let path = state_path(&root);
-    let previous = read_state(&path);
+    let (previous, note) = read_state(&path);
     let decision = decide_from(&previous, override_from_env(), SOFTWARE_AVAILABLE);
 
     // What this launch is attempting, written before the window can
@@ -383,13 +411,34 @@ pub fn decide(root: PathBuf) -> RenderDecision {
 
     apply(decision.mode);
 
+    let _ = ACTIVE.set(Active {
+        path,
+        decision,
+        note,
+    });
+    decision
+}
+
+/// Say what was decided, once there is somewhere to say it.
+///
+/// Split from [`decide`] because that has to run **before** logging is
+/// initialised: `tracing_appender` starts a worker thread, and the
+/// environment this mutates is process-wide — changing it while another
+/// thread might read it is the kind of race that is fine until it is
+/// not. Deciding first and reporting second costs one call and settles
+/// the question.
+pub fn log_decision() {
+    let Some(active) = ACTIVE.get() else {
+        return;
+    };
+    if let Some(note) = &active.note {
+        tracing::warn!(note, "renderer state");
+    }
     tracing::info!(
-        mode = decision.mode.as_str(),
-        reason = ?decision.reason,
+        mode = active.decision.mode.as_str(),
+        reason = ?active.decision.reason,
         "renderer selected"
     );
-    let _ = ACTIVE.set(Active { path, decision });
-    decision
 }
 
 /// What was decided for this launch, once [`decide`] has run.
@@ -437,7 +486,7 @@ fn remembered_after_paint(active: &Active) -> Option<RenderMode> {
         return None;
     }
     if active.decision.reason == RenderReason::Forced {
-        return read_state(&active.path).remembered;
+        return read_state(&active.path).0.remembered;
     }
     match active.decision.mode {
         // Worth remembering: the next launch should not have to fail
@@ -470,7 +519,7 @@ pub fn restore_after_duplicate_launch() {
             remembered: if painted {
                 remembered_after_paint(active)
             } else {
-                read_state(&active.path).remembered
+                read_state(&active.path).0.remembered
             },
             armed: (!painted).then_some(active.decision.mode),
         },
@@ -492,7 +541,7 @@ pub fn retry_gpu() -> std::io::Result<()> {
     // The armed marker for the *current* launch stays: this launch has
     // painted or it has not, and that question is not what is being
     // answered here.
-    let armed = read_state(&active.path).armed;
+    let armed = read_state(&active.path).0.armed;
     write_state(
         &active.path,
         &RenderState {

@@ -87,18 +87,27 @@ pub fn run() {
     // ordinary return and an unwinding panic; the paths that leave
     // through `std::process::exit` call `logging::flush` themselves,
     // because `exit` runs no destructors at all.
+    // Resolved up front because the pre-flights below need the bundle
+    // identifier to find the app-data root — `tauri.conf.json` stays
+    // its single source of truth — and because everything this call
+    // does is compile-time work anyway.
+    let context = tauri::generate_context!();
+
+    // Before logging, and that ordering is the point: choosing a
+    // renderer sets process-wide environment variables (#595), and
+    // `init_tracing` starts `tracing_appender`'s worker thread. Mutating
+    // the environment while another thread may be reading it is a race
+    // this can simply avoid by going first. Nothing here logs; what it
+    // decided is reported a few lines down.
+    preflight_render_mode(&context.config().identifier);
+
     let _log_guard = logging::init_tracing();
+    render_mode::log_decision();
 
     // Start the splash-handoff clock before anything else, so the timings
     // logged when the frontend reports ready are measured from the process
     // start rather than from whichever half touched the gate first (#626).
     commands::ready::mark_launch();
-
-    // Resolved up front because the pre-flight below needs the bundle
-    // identifier to find the app-data root — `tauri.conf.json` stays
-    // its single source of truth — and because everything this call
-    // does is compile-time work anyway.
-    let context = tauri::generate_context!();
 
     // Refuse a database written by a newer build BEFORE the event loop
     // exists. This is the only startup failure with a remedy the user
@@ -106,14 +115,6 @@ pub fn run() {
     // platforms — see `report_fatal_and_exit` for why "inside `setup`"
     // is not that place (issues #526, #529).
     preflight_schema_guard(&context.config().identifier);
-
-    // Choose a renderer, and arm the marker that catches a launch which
-    // never paints (#595). Here, and not in `setup`, for two reasons
-    // that both come down to ordering: the environment variables this
-    // sets are read by the web engine when *its* process starts, and
-    // the `main` window's webview is created by `Builder::build` —
-    // before `setup` runs at all.
-    preflight_render_mode(&context.config().identifier);
 
     // `mut` is only consumed when the updater plugin is wired in (release
     // builds); the lint would fire in debug otherwise.
@@ -1348,8 +1349,13 @@ async fn restore_bounds_and_reveal(app: AppHandle) -> bool {
 /// file it can't read — proceeds to normal startup.
 /// Decide how the interface will be drawn, before anything can draw it.
 ///
-/// Mirrors [`preflight_schema_guard`] in shape and in placement, and is
-/// non-fatal in every direction: a missing app-data directory means no
+/// Runs before the webview exists, because the environment variables it
+/// sets are read by the web engine when *its* process starts and the
+/// `main` webview is created by `Builder::build` — before `setup` runs
+/// at all. And before logging, because it mutates the process
+/// environment and the logger owns a thread.
+///
+/// Non-fatal in every direction: a missing app-data directory means no
 /// marker can be armed, which is exactly where the app was before this
 /// existed, and is not a reason to refuse to start.
 fn preflight_render_mode(identifier: &str) {
@@ -1358,7 +1364,10 @@ fn preflight_render_mode(identifier: &str) {
             render_mode::decide(root);
         }
         Err(err) => {
-            tracing::warn!(%err, "no app-data dir; the renderer fallback is inactive this launch");
+            // Logging is not up yet, so this goes to stderr — the only
+            // place there is. It is also the one case where nothing was
+            // recorded at all, so silence would leave no trace anywhere.
+            eprintln!("waveflow: no app-data dir ({err}); the renderer fallback is inactive");
         }
     }
 }

@@ -24,7 +24,8 @@
     "card": {
       "title": "介面繪製",
       "retryGpu": "重試 GPU",
-      "restartToApply": "下次啟動生效"
+      "restartToApply": "下次啟動生效",
+      "retryFailed": "儲存失敗，請重試。"
     },
     "mode": {
       "gpu": "硬體加速",

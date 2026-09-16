@@ -24,7 +24,8 @@
     "card": {
       "title": "عرض الواجهة",
       "retryGpu": "إعادة محاولة GPU",
-      "restartToApply": "عند التشغيل القادم"
+      "restartToApply": "عند التشغيل القادم",
+      "retryFailed": "تعذّر الحفظ. أعد المحاولة."
     },
     "mode": {
       "gpu": "تسريع العتاد",

@@ -24,7 +24,8 @@
     "card": {
       "title": "Weergave van de interface",
       "retryGpu": "Gpu opnieuw proberen",
-      "restartToApply": "Bij de volgende start"
+      "restartToApply": "Bij de volgende start",
+      "retryFailed": "Opslaan is mislukt. Probeer het opnieuw."
     },
     "mode": {
       "gpu": "Hardwareversnelling",
