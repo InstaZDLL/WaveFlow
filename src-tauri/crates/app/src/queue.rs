@@ -379,6 +379,33 @@ pub async fn read_player_volume(pool: &SqlitePool) -> Option<f32> {
 /// shuffle mode is. An absent or unreadable row reads as `false`:
 /// telling a listener their tracks are an album is the answer that
 /// changes the gain, so it is the one that has to be asked for.
+/// Record what the queue that now exists is, inside the transaction
+/// that built it.
+///
+/// Every path that **replaces** the queue calls this, and there are
+/// three of them: [`fill_queue`], and the empty-queue branches of
+/// [`insert_after_current`] and [`append_to_user_queue`], each of which
+/// builds a queue where there was none. A path that only inserts into
+/// an existing queue leaves it alone — adding a track to a record
+/// playing through does not stop it being one.
+async fn write_album_ordered(
+    tx: &mut sqlx::SqliteConnection,
+    album_ordered: bool,
+    now: i64,
+) -> AppResult<()> {
+    sqlx::query(
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+              VALUES ('queue.album_ordered', ?, 'bool', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value,
+                                        updated_at = excluded.updated_at",
+    )
+    .bind(if album_ordered { "true" } else { "false" })
+    .bind(now)
+    .execute(tx)
+    .await?;
+    Ok(())
+}
+
 pub async fn read_album_ordered(pool: &SqlitePool) -> bool {
     matches!(
         read_setting_string(pool, "queue.album_ordered").await,
@@ -474,16 +501,7 @@ pub async fn fill_queue(
     .execute(&mut *tx)
     .await?;
 
-    sqlx::query(
-        "INSERT INTO profile_setting (key, value, value_type, updated_at)
-              VALUES ('queue.album_ordered', ?, 'bool', ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value,
-                                        updated_at = excluded.updated_at",
-    )
-    .bind(if album_ordered { "true" } else { "false" })
-    .bind(now)
-    .execute(&mut *tx)
-    .await?;
+    write_album_ordered(&mut tx, album_ordered, now).await?;
 
     // New queue invalidates any previous shuffle snapshot.
     sqlx::query("DELETE FROM profile_setting WHERE key = 'queue.preshuffle'")
@@ -548,13 +566,17 @@ pub async fn append(
 /// degenerates into [`append`]. Empty queue still degenerates into
 /// [`fill_queue`] so the first "Add to queue" click on a fresh
 /// session starts playback.
+/// Returns whether the queue was **replaced** rather than added to —
+/// true only on the empty-queue branch, which builds a new queue and so
+/// decides afresh what it is. The caller mirrors that into the engine
+/// (#647).
 pub async fn append_to_user_queue(
     pool: &SqlitePool,
     track_ids: &[i64],
     source_id: Option<i64>,
-) -> AppResult<()> {
+) -> AppResult<bool> {
     if track_ids.is_empty() {
-        return Ok(());
+        return Ok(false);
     }
 
     // Single transaction wraps the boundary lookup AND the insert so the
@@ -595,11 +617,14 @@ pub async fn append_to_user_queue(
         .bind(now)
         .execute(&mut *tx)
         .await?;
+        // A queue built out of picks the listener stacked by hand is not
+        // a session of records, whatever the last one was.
+        write_album_ordered(&mut tx, false, now).await?;
         sqlx::query("DELETE FROM profile_setting WHERE key = 'queue.preshuffle'")
             .execute(&mut *tx)
             .await?;
         tx.commit().await?;
-        return Ok(());
+        return Ok(true);
     }
 
     let current_raw: Option<String> =
@@ -687,28 +712,34 @@ pub async fn append_to_user_queue(
         .execute(&mut *tx)
         .await?;
     tx.commit().await?;
-    Ok(())
+    Ok(false)
 }
 
 /// Insert `track_ids` immediately after the current cursor position.
 /// Existing items past the cursor are pushed down to keep the queue
-/// dense. Returns nothing — the cursor itself doesn't move so the
-/// currently-playing track keeps playing.
+/// dense. The cursor itself doesn't move, so the currently-playing
+/// track keeps playing.
+///
+/// Returns whether the queue was **replaced** rather than inserted
+/// into: an empty one is filled instead, which is a new queue and a new
+/// answer to what it is made of. The caller mirrors that into the
+/// engine (#647).
 pub async fn insert_after_current(
     pool: &SqlitePool,
     track_ids: &[i64],
     source_type: &str,
     source_id: Option<i64>,
-) -> AppResult<()> {
+) -> AppResult<bool> {
     if track_ids.is_empty() {
-        return Ok(());
+        return Ok(false);
     }
     let len = queue_length(pool).await?;
     if len == 0 {
         // No queue yet — fall back to filling it and starting at 0.
         // An empty queue filled by "play next" is a hand-built list, not
         // a session of records — whatever the tracks happen to be.
-        return fill_queue(pool, source_type, source_id, track_ids, 0, false).await;
+        fill_queue(pool, source_type, source_id, track_ids, 0, false).await?;
+        return Ok(true);
     }
     let current = read_setting_i64(pool, "queue.current_index")
         .await?
@@ -757,7 +788,7 @@ pub async fn insert_after_current(
         .execute(&mut *tx)
         .await?;
     tx.commit().await?;
-    Ok(())
+    Ok(false)
 }
 
 /// Move the queue item at `from` to the slot at `to`, shifting the
@@ -1928,7 +1959,7 @@ mod step_tests {
 
 #[cfg(test)]
 mod fill_queue_tests {
-    use super::{fill_queue, read_album_ordered};
+    use super::{append_to_user_queue, fill_queue, insert_after_current, read_album_ordered};
     use sqlx::SqlitePool;
 
     /// The repo's own profile migrations, with `foreign_keys` on —
@@ -1987,5 +2018,55 @@ mod fill_queue_tests {
             !read_album_ordered(&pool).await,
             "the next queue is not a session of records because the last one was"
         );
+    }
+
+    /// `fill_queue` is not the only path that builds a queue where
+    /// there was none, which is exactly how a flag survives the session
+    /// it described: both "Play next" and "Add to queue" fill an empty
+    /// queue themselves, the second one inline.
+    #[tokio::test]
+    async fn the_hand_built_queues_clear_it_too() {
+        for (label, replaced) in [("play next", true), ("add to queue", false)] {
+            let pool = migrated_pool().await;
+            fill_queue(&pool, "radio", None, &[1, 2], 0, true)
+                .await
+                .unwrap();
+            // Emptied the way a removal would leave it.
+            sqlx::query("DELETE FROM queue_item")
+                .execute(&pool)
+                .await
+                .unwrap();
+
+            let was_replaced = if replaced {
+                insert_after_current(&pool, &[1], "manual", None)
+                    .await
+                    .unwrap()
+            } else {
+                append_to_user_queue(&pool, &[1], None).await.unwrap()
+            };
+
+            assert!(was_replaced, "{label} filled an empty queue");
+            assert!(
+                !read_album_ordered(&pool).await,
+                "{label} built a queue by hand, so the old session's flag is gone"
+            );
+        }
+    }
+
+    /// And neither touches it when there is a queue to insert into:
+    /// adding a track to a record playing through does not stop it
+    /// being one.
+    #[tokio::test]
+    async fn inserting_into_a_live_queue_leaves_the_session_alone() {
+        let pool = migrated_pool().await;
+        fill_queue(&pool, "radio", None, &[1, 2], 0, true)
+            .await
+            .unwrap();
+
+        assert!(!insert_after_current(&pool, &[2], "manual", None)
+            .await
+            .unwrap());
+        assert!(!append_to_user_queue(&pool, &[2], None).await.unwrap());
+        assert!(read_album_ordered(&pool).await);
     }
 }

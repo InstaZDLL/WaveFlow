@@ -2490,6 +2490,12 @@ pub async fn player_play_tracks(
     // they clicked in position 0. Without this, enabling shuffle
     // before clicking a track would leave the queue sequential and
     // Next would advance alphabetically — visibly "not random".
+    // The flag above is deliberately not cleared when this reorders the
+    // queue. Shuffle is read first by `listening_to`, so a shuffled
+    // session already answers by its mode whatever the flag says; and
+    // turning shuffle off restores `queue.preshuffle`, which is the
+    // album-ordered list this flag describes — clearing it would leave
+    // the records back in order and the gain wrong (#647).
     let mode = queue::read_shuffle_mode(&pool).await;
     let shuffled = mode.is_on();
     if shuffled {
@@ -2627,10 +2633,18 @@ pub async fn player_reorder_queue(
 pub async fn player_add_to_queue(
     app: AppHandle,
     state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
     track_ids: Vec<i64>,
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
-    queue::append_to_user_queue(&pool, &track_ids, None).await?;
+    // An empty queue is built rather than added to, so it decides
+    // afresh what it is made of — and picks stacked by hand are not a
+    // session of records. The mirror has to follow the row that branch
+    // just wrote, or the next track plays with the album gain of a
+    // session that ended (#647).
+    if queue::append_to_user_queue(&pool, &track_ids, None).await? {
+        publish_album_ordering(&engine, false);
+    }
     emit_queue_changed(&app);
     Ok(())
 }
@@ -2641,10 +2655,15 @@ pub async fn player_add_to_queue(
 pub async fn player_play_next(
     app: AppHandle,
     state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
     track_ids: Vec<i64>,
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
-    queue::insert_after_current(&pool, &track_ids, "manual", None).await?;
+    // Same as "Add to queue": only the empty-queue branch replaces the
+    // queue, and only then does what it is made of change (#647).
+    if queue::insert_after_current(&pool, &track_ids, "manual", None).await? {
+        publish_album_ordering(&engine, false);
+    }
     emit_queue_changed(&app);
     Ok(())
 }
