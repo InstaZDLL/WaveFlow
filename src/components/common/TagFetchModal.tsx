@@ -128,11 +128,11 @@ export function TagFetchModal({
     // reopened modal showed "matching…" over a search that had ended
     // long ago and would never end again.
     setIsLoading(false);
-    // And its twin. A write cannot be dismissed by any control of
-    // ours, but the parent can unmount this modal — navigating away
-    // from the album does — and `isApplying` would then still be
-    // raised on the next opening, with the close blocked and Apply
-    // disabled by a write that finished long ago.
+    // And its twin, for the session starting here — which has no write
+    // of its own yet. The write that may still be running belongs to
+    // the previous session and no longer speaks for this one: the
+    // token below is what stops it publishing into a screen that has
+    // moved on.
     setIsApplying(false);
     /* eslint-enable react-hooks/set-state-in-effect */
     const token = ++fetchTokenRef.current;
@@ -213,6 +213,20 @@ export function TagFetchModal({
 
   const apply = async () => {
     if (!proposals || pendingCount === 0) return;
+    /**
+     * The session this write belongs to.
+     *
+     * `AlbumDetailView` is not keyed by album, so navigating from one
+     * record to another while the writes run changes `albumId` under a
+     * modal that is still open: the reset effect takes its *opening*
+     * branch and the screen becomes another album's. The loop keeps
+     * going — those edits were accepted, and stopping halfway through
+     * an album is what leaves a folder nobody can describe — but from
+     * that moment it publishes nothing: no summary over the new
+     * album's screen, no refetch attributed to it, and no lowering of
+     * a lock that now belongs to somebody else's write.
+     */
+    const session = fetchTokenRef.current;
     setIsApplying(true);
     setError(null);
     let ok = 0;
@@ -238,13 +252,16 @@ export function TagFetchModal({
           failed += 1;
         }
       }
-      setApplied({ ok, failed });
-      if (ok > 0) onApplied?.();
+      if (fetchTokenRef.current === session) {
+        setApplied({ ok, failed });
+        if (ok > 0) onApplied?.();
+      }
     } finally {
       // Whatever happened — including a throw from outside the
-      // per-track guard above — the lock comes off. Leaving it on is
-      // a modal nothing can close.
-      setIsApplying(false);
+      // per-track guard above — this session's lock comes off.
+      // Leaving it on is a modal nothing can close; lowering another
+      // session's is a write nothing guards.
+      if (fetchTokenRef.current === session) setIsApplying(false);
     }
   };
 
