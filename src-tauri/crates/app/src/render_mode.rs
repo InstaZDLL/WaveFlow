@@ -435,7 +435,7 @@ pub fn decide(root: PathBuf) -> RenderDecision {
     let (previous, state_note) = read_state(&path);
     let (forced, env_note) = override_from_env();
     let decision = decide_from(&previous, forced, SOFTWARE_AVAILABLE);
-    let notes = [env_note, state_note].into_iter().flatten().collect();
+    let mut notes: Vec<String> = [env_note, state_note].into_iter().flatten().collect();
 
     // What this launch is attempting, written before the window can
     // fail to paint. The remembered mode is carried through: a launch
@@ -448,13 +448,22 @@ pub fn decide(root: PathBuf) -> RenderDecision {
         RenderReason::SoftwareDidNotHelp => None,
         _ => previous.remembered,
     };
-    write_state_best_effort(
+    // Not the best-effort form: that one logs, and there is nowhere to
+    // log yet. This is the message that matters most of the three
+    // deferred here — a marker that could not be armed means the whole
+    // mechanism is inert for this launch, silently, and the log is the
+    // only place that could ever say so.
+    if let Err(err) = write_state(
         &path,
         &RenderState {
             remembered,
             armed: Some(decision.mode),
         },
-    );
+    ) {
+        notes.push(format!(
+            "could not arm the renderer marker, so this launch is not covered by the fallback: {err}"
+        ));
+    }
 
     apply(decision.mode);
 
