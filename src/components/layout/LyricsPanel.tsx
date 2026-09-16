@@ -17,6 +17,7 @@ import {
 import { usePlayer } from "../../hooks/usePlayer";
 import { useTrackLyrics } from "../../hooks/useTrackLyrics";
 import { useLyricsLocalization } from "../../hooks/useLyricsLocalization";
+import { usePluginNames } from "../../hooks/usePluginNames";
 import {
   availableLocalizations,
   cycleLocalizationMode,
@@ -79,6 +80,11 @@ export function LyricsPanel() {
     storedLocalization,
     localizations,
   );
+
+  // Installed plugin ids → the display name their manifest declares,
+  // so a plugin-sourced badge reads as a name rather than as the
+  // filesystem-safe id.
+  const pluginNames = usePluginNames();
 
   const [isEditing, setIsEditing] = useState(false);
   // Provider picker dropdown — opens on click of the source label so the
@@ -424,12 +430,14 @@ export function LyricsPanel() {
                     title={t("lyrics.source.pickerHint")}
                     className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 truncate"
                   >
-                    <span className="truncate">{sourceLabel(payload, t)}</span>
+                    <span className="truncate">
+                      {sourceLabel(payload, t, pluginNames)}
+                    </span>
                     <ChevronDown size={11} className="shrink-0" />
                   </button>
                 ) : (
                   <span className="truncate">
-                    {payload ? sourceLabel(payload, t) : ""}
+                    {payload ? sourceLabel(payload, t, pluginNames) : ""}
                   </span>
                 )}
                 {pickerOpen && !noLibraryRow && (
@@ -549,6 +557,7 @@ function EmptyState({ icon, text }: { icon?: React.ReactNode; text: string }) {
 function sourceLabel(
   payload: LyricsPayload,
   t: (key: string) => string,
+  pluginNames: Record<string, string>,
 ): string {
   switch (payload.source) {
     case "embedded":
@@ -566,11 +575,17 @@ function sourceLabel(
       // translation key — `lyrics.provider.plugin:apple-lyrics` exists in
       // none of the 17 locales, and i18next renders a missing key as the
       // key itself, so the badge would read as that literal string.
-      // The id is shown bare instead: it is what identifies the plugin to
-      // the user in Settings, and inventing a key per plugin is not
-      // possible for something installed at runtime.
+      //
+      // The name comes from the plugin's own manifest instead, which is
+      // where a plugin says what to call it, and is already what
+      // Settings → Plugins shows. The id is the fallback and not a good
+      // one: it is constrained to `[a-z0-9-]+` because it doubles as a
+      // directory name, a log scope and a storage key, so it is written
+      // for the filesystem rather than for a reader. It still beats an
+      // empty badge while the listing is in flight.
       if (payload.provider.startsWith(PLUGIN_PROVIDER_PREFIX)) {
-        return payload.provider.slice(PLUGIN_PROVIDER_PREFIX.length);
+        const id = payload.provider.slice(PLUGIN_PROVIDER_PREFIX.length);
+        return pluginNames[id] ?? id;
       }
       return t(`lyrics.provider.${payload.provider}`);
     case "manual":
