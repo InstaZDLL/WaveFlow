@@ -166,6 +166,28 @@ export function invalidateTrackCanvas(trackId: number): void {
   for (const cb of epochListeners) cb();
 }
 
+/**
+ * Forget every cached Canvas answer — call after the on-disk Canvas cache is
+ * cleared. With the cache on, the backend answers with a LOCAL path, so a
+ * clear leaves every remembered answer pointing at a file that no longer
+ * exists; the surfaces already mounted would keep asking the webview for it
+ * until a restart. A clear empties the whole cache, so dropping one track's
+ * entry would not be enough.
+ *
+ * Every per-track generation is bumped too, so a lookup already in flight —
+ * which may be about to hand back one of the deleted paths — lands as stale
+ * instead of repopulating the cache.
+ */
+export function invalidateAllTrackCanvas(): void {
+  for (const trackId of new Set([...resolved.keys(), ...inFlight.keys()])) {
+    generation.set(trackId, generationOf(trackId) + 1);
+  }
+  resolved.clear();
+  inFlight.clear();
+  epoch += 1;
+  for (const cb of epochListeners) cb();
+}
+
 // The caches above are keyed by `trackId` only, but track ids are per-profile
 // (each profile has its own SQLite DB), so a colliding id must not serve
 // another profile's Canvas after a switch. Track the active profile and drop
@@ -233,7 +255,8 @@ export function useTrackCanvas(
   useEffect(() => {
     let cancelled = false;
     const apply = (p: string | null) => {
-      if (!cancelled) setResolved({ id: trackId as number, profileId, path: p });
+      if (!cancelled)
+        setResolved({ id: trackId as number, profileId, path: p });
     };
     // Radio and Spotify play under a negative sentinel id: no library row
     // for a manual Canvas, and nothing meaningful to resolve a plugin one
@@ -271,9 +294,7 @@ export function useTrackCanvas(
   // track and the active profile; any mismatch (track or profile just changed,
   // effect not resolved yet) reads as null, so a previous track's/profile's
   // clip never bleeds onto the new one.
-  return resolved &&
-    resolved.id === trackId &&
-    resolved.profileId === profileId
+  return resolved && resolved.id === trackId && resolved.profileId === profileId
     ? resolved.path
     : null;
 }

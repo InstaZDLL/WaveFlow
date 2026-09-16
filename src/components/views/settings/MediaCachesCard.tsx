@@ -13,6 +13,28 @@ import {
   clearCanvasCache,
 } from "../../../lib/tauri/canvas";
 import { formatBytes } from "../../../lib/format";
+import { invalidateAllMotionArtwork } from "../../../hooks/useAlbumMotionArtwork";
+import { invalidateAllTrackCanvas } from "../../../hooks/useTrackCanvas";
+
+/**
+ * Clearing deletes the files, and with the cache on the backend had answered
+ * with their LOCAL paths — which the lookup hooks still remember. Without the
+ * invalidation, every cover or Canvas already resolved would keep pointing at
+ * a deleted file until the app restarts. The whole cache is gone, so the whole
+ * frontend cache is dropped, not one album's or one track's.
+ *
+ * Only after the clear succeeds: a failed clear leaves the files — and so the
+ * remembered paths — valid.
+ */
+async function clearMotionCacheAndForget(): Promise<void> {
+  await clearMotionCache();
+  invalidateAllMotionArtwork();
+}
+
+async function clearCanvasCacheAndForget(): Promise<void> {
+  await clearCanvasCache();
+  invalidateAllTrackCanvas();
+}
 
 /**
  * Settings → Data row for the two app-wide video caches plugins fill:
@@ -46,7 +68,7 @@ export function MediaCachesCard({ language }: { language: string }) {
             language={language}
             getInfo={getMotionCacheInfo}
             setEnabled={setMotionCacheEnabled}
-            clear={clearMotionCache}
+            clear={clearMotionCacheAndForget}
           />
           <LocalCacheOption
             i18nPrefix="settings.canvasCache"
@@ -54,7 +76,7 @@ export function MediaCachesCard({ language }: { language: string }) {
             language={language}
             getInfo={getCanvasCacheInfo}
             setEnabled={setCanvasCacheEnabled}
-            clear={clearCanvasCache}
+            clear={clearCanvasCacheAndForget}
           />
         </div>
       </div>
