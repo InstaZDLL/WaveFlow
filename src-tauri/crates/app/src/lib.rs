@@ -203,6 +203,9 @@ pub fn run() {
                                 | AppError::SchemaWrittenElsewhere { .. }
                         ) {
                             tracing::error!(%err, "fatal startup error, exiting");
+                            // Stopping on purpose is not a launch that
+                            // failed to paint (#595).
+                            render_mode::disarm_for_deliberate_exit();
                             // `exit` runs no destructors, so the line
                             // above would die in the writer's buffer.
                             // Here it is the only account there is —
@@ -1473,6 +1476,10 @@ fn report_fatal_and_exit(err: &AppError) -> ! {
     };
 
     show_native_error(title, body);
+
+    // The renderer marker comes down with it: this process is stopping
+    // because it was told to, not because it could not draw (#595).
+    render_mode::disarm_for_deliberate_exit();
 
     // Straight out rather than unwinding: there is no state to tear
     // down (nothing has been built yet, and the pools the pre-flight

@@ -535,6 +535,30 @@ pub fn restore_after_duplicate_launch() {
     tracing::debug!(painted, "renderer state restored after a duplicate launch");
 }
 
+/// Take the marker down because this launch is stopping on purpose.
+///
+/// The marker means "a launch opened a window and never rendered into
+/// it". A startup that refuses to continue — a database written by a
+/// newer build, say — never opened one, and says nothing whatsoever
+/// about the renderer. Left armed, it would send the next launch into
+/// software rendering because of a schema version.
+///
+/// Reachable because the decision now runs *first*: it has to precede
+/// the logger, which the fatal paths need in order to explain
+/// themselves.
+pub fn disarm_for_deliberate_exit() {
+    let Some(active) = ACTIVE.get() else {
+        return;
+    };
+    write_state_best_effort(
+        &active.path,
+        &RenderState {
+            remembered: read_state(&active.path).0.remembered,
+            armed: None,
+        },
+    );
+}
+
 /// Forget that software rendering was ever needed, so the next launch
 /// tries the GPU again.
 ///
