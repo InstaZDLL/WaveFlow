@@ -679,7 +679,7 @@ pub fn run() {
                         // frontend's own measurement (#626).
                         tracing::warn!(
                             since_launch_ms = commands::ready::since_launch_ms(),
-                            "splash handoff: no ready signal in 15s, force-revealing main window"
+                            "splash handoff: no ready signal in 15s, force-revealing main window                              (the renderer marker stays armed, so the next launch falls back to                              software rendering — #595)"
                         );
                     }
                 }

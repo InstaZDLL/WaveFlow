@@ -51,6 +51,15 @@
 //! Nothing available here can prove it, so the honest answer is to say
 //! which signal is used and what it means.
 //!
+//! It cuts the other way too. The splash's 15-second safety net reveals
+//! the window when no signal arrives, and it deliberately does **not**
+//! disarm the marker — a renderer that cannot paint produces exactly
+//! that timeout, so disarming there would make this inert. The cost is
+//! that a signal lost for some other reason (#626's original defect,
+//! now carried by two transports) reads as a launch that never
+//! painted, and the launch after it falls back. That is not silent: it
+//! is the case the banner explains and the retry button undoes.
+//!
 //! ## What "software" actually sets
 //!
 //! Environment variables, read by the web engine when its process
