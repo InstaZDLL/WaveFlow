@@ -121,6 +121,13 @@ export function TagFetchModal({
     setAccepted({});
     setApplied(null);
     setError(null);
+    // Including the spinner. Closing mid-fetch retires the token, so
+    // that fetch's `finally` declines to lower `isLoading` — rightly,
+    // since a stale reply must not blank a newer request's spinner —
+    // and nothing else ever would: the flag stayed raised and the
+    // reopened modal showed "matching…" over a search that had ended
+    // long ago and would never end again.
+    setIsLoading(false);
     /* eslint-enable react-hooks/set-state-in-effect */
     const token = ++fetchTokenRef.current;
     searchAlbumTagSources(albumId)
