@@ -13,6 +13,7 @@ A single global toggle — Settings → Intégrations → "Mode hors-ligne" — 
 - Artist pictures (`enrich_artist_deezer`, `batch_fetch_missing_artist_pictures`)
 - Album covers (`enrich_album_deezer`, `search_albums_deezer`, `set_album_artwork_from_deezer`, `batch_fetch_missing_album_covers`)
 - Label / fan-count metadata
+- Fetching an album's tags for review (#599, below)
 
 **Deezer refuses with HTTP 200.** A rate-limited or rejected call answers `{"error":{"type":"Exception","message":"Quota limit exceeded","code":4}}` with a 200 status, so the response type has a `DeezerError::Api` arm that reads the object instead of letting the missing `data` field surface as a decode failure. Before that, a throttled client and an artist Deezer had never heard of produced the same log line and the same empty result — which is the fog #406 was diagnosed through; the reason now reaches the log the enrichment paths already write. A 429 from the edge in front of the API carries no JSON to read at all and gets its own `RateLimited` arm.
 
@@ -237,3 +238,72 @@ The row UI shows each word as a chip — pink for captured, green-ringed for the
 - Plain / LRC / Enhanced LRC → `ItemKey::UnsyncLyrics` (USLT for ID3v2, UNSYNCEDLYRICS for Vorbis, `©lyr` for MP4) — unchanged.
 - TTML on Vorbis / MP4 / FLAC → `ItemKey::Lyrics` (the XML-friendly key).
 - TTML on MP3 — **skipped**. lofty has no clean ID3v2 mapping for arbitrary XML lyrics, so the file is left untouched, the DB cache still gets the TTML content, and `save_lyrics` returns `tag_write_skipped: true`. The editor surfaces this as a `lyrics.toast.tagWriteSkipped` warning so the user knows the file itself wasn't touched.
+
+## Fetching an album's tags (#599)
+
+"These tags are wrong, fetch them and let me approve the result" —
+[`commands/tag_fetch.rs`](../../src-tauri/crates/app/src/commands/tag_fetch.rs)
+with the matching in
+[`waveflow_core::metadata::album_match`](../../src-tauri/crates/core/src/metadata/album_match.rs),
+reviewed in
+[`TagFetchModal`](../../src/components/common/TagFetchModal.tsx).
+
+Two steps, deliberately. `search_album_tag_sources` offers the
+catalogue releases that might be this record and the user picks one,
+because a title and an artist match several releases of the same album
+— an original, a remaster, a deluxe edition with four more tracks — and
+they carry different track lists. `fetch_album_tag_proposals` then
+pairs the chosen release's tracks with the local files.
+
+### Matching the tracks
+
+Matching the album is the easy half. Inside it, three weighted signals:
+**title 0.60, duration 0.25, track number 0.15**. Unequal on purpose —
+the title carries most of the identity, the duration confirms it, and
+the track number is corroboration from a field that is wrong often
+enough to trust least.
+
+- **Missing data scores 0.5, not 0.** A track with no number is not
+  evidence *against* a match; scoring it zero would push every untagged
+  file below the threshold and make the feature useless on exactly the
+  libraries that need it.
+- **Assignment is global and greedy**, each side consumed once. Asking
+  "what is the best remote track for this local one" lets a generic
+  title — "Intro", "Interlude" — win against several local files at
+  once and capture one that belonged to another.
+- **Two thresholds**, both inclusive: confident at or above 0.85,
+  doubtful at or above 0.55, nothing below. The middle band is the point — it is what the review
+  screen exists to resolve, and it is why confident matches arrive
+  pre-accepted and doubtful ones do not.
+
+Titles are compared over
+[`name_match::normalize_name`](../../src-tauri/crates/core/src/metadata/name_match.rs),
+the normaliser the metadata providers already share: it folds NFD
+combining marks, so a library tagged `Bjo\u{308}rk` matches a
+catalogue's `Björk`. A transliteration table written for this feature
+would not, and accented titles are not an edge case in a music library.
+
+### What is not offered
+
+**No composer and no track-level genre** — Deezer does not carry them,
+and a review screen listing a field the source cannot fill invites
+accepting a blank over something the user typed. **No disc number**
+either: the API returns one, but it is unreliable on box sets, which is
+precisely where the local value is usually right.
+
+### Nothing here writes
+
+No command in the module touches a file or a row. What the review
+screen accepts is applied through `update_track_tags`, one track at a
+time — the path that pauses playback before opening the file, writes
+through the concrete tag so non-standard frames survive, re-hashes into
+`track.file_hash` and relinks the album and artist rows. Writing across
+a whole album is exactly where a second, simpler write path would turn
+one bad moment into a folder in an unknown state, which is why #599
+waited on #598.
+
+Only the accepted fields are sent: `update_track_tags` leaves an
+omitted field alone, which is what makes "accept this one value" mean
+that and nothing more. A track whose write fails is counted and the
+rest still run — stopping halfway through an album leaves a folder
+nobody can describe.

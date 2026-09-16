@@ -18,6 +18,7 @@ pub mod domain;
 pub mod error;
 pub mod inventory;
 pub mod metadata;
+pub mod mood;
 // `plugin` carries the wasmtime + Cranelift + WASI stack (~5 MiB
 // of native codegen). Gated so `waveflow-server` (which never
 // executes guest WASM in v1) can opt out and stay lean. The

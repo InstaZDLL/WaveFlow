@@ -276,7 +276,7 @@
     },
     "moodRadio": {
       "title": "Mood radio",
-      "subtitle": "Filtered by tempo and energy",
+      "subtitle": "Ranked by tempo, loudness and genre",
       "trackCount_one": "{{count}} track",
       "trackCount_other": "{{count}} tracks",
       "empty": "Not enough analysed tracks",
@@ -300,7 +300,9 @@
       "sleep": {
         "title": "Sleep",
         "subtitle": "Very slow and quiet for falling asleep"
-      }
+      },
+      "coverage_one": "{{analysed}} of {{count}} track analysed",
+      "coverage_other": "{{analysed}} of {{count}} tracks analysed"
     },
     "recentlyPlayed": {
       "title": "Recently played",
@@ -1133,7 +1135,8 @@
     "emptyDescription": "This album is no longer available in the active profile.",
     "emptyTracksTitle": "No tracks",
     "emptyTracksDescription": "This album does not contain any available tracks.",
-    "setMotionCover": "Motion cover"
+    "setMotionCover": "Motion cover",
+    "fetchTags": "Fetch tags"
   },
   "artistDetail": {
     "badge": "Artist",
@@ -2718,5 +2721,41 @@
       "addedInLastDays_one": "added in the last {{count}} day",
       "addedInLastDays_other": "added in the last {{count}} days"
     }
+  },
+  "tagFetch": {
+    "title": "Fetch tags",
+    "searching": "Looking for releases…",
+    "matching": "Matching tracks…",
+    "noSources": "No release found for this album.",
+    "sourcesHint": "The same album often exists as several releases, with different track lists. Pick yours.",
+    "back": "Choose another release",
+    "hint": "Nothing is written until you apply.",
+    "acceptColumn": "Whole field:",
+    "acceptTrack": "Whole track",
+    "nothingToChange": "This release says exactly what your files already say.",
+    "trackUnchanged": "Nothing to change on this track.",
+    "noMatch": "No match for {{file}}.",
+    "emptyValue": "(empty)",
+    "unmatchedRemote": "On this release but not in your library: {{titles}}",
+    "apply": "Apply",
+    "confidence": {
+      "confident": "Confident",
+      "doubtful": "Check this"
+    },
+    "fields": {
+      "title": "Title",
+      "artist": "Artist",
+      "album": "Album",
+      "year": "Year",
+      "track_number": "Track no."
+    },
+    "trackCount_one": "{{count}} track",
+    "trackCount_other": "{{count}} tracks",
+    "applyCount_one": "Apply {{count}} change",
+    "applyCount_other": "Apply {{count}} changes",
+    "appliedCount_one": "{{count}} track updated.",
+    "appliedCount_other": "{{count}} tracks updated.",
+    "failedCount_one": "{{count}} track could not be written.",
+    "failedCount_other": "{{count}} tracks could not be written."
   }
 }

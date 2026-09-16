@@ -276,7 +276,7 @@
     },
     "moodRadio": {
       "title": "Mood Radio",
-      "subtitle": "Gefilterd op tempo en energie",
+      "subtitle": "Gerangschikt op tempo, luidheid en genre",
       "trackCount_one": "{{count}} nummer",
       "trackCount_other": "{{count}} nummers",
       "empty": "Niet genoeg geanalyseerde nummers",
@@ -300,7 +300,9 @@
       "sleep": {
         "title": "Slapen",
         "subtitle": "Heel langzaam en zacht om in slaap te vallen"
-      }
+      },
+      "coverage_one": "{{analysed}} van {{count}} nummer geanalyseerd",
+      "coverage_other": "{{analysed}} van {{count}} nummers geanalyseerd"
     },
     "recentlyPlayed": {
       "title": "Recent afgespeeld",
@@ -1133,7 +1135,8 @@
     "emptyDescription": "Dit album is niet meer beschikbaar in het actieve profiel.",
     "emptyTracksTitle": "Geen nummers",
     "emptyTracksDescription": "Dit album bevat geen beschikbare nummers.",
-    "setMotionCover": "Bewegende hoes"
+    "setMotionCover": "Bewegende hoes",
+    "fetchTags": "Tags ophalen"
   },
   "artistDetail": {
     "badge": "Artiest",
@@ -2718,5 +2721,41 @@
       "addedInLastDays_one": "toegevoegd in de afgelopen dag",
       "addedInLastDays_other": "toegevoegd in de afgelopen {{count}} dagen"
     }
+  },
+  "tagFetch": {
+    "title": "Tags ophalen",
+    "searching": "Uitgaven zoeken…",
+    "matching": "Nummers koppelen…",
+    "noSources": "Geen uitgave gevonden voor dit album.",
+    "sourcesHint": "Hetzelfde album bestaat vaak in meerdere uitgaven, met verschillende tracklijsten. Kies de jouwe.",
+    "back": "Andere uitgave kiezen",
+    "hint": "Er wordt niets weggeschreven tot je toepast.",
+    "acceptColumn": "Hele veld:",
+    "acceptTrack": "Hele nummer",
+    "nothingToChange": "Deze uitgave zegt precies wat je bestanden al zeggen.",
+    "trackUnchanged": "Niets te wijzigen aan dit nummer.",
+    "noMatch": "Geen overeenkomst voor {{file}}.",
+    "emptyValue": "(leeg)",
+    "unmatchedRemote": "Op deze uitgave maar niet in je bibliotheek: {{titles}}",
+    "apply": "Toepassen",
+    "confidence": {
+      "confident": "Zeker",
+      "doubtful": "Controleren"
+    },
+    "fields": {
+      "title": "Titel",
+      "artist": "Artiest",
+      "album": "Album",
+      "year": "Jaar",
+      "track_number": "Nr."
+    },
+    "trackCount_one": "{{count}} nummer",
+    "trackCount_other": "{{count}} nummers",
+    "applyCount_one": "{{count}} wijziging toepassen",
+    "applyCount_other": "{{count}} wijzigingen toepassen",
+    "appliedCount_one": "{{count}} nummer bijgewerkt.",
+    "appliedCount_other": "{{count}} nummers bijgewerkt.",
+    "failedCount_one": "{{count}} nummer kon niet worden weggeschreven.",
+    "failedCount_other": "{{count}} nummers konden niet worden weggeschreven."
   }
 }

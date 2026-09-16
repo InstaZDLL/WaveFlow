@@ -93,14 +93,22 @@ export function MoodRadioGrid() {
     }
   };
 
-  const totalAnalysed = counts
+  const eligible = counts
     ? counts.focus + counts.chill + counts.workout + counts.party + counts.sleep
     : 0;
   // When no mood matches anything, the library either has no BPM
   // analysis at all or only a handful of analysed tracks. In that
   // case we hide the section entirely instead of showing a row of
   // disabled tiles — feels less broken.
-  if (counts != null && totalAnalysed === 0) return null;
+  if (counts != null && eligible === 0) return null;
+
+  // Every mood draws from the analysed part of the library, so a
+  // partly-analysed one gives thin radios for a reason the tiles
+  // cannot show: their counts look small without saying small *of
+  // what*. Shown only while the two numbers differ — once everything
+  // is analysed the line has nothing to add.
+  const partlyAnalysed =
+    counts != null && counts.analysed_tracks < counts.total_tracks;
 
   return (
     <section
@@ -120,8 +128,21 @@ export function MoodRadioGrid() {
         <h2 className="text-2xl font-bold inline-block border-b-4 border-rose-500 pb-1 text-zinc-900 dark:text-white">
           {t("home.moodRadio.title")}
         </h2>
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400 text-right">
           {t("home.moodRadio.subtitle")}
+          {partlyAnalysed && (
+            <>
+              <br />
+              {/* `count` is the total, because that is the number the
+                  sentence's noun agrees with — Russian and Arabic
+                  inflect "tracks" on it, and a fixed form is wrong for
+                  most of the values this line actually shows. */}
+              {t("home.moodRadio.coverage", {
+                count: counts.total_tracks,
+                analysed: counts.analysed_tracks,
+              })}
+            </>
+          )}
         </span>
       </div>
       <div

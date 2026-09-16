@@ -276,7 +276,7 @@
     },
     "moodRadio": {
       "title": "Mood Radio",
-      "subtitle": "Disaring berdasarkan tempo dan energi",
+      "subtitle": "Diurutkan menurut tempo, kenyaringan, dan genre",
       "trackCount_one": "{{count}} lagu",
       "trackCount_other": "{{count}} lagu",
       "empty": "Belum cukup lagu yang dianalisis",
@@ -300,7 +300,9 @@
       "sleep": {
         "title": "Tidur",
         "subtitle": "Sangat pelan dan lembut untuk tertidur"
-      }
+      },
+      "coverage_one": "{{analysed}} dari {{count}} lagu dianalisis",
+      "coverage_other": "{{analysed}} dari {{count}} lagu dianalisis"
     },
     "recentlyPlayed": {
       "title": "Baru saja diputar",
@@ -1133,7 +1135,8 @@
     "emptyDescription": "Album ini tidak lagi tersedia di profil aktif.",
     "emptyTracksTitle": "Tidak ada lagu",
     "emptyTracksDescription": "Album ini tidak berisi lagu yang tersedia.",
-    "setMotionCover": "Sampul animasi"
+    "setMotionCover": "Sampul animasi",
+    "fetchTags": "Ambil tag"
   },
   "artistDetail": {
     "badge": "Artis",
@@ -2697,5 +2700,41 @@
       "addedInLastDays_one": "ditambahkan dalam {{count}} hari terakhir",
       "addedInLastDays_other": "ditambahkan dalam {{count}} hari terakhir"
     }
+  },
+  "tagFetch": {
+    "title": "Ambil tag",
+    "searching": "Mencari rilisan…",
+    "matching": "Mencocokkan lagu…",
+    "noSources": "Tidak ada rilisan yang ditemukan untuk album ini.",
+    "sourcesHint": "Album yang sama sering ada dalam beberapa rilisan dengan daftar lagu berbeda. Pilih milik Anda.",
+    "back": "Pilih rilisan lain",
+    "hint": "Tidak ada yang ditulis sampai Anda menerapkannya.",
+    "acceptColumn": "Seluruh bidang:",
+    "acceptTrack": "Seluruh lagu",
+    "nothingToChange": "Rilisan ini mengatakan persis apa yang sudah dikatakan berkas Anda.",
+    "trackUnchanged": "Tidak ada yang perlu diubah pada lagu ini.",
+    "noMatch": "Tidak ada kecocokan untuk {{file}}.",
+    "emptyValue": "(kosong)",
+    "unmatchedRemote": "Ada di rilisan ini tetapi tidak di pustaka Anda: {{titles}}",
+    "apply": "Terapkan",
+    "confidence": {
+      "confident": "Yakin",
+      "doubtful": "Periksa"
+    },
+    "fields": {
+      "title": "Judul",
+      "artist": "Artis",
+      "album": "Album",
+      "year": "Tahun",
+      "track_number": "No. lagu"
+    },
+    "trackCount_one": "{{count}} lagu",
+    "trackCount_other": "{{count}} lagu",
+    "applyCount_one": "Terapkan {{count}} perubahan",
+    "applyCount_other": "Terapkan {{count}} perubahan",
+    "appliedCount_one": "{{count}} lagu diperbarui.",
+    "appliedCount_other": "{{count}} lagu diperbarui.",
+    "failedCount_one": "{{count}} lagu tidak dapat ditulis.",
+    "failedCount_other": "{{count}} lagu tidak dapat ditulis."
   }
 }

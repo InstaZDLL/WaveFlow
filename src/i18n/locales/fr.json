@@ -276,7 +276,7 @@
     },
     "moodRadio": {
       "title": "Radio par humeur",
-      "subtitle": "Filtrée par tempo et énergie",
+      "subtitle": "Classée par tempo, volume et genre",
       "trackCount_one": "{{count}} titre",
       "trackCount_other": "{{count}} titres",
       "empty": "Pas assez de morceaux analysés",
@@ -300,7 +300,10 @@
       "sleep": {
         "title": "Sommeil",
         "subtitle": "Très lent et discret pour s'endormir"
-      }
+      },
+      "coverage_one": "{{analysed}} titre analysé sur {{count}}",
+      "coverage_many": "{{analysed}} titres analysés sur {{count}}",
+      "coverage_other": "{{analysed}} titres analysés sur {{count}}"
     },
     "recentlyPlayed": {
       "title": "Récemment joués",
@@ -1133,7 +1136,8 @@
     "emptyDescription": "Cet album n'existe plus dans le profil actif.",
     "emptyTracksTitle": "Aucun titre",
     "emptyTracksDescription": "Cet album ne contient aucun titre disponible.",
-    "setMotionCover": "Pochette animée"
+    "setMotionCover": "Pochette animée",
+    "fetchTags": "Récupérer les tags"
   },
   "artistDetail": {
     "badge": "Artiste",
@@ -2724,5 +2728,45 @@
       "playedInLastDays_many": "écouté il y a moins de {{count}} jours",
       "addedInLastDays_many": "ajouté il y a moins de {{count}} jours"
     }
+  },
+  "tagFetch": {
+    "title": "Récupérer les tags",
+    "searching": "Recherche des éditions…",
+    "matching": "Comparaison des titres…",
+    "noSources": "Aucune édition trouvée pour cet album.",
+    "sourcesHint": "Un même album existe souvent en plusieurs éditions, avec des listes de titres différentes. Choisissez la vôtre.",
+    "back": "Changer d'édition",
+    "hint": "Rien n'est écrit tant que vous n'appliquez pas.",
+    "acceptColumn": "Tout ce champ :",
+    "acceptTrack": "Tout ce titre",
+    "nothingToChange": "Cette édition dit exactement la même chose que vos fichiers.",
+    "trackUnchanged": "Rien à changer sur ce titre.",
+    "noMatch": "Aucune correspondance pour {{file}}.",
+    "emptyValue": "(vide)",
+    "unmatchedRemote": "Dans cette édition mais pas dans votre bibliothèque : {{titles}}",
+    "apply": "Appliquer",
+    "confidence": {
+      "confident": "Sûr",
+      "doubtful": "À vérifier"
+    },
+    "fields": {
+      "title": "Titre",
+      "artist": "Artiste",
+      "album": "Album",
+      "year": "Année",
+      "track_number": "N° de piste"
+    },
+    "trackCount_one": "{{count}} titre",
+    "trackCount_many": "{{count}} titres",
+    "trackCount_other": "{{count}} titres",
+    "applyCount_one": "Appliquer {{count}} modification",
+    "applyCount_many": "Appliquer {{count}} modifications",
+    "applyCount_other": "Appliquer {{count}} modifications",
+    "appliedCount_one": "{{count}} titre modifié.",
+    "appliedCount_many": "{{count}} titres modifiés.",
+    "appliedCount_other": "{{count}} titres modifiés.",
+    "failedCount_one": "{{count}} titre n'a pas pu être écrit.",
+    "failedCount_many": "{{count}} titres n'ont pas pu être écrits.",
+    "failedCount_other": "{{count}} titres n'ont pas pu être écrits."
   }
 }

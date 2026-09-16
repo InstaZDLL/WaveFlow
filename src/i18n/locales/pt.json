@@ -276,7 +276,7 @@
     },
     "moodRadio": {
       "title": "Rádio por humor",
-      "subtitle": "Filtrada por ritmo e energia",
+      "subtitle": "Ordenada por andamento, volume e género",
       "trackCount_one": "{{count}} faixa",
       "trackCount_other": "{{count}} faixas",
       "empty": "Não há faixas analisadas suficientes",
@@ -300,7 +300,10 @@
       "sleep": {
         "title": "Dormir",
         "subtitle": "Muito lento e discreto para adormecer"
-      }
+      },
+      "coverage_one": "{{analysed}} de {{count}} faixa analisada",
+      "coverage_many": "{{analysed}} de {{count}} faixas analisadas",
+      "coverage_other": "{{analysed}} de {{count}} faixas analisadas"
     },
     "recentlyPlayed": {
       "title": "Reproduzidas recentemente",
@@ -1133,7 +1136,8 @@
     "emptyDescription": "Este álbum já não existe no perfil ativo.",
     "emptyTracksTitle": "Nenhuma música",
     "emptyTracksDescription": "Este álbum não contém nenhuma faixa disponível.",
-    "setMotionCover": "Capa animada"
+    "setMotionCover": "Capa animada",
+    "fetchTags": "Obter etiquetas"
   },
   "artistDetail": {
     "badge": "Artista",
@@ -2724,5 +2728,45 @@
       "playedInLastDays_many": "reproduzido nos últimos {{count}} dias",
       "addedInLastDays_many": "adicionado nos últimos {{count}} dias"
     }
+  },
+  "tagFetch": {
+    "title": "Obter etiquetas",
+    "searching": "A procurar edições…",
+    "matching": "A associar faixas…",
+    "noSources": "Nenhuma edição encontrada para este álbum.",
+    "sourcesHint": "O mesmo álbum existe muitas vezes em várias edições, com alinhamentos diferentes. Escolha a sua.",
+    "back": "Escolher outra edição",
+    "hint": "Nada é escrito até aplicar.",
+    "acceptColumn": "Todo o campo:",
+    "acceptTrack": "Toda a faixa",
+    "nothingToChange": "Esta edição diz exatamente o que os seus ficheiros já dizem.",
+    "trackUnchanged": "Nada a alterar nesta faixa.",
+    "noMatch": "Sem correspondência para {{file}}.",
+    "emptyValue": "(vazio)",
+    "unmatchedRemote": "Nesta edição mas não na sua biblioteca: {{titles}}",
+    "apply": "Aplicar",
+    "confidence": {
+      "confident": "Seguro",
+      "doubtful": "Verificar"
+    },
+    "fields": {
+      "title": "Título",
+      "artist": "Artista",
+      "album": "Álbum",
+      "year": "Ano",
+      "track_number": "N.º da faixa"
+    },
+    "trackCount_one": "{{count}} faixa",
+    "trackCount_many": "{{count}} faixas",
+    "trackCount_other": "{{count}} faixas",
+    "applyCount_one": "Aplicar {{count}} alteração",
+    "applyCount_many": "Aplicar {{count}} alterações",
+    "applyCount_other": "Aplicar {{count}} alterações",
+    "appliedCount_one": "{{count}} faixa atualizada.",
+    "appliedCount_many": "{{count}} faixas atualizadas.",
+    "appliedCount_other": "{{count}} faixas atualizadas.",
+    "failedCount_one": "Não foi possível escrever {{count}} faixa.",
+    "failedCount_many": "Não foi possível escrever {{count}} faixas.",
+    "failedCount_other": "Não foi possível escrever {{count}} faixas."
   }
 }

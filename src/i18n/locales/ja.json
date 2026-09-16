@@ -276,7 +276,7 @@
     },
     "moodRadio": {
       "title": "ムードラジオ",
-      "subtitle": "テンポとエネルギーで絞り込み",
+      "subtitle": "テンポ・音量・ジャンル順",
       "trackCount_one": "{{count}}曲",
       "trackCount_other": "{{count}}曲",
       "empty": "解析済み楽曲が不足しています",
@@ -300,7 +300,9 @@
       "sleep": {
         "title": "スリープ",
         "subtitle": "入眠用のとてもゆっくりで静かな曲"
-      }
+      },
+      "coverage_one": "{{count}} 曲中 {{analysed}} 曲を解析済み",
+      "coverage_other": "{{count}} 曲中 {{analysed}} 曲を解析済み"
     },
     "recentlyPlayed": {
       "title": "最近再生した曲",
@@ -1133,7 +1135,8 @@
     "emptyDescription": "このアルバムは、現在のプロフィールには存在しません。",
     "emptyTracksTitle": "曲なし",
     "emptyTracksDescription": "このアルバムには収録曲が1曲もありません。",
-    "setMotionCover": "モーションカバー"
+    "setMotionCover": "モーションカバー",
+    "fetchTags": "タグを取得"
   },
   "artistDetail": {
     "badge": "アーティスト",
@@ -2697,5 +2700,41 @@
       "addedInLastDays_one": "過去 {{count}} 日以内に追加",
       "addedInLastDays_other": "過去 {{count}} 日以内に追加"
     }
+  },
+  "tagFetch": {
+    "title": "タグを取得",
+    "searching": "リリースを検索中…",
+    "matching": "曲を照合中…",
+    "noSources": "このアルバムのリリースが見つかりません。",
+    "sourcesHint": "同じアルバムでも収録曲の異なる複数のリリースがあります。お持ちのものを選んでください。",
+    "back": "別のリリースを選ぶ",
+    "hint": "適用するまで何も書き込まれません。",
+    "acceptColumn": "この項目すべて:",
+    "acceptTrack": "この曲すべて",
+    "nothingToChange": "このリリースはファイルの内容とまったく同じです。",
+    "trackUnchanged": "この曲に変更点はありません。",
+    "noMatch": "{{file}} に一致するものがありません。",
+    "emptyValue": "(空)",
+    "unmatchedRemote": "このリリースにあってライブラリにない曲: {{titles}}",
+    "apply": "適用",
+    "confidence": {
+      "confident": "確実",
+      "doubtful": "要確認"
+    },
+    "fields": {
+      "title": "タイトル",
+      "artist": "アーティスト",
+      "album": "アルバム",
+      "year": "年",
+      "track_number": "トラック番号"
+    },
+    "trackCount_one": "{{count}} 曲",
+    "trackCount_other": "{{count}} 曲",
+    "applyCount_one": "{{count}} 件を適用",
+    "applyCount_other": "{{count}} 件を適用",
+    "appliedCount_one": "{{count}} 曲を更新しました。",
+    "appliedCount_other": "{{count}} 曲を更新しました。",
+    "failedCount_one": "{{count}} 曲を書き込めませんでした。",
+    "failedCount_other": "{{count}} 曲を書き込めませんでした。"
   }
 }

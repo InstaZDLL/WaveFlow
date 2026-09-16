@@ -6,6 +6,7 @@
 //! both the desktop app (`crates/app`) and the future
 //! `waveflow-server` (RFC-001 §6.2) without any glue.
 
+pub mod album_match;
 pub mod deezer;
 pub mod lastfm;
 pub mod lrclib;

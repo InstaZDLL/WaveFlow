@@ -226,3 +226,72 @@ Wired into [`SmartPlaylistEditorModal`](../../src/components/common/SmartPlaylis
 [`describeRules`](../../src/lib/smartRuleSummary.ts) renders a rule tree as a sentence, shown by [`SmartRuleSummary`](../../src/components/common/SmartRuleSummary.tsx) under a custom smart playlist's title. Built from translated fragments — one key per predicate with its value interpolated, groups joined by a separator, nested groups parenthesised — so a translator only ever sees short phrases and the recursion stays out of the locale files.
 
 It reads the rules through `get_custom_smart_playlist_rules` rather than parsing `playlist.smart_rules`, which is already in the row: playlists created before the tree carry the v1 flat shape and **only the backend deserializer migrates it**, so reading the column here would render an empty sentence for exactly the oldest playlists.
+
+## Mood Radio
+
+Five presets, each a **tempo gate plus a shape**
+([`commands/mood_radio.rs`](../../src-tauri/crates/app/src/commands/mood_radio.rs),
+scoring in [`waveflow_core::mood`](../../src-tauri/crates/core/src/mood.rs)).
+The gate decides what may be considered; everything inside it is ranked
+by how well it fits, and the forty tracks that play are the best of the
+pool rather than the first forty drawn out of it (#616).
+
+| Mood | Tempo gate | Centre | Loudness |
+| --- | --- | --- | --- |
+| Focus | 72–108 | 88 | prefers ≤ −14 LUFS |
+| Chill | 65–95 | 78 | prefers ≤ −10 LUFS |
+| Workout | 128–180 | 150 | prefers ≥ −12 LUFS |
+| Party | 110–132 | 122 | prefers ≥ −12 LUFS |
+| Sleep | ≤ 68 | 52 | prefers ≤ −18 LUFS |
+
+The pool of 400 is drawn **measured readings first**, shuffled within
+each group, and the ranking then decides which forty of it play. The
+shuffle is what keeps two runs of one mood from being the same queue;
+the priority is what stops a guess from taking a slot from a track that
+really is this tempo — see the octave note below.
+
+### Why only tempo gates
+
+A gate answers "is this the wrong kind of track", a score answers "how
+right is it". Tempo is the only signal where falling outside the range
+really does mean the wrong mood — a 160 BPM track is not Sleep at any
+loudness. Loudness and genre rank instead, which is what lets a thin
+library still return forty tracks, closest fits first, rather than an
+error.
+
+That also fixes the case the issue opened on: **an unmeasured loudness
+used to satisfy a ceiling exactly as well as a measured quiet track**
+(`loudness_lufs IS NULL` passed the filter). It now scores 0.5 — below
+a track measured inside the mood, above one measured outside it, which
+is the only honest ordering and the same rule the tag matcher uses for
+missing data.
+
+### Octave correction
+
+Tempo estimators land an octave out often enough that a 170 BPM track
+is recorded as 85, and a library where that happened is a library where
+Focus quietly fills with drum'n'bass. The candidate query accepts any
+octave reading (`bpm`, `bpm × 2`, `bpm ÷ 2`) and the scorer discounts
+the corrected one by a third: a guess about a measurement is worth less
+than a measurement, so rescued tracks sit below the honest ones rather
+than beside them. A tempo already inside the window is **never**
+reinterpreted, however well its double would score.
+
+### Narrowed, not de-overlapped
+
+Chill's window used to sit entirely inside Focus's, and Party shared
+fifteen beats with Workout — two different moods could return the same
+kind of list. The windows above share four beats at most between Party
+and Workout, and Focus and Chill still overlap because the moods
+genuinely do: "calm enough to work to" and "calm enough to sit in" are
+the same tempo, and what separates them is the centre, the loudness and
+the genre words.
+
+### What the home tile says
+
+`mood_radio_counts` returns the per-mood counts **and** how much of the
+library carries a tempo at all, because a thin radio has a reason the
+counts cannot show: they look small without saying small *of what*. The
+grid shows the coverage line only while the two numbers differ. The
+subtitle now says what the radio does — it promised "tempo and energy"
+while energy was a loudness ceiling on two of the five moods.

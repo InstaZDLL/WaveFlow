@@ -276,7 +276,7 @@
     },
     "moodRadio": {
       "title": "心情电台",
-      "subtitle": "按节奏与能量筛选",
+      "subtitle": "按速度、响度和流派排序",
       "trackCount_one": "{{count}} 首",
       "trackCount_other": "{{count}} 首",
       "empty": "已分析曲目不足",
@@ -300,7 +300,9 @@
       "sleep": {
         "title": "睡眠",
         "subtitle": "极慢极轻便于入睡"
-      }
+      },
+      "coverage_one": "已分析 {{count}} 首中的 {{analysed}} 首",
+      "coverage_other": "已分析 {{count}} 首中的 {{analysed}} 首"
     },
     "recentlyPlayed": {
       "title": "最近播放的",
@@ -1133,7 +1135,8 @@
     "emptyDescription": "此专辑已不在当前的个人资料中。",
     "emptyTracksTitle": "没有歌曲",
     "emptyTracksDescription": "该专辑中没有可播放的歌曲。",
-    "setMotionCover": "动态封面"
+    "setMotionCover": "动态封面",
+    "fetchTags": "获取标签"
   },
   "artistDetail": {
     "badge": "艺人",
@@ -2697,5 +2700,41 @@
       "addedInLastDays_one": "最近 {{count}} 天内添加",
       "addedInLastDays_other": "最近 {{count}} 天内添加"
     }
+  },
+  "tagFetch": {
+    "title": "获取标签",
+    "searching": "正在查找版本…",
+    "matching": "正在匹配曲目…",
+    "noSources": "未找到该专辑的任何版本。",
+    "sourcesHint": "同一张专辑常有多个版本，曲目列表各不相同。请选择你手上的那个。",
+    "back": "换一个版本",
+    "hint": "在你应用之前不会写入任何内容。",
+    "acceptColumn": "整个字段：",
+    "acceptTrack": "整首曲目",
+    "nothingToChange": "这个版本和你的文件说的完全一样。",
+    "trackUnchanged": "这首曲目没有要改的内容。",
+    "noMatch": "没有与 {{file}} 匹配的曲目。",
+    "emptyValue": "（空）",
+    "unmatchedRemote": "此版本中有、你的音乐库中没有：{{titles}}",
+    "apply": "应用",
+    "confidence": {
+      "confident": "可靠",
+      "doubtful": "需核对"
+    },
+    "fields": {
+      "title": "标题",
+      "artist": "艺人",
+      "album": "专辑",
+      "year": "年份",
+      "track_number": "音轨号"
+    },
+    "trackCount_one": "{{count}} 首",
+    "trackCount_other": "{{count}} 首",
+    "applyCount_one": "应用 {{count}} 处更改",
+    "applyCount_other": "应用 {{count}} 处更改",
+    "appliedCount_one": "已更新 {{count}} 首。",
+    "appliedCount_other": "已更新 {{count}} 首。",
+    "failedCount_one": "有 {{count}} 首无法写入。",
+    "failedCount_other": "有 {{count}} 首无法写入。"
   }
 }
