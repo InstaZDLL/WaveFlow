@@ -136,6 +136,8 @@ Two rules ride along in the same function:
 
 Containers the scanner indexes but nothing can tag are refused up front with a message that says so, instead of failing later as an unrelated "unknown format". That is `.dff` alone now: `.dsf` has a writer of its own (#592), because its tag is a plain ID3v2 block at an offset the header declares rather than something lofty has to understand.
 
+**Every payload, not just the properties dialog.** Star ratings and lyrics saved into the tag each reached the file by their own route for as long as they existed, and each paid for it the same way: no DSD, no remainder, no rewrite safety — the rule above, broken in two places that predated it. They are `TagPatch` variants now (#644), which is the shape any future payload should take rather than a third private route.
+
 Deep dive: [library § tag editing](../features/library.md#tag-editing).
 
 ---

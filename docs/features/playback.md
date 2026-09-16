@@ -126,6 +126,26 @@ setting for the listener to manage. Shuffle-by-album counts as a record
 playing through, since that is precisely what it produces. `track` and
 `album` force the choice.
 
+**A session a generator built out of whole records counts too** (#647),
+and it needed a third input to say so. An album-mode Mood Radio is
+enqueued as `'radio'` and an album-mode Daily Mix plays as
+`'playlist'`, because each `source_type` value already means something
+to `play_event` and neither may claim to be `'album'` — so a session
+playing records in disc order looked exactly like a shuffled playlist
+and got track gain. A per-queue `queue.album_ordered` flag is written
+by `fill_queue` on **every** replacement, true or false, and mirrored
+into `SharedPlayback` next to the shuffle grouping, where
+`listening_to` reads it as the third input. Each generator supplies it
+differently: Mood Radio answers with the session
+(`start_mood_radio` returns `{ trackIds, albumOrdered }`), while a
+Daily Mix outlives its own generation, so the generator records
+`album_mode` in the playlist's `smart_rules` and the play path reads it
+back weeks later. Both describe **what was produced**, not what was
+asked for: album mode is a preference and both generators fall back to
+individual tracks when no record qualifies. Shuffle still answers
+first, so a session of records taken apart track by track is not one
+any more.
+
 **The clipping cap switches with the gain**, and this is the part that
 is easy to get wrong. In album mode it caps by the **album** peak,
 which is the same number for every track on the record, so the cap is
@@ -292,7 +312,9 @@ So the decoder records it. `SharedPlayback::last_load` holds the load it most re
 
 Two things fell out of that. The resume no longer goes to the database for a file path, so it is synchronous and keeps the gain and the **source** the track came from — a play credited to `device-rebuild` was hidden from every statistic that filters on the source, because the audio device changed. And the position, which has to be read *before* the stop (opening the replacement writes its own sample rate into the shared block, and a position derived from the old rate's sample count is simply a wrong number), is stamped with the load it belongs to: `resume_start_ms` uses it only when the decoder was on that same load, by intent *and* by track, and otherwise starts where the load itself asked to.
 
-A rebuild also has to **interrupt** a session that is still loading, and that is a separate question from what it resumes. The decoder is inside `play_track` from the moment it accepts a load, and a `SwapProducer` that reaches it there is dropped: both drains fall through to a catch-all, on the stated assumption that the engine always sends a `Stop` first. Treating a loading track as "nothing playing" broke that assumption — the swap was lost, and the decoder went on writing into a ring whose consumer had just been torn down, which is silence until something else rebuilds the output. `Loading` therefore counts as a session, and resuming it is the right answer too: the load is in `last_load` and goes back out under its own intent.
+A rebuild also has to **interrupt** a session that is still loading, and that is a separate question from what it resumes. The decoder is inside `play_track` from the moment it accepts a load, so a track the user picks mid-rebuild is one this decision covers: `Loading` counts as a session, and the load is in `last_load` and goes back out under its own intent.
+
+**A swap that arrives mid-track installs itself** (#639). It used not to: both drains dropped a `SwapProducer` on the floor, on the stated assumption that the engine always sends a `Stop` first and the decoder is therefore parked at the top-level loop when the producer lands. The assumption holds only if nothing gets between the two, and one branch leaves a wide gap — when the current stream is exclusive the old one has to be released before the new one can open (#322), so the `Stop` and the swap are separated by a full exclusive device open. Pick a track inside that window and the decoder is back inside `play_track` when the producer arrives; dropping it left the decoder writing into a ring whose consumer had gone with the old output thread — every push succeeding, nothing ever read, silence until something else rebuilt the output. The drains now install the producer and **end the current track**: the resampler is built against the output's sample rate, so a producer swapped in underneath a running track would play it at the wrong speed. Ending it as an interruption writes no `play_event` and does not advance the queue, and the rebuild's own resume re-dispatches `last_load` — by then the track the user picked.
 
 ### What a rebuild does **not** put back
 
