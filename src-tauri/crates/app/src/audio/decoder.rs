@@ -2084,10 +2084,12 @@ fn accept_load(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
 /// **Ending the track is not incidental.** The resampler is built
 /// against the output's sample rate, read once when the track started;
 /// a producer swapped in underneath a running track would play it at
-/// the wrong speed. `Break` stops it as an interruption, so no
-/// `play_event` is written and the queue does not advance — and the
-/// rebuild's own resume then re-dispatches `last_load`, which by then
-/// is whatever the user picked, under its own intent.
+/// the wrong speed. `Break` ends it exactly as the `Stop` the rebuild
+/// already sends does: the queue does not advance, and a listen is
+/// credited under the same 15-second rule as any other interruption —
+/// which a track the user picked inside a device open cannot have
+/// reached. The rebuild's own resume then re-dispatches `last_load`,
+/// which by then is what they picked, under its own intent.
 fn install_swapped_producer(
     producer: &mut Producer<f32>,
     new_producer: Producer<f32>,
