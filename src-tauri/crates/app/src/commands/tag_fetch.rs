@@ -68,14 +68,17 @@ pub async fn search_album_tag_sources(
     state: tauri::State<'_, AppState>,
     album_id: i64,
 ) -> AppResult<Vec<AlbumSource>> {
-    let pool = state.require_profile_pool().await?;
-    let (title, artist) = album_identity(&pool, album_id).await?;
-
+    // Before the reads, as in `fetch_album_tag_proposals`: everything
+    // this command does afterwards is in service of a network call it
+    // is not going to make.
     if crate::offline::is_offline() {
         return Err(AppError::Other(
             "offline mode is on — turn it off to fetch tags".into(),
         ));
     }
+
+    let pool = state.require_profile_pool().await?;
+    let (title, artist) = album_identity(&pool, album_id).await?;
 
     let query = match artist.as_deref() {
         Some(artist) => format!("{title} {artist}"),
@@ -196,6 +199,7 @@ pub async fn fetch_album_tag_proposals(
             title: l.title.clone(),
             duration_ms: Some(l.duration_ms),
             track_number: l.track_number,
+            disc_number: l.disc_number,
         })
         .collect();
     let remote_signals: Vec<TrackSignals> = remote_tracks
@@ -204,6 +208,13 @@ pub async fn fetch_album_tag_proposals(
             title: r.title.clone(),
             duration_ms: r.duration_ms(),
             track_number: r.track_position,
+            // Read for matching only. It is still not offered as a
+            // value to write: the catalogue's disc numbers are
+            // unreliable on box sets, which is where the local ones are
+            // usually right — and a signal that costs 0.15 when it
+            // disagrees is a different risk from a value that
+            // overwrites a correct field.
+            disc_number: r.disk_number,
         })
         .collect();
 
@@ -289,6 +300,7 @@ struct LocalTrack {
     title: String,
     duration_ms: i64,
     track_number: Option<i64>,
+    disc_number: Option<i64>,
     year: Option<i64>,
     artist: Option<String>,
     album: Option<String>,
@@ -315,6 +327,7 @@ async fn local_tracks(pool: &SqlitePool, album_id: i64) -> AppResult<Vec<LocalTr
         title: String,
         duration_ms: i64,
         track_number: Option<i64>,
+        disc_number: Option<i64>,
         year: Option<i64>,
         artists: Option<String>,
         album: Option<String>,
@@ -327,6 +340,7 @@ async fn local_tracks(pool: &SqlitePool, album_id: i64) -> AppResult<Vec<LocalTr
                t.title         AS title,
                t.duration_ms   AS duration_ms,
                t.track_number  AS track_number,
+               t.disc_number   AS disc_number,
                t.year          AS year,
                (SELECT GROUP_CONCAT(name, '; ') FROM (
                    SELECT ar.name AS name
@@ -355,6 +369,7 @@ async fn local_tracks(pool: &SqlitePool, album_id: i64) -> AppResult<Vec<LocalTr
             title: r.title,
             duration_ms: r.duration_ms,
             track_number: r.track_number,
+            disc_number: r.disc_number,
             year: r.year,
             artist: r.artists,
             album: r.album,

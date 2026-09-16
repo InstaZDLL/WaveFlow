@@ -128,6 +128,12 @@ export function TagFetchModal({
     // reopened modal showed "matching…" over a search that had ended
     // long ago and would never end again.
     setIsLoading(false);
+    // And its twin. A write cannot be dismissed by any control of
+    // ours, but the parent can unmount this modal — navigating away
+    // from the album does — and `isApplying` would then still be
+    // raised on the next opening, with the close blocked and Apply
+    // disabled by a write that finished long ago.
+    setIsApplying(false);
     /* eslint-enable react-hooks/set-state-in-effect */
     const token = ++fetchTokenRef.current;
     searchAlbumTagSources(albumId)
@@ -211,29 +217,35 @@ export function TagFetchModal({
     setError(null);
     let ok = 0;
     let failed = 0;
-    for (const proposal of proposals.tracks) {
-      const fields = changedFields(proposal).filter(
-        (f) => accepted[proposal.track_id]?.[f],
-      );
-      if (fields.length === 0) continue;
-      const edit: TrackEdit = {};
-      for (const field of fields) {
-        // Only the accepted fields are sent: `update_track_tags`
-        // leaves an omitted field alone, which is what makes accepting
-        // one value of one track mean exactly that.
-        Object.assign(edit, editFragment(proposal, field));
+    try {
+      for (const proposal of proposals.tracks) {
+        const fields = changedFields(proposal).filter(
+          (f) => accepted[proposal.track_id]?.[f],
+        );
+        if (fields.length === 0) continue;
+        const edit: TrackEdit = {};
+        for (const field of fields) {
+          // Only the accepted fields are sent: `update_track_tags`
+          // leaves an omitted field alone, which is what makes
+          // accepting one value of one track mean exactly that.
+          Object.assign(edit, editFragment(proposal, field));
+        }
+        try {
+          await updateTrackTags(proposal.track_id, edit);
+          ok += 1;
+        } catch (err) {
+          console.error("[TagFetch] write failed", proposal.track_id, err);
+          failed += 1;
+        }
       }
-      try {
-        await updateTrackTags(proposal.track_id, edit);
-        ok += 1;
-      } catch (err) {
-        console.error("[TagFetch] write failed", proposal.track_id, err);
-        failed += 1;
-      }
+      setApplied({ ok, failed });
+      if (ok > 0) onApplied?.();
+    } finally {
+      // Whatever happened — including a throw from outside the
+      // per-track guard above — the lock comes off. Leaving it on is
+      // a modal nothing can close.
+      setIsApplying(false);
     }
-    setApplied({ ok, failed });
-    setIsApplying(false);
-    if (ok > 0) onApplied?.();
   };
 
   return (

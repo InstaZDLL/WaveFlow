@@ -56,6 +56,13 @@ pub struct TrackSignals {
     pub title: String,
     pub duration_ms: Option<i64>,
     pub track_number: Option<i64>,
+    /// The disc it sits on, where the release has more than one.
+    ///
+    /// A track number alone cannot separate disc 1's third track from
+    /// disc 2's: both are "3", and on a box set of live recordings the
+    /// titles and the durations are close enough that the number is
+    /// what the pairing turns on.
+    pub disc_number: Option<i64>,
 }
 
 /// How sure the assignment is.
@@ -81,7 +88,7 @@ pub struct Assignment {
 pub fn score(local: &TrackSignals, remote: &TrackSignals) -> f64 {
     let title = title_similarity(&local.title, &remote.title);
     let duration = duration_similarity(local.duration_ms, remote.duration_ms);
-    let number = number_similarity(local.track_number, remote.track_number);
+    let number = number_similarity(local, remote);
     (W_TITLE * title + W_DURATION * duration + W_NUMBER * number).clamp(0.0, 1.0)
 }
 
@@ -171,11 +178,23 @@ fn duration_similarity(a: Option<i64>, b: Option<i64>) -> f64 {
 
 /// A track number agrees or it does not — there is no near miss. Track
 /// 4 is not "almost" track 5; it is a different song.
-fn number_similarity(a: Option<i64>, b: Option<i64>) -> f64 {
-    match (a, b) {
-        (Some(a), Some(b)) if a == b => 1.0,
-        (Some(_), Some(_)) => 0.0,
-        _ => UNKNOWN_SCORE,
+///
+/// The disc joins the comparison **only when both sides carry one**. A
+/// release where one side numbers its discs and the other does not is
+/// common — and it is not disagreement, so it must not read as one;
+/// the track number then answers alone, exactly as before. When both
+/// have it, the pair is compared as a pair, which is the only way
+/// "disc 2, track 3" stops looking identical to "disc 1, track 3".
+fn number_similarity(local: &TrackSignals, remote: &TrackSignals) -> f64 {
+    let (Some(a), Some(b)) = (local.track_number, remote.track_number) else {
+        return UNKNOWN_SCORE;
+    };
+    if a != b {
+        return 0.0;
+    }
+    match (local.disc_number, remote.disc_number) {
+        (Some(x), Some(y)) if x != y => 0.0,
+        _ => 1.0,
     }
 }
 
@@ -212,7 +231,13 @@ mod tests {
             title: title.to_string(),
             duration_ms,
             track_number,
+            disc_number: None,
         }
+    }
+
+    fn on_disc(mut t: TrackSignals, disc: i64) -> TrackSignals {
+        t.disc_number = Some(disc);
+        t
     }
 
     /// The accented-title case the shared normaliser exists for: a
@@ -294,6 +319,40 @@ mod tests {
         let out = assign(&locals, &remotes);
         assert_eq!(out.len(), 1);
         assert_eq!(out[0].local, 1);
+    }
+
+    /// Two discs, one track number each: without the disc the number
+    /// signal says "match" for both pairings, and on a box set of live
+    /// takes the titles and durations are close enough that it decides.
+    #[test]
+    fn the_disc_separates_two_tracks_numbered_the_same() {
+        // Identical on every other signal, so the disc is the only
+        // thing that can tell them apart: with differing durations the
+        // duration would separate them and this would pass whether or
+        // not the disc were read at all.
+        let locals = vec![
+            on_disc(track("Improvisation", Some(400_000), Some(3)), 1),
+            on_disc(track("Improvisation", Some(400_000), Some(3)), 2),
+        ];
+        let remotes = vec![
+            on_disc(track("Improvisation", Some(400_000), Some(3)), 2),
+            on_disc(track("Improvisation", Some(400_000), Some(3)), 1),
+        ];
+        let out = assign(&locals, &remotes);
+        assert_eq!(out.len(), 2);
+        assert_eq!(out[0].remote, 1, "disc 1 goes with disc 1");
+        assert_eq!(out[1].remote, 0, "disc 2 goes with disc 2");
+    }
+
+    /// A disc on one side only is not a disagreement. Plenty of
+    /// releases number their discs where the local files do not, and
+    /// reading that as a mismatch would cost every one of them the
+    /// number signal.
+    #[test]
+    fn a_disc_on_one_side_only_costs_nothing() {
+        let local = track("Villanelle", Some(212_000), Some(3));
+        let remote = on_disc(track("Villanelle", Some(212_000), Some(3)), 2);
+        assert_eq!(score(&local, &remote), score(&local, &local.clone()));
     }
 
     /// The middle band is the reason the review screen exists: a match
