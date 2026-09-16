@@ -677,14 +677,20 @@ pub fn extract_rating(tag: &Tag) -> Option<u8> {
     }
     if let Some(text) = tag.get_string(ItemKey::Popularimeter) {
         let trimmed = text.trim();
-        // The generic popularimeter: the stars sit between the two
-        // pipes, and the provider name before the first one may be
-        // empty. Tried before the plain number, since a bare `RATING`
-        // value has no pipe at all and falls through to it.
-        if let Some(stars) = trimmed.split('|').nth(1) {
-            if let Ok(stars) = stars.trim().parse::<u16>() {
-                if (1..=5).contains(&stars) {
-                    return Some((stars * 51) as u8);
+        // The generic popularimeter, and the whole shape of it: a
+        // provider name that may be empty, the stars, the play counter.
+        // Matched exactly rather than by position, because this value
+        // was written by software we know nothing about — a string that
+        // merely happens to carry a pipe and a digit is not a rating,
+        // and reading it as one puts stars on a track nobody rated.
+        // Tried before the plain number, which has no pipe at all.
+        let fields: Vec<&str> = trimmed.split('|').collect();
+        if let [_provider, stars, counter] = fields.as_slice() {
+            if counter.trim().parse::<u64>().is_ok() {
+                if let Ok(stars) = stars.trim().parse::<u16>() {
+                    if (1..=5).contains(&stars) {
+                        return Some((stars * 51) as u8);
+                    }
                 }
             }
         }
@@ -775,10 +781,13 @@ mod tests {
         vorbis.insert_text(ItemKey::Popularimeter, "76".to_string());
         assert_eq!(extract_rating(&vorbis), Some(193));
 
-        // Nothing that is neither.
-        let mut nonsense = Tag::new(TagType::Id3v2);
-        nonsense.insert_text(ItemKey::Popularimeter, "not a rating".to_string());
-        assert_eq!(extract_rating(&nonsense), None);
+        // Nothing that is neither — including a string that happens to
+        // carry a pipe and a digit without being a popularimeter.
+        for value in ["not a rating", "MusicBee|4", "x|4|0|extra", "a|4|later"] {
+            let mut nonsense = Tag::new(TagType::Id3v2);
+            nonsense.insert_text(ItemKey::Popularimeter, value.to_string());
+            assert_eq!(extract_rating(&nonsense), None, "{value}");
+        }
     }
 
     /// Smallest valid 1x1 JPEG — enough to satisfy the non-empty check
