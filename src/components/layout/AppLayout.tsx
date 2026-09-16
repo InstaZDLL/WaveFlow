@@ -48,6 +48,11 @@ const LibraryView = lazy(() =>
     default: module.LibraryView,
   })),
 );
+// Type-only, so it does not pull the lazily-loaded module into this
+// bundle: the entry below carries a category and has to spell it the
+// same way Settings does.
+import type { SettingsCategory } from "../views/SettingsView";
+
 const SettingsView = lazy(() =>
   import("../views/SettingsView").then((module) => ({
     default: module.SettingsView,
@@ -126,7 +131,12 @@ const GenreDetailView = lazy(() =>
 type HistoryEntry =
   | { id: "home" }
   | { id: "library" }
-  | { id: "settings" }
+  // `settingsCategory` is for the surfaces that send someone to one
+  // card in particular. Carried on the entry rather than in a piece of
+  // state beside it, so it expires the way every other payload here
+  // does: the next plain visit to Settings pushes an entry without it
+  // and lands on whatever the user last had open.
+  | { id: "settings"; settingsCategory?: SettingsCategory }
   | { id: "spotify" }
   | { id: "web-radio" }
   | { id: "about" }
@@ -403,6 +413,13 @@ export function AppLayout() {
     [pushEntry],
   );
 
+  const openSettingsAt = useCallback(
+    (settingsCategory: SettingsCategory) => {
+      pushEntry({ id: "settings", settingsCategory });
+    },
+    [pushEntry],
+  );
+
   const canGoBack = historyIndex > 0;
   const canGoForward = historyIndex < viewHistory.length - 1;
 
@@ -519,7 +536,16 @@ export function AppLayout() {
           />
         );
       case "settings":
-        return <SettingsView onNavigate={setActiveView} />;
+        return (
+          <SettingsView
+            onNavigate={setActiveView}
+            initialCategory={
+              currentEntry.id === "settings"
+                ? currentEntry.settingsCategory
+                : undefined
+            }
+          />
+        );
       case "spotify":
         return <SpotifyView onNavigate={setActiveView} />;
       case "web-radio":
@@ -802,7 +828,7 @@ export function AppLayout() {
 
         <LastfmReauthBanner onGoToSettings={() => setActiveView("settings")} />
         <SoftwareRenderingBanner
-          onGoToSettings={() => setActiveView("settings")}
+          onGoToSettings={() => openSettingsAt("diagnostics")}
         />
         <UpdateBanner />
         <ScanProgressToast />

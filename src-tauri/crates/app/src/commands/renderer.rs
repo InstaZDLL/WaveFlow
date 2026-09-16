@@ -41,6 +41,9 @@ pub fn renderer_retry_gpu() -> AppResult<()> {
             "nothing to undo: this launch's renderer was not chosen from the stored state".into(),
         ));
     }
-    render_mode::retry_gpu();
-    Ok(())
+    // Propagated rather than logged: the interface answers this with
+    // "from the next start", and saying that when the file could not be
+    // written is a promise nothing will keep.
+    render_mode::retry_gpu()
+        .map_err(|err| AppError::Other(format!("could not save the renderer state: {err}")))
 }

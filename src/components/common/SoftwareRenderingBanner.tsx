@@ -26,6 +26,12 @@ interface SoftwareRenderingBannerProps {
  * this is not a transient event, and a message about why the interface
  * is slow should not vanish while the user is working out whether it
  * is.
+ *
+ * `animate-fade-in` carries no `motion-safe:` variant on purpose —
+ * `app.css` neutralises the utility itself under
+ * `prefers-reduced-motion`, which is where that decision is made for
+ * all ~30 of its call sites rather than at whichever ones someone
+ * remembered.
  */
 export function SoftwareRenderingBanner({
   onGoToSettings,

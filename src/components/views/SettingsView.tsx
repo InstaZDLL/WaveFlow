@@ -185,6 +185,14 @@ import { ArtistBioSourceCard } from "./settings/ArtistBioSourceCard";
 
 interface SettingsViewProps {
   onNavigate: (view: ViewId) => void;
+  /**
+   * Open on this category instead of the one the user last had open.
+   *
+   * For the callers that send someone here to see a *particular* card:
+   * the remembered category is the right default for opening Settings,
+   * and the wrong one when something has just said "look at this".
+   */
+  initialCategory?: SettingsCategory;
 }
 
 /**
@@ -193,7 +201,7 @@ interface SettingsViewProps {
  * so heavy subviews (EQ visualizer, backup card, shortcuts editor)
  * don't run their effects until the user actually opens that tab.
  */
-type SettingsCategory =
+export type SettingsCategory =
   | "library"
   | "playback"
   | "integrations"
@@ -539,15 +547,18 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
   );
 }
 
-export function SettingsView({ onNavigate }: SettingsViewProps) {
+export function SettingsView({ onNavigate,
+  initialCategory,
+}: SettingsViewProps) {
   const { t, i18n } = useTranslation();
   const { theme, setThemeId } = useTheme();
   const { libraries, rescanLibrary } = useLibrary();
   // Category tab the user is currently viewing. Persisted to
   // localStorage so re-entering Settings lands them on the same tab
   // they last had open — small but expected polish.
-  const [activeCategory, setActiveCategory] =
-    useState<SettingsCategory>(readStoredCategory);
+  const [activeCategory, setActiveCategory] = useState<SettingsCategory>(
+    () => initialCategory ?? readStoredCategory(),
+  );
   const handleCategoryChange = useCallback((next: SettingsCategory) => {
     setActiveCategory(next);
     try {

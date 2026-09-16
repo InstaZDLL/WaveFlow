@@ -159,6 +159,9 @@ static ACTIVE: std::sync::OnceLock<Active> = std::sync::OnceLock::new();
 /// has to know without writing anything itself.
 static PAINTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
+/// Whether the user asked for the GPU back during this session.
+static RETRY_REQUESTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 fn state_path(root: &Path) -> PathBuf {
     root.join("renderer.json")
 }
@@ -189,28 +192,33 @@ fn read_state(path: &Path) -> RenderState {
 /// are in the page cache the moment the write returns, which the next
 /// process reads. Paying for a flush on every launch would buy nothing
 /// this mechanism needs.
-fn write_state(path: &Path, state: &RenderState) {
+fn write_state(path: &Path, state: &RenderState) -> std::io::Result<()> {
     if state.remembered.is_none() && state.armed.is_none() {
         // Nothing left to say: the default is the absence of the file.
-        if let Err(err) = std::fs::remove_file(path) {
-            if err.kind() != std::io::ErrorKind::NotFound {
-                tracing::warn!(%err, "could not clear the renderer state");
-            }
-        }
-        return;
+        return match std::fs::remove_file(path) {
+            Err(err) if err.kind() != std::io::ErrorKind::NotFound => Err(err),
+            _ => Ok(()),
+        };
     }
-    let Ok(raw) = serde_json::to_string(state) else {
-        return;
-    };
+    let raw = serde_json::to_string(state)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err))?;
     if let Some(parent) = path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
-    if let Err(err) = std::fs::write(path, raw) {
-        // Non-fatal on purpose. A read-only app-data directory is a
-        // problem the user has already, and refusing to start over it
-        // would turn a degraded launch into no launch at all. The cost
-        // is that the fallback cannot arm — which is where we were
-        // before this existed.
+    std::fs::write(path, raw)
+}
+
+/// Write it, and carry on if it could not be written.
+///
+/// For the callers on the startup path, where the failure is real but
+/// the answer to it is not to refuse to start: a read-only app-data
+/// directory is a problem the user has already, and turning a degraded
+/// launch into no launch would be worse. The cost is that the fallback
+/// cannot arm — which is exactly where the app was before any of this
+/// existed. The one caller that does **not** use this is the retry
+/// button, because a button may not report a success it did not have.
+fn write_state_best_effort(path: &Path, state: &RenderState) {
+    if let Err(err) = write_state(path, state) {
         tracing::warn!(%err, path = %path.display(), "could not write the renderer state");
     }
 }
@@ -365,7 +373,7 @@ pub fn decide(root: PathBuf) -> RenderDecision {
         RenderReason::SoftwareDidNotHelp => None,
         _ => previous.remembered,
     };
-    write_state(
+    write_state_best_effort(
         &path,
         &RenderState {
             remembered,
@@ -401,7 +409,7 @@ pub fn mark_painted() {
     let Some(active) = ACTIVE.get() else {
         return;
     };
-    write_state(
+    write_state_best_effort(
         &active.path,
         &RenderState {
             remembered: remembered_after_paint(active),
@@ -419,6 +427,15 @@ pub fn mark_painted() {
 /// and removing the variable changed nothing afterwards. The arming
 /// side of `decide` already refused to do that; this side did not.
 fn remembered_after_paint(active: &Active) -> Option<RenderMode> {
+    // The user asked for the GPU back during this session, and a paint
+    // reported after that must not quietly put the fallback back. Only
+    // the startup paint can reach here today — the mini-player renders
+    // without `ReadySignal`, so it does not signal — but "how many
+    // times can this fire" is a worse question to depend on than a flag
+    // that answers it.
+    if RETRY_REQUESTED.load(std::sync::atomic::Ordering::Acquire) {
+        return None;
+    }
     if active.decision.reason == RenderReason::Forced {
         return read_state(&active.path).remembered;
     }
@@ -447,7 +464,7 @@ pub fn restore_after_duplicate_launch() {
         return;
     };
     let painted = PAINTED.load(std::sync::atomic::Ordering::Acquire);
-    write_state(
+    write_state_best_effort(
         &active.path,
         &RenderState {
             remembered: if painted {
@@ -468,10 +485,11 @@ pub fn restore_after_duplicate_launch() {
 /// updated, or who hit the fallback once for an unrelated reason —
 /// a force-quit during startup looks exactly like a GPU that cannot
 /// paint, and nothing can tell them apart from here.
-pub fn retry_gpu() {
+pub fn retry_gpu() -> std::io::Result<()> {
     let Some(active) = ACTIVE.get() else {
-        return;
+        return Ok(());
     };
+    RETRY_REQUESTED.store(true, std::sync::atomic::Ordering::Release);
     // The armed marker for the *current* launch stays: this launch has
     // painted or it has not, and that question is not what is being
     // answered here.
@@ -482,8 +500,9 @@ pub fn retry_gpu() {
             remembered: None,
             armed,
         },
-    );
+    )?;
     tracing::info!("renderer: forgot the software fallback; the next launch will try the GPU");
+    Ok(())
 }
 
 #[cfg(test)]
