@@ -169,6 +169,18 @@ struct Active {
     /// What [`decide`] would have logged had there been anywhere to log
     /// it. Read by [`log_decision`].
     notes: Vec<String>,
+    /// What the file remembered when this launch read it, carried so
+    /// nothing later has to read it again.
+    ///
+    /// A **second launch also runs `decide`** — the single-instance
+    /// plugin turns it away from inside `Builder`, long after this — and
+    /// it reads the marker this instance armed. Seeing `armed: software`
+    /// it concludes software did not help and writes `remembered: null`,
+    /// erasing a working fallback that belonged to the instance still
+    /// starting up. Every write after the decision uses this value
+    /// instead of whatever the file says by then, so the duplicate's
+    /// guess cannot outlive it.
+    remembered: Option<RenderMode>,
 }
 
 static ACTIVE: std::sync::OnceLock<Active> = std::sync::OnceLock::new();
@@ -446,6 +458,7 @@ pub fn decide(root: PathBuf) -> RenderDecision {
         path,
         decision,
         notes,
+        remembered,
     });
     decision
 }
@@ -519,7 +532,7 @@ fn remembered_after_paint(active: &Active) -> Option<RenderMode> {
         return None;
     }
     if active.decision.reason == RenderReason::Forced {
-        return read_state(&active.path).0.remembered;
+        return active.remembered;
     }
     match active.decision.mode {
         // Worth remembering: the next launch should not have to fail
@@ -555,7 +568,7 @@ pub fn restore_after_duplicate_launch() {
                 remembered: if painted {
                     remembered_after_paint(active)
                 } else {
-                    read_state(&active.path).0.remembered
+                    active.remembered
                 },
                 armed: (!painted).then_some(active.decision.mode),
             },
@@ -584,7 +597,7 @@ pub fn disarm_for_deliberate_exit() {
         write_state_best_effort(
             &active.path,
             &RenderState {
-                remembered: read_state(&active.path).0.remembered,
+                remembered: active.remembered,
                 armed: None,
             },
         );
@@ -606,7 +619,10 @@ pub fn retry_gpu() -> std::io::Result<()> {
     // painted or it has not, and that question is not what is being
     // answered here.
     locked(|| {
-        let armed = read_state(&active.path).0.armed;
+        // This instance's own marker, not whatever the file says: a
+        // duplicate launch may have written its guess over it.
+        let armed =
+            (!PAINTED.load(std::sync::atomic::Ordering::Acquire)).then_some(active.decision.mode);
         write_state(
             &active.path,
             &RenderState {

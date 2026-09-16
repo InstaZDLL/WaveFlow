@@ -186,6 +186,8 @@ What "software" sets, measured against the engines in play rather than copied fr
 
 One more thing the marker had to learn: **a second launch arms it too.** The single-instance plugin turns a duplicate away from inside `Builder`, which is after the marker is written — so opening the app twice left one armed by a process that was never going to paint, and pushed the launch after it into software for no reason. The plugin's callback runs in the instance that stays, and that instance writes back what it knows.
 
+It writes what it decided, not what the file says by then, and that distinction is load-bearing: the duplicate runs the whole decision too, reads the marker the first one armed, and on a software session concludes that software did not help — erasing a working fallback that belonged to a process still starting up. Every write after the decision uses the value read at decision time, so the duplicate's guess cannot outlive it.
+
 `WAVEFLOW_RENDERER=gpu|software|auto` overrides all of it, for someone who has been told what to try. A forced mode does not offer the undo button: the stored state is not what is deciding, so the button would change nothing.
 
 Why backend-driven: v1.1.0 ran the handoff entirely in `main.tsx` via `requestAnimationFrame` + IPC `window.show()` + `splash.close()`. On Linux WebKitGTK 2.52+ the heavy first-launch init (migrations + DB pool + WebKit profile dir) raced the rAF window, the show()/close() could fire on a non-ready webview, and the user was stuck on an eternal splash (issue #42). Native-side ownership + an explicit "DOM committed" signal is robust to that race.
