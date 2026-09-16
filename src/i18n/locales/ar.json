@@ -2487,7 +2487,7 @@
     },
     "canvasCache": {
       "cacheLabel": "حفظ مقاطع Canvas محليًا",
-      "subtitle": "ينزّل Canvas كل مقطع من الإضافة لتشغيله دون اتصال ودون إعادة بثّه.",
+      "subtitle": "ينزّل Canvas كل مقطع من إضافات Canvas لتشغيله دون اتصال ودون إعادة بثّه.",
       "usage": "{{size}} مستخدَمة · {{files}} Canvas في التخزين المؤقت",
       "clear": "مسح الذاكرة المؤقتة",
       "clearConfirm": "تأكيد؟"

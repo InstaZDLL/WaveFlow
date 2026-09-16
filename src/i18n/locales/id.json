@@ -2306,7 +2306,7 @@
     },
     "canvasCache": {
       "cacheLabel": "Simpan Canvas secara lokal",
-      "subtitle": "Mengunduh Canvas tiap lagu dari plugin agar bisa diputar offline tanpa streaming ulang.",
+      "subtitle": "Mengunduh Canvas tiap lagu dari plugin Canvas agar bisa diputar offline tanpa streaming ulang.",
       "usage": "{{size}} terpakai · {{files}} Canvas di cache",
       "clear": "Bersihkan cache",
       "clearConfirm": "Konfirmasi?"

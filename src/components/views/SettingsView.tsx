@@ -173,6 +173,7 @@ import { StatsKpiVisibilityCard } from "./settings/StatsKpiVisibilityCard";
 import { SkinPickerCard } from "./settings/SkinPickerCard";
 import { ContrastCard } from "./settings/ContrastCard";
 import { CacheLocationCard } from "./settings/CacheLocationCard";
+import { MediaCachesCard } from "./settings/MediaCachesCard";
 import { FullscreenLyricsCenteringCard } from "./settings/FullscreenLyricsCenteringCard";
 import { ImmersiveViewCard } from "./settings/ImmersiveViewCard";
 import { CoverSlideshowCard } from "./settings/CoverSlideshowCard";
@@ -4332,6 +4333,13 @@ export function SettingsView({
               app-data tree, this one is why the caches may no longer be
               inside it. */}
             <CacheLocationCard
+              language={i18n.resolvedLanguage ?? i18n.language}
+            />
+
+            {/* The app-wide video caches plugins fill. Right under the
+              card that decides which drive they live on, rather than
+              under each plugin: neither cache belongs to one. */}
+            <MediaCachesCard
               language={i18n.resolvedLanguage ?? i18n.language}
             />
 

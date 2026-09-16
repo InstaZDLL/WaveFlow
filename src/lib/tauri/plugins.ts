@@ -337,16 +337,6 @@ export async function clearMotionCache(): Promise<void> {
   return invoke<void>("clear_motion_cache");
 }
 
-/**
- * Metadata-world plugins can supply motion covers, so they get the host's
- * local motion-cache option (and thus the ⚙️ options panel). Shared predicate
- * so the gear-visibility check (PluginsCard) and the panel body (PluginOptions)
- * never drift apart. Widen this when manifest-declared plugin options land.
- */
-export function isMetadataPlugin(plugin: Pick<PluginInfo, "world">): boolean {
-  return plugin.world.startsWith("waveflow:metadata");
-}
-
 // ----- manifest-declared plugin options (Phase 2) ------------------------
 //
 // A plugin declares `[[options]]` in its manifest; the user sets them in the
@@ -609,15 +599,7 @@ export async function pluginUiEvent(
   return parsePluginUiDescriptor(raw);
 }
 
-/** `true` for a ui-world plugin — the gear/options predicate + any
- *  ui-specific affordances key off this, mirroring {@link isMetadataPlugin}. */
+/** `true` for a ui-world plugin — any ui-specific affordances key off this. */
 export function isUiPlugin(plugin: Pick<PluginInfo, "world">): boolean {
   return plugin.world.startsWith("waveflow:ui");
-}
-
-/** `true` for a canvas-world plugin (issue #473). Like {@link isMetadataPlugin}
- *  gates the motion cache, this gates the opt-in local Canvas-cache control in
- *  the plugin's ⚙️ options panel. */
-export function isCanvasPlugin(plugin: Pick<PluginInfo, "world">): boolean {
-  return plugin.world.startsWith("waveflow:canvas");
 }

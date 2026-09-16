@@ -2306,7 +2306,7 @@
     },
     "canvasCache": {
       "cacheLabel": "在本地保存 Canvas",
-      "subtitle": "通过插件下载每首曲目的 Canvas，可离线播放且无需重新缓冲。",
+      "subtitle": "通过 Canvas 插件下载每首曲目的 Canvas，可离线播放且无需重新缓冲。",
       "usage": "已用 {{size}} · 已缓存 {{files}} 个 Canvas",
       "clear": "清除缓存",
       "clearConfirm": "确认？"
