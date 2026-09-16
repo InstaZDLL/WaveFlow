@@ -213,6 +213,12 @@ pub fn run() {
                             logging::flush();
                             std::process::exit(1);
                         }
+                        // Every other failure leaves through Tauri's own
+                        // fatal path, which also stops before the
+                        // frontend can report a paint. A database that
+                        // would not open is not a renderer that would
+                        // not draw (#595).
+                        render_mode::disarm_for_deliberate_exit();
                         return Err(Box::new(err));
                     }
                 };

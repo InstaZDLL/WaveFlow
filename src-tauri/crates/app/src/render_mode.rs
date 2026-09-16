@@ -270,10 +270,39 @@ fn write_state(path: &Path, state: &RenderState) -> std::io::Result<()> {
     }
     let raw = serde_json::to_string(state)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err))?;
-    if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent);
+    let Some(parent) = path.parent() else {
+        return std::fs::write(path, raw);
+    };
+    let _ = std::fs::create_dir_all(parent);
+
+    // Written beside the target and renamed over it, rather than
+    // truncated and refilled. `fs::write` opens with `truncate`, so a
+    // process dying between the two leaves a file that parses as
+    // nothing — and the process dying mid-startup is the exact event
+    // this whole mechanism exists to notice. The rename is the atomic
+    // step on both platforms that have one (`MoveFileEx` with
+    // `REPLACE_EXISTING` underneath on Windows), and the temporary sits
+    // in the same directory because a rename is only atomic within a
+    // filesystem.
+    //
+    // No `fsync`, and no claim to survive a power cut: what has to
+    // survive is a process, and the bytes are in the page cache the
+    // moment the write returns.
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let temp = parent.join(format!(
+        ".renderer.{}.{}.tmp",
+        std::process::id(),
+        NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ));
+    std::fs::write(&temp, raw)?;
+    match std::fs::rename(&temp, path) {
+        Ok(()) => Ok(()),
+        Err(err) => {
+            // Nothing left behind beside the user's own files.
+            let _ = std::fs::remove_file(&temp);
+            Err(err)
+        }
     }
-    std::fs::write(path, raw)
 }
 
 /// Write it, and carry on if it could not be written.
@@ -762,6 +791,32 @@ mod tests {
             },
         )
         .expect("clear again");
+    }
+
+    /// The write replaces the file rather than truncating it, and
+    /// leaves nothing beside it — the temporary is the kind of litter
+    /// that ends up in someone's app-data directory forever.
+    #[test]
+    fn writing_the_state_leaves_one_file_behind() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("renderer.json");
+
+        for armed in [Some(RenderMode::Gpu), Some(RenderMode::Software), None] {
+            write_state(
+                &path,
+                &RenderState {
+                    remembered: Some(RenderMode::Software),
+                    armed,
+                },
+            )
+            .expect("write");
+        }
+
+        let left: Vec<String> = std::fs::read_dir(dir.path())
+            .expect("read_dir")
+            .filter_map(|entry| Some(entry.ok()?.file_name().to_string_lossy().into_owned()))
+            .collect();
+        assert_eq!(left, vec!["renderer.json".to_string()]);
     }
 
     /// A file truncated by a crash mid-write, or edited by hand, must
