@@ -48,6 +48,11 @@ const MIN_VISIBLE_OVERLAP: f64 = 80.0;
 #[derive(Default)]
 pub struct DesktopLyricsState {
     locked: AtomicBool,
+    /// Held across every open / close decision. `open` awaits a database
+    /// read between "is there a window?" and building one, so without it
+    /// a close landing in that gap would find nothing to close and the
+    /// window would appear anyway, and two opens would both try to build.
+    lifecycle: tokio::sync::Mutex<()>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -88,6 +93,12 @@ pub fn status(app: &AppHandle) -> DesktopLyricsStatus {
 
 /// Open the window, or show it if it already exists.
 pub async fn open(app: &AppHandle) -> tauri::Result<()> {
+    let state = app.state::<DesktopLyricsState>();
+    let _lifecycle = state.lifecycle.lock().await;
+    open_locked(app).await
+}
+
+async fn open_locked(app: &AppHandle) -> tauri::Result<()> {
     if let Some(window) = app.get_webview_window(LABEL) {
         window.show()?;
         publish(app, status(app));
@@ -137,7 +148,13 @@ pub async fn open(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
-pub fn close(app: &AppHandle) -> tauri::Result<()> {
+pub async fn close(app: &AppHandle) -> tauri::Result<()> {
+    let state = app.state::<DesktopLyricsState>();
+    let _lifecycle = state.lifecycle.lock().await;
+    close_locked(app)
+}
+
+fn close_locked(app: &AppHandle) -> tauri::Result<()> {
     if let Some(window) = app.get_webview_window(LABEL) {
         window.close()?;
     }
@@ -177,18 +194,21 @@ pub fn on_destroyed(app: &AppHandle) {
     );
 }
 
-/// Tray entry: open when closed, close when open.
+/// Tray entry: open when closed, close when open. The existence check
+/// happens under the lifecycle lock, so it decides on the state the
+/// previous open or close left rather than on one still in flight.
 pub fn toggle_from_tray(app: &AppHandle) {
-    if app.get_webview_window(LABEL).is_some() {
-        if let Err(err) = close(app) {
-            tracing::warn!(%err, "desktop lyrics: close from tray failed");
-        }
-        return;
-    }
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        if let Err(err) = open(&app).await {
-            tracing::warn!(%err, "desktop lyrics: open from tray failed");
+        let state = app.state::<DesktopLyricsState>();
+        let _lifecycle = state.lifecycle.lock().await;
+        let result = if app.get_webview_window(LABEL).is_some() {
+            close_locked(&app)
+        } else {
+            open_locked(&app).await
+        };
+        if let Err(err) = result {
+            tracing::warn!(%err, "desktop lyrics: toggle from tray failed");
         }
     });
 }

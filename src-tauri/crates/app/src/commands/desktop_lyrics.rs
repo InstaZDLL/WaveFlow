@@ -21,7 +21,7 @@ pub async fn open_desktop_lyrics(app: AppHandle) -> AppResult<()> {
 
 #[tauri::command]
 pub async fn close_desktop_lyrics(app: AppHandle) -> AppResult<()> {
-    desktop_lyrics::close(&app)?;
+    desktop_lyrics::close(&app).await?;
     Ok(())
 }
 

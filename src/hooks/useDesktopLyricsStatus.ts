@@ -32,8 +32,12 @@ export function useDesktopLyricsStatus() {
     let cancelled = false;
     let unlisten: (() => void) | null = null;
     // Subscribe before reading, so a change landing between the two is
-    // not lost; the read then only fills in the state at mount.
+    // not lost. The read can still come back after a broadcast that is
+    // newer than what it read, so it only applies while no broadcast has
+    // arrived: once one has, the broadcast is the truth.
+    let heardBroadcast = false;
     listen<DesktopLyricsStatus>(DESKTOP_LYRICS_STATE_EVENT, (event) => {
+      heardBroadcast = true;
       setStatus(event.payload);
     })
       .then((off) => {
@@ -42,7 +46,7 @@ export function useDesktopLyricsStatus() {
         return getDesktopLyricsStatus();
       })
       .then((initial) => {
-        if (!cancelled) setStatus(initial);
+        if (!cancelled && !heardBroadcast) setStatus(initial);
       })
       .catch((err) => {
         console.warn("[useDesktopLyricsStatus] status unavailable", err);
