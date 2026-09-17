@@ -55,6 +55,14 @@ all 17 locales.
 section headings and native disclosure controls for advanced audio, network
 sharing, artwork cleanup and application reset. Scoped settings row styles live
 in `settings/settings.css`; existing cards retain their own behavior and controls.
+A setting's secondary line (subtitle or input hint) carries the
+`settings-description` class rather than colour utilities: the stylesheet owns its
+grey, line height and 65ch measure, and its dark selector mirrors the `dark:`
+variant so the Lounge and Pulse skins get the dark shade on a light theme. Rows
+wrap their control under the label when the content column (a named
+`settings-content` container, not the viewport) is narrower than 40rem.
+[`SettingsCategoryHeader`](../../src/components/views/settings/SettingsCategoryHeader.tsx)
+renders each category's title and description from its catalog entry.
 
 ## Panels
 

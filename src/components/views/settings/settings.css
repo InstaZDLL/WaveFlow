@@ -19,13 +19,22 @@
   flex-shrink: 0;
 }
 
-.settings-group-body .text-xs.text-zinc-400 {
+/* The secondary line under a setting's title (and the hints beside its
+   inputs). A named class rather than `.text-xs.text-zinc-400`: matching
+   on utilities restyled any small grey text inside a group and missed
+   every subtitle written with other shades.
+
+   The dark selector mirrors the `dark:` variant in app.css. Lounge and
+   Pulse are dark skins that never set `.dark` on a light theme, so a bare
+   `.dark` ancestor would leave them with the light-mode grey. */
+.settings-description {
   color: var(--color-zinc-500);
   line-height: 1.5;
   max-width: 65ch;
 }
 
-.dark .settings-group-body .text-xs.text-zinc-400 {
+:is(.dark, :root[data-skin="lounge"], :root[data-skin="pulse"])
+  .settings-description {
   color: var(--color-zinc-400);
 }
 
@@ -33,7 +42,14 @@
   margin-top: 0.25rem;
 }
 
-@media (max-width: 639px) {
+/* Measured on the content column, not the viewport: the main window never
+   gets below 1000px, so a viewport query never fired, while the column
+   beside the settings navigation can be narrower than 40rem. */
+.settings-content {
+  container: settings-content / inline-size;
+}
+
+@container settings-content (max-width: 40rem) {
   .settings-group-body > .settings-row,
   .settings-dependent > .settings-row {
     flex-wrap: wrap;

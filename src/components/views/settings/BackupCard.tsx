@@ -167,7 +167,7 @@ export function BackupCard({ language }: BackupCardProps) {
             <div className="text-sm font-medium text-zinc-900 dark:text-white">
               {t("settings.backup.title")}
             </div>
-            <div className="text-xs text-zinc-400">
+            <div className="text-xs settings-description">
               {t("settings.backup.subtitle")}
             </div>
           </div>
@@ -240,7 +240,7 @@ export function BackupCard({ language }: BackupCardProps) {
               <span className="block">
                 {t("settings.backup.includeMetadataArtworkLabel")}
               </span>
-              <span className="block text-xs text-zinc-400 mt-0.5">
+              <span className="block text-xs mt-0.5 settings-description">
                 {t("settings.backup.includeMetadataArtworkHint")}
               </span>
             </label>
@@ -282,7 +282,7 @@ export function BackupCard({ language }: BackupCardProps) {
           </div>
 
           <div className="flex items-center justify-between gap-4 pt-1">
-            <div className="text-xs text-zinc-400">
+            <div className="text-xs settings-description">
               {t("settings.backup.lastRun", { when: lastRun })}
             </div>
             <button

@@ -150,7 +150,7 @@ export function CacheLocationCard({ language }: { language: string }) {
             <div className="text-sm font-medium text-zinc-900 dark:text-white">
               {t("settings.cacheLocation.title")}
             </div>
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed mt-0.5">
+            <div className="text-xs mt-0.5 settings-description">
               {t("settings.cacheLocation.subtitle")}
             </div>
             <div

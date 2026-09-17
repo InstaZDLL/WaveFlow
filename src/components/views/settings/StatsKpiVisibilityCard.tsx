@@ -37,7 +37,7 @@ export function StatsKpiVisibilityCard() {
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
             {t("settings.statsKpis.title")}
           </h3>
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+          <p className="mt-1 text-xs settings-description">
             {t("settings.statsKpis.subtitle")}
           </p>
         </div>

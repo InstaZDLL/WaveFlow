@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SettingsNavigation } from "./settings/SettingsNavigation";
 import { SettingsGroup } from "./settings/SettingsGroup";
+import { SettingsCategoryHeader } from "./settings/SettingsCategoryHeader";
 import {
   SETTINGS_CATEGORIES,
   type SettingsCategory,
@@ -2112,17 +2113,7 @@ export function SettingsView({
               aria-labelledby="settings-heading-general"
               className="space-y-7"
             >
-              <header>
-                <h2
-                  id="settings-heading-general"
-                  className="text-xl font-semibold text-zinc-900 dark:text-white"
-                >
-                  {t("settings.organization.categories.general")}
-                </h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  {t("settings.organization.descriptions.general")}
-                </p>
-              </header>
+              <SettingsCategoryHeader category="general" />
               <SettingsGroup
                 id="language"
                 title={t("settings.organization.groups.language")}
@@ -2139,7 +2130,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.language.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.language.subtitle")}
                       </div>
                     </div>
@@ -2168,7 +2159,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.autoStart.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.autoStart.subtitle")}
                       </div>
                     </div>
@@ -2190,7 +2181,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.minimizeToTray.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.minimizeToTray.subtitle")}
                       </div>
                     </div>
@@ -2212,7 +2203,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.integrations.notifications.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.integrations.notifications.subtitle")}
                       </div>
                     </div>
@@ -2231,17 +2222,7 @@ export function SettingsView({
               aria-labelledby="settings-heading-library"
               className="space-y-7"
             >
-              <header>
-                <h2
-                  id="settings-heading-library"
-                  className="text-xl font-semibold text-zinc-900 dark:text-white"
-                >
-                  {t("settings.organization.categories.library")}
-                </h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  {t("settings.organization.descriptions.library")}
-                </p>
-              </header>
+              <SettingsCategoryHeader category="library" />
               <SettingsGroup
                 id="scanning"
                 title={t("settings.organization.groups.scanning")}
@@ -2258,7 +2239,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.scanOnStart.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.scanOnStart.subtitle")}
                       </div>
                     </div>
@@ -2280,7 +2261,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.rescan.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.rescan.subtitle")}
                       </div>
                     </div>
@@ -2314,7 +2295,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.duplicates.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.duplicates.subtitle")}
                       </div>
                     </div>
@@ -2346,7 +2327,7 @@ export function SettingsView({
                         <div className="text-sm font-medium text-zinc-900 dark:text-white">
                           {t("settings.analyze.title")}
                         </div>
-                        <div className="text-xs text-zinc-400">
+                        <div className="text-xs settings-description">
                           {t("settings.analyze.subtitle")}
                         </div>
                       </div>
@@ -2392,7 +2373,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.analyze.autoTitle")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.analyze.autoSubtitle")}
                       </div>
                     </div>
@@ -2454,17 +2435,7 @@ export function SettingsView({
               aria-labelledby="settings-heading-playback"
               className="space-y-7"
             >
-              <header>
-                <h2
-                  id="settings-heading-playback"
-                  className="text-xl font-semibold text-zinc-900 dark:text-white"
-                >
-                  {t("settings.organization.categories.playback")}
-                </h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  {t("settings.organization.descriptions.playback")}
-                </p>
-              </header>
+              <SettingsCategoryHeader category="playback" />
               <SettingsGroup
                 id="transitions"
                 title={t("settings.organization.groups.transitions")}
@@ -2481,7 +2452,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.gapless.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.gapless.subtitle")}
                       </div>
                     </div>
@@ -2503,7 +2474,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.crossfade.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.crossfade.subtitle")}
                       </div>
                     </div>
@@ -2538,7 +2509,7 @@ export function SettingsView({
                         <div className="text-sm font-medium text-zinc-900 dark:text-white">
                           {t("settings.smartCrossfade.title")}
                         </div>
-                        <div className="text-xs text-zinc-400">
+                        <div className="text-xs settings-description">
                           {t("settings.smartCrossfade.subtitle")}
                         </div>
                       </div>
@@ -2560,7 +2531,7 @@ export function SettingsView({
                         <div className="text-sm font-medium text-zinc-900 dark:text-white">
                           {t("settings.dynamicCrossfade.title")}
                         </div>
-                        <div className="text-xs text-zinc-400">
+                        <div className="text-xs settings-description">
                           {t("settings.dynamicCrossfade.subtitle")}
                         </div>
                       </div>
@@ -2589,7 +2560,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.singleClickPlay.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.singleClickPlay.subtitle")}
                       </div>
                     </div>
@@ -2611,7 +2582,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.generatorAlbumMode.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.generatorAlbumMode.subtitle")}
                       </div>
                     </div>
@@ -2636,7 +2607,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.pauseOnDeviceLoss.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.pauseOnDeviceLoss.subtitle")}
                       </div>
                     </div>
@@ -2664,7 +2635,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.normalize.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.normalize.subtitle")}
                       </div>
                     </div>
@@ -2686,7 +2657,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.replayGain.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.replayGain.subtitle")}
                       </div>
                     </div>
@@ -2705,7 +2676,7 @@ export function SettingsView({
                         <div className="text-sm font-medium text-zinc-900 dark:text-white">
                           {t("settings.replayGain.preamp.title")}
                         </div>
-                        <div className="text-xs text-zinc-400">
+                        <div className="text-xs settings-description">
                           {t("settings.replayGain.preamp.subtitle")}
                         </div>
                       </div>
@@ -2736,7 +2707,7 @@ export function SettingsView({
                         <div className="text-sm font-medium text-zinc-900 dark:text-white">
                           {t("settings.replayGain.fallback.title")}
                         </div>
-                        <div className="text-xs text-zinc-400">
+                        <div className="text-xs settings-description">
                           {t("settings.replayGain.fallback.subtitle")}
                         </div>
                       </div>
@@ -2772,7 +2743,7 @@ export function SettingsView({
                         >
                           {t("settings.replayGain.mode.title")}
                         </label>
-                        <div className="text-xs text-zinc-400">
+                        <div className="text-xs settings-description">
                           {t(`settings.replayGain.mode.${replayGainMode}Hint`)}
                         </div>
                       </div>
@@ -2800,7 +2771,7 @@ export function SettingsView({
                         <div className="text-sm font-medium text-zinc-900 dark:text-white">
                           {t("settings.replayGain.preventClipping.title")}
                         </div>
-                        <div className="text-xs text-zinc-400">
+                        <div className="text-xs settings-description">
                           {t("settings.replayGain.preventClipping.subtitle")}
                         </div>
                       </div>
@@ -2840,7 +2811,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.matchSourceRate.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.matchSourceRate.subtitle")}
                       </div>
                     </div>
@@ -2862,7 +2833,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.mono.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.mono.subtitle")}
                       </div>
                     </div>
@@ -2885,7 +2856,7 @@ export function SettingsView({
                         <div className="text-sm font-medium text-zinc-900 dark:text-white">
                           {t("settings.dsdPrecision.title")}
                         </div>
-                        <div className="text-xs text-zinc-400">
+                        <div className="text-xs settings-description">
                           {t("settings.dsdPrecision.subtitle")}
                         </div>
                       </div>
@@ -2937,7 +2908,7 @@ export function SettingsView({
                         <div className="text-sm font-medium text-zinc-900 dark:text-white">
                           {t("settings.dsdDop.title")}
                         </div>
-                        <div className="text-xs text-zinc-400">
+                        <div className="text-xs settings-description">
                           {t("settings.dsdDop.subtitle")}
                         </div>
                       </div>
@@ -2957,17 +2928,7 @@ export function SettingsView({
               aria-labelledby="settings-heading-appearance"
               className="space-y-7"
             >
-              <header>
-                <h2
-                  id="settings-heading-appearance"
-                  className="text-xl font-semibold text-zinc-900 dark:text-white"
-                >
-                  {t("settings.organization.categories.appearance")}
-                </h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  {t("settings.organization.descriptions.appearance")}
-                </p>
-              </header>
+              <SettingsCategoryHeader category="appearance" />
               <SettingsGroup
                 id="theme"
                 title={t("settings.organization.groups.theme")}
@@ -2984,7 +2945,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.appearance.theme.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.appearance.theme.subtitle")}
                       </div>
                     </div>
@@ -3066,7 +3027,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.uiZoom.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.uiZoom.subtitle")}
                       </div>
                     </div>
@@ -3130,7 +3091,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.visualizer.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.visualizer.subtitle")}
                       </div>
                     </div>
@@ -3158,17 +3119,7 @@ export function SettingsView({
               aria-labelledby="settings-heading-media"
               className="space-y-7"
             >
-              <header>
-                <h2
-                  id="settings-heading-media"
-                  className="text-xl font-semibold text-zinc-900 dark:text-white"
-                >
-                  {t("settings.organization.categories.media")}
-                </h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  {t("settings.organization.descriptions.media")}
-                </p>
-              </header>
+              <SettingsCategoryHeader category="media" />
               <SettingsGroup
                 id="artwork"
                 title={t("settings.organization.groups.artwork")}
@@ -3185,7 +3136,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.localArtistImages.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {localArtistRescanStatus ??
                           t("settings.localArtistImages.subtitle")}
                       </div>
@@ -3229,7 +3180,7 @@ export function SettingsView({
                             : ""}
                         </div>
                       ) : (
-                        <div className="text-xs text-zinc-400">
+                        <div className="text-xs settings-description">
                           {t("settings.artistImages.subtitle")}
                         </div>
                       )}
@@ -3285,7 +3236,7 @@ export function SettingsView({
                           {coverResultMsg}
                         </div>
                       ) : (
-                        <div className="text-xs text-zinc-400">
+                        <div className="text-xs settings-description">
                           {t("settings.artistImages.subtitle")}
                         </div>
                       )}
@@ -3356,7 +3307,7 @@ export function SettingsView({
                           {lyricsResultMsg}
                         </div>
                       ) : (
-                        <div className="text-xs text-zinc-400">
+                        <div className="text-xs settings-description">
                           {t("settings.lyricsPrefetch.subtitle")}
                         </div>
                       )}
@@ -3406,7 +3357,7 @@ export function SettingsView({
                       >
                         {t("settings.lyricsTranslation.title")}
                       </label>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.lyricsTranslation.subtitle")}
                       </div>
                     </div>
@@ -3444,7 +3395,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.lyricsPreferLrclib.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.lyricsPreferLrclib.subtitle")}
                       </div>
                     </div>
@@ -3465,17 +3416,7 @@ export function SettingsView({
               aria-labelledby="settings-heading-integrations"
               className="space-y-7"
             >
-              <header>
-                <h2
-                  id="settings-heading-integrations"
-                  className="text-xl font-semibold text-zinc-900 dark:text-white"
-                >
-                  {t("settings.organization.categories.integrations")}
-                </h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  {t("settings.organization.descriptions.integrations")}
-                </p>
-              </header>
+              <SettingsCategoryHeader category="integrations" />
               <SettingsGroup
                 id="connectivity"
                 title={t("settings.organization.groups.connectivity")}
@@ -3492,7 +3433,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.offlineMode.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.offlineMode.subtitle")}
                       </div>
                     </div>
@@ -3520,7 +3461,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.integrations.lastfm.title")}
                       </div>
-                      <div className="text-xs text-zinc-400 mb-3">
+                      <div className="text-xs mb-3 settings-description">
                         {t("settings.integrations.lastfm.subtitle")}
                       </div>
 
@@ -3709,7 +3650,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.integrations.spotify.title", "Spotify")}
                       </div>
-                      <div className="text-xs text-zinc-400 mb-3">
+                      <div className="text-xs mb-3 settings-description">
                         {t(
                           "settings.integrations.spotify.subtitle",
                           "Connect Spotify Premium with your own Spotify Developer Client ID.",
@@ -3841,7 +3782,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.integrations.discord.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.integrations.discord.subtitle")}
                       </div>
                     </div>
@@ -3863,7 +3804,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.showSpotify.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.showSpotify.subtitle")}
                       </div>
                     </div>
@@ -3905,7 +3846,7 @@ export function SettingsView({
                           <div className="text-sm font-medium text-zinc-900 dark:text-white">
                             {t("settings.integrations.dlna.title")}
                           </div>
-                          <div className="text-xs text-zinc-400">
+                          <div className="text-xs settings-description">
                             {t("settings.integrations.dlna.subtitle")}
                           </div>
                         </div>
@@ -3971,7 +3912,7 @@ export function SettingsView({
                               onBlur={() => persistDlna(dlnaConfig)}
                               className="w-32 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100"
                             />
-                            <span className="text-xs text-zinc-400">
+                            <span className="text-xs settings-description">
                               {t("settings.integrations.dlna.portHint")}
                             </span>
                           </div>
@@ -4037,7 +3978,7 @@ export function SettingsView({
                           <div className="text-sm font-medium text-zinc-900 dark:text-white">
                             {t("settings.integrations.mpd.title")}
                           </div>
-                          <div className="text-xs text-zinc-400">
+                          <div className="text-xs settings-description">
                             {t("settings.integrations.mpd.subtitle")}
                           </div>
                         </div>
@@ -4108,7 +4049,7 @@ export function SettingsView({
                               }}
                               className="w-28 px-2 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-transparent focus:border-emerald-500 focus:outline-none text-zinc-900 dark:text-white"
                             />
-                            <span className="text-xs text-zinc-400">
+                            <span className="text-xs settings-description">
                               {t("settings.integrations.mpd.portHint")}
                             </span>
                           </div>
@@ -4139,7 +4080,7 @@ export function SettingsView({
                               className="flex-1 min-w-0 px-2 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-transparent focus:border-emerald-500 focus:outline-none text-zinc-900 dark:text-white"
                             />
                           </div>
-                          <div className="text-xs text-zinc-400">
+                          <div className="text-xs settings-description">
                             {t("settings.integrations.mpd.passwordHint")}
                           </div>
 
@@ -4199,17 +4140,7 @@ export function SettingsView({
               aria-labelledby="settings-heading-plugins"
               className="space-y-7"
             >
-              <header>
-                <h2
-                  id="settings-heading-plugins"
-                  className="text-xl font-semibold text-zinc-900 dark:text-white"
-                >
-                  {t("settings.organization.categories.plugins")}
-                </h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  {t("settings.organization.descriptions.plugins")}
-                </p>
-              </header>
+              <SettingsCategoryHeader category="plugins" />
               <SettingsGroup
                 id="extensions"
                 title={t("settings.organization.groups.extensions")}
@@ -4225,17 +4156,7 @@ export function SettingsView({
               aria-labelledby="settings-heading-shortcuts"
               className="space-y-7"
             >
-              <header>
-                <h2
-                  id="settings-heading-shortcuts"
-                  className="text-xl font-semibold text-zinc-900 dark:text-white"
-                >
-                  {t("settings.organization.categories.shortcuts")}
-                </h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  {t("settings.organization.descriptions.shortcuts")}
-                </p>
-              </header>
+              <SettingsCategoryHeader category="shortcuts" />
               <SettingsGroup
                 id="keyboard"
                 title={t("settings.organization.groups.keyboard")}
@@ -4250,17 +4171,7 @@ export function SettingsView({
               aria-labelledby="settings-heading-data"
               className="space-y-7"
             >
-              <header>
-                <h2
-                  id="settings-heading-data"
-                  className="text-xl font-semibold text-zinc-900 dark:text-white"
-                >
-                  {t("settings.organization.categories.data")}
-                </h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  {t("settings.organization.descriptions.data")}
-                </p>
-              </header>
+              <SettingsCategoryHeader category="data" />
               <SettingsGroup
                 id="backups"
                 title={t("settings.organization.groups.backups")}
@@ -4278,7 +4189,7 @@ export function SettingsView({
                         <div className="text-sm font-medium text-zinc-900 dark:text-white">
                           {t("settings.profileIo.title")}
                         </div>
-                        <div className="text-xs text-zinc-400">
+                        <div className="text-xs settings-description">
                           {t("settings.profileIo.subtitle")}
                         </div>
                       </div>
@@ -4352,7 +4263,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.dataFolder.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.dataFolder.subtitle")}
                       </div>
                     </div>
@@ -4390,7 +4301,7 @@ export function SettingsView({
                           {thumbsStatus}
                         </div>
                       ) : (
-                        <div className="text-xs text-zinc-400">
+                        <div className="text-xs settings-description">
                           {t("settings.regenerateThumbnailsSubtitle")}
                         </div>
                       )}
@@ -4438,7 +4349,7 @@ export function SettingsView({
                           {pruneCoversStatus.text}
                         </div>
                       ) : (
-                        <div className="text-xs text-zinc-400">
+                        <div className="text-xs settings-description">
                           {t("settings.pruneAlbumCoversSubtitle")}
                         </div>
                       )}
@@ -4470,17 +4381,7 @@ export function SettingsView({
               aria-labelledby="settings-heading-diagnostics"
               className="space-y-7"
             >
-              <header>
-                <h2
-                  id="settings-heading-diagnostics"
-                  className="text-xl font-semibold text-zinc-900 dark:text-white"
-                >
-                  {t("settings.organization.categories.diagnostics")}
-                </h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  {t("settings.organization.descriptions.diagnostics")}
-                </p>
-              </header>
+              <SettingsCategoryHeader category="diagnostics" />
               <SettingsGroup
                 id="updates"
                 title={t("settings.organization.groups.updates")}
@@ -4506,7 +4407,7 @@ export function SettingsView({
                         <div className="text-sm font-medium text-zinc-900 dark:text-white">
                           {t("settings.diagnostics.title")}
                         </div>
-                        <div className="text-xs text-zinc-400">
+                        <div className="text-xs settings-description">
                           {t("settings.diagnostics.subtitle")}
                         </div>
                       </div>
@@ -4563,7 +4464,7 @@ export function SettingsView({
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
                         {t("settings.reset.title")}
                       </div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-xs settings-description">
                         {t("settings.reset.subtitle")}
                       </div>
                     </div>

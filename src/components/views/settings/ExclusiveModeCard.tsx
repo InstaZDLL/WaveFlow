@@ -129,7 +129,7 @@ export function ExclusiveModeCard() {
             <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
               {t("settings.exclusive.title")}
             </p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+            <p className="text-xs mt-0.5 settings-description">
               {t("settings.exclusive.subtitle")}
             </p>
           </div>

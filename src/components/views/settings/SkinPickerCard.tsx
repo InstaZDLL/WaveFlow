@@ -73,7 +73,7 @@ export function SkinPickerCard() {
           >
             {t("settings.appearance.skin.title")}
           </div>
-          <div className="text-xs text-zinc-400">
+          <div className="text-xs settings-description">
             {t("settings.appearance.skin.subtitle")}
           </div>
         </div>

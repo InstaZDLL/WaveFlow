@@ -87,7 +87,7 @@ export function ShortcutsCard() {
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800/50 p-5">
       <div className="flex items-start justify-between mb-3">
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="text-xs settings-description">
           {t("settings.shortcuts.subtitle")}
         </p>
         <button

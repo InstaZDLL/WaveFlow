@@ -40,7 +40,7 @@ export function ContrastCard() {
           >
             {t("settings.contrast.title")}
           </span>
-          <span className="block text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed mt-0.5">
+          <span className="block text-xs mt-0.5 settings-description">
             {t("settings.contrast.subtitle")}
           </span>
           <div

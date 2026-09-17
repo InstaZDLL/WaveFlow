@@ -207,7 +207,7 @@ function LocalCacheOption({
           >
             {t(`${i18nPrefix}.cacheLabel`)}
           </label>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+          <p className="text-xs mt-0.5 settings-description">
             {t(`${i18nPrefix}.subtitle`)}
           </p>
         </div>

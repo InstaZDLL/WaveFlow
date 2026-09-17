@@ -68,7 +68,7 @@ export function RenderingCard() {
             <div className="text-sm font-medium text-zinc-900 dark:text-white">
               {t("rendering.card.title")}
             </div>
-            <div className="text-xs text-zinc-400">
+            <div className="text-xs settings-description">
               {t(`rendering.mode.${status.mode}`)} ·{" "}
               {t(`rendering.reason.${status.reason}`)}
             </div>

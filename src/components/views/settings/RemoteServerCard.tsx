@@ -138,7 +138,7 @@ export function RemoteServerCard() {
             <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
               {t("remote.server.title")}
             </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs settings-description">
               {t("remote.server.subtitle")}
             </p>
           </div>
@@ -186,7 +186,9 @@ export function RemoteServerCard() {
                   void run("login", () => remoteBeginLogin(urlDraft))
                 }
                 disabled={
-                  busy !== null || !urlDraft.trim() || probe?.supports_sync === false
+                  busy !== null ||
+                  !urlDraft.trim() ||
+                  probe?.supports_sync === false
                 }
                 className="px-3 py-1.5 text-sm rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 disabled:opacity-50"
               >
