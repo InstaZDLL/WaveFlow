@@ -151,12 +151,12 @@
     },
     "profile": {
       "title": "为你的个人资料起个名字",
-      "description": "WaveFlow 通过不同的资料来区分音乐库。请为其命名以便日后识别。",
-      "nameLabel": "资料名称",
+      "description": "WaveFlow 通过不同的个人资料来区分音乐库。请为其命名以便日后识别。",
+      "nameLabel": "个人资料名称",
       "namePlaceholder": "例如：Daisy",
-      "hint": "之后如有需要，你可以再创建其他资料。",
-      "required": "请填写资料名称。",
-      "unavailable": "资料暂不可用，请稍后再试。"
+      "hint": "之后如有需要，你可以再创建其他个人资料。",
+      "required": "请填写个人资料名称。",
+      "unavailable": "个人资料暂不可用，请稍后再试。"
     },
     "lyrics": {
       "title": "歌词保存在哪里？",
@@ -202,7 +202,7 @@
         "tracks": "曲目",
         "albums": "专辑",
         "artists": "艺人",
-        "genres": "类型",
+        "genres": "流派",
         "explorer": "资源管理器"
       }
     },
@@ -223,7 +223,7 @@
       "tracks": "曲目",
       "albums": "专辑",
       "artists": "艺人",
-      "genres": "类型",
+      "genres": "流派",
       "folders": "文件夹"
     },
     "playlistSection": {
@@ -363,7 +363,7 @@
     "header": {
       "addFolder": "添加文件夹",
       "subtext": {
-        "morceaux_zero": "0 首",
+        "morceaux_zero": "0 首曲目",
         "morceaux_one": "{{count}} 首曲目",
         "morceaux_other": "{{count}} 首曲目",
         "albums_zero": "0 张专辑",
@@ -372,16 +372,16 @@
         "artistes_zero": "0 位艺人",
         "artistes_one": "{{count}} 位艺人",
         "artistes_other": "{{count}} 位艺人",
-        "genres_zero": "0 类型",
+        "genres_zero": "0 种流派",
         "genres_one": "{{count}} 种流派",
-        "genres_other": "{{count}} 类型",
+        "genres_other": "{{count}} 种流派",
         "dossiers_zero": "0 个文件夹",
         "dossiers_one": "{{count}} 个文件夹",
         "dossiers_other": "{{count}} 个文件夹",
         "playlists_zero": "0 个播放列表",
         "playlists_one": "{{count}} 个播放列表",
         "playlists_other": "{{count}} 个播放列表",
-        "a-corriger_zero": "没有问题：媒体库很完整。",
+        "a-corriger_zero": "没有问题：音乐库很完整。",
         "a-corriger_one": "{{count}} 处待修正",
         "a-corriger_other": "{{count}} 处待修正"
       }
@@ -390,7 +390,7 @@
       "morceaux": "曲目",
       "albums": "专辑",
       "artistes": "艺人",
-      "genres": "类型",
+      "genres": "流派",
       "dossiers": "文件夹",
       "playlists": "播放列表",
       "a-corriger": "待修正"
@@ -409,7 +409,7 @@
         "description": "请先导入音频文件。"
       },
       "genres": {
-        "title": "未找到任何类型",
+        "title": "未找到任何流派",
         "description": "导入音频文件，探索不同音乐流派。"
       },
       "dossiers": {
@@ -421,7 +421,7 @@
       },
       "a-corriger": {
         "title": "没有需要修正的地方",
-        "description": "媒体库中没有可检测到的问题。"
+        "description": "音乐库中没有可检测到的问题。"
       }
     },
     "actions": {
@@ -524,7 +524,7 @@
     },
     "open": "打开 {{name}}",
     "inventory": {
-      "allClear": "没有问题：媒体库很完整。",
+      "allClear": "没有问题：音乐库很完整。",
       "summary_one": "{{count}} 处待修正",
       "summary_other": "{{count}} 处待修正",
       "trackCount_one": "{{count}} 首",
@@ -709,8 +709,8 @@
       "dialogTitle": "将统计导出为 JSON"
     },
     "topGenres": {
-      "title": "热门风格",
-      "empty": "暂无已播放的风格。"
+      "title": "热门流派",
+      "empty": "暂无已播放的流派。"
     }
   },
   "wrapped": {
@@ -1466,7 +1466,7 @@
       "titleContains": "标题包含",
       "artistContains": "艺人包含",
       "albumContains": "专辑包含",
-      "genreIs": "风格 =",
+      "genreIs": "流派 =",
       "yearMin": "年份 ≥",
       "yearMax": "年份 ≤",
       "bpmMin": "BPM ≥",
@@ -2651,7 +2651,7 @@
     },
     "catalogue": {
       "title": "服务器曲库",
-      "subtitle": "把服务器的曲库复制到本地，以便从资料库中浏览。不复制时，只能识别播放列表已用到的曲目。",
+      "subtitle": "把服务器的曲库复制到本地，以便从音乐库中浏览。不复制时，只能识别播放列表已用到的曲目。",
       "mirror": "复制",
       "cancel": "停止",
       "clear": "清空副本",
@@ -2660,7 +2660,7 @@
       "statAlbums": "专辑",
       "statTracks": "曲目",
       "statArtists": "艺人",
-      "statLibraries": "资料库",
+      "statLibraries": "音乐库",
       "progressAlbums": "已遍历 {{done}} 张专辑…",
       "progressSweep": "已清点 {{done}} 首曲目…",
       "reportUnchanged": "没有任何变化。",
@@ -2737,7 +2737,7 @@
       "action": "修正元数据",
       "title": "服务器元数据",
       "subtitle": "修正保存在服务器上，而不是文件中。",
-      "help": "这些修正不会被服务器的扫描覆盖，媒体库的所有成员都能看到。清空某个字段即撤销该项修正，文件本身的值会重新显示。",
+      "help": "这些修正不会被服务器的扫描覆盖，音乐库的所有成员都能看到。清空某个字段即撤销该项修正，文件本身的值会重新显示。",
       "missing": "该曲目尚未收录到服务器镜像中。请先执行一次目录遍历，然后重试。",
       "invalidNumber": "年份、音轨号和碟片号必须为整数。"
     },
@@ -2751,7 +2751,7 @@
     "more_one": "另有 {{count}} 项",
     "more_other": "另有 {{count}} 项",
     "kinds": {
-      "library_scan": "扫描媒体库",
+      "library_scan": "扫描音乐库",
       "analysis": "音频分析",
       "lyrics_prefetch": "预取歌词",
       "catalogue_mirror": "目录镜像",
