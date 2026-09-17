@@ -34,7 +34,7 @@ The inner `waveflow/` segment is a hardcoded subdirectory in [`paths.rs`](../../
 
 ## Moving the caches (#619)
 
-Artwork landed on the system drive whatever drive WaveFlow was installed on, and a `C:` that is critically low on space takes the machine down with it. Settings → Data can point `cache_root` elsewhere; the choice lives in `app_setting['storage.cache_root']`, app-wide.
+Artwork landed on the system drive whatever drive WaveFlow was installed on, and a `C:` that is critically low on space takes the machine down with it. Settings → Storage and backups → Folders and caches can point `cache_root` elsewhere; the choice lives in `app_setting['storage.cache_root']`, app-wide.
 
 **The split is not "big things move" — it is *evictable moves, chosen stays*.** Everything under `cache_root` is content-addressed or LRU-evicted, so the worst case of a failed move, a missing drive or a half-copy is a re-fetch. Databases, hand-picked motion covers and Canvas clips, and offline downloads would have to be recreated by hand, so moving them would be a migration rather than a setting — that is the heavier option the issue offers, and deliberately not the one taken.
 

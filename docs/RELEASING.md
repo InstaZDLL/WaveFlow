@@ -219,7 +219,7 @@ signature corrupted on upload.
 
 WaveFlow ships an **opt-in beta channel** so testers can run
 pre-release builds without affecting the stable population. Users
-enable it under **Settings → Diagnostics → Beta channel**; the choice
+enable it under **Settings → Maintenance → Updates → Beta channel**; the choice
 persists in `app_setting['updater.channel']` (app-wide).
 
 ### How isolation works

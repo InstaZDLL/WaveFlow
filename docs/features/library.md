@@ -227,7 +227,7 @@ This is **not** the same question as [duplicate detection](#duplicate-detection)
 
 `find_duplicates` returns one entry per group, ordered by `added_at ASC` so the oldest copy renders first (usually the one to keep). `delete_tracks(track_ids)` cascades through the schema's `ON DELETE` constraints to clean up `track_artist`, `track_genre`, `playlist_track`, `play_event`, etc. — but **the audio files on disk are not touched**: the user removes them via the OS so we don't accidentally wipe a backup.
 
-UI: [`DuplicatesModal`](../../src/components/common/DuplicatesModal.tsx) launched from Settings → Stockage → "Rechercher". Each group exposes a radio selector (defaults to oldest) and the footer's "Supprimer N doublons" wipes every other entry from the database.
+UI: [`DuplicatesModal`](../../src/components/common/DuplicatesModal.tsx) launched from Settings → Library → Import and scanning → "Detect duplicates". Each group exposes a radio selector (defaults to oldest) and the footer's "Supprimer N doublons" wipes every other entry from the database.
 
 ## Cover picker
 
@@ -253,7 +253,7 @@ Resolution priority in [`commands/browse.rs::get_artist_detail`](../../src-tauri
 
 The `"Various Artists"` sentinel is skipped by the per-track pass because it's an _album_ artist — it's written to `album.artist_id` (never to `track_artist`), so the per-track join can't reach it. It's handled separately by [`scanner::link_va_artist_image`](../../src-tauri/crates/core/src/scanner/upserts.rs), which resolves a curated `Various Artists/artist.jpg` (or `Various Artists.jpg`) via the album relationship (issue #292). Because `extract_artist_image` only matches an explicit artist-named sidecar — never a generic `cover.jpg` / `folder.jpg` — VA still never inherits a stray album cover. The helper runs at the end of every scan (after `merge_implicit_compilations`) and inside the rescan below.
 
-For libraries scanned before the feature shipped, [`commands/scan.rs::rescan_local_artist_images`](../../src-tauri/crates/app/src/commands/scan.rs) (exposed as **Settings → Library → Local artist images**) walks every `artist WHERE artwork_id IS NULL` and probes up to 16 tracks per artist with `extract_artist_image`, stopping at the first hit (plus a dedicated VA pass via the album relationship). Already-linked rows are filtered out at the SQL level, so the rescan is cheap to re-run.
+For libraries scanned before the feature shipped, [`commands/scan.rs::rescan_local_artist_images`](../../src-tauri/crates/app/src/commands/scan.rs) (exposed as **Settings → Images and lyrics → Covers and artist images → Local artist images**) walks every `artist WHERE artwork_id IS NULL` and probes up to 16 tracks per artist with `extract_artist_image`, stopping at the first hit (plus a dedicated VA pass via the album relationship). Already-linked rows are filtered out at the SQL level, so the rescan is cheap to re-run.
 
 ### Manual override
 

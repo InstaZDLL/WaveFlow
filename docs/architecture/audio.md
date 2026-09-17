@@ -42,7 +42,7 @@
 
 ## Exclusive output (opt-in)
 
-Each OS has a parallel output backend to the cpal shared-mode default, engaged by the **one** `audio.exclusive_output` profile setting (toggle in Settings → Audio):
+Each OS has a parallel output backend to the cpal shared-mode default, engaged by the **one** `audio.exclusive_output` profile setting (toggle in Settings → Playback and audio → Advanced audio settings):
 
 | OS      | Backend                                                                                              | How the device is taken                                                     |
 | ------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |

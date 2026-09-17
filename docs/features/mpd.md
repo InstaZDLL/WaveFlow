@@ -4,7 +4,7 @@ WaveFlow speaks the [MPD protocol](https://mpd.readthedocs.io/en/latest/protocol
 
 This is an adapter, not a new UI. MPD has been the Linux remote-control lingua franca since 2003; speaking it hands us a large parc of already-written clients — in particular **a phone remote without any mobile UI of our own** (issue #471).
 
-Ships **disabled by default** — enable it from **Settings → Integrations → MPD server**.
+Ships **disabled by default** — enable it from **Settings → Connections → Network sharing → MPD server**.
 
 ## How it relates to the other control surfaces
 
@@ -125,4 +125,4 @@ ncmpcpp -h 192.168.1.42
 mpc -h 192.168.1.42 -P hunter2 status
 ```
 
-On Android, point MALP at the address shown in Settings → Integrations → MPD server.
+On Android, point MALP at the address shown in Settings → Connections → Network sharing → MPD server.
