@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Music2, AlertCircle, Upload, RefreshCcw } from "lucide-react";
+import { Music2, AlertCircle, Upload, RefreshCcw, Loader2 } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import type { Track } from "../../lib/tauri/track";
 import type { LyricsLine, LyricsPayload } from "../../lib/tauri/lyrics";
@@ -177,10 +177,11 @@ export function ImmersiveLyricsColumn({
                       disabled={isFetching}
                       className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-sm disabled:opacity-50"
                     >
-                      <RefreshCcw
-                        size={15}
-                        className={isFetching ? "animate-spin" : ""}
-                      />
+                      {isFetching ? (
+                        <Loader2 size={15} className="animate-spin" />
+                      ) : (
+                        <RefreshCcw size={15} />
+                      )}
                       {t("lyrics.actions.refetch")}
                     </button>
                   </div>

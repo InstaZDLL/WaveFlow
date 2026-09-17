@@ -65,6 +65,7 @@ import {
   Play,
   ListEnd,
   TagsIcon,
+  Loader2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { LibraryTab } from "../../types";
@@ -1337,10 +1338,11 @@ export function LibraryView({
                 aria-busy={isRescanning}
                 className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <RefreshCcw
-                  size={18}
-                  className={isRescanning ? "animate-spin" : ""}
-                />
+                {isRescanning ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <RefreshCcw size={18} />
+                )}
               </button>
             </Tooltip>
             {/* Deep pass, mirroring the per-folder button in the folder
@@ -3991,12 +3993,11 @@ function FolderList({
                     : "opacity-0 group-hover:opacity-100"
                 }`}
               >
-                <RefreshCcw
-                  size={16}
-                  className={
-                    deepRescanFolderId === folder.id ? "animate-spin" : ""
-                  }
-                />
+                {deepRescanFolderId === folder.id ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <RefreshCcw size={16} />
+                )}
               </button>
             </Tooltip>
             <Tooltip

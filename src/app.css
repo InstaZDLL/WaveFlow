@@ -525,6 +525,21 @@
   }
 }
 
+/* Tailwind's `animate-spin` is a plain utility with no reduced-motion
+   variant, and it has ~55 call sites -- the same reason as the
+   `animate-fade-in` block above for one rule here rather than a
+   `motion-safe:` on each of them.
+
+   A stopped spinner still has to say "busy", so the convention at the
+   call sites is to SWAP the idle icon for `Loader2` while working, never
+   to spin the idle icon itself: a stopped `Loader2` still reads as
+   loading, a stopped `RefreshCcw` reads as a plain button. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin {
+    animation: none;
+  }
+}
+
 @utility scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
