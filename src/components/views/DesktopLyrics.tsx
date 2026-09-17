@@ -233,7 +233,8 @@ export function DesktopLyrics() {
  * applied: measuring the already-shrunk line would find it fits and grow
  * it back, and the two would alternate. The inline size is restored right
  * after, so React's own value is the one left in place. `fitKey` changes
- * with the text, and the observer covers the window being resized.
+ * with the text, the observer covers the window being resized, and a font
+ * finishing its load refits too.
  */
 function FitLine({
   size,
@@ -272,7 +273,20 @@ function FitLine({
     fit();
     const observer = new ResizeObserver(fit);
     observer.observe(el.parentElement ?? el);
-    return () => observer.disconnect();
+    // The fonts come from `@fontsource` and load after the first paint.
+    // A first fit taken in the fallback face is wrong once the real one
+    // arrives, and a font swap resizes nothing the observer watches.
+    let active = true;
+    const refit = () => {
+      if (active) fit();
+    };
+    void document.fonts.ready.then(refit);
+    document.fonts.addEventListener("loadingdone", refit);
+    return () => {
+      active = false;
+      observer.disconnect();
+      document.fonts.removeEventListener("loadingdone", refit);
+    };
   }, [size, fitKey]);
 
   return (
