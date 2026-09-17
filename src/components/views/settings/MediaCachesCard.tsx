@@ -150,6 +150,14 @@ function LocalCacheOption({
     setError(null);
     try {
       await persistEnabled(next);
+      // No invalidation here, unlike after a clear, and on purpose. Turning
+      // the cache OFF deletes nothing, so every remembered local path still
+      // names a file that exists; turning it ON leaves remembered remote
+      // URLs, which still stream. Either way the source on screen stays
+      // playable, and invalidating would only reload every mounted video —
+      // a visible flicker and a fresh download or re-stream — to fix
+      // nothing. The new mode applies from the next lookup. A clear is the
+      // opposite case: it deletes the very files those paths name.
     } catch (e) {
       setEnabled(!next); // revert
       setError(e instanceof Error ? e.message : String(e));
