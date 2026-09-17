@@ -68,7 +68,7 @@
       "title": "重要：僅限本地音樂",
       "description": "WaveFlow 不是串流服務，它播放裝置上已有的檔案。",
       "calloutTitle": "你需要知道",
-      "bulletOwn": "自備音樂庫(MP3、FLAC、ALAC、OGG、DSD…)",
+      "bulletOwn": "使用你自己的音樂庫(MP3、FLAC、ALAC、OGG、DSD…)",
       "bulletImport": "匯入資料夾或拖放檔案",
       "bulletScrobble": "連接 Last.fm 以在背景記錄播放歷史"
     },
@@ -1676,7 +1676,7 @@
         "passwordPlaceholder": "無",
         "passwordHint": "選用。在共用網路中建議設定 —— MPD 協定以明文傳輸密碼。",
         "lanWarning": "整個區域網路皆可存取：網路中的任何人都能控制播放。",
-        "lanWarningAuth": "可從整個本機網路存取，但播放控制需要你設定的密碼。",
+        "lanWarningAuth": "可從整個區域網路存取，但播放控制需要你設定的密碼。",
         "statusRunning": "執行中",
         "statusStopped": "已停止",
         "copyAddress": "複製位址"
