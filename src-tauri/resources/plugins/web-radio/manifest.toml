@@ -17,8 +17,8 @@ license = "GPL-3.0-only"
 world = "waveflow:source/v1"
 
 # Propagated to the other locales, like every user-facing string in the
-# app. Japanese, Korean and both Chinese are pending a native-speaker
-# pass and fall back to English until then.
+# app. Japanese, Korean and Traditional Chinese are pending a
+# native-speaker pass and fall back to English until then.
 [plugin.description_i18n]
 fr = "Écoutez des milliers de radios en ligne du monde entier. Cherchez par pays, langue, genre et plus encore, grâce à Radio Browser."
 es = "Escucha miles de emisoras de radio por internet de todo el mundo. Busca por país, idioma, género y más, gracias a Radio Browser."
@@ -30,6 +30,7 @@ pt = "Ouve milhares de rádios online de todo o mundo. Pesquisa por país, idiom
 ru = "Слушайте тысячи интернет-радиостанций со всего мира. Ищите по стране, языку, жанру и не только — на основе Radio Browser."
 tr = "Dünyanın her yerinden binlerce internet radyosunu dinleyin. Ülke, dil, tür ve daha fazlasına göre arayın; Radio Browser ile."
 id = "Dengarkan ribuan stasiun radio internet dari seluruh dunia. Cari berdasarkan negara, bahasa, genre, dan lainnya, didukung Radio Browser."
+"zh-CN" = "收听来自世界各地的数千个网络广播电台。借助 Radio Browser，可按国家、语言、流派等进行检索。"
 ar = "استمع إلى آلاف محطات الراديو عبر الإنترنت من كل أنحاء العالم. ابحث حسب البلد أو اللغة أو النوع وغير ذلك، بالاعتماد على Radio Browser."
 hi = "दुनिया भर के हज़ारों इंटरनेट रेडियो स्टेशन सुनें। देश, भाषा, शैली और बहुत कुछ के आधार पर खोजें — Radio Browser द्वारा संचालित।"
 
