@@ -12,7 +12,7 @@
   },
   "lastfmReauth": {
     "title": "Last.fm 会话已过期",
-    "message": "您的 Scrobble 不再被发送。请重新登录以继续。",
+    "message": "你的 Scrobble 已停止发送。请重新登录以恢复。",
     "action": "打开设置"
   },
   "rendering": {
@@ -73,8 +73,8 @@
       "bulletScrobble": "连接 Last.fm，在后台 Scrobble 你的播放记录"
     },
     "appearance": {
-      "title": "选择您的外观",
-      "description": "选择一个颜色主题和界面风格。您可以随时在 设置 → 外观 中更改。",
+      "title": "选择你的外观",
+      "description": "选择一个颜色主题和界面风格。你可以随时在 设置 → 外观 中更改。",
       "theme": {
         "title": "颜色主题"
       },
@@ -104,7 +104,7 @@
       "secretLabel": "共享密钥",
       "secretPlaceholder": "你的共享密钥",
       "userLabel": "Last.fm 用户名",
-      "userPlaceholder": "您的用户名",
+      "userPlaceholder": "你的用户名",
       "passwordLabel": "密码",
       "passwordPlaceholder": "你的 Last.fm 密码",
       "toggleSecret": "显示/隐藏密钥",
@@ -126,7 +126,7 @@
       "title": "全部就绪！",
       "description": "你的音乐库已扫描完毕，准备好播放。",
       "nextSteps": "下一步：",
-      "bulletExplore": "通过音乐库、专辑和艺人标签页浏览您的收藏",
+      "bulletExplore": "通过音乐库、专辑和艺人标签页浏览你的收藏",
       "bulletQueue": "点击曲目创建你的第一个播放队列",
       "bulletSettings": "在侧边栏精细调节设置（外观、集成…）",
       "tipImmersiveTitle": "提示：沉浸式视图",
@@ -286,7 +286,7 @@
     },
     "banner": {
       "badge": "准备好聆听了",
-      "subtitle": "发现您最爱的音乐，探索全新声音。",
+      "subtitle": "发现你最爱的音乐，探索全新声音。",
       "openFile": "打开文件",
       "openFolder": "打开文件夹",
       "importFiles": "导入文件",
@@ -398,7 +398,7 @@
     "empty": {
       "morceaux": {
         "title": "音乐库为空",
-        "description": "导入音频文件或文件夹，以丰富您的音乐库。"
+        "description": "导入音频文件或文件夹，以丰富你的音乐库。"
       },
       "albums": {
         "title": "未找到任何专辑",
@@ -649,12 +649,12 @@
     "count_one": "{{count}} 首曲目",
     "count_other": "{{count}} 首曲目",
     "emptyTitle": "没有最近播放的曲目",
-    "emptyDescription": "您正在收听的歌曲会自动显示在此处。"
+    "emptyDescription": "你正在收听的歌曲会自动显示在此处。"
   },
   "statistics": {
     "title": "统计数据",
     "emptyTitle": "暂无相关数据",
-    "emptyDescription": "播放音乐，您的收听数据就会显示在这里。",
+    "emptyDescription": "播放音乐，你的收听数据就会显示在这里。",
     "range": {
       "label": "时间段",
       "7d": "7 天",
@@ -843,7 +843,7 @@
     "title": "反馈",
     "hero": {
       "title": "请帮助我们改进 WaveFlow",
-      "description": "您发现了一个漏洞、有改进建议，还是单纯想给我们反馈？我们会阅读每一条消息，并认真考虑您的建议。"
+      "description": "你发现了一个漏洞、有改进建议，还是单纯想给我们反馈？我们会阅读每一条消息，并认真考虑你的建议。"
     },
     "contact": {
       "section": "联系我们",
@@ -1331,7 +1331,7 @@
     "title": "歌词",
     "loading": "搜索歌词……",
     "noTrack": "没有正在播放的曲目",
-    "notFound": "未找到此曲目的歌词。您可以导入 .lrc 文件。",
+    "notFound": "未找到此曲目的歌词。你可以导入 .lrc 文件。",
     "fetchError": "无法连接歌词服务，请稍后重试。",
     "importTitle": "导入 .lrc 文件",
     "actions": {
@@ -1369,7 +1369,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML 仅保留在缓存中（未写入音频标签）",
-      "sidecarWriteSkipped": "歌词已保存到数据库，但 TTML 格式无法保存为 .lrc/.txt 旁路文件。"
+      "sidecarWriteSkipped": "歌词已保存到数据库，但 TTML 格式无法保存为 .lrc/.txt 外挂文件。"
     }
   },
   "duplicates": {
@@ -1540,7 +1540,7 @@
     "captureHintWord": "空格 = 下一个词 · 回车 = 下一行 · Backspace = 撤销最后一个词",
     "notCaptured": "未捕获",
     "exportToFile": "保存到文件…",
-    "exportToFileHint": "将歌词导出为 .lrc 或 .txt 文件到您选择的位置，不会修改音频文件",
+    "exportToFileHint": "将歌词导出为 .lrc 或 .txt 文件到你选择的位置，不会修改音频文件",
     "exportedToFile": "已导出到 {{path}}",
     "destinationLabel": "歌词默认保存位置",
     "destination": {
@@ -1581,7 +1581,7 @@
     "masthead": {
       "edition": "晨刊",
       "price": "价格：包含",
-      "subtitle": "「值得印刷的所有音乐。」— 您每日的专属精选。"
+      "subtitle": "「值得印刷的所有音乐。」— 你每日的专属精选。"
     },
     "lead": {
       "caption": "图 1. —— 摘自《{{album}}》，{{artist}}。",
@@ -2159,7 +2159,7 @@
     },
     "serverAccount": {
       "title": "WaveFlow 服务器账户",
-      "subtitle": "将此个人资料关联到您的 waveflow-server 实例，以启用多设备同步和浏览器播放。",
+      "subtitle": "将此个人资料关联到你的 waveflow-server 实例，以启用多设备同步和浏览器播放。",
       "signedIn": "已登录",
       "urlLabel": "服务器 URL",
       "urlPlaceholder": "https://api.waveflow.app",
@@ -2179,7 +2179,7 @@
       "modes": {
         "hybrid": {
           "label": "混合（默认）",
-          "description": "您的更改保留在本地，同时也会排队等待发送到服务器。"
+          "description": "你的更改保留在本地，同时也会排队等待发送到服务器。"
         },
         "local": {
           "label": "仅本地",
@@ -2741,7 +2741,7 @@
       "missing": "该曲目尚未收录到服务器镜像中。请先执行一次目录遍历，然后重试。",
       "invalidNumber": "年份、音轨号和碟片号必须为整数。"
     },
-    "needsMirror": "请先复制上方的服务器目录：本节将您的文件与本地镜像比对，而镜像目前仍为空。"
+    "needsMirror": "请先复制上方的服务器目录：本节将你的文件与本地镜像比对，而镜像目前仍为空。"
   },
   "tasks": {
     "barLabel": "正在进行的任务",
