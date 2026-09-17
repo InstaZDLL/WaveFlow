@@ -55,8 +55,11 @@ interface TrackTableHeaderProps {
  *   resize reorders the list.
  * - **It stays visible while scrolling.** A value with no label above
  *   it means nothing, and that goes double for a column the user chose
- *   themselves out of their own file tags. `top-16` because the TopBar
- *   is `sticky top-0 h-16` and owns the space above.
+ *   themselves out of their own file tags. `-top-8` because the TopBar
+ *   sits outside the page scroller, whose `p-8` would otherwise leave a
+ *   32px band above the pinned header for rows to scroll through --
+ *   the same fix as the history view's day headers. (It was `top-16`,
+ *   which assumed the TopBar scrolled with the page and left a 96px gap.)
  * - **The handle is reachable from the keyboard.** A drag is not an
  *   interaction everyone can perform, and a column that can only be
  *   widened with a pointer is a column some users cannot read. Arrow
@@ -238,7 +241,7 @@ export function TrackTableHeader({
     // direction announced by nothing at all, since the arrow is
     // `aria-hidden`. It rides in the button's accessible name instead.
     <div
-      className="sticky top-16 z-20 grid gap-4 px-5 py-3 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-100 dark:border-zinc-800 bg-white dark:bg-surface-dark"
+      className="sticky -top-8 z-20 grid gap-4 px-5 py-3 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-100 dark:border-zinc-800 bg-white dark:bg-surface-dark"
       style={{ gridTemplateColumns: gridCols }}
     >
       {/* Index, and the artwork thumbnail when the list view shows one.

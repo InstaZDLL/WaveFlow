@@ -22,6 +22,7 @@ import {
   MAX_COLUMN_WIDTH,
   specFor,
   tagKeyOf,
+  trackMinWidthFor,
   trackSizeFor,
   type ColumnId,
   type ColumnLayout,
@@ -2292,13 +2293,26 @@ function TrackTable({
   // shows, the heart, the actions -- because none of it carries a value
   // and none of it sorts.
   const leadingSpacers = view === "list" ? 2 : 1;
+  const leadingTracks = ["3rem", ...(view === "list" ? ["2.75rem"] : [])];
+  const trailingTracks = ["2rem", "5.5rem"];
   const gridCols = [
-    "3rem",
-    ...(view === "list" ? ["2.75rem"] : []),
+    ...leadingTracks,
     ...layout.order.map((id) => trackSizeFor(id, layout)),
-    "2rem",
-    "5.5rem",
+    ...trailingTracks,
   ].join(" ");
+  // The grid's own floor: every track at its minimum, the `gap-4`
+  // between them, the row's `px-5` and the frame's 1px border. Put on the
+  // frame, it makes a column list wider than the view (a narrow window,
+  // the right panel open) widen the whole table and scroll the page
+  // sideways. Without it the grid spilled out of the frame, and the
+  // background, border and header stopped halfway along the rows.
+  const trackCount =
+    leadingTracks.length + layout.order.length + trailingTracks.length;
+  const tableMinWidth = `calc(${[
+    ...leadingTracks,
+    ...layout.order.map((id) => `${trackMinWidthFor(id, layout)}px`),
+    ...trailingTracks,
+  ].join(" + ")} + ${trackCount - 1}rem + 2.5rem + 2px)`;
 
   // Formatters for the text a column shows, and for measuring it.
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -2379,6 +2393,7 @@ function TrackTable({
     <div
       data-track-table
       className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40"
+      style={{ minWidth: tableMinWidth }}
     >
       {/* Sticky, not fixed. `overflow-hidden` had to go with it: it
           clips a sticky descendant against its own rounded corners, and

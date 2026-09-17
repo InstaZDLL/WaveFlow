@@ -354,6 +354,21 @@ export function trackSizeFor(id: ColumnId, layout: ColumnLayout): string {
 }
 
 /**
+ * The narrowest one column's track can get, in px: the floor of what
+ * {@link trackSizeFor} returns. Summed into the table's `min-width`, so a
+ * column list wider than the view widens the table itself instead of
+ * spilling out of the box that paints its background and header.
+ */
+export function trackMinWidthFor(id: ColumnId, layout: ColumnLayout): number {
+  const spec = specFor(id);
+  const stored = layout.widths[id];
+  if (typeof stored === "number" && stored > 0) {
+    return Math.min(MAX_COLUMN_WIDTH, Math.max(stored, spec.minWidth));
+  }
+  return spec.flexible ? spec.minWidth : spec.defaultWidth;
+}
+
+/**
  * The plain text a column shows for a row.
  *
  * Used for the cells that are just text, and — the reason it is a
