@@ -518,6 +518,9 @@ export function SettingsView({
   const [activeCategory, setActiveCategory] = useState<SettingsCategory>(
     () => initialCategory ?? readStoredCategory(),
   );
+  // Group a settings-search result asked to reveal; cleared whenever the
+  // category changes by any other route, so it never outlives its request.
+  const [targetGroup, setTargetGroup] = useState<string | null>(null);
   // The banner that sends people here is visible *on* this page too, so
   // the request can arrive while Settings is already mounted — React
   // keeps the instance and the initializer above never runs again. The
@@ -532,8 +535,10 @@ export function SettingsView({
     // chose, which costs nothing.
     /* eslint-disable-next-line react-hooks/set-state-in-effect */
     setActiveCategory(initialCategory ?? readStoredCategory());
+    // A restored entry carries no search target: a group revealed by an
+    // earlier search result must not stay expanded in it.
+    setTargetGroup(null);
   }, [initialCategory]);
-  const [targetGroup, setTargetGroup] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const handleCategoryChange = useCallback((next: SettingsCategory) => {
     setActiveCategory(next);
