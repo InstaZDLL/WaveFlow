@@ -806,18 +806,23 @@ function readTtmlLocalizations(doc: Document): ParsedLocalizations {
 /**
  * The text of a TTML document none of whose lines carries a `begin`,
  * as plain lyrics: one line per `<p>`, a blank line between the `<div>`
- * stanzas that hold them. `null` when the document does not parse or
- * has no text in its lines.
+ * stanzas that hold them. `null` when the document does not parse, is
+ * not rooted at `<tt>`, or has no text in its lines.
  *
  * Apple serves lyrics it has no timing for this way
  * (`itunes:timing="None"`). {@link parseTtml} skips every untimed line,
  * so such a document parsed to nothing, and every surface that falls
  * back to the raw content for unsynced lyrics showed the XML itself.
+ *
+ * The root check matters because the backend's format sniff accepts any
+ * content opening with `<?xml`: an XHTML error page labelled `ttml` would
+ * otherwise have its paragraphs shown as lyrics.
  */
 function untimedTtmlText(content: string): string | null {
   if (typeof DOMParser === "undefined") return null;
   const doc = new DOMParser().parseFromString(content, "application/xml");
   if (doc.querySelector("parsererror")) return null;
+  if (localNameOf(doc.documentElement) !== "tt") return null;
   const stanzas: string[][] = [];
   let stanzaOf: Element | null = null;
   for (const p of byLocalName(doc, "p")) {
