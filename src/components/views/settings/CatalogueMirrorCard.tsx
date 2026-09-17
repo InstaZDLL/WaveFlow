@@ -50,7 +50,9 @@ export function CatalogueMirrorCard() {
   const [visible, setVisible] = useState(false);
   const [stats, setStats] = useState<CatalogueStats | null>(null);
   const [report, setReport] = useState<CatalogueMirrorReport | null>(null);
-  const [progress, setProgress] = useState<CatalogueMirrorProgress | null>(null);
+  const [progress, setProgress] = useState<CatalogueMirrorProgress | null>(
+    null,
+  );
   const [covers, setCovers] = useState<ArtworkCacheInfo | null>(null);
   const [streams, setStreams] = useState<StreamCacheInfo | null>(null);
   const [downloads, setDownloads] = useState<DownloadsInfo | null>(null);
@@ -226,14 +228,18 @@ export function CatalogueMirrorCard() {
   return (
     <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
       <div className="flex items-start space-x-4">
-        <Library size={20} className="text-zinc-400 mt-0.5" aria-hidden="true" />
+        <Library
+          size={20}
+          className="text-zinc-400 mt-0.5"
+          aria-hidden="true"
+        />
         <div className="flex-1 min-w-0 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                 {t("remote.catalogue.title")}
               </h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-xs settings-description">
                 {t("remote.catalogue.subtitle")}
               </p>
             </div>
@@ -255,7 +261,11 @@ export function CatalogueMirrorCard() {
                 className="px-3 py-1.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 inline-flex items-center gap-1.5 disabled:opacity-50"
               >
                 {running ? (
-                  <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                  <Loader2
+                    size={14}
+                    className="animate-spin"
+                    aria-hidden="true"
+                  />
                 ) : (
                   <RefreshCw size={14} aria-hidden="true" />
                 )}
@@ -337,7 +347,8 @@ export function CatalogueMirrorCard() {
                 ` · ${t("remote.catalogue.reportFeed", { applied: report.feed_applied })}`}
               {report.removed > 0 &&
                 ` · ${t("remote.catalogue.reportRemoved", { removed: report.removed })}`}
-              {report.cancelled && ` · ${t("remote.catalogue.reportCancelled")}`}
+              {report.cancelled &&
+                ` · ${t("remote.catalogue.reportCancelled")}`}
             </p>
           )}
 
@@ -447,7 +458,11 @@ export function CatalogueMirrorCard() {
                   className="px-3 py-1.5 text-sm rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 inline-flex items-center gap-1.5 disabled:opacity-50"
                 >
                   {busy === "clear" ? (
-                    <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                    <Loader2
+                      size={14}
+                      className="animate-spin"
+                      aria-hidden="true"
+                    />
                   ) : (
                     <Trash2 size={14} aria-hidden="true" />
                   )}

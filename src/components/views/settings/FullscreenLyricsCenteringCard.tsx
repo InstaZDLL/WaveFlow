@@ -27,7 +27,7 @@ export function FullscreenLyricsCenteringCard() {
             <span className="block text-sm font-medium text-zinc-900 dark:text-white">
               {t("settings.fullscreenLyricsCentering.title")}
             </span>
-            <span className="block text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed mt-0.5">
+            <span className="block text-xs mt-0.5 settings-description">
               {t("settings.fullscreenLyricsCentering.subtitle")}
             </span>
           </span>

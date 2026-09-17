@@ -55,7 +55,7 @@ export function WindowBoundsCard() {
             <span className="block text-sm font-medium text-zinc-900 dark:text-white">
               {t("settings.windowBounds.title")}
             </span>
-            <span className="block text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed mt-0.5">
+            <span className="block text-xs mt-0.5 settings-description">
               {t("settings.windowBounds.subtitle")}
             </span>
             {error && (

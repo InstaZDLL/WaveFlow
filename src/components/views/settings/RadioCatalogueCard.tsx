@@ -156,7 +156,7 @@ export function RadioCatalogueCard({ language }: RadioCatalogueCardProps) {
             <div className="text-sm font-medium text-zinc-900 dark:text-white">
               {t("settings.radioCatalogue.title")}
             </div>
-            <div className="text-xs text-zinc-400">
+            <div className="text-xs settings-description">
               {hasCatalogue
                 ? t("settings.radioCatalogue.stored", {
                     count: status.count,
@@ -224,7 +224,7 @@ export function RadioCatalogueCard({ language }: RadioCatalogueCardProps) {
             <div className="text-sm text-zinc-600 dark:text-zinc-300">
               {t("settings.radioCatalogue.localFirst")}
             </div>
-            <div className="text-xs text-zinc-400">
+            <div className="text-xs settings-description">
               {t("settings.radioCatalogue.localFirstHint")}
             </div>
           </div>

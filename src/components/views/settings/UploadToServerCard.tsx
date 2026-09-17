@@ -100,7 +100,8 @@ export function UploadToServerCard() {
     // below goes through it, including the ones inside the listeners: a pass
     // still running for the outgoing profile keeps emitting, and its bar must
     // not move under the incoming one.
-    const current = () => mountedRef.current && generationRef.current === generation;
+    const current = () =>
+      mountedRef.current && generationRef.current === generation;
     const offs: (() => void)[] = [];
     // A listener whose `listen()` resolves after the cleanup has run would
     // never be removed by it: the array it would be pushed onto has already
@@ -134,9 +135,12 @@ export function UploadToServerCard() {
     void (async () => {
       try {
         keep(
-          await listen<UploadSurveyProgress>("remote:upload-survey", (event) => {
-            if (current()) setSurveyProgress(event.payload);
-          }),
+          await listen<UploadSurveyProgress>(
+            "remote:upload-survey",
+            (event) => {
+              if (current()) setSurveyProgress(event.payload);
+            },
+          ),
         );
         keep(
           await listen<UploadProgress>("remote:upload-progress", (event) => {
@@ -245,7 +249,7 @@ export function UploadToServerCard() {
               <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                 {t("remote.upload.title")}
               </h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-xs settings-description">
                 {t("remote.upload.subtitle")}
               </p>
             </div>
@@ -354,7 +358,10 @@ export function UploadToServerCard() {
                     className="px-2 py-1.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 disabled:opacity-50"
                   >
                     {libraries.map((library) => (
-                      <option key={library.library_id} value={library.library_id}>
+                      <option
+                        key={library.library_id}
+                        value={library.library_id}
+                      >
                         {library.name}
                       </option>
                     ))}
