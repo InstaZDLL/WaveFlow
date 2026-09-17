@@ -111,7 +111,9 @@ export interface LyricsPayload {
 
 /** Cache-only lookup. Returns null when no row exists yet. */
 export function getLyrics(trackId: number): Promise<LyricsPayload | null> {
-  return invoke<LyricsPayload | null>("get_lyrics", { trackId });
+  return invoke<LyricsPayload | null>("get_lyrics", { trackId }).then(
+    showableLyrics,
+  );
 }
 
 /**
@@ -119,7 +121,9 @@ export function getLyrics(trackId: number): Promise<LyricsPayload | null> {
  * Caches the first hit. Returns null if every tier failed.
  */
 export function fetchLyrics(trackId: number): Promise<LyricsPayload | null> {
-  return invoke<LyricsPayload | null>("fetch_lyrics", { trackId });
+  return invoke<LyricsPayload | null>("fetch_lyrics", { trackId }).then(
+    showableLyrics,
+  );
 }
 
 /**
@@ -144,7 +148,7 @@ export function fetchRadioLyrics(
     artist,
     title,
     trackId,
-  });
+  }).then(showableLyrics);
 }
 
 /**
@@ -171,7 +175,7 @@ export function fetchRemoteLyrics(
     title,
     durationMs,
     trackId,
-  });
+  }).then(showableLyrics);
 }
 
 /**
@@ -194,7 +198,7 @@ export function refetchLyrics(
   return invoke<LyricsPayload | null>("refetch_lyrics", {
     trackId,
     provider: provider ?? null,
-  });
+  }).then(showableLyrics);
 }
 
 /**
@@ -206,7 +210,9 @@ export function importLrcFile(
   trackId: number,
   filePath: string,
 ): Promise<LyricsPayload> {
-  return invoke<LyricsPayload>("import_lrc_file", { trackId, filePath });
+  return invoke<LyricsPayload>("import_lrc_file", { trackId, filePath }).then(
+    showableLyrics,
+  );
 }
 
 /** Drop the cached lyrics row so the next fetch re-runs the waterfall. */
@@ -304,7 +310,9 @@ export function saveLyrics(
   trackId: number,
   payload: SaveLyricsPayload,
 ): Promise<LyricsPayload> {
-  return invoke<LyricsPayload>("save_lyrics", { trackId, payload });
+  return invoke<LyricsPayload>("save_lyrics", { trackId, payload }).then(
+    showableLyrics,
+  );
 }
 
 /**
@@ -793,6 +801,54 @@ function readTtmlLocalizations(doc: Document): ParsedLocalizations {
   }
 
   return { translationByKey, romanizationByKey };
+}
+
+/**
+ * The text of a TTML document none of whose lines carries a `begin`,
+ * as plain lyrics: one line per `<p>`, a blank line between the `<div>`
+ * stanzas that hold them. `null` when the document does not parse or
+ * has no text in its lines.
+ *
+ * Apple serves lyrics it has no timing for this way
+ * (`itunes:timing="None"`). {@link parseTtml} skips every untimed line,
+ * so such a document parsed to nothing, and every surface that falls
+ * back to the raw content for unsynced lyrics showed the XML itself.
+ */
+function untimedTtmlText(content: string): string | null {
+  if (typeof DOMParser === "undefined") return null;
+  const doc = new DOMParser().parseFromString(content, "application/xml");
+  if (doc.querySelector("parsererror")) return null;
+  const stanzas: string[][] = [];
+  let stanzaOf: Element | null = null;
+  for (const p of byLocalName(doc, "p")) {
+    const text = (p.textContent ?? "").replace(/\s+/g, " ").trim();
+    if (!text) continue;
+    let div: Element | null = p.parentElement;
+    while (div && localNameOf(div) !== "div") div = div.parentElement;
+    if (stanzas.length === 0 || div !== stanzaOf) {
+      stanzas.push([]);
+      stanzaOf = div;
+    }
+    stanzas[stanzas.length - 1].push(text);
+  }
+  if (stanzas.length === 0) return null;
+  return stanzas.map((lines) => lines.join("\n")).join("\n\n");
+}
+
+/**
+ * Every payload the backend returns passes through here before a surface
+ * sees it. A TTML document with no timed line is handed on as the plain
+ * text it is, so the panel, the immersive view, the mini-player and the
+ * editor all read it as unsynced lyrics instead of each rendering the
+ * markup. The stored document is untouched: a timed TTML, or one this
+ * cannot read, goes through as it came.
+ */
+function showableLyrics<T extends LyricsPayload | null>(payload: T): T {
+  if (!payload || payload.format !== "ttml") return payload;
+  if (parseTtml(payload.content).length > 0) return payload;
+  const text = untimedTtmlText(payload.content);
+  if (text === null) return payload;
+  return { ...payload, format: "plain", content: text };
 }
 
 /**
