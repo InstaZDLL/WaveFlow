@@ -1,4 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SettingsNavigation } from "./settings/SettingsNavigation";
+import { SettingsGroup } from "./settings/SettingsGroup";
+import {
+  SETTINGS_CATEGORIES,
+  type SettingsCategory,
+} from "./settings/settingsCatalog";
+import "./settings/settings.css";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -39,14 +46,8 @@ import {
   Activity,
   Gauge,
   ZoomIn,
-  Library,
-  Disc3,
-  Zap,
   Palette,
-  Database,
-  Keyboard,
-  Stethoscope,
-  Puzzle,
+  Disc3,
 } from "lucide-react";
 import { RemoteServerCard } from "./settings/RemoteServerCard";
 import { ReconciliationCard } from "./settings/ReconciliationCard";
@@ -196,52 +197,7 @@ interface SettingsViewProps {
   initialCategory?: SettingsCategory;
 }
 
-/**
- * Settings categories — surfaced as a horizontal tab bar at the top
- * of the page. Only one section is mounted at a time
- * so heavy subviews (EQ visualizer, backup card, shortcuts editor)
- * don't run their effects until the user actually opens that tab.
- */
-export type SettingsCategory =
-  | "library"
-  | "playback"
-  | "integrations"
-  | "appearance"
-  | "data"
-  | "plugins"
-  | "shortcuts"
-  | "diagnostics";
-
-const SETTINGS_CATEGORIES: ReadonlyArray<{
-  id: SettingsCategory;
-  labelKey: string;
-  Icon: typeof Library;
-}> = [
-  { id: "library", labelKey: "settings.sections.library", Icon: Library },
-  { id: "playback", labelKey: "settings.sections.playback", Icon: Disc3 },
-  {
-    id: "integrations",
-    labelKey: "settings.sections.integrations",
-    Icon: Zap,
-  },
-  {
-    id: "appearance",
-    labelKey: "settings.sections.appearance",
-    Icon: Palette,
-  },
-  { id: "data", labelKey: "settings.sections.data", Icon: Database },
-  { id: "plugins", labelKey: "settings.sections.plugins", Icon: Puzzle },
-  {
-    id: "shortcuts",
-    labelKey: "settings.sections.shortcuts",
-    Icon: Keyboard,
-  },
-  {
-    id: "diagnostics",
-    labelKey: "settings.sections.diagnostics",
-    Icon: Stethoscope,
-  },
-];
+export type { SettingsCategory } from "./settings/settingsCatalog";
 
 const SETTINGS_CATEGORY_STORAGE_KEY = "waveflow.settings.activeCategory";
 const SETTINGS_CATEGORY_IDS = new Set<SettingsCategory>(
@@ -280,7 +236,7 @@ const TRANSLATION_LANG_OPTIONS: ReadonlyArray<{
 ];
 
 function readStoredCategory(): SettingsCategory {
-  if (typeof window === "undefined") return "library";
+  if (typeof window === "undefined") return "general";
   try {
     const stored = window.localStorage.getItem(SETTINGS_CATEGORY_STORAGE_KEY);
     if (stored && SETTINGS_CATEGORY_IDS.has(stored as SettingsCategory)) {
@@ -289,7 +245,7 @@ function readStoredCategory(): SettingsCategory {
   } catch {
     // localStorage unavailable — fall through to default.
   }
-  return "library";
+  return "general";
 }
 
 function ToggleSwitch({
@@ -576,8 +532,11 @@ export function SettingsView({
     /* eslint-disable-next-line react-hooks/set-state-in-effect */
     setActiveCategory(initialCategory ?? readStoredCategory());
   }, [initialCategory]);
+  const [targetGroup, setTargetGroup] = useState<string | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const handleCategoryChange = useCallback((next: SettingsCategory) => {
     setActiveCategory(next);
+    setTargetGroup(null);
     try {
       window.localStorage.setItem(SETTINGS_CATEGORY_STORAGE_KEY, next);
     } catch {
@@ -2098,7 +2057,7 @@ export function SettingsView({
   }, [activeProfile]);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-20">
+    <div className="settings-view @container max-w-6xl mx-auto space-y-8 animate-fade-in pb-20 scroll-mt-6">
       {/* Header */}
       <div className="flex items-center space-x-4">
         <button
@@ -2117,2399 +2076,2495 @@ export function SettingsView({
         </div>
       </div>
 
-      {/* Category tabs. Horizontal pill bar that
-          swaps which section is visible. The mounted-on-demand model
-          keeps heavy effects (EQ spectrum, backup card, shortcuts
-          editor) idle until the user actually opens their tab. */}
-      <div
-        role="tablist"
-        aria-label={t("settings.categoryNavLabel")}
-        aria-orientation="horizontal"
-        className="-mx-2 flex flex-wrap gap-2"
-      >
-        {SETTINGS_CATEGORIES.map(({ id, labelKey, Icon }) => {
-          const isActive = id === activeCategory;
-          return (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              id={`settings-tab-${id}`}
-              aria-selected={isActive}
-              aria-controls={`settings-panel-${id}`}
-              // Roving tabindex: only the active tab is in the
-              // sequential tab order; arrow-key navigation between
-              // tabs is the standard WAI-ARIA tab pattern (not wired
-              // here yet — clicking a tab still works for keyboard
-              // users via Tab + Enter/Space).
-              tabIndex={isActive ? 0 : -1}
-              onClick={() => handleCategoryChange(id)}
-              className={`group inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
-                isActive
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300 shadow-sm"
-                  : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-white"
-              }`}
+      <div className="grid items-start gap-8 @4xl:grid-cols-[15rem_minmax(0,1fr)] @4xl:gap-10">
+        <SettingsNavigation
+          activeCategory={activeCategory}
+          onSelect={(category, group) => {
+            handleCategoryChange(category);
+            setTargetGroup(group ?? null);
+            requestAnimationFrame(() => {
+              const target = group
+                ? (document.getElementById(`settings-group-${group}`) ??
+                  panelRef.current)
+                : panelRef.current;
+              if (target instanceof HTMLDetailsElement) target.open = true;
+              const scrollTarget = group
+                ? target
+                : panelRef.current?.closest(".settings-view");
+              scrollTarget?.scrollIntoView({ block: "start" });
+              target?.focus({ preventScroll: true });
+            });
+          }}
+        />
+        <div
+          ref={panelRef}
+          tabIndex={-1}
+          className="settings-content min-w-0 scroll-mt-6 outline-none"
+        >
+          {activeCategory === "general" && (
+            <section
+              aria-labelledby="settings-heading-general"
+              className="space-y-7"
             >
-              <Icon
-                size={16}
-                className={isActive ? "" : "text-zinc-400"}
-                aria-hidden="true"
-              />
-              {t(labelKey)}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Library category — app-level + library-management settings. */}
-      {activeCategory === "library" && (
-        <section
-          role="tabpanel"
-          id="settings-panel-library"
-          aria-labelledby="settings-tab-library"
-          tabIndex={0}
-        >
-          <h2
-            id="settings-general-heading"
-            className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
-          >
-            {t("settings.sections.library")}
-          </h2>
-          <div className="space-y-1">
-            {/* Langue */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Globe size={20} className="text-zinc-400" aria-hidden="true" />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.language.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.language.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <LanguageDropdown
-                currentCode={normalizeSupportedLanguageCode(
-                  i18n.resolvedLanguage ?? i18n.language,
-                )}
-                onSelect={handleLanguageChange}
-              />
-            </div>
-
-            {/* UI zoom — same shape as VS Code / browser zoom. The
-              -/+/reset cluster on the right is a thin control band so
-              users with cramped 1080p screens can shrink everything
-              while 4K users can bump it up. Hooked to the same
-              keyboard shortcuts (Ctrl+=, Ctrl+-, Ctrl+0) via the
-              `useUiZoom` hook mounted on AppLayout. */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <ZoomIn
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.uiZoom.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.uiZoom.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  type="button"
-                  onClick={() => handleZoomDelta(-UI_ZOOM_STEP)}
-                  disabled={uiZoom <= UI_ZOOM_MIN + 1e-3}
-                  aria-label={t("settings.uiZoom.decreaseAria")}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-lg leading-none"
+              <header>
+                <h2
+                  id="settings-heading-general"
+                  className="text-xl font-semibold text-zinc-900 dark:text-white"
                 >
-                  −
-                </button>
-                <button
-                  type="button"
-                  onClick={handleZoomReset}
-                  aria-label={t("settings.uiZoom.resetAria")}
-                  title={t("settings.uiZoom.resetAria")}
-                  className="min-w-14 px-2 h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm font-mono tabular-nums"
-                >
-                  {Math.round(uiZoom * 100)} %
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleZoomDelta(UI_ZOOM_STEP)}
-                  disabled={uiZoom >= UI_ZOOM_MAX - 1e-3}
-                  aria-label={t("settings.uiZoom.increaseAria")}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-lg leading-none"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            {/* Lancement au démarrage */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Power size={20} className="text-zinc-400" aria-hidden="true" />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.autoStart.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.autoStart.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={autoStart}
-                onToggle={handleToggleAutoStart}
-                label={t("settings.autoStart.title")}
-              />
-            </div>
-
-            {/* Minimiser dans la barre système */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Minimize2
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.minimizeToTray.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.minimizeToTray.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={minimizeToTray}
-                onToggle={handleToggleMinimizeToTray}
-                label={t("settings.minimizeToTray.title")}
-              />
-            </div>
-
-            {/* Scanner au démarrage */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <ScanLine
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.scanOnStart.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.scanOnStart.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={scanOnStart}
-                onToggle={handleToggleScanOnStart}
-                label={t("settings.scanOnStart.title")}
-              />
-            </div>
-
-            {/* Lecture au clic simple */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <MousePointerClick
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.singleClickPlay.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.singleClickPlay.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={singleClickPlay}
-                onToggle={handleToggleSingleClickPlay}
-                label={t("settings.singleClickPlay.title")}
-              />
-            </div>
-
-            {/* Visibilité de l'entrée Spotify dans la sidebar */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Headphones
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.showSpotify.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.showSpotify.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={showSpotify}
-                onToggle={handleToggleShowSpotify}
-                label={t("settings.showSpotify.title")}
-              />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Playback category — audio engine, lyrics, EQ. */}
-      {activeCategory === "playback" && (
-        <section
-          role="tabpanel"
-          id="settings-panel-playback"
-          aria-labelledby="settings-tab-playback"
-          tabIndex={0}
-        >
-          <h2
-            id="settings-playback-heading"
-            className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
-          >
-            {t("settings.sections.playback")}
-          </h2>
-          <div className="space-y-1">
-            {/* Crossfade */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Shuffle
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.crossfade.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.crossfade.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <input
-                  type="range"
-                  min={0}
-                  max={12}
-                  step={1}
-                  value={crossfadeSec}
-                  onChange={(e) =>
-                    handleCrossfadeChange(Number(e.target.value))
-                  }
-                  className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
-                  aria-label={t("settings.crossfade.title")}
-                />
-                <span className="text-sm font-medium text-zinc-500 w-10 text-right tabular-nums">
-                  {crossfadeSec} s
-                </span>
-              </div>
-            </div>
-
-            {/* Smart crossfade — same-album skip */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Sparkles
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.smartCrossfade.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.smartCrossfade.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={smartCrossfade}
-                onToggle={handleToggleSmartCrossfade}
-                label={t("settings.smartCrossfade.title")}
-              />
-            </div>
-
-            {/* Dynamic crossfade — tempo-aware fade scaling */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Gauge size={20} className="text-zinc-400" aria-hidden="true" />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.dynamicCrossfade.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.dynamicCrossfade.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={dynamicCrossfade}
-                onToggle={handleToggleDynamicCrossfade}
-                label={t("settings.dynamicCrossfade.title")}
-              />
-            </div>
-
-            {/* Spectrum visualizer */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Activity
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.visualizer.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.visualizer.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={visualizer}
-                onToggle={handleToggleVisualizer}
-                label={t("settings.visualizer.title")}
-              />
-            </div>
-
-            {/* Gapless playback */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <ChevronsRight
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.gapless.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.gapless.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={gapless}
-                onToggle={handleToggleGapless}
-                label={t("settings.gapless.title")}
-              />
-            </div>
-
-            {/* DSD → PCM precision (FIR taps). DSD-only, off by default. */}
-            <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center space-x-4 min-w-0">
-                  <AudioWaveform
-                    size={20}
-                    className="text-zinc-400 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                      {t("settings.dsdPrecision.title")}
-                    </div>
-                    <div className="text-xs text-zinc-400">
-                      {t("settings.dsdPrecision.subtitle")}
-                    </div>
-                  </div>
-                </div>
-                <div
-                  className="flex items-center rounded-lg bg-zinc-100 dark:bg-zinc-800 p-0.5 shrink-0"
-                  role="group"
-                  aria-label={t("settings.dsdPrecision.title")}
-                >
-                  {DSD_PRECISION_TAPS.map((taps) => {
-                    const active = dsdTaps === taps;
-                    const label =
-                      taps === 256
-                        ? t("settings.dsdPrecision.standard")
-                        : taps === 1024
-                          ? t("settings.dsdPrecision.high")
-                          : t("settings.dsdPrecision.max");
-                    return (
-                      <button
-                        key={taps}
-                        type="button"
-                        onClick={() => handleSetDsdPrecision(taps)}
-                        aria-pressed={active}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                          active
-                            ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
-                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-                        }`}
-                      >
-                        {label}
-                        <span className="ml-1 text-[10px] tabular-nums opacity-60">
-                          {taps}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Native DSD via DoP (DSD over PCM), with a DoP-capable DAC
-                on an exclusive output: WASAPI Exclusive (Windows), raw
-                ALSA hw (Linux), CoreAudio hog mode (macOS). Off by
-                default. Hidden where DoP can't engage at all (mobile). */}
-            {dopPlatformSupported && (
-              <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                <div className="flex items-center space-x-4 min-w-0">
-                  <AudioWaveform
-                    size={20}
-                    className="text-zinc-400 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                      {t("settings.dsdDop.title")}
-                    </div>
-                    <div className="text-xs text-zinc-400">
-                      {t("settings.dsdDop.subtitle")}
-                    </div>
-                  </div>
-                </div>
-                <ToggleSwitch
-                  enabled={dsdDop}
-                  onToggle={handleToggleDsdDop}
-                  label={t("settings.dsdDop.title")}
-                />
-              </div>
-            )}
-
-            {/* Normaliser le volume */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Volume2
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.normalize.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.normalize.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={normalize}
-                onToggle={handleToggleNormalize}
-                label={t("settings.normalize.title")}
-              />
-            </div>
-
-            {/* ReplayGain */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Volume2
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.replayGain.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.replayGain.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={replayGain}
-                onToggle={handleToggleReplayGain}
-                label={t("settings.replayGain.title")}
-              />
-            </div>
-
-            {/* ReplayGain refinements — only meaningful once the
-                switch above is on, so they stay out of the way until
-                then. */}
-            {replayGain && (
-              <div className="ml-9 pl-5 border-l border-zinc-200 dark:border-zinc-700/60">
-                {/* Pre-amp */}
-                <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div>
-                    <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                      {t("settings.replayGain.preamp.title")}
-                    </div>
-                    <div className="text-xs text-zinc-400">
-                      {t("settings.replayGain.preamp.subtitle")}
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="range"
-                      min={-REPLAYGAIN_ADJUST_LIMIT_DB}
-                      max={REPLAYGAIN_ADJUST_LIMIT_DB}
-                      step={0.5}
-                      value={replayGainPreamp}
-                      onChange={(e) =>
-                        handleReplayGainPreampChange(Number(e.target.value))
-                      }
-                      className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
-                      aria-label={t("settings.replayGain.preamp.title")}
+                  {t("settings.organization.categories.general")}
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  {t("settings.organization.descriptions.general")}
+                </p>
+              </header>
+              <SettingsGroup
+                id="language"
+                title={t("settings.organization.groups.language")}
+                reveal={targetGroup === "language"}
+              >
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Globe
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
                     />
-                    <span className="text-sm font-medium text-zinc-500 w-16 text-right tabular-nums">
-                      {t("settings.replayGain.decibels", {
-                        value: replayGainPreamp.toFixed(1),
-                      })}
-                    </span>
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.language.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.language.subtitle")}
+                      </div>
+                    </div>
                   </div>
+                  <LanguageDropdown
+                    currentCode={normalizeSupportedLanguageCode(
+                      i18n.resolvedLanguage ?? i18n.language,
+                    )}
+                    onSelect={handleLanguageChange}
+                  />
                 </div>
-
-                {/* Fallback gain for untagged, unanalysed tracks */}
-                <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div>
-                    <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                      {t("settings.replayGain.fallback.title")}
-                    </div>
-                    <div className="text-xs text-zinc-400">
-                      {t("settings.replayGain.fallback.subtitle")}
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="range"
-                      min={-REPLAYGAIN_ADJUST_LIMIT_DB}
-                      max={REPLAYGAIN_ADJUST_LIMIT_DB}
-                      step={0.5}
-                      value={replayGainFallback}
-                      onChange={(e) =>
-                        handleReplayGainFallbackChange(Number(e.target.value))
-                      }
-                      className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
-                      aria-label={t("settings.replayGain.fallback.title")}
+              </SettingsGroup>
+              <SettingsGroup
+                id="startup"
+                title={t("settings.organization.groups.startup")}
+                reveal={targetGroup === "startup"}
+              >
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Power
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
                     />
-                    <span className="text-sm font-medium text-zinc-500 w-16 text-right tabular-nums">
-                      {t("settings.replayGain.decibels", {
-                        value: replayGainFallback.toFixed(1),
-                      })}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Track gain vs album gain (#587) */}
-                <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="min-w-0">
-                    <label
-                      htmlFor="replaygain-mode-select"
-                      className="text-sm font-medium text-zinc-900 dark:text-white"
-                    >
-                      {t("settings.replayGain.mode.title")}
-                    </label>
-                    <div className="text-xs text-zinc-400">
-                      {t(`settings.replayGain.mode.${replayGainMode}Hint`)}
-                    </div>
-                  </div>
-                  <select
-                    id="replaygain-mode-select"
-                    value={replayGainMode}
-                    onChange={(e) =>
-                      handleReplayGainModeChange(
-                        e.target.value as ReplayGainMode,
-                      )
-                    }
-                    className="shrink-0 px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                  >
-                    {REPLAYGAIN_MODES.map((mode) => (
-                      <option key={mode} value={mode}>
-                        {t(`settings.replayGain.mode.${mode}`)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Clipping prevention */}
-                <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div>
-                    <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                      {t("settings.replayGain.preventClipping.title")}
-                    </div>
-                    <div className="text-xs text-zinc-400">
-                      {t("settings.replayGain.preventClipping.subtitle")}
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.autoStart.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.autoStart.subtitle")}
+                      </div>
                     </div>
                   </div>
                   <ToggleSwitch
-                    enabled={replayGainPreventClipping}
-                    onToggle={handleToggleReplayGainPreventClipping}
-                    label={t("settings.replayGain.preventClipping.title")}
+                    enabled={autoStart}
+                    onToggle={handleToggleAutoStart}
+                    label={t("settings.autoStart.title")}
                   />
                 </div>
-              </div>
-            )}
-
-            {/* Whole-album sessions for the generators (#618) */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4 flex-1 min-w-0">
-                <Disc3
-                  size={20}
-                  className="text-zinc-400 shrink-0"
-                  aria-hidden="true"
-                />
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.generatorAlbumMode.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.generatorAlbumMode.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={generatorAlbumMode}
-                onToggle={() => void setGeneratorAlbumMode(!generatorAlbumMode)}
-                disabled={!generatorAlbumModeResolved}
-                label={t("settings.generatorAlbumMode.title")}
-              />
-            </div>
-
-            {/* Equalizer */}
-            <div className="px-4">
-              <EqualizerCard />
-            </div>
-
-            {/* Exclusive output — every desktop platform has a
-              backend now, so the card no longer hides itself. */}
-            <ExclusiveModeCard />
-
-            {/* Match each track's sample rate (#600) — right after the
-                exclusive card, because it only does anything while the
-                output owns its device. */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Gauge size={20} className="text-zinc-400" aria-hidden="true" />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.matchSourceRate.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.matchSourceRate.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={matchSourceRate}
-                onToggle={handleToggleMatchSourceRate}
-                label={t("settings.matchSourceRate.title")}
-              />
-            </div>
-
-            {/* Audio mono */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Headphones
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.mono.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.mono.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={mono}
-                onToggle={handleToggleMono}
-                label={t("settings.mono.title")}
-              />
-            </div>
-
-            {/* Pause when the output device disconnects (#617) */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Unplug
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.pauseOnDeviceLoss.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.pauseOnDeviceLoss.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={pauseOnDeviceLoss}
-                onToggle={handleTogglePauseOnDeviceLoss}
-                label={t("settings.pauseOnDeviceLoss.title")}
-              />
-            </div>
-
-            <LyricsDestinationCard />
-          </div>
-        </section>
-      )}
-
-      {/* Integrations category — Spotify, Last.fm, Discord, DLNA. */}
-      {activeCategory === "integrations" && (
-        <section
-          role="tabpanel"
-          id="settings-panel-integrations"
-          aria-labelledby="settings-tab-integrations"
-          tabIndex={0}
-        >
-          <h2
-            id="settings-integrations-heading"
-            className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
-          >
-            {t("settings.sections.integrations")}
-          </h2>
-          <div className="space-y-1">
-            {/* Mode hors-ligne — coupe Last.fm / Deezer / LRCLIB d'un
-              seul coup. Affiché en tête car il conditionne l'effet
-              de toutes les intégrations en dessous. */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <WifiOff
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.offlineMode.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.offlineMode.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={offlineMode}
-                onToggle={handleToggleOfflineMode}
-                label={t("settings.offlineMode.title")}
-              />
-            </div>
-
-            {/* Remote source (RFC-005). Safe to mount unconditionally:
-              the card probes for its own backend and renders nothing
-              when `sync_v2` is off, which is every shipped build today. */}
-            <RemoteServerCard />
-            <RemoteTranscodeCard />
-            <CatalogueMirrorCard />
-            <UploadToServerCard />
-            <ReconciliationCard />
-
-            <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-start space-x-4">
-                <Radio
-                  size={20}
-                  className="text-zinc-400 mt-0.5"
-                  aria-hidden="true"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.integrations.lastfm.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400 mb-3">
-                    {t("settings.integrations.lastfm.subtitle")}
-                  </div>
-
-                  {/* API key */}
-                  <div className="flex items-center space-x-2 mb-2">
-                    <div className="relative flex-1">
-                      <input
-                        type={lastfmKeyVisible ? "text" : "password"}
-                        value={lastfmKey}
-                        onChange={(e) => {
-                          setLastfmKey(e.target.value);
-                          setLastfmSaved(false);
-                        }}
-                        placeholder={t(
-                          "settings.integrations.lastfm.placeholder",
-                        )}
-                        spellCheck={false}
-                        autoComplete="off"
-                        className="w-full pr-10 pl-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setLastfmKeyVisible((v) => !v)}
-                        aria-label={
-                          lastfmKeyVisible
-                            ? t("settings.integrations.lastfm.hide")
-                            : t("settings.integrations.lastfm.show")
-                        }
-                        className="absolute inset-y-0 right-0 px-3 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                      >
-                        {lastfmKeyVisible ? (
-                          <EyeOff size={16} />
-                        ) : (
-                          <Eye size={16} />
-                        )}
-                      </button>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Minimize2
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.minimizeToTray.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.minimizeToTray.subtitle")}
+                      </div>
                     </div>
                   </div>
-
-                  {/* API secret */}
-                  <div className="flex items-center space-x-2 mb-2">
-                    <div className="relative flex-1">
-                      <input
-                        type={lastfmSecretVisible ? "text" : "password"}
-                        value={lastfmSecret}
-                        onChange={(e) => {
-                          setLastfmSecret(e.target.value);
-                          setLastfmSaved(false);
-                        }}
-                        placeholder={t(
-                          "settings.integrations.lastfm.secretPlaceholder",
-                        )}
-                        spellCheck={false}
-                        autoComplete="off"
-                        className="w-full pr-10 pl-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
+                  <ToggleSwitch
+                    enabled={minimizeToTray}
+                    onToggle={handleToggleMinimizeToTray}
+                    label={t("settings.minimizeToTray.title")}
+                  />
+                </div>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Bell
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.integrations.notifications.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.integrations.notifications.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={trackChangeNotif}
+                    onToggle={handleToggleTrackChangeNotif}
+                    label={t("settings.integrations.notifications.title")}
+                  />
+                </div>
+              </SettingsGroup>
+            </section>
+          )}
+          {activeCategory === "library" && (
+            <section
+              aria-labelledby="settings-heading-library"
+              className="space-y-7"
+            >
+              <header>
+                <h2
+                  id="settings-heading-library"
+                  className="text-xl font-semibold text-zinc-900 dark:text-white"
+                >
+                  {t("settings.organization.categories.library")}
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  {t("settings.organization.descriptions.library")}
+                </p>
+              </header>
+              <SettingsGroup
+                id="scanning"
+                title={t("settings.organization.groups.scanning")}
+                reveal={targetGroup === "scanning"}
+              >
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <ScanLine
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.scanOnStart.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.scanOnStart.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={scanOnStart}
+                    onToggle={handleToggleScanOnStart}
+                    label={t("settings.scanOnStart.title")}
+                  />
+                </div>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <RefreshCcw
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.rescan.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.rescan.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRescan}
+                    disabled={isRescanning || libraries.length === 0}
+                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <RefreshCcw
+                      size={14}
+                      aria-hidden="true"
+                      className={isRescanning ? "animate-spin" : ""}
+                    />
+                    <span>{t("settings.rescan.action")}</span>
+                  </button>
+                </div>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Copy
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.duplicates.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.duplicates.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDuplicatesOpen(true)}
+                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  >
+                    <Copy size={14} aria-hidden="true" />
+                    <span>{t("settings.duplicates.action")}</span>
+                  </button>
+                </div>
+              </SettingsGroup>
+              <SettingsGroup
+                id="analysis"
+                title={t("settings.organization.groups.analysis")}
+                reveal={targetGroup === "analysis"}
+              >
+                <div className="settings-block py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <Sparkles
+                        size={20}
+                        className="text-zinc-400"
+                        aria-hidden="true"
                       />
+                      <div>
+                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                          {t("settings.analyze.title")}
+                        </div>
+                        <div className="text-xs text-zinc-400">
+                          {t("settings.analyze.subtitle")}
+                        </div>
+                      </div>
+                    </div>
+                    {isAnalyzingLib ? (
+                      // Mid-run: swap the Analyze button out for a Stop
+                      // button so the user can recover from a long-running
+                      // sweep that's saturating their CPU (issue #286).
+                      // The backend `cancel_library_analysis` flips a flag
+                      // the worker loop checks at every track boundary —
+                      // the click resolves quickly but the loop only exits
+                      // after the current decode finishes (single track
+                      // delay is acceptable; aborting mid-decode would
+                      // require restructuring `analyze_file` for cancel
+                      // tokens, deferred).
                       <button
                         type="button"
-                        onClick={() => setLastfmSecretVisible((v) => !v)}
-                        aria-label={
-                          lastfmSecretVisible
-                            ? t("settings.integrations.lastfm.hide")
-                            : t("settings.integrations.lastfm.show")
-                        }
-                        className="absolute inset-y-0 right-0 px-3 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                        onClick={handleCancelAnalyzeLibrary}
+                        className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 text-sm font-medium text-rose-700 hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-950/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                       >
-                        {lastfmSecretVisible ? (
-                          <EyeOff size={16} />
-                        ) : (
-                          <Eye size={16} />
-                        )}
+                        <Square size={14} aria-hidden="true" />
+                        <span>{t("settings.analyze.cancel")}</span>
                       </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleAnalyzeLibrary}
+                        disabled={libraries.length === 0}
+                        className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Sparkles size={14} aria-hidden="true" />
+                        <span>{t("settings.analyze.action")}</span>
+                      </button>
+                    )}
+                  </div>
+                  {/* Auto-analyze toggle: when on, every scan that
+                adds new tracks fires the analyzer in the
+                background. Sits inside the same card so users
+                see it as a related option rather than a
+                disconnected setting. */}
+                  <div className="mt-3 ml-9 flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.analyze.autoTitle")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.analyze.autoSubtitle")}
+                      </div>
                     </div>
+                    <ToggleSwitch
+                      enabled={autoAnalyze}
+                      onToggle={handleToggleAutoAnalyze}
+                      label={t("settings.analyze.autoTitle")}
+                    />
+                  </div>
+                  {/* Progress strip — shown during a run + briefly after
+                completion so the user sees the final tally. */}
+                  {analyzeProgress && (
+                    <div className="mt-3 ml-9">
+                      <div className="flex justify-between text-[11px] text-zinc-500 mb-1">
+                        <span>
+                          {analyzeProgress.processed} / {analyzeProgress.total}
+                        </span>
+                        {analyzeProgress.failed > 0 && (
+                          <span className="text-rose-500">
+                            {t("settings.analyze.failed", {
+                              count: analyzeProgress.failed,
+                            })}
+                          </span>
+                        )}
+                      </div>
+                      <div className="h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 transition-all duration-200"
+                          style={{
+                            width: `${
+                              analyzeProgress.total > 0
+                                ? Math.round(
+                                    (analyzeProgress.processed /
+                                      analyzeProgress.total) *
+                                      100,
+                                  )
+                                : 0
+                            }%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </SettingsGroup>
+              <SettingsGroup
+                id="radio"
+                title={t("settings.organization.groups.radio")}
+                reveal={targetGroup === "radio"}
+              >
+                <RadioCatalogueCard
+                  language={i18n.resolvedLanguage ?? i18n.language}
+                />
+              </SettingsGroup>
+            </section>
+          )}
+          {activeCategory === "playback" && (
+            <section
+              aria-labelledby="settings-heading-playback"
+              className="space-y-7"
+            >
+              <header>
+                <h2
+                  id="settings-heading-playback"
+                  className="text-xl font-semibold text-zinc-900 dark:text-white"
+                >
+                  {t("settings.organization.categories.playback")}
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  {t("settings.organization.descriptions.playback")}
+                </p>
+              </header>
+              <SettingsGroup
+                id="transitions"
+                title={t("settings.organization.groups.transitions")}
+                reveal={targetGroup === "transitions"}
+              >
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <ChevronsRight
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.gapless.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.gapless.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={gapless}
+                    onToggle={handleToggleGapless}
+                    label={t("settings.gapless.title")}
+                  />
+                </div>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Shuffle
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.crossfade.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.crossfade.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="range"
+                      min={0}
+                      max={12}
+                      step={1}
+                      value={crossfadeSec}
+                      onChange={(e) =>
+                        handleCrossfadeChange(Number(e.target.value))
+                      }
+                      className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
+                      aria-label={t("settings.crossfade.title")}
+                    />
+                    <span className="text-sm font-medium text-zinc-500 w-10 text-right tabular-nums">
+                      {crossfadeSec} s
+                    </span>
+                  </div>
+                </div>
+                <div className="settings-dependent ms-4 border-s border-zinc-200 ps-3 dark:border-zinc-800">
+                  <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                    <div className="flex items-center space-x-4">
+                      <Sparkles
+                        size={20}
+                        className="text-zinc-400"
+                        aria-hidden="true"
+                      />
+                      <div>
+                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                          {t("settings.smartCrossfade.title")}
+                        </div>
+                        <div className="text-xs text-zinc-400">
+                          {t("settings.smartCrossfade.subtitle")}
+                        </div>
+                      </div>
+                    </div>
+                    <ToggleSwitch
+                      enabled={smartCrossfade}
+                      onToggle={handleToggleSmartCrossfade}
+                      label={t("settings.smartCrossfade.title")}
+                    />
+                  </div>
+                  <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                    <div className="flex items-center space-x-4">
+                      <Gauge
+                        size={20}
+                        className="text-zinc-400"
+                        aria-hidden="true"
+                      />
+                      <div>
+                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                          {t("settings.dynamicCrossfade.title")}
+                        </div>
+                        <div className="text-xs text-zinc-400">
+                          {t("settings.dynamicCrossfade.subtitle")}
+                        </div>
+                      </div>
+                    </div>
+                    <ToggleSwitch
+                      enabled={dynamicCrossfade}
+                      onToggle={handleToggleDynamicCrossfade}
+                      label={t("settings.dynamicCrossfade.title")}
+                    />
+                  </div>
+                </div>
+              </SettingsGroup>
+              <SettingsGroup
+                id="listening"
+                title={t("settings.organization.groups.listening")}
+                reveal={targetGroup === "listening"}
+              >
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <MousePointerClick
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.singleClickPlay.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.singleClickPlay.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={singleClickPlay}
+                    onToggle={handleToggleSingleClickPlay}
+                    label={t("settings.singleClickPlay.title")}
+                  />
+                </div>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <Disc3
+                      size={20}
+                      className="text-zinc-400 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.generatorAlbumMode.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.generatorAlbumMode.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={generatorAlbumMode}
+                    onToggle={() =>
+                      void setGeneratorAlbumMode(!generatorAlbumMode)
+                    }
+                    disabled={!generatorAlbumModeResolved}
+                    label={t("settings.generatorAlbumMode.title")}
+                  />
+                </div>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Unplug
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.pauseOnDeviceLoss.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.pauseOnDeviceLoss.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={pauseOnDeviceLoss}
+                    onToggle={handleTogglePauseOnDeviceLoss}
+                    label={t("settings.pauseOnDeviceLoss.title")}
+                  />
+                </div>
+              </SettingsGroup>
+              <SettingsGroup
+                id="volume"
+                title={t("settings.organization.groups.volume")}
+                reveal={targetGroup === "volume"}
+              >
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Volume2
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.normalize.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.normalize.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={normalize}
+                    onToggle={handleToggleNormalize}
+                    label={t("settings.normalize.title")}
+                  />
+                </div>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Volume2
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.replayGain.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.replayGain.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={replayGain}
+                    onToggle={handleToggleReplayGain}
+                    label={t("settings.replayGain.title")}
+                  />
+                </div>
+                {replayGain && (
+                  <div className="ml-9 pl-5 border-l border-zinc-200 dark:border-zinc-700/60">
+                    {/* Pre-amp */}
+                    <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                      <div>
+                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                          {t("settings.replayGain.preamp.title")}
+                        </div>
+                        <div className="text-xs text-zinc-400">
+                          {t("settings.replayGain.preamp.subtitle")}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="range"
+                          min={-REPLAYGAIN_ADJUST_LIMIT_DB}
+                          max={REPLAYGAIN_ADJUST_LIMIT_DB}
+                          step={0.5}
+                          value={replayGainPreamp}
+                          onChange={(e) =>
+                            handleReplayGainPreampChange(Number(e.target.value))
+                          }
+                          className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
+                          aria-label={t("settings.replayGain.preamp.title")}
+                        />
+                        <span className="text-sm font-medium text-zinc-500 w-16 text-right tabular-nums">
+                          {t("settings.replayGain.decibels", {
+                            value: replayGainPreamp.toFixed(1),
+                          })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Fallback gain for untagged, unanalysed tracks */}
+                    <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                      <div>
+                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                          {t("settings.replayGain.fallback.title")}
+                        </div>
+                        <div className="text-xs text-zinc-400">
+                          {t("settings.replayGain.fallback.subtitle")}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="range"
+                          min={-REPLAYGAIN_ADJUST_LIMIT_DB}
+                          max={REPLAYGAIN_ADJUST_LIMIT_DB}
+                          step={0.5}
+                          value={replayGainFallback}
+                          onChange={(e) =>
+                            handleReplayGainFallbackChange(
+                              Number(e.target.value),
+                            )
+                          }
+                          className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
+                          aria-label={t("settings.replayGain.fallback.title")}
+                        />
+                        <span className="text-sm font-medium text-zinc-500 w-16 text-right tabular-nums">
+                          {t("settings.replayGain.decibels", {
+                            value: replayGainFallback.toFixed(1),
+                          })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Track gain vs album gain (#587) */}
+                    <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                      <div className="min-w-0">
+                        <label
+                          htmlFor="replaygain-mode-select"
+                          className="text-sm font-medium text-zinc-900 dark:text-white"
+                        >
+                          {t("settings.replayGain.mode.title")}
+                        </label>
+                        <div className="text-xs text-zinc-400">
+                          {t(`settings.replayGain.mode.${replayGainMode}Hint`)}
+                        </div>
+                      </div>
+                      <select
+                        id="replaygain-mode-select"
+                        value={replayGainMode}
+                        onChange={(e) =>
+                          handleReplayGainModeChange(
+                            e.target.value as ReplayGainMode,
+                          )
+                        }
+                        className="shrink-0 px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                      >
+                        {REPLAYGAIN_MODES.map((mode) => (
+                          <option key={mode} value={mode}>
+                            {t(`settings.replayGain.mode.${mode}`)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Clipping prevention */}
+                    <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                      <div>
+                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                          {t("settings.replayGain.preventClipping.title")}
+                        </div>
+                        <div className="text-xs text-zinc-400">
+                          {t("settings.replayGain.preventClipping.subtitle")}
+                        </div>
+                      </div>
+                      <ToggleSwitch
+                        enabled={replayGainPreventClipping}
+                        onToggle={handleToggleReplayGainPreventClipping}
+                        label={t("settings.replayGain.preventClipping.title")}
+                      />
+                    </div>
+                  </div>
+                )}
+              </SettingsGroup>
+              <SettingsGroup
+                id="equalizer"
+                title={t("settings.organization.groups.equalizer")}
+                reveal={targetGroup === "equalizer"}
+              >
+                <div className="px-4">
+                  <EqualizerCard />
+                </div>
+              </SettingsGroup>
+              <SettingsGroup
+                id="output"
+                title={t("settings.organization.groups.output")}
+                advanced
+                reveal={targetGroup === "output"}
+              >
+                <ExclusiveModeCard />
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Gauge
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.matchSourceRate.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.matchSourceRate.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={matchSourceRate}
+                    onToggle={handleToggleMatchSourceRate}
+                    label={t("settings.matchSourceRate.title")}
+                  />
+                </div>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Headphones
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.mono.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.mono.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={mono}
+                    onToggle={handleToggleMono}
+                    label={t("settings.mono.title")}
+                  />
+                </div>
+                <div className="settings-block py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center space-x-4 min-w-0">
+                      <AudioWaveform
+                        size={20}
+                        className="text-zinc-400 shrink-0"
+                        aria-hidden="true"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                          {t("settings.dsdPrecision.title")}
+                        </div>
+                        <div className="text-xs text-zinc-400">
+                          {t("settings.dsdPrecision.subtitle")}
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      className="flex items-center rounded-lg bg-zinc-100 dark:bg-zinc-800 p-0.5 shrink-0"
+                      role="group"
+                      aria-label={t("settings.dsdPrecision.title")}
+                    >
+                      {DSD_PRECISION_TAPS.map((taps) => {
+                        const active = dsdTaps === taps;
+                        const label =
+                          taps === 256
+                            ? t("settings.dsdPrecision.standard")
+                            : taps === 1024
+                              ? t("settings.dsdPrecision.high")
+                              : t("settings.dsdPrecision.max");
+                        return (
+                          <button
+                            key={taps}
+                            type="button"
+                            onClick={() => handleSetDsdPrecision(taps)}
+                            aria-pressed={active}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                              active
+                                ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
+                                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                            }`}
+                          >
+                            {label}
+                            <span className="ml-1 text-[10px] tabular-nums opacity-60">
+                              {taps}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+                {dopPlatformSupported && (
+                  <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                    <div className="flex items-center space-x-4 min-w-0">
+                      <AudioWaveform
+                        size={20}
+                        className="text-zinc-400 shrink-0"
+                        aria-hidden="true"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                          {t("settings.dsdDop.title")}
+                        </div>
+                        <div className="text-xs text-zinc-400">
+                          {t("settings.dsdDop.subtitle")}
+                        </div>
+                      </div>
+                    </div>
+                    <ToggleSwitch
+                      enabled={dsdDop}
+                      onToggle={handleToggleDsdDop}
+                      label={t("settings.dsdDop.title")}
+                    />
+                  </div>
+                )}
+              </SettingsGroup>
+            </section>
+          )}
+          {activeCategory === "appearance" && (
+            <section
+              aria-labelledby="settings-heading-appearance"
+              className="space-y-7"
+            >
+              <header>
+                <h2
+                  id="settings-heading-appearance"
+                  className="text-xl font-semibold text-zinc-900 dark:text-white"
+                >
+                  {t("settings.organization.categories.appearance")}
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  {t("settings.organization.descriptions.appearance")}
+                </p>
+              </header>
+              <SettingsGroup
+                id="theme"
+                title={t("settings.organization.groups.theme")}
+                reveal={targetGroup === "theme"}
+              >
+                <div className="px-4 py-3">
+                  <div className="flex items-center space-x-4 mb-4">
+                    <Palette
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.appearance.theme.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.appearance.theme.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                    {THEME_PRESETS.map((preset) => {
+                      const isActive = preset.id === theme.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={(event) => setThemeId(preset.id, event)}
+                          aria-pressed={isActive}
+                          className={`group relative rounded-xl border overflow-hidden transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+                            isActive
+                              ? "border-emerald-500 ring-2 ring-emerald-500/30"
+                              : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                          }`}
+                        >
+                          <div
+                            className="h-16 flex items-center justify-between px-3 relative"
+                            style={{
+                              backgroundColor:
+                                preset.ambient ??
+                                (preset.mode === "dark"
+                                  ? "#121212"
+                                  : "#ffffff"),
+                            }}
+                          >
+                            <div className="flex space-x-1">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: preset.accent[400] }}
+                              />
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: preset.accent[500] }}
+                              />
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: preset.accent[600] }}
+                              />
+                            </div>
+                            {isActive && (
+                              <span
+                                className="flex items-center justify-center w-5 h-5 rounded-full shadow-sm"
+                                style={{
+                                  backgroundColor: preset.accent[500],
+                                  color: "#fff",
+                                }}
+                              >
+                                <Check size={12} strokeWidth={3} />
+                              </span>
+                            )}
+                          </div>
+                          <div className="px-3 py-2 bg-white dark:bg-zinc-900 text-left">
+                            <div className="text-xs font-semibold text-zinc-800 dark:text-zinc-100 truncate">
+                              {t(preset.labelKey)}
+                            </div>
+                            <div className="text-[10px] text-zinc-400 capitalize">
+                              {t(`settings.appearance.mode.${preset.mode}`)}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <SkinPickerCard />
+                <ContrastCard />
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <ZoomIn
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.uiZoom.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.uiZoom.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
                     <button
                       type="button"
-                      onClick={handleSaveLastfmKey}
-                      disabled={lastfmSaving}
-                      className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${
-                        lastfmSaved
-                          ? "bg-emerald-500 text-white"
-                          : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-                      }`}
+                      onClick={() => handleZoomDelta(-UI_ZOOM_STEP)}
+                      disabled={uiZoom <= UI_ZOOM_MIN + 1e-3}
+                      aria-label={t("settings.uiZoom.decreaseAria")}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-lg leading-none"
                     >
-                      {lastfmSaved
-                        ? t("settings.integrations.lastfm.saved")
-                        : t("settings.integrations.lastfm.save")}
+                      −
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleZoomReset}
+                      aria-label={t("settings.uiZoom.resetAria")}
+                      title={t("settings.uiZoom.resetAria")}
+                      className="min-w-14 px-2 h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm font-mono tabular-nums"
+                    >
+                      {Math.round(uiZoom * 100)} %
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleZoomDelta(UI_ZOOM_STEP)}
+                      disabled={uiZoom >= UI_ZOOM_MAX - 1e-3}
+                      aria-label={t("settings.uiZoom.increaseAria")}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-lg leading-none"
+                    >
+                      +
                     </button>
                   </div>
+                </div>
+              </SettingsGroup>
+              <SettingsGroup
+                id="player"
+                title={t("settings.organization.groups.player")}
+                reveal={targetGroup === "player"}
+              >
+                <PlayerBarLayoutCard />
+                <HiResBadgeCard />
+                <ScrollTitlesCard />
+                <WindowBoundsCard />
+              </SettingsGroup>
+              <SettingsGroup
+                id="immersive"
+                title={t("settings.organization.groups.immersive")}
+                reveal={targetGroup === "immersive"}
+              >
+                <ImmersiveViewCard />
+                <CoverSlideshowCard />
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Activity
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.visualizer.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.visualizer.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={visualizer}
+                    onToggle={handleToggleVisualizer}
+                    label={t("settings.visualizer.title")}
+                  />
+                </div>
+              </SettingsGroup>
+              <SettingsGroup
+                id="pages"
+                title={t("settings.organization.groups.pages")}
+                reveal={targetGroup === "pages"}
+              >
+                <ArtistHeroCard />
+                <StatsKpiVisibilityCard />
+                <WrappedBannerCard />
+              </SettingsGroup>
+            </section>
+          )}
+          {activeCategory === "media" && (
+            <section
+              aria-labelledby="settings-heading-media"
+              className="space-y-7"
+            >
+              <header>
+                <h2
+                  id="settings-heading-media"
+                  className="text-xl font-semibold text-zinc-900 dark:text-white"
+                >
+                  {t("settings.organization.categories.media")}
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  {t("settings.organization.descriptions.media")}
+                </p>
+              </header>
+              <SettingsGroup
+                id="artwork"
+                title={t("settings.organization.groups.artwork")}
+                reveal={targetGroup === "artwork"}
+              >
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <ImageIcon
+                      size={20}
+                      className="text-zinc-400 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.localArtistImages.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {localArtistRescanStatus ??
+                          t("settings.localArtistImages.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRescanLocalArtistImages}
+                    disabled={isRescanningLocalArtists}
+                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ImageIcon
+                      size={14}
+                      aria-hidden="true"
+                      className={
+                        isRescanningLocalArtists ? "animate-pulse" : ""
+                      }
+                    />
+                    <span>{t("settings.localArtistImages.action")}</span>
+                  </button>
+                </div>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <ImageIcon
+                      size={20}
+                      className="text-zinc-400 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.artistImages.title")}
+                      </div>
+                      {artistFetchProgress && isFetchingArtists ? (
+                        <div className="text-xs text-zinc-500 mt-1 truncate">
+                          {t("settings.artistImages.progress", {
+                            current: artistFetchProgress.current,
+                            total: artistFetchProgress.total,
+                          })}
+                          {artistFetchProgress.artistName
+                            ? ` — ${artistFetchProgress.artistName}`
+                            : ""}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-zinc-400">
+                          {t("settings.artistImages.subtitle")}
+                        </div>
+                      )}
+                      {artistFetchProgress && artistFetchProgress.total > 0 && (
+                        <div className="mt-2 h-1.5 w-full max-w-xs rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-500 transition-all"
+                            style={{
+                              width: `${Math.min(100, (artistFetchProgress.current / artistFetchProgress.total) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleFetchMissingArtistPictures}
+                    disabled={isFetchingArtists}
+                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ImageIcon
+                      size={14}
+                      aria-hidden="true"
+                      className={isFetchingArtists ? "animate-pulse" : ""}
+                    />
+                    <span>{t("settings.artistImages.action")}</span>
+                  </button>
+                </div>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <ImageIcon
+                      size={20}
+                      className="text-zinc-400 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("library.fetchMissingCovers")}
+                      </div>
+                      {coverProgress && isFetchingCovers ? (
+                        <div className="text-xs text-zinc-500 mt-1 truncate">
+                          {t("library.fetchingCovers", {
+                            current: coverProgress.current,
+                            total: coverProgress.total,
+                          })}
+                          {coverProgress.albumTitle
+                            ? ` — ${coverProgress.albumTitle}`
+                            : ""}
+                        </div>
+                      ) : coverResultMsg ? (
+                        <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 truncate">
+                          {coverResultMsg}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-zinc-400">
+                          {t("settings.artistImages.subtitle")}
+                        </div>
+                      )}
+                      {coverProgress && coverProgress.total > 0 && (
+                        <div className="mt-2 h-1.5 w-full max-w-xs rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-500 transition-all"
+                            style={{
+                              width: `${Math.min(100, (coverProgress.current / coverProgress.total) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleFetchMissingCovers}
+                    disabled={isFetchingCovers}
+                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ImageIcon
+                      size={14}
+                      aria-hidden="true"
+                      className={isFetchingCovers ? "animate-pulse" : ""}
+                    />
+                    <span>{t("settings.artistImages.action")}</span>
+                  </button>
+                </div>
+              </SettingsGroup>
+              <SettingsGroup
+                id="biographies"
+                title={t("settings.organization.groups.biographies")}
+                reveal={targetGroup === "biographies"}
+              >
+                <ArtistBioSourceCard />
+              </SettingsGroup>
+              <SettingsGroup
+                id="lyrics"
+                title={t("settings.organization.groups.lyrics")}
+                reveal={targetGroup === "lyrics"}
+              >
+                <LyricsDestinationCard />
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <Mic2
+                      size={20}
+                      className="text-zinc-400 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.lyricsPrefetch.title")}
+                      </div>
+                      {lyricsPrefetchProgress && isPrefetchingLyrics ? (
+                        <div className="text-xs text-zinc-500 mt-1 truncate">
+                          {t("settings.lyricsPrefetch.progress", {
+                            current: lyricsPrefetchProgress.processed,
+                            total: lyricsPrefetchProgress.total,
+                            hits: lyricsPrefetchProgress.hits,
+                          })}
+                          {lyricsPrefetchProgress.currentTitle
+                            ? ` — ${lyricsPrefetchProgress.currentTitle}`
+                            : ""}
+                        </div>
+                      ) : lyricsResultMsg ? (
+                        <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 truncate">
+                          {lyricsResultMsg}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-zinc-400">
+                          {t("settings.lyricsPrefetch.subtitle")}
+                        </div>
+                      )}
+                      {lyricsPrefetchProgress &&
+                        lyricsPrefetchProgress.total > 0 && (
+                          <div className="mt-2 h-1.5 w-full max-w-xs rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
+                            <div
+                              className="h-full bg-emerald-500 transition-all"
+                              style={{
+                                width: `${Math.min(100, (lyricsPrefetchProgress.processed / lyricsPrefetchProgress.total) * 100)}%`,
+                              }}
+                            />
+                          </div>
+                        )}
+                    </div>
+                  </div>
+                  {isPrefetchingLyrics ? (
+                    <button
+                      type="button"
+                      onClick={handleCancelPrefetchLyrics}
+                      className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                    >
+                      <span>{t("common.cancel")}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handlePrefetchLyrics}
+                      className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Mic2 size={14} aria-hidden="true" />
+                      <span>{t("settings.lyricsPrefetch.action")}</span>
+                    </button>
+                  )}
+                </div>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <Mic2
+                      size={20}
+                      className="text-zinc-400 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <label
+                        htmlFor="lyrics-translation-lang-select"
+                        className="text-sm font-medium text-zinc-900 dark:text-white"
+                      >
+                        {t("settings.lyricsTranslation.title")}
+                      </label>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.lyricsTranslation.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <select
+                    id="lyrics-translation-lang-select"
+                    value={translationLang ?? ""}
+                    disabled={translationLangBusy}
+                    onChange={(e) =>
+                      void handleTranslationLangChange(e.target.value)
+                    }
+                    className="shrink-0 px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {TRANSLATION_LANG_OPTIONS.map((opt) =>
+                      opt.value === "" ? (
+                        <option key="off" value="">
+                          {t("settings.lyricsTranslation.off")}
+                        </option>
+                      ) : (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </div>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <Globe
+                      size={20}
+                      className="text-zinc-400 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.lyricsPreferLrclib.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.lyricsPreferLrclib.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={preferLrclib}
+                    onToggle={() => void handlePreferLrclibToggle()}
+                    disabled={preferLrclibBusy}
+                    label={t("settings.lyricsPreferLrclib.title")}
+                  />
+                </div>
+                <FullscreenLyricsCenteringCard />
+              </SettingsGroup>
+            </section>
+          )}
+          {activeCategory === "integrations" && (
+            <section
+              aria-labelledby="settings-heading-integrations"
+              className="space-y-7"
+            >
+              <header>
+                <h2
+                  id="settings-heading-integrations"
+                  className="text-xl font-semibold text-zinc-900 dark:text-white"
+                >
+                  {t("settings.organization.categories.integrations")}
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  {t("settings.organization.descriptions.integrations")}
+                </p>
+              </header>
+              <SettingsGroup
+                id="connectivity"
+                title={t("settings.organization.groups.connectivity")}
+                reveal={targetGroup === "connectivity"}
+              >
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <WifiOff
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.offlineMode.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.offlineMode.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={offlineMode}
+                    onToggle={handleToggleOfflineMode}
+                    label={t("settings.offlineMode.title")}
+                  />
+                </div>
+              </SettingsGroup>
+              <SettingsGroup
+                id="services"
+                title={t("settings.organization.groups.services")}
+                reveal={targetGroup === "services"}
+              >
+                <div className="settings-block py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-start space-x-4">
+                    <Radio
+                      size={20}
+                      className="text-zinc-400 mt-0.5"
+                      aria-hidden="true"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.integrations.lastfm.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400 mb-3">
+                        {t("settings.integrations.lastfm.subtitle")}
+                      </div>
 
-                  {/* Account login / status — only shown once API
+                      {/* API key */}
+                      <div className="flex items-center space-x-2 mb-2">
+                        <div className="relative flex-1">
+                          <input
+                            type={lastfmKeyVisible ? "text" : "password"}
+                            value={lastfmKey}
+                            onChange={(e) => {
+                              setLastfmKey(e.target.value);
+                              setLastfmSaved(false);
+                            }}
+                            placeholder={t(
+                              "settings.integrations.lastfm.placeholder",
+                            )}
+                            spellCheck={false}
+                            autoComplete="off"
+                            className="w-full pr-10 pl-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setLastfmKeyVisible((v) => !v)}
+                            aria-label={
+                              lastfmKeyVisible
+                                ? t("settings.integrations.lastfm.hide")
+                                : t("settings.integrations.lastfm.show")
+                            }
+                            className="absolute inset-y-0 right-0 px-3 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                          >
+                            {lastfmKeyVisible ? (
+                              <EyeOff size={16} />
+                            ) : (
+                              <Eye size={16} />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* API secret */}
+                      <div className="flex items-center space-x-2 mb-2">
+                        <div className="relative flex-1">
+                          <input
+                            type={lastfmSecretVisible ? "text" : "password"}
+                            value={lastfmSecret}
+                            onChange={(e) => {
+                              setLastfmSecret(e.target.value);
+                              setLastfmSaved(false);
+                            }}
+                            placeholder={t(
+                              "settings.integrations.lastfm.secretPlaceholder",
+                            )}
+                            spellCheck={false}
+                            autoComplete="off"
+                            className="w-full pr-10 pl-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setLastfmSecretVisible((v) => !v)}
+                            aria-label={
+                              lastfmSecretVisible
+                                ? t("settings.integrations.lastfm.hide")
+                                : t("settings.integrations.lastfm.show")
+                            }
+                            className="absolute inset-y-0 right-0 px-3 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                          >
+                            {lastfmSecretVisible ? (
+                              <EyeOff size={16} />
+                            ) : (
+                              <Eye size={16} />
+                            )}
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleSaveLastfmKey}
+                          disabled={lastfmSaving}
+                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${
+                            lastfmSaved
+                              ? "bg-emerald-500 text-white"
+                              : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          {lastfmSaved
+                            ? t("settings.integrations.lastfm.saved")
+                            : t("settings.integrations.lastfm.save")}
+                        </button>
+                      </div>
+
+                      {/* Account login / status — only shown once API
                     credentials are present. The session stays per
                     profile so two profiles can scrobble to two
                     different Last.fm accounts. */}
-                  {lastfmStatus?.configured && (
-                    <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                      {lastfmStatus.connected ? (
-                        <div className="flex items-center justify-between">
-                          <div className="text-xs">
-                            <span className="text-zinc-500">
-                              {t(
-                                "settings.integrations.lastfm.connectedAs",
-                              )}{" "}
-                            </span>
-                            <span className="font-medium text-emerald-500">
-                              {lastfmStatus.username}
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={handleLastfmLogout}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
-                          >
-                            {t("settings.integrations.lastfm.disconnect")}
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="text-xs text-zinc-500">
-                            {t("settings.integrations.lastfm.loginPrompt")}
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="text"
-                              value={lastfmUsername}
-                              onChange={(e) => {
-                                setLastfmUsername(e.target.value);
-                                setLastfmLoginError(null);
-                              }}
-                              placeholder={t(
-                                "settings.integrations.lastfm.usernamePlaceholder",
+                      {lastfmStatus?.configured && (
+                        <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                          {lastfmStatus.connected ? (
+                            <div className="flex items-center justify-between">
+                              <div className="text-xs">
+                                <span className="text-zinc-500">
+                                  {t(
+                                    "settings.integrations.lastfm.connectedAs",
+                                  )}{" "}
+                                </span>
+                                <span className="font-medium text-emerald-500">
+                                  {lastfmStatus.username}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleLastfmLogout}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
+                              >
+                                {t("settings.integrations.lastfm.disconnect")}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="text-xs text-zinc-500">
+                                {t("settings.integrations.lastfm.loginPrompt")}
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="text"
+                                  value={lastfmUsername}
+                                  onChange={(e) => {
+                                    setLastfmUsername(e.target.value);
+                                    setLastfmLoginError(null);
+                                  }}
+                                  placeholder={t(
+                                    "settings.integrations.lastfm.usernamePlaceholder",
+                                  )}
+                                  autoComplete="username"
+                                  spellCheck={false}
+                                  className="flex-1 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
+                                />
+                                <input
+                                  type="password"
+                                  value={lastfmPassword}
+                                  onChange={(e) => {
+                                    setLastfmPassword(e.target.value);
+                                    setLastfmLoginError(null);
+                                  }}
+                                  placeholder={t(
+                                    "settings.integrations.lastfm.passwordPlaceholder",
+                                  )}
+                                  autoComplete="current-password"
+                                  className="flex-1 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={handleLastfmLogin}
+                                  disabled={
+                                    lastfmLoggingIn ||
+                                    !lastfmUsername.trim() ||
+                                    !lastfmPassword
+                                  }
+                                  className="px-4 py-2 rounded-xl text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  {lastfmLoggingIn
+                                    ? t(
+                                        "settings.integrations.lastfm.connecting",
+                                      )
+                                    : t("settings.integrations.lastfm.connect")}
+                                </button>
+                              </div>
+                              {lastfmLoginError && (
+                                <div className="text-xs text-rose-500">
+                                  {lastfmLoginError}
+                                </div>
                               )}
-                              autoComplete="username"
-                              spellCheck={false}
-                              className="flex-1 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
-                            />
-                            <input
-                              type="password"
-                              value={lastfmPassword}
-                              onChange={(e) => {
-                                setLastfmPassword(e.target.value);
-                                setLastfmLoginError(null);
-                              }}
-                              placeholder={t(
-                                "settings.integrations.lastfm.passwordPlaceholder",
-                              )}
-                              autoComplete="current-password"
-                              className="flex-1 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
-                            />
-                            <button
-                              type="button"
-                              onClick={handleLastfmLogin}
-                              disabled={
-                                lastfmLoggingIn ||
-                                !lastfmUsername.trim() ||
-                                !lastfmPassword
-                              }
-                              className="px-4 py-2 rounded-xl text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                              {lastfmLoggingIn
-                                ? t("settings.integrations.lastfm.connecting")
-                                : t("settings.integrations.lastfm.connect")}
-                            </button>
-                          </div>
-                          {lastfmLoginError && (
-                            <div className="text-xs text-rose-500">
-                              {lastfmLoginError}
                             </div>
                           )}
                         </div>
                       )}
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Artist-bio source (issue #295) — sits under Last.fm
-              because it's the alternative bio provider. */}
-            <ArtistBioSourceCard />
-
-            <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-start space-x-4">
-                <Headphones
-                  size={20}
-                  className="text-zinc-400 mt-0.5"
-                  aria-hidden="true"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.integrations.spotify.title", "Spotify")}
-                  </div>
-                  <div className="text-xs text-zinc-400 mb-3">
-                    {t(
-                      "settings.integrations.spotify.subtitle",
-                      "Connect Spotify Premium with your own Spotify Developer Client ID.",
-                    )}
-                  </div>
-
-                  <div className="flex items-center space-x-2 mb-2">
-                    <div className="relative flex-1">
-                      <input
-                        type={spotifyClientIdVisible ? "text" : "password"}
-                        value={spotifyClientId}
-                        onChange={(e) => {
-                          setSpotifyClientIdState(e.target.value);
-                          setSpotifySaved(false);
-                          setSpotifyError(null);
-                        }}
-                        placeholder={t(
-                          "settings.integrations.spotify.clientIdPlaceholder",
-                          "Spotify Client ID",
+                <div className="settings-block py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-start space-x-4">
+                    <Headphones
+                      size={20}
+                      className="text-zinc-400 mt-0.5"
+                      aria-hidden="true"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.integrations.spotify.title", "Spotify")}
+                      </div>
+                      <div className="text-xs text-zinc-400 mb-3">
+                        {t(
+                          "settings.integrations.spotify.subtitle",
+                          "Connect Spotify Premium with your own Spotify Developer Client ID.",
                         )}
-                        spellCheck={false}
-                        autoComplete="off"
-                        className="w-full pr-10 pl-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setSpotifyClientIdVisible((v) => !v)}
-                        aria-label={
-                          spotifyClientIdVisible
-                            ? t("settings.integrations.lastfm.hide")
-                            : t("settings.integrations.lastfm.show")
-                        }
-                        className="absolute inset-y-0 right-0 px-3 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                      >
-                        {spotifyClientIdVisible ? (
-                          <EyeOff size={16} />
-                        ) : (
-                          <Eye size={16} />
-                        )}
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleSaveSpotifyClientId}
-                      disabled={spotifySaving}
-                      className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${
-                        spotifySaved
-                          ? "bg-emerald-500 text-white"
-                          : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-                      }`}
-                    >
-                      {spotifySaved
-                        ? t("settings.integrations.lastfm.saved")
-                        : t("settings.integrations.lastfm.save")}
-                    </button>
-                  </div>
+                      </div>
 
-                  <div className="text-[11px] text-zinc-400 mb-3">
-                    {t(
-                      "settings.integrations.spotify.redirectHint",
-                      "Add this Redirect URI in Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
-                    )}
-                  </div>
-
-                  {spotifyStatus?.configured && (
-                    <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                      {spotifyStatus.connected ? (
-                        <div className="flex items-center justify-between">
-                          <div className="text-xs">
-                            <span className="text-zinc-500">
-                              {t(
-                                "settings.integrations.spotify.connectedAs",
-                                "Connected as",
-                              )}{" "}
-                            </span>
-                            <span className="font-medium text-emerald-500">
-                              {spotifyStatus.username}
-                            </span>
-                          </div>
+                      <div className="flex items-center space-x-2 mb-2">
+                        <div className="relative flex-1">
+                          <input
+                            type={spotifyClientIdVisible ? "text" : "password"}
+                            value={spotifyClientId}
+                            onChange={(e) => {
+                              setSpotifyClientIdState(e.target.value);
+                              setSpotifySaved(false);
+                              setSpotifyError(null);
+                            }}
+                            placeholder={t(
+                              "settings.integrations.spotify.clientIdPlaceholder",
+                              "Spotify Client ID",
+                            )}
+                            spellCheck={false}
+                            autoComplete="off"
+                            className="w-full pr-10 pl-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
+                          />
                           <button
                             type="button"
-                            onClick={handleSpotifyLogout}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
+                            onClick={() => setSpotifyClientIdVisible((v) => !v)}
+                            aria-label={
+                              spotifyClientIdVisible
+                                ? t("settings.integrations.lastfm.hide")
+                                : t("settings.integrations.lastfm.show")
+                            }
+                            className="absolute inset-y-0 right-0 px-3 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
                           >
-                            {t(
-                              "settings.integrations.spotify.disconnect",
-                              "Disconnect",
+                            {spotifyClientIdVisible ? (
+                              <EyeOff size={16} />
+                            ) : (
+                              <Eye size={16} />
                             )}
                           </button>
                         </div>
-                      ) : (
                         <button
                           type="button"
-                          onClick={handleSpotifyLogin}
-                          disabled={spotifyLoggingIn || !spotifyClientId.trim()}
-                          className="px-4 py-2 rounded-xl text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          {spotifyLoggingIn
-                            ? t(
-                                "settings.integrations.spotify.connecting",
-                                "Connecting...",
-                              )
-                            : t(
-                                "settings.integrations.spotify.connect",
-                                "Connect Spotify",
-                              )}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {spotifyError && (
-                    <div className="text-xs text-rose-500 mt-2">
-                      {spotifyError}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Discord Rich Presence */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Gamepad2
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.integrations.discord.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.integrations.discord.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={discordRpc}
-                onToggle={handleToggleDiscordRpc}
-                label={t("settings.integrations.discord.title")}
-              />
-            </div>
-
-            {/* Native track-change notifications (off by default —
-                toasts are intrusive and trigger Focus Assist / Do
-                Not Disturb on every platform, opt-in only). */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Bell size={20} className="text-zinc-400" aria-hidden="true" />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.integrations.notifications.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.integrations.notifications.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={trackChangeNotif}
-                onToggle={handleToggleTrackChangeNotif}
-                label={t("settings.integrations.notifications.title")}
-              />
-            </div>
-
-            {/* DLNA / UPnP MediaServer */}
-            <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-start space-x-4">
-                <Server
-                  size={20}
-                  className="text-zinc-400 mt-0.5"
-                  aria-hidden="true"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.integrations.dlna.title")}
-                      </div>
-                      <div className="text-xs text-zinc-400">
-                        {t("settings.integrations.dlna.subtitle")}
-                      </div>
-                    </div>
-                    <ToggleSwitch
-                      enabled={dlnaConfig.enabled}
-                      onToggle={handleToggleDlna}
-                      label={t("settings.integrations.dlna.title")}
-                    />
-                  </div>
-
-                  {dlnaConfig.enabled && (
-                    <div className="mt-3 space-y-3">
-                      {/* Server name */}
-                      <div className="flex items-center space-x-2">
-                        <label
-                          htmlFor="dlna-name"
-                          className="text-xs text-zinc-500 w-24 shrink-0"
-                        >
-                          {t("settings.integrations.dlna.serverName")}
-                        </label>
-                        <input
-                          id="dlna-name"
-                          type="text"
-                          value={dlnaConfig.server_name}
-                          onChange={(e) =>
-                            setDlnaConfig((c) => ({
-                              ...c,
-                              server_name: e.target.value,
-                            }))
-                          }
-                          onBlur={() => persistDlna(dlnaConfig)}
-                          spellCheck={false}
-                          className="flex-1 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
-                        />
-                      </div>
-
-                      {/* Port */}
-                      <div className="flex items-center space-x-2">
-                        <label
-                          htmlFor="dlna-port"
-                          className="text-xs text-zinc-500 w-24 shrink-0"
-                        >
-                          {t("settings.integrations.dlna.port")}
-                        </label>
-                        <input
-                          id="dlna-port"
-                          type="number"
-                          min={0}
-                          max={65535}
-                          value={dlnaConfig.port}
-                          onChange={(e) =>
-                            setDlnaConfig((c) => ({
-                              ...c,
-                              port: Math.max(
-                                0,
-                                Math.min(65535, Number(e.target.value) || 0),
-                              ),
-                            }))
-                          }
-                          onBlur={() => persistDlna(dlnaConfig)}
-                          className="w-32 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100"
-                        />
-                        <span className="text-xs text-zinc-400">
-                          {t("settings.integrations.dlna.portHint")}
-                        </span>
-                      </div>
-
-                      {/* Status */}
-                      <div className="flex items-center space-x-2 pt-1">
-                        <span
-                          className={`inline-block w-2 h-2 rounded-full ${
-                            dlnaStatus?.running
-                              ? "bg-emerald-500"
-                              : "bg-zinc-400"
+                          onClick={handleSaveSpotifyClientId}
+                          disabled={spotifySaving}
+                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${
+                            spotifySaved
+                              ? "bg-emerald-500 text-white"
+                              : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
                           }`}
-                          aria-hidden="true"
-                        />
-                        <span className="text-xs text-zinc-500">
-                          {dlnaStatus?.running
-                            ? t("settings.integrations.dlna.statusRunning")
-                            : t("settings.integrations.dlna.statusStopped")}
-                        </span>
-                        {dlnaStatus?.bound_url && (
-                          <>
-                            <span className="text-xs font-mono text-zinc-700 dark:text-zinc-300 truncate">
-                              {dlnaStatus.bound_url}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={handleDlnaCopyUrl}
-                              aria-label={t(
-                                "settings.integrations.dlna.copyUrl",
-                              )}
-                              className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                            >
-                              {dlnaUrlCopied ? (
-                                <CheckIcon size={14} />
-                              ) : (
-                                <Copy size={14} />
-                              )}
-                            </button>
-                          </>
+                        >
+                          {spotifySaved
+                            ? t("settings.integrations.lastfm.saved")
+                            : t("settings.integrations.lastfm.save")}
+                        </button>
+                      </div>
+
+                      <div className="text-[11px] text-zinc-400 mb-3">
+                        {t(
+                          "settings.integrations.spotify.redirectHint",
+                          "Add this Redirect URI in Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
                         )}
                       </div>
 
-                      {dlnaStatus?.last_error && (
-                        <div className="text-xs text-rose-500 break-words">
-                          {dlnaStatus.last_error}
+                      {spotifyStatus?.configured && (
+                        <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                          {spotifyStatus.connected ? (
+                            <div className="flex items-center justify-between">
+                              <div className="text-xs">
+                                <span className="text-zinc-500">
+                                  {t(
+                                    "settings.integrations.spotify.connectedAs",
+                                    "Connected as",
+                                  )}{" "}
+                                </span>
+                                <span className="font-medium text-emerald-500">
+                                  {spotifyStatus.username}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleSpotifyLogout}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
+                              >
+                                {t(
+                                  "settings.integrations.spotify.disconnect",
+                                  "Disconnect",
+                                )}
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleSpotifyLogin}
+                              disabled={
+                                spotifyLoggingIn || !spotifyClientId.trim()
+                              }
+                              className="px-4 py-2 rounded-xl text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {spotifyLoggingIn
+                                ? t(
+                                    "settings.integrations.spotify.connecting",
+                                    "Connecting...",
+                                  )
+                                : t(
+                                    "settings.integrations.spotify.connect",
+                                    "Connect Spotify",
+                                  )}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {spotifyError && (
+                        <div className="text-xs text-rose-500 mt-2">
+                          {spotifyError}
                         </div>
                       )}
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            {/* MPD protocol server (issue #471). Speaking MPD hands us
-                every existing MPD client — MALP on a phone, ncmpcpp,
-                waybar modules — without writing any of them. Off by
-                default: enabling it binds every interface, so this
-                toggle *is* the security decision, same as DLNA. */}
-            <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-start space-x-4">
-                <Network
-                  size={20}
-                  className="text-zinc-400 mt-0.5"
-                  aria-hidden="true"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Gamepad2
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
                     <div>
                       <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.integrations.mpd.title")}
+                        {t("settings.integrations.discord.title")}
                       </div>
                       <div className="text-xs text-zinc-400">
-                        {t("settings.integrations.mpd.subtitle")}
+                        {t("settings.integrations.discord.subtitle")}
                       </div>
                     </div>
-                    <ToggleSwitch
-                      enabled={mpdConfig.enabled}
-                      onToggle={handleToggleMpd}
-                      disabled={!mpdHydrated}
-                      label={t("settings.integrations.mpd.title")}
-                    />
                   </div>
+                  <ToggleSwitch
+                    enabled={discordRpc}
+                    onToggle={handleToggleDiscordRpc}
+                    label={t("settings.integrations.discord.title")}
+                  />
+                </div>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Headphones
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.showSpotify.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.showSpotify.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={showSpotify}
+                    onToggle={handleToggleShowSpotify}
+                    label={t("settings.showSpotify.title")}
+                  />
+                </div>
+              </SettingsGroup>
+              <SettingsGroup
+                id="remote"
+                title={t("settings.organization.groups.remote")}
+                reveal={targetGroup === "remote"}
+              >
+                <RemoteServerCard />
+                <RemoteTranscodeCard />
+                <CatalogueMirrorCard />
+                <UploadToServerCard />
+                <ReconciliationCard />
+              </SettingsGroup>
+              <SettingsGroup
+                id="network"
+                title={t("settings.organization.groups.network")}
+                advanced
+                reveal={targetGroup === "network"}
+              >
+                <div className="settings-block py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-start space-x-4">
+                    <Server
+                      size={20}
+                      className="text-zinc-400 mt-0.5"
+                      aria-hidden="true"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <div>
+                          <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                            {t("settings.integrations.dlna.title")}
+                          </div>
+                          <div className="text-xs text-zinc-400">
+                            {t("settings.integrations.dlna.subtitle")}
+                          </div>
+                        </div>
+                        <ToggleSwitch
+                          enabled={dlnaConfig.enabled}
+                          onToggle={handleToggleDlna}
+                          label={t("settings.integrations.dlna.title")}
+                        />
+                      </div>
 
-                  {mpdConfig.enabled && (
-                    <div className="mt-3 space-y-3">
-                      {/* The LAN exposure is stated plainly rather than
+                      {dlnaConfig.enabled && (
+                        <div className="mt-3 space-y-3">
+                          {/* Server name */}
+                          <div className="flex items-center space-x-2">
+                            <label
+                              htmlFor="dlna-name"
+                              className="text-xs text-zinc-500 w-24 shrink-0"
+                            >
+                              {t("settings.integrations.dlna.serverName")}
+                            </label>
+                            <input
+                              id="dlna-name"
+                              type="text"
+                              value={dlnaConfig.server_name}
+                              onChange={(e) =>
+                                setDlnaConfig((c) => ({
+                                  ...c,
+                                  server_name: e.target.value,
+                                }))
+                              }
+                              onBlur={() => persistDlna(dlnaConfig)}
+                              spellCheck={false}
+                              className="flex-1 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
+                            />
+                          </div>
+
+                          {/* Port */}
+                          <div className="flex items-center space-x-2">
+                            <label
+                              htmlFor="dlna-port"
+                              className="text-xs text-zinc-500 w-24 shrink-0"
+                            >
+                              {t("settings.integrations.dlna.port")}
+                            </label>
+                            <input
+                              id="dlna-port"
+                              type="number"
+                              min={0}
+                              max={65535}
+                              value={dlnaConfig.port}
+                              onChange={(e) =>
+                                setDlnaConfig((c) => ({
+                                  ...c,
+                                  port: Math.max(
+                                    0,
+                                    Math.min(
+                                      65535,
+                                      Number(e.target.value) || 0,
+                                    ),
+                                  ),
+                                }))
+                              }
+                              onBlur={() => persistDlna(dlnaConfig)}
+                              className="w-32 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100"
+                            />
+                            <span className="text-xs text-zinc-400">
+                              {t("settings.integrations.dlna.portHint")}
+                            </span>
+                          </div>
+
+                          {/* Status */}
+                          <div className="flex items-center space-x-2 pt-1">
+                            <span
+                              className={`inline-block w-2 h-2 rounded-full ${
+                                dlnaStatus?.running
+                                  ? "bg-emerald-500"
+                                  : "bg-zinc-400"
+                              }`}
+                              aria-hidden="true"
+                            />
+                            <span className="text-xs text-zinc-500">
+                              {dlnaStatus?.running
+                                ? t("settings.integrations.dlna.statusRunning")
+                                : t("settings.integrations.dlna.statusStopped")}
+                            </span>
+                            {dlnaStatus?.bound_url && (
+                              <>
+                                <span className="text-xs font-mono text-zinc-700 dark:text-zinc-300 truncate">
+                                  {dlnaStatus.bound_url}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={handleDlnaCopyUrl}
+                                  aria-label={t(
+                                    "settings.integrations.dlna.copyUrl",
+                                  )}
+                                  className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                                >
+                                  {dlnaUrlCopied ? (
+                                    <CheckIcon size={14} />
+                                  ) : (
+                                    <Copy size={14} />
+                                  )}
+                                </button>
+                              </>
+                            )}
+                          </div>
+
+                          {dlnaStatus?.last_error && (
+                            <div className="text-xs text-rose-500 break-words">
+                              {dlnaStatus.last_error}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="settings-block py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-start space-x-4">
+                    <Network
+                      size={20}
+                      className="text-zinc-400 mt-0.5"
+                      aria-hidden="true"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <div>
+                          <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                            {t("settings.integrations.mpd.title")}
+                          </div>
+                          <div className="text-xs text-zinc-400">
+                            {t("settings.integrations.mpd.subtitle")}
+                          </div>
+                        </div>
+                        <ToggleSwitch
+                          enabled={mpdConfig.enabled}
+                          onToggle={handleToggleMpd}
+                          disabled={!mpdHydrated}
+                          label={t("settings.integrations.mpd.title")}
+                        />
+                      </div>
+
+                      {mpdConfig.enabled && (
+                        <div className="mt-3 space-y-3">
+                          {/* The LAN exposure is stated plainly rather than
                           buried in docs — it is the whole point of the
                           feature and also its only real risk. With a password
                           set (MpdConfig.requires_auth), control is gated, so
                           the "anyone can control" warning would be misleading:
                           swap it for one that separates reachability from
                           control. */}
-                      <div className="text-xs text-amber-600 dark:text-amber-500">
-                        {mpdConfig.password
-                          ? t("settings.integrations.mpd.lanWarningAuth")
-                          : t("settings.integrations.mpd.lanWarning")}
-                      </div>
+                          <div className="text-xs text-amber-600 dark:text-amber-500">
+                            {mpdConfig.password
+                              ? t("settings.integrations.mpd.lanWarningAuth")
+                              : t("settings.integrations.mpd.lanWarning")}
+                          </div>
 
-                      <div className="flex items-center space-x-2">
-                        <label
-                          htmlFor="mpd-port"
-                          className="text-xs text-zinc-500 w-24 shrink-0"
-                        >
-                          {t("settings.integrations.mpd.port")}
-                        </label>
-                        <input
-                          id="mpd-port"
-                          type="number"
-                          min={1}
-                          max={65535}
-                          step={1}
-                          disabled={!mpdHydrated}
-                          value={mpdConfig.port}
-                          onChange={(e) =>
-                            setMpdConfig({
-                              ...mpdConfig,
-                              // Keep the state an integer in 0–65535 while
-                              // typing; onBlur enforces the final 1–65535.
-                              port: Math.max(
-                                0,
-                                Math.min(
-                                  65535,
-                                  Math.trunc(Number(e.target.value)) || 0,
-                                ),
-                              ),
-                            })
-                          }
-                          onBlur={() => {
-                            // Never persist an empty / zero / decimal /
-                            // out-of-range port: fall back to the last
-                            // confirmed value (or the 6600 default).
-                            const p = mpdConfig.port;
-                            const valid =
-                              Number.isInteger(p) && p >= 1 && p <= 65535
-                                ? p
-                                : (mpdConfirmedRef.current?.port ?? 6600);
-                            const next = { ...mpdConfig, port: valid };
-                            setMpdConfig(next);
-                            void persistMpd(next);
-                          }}
-                          className="w-28 px-2 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-transparent focus:border-emerald-500 focus:outline-none text-zinc-900 dark:text-white"
-                        />
-                        <span className="text-xs text-zinc-400">
-                          {t("settings.integrations.mpd.portHint")}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <label
-                          htmlFor="mpd-password"
-                          className="text-xs text-zinc-500 w-24 shrink-0"
-                        >
-                          {t("settings.integrations.mpd.password")}
-                        </label>
-                        <input
-                          id="mpd-password"
-                          type="password"
-                          autoComplete="new-password"
-                          disabled={!mpdHydrated}
-                          value={mpdConfig.password}
-                          placeholder={t(
-                            "settings.integrations.mpd.passwordPlaceholder",
-                          )}
-                          onChange={(e) =>
-                            setMpdConfig({
-                              ...mpdConfig,
-                              password: e.target.value,
-                            })
-                          }
-                          onBlur={() => persistMpd(mpdConfig)}
-                          className="flex-1 min-w-0 px-2 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-transparent focus:border-emerald-500 focus:outline-none text-zinc-900 dark:text-white"
-                        />
-                      </div>
-                      <div className="text-xs text-zinc-400">
-                        {t("settings.integrations.mpd.passwordHint")}
-                      </div>
-
-                      {/* Status */}
-                      <div className="flex items-center space-x-2 pt-1">
-                        <span
-                          className={`inline-block w-2 h-2 rounded-full ${
-                            mpdStatus?.running
-                              ? "bg-emerald-500"
-                              : "bg-zinc-400"
-                          }`}
-                          aria-hidden="true"
-                        />
-                        <span className="text-xs text-zinc-500">
-                          {mpdStatus?.running
-                            ? t("settings.integrations.mpd.statusRunning")
-                            : t("settings.integrations.mpd.statusStopped")}
-                        </span>
-                        {mpdStatus?.bound_address && (
-                          <>
-                            <span className="text-xs font-mono text-zinc-700 dark:text-zinc-300 truncate">
-                              {mpdStatus.bound_address}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={handleMpdCopyAddress}
-                              aria-label={t(
-                                "settings.integrations.mpd.copyAddress",
-                              )}
-                              className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                          <div className="flex items-center space-x-2">
+                            <label
+                              htmlFor="mpd-port"
+                              className="text-xs text-zinc-500 w-24 shrink-0"
                             >
-                              {mpdAddressCopied ? (
-                                <CheckIcon size={14} />
-                              ) : (
-                                <Copy size={14} />
-                              )}
-                            </button>
-                          </>
-                        )}
-                      </div>
+                              {t("settings.integrations.mpd.port")}
+                            </label>
+                            <input
+                              id="mpd-port"
+                              type="number"
+                              min={1}
+                              max={65535}
+                              step={1}
+                              disabled={!mpdHydrated}
+                              value={mpdConfig.port}
+                              onChange={(e) =>
+                                setMpdConfig({
+                                  ...mpdConfig,
+                                  // Keep the state an integer in 0–65535 while
+                                  // typing; onBlur enforces the final 1–65535.
+                                  port: Math.max(
+                                    0,
+                                    Math.min(
+                                      65535,
+                                      Math.trunc(Number(e.target.value)) || 0,
+                                    ),
+                                  ),
+                                })
+                              }
+                              onBlur={() => {
+                                // Never persist an empty / zero / decimal /
+                                // out-of-range port: fall back to the last
+                                // confirmed value (or the 6600 default).
+                                const p = mpdConfig.port;
+                                const valid =
+                                  Number.isInteger(p) && p >= 1 && p <= 65535
+                                    ? p
+                                    : (mpdConfirmedRef.current?.port ?? 6600);
+                                const next = { ...mpdConfig, port: valid };
+                                setMpdConfig(next);
+                                void persistMpd(next);
+                              }}
+                              className="w-28 px-2 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-transparent focus:border-emerald-500 focus:outline-none text-zinc-900 dark:text-white"
+                            />
+                            <span className="text-xs text-zinc-400">
+                              {t("settings.integrations.mpd.portHint")}
+                            </span>
+                          </div>
 
-                      {mpdStatus?.last_error && (
-                        <div className="text-xs text-rose-500 break-words">
-                          {mpdStatus.last_error}
+                          <div className="flex items-center space-x-2">
+                            <label
+                              htmlFor="mpd-password"
+                              className="text-xs text-zinc-500 w-24 shrink-0"
+                            >
+                              {t("settings.integrations.mpd.password")}
+                            </label>
+                            <input
+                              id="mpd-password"
+                              type="password"
+                              autoComplete="new-password"
+                              disabled={!mpdHydrated}
+                              value={mpdConfig.password}
+                              placeholder={t(
+                                "settings.integrations.mpd.passwordPlaceholder",
+                              )}
+                              onChange={(e) =>
+                                setMpdConfig({
+                                  ...mpdConfig,
+                                  password: e.target.value,
+                                })
+                              }
+                              onBlur={() => persistMpd(mpdConfig)}
+                              className="flex-1 min-w-0 px-2 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-transparent focus:border-emerald-500 focus:outline-none text-zinc-900 dark:text-white"
+                            />
+                          </div>
+                          <div className="text-xs text-zinc-400">
+                            {t("settings.integrations.mpd.passwordHint")}
+                          </div>
+
+                          {/* Status */}
+                          <div className="flex items-center space-x-2 pt-1">
+                            <span
+                              className={`inline-block w-2 h-2 rounded-full ${
+                                mpdStatus?.running
+                                  ? "bg-emerald-500"
+                                  : "bg-zinc-400"
+                              }`}
+                              aria-hidden="true"
+                            />
+                            <span className="text-xs text-zinc-500">
+                              {mpdStatus?.running
+                                ? t("settings.integrations.mpd.statusRunning")
+                                : t("settings.integrations.mpd.statusStopped")}
+                            </span>
+                            {mpdStatus?.bound_address && (
+                              <>
+                                <span className="text-xs font-mono text-zinc-700 dark:text-zinc-300 truncate">
+                                  {mpdStatus.bound_address}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={handleMpdCopyAddress}
+                                  aria-label={t(
+                                    "settings.integrations.mpd.copyAddress",
+                                  )}
+                                  className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                                >
+                                  {mpdAddressCopied ? (
+                                    <CheckIcon size={14} />
+                                  ) : (
+                                    <Copy size={14} />
+                                  )}
+                                </button>
+                              </>
+                            )}
+                          </div>
+
+                          {mpdStatus?.last_error && (
+                            <div className="text-xs text-rose-500 break-words">
+                              {mpdStatus.last_error}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Appearance category — theme picker + player-bar layout.
-          Switching theme re-skins every `bg-emerald-*` / `text-emerald-*`
-          utility through the CSS variable layer in app.css, so no
-          component code changes. `PlayerBarLayoutCard` was previously
-          parked under Playback while this tab was still a placeholder
-          — moved here now that the picker fills the section. */}
-      {activeCategory === "appearance" && (
-        <section
-          role="tabpanel"
-          id="settings-panel-appearance"
-          aria-labelledby="settings-tab-appearance"
-          tabIndex={0}
-          className="space-y-8"
-        >
-          <div>
-            <h2
-              id="settings-appearance-heading"
-              className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
+              </SettingsGroup>
+            </section>
+          )}
+          {activeCategory === "plugins" && (
+            <section
+              aria-labelledby="settings-heading-plugins"
+              className="space-y-7"
             >
-              {t("settings.sections.appearance")}
-            </h2>
-            <div className="px-4 py-3">
-              <div className="flex items-center space-x-4 mb-4">
-                <Palette
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.appearance.theme.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.appearance.theme.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                {THEME_PRESETS.map((preset) => {
-                  const isActive = preset.id === theme.id;
-                  return (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={(event) => setThemeId(preset.id, event)}
-                      aria-pressed={isActive}
-                      className={`group relative rounded-xl border overflow-hidden transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
-                        isActive
-                          ? "border-emerald-500 ring-2 ring-emerald-500/30"
-                          : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
-                      }`}
-                    >
-                      <div
-                        className="h-16 flex items-center justify-between px-3 relative"
-                        style={{
-                          backgroundColor:
-                            preset.ambient ??
-                            (preset.mode === "dark" ? "#121212" : "#ffffff"),
-                        }}
+              <header>
+                <h2
+                  id="settings-heading-plugins"
+                  className="text-xl font-semibold text-zinc-900 dark:text-white"
+                >
+                  {t("settings.organization.categories.plugins")}
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  {t("settings.organization.descriptions.plugins")}
+                </p>
+              </header>
+              <SettingsGroup
+                id="extensions"
+                title={t("settings.organization.groups.extensions")}
+                reveal={targetGroup === "extensions"}
+              >
+                <PluginStoreCard />
+                <PluginsCard />
+              </SettingsGroup>
+            </section>
+          )}
+          {activeCategory === "shortcuts" && (
+            <section
+              aria-labelledby="settings-heading-shortcuts"
+              className="space-y-7"
+            >
+              <header>
+                <h2
+                  id="settings-heading-shortcuts"
+                  className="text-xl font-semibold text-zinc-900 dark:text-white"
+                >
+                  {t("settings.organization.categories.shortcuts")}
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  {t("settings.organization.descriptions.shortcuts")}
+                </p>
+              </header>
+              <SettingsGroup
+                id="keyboard"
+                title={t("settings.organization.groups.keyboard")}
+                reveal={targetGroup === "keyboard"}
+              >
+                <ShortcutsCard />
+              </SettingsGroup>
+            </section>
+          )}
+          {activeCategory === "data" && (
+            <section
+              aria-labelledby="settings-heading-data"
+              className="space-y-7"
+            >
+              <header>
+                <h2
+                  id="settings-heading-data"
+                  className="text-xl font-semibold text-zinc-900 dark:text-white"
+                >
+                  {t("settings.organization.categories.data")}
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  {t("settings.organization.descriptions.data")}
+                </p>
+              </header>
+              <SettingsGroup
+                id="backups"
+                title={t("settings.organization.groups.backups")}
+                reveal={targetGroup === "backups"}
+              >
+                <div className="settings-block py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center space-x-4 min-w-0">
+                      <Download
+                        size={20}
+                        className="text-zinc-400 shrink-0"
+                        aria-hidden="true"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                          {t("settings.profileIo.title")}
+                        </div>
+                        <div className="text-xs text-zinc-400">
+                          {t("settings.profileIo.subtitle")}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleExportProfile}
+                        disabled={profileIoBusy != null || !activeProfile}
+                        className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <div className="flex space-x-1">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: preset.accent[400] }}
-                          />
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: preset.accent[500] }}
-                          />
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: preset.accent[600] }}
-                          />
-                        </div>
-                        {isActive && (
-                          <span
-                            className="flex items-center justify-center w-5 h-5 rounded-full shadow-sm"
-                            style={{
-                              backgroundColor: preset.accent[500],
-                              color: "#fff",
-                            }}
-                          >
-                            <Check size={12} strokeWidth={3} />
-                          </span>
-                        )}
-                      </div>
-                      <div className="px-3 py-2 bg-white dark:bg-zinc-900 text-left">
-                        <div className="text-xs font-semibold text-zinc-800 dark:text-zinc-100 truncate">
-                          {t(preset.labelKey)}
-                        </div>
-                        <div className="text-[10px] text-zinc-400 capitalize">
-                          {t(`settings.appearance.mode.${preset.mode}`)}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <SkinPickerCard />
-
-          <ContrastCard />
-
-          <PlayerBarLayoutCard />
-
-          <HiResBadgeCard />
-
-          <ImmersiveViewCard />
-
-          <CoverSlideshowCard />
-
-          <ArtistHeroCard />
-
-          <ScrollTitlesCard />
-
-          <WindowBoundsCard />
-
-          <FullscreenLyricsCenteringCard />
-
-          <StatsKpiVisibilityCard />
-
-          <WrappedBannerCard />
-        </section>
-      )}
-
-      {/* Data category — backup, offline mode, export/import. */}
-      {activeCategory === "data" && (
-        <section
-          role="tabpanel"
-          id="settings-panel-data"
-          aria-labelledby="settings-tab-data"
-          tabIndex={0}
-        >
-          <h2
-            id="settings-storage-heading"
-            className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
-          >
-            {t("settings.sections.data")}
-          </h2>
-          <div className="space-y-1">
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <RefreshCcw
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.rescan.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.rescan.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleRescan}
-                disabled={isRescanning || libraries.length === 0}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <RefreshCcw
-                  size={14}
-                  aria-hidden="true"
-                  className={isRescanning ? "animate-spin" : ""}
-                />
-                <span>{t("settings.rescan.action")}</span>
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Copy size={20} className="text-zinc-400" aria-hidden="true" />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.duplicates.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.duplicates.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsDuplicatesOpen(true)}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-              >
-                <Copy size={14} aria-hidden="true" />
-                <span>{t("settings.duplicates.action")}</span>
-              </button>
-            </div>
-
-            <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <Sparkles
-                    size={20}
-                    className="text-zinc-400"
-                    aria-hidden="true"
-                  />
-                  <div>
-                    <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                      {t("settings.analyze.title")}
-                    </div>
-                    <div className="text-xs text-zinc-400">
-                      {t("settings.analyze.subtitle")}
-                    </div>
-                  </div>
-                </div>
-                {isAnalyzingLib ? (
-                  // Mid-run: swap the Analyze button out for a Stop
-                  // button so the user can recover from a long-running
-                  // sweep that's saturating their CPU (issue #286).
-                  // The backend `cancel_library_analysis` flips a flag
-                  // the worker loop checks at every track boundary —
-                  // the click resolves quickly but the loop only exits
-                  // after the current decode finishes (single track
-                  // delay is acceptable; aborting mid-decode would
-                  // require restructuring `analyze_file` for cancel
-                  // tokens, deferred).
-                  <button
-                    type="button"
-                    onClick={handleCancelAnalyzeLibrary}
-                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 text-sm font-medium text-rose-700 hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-950/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
-                  >
-                    <Square size={14} aria-hidden="true" />
-                    <span>{t("settings.analyze.cancel")}</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleAnalyzeLibrary}
-                    disabled={libraries.length === 0}
-                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Sparkles size={14} aria-hidden="true" />
-                    <span>{t("settings.analyze.action")}</span>
-                  </button>
-                )}
-              </div>
-              {/* Auto-analyze toggle: when on, every scan that
-                adds new tracks fires the analyzer in the
-                background. Sits inside the same card so users
-                see it as a related option rather than a
-                disconnected setting. */}
-              <div className="mt-3 ml-9 flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.analyze.autoTitle")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.analyze.autoSubtitle")}
-                  </div>
-                </div>
-                <ToggleSwitch
-                  enabled={autoAnalyze}
-                  onToggle={handleToggleAutoAnalyze}
-                  label={t("settings.analyze.autoTitle")}
-                />
-              </div>
-              {/* Progress strip — shown during a run + briefly after
-                completion so the user sees the final tally. */}
-              {analyzeProgress && (
-                <div className="mt-3 ml-9">
-                  <div className="flex justify-between text-[11px] text-zinc-500 mb-1">
-                    <span>
-                      {analyzeProgress.processed} / {analyzeProgress.total}
-                    </span>
-                    {analyzeProgress.failed > 0 && (
-                      <span className="text-rose-500">
-                        {t("settings.analyze.failed", {
-                          count: analyzeProgress.failed,
-                        })}
-                      </span>
-                    )}
-                  </div>
-                  <div className="h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
-                    <div
-                      className="h-full bg-emerald-500 transition-all duration-200"
-                      style={{
-                        width: `${
-                          analyzeProgress.total > 0
-                            ? Math.round(
-                                (analyzeProgress.processed /
-                                  analyzeProgress.total) *
-                                  100,
-                              )
-                            : 0
-                        }%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4 flex-1 min-w-0">
-                <ImageIcon
-                  size={20}
-                  className="text-zinc-400 shrink-0"
-                  aria-hidden="true"
-                />
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.localArtistImages.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {localArtistRescanStatus ??
-                      t("settings.localArtistImages.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleRescanLocalArtistImages}
-                disabled={isRescanningLocalArtists}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ImageIcon
-                  size={14}
-                  aria-hidden="true"
-                  className={isRescanningLocalArtists ? "animate-pulse" : ""}
-                />
-                <span>{t("settings.localArtistImages.action")}</span>
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4 flex-1 min-w-0">
-                <ImageIcon
-                  size={20}
-                  className="text-zinc-400 shrink-0"
-                  aria-hidden="true"
-                />
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.artistImages.title")}
-                  </div>
-                  {artistFetchProgress && isFetchingArtists ? (
-                    <div className="text-xs text-zinc-500 mt-1 truncate">
-                      {t("settings.artistImages.progress", {
-                        current: artistFetchProgress.current,
-                        total: artistFetchProgress.total,
-                      })}
-                      {artistFetchProgress.artistName
-                        ? ` — ${artistFetchProgress.artistName}`
-                        : ""}
-                    </div>
-                  ) : (
-                    <div className="text-xs text-zinc-400">
-                      {t("settings.artistImages.subtitle")}
-                    </div>
-                  )}
-                  {artistFetchProgress && artistFetchProgress.total > 0 && (
-                    <div className="mt-2 h-1.5 w-full max-w-xs rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-500 transition-all"
-                        style={{
-                          width: `${Math.min(100, (artistFetchProgress.current / artistFetchProgress.total) * 100)}%`,
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleFetchMissingArtistPictures}
-                disabled={isFetchingArtists}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ImageIcon
-                  size={14}
-                  aria-hidden="true"
-                  className={isFetchingArtists ? "animate-pulse" : ""}
-                />
-                <span>{t("settings.artistImages.action")}</span>
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4 flex-1 min-w-0">
-                <ImageIcon
-                  size={20}
-                  className="text-zinc-400 shrink-0"
-                  aria-hidden="true"
-                />
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("library.fetchMissingCovers")}
-                  </div>
-                  {coverProgress && isFetchingCovers ? (
-                    <div className="text-xs text-zinc-500 mt-1 truncate">
-                      {t("library.fetchingCovers", {
-                        current: coverProgress.current,
-                        total: coverProgress.total,
-                      })}
-                      {coverProgress.albumTitle
-                        ? ` — ${coverProgress.albumTitle}`
-                        : ""}
-                    </div>
-                  ) : coverResultMsg ? (
-                    <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 truncate">
-                      {coverResultMsg}
-                    </div>
-                  ) : (
-                    <div className="text-xs text-zinc-400">
-                      {t("settings.artistImages.subtitle")}
-                    </div>
-                  )}
-                  {coverProgress && coverProgress.total > 0 && (
-                    <div className="mt-2 h-1.5 w-full max-w-xs rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-500 transition-all"
-                        style={{
-                          width: `${Math.min(100, (coverProgress.current / coverProgress.total) * 100)}%`,
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleFetchMissingCovers}
-                disabled={isFetchingCovers}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ImageIcon
-                  size={14}
-                  aria-hidden="true"
-                  className={isFetchingCovers ? "animate-pulse" : ""}
-                />
-                <span>{t("settings.artistImages.action")}</span>
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4 flex-1 min-w-0">
-                <Mic2
-                  size={20}
-                  className="text-zinc-400 shrink-0"
-                  aria-hidden="true"
-                />
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.lyricsPrefetch.title")}
-                  </div>
-                  {lyricsPrefetchProgress && isPrefetchingLyrics ? (
-                    <div className="text-xs text-zinc-500 mt-1 truncate">
-                      {t("settings.lyricsPrefetch.progress", {
-                        current: lyricsPrefetchProgress.processed,
-                        total: lyricsPrefetchProgress.total,
-                        hits: lyricsPrefetchProgress.hits,
-                      })}
-                      {lyricsPrefetchProgress.currentTitle
-                        ? ` — ${lyricsPrefetchProgress.currentTitle}`
-                        : ""}
-                    </div>
-                  ) : lyricsResultMsg ? (
-                    <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 truncate">
-                      {lyricsResultMsg}
-                    </div>
-                  ) : (
-                    <div className="text-xs text-zinc-400">
-                      {t("settings.lyricsPrefetch.subtitle")}
-                    </div>
-                  )}
-                  {lyricsPrefetchProgress &&
-                    lyricsPrefetchProgress.total > 0 && (
-                      <div className="mt-2 h-1.5 w-full max-w-xs rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
-                        <div
-                          className="h-full bg-emerald-500 transition-all"
-                          style={{
-                            width: `${Math.min(100, (lyricsPrefetchProgress.processed / lyricsPrefetchProgress.total) * 100)}%`,
-                          }}
+                        <Download
+                          size={14}
+                          aria-hidden="true"
+                          className={
+                            profileIoBusy === "export" ? "animate-pulse" : ""
+                          }
                         />
-                      </div>
-                    )}
-                </div>
-              </div>
-              {isPrefetchingLyrics ? (
-                <button
-                  type="button"
-                  onClick={handleCancelPrefetchLyrics}
-                  className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                >
-                  <span>{t("common.cancel")}</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handlePrefetchLyrics}
-                  className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Mic2 size={14} aria-hidden="true" />
-                  <span>{t("settings.lyricsPrefetch.action")}</span>
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4 flex-1 min-w-0">
-                <Mic2
-                  size={20}
-                  className="text-zinc-400 shrink-0"
-                  aria-hidden="true"
-                />
-                <div className="min-w-0">
-                  <label
-                    htmlFor="lyrics-translation-lang-select"
-                    className="text-sm font-medium text-zinc-900 dark:text-white"
-                  >
-                    {t("settings.lyricsTranslation.title")}
-                  </label>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.lyricsTranslation.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <select
-                id="lyrics-translation-lang-select"
-                value={translationLang ?? ""}
-                disabled={translationLangBusy}
-                onChange={(e) =>
-                  void handleTranslationLangChange(e.target.value)
-                }
-                className="shrink-0 px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {TRANSLATION_LANG_OPTIONS.map((opt) =>
-                  opt.value === "" ? (
-                    <option key="off" value="">
-                      {t("settings.lyricsTranslation.off")}
-                    </option>
-                  ) : (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ),
-                )}
-              </select>
-            </div>
-
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4 flex-1 min-w-0">
-                <Globe
-                  size={20}
-                  className="text-zinc-400 shrink-0"
-                  aria-hidden="true"
-                />
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.lyricsPreferLrclib.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.lyricsPreferLrclib.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={preferLrclib}
-                onToggle={() => void handlePreferLrclibToggle()}
-                disabled={preferLrclibBusy}
-                label={t("settings.lyricsPreferLrclib.title")}
-              />
-            </div>
-
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4 flex-1 min-w-0">
-                <ImageIcon
-                  size={20}
-                  className="text-zinc-400 shrink-0"
-                  aria-hidden="true"
-                />
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.regenerateThumbnails")}
-                  </div>
-                  {thumbsStatus ? (
-                    <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 truncate">
-                      {thumbsStatus}
+                        <span>{t("settings.profileIo.export.action")}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleImportProfile}
+                        disabled={profileIoBusy != null}
+                        className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Upload
+                          size={14}
+                          aria-hidden="true"
+                          className={
+                            profileIoBusy === "import" ? "animate-pulse" : ""
+                          }
+                        />
+                        <span>{t("settings.profileIo.import.action")}</span>
+                      </button>
                     </div>
-                  ) : (
-                    <div className="text-xs text-zinc-400">
-                      {t("settings.regenerateThumbnailsSubtitle")}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleRegenerateThumbnails}
-                disabled={isRegeneratingThumbs}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <RefreshCcw
-                  size={14}
-                  aria-hidden="true"
-                  className={isRegeneratingThumbs ? "animate-spin" : ""}
-                />
-                <span>{t("settings.regenerateThumbnailsAction")}</span>
-              </button>
-            </div>
-
-            {/* Prune cached Deezer album covers (issue #493) — reclaim the
-              shared cache filled with covers for albums that already have
-              local artwork. */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4 flex-1 min-w-0">
-                <ImageIcon
-                  size={20}
-                  className="text-zinc-400 shrink-0"
-                  aria-hidden="true"
-                />
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.pruneAlbumCovers")}
                   </div>
-                  {pruneCoversStatus ? (
+                  {profileIoStatus && (
                     <div
-                      role="status"
-                      aria-live="polite"
-                      className={`text-xs mt-1 truncate ${
-                        pruneCoversStatus.ok
+                      className={`mt-2 ml-9 text-xs ${
+                        profileIoStatus.kind === "ok"
                           ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-rose-600 dark:text-rose-400"
+                          : "text-red-500"
                       }`}
                     >
-                      {pruneCoversStatus.text}
-                    </div>
-                  ) : (
-                    <div className="text-xs text-zinc-400">
-                      {t("settings.pruneAlbumCoversSubtitle")}
+                      {profileIoStatus.message}
                     </div>
                   )}
                 </div>
-              </div>
-              <button
-                type="button"
-                onClick={handlePruneCachedCovers}
-                disabled={isPruningCovers}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                <BackupCard language={i18n.resolvedLanguage ?? i18n.language} />
+              </SettingsGroup>
+              <SettingsGroup
+                id="storage"
+                title={t("settings.organization.groups.storage")}
+                reveal={targetGroup === "storage"}
               >
-                <RefreshCcw
-                  size={14}
-                  aria-hidden="true"
-                  className={isPruningCovers ? "animate-spin" : ""}
+                <CacheLocationCard
+                  language={i18n.resolvedLanguage ?? i18n.language}
                 />
-                <span>{t("settings.pruneAlbumCoversAction")}</span>
-              </button>
-            </div>
-
-            {/* Profile export / import — packages the per-profile DB
-              + manual artwork into a single .waveflow archive. Useful
-              for backups + machine migration. Shared metadata cache
-              and Last.fm key live in app.db so they're not bundled. */}
-            <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center space-x-4 min-w-0">
-                  <Download
-                    size={20}
-                    className="text-zinc-400 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                      {t("settings.profileIo.title")}
-                    </div>
-                    <div className="text-xs text-zinc-400">
-                      {t("settings.profileIo.subtitle")}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleExportProfile}
-                    disabled={profileIoBusy != null || !activeProfile}
-                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Download
-                      size={14}
+                <MediaCachesCard
+                  language={i18n.resolvedLanguage ?? i18n.language}
+                />
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <FolderOpen
+                      size={20}
+                      className="text-zinc-400"
                       aria-hidden="true"
-                      className={
-                        profileIoBusy === "export" ? "animate-pulse" : ""
-                      }
                     />
-                    <span>{t("settings.profileIo.export.action")}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleImportProfile}
-                    disabled={profileIoBusy != null}
-                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Upload
-                      size={14}
-                      aria-hidden="true"
-                      className={
-                        profileIoBusy === "import" ? "animate-pulse" : ""
-                      }
-                    />
-                    <span>{t("settings.profileIo.import.action")}</span>
-                  </button>
-                </div>
-              </div>
-              {profileIoStatus && (
-                <div
-                  className={`mt-2 ml-9 text-xs ${
-                    profileIoStatus.kind === "ok"
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-red-500"
-                  }`}
-                >
-                  {profileIoStatus.message}
-                </div>
-              )}
-            </div>
-
-            {/* Auto-backup card — sits right after the manual export/import
-              so users see the two profile-IO features together. */}
-            <BackupCard language={i18n.resolvedLanguage ?? i18n.language} />
-
-            {/* Offline Web Radio catalogue — download the station directory
-              for offline browse + search (#289). */}
-            <RadioCatalogueCard
-              language={i18n.resolvedLanguage ?? i18n.language}
-            />
-
-            {/* Where artwork and the rebuildable caches live (#619). Sits
-              beside the data-folder row it qualifies: that one opens the
-              app-data tree, this one is why the caches may no longer be
-              inside it. */}
-            <CacheLocationCard
-              language={i18n.resolvedLanguage ?? i18n.language}
-            />
-
-            {/* The app-wide video caches plugins fill. Right under the
-              card that decides which drive they live on, rather than
-              under each plugin: neither cache belongs to one. */}
-            <MediaCachesCard
-              language={i18n.resolvedLanguage ?? i18n.language}
-            />
-
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <FolderOpen
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.dataFolder.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.dataFolder.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleOpenDataFolder}
-                aria-label={t("settings.openDataFolder")}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-              >
-                <FolderOpen size={14} aria-hidden="true" />
-                <span>{t("settings.dataFolder.action")}</span>
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Trash2
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.reset.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.reset.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsResetOpen(true)}
-                aria-label={t("settings.reset.action")}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-red-200 bg-white text-sm font-medium text-red-500 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-              >
-                <Trash2 size={14} aria-hidden="true" />
-                <span>{t("settings.reset.action")}</span>
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Plugins category — list / toggle / uninstall installed plugins. */}
-      {activeCategory === "plugins" && (
-        <section
-          role="tabpanel"
-          id="settings-panel-plugins"
-          aria-labelledby="settings-tab-plugins"
-          tabIndex={0}
-        >
-          <h2
-            id="settings-plugins-section-heading"
-            className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
-          >
-            {t("settings.sections.plugins")}
-          </h2>
-          <div className="px-4">
-            <PluginStoreCard />
-            <PluginsCard />
-          </div>
-        </section>
-      )}
-
-      {/* Shortcuts category — keyboard shortcut editor. */}
-      {activeCategory === "shortcuts" && (
-        <section
-          role="tabpanel"
-          id="settings-panel-shortcuts"
-          aria-labelledby="settings-tab-shortcuts"
-          tabIndex={0}
-        >
-          <h2
-            id="settings-shortcuts-heading"
-            className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
-          >
-            {t("settings.sections.shortcuts")}
-          </h2>
-          <ShortcutsCard />
-        </section>
-      )}
-
-      {/* Diagnostics category — logs, version. */}
-      {activeCategory === "diagnostics" && (
-        <section
-          role="tabpanel"
-          id="settings-panel-diagnostics"
-          aria-labelledby="settings-tab-diagnostics"
-          tabIndex={0}
-        >
-          <h2
-            id="settings-diagnostics-heading"
-            className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
-          >
-            {t("settings.sections.diagnostics")}
-          </h2>
-          <div className="space-y-1">
-            <RenderingCard />
-            <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center space-x-4 min-w-0">
-                  <FileText
-                    size={20}
-                    className="text-zinc-400 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                      {t("settings.diagnostics.title")}
-                    </div>
-                    <div className="text-xs text-zinc-400">
-                      {t("settings.diagnostics.subtitle")}
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.dataFolder.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.dataFolder.subtitle")}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center space-x-2 shrink-0">
                   <button
                     type="button"
-                    onClick={handleOpenLogFolder}
+                    onClick={handleOpenDataFolder}
+                    aria-label={t("settings.openDataFolder")}
                     className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                   >
                     <FolderOpen size={14} aria-hidden="true" />
-                    <span>{t("settings.diagnostics.openFolder")}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCopyLogs}
-                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                  >
-                    {copyLogsStatus === "ok" ? (
-                      <CheckIcon
-                        size={14}
-                        aria-hidden="true"
-                        className="text-emerald-500"
-                      />
-                    ) : (
-                      <Copy size={14} aria-hidden="true" />
-                    )}
-                    <span>
-                      {copyLogsStatus === "ok"
-                        ? t("settings.diagnostics.copied")
-                        : copyLogsStatus === "fail"
-                          ? t("settings.diagnostics.copyFailed")
-                          : t("settings.diagnostics.copyLogs")}
-                    </span>
+                    <span>{t("settings.dataFolder.action")}</span>
                   </button>
                 </div>
-              </div>
-            </div>
-            <UpdateChannelCard />
-          </div>
-        </section>
-      )}
+              </SettingsGroup>
+              <SettingsGroup
+                id="cleanup"
+                title={t("settings.organization.groups.cleanup")}
+                advanced
+                reveal={targetGroup === "cleanup"}
+              >
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <ImageIcon
+                      size={20}
+                      className="text-zinc-400 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.regenerateThumbnails")}
+                      </div>
+                      {thumbsStatus ? (
+                        <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 truncate">
+                          {thumbsStatus}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-zinc-400">
+                          {t("settings.regenerateThumbnailsSubtitle")}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRegenerateThumbnails}
+                    disabled={isRegeneratingThumbs}
+                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <RefreshCcw
+                      size={14}
+                      aria-hidden="true"
+                      className={isRegeneratingThumbs ? "animate-spin" : ""}
+                    />
+                    <span>{t("settings.regenerateThumbnailsAction")}</span>
+                  </button>
+                </div>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <ImageIcon
+                      size={20}
+                      className="text-zinc-400 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.pruneAlbumCovers")}
+                      </div>
+                      {pruneCoversStatus ? (
+                        <div
+                          role="status"
+                          aria-live="polite"
+                          className={`text-xs mt-1 truncate ${
+                            pruneCoversStatus.ok
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-rose-600 dark:text-rose-400"
+                          }`}
+                        >
+                          {pruneCoversStatus.text}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-zinc-400">
+                          {t("settings.pruneAlbumCoversSubtitle")}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handlePruneCachedCovers}
+                    disabled={isPruningCovers}
+                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <RefreshCcw
+                      size={14}
+                      aria-hidden="true"
+                      className={isPruningCovers ? "animate-spin" : ""}
+                    />
+                    <span>{t("settings.pruneAlbumCoversAction")}</span>
+                  </button>
+                </div>
+              </SettingsGroup>
+            </section>
+          )}
+          {activeCategory === "diagnostics" && (
+            <section
+              aria-labelledby="settings-heading-diagnostics"
+              className="space-y-7"
+            >
+              <header>
+                <h2
+                  id="settings-heading-diagnostics"
+                  className="text-xl font-semibold text-zinc-900 dark:text-white"
+                >
+                  {t("settings.organization.categories.diagnostics")}
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  {t("settings.organization.descriptions.diagnostics")}
+                </p>
+              </header>
+              <SettingsGroup
+                id="updates"
+                title={t("settings.organization.groups.updates")}
+                reveal={targetGroup === "updates"}
+              >
+                <UpdateChannelCard />
+              </SettingsGroup>
+              <SettingsGroup
+                id="diagnostics"
+                title={t("settings.organization.groups.diagnostics")}
+                reveal={targetGroup === "diagnostics"}
+              >
+                <RenderingCard />
+                <div className="settings-block py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center space-x-4 min-w-0">
+                      <FileText
+                        size={20}
+                        className="text-zinc-400 shrink-0"
+                        aria-hidden="true"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                          {t("settings.diagnostics.title")}
+                        </div>
+                        <div className="text-xs text-zinc-400">
+                          {t("settings.diagnostics.subtitle")}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleOpenLogFolder}
+                        className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                      >
+                        <FolderOpen size={14} aria-hidden="true" />
+                        <span>{t("settings.diagnostics.openFolder")}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCopyLogs}
+                        className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                      >
+                        {copyLogsStatus === "ok" ? (
+                          <CheckIcon
+                            size={14}
+                            aria-hidden="true"
+                            className="text-emerald-500"
+                          />
+                        ) : (
+                          <Copy size={14} aria-hidden="true" />
+                        )}
+                        <span>
+                          {copyLogsStatus === "ok"
+                            ? t("settings.diagnostics.copied")
+                            : copyLogsStatus === "fail"
+                              ? t("settings.diagnostics.copyFailed")
+                              : t("settings.diagnostics.copyLogs")}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </SettingsGroup>
+              <SettingsGroup
+                id="reset"
+                title={t("settings.organization.groups.reset")}
+                advanced
+                reveal={targetGroup === "reset"}
+              >
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Trash2
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.reset.title")}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {t("settings.reset.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsResetOpen(true)}
+                    aria-label={t("settings.reset.action")}
+                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-red-200 bg-white text-sm font-medium text-red-500 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                  >
+                    <Trash2 size={14} aria-hidden="true" />
+                    <span>{t("settings.reset.action")}</span>
+                  </button>
+                </div>
+              </SettingsGroup>
+            </section>
+          )}
+        </div>
+      </div>
 
       <DuplicatesModal
         isOpen={isDuplicatesOpen}

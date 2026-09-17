@@ -1,0 +1,42 @@
+/* Scope the shared row rhythm to settings; existing cards keep their controls. */
+.settings-group-body > :is(.settings-row, .settings-block),
+.settings-dependent > :is(.settings-row, .settings-block) {
+  padding-block: 1rem;
+}
+
+.settings-group-body > .settings-row,
+.settings-dependent > .settings-row {
+  gap: 1.5rem;
+}
+
+.settings-group-body > .settings-row > :first-child,
+.settings-dependent > .settings-row > :first-child {
+  min-width: 0;
+}
+
+.settings-group-body > .settings-row > :last-child,
+.settings-dependent > .settings-row > :last-child {
+  flex-shrink: 0;
+}
+
+.settings-group-body .text-xs.text-zinc-400 {
+  color: var(--color-zinc-500);
+  line-height: 1.5;
+  max-width: 65ch;
+}
+
+.dark .settings-group-body .text-xs.text-zinc-400 {
+  color: var(--color-zinc-400);
+}
+
+.settings-group-body > * + * {
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 639px) {
+  .settings-group-body > .settings-row,
+  .settings-dependent > .settings-row {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+}

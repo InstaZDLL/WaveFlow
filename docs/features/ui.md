@@ -30,6 +30,32 @@ Every full-page view (Home, Library, Liked, History, Playlist, Album/Artist/Genr
 
 Per-view data fetches initialise their `isLoading` state to `true` (not `false`) so the first render paints a skeleton matching the view's shape rather than flashing the empty-state for the frame between mount and the first effect tick. Detail pages (Album/Artist/Genre) share [`DetailViewSkeleton`](../../src/components/common/DetailViewSkeleton.tsx); list-shaped pages use inline `<…Skeleton>` components colocated with their view file.
 
+## Settings navigation
+
+Settings uses a persistent category list on wide containers and a compact
+category selector when the available content width is below 56rem. The layout
+responds to its container, including space taken by the application's sidebar.
+Only the selected category is mounted. Existing category IDs remain valid for
+deep links and the remembered selection; a fresh visit defaults to General.
+
+The ten categories are General, Library, Playback and audio, Appearance,
+Images and lyrics, Connections, Extensions, Keyboard shortcuts, Storage and
+backups, and Maintenance. Library owns scanning, duplicates and music analysis;
+Storage and backups owns profile exports, caches and artwork maintenance.
+Images and lyrics brings artwork retrieval and lyrics preferences together.
+
+[`settingsCatalog.ts`](../../src/components/views/settings/settingsCatalog.ts)
+indexes translated category, group and setting labels for local settings search.
+A result opens its category, expands an advanced group when necessary, and moves
+focus to that group. Keep the search keys and group IDs aligned when adding or
+moving a setting. New navigation strings live under `settings.organization` in
+all 17 locales.
+
+[`SettingsGroup`](../../src/components/views/settings/SettingsGroup.tsx) supplies
+section headings and native disclosure controls for advanced audio, network
+sharing, artwork cleanup and application reset. Scoped settings row styles live
+in `settings/settings.css`; existing cards retain their own behavior and controls.
+
 ## Panels
 
 - [`NowPlayingPanel`](../../src/components/layout/NowPlayingPanel.tsx) — large artwork, clickable artists, "About the artist" section populated from the Deezer + Last.fm caches, and a "Next in queue" teaser with an "Open queue" link that hands the right slot off to `QueuePanel`. Lightbox on cover click.
