@@ -1596,25 +1596,34 @@ struct PluginAnswer {
     plugin_id: String,
 }
 
-/// Lyrics that can follow the song: LRC, Enhanced LRC, or TTML with at
-/// least one timed line. The TTML rule is the renderer's (`parseTtml`
-/// keeps only a `<p>` with a `begin`): Apple serves lyrics it has no
-/// timing for as TTML too, with `itunes:timing="None"` and bare lines.
+/// Lyrics the renderer can follow: LRC or Enhanced LRC with at least one
+/// complete line stamp, or a well-formed TTML document with at least one
+/// `<p>` whose `begin` it can read. Each rule mirrors the frontend parser,
+/// because an answer judged synced here ends the waterfall, and one the
+/// renderer then cannot follow is static text that beat synced lyrics.
+/// Apple serves lyrics it has no timing for as TTML too, with
+/// `itunes:timing="None"` and bare lines.
 fn lyrics_are_synced(format: &LyricsFormat, content: &str) -> bool {
     match format {
-        LyricsFormat::Lrc | LyricsFormat::EnhancedLrc => true,
+        LyricsFormat::Lrc | LyricsFormat::EnhancedLrc => lrc_has_line_stamp(content),
         LyricsFormat::Plain => false,
         LyricsFormat::Ttml => ttml_has_timed_line(content),
     }
 }
 
+/// `LRC_LINE_STAMP_RE` in `src/lib/tauri/lyrics.ts`: the renderer keeps a
+/// line only when it carries a complete stamp of this shape.
+static LRC_LINE_STAMP: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+    regex::Regex::new(r"\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]").expect("static pattern")
+});
+
+fn lrc_has_line_stamp(content: &str) -> bool {
+    LRC_LINE_STAMP.is_match(content)
+}
+
 fn ttml_has_timed_line(content: &str) -> bool {
     use quick_xml::events::Event;
 
-    // Read to the end rather than stopping at the first timed line: the
-    // renderer's `DOMParser` rejects a malformed document outright, while
-    // this reader is lenient and would happily report a `<p begin>` from a
-    // truncated one. Unbalanced elements at the end count as malformed.
     let mut reader = quick_xml::Reader::from_str(content);
     let mut depth: usize = 0;
     let mut timed = false;
@@ -1638,9 +1647,44 @@ fn ttml_has_timed_line(content: &str) -> bool {
 
 fn is_timed_line(e: &quick_xml::events::BytesStart<'_>) -> bool {
     e.local_name().into_inner() == "p"
-        && e.attributes()
-            .flatten()
-            .any(|a| a.key.local_name().into_inner() == "begin" && !a.value.is_empty())
+        && e.attributes().flatten().any(|a| {
+            a.key.local_name().into_inner() == "begin"
+                && ttml_time_ms(&a.value).is_some_and(|ms| ms >= -0.5)
+        })
+}
+
+/// `parseTtmlTime` in `src/lib/tauri/lyrics.ts`, which drops a line whose
+/// `begin` it cannot read or that rounds below zero.
+fn ttml_time_ms(value: &str) -> Option<f64> {
+    // `Number("")` is 0 in JavaScript, which the renderer inherits.
+    fn number(s: &str) -> Option<f64> {
+        let t = s.trim();
+        if t.is_empty() {
+            return Some(0.0);
+        }
+        t.parse::<f64>().ok().filter(|n| n.is_finite())
+    }
+    let s = value.trim();
+    if s.is_empty() {
+        return None;
+    }
+    if let Some(n) = s.strip_suffix("ms") {
+        return number(n);
+    }
+    if let Some(n) = s.strip_suffix('s') {
+        return number(n).map(|v| v * 1000.0);
+    }
+    if s.contains(':') {
+        let parts: Vec<&str> = s.split(':').collect();
+        return match parts.as_slice() {
+            [m, sec] => Some(number(m)? * 60_000.0 + number(sec)? * 1000.0),
+            [h, m, sec] => {
+                Some(number(h)? * 3_600_000.0 + number(m)? * 60_000.0 + number(sec)? * 1000.0)
+            }
+            _ => None,
+        };
+    }
+    number(s).map(|v| v * 1000.0)
 }
 
 /// Ask every enabled `waveflow:metadata/v2` plugin for this track, and
@@ -4254,34 +4298,29 @@ mod tests {
         assert_eq!(detect_format(sample), LyricsFormat::Ttml);
     }
 
-    // #668: an untimed TTML answer must not end the waterfall. The shape
-    // is Apple's for lyrics it has no timing for; the text is placeholder.
+    // #668: whether an answer can be followed decides if it ends the
+    // waterfall, so these mirror the renderer's own rules. The untimed
+    // shape is Apple's; the text is placeholder.
     #[test]
     fn untimed_apple_ttml_is_not_synced() {
         let sample = r#"<tt xmlns="http://www.w3.org/ns/ttml" xmlns:itunes="http://music.apple.com/lyric-ttml-internal" itunes:timing="None" xml:lang="en"><head><metadata/></head><body><div><p>line one</p><p>line two</p></div></body></tt>"#;
         assert!(!lyrics_are_synced(&LyricsFormat::Ttml, sample));
     }
-
     #[test]
     fn ttml_with_a_timed_line_is_synced() {
         let sample = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="00:01.000" end="00:02.000">line</p></div></body></tt>"#;
         assert!(lyrics_are_synced(&LyricsFormat::Ttml, sample));
     }
-
     #[test]
     fn ttml_timed_only_on_spans_is_not_synced() {
-        // The renderer keeps a line only when the `<p>` itself has a
-        // `begin`, so a begin on a span alone does not make it followable.
         let sample = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p><span begin="1s">word</span></p></div></body></tt>"#;
         assert!(!lyrics_are_synced(&LyricsFormat::Ttml, sample));
     }
-
     #[test]
     fn prefixed_ttml_line_with_begin_is_synced() {
         let sample = r#"<tt:tt xmlns:tt="http://www.w3.org/ns/ttml"><tt:body><tt:div><tt:p begin="1s">line</tt:p></tt:div></tt:body></tt:tt>"#;
         assert!(lyrics_are_synced(&LyricsFormat::Ttml, sample));
     }
-
     #[test]
     fn unparseable_ttml_is_not_synced() {
         assert!(!lyrics_are_synced(
@@ -4289,14 +4328,37 @@ mod tests {
             "<tt><p begin=\"1s\">"
         ));
     }
-
     #[test]
-    fn line_formats_are_synced_and_plain_is_not() {
+    fn ttml_begin_the_renderer_cannot_read_is_untimed() {
+        for begin in ["", "   ", "soon", "1:2:3:4", "-5s"] {
+            let sample = format!(
+                r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="{begin}">line</p></div></body></tt>"#
+            );
+            assert!(
+                !lyrics_are_synced(&LyricsFormat::Ttml, &sample),
+                "{begin:?}"
+            );
+        }
+        for begin in ["12.5s", "1500ms", "01:02.5", "01:02:03.4", "5"] {
+            let sample = format!(
+                r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="{begin}">line</p></div></body></tt>"#
+            );
+            assert!(lyrics_are_synced(&LyricsFormat::Ttml, &sample), "{begin:?}");
+        }
+    }
+    #[test]
+    fn lrc_needs_a_complete_line_stamp() {
         assert!(lyrics_are_synced(&LyricsFormat::Lrc, "[00:01.00]x"));
+        assert!(lyrics_are_synced(
+            &LyricsFormat::Lrc,
+            "[ar:Someone]\n[01:02]x"
+        ));
         assert!(lyrics_are_synced(
             &LyricsFormat::EnhancedLrc,
             "[00:01.00]<00:01.00>x"
         ));
+        assert!(!lyrics_are_synced(&LyricsFormat::Lrc, "[00:01x\nline"));
+        assert!(!lyrics_are_synced(&LyricsFormat::Lrc, "[ar:Someone]\nline"));
         assert!(!lyrics_are_synced(&LyricsFormat::Plain, "x"));
     }
 
