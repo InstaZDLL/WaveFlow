@@ -2309,7 +2309,7 @@
     },
     "canvasCache": {
       "cacheLabel": "Enregistrer les Canvas en local",
-      "subtitle": "Télécharge le Canvas de chaque piste depuis le plugin pour une lecture hors ligne, sans re-streaming.",
+      "subtitle": "Télécharge le Canvas de chaque piste depuis les plugins Canvas pour une lecture hors ligne, sans re-streaming.",
       "usage": "{{size}} utilisés · {{files}} Canvas en cache",
       "clear": "Vider le cache",
       "clearConfirm": "Confirmer ?"

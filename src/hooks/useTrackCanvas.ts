@@ -166,6 +166,28 @@ export function invalidateTrackCanvas(trackId: number): void {
   for (const cb of epochListeners) cb();
 }
 
+/**
+ * Forget every cached Canvas answer — call after the on-disk Canvas cache is
+ * cleared. With the cache on, the backend answers with a LOCAL path, so a
+ * clear leaves every remembered answer pointing at a file that no longer
+ * exists; the surfaces already mounted would keep asking the webview for it
+ * until a restart. A clear empties the whole cache, so dropping one track's
+ * entry would not be enough.
+ *
+ * Every per-track generation is bumped too, so a lookup already in flight —
+ * which may be about to hand back one of the deleted paths — lands as stale
+ * instead of repopulating the cache.
+ */
+export function invalidateAllTrackCanvas(): void {
+  for (const trackId of new Set([...resolved.keys(), ...inFlight.keys()])) {
+    generation.set(trackId, generationOf(trackId) + 1);
+  }
+  resolved.clear();
+  inFlight.clear();
+  epoch += 1;
+  for (const cb of epochListeners) cb();
+}
+
 // The caches above are keyed by `trackId` only, but track ids are per-profile
 // (each profile has its own SQLite DB), so a colliding id must not serve
 // another profile's Canvas after a switch. Track the active profile and drop
@@ -203,9 +225,16 @@ export function useTrackCanvas(
   // belongs to, so the render can gate on a match below — a bare path would
   // flash the previous track's (or previous profile's) Canvas for one render
   // after the inputs change but before the effect resolves.
+  //
+  // And the epoch it was resolved under. An invalidation (a manual Canvas set
+  // or cleared, or the on-disk cache emptied) bumps the epoch, but this state
+  // survives it until the re-resolve lands — and after a cache clear the path
+  // it holds names a deleted file. Gating on the epoch makes the window read
+  // as "no Canvas" instead of pointing the webview at a missing mp4.
   const [resolved, setResolved] = useState<{
     id: number;
     profileId: number | null;
+    epoch: number;
     path: string | null;
   } | null>(null);
   // Re-run the effect when a set/clear bumps the epoch, even for the same
@@ -233,7 +262,17 @@ export function useTrackCanvas(
   useEffect(() => {
     let cancelled = false;
     const apply = (p: string | null) => {
-      if (!cancelled) setResolved({ id: trackId as number, profileId, path: p });
+      // `cancelled` alone is not enough: an invalidation bumps the epoch
+      // synchronously, but this effect is only cleaned up at the next
+      // commit, so a lookup started before it can land in between and
+      // install an answer the invalidation just declared stale.
+      if (!cancelled && getEpoch() === currentEpoch)
+        setResolved({
+          id: trackId as number,
+          profileId,
+          epoch: currentEpoch,
+          path: p,
+        });
     };
     // Radio and Spotify play under a negative sentinel id: no library row
     // for a manual Canvas, and nothing meaningful to resolve a plugin one
@@ -273,7 +312,8 @@ export function useTrackCanvas(
   // clip never bleeds onto the new one.
   return resolved &&
     resolved.id === trackId &&
-    resolved.profileId === profileId
+    resolved.profileId === profileId &&
+    resolved.epoch === currentEpoch
     ? resolved.path
     : null;
 }

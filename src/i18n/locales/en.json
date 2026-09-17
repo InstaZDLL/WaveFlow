@@ -2306,7 +2306,7 @@
     },
     "canvasCache": {
       "cacheLabel": "Save Canvas videos locally",
-      "subtitle": "Downloads each track's Canvas from the plugin so it plays offline and doesn't re-stream.",
+      "subtitle": "Downloads each track's Canvas from Canvas plugins so it plays offline and doesn't re-stream.",
       "usage": "{{size}} used · {{files}} Canvas cached",
       "clear": "Clear cache",
       "clearConfirm": "Confirm?"

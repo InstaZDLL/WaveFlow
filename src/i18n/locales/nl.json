@@ -2306,7 +2306,7 @@
     },
     "canvasCache": {
       "cacheLabel": "Canvas lokaal opslaan",
-      "subtitle": "Downloadt de Canvas van elk nummer via de plug-in, zodat die offline en zonder opnieuw streamen speelt.",
+      "subtitle": "Downloadt de Canvas van elk nummer via Canvas-plug-ins, zodat die offline en zonder opnieuw streamen speelt.",
       "usage": "{{size}} gebruikt · {{files}} Canvas in cache",
       "clear": "Cache wissen",
       "clearConfirm": "Bevestigen?"

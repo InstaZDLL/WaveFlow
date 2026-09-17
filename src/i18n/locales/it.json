@@ -2309,7 +2309,7 @@
     },
     "canvasCache": {
       "cacheLabel": "Salva i Canvas in locale",
-      "subtitle": "Scarica il Canvas di ogni brano dal plugin per riprodurlo offline e senza rieseguire lo streaming.",
+      "subtitle": "Scarica il Canvas di ogni brano dai plugin Canvas per riprodurlo offline e senza rieseguire lo streaming.",
       "usage": "{{size}} usati · {{files}} Canvas in cache",
       "clear": "Svuota cache",
       "clearConfirm": "Confermare?"

@@ -2306,7 +2306,7 @@
     },
     "canvasCache": {
       "cacheLabel": "Canvas를 로컬에 저장",
-      "subtitle": "플러그인에서 각 트랙의 Canvas를 내려받아 오프라인에서 다시 스트리밍하지 않고 재생합니다.",
+      "subtitle": "Canvas 플러그인에서 각 트랙의 Canvas를 내려받아 오프라인에서 다시 스트리밍하지 않고 재생합니다.",
       "usage": "{{size}} 사용 · {{files}}개 Canvas 캐시됨",
       "clear": "캐시 지우기",
       "clearConfirm": "확인할까요?"
