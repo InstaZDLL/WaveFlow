@@ -178,7 +178,14 @@ pub async fn close(app: &AppHandle) -> tauri::Result<()> {
 fn close_locked(app: &AppHandle) -> tauri::Result<()> {
     if let Some(window) = app.get_webview_window(LABEL) {
         mark_closing(app);
-        window.close()?;
+        if let Err(err) = window.close() {
+            // No close is coming, so no `Destroyed` either: a flag left up
+            // would make every later open wait out the timeout for nothing.
+            app.state::<DesktopLyricsState>()
+                .closing
+                .store(false, Ordering::Release);
+            return Err(err);
+        }
     }
     Ok(())
 }
