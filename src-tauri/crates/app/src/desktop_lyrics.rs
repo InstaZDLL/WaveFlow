@@ -62,8 +62,7 @@ pub struct DesktopLyricsState {
 }
 
 /// How long an open waits for a closing window to finish going away. Past
-/// it the open goes ahead with whatever is there rather than hanging a
-/// tray click forever, and the warning is what makes that visible.
+/// it the open fails rather than hanging a tray click forever.
 const CLOSE_WAIT: std::time::Duration = std::time::Duration::from_secs(3);
 
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -118,7 +117,12 @@ async fn open_locked(app: &AppHandle) -> tauri::Result<()> {
     let still_closing =
         state.closing.load(Ordering::Acquire) && app.get_webview_window(LABEL).is_some();
     if still_closing && tokio::time::timeout(CLOSE_WAIT, destroyed).await.is_err() {
-        tracing::warn!("desktop lyrics: previous window still closing after the wait");
+        // Showing the window that is on its way out would report an open
+        // that vanishes a moment later. Say it did not work instead; the
+        // next attempt, after `Destroyed`, builds a fresh one.
+        return Err(tauri::Error::Anyhow(anyhow::anyhow!(
+            "desktop lyrics: the previous window is still closing"
+        )));
     }
     if let Some(window) = app.get_webview_window(LABEL) {
         window.show()?;
