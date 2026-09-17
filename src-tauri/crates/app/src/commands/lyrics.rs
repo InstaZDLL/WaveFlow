@@ -1631,9 +1631,15 @@ fn ttml_has_timed_line(content: &str) -> bool {
         match reader.read_event() {
             Ok(Event::Start(e)) => {
                 depth += 1;
-                timed |= is_timed_line(&e);
+                match is_timed_line(&e) {
+                    Some(t) => timed |= t,
+                    None => return false,
+                }
             }
-            Ok(Event::Empty(e)) => timed |= is_timed_line(&e),
+            Ok(Event::Empty(e)) => match is_timed_line(&e) {
+                Some(t) => timed |= t,
+                None => return false,
+            },
             Ok(Event::End(_)) => match depth.checked_sub(1) {
                 Some(d) => depth = d,
                 None => return false,
@@ -1645,12 +1651,23 @@ fn ttml_has_timed_line(content: &str) -> bool {
     }
 }
 
-fn is_timed_line(e: &quick_xml::events::BytesStart<'_>) -> bool {
-    e.local_name().into_inner() == "p"
-        && e.attributes().flatten().any(|a| {
-            a.key.local_name().into_inner() == "begin"
-                && ttml_time_ms(&a.value).is_some_and(|ms| ms >= -0.5)
-        })
+/// Whether this element is a `<p>` with a `begin` the renderer can read,
+/// or `None` when one of its attributes is malformed (a duplicate, a
+/// missing quote). Every element's attributes are checked, not only the
+/// lines': `DOMParser` rejects the whole document for any of them.
+fn is_timed_line(e: &quick_xml::events::BytesStart<'_>) -> Option<bool> {
+    let is_line = e.local_name().into_inner() == "p";
+    let mut timed = false;
+    for attr in e.attributes() {
+        let attr = attr.ok()?;
+        if is_line
+            && attr.key.local_name().into_inner() == "begin"
+            && ttml_time_ms(&attr.value).is_some_and(|ms| ms >= -0.5)
+        {
+            timed = true;
+        }
+    }
+    Some(timed)
 }
 
 /// `parseTtmlTime` in `src/lib/tauri/lyrics.ts`, which drops a line whose
@@ -4346,6 +4363,16 @@ mod tests {
             assert!(lyrics_are_synced(&LyricsFormat::Ttml, &sample), "{begin:?}");
         }
     }
+    #[test]
+    fn ttml_with_a_malformed_attribute_is_not_synced() {
+        // `DOMParser` rejects the document, so the renderer shows nothing
+        // timed however valid the rest of it is.
+        let duplicate = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="1s" begin="2s">line</p></div></body></tt>"#;
+        assert!(!lyrics_are_synced(&LyricsFormat::Ttml, duplicate));
+        let elsewhere = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div lang="en" lang="fr"><p begin="1s">line</p></div></body></tt>"#;
+        assert!(!lyrics_are_synced(&LyricsFormat::Ttml, elsewhere));
+    }
+
     #[test]
     fn lrc_needs_a_complete_line_stamp() {
         assert!(lyrics_are_synced(&LyricsFormat::Lrc, "[00:01.00]x"));
