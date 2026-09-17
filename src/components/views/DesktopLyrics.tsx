@@ -193,7 +193,7 @@ export function DesktopLyrics() {
 
       <FitLine
         size={style.fontSize}
-        fitKey={`${currentTrack?.id ?? ""}:${activeIndex}:${isSynced}`}
+        fitKey={`${currentTrack?.id ?? ""}:${activeIndex}:${activeLine?.text ?? currentTrack?.title ?? ""}`}
         className={`${LINE_CLASS} font-bold`}
         style={{
           color: activeLine?.words?.length
@@ -264,7 +264,10 @@ function FitLine({
         natural > room && natural > 0
           ? Math.max(MIN_FIT_SCALE, room / natural)
           : 1;
-      setScale((prev) => (Math.abs(prev - next) < 0.01 ? prev : next));
+      // Always the measured value: the measurement is taken at the chosen
+      // size, so it cannot feed back on itself, and rounding a slight
+      // overflow away would leave that line cut by a letter.
+      setScale(next);
     };
     fit();
     const observer = new ResizeObserver(fit);
