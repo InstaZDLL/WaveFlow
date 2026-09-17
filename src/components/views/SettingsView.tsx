@@ -15,6 +15,7 @@ import {
   Minimize2,
   ScanLine,
   RefreshCcw,
+  Loader2,
   ImageIcon,
   FolderOpen,
   Trash2,
@@ -2285,11 +2286,15 @@ export function SettingsView({
                     disabled={isRescanning || libraries.length === 0}
                     className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <RefreshCcw
-                      size={14}
-                      aria-hidden="true"
-                      className={isRescanning ? "animate-spin" : ""}
-                    />
+                    {isRescanning ? (
+                      <Loader2
+                        size={14}
+                        className="animate-spin"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <RefreshCcw size={14} aria-hidden="true" />
+                    )}
                     <span>{t("settings.rescan.action")}</span>
                   </button>
                 </div>
@@ -4392,11 +4397,15 @@ export function SettingsView({
                     disabled={isRegeneratingThumbs}
                     className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <RefreshCcw
-                      size={14}
-                      aria-hidden="true"
-                      className={isRegeneratingThumbs ? "animate-spin" : ""}
-                    />
+                    {isRegeneratingThumbs ? (
+                      <Loader2
+                        size={14}
+                        className="animate-spin"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <RefreshCcw size={14} aria-hidden="true" />
+                    )}
                     <span>{t("settings.regenerateThumbnailsAction")}</span>
                   </button>
                 </div>
@@ -4436,11 +4445,15 @@ export function SettingsView({
                     disabled={isPruningCovers}
                     className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <RefreshCcw
-                      size={14}
-                      aria-hidden="true"
-                      className={isPruningCovers ? "animate-spin" : ""}
-                    />
+                    {isPruningCovers ? (
+                      <Loader2
+                        size={14}
+                        className="animate-spin"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <RefreshCcw size={14} aria-hidden="true" />
+                    )}
                     <span>{t("settings.pruneAlbumCoversAction")}</span>
                   </button>
                 </div>

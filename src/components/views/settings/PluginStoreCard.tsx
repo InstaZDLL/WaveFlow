@@ -10,6 +10,7 @@ import {
   Check,
   BadgeCheck,
   Users,
+  Loader2,
 } from "lucide-react";
 
 import {
@@ -129,11 +130,11 @@ export function PluginStoreCard() {
           className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 shrink-0"
           aria-label={t("settings.pluginStore.refresh")}
         >
-          <RefreshCw
-            size={13}
-            aria-hidden="true"
-            className={loading ? "animate-spin" : undefined}
-          />
+          {loading ? (
+            <Loader2 size={13} aria-hidden="true" className="animate-spin" />
+          ) : (
+            <RefreshCw size={13} aria-hidden="true" />
+          )}
         </button>
       </header>
 
@@ -299,12 +300,10 @@ function InstallButton({
           : t("settings.pluginStore.installAria", { name: entry.name })
       }
     >
-      {isUpdate ? (
-        <RefreshCw
-          size={13}
-          aria-hidden="true"
-          className={busy ? "animate-spin" : undefined}
-        />
+      {isUpdate && busy ? (
+        <Loader2 size={13} aria-hidden="true" className="animate-spin" />
+      ) : isUpdate ? (
+        <RefreshCw size={13} aria-hidden="true" />
       ) : (
         <Download
           size={13}

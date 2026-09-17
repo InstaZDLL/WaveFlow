@@ -383,7 +383,7 @@ User overrides are stored per-profile in `profile_setting['ui.shortcuts']` as a 
 ## Theming & motion
 
 - **Dark mode** — animated radial transition via the [View Transitions API](https://developer.mozilla.org/en-US/docs/Web/API/View_Transitions_API). Falls back to an instant swap when unsupported.
-- **`prefers-reduced-motion`** respected for the radial transition and for animated SVGs.
+- **`prefers-reduced-motion`** respected for the radial transition and for animated SVGs. Loading spinners stop too (one `.animate-spin` rule in [`app.css`](../../src/app.css)); that is why a busy button swaps its icon for `Loader2` instead of spinning its own icon — a stopped `Loader2` still reads as loading, a stopped refresh arrow reads as an idle button.
 - **Single-click play** — optional Settings toggle; the default is double-click to mirror Apple Music / Finder.
 - **Framer Motion** — `motion/react` provides micro-interactions (sidebar nav reorder, modal open, view fade-in, queue drag). One global [`SkinMotionWrapper`](../../src/components/layout/SkinMotionWrapper.tsx) feeds skin-specific `transition` config to the `MotionConfig` provider so per-skin springs (Pulse uses `cubic-bezier(0.34, 1.56, 0.64, 1)`, Lounge stays tame, etc.) apply automatically without touching call sites.
 
@@ -479,19 +479,7 @@ Opt-in scheduled mirror of the manual export so the user's playlists / likes / r
 
 ## Settings categories
 
-[`SettingsView`](../../src/components/views/SettingsView.tsx) is split into seven horizontal tabs rendered as a proper ARIA `role="tablist"` at the top of the page (keyboard-navigable, `aria-selected` per panel):
-
-| Tab            | Houses                                                                                                  |
-| -------------- | ------------------------------------------------------------------------------------------------------- |
-| `library`      | Library folders, scan-on-start, file watcher                                                            |
-| `playback`     | EQ, crossfade, ReplayGain, normalisation, exclusive output, mono                                        |
-| `integrations` | Last.fm, Discord RPC, Deezer enrichment, DLNA media server                                              |
-| `appearance`   | Theme picker (14 presets) + player-bar layout                                                           |
-| `data`         | Profile export / import, auto-backup, statistics export, offline                                        |
-| `shortcuts`    | Per-action keyboard rebinder ([`ShortcutsCard`](../../src/components/views/settings/ShortcutsCard.tsx)) |
-| `diagnostics`  | Log folder reveal, recent log tail, app info                                                            |
-
-Only one panel mounts at a time, so heavy sub-views (EQ visualiser, backup card, shortcuts editor) don't run their effects until the user opens that tab.
+The ten categories, what each one houses and the settings search are described under [Settings navigation](#settings-navigation).
 
 ### App preferences
 
