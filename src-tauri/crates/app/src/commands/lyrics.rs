@@ -1588,6 +1588,61 @@ pub async fn get_lyrics(
 /// inside a wasm guest, and the panel is waiting on it.
 const LYRICS_PLUGIN_TIMEOUT: Duration = Duration::from_secs(20);
 
+/// What the plugin tier cached: the payload it returned, and the bundle
+/// and plugin id it came from, kept so the same answer can be cached again.
+struct PluginAnswer {
+    payload: LyricsPayload,
+    bundle: PluginLyricsBundle,
+    plugin_id: String,
+}
+
+/// Lyrics that can follow the song: LRC, Enhanced LRC, or TTML with at
+/// least one timed line. The TTML rule is the renderer's (`parseTtml`
+/// keeps only a `<p>` with a `begin`): Apple serves lyrics it has no
+/// timing for as TTML too, with `itunes:timing="None"` and bare lines.
+fn lyrics_are_synced(format: &LyricsFormat, content: &str) -> bool {
+    match format {
+        LyricsFormat::Lrc | LyricsFormat::EnhancedLrc => true,
+        LyricsFormat::Plain => false,
+        LyricsFormat::Ttml => ttml_has_timed_line(content),
+    }
+}
+
+fn ttml_has_timed_line(content: &str) -> bool {
+    use quick_xml::events::Event;
+
+    // Read to the end rather than stopping at the first timed line: the
+    // renderer's `DOMParser` rejects a malformed document outright, while
+    // this reader is lenient and would happily report a `<p begin>` from a
+    // truncated one. Unbalanced elements at the end count as malformed.
+    let mut reader = quick_xml::Reader::from_str(content);
+    let mut depth: usize = 0;
+    let mut timed = false;
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(e)) => {
+                depth += 1;
+                timed |= is_timed_line(&e);
+            }
+            Ok(Event::Empty(e)) => timed |= is_timed_line(&e),
+            Ok(Event::End(_)) => match depth.checked_sub(1) {
+                Some(d) => depth = d,
+                None => return false,
+            },
+            Ok(Event::Eof) => return timed && depth == 0,
+            Err(_) => return false,
+            _ => {}
+        }
+    }
+}
+
+fn is_timed_line(e: &quick_xml::events::BytesStart<'_>) -> bool {
+    e.local_name().into_inner() == "p"
+        && e.attributes()
+            .flatten()
+            .any(|a| a.key.local_name().into_inner() == "begin" && !a.value.is_empty())
+}
+
 /// Ask every enabled `waveflow:metadata/v2` plugin for this track, and
 /// cache the first bundle that survives validation.
 ///
@@ -1599,13 +1654,17 @@ const LYRICS_PLUGIN_TIMEOUT: Duration = Duration::from_secs(20);
 /// `Ok(None)` means nothing was cached and the caller should carry on
 /// down the waterfall. Nothing here writes a miss: a plugin having no
 /// lyrics says nothing about whether LRCLIB does.
+///
+/// The answer carries the bundle it cached as well as the payload, so
+/// `fetch_lyrics` can write it back after trying the network tiers for
+/// something better (#668).
 async fn try_plugin_lyrics(
     state: &AppState,
     pool: &sqlx::SqlitePool,
     track_id: i64,
     meta: &TrackMeta,
     only: Option<&str>,
-) -> AppResult<Option<LyricsPayload>> {
+) -> AppResult<Option<PluginAnswer>> {
     let mut plugin_ids = super::plugins::enabled_plugin_ids_for_world(
         state,
         waveflow_core::plugin::worlds::METADATA_V2,
@@ -1685,9 +1744,13 @@ async fn try_plugin_lyrics(
         };
 
         if let Some(payload) =
-            cache_lyrics_bundle(pool, track_id, &meta.file_hash, bundle, &plugin_id).await?
+            cache_lyrics_bundle(pool, track_id, &meta.file_hash, bundle.clone(), &plugin_id).await?
         {
-            return Ok(Some(payload));
+            return Ok(Some(PluginAnswer {
+                payload,
+                bundle,
+                plugin_id,
+            }));
         }
         // Validation rejected it; `cache_lyrics_bundle` has already said
         // why. Keep asking the others.
@@ -1735,12 +1798,62 @@ pub async fn fetch_lyrics(
     //    (issue #585). Offline is checked here as well as inside the
     //    host imports: a guest that ignores a denied fetch would still
     //    burn the timeout.
+    //
+    //    Only a synced answer ends the waterfall here (#668). An unsynced
+    //    one — Apple serves lyrics it has no timing for as untimed TTML —
+    //    is held while the network tiers look for synced lyrics, and used
+    //    only if none of them finds any: the plugin still wins a tie, but
+    //    karaoke beats static text.
+    let mut held: Option<PluginAnswer> = None;
     if !crate::offline::is_offline() {
-        if let Some(payload) = try_plugin_lyrics(&state, &pool, track_id, &meta, None).await? {
-            return Ok(Some(payload));
+        if let Some(answer) = try_plugin_lyrics(&state, &pool, track_id, &meta, None).await? {
+            if lyrics_are_synced(&answer.payload.format, &answer.payload.content) {
+                return Ok(Some(answer.payload));
+            }
+            held = Some(answer);
         }
     }
 
+    let Some(held) = held else {
+        return fetch_after_plugins(&pool, track_id, &meta, prefer_lrclib).await;
+    };
+    match fetch_after_plugins(&pool, track_id, &meta, prefer_lrclib).await {
+        Ok(Some(payload)) if lyrics_are_synced(&payload.format, &payload.content) => {
+            Ok(Some(payload))
+        }
+        rest => {
+            // Anything short of synced lyrics — plain text, an instrumental
+            // verdict, a miss, a network failure — leaves the plugin's
+            // answer standing. The tiers below write their own result
+            // (a plain row, an empty miss row), so it is cached again
+            // rather than assumed to still be there.
+            if let Err(err) = &rest {
+                tracing::debug!(?err, "no synced lyrics after an unsynced plugin answer");
+            }
+            let PluginAnswer {
+                payload,
+                bundle,
+                plugin_id,
+            } = held;
+            Ok(Some(
+                cache_lyrics_bundle(&pool, track_id, &meta.file_hash, bundle, &plugin_id)
+                    .await?
+                    .unwrap_or(payload),
+            ))
+        }
+    }
+}
+
+/// Tiers 5 and after of [`fetch_lyrics`]: Musixmatch word-level, LRCLIB,
+/// the query-based fallback chain, and the local tiers when
+/// `lyrics.prefer_lrclib` deferred them. Split out so `fetch_lyrics` can
+/// weigh their answer against an unsynced plugin one it is holding.
+async fn fetch_after_plugins(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+    meta: &TrackMeta,
+    prefer_lrclib: bool,
+) -> AppResult<Option<LyricsPayload>> {
     // 5. Musixmatch enhanced fallback. This runs before LRCLIB only
     //    when it returns true word-level LRC; regular line-level LRC
     //    still lets the stricter metadata LRCLIB lookup below win.
@@ -1750,7 +1863,7 @@ pub async fn fetch_lyrics(
         // its `(translation)` companion (issue #208). Prefetch +
         // scanner paths stay `None` to avoid the extra Musixmatch
         // hop per track on bulk operations.
-        let translation_lang = read_translation_lang(&pool).await.unwrap_or_else(|err| {
+        let translation_lang = read_translation_lang(pool).await.unwrap_or_else(|err| {
             tracing::warn!(
                 ?err,
                 "read_translation_lang failed; serving untranslated lyrics"
@@ -1760,7 +1873,7 @@ pub async fn fetch_lyrics(
         // A Musixmatch failure here is non-fatal: fall through to LRCLIB
         // rather than aborting the whole lookup or caching a miss.
         match external_lyrics_search(
-            &meta,
+            meta,
             vec![Provider::Musixmatch],
             SearchMode::SyncedOnly,
             true,
@@ -1771,7 +1884,7 @@ pub async fn fetch_lyrics(
             Ok(SearchOutcome::Found(result))
                 if matches!(result.format, ExternalLyricsFormat::EnhancedLrc) =>
             {
-                return cache_external_lyrics(&pool, track_id, &meta.file_hash, result)
+                return cache_external_lyrics(pool, track_id, &meta.file_hash, result)
                     .await
                     .map(Some);
             }
@@ -1789,14 +1902,14 @@ pub async fn fetch_lyrics(
     //    the file already carries.
     if crate::offline::is_offline() {
         return if prefer_lrclib {
-            try_local_lyrics(&pool, track_id, &meta).await
+            try_local_lyrics(pool, track_id, meta).await
         } else {
             Ok(None)
         };
     }
     let Some(artist_name) = meta.artist_name.as_deref() else {
         return if prefer_lrclib {
-            try_local_lyrics(&pool, track_id, &meta).await
+            try_local_lyrics(pool, track_id, meta).await
         } else {
             Ok(None)
         };
@@ -1821,7 +1934,7 @@ pub async fn fetch_lyrics(
             // LRCLIB's metadata endpoint, so they only run after the exact
             // lookup fails. See `resolve_after_lrclib_miss` for the
             // error-handling contract (provider Err is non-fatal here).
-            return resolve_after_lrclib_miss(&pool, track_id, &meta, prefer_lrclib).await;
+            return resolve_after_lrclib_miss(pool, track_id, meta, prefer_lrclib).await;
         }
         Err(err) => {
             // Surface transient network failures (timeout, DNS, refused
@@ -1840,7 +1953,7 @@ pub async fn fetch_lyrics(
         // before caching the miss, so the toggle never hides lyrics the
         // file actually carries.
         if prefer_lrclib {
-            if let Some(payload) = try_local_lyrics(&pool, track_id, &meta).await? {
+            if let Some(payload) = try_local_lyrics(pool, track_id, meta).await? {
                 return Ok(Some(payload));
             }
         }
@@ -1850,7 +1963,7 @@ pub async fn fetch_lyrics(
         // different provider via `refetch_lyrics` if they disagree.
         let empty = String::new();
         upsert_lyrics(
-            &pool,
+            pool,
             &meta.file_hash,
             &empty,
             &LyricsFormat::Plain,
@@ -1881,14 +1994,14 @@ pub async fn fetch_lyrics(
             // Same as the 404 branch above: LRCLIB returned an entry
             // but it was empty, so fall through to the fallback chain
             // (and the deferred local tiers under prefer-LRCLIB).
-            return resolve_after_lrclib_miss(&pool, track_id, &meta, prefer_lrclib).await;
+            return resolve_after_lrclib_miss(pool, track_id, meta, prefer_lrclib).await;
         }
     };
 
     let source = LyricsSource::Api;
     let provider = Provider::Lrclib.as_str();
     upsert_lyrics(
-        &pool,
+        pool,
         &meta.file_hash,
         &content,
         &format,
@@ -1971,7 +2084,13 @@ pub async fn refetch_lyrics(
             Some(m) => m,
             None => return Ok(None),
         };
-        return try_plugin_lyrics(&state, &pool, track_id, &meta, Some(plugin_id)).await;
+        // The plugin the user named answers, synced or not: they asked
+        // for this one, not for the best available.
+        return Ok(
+            try_plugin_lyrics(&state, &pool, track_id, &meta, Some(plugin_id))
+                .await?
+                .map(|answer| answer.payload),
+        );
     }
 
     let Some(provider) = Provider::from_id(provider_str) else {
@@ -4133,6 +4252,52 @@ mod tests {
     fn detect_format_ttml_no_decl() {
         let sample = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="0s">x</p></div></body></tt>"#;
         assert_eq!(detect_format(sample), LyricsFormat::Ttml);
+    }
+
+    // #668: an untimed TTML answer must not end the waterfall. The shape
+    // is Apple's for lyrics it has no timing for; the text is placeholder.
+    #[test]
+    fn untimed_apple_ttml_is_not_synced() {
+        let sample = r#"<tt xmlns="http://www.w3.org/ns/ttml" xmlns:itunes="http://music.apple.com/lyric-ttml-internal" itunes:timing="None" xml:lang="en"><head><metadata/></head><body><div><p>line one</p><p>line two</p></div></body></tt>"#;
+        assert!(!lyrics_are_synced(&LyricsFormat::Ttml, sample));
+    }
+
+    #[test]
+    fn ttml_with_a_timed_line_is_synced() {
+        let sample = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="00:01.000" end="00:02.000">line</p></div></body></tt>"#;
+        assert!(lyrics_are_synced(&LyricsFormat::Ttml, sample));
+    }
+
+    #[test]
+    fn ttml_timed_only_on_spans_is_not_synced() {
+        // The renderer keeps a line only when the `<p>` itself has a
+        // `begin`, so a begin on a span alone does not make it followable.
+        let sample = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p><span begin="1s">word</span></p></div></body></tt>"#;
+        assert!(!lyrics_are_synced(&LyricsFormat::Ttml, sample));
+    }
+
+    #[test]
+    fn prefixed_ttml_line_with_begin_is_synced() {
+        let sample = r#"<tt:tt xmlns:tt="http://www.w3.org/ns/ttml"><tt:body><tt:div><tt:p begin="1s">line</tt:p></tt:div></tt:body></tt:tt>"#;
+        assert!(lyrics_are_synced(&LyricsFormat::Ttml, sample));
+    }
+
+    #[test]
+    fn unparseable_ttml_is_not_synced() {
+        assert!(!lyrics_are_synced(
+            &LyricsFormat::Ttml,
+            "<tt><p begin=\"1s\">"
+        ));
+    }
+
+    #[test]
+    fn line_formats_are_synced_and_plain_is_not() {
+        assert!(lyrics_are_synced(&LyricsFormat::Lrc, "[00:01.00]x"));
+        assert!(lyrics_are_synced(
+            &LyricsFormat::EnhancedLrc,
+            "[00:01.00]<00:01.00>x"
+        ));
+        assert!(!lyrics_are_synced(&LyricsFormat::Plain, "x"));
     }
 
     #[test]
