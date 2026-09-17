@@ -2759,10 +2759,10 @@
       "title": "Server metadata",
       "subtitle": "The correction is stored on the server, not in the file.",
       "help": "These corrections survive the server's scans and are visible to every member of the library. Clearing a field removes the correction: the file's own value comes back.",
-      "missing": "This track is not in the server mirror yet. Run a catalogue walk, then try again.",
+      "missing": "This track is not in the server copy yet. Copy the catalogue, then try again.",
       "invalidNumber": "The year and the track and disc numbers must be whole numbers."
     },
-    "needsMirror": "Copy the server's catalogue first, above: this section compares your files against the local mirror, which is still empty."
+    "needsMirror": "Copy the server's catalogue first, above: this section compares your files against the local copy, which is still empty."
   },
   "tasks": {
     "barLabel": "Running tasks",
@@ -2775,7 +2775,7 @@
       "library_scan": "Library scan",
       "analysis": "Audio analysis",
       "lyrics_prefetch": "Lyrics prefetch",
-      "catalogue_mirror": "Catalogue mirror",
+      "catalogue_mirror": "Catalogue copy",
       "reconcile": "Reconciliation",
       "upload": "Upload",
       "backup": "Backup",
