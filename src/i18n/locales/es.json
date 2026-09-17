@@ -2426,7 +2426,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Una ventana flotante sobre tus otras aplicaciones que muestra la línea que se está cantando.",
-      "waylandNote": "En Wayland, el compositor puede no mantener la ventana por encima de otras aplicaciones ni donde la coloques.",
+      "waylandNote": "En Wayland (sobre todo en GNOME), la ventana no se mantiene por encima de otras aplicaciones ni donde la colocas. Para mantenerla encima, inicia WaveFlow con GDK_BACKEND=x11.",
       "previewSung": "Letras que siguen",
       "previewUnsung": "la canción",
       "fontSize": "Tamaño del texto",

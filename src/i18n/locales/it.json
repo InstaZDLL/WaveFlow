@@ -2426,7 +2426,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Una finestra mobile sopra le altre app che mostra la riga cantata.",
-      "waylandNote": "Su Wayland il compositor potrebbe non tenere la finestra sopra le altre app né dove la posizioni.",
+      "waylandNote": "Su Wayland (in particolare GNOME) la finestra non resta sopra le altre app né dove la posizioni. Per tenerla in primo piano, avvia WaveFlow con GDK_BACKEND=x11.",
       "previewSung": "Testi che seguono",
       "previewUnsung": "la canzone",
       "fontSize": "Dimensione del testo",

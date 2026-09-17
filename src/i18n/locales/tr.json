@@ -2423,7 +2423,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Diğer uygulamaların üzerinde, söylenen satırı gösteren yüzen bir pencere.",
-      "waylandNote": "Wayland'de bileşik yönetici pencereyi diğer uygulamaların üstünde veya yerleştirdiğiniz yerde tutmayabilir.",
+      "waylandNote": "Wayland'de (özellikle GNOME'da) pencere diğer uygulamaların üstünde veya yerleştirdiğiniz yerde tutulmaz. Üstte kalması için WaveFlow'u GDK_BACKEND=x11 ile başlatın.",
       "previewSung": "Şarkıyı izleyen",
       "previewUnsung": "sözler",
       "fontSize": "Metin boyutu",

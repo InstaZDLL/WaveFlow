@@ -1,6 +1,8 @@
 import {
   Fragment,
   useEffect,
+  useLayoutEffect,
+  useRef,
   useState,
   type CSSProperties,
   type ReactNode,
@@ -22,6 +24,23 @@ import type { LyricsLine } from "../../lib/tauri/lyrics";
 
 /** Size of the second line relative to the first. */
 const SECOND_LINE_SCALE = 0.62;
+
+/** How far a line may shrink to fit the window before it is cut with an
+ *  ellipsis instead: below this it stops being readable at a glance. */
+const MIN_FIT_SCALE = 0.6;
+
+/**
+ * Both lines share this: room for descenders and the outline, one line,
+ * cut with an ellipsis only past {@link MIN_FIT_SCALE}.
+ *
+ * `truncate` clips at the element's box, and `leading-tight` made that box
+ * shorter than the glyphs: the bottom of `g`, `y` and `p` was cut off, on
+ * Linux in particular where the font's descent is deeper (#673). A roomier
+ * line height and a padding sized in `em` keep the descenders and the
+ * text-shadow outline inside the box at any font size.
+ */
+const LINE_CLASS =
+  "desktop-lyrics-line max-w-full truncate text-center leading-snug px-[0.15em] py-[0.1em]";
 
 /**
  * An outline drawn with eight text shadows rather than
@@ -172,10 +191,11 @@ export function DesktopLyrics() {
         </div>
       )}
 
-      <p
-        className="desktop-lyrics-line max-w-full truncate text-center font-bold leading-tight"
+      <FitLine
+        size={style.fontSize}
+        fitKey={`${currentTrack?.id ?? ""}:${activeIndex}:${activeLine?.text ?? currentTrack?.title ?? ""}`}
+        className={`${LINE_CLASS} font-bold`}
         style={{
-          fontSize: style.fontSize,
           color: activeLine?.words?.length
             ? "var(--dl-text)"
             : activeLine
@@ -185,21 +205,98 @@ export function DesktopLyrics() {
         }}
       >
         {first}
-      </p>
+      </FitLine>
       {second && (
-        <p
-          className="desktop-lyrics-line mt-1 max-w-full truncate text-center font-semibold leading-tight"
+        <FitLine
+          size={Math.round(style.fontSize * SECOND_LINE_SCALE)}
+          fitKey={second}
+          className={`${LINE_CLASS} font-semibold`}
           style={{
-            fontSize: Math.round(style.fontSize * SECOND_LINE_SCALE),
             color: "var(--dl-text)",
             opacity: 0.85,
             textShadow: shadow,
           }}
         >
           {second}
-        </p>
+        </FitLine>
       )}
     </div>
+  );
+}
+
+/**
+ * One line of the overlay, shrunk to fit the window when it is too long
+ * at the chosen size (#673), down to {@link MIN_FIT_SCALE}. Past that it
+ * keeps the floor and `truncate` cuts it.
+ *
+ * The natural width is measured at the chosen size, not the size last
+ * applied: measuring the already-shrunk line would find it fits and grow
+ * it back, and the two would alternate. The inline size is restored right
+ * after, so React's own value is the one left in place. `fitKey` changes
+ * with the text, the observer covers the window being resized, and a font
+ * finishing its load refits too.
+ */
+function FitLine({
+  size,
+  fitKey,
+  className,
+  style,
+  children,
+}: {
+  size: number;
+  fitKey: string;
+  className: string;
+  style: CSSProperties;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      const applied = el.style.fontSize;
+      el.style.fontSize = `${size}px`;
+      const natural = el.scrollWidth;
+      const room = el.clientWidth;
+      el.style.fontSize = applied;
+      const next =
+        natural > room && natural > 0
+          ? Math.max(MIN_FIT_SCALE, room / natural)
+          : 1;
+      // Always the measured value: the measurement is taken at the chosen
+      // size, so it cannot feed back on itself, and rounding a slight
+      // overflow away would leave that line cut by a letter.
+      setScale(next);
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el.parentElement ?? el);
+    // The fonts come from `@fontsource` and load after the first paint.
+    // A first fit taken in the fallback face is wrong once the real one
+    // arrives, and a font swap resizes nothing the observer watches.
+    let active = true;
+    const refit = () => {
+      if (active) fit();
+    };
+    void document.fonts.ready.then(refit);
+    document.fonts.addEventListener("loadingdone", refit);
+    return () => {
+      active = false;
+      observer.disconnect();
+      document.fonts.removeEventListener("loadingdone", refit);
+    };
+  }, [size, fitKey]);
+
+  return (
+    <p
+      ref={ref}
+      className={className}
+      style={{ ...style, fontSize: size * scale }}
+    >
+      {children}
+    </p>
   );
 }
 

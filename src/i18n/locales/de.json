@@ -2423,7 +2423,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Ein schwebendes Fenster über deinen anderen Apps, das die gerade gesungene Zeile zeigt.",
-      "waylandNote": "Unter Wayland hält der Compositor das Fenster eventuell nicht über anderen Apps oder dort, wo du es platzierst.",
+      "waylandNote": "Unter Wayland (vor allem GNOME) bleibt das Fenster weder über anderen Apps noch dort, wo du es platzierst. Damit es im Vordergrund bleibt, starte WaveFlow mit GDK_BACKEND=x11.",
       "previewSung": "Songtext, der dem Lied",
       "previewUnsung": "folgt",
       "fontSize": "Textgröße",

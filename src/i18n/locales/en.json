@@ -2423,7 +2423,7 @@
     },
     "desktopLyrics": {
       "subtitle": "A floating window above your other apps that shows the line being sung.",
-      "waylandNote": "On Wayland, the compositor may not keep the window above other apps or where you place it.",
+      "waylandNote": "On Wayland (GNOME in particular), the window is not kept above other apps or where you place it. To keep it on top, start WaveFlow with GDK_BACKEND=x11.",
       "previewSung": "Lyrics that follow",
       "previewUnsung": "the song",
       "fontSize": "Text size",

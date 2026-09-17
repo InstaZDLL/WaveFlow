@@ -2423,7 +2423,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Een zwevend venster boven je andere apps dat de regel toont die gezongen wordt.",
-      "waylandNote": "Onder Wayland houdt de compositor het venster mogelijk niet boven andere apps of op de plek waar je het neerzet.",
+      "waylandNote": "Onder Wayland (vooral GNOME) blijft het venster niet boven andere apps of op de plek waar je het neerzet. Start WaveFlow met GDK_BACKEND=x11 om het bovenaan te houden.",
       "previewSung": "Songtekst die het nummer",
       "previewUnsung": "volgt",
       "fontSize": "Tekstgrootte",
