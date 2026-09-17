@@ -592,7 +592,7 @@
       "album": "Album",
       "year": "Jahr",
       "trackNumber": "Titelnr.",
-      "discNumber": "CD-Nr.",
+      "discNumber": "Disc-Nr.",
       "duration": "Dauer",
       "rating": "Bewertung",
       "bitrate": "Bitrate",
@@ -1502,7 +1502,7 @@
     },
     "predicateGroups": {
       "text": "Text",
-      "library": "Mediathek",
+      "library": "Bibliothek",
       "audio": "Audio",
       "history": "Wiedergaben",
       "tags": "Tags"
@@ -1757,7 +1757,7 @@
     },
     "generatorAlbumMode": {
       "title": "Sessions aus ganzen Alben",
-      "subtitle": "Stimmungsradio und Daily Mix wählen Alben und spielen sie der Reihe nach, statt einzelner Titel"
+      "subtitle": "Mood-Radio und Daily Mix wählen Alben und spielen sie der Reihe nach, statt einzelner Titel"
     },
     "exclusive": {
       "title": "Exklusive Ausgabe",
@@ -2672,7 +2672,7 @@
     },
     "catalogue": {
       "title": "Server-Katalog",
-      "subtitle": "Den Katalog des Servers lokal kopieren, um ihn aus der Mediathek heraus durchsuchen zu können. Ohne das sind nur die Titel bekannt, die deine Playlists bereits verwenden.",
+      "subtitle": "Den Katalog des Servers lokal kopieren, um ihn aus der Bibliothek heraus durchsuchen zu können. Ohne das sind nur die Titel bekannt, die deine Playlists bereits verwenden.",
       "mirror": "Kopieren",
       "cancel": "Anhalten",
       "clear": "Kopie leeren",
@@ -2681,7 +2681,7 @@
       "statAlbums": "Alben",
       "statTracks": "Titel",
       "statArtists": "Künstler",
-      "statLibraries": "Mediatheken",
+      "statLibraries": "Bibliotheken",
       "progressAlbums": "{{done}} Alben durchlaufen…",
       "progressSweep": "{{done}} Titel erfasst…",
       "reportUnchanged": "Es hatte sich nichts geändert.",
@@ -2705,11 +2705,11 @@
       "reportFeed": "Serverkorrekturen: {{applied}}"
     },
     "import": {
-      "action": "In meine Mediathek importieren",
-      "title": "In meine Mediathek importieren",
-      "subtitle": "{{name}} wird in einen durchsuchten Ordner kopiert und damit zu einem Titel deiner eigenen Mediathek.",
+      "action": "In meine Bibliothek importieren",
+      "title": "In meine Bibliothek importieren",
+      "subtitle": "{{name}} wird in einen durchsuchten Ordner kopiert und damit zu einem Titel deiner eigenen Bibliothek.",
       "destination": "Zielordner",
-      "noFolder": "Kein durchsuchter Ordner erreichbar. Füge einen unter Einstellungen → Mediathek hinzu.",
+      "noFolder": "Kein durchsuchter Ordner erreichbar. Füge einen unter Einstellungen → Bibliothek hinzu.",
       "unreachable": "Nicht erreichbar",
       "explainer": "Die Datei wird unverändert kopiert und dann mit dem Titel des Servers verknüpft: die Wiedergabe bevorzugt deine lokale Kopie.",
       "submit": "Importieren",
@@ -2717,7 +2717,7 @@
       "done": "Importiert: {{count}}",
       "refusal": {
         "already_linked": "Bereits mit einem lokalen Titel verknüpft: {{count}}",
-        "already_held": "Bereits in deiner Mediathek, verknüpft: {{count}}",
+        "already_held": "Bereits in deiner Bibliothek, verknüpft: {{count}}",
         "unknown_track": "Dem Katalog unbekannt: {{count}}",
         "unsupported_format": "Nicht unterstütztes Format: {{count}}",
         "hash_mismatch": "Unerwarteter Inhalt: {{count}}",
@@ -2739,7 +2739,7 @@
       "statLinked": "Schon da, verknüpft",
       "statUnsupported": "Abgelehntes Format",
       "statUnreadable": "Nicht lesbar",
-      "destination": "Mediathek",
+      "destination": "Bibliothek",
       "send": "Hochladen ({{count}})",
       "sent": "Hochgeladen: {{count}}",
       "stopped": "angehalten",
@@ -2748,7 +2748,7 @@
         "unsupported_format": "Vom Server abgelehntes Format: {{count}}",
         "too_large": "Zu groß: {{count}}",
         "quota_exceeded": "Kein Platz mehr auf dem Server: {{count}}",
-        "library_closed": "Mediathek nimmt keine Dateien an: {{count}}",
+        "library_closed": "Bibliothek nimmt keine Dateien an: {{count}}",
         "too_many_sessions": "Zu viele Uploads gleichzeitig: {{count}}",
         "unknown_verdict": "Antwort, die dieser Build nicht kennt: {{count}}",
         "failed": "Fehlgeschlagen: {{count}}"
@@ -2783,7 +2783,7 @@
     }
   },
   "smartRuleSummary": {
-    "everything": "die ganze Mediathek",
+    "everything": "die ganze Bibliothek",
     "nothing": "keine Titel",
     "and": " und ",
     "or": " oder ",
@@ -2835,16 +2835,16 @@
     "searching": "Suche nach Veröffentlichungen…",
     "matching": "Titel werden zugeordnet…",
     "noSources": "Keine Veröffentlichung zu diesem Album gefunden.",
-    "sourcesHint": "Dasselbe Album gibt es oft in mehreren Veröffentlichungen mit unterschiedlichen Titellisten. Wählen Sie die passende aus.",
+    "sourcesHint": "Dasselbe Album gibt es oft in mehreren Veröffentlichungen mit unterschiedlichen Titellisten. Wähle die passende aus.",
     "back": "Andere Veröffentlichung wählen",
-    "hint": "Es wird nichts geschrieben, bevor Sie übernehmen.",
+    "hint": "Es wird nichts geschrieben, bevor du übernimmst.",
     "acceptColumn": "Ganzes Feld:",
     "acceptTrack": "Ganzer Titel",
-    "nothingToChange": "Diese Veröffentlichung sagt genau das, was Ihre Dateien schon sagen.",
+    "nothingToChange": "Diese Veröffentlichung sagt genau das, was deine Dateien schon sagen.",
     "trackUnchanged": "An diesem Titel ist nichts zu ändern.",
     "noMatch": "Keine Entsprechung für {{file}}.",
     "emptyValue": "(leer)",
-    "unmatchedRemote": "Auf dieser Veröffentlichung, aber nicht in Ihrer Mediathek: {{titles}}",
+    "unmatchedRemote": "Auf dieser Veröffentlichung, aber nicht in deiner Bibliothek: {{titles}}",
     "apply": "Übernehmen",
     "confidence": {
       "confident": "Sicher",
