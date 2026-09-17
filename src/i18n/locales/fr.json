@@ -90,7 +90,7 @@
       "changeHint": "Cliquez pour changer de dossier",
       "quickSettings": "Réglages rapides",
       "autoAnalyze": {
-        "title": "Auto-analyse des morceaux",
+        "title": "Auto-analyse des titres",
         "description": "Détecte le BPM et la tonalité pendant l'analyse — alimente la Radio et la Radio par humeur."
       }
     },
@@ -116,10 +116,10 @@
     },
     "scan": {
       "title": "Scanner votre bibliothèque",
-      "description": "Prêt à analyser votre dossier et découvrir vos morceaux ?",
+      "description": "Prêt à scanner votre dossier et découvrir vos titres ?",
       "noFolder": "Aucun dossier sélectionné",
       "readyHint": "Votre dossier est configuré. Lancez le scan dès que vous êtes prêt.",
-      "scanning": "Analyse de votre bibliothèque…",
+      "scanning": "Scan de votre bibliothèque…",
       "errorTitle": "Le scan a échoué"
     },
     "done": {
@@ -127,7 +127,7 @@
       "description": "Votre bibliothèque est scannée et prête à jouer.",
       "nextSteps": "Pour aller plus loin :",
       "bulletExplore": "Explorez votre bibliothèque via les onglets Bibliothèque, Albums et Artistes",
-      "bulletQueue": "Créez votre première file d'attente en cliquant sur un morceau",
+      "bulletQueue": "Créez votre première file d'attente en cliquant sur un titre",
       "bulletSettings": "Affinez les réglages dans la barre latérale (Apparence, Intégrations…)",
       "tipImmersiveTitle": "Astuce : vue immersive",
       "tipImmersiveBody": "Cliquez sur la pochette du lecteur pour ouvrir la vue plein écran avec la pochette et les paroles côte à côte."
@@ -304,7 +304,7 @@
       "subtitle": "Classée par tempo, volume et genre",
       "trackCount_one": "{{count}} titre",
       "trackCount_other": "{{count}} titres",
-      "empty": "Pas assez de morceaux analysés",
+      "empty": "Pas assez de titres analysés",
       "loading": "Démarrage…",
       "focus": {
         "title": "Focus",
@@ -332,7 +332,7 @@
     },
     "recentlyPlayed": {
       "title": "Récemment joués",
-      "emptyTitle": "Aucun morceau écouté",
+      "emptyTitle": "Aucun titre écouté",
       "emptyDescription": "Lancez un titre pour qu'il apparaisse ici. Votre historique d'écoute se construit au fil de vos découvertes."
     },
     "recentlyAdded": {
@@ -343,10 +343,10 @@
       "regenerate": "Régénérer",
       "regenerating": "Génération…",
       "emptyTitle": "Pas encore de Daily Mix",
-      "emptyDescription": "Écoutez quelques morceaux puis cliquez sur Régénérer pour créer vos mixes personnalisés.",
+      "emptyDescription": "Écoutez quelques titres puis cliquez sur Régénérer pour créer vos mixes personnalisés.",
       "label": "Daily Mix",
-      "trackCount_one": "{{count}} morceau",
-      "trackCount_other": "{{count}} morceaux"
+      "trackCount_one": "{{count}} titre",
+      "trackCount_other": "{{count}} titres"
     },
     "onRepeat": {
       "label": "On Repeat"
@@ -616,7 +616,7 @@
     "count_one": "{{count}} titre",
     "count_other": "{{count}} titres",
     "emptyTitle": "Aucun titre aimé",
-    "emptyDescription": "Les morceaux que vous aimez apparaîtront ici. Explorez votre bibliothèque et ajoutez-les à vos coups de cœur.",
+    "emptyDescription": "Les titres que vous aimez apparaîtront ici. Explorez votre bibliothèque et ajoutez-les à vos coups de cœur.",
     "playAll": "Tout lire",
     "unlike": "Retirer des coups de cœur",
     "like": "Ajouter aux coups de cœur"
@@ -650,7 +650,7 @@
     "count_one": "{{count}} titre",
     "count_other": "{{count}} titres",
     "emptyTitle": "Aucun titre récent",
-    "emptyDescription": "Les morceaux que vous écoutez apparaîtront ici automatiquement."
+    "emptyDescription": "Les titres que vous écoutez apparaîtront ici automatiquement."
   },
   "statistics": {
     "title": "Statistiques",
@@ -729,7 +729,7 @@
     "playsShort_other": "{{count}} écoutes",
     "empty": {
       "title": "Pas encore d'historique",
-      "subtitle": "Écoutez quelques morceaux et revenez plus tard — votre Wrapped se construit au fil de vos écoutes."
+      "subtitle": "Écoutez quelques titres et revenez plus tard — votre Wrapped se construit au fil de vos écoutes."
     },
     "intro": {
       "eyebrow": "WaveFlow Wrapped",
@@ -757,7 +757,7 @@
     },
     "activeDay": {
       "eyebrow": "Votre journée record",
-      "subtitle": "{{duration}} d'écoute, {{count}} morceaux"
+      "subtitle": "{{duration}} d'écoute, {{count}} titres"
     },
     "mood": {
       "eyebrow": "Votre tempo moyen",
@@ -860,8 +860,8 @@
       "previous": "Précédent",
       "next": "Suivant",
       "shuffleOff": "Lecture aléatoire désactivée",
-      "shuffleTracks": "Morceaux dans le désordre",
-      "shuffleAlbums": "Albums dans le désordre",
+      "shuffleTracks": "Lecture aléatoire des titres",
+      "shuffleAlbums": "Lecture aléatoire des albums",
       "repeatOff": "Répétition désactivée",
       "repeatAll": "Répéter tout",
       "repeatOne": "Répéter le titre"
@@ -1041,7 +1041,7 @@
       "dialogTitle": "Exporter la playlist en M3U"
     },
     "emptyTitle": "Cette playlist est vide",
-    "emptyDescription": "Ajoutez des morceaux depuis vos bibliothèques via le bouton + de chaque ligne.",
+    "emptyDescription": "Ajoutez des titres depuis vos bibliothèques via le bouton + de chaque ligne.",
     "noneTitle": "Aucune playlist sélectionnée",
     "noneDescription": "Choisissez une playlist dans la barre latérale pour la voir ici.",
     "notFoundTitle": "Playlist introuvable",
@@ -1212,7 +1212,7 @@
     "setTitle": "Définir un Canvas"
   },
   "canvasPicker": {
-    "title": "Canvas de la piste",
+    "title": "Canvas du titre",
     "subtitle": "Choisissez une courte vidéo MP4 locale. Elle tourne en boucle derrière la lecture, à la place de la pochette.",
     "pickFile": "Choisir un fichier MP4",
     "removeAction": "Retirer le Canvas"
@@ -1423,7 +1423,7 @@
       "not": "NON",
       "toggleOpHint": "Basculer ET ↔ OU",
       "matchAllEmpty": "(toute la bibliothèque)",
-      "matchNoneEmpty": "(aucun morceau)",
+      "matchNoneEmpty": "(aucun titre)",
       "childCount_zero": "vide",
       "childCount_one": "{{count}} condition",
       "childCount_other": "{{count}} conditions",
@@ -1736,7 +1736,7 @@
       },
       "discord": {
         "title": "Discord Rich Presence",
-        "subtitle": "Afficher le morceau en cours d'écoute sur votre profil Discord"
+        "subtitle": "Afficher le titre en cours d'écoute sur votre profil Discord"
       },
       "dlna": {
         "title": "Serveur DLNA / UPnP",
@@ -1773,47 +1773,47 @@
         "connect": "Connecter Spotify"
       },
       "notifications": {
-        "title": "Notifications de changement de morceau",
-        "subtitle": "Affiche une notification système au début de chaque morceau (titre + artiste). Désactivé par défaut."
+        "title": "Notifications de changement de titre",
+        "subtitle": "Affiche une notification système au début de chaque titre (nom et artiste). Désactivé par défaut."
       }
     },
     "crossfade": {
       "title": "Fondu enchaîné",
-      "subtitle": "Transition fluide entre les morceaux (bientôt)"
+      "subtitle": "Transition fluide entre les titres (bientôt)"
     },
     "normalize": {
       "title": "Normaliser le volume",
-      "subtitle": "Réduire le volume des morceaux trop forts pour un niveau homogène"
+      "subtitle": "Réduire le volume des titres trop forts pour un niveau homogène"
     },
     "replayGain": {
       "title": "Appliquer ReplayGain",
       "subtitle": "Utiliser le gain ReplayGain du fichier, ou celui analysé, pour égaliser la perception de volume",
       "preamp": {
         "title": "Pré-amplification",
-        "subtitle": "Ajoutée au gain de chaque morceau — la référence ReplayGain est plus basse que la plupart des systèmes"
+        "subtitle": "Ajoutée au gain de chaque titre — la référence ReplayGain est plus basse que la plupart des systèmes"
       },
       "fallback": {
         "title": "Gain par défaut",
-        "subtitle": "Appliqué aux morceaux sans ReplayGain et jamais analysés"
+        "subtitle": "Appliqué aux titres sans ReplayGain et jamais analysés"
       },
       "preventClipping": {
         "title": "Éviter la saturation",
-        "subtitle": "Limiter le gain à la marge que laisse le pic du morceau"
+        "subtitle": "Limiter le gain à la marge que laisse le pic du titre"
       },
       "mode": {
         "title": "Gain à appliquer",
         "auto": "Automatique",
-        "track": "Par morceau",
+        "track": "Par titre",
         "album": "Par album",
-        "autoHint": "Gain d'album quand un disque s'écoute en entier, gain du morceau sinon",
-        "trackHint": "Égalise chaque morceau par rapport à tous les autres",
+        "autoHint": "Gain d'album quand un disque s'écoute en entier, gain du titre sinon",
+        "trackHint": "Normalise le volume de chaque titre par rapport aux autres",
         "albumHint": "Un seul gain par disque, qui préserve ses écarts de niveau internes"
       },
       "decibels": "{{value}} dB"
     },
     "generatorAlbumMode": {
       "title": "Sessions par albums entiers",
-      "subtitle": "La radio d'humeur et les Daily Mix choisissent des albums et les jouent dans l'ordre, au lieu de morceaux isolés"
+      "subtitle": "La radio d'humeur et les Daily Mix choisissent des albums et les jouent dans l'ordre, au lieu de titres isolés"
     },
     "exclusive": {
       "title": "Sortie exclusive",
@@ -1821,8 +1821,8 @@
       "fallback": "Le périphérique n'accepte pas le mode exclusif. Retour en mode partagé."
     },
     "matchSourceRate": {
-      "title": "Suivre le taux d'échantillonnage des pistes",
-      "subtitle": "En sortie exclusive, rouvre le périphérique au taux de chaque piste : évite le rééchantillonnage quand il l'accepte, au prix d'une coupure à chaque changement de taux"
+      "title": "Suivre la fréquence d'échantillonnage des titres",
+      "subtitle": "En sortie exclusive, rouvre le périphérique à la fréquence de chaque titre : évite le rééchantillonnage quand il l'accepte, au prix d'une coupure à chaque changement de taux"
     },
     "mono": {
       "title": "Audio mono",
@@ -1850,7 +1850,7 @@
     },
     "singleClickPlay": {
       "title": "Lecture au clic simple",
-      "subtitle": "Un clic sur une piste lance la lecture (sinon double-clic)"
+      "subtitle": "Un clic sur un titre lance la lecture (sinon double-clic)"
     },
     "showSleepTimer": {
       "title": "Épingler le minuteur dans la barre",
@@ -2062,15 +2062,15 @@
     },
     "smartCrossfade": {
       "title": "Fondu intelligent",
-      "subtitle": "Désactive automatiquement le fondu entre deux morceaux d'un même album (idéal pour les albums concept et lives)"
+      "subtitle": "Désactive automatiquement le fondu entre deux titres d'un même album (idéal pour les albums concept et lives)"
     },
     "dynamicCrossfade": {
       "title": "Fondu dynamique",
-      "subtitle": "Adapte automatiquement la durée du fondu selon l'écart de tempo entre les deux morceaux (revient au fondu fixe si le BPM est inconnu)"
+      "subtitle": "Adapte automatiquement la durée du fondu selon l'écart de tempo entre les deux titres (revient au fondu fixe si le BPM est inconnu)"
     },
     "gapless": {
       "title": "Lecture sans pause",
-      "subtitle": "Enchaîne les morceaux suivants sans micro-silence (idéal pour les albums live ou concept)"
+      "subtitle": "Enchaîne les titres suivants sans micro-silence (idéal pour les albums live ou concept)"
     },
     "equalizer": {
       "title": "Égaliseur",
@@ -2167,7 +2167,7 @@
     },
     "hiResBadge": {
       "title": "Badge Hi-Res / DSD",
-      "subtitle": "Affiche la pastille « Hi-Res 24-bit » ou « DSD128 » à côté des morceaux concernés et sous l'artiste dans la barre de lecture. Activé par défaut."
+      "subtitle": "Affiche la pastille « Hi-Res 24-bit » ou « DSD128 » à côté des titres concernés et sous l'artiste dans la barre de lecture. Activé par défaut."
     },
     "serverAccount": {
       "title": "Compte serveur WaveFlow",
@@ -2254,7 +2254,7 @@
       "title": "Vue immersive",
       "mergedLyrics": {
         "title": "Paroles en colonne",
-        "subtitle": "Affiche les paroles à côté de la pochette pour changer de morceau tout en lisant. Repasse en colonne unique sur les fenêtres étroites."
+        "subtitle": "Affiche les paroles à côté de la pochette pour changer de titre tout en lisant. Repasse en colonne unique sur les fenêtres étroites."
       },
       "nativeFullscreen": {
         "title": "Plein écran natif",
@@ -2309,7 +2309,7 @@
     },
     "canvasCache": {
       "cacheLabel": "Enregistrer les Canvas en local",
-      "subtitle": "Télécharge le Canvas de chaque piste depuis les plugins Canvas pour une lecture hors ligne, sans re-streaming.",
+      "subtitle": "Télécharge le Canvas de chaque titre depuis les plugins Canvas pour une lecture hors ligne, sans re-streaming.",
       "usage": "{{size}} utilisés · {{files}} Canvas en cache",
       "clear": "Vider le cache",
       "clearConfirm": "Confirmer ?"
@@ -2320,7 +2320,7 @@
     },
     "remoteTranscode": {
       "title": "Transcoder la source distante",
-      "subtitle": "Demander au serveur de réencoder ses pistes avant de les envoyer. Économise de la bande passante, coûte de la qualité audio.",
+      "subtitle": "Demander au serveur de réencoder ses titres avant de les envoyer. Économise de la bande passante, coûte de la qualité audio.",
       "off": "Original",
       "offHint": "Le fichier tel qu'il est sur le serveur. Aucune perte.",
       "opus": "Opus",
@@ -2329,8 +2329,8 @@
       "mp3Hint": "Plus lourd à qualité égale. Compatibilité maximale.",
       "bitrateLabel": "Débit",
       "kbps": "{{rate}} kbit/s",
-      "activeNotice": "Les pistes distantes sont réencodées : elles sont lues en dessous de leur qualité d'origine. Les fichiers locaux ne sont jamais transcodés.",
-      "unsupported": "Ce serveur a été construit sans FFmpeg et ne peut pas transcoder. Les pistes distantes arrivent toujours dans leur format d'origine."
+      "activeNotice": "Les titres distants sont réencodés : ils sont lus en dessous de leur qualité d'origine. Les fichiers locaux ne sont jamais transcodés.",
+      "unsupported": "Ce serveur a été construit sans FFmpeg et ne peut pas transcoder. Les titres distants arrivent toujours dans leur format d'origine."
     },
     "contrast": {
       "title": "Contraste",
@@ -2382,7 +2382,7 @@
       "descriptions": {
         "general": "Langue, démarrage et comportement de l’application.",
         "library": "Organisez et actualisez votre bibliothèque musicale.",
-        "playback": "Enchaînement des morceaux, volume et sortie audio.",
+        "playback": "Enchaînement des titres, volume et sortie audio.",
         "appearance": "Personnalisez l’interface et vos vues d’écoute.",
         "media": "Illustrations, informations sur les artistes et sources des paroles.",
         "integrations": "Connectez vos services, votre serveur et vos appareils réseau.",
@@ -2397,7 +2397,7 @@
         "scanning": "Importation et scan",
         "analysis": "Analyse musicale",
         "radio": "Catalogue radio",
-        "transitions": "Enchaînement des morceaux",
+        "transitions": "Enchaînement des titres",
         "listening": "Comportement de lecture",
         "volume": "Volume",
         "equalizer": "Égaliseur",
@@ -2697,12 +2697,12 @@
       "coversCached_zero": "Aucune pochette en cache.",
       "coversCached_one": "{{count}} pochette en cache ({{size}} Mo).",
       "coversCached_other": "{{count}} pochettes en cache ({{size}} Mo).",
-      "streamsCached_one": "{{count}} piste en cache ({{size}} Mo).",
-      "streamsCached_other": "{{count}} pistes en cache ({{size}} Mo).",
-      "streamsCached_zero": "Aucune piste en cache.",
+      "streamsCached_one": "{{count}} titre en cache ({{size}} Mo).",
+      "streamsCached_other": "{{count}} titres en cache ({{size}} Mo).",
+      "streamsCached_zero": "Aucun titre en cache.",
       "clearStreams": "Vider",
-      "downloadsKept_one": "{{count}} piste gardée hors ligne ({{size}} Mo).",
-      "downloadsKept_other": "{{count}} pistes gardées hors ligne ({{size}} Mo).",
+      "downloadsKept_one": "{{count}} titre gardé hors ligne ({{size}} Mo).",
+      "downloadsKept_other": "{{count}} titres gardés hors ligne ({{size}} Mo).",
       "downloadsKept_zero": "Rien gardé hors ligne.",
       "clearDownloads": "Vider",
       "reportFeed": "corrections du serveur : {{applied}}"

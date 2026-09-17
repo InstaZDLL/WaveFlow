@@ -240,7 +240,7 @@
   },
   "topbar": {
     "search": {
-      "placeholder": "Search for a song, an artist, an album...",
+      "placeholder": "Search for a track, an artist, an album...",
       "results_zero": "No results",
       "results_one": "{{count}} result",
       "results_other": "{{count}} results",
