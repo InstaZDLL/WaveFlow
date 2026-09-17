@@ -369,6 +369,43 @@ export function trackMinWidthFor(id: ColumnId, layout: ColumnLayout): number {
 }
 
 /**
+ * The layout with only the columns that fit in `availablePx` (#669).
+ *
+ * Columns are dropped from the right end of the user's order, so the
+ * order they chose is also the priority: what they placed last goes
+ * first. The title is never dropped — it is the row's identity — and
+ * the chrome at both ends (`fixedPx`: index, thumbnail, heart, actions,
+ * padding, border) is always counted.
+ *
+ * The saved layout is not touched: this only decides what one render
+ * shows, so a column hidden for lack of room is back as soon as there is
+ * room, in the same place and at the same width. When even the title
+ * alone does not fit, the table keeps its floor and the page scrolls.
+ *
+ * `gapPx` is the space between two tracks; a table of n tracks has n - 1.
+ */
+export function fitLayoutToWidth(
+  layout: ColumnLayout,
+  availablePx: number,
+  fixedPx: number,
+  fixedTracks: number,
+  gapPx: number,
+): ColumnLayout {
+  const order = [...layout.order];
+  const needed = () =>
+    fixedPx +
+    order.reduce((sum, id) => sum + trackMinWidthFor(id, layout), 0) +
+    gapPx * Math.max(0, fixedTracks + order.length - 1);
+  while (needed() > availablePx) {
+    let drop = order.length - 1;
+    while (drop >= 0 && order[drop] === "title") drop -= 1;
+    if (drop < 0) break;
+    order.splice(drop, 1);
+  }
+  return order.length === layout.order.length ? layout : { ...layout, order };
+}
+
+/**
  * The plain text a column shows for a row.
  *
  * Used for the cells that are just text, and — the reason it is a

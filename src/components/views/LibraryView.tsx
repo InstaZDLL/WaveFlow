@@ -22,6 +22,7 @@ import {
   MAX_COLUMN_WIDTH,
   specFor,
   tagKeyOf,
+  fitLayoutToWidth,
   trackMinWidthFor,
   trackSizeFor,
   type ColumnId,
@@ -2197,7 +2198,7 @@ function TrackTable({
   downloadingRemote,
   downloadedRemote,
   locale,
-  layout,
+  layout: savedLayout,
   sort,
   onSort,
   onPreviewColumn,
@@ -2293,8 +2294,49 @@ function TrackTable({
   // shows, the heart, the actions -- because none of it carries a value
   // and none of it sorts.
   const leadingSpacers = view === "list" ? 2 : 1;
-  const leadingTracks = ["3rem", ...(view === "list" ? ["2.75rem"] : [])];
-  const trailingTracks = ["2rem", "5.5rem"];
+  // In rem, once, so the grid, its floor and the fitting below all read
+  // the same sizes.
+  const leadingRem = view === "list" ? [3, 2.75] : [3];
+  const trailingRem = [2, 5.5];
+  const leadingTracks = leadingRem.map((n) => `${n}rem`);
+  const trailingTracks = trailingRem.map((n) => `${n}rem`);
+
+  // Fit the columns to the room the table has (#669). The frame's parent
+  // is measured, not the frame, because the frame's own `min-width` below
+  // is derived from the columns this picks. Everything under here reads
+  // `layout` — the fitted one — while the column picker and the saved
+  // widths keep the full layout, so a column hidden for lack of room
+  // returns unchanged when the right panel closes or the window grows.
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [availableWidth, setAvailableWidth] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const container = frameRef.current?.parentElement;
+    if (!container) return;
+    const measure = () => setAvailableWidth(container.clientWidth);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, []);
+  const layout = useMemo(() => {
+    if (availableWidth === null) return savedLayout;
+    const rem =
+      parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const chromeRem = [...leadingRem, ...trailingRem].reduce(
+      (a, b) => a + b,
+      0,
+    );
+    return fitLayoutToWidth(
+      savedLayout,
+      availableWidth,
+      (chromeRem + /* px-5 */ 2.5) * rem + /* border */ 2,
+      leadingRem.length + trailingRem.length,
+      /* gap-4 */ rem,
+    );
+    // `view` decides the rem arrays, which are rebuilt every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableWidth, savedLayout, view]);
+
   const gridCols = [
     ...leadingTracks,
     ...layout.order.map((id) => trackSizeFor(id, layout)),
@@ -2391,6 +2433,7 @@ function TrackTable({
 
   return (
     <div
+      ref={frameRef}
       data-track-table
       className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40"
       style={{ minWidth: tableMinWidth }}
