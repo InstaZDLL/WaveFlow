@@ -180,13 +180,26 @@ export function useAlbumMotionArtwork(
   album: string | null | undefined,
   albumId?: number | null,
 ): MotionArtwork | null {
-  const [motion, setMotion] = useState<MotionArtwork | null>(null);
+  // Stored with the generation it was resolved under. An invalidation — a
+  // plugin toggled, a manual cover set, or the on-disk cache emptied — bumps
+  // the generation, but this state survives it until the re-run's reset
+  // lands, and after a cache clear the URL it holds names a deleted file.
+  // Gating on the generation makes that window read as "no motion cover"
+  // rather than pointing the overlay at a missing mp4.
+  const [state, setState] = useState<{
+    generation: number;
+    motion: MotionArtwork | null;
+  } | null>(null);
   const cacheGeneration = useSyncExternalStore(subscribe, getGeneration);
 
   useEffect(() => {
     let cancelled = false;
     const apply = (m: MotionArtwork | null) => {
-      if (!cancelled) setMotion(m);
+      // The generation check covers what `cancelled` cannot: the bump is
+      // synchronous, the cleanup only runs at the next commit, and a lookup
+      // started before the invalidation can resolve in between.
+      if (!cancelled && getGeneration() === cacheGeneration)
+        setState({ generation: cacheGeneration, motion: m });
     };
     // Clear the previous track's artwork right away so a stale overlay
     // never lingers over the new cover. Goes through a resolved promise
@@ -204,5 +217,5 @@ export function useAlbumMotionArtwork(
     // reads: it is what makes an invalidation re-run the lookup.
   }, [artist, album, albumId, cacheGeneration]);
 
-  return motion;
+  return state && state.generation === cacheGeneration ? state.motion : null;
 }

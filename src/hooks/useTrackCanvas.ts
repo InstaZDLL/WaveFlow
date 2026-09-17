@@ -225,9 +225,16 @@ export function useTrackCanvas(
   // belongs to, so the render can gate on a match below — a bare path would
   // flash the previous track's (or previous profile's) Canvas for one render
   // after the inputs change but before the effect resolves.
+  //
+  // And the epoch it was resolved under. An invalidation (a manual Canvas set
+  // or cleared, or the on-disk cache emptied) bumps the epoch, but this state
+  // survives it until the re-resolve lands — and after a cache clear the path
+  // it holds names a deleted file. Gating on the epoch makes the window read
+  // as "no Canvas" instead of pointing the webview at a missing mp4.
   const [resolved, setResolved] = useState<{
     id: number;
     profileId: number | null;
+    epoch: number;
     path: string | null;
   } | null>(null);
   // Re-run the effect when a set/clear bumps the epoch, even for the same
@@ -255,8 +262,17 @@ export function useTrackCanvas(
   useEffect(() => {
     let cancelled = false;
     const apply = (p: string | null) => {
-      if (!cancelled)
-        setResolved({ id: trackId as number, profileId, path: p });
+      // `cancelled` alone is not enough: an invalidation bumps the epoch
+      // synchronously, but this effect is only cleaned up at the next
+      // commit, so a lookup started before it can land in between and
+      // install an answer the invalidation just declared stale.
+      if (!cancelled && getEpoch() === currentEpoch)
+        setResolved({
+          id: trackId as number,
+          profileId,
+          epoch: currentEpoch,
+          path: p,
+        });
     };
     // Radio and Spotify play under a negative sentinel id: no library row
     // for a manual Canvas, and nothing meaningful to resolve a plugin one
@@ -294,7 +310,10 @@ export function useTrackCanvas(
   // track and the active profile; any mismatch (track or profile just changed,
   // effect not resolved yet) reads as null, so a previous track's/profile's
   // clip never bleeds onto the new one.
-  return resolved && resolved.id === trackId && resolved.profileId === profileId
+  return resolved &&
+    resolved.id === trackId &&
+    resolved.profileId === profileId &&
+    resolved.epoch === currentEpoch
     ? resolved.path
     : null;
 }
