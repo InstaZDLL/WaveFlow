@@ -2423,7 +2423,7 @@
     },
     "desktopLyrics": {
       "subtitle": "懸浮在其他應用程式上方、顯示正在演唱歌詞的視窗。",
-      "waylandNote": "在 Wayland 下，合成器可能不會讓視窗保持在最上層，也可能不會保留你放置的位置。",
+      "waylandNote": "在 Wayland（尤其是 GNOME）下，視窗不會保持在其他應用程式之上，也不會停留在你放置的位置。若要讓它保持在最上層，請以 GDK_BACKEND=x11 啟動 WaveFlow。",
       "previewSung": "跟著歌曲的",
       "previewUnsung": "歌詞",
       "fontSize": "文字大小",

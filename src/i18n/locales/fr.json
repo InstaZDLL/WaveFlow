@@ -2426,7 +2426,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Une fenêtre flottante au-dessus des autres applications, qui affiche la ligne chantée.",
-      "waylandNote": "Sous Wayland, le compositeur peut ne pas garder la fenêtre au premier plan ni à l'endroit où vous la placez.",
+      "waylandNote": "Sous Wayland (GNOME notamment), la fenêtre n'est pas gardée au-dessus des autres applications ni à l'endroit où vous la placez. Pour la garder au premier plan, lancez WaveFlow avec GDK_BACKEND=x11.",
       "previewSung": "Des paroles qui suivent",
       "previewUnsung": "la chanson",
       "fontSize": "Taille du texte",

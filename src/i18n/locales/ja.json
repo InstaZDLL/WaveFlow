@@ -2423,7 +2423,7 @@
     },
     "desktopLyrics": {
       "subtitle": "他のアプリの上に浮かび、歌われている行を表示するウィンドウです。",
-      "waylandNote": "Wayland では、コンポジターがウィンドウを最前面や指定した位置に保たない場合があります。",
+      "waylandNote": "Wayland（特に GNOME）では、ウィンドウは他のアプリの最前面や配置した位置に保たれません。最前面に保つには、GDK_BACKEND=x11 を指定して WaveFlow を起動してください。",
       "previewSung": "曲に合わせて",
       "previewUnsung": "流れる歌詞",
       "fontSize": "文字サイズ",

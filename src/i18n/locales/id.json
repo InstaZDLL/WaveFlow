@@ -2423,7 +2423,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Jendela mengambang di atas aplikasi lain yang menampilkan baris yang sedang dinyanyikan.",
-      "waylandNote": "Di Wayland, compositor mungkin tidak menjaga jendela tetap di atas aplikasi lain atau di tempat kamu meletakkannya.",
+      "waylandNote": "Di Wayland (terutama GNOME), jendela tidak dijaga tetap di atas aplikasi lain atau di tempat kamu meletakkannya. Agar tetap di atas, jalankan WaveFlow dengan GDK_BACKEND=x11.",
       "previewSung": "Lirik yang mengikuti",
       "previewUnsung": "lagu",
       "fontSize": "Ukuran teks",
