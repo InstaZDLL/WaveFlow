@@ -210,6 +210,22 @@ export const SETTINGS_CATEGORIES = [
         ],
       },
       {
+        id: "desktopLyrics",
+        labelKey: "settings.organization.groups.desktopLyrics",
+        searchKeys: [
+          "desktopLyrics.title",
+          "desktopLyrics.lock",
+          "desktopLyrics.lockHint",
+          "settings.desktopLyrics.subtitle",
+          "settings.desktopLyrics.fontSize",
+          "settings.desktopLyrics.textColor",
+          "settings.desktopLyrics.highlightColor",
+          "settings.desktopLyrics.outline",
+          "settings.desktopLyrics.background",
+          "settings.desktopLyrics.showTranslation",
+        ],
+      },
+      {
         id: "pages",
         labelKey: "settings.organization.groups.pages",
         searchKeys: [

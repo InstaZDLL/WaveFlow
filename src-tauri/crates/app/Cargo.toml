@@ -54,7 +54,10 @@ waveflow-core = { path = "../core", features = ["sqlite", "plugins"] }
 waveflow-spotify = { path = "../spotify" }
 waveflow-syncedlyrics = { path = "../syncedlyrics" }
 
-tauri = { version = "2", features = ["protocol-asset", "tray-icon", "image-png"] }
+# `macos-private-api`: a transparent window on macOS goes through a
+# private AppKit API, and the desktop lyrics overlay (#582) is one. It
+# rules out the Mac App Store, which WaveFlow does not ship through.
+tauri = { version = "2", features = ["protocol-asset", "tray-icon", "image-png", "macos-private-api"] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
 # The dialog plugin's own backend, taken as a direct dependency for the

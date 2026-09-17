@@ -2420,8 +2420,22 @@
         "cleanup": "Manutenção de imagens",
         "updates": "Atualizações",
         "diagnostics": "Diagnóstico",
-        "reset": "Redefinir o aplicativo"
+        "reset": "Redefinir o aplicativo",
+        "desktopLyrics": "Letra na área de trabalho"
       }
+    },
+    "desktopLyrics": {
+      "subtitle": "Uma janela flutuante acima dos outros aplicativos que mostra a linha sendo cantada.",
+      "waylandNote": "No Wayland, o compositor pode não manter a janela acima dos outros aplicativos nem onde você a colocar.",
+      "previewSung": "Letra que acompanha",
+      "previewUnsung": "a música",
+      "fontSize": "Tamanho do texto",
+      "background": "Fundo",
+      "textColor": "Cor do texto",
+      "highlightColor": "Cor cantada",
+      "outline": "Contorno",
+      "showTranslation": "Mostrar tradução",
+      "reset": "Redefinir aparência"
     }
   },
   "spotify": {
@@ -2454,7 +2468,9 @@
       "previous": "Anterior",
       "next": "Próximo",
       "show": "Abrir WaveFlow",
-      "quit": "Sair"
+      "quit": "Sair",
+      "desktopLyrics": "Letra na área de trabalho",
+      "lockDesktopLyrics": "Bloquear letra na área de trabalho"
     }
   },
   "share": {
@@ -2860,5 +2876,10 @@
     "failedCount_one": "Não foi possível escrever {{count}} faixa.",
     "failedCount_many": "Não foi possível escrever {{count}} faixas.",
     "failedCount_other": "Não foi possível escrever {{count}} faixas."
+  },
+  "desktopLyrics": {
+    "title": "Letra na área de trabalho",
+    "lock": "Bloquear (cliques atravessam)",
+    "lockHint": "Os cliques atravessam a letra. Desbloqueie pelo ícone na bandeja do sistema, pelo menu Mais ações ou aqui."
   }
 }

@@ -4,6 +4,9 @@ export interface TrayLabels {
   playPause: string;
   previous: string;
   next: string;
+  /** Desktop lyrics window show/hide and click-through lock (#582). */
+  desktopLyrics: string;
+  desktopLyricsLock: string;
   show: string;
   quit: string;
   /** Tooltips of the Windows taskbar thumbnail's play/pause button. */

@@ -2417,8 +2417,22 @@
         "cleanup": "이미지 유지 관리",
         "updates": "업데이트",
         "diagnostics": "진단",
-        "reset": "앱 초기화"
+        "reset": "앱 초기화",
+        "desktopLyrics": "데스크톱 가사"
       }
+    },
+    "desktopLyrics": {
+      "subtitle": "다른 앱 위에 떠서 지금 부르는 줄을 보여주는 창입니다.",
+      "waylandNote": "Wayland에서는 컴포지터가 창을 다른 앱 위나 원하는 위치에 유지하지 않을 수 있습니다.",
+      "previewSung": "노래를 따라가는",
+      "previewUnsung": "가사",
+      "fontSize": "글자 크기",
+      "background": "배경",
+      "textColor": "글자 색",
+      "highlightColor": "부른 부분 색",
+      "outline": "외곽선",
+      "showTranslation": "번역 표시",
+      "reset": "모양 초기화"
     }
   },
   "spotify": {
@@ -2451,7 +2465,9 @@
       "previous": "이전",
       "next": "다음",
       "show": "WaveFlow 열기",
-      "quit": "종료"
+      "quit": "종료",
+      "desktopLyrics": "데스크톱 가사",
+      "lockDesktopLyrics": "데스크톱 가사 잠금"
     }
   },
   "share": {
@@ -2828,5 +2844,10 @@
     "appliedCount_other": "{{count}}곡을 업데이트했습니다.",
     "failedCount_one": "{{count}}곡을 기록하지 못했습니다.",
     "failedCount_other": "{{count}}곡을 기록하지 못했습니다."
+  },
+  "desktopLyrics": {
+    "title": "데스크톱 가사",
+    "lock": "잠금(클릭 통과)",
+    "lockHint": "클릭이 가사를 통과합니다. 시스템 트레이 아이콘, 추가 작업 메뉴 또는 여기에서 잠금을 해제하세요."
   }
 }

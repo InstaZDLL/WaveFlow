@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
-import { MoreHorizontal, Moon, SlidersHorizontal, X } from "lucide-react";
+import {
+  MessageSquareQuote,
+  MoreHorizontal,
+  Moon,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 
 import type { SleepTimerStatus } from "../../hooks/useSleepTimer";
+import { useDesktopLyricsStatus } from "../../hooks/useDesktopLyricsStatus";
+import { ToggleSwitch } from "../common/ToggleSwitch";
 import { usePlayer } from "../../hooks/usePlayer";
 import { AbLoopButton } from "./AbLoopButton";
 import { EqPresetPanel } from "./EqPresetButton";
@@ -40,11 +48,10 @@ interface MoreActionsMenuProps {
 
 /**
  * Overflow popover for the player bar's secondary actions. Hosts
- * Sleep timer, A-B loop and playback speed. Sleep timer / A-B loop
- * can be pinned to the bar via Settings; speed has no pin (used too
- * rarely to deserve a permanent slot). The caller is expected to
- * skip rendering this component entirely when nothing would go
- * inside (both pinned + Spotify mode hides speed too).
+ * Sleep timer, A-B loop, playback speed, EQ presets and the desktop
+ * lyrics window (#582). Sleep timer / A-B loop / EQ can be pinned to
+ * the bar via Settings; speed and desktop lyrics have no pin, so the
+ * menu always has something in it.
  */
 export function MoreActionsMenu({
   pinAbLoop,
@@ -56,6 +63,7 @@ export function MoreActionsMenu({
 }: MoreActionsMenuProps) {
   const { t } = useTranslation();
   const { playbackSpeed, setPlaybackSpeed } = usePlayer();
+  const desktopLyrics = useDesktopLyricsStatus();
   const [isOpen, setIsOpen] = useState(false);
   const [customMinutes, setCustomMinutes] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -312,6 +320,42 @@ export function MoreActionsMenu({
                 </form>
               </div>
             )}
+
+            {(showSpeed || showEqInMenu || showAbInMenu || showSleepInMenu) && (
+              <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
+            )}
+
+            {/* Desktop lyrics (#582). The lock row is here as well as in
+              Settings and the tray on purpose: a locked overlay ignores
+              the mouse, so every surface that can lock it has to be one
+              that can also unlock it. */}
+            <div className="px-3 py-2 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-200">
+                  <MessageSquareQuote size={14} className="text-zinc-400" />
+                  {t("desktopLyrics.title")}
+                </span>
+                <ToggleSwitch
+                  enabled={desktopLyrics.status.open}
+                  onToggle={desktopLyrics.toggleOpen}
+                  label={t("desktopLyrics.title")}
+                />
+              </div>
+              {desktopLyrics.status.open && (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-zinc-700 dark:text-zinc-200">
+                    {t("desktopLyrics.lock")}
+                  </span>
+                  <ToggleSwitch
+                    enabled={desktopLyrics.status.locked}
+                    onToggle={() =>
+                      desktopLyrics.setLocked(!desktopLyrics.status.locked)
+                    }
+                    label={t("desktopLyrics.lock")}
+                  />
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -2417,8 +2417,22 @@
         "cleanup": "Artwork maintenance",
         "updates": "Updates",
         "diagnostics": "Diagnostics",
-        "reset": "Reset application"
+        "reset": "Reset application",
+        "desktopLyrics": "Desktop lyrics"
       }
+    },
+    "desktopLyrics": {
+      "subtitle": "A floating window above your other apps that shows the line being sung.",
+      "waylandNote": "On Wayland, the compositor may not keep the window above other apps or where you place it.",
+      "previewSung": "Lyrics that follow",
+      "previewUnsung": "the song",
+      "fontSize": "Text size",
+      "background": "Background",
+      "textColor": "Text colour",
+      "highlightColor": "Sung colour",
+      "outline": "Outline",
+      "showTranslation": "Show translation",
+      "reset": "Reset appearance"
     }
   },
   "spotify": {
@@ -2451,7 +2465,9 @@
       "previous": "Previous",
       "next": "Next",
       "show": "Open WaveFlow",
-      "quit": "Quit"
+      "quit": "Quit",
+      "desktopLyrics": "Desktop lyrics",
+      "lockDesktopLyrics": "Lock desktop lyrics"
     }
   },
   "share": {
@@ -2849,5 +2865,10 @@
     "appliedCount_other": "{{count}} tracks updated.",
     "failedCount_one": "{{count}} track could not be written.",
     "failedCount_other": "{{count}} tracks could not be written."
+  },
+  "desktopLyrics": {
+    "title": "Desktop lyrics",
+    "lock": "Lock (click-through)",
+    "lockHint": "Clicks pass through the lyrics. Unlock from the system tray icon, the More actions menu or here."
   }
 }

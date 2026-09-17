@@ -2420,8 +2420,22 @@
         "cleanup": "Manutenzione delle immagini",
         "updates": "Aggiornamenti",
         "diagnostics": "Diagnostica",
-        "reset": "Ripristino dell’applicazione"
+        "reset": "Ripristino dell’applicazione",
+        "desktopLyrics": "Testi sul desktop"
       }
+    },
+    "desktopLyrics": {
+      "subtitle": "Una finestra mobile sopra le altre app che mostra la riga cantata.",
+      "waylandNote": "Su Wayland il compositor potrebbe non tenere la finestra sopra le altre app né dove la posizioni.",
+      "previewSung": "Testi che seguono",
+      "previewUnsung": "la canzone",
+      "fontSize": "Dimensione del testo",
+      "background": "Sfondo",
+      "textColor": "Colore del testo",
+      "highlightColor": "Colore cantato",
+      "outline": "Contorno",
+      "showTranslation": "Mostra traduzione",
+      "reset": "Ripristina aspetto"
     }
   },
   "spotify": {
@@ -2454,7 +2468,9 @@
       "previous": "Precedente",
       "next": "Successivo",
       "show": "Apri WaveFlow",
-      "quit": "Esci"
+      "quit": "Esci",
+      "desktopLyrics": "Testi sul desktop",
+      "lockDesktopLyrics": "Blocca i testi sul desktop"
     }
   },
   "share": {
@@ -2860,5 +2876,10 @@
     "failedCount_one": "Impossibile scrivere {{count}} brano.",
     "failedCount_many": "Impossibile scrivere {{count}} brani.",
     "failedCount_other": "Impossibile scrivere {{count}} brani."
+  },
+  "desktopLyrics": {
+    "title": "Testi sul desktop",
+    "lock": "Blocca (clic passanti)",
+    "lockHint": "I clic attraversano il testo. Sblocca dall'icona nell'area di notifica, dal menu Altre azioni o da qui."
   }
 }

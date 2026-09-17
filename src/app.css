@@ -325,6 +325,19 @@
 @import "./styles/skins/pulse.css";
 @import "./styles/skins/liquid.css";
 
+/* The desktop lyrics window (#582) is transparent at the OS level, and
+   the document has to be too, or it paints an opaque box over the
+   desktop. `index.html` stamps `data-skin` in every window, and the
+   skins above paint `body` from it (`:root[data-skin="lounge"] body`),
+   so this has to outrank them. `main.tsx` adds the class before the
+   first render, so there is no opaque first frame either. */
+html.desktop-lyrics-window,
+html.desktop-lyrics-window body,
+html.desktop-lyrics-window #root {
+  background: transparent !important;
+  overflow: hidden;
+}
+
 /* Theme ambient background. AppLayout's outer wrapper uses
    `bg-app-ambient` (defined as a utility below) so themes can paint
    their signature tint without touching any JSX. */

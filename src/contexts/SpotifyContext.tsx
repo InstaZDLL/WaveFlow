@@ -18,6 +18,7 @@ import {
   type SpotifyStatus,
   type SpotifyTrackLite,
 } from "../lib/tauri/spotify";
+import { IS_SECONDARY_WINDOW } from "../lib/windowRole";
 
 type SpotifySdkPlayer = {
   connect: () => Promise<boolean>;
@@ -82,14 +83,11 @@ function sdkTrackToLite(
   };
 }
 
-// True when this provider runs inside the mini-player webview.
-// The Web Playback SDK can only attach to a single webview (it's a
-// real device on the Spotify network), so the mini reads state from
-// Tauri events emitted by the main window instead and routes
-// playback control through the Spotify Connect Web API.
-const IS_MINI_WINDOW =
-  typeof window !== "undefined" &&
-  new URLSearchParams(window.location.search).get("mini") === "1";
+// `IS_SECONDARY_WINDOW` is true inside the mini-player and the desktop
+// lyrics overlay (#582). The Web Playback SDK can only attach to a single
+// webview (it's a real device on the Spotify network), so a secondary
+// window reads state from Tauri events emitted by the main window instead
+// and routes playback control through the Spotify Connect Web API.
 
 const SPOTIFY_STATE_EVENT = "spotify:state";
 /// Mini → main: "I just opened, please rebroadcast your current
@@ -141,9 +139,9 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isConnected) return;
-    // Mini-player webview never loads the SDK — see IS_MINI_WINDOW
+    // A secondary webview never loads the SDK — see IS_SECONDARY_WINDOW
     // doc above.
-    if (IS_MINI_WINDOW) return;
+    if (IS_SECONDARY_WINDOW) return;
     if (window.Spotify) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsSdkReady(true);
@@ -241,11 +239,11 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
     };
   }, [isConnected, isSdkReady, volume]);
 
-  // Mini-player webview: subscribe to the broadcast emitted by the
+  // Secondary webview: subscribe to the broadcast emitted by the
   // main window's SDK callback so the mini stays in sync without
   // running a second SDK instance.
   useEffect(() => {
-    if (!IS_MINI_WINDOW) return;
+    if (!IS_SECONDARY_WINDOW) return;
     let unlisten: (() => void) | null = null;
     let cancelled = false;
     (async () => {
@@ -281,7 +279,7 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
   // Main window: respond to the mini's request-state pings by
   // rebroadcasting our last known snapshot (when we have one).
   useEffect(() => {
-    if (IS_MINI_WINDOW) return;
+    if (IS_SECONDARY_WINDOW) return;
     let unlisten: (() => void) | null = null;
     let cancelled = false;
     (async () => {

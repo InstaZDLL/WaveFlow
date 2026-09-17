@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { MiniPlayerApp } from "./MiniPlayerApp";
+import { DesktopLyricsApp } from "./DesktopLyricsApp";
 import { ReadySignal } from "./components/common/ReadySignal";
 import "./app.css";
 // Self-hosted fonts for the Editorial skin (Playfair Display + Lora).
@@ -38,15 +39,21 @@ import "@fontsource/space-mono/700.css";
 import "@fontsource-variable/dm-sans/opsz.css";
 import { i18nReady } from "./i18n";
 import { markBundleReady, markI18nReady } from "./lib/startupTiming";
+import { WINDOW_ROLE } from "./lib/windowRole";
 
 // First statement that runs once the entry module is executing: the
 // document and every static import above are in (#626).
 markBundleReady();
 
-// The mini-player runs in a second WebviewWindow that loads the same
-// bundle with `?mini=1` in the URL. We branch here so it boots into
-// a stripped-down provider tree (no LibraryContext / sidebar / etc).
-const isMini = new URLSearchParams(window.location.search).get("mini") === "1";
+// The mini-player (`?mini=1`) and the desktop lyrics overlay (`?lyrics=1`,
+// #582) run in their own WebviewWindows that load the same bundle. We
+// branch here so each boots into a stripped-down provider tree (no
+// LibraryContext / sidebar / etc).
+// The overlay's document must be transparent from its very first paint;
+// see `html.desktop-lyrics-window` in app.css.
+if (WINDOW_ROLE === "lyrics") {
+  document.documentElement.classList.add("desktop-lyrics-window");
+}
 
 // The main window is created with `visible: false` in tauri.conf.json
 // so the user never sees a white WebView while Rust setup + React mount
@@ -69,8 +76,10 @@ i18nReady
     );
     root.render(
       <React.StrictMode>
-        {isMini ? (
+        {WINDOW_ROLE === "mini" ? (
           <MiniPlayerApp />
+        ) : WINDOW_ROLE === "lyrics" ? (
+          <DesktopLyricsApp />
         ) : (
           <ReadySignal>
             <App />

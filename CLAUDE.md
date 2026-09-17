@@ -46,7 +46,7 @@ React 19 + TypeScript. Entry: `src/main.tsx` → `src/App.tsx`.
 - **Hooks** wrap each context: `useTheme`, `usePlayer`, `useLibrary`, `usePlaylist`, `useProfile`, `usePageScroll`.
 - **Tauri wrappers** (`src/lib/tauri/`): one typed `invoke()` per backend command.
 - **Views**: `HomeView`, `LibraryView`, `PlaylistView`, `AlbumDetailView`, `ArtistDetailView`, `LikedView`, `HistoryView`, `StatisticsView`, `WrappedView`, `SettingsView`, …
-- **Layout**: Apple-Music-style sidebar, TopBar with search, PlayerBar at the bottom, right-edge panels (`NowPlayingPanel` / `QueuePanel` / `LyricsPanel`) mutex'd via `PlayerContext`. A second `WebviewWindow` (label `mini`, `?mini=1`) ships the always-on-top mini-player — [`docs/features/ui.md`](docs/features/ui.md#mini-player).
+- **Layout**: Apple-Music-style sidebar, TopBar with search, PlayerBar at the bottom, right-edge panels (`NowPlayingPanel` / `QueuePanel` / `LyricsPanel`) mutex'd via `PlayerContext`. A second `WebviewWindow` (label `mini`, `?mini=1`) ships the always-on-top mini-player — [`docs/features/ui.md`](docs/features/ui.md#mini-player) — and a third (label `lyrics`, `?lyrics=1`, created by the backend) the transparent desktop lyrics overlay — [`#desktop-lyrics`](docs/features/ui.md#desktop-lyrics).
 
 ### Backend (`src-tauri/`) — Cargo workspace, two members
 
@@ -100,7 +100,7 @@ Names in `commands/`, `audio/` and `src/components/` are predictable — read th
 | Playlists    | [`playlists.md`](docs/features/playlists.md) · [`smart-playlists.md`](docs/features/smart-playlists.md) | CRUD, sorting, auto-covers, M3U, Daily Mix + On Repeat generators, rule tree                                                                                             |
 | Integrations | [`integrations.md`](docs/features/integrations.md)                                                      | Deezer, Last.fm, TheAudioDB, lyrics providers + editor, artist overrides, Discord RPC, OS notifications, scrobbling                                                      |
 | Plugins      | [`plugins.md`](docs/features/plugins.md)                                                                | WASM host + sandbox, store, options, `source` / `metadata` / `ui` / `canvas` worlds, Web Radio + offline catalogue                                                       |
-| UI & UX      | [`ui.md`](docs/features/ui.md)                                                                          | layout, 5 skins × 14 themes, immersive view, Canvas, cover slideshow, artist hero, mini-player, Wrapped, profiles, onboarding, settings, updater, backups                |
+| UI & UX      | [`ui.md`](docs/features/ui.md)                                                                          | layout, 5 skins × 14 themes, immersive view, Canvas, cover slideshow, artist hero, mini-player, desktop lyrics, Wrapped, profiles, onboarding, settings, updater, backups                |
 | LAN servers  | [`dlna.md`](docs/features/dlna.md) · [`mpd.md`](docs/features/mpd.md)                                   | opt-in MediaServer and MPD control surface                                                                                                                               |
 
 ## Conventions

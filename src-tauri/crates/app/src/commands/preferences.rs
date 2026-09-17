@@ -328,3 +328,50 @@ pub async fn set_mini_player_bounds(
     .await?;
     Ok(())
 }
+
+/// Desktop lyrics window bounds (issue #582), same shape and contract as
+/// the mini-player's. Read from Rust, because the window is created there.
+const KEY_DESKTOP_LYRICS_BOUNDS: &str = "desktop_lyrics.bounds";
+
+pub async fn load_desktop_lyrics_bounds(app_db: &SqlitePool) -> Option<MiniPlayerBounds> {
+    let raw: Option<String> =
+        match sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+            .bind(KEY_DESKTOP_LYRICS_BOUNDS)
+            .fetch_optional(app_db)
+            .await
+        {
+            Ok(v) => v,
+            Err(err) => {
+                // Opening at the default place beats not opening; the log
+                // keeps a read failure from passing for a first launch.
+                tracing::warn!(?err, "failed to read persisted desktop lyrics bounds");
+                None
+            }
+        };
+    raw.and_then(|s| serde_json::from_str::<MiniPlayerBounds>(&s).ok())
+        .filter(bounds_are_valid)
+}
+
+#[tauri::command]
+pub async fn set_desktop_lyrics_bounds(
+    state: tauri::State<'_, AppState>,
+    bounds: MiniPlayerBounds,
+) -> AppResult<()> {
+    if !bounds_are_valid(&bounds) {
+        return Ok(());
+    }
+    let json = serde_json::to_string(&bounds)
+        .map_err(|err| crate::error::AppError::Other(format!("desktop_lyrics bounds: {err}")))?;
+    sqlx::query(
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'json', ?)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(KEY_DESKTOP_LYRICS_BOUNDS)
+    .bind(json)
+    .bind(Utc::now().timestamp_millis())
+    .execute(&state.app_db)
+    .await?;
+    Ok(())
+}

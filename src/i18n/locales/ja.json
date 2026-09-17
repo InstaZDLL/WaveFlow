@@ -2417,8 +2417,22 @@
         "cleanup": "画像のメンテナンス",
         "updates": "更新",
         "diagnostics": "診断",
-        "reset": "アプリのリセット"
+        "reset": "アプリのリセット",
+        "desktopLyrics": "デスクトップ歌詞"
       }
+    },
+    "desktopLyrics": {
+      "subtitle": "他のアプリの上に浮かび、歌われている行を表示するウィンドウです。",
+      "waylandNote": "Wayland では、コンポジターがウィンドウを最前面や指定した位置に保たない場合があります。",
+      "previewSung": "曲に合わせて",
+      "previewUnsung": "流れる歌詞",
+      "fontSize": "文字サイズ",
+      "background": "背景",
+      "textColor": "文字の色",
+      "highlightColor": "歌唱済みの色",
+      "outline": "縁取り",
+      "showTranslation": "翻訳を表示",
+      "reset": "外観をリセット"
     }
   },
   "scanProgress": {
@@ -2437,7 +2451,9 @@
       "previous": "前へ",
       "next": "次へ",
       "show": "WaveFlow を開く",
-      "quit": "終了"
+      "quit": "終了",
+      "desktopLyrics": "デスクトップ歌詞",
+      "lockDesktopLyrics": "デスクトップ歌詞をロック"
     }
   },
   "spotify": {
@@ -2828,5 +2844,10 @@
     "appliedCount_other": "{{count}} 曲を更新しました。",
     "failedCount_one": "{{count}} 曲を書き込めませんでした。",
     "failedCount_other": "{{count}} 曲を書き込めませんでした。"
+  },
+  "desktopLyrics": {
+    "title": "デスクトップ歌詞",
+    "lock": "ロック（クリックを透過）",
+    "lockHint": "クリックが歌詞を透過します。ロックの解除は、システムトレイのアイコン、「その他の操作」メニュー、またはここから行えます。"
   }
 }
