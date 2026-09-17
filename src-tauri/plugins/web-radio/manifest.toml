@@ -11,10 +11,27 @@ id = "web-radio"
 name = "Web Radio"
 version = "0.1.1"
 author = "InstaZDLL"
-description = "Internet radio backed by radio-browser.info — 30 000+ stations searchable by country, language, tag, or codec."
+description = "Listen to thousands of internet radio stations from around the world. Search by country, language, genre and more, powered by Radio Browser."
 homepage = "https://github.com/InstaZDLL/WaveFlow"
 license = "GPL-3.0-only"
 world = "waveflow:source/v1"
+
+# Propagated to the other locales, like every user-facing string in the
+# app. Japanese, Korean and both Chinese are pending a native-speaker
+# pass and fall back to English until then.
+[plugin.description_i18n]
+fr = "Écoutez des milliers de radios en ligne du monde entier. Cherchez par pays, langue, genre et plus encore, grâce à Radio Browser."
+es = "Escucha miles de emisoras de radio por internet de todo el mundo. Busca por país, idioma, género y más, gracias a Radio Browser."
+de = "Höre tausende Internetradios aus aller Welt. Suche nach Land, Sprache, Genre und mehr, ermöglicht durch Radio Browser."
+it = "Ascolta migliaia di radio online da tutto il mondo. Cerca per paese, lingua, genere e altro ancora, grazie a Radio Browser."
+nl = "Luister naar duizenden internetradiostations van over de hele wereld. Zoek op land, taal, genre en meer, mogelijk gemaakt door Radio Browser."
+pt = "Ouve milhares de rádios online de todo o mundo. Pesquisa por país, idioma, género e mais, com o Radio Browser."
+"pt-BR" = "Ouça milhares de rádios online do mundo todo. Busque por país, idioma, gênero e mais, com o Radio Browser."
+ru = "Слушайте тысячи интернет-радиостанций со всего мира. Ищите по стране, языку, жанру и не только — на основе Radio Browser."
+tr = "Dünyanın her yerinden binlerce internet radyosunu dinleyin. Ülke, dil, tür ve daha fazlasına göre arayın; Radio Browser ile."
+id = "Dengarkan ribuan stasiun radio internet dari seluruh dunia. Cari berdasarkan negara, bahasa, genre, dan lainnya, didukung Radio Browser."
+ar = "استمع إلى آلاف محطات الراديو عبر الإنترنت من كل أنحاء العالم. ابحث حسب البلد أو اللغة أو النوع وغير ذلك، بالاعتماد على Radio Browser."
+hi = "दुनिया भर के हज़ारों इंटरनेट रेडियो स्टेशन सुनें। देश, भाषा, शैली और बहुत कुछ के आधार पर खोजें — Radio Browser द्वारा संचालित।"
 
 [permissions]
 # radio-browser.info exposes a federated JSON API across multiple
