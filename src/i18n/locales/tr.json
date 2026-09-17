@@ -381,7 +381,7 @@
         "playlists_zero": "0 çalma listesi",
         "playlists_one": "{{count}} çalma listesi",
         "playlists_other": "{{count}} çalma listesi",
-        "a-corriger_zero": "Bildirilecek bir şey yok: kitaplık eksiksiz.",
+        "a-corriger_zero": "Bildirilecek bir şey yok: kütüphane eksiksiz.",
         "a-corriger_one": "{{count}} sorun",
         "a-corriger_other": "{{count}} sorun"
       }
@@ -421,7 +421,7 @@
       },
       "a-corriger": {
         "title": "Düzeltilecek bir şey yok",
-        "description": "Kitaplığınızda saptanabilir bir sorun yok."
+        "description": "Kütüphanenizde saptanabilir bir sorun yok."
       }
     },
     "actions": {
@@ -524,7 +524,7 @@
     },
     "open": "{{name}} öğesini aç",
     "inventory": {
-      "allClear": "Bildirilecek bir şey yok: kitaplık eksiksiz.",
+      "allClear": "Bildirilecek bir şey yok: kütüphane eksiksiz.",
       "summary_one": "{{count}} sorun",
       "summary_other": "{{count}} sorun",
       "trackCount_one": "{{count}} parça",
@@ -1502,7 +1502,7 @@
     },
     "predicateGroups": {
       "text": "Metin",
-      "library": "Kitaplık",
+      "library": "Kütüphane",
       "audio": "Ses",
       "history": "Çalmalar",
       "tags": "Etiketler"
@@ -2366,7 +2366,7 @@
       "searchResults": "Arama sonuçları",
       "categories": {
         "general": "Genel",
-        "library": "Kitaplık",
+        "library": "Kütüphane",
         "playback": "Oynatma ve ses",
         "appearance": "Görünüm",
         "media": "Görseller ve şarkı sözleri",
@@ -2378,7 +2378,7 @@
       },
       "descriptions": {
         "general": "Dil, başlangıç ve uygulama davranışı.",
-        "library": "Müzik kitaplığınızı düzenleyin ve güncel tutun.",
+        "library": "Müzik kütüphanenizi düzenleyin ve güncel tutun.",
         "playback": "Parça geçişleri, ses düzeyi ve ses çıkışı.",
         "appearance": "Arayüzü ve dinleme görünümlerini özelleştirin.",
         "media": "Kapaklar, sanatçı bilgileri ve şarkı sözü kaynakları.",
@@ -2402,7 +2402,7 @@
         "theme": "Tema ve okunabilirlik",
         "player": "Oynatıcı ve pencere",
         "immersive": "Sürükleyici görünüm",
-        "pages": "Kitaplık sayfaları",
+        "pages": "Kütüphane sayfaları",
         "artwork": "Kapaklar ve sanatçı görselleri",
         "biographies": "Sanatçı biyografileri",
         "lyrics": "Şarkı sözleri",
@@ -2672,7 +2672,7 @@
     },
     "catalogue": {
       "title": "Sunucu kataloğu",
-      "subtitle": "Kitaplığınızdan göz atabilmek için sunucunun kataloğunu yerel olarak kopyalayın. Bu yapılmadan yalnızca çalma listelerinizin kullandığı parçalar bilinir.",
+      "subtitle": "Kütüphanenizden göz atabilmek için sunucunun kataloğunu yerel olarak kopyalayın. Bu yapılmadan yalnızca çalma listelerinizin kullandığı parçalar bilinir.",
       "mirror": "Kopyala",
       "cancel": "Durdur",
       "clear": "Kopyayı temizle",
@@ -2681,7 +2681,7 @@
       "statAlbums": "Albümler",
       "statTracks": "Parçalar",
       "statArtists": "Sanatçılar",
-      "statLibraries": "Kitaplıklar",
+      "statLibraries": "Kütüphaneler",
       "progressAlbums": "{{done}} albüm tarandı…",
       "progressSweep": "{{done}} parça listelendi…",
       "reportUnchanged": "Hiçbir şey değişmemişti.",
@@ -2705,11 +2705,11 @@
       "reportFeed": "sunucu düzeltmeleri: {{applied}}"
     },
     "import": {
-      "action": "Kitaplığıma aktar",
-      "title": "Kitaplığıma aktar",
-      "subtitle": "{{name}} taranan bir klasöre kopyalanacak ve kendi kitaplığınızın bir parçası olacak.",
+      "action": "Kütüphaneme aktar",
+      "title": "Kütüphaneme aktar",
+      "subtitle": "{{name}} taranan bir klasöre kopyalanacak ve kendi kütüphanenizin bir parçası olacak.",
       "destination": "Hedef klasör",
-      "noFolder": "Erişilebilir taranan klasör yok. Ayarlar → Kitaplık bölümünden ekleyin.",
+      "noFolder": "Erişilebilir taranan klasör yok. Ayarlar → Kütüphane bölümünden ekleyin.",
       "unreachable": "Erişilemiyor",
       "explainer": "Dosya olduğu gibi kopyalanır, ardından sunucudaki parçayla ilişkilendirilir: çalma sırasında yerel kopyanız tercih edilir.",
       "submit": "Aktar",
@@ -2717,7 +2717,7 @@
       "done": "Aktarılan: {{count}}",
       "refusal": {
         "already_linked": "Zaten bir yerel parçayla ilişkili: {{count}}",
-        "already_held": "Zaten kitaplığınızda, ilişkilendirildi: {{count}}",
+        "already_held": "Zaten kütüphanenizde, ilişkilendirildi: {{count}}",
         "unknown_track": "Katalogda bulunamadı: {{count}}",
         "unsupported_format": "Desteklenmeyen biçim: {{count}}",
         "hash_mismatch": "Beklenmeyen içerik: {{count}}",
@@ -2739,7 +2739,7 @@
       "statLinked": "Zaten var, ilişkilendirildi",
       "statUnsupported": "Reddedilen biçim",
       "statUnreadable": "Okunamayan",
-      "destination": "Kitaplık",
+      "destination": "Kütüphane",
       "send": "Yükle ({{count}})",
       "sent": "Yüklenen: {{count}}",
       "stopped": "durduruldu",
@@ -2748,7 +2748,7 @@
         "unsupported_format": "Sunucunun reddettiği biçim: {{count}}",
         "too_large": "Çok büyük: {{count}}",
         "quota_exceeded": "Sunucuda yer kalmadı: {{count}}",
-        "library_closed": "Kitaplık yüklemeye kapalı: {{count}}",
+        "library_closed": "Kütüphane yüklemeye kapalı: {{count}}",
         "too_many_sessions": "Aynı anda çok fazla yükleme: {{count}}",
         "unknown_verdict": "Bu sürümün bilmediği yanıt: {{count}}",
         "failed": "Başarısız: {{count}}"
@@ -2758,7 +2758,7 @@
       "action": "Üst verileri düzelt",
       "title": "Sunucu üst verileri",
       "subtitle": "Düzeltme dosyaya değil, sunucuya kaydedilir.",
-      "help": "Bu düzeltmeler sunucunun taramalarından etkilenmez ve kitaplığın tüm üyeleri tarafından görülür. Bir alanı boşaltmak düzeltmeyi kaldırır: dosyadaki değer geri gelir.",
+      "help": "Bu düzeltmeler sunucunun taramalarından etkilenmez ve kütüphanenin tüm üyeleri tarafından görülür. Bir alanı boşaltmak düzeltmeyi kaldırır: dosyadaki değer geri gelir.",
       "missing": "Bu parça henüz sunucu aynasında yok. Bir katalog taraması çalıştırıp yeniden deneyin.",
       "invalidNumber": "Yıl ile parça ve disk numaraları tam sayı olmalıdır."
     },
@@ -2772,7 +2772,7 @@
     "more_one": "{{count}} görev daha",
     "more_other": "{{count}} görev daha",
     "kinds": {
-      "library_scan": "Kitaplık taraması",
+      "library_scan": "Kütüphane taraması",
       "analysis": "Ses çözümlemesi",
       "lyrics_prefetch": "Şarkı sözü indirme",
       "catalogue_mirror": "Katalog yansısı",
@@ -2783,7 +2783,7 @@
     }
   },
   "smartRuleSummary": {
-    "everything": "tüm kitaplık",
+    "everything": "tüm kütüphane",
     "nothing": "hiçbir parça",
     "and": " ve ",
     "or": " veya ",
@@ -2844,7 +2844,7 @@
     "trackUnchanged": "Bu parçada değiştirilecek bir şey yok.",
     "noMatch": "{{file}} için eşleşme yok.",
     "emptyValue": "(boş)",
-    "unmatchedRemote": "Bu sürümde var, kitaplığınızda yok: {{titles}}",
+    "unmatchedRemote": "Bu sürümde var, kütüphanenizde yok: {{titles}}",
     "apply": "Uygula",
     "confidence": {
       "confident": "Kesin",
