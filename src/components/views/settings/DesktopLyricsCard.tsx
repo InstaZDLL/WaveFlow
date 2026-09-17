@@ -114,6 +114,9 @@ export function DesktopLyricsCard() {
       </div>
 
       <fieldset disabled={!ready} className="grid gap-3 @xl:grid-cols-2">
+        <legend className="sr-only">
+          {t("settings.organization.groups.desktopLyrics")}
+        </legend>
         <label className="flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-200">
           <span className="flex justify-between">
             {t("settings.desktopLyrics.fontSize")}

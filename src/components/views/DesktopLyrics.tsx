@@ -70,6 +70,7 @@ export function DesktopLyrics() {
   const { style } = useDesktopLyricsStyle();
   const { status, setLocked } = useDesktopLyricsStatus();
   const [hovered, setHovered] = useState(false);
+  const [focusedWithin, setFocusedWithin] = useState(false);
 
   usePersistBounds();
 
@@ -98,7 +99,10 @@ export function DesktopLyrics() {
   }
 
   const shadow = style.outline ? outlineShadow(style.fontSize / 18) : undefined;
-  const showChrome = hovered && !status.locked;
+  // Focus counts as much as the pointer: the buttons are reachable from
+  // the keyboard, and a frame that only appears under the mouse would
+  // leave a keyboard user tabbing through controls they cannot see.
+  const showChrome = (hovered || focusedWithin) && !status.locked;
   const background = showChrome
     ? Math.max(style.backgroundOpacity, 35)
     : style.backgroundOpacity;
@@ -119,6 +123,12 @@ export function DesktopLyrics() {
       style={rootStyle}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocusedWithin(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          setFocusedWithin(false);
+        }
+      }}
       onMouseDown={(e) => {
         if (e.button !== 0 || status.locked) return;
         if ((e.target as HTMLElement).closest("button")) return;
@@ -129,8 +139,14 @@ export function DesktopLyrics() {
           );
       }}
     >
-      {showChrome && (
-        <div className="absolute right-2 top-2 flex items-center gap-1">
+      {/* Mounted whenever unlocked, not only while shown, so the buttons
+          stay in the tab order; locked, the window takes no input at all. */}
+      {!status.locked && (
+        <div
+          className={`absolute right-2 top-2 flex items-center gap-1 transition-opacity ${
+            showChrome ? "opacity-100" : "opacity-0"
+          }`}
+        >
           <button
             type="button"
             onClick={() => setLocked(true)}

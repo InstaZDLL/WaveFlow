@@ -53,7 +53,18 @@ pub struct DesktopLyricsState {
     /// a close landing in that gap would find nothing to close and the
     /// window would appear anyway, and two opens would both try to build.
     lifecycle: tokio::sync::Mutex<()>,
+    /// Set from the moment a close is asked for until `Destroyed` runs.
+    /// `close()` only requests it, so the window is still there for a
+    /// moment afterwards; an open landing in that moment would find it,
+    /// merely show it, and then watch it disappear.
+    closing: AtomicBool,
+    destroyed: tokio::sync::Notify,
 }
+
+/// How long an open waits for a closing window to finish going away. Past
+/// it the open goes ahead with whatever is there rather than hanging a
+/// tray click forever, and the warning is what makes that visible.
+const CLOSE_WAIT: std::time::Duration = std::time::Duration::from_secs(3);
 
 #[derive(Debug, Clone, Copy, Serialize)]
 pub struct DesktopLyricsStatus {
@@ -99,6 +110,16 @@ pub async fn open(app: &AppHandle) -> tauri::Result<()> {
 }
 
 async fn open_locked(app: &AppHandle) -> tauri::Result<()> {
+    let state = app.state::<DesktopLyricsState>();
+    // Registered before the flag is read: `notify_waiters` reaches a
+    // `Notified` from the moment it exists, so a `Destroyed` landing
+    // between the check and the await is not missed.
+    let destroyed = state.destroyed.notified();
+    let still_closing =
+        state.closing.load(Ordering::Acquire) && app.get_webview_window(LABEL).is_some();
+    if still_closing && tokio::time::timeout(CLOSE_WAIT, destroyed).await.is_err() {
+        tracing::warn!("desktop lyrics: previous window still closing after the wait");
+    }
     if let Some(window) = app.get_webview_window(LABEL) {
         window.show()?;
         publish(app, status(app));
@@ -156,9 +177,19 @@ pub async fn close(app: &AppHandle) -> tauri::Result<()> {
 
 fn close_locked(app: &AppHandle) -> tauri::Result<()> {
     if let Some(window) = app.get_webview_window(LABEL) {
+        mark_closing(app);
         window.close()?;
     }
     Ok(())
+}
+
+/// Also called from `WindowEvent::CloseRequested`, which covers a close
+/// that did not come through here (Alt+F4, the overlay's own button
+/// before it reaches the command).
+pub fn mark_closing(app: &AppHandle) {
+    app.state::<DesktopLyricsState>()
+        .closing
+        .store(true, Ordering::Release);
 }
 
 /// Turn click-through on or off. A no-op (that still republishes) when
@@ -181,9 +212,10 @@ pub fn set_locked(app: &AppHandle, locked: bool) -> tauri::Result<()> {
 /// still hold the window while the event runs, so the status is stated
 /// rather than read back.
 pub fn on_destroyed(app: &AppHandle) {
-    app.state::<DesktopLyricsState>()
-        .locked
-        .store(false, Ordering::Release);
+    let state = app.state::<DesktopLyricsState>();
+    state.locked.store(false, Ordering::Release);
+    state.closing.store(false, Ordering::Release);
+    state.destroyed.notify_waiters();
     publish(
         app,
         DesktopLyricsStatus {

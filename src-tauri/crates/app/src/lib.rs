@@ -1195,6 +1195,10 @@ pub fn run() {
                 if quitting {
                     return;
                 }
+                if window.label() == desktop_lyrics::LABEL {
+                    desktop_lyrics::mark_closing(window.app_handle());
+                    return;
+                }
                 // The mini-player window is its own dispensable surface
                 // — closing it should just close it, never tear down
                 // the whole app. Only the main window participates in
