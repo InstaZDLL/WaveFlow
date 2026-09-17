@@ -357,7 +357,7 @@ User overrides are stored per-profile in `profile_setting['ui.shortcuts']` as a 
 ## Theming & motion
 
 - **Dark mode** — animated radial transition via the [View Transitions API](https://developer.mozilla.org/en-US/docs/Web/API/View_Transitions_API). Falls back to an instant swap when unsupported.
-- **`prefers-reduced-motion`** respected for the radial transition and for animated SVGs.
+- **`prefers-reduced-motion`** respected for the radial transition and for animated SVGs. Loading spinners stop too (one `.animate-spin` rule in [`app.css`](../../src/app.css)); that is why a busy button swaps its icon for `Loader2` instead of spinning its own icon — a stopped `Loader2` still reads as loading, a stopped refresh arrow reads as an idle button.
 - **Single-click play** — optional Settings toggle; the default is double-click to mirror Apple Music / Finder.
 - **Framer Motion** — `motion/react` provides micro-interactions (sidebar nav reorder, modal open, view fade-in, queue drag). One global [`SkinMotionWrapper`](../../src/components/layout/SkinMotionWrapper.tsx) feeds skin-specific `transition` config to the `MotionConfig` provider so per-skin springs (Pulse uses `cubic-bezier(0.34, 1.56, 0.64, 1)`, Lounge stays tame, etc.) apply automatically without touching call sites.
 

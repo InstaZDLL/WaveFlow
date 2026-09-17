@@ -16,6 +16,7 @@ import {
   Sparkles,
   RefreshCw,
   X,
+  Loader2,
 } from "lucide-react";
 import { useWrappedBannerVisibility } from "../../hooks/useWrappedBannerVisibility";
 import type { ViewId } from "../../types";
@@ -561,10 +562,11 @@ export function HomeView({
               disabled={isRegenerating}
               className="inline-flex items-center gap-2 text-sm font-medium text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <RefreshCw
-                size={14}
-                className={isRegenerating ? "animate-spin" : ""}
-              />
+              {isRegenerating ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <RefreshCw size={14} />
+              )}
               {isRegenerating
                 ? t("home.dailyMix.regenerating", "Génération…")
                 : t("home.dailyMix.regenerate", "Régénérer")}

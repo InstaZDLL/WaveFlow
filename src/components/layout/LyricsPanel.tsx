@@ -13,6 +13,7 @@ import {
   ChevronDown,
   Check,
   Languages,
+  Loader2,
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useTrackLyrics } from "../../hooks/useTrackLyrics";
@@ -519,10 +520,11 @@ export function LyricsPanel() {
                     title={t("lyrics.actions.refetch")}
                     className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
                   >
-                    <RefreshCcw
-                      size={14}
-                      className={isFetching ? "animate-spin" : ""}
-                    />
+                    {isFetching ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <RefreshCcw size={14} />
+                    )}
                   </button>
                   {payload && (
                     <button
