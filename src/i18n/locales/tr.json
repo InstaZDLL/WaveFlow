@@ -25,7 +25,7 @@
       "title": "Arayüz görüntüleme",
       "retryGpu": "GPU'yu yeniden dene",
       "restartToApply": "Bir sonraki açılışta",
-      "retryFailed": "Kaydedilemedi. Yeniden deneyin."
+      "retryFailed": "Kaydedilemedi. Yeniden dene."
     },
     "mode": {
       "gpu": "Donanım hızlandırma",
@@ -130,7 +130,7 @@
       "bulletQueue": "Bir parçaya tıklayarak ilk sıranı oluştur",
       "bulletSettings": "Yan kenar çubuğundan detayları ayarla (Görünüm, Entegrasyonlar…)",
       "tipImmersiveTitle": "İpucu: sürükleyici görünüm",
-      "tipImmersiveBody": "Kapak ile şarkı sözlerini yan yana gösteren tam ekran görünümü açmak için oynatıcıdaki kapağa tıklayın."
+      "tipImmersiveBody": "Kapak ile şarkı sözlerini yan yana gösteren tam ekran görünümü açmak için oynatıcıdaki kapağa tıkla."
     },
     "actions": {
       "skipSetup": "Kurulumu atla",
@@ -417,11 +417,11 @@
         "description": "Burada gezinmek için eylem çubuğundan bir klasör içe aktar."
       },
       "sourceFiltered": {
-        "description": "Bu kaynakta bir şey yok. Yukarıdan kaynağı değiştirin ya da ayarlardan sunucu kataloğunu kopyalayın."
+        "description": "Bu kaynakta bir şey yok. Yukarıdan kaynağı değiştir ya da ayarlardan sunucu kataloğunu kopyala."
       },
       "a-corriger": {
         "title": "Düzeltilecek bir şey yok",
-        "description": "Kütüphanenizde saptanabilir bir sorun yok."
+        "description": "Kütüphanende saptanabilir bir sorun yok."
       }
     },
     "actions": {
@@ -584,7 +584,7 @@
       "choose": "Sütunlar",
       "shown": "Gösterilen",
       "available": "Kullanılabilir",
-      "fromYourFiles": "Dosyalarınızdan",
+      "fromYourFiles": "Dosyalarından",
       "resetWidths": "Genişlikleri sıfırla",
       "resize": "{{column}} sütununu yeniden boyutlandır",
       "title": "Başlık",
@@ -1201,7 +1201,7 @@
   },
   "motionCoverPicker": {
     "title": "Manuel hareketli kapak",
-    "subtitle": "Yerel bir MP4 dosyası seçin. Eklentinin sağladığı hareketli kapağın yerini alır ve yenilemeyle asla üzerine yazılmaz.",
+    "subtitle": "Yerel bir MP4 dosyası seç. Eklentinin sağladığı hareketli kapağın yerini alır ve yenilemeyle asla üzerine yazılmaz.",
     "pickFile": "Bir MP4 dosyası seç",
     "removeAction": "Hareketli kapağı kaldır"
   },
@@ -1212,7 +1212,7 @@
   },
   "canvasPicker": {
     "title": "Parça Canvas'ı",
-    "subtitle": "Kısa bir yerel MP4 videosu seçin. Kapak yerine, çalma sırasında arkada döngüyle oynatılır.",
+    "subtitle": "Kısa bir yerel MP4 videosu seç. Kapak yerine, çalma sırasında arkada döngüyle oynatılır.",
     "pickFile": "MP4 dosyası seç",
     "removeAction": "Canvas'ı kaldır"
   },
@@ -1230,7 +1230,7 @@
   },
   "genreImagePicker": {
     "title": "Tür resmini değiştir",
-    "subtitle": "Bu türün resmi olarak kullanmak için yerel bir resim dosyası (JPG, PNG veya WEBP) seçin.",
+    "subtitle": "Bu türün resmi olarak kullanmak için yerel bir resim dosyası (JPG, PNG veya WEBP) seç.",
     "editAria": "Tür resmini değiştir",
     "pickFile": "Resim dosyası seç",
     "removeAction": "Resmi kaldır"
@@ -1332,7 +1332,7 @@
     "loading": "Sözler aranıyor…",
     "noTrack": "Çalan parça yok",
     "notFound": "Bu parça için söz bulunamadı. Bir .lrc dosyası içe aktarabilirsin.",
-    "fetchError": "Şarkı sözü sağlayıcılarına ulaşılamadı. Daha sonra tekrar deneyin.",
+    "fetchError": "Şarkı sözü sağlayıcılarına ulaşılamadı. Daha sonra tekrar dene.",
     "importTitle": ".lrc dosyası içe aktar",
     "actions": {
       "import": ".lrc dosyası içe aktar",
@@ -1581,7 +1581,7 @@
     "masthead": {
       "edition": "Sabah Baskısı",
       "price": "Fiyat: Dahil",
-      "subtitle": "«Basılmayı hak eden tüm müzik.» — Size özel, günlük seçkiniz."
+      "subtitle": "«Basılmayı hak eden tüm müzik.» — Sana özel, günlük seçkin."
     },
     "lead": {
       "caption": "Şek 1. — «{{album}}» albümünden, {{artist}} tarafından.",
@@ -1629,7 +1629,7 @@
         "storageRead": "Depolama okuma",
         "assets": "Varlıklar ({{count}})",
         "none": "İstenen izin yok",
-        "libraryReadArtists": "Sanatçılarınızı okur"
+        "libraryReadArtists": "Sanatçılarını okur"
       },
       "bundled": "Yerleşik",
       "bundledHint": "WaveFlow ile birlikte gelir — gizlemek için devre dışı bırak.",
@@ -1700,8 +1700,8 @@
         "password": "Parola",
         "passwordPlaceholder": "Yok",
         "passwordHint": "İsteğe bağlı. Paylaşılan bir ağda önerilir — MPD protokolü parolayı düz metin olarak gönderir.",
-        "lanWarning": "Tüm yerel ağınızdan erişilebilir: ağdaki herkes oynatmayı kontrol edebilir.",
-        "lanWarningAuth": "Tüm yerel ağınızdan erişilebilir, ancak oynatma kontrolü belirlediğiniz parolayı gerektirir.",
+        "lanWarning": "Tüm yerel ağından erişilebilir: ağdaki herkes oynatmayı kontrol edebilir.",
+        "lanWarningAuth": "Tüm yerel ağından erişilebilir, ancak oynatma kontrolü belirlediğin parolayı gerektirir.",
         "statusRunning": "Çalışıyor",
         "statusStopped": "Durduruldu",
         "copyAddress": "Adresi kopyala"
@@ -2051,7 +2051,7 @@
     "appearance": {
       "theme": {
         "title": "Tema",
-        "subtitle": "Bir tarz seçin — temayı değiştirmek uygulamayı anında yeniden renklendirir."
+        "subtitle": "Bir tarz seç — temayı değiştirmek uygulamayı anında yeniden renklendirir."
       },
       "mode": {
         "light": "Açık",
@@ -2179,11 +2179,11 @@
       "modes": {
         "hybrid": {
           "label": "Hibrit (varsayılan)",
-          "description": "Değişiklikleriniz yerel kalır ancak sunucuya gönderilmek üzere kuyruğa da alınır."
+          "description": "Değişikliklerin yerel kalır ancak sunucuya gönderilmek üzere kuyruğa da alınır."
         },
         "local": {
           "label": "Yalnızca yerel",
-          "description": "Oturum açık olsa bile sunucuya hiçbir değişiklik gönderilmez. Gizli tutmak istediğiniz bir profil için yararlıdır."
+          "description": "Oturum açık olsa bile sunucuya hiçbir değişiklik gönderilmez. Gizli tutmak istediğin bir profil için yararlıdır."
         }
       }
     },
@@ -2206,18 +2206,18 @@
     },
     "updateChannel": {
       "title": "Beta kanalı",
-      "subtitle": "Kararlı sürümden önce ön sürüm yapılarını alın. Beta sürümleri kararsız olabilir."
+      "subtitle": "Kararlı sürümden önce ön sürüm yapılarını al. Beta sürümleri kararsız olabilir."
     },
     "artistBio": {
       "title": "Biyografi kaynağı",
       "subtitle": "Sanatçı biyografilerini hangi servisin sağladığı.",
-      "lastfmHint": "İngilizce biyografiler. Last.fm API anahtarınızı gerektirir.",
+      "lastfmHint": "İngilizce biyografiler. Last.fm API anahtarını gerektirir.",
       "theaudiodbHint": "Birden çok dilde topluluk biyografileri. Anahtar gerekmez.",
       "languageLabel": "Biyografi dili"
     },
     "radioCatalogue": {
       "title": "Çevrimdışı istasyon kataloğu",
-      "subtitle": "İstasyonları bağlantı olmadan taramak ve aramak için radio-browser dizinini indirin.",
+      "subtitle": "İstasyonları bağlantı olmadan taramak ve aramak için radio-browser dizinini indir.",
       "stored_one": "{{count}} istasyon · {{date}} tarihinde güncellendi",
       "stored_other": "{{count}} istasyon · {{date}} tarihinde güncellendi",
       "download": "İndir",
@@ -2244,18 +2244,18 @@
     },
     "statsKpis": {
       "title": "İstatistik göstergeleri",
-      "subtitle": "İstatistikler sayfasında hangi göstergelerin görüneceğini seçin. Gizlemek istediklerinizin işaretini kaldırın — örneğin tam dinleme oranı.",
+      "subtitle": "İstatistikler sayfasında hangi göstergelerin görüneceğini seç. Gizlemek istediklerinin işaretini kaldır — örneğin tam dinleme oranı.",
       "legend": "İstatistik göstergelerinin görünürlüğü"
     },
     "immersiveView": {
       "title": "Sürükleyici görünüm",
       "mergedLyrics": {
         "title": "Yan sütunda şarkı sözleri",
-        "subtitle": "Okurken parça değiştirebilmeniz için şarkı sözlerini kapağın yanında gösterir. Dar pencerelerde tek sütuna döner."
+        "subtitle": "Okurken parça değiştirebilmen için şarkı sözlerini kapağın yanında gösterir. Dar pencerelerde tek sütuna döner."
       },
       "nativeFullscreen": {
         "title": "Yerel tam ekran",
-        "subtitle": "Açılışta tüm ekranı kaplar ve kapanışta pencerenizi geri yükler. Pencere içi katmanı korumak için kapatın (çoklu monitörde kullanışlı)."
+        "subtitle": "Açılışta tüm ekranı kaplar ve kapanışta pencereni geri yükler. Pencere içi katmanı korumak için kapat (çoklu monitörde kullanışlı)."
       }
     },
     "scrollTitles": {
@@ -2295,21 +2295,21 @@
       "cacheLabel": "Animasyonlu kapakları yerel olarak kaydet",
       "usage": "{{size}} kullanıldı · önbellekte {{files}} kapak",
       "clear": "Önbelleği temizle",
-      "clearConfirm": "Onaylıyor musunuz?"
+      "clearConfirm": "Onaylıyor musun?"
     },
     "windowBounds": {
       "title": "Pencere konumu",
       "subtitle": "Kaydedilen pencere boyutunu ve konumunu unut. Sonraki açılışta varsayılan değerlerle açılır.",
       "reset": "Sıfırla",
       "done": "Sıfırlandı",
-      "error": "Sıfırlama başarısız. Lütfen tekrar deneyin."
+      "error": "Sıfırlama başarısız. Lütfen tekrar dene."
     },
     "canvasCache": {
       "cacheLabel": "Canvas videolarını yerel olarak kaydet",
       "subtitle": "Her parçanın Canvas'ını Canvas eklentilerinden indirir; çevrimdışı ve yeniden akış olmadan oynatılır.",
       "usage": "{{size}} kullanıldı · {{files}} Canvas önbellekte",
       "clear": "Önbelleği temizle",
-      "clearConfirm": "Onaylıyor musunuz?"
+      "clearConfirm": "Onaylıyor musun?"
     },
     "dsdDop": {
       "title": "Yerel DSD (DoP)",
@@ -2349,14 +2349,14 @@
     },
     "cacheLocation": {
       "title": "Önbellek konumu",
-      "subtitle": "Kapak görselleri, hareketli kapaklar ve Canvas klipleri. Hepsi yeniden oluşturulabilir, bu yüzden taşımak hiçbir şey kaybettirmez. Veritabanları ve elle seçtiğiniz dosyalar yerinde kalır.",
+      "subtitle": "Kapak görselleri, hareketli kapaklar ve Canvas klipleri. Hepsi yeniden oluşturulabilir, bu yüzden taşımak hiçbir şey kaybettirmez. Veritabanları ve elle seçtiğin dosyalar yerinde kalır.",
       "pickTitle": "Önbellek klasörünü seç",
       "choose": "Taşı…",
       "reset": "Varsayılana dön",
       "size": "{{size}} kullanımda",
       "copying": "Kopyalanıyor… özgün klasör yalnızca sonraki açılışta silinir.",
-      "fellBack": "Ayarlanan konuma erişilemiyor ({{path}}); bu oturumda önbellek varsayılan konumu kullanıyor. Seçiminiz korundu.",
-      "restartNeeded": "Kopyalama bitti. Yeni konumu kullanmak için yeniden başlatın.",
+      "fellBack": "Ayarlanan konuma erişilemiyor ({{path}}); bu oturumda önbellek varsayılan konumu kullanıyor. Seçimin korundu.",
+      "restartNeeded": "Kopyalama bitti. Yeni konumu kullanmak için yeniden başlat.",
       "restartNow": "Yeniden başlat"
     },
     "organization": {
@@ -2378,14 +2378,14 @@
       },
       "descriptions": {
         "general": "Dil, başlangıç ve uygulama davranışı.",
-        "library": "Müzik kütüphanenizi düzenleyin ve güncel tutun.",
+        "library": "Müzik kütüphaneni düzenle ve güncel tut.",
         "playback": "Parça geçişleri, ses düzeyi ve ses çıkışı.",
-        "appearance": "Arayüzü ve dinleme görünümlerini özelleştirin.",
+        "appearance": "Arayüzü ve dinleme görünümlerini özelleştir.",
         "media": "Kapaklar, sanatçı bilgileri ve şarkı sözü kaynakları.",
-        "integrations": "Hizmetlerinizi, sunucunuzu ve ağ cihazlarınızı bağlayın.",
-        "plugins": "Eklentileri keşfedin ve ayarlarını yönetin.",
-        "shortcuts": "Günlük işlemler için klavye kısayolları seçin.",
-        "data": "Kayıtlı profilleri, klasörleri ve önbellekteki medyayı yönetin.",
+        "integrations": "Hizmetlerini, sunucunu ve ağ cihazlarını bağla.",
+        "plugins": "Eklentileri keşfet ve ayarlarını yönet.",
+        "shortcuts": "Günlük işlemler için klavye kısayolları seç.",
+        "data": "Kayıtlı profilleri, klasörleri ve önbellekteki medyayı yönet.",
         "diagnostics": "Güncellemeler, sorun giderme ve uygulamayı sıfırlama."
       },
       "groups": {
@@ -2423,7 +2423,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Diğer uygulamaların üzerinde, söylenen satırı gösteren yüzen bir pencere.",
-      "waylandNote": "Wayland'de (özellikle GNOME'da) pencere diğer uygulamaların üstünde veya yerleştirdiğiniz yerde tutulmaz. Üstte kalması için WaveFlow'u GDK_BACKEND=x11 ile başlatın.",
+      "waylandNote": "Wayland'de (özellikle GNOME'da) pencere diğer uygulamaların üstünde veya yerleştirdiğin yerde tutulmaz. Üstte kalması için WaveFlow'u GDK_BACKEND=x11 ile başlat.",
       "previewSung": "Şarkıyı izleyen",
       "previewUnsung": "sözler",
       "fontSize": "Metin boyutu",
@@ -2497,7 +2497,7 @@
     "unavailableTitle": "Web Radio devre dışı",
     "unavailableHint": "30.000'den fazla istasyona göz atmak için Ayarlar → Eklentiler bölümünden Web Radyo eklentisini etkinleştir.",
     "favorites": "Favoriler",
-    "favoritesEmpty": "Henüz favori istasyon yok. Kaydetmek için bir istasyonun yıldızına dokunun.",
+    "favoritesEmpty": "Henüz favori istasyon yok. Kaydetmek için bir istasyonun yıldızına dokun.",
     "addFavorite": "Favorilere ekle",
     "removeFavorite": "Favorilerden çıkar",
     "localStations": "Yerel istasyonlar",
@@ -2523,7 +2523,7 @@
     },
     "split": {
       "label": "Bu sanatçıyı ayır",
-      "help": "Bu ad, virgülle birleştirilmiş birkaç sanatçı gibi görünüyor. Parçaları tek tek sanatçılara bağlamak için ayırın (mevcut kayıtlar yeniden kullanılır).",
+      "help": "Bu ad, virgülle birleştirilmiş birkaç sanatçı gibi görünüyor. Parçaları tek tek sanatçılara bağlamak için ayır (mevcut kayıtlar yeniden kullanılır).",
       "action": "Ayrı sanatçılara ayır"
     }
   },
@@ -2672,7 +2672,7 @@
     },
     "catalogue": {
       "title": "Sunucu kataloğu",
-      "subtitle": "Kütüphanenizden göz atabilmek için sunucunun kataloğunu yerel olarak kopyalayın. Bu yapılmadan yalnızca çalma listelerinizin kullandığı parçalar bilinir.",
+      "subtitle": "Kütüphanenden göz atabilmek için sunucunun kataloğunu yerel olarak kopyala. Bu yapılmadan yalnızca çalma listelerinin kullandığı parçalar bilinir.",
       "mirror": "Kopyala",
       "cancel": "Durdur",
       "clear": "Kopyayı temizle",
@@ -2707,17 +2707,17 @@
     "import": {
       "action": "Kütüphaneme aktar",
       "title": "Kütüphaneme aktar",
-      "subtitle": "{{name}} taranan bir klasöre kopyalanacak ve kendi kütüphanenizin bir parçası olacak.",
+      "subtitle": "{{name}} taranan bir klasöre kopyalanacak ve kendi kütüphanenin bir parçası olacak.",
       "destination": "Hedef klasör",
-      "noFolder": "Erişilebilir taranan klasör yok. Ayarlar → Kütüphane bölümünden ekleyin.",
+      "noFolder": "Erişilebilir taranan klasör yok. Ayarlar → Kütüphane bölümünden ekle.",
       "unreachable": "Erişilemiyor",
-      "explainer": "Dosya olduğu gibi kopyalanır, ardından sunucudaki parçayla ilişkilendirilir: çalma sırasında yerel kopyanız tercih edilir.",
+      "explainer": "Dosya olduğu gibi kopyalanır, ardından sunucudaki parçayla ilişkilendirilir: çalma sırasında yerel kopyan tercih edilir.",
       "submit": "Aktar",
       "running": "Aktarılıyor…",
       "done": "Aktarılan: {{count}}",
       "refusal": {
         "already_linked": "Zaten bir yerel parçayla ilişkili: {{count}}",
-        "already_held": "Zaten kütüphanenizde, ilişkilendirildi: {{count}}",
+        "already_held": "Zaten kütüphanende, ilişkilendirildi: {{count}}",
         "unknown_track": "Katalogda bulunamadı: {{count}}",
         "unsupported_format": "Desteklenmeyen biçim: {{count}}",
         "hash_mismatch": "Beklenmeyen içerik: {{count}}",
@@ -2731,7 +2731,7 @@
     },
     "upload": {
       "title": "Sunucuya yükle",
-      "subtitle": "Sunucuda olmayan parçaları gönderin. Tarama, gerçekten hangilerinin eksik olduğunu anlamak için her dosyayı bir kez okur.",
+      "subtitle": "Sunucuda olmayan parçaları gönder. Tarama, gerçekten hangilerinin eksik olduğunu anlamak için her dosyayı bir kez okur.",
       "cancel": "Durdur",
       "survey": "Tara",
       "surveying": "{{done}} / {{total}} dosya okundu…",
@@ -2759,10 +2759,10 @@
       "title": "Sunucu üst verileri",
       "subtitle": "Düzeltme dosyaya değil, sunucuya kaydedilir.",
       "help": "Bu düzeltmeler sunucunun taramalarından etkilenmez ve kütüphanenin tüm üyeleri tarafından görülür. Bir alanı boşaltmak düzeltmeyi kaldırır: dosyadaki değer geri gelir.",
-      "missing": "Bu parça henüz sunucu aynasında yok. Bir katalog taraması çalıştırıp yeniden deneyin.",
+      "missing": "Bu parça henüz sunucu aynasında yok. Bir katalog taraması çalıştırıp yeniden dene.",
       "invalidNumber": "Yıl ile parça ve disk numaraları tam sayı olmalıdır."
     },
-    "needsMirror": "Önce yukarıdaki sunucu kataloğunu kopyalayın: bu bölüm dosyalarınızı henüz boş olan yerel yansıyla karşılaştırır."
+    "needsMirror": "Önce yukarıdaki sunucu kataloğunu kopyala: bu bölüm dosyalarını henüz boş olan yerel yansıyla karşılaştırır."
   },
   "tasks": {
     "barLabel": "Süren görevler",
@@ -2835,16 +2835,16 @@
     "searching": "Sürümler aranıyor…",
     "matching": "Parçalar eşleştiriliyor…",
     "noSources": "Bu albüm için sürüm bulunamadı.",
-    "sourcesHint": "Aynı albüm çoğu zaman farklı parça listeleriyle birden çok sürümde bulunur. Kendinizinkini seçin.",
+    "sourcesHint": "Aynı albüm çoğu zaman farklı parça listeleriyle birden çok sürümde bulunur. Kendininkini seç.",
     "back": "Başka sürüm seç",
-    "hint": "Siz uygulayana kadar hiçbir şey yazılmaz.",
+    "hint": "Uygulayana kadar hiçbir şey yazılmaz.",
     "acceptColumn": "Tüm alan:",
     "acceptTrack": "Tüm parça",
-    "nothingToChange": "Bu sürüm dosyalarınızın zaten söylediğini söylüyor.",
+    "nothingToChange": "Bu sürüm dosyalarının zaten söylediğini söylüyor.",
     "trackUnchanged": "Bu parçada değiştirilecek bir şey yok.",
     "noMatch": "{{file}} için eşleşme yok.",
     "emptyValue": "(boş)",
-    "unmatchedRemote": "Bu sürümde var, kütüphanenizde yok: {{titles}}",
+    "unmatchedRemote": "Bu sürümde var, kütüphanende yok: {{titles}}",
     "apply": "Uygula",
     "confidence": {
       "confident": "Kesin",
@@ -2869,6 +2869,6 @@
   "desktopLyrics": {
     "title": "Masaüstü şarkı sözleri",
     "lock": "Kilitle (tıklamalar geçer)",
-    "lockHint": "Tıklamalar şarkı sözlerinin içinden geçer. Kilidi sistem tepsisindeki simgeden, Daha fazla eylem menüsünden veya buradan açın."
+    "lockHint": "Tıklamalar şarkı sözlerinin içinden geçer. Kilidi sistem tepsisindeki simgeden, Daha fazla eylem menüsünden veya buradan aç."
   }
 }
