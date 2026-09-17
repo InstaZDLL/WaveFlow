@@ -7,7 +7,7 @@ WaveFlow ships a WebAssembly plugin system ([RFC-002](../rfcs/RFC-002-plugin-sdk
 The host is [`waveflow_core::plugin::runtime`](../../src-tauri/crates/core/src/plugin/runtime.rs) — a wasmtime + WASI-p2 host that loads WASM **components** at runtime from two roots:
 
 - `<app-data>/waveflow/plugins/` — the writable **sideload** root (where the store installs).
-- `<resource>/plugins/` — installer-bundled plugins, re-seeded into the sideload root at boot.
+- `<resource>/plugins/` — installer-bundled plugins, loaded **read-only from there**. They are never copied into the sideload root, so shipping a new app build _is_ the update; the boot pass only deletes a pre-1.5.1 copy left behind in the sideload root. Their state still lives in the writable tree.
 
 A plugin declares a **world** (`source`, `metadata`, or `ui` — e.g. `waveflow:metadata@1.1.0`) and, in its `manifest.toml`, the host capabilities it needs. Every capability is **permission-gated**: outbound HTTP goes through the host's allowlisted `waveflow:host/http` (a plugin can only reach the hosts its manifest lists — surfaced in the UI as the "Can reach:" chip), and persistence is limited to the plugin's own **scratch store** (`waveflow:host/storage`, a small per-plugin quota — the "User storage" chip). Plugins have **no filesystem access**. The host also **serialises** calls into a given plugin, so its host operations run one at a time rather than concurrently — this bounds concurrency, not overall request volume, and the host does not itself rate-limit or back off (a plugin stays polite by caching its results, as the official ones do).
 
