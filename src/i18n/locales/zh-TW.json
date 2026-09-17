@@ -65,7 +65,7 @@
       "description": "你的個人本機優先音樂播放器。無需串流訂閱，盡情享受整個音樂庫。"
     },
     "localOnly": {
-      "title": "重要：僅限本地音樂",
+      "title": "重要：僅限本機音樂",
       "description": "WaveFlow 不是串流服務，它播放裝置上已有的檔案。",
       "calloutTitle": "你需要知道",
       "bulletOwn": "使用你自己的音樂庫(MP3、FLAC、ALAC、OGG、DSD…)",
@@ -240,7 +240,7 @@
   },
   "topbar": {
     "search": {
-      "placeholder": "搜尋歌曲名稱、歌手、專輯……",
+      "placeholder": "搜尋歌曲名稱、藝人、專輯……",
       "results_zero": "沒有結果",
       "results_one": "{{count}} 結果",
       "results_other": "{{count}} 結果",
@@ -417,7 +417,7 @@
         "description": "從操作列匯入一個資料夾，以便在此處瀏覽。"
       },
       "sourceFiltered": {
-        "description": "該來源沒有內容。請在上方切換來源，或在設定中複製伺服器曲庫。"
+        "description": "該來源沒有內容。請在上方切換來源，或在設定中複製伺服器音樂庫。"
       },
       "a-corriger": {
         "title": "沒有需要修正的地方",
@@ -576,7 +576,7 @@
         },
         "probable_duplicate": {
           "label": "疑似重複",
-          "help": "標題相同、演出者相同、長度幾乎一致。"
+          "help": "標題相同、演出者相同、時長幾乎一致。"
         }
       }
     },
@@ -593,7 +593,7 @@
       "year": "年份",
       "trackNumber": "曲目編號",
       "discNumber": "碟片編號",
-      "duration": "長度",
+      "duration": "時長",
       "rating": "評分",
       "bitrate": "位元率",
       "sampleRate": "取樣率",
@@ -787,7 +787,7 @@
       "save": "儲存為 PNG",
       "copy": "複製圖片",
       "brand": "WaveFlow Wrapped",
-      "poweredBy": "本地 · 私密"
+      "poweredBy": "本機 · 私密"
     },
     "firstListen": {
       "eyebrow": "你的一年從這首歌開始"
@@ -813,7 +813,7 @@
       "frontend": "前端",
       "backend": "後端(Rust)",
       "audio": "音訊",
-      "shortcuts": "鍵盤快捷鍵",
+      "shortcuts": "鍵盤快速鍵",
       "credits": "致謝",
       "changelog": "更新記錄"
     },
@@ -1554,7 +1554,7 @@
       },
       "db_only": {
         "label": "僅 WaveFlow 資料庫",
-        "hint": "留在應用快取中。不會碰任何檔案或標籤。"
+        "hint": "留在應用程式快取中。不會碰任何檔案或標籤。"
       }
     }
   },
@@ -1601,7 +1601,7 @@
       "data": "資料",
       "plugins": "外掛",
       "diagnostics": "診斷",
-      "shortcuts": "鍵盤快捷鍵"
+      "shortcuts": "鍵盤快速鍵"
     },
     "plugins": {
       "title": "已安裝的外掛",
@@ -1659,7 +1659,7 @@
       },
       "dlna": {
         "title": "DLNA / UPnP 伺服器",
-        "subtitle": "將曲庫串流到區域網路中相容的擴大機與裝置",
+        "subtitle": "將音樂庫串流到區域網路中相容的擴大機與裝置",
         "serverName": "名稱",
         "port": "連接埠",
         "portHint": "0 = 自動選擇連接埠",
@@ -1772,7 +1772,7 @@
       "subtitle": "啟動時自動重新掃描音樂庫"
     },
     "singleClickPlay": {
-      "title": "單鍵播放",
+      "title": "按一下播放",
       "subtitle": "點擊一首曲目即可開始播放（否則請雙擊）"
     },
     "showSleepTimer": {
@@ -1810,10 +1810,10 @@
       "progress": "已處理 {{current}}/{{total}}"
     },
     "localArtistImages": {
-      "title": "本地藝人圖片",
+      "title": "本機藝人圖片",
       "subtitle": "在音樂旁尋找 artist.jpg(或 <名稱>.jpg)檔案，並將其用作藝人照片。",
       "action": "掃描",
-      "done": "已為 {{considered}} 位藝人中的 {{linked}} 位連結本地圖片"
+      "done": "已為 {{considered}} 位藝人中的 {{linked}} 位連結本機圖片"
     },
     "dataFolder": {
       "title": "資料資料夾",
@@ -1951,7 +1951,7 @@
     },
     "backup": {
       "title": "自動備份",
-      "subtitle": "定期在所選資料夾中建立每個個人檔案的 .waveflow 封存。",
+      "subtitle": "定期在所選資料夾中建立每個個人檔案的 .waveflow 封存檔。",
       "intervalLabel": "頻率",
       "intervalDays_one": "每天",
       "intervalDays_other": "每 {{count}} 天",
@@ -1989,7 +1989,7 @@
     "appearance": {
       "theme": {
         "title": "主題",
-        "subtitle": "選擇氛圍——切換主題會立即重新染色整個應用程式。"
+        "subtitle": "選擇氛圍——切換主題會立即變更整個應用程式的色調。"
       },
       "mode": {
         "light": "淺色",
@@ -2026,7 +2026,7 @@
         },
         "lounge": {
           "label": "Lounge",
-          "description": "高級玻璃 — 專輯封面成為背景，半透明面板，緩慢過渡。"
+          "description": "質感玻璃 — 專輯封面成為背景，半透明面板，緩慢過渡。"
         },
         "pulse": {
           "label": "Pulse",
@@ -2065,7 +2065,7 @@
     },
     "profileIo": {
       "title": "個人檔案備份",
-      "subtitle": "將完整個人檔案 (播放清單、收藏、統計、EQ、快捷鍵) 匯出或匯入為單一 .waveflow 檔案。",
+      "subtitle": "將完整個人檔案 (播放清單、收藏、統計、EQ、快速鍵) 匯出或匯入為單一 .waveflow 檔案。",
       "export": {
         "action": "匯出",
         "dialogTitle": "匯出 WaveFlow 個人檔案",
@@ -2267,12 +2267,12 @@
       "subtitle": "在播放時於背景將專輯封面與藝人相片柔和地交叉淡入淡出（沉浸檢視 + 正在播放面板）。"
     },
     "artistHero": {
-      "title": "歌手橫幅",
-      "subtitle": "在歌手頁面標題後方顯示寬幅背景圖（TheAudioDB 同人圖，若無則使用模糊照片）。"
+      "title": "藝人橫幅",
+      "subtitle": "在藝人頁面標題後方顯示寬幅背景圖（TheAudioDB 同人圖，若無則使用模糊照片）。"
     },
     "pluginStore": {
       "title": "外掛商店",
-      "subtitle": "從 WaveFlow 登錄檔瀏覽並安裝沙箱化外掛。",
+      "subtitle": "從 WaveFlow 外掛庫瀏覽並安裝沙箱化外掛。",
       "loading": "正在載入商店…",
       "emptyTitle": "尚無可用外掛",
       "emptyHint": "登錄檔目前為空，請稍後再來。",
@@ -2587,7 +2587,7 @@
       "noMatches": "沒有符合的結果。",
       "addTrack": "新增 {{title}}",
       "addToPlaylist": "加入播放清單",
-      "emptyDescription": "點選「新增曲目」，在伺服器的曲庫中搜尋。",
+      "emptyDescription": "點選「新增曲目」，在伺服器的音樂庫中搜尋。",
       "notFoundDescription": "此播放清單在已連線的伺服器上已不存在。",
       "keepOffline": "離線保存",
       "keepingProgress": "已保存 {{done}}/{{total}}",
@@ -2650,8 +2650,8 @@
       "conversionSuccessLocal_other": "已複製 {{count}} 首曲目至本機音樂庫。"
     },
     "catalogue": {
-      "title": "伺服器曲庫",
-      "subtitle": "把伺服器的曲庫複製到本機，以便從資料庫中瀏覽。不複製時，只會辨識播放清單已用到的曲目。",
+      "title": "伺服器音樂庫",
+      "subtitle": "把伺服器的音樂庫複製到本機，以便在你的音樂庫中瀏覽。不複製時，只會辨識播放清單已用到的曲目。",
       "mirror": "複製",
       "cancel": "停止",
       "clear": "清空副本",
@@ -2660,7 +2660,7 @@
       "statAlbums": "專輯",
       "statTracks": "曲目",
       "statArtists": "演出者",
-      "statLibraries": "資料庫",
+      "statLibraries": "音樂庫",
       "progressAlbums": "已走訪 {{done}} 張專輯…",
       "progressSweep": "已清點 {{done}} 首曲目…",
       "reportUnchanged": "沒有任何變化。",
@@ -2710,7 +2710,7 @@
     },
     "upload": {
       "title": "上傳到伺服器",
-      "subtitle": "把伺服器沒有的曲目送過去。分析會把每個檔案讀一遍，弄清哪些真的缺少。",
+      "subtitle": "把伺服器沒有的曲目送過去。分析會把每個檔案讀一遍，確認哪些真的缺少。",
       "cancel": "停止",
       "survey": "分析",
       "surveying": "已讀取 {{done}} / {{total}} 個檔案…",
@@ -2737,7 +2737,7 @@
       "action": "修正中繼資料",
       "title": "伺服器中繼資料",
       "subtitle": "修正會儲存在伺服器上，而不是檔案中。",
-      "help": "這些修正不會被伺服器的掃描覆蓋，媒體庫的所有成員都看得到。清空某個欄位即撤銷該項修正，檔案本身的值會重新顯示。",
+      "help": "這些修正不會被伺服器的掃描覆蓋，音樂庫的所有成員都看得到。清空某個欄位即撤銷該項修正，檔案本身的值會重新顯示。",
       "missing": "此曲目尚未收錄到伺服器鏡像中。請先執行一次目錄掃描，然後重試。",
       "invalidNumber": "年份、曲目編號與光碟編號必須是整數。"
     },
@@ -2794,8 +2794,8 @@
       "bitDepthMin": "≥ {{value}} 位元",
       "bpmMin": "BPM ≥ {{value}}",
       "bpmMax": "BPM ≤ {{value}}",
-      "durationMinMs": "長度 ≥ {{value}}",
-      "durationMaxMs": "長度 ≤ {{value}}",
+      "durationMinMs": "時長 ≥ {{value}}",
+      "durationMaxMs": "時長 ≤ {{value}}",
       "neverPlayed": "從未播放",
       "tagPresent": "含有 {{key}} 標籤",
       "tagContains": "{{key}} 標籤包含「{{value}}」",
