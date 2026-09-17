@@ -2417,8 +2417,22 @@
         "cleanup": "Görsel bakımı",
         "updates": "Güncellemeler",
         "diagnostics": "Tanılama",
-        "reset": "Uygulamayı sıfırla"
+        "reset": "Uygulamayı sıfırla",
+        "desktopLyrics": "Masaüstü şarkı sözleri"
       }
+    },
+    "desktopLyrics": {
+      "subtitle": "Diğer uygulamaların üzerinde, söylenen satırı gösteren yüzen bir pencere.",
+      "waylandNote": "Wayland'de bileşik yönetici pencereyi diğer uygulamaların üstünde veya yerleştirdiğiniz yerde tutmayabilir.",
+      "previewSung": "Şarkıyı izleyen",
+      "previewUnsung": "sözler",
+      "fontSize": "Metin boyutu",
+      "background": "Arka plan",
+      "textColor": "Metin rengi",
+      "highlightColor": "Söylenen renk",
+      "outline": "Dış çizgi",
+      "showTranslation": "Çeviriyi göster",
+      "reset": "Görünümü sıfırla"
     }
   },
   "spotify": {
@@ -2451,7 +2465,9 @@
       "previous": "Önceki",
       "next": "Sonraki",
       "show": "WaveFlow'u aç",
-      "quit": "Çık"
+      "quit": "Çık",
+      "desktopLyrics": "Masaüstü şarkı sözleri",
+      "lockDesktopLyrics": "Masaüstü şarkı sözlerini kilitle"
     }
   },
   "share": {
@@ -2849,5 +2865,10 @@
     "appliedCount_other": "{{count}} parça güncellendi.",
     "failedCount_one": "{{count}} parça yazılamadı.",
     "failedCount_other": "{{count}} parça yazılamadı."
+  },
+  "desktopLyrics": {
+    "title": "Masaüstü şarkı sözleri",
+    "lock": "Kilitle (tıklamalar geçer)",
+    "lockHint": "Tıklamalar şarkı sözlerinin içinden geçer. Kilidi sistem tepsisindeki simgeden, Daha fazla eylem menüsünden veya buradan açın."
   }
 }

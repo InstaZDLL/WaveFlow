@@ -2417,8 +2417,22 @@
         "cleanup": "圖片維護",
         "updates": "更新",
         "diagnostics": "診斷",
-        "reset": "重設應用程式"
+        "reset": "重設應用程式",
+        "desktopLyrics": "桌面歌詞"
       }
+    },
+    "desktopLyrics": {
+      "subtitle": "懸浮在其他應用程式上方、顯示正在演唱歌詞的視窗。",
+      "waylandNote": "在 Wayland 下，合成器可能不會讓視窗保持在最上層，也可能不會保留你放置的位置。",
+      "previewSung": "跟著歌曲的",
+      "previewUnsung": "歌詞",
+      "fontSize": "文字大小",
+      "background": "背景",
+      "textColor": "文字顏色",
+      "highlightColor": "已唱顏色",
+      "outline": "描邊",
+      "showTranslation": "顯示翻譯",
+      "reset": "重設外觀"
     }
   },
   "scanProgress": {
@@ -2437,7 +2451,9 @@
       "previous": "上一首",
       "next": "下一首",
       "show": "開啟 WaveFlow",
-      "quit": "結束"
+      "quit": "結束",
+      "desktopLyrics": "桌面歌詞",
+      "lockDesktopLyrics": "鎖定桌面歌詞"
     }
   },
   "spotify": {
@@ -2828,5 +2844,10 @@
     "appliedCount_other": "已更新 {{count}} 首。",
     "failedCount_one": "有 {{count}} 首無法寫入。",
     "failedCount_other": "有 {{count}} 首無法寫入。"
+  },
+  "desktopLyrics": {
+    "title": "桌面歌詞",
+    "lock": "鎖定（滑鼠穿透）",
+    "lockHint": "滑鼠點擊會穿過歌詞。可在系統列圖示、「更多動作」選單或此處解鎖。"
   }
 }

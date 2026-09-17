@@ -2417,8 +2417,22 @@
         "cleanup": "Cover-Wartung",
         "updates": "Updates",
         "diagnostics": "Diagnose",
-        "reset": "Anwendung zurücksetzen"
+        "reset": "Anwendung zurücksetzen",
+        "desktopLyrics": "Desktop-Songtext"
       }
+    },
+    "desktopLyrics": {
+      "subtitle": "Ein schwebendes Fenster über deinen anderen Apps, das die gerade gesungene Zeile zeigt.",
+      "waylandNote": "Unter Wayland hält der Compositor das Fenster eventuell nicht über anderen Apps oder dort, wo du es platzierst.",
+      "previewSung": "Songtext, der dem Lied",
+      "previewUnsung": "folgt",
+      "fontSize": "Textgröße",
+      "background": "Hintergrund",
+      "textColor": "Textfarbe",
+      "highlightColor": "Gesungene Farbe",
+      "outline": "Kontur",
+      "showTranslation": "Übersetzung anzeigen",
+      "reset": "Darstellung zurücksetzen"
     }
   },
   "spotify": {
@@ -2451,7 +2465,9 @@
       "previous": "Vorheriger",
       "next": "Nächster",
       "show": "WaveFlow öffnen",
-      "quit": "Beenden"
+      "quit": "Beenden",
+      "desktopLyrics": "Desktop-Songtext",
+      "lockDesktopLyrics": "Desktop-Songtext sperren"
     }
   },
   "share": {
@@ -2849,5 +2865,10 @@
     "appliedCount_other": "{{count}} Titel aktualisiert.",
     "failedCount_one": "{{count}} Titel konnte nicht geschrieben werden.",
     "failedCount_other": "{{count}} Titel konnten nicht geschrieben werden."
+  },
+  "desktopLyrics": {
+    "title": "Desktop-Songtext",
+    "lock": "Sperren (Klicks durchlassen)",
+    "lockHint": "Klicks gehen durch den Songtext hindurch. Entsperre ihn über das Symbol im Infobereich, das Menü Weitere Aktionen oder hier."
   }
 }

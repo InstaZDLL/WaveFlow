@@ -2417,8 +2417,22 @@
         "cleanup": "Pemeliharaan gambar",
         "updates": "Pembaruan",
         "diagnostics": "Diagnostik",
-        "reset": "Atur ulang aplikasi"
+        "reset": "Atur ulang aplikasi",
+        "desktopLyrics": "Lirik desktop"
       }
+    },
+    "desktopLyrics": {
+      "subtitle": "Jendela mengambang di atas aplikasi lain yang menampilkan baris yang sedang dinyanyikan.",
+      "waylandNote": "Di Wayland, compositor mungkin tidak menjaga jendela tetap di atas aplikasi lain atau di tempat kamu meletakkannya.",
+      "previewSung": "Lirik yang mengikuti",
+      "previewUnsung": "lagu",
+      "fontSize": "Ukuran teks",
+      "background": "Latar belakang",
+      "textColor": "Warna teks",
+      "highlightColor": "Warna yang dinyanyikan",
+      "outline": "Garis tepi",
+      "showTranslation": "Tampilkan terjemahan",
+      "reset": "Setel ulang tampilan"
     }
   },
   "spotify": {
@@ -2451,7 +2465,9 @@
       "previous": "Sebelumnya",
       "next": "Berikutnya",
       "show": "Buka WaveFlow",
-      "quit": "Keluar"
+      "quit": "Keluar",
+      "desktopLyrics": "Lirik desktop",
+      "lockDesktopLyrics": "Kunci lirik desktop"
     }
   },
   "share": {
@@ -2828,5 +2844,10 @@
     "appliedCount_other": "{{count}} lagu diperbarui.",
     "failedCount_one": "{{count}} lagu tidak dapat ditulis.",
     "failedCount_other": "{{count}} lagu tidak dapat ditulis."
+  },
+  "desktopLyrics": {
+    "title": "Lirik desktop",
+    "lock": "Kunci (klik tembus)",
+    "lockHint": "Klik menembus lirik. Buka kunci dari ikon baki sistem, menu Aksi lainnya, atau di sini."
   }
 }

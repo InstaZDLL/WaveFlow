@@ -2417,8 +2417,22 @@
         "cleanup": "Afbeeldingsonderhoud",
         "updates": "Updates",
         "diagnostics": "Diagnostiek",
-        "reset": "Toepassing herstellen"
+        "reset": "Toepassing herstellen",
+        "desktopLyrics": "Songtekst op bureaublad"
       }
+    },
+    "desktopLyrics": {
+      "subtitle": "Een zwevend venster boven je andere apps dat de regel toont die gezongen wordt.",
+      "waylandNote": "Onder Wayland houdt de compositor het venster mogelijk niet boven andere apps of op de plek waar je het neerzet.",
+      "previewSung": "Songtekst die het nummer",
+      "previewUnsung": "volgt",
+      "fontSize": "Tekstgrootte",
+      "background": "Achtergrond",
+      "textColor": "Tekstkleur",
+      "highlightColor": "Gezongen kleur",
+      "outline": "Omlijning",
+      "showTranslation": "Vertaling tonen",
+      "reset": "Weergave herstellen"
     }
   },
   "spotify": {
@@ -2451,7 +2465,9 @@
       "previous": "Vorige",
       "next": "Volgende",
       "show": "WaveFlow openen",
-      "quit": "Afsluiten"
+      "quit": "Afsluiten",
+      "desktopLyrics": "Songtekst op bureaublad",
+      "lockDesktopLyrics": "Songtekst op bureaublad vergrendelen"
     }
   },
   "share": {
@@ -2849,5 +2865,10 @@
     "appliedCount_other": "{{count}} nummers bijgewerkt.",
     "failedCount_one": "{{count}} nummer kon niet worden weggeschreven.",
     "failedCount_other": "{{count}} nummers konden niet worden weggeschreven."
+  },
+  "desktopLyrics": {
+    "title": "Songtekst op bureaublad",
+    "lock": "Vergrendelen (klikken gaan erdoorheen)",
+    "lockHint": "Klikken gaan door de songtekst heen. Ontgrendel via het pictogram in het systeemvak, het menu Meer acties of hier."
   }
 }

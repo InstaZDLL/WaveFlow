@@ -9,6 +9,7 @@ mod audio;
 mod backup;
 mod commands;
 mod db;
+mod desktop_lyrics;
 mod discord_presence;
 mod dlna;
 mod error;
@@ -60,7 +61,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use tauri::{
-    menu::{Menu, MenuItem, PredefinedMenuItem},
+    menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Listener, Manager, WindowEvent,
 };
@@ -233,6 +234,7 @@ pub fn run() {
             app.manage(commands::preferences::PreferencesState::new(
                 minimize_to_tray,
             ));
+            app.manage(desktop_lyrics::DesktopLyricsState::default());
 
             // Artwork reaches the webview through `convertFileSrc`, which
             // the asset protocol gates on the static scope in
@@ -545,6 +547,25 @@ pub fn run() {
                 MenuItem::with_id(app, "play_pause", "Play / Pause", true, None::<&str>)?;
             let previous_item = MenuItem::with_id(app, "previous", "Previous", true, None::<&str>)?;
             let next_item = MenuItem::with_id(app, "next", "Next", true, None::<&str>)?;
+            // Desktop lyrics (#582). Both start unchecked and "lock"
+            // disabled: the window never survives a restart, and
+            // `tray::sync_desktop_lyrics` keeps the marks in step after.
+            let desktop_lyrics_item = CheckMenuItem::with_id(
+                app,
+                "desktop_lyrics",
+                "Desktop lyrics",
+                true,
+                false,
+                None::<&str>,
+            )?;
+            let desktop_lyrics_lock_item = CheckMenuItem::with_id(
+                app,
+                "desktop_lyrics_lock",
+                "Lock desktop lyrics",
+                false,
+                false,
+                None::<&str>,
+            )?;
             let show_item = MenuItem::with_id(app, "show", "Open WaveFlow", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
 
@@ -554,6 +575,9 @@ pub fn run() {
                     &play_pause_item,
                     &previous_item,
                     &next_item,
+                    &PredefinedMenuItem::separator(app)?,
+                    &desktop_lyrics_item,
+                    &desktop_lyrics_lock_item,
                     &PredefinedMenuItem::separator(app)?,
                     &show_item,
                     &PredefinedMenuItem::separator(app)?,
@@ -565,6 +589,8 @@ pub fn run() {
                 play_pause: play_pause_item,
                 previous: previous_item,
                 next: next_item,
+                desktop_lyrics: desktop_lyrics_item,
+                desktop_lyrics_lock: desktop_lyrics_lock_item,
                 show: show_item,
                 quit: quit_item,
             });
@@ -583,6 +609,8 @@ pub fn run() {
                     "play_pause" => player_actions::toggle_play_pause(app, "tray"),
                     "previous" => spawn_previous(app),
                     "next" => spawn_next(app),
+                    "desktop_lyrics" => desktop_lyrics::toggle_from_tray(app),
+                    "desktop_lyrics_lock" => desktop_lyrics::toggle_lock_from_tray(app),
                     "show" => show_main_window(app),
                     "quit" => request_quit(app),
                     _ => {}
@@ -1049,6 +1077,11 @@ pub fn run() {
             commands::updater::check_for_update,
             commands::updater::install_update,
             commands::tray::set_tray_labels,
+            commands::desktop_lyrics::desktop_lyrics_status,
+            commands::desktop_lyrics::open_desktop_lyrics,
+            commands::desktop_lyrics::close_desktop_lyrics,
+            commands::desktop_lyrics::set_desktop_lyrics_locked,
+            commands::preferences::set_desktop_lyrics_bounds,
             commands::lyrics::get_lyrics,
             commands::lyrics::fetch_lyrics,
             commands::lyrics::fetch_radio_lyrics,
@@ -1189,6 +1222,10 @@ pub fn run() {
             // been armed, so we can safely persist the resume point and
             // shut the audio engine down.
             WindowEvent::Destroyed => {
+                if window.label() == desktop_lyrics::LABEL {
+                    desktop_lyrics::on_destroyed(window.app_handle());
+                    return;
+                }
                 if window.label() != "main" {
                     return;
                 }

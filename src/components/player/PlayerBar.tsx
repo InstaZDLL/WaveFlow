@@ -328,26 +328,24 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
             {/* Overflow menu — hosts playback speed, EQ presets,
               Sleep timer, A-B loop (each appears here only when NOT
-              pinned to the primary cluster). Hidden when nothing
-              would go inside (Spotify mode + every feature pinned). */}
-            {(!isSpotify ||
-              !layout.showSleepTimer ||
-              !layout.showAbLoop ||
-              !layout.showEqPreset) && (
-              <MoreActionsMenu
-                pinAbLoop={layout.showAbLoop}
-                pinSleepTimer={layout.showSleepTimer}
-                pinEqPreset={layout.showEqPreset}
-                showSpeed={!isSpotify}
-                showEq={!isSpotify}
-                sleepTimer={{
-                  status: sleepTimer.status,
-                  onSetDuration: sleepTimer.setDurationMinutes,
-                  onSetEndOfTrack: sleepTimer.setEndOfTrack,
-                  onCancel: sleepTimer.cancel,
-                }}
-              />
-            )}
+              pinned to the primary cluster) and the desktop lyrics
+              window. That last one has no pin, so the menu is never
+              empty and always renders — hiding it in Spotify mode with
+              everything pinned used to be right, and would now take
+              away one of the places a locked overlay is unlocked from. */}
+            <MoreActionsMenu
+              pinAbLoop={layout.showAbLoop}
+              pinSleepTimer={layout.showSleepTimer}
+              pinEqPreset={layout.showEqPreset}
+              showSpeed={!isSpotify}
+              showEq={!isSpotify}
+              sleepTimer={{
+                status: sleepTimer.status,
+                onSetDuration: sleepTimer.setDurationMinutes,
+                onSetEndOfTrack: sleepTimer.setEndOfTrack,
+                onCancel: sleepTimer.cancel,
+              }}
+            />
 
             <VolumeControl />
 

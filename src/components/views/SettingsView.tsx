@@ -186,6 +186,7 @@ import { WindowBoundsCard } from "./settings/WindowBoundsCard";
 import { LyricsDestinationCard } from "./settings/LyricsDestinationCard";
 import { UpdateChannelCard } from "./settings/UpdateChannelCard";
 import { ArtistBioSourceCard } from "./settings/ArtistBioSourceCard";
+import { DesktopLyricsCard } from "./settings/DesktopLyricsCard";
 
 interface SettingsViewProps {
   onNavigate: (view: ViewId) => void;
@@ -3102,6 +3103,13 @@ export function SettingsView({
                     label={t("settings.visualizer.title")}
                   />
                 </div>
+              </SettingsGroup>
+              <SettingsGroup
+                id="desktopLyrics"
+                title={t("settings.organization.groups.desktopLyrics")}
+                reveal={targetGroup === "desktopLyrics"}
+              >
+                <DesktopLyricsCard />
               </SettingsGroup>
               <SettingsGroup
                 id="pages"

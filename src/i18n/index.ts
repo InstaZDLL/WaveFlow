@@ -168,6 +168,8 @@ function pushTrayLabels() {
     playPause: i18n.t("system.tray.playPause"),
     previous: i18n.t("system.tray.previous"),
     next: i18n.t("system.tray.next"),
+    desktopLyrics: i18n.t("system.tray.desktopLyrics"),
+    desktopLyricsLock: i18n.t("system.tray.lockDesktopLyrics"),
     show: i18n.t("system.tray.show"),
     quit: i18n.t("system.tray.quit"),
     play: i18n.t("player.controls.play"),

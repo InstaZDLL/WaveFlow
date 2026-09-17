@@ -2420,8 +2420,22 @@
         "cleanup": "Entretien des illustrations",
         "updates": "Mises à jour",
         "diagnostics": "Diagnostics",
-        "reset": "Réinitialisation de l’application"
+        "reset": "Réinitialisation de l’application",
+        "desktopLyrics": "Paroles sur le bureau"
       }
+    },
+    "desktopLyrics": {
+      "subtitle": "Une fenêtre flottante au-dessus des autres applications, qui affiche la ligne chantée.",
+      "waylandNote": "Sous Wayland, le compositeur peut ne pas garder la fenêtre au premier plan ni à l'endroit où vous la placez.",
+      "previewSung": "Des paroles qui suivent",
+      "previewUnsung": "la chanson",
+      "fontSize": "Taille du texte",
+      "background": "Fond",
+      "textColor": "Couleur du texte",
+      "highlightColor": "Couleur chantée",
+      "outline": "Contour",
+      "showTranslation": "Afficher la traduction",
+      "reset": "Réinitialiser l'apparence"
     }
   },
   "spotify": {
@@ -2454,7 +2468,9 @@
       "previous": "Précédent",
       "next": "Suivant",
       "show": "Ouvrir WaveFlow",
-      "quit": "Quitter"
+      "quit": "Quitter",
+      "desktopLyrics": "Paroles sur le bureau",
+      "lockDesktopLyrics": "Verrouiller les paroles sur le bureau"
     }
   },
   "share": {
@@ -2860,5 +2876,10 @@
     "failedCount_one": "{{count}} titre n'a pas pu être écrit.",
     "failedCount_many": "{{count}} titres n'ont pas pu être écrits.",
     "failedCount_other": "{{count}} titres n'ont pas pu être écrits."
+  },
+  "desktopLyrics": {
+    "title": "Paroles sur le bureau",
+    "lock": "Verrouiller (clic traversant)",
+    "lockHint": "Les clics traversent les paroles. Déverrouillez depuis l'icône de la barre système, le menu Plus d'actions ou ici."
   }
 }

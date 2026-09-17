@@ -2,6 +2,8 @@ interface ToggleSwitchProps {
   enabled: boolean;
   onToggle: () => void;
   label: string;
+  /** Greyed out and inert, e.g. a lock for a window that is not open. */
+  disabled?: boolean;
 }
 
 /**
@@ -15,7 +17,12 @@ interface ToggleSwitchProps {
  * subtitle squeezed the switch narrower than the ones above and below
  * it. The width is the control's size, not a suggestion.
  */
-export function ToggleSwitch({ enabled, onToggle, label }: ToggleSwitchProps) {
+export function ToggleSwitch({
+  enabled,
+  onToggle,
+  label,
+  disabled = false,
+}: ToggleSwitchProps) {
   return (
     <button
       type="button"
@@ -23,7 +30,8 @@ export function ToggleSwitch({ enabled, onToggle, label }: ToggleSwitchProps) {
       role="switch"
       aria-checked={enabled}
       aria-label={label}
-      className={`relative w-12 h-7 shrink-0 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900 ${
+      disabled={disabled}
+      className={`relative w-12 h-7 shrink-0 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900 ${
         enabled ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-600"
       }`}
     >

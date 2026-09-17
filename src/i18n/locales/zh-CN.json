@@ -2417,8 +2417,22 @@
         "cleanup": "图片维护",
         "updates": "更新",
         "diagnostics": "诊断",
-        "reset": "重置应用"
+        "reset": "重置应用",
+        "desktopLyrics": "桌面歌词"
       }
+    },
+    "desktopLyrics": {
+      "subtitle": "悬浮在其他应用之上、显示正在演唱歌词的窗口。",
+      "waylandNote": "在 Wayland 下，合成器可能不会让窗口保持置顶，也可能不会保留你放置的位置。",
+      "previewSung": "跟随歌曲的",
+      "previewUnsung": "歌词",
+      "fontSize": "文字大小",
+      "background": "背景",
+      "textColor": "文字颜色",
+      "highlightColor": "已唱颜色",
+      "outline": "描边",
+      "showTranslation": "显示翻译",
+      "reset": "重置外观"
     }
   },
   "scanProgress": {
@@ -2437,7 +2451,9 @@
       "previous": "上一首",
       "next": "下一首",
       "show": "打开 WaveFlow",
-      "quit": "退出"
+      "quit": "退出",
+      "desktopLyrics": "桌面歌词",
+      "lockDesktopLyrics": "锁定桌面歌词"
     }
   },
   "spotify": {
@@ -2828,5 +2844,10 @@
     "appliedCount_other": "已更新 {{count}} 首。",
     "failedCount_one": "有 {{count}} 首无法写入。",
     "failedCount_other": "有 {{count}} 首无法写入。"
+  },
+  "desktopLyrics": {
+    "title": "桌面歌词",
+    "lock": "锁定（鼠标穿透）",
+    "lockHint": "鼠标点击会穿过歌词。可在系统托盘图标、“更多操作”菜单或此处解锁。"
   }
 }
