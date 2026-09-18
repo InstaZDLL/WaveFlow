@@ -81,7 +81,7 @@
       "skin": {
         "title": "インターフェーススタイル"
       },
-      "hint": "この選択はプロファイルごとに保存されます — 各プロファイルは独自の外観を持つことができます。"
+      "hint": "この選択はプロフィールごとに保存されます — 各プロフィールは独自の外観を持つことができます。"
     },
     "folder": {
       "title": "音楽フォルダを選択",
@@ -210,7 +210,7 @@
       "createPlaylistAria": "新しいプレイリストを作成する",
       "importM3uAria": "M3Uプレイリストをインポートする",
       "importDialogTitle": "M3Uプレイリストをインポートする",
-      "liked": "気に入った曲",
+      "liked": "「いいね」した曲",
       "recent": "最近再生した曲",
       "emptySubtext_zero": "0曲",
       "emptySubtext_one": "{{count}}曲",
@@ -251,7 +251,7 @@
         "close": "閉じる",
         "reset": "リセット",
         "hiRes": "ハイレゾ",
-        "likedOnly": "お気に入りのみ",
+        "likedOnly": "「いいね」した曲のみ",
         "year": "年 (から → まで)",
         "bpm": "BPM (から → まで)",
         "durationMin": "再生時間（分）(から → まで)",
@@ -260,7 +260,7 @@
       },
       "artists": "アーティスト",
       "albums": "アルバム",
-      "titles": "曲"
+      "titles": "曲名"
     },
     "theme": {
       "enableLight": "ライトモードに切り替え",
@@ -295,13 +295,13 @@
     },
     "stats": {
       "library": "ライブラリ",
-      "liked": "気に入った曲",
+      "liked": "「いいね」した曲",
       "recent": "最近再生した曲",
       "playlists": "プレイリスト"
     },
     "moodRadio": {
       "title": "ムードラジオ",
-      "subtitle": "テンポ・音量・ジャンル順",
+      "subtitle": "テンポ、音量、ジャンルに基づいて選曲",
       "trackCount_one": "{{count}}曲",
       "trackCount_other": "{{count}}曲",
       "empty": "解析済み楽曲が不足しています",
@@ -326,8 +326,8 @@
         "title": "スリープ",
         "subtitle": "入眠用のとてもゆっくりで静かな曲"
       },
-      "coverage_one": "{{count}} 曲中 {{analysed}} 曲を解析済み",
-      "coverage_other": "{{count}} 曲中 {{analysed}} 曲を解析済み"
+      "coverage_one": "{{count}}曲中 {{analysed}}曲を解析済み",
+      "coverage_other": "{{count}}曲中 {{analysed}}曲を解析済み"
     },
     "recentlyPlayed": {
       "title": "最近再生した曲",
@@ -379,11 +379,11 @@
         "dossiers_one": "{{count}}個",
         "dossiers_other": "{{count}}個",
         "playlists_zero": "0 個のプレイリスト",
-        "playlists_one": "{{count}} 個のプレイリスト",
-        "playlists_other": "{{count}} 個のプレイリスト",
+        "playlists_one": "{{count}}個のプレイリスト",
+        "playlists_other": "{{count}}個のプレイリスト",
         "a-corriger_zero": "問題はありません。ライブラリは揃っています。",
-        "a-corriger_one": "要確認 {{count}} 件",
-        "a-corriger_other": "要確認 {{count}} 件"
+        "a-corriger_one": "要確認 {{count}}件",
+        "a-corriger_other": "要確認 {{count}}件"
       }
     },
     "tabs": {
@@ -490,18 +490,18 @@
       "deepRescan": "ディープ再スキャン（すべてのファイルを再読み込み、低速）",
       "remove": "ライブラリからフォルダを削除",
       "removeConfirm": "もう一度クリックで確定",
-      "removeConfirmWithPlays_one": "もう一度クリックして確認します。{{count}} 件の再生履歴は保持され、次回のスキャンで再び関連付けられます。",
-      "removeConfirmWithPlays_other": "もう一度クリックして確認します。{{count}} 件の再生履歴は保持され、次回のスキャンで再び関連付けられます。"
+      "removeConfirmWithPlays_one": "もう一度クリックして確認します。{{count}}件の再生履歴は保持され、次回のスキャンで再び関連付けられます。",
+      "removeConfirmWithPlays_other": "もう一度クリックして確認します。{{count}}件の再生履歴は保持され、次回のスキャンで再び関連付けられます。"
     },
     "folderBrowser": {
-      "open": "このフォルダーを開く",
-      "breadcrumb": "フォルダーのパス",
-      "roots": "すべてのフォルダー",
-      "up": "親フォルダー",
+      "open": "このフォルダを開く",
+      "breadcrumb": "フォルダのパス",
+      "roots": "すべてのフォルダ",
+      "up": "親フォルダ",
       "density": "表示密度",
       "densityGrid": "グリッド",
-      "actions": "フォルダーの操作",
-      "play": "フォルダーを再生",
+      "actions": "フォルダの操作",
+      "play": "フォルダを再生",
       "queue": "キューに追加",
       "playNext": "次を再生",
       "newPlaylist": "新しいプレイリスト",
@@ -513,8 +513,8 @@
       "emptyTitle": "プレイリストがありません",
       "emptyHint": "作成したプレイリストがグリッドで表示されます。",
       "meta_zero": "0 曲 · {{duration}}",
-      "meta_one": "{{count}} 曲 · {{duration}}",
-      "meta_other": "{{count}} 曲 · {{duration}}"
+      "meta_one": "{{count}}曲 · {{duration}}",
+      "meta_other": "{{count}}曲 · {{duration}}"
     },
     "source": {
       "label": "ソース",
@@ -525,10 +525,10 @@
     "open": "{{name}} を開く",
     "inventory": {
       "allClear": "問題はありません。ライブラリは揃っています。",
-      "summary_one": "要確認 {{count}} 件",
-      "summary_other": "要確認 {{count}} 件",
-      "trackCount_one": "{{count}} 曲",
-      "trackCount_other": "{{count}} 曲",
+      "summary_one": "要確認 {{count}}件",
+      "summary_other": "要確認 {{count}}件",
+      "trackCount_one": "{{count}}曲",
+      "trackCount_other": "{{count}}曲",
       "categories": {
         "missing_title": {
           "label": "タイトルなし",
@@ -610,12 +610,12 @@
   },
   "liked": {
     "badge": "コレクション",
-    "title": "気に入った曲",
+    "title": "「いいね」した曲",
     "count_zero": "0曲",
     "count_one": "{{count}}曲",
     "count_other": "{{count}}曲",
-    "emptyTitle": "気に入った曲はまだありません",
-    "emptyDescription": "気に入った曲がここに表示されます。ライブラリを見て、お気に入りの曲に「いいね」を付けましょう。",
+    "emptyTitle": "「いいね」した曲はまだありません",
+    "emptyDescription": "「いいね」した曲がここに表示されます。ライブラリを見て、お気に入りの曲に「いいね」を付けましょう。",
     "playAll": "すべて再生",
     "unlike": "「いいね」を解除",
     "like": "「いいね」を付ける"
@@ -649,7 +649,7 @@
     "count_one": "{{count}}曲",
     "count_other": "{{count}}曲",
     "emptyTitle": "最近再生した曲はありません",
-    "emptyDescription": "再生中の曲がここに自動的に表示されます。"
+    "emptyDescription": "聴いた曲がここに自動的に表示されます。"
   },
   "statistics": {
     "title": "統計",
@@ -677,7 +677,7 @@
       "empty": "この期間の再生データはありません。"
     },
     "byHour": {
-      "title": "好きな時間帯",
+      "title": "よく聴く時間帯",
       "empty": "この期間の再生データはありません。",
       "tooltip": "{{hour}}時 — {{plays}}回再生"
     },
@@ -746,17 +746,17 @@
       "artists": "アーティスト"
     },
     "topTracks": {
-      "title": "あなたのお気に入りの曲"
+      "title": "よく聴いた曲"
     },
     "topArtists": {
-      "title": "あなたのお気に入りのアーティスト"
+      "title": "よく聴いたアーティスト"
     },
     "topAlbums": {
-      "title": "あなたのお気に入りのアルバム"
+      "title": "よく聴いたアルバム"
     },
     "activeDay": {
       "eyebrow": "最も聴いた日",
-      "subtitle": "{{duration}}聴いた、{{count}}曲"
+      "subtitle": "再生時間 {{duration}}・{{count}}曲"
     },
     "mood": {
       "eyebrow": "平均BPM",
@@ -771,7 +771,7 @@
       }
     },
     "clock": {
-      "eyebrow": "リスニング時間帯",
+      "eyebrow": "最もよく聴いた時間帯",
       "subtitle": "1日のピーク"
     },
     "streak": {
@@ -834,7 +834,7 @@
     "changelog": {
       "loading": "読み込み中…",
       "empty": "エントリはありません",
-      "expand": "残り {{count}} 件を表示",
+      "expand": "残り {{count}}件を表示",
       "collapse": "閉じる",
       "breaking": "破壊的変更"
     }
@@ -922,7 +922,7 @@
     "activeLabel": "アクティブ出力",
     "loading": "デバイスの検索中…",
     "empty": "利用可能な出力デバイスがありません",
-    "systemDefault": "デフォルト",
+    "systemDefault": "既定",
     "pinnedUnavailable": "固定中・利用不可",
     "reopen": "このデバイスを開き直す",
     "capabilities": {
@@ -1224,7 +1224,7 @@
     "trackCount_one": "{{count}}曲",
     "trackCount_other": "{{count}}曲",
     "emptyTitle": "ジャンルが見つかりません",
-    "emptyDescription": "このジャンルはアクティブなプロファイルに存在しません。",
+    "emptyDescription": "このジャンルはアクティブなプロフィールに存在しません。",
     "emptyTracksTitle": "曲がありません",
     "emptyTracksDescription": "このジャンルには利用可能な曲がありません。"
   },
@@ -1242,7 +1242,7 @@
     "readMore": "もっと読む",
     "readLess": "折りたたむ",
     "noBio": "バイオグラフィーはありません。設定で Last.fm キーを設定してください。",
-    "nextInQueue": "次のキュー",
+    "nextInQueue": "次に再生",
     "openQueue": "キューを開く",
     "lyrics": {
       "title": "歌詞",
@@ -1268,7 +1268,7 @@
     "moreActions": "その他の操作",
     "abLoop": "A-Bループ",
     "openFullscreen": "没入ビュー",
-    "eqPreset": "イコライザ",
+    "eqPreset": "イコライザー",
     "eq": {
       "bypass": "EQ を有効にする"
     },
@@ -1304,7 +1304,7 @@
   "miniPlayer": {
     "idle": "再生中の曲なし",
     "maximize": "メインウィンドウを復元",
-    "like": "お気に入り",
+    "like": "「いいね」",
     "pin": "常に手前に表示",
     "close": "ミニプレーヤーを閉じる",
     "upNext": {
@@ -1336,7 +1336,7 @@
     "importTitle": ".lrcファイルをインポートする",
     "actions": {
       "import": ".lrcファイルをインポートする",
-      "refetch": "検索を再開する",
+      "refetch": "もう一度検索",
       "clear": "歌詞を消去する",
       "fullscreen": "フルスクリーン",
       "edit": "歌詞を編集",
@@ -1374,14 +1374,14 @@
   },
   "duplicates": {
     "title": "重複が見つかりました",
-    "summary": "{{groups}} グループ · {{duplicates}} 件の重複を削除可能",
+    "summary": "{{groups}} グループ · {{duplicates}}件の重複を削除可能",
     "scanning": "スキャン中…",
     "empty": "重複はありません",
     "emptyHint": "ライブラリはクリーンです。",
     "rescan": "再スキャン",
     "deleteOthers_zero": "削除する項目はありません",
-    "deleteOthers_one": "{{count}} 件の重複を削除",
-    "deleteOthers_other": "{{count}} 件の重複を削除",
+    "deleteOthers_one": "{{count}}件の重複を削除",
+    "deleteOthers_other": "{{count}}件の重複を削除",
     "keepAria": "{{title}} を保持"
   },
   "dragDrop": {
@@ -1474,8 +1474,8 @@
       "durationMinMs": "再生時間 (ms) ≥",
       "durationMaxMs": "再生時間 (ms) ≤",
       "format": "フォーマット =",
-      "hiRes": "Hi-Res",
-      "liked": "お気に入り",
+      "hiRes": "ハイレゾ",
+      "liked": "「いいね」",
       "ratingMin": "評価 ≥",
       "pathContains": "パスに含む",
       "discNumberIs": "ディスク =",
@@ -1489,7 +1489,7 @@
       "tagContains": "タグに含む"
     },
     "counting": "計算中…",
-    "matchCountLimited": "{{total}} 件中 {{kept}} 件",
+    "matchCountLimited": "{{total}}件中 {{kept}}件",
     "templates": {
       "label": "テンプレート",
       "placeholder": "テンプレートから始める…",
@@ -1507,8 +1507,8 @@
       "history": "再生",
       "tags": "タグ"
     },
-    "matchCount_one": "{{count}} 曲が一致",
-    "matchCount_other": "{{count}} 曲が一致"
+    "matchCount_one": "{{count}}曲が一致",
+    "matchCount_other": "{{count}}曲が一致"
   },
   "lyricsEditor": {
     "title": "歌詞エディタ",
@@ -1580,7 +1580,7 @@
   "editorial": {
     "masthead": {
       "edition": "朝刊",
-      "price": "価格：無料",
+      "price": "料金：追加費用なし",
       "subtitle": "「活字にする価値のあるすべての音楽。」— あなただけの、毎日のセレクション。"
     },
     "lead": {
@@ -1608,7 +1608,7 @@
       "subtitle": "WaveFlow にソース、メタデータ、ビューを追加する拡張機能を管理します。",
       "loading": "読み込み中…",
       "emptyTitle": "プラグインがインストールされていません",
-      "emptyHint": "上のストアからインストールするか、<data>/waveflow/plugins/ にフォルダーを配置してください。",
+      "emptyHint": "上のストアからインストールするか、<data>/waveflow/plugins/ にフォルダを配置してください。",
       "byAuthor": "作者: {{author}}",
       "enabled": "有効",
       "disabled": "無効",
@@ -1693,7 +1693,7 @@
       },
       "notifications": {
         "title": "曲変更通知",
-        "subtitle": "曲が変わるたびにシステム通知を表示します（タイトル + アーティスト）。デフォルトはオフ。"
+        "subtitle": "曲が変わるたびにシステム通知を表示します（タイトル + アーティスト）。既定はオフ。"
       }
     },
     "crossfade": {
@@ -1706,7 +1706,7 @@
     },
     "normalize": {
       "title": "音量のノーマライズ",
-      "subtitle": "音量が大きすぎる部分のボリュームを下げて、全体的な音量を均一にする"
+      "subtitle": "音量が大きすぎる曲を抑え、全体の音量感をそろえます"
     },
     "replayGain": {
       "title": "ReplayGainの適用",
@@ -1773,7 +1773,7 @@
     },
     "singleClickPlay": {
       "title": "シングルクリック再生",
-      "subtitle": "曲をクリックして再生を開始します（それ以外の場合はダブルクリックしてください）"
+      "subtitle": "曲をクリックすると再生を開始します（オフの場合はダブルクリック）"
     },
     "showSleepTimer": {
       "title": "スリープタイマーをバーに固定",
@@ -1824,20 +1824,20 @@
     "lyricsPrefetch": {
       "title": "歌詞を事前取得",
       "subtitle": "オフライン利用のためライブラリ全体の歌詞をダウンロードします",
-      "result": "{{hits}} 件同期、{{misses}} 件見つからず、{{failed}} 件失敗",
+      "result": "{{hits}}件同期、{{misses}}件見つからず、{{failed}}件失敗",
       "offline": "オフラインモードが有効です",
       "failed": "プリフェッチに失敗しました",
       "action": "事前取得",
-      "progress": "{{current}}/{{total}} 処理済み · {{hits}} 件取得"
+      "progress": "{{current}}/{{total}} 処理済み · {{hits}}件取得"
     },
     "regenerateThumbnails": "サムネイルの再生成",
     "regenerateThumbnailsSubtitle": "すべてのジャケットについて、欠落している1x/2xバージョンを再構築する",
     "regenerateThumbnailsAction": "再生成",
-    "regenerateThumbnailsDone": "{{count}} 件のサムネイルを再生成しました",
+    "regenerateThumbnailsDone": "{{count}}件のサムネイルを再生成しました",
     "pruneAlbumCovers": "未使用の Deezer アルバムジャケットを削除",
     "pruneAlbumCoversSubtitle": "すでに独自のアートワークを持つアルバム用にキャッシュされた Deezer ジャケットを削除します（表示されることはありません）",
     "pruneAlbumCoversAction": "削除",
-    "pruneAlbumCoversDone": "{{files}} 個のファイルを削除 · {{mb}} MB を解放",
+    "pruneAlbumCoversDone": "{{files}}個のファイルを削除 · {{mb}} MB を解放",
     "pruneAlbumCoversFailed": "ジャケットの削除に失敗しました",
     "reset": {
       "title": "アプリをリセットする",
@@ -1845,9 +1845,9 @@
       "action": "リセット",
       "confirm": {
         "title": "アプリ全体をリセットしますか？",
-        "warning": "すべてのプロファイル、ライブラリ、プレイリスト、評価、再生履歴、キャッシュされたジャケットが削除されます。アプリは初期設定の状態で再起動します。この操作は取り消せません。",
+        "warning": "すべてのプロフィール、ライブラリ、プレイリスト、評価、再生履歴、キャッシュされたジャケットが削除されます。アプリは初期設定の状態で再起動します。この操作は取り消せません。",
         "typeToConfirm": "確認するには RESET と入力してください",
-        "error": "リセットに失敗しました。WaveFlow のファイルを保持している外部プログラム（開いているミュージックプレーヤー、データフォルダーのファイルエクスプローラー）を閉じてからもう一度お試しください。",
+        "error": "リセットに失敗しました。WaveFlow のファイルを保持している外部プログラム（開いているミュージックプレーヤー、データフォルダのファイルエクスプローラー）を閉じてからもう一度お試しください。",
         "cancel": "キャンセル",
         "confirmButton": "リセットして再起動"
       }
@@ -1865,7 +1865,7 @@
       "loading": "確認中…",
       "subtitleEmpty": "比較するエンティティがありません",
       "subtitleAllInSync": "すべて同期されています",
-      "subtitleOutOfSync": "{{total}} 件中 {{outOfSync}} 件が未同期",
+      "subtitleOutOfSync": "{{total}}件中 {{outOfSync}}件が未同期",
       "refresh": "更新",
       "resyncNow": "今すぐ再同期",
       "inSync": "同期済み",
@@ -1874,13 +1874,13 @@
       "reasonGeneric": "スキップ ({{reason}})",
       "reason": {
         "offline": "オフラインモードが有効です",
-        "sync_mode_local": "プロファイルがローカルモードです",
+        "sync_mode_local": "プロフィールがローカルモードです",
         "not_configured": "サーバーが未設定です",
         "profile_canonical_id_missing": "初回同期を待機中"
       },
       "backfillAlreadyRunning": "すでに同期が実行中です",
       "backfillSkipped": "同期をスキップしました ({{reason}})",
-      "backfillSummary": "送信 {{pushed}} 件 · 受信 {{pulled}} 件 · 統合 {{lww}} 件 · 失敗 {{failed}} 件",
+      "backfillSummary": "送信 {{pushed}}件 · 受信 {{pulled}}件 · 統合 {{lww}}件 · 失敗 {{failed}}件",
       "col": {
         "entity": "エンティティ",
         "state": "状態",
@@ -1905,7 +1905,7 @@
       "lastSyncJustNow": "たった今",
       "lastSyncMinutesAgo": "{{count}} 分前",
       "lastSyncHoursAgo": "{{count}} 時間前",
-      "lastSyncDaysAgo": "{{count}} 日前",
+      "lastSyncDaysAgo": "{{count}}日前",
       "drilldown": {
         "loading": "詳細を読み込み中…",
         "error": "エラー: {{message}}",
@@ -1913,7 +1913,7 @@
         "missingLocally": "ローカルに不足",
         "missingRemotely": "サーバーに不足",
         "divergent": "不一致",
-        "moreNotShown": "他 {{count}} 件非表示"
+        "moreNotShown": "他 {{count}}件非表示"
       }
     },
     "gapless": {
@@ -1951,13 +1951,13 @@
     },
     "backup": {
       "title": "自動バックアップ",
-      "subtitle": "選択したフォルダに各プロファイルの.waveflowアーカイブを定期的に作成します。",
+      "subtitle": "選択したフォルダに各プロフィールの.waveflowアーカイブを定期的に作成します。",
       "intervalLabel": "頻度",
       "intervalDays_one": "毎日",
       "intervalDays_other": "{{count}}日ごと",
       "retentionLabel": "保持するアーカイブ",
-      "retentionKeep_one": "プロファイルあたり{{count}}件",
-      "retentionKeep_other": "プロファイルあたり{{count}}件",
+      "retentionKeep_one": "プロフィールあたり{{count}}件",
+      "retentionKeep_other": "プロフィールあたり{{count}}件",
       "includeMetadataArtworkLabel": "Deezer 画像キャッシュを含める",
       "includeMetadataArtworkHint": "バックアップは大きくなりますが、完全オフラインで復元できます。チェックを外すと軽量なアーカイブになります（必要に応じてキャッシュを再取得）。",
       "changeFolder": "フォルダを変更",
@@ -1967,7 +1967,7 @@
       "runNow": "今すぐバックアップ",
       "runOk_one": "{{count}}件のアーカイブを保存しました。",
       "runOk_other": "{{count}}件のアーカイブを保存しました。",
-      "runPartial": "作成: {{created}} 件、失敗: {{failed}} 件。ログを確認してください。",
+      "runPartial": "作成: {{created}}件、失敗: {{failed}}件。ログを確認してください。",
       "errors": {
         "loadFailed": "バックアップ設定を読み込めませんでした。",
         "saveFailed": "保存に失敗しました。もう一度お試しください。",
@@ -1983,7 +1983,7 @@
     },
     "showAudioQualityFooter": {
       "title": "オーディオ品質バーを表示",
-      "subtitle": "プレイヤーバー下に技術詳細（kHz、kbps、コーデック、ビット深度）を表示。スリムなバーを保つため既定でオフ。"
+      "subtitle": "プレーヤーバー下に技術詳細（kHz、kbps、コーデック、ビット深度）を表示。スリムなバーを保つため既定でオフ。"
     },
     "categoryNavLabel": "設定カテゴリ",
     "appearance": {
@@ -2097,22 +2097,22 @@
       "subtitle": "同じアルバム内の連続する曲間のフェードを自動的にスキップします （コンセプトアルバムやライブ盤に最適）"
     },
     "showSpotify": {
-      "title": "Spotify 入口を表示",
+      "title": "Spotify をサイドバーに表示",
       "subtitle": "サイドバーに Spotify ショートカットを表示します"
     },
     "playerBarLayout": {
-      "title": "プレイヤーバーのレイアウト",
+      "title": "プレーヤーバーのレイアウト",
       "subtitle": "バーに表示するボタンと、ジャケットをクリックしたときの動作を選びます。プレビューは即時に更新されます。",
       "preview": "プレビュー",
       "previewEmpty": "ボタンなし — バーにはジャケットと再生コントロールのみが表示されます。",
       "buttons": {
-        "abLoop": "A-B ループ",
+        "abLoop": "A-Bループ",
         "sleepTimer": "スリープタイマー",
-        "eqPreset": "イコライザ（プリセット）",
+        "eqPreset": "イコライザー（プリセット）",
         "lyrics": "歌詞",
         "queue": "キュー",
         "device": "音声出力",
-        "miniPlayer": "ミニプレイヤー",
+        "miniPlayer": "ミニプレーヤー",
         "immersive": "没入ビュー",
         "audioQualityFooter": "音質情報バー"
       },
@@ -2155,11 +2155,11 @@
     },
     "hiResBadge": {
       "title": "Hi-Res / DSD バッジ",
-      "subtitle": "対象となる曲の横と、プレイヤーバーのアーティスト名の下に「Hi-Res 24-bit」または「DSD128」のラベルを表示します。デフォルトはオン。"
+      "subtitle": "対象となる曲の横と、プレーヤーバーのアーティスト名の下に「Hi-Res 24-bit」または「DSD128」のラベルを表示します。既定はオン。"
     },
     "serverAccount": {
       "title": "WaveFlow サーバーアカウント",
-      "subtitle": "このプロファイルを waveflow-server インスタンスに紐付けて、マルチデバイス同期とブラウザ再生を有効にします。",
+      "subtitle": "このプロフィールを waveflow-server インスタンスに紐付けて、マルチデバイス同期とブラウザ再生を有効にします。",
       "signedIn": "サインイン中",
       "urlLabel": "サーバー URL",
       "urlPlaceholder": "https://api.waveflow.app",
@@ -2183,7 +2183,7 @@
         },
         "local": {
           "label": "ローカルのみ",
-          "description": "サインインしていても変更はサーバーに送信されません。プライベートに保ちたいプロファイルに便利です。"
+          "description": "サインインしていても変更はサーバーに送信されません。プライベートに保ちたいプロフィールに便利です。"
         }
       }
     },
@@ -2201,7 +2201,7 @@
       "subtitle": "先にオンラインで歌詞を検索し、見つからない場合はファイル内の歌詞を使用します"
     },
     "lyricsDestination": {
-      "title": "保存される歌詞の保存先",
+      "title": "歌詞の保存先",
       "subtitle": "エディターで入力した歌詞の保存先。編集ごとに上書き可能。"
     },
     "updateChannel": {
@@ -2244,7 +2244,7 @@
     },
     "statsKpis": {
       "title": "統計指標",
-      "subtitle": "統計ページに表示する指標を選びます。非表示にしたい指標のチェックを外してください（例：完全再生率）。",
+      "subtitle": "統計ページに表示する指標を選びます。非表示にしたい指標のチェックを外してください（例：完聴率）。",
       "legend": "統計指標の表示"
     },
     "immersiveView": {
@@ -2293,7 +2293,7 @@
       "title": "アニメーションアートワーク",
       "subtitle": "メタデータプラグイン（例：Apple Motion Artwork）のモーションカバーが再生画面の背景に表示されます。",
       "cacheLabel": "アニメーションアートワークをローカルに保存",
-      "usage": "{{size}} 使用中 · キャッシュ {{files}} 件",
+      "usage": "{{size}} 使用中 · キャッシュ {{files}}件",
       "clear": "キャッシュを消去",
       "clearConfirm": "確認しますか？"
     },
@@ -2306,8 +2306,8 @@
     },
     "canvasCache": {
       "cacheLabel": "Canvas をローカルに保存",
-      "subtitle": "各曲の Canvas を Canvas プラグインからダウンロードし、オフラインで再ストリーミングなしに再生します。",
-      "usage": "{{size}} 使用中 · {{files}} 件の Canvas をキャッシュ",
+      "subtitle": "各曲の Canvas を Canvas プラグインからダウンロードし、オフラインでも再生できるようにします。毎回ストリーミングする必要もありません。",
+      "usage": "{{size}} 使用中 · {{files}}件の Canvas をキャッシュ",
       "clear": "キャッシュを消去",
       "clearConfirm": "確認しますか？"
     },
@@ -2350,7 +2350,7 @@
     "cacheLocation": {
       "title": "キャッシュの保存場所",
       "subtitle": "アートワーク、モーションカバー、Canvas クリップ。いずれも作り直せるため、移動しても失われるものはありません。データベースと手動で選んだファイルはそのまま残ります。",
-      "pickTitle": "キャッシュ用フォルダーを選択",
+      "pickTitle": "キャッシュ用フォルダを選択",
       "choose": "移動…",
       "reset": "既定に戻す",
       "size": "{{size}} 使用中",
@@ -2385,7 +2385,7 @@
         "integrations": "サービス、サーバー、ネットワーク機器に接続します。",
         "plugins": "拡張機能を探して設定を管理します。",
         "shortcuts": "日常の操作に使うキーボードショートカットを選びます。",
-        "data": "保存したプロファイル、フォルダー、メディアキャッシュを管理します。",
+        "data": "保存したプロフィール、フォルダ、メディアキャッシュを管理します。",
         "diagnostics": "更新、トラブルシューティング、アプリのリセットを行います。"
       },
       "groups": {
@@ -2412,8 +2412,8 @@
         "network": "ネットワーク共有",
         "extensions": "拡張機能",
         "keyboard": "キーボードショートカット",
-        "backups": "プロファイルのバックアップ",
-        "storage": "フォルダーとキャッシュ",
+        "backups": "プロフィールのバックアップ",
+        "storage": "フォルダとキャッシュ",
         "cleanup": "画像のメンテナンス",
         "updates": "更新",
         "diagnostics": "診断",
@@ -2442,8 +2442,8 @@
     "cancelledTitle": "スキャンを停止しました",
     "doneSubtitle": "{{added}} 追加 · {{updated}} 更新 · {{skipped}} スキップ",
     "scanningIn": "{{dir}} をスキャン中",
-    "doneErrors_one": "{{count}} 件のファイルが失敗",
-    "doneErrors_other": "{{count}} 件のファイルが失敗"
+    "doneErrors_one": "{{count}}件のファイルが失敗",
+    "doneErrors_other": "{{count}}件のファイルが失敗"
   },
   "system": {
     "tray": {
@@ -2541,19 +2541,19 @@
     "common": {
       "awaitingMetadata": "メタデータを待機中…",
       "untitled": "無題",
-      "trackFallback": "タイトル"
+      "trackFallback": "曲"
     },
     "server": {
       "title": "リモートサーバー",
-      "subtitle": "このプロファイルを WaveFlow サーバーに接続します。プレイリストはサイドバーに表示されます。",
+      "subtitle": "このプロフィールを WaveFlow サーバーに接続します。プレイリストはサイドバーに表示されます。",
       "urlLabel": "サーバーの URL",
       "identify": "識別",
       "unknownType": "不明",
-      "probeNative": "ネイティブ、ブラウザで接続",
+      "probeNative": "ネイティブ（ブラウザでサインイン）",
       "probeSubsonic": "Subsonic プロトコルのみ。ここでは同期履歴もサインインもまだできません",
       "signInBrowser": "ブラウザでサインイン",
       "signedInFallback": "サインイン済み",
-      "syncNow": "同期",
+      "syncNow": "今すぐ同期",
       "signOut": "サインアウト",
       "forget": "サーバーを削除",
       "forgetTitle": "キャッシュされたライブラリと、サーバーに届かなかったオフラインの変更をすべて削除します",
@@ -2561,8 +2561,8 @@
       "counts": {
         "playlists_one": "プレイリスト",
         "playlists_other": "プレイリスト",
-        "favorites_one": "お気に入り",
-        "favorites_other": "お気に入り",
+        "favorites_one": "「いいね」",
+        "favorites_other": "「いいね」",
         "ratings_one": "評価",
         "ratings_other": "評価",
         "history_one": "回再生",
@@ -2574,12 +2574,12 @@
         "cachedTracks_one": "キャッシュ済みの曲",
         "cachedTracks_other": "キャッシュ済みの曲"
       },
-      "awaitingMetadata_one": "{{count}} 曲がメタデータを待機中 — 次のパスで解決されます。",
-      "awaitingMetadata_other": "{{count}} 曲がメタデータを待機中 — 次のパスで解決されます。",
-      "pendingChanges_one": "{{count}} 件のローカル変更が送信待ちです。",
-      "pendingChanges_other": "{{count}} 件のローカル変更が送信待ちです。",
-      "failedChanges_one": "{{count}} 件のローカル変更が拒否され、再試行されません。",
-      "failedChanges_other": "{{count}} 件のローカル変更が拒否され、再試行されません。",
+      "awaitingMetadata_one": "{{count}}曲がメタデータを待機中 — 次のパスで解決されます。",
+      "awaitingMetadata_other": "{{count}}曲がメタデータを待機中 — 次のパスで解決されます。",
+      "pendingChanges_one": "{{count}}件のローカル変更が送信待ちです。",
+      "pendingChanges_other": "{{count}}件のローカル変更が送信待ちです。",
+      "failedChanges_one": "{{count}}件のローカル変更が拒否され、再試行されません。",
+      "failedChanges_other": "{{count}}件のローカル変更が拒否され、再試行されません。",
       "failedChangesDismiss": "閉じる"
     },
     "queue": {
@@ -2601,8 +2601,8 @@
       "notFoundDescription": "このプレイリストは、接続中のサーバーにはもう存在しません。",
       "keepOffline": "オフラインで保存",
       "keepingProgress": "{{done}}/{{total}} 保存済み",
-      "keptOffline_one": "{{count}} 件オフライン",
-      "keptOffline_other": "{{count}} 件オフライン",
+      "keptOffline_one": "{{count}}件オフライン",
+      "keptOffline_other": "{{count}}件オフライン",
       "keptOffline_zero": "オフライン保存なし"
     },
     "reconciliation": {
@@ -2611,13 +2611,13 @@
       "cancel": "キャンセル",
       "findMatches": "一致を検索",
       "hashing": "ローカルファイルをハッシュ中 {{processed}} / {{total}}…",
-      "cancelledSummary": "分析をキャンセルしました — 何もリンクされていません。",
+      "cancelledSummary": "スキャンをキャンセルしました — 何もリンクされていません。",
       "confirmedLinks": "確認済みのリンク",
-      "favoritesRatings": "お気に入り：ローカル {{localFav}} · サーバー {{remoteFav}} · 評価：ローカル {{localRating}} · サーバー {{remoteRating}}/5",
+      "favoritesRatings": "「いいね」：ローカル {{localFav}} · サーバー {{remoteFav}} · 評価：ローカル {{localRating}} · サーバー {{remoteRating}}/5",
       "yes": "はい",
       "no": "いいえ",
-      "copyFavoriteLocalToServer": "お気に入り ローカル → サーバー",
-      "copyFavoriteServerToLocal": "お気に入り サーバー → ローカル",
+      "copyFavoriteLocalToServer": "「いいね」 ローカル → サーバー",
+      "copyFavoriteServerToLocal": "「いいね」 サーバー → ローカル",
       "copyRatingLocalToServer": "評価 ローカル → サーバー",
       "copyRatingServerToLocal": "評価 サーバー → ローカル",
       "statusConfirmed": "確認済み",
@@ -2647,28 +2647,28 @@
       "candidateServerOptionArtist": "サーバー：{{title}} — {{artist}}",
       "candidateConfirmPair": "ペアを確認",
       "candidateRejectPair": "ペアを拒否",
-      "summaryVerified_one": "検証済みのローカル候補 {{count}} 件",
-      "summaryVerified_other": "検証済みのローカル候補 {{count}} 件",
-      "summaryLinked_one": "自動リンク {{count}} 件",
-      "summaryLinked_other": "自動リンク {{count}} 件",
-      "summaryGroups_one": "判断が必要なグループ {{count}} 件",
-      "summaryGroups_other": "判断が必要なグループ {{count}} 件",
-      "summaryStale_one": " · {{count}} 件が古い",
-      "summaryStale_other": " · {{count}} 件が古い",
-      "summaryUnreadable_one": " · {{count}} 件が読み取り不可",
-      "summaryUnreadable_other": " · {{count}} 件が読み取り不可",
-      "history_one": "履歴：ローカル {{local}} + サーバー {{remote}} = 合計 {{combined}} 回再生",
-      "history_other": "履歴：ローカル {{local}} + サーバー {{remote}} = 合計 {{combined}} 回再生",
-      "conversionSourceOption_one": "{{name}} · {{count}} 曲",
-      "conversionSourceOption_other": "{{name}} · {{count}} 曲",
-      "conversionPreviewSummary_one": "{{name}}：{{convertible}}/{{total}} 曲に確認済みのリンクがあります",
-      "conversionPreviewSummary_other": "{{name}}：{{convertible}}/{{total}} 曲に確認済みのリンクがあります",
-      "conversionBlocked_one": " · {{count}} 件がブロック",
-      "conversionBlocked_other": " · {{count}} 件がブロック",
-      "conversionSuccessServer_one": "{{count}} 曲をサーバーにコピーしました。",
-      "conversionSuccessServer_other": "{{count}} 曲をサーバーにコピーしました。",
-      "conversionSuccessLocal_one": "{{count}} 曲をローカルライブラリにコピーしました。",
-      "conversionSuccessLocal_other": "{{count}} 曲をローカルライブラリにコピーしました。"
+      "summaryVerified_one": "検証済みのローカル候補 {{count}}件",
+      "summaryVerified_other": "検証済みのローカル候補 {{count}}件",
+      "summaryLinked_one": "自動リンク {{count}}件",
+      "summaryLinked_other": "自動リンク {{count}}件",
+      "summaryGroups_one": "判断が必要なグループ {{count}}件",
+      "summaryGroups_other": "判断が必要なグループ {{count}}件",
+      "summaryStale_one": " · {{count}}件が古い",
+      "summaryStale_other": " · {{count}}件が古い",
+      "summaryUnreadable_one": " · {{count}}件が読み取り不可",
+      "summaryUnreadable_other": " · {{count}}件が読み取り不可",
+      "history_one": "履歴：ローカル {{local}} + サーバー {{remote}} = 合計 {{combined}}回再生",
+      "history_other": "履歴：ローカル {{local}} + サーバー {{remote}} = 合計 {{combined}}回再生",
+      "conversionSourceOption_one": "{{name}} · {{count}}曲",
+      "conversionSourceOption_other": "{{name}} · {{count}}曲",
+      "conversionPreviewSummary_one": "{{name}}：{{convertible}}/{{total}}曲に確認済みのリンクがあります",
+      "conversionPreviewSummary_other": "{{name}}：{{convertible}}/{{total}}曲に確認済みのリンクがあります",
+      "conversionBlocked_one": " · {{count}}件がブロック",
+      "conversionBlocked_other": " · {{count}}件がブロック",
+      "conversionSuccessServer_one": "{{count}}曲をサーバーにコピーしました。",
+      "conversionSuccessServer_other": "{{count}}曲をサーバーにコピーしました。",
+      "conversionSuccessLocal_one": "{{count}}曲をローカルライブラリにコピーしました。",
+      "conversionSuccessLocal_other": "{{count}}曲をローカルライブラリにコピーしました。"
     },
     "catalogue": {
       "title": "サーバーのカタログ",
@@ -2682,34 +2682,34 @@
       "statTracks": "曲",
       "statArtists": "アーティスト",
       "statLibraries": "ライブラリ",
-      "progressAlbums": "{{done}} 件のアルバムを取得中…",
-      "progressSweep": "{{done}} 曲を確認中…",
+      "progressAlbums": "{{done}}件のアルバムを取得中…",
+      "progressSweep": "{{done}}曲を確認中…",
       "reportUnchanged": "変更はありませんでした。",
-      "reportWalked": "{{albums}} 件のアルバムを取得し、{{tracks}} 曲を複製しました。",
-      "reportRemoved": "{{removed}} 件を削除",
+      "reportWalked": "{{albums}}件のアルバムを取得し、{{tracks}}曲を複製しました。",
+      "reportRemoved": "{{removed}}件を削除",
       "reportCancelled": "停止しました",
       "neverMirrored": "まだ複製されていません。",
       "mirroredAt": "最後の完全な複製：{{date}}",
       "clearCovers": "削除",
       "coversCached_zero": "キャッシュされたジャケットはありません。",
-      "coversCached_one": "キャッシュ済みのジャケット {{count}} 件（{{size}} MB）",
-      "coversCached_other": "キャッシュ済みのジャケット {{count}} 件（{{size}} MB）",
-      "streamsCached_one": "キャッシュ済みの楽曲 {{count}} 件（{{size}} MB）",
-      "streamsCached_other": "キャッシュ済みの楽曲 {{count}} 件（{{size}} MB）",
+      "coversCached_one": "キャッシュ済みのジャケット {{count}}件（{{size}} MB）",
+      "coversCached_other": "キャッシュ済みのジャケット {{count}}件（{{size}} MB）",
+      "streamsCached_one": "キャッシュ済みの楽曲 {{count}}件（{{size}} MB）",
+      "streamsCached_other": "キャッシュ済みの楽曲 {{count}}件（{{size}} MB）",
       "streamsCached_zero": "キャッシュされた楽曲はありません。",
       "clearStreams": "削除",
-      "downloadsKept_one": "オフライン保存 {{count}} 件（{{size}} MB）",
-      "downloadsKept_other": "オフライン保存 {{count}} 件（{{size}} MB）",
+      "downloadsKept_one": "オフライン保存 {{count}}件（{{size}} MB）",
+      "downloadsKept_other": "オフライン保存 {{count}}件（{{size}} MB）",
       "downloadsKept_zero": "オフラインに保存された楽曲はありません。",
       "clearDownloads": "削除",
-      "reportFeed": "サーバーの修正: {{applied}} 件"
+      "reportFeed": "サーバーの修正: {{applied}}件"
     },
     "import": {
       "action": "自分のライブラリに取り込む",
       "title": "自分のライブラリに取り込む",
-      "subtitle": "{{name}} をスキャン対象のフォルダーにコピーし、自分のライブラリの曲にします。",
-      "destination": "コピー先フォルダー",
-      "noFolder": "利用できるスキャン対象フォルダーがありません。「設定 → ライブラリ」で追加してください。",
+      "subtitle": "{{name}} をスキャン対象のフォルダにコピーし、自分のライブラリの曲にします。",
+      "destination": "コピー先フォルダ",
+      "noFolder": "利用できるスキャン対象フォルダがありません。「設定 → ライブラリ」で追加してください。",
       "unreachable": "アクセスできません",
       "explainer": "ファイルはそのままコピーされ、サーバーの曲と関連付けられます。再生ではローカルのコピーが優先されます。",
       "submit": "取り込む",
@@ -2750,7 +2750,7 @@
         "quota_exceeded": "サーバーの空き容量なし: {{count}}",
         "library_closed": "ライブラリが受け入れを停止中: {{count}}",
         "too_many_sessions": "同時アップロードが多すぎます: {{count}}",
-        "unknown_verdict": "このビルドが知らない応答: {{count}}",
+        "unknown_verdict": "このビルドでは認識できない応答：{{count}}",
         "failed": "失敗: {{count}}"
       }
     },
@@ -2769,8 +2769,8 @@
     "cancel": "{{task}}を停止",
     "stopping": "停止しています…",
     "collapse": "折りたたむ",
-    "more_one": "他 {{count}} 件",
-    "more_other": "他 {{count}} 件",
+    "more_one": "他 {{count}}件",
+    "more_other": "他 {{count}}件",
     "kinds": {
       "library_scan": "ライブラリのスキャン",
       "analysis": "音声解析",
@@ -2788,7 +2788,7 @@
     "and": " かつ ",
     "or": " または ",
     "not": "{{inner}} を除く",
-    "limit": "最大 {{value}} 曲",
+    "limit": "最大 {{value}}曲",
     "sort": {
       "addedDesc": "追加が新しい順",
       "addedAsc": "追加が古い順",
@@ -2807,7 +2807,7 @@
       "yearMin": "年 ≥ {{value}}",
       "yearMax": "年 ≤ {{value}}",
       "discNumberIs": "ディスク {{value}}",
-      "liked": "お気に入り",
+      "liked": "「いいね」",
       "ratingMin": "評価 ≥ {{value}}",
       "format": "形式 {{value}}",
       "hiRes": "ハイレゾ",
@@ -2820,14 +2820,14 @@
       "neverPlayed": "未再生",
       "tagPresent": "{{key}} タグを持つ",
       "tagContains": "{{key}} タグに「{{value}}」を含む",
-      "playCountMin_one": "{{count}} 回以上再生",
-      "playCountMin_other": "{{count}} 回以上再生",
-      "playCountMax_one": "{{count}} 回以下の再生",
-      "playCountMax_other": "{{count}} 回以下の再生",
-      "playedInLastDays_one": "過去 {{count}} 日以内に再生",
-      "playedInLastDays_other": "過去 {{count}} 日以内に再生",
-      "addedInLastDays_one": "過去 {{count}} 日以内に追加",
-      "addedInLastDays_other": "過去 {{count}} 日以内に追加"
+      "playCountMin_one": "{{count}}回以上再生",
+      "playCountMin_other": "{{count}}回以上再生",
+      "playCountMax_one": "{{count}}回以下の再生",
+      "playCountMax_other": "{{count}}回以下の再生",
+      "playedInLastDays_one": "過去 {{count}}日以内に再生",
+      "playedInLastDays_other": "過去 {{count}}日以内に再生",
+      "addedInLastDays_one": "過去 {{count}}日以内に追加",
+      "addedInLastDays_other": "過去 {{count}}日以内に追加"
     }
   },
   "tagFetch": {
@@ -2838,7 +2838,7 @@
     "sourcesHint": "同じアルバムでも収録曲の異なる複数のリリースがあります。お持ちのものを選んでください。",
     "back": "別のリリースを選ぶ",
     "hint": "適用するまで何も書き込まれません。",
-    "acceptColumn": "この項目すべて:",
+    "acceptColumn": "項目全体：",
     "acceptTrack": "この曲すべて",
     "nothingToChange": "このリリースはファイルの内容とまったく同じです。",
     "trackUnchanged": "この曲に変更点はありません。",
@@ -2857,14 +2857,14 @@
       "year": "年",
       "track_number": "トラック番号"
     },
-    "trackCount_one": "{{count}} 曲",
-    "trackCount_other": "{{count}} 曲",
-    "applyCount_one": "{{count}} 件を適用",
-    "applyCount_other": "{{count}} 件を適用",
-    "appliedCount_one": "{{count}} 曲を更新しました。",
-    "appliedCount_other": "{{count}} 曲を更新しました。",
-    "failedCount_one": "{{count}} 曲を書き込めませんでした。",
-    "failedCount_other": "{{count}} 曲を書き込めませんでした。"
+    "trackCount_one": "{{count}}曲",
+    "trackCount_other": "{{count}}曲",
+    "applyCount_one": "{{count}}件を適用",
+    "applyCount_other": "{{count}}件を適用",
+    "appliedCount_one": "{{count}}曲を更新しました。",
+    "appliedCount_other": "{{count}}曲を更新しました。",
+    "failedCount_one": "{{count}}曲を書き込めませんでした。",
+    "failedCount_other": "{{count}}曲を書き込めませんでした。"
   },
   "desktopLyrics": {
     "title": "デスクトップ歌詞",
