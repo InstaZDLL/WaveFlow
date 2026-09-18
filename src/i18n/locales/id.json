@@ -1836,7 +1836,7 @@
     },
     "localArtistImages": {
       "title": "Gambar artis lokal",
-      "subtitle": "Cari artist.jpg (atau <nama>.jpg) di samping musikmu dan gunakan sebagai foto artis.",
+      "subtitle": "Cari artist.jpg (atau .jpg dengan nama artis) di samping musikmu dan gunakan sebagai foto artis.",
       "action": "Pindai",
       "done": "{{linked}} dari {{considered}} artis terhubung dengan gambar lokal"
     },

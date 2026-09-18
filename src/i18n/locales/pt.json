@@ -1860,7 +1860,7 @@
     },
     "localArtistImages": {
       "title": "Imagens locais de artistas",
-      "subtitle": "Procura um ficheiro artist.jpg (ou <nome>.jpg) junto à música e usa-o como foto do artista.",
+      "subtitle": "Procura um ficheiro artist.jpg (ou um .jpg com o nome do artista) junto à música e usa-o como foto do artista.",
       "action": "Analisar",
       "done": "{{linked}} de {{considered}} artistas associados a uma imagem local"
     },

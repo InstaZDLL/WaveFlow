@@ -1811,7 +1811,7 @@
     },
     "localArtistImages": {
       "title": "ローカルアーティスト画像",
-      "subtitle": "音楽ファイルの隣にある artist.jpg（または <名前>.jpg）を探し、アーティスト写真として利用します。",
+      "subtitle": "音楽ファイルの隣にある artist.jpg（またはアーティスト名を付けた .jpg）を探し、アーティスト写真として利用します。",
       "action": "スキャン",
       "done": "{{considered}}組中{{linked}}組のアーティストにローカル画像をリンクしました"
     },

@@ -1811,7 +1811,7 @@
     },
     "localArtistImages": {
       "title": "本地艺人图片",
-      "subtitle": "在音乐文件所在目录查找 artist.jpg（或 <名称>.jpg）文件，并将其用作艺人头像。",
+      "subtitle": "在音乐文件所在目录查找 artist.jpg（或以艺人名称命名的 .jpg）文件，并将其用作艺人头像。",
       "action": "扫描",
       "done": "已为 {{considered}} 位艺人中的 {{linked}} 位关联本地图片"
     },

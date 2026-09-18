@@ -1836,7 +1836,7 @@
     },
     "localArtistImages": {
       "title": "Lokale artiestafbeeldingen",
-      "subtitle": "Zoekt naar een artist.jpg (of <naam>.jpg) naast je muziek en gebruikt die als artiestfoto.",
+      "subtitle": "Zoekt naar een artist.jpg (of een .jpg met de naam van de artiest) naast je muziek en gebruikt die als artiestfoto.",
       "action": "Scannen",
       "done": "{{linked}} van {{considered}} artiesten gekoppeld aan een lokale afbeelding"
     },

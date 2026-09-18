@@ -1836,7 +1836,7 @@
     },
     "localArtistImages": {
       "title": "Lokale Künstlerbilder",
-      "subtitle": "Sucht neben deiner Musik nach einer artist.jpg (oder <name>.jpg) und nutzt sie als Künstlerfoto.",
+      "subtitle": "Sucht neben deiner Musik nach einer artist.jpg (oder einer .jpg mit dem Namen des Künstlers) und nutzt sie als Künstlerfoto.",
       "action": "Scannen",
       "done": "{{linked}} von {{considered}} Künstlern einem lokalen Bild zugeordnet"
     },

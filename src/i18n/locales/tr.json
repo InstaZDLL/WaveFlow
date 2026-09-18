@@ -1836,7 +1836,7 @@
     },
     "localArtistImages": {
       "title": "Yerel sanatçı görselleri",
-      "subtitle": "Müziğinin yanında bir artist.jpg (veya <isim>.jpg) arar ve sanatçı fotoğrafı olarak kullanır.",
+      "subtitle": "Müziğinin yanında bir artist.jpg (veya sanatçının adını taşıyan bir .jpg) arar ve sanatçı fotoğrafı olarak kullanır.",
       "action": "Tara",
       "done": "{{considered}} sanatçıdan {{linked}} tanesi yerel görsel ile eşleştirildi"
     },

@@ -1836,7 +1836,7 @@
     },
     "localArtistImages": {
       "title": "Local artist images",
-      "subtitle": "Look for an artist.jpg (or <name>.jpg) next to your music and use it as the artist photo.",
+      "subtitle": "Look for an artist.jpg (or a .jpg named after the artist) next to your music and use it as the artist photo.",
       "action": "Scan",
       "done": "{{linked}} of {{considered}} artists linked to a local image"
     },
