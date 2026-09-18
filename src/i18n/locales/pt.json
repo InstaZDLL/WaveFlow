@@ -1391,9 +1391,9 @@
     "subtitle": "Pastas ou ficheiros áudio aceites"
   },
   "abLoop": {
-    "setA": "Repetição A-B: definir o ponto A na posição atual",
-    "setB": "Repetição A-B: definir o ponto B (A = {{a}})",
-    "armed": "Repetição A-B ativa: {{a}} → {{b}} (clica para remover)"
+    "setA": "Ciclo A-B: definir o ponto A na posição atual",
+    "setB": "Ciclo A-B: definir o ponto B (A = {{a}})",
+    "armed": "Ciclo A-B ativo: {{a}} → {{b}} (clica para remover)"
   },
   "smartPlaylistEditor": {
     "createTitle": "Nova lista de reprodução inteligente",

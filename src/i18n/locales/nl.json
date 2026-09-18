@@ -1390,9 +1390,9 @@
     "subtitle": "Mappen of audiobestanden geaccepteerd"
   },
   "abLoop": {
-    "setA": "A-B-herhaling: punt A op huidige positie instellen",
-    "setB": "A-B-herhaling: punt B instellen (A = {{a}})",
-    "armed": "A-B-herhaling actief: {{a}} → {{b}} (klik om te wissen)"
+    "setA": "A-B-loop: punt A op huidige positie instellen",
+    "setB": "A-B-loop: punt B instellen (A = {{a}})",
+    "armed": "A-B-loop actief: {{a}} → {{b}} (klik om te wissen)"
   },
   "smartPlaylistEditor": {
     "createTitle": "Nieuwe slimme afspeellijst",

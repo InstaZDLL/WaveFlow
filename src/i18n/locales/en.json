@@ -1390,9 +1390,9 @@
     "subtitle": "Folders or audio files accepted"
   },
   "abLoop": {
-    "setA": "A-B repeat: set point A at the current position",
-    "setB": "A-B repeat: set point B (A = {{a}})",
-    "armed": "A-B repeat active: {{a}} → {{b}} (click to clear)"
+    "setA": "A-B loop: set point A at the current position",
+    "setB": "A-B loop: set point B (A = {{a}})",
+    "armed": "A-B loop active: {{a}} → {{b}} (click to clear)"
   },
   "smartPlaylistEditor": {
     "createTitle": "New smart playlist",

@@ -1390,9 +1390,9 @@
     "subtitle": "폴더 또는 오디오 파일 허용"
   },
   "abLoop": {
-    "setA": "A-B 반복: 현재 위치에 A 지점 설정",
-    "setB": "A-B 반복: B 지점 설정 (A = {{a}})",
-    "armed": "A-B 반복 활성: {{a}} → {{b}} (클릭하여 제거)"
+    "setA": "A-B 루프: 현재 위치에 A 지점 설정",
+    "setB": "A-B 루프: B 지점 설정 (A = {{a}})",
+    "armed": "A-B 루프 활성: {{a}} → {{b}} (클릭하여 제거)"
   },
   "smartPlaylistEditor": {
     "createTitle": "새 스마트 재생 목록",

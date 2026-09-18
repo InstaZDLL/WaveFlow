@@ -1391,9 +1391,9 @@
     "subtitle": "Pastas ou arquivos de áudio aceitos"
   },
   "abLoop": {
-    "setA": "Repetição A-B: definir o ponto A na posição atual",
-    "setB": "Repetição A-B: definir o ponto B (A = {{a}})",
-    "armed": "Repetição A-B ativa: {{a}} → {{b}} (clique para remover)"
+    "setA": "Loop A-B: definir o ponto A na posição atual",
+    "setB": "Loop A-B: definir o ponto B (A = {{a}})",
+    "armed": "Loop A-B ativo: {{a}} → {{b}} (clique para remover)"
   },
   "smartPlaylistEditor": {
     "createTitle": "Nova playlist inteligente",

@@ -1390,9 +1390,9 @@
     "subtitle": "Klasör veya ses dosyaları kabul edilir"
   },
   "abLoop": {
-    "setA": "A-B tekrar: A noktasını mevcut konuma ayarla",
-    "setB": "A-B tekrar: B noktasını ayarla (A = {{a}})",
-    "armed": "A-B tekrar etkin: {{a}} → {{b}} (temizlemek için tıkla)"
+    "setA": "A-B döngüsü: A noktasını mevcut konuma ayarla",
+    "setB": "A-B döngüsü: B noktasını ayarla (A = {{a}})",
+    "armed": "A-B döngüsü etkin: {{a}} → {{b}} (temizlemek için tıkla)"
   },
   "smartPlaylistEditor": {
     "createTitle": "Yeni akıllı çalma listesi",

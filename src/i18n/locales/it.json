@@ -1391,9 +1391,9 @@
     "subtitle": "Cartelle o file audio accettati"
   },
   "abLoop": {
-    "setA": "Ripetizione A-B: imposta il punto A alla posizione corrente",
-    "setB": "Ripetizione A-B: imposta il punto B (A = {{a}})",
-    "armed": "Ripetizione A-B attiva: {{a}} → {{b}} (clicca per cancellare)"
+    "setA": "Loop A-B: imposta il punto A alla posizione corrente",
+    "setB": "Loop A-B: imposta il punto B (A = {{a}})",
+    "armed": "Loop A-B attivo: {{a}} → {{b}} (clicca per cancellare)"
   },
   "smartPlaylistEditor": {
     "createTitle": "Nuova playlist intelligente",

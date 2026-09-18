@@ -6,7 +6,7 @@ User-facing references and per-feature deep dives. The top-level [README](../REA
 
 | Doc                                            | Scope                                                                                                                                                                                    |
 | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Playback engine](features/playback.md)        | Decoder pipeline, crossfade DSP, ReplayGain, output device selection, OS media controls, persistent queue, A-B repeat                                                                    |
+| [Playback engine](features/playback.md)        | Decoder pipeline, crossfade DSP, ReplayGain, output device selection, OS media controls, persistent queue, A-B loop                                                                    |
 | [Library](features/library.md)                 | Folder scanning + management (add / watch / remove), filesystem watcher, drag-and-drop import, duplicate detection, on-demand audio analysis, multi-artist split, ratings, A-Z navigator |
 | [Playlists](features/playlists.md)             | User playlists CRUD, M3U import/export, likes, recently-played                                                                                                                           |
 | [Smart playlists](features/smart-playlists.md) | Daily Mix auto-generation + user-defined rule editor: algorithm, cover compositor, regen flow                                                                                            |
