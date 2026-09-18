@@ -260,7 +260,7 @@
       },
       "artists": "Artistas",
       "albums": "Álbumes",
-      "titles": "Canciones"
+      "titles": "Títulos"
     },
     "theme": {
       "enableLight": "Activar modo claro",
@@ -513,9 +513,9 @@
     "playlistsGrid": {
       "emptyTitle": "Aún no hay listas",
       "emptyHint": "Las listas que crees aparecerán aquí en una cuadrícula.",
-      "meta_zero": "0 canciones · {{duration}}",
-      "meta_one": "{{count}} canción · {{duration}}",
-      "meta_other": "{{count}} canciones · {{duration}}"
+      "meta_zero": "0 pistas · {{duration}}",
+      "meta_one": "{{count}} pista · {{duration}}",
+      "meta_other": "{{count}} pistas · {{duration}}"
     },
     "source": {
       "label": "Fuente",
@@ -876,7 +876,7 @@
       "title": "Velocidad de reproducción",
       "slider": "Control de velocidad",
       "custom": "Velocidad personalizada",
-      "pitchHint": "El tono varía con la velocidad (sin alterar la duración)."
+      "pitchHint": "El tono varía con la velocidad (sin estiramiento temporal)."
     },
     "seek": "Posición",
     "alert": {
@@ -1202,7 +1202,7 @@
   },
   "motionCoverPicker": {
     "title": "Portada animada manual",
-    "subtitle": "Elige un archivo MP4 local. Sustituye a la portada animada del plugin y nunca se sobrescribe con una actualización.",
+    "subtitle": "Elige un archivo MP4 local. Sustituye a la portada animada del complemento y nunca se sobrescribe con una actualización.",
     "pickFile": "Elegir un archivo MP4",
     "removeAction": "Quitar la portada animada"
   },
@@ -1314,7 +1314,7 @@
       "empty": "Nada más en la cola"
     },
     "lyrics": {
-      "empty": "No hay letra para esta canción"
+      "empty": "No hay letra para esta pista"
     }
   },
   "sleepTimer": {
@@ -1491,7 +1491,7 @@
       "tagContains": "La etiqueta contiene"
     },
     "counting": "Calculando…",
-    "matchCountLimited": "{{kept}} de {{total}} coincidencias",
+    "matchCountLimited": "{{kept}} conservadas de {{total}} coincidencias",
     "templates": {
       "label": "Plantilla",
       "placeholder": "Partir de una plantilla…",
@@ -1705,7 +1705,7 @@
         "passwordHint": "Opcional. Recomendada en una red compartida: el protocolo MPD la envía sin cifrar.",
         "lanWarning": "Accesible desde toda la red local: cualquiera puede controlar la reproducción.",
         "lanWarningAuth": "Accesible desde toda tu red local, pero el control de la reproducción requiere la contraseña que has definido.",
-        "statusRunning": "Activo",
+        "statusRunning": "En ejecución",
         "statusStopped": "Detenido",
         "copyAddress": "Copiar dirección"
       },
@@ -2254,7 +2254,7 @@
       "title": "Vista inmersiva",
       "mergedLyrics": {
         "title": "Letras en columna",
-        "subtitle": "Muestra la letra junto a la carátula para cambiar de canción mientras lees. Vuelve a una sola columna en ventanas estrechas."
+        "subtitle": "Muestra la letra junto a la carátula para cambiar de pista mientras lees. Vuelve a una sola columna en ventanas estrechas."
       },
       "nativeFullscreen": {
         "title": "Pantalla completa nativa",
@@ -2274,10 +2274,10 @@
       "subtitle": "Muestra una imagen panorámica detrás de la cabecera de la página del artista (fanart de TheAudioDB o, en su defecto, la foto desenfocada)."
     },
     "pluginStore": {
-      "title": "Tienda de plugins",
-      "subtitle": "Explora e instala plugins aislados desde el registro de WaveFlow.",
+      "title": "Tienda de complementos",
+      "subtitle": "Explora e instala complementos aislados desde el registro de WaveFlow.",
       "loading": "Cargando la tienda…",
-      "emptyTitle": "Aún no hay plugins disponibles",
+      "emptyTitle": "Aún no hay complementos disponibles",
       "emptyHint": "El registro está vacío por ahora, vuelve pronto.",
       "refresh": "Actualizar la tienda",
       "retry": "Reintentar",
@@ -2294,7 +2294,7 @@
     },
     "motionArtwork": {
       "title": "Portadas animadas",
-      "subtitle": "Las portadas animadas de los plugins de metadatos (p. ej. Apple Motion Artwork) se muestran detrás de la reproducción actual.",
+      "subtitle": "Las portadas animadas de los complementos de metadatos (p. ej. Apple Motion Artwork) se muestran detrás de la reproducción actual.",
       "cacheLabel": "Guardar las portadas animadas localmente",
       "usage": "{{size}} usados · {{files}} portadas en caché",
       "clear": "Vaciar caché",
@@ -2526,7 +2526,7 @@
     },
     "split": {
       "label": "Separar este artista",
-      "help": "Este nombre parece varios artistas unidos por comas. Sepáralo para vincular las canciones a los artistas individuales (se reutilizan las fichas existentes).",
+      "help": "Este nombre parece varios artistas unidos por comas. Sepáralo para vincular las pistas a los artistas individuales (se reutilizan las fichas existentes).",
       "action": "Separar los artistas"
     }
   },
@@ -2544,7 +2544,7 @@
     "common": {
       "awaitingMetadata": "Esperando metadatos…",
       "untitled": "Sin título",
-      "trackFallback": "título"
+      "trackFallback": "pista"
     },
     "server": {
       "title": "Servidor remoto",
@@ -2577,8 +2577,8 @@
         "cachedTracks_one": "pista en caché",
         "cachedTracks_other": "pistas en caché"
       },
-      "awaitingMetadata_one": "{{count}} título esperando metadatos — se resuelve en la próxima pasada.",
-      "awaitingMetadata_other": "{{count}} títulos esperando metadatos — se resuelve en la próxima pasada.",
+      "awaitingMetadata_one": "{{count}} pista esperando metadatos — se resuelve en la próxima pasada.",
+      "awaitingMetadata_other": "{{count}} pistas esperando metadatos — se resuelve en la próxima pasada.",
       "pendingChanges_one": "{{count}} cambio local pendiente de enviar.",
       "pendingChanges_other": "{{count}} cambios locales pendientes de enviar.",
       "failedChanges_one": "{{count}} cambio local fue rechazado y no se reintentará.",
@@ -2594,13 +2594,13 @@
       "label": "Lista de reproducción remota",
       "nameLabel": "Nombre de la lista",
       "notSent": "aún no enviada al servidor",
-      "addTracks": "Añadir títulos",
+      "addTracks": "Añadir pistas",
       "rename": "Cambiar nombre",
       "searchPlaceholder": "Buscar en el catálogo del servidor…",
       "noMatches": "Sin resultados.",
       "addTrack": "Añadir {{title}}",
       "addToPlaylist": "Añadir a la lista",
-      "emptyDescription": "Usa «Añadir títulos» para buscar en el catálogo del servidor.",
+      "emptyDescription": "Usa «Añadir pistas» para buscar en el catálogo del servidor.",
       "notFoundDescription": "Esta lista ya no existe en el servidor vinculado.",
       "keepOffline": "Guardar sin conexión",
       "keepingProgress": "{{done}}/{{total}} guardadas",
@@ -2643,8 +2643,8 @@
       "itemStatusUnlinkedOrAmbiguous": "sin vincular o ambiguo",
       "itemStatusDuplicate": "duplicado",
       "candidateHeading": "Las copias idénticas necesitan confirmación",
-      "candidateLocalTrack": "Título local",
-      "candidateServerTrack": "Título del servidor",
+      "candidateLocalTrack": "Pista local",
+      "candidateServerTrack": "Pista del servidor",
       "candidateLocalOption": "Local: {{title}} — {{path}}",
       "candidateServerOption": "Servidor: {{title}}",
       "candidateServerOptionArtist": "Servidor: {{title}} — {{artist}}",
@@ -2762,10 +2762,10 @@
       "title": "Metadatos del servidor",
       "subtitle": "La corrección se guarda en el servidor, no en el archivo.",
       "help": "Estas correcciones sobreviven a los análisis del servidor y las ven todos los miembros de la biblioteca. Vaciar un campo elimina la corrección: reaparece el valor del archivo.",
-      "missing": "Esta pista aún no está en el espejo del servidor. Ejecute un recorrido del catálogo y vuelva a intentarlo.",
+      "missing": "Esta pista aún no está en la copia del servidor. Copia el catálogo e inténtalo de nuevo.",
       "invalidNumber": "El año y los números de pista y de disco deben ser números enteros."
     },
-    "needsMirror": "Copia primero el catálogo del servidor, arriba: esta sección compara tus archivos con el espejo local, que aún está vacío."
+    "needsMirror": "Copia primero el catálogo del servidor, arriba: esta sección compara tus archivos con la copia local, que aún está vacía."
   },
   "tasks": {
     "barLabel": "Tareas en curso",
@@ -2778,7 +2778,7 @@
       "library_scan": "Análisis de la biblioteca",
       "analysis": "Análisis de audio",
       "lyrics_prefetch": "Descarga de letras",
-      "catalogue_mirror": "Espejo del catálogo",
+      "catalogue_mirror": "Copia del catálogo",
       "reconcile": "Reconciliación",
       "upload": "Subida",
       "backup": "Copia de seguridad",
