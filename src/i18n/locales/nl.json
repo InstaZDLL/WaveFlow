@@ -147,13 +147,13 @@
       "title": "Kies je taal",
       "description": "WaveFlow is beschikbaar in 17 talen. We hebben de taal van je systeem alvast gekozen — wijzig dit als we ernaast zaten.",
       "detected": "Gedetecteerd vanuit je systeem",
-      "fallback": "We konden de taal van je systeem niet detecteren, dus is Engels gekozen. Selecteer hieronder de jouwe."
+      "fallback": "We konden de taal van je systeem niet detecteren, dus is Engels gekozen. Kies hieronder jouw taal."
     },
     "profile": {
       "title": "Geef je profiel een naam",
       "description": "WaveFlow gebruikt profielen om bibliotheken te scheiden. Kies een naam die je later herkent.",
       "nameLabel": "Profielnaam",
-      "namePlaceholder": "Bv. Daisy",
+      "namePlaceholder": "Bijv. Daisy",
       "hint": "Je kunt later extra profielen aanmaken als dat nodig is.",
       "required": "Profielnaam is vereist.",
       "unavailable": "Profiel niet beschikbaar — probeer het over een ogenblik opnieuw."
@@ -916,7 +916,7 @@
   },
   "spotifyQueue": {
     "emptyHint": "Nu niets in de Spotify-wachtrij.",
-    "readonlyHint": "Alleen-lezen wachtrij — beheer hem vanuit de Spotify-app."
+    "readonlyHint": "Alleen-lezen wachtrij — beheer deze vanuit de Spotify-app."
   },
   "deviceMenu": {
     "activeLabel": "Actieve uitvoer",
@@ -2523,7 +2523,7 @@
     },
     "split": {
       "label": "Deze artiest splitsen",
-      "help": "Deze naam lijkt op meerdere artiesten die met komma's zijn samengevoegd. Splits hem om de nummers aan de afzonderlijke artiesten te koppelen (bestaande vermeldingen worden hergebruikt).",
+      "help": "Deze naam lijkt op meerdere artiesten die met komma's zijn samengevoegd. Splits deze naam om de nummers aan de afzonderlijke artiesten te koppelen (bestaande vermeldingen worden hergebruikt).",
       "action": "In afzonderlijke artiesten splitsen"
     }
   },
@@ -2731,7 +2731,7 @@
     },
     "upload": {
       "title": "Uploaden naar de server",
-      "subtitle": "Stuur de server de nummers die hij niet heeft. De analyse leest elk bestand één keer om te bepalen welke er echt ontbreken.",
+      "subtitle": "Stuur de server de nummers die er nog niet op staan. De analyse leest elk bestand één keer om te bepalen welke er echt ontbreken.",
       "cancel": "Stoppen",
       "survey": "Analyseren",
       "surveying": "{{done}} / {{total}} bestanden gelezen…",
