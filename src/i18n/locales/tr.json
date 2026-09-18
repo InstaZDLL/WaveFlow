@@ -12,7 +12,7 @@
   },
   "lastfmReauth": {
     "title": "Last.fm oturumu sona erdi",
-    "message": "Scrobble'ların artık Last.fm'e gönderilmiyor. Devam etmek için yeniden giriş yap.",
+    "message": "Last.fm'e scrobble gönderimi durdu. Devam etmek için yeniden giriş yap.",
     "action": "Ayarları aç"
   },
   "rendering": {
@@ -890,7 +890,7 @@
       },
       "notice": {
         "exclusive-refused": "Bu aygıt özel modu kabul etmiyor: paylaşımlı modda çalınıyor",
-        "dop-refused": "Bu DAC yerel DSD'yi kabul etmiyor: PCM'e dönüştürülüyor",
+        "dop-refused": "Bu DAC doğrudan DSD'yi kabul etmiyor: PCM'ye dönüştürülüyor",
         "paused-device-lost": "Aygıt bağlantısı kesildi: oynatma duraklatıldı",
         "unknown": "Ses çıkışı değişti"
       },
@@ -1292,12 +1292,12 @@
         "normalize": "Normalleştirme",
         "mono": "Mono",
         "speed": "Hız {{value}}×",
-        "dopNative": "Yerel DSD"
+        "dopNative": "Doğrudan DSD"
       }
     },
     "outputMode": {
       "exclusive": "Özel",
-      "dop": "Yerel DSD",
+      "dop": "Doğrudan DSD",
       "exclusiveRefused": "Özel reddedildi"
     }
   },
@@ -2312,8 +2312,8 @@
       "clearConfirm": "Onaylıyor musun?"
     },
     "dsdDop": {
-      "title": "Yerel DSD (DoP)",
-      "subtitle": "DSD akışını PCM'ye dönüştürmek yerine DoP (DSD over PCM) ile olduğu gibi DAC'a gönderir — bit-perfect yerel çözme. Özel bir çıkış (Windows'ta WASAPI, Linux'ta donanım ALSA, macOS'ta CoreAudio hog mode) ve DoP uyumlu bir DAC gerektirir; aksi hâlde DSD → PCM'ye geri döner."
+      "title": "Doğrudan DSD (DoP)",
+      "subtitle": "DSD akışını PCM'ye dönüştürmek yerine DoP (DSD over PCM) üzerinden olduğu gibi DAC'a gönderir — bit-perfect doğrudan DSD aktarımı. Özel çıkış (Windows'ta WASAPI, Linux'ta donanım ALSA, macOS'ta CoreAudio hog mode) ve DoP destekli bir DAC gerektirir; aksi hâlde DSD → PCM dönüştürmesine geri döner."
     },
     "remoteTranscode": {
       "title": "Uzak kaynağı yeniden kodla",
@@ -2569,8 +2569,8 @@
         "history_other": "dinleme",
         "shares_one": "paylaşım",
         "shares_other": "paylaşım",
-        "queue_one": "kuyruktaki parça",
-        "queue_other": "kuyruktaki parça",
+        "queue_one": "sıraya alınmış parça",
+        "queue_other": "sıraya alınmış parça",
         "cachedTracks_one": "önbellekteki parça",
         "cachedTracks_other": "önbellekteki parça"
       },
@@ -2583,7 +2583,7 @@
       "failedChangesDismiss": "Göz ardı et"
     },
     "queue": {
-      "empty": "Kuyrukta hiçbir şey yok.",
+      "empty": "Sırada hiçbir şey yok.",
       "nowPlaying": "Şimdi çalıyor",
       "upNext": "Sıradaki"
     },
