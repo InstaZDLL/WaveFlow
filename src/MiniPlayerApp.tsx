@@ -2,7 +2,6 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { ContrastProvider } from "./contexts/ContrastContext";
 import { PlayerProvider } from "./contexts/PlayerContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
-import { SpotifyProvider } from "./contexts/SpotifyContext";
 import { MiniPlayer } from "./components/views/MiniPlayer";
 
 /**
@@ -15,11 +14,6 @@ import { MiniPlayer } from "./components/views/MiniPlayer";
  * to scope theme choices per-profile. Without this nesting the
  * mini boots into a white screen via the "must be used within
  * ProfileProvider" throw — mirrors the main `App.tsx` nesting.
- *
- * SpotifyProvider stays in because PlayerProvider calls useSpotify()
- * unconditionally (provider routing happens inside PlayerContext).
- * Without it the mini boots into a white screen via the "must be
- * used within SpotifyProvider" throw.
  *
  * The PlayerProvider hooks into the same backend AppState as the
  * main window via tauri events, so playback stays in sync without
@@ -34,11 +28,9 @@ export function MiniPlayerApp() {
             attribute is not shared. Someone who needs high contrast
             needs it in both windows. */}
         <ContrastProvider>
-          <SpotifyProvider>
-            <PlayerProvider>
-              <MiniPlayer />
-            </PlayerProvider>
-          </SpotifyProvider>
+          <PlayerProvider>
+            <MiniPlayer />
+          </PlayerProvider>
         </ContrastProvider>
       </ThemeProvider>
     </ProfileProvider>

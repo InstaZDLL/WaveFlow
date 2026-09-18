@@ -62,7 +62,6 @@ export function NowPlayingPanel({
     toggleQueue,
     currentTrack,
     isNowPlayingOpen,
-    activeProvider,
   } = usePlayer();
 
   // Enrichment (picture + bio) for the current artist. Re-fetched
@@ -266,13 +265,10 @@ export function NowPlayingPanel({
     currentTrack?.album_title,
     currentTrack?.album_id,
   );
-  // Radio / Spotify tracks have no library artist to slideshow (the artist
+  // Streamed tracks have no library artist to slideshow (the artist
   // enrichment effect still runs to feed the "About the artist" bio, but the
   // slideshow itself stays off for them).
-  const slideshowEligible =
-    !!currentTrack &&
-    activeProvider !== "spotify" &&
-    !isStreamTrack(currentTrack);
+  const slideshowEligible = !!currentTrack && !isStreamTrack(currentTrack);
   // Only surface the photo when it belongs to the current artist — a mismatch
   // (artist just changed, effect not re-resolved yet) reads as none.
   const artistSlideSrc =

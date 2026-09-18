@@ -274,8 +274,8 @@ export function useTrackCanvas(
           path: p,
         });
     };
-    // Radio and Spotify play under a negative sentinel id: no library row
-    // for a manual Canvas, and nothing meaningful to resolve a plugin one
+    // Radio plays under a negative sentinel id: no library row for a
+    // manual Canvas, and nothing meaningful to resolve a plugin one
     // against. A **server** track is also negative — the sentinel is minted
     // per playback — but it is not in that position: `remote_id` names it on
     // the server, which is what the remote lookup asks about. So the guard

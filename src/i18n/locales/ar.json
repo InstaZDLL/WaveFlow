@@ -167,8 +167,7 @@
   "sidebar": {
     "nav": {
       "home": "الرئيسية",
-      "webRadio": "راديو الويب",
-      "spotify": "Spotify"
+      "webRadio": "راديو الويب"
     },
     "sections": {
       "open": "فتح",
@@ -1032,10 +1031,6 @@
     "upNext_few": "التالي · {{count}} مقاطع",
     "upNext_many": "التالي · {{count}} مقطعًا"
   },
-  "spotifyQueue": {
-    "emptyHint": "لا يوجد شيء في قائمة Spotify حاليًا.",
-    "readonlyHint": "قائمة للقراءة فقط — أدِرها من تطبيق Spotify."
-  },
   "deviceMenu": {
     "activeLabel": "الخرج النشط",
     "loading": "جارٍ البحث عن الأجهزة…",
@@ -1868,16 +1863,6 @@
         "statusStopped": "متوقف",
         "copyAddress": "نسخ العنوان"
       },
-      "spotify": {
-        "title": "Spotify",
-        "subtitle": "اربط Spotify Premium باستخدام Client ID خاص بك من Spotify Developer.",
-        "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "أضف Redirect URI هذا في لوحة Spotify Developer: http://127.0.0.1:49387/spotify/callback",
-        "connectedAs": "متصل باسم",
-        "disconnect": "قطع الاتصال",
-        "connecting": "جارٍ الاتصال…",
-        "connect": "ربط Spotify"
-      },
       "notifications": {
         "title": "إشعارات تغيير الأغنية",
         "subtitle": "عرض إشعار نظام في بداية كل أغنية (العنوان + الفنان). معطّل افتراضيًا."
@@ -1965,10 +1950,6 @@
     "showAbLoop": {
       "title": "تثبيت تكرار A-B في الشريط",
       "subtitle": "عند الإيقاف يبقى تكرار A-B متاحًا من قائمة «…»"
-    },
-    "showSpotify": {
-      "title": "إظهار اختصار Spotify",
-      "subtitle": "إظهار اختصار Spotify في الشريط الجانبي"
     },
     "duplicates": {
       "title": "اكتشاف النسخ المكررة",
@@ -2616,20 +2597,6 @@
       "showTranslation": "عرض الترجمة",
       "reset": "إعادة تعيين المظهر"
     }
-  },
-  "spotify": {
-    "notConfiguredTitle": "سجّل تطبيق Spotify الخاص بك",
-    "notConfiguredMessage": "يشترط Spotify على كل تطبيق طرف ثالث تسجيل Client ID مجاني قبل أي تشغيل. أنشئه في لوحة Spotify Developer، ثم ألصقه في «إعدادات WaveFlow» → «التكاملات».",
-    "openDashboard": "فتح لوحة Spotify Developer",
-    "openSettings": "فتح الإعدادات",
-    "notConnectedTitle": "Spotify غير متصل",
-    "notConnectedMessage": "Client ID الخاص بك مضبوط. سجّل الدخول إلى حساب Spotify Premium من الإعدادات لتحميل قوائم التشغيل وتشغيل الموسيقى.",
-    "emptyPlaylist": "لا توجد مقاطع قابلة للتشغيل في قائمة التشغيل هذه (قد لا يعرض Spotify الملفات المحلية أو قوائم التشغيل التي ليست ملكك).",
-    "deviceReady": "جهاز Spotify الخاص بـ WaveFlow جاهز",
-    "devicePending": "جارٍ تحضير تشغيل Spotify…",
-    "searchPlaceholder": "البحث في Spotify",
-    "tracks": "المقاطع",
-    "playlists": "قوائم التشغيل"
   },
   "scanProgress": {
     "runningTitle": "جارٍ فحص المكتبة…",

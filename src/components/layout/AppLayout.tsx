@@ -58,11 +58,6 @@ const SettingsView = lazy(() =>
     default: module.SettingsView,
   })),
 );
-const SpotifyView = lazy(() =>
-  import("../views/SpotifyView").then((module) => ({
-    default: module.SpotifyView,
-  })),
-);
 const WebRadioView = lazy(() =>
   import("../views/WebRadioView").then((module) => ({
     default: module.WebRadioView,
@@ -137,7 +132,6 @@ type HistoryEntry =
   // does: the next plain visit to Settings pushes an entry without it
   // and lands on whatever the user last had open.
   | { id: "settings"; settingsCategory?: SettingsCategory }
-  | { id: "spotify" }
   | { id: "web-radio" }
   | { id: "about" }
   | { id: "feedback" }
@@ -272,7 +266,6 @@ export function AppLayout() {
       void import("../views/StatisticsView");
       void import("../views/WrappedView");
       void import("../views/SettingsView");
-      void import("../views/SpotifyView");
       void import("../views/WebRadioView");
       void import("../views/AboutView");
       void import("../views/FeedbackView");
@@ -546,8 +539,6 @@ export function AppLayout() {
             }
           />
         );
-      case "spotify":
-        return <SpotifyView onNavigate={setActiveView} />;
       case "web-radio":
         return <WebRadioView />;
       case "plugin-ui":

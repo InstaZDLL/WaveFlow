@@ -79,13 +79,11 @@ export function MiniPlayer() {
     toggleShuffle,
     seek,
     setSeeking,
-    activeProvider,
     currentRadioStation,
     volume,
     setVolume,
     toggleMute,
   } = usePlayer();
-  const isSpotify = activeProvider === "spotify";
   // Live radio has no seekable timeline — the seek bar + timestamps are
   // hidden (matching the PlayerBar / immersive ProgressBar).
   const isRadio = isRadioTrack(currentTrack);
@@ -114,9 +112,7 @@ export function MiniPlayer() {
   // ── Up-next queue (own webview = own fetch + event subscription) ─
   // Mirrors QueuePanel: load once, refetch on `player:queue-changed`,
   // guarded by a seq counter so overlapping refetches (rapid Next)
-  // never resolve out of order. Spotify playback uses a different
-  // queue source, so the panel is local-library only — matching how
-  // the like button is gated above.
+  // never resolve out of order.
   const [queue, setQueue] = useState<PlayerQueueSnapshot | null>(null);
   const queueSeqRef = useRef(0);
 
@@ -133,7 +129,6 @@ export function MiniPlayer() {
   }, []);
 
   useEffect(() => {
-    if (isSpotify) return;
     fetchQueue();
     let unlisten: UnlistenFn | null = null;
     let cancelled = false;
@@ -152,7 +147,7 @@ export function MiniPlayer() {
       cancelled = true;
       unlisten?.();
     };
-  }, [isSpotify, fetchQueue]);
+  }, [fetchQueue]);
 
   const currentIndex = queue?.current_index ?? -1;
   const upNext = useMemo(() => {
@@ -337,9 +332,8 @@ export function MiniPlayer() {
 
   // An open overlay visually covers the cover / title / seek controls —
   // mark that subtree inert so keyboard and screen-reader focus can't
-  // reach the hidden buttons behind it. The up-next list is gated on
-  // local playback, so a Spotify session never actually renders it.
-  const contentInert = overlay === "lyrics" || (showQueue && !isSpotify);
+  // reach the hidden buttons behind it.
+  const contentInert = overlay === "lyrics" || showQueue;
 
   return (
     <div
@@ -412,24 +406,20 @@ export function MiniPlayer() {
           >
             <Mic2 size={12} />
           </button>
-          {!isSpotify && (
-            <button
-              type="button"
-              onClick={() =>
-                setOverlay((v) => (v === "queue" ? "none" : "queue"))
-              }
-              aria-label={t("miniPlayer.upNext.toggle")}
-              title={t("miniPlayer.upNext.toggle")}
-              aria-pressed={showQueue}
-              className={`p-1 rounded-full transition-colors ${
-                showQueue
-                  ? "text-emerald-400 hover:bg-white/10"
-                  : "text-white/60 hover:text-white hover:bg-white/10"
-              }`}
-            >
-              <ListMusic size={12} />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setOverlay((v) => (v === "queue" ? "none" : "queue"))}
+            aria-label={t("miniPlayer.upNext.toggle")}
+            title={t("miniPlayer.upNext.toggle")}
+            aria-pressed={showQueue}
+            className={`p-1 rounded-full transition-colors ${
+              showQueue
+                ? "text-emerald-400 hover:bg-white/10"
+                : "text-white/60 hover:text-white hover:bg-white/10"
+            }`}
+          >
+            <ListMusic size={12} />
+          </button>
           <button
             type="button"
             onClick={handleMaximize}
@@ -513,8 +503,8 @@ export function MiniPlayer() {
               {currentTrack?.artist_name ?? "—"}
             </div>
             {/* Live radio: favorite the STATION (★). Otherwise the
-              local-library like (♥) — Spotify is excluded because its
-              tracks have no WaveFlow DB row to like. */}
+              local-library like (♥) — streamed tracks are excluded
+              because they have no WaveFlow DB row to like. */}
             {currentRadioStation ? (
               <button
                 type="button"
@@ -539,7 +529,7 @@ export function MiniPlayer() {
                   }
                 />
               </button>
-            ) : currentTrack && !isSpotify && !isStreamTrack(currentTrack) ? (
+            ) : currentTrack && !isStreamTrack(currentTrack) ? (
               // Guard the radio sentinel track (negative id) during the
               // hydration race / idle tail — no ♥ like without a library
               // row. `currentTrack &&` also drops the disabled ♥ when
@@ -617,8 +607,8 @@ export function MiniPlayer() {
 
       {/* Up-next overlay — slides over the content area below the top
           bar (which stays reachable so the toggle/close still work).
-          Local-library only; gated with the toggle button above. */}
-      {showQueue && !isSpotify && (
+          Gated with the toggle button above. */}
+      {showQueue && (
         <div className="absolute inset-x-0 bottom-0 top-7 z-20 flex flex-col bg-black/55 backdrop-blur-md animate-fade-in wf-glass wf-mini-player-surface">
           <div className="flex items-center justify-between px-3 py-2 shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">

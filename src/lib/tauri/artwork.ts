@@ -35,9 +35,9 @@ export function resolveArtwork(
     const v = paths[k];
     if (!v) continue;
     if (k === "remoteUrl") return v;
-    // Spotify (and any future remote provider) feeds CDN URLs into
-    // the same `full` slot the local scanner uses for filesystem
-    // paths. Remote-server covers (RFC-005) arrive already inlined as
+    // A remote provider can feed CDN URLs into the same `full` slot
+    // the local scanner uses for filesystem paths. Remote-server
+    // covers (RFC-005) arrive already inlined as
     // `data:` URLs — their endpoint is Bearer-only, so they're fetched
     // once and embedded rather than linked. Both return verbatim:
     // convertFileSrc would wrap them as `asset://https://…` /

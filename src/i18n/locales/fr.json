@@ -167,8 +167,7 @@
   "sidebar": {
     "nav": {
       "home": "Accueil",
-      "webRadio": "Web Radio",
-      "spotify": "Spotify"
+      "webRadio": "Web Radio"
     },
     "sections": {
       "open": "Ouvrir",
@@ -914,10 +913,6 @@
       "label": "Radio",
       "basedOn": "Basée sur « {{title}} »"
     }
-  },
-  "spotifyQueue": {
-    "emptyHint": "Rien dans la file Spotify pour le moment.",
-    "readonlyHint": "File en lecture seule — modifiez-la depuis l'app Spotify."
   },
   "deviceMenu": {
     "activeLabel": "Sortie active",
@@ -1763,16 +1758,6 @@
         "statusStopped": "Arrêté",
         "copyAddress": "Copier l'adresse"
       },
-      "spotify": {
-        "title": "Spotify",
-        "subtitle": "Connectez Spotify Premium avec votre propre Client ID Spotify Developer.",
-        "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "Ajoutez cette URI de redirection dans le tableau de bord Spotify Developer : http://127.0.0.1:49387/spotify/callback",
-        "connectedAs": "Connecté en tant que",
-        "disconnect": "Déconnecter",
-        "connecting": "Connexion…",
-        "connect": "Connecter Spotify"
-      },
       "notifications": {
         "title": "Notifications de changement de titre",
         "subtitle": "Affiche une notification système au début de chaque titre (nom et artiste). Désactivé par défaut."
@@ -1860,10 +1845,6 @@
     "showAbLoop": {
       "title": "Épingler la boucle A-B dans la barre",
       "subtitle": "Désactivé, la boucle A-B reste accessible depuis le menu « … »"
-    },
-    "showSpotify": {
-      "title": "Afficher l'entrée Spotify",
-      "subtitle": "Affiche le raccourci Spotify dans la barre latérale"
     },
     "duplicates": {
       "title": "Détecter les doublons",
@@ -2438,20 +2419,6 @@
       "showTranslation": "Afficher la traduction",
       "reset": "Réinitialiser l'apparence"
     }
-  },
-  "spotify": {
-    "notConfiguredTitle": "Enregistrer votre app Spotify",
-    "notConfiguredMessage": "Spotify exige que toute application tierce enregistre un Client ID gratuit avant la moindre lecture. Créez-le dans le tableau de bord Spotify Developer, puis collez-le dans Paramètres → Intégrations.",
-    "openDashboard": "Ouvrir le tableau de bord Spotify Developer",
-    "openSettings": "Ouvrir les paramètres",
-    "notConnectedTitle": "Spotify n'est pas connecté",
-    "notConnectedMessage": "Votre Client ID est configuré. Connectez votre compte Spotify Premium depuis les Paramètres pour charger vos playlists et lancer la lecture.",
-    "emptyPlaylist": "Aucun titre lisible dans cette playlist (Spotify peut bloquer les fichiers locaux ou les playlists que vous ne possédez pas).",
-    "deviceReady": "Appareil Spotify WaveFlow prêt",
-    "devicePending": "Préparation de la lecture Spotify…",
-    "searchPlaceholder": "Rechercher sur Spotify",
-    "tracks": "Titres",
-    "playlists": "Playlists"
   },
   "scanProgress": {
     "runningTitle": "Analyse en cours…",

@@ -167,8 +167,7 @@
   "sidebar": {
     "nav": {
       "home": "Home",
-      "webRadio": "Web Radio",
-      "spotify": "Spotify"
+      "webRadio": "Web Radio"
     },
     "sections": {
       "open": "Open",
@@ -913,10 +912,6 @@
       "label": "Radio",
       "basedOn": "Based on “{{title}}”"
     }
-  },
-  "spotifyQueue": {
-    "emptyHint": "Nothing in the Spotify queue right now.",
-    "readonlyHint": "Read-only queue — manage it from the Spotify app."
   },
   "deviceMenu": {
     "activeLabel": "Active output",
@@ -1707,16 +1702,6 @@
         "statusStopped": "Stopped",
         "copyAddress": "Copy address"
       },
-      "spotify": {
-        "title": "Spotify",
-        "subtitle": "Connect Spotify Premium with your own Spotify Developer Client ID.",
-        "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "Add this Redirect URI in Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
-        "connectedAs": "Connected as",
-        "disconnect": "Disconnect",
-        "connecting": "Connecting…",
-        "connect": "Connect Spotify"
-      },
       "notifications": {
         "title": "Track-change notifications",
         "subtitle": "Show a system toast at the start of every track (title + artist). Off by default."
@@ -1804,10 +1789,6 @@
     "showAbLoop": {
       "title": "Pin A-B loop in the bar",
       "subtitle": "When off, A-B loop stays available from the « … » menu"
-    },
-    "showSpotify": {
-      "title": "Show Spotify entry",
-      "subtitle": "Show the Spotify shortcut in the sidebar"
     },
     "duplicates": {
       "title": "Detect duplicates",
@@ -2435,20 +2416,6 @@
       "showTranslation": "Show translation",
       "reset": "Reset appearance"
     }
-  },
-  "spotify": {
-    "notConfiguredTitle": "Register your Spotify app",
-    "notConfiguredMessage": "Spotify requires every third-party app to register a free Client ID before any playback. Create one on the Spotify Developer dashboard, then paste it in WaveFlow's Settings → Integrations.",
-    "openDashboard": "Open Spotify Developer dashboard",
-    "openSettings": "Open Settings",
-    "notConnectedTitle": "Spotify is not connected",
-    "notConnectedMessage": "Your Client ID is set. Sign in to your Spotify Premium account from Settings to load your playlists and play music.",
-    "emptyPlaylist": "No tracks available in this playlist (Spotify may not expose local files or playlists you don't own).",
-    "deviceReady": "WaveFlow Spotify device ready",
-    "devicePending": "Preparing Spotify playback…",
-    "searchPlaceholder": "Search Spotify",
-    "tracks": "Tracks",
-    "playlists": "Playlists"
   },
   "scanProgress": {
     "runningTitle": "Scanning library…",

@@ -167,8 +167,7 @@
   "sidebar": {
     "nav": {
       "home": "होम",
-      "webRadio": "वेब रेडियो",
-      "spotify": "Spotify"
+      "webRadio": "वेब रेडियो"
     },
     "sections": {
       "open": "खोलें",
@@ -913,10 +912,6 @@
       "label": "रेडियो",
       "basedOn": "“{{title}}” पर आधारित"
     }
-  },
-  "spotifyQueue": {
-    "emptyHint": "अभी Spotify क्यू में कुछ नहीं।",
-    "readonlyHint": "केवल-पढ़ने योग्य क्यू — Spotify ऐप से प्रबंधित करें।"
   },
   "deviceMenu": {
     "activeLabel": "सक्रिय आउटपुट",
@@ -1707,16 +1702,6 @@
         "statusStopped": "बंद",
         "copyAddress": "पता कॉपी करें"
       },
-      "spotify": {
-        "title": "Spotify",
-        "subtitle": "अपने Spotify Developer Client ID से Spotify Premium कनेक्ट करें।",
-        "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "Spotify Developer Dashboard में यह Redirect URI जोड़ें: http://127.0.0.1:49387/spotify/callback",
-        "connectedAs": "इस रूप में कनेक्ट",
-        "disconnect": "डिस्कनेक्ट",
-        "connecting": "कनेक्ट हो रहा है…",
-        "connect": "Spotify कनेक्ट करें"
-      },
       "notifications": {
         "title": "ट्रैक बदलने पर सूचनाएँ",
         "subtitle": "हर ट्रैक की शुरुआत में सिस्टम सूचना दिखाएँ (शीर्षक + कलाकार)। डिफ़ॉल्ट रूप से बंद।"
@@ -1812,10 +1797,6 @@
     "showAbLoop": {
       "title": "A-B लूप को बार में पिन करें",
       "subtitle": "बंद होने पर भी A-B लूप « … » मेनू से उपलब्ध रहता है"
-    },
-    "showSpotify": {
-      "title": "Spotify प्रविष्टि दिखाएँ",
-      "subtitle": "साइडबार में Spotify शॉर्टकट दिखाएँ"
     },
     "visualizer": {
       "title": "ऑडियो विज़ुअलाइज़र",
@@ -2435,20 +2416,6 @@
       "showTranslation": "अनुवाद दिखाएँ",
       "reset": "रूप रीसेट करें"
     }
-  },
-  "spotify": {
-    "notConfiguredTitle": "अपनी Spotify ऐप पंजीकृत करें",
-    "notConfiguredMessage": "Spotify सभी थर्ड-पार्टी ऐप्स को प्लेबैक से पहले एक मुफ़्त Client ID पंजीकृत करने की आवश्यकता रखता है। Spotify Developer डैशबोर्ड पर एक बनाएँ, फिर इसे WaveFlow की सेटिंग्स → एकीकरण में पेस्ट करें।",
-    "openDashboard": "Spotify Developer डैशबोर्ड खोलें",
-    "openSettings": "सेटिंग्स खोलें",
-    "notConnectedTitle": "Spotify कनेक्टेड नहीं है",
-    "notConnectedMessage": "आपका Client ID सेट है। प्लेलिस्ट लोड करने और संगीत चलाने के लिए सेटिंग्स से अपने Spotify Premium खाते में साइन इन करें।",
-    "emptyPlaylist": "इस प्लेलिस्ट में कोई ट्रैक उपलब्ध नहीं है (Spotify स्थानीय फ़ाइलें या आपकी न होने वाली प्लेलिस्ट दिखाने से रोक सकता है)।",
-    "deviceReady": "WaveFlow Spotify डिवाइस तैयार",
-    "devicePending": "Spotify प्लेबैक तैयार हो रहा है…",
-    "searchPlaceholder": "Spotify में खोजें",
-    "tracks": "ट्रैक",
-    "playlists": "प्लेलिस्ट"
   },
   "scanProgress": {
     "runningTitle": "लाइब्रेरी स्कैन हो रही है…",

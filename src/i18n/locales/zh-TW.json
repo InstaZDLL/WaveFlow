@@ -167,8 +167,7 @@
   "sidebar": {
     "nav": {
       "home": "首頁",
-      "webRadio": "網路電台",
-      "spotify": "Spotify"
+      "webRadio": "網路電台"
     },
     "sections": {
       "open": "開啟",
@@ -913,10 +912,6 @@
       "label": "電台",
       "basedOn": "基於「{{title}}」"
     }
-  },
-  "spotifyQueue": {
-    "emptyHint": "Spotify 佇列目前沒有內容。",
-    "readonlyHint": "唯讀佇列——從 Spotify 應用程式管理。"
   },
   "deviceMenu": {
     "activeLabel": "作用中的輸出",
@@ -1682,16 +1677,6 @@
         "statusStopped": "已停止",
         "copyAddress": "複製位址"
       },
-      "spotify": {
-        "title": "Spotify",
-        "subtitle": "使用你自己的 Spotify Developer Client ID 連接 Spotify Premium。",
-        "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "在 Spotify Developer Dashboard 中加入此 Redirect URI:http://127.0.0.1:49387/spotify/callback",
-        "connectedAs": "已連接為",
-        "disconnect": "中斷連線",
-        "connecting": "正在連接…",
-        "connect": "連接 Spotify"
-      },
       "notifications": {
         "title": "曲目變更通知",
         "subtitle": "每首曲目開始時顯示系統通知（標題 + 藝人）。預設關閉。"
@@ -2097,10 +2082,6 @@
       "title": "智慧交叉淡化",
       "subtitle": "自動跳過同一張專輯內兩首曲目間的淡化（適合概念專輯和現場錄音）"
     },
-    "showSpotify": {
-      "title": "顯示 Spotify 入口",
-      "subtitle": "在側邊欄中顯示 Spotify 快捷方式"
-    },
     "playerBarLayout": {
       "title": "播放列佈局",
       "subtitle": "選擇播放列中顯示哪些按鈕，以及點擊封面後的動作。預覽會即時更新。",
@@ -2456,20 +2437,6 @@
       "desktopLyrics": "桌面歌詞",
       "lockDesktopLyrics": "鎖定桌面歌詞"
     }
-  },
-  "spotify": {
-    "deviceReady": "WaveFlow Spotify 裝置已就緒",
-    "devicePending": "正在準備 Spotify 播放…",
-    "searchPlaceholder": "搜尋 Spotify",
-    "tracks": "曲目",
-    "playlists": "播放清單",
-    "emptyPlaylist": "此播放清單中沒有可用的曲目（Spotify 可能不會公開本機檔案或非你擁有的播放清單）。",
-    "notConfiguredTitle": "註冊你的 Spotify 應用程式",
-    "notConfiguredMessage": "Spotify 要求每個第三方應用程式在播放前必須註冊一個免費的 Client ID。請在 Spotify Developer dashboard 建立一個，然後貼到 WaveFlow 的「設定 → 整合」。",
-    "openDashboard": "開啟 Spotify Developer dashboard",
-    "openSettings": "開啟設定",
-    "notConnectedTitle": "Spotify 尚未連接",
-    "notConnectedMessage": "你的 Client ID 已設定。請至「設定」登入 Spotify Premium 帳號，以載入播放清單並開始播放。"
   },
   "share": {
     "title": "分享播放清單",

@@ -6,7 +6,6 @@ import type {
   QueueSource,
   ShuffleMode,
 } from "../lib/tauri/player";
-import type { SpotifyTrackLite } from "../lib/tauri/spotify";
 import type { PluginFavorite } from "../lib/tauri/plugins";
 
 export type RepeatMode = "off" | "all" | "one";
@@ -34,8 +33,6 @@ export interface PlaybackAlert {
   kind: string;
   detail?: string;
 }
-export type ActiveProvider = "local" | "spotify";
-
 /** Aggregate `state` field driven by backend `player:state` events. */
 export type PlaybackState = "idle" | "loading" | "playing" | "paused" | "ended";
 
@@ -77,7 +74,6 @@ interface PlayerContextValue {
   refreshOutputDevices: () => Promise<void>;
 
   // Backend-synced state
-  activeProvider: ActiveProvider;
   playbackState: PlaybackState;
   isPlaying: boolean;
   currentTrack: Track | null;
@@ -138,8 +134,6 @@ interface PlayerContextValue {
     startIndex: number,
     source: { type: QueueSource; id: number | null },
   ) => Promise<void>;
-  playSpotifyTrack: (track: SpotifyTrackLite) => Promise<void>;
-  playSpotifyContext: (contextUri: string) => Promise<void>;
   togglePlayback: () => Promise<void>;
   next: () => Promise<void>;
   previous: () => Promise<void>;

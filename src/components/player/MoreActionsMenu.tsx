@@ -31,13 +31,6 @@ interface MoreActionsMenuProps {
   /** When `true`, the EQ preset popover is pinned as a primary
    *  button in the bar and the overflow menu doesn't duplicate it. */
   pinEqPreset: boolean;
-  /** When `true`, render the playback-speed section inside the menu.
-   *  Hidden in Spotify mode (Web Playback SDK has no speed control). */
-  showSpeed: boolean;
-  /** When `true`, render the EQ preset list inside the menu (when
-   *  not pinned). Hidden in Spotify mode for the same reason as
-   *  speed — Web Playback SDK doesn't run through our audio engine. */
-  showEq: boolean;
   sleepTimer: {
     status: SleepTimerStatus;
     onSetDuration: (minutes: number) => void;
@@ -57,8 +50,6 @@ export function MoreActionsMenu({
   pinAbLoop,
   pinSleepTimer,
   pinEqPreset,
-  showSpeed,
-  showEq,
   sleepTimer,
 }: MoreActionsMenuProps) {
   const { t } = useTranslation();
@@ -91,7 +82,7 @@ export function MoreActionsMenu({
 
   const showSleepInMenu = !pinSleepTimer;
   const showAbInMenu = !pinAbLoop;
-  const showEqInMenu = showEq && !pinEqPreset;
+  const showEqInMenu = !pinEqPreset;
 
   const sleepArmed = sleepTimer.status.kind !== "off";
   const sleepBadge =
@@ -103,11 +94,8 @@ export function MoreActionsMenu({
 
   // Trigger badge priority: sleep-timer countdown > non-default speed.
   // Both are mutually exclusive in the same corner so the user always
-  // sees the most time-sensitive signal first. `isOffSpeed` is gated
-  // on `showSpeed` because the speed UI is hidden in Spotify mode —
-  // tinting the trigger green for a value the user can't even see
-  // from this menu would be misleading.
-  const isOffSpeed = showSpeed && Math.abs(playbackSpeed - 1.0) > 0.001;
+  // sees the most time-sensitive signal first.
+  const isOffSpeed = Math.abs(playbackSpeed - 1.0) > 0.001;
   const speedBadge = isOffSpeed ? formatSpeed(playbackSpeed) : null;
   const triggerBadge = sleepBadge && showSleepInMenu ? sleepBadge : speedBadge;
   const triggerBadgeTone =
@@ -169,51 +157,49 @@ export function MoreActionsMenu({
             style={{ transformOrigin: "bottom right" }}
             className="absolute bottom-full right-0 mb-3 w-72 max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain p-1 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl z-50"
           >
-            {showSpeed && (
-              <div className="px-3 py-2 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="text-xs font-bold uppercase tracking-widest text-zinc-400">
-                    {t("player.speed.title")}
-                  </div>
-                  <span className="text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
-                    {formatSpeed(playbackSpeed)}
-                  </span>
+            <div className="px-3 py-2 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-bold uppercase tracking-widest text-zinc-400">
+                  {t("player.speed.title")}
                 </div>
-
-                <input
-                  type="range"
-                  min={SPEED_MIN}
-                  max={SPEED_MAX}
-                  step={0.05}
-                  value={playbackSpeed}
-                  onChange={(e) => setPlaybackSpeed(parseFloat(e.target.value))}
-                  aria-label={t("player.speed.slider")}
-                  className="w-full accent-emerald-500"
-                />
-
-                <div className="grid grid-cols-5 gap-1">
-                  {SPEED_PRESETS.map((preset) => {
-                    const active = Math.abs(playbackSpeed - preset) < 0.001;
-                    return (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => setPlaybackSpeed(preset)}
-                        className={`py-1 text-[11px] font-semibold tabular-nums rounded-md transition-colors ${
-                          active
-                            ? "bg-emerald-500 text-white"
-                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                        }`}
-                      >
-                        {formatSpeed(preset)}
-                      </button>
-                    );
-                  })}
-                </div>
+                <span className="text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                  {formatSpeed(playbackSpeed)}
+                </span>
               </div>
-            )}
 
-            {showSpeed && (showEqInMenu || showAbInMenu || showSleepInMenu) && (
+              <input
+                type="range"
+                min={SPEED_MIN}
+                max={SPEED_MAX}
+                step={0.05}
+                value={playbackSpeed}
+                onChange={(e) => setPlaybackSpeed(parseFloat(e.target.value))}
+                aria-label={t("player.speed.slider")}
+                className="w-full accent-emerald-500"
+              />
+
+              <div className="grid grid-cols-5 gap-1">
+                {SPEED_PRESETS.map((preset) => {
+                  const active = Math.abs(playbackSpeed - preset) < 0.001;
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setPlaybackSpeed(preset)}
+                      className={`py-1 text-[11px] font-semibold tabular-nums rounded-md transition-colors ${
+                        active
+                          ? "bg-emerald-500 text-white"
+                          : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                      }`}
+                    >
+                      {formatSpeed(preset)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {(showEqInMenu || showAbInMenu || showSleepInMenu) && (
               <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
             )}
 
@@ -321,9 +307,7 @@ export function MoreActionsMenu({
               </div>
             )}
 
-            {(showSpeed || showEqInMenu || showAbInMenu || showSleepInMenu) && (
-              <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
-            )}
+            <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
 
             {/* Desktop lyrics (#582). The lock row is here as well as in
               Settings and the tray on purpose: a locked overlay ignores

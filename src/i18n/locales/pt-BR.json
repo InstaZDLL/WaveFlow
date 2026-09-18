@@ -167,8 +167,7 @@
   "sidebar": {
     "nav": {
       "home": "Início",
-      "webRadio": "Rádio Web",
-      "spotify": "Spotify"
+      "webRadio": "Rádio Web"
     },
     "sections": {
       "open": "Abrir",
@@ -914,10 +913,6 @@
       "label": "Rádio",
       "basedOn": "Baseada em “{{title}}”"
     }
-  },
-  "spotifyQueue": {
-    "emptyHint": "Nada na fila do Spotify agora.",
-    "readonlyHint": "Fila somente leitura — gerencie pelo app do Spotify."
   },
   "deviceMenu": {
     "activeLabel": "Saída ativa",
@@ -1710,16 +1705,6 @@
         "statusStopped": "Parado",
         "copyAddress": "Copiar endereço"
       },
-      "spotify": {
-        "title": "Spotify",
-        "subtitle": "Conecte o Spotify Premium com seu próprio Client ID do Spotify Developer.",
-        "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "Adicione este Redirect URI no Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
-        "connectedAs": "Conectado como",
-        "disconnect": "Desconectar",
-        "connecting": "Conectando…",
-        "connect": "Conectar Spotify"
-      },
       "notifications": {
         "title": "Notificações de mudança de faixa",
         "subtitle": "Mostra uma notificação do sistema no início de cada faixa (título + artista). Desativado por padrão."
@@ -1815,10 +1800,6 @@
     "showAbLoop": {
       "title": "Fixar o loop A-B na barra",
       "subtitle": "Quando desativado, o loop A-B continua disponível no menu “…”"
-    },
-    "showSpotify": {
-      "title": "Mostrar entrada do Spotify",
-      "subtitle": "Mostra o atalho do Spotify na barra lateral"
     },
     "visualizer": {
       "title": "Visualizador de áudio",
@@ -2438,20 +2419,6 @@
       "showTranslation": "Mostrar tradução",
       "reset": "Redefinir aparência"
     }
-  },
-  "spotify": {
-    "notConfiguredTitle": "Registre seu aplicativo Spotify",
-    "notConfiguredMessage": "O Spotify exige que todos os aplicativos de terceiros registrem um Client ID gratuito antes de qualquer reprodução. Crie um no Spotify Developer Dashboard e cole-o em Configurações → Integrações do WaveFlow.",
-    "openDashboard": "Abrir Spotify Developer Dashboard",
-    "openSettings": "Abrir configurações",
-    "notConnectedTitle": "Spotify não está conectado",
-    "notConnectedMessage": "Seu Client ID está configurado. Faça login na sua conta Spotify Premium pelas configurações para carregar as playlists e ouvir música.",
-    "emptyPlaylist": "Sem faixas disponíveis nesta playlist (o Spotify pode não expor arquivos locais ou playlists que você não possui).",
-    "deviceReady": "Dispositivo Spotify do WaveFlow pronto",
-    "devicePending": "Preparando a reprodução do Spotify…",
-    "searchPlaceholder": "Pesquisar no Spotify",
-    "tracks": "Faixas",
-    "playlists": "Playlists"
   },
   "scanProgress": {
     "runningTitle": "Escaneando biblioteca…",

@@ -27,12 +27,10 @@ export function PlaybackControls() {
     next,
     previous,
     currentTrack,
-    activeProvider,
   } = usePlayer();
 
   const isLoading = playbackState === "loading";
   const disableTransport = !currentTrack && playbackState === "idle";
-  const isSpotify = activeProvider === "spotify";
   // Web Radio is a single-stream source — there's no queue cursor to
   // advance, so Previous / Next / Shuffle / Repeat would either be a
   // no-op (the queue cursor still points at the last local track) or
@@ -62,7 +60,7 @@ export function PlaybackControls() {
       <button
         type="button"
         onClick={cycleShuffleMode}
-        disabled={isSpotify || isRadio || isRemote}
+        disabled={isRadio || isRemote}
         aria-pressed={isShuffled}
         aria-label={shuffleLabel}
         title={shuffleLabel}
@@ -125,7 +123,7 @@ export function PlaybackControls() {
       <button
         type="button"
         onClick={cycleRepeatMode}
-        disabled={isSpotify || isRadio}
+        disabled={isRadio}
         aria-label={
           repeatMode === "off"
             ? t("player.controls.repeatOff")

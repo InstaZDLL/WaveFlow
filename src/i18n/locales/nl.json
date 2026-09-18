@@ -167,8 +167,7 @@
   "sidebar": {
     "nav": {
       "home": "Start",
-      "webRadio": "Web Radio",
-      "spotify": "Spotify"
+      "webRadio": "Web Radio"
     },
     "sections": {
       "open": "Openen",
@@ -913,10 +912,6 @@
       "label": "Radio",
       "basedOn": "Gebaseerd op «{{title}}»"
     }
-  },
-  "spotifyQueue": {
-    "emptyHint": "Nu niets in de Spotify-wachtrij.",
-    "readonlyHint": "Alleen-lezen wachtrij — beheer deze vanuit de Spotify-app."
   },
   "deviceMenu": {
     "activeLabel": "Actieve uitvoer",
@@ -1707,16 +1702,6 @@
         "statusStopped": "Gestopt",
         "copyAddress": "Adres kopiëren"
       },
-      "spotify": {
-        "title": "Spotify",
-        "subtitle": "Koppel Spotify Premium met je eigen Spotify Developer Client ID.",
-        "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "Voeg deze Redirect URI toe in het Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
-        "connectedAs": "Verbonden als",
-        "disconnect": "Verbreken",
-        "connecting": "Verbinden…",
-        "connect": "Spotify koppelen"
-      },
       "notifications": {
         "title": "Meldingen bij nummerwissel",
         "subtitle": "Toon een systeemmelding aan het begin van elk nummer (titel + artiest). Standaard uit."
@@ -1804,10 +1789,6 @@
     "showAbLoop": {
       "title": "A-B-loop vastpinnen in de balk",
       "subtitle": "Als dit uitstaat blijft A-B-loop beschikbaar via het menu «…»"
-    },
-    "showSpotify": {
-      "title": "Spotify-snelkoppeling tonen",
-      "subtitle": "Toon de Spotify-snelkoppeling in de zijbalk"
     },
     "duplicates": {
       "title": "Duplicaten detecteren",
@@ -2435,20 +2416,6 @@
       "showTranslation": "Vertaling tonen",
       "reset": "Weergave herstellen"
     }
-  },
-  "spotify": {
-    "notConfiguredTitle": "Registreer je Spotify-app",
-    "notConfiguredMessage": "Spotify vereist dat elke app van derden een gratis Client ID registreert voordat er kan worden afgespeeld. Maak er een aan op het Spotify Developer Dashboard en plak hem in WaveFlow → Instellingen → Integraties.",
-    "openDashboard": "Spotify Developer Dashboard openen",
-    "openSettings": "Instellingen openen",
-    "notConnectedTitle": "Spotify is niet verbonden",
-    "notConnectedMessage": "Je Client ID is ingesteld. Log via Instellingen in op je Spotify Premium-account om je afspeellijsten te laden en muziek af te spelen.",
-    "emptyPlaylist": "Geen afspeelbare nummers in deze afspeellijst (Spotify toont mogelijk geen lokale bestanden of afspeellijsten die niet van jou zijn).",
-    "deviceReady": "WaveFlow Spotify-apparaat klaar",
-    "devicePending": "Spotify-afspelen wordt voorbereid…",
-    "searchPlaceholder": "Zoeken op Spotify",
-    "tracks": "Nummers",
-    "playlists": "Afspeellijsten"
   },
   "scanProgress": {
     "runningTitle": "Bibliotheek wordt gescand…",

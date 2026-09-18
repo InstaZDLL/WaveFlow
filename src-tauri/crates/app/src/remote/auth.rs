@@ -85,10 +85,6 @@ struct CallbackQuery {
 
 /// The S256 challenge for a verifier: `base64url(sha256(verifier))`.
 ///
-/// The same four lines exist in the Spotify integration. They are not
-/// shared: that crate is a leaf about one third-party service, and
-/// reaching into it from here for a hash helper would read as a
-/// dependency that means something it does not.
 fn pkce_challenge(verifier: &str) -> String {
     URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()))
 }

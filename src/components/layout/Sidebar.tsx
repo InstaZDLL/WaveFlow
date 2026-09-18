@@ -13,7 +13,6 @@ import {
   Plus,
   Upload,
   Sparkles,
-  Headphones,
   Radio,
 } from "lucide-react";
 import type { ViewId, LibraryTab } from "../../types";
@@ -36,7 +35,6 @@ import { getProfileColor, profileInitial } from "../../lib/profileColors";
 import { pickFile, pickFolder } from "../../lib/tauri/dialog";
 import { importPlaylistM3u } from "../../lib/tauri/playlist";
 import { getProfileStats, type ProfileStats } from "../../lib/tauri/browse";
-import { getProfileSetting } from "../../lib/tauri/profile";
 import {
   colorForPlaylistId,
   resolvePlaylistColor,
@@ -117,26 +115,6 @@ export function Sidebar({
   // The sidebar is navigation, not a filtered view: it always shows both
   // halves, whatever the library tab is currently narrowed to.
   const libraryPlaylists = useLibraryPlaylists(playlists, "all");
-  // Per-profile toggle: hide the Spotify entry from the sidebar so
-  // users who don't care about Spotify integration don't see it
-  // every time. Default ON. Persisted in `ui.show_spotify`.
-  const [showSpotify, setShowSpotify] = useState(true);
-  useEffect(() => {
-    const refresh = () => {
-      getProfileSetting("ui.show_spotify")
-        .then((v) => {
-          // Missing key → default ON.
-          setShowSpotify(v == null ? true : v === "1" || v === "true");
-        })
-        .catch(() => {});
-    };
-    refresh();
-    window.addEventListener("waveflow:show-spotify-visibility", refresh);
-    return () => {
-      window.removeEventListener("waveflow:show-spotify-visibility", refresh);
-    };
-  }, []);
-
   // Seq-guarded stats fetch
   const statsSeqRef = useRef(0);
   const refreshStats = useCallback(() => {
@@ -296,9 +274,9 @@ export function Sidebar({
         </button>
       </div>
 
-      {/* Top navigation stays pinned: Home + Spotify shortcut are
-          one-click destinations the user wants at hand regardless of
-          how deep into the playlist list they've scrolled. */}
+      {/* Top navigation stays pinned: these are one-click
+          destinations the user wants at hand regardless of how deep
+          into the playlist list they've scrolled. */}
       <div className="px-4 pt-4 pb-2 space-y-1 shrink-0">
         <NavItem
           icon={<Home size={18} />}
@@ -312,14 +290,6 @@ export function Sidebar({
             label={t("sidebar.nav.webRadio")}
             active={activeView === "web-radio"}
             onClick={() => setActiveView("web-radio")}
-          />
-        )}
-        {showSpotify && (
-          <NavItem
-            icon={<Headphones size={18} />}
-            label={t("sidebar.nav.spotify", "Spotify")}
-            active={activeView === "spotify"}
-            onClick={() => setActiveView("spotify")}
           />
         )}
         {uiPlugins.map((plugin) => (
@@ -344,8 +314,8 @@ export function Sidebar({
       {/* Single scroll surface for everything below the pinned nav so
           Ma musique and Playlists share the leftover vertical space
           instead of fighting over it. Reported in #54: at 1080p with
-          Spotify enabled the playlist section collapsed to ~0 px
-          because `shrink-0` on Ma musique pinned its full 5-row
+          one extra pinned nav entry the playlist section collapsed to
+          ~0 px because `shrink-0` on Ma musique pinned its full 5-row
           height. */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pb-4 space-y-4 scrollbar-hide">
         {/* ─── MA MUSIQUE ─── */}
