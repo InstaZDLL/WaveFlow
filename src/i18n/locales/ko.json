@@ -362,40 +362,40 @@
     "header": {
       "addFolder": "폴더 추가",
       "subtext": {
-        "morceaux_zero": "0곡",
-        "morceaux_one": "{{count}}곡",
-        "morceaux_other": "{{count}}곡",
+        "tracks_zero": "0곡",
+        "tracks_one": "{{count}}곡",
+        "tracks_other": "{{count}}곡",
         "albums_zero": "앨범 0개",
         "albums_one": "앨범 {{count}}개",
         "albums_other": "앨범 {{count}}개",
-        "artistes_zero": "아티스트 0명",
-        "artistes_one": "아티스트 {{count}}명",
-        "artistes_other": "아티스트 {{count}}명",
+        "artists_zero": "아티스트 0명",
+        "artists_one": "아티스트 {{count}}명",
+        "artists_other": "아티스트 {{count}}명",
         "genres_zero": "장르 0개",
         "genres_one": "장르 {{count}}개",
         "genres_other": "장르 {{count}}개",
-        "dossiers_zero": "폴더 0개",
-        "dossiers_one": "폴더 {{count}}개",
-        "dossiers_other": "폴더 {{count}}개",
+        "folders_zero": "폴더 0개",
+        "folders_one": "폴더 {{count}}개",
+        "folders_other": "폴더 {{count}}개",
         "playlists_zero": "재생 목록 0개",
         "playlists_one": "재생 목록 {{count}}개",
         "playlists_other": "재생 목록 {{count}}개",
-        "a-corriger_zero": "확인할 항목이 없습니다. 라이브러리 정보가 모두 갖춰져 있습니다.",
-        "a-corriger_one": "확인할 항목 {{count}}개",
-        "a-corriger_other": "확인할 항목 {{count}}개"
+        "needs-attention_zero": "확인할 항목이 없습니다. 라이브러리 정보가 모두 갖춰져 있습니다.",
+        "needs-attention_one": "확인할 항목 {{count}}개",
+        "needs-attention_other": "확인할 항목 {{count}}개"
       }
     },
     "tabs": {
-      "morceaux": "곡",
+      "tracks": "곡",
       "albums": "앨범",
-      "artistes": "아티스트",
+      "artists": "아티스트",
       "genres": "장르",
-      "dossiers": "폴더",
+      "folders": "폴더",
       "playlists": "재생 목록",
-      "a-corriger": "확인 필요"
+      "needs-attention": "확인 필요"
     },
     "empty": {
-      "morceaux": {
+      "tracks": {
         "title": "빈 라이브러리",
         "description": "오디오 파일이나 폴더를 가져와 라이브러리를 채우세요."
       },
@@ -403,7 +403,7 @@
         "title": "앨범이 없습니다",
         "description": "오디오 파일을 가져와 앨범을 자동으로 생성하세요."
       },
-      "artistes": {
+      "artists": {
         "title": "아티스트가 없습니다",
         "description": "먼저 오디오 파일을 가져오세요."
       },
@@ -411,14 +411,14 @@
         "title": "장르가 없습니다",
         "description": "오디오 파일을 가져와 장르를 확인해 보세요."
       },
-      "dossiers": {
+      "folders": {
         "title": "가져온 폴더가 없습니다",
         "description": "도구 모음에서 폴더를 가져와 이곳에서 내용을 살펴보세요."
       },
       "sourceFiltered": {
         "description": "이 소스에는 아무것도 없습니다. 위에서 소스를 바꾸거나 설정에서 서버 카탈로그를 복사하세요."
       },
-      "a-corriger": {
+      "needs-attention": {
         "title": "고칠 것이 없습니다",
         "description": "라이브러리에서 감지할 수 있는 문제가 없습니다."
       }
@@ -442,7 +442,8 @@
     "localFile": "로컬 파일",
     "fetchMissingCovers": "누락된 모든 커버 가져오기",
     "fetchingCovers": "커버 가져오는 중…({{current}} / {{total}})",
-    "fetchCoversResult": "{{count}}개의 커버를 가져왔습니다",
+    "fetchCoversResult_one": "{{count}}개의 커버를 가져왔습니다",
+    "fetchCoversResult_other": "{{count}}개의 커버를 가져왔습니다",
     "fetchCoversFailed": "커버 가져오기 실패",
     "table": {
       "number": "#",
@@ -1236,7 +1237,7 @@
     "aboutArtist": "아티스트 소개",
     "readMore": "더 보기",
     "readLess": "접기",
-    "noBio": "아티스트 소개가 없습니다. 설정에서 Last.fm 키를 등록하세요.",
+    "noBio": "아티스트 소개가 없습니다. 설정에서 다른 소개 출처를 시도해 보세요.",
     "nextInQueue": "대기열의 다음 곡",
     "openQueue": "대기열 열기",
     "lyrics": {
@@ -1603,7 +1604,7 @@
       "subtitle": "WaveFlow에 소스, 메타데이터 또는 뷰를 추가하는 확장 기능을 관리합니다.",
       "loading": "불러오는 중…",
       "emptyTitle": "설치된 플러그인이 없습니다",
-      "emptyHint": "위 스토어에서 설치하거나 <data>/waveflow/plugins/ 아래에 폴더를 넣으세요.",
+      "emptyHint": "위 스토어에서 설치하거나 플러그인 폴더에 폴더를 넣으세요.",
       "openFolder": "폴더 열기",
       "byAuthor": "{{author}} 제작",
       "enabled": "활성화됨",
@@ -1877,11 +1878,13 @@
     "regenerateThumbnails": "썸네일 재생성",
     "regenerateThumbnailsSubtitle": "모든 커버에 대해 누락된 1x/2x 버전을 재생성합니다",
     "regenerateThumbnailsAction": "재생성",
-    "regenerateThumbnailsDone": "썸네일 {{count}}개 재생성됨",
+    "regenerateThumbnailsDone_one": "썸네일 {{count}}개 재생성됨",
+    "regenerateThumbnailsDone_other": "썸네일 {{count}}개 재생성됨",
     "pruneAlbumCovers": "사용하지 않는 Deezer 앨범 커버 정리",
     "pruneAlbumCoversSubtitle": "이미 자체 커버가 있는 앨범을 위해 캐시된 Deezer 커버를 삭제합니다(표시되지 않음)",
     "pruneAlbumCoversAction": "정리",
-    "pruneAlbumCoversDone": "파일 {{files}}개 삭제 · {{mb}} MB 확보",
+    "pruneAlbumCoversDone_one": "파일 {{count}}개 삭제 · {{mb}} MB 확보",
+    "pruneAlbumCoversDone_other": "파일 {{count}}개 삭제 · {{mb}} MB 확보",
     "pruneAlbumCoversFailed": "커버 정리 실패",
     "reset": {
       "title": "앱 초기화",

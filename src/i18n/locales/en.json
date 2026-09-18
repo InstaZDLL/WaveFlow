@@ -362,40 +362,40 @@
     "header": {
       "addFolder": "Add a folder",
       "subtext": {
-        "morceaux_zero": "0 tracks",
-        "morceaux_one": "{{count}} track",
-        "morceaux_other": "{{count}} tracks",
+        "tracks_zero": "0 tracks",
+        "tracks_one": "{{count}} track",
+        "tracks_other": "{{count}} tracks",
         "albums_zero": "0 albums",
         "albums_one": "{{count}} album",
         "albums_other": "{{count}} albums",
-        "artistes_zero": "0 artists",
-        "artistes_one": "{{count}} artist",
-        "artistes_other": "{{count}} artists",
+        "artists_zero": "0 artists",
+        "artists_one": "{{count}} artist",
+        "artists_other": "{{count}} artists",
         "genres_zero": "0 genres",
         "genres_one": "{{count}} genre",
         "genres_other": "{{count}} genres",
-        "dossiers_zero": "0 folders",
-        "dossiers_one": "{{count}} folder",
-        "dossiers_other": "{{count}} folders",
+        "folders_zero": "0 folders",
+        "folders_one": "{{count}} folder",
+        "folders_other": "{{count}} folders",
         "playlists_zero": "0 playlists",
         "playlists_one": "{{count}} playlist",
         "playlists_other": "{{count}} playlists",
-        "a-corriger_zero": "Nothing to report: the library is complete.",
-        "a-corriger_one": "{{count}} thing to fix",
-        "a-corriger_other": "{{count}} things to fix"
+        "needs-attention_zero": "Nothing to report: the library is complete.",
+        "needs-attention_one": "{{count}} thing to fix",
+        "needs-attention_other": "{{count}} things to fix"
       }
     },
     "tabs": {
-      "morceaux": "Tracks",
+      "tracks": "Tracks",
       "albums": "Albums",
-      "artistes": "Artists",
+      "artists": "Artists",
       "genres": "Genres",
-      "dossiers": "Folders",
+      "folders": "Folders",
       "playlists": "Playlists",
-      "a-corriger": "Needs attention"
+      "needs-attention": "Needs attention"
     },
     "empty": {
-      "morceaux": {
+      "tracks": {
         "title": "Empty library",
         "description": "Import audio files or a folder to populate your library."
       },
@@ -403,7 +403,7 @@
         "title": "No albums found",
         "description": "Import audio files to automatically create albums."
       },
-      "artistes": {
+      "artists": {
         "title": "No artists found",
         "description": "Import some audio files to get started."
       },
@@ -411,14 +411,14 @@
         "title": "No genres found",
         "description": "Import audio files to explore different genres."
       },
-      "dossiers": {
+      "folders": {
         "title": "No folders imported",
         "description": "Import a folder from the action bar to browse it here."
       },
       "sourceFiltered": {
         "description": "Nothing from this source. Switch source above, or copy the server's catalogue from the settings."
       },
-      "a-corriger": {
+      "needs-attention": {
         "title": "Nothing to fix",
         "description": "Your library shows no problem we can detect."
       }
@@ -442,7 +442,8 @@
     "localFile": "Local file",
     "fetchMissingCovers": "Retrieve all missing covers",
     "fetchingCovers": "Fetching covers... ({{current}} / {{total}})",
-    "fetchCoversResult": "{{count}} covers retrieved",
+    "fetchCoversResult_one": "{{count}} cover retrieved",
+    "fetchCoversResult_other": "{{count}} covers retrieved",
     "fetchCoversFailed": "Failed to retrieve covers",
     "table": {
       "number": "#",
@@ -1236,7 +1237,7 @@
     "aboutArtist": "About the artist",
     "readMore": "Read more",
     "readLess": "Show less",
-    "noBio": "No biography available. Set your Last.fm key in the settings.",
+    "noBio": "No biography available. Try another biography source in the settings.",
     "nextInQueue": "Next in queue",
     "openQueue": "Open queue",
     "lyrics": {
@@ -1603,7 +1604,7 @@
       "subtitle": "Manage extensions that add sources, metadata, or views to WaveFlow.",
       "loading": "Loading…",
       "emptyTitle": "No plugins installed",
-      "emptyHint": "Install one from the store above, or drop a folder under <data>/waveflow/plugins/.",
+      "emptyHint": "Install one from the store above, or drop a folder into the plugins folder.",
       "openFolder": "Open folder",
       "byAuthor": "By {{author}}",
       "enabled": "Enabled",
@@ -1856,11 +1857,13 @@
     "regenerateThumbnails": "Regenerate thumbnails",
     "regenerateThumbnailsSubtitle": "Rebuild the missing 1x/2x variants for all covers",
     "regenerateThumbnailsAction": "Regenerate",
-    "regenerateThumbnailsDone": "{{count}} thumbnails regenerated",
+    "regenerateThumbnailsDone_one": "{{count}} thumbnail regenerated",
+    "regenerateThumbnailsDone_other": "{{count}} thumbnails regenerated",
     "pruneAlbumCovers": "Prune unused Deezer album covers",
     "pruneAlbumCoversSubtitle": "Delete cached Deezer album covers for albums that already have their own artwork (never shown)",
     "pruneAlbumCoversAction": "Prune",
-    "pruneAlbumCoversDone": "Deleted {{files}} files · freed {{mb}} MB",
+    "pruneAlbumCoversDone_one": "Deleted {{count}} file · freed {{mb}} MB",
+    "pruneAlbumCoversDone_other": "Deleted {{count}} files · freed {{mb}} MB",
     "pruneAlbumCoversFailed": "Cover cleanup failed",
     "reset": {
       "title": "Reset the app",

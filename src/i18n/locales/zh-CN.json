@@ -362,40 +362,40 @@
     "header": {
       "addFolder": "添加文件夹",
       "subtext": {
-        "morceaux_zero": "0 首曲目",
-        "morceaux_one": "{{count}} 首曲目",
-        "morceaux_other": "{{count}} 首曲目",
+        "tracks_zero": "0 首曲目",
+        "tracks_one": "{{count}} 首曲目",
+        "tracks_other": "{{count}} 首曲目",
         "albums_zero": "0 张专辑",
         "albums_one": "{{count}} 张专辑",
         "albums_other": "{{count}} 张专辑",
-        "artistes_zero": "0 位艺人",
-        "artistes_one": "{{count}} 位艺人",
-        "artistes_other": "{{count}} 位艺人",
+        "artists_zero": "0 位艺人",
+        "artists_one": "{{count}} 位艺人",
+        "artists_other": "{{count}} 位艺人",
         "genres_zero": "0 种流派",
         "genres_one": "{{count}} 种流派",
         "genres_other": "{{count}} 种流派",
-        "dossiers_zero": "0 个文件夹",
-        "dossiers_one": "{{count}} 个文件夹",
-        "dossiers_other": "{{count}} 个文件夹",
+        "folders_zero": "0 个文件夹",
+        "folders_one": "{{count}} 个文件夹",
+        "folders_other": "{{count}} 个文件夹",
         "playlists_zero": "0 个播放列表",
         "playlists_one": "{{count}} 个播放列表",
         "playlists_other": "{{count}} 个播放列表",
-        "a-corriger_zero": "没有问题：音乐库很完整。",
-        "a-corriger_one": "{{count}} 处待修正",
-        "a-corriger_other": "{{count}} 处待修正"
+        "needs-attention_zero": "没有问题：音乐库很完整。",
+        "needs-attention_one": "{{count}} 处待修正",
+        "needs-attention_other": "{{count}} 处待修正"
       }
     },
     "tabs": {
-      "morceaux": "曲目",
+      "tracks": "曲目",
       "albums": "专辑",
-      "artistes": "艺人",
+      "artists": "艺人",
       "genres": "流派",
-      "dossiers": "文件夹",
+      "folders": "文件夹",
       "playlists": "播放列表",
-      "a-corriger": "待修正"
+      "needs-attention": "待修正"
     },
     "empty": {
-      "morceaux": {
+      "tracks": {
         "title": "音乐库为空",
         "description": "导入音频文件或文件夹，以丰富你的音乐库。"
       },
@@ -403,7 +403,7 @@
         "title": "未找到任何专辑",
         "description": "导入音频文件以自动生成专辑。"
       },
-      "artistes": {
+      "artists": {
         "title": "未找到艺人",
         "description": "请先导入音频文件。"
       },
@@ -411,14 +411,14 @@
         "title": "未找到任何流派",
         "description": "导入音频文件，探索不同音乐流派。"
       },
-      "dossiers": {
+      "folders": {
         "title": "未导入任何文件夹",
         "description": "从操作栏导入一个文件夹，以便在此处浏览。"
       },
       "sourceFiltered": {
         "description": "该来源没有内容。请在上方切换来源，或在设置中复制服务器曲库。"
       },
-      "a-corriger": {
+      "needs-attention": {
         "title": "没有需要修正的地方",
         "description": "音乐库中没有可检测到的问题。"
       }
@@ -442,7 +442,8 @@
     "localFile": "本地文件",
     "fetchMissingCovers": "获取所有缺失的封面",
     "fetchingCovers": "正在获取封面…({{current}} / {{total}})",
-    "fetchCoversResult": "已获取 {{count}} 张封面",
+    "fetchCoversResult_one": "已获取 {{count}} 张封面",
+    "fetchCoversResult_other": "已获取 {{count}} 张封面",
     "fetchCoversFailed": "获取封面失败",
     "table": {
       "number": "#",
@@ -1236,7 +1237,7 @@
     "aboutArtist": "关于艺人",
     "readMore": "阅读更多",
     "readLess": "收起",
-    "noBio": "没有传记信息。请在设置中配置你的 Last.fm 密钥。",
+    "noBio": "没有传记信息。请在设置中尝试其他简介来源。",
     "nextInQueue": "队列中的下一首",
     "openQueue": "打开队列",
     "lyrics": {
@@ -1603,7 +1604,7 @@
       "subtitle": "管理向 WaveFlow 添加来源、元数据或视图的扩展。",
       "loading": "加载中…",
       "emptyTitle": "未安装插件",
-      "emptyHint": "从上方商店安装，或将文件夹放入 <data>/waveflow/plugins/。",
+      "emptyHint": "从上方商店安装，或将文件夹放入插件文件夹。",
       "openFolder": "打开文件夹",
       "byAuthor": "作者：{{author}}",
       "enabled": "已启用",
@@ -1819,11 +1820,13 @@
     "regenerateThumbnails": "刷新缩略图",
     "regenerateThumbnailsSubtitle": "为所有封面补全缺失的 1x/2x 版本",
     "regenerateThumbnailsAction": "重新生成",
-    "regenerateThumbnailsDone": "已重新生成 {{count}} 张缩略图",
+    "regenerateThumbnailsDone_one": "已重新生成 {{count}} 张缩略图",
+    "regenerateThumbnailsDone_other": "已重新生成 {{count}} 张缩略图",
     "pruneAlbumCovers": "清理未使用的 Deezer 专辑封面",
     "pruneAlbumCoversSubtitle": "删除已有自己封面的专辑所缓存的 Deezer 封面（从未显示）",
     "pruneAlbumCoversAction": "清理",
-    "pruneAlbumCoversDone": "已删除 {{files}} 个文件 · 释放 {{mb}} MB",
+    "pruneAlbumCoversDone_one": "已删除 {{count}} 个文件 · 释放 {{mb}} MB",
+    "pruneAlbumCoversDone_other": "已删除 {{count}} 个文件 · 释放 {{mb}} MB",
     "pruneAlbumCoversFailed": "封面清理失败",
     "reset": {
       "title": "重置应用程序",

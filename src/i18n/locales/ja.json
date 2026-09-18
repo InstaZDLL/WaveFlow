@@ -362,40 +362,40 @@
     "header": {
       "addFolder": "フォルダを追加する",
       "subtext": {
-        "morceaux_zero": "0曲",
-        "morceaux_one": "{{count}}曲",
-        "morceaux_other": "{{count}}曲",
+        "tracks_zero": "0曲",
+        "tracks_one": "{{count}}曲",
+        "tracks_other": "{{count}}曲",
         "albums_zero": "0枚",
         "albums_one": "{{count}}枚",
         "albums_other": "{{count}}枚",
-        "artistes_zero": "0組",
-        "artistes_one": "{{count}}組",
-        "artistes_other": "{{count}}組",
+        "artists_zero": "0組",
+        "artists_one": "{{count}}組",
+        "artists_other": "{{count}}組",
         "genres_zero": "0ジャンル",
         "genres_one": "{{count}}ジャンル",
         "genres_other": "{{count}}ジャンル",
-        "dossiers_zero": "0個",
-        "dossiers_one": "{{count}}個",
-        "dossiers_other": "{{count}}個",
+        "folders_zero": "0個",
+        "folders_one": "{{count}}個",
+        "folders_other": "{{count}}個",
         "playlists_zero": "0 個のプレイリスト",
         "playlists_one": "{{count}}個のプレイリスト",
         "playlists_other": "{{count}}個のプレイリスト",
-        "a-corriger_zero": "問題はありません。ライブラリは揃っています。",
-        "a-corriger_one": "要確認 {{count}}件",
-        "a-corriger_other": "要確認 {{count}}件"
+        "needs-attention_zero": "問題はありません。ライブラリは揃っています。",
+        "needs-attention_one": "要確認 {{count}}件",
+        "needs-attention_other": "要確認 {{count}}件"
       }
     },
     "tabs": {
-      "morceaux": "曲",
+      "tracks": "曲",
       "albums": "アルバム",
-      "artistes": "アーティスト",
+      "artists": "アーティスト",
       "genres": "ジャンル",
-      "dossiers": "フォルダ",
+      "folders": "フォルダ",
       "playlists": "プレイリスト",
-      "a-corriger": "要確認"
+      "needs-attention": "要確認"
     },
     "empty": {
-      "morceaux": {
+      "tracks": {
         "title": "ライブラリは空です",
         "description": "オーディオファイルまたはフォルダをインポートして、ライブラリに追加してください。"
       },
@@ -403,7 +403,7 @@
         "title": "アルバムが見つかりませんでした",
         "description": "オーディオファイルをインポートして、アルバムを自動的に作成します。"
       },
-      "artistes": {
+      "artists": {
         "title": "該当するアーティストは見つかりませんでした",
         "description": "まずはオーディオファイルをインポートしましょう。"
       },
@@ -411,14 +411,14 @@
         "title": "該当するジャンルが見つかりませんでした",
         "description": "オーディオファイルをインポートして、ジャンルを確認しましょう。"
       },
-      "dossiers": {
+      "folders": {
         "title": "インポートされたフォルダはありません",
         "description": "アクションバーからフォルダをインポートして、ここでその中を確認してください。"
       },
       "sourceFiltered": {
         "description": "このソースには何もありません。上でソースを切り替えるか、設定からサーバーのカタログを複製してください。"
       },
-      "a-corriger": {
+      "needs-attention": {
         "title": "修正するものはありません",
         "description": "検出できる問題はライブラリにありません。"
       }
@@ -442,7 +442,8 @@
     "localFile": "ローカルファイル",
     "fetchMissingCovers": "不足しているジャケットをすべて取得",
     "fetchingCovers": "ジャケットを取得中……({{current}} / {{total}})",
-    "fetchCoversResult": "{{count}}枚のジャケットを取得しました",
+    "fetchCoversResult_one": "{{count}}枚のジャケットを取得しました",
+    "fetchCoversResult_other": "{{count}}枚のジャケットを取得しました",
     "fetchCoversFailed": "ジャケットの取得に失敗しました",
     "table": {
       "number": "#",
@@ -1236,7 +1237,7 @@
     "aboutArtist": "アーティストについて",
     "readMore": "もっと読む",
     "readLess": "折りたたむ",
-    "noBio": "バイオグラフィーはありません。設定で Last.fm キーを設定してください。",
+    "noBio": "バイオグラフィーはありません。設定で別の取得元を試してください。",
     "nextInQueue": "次に再生",
     "openQueue": "キューを開く",
     "lyrics": {
@@ -1603,7 +1604,7 @@
       "subtitle": "WaveFlow にソース、メタデータ、ビューを追加する拡張機能を管理します。",
       "loading": "読み込み中…",
       "emptyTitle": "プラグインがインストールされていません",
-      "emptyHint": "上のストアからインストールするか、<data>/waveflow/plugins/ にフォルダを配置してください。",
+      "emptyHint": "上のストアからインストールするか、プラグインフォルダにフォルダを配置してください。",
       "openFolder": "フォルダを開く",
       "byAuthor": "作者: {{author}}",
       "enabled": "有効",
@@ -1819,11 +1820,13 @@
     "regenerateThumbnails": "サムネイルの再生成",
     "regenerateThumbnailsSubtitle": "すべてのジャケットについて、欠落している1x/2xバージョンを再構築する",
     "regenerateThumbnailsAction": "再生成",
-    "regenerateThumbnailsDone": "{{count}}件のサムネイルを再生成しました",
+    "regenerateThumbnailsDone_one": "{{count}}件のサムネイルを再生成しました",
+    "regenerateThumbnailsDone_other": "{{count}}件のサムネイルを再生成しました",
     "pruneAlbumCovers": "未使用の Deezer アルバムジャケットを削除",
     "pruneAlbumCoversSubtitle": "すでに独自のアートワークを持つアルバム用にキャッシュされた Deezer ジャケットを削除します（表示されることはありません）",
     "pruneAlbumCoversAction": "削除",
-    "pruneAlbumCoversDone": "{{files}}個のファイルを削除 · {{mb}} MB を解放",
+    "pruneAlbumCoversDone_one": "{{count}}個のファイルを削除 · {{mb}} MB を解放",
+    "pruneAlbumCoversDone_other": "{{count}}個のファイルを削除 · {{mb}} MB を解放",
     "pruneAlbumCoversFailed": "ジャケットの削除に失敗しました",
     "reset": {
       "title": "アプリをリセットする",

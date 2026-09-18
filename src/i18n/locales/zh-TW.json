@@ -362,40 +362,40 @@
     "header": {
       "addFolder": "新增資料夾",
       "subtext": {
-        "morceaux_zero": "0 首歌曲",
-        "morceaux_one": "{{count}} 首曲目",
-        "morceaux_other": "{{count}} 首曲目",
+        "tracks_zero": "0 首歌曲",
+        "tracks_one": "{{count}} 首曲目",
+        "tracks_other": "{{count}} 首曲目",
         "albums_zero": "0 張專輯",
         "albums_one": "{{count}} 張專輯",
         "albums_other": "{{count}} 張專輯",
-        "artistes_zero": "0 位藝人",
-        "artistes_one": "{{count}} 位藝人",
-        "artistes_other": "{{count}} 位藝人",
+        "artists_zero": "0 位藝人",
+        "artists_one": "{{count}} 位藝人",
+        "artists_other": "{{count}} 位藝人",
         "genres_zero": "0 曲風",
         "genres_one": "{{count}} 種曲風",
         "genres_other": "{{count}} 種曲風",
-        "dossiers_zero": "0 個資料夾",
-        "dossiers_one": "{{count}} 個資料夾",
-        "dossiers_other": "{{count}} 個資料夾",
+        "folders_zero": "0 個資料夾",
+        "folders_one": "{{count}} 個資料夾",
+        "folders_other": "{{count}} 個資料夾",
         "playlists_zero": "0 個播放清單",
         "playlists_one": "{{count}} 個播放清單",
         "playlists_other": "{{count}} 個播放清單",
-        "a-corriger_zero": "沒有問題：音樂庫很完整。",
-        "a-corriger_one": "{{count}} 處待修正",
-        "a-corriger_other": "{{count}} 處待修正"
+        "needs-attention_zero": "沒有問題：音樂庫很完整。",
+        "needs-attention_one": "{{count}} 處待修正",
+        "needs-attention_other": "{{count}} 處待修正"
       }
     },
     "tabs": {
-      "morceaux": "曲目",
+      "tracks": "曲目",
       "albums": "專輯",
-      "artistes": "藝人",
+      "artists": "藝人",
       "genres": "曲風",
-      "dossiers": "資料夾",
+      "folders": "資料夾",
       "playlists": "播放清單",
-      "a-corriger": "待修正"
+      "needs-attention": "待修正"
     },
     "empty": {
-      "morceaux": {
+      "tracks": {
         "title": "音樂庫是空的",
         "description": "匯入音訊檔案或資料夾，以充實你的音樂庫。"
       },
@@ -403,7 +403,7 @@
         "title": "未找到任何專輯",
         "description": "匯入音訊檔案以自動建立專輯。"
       },
-      "artistes": {
+      "artists": {
         "title": "找不到藝人",
         "description": "請先匯入音訊檔案。"
       },
@@ -411,14 +411,14 @@
         "title": "未找到任何曲風",
         "description": "匯入音訊檔案，探索各種曲風。"
       },
-      "dossiers": {
+      "folders": {
         "title": "未匯入任何資料夾",
         "description": "從操作列匯入一個資料夾，以便在此處瀏覽。"
       },
       "sourceFiltered": {
         "description": "該來源沒有內容。請在上方切換來源，或在設定中複製伺服器音樂庫。"
       },
-      "a-corriger": {
+      "needs-attention": {
         "title": "沒有需要修正的地方",
         "description": "音樂庫中沒有可偵測到的問題。"
       }
@@ -442,7 +442,8 @@
     "localFile": "本機檔案",
     "fetchMissingCovers": "取得所有遺失的封面",
     "fetchingCovers": "正在取得封面…（{{current}} / {{total}}）",
-    "fetchCoversResult": "已取得 {{count}} 張封面",
+    "fetchCoversResult_one": "已取得 {{count}} 張封面",
+    "fetchCoversResult_other": "已取得 {{count}} 張封面",
     "fetchCoversFailed": "封面取得失敗",
     "table": {
       "number": "#",
@@ -1236,7 +1237,7 @@
     "aboutArtist": "關於藝人",
     "readMore": "閱讀更多",
     "readLess": "收合",
-    "noBio": "沒有傳記資料。請在設定中設定你的 Last.fm 金鑰。",
+    "noBio": "沒有傳記資料。請在設定中嘗試其他簡介來源。",
     "nextInQueue": "佇列中的下一首",
     "openQueue": "開啟佇列",
     "lyrics": {
@@ -1603,7 +1604,7 @@
       "subtitle": "管理為 WaveFlow 新增來源、中繼資料或檢視的擴充功能。",
       "loading": "載入中…",
       "emptyTitle": "未安裝任何外掛",
-      "emptyHint": "從上方商店安裝，或將資料夾放入 <data>/waveflow/plugins/。",
+      "emptyHint": "從上方商店安裝，或將資料夾放入外掛資料夾。",
       "openFolder": "開啟資料夾",
       "byAuthor": "作者：{{author}}",
       "enabled": "已啟用",
@@ -1819,11 +1820,13 @@
     "regenerateThumbnails": "重新生成縮圖",
     "regenerateThumbnailsSubtitle": "為所有封面重建缺失的 1x/2x 版本",
     "regenerateThumbnailsAction": "重新產生",
-    "regenerateThumbnailsDone": "已重新產生 {{count}} 張縮圖",
+    "regenerateThumbnailsDone_one": "已重新產生 {{count}} 張縮圖",
+    "regenerateThumbnailsDone_other": "已重新產生 {{count}} 張縮圖",
     "pruneAlbumCovers": "清理未使用的 Deezer 專輯封面",
     "pruneAlbumCoversSubtitle": "刪除已有自己封面的專輯所快取的 Deezer 封面（從未顯示）",
     "pruneAlbumCoversAction": "清理",
-    "pruneAlbumCoversDone": "已刪除 {{files}} 個檔案 · 釋放 {{mb}} MB",
+    "pruneAlbumCoversDone_one": "已刪除 {{count}} 個檔案 · 釋放 {{mb}} MB",
+    "pruneAlbumCoversDone_other": "已刪除 {{count}} 個檔案 · 釋放 {{mb}} MB",
     "pruneAlbumCoversFailed": "封面清理失敗",
     "reset": {
       "title": "重設應用程式",

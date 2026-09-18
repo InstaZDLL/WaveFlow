@@ -362,40 +362,40 @@
     "header": {
       "addFolder": "Tambah folder",
       "subtext": {
-        "morceaux_zero": "0 lagu",
-        "morceaux_one": "{{count}} lagu",
-        "morceaux_other": "{{count}} lagu",
+        "tracks_zero": "0 lagu",
+        "tracks_one": "{{count}} lagu",
+        "tracks_other": "{{count}} lagu",
         "albums_zero": "0 album",
         "albums_one": "{{count}} album",
         "albums_other": "{{count}} album",
-        "artistes_zero": "0 artis",
-        "artistes_one": "{{count}} artis",
-        "artistes_other": "{{count}} artis",
+        "artists_zero": "0 artis",
+        "artists_one": "{{count}} artis",
+        "artists_other": "{{count}} artis",
         "genres_zero": "0 genre",
         "genres_one": "{{count}} genre",
         "genres_other": "{{count}} genre",
-        "dossiers_zero": "0 folder",
-        "dossiers_one": "{{count}} folder",
-        "dossiers_other": "{{count}} folder",
+        "folders_zero": "0 folder",
+        "folders_one": "{{count}} folder",
+        "folders_other": "{{count}} folder",
         "playlists_zero": "0 daftar putar",
         "playlists_one": "{{count}} daftar putar",
         "playlists_other": "{{count}} daftar putar",
-        "a-corriger_zero": "Tidak ada yang perlu dilaporkan: pustaka sudah lengkap.",
-        "a-corriger_one": "{{count}} hal untuk diperbaiki",
-        "a-corriger_other": "{{count}} hal untuk diperbaiki"
+        "needs-attention_zero": "Tidak ada yang perlu dilaporkan: pustaka sudah lengkap.",
+        "needs-attention_one": "{{count}} hal untuk diperbaiki",
+        "needs-attention_other": "{{count}} hal untuk diperbaiki"
       }
     },
     "tabs": {
-      "morceaux": "Lagu",
+      "tracks": "Lagu",
       "albums": "Album",
-      "artistes": "Artis",
+      "artists": "Artis",
       "genres": "Genre",
-      "dossiers": "Folder",
+      "folders": "Folder",
       "playlists": "Daftar putar",
-      "a-corriger": "Perlu diperbaiki"
+      "needs-attention": "Perlu diperbaiki"
     },
     "empty": {
-      "morceaux": {
+      "tracks": {
         "title": "Pustaka kosong",
         "description": "Impor berkas audio atau folder untuk mengisi pustakamu."
       },
@@ -403,7 +403,7 @@
         "title": "Tidak ada album ditemukan",
         "description": "Impor berkas audio agar album dibuat otomatis."
       },
-      "artistes": {
+      "artists": {
         "title": "Tidak ada artis ditemukan",
         "description": "Impor beberapa berkas audio untuk memulai."
       },
@@ -411,14 +411,14 @@
         "title": "Tidak ada genre ditemukan",
         "description": "Impor berkas audio untuk menjelajahi berbagai genre."
       },
-      "dossiers": {
+      "folders": {
         "title": "Belum ada folder yang diimpor",
         "description": "Impor folder dari bilah aksi untuk menjelajahinya di sini."
       },
       "sourceFiltered": {
         "description": "Tidak ada apa pun dari sumber ini. Ganti sumber di atas, atau salin katalog server dari pengaturan."
       },
-      "a-corriger": {
+      "needs-attention": {
         "title": "Tidak ada yang perlu diperbaiki",
         "description": "Pustakamu tidak menunjukkan masalah yang bisa kami deteksi."
       }
@@ -442,7 +442,8 @@
     "localFile": "Berkas lokal",
     "fetchMissingCovers": "Ambil semua sampul yang hilang",
     "fetchingCovers": "Mengambil sampul… ({{current}} / {{total}})",
-    "fetchCoversResult": "{{count}} sampul diambil",
+    "fetchCoversResult_one": "{{count}} sampul diambil",
+    "fetchCoversResult_other": "{{count}} sampul diambil",
     "fetchCoversFailed": "Gagal mengambil sampul",
     "table": {
       "number": "#",
@@ -1236,7 +1237,7 @@
     "aboutArtist": "Tentang artis",
     "readMore": "Baca lebih lanjut",
     "readLess": "Tampilkan lebih sedikit",
-    "noBio": "Biografi tidak tersedia. Atur kunci Last.fm-mu di pengaturan.",
+    "noBio": "Biografi tidak tersedia. Coba sumber biografi lain di pengaturan.",
     "nextInQueue": "Berikutnya di antrean",
     "openQueue": "Buka antrean",
     "lyrics": {
@@ -1603,7 +1604,7 @@
       "subtitle": "Kelola ekstensi yang menambahkan sumber, metadata, atau tampilan ke WaveFlow.",
       "loading": "Memuat…",
       "emptyTitle": "Tidak ada plugin terpasang",
-      "emptyHint": "Pasang satu dari toko di atas, atau letakkan folder di <data>/waveflow/plugins/.",
+      "emptyHint": "Pasang satu dari toko di atas, atau letakkan folder di folder plugin.",
       "openFolder": "Buka folder",
       "byAuthor": "Oleh {{author}}",
       "enabled": "Aktif",
@@ -1856,11 +1857,13 @@
     "regenerateThumbnails": "Buat ulang thumbnail",
     "regenerateThumbnailsSubtitle": "Bangun ulang varian 1x/2x yang hilang untuk semua sampul",
     "regenerateThumbnailsAction": "Buat ulang",
-    "regenerateThumbnailsDone": "{{count}} thumbnail dibuat ulang",
+    "regenerateThumbnailsDone_one": "{{count}} thumbnail dibuat ulang",
+    "regenerateThumbnailsDone_other": "{{count}} thumbnail dibuat ulang",
     "pruneAlbumCovers": "Bersihkan sampul album Deezer yang tidak terpakai",
     "pruneAlbumCoversSubtitle": "Menghapus sampul album Deezer yang tersimpan untuk album yang sudah punya sampul sendiri (tidak pernah ditampilkan)",
     "pruneAlbumCoversAction": "Bersihkan",
-    "pruneAlbumCoversDone": "{{files}} file dihapus · {{mb}} MB dibebaskan",
+    "pruneAlbumCoversDone_one": "{{count}} file dihapus · {{mb}} MB dibebaskan",
+    "pruneAlbumCoversDone_other": "{{count}} file dihapus · {{mb}} MB dibebaskan",
     "pruneAlbumCoversFailed": "Gagal membersihkan sampul",
     "reset": {
       "title": "Atur ulang aplikasi",

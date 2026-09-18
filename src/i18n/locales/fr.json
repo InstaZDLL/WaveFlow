@@ -363,40 +363,40 @@
     "header": {
       "addFolder": "Ajouter un dossier",
       "subtext": {
-        "morceaux_zero": "0 titres",
-        "morceaux_one": "{{count}} titre",
-        "morceaux_other": "{{count}} titres",
+        "tracks_zero": "0 titres",
+        "tracks_one": "{{count}} titre",
+        "tracks_other": "{{count}} titres",
         "albums_zero": "0 albums",
         "albums_one": "{{count}} album",
         "albums_other": "{{count}} albums",
-        "artistes_zero": "0 artistes",
-        "artistes_one": "{{count}} artiste",
-        "artistes_other": "{{count}} artistes",
+        "artists_zero": "0 artistes",
+        "artists_one": "{{count}} artiste",
+        "artists_other": "{{count}} artistes",
         "genres_zero": "0 genres",
         "genres_one": "{{count}} genre",
         "genres_other": "{{count}} genres",
-        "dossiers_zero": "0 dossiers",
-        "dossiers_one": "{{count}} dossier",
-        "dossiers_other": "{{count}} dossiers",
+        "folders_zero": "0 dossiers",
+        "folders_one": "{{count}} dossier",
+        "folders_other": "{{count}} dossiers",
         "playlists_zero": "0 playlist",
         "playlists_one": "{{count}} playlist",
         "playlists_other": "{{count}} playlists",
-        "a-corriger_zero": "Rien à signaler : la bibliothèque est complète.",
-        "a-corriger_one": "{{count}} point à corriger",
-        "a-corriger_other": "{{count}} points à corriger"
+        "needs-attention_zero": "Rien à signaler : la bibliothèque est complète.",
+        "needs-attention_one": "{{count}} point à corriger",
+        "needs-attention_other": "{{count}} points à corriger"
       }
     },
     "tabs": {
-      "morceaux": "Titres",
+      "tracks": "Titres",
       "albums": "Albums",
-      "artistes": "Artistes",
+      "artists": "Artistes",
       "genres": "Genres",
-      "dossiers": "Dossiers",
+      "folders": "Dossiers",
       "playlists": "Playlists",
-      "a-corriger": "À corriger"
+      "needs-attention": "À corriger"
     },
     "empty": {
-      "morceaux": {
+      "tracks": {
         "title": "Bibliothèque vide",
         "description": "Importez des fichiers audio ou un dossier pour remplir votre bibliothèque."
       },
@@ -404,7 +404,7 @@
         "title": "Aucun album trouvé",
         "description": "Importez des fichiers audio pour générer automatiquement les albums."
       },
-      "artistes": {
+      "artists": {
         "title": "Aucun artiste trouvé",
         "description": "Importez des fichiers audio pour commencer."
       },
@@ -412,14 +412,14 @@
         "title": "Aucun genre trouvé",
         "description": "Importez des fichiers audio pour découvrir les genres."
       },
-      "dossiers": {
+      "folders": {
         "title": "Aucun dossier importé",
         "description": "Importez un dossier depuis la barre d'action pour l'explorer ici."
       },
       "sourceFiltered": {
         "description": "Aucun résultat pour cette source. Changez de source ci-dessus, ou recopiez le catalogue du serveur depuis les réglages."
       },
-      "a-corriger": {
+      "needs-attention": {
         "title": "Rien à corriger",
         "description": "Votre bibliothèque ne présente aucun problème détectable."
       }
@@ -443,7 +443,8 @@
     "localFile": "Fichier local",
     "fetchMissingCovers": "Récupérer toutes les pochettes manquantes",
     "fetchingCovers": "Récupération des pochettes... ({{current}}/{{total}})",
-    "fetchCoversResult": "{{count}} pochettes récupérées",
+    "fetchCoversResult_one": "{{count}} pochette récupérée",
+    "fetchCoversResult_other": "{{count}} pochettes récupérées",
     "fetchCoversFailed": "Échec de la récupération",
     "table": {
       "number": "#",
@@ -1237,7 +1238,7 @@
     "aboutArtist": "À propos de l'artiste",
     "readMore": "Lire la suite",
     "readLess": "Réduire",
-    "noBio": "Aucune biographie disponible. Configurez votre clé Last.fm dans les paramètres.",
+    "noBio": "Aucune biographie disponible. Essayez une autre source de la biographie dans les paramètres.",
     "nextInQueue": "Suivant dans la file",
     "openQueue": "Ouvrir la file",
     "lyrics": {
@@ -1606,7 +1607,7 @@
       "subtitle": "Gérez les extensions qui ajoutent des sources, des métadonnées ou des vues à WaveFlow.",
       "loading": "Chargement…",
       "emptyTitle": "Aucun plugin installé",
-      "emptyHint": "Installez-en un depuis le magasin ci-dessus, ou déposez un dossier sous <data>/waveflow/plugins/.",
+      "emptyHint": "Installez-en un depuis le magasin ci-dessus, ou déposez un dossier dans le dossier des plugins.",
       "openFolder": "Ouvrir le dossier",
       "byAuthor": "Par {{author}}",
       "enabled": "Activé",
@@ -1946,11 +1947,13 @@
     "regenerateThumbnails": "Régénérer les vignettes",
     "regenerateThumbnailsSubtitle": "Reconstruire les variantes 1x/2x manquantes pour toutes les pochettes",
     "regenerateThumbnailsAction": "Régénérer",
-    "regenerateThumbnailsDone": "{{count}} vignettes régénérées",
+    "regenerateThumbnailsDone_one": "{{count}} vignette régénérée",
+    "regenerateThumbnailsDone_other": "{{count}} vignettes régénérées",
     "pruneAlbumCovers": "Purger les pochettes Deezer inutilisées",
     "pruneAlbumCoversSubtitle": "Supprime les pochettes d'albums Deezer mises en cache pour des albums qui ont déjà leur propre pochette (jamais affichées)",
     "pruneAlbumCoversAction": "Purger",
-    "pruneAlbumCoversDone": "{{files}} fichiers supprimés · {{mb}} Mo libérés",
+    "pruneAlbumCoversDone_one": "{{count}} fichier supprimé · {{mb}} Mo libérés",
+    "pruneAlbumCoversDone_other": "{{count}} fichiers supprimés · {{mb}} Mo libérés",
     "pruneAlbumCoversFailed": "Échec de la purge des pochettes",
     "reset": {
       "title": "Réinitialiser l'application",

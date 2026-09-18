@@ -362,40 +362,40 @@
     "header": {
       "addFolder": "Ordner hinzufügen",
       "subtext": {
-        "morceaux_zero": "0 Titel",
-        "morceaux_one": "{{count}} Titel",
-        "morceaux_other": "{{count}} Titel",
+        "tracks_zero": "0 Titel",
+        "tracks_one": "{{count}} Titel",
+        "tracks_other": "{{count}} Titel",
         "albums_zero": "0 Alben",
         "albums_one": "{{count}} Album",
         "albums_other": "{{count}} Alben",
-        "artistes_zero": "0 Künstler",
-        "artistes_one": "{{count}} Künstler",
-        "artistes_other": "{{count}} Künstler",
+        "artists_zero": "0 Künstler",
+        "artists_one": "{{count}} Künstler",
+        "artists_other": "{{count}} Künstler",
         "genres_zero": "0 Genres",
         "genres_one": "{{count}} Genre",
         "genres_other": "{{count}} Genres",
-        "dossiers_zero": "0 Ordner",
-        "dossiers_one": "{{count}} Ordner",
-        "dossiers_other": "{{count}} Ordner",
+        "folders_zero": "0 Ordner",
+        "folders_one": "{{count}} Ordner",
+        "folders_other": "{{count}} Ordner",
         "playlists_zero": "0 Playlists",
         "playlists_one": "{{count}} Playlist",
         "playlists_other": "{{count}} Playlists",
-        "a-corriger_zero": "Nichts zu melden: die Bibliothek ist vollständig.",
-        "a-corriger_one": "{{count}} Punkt zu korrigieren",
-        "a-corriger_other": "{{count}} Punkte zu korrigieren"
+        "needs-attention_zero": "Nichts zu melden: die Bibliothek ist vollständig.",
+        "needs-attention_one": "{{count}} Punkt zu korrigieren",
+        "needs-attention_other": "{{count}} Punkte zu korrigieren"
       }
     },
     "tabs": {
-      "morceaux": "Titel",
+      "tracks": "Titel",
       "albums": "Alben",
-      "artistes": "Künstler",
+      "artists": "Künstler",
       "genres": "Genres",
-      "dossiers": "Ordner",
+      "folders": "Ordner",
       "playlists": "Playlists",
-      "a-corriger": "Zu korrigieren"
+      "needs-attention": "Zu korrigieren"
     },
     "empty": {
-      "morceaux": {
+      "tracks": {
         "title": "Leere Bibliothek",
         "description": "Importiere Audiodateien oder einen Ordner, um deine Bibliothek zu füllen."
       },
@@ -403,7 +403,7 @@
         "title": "Keine Alben gefunden",
         "description": "Importiere Audiodateien, um Alben automatisch zu erstellen."
       },
-      "artistes": {
+      "artists": {
         "title": "Keine Künstler gefunden",
         "description": "Importiere Audiodateien, um loszulegen."
       },
@@ -411,14 +411,14 @@
         "title": "Keine Genres gefunden",
         "description": "Importiere Audiodateien, um verschiedene Genres zu erkunden."
       },
-      "dossiers": {
+      "folders": {
         "title": "Keine Ordner importiert",
         "description": "Importiere einen Ordner über die Aktionsleiste, um ihn hier zu durchsuchen."
       },
       "sourceFiltered": {
         "description": "Nichts aus dieser Quelle. Wechsle oben die Quelle oder kopiere den Server-Katalog in den Einstellungen."
       },
-      "a-corriger": {
+      "needs-attention": {
         "title": "Nichts zu korrigieren",
         "description": "In deiner Bibliothek ist kein erkennbares Problem."
       }
@@ -442,7 +442,8 @@
     "localFile": "Lokale Datei",
     "fetchMissingCovers": "Alle fehlenden Cover abrufen",
     "fetchingCovers": "Cover werden abgerufen… ({{current}} / {{total}})",
-    "fetchCoversResult": "{{count}} Cover abgerufen",
+    "fetchCoversResult_one": "{{count}} Cover abgerufen",
+    "fetchCoversResult_other": "{{count}} Cover abgerufen",
     "fetchCoversFailed": "Cover konnten nicht abgerufen werden",
     "table": {
       "number": "#",
@@ -1236,7 +1237,7 @@
     "aboutArtist": "Über den Künstler",
     "readMore": "Mehr lesen",
     "readLess": "Weniger anzeigen",
-    "noBio": "Keine Biografie verfügbar. Hinterlege deinen Last.fm-Schlüssel in den Einstellungen.",
+    "noBio": "Keine Biografie verfügbar. Probiere in den Einstellungen eine andere Biografiequelle.",
     "nextInQueue": "Als Nächstes in der Warteschlange",
     "openQueue": "Warteschlange öffnen",
     "lyrics": {
@@ -1603,7 +1604,7 @@
       "subtitle": "Verwalte Erweiterungen, die WaveFlow Quellen, Metadaten oder Ansichten hinzufügen.",
       "loading": "Lädt…",
       "emptyTitle": "Keine Plugins installiert",
-      "emptyHint": "Installiere eines aus dem Store oben oder lege einen Ordner unter <data>/waveflow/plugins/ ab.",
+      "emptyHint": "Installiere eines aus dem Store oben oder lege einen Ordner in den Plugin-Ordner.",
       "openFolder": "Ordner öffnen",
       "byAuthor": "Von {{author}}",
       "enabled": "Aktiviert",
@@ -1856,11 +1857,13 @@
     "regenerateThumbnails": "Vorschaubilder neu erzeugen",
     "regenerateThumbnailsSubtitle": "Fehlende 1x-/2x-Varianten für alle Cover neu erstellen",
     "regenerateThumbnailsAction": "Neu erzeugen",
-    "regenerateThumbnailsDone": "{{count}} Vorschaubilder neu erzeugt",
+    "regenerateThumbnailsDone_one": "{{count}} Vorschaubild neu erzeugt",
+    "regenerateThumbnailsDone_other": "{{count}} Vorschaubilder neu erzeugt",
     "pruneAlbumCovers": "Ungenutzte Deezer-Albumcover entfernen",
     "pruneAlbumCoversSubtitle": "Löscht zwischengespeicherte Deezer-Albumcover für Alben, die bereits ein eigenes Cover haben (nie angezeigt)",
     "pruneAlbumCoversAction": "Entfernen",
-    "pruneAlbumCoversDone": "{{files}} Dateien gelöscht · {{mb}} MB freigegeben",
+    "pruneAlbumCoversDone_one": "{{count}} Datei gelöscht · {{mb}} MB freigegeben",
+    "pruneAlbumCoversDone_other": "{{count}} Dateien gelöscht · {{mb}} MB freigegeben",
     "pruneAlbumCoversFailed": "Cover-Bereinigung fehlgeschlagen",
     "reset": {
       "title": "App zurücksetzen",

@@ -395,61 +395,61 @@
     "header": {
       "addFolder": "إضافة مجلد",
       "subtext": {
-        "morceaux_zero": "0 مقطع",
-        "morceaux_one": "مقطع واحد",
-        "morceaux_other": "{{count}} مقطع",
+        "tracks_zero": "0 مقطع",
+        "tracks_one": "مقطع واحد",
+        "tracks_other": "{{count}} مقطع",
         "albums_zero": "0 ألبوم",
         "albums_one": "ألبوم واحد",
         "albums_other": "{{count}} ألبوم",
-        "artistes_zero": "0 فنان",
-        "artistes_one": "فنان واحد",
-        "artistes_other": "{{count}} فنان",
+        "artists_zero": "0 فنان",
+        "artists_one": "فنان واحد",
+        "artists_other": "{{count}} فنان",
         "genres_zero": "0 نوع",
         "genres_one": "نوع واحد",
         "genres_other": "{{count}} نوع",
-        "dossiers_zero": "0 مجلد",
-        "dossiers_one": "مجلد واحد",
-        "dossiers_other": "{{count}} مجلد",
+        "folders_zero": "0 مجلد",
+        "folders_one": "مجلد واحد",
+        "folders_other": "{{count}} مجلد",
         "albums_two": "ألبومان",
         "albums_few": "{{count}} ألبومات",
         "albums_many": "{{count}} ألبومًا",
-        "artistes_two": "فنانان",
-        "artistes_few": "{{count}} فنانين",
-        "artistes_many": "{{count}} فنانًا",
-        "dossiers_two": "مجلدان",
-        "dossiers_few": "{{count}} مجلدات",
-        "dossiers_many": "{{count}} مجلدًا",
+        "artists_two": "فنانان",
+        "artists_few": "{{count}} فنانين",
+        "artists_many": "{{count}} فنانًا",
+        "folders_two": "مجلدان",
+        "folders_few": "{{count}} مجلدات",
+        "folders_many": "{{count}} مجلدًا",
         "genres_two": "نوعان",
         "genres_few": "{{count}} أنواع",
         "genres_many": "{{count}} نوعًا",
-        "morceaux_two": "مقطعان",
-        "morceaux_few": "{{count}} مقاطع",
-        "morceaux_many": "{{count}} مقطعًا",
+        "tracks_two": "مقطعان",
+        "tracks_few": "{{count}} مقاطع",
+        "tracks_many": "{{count}} مقطعًا",
         "playlists_zero": "0 قائمة تشغيل",
         "playlists_one": "قائمة تشغيل واحدة",
         "playlists_two": "قائمتا تشغيل",
         "playlists_few": "{{count}} قوائم تشغيل",
         "playlists_many": "{{count}} قائمة تشغيل",
         "playlists_other": "{{count}} قائمة تشغيل",
-        "a-corriger_zero": "لا شيء يُذكر: المكتبة مكتملة.",
-        "a-corriger_one": "{{count}} نقطة للتصحيح",
-        "a-corriger_other": "{{count}} نقطة للتصحيح",
-        "a-corriger_two": "نقطتان للتصحيح",
-        "a-corriger_few": "{{count}} نقاط للتصحيح",
-        "a-corriger_many": "{{count}} نقطة للتصحيح"
+        "needs-attention_zero": "لا شيء يُذكر: المكتبة مكتملة.",
+        "needs-attention_one": "{{count}} نقطة للتصحيح",
+        "needs-attention_other": "{{count}} نقطة للتصحيح",
+        "needs-attention_two": "نقطتان للتصحيح",
+        "needs-attention_few": "{{count}} نقاط للتصحيح",
+        "needs-attention_many": "{{count}} نقطة للتصحيح"
       }
     },
     "tabs": {
-      "morceaux": "الأغاني",
+      "tracks": "الأغاني",
       "albums": "الألبومات",
-      "artistes": "الفنانون",
+      "artists": "الفنانون",
       "genres": "الأنواع",
-      "dossiers": "المجلدات",
+      "folders": "المجلدات",
       "playlists": "قوائم التشغيل",
-      "a-corriger": "بحاجة إلى مراجعة"
+      "needs-attention": "بحاجة إلى مراجعة"
     },
     "empty": {
-      "morceaux": {
+      "tracks": {
         "title": "مكتبة فارغة",
         "description": "استورد ملفات صوتية أو مجلدًا لملء مكتبتك."
       },
@@ -457,7 +457,7 @@
         "title": "لم يُعثر على أي ألبوم",
         "description": "استورد ملفات صوتية لإنشاء الألبومات تلقائيًا."
       },
-      "artistes": {
+      "artists": {
         "title": "لم يُعثر على أي فنان",
         "description": "استورد بعض الملفات الصوتية للبدء."
       },
@@ -465,14 +465,14 @@
         "title": "لم يُعثر على أي نوع",
         "description": "استورد ملفات صوتية لاستكشاف الأنواع المختلفة."
       },
-      "dossiers": {
+      "folders": {
         "title": "لم يتم استيراد أي مجلد",
         "description": "استورد مجلدًا من شريط الإجراءات لتصفحه هنا."
       },
       "sourceFiltered": {
         "description": "لا شيء من هذا المصدر. غيّر المصدر بالأعلى، أو انسخ فهرس الخادم من الإعدادات."
       },
-      "a-corriger": {
+      "needs-attention": {
         "title": "لا شيء للتصحيح",
         "description": "لا توجد في مكتبتك مشكلة يمكننا رصدها."
       }
@@ -496,7 +496,12 @@
     "localFile": "ملف محلي",
     "fetchMissingCovers": "جلب جميع الأغلفة المفقودة",
     "fetchingCovers": "جارٍ جلب الأغلفة… ({{current}} / {{total}})",
-    "fetchCoversResult": "تم جلب {{count}} غلاف",
+    "fetchCoversResult_zero": "لم يتم جلب أي غلاف",
+    "fetchCoversResult_few": "تم جلب {{count}} أغلفة",
+    "fetchCoversResult_many": "تم جلب {{count}} غلافًا",
+    "fetchCoversResult_one": "تم جلب غلاف واحد",
+    "fetchCoversResult_other": "تم جلب {{count}} غلاف",
+    "fetchCoversResult_two": "تم جلب غلافين",
     "fetchCoversFailed": "فشل جلب الأغلفة",
     "table": {
       "number": "#",
@@ -1379,7 +1384,7 @@
     "aboutArtist": "عن الفنان",
     "readMore": "اقرأ المزيد",
     "readLess": "عرض أقل",
-    "noBio": "لا توجد سيرة متاحة. اضبط مفتاح Last.fm في الإعدادات.",
+    "noBio": "لا توجد سيرة متاحة. جرّب مصدرًا آخر للسيرة الذاتية في الإعدادات.",
     "nextInQueue": "التالي في القائمة",
     "openQueue": "فتح القائمة",
     "lyrics": {
@@ -1764,7 +1769,7 @@
       "subtitle": "أدر الامتدادات التي تضيف مصادر أو بيانات وصفية أو طرق عرض إلى WaveFlow.",
       "loading": "جارٍ التحميل…",
       "emptyTitle": "لا توجد إضافات مثبتة",
-      "emptyHint": "ثبّت واحدة من المتجر أعلاه، أو ضَع مجلدًا في <data>/waveflow/plugins/.",
+      "emptyHint": "ثبّت واحدة من المتجر أعلاه، أو ضَع مجلدًا في مجلد الإضافات.",
       "openFolder": "فتح المجلد",
       "byAuthor": "بواسطة {{author}}",
       "enabled": "مفعّل",
@@ -2021,11 +2026,21 @@
     "regenerateThumbnails": "إعادة توليد الصور المصغرة",
     "regenerateThumbnailsSubtitle": "إعادة بناء نسخ 1x/2x المفقودة لجميع الأغلفة",
     "regenerateThumbnailsAction": "إعادة التوليد",
-    "regenerateThumbnailsDone": "تم إعادة توليد {{count}} صورة مصغرة",
+    "regenerateThumbnailsDone_zero": "لم تتم إعادة توليد أي صورة مصغرة",
+    "regenerateThumbnailsDone_few": "تم إعادة توليد {{count}} صور مصغرة",
+    "regenerateThumbnailsDone_many": "تم إعادة توليد {{count}} صورة مصغرة",
+    "regenerateThumbnailsDone_one": "تم إعادة توليد صورة مصغرة واحدة",
+    "regenerateThumbnailsDone_other": "تم إعادة توليد {{count}} صورة مصغرة",
+    "regenerateThumbnailsDone_two": "تم إعادة توليد صورتين مصغرتين",
     "pruneAlbumCovers": "إزالة أغلفة ألبومات Deezer غير المستخدمة",
     "pruneAlbumCoversSubtitle": "يحذف أغلفة Deezer المخزَّنة مؤقتًا للألبومات التي لديها غلافها الخاص (لا تُعرض أبدًا)",
     "pruneAlbumCoversAction": "تنظيف",
-    "pruneAlbumCoversDone": "تم حذف {{files}} ملفات · تحرير {{mb}} ميغابايت",
+    "pruneAlbumCoversDone_zero": "لم يتم حذف أي ملف",
+    "pruneAlbumCoversDone_few": "تم حذف {{count}} ملفات · تحرير {{mb}} ميغابايت",
+    "pruneAlbumCoversDone_many": "تم حذف {{count}} ملفًا · تحرير {{mb}} ميغابايت",
+    "pruneAlbumCoversDone_one": "تم حذف ملف واحد · تحرير {{mb}} ميغابايت",
+    "pruneAlbumCoversDone_other": "تم حذف {{count}} ملف · تحرير {{mb}} ميغابايت",
+    "pruneAlbumCoversDone_two": "تم حذف ملفين · تحرير {{mb}} ميغابايت",
     "pruneAlbumCoversFailed": "فشل تنظيف الأغلفة",
     "reset": {
       "title": "إعادة ضبط التطبيق",

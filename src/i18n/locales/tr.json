@@ -362,40 +362,40 @@
     "header": {
       "addFolder": "Klasör ekle",
       "subtext": {
-        "morceaux_zero": "0 parça",
-        "morceaux_one": "{{count}} parça",
-        "morceaux_other": "{{count}} parça",
+        "tracks_zero": "0 parça",
+        "tracks_one": "{{count}} parça",
+        "tracks_other": "{{count}} parça",
         "albums_zero": "0 albüm",
         "albums_one": "{{count}} albüm",
         "albums_other": "{{count}} albüm",
-        "artistes_zero": "0 sanatçı",
-        "artistes_one": "{{count}} sanatçı",
-        "artistes_other": "{{count}} sanatçı",
+        "artists_zero": "0 sanatçı",
+        "artists_one": "{{count}} sanatçı",
+        "artists_other": "{{count}} sanatçı",
         "genres_zero": "0 tür",
         "genres_one": "{{count}} tür",
         "genres_other": "{{count}} tür",
-        "dossiers_zero": "0 klasör",
-        "dossiers_one": "{{count}} klasör",
-        "dossiers_other": "{{count}} klasör",
+        "folders_zero": "0 klasör",
+        "folders_one": "{{count}} klasör",
+        "folders_other": "{{count}} klasör",
         "playlists_zero": "0 çalma listesi",
         "playlists_one": "{{count}} çalma listesi",
         "playlists_other": "{{count}} çalma listesi",
-        "a-corriger_zero": "Bildirilecek bir şey yok: kütüphane eksiksiz.",
-        "a-corriger_one": "{{count}} sorun",
-        "a-corriger_other": "{{count}} sorun"
+        "needs-attention_zero": "Bildirilecek bir şey yok: kütüphane eksiksiz.",
+        "needs-attention_one": "{{count}} sorun",
+        "needs-attention_other": "{{count}} sorun"
       }
     },
     "tabs": {
-      "morceaux": "Parçalar",
+      "tracks": "Parçalar",
       "albums": "Albümler",
-      "artistes": "Sanatçılar",
+      "artists": "Sanatçılar",
       "genres": "Türler",
-      "dossiers": "Klasörler",
+      "folders": "Klasörler",
       "playlists": "Çalma listeleri",
-      "a-corriger": "Düzeltilecekler"
+      "needs-attention": "Düzeltilecekler"
     },
     "empty": {
-      "morceaux": {
+      "tracks": {
         "title": "Boş kütüphane",
         "description": "Kütüphaneni doldurmak için ses dosyaları veya bir klasör içe aktar."
       },
@@ -403,7 +403,7 @@
         "title": "Albüm bulunamadı",
         "description": "Albümleri otomatik oluşturmak için ses dosyaları içe aktar."
       },
-      "artistes": {
+      "artists": {
         "title": "Sanatçı bulunamadı",
         "description": "Başlamak için birkaç ses dosyası içe aktar."
       },
@@ -411,14 +411,14 @@
         "title": "Tür bulunamadı",
         "description": "Farklı türleri keşfetmek için ses dosyaları içe aktar."
       },
-      "dossiers": {
+      "folders": {
         "title": "İçe aktarılmış klasör yok",
         "description": "Burada gezinmek için eylem çubuğundan bir klasör içe aktar."
       },
       "sourceFiltered": {
         "description": "Bu kaynakta bir şey yok. Yukarıdan kaynağı değiştir ya da ayarlardan sunucu kataloğunu kopyala."
       },
-      "a-corriger": {
+      "needs-attention": {
         "title": "Düzeltilecek bir şey yok",
         "description": "Kütüphanende saptanabilir bir sorun yok."
       }
@@ -442,7 +442,8 @@
     "localFile": "Yerel dosya",
     "fetchMissingCovers": "Eksik tüm kapakları getir",
     "fetchingCovers": "Kapaklar getiriliyor… ({{current}} / {{total}})",
-    "fetchCoversResult": "{{count}} kapak getirildi",
+    "fetchCoversResult_one": "{{count}} kapak getirildi",
+    "fetchCoversResult_other": "{{count}} kapak getirildi",
     "fetchCoversFailed": "Kapaklar getirilemedi",
     "table": {
       "number": "#",
@@ -1236,7 +1237,7 @@
     "aboutArtist": "Sanatçı hakkında",
     "readMore": "Daha fazla oku",
     "readLess": "Daha az göster",
-    "noBio": "Biyografi mevcut değil. Ayarlardan Last.fm anahtarını ayarla.",
+    "noBio": "Biyografi mevcut değil. Ayarlardan başka bir biyografi kaynağı dene.",
     "nextInQueue": "Sırada sonraki",
     "openQueue": "Sırayı aç",
     "lyrics": {
@@ -1603,7 +1604,7 @@
       "subtitle": "WaveFlow'a kaynak, üst veri veya görünüm ekleyen uzantıları yönet.",
       "loading": "Yükleniyor…",
       "emptyTitle": "Yüklü eklenti yok",
-      "emptyHint": "Yukarıdaki mağazadan bir tane yükle veya <data>/waveflow/plugins/ altına bir klasör bırak.",
+      "emptyHint": "Yukarıdaki mağazadan bir tane yükle veya eklenti klasörüne bir klasör bırak.",
       "openFolder": "Klasörü aç",
       "byAuthor": "Geliştiren: {{author}}",
       "enabled": "Etkin",
@@ -1856,11 +1857,13 @@
     "regenerateThumbnails": "Kapak önizlemelerini yeniden oluştur",
     "regenerateThumbnailsSubtitle": "Tüm kapaklar için eksik 1x/2x varyantlarını yeniden inşa eder",
     "regenerateThumbnailsAction": "Yeniden oluştur",
-    "regenerateThumbnailsDone": "{{count}} önizleme yeniden oluşturuldu",
+    "regenerateThumbnailsDone_one": "{{count}} önizleme yeniden oluşturuldu",
+    "regenerateThumbnailsDone_other": "{{count}} önizleme yeniden oluşturuldu",
     "pruneAlbumCovers": "Kullanılmayan Deezer albüm kapaklarını temizle",
     "pruneAlbumCoversSubtitle": "Zaten kendi kapağı olan albümler için önbelleğe alınmış Deezer kapaklarını siler (bu kapaklar hiç gösterilmez)",
     "pruneAlbumCoversAction": "Temizle",
-    "pruneAlbumCoversDone": "{{files}} dosya silindi · {{mb}} MB boşaltıldı",
+    "pruneAlbumCoversDone_one": "{{count}} dosya silindi · {{mb}} MB boşaltıldı",
+    "pruneAlbumCoversDone_other": "{{count}} dosya silindi · {{mb}} MB boşaltıldı",
     "pruneAlbumCoversFailed": "Kapak temizliği başarısız",
     "reset": {
       "title": "Uygulamayı sıfırla",
