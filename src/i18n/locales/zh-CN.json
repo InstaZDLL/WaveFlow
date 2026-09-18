@@ -2507,7 +2507,7 @@
   },
   "artistMetadataEditor": {
     "title": "编辑元数据",
-    "subtitle": "为 {{name}} 自定义简介和相似艺术家。",
+    "subtitle": "为 {{name}} 自定义简介和相似艺人。",
     "bio": {
       "label": "自定义简介",
       "reset": "恢复为在线",
@@ -2515,11 +2515,11 @@
       "help": "替换 Last.fm / TheAudioDB 简介。可离线使用。"
     },
     "similar": {
-      "label": "自定义相似艺术家",
-      "placeholder": "从你的音乐库搜索艺术家…",
+      "label": "自定义相似艺人",
+      "placeholder": "从你的音乐库搜索艺人…",
       "remove": "移除 {{name}}",
-      "help": "从你的音乐库选择艺术家。留空＝在线列表。",
-      "limitReached": "已达上限（{{max}} 位艺术家）。"
+      "help": "从你的音乐库选择艺人。留空＝在线列表。",
+      "limitReached": "已达上限（{{max}} 位艺人）。"
     },
     "split": {
       "label": "拆分此艺人",
@@ -2738,10 +2738,10 @@
       "title": "服务器元数据",
       "subtitle": "修正保存在服务器上，而不是文件中。",
       "help": "这些修正不会被服务器的扫描覆盖，音乐库的所有成员都能看到。清空某个字段即撤销该项修正，文件本身的值会重新显示。",
-      "missing": "该曲目尚未收录到服务器镜像中。请先执行一次目录遍历，然后重试。",
+      "missing": "该曲目尚未收录到服务器副本中。请先复制目录，然后重试。",
       "invalidNumber": "年份、音轨号和碟片号必须为整数。"
     },
-    "needsMirror": "请先复制上方的服务器目录：本节将你的文件与本地镜像比对，而镜像目前仍为空。"
+    "needsMirror": "请先复制上方的服务器目录：本节将你的文件与本地副本比对，而副本目前仍为空。"
   },
   "tasks": {
     "barLabel": "正在进行的任务",
@@ -2754,7 +2754,7 @@
       "library_scan": "扫描音乐库",
       "analysis": "音频分析",
       "lyrics_prefetch": "预取歌词",
-      "catalogue_mirror": "目录镜像",
+      "catalogue_mirror": "目录副本",
       "reconcile": "比对",
       "upload": "上传",
       "backup": "备份",
