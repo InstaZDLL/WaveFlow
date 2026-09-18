@@ -12,7 +12,7 @@
   },
   "lastfmReauth": {
     "title": "Last.fm oturumu sona erdi",
-    "message": "Scrobble'ların artık gönderilmiyor. Devam etmek için yeniden giriş yap.",
+    "message": "Scrobble'ların artık Last.fm'e gönderilmiyor. Devam etmek için yeniden giriş yap.",
     "action": "Ayarları aç"
   },
   "rendering": {
@@ -35,7 +35,7 @@
       "default": "varsayılan ayar",
       "forced": "WAVEFLOW_RENDERER ile belirlendi",
       "previous-launch-never-painted": "önceki açılış hiçbir şey göstermedi",
-      "remembered": "son başarılı açılıştan korundu",
+      "remembered": "son başarılı açılıştaki ayar korundu",
       "software-did-not-help": "yazılımla görüntüleme bir şey değiştirmedi, varsayılana dönüldü",
       "software-unavailable": "bu platformda yazılımla görüntüleme yok"
     }
@@ -70,7 +70,7 @@
       "calloutTitle": "Bilmen gerekenler",
       "bulletOwn": "Kendi kütüphaneni getir (MP3, FLAC, ALAC, OGG, DSD…)",
       "bulletImport": "Bir klasör içe aktar veya dosyaları sürükleyip bırak",
-      "bulletScrobble": "Last.fm'i bağla ve dinlemeleri arka planda scrobble et"
+      "bulletScrobble": "Last.fm'i bağla ve dinlemelerini arka planda scrobble et"
     },
     "appearance": {
       "title": "Görünümünü seç",
@@ -91,7 +91,7 @@
       "quickSettings": "Hızlı ayarlar",
       "autoAnalyze": {
         "title": "Parçaları otomatik analiz et",
-        "description": "Tarama sırasında BPM ve tonu algılar — Radyo ve Mod Radyosu için kullanılır."
+        "description": "Tarama sırasında BPM ve tonu algılar — Radyo ve Ruh Hali Radyosu için kullanılır."
       }
     },
     "lastfm": {
@@ -195,7 +195,7 @@
         "albums_zero": "0 albüm",
         "albums_one": "{{count}} albüm",
         "albums_other": "{{count}} albüm",
-        "see": "Gör",
+        "see": "Görüntüle",
         "new": "Yeni"
       },
       "nav": {
@@ -255,7 +255,7 @@
         "year": "Yıl (başlangıç → bitiş)",
         "bpm": "BPM (başlangıç → bitiş)",
         "durationMin": "Dakika cinsinden süre (başlangıç → bitiş)",
-        "format": "Format",
+        "format": "Biçim",
         "genres": "Türler"
       },
       "artists": "Sanatçılar",
@@ -300,7 +300,7 @@
       "playlists": "Çalma listeleri"
     },
     "moodRadio": {
-      "title": "Mod Radyosu",
+      "title": "Ruh Hali Radyosu",
       "subtitle": "Tempo, ses düzeyi ve türe göre sıralanır",
       "trackCount_one": "{{count}} parça",
       "trackCount_other": "{{count}} parça",
@@ -353,7 +353,7 @@
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "{{year}} özetin",
-      "subtitle": "Sanatçıların, dakikaların, yılın — birkaç slaytta anlatıldı.",
+      "subtitle": "Sanatçıların, dinleme süren ve yılın — birkaç slaytta anlatılıyor.",
       "cta": "Aç",
       "dismiss": "Wrapped afişini gizle"
     },
@@ -444,7 +444,7 @@
     "fetchMissingCovers": "Eksik tüm kapakları getir",
     "fetchingCovers": "Kapaklar getiriliyor… ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} kapak getirildi",
-    "fetchCoversFailed": "Kapakları getirme başarısız oldu",
+    "fetchCoversFailed": "Kapaklar getirilemedi",
     "table": {
       "number": "#",
       "title": "Başlık",
@@ -591,12 +591,12 @@
       "artist": "Sanatçı",
       "album": "Albüm",
       "year": "Yıl",
-      "trackNumber": "Parça no",
-      "discNumber": "Disk no",
+      "trackNumber": "Parça no.",
+      "discNumber": "Disk no.",
       "duration": "Süre",
       "rating": "Puan",
       "bitrate": "Bit hızı",
-      "sampleRate": "Örnekleme",
+      "sampleRate": "Örnekleme hızı",
       "bitDepth": "Bit derinliği",
       "channels": "Kanal",
       "codec": "Kodek",
@@ -687,11 +687,11 @@
     },
     "topArtists": {
       "title": "En çok dinlenen sanatçılar",
-      "empty": "Hiç sanatçı çalınmadı."
+      "empty": "Hiç sanatçı dinlenmedi."
     },
     "topAlbums": {
       "title": "En çok dinlenen albümler",
-      "empty": "Hiç albüm çalınmadı."
+      "empty": "Hiç albüm dinlenmedi."
     },
     "heatmap": {
       "title": "Yıllık etkinlik",
@@ -735,10 +735,10 @@
       "subtitle": "Müzikle dolu yılın."
     },
     "minutes": {
-      "eyebrow": "Şunu dinledin",
-      "subtitle_zero": "0 dakika müzik",
-      "subtitle_one": "{{count}} dakika müzik",
-      "subtitle_other": "{{count}} dakika müzik"
+      "eyebrow": "Dinleme süren",
+      "subtitle_zero": "0 dakika",
+      "subtitle_one": "{{count}} dakika",
+      "subtitle_other": "{{count}} dakika"
     },
     "stats": {
       "plays": "Oynatmalar",
@@ -775,7 +775,7 @@
       "subtitle": "Gününün zirvesi"
     },
     "streak": {
-      "eyebrow": "En uzun serin",
+      "eyebrow": "En uzun dinleme serin",
       "daysLabel_zero": "0 gün üst üste",
       "daysLabel_one": "{{count}} gün üst üste",
       "daysLabel_other": "{{count}} gün üst üste",
@@ -787,7 +787,7 @@
       "save": "PNG olarak kaydet",
       "copy": "Görseli kopyala",
       "brand": "WaveFlow Wrapped",
-      "poweredBy": "Yerel · Gizli"
+      "poweredBy": "Yerel · Özel"
     },
     "firstListen": {
       "eyebrow": "Yılın şununla başladı"
@@ -930,13 +930,13 @@
       "unavailable": "Yetenekler kullanılamıyor",
       "details": "Aygıt ayrıntıları",
       "summary": "{{bits}} bit · {{rate}} kHz",
-      "channels": "Kanal: {{value}}",
+      "channels": "Kanallar: {{value}}",
       "minPeriod": "En küçük periyot: {{value}} çerçeve",
       "formats": "Biçimler",
       "rates": "Örnekleme hızları",
-      "caveat": "Bir sürücünün bildirdiği ile özel modda kabul ettiği iki ayrı sorudur.",
+      "caveat": "Sürücünün bildirdikleri ile özel modda gerçekten kabul ettikleri farklı olabilir.",
       "source": {
-        "wasapiExclusive": "Özel modda sürücüye sorularak sınandı.",
+        "wasapiExclusive": "Özel modda doğrudan sürücüyle sınandı.",
         "alsaHardware": "ALSA donanım parametreleri, dönüştürme katmanı olmadan.",
         "coreAudio": "Aygıtın sisteme bildirdiği bilgiler.",
         "unavailable": "Aygıt meşgul veya yok: hiçbir şey okunamadı."
@@ -1040,7 +1040,7 @@
       "dialogTitle": "Çalma listesini M3U olarak dışa aktar"
     },
     "emptyTitle": "Bu çalma listesi boş",
-    "emptyDescription": "Her satırdaki + düğmesini kullanarak kütüphanenden parça ekle.",
+    "emptyDescription": "Her satırdaki + düğmesini kullanarak kütüphanelerinden parça ekle.",
     "noneTitle": "Seçili çalma listesi yok",
     "noneDescription": "Burada görmek için yan menüden bir çalma listesi seç.",
     "notFoundTitle": "Çalma listesi bulunamadı",
@@ -1083,7 +1083,7 @@
       "artist": "Örn. Daft Punk, Justice",
       "album": "Albüm adı",
       "year": "Örn. 2026",
-      "genre": "Örn. Electronic"
+      "genre": "Örn. Elektronik"
     },
     "result": {
       "updated": "{{count}} parça güncellendi",
@@ -1093,7 +1093,7 @@
   "trackProperties": {
     "title": "Parça özellikleri",
     "sections": {
-      "metadata": "Üstveri",
+      "metadata": "Üst veri",
       "audio": "Ses",
       "analysis": "Analiz",
       "file": "Dosya"
@@ -1108,7 +1108,7 @@
     "year": "Yıl",
     "trackNumber": "Parça numarası",
     "duration": "Süre",
-    "codec": "Codec",
+    "codec": "Kodek",
     "bitDepth": "Bit derinliği",
     "sampleRate": "Örnekleme hızı",
     "channels": "Kanallar",
@@ -1229,11 +1229,11 @@
     "emptyTracksDescription": "Bu tür kullanılabilir parça içermiyor."
   },
   "genreImagePicker": {
-    "title": "Tür resmini değiştir",
-    "subtitle": "Bu türün resmi olarak kullanmak için yerel bir resim dosyası (JPG, PNG veya WEBP) seç.",
-    "editAria": "Tür resmini değiştir",
-    "pickFile": "Resim dosyası seç",
-    "removeAction": "Resmi kaldır"
+    "title": "Tür görselini değiştir",
+    "subtitle": "Bu türün görseli olarak kullanmak üzere yerel bir görsel dosyası (JPG, PNG veya WEBP) seç.",
+    "editAria": "Tür görselini değiştir",
+    "pickFile": "Görsel dosyası seç",
+    "removeAction": "Görseli kaldır"
   },
   "nowPlaying": {
     "title": "Şimdi çalıyor",
@@ -1272,7 +1272,7 @@
     "eq": {
       "bypass": "EQ'yu aç"
     },
-    "toggleNowPlayingPanel": "Şu an çalan panelini göster / gizle",
+    "toggleNowPlayingPanel": "Şimdi Çalıyor panelini göster / gizle",
     "pipeline": {
       "title": "Ses zinciri",
       "openHint": "Ses zincirini ayrıntılı görüntüle",
@@ -1410,7 +1410,7 @@
       "durationMin": "Dakika cinsinden süre",
       "hiRes": "Yalnızca Hi-Res",
       "liked": "Yalnızca beğenilen parçalar",
-      "formats": "Formatlar",
+      "formats": "Biçimler",
       "genres": "Türler",
       "sort": "Sıralama ölçütü",
       "limit": "Maks. parça",
@@ -1458,7 +1458,7 @@
       "pickGenre": "Bir tür seç…",
       "pathPlaceholder": "Klasör veya yol…",
       "bits": "{{value}} bit",
-      "pickTag": "Bir etiket seçin…",
+      "pickTag": "Bir etiket seç…",
       "days_one": "gün içinde",
       "days_other": "gün içinde"
     },
@@ -1473,14 +1473,14 @@
       "bpmMax": "BPM ≤",
       "durationMinMs": "Süre (ms) ≥",
       "durationMaxMs": "Süre (ms) ≤",
-      "format": "Format =",
+      "format": "Biçim =",
       "hiRes": "Hi-Res",
       "liked": "Beğenildi",
       "ratingMin": "Puan ≥",
       "pathContains": "Yol şunu içerir",
       "discNumberIs": "Disk =",
       "addedInLastDays": "Eklendi: son",
-      "sampleRateMin": "Örnekleme ≥",
+      "sampleRateMin": "Örnekleme hızı ≥",
       "bitDepthMin": "Bit derinliği ≥",
       "playCountMin": "Çalma sayısı ≥",
       "playCountMax": "Çalma sayısı ≤",
@@ -1533,7 +1533,7 @@
       "reset": "Kaydırmayı sıfırla"
     },
     "granularity": {
-      "label": "Hassasiyet:",
+      "label": "Zamanlama düzeyi:",
       "line": "Satır satır",
       "word": "Kelime kelime"
     },
@@ -1581,7 +1581,7 @@
     "masthead": {
       "edition": "Sabah Baskısı",
       "price": "Fiyat: Dahil",
-      "subtitle": "«Basılmayı hak eden tüm müzik.» — Sana özel, günlük seçkin."
+      "subtitle": "«Basılmayı hak eden tüm müzik.» — Sana özel günlük seçki."
     },
     "lead": {
       "caption": "Şek 1. — «{{album}}» albümünden, {{artist}} tarafından.",
@@ -1609,7 +1609,7 @@
       "loading": "Yükleniyor…",
       "emptyTitle": "Yüklü eklenti yok",
       "emptyHint": "Yukarıdaki mağazadan bir tane yükle veya <data>/waveflow/plugins/ altına bir klasör bırak.",
-      "byAuthor": "Yazan: {{author}}",
+      "byAuthor": "Geliştiren: {{author}}",
       "enabled": "Etkin",
       "disabled": "Devre dışı",
       "toggleAria": "{{name}} etkinleştir veya devre dışı bırak",
@@ -1639,7 +1639,7 @@
       "subtitle": "Bir kısayola tıkla ve ardından istediğin tuş kombinasyonuna bas. Silmek için Backspace, iptal için Esc.",
       "captureHint": "Bir tuşa bas…",
       "reset": "Tümünü sıfırla",
-      "unbind": "Bağlantıyı kaldır",
+      "unbind": "Atamayı kaldır",
       "unbound": "Yok",
       "actions": {
         "togglePlayback": "Çal / Duraklat",
@@ -1657,7 +1657,7 @@
       }
     },
     "offlineMode": {
-      "title": "Çevrimdışı modu",
+      "title": "Çevrimdışı mod",
       "subtitle": "Last.fm, Deezer ve LRCLIB'i devre dışı bırakır. Yalnızca önbellekteki verileri kullanır."
     },
     "integrations": {
@@ -1686,15 +1686,15 @@
         "title": "DLNA / UPnP sunucusu",
         "subtitle": "Kütüphaneni yerel ağdaki uyumlu amplifikatörlere ve cihazlara yayınla",
         "serverName": "Ad",
-        "port": "Port",
-        "portHint": "0 = otomatik port",
+        "port": "Bağlantı noktası",
+        "portHint": "0 = otomatik bağlantı noktası",
         "statusRunning": "Çalışıyor",
         "statusStopped": "Durduruldu",
         "copyUrl": "URL'yi kopyala"
       },
       "mpd": {
         "title": "MPD sunucusu",
-        "subtitle": "WaveFlow'u herhangi bir MPD istemcisinden yönetin: telefonda kumanda, terminal, durum çubuğu",
+        "subtitle": "WaveFlow'u herhangi bir MPD istemcisinden yönet: telefon kumandası, terminal veya durum çubuğu",
         "port": "Bağlantı noktası",
         "portHint": "Varsayılan 6600",
         "password": "Parola",
@@ -1741,7 +1741,7 @@
         "subtitle": "ReplayGain içermeyen ve hiç analiz edilmemiş parçalara uygulanır"
       },
       "preventClipping": {
-        "title": "Bozulmayı önle",
+        "title": "Kırpılmayı önle",
         "subtitle": "Kazancı, parçanın tepe değerinin bıraktığı boşlukla sınırla"
       },
       "mode": {
@@ -1757,7 +1757,7 @@
     },
     "generatorAlbumMode": {
       "title": "Oturumları tam albümlerden kur",
-      "subtitle": "Mod radyosu ve Daily Mix, dağınık parçalar yerine albümler seçip sırayla çalar"
+      "subtitle": "Ruh Hali Radyosu ve Daily Mix, dağınık parçalar yerine albümler seçip sırayla çalar"
     },
     "exclusive": {
       "title": "Özel çıkış",
@@ -1766,7 +1766,7 @@
     },
     "matchSourceRate": {
       "title": "Her parçanın örnekleme hızını kullan",
-      "subtitle": "Özel çıkışta aygıt her parçanın hızında yeniden açılır: aygıt kabul ederse yeniden örneklemeden kaçınır, her hız değişiminde bir kesinti olur"
+      "subtitle": "Özel çıkışta aygıt her parçanın örnekleme hızında yeniden açılır: aygıt kabul ederse yeniden örneklemeden kaçınır, her hız değişiminde bir kesinti olur"
     },
     "mono": {
       "title": "Mono ses",
@@ -1847,7 +1847,7 @@
         "action": "Dışa aktar",
         "dialogTitle": "WaveFlow profilini dışa aktar",
         "done": "Profil başarıyla dışa aktarıldı.",
-        "failed": "Dışa aktarma başarısız oldu. Ayrıntılar için logları gör."
+        "failed": "Dışa aktarma başarısız oldu. Ayrıntılar için günlükleri kontrol et."
       },
       "import": {
         "action": "İçe aktar",
@@ -1863,12 +1863,12 @@
     },
     "openDataFolder": "Veri klasörünü aç",
     "lyricsPrefetch": {
-      "title": "Sözleri ön belleğe yükle",
-      "subtitle": "Çevrimdışı kullanım için tüm kütüphanenin sözlerini indirir",
+      "title": "Şarkı sözlerini önceden indir",
+      "subtitle": "Çevrimdışı kullanım için kütüphanendeki tüm parçaların şarkı sözlerini indirir",
       "result": "{{hits}} senkronize, {{misses}} bulunamadı, {{failed}} başarısız",
-      "offline": "Çevrimdışı modu etkin",
-      "failed": "Ön belleğe yükleme başarısız oldu",
-      "action": "Ön belleğe yükle",
+      "offline": "Çevrimdışı mod etkin",
+      "failed": "Şarkı sözleri önceden indirilemedi",
+      "action": "Önceden indir",
       "progress": "{{current}}/{{total}} işlendi · {{hits}} bulundu"
     },
     "regenerateThumbnails": "Kapak önizlemelerini yeniden oluştur",
@@ -1876,7 +1876,7 @@
     "regenerateThumbnailsAction": "Yeniden oluştur",
     "regenerateThumbnailsDone": "{{count}} önizleme yeniden oluşturuldu",
     "pruneAlbumCovers": "Kullanılmayan Deezer albüm kapaklarını temizle",
-    "pruneAlbumCoversSubtitle": "Zaten kendi kapağı olan albümler için önbelleğe alınmış Deezer kapaklarını siler (hiç gösterilmedi)",
+    "pruneAlbumCoversSubtitle": "Zaten kendi kapağı olan albümler için önbelleğe alınmış Deezer kapaklarını siler (bu kapaklar hiç gösterilmez)",
     "pruneAlbumCoversAction": "Temizle",
     "pruneAlbumCoversDone": "{{files}} dosya silindi · {{mb}} MB boşaltıldı",
     "pruneAlbumCoversFailed": "Kapak temizliği başarısız",
@@ -1895,11 +1895,11 @@
     },
     "diagnostics": {
       "title": "Uygulama günlüğü",
-      "subtitle": "Bir hatayı bildirmek için log klasörünü aç veya son logları kopyalayıp bir bilete yapıştır.",
+      "subtitle": "Bir hatayı bildirmek için günlük klasörünü aç veya son günlükleri kopyalayıp bir bilete yapıştır.",
       "openFolder": "Klasörü aç",
-      "copyLogs": "Logları kopyala",
-      "copied": "Loglar kopyalandı",
-      "copyFailed": "Loglar kopyalanamadı"
+      "copyLogs": "Günlükleri kopyala",
+      "copied": "Günlükler kopyalandı",
+      "copyFailed": "Günlükler kopyalanamadı"
     },
     "syncStatus": {
       "title": "Senkronizasyon durumu",
@@ -1919,7 +1919,7 @@
         "not_configured": "Sunucu yapılandırılmamış",
         "profile_canonical_id_missing": "İlk senkronizasyon bekleniyor"
       },
-      "backfillAlreadyRunning": "Bir senkronizasyon zaten çalışıyor",
+      "backfillAlreadyRunning": "Bir senkronizasyon işlemi zaten çalışıyor",
       "backfillSkipped": "Senkronizasyon atlandı ({{reason}})",
       "backfillSummary": "{{pushed}} gönderildi · {{pulled}} çekildi · {{lww}} birleştirildi · {{failed}} başarısız",
       "col": {
@@ -1931,7 +1931,7 @@
       },
       "backfillError": "Başarısız: {{message}}",
       "autoToggleTitle": "Otomatik senkronizasyon",
-      "autoToggleSubtitle": "Açılışta ve Hibrit moda geçişte bir geçiş çalıştırır",
+      "autoToggleSubtitle": "Açılışta ve Hibrit moda geçildiğinde bir senkronizasyon işlemi çalıştırır",
       "cadenceTitle": "Arka plan sıklığı",
       "cadenceSubtitle": "Otomatik senkronizasyonlar arası süre",
       "cadence": {
@@ -2032,8 +2032,8 @@
       "runPartial": "Yazılan: {{created}}, başarısız: {{failed}}. Günlükleri kontrol et.",
       "errors": {
         "loadFailed": "Yedekleme yapılandırması yüklenemedi.",
-        "saveFailed": "Kaydetme başarısız oldu. Tekrar dene.",
-        "runFailed": "Yedekleme başarısız oldu. Logları kontrol et."
+        "saveFailed": "Kaydedilemedi. Tekrar dene.",
+        "runFailed": "Yedekleme başarısız oldu. Günlükleri kontrol et."
       }
     },
     "uiZoom": {
@@ -2045,7 +2045,7 @@
     },
     "showAudioQualityFooter": {
       "title": "Ses kalitesi çubuğunu göster",
-      "subtitle": "Teknik ayrıntılar (kHz, kbps, codec, bit derinliği) çalar çubuğunun altında. Daha ince bir çubuk için varsayılan olarak kapalı."
+      "subtitle": "Teknik ayrıntılar (kHz, kbps, kodek, bit derinliği) çalar çubuğunun altında. Daha ince bir çubuk için varsayılan olarak kapalı."
     },
     "categoryNavLabel": "Ayar kategorileri",
     "appearance": {
@@ -2120,10 +2120,10 @@
         "title": "Kapağa tıklandığında",
         "immersive": {
           "label": "Sürükleyici görünümü aç",
-          "description": "Varsayılan — büyütülmüş kapakla tam ekran Şu an çalan'ı açar."
+          "description": "Varsayılan — büyütülmüş kapakla tam ekran Şimdi Çalıyor kartını açar."
         },
         "nowPlaying": {
-          "label": "Şu an çalan panelini göster",
+          "label": "Şimdi Çalıyor panelini göster",
           "description": "Spotify tarzı — kapak ve sözleri içeren sağ paneli açar veya kapatır."
         },
         "none": {
@@ -2202,15 +2202,15 @@
     },
     "lyricsDestination": {
       "title": "Kayıtlı şarkı sözü hedefi",
-      "subtitle": "Düzenleyiciden gelen şarkı sözlerinin gideceği yer. Her düzenlemede geçersiz kılınabilir."
+      "subtitle": "Düzenleyiciye yazdığın şarkı sözlerinin kaydedileceği yer. Bunu her düzenlemede değiştirebilirsin."
     },
     "updateChannel": {
       "title": "Beta kanalı",
-      "subtitle": "Kararlı sürümden önce ön sürüm yapılarını al. Beta sürümleri kararsız olabilir."
+      "subtitle": "Kararlı sürümden önce beta derlemelerini al. Beta sürümleri kararsız olabilir."
     },
     "artistBio": {
       "title": "Biyografi kaynağı",
-      "subtitle": "Sanatçı biyografilerini hangi servisin sağladığı.",
+      "subtitle": "Sanatçı biyografilerini sağlayacak hizmeti seç.",
       "lastfmHint": "İngilizce biyografiler. Last.fm API anahtarını gerektirir.",
       "theaudiodbHint": "Birden çok dilde topluluk biyografileri. Anahtar gerekmez.",
       "languageLabel": "Biyografi dili"
@@ -2227,8 +2227,8 @@
       "clear": "Kataloğu sil",
       "neverSynced": "hiçbir zaman",
       "localFirst": "Yerel kataloğu tercih et",
-      "localFirstHint": "Çevrimiçiyken bile yerel olarak arayın ve göz atın (anında, ağ yok).",
-      "offlineHint": "Kataloğu indirmek için çevrimdışı modu kapatın.",
+      "localFirstHint": "Çevrimiçiyken bile yerel katalogda ara ve göz at (anında ve ağ bağlantısı gerekmeden).",
+      "offlineHint": "Kataloğu indirmek için çevrimdışı modu kapat.",
       "errors": {
         "loadFailed": "Katalog durumu yüklenemedi.",
         "downloadFailed": "Katalog indirilemedi.",
@@ -2254,7 +2254,7 @@
         "subtitle": "Okurken parça değiştirebilmen için şarkı sözlerini kapağın yanında gösterir. Dar pencerelerde tek sütuna döner."
       },
       "nativeFullscreen": {
-        "title": "Yerel tam ekran",
+        "title": "Sistem tam ekranı",
         "subtitle": "Açılışta tüm ekranı kaplar ve kapanışta pencereni geri yükler. Pencere içi katmanı korumak için kapat (çoklu monitörde kullanışlı)."
       }
     },
@@ -2264,7 +2264,7 @@
     },
     "coverSlideshow": {
       "title": "Kapak / sanatçı slayt gösterisi",
-      "subtitle": "Çalma sırasında arkada albüm kapağı ile sanatçı fotoğrafını yumuşak geçişle değiştirir (sürükleyici görünüm + Şimdi Çalınıyor paneli)."
+      "subtitle": "Çalma sırasında arkada albüm kapağı ile sanatçı fotoğrafını yumuşak geçişle değiştirir (sürükleyici görünüm + Şimdi Çalıyor paneli)."
     },
     "artistHero": {
       "title": "Sanatçı afişi",
@@ -2272,7 +2272,7 @@
     },
     "pluginStore": {
       "title": "Eklenti mağazası",
-      "subtitle": "WaveFlow kayıt defterinden yalıtılmış eklentilere göz at ve yükle.",
+      "subtitle": "WaveFlow eklenti dizinindeki yalıtılmış eklentilere göz at ve yükle.",
       "loading": "Mağaza yükleniyor…",
       "emptyTitle": "Henüz eklenti yok",
       "emptyHint": "Kayıt defteri şimdilik boş — yakında tekrar bak.",
@@ -2291,7 +2291,7 @@
     },
     "motionArtwork": {
       "title": "Animasyonlu kapaklar",
-      "subtitle": "Meta veri eklentilerinden (ör. Apple Motion Artwork) gelen animasyonlu kapaklar, çalan içeriğin arkasında oynatılır.",
+      "subtitle": "Üst veri eklentilerinden (ör. Apple Motion Artwork) gelen animasyonlu kapaklar, çalan içeriğin arkasında oynatılır.",
       "cacheLabel": "Animasyonlu kapakları yerel olarak kaydet",
       "usage": "{{size}} kullanıldı · önbellekte {{files}} kapak",
       "clear": "Önbelleği temizle",
@@ -2319,7 +2319,7 @@
       "title": "Uzak kaynağı yeniden kodla",
       "subtitle": "Sunucudan parçaları göndermeden önce yeniden kodlamasını iste. Bant genişliğinden kazandırır, ses kalitesinden götürür.",
       "off": "Orijinal",
-      "offHint": "Dosya sunucudaki hâliyle. Kayıpsız.",
+      "offHint": "Dosya sunucudaki hâliyle gelir. Kalite kaybı olmaz.",
       "opus": "Opus",
       "opusHint": "Kilobayt başına en iyi kalite. Modern kodek.",
       "mp3": "MP3",
@@ -2354,15 +2354,15 @@
       "choose": "Taşı…",
       "reset": "Varsayılana dön",
       "size": "{{size}} kullanımda",
-      "copying": "Kopyalanıyor… özgün klasör yalnızca sonraki açılışta silinir.",
-      "fellBack": "Ayarlanan konuma erişilemiyor ({{path}}); bu oturumda önbellek varsayılan konumu kullanıyor. Seçimin korundu.",
+      "copying": "Kopyalanıyor… eski konum yalnızca sonraki açılışta silinir.",
+      "fellBack": "Ayarlanan konuma erişilemiyor ({{path}}); bu oturumda önbellekler varsayılan konumu kullanıyor. Seçimin korundu.",
       "restartNeeded": "Kopyalama bitti. Yeni konumu kullanmak için yeniden başlat.",
       "restartNow": "Yeniden başlat"
     },
     "organization": {
       "search": "Ayar ara…",
       "clear": "Aramayı temizle",
-      "noResults": "Ayar bulunamadı. Başka bir terim deneyin.",
+      "noResults": "Ayar bulunamadı. Başka bir terim dene.",
       "searchResults": "Arama sonuçları",
       "categories": {
         "general": "Genel",
@@ -2501,12 +2501,12 @@
     "addFavorite": "Favorilere ekle",
     "removeFavorite": "Favorilerden çıkar",
     "localStations": "Yerel istasyonlar",
-    "browseByCountry": "Ülkeye göre gözat",
+    "browseByCountry": "Ülkeye göre göz at",
     "localCatalogue": "Yerel katalog",
     "localCatalogueHint": "İndirilen katalogda göz atma ve arama."
   },
   "artistMetadataEditor": {
-    "title": "Meta verileri düzenle",
+    "title": "Üst verileri düzenle",
     "subtitle": "{{name}} için özel biyografi ve benzer sanatçılar.",
     "bio": {
       "label": "Özel biyografi",
@@ -2539,7 +2539,7 @@
   },
   "remote": {
     "common": {
-      "awaitingMetadata": "Meta veriler bekleniyor…",
+      "awaitingMetadata": "Üst veri bekleniyor…",
       "untitled": "Adsız",
       "trackFallback": "parça"
     },
@@ -2547,9 +2547,9 @@
       "title": "Uzak sunucu",
       "subtitle": "Bu profili bir WaveFlow sunucusuna bağla. Çalma listeleri kenar çubuğunda görünür.",
       "urlLabel": "Sunucu URL'si",
-      "identify": "Tanımla",
+      "identify": "Türü belirle",
       "unknownType": "bilinmiyor",
-      "probeNative": "yerel, tarayıcı üzerinden giriş yapılır",
+      "probeNative": "WaveFlow'a özgü, tarayıcı üzerinden giriş yapılır",
       "probeSubsonic": "Yalnızca Subsonic protokolü; henüz günlük veya giriş akışı yok",
       "signInBrowser": "Tarayıcıyla giriş yap",
       "signedInFallback": "giriş yapıldı",
@@ -2557,7 +2557,7 @@
       "signOut": "Çıkış yap",
       "forget": "Sunucuyu unut",
       "forgetTitle": "Önbelleğe alınan kütüphaneyi ve sunucuya hiç ulaşmamış, çevrimdışı yapılan tüm değişiklikleri siler",
-      "neverSynced": "Henüz hiç eşitlenmedi — ilk geçiş tam bir anlık görüntü indirir.",
+      "neverSynced": "Henüz hiç eşitlenmedi — ilk eşitleme tam bir anlık görüntü indirir.",
       "counts": {
         "playlists_one": "çalma listesi",
         "playlists_other": "çalma listesi",
@@ -2569,18 +2569,18 @@
         "history_other": "dinleme",
         "shares_one": "paylaşım",
         "shares_other": "paylaşım",
-        "queue_one": "sıradaki parça",
-        "queue_other": "sıradaki parça",
+        "queue_one": "kuyruktaki parça",
+        "queue_other": "kuyruktaki parça",
         "cachedTracks_one": "önbellekteki parça",
         "cachedTracks_other": "önbellekteki parça"
       },
-      "awaitingMetadata_one": "{{count}} parça meta veri bekliyor — sonraki geçişte temizlenir.",
-      "awaitingMetadata_other": "{{count}} parça meta veri bekliyor — sonraki geçişte temizlenir.",
+      "awaitingMetadata_one": "{{count}} parça üst veri bekliyor — sonraki eşitlemede temizlenir.",
+      "awaitingMetadata_other": "{{count}} parça üst veri bekliyor — sonraki eşitlemede temizlenir.",
       "pendingChanges_one": "{{count}} yerel değişiklik gönderilmeyi bekliyor.",
       "pendingChanges_other": "{{count}} yerel değişiklik gönderilmeyi bekliyor.",
       "failedChanges_one": "{{count}} yerel değişiklik reddedildi ve yeniden denenmeyecek.",
       "failedChanges_other": "{{count}} yerel değişiklik reddedildi ve yeniden denenmeyecek.",
-      "failedChangesDismiss": "Yoksay"
+      "failedChangesDismiss": "Göz ardı et"
     },
     "queue": {
       "empty": "Kuyrukta hiçbir şey yok.",
@@ -2600,17 +2600,17 @@
       "emptyDescription": "Sunucunun kataloğunda arama yapmak için «Parça ekle» düğmesini kullan.",
       "notFoundDescription": "Bu çalma listesi bağlı sunucuda artık yok.",
       "keepOffline": "Çevrimdışı sakla",
-      "keepingProgress": "{{done}}/{{total}} saklandı",
-      "keptOffline_one": "{{count}} çevrimdışı",
-      "keptOffline_other": "{{count}} çevrimdışı",
+      "keepingProgress": "{{done}}/{{total}} saklanıyor",
+      "keptOffline_one": "{{count}} parça çevrimdışı saklandı",
+      "keptOffline_other": "{{count}} parça çevrimdışı saklandı",
       "keptOffline_zero": "çevrimdışı yok"
     },
     "reconciliation": {
       "title": "Yerel ↔ sunucu eşleştirmesi",
-      "subtitle": "Yalnızca tam dosya eşleşmeleri. Aynı boyuttaki dosyalar BLAKE3 ile doğrulanır; meta veriler asla bağlantı oluşturmaz.",
+      "subtitle": "Yalnızca tam dosya eşleşmeleri. Aynı boyuttaki dosyalar BLAKE3 ile doğrulanır; üst veriler asla bağlantı oluşturmaz.",
       "cancel": "İptal",
       "findMatches": "Eşleşmeleri bul",
-      "hashing": "{{processed}} / {{total}} yerel dosya karma değeri hesaplanıyor…",
+      "hashing": "{{processed}} / {{total}} yerel dosyanın karma değeri hesaplanıyor…",
       "cancelledSummary": "Tarama iptal edildi — hiçbir şey bağlanmadı.",
       "confirmedLinks": "Onaylanan bağlantılar",
       "favoritesRatings": "Favoriler: yerel {{localFav}} · sunucu {{remoteFav}} · Puanlar: yerel {{localRating}} · sunucu {{remoteRating}}/5",
@@ -2639,7 +2639,7 @@
       "itemStatusStale": "eskimiş",
       "itemStatusUnlinkedOrAmbiguous": "bağlantısız veya belirsiz",
       "itemStatusDuplicate": "yinelenen",
-      "candidateHeading": "Aynı kopyalar onay gerektiriyor",
+      "candidateHeading": "Özdeş kopyaların onaylanması gerekiyor",
       "candidateLocalTrack": "Yerel parça",
       "candidateServerTrack": "Sunucu parçası",
       "candidateLocalOption": "Yerel: {{title}} — {{path}}",
@@ -2655,8 +2655,8 @@
       "summaryGroups_other": "{{count}} grup için karar gerekiyor",
       "summaryStale_one": " · {{count}} eskimiş",
       "summaryStale_other": " · {{count}} eskimiş",
-      "summaryUnreadable_one": " · {{count}} okunamıyor",
-      "summaryUnreadable_other": " · {{count}} okunamıyor",
+      "summaryUnreadable_one": " · {{count}} okunamadı",
+      "summaryUnreadable_other": " · {{count}} okunamadı",
       "history_one": "Geçmiş: {{local}} yerel + {{remote}} sunucu = {{combined}} çalma",
       "history_other": "Geçmiş: {{local}} yerel + {{remote}} sunucu = {{combined}} çalma",
       "conversionSourceOption_one": "{{name}} · {{count}} parça",
@@ -2707,7 +2707,7 @@
     "import": {
       "action": "Kütüphaneme aktar",
       "title": "Kütüphaneme aktar",
-      "subtitle": "{{name}} taranan bir klasöre kopyalanacak ve kendi kütüphanenin bir parçası olacak.",
+      "subtitle": "{{name}} taranan bir klasöre kopyalanacak ve kendi kütüphanendeki bir parça olacak.",
       "destination": "Hedef klasör",
       "noFolder": "Erişilebilir taranan klasör yok. Ayarlar → Kütüphane bölümünden ekle.",
       "unreachable": "Erişilemiyor",
@@ -2759,7 +2759,7 @@
       "title": "Sunucu üst verileri",
       "subtitle": "Düzeltme dosyaya değil, sunucuya kaydedilir.",
       "help": "Bu düzeltmeler sunucunun taramalarından etkilenmez ve kütüphanenin tüm üyeleri tarafından görülür. Bir alanı boşaltmak düzeltmeyi kaldırır: dosyadaki değer geri gelir.",
-      "missing": "Bu parça henüz sunucu kopyasında yok. Bir katalog taraması çalıştırıp yeniden dene.",
+      "missing": "Bu parça henüz sunucu kopyasında yok. Kataloğu kopyalayıp yeniden dene.",
       "invalidNumber": "Yıl ile parça ve disk numaraları tam sayı olmalıdır."
     },
     "needsMirror": "Önce yukarıdaki sunucu kataloğunu kopyala: bu bölüm dosyalarını henüz boş olan yerel kopyayla karşılaştırır."
@@ -2840,7 +2840,7 @@
     "hint": "Uygulayana kadar hiçbir şey yazılmaz.",
     "acceptColumn": "Tüm alan:",
     "acceptTrack": "Tüm parça",
-    "nothingToChange": "Bu sürüm dosyalarının zaten söylediğini söylüyor.",
+    "nothingToChange": "Bu sürümdeki bilgiler dosyalarındakilerle tamamen aynı.",
     "trackUnchanged": "Bu parçada değiştirilecek bir şey yok.",
     "noMatch": "{{file}} için eşleşme yok.",
     "emptyValue": "(boş)",
@@ -2848,7 +2848,7 @@
     "apply": "Uygula",
     "confidence": {
       "confident": "Kesin",
-      "doubtful": "Kontrol edin"
+      "doubtful": "Kontrol et"
     },
     "fields": {
       "title": "Başlık",
