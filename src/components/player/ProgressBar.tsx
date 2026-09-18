@@ -27,7 +27,6 @@ export function ProgressBar() {
     seek,
     setSeeking,
     currentTrack,
-    activeProvider,
   } = usePlayer();
   const [dragMs, setDragMs] = useState<number | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
@@ -188,7 +187,7 @@ export function ProgressBar() {
         {/* A-B loop overlay: tinted region + two coloured marker pins.
             Rendered above the progress fill so the loop is legible
             even on the played portion of the track. */}
-        {activeProvider !== "spotify" && hasTrack && abLoop.a_ms != null && (
+        {hasTrack && abLoop.a_ms != null && (
           <AbMarker
             ms={abLoop.a_ms}
             durationMs={durationMs}
@@ -196,7 +195,7 @@ export function ProgressBar() {
             colour="bg-amber-500"
           />
         )}
-        {activeProvider !== "spotify" && hasTrack && abLoop.b_ms != null && (
+        {hasTrack && abLoop.b_ms != null && (
           <AbMarker
             ms={abLoop.b_ms}
             durationMs={durationMs}
@@ -204,10 +203,7 @@ export function ProgressBar() {
             colour="bg-rose-500"
           />
         )}
-        {activeProvider !== "spotify" &&
-          hasTrack &&
-          abLoop.a_ms != null &&
-          abLoop.b_ms != null && (
+        {hasTrack && abLoop.a_ms != null && abLoop.b_ms != null && (
             <div
               className="absolute top-0 h-full bg-rose-500/15 dark:bg-rose-500/25 pointer-events-none"
               style={{

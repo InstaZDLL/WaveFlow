@@ -18,8 +18,8 @@ const REMOTE_QUEUE_ROW_HEIGHT = 56;
  * Queue panel body for a remote play session (RFC-005). The remote queue
  * lives in memory on the backend, not in the local `queue_item` table, so
  * it gets its own view rather than being forced through `player_get_queue`
- * (whose jump / reorder act on the local queue). Same shape as
- * {@link SpotifyQueueView}: Now Playing + Up Next, click a row to jump.
+ * (whose jump / reorder act on the local queue). Now Playing + Up
+ * Next, click a row to jump.
  *
  * Localized under the shared `remote.*` i18n namespace, like the rest of
  * the remote surface.

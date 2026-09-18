@@ -47,7 +47,6 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
     currentRadioStation,
     volume,
     setVolume,
-    activeProvider,
     immersiveOpen,
     immersiveInitialTab,
     openFullscreenNowPlaying,
@@ -97,9 +96,8 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
   // the mini-player's own copy through `track:liked-changed` (#523).
   const { likedIds, toggleLike } = useLikedTracks(currentTrack?.id);
 
-  const isSpotify = activeProvider === "spotify";
   const isLiked =
-    currentTrack != null && !isSpotify && likedIds.has(currentTrack.id);
+    currentTrack != null && likedIds.has(currentTrack.id);
   const stationFavorited =
     currentRadioStation != null &&
     radioFavorites.isFavorite(currentRadioStation.id);
@@ -227,7 +225,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                   fill={stationFavorited ? "currentColor" : "none"}
                 />
               </button>
-            ) : currentTrack && !isSpotify && !isStreamTrack(currentTrack) ? (
+            ) : currentTrack && !isStreamTrack(currentTrack) ? (
               // `!isStreamTrack` guards the hydration race + the idle
               // tail: a radio sentinel track (negative id) must never
               // show a ♥ like (it has no library row), even in the brief
@@ -273,7 +271,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
             {/* EQ preset popover (primary slot — opt-in pin via
               Settings). Quick switcher between the 20 built-in
               presets without opening the full EQ card. */}
-            {layout.showEqPreset && !isSpotify && <EqPresetButton />}
+            {layout.showEqPreset && <EqPresetButton />}
 
             {/* Lyrics panel toggle */}
             {layout.showLyrics && (
@@ -308,7 +306,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               </button>
             )}
 
-            {layout.showDevice && !isSpotify && (
+            {layout.showDevice && (
               <div className="relative">
                 <button
                   onClick={toggleDeviceMenu}
@@ -330,15 +328,12 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               Sleep timer, A-B loop (each appears here only when NOT
               pinned to the primary cluster) and the desktop lyrics
               window. That last one has no pin, so the menu is never
-              empty and always renders — hiding it in Spotify mode with
-              everything pinned used to be right, and would now take
-              away one of the places a locked overlay is unlocked from. */}
+              empty and always renders — it is one of the places a
+              locked overlay can be unlocked from. */}
             <MoreActionsMenu
               pinAbLoop={layout.showAbLoop}
               pinSleepTimer={layout.showSleepTimer}
               pinEqPreset={layout.showEqPreset}
-              showSpeed={!isSpotify}
-              showEq={!isSpotify}
               sleepTimer={{
                 status: sleepTimer.status,
                 onSetDuration: sleepTimer.setDurationMinutes,
@@ -349,12 +344,10 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
             <VolumeControl />
 
-            {/* Spotify-style right cluster: mini-player + immersive
-              full-screen as primary icon buttons after volume. Both
-              are now opt-out via Settings → Playback → Player bar
-              layout. Mini-player stays unavailable in Spotify mode
-              (Web Playback SDK can't drive a second webview). */}
-            {layout.showMiniPlayer && !isSpotify && (
+            {/* Right cluster: mini-player + immersive full-screen as
+              primary icon buttons after volume. Both are opt-out via
+              Settings → Playback → Player bar layout. */}
+            {layout.showMiniPlayer && (
               <button
                 type="button"
                 onClick={() => {
@@ -388,7 +381,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
         </div>
         {layout.showAudioQualityFooter && (
           <AudioQualityFooter
-            track={isSpotify ? null : (currentTrack ?? null)}
+            track={currentTrack ?? null}
           />
         )}
       </footer>

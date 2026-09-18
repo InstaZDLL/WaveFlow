@@ -51,16 +51,15 @@ export function ImmersiveNowPlaying({
   onToggleLike,
 }: ImmersiveNowPlayingProps) {
   const { t } = useTranslation();
-  const { currentTrack, currentRadioStation, activeProvider } = usePlayer();
+  const { currentTrack, currentRadioStation } = usePlayer();
   // Right-click the title to reach the same track menu the list views have
   // (Show in Explorer, Properties, queue ops…) — mail reporter request.
-  // Only for a real library track: radio (negative sentinel id), Spotify
-  // playback, and any streamed track with no local file have nothing the
-  // file-oriented actions can act on, so require a real `file_path`.
+  // Only for a real library track: radio (negative sentinel id) and any
+  // streamed track with no local file have nothing the file-oriented
+  // actions can act on, so require a real `file_path`.
   const trackMenu = usePlayerTrackContextMenu();
   const menuTrack =
     currentTrack &&
-    activeProvider !== "spotify" &&
     !isRadioTrack(currentTrack) &&
     !!currentTrack.file_path
       ? currentTrack
@@ -117,13 +116,10 @@ export function ImmersiveNowPlaying({
     currentTrack?.album_title,
     currentTrack?.album_id,
   );
-  // Radio (negative sentinel id) and Spotify tracks have no library artist to
-  // enrich, so they never get a slideshow — same eligibility the track menu
-  // uses above.
-  const slideshowEligible =
-    !!currentTrack &&
-    activeProvider !== "spotify" &&
-    !isStreamTrack(currentTrack);
+  // Radio (negative sentinel id) and other streamed tracks have no library
+  // artist to enrich, so they never get a slideshow — same eligibility the
+  // track menu uses above.
+  const slideshowEligible = !!currentTrack && !isStreamTrack(currentTrack);
   // Only enrich the artist (a network call the immersive view doesn't
   // otherwise make) when the slideshow could actually run — off by default,
   // never while a Canvas or motion cover owns the slot, and only for an

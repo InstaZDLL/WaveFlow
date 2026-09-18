@@ -64,7 +64,7 @@ export function ImmersiveView({
   onToggleLike,
 }: ImmersiveViewProps) {
   const { t } = useTranslation();
-  const { currentTrack, activeProvider } = usePlayer();
+  const { currentTrack } = usePlayer();
   const {
     mergedLyrics,
     useNativeFullscreen,
@@ -73,7 +73,7 @@ export function ImmersiveView({
   const lyrics = useTrackLyrics();
 
   // Per-track Canvas (issue #442). Only a real library track can carry one
-  // (radio uses a negative sentinel id, Spotify has no local row), so the
+  // (radio uses a negative sentinel id and has no local row), so the
   // toggle + set/remove entry gate on that. The toggle only shows when the
   // track actually has a Canvas and motion isn't reduced — never a dead
   // control; the "⋯" set/remove entry shows for any eligible track.
@@ -101,9 +101,7 @@ export function ImmersiveView({
   // real library row: the picker writes `track_canvas` keyed on a rowid, and
   // a server clip is not ours to replace or delete in any case.
   const canvasShowable =
-    currentTrack && activeProvider !== "spotify" && !isRadioTrack(currentTrack)
-      ? currentTrack
-      : null;
+    currentTrack && !isRadioTrack(currentTrack) ? currentTrack : null;
   const canvasEditable =
     canvasShowable && canvasShowable.id >= 0 ? canvasShowable : null;
   const canvasAvailable = !!canvasPath && !reducedMotion;

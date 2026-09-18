@@ -4,9 +4,7 @@ import { listInstalledPlugins } from "../lib/tauri/plugins";
 
 /// DOM event the Settings → Plugins UI dispatches whenever the user
 /// flips a plugin's enabled toggle or uninstalls a plugin. Hooks
-/// listening on this event re-fetch their availability snapshot —
-/// same lightweight bus pattern the Sidebar uses for the Spotify
-/// visibility toggle.
+/// listening on this event re-fetch their availability snapshot.
 export const PLUGIN_AVAILABILITY_EVENT = "waveflow:plugin-availability-changed";
 
 /// Resolve once at mount + every time someone dispatches
