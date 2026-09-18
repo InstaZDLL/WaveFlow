@@ -2092,7 +2092,7 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Neon club — OLED base, colored halos around active items, mono pills, springy motion."
+          "description": "Neon club — OLED base, colored halos around active items, monochrome pills, springy motion."
         },
         "liquid": {
           "label": "Liquid",
