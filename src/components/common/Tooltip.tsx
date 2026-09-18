@@ -41,6 +41,20 @@ interface TooltipProps {
  * the anchor's side that point lands on the anchor's own centre — so the
  * bubble contributes nothing at all until it is wanted.
  *
+ * Do not "improve" this into `invisible`. `visibility: hidden` still
+ * generates and lays out the box, so it keeps every pixel of the
+ * overflow; it looks like the more honest way to hide something and it
+ * fixes nothing. Measured on the same page, in both engines WaveFlow
+ * ships on — visible box 27px of overflow, `visibility: hidden` 27px,
+ * `scale: 0` zero. (`display: none` also reaches zero, at the cost of
+ * the fade, since a discrete property cannot be transitioned without
+ * `@starting-style` and friends.) The reason to distrust `scale: 0` here
+ * is that css-transforms-1 still says the overflow area is the union of
+ * the bounds before *and after* the transform, which would keep the
+ * untransformed box; css-overflow-3, where the calculation actually
+ * lives now, projects each border box through its transform and excludes
+ * zero-area boxes. The engines follow css-overflow-3.
+ *
  * The scale is transitioned rather than snapped: snapping would make the
  * bubble vanish the instant the pointer leaves, where today it fades, and
  * the fade would have nothing left to fade. The transition names `scale`,
