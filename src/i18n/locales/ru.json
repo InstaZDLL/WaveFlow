@@ -1709,6 +1709,7 @@
       "loading": "Загрузка…",
       "emptyTitle": "Плагины не установлены",
       "emptyHint": "Установите плагин из магазина выше или поместите папку в <data>/waveflow/plugins/.",
+      "openFolder": "Открыть папку",
       "byAuthor": "Автор: {{author}}",
       "enabled": "Включено",
       "disabled": "Отключено",

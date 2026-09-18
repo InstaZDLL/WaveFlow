@@ -1609,6 +1609,7 @@
       "loading": "Yükleniyor…",
       "emptyTitle": "Yüklü eklenti yok",
       "emptyHint": "Yukarıdaki mağazadan bir tane yükle veya <data>/waveflow/plugins/ altına bir klasör bırak.",
+      "openFolder": "Klasörü aç",
       "byAuthor": "Geliştiren: {{author}}",
       "enabled": "Etkin",
       "disabled": "Devre dışı",

@@ -1612,6 +1612,7 @@
       "loading": "A carregar…",
       "emptyTitle": "Nenhum plugin instalado",
       "emptyHint": "Instala um a partir da loja acima ou coloca uma pasta em <data>/waveflow/plugins/.",
+      "openFolder": "Abrir pasta",
       "byAuthor": "Por {{author}}",
       "enabled": "Ativado",
       "disabled": "Desativado",

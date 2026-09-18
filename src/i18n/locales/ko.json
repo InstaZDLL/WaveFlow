@@ -1609,6 +1609,7 @@
       "loading": "불러오는 중…",
       "emptyTitle": "설치된 플러그인이 없습니다",
       "emptyHint": "위 스토어에서 설치하거나 <data>/waveflow/plugins/ 아래에 폴더를 넣으세요.",
+      "openFolder": "폴더 열기",
       "byAuthor": "{{author}} 제작",
       "enabled": "활성화됨",
       "disabled": "비활성화됨",

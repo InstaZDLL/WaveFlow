@@ -1609,6 +1609,7 @@
       "loading": "Memuat…",
       "emptyTitle": "Tidak ada plugin terpasang",
       "emptyHint": "Pasang satu dari toko di atas, atau letakkan folder di <data>/waveflow/plugins/.",
+      "openFolder": "Buka folder",
       "byAuthor": "Oleh {{author}}",
       "enabled": "Aktif",
       "disabled": "Nonaktif",

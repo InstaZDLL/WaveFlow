@@ -1609,6 +1609,7 @@
       "loading": "載入中…",
       "emptyTitle": "未安裝任何外掛",
       "emptyHint": "從上方商店安裝，或將資料夾放入 <data>/waveflow/plugins/。",
+      "openFolder": "開啟資料夾",
       "byAuthor": "作者：{{author}}",
       "enabled": "已啟用",
       "disabled": "已停用",
