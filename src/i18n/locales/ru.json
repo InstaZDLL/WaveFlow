@@ -167,8 +167,7 @@
   "sidebar": {
     "nav": {
       "home": "Главная",
-      "webRadio": "Веб-радио",
-      "spotify": "Spotify"
+      "webRadio": "Веб-радио"
     },
     "sections": {
       "open": "Открыть",
@@ -988,10 +987,6 @@
     "count_many": "{{count}} треков",
     "upNext_many": "Далее · {{count}} треков"
   },
-  "spotifyQueue": {
-    "emptyHint": "В очереди Spotify сейчас ничего нет.",
-    "readonlyHint": "Очередь только для чтения — управляйте ею из приложения Spotify."
-  },
   "deviceMenu": {
     "activeLabel": "Активный выход",
     "loading": "Поиск устройств…",
@@ -1807,16 +1802,6 @@
         "statusStopped": "Остановлен",
         "copyAddress": "Копировать адрес"
       },
-      "spotify": {
-        "title": "Spotify",
-        "subtitle": "Подключите Spotify Premium со своим Spotify Developer Client ID.",
-        "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "Добавьте этот Redirect URI в Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
-        "connectedAs": "Подключено как",
-        "disconnect": "Отключить",
-        "connecting": "Подключение…",
-        "connect": "Подключить Spotify"
-      },
       "notifications": {
         "title": "Уведомления о смене трека",
         "subtitle": "Показывает системное уведомление в начале каждого трека (название + исполнитель). По умолчанию выключено."
@@ -1904,10 +1889,6 @@
     "showAbLoop": {
       "title": "Закрепить A-B-повтор в панели",
       "subtitle": "Если выключено, A-B-повтор остаётся доступным в меню «…»"
-    },
-    "showSpotify": {
-      "title": "Показывать ссылку на Spotify",
-      "subtitle": "Показывает ярлык Spotify в боковой панели"
     },
     "duplicates": {
       "title": "Поиск дубликатов",
@@ -2545,20 +2526,6 @@
       "showTranslation": "Показывать перевод",
       "reset": "Сбросить оформление"
     }
-  },
-  "spotify": {
-    "notConfiguredTitle": "Зарегистрируйте своё приложение Spotify",
-    "notConfiguredMessage": "Spotify требует, чтобы каждое стороннее приложение зарегистрировало бесплатный Client ID до начала воспроизведения. Создайте его в Spotify Developer Dashboard и вставьте в «Настройки WaveFlow → Интеграции».",
-    "openDashboard": "Открыть Spotify Developer Dashboard",
-    "openSettings": "Открыть настройки",
-    "notConnectedTitle": "Spotify не подключён",
-    "notConnectedMessage": "Ваш Client ID настроен. Войдите в Spotify Premium из настроек, чтобы загрузить плейлисты и начать воспроизведение.",
-    "emptyPlaylist": "В этом плейлисте нет доступных для воспроизведения треков (Spotify может не отдавать локальные файлы или плейлисты, которые вам не принадлежат).",
-    "deviceReady": "Устройство WaveFlow для Spotify готово",
-    "devicePending": "Подготовка воспроизведения Spotify…",
-    "searchPlaceholder": "Поиск в Spotify",
-    "tracks": "Треки",
-    "playlists": "Плейлисты"
   },
   "scanProgress": {
     "runningTitle": "Сканирование библиотеки…",

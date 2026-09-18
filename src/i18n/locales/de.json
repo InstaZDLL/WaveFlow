@@ -167,8 +167,7 @@
   "sidebar": {
     "nav": {
       "home": "Startseite",
-      "webRadio": "Web-Radio",
-      "spotify": "Spotify"
+      "webRadio": "Web-Radio"
     },
     "sections": {
       "open": "Öffnen",
@@ -913,10 +912,6 @@
       "label": "Radio",
       "basedOn": "Basierend auf „{{title}}“"
     }
-  },
-  "spotifyQueue": {
-    "emptyHint": "Aktuell nichts in der Spotify-Warteschlange.",
-    "readonlyHint": "Schreibgeschützte Warteschlange — verwalte sie in der Spotify-App."
   },
   "deviceMenu": {
     "activeLabel": "Aktive Ausgabe",
@@ -1707,16 +1702,6 @@
         "statusStopped": "Gestoppt",
         "copyAddress": "Adresse kopieren"
       },
-      "spotify": {
-        "title": "Spotify",
-        "subtitle": "Verbinde Spotify Premium mit deiner eigenen Spotify-Developer-Client-ID.",
-        "clientIdPlaceholder": "Spotify-Client-ID",
-        "redirectHint": "Füge diese Redirect-URI im Spotify Developer Dashboard hinzu: http://127.0.0.1:49387/spotify/callback",
-        "connectedAs": "Verbunden als",
-        "disconnect": "Trennen",
-        "connecting": "Wird verbunden…",
-        "connect": "Spotify verbinden"
-      },
       "notifications": {
         "title": "Benachrichtigungen beim Titelwechsel",
         "subtitle": "Zeigt eine System-Benachrichtigung am Anfang jedes Titels (Titel + Künstler). Standardmäßig deaktiviert."
@@ -1804,10 +1789,6 @@
     "showAbLoop": {
       "title": "A-B-Schleife in der Leiste anheften",
       "subtitle": "Wenn deaktiviert, bleibt A-B-Schleife über das „…“-Menü erreichbar"
-    },
-    "showSpotify": {
-      "title": "Spotify-Eintrag anzeigen",
-      "subtitle": "Zeige die Spotify-Verknüpfung in der Seitenleiste an"
     },
     "duplicates": {
       "title": "Duplikate erkennen",
@@ -2435,20 +2416,6 @@
       "showTranslation": "Übersetzung anzeigen",
       "reset": "Darstellung zurücksetzen"
     }
-  },
-  "spotify": {
-    "notConfiguredTitle": "Registriere deine Spotify-App",
-    "notConfiguredMessage": "Spotify verlangt, dass jede Drittanbieter-App eine kostenlose Client-ID registriert, bevor eine Wiedergabe möglich ist. Erstelle eine im Spotify Developer Dashboard und füge sie dann in WaveFlows Einstellungen → Integrationen ein.",
-    "openDashboard": "Spotify Developer Dashboard öffnen",
-    "openSettings": "Einstellungen öffnen",
-    "notConnectedTitle": "Spotify ist nicht verbunden",
-    "notConnectedMessage": "Deine Client-ID ist hinterlegt. Melde dich in den Einstellungen mit deinem Spotify-Premium-Konto an, um deine Playlists zu laden und Musik abzuspielen.",
-    "emptyPlaylist": "Keine abspielbaren Titel in dieser Playlist (Spotify gibt lokale Dateien oder Playlists, die dir nicht gehören, möglicherweise nicht frei).",
-    "deviceReady": "WaveFlow-Spotify-Gerät bereit",
-    "devicePending": "Spotify-Wiedergabe wird vorbereitet…",
-    "searchPlaceholder": "Spotify durchsuchen",
-    "tracks": "Titel",
-    "playlists": "Playlists"
   },
   "scanProgress": {
     "runningTitle": "Bibliothek wird gescannt…",

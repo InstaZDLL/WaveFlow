@@ -167,8 +167,7 @@
   "sidebar": {
     "nav": {
       "home": "Beranda",
-      "webRadio": "Radio Web",
-      "spotify": "Spotify"
+      "webRadio": "Radio Web"
     },
     "sections": {
       "open": "Buka",
@@ -913,10 +912,6 @@
       "label": "Radio",
       "basedOn": "Berdasarkan \"{{title}}\""
     }
-  },
-  "spotifyQueue": {
-    "emptyHint": "Tidak ada apa-apa di antrean Spotify saat ini.",
-    "readonlyHint": "Antrean hanya-baca — kelola dari aplikasi Spotify."
   },
   "deviceMenu": {
     "activeLabel": "Output aktif",
@@ -1707,16 +1702,6 @@
         "statusStopped": "Berhenti",
         "copyAddress": "Salin alamat"
       },
-      "spotify": {
-        "title": "Spotify",
-        "subtitle": "Hubungkan Spotify Premium dengan Client ID Spotify Developer milikmu.",
-        "clientIdPlaceholder": "Client ID Spotify",
-        "redirectHint": "Tambahkan Redirect URI ini di Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
-        "connectedAs": "Terhubung sebagai",
-        "disconnect": "Putuskan",
-        "connecting": "Menghubungkan…",
-        "connect": "Hubungkan Spotify"
-      },
       "notifications": {
         "title": "Notifikasi pergantian lagu",
         "subtitle": "Tampilkan notifikasi sistem di awal setiap lagu (judul + artis). Mati secara default."
@@ -1804,10 +1789,6 @@
     "showAbLoop": {
       "title": "Sematkan loop A-B di bilah",
       "subtitle": "Jika dinonaktifkan, loop A-B tetap tersedia di menu '...'"
-    },
-    "showSpotify": {
-      "title": "Tampilkan entri Spotify",
-      "subtitle": "Tampilkan pintasan Spotify di bilah samping"
     },
     "duplicates": {
       "title": "Deteksi duplikat",
@@ -2435,20 +2416,6 @@
       "showTranslation": "Tampilkan terjemahan",
       "reset": "Setel ulang tampilan"
     }
-  },
-  "spotify": {
-    "notConfiguredTitle": "Daftarkan aplikasi Spotify-mu",
-    "notConfiguredMessage": "Spotify mengharuskan setiap aplikasi pihak ketiga mendaftarkan Client ID gratis sebelum melakukan pemutaran apa pun. Buat satu di Spotify Developer Dashboard, lalu tempelkan di Pengaturan WaveFlow → Integrasi.",
-    "openDashboard": "Buka Spotify Developer Dashboard",
-    "openSettings": "Buka Pengaturan",
-    "notConnectedTitle": "Spotify belum terhubung",
-    "notConnectedMessage": "Client ID-mu sudah diatur. Masuk dengan akun Spotify Premium dari Pengaturan untuk memuat daftar putar dan memutar musik.",
-    "emptyPlaylist": "Tidak ada lagu yang dapat diputar di daftar putar ini (Spotify mungkin tidak menampilkan berkas lokal atau daftar putar yang bukan milikmu).",
-    "deviceReady": "Perangkat Spotify WaveFlow siap",
-    "devicePending": "Menyiapkan pemutaran Spotify…",
-    "searchPlaceholder": "Cari di Spotify",
-    "tracks": "Lagu",
-    "playlists": "Daftar putar"
   },
   "scanProgress": {
     "runningTitle": "Memindai pustaka…",

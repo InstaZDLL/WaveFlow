@@ -167,8 +167,7 @@
   "sidebar": {
     "nav": {
       "home": "ホーム",
-      "webRadio": "ウェブラジオ",
-      "spotify": "Spotify"
+      "webRadio": "ウェブラジオ"
     },
     "sections": {
       "open": "開く",
@@ -913,10 +912,6 @@
       "label": "ラジオ",
       "basedOn": "「{{title}}」を基に"
     }
-  },
-  "spotifyQueue": {
-    "emptyHint": "Spotifyのキューには現在何もありません。",
-    "readonlyHint": "読み取り専用キュー — Spotifyアプリから管理してください。"
   },
   "deviceMenu": {
     "activeLabel": "アクティブ出力",
@@ -1682,16 +1677,6 @@
         "statusStopped": "停止中",
         "copyAddress": "アドレスをコピー"
       },
-      "spotify": {
-        "title": "Spotify",
-        "subtitle": "自分の Spotify Developer Client ID で Spotify Premium に接続します。",
-        "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "この Redirect URI を Spotify Developer Dashboard に追加してください: http://127.0.0.1:49387/spotify/callback",
-        "connectedAs": "接続中:",
-        "disconnect": "切断",
-        "connecting": "接続中…",
-        "connect": "Spotify に接続"
-      },
       "notifications": {
         "title": "曲変更通知",
         "subtitle": "曲が変わるたびにシステム通知を表示します（タイトル + アーティスト）。既定はオフ。"
@@ -2097,10 +2082,6 @@
       "title": "スマートクロスフェード",
       "subtitle": "同じアルバム内の連続する曲間のフェードを自動的にスキップします （コンセプトアルバムやライブ盤に最適）"
     },
-    "showSpotify": {
-      "title": "Spotify をサイドバーに表示",
-      "subtitle": "サイドバーに Spotify ショートカットを表示します"
-    },
     "playerBarLayout": {
       "title": "プレーヤーバーのレイアウト",
       "subtitle": "バーに表示するボタンと、ジャケットをクリックしたときの動作を選びます。プレビューは即時に更新されます。",
@@ -2456,20 +2437,6 @@
       "desktopLyrics": "デスクトップ歌詞",
       "lockDesktopLyrics": "デスクトップ歌詞をロック"
     }
-  },
-  "spotify": {
-    "deviceReady": "WaveFlow の Spotify デバイスが利用可能です",
-    "devicePending": "Spotify の再生を準備中…",
-    "searchPlaceholder": "Spotify を検索",
-    "tracks": "曲",
-    "playlists": "プレイリスト",
-    "emptyPlaylist": "このプレイリストには再生可能な曲がありません(Spotify はローカルファイルや所有していないプレイリストを公開しないことがあります)。",
-    "notConfiguredTitle": "Spotify アプリを登録",
-    "notConfiguredMessage": "Spotify はすべてのサードパーティアプリに対し、再生前に無料の Client ID 登録を求めています。Spotify Developer ダッシュボードで作成して、WaveFlow の「設定 → 連携」に貼り付けてください。",
-    "openDashboard": "Spotify Developer ダッシュボードを開く",
-    "openSettings": "設定を開く",
-    "notConnectedTitle": "Spotify は未接続です",
-    "notConnectedMessage": "Client ID は設定済みです。「設定」から Spotify Premium アカウントにサインインして、プレイリストの読み込みと再生を行ってください。"
   },
   "share": {
     "title": "プレイリストを共有",

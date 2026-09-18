@@ -167,8 +167,7 @@
   "sidebar": {
     "nav": {
       "home": "Ana sayfa",
-      "webRadio": "Web Radyo",
-      "spotify": "Spotify"
+      "webRadio": "Web Radyo"
     },
     "sections": {
       "open": "Aç",
@@ -913,10 +912,6 @@
       "label": "Radyo",
       "basedOn": "Şuna dayalı: «{{title}}»"
     }
-  },
-  "spotifyQueue": {
-    "emptyHint": "Spotify sırasında şu an hiçbir şey yok.",
-    "readonlyHint": "Salt okunur sıra — Spotify uygulamasından yönet."
   },
   "deviceMenu": {
     "activeLabel": "Etkin çıkış",
@@ -1707,16 +1702,6 @@
         "statusStopped": "Durduruldu",
         "copyAddress": "Adresi kopyala"
       },
-      "spotify": {
-        "title": "Spotify",
-        "subtitle": "Spotify Premium'u kendi Spotify Developer Client ID'n ile bağla.",
-        "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "Spotify Developer Dashboard'a şu Redirect URI'yi ekle: http://127.0.0.1:49387/spotify/callback",
-        "connectedAs": "Şu adla bağlandı",
-        "disconnect": "Bağlantıyı kes",
-        "connecting": "Bağlanıyor…",
-        "connect": "Spotify'a bağla"
-      },
       "notifications": {
         "title": "Parça değişimi bildirimleri",
         "subtitle": "Her parça başında sistem bildirimi göster (başlık + sanatçı). Varsayılan olarak kapalı."
@@ -1804,10 +1789,6 @@
     "showAbLoop": {
       "title": "A-B döngüsünü çubuğa sabitle",
       "subtitle": "Devre dışıysa A-B döngüsü «…» menüsünden erişilebilir kalır"
-    },
-    "showSpotify": {
-      "title": "Spotify kısayolunu göster",
-      "subtitle": "Yan menüde Spotify kısayolunu gösterir"
     },
     "duplicates": {
       "title": "Yinelenenleri tespit et",
@@ -2435,20 +2416,6 @@
       "showTranslation": "Çeviriyi göster",
       "reset": "Görünümü sıfırla"
     }
-  },
-  "spotify": {
-    "notConfiguredTitle": "Spotify uygulamanı kaydet",
-    "notConfiguredMessage": "Spotify, her üçüncü taraf uygulamanın herhangi bir oynatmadan önce ücretsiz bir Client ID kaydetmesini gerektirir. Spotify Developer Dashboard'da bir tane oluştur ve ardından WaveFlow Ayarlar → Entegrasyonlar'a yapıştır.",
-    "openDashboard": "Spotify Developer Dashboard'ı aç",
-    "openSettings": "Ayarları aç",
-    "notConnectedTitle": "Spotify bağlı değil",
-    "notConnectedMessage": "Client ID'n ayarlandı. Çalma listelerini yüklemek ve müzik çalmak için Ayarlar'dan Spotify Premium hesabınla giriş yap.",
-    "emptyPlaylist": "Bu çalma listesinde oynatılabilir parça yok (Spotify yerel dosyaları veya sana ait olmayan çalma listelerini sunmayabilir).",
-    "deviceReady": "WaveFlow Spotify cihazı hazır",
-    "devicePending": "Spotify oynatması hazırlanıyor…",
-    "searchPlaceholder": "Spotify'da ara",
-    "tracks": "Parçalar",
-    "playlists": "Çalma listeleri"
   },
   "scanProgress": {
     "runningTitle": "Kütüphane taranıyor…",

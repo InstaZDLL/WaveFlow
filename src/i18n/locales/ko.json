@@ -167,8 +167,7 @@
   "sidebar": {
     "nav": {
       "home": "홈",
-      "webRadio": "웹 라디오",
-      "spotify": "Spotify"
+      "webRadio": "웹 라디오"
     },
     "sections": {
       "open": "열기",
@@ -913,10 +912,6 @@
       "label": "라디오",
       "basedOn": "“{{title}}” 기반"
     }
-  },
-  "spotifyQueue": {
-    "emptyHint": "지금 Spotify 대기열에 아무것도 없습니다.",
-    "readonlyHint": "읽기 전용 대기열 — Spotify 앱에서 관리하세요."
   },
   "deviceMenu": {
     "activeLabel": "활성 출력",
@@ -1707,16 +1702,6 @@
         "statusStopped": "중지됨",
         "copyAddress": "주소 복사"
       },
-      "spotify": {
-        "title": "Spotify",
-        "subtitle": "직접 발급한 Spotify Developer Client ID로 Spotify Premium에 연결하세요.",
-        "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "Spotify Developer Dashboard에 다음 Redirect URI를 추가하세요: http://127.0.0.1:49387/spotify/callback",
-        "connectedAs": "연결됨:",
-        "disconnect": "연결 해제",
-        "connecting": "연결 중…",
-        "connect": "Spotify 연결"
-      },
       "notifications": {
         "title": "곡 변경 알림",
         "subtitle": "곡이 바뀔 때마다 시스템 알림을 표시합니다(제목 + 아티스트). 기본값은 끔."
@@ -1812,10 +1797,6 @@
     "showAbLoop": {
       "title": "A-B 루프를 바에 고정",
       "subtitle": "꺼도 A-B 루프는 ‘…’ 메뉴에서 사용할 수 있습니다"
-    },
-    "showSpotify": {
-      "title": "Spotify 항목 표시",
-      "subtitle": "사이드바에 Spotify 바로가기를 표시합니다"
     },
     "visualizer": {
       "title": "오디오 비주얼라이저",
@@ -2435,20 +2416,6 @@
       "showTranslation": "번역 표시",
       "reset": "모양 초기화"
     }
-  },
-  "spotify": {
-    "notConfiguredTitle": "Spotify 앱을 등록하세요",
-    "notConfiguredMessage": "Spotify에서 재생하려면 모든 서드 파티 앱이 무료 Client ID를 등록해야 합니다. Spotify Developer 대시보드에서 만든 뒤 WaveFlow의 설정 → 통합에 붙여넣으세요.",
-    "openDashboard": "Spotify Developer 대시보드 열기",
-    "openSettings": "설정 열기",
-    "notConnectedTitle": "Spotify가 연결되어 있지 않습니다",
-    "notConnectedMessage": "Client ID가 설정되어 있습니다. 설정에서 Spotify Premium 계정에 로그인하여 재생 목록을 불러오고 음악을 재생하세요.",
-    "emptyPlaylist": "이 재생 목록에서 재생할 수 있는 곡이 없습니다(Spotify가 로컬 파일이나 본인 소유가 아닌 재생 목록을 노출하지 않을 수 있습니다).",
-    "deviceReady": "WaveFlow Spotify 기기 준비 완료",
-    "devicePending": "Spotify 재생 준비 중…",
-    "searchPlaceholder": "Spotify 검색",
-    "tracks": "곡",
-    "playlists": "재생 목록"
   },
   "scanProgress": {
     "runningTitle": "라이브러리 스캔 중…",

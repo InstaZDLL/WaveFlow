@@ -167,8 +167,7 @@
   "sidebar": {
     "nav": {
       "home": "Inicio",
-      "webRadio": "Radio Web",
-      "spotify": "Spotify"
+      "webRadio": "Radio Web"
     },
     "sections": {
       "open": "Abrir",
@@ -914,10 +913,6 @@
       "label": "Radio",
       "basedOn": "Basada en «{{title}}»"
     }
-  },
-  "spotifyQueue": {
-    "emptyHint": "Nada en la cola de Spotify ahora mismo.",
-    "readonlyHint": "Cola de solo lectura — gestiónala desde la app de Spotify."
   },
   "deviceMenu": {
     "activeLabel": "Salida activa",
@@ -1710,16 +1705,6 @@
         "statusStopped": "Detenido",
         "copyAddress": "Copiar dirección"
       },
-      "spotify": {
-        "title": "Spotify",
-        "subtitle": "Conecta Spotify Premium con tu propio ID de cliente de Spotify Developer.",
-        "clientIdPlaceholder": "ID de cliente de Spotify",
-        "redirectHint": "Añade esta URI de redirección en el panel de desarrolladores de Spotify: http://127.0.0.1:49387/spotify/callback",
-        "connectedAs": "Conectado como",
-        "disconnect": "Desconectar",
-        "connecting": "Conectando…",
-        "connect": "Conectar Spotify"
-      },
       "notifications": {
         "title": "Notificaciones al cambiar de pista",
         "subtitle": "Muestra una notificación del sistema al inicio de cada pista (título + artista). Desactivado por defecto."
@@ -1807,10 +1792,6 @@
     "showAbLoop": {
       "title": "Fijar el bucle A-B en la barra",
       "subtitle": "Si está desactivado, el bucle A-B sigue disponible en el menú «…»"
-    },
-    "showSpotify": {
-      "title": "Mostrar entrada de Spotify",
-      "subtitle": "Muestra el acceso directo a Spotify en la barra lateral"
     },
     "duplicates": {
       "title": "Detectar duplicados",
@@ -2438,20 +2419,6 @@
       "showTranslation": "Mostrar traducción",
       "reset": "Restablecer apariencia"
     }
-  },
-  "spotify": {
-    "notConfiguredTitle": "Registra tu app de Spotify",
-    "notConfiguredMessage": "Spotify exige que toda app de terceros registre un ID de cliente gratuito antes de cualquier reproducción. Créalo en el panel de desarrolladores de Spotify y luego pégalo en Configuración → Integraciones de WaveFlow.",
-    "openDashboard": "Abrir Spotify Developer Dashboard",
-    "openSettings": "Abrir Configuración",
-    "notConnectedTitle": "Spotify no está conectado",
-    "notConnectedMessage": "Tu Client ID está configurado. Inicia sesión con tu cuenta Spotify Premium en la Configuración para cargar tus listas y reproducir música.",
-    "emptyPlaylist": "No hay pistas reproducibles en esta lista (Spotify puede no exponer archivos locales o listas que no sean tuyas).",
-    "deviceReady": "Dispositivo Spotify de WaveFlow listo",
-    "devicePending": "Preparando la reproducción de Spotify…",
-    "searchPlaceholder": "Buscar en Spotify",
-    "tracks": "Pistas",
-    "playlists": "Listas de reproducción"
   },
   "scanProgress": {
     "runningTitle": "Escaneando biblioteca…",
