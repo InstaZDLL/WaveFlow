@@ -210,7 +210,7 @@
       "createPlaylistAria": "Neue Playlist erstellen",
       "importM3uAria": "M3U-Playlist importieren",
       "importDialogTitle": "M3U-Playlist importieren",
-      "liked": "Gelikte Titel",
+      "liked": "Favoriten",
       "recent": "Kürzlich gespielt",
       "emptySubtext_zero": "0 Titel",
       "emptySubtext_one": "{{count}} Titel",
@@ -251,7 +251,7 @@
         "close": "Schließen",
         "reset": "Zurücksetzen",
         "hiRes": "Hi-Res",
-        "likedOnly": "Nur gelikte Titel",
+        "likedOnly": "Nur Favoriten",
         "year": "Jahr (von → bis)",
         "bpm": "BPM (von → bis)",
         "durationMin": "Dauer in Minuten (von → bis)",
@@ -295,7 +295,7 @@
     },
     "stats": {
       "library": "Bibliothek",
-      "liked": "Gelikte Titel",
+      "liked": "Favoriten",
       "recent": "Kürzlich gespielt",
       "playlists": "Playlists"
     },
@@ -610,12 +610,12 @@
   },
   "liked": {
     "badge": "Sammlung",
-    "title": "Gelikte Titel",
+    "title": "Favoriten",
     "count_zero": "0 Titel",
     "count_one": "{{count}} Titel",
     "count_other": "{{count}} Titel",
-    "emptyTitle": "Keine gelikten Titel",
-    "emptyDescription": "Titel, die du likest, erscheinen hier. Stöbere in deiner Bibliothek und like deine Lieblingstitel.",
+    "emptyTitle": "Keine Favoriten",
+    "emptyDescription": "Titel, die du zu den Favoriten hinzufügst, erscheinen hier. Stöbere in deiner Bibliothek und markiere deine Lieblingstitel.",
     "playAll": "Alle abspielen",
     "unlike": "Aus Favoriten entfernen",
     "like": "Zu Favoriten hinzufügen"
@@ -934,7 +934,7 @@
       "minPeriod": "Minimale Periode: {{value}} Frames",
       "formats": "Formate",
       "rates": "Abtastraten",
-      "caveat": "Was ein Treiber angibt und was er im Exklusivmodus akzeptiert, sind zwei verschiedene Fragen.",
+      "caveat": "Was ein Treiber angibt und was er im Exklusivmodus akzeptiert, sind zwei völlig verschiedene Dinge.",
       "source": {
         "wasapiExclusive": "Im Exklusivmodus beim Treiber abgefragt.",
         "alsaHardware": "ALSA-Hardwareparameter, ohne Konvertierungsschicht.",
@@ -1304,7 +1304,7 @@
   "miniPlayer": {
     "idle": "Kein Titel wird gespielt",
     "maximize": "Hauptfenster wiederherstellen",
-    "like": "Liken",
+    "like": "Favorit",
     "pin": "Immer im Vordergrund",
     "close": "Mini-Player schließen",
     "upNext": {
@@ -1409,7 +1409,7 @@
       "bpm": "BPM",
       "durationMin": "Dauer in Minuten",
       "hiRes": "Nur Hi-Res",
-      "liked": "Nur gelikte Titel",
+      "liked": "Nur Favoriten",
       "formats": "Formate",
       "genres": "Genres",
       "sort": "Sortieren nach",
@@ -1700,7 +1700,7 @@
         "password": "Passwort",
         "passwordPlaceholder": "Keins",
         "passwordHint": "Optional. In einem gemeinsam genutzten Netzwerk empfohlen — das MPD-Protokoll überträgt es im Klartext.",
-        "lanWarning": "Aus dem gesamten lokalen Netzwerk erreichbar: Jeder darin kann die Wiedergabe steuern.",
+        "lanWarning": "Aus dem gesamten lokalen Netzwerk erreichbar: Jeder im Netzwerk kann die Wiedergabe steuern.",
         "lanWarningAuth": "Aus deinem gesamten lokalen Netzwerk erreichbar, aber die Wiedergabesteuerung erfordert das von dir festgelegte Passwort.",
         "statusRunning": "Aktiv",
         "statusStopped": "Gestoppt",
