@@ -91,7 +91,7 @@
       "quickSettings": "إعدادات سريعة",
       "autoAnalyze": {
         "title": "تحليل المقاطع تلقائيًا",
-        "description": "اكتشاف BPM والسلم الموسيقي أثناء الفحص — يُستخدم لتشغيل الراديو وراديو المزاج."
+        "description": "اكتشاف BPM والمفتاح الموسيقي أثناء الفحص — يُستخدم لتشغيل الراديو وراديو المزاج."
       }
     },
     "lastfm": {
@@ -602,8 +602,8 @@
       "allClear": "لا شيء يُذكر: المكتبة مكتملة.",
       "summary_one": "{{count}} نقطة للتصحيح",
       "summary_other": "{{count}} نقطة للتصحيح",
-      "trackCount_one": "مقطوعة واحدة",
-      "trackCount_other": "{{count}} مقطوعة",
+      "trackCount_one": "مقطع واحد",
+      "trackCount_other": "{{count}} مقطع",
       "categories": {
         "missing_title": {
           "label": "بلا عنوان",
@@ -658,10 +658,10 @@
       "summary_two": "نقطتان للتصحيح",
       "summary_few": "{{count}} نقاط للتصحيح",
       "summary_many": "{{count}} نقطة للتصحيح",
-      "trackCount_zero": "لا مقطوعات",
-      "trackCount_two": "مقطوعتان",
-      "trackCount_few": "{{count}} مقطوعات",
-      "trackCount_many": "{{count}} مقطوعة"
+      "trackCount_zero": "لا مقاطع",
+      "trackCount_two": "مقطعان",
+      "trackCount_few": "{{count}} مقاطع",
+      "trackCount_many": "{{count}} مقطعًا"
     },
     "columns": {
       "choose": "الأعمدة",
@@ -683,7 +683,7 @@
       "bitDepth": "عمق البِت",
       "channels": "القنوات",
       "codec": "المرمِّز",
-      "musicalKey": "المقام",
+      "musicalKey": "المفتاح الموسيقي",
       "fileSize": "الحجم",
       "addedAt": "أُضيف في",
       "filePath": "المسار",
@@ -1234,7 +1234,7 @@
     "sampleRate": "معدل أخذ العينات",
     "channels": "القنوات",
     "bitrate": "معدل البت",
-    "key": "المقام",
+    "key": "المفتاح الموسيقي",
     "fileSize": "الحجم",
     "addedAt": "أُضيف في",
     "filePath": "المسار",
