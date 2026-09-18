@@ -2041,7 +2041,7 @@
       "subtitle": "Scale the whole interface (Ctrl+= / Ctrl+- / Ctrl+0 also work)",
       "decreaseAria": "Zoom out",
       "increaseAria": "Zoom in",
-      "resetAria": "Reset zoom to 100 %"
+      "resetAria": "Reset zoom to 100%"
     },
     "showAudioQualityFooter": {
       "title": "Show audio quality strip",
@@ -2486,7 +2486,7 @@
   },
   "webRadio": {
     "title": "Web Radio",
-    "subtitle": "Over 30 000 online radio stations via radio-browser.info.",
+    "subtitle": "Over 30,000 online radio stations via radio-browser.info.",
     "loading": "Loading categories…",
     "resolving": "Finding stations…",
     "emptyResults": "No stations found.",

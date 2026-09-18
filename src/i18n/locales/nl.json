@@ -167,7 +167,7 @@
   "sidebar": {
     "nav": {
       "home": "Start",
-      "webRadio": "Web-radio",
+      "webRadio": "Web Radio",
       "spotify": "Spotify"
     },
     "sections": {
@@ -378,9 +378,9 @@
         "dossiers_zero": "0 mappen",
         "dossiers_one": "{{count}} map",
         "dossiers_other": "{{count}} mappen",
-        "playlists_zero": "0 playlists",
-        "playlists_one": "{{count}} playlist",
-        "playlists_other": "{{count}} playlists",
+        "playlists_zero": "0 afspeellijsten",
+        "playlists_one": "{{count}} afspeellijst",
+        "playlists_other": "{{count}} afspeellijsten",
         "a-corriger_zero": "Niets te melden: de bibliotheek is compleet.",
         "a-corriger_one": "{{count}} punt te verbeteren",
         "a-corriger_other": "{{count}} punten te verbeteren"
@@ -392,7 +392,7 @@
       "artistes": "Artiesten",
       "genres": "Genres",
       "dossiers": "Mappen",
-      "playlists": "Playlists",
+      "playlists": "Afspeellijsten",
       "a-corriger": "Te verbeteren"
     },
     "empty": {
@@ -510,8 +510,8 @@
     },
     "skeletonAriaLabel": "{{name}} laden…",
     "playlistsGrid": {
-      "emptyTitle": "Nog geen playlists",
-      "emptyHint": "Playlists die je maakt verschijnen hier als raster.",
+      "emptyTitle": "Nog geen afspeellijsten",
+      "emptyHint": "Afspeellijsten die je maakt verschijnen hier als raster.",
       "meta_zero": "0 nummers · {{duration}}",
       "meta_one": "{{count}} nummer · {{duration}}",
       "meta_other": "{{count}} nummers · {{duration}}"
@@ -594,9 +594,9 @@
       "trackNumber": "Nr.",
       "discNumber": "Schijf",
       "duration": "Duur",
-      "rating": "Waardering",
+      "rating": "Beoordeling",
       "bitrate": "Bitrate",
-      "sampleRate": "Samplerate",
+      "sampleRate": "Samplefrequentie",
       "bitDepth": "Bitdiepte",
       "channels": "Kanalen",
       "codec": "Codec",
@@ -615,7 +615,7 @@
     "count_one": "{{count}} nummer",
     "count_other": "{{count}} nummers",
     "emptyTitle": "Geen favoriete nummers",
-    "emptyDescription": "Nummers die je leuk vindt verschijnen hier. Verken je bibliotheek en geef je favoriete nummers een vind-ik-leuk.",
+    "emptyDescription": "Nummers die je leuk vindt verschijnen hier. Verken je bibliotheek en markeer je favoriete nummers.",
     "playAll": "Alles afspelen",
     "unlike": "Verwijderen uit favorieten",
     "like": "Toevoegen aan favorieten"
@@ -761,7 +761,7 @@
     "mood": {
       "eyebrow": "Je gemiddelde tempo",
       "subtitle": "Het ritme dat je jaar kleurde",
-      "loudness": "Gemiddelde loudness: {{lufs}} LUFS",
+      "loudness": "Gemiddelde luidheid: {{lufs}} LUFS",
       "energy": {
         "chill": "Chill",
         "warm": "Warm",
@@ -933,7 +933,7 @@
       "channels": "Kanalen: {{value}}",
       "minPeriod": "Minimale periode: {{value}} frames",
       "formats": "Formaten",
-      "rates": "Bemonsteringsfrequenties",
+      "rates": "Samplefrequenties",
       "caveat": "Wat een stuurprogramma opgeeft en wat het in exclusieve modus accepteert, zijn twee verschillende vragen.",
       "source": {
         "wasapiExclusive": "Getest bij het stuurprogramma in exclusieve modus.",
@@ -1201,7 +1201,7 @@
   },
   "motionCoverPicker": {
     "title": "Handmatige bewegende hoes",
-    "subtitle": "Kies een lokaal MP4-bestand. Het vervangt de door de plugin geleverde bewegende hoes en wordt nooit overschreven door een vernieuwing.",
+    "subtitle": "Kies een lokaal MP4-bestand. Het vervangt de door de plug-in geleverde bewegende hoes en wordt nooit overschreven door een vernieuwing.",
     "pickFile": "MP4-bestand kiezen",
     "removeAction": "Bewegende hoes verwijderen"
   },
@@ -1304,7 +1304,7 @@
   "miniPlayer": {
     "idle": "Geen nummer wordt afgespeeld",
     "maximize": "Hoofdvenster herstellen",
-    "like": "Vind-ik-leuk",
+    "like": "Favoriet",
     "pin": "Altijd boven",
     "close": "Mini-speler sluiten",
     "upNext": {
@@ -1480,10 +1480,10 @@
       "pathContains": "Pad bevat",
       "discNumberIs": "Schijf =",
       "addedInLastDays": "Toegevoegd binnen",
-      "sampleRateMin": "Samplerate ≥",
+      "sampleRateMin": "Samplefrequentie ≥",
       "bitDepthMin": "Bitdiepte ≥",
-      "playCountMin": "Weergaven ≥",
-      "playCountMax": "Weergaven ≤",
+      "playCountMin": "Luisterbeurten ≥",
+      "playCountMax": "Luisterbeurten ≤",
       "playedInLastDays": "Afgespeeld binnen",
       "tagPresent": "Heeft tag",
       "tagContains": "Tag bevat"
@@ -1504,7 +1504,7 @@
       "text": "Tekst",
       "library": "Bibliotheek",
       "audio": "Audio",
-      "history": "Weergaven",
+      "history": "Luisterbeurten",
       "tags": "Tags"
     },
     "matchCount_one": "{{count}} nummer komt overeen",
@@ -1762,10 +1762,10 @@
     "exclusive": {
       "title": "Exclusieve uitvoer",
       "subtitle": "Neemt het apparaat alleen voor deze app in plaats van het te delen met de systeemmixer. Valt terug op de gedeelde modus als het apparaat weigert.",
-      "fallback": "Het apparaat accepteert geen exclusive-modus. Terugvallen op shared-modus."
+      "fallback": "Het apparaat accepteert geen exclusieve modus. Terugvallen op gedeelde modus."
     },
     "matchSourceRate": {
-      "title": "Bemonsteringsfrequentie van elk nummer volgen",
+      "title": "Samplefrequentie van elk nummer volgen",
       "subtitle": "Bij exclusieve uitvoer wordt het apparaat opnieuw geopend op de frequentie van elk nummer: voorkomt herbemonstering als het apparaat die accepteert, maar met een onderbreking bij elke wisseling"
     },
     "mono": {
@@ -1820,7 +1820,7 @@
     },
     "analyze": {
       "title": "Bibliotheek analyseren",
-      "subtitle": "Bereken BPM, loudness en piek voor niet-geanalyseerde nummers",
+      "subtitle": "Bereken BPM, luidheid en piek voor niet-geanalyseerde nummers",
       "action": "Analyseren",
       "cancel": "Analyse stoppen",
       "autoTitle": "Automatische analyse",
@@ -1842,7 +1842,7 @@
     },
     "profileIo": {
       "title": "Profiel-back-up",
-      "subtitle": "Exporteer of importeer een volledig profiel (afspeellijsten, vind-ik-leuks, statistieken, EQ, sneltoetsen) als één .waveflow-bestand.",
+      "subtitle": "Exporteer of importeer een volledig profiel (afspeellijsten, favorieten, statistieken, EQ, sneltoetsen) als één .waveflow-bestand.",
       "export": {
         "action": "Exporteren",
         "dialogTitle": "WaveFlow-profiel exporteren",
@@ -2041,7 +2041,7 @@
       "subtitle": "Schaal de hele interface (Ctrl+= / Ctrl+- / Ctrl+0 werken ook)",
       "decreaseAria": "Uitzoomen",
       "increaseAria": "Inzoomen",
-      "resetAria": "Zoom terugzetten op 100 %"
+      "resetAria": "Zoom terugzetten op 100%"
     },
     "showAudioQualityFooter": {
       "title": "Audiokwaliteitsbalk tonen",
@@ -2291,7 +2291,7 @@
     },
     "motionArtwork": {
       "title": "Bewegende hoezen",
-      "subtitle": "Bewegende hoezen van metadata-plugins (bijv. Apple Motion Artwork) spelen achter de weergave van wat er nu speelt.",
+      "subtitle": "Bewegende hoezen van metadata-plug-ins (bijv. Apple Motion Artwork) spelen achter de weergave van wat er nu speelt.",
       "cacheLabel": "Bewegende hoezen lokaal opslaan",
       "usage": "{{size}} gebruikt · {{files}} hoezen in cache",
       "clear": "Cache wissen",
@@ -2485,8 +2485,8 @@
     "errorClipboard": "Geen toegang tot het klembord. Selecteer de URL om deze handmatig te kopiëren."
   },
   "webRadio": {
-    "title": "Web-radio",
-    "subtitle": "Meer dan 30 000 online radiostations via radio-browser.info.",
+    "title": "Web Radio",
+    "subtitle": "Meer dan 30.000 online radiostations via radio-browser.info.",
     "loading": "Categorieën laden…",
     "resolving": "Stations zoeken…",
     "emptyResults": "Geen stations gevonden.",
@@ -2495,7 +2495,7 @@
     "live": "LIVE",
     "nowPlaying": "Speelt nu",
     "unavailableTitle": "Web Radio is uitgeschakeld",
-    "unavailableHint": "Schakel de Web Radio-plugin in via Instellingen → Plugins om meer dan 30.000 stations te doorzoeken.",
+    "unavailableHint": "Schakel de Web Radio-plug-in in via Instellingen → Plug-ins om meer dan 30.000 stations te doorzoeken.",
     "favorites": "Favorieten",
     "favoritesEmpty": "Nog geen favoriete zenders. Tik op de ster van een zender om hem op te slaan.",
     "addFavorite": "Aan favorieten toevoegen",
@@ -2565,8 +2565,8 @@
         "favorites_other": "favorieten",
         "ratings_one": "beoordeling",
         "ratings_other": "beoordelingen",
-        "history_one": "weergave",
-        "history_other": "weergaven",
+        "history_one": "luisterbeurt",
+        "history_other": "luisterbeurten",
         "shares_one": "gedeeld item",
         "shares_other": "gedeelde items",
         "queue_one": "nummer in wachtrij",
@@ -2808,7 +2808,7 @@
       "yearMax": "jaar ≤ {{value}}",
       "discNumberIs": "schijf {{value}}",
       "liked": "favoriet",
-      "ratingMin": "waardering ≥ {{value}}",
+      "ratingMin": "beoordeling ≥ {{value}}",
       "format": "formaat {{value}}",
       "hiRes": "hi-res",
       "sampleRateMin": "≥ {{value}} kHz",
