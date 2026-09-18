@@ -12,7 +12,7 @@
   },
   "lastfmReauth": {
     "title": "Last.fm的連線已過期",
-    "message": "您的播放記錄已停止傳送。請重新登入以繼續。",
+    "message": "你的播放記錄已停止傳送。請重新登入以繼續。",
     "action": "開啟設定"
   },
   "rendering": {
@@ -73,8 +73,8 @@
       "bulletScrobble": "連接 Last.fm 以在背景記錄播放歷史"
     },
     "appearance": {
-      "title": "選擇您的外觀",
-      "description": "選擇一個顏色主題和介面風格。您可以隨時在 設定 → 外觀 中變更。",
+      "title": "選擇你的外觀",
+      "description": "選擇一個顏色主題和介面風格。你可以隨時在 設定 → 外觀 中變更。",
       "theme": {
         "title": "顏色主題"
       },
@@ -147,7 +147,7 @@
       "title": "選擇你的語言",
       "description": "WaveFlow 提供 17 種語言。我們已預選你的系統語言 — 如有誤請更改。",
       "detected": "已從系統偵測到",
-      "fallback": "我們無法偵測到您的系統語言，已預設使用英文。請在下方選擇您的語言。"
+      "fallback": "我們無法偵測到你的系統語言，已預設使用英文。請在下方選擇你的語言。"
     },
     "profile": {
       "title": "為你的個人檔案取名",
@@ -286,7 +286,7 @@
     },
     "banner": {
       "badge": "準備好聆聽了嗎",
-      "subtitle": "發現您最喜愛的音樂，並探索嶄新的音韻。",
+      "subtitle": "發現你最喜愛的音樂，並探索嶄新的音韻。",
       "openFile": "開啟檔案",
       "openFolder": "開啟資料夾",
       "importFiles": "匯入檔案",
@@ -332,7 +332,7 @@
     "recentlyPlayed": {
       "title": "最近播放的",
       "emptyTitle": "尚未聆聽任何歌曲",
-      "emptyDescription": "播放一首曲目後它會出現在這裡。隨著您不斷探索，聆聽紀錄會逐漸累積。"
+      "emptyDescription": "播放一首曲目後它會出現在這裡。隨著你不斷探索，聆聽紀錄會逐漸累積。"
     },
     "recentlyAdded": {
       "title": "最近新增"
@@ -353,7 +353,7 @@
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "你的 {{year}} 年度回顧",
-      "subtitle": "您的藝人、聆聽分鐘數、一整年 — 透過幾張投影片為您呈現。",
+      "subtitle": "你的藝人、聆聽分鐘數、一整年 — 透過幾張投影片為你呈現。",
       "cta": "開啟",
       "dismiss": "隱藏 Wrapped 橫幅"
     },
@@ -398,7 +398,7 @@
     "empty": {
       "morceaux": {
         "title": "音樂庫是空的",
-        "description": "匯入音訊檔案或資料夾，以充實您的音樂庫。"
+        "description": "匯入音訊檔案或資料夾，以充實你的音樂庫。"
       },
       "albums": {
         "title": "未找到任何專輯",
@@ -535,7 +535,7 @@
           "help": "檔案完全沒有標題。"
         },
         "missing_artist": {
-          "label": "沒有演出者",
+          "label": "沒有藝人",
           "help": "沒有署名任何人。"
         },
         "missing_album": {
@@ -563,8 +563,8 @@
           "help": "同一張專輯的曲目標示了不同年份。"
         },
         "compilation_no_album_artist": {
-          "label": "合輯缺少專輯演出者",
-          "help": "一張未設定專輯演出者的合輯。"
+          "label": "合輯缺少專輯藝人",
+          "help": "一張未設定專輯藝人的合輯。"
         },
         "duplicate_track_number": {
           "label": "曲目編號重複",
@@ -576,7 +576,7 @@
         },
         "probable_duplicate": {
           "label": "疑似重複",
-          "help": "標題相同、演出者相同、時長幾乎一致。"
+          "help": "標題相同、藝人相同、時長幾乎一致。"
         }
       }
     },
@@ -588,7 +588,7 @@
       "resetWidths": "重設欄寬",
       "resize": "調整「{{column}}」欄寬",
       "title": "標題",
-      "artist": "演出者",
+      "artist": "藝人",
       "album": "專輯",
       "year": "年份",
       "trackNumber": "曲目編號",
@@ -615,7 +615,7 @@
     "count_one": "{{count}} 曲目",
     "count_other": "{{count}} 曲目",
     "emptyTitle": "沒有喜愛的曲目",
-    "emptyDescription": "您喜歡的曲目將顯示在這裡。瀏覽您的音樂庫，將喜歡的曲目加入收藏。",
+    "emptyDescription": "你喜歡的曲目將顯示在這裡。瀏覽你的音樂庫，將喜歡的曲目加入收藏。",
     "playAll": "全部播放",
     "unlike": "取消喜歡",
     "like": "加入已喜歡"
@@ -649,12 +649,12 @@
     "count_one": "{{count}} 曲目",
     "count_other": "{{count}} 曲目",
     "emptyTitle": "沒有最近播放的曲目",
-    "emptyDescription": "您正在聆聽的歌曲將自動顯示於此處。"
+    "emptyDescription": "你正在聆聽的歌曲將自動顯示於此處。"
   },
   "statistics": {
     "title": "統計數據",
     "emptyTitle": "沒有相關統計數據",
-    "emptyDescription": "請播放音樂，您的收聽統計資料就會開始顯示在此處。",
+    "emptyDescription": "請播放音樂，你的收聽統計資料就會開始顯示在此處。",
     "range": {
       "label": "期間",
       "7d": "7天",
@@ -843,7 +843,7 @@
     "title": "回饋",
     "hero": {
       "title": "請協助我們改善 WaveFlow",
-      "description": "您發現了錯誤、有改進的建議，或是單純想提供回饋嗎？我們會仔細閱讀每一則訊息，並將您的建議納入考量。"
+      "description": "你發現了錯誤、有改進的建議，或是單純想提供回饋嗎？我們會仔細閱讀每一則訊息，並將你的建議納入考量。"
     },
     "contact": {
       "section": "聯絡我們",
@@ -952,7 +952,7 @@
   "profiles": {
     "select": {
       "title": "誰在聽？",
-      "subtitle": "選擇您的個人檔案，以查看您的音樂庫和播放清單",
+      "subtitle": "選擇你的個人檔案，以查看你的音樂庫和播放清單",
       "add": "新增",
       "edit": "編輯",
       "active": "使用中的個人檔案",
@@ -1040,7 +1040,7 @@
       "dialogTitle": "將播放清單匯出為 M3U 格式"
     },
     "emptyTitle": "此播放清單為空",
-    "emptyDescription": "透過每行中的「+」按鈕，從您的音樂庫中新增曲目。",
+    "emptyDescription": "透過每行中的「+」按鈕，從你的音樂庫中新增曲目。",
     "noneTitle": "尚未選取任何播放清單",
     "noneDescription": "請在側邊欄中選擇一個播放清單，即可在此處查看。",
     "notFoundTitle": "找不到播放清單",
@@ -1187,8 +1187,8 @@
     },
     "similar": {
       "title": "相似藝人",
-      "inLibrary": "在您的音樂庫中",
-      "notInLibrary": "不在您的音樂庫中"
+      "inLibrary": "在你的音樂庫中",
+      "notInLibrary": "不在你的音樂庫中"
     },
     "editMetadata": "編輯資訊"
   },
@@ -1331,7 +1331,7 @@
     "title": "歌詞",
     "loading": "搜尋歌詞……",
     "noTrack": "目前沒有正在播放的曲目",
-    "notFound": "找不到此曲目的歌詞。您可以匯入 .lrc 檔案。",
+    "notFound": "找不到此曲目的歌詞。你可以匯入 .lrc 檔案。",
     "fetchError": "無法連線到歌詞服務，請稍後再試。",
     "importTitle": "匯入 .lrc 檔案",
     "actions": {
@@ -1540,7 +1540,7 @@
     "captureHintWord": "空格鍵 = 下一個字 · Enter = 下一行 · Backspace = 取消最後一個字",
     "notCaptured": "未擷取",
     "exportToFile": "儲存到檔案…",
-    "exportToFileHint": "將歌詞匯出為 .lrc 或 .txt 檔案至您選擇的位置，不會更動音訊檔案",
+    "exportToFileHint": "將歌詞匯出為 .lrc 或 .txt 檔案至你選擇的位置，不會更動音訊檔案",
     "exportedToFile": "已匯出至 {{path}}",
     "destinationLabel": "歌詞預設儲存位置",
     "destination": {
@@ -1581,7 +1581,7 @@
     "masthead": {
       "edition": "晨刊",
       "price": "價格：包含",
-      "subtitle": "「值得印刷的所有音樂。」— 您每日的專屬精選。"
+      "subtitle": "「值得印刷的所有音樂。」— 你每日的專屬精選。"
     },
     "lead": {
       "caption": "圖 1. — 摘自《{{album}}》，{{artist}}。",
@@ -1629,7 +1629,7 @@
         "storageRead": "讀取儲存",
         "assets": "資源 ({{count}})",
         "none": "未請求任何權限",
-        "libraryReadArtists": "讀取你的演出者"
+        "libraryReadArtists": "讀取你的藝人"
       },
       "bundled": "內建",
       "bundledHint": "隨 WaveFlow 提供 — 停用以隱藏。",
@@ -1647,7 +1647,7 @@
         "hide": "隱藏",
         "connectedAs": "已登入為",
         "disconnect": "登出",
-        "loginPrompt": "請登入以記錄您的聆聽紀錄：",
+        "loginPrompt": "請登入以記錄你的聆聽紀錄：",
         "usernamePlaceholder": "使用者名稱",
         "passwordPlaceholder": "密碼",
         "connect": "登入",
@@ -2159,7 +2159,7 @@
     },
     "serverAccount": {
       "title": "WaveFlow 伺服器帳號",
-      "subtitle": "將此個人檔案關聯到您的 waveflow-server 執行個體，以啟用多裝置同步與瀏覽器播放。",
+      "subtitle": "將此個人檔案關聯到你的 waveflow-server 執行個體，以啟用多裝置同步與瀏覽器播放。",
       "signedIn": "已登入",
       "urlLabel": "伺服器 URL",
       "urlPlaceholder": "https://api.waveflow.app",
@@ -2173,17 +2173,17 @@
       "webUrlLabel": "WaveFlow Web URL",
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "透過瀏覽器登入",
-      "signInWithBrowserHint": "在瀏覽器中開啟 WaveFlow Web；您在那裡登入，應用程式會透過本機交握自動取得 JWT。",
+      "signInWithBrowserHint": "在瀏覽器中開啟 WaveFlow Web；你在那裡登入，應用程式會透過本機交握自動取得 JWT。",
       "loginInProgress": "等待瀏覽器…",
       "modeLabel": "同步模式",
       "modes": {
         "hybrid": {
           "label": "混合（預設）",
-          "description": "您的變更保留在本機，同時也會排入佇列以傳送至伺服器。"
+          "description": "你的變更保留在本機，同時也會排入佇列以傳送至伺服器。"
         },
         "local": {
           "label": "僅本機",
-          "description": "即使已登入，也不會向伺服器傳送任何變更。適合您想保持私人的個人檔案。"
+          "description": "即使已登入，也不會向伺服器傳送任何變更。適合你想保持私人的個人檔案。"
         }
       }
     },
@@ -2473,9 +2473,9 @@
   "share": {
     "title": "分享播放清單",
     "subtitle": "為「{{name}}」產生公開連結。任何人都可以在瀏覽器中開啟。",
-    "idleHint": "連結會持續有效，直到您撤銷為止。可隨時在此視窗中停用。",
+    "idleHint": "連結會持續有效，直到你撤銷為止。可隨時在此視窗中停用。",
     "mint": "產生連結",
-    "activeHint": "連結在您所有裝置上皆已啟用。",
+    "activeHint": "連結在你所有裝置上皆已啟用。",
     "revoke": "停用",
     "qrAlt": "分享連結的 QR code",
     "urlLabel": "公開 URL",
@@ -2659,7 +2659,7 @@
       "clearAbort": "取消",
       "statAlbums": "專輯",
       "statTracks": "曲目",
-      "statArtists": "演出者",
+      "statArtists": "藝人",
       "statLibraries": "音樂庫",
       "progressAlbums": "已走訪 {{done}} 張專輯…",
       "progressSweep": "已清點 {{done}} 首曲目…",
@@ -2738,10 +2738,10 @@
       "title": "伺服器中繼資料",
       "subtitle": "修正會儲存在伺服器上，而不是檔案中。",
       "help": "這些修正不會被伺服器的掃描覆蓋，音樂庫的所有成員都看得到。清空某個欄位即撤銷該項修正，檔案本身的值會重新顯示。",
-      "missing": "此曲目尚未收錄到伺服器鏡像中。請先執行一次目錄掃描，然後重試。",
+      "missing": "此曲目尚未收錄到伺服器副本中。請先複製目錄，然後再試一次。",
       "invalidNumber": "年份、曲目編號與光碟編號必須是整數。"
     },
-    "needsMirror": "請先複製上方的伺服器目錄：本節會將您的檔案與本機鏡像比對，而鏡像目前仍是空的。"
+    "needsMirror": "請先複製上方的伺服器目錄：本節會將你的檔案與本機副本比對，而副本目前仍是空的。"
   },
   "tasks": {
     "barLabel": "進行中的工作",
@@ -2754,7 +2754,7 @@
       "library_scan": "掃描音樂庫",
       "analysis": "音訊分析",
       "lyrics_prefetch": "預先擷取歌詞",
-      "catalogue_mirror": "目錄鏡像",
+      "catalogue_mirror": "目錄副本",
       "reconcile": "比對",
       "upload": "上傳",
       "backup": "備份",
@@ -2774,12 +2774,12 @@
       "yearDesc": "最新發行優先",
       "yearAsc": "最早發行優先",
       "titleAsc": "依標題",
-      "artistAsc": "依演出者",
+      "artistAsc": "依藝人",
       "random": "隨機"
     },
     "predicates": {
       "titleContains": "標題包含「{{value}}」",
-      "artistContains": "演出者包含「{{value}}」",
+      "artistContains": "藝人包含「{{value}}」",
       "albumContains": "專輯包含「{{value}}」",
       "pathContains": "路徑包含「{{value}}」",
       "genreIs": "曲風 {{value}}",
@@ -2831,7 +2831,7 @@
     },
     "fields": {
       "title": "標題",
-      "artist": "演出者",
+      "artist": "藝人",
       "album": "專輯",
       "year": "年份",
       "track_number": "音軌編號"
