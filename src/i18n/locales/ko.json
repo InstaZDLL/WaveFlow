@@ -7,7 +7,7 @@
     "confirm": "확인",
     "open": "열기",
     "optional": "(선택 사항)",
-    "viewArtwork": "아트워크 보기",
+    "viewArtwork": "커버 보기",
     "loading": "불러오는 중…"
   },
   "lastfmReauth": {
@@ -52,7 +52,7 @@
     },
     "installed": {
       "title": "업데이트 설치됨",
-      "message": "WaveFlow를 다시 시작하여 새 버전을 적용하십시오."
+      "message": "WaveFlow를 다시 시작하여 새 버전을 적용해 주세요."
     },
     "error": {
       "title": "업데이트 실패"
@@ -250,7 +250,7 @@
         "title": "필터",
         "close": "닫기",
         "reset": "초기화",
-        "hiRes": "고해상도",
+        "hiRes": "Hi-Res",
         "likedOnly": "좋아요만",
         "year": "연도 (부터 → 까지)",
         "bpm": "BPM (부터 → 까지)",
@@ -378,9 +378,9 @@
         "dossiers_zero": "폴더 0개",
         "dossiers_one": "폴더 {{count}}개",
         "dossiers_other": "폴더 {{count}}개",
-        "playlists_zero": "플레이리스트 0개",
-        "playlists_one": "플레이리스트 {{count}}개",
-        "playlists_other": "플레이리스트 {{count}}개",
+        "playlists_zero": "재생 목록 0개",
+        "playlists_one": "재생 목록 {{count}}개",
+        "playlists_other": "재생 목록 {{count}}개",
         "a-corriger_zero": "보고할 것이 없습니다. 라이브러리가 완전합니다.",
         "a-corriger_one": "확인할 항목 {{count}}개",
         "a-corriger_other": "확인할 항목 {{count}}개"
@@ -392,7 +392,7 @@
       "artistes": "아티스트",
       "genres": "장르",
       "dossiers": "폴더",
-      "playlists": "플레이리스트",
+      "playlists": "재생 목록",
       "a-corriger": "확인 필요"
     },
     "empty": {
@@ -435,10 +435,10 @@
       "delete": "라이브러리 삭제",
       "deleteConfirm": "확인을 위해 다시 클릭하세요",
       "importing": "가져오는 중…",
-      "deepRescan": "정밀 재검색 (모든 파일을 다시 읽으므로 느림)",
-      "deepRescanning": "정밀 재검색 중…"
+      "deepRescan": "정밀 재스캔 (모든 파일을 다시 읽으므로 느림)",
+      "deepRescanning": "정밀 재스캔 중…"
     },
-    "changeCover": "앨범 아트 변경",
+    "changeCover": "커버 변경",
     "searchDeezer": "Deezer 검색",
     "localFile": "로컬 파일",
     "fetchMissingCovers": "누락된 모든 커버 가져오기",
@@ -487,7 +487,7 @@
       "watched": "모니터링 중",
       "watchOn": "변경 사항 자동 모니터링",
       "watchOff": "모니터링 중지",
-      "deepRescan": "심층 재스캔(모든 파일을 다시 읽음, 느림)",
+      "deepRescan": "정밀 재스캔(모든 파일을 다시 읽음, 느림)",
       "remove": "라이브러리에서 폴더 제거",
       "removeConfirm": "확인하려면 다시 클릭",
       "removeConfirmWithPlays_one": "다시 클릭하여 확인하세요. 재생 기록 {{count}}개가 유지되며 다음 검사에서 다시 연결됩니다.",
@@ -502,7 +502,7 @@
       "densityGrid": "그리드",
       "actions": "폴더 작업",
       "play": "폴더 재생",
-      "queue": "재생 큐에 추가",
+      "queue": "대기열에 추가",
       "playNext": "다음 곡으로 재생",
       "newPlaylist": "새 재생 목록",
       "batchTag": "태그 일괄 편집",
@@ -510,8 +510,8 @@
     },
     "skeletonAriaLabel": "{{name}} 불러오는 중…",
     "playlistsGrid": {
-      "emptyTitle": "플레이리스트가 없습니다",
-      "emptyHint": "만든 플레이리스트가 여기에 그리드로 표시됩니다.",
+      "emptyTitle": "재생 목록이 없습니다",
+      "emptyHint": "만든 재생 목록이 여기에 그리드로 표시됩니다.",
       "meta_zero": "0곡 · {{duration}}",
       "meta_one": "{{count}}곡 · {{duration}}",
       "meta_other": "{{count}}곡 · {{duration}}"
@@ -594,7 +594,7 @@
       "trackNumber": "트랙 번호",
       "discNumber": "디스크 번호",
       "duration": "길이",
-      "rating": "별점",
+      "rating": "평점",
       "bitrate": "비트레이트",
       "sampleRate": "샘플레이트",
       "bitDepth": "비트 깊이",
@@ -731,7 +731,7 @@
       "subtitle": "몇 곡을 들어보고 나중에 돌아오세요 — Wrapped는 들을수록 채워집니다."
     },
     "intro": {
-      "eyebrow": "WaveFlow 결산",
+      "eyebrow": "WaveFlow Wrapped",
       "subtitle": "음악으로 보는 한 해."
     },
     "minutes": {
@@ -842,7 +842,7 @@
   "feedback": {
     "title": "피드백",
     "hero": {
-      "title": "WaveFlow을 개선하는 데 도움을 주세요",
+      "title": "WaveFlow를 개선하는 데 도움을 주세요",
       "description": "버그를 발견하셨거나, 개선할 점이 있거나, 단순히 의견을 주시고 싶으신가요? 저희는 모든 메시지를 꼼꼼히 읽고 여러분의 제안을 적극 반영하고 있습니다."
     },
     "contact": {
@@ -889,7 +889,7 @@
         "unknown": "재생에 실패했습니다"
       },
       "notice": {
-        "exclusive-refused": "이 장치는 배타 모드를 허용하지 않습니다. 공유 모드로 재생합니다",
+        "exclusive-refused": "이 장치는 독점 모드를 허용하지 않습니다. 공유 모드로 재생합니다",
         "dop-refused": "이 DAC는 네이티브 DSD를 허용하지 않습니다. PCM으로 변환합니다",
         "paused-device-lost": "장치 연결 끊김: 재생을 일시정지했습니다",
         "unknown": "오디오 출력이 변경되었습니다"
@@ -898,7 +898,7 @@
     }
   },
   "queue": {
-    "title": "재생 큐",
+    "title": "대기열",
     "inactive": "비활성화됨",
     "count_zero": "0곡",
     "count_one": "{{count}}곡",
@@ -934,9 +934,9 @@
       "minPeriod": "최소 주기: {{value}} 프레임",
       "formats": "형식",
       "rates": "샘플링 주파수",
-      "caveat": "드라이버가 표기하는 것과 배타 모드에서 실제로 받아들이는 것은 서로 다른 문제입니다.",
+      "caveat": "드라이버가 표기하는 것과 독점 모드에서 실제로 받아들이는 것은 서로 다른 문제입니다.",
       "source": {
-        "wasapiExclusive": "배타 모드로 드라이버에 직접 확인했습니다.",
+        "wasapiExclusive": "독점 모드로 드라이버에 직접 확인했습니다.",
         "alsaHardware": "변환 계층 없는 ALSA 하드웨어 매개변수입니다.",
         "coreAudio": "장치가 시스템에 보고하는 정보입니다.",
         "unavailable": "장치가 사용 중이거나 없습니다. 아무것도 읽지 못했습니다."
@@ -964,7 +964,7 @@
       "nameLabel": "프로필 이름",
       "namePlaceholder": "이름을 입력하세요...",
       "colorLabel": "프로필 색상",
-      "colorAria": "색상{{color}}",
+      "colorAria": "색상 {{color}}",
       "submit": "프로필 만들기"
     },
     "manage": {
@@ -1006,7 +1006,7 @@
     "descriptionLabel": "설명",
     "descriptionPlaceholder": "간단한 설명...",
     "colorLabel": "색상",
-    "colorAria": "색상{{color}}",
+    "colorAria": "색상 {{color}}",
     "iconLabel": "아이콘",
     "iconAria": "{{icon}} 아이콘",
     "submit": "만들기",
@@ -1034,7 +1034,7 @@
       "deleteConfirm": "확인을 위해 다시 클릭하세요",
       "share": "공유",
       "reorder": "순서 변경",
-      "removeFromPlaylist": "플레이리스트에서 제거"
+      "removeFromPlaylist": "재생 목록에서 제거"
     },
     "export": {
       "dialogTitle": "재생 목록을 M3U 형식으로 내보내기"
@@ -1052,7 +1052,7 @@
     "noPlaylists": "재생 목록이 없습니다. 아래에서 재생 목록을 만들어 보세요.",
     "createPlaylist": "새 재생 목록",
     "playNext": "다음 곡으로 재생",
-    "addToQueue": "재생 큐에 추가",
+    "addToQueue": "대기열에 추가",
     "like": "좋아요 추가",
     "unlike": "좋아요 취소",
     "removeFromPlaylist": "이 재생 목록에서 제거",
@@ -1246,7 +1246,7 @@
     "openQueue": "대기열 열기",
     "lyrics": {
       "title": "가사",
-      "comingSoon": "곧 출시됩니다"
+      "comingSoon": "곧 제공 예정"
     },
     "startRadio": "라디오 시작",
     "share": {
@@ -1264,7 +1264,7 @@
     "miniPlayer": "미니 플레이어 (항상 위)",
     "previous": "이전 트랙",
     "next": "다음 트랙",
-    "openFullscreen": "몰입 모드",
+    "openFullscreen": "몰입형 보기",
     "devices": "출력 장치",
     "moreActions": "추가 작업",
     "abLoop": "A-B 루프",
@@ -1296,9 +1296,9 @@
       }
     },
     "outputMode": {
-      "exclusive": "배타",
+      "exclusive": "독점",
       "dop": "네이티브 DSD",
-      "exclusiveRefused": "배타 거부됨"
+      "exclusiveRefused": "독점 거부됨"
     }
   },
   "miniPlayer": {
@@ -1408,7 +1408,7 @@
       "year": "연도",
       "bpm": "BPM",
       "durationMin": "재생 시간(분)",
-      "hiRes": "고해상도만",
+      "hiRes": "Hi-Res만",
       "liked": "좋아요한 곡만",
       "formats": "포맷",
       "genres": "장르",
@@ -1497,7 +1497,7 @@
       "neverPlayed": "재생한 적 없음",
       "favourites": "즐겨찾기",
       "forgotten": "잊힌 곡",
-      "hiRes": "하이레스",
+      "hiRes": "Hi-Res",
       "upTempo": "빠른 템포"
     },
     "predicateGroups": {
@@ -1699,7 +1699,7 @@
         "portHint": "기본값 6600",
         "password": "비밀번호",
         "passwordPlaceholder": "없음",
-        "passwordHint": "선택 사항. 공유 네트워크에서는 권장합니다 — MPD 프로토콜은 평문으로 전송합니다.",
+        "passwordHint": "선택 사항. 공유 네트워크에서는 권장합니다 — MPD 프로토콜은 평문으로 전송됩니다.",
         "lanWarning": "로컬 네트워크 전체에서 접근할 수 있습니다: 네트워크의 누구나 재생을 제어할 수 있습니다.",
         "lanWarningAuth": "로컬 네트워크 전체에서 접근할 수 있지만 재생 제어에는 설정한 비밀번호가 필요합니다.",
         "statusRunning": "실행 중",
@@ -1765,7 +1765,7 @@
     },
     "generatorAlbumMode": {
       "title": "앨범 단위로 세션 구성",
-      "subtitle": "무드 라디오와 Daily Mix가 흩어진 트랙 대신 앨범을 골라 순서대로 재생합니다"
+      "subtitle": "분위기 라디오와 Daily Mix가 흩어진 트랙 대신 앨범을 골라 순서대로 재생합니다"
     },
     "exclusive": {
       "title": "독점 출력",
@@ -1774,7 +1774,7 @@
     },
     "matchSourceRate": {
       "title": "각 트랙의 샘플링 주파수에 맞추기",
-      "subtitle": "배타 출력에서 트랙마다 해당 주파수로 장치를 다시 엽니다. 장치가 받아들이면 리샘플링을 피하고, 주파수가 바뀔 때마다 끊깁니다"
+      "subtitle": "독점 출력에서 트랙마다 해당 주파수로 장치를 다시 엽니다. 장치가 받아들이면 리샘플링을 피하고, 주파수가 바뀔 때마다 끊깁니다"
     },
     "mono": {
       "title": "모노 오디오",
@@ -1818,7 +1818,7 @@
     },
     "visualizer": {
       "title": "오디오 비주얼라이저",
-      "subtitle": "몰입 모드에서 실시간 스펙트럼을 표시합니다 (디코더 스레드의 경량 FFT)",
+      "subtitle": "몰입형 보기에서 실시간 스펙트럼을 표시합니다 (디코더 스레드의 경량 FFT)",
       "cycleColor": "비주얼라이저 색상: {{color}}",
       "colors": {
         "white": "화이트",
@@ -1893,7 +1893,7 @@
       "progress": "{{current}}/{{total}} 처리됨 · {{hits}}곡 찾음"
     },
     "regenerateThumbnails": "썸네일 재생성",
-    "regenerateThumbnailsSubtitle": "모든 앨범 아트에 대해 누락된 1x/2x 버전을 재생성합니다",
+    "regenerateThumbnailsSubtitle": "모든 커버에 대해 누락된 1x/2x 버전을 재생성합니다",
     "regenerateThumbnailsAction": "재생성",
     "regenerateThumbnailsDone": "썸네일 {{count}}개 재생성됨",
     "pruneAlbumCovers": "사용하지 않는 Deezer 앨범 커버 정리",
@@ -2120,7 +2120,7 @@
         "title": "커버를 클릭했을 때",
         "immersive": {
           "label": "몰입형 보기 열기",
-          "description": "기본값 — 앨범 아트를 크게 보여 주는 전체 화면 '지금 재생 중' 화면을 엽니다."
+          "description": "기본값 — 커버를 크게 보여 주는 전체 화면 '지금 재생 중' 화면을 엽니다."
         },
         "nowPlaying": {
           "label": "재생 중 패널 표시",
@@ -2244,7 +2244,7 @@
     },
     "statsKpis": {
       "title": "통계 지표",
-      "subtitle": "통계 페이지에 표시할 지표를 선택하세요. 숨기고 싶은 지표의 체크를 해제하세요 — 예: 완전 재생률.",
+      "subtitle": "통계 페이지에 표시할 지표를 선택하세요. 숨기고 싶은 지표의 체크를 해제하세요 — 예: 전체 청취율.",
       "legend": "통계 지표 표시 여부"
     },
     "immersiveView": {
@@ -2494,8 +2494,8 @@
     "backToCategories": "카테고리로 돌아가기",
     "live": "라이브",
     "nowPlaying": "재생 중",
-    "unavailableTitle": "Web Radio가 비활성화됨",
-    "unavailableHint": "30,000개 이상의 방송국을 탐색하려면 설정 → 플러그인에서 Web Radio 플러그인을 활성화하세요.",
+    "unavailableTitle": "웹 라디오가 비활성화됨",
+    "unavailableHint": "30,000개 이상의 방송국을 탐색하려면 설정 → 플러그인에서 웹 라디오 플러그인을 활성화하세요.",
     "favorites": "즐겨찾기",
     "favoritesEmpty": "즐겨찾는 방송국이 아직 없습니다. 방송국의 별을 눌러 저장하세요.",
     "addFavorite": "즐겨찾기에 추가",
@@ -2545,7 +2545,7 @@
     },
     "server": {
       "title": "원격 서버",
-      "subtitle": "이 프로필을 WaveFlow 서버에 연결하세요. 플레이리스트가 사이드바에 표시됩니다.",
+      "subtitle": "이 프로필을 WaveFlow 서버에 연결하세요. 재생 목록이 사이드바에 표시됩니다.",
       "urlLabel": "서버 URL",
       "identify": "식별",
       "unknownType": "알 수 없음",
@@ -2559,7 +2559,7 @@
       "forgetTitle": "캐시된 라이브러리와 서버에 전송되지 않은 오프라인 변경 사항을 모두 삭제합니다",
       "neverSynced": "아직 동기화되지 않음 — 첫 실행 시 전체 스냅샷을 다운로드합니다.",
       "counts": {
-        "playlists_other": "플레이리스트",
+        "playlists_other": "재생 목록",
         "favorites_other": "즐겨찾기",
         "ratings_other": "평점",
         "history_other": "재생 기록",
@@ -2578,17 +2578,17 @@
       "upNext": "다음 재생"
     },
     "playlist": {
-      "label": "원격 플레이리스트",
-      "nameLabel": "플레이리스트 이름",
+      "label": "원격 재생 목록",
+      "nameLabel": "재생 목록 이름",
       "notSent": "아직 서버에 전송되지 않음",
       "addTracks": "트랙 추가",
       "rename": "이름 변경",
       "searchPlaceholder": "서버 카탈로그 검색…",
       "noMatches": "결과가 없습니다.",
       "addTrack": "{{title}} 추가",
-      "addToPlaylist": "플레이리스트에 추가",
+      "addToPlaylist": "재생 목록에 추가",
       "emptyDescription": "‘트랙 추가’를 눌러 서버 카탈로그에서 검색하세요.",
-      "notFoundDescription": "이 플레이리스트는 연결된 서버에 더 이상 존재하지 않습니다.",
+      "notFoundDescription": "이 재생 목록은 연결된 서버에 더 이상 존재하지 않습니다.",
       "keepOffline": "오프라인 보관",
       "keepingProgress": "{{done}}/{{total}} 보관됨",
       "keptOffline_one": "{{count}}개 오프라인",
@@ -2616,13 +2616,13 @@
       "serverFirst": "서버 우선",
       "playbackPreference": "{{title}} 재생 기본 설정",
       "unlink": "{{title}} 연결 해제",
-      "conversionTitle": "명시적 플레이리스트 복사",
+      "conversionTitle": "명시적 재생 목록 복사",
       "conversionSubtitle": "미리 보기에서 모든 신원 연결을 확인해야 합니다. 자동으로 병합하거나 생략하지 않습니다.",
-      "conversionDirection": "플레이리스트 복사 방향",
+      "conversionDirection": "재생 목록 복사 방향",
       "conversionLocalToServer": "로컬 → 서버",
       "conversionServerToLocal": "서버 → 로컬",
-      "conversionSource": "원본 플레이리스트",
-      "conversionNoPlaylists": "플레이리스트 없음",
+      "conversionSource": "원본 재생 목록",
+      "conversionNoPlaylists": "재생 목록 없음",
       "conversionPreview": "미리 보기",
       "conversionConfirm": "복사 확인",
       "itemStatusConfirmed": "확인됨",
@@ -2789,7 +2789,7 @@
       "liked": "좋아요",
       "ratingMin": "평점 ≥ {{value}}",
       "format": "형식 {{value}}",
-      "hiRes": "하이레스",
+      "hiRes": "Hi-Res",
       "sampleRateMin": "≥ {{value}} kHz",
       "bitDepthMin": "≥ {{value}}비트",
       "bpmMin": "BPM ≥ {{value}}",
