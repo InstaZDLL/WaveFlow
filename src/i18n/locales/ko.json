@@ -17,8 +17,8 @@
   },
   "rendering": {
     "banner": {
-      "title": "소프트웨어 렌더링으로 전환했습니다",
-      "message": "이전 실행에서 화면이 표시되지 않았습니다. WaveFlow가 다시 시작하기 위해 하드웨어 가속을 껐습니다. 화면이 느려질 수 있습니다.",
+      "title": "소프트웨어 렌더링이 켜져 있습니다",
+      "message": "이전 실행에서 화면이 표시되지 않았습니다. WaveFlow가 다시 실행될 수 있도록 하드웨어 가속을 껐습니다. 화면 표시가 느려질 수 있습니다.",
       "action": "자세히 보기"
     },
     "card": {
@@ -42,8 +42,8 @@
   },
   "updater": {
     "available": {
-      "title": "업데이트가 제공됩니다 ({{version}} 버전)",
-      "message": "WaveFlow의 새 버전이 설치 준비가 되었습니다.",
+      "title": "새 업데이트가 있습니다({{version}} 버전)",
+      "message": "새 WaveFlow 버전을 설치할 수 있습니다.",
       "action": "지금 설치하기",
       "later": "나중에"
     },
@@ -68,7 +68,7 @@
       "title": "중요: 로컬 음악 전용",
       "description": "WaveFlow는 스트리밍 서비스가 아닙니다. 기기에 이미 있는 파일을 재생합니다.",
       "calloutTitle": "알아두어야 할 사항",
-      "bulletOwn": "본인의 라이브러리를 준비하세요 (MP3, FLAC, ALAC, OGG, DSD…)",
+      "bulletOwn": "본인의 라이브러리를 준비하세요(MP3, FLAC, ALAC, OGG, DSD…)",
       "bulletImport": "폴더를 가져오거나 파일을 끌어다 놓으세요",
       "bulletScrobble": "Last.fm을 연결하여 백그라운드에서 재생 기록을 스크로블하세요"
     },
@@ -91,7 +91,7 @@
       "quickSettings": "빠른 설정",
       "autoAnalyze": {
         "title": "곡 자동 분석",
-        "description": "스캔 중 BPM과 키를 감지 — Radio와 Mood Radio에 활용됩니다."
+        "description": "스캔 중 BPM과 조성을 감지 — 라디오와 분위기 라디오에 활용됩니다."
       }
     },
     "lastfm": {
@@ -111,7 +111,7 @@
       "togglePassword": "비밀번호 표시/숨기기",
       "connect": "Last.fm 연결",
       "missingFields": "API 키, 시크릿, 사용자 이름, 비밀번호를 모두 입력하세요.",
-      "connectedTitle": "{{user}}(으)로 연결됨",
+      "connectedTitle": "연결된 계정: {{user}}",
       "connectedSubtitle": "곡을 재생하면 스크로블링이 자동으로 시작됩니다."
     },
     "scan": {
@@ -128,7 +128,7 @@
       "nextSteps": "다음 단계:",
       "bulletExplore": "라이브러리, 앨범, 아티스트 탭에서 라이브러리를 탐색하세요",
       "bulletQueue": "곡을 클릭하여 첫 대기열을 만드세요",
-      "bulletSettings": "사이드바에서 세부 설정을 조정하세요 (외관, 통합…)",
+      "bulletSettings": "사이드바에서 세부 설정을 조정하세요(외관, 통합…)",
       "tipImmersiveTitle": "팁: 몰입형 보기",
       "tipImmersiveBody": "플레이어의 커버를 클릭하면 커버와 가사가 나란히 있는 전체 화면 보기가 열립니다."
     },
@@ -240,7 +240,7 @@
   },
   "topbar": {
     "search": {
-      "placeholder": "곡, 아티스트, 앨범 검색...",
+      "placeholder": "곡, 아티스트, 앨범 검색…",
       "results_zero": "결과가 없습니다",
       "results_one": "{{count}}개 결과",
       "results_other": "{{count}}개 결과",
@@ -252,15 +252,15 @@
         "reset": "초기화",
         "hiRes": "Hi-Res",
         "likedOnly": "좋아요만",
-        "year": "연도 (부터 → 까지)",
-        "bpm": "BPM (부터 → 까지)",
-        "durationMin": "재생 시간(분) (부터 → 까지)",
-        "format": "포맷",
+        "year": "연도(시작 → 종료)",
+        "bpm": "BPM(최소 → 최대)",
+        "durationMin": "재생 시간(분, 최소 → 최대)",
+        "format": "형식",
         "genres": "장르"
       },
       "artists": "아티스트",
       "albums": "앨범",
-      "titles": "곡"
+      "titles": "제목"
     },
     "theme": {
       "enableLight": "밝은 모드 켜기",
@@ -286,7 +286,7 @@
     },
     "banner": {
       "badge": "감상 준비 완료",
-      "subtitle": "좋아하는 음악을 발견하고 새로운 사운드를 탐험해 보세요.",
+      "subtitle": "좋아하는 음악을 즐기고 새로운 사운드를 발견해 보세요.",
       "openFile": "파일 열기",
       "openFolder": "폴더 열기",
       "importFiles": "파일 가져오기",
@@ -301,7 +301,7 @@
     },
     "moodRadio": {
       "title": "분위기 라디오",
-      "subtitle": "템포·음량·장르 순",
+      "subtitle": "템포·라우드니스·장르 기준",
       "trackCount_one": "{{count}}곡",
       "trackCount_other": "{{count}}곡",
       "empty": "분석된 곡이 부족합니다",
@@ -338,7 +338,7 @@
       "title": "최근 추가됨"
     },
     "dailyMix": {
-      "title": "당신을 위한 추천",
+      "title": "나를 위한 추천",
       "regenerate": "다시 생성",
       "regenerating": "생성 중…",
       "emptyTitle": "아직 Daily Mix가 없습니다",
@@ -353,7 +353,7 @@
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "{{year}}년 결산",
-      "subtitle": "나만의 아티스트, 청취 시간, 그리고 한 해의 기록을 슬라이드로 만나보세요.",
+      "subtitle": "올해 함께한 아티스트와 감상 시간, 한 해의 기록을 슬라이드로 만나보세요.",
       "cta": "열기",
       "dismiss": "Wrapped 배너 숨기기"
     },
@@ -381,7 +381,7 @@
         "playlists_zero": "재생 목록 0개",
         "playlists_one": "재생 목록 {{count}}개",
         "playlists_other": "재생 목록 {{count}}개",
-        "a-corriger_zero": "보고할 것이 없습니다. 라이브러리가 완전합니다.",
+        "a-corriger_zero": "확인할 항목이 없습니다. 라이브러리 정보가 모두 갖춰져 있습니다.",
         "a-corriger_one": "확인할 항목 {{count}}개",
         "a-corriger_other": "확인할 항목 {{count}}개"
       }
@@ -409,7 +409,7 @@
         "description": "먼저 오디오 파일을 가져오세요."
       },
       "genres": {
-        "title": "해당 장르가 없습니다",
+        "title": "장르가 없습니다",
         "description": "오디오 파일을 가져와 장르를 확인해 보세요."
       },
       "dossiers": {
@@ -427,22 +427,22 @@
     "actions": {
       "importFiles": "파일 가져오기",
       "importFolder": "폴더 가져오기",
-      "share": "공유하기 (곧 제공 예정)",
+      "share": "공유하기(곧 제공 예정)",
       "rescan": "라이브러리 다시 스캔하기",
       "rescanning": "다시 스캔 중…",
-      "changeArtwork": "이미지 변경 (곧 제공 예정)",
+      "changeArtwork": "이미지 변경(곧 제공 예정)",
       "edit": "라이브러리 수정",
       "delete": "라이브러리 삭제",
-      "deleteConfirm": "확인을 위해 다시 클릭하세요",
+      "deleteConfirm": "확인하려면 다시 클릭하세요",
       "importing": "가져오는 중…",
-      "deepRescan": "정밀 재스캔 (모든 파일을 다시 읽으므로 느림)",
+      "deepRescan": "정밀 재스캔(모든 파일을 다시 읽으므로 느림)",
       "deepRescanning": "정밀 재스캔 중…"
     },
     "changeCover": "커버 변경",
     "searchDeezer": "Deezer 검색",
     "localFile": "로컬 파일",
     "fetchMissingCovers": "누락된 모든 커버 가져오기",
-    "fetchingCovers": "커버 가져오는 중... ({{current}} / {{total}})",
+    "fetchingCovers": "커버 가져오는 중…({{current}} / {{total}})",
     "fetchCoversResult": "{{count}}개의 커버를 가져왔습니다",
     "fetchCoversFailed": "커버 가져오기 실패",
     "table": {
@@ -487,11 +487,11 @@
       "watched": "모니터링 중",
       "watchOn": "변경 사항 자동 모니터링",
       "watchOff": "모니터링 중지",
-      "deepRescan": "정밀 재스캔(모든 파일을 다시 읽음, 느림)",
+      "deepRescan": "정밀 재스캔(모든 파일을 다시 읽으므로 느림)",
       "remove": "라이브러리에서 폴더 제거",
-      "removeConfirm": "확인하려면 다시 클릭",
-      "removeConfirmWithPlays_one": "다시 클릭하여 확인하세요. 재생 기록 {{count}}개가 유지되며 다음 검사에서 다시 연결됩니다.",
-      "removeConfirmWithPlays_other": "다시 클릭하여 확인하세요. 재생 기록 {{count}}개가 유지되며 다음 검사에서 다시 연결됩니다."
+      "removeConfirm": "확인하려면 다시 클릭하세요",
+      "removeConfirmWithPlays_one": "확인하려면 다시 클릭하세요. 재생 기록 {{count}}개는 유지되며 다음 스캔에서 다시 연결됩니다.",
+      "removeConfirmWithPlays_other": "확인하려면 다시 클릭하세요. 재생 기록 {{count}}개는 유지되며 다음 스캔에서 다시 연결됩니다."
     },
     "folderBrowser": {
       "open": "이 폴더 탐색",
@@ -503,7 +503,7 @@
       "actions": "폴더 작업",
       "play": "폴더 재생",
       "queue": "대기열에 추가",
-      "playNext": "다음 곡으로 재생",
+      "playNext": "다음에 재생",
       "newPlaylist": "새 재생 목록",
       "batchTag": "태그 일괄 편집",
       "densityList": "목록"
@@ -524,7 +524,7 @@
     },
     "open": "{{name}} 열기",
     "inventory": {
-      "allClear": "보고할 것이 없습니다. 라이브러리가 완전합니다.",
+      "allClear": "확인할 항목이 없습니다. 라이브러리 정보가 모두 갖춰져 있습니다.",
       "summary_one": "확인할 항목 {{count}}개",
       "summary_other": "확인할 항목 {{count}}개",
       "trackCount_one": "{{count}}곡",
@@ -567,11 +567,11 @@
           "help": "앨범 아티스트가 설정되지 않은 컴필레이션입니다."
         },
         "duplicate_track_number": {
-          "label": "번호 중복",
+          "label": "트랙 번호 중복",
           "help": "두 곡이 같은 자리를 차지합니다."
         },
         "track_number_gap": {
-          "label": "번호 누락",
+          "label": "트랙 번호 누락",
           "help": "디스크의 처음과 끝 사이에 번호가 빠졌습니다."
         },
         "probable_duplicate": {
@@ -596,8 +596,8 @@
       "duration": "길이",
       "rating": "평점",
       "bitrate": "비트레이트",
-      "sampleRate": "샘플레이트",
-      "bitDepth": "비트 깊이",
+      "sampleRate": "샘플 레이트",
+      "bitDepth": "비트 심도",
       "channels": "채널",
       "codec": "코덱",
       "musicalKey": "조성",
@@ -649,7 +649,7 @@
     "count_one": "{{count}}곡",
     "count_other": "{{count}}곡",
     "emptyTitle": "최근 재생한 곡이 없습니다",
-    "emptyDescription": "듣고 계신 곡들이 여기에 자동으로 표시됩니다."
+    "emptyDescription": "재생한 곡이 여기에 자동으로 표시됩니다."
   },
   "statistics": {
     "title": "통계",
@@ -682,15 +682,15 @@
       "tooltip": "{{hour}}시 — {{plays}}회 재생"
     },
     "topTracks": {
-      "title": "인기 곡",
+      "title": "가장 많이 들은 곡",
       "empty": "재생한 곡이 없습니다."
     },
     "topArtists": {
-      "title": "인기 아티스트",
+      "title": "가장 많이 들은 아티스트",
       "empty": "재생한 아티스트가 없습니다."
     },
     "topAlbums": {
-      "title": "인기 앨범",
+      "title": "가장 많이 들은 앨범",
       "empty": "재생한 앨범이 없습니다."
     },
     "heatmap": {
@@ -709,15 +709,15 @@
       "dialogTitle": "통계를 JSON으로 내보내기"
     },
     "topGenres": {
-      "title": "인기 장르",
+      "title": "가장 많이 들은 장르",
       "empty": "재생된 장르가 없습니다."
     }
   },
   "wrapped": {
-    "loading": "당신의 한 해를 준비 중…",
+    "loading": "한 해의 기록을 준비 중…",
     "errorTitle": "결산을 불러올 수 없습니다",
     "close": "닫기",
-    "pause": "일시정지",
+    "pause": "일시 정지",
     "resume": "재개",
     "prev": "이전 슬라이드",
     "next": "다음 슬라이드",
@@ -735,10 +735,10 @@
       "subtitle": "음악으로 보는 한 해."
     },
     "minutes": {
-      "eyebrow": "당신이 들은 시간",
-      "subtitle_zero": "0분의 음악",
-      "subtitle_one": "{{count}}분의 음악",
-      "subtitle_other": "{{count}}분의 음악"
+      "eyebrow": "감상 시간",
+      "subtitle_zero": "0분",
+      "subtitle_one": "{{count}}분",
+      "subtitle_other": "{{count}}분"
     },
     "stats": {
       "plays": "재생",
@@ -746,21 +746,21 @@
       "artists": "아티스트"
     },
     "topTracks": {
-      "title": "가장 좋아하는 곡"
+      "title": "가장 많이 들은 곡"
     },
     "topArtists": {
-      "title": "가장 좋아하는 아티스트"
+      "title": "가장 많이 들은 아티스트"
     },
     "topAlbums": {
-      "title": "가장 좋아하는 앨범"
+      "title": "가장 많이 들은 앨범"
     },
     "activeDay": {
-      "eyebrow": "최고의 하루",
+      "eyebrow": "가장 많이 들은 날",
       "subtitle": "{{duration}} 청취, {{count}}곡"
     },
     "mood": {
       "eyebrow": "평균 BPM",
-      "subtitle": "당신의 한 해를 함께한 리듬",
+      "subtitle": "한 해를 이끈 리듬",
       "loudness": "평균 라우드니스: {{lufs}} LUFS",
       "energy": {
         "chill": "칠",
@@ -771,7 +771,7 @@
       }
     },
     "clock": {
-      "eyebrow": "청취 시간",
+      "eyebrow": "가장 많이 들은 시간대",
       "subtitle": "하루의 절정"
     },
     "streak": {
@@ -797,7 +797,7 @@
     },
     "outro": {
       "title": "WaveFlow와 함께해 주셔서 감사합니다",
-      "subtitle": "계속 탐험하세요 — Wrapped는 실시간으로 업데이트됩니다.",
+      "subtitle": "계속 새로운 음악을 만나보세요 — Wrapped는 실시간으로 업데이트됩니다.",
       "cta": "홈으로 돌아가기"
     }
   },
@@ -811,7 +811,7 @@
     "sections": {
       "frameworkDesktop": "데스크톱 프레임워크",
       "frontend": "프론트엔드",
-      "backend": "백엔드 (Rust)",
+      "backend": "백엔드(Rust)",
       "audio": "오디오",
       "shortcuts": "키보드 단축키",
       "changelog": "변경 기록",
@@ -871,11 +871,11 @@
       "unmute": "음소거 해제"
     },
     "speed": {
-      "label": "재생 속도 ({{value}})",
+      "label": "재생 속도({{value}})",
       "title": "재생 속도",
       "slider": "속도 슬라이더",
       "custom": "사용자 정의 속도",
-      "pitchHint": "속도에 따라 피치가 변합니다 (타임 스트레칭 없음)."
+      "pitchHint": "속도에 따라 피치가 변합니다(타임 스트레칭 없음)."
     },
     "seek": "탐색",
     "alert": {
@@ -891,7 +891,7 @@
       "notice": {
         "exclusive-refused": "이 장치는 독점 모드를 허용하지 않습니다. 공유 모드로 재생합니다",
         "dop-refused": "이 DAC는 네이티브 DSD를 허용하지 않습니다. PCM으로 변환합니다",
-        "paused-device-lost": "장치 연결 끊김: 재생을 일시정지했습니다",
+        "paused-device-lost": "장치 연결 끊김: 재생을 일시 정지했습니다",
         "unknown": "오디오 출력이 변경되었습니다"
       },
       "dismiss": "닫기"
@@ -904,7 +904,7 @@
     "count_one": "{{count}}곡",
     "count_other": "{{count}}곡",
     "emptyTitle": "들을 곡이 없습니다",
-    "emptyDescription": "음악 라이브러리에서 음악을 재생하여 대기열을 채우세요.",
+    "emptyDescription": "라이브러리에서 곡을 재생하면 대기열에 추가됩니다.",
     "nowPlaying": "재생 중",
     "upNext_zero": "다음 곡",
     "upNext_one": "다음 · {{count}}곡",
@@ -922,7 +922,7 @@
     "activeLabel": "활성 출력",
     "loading": "장치 검색 중…",
     "empty": "사용 가능한 출력 장치가 없습니다",
-    "systemDefault": "기본값",
+    "systemDefault": "시스템 기본값",
     "pinnedUnavailable": "고정됨, 사용 불가",
     "reopen": "이 장치 다시 열기",
     "capabilities": {
@@ -933,7 +933,7 @@
       "channels": "채널: {{value}}",
       "minPeriod": "최소 주기: {{value}} 프레임",
       "formats": "형식",
-      "rates": "샘플링 주파수",
+      "rates": "샘플 레이트",
       "caveat": "드라이버가 표기하는 것과 독점 모드에서 실제로 받아들이는 것은 서로 다른 문제입니다.",
       "source": {
         "wasapiExclusive": "독점 모드로 드라이버에 직접 확인했습니다.",
@@ -962,7 +962,7 @@
       "title": "새 프로필",
       "subtitle": "프로필을 만들어 나만의 맞춤형 경험을 즐겨보세요",
       "nameLabel": "프로필 이름",
-      "namePlaceholder": "이름을 입력하세요...",
+      "namePlaceholder": "이름을 입력하세요…",
       "colorLabel": "프로필 색상",
       "colorAria": "색상 {{color}}",
       "submit": "프로필 만들기"
@@ -977,7 +977,7 @@
       "deleteAria": "{{name}} 프로필 삭제"
     },
     "delete": {
-      "title": "{{name}}을(를) 삭제할까요?",
+      "title": "‘{{name}}’ 프로필을 삭제할까요?",
       "subtitle": "이 프로필은 영구적으로 삭제됩니다.",
       "warning": "이 프로필의 모든 라이브러리, 재생 목록, 재생 기록이 사라집니다. 이 작업은 되돌릴 수 없습니다.",
       "submit": "프로필 삭제",
@@ -990,9 +990,9 @@
     "previewDefault": "라이브러리 만들기",
     "previewSubtitle": "0곡 · 라이브러리",
     "nameLabel": "라이브러리 이름",
-    "namePlaceholder": "예: 록, 재즈, 클래식...",
+    "namePlaceholder": "예: 록, 재즈, 클래식…",
     "descriptionLabel": "설명",
-    "descriptionPlaceholder": "간단한 설명...",
+    "descriptionPlaceholder": "간단한 설명…",
     "submit": "라이브러리 만들기",
     "submitEdit": "저장"
   },
@@ -1002,9 +1002,9 @@
     "previewDefault": "새 재생 목록",
     "previewSubtitle": "0곡 · 재생 목록",
     "nameLabel": "이름",
-    "namePlaceholder": "예: Chill Vibes, Workout Mix...",
+    "namePlaceholder": "예: Chill Vibes, Workout Mix…",
     "descriptionLabel": "설명",
-    "descriptionPlaceholder": "간단한 설명...",
+    "descriptionPlaceholder": "간단한 설명…",
     "colorLabel": "색상",
     "colorAria": "색상 {{color}}",
     "iconLabel": "아이콘",
@@ -1015,7 +1015,7 @@
     "coverMenu": "커버 옵션",
     "coverChange": "사진 변경",
     "coverRemove": "사진 제거",
-    "coverAutoHint": "자동 커버 — 콘텐츠에 맞게 업데이트됩니다",
+    "coverAutoHint": "자동 커버 — 곡 목록에 맞춰 업데이트됩니다",
     "coverManualHint": "사용자 지정 이미지",
     "alsoOnServer": "{{server}}에도 만들기",
     "alsoOnServerFallback": "원격 서버"
@@ -1031,7 +1031,7 @@
       "edit": "재생 목록 수정",
       "exportM3u": "M3U로 내보내기",
       "delete": "재생 목록 삭제",
-      "deleteConfirm": "확인을 위해 다시 클릭하세요",
+      "deleteConfirm": "확인하려면 다시 클릭하세요",
       "share": "공유",
       "reorder": "순서 변경",
       "removeFromPlaylist": "재생 목록에서 제거"
@@ -1051,7 +1051,7 @@
     "addToPlaylist": "재생 목록에 추가",
     "noPlaylists": "재생 목록이 없습니다. 아래에서 재생 목록을 만들어 보세요.",
     "createPlaylist": "새 재생 목록",
-    "playNext": "다음 곡으로 재생",
+    "playNext": "다음에 재생",
     "addToQueue": "대기열에 추가",
     "like": "좋아요 추가",
     "unlike": "좋아요 취소",
@@ -1071,8 +1071,8 @@
   "batchTagEdit": {
     "title": "태그 일괄 편집",
     "subtitle": "{{count}}곡 선택됨",
-    "help": "선택 전체에 적용할 필드를 체크하세요. 체크하지 않은 필드는 곡별로 유지됩니다.",
-    "submit": "적용 ({{count}}개 필드)",
+    "help": "선택한 모든 곡에 적용할 필드를 체크하세요. 체크하지 않은 필드는 곡마다 기존 값을 유지합니다.",
+    "submit": "적용({{count}}개 필드)",
     "fields": {
       "artist": "아티스트",
       "album": "앨범",
@@ -1099,7 +1099,7 @@
       "file": "파일"
     },
     "bpm": "BPM",
-    "loudness": "음량",
+    "loudness": "라우드니스",
     "replayGain": "ReplayGain",
     "peak": "피크",
     "analyze": "분석",
@@ -1113,9 +1113,9 @@
     "sampleRate": "샘플 레이트",
     "channels": "채널",
     "bitrate": "비트레이트",
-    "key": "키",
+    "key": "조성",
     "fileSize": "크기",
-    "addedAt": "추가됨",
+    "addedAt": "추가일",
     "filePath": "경로",
     "showInExplorer": "탐색기에서 보기",
     "mono": "모노",
@@ -1142,7 +1142,7 @@
     "count_other": "{{count}}개 선택됨",
     "play": "재생",
     "addToQueue": "대기열에 추가",
-    "playNext": "다음 곡으로 재생",
+    "playNext": "다음에 재생",
     "addToPlaylist": "재생 목록에 추가",
     "removeFromPlaylist": "재생 목록에서 제거",
     "clear": "선택 해제"
@@ -1154,7 +1154,7 @@
     "trackCount_zero": "0곡",
     "trackCount_one": "{{count}}곡",
     "trackCount_other": "{{count}}곡",
-    "discHeader": "{{number}}번째 디스크",
+    "discHeader": "디스크 {{number}}",
     "releaseDate": "발매일",
     "emptyTitle": "앨범을 찾을 수 없습니다",
     "emptyDescription": "이 앨범은 현재 프로필에서 더 이상 존재하지 않습니다.",
@@ -1179,7 +1179,7 @@
     "albumTrackCount_one": "{{count}}곡",
     "albumTrackCount_other": "{{count}}곡",
     "emptyTitle": "아티스트를 찾을 수 없습니다",
-    "emptyDescription": "이 아티스트는 현재 활성 프로필에 더 이상 존재하지 않습니다.",
+    "emptyDescription": "이 아티스트는 현재 프로필에 더 이상 존재하지 않습니다.",
     "bio": {
       "title": "아티스트 소개",
       "show": "표시",
@@ -1212,7 +1212,7 @@
   },
   "canvasPicker": {
     "title": "곡 Canvas",
-    "subtitle": "짧은 로컬 MP4 영상을 선택하세요. 커버 대신 재생 뒤에서 반복 재생됩니다.",
+    "subtitle": "짧은 로컬 MP4 영상을 선택하세요. 재생 화면에서 커버 대신 배경으로 반복됩니다.",
     "pickFile": "MP4 파일 선택",
     "removeAction": "Canvas 제거"
   },
@@ -1241,7 +1241,7 @@
     "aboutArtist": "아티스트 소개",
     "readMore": "더 보기",
     "readLess": "접기",
-    "noBio": "아티스트 소개가 없습니다. 설정에서 Last.fm 키를 구성하세요.",
+    "noBio": "아티스트 소개가 없습니다. 설정에서 Last.fm 키를 등록하세요.",
     "nextInQueue": "대기열의 다음 곡",
     "openQueue": "대기열 열기",
     "lyrics": {
@@ -1261,7 +1261,7 @@
     "lyrics": "가사",
     "nowPlaying": "지금 재생 중 표시",
     "queue": "대기열",
-    "miniPlayer": "미니 플레이어 (항상 위)",
+    "miniPlayer": "미니 플레이어(항상 위)",
     "previous": "이전 곡",
     "next": "다음 곡",
     "openFullscreen": "몰입형 보기",
@@ -1282,7 +1282,7 @@
       "noProcessing": "처리 없음",
       "bitPerfect": "비트 퍼펙트",
       "sharedOutput": "공유 출력(시스템 믹서)",
-      "loading": "로드 중…",
+      "loading": "불러오는 중…",
       "chip": {
         "dsdToPcm": "DSD → PCM",
         "resample": "리샘플링",
@@ -1323,7 +1323,7 @@
     "cancel": "취소",
     "start": "확인",
     "customPlaceholder": "분",
-    "customAriaLabel": "사용자 지정 시간 (분)",
+    "customAriaLabel": "사용자 지정 시간(분)",
     "minutes_one": "{{count}}분",
     "minutes_other": "{{count}}분"
   },
@@ -1332,24 +1332,24 @@
     "loading": "가사 검색 중…",
     "noTrack": "재생 중인 곡 없음",
     "notFound": "이 곡에 대한 가사가 없습니다. .lrc 파일을 가져올 수 있습니다.",
-    "fetchError": "가사 제공자에 연결할 수 없습니다. 나중에 다시 시도해 주세요.",
+    "fetchError": "가사 제공 서비스에 연결할 수 없습니다. 나중에 다시 시도해 주세요.",
     "importTitle": ".lrc 파일 가져오기",
     "actions": {
       "import": ".lrc 파일 가져오기",
-      "refetch": "검색 다시 실행",
+      "refetch": "다시 검색",
       "clear": "가사 지우기",
       "fullscreen": "전체 화면",
       "edit": "가사 편집",
-      "cycleLocalization": "추가 표시 전환"
+      "cycleLocalization": "보조 표기 전환"
     },
     "localization": {
-      "off": "추가 표시 없음",
+      "off": "보조 표기 없음",
       "romanization": "로마자 표기 표시 중",
       "translation": "번역 표시 중"
     },
     "source": {
       "embedded": "파일에 가사가 포함되어 있음",
-      "lrc_file": ".lrc 파일 가져오기",
+      "lrc_file": "가져온 .lrc 파일",
       "api": "온라인 소스",
       "manual": "수동 입력",
       "pickerHint": "소스 전환"
@@ -1368,7 +1368,7 @@
       "plain": "동기화 안 됨"
     },
     "toast": {
-      "tagWriteSkipped": "TTML은 캐시에만 저장되었습니다 (오디오 태그에는 기록되지 않음)",
+      "tagWriteSkipped": "TTML은 캐시에만 저장되었습니다(오디오 태그에는 기록되지 않음)",
       "sidecarWriteSkipped": "가사는 데이터베이스에 저장되었으나, TTML은 .lrc/.txt 사이드카 파일로 내보낼 수 없습니다."
     }
   },
@@ -1377,7 +1377,7 @@
     "summary": "{{groups}}개 그룹 · {{duplicates}}개 중복 제거 대상",
     "scanning": "스캔 중…",
     "empty": "중복 없음",
-    "emptyHint": "라이브러리가 깔끔합니다.",
+    "emptyHint": "라이브러리에 중복 항목이 없습니다.",
     "rescan": "다시 스캔",
     "deleteOthers_zero": "삭제할 항목 없음",
     "deleteOthers_one": "{{count}}개 중복 삭제",
@@ -1385,14 +1385,14 @@
     "keepAria": "{{title}} 유지"
   },
   "dragDrop": {
-    "dropHint": "놓아서 가져오기",
+    "dropHint": "여기에 놓아 가져오기",
     "importing": "가져오는 중…",
-    "subtitle": "폴더 또는 오디오 파일 허용"
+    "subtitle": "폴더와 오디오 파일을 가져올 수 있습니다"
   },
   "abLoop": {
     "setA": "A-B 루프: 현재 위치에 A 지점 설정",
-    "setB": "A-B 루프: B 지점 설정 (A = {{a}})",
-    "armed": "A-B 루프 활성: {{a}} → {{b}} (클릭하여 제거)"
+    "setB": "A-B 루프: B 지점 설정(A = {{a}})",
+    "armed": "A-B 루프 활성: {{a}} → {{b}}(클릭하여 제거)"
   },
   "smartPlaylistEditor": {
     "createTitle": "새 스마트 재생 목록",
@@ -1410,7 +1410,7 @@
       "durationMin": "재생 시간(분)",
       "hiRes": "Hi-Res만",
       "liked": "좋아요한 곡만",
-      "formats": "포맷",
+      "formats": "형식",
       "genres": "장르",
       "sort": "정렬 기준",
       "limit": "최대 곡 수",
@@ -1430,15 +1430,15 @@
     "sortOptions": {
       "addedDesc": "최근 추가됨",
       "addedAsc": "오래전에 추가됨",
-      "yearDesc": "연도 (내림차순)",
-      "yearAsc": "연도 (오름차순)",
-      "titleAsc": "제목 (A → Z)",
-      "artistAsc": "아티스트 (A → Z)",
+      "yearDesc": "연도(내림차순)",
+      "yearAsc": "연도(오름차순)",
+      "titleAsc": "제목(A → Z)",
+      "artistAsc": "아티스트(A → Z)",
       "random": "무작위"
     },
     "tree": {
       "sectionTitle": "규칙",
-      "sectionHint": "AND / OR / NOT 으로 조건을 결합합니다. AND 또는 OR 를 클릭해 그룹 연산자를 전환합니다.",
+      "sectionHint": "AND / OR / NOT으로 조건을 결합합니다. AND 또는 OR를 클릭해 그룹 연산자를 전환합니다.",
       "and": "AND",
       "or": "OR",
       "not": "NOT",
@@ -1471,17 +1471,17 @@
       "yearMax": "연도 ≤",
       "bpmMin": "BPM ≥",
       "bpmMax": "BPM ≤",
-      "durationMinMs": "재생 시간 (ms) ≥",
-      "durationMaxMs": "재생 시간 (ms) ≤",
-      "format": "포맷 =",
+      "durationMinMs": "재생 시간(ms) ≥",
+      "durationMaxMs": "재생 시간(ms) ≤",
+      "format": "형식 =",
       "hiRes": "Hi-Res",
       "liked": "좋아요",
       "ratingMin": "평점 ≥",
       "pathContains": "경로 포함",
       "discNumberIs": "디스크 =",
       "addedInLastDays": "추가: 최근",
-      "sampleRateMin": "샘플레이트 ≥",
-      "bitDepthMin": "비트 깊이 ≥",
+      "sampleRateMin": "샘플 레이트 ≥",
+      "bitDepthMin": "비트 심도 ≥",
       "playCountMin": "재생 횟수 ≥",
       "playCountMax": "재생 횟수 ≤",
       "playedInLastDays": "재생: 최근",
@@ -1489,13 +1489,13 @@
       "tagContains": "태그 포함"
     },
     "counting": "계산 중…",
-    "matchCountLimited": "{{total}}곡 중 {{kept}}곡",
+    "matchCountLimited": "일치하는 {{total}}곡 중 {{kept}}곡 유지",
     "templates": {
       "label": "템플릿",
       "placeholder": "템플릿으로 시작…",
       "recentlyAdded": "최근 추가",
       "neverPlayed": "재생한 적 없음",
-      "favourites": "즐겨찾기",
+      "favourites": "좋아요한 곡",
       "forgotten": "잊힌 곡",
       "hiRes": "Hi-Res",
       "upTempo": "빠른 템포"
@@ -1526,7 +1526,7 @@
     "insertBelow": "아래에 줄 삽입",
     "removeLine": "줄 제거",
     "lines": "줄 고정됨",
-    "writeToFile": "오디오 파일에도 기록 (USLT/LYRICS)",
+    "writeToFile": "오디오 파일에도 기록(USLT/LYRICS)",
     "offset": {
       "label": "전체 오프셋",
       "help": "캡처된 모든 줄을 동일한 시간만큼 이동합니다 — 전체적으로 빠르거나 느리게 가져온 LRC 파일의 싱크를 보정할 때 유용합니다.",
@@ -1541,12 +1541,12 @@
     "notCaptured": "캡처되지 않음",
     "exportToFile": "파일로 저장…",
     "exportToFileHint": "오디오 파일은 그대로 두고, 원하는 위치에 .lrc 또는 .txt 가사 파일을 내보냅니다",
-    "exportedToFile": "{{path}} (으)로 내보냈습니다",
+    "exportedToFile": "{{path}}에 내보냈습니다",
     "destinationLabel": "기본 가사 저장 위치",
     "destination": {
       "tag": {
         "label": "내장 태그",
-        "hint": "오디오 파일의 USLT/©lyr에 씁니다 (foobar2000, iTunes 호환)."
+        "hint": "오디오 파일의 USLT/©lyr에 씁니다(foobar2000, iTunes 호환)."
       },
       "sidecar": {
         "label": "사이드카 파일",
@@ -1581,7 +1581,7 @@
     "masthead": {
       "edition": "모닝 에디션",
       "price": "가격: 포함됨",
-      "subtitle": "「인쇄될 가치가 있는 모든 음악.」— 매일을 위한 당신만의 셀렉션."
+      "subtitle": "「인쇄될 가치가 있는 모든 음악.」— 나만을 위한 오늘의 셀렉션."
     },
     "lead": {
       "caption": "그림 1. — 「{{album}}」 중에서, {{artist}}.",
@@ -1606,10 +1606,10 @@
     "plugins": {
       "title": "설치된 플러그인",
       "subtitle": "WaveFlow에 소스, 메타데이터 또는 뷰를 추가하는 확장 기능을 관리합니다.",
-      "loading": "로드 중…",
+      "loading": "불러오는 중…",
       "emptyTitle": "설치된 플러그인이 없습니다",
       "emptyHint": "위 스토어에서 설치하거나 <data>/waveflow/plugins/ 아래에 폴더를 넣으세요.",
-      "byAuthor": "{{author}} 작성",
+      "byAuthor": "{{author}} 제작",
       "enabled": "활성화됨",
       "disabled": "비활성화됨",
       "toggleAria": "{{name}} 활성화 또는 비활성화",
@@ -1626,8 +1626,8 @@
       "permissions": {
         "http": "HTTP ({{count}})",
         "storageState": "사용자 저장소",
-        "storageRead": "스토리지 읽기",
-        "assets": "자산 ({{count}})",
+        "storageRead": "저장소 읽기",
+        "assets": "리소스({{count}})",
         "none": "요청된 권한 없음",
         "libraryReadArtists": "아티스트 목록 읽기"
       },
@@ -1642,7 +1642,7 @@
       "unbind": "해제",
       "unbound": "없음",
       "actions": {
-        "togglePlayback": "재생 / 일시 정지",
+        "togglePlayback": "재생/일시 정지",
         "next": "다음 곡",
         "previous": "이전 곡",
         "volumeUp": "볼륨 올리기",
@@ -1663,7 +1663,7 @@
     "integrations": {
       "lastfm": {
         "title": "Last.fm",
-        "subtitle": "아티스트 정보 및 스크로블링. last.fm/api/account/create에서 키를 생성하세요.",
+        "subtitle": "아티스트 소개 및 스크로블링. last.fm/api/account/create에서 키를 생성하세요.",
         "placeholder": "API 키",
         "secretPlaceholder": "공유 시크릿",
         "save": "저장",
@@ -1708,9 +1708,9 @@
       },
       "spotify": {
         "title": "Spotify",
-        "subtitle": "자신의 Spotify Developer Client ID로 Spotify Premium에 연결하세요.",
+        "subtitle": "직접 발급한 Spotify Developer Client ID로 Spotify Premium에 연결하세요.",
         "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "이 Redirect URI를 Spotify Developer Dashboard에 추가하세요: http://127.0.0.1:49387/spotify/callback",
+        "redirectHint": "Spotify Developer Dashboard에 다음 Redirect URI를 추가하세요: http://127.0.0.1:49387/spotify/callback",
         "connectedAs": "연결됨:",
         "disconnect": "연결 해제",
         "connecting": "연결 중…",
@@ -1723,19 +1723,19 @@
     },
     "crossfade": {
       "title": "크로스페이드",
-      "subtitle": "곡 간의 부드러운 전환 (곧 제공 예정)"
+      "subtitle": "곡 간의 부드러운 전환(곧 제공 예정)"
     },
     "smartCrossfade": {
       "title": "스마트 크로스페이드",
-      "subtitle": "같은 앨범의 두 곡 사이에서 페이드를 자동으로 건너뜁니다 (콘셉트 앨범과 라이브 세트에 적합)"
+      "subtitle": "같은 앨범의 두 곡 사이에서 페이드를 자동으로 건너뜁니다(콘셉트 앨범과 라이브 세트에 적합)"
     },
     "dynamicCrossfade": {
       "title": "동적 크로스페이드",
-      "subtitle": "곡 간 BPM 차이에 따라 페이드 길이를 자동 조절합니다 (BPM을 알 수 없으면 고정 크로스페이드로 돌아갑니다)"
+      "subtitle": "곡 간 BPM 차이에 따라 페이드 길이를 자동 조절합니다(BPM을 알 수 없으면 고정 크로스페이드로 돌아갑니다)"
     },
     "normalize": {
       "title": "음량 평준화",
-      "subtitle": "볼륨이 너무 큰 곡의 음량을 줄여 전체적인 음량을 균일하게 맞춥니다"
+      "subtitle": "음량이 너무 큰 곡을 낮춰 전체적인 음량을 균일하게 맞춥니다"
     },
     "replayGain": {
       "title": "ReplayGain 적용",
@@ -1750,7 +1750,7 @@
       },
       "preventClipping": {
         "title": "클리핑 방지",
-        "subtitle": "트랙의 피크가 남기는 여유만큼만 게인을 올립니다"
+        "subtitle": "트랙의 피크가 남긴 헤드룸을 넘지 않도록 게인을 제한합니다"
       },
       "mode": {
         "title": "적용할 게인",
@@ -1773,16 +1773,16 @@
       "fallback": "장치가 독점 모드를 허용하지 않습니다. 공유 모드로 돌아갑니다."
     },
     "matchSourceRate": {
-      "title": "각 곡의 샘플링 주파수에 맞추기",
-      "subtitle": "독점 출력에서 곡마다 해당 주파수로 장치를 다시 엽니다. 장치가 받아들이면 리샘플링을 피하고, 주파수가 바뀔 때마다 끊깁니다"
+      "title": "각 곡의 샘플 레이트에 맞추기",
+      "subtitle": "독점 출력에서 곡마다 해당 샘플 레이트로 장치를 다시 엽니다. 장치가 지원하면 리샘플링을 피할 수 있지만, 샘플 레이트가 바뀔 때마다 잠시 끊깁니다"
     },
     "mono": {
       "title": "모노 오디오",
       "subtitle": "좌우 채널을 하나의 신호로 합칩니다"
     },
     "pauseOnDeviceLoss": {
-      "title": "출력 장치가 연결 해제되면 일시정지",
-      "subtitle": "오디오 출력이 사라지면 다른 장치로 옮기지 않고 재생을 일시정지합니다"
+      "title": "출력 장치가 연결 해제되면 일시 정지",
+      "subtitle": "오디오 출력이 사라지면 다른 장치로 옮기지 않고 재생을 일시 정지합니다"
     },
     "language": {
       "title": "언어",
@@ -1794,23 +1794,23 @@
     },
     "minimizeToTray": {
       "title": "시스템 트레이로 최소화",
-      "subtitle": "창을 닫으면 응용 프로그램이 시스템 트레이로 최소화됩니다"
+      "subtitle": "창을 닫으면 앱이 시스템 트레이로 최소화됩니다"
     },
     "scanOnStart": {
       "title": "시작 시 스캔",
-      "subtitle": "프로그램 실행 시 라이브러리를 자동으로 다시 스캔"
+      "subtitle": "앱을 실행할 때 라이브러리를 자동으로 다시 스캔합니다"
     },
     "singleClickPlay": {
       "title": "한 번의 클릭으로 재생",
-      "subtitle": "곡을 클릭하여 재생을 시작합니다 (그렇지 않으면 더블 클릭)."
+      "subtitle": "곡을 한 번 클릭하여 재생합니다. 이 설정을 끄면 두 번 클릭해야 합니다."
     },
     "showSleepTimer": {
       "title": "수면 타이머를 바에 고정",
-      "subtitle": "비활성화 시 타이머는 '...' 메뉴에서 사용할 수 있습니다"
+      "subtitle": "꺼도 타이머는 ‘…’ 메뉴에서 사용할 수 있습니다"
     },
     "showAbLoop": {
       "title": "A-B 루프를 바에 고정",
-      "subtitle": "비활성화 시 A-B 루프는 '...' 메뉴에서 사용할 수 있습니다"
+      "subtitle": "꺼도 A-B 루프는 ‘…’ 메뉴에서 사용할 수 있습니다"
     },
     "showSpotify": {
       "title": "Spotify 항목 표시",
@@ -1818,7 +1818,7 @@
     },
     "visualizer": {
       "title": "오디오 비주얼라이저",
-      "subtitle": "몰입형 보기에서 실시간 스펙트럼을 표시합니다 (디코더 스레드의 경량 FFT)",
+      "subtitle": "몰입형 보기에서 실시간 스펙트럼을 표시합니다(디코더 스레드의 경량 FFT)",
       "cycleColor": "비주얼라이저 색상: {{color}}",
       "colors": {
         "white": "화이트",
@@ -1836,16 +1836,16 @@
     },
     "rescan": {
       "title": "라이브러리 다시 스캔하기",
-      "subtitle": "모든 폴더를 다시 확인하고 새 파일을 가져오기",
+      "subtitle": "모든 폴더를 다시 확인하고 새 파일을 가져옵니다",
       "action": "다시 스캔"
     },
     "analyze": {
       "title": "라이브러리 분석하기",
-      "subtitle": "분석되지 않은 곡에 대한 BPM, 음량 및 피크 값 계산",
+      "subtitle": "분석되지 않은 곡의 BPM, 라우드니스 및 피크 값을 계산합니다",
       "action": "분석",
       "cancel": "분석 중지",
       "autoTitle": "자동 분석",
-      "autoSubtitle": "새 곡이 추가되는 각 스캔 후 백그라운드에서 분석 실행",
+      "autoSubtitle": "새 곡이 추가된 스캔이 끝나면 백그라운드에서 분석합니다",
       "failed_one": "{{count}}건 실패",
       "failed_other": "{{count}}건 실패"
     },
@@ -1857,7 +1857,7 @@
     },
     "localArtistImages": {
       "title": "로컬 아티스트 이미지",
-      "subtitle": "음악 옆에 있는 artist.jpg (또는 아티스트 이름을 붙인 .jpg) 파일을 찾아 아티스트 사진으로 사용합니다.",
+      "subtitle": "음악 옆에 있는 artist.jpg(또는 아티스트 이름을 붙인 .jpg) 파일을 찾아 아티스트 사진으로 사용합니다.",
       "action": "스캔",
       "done": "{{considered}}명 중 {{linked}}명의 아티스트에 로컬 이미지를 연결했습니다"
     },
@@ -1873,7 +1873,7 @@
       "import": {
         "action": "가져오기",
         "dialogTitle": "WaveFlow 프로필 가져오기",
-        "done": "프로필을 가져왔습니다 (id {{id}}). 프로필 선택기에서 전환하세요.",
+        "done": "프로필을 가져왔습니다(ID: {{id}}). 프로필 선택기에서 전환하세요.",
         "failed": "가져오기에 실패했습니다. 파일이 손상되었거나 호환되지 않을 수 있습니다."
       }
     },
@@ -1903,7 +1903,7 @@
     "pruneAlbumCoversFailed": "커버 정리 실패",
     "reset": {
       "title": "앱 초기화",
-      "subtitle": "모든 데이터를 삭제하고 초기 상태로 복원",
+      "subtitle": "모든 데이터를 삭제하고 초기 상태로 복원합니다",
       "action": "초기화",
       "confirm": {
         "title": "전체 앱을 초기화하시겠습니까?",
@@ -1933,18 +1933,18 @@
       "inSync": "동기화됨",
       "outOfSync": "불일치",
       "error": "오류: {{message}}",
-      "reasonGeneric": "건너뜀 ({{reason}})",
+      "reasonGeneric": "건너뜀({{reason}})",
       "reason": {
         "offline": "오프라인 모드 활성",
         "sync_mode_local": "프로필이 로컬 모드입니다",
-        "not_configured": "서버가 구성되지 않음",
+        "not_configured": "서버가 설정되지 않음",
         "profile_canonical_id_missing": "초기 동기화 대기 중"
       },
       "backfillAlreadyRunning": "이미 동기화가 실행 중입니다",
-      "backfillSkipped": "동기화 건너뜀 ({{reason}})",
+      "backfillSkipped": "동기화 건너뜀({{reason}})",
       "backfillSummary": "{{pushed}}개 전송 · {{pulled}}개 수신 · {{lww}}개 병합 · {{failed}}개 실패",
       "col": {
-        "entity": "엔티티",
+        "entity": "항목",
         "state": "상태",
         "missingLocally": "로컬 누락",
         "missingRemotely": "원격 누락",
@@ -1980,13 +1980,13 @@
     },
     "gapless": {
       "title": "갭리스 재생",
-      "subtitle": "연속된 곡을 미세한 무음 없이 이어 재생합니다 (라이브 및 콘셉트 앨범에 적합)"
+      "subtitle": "연속된 곡을 미세한 무음 없이 이어 재생합니다(라이브 및 콘셉트 앨범에 적합)"
     },
     "equalizer": {
       "title": "이퀄라이저",
       "subtitle": "6개 피킹 밴드, ±12 dB. 점을 끌어 곡선을 조정하세요.",
       "presets": "프리셋",
-      "reset": "재설정",
+      "reset": "초기화",
       "preset": {
         "custom": "사용자 지정",
         "flat": "플랫",
@@ -2021,15 +2021,15 @@
       "retentionKeep_one": "프로필당 {{count}}개",
       "retentionKeep_other": "프로필당 {{count}}개",
       "includeMetadataArtworkLabel": "Deezer 이미지 캐시 포함",
-      "includeMetadataArtworkHint": "백업이 커지지만 완전 오프라인으로 복원할 수 있습니다. 가벼운 아카이브를 원하면 체크 해제하세요 (필요 시 캐시가 다시 다운로드됩니다).",
+      "includeMetadataArtworkHint": "백업이 커지지만 완전 오프라인으로 복원할 수 있습니다. 가벼운 아카이브를 원하면 체크 해제하세요(필요 시 캐시가 다시 다운로드됩니다).",
       "changeFolder": "폴더 변경",
       "pickFolderTitle": "백업 폴더 선택",
       "lastRun": "마지막 백업: {{when}}",
-      "neverRun": "없음",
+      "neverRun": "백업한 적 없음",
       "runNow": "지금 백업",
       "runOk_one": "{{count}}개 아카이브가 저장되었습니다.",
       "runOk_other": "{{count}}개 아카이브가 저장되었습니다.",
-      "runPartial": "작성: {{created}}개, 실패: {{failed}}개. 로그를 확인하세요.",
+      "runPartial": "저장됨: {{created}}개, 실패: {{failed}}개. 로그를 확인하세요.",
       "errors": {
         "loadFailed": "백업 설정을 불러올 수 없습니다.",
         "saveFailed": "저장에 실패했습니다. 다시 시도하세요.",
@@ -2038,14 +2038,14 @@
     },
     "uiZoom": {
       "title": "UI 확대/축소",
-      "subtitle": "전체 인터페이스 스케일링 (Ctrl+= / Ctrl+- / Ctrl+0 동작)",
+      "subtitle": "전체 인터페이스의 크기를 조절합니다(Ctrl+= / Ctrl+- / Ctrl+0으로도 조절 가능).",
       "decreaseAria": "축소",
       "increaseAria": "확대",
-      "resetAria": "확대/축소를 100 %로 재설정"
+      "resetAria": "확대/축소를 100%로 초기화"
     },
     "showAudioQualityFooter": {
       "title": "오디오 품질 바 표시",
-      "subtitle": "플레이어 바 아래에 기술 정보 (kHz, kbps, 코덱, 비트 깊이)를 표시합니다. 슬림한 바를 위해 기본값은 꺼짐입니다."
+      "subtitle": "플레이어 바 아래에 기술 정보(kHz, kbps, 코덱, 비트 심도)를 표시합니다. 더 간결한 바를 위해 기본적으로 꺼져 있습니다."
     },
     "categoryNavLabel": "설정 카테고리",
     "appearance": {
@@ -2101,14 +2101,14 @@
       }
     },
     "playerBarLayout": {
-      "title": "재생 막대 레이아웃",
-      "subtitle": "막대에 어떤 버튼을 표시할지, 커버를 클릭했을 때의 동작을 고르세요. 미리 보기는 실시간으로 갱신됩니다.",
+      "title": "플레이어 바 레이아웃",
+      "subtitle": "플레이어 바에 표시할 버튼과 커버를 클릭했을 때의 동작을 고르세요. 미리 보기는 실시간으로 갱신됩니다.",
       "preview": "미리 보기",
       "previewEmpty": "버튼 없음 — 막대에는 커버와 재생 컨트롤만 나타납니다.",
       "buttons": {
-        "abLoop": "A-B 반복",
+        "abLoop": "A-B 루프",
         "sleepTimer": "수면 타이머",
-        "eqPreset": "이퀄라이저 (프리셋)",
+        "eqPreset": "이퀄라이저(프리셋)",
         "lyrics": "가사",
         "queue": "대기열",
         "device": "오디오 출력",
@@ -2141,7 +2141,7 @@
       "modes": {
         "auto": {
           "label": "자동",
-          "description": "12월 1일부터 1월 31일까지만 표시 — Spotify Wrapped와 동일."
+          "description": "12월 1일부터 1월 31일까지만 표시됩니다. Spotify Wrapped의 공개 시기와 같습니다."
         },
         "always": {
           "label": "항상 표시",
@@ -2155,7 +2155,7 @@
     },
     "hiResBadge": {
       "title": "Hi-Res / DSD 배지",
-      "subtitle": "해당 곡 옆과 플레이어 바의 아티스트 이름 아래에 «Hi-Res 24-bit» 또는 «DSD128» 배지를 표시합니다. 기본값은 켬."
+      "subtitle": "해당 곡 옆과 플레이어 바의 아티스트 이름 아래에 ‘Hi-Res 24-bit’ 또는 ‘DSD128’ 배지를 표시합니다. 기본적으로 켜져 있습니다."
     },
     "serverAccount": {
       "title": "WaveFlow 서버 계정",
@@ -2166,9 +2166,9 @@
       "urlSave": "저장",
       "tokenLabel": "JWT 토큰",
       "tokenHint": "브라우저에서 서버에 로그인한 뒤 Better Auth가 발급한 JWT를 복사해 여기에 붙여넣으세요.",
-      "tokenPlaceholder": "JWT 붙여넣기 (점으로 구분된 3개 세그먼트)",
+      "tokenPlaceholder": "JWT 붙여넣기(점으로 구분된 3개 세그먼트)",
       "tokenSave": "저장",
-      "openLogin": "로그인 열기",
+      "openLogin": "로그인 페이지 열기",
       "signOut": "로그아웃",
       "webUrlLabel": "WaveFlow Web URL",
       "webUrlPlaceholder": "https://waveflow.app",
@@ -2178,7 +2178,7 @@
       "modeLabel": "동기화 모드",
       "modes": {
         "hybrid": {
-          "label": "하이브리드 (기본)",
+          "label": "하이브리드(기본)",
           "description": "변경 사항은 로컬에 유지되지만 서버로 전송되기 위해 큐에도 추가됩니다."
         },
         "local": {
@@ -2192,7 +2192,7 @@
       "subtitle": "전체 화면 보기에서 시간 동기화된 가사를 일반 텍스트처럼 가운데에 정렬합니다."
     },
     "lyricsTranslation": {
-      "title": "가사 번역 (Musixmatch)",
+      "title": "가사 번역(Musixmatch)",
       "subtitle": "Musixmatch에 번역이 있을 때 각 LRC 줄 아래에 번역을 표시합니다",
       "off": "사용 안 함"
     },
@@ -2202,7 +2202,7 @@
     },
     "lyricsDestination": {
       "title": "저장되는 가사의 위치",
-      "subtitle": "에디터에서 입력한 가사가 저장되는 위치. 편집할 때마다 재정의 가능."
+      "subtitle": "에디터에서 입력한 가사가 저장되는 위치입니다. 각 편집 화면 아래에서 따로 변경할 수 있습니다."
     },
     "updateChannel": {
       "title": "베타 채널",
@@ -2211,13 +2211,13 @@
     "artistBio": {
       "title": "소개 출처",
       "subtitle": "아티스트 소개를 제공하는 서비스입니다.",
-      "lastfmHint": "영어 소개. Last.fm API 키가 필요합니다.",
-      "theaudiodbHint": "커뮤니티가 작성한 여러 언어의 소개. 키 불필요.",
+      "lastfmHint": "영어로 된 소개를 제공합니다. Last.fm API 키가 필요합니다.",
+      "theaudiodbHint": "커뮤니티가 여러 언어로 작성한 소개를 제공합니다. 키는 필요하지 않습니다.",
       "languageLabel": "소개 언어"
     },
     "radioCatalogue": {
       "title": "오프라인 방송국 카탈로그",
-      "subtitle": "연결 없이 방송국을 탐색하고 검색하려면 radio-browser 디렉터리를 다운로드하세요.",
+      "subtitle": "radio-browser.info 카탈로그를 다운로드하면 인터넷 연결 없이 방송국을 탐색하고 검색할 수 있습니다.",
       "stored_one": "방송국 {{count}}개 · {{date}} 업데이트됨",
       "stored_other": "방송국 {{count}}개 · {{date}} 업데이트됨",
       "download": "다운로드",
@@ -2225,7 +2225,7 @@
       "downloading": "다운로드 중…",
       "downloadingPct": "가져오는 중… {{pct}}%",
       "clear": "카탈로그 삭제",
-      "neverSynced": "없음",
+      "neverSynced": "업데이트한 적 없음",
       "localFirst": "로컬 카탈로그 우선",
       "localFirstHint": "온라인 상태에서도 로컬에서 검색하고 탐색합니다(즉시, 네트워크 불필요).",
       "offlineHint": "카탈로그를 다운로드하려면 오프라인 모드를 끄세요.",
@@ -2264,7 +2264,7 @@
     },
     "coverSlideshow": {
       "title": "커버 / 아티스트 슬라이드쇼",
-      "subtitle": "재생 뒤에서 앨범 커버와 아티스트 사진을 부드럽게 크로스페이드합니다(몰입형 보기 + 재생 중 패널)."
+      "subtitle": "재생 화면의 배경에서 앨범 커버와 아티스트 사진을 부드럽게 전환합니다(몰입형 보기 + 재생 중 패널)."
     },
     "artistHero": {
       "title": "아티스트 배너",
@@ -2272,7 +2272,7 @@
     },
     "pluginStore": {
       "title": "플러그인 스토어",
-      "subtitle": "WaveFlow 레지스트리에서 샌드박스된 플러그인을 둘러보고 설치하세요.",
+      "subtitle": "WaveFlow 레지스트리에서 샌드박스 환경으로 실행되는 플러그인을 둘러보고 설치하세요.",
       "loading": "스토어 불러오는 중…",
       "emptyTitle": "아직 사용할 수 있는 플러그인이 없습니다",
       "emptyHint": "레지스트리가 아직 비어 있습니다 — 나중에 다시 확인하세요.",
@@ -2291,9 +2291,9 @@
     },
     "motionArtwork": {
       "title": "애니메이션 아트워크",
-      "subtitle": "메타데이터 플러그인(예: Apple Motion Artwork)의 움직이는 커버가 재생 화면 뒤에 표시됩니다.",
+      "subtitle": "메타데이터 플러그인(예: Apple Motion Artwork)의 움직이는 커버가 ‘지금 재생 중’ 화면의 배경에서 재생됩니다.",
       "cacheLabel": "애니메이션 아트워크를 로컬에 저장",
-      "usage": "{{size}} 사용 중 · 캐시 {{files}}개",
+      "usage": "{{size}} 사용 중 · 커버 {{files}}개 캐시됨",
       "clear": "캐시 지우기",
       "clearConfirm": "확인할까요?"
     },
@@ -2305,14 +2305,14 @@
       "error": "초기화에 실패했습니다. 다시 시도하세요."
     },
     "canvasCache": {
-      "cacheLabel": "Canvas를 로컬에 저장",
+      "cacheLabel": "Canvas 동영상을 로컬에 저장",
       "subtitle": "Canvas 플러그인에서 각 곡의 Canvas를 내려받아 오프라인에서 다시 스트리밍하지 않고 재생합니다.",
       "usage": "{{size}} 사용 · {{files}}개 Canvas 캐시됨",
       "clear": "캐시 지우기",
       "clearConfirm": "확인할까요?"
     },
     "dsdDop": {
-      "title": "네이티브 DSD (DoP)",
+      "title": "네이티브 DSD(DoP)",
       "subtitle": "DSD 스트림을 PCM으로 변환하지 않고 DoP(DSD over PCM)로 DAC에 그대로 전송합니다 — 비트 퍼펙트 네이티브 디코딩. 독점 출력(Windows는 WASAPI, Linux는 하드웨어 ALSA, macOS는 CoreAudio hog mode)과 DoP 지원 DAC가 필요하며, 그렇지 않으면 DSD → PCM으로 대체됩니다."
     },
     "remoteTranscode": {
@@ -2327,7 +2327,7 @@
       "bitrateLabel": "비트레이트",
       "kbps": "{{rate}} kbps",
       "activeNotice": "원격 곡은 다시 인코딩되므로 원래 음질보다 낮게 재생됩니다. 로컬 파일은 트랜스코딩되지 않습니다.",
-      "unsupported": "이 서버는 FFmpeg 없이 빌드되어 트랜스코딩할 수 없습니다. 원격 곡은 항상 원본 형식으로 도착합니다."
+      "unsupported": "이 서버는 FFmpeg 없이 빌드되어 트랜스코딩할 수 없습니다. 원격 곡은 항상 원본 형식으로 전송됩니다."
     },
     "contrast": {
       "title": "대비",
@@ -2339,7 +2339,7 @@
         },
         "normal": {
           "label": "보통",
-          "description": "기본값인 더 부드러운 색상."
+          "description": "기본값으로, 더 섬세한 색상 팔레트를 사용합니다."
         },
         "high": {
           "label": "높음",
@@ -2368,7 +2368,7 @@
         "general": "일반",
         "library": "라이브러리",
         "playback": "재생 및 오디오",
-        "appearance": "모양",
+        "appearance": "외관",
         "media": "이미지 및 가사",
         "integrations": "연결",
         "plugins": "확장 기능",
@@ -2381,7 +2381,7 @@
         "library": "음악 라이브러리를 정리하고 최신 상태로 유지합니다.",
         "playback": "곡 전환, 음량 및 오디오 출력을 설정합니다.",
         "appearance": "인터페이스와 감상 화면을 꾸밉니다.",
-        "media": "표지, 아티스트 정보 및 가사 출처를 설정합니다.",
+        "media": "커버, 아티스트 정보 및 가사 출처를 설정합니다.",
         "integrations": "서비스, 서버 및 네트워크 기기를 연결합니다.",
         "plugins": "확장 기능을 찾고 설정을 관리합니다.",
         "shortcuts": "자주 사용하는 작업의 키보드 단축키를 선택합니다.",
@@ -2403,7 +2403,7 @@
         "player": "플레이어 및 창",
         "immersive": "몰입형 보기",
         "pages": "라이브러리 페이지",
-        "artwork": "표지 및 아티스트 이미지",
+        "artwork": "커버 및 아티스트 이미지",
         "biographies": "아티스트 소개",
         "lyrics": "가사",
         "connectivity": "네트워크 연결",
@@ -2422,7 +2422,7 @@
       }
     },
     "desktopLyrics": {
-      "subtitle": "다른 앱 위에 떠서 지금 부르는 줄을 보여주는 창입니다.",
+      "subtitle": "다른 앱 위에 떠서 현재 재생 중인 가사 줄을 보여주는 창입니다.",
       "waylandNote": "Wayland(특히 GNOME)에서는 창이 다른 앱 위나 배치한 위치에 유지되지 않습니다. 맨 위에 유지하려면 GDK_BACKEND=x11로 WaveFlow를 실행하세요.",
       "previewSung": "노래를 따라가는",
       "previewUnsung": "가사",
@@ -2437,12 +2437,12 @@
   },
   "spotify": {
     "notConfiguredTitle": "Spotify 앱을 등록하세요",
-    "notConfiguredMessage": "Spotify는 모든 서드 파티 앱이 재생 전에 무료 Client ID를 등록하도록 요구합니다. Spotify Developer 대시보드에서 하나를 만들어 WaveFlow의 설정 → 통합에 붙여넣으세요.",
+    "notConfiguredMessage": "Spotify에서 재생하려면 모든 서드 파티 앱이 무료 Client ID를 등록해야 합니다. Spotify Developer 대시보드에서 만든 뒤 WaveFlow의 설정 → 통합에 붙여넣으세요.",
     "openDashboard": "Spotify Developer 대시보드 열기",
     "openSettings": "설정 열기",
     "notConnectedTitle": "Spotify가 연결되어 있지 않습니다",
-    "notConnectedMessage": "Client ID는 설정되어 있습니다. 설정에서 Spotify Premium 계정에 로그인하여 재생 목록을 불러오고 음악을 재생하세요.",
-    "emptyPlaylist": "이 재생 목록에서 재생할 수 있는 곡이 없습니다 (Spotify가 로컬 파일이나 본인 소유가 아닌 재생 목록을 노출하지 않을 수 있습니다).",
+    "notConnectedMessage": "Client ID가 설정되어 있습니다. 설정에서 Spotify Premium 계정에 로그인하여 재생 목록을 불러오고 음악을 재생하세요.",
+    "emptyPlaylist": "이 재생 목록에서 재생할 수 있는 곡이 없습니다(Spotify가 로컬 파일이나 본인 소유가 아닌 재생 목록을 노출하지 않을 수 있습니다).",
     "deviceReady": "WaveFlow Spotify 기기 준비 완료",
     "devicePending": "Spotify 재생 준비 중…",
     "searchPlaceholder": "Spotify 검색",
@@ -2461,7 +2461,7 @@
   },
   "system": {
     "tray": {
-      "playPause": "재생 / 일시정지",
+      "playPause": "재생/일시 정지",
       "previous": "이전",
       "next": "다음",
       "show": "WaveFlow 열기",
@@ -2487,7 +2487,7 @@
   "webRadio": {
     "title": "웹 라디오",
     "subtitle": "radio-browser.info를 통한 30,000개 이상의 온라인 라디오 방송국.",
-    "loading": "카테고리 로딩 중…",
+    "loading": "카테고리 불러오는 중…",
     "resolving": "방송국 검색 중…",
     "emptyResults": "방송국을 찾을 수 없습니다.",
     "searchPlaceholder": "방송국 검색…",
@@ -2515,10 +2515,10 @@
       "help": "Last.fm / TheAudioDB 소개를 대체합니다. 오프라인에서도 작동합니다."
     },
     "similar": {
-      "label": "사용자 지정 비슷한 아티스트",
+      "label": "사용자 지정 유사 아티스트",
       "placeholder": "라이브러리에서 아티스트 검색…",
       "remove": "{{name}} 제거",
-      "help": "라이브러리에서 아티스트를 선택하세요. 비어 있으면 온라인 목록.",
+      "help": "라이브러리에서 아티스트를 선택하세요. 비워 두면 온라인 목록을 사용합니다.",
       "limitReached": "최대 {{max}}명에 도달했습니다."
     },
     "split": {
@@ -2547,17 +2547,17 @@
       "title": "원격 서버",
       "subtitle": "이 프로필을 WaveFlow 서버에 연결하세요. 재생 목록이 사이드바에 표시됩니다.",
       "urlLabel": "서버 URL",
-      "identify": "식별",
+      "identify": "서버 확인",
       "unknownType": "알 수 없음",
-      "probeNative": "네이티브, 브라우저로 로그인",
+      "probeNative": "네이티브 서버 · 브라우저에서 로그인",
       "probeSubsonic": "Subsonic 프로토콜만 지원 · 아직 저널이나 로그인 기능은 없습니다",
       "signInBrowser": "브라우저로 로그인",
       "signedInFallback": "로그인됨",
       "syncNow": "지금 동기화",
       "signOut": "로그아웃",
-      "forget": "서버 삭제",
+      "forget": "서버 연결 삭제",
       "forgetTitle": "캐시된 라이브러리와 서버에 전송되지 않은 오프라인 변경 사항을 모두 삭제합니다",
-      "neverSynced": "아직 동기화되지 않음 — 첫 실행 시 전체 스냅샷을 다운로드합니다.",
+      "neverSynced": "아직 동기화되지 않음 — 첫 동기화에서 전체 스냅샷을 다운로드합니다.",
       "counts": {
         "playlists_one": "재생 목록",
         "playlists_other": "재생 목록",
@@ -2574,8 +2574,8 @@
         "cachedTracks_one": "캐시된 곡",
         "cachedTracks_other": "캐시된 곡"
       },
-      "awaitingMetadata_one": "{{count}}개 곡이 메타데이터를 기다리는 중 — 다음 실행 시 처리됩니다.",
-      "awaitingMetadata_other": "{{count}}개 곡이 메타데이터를 기다리는 중 — 다음 실행 시 처리됩니다.",
+      "awaitingMetadata_one": "{{count}}곡이 메타데이터를 기다리는 중 — 다음 동기화에서 처리됩니다.",
+      "awaitingMetadata_other": "{{count}}곡이 메타데이터를 기다리는 중 — 다음 동기화에서 처리됩니다.",
       "pendingChanges_one": "{{count}}개 로컬 변경 사항이 전송 대기 중입니다.",
       "pendingChanges_other": "{{count}}개 로컬 변경 사항이 전송 대기 중입니다.",
       "failedChanges_one": "{{count}}개 로컬 변경 사항이 거부되어 다시 시도하지 않습니다.",
@@ -2585,7 +2585,7 @@
     "queue": {
       "empty": "대기열이 비어 있습니다.",
       "nowPlaying": "지금 재생 중",
-      "upNext": "다음 재생"
+      "upNext": "다음 곡"
     },
     "playlist": {
       "label": "원격 재생 목록",
@@ -2600,13 +2600,13 @@
       "emptyDescription": "‘곡 추가’를 눌러 서버 카탈로그에서 검색하세요.",
       "notFoundDescription": "이 재생 목록은 연결된 서버에 더 이상 존재하지 않습니다.",
       "keepOffline": "오프라인 보관",
-      "keepingProgress": "{{done}}/{{total}} 보관됨",
-      "keptOffline_one": "{{count}}개 오프라인",
-      "keptOffline_other": "{{count}}개 오프라인",
-      "keptOffline_zero": "오프라인 없음"
+      "keepingProgress": "오프라인 보관 중 {{done}}/{{total}}",
+      "keptOffline_one": "{{count}}개 오프라인 보관",
+      "keptOffline_other": "{{count}}개 오프라인 보관",
+      "keptOffline_zero": "오프라인 보관 없음"
     },
     "reconciliation": {
-      "title": "로컬 ↔ 서버 매칭",
+      "title": "로컬 ↔ 서버 일치 확인",
       "subtitle": "정확한 전체 파일 일치만 해당합니다. 크기가 같은 파일은 BLAKE3로 검증하며, 메타데이터로는 연결되지 않습니다.",
       "cancel": "취소",
       "findMatches": "일치 항목 찾기",
@@ -2621,13 +2621,13 @@
       "copyRatingLocalToServer": "평점 로컬 → 서버",
       "copyRatingServerToLocal": "평점 서버 → 로컬",
       "statusConfirmed": "확인됨",
-      "statusStale": "오래됨",
+      "statusStale": "유효하지 않음",
       "localFirst": "로컬 우선",
       "serverFirst": "서버 우선",
       "playbackPreference": "{{title}} 재생 기본 설정",
       "unlink": "{{title}} 연결 해제",
-      "conversionTitle": "명시적 재생 목록 복사",
-      "conversionSubtitle": "미리 보기에서 모든 신원 연결을 확인해야 합니다. 자동으로 병합하거나 생략하지 않습니다.",
+      "conversionTitle": "재생 목록 직접 복사",
+      "conversionSubtitle": "미리 보기에서 모든 항목의 대응 관계를 확인해야 합니다. 어떤 항목도 자동으로 병합하거나 생략하지 않습니다.",
       "conversionDirection": "재생 목록 복사 방향",
       "conversionLocalToServer": "로컬 → 서버",
       "conversionServerToLocal": "서버 → 로컬",
@@ -2636,7 +2636,7 @@
       "conversionPreview": "미리 보기",
       "conversionConfirm": "복사 확인",
       "itemStatusConfirmed": "확인됨",
-      "itemStatusStale": "오래됨",
+      "itemStatusStale": "유효하지 않음",
       "itemStatusUnlinkedOrAmbiguous": "연결 안 됨 또는 모호함",
       "itemStatusDuplicate": "중복",
       "candidateHeading": "동일한 사본은 확인이 필요합니다",
@@ -2645,30 +2645,30 @@
       "candidateLocalOption": "로컬: {{title}} — {{path}}",
       "candidateServerOption": "서버: {{title}}",
       "candidateServerOptionArtist": "서버: {{title}} — {{artist}}",
-      "candidateConfirmPair": "쌍 확인",
-      "candidateRejectPair": "쌍 거부",
+      "candidateConfirmPair": "연결 확인",
+      "candidateRejectPair": "연결 거부",
       "summaryVerified_one": "로컬 후보 {{count}}개 검증됨",
       "summaryVerified_other": "로컬 후보 {{count}}개 검증됨",
       "summaryLinked_one": "{{count}}개 자동 연결됨",
       "summaryLinked_other": "{{count}}개 자동 연결됨",
       "summaryGroups_one": "{{count}}개 그룹 결정 필요",
       "summaryGroups_other": "{{count}}개 그룹 결정 필요",
-      "summaryStale_one": " · {{count}}개 오래됨",
-      "summaryStale_other": " · {{count}}개 오래됨",
+      "summaryStale_one": " · {{count}}개 무효",
+      "summaryStale_other": " · {{count}}개 무효",
       "summaryUnreadable_one": " · {{count}}개 읽을 수 없음",
       "summaryUnreadable_other": " · {{count}}개 읽을 수 없음",
       "history_one": "기록: 로컬 {{local}} + 서버 {{remote}} = 재생 {{combined}}회",
       "history_other": "기록: 로컬 {{local}} + 서버 {{remote}} = 재생 {{combined}}회",
-      "conversionSourceOption_one": "{{name}} · {{count}}개 곡",
-      "conversionSourceOption_other": "{{name}} · {{count}}개 곡",
-      "conversionPreviewSummary_one": "{{name}}: {{convertible}}/{{total}}개 곡에 확인된 연결이 있습니다",
-      "conversionPreviewSummary_other": "{{name}}: {{convertible}}/{{total}}개 곡에 확인된 연결이 있습니다",
+      "conversionSourceOption_one": "{{name}} · {{count}}곡",
+      "conversionSourceOption_other": "{{name}} · {{count}}곡",
+      "conversionPreviewSummary_one": "{{name}}: {{total}}곡 중 {{convertible}}곡에 확인된 연결이 있습니다",
+      "conversionPreviewSummary_other": "{{name}}: {{total}}곡 중 {{convertible}}곡에 확인된 연결이 있습니다",
       "conversionBlocked_one": " · {{count}}개 차단됨",
       "conversionBlocked_other": " · {{count}}개 차단됨",
-      "conversionSuccessServer_one": "{{count}}개 곡을 서버에 복사했습니다.",
-      "conversionSuccessServer_other": "{{count}}개 곡을 서버에 복사했습니다.",
-      "conversionSuccessLocal_one": "{{count}}개 곡을 로컬 라이브러리에 복사했습니다.",
-      "conversionSuccessLocal_other": "{{count}}개 곡을 로컬 라이브러리에 복사했습니다."
+      "conversionSuccessServer_one": "{{count}}곡을 서버에 복사했습니다.",
+      "conversionSuccessServer_other": "{{count}}곡을 서버에 복사했습니다.",
+      "conversionSuccessLocal_one": "{{count}}곡을 로컬 라이브러리에 복사했습니다.",
+      "conversionSuccessLocal_other": "{{count}}곡을 로컬 라이브러리에 복사했습니다."
     },
     "catalogue": {
       "title": "서버 카탈로그",
@@ -2692,14 +2692,14 @@
       "mirroredAt": "마지막 전체 복사: {{date}}",
       "clearCovers": "비우기",
       "coversCached_zero": "캐시된 커버가 없습니다.",
-      "coversCached_one": "캐시된 커버 {{count}}개 ({{size}} MB)",
-      "coversCached_other": "캐시된 커버 {{count}}개 ({{size}} MB)",
-      "streamsCached_one": "캐시된 곡 {{count}}개 ({{size}} MB)",
-      "streamsCached_other": "캐시된 곡 {{count}}개 ({{size}} MB)",
+      "coversCached_one": "캐시된 커버 {{count}}개({{size}} MB)",
+      "coversCached_other": "캐시된 커버 {{count}}개({{size}} MB)",
+      "streamsCached_one": "캐시된 곡 {{count}}개({{size}} MB)",
+      "streamsCached_other": "캐시된 곡 {{count}}개({{size}} MB)",
       "streamsCached_zero": "캐시된 곡이 없습니다.",
       "clearStreams": "비우기",
-      "downloadsKept_one": "오프라인 보관 곡 {{count}}개 ({{size}} MB)",
-      "downloadsKept_other": "오프라인 보관 곡 {{count}}개 ({{size}} MB)",
+      "downloadsKept_one": "오프라인 보관 곡 {{count}}개({{size}} MB)",
+      "downloadsKept_other": "오프라인 보관 곡 {{count}}개({{size}} MB)",
       "downloadsKept_zero": "오프라인으로 보관된 곡이 없습니다.",
       "clearDownloads": "비우기",
       "reportFeed": "서버 수정: {{applied}}건"
@@ -2707,10 +2707,10 @@
     "import": {
       "action": "내 라이브러리로 가져오기",
       "title": "내 라이브러리로 가져오기",
-      "subtitle": "{{name}}을(를) 검색 대상 폴더로 복사해 내 라이브러리의 곡으로 만듭니다.",
+      "subtitle": "{{name}} 파일을 스캔 대상 폴더에 복사해 내 라이브러리의 곡으로 만듭니다.",
       "destination": "대상 폴더",
-      "noFolder": "사용할 수 있는 검색 폴더가 없습니다. 설정 → 라이브러리에서 추가하세요.",
-      "unreachable": "연결할 수 없음",
+      "noFolder": "접근할 수 있는 스캔 대상 폴더가 없습니다. 설정 → 라이브러리에서 추가하세요.",
+      "unreachable": "접근할 수 없음",
       "explainer": "파일은 그대로 복사된 뒤 서버 곡과 연결됩니다. 재생 시 로컬 사본이 우선합니다.",
       "submit": "가져오기",
       "running": "가져오는 중…",
@@ -2731,16 +2731,16 @@
     },
     "upload": {
       "title": "서버에 업로드",
-      "subtitle": "서버에 없는 곡을 보냅니다. 검사는 각 파일을 한 번 읽어 실제로 없는 것을 가려냅니다.",
+      "subtitle": "서버에 없는 곡을 보냅니다. 확인 과정에서 각 파일을 한 번씩 읽어 실제로 누락된 곡을 가려냅니다.",
       "cancel": "중지",
-      "survey": "검사",
+      "survey": "확인",
       "surveying": "{{done}} / {{total}}개 파일 읽는 중…",
       "statMissing": "누락",
       "statLinked": "이미 있음, 연결됨",
       "statUnsupported": "거부된 형식",
       "statUnreadable": "읽을 수 없음",
       "destination": "라이브러리",
-      "send": "업로드 ({{count}})",
+      "send": "업로드({{count}})",
       "sent": "업로드함: {{count}}",
       "stopped": "중지됨",
       "refusal": {
@@ -2750,7 +2750,7 @@
         "quota_exceeded": "서버 공간 부족: {{count}}",
         "library_closed": "라이브러리가 업로드를 받지 않음: {{count}}",
         "too_many_sessions": "동시 업로드가 너무 많음: {{count}}",
-        "unknown_verdict": "이 빌드가 모르는 응답: {{count}}",
+        "unknown_verdict": "이 버전에서 알 수 없는 응답: {{count}}",
         "failed": "실패: {{count}}"
       }
     },
@@ -2758,7 +2758,7 @@
       "action": "메타데이터 수정",
       "title": "서버 메타데이터",
       "subtitle": "수정 내용은 파일이 아니라 서버에 저장됩니다.",
-      "help": "이 수정 내용은 서버의 검사 후에도 유지되며 라이브러리의 모든 구성원에게 표시됩니다. 항목을 비우면 수정이 취소되어 파일에 있는 값이 다시 나타납니다.",
+      "help": "이 수정 내용은 서버가 다시 스캔한 뒤에도 유지되며 라이브러리의 모든 구성원에게 표시됩니다. 항목을 비우면 수정이 취소되어 파일에 있는 값이 다시 나타납니다.",
       "missing": "이 곡은 아직 서버 카탈로그 복사본에 없습니다. 카탈로그를 복사한 후 다시 시도하세요.",
       "invalidNumber": "연도와 트랙 번호, 디스크 번호는 정수여야 합니다."
     },
@@ -2767,7 +2767,7 @@
   "tasks": {
     "barLabel": "실행 중인 작업",
     "cancel": "{{task}} 중지",
-    "stopping": "중지하는 중…",
+    "stopping": "중지 중…",
     "collapse": "접기",
     "more_one": "{{count}}개 더",
     "more_other": "{{count}}개 더",
@@ -2791,7 +2791,7 @@
     "limit": "최대 {{value}}곡",
     "sort": {
       "addedDesc": "최근 추가순",
-      "addedAsc": "오래된 추가순",
+      "addedAsc": "먼저 추가된 순",
       "yearDesc": "최신 발매순",
       "yearAsc": "오래된 발매순",
       "titleAsc": "제목순",
@@ -2833,12 +2833,12 @@
   "tagFetch": {
     "title": "태그 가져오기",
     "searching": "릴리스 검색 중…",
-    "matching": "곡 매칭 중…",
+    "matching": "곡 일치 확인 중…",
     "noSources": "이 앨범의 릴리스를 찾을 수 없습니다.",
     "sourcesHint": "같은 앨범이라도 수록곡이 다른 여러 릴리스가 있습니다. 보유하신 것을 고르세요.",
     "back": "다른 릴리스 선택",
     "hint": "적용하기 전에는 아무것도 기록되지 않습니다.",
-    "acceptColumn": "이 항목 전체:",
+    "acceptColumn": "필드 전체:",
     "acceptTrack": "이 곡 전체",
     "nothingToChange": "이 릴리스는 파일에 이미 있는 내용과 같습니다.",
     "trackUnchanged": "이 곡에는 바꿀 것이 없습니다.",
