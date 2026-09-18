@@ -1,7 +1,7 @@
 [package]
 name = "waveflow"
 version = "1.7.0"
-description = "Local music player for desktop — Spotify-inspired UI, real-time audio engine, your files stay on your machine."
+description = "Local music player for desktop — real-time audio engine, your files stay on your machine."
 authors = ["InstaZDLL <github.105mh@8shield.net>"]
 edition = "2021"
 license = "GPL-3.0-only"
@@ -51,7 +51,6 @@ serde_json = "1"
 # `commands/plugins.rs`; the server intentionally leaves this feature
 # off to keep its binary lean.
 waveflow-core = { path = "../core", features = ["sqlite", "plugins"] }
-waveflow-spotify = { path = "../spotify" }
 waveflow-syncedlyrics = { path = "../syncedlyrics" }
 
 # `macos-private-api`: a transparent window on macOS goes through a

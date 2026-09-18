@@ -37,10 +37,6 @@ mod remote_playback;
 mod remote;
 mod scrobbler;
 mod smart_playlists;
-// `mod spotify` was extracted to the `waveflow-spotify` workspace crate.
-// `crate::commands::spotify` now imports from `waveflow_spotify::*` and
-// passes raw `&SqlitePool` handles in lieu of `&AppState`. Same pattern
-// as `waveflow-syncedlyrics`.
 mod state;
 #[cfg(target_os = "windows")]
 mod taskbar_buttons;
@@ -913,17 +909,6 @@ pub fn run() {
             commands::integration::set_discord_rpc_enabled,
             commands::integration::get_notifications_track_change,
             commands::integration::set_notifications_track_change,
-            commands::spotify::get_spotify_client_id,
-            commands::spotify::set_spotify_client_id,
-            commands::spotify::spotify_get_status,
-            commands::spotify::spotify_login,
-            commands::spotify::spotify_logout,
-            commands::spotify::spotify_get_access_token,
-            commands::spotify::spotify_list_playlists,
-            commands::spotify::spotify_get_playlist_tracks,
-            commands::spotify::spotify_get_queue,
-            commands::spotify::spotify_search,
-            commands::spotify::spotify_pause_local,
             #[cfg(feature = "sync_v2")]
             commands::remote_auth::remote_get_status,
             #[cfg(feature = "sync_v2")]
@@ -1643,7 +1628,7 @@ fn spawn_next(app: &AppHandle) {
     });
 }
 
-/// Tray "Précédent" — same Spotify-style "seek to 0 if past 3 s, else
+/// Tray "Précédent" — same "seek to 0 if past 3 s, else
 /// jump back" rule the in-app previous button uses, implemented once in
 /// [`player_actions::previous`].
 fn spawn_previous(app: &AppHandle) {

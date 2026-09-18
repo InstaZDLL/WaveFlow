@@ -19,10 +19,11 @@ pub mod duplicates;
 pub mod edit;
 pub mod integration;
 pub mod library;
-// Loopback HTTP listener — shared with `commands::spotify` (Spotify
-// OAuth handshake), so it's NOT gated alongside the rest of the
-// server account binding even though `commands::server_auth` is also
-// a consumer. Stays alive whether sync ships or not.
+// Loopback HTTP listener for the OAuth callback. Its only consumer is
+// the server account binding, so it carries the same gate — it used to
+// stay ungated because the Spotify handshake needed it in a build
+// without sync, and that consumer is gone.
+#[cfg(feature = "sync_v2")]
 pub mod loopback;
 pub mod lyrics;
 pub mod maintenance;
@@ -52,7 +53,6 @@ pub mod scan;
 pub mod share_image;
 pub mod similar;
 pub mod smart_playlists;
-pub mod spotify;
 pub mod stats;
 pub mod storage;
 pub mod tag_fetch;
