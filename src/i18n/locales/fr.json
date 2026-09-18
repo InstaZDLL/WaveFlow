@@ -633,7 +633,7 @@
     "emptyDescription": "Lancez un titre — il apparaîtra ici dès qu'il sera comptabilisé.",
     "shownCount_one": "{{count}} écoute affichée",
     "shownCount_other": "{{count}} écoutes affichées",
-    "plays_one": "{{count}} lecture",
+    "plays_one": "{{count}} écoute",
     "plays_other": "{{count}} écoutes",
     "range": {
       "all": "Tout",
@@ -662,7 +662,7 @@
       "30d": "30 jours",
       "90d": "90 jours",
       "1y": "1 an",
-      "all": "Tout"
+      "all": "Depuis toujours"
     },
     "export": {
       "label": "Exporter les statistiques",
@@ -761,7 +761,7 @@
     },
     "mood": {
       "eyebrow": "Votre tempo moyen",
-      "subtitle": "Le rythme qui vous accompagne",
+      "subtitle": "Le rythme qui a porté votre année",
       "loudness": "Loudness moyen : {{lufs}} LUFS",
       "energy": {
         "chill": "Chill",
@@ -772,7 +772,7 @@
       }
     },
     "clock": {
-      "eyebrow": "Votre heure d'écoute",
+      "eyebrow": "Votre heure de pointe",
       "subtitle": "Le pic de votre journée"
     },
     "streak": {
@@ -1305,7 +1305,7 @@
   "miniPlayer": {
     "idle": "Aucun titre en cours",
     "maximize": "Restaurer la fenêtre principale",
-    "like": "J'aime",
+    "like": "Coup de cœur",
     "pin": "Toujours au-dessus",
     "close": "Fermer le mini-lecteur",
     "upNext": {
@@ -1341,10 +1341,10 @@
       "clear": "Effacer les paroles",
       "fullscreen": "Plein écran",
       "edit": "Éditer les paroles",
-      "cycleLocalization": "Changer la lecture affichée"
+      "cycleLocalization": "Changer le texte affiché"
     },
     "localization": {
-      "off": "Aucune lecture supplémentaire",
+      "off": "Aucun texte supplémentaire",
       "romanization": "Romanisation affichée",
       "translation": "Traduction affichée"
     },
@@ -1582,7 +1582,7 @@
   },
   "editorial": {
     "masthead": {
-      "edition": "Édition du Matin",
+      "edition": "Édition du matin",
       "price": "Prix : Inclus",
       "subtitle": "« Toute la musique qui mérite d'être imprimée » — Votre sélection quotidienne, sur mesure."
     },
@@ -1709,7 +1709,7 @@
         "toggleQueue": "Afficher / Masquer la file",
         "toggleNowPlaying": "Afficher / Masquer la lecture en cours",
         "toggleLyrics": "Afficher / Masquer les paroles",
-        "toggleLike": "J'aime / Retirer du j'aime"
+        "toggleLike": "Ajouter / Retirer des coups de cœur"
       }
     },
     "offlineMode": {
@@ -2102,10 +2102,10 @@
       }
     },
     "uiZoom": {
-      "title": "Zoom de l’interface",
-      "subtitle": "Mettre l’app à l’échelle (Ctrl+= / Ctrl+- / Ctrl+0 fonctionnent aussi)",
-      "decreaseAria": "Dézoomer l’interface",
-      "increaseAria": "Zoomer l’interface",
+      "title": "Zoom de l'interface",
+      "subtitle": "Mettre l'app à l'échelle (Ctrl+= / Ctrl+- / Ctrl+0 fonctionnent aussi)",
+      "decreaseAria": "Dézoomer l'interface",
+      "increaseAria": "Zoomer l'interface",
       "resetAria": "Réinitialiser le zoom à 100 %"
     },
     "showAudioQualityFooter": {
@@ -2277,7 +2277,7 @@
       "title": "Magasin de plugins",
       "subtitle": "Parcourez et installez des plugins sandboxés depuis le registre WaveFlow.",
       "loading": "Chargement du magasin…",
-      "emptyTitle": "Aucun plugin disponible pour l’instant",
+      "emptyTitle": "Aucun plugin disponible pour l'instant",
       "emptyHint": "Le registre est vide pour le moment — revenez bientôt.",
       "refresh": "Actualiser le magasin",
       "retry": "Réessayer",
@@ -2380,16 +2380,16 @@
         "diagnostics": "Maintenance"
       },
       "descriptions": {
-        "general": "Langue, démarrage et comportement de l’application.",
+        "general": "Langue, démarrage et comportement de l'application.",
         "library": "Organisez et actualisez votre bibliothèque musicale.",
         "playback": "Enchaînement des titres, volume et sortie audio.",
-        "appearance": "Personnalisez l’interface et vos vues d’écoute.",
+        "appearance": "Personnalisez l'interface et vos vues d'écoute.",
         "media": "Illustrations, informations sur les artistes et sources des paroles.",
         "integrations": "Connectez vos services, votre serveur et vos appareils réseau.",
         "plugins": "Découvrez des extensions et gérez leurs réglages.",
         "shortcuts": "Choisissez les raccourcis de vos actions quotidiennes.",
         "data": "Gérez les profils sauvegardés, les dossiers et les médias en cache.",
-        "diagnostics": "Mises à jour, dépannage et réinitialisation de l’application."
+        "diagnostics": "Mises à jour, dépannage et réinitialisation de l'application."
       },
       "groups": {
         "language": "Langue",
@@ -2406,7 +2406,7 @@
         "player": "Lecteur et fenêtre",
         "immersive": "Vue immersive",
         "pages": "Pages de la bibliothèque",
-        "artwork": "Pochettes et photos d’artistes",
+        "artwork": "Pochettes et photos d'artistes",
         "biographies": "Biographies des artistes",
         "lyrics": "Paroles",
         "connectivity": "Connectivité",
@@ -2420,7 +2420,7 @@
         "cleanup": "Entretien des illustrations",
         "updates": "Mises à jour",
         "diagnostics": "Diagnostics",
-        "reset": "Réinitialisation de l’application",
+        "reset": "Réinitialisation de l'application",
         "desktopLyrics": "Paroles sur le bureau"
       }
     },
