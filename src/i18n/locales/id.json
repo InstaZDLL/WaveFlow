@@ -378,9 +378,9 @@
         "dossiers_zero": "0 folder",
         "dossiers_one": "{{count}} folder",
         "dossiers_other": "{{count}} folder",
-        "playlists_zero": "0 playlist",
-        "playlists_one": "{{count}} playlist",
-        "playlists_other": "{{count}} playlist",
+        "playlists_zero": "0 daftar putar",
+        "playlists_one": "{{count}} daftar putar",
+        "playlists_other": "{{count}} daftar putar",
         "a-corriger_zero": "Tidak ada yang perlu dilaporkan: pustaka sudah lengkap.",
         "a-corriger_one": "{{count}} hal untuk diperbaiki",
         "a-corriger_other": "{{count}} hal untuk diperbaiki"
@@ -392,7 +392,7 @@
       "artistes": "Artis",
       "genres": "Genre",
       "dossiers": "Folder",
-      "playlists": "Playlist",
+      "playlists": "Daftar putar",
       "a-corriger": "Perlu diperbaiki"
     },
     "empty": {
@@ -421,7 +421,7 @@
       },
       "a-corriger": {
         "title": "Tidak ada yang perlu diperbaiki",
-        "description": "Pustaka Anda tidak menunjukkan masalah yang bisa kami deteksi."
+        "description": "Pustakamu tidak menunjukkan masalah yang bisa kami deteksi."
       }
     },
     "actions": {
@@ -510,8 +510,8 @@
     },
     "skeletonAriaLabel": "Memuat {{name}}…",
     "playlistsGrid": {
-      "emptyTitle": "Belum ada playlist",
-      "emptyHint": "Playlist yang kamu buat muncul di sini sebagai kisi.",
+      "emptyTitle": "Belum ada daftar putar",
+      "emptyHint": "Daftar putar yang kamu buat muncul di sini sebagai kisi.",
       "meta_zero": "0 lagu · {{duration}}",
       "meta_one": "{{count}} lagu · {{duration}}",
       "meta_other": "{{count}} lagu · {{duration}}"
@@ -584,7 +584,7 @@
       "choose": "Kolom",
       "shown": "Ditampilkan",
       "available": "Tersedia",
-      "fromYourFiles": "Dari berkas Anda",
+      "fromYourFiles": "Dari berkasmu",
       "resetWidths": "Setel ulang lebar",
       "resize": "Ubah lebar kolom {{column}}",
       "title": "Judul",
@@ -881,7 +881,7 @@
     "alert": {
       "error": {
         "device-lost": "Perangkat audio terputus",
-        "track-failed": "Trek ini tidak dapat diputar",
+        "track-failed": "Lagu ini tidak dapat diputar",
         "stream-failed": "Aliran ini tidak dapat dibuka",
         "decoder-crashed": "Mesin audio dimulai ulang",
         "decoder-stopped": "Mesin audio berhenti setelah beberapa kesalahan",
@@ -1034,7 +1034,7 @@
       "deleteConfirm": "Klik lagi untuk konfirmasi",
       "share": "Bagikan",
       "reorder": "Susun ulang",
-      "removeFromPlaylist": "Hapus dari playlist"
+      "removeFromPlaylist": "Hapus dari daftar putar"
     },
     "export": {
       "dialogTitle": "Ekspor daftar putar sebagai M3U"
@@ -1629,7 +1629,7 @@
         "storageRead": "Baca penyimpanan",
         "assets": "Aset ({{count}})",
         "none": "Tidak ada izin diminta",
-        "libraryReadArtists": "Membaca artis Anda"
+        "libraryReadArtists": "Membaca artismu"
       },
       "bundled": "Bawaan",
       "bundledHint": "Disertakan dengan WaveFlow — nonaktifkan untuk menyembunyikannya.",
@@ -1700,8 +1700,8 @@
         "password": "Kata sandi",
         "passwordPlaceholder": "Tidak ada",
         "passwordHint": "Opsional. Disarankan pada jaringan bersama — protokol MPD mengirimnya sebagai teks biasa.",
-        "lanWarning": "Dapat dijangkau dari seluruh jaringan lokal Anda: siapa pun di dalamnya bisa mengendalikan pemutaran.",
-        "lanWarningAuth": "Dapat dijangkau dari seluruh jaringan lokal Anda, tetapi kontrol pemutaran memerlukan kata sandi yang Anda tetapkan.",
+        "lanWarning": "Dapat dijangkau dari seluruh jaringan lokalmu: siapa pun di dalamnya bisa mengendalikan pemutaran.",
+        "lanWarningAuth": "Dapat dijangkau dari seluruh jaringan lokalmu, tetapi kontrol pemutaran memerlukan kata sandi yang kamu tetapkan.",
         "statusRunning": "Aktif",
         "statusStopped": "Berhenti",
         "copyAddress": "Salin alamat"
@@ -1765,8 +1765,8 @@
       "fallback": "Perangkat tidak menerima mode eksklusif. Kembali ke mode bersama."
     },
     "matchSourceRate": {
-      "title": "Ikuti laju pencuplikan tiap trek",
-      "subtitle": "Pada keluaran eksklusif, perangkat dibuka ulang pada laju tiap trek: menghindari pencuplikan ulang bila perangkat menerimanya, dengan jeda pada setiap perubahan laju"
+      "title": "Ikuti laju pencuplikan tiap lagu",
+      "subtitle": "Pada keluaran eksklusif, perangkat dibuka ulang pada laju tiap lagu: menghindari pencuplikan ulang bila perangkat menerimanya, dengan jeda pada setiap perubahan laju"
     },
     "mono": {
       "title": "Audio mono",
@@ -2349,13 +2349,13 @@
     },
     "cacheLocation": {
       "title": "Lokasi singgahan",
-      "subtitle": "Sampul, sampul bergerak, dan klip Canvas. Semuanya bisa dibangun ulang, jadi memindahkannya tidak menghilangkan apa pun. Basis data dan berkas yang Anda pilih sendiri tetap di tempatnya.",
+      "subtitle": "Sampul, sampul bergerak, dan klip Canvas. Semuanya bisa dibangun ulang, jadi memindahkannya tidak menghilangkan apa pun. Basis data dan berkas yang kamu pilih sendiri tetap di tempatnya.",
       "pickTitle": "Pilih folder singgahan",
       "choose": "Pindahkan…",
       "reset": "Kembali ke bawaan",
       "size": "{{size}} terpakai",
       "copying": "Menyalin… aslinya baru dihapus pada peluncuran berikutnya.",
-      "fellBack": "Lokasi yang diatur tidak dapat dijangkau ({{path}}), jadi singgahan memakai lokasi bawaan untuk sesi ini. Pilihan Anda tetap tersimpan.",
+      "fellBack": "Lokasi yang diatur tidak dapat dijangkau ({{path}}), jadi singgahan memakai lokasi bawaan untuk sesi ini. Pilihanmu tetap tersimpan.",
       "restartNeeded": "Penyalinan selesai. Mulai ulang untuk memakai lokasi baru.",
       "restartNow": "Mulai ulang"
     },
@@ -2471,7 +2471,7 @@
     }
   },
   "share": {
-    "title": "Bagikan playlist",
+    "title": "Bagikan daftar putar",
     "subtitle": "Buat tautan publik untuk “{{name}}”. Siapa pun dapat membukanya di peramban.",
     "idleHint": "Tautan tetap aktif sampai kamu mencabutnya. Kamu dapat menonaktifkannya kapan saja dari jendela ini.",
     "mint": "Buat tautan",
@@ -2545,7 +2545,7 @@
     },
     "server": {
       "title": "Server jarak jauh",
-      "subtitle": "Tautkan profil ini ke server WaveFlow. Playlist muncul di bilah sisi.",
+      "subtitle": "Tautkan profil ini ke server WaveFlow. Daftar putar muncul di bilah sisi.",
       "urlLabel": "URL server",
       "identify": "Identifikasi",
       "unknownType": "tidak diketahui",
@@ -2559,7 +2559,7 @@
       "forgetTitle": "Membuang pustaka tersimpan dan setiap perubahan luring yang belum sampai ke server",
       "neverSynced": "Belum pernah disinkronkan — pass pertama mengunduh snapshot penuh.",
       "counts": {
-        "playlists_other": "playlist",
+        "playlists_other": "daftar putar",
         "favorites_other": "favorit",
         "ratings_other": "penilaian",
         "history_other": "riwayat putar",
@@ -2578,17 +2578,17 @@
       "upNext": "Berikutnya"
     },
     "playlist": {
-      "label": "Playlist jarak jauh",
-      "nameLabel": "Nama playlist",
+      "label": "Daftar putar jarak jauh",
+      "nameLabel": "Nama daftar putar",
       "notSent": "belum dikirim ke server",
       "addTracks": "Tambah lagu",
       "rename": "Ganti nama",
       "searchPlaceholder": "Cari di katalog server…",
       "noMatches": "Tidak ada hasil.",
       "addTrack": "Tambah {{title}}",
-      "addToPlaylist": "Tambah ke playlist",
+      "addToPlaylist": "Tambah ke daftar putar",
       "emptyDescription": "Gunakan «Tambah lagu» untuk mencari di katalog server.",
-      "notFoundDescription": "Playlist ini sudah tidak ada di server yang terhubung.",
+      "notFoundDescription": "Daftar putar ini sudah tidak ada di server yang terhubung.",
       "keepOffline": "Simpan offline",
       "keepingProgress": "{{done}}/{{total}} disimpan",
       "keptOffline_one": "{{count}} offline",
@@ -2616,13 +2616,13 @@
       "serverFirst": "Server dulu",
       "playbackPreference": "Preferensi pemutaran untuk {{title}}",
       "unlink": "Lepas tautan {{title}}",
-      "conversionTitle": "Salin playlist eksplisit",
+      "conversionTitle": "Salin daftar putar eksplisit",
       "conversionSubtitle": "Pratinjau harus mengonfirmasi setiap tautan identitas. Tidak ada yang digabung atau dilewati diam-diam.",
-      "conversionDirection": "Arah salin playlist",
+      "conversionDirection": "Arah salin daftar putar",
       "conversionLocalToServer": "Lokal → server",
       "conversionServerToLocal": "Server → lokal",
-      "conversionSource": "Playlist sumber",
-      "conversionNoPlaylists": "Tidak ada playlist",
+      "conversionSource": "Daftar putar sumber",
+      "conversionNoPlaylists": "Tidak ada daftar putar",
       "conversionPreview": "Pratinjau",
       "conversionConfirm": "Konfirmasi salinan",
       "itemStatusConfirmed": "terkonfirmasi",
@@ -2651,7 +2651,7 @@
     },
     "catalogue": {
       "title": "Katalog server",
-      "subtitle": "Salin katalog server secara lokal agar bisa dijelajahi dari pustaka Anda. Tanpa itu, hanya lagu yang sudah dipakai daftar putar Anda yang dikenali.",
+      "subtitle": "Salin katalog server secara lokal agar bisa dijelajahi dari pustakamu. Tanpa itu, hanya lagu yang sudah dipakai daftar putarmu yang dikenali.",
       "mirror": "Salin",
       "cancel": "Hentikan",
       "clear": "Kosongkan salinan",
@@ -2686,17 +2686,17 @@
     "import": {
       "action": "Impor ke pustaka saya",
       "title": "Impor ke pustaka saya",
-      "subtitle": "{{name}} akan disalin ke folder yang dipindai dan menjadi trek pustaka Anda sendiri.",
+      "subtitle": "{{name}} akan disalin ke folder yang dipindai dan menjadi lagu pustakamu.",
       "destination": "Folder tujuan",
       "noFolder": "Tidak ada folder terpindai yang dapat dijangkau. Tambahkan satu di Pengaturan → Pustaka.",
       "unreachable": "Tidak terjangkau",
-      "explainer": "Berkas disalin apa adanya, lalu ditautkan ke trek server: pemutaran akan mengutamakan salinan lokal Anda.",
+      "explainer": "Berkas disalin apa adanya, lalu ditautkan ke lagu server: pemutaran akan mengutamakan salinan lokalmu.",
       "submit": "Impor",
       "running": "Mengimpor…",
       "done": "Diimpor: {{count}}",
       "refusal": {
-        "already_linked": "Sudah tertaut ke trek lokal: {{count}}",
-        "already_held": "Sudah ada di pustaka Anda, ditautkan: {{count}}",
+        "already_linked": "Sudah tertaut ke lagu lokal: {{count}}",
+        "already_held": "Sudah ada di pustakamu, ditautkan: {{count}}",
         "unknown_track": "Tidak dikenal katalog: {{count}}",
         "unsupported_format": "Format tidak didukung: {{count}}",
         "hash_mismatch": "Isi tidak sesuai: {{count}}",
@@ -2710,7 +2710,7 @@
     },
     "upload": {
       "title": "Unggah ke server",
-      "subtitle": "Kirim ke server trek yang belum dimilikinya. Pemindaian membaca setiap berkas sekali untuk tahu mana yang benar-benar hilang.",
+      "subtitle": "Kirim ke server lagu yang belum dimilikinya. Pemindaian membaca setiap berkas sekali untuk tahu mana yang benar-benar hilang.",
       "cancel": "Hentikan",
       "survey": "Pindai",
       "surveying": "{{done}} / {{total}} berkas dibaca…",
@@ -2738,10 +2738,10 @@
       "title": "Metadata server",
       "subtitle": "Koreksi disimpan di server, bukan di berkas.",
       "help": "Koreksi ini bertahan dari pemindaian server dan terlihat oleh semua anggota pustaka. Mengosongkan sebuah bidang menghapus koreksinya: nilai dari berkas akan muncul kembali.",
-      "missing": "Trek ini belum ada di cermin server. Jalankan penelusuran katalog, lalu coba lagi.",
-      "invalidNumber": "Tahun serta nomor trek dan cakram harus berupa bilangan bulat."
+      "missing": "Lagu ini belum ada di salinan server. Jalankan penelusuran katalog, lalu coba lagi.",
+      "invalidNumber": "Tahun serta nomor lagu dan cakram harus berupa bilangan bulat."
     },
-    "needsMirror": "Salin dulu katalog server di atas: bagian ini membandingkan berkas Anda dengan cermin lokal, yang masih kosong."
+    "needsMirror": "Salin dulu katalog server di atas: bagian ini membandingkan berkasmu dengan salinan lokal, yang masih kosong."
   },
   "tasks": {
     "barLabel": "Tugas berjalan",
@@ -2754,7 +2754,7 @@
       "library_scan": "Pemindaian pustaka",
       "analysis": "Analisis audio",
       "lyrics_prefetch": "Pengambilan lirik",
-      "catalogue_mirror": "Cermin katalog",
+      "catalogue_mirror": "Salinan katalog",
       "reconcile": "Rekonsiliasi",
       "upload": "Unggah",
       "backup": "Cadangan",
@@ -2814,16 +2814,16 @@
     "searching": "Mencari rilisan…",
     "matching": "Mencocokkan lagu…",
     "noSources": "Tidak ada rilisan yang ditemukan untuk album ini.",
-    "sourcesHint": "Album yang sama sering ada dalam beberapa rilisan dengan daftar lagu berbeda. Pilih milik Anda.",
+    "sourcesHint": "Album yang sama sering ada dalam beberapa rilisan dengan daftar lagu berbeda. Pilih milikmu.",
     "back": "Pilih rilisan lain",
-    "hint": "Tidak ada yang ditulis sampai Anda menerapkannya.",
+    "hint": "Tidak ada yang ditulis sampai kamu menerapkannya.",
     "acceptColumn": "Seluruh bidang:",
     "acceptTrack": "Seluruh lagu",
-    "nothingToChange": "Rilisan ini mengatakan persis apa yang sudah dikatakan berkas Anda.",
+    "nothingToChange": "Rilisan ini mengatakan persis apa yang sudah dikatakan berkasmu.",
     "trackUnchanged": "Tidak ada yang perlu diubah pada lagu ini.",
     "noMatch": "Tidak ada kecocokan untuk {{file}}.",
     "emptyValue": "(kosong)",
-    "unmatchedRemote": "Ada di rilisan ini tetapi tidak di pustaka Anda: {{titles}}",
+    "unmatchedRemote": "Ada di rilisan ini tetapi tidak di pustakamu: {{titles}}",
     "apply": "Terapkan",
     "confidence": {
       "confident": "Yakin",
