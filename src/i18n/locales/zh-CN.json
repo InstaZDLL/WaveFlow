@@ -1609,6 +1609,7 @@
       "loading": "加载中…",
       "emptyTitle": "未安装插件",
       "emptyHint": "从上方商店安装，或将文件夹放入 <data>/waveflow/plugins/。",
+      "openFolder": "打开文件夹",
       "byAuthor": "作者：{{author}}",
       "enabled": "已启用",
       "disabled": "已禁用",

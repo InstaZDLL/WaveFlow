@@ -1612,6 +1612,7 @@
       "loading": "Caricamento…",
       "emptyTitle": "Nessun plugin installato",
       "emptyHint": "Installane uno dallo store qui sopra oppure trascina una cartella in <data>/waveflow/plugins/.",
+      "openFolder": "Apri cartella",
       "byAuthor": "Di {{author}}",
       "enabled": "Attivo",
       "disabled": "Disattivato",

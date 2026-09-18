@@ -1609,6 +1609,7 @@
       "loading": "लोड हो रहा है…",
       "emptyTitle": "कोई प्लगइन इंस्टॉल नहीं है",
       "emptyHint": "ऊपर स्टोर से एक इंस्टॉल करें, या <data>/waveflow/plugins/ के अंतर्गत एक फ़ोल्डर रखें।",
+      "openFolder": "फ़ोल्डर खोलें",
       "byAuthor": "{{author}} द्वारा",
       "enabled": "सक्षम",
       "disabled": "अक्षम",

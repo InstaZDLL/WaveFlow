@@ -96,6 +96,11 @@ export async function uninstallPlugin(pluginId: string): Promise<void> {
   return invoke<void>("uninstall_plugin", { pluginId });
 }
 
+/** Open the sideload directory, creating it first if it is missing. */
+export async function openPluginsFolder(): Promise<void> {
+  return invoke<void>("open_plugins_folder");
+}
+
 // ----- waveflow:source/provider invocation surface -----------------------
 //
 // The host's source-v1 binding exposes three exports (list-entries,

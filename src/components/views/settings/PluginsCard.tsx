@@ -9,12 +9,14 @@ import {
   Package,
   Settings2,
   Users,
+  FolderOpen,
 } from "lucide-react";
 
 import {
   listInstalledPlugins,
   setPluginEnabled,
   uninstallPlugin,
+  openPluginsFolder,
   type PluginInfo,
 } from "../../../lib/tauri/plugins";
 import { PLUGIN_AVAILABILITY_EVENT } from "../../../hooks/usePluginAvailability";
@@ -172,6 +174,18 @@ export function PluginsCard() {
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
             {t("settings.plugins.emptyHint")}
           </p>
+          <button
+            type="button"
+            onClick={() => {
+              openPluginsFolder().catch((e: unknown) => {
+                setError(e instanceof Error ? e.message : String(e));
+              });
+            }}
+            className="mt-3 inline-flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          >
+            <FolderOpen size={14} aria-hidden="true" />
+            <span>{t("settings.plugins.openFolder")}</span>
+          </button>
         </div>
       ) : (
         <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">

@@ -1770,6 +1770,7 @@
       "loading": "جارٍ التحميل…",
       "emptyTitle": "لا توجد إضافات مثبتة",
       "emptyHint": "ثبّت واحدة من المتجر أعلاه، أو ضَع مجلدًا في <data>/waveflow/plugins/.",
+      "openFolder": "فتح المجلد",
       "byAuthor": "بواسطة {{author}}",
       "enabled": "مفعّل",
       "disabled": "معطّل",

@@ -882,6 +882,7 @@ pub fn run() {
             commands::plugins::list_ui_plugins,
             commands::plugins::plugin_ui_render,
             commands::plugins::plugin_ui_event,
+            commands::plugins::open_plugins_folder,
             commands::plugin_store::list_plugin_marketplace,
             commands::plugin_store::install_plugin_from_registry,
             commands::motion_artwork::fetch_album_motion_artwork,

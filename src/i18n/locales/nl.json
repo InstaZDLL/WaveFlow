@@ -1609,6 +1609,7 @@
       "loading": "Laden…",
       "emptyTitle": "Geen plug-ins geïnstalleerd",
       "emptyHint": "Installeer er een uit de winkel hierboven, of plaats een map onder <data>/waveflow/plugins/.",
+      "openFolder": "Map openen",
       "byAuthor": "Door {{author}}",
       "enabled": "Ingeschakeld",
       "disabled": "Uitgeschakeld",

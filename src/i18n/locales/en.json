@@ -1609,6 +1609,7 @@
       "loading": "Loading…",
       "emptyTitle": "No plugins installed",
       "emptyHint": "Install one from the store above, or drop a folder under <data>/waveflow/plugins/.",
+      "openFolder": "Open folder",
       "byAuthor": "By {{author}}",
       "enabled": "Enabled",
       "disabled": "Disabled",

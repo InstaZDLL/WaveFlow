@@ -29,7 +29,7 @@ Installing an entry downloads that plugin's **pinned GitHub release**, then:
 
 Every registry fetch honours [`offline::is_offline()`](../../src-tauri/crates/app/src/offline.rs) and short-circuits when offline. Because the catalogue and each plugin live in **separate repos** ([`InstaZDLL/waveflow-plugins`](https://github.com/InstaZDLL/waveflow-plugins) + per-plugin repos), a grey-area plugin carries no liability for the signed core and a takedown is one registry commit.
 
-UI: [`PluginStoreCard`](../../src/components/views/settings/PluginStoreCard.tsx) sits above [`PluginsCard`](../../src/components/views/settings/PluginsCard.tsx) under **Settings → Extensions**; i18n keys under `settings.pluginStore.*`.
+UI: [`PluginStoreCard`](../../src/components/views/settings/PluginStoreCard.tsx) sits above [`PluginsCard`](../../src/components/views/settings/PluginsCard.tsx) under **Settings → Extensions**; i18n keys under `settings.pluginStore.*`. With nothing installed, `PluginsCard` offers an **Open folder** button (`open_plugins_folder`) that creates the sideload root if it is missing and reveals it in the file manager — the path is never spelled out in the copy, because it differs per platform and a user cannot type `<app-data>` (issue #679).
 
 ## Per-plugin options
 

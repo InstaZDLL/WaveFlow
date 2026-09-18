@@ -390,19 +390,14 @@ export function HomeView({
                 <figcaption className="editorial-lead-art__caption">
                   {currentTrack?.album_title && currentTrack?.artist_name
                     ? t("editorial.lead.caption", {
-                        defaultValue:
-                          "Fig 1. — Tiré de « {{album}} » par {{artist}}.",
                         album: currentTrack.album_title,
                         artist: currentTrack.artist_name,
                       })
                     : currentTrack?.artist_name
                       ? t("editorial.lead.captionArtistOnly", {
-                          defaultValue: "Fig 1. — Une création de {{artist}}.",
                           artist: currentTrack.artist_name,
                         })
-                      : t("editorial.lead.captionFallback", {
-                          defaultValue: "Fig 1. — Sélection du jour.",
-                        })}
+                      : t("editorial.lead.captionFallback")}
                 </figcaption>
               </figure>
             )}
@@ -578,11 +573,8 @@ export function HomeView({
             <div className="relative overflow-hidden min-h-32 rounded-3xl border flex items-center justify-center p-8 border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/40 dark:shadow-none">
               <EmptyState
                 icon={<Sparkles size={32} />}
-                title={t("home.dailyMix.emptyTitle", "Pas encore de Daily Mix")}
-                description={t(
-                  "home.dailyMix.emptyDescription",
-                  "Écoute quelques morceaux puis clique sur Régénérer pour créer tes mixes personnalisés.",
-                )}
+                title={t("home.dailyMix.emptyTitle")}
+                description={t("home.dailyMix.emptyDescription")}
                 size="sm"
               />
             </div>
@@ -631,7 +623,6 @@ export function HomeView({
                       </div>
                       <div className="text-xs opacity-75 mt-0.5">
                         {t("home.dailyMix.trackCount", {
-                          defaultValue: "{{count}} morceaux",
                           count: pl.track_count,
                         })}
                       </div>

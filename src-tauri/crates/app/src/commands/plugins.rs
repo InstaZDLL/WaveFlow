@@ -1195,3 +1195,31 @@ pub async fn plugin_ui_event(
     validate_ui_descriptor(&plugin_id, &descriptor)?;
     Ok(descriptor)
 }
+
+/// Open the sideload directory in the system file manager.
+///
+/// The empty plugins list used to name the directory as
+/// `<data>/waveflow/plugins/`, which resolves to `%APPDATA%`,
+/// `~/.local/share` or `~/Library/Application Support` depending on the
+/// platform and to nothing at all for the reader (issue #679). The app
+/// knows the real path, so it opens it instead of describing it.
+///
+/// [`AppPaths::ensure_dirs`] already creates this root at boot, but a
+/// user who deleted it — or an install whose boot-time creation failed
+/// on a permission error since repaired — would otherwise get a silent
+/// no-op from the opener. Creating on demand costs one syscall and
+/// makes the button work whatever happened before it.
+#[tauri::command]
+pub async fn open_plugins_folder(state: State<'_, AppState>) -> AppResult<()> {
+    let root = state.paths.plugin_paths().plugins_root;
+    let root = tokio::task::spawn_blocking(move || -> AppResult<std::path::PathBuf> {
+        fs::create_dir_all(&root)
+            .map_err(|e| AppError::Other(format!("create {}: {e}", root.display())))?;
+        Ok(root)
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;
+    tauri_plugin_opener::open_path(root, None::<&str>)
+        .map_err(|e| AppError::Other(format!("open_path: {e}")))?;
+    Ok(())
+}
