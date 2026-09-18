@@ -90,7 +90,7 @@
       "changeHint": "フォルダを変更するにはクリック",
       "quickSettings": "クイック設定",
       "autoAnalyze": {
-        "title": "トラック自動解析",
+        "title": "曲を自動解析",
         "description": "スキャン中に BPM とキーを検出 — Radio と Mood Radio に活用されます。"
       }
     },
@@ -112,11 +112,11 @@
       "connect": "Last.fm を接続",
       "missingFields": "API キー、シークレット、ユーザー名、パスワードをすべて入力してください。",
       "connectedTitle": "{{user}} として接続済み",
-      "connectedSubtitle": "トラックを再生すると自動的にスクロブルが始まります。"
+      "connectedSubtitle": "曲を再生すると自動的にスクロブルが始まります。"
     },
     "scan": {
       "title": "ライブラリをスキャン",
-      "description": "フォルダを解析してトラックを見つける準備はできましたか？",
+      "description": "フォルダを解析して曲を見つける準備はできましたか？",
       "noFolder": "フォルダ未選択",
       "readyHint": "フォルダ設定済み。準備ができたらスキャンを開始してください。",
       "scanning": "ライブラリをスキャン中…",
@@ -127,7 +127,7 @@
       "description": "ライブラリのスキャンが完了し、再生の準備ができました。",
       "nextSteps": "次のステップ：",
       "bulletExplore": "ライブラリ、アルバム、アーティストの各タブから楽曲を探索",
-      "bulletQueue": "トラックをクリックして最初のキューを作成",
+      "bulletQueue": "曲をクリックして最初のキューを作成",
       "bulletSettings": "サイドバーから設定を微調整（外観、連携…）",
       "tipImmersiveTitle": "ヒント：没入ビュー",
       "tipImmersiveBody": "プレーヤーのジャケットをクリックすると、ジャケットと歌詞を並べた全画面ビューが開きます。"
@@ -551,7 +551,7 @@
           "help": "ディスク上の位置が不明です。"
         },
         "missing_cover": {
-          "label": "アートワークなし",
+          "label": "ジャケットなし",
           "help": "アルバムに画像がありません。"
         },
         "untaggable": {
@@ -851,7 +851,7 @@
     }
   },
   "player": {
-    "noTrack": "トラックなし",
+    "noTrack": "曲なし",
     "inactive": "非アクティブ",
     "controls": {
       "play": "再生",
@@ -859,7 +859,7 @@
       "previous": "前へ",
       "next": "次へ",
       "shuffleOff": "シャッフルオフ",
-      "shuffleTracks": "トラックをシャッフル",
+      "shuffleTracks": "曲をシャッフル",
       "shuffleAlbums": "アルバムをシャッフル",
       "repeatOff": "リピートオフ",
       "repeatAll": "すべてリピート",
@@ -881,7 +881,7 @@
     "alert": {
       "error": {
         "device-lost": "オーディオデバイスが切断されました",
-        "track-failed": "このトラックを再生できませんでした",
+        "track-failed": "この曲を再生できませんでした",
         "stream-failed": "このストリームを開けませんでした",
         "decoder-crashed": "オーディオエンジンを再起動しました",
         "decoder-stopped": "エラーが続いたためオーディオエンジンを停止しました",
@@ -1012,10 +1012,10 @@
     "submit": "作成",
     "editSubmit": "保存",
     "coverChoose": "写真を選ぶ",
-    "coverMenu": "カバーのオプション",
+    "coverMenu": "ジャケットのオプション",
     "coverChange": "写真を変更",
     "coverRemove": "写真を削除",
-    "coverAutoHint": "自動カバー — 内容に合わせて更新されます",
+    "coverAutoHint": "自動ジャケット — 内容に合わせて更新されます",
     "coverManualHint": "カスタム画像",
     "alsoOnServer": "{{server}} にも作成",
     "alsoOnServerFallback": "リモートサーバー"
@@ -1211,8 +1211,8 @@
     "setTitle": "Canvasを設定"
   },
   "canvasPicker": {
-    "title": "トラックのCanvas",
-    "subtitle": "短いローカルのMP4動画を選んでください。カバーの代わりに、再生の背景でループ再生されます。",
+    "title": "曲のCanvas",
+    "subtitle": "短いローカルのMP4動画を選んでください。ジャケットの代わりに、再生の背景でループ再生されます。",
     "pickFile": "MP4ファイルを選択",
     "removeAction": "Canvasを削除"
   },
@@ -1330,8 +1330,8 @@
   "lyrics": {
     "title": "歌詞",
     "loading": "歌詞を検索中…",
-    "noTrack": "再生中のトラックはありません",
-    "notFound": "このトラックには歌詞が見つかりませんでした。.lrcファイルをインポートできます。",
+    "noTrack": "再生中の曲はありません",
+    "notFound": "この曲には歌詞が見つかりませんでした。.lrcファイルをインポートできます。",
     "fetchError": "歌詞プロバイダーに接続できませんでした。後でもう一度お試しください。",
     "importTitle": ".lrcファイルをインポートする",
     "actions": {
@@ -1655,7 +1655,7 @@
       },
       "discord": {
         "title": "Discord Rich Presence",
-        "subtitle": "再生中のトラックを Discord プロフィールに表示"
+        "subtitle": "再生中の曲を Discord プロフィールに表示"
       },
       "dlna": {
         "title": "DLNA / UPnP サーバー",
@@ -1717,7 +1717,7 @@
       },
       "fallback": {
         "title": "既定のゲイン",
-        "subtitle": "ReplayGain がなく解析もされていないトラックに適用されます"
+        "subtitle": "ReplayGain がなく解析もされていない曲に適用されます"
       },
       "preventClipping": {
         "title": "クリッピングを防ぐ",
@@ -1726,10 +1726,10 @@
       "mode": {
         "title": "適用するゲイン",
         "auto": "自動",
-        "track": "トラックごと",
+        "track": "曲ごと",
         "album": "アルバムごと",
         "autoHint": "アルバムを通して聴いている間はアルバムゲイン、それ以外はトラックゲイン",
-        "trackHint": "すべてのトラックを互いに同じ音量にそろえます",
+        "trackHint": "すべての曲を互いに同じ音量にそろえます",
         "albumHint": "アルバムごとに 1 つのゲイン。作品内の音量差はそのまま残ります"
       },
       "decibels": "{{value}} dB"
@@ -1744,8 +1744,8 @@
       "fallback": "デバイスが排他モードを受け付けません。共有モードに戻ります。"
     },
     "matchSourceRate": {
-      "title": "各トラックのサンプリング周波数に合わせる",
-      "subtitle": "排他出力でトラックごとの周波数でデバイスを開き直します。デバイスが受け付ければリサンプリングを避け、周波数が変わるたびに一瞬の無音（ギャップ）が発生します"
+      "title": "各曲のサンプリング周波数に合わせる",
+      "subtitle": "排他出力で曲ごとの周波数でデバイスを開き直します。デバイスが受け付ければリサンプリングを避け、周波数が変わるたびに一瞬の無音（ギャップ）が発生します"
     },
     "mono": {
       "title": "モノラル音声",
@@ -1773,7 +1773,7 @@
     },
     "singleClickPlay": {
       "title": "シングルクリック再生",
-      "subtitle": "トラックをクリックして再生を開始します（それ以外の場合はダブルクリックしてください）"
+      "subtitle": "曲をクリックして再生を開始します（それ以外の場合はダブルクリックしてください）"
     },
     "showSleepTimer": {
       "title": "スリープタイマーをバーに固定",
@@ -1799,7 +1799,7 @@
       "action": "分析する",
       "cancel": "分析を停止",
       "autoTitle": "自動分析",
-      "autoSubtitle": "新しいトラックが追加されるスキャンが終了するたびに、バックグラウンドで分析を実行する",
+      "autoSubtitle": "新しい曲が追加されるスキャンが終了するたびに、バックグラウンドで分析を実行する",
       "failed_one": "{{count}}件失敗",
       "failed_other": "{{count}}件失敗"
     },
@@ -1817,7 +1817,7 @@
     },
     "dataFolder": {
       "title": "データフォルダ",
-      "subtitle": "データベースとカバー画像が入っているフォルダを開く",
+      "subtitle": "データベースとジャケット画像が入っているフォルダを開く",
       "action": "開く"
     },
     "openDataFolder": "データフォルダを開く",
@@ -1834,18 +1834,18 @@
     "regenerateThumbnailsSubtitle": "すべてのジャケットについて、欠落している1x/2xバージョンを再構築する",
     "regenerateThumbnailsAction": "再生成",
     "regenerateThumbnailsDone": "{{count}} 件のサムネイルを再生成しました",
-    "pruneAlbumCovers": "未使用の Deezer アルバムカバーを削除",
-    "pruneAlbumCoversSubtitle": "すでに独自のカバーを持つアルバムのためにキャッシュされた Deezer カバーを削除します（表示されません）",
+    "pruneAlbumCovers": "未使用の Deezer アルバムジャケットを削除",
+    "pruneAlbumCoversSubtitle": "すでに独自のアートワークを持つアルバム用にキャッシュされた Deezer ジャケットを削除します（表示されることはありません）",
     "pruneAlbumCoversAction": "削除",
     "pruneAlbumCoversDone": "{{files}} 個のファイルを削除 · {{mb}} MB を解放",
-    "pruneAlbumCoversFailed": "カバーの削除に失敗しました",
+    "pruneAlbumCoversFailed": "ジャケットの削除に失敗しました",
     "reset": {
       "title": "アプリをリセットする",
       "subtitle": "すべてのデータを削除し、初期状態に戻す",
       "action": "リセット",
       "confirm": {
         "title": "アプリ全体をリセットしますか？",
-        "warning": "すべてのプロファイル、ライブラリ、プレイリスト、評価、再生履歴、キャッシュされたカバーが削除されます。アプリは初期設定の状態で再起動します。この操作は取り消せません。",
+        "warning": "すべてのプロファイル、ライブラリ、プレイリスト、評価、再生履歴、キャッシュされたジャケットが削除されます。アプリは初期設定の状態で再起動します。この操作は取り消せません。",
         "typeToConfirm": "確認するには RESET と入力してください",
         "error": "リセットに失敗しました。WaveFlow のファイルを保持している外部プログラム（開いているミュージックプレーヤー、データフォルダーのファイルエクスプローラー）を閉じてからもう一度お試しください。",
         "cancel": "キャンセル",
@@ -2026,7 +2026,7 @@
         },
         "lounge": {
           "label": "Lounge",
-          "description": "プレミアム・グラス — アルバムカバーが背景になり、半透明パネル、滑らかな遷移。"
+          "description": "プレミアム・グラス — アルバムジャケットが背景になり、半透明パネル、滑らかな遷移。"
         },
         "pulse": {
           "label": "Pulse",
@@ -2155,7 +2155,7 @@
     },
     "hiResBadge": {
       "title": "Hi-Res / DSD バッジ",
-      "subtitle": "対象トラックの横と、プレイヤーバーのアーティスト名の下に「Hi-Res 24-bit」または「DSD128」のラベルを表示します。デフォルトはオン。"
+      "subtitle": "対象となる曲の横と、プレイヤーバーのアーティスト名の下に「Hi-Res 24-bit」または「DSD128」のラベルを表示します。デフォルトはオン。"
     },
     "serverAccount": {
       "title": "WaveFlow サーバーアカウント",
@@ -2263,8 +2263,8 @@
       "subtitle": "長いタイトルを省略せずにスクロール表示します（プレーヤーバー＋没入ビュー）。"
     },
     "coverSlideshow": {
-      "title": "カバー / アーティストのスライドショー",
-      "subtitle": "再生の背景でアルバムカバーとアーティスト写真をゆっくりクロスフェードします（没入ビュー + 再生中パネル）。"
+      "title": "ジャケット / アーティストのスライドショー",
+      "subtitle": "再生の背景でアルバムジャケットとアーティスト写真をゆっくりクロスフェードします（没入ビュー + 再生中パネル）。"
     },
     "artistHero": {
       "title": "アーティストのバナー",
@@ -2291,7 +2291,7 @@
     },
     "motionArtwork": {
       "title": "アニメーションアートワーク",
-      "subtitle": "メタデータプラグイン（例：Apple Motion Artwork）のアニメーションカバーが再生画面の背景に表示されます。",
+      "subtitle": "メタデータプラグイン（例：Apple Motion Artwork）のモーションカバーが再生画面の背景に表示されます。",
       "cacheLabel": "アニメーションアートワークをローカルに保存",
       "usage": "{{size}} 使用中 · キャッシュ {{files}} 件",
       "clear": "キャッシュを消去",
@@ -2306,7 +2306,7 @@
     },
     "canvasCache": {
       "cacheLabel": "Canvas をローカルに保存",
-      "subtitle": "各トラックの Canvas を Canvas プラグインからダウンロードし、オフラインで再ストリーミングなしに再生します。",
+      "subtitle": "各曲の Canvas を Canvas プラグインからダウンロードし、オフラインで再ストリーミングなしに再生します。",
       "usage": "{{size}} 使用中 · {{files}} 件の Canvas をキャッシュ",
       "clear": "キャッシュを消去",
       "clearConfirm": "確認しますか？"
@@ -2349,7 +2349,7 @@
     },
     "cacheLocation": {
       "title": "キャッシュの保存場所",
-      "subtitle": "アートワーク、動くカバー、Canvas クリップ。いずれも作り直せるため、移動しても失われるものはありません。データベースと手動で選んだファイルはそのまま残ります。",
+      "subtitle": "アートワーク、モーションカバー、Canvas クリップ。いずれも作り直せるため、移動しても失われるものはありません。データベースと手動で選んだファイルはそのまま残ります。",
       "pickTitle": "キャッシュ用フォルダーを選択",
       "choose": "移動…",
       "reset": "既定に戻す",
@@ -2381,7 +2381,7 @@
         "library": "音楽ライブラリを整理して最新の状態に保ちます。",
         "playback": "曲のつなぎ、音量、音声出力を設定します。",
         "appearance": "インターフェースや再生画面をカスタマイズします。",
-        "media": "カバー、アーティスト情報、歌詞の取得元を設定します。",
+        "media": "アートワーク、アーティスト情報、歌詞の取得元を設定します。",
         "integrations": "サービス、サーバー、ネットワーク機器に接続します。",
         "plugins": "拡張機能を探して設定を管理します。",
         "shortcuts": "日常の操作に使うキーボードショートカットを選びます。",
@@ -2403,7 +2403,7 @@
         "player": "プレーヤーとウィンドウ",
         "immersive": "没入型表示",
         "pages": "ライブラリのページ",
-        "artwork": "カバーとアーティスト画像",
+        "artwork": "ジャケットとアーティスト画像",
         "biographies": "アーティストの紹介",
         "lyrics": "歌詞",
         "connectivity": "ネットワーク接続",
