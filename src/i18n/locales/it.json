@@ -167,7 +167,7 @@
   "sidebar": {
     "nav": {
       "home": "Home",
-      "webRadio": "Radio Web",
+      "webRadio": "Web Radio",
       "spotify": "Spotify"
     },
     "sections": {
@@ -203,7 +203,7 @@
         "albums": "Album",
         "artists": "Artisti",
         "genres": "Generi",
-        "explorer": "Esplora risorse"
+        "explorer": "Esplora"
       }
     },
     "playlists": {
@@ -301,7 +301,7 @@
     },
     "moodRadio": {
       "title": "Mood Radio",
-      "subtitle": "Ordinata per tempo, volume e genere",
+      "subtitle": "Ordinata per tempo, loudness e genere",
       "trackCount_one": "{{count}} brano",
       "trackCount_other": "{{count}} brani",
       "empty": "Brani analizzati insufficienti",
@@ -491,8 +491,8 @@
       "deepRescan": "Scansione approfondita (rilegge tutti i file, più lenta)",
       "remove": "Rimuovi la cartella dalla libreria",
       "removeConfirm": "Clicca di nuovo per confermare",
-      "removeConfirmWithPlays_one": "Fai di nuovo clic per confermare. {{count}} ascolto verrà conservato e ricollegato alla prossima scansione.",
-      "removeConfirmWithPlays_other": "Fai di nuovo clic per confermare. {{count}} ascolti verranno conservati e ricollegati alla prossima scansione."
+      "removeConfirmWithPlays_one": "Clicca di nuovo per confermare. {{count}} ascolto verrà conservato e ricollegato alla prossima scansione.",
+      "removeConfirmWithPlays_other": "Clicca di nuovo per confermare. {{count}} ascolti verranno conservati e ricollegati alla prossima scansione."
     },
     "folderBrowser": {
       "open": "Esplora questa cartella",
@@ -549,7 +549,7 @@
         },
         "missing_track_number": {
           "label": "Senza numero di traccia",
-          "help": "Il posto sul disco è sconosciuto."
+          "help": "La posizione sul disco è sconosciuta."
         },
         "missing_cover": {
           "label": "Senza copertina",
@@ -662,7 +662,7 @@
       "30d": "30 giorni",
       "90d": "90 giorni",
       "1y": "1 anno",
-      "all": "Sempre"
+      "all": "Dall'inizio"
     },
     "kpi": {
       "totalPlays": "Riproduzioni",
@@ -1059,7 +1059,7 @@
     "removeFromPlaylist": "Rimuovi da questa playlist",
     "goToAlbum": "Vai all'album",
     "goToArtist": "Vai all'artista",
-    "showInExplorer": "Mostra in Esplora risorse",
+    "showInExplorer": "Mostra in Esplora file",
     "copyPath": "Copia il percorso del file",
     "properties": "Proprietà",
     "startRadio": "Avvia radio",
@@ -1118,7 +1118,7 @@
     "fileSize": "Dimensione",
     "addedAt": "Aggiunto il",
     "filePath": "Percorso",
-    "showInExplorer": "Mostra in Esplora risorse",
+    "showInExplorer": "Mostra in Esplora file",
     "mono": "Mono",
     "stereo": "Stereo",
     "edit": "Modifica",
@@ -1310,7 +1310,7 @@
     "close": "Chiudi il mini-player",
     "upNext": {
       "toggle": "Coda di riproduzione",
-      "title": "In arrivo · {{count}}",
+      "title": "Prossimi · {{count}}",
       "empty": "Nient'altro in coda"
     },
     "lyrics": {
@@ -1721,7 +1721,7 @@
       },
       "notifications": {
         "title": "Notifiche di cambio brano",
-        "subtitle": "Mostra una notifica di sistema all'inizio di ogni brano (titolo + artista). Disattivata di default."
+        "subtitle": "Mostra una notifica di sistema all'inizio di ogni brano (titolo + artista). Disattivata per impostazione predefinita."
       }
     },
     "crossfade": {
@@ -1734,7 +1734,7 @@
     },
     "replayGain": {
       "title": "Applica ReplayGain",
-      "subtitle": "Usare il ReplayGain del file, o quello analizzato, per uniformare il volume percepito",
+      "subtitle": "Usa il ReplayGain del file, o quello analizzato, per uniformare il volume percepito",
       "preamp": {
         "title": "Preamplificazione",
         "subtitle": "Si somma al guadagno di ogni brano — il riferimento ReplayGain è più basso della maggior parte dei sistemi"
@@ -1744,8 +1744,8 @@
         "subtitle": "Applicato ai brani senza ReplayGain mai analizzati"
       },
       "preventClipping": {
-        "title": "Evitare la saturazione",
-        "subtitle": "Limitare il guadagno al margine lasciato dal picco del brano"
+        "title": "Evita la saturazione",
+        "subtitle": "Limita il guadagno al margine lasciato dal picco del brano"
       },
       "mode": {
         "title": "Guadagno da applicare",
@@ -1760,7 +1760,7 @@
     },
     "generatorAlbumMode": {
       "title": "Sessioni con album interi",
-      "subtitle": "La radio d'atmosfera e i Daily Mix scelgono album e li riproducono in ordine, invece di brani sparsi"
+      "subtitle": "Mood Radio e i Daily Mix scelgono album e li riproducono in ordine, invece di brani sparsi"
     },
     "exclusive": {
       "title": "Uscita esclusiva",
@@ -1768,7 +1768,7 @@
       "fallback": "Il dispositivo non accetta la modalità esclusiva. Ricade sulla modalità condivisa."
     },
     "matchSourceRate": {
-      "title": "Segui la frequenza di campionamento di ogni brano",
+      "title": "Adatta la frequenza di campionamento di ogni brano",
       "subtitle": "In uscita esclusiva riapre il dispositivo alla frequenza di ogni brano: evita il ricampionamento quando la accetta, con un'interruzione a ogni cambio di frequenza"
     },
     "mono": {
@@ -2048,7 +2048,7 @@
     },
     "showAudioQualityFooter": {
       "title": "Mostra la barra della qualità audio",
-      "subtitle": "Dettagli tecnici (kHz, kbps, codec, profondità in bit) sotto la barra del player. Disattivata di default per una barra più snella."
+      "subtitle": "Dettagli tecnici (kHz, kbps, codec, profondità in bit) sotto la barra del player. Disattivata per impostazione predefinita, per una barra più snella."
     },
     "categoryNavLabel": "Categorie delle impostazioni",
     "appearance": {
@@ -2158,7 +2158,7 @@
     },
     "hiResBadge": {
       "title": "Badge Hi-Res / DSD",
-      "subtitle": "Mostra l'etichetta «Hi-Res 24-bit» o «DSD128» accanto ai brani idonei e sotto il nome dell'artista nella barra di riproduzione. Attivo di default."
+      "subtitle": "Mostra l'etichetta «Hi-Res 24-bit» o «DSD128» accanto ai brani idonei e sotto il nome dell'artista nella barra di riproduzione. Attivo per impostazione predefinita."
     },
     "serverAccount": {
       "title": "Account server WaveFlow",
@@ -2363,7 +2363,7 @@
       "restartNow": "Riavvia"
     },
     "organization": {
-      "search": "Cerca un’impostazione…",
+      "search": "Cerca un'impostazione…",
       "clear": "Cancella ricerca",
       "noResults": "Nessuna impostazione trovata. Prova un altro termine.",
       "searchResults": "Risultati di ricerca",
@@ -2380,16 +2380,16 @@
         "diagnostics": "Manutenzione"
       },
       "descriptions": {
-        "general": "Lingua, avvio e comportamento dell’applicazione.",
+        "general": "Lingua, avvio e comportamento dell'applicazione.",
         "library": "Organizza e aggiorna la tua libreria musicale.",
         "playback": "Transizioni tra brani, volume e uscita audio.",
-        "appearance": "Personalizza l’interfaccia e le viste di ascolto.",
+        "appearance": "Personalizza l'interfaccia e le viste di ascolto.",
         "media": "Copertine, informazioni sugli artisti e fonti dei testi.",
         "integrations": "Collega servizi, server e dispositivi di rete.",
         "plugins": "Scopri le estensioni e gestisci le loro impostazioni.",
         "shortcuts": "Scegli le scorciatoie per le azioni quotidiane.",
         "data": "Gestisci profili salvati, cartelle e contenuti in cache.",
-        "diagnostics": "Aggiornamenti, diagnostica e ripristino dell’applicazione."
+        "diagnostics": "Aggiornamenti, diagnostica e ripristino dell'applicazione."
       },
       "groups": {
         "language": "Lingua",
@@ -2420,7 +2420,7 @@
         "cleanup": "Manutenzione delle immagini",
         "updates": "Aggiornamenti",
         "diagnostics": "Diagnostica",
-        "reset": "Ripristino dell’applicazione",
+        "reset": "Ripristino dell'applicazione",
         "desktopLyrics": "Testi sul desktop"
       }
     },
@@ -2488,7 +2488,7 @@
     "errorClipboard": "Impossibile accedere agli appunti. Seleziona l'URL per copiarlo manualmente."
   },
   "webRadio": {
-    "title": "Radio Web",
+    "title": "Web Radio",
     "subtitle": "Oltre 30 000 stazioni radio online via radio-browser.info.",
     "loading": "Caricamento categorie…",
     "resolving": "Ricerca stazioni…",
@@ -2588,7 +2588,7 @@
     "queue": {
       "empty": "Nessun brano in coda.",
       "nowPlaying": "In riproduzione",
-      "upNext": "A seguire"
+      "upNext": "Prossimi"
     },
     "playlist": {
       "label": "Playlist remota",
@@ -2753,7 +2753,7 @@
         "quota_exceeded": "Spazio esaurito sul server: {{count}}",
         "library_closed": "Libreria chiusa ai caricamenti: {{count}}",
         "too_many_sessions": "Troppi caricamenti insieme: {{count}}",
-        "unknown_verdict": "Risposta sconosciuta del server: {{count}}",
+        "unknown_verdict": "Risposta che questa versione non riconosce: {{count}}",
         "failed": "Non riusciti: {{count}}"
       }
     },
@@ -2762,7 +2762,7 @@
       "title": "Metadati del server",
       "subtitle": "La correzione viene salvata sul server, non nel file.",
       "help": "Queste correzioni sopravvivono alle scansioni del server e sono visibili a tutti i membri della libreria. Svuotare un campo rimuove la correzione: riappare il valore del file.",
-      "missing": "Questo brano non è ancora nella copia del server. Esegui una scansione del catalogo e riprova.",
+      "missing": "Questo brano non è ancora nella copia del server. Copia il catalogo e riprova.",
       "invalidNumber": "L'anno e i numeri di traccia e disco devono essere numeri interi."
     },
     "needsMirror": "Copia prima il catalogo del server, qui sopra: questa sezione confronta i tuoi file con il mirror locale, ancora vuoto."
