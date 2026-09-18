@@ -189,7 +189,7 @@ export function AppLayout() {
   const viewHistory = navState.history;
   const historyIndex = navState.index;
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [libraryTab, setLibraryTab] = useState<LibraryTab>("morceaux");
+  const [libraryTab, setLibraryTab] = useState<LibraryTab>("tracks");
 
   // Sidebar visibility toggle (#167). Hidden state is persisted in
   // localStorage rather than `profile_setting` because it's a UI

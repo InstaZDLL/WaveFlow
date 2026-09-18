@@ -362,40 +362,40 @@
     "header": {
       "addFolder": "Map toevoegen",
       "subtext": {
-        "morceaux_zero": "0 nummers",
-        "morceaux_one": "{{count}} nummer",
-        "morceaux_other": "{{count}} nummers",
+        "tracks_zero": "0 nummers",
+        "tracks_one": "{{count}} nummer",
+        "tracks_other": "{{count}} nummers",
         "albums_zero": "0 albums",
         "albums_one": "{{count}} album",
         "albums_other": "{{count}} albums",
-        "artistes_zero": "0 artiesten",
-        "artistes_one": "{{count}} artiest",
-        "artistes_other": "{{count}} artiesten",
+        "artists_zero": "0 artiesten",
+        "artists_one": "{{count}} artiest",
+        "artists_other": "{{count}} artiesten",
         "genres_zero": "0 genres",
         "genres_one": "{{count}} genre",
         "genres_other": "{{count}} genres",
-        "dossiers_zero": "0 mappen",
-        "dossiers_one": "{{count}} map",
-        "dossiers_other": "{{count}} mappen",
+        "folders_zero": "0 mappen",
+        "folders_one": "{{count}} map",
+        "folders_other": "{{count}} mappen",
         "playlists_zero": "0 afspeellijsten",
         "playlists_one": "{{count}} afspeellijst",
         "playlists_other": "{{count}} afspeellijsten",
-        "a-corriger_zero": "Niets te melden: de bibliotheek is compleet.",
-        "a-corriger_one": "{{count}} punt te verbeteren",
-        "a-corriger_other": "{{count}} punten te verbeteren"
+        "needs-attention_zero": "Niets te melden: de bibliotheek is compleet.",
+        "needs-attention_one": "{{count}} punt te verbeteren",
+        "needs-attention_other": "{{count}} punten te verbeteren"
       }
     },
     "tabs": {
-      "morceaux": "Nummers",
+      "tracks": "Nummers",
       "albums": "Albums",
-      "artistes": "Artiesten",
+      "artists": "Artiesten",
       "genres": "Genres",
-      "dossiers": "Mappen",
+      "folders": "Mappen",
       "playlists": "Afspeellijsten",
-      "a-corriger": "Te verbeteren"
+      "needs-attention": "Te verbeteren"
     },
     "empty": {
-      "morceaux": {
+      "tracks": {
         "title": "Lege bibliotheek",
         "description": "Importeer audiobestanden of een map om je bibliotheek te vullen."
       },
@@ -403,7 +403,7 @@
         "title": "Geen albums gevonden",
         "description": "Importeer audiobestanden om albums automatisch te laten aanmaken."
       },
-      "artistes": {
+      "artists": {
         "title": "Geen artiesten gevonden",
         "description": "Importeer wat audiobestanden om te beginnen."
       },
@@ -411,14 +411,14 @@
         "title": "Geen genres gevonden",
         "description": "Importeer audiobestanden om verschillende genres te ontdekken."
       },
-      "dossiers": {
+      "folders": {
         "title": "Geen mappen geïmporteerd",
         "description": "Importeer een map vanuit de actiebalk om die hier te bekijken."
       },
       "sourceFiltered": {
         "description": "Niets uit deze bron. Wissel hierboven van bron of kopieer de servercatalogus via de instellingen."
       },
-      "a-corriger": {
+      "needs-attention": {
         "title": "Niets te verbeteren",
         "description": "In je bibliotheek is geen detecteerbaar probleem."
       }
@@ -442,7 +442,8 @@
     "localFile": "Lokaal bestand",
     "fetchMissingCovers": "Alle ontbrekende albumhoezen ophalen",
     "fetchingCovers": "Albumhoezen ophalen… ({{current}} / {{total}})",
-    "fetchCoversResult": "{{count}} albumhoezen opgehaald",
+    "fetchCoversResult_one": "{{count}} albumhoes opgehaald",
+    "fetchCoversResult_other": "{{count}} albumhoezen opgehaald",
     "fetchCoversFailed": "Ophalen van albumhoezen mislukt",
     "table": {
       "number": "#",
@@ -1236,7 +1237,7 @@
     "aboutArtist": "Over de artiest",
     "readMore": "Meer lezen",
     "readLess": "Minder tonen",
-    "noBio": "Geen biografie beschikbaar. Stel je Last.fm-sleutel in via de instellingen.",
+    "noBio": "Geen biografie beschikbaar. Probeer een andere biografiebron via de instellingen.",
     "nextInQueue": "Volgende in de wachtrij",
     "openQueue": "Wachtrij openen",
     "lyrics": {
@@ -1603,7 +1604,7 @@
       "subtitle": "Beheer uitbreidingen die bronnen, metadata of weergaven aan WaveFlow toevoegen.",
       "loading": "Laden…",
       "emptyTitle": "Geen plug-ins geïnstalleerd",
-      "emptyHint": "Installeer er een uit de winkel hierboven, of plaats een map onder <data>/waveflow/plugins/.",
+      "emptyHint": "Installeer er een uit de winkel hierboven, of plaats een map in de plug-inmap.",
       "openFolder": "Map openen",
       "byAuthor": "Door {{author}}",
       "enabled": "Ingeschakeld",
@@ -1856,11 +1857,13 @@
     "regenerateThumbnails": "Miniaturen opnieuw genereren",
     "regenerateThumbnailsSubtitle": "Maakt de ontbrekende 1x-/2x-varianten van alle albumhoezen opnieuw aan",
     "regenerateThumbnailsAction": "Opnieuw genereren",
-    "regenerateThumbnailsDone": "{{count}} miniaturen opnieuw gegenereerd",
+    "regenerateThumbnailsDone_one": "{{count}} miniatuur opnieuw gegenereerd",
+    "regenerateThumbnailsDone_other": "{{count}} miniaturen opnieuw gegenereerd",
     "pruneAlbumCovers": "Ongebruikte Deezer-albumhoezen opruimen",
     "pruneAlbumCoversSubtitle": "Verwijdert in cache opgeslagen Deezer-albumhoezen voor albums die al hun eigen hoes hebben (nooit getoond)",
     "pruneAlbumCoversAction": "Opruimen",
-    "pruneAlbumCoversDone": "{{files}} bestanden verwijderd · {{mb}} MB vrijgemaakt",
+    "pruneAlbumCoversDone_one": "{{count}} bestand verwijderd · {{mb}} MB vrijgemaakt",
+    "pruneAlbumCoversDone_other": "{{count}} bestanden verwijderd · {{mb}} MB vrijgemaakt",
     "pruneAlbumCoversFailed": "Opruimen van hoezen mislukt",
     "reset": {
       "title": "App resetten",

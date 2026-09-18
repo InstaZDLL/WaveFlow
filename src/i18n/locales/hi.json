@@ -362,40 +362,40 @@
     "header": {
       "addFolder": "एक फ़ोल्डर जोड़ें",
       "subtext": {
-        "morceaux_zero": "0 ट्रैक",
-        "morceaux_one": "{{count}} ट्रैक",
-        "morceaux_other": "{{count}} ट्रैक",
+        "tracks_zero": "0 ट्रैक",
+        "tracks_one": "{{count}} ट्रैक",
+        "tracks_other": "{{count}} ट्रैक",
         "albums_zero": "0 एल्बम",
         "albums_one": "{{count}} एल्बम",
         "albums_other": "{{count}} एल्बम",
-        "artistes_zero": "0 कलाकार",
-        "artistes_one": "{{count}} कलाकार",
-        "artistes_other": "{{count}} कलाकार",
+        "artists_zero": "0 कलाकार",
+        "artists_one": "{{count}} कलाकार",
+        "artists_other": "{{count}} कलाकार",
         "genres_zero": "0 शैली",
         "genres_one": "{{count}} शैली",
         "genres_other": "{{count}} शैलियाँ",
-        "dossiers_zero": "0 फ़ोल्डर",
-        "dossiers_one": "{{count}} फ़ोल्डर",
-        "dossiers_other": "{{count}} फ़ोल्डर",
+        "folders_zero": "0 फ़ोल्डर",
+        "folders_one": "{{count}} फ़ोल्डर",
+        "folders_other": "{{count}} फ़ोल्डर",
         "playlists_zero": "0 प्लेलिस्ट",
         "playlists_one": "{{count}} प्लेलिस्ट",
         "playlists_other": "{{count}} प्लेलिस्ट",
-        "a-corriger_zero": "कुछ नहीं मिला: लाइब्रेरी पूरी है।",
-        "a-corriger_one": "{{count}} बात सुधारने को",
-        "a-corriger_other": "{{count}} बातें सुधारने को"
+        "needs-attention_zero": "कुछ नहीं मिला: लाइब्रेरी पूरी है।",
+        "needs-attention_one": "{{count}} बात सुधारने को",
+        "needs-attention_other": "{{count}} बातें सुधारने को"
       }
     },
     "tabs": {
-      "morceaux": "ट्रैक",
+      "tracks": "ट्रैक",
       "albums": "एल्बम",
-      "artistes": "कलाकार",
+      "artists": "कलाकार",
       "genres": "शैलियाँ",
-      "dossiers": "फ़ोल्डर",
+      "folders": "फ़ोल्डर",
       "playlists": "प्लेलिस्ट",
-      "a-corriger": "ध्यान चाहिए"
+      "needs-attention": "ध्यान चाहिए"
     },
     "empty": {
-      "morceaux": {
+      "tracks": {
         "title": "खाली लाइब्रेरी",
         "description": "अपनी लाइब्रेरी में ऑडियो फ़ाइलें या एक फ़ोल्डर आयात करें।"
       },
@@ -403,7 +403,7 @@
         "title": "कोई एल्बम नहीं मिला",
         "description": "ऑडियो फ़ाइलों को आयात करके स्वचालित रूप से एल्बम बनाएँ।"
       },
-      "artistes": {
+      "artists": {
         "title": "कोई कलाकार नहीं मिला",
         "description": "शुरू करने के लिए कुछ ऑडियो फ़ाइलें आयात करें।"
       },
@@ -411,14 +411,14 @@
         "title": "कोई शैली नहीं मिली",
         "description": "विभिन्न शैलियों का अन्वेषण करने के लिए ऑडियो फ़ाइलें आयात करें।"
       },
-      "dossiers": {
+      "folders": {
         "title": "कोई फ़ोल्डर आयात नहीं हुआ",
         "description": "इसे यहाँ ब्राउज़ करने के लिए एक्शन बार से एक फ़ोल्डर आयात करें।"
       },
       "sourceFiltered": {
         "description": "इस स्रोत से कुछ नहीं। ऊपर स्रोत बदलें, या सेटिंग्स से सर्वर कैटलॉग कॉपी करें।"
       },
-      "a-corriger": {
+      "needs-attention": {
         "title": "सुधारने के लिए कुछ नहीं",
         "description": "आपकी लाइब्रेरी में कोई पहचानने योग्य समस्या नहीं है।"
       }
@@ -442,7 +442,8 @@
     "localFile": "स्थानीय फ़ाइल",
     "fetchMissingCovers": "सभी अनुपलब्ध कवर प्राप्त करें",
     "fetchingCovers": "कवर डाउनलोड हो रहे हैं... ({{current}} / {{total}})",
-    "fetchCoversResult": "{{count}} कवर प्राप्त हुए",
+    "fetchCoversResult_one": "{{count}} कवर प्राप्त हुआ",
+    "fetchCoversResult_other": "{{count}} कवर प्राप्त हुए",
     "fetchCoversFailed": "कवर प्राप्त करने में विफल",
     "table": {
       "number": "#",
@@ -1236,7 +1237,7 @@
     "aboutArtist": "कलाकार के बारे में",
     "readMore": "और पढ़ें",
     "readLess": "कम दिखाएँ",
-    "noBio": "कोई जीवनी उपलब्ध नहीं है। सेटिंग्स में अपनी Last.fm कुंजी सेट करें।",
+    "noBio": "कोई जीवनी उपलब्ध नहीं है। सेटिंग्स में कोई दूसरा जीवनी स्रोत आज़माएँ।",
     "nextInQueue": "क्यू में अगला",
     "openQueue": "क्यू खोलें",
     "lyrics": {
@@ -1603,7 +1604,7 @@
       "subtitle": "WaveFlow में स्रोत, मेटाडेटा या दृश्य जोड़ने वाले एक्सटेंशन प्रबंधित करें।",
       "loading": "लोड हो रहा है…",
       "emptyTitle": "कोई प्लगइन इंस्टॉल नहीं है",
-      "emptyHint": "ऊपर स्टोर से एक इंस्टॉल करें, या <data>/waveflow/plugins/ के अंतर्गत एक फ़ोल्डर रखें।",
+      "emptyHint": "ऊपर स्टोर से एक इंस्टॉल करें, या प्लगइन फ़ोल्डर में एक फ़ोल्डर रखें।",
       "openFolder": "फ़ोल्डर खोलें",
       "byAuthor": "{{author}} द्वारा",
       "enabled": "सक्षम",
@@ -1877,11 +1878,13 @@
     "regenerateThumbnails": "थंबनेल पुनः लोड करें",
     "regenerateThumbnailsSubtitle": "सभी कवर के लिए गायब 1x/2x वेरिएंट्स का पुनर्निर्माण करें।",
     "regenerateThumbnailsAction": "पुनर्निर्माण करें",
-    "regenerateThumbnailsDone": "{{count}} थंबनेल पुनर्निर्मित",
+    "regenerateThumbnailsDone_one": "{{count}} थंबनेल पुनर्निर्मित",
+    "regenerateThumbnailsDone_other": "{{count}} थंबनेल पुनर्निर्मित",
     "pruneAlbumCovers": "अप्रयुक्त Deezer एल्बम कवर हटाएँ",
     "pruneAlbumCoversSubtitle": "उन एल्बमों के लिए कैश की गई Deezer कवर हटाता है जिनके पास पहले से अपना कवर है (कभी नहीं दिखाया गया)",
     "pruneAlbumCoversAction": "हटाएँ",
-    "pruneAlbumCoversDone": "{{files}} फ़ाइलें हटाई गईं · {{mb}} MB मुक्त किए गए",
+    "pruneAlbumCoversDone_one": "{{count}} फ़ाइल हटाई गई · {{mb}} MB मुक्त किए गए",
+    "pruneAlbumCoversDone_other": "{{count}} फ़ाइलें हटाई गईं · {{mb}} MB मुक्त किए गए",
     "pruneAlbumCoversFailed": "कवर सफ़ाई विफल",
     "reset": {
       "title": "ऐप को रीसेट करें",

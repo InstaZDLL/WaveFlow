@@ -335,9 +335,9 @@ export function Sidebar({
           <NavItem
             icon={<Music2 size={18} />}
             label={t("sidebar.myMusic.tracks")}
-            active={activeView === "library" && libraryTab === "morceaux"}
+            active={activeView === "library" && libraryTab === "tracks"}
             onClick={() => {
-              setLibraryTab("morceaux");
+              setLibraryTab("tracks");
               setActiveView("library");
             }}
           />
@@ -353,9 +353,9 @@ export function Sidebar({
           <NavItem
             icon={<Mic2 size={18} />}
             label={t("sidebar.myMusic.artists")}
-            active={activeView === "library" && libraryTab === "artistes"}
+            active={activeView === "library" && libraryTab === "artists"}
             onClick={() => {
-              setLibraryTab("artistes");
+              setLibraryTab("artists");
               setActiveView("library");
             }}
           />
@@ -371,9 +371,9 @@ export function Sidebar({
           <NavItem
             icon={<Folder size={18} />}
             label={t("sidebar.myMusic.folders")}
-            active={activeView === "library" && libraryTab === "dossiers"}
+            active={activeView === "library" && libraryTab === "folders"}
             onClick={() => {
-              setLibraryTab("dossiers");
+              setLibraryTab("folders");
               setActiveView("library");
             }}
           />

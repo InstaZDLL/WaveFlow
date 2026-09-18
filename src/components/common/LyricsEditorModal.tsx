@@ -802,7 +802,9 @@ export function LyricsEditorModal({
               <button
                 type="button"
                 onClick={() => togglePlayback()}
-                title={isPlaying ? t("player.pause") : t("player.play")}
+                title={
+                  isPlaying ? t("player.controls.pause") : t("player.controls.play")
+                }
                 className="p-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:opacity-90 transition-opacity"
               >
                 {isPlaying ? <Pause size={16} /> : <Play size={16} />}

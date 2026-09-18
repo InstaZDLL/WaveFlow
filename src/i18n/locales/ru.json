@@ -382,54 +382,54 @@
     "header": {
       "addFolder": "Добавить папку",
       "subtext": {
-        "morceaux_zero": "0 треков",
-        "morceaux_one": "{{count}} трек",
-        "morceaux_few": "{{count}} трека",
-        "morceaux_other": "{{count}} треков",
+        "tracks_zero": "0 треков",
+        "tracks_one": "{{count}} трек",
+        "tracks_few": "{{count}} трека",
+        "tracks_other": "{{count}} треков",
         "albums_zero": "0 альбомов",
         "albums_one": "{{count}} альбом",
         "albums_few": "{{count}} альбома",
         "albums_other": "{{count}} альбомов",
-        "artistes_zero": "0 исполнителей",
-        "artistes_one": "{{count}} исполнитель",
-        "artistes_few": "{{count}} исполнителя",
-        "artistes_other": "{{count}} исполнителей",
+        "artists_zero": "0 исполнителей",
+        "artists_one": "{{count}} исполнитель",
+        "artists_few": "{{count}} исполнителя",
+        "artists_other": "{{count}} исполнителей",
         "genres_zero": "0 жанров",
         "genres_one": "{{count}} жанр",
         "genres_few": "{{count}} жанра",
         "genres_other": "{{count}} жанров",
-        "dossiers_zero": "0 папок",
-        "dossiers_one": "{{count}} папка",
-        "dossiers_few": "{{count}} папки",
-        "dossiers_other": "{{count}} папок",
-        "morceaux_many": "{{count}} треков",
+        "folders_zero": "0 папок",
+        "folders_one": "{{count}} папка",
+        "folders_few": "{{count}} папки",
+        "folders_other": "{{count}} папок",
+        "tracks_many": "{{count}} треков",
         "albums_many": "{{count}} альбомов",
-        "artistes_many": "{{count}} исполнителей",
+        "artists_many": "{{count}} исполнителей",
         "genres_many": "{{count}} жанров",
-        "dossiers_many": "{{count}} папок",
+        "folders_many": "{{count}} папок",
         "playlists_zero": "0 плейлистов",
         "playlists_one": "{{count}} плейлист",
         "playlists_few": "{{count}} плейлиста",
         "playlists_many": "{{count}} плейлистов",
         "playlists_other": "{{count}} плейлистов",
-        "a-corriger_zero": "Замечаний нет: библиотека заполнена полностью.",
-        "a-corriger_one": "{{count}} замечание",
-        "a-corriger_other": "{{count}} замечаний",
-        "a-corriger_few": "{{count}} замечания",
-        "a-corriger_many": "{{count}} замечаний"
+        "needs-attention_zero": "Замечаний нет: библиотека заполнена полностью.",
+        "needs-attention_one": "{{count}} замечание",
+        "needs-attention_other": "{{count}} замечаний",
+        "needs-attention_few": "{{count}} замечания",
+        "needs-attention_many": "{{count}} замечаний"
       }
     },
     "tabs": {
-      "morceaux": "Треки",
+      "tracks": "Треки",
       "albums": "Альбомы",
-      "artistes": "Исполнители",
+      "artists": "Исполнители",
       "genres": "Жанры",
-      "dossiers": "Папки",
+      "folders": "Папки",
       "playlists": "Плейлисты",
-      "a-corriger": "Требует внимания"
+      "needs-attention": "Требует внимания"
     },
     "empty": {
-      "morceaux": {
+      "tracks": {
         "title": "Пустая библиотека",
         "description": "Импортируйте аудиофайлы или папку, чтобы наполнить библиотеку."
       },
@@ -437,7 +437,7 @@
         "title": "Альбомы не найдены",
         "description": "Импортируйте аудиофайлы, и альбомы создадутся автоматически."
       },
-      "artistes": {
+      "artists": {
         "title": "Исполнители не найдены",
         "description": "Импортируйте несколько аудиофайлов, чтобы начать."
       },
@@ -445,14 +445,14 @@
         "title": "Жанры не найдены",
         "description": "Импортируйте аудиофайлы, чтобы изучить разные жанры."
       },
-      "dossiers": {
+      "folders": {
         "title": "Папки не импортированы",
         "description": "Импортируйте папку с помощью панели действий, чтобы просматривать её здесь."
       },
       "sourceFiltered": {
         "description": "Ничего из этого источника. Смените источник выше или скопируйте каталог сервера в настройках."
       },
-      "a-corriger": {
+      "needs-attention": {
         "title": "Нечего исправлять",
         "description": "В библиотеке не найдено ни одной проблемы."
       }
@@ -476,7 +476,10 @@
     "localFile": "Локальный файл",
     "fetchMissingCovers": "Загрузить все недостающие обложки",
     "fetchingCovers": "Загрузка обложек… ({{current}} / {{total}})",
-    "fetchCoversResult": "Загружено обложек: {{count}}",
+    "fetchCoversResult_few": "Загружено обложек: {{count}}",
+    "fetchCoversResult_many": "Загружено обложек: {{count}}",
+    "fetchCoversResult_one": "Загружено обложек: {{count}}",
+    "fetchCoversResult_other": "Загружено обложек: {{count}}",
     "fetchCoversFailed": "Не удалось загрузить обложки",
     "table": {
       "number": "#",
@@ -1326,7 +1329,7 @@
     "aboutArtist": "Об исполнителе",
     "readMore": "Читать далее",
     "readLess": "Свернуть",
-    "noBio": "Биография недоступна. Настройте ключ Last.fm в настройках.",
+    "noBio": "Биография недоступна. Выберите другой источник биографии в настройках.",
     "nextInQueue": "Следующий в очереди",
     "openQueue": "Открыть очередь",
     "lyrics": {
@@ -1703,7 +1706,7 @@
       "subtitle": "Управляйте расширениями, которые добавляют в WaveFlow источники, метаданные или представления.",
       "loading": "Загрузка…",
       "emptyTitle": "Плагины не установлены",
-      "emptyHint": "Установите плагин из магазина выше или поместите папку в <data>/waveflow/plugins/.",
+      "emptyHint": "Установите плагин из магазина выше или поместите папку в папку плагинов.",
       "openFolder": "Открыть папку",
       "byAuthor": "Автор: {{author}}",
       "enabled": "Включено",
@@ -1958,11 +1961,17 @@
     "regenerateThumbnails": "Пересоздать миниатюры",
     "regenerateThumbnailsSubtitle": "Пересоздаёт недостающие варианты 1x/2x для всех обложек",
     "regenerateThumbnailsAction": "Пересоздать",
-    "regenerateThumbnailsDone": "Пересоздано миниатюр: {{count}}",
+    "regenerateThumbnailsDone_few": "Пересоздано миниатюр: {{count}}",
+    "regenerateThumbnailsDone_many": "Пересоздано миниатюр: {{count}}",
+    "regenerateThumbnailsDone_one": "Пересоздано миниатюр: {{count}}",
+    "regenerateThumbnailsDone_other": "Пересоздано миниатюр: {{count}}",
     "pruneAlbumCovers": "Очистить неиспользуемые обложки Deezer",
     "pruneAlbumCoversSubtitle": "Удаляет кэшированные обложки Deezer для альбомов, у которых уже есть своя обложка (никогда не отображались)",
     "pruneAlbumCoversAction": "Очистить",
-    "pruneAlbumCoversDone": "Удалено файлов: {{files}} · освобождено {{mb}} МБ",
+    "pruneAlbumCoversDone_few": "Удалено файлов: {{count}} · освобождено {{mb}} МБ",
+    "pruneAlbumCoversDone_many": "Удалено файлов: {{count}} · освобождено {{mb}} МБ",
+    "pruneAlbumCoversDone_one": "Удалено файлов: {{count}} · освобождено {{mb}} МБ",
+    "pruneAlbumCoversDone_other": "Удалено файлов: {{count}} · освобождено {{mb}} МБ",
     "pruneAlbumCoversFailed": "Не удалось очистить обложки",
     "reset": {
       "title": "Сбросить приложение",
