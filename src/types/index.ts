@@ -28,16 +28,16 @@ export type ViewId =
   | "plugin-ui";
 
 export type LibraryTab =
-  | "morceaux"
+  | "tracks"
   | "albums"
-  | "artistes"
+  | "artists"
   | "genres"
   | "playlists"
-  | "dossiers"
+  | "folders"
   // The "needs attention" inventory (#589). Last, because it is
   // the only tab that answers a question about the library rather
   // than listing part of it.
-  | "a-corriger";
+  | "needs-attention";
 
 export interface NavItemProps {
   icon?: ReactNode;

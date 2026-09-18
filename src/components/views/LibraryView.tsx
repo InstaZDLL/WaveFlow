@@ -173,33 +173,33 @@ interface LibraryViewProps {
 type Translator = (key: string, options?: Record<string, unknown>) => string;
 
 const tabConfig: { id: LibraryTab; icon: typeof Music2 }[] = [
-  { id: "morceaux", icon: Music2 },
+  { id: "tracks", icon: Music2 },
   { id: "albums", icon: Disc },
-  { id: "artistes", icon: Mic2 },
+  { id: "artists", icon: Mic2 },
   { id: "genres", icon: Tags },
   { id: "playlists", icon: ListMusic },
-  { id: "dossiers", icon: Folder },
-  { id: "a-corriger", icon: AlertTriangle },
+  { id: "folders", icon: Folder },
+  { id: "needs-attention", icon: AlertTriangle },
 ];
 
 const emptyStateIcons: Record<LibraryTab, typeof Music2> = {
-  morceaux: Music2,
+  tracks: Music2,
   albums: Disc,
-  artistes: Mic2,
+  artists: Mic2,
   genres: Tags,
   playlists: ListMusic,
-  dossiers: Folder,
-  "a-corriger": AlertTriangle,
+  folders: Folder,
+  "needs-attention": AlertTriangle,
 };
 
 const headerIcons: Record<LibraryTab, typeof Music2> = {
-  morceaux: Music2,
+  tracks: Music2,
   albums: Disc,
-  artistes: Mic2,
+  artists: Mic2,
   genres: Tags,
   playlists: ListMusic,
-  dossiers: Folder,
-  "a-corriger": AlertTriangle,
+  folders: Folder,
+  "needs-attention": AlertTriangle,
 };
 
 export function LibraryView({
@@ -310,14 +310,14 @@ export function LibraryView({
   // is `true` everywhere so the skeleton paints on first render instead
   // of a one-frame EmptyState flash before the effects schedule.
   const [loading, setLoading] = useState<Record<LibraryTab, boolean>>({
-    morceaux: true,
+    tracks: true,
     albums: true,
-    artistes: true,
+    artists: true,
     genres: true,
     // Playlists come from PlaylistContext, already loaded — there is no
     // fetch of our own to wait on, so this tab never shows a skeleton.
     playlists: false,
-    dossiers: true,
+    folders: true,
     // The only tab that does NOT prefetch. Its counts are album-level
     // aggregates plus a walk over every track to chain probable
     // duplicates, so paying for them on every mount of the library --
@@ -326,7 +326,7 @@ export function LibraryView({
     // because an inventory nobody has asked for yet is an empty list,
     // and an empty list is what "nothing to fix" looks like. The first
     // paint would congratulate the user before a single count existed.
-    "a-corriger": true,
+    "needs-attention": true,
   });
   // Which columns the track table shows, in what order and how wide
   // (#588). One preference for every list that renders the shared
@@ -582,10 +582,10 @@ export function LibraryView({
   // after a tag edit, because fixing something is the whole point and a
   // count that does not move reads as the fix not having worked.
   useEffect(() => {
-    if (activeTab !== "a-corriger") return;
+    if (activeTab !== "needs-attention") return;
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading((p) => ({ ...p, "a-corriger": true }));
+    setLoading((p) => ({ ...p, "needs-attention": true }));
     inventorySummary()
       .then((list) => {
         if (!cancelled) setInventory(list);
@@ -595,7 +595,7 @@ export function LibraryView({
           console.error("[LibraryView] inventorySummary failed", err);
       })
       .finally(() => {
-        if (!cancelled) setLoading((p) => ({ ...p, "a-corriger": false }));
+        if (!cancelled) setLoading((p) => ({ ...p, "needs-attention": false }));
       });
     return () => {
       cancelled = true;
@@ -623,7 +623,7 @@ export function LibraryView({
   // on another one replaces the rows wholesale, so a slow answer for a
   // category the user has left must not paint.
   useEffect(() => {
-    if (activeTab !== "a-corriger" || inventoryCategory == null) return;
+    if (activeTab !== "needs-attention" || inventoryCategory == null) return;
     // Same gate the other lists use: firing before the stored sort has
     // been read loads the whole category once in the default order and
     // again in the right one.
@@ -666,7 +666,7 @@ export function LibraryView({
     if (!tracksSort.isLoaded || !librarySource.ready) return;
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading((p) => ({ ...p, morceaux: true }));
+    setLoading((p) => ({ ...p, tracks: true }));
     listLibraryTracks(
       null,
       librarySource.source === "all" ? null : librarySource.source,
@@ -680,7 +680,7 @@ export function LibraryView({
           console.error("[LibraryView] listLibraryTracks failed", err);
       })
       .finally(() => {
-        if (!cancelled) setLoading((p) => ({ ...p, morceaux: false }));
+        if (!cancelled) setLoading((p) => ({ ...p, tracks: false }));
       });
     return () => {
       cancelled = true;
@@ -738,7 +738,7 @@ export function LibraryView({
     if (!artistsSort.isLoaded || !librarySource.ready) return;
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading((p) => ({ ...p, artistes: true }));
+    setLoading((p) => ({ ...p, artists: true }));
     listLibraryArtists(
       null,
       librarySource.source === "all" ? null : librarySource.source,
@@ -752,7 +752,7 @@ export function LibraryView({
           console.error("[LibraryView] listLibraryArtists failed", err);
       })
       .finally(() => {
-        if (!cancelled) setLoading((p) => ({ ...p, artistes: false }));
+        if (!cancelled) setLoading((p) => ({ ...p, artists: false }));
       });
     return () => {
       cancelled = true;
@@ -788,7 +788,7 @@ export function LibraryView({
   useEffect(() => {
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading((p) => ({ ...p, dossiers: true }));
+    setLoading((p) => ({ ...p, folders: true }));
     listFolders(null)
       .then((list) => {
         if (!cancelled) setFolders(list);
@@ -797,7 +797,7 @@ export function LibraryView({
         if (!cancelled) console.error("[LibraryView] listFolders failed", err);
       })
       .finally(() => {
-        if (!cancelled) setLoading((p) => ({ ...p, dossiers: false }));
+        if (!cancelled) setLoading((p) => ({ ...p, folders: false }));
       });
     return () => {
       cancelled = true;
@@ -903,11 +903,11 @@ export function LibraryView({
   // aggregate across all libraries (no single Library to read counts from).
   const countForTab = (tab: LibraryTab): number => {
     switch (tab) {
-      case "morceaux":
+      case "tracks":
         return tracks.length;
       case "albums":
         return albums.length;
-      case "artistes":
+      case "artists":
         return artists.length;
       case "genres":
         return genres.length;
@@ -915,9 +915,9 @@ export function LibraryView({
         // The merged list, not the local one: the header would otherwise
         // count a different set from the grid right below it.
         return libraryPlaylists.length;
-      case "dossiers":
+      case "folders":
         return folders.length;
-      case "a-corriger":
+      case "needs-attention":
         // The number the header should carry is "how many tracks need
         // attention", which is the sum of the categories — and a
         // category can list a track that another one lists too, so this
@@ -928,13 +928,13 @@ export function LibraryView({
   };
   // Built from the tab id, so no literal key for the other tabs
   // appears anywhere in the source -- a search for
-  // `library.header.subtext.a-corriger` finds nothing and proves
+  // `library.header.subtext.needs-attention` finds nothing and proves
   // nothing. Each tab's entry is in all 17 locale files, and as CLDR
   // plural forms (`_zero` / `_one` / `_other`, plus `_few` and `_many`
   // where the language has them), because `count` is passed.
   const headerSubtext =
-    activeTab === "dossiers"
-      ? t("library.header.subtext.dossiers", { count: countForTab("dossiers") })
+    activeTab === "folders"
+      ? t("library.header.subtext.folders", { count: countForTab("folders") })
       : t(`library.header.subtext.${activeTab}`, {
           count: countForTab(activeTab),
         });
@@ -1068,9 +1068,9 @@ export function LibraryView({
   // two different answers.
   const sourceFilterEmptied =
     librarySource.source !== "all" &&
-    ((activeTab === "morceaux" && tracks.length === 0) ||
+    ((activeTab === "tracks" && tracks.length === 0) ||
       (activeTab === "albums" && albums.length === 0) ||
-      (activeTab === "artistes" && artists.length === 0));
+      (activeTab === "artists" && artists.length === 0));
   // Playlists is not in that list on purpose: `PlaylistGrid` owns its own
   // empty state and never falls through to the generic one, so a narrowed
   // source there is already explained where the user is looking.
@@ -1103,9 +1103,9 @@ export function LibraryView({
   );
 
   const hasContent =
-    (activeTab === "morceaux" && tracks.length > 0) ||
+    (activeTab === "tracks" && tracks.length > 0) ||
     (activeTab === "albums" && albums.length > 0) ||
-    (activeTab === "artistes" && artists.length > 0) ||
+    (activeTab === "artists" && artists.length > 0) ||
     (activeTab === "genres" && genres.length > 0) ||
     // Playlists is renderable even when empty: `PlaylistGrid` owns its
     // own empty state ("playlists you create appear here"), which is the
@@ -1117,14 +1117,14 @@ export function LibraryView({
     // Inside a folder there is always something to show -- a
     // breadcrumb and a way back at the very least -- even when the
     // folder itself holds nothing.
-    (activeTab === "dossiers" && (folders.length > 0 || folderPath != null)) ||
+    (activeTab === "folders" && (folders.length > 0 || folderPath != null)) ||
     // The inventory always has something to show: the categories
     // themselves, including the "nothing to fix" reading, which is the
     // answer to the question the user came here with. Listing it here
     // also keeps `activeTab` from being narrowed out of the branch that
     // renders it — `hasContent` is a `const` built from comparisons, so
     // TypeScript treats it as a discriminant.
-    activeTab === "a-corriger";
+    activeTab === "needs-attention";
 
   /** Play a file of the folder being browsed, from that folder's own
    *  list: the queue a click builds is the folder the user is looking
@@ -1402,9 +1402,9 @@ export function LibraryView({
             onClick={() => setTracksView("list")}
             aria-pressed={tracksView === "list"}
             aria-label={t("library.viewToggle.list")}
-            disabled={activeTab !== "morceaux"}
+            disabled={activeTab !== "tracks"}
             className={`p-1.5 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-              tracksView === "list" && activeTab === "morceaux"
+              tracksView === "list" && activeTab === "tracks"
                 ? "bg-zinc-200 text-zinc-800 dark:bg-zinc-700 dark:text-white"
                 : "text-zinc-400 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:bg-zinc-800"
             }`}
@@ -1416,9 +1416,9 @@ export function LibraryView({
             onClick={() => setTracksView("compact")}
             aria-pressed={tracksView === "compact"}
             aria-label={t("library.viewToggle.compact")}
-            disabled={activeTab !== "morceaux"}
+            disabled={activeTab !== "tracks"}
             className={`p-1.5 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-              tracksView === "compact" && activeTab === "morceaux"
+              tracksView === "compact" && activeTab === "tracks"
                 ? "bg-zinc-200 text-zinc-800 dark:bg-zinc-700 dark:text-white"
                 : "text-zinc-400 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:bg-zinc-800"
             }`}
@@ -1429,12 +1429,12 @@ export function LibraryView({
               this list look" -- and only on the tabs that render the
               track table, since on an album or artist grid the control
               would have nothing to configure. */}
-          {(activeTab === "morceaux" ||
+          {(activeTab === "tracks" ||
             // The folders tab shows the table only once a folder is
             // open; above that it is a list of directories, and a
             // column picker there configures nothing on screen.
-            (activeTab === "dossiers" && folderPath != null) ||
-            activeTab === "a-corriger") && (
+            (activeTab === "folders" && folderPath != null) ||
+            activeTab === "needs-attention") && (
             <ColumnPicker
               layout={trackColumns.layout}
               tagKeys={tagKeys}
@@ -1457,9 +1457,9 @@ export function LibraryView({
           nothing yet empties the list, and a control that disappears with the
           content it emptied leaves no way back. The sort dropdown has no such
           problem — it did not cause the emptiness — so it stays gated. */}
-      {(activeTab === "morceaux" ||
+      {(activeTab === "tracks" ||
         activeTab === "albums" ||
-        activeTab === "artistes" ||
+        activeTab === "artists" ||
         activeTab === "playlists") && (
         <div className="flex items-center justify-end space-x-3 -mt-4">
           <SourceFilter
@@ -1467,7 +1467,7 @@ export function LibraryView({
             onChange={librarySource.setSource}
             t={t}
           />
-          {activeTab === "morceaux" && tracks.length > 0 && (
+          {activeTab === "tracks" && tracks.length > 0 && (
             <SortDropdown
               options={trackSortOptions(t)}
               current={tracksSort.sort}
@@ -1491,7 +1491,7 @@ export function LibraryView({
               t={t}
             />
           )}
-          {activeTab === "artistes" && artists.length > 0 && (
+          {activeTab === "artists" && artists.length > 0 && (
             <SortDropdown
               options={artistSortOptions(t)}
               current={artistsSort.sort}
@@ -1504,8 +1504,8 @@ export function LibraryView({
 
       {hasContent ? (
         <>
-          {activeTab === "morceaux" && (
-            <>{renderTrackTable(tracks, loading.morceaux, playRow)}</>
+          {activeTab === "tracks" && (
+            <>{renderTrackTable(tracks, loading.tracks, playRow)}</>
           )}
           {activeTab === "albums" && (
             <>
@@ -1527,12 +1527,12 @@ export function LibraryView({
               />
             </>
           )}
-          {activeTab === "artistes" && (
+          {activeTab === "artists" && (
             <>
               <div className="relative">
                 <ArtistList
                   artists={artists}
-                  isLoading={loading.artistes}
+                  isLoading={loading.artists}
                   t={t}
                   playlists={playlists}
                   onAddToPlaylist={(playlistId, artistId) =>
@@ -1577,7 +1577,7 @@ export function LibraryView({
               />
             </>
           )}
-          {activeTab === "dossiers" && folderPath != null && (
+          {activeTab === "folders" && folderPath != null && (
             <>
               <FolderBrowser
                 listing={
@@ -1635,11 +1635,11 @@ export function LibraryView({
                 renderTrackTable(folderTracks, folderBusy, playFolderRow)}
             </>
           )}
-          {activeTab === "a-corriger" && (
+          {activeTab === "needs-attention" && (
             <div className="space-y-4">
               <InventoryCategories
                 categories={inventory}
-                isLoading={loading["a-corriger"]}
+                isLoading={loading["needs-attention"]}
                 activeKey={inventoryCategory}
                 onSelect={(key) => {
                   // Clicking the open category closes it, so the user
@@ -1668,10 +1668,10 @@ export function LibraryView({
                 })}
             </div>
           )}
-          {activeTab === "dossiers" && folderPath == null && (
+          {activeTab === "folders" && folderPath == null && (
             <FolderList
               folders={folders}
-              isLoading={loading.dossiers}
+              isLoading={loading.folders}
               t={t}
               playlists={playlists}
               onAddToPlaylist={(playlistId, folderId) =>
@@ -1841,7 +1841,7 @@ export function LibraryView({
         />
       )}
 
-      {activeTab === "morceaux" && (
+      {activeTab === "tracks" && (
         <SelectionActionBar
           trackIds={[...selection.selectedIds]}
           onClear={selection.clear}
@@ -4541,7 +4541,7 @@ function LibraryTabSkeleton({ tab, t }: { tab: LibraryTab; t: Translator }) {
   const ariaLabel = t("library.skeletonAriaLabel", {
     name: t(`library.tabs.${tab}`),
   });
-  if (tab === "morceaux") {
+  if (tab === "tracks") {
     return (
       <div
         role="status"
@@ -4587,7 +4587,7 @@ function LibraryTabSkeleton({ tab, t }: { tab: LibraryTab; t: Translator }) {
       </div>
     );
   }
-  if (tab === "artistes") {
+  if (tab === "artists") {
     return (
       <div
         role="status"
@@ -4630,7 +4630,7 @@ function LibraryTabSkeleton({ tab, t }: { tab: LibraryTab; t: Translator }) {
       </div>
     );
   }
-  // dossiers
+  // folders
   return (
     <div
       role="status"

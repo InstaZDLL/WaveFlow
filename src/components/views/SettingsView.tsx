@@ -1186,7 +1186,10 @@ export function SettingsView({
       }).format(r.bytesFreed / (1024 * 1024));
       setPruneCoversStatus({
         ok: true,
-        text: t("settings.pruneAlbumCoversDone", { files: r.filesDeleted, mb }),
+        // `count`, not `files`: i18next selects the plural form on
+        // `count` alone, so the old name left every language on its
+        // plural wording at one file deleted.
+        text: t("settings.pruneAlbumCoversDone", { count: r.filesDeleted, mb }),
       });
     } catch (err) {
       console.error("[SettingsView] prune cached covers failed", err);
