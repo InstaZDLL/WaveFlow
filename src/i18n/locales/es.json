@@ -2753,7 +2753,7 @@
         "quota_exceeded": "Sin espacio en el servidor: {{count}}",
         "library_closed": "Biblioteca cerrada a las subidas: {{count}}",
         "too_many_sessions": "Demasiadas subidas a la vez: {{count}}",
-        "unknown_verdict": "Respuesta desconocida del servidor: {{count}}",
+        "unknown_verdict": "Respuesta desconocida de esta versión: {{count}}",
         "failed": "Fallidas: {{count}}"
       }
     },

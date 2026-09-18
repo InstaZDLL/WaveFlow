@@ -2753,7 +2753,7 @@
         "quota_exceeded": "Plus de place sur le serveur : {{count}}",
         "library_closed": "Bibliothèque fermée aux envois : {{count}}",
         "too_many_sessions": "Trop d'envois simultanés : {{count}}",
-        "unknown_verdict": "Réponse inconnue du serveur : {{count}}",
+        "unknown_verdict": "Réponse inconnue de cette version : {{count}}",
         "failed": "Échecs : {{count}}"
       }
     },

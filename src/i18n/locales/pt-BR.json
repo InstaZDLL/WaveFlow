@@ -2753,7 +2753,7 @@
         "quota_exceeded": "Sem espaço no servidor: {{count}}",
         "library_closed": "Biblioteca fechada a envios: {{count}}",
         "too_many_sessions": "Envios simultâneos demais: {{count}}",
-        "unknown_verdict": "Resposta desconhecida do servidor: {{count}}",
+        "unknown_verdict": "Resposta desconhecida desta versão: {{count}}",
         "failed": "Falharam: {{count}}"
       }
     },

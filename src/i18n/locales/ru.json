@@ -2912,7 +2912,7 @@
         "quota_exceeded": "На сервере нет места: {{count}}",
         "library_closed": "Библиотека закрыта для загрузок: {{count}}",
         "too_many_sessions": "Слишком много загрузок сразу: {{count}}",
-        "unknown_verdict": "Неизвестный ответ сервера: {{count}}",
+        "unknown_verdict": "Ответ, неизвестный этой версии: {{count}}",
         "failed": "Не удалось: {{count}}"
       }
     },
