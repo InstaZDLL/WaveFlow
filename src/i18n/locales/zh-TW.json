@@ -11,7 +11,7 @@
     "loading": "載入中…"
   },
   "lastfmReauth": {
-    "title": "Last.fm 的連線已過期",
+    "title": "Last.fm 工作階段已過期",
     "message": "你的播放記錄已停止傳送。請重新登入以繼續。",
     "action": "開啟設定"
   },
@@ -52,7 +52,7 @@
     },
     "installed": {
       "title": "已安裝更新",
-      "message": "重新啟動 WaveFlow以套用新版本。"
+      "message": "重新啟動 WaveFlow 以套用新版本。"
     },
     "error": {
       "title": "更新失敗"
@@ -210,7 +210,7 @@
       "createPlaylistAria": "建立新的播放清單",
       "importM3uAria": "匯入 M3U 播放清單",
       "importDialogTitle": "匯入 M3U 播放清單",
-      "liked": "已喜歡的曲目",
+      "liked": "收藏的曲目",
       "recent": "最近播放的",
       "emptySubtext_zero": "0 首曲目",
       "emptySubtext_one": "{{count}} 首曲目",
@@ -295,7 +295,7 @@
     },
     "stats": {
       "library": "音樂庫",
-      "liked": "已喜歡的曲目",
+      "liked": "收藏的曲目",
       "recent": "最近播放",
       "playlists": "播放清單"
     },
@@ -610,22 +610,22 @@
   },
   "liked": {
     "badge": "收藏",
-    "title": "已喜歡的曲目",
+    "title": "收藏的曲目",
     "count_zero": "0 首曲目",
     "count_one": "{{count}} 首曲目",
     "count_other": "{{count}} 首曲目",
-    "emptyTitle": "沒有已喜歡的曲目",
+    "emptyTitle": "尚未收藏任何曲目",
     "emptyDescription": "你喜歡的曲目將顯示在這裡。瀏覽你的音樂庫，將喜歡的曲目加入收藏。",
     "playAll": "全部播放",
-    "unlike": "取消喜歡",
-    "like": "加入已喜歡"
+    "unlike": "取消收藏",
+    "like": "加入收藏"
   },
   "history": {
     "badge": "歷史",
     "title": "收聽歷史",
     "today": "今天",
     "yesterday": "昨天",
-    "timeline": "時間線",
+    "timeline": "時間軸",
     "loadingMore": "載入中…",
     "endReached": "歷史的開始",
     "emptyTitle": "暫無收聽紀錄",
@@ -861,9 +861,9 @@
       "shuffleOff": "隨機播放已關閉",
       "shuffleTracks": "隨機播放單曲",
       "shuffleAlbums": "隨機播放專輯",
-      "repeatOff": "重複關閉",
-      "repeatAll": "全部重複",
-      "repeatOne": "單曲重複"
+      "repeatOff": "關閉循環播放",
+      "repeatAll": "全部循環播放",
+      "repeatOne": "單曲循環播放"
     },
     "volume": {
       "label": "音量",
@@ -1053,8 +1053,8 @@
     "createPlaylist": "新播放清單",
     "playNext": "播放下一首",
     "addToQueue": "加入佇列",
-    "like": "加入已喜歡",
-    "unlike": "從已喜歡中移除",
+    "like": "加入收藏",
+    "unlike": "取消收藏",
     "removeFromPlaylist": "從此播放清單中移除",
     "goToAlbum": "前往專輯",
     "goToArtist": "前往藝人",
@@ -1236,7 +1236,7 @@
     "removeAction": "移除圖片"
   },
   "nowPlaying": {
-    "title": "現在播放",
+    "title": "正在播放",
     "empty": "目前沒有正在播放的曲目",
     "aboutArtist": "關於藝人",
     "readMore": "閱讀更多",
@@ -1409,7 +1409,7 @@
       "bpm": "BPM",
       "durationMin": "時長（分鐘）",
       "hiRes": "僅 Hi-Res",
-      "liked": "僅已喜歡的曲目",
+      "liked": "僅限收藏的曲目",
       "formats": "格式",
       "genres": "曲風",
       "sort": "排序方式",
@@ -1475,7 +1475,7 @@
       "durationMaxMs": "時長（毫秒） ≤",
       "format": "格式 =",
       "hiRes": "Hi-Res",
-      "liked": "已喜歡",
+      "liked": "已收藏",
       "ratingMin": "評分 ≥",
       "pathContains": "路徑包含",
       "discNumberIs": "碟片 =",
@@ -1702,7 +1702,7 @@
     },
     "dynamicCrossfade": {
       "title": "動態交叉淡化",
-      "subtitle": "依曲目間的速度差調整淡化時長（BPM 未知時改用至固定交叉淡化）"
+      "subtitle": "依曲目間的速度差調整淡化時長（BPM 未知時改用固定交叉淡化）"
     },
     "normalize": {
       "title": "將音量調整至標準值",
@@ -1816,7 +1816,7 @@
       "done": "已為 {{considered}} 位藝人中的 {{linked}} 位連結本機圖片"
     },
     "dataFolder": {
-      "title": "資料資料夾",
+      "title": "資料儲存資料夾",
       "subtitle": "開啟包含資料庫和封面圖檔的資料夾",
       "action": "開啟"
     },
@@ -2065,7 +2065,7 @@
     },
     "profileIo": {
       "title": "個人檔案備份",
-      "subtitle": "將完整個人檔案（播放清單、收藏、統計、EQ、快速鍵） 匯出或匯入為單一 .waveflow 檔案。",
+      "subtitle": "將完整個人檔案（播放清單、收藏、統計、EQ、快速鍵）匯出或匯入為單一 .waveflow 檔案。",
       "export": {
         "action": "匯出",
         "dialogTitle": "匯出 WaveFlow 個人檔案",
@@ -2134,7 +2134,7 @@
     },
     "wrappedBanner": {
       "title": "WaveFlow Wrapped 橫幅",
-      "subtitle": "首頁上的年度回顧橫幅。自動模式僅在 Wrapped 季（12 月 1 日 → 1 月 31 日） 期間顯示。",
+      "subtitle": "首頁上的年度回顧橫幅。自動模式僅在 Wrapped 季（12 月 1 日 → 1 月 31 日）期間顯示。",
       "legend": "Wrapped 橫幅可見性",
       "seasonActive": "Wrapped 季進行中——橫幅已顯示。",
       "seasonIdle": "非季節期間——橫幅將於 12 月 1 日自動回歸。",
@@ -2198,7 +2198,7 @@
     },
     "lyricsPreferLrclib": {
       "title": "優先使用 LRCLIB 而非內嵌歌詞",
-      "subtitle": "先在線上查找歌詞；若找不到則改用到檔案內建的歌詞"
+      "subtitle": "先在線上查找歌詞；若找不到則改用檔案內建的歌詞"
     },
     "lyricsDestination": {
       "title": "已儲存歌詞的位置",
@@ -2225,7 +2225,7 @@
       "downloading": "正在下載…",
       "downloadingPct": "正在匯入… {{pct}}%",
       "clear": "刪除目錄",
-      "neverSynced": "從不",
+      "neverSynced": "從未",
       "localFirst": "優先使用本機目錄",
       "localFirstHint": "即使在線上也在本機搜尋和瀏覽（即時，無需網路）。",
       "offlineHint": "請關閉離線模式以下載目錄。",
@@ -2313,7 +2313,7 @@
     },
     "dsdDop": {
       "title": "原生 DSD（DoP）",
-      "subtitle": "透過 DoP（DSD over PCM）將 DSD 串流原樣傳送到 DAC，而非轉換為 PCM——位元完美原生解碼。需要獨佔輸出（Windows 上的 WASAPI，Linux 上的硬體 ALSA，macOS 上的 CoreAudio hog mode）與支援 DoP 的 DAC；否則改用到 DSD → PCM。"
+      "subtitle": "透過 DoP（DSD over PCM）將 DSD 串流原樣傳送到 DAC，而非轉換為 PCM——位元完美原生解碼。需要獨佔輸出（Windows 上的 WASAPI，Linux 上的硬體 ALSA，macOS 上的 CoreAudio hog mode）與支援 DoP 的 DAC；否則改用 DSD → PCM。"
     },
     "remoteTranscode": {
       "title": "轉碼遠端音源",
@@ -2561,8 +2561,8 @@
       "counts": {
         "playlists_one": "播放清單",
         "playlists_other": "播放清單",
-        "favorites_one": "已喜歡",
-        "favorites_other": "已喜歡",
+        "favorites_one": "收藏",
+        "favorites_other": "收藏",
         "ratings_one": "評分",
         "ratings_other": "評分",
         "history_one": "次播放",
@@ -2601,8 +2601,8 @@
       "notFoundDescription": "此播放清單在已連線的伺服器上已不存在。",
       "keepOffline": "離線保存",
       "keepingProgress": "已保存 {{done}}/{{total}}",
-      "keptOffline_one": "{{count}} 首離線",
-      "keptOffline_other": "{{count}} 首離線",
+      "keptOffline_one": "已離線保存 {{count}} 首",
+      "keptOffline_other": "已離線保存 {{count}} 首",
       "keptOffline_zero": "無離線曲目"
     },
     "reconciliation": {
@@ -2613,11 +2613,11 @@
       "hashing": "正在雜湊 {{processed}} / {{total}} 個本機檔案…",
       "cancelledSummary": "掃描已取消——未建立任何連結。",
       "confirmedLinks": "已確認的連結",
-      "favoritesRatings": "已喜歡：本機 {{localFav}} · 伺服器 {{remoteFav}} · 評分：本機 {{localRating}} · 伺服器 {{remoteRating}}/5",
+      "favoritesRatings": "收藏：本機 {{localFav}} · 伺服器 {{remoteFav}} · 評分：本機 {{localRating}} · 伺服器 {{remoteRating}}/5",
       "yes": "是",
       "no": "否",
-      "copyFavoriteLocalToServer": "已喜歡：本機 → 伺服器",
-      "copyFavoriteServerToLocal": "已喜歡：伺服器 → 本機",
+      "copyFavoriteLocalToServer": "收藏：本機 → 伺服器",
+      "copyFavoriteServerToLocal": "收藏：伺服器 → 本機",
       "copyRatingLocalToServer": "評分：本機 → 伺服器",
       "copyRatingServerToLocal": "評分：伺服器 → 本機",
       "statusConfirmed": "已確認",
@@ -2807,7 +2807,7 @@
       "yearMin": "年份 ≥ {{value}}",
       "yearMax": "年份 ≤ {{value}}",
       "discNumberIs": "碟片 {{value}}",
-      "liked": "已喜歡",
+      "liked": "已收藏",
       "ratingMin": "評分 ≥ {{value}}",
       "format": "格式 {{value}}",
       "hiRes": "高解析度",
