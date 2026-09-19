@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Wo sollen Liedtexte landen?",
-      "description": "Wenn du Liedtexte bearbeitest, wo sollen sie hin? Du kannst dies jederzeit unter Einstellungen → Wiedergabe ändern.",
+      "description": "Wenn du Liedtexte bearbeitest, wo sollen sie hin? Du kannst dies jederzeit unter Einstellungen → Bilder und Liedtexte ändern.",
       "hint": "Wähle „Sidecar-Datei“, um Audiodateien unberührt zu lassen — wie foobar2000 & Co."
     }
   },

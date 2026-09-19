@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Où ranger les paroles ?",
-      "description": "Quand vous éditez des paroles, où voulez-vous qu'elles atterrissent ? Vous pourrez changer plus tard dans Réglages → Lecture.",
+      "description": "Quand vous éditez des paroles, où voulez-vous qu'elles atterrissent ? Vous pourrez changer plus tard dans Paramètres → Images et paroles.",
       "hint": "Choisissez « Fichier sidecar » pour garder vos fichiers audio inchangés (ce que font foobar2000 et compagnie)."
     }
   },
@@ -2683,7 +2683,7 @@
       "title": "Importer dans ma bibliothèque",
       "subtitle": "{{name}} sera copié dans un dossier analysé et deviendra un titre de votre bibliothèque.",
       "destination": "Dossier de destination",
-      "noFolder": "Aucun dossier analysé n'est accessible. Ajoutez-en un dans Réglages → Bibliothèque.",
+      "noFolder": "Aucun dossier analysé n'est accessible. Ajoutez-en un dans Paramètres → Bibliothèque.",
       "unreachable": "Introuvable",
       "explainer": "Le fichier est copié tel quel, puis relié au titre du serveur : la lecture préférera votre copie locale.",
       "submit": "Importer",

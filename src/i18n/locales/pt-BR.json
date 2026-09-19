@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Onde salvar as letras?",
-      "description": "Quando você edita letras, para onde elas devem ir? Pode mudar em Configurações → Reprodução.",
+      "description": "Quando você edita letras, para onde elas devem ir? Pode mudar em Configurações → Imagens e letras.",
       "hint": "Escolha \"Arquivo sidecar\" para manter seus arquivos de áudio intactos — como faz o foobar2000."
     }
   },

@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Where should lyrics live?",
-      "description": "When you edit lyrics, where should they go? You can change this anytime from Settings → Playback.",
+      "description": "When you edit lyrics, where should they go? You can change this anytime from Settings → Images and lyrics.",
       "hint": "Pick \"Sidecar file\" to keep your audio files untouched — what foobar2000 and friends do."
     }
   },

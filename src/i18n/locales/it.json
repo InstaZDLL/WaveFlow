@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Dove salvare i testi?",
-      "description": "Quando modifichi i testi, dove devono andare? Modificabile in Impostazioni → Riproduzione.",
+      "description": "Quando modifichi i testi, dove devono andare? Modificabile in Impostazioni → Immagini e testi.",
       "hint": "Scegli «File sidecar» per non toccare i file audio — come fanno foobar2000 e simili."
     }
   },

@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "¿Dónde guardar las letras?",
-      "description": "Cuando editas letras, ¿dónde quieres que se guarden? Podrás cambiarlo en Configuración → Reproducción.",
+      "description": "Cuando editas letras, ¿dónde quieres que se guarden? Podrás cambiarlo en Configuración → Imágenes y letras.",
       "hint": "Elige \"Archivo auxiliar\" para mantener tus archivos de audio intactos (lo que hacen foobar2000 y compañía)."
     }
   },

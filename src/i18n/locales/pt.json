@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Onde guardar as letras?",
-      "description": "Quando editas letras, para onde devem ir? Podes alterar em Definições → Reprodução.",
+      "description": "Quando editas letras, para onde devem ir? Podes alterar em Definições → Imagens e letras.",
       "hint": "Escolhe \"Ficheiro auxiliar\" para manter os teus ficheiros de áudio intactos — como o foobar2000."
     }
   },

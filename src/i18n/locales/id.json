@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Di mana menyimpan lirik?",
-      "description": "Saat kamu mengedit lirik, di mana liriknya harus disimpan? Kamu dapat mengubahnya kapan saja di Pengaturan → Pemutaran.",
+      "description": "Saat kamu mengedit lirik, di mana liriknya harus disimpan? Kamu dapat mengubahnya kapan saja di Pengaturan → Gambar dan lirik.",
       "hint": "Pilih \"Berkas pendamping\" agar berkas audio kamu tetap utuh — seperti yang dilakukan foobar2000 dkk."
     }
   },

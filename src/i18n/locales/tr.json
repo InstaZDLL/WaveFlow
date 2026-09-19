@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Şarkı sözleri nereye gitsin?",
-      "description": "Şarkı sözlerini düzenlediğinde nereye gitsinler? Ayarlar → Oynatma'dan değiştirebilirsin.",
+      "description": "Şarkı sözlerini düzenlediğinde nereye gitsinler? Ayarlar → Görseller ve şarkı sözleri'nden değiştirebilirsin.",
       "hint": "Ses dosyalarını bozulmadan tutmak için \"Yan dosya\" seç — foobar2000 ve benzerleri böyle yapar."
     }
   },
