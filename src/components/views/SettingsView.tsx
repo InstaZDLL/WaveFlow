@@ -1843,15 +1843,32 @@ export function SettingsView({
   // and pushed live to the decoder thread, so flipping it shows /
   // hides the bars on the next emitted frame.
   const [visualizer, setVisualizer] = useState(false);
+  // Set as soon as the user flips the switch, so a read that was
+  // already in flight cannot land on top of their choice — the same
+  // guard the audio settings above use, in its one-value form.
+  const visualizerTouched = useRef(false);
 
+  // Re-read when the active profile changes, like the audio settings
+  // above: the toggle is per-profile, so a mount-only read left the
+  // switch showing the previous profile's answer (#698). The `stale`
+  // latch drops an in-flight answer that belongs to the profile we
+  // just left.
   useEffect(() => {
+    let stale = false;
+    visualizerTouched.current = false;
     getVisualizerEnabled()
-      .then(setVisualizer)
+      .then((on) => {
+        if (!stale && !visualizerTouched.current) setVisualizer(on);
+      })
       .catch((err) => console.error("[SettingsView] get visualizer", err));
-  }, []);
+    return () => {
+      stale = true;
+    };
+  }, [activeProfile?.id]);
 
   const handleToggleVisualizer = useCallback(() => {
     const next = !visualizer;
+    visualizerTouched.current = true;
     setVisualizer(next);
     setVisualizerEnabled(next).catch((err) => {
       console.error("[SettingsView] set visualizer failed", err);
