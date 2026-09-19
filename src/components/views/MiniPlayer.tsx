@@ -52,6 +52,11 @@ import {
   playerJumpToIndex,
   type PlayerQueueSnapshot,
 } from "../../lib/tauri/player";
+import {
+  remoteGetPlayQueue,
+  remoteQueueJump,
+  type RemotePlayQueue,
+} from "../../lib/tauri/remoteServer";
 
 /**
  * Spotify-style always-on-top widget. Square cover floats centered
@@ -110,9 +115,17 @@ export function MiniPlayer() {
   const showQueue = overlay === "queue";
 
   // ── Up-next queue (own webview = own fetch + event subscription) ─
-  // Mirrors QueuePanel: load once, refetch on `player:queue-changed`,
-  // guarded by a seq counter so overlapping refetches (rapid Next)
-  // never resolve out of order.
+  // Two sources, because a remote session's queue is not in the local
+  // `queue_item` table — it lives in memory on the backend. That is the
+  // same split `QueuePanel` makes between its own body and
+  // `RemoteQueueView`, and without it this list showed whatever local
+  // queue happened to be sitting there while a remote track played
+  // (#685). Only one is live at a time.
+  const isRemoteSession = isRemoteTrack(currentTrack);
+
+  // Local: load once, refetch on `player:queue-changed`, guarded by a
+  // seq counter so overlapping refetches (rapid Next) never resolve out
+  // of order.
   const [queue, setQueue] = useState<PlayerQueueSnapshot | null>(null);
   const queueSeqRef = useRef(0);
 
@@ -129,6 +142,7 @@ export function MiniPlayer() {
   }, []);
 
   useEffect(() => {
+    if (isRemoteSession) return;
     fetchQueue();
     let unlisten: UnlistenFn | null = null;
     let cancelled = false;
@@ -147,21 +161,94 @@ export function MiniPlayer() {
       cancelled = true;
       unlisten?.();
     };
-  }, [fetchQueue]);
+  }, [fetchQueue, isRemoteSession]);
 
-  const currentIndex = queue?.current_index ?? -1;
+  // Remote: there is no `player:queue-changed` for it, and
+  // `RemoteQueueView` does not invent one — it refetches when the playing
+  // track's id changes, because an advance or a jump moves the backend
+  // cursor and flips the negative sentinel id with it. Same signal here,
+  // so the two surfaces stay in step.
+  const [remoteQueue, setRemoteQueue] = useState<RemotePlayQueue | null>(
+    null,
+  );
+  const remoteSeqRef = useRef(0);
+  const currentTrackId = currentTrack?.id ?? null;
+
+  // Drop the previous session's entries when this one ends. Without
+  // this, a new remote session renders — and can be clicked into — with
+  // the LAST session's queue for the frames before its own fetch lands,
+  // and `remote_queue_jump` would take an index from the wrong list. It
+  // is a cleanup rather than a call in the body on purpose: this has to
+  // happen on the way out of a session, not on every track change
+  // inside one, which would blank the list on each advance.
+  useEffect(() => {
+    if (!isRemoteSession) return;
+    return () => setRemoteQueue(null);
+  }, [isRemoteSession]);
+
+  useEffect(() => {
+    if (!isRemoteSession) return;
+    // `currentTrackId` is a dependency on purpose — it is the change
+    // signal, not a value this effect reads.
+    void currentTrackId;
+    // Two guards, because they answer different questions. The seq drops
+    // a fetch that a LATER one has overtaken; `ended` drops one whose
+    // session is over — clearing the state above does not stop a request
+    // already in flight, and without this it would land afterwards and
+    // put the dead session's queue back.
+    let ended = false;
+    const seq = ++remoteSeqRef.current;
+    remoteGetPlayQueue()
+      .then((q) => {
+        if (!ended && seq === remoteSeqRef.current) setRemoteQueue(q);
+      })
+      .catch((err) => {
+        console.error("[MiniPlayer] remote queue fetch failed", err);
+        if (!ended && seq === remoteSeqRef.current) setRemoteQueue(null);
+      });
+    return () => {
+      ended = true;
+    };
+  }, [isRemoteSession, currentTrackId]);
+
+  const currentIndex = isRemoteSession
+    ? (remoteQueue?.index ?? -1)
+    : (queue?.current_index ?? -1);
+
+  // One row shape for both sources, so the list below renders once. A
+  // remote entry can arrive before its metadata does, which is what
+  // `remote.common.awaitingMetadata` is for.
   const upNext = useMemo(() => {
+    const from = Math.max(0, currentIndex + 1);
+    if (isRemoteSession) {
+      if (!remoteQueue) return [];
+      return remoteQueue.entries.slice(from).map((entry, i) => ({
+        key: `${entry.id}:${from + i}`,
+        absoluteIndex: from + i,
+        title: entry.title ?? t("remote.common.awaitingMetadata"),
+        artist: entry.artist,
+      }));
+    }
     if (!queue) return [];
-    return queue.items
-      .slice(Math.max(0, currentIndex + 1))
-      .map((item, i) => ({ item, absoluteIndex: currentIndex + 1 + i }));
-  }, [queue, currentIndex]);
+    return queue.items.slice(from).map((item, i) => ({
+      key: String(from + i),
+      absoluteIndex: from + i,
+      title: item.title,
+      artist: item.artist_name,
+    }));
+  }, [isRemoteSession, remoteQueue, queue, currentIndex, t]);
 
-  const handleJump = useCallback((absoluteIndex: number) => {
-    playerJumpToIndex(absoluteIndex).catch((err) =>
-      console.error("[MiniPlayer] jump failed", err),
-    );
-  }, []);
+  const handleJump = useCallback(
+    (absoluteIndex: number) => {
+      // The remote queue has its own cursor; `player_jump_to_index` acts
+      // on the local one and would end the session on an unrelated track.
+      const jump = isRemoteSession
+        ? remoteQueueJump(absoluteIndex)
+        : playerJumpToIndex(absoluteIndex);
+      jump.catch((err) => console.error("[MiniPlayer] jump failed", err));
+    },
+    [isRemoteSession],
+  );
 
   // ── Cover-derived background gradient ───────────────────────────
   const artworkUrl = useMemo(() => {
@@ -629,23 +716,23 @@ export function MiniPlayer() {
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto scrollbar-hide px-2 pb-2 space-y-0.5">
-              {upNext.map(({ item, absoluteIndex }) => (
+              {upNext.map((row) => (
                 <button
-                  key={absoluteIndex}
+                  key={row.key}
                   type="button"
-                  onClick={() => handleJump(absoluteIndex)}
-                  title={`${item.title} — ${item.artist_name ?? ""}`}
+                  onClick={() => handleJump(row.absoluteIndex)}
+                  title={`${row.title} — ${row.artist ?? ""}`}
                   className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left hover:bg-white/10 transition-colors"
                 >
                   <span className="w-4 shrink-0 text-right text-[10px] tabular-nums text-white/40">
-                    {absoluteIndex - currentIndex}
+                    {row.absoluteIndex - currentIndex}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-xs text-white">
-                      {item.title}
+                      {row.title}
                     </div>
                     <div className="truncate text-[10px] text-white/60">
-                      {item.artist_name ?? "—"}
+                      {row.artist ?? "—"}
                     </div>
                   </div>
                 </button>
