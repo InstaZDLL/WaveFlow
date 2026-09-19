@@ -364,7 +364,7 @@ export function AboutView({ onNavigate }: AboutViewProps) {
         <div className="grid grid-cols-2 gap-x-8">
           <TechItem icon={<Music size={16} />} name="Symphonia" version="0.6" />
           <TechItem icon={<Settings2 size={16} />} name="CPAL" version="0.17" />
-          <TechItem icon={<Waves size={16} />} name="Rubato" version="3.0" />
+          <TechItem icon={<Waves size={16} />} name="Rubato" version="5.x" />
         </div>
       </section>
 
