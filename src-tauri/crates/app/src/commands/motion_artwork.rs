@@ -327,8 +327,11 @@ pub async fn set_album_motion_artwork_from_file(
     album_id: i64,
     file_path: String,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    // One snapshot: two separate reads can straddle a `switch_profile`,
+    // and this pair decides both which library the album belongs to and
+    // which profile directory the fallback writes into -- a mismatch
+    // would file the cover under the other profile.
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     // Next to the music when the user asked for that and the folder
     // accepts it, in the app's own directory otherwise (#695).
     let motion_dir = library_media::album_write_dir_for(
