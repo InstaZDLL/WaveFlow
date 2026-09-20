@@ -736,13 +736,20 @@ export function MiniPlayer() {
             mode keeps the cover view exactly as it was. */}
         {overlay === "lyrics" && (
           <div className="flex items-center justify-center gap-4 px-3 pb-2">
-            <IconButton onClick={previous} label="previous">
+            <IconButton
+              onClick={previous}
+              label={t("player.controls.previous")}
+            >
               <SkipBack size={16} />
             </IconButton>
             <button
               type="button"
               onClick={togglePlayback}
-              aria-label={isPlaying ? "pause" : "play"}
+              aria-label={
+                isPlaying
+                  ? t("player.controls.pause")
+                  : t("player.controls.play")
+              }
               className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-transform hover:scale-105"
             >
               {isPlaying ? (
@@ -751,7 +758,7 @@ export function MiniPlayer() {
                 <Play size={16} className="fill-current ml-0.5" />
               )}
             </button>
-            <IconButton onClick={next} label="next">
+            <IconButton onClick={next} label={t("player.controls.next")}>
               <SkipForward size={16} />
             </IconButton>
           </div>
@@ -1061,6 +1068,7 @@ function CoverWithControls({
   onToggleMute,
   artworkSlot,
 }: CoverWithControlsProps) {
+  const { t } = useTranslation();
   const ref = useRef<HTMLDivElement | null>(null);
   return (
     <div
@@ -1087,19 +1095,25 @@ function CoverWithControls({
         <div className="flex items-center gap-2">
           <IconButton
             onClick={onToggleShuffle}
-            label="shuffle"
+            label={t(
+              isShuffled
+                ? "player.controls.shuffleTracks"
+                : "player.controls.shuffleOff",
+            )}
             active={isShuffled}
             disabled={shuffleDisabled}
           >
             <Shuffle size={14} />
           </IconButton>
-          <IconButton onClick={onPrev} label="previous">
+          <IconButton onClick={onPrev} label={t("player.controls.previous")}>
             <SkipBack size={16} />
           </IconButton>
           <button
             type="button"
             onClick={onPlayPause}
-            aria-label={isPlaying ? "pause" : "play"}
+            aria-label={
+              isPlaying ? t("player.controls.pause") : t("player.controls.play")
+            }
             className="w-11 h-11 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition-transform"
           >
             {isPlaying ? (
@@ -1108,12 +1122,18 @@ function CoverWithControls({
               <Play size={18} className="fill-current ml-0.5" />
             )}
           </button>
-          <IconButton onClick={onNext} label="next">
+          <IconButton onClick={onNext} label={t("player.controls.next")}>
             <SkipForward size={16} />
           </IconButton>
           <IconButton
             onClick={onCycleRepeat}
-            label="repeat"
+            label={t(
+              repeatMode === "one"
+                ? "player.controls.repeatOne"
+                : repeatMode === "all"
+                  ? "player.controls.repeatAll"
+                  : "player.controls.repeatOff",
+            )}
             active={repeatMode !== "off"}
           >
             {repeatMode === "one" ? (
