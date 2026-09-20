@@ -20,7 +20,7 @@
 //!   [`WatcherManager::restore_from_db`] with the new pool.
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -97,10 +97,14 @@ impl WatcherManager {
         let (event_tx, event_rx) = mpsc::unbounded_channel::<()>();
         let event_tx_for_cb = event_tx.clone();
         let watcher_path = path.clone();
+        let reserved_root = path.clone();
 
         let mut watcher = notify::recommended_watcher(move |res: notify::Result<Event>| {
             let Ok(event) = res else { return };
             if !is_relevant_event(&event) {
+                return;
+            }
+            if is_our_own_media(&reserved_root, &event) {
                 return;
             }
             // Best-effort send — the debounce task may be tearing down.
@@ -184,6 +188,25 @@ fn is_relevant_event(event: &Event) -> bool {
         event.kind,
         EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
     )
+}
+
+/// Whether every path this event names is media WaveFlow itself keeps in
+/// the library folder (issue #695).
+///
+/// Without this, caching one Canvas clip would spend a full folder rescan
+/// answering our own write -- and a prefetch across an album would do it
+/// once per clip.
+///
+/// **Every path, not any**: an event that touches one of our files and one
+/// of the user's is a library change, and the user's half is the half that
+/// matters. An event that names no path at all cannot be judged, so it is
+/// kept -- a scan too many is recoverable, a change never seen is not.
+fn is_our_own_media(root: &Path, event: &Event) -> bool {
+    !event.paths.is_empty()
+        && event
+            .paths
+            .iter()
+            .all(|path| waveflow_core::scanner::is_in_reserved_dir(root, path))
 }
 
 /// Per-folder debounce task. Coalesces bursts of events into a single
@@ -328,4 +351,46 @@ pub async fn apply_toggle(
         .execute(pool)
         .await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use notify::event::CreateKind;
+
+    fn event(paths: &[&str]) -> Event {
+        let mut event = Event::new(EventKind::Create(CreateKind::Any));
+        event.paths = paths.iter().map(PathBuf::from).collect();
+        event
+    }
+
+    /// Caching a clip must not cost a folder rescan; a prefetch across an
+    /// album would otherwise pay for one per clip.
+    #[test]
+    fn our_own_writes_do_not_trigger_a_scan() {
+        let root = PathBuf::from("/music");
+        assert!(is_our_own_media(
+            &root,
+            &event(&["/music/.waveflow/canvas/a.mp4"])
+        ));
+    }
+
+    /// Every path, not any: an event that touches one of ours and one of
+    /// theirs is a library change, and theirs is the half that matters.
+    #[test]
+    fn an_event_that_also_touches_their_music_is_a_change() {
+        let root = PathBuf::from("/music");
+        assert!(!is_our_own_media(
+            &root,
+            &event(&["/music/.waveflow/canvas/a.mp4", "/music/Artist/01.flac"])
+        ));
+        assert!(!is_our_own_media(&root, &event(&["/music/Artist/01.flac"])));
+    }
+
+    /// An event naming no path cannot be judged, so it is kept: a scan too
+    /// many is recoverable, a change never seen is not.
+    #[test]
+    fn an_event_without_paths_is_kept() {
+        assert!(!is_our_own_media(Path::new("/music"), &event(&[])));
+    }
 }

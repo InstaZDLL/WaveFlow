@@ -13,6 +13,7 @@ pub mod canonical;
 pub mod extra_tags;
 pub mod extract;
 pub mod replay_gain;
+pub mod reserved;
 
 // `upserts` runs raw SQLite statements against a
 // `&mut sqlx::SqliteConnection`. It's the only sqlite-specific surface
@@ -31,6 +32,7 @@ pub use extract::{
     write_artist_image, ExtractedCover, ExtractedFile, AUDIO_EXTENSIONS,
 };
 pub use replay_gain::{extract_replay_gain, ReplayGainTags};
+pub use reserved::{is_in_reserved_dir, is_reserved_dir_name, RESERVED_DIR_NAME};
 #[cfg(feature = "sqlite")]
 pub use upserts::{
     link_local_artist_image, link_va_artist_image, maybe_link_artist_images,
