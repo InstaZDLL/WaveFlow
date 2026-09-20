@@ -1549,7 +1549,29 @@ async fn export_fetched_sidecar(
             if read_sidecar_lyrics(audio).is_some() {
                 return;
             }
-            if let Err(err) = std::fs::write(&sidecar, &content) {
+            // `create_new` rather than `write`, for the two files that
+            // reader says nothing about: one that is empty or all
+            // whitespace (it reports those as misses, and truncating one
+            // would still be writing over something we did not create),
+            // and one that appears between the check above and this line.
+            // The kernel decides, so there is no window left to lose.
+            let created = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&sidecar);
+            let mut file = match created {
+                Ok(file) => file,
+                Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => return,
+                Err(err) => {
+                    tracing::debug!(
+                        %err,
+                        path = %sidecar.display(),
+                        "lyrics sidecar export failed"
+                    );
+                    return;
+                }
+            };
+            if let Err(err) = std::io::Write::write_all(&mut file, content.as_bytes()) {
                 tracing::debug!(
                     %err,
                     path = %sidecar.display(),
@@ -4175,6 +4197,34 @@ mod tests {
 
         assert!(!dir.path().join("Song.lrc").exists());
         assert_eq!(std::fs::read(&audio).unwrap(), b"audio");
+    }
+
+    /// An empty sidecar is a file nobody else wrote, even though the
+    /// reader reports it as a miss. Truncating it would be the overwrite
+    /// this code refuses to do.
+    #[tokio::test]
+    async fn an_empty_sidecar_is_still_someone_else_s_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"audio").unwrap();
+        let sidecar = dir.path().join("Song.lrc");
+        std::fs::write(&sidecar, "").unwrap();
+        seed_track(&pool, &audio, "h1").await;
+        set_destination(&pool, "sidecar").await;
+
+        upsert_lyrics(
+            &pool,
+            "h1",
+            "[00:12.00]Theirs",
+            &LyricsFormat::Lrc,
+            &LyricsSource::Api,
+            Some("lrclib"),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(std::fs::read_to_string(&sidecar).unwrap(), "");
     }
 
     /// A sidecar the user spelled differently is still the user's file.

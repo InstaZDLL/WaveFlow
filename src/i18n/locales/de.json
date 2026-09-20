@@ -2207,7 +2207,7 @@
     },
     "lyricsDestination": {
       "title": "Speicherort für Liedtexte",
-      "subtitle": "Wo Liedtexte auf der Festplatte landen — die, die du schreibst, und die, die WaveFlow abruft. Bei jeder Bearbeitung überschreibbar."
+      "subtitle": "Wo Liedtexte auf der Festplatte landen — die, die du schreibst, und die, die WaveFlow abruft. Den Speicherort kannst du bei jeder Bearbeitung einzeln festlegen."
     },
     "updateChannel": {
       "title": "Beta-Kanal",

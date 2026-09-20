@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   getWindowChrome,
@@ -19,6 +19,8 @@ const INITIAL: WindowChromeState = {
 export interface WindowChromePreference extends WindowChromeState {
   /** `false` until the stored choice has been read. */
   ready: boolean;
+  /** A write is in flight; the surface should refuse a second click. */
+  busy: boolean;
   choose: (next: "system" | "app") => Promise<void>;
 }
 
@@ -40,6 +42,12 @@ export interface WindowChromePreference extends WindowChromeState {
 export function useWindowChrome(): WindowChromePreference {
   const [state, setState] = useState<WindowChromeState>(INITIAL);
   const [ready, setReady] = useState(false);
+  // One write at a time. Two fast clicks would otherwise race, and the
+  // answer that lands last decides the state and the broadcast -- which
+  // need not be the one the user clicked last. A ref, not state: the guard
+  // has to hold from inside the click handler, before React re-renders.
+  const writing = useRef(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,9 +79,13 @@ export function useWindowChrome(): WindowChromePreference {
   }, []);
 
   const choose = useCallback(async (next: "system" | "app") => {
+    if (writing.current) return;
+    writing.current = true;
+    setBusy(true);
     // No optimistic update: the frame either changed or it did not, and
     // the backend's answer is the one that says which — showing a title
-    // bar for a window that kept its decorations would be two frames.
+    // bar for a window that kept its decorations would be two frames, and
+    // a failed write now returns an error rather than reporting success.
     try {
       const applied = await setWindowChrome(next);
       setState(applied);
@@ -84,8 +96,11 @@ export function useWindowChrome(): WindowChromePreference {
       );
     } catch (err) {
       console.error("[useWindowChrome] write failed", err);
+    } finally {
+      writing.current = false;
+      setBusy(false);
     }
   }, []);
 
-  return { ...state, ready, choose };
+  return { ...state, ready, busy, choose };
 }

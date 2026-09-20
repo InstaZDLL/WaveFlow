@@ -1366,10 +1366,14 @@ async fn restore_bounds_and_reveal(app: AppHandle) -> bool {
     // Before the reveal, not after: the window is created hidden, so a
     // user who asked WaveFlow to draw its own frame never sees the
     // desktop's appear and vanish (#696).
-    commands::preferences::apply_window_chrome(
+    if let Err(err) = commands::preferences::apply_window_chrome(
         &app,
         commands::preferences::load_window_chrome(&state.app_db).await,
-    );
+    ) {
+        // The window keeps whatever it was created with, which is the
+        // desktop's frame. Worth a line, never worth failing a launch.
+        tracing::warn!(?err, "could not apply the stored window chrome");
+    }
     if let Some(bounds) = commands::preferences::load_main_window_bounds(&state.app_db).await {
         if let Some(window) = app.get_webview_window("main") {
             if let Err(err) = window.set_size(tauri::LogicalSize::new(bounds.width, bounds.height))

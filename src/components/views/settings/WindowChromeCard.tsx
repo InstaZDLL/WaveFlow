@@ -23,7 +23,7 @@ const OPTIONS: ReadonlyArray<{
  */
 export function WindowChromeCard() {
   const { t } = useTranslation();
-  const { chrome, supported, ready, choose } = useWindowChrome();
+  const { chrome, supported, ready, busy, choose } = useWindowChrome();
 
   if (!ready || !supported) return null;
 
@@ -64,9 +64,10 @@ export function WindowChromeCard() {
               type="button"
               role="radio"
               aria-checked={selected}
+              disabled={busy}
               onClick={() => void choose(id)}
               className={[
-                "flex flex-col items-start gap-2 rounded-xl border p-3 text-left transition-all",
+                "flex flex-col items-start gap-2 rounded-xl border p-3 text-left transition-all disabled:opacity-50",
                 selected
                   ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 ring-1 ring-emerald-500/40"
                   : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 bg-white dark:bg-zinc-900",

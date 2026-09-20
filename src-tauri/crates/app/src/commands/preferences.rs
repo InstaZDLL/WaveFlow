@@ -493,28 +493,28 @@ pub async fn load_window_chrome(app_db: &SqlitePool) -> WindowChrome {
 /// [`set_window_chrome`] when they change their mind, where the flicker is
 /// the point — they asked to see the difference.
 ///
-/// Every failure is logged rather than raised: a window that kept the wrong
-/// frame is a cosmetic disappointment, not a reason to fail a startup or an
-/// unrelated settings write.
-pub fn apply_window_chrome(app: &tauri::AppHandle, chrome: WindowChrome) {
+/// **Failure is returned, not swallowed.** What the interface draws is
+/// decided by what is stored, so a stored `app` whose `set_decorations`
+/// never landed would take the in-app title bar away from a window that
+/// still has no frame of its own — leaving no way to move, resize or close
+/// it. The caller that persists checks this first; the caller at startup
+/// logs it, where the window is whatever it was created as and the
+/// alternative would be to fail the launch over a frame.
+pub fn apply_window_chrome(app: &tauri::AppHandle, chrome: WindowChrome) -> AppResult<()> {
     use tauri::Manager;
 
-    let Some(window) = app.get_webview_window("main") else {
-        tracing::warn!("window chrome: no main window to apply it to");
-        return;
-    };
+    let window = app.get_webview_window("main").ok_or_else(|| {
+        crate::error::AppError::Other("window chrome: no main window".to_string())
+    })?;
     let chrome = chrome.resolved();
 
     #[cfg(target_os = "macos")]
     {
-        let style = match chrome {
-            WindowChrome::App => tauri::utils::TitleBarStyle::Overlay,
-            WindowChrome::System => tauri::utils::TitleBarStyle::Visible,
-        };
-        if let Err(err) = window.set_title_bar_style(style) {
-            tracing::warn!(?err, "window chrome: set_title_bar_style failed");
-        }
-        // An overlay title bar still draws the window's title over our own
+        // The title first, deliberately: it is invisible either way while
+        // the style is what the user sees, so a failure here stops before
+        // anything has moved rather than halfway through.
+        //
+        // An overlay title bar draws the window's title over our own
         // content, and `hiddenTitle` is a creation-time option with no
         // runtime switch — so the title is what we empty, and restore with
         // the frame. The app is named by the menu bar either way.
@@ -522,19 +522,30 @@ pub fn apply_window_chrome(app: &tauri::AppHandle, chrome: WindowChrome) {
             WindowChrome::App => "",
             WindowChrome::System => "WaveFlow",
         };
-        if let Err(err) = window.set_title(title) {
-            tracing::warn!(?err, "window chrome: set_title failed");
-        }
+        window.set_title(title).map_err(|err| {
+            crate::error::AppError::Other(format!("window chrome: set_title: {err}"))
+        })?;
+        let style = match chrome {
+            WindowChrome::App => tauri::utils::TitleBarStyle::Overlay,
+            WindowChrome::System => tauri::utils::TitleBarStyle::Visible,
+        };
+        window.set_title_bar_style(style).map_err(|err| {
+            crate::error::AppError::Other(format!("window chrome: set_title_bar_style: {err}"))
+        })?;
     }
 
     #[cfg(target_os = "linux")]
-    if let Err(err) = window.set_decorations(matches!(chrome, WindowChrome::System)) {
-        tracing::warn!(?err, "window chrome: set_decorations failed");
-    }
+    window
+        .set_decorations(matches!(chrome, WindowChrome::System))
+        .map_err(|err| {
+            crate::error::AppError::Other(format!("window chrome: set_decorations: {err}"))
+        })?;
 
     // Windows keeps its frame; see `WindowChrome::supported`.
     #[cfg(target_os = "windows")]
     let _ = (&window, chrome);
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -547,10 +558,11 @@ pub async fn get_window_chrome(state: tauri::State<'_, AppState>) -> AppResult<W
     })
 }
 
-/// Persist the choice and put it on the window in the same call, so the two
-/// cannot disagree — and so the frontend has nothing to apply itself, which
-/// on macOS it could not do anyway (`setTitle` and the title-bar style are
-/// separate calls that must move together).
+/// Put the choice on the window, then persist it — in that order, so a
+/// frame that refused to change is never recorded as the one in use. The
+/// frontend has nothing to apply itself, which on macOS it could not do
+/// anyway (`setTitle` and the title-bar style are separate calls that must
+/// move together).
 #[tauri::command]
 pub async fn set_window_chrome(
     app: tauri::AppHandle,
@@ -562,6 +574,7 @@ pub async fn set_window_chrome(
             "set_window_chrome: unsupported value '{chrome}' (expected system, app)"
         ))
     })?;
+    apply_window_chrome(&app, parsed)?;
     sqlx::query(
         "INSERT INTO app_setting (key, value, value_type, updated_at)
          VALUES (?, ?, 'string', ?)
@@ -574,7 +587,6 @@ pub async fn set_window_chrome(
     .execute(&state.app_db)
     .await?;
 
-    apply_window_chrome(&app, parsed);
     let resolved = parsed.resolved();
     Ok(WindowChromeState {
         chrome: resolved.as_str().to_string(),
