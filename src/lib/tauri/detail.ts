@@ -116,6 +116,9 @@ export interface ArtistDetail {
    *  `background_url` is the remote fallback when the download failed. */
   background_url: string | null;
   background_path: string | null;
+  /** True when the backdrop above is one the user picked rather than
+   *  TheAudioDB's automatic choice (issue #693). */
+  has_custom_background: boolean;
   track_count: number;
   album_count: number;
   albums: ArtistAlbumRow[];

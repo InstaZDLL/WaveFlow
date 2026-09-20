@@ -1195,6 +1195,14 @@
     "fansCount_one": "{{display}} fan",
     "fansCount_other": "{{display}} fans"
   },
+  "artistBackdropPicker": {
+    "title": "Change artist banner",
+    "suggestions": "Suggestions",
+    "suggestionLabel": "Banner suggestion {{index}}",
+    "noneFound": "No wide image found for this artist. Pick a local file instead.",
+    "fileHint": "A wide image works best: it is cropped to a banner.",
+    "removeAction": "Use the automatic banner"
+  },
   "motionCoverPicker": {
     "title": "Manual motion cover",
     "subtitle": "Choose a local MP4 file. It replaces the plugin-supplied motion cover and is never overwritten by a refresh.",

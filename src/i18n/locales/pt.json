@@ -1196,6 +1196,14 @@
     "fansCount_one": "{{display}} fã",
     "fansCount_other": "{{display}} fãs"
   },
+  "artistBackdropPicker": {
+    "title": "Alterar o banner do artista",
+    "suggestions": "Sugestões",
+    "suggestionLabel": "Sugestão de banner {{index}}",
+    "noneFound": "Não foi encontrada nenhuma imagem panorâmica para este artista. Escolha antes um ficheiro local.",
+    "fileHint": "Uma imagem panorâmica funciona melhor: é recortada em banner.",
+    "removeAction": "Voltar ao banner automático"
+  },
   "motionCoverPicker": {
     "title": "Capa animada manual",
     "subtitle": "Escolhe um ficheiro MP4 local. Substitui a capa animada fornecida pelo plugin e nunca é substituída por uma atualização.",

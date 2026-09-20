@@ -78,14 +78,9 @@ struct ArtistPayload {
     fanart3: Option<String>,
     #[serde(rename = "strArtistFanart4")]
     fanart4: Option<String>,
-    /// ~1000×185 wide thumbnail — narrower than fanart but still a
-    /// usable hero strip when no fanart exists.
-    #[serde(rename = "strArtistWideThumb")]
-    wide_thumb: Option<String>,
-    /// 1000×185 banner, usually carrying the artist's logo. Last
-    /// resort: the text baked into it can clash with the header copy.
-    #[serde(rename = "strArtistBanner")]
-    banner: Option<String>,
+    // `strArtistWideThumb` and `strArtistBanner` are deliberately not
+    // deserialized: both are 1000×185 strips, and the hero they used to
+    // feed is routinely wider than that — see `fanart_urls` (#693).
 }
 
 impl ArtistPayload {
@@ -108,31 +103,49 @@ impl ArtistPayload {
         non_blank(primary).or_else(|| non_blank(&self.bio_en))
     }
 
-    /// First non-blank wide image, widest-and-cleanest first: real
-    /// fanart, then its community alternates, then the wide thumb, and
-    /// the logo banner only as a last resort.
-    fn fanart_url(&self) -> Option<String> {
-        non_blank(&self.fanart)
-            .or_else(|| non_blank(&self.fanart2))
-            .or_else(|| non_blank(&self.fanart3))
-            .or_else(|| non_blank(&self.fanart4))
-            .or_else(|| non_blank(&self.wide_thumb))
-            .or_else(|| non_blank(&self.banner))
+    /// Every real fanart the artist has, in TheAudioDB's own order.
+    ///
+    /// **The wide thumb and the banner are deliberately absent** (issue
+    /// #693). Both are 1000×185 strips by TheAudioDB's own spec, and
+    /// the hero they were feeding is routinely wider than 1000 px and
+    /// far taller than 185 px relative to its width — so they arrived
+    /// upscaled and cropped to a sliver, which is what "the backdrop is
+    /// low quality" looked like. With no fanart the hero falls back to
+    /// the blurred square photo, which is honest about being an ambient
+    /// colour field rather than a picture.
+    fn fanart_urls(&self) -> Vec<String> {
+        [&self.fanart, &self.fanart2, &self.fanart3, &self.fanart4]
+            .into_iter()
+            .filter_map(non_blank)
+            .collect()
     }
 }
 
 /// Cleaned artist payload returned to callers. `bio_short` is a
 /// truncated lead-in for the collapsed UI; `bio_full` is the whole
-/// text; `fanart_url` is the wide hero image (issue #482).
+/// text; `fanart_urls` are the wide hero images (issue #482).
 ///
 /// Every field is optional independently: an artist row can carry
 /// fanart with no biography in any language, and vice-versa.
+///
+/// **All** the fanarts come back, not just the first one (issue #693):
+/// an artist can have up to four, they differ enormously in framing,
+/// and the picker lets the user choose. `fanart_url()` keeps the "just
+/// give me one" caller honest.
 #[derive(Debug, Clone)]
 pub struct TheAudioDbArtist {
     pub name: String,
     pub bio_short: Option<String>,
     pub bio_full: Option<String>,
-    pub fanart_url: Option<String>,
+    pub fanart_urls: Vec<String>,
+}
+
+impl TheAudioDbArtist {
+    /// The default hero image: the first fanart, which is TheAudioDB's
+    /// own preferred one.
+    pub fn fanart_url(&self) -> Option<&str> {
+        self.fanart_urls.first().map(String::as_str)
+    }
 }
 
 pub struct TheAudioDbClient {
@@ -184,7 +197,7 @@ impl TheAudioDbClient {
             return Ok(None);
         };
 
-        let fanart_url = artist.fanart_url();
+        let fanart_urls = artist.fanart_urls();
         let full = artist
             .bio_for_lang(lang)
             .map(clean_text)
@@ -194,7 +207,7 @@ impl TheAudioDbClient {
             name: artist.name.unwrap_or_default(),
             bio_short: full.as_deref().map(make_summary),
             bio_full: full,
-            fanart_url,
+            fanart_urls,
         }))
     }
 }
@@ -277,31 +290,41 @@ mod tests {
         assert_eq!(payload.bio_for_lang("de").as_deref(), Some("English bio"));
     }
 
+    /// Every fanart the artist has, in TheAudioDB's order, blanks
+    /// dropped — the picker offers the list and the hero paints the
+    /// first of it.
     #[test]
-    fn fanart_url_prefers_the_widest_image() {
+    fn fanart_urls_keep_every_image_in_order() {
         let payload = ArtistPayload {
             fanart: Some("  ".into()), // blank → skipped
             fanart2: Some("https://cdn/fanart2.jpg".into()),
-            wide_thumb: Some("https://cdn/wide.jpg".into()),
-            banner: Some("https://cdn/banner.jpg".into()),
+            fanart4: Some("https://cdn/fanart4.jpg".into()),
             ..Default::default()
         };
         assert_eq!(
-            payload.fanart_url().as_deref(),
-            Some("https://cdn/fanart2.jpg")
+            payload.fanart_urls(),
+            vec![
+                "https://cdn/fanart2.jpg".to_string(),
+                "https://cdn/fanart4.jpg".to_string(),
+            ]
         );
     }
 
+    /// An artist with no fanart has **nothing** wide, even when
+    /// TheAudioDB offers a wide thumb or a banner: both are 1000×185
+    /// strips, and the hero falls back to its blurred-photo tier rather
+    /// than stretching one (#693).
     #[test]
-    fn fanart_url_falls_back_to_banner() {
-        let payload = ArtistPayload {
-            banner: Some("https://cdn/banner.jpg".into()),
-            ..Default::default()
-        };
-        assert_eq!(
-            payload.fanart_url().as_deref(),
-            Some("https://cdn/banner.jpg")
-        );
-        assert_eq!(ArtistPayload::default().fanart_url(), None);
+    fn a_strip_is_not_a_backdrop() {
+        let payload: ArtistPayload = serde_json::from_str(
+            r#"{
+                "strArtist": "X",
+                "strArtistWideThumb": "https://cdn/wide.jpg",
+                "strArtistBanner": "https://cdn/banner.jpg"
+            }"#,
+        )
+        .expect("payload with strips only");
+        assert!(payload.fanart_urls().is_empty());
+        assert_eq!(ArtistPayload::default().fanart_urls(), Vec::<String>::new());
     }
 }

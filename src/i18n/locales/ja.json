@@ -1195,6 +1195,14 @@
     "fansCount_other": "{{display}} 人のファン",
     "fansCount_one": "{{display}} 人のファン"
   },
+  "artistBackdropPicker": {
+    "title": "アーティストのバナーを変更",
+    "suggestions": "候補",
+    "suggestionLabel": "バナー候補 {{index}}",
+    "noneFound": "このアーティストのワイド画像は見つかりませんでした。ローカルファイルを選んでください。",
+    "fileHint": "ワイド画像が最適です。バナーの形に切り抜かれます。",
+    "removeAction": "自動のバナーに戻す"
+  },
   "motionCoverPicker": {
     "title": "手動モーションカバー",
     "subtitle": "ローカルのMP4ファイルを選択してください。プラグインが提供するモーションカバーを置き換え、更新で上書きされることはありません。",

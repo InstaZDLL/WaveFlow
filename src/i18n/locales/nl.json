@@ -1195,6 +1195,14 @@
     "fansCount_one": "{{display}} fan",
     "fansCount_other": "{{display}} fans"
   },
+  "artistBackdropPicker": {
+    "title": "Artiestbanner wijzigen",
+    "suggestions": "Suggesties",
+    "suggestionLabel": "Bannersuggestie {{index}}",
+    "noneFound": "Geen brede afbeelding gevonden voor deze artiest. Kies in plaats daarvan een lokaal bestand.",
+    "fileHint": "Een brede afbeelding werkt het best: hij wordt bijgesneden tot een banner.",
+    "removeAction": "Automatische banner gebruiken"
+  },
   "motionCoverPicker": {
     "title": "Handmatige bewegende hoes",
     "subtitle": "Kies een lokaal MP4-bestand. Het vervangt de door de plug-in geleverde bewegende hoes en wordt nooit overschreven door een vernieuwing.",

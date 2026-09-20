@@ -1196,6 +1196,14 @@
     "fansCount_one": "{{display}} fan",
     "fansCount_other": "{{display}} fans"
   },
+  "artistBackdropPicker": {
+    "title": "Modifier la bannière d'artiste",
+    "suggestions": "Suggestions",
+    "suggestionLabel": "Proposition de bannière {{index}}",
+    "noneFound": "Aucune image large trouvée pour cet artiste. Choisissez plutôt un fichier local.",
+    "fileHint": "Une image large convient le mieux : elle est recadrée en bannière.",
+    "removeAction": "Revenir à la bannière automatique"
+  },
   "motionCoverPicker": {
     "title": "Pochette animée manuelle",
     "subtitle": "Choisissez un fichier MP4 local. Il remplace la pochette animée fournie par un plugin et n'est jamais écrasé par une actualisation.",

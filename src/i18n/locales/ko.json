@@ -1195,6 +1195,14 @@
     "fansCount_one": "팬 {{display}}명",
     "fansCount_other": "팬 {{display}}명"
   },
+  "artistBackdropPicker": {
+    "title": "아티스트 배너 변경",
+    "suggestions": "추천",
+    "suggestionLabel": "배너 추천 {{index}}",
+    "noneFound": "이 아티스트의 와이드 이미지를 찾지 못했습니다. 로컬 파일을 선택하세요.",
+    "fileHint": "와이드 이미지가 가장 잘 맞습니다. 배너 비율로 잘립니다.",
+    "removeAction": "자동 배너로 되돌리기"
+  },
   "motionCoverPicker": {
     "title": "수동 모션 커버",
     "subtitle": "로컬 MP4 파일을 선택하세요. 플러그인이 제공하는 모션 커버를 대체하며 새로고침으로 덮어써지지 않습니다.",
