@@ -135,6 +135,7 @@ import {
 import { listen } from "@tauri-apps/api/event";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
+import { useProfileScopedToggle } from "../../hooks/useProfileScopedToggle";
 import { useGeneratorAlbumMode } from "../../hooks/useGeneratorAlbumMode";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -1800,64 +1801,34 @@ export function SettingsView({
   // Smart crossfade — skip the fade between two tracks of the same
   // album so concept records / live sets hand off naturally. Persisted
   // backend-side; default OFF (opinionated behaviour, opt-in).
-  const [smartCrossfade, setSmartCrossfadeState] = useState(false);
+  // Three engine toggles with the same per-profile lifecycle — read on
+  // the active profile, disabled until it has answered, rolled back
+  // only while it is still active (#698).
+  const {
+    enabled: smartCrossfade,
+    hydrated: smartCrossfadeHydrated,
+    toggle: handleToggleSmartCrossfade,
+  } = useProfileScopedToggle(getSmartCrossfade, setSmartCrossfade, {
+    label: "SettingsView smart crossfade",
+  });
 
-  useEffect(() => {
-    getSmartCrossfade()
-      .then(setSmartCrossfadeState)
-      .catch((err) => console.error("[SettingsView] get smart crossfade", err));
-  }, []);
+  const {
+    enabled: dynamicCrossfade,
+    hydrated: dynamicCrossfadeHydrated,
+    toggle: handleToggleDynamicCrossfade,
+  } = useProfileScopedToggle(getDynamicCrossfade, setDynamicCrossfade, {
+    label: "SettingsView dynamic crossfade",
+  });
 
-  const handleToggleSmartCrossfade = useCallback(() => {
-    const next = !smartCrossfade;
-    setSmartCrossfadeState(next);
-    setSmartCrossfade(next).catch((err) => {
-      console.error("[SettingsView] set smart crossfade failed", err);
-      setSmartCrossfadeState(!next);
-    });
-  }, [smartCrossfade]);
-
-  // Dynamic (tempo-aware) crossfade — scales the upcoming fade by
-  // the BPM gap. Same opt-in pattern; falls back silently to the
-  // static crossfade when either track has no stored BPM.
-  const [dynamicCrossfade, setDynamicCrossfadeState] = useState(false);
-
-  useEffect(() => {
-    getDynamicCrossfade()
-      .then(setDynamicCrossfadeState)
-      .catch((err) =>
-        console.error("[SettingsView] get dynamic crossfade", err),
-      );
-  }, []);
-
-  const handleToggleDynamicCrossfade = useCallback(() => {
-    const next = !dynamicCrossfade;
-    setDynamicCrossfadeState(next);
-    setDynamicCrossfade(next).catch((err) => {
-      console.error("[SettingsView] set dynamic crossfade failed", err);
-      setDynamicCrossfadeState(!next);
-    });
-  }, [dynamicCrossfade]);
-
-  // Spectrum visualizer toggle. Persisted backend-side (per-profile)
-  // and pushed live to the decoder thread, so flipping it shows /
-  // hides the bars on the next emitted frame.
-  const [visualizer, setVisualizer] = useState(false);
-
-  useEffect(() => {
-    getVisualizerEnabled()
-      .then(setVisualizer)
-      .catch((err) => console.error("[SettingsView] get visualizer", err));
-  }, []);
-
-  const handleToggleVisualizer = useCallback(() => {
-    const next = !visualizer;
-    setVisualizer(next);
-    setVisualizerEnabled(next).catch((err) => {
-      console.error("[SettingsView] set visualizer failed", err);
-      setVisualizer(!next);
-    });
-  }, [visualizer]);
+  // Persisted backend-side and pushed live to the decoder thread, so
+  // flipping it shows / hides the bars on the next emitted frame.
+  const {
+    enabled: visualizer,
+    hydrated: visualizerHydrated,
+    toggle: handleToggleVisualizer,
+  } = useProfileScopedToggle(getVisualizerEnabled, setVisualizerEnabled, {
+    label: "SettingsView visualizer",
+  });
 
   const handleToggleGapless = useCallback(() => {
     const next = !gapless;
@@ -2414,6 +2385,7 @@ export function SettingsView({
                     <ToggleSwitch
                       enabled={smartCrossfade}
                       onToggle={handleToggleSmartCrossfade}
+                      disabled={!smartCrossfadeHydrated}
                       label={t("settings.smartCrossfade.title")}
                     />
                   </div>
@@ -2436,6 +2408,7 @@ export function SettingsView({
                     <ToggleSwitch
                       enabled={dynamicCrossfade}
                       onToggle={handleToggleDynamicCrossfade}
+                      disabled={!dynamicCrossfadeHydrated}
                       label={t("settings.dynamicCrossfade.title")}
                     />
                   </div>
@@ -2996,6 +2969,7 @@ export function SettingsView({
                   <ToggleSwitch
                     enabled={visualizer}
                     onToggle={handleToggleVisualizer}
+                    disabled={!visualizerHydrated}
                     label={t("settings.visualizer.title")}
                   />
                 </div>

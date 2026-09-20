@@ -13,6 +13,7 @@ import { VolumeControl } from "./VolumeControl";
 import { SpectrumVisualizer } from "./SpectrumVisualizer";
 import { VisualizerColorButton } from "./VisualizerColorButton";
 import { usePlayer } from "../../hooks/usePlayer";
+import { useProfile } from "../../hooks/useProfile";
 import { useVisualizerColor } from "../../hooks/useVisualizerColor";
 import { getVisualizerEnabled } from "../../lib/tauri/visualizer";
 import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
@@ -73,9 +74,12 @@ export function ImmersiveNowPlaying({
     radioFavorites.isFavorite(currentRadioStation.id);
 
   // Spectrum-visualizer colour (issue #468). The cycle button only shows when
-  // the visualizer itself is enabled (a per-profile backend toggle read once
-  // on mount — the immersive view remounts each time it's opened). The chosen
-  // colour feeds the visualizer's fill; `rainbow` tints per bar.
+  // the visualizer itself is enabled — a per-profile backend toggle, so the
+  // read is keyed on the active profile rather than on mount alone: the view
+  // usually remounts when it is reopened, but a profile switch under an open
+  // immersive view would otherwise leave the previous profile's answer on
+  // screen (#698). The chosen colour feeds the visualizer's fill; `rainbow`
+  // tints per bar.
   const {
     colorId,
     color: visualizerColor,
@@ -83,18 +87,28 @@ export function ImmersiveNowPlaying({
     ready: visualizerColorReady,
     cycle,
   } = useVisualizerColor();
-  const [visualizerOn, setVisualizerOn] = useState(false);
+  const activeProfileId = useProfile().activeProfile?.id;
+  // Tagged with the profile it describes, and only surfaced on a match,
+  // so the button never reflects the profile we just left while the new
+  // profile's answer is still in flight — the id-gate `useArtistImage`
+  // uses, which needs no reset in the effect body.
+  const [visualizerOn, setVisualizerOn] = useState<{
+    profileId: number | undefined;
+    on: boolean;
+  }>({ profileId: undefined, on: false });
   useEffect(() => {
     let cancelled = false;
     getVisualizerEnabled()
       .then((on) => {
-        if (!cancelled) setVisualizerOn(on);
+        if (!cancelled) setVisualizerOn({ profileId: activeProfileId, on });
       })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [activeProfileId]);
+  const visualizerEnabled =
+    visualizerOn.profileId === activeProfileId && visualizerOn.on;
 
   // Per-track Canvas (issue #442) — a looping clip replaces the static cover
   // when one is set, the global toggle is on, and motion isn't reduced. It
@@ -307,7 +321,7 @@ export function ImmersiveNowPlaying({
               {/* Visualizer colour cycle (issue #468) — only when the
                   visualizer is on AND the stored colour has loaded, so an
                   early click can't clobber it with a default-derived value. */}
-              {visualizerOn && visualizerColorReady && (
+              {visualizerEnabled && visualizerColorReady && (
                 <VisualizerColorButton
                   colorId={colorId}
                   color={visualizerColor}
