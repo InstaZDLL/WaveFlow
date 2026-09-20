@@ -2319,7 +2319,7 @@
         },
         "app": {
           "label": "WaveFlow",
-          "hint": "WaveFlow가 직접 그리며, 창 버튼이 WaveFlow의 막대 안에 놀입니다."
+          "hint": "WaveFlow가 직접 그리며, 창 버튼이 WaveFlow의 막대 안에 놓입니다."
         }
       }
     },
