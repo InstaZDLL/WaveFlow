@@ -100,6 +100,12 @@ export function useWindowChrome(): WindowChromePreference {
   // has to hold from inside the click handler, before React re-renders.
   const writing = useRef(false);
   const [busy, setBusy] = useState(false);
+  // Read by `choose`, which is bound once and would otherwise close over
+  // the first render's state.
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
     let cancelled = false;
@@ -133,6 +139,12 @@ export function useWindowChrome(): WindowChromePreference {
 
   const choose = useCallback(async (next: "system" | "app") => {
     if (writing.current) return;
+    // Clicking the option already shown is not a change. It matters after
+    // a failed apply, where what is shown is the SESSION's answer and the
+    // stored preference may still say otherwise: writing here would
+    // silently replace the user's choice with the fallback they are
+    // looking at.
+    if (next === stateRef.current.chrome) return;
     writing.current = true;
     setBusy(true);
     // No optimistic update: the frame either changed or it did not, and
