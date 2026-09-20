@@ -403,6 +403,20 @@ pub async fn set_desktop_lyrics_bounds(
 ///   database carried over from a Linux install).
 const KEY_WINDOW_CHROME: &str = "ui.window_chrome";
 
+/// Set when the stored choice could **not** be put on the window at
+/// startup, for this session only.
+///
+/// What the interface draws follows what the backend reports, so reporting
+/// the *stored* choice after a failed apply would have the frontend draw a
+/// title bar over the system one the window in fact still has — two title
+/// bars, from a preference nobody could honour. The preference itself is
+/// left alone: it is the user's, the failure is this run's.
+///
+/// A process-wide mirror of a stored setting, like
+/// [`PreferencesState::minimize_to_tray`] above — the difference being that
+/// this one records what the window *accepted*, not what was asked for.
+static WINDOW_CHROME_UNAPPLIED: AtomicBool = AtomicBool::new(false);
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WindowChrome {
     /// The desktop's own frame.
@@ -457,6 +471,19 @@ impl WindowChrome {
     }
 }
 
+/// The choice narrowed twice: to what this platform can honour, and to
+/// what this session's window actually accepted.
+///
+/// Pure, and takes the session flag rather than reading it, so the rule is
+/// testable without a window to fail against.
+fn effective_chrome(stored: WindowChrome, unapplied: bool) -> WindowChrome {
+    if unapplied {
+        WindowChrome::System
+    } else {
+        stored.resolved()
+    }
+}
+
 /// What the frontend needs to know in one round-trip.
 #[derive(Debug, Serialize)]
 pub struct WindowChromeState {
@@ -466,6 +493,13 @@ pub struct WindowChromeState {
     pub draw: String,
     /// Whether to offer the choice in Settings at all.
     pub supported: bool,
+}
+
+/// Record that the stored choice could not be put on the window. Called by
+/// the startup path, which logs rather than fails — see
+/// [`WINDOW_CHROME_UNAPPLIED`].
+pub fn mark_window_chrome_unapplied() {
+    WINDOW_CHROME_UNAPPLIED.store(true, Ordering::Relaxed);
 }
 
 /// Read the stored choice. A missing or unparseable row is `System`, which
@@ -550,7 +584,10 @@ pub fn apply_window_chrome(app: &tauri::AppHandle, chrome: WindowChrome) -> AppR
 
 #[tauri::command]
 pub async fn get_window_chrome(state: tauri::State<'_, AppState>) -> AppResult<WindowChromeState> {
-    let chrome = load_window_chrome(&state.app_db).await;
+    let chrome = effective_chrome(
+        load_window_chrome(&state.app_db).await,
+        WINDOW_CHROME_UNAPPLIED.load(Ordering::Relaxed),
+    );
     Ok(WindowChromeState {
         chrome: chrome.as_str().to_string(),
         draw: chrome.draw().to_string(),
@@ -575,6 +612,9 @@ pub async fn set_window_chrome(
         ))
     })?;
     apply_window_chrome(&app, parsed)?;
+    // It landed, so whatever failed at startup no longer describes this
+    // window.
+    WINDOW_CHROME_UNAPPLIED.store(false, Ordering::Relaxed);
     sqlx::query(
         "INSERT INTO app_setting (key, value, value_type, updated_at)
          VALUES (?, ?, 'string', ?)
@@ -593,4 +633,41 @@ pub async fn set_window_chrome(
         draw: resolved.draw().to_string(),
         supported: WindowChrome::supported(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A stored choice this session could not put on the window must not
+    /// be reported as the one in use: the interface draws what it is told,
+    /// so `app` after a failed apply is a title bar over the system one
+    /// the window still has.
+    #[test]
+    fn a_chrome_that_could_not_be_applied_reports_as_system() {
+        assert_eq!(
+            effective_chrome(WindowChrome::App, true),
+            WindowChrome::System
+        );
+        assert_eq!(
+            effective_chrome(WindowChrome::System, true),
+            WindowChrome::System
+        );
+    }
+
+    /// With nothing to correct, the platform rule is the only one left --
+    /// and it already refuses `app` where the choice is not offered.
+    #[test]
+    fn an_applied_chrome_is_reported_as_stored() {
+        let expected = if WindowChrome::supported() {
+            WindowChrome::App
+        } else {
+            WindowChrome::System
+        };
+        assert_eq!(effective_chrome(WindowChrome::App, false), expected);
+        assert_eq!(
+            effective_chrome(WindowChrome::System, false),
+            WindowChrome::System
+        );
+    }
 }

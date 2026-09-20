@@ -1371,8 +1371,11 @@ async fn restore_bounds_and_reveal(app: AppHandle) -> bool {
         commands::preferences::load_window_chrome(&state.app_db).await,
     ) {
         // The window keeps whatever it was created with, which is the
-        // desktop's frame. Worth a line, never worth failing a launch.
+        // desktop's frame. Worth a line, never worth failing a launch --
+        // but the interface must be told, or it would draw a title bar
+        // over the one this window still has.
         tracing::warn!(?err, "could not apply the stored window chrome");
+        commands::preferences::mark_window_chrome_unapplied();
     }
     if let Some(bounds) = commands::preferences::load_main_window_bounds(&state.app_db).await {
         if let Some(window) = app.get_webview_window("main") {
