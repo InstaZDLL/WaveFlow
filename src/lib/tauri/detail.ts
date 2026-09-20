@@ -116,6 +116,9 @@ export interface ArtistDetail {
    *  `background_url` is the remote fallback when the download failed. */
   background_url: string | null;
   background_path: string | null;
+  /** True when the backdrop above is one the user picked rather than
+   *  TheAudioDB's automatic choice (issue #693). */
+  has_custom_background: boolean;
   track_count: number;
   album_count: number;
   albums: ArtistAlbumRow[];
@@ -169,6 +172,14 @@ export interface DeezerArtistEnrichment {
   background_url: string | null;
   /** Locally-cached wide fanart backing the artist hero (issue #482). */
   background_path: string | null;
+  /** The artist's **own** image — an `artist.jpg` sidecar the scanner
+   *  linked, or one the user picked — from `artist.artwork_id`.
+   *  It outranks `picture_path`: prefer it wherever both are available,
+   *  the way the artist page and the library grid already do (#701).
+   *  `null` on the by-name path, which has no local row. */
+  artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
 }
 
 export function enrichAlbumDeezer(

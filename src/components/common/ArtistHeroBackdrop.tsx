@@ -4,9 +4,11 @@
  *
  * Two tiers, decided by the caller and reported through `isFanart`:
  *
- * 1. **Real wide fanart** (TheAudioDB, cached in `metadata_artwork/`) —
- *    shown nearly crisp. Only a whisper of blur, enough to keep JPEG
- *    artefacts from crawling under the white header copy.
+ * 1. **Real wide fanart** (TheAudioDB, cached in `metadata_artwork/`,
+ *    or one the user picked) — shown nearly crisp. Only a whisper of
+ *    blur, enough to keep JPEG artefacts from crawling under the white
+ *    header copy. Cropped from the top third rather than the middle, so
+ *    a shrinking banner loses sky before it loses a face (issue #693).
  * 2. **The square artist photo** (Deezer or a local `artist.jpg`) —
  *    heavily blurred + upscaled, the same colour-field treatment
  *    [`SkinAmbientBackdrop`](../layout/SkinAmbientBackdrop.tsx) uses. A
@@ -66,9 +68,21 @@ export function ArtistHeroBackdrop({ src, isFanart }: ArtistHeroBackdropProps) {
         // mounts a fresh element and re-runs the fade-in keyframe —
         // React's reconciliation does the cross-fade for free.
         key={src}
-        className="absolute inset-0 bg-center bg-cover"
+        className="absolute inset-0 bg-cover"
         style={{
           backgroundImage: `url("${cssUrl(src)}")`,
+          // Anchored high rather than centred (#693). `bg-cover` fills a
+          // very wide, fairly short banner, so the image is cropped top
+          // and bottom — and centring crops *equally* from both, which
+          // takes the head first, because faces sit in the upper third
+          // of nearly every artist photo. The deeper the crop (a wider
+          // window makes the banner relatively shorter), the worse it
+          // got: the framing visibly shifted as the window resized.
+          // Keeping the horizon at 30 % loses sky and floor first.
+          // Not applied to the blurred square photo, which has no
+          // subject left to protect and whose edges are the only thing
+          // the position would move.
+          backgroundPosition: isFanart ? "center 30%" : "center",
           filter: isFanart
             ? "blur(2px) saturate(115%)"
             : "blur(56px) saturate(190%)",

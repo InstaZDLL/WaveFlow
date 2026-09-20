@@ -305,6 +305,20 @@ pub struct DeezerArtistEnrichment {
     /// artist hero; `None` means the artist has no wide image and the
     /// frontend falls back to blurring the square photo.
     pub background_path: Option<String>,
+    /// The artist's **own** image — an `artist.jpg` sidecar the scanner
+    /// linked, or a picture the user set by hand — resolved from
+    /// `artist.artwork_id` in the profile artwork dir.
+    ///
+    /// It outranks `picture_path`, and every surface that shows an
+    /// artist photo has to prefer it: the artist page and the library
+    /// grid already did, through `get_artist_detail` /
+    /// `list_library_artists`, while everything reached through this
+    /// enrichment (the now-playing panel, the cover slideshow) showed
+    /// Deezer's picture instead — a curated image ignored when Deezer
+    /// had one, and no image at all when Deezer had none (#701).
+    pub artwork_path: Option<String>,
+    pub artwork_path_1x: Option<String>,
+    pub artwork_path_2x: Option<String>,
 }
 
 impl DeezerArtistEnrichment {
@@ -320,6 +334,9 @@ impl DeezerArtistEnrichment {
             bio_full: None,
             background_url: None,
             background_path: None,
+            artwork_path: None,
+            artwork_path_1x: None,
+            artwork_path_2x: None,
         }
     }
 }
@@ -329,8 +346,12 @@ pub async fn enrich_artist_deezer(
     state: tauri::State<'_, AppState>,
     artist_id: i64,
 ) -> AppResult<DeezerArtistEnrichment> {
-    let pool = state.require_profile_pool().await?;
-    enrich_artist_deezer_with_pool(state, &pool, artist_id).await
+    // One snapshot rather than two awaits: pairing a pool with an id
+    // read after a `switch_profile` would point the artwork dir at the
+    // other profile.
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    enrich_artist_deezer_with_pool(state, &pool, &artwork_dir, artist_id).await
 }
 
 /// Enrich an artist by **name**, for a remote artist (RFC-005) that has no
@@ -388,6 +409,7 @@ pub async fn enrich_artist_by_name(
 async fn enrich_artist_deezer_with_pool(
     state: tauri::State<'_, AppState>,
     pool: &sqlx::SqlitePool,
+    artwork_dir: &std::path::Path,
     artist_id: i64,
 ) -> AppResult<DeezerArtistEnrichment> {
     // Per-profile bio override (issue #323) wins over any fetched bio
@@ -409,7 +431,8 @@ async fn enrich_artist_deezer_with_pool(
     // enrichment stay scoped to one profile — re-resolving inside could
     // straddle a switch_profile and apply one profile's override to
     // another's artist.
-    let mut enrichment = enrich_artist_deezer_inner(state, pool.clone(), artist_id).await?;
+    let mut enrichment =
+        enrich_artist_deezer_inner(state, pool.clone(), artwork_dir, artist_id).await?;
     if let Some(bio) = custom_bio {
         // Synthesize a truncated lead-in the same way the online sources
         // do (issue #343) — without it bio_short == bio_full verbatim and
@@ -423,21 +446,77 @@ async fn enrich_artist_deezer_with_pool(
 async fn enrich_artist_deezer_inner(
     state: tauri::State<'_, AppState>,
     pool: sqlx::SqlitePool,
+    artwork_dir: &std::path::Path,
     artist_id: i64,
 ) -> AppResult<DeezerArtistEnrichment> {
-    // 1. Read local artist.
-    let local: Option<(String, Option<i64>)> =
-        sqlx::query_as("SELECT name, deezer_id FROM artist WHERE id = ?")
-            .bind(artist_id)
-            .fetch_optional(&pool)
-            .await?;
+    // 1. Read local artist, with the image it owns: an `artist.jpg`
+    //    sidecar the scanner linked, or one the user set by hand.
+    type LocalArtistRow = (
+        String,
+        Option<i64>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    );
+    let local: Option<LocalArtistRow> = sqlx::query_as(
+        "SELECT ar.name, ar.deezer_id, aw.hash, aw.format, bg.hash, bg.format
+           FROM artist ar
+           LEFT JOIN artwork aw ON aw.id = ar.artwork_id
+           LEFT JOIN artwork bg ON bg.id = ar.background_artwork_id
+          WHERE ar.id = ?",
+    )
+    .bind(artist_id)
+    .fetch_optional(&pool)
+    .await?;
 
-    let Some((artist_name, existing_deezer_id)) = local else {
+    let Some((
+        artist_name,
+        existing_deezer_id,
+        artwork_hash,
+        artwork_format,
+        background_hash,
+        background_format,
+    )) = local
+    else {
         return Ok(DeezerArtistEnrichment::empty());
     };
 
-    let enrichment =
+    // The dir is handed down rather than re-derived from the active
+    // profile, for the reason the pool is: a `switch_profile` mid-batch
+    // would otherwise point the remaining artists at the new profile's
+    // artwork dir while they are read from the old profile's database.
+    let artwork_path = metadata_artwork::existing_profile_path(
+        artwork_dir,
+        artwork_hash.as_deref(),
+        artwork_format.as_deref(),
+    );
+    // The tiers only make sense alongside the full image: without it
+    // the row points at a file that is gone, and a thumbnail of it
+    // would be the one thing still on screen.
+    let (artwork_path_1x, artwork_path_2x) = match (&artwork_path, artwork_hash.as_deref()) {
+        (Some(_), Some(hash)) => crate::thumbnails::thumbnail_paths_for(artwork_dir, hash),
+        _ => (None, None),
+    };
+
+    let mut enrichment =
         enrich_artist_named(state, pool.clone(), artist_name, existing_deezer_id).await?;
+    enrichment.artwork_path = artwork_path;
+    enrichment.artwork_path_1x = artwork_path_1x;
+    enrichment.artwork_path_2x = artwork_path_2x;
+
+    // A backdrop the user chose replaces the cached fanart here too
+    // (#693): the artist page paints the hero from this enrichment, so
+    // resolving it only in `get_artist_detail` would let the automatic
+    // one win a moment later.
+    if let Some(path) = metadata_artwork::existing_profile_path(
+        artwork_dir,
+        background_hash.as_deref(),
+        background_format.as_deref(),
+    ) {
+        enrichment.background_path = Some(path);
+        enrichment.background_url = None;
+    }
 
     // 8. Link the discovered deezer_id back onto the local artist, so the
     //    next pass hits the cache by id instead of re-searching by name.
@@ -563,6 +642,11 @@ async fn enrich_artist_named(
                     bio_full,
                     background_url,
                     background_path,
+                    // Filled by the by-id path, which is the only one
+                    // with a local row to read an image from.
+                    artwork_path: None,
+                    artwork_path_1x: None,
+                    artwork_path_2x: None,
                 });
             }
         }
@@ -661,7 +745,17 @@ async fn enrich_artist_named(
     };
 
     let picture_url = hit.best_picture();
-    let background_url = audiodb.and_then(|info| info.fanart_url);
+    // Every fanart the artist has, kept so the backdrop picker has
+    // something to offer (#693); the first is the one we paint by
+    // default, which is TheAudioDB's own preferred order.
+    let background_urls: Vec<String> = audiodb.map(|info| info.fanart_urls).unwrap_or_default();
+    let background_url = background_urls.first().cloned();
+    // NULL when TheAudioDB could not be reached, which is also what
+    // holds the upsert's CASE above: the row keeps the backdrop it had
+    // rather than being emptied by a failure to ask.
+    let background_urls_json = audiodb_reached
+        .then(|| serde_json::to_string(&background_urls).ok())
+        .flatten();
 
     // 6. Download artwork into the shared cache (best-effort).
     let picture_hash = match picture_url.as_deref() {
@@ -699,9 +793,9 @@ async fn enrich_artist_named(
     sqlx::query(
         "INSERT INTO app.metadata_artist
             (deezer_id, name, picture_url, picture_hash, fans_count, bio_short, bio_full,
-             bio_source, bio_language, background_url, background_hash, background_fetched_at,
-             fetched_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             bio_source, bio_language, background_url, background_hash, background_urls,
+             background_fetched_at, fetched_at, expires_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(deezer_id) DO UPDATE SET
            name = excluded.name,
            picture_url = excluded.picture_url,
@@ -711,8 +805,24 @@ async fn enrich_artist_named(
            bio_full = excluded.bio_full,
            bio_source = excluded.bio_source,
            bio_language = excluded.bio_language,
-           background_url = excluded.background_url,
-           background_hash = excluded.background_hash,
+           -- The three background columns are replaced only when
+           -- TheAudioDB actually answered, which `background_fetched_at`
+           -- records (it is NULL exactly when the API could not be
+           -- reached). Writing `excluded` unconditionally meant a
+           -- network blip during any *Deezer* refresh erased a perfectly
+           -- good cached fanart for every profile, and the hero fell
+           -- back to the blurred photo until the next pass.
+           -- An answer that carries nothing still wins: an artist whose
+           -- fanart was removed upstream must lose it here too, which is
+           -- why this tests whether we reached the API rather than
+           -- whether the new value is empty -- a COALESCE would keep a
+           -- backdrop TheAudioDB no longer lists, for ever.
+           background_url = CASE WHEN excluded.background_fetched_at IS NULL
+                                 THEN background_url ELSE excluded.background_url END,
+           background_hash = CASE WHEN excluded.background_fetched_at IS NULL
+                                  THEN background_hash ELSE excluded.background_hash END,
+           background_urls = CASE WHEN excluded.background_fetched_at IS NULL
+                                  THEN background_urls ELSE excluded.background_urls END,
            background_fetched_at = excluded.background_fetched_at,
            fetched_at = excluded.fetched_at,
            expires_at = excluded.expires_at",
@@ -728,6 +838,9 @@ async fn enrich_artist_named(
     .bind(stored_lang)
     .bind(background_url.as_deref())
     .bind(background_hash.as_deref())
+    // NULL when TheAudioDB could not be reached, so the row still reads
+    // as "never looked" rather than as "this artist has no fanart".
+    .bind(background_urls_json.as_deref())
     // Stamped even when the lookup came back empty — that's the whole
     // point of the column: "we asked, TheAudioDB has nothing". Left NULL
     // when the API couldn't be reached at all, so that retries.
@@ -748,6 +861,9 @@ async fn enrich_artist_named(
         bio_full,
         background_url,
         background_path,
+        artwork_path: None,
+        artwork_path_1x: None,
+        artwork_path_2x: None,
     })
 }
 
@@ -962,12 +1078,28 @@ pub async fn search_artists_deezer(query: String) -> AppResult<Vec<DeezerArtistL
         .collect())
 }
 
-/// Link a specific Deezer artist photo (by Deezer ID) to a local
-/// `artist` row. Downloads the picture into the profile artwork cache
-/// and overwrites `artist.artwork_id` unconditionally — explicit user
-/// pick, so we override any existing image (local sidecar, prior fetch).
+/// Link a specific Deezer artist to a local `artist` row: its photo
+/// **and its identity**. Downloads the picture into the profile artwork
+/// cache and overwrites `artist.artwork_id` unconditionally — explicit
+/// user pick, so we override any existing image (local sidecar, prior
+/// fetch).
+///
+/// It also writes `artist.deezer_id` (#692). The picker is the one place
+/// where a user sees the candidates side by side with their fan counts,
+/// so picking one is an answer to "which artist is this?", not only
+/// "which photo?". Everything else resolves through that column — fan
+/// count, bio, TheAudioDB hero fanart, similar artists — so writing the
+/// photo alone left the page showing one artist's picture above another
+/// artist's numbers.
+///
+/// Nothing overwrites a non-NULL `deezer_id` afterwards: the automatic
+/// link in `enrich_artist_deezer_inner` only fills the column when it is
+/// empty, so the hand-picked id survives every later enrichment pass.
+/// `set_artist_artwork_from_file` deliberately does *not* do this — a
+/// local file says nothing about which Deezer artist this is.
 #[tauri::command]
 pub async fn set_artist_artwork_from_deezer(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     artist_id: i64,
     deezer_artist_id: i64,
@@ -1004,8 +1136,11 @@ pub async fn set_artist_artwork_from_deezer(
     // rolls the artwork insert back rather than orphaning it.
     let mut tx = pool.begin().await?;
     let artwork_id = upsert_artwork(&mut tx, &hash, format, "deezer").await?;
-    let res = sqlx::query("UPDATE artist SET artwork_id = ? WHERE id = ?")
+    // Photo and identity in one statement: a row that ends up with the
+    // new picture and the old id is the split this fixes.
+    let res = sqlx::query("UPDATE artist SET artwork_id = ?, deezer_id = ? WHERE id = ?")
         .bind(artwork_id)
+        .bind(deezer_artist_id)
         .bind(artist_id)
         .execute(&mut *tx)
         .await?;
@@ -1014,6 +1149,13 @@ pub async fn set_artist_artwork_from_deezer(
     }
     tx.commit().await?;
 
+    // The enrichment cache is keyed by deezer_id, so the row cached
+    // under the previous id is simply no longer reached — nothing to
+    // invalidate. What does need telling is every view holding a
+    // resolved photo for this artist; they cache per artist id and have
+    // no other reason to look again.
+    let _ = app.emit("artist:updated", artist_id);
+
     Ok(())
 }
 
@@ -1021,6 +1163,7 @@ pub async fn set_artist_artwork_from_deezer(
 /// validation as `set_album_artwork_from_file` (jpg / png / webp).
 #[tauri::command]
 pub async fn set_artist_artwork_from_file(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     artist_id: i64,
     file_path: String,
@@ -1056,6 +1199,7 @@ pub async fn set_artist_artwork_from_file(
         return Err(AppError::Other(format!("artist {artist_id} not found")));
     }
     tx.commit().await?;
+    let _ = app.emit("artist:updated", artist_id);
 
     Ok(())
 }
@@ -1065,6 +1209,7 @@ pub async fn set_artist_artwork_from_file(
 /// longer referenced) is left in place — a future GC pass can sweep it.
 #[tauri::command]
 pub async fn clear_artist_artwork(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     artist_id: i64,
 ) -> AppResult<()> {
@@ -1076,6 +1221,209 @@ pub async fn clear_artist_artwork(
     if res.rows_affected() == 0 {
         return Err(AppError::Other(format!("artist {artist_id} not found")));
     }
+    let _ = app.emit("artist:updated", artist_id);
+    Ok(())
+}
+
+// ── Artist backdrop (the wide hero image) ───────────────────────────
+
+/// The wide backdrops on offer for an artist: every fanart TheAudioDB
+/// listed for it (issue #693), cached in `app.metadata_artist` under
+/// the artist's `deezer_id`.
+///
+/// Empty means the artist has none — or that nothing has looked yet,
+/// which the artist page fixes by running its usual enrichment first.
+/// The URLs are remote and are what the picker shows as thumbnails;
+/// only the one the user settles on is downloaded.
+#[tauri::command]
+pub async fn get_artist_backdrop_candidates(
+    state: tauri::State<'_, AppState>,
+    artist_id: i64,
+) -> AppResult<ArtistBackdropCandidates> {
+    // The candidates are remote URLs, and the picker paints them as
+    // thumbnails — so handing them over in offline mode makes the
+    // webview fetch a dozen images from TheAudioDB's CDN, which is
+    // exactly what offline mode promises not to do. `offline` rides
+    // along so the picker can say that rather than claim the artist has
+    // none: two calls could straddle a change of the setting and pair
+    // an empty list with "we are online".
+    if crate::offline::is_offline() {
+        return Ok(ArtistBackdropCandidates {
+            urls: Vec::new(),
+            offline: true,
+        });
+    }
+    let pool = state.require_profile_pool().await?;
+    Ok(ArtistBackdropCandidates {
+        urls: read_backdrop_candidates(&pool, artist_id).await?,
+        offline: false,
+    })
+}
+
+/// What the backdrop picker needs to fill its first tab: the candidates
+/// and the reason there may be none.
+#[derive(Debug, Clone, Serialize)]
+pub struct ArtistBackdropCandidates {
+    pub urls: Vec<String>,
+    /// `true` when the list is empty because offline mode refused it,
+    /// rather than because the artist has no fanart.
+    pub offline: bool,
+}
+
+/// The cached candidate list for one artist. Shared by the command that
+/// offers it and the one that accepts a pick, so the set the user can
+/// choose from and the set the backend will fetch are the same set by
+/// construction.
+async fn read_backdrop_candidates(
+    pool: &sqlx::SqlitePool,
+    artist_id: i64,
+) -> AppResult<Vec<String>> {
+    let stored: Option<String> = sqlx::query_scalar(
+        "SELECT m.background_urls
+           FROM artist a
+           JOIN app.metadata_artist m ON m.deezer_id = a.deezer_id
+          WHERE a.id = ?",
+    )
+    .bind(artist_id)
+    .fetch_optional(pool)
+    .await?
+    .flatten();
+
+    Ok(stored
+        .as_deref()
+        .and_then(|raw| serde_json::from_str::<Vec<String>>(raw).ok())
+        .unwrap_or_default())
+}
+
+/// Download one of this artist's candidate backdrops and make it the
+/// chosen one.
+///
+/// `url` **must be one of the candidates** `get_artist_backdrop_candidates`
+/// returned for this artist. The check is not about the picker, which
+/// only ever passes one of them: a command is an API, and without it
+/// this one fetches any URL the caller names, from a process that sits
+/// inside the user's network. Checking against the cached list keeps
+/// the reachable set to what TheAudioDB itself published.
+///
+/// The bytes land in the **profile** artwork dir rather than the shared
+/// metadata cache, like every other manual pick: a cache prune sweeps
+/// what no `metadata_artist` row references, and a chosen backdrop must
+/// survive that. Full resolution, no thumbnail tiers — the hero paints
+/// it full-bleed, so a downscaled copy would only soften it.
+#[tauri::command]
+pub async fn set_artist_background_from_url(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+    artist_id: i64,
+    url: String,
+) -> AppResult<()> {
+    if crate::offline::is_offline() {
+        return Err(AppError::Other("offline mode is enabled".into()));
+    }
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
+    let candidates = read_backdrop_candidates(&pool, artist_id).await?;
+    if !candidates.iter().any(|c| c == &url) {
+        return Err(AppError::Other(
+            "not one of this artist's backdrop candidates".into(),
+        ));
+    }
+    let profile_artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    std::fs::create_dir_all(&profile_artwork_dir)?;
+
+    let bytes = download_image_bytes(&url).await?;
+    let format = detect_image_format(&bytes)
+        .ok_or_else(|| AppError::Other("unsupported image format".into()))?;
+    let hash = blake3::hash(&bytes).to_hex().to_string();
+    let target = profile_artwork_dir.join(format!("{hash}.{format}"));
+    if !target.exists() {
+        std::fs::write(&target, &bytes)?;
+    }
+
+    set_artist_background_artwork(&pool, artist_id, &hash, format, "theaudiodb").await?;
+    let _ = app.emit("artist:updated", artist_id);
+    Ok(())
+}
+
+/// Use a local image file as the artist backdrop. Same magic-byte
+/// validation as the photo picker (jpg / png / webp).
+#[tauri::command]
+pub async fn set_artist_background_from_file(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+    artist_id: i64,
+    file_path: String,
+) -> AppResult<()> {
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
+    let profile_artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    std::fs::create_dir_all(&profile_artwork_dir)?;
+
+    // Checked before the read, not after: a hero is painted full-bleed
+    // so it is the one image with a reason to be large, but the file is
+    // named by the user and nothing else bounds it. The downloader above
+    // caps its own stream at the same size.
+    let size = std::fs::metadata(&file_path)?.len();
+    if size > MAX_IMAGE_BYTES as u64 {
+        return Err(AppError::Other(format!(
+            "image too large ({size} bytes, max {MAX_IMAGE_BYTES})"
+        )));
+    }
+    let bytes = std::fs::read(&file_path)?;
+    let format = detect_image_format(&bytes).ok_or_else(|| {
+        AppError::Other("unsupported image format (expected jpg/png/webp)".into())
+    })?;
+    let hash = blake3::hash(&bytes).to_hex().to_string();
+    let target = profile_artwork_dir.join(format!("{hash}.{format}"));
+    if !target.exists() {
+        std::fs::write(&target, &bytes)?;
+    }
+
+    set_artist_background_artwork(&pool, artist_id, &hash, format, "manual").await?;
+    let _ = app.emit("artist:updated", artist_id);
+    Ok(())
+}
+
+/// Drop the chosen backdrop so the hero falls back to the automatic
+/// one: TheAudioDB's first fanart, or the blurred square photo.
+#[tauri::command]
+pub async fn clear_artist_background(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+    artist_id: i64,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    let res = sqlx::query("UPDATE artist SET background_artwork_id = NULL WHERE id = ?")
+        .bind(artist_id)
+        .execute(&*pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::Other(format!("artist {artist_id} not found")));
+    }
+    let _ = app.emit("artist:updated", artist_id);
+    Ok(())
+}
+
+/// Shared tail of the two backdrop setters: register the artwork row and
+/// point the artist at it, in one transaction so a missing artist rolls
+/// the artwork insert back rather than orphaning it — the discipline the
+/// photo setters above follow.
+async fn set_artist_background_artwork(
+    pool: &sqlx::SqlitePool,
+    artist_id: i64,
+    hash: &str,
+    format: &str,
+    source: &str,
+) -> AppResult<()> {
+    let mut tx = pool.begin().await?;
+    let artwork_id = upsert_artwork(&mut tx, hash, format, source).await?;
+    let res = sqlx::query("UPDATE artist SET background_artwork_id = ? WHERE id = ?")
+        .bind(artwork_id)
+        .bind(artist_id)
+        .execute(&mut *tx)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::Other(format!("artist {artist_id} not found")));
+    }
+    tx.commit().await?;
     Ok(())
 }
 
@@ -1092,7 +1440,11 @@ pub async fn batch_fetch_missing_artist_pictures(
     if crate::offline::is_offline() {
         return Ok(0);
     }
-    let pool = state.require_profile_pool().await?;
+    // One snapshot, held for the whole loop: the pool and the artwork
+    // dir have to describe the same profile from the first artist to
+    // the last.
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     let now = now_ms();
 
     // Pending = artists whose cached row is missing OR expired. The
@@ -1124,7 +1476,7 @@ pub async fn batch_fetch_missing_artist_pictures(
         );
         // Same pool the artist list was read from — see
         // `enrich_artist_deezer_with_pool`.
-        match enrich_artist_deezer_with_pool(state.clone(), &pool, artist_id).await {
+        match enrich_artist_deezer_with_pool(state.clone(), &pool, &artwork_dir, artist_id).await {
             Ok(e) => {
                 if e.picture_path.is_some() {
                     success += 1;
@@ -1196,6 +1548,43 @@ pub async fn batch_fetch_missing_album_covers(
     Ok(success)
 }
 
+/// Whether a URL is one we are willing to fetch on a third party's say-so.
+///
+/// `http`/`https` only, and never a host that sits inside the machine or
+/// the local network: loopback, link-local, and the private ranges. A
+/// hostname is accepted as-is — resolving it here would move the check
+/// earlier without making it sound, since DNS can answer differently at
+/// connect time. The redirect policy applies the same rule to each hop,
+/// which is where a public host would otherwise send us.
+fn is_public_http_url(url: &str) -> bool {
+    let Ok(parsed) = reqwest::Url::parse(url) else {
+        return false;
+    };
+    if !matches!(parsed.scheme(), "http" | "https") {
+        return false;
+    }
+    match parsed.host() {
+        Some(url::Host::Domain(name)) => {
+            let name = name.trim_end_matches('.').to_ascii_lowercase();
+            name != "localhost" && !name.ends_with(".localhost") && !name.ends_with(".local")
+        }
+        Some(url::Host::Ipv4(ip)) => {
+            !(ip.is_loopback() || ip.is_private() || ip.is_link_local() || ip.is_unspecified())
+        }
+        Some(url::Host::Ipv6(ip)) => {
+            // `is_unique_local` / `is_unicast_link_local` are unstable,
+            // so the two ranges are matched by prefix: fc00::/7 and
+            // fe80::/10.
+            let segments = ip.segments();
+            !(ip.is_loopback()
+                || ip.is_unspecified()
+                || (segments[0] & 0xfe00) == 0xfc00
+                || (segments[0] & 0xffc0) == 0xfe80)
+        }
+        None => false,
+    }
+}
+
 pub(crate) fn detect_image_format(bytes: &[u8]) -> Option<&'static str> {
     if bytes.len() >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF {
         return Some("jpg");
@@ -1225,9 +1614,28 @@ pub(crate) fn detect_image_format(bytes: &[u8]) -> Option<&'static str> {
 pub(crate) const MAX_IMAGE_BYTES: usize = 10 * 1024 * 1024;
 
 async fn download_image_bytes(url: &str) -> AppResult<Vec<u8>> {
+    // Every URL here is named by a third party -- Deezer's API, or
+    // TheAudioDB's list of fanarts -- and is fetched by a process
+    // sitting inside the user's network. A URL pointing at localhost or
+    // at a LAN address would turn this downloader into a probe of
+    // machines that third party cannot otherwise reach. Checked on the
+    // way in, and again on every redirect hop, because a public host is
+    // free to answer with a redirect to a private one.
+    if !is_public_http_url(url) {
+        return Err(AppError::Other("refusing to fetch a non-public URL".into()));
+    }
     let client = reqwest::Client::builder()
         .user_agent("WaveFlow/0.1")
         .timeout(std::time::Duration::from_secs(15))
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            if attempt.previous().len() >= 5 {
+                attempt.error("too many redirects")
+            } else if is_public_http_url(attempt.url().as_str()) {
+                attempt.follow()
+            } else {
+                attempt.stop()
+            }
+        }))
         .build()
         .map_err(|err| AppError::Other(format!("http client build failed: {err}")))?;
 
@@ -1277,7 +1685,7 @@ async fn download_image_bytes(url: &str) -> AppResult<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
-    use super::metadata_album_cache_complete;
+    use super::{is_public_http_url, metadata_album_cache_complete};
 
     #[test]
     fn album_cache_completeness_gates_refetch() {
@@ -1292,5 +1700,43 @@ mod tests {
         // a complete hit — no wasteful re-download every time the page opens.
         assert!(metadata_album_cache_complete(None, true));
         assert!(metadata_album_cache_complete(Some("hash"), true));
+    }
+
+    /// The URLs this downloader is handed come from Deezer and
+    /// TheAudioDB. A host inside the user's machine or network is one
+    /// neither of them can reach on their own — which is the point of
+    /// naming it.
+    #[test]
+    fn a_third_party_cannot_name_a_host_on_our_side() {
+        for url in [
+            "http://localhost/x.jpg",
+            "https://LOCALHOST./x.jpg",
+            "https://printer.local/x.jpg",
+            "http://127.0.0.1/x.jpg",
+            "http://127.1.2.3/x.jpg",
+            "http://10.0.0.5/x.jpg",
+            "http://192.168.1.1/x.jpg",
+            "http://172.16.0.9/x.jpg",
+            "http://169.254.169.254/latest/meta-data",
+            "http://0.0.0.0/x.jpg",
+            "http://[::1]/x.jpg",
+            "http://[fd00::1]/x.jpg",
+            "http://[fe80::1]/x.jpg",
+            // Not HTTP at all: the local filesystem is the other way in.
+            "file:///etc/passwd",
+            "data:image/png;base64,AAAA",
+            "not a url",
+        ] {
+            assert!(!is_public_http_url(url), "should be refused: {url}");
+        }
+
+        for url in [
+            "https://www.theaudiodb.com/images/media/artist/fanart/x.jpg",
+            "https://e-cdns-images.dzcdn.net/images/artist/x/500x500.jpg",
+            "http://203.0.113.7/x.jpg",
+            "https://[2001:db8::1]/x.jpg",
+        ] {
+            assert!(is_public_http_url(url), "should be allowed: {url}");
+        }
     }
 }

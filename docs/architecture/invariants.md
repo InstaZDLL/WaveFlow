@@ -50,7 +50,7 @@ The hook also passes the captured profile id to [`set_profile_setting` / `get_pr
 
 The backend emits Tauri events; the frontend listens via `listen()` from `@tauri-apps/api/event`:
 
-`player:state` · `player:position` · `player:track-changed` · `player:queue-changed` · `player:options-changed` · `player:volume-changed` · `player:error` · `player:ab-loop` · `player:spectrum` · `track:updated` · `track:liked-changed` · `library:rescanned` · `scan:progress` · `lyrics:updated` · …
+`player:state` · `player:position` · `player:track-changed` · `player:queue-changed` · `player:options-changed` · `player:volume-changed` · `player:error` · `player:ab-loop` · `player:spectrum` · `track:updated` · `track:liked-changed` · `artist:updated` · `library:rescanned` · `scan:progress` · `lyrics:updated` · …
 
 **Shared state needs an event, because there is more than one window.** The mini-player is a second webview with its own provider tree, so anything a user can change from both places has to be broadcast or the two copies drift — the engine stays right, the two UIs disagree, and the user "fixes" the one that looks wrong and breaks the one that was. `player:options-changed` (repeat + shuffle), `player:volume-changed` and `track:liked-changed` all exist for that reason, and are emitted by the in-app commands too, not only by external surfaces like MPD (#523).
 

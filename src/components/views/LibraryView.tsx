@@ -107,6 +107,7 @@ import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useRemoteTrackContextMenu } from "../../hooks/useRemoteTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
+import { useArtistUpdated } from "../../hooks/useArtistUpdated";
 import { useMultiSelect } from "../../hooks/useMultiSelect";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { resolveArtwork } from "../../lib/tauri/artwork";
@@ -475,6 +476,16 @@ export function LibraryView({
   useTrackUpdated(
     useCallback(() => setEditRefetch((k) => k + 1), [setEditRefetch]),
   );
+  // And when an artist's picture changes: the artists grid reads that
+  // image, and a picture set from the artist page used to leave the
+  // grid showing the old one until a scan or a tag edit (#692). Its own
+  // counter rather than `editRefetch`, which every tab's effect depends
+  // on — a new artist photo says nothing about tracks, albums, genres,
+  // tags or folders.
+  const [artistRefetch, setArtistRefetch] = useState(0);
+  useArtistUpdated(
+    useCallback(() => setArtistRefetch((k) => k + 1), [setArtistRefetch]),
+  );
   const clearSelection = selection.clear;
   // Also on `folderPath`: a selection is a set of track ids, and the
   // action bar it feeds would otherwise act on tracks the user can no
@@ -764,6 +775,7 @@ export function LibraryView({
     librarySource.ready,
     librarySource.source,
     editRefetch,
+    artistRefetch,
   ]);
 
   useEffect(() => {

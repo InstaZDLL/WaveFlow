@@ -7,6 +7,7 @@ import {
   Clock,
   Heart,
   Pencil,
+  Image as ImageIcon,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import { EmptyState } from "../common/EmptyState";
 import { DetailViewSkeleton } from "../common/DetailViewSkeleton";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { ArtistImagePickerModal } from "../common/ArtistImagePickerModal";
+import { ArtistBackdropPickerModal } from "../common/ArtistBackdropPickerModal";
 import { ArtistMetadataEditorModal } from "../common/ArtistMetadataEditorModal";
 import { HiResBadge } from "../common/HiResBadge";
 import { PlayingIndicator } from "../common/PlayingIndicator";
@@ -73,6 +75,8 @@ function toArtistDetail(artist: RemoteArtist): ArtistDetail {
     bio_full: null,
     background_url: null,
     background_path: null,
+    // A server artist has no local row to hold a chosen backdrop.
+    has_custom_background: false,
     // The server's artist payload lists albums and no tracks, so there is no
     // top-track section to fill rather than an empty one to explain.
     track_count: 0,
@@ -152,6 +156,7 @@ export function ArtistDetailView({
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
   const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
+  const [isBackdropPickerOpen, setIsBackdropPickerOpen] = useState(false);
   const [isMetadataEditorOpen, setIsMetadataEditorOpen] = useState(false);
   // Bumped after a bio/similar override save so the enrichment +
   // similar effects re-run and pick up the new local values.
@@ -443,11 +448,43 @@ export function ArtistDetailView({
           content itself. */}
       <div
         className={
-          heroSrc ? "relative -mx-8 -mt-8 px-8 pt-12 pb-10 overflow-hidden" : ""
+          heroSrc
+            ? "group/hero relative -mx-8 -mt-8 px-8 pt-12 pb-10 overflow-hidden"
+            : // Still a positioned hover group without a hero: the
+              // backdrop button lives here, and an artist with no image
+              // at all is exactly the one who needs to set one.
+              "group/hero relative"
         }
       >
         {heroSrc && (
           <ArtistHeroBackdrop src={heroSrc} isFanart={fanartSrc != null} />
+        )}
+        {/* Change the backdrop (issue #693). In the hero's own corner
+            rather than in the "⋯" menu: it acts on the image behind it,
+            and the photo's own pencil sits on the photo for the same
+            reason. Hidden until the header is hovered or the button is
+            focused, like that pencil — a hero is a picture, not a
+            toolbar. Shown even when there is no hero yet: an artist with
+            no image at all is the one who most needs to pick one, and
+            with nothing painted the button is the only affordance there
+            is. Local artists only: a server artist has no row to write
+            the choice to. */}
+        {!remote && (
+          <button
+            type="button"
+            onClick={() => setIsBackdropPickerOpen(true)}
+            aria-label={t("artistBackdropPicker.title")}
+            title={t("artistBackdropPicker.title")}
+            className={`absolute top-3 right-3 z-10 p-2 rounded-full opacity-0 hover:opacity-100 focus-visible:opacity-100 group-hover/hero:opacity-100 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+              heroSrc
+                ? "bg-black/45 text-white"
+                : // No hero behind it: a white-on-black pill would be a
+                  // floating blob on the page background.
+                  "bg-zinc-200/80 text-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-200"
+            }`}
+          >
+            <ImageIcon size={16} />
+          </button>
         )}
         {/* `relative` keeps the header above the absolutely-positioned
             backdrop without inventing a z-index. */}
@@ -811,6 +848,14 @@ export function ArtistDetailView({
             hasArtwork={!!artist.artwork_path}
             isOpen={isImagePickerOpen}
             onClose={() => setIsImagePickerOpen(false)}
+            onSuccess={() => setEditRefetch((k) => k + 1)}
+          />
+
+          <ArtistBackdropPickerModal
+            artistId={artist.id}
+            hasCustomBackground={artist.has_custom_background}
+            isOpen={isBackdropPickerOpen}
+            onClose={() => setIsBackdropPickerOpen(false)}
             onSuccess={() => setEditRefetch((k) => k + 1)}
           />
 

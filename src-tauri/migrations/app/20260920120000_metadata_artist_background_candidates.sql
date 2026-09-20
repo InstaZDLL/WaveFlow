@@ -1,0 +1,14 @@
+-- Every wide backdrop TheAudioDB has for an artist, not just the one we
+-- chose — issue #693.
+--
+-- `background_url` / `background_hash` (issue #482) keep describing the
+-- backdrop in use. This column is the list the user picks from: an
+-- artist can have up to four fanarts, they differ enormously in framing,
+-- and the one TheAudioDB lists first is not always the one whose subject
+-- survives a 3:1 crop. Stored as a JSON array of URLs, in TheAudioDB's
+-- own order, so `background_url` is normally its first element.
+--
+-- NULL means "not looked up since this migration" and is backfilled by
+-- the next enrichment pass, exactly like `background_fetched_at` above;
+-- an empty array means "looked, this artist has no fanart".
+ALTER TABLE metadata_artist ADD COLUMN background_urls TEXT;

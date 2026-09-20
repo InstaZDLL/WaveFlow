@@ -1196,6 +1196,15 @@
     "fansCount_one": "{{display}} fan",
     "fansCount_other": "{{display}} fan"
   },
+  "artistBackdropPicker": {
+    "title": "Cambia il banner artista",
+    "suggestions": "Suggerimenti",
+    "suggestionLabel": "Proposta di banner {{index}}",
+    "noneFound": "Nessuna immagine panoramica trovata per questo artista. Scegli un file locale.",
+    "offline": "Disattiva la modalità offline per vedere le proposte.",
+    "fileHint": "Un'immagine panoramica è la scelta migliore: viene ritagliata a banner.",
+    "removeAction": "Torna al banner automatico"
+  },
   "motionCoverPicker": {
     "title": "Copertina animata manuale",
     "subtitle": "Scegli un file MP4 locale. Sostituisce la copertina animata fornita dal plugin e non viene mai sovrascritta da un aggiornamento.",

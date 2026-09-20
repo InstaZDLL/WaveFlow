@@ -1195,6 +1195,15 @@
     "fansCount_one": "{{display}} hayran",
     "fansCount_other": "{{display}} hayran"
   },
+  "artistBackdropPicker": {
+    "title": "Sanatçı afişini değiştir",
+    "suggestions": "Öneriler",
+    "suggestionLabel": "Afiş önerisi {{index}}",
+    "noneFound": "Bu sanatçı için geniş bir görsel bulunamadı. Bunun yerine yerel bir dosya seçin.",
+    "offline": "Önerileri görmek için çevrimdışı modu kapatın.",
+    "fileHint": "En iyi sonucu geniş bir görsel verir: afiş olarak kırpılır.",
+    "removeAction": "Otomatik afişe dön"
+  },
   "motionCoverPicker": {
     "title": "Manuel hareketli kapak",
     "subtitle": "Yerel bir MP4 dosyası seç. Eklentinin sağladığı hareketli kapağın yerini alır ve yenilemeyle asla üzerine yazılmaz.",

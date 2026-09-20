@@ -38,6 +38,24 @@ pub fn existing_path(dir: &Path, hash: &str) -> Option<String> {
     }
 }
 
+/// The same, for the **profile** artwork dir, where a file keeps the
+/// format it was stored in rather than the cache's fixed extension —
+/// so the caller has to supply it along with the hash.
+///
+/// `None` when either half is missing or the file is gone: a row can
+/// outlive its file (a wiped artwork dir, a restored backup), and a
+/// path that does not resolve is worse than no path, because the caller
+/// would paint a broken image instead of its fallback.
+pub fn existing_profile_path(
+    dir: &Path,
+    hash: Option<&str>,
+    format: Option<&str>,
+) -> Option<String> {
+    let (hash, format) = (hash?, format?);
+    let path = dir.join(format!("{hash}.{format}"));
+    path.exists().then(|| path.to_string_lossy().to_string())
+}
+
 /// Resolve an artist/album picture path preferring a local profile-artwork
 /// sidecar (`<local_dir>/<local_hash>.<local_format>`, e.g. `artist.jpg`
 /// imported into the profile) over the shared Deezer metadata cache

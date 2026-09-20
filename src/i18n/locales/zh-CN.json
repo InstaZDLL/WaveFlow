@@ -1195,6 +1195,15 @@
     "fansCount_other": "{{display}} 位粉丝",
     "fansCount_one": "{{display}} 位粉丝"
   },
+  "artistBackdropPicker": {
+    "title": "更改艺人横幅",
+    "suggestions": "推荐图片",
+    "suggestionLabel": "横幅推荐 {{index}}",
+    "noneFound": "未找到这位艺人的宽幅图片。请改选本地文件。",
+    "offline": "关闭离线模式即可查看推荐图片。",
+    "fileHint": "宽幅图片效果最好：它会被裁剪成横幅。",
+    "removeAction": "恢复自动横幅"
+  },
   "motionCoverPicker": {
     "title": "手动动态封面",
     "subtitle": "选择本地 MP4 文件。它将替代插件提供的动态封面，且不会被刷新覆盖。",

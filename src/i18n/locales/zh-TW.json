@@ -1195,6 +1195,15 @@
     "fansCount_other": "{{display}} 位粉絲",
     "fansCount_one": "{{display}} 位粉絲"
   },
+  "artistBackdropPicker": {
+    "title": "更改藝人橫幅",
+    "suggestions": "推薦圖片",
+    "suggestionLabel": "橫幅推薦 {{index}}",
+    "noneFound": "找不到這位藝人的寬幅圖片。請改選本機檔案。",
+    "offline": "關閉離線模式即可查看推薦圖片。",
+    "fileHint": "寬幅圖片效果最好：它會被裁切成橫幅。",
+    "removeAction": "恢復自動橫幅"
+  },
   "motionCoverPicker": {
     "title": "手動動態封面",
     "subtitle": "選擇本機 MP4 檔案。它會取代外掛提供的動態封面，且不會被重新整理覆蓋。",

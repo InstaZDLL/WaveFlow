@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { X, Music2, Radio } from "lucide-react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayer } from "../../hooks/usePlayer";
+import { useArtistUpdated } from "../../hooks/useArtistUpdated";
 import { useTrackCanvas } from "../../hooks/useTrackCanvas";
 import {
   useCanvasEnabled,
@@ -117,40 +118,84 @@ export function NowPlayingPanel({
     };
   }, [isNowPlayingOpen, currentTrack?.id]);
 
+  // A picture set from the artist page has to reach this panel while the
+  // same track keeps playing: the effect below is keyed on the artist id,
+  // and the enrichment is cached per id, so nothing else would make it
+  // look again (#692).
+  const [artistRefresh, setArtistRefresh] = useState(0);
+  const currentArtistId = currentTrack?.artist_id;
+  useArtistUpdated(
+    useCallback(
+      (updatedId: number) => {
+        if (updatedId === currentArtistId) setArtistRefresh((n) => n + 1);
+      },
+      [currentArtistId],
+    ),
+  );
+
+  // The artist this panel last reset for. An `artist:updated` refresh
+  // re-runs the effect for the *same* artist, and blanking the photo and
+  // the bio there would flash the panel empty for the length of a
+  // round-trip — the reset exists for a change of artist, where the old
+  // bio would otherwise sit under the new name.
+  const resetForArtistRef = useRef<number | null | undefined>(undefined);
+
   useEffect(() => {
-    // Reset enrichment state whenever the focused artist changes so
-    // stale bios don't flash during the async fetch.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPictureSrc(null);
-    setBioShort(null);
-    setBioFull(null);
-    setBioExpanded(false);
     const artistId = currentTrack?.artist_id;
+    if (resetForArtistRef.current !== artistId) {
+      resetForArtistRef.current = artistId;
+      // Reset enrichment state whenever the focused artist changes so
+      // stale bios don't flash during the async fetch.
+      setPictureSrc(null);
+      setBioShort(null);
+      setBioFull(null);
+      setBioExpanded(false);
+    }
     if (artistId == null) return;
     let cancelled = false;
     enrichArtistDeezer(artistId)
       .then((e) => {
         if (cancelled) return;
-        const paths = {
-          full: e.picture_path,
-          x1: e.picture_path_1x,
-          x2: e.picture_path_2x,
-          remoteUrl: e.picture_url,
-        };
-        const resolved = resolveArtwork(paths, "1x");
-        if (resolved) setPictureSrc(resolved);
+        // The artist's own image — an `artist.jpg` sidecar or a picture
+        // the user set — before the Deezer one, the order the artist
+        // page and the library grid already use (#701). Falling back
+        // per size rather than per source would mix the two.
+        const hasLocal = e.artwork_path != null;
+        const paths = hasLocal
+          ? {
+              full: e.artwork_path,
+              x1: e.artwork_path_1x,
+              x2: e.artwork_path_2x,
+            }
+          : {
+              full: e.picture_path,
+              x1: e.picture_path_1x,
+              x2: e.picture_path_2x,
+              remoteUrl: e.picture_url,
+            };
+        // A resolution that succeeded is the answer, including when it
+        // is "no image": removing an artist's picture from the artist
+        // page emits `artist:updated`, and keeping the old one on a
+        // falsy result left the deleted photo on screen for as long as
+        // the track played. A *failed* call keeps what is there — the
+        // `catch` below — because that is a network problem, not an
+        // answer.
+        setPictureSrc(resolveArtwork(paths, "1x"));
         // "full" for the slideshow's large cover slot (a 1x thumbnail
         // upscales blurry there); same fetch, no extra network. Tagged with
         // `artistId` so a stale resolution can't drive the slideshow.
         setArtistImageHi({ id: artistId, src: resolveArtwork(paths, "full") });
-        if (e.bio_short) setBioShort(e.bio_short);
-        if (e.bio_full) setBioFull(e.bio_full);
+        // Same rule for the text: after a re-link (#692) the bio the
+        // panel holds belongs to the artist we just stopped pointing
+        // at, and the new one may legitimately have none.
+        setBioShort(e.bio_short);
+        setBioFull(e.bio_full);
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [currentTrack?.artist_id]);
+  }, [currentTrack?.artist_id, artistRefresh]);
 
   // Remote-track artist (RFC-005). The synthesized remote Track has no
   // local artist_id, so the enrichment effect above bails; resolve the

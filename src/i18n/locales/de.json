@@ -1195,6 +1195,15 @@
     "fansCount_one": "{{display}} Fan",
     "fansCount_other": "{{display}} Fans"
   },
+  "artistBackdropPicker": {
+    "title": "Künstler-Banner ändern",
+    "suggestions": "Vorschläge",
+    "suggestionLabel": "Banner-Vorschlag {{index}}",
+    "noneFound": "Für diesen Künstler wurde kein breites Bild gefunden. Wähle stattdessen eine lokale Datei.",
+    "offline": "Deaktiviere den Offline-Modus, um die Vorschläge zu sehen.",
+    "fileHint": "Ein breites Bild eignet sich am besten: Es wird auf Bannerformat zugeschnitten.",
+    "removeAction": "Automatisches Banner verwenden"
+  },
   "motionCoverPicker": {
     "title": "Manuelles animiertes Cover",
     "subtitle": "Wähle eine lokale MP4-Datei. Sie ersetzt das vom Plugin bereitgestellte animierte Cover und wird nie durch eine Aktualisierung überschrieben.",
