@@ -450,7 +450,10 @@ export function ArtistDetailView({
         className={
           heroSrc
             ? "group/hero relative -mx-8 -mt-8 px-8 pt-12 pb-10 overflow-hidden"
-            : ""
+            : // Still a positioned hover group without a hero: the
+              // backdrop button lives here, and an artist with no image
+              // at all is exactly the one who needs to set one.
+              "group/hero relative"
         }
       >
         {heroSrc && (
@@ -461,15 +464,24 @@ export function ArtistDetailView({
             and the photo's own pencil sits on the photo for the same
             reason. Hidden until the header is hovered or the button is
             focused, like that pencil — a hero is a picture, not a
-            toolbar. Local artists only: a server artist has no row to
-            write the choice to. */}
-        {heroSrc && !remote && (
+            toolbar. Shown even when there is no hero yet: an artist with
+            no image at all is the one who most needs to pick one, and
+            with nothing painted the button is the only affordance there
+            is. Local artists only: a server artist has no row to write
+            the choice to. */}
+        {!remote && (
           <button
             type="button"
             onClick={() => setIsBackdropPickerOpen(true)}
             aria-label={t("artistBackdropPicker.title")}
             title={t("artistBackdropPicker.title")}
-            className="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/45 text-white opacity-0 hover:opacity-100 focus-visible:opacity-100 group-hover/hero:opacity-100 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            className={`absolute top-3 right-3 z-10 p-2 rounded-full opacity-0 hover:opacity-100 focus-visible:opacity-100 group-hover/hero:opacity-100 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+              heroSrc
+                ? "bg-black/45 text-white"
+                : // No hero behind it: a white-on-black pill would be a
+                  // floating blob on the page background.
+                  "bg-zinc-200/80 text-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-200"
+            }`}
           >
             <ImageIcon size={16} />
           </button>

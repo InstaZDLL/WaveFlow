@@ -750,6 +750,9 @@ async fn enrich_artist_named(
     // default, which is TheAudioDB's own preferred order.
     let background_urls: Vec<String> = audiodb.map(|info| info.fanart_urls).unwrap_or_default();
     let background_url = background_urls.first().cloned();
+    // NULL when TheAudioDB could not be reached, which is also what
+    // holds the upsert's CASE above: the row keeps the backdrop it had
+    // rather than being emptied by a failure to ask.
     let background_urls_json = audiodb_reached
         .then(|| serde_json::to_string(&background_urls).ok())
         .flatten();
@@ -802,9 +805,24 @@ async fn enrich_artist_named(
            bio_full = excluded.bio_full,
            bio_source = excluded.bio_source,
            bio_language = excluded.bio_language,
-           background_url = excluded.background_url,
-           background_hash = excluded.background_hash,
-           background_urls = excluded.background_urls,
+           -- The three background columns are replaced only when
+           -- TheAudioDB actually answered, which `background_fetched_at`
+           -- records (it is NULL exactly when the API could not be
+           -- reached). Writing `excluded` unconditionally meant a
+           -- network blip during any *Deezer* refresh erased a perfectly
+           -- good cached fanart for every profile, and the hero fell
+           -- back to the blurred photo until the next pass.
+           -- An answer that carries nothing still wins: an artist whose
+           -- fanart was removed upstream must lose it here too, which is
+           -- why this tests whether we reached the API rather than
+           -- whether the new value is empty -- a COALESCE would keep a
+           -- backdrop TheAudioDB no longer lists, for ever.
+           background_url = CASE WHEN excluded.background_fetched_at IS NULL
+                                 THEN background_url ELSE excluded.background_url END,
+           background_hash = CASE WHEN excluded.background_fetched_at IS NULL
+                                  THEN background_hash ELSE excluded.background_hash END,
+           background_urls = CASE WHEN excluded.background_fetched_at IS NULL
+                                  THEN background_urls ELSE excluded.background_urls END,
            background_fetched_at = excluded.background_fetched_at,
            fetched_at = excluded.fetched_at,
            expires_at = excluded.expires_at",
@@ -1222,6 +1240,14 @@ pub async fn get_artist_backdrop_candidates(
     state: tauri::State<'_, AppState>,
     artist_id: i64,
 ) -> AppResult<Vec<String>> {
+    // The candidates are remote URLs, and the picker paints them as
+    // thumbnails — so handing them over in offline mode makes the
+    // webview fetch a dozen images from TheAudioDB's CDN, which is
+    // exactly what offline mode promises not to do. The picker says so
+    // rather than claiming the artist has none.
+    if crate::offline::is_offline() {
+        return Ok(Vec::new());
+    }
     let pool = state.require_profile_pool().await?;
     read_backdrop_candidates(&pool, artist_id).await
 }
@@ -1313,6 +1339,16 @@ pub async fn set_artist_background_from_file(
     let profile_artwork_dir = state.paths.profile_artwork_dir(profile_id);
     std::fs::create_dir_all(&profile_artwork_dir)?;
 
+    // Checked before the read, not after: a hero is painted full-bleed
+    // so it is the one image with a reason to be large, but the file is
+    // named by the user and nothing else bounds it. The downloader above
+    // caps its own stream at the same size.
+    let size = std::fs::metadata(&file_path)?.len();
+    if size > MAX_IMAGE_BYTES as u64 {
+        return Err(AppError::Other(format!(
+            "image too large ({size} bytes, max {MAX_IMAGE_BYTES})"
+        )));
+    }
     let bytes = std::fs::read(&file_path)?;
     let format = detect_image_format(&bytes).ok_or_else(|| {
         AppError::Other("unsupported image format (expected jpg/png/webp)".into())
@@ -1494,6 +1530,43 @@ pub async fn batch_fetch_missing_album_covers(
     Ok(success)
 }
 
+/// Whether a URL is one we are willing to fetch on a third party's say-so.
+///
+/// `http`/`https` only, and never a host that sits inside the machine or
+/// the local network: loopback, link-local, and the private ranges. A
+/// hostname is accepted as-is — resolving it here would move the check
+/// earlier without making it sound, since DNS can answer differently at
+/// connect time. The redirect policy applies the same rule to each hop,
+/// which is where a public host would otherwise send us.
+fn is_public_http_url(url: &str) -> bool {
+    let Ok(parsed) = reqwest::Url::parse(url) else {
+        return false;
+    };
+    if !matches!(parsed.scheme(), "http" | "https") {
+        return false;
+    }
+    match parsed.host() {
+        Some(url::Host::Domain(name)) => {
+            let name = name.trim_end_matches('.').to_ascii_lowercase();
+            name != "localhost" && !name.ends_with(".localhost") && !name.ends_with(".local")
+        }
+        Some(url::Host::Ipv4(ip)) => {
+            !(ip.is_loopback() || ip.is_private() || ip.is_link_local() || ip.is_unspecified())
+        }
+        Some(url::Host::Ipv6(ip)) => {
+            // `is_unique_local` / `is_unicast_link_local` are unstable,
+            // so the two ranges are matched by prefix: fc00::/7 and
+            // fe80::/10.
+            let segments = ip.segments();
+            !(ip.is_loopback()
+                || ip.is_unspecified()
+                || (segments[0] & 0xfe00) == 0xfc00
+                || (segments[0] & 0xffc0) == 0xfe80)
+        }
+        None => false,
+    }
+}
+
 pub(crate) fn detect_image_format(bytes: &[u8]) -> Option<&'static str> {
     if bytes.len() >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF {
         return Some("jpg");
@@ -1523,9 +1596,28 @@ pub(crate) fn detect_image_format(bytes: &[u8]) -> Option<&'static str> {
 pub(crate) const MAX_IMAGE_BYTES: usize = 10 * 1024 * 1024;
 
 async fn download_image_bytes(url: &str) -> AppResult<Vec<u8>> {
+    // Every URL here is named by a third party -- Deezer's API, or
+    // TheAudioDB's list of fanarts -- and is fetched by a process
+    // sitting inside the user's network. A URL pointing at localhost or
+    // at a LAN address would turn this downloader into a probe of
+    // machines that third party cannot otherwise reach. Checked on the
+    // way in, and again on every redirect hop, because a public host is
+    // free to answer with a redirect to a private one.
+    if !is_public_http_url(url) {
+        return Err(AppError::Other("refusing to fetch a non-public URL".into()));
+    }
     let client = reqwest::Client::builder()
         .user_agent("WaveFlow/0.1")
         .timeout(std::time::Duration::from_secs(15))
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            if attempt.previous().len() >= 5 {
+                attempt.error("too many redirects")
+            } else if is_public_http_url(attempt.url().as_str()) {
+                attempt.follow()
+            } else {
+                attempt.stop()
+            }
+        }))
         .build()
         .map_err(|err| AppError::Other(format!("http client build failed: {err}")))?;
 
@@ -1575,7 +1667,7 @@ async fn download_image_bytes(url: &str) -> AppResult<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
-    use super::metadata_album_cache_complete;
+    use super::{is_public_http_url, metadata_album_cache_complete};
 
     #[test]
     fn album_cache_completeness_gates_refetch() {
@@ -1590,5 +1682,43 @@ mod tests {
         // a complete hit — no wasteful re-download every time the page opens.
         assert!(metadata_album_cache_complete(None, true));
         assert!(metadata_album_cache_complete(Some("hash"), true));
+    }
+
+    /// The URLs this downloader is handed come from Deezer and
+    /// TheAudioDB. A host inside the user's machine or network is one
+    /// neither of them can reach on their own — which is the point of
+    /// naming it.
+    #[test]
+    fn a_third_party_cannot_name_a_host_on_our_side() {
+        for url in [
+            "http://localhost/x.jpg",
+            "https://LOCALHOST./x.jpg",
+            "https://printer.local/x.jpg",
+            "http://127.0.0.1/x.jpg",
+            "http://127.1.2.3/x.jpg",
+            "http://10.0.0.5/x.jpg",
+            "http://192.168.1.1/x.jpg",
+            "http://172.16.0.9/x.jpg",
+            "http://169.254.169.254/latest/meta-data",
+            "http://0.0.0.0/x.jpg",
+            "http://[::1]/x.jpg",
+            "http://[fd00::1]/x.jpg",
+            "http://[fe80::1]/x.jpg",
+            // Not HTTP at all: the local filesystem is the other way in.
+            "file:///etc/passwd",
+            "data:image/png;base64,AAAA",
+            "not a url",
+        ] {
+            assert!(!is_public_http_url(url), "should be refused: {url}");
+        }
+
+        for url in [
+            "https://www.theaudiodb.com/images/media/artist/fanart/x.jpg",
+            "https://e-cdns-images.dzcdn.net/images/artist/x/500x500.jpg",
+            "http://203.0.113.7/x.jpg",
+            "https://[2001:db8::1]/x.jpg",
+        ] {
+            assert!(is_public_http_url(url), "should be allowed: {url}");
+        }
     }
 }

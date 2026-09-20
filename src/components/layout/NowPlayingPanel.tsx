@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { X, Music2, Radio } from "lucide-react";
@@ -133,15 +133,24 @@ export function NowPlayingPanel({
     ),
   );
 
+  // The artist this panel last reset for. An `artist:updated` refresh
+  // re-runs the effect for the *same* artist, and blanking the photo and
+  // the bio there would flash the panel empty for the length of a
+  // round-trip — the reset exists for a change of artist, where the old
+  // bio would otherwise sit under the new name.
+  const resetForArtistRef = useRef<number | null | undefined>(undefined);
+
   useEffect(() => {
-    // Reset enrichment state whenever the focused artist changes so
-    // stale bios don't flash during the async fetch.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPictureSrc(null);
-    setBioShort(null);
-    setBioFull(null);
-    setBioExpanded(false);
     const artistId = currentTrack?.artist_id;
+    if (resetForArtistRef.current !== artistId) {
+      resetForArtistRef.current = artistId;
+      // Reset enrichment state whenever the focused artist changes so
+      // stale bios don't flash during the async fetch.
+      setPictureSrc(null);
+      setBioShort(null);
+      setBioFull(null);
+      setBioExpanded(false);
+    }
     if (artistId == null) return;
     let cancelled = false;
     enrichArtistDeezer(artistId)

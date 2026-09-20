@@ -1200,6 +1200,7 @@
     "suggestions": "推薦圖片",
     "suggestionLabel": "橫幅推薦 {{index}}",
     "noneFound": "找不到這位藝人的寬幅圖片。請改選本機檔案。",
+    "offline": "關閉離線模式即可查看推薦圖片。",
     "fileHint": "寬幅圖片效果最好：它會被裁切成橫幅。",
     "removeAction": "恢復自動橫幅"
   },

@@ -1200,6 +1200,7 @@
     "suggestions": "Saran",
     "suggestionLabel": "Saran banner {{index}}",
     "noneFound": "Tidak ada gambar lebar untuk artis ini. Pilih berkas lokal saja.",
+    "offline": "Matikan mode luring untuk melihat saran.",
     "fileHint": "Gambar lebar paling cocok: gambar dipangkas menjadi banner.",
     "removeAction": "Kembali ke banner otomatis"
   },

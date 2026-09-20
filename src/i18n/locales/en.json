@@ -1200,6 +1200,7 @@
     "suggestions": "Suggestions",
     "suggestionLabel": "Banner suggestion {{index}}",
     "noneFound": "No wide image found for this artist. Pick a local file instead.",
+    "offline": "Turn off offline mode to see the suggestions.",
     "fileHint": "A wide image works best: it is cropped to a banner.",
     "removeAction": "Use the automatic banner"
   },

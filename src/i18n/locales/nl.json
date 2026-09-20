@@ -1200,6 +1200,7 @@
     "suggestions": "Suggesties",
     "suggestionLabel": "Bannersuggestie {{index}}",
     "noneFound": "Geen brede afbeelding gevonden voor deze artiest. Kies in plaats daarvan een lokaal bestand.",
+    "offline": "Schakel de offlinemodus uit om de suggesties te zien.",
     "fileHint": "Een brede afbeelding werkt het best: hij wordt bijgesneden tot een banner.",
     "removeAction": "Automatische banner gebruiken"
   },

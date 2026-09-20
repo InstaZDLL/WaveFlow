@@ -1200,6 +1200,7 @@
     "suggestions": "Vorschläge",
     "suggestionLabel": "Banner-Vorschlag {{index}}",
     "noneFound": "Für diesen Künstler wurde kein breites Bild gefunden. Wähle stattdessen eine lokale Datei.",
+    "offline": "Deaktiviere den Offline-Modus, um die Vorschläge zu sehen.",
     "fileHint": "Ein breites Bild eignet sich am besten: Es wird auf Bannerformat zugeschnitten.",
     "removeAction": "Automatisches Banner verwenden"
   },

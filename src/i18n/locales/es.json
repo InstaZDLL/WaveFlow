@@ -1201,6 +1201,7 @@
     "suggestions": "Sugerencias",
     "suggestionLabel": "Propuesta de banner {{index}}",
     "noneFound": "No se encontró ninguna imagen panorámica para este artista. Elige un archivo local.",
+    "offline": "Desactiva el modo sin conexión para ver las propuestas.",
     "fileHint": "Una imagen panorámica funciona mejor: se recorta como banner.",
     "removeAction": "Volver al banner automático"
   },

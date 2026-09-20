@@ -1201,6 +1201,7 @@
     "suggestions": "Suggestions",
     "suggestionLabel": "Proposition de bannière {{index}}",
     "noneFound": "Aucune image large trouvée pour cet artiste. Choisissez plutôt un fichier local.",
+    "offline": "Désactivez le mode hors ligne pour voir les propositions.",
     "fileHint": "Une image large convient le mieux : elle est recadrée en bannière.",
     "removeAction": "Revenir à la bannière automatique"
   },

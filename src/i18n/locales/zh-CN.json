@@ -1200,6 +1200,7 @@
     "suggestions": "推荐图片",
     "suggestionLabel": "横幅推荐 {{index}}",
     "noneFound": "未找到这位艺人的宽幅图片。请改选本地文件。",
+    "offline": "关闭离线模式即可查看推荐图片。",
     "fileHint": "宽幅图片效果最好：它会被裁剪成横幅。",
     "removeAction": "恢复自动横幅"
   },

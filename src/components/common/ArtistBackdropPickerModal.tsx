@@ -10,6 +10,7 @@ import {
   setArtistBackgroundFromUrl,
 } from "../../lib/tauri/deezer";
 import { pickFile } from "../../lib/tauri/dialog";
+import { getOfflineMode } from "../../lib/tauri/offline";
 
 interface ArtistBackdropPickerModalProps {
   artistId: number;
@@ -51,8 +52,15 @@ export function ArtistBackdropPickerModal({
   const [loaded, setLoaded] = useState<{
     artistId: number;
     urls: string[];
+    offline: boolean;
   } | null>(null);
-  const candidates = loaded?.artistId === artistId ? loaded.urls : null;
+  const current = loaded?.artistId === artistId ? loaded : null;
+  const candidates = current?.urls ?? null;
+  // Offline mode is part of the same answer rather than its own state:
+  // an empty list means "none" or "offline", and reading the two from
+  // separate cycles could pair this artist's list with the previous
+  // visit's connectivity.
+  const offline = current?.offline ?? false;
   const [isApplying, setIsApplying] = useState(false);
   // Tagged like the candidates: a failure from a previous visit must
   // not sit above another artist's fresh list. (Setting it to null in
@@ -68,13 +76,19 @@ export function ArtistBackdropPickerModal({
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
-    getArtistBackdropCandidates(artistId)
-      .then((urls) => {
-        if (!cancelled) setLoaded({ artistId, urls });
+    // Offline mode refuses the candidates on purpose (they are remote
+    // URLs the picker would paint), so the modal has to be able to tell
+    // that apart from an artist who simply has none.
+    Promise.all([
+      getArtistBackdropCandidates(artistId),
+      getOfflineMode().catch(() => false),
+    ])
+      .then(([urls, offline]) => {
+        if (!cancelled) setLoaded({ artistId, urls, offline });
       })
       .catch((err) => {
         console.error("[ArtistBackdropPicker] candidates failed", err);
-        if (!cancelled) setLoaded({ artistId, urls: [] });
+        if (!cancelled) setLoaded({ artistId, urls: [], offline: false });
       });
     return () => {
       cancelled = true;
@@ -158,7 +172,9 @@ export function ArtistBackdropPickerModal({
               </div>
             ) : candidates.length === 0 ? (
               <div className="text-xs text-zinc-400 text-center py-10 px-6">
-                {t("artistBackdropPicker.noneFound")}
+                {offline
+                  ? t("artistBackdropPicker.offline")
+                  : t("artistBackdropPicker.noneFound")}
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
