@@ -1883,6 +1883,10 @@
         "failed": "Falha na importação. O arquivo pode estar corrompido ou ser incompatível."
       }
     },
+    "clipsInLibrary": {
+      "title": "Manter os clipes junto da música",
+      "subtitle": "Os Canvas e as capas animadas que você escolhe ficam em uma pasta oculta dentro da sua biblioteca, viajando junto com os arquivos. O que as extensões baixam fica nos caches acima."
+    },
     "dataFolder": {
       "title": "Pasta de dados",
       "subtitle": "Abrir a pasta que contém o banco de dados e as capas",

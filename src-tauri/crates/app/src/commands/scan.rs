@@ -602,6 +602,34 @@ pub async fn scan_folder(
     Ok(summary)
 }
 
+/// Every file under `root` the library should index.
+///
+/// **The reserved directory is pruned as the walk meets it**, so the whole
+/// branch is skipped rather than each file in it being tested and refused
+/// -- and so WaveFlow's own media (issue #695) never reaches
+/// `is_scannable_audio`, which would accept a Canvas clip on sight: `mp4`
+/// is an audio extension here, legitimately, and only `ogg` / `oga` pay
+/// for a header read before the scanner believes the extension.
+///
+/// The root is never pruned, whatever it is called: a library folder the
+/// user happens to have named `.waveflow` is still their library, and
+/// scanning none of it would be a defect with no symptom to follow.
+fn collect_scannable_files(root: &Path) -> Vec<PathBuf> {
+    WalkDir::new(root)
+        .follow_links(false)
+        .into_iter()
+        .filter_entry(|entry| {
+            entry.depth() == 0
+                || !entry.file_type().is_dir()
+                || !waveflow_core::scanner::is_reserved_dir_name(entry.file_name())
+        })
+        .filter_map(Result::ok)
+        .filter(|entry| entry.file_type().is_file())
+        .filter(|entry| is_scannable_audio(entry.path()))
+        .map(|entry| entry.path().to_path_buf())
+        .collect()
+}
+
 /// Inner scan implementation shared between the `scan_folder` command and
 /// the `rescan_library` command, which walks every folder of a library.
 ///
@@ -665,18 +693,10 @@ pub(crate) async fn scan_folder_inner(
     // Walk the directory off-thread — walkdir is blocking and a deep tree can
     // take a noticeable fraction of a second to enumerate.
     let folder_path_owned = folder_path.clone();
-    let audio_files: Vec<PathBuf> = tokio::task::spawn_blocking(move || {
-        WalkDir::new(&folder_path_owned)
-            .follow_links(false)
-            .into_iter()
-            .filter_map(Result::ok)
-            .filter(|entry| entry.file_type().is_file())
-            .filter(|entry| is_scannable_audio(entry.path()))
-            .map(|entry| entry.path().to_path_buf())
-            .collect()
-    })
-    .await
-    .map_err(|e| AppError::Other(format!("walk task failed: {e}")))?;
+    let audio_files: Vec<PathBuf> =
+        tokio::task::spawn_blocking(move || collect_scannable_files(Path::new(&folder_path_owned)))
+            .await
+            .map_err(|e| AppError::Other(format!("walk task failed: {e}")))?;
     let walk_ms = t_scan.elapsed().as_millis();
 
     let mut summary = ScanSummary {
@@ -2013,4 +2033,53 @@ async fn emit_track_insert_from_extracted(
     )
     .await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod walk_tests {
+    use super::*;
+
+    fn write(path: &Path) {
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, b"x").unwrap();
+    }
+
+    /// The whole point of the reserved directory: WaveFlow's own clips
+    /// live in the library folder without becoming tracks in it. `mp4` is
+    /// an audio extension, and it is taken on sight, so nothing but this
+    /// exclusion stands between a Canvas clip and the track list.
+    #[test]
+    fn our_own_media_is_not_indexed_as_music() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(&root.join("Artist/Album/01.flac"));
+        write(&root.join(".waveflow/canvas/clip.mp4"));
+        write(&root.join("Artist/.waveflow/motion/cover.mp4"));
+        // A real album video the user put there themselves is still theirs.
+        write(&root.join("Artist/Album/bonus.mp4"));
+
+        let found = collect_scannable_files(root);
+        let names: Vec<String> = found
+            .iter()
+            .map(|p| p.file_name().unwrap().to_string_lossy().into_owned())
+            .collect();
+
+        assert!(names.contains(&"01.flac".to_string()), "{names:?}");
+        assert!(names.contains(&"bonus.mp4".to_string()), "{names:?}");
+        assert!(!names.contains(&"clip.mp4".to_string()), "{names:?}");
+        assert!(!names.contains(&"cover.mp4".to_string()), "{names:?}");
+    }
+
+    /// A library folder the user happens to have named `.waveflow` is
+    /// still their library. Pruning the root would leave them with an
+    /// empty library and nothing on screen to explain it.
+    #[test]
+    fn a_library_named_like_ours_still_scans() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join(".waveflow");
+        write(&root.join("Artist/01.flac"));
+
+        let found = collect_scannable_files(&root);
+        assert_eq!(found.len(), 1, "{found:?}");
+    }
 }

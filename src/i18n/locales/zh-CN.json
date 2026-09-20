@@ -1816,6 +1816,10 @@
       "action": "扫描",
       "done": "已为 {{considered}} 位艺人中的 {{linked}} 位关联本地图片"
     },
+    "clipsInLibrary": {
+      "title": "将短片与音乐放在一起",
+      "subtitle": "你自己设置的 Canvas 短片和动态封面会放入音乐库内的隐藏文件夹，因此会跟着文件一起走。扩展获取的内容仍留在上方的缓存中。"
+    },
     "dataFolder": {
       "title": "数据文件夹",
       "subtitle": "打开包含数据库和封面图片的文件夹",

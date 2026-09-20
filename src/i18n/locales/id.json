@@ -1853,6 +1853,10 @@
         "failed": "Impor gagal. Berkas mungkin rusak atau tidak kompatibel."
       }
     },
+    "clipsInLibrary": {
+      "title": "Simpan klip bersama musik",
+      "subtitle": "Klip Canvas dan sampul animasi yang kamu tetapkan sendiri masuk ke folder tersembunyi di dalam pustakamu, sehingga ikut berpindah bersama berkasnya. Yang diambil ekstensi tetap di cache di atas."
+    },
     "dataFolder": {
       "title": "Folder data",
       "subtitle": "Buka folder yang berisi basis data dan sampul",

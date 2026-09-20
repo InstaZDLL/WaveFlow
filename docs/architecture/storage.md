@@ -62,6 +62,26 @@ Migrations: [`src-tauri/migrations/app/`](../../src-tauri/migrations/app).
 ### `data.db` (per-profile)
 
 - Library: `library`, `library_folder`, `track` (which also carries the ReplayGain the file's own tags declare, in `rg_track_gain_db` / `rg_track_peak` / `rg_album_gain_db` / `rg_album_peak` — a property of the file, refreshed by every scan, as opposed to what `track_analysis` measured), `artist`, `album`, `genre`, `track_artist`, `track_genre`, `track_tag` (custom tags read from the user's own files, #588 — one row per `(track_id, key)`, written by the scanner from the *concrete* tag's remainder, cascade-deleted with its track), `artwork`, `track_analysis`, `playlist`, `playlist_track`, `liked_track`, `queue_item`, `play_event`, `scrobble_queue`, `profile_setting`, `track_fts` (FTS5, **trigram**-tokenised and content-owning since #579 — see [library.md](../features/library.md#search) for why neither is optional).
+
+### Inside the user's library (issue #695)
+
+A clip the user set **by hand** can live with the music instead, when **Settings → Storage and backups → Folders and caches → Keep clips with the music** is on:
+
+```text
+<library folder>/
+  .waveflow/
+    canvas/<hash>.mp4     (per track)
+    motion/<hash>.mp4     (per album)
+```
+
+- **Hand-set only.** The plugin caches stay where they are: they are LRU, and an eviction pass deleting files out of somebody's music folder is not a behaviour worth having. What the user chose is never evicted; what a plugin fetched is a cache and keeps behaving like one.
+- **The disk decides where a clip is read from, not a column.** Both locations are hash-addressed, so [`existing_media_file`](../../src-tauri/crates/app/src/commands/library_media.rs) stats the library first and falls back to the profile directory. The setting governs only where the *next* write goes — which is why switching it moves nothing, needs no migration, and has no half-moved state to recover from. An album is looked up in **every** folder its tracks came from, since which one comes first can change on a rescan.
+- **A library that refuses the write does not lose the file.** A read-only mount, a share that went away, a permission the user does not have: the clip lands in the app directory instead and a line says why. Failing the set would mean the file the user picked simply did not take.
+- **The webview cannot read it without being told.** The asset-protocol scope in `tauri.conf.json` is static and names the app's own directories, so a path under a library folder is granted at the moment it is handed out ([`allow_asset_scope`](../../src-tauri/crates/app/src/commands/library_media.rs)) — folders can be added while the app runs.
+- The scanner and the watcher both leave `.waveflow/` alone; see [`library.md`](../features/library.md#the-reserved-directory).
+
+### Elsewhere
+
 - Remote covers (`sync_v2`): `profiles/<id>/remote-artwork/`, an evictable disk cache of the server's hash-addressed cover art. Unlike `motion/` and `canvas/`, nothing here was chosen by the user — every file is a reproducible download ([RFC-005](../rfcs/RFC-005-remote-source-and-sync-v2.md#cover-art-is-cached-on-disk-not-inlined)).
 - Remote source (`sync_v2`): `remote_binding`, `remote_playlist`, `remote_playlist_track`, `remote_favorite`, `remote_rating`, `remote_history`, `remote_queue`, `remote_queue_track`, `remote_share`, `remote_share_track`, `remote_track`, `remote_album`, `remote_library`, `remote_mutation`, `remote_track_link`. All derived from the server and droppable — dropping them and re-fetching a snapshot is always a valid recovery. `remote_track.in_catalogue` marks the rows the catalogue walk owns, so purging the mirror cannot take a playlist's titles with it ([RFC-005](../rfcs/RFC-005-remote-source-and-sync-v2.md#the-catalogue-mirror)).
 - Profile-scoped pool: every command that touches user data goes through `state.require_profile_pool().await?`.

@@ -1856,6 +1856,10 @@
         "failed": "La importación ha fallado. El archivo puede estar dañado o ser incompatible."
       }
     },
+    "clipsInLibrary": {
+      "title": "Guardar los clips junto a la música",
+      "subtitle": "Los Canvas y las portadas animadas que eliges tú van a una carpeta oculta dentro de tu biblioteca, así que viajan con los archivos. Lo que descargan las extensiones se queda en las cachés de arriba."
+    },
     "dataFolder": {
       "title": "Carpeta de datos",
       "subtitle": "Abre la carpeta que contiene la base de datos y las portadas",

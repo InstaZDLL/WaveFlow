@@ -169,6 +169,7 @@ import { StatsKpiVisibilityCard } from "./settings/StatsKpiVisibilityCard";
 import { SkinPickerCard } from "./settings/SkinPickerCard";
 import { ContrastCard } from "./settings/ContrastCard";
 import { CacheLocationCard } from "./settings/CacheLocationCard";
+import { ClipsInLibraryCard } from "./settings/ClipsInLibraryCard";
 import { MediaCachesCard } from "./settings/MediaCachesCard";
 import { FullscreenLyricsCenteringCard } from "./settings/FullscreenLyricsCenteringCard";
 import { ImmersiveViewCard } from "./settings/ImmersiveViewCard";
@@ -3978,6 +3979,7 @@ export function SettingsView({
                 <MediaCachesCard
                   language={i18n.resolvedLanguage ?? i18n.language}
                 />
+                <ClipsInLibraryCard />
                 <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
                   <div className="flex items-center space-x-4">
                     <FolderOpen

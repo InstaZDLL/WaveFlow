@@ -1853,6 +1853,10 @@
         "failed": "Import fehlgeschlagen. Die Datei könnte beschädigt oder inkompatibel sein."
       }
     },
+    "clipsInLibrary": {
+      "title": "Clips bei der Musik behalten",
+      "subtitle": "Canvas-Clips und animierte Cover, die du selbst setzt, landen in einem versteckten Ordner in deiner Bibliothek und wandern so mit den Dateien mit. Was Erweiterungen holen, bleibt in den Caches oben."
+    },
     "dataFolder": {
       "title": "Datenordner",
       "subtitle": "Öffne den Ordner mit der Datenbank und den Covern",

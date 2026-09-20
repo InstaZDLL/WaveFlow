@@ -13,9 +13,10 @@ use std::time::Duration;
 
 use serde::Serialize;
 
-use tauri::State;
+use tauri::{AppHandle, State};
 use waveflow_core::artwork::motion_cache;
 
+use super::library_media;
 use crate::error::{AppError, AppResult};
 use crate::offline;
 use crate::state::AppState;
@@ -40,7 +41,9 @@ const MAX_CANVAS_MP4_BYTES: u64 = 64 * 1024 * 1024;
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrackCanvas {
-    /// Absolute path to the on-disk mp4 in the profile's `canvas/` dir.
+    /// Absolute path to the on-disk mp4 — in the profile's `canvas/` dir,
+    /// or in the track's own library folder when the clip was kept there
+    /// (issue #695).
     pub local_path: String,
 }
 
@@ -49,11 +52,14 @@ pub struct TrackCanvas {
 /// callers render the static cover in that case.
 #[tauri::command]
 pub async fn get_track_canvas(
+    app: AppHandle,
     state: State<'_, AppState>,
     track_id: i64,
 ) -> AppResult<Option<TrackCanvas>> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    // One snapshot: the artwork and canvas directories are per profile, so
+    // pairing a pool with an id read after a `switch_profile` would point
+    // at the other profile's files.
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let row: Option<(String, String)> =
         sqlx::query_as("SELECT hash, format FROM track_canvas WHERE track_id = ?")
             .bind(track_id)
@@ -62,10 +68,33 @@ pub async fn get_track_canvas(
     let Some((hash, format)) = row else {
         return Ok(None);
     };
-    let path = state
-        .paths
-        .profile_canvas_dir(profile_id)
-        .join(format!("{hash}.{format}"));
+
+    // Both locations are hash-addressed, so the disk answers where the
+    // clip is and no column has to be kept in step with it (#695). The
+    // library comes first: a clip the user moved there wins over a
+    // leftover copy in the profile directory.
+    let profile_dir = state.paths.profile_canvas_dir(profile_id);
+    let mut candidates = Vec::with_capacity(2);
+    if let Some(dir) =
+        library_media::track_media_dir(&pool, track_id, library_media::MediaKind::Canvas).await
+    {
+        candidates.push(dir);
+    }
+    candidates.push(profile_dir.clone());
+
+    let Some(path) = library_media::find_media_file(candidates, hash, format.clone()).await else {
+        // The row outlived its file -- a library folder that went away, a
+        // clip deleted by hand. The now-playing view falls back to the
+        // cover, which is what it does for a track that never had one.
+        return Ok(None);
+    };
+    if let Some(parent) = path.parent() {
+        if parent != profile_dir {
+            // A path outside the app's own directories is not in the
+            // static asset scope, so the `<video>` would refuse to load it.
+            library_media::allow_asset_scope(&app, parent);
+        }
+    }
     Ok(Some(TrackCanvas {
         local_path: path.to_string_lossy().into_owned(),
     }))
@@ -81,13 +110,26 @@ pub async fn set_track_canvas_from_file(
     track_id: i64,
     file_path: String,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
-    let canvas_dir = state.paths.profile_canvas_dir(profile_id);
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
+    // Next to the music when the user asked for that and the folder
+    // accepts it, in the app's own directory otherwise (#695).
+    let profile_canvas_dir = state.paths.profile_canvas_dir(profile_id);
+    let canvas_dir = library_media::write_dir_for(
+        &state,
+        &pool,
+        profile_canvas_dir.clone(),
+        track_id,
+        library_media::MediaKind::Canvas,
+    )
+    .await;
 
-    let hash =
-        super::media_file::store_hash_addressed_mp4(&canvas_dir, &file_path, MAX_CANVAS_MP4_BYTES)
-            .await?;
+    let hash = library_media::store_mp4_with_fallback(
+        &canvas_dir,
+        &profile_canvas_dir,
+        &file_path,
+        MAX_CANVAS_MP4_BYTES,
+    )
+    .await?;
 
     sqlx::query(
         "INSERT INTO track_canvas (track_id, hash, format, created_at)
