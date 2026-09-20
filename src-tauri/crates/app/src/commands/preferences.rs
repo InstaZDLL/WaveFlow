@@ -552,6 +552,7 @@ pub fn apply_window_chrome(app: &tauri::AppHandle, chrome: WindowChrome) -> AppR
         // content, and `hiddenTitle` is a creation-time option with no
         // runtime switch — so the title is what we empty, and restore with
         // the frame. The app is named by the menu bar either way.
+        let previous_title = window.title().ok();
         let title = match chrome {
             WindowChrome::App => "",
             WindowChrome::System => "WaveFlow",
@@ -563,9 +564,17 @@ pub fn apply_window_chrome(app: &tauri::AppHandle, chrome: WindowChrome) -> AppR
             WindowChrome::App => tauri::utils::TitleBarStyle::Overlay,
             WindowChrome::System => tauri::utils::TitleBarStyle::Visible,
         };
-        window.set_title_bar_style(style).map_err(|err| {
-            crate::error::AppError::Other(format!("window chrome: set_title_bar_style: {err}"))
-        })?;
+        if let Err(err) = window.set_title_bar_style(style) {
+            // Put the title back. Going first was what kept a failure from
+            // being visible; leaving the window nameless because the style
+            // refused would make it visible after all.
+            if let Some(previous) = previous_title {
+                let _ = window.set_title(&previous);
+            }
+            return Err(crate::error::AppError::Other(format!(
+                "window chrome: set_title_bar_style: {err}"
+            )));
+        }
     }
 
     #[cfg(target_os = "linux")]
