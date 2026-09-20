@@ -19,6 +19,7 @@ pub mod duplicates;
 pub mod edit;
 pub mod integration;
 pub mod library;
+pub mod library_media;
 // Loopback HTTP listener for the OAuth callback. Its only consumer is
 // the server account binding, so it carries the same gate — it used to
 // stay ungated because the Spotify handshake needed it in a build

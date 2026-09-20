@@ -1061,6 +1061,8 @@ pub fn run() {
             commands::preferences::set_ui_zoom,
             commands::preferences::get_window_chrome,
             commands::preferences::set_window_chrome,
+            commands::library_media::get_clips_in_library,
+            commands::library_media::set_clips_in_library,
             commands::preferences::get_mini_player_bounds,
             commands::preferences::set_mini_player_bounds,
             commands::preferences::get_main_window_bounds,

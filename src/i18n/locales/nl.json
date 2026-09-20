@@ -1853,6 +1853,10 @@
         "failed": "Import mislukt. Het bestand is mogelijk beschadigd of incompatibel."
       }
     },
+    "clipsInLibrary": {
+      "title": "Clips bij de muziek bewaren",
+      "subtitle": "Canvas-clips en geanimeerde hoezen die je zelf instelt komen in een verborgen map in je bibliotheek, zodat ze met de bestanden meereizen. Wat extensies ophalen blijft in de caches hierboven."
+    },
     "dataFolder": {
       "title": "Gegevensmap",
       "subtitle": "Open de map met de database en de albumhoezen",

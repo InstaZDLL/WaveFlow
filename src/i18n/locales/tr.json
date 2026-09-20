@@ -1853,6 +1853,10 @@
         "failed": "İçe aktarma başarısız oldu. Dosya bozuk veya uyumsuz olabilir."
       }
     },
+    "clipsInLibrary": {
+      "title": "Klipleri müziğin yanında tut",
+      "subtitle": "Kendi seçtiğin Canvas klipleri ve hareketli kapaklar kütüphanendeki gizli bir klasöre gider, böylece dosyalarla birlikte taşınır. Eklentilerin indirdikleri yukarıdaki önbelleklerde kalır."
+    },
     "dataFolder": {
       "title": "Veri klasörü",
       "subtitle": "Veritabanı ve kapakları içeren klasörü aç",

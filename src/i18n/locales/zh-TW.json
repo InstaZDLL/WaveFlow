@@ -1816,6 +1816,10 @@
       "action": "掃描",
       "done": "已為 {{considered}} 位藝人中的 {{linked}} 位連結本機圖片"
     },
+    "clipsInLibrary": {
+      "title": "將短片與音樂放在一起",
+      "subtitle": "你自己設定的 Canvas 短片和動態封面會放入音樂庫內的隱藏資料夾，因此會跟著檔案一起走。擴充功能取得的內容仍留在上方的快取中。"
+    },
     "dataFolder": {
       "title": "資料儲存資料夾",
       "subtitle": "開啟包含資料庫和封面圖檔的資料夾",

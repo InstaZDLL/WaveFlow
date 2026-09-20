@@ -1853,6 +1853,10 @@
         "failed": "Import failed. The file may be corrupt or incompatible."
       }
     },
+    "clipsInLibrary": {
+      "title": "Keep clips with the music",
+      "subtitle": "Canvas clips and animated covers you set yourself go into a hidden folder inside your library, so they travel with the files. What plugins fetch stays in the caches above."
+    },
     "dataFolder": {
       "title": "Data folder",
       "subtitle": "Open the folder containing the database and the covers",

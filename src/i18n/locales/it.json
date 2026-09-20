@@ -1856,6 +1856,10 @@
         "failed": "Importazione non riuscita. Il file potrebbe essere corrotto o incompatibile."
       }
     },
+    "clipsInLibrary": {
+      "title": "Tieni i clip insieme alla musica",
+      "subtitle": "I Canvas e le copertine animate che scegli tu finiscono in una cartella nascosta della tua libreria, quindi viaggiano con i file. Quello che scaricano le estensioni resta nelle cache qui sopra."
+    },
     "dataFolder": {
       "title": "Cartella dei dati",
       "subtitle": "Apri la cartella che contiene il database e le copertine",

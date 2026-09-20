@@ -525,6 +525,8 @@ export const SETTINGS_CATEGORIES = [
         id: "storage",
         labelKey: "settings.organization.groups.storage",
         searchKeys: [
+          "settings.clipsInLibrary.title",
+          "settings.clipsInLibrary.subtitle",
           "settings.dataFolder.title",
           "settings.dataFolder.subtitle",
           "settings.openDataFolder",

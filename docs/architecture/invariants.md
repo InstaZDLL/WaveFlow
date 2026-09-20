@@ -74,6 +74,12 @@ Both funnel into `resume_last`, which holds a one-at-a-time guard (`AudioEngine:
 
 ## Database
 
+### Anything WaveFlow writes into a library folder goes under `.waveflow/`
+
+`mp4` is in `AUDIO_EXTENSIONS` and [`is_scannable_audio`](../../src-tauri/crates/core/src/scanner/extract.rs) takes it **on sight** (only `ogg` / `oga` pay for a header read), so any clip written into somebody's music folder becomes a track on the next scan. The walk has no other directory filter, and a leading dot is a display convention rather than something a file walker obeys — so the single reserved name in [`scanner::reserved`](../../src-tauri/crates/core/src/scanner/reserved.rs) is what keeps our own files out of the library, and both walkers honour it: `collect_scannable_files` prunes the branch, the fs watcher drops an event whose every path is inside it.
+
+Two rules that are easy to get wrong: the check is **rooted** (a library that itself lives under a directory of that name is still an ordinary library, and testing every component of an absolute path would empty it), and the walk never prunes **its own root** for the same reason. Writing anywhere else in a library folder needs the same treatment or it will be indexed — including by the watcher, which would otherwise answer our own writes with a rescan. Layout: [`storage.md`](storage.md#inside-the-users-library-issue-695).
+
 ### Never `DROP TABLE` a parent table in a migration
 
 The profile pool opens with `foreign_keys = ON` and SQLite's `DROP TABLE` fires an implicit `DELETE`, so `ON DELETE SET NULL` / `CASCADE` on children run — dropping `artwork` blanks every `album.artwork_id`, dropping `artist` empties `track_artist`. `PRAGMA foreign_keys` is a no-op inside the transaction sqlx wraps migrations in, so it cannot be turned off there. Use `ALTER TABLE … ADD COLUMN` (issue #401 took this route for exactly this reason).

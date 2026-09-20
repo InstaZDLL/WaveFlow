@@ -16,6 +16,7 @@ use std::time::Duration;
 use tauri::State;
 use waveflow_core::artwork::motion_cache;
 
+use super::library_media;
 use crate::error::{AppError, AppResult};
 use crate::offline;
 use crate::state::AppState;
@@ -70,13 +71,14 @@ pub struct MotionArtwork {
 /// logged + skipped.
 #[tauri::command]
 pub async fn fetch_album_motion_artwork(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     artist: String,
     album: String,
     album_id: Option<i64>,
 ) -> AppResult<Option<MotionArtwork>> {
     if let Some(id) = album_id {
-        if let Some(manual) = manual_motion_artwork(&state, id).await? {
+        if let Some(manual) = manual_motion_artwork(&app, &state, id).await? {
             return Ok(Some(manual));
         }
     }
@@ -267,11 +269,14 @@ const MAX_MANUAL_MP4_BYTES: u64 = 64 * 1024 * 1024;
 /// `"manual"` — nothing installed produced it, but the field must still
 /// carry something for the frontend's attribution display.
 async fn manual_motion_artwork(
+    app: &tauri::AppHandle,
     state: &AppState,
     album_id: i64,
 ) -> AppResult<Option<MotionArtwork>> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    // One snapshot: the motion directory is per profile, so a pool paired
+    // with an id read after a `switch_profile` would point at the other
+    // profile's files.
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let row: Option<(String, String)> =
         sqlx::query_as("SELECT hash, format FROM album_motion_artwork WHERE album_id = ?")
             .bind(album_id)
@@ -280,10 +285,26 @@ async fn manual_motion_artwork(
     let Some((hash, format)) = row else {
         return Ok(None);
     };
-    let path = state
-        .paths
-        .profile_motion_dir(profile_id)
-        .join(format!("{hash}.{format}"));
+
+    // Both locations are hash-addressed, so the disk says where the cover
+    // is (#695). Every folder the album's tracks came from is a candidate,
+    // because which one comes first can change when the library is
+    // rescanned.
+    let profile_dir = state.paths.profile_motion_dir(profile_id);
+    let mut candidates =
+        library_media::album_media_dirs(&pool, album_id, library_media::MediaKind::Motion).await;
+    candidates.push(profile_dir.clone());
+
+    let Some(path) = library_media::existing_media_file(&candidates, &hash, &format) else {
+        // The row outlived its file; the album falls back to its static
+        // cover, as it would for one that never had a motion cover.
+        return Ok(None);
+    };
+    if let Some(parent) = path.parent() {
+        if parent != profile_dir {
+            library_media::allow_asset_scope(app, parent);
+        }
+    }
     Ok(Some(MotionArtwork {
         square_url: path.to_string_lossy().into_owned(),
         tall_url: None,
@@ -308,7 +329,16 @@ pub async fn set_album_motion_artwork_from_file(
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
-    let motion_dir = state.paths.profile_motion_dir(profile_id);
+    // Next to the music when the user asked for that and the folder
+    // accepts it, in the app's own directory otherwise (#695).
+    let motion_dir = library_media::album_write_dir_for(
+        &state,
+        &pool,
+        state.paths.profile_motion_dir(profile_id),
+        album_id,
+        library_media::MediaKind::Motion,
+    )
+    .await;
 
     let hash =
         super::media_file::store_hash_addressed_mp4(&motion_dir, &file_path, MAX_MANUAL_MP4_BYTES)

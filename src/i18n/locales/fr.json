@@ -1934,6 +1934,10 @@
         "runFailed": "Échec de la sauvegarde. Voir les logs."
       }
     },
+    "clipsInLibrary": {
+      "title": "Garder les clips avec la musique",
+      "subtitle": "Les Canvas et pochettes animées que vous choisissez vous-même vont dans un dossier caché de votre bibliothèque, et voyagent donc avec les fichiers. Ce que les greffons récupèrent reste dans les caches ci-dessus."
+    },
     "dataFolder": {
       "title": "Dossier de données",
       "subtitle": "Ouvrir le dossier contenant la base de données et les pochettes",
