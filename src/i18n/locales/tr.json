@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Şarkı sözleri nereye gitsin?",
-      "description": "Şarkı sözleri nereye gitsin — hem düzenlediklerin hem de WaveFlow'un senin için bulduğları? Ayarlar → Görseller ve şarkı sözleri'nden değiştirebilirsin.",
+      "description": "Şarkı sözleri nereye gitsin — hem düzenlediklerin hem de WaveFlow'un senin için buldukları? Ayarlar → Görseller ve şarkı sözleri'nden değiştirebilirsin.",
       "hint": "Ses dosyalarını bozulmadan tutmak için \"Yan dosya\" seç — foobar2000 ve benzerleri böyle yapar."
     }
   },

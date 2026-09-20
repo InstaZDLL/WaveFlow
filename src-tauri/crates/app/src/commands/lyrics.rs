@@ -1535,10 +1535,18 @@ async fn export_fetched_sidecar(
     for path in paths {
         let content = content.to_string();
         let _ = tokio::task::spawn_blocking(move || {
-            let Some(sidecar) = sidecar_path(Path::new(&path), plain) else {
+            let audio = Path::new(&path);
+            let Some(sidecar) = sidecar_path(audio, plain) else {
                 return;
             };
-            if sidecar.exists() {
+            // Ask the reader the waterfall itself uses, rather than probing
+            // one exact path: it matches the stem case-insensitively and
+            // looks in a sibling `Lyrics/` folder too. Probing
+            // `Song.lrc` alone would write a second file beside a
+            // `song.LRC` the user made, on any case-sensitive filesystem --
+            // and a file that supersedes theirs is the thing this refuses
+            // to do, whatever it is called.
+            if read_sidecar_lyrics(audio).is_some() {
                 return;
             }
             if let Err(err) = std::fs::write(&sidecar, &content) {
@@ -4167,6 +4175,36 @@ mod tests {
 
         assert!(!dir.path().join("Song.lrc").exists());
         assert_eq!(std::fs::read(&audio).unwrap(), b"audio");
+    }
+
+    /// A sidecar the user spelled differently is still the user's file.
+    /// The guard asks the waterfall's own reader, which matches the stem
+    /// case-insensitively, so this only has something to prove on a
+    /// case-sensitive filesystem -- the Linux CI runner, where writing
+    /// `Song.lrc` beside `song.LRC` would leave two files and let ours
+    /// supersede theirs.
+    #[tokio::test]
+    async fn a_sidecar_spelled_differently_still_counts() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"audio").unwrap();
+        std::fs::write(dir.path().join("song.LRC"), "[00:01.00]Mine").unwrap();
+        seed_track(&pool, &audio, "h1").await;
+        set_destination(&pool, "sidecar").await;
+
+        upsert_lyrics(
+            &pool,
+            "h1",
+            "[00:12.00]Theirs",
+            &LyricsFormat::Lrc,
+            &LyricsSource::Api,
+            Some("lrclib"),
+        )
+        .await
+        .unwrap();
+
+        assert!(!dir.path().join("Song.lrc").exists());
     }
 
     /// A sidecar already on disk is the user's file. The export adds one
