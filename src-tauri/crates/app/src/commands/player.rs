@@ -604,20 +604,40 @@ pub(crate) async fn emit_options_changed(app: &AppHandle, pool: &sqlx::SqlitePoo
     );
 }
 
-/// Read a boolean `profile_setting`, resolving to `default` when the
-/// row is missing, unreadable or holds anything other than `"true"`.
+/// Read a `profile_setting` row, logging a query failure rather than
+/// swallowing it.
+///
+/// `None` covers both "no such row" and "the read failed": the callers
+/// all resolve to their setting's default either way, deliberately. A
+/// profile whose database cannot be read is better left on the neutral
+/// defaults than on the settings of the profile before it — leaving the
+/// atomic untouched is exactly the leak #698 is about. The warning is
+/// what makes the difference visible in a diagnostics log.
+async fn read_setting(pool: &sqlx::SqlitePool, key: &str) -> Option<String> {
+    match sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
+        .bind(key)
+        .fetch_optional(pool)
+        .await
+    {
+        Ok(value) => value,
+        Err(err) => {
+            tracing::warn!(key, %err, "reading a profile setting failed, using its default");
+            None
+        }
+    }
+}
+
+/// Read a boolean `profile_setting`. `"true"` / `"1"` read as true and
+/// `"false"` / `"0"` as false; a row that is missing, unreadable or
+/// holds anything else resolves to `default`.
 ///
 /// Exists so [`restore_profile_audio_settings`] can store every toggle
 /// unconditionally: it runs again on a profile *switch*, and a setting
 /// only written when its row exists keeps the previous profile's value
 /// on a profile that never touched it (#698).
 async fn read_bool_setting(pool: &sqlx::SqlitePool, key: &str, default: bool) -> bool {
-    sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
-        .bind(key)
-        .fetch_optional(pool)
+    read_setting(pool, key)
         .await
-        .ok()
-        .flatten()
         .and_then(|v| match v.as_str() {
             // `"1"` / `"0"` are the older spelling, still on disk in
             // libraries that predate the current writers and still
@@ -647,6 +667,12 @@ async fn read_bool_setting(pool: &sqlx::SqlitePool, key: &str, default: bool) ->
 /// next — because every getter reads these atomics and nothing
 /// orders those reads against that call.
 pub(crate) async fn restore_profile_audio_settings(pool: &sqlx::SqlitePool, engine: &AudioEngine) {
+    // Volume first, and unconditionally: a profile that never moved the
+    // knob is at full volume, not at the level the profile before it
+    // chose. `1.0` is what `SharedPlayback::new` starts from.
+    engine
+        .shared()
+        .set_volume(queue::read_player_volume(pool).await.unwrap_or(1.0));
     // Restore audio settings (normalize, mono, crossfade). Each
     // one resolves to its boot default when the row is missing
     // or unparseable and is stored either way — see the block
@@ -665,15 +691,10 @@ pub(crate) async fn restore_profile_audio_settings(pool: &sqlx::SqlitePool, engi
             .mono_enabled
             .store(mono, std::sync::atomic::Ordering::Release);
 
-        let crossfade_ms = sqlx::query_scalar::<_, String>(
-            "SELECT value FROM profile_setting WHERE key = 'audio.crossfade_ms'",
-        )
-        .fetch_optional(pool)
-        .await
-        .ok()
-        .flatten()
-        .and_then(|v| v.parse::<u32>().ok())
-        .unwrap_or(0);
+        let crossfade_ms = read_setting(pool, "audio.crossfade_ms")
+            .await
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(0);
         engine
             .shared()
             .crossfade_ms
@@ -684,16 +705,11 @@ pub(crate) async fn restore_profile_audio_settings(pool: &sqlx::SqlitePool, engi
     // to a definite value every time: a missing / corrupt / out-
     // of-set row must reset the atomic to 256 rather than leak
     // the previous profile's choice.
-    let dsd_taps = sqlx::query_scalar::<_, String>(
-        "SELECT value FROM profile_setting WHERE key = 'audio.dsd_precision'",
-    )
-    .fetch_optional(pool)
-    .await
-    .ok()
-    .flatten()
-    .and_then(|v| v.parse::<u32>().ok())
-    .filter(|t| DSD_TAPS_ALLOWED.contains(t))
-    .unwrap_or(256);
+    let dsd_taps = read_setting(pool, "audio.dsd_precision")
+        .await
+        .and_then(|v| v.parse::<u32>().ok())
+        .filter(|t| DSD_TAPS_ALLOWED.contains(t))
+        .unwrap_or(256);
     engine
         .shared()
         .dsd_taps
@@ -752,16 +768,11 @@ pub(crate) async fn restore_profile_audio_settings(pool: &sqlx::SqlitePool, engi
                 &shared.replaygain_fallback_db_bits,
             ),
         ] {
-            let value =
-                sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
-                    .bind(key)
-                    .fetch_optional(pool)
-                    .await
-                    .ok()
-                    .flatten()
-                    .and_then(|v| v.parse::<f32>().ok())
-                    .map(clamp_replaygain_adjust)
-                    .unwrap_or(0.0);
+            let value = read_setting(pool, key)
+                .await
+                .and_then(|v| v.parse::<f32>().ok())
+                .map(clamp_replaygain_adjust)
+                .unwrap_or(0.0);
             target.store(value.to_bits(), std::sync::atomic::Ordering::Release);
         }
 
@@ -777,15 +788,10 @@ pub(crate) async fn restore_profile_audio_settings(pool: &sqlx::SqlitePool, engi
         // `Auto`, and an unparseable row reads as the default
         // rather than as an error — same rule as the knobs
         // above, and the reason this is stored unconditionally.
-        let mode = sqlx::query_scalar::<_, String>(
-            "SELECT value FROM profile_setting WHERE key = 'audio.replaygain_mode'",
-        )
-        .fetch_optional(pool)
-        .await
-        .ok()
-        .flatten()
-        .map(|v| GainMode::from_setting(&v))
-        .unwrap_or_default();
+        let mode = read_setting(pool, "audio.replaygain_mode")
+            .await
+            .map(|v| GainMode::from_setting(&v))
+            .unwrap_or_default();
         shared
             .replaygain_mode_bits
             .store(mode.as_bits(), std::sync::atomic::Ordering::Release);
@@ -802,17 +808,12 @@ pub(crate) async fn restore_profile_audio_settings(pool: &sqlx::SqlitePool, engi
     // unparseable row resolves to 1.0 rather than leaving the
     // previous profile's speed in place.
     {
-        let speed = sqlx::query_scalar::<_, String>(
-            "SELECT value FROM profile_setting WHERE key = 'audio.playback_speed'",
-        )
-        .fetch_optional(pool)
-        .await
-        .ok()
-        .flatten()
-        .and_then(|v| v.parse::<f32>().ok())
-        .filter(|s| s.is_finite())
-        .map(|s| s.clamp(0.5, 2.0))
-        .unwrap_or(1.0);
+        let speed = read_setting(pool, "audio.playback_speed")
+            .await
+            .and_then(|v| v.parse::<f32>().ok())
+            .filter(|s| s.is_finite())
+            .map(|s| s.clamp(0.5, 2.0))
+            .unwrap_or(1.0);
         // Use the raw atomic store here instead of
         // `set_playback_speed` — the latter would also
         // rebase `samples_played` / `base_offset_ms`
@@ -840,14 +841,9 @@ pub(crate) async fn restore_profile_audio_settings(pool: &sqlx::SqlitePool, engi
         // padded to a full flat curve first — otherwise the
         // bands it doesn't reach keep their previous values.
         let mut bands = [0.0_f32; crate::audio::eq::BAND_COUNT];
-        if let Some(stored) = sqlx::query_scalar::<_, String>(
-            "SELECT value FROM profile_setting WHERE key = 'audio.eq_bands'",
-        )
-        .fetch_optional(pool)
-        .await
-        .ok()
-        .flatten()
-        .and_then(|v| serde_json::from_str::<Vec<f32>>(&v).ok())
+        if let Some(stored) = read_setting(pool, "audio.eq_bands")
+            .await
+            .and_then(|v| serde_json::from_str::<Vec<f32>>(&v).ok())
         {
             for (slot, g) in bands.iter_mut().zip(stored) {
                 *slot = g;
@@ -894,12 +890,9 @@ pub async fn player_get_state(
             let repeat_mode = queue::read_repeat_mode(&pool).await;
             let profile_id = state.require_profile_id().await.ok();
 
-            // Restore the persisted volume into the atomic shared
-            // with the cpal callback. Without this, the volume knob
-            // jumps back to 100 % on every app launch.
-            if let Some(persisted) = queue::read_player_volume(&pool).await {
-                engine.shared().set_volume(persisted);
-            }
+            // Restores the persisted volume into the atomic shared with
+            // the cpal callback (without which the knob jumps back to
+            // 100 % on every launch), and every other audio setting.
             restore_profile_audio_settings(&pool, &engine).await;
             // Album grouping is persisted per profile like everything
             // above, and the decoder reads it to tell a record playing
@@ -3065,13 +3058,9 @@ mod album_ordering_tests {
             !read_bool_setting(&pool, "ui.visualizer", false).await,
             "and a value that is not a boolean at all reads as the default"
         );
-        sqlx::query("UPDATE profile_setting SET value = 'yes' WHERE key = 'ui.visualizer'")
-            .execute(&pool)
-            .await
-            .unwrap();
         assert!(
             read_bool_setting(&pool, "ui.visualizer", true).await,
-            "which means the default, not false"
+            "which means the default, whichever way it points"
         );
     }
 }

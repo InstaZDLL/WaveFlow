@@ -300,11 +300,11 @@ pub fn run() {
             // last picked instead of the OS default. Empty string in
             // the row means "follow the OS default" — see
             // `player_set_output_device`.
-            let (persisted_device, persisted_exclusive_output, persisted_pause_on_loss) =
+            let (persisted_device, persisted_exclusive_output) =
                 tauri::async_runtime::block_on(async {
                     let state = app.state::<AppState>();
                     let Ok(pool) = state.require_profile_pool().await else {
-                        return (None, false, true);
+                        return (None, false);
                     };
                     let device: Option<String> = sqlx::query_scalar(
                         "SELECT value FROM profile_setting WHERE key = 'audio.output_device'",
@@ -332,32 +332,21 @@ pub fn run() {
                     .flatten()
                     .map(|s| s == "1" || s == "true")
                     .unwrap_or(false);
-                    // #617. Absent means on: what people expect from
-                    // headphones, and the behaviour the defect reported.
-                    let pause_on_loss: bool = sqlx::query_scalar::<_, String>(
-                        "SELECT value FROM profile_setting
-                          WHERE key = 'audio.pause_on_device_loss'",
-                    )
-                    .fetch_optional(&*pool)
-                    .await
-                    .ok()
-                    .flatten()
-                    .map(|s| s == "1" || s == "true")
-                    .unwrap_or(true);
-                    (device, exclusive, pause_on_loss)
+                    // Pause on device loss (#617) is restored below with
+                    // every other audio setting, by
+                    // `restore_profile_audio_settings`; only the two the
+                    // engine's constructor needs are read here.
+                    (device, exclusive)
                 });
             let engine: Arc<AudioEngine> = AudioEngine::new_with_device(
                 engine_handle,
                 persisted_device,
                 persisted_exclusive_output,
             );
-            // Applied rather than passed to the constructor: it changes
-            // what a *future* device loss does, so nothing has to be
-            // opened differently for it.
-            engine.set_pause_on_device_loss(persisted_pause_on_loss);
-            // And the rest of the profile's audio settings — normalize,
-            // ReplayGain, the EQ curve, speed, the crossfades, the
-            // visualizer. Restored here rather than left to the
+            // The profile's audio settings — volume, normalize,
+            // ReplayGain, the EQ curve, speed, the crossfades, pause on
+            // device loss, the visualizer. Restored here rather than
+            // left to the
             // frontend's first `player_get_state`: every getter reads
             // these atomics, and a view that asked first was answered
             // with the boot default instead of the profile's own
