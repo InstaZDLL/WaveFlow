@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Şarkı sözleri nereye gitsin?",
-      "description": "Şarkı sözlerini düzenlediğinde nereye gitsinler? Ayarlar → Görseller ve şarkı sözleri'nden değiştirebilirsin.",
+      "description": "Şarkı sözleri nereye gitsin — hem düzenlediklerin hem de WaveFlow'un senin için bulduğları? Ayarlar → Görseller ve şarkı sözleri'nden değiştirebilirsin.",
       "hint": "Ses dosyalarını bozulmadan tutmak için \"Yan dosya\" seç — foobar2000 ve benzerleri böyle yapar."
     }
   },
@@ -2202,7 +2202,7 @@
     },
     "lyricsDestination": {
       "title": "Kayıtlı şarkı sözü hedefi",
-      "subtitle": "Düzenleyiciye yazdığın şarkı sözlerinin kaydedileceği yer. Bunu her düzenlemede değiştirebilirsin."
+      "subtitle": "Şarkı sözlerinin diskte nereye kaydedileceği: hem senin yazdıkların hem de WaveFlow'un indirdikleri. Bunu her düzenlemede değiştirebilirsin."
     },
     "updateChannel": {
       "title": "Beta kanalı",

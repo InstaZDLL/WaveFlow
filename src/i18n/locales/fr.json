@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Où ranger les paroles ?",
-      "description": "Quand vous éditez des paroles, où voulez-vous qu'elles atterrissent ? Vous pourrez changer plus tard dans Paramètres → Images et paroles.",
+      "description": "Où voulez-vous que les paroles atterrissent — celles que vous éditez comme celles que WaveFlow trouve pour vous ? Vous pourrez changer plus tard dans Paramètres → Images et paroles.",
       "hint": "Choisissez « Fichier sidecar » pour garder vos fichiers audio inchangés (ce que font foobar2000 et compagnie)."
     }
   },
@@ -2204,8 +2204,8 @@
       "subtitle": "Aligne les paroles synchronisées au centre de l'aperçu plein écran, comme l'affichage du texte brut."
     },
     "lyricsDestination": {
-      "title": "Destination des paroles éditées",
-      "subtitle": "Où sauvegarder les paroles que vous saisissez dans l'éditeur. Vous pouvez surcharger ce choix à chaque édition."
+      "title": "Destination des paroles",
+      "subtitle": "Où les paroles atterrissent sur le disque : celles que vous saisissez et celles que WaveFlow récupère. Vous pouvez toujours surcharger ce choix à chaque édition."
     },
     "updateChannel": {
       "title": "Canal beta",

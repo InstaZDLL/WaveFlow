@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Waar moeten songteksten heen?",
-      "description": "Waar moeten songteksten heen die je bewerkt? Aanpasbaar via Instellingen → Afbeeldingen en songteksten.",
+      "description": "Waar moeten songteksten heen, zowel die je bewerkt als die WaveFlow voor je vindt? Aanpasbaar via Instellingen → Afbeeldingen en songteksten.",
       "hint": "Kies \"Sidecar-bestand\" om je audiobestanden ongemoeid te laten — zoals foobar2000 & co."
     }
   },
@@ -2202,7 +2202,7 @@
     },
     "lyricsDestination": {
       "title": "Bestemming voor opgeslagen songteksten",
-      "subtitle": "Waar songteksten uit de editor heen gaan. Per bewerking te overschrijven."
+      "subtitle": "Waar songteksten op schijf terechtkomen — die je zelf schrijft en die WaveFlow ophaalt. Per bewerking te overschrijven."
     },
     "updateChannel": {
       "title": "Bètakanaal",

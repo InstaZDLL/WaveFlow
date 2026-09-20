@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Onde guardar as letras?",
-      "description": "Quando editas letras, para onde devem ir? Podes alterar em Definições → Imagens e letras.",
+      "description": "Para onde devem ir as letras, tanto as que editas como as que o WaveFlow encontra? Podes alterar em Definições → Imagens e letras.",
       "hint": "Escolhe \"Ficheiro auxiliar\" para manter os teus ficheiros de áudio intactos — como o foobar2000."
     }
   },
@@ -2205,7 +2205,7 @@
     },
     "lyricsDestination": {
       "title": "Destino das letras guardadas",
-      "subtitle": "Para onde vão as letras escritas no editor. Podes alterar o destino em cada edição."
+      "subtitle": "Para onde vão as letras no disco: as que escreves e as que o WaveFlow obtém. Podes alterar o destino em cada edição."
     },
     "updateChannel": {
       "title": "Canal beta",

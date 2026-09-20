@@ -758,6 +758,16 @@ async fn cache_lyrics_bundle(
     }
 
     tx.commit().await?;
+    // This path writes its primary document itself rather than through
+    // `upsert_lyrics`, so it carries the export too (#695).
+    export_fetched_sidecar(
+        pool,
+        file_hash,
+        &bundle.primary.content,
+        &primary_format,
+        &LyricsSource::Api,
+    )
+    .await;
 
     Ok(Some(LyricsPayload {
         track_id,
@@ -1440,7 +1450,109 @@ async fn upsert_lyrics(
         .await?;
 
     tx.commit().await?;
+    // After the commit, never inside the transaction: a sidecar that
+    // could not be written must not cost the user the lyrics themselves
+    // (#695).
+    export_fetched_sidecar(pool, file_hash, content, format, source).await;
     Ok(())
+}
+
+/// Also write freshly fetched lyrics next to the audio file, when the
+/// user asked for sidecars (issue #695).
+///
+/// Until now the destination chosen in onboarding / Settings governed
+/// lyrics the user **typed**; anything fetched from LRCLIB, Musixmatch or
+/// a plugin stayed in `app.lyrics` alone, so a library carefully set to
+/// "sidecar file" still ended up with its fetched lyrics locked inside
+/// WaveFlow's database. Now they travel with the music: a reinstall, a
+/// copy to another machine, another player reading the same folder.
+///
+/// Four rules, each of them a refusal:
+///
+/// - **Only what came off the network.** `Embedded` and `LrcFile` are
+///   already on disk, and `Manual` goes through [`save_lyrics`], which
+///   asks where that one edit should land and honours all three answers.
+/// - **`Tag` is deliberately not honoured here.** Writing a tag rewrites
+///   the audio file, and the file a fetch is about is usually the one
+///   playing — which is why the tag editor pauses playback and re-hashes
+///   ([`invariants.md`](../../../../../docs/architecture/invariants.md#file-write-safety-on-windows)).
+///   A fetch that happened on its own must not do that behind the user's
+///   back, so the cache row carries it and the editor stays the way
+///   lyrics reach a tag.
+/// - **Never overwrite.** A sidecar already there is the user's, or an
+///   earlier export's. In the usual order this cannot even arise — the
+///   local tier would have found it and the source would be `LrcFile` —
+///   but under `lyrics.prefer_lrclib` the network runs first.
+/// - **A failure is not an error.** A read-only library folder, a NAS
+///   that went away, a filename the filesystem refuses: the database row
+///   is the source of truth and lyrics must still show. Logged, swallowed.
+async fn export_fetched_sidecar(
+    pool: &sqlx::SqlitePool,
+    file_hash: &str,
+    content: &str,
+    format: &LyricsFormat,
+    source: &LyricsSource,
+) {
+    if !matches!(source, LyricsSource::Api) {
+        return;
+    }
+    // An empty row is the instrumental marker, not lyrics to carry.
+    if content.trim().is_empty() {
+        return;
+    }
+    // TTML's XML rides neither extension the waterfall reader accepts,
+    // the same reason `save_lyrics` reports a skip for it.
+    if matches!(format, LyricsFormat::Ttml) {
+        return;
+    }
+    match read_default_destination(pool).await {
+        Ok(LyricsDestination::Sidecar) => {}
+        Ok(_) => return,
+        Err(err) => {
+            tracing::debug!(?err, "lyrics sidecar export: destination unreadable");
+            return;
+        }
+    }
+
+    // The cache is keyed by content hash, which can name several files —
+    // the same track twice in one library, or a copy the user keeps
+    // elsewhere. Each copy is a file the user may open in another player,
+    // so each gets its own sidecar; in practice there is one row.
+    let paths: Vec<String> =
+        match sqlx::query_scalar("SELECT file_path FROM track WHERE file_hash = ?")
+            .bind(file_hash)
+            .fetch_all(pool)
+            .await
+        {
+            Ok(rows) => rows,
+            Err(err) => {
+                tracing::debug!(?err, "lyrics sidecar export: track lookup failed");
+                return;
+            }
+        };
+
+    let plain = matches!(format, LyricsFormat::Plain);
+    for path in paths {
+        let content = content.to_string();
+        let _ = tokio::task::spawn_blocking(move || {
+            let Some(sidecar) = sidecar_path(Path::new(&path), plain) else {
+                return;
+            };
+            if sidecar.exists() {
+                return;
+            }
+            if let Err(err) = std::fs::write(&sidecar, &content) {
+                tracing::debug!(
+                    %err,
+                    path = %sidecar.display(),
+                    "lyrics sidecar export failed"
+                );
+            } else {
+                tracing::debug!(path = %sidecar.display(), "exported fetched lyrics");
+            }
+        })
+        .await;
+    }
 }
 
 /// Read the cached lyrics row, if any. The frontend identifies tracks by
@@ -2931,18 +3043,26 @@ pub async fn save_lyrics(
 /// than the lingering file). UTF-8 without BOM matches the format
 /// every LRC reader expects.
 fn write_lyrics_sidecar(audio_path: &Path, content: &str, plain: bool) -> AppResult<()> {
-    let stem = audio_path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .ok_or_else(|| AppError::Other("audio file has no stem".to_string()))?;
-    let parent = audio_path
-        .parent()
-        .ok_or_else(|| AppError::Other("audio file has no parent dir".to_string()))?;
-    let ext = if plain { "txt" } else { "lrc" };
-    let sidecar = parent.join(format!("{stem}.{ext}"));
+    let sidecar = sidecar_path(audio_path, plain)
+        .ok_or_else(|| AppError::Other("audio file has no stem or parent dir".to_string()))?;
     std::fs::write(&sidecar, content)
         .map_err(|e| AppError::Other(format!("write {}: {e}", sidecar.display())))?;
     Ok(())
+}
+
+/// Where a track's sidecar goes: `{stem}.lrc` for synced output,
+/// `{stem}.txt` for plain, in the track's own directory. `None` for a
+/// path with no stem or no parent, which is not a file we can sit beside.
+///
+/// Shared by the editor's write and the export of fetched lyrics (#695),
+/// so the two cannot drift into disagreeing about where a sidecar lives —
+/// the export checks for an existing one at exactly the path the editor
+/// would have written.
+fn sidecar_path(audio_path: &Path, plain: bool) -> Option<std::path::PathBuf> {
+    let stem = audio_path.file_stem().and_then(|s| s.to_str())?;
+    let parent = audio_path.parent()?;
+    let ext = if plain { "txt" } else { "lrc" };
+    Some(parent.join(format!("{stem}.{ext}")))
 }
 
 fn hash_file_blake3(path: &str) -> AppResult<String> {
@@ -3697,10 +3817,26 @@ pub async fn set_prefer_lrclib(state: tauri::State<'_, AppState>, enabled: bool)
 /// would create a false sense of isolation.
 pub const LYRICS_DEFAULT_DESTINATION_KEY: &str = "lyrics.default_destination";
 
+/// Read the app-wide destination through a **profile** pool, which has
+/// `app.db` attached as `app` — so the fetch paths, which hold a profile
+/// pool and no `AppState`, can ask without threading one through.
+///
+/// Missing or unparseable row falls back to `Tag`, like the command below.
+async fn read_default_destination(pool: &sqlx::SqlitePool) -> AppResult<LyricsDestination> {
+    let row: Option<String> = sqlx::query_scalar("SELECT value FROM app.app_setting WHERE key = ?")
+        .bind(LYRICS_DEFAULT_DESTINATION_KEY)
+        .fetch_optional(pool)
+        .await?;
+    Ok(row
+        .as_deref()
+        .and_then(LyricsDestination::parse)
+        .unwrap_or(LyricsDestination::Tag))
+}
+
 /// Read the app-wide default. Missing row falls back to `Tag` so
 /// existing installs keep the pre-#201 behaviour until the user opts
 /// into the new flow (either from the onboarding step or the
-/// Settings → Playback card).
+/// Settings → Images and lyrics card).
 #[tauri::command]
 pub async fn get_lyrics_default_destination(
     state: tauri::State<'_, AppState>,
@@ -3929,6 +4065,187 @@ mod tests {
             .await
             .unwrap();
         }
+    }
+
+    /// One library, one artist, one album, one track pointing at `path`.
+    ///
+    /// Built from the real migrations by `pool_with_app_schema`, so the
+    /// NOT NULL columns and the foreign keys are the ones the app runs
+    /// with — a looser fixture would let a broken insert pass.
+    async fn seed_track(pool: &sqlx::SqlitePool, path: &std::path::Path, file_hash: &str) {
+        sqlx::query(
+            "INSERT INTO library (id, name, color_id, icon_id, created_at, updated_at,
+                                  hlc_wall, hlc_logical)
+             VALUES (1, 'L', 1, 1, 0, 0, 0, 0)",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
+                                title, duration_ms, added_at, is_available,
+                                hlc_wall, hlc_logical, rating_hlc_wall, rating_hlc_logical)
+             VALUES (1, 1, ?, ?, 1, 0, 'T', 300000, 0, 1, 0, 0, 0, 0)",
+        )
+        .bind(path.display().to_string())
+        .bind(file_hash)
+        .execute(pool)
+        .await
+        .unwrap();
+    }
+
+    async fn set_destination(pool: &sqlx::SqlitePool, value: &str) {
+        // `value_type` and `updated_at` are NOT NULL, and `value_type`
+        // carries a CHECK -- the same shape `set_lyrics_default_destination`
+        // writes. A fixture that omitted them would fail only at runtime.
+        sqlx::query(
+            "INSERT INTO app.app_setting (key, value, value_type, updated_at)
+             VALUES (?, ?, 'string', 0)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        )
+        .bind(LYRICS_DEFAULT_DESTINATION_KEY)
+        .bind(value)
+        .execute(pool)
+        .await
+        .unwrap();
+    }
+
+    /// Lyrics fetched from a provider land next to the music when that is
+    /// where the user said lyrics go (#695). Before this, the destination
+    /// governed only what the user typed, so a library set to "sidecar
+    /// file" still kept everything fetched inside WaveFlow's database.
+    #[tokio::test]
+    async fn fetched_lyrics_land_next_to_the_music() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"audio").unwrap();
+        seed_track(&pool, &audio, "h1").await;
+        set_destination(&pool, "sidecar").await;
+
+        upsert_lyrics(
+            &pool,
+            "h1",
+            "[00:12.00]Hello",
+            &LyricsFormat::Lrc,
+            &LyricsSource::Api,
+            Some("lrclib"),
+        )
+        .await
+        .unwrap();
+
+        let sidecar = dir.path().join("Song.lrc");
+        assert_eq!(
+            std::fs::read_to_string(&sidecar).unwrap(),
+            "[00:12.00]Hello"
+        );
+    }
+
+    /// The refusal that matters most: `tag` must NOT make a background
+    /// fetch rewrite the audio file. That write pauses playback and
+    /// re-hashes, which is the tag editor's job, on the user's command --
+    /// never a side effect of a track starting.
+    #[tokio::test]
+    async fn a_fetch_never_rewrites_the_audio_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"audio").unwrap();
+        seed_track(&pool, &audio, "h1").await;
+        set_destination(&pool, "tag").await;
+
+        upsert_lyrics(
+            &pool,
+            "h1",
+            "[00:12.00]Hello",
+            &LyricsFormat::Lrc,
+            &LyricsSource::Api,
+            Some("lrclib"),
+        )
+        .await
+        .unwrap();
+
+        assert!(!dir.path().join("Song.lrc").exists());
+        assert_eq!(std::fs::read(&audio).unwrap(), b"audio");
+    }
+
+    /// A sidecar already on disk is the user's file. The export adds one
+    /// where there was none; it never edits one that is already there.
+    #[tokio::test]
+    async fn an_existing_sidecar_is_left_alone() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"audio").unwrap();
+        let sidecar = dir.path().join("Song.lrc");
+        std::fs::write(&sidecar, "[00:01.00]Mine").unwrap();
+        seed_track(&pool, &audio, "h1").await;
+        set_destination(&pool, "sidecar").await;
+
+        upsert_lyrics(
+            &pool,
+            "h1",
+            "[00:12.00]Theirs",
+            &LyricsFormat::Lrc,
+            &LyricsSource::Api,
+            Some("lrclib"),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(std::fs::read_to_string(&sidecar).unwrap(), "[00:01.00]Mine");
+    }
+
+    /// Lyrics read out of the file itself have nowhere to go: writing a
+    /// sidecar from an embedded tag would fill the library with copies of
+    /// what is already in the music.
+    #[tokio::test]
+    async fn lyrics_that_came_off_the_disk_are_not_written_back() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"audio").unwrap();
+        seed_track(&pool, &audio, "h1").await;
+        set_destination(&pool, "sidecar").await;
+
+        upsert_lyrics(
+            &pool,
+            "h1",
+            "Hello",
+            &LyricsFormat::Plain,
+            &LyricsSource::Embedded,
+            None,
+        )
+        .await
+        .unwrap();
+
+        assert!(!dir.path().join("Song.txt").exists());
+        assert!(!dir.path().join("Song.lrc").exists());
+    }
+
+    /// An instrumental verdict is an empty row, not lyrics: it must not
+    /// leave an empty file beside the track.
+    #[tokio::test]
+    async fn an_instrumental_verdict_writes_no_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"audio").unwrap();
+        seed_track(&pool, &audio, "h1").await;
+        set_destination(&pool, "sidecar").await;
+
+        upsert_lyrics(
+            &pool,
+            "h1",
+            "",
+            &LyricsFormat::Plain,
+            &LyricsSource::Api,
+            Some("lrclib"),
+        )
+        .await
+        .unwrap();
+
+        assert!(!dir.path().join("Song.txt").exists());
     }
 
     async fn associated_count(pool: &sqlx::SqlitePool, file_hash: &str) -> i64 {

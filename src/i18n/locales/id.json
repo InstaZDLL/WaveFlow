@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Di mana menyimpan lirik?",
-      "description": "Saat kamu mengedit lirik, di mana liriknya harus disimpan? Kamu dapat mengubahnya kapan saja di Pengaturan → Gambar dan lirik.",
+      "description": "Di mana lirik harus disimpan — yang kamu edit maupun yang ditemukan WaveFlow? Kamu dapat mengubahnya kapan saja di Pengaturan → Gambar dan lirik.",
       "hint": "Pilih \"Berkas pendamping\" agar berkas audio kamu tetap utuh — seperti yang dilakukan foobar2000 dkk."
     }
   },
@@ -2202,7 +2202,7 @@
     },
     "lyricsDestination": {
       "title": "Tujuan lirik tersimpan",
-      "subtitle": "Tempat lirik dari editor disimpan. Dapat di-override per pengeditan."
+      "subtitle": "Tempat lirik disimpan di disk: yang kamu tulis dan yang diambil WaveFlow. Dapat di-override per pengeditan."
     },
     "updateChannel": {
       "title": "Saluran beta",

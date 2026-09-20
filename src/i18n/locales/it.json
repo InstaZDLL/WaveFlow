@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Dove salvare i testi?",
-      "description": "Quando modifichi i testi, dove devono andare? Modificabile in Impostazioni → Immagini e testi.",
+      "description": "Dove devono andare i testi, quelli che modifichi e quelli che WaveFlow trova per te? Modificabile in Impostazioni → Immagini e testi.",
       "hint": "Scegli «File sidecar» per non toccare i file audio — come fanno foobar2000 e simili."
     }
   },
@@ -2205,7 +2205,7 @@
     },
     "lyricsDestination": {
       "title": "Destinazione dei testi salvati",
-      "subtitle": "Dove vanno i testi scritti nell'editor. Puoi sovrascrivere a ogni modifica."
+      "subtitle": "Dove finiscono i testi sul disco: quelli che scrivi e quelli che WaveFlow scarica. Puoi sovrascrivere a ogni modifica."
     },
     "updateChannel": {
       "title": "Canale beta",

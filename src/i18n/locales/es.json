@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "¿Dónde guardar las letras?",
-      "description": "Cuando editas letras, ¿dónde quieres que se guarden? Podrás cambiarlo en Configuración → Imágenes y letras.",
+      "description": "¿Dónde quieres que se guarden las letras, tanto las que editas como las que WaveFlow encuentra? Podrás cambiarlo en Configuración → Imágenes y letras.",
       "hint": "Elige \"Archivo auxiliar\" para mantener tus archivos de audio intactos (lo que hacen foobar2000 y compañía)."
     }
   },
@@ -2205,7 +2205,7 @@
     },
     "lyricsDestination": {
       "title": "Destino de las letras guardadas",
-      "subtitle": "Dónde se guardan las letras que escribes en el editor. Puedes anularlo en cada edición."
+      "subtitle": "Dónde se guardan las letras en el disco: las que escribes y las que WaveFlow descarga. Puedes anularlo en cada edición."
     },
     "updateChannel": {
       "title": "Canal beta",

@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Wo sollen Liedtexte landen?",
-      "description": "Wenn du Liedtexte bearbeitest, wo sollen sie hin? Du kannst dies jederzeit unter Einstellungen → Bilder und Liedtexte ändern.",
+      "description": "Wo sollen Liedtexte hin — die, die du bearbeitest, und die, die WaveFlow für dich findet? Du kannst dies jederzeit unter Einstellungen → Bilder und Liedtexte ändern.",
       "hint": "Wähle „Sidecar-Datei“, um Audiodateien unberührt zu lassen — wie foobar2000 & Co."
     }
   },
@@ -2201,8 +2201,8 @@
       "subtitle": "Sucht Songtexte zuerst online; greift auf die in der Datei gespeicherten zurück, wenn keine gefunden werden"
     },
     "lyricsDestination": {
-      "title": "Speicherort für bearbeitete Liedtexte",
-      "subtitle": "Wo Liedtexte aus dem Editor landen. Bei jeder Bearbeitung überschreibbar."
+      "title": "Speicherort für Liedtexte",
+      "subtitle": "Wo Liedtexte auf der Festplatte landen — die, die du schreibst, und die, die WaveFlow abruft. Bei jeder Bearbeitung überschreibbar."
     },
     "updateChannel": {
       "title": "Beta-Kanal",

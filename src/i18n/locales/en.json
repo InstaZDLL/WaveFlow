@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Where should lyrics live?",
-      "description": "When you edit lyrics, where should they go? You can change this anytime from Settings → Images and lyrics.",
+      "description": "Where should lyrics go — the ones you write and the ones WaveFlow finds for you? You can change this anytime from Settings → Images and lyrics.",
       "hint": "Pick \"Sidecar file\" to keep your audio files untouched — what foobar2000 and friends do."
     }
   },
@@ -2202,7 +2202,7 @@
     },
     "lyricsDestination": {
       "title": "Saved-lyrics destination",
-      "subtitle": "Where lyrics typed into the editor land. You can override this per-edit from the editor footer."
+      "subtitle": "Where lyrics land on disk — the ones you write and the ones WaveFlow fetches. You can still override this per-edit from the editor footer."
     },
     "updateChannel": {
       "title": "Beta channel",
