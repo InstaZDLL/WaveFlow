@@ -627,10 +627,16 @@ pub async fn set_window_chrome(
             "set_window_chrome: unsupported value '{chrome}' (expected system, app)"
         ))
     })?;
+    // What the window has right now, for the rollback below.
+    let previous = effective_chrome(
+        load_window_chrome(&state.app_db).await,
+        WINDOW_CHROME_UNAPPLIED.load(Ordering::Relaxed),
+    );
     // Clears WINDOW_CHROME_UNAPPLIED on success, so a startup failure stops
     // describing a window that has since been changed.
     apply_window_chrome(&app, parsed)?;
-    sqlx::query(
+
+    let persisted = sqlx::query(
         "INSERT INTO app_setting (key, value, value_type, updated_at)
          VALUES (?, ?, 'string', ?)
          ON CONFLICT(key) DO UPDATE
@@ -640,7 +646,22 @@ pub async fn set_window_chrome(
     .bind(parsed.as_str())
     .bind(Utc::now().timestamp_millis())
     .execute(&state.app_db)
-    .await?;
+    .await;
+    if let Err(err) = persisted {
+        // Put the frame back. A window wearing a frame the store knows
+        // nothing about is the disagreement this whole path exists to
+        // avoid: the caller is about to be told the change failed, and it
+        // must be able to believe that. If even the rollback refuses, say
+        // so -- the two states really have parted, and only a restart
+        // (which reads the store) settles it.
+        if let Err(revert) = apply_window_chrome(&app, previous) {
+            tracing::error!(
+                ?revert,
+                "window chrome: could not put the previous frame back after a failed write"
+            );
+        }
+        return Err(err.into());
+    }
 
     let resolved = parsed.resolved();
     Ok(WindowChromeState {
