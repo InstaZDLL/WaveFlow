@@ -22,9 +22,11 @@ import { useProfile } from "./useProfile";
  *   the new profile.
  * - **A read already in flight never lands on a click.** `touched`
  *   drops the answer once the user has decided.
- * - **A failed write rolls back only while that profile is active**, so
- *   a late rollback cannot re-tag the value with a profile we left and
- *   leave the control inert.
+ * - **A failed write rolls back only if its value is still the one on
+ *   screen.** A later click, or a profile switch, has already decided
+ *   something else; reverting then would overwrite that decision, or
+ *   re-tag the value with a profile we left and leave the control
+ *   inert.
  *
  * A failed read resolves to `fallback` rather than leaving the control
  * disabled forever.
@@ -49,13 +51,9 @@ export function useProfileScopedToggle(
   // effect so it is the one that runs first on mount.
   const readRef = useRef(read);
   const writeRef = useRef(write);
-  // Read at failure time, to answer "are we still on the profile this
-  // click belonged to?" — which the closure's own copy cannot.
-  const activeProfileIdRef = useRef(activeProfileId);
   useEffect(() => {
     readRef.current = read;
     writeRef.current = write;
-    activeProfileIdRef.current = activeProfileId;
   });
 
   useEffect(() => {
@@ -81,17 +79,27 @@ export function useProfileScopedToggle(
   const enabled = hydrated && state.on;
 
   const toggle = useCallback(() => {
+    // The control is disabled until the active profile has answered, so
+    // this is the belt to that brace: a caller that renders it enabled
+    // anyway must not write a value derived from a profile we left.
+    if (!hydrated) return;
     const next = !enabled;
-    const profileId = activeProfileIdRef.current;
+    const profileId = activeProfileId;
     touched.current = true;
     setState({ profileId, on: next });
     writeRef.current(next).catch((err) => {
       console.error(`[${label}] write failed`, err);
-      if (activeProfileIdRef.current === profileId) {
-        setState({ profileId, on: !next });
-      }
+      // Undo this write only if it is still the one on screen: a later
+      // click, or a profile switch, has already decided something else,
+      // and a late rollback would overwrite that decision — or re-tag
+      // the value with a profile we left and leave the control inert.
+      setState((cur) =>
+        cur !== null && cur.profileId === profileId && cur.on === next
+          ? { profileId, on: !next }
+          : cur,
+      );
     });
-  }, [enabled, label]);
+  }, [enabled, hydrated, label, activeProfileId]);
 
   return { enabled, hydrated, toggle };
 }
