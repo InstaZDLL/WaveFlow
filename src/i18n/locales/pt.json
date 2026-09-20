@@ -1815,6 +1815,7 @@
       "title": "Visualizador de áudio",
       "subtitle": "Mostra um espetro em tempo real na vista imersiva (FFT leve na thread de descodificação)",
       "cycleColor": "Cor do visualizador: {{color}}",
+      "cycleStyle": "Estilo do visualizador: {{style}}",
       "colors": {
         "white": "Branco",
         "emerald": "Esmeralda",
@@ -1822,6 +1823,11 @@
         "aqua": "Ciano",
         "magenta": "Magenta",
         "rainbow": "Arco-íris"
+      },
+      "styles": {
+        "wave": "Onda",
+        "mirror": "Espelhada",
+        "bars": "Barras"
       }
     },
     "duplicates": {

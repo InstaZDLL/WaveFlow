@@ -2081,6 +2081,7 @@
       "title": "音频可视化",
       "subtitle": "在沉浸式视图中显示实时频谱（解码器线程上的轻量 FFT）",
       "cycleColor": "可视化颜色：{{color}}",
+      "cycleStyle": "可视化样式：{{style}}",
       "colors": {
         "white": "白色",
         "emerald": "翡翠绿",
@@ -2088,6 +2089,11 @@
         "aqua": "水蓝色",
         "magenta": "品红色",
         "rainbow": "彩虹"
+      },
+      "styles": {
+        "wave": "波形",
+        "mirror": "镜像",
+        "bars": "柱状"
       }
     },
     "smartCrossfade": {

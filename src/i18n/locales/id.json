@@ -1955,6 +1955,7 @@
       "title": "Visualizer audio",
       "subtitle": "Tampilkan spektrum waktu nyata di tampilan imersif (FFT ringan di thread decoder)",
       "cycleColor": "Warna visualizer: {{color}}",
+      "cycleStyle": "Gaya visualizer: {{style}}",
       "colors": {
         "white": "Putih",
         "emerald": "Zamrud",
@@ -1962,6 +1963,11 @@
         "aqua": "Akua",
         "magenta": "Magenta",
         "rainbow": "Pelangi"
+      },
+      "styles": {
+        "wave": "Gelombang",
+        "mirror": "Cermin",
+        "bars": "Batang"
       }
     },
     "smartCrossfade": {

@@ -54,6 +54,12 @@ markBundleReady();
 if (WINDOW_ROLE === "lyrics") {
   document.documentElement.classList.add("desktop-lyrics-window");
 }
+// The mini-player is a fixed-size widget: nothing in it is ever meant to
+// scroll the page, and at 280 px wide a scrollbar is a visible chunk of it.
+// See `html.mini-player-window` in app.css for what was producing one.
+if (WINDOW_ROLE === "mini") {
+  document.documentElement.classList.add("mini-player-window");
+}
 
 // The main window is created with `visible: false` in tauri.conf.json
 // so the user never sees a white WebView while Rust setup + React mount

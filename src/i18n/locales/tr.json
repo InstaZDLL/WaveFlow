@@ -1955,6 +1955,7 @@
       "title": "Ses görselleştirici",
       "subtitle": "Sürükleyici görünümde gerçek zamanlı spektrumu gösterir (kod çözücü iş parçacığında hafif FFT)",
       "cycleColor": "Görselleştirici rengi: {{color}}",
+      "cycleStyle": "Görselleştirici stili: {{style}}",
       "colors": {
         "white": "Beyaz",
         "emerald": "Zümrüt",
@@ -1962,6 +1963,11 @@
         "aqua": "Camgöbeği",
         "magenta": "Macenta",
         "rainbow": "Gökkuşağı"
+      },
+      "styles": {
+        "wave": "Dalga",
+        "mirror": "Aynalı",
+        "bars": "Çubuklar"
       }
     },
     "smartCrossfade": {

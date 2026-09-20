@@ -12,9 +12,11 @@ import { ProgressBar } from "./ProgressBar";
 import { VolumeControl } from "./VolumeControl";
 import { SpectrumVisualizer } from "./SpectrumVisualizer";
 import { VisualizerColorButton } from "./VisualizerColorButton";
+import { VisualizerStyleButton } from "./VisualizerStyleButton";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useProfile } from "../../hooks/useProfile";
 import { useVisualizerColor } from "../../hooks/useVisualizerColor";
+import { useVisualizerStyle } from "../../hooks/useVisualizerStyle";
 import { getVisualizerEnabled } from "../../lib/tauri/visualizer";
 import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
 import { usePlayerTrackContextMenu } from "../../hooks/usePlayerTrackContextMenu";
@@ -22,8 +24,7 @@ import { useTrackCanvas } from "../../hooks/useTrackCanvas";
 import { useCanvasEnabled } from "../../hooks/useCanvasEnabled";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
-import { useCoverSlideshow } from "../../hooks/useCoverSlideshow";
-import { useArtistImage } from "../../hooks/useArtistImage";
+import { useSlideshowLayer } from "../../hooks/useSlideshowLayer";
 import { isRadioTrack, isStreamTrack } from "../../lib/playerSources";
 
 interface ImmersiveNowPlayingProps {
@@ -87,6 +88,13 @@ export function ImmersiveNowPlaying({
     ready: visualizerColorReady,
     cycle,
   } = useVisualizerColor();
+  // Drawing style (issue #699) — the other half of what the visualizer
+  // looks like, cycled from its own button beside the colour one.
+  const {
+    styleId: visualizerStyleId,
+    ready: visualizerStyleReady,
+    cycle: cycleStyle,
+  } = useVisualizerStyle();
   const activeProfileId = useProfile().activeProfile?.id;
   // Tagged with the profile it describes, and only surfaced on a match,
   // so the button never reflects the profile we just left while the new
@@ -120,36 +128,18 @@ export function ImmersiveNowPlaying({
 
   // Cover ↔ artist slideshow (issue #466) — the ambient fallback backdrop,
   // one rung below the motion cover: Canvas > motion cover > slideshow >
-  // static cover. So it only runs when no Canvas and no motion cover own the
-  // slot, the global toggle is on, motion isn't reduced, and the artist has a
-  // photo. `useAlbumMotionArtwork` is deduped process-wide (MotionCoverOverlay
-  // reads the same key), so the extra call here is free.
-  const slideshowEnabled = useCoverSlideshow().enabled;
-  const motion = useAlbumMotionArtwork(
+  // static cover. The gate itself lives in `useSlideshowLayer`, shared with
+  // the panel and the mini-player (#702); `useAlbumMotionArtwork` is deduped
+  // process-wide (MotionCoverOverlay reads the same key), so asking for the
+  // rung above here is free.
+  const motionCover = useAlbumMotionArtwork(
     currentTrack?.artist_name,
     currentTrack?.album_title,
     currentTrack?.album_id,
   );
-  // Radio (negative sentinel id) and other streamed tracks have no library
-  // artist to enrich, so they never get a slideshow — same eligibility the
-  // track menu uses above.
-  const slideshowEligible = !!currentTrack && !isStreamTrack(currentTrack);
-  // Only enrich the artist (a network call the immersive view doesn't
-  // otherwise make) when the slideshow could actually run — off by default,
-  // never while a Canvas or motion cover owns the slot, and only for an
-  // eligible track — so this stays free unless the user opted in.
-  const artistImage = useArtistImage(
-    slideshowEnabled && !reducedMotion && !canvasActive && !motion && slideshowEligible
-      ? currentTrack?.artist_id
-      : null,
-  );
-  const slideshowActive =
-    slideshowEnabled &&
-    !reducedMotion &&
-    !canvasActive &&
-    !motion &&
-    slideshowEligible &&
-    !!artistImage;
+  const slideshow = useSlideshowLayer(currentTrack, {
+    blocked: canvasActive || !!motionCover,
+  });
 
   const title = currentTrack?.title ?? t("player.noTrack");
   const album = currentTrack?.album_title;
@@ -181,6 +171,11 @@ export function ImmersiveNowPlaying({
             className="shadow-2xl"
           />
         )}
+        {/* The hero keeps the square frame even for a 9:16 clip, where the
+            now-playing panel gives it its own (#694): this column does not
+            scroll, and the hero shares its height with the metadata and the
+            transport below, so a frame tall enough to hold a vertical clip
+            would push the controls off a short window. */}
         <CanvasStage
           path={canvasPath}
           enabled={canvasEnabled && !reducedMotion}
@@ -188,8 +183,8 @@ export function ImmersiveNowPlaying({
           className="shadow-2xl"
         />
         <CoverSlideshow
-          artistSrc={artistImage}
-          enabled={slideshowActive}
+          artistSrc={slideshow.artistSrc}
+          enabled={slideshow.active}
           rounded="2xl"
           className="shadow-2xl"
         />
@@ -268,6 +263,7 @@ export function ImmersiveNowPlaying({
             className="w-full h-16 mb-2 opacity-80"
             color={visualizerColor}
             rainbow={rainbow}
+            styleId={visualizerStyleId}
             glow
           />
           <ProgressBar />
@@ -327,6 +323,13 @@ export function ImmersiveNowPlaying({
                   color={visualizerColor}
                   rainbow={rainbow}
                   onCycle={() => void cycle()}
+                />
+              )}
+              {/* Same gate, same reason (issue #699). */}
+              {visualizerEnabled && visualizerStyleReady && (
+                <VisualizerStyleButton
+                  styleId={visualizerStyleId}
+                  onCycle={() => void cycleStyle()}
                 />
               )}
             </div>

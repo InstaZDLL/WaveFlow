@@ -1955,6 +1955,7 @@
       "title": "Audio visualizer",
       "subtitle": "Show a real-time spectrum in the immersive view (lightweight FFT on the decoder thread)",
       "cycleColor": "Visualizer color: {{color}}",
+      "cycleStyle": "Visualizer style: {{style}}",
       "colors": {
         "white": "White",
         "emerald": "Emerald",
@@ -1962,6 +1963,11 @@
         "aqua": "Aqua",
         "magenta": "Magenta",
         "rainbow": "Rainbow"
+      },
+      "styles": {
+        "wave": "Wave",
+        "mirror": "Mirrored",
+        "bars": "Bars"
       }
     },
     "smartCrossfade": {

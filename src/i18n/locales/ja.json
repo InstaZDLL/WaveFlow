@@ -2081,6 +2081,7 @@
       "title": "オーディオビジュアライザー",
       "subtitle": "没入ビューでリアルタイムのスペクトラムを表示 (デコーダースレッド上の軽量 FFT)",
       "cycleColor": "ビジュアライザーの色: {{color}}",
+      "cycleStyle": "ビジュアライザーのスタイル: {{style}}",
       "colors": {
         "white": "ホワイト",
         "emerald": "エメラルド",
@@ -2088,6 +2089,11 @@
         "aqua": "アクア",
         "magenta": "マゼンタ",
         "rainbow": "レインボー"
+      },
+      "styles": {
+        "wave": "波形",
+        "mirror": "ミラー",
+        "bars": "バー"
       }
     },
     "smartCrossfade": {

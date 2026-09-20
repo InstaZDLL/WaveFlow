@@ -1955,6 +1955,7 @@
       "title": "Audio-visualizer",
       "subtitle": "Toont een real-time spectrum in de meeslepende weergave (lichte FFT op de decoderthread)",
       "cycleColor": "Visualizerkleur: {{color}}",
+      "cycleStyle": "Visualizerstijl: {{style}}",
       "colors": {
         "white": "Wit",
         "emerald": "Smaragd",
@@ -1962,6 +1963,11 @@
         "aqua": "Aqua",
         "magenta": "Magenta",
         "rainbow": "Regenboog"
+      },
+      "styles": {
+        "wave": "Golf",
+        "mirror": "Gespiegeld",
+        "bars": "Balken"
       }
     },
     "smartCrossfade": {
