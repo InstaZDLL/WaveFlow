@@ -1239,17 +1239,35 @@ pub async fn clear_artist_artwork(
 pub async fn get_artist_backdrop_candidates(
     state: tauri::State<'_, AppState>,
     artist_id: i64,
-) -> AppResult<Vec<String>> {
+) -> AppResult<ArtistBackdropCandidates> {
     // The candidates are remote URLs, and the picker paints them as
     // thumbnails — so handing them over in offline mode makes the
     // webview fetch a dozen images from TheAudioDB's CDN, which is
-    // exactly what offline mode promises not to do. The picker says so
-    // rather than claiming the artist has none.
+    // exactly what offline mode promises not to do. `offline` rides
+    // along so the picker can say that rather than claim the artist has
+    // none: two calls could straddle a change of the setting and pair
+    // an empty list with "we are online".
     if crate::offline::is_offline() {
-        return Ok(Vec::new());
+        return Ok(ArtistBackdropCandidates {
+            urls: Vec::new(),
+            offline: true,
+        });
     }
     let pool = state.require_profile_pool().await?;
-    read_backdrop_candidates(&pool, artist_id).await
+    Ok(ArtistBackdropCandidates {
+        urls: read_backdrop_candidates(&pool, artist_id).await?,
+        offline: false,
+    })
+}
+
+/// What the backdrop picker needs to fill its first tab: the candidates
+/// and the reason there may be none.
+#[derive(Debug, Clone, Serialize)]
+pub struct ArtistBackdropCandidates {
+    pub urls: Vec<String>,
+    /// `true` when the list is empty because offline mode refused it,
+    /// rather than because the artist has no fanart.
+    pub offline: bool,
 }
 
 /// The cached candidate list for one artist. Shared by the command that

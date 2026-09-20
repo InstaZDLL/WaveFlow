@@ -10,7 +10,6 @@ import {
   setArtistBackgroundFromUrl,
 } from "../../lib/tauri/deezer";
 import { pickFile } from "../../lib/tauri/dialog";
-import { getOfflineMode } from "../../lib/tauri/offline";
 
 interface ArtistBackdropPickerModalProps {
   artistId: number;
@@ -76,14 +75,11 @@ export function ArtistBackdropPickerModal({
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
-    // Offline mode refuses the candidates on purpose (they are remote
-    // URLs the picker would paint), so the modal has to be able to tell
-    // that apart from an artist who simply has none.
-    Promise.all([
-      getArtistBackdropCandidates(artistId),
-      getOfflineMode().catch(() => false),
-    ])
-      .then(([urls, offline]) => {
+    // One call answers both: offline mode refuses the candidates on
+    // purpose (they are remote URLs the picker would paint), and the
+    // modal has to tell that apart from an artist who simply has none.
+    getArtistBackdropCandidates(artistId)
+      .then(({ urls, offline }) => {
         if (!cancelled) setLoaded({ artistId, urls, offline });
       })
       .catch((err) => {

@@ -173,14 +173,23 @@ export function NowPlayingPanel({
               x2: e.picture_path_2x,
               remoteUrl: e.picture_url,
             };
-        const resolved = resolveArtwork(paths, "1x");
-        if (resolved) setPictureSrc(resolved);
+        // A resolution that succeeded is the answer, including when it
+        // is "no image": removing an artist's picture from the artist
+        // page emits `artist:updated`, and keeping the old one on a
+        // falsy result left the deleted photo on screen for as long as
+        // the track played. A *failed* call keeps what is there — the
+        // `catch` below — because that is a network problem, not an
+        // answer.
+        setPictureSrc(resolveArtwork(paths, "1x"));
         // "full" for the slideshow's large cover slot (a 1x thumbnail
         // upscales blurry there); same fetch, no extra network. Tagged with
         // `artistId` so a stale resolution can't drive the slideshow.
         setArtistImageHi({ id: artistId, src: resolveArtwork(paths, "full") });
-        if (e.bio_short) setBioShort(e.bio_short);
-        if (e.bio_full) setBioFull(e.bio_full);
+        // Same rule for the text: after a re-link (#692) the bio the
+        // panel holds belongs to the artist we just stopped pointing
+        // at, and the new one may legitimately have none.
+        setBioShort(e.bio_short);
+        setBioFull(e.bio_full);
       })
       .catch(() => {});
     return () => {
