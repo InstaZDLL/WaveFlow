@@ -88,6 +88,13 @@ export function ArtistBackdropPickerModal({
       });
     return () => {
       cancelled = true;
+      // Dropped on close, not merely re-tagged: reopening on the *same*
+      // artist would otherwise paint the previous visit's candidates
+      // while the new call is in flight — and those are remote URLs, so
+      // turning offline mode on between two visits would still fetch
+      // them. Clearing here rather than in the effect body keeps this
+      // out of the render pass.
+      setLoaded(null);
     };
   }, [isOpen, artistId]);
 
