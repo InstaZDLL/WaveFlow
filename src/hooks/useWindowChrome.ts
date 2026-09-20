@@ -106,12 +106,28 @@ export function useWindowChrome(): WindowChromePreference {
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+  // Bumped by every answer that is newer than the initial read: a write of
+  // our own, or one another instance broadcast. Two instances are mounted
+  // (the layout draws the bar, the Settings card offers the choice), so a
+  // read still in flight when a choice lands would otherwise put the old
+  // frame back on screen and write it to the cache. Same shape as the
+  // revision counter in `useProfileScopedToggle` (#698), for the same
+  // reason: comparing the VALUE is not enough, only "is my answer still
+  // the current one" is.
+  const revision = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
+    const readRevision = revision.current;
     getWindowChrome()
       .then((next) => {
         if (cancelled) return;
+        // Something newer landed while this was in flight; it already
+        // describes the window, and this answer is history.
+        if (revision.current !== readRevision) {
+          setReady(true);
+          return;
+        }
         setState(next);
         writeCached(next);
         setReady(true);
@@ -131,7 +147,10 @@ export function useWindowChrome(): WindowChromePreference {
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<WindowChromeState>).detail;
-      if (detail && typeof detail.draw === "string") setState(detail);
+      if (detail && typeof detail.draw === "string") {
+        revision.current += 1;
+        setState(detail);
+      }
     };
     window.addEventListener(WINDOW_CHROME_EVENT, handler);
     return () => window.removeEventListener(WINDOW_CHROME_EVENT, handler);
@@ -145,6 +164,9 @@ export function useWindowChrome(): WindowChromePreference {
     // silently replace the user's choice with the fallback they are
     // looking at.
     if (next === stateRef.current.chrome) return;
+    // After the two refusals, so a click that changes nothing does not
+    // throw away a read that is legitimately in flight.
+    revision.current += 1;
     writing.current = true;
     setBusy(true);
     // No optimistic update: the frame either changed or it did not, and
