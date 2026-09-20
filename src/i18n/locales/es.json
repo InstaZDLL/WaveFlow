@@ -1322,6 +1322,11 @@
       "empty": "No hay letra para esta pista"
     }
   },
+  "window": {
+    "minimize": "Minimizar",
+    "maximize": "Maximizar",
+    "restore": "Restaurar"
+  },
   "sleepTimer": {
     "title": "Temporizador",
     "endOfTrack": "Al final de la pista actual",
@@ -2306,6 +2311,20 @@
       "reset": "Restablecer",
       "done": "Restablecido",
       "error": "No se pudo restablecer. Inténtalo de nuevo."
+    },
+    "windowChrome": {
+      "title": "Marco de la ventana",
+      "subtitle": "Quién dibuja la barra superior de la ventana: tu escritorio o WaveFlow.",
+      "options": {
+        "system": {
+          "label": "Sistema",
+          "hint": "El marco que tu escritorio dibuja para todas las aplicaciones."
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "Lo dibuja WaveFlow, y los botones de la ventana se sitúan en su propia barra."
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "Guardar los Canvas localmente",

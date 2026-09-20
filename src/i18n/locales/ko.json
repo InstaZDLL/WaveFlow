@@ -1321,6 +1321,11 @@
       "empty": "이 곡의 가사가 없습니다"
     }
   },
+  "window": {
+    "minimize": "최소화",
+    "maximize": "최대화",
+    "restore": "이전 크기로"
+  },
   "sleepTimer": {
     "title": "수면 타이머",
     "endOfTrack": "현재 곡 종료 시",
@@ -2303,6 +2308,20 @@
       "reset": "초기화",
       "done": "초기화됨",
       "error": "초기화에 실패했습니다. 다시 시도하세요."
+    },
+    "windowChrome": {
+      "title": "창 테두리",
+      "subtitle": "창 상단의 막대를 누가 그릴지 정합니다. 데스크톱 또는 WaveFlow.",
+      "options": {
+        "system": {
+          "label": "시스템",
+          "hint": "데스크톱이 모든 앱에 그리는 테두리입니다."
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "WaveFlow가 직접 그리며, 창 버튼이 WaveFlow의 막대 안에 놀입니다."
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "Canvas 동영상을 로컬에 저장",

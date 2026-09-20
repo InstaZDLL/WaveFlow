@@ -1321,6 +1321,11 @@
       "empty": "Kein Songtext für diesen Titel"
     }
   },
+  "window": {
+    "minimize": "Minimieren",
+    "maximize": "Maximieren",
+    "restore": "Wiederherstellen"
+  },
   "sleepTimer": {
     "title": "Sleep-Timer",
     "endOfTrack": "Am Ende des aktuellen Titels",
@@ -2303,6 +2308,20 @@
       "reset": "Zurücksetzen",
       "done": "Zurückgesetzt",
       "error": "Zurücksetzen fehlgeschlagen. Bitte erneut versuchen."
+    },
+    "windowChrome": {
+      "title": "Fensterrahmen",
+      "subtitle": "Wer die Leiste oben am Fenster zeichnet: dein Desktop oder WaveFlow.",
+      "options": {
+        "system": {
+          "label": "System",
+          "hint": "Der Rahmen, den dein Desktop für jede App zeichnet."
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "WaveFlow zeichnet ihn, und die Fensterknöpfe sitzen in seiner eigenen Leiste."
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "Canvas lokal speichern",

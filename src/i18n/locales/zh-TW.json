@@ -1321,6 +1321,11 @@
       "empty": "此曲目沒有歌詞"
     }
   },
+  "window": {
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "restore": "還原"
+  },
   "sleepTimer": {
     "title": "睡眠計時器",
     "endOfTrack": "當前曲目結束時",
@@ -2303,6 +2308,20 @@
       "reset": "重設",
       "done": "已重設",
       "error": "重設失敗，請重試。"
+    },
+    "windowChrome": {
+      "title": "視窗外框",
+      "subtitle": "視窗頂部的橫列由誰繪製：你的桌面，還是 WaveFlow。",
+      "options": {
+        "system": {
+          "label": "系統",
+          "hint": "你的桌面為所有應用程式繪製的外框。"
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "由 WaveFlow 繪製，視窗按鈕落在它自己的橫列裡。"
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "在本機儲存 Canvas",

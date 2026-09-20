@@ -375,3 +375,210 @@ pub async fn set_desktop_lyrics_bounds(
     .await?;
     Ok(())
 }
+
+/// Who draws the frame around the window: the desktop (`system`, the
+/// default) or WaveFlow itself (`app`).
+///
+/// Issue #696 asked for the appearance choice Chrome offers on Linux. That
+/// option does not translate one-to-one — Chrome paints its own chrome from
+/// the GTK or Qt theme, while everything inside our window is a web view we
+/// already theme. What the desktop actually owns is the frame, so the frame
+/// is what this switches.
+///
+/// **The platforms differ in kind, not in degree**, so the resolution lives
+/// here rather than in three `if (platform)` branches in the interface:
+///
+/// - **Linux**: `app` drops the decorations and the interface draws its own
+///   title bar. That is the route `docs/upstream-blockers.md` (B1) already
+///   names as what we can do today about GTK3 client-side decorations
+///   looking dated next to libadwaita.
+/// - **macOS**: dropping the decorations would take the traffic lights with
+///   them, and drawing our own would be the one thing a macOS user would
+///   call *not* native. `app` makes the title bar a transparent overlay
+///   instead, so the real traffic lights float over our own top bar.
+/// - **Windows**: not offered. A frame we drew ourselves would lose Snap
+///   Layouts and the system menu, which is a worse Windows than the one the
+///   user has — and nobody asked. `supported` says so, and the resolver
+///   below refuses `app` there even if the row says otherwise (a profile
+///   database carried over from a Linux install).
+const KEY_WINDOW_CHROME: &str = "ui.window_chrome";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WindowChrome {
+    /// The desktop's own frame.
+    System,
+    /// WaveFlow draws it.
+    App,
+}
+
+impl WindowChrome {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::System => "system",
+            Self::App => "app",
+        }
+    }
+
+    fn parse(value: &str) -> Option<Self> {
+        match value {
+            "system" => Some(Self::System),
+            "app" => Some(Self::App),
+            _ => None,
+        }
+    }
+
+    /// Whether this platform offers the choice at all.
+    fn supported() -> bool {
+        cfg!(any(target_os = "linux", target_os = "macos"))
+    }
+
+    /// The stored choice, narrowed to what this platform can honour.
+    fn resolved(self) -> Self {
+        if Self::supported() {
+            self
+        } else {
+            Self::System
+        }
+    }
+
+    /// What the interface has to draw for it — the one thing the frontend
+    /// needs, already decided per platform:
+    ///
+    /// - `none`: the desktop's frame is there, nothing to add.
+    /// - `titlebar`: no frame at all, draw one.
+    /// - `overlay`: the frame is there but transparent over our content,
+    ///   so leave the traffic lights room and give them a drag region.
+    fn draw(self) -> &'static str {
+        match self.resolved() {
+            Self::System => "none",
+            Self::App if cfg!(target_os = "macos") => "overlay",
+            Self::App => "titlebar",
+        }
+    }
+}
+
+/// What the frontend needs to know in one round-trip.
+#[derive(Debug, Serialize)]
+pub struct WindowChromeState {
+    /// The stored choice, `"system"` or `"app"`.
+    pub chrome: String,
+    /// What to draw: `"none"`, `"titlebar"` or `"overlay"`.
+    pub draw: String,
+    /// Whether to offer the choice in Settings at all.
+    pub supported: bool,
+}
+
+/// Read the stored choice. A missing or unparseable row is `System`, which
+/// is also what every platform looked like before this existed.
+pub async fn load_window_chrome(app_db: &SqlitePool) -> WindowChrome {
+    let raw: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(KEY_WINDOW_CHROME)
+        .fetch_optional(app_db)
+        .await
+        .unwrap_or_else(|err| {
+            tracing::warn!(?err, "reading the window chrome preference failed");
+            None
+        });
+    raw.as_deref()
+        .and_then(WindowChrome::parse)
+        .unwrap_or(WindowChrome::System)
+        .resolved()
+}
+
+/// Put the choice on the main window.
+///
+/// Called at startup **before the window is revealed** (the main window is
+/// created hidden and shown by `restore_bounds_and_reveal`), so the user
+/// never sees the frame they turned off appear and vanish; and again from
+/// [`set_window_chrome`] when they change their mind, where the flicker is
+/// the point — they asked to see the difference.
+///
+/// Every failure is logged rather than raised: a window that kept the wrong
+/// frame is a cosmetic disappointment, not a reason to fail a startup or an
+/// unrelated settings write.
+pub fn apply_window_chrome(app: &tauri::AppHandle, chrome: WindowChrome) {
+    use tauri::Manager;
+
+    let Some(window) = app.get_webview_window("main") else {
+        tracing::warn!("window chrome: no main window to apply it to");
+        return;
+    };
+    let chrome = chrome.resolved();
+
+    #[cfg(target_os = "macos")]
+    {
+        let style = match chrome {
+            WindowChrome::App => tauri::utils::TitleBarStyle::Overlay,
+            WindowChrome::System => tauri::utils::TitleBarStyle::Visible,
+        };
+        if let Err(err) = window.set_title_bar_style(style) {
+            tracing::warn!(?err, "window chrome: set_title_bar_style failed");
+        }
+        // An overlay title bar still draws the window's title over our own
+        // content, and `hiddenTitle` is a creation-time option with no
+        // runtime switch — so the title is what we empty, and restore with
+        // the frame. The app is named by the menu bar either way.
+        let title = match chrome {
+            WindowChrome::App => "",
+            WindowChrome::System => "WaveFlow",
+        };
+        if let Err(err) = window.set_title(title) {
+            tracing::warn!(?err, "window chrome: set_title failed");
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    if let Err(err) = window.set_decorations(matches!(chrome, WindowChrome::System)) {
+        tracing::warn!(?err, "window chrome: set_decorations failed");
+    }
+
+    // Windows keeps its frame; see `WindowChrome::supported`.
+    #[cfg(target_os = "windows")]
+    let _ = (&window, chrome);
+}
+
+#[tauri::command]
+pub async fn get_window_chrome(state: tauri::State<'_, AppState>) -> AppResult<WindowChromeState> {
+    let chrome = load_window_chrome(&state.app_db).await;
+    Ok(WindowChromeState {
+        chrome: chrome.as_str().to_string(),
+        draw: chrome.draw().to_string(),
+        supported: WindowChrome::supported(),
+    })
+}
+
+/// Persist the choice and put it on the window in the same call, so the two
+/// cannot disagree — and so the frontend has nothing to apply itself, which
+/// on macOS it could not do anyway (`setTitle` and the title-bar style are
+/// separate calls that must move together).
+#[tauri::command]
+pub async fn set_window_chrome(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    chrome: String,
+) -> AppResult<WindowChromeState> {
+    let parsed = WindowChrome::parse(&chrome).ok_or_else(|| {
+        crate::error::AppError::Other(format!(
+            "set_window_chrome: unsupported value '{chrome}' (expected system, app)"
+        ))
+    })?;
+    sqlx::query(
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'string', ?)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(KEY_WINDOW_CHROME)
+    .bind(parsed.as_str())
+    .bind(Utc::now().timestamp_millis())
+    .execute(&state.app_db)
+    .await?;
+
+    apply_window_chrome(&app, parsed);
+    let resolved = parsed.resolved();
+    Ok(WindowChromeState {
+        chrome: resolved.as_str().to_string(),
+        draw: resolved.draw().to_string(),
+        supported: WindowChrome::supported(),
+    })
+}

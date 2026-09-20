@@ -1059,6 +1059,8 @@ pub fn run() {
             commands::preferences::set_auto_start,
             commands::preferences::get_ui_zoom,
             commands::preferences::set_ui_zoom,
+            commands::preferences::get_window_chrome,
+            commands::preferences::set_window_chrome,
             commands::preferences::get_mini_player_bounds,
             commands::preferences::set_mini_player_bounds,
             commands::preferences::get_main_window_bounds,
@@ -1361,6 +1363,13 @@ fn bounds_on_screen(
 /// saved size/position is a nice-to-have; escaping the splash is not.
 async fn restore_bounds_and_reveal(app: AppHandle) -> bool {
     let state = app.state::<AppState>();
+    // Before the reveal, not after: the window is created hidden, so a
+    // user who asked WaveFlow to draw its own frame never sees the
+    // desktop's appear and vanish (#696).
+    commands::preferences::apply_window_chrome(
+        &app,
+        commands::preferences::load_window_chrome(&state.app_db).await,
+    );
     if let Some(bounds) = commands::preferences::load_main_window_bounds(&state.app_db).await {
         if let Some(window) = app.get_webview_window("main") {
             if let Err(err) = window.set_size(tauri::LogicalSize::new(bounds.width, bounds.height))

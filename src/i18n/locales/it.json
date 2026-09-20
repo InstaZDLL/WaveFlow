@@ -1322,6 +1322,11 @@
       "empty": "Nessun testo per questo brano"
     }
   },
+  "window": {
+    "minimize": "Riduci a icona",
+    "maximize": "Ingrandisci",
+    "restore": "Ripristina"
+  },
   "sleepTimer": {
     "title": "Timer di spegnimento",
     "endOfTrack": "Al termine del brano corrente",
@@ -2306,6 +2311,20 @@
       "reset": "Reimposta",
       "done": "Reimpostato",
       "error": "Reimpostazione non riuscita. Riprova."
+    },
+    "windowChrome": {
+      "title": "Cornice della finestra",
+      "subtitle": "Chi disegna la barra in cima alla finestra: il tuo desktop o WaveFlow.",
+      "options": {
+        "system": {
+          "label": "Sistema",
+          "hint": "La cornice che il tuo desktop disegna per ogni app."
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "La disegna WaveFlow, e i pulsanti della finestra stanno nella sua barra."
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "Salva i Canvas in locale",

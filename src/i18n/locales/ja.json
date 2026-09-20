@@ -1321,6 +1321,11 @@
       "empty": "この曲の歌詞はありません"
     }
   },
+  "window": {
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "restore": "元のサイズに戻す"
+  },
   "sleepTimer": {
     "title": "スリープタイマー",
     "endOfTrack": "現在の曲の終わりに",
@@ -2303,6 +2308,20 @@
       "reset": "リセット",
       "done": "リセット完了",
       "error": "リセットに失敗しました。もう一度お試しください。"
+    },
+    "windowChrome": {
+      "title": "ウィンドウの枠",
+      "subtitle": "ウィンドウ上部のバーを描くのは、デスクトップか WaveFlow か。",
+      "options": {
+        "system": {
+          "label": "システム",
+          "hint": "デスクトップがすべてのアプリに描く枠。"
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "WaveFlow が描き、ウィンドウのボタンは WaveFlow 自身のバーに収まります。"
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "Canvas をローカルに保存",

@@ -1321,6 +1321,11 @@
       "empty": "Geen songtekst voor dit nummer"
     }
   },
+  "window": {
+    "minimize": "Minimaliseren",
+    "maximize": "Maximaliseren",
+    "restore": "Herstellen"
+  },
   "sleepTimer": {
     "title": "Slaaptimer",
     "endOfTrack": "Aan het einde van het huidige nummer",
@@ -2303,6 +2308,20 @@
       "reset": "Herstellen",
       "done": "Hersteld",
       "error": "Herstellen mislukt. Probeer het opnieuw."
+    },
+    "windowChrome": {
+      "title": "Vensterrand",
+      "subtitle": "Wie de balk bovenaan het venster tekent: je bureaublad of WaveFlow.",
+      "options": {
+        "system": {
+          "label": "Systeem",
+          "hint": "De rand die je bureaublad voor elke app tekent."
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "WaveFlow tekent hem, en de vensterknoppen zitten in zijn eigen balk."
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "Canvas lokaal opslaan",

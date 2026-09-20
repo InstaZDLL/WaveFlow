@@ -192,6 +192,8 @@ export const SETTINGS_CATEGORIES = [
           "settings.windowBounds.subtitle",
           "settings.windowBounds.done",
           "settings.windowBounds.reset",
+          "settings.windowChrome.title",
+          "settings.windowChrome.subtitle",
         ],
       },
       {

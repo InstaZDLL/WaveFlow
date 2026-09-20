@@ -32,6 +32,39 @@ export function setUiZoom(zoom: number): Promise<void> {
   return invoke<void>("set_ui_zoom", { zoom });
 }
 
+/**
+ * Who draws the frame around the window (issue #696).
+ *
+ * `chrome` is the stored choice; `draw` is what this platform resolved it
+ * into, which is the only part the interface acts on — `"none"` (the
+ * desktop's frame is there), `"titlebar"` (no frame, draw one) or
+ * `"overlay"` (macOS: the frame is transparent over our content, so leave
+ * the traffic lights room). `supported` is false where the choice is not
+ * offered at all, which today means Windows.
+ */
+export interface WindowChromeState {
+  chrome: "system" | "app";
+  draw: "none" | "titlebar" | "overlay";
+  supported: boolean;
+}
+
+export function getWindowChrome(): Promise<WindowChromeState> {
+  return invoke<WindowChromeState>("get_window_chrome");
+}
+
+/** Persists AND applies, in one call: the backend owns both halves so a
+ *  stored choice and the window on screen cannot disagree. */
+export function setWindowChrome(
+  chrome: "system" | "app",
+): Promise<WindowChromeState> {
+  return invoke<WindowChromeState>("set_window_chrome", { chrome });
+}
+
+/** Broadcast after a successful write so the layout (which draws the bar)
+ *  and the Settings card re-read together, the way the zoom pair below
+ *  does. */
+export const WINDOW_CHROME_EVENT = "waveflow:window-chrome";
+
 /** Window-level event the keyboard shortcut handler dispatches every
  *  time it nudges the zoom, so the Settings card stays in sync
  *  without us having to plumb a context through. */

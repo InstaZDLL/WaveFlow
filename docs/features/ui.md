@@ -180,6 +180,24 @@ It sits one rung below the motion cover in the backdrop precedence — **Canvas 
 
 **Toggle + guardrails** — per-profile preference [`useArtistHero`](../../src/hooks/useArtistHero.ts) (`ui.artist_hero`, **default ON** — it's a baseline visual, not extra motion), toggled in Settings → Appearance → Library pages via [`ArtistHeroCard`](../../src/components/views/settings/ArtistHeroCard.tsx); the write machinery (serialized writes, profile-switch guards, rollback, broadcast) mirrors [`useCoverSlideshow`](../../src/hooks/useCoverSlideshow.ts). `prefers-reduced-motion` skips the `artistHeroFadeIn` cross-fade only — the image itself is static, so there is nothing else to suppress. The fanart source is seeded from `get_artist_detail` (metadata cache, first frame) and refined by the later `enrich_artist_deezer` response, which only ever _sets_ it: a refresh that comes back empty (offline, TheAudioDB down) must not blank a hero the cache already produced. Both of those resolve a **chosen** banner ahead of the cached one, for that same reason — the second one to answer decides what is on screen. i18n under `settings.artistHero.*` and `artistBackdropPicker.*`.
 
+## Window frame
+
+Who draws the bar at the top of the window — the desktop, or WaveFlow (issue #696). **Settings → Appearance → Player and window**, [`WindowChromeCard`](../../src/components/views/settings/WindowChromeCard.tsx), stored app-wide in `app_setting['ui.window_chrome']` (`system` — the default — or `app`).
+
+The request was for the appearance choice Chrome offers on Linux, and it does not translate one-to-one: Chrome paints its own chrome from the GTK or Qt theme, while everything inside our window is a web view we already theme. What the desktop owns is the frame, so the frame is what this switches. A Qt mode in particular cannot mean Qt widgets — wry is bound to WebKitGTK and there is no Qt backend ([B1](../upstream-blockers.md#b1--webkit2gtk-41--gtk3-chrome-on-linux)).
+
+**The platforms differ in kind, not in degree**, so [`commands/preferences.rs`](../../src-tauri/crates/app/src/commands/preferences.rs) resolves the stored choice into one instruction the interface follows, rather than leaving three platform tests in the layout:
+
+| Platform | `app` means | What the frontend draws |
+| --- | --- | --- |
+| Linux | `set_decorations(false)` | [`AppTitleBar`](../../src/components/layout/AppTitleBar.tsx) — drag region, title, minimise / maximise / close |
+| macOS | `TitleBarStyle::Overlay` + an emptied title | a 28 px drag strip, so the real traffic lights float over our own top bar |
+| Windows | — | nothing: the option is not offered |
+
+- **Windows is excluded on purpose.** A frame we drew ourselves would lose Snap Layouts and the system menu — a worse Windows than the one the user has, and nobody asked. `supported: false` hides the card, and the resolver refuses `app` there even if the row says otherwise (a database carried over from a Linux install).
+- **macOS keeps the system's buttons.** Dropping the decorations would take the traffic lights with them, and drawing our own is the one thing a macOS user would call *not* native. An overlay title bar still paints the window title over our content and `hiddenTitle` is creation-time only, so the title is what we empty — and restore with the frame; the app is named by the menu bar either way. The overlay style also provides no drag region of its own, which is what the 28 px strip is for.
+- **Applied before the reveal.** The main window is created hidden ([splash handoff](#surviving-a-renderer-that-cannot-paint-595)), and `restore_bounds_and_reveal` puts the chrome on just before showing it, so nobody watches the frame they turned off appear and vanish. `set_window_chrome` persists *and* applies in one call — on macOS the style and the title are two calls that must move together, so splitting them across the IPC boundary would be a window in two states.
+
 ## Mini-player
 
 [`MiniPlayerApp`](../../src/MiniPlayerApp.tsx) + [`MiniPlayer`](../../src/components/views/MiniPlayer.tsx) ship a Spotify-style always-on-top widget. Launched from the picture-in-picture button in the PlayerBar via [`lib/miniPlayer.ts::openMiniPlayer`](../../src/lib/miniPlayer.ts).

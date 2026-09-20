@@ -1322,6 +1322,11 @@
       "empty": "Aucune parole pour ce titre"
     }
   },
+  "window": {
+    "minimize": "Réduire",
+    "maximize": "Agrandir",
+    "restore": "Restaurer"
+  },
   "sleepTimer": {
     "title": "Minuteur de sommeil",
     "endOfTrack": "À la fin du titre en cours",
@@ -2306,6 +2311,20 @@
       "reset": "Réinitialiser",
       "done": "Réinitialisé",
       "error": "La réinitialisation a échoué. Réessayez."
+    },
+    "windowChrome": {
+      "title": "Cadre de la fenêtre",
+      "subtitle": "Qui dessine la barre en haut de la fenêtre : votre bureau, ou WaveFlow.",
+      "options": {
+        "system": {
+          "label": "Système",
+          "hint": "Le cadre que votre bureau dessine pour toutes les applications."
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "WaveFlow le dessine, et les boutons de la fenêtre se posent dans sa propre barre."
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "Enregistrer les Canvas en local",

@@ -1321,6 +1321,11 @@
       "empty": "Bu parça için şarkı sözü yok"
     }
   },
+  "window": {
+    "minimize": "Simge durumuna küçült",
+    "maximize": "Ekranı kapla",
+    "restore": "Geri yükle"
+  },
   "sleepTimer": {
     "title": "Uyku zamanlayıcısı",
     "endOfTrack": "Geçerli parçanın sonunda",
@@ -2303,6 +2308,20 @@
       "reset": "Sıfırla",
       "done": "Sıfırlandı",
       "error": "Sıfırlama başarısız. Lütfen tekrar dene."
+    },
+    "windowChrome": {
+      "title": "Pencere çerçevesi",
+      "subtitle": "Pencerenin üstündeki çubuğu kim çizsin: masaüstün mü, WaveFlow mu.",
+      "options": {
+        "system": {
+          "label": "Sistem",
+          "hint": "Masaüstünün her uygulama için çizdiği çerçeve."
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "Onu WaveFlow çizer ve pencere düğmeleri kendi çubuğunda yer alır."
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "Canvas videolarını yerel olarak kaydet",

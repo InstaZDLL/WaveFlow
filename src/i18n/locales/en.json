@@ -1321,6 +1321,11 @@
       "empty": "No lyrics for this track"
     }
   },
+  "window": {
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "restore": "Restore"
+  },
   "sleepTimer": {
     "title": "Sleep timer",
     "endOfTrack": "At end of current track",
@@ -2303,6 +2308,20 @@
       "reset": "Reset",
       "done": "Reset done",
       "error": "Reset failed. Please try again."
+    },
+    "windowChrome": {
+      "title": "Window frame",
+      "subtitle": "Who draws the bar at the top of the window — your desktop, or WaveFlow.",
+      "options": {
+        "system": {
+          "label": "System",
+          "hint": "The frame your desktop draws for every app."
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "WaveFlow draws it, and the window buttons sit in its own bar."
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "Save Canvas videos locally",

@@ -1321,6 +1321,11 @@
       "empty": "此曲目没有歌词"
     }
   },
+  "window": {
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "restore": "还原"
+  },
   "sleepTimer": {
     "title": "睡眠定时器",
     "endOfTrack": "当前曲目结束时",
@@ -2303,6 +2308,20 @@
       "reset": "重置",
       "done": "已重置",
       "error": "重置失败，请重试。"
+    },
+    "windowChrome": {
+      "title": "窗口边框",
+      "subtitle": "窗口顶部的横栏由谁绘制：你的桌面，还是 WaveFlow。",
+      "options": {
+        "system": {
+          "label": "系统",
+          "hint": "你的桌面为所有应用绘制的边框。"
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "由 WaveFlow 绘制，窗口按钮落在它自己的横栏里。"
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "在本地保存 Canvas",

@@ -1321,6 +1321,11 @@
       "empty": "Tidak ada lirik untuk lagu ini"
     }
   },
+  "window": {
+    "minimize": "Minimalkan",
+    "maximize": "Maksimalkan",
+    "restore": "Pulihkan"
+  },
   "sleepTimer": {
     "title": "Pengatur waktu tidur",
     "endOfTrack": "Di akhir lagu saat ini",
@@ -2303,6 +2308,20 @@
       "reset": "Atur ulang",
       "done": "Diatur ulang",
       "error": "Gagal mengatur ulang. Silakan coba lagi."
+    },
+    "windowChrome": {
+      "title": "Bingkai jendela",
+      "subtitle": "Siapa yang menggambar bilah di atas jendela: desktop kamu atau WaveFlow.",
+      "options": {
+        "system": {
+          "label": "Sistem",
+          "hint": "Bingkai yang digambar desktop kamu untuk semua aplikasi."
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "WaveFlow yang menggambarnya, dan tombol jendela berada di bilahnya sendiri."
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "Simpan Canvas secara lokal",
