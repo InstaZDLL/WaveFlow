@@ -627,11 +627,11 @@ pub async fn set_window_chrome(
             "set_window_chrome: unsupported value '{chrome}' (expected system, app)"
         ))
     })?;
-    // What the window has right now, for the rollback below.
-    let previous = effective_chrome(
-        load_window_chrome(&state.app_db).await,
-        WINDOW_CHROME_UNAPPLIED.load(Ordering::Relaxed),
-    );
+    // What the window has right now, for the rollback below -- and the
+    // marker that says so, kept because the rollback has to restore the
+    // situation it describes, not just the frame.
+    let was_unapplied = WINDOW_CHROME_UNAPPLIED.load(Ordering::Relaxed);
+    let previous = effective_chrome(load_window_chrome(&state.app_db).await, was_unapplied);
     // Clears WINDOW_CHROME_UNAPPLIED on success, so a startup failure stops
     // describing a window that has since been changed.
     apply_window_chrome(&app, parsed)?;
@@ -654,11 +654,27 @@ pub async fn set_window_chrome(
         // must be able to believe that. If even the rollback refuses, say
         // so -- the two states really have parted, and only a restart
         // (which reads the store) settles it.
-        if let Err(revert) = apply_window_chrome(&app, previous) {
-            tracing::error!(
+        match apply_window_chrome(&app, previous) {
+            Ok(()) => {
+                // `apply_window_chrome` clears the marker on success, and
+                // here that is wrong: we have just put back the very
+                // situation it described. The stored choice is still one
+                // this session could not apply, and reporting it as in use
+                // would have the interface draw a title bar for a window
+                // that kept the desktop's frame -- the defect the marker
+                // exists to prevent, reintroduced by the rollback.
+                if was_unapplied {
+                    WINDOW_CHROME_UNAPPLIED.store(true, Ordering::Relaxed);
+                }
+            }
+            // The two states really have parted now: the window wears the
+            // new frame, the store still holds the old one, and no marker
+            // describes that. Only a restart, which reads the store,
+            // settles it.
+            Err(revert) => tracing::error!(
                 ?revert,
                 "window chrome: could not put the previous frame back after a failed write"
-            );
+            ),
         }
         return Err(err.into());
     }
