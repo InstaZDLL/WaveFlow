@@ -1955,6 +1955,7 @@
       "title": "Audio-Visualizer",
       "subtitle": "Zeigt ein Echtzeit-Spektrum in der immersiven Ansicht (leichtgewichtige FFT im Decoder-Thread)",
       "cycleColor": "Visualizer-Farbe: {{color}}",
+      "cycleStyle": "Visualizer-Stil: {{style}}",
       "colors": {
         "white": "Weiß",
         "emerald": "Smaragd",
@@ -1962,6 +1963,11 @@
         "aqua": "Aqua",
         "magenta": "Magenta",
         "rainbow": "Regenbogen"
+      },
+      "styles": {
+        "wave": "Welle",
+        "mirror": "Gespiegelt",
+        "bars": "Balken"
       }
     },
     "smartCrossfade": {

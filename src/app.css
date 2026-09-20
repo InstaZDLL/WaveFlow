@@ -338,6 +338,20 @@ html.desktop-lyrics-window #root {
   overflow: hidden;
 }
 
+/* The mini-player window (#697). Its own surfaces hide their scrollbars,
+   but the DOCUMENT had none of that, and the up-next overlay's entry
+   animation starts at `translateY(8px)`: an element already pinned to the
+   bottom edge, pushed 8 px past it, is 8 px of scrollable overflow on the
+   page itself -- long enough to paint a bar down the right edge of a
+   280 px window, and nothing to do with the lyrics list that was blamed
+   for it. Nothing in this widget is meant to scroll the page, so say so
+   once here rather than chase each animation that leans over an edge. */
+html.mini-player-window,
+html.mini-player-window body,
+html.mini-player-window #root {
+  overflow: hidden;
+}
+
 /* Theme ambient background. AppLayout's outer wrapper uses
    `bg-app-ambient` (defined as a utility below) so themes can paint
    their signature tint without touching any JSX. */
@@ -738,4 +752,12 @@ html.desktop-lyrics-window #root {
 :root[data-contrast="high"] .wf-mini-player-surface {
   background-image: none !important;
   background-color: var(--color-surface-dark) !important;
+}
+
+/* Same bargain for the blurred cover behind the mini-player's lyrics
+   (#697): it is there for colour, and colour taken from the user's music
+   is exactly what high contrast refuses. It is an `<img>`, not a
+   background image, so the rule above cannot reach it. */
+:root[data-contrast="high"] .wf-mini-lyrics-wash {
+  display: none;
 }

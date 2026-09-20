@@ -2081,6 +2081,7 @@
       "title": "音訊視覺化",
       "subtitle": "在沉浸式檢視中顯示即時頻譜（解碼器執行緒上的輕量 FFT）",
       "cycleColor": "視覺化顏色：{{color}}",
+      "cycleStyle": "視覺化樣式：{{style}}",
       "colors": {
         "white": "白色",
         "emerald": "翡翠綠",
@@ -2088,6 +2089,11 @@
         "aqua": "水藍色",
         "magenta": "洋紅色",
         "rainbow": "彩虹"
+      },
+      "styles": {
+        "wave": "波形",
+        "mirror": "鏡像",
+        "bars": "長條"
       }
     },
     "smartCrossfade": {

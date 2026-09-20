@@ -36,6 +36,8 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { useLikedTracks } from "../../hooks/useLikedTracks";
 import { useTrackLyrics } from "../../hooks/useTrackLyrics";
 import { useKaraokeWordFill } from "../../hooks/useKaraokeWordFill";
+import { useSlideshowLayer } from "../../hooks/useSlideshowLayer";
+import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
 import {
   isRadioTrack,
@@ -43,6 +45,7 @@ import {
   isStreamTrack,
 } from "../../lib/playerSources";
 import { Artwork } from "../common/Artwork";
+import { CoverSlideshow } from "../player/CoverSlideshow";
 import { resolveArtwork } from "../../lib/tauri/artwork";
 import { dominantColor, darken, rgb } from "../../lib/dominantColor";
 import { formatDuration } from "../../lib/tauri/track";
@@ -168,9 +171,7 @@ export function MiniPlayer() {
   // track's id changes, because an advance or a jump moves the backend
   // cursor and flips the negative sentinel id with it. Same signal here,
   // so the two surfaces stay in step.
-  const [remoteQueue, setRemoteQueue] = useState<RemotePlayQueue | null>(
-    null,
-  );
+  const [remoteQueue, setRemoteQueue] = useState<RemotePlayQueue | null>(null);
   const remoteSeqRef = useRef(0);
   const currentTrackId = currentTrack?.id ?? null;
 
@@ -249,6 +250,21 @@ export function MiniPlayer() {
     },
     [isRemoteSession],
   );
+
+  // ── Cover ↔ artist slideshow (issue #702) ──────────────
+  // The window people leave on screen while doing something else is
+  // arguably where a slowly alternating cover is nicest — a beta
+  // tester asked for it (#700). Nothing outranks it here: this window
+  // renders no Canvas and no motion cover, so the precedence chain the
+  // other two surfaces pass in (Canvas > motion > slideshow > cover) has
+  // nothing to say, and `blocked` stays at its default.
+  //
+  // The photo is resolved from this webview, which means a second
+  // `enrich_artist_deezer` for the same artist while the main window
+  // shows one too — a cache hit against `app.metadata_artist`, not a
+  // second network fetch. It costs one IPC round-trip per artist
+  // change, and only for a profile that turned the slideshow on.
+  const slideshow = useSlideshowLayer(currentTrack);
 
   // ── Cover-derived background gradient ───────────────────────────
   const artworkUrl = useMemo(() => {
@@ -417,10 +433,12 @@ export function MiniPlayer() {
   const displayMs = dragMs ?? positionMs;
   const progressPct = durationMs > 0 ? (displayMs / durationMs) * 100 : 0;
 
-  // An open overlay visually covers the cover / title / seek controls —
-  // mark that subtree inert so keyboard and screen-reader focus can't
-  // reach the hidden buttons behind it.
-  const contentInert = overlay === "lyrics" || showQueue;
+  // The up-next overlay visually covers the cover / title / seek controls
+  // — mark that subtree inert so keyboard and screen-reader focus can't
+  // reach the hidden buttons behind it. Lyrics are no longer in that list:
+  // since #697 they are a mode of the player, not a sheet over it, and
+  // everything around them stays usable.
+  const contentInert = showQueue;
 
   return (
     <div
@@ -495,7 +513,9 @@ export function MiniPlayer() {
           </button>
           <button
             type="button"
-            onClick={() => setOverlay((v) => (v === "queue" ? "none" : "queue"))}
+            onClick={() =>
+              setOverlay((v) => (v === "queue" ? "none" : "queue"))
+            }
             aria-label={t("miniPlayer.upNext.toggle")}
             title={t("miniPlayer.upNext.toggle")}
             aria-pressed={showQueue}
@@ -528,51 +548,70 @@ export function MiniPlayer() {
         </div>
       </div>
 
-      {/* Content (cover + title + seek). Inert while the up-next
-          overlay is open so focus can't reach the controls behind it;
-          the top bar above stays interactive. */}
+      {/* Content (cover or lyrics, then title + seek). Inert while the
+          up-next overlay is open so focus can't reach the controls behind
+          it; the top bar above stays interactive. */}
       <div
         className="flex-1 flex flex-col min-h-0"
         inert={contentInert}
         aria-hidden={contentInert || undefined}
       >
-        {/* Floating cover with hover overlay */}
-        <div className="px-3 pt-1 pb-2 flex justify-center">
-          <CoverWithControls
-            showControls={showControls}
-            onMouseEnter={() => setShowControls(true)}
-            onMouseLeave={() => setShowControls(false)}
-            isPlaying={isPlaying}
-            repeatMode={repeatMode}
-            isShuffled={isShuffled}
-            onPlayPause={togglePlayback}
-            onPrev={previous}
-            onNext={next}
-            onCycleRepeat={cycleRepeatMode}
-            onToggleShuffle={toggleShuffle}
-            shuffleDisabled={isRemoteTrack(currentTrack)}
-            volume={volume}
-            onSetVolume={setVolume}
-            onToggleMute={toggleMute}
-            artworkSlot={
-              currentTrack ? (
-                <Artwork
-                  path={currentTrack.artwork_path}
-                  path1x={currentTrack.artwork_path_1x}
-                  path2x={currentTrack.artwork_path_2x}
-                  size="full"
-                  alt={currentTrack.title}
-                  className="w-full h-full object-cover"
-                  rounded="xl"
-                />
-              ) : (
-                <div className="w-full h-full rounded-2xl bg-white/10 flex items-center justify-center">
-                  <Play size={48} className="text-white/40" />
-                </div>
-              )
-            }
-          />
-        </div>
+        {/* Lyrics take the cover's slot rather than covering the whole
+            widget (#697): the title, the seek bar and the transport row
+            below stay reachable, so pausing or skipping no longer means
+            closing the lyrics first. */}
+        {overlay === "lyrics" ? (
+          <div className="flex-1 min-h-0 px-3 pt-1 pb-2">
+            <MiniLyricsStage artworkUrl={artworkUrl} />
+          </div>
+        ) : (
+          <div className="px-3 pt-1 pb-2 flex justify-center">
+            <CoverWithControls
+              showControls={showControls}
+              onMouseEnter={() => setShowControls(true)}
+              onMouseLeave={() => setShowControls(false)}
+              isPlaying={isPlaying}
+              repeatMode={repeatMode}
+              isShuffled={isShuffled}
+              onPlayPause={togglePlayback}
+              onPrev={previous}
+              onNext={next}
+              onCycleRepeat={cycleRepeatMode}
+              onToggleShuffle={toggleShuffle}
+              shuffleDisabled={isRemoteTrack(currentTrack)}
+              volume={volume}
+              onSetVolume={setVolume}
+              onToggleMute={toggleMute}
+              artworkSlot={
+                currentTrack ? (
+                  <>
+                    <Artwork
+                      path={currentTrack.artwork_path}
+                      path1x={currentTrack.artwork_path_1x}
+                      path2x={currentTrack.artwork_path_2x}
+                      size="full"
+                      alt={currentTrack.title}
+                      className="w-full h-full object-cover"
+                      rounded="xl"
+                    />
+                    {/* Sibling of the cover inside the slot's own
+                        `relative` box, so the crossfade lands under the
+                        hover controls rather than over them. */}
+                    <CoverSlideshow
+                      artistSrc={slideshow.artistSrc}
+                      enabled={slideshow.active}
+                      rounded="xl"
+                    />
+                  </>
+                ) : (
+                  <div className="w-full h-full rounded-2xl bg-white/10 flex items-center justify-center">
+                    <Play size={48} className="text-white/40" />
+                  </div>
+                )
+              }
+            />
+          </div>
+        )}
 
         {/* Title + artist */}
         <div className="px-3 pb-1.5">
@@ -690,6 +729,33 @@ export function MiniPlayer() {
             </div>
           </div>
         )}
+
+        {/* Transport, visible only in lyrics mode. The usual controls live
+            on the cover and appear on hover; with the cover gone there has
+            to be something to press, and a row that only exists in this
+            mode keeps the cover view exactly as it was. */}
+        {overlay === "lyrics" && (
+          <div className="flex items-center justify-center gap-4 px-3 pb-2">
+            <IconButton onClick={previous} label="previous">
+              <SkipBack size={16} />
+            </IconButton>
+            <button
+              type="button"
+              onClick={togglePlayback}
+              aria-label={isPlaying ? "pause" : "play"}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-transform hover:scale-105"
+            >
+              {isPlaying ? (
+                <Pause size={16} className="fill-current" />
+              ) : (
+                <Play size={16} className="fill-current ml-0.5" />
+              )}
+            </button>
+            <IconButton onClick={next} label="next">
+              <SkipForward size={16} />
+            </IconButton>
+          </div>
+        )}
       </div>
 
       {/* Up-next overlay — slides over the content area below the top
@@ -741,12 +807,6 @@ export function MiniPlayer() {
           )}
         </div>
       )}
-
-      {/* Lyrics overlay — same slot as up-next, mutually exclusive with
-          it. Mounted only while open (see the component's note). */}
-      {overlay === "lyrics" && (
-        <MiniLyricsOverlay onClose={() => setOverlay("none")} />
-      )}
     </div>
   );
 }
@@ -754,24 +814,43 @@ export function MiniPlayer() {
 /** The mini-player's content area holds one full-cover overlay at a time. */
 type MiniOverlay = "none" | "queue" | "lyrics";
 
+/** Fades the first and last lines out instead of slicing them in half. */
+const LYRICS_MASK =
+  "linear-gradient(to bottom, transparent 0%, #000 20%, #000 80%, transparent 100%)";
+
 /**
- * Lyrics inside the mini-player (issue #580).
+ * Lyrics inside the mini-player (issue #580), reworked into a mode of the
+ * player rather than a sheet over it (#697).
  *
  * **Mounted only while open, and that is the point.** `useTrackLyrics`
  * fetches on every track change, so keeping it mounted behind a closed
  * overlay would fire a second `fetch_lyrics` per track from this webview
  * on top of the main window's. Unmounting means the cost lands only when
  * the user actually asked for lyrics, and the backend cache absorbs the
- * overlap when both surfaces are open at once.
+ * overlap when both surfaces are open at once. The rework kept that: this
+ * takes the cover's slot, it does not sit mounted behind it.
+ *
+ * **Few lines, one obvious.** At a uniform 12 px the active line differed
+ * from its neighbours by a font weight, which at that size the eye cannot
+ * find. The current line is now noticeably larger and its neighbours
+ * smaller and dimmer, so the word-level fill (`useKaraokeWordFill`) is
+ * finally legible — it was always wired in, just invisible.
+ *
+ * **Centred**, like the desktop lyrics window (#582): both are small
+ * glanceable surfaces rather than reading columns, and the two now agree.
+ * The side panel and the immersive column stay left-aligned.
  *
  * The window defaults to 280x380 and can be dragged down to 240x320, so
  * there is no room for the side panel's source label, provider picker or
  * the import / refetch / clear actions. Those stay in the main window —
- * this is a reading surface, not an editing one.
+ * this is a reading surface, not an editing one. There is no header row
+ * either: the toggle in the top bar already shows which mode is open, and
+ * closing is one click on the same button.
  */
-function MiniLyricsOverlay({ onClose }: { onClose: () => void }) {
+function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
   const { t } = useTranslation();
   const { currentTrack } = usePlayer();
+  const reducedMotion = usePrefersReducedMotion();
   const {
     payload,
     isFetching,
@@ -791,10 +870,11 @@ function MiniLyricsOverlay({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (!isSynced || activeIndex < 0) return;
     lineRefs.current[activeIndex]?.scrollIntoView({
-      behavior: "smooth",
+      // A reader who asked for less motion gets the jump, not the glide.
+      behavior: reducedMotion ? "auto" : "smooth",
       block: "center",
     });
-  }, [activeIndex, isSynced]);
+  }, [activeIndex, isSynced, reducedMotion]);
 
   // Progressive word fill on the active word only — the same hook the
   // immersive column uses, so the sweep stays continuous between the
@@ -810,123 +890,135 @@ function MiniLyricsOverlay({ onClose }: { onClose: () => void }) {
   const plainText =
     radioPlainText ?? (isSynced ? null : (payload?.content ?? null));
 
-  return (
-    <div className="absolute inset-x-0 bottom-0 top-7 z-20 flex flex-col bg-black/55 backdrop-blur-md animate-fade-in wf-glass wf-mini-player-surface">
-      <div className="flex items-center justify-between px-3 py-2 shrink-0">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">
-          {t("lyrics.title")}
-        </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={t("common.close")}
-          className="p-1 -mr-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-        >
-          <X size={13} />
-        </button>
-      </div>
+  const message = (text: string) => (
+    <div className="flex h-full items-center justify-center px-4 text-center text-[11px] text-white/60">
+      {text}
+    </div>
+  );
 
-      {currentTrack == null ? (
-        <div className="flex-1 flex items-center justify-center px-4 text-center text-[11px] text-white/50">
-          {t("lyrics.noTrack")}
-        </div>
-      ) : isFetching && !payload ? (
-        <div className="flex-1 flex items-center justify-center px-4 text-center text-[11px] text-white/50">
-          {t("lyrics.loading")}
-        </div>
-      ) : error ? (
-        <div className="flex-1 flex items-center justify-center px-4 text-center text-[11px] text-white/50">
-          {t("lyrics.fetchError")}
-        </div>
-      ) : isSynced && lrcLines.length > 0 ? (
-        <ul className="flex-1 overflow-y-auto scrollbar-hide px-3 pb-3 space-y-1.5">
-          {lrcLines.map((line, index) => {
-            const isActive = index === activeIndex;
-            const isPast = activeIndex >= 0 && index < activeIndex;
-            const hasWords = isActive && (line.words?.length ?? 0) > 0;
-            return (
-              <li
-                key={`${line.timeMs}-${index}`}
-                ref={(el) => {
-                  lineRefs.current[index] = el;
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => seekToLine(line)}
-                  className={`block w-full text-left text-xs leading-snug rounded transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/70 ${
-                    isActive
-                      ? "text-white font-semibold"
-                      : isPast
-                        ? "text-white/35"
-                        : "text-white/60 hover:text-white"
-                  }`}
+  return (
+    <div className="relative h-full w-full overflow-hidden rounded-xl bg-black/30">
+      {/* The cover this replaced, blurred behind the words, so the surface
+          keeps the colour the window's gradient was sampled from instead of
+          going to a flat black sheet. Decorative, and dropped in high
+          contrast for the same reason the gradient is: this window's
+          legibility must not be decided by the user's music. */}
+      {artworkUrl && (
+        <img
+          src={artworkUrl}
+          alt=""
+          aria-hidden="true"
+          className="wf-mini-lyrics-wash pointer-events-none absolute inset-0 h-full w-full scale-125 object-cover opacity-40 blur-xl"
+        />
+      )}
+      <div className="pointer-events-none absolute inset-0 bg-black/35" />
+
+      <div className="relative h-full">
+        {currentTrack == null ? (
+          message(t("lyrics.noTrack"))
+        ) : isFetching && !payload ? (
+          message(t("lyrics.loading"))
+        ) : error ? (
+          message(t("lyrics.fetchError"))
+        ) : isSynced && lrcLines.length > 0 ? (
+          <ul
+            className="h-full overflow-y-auto scrollbar-hide px-3 space-y-2"
+            style={{ maskImage: LYRICS_MASK, WebkitMaskImage: LYRICS_MASK }}
+          >
+            {/* Half-height spacers so the first and last lines can sit in the
+              centre like any other. A fixed padding would be a guess about
+              a window height the user can drag. */}
+            <li aria-hidden="true" className="pointer-events-none h-1/2" />
+            {lrcLines.map((line, index) => {
+              const isActive = index === activeIndex;
+              const isPast = activeIndex >= 0 && index < activeIndex;
+              const hasWords = isActive && (line.words?.length ?? 0) > 0;
+              return (
+                <li
+                  key={`${line.timeMs}-${index}`}
+                  ref={(el) => {
+                    lineRefs.current[index] = el;
+                  }}
                 >
-                  {hasWords ? (
-                    <span>
-                      {line.words!.map((word, wi) => {
-                        const isActiveWord = wi === activeWordIndex;
-                        // A literal space between boxes: `inline-block`
-                        // strips the JSX whitespace, and many Enhanced
-                        // LRC sources omit spaces between word stamps.
-                        return (
-                          <Fragment key={wi}>
-                            <span className="karaoke-word">
-                              {/* Opacity lives on the layers, never on
+                  <button
+                    type="button"
+                    onClick={() => seekToLine(line)}
+                    className={`block w-full rounded text-center leading-snug transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/70 ${
+                      isActive
+                        ? "text-[15px] font-semibold text-white"
+                        : isPast
+                          ? "text-[11px] text-white/30"
+                          : "text-[11px] text-white/55 hover:text-white/85"
+                    }`}
+                  >
+                    {hasWords ? (
+                      <span>
+                        {line.words!.map((word, wi) => {
+                          const isActiveWord = wi === activeWordIndex;
+                          // A literal space between boxes: `inline-block`
+                          // strips the JSX whitespace, and many Enhanced
+                          // LRC sources omit spaces between word stamps.
+                          return (
+                            <Fragment key={wi}>
+                              <span className="karaoke-word">
+                                {/* Opacity lives on the layers, never on
                                   the box — a parent's opacity applies to
                                   its whole subtree, so dimming the box
                                   would dim the sung overlay with it and
                                   no fill could ever read as brighter. */}
-                              <span
-                                style={{
-                                  opacity:
-                                    wi < activeWordIndex
-                                      ? 0.8
-                                      : isActiveWord
-                                        ? 0.5
-                                        : 0.45,
-                                  transition: "opacity 150ms ease",
-                                }}
-                              >
-                                {word.text}
-                              </span>
-                              {isActiveWord && (
-                                // `aria-hidden` because the base layer
-                                // already carries the text — without it
-                                // a screen reader reads the word twice.
                                 <span
-                                  ref={wordFillRef}
-                                  aria-hidden="true"
-                                  className="karaoke-word__fill"
+                                  style={{
+                                    opacity:
+                                      wi < activeWordIndex
+                                        ? 0.8
+                                        : isActiveWord
+                                          ? 0.5
+                                          : 0.45,
+                                    transition: "opacity 150ms ease",
+                                  }}
                                 >
                                   {word.text}
                                 </span>
-                              )}
-                            </span>
-                            {wi < line.words!.length - 1 && " "}
-                          </Fragment>
-                        );
-                      })}
-                    </span>
-                  ) : (
-                    line.text || " "
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      ) : plainText ? (
-        <div className="flex-1 overflow-y-auto scrollbar-hide px-3 pb-3">
-          <p className="text-xs leading-relaxed text-white/75 whitespace-pre-line">
-            {plainText}
-          </p>
-        </div>
-      ) : (
-        <div className="flex-1 flex items-center justify-center px-4 text-center text-[11px] text-white/50">
-          {t("miniPlayer.lyrics.empty")}
-        </div>
-      )}
+                                {isActiveWord && (
+                                  // `aria-hidden` because the base layer
+                                  // already carries the text — without it
+                                  // a screen reader reads the word twice.
+                                  <span
+                                    ref={wordFillRef}
+                                    aria-hidden="true"
+                                    className="karaoke-word__fill"
+                                  >
+                                    {word.text}
+                                  </span>
+                                )}
+                              </span>
+                              {wi < line.words!.length - 1 && " "}
+                            </Fragment>
+                          );
+                        })}
+                      </span>
+                    ) : (
+                      line.text || " "
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+            <li aria-hidden="true" className="pointer-events-none h-1/2" />
+          </ul>
+        ) : plainText ? (
+          <div
+            className="h-full overflow-y-auto scrollbar-hide px-3 py-3"
+            style={{ maskImage: LYRICS_MASK, WebkitMaskImage: LYRICS_MASK }}
+          >
+            <p className="text-center text-xs leading-relaxed text-white/80 whitespace-pre-line">
+              {plainText}
+            </p>
+          </div>
+        ) : (
+          message(t("miniPlayer.lyrics.empty"))
+        )}
+      </div>
     </div>
   );
 }

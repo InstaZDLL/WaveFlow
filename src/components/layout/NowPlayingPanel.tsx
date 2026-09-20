@@ -12,8 +12,8 @@ import {
 } from "../../hooks/useCanvasEnabled";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
-import { useCoverSlideshow } from "../../hooks/useCoverSlideshow";
-import { isRemoteTrack, isStreamTrack } from "../../lib/playerSources";
+import { useSlideshowLayer } from "../../hooks/useSlideshowLayer";
+import { isRemoteTrack } from "../../lib/playerSources";
 import {
   remoteArtwork,
   remoteGetArtist,
@@ -58,12 +58,8 @@ export function NowPlayingPanel({
   onNavigateToRemoteArtist,
 }: NowPlayingPanelProps) {
   const { t } = useTranslation();
-  const {
-    toggleNowPlaying,
-    toggleQueue,
-    currentTrack,
-    isNowPlayingOpen,
-  } = usePlayer();
+  const { toggleNowPlaying, toggleQueue, currentTrack, isNowPlayingOpen } =
+    usePlayer();
 
   // Enrichment (picture + bio) for the current artist. Re-fetched
   // whenever the primary artist_id changes.
@@ -299,34 +295,104 @@ export function NowPlayingPanel({
   const canvasPath = useTrackCanvas(currentTrack);
   const canvasActive = canvasEnabled && !reducedMotion && !!canvasPath;
   const canvasAvailable = !!canvasPath && !reducedMotion;
+  // The clip's own shape (issue #694). Canvas is a 9:16 medium, and
+  // `object-cover` into the square cover frame drops about 44 % of its
+  // height, split top and bottom — so a clip whose subject is not in the
+  // vertical middle comes out beheaded. Tagged with the path it was measured
+  // from: an answer about a clip we have already moved off is ignored rather
+  // than applied to the next one.
+  const [canvasShape, setCanvasShape] = useState<{
+    path: string;
+    aspect: number | null;
+  } | null>(null);
+  const clipAspect =
+    canvasShape && canvasShape.path === canvasPath ? canvasShape.aspect : null;
+  // Only take the frame over for a clip that is meaningfully taller than the
+  // cover. A square or landscape Canvas already fits the square frame, and
+  // resizing it for a couple of percent would be a jolt for nothing.
+  const canvasTall = canvasActive && clipAspect != null && clipAspect < 0.95;
+  // With the frame tall, the still cover behind the clip fills it rather than
+  // sitting square at the top — it is only ever seen through the video's
+  // 700 ms fade-in, and an empty band under a square cover is worse than a
+  // cropped one nobody looks at.
+  const coverClass = canvasTall
+    ? "w-full h-full shadow-lg"
+    : "w-full aspect-square shadow-lg";
 
   // Cover ↔ artist slideshow (issue #466) — the ambient fallback, one rung
-  // below the motion cover (Canvas > motion > slideshow > cover). Reuses the
-  // artist photo already enriched above (`pictureSrc`).
-  const slideshowEnabled = useCoverSlideshow().enabled;
+  // below the motion cover (Canvas > motion > slideshow > cover).
   // `motionCover`, not `motion` — the latter is framer-motion's import here.
   const motionCover = useAlbumMotionArtwork(
     currentTrack?.artist_name,
     currentTrack?.album_title,
     currentTrack?.album_id,
   );
-  // Streamed tracks have no library artist to slideshow (the artist
-  // enrichment effect still runs to feed the "About the artist" bio, but the
-  // slideshow itself stays off for them).
-  const slideshowEligible = !!currentTrack && !isStreamTrack(currentTrack);
   // Only surface the photo when it belongs to the current artist — a mismatch
-  // (artist just changed, effect not re-resolved yet) reads as none.
+  // (artist just changed, effect not re-resolved yet) reads as none. Handed to
+  // the shared gate rather than resolved by it, because this panel enriches
+  // the artist for "About the artist" anyway and a second ask would be the
+  // same round-trip twice (#702).
   const artistSlideSrc =
     artistImageHi && artistImageHi.id === currentTrack?.artist_id
       ? artistImageHi.src
       : null;
-  const slideshowActive =
-    slideshowEnabled &&
-    !reducedMotion &&
-    !canvasActive &&
-    !motionCover &&
-    slideshowEligible &&
-    !!artistSlideSrc;
+  const slideshow = useSlideshowLayer(currentTrack, {
+    blocked: canvasActive || !!motionCover,
+    artistSrc: artistSlideSrc,
+  });
+
+  // Title / artist / album — one definition for the two places it can sit:
+  // under the cover, or over the bottom of a tall Canvas frame the way the
+  // reference does it (#694). They differ only in the colours they can
+  // afford: over a clip whose palette we cannot know, white on a scrim is
+  // the only safe pair, so the panel's own zinc scale is out.
+  const identityTone = canvasTall
+    ? {
+        title: "text-white",
+        artist: "text-white/85",
+        album: "text-white/65",
+      }
+    : {
+        title: "text-zinc-900 dark:text-white",
+        artist: "text-zinc-500 dark:text-zinc-400",
+        album: "text-zinc-400",
+      };
+  const trackIdentity = currentTrack ? (
+    <div className="space-y-1">
+      <div className={`text-xl font-bold leading-tight ${identityTone.title}`}>
+        {currentTrack.title}
+      </div>
+      <div className={`text-sm ${identityTone.artist}`}>
+        {isRemote ? (
+          canOpenArtist ? (
+            <button
+              type="button"
+              onClick={openCurrentArtist}
+              className="text-left hover:underline hover:text-emerald-600 dark:hover:text-emerald-400"
+            >
+              {currentTrack.artist_name}
+            </button>
+          ) : (
+            (currentTrack.artist_name ?? "")
+          )
+        ) : (
+          <ArtistLink
+            name={currentTrack.artist_name}
+            artistIds={currentTrack.artist_ids}
+            onNavigate={(id) => {
+              onNavigateToArtist(id);
+              toggleNowPlaying();
+            }}
+          />
+        )}
+      </div>
+      {currentTrack.album_title && (
+        <div className={`text-xs ${identityTone.album}`}>
+          {currentTrack.album_title}
+        </div>
+      )}
+    </div>
+  ) : null;
 
   return (
     <motion.aside
@@ -372,13 +438,28 @@ export function NowPlayingPanel({
             {/* Large artwork — keyboard-accessible lightbox trigger. The
                 Canvas overlay lives on a shared relative wrapper so it still
                 renders for a track that has a Canvas but no cover art. */}
-            <div className="relative w-full">
+            {/* The frame takes the clip's shape while a tall Canvas plays,
+                and the cover's square back otherwise. `width` rather than a
+                height cap so the aspect ratio survives the clamp: a definite
+                width lets `aspect-ratio` derive the height, where a
+                `max-height` would just squash the box out of ratio. */}
+            <div
+              className={`relative mx-auto transition-[width,aspect-ratio] duration-500 ${canvasTall ? "" : "w-full"}`}
+              style={
+                canvasTall && clipAspect != null
+                  ? {
+                      aspectRatio: clipAspect,
+                      width: `min(100%, calc(56vh * ${clipAspect}))`,
+                    }
+                  : undefined
+              }
+            >
               {currentTrack.artwork_path ? (
                 <button
                   type="button"
                   onClick={() => setIsLightboxOpen(true)}
                   aria-label={t("common.viewArtwork")}
-                  className="relative cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-2xl block w-full"
+                  className={`relative cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-2xl block w-full ${canvasTall ? "h-full" : ""}`}
                 >
                   <Artwork
                     path={currentTrack.artwork_path}
@@ -386,7 +467,7 @@ export function NowPlayingPanel({
                     path2x={currentTrack.artwork_path_2x}
                     size="full"
                     alt={currentTrack.album_title ?? currentTrack.title}
-                    className="w-full aspect-square shadow-lg"
+                    className={coverClass}
                     iconSize={80}
                     rounded="2xl"
                   />
@@ -407,7 +488,7 @@ export function NowPlayingPanel({
                   path2x={currentTrack.artwork_path_2x}
                   size="full"
                   alt={currentTrack.album_title ?? currentTrack.title}
-                  className="w-full aspect-square shadow-lg"
+                  className={coverClass}
                   iconSize={80}
                   rounded="2xl"
                 />
@@ -417,50 +498,28 @@ export function NowPlayingPanel({
                 enabled={canvasEnabled && !reducedMotion}
                 rounded="2xl"
                 className="shadow-lg"
+                onAspect={(path, aspect) => setCanvasShape({ path, aspect })}
               />
               <CoverSlideshow
-                artistSrc={artistSlideSrc}
-                enabled={slideshowActive}
+                artistSrc={slideshow.artistSrc}
+                enabled={slideshow.active}
                 rounded="2xl"
                 className="shadow-lg"
               />
-            </div>
-
-            {/* Track info */}
-            <div className="space-y-1">
-              <div className="text-xl font-bold text-zinc-900 dark:text-white leading-tight">
-                {currentTrack.title}
-              </div>
-              <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                {isRemote ? (
-                  canOpenArtist ? (
-                    <button
-                      type="button"
-                      onClick={openCurrentArtist}
-                      className="text-left hover:underline hover:text-emerald-600 dark:hover:text-emerald-400"
-                    >
-                      {currentTrack.artist_name}
-                    </button>
-                  ) : (
-                    (currentTrack.artist_name ?? "")
-                  )
-                ) : (
-                  <ArtistLink
-                    name={currentTrack.artist_name}
-                    artistIds={currentTrack.artist_ids}
-                    onNavigate={(id) => {
-                      onNavigateToArtist(id);
-                      toggleNowPlaying();
-                    }}
-                  />
-                )}
-              </div>
-              {currentTrack.album_title && (
-                <div className="text-xs text-zinc-400">
-                  {currentTrack.album_title}
+              {/* Over the clip's lower part, the way the reference does it:
+                  with the square frame gone there is nothing else holding
+                  that space, and the scrim is what makes white text safe
+                  over colours we cannot know in advance. */}
+              {canvasTall && (
+                <div className="absolute inset-x-0 bottom-0 p-4 rounded-b-2xl bg-linear-to-t from-black/80 via-black/45 to-transparent">
+                  {trackIdentity}
                 </div>
               )}
             </div>
+
+            {/* Track info — under the cover, unless a tall Canvas took it
+                over the clip above. */}
+            {!canvasTall && trackIdentity}
 
             {/* Quick actions — Spotify's "Start radio" lives here too */}
             <button
@@ -591,7 +650,10 @@ export function NowPlayingPanel({
         // resolveArtwork returns http / data URLs verbatim and only
         // convertFileSrc's a real local path — a remote track's inlined
         // `data:` cover would break under a bare convertFileSrc.
-        src={resolveArtwork({ full: currentTrack?.artwork_path ?? null }, "full")}
+        src={resolveArtwork(
+          { full: currentTrack?.artwork_path ?? null },
+          "full",
+        )}
         alt={currentTrack?.album_title ?? currentTrack?.title}
         isOpen={isLightboxOpen}
         onClose={() => setIsLightboxOpen(false)}
