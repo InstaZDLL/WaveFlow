@@ -361,17 +361,6 @@ pub async fn apply_shuffle_mode(pool: &SqlitePool, mode: ShuffleMode) -> AppResu
     }
 }
 
-/// Read the persisted player volume (`player.volume` key, stored as
-/// an integer 0-100 in `profile_setting`) and convert to the
-/// `f32 in [0.0, 1.0]` range used by the audio engine. Returns
-/// `None` if the row is missing or not parseable.
-pub async fn read_player_volume(pool: &SqlitePool) -> Option<f32> {
-    let raw = read_setting_string(pool, "player.volume").await.ok()??;
-    raw.parse::<i64>()
-        .ok()
-        .map(|v| (v.clamp(0, 100) as f32) / 100.0)
-}
-
 /// Whether the persisted queue is whole records in their own order
 /// (`queue.album_ordered`).
 ///

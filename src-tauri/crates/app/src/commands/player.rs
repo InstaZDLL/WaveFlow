@@ -669,10 +669,16 @@ async fn read_bool_setting(pool: &sqlx::SqlitePool, key: &str, default: bool) ->
 pub(crate) async fn restore_profile_audio_settings(pool: &sqlx::SqlitePool, engine: &AudioEngine) {
     // Volume first, and unconditionally: a profile that never moved the
     // knob is at full volume, not at the level the profile before it
-    // chose. `1.0` is what `SharedPlayback::new` starts from.
-    engine
-        .shared()
-        .set_volume(queue::read_player_volume(pool).await.unwrap_or(1.0));
+    // chose. `1.0` is what `SharedPlayback::new` starts from. Read here
+    // rather than through a helper of its own so a failed query is
+    // logged like every other setting in this function; the row is an
+    // int 0-100, written by `player_set_volume` below and by MPD.
+    let volume = read_setting(pool, "player.volume")
+        .await
+        .and_then(|v| v.parse::<i64>().ok())
+        .map(|v| (v.clamp(0, 100) as f32) / 100.0)
+        .unwrap_or(1.0);
+    engine.shared().set_volume(volume);
     // Restore audio settings (normalize, mono, crossfade). Each
     // one resolves to its boot default when the row is missing
     // or unparseable and is stored either way — see the block
