@@ -1800,52 +1800,114 @@ export function SettingsView({
   // Smart crossfade — skip the fade between two tracks of the same
   // album so concept records / live sets hand off naturally. Persisted
   // backend-side; default OFF (opinionated behaviour, opt-in).
-  const [smartCrossfade, setSmartCrossfadeState] = useState(false);
+  // Per-profile, and tagged with the profile that answered — the shape
+  // the visualizer below uses, for the same reason: re-read when the
+  // active profile changes, ignore a late answer about the profile we
+  // just left, and keep the switch disabled until the new profile has
+  // answered so a click cannot write the old profile's state (#698).
+  const [smartCrossfadeState, setSmartCrossfadeState] = useState<{
+    profileId: number | undefined;
+    on: boolean;
+  } | null>(null);
+  const smartCrossfadeHydrated =
+    smartCrossfadeState !== null &&
+    smartCrossfadeState.profileId === activeProfile?.id;
+  const smartCrossfade = smartCrossfadeHydrated && smartCrossfadeState.on;
 
   useEffect(() => {
+    let stale = false;
+    const profileId = activeProfile?.id;
     getSmartCrossfade()
-      .then(setSmartCrossfadeState)
-      .catch((err) => console.error("[SettingsView] get smart crossfade", err));
-  }, []);
+      .then((on) => {
+        if (!stale) setSmartCrossfadeState({ profileId, on });
+      })
+      .catch((err) => {
+        console.error("[SettingsView] get smart crossfade", err);
+        if (!stale) setSmartCrossfadeState({ profileId, on: false });
+      });
+    return () => {
+      stale = true;
+    };
+  }, [activeProfile?.id]);
 
   const handleToggleSmartCrossfade = useCallback(() => {
     const next = !smartCrossfade;
-    setSmartCrossfadeState(next);
+    const profileId = activeProfile?.id;
+    setSmartCrossfadeState({ profileId, on: next });
     setSmartCrossfade(next).catch((err) => {
       console.error("[SettingsView] set smart crossfade failed", err);
-      setSmartCrossfadeState(!next);
+      // Only roll back while we are still on the profile the click
+      // belonged to: a rollback tagged with a profile we have left
+      // would read as "not answered yet" and leave the switch inert.
+      if (activeProfileIdRef.current === profileId) {
+        setSmartCrossfadeState({ profileId, on: !next });
+      }
     });
-  }, [smartCrossfade]);
+  }, [smartCrossfade, activeProfile?.id]);
 
   // Dynamic (tempo-aware) crossfade — scales the upcoming fade by
   // the BPM gap. Same opt-in pattern; falls back silently to the
   // static crossfade when either track has no stored BPM.
-  const [dynamicCrossfade, setDynamicCrossfadeState] = useState(false);
+  // Same per-profile, tagged read as the smart crossfade above.
+  const [dynamicCrossfadeState, setDynamicCrossfadeState] = useState<{
+    profileId: number | undefined;
+    on: boolean;
+  } | null>(null);
+  const dynamicCrossfadeHydrated =
+    dynamicCrossfadeState !== null &&
+    dynamicCrossfadeState.profileId === activeProfile?.id;
+  const dynamicCrossfade = dynamicCrossfadeHydrated && dynamicCrossfadeState.on;
 
   useEffect(() => {
+    let stale = false;
+    const profileId = activeProfile?.id;
     getDynamicCrossfade()
-      .then(setDynamicCrossfadeState)
-      .catch((err) =>
-        console.error("[SettingsView] get dynamic crossfade", err),
-      );
-  }, []);
+      .then((on) => {
+        if (!stale) setDynamicCrossfadeState({ profileId, on });
+      })
+      .catch((err) => {
+        console.error("[SettingsView] get dynamic crossfade", err);
+        if (!stale) setDynamicCrossfadeState({ profileId, on: false });
+      });
+    return () => {
+      stale = true;
+    };
+  }, [activeProfile?.id]);
 
   const handleToggleDynamicCrossfade = useCallback(() => {
     const next = !dynamicCrossfade;
-    setDynamicCrossfadeState(next);
+    const profileId = activeProfile?.id;
+    setDynamicCrossfadeState({ profileId, on: next });
     setDynamicCrossfade(next).catch((err) => {
       console.error("[SettingsView] set dynamic crossfade failed", err);
-      setDynamicCrossfadeState(!next);
+      // Only roll back while we are still on the profile the click
+      // belonged to: a rollback tagged with a profile we have left
+      // would read as "not answered yet" and leave the switch inert.
+      if (activeProfileIdRef.current === profileId) {
+        setDynamicCrossfadeState({ profileId, on: !next });
+      }
     });
-  }, [dynamicCrossfade]);
+  }, [dynamicCrossfade, activeProfile?.id]);
 
   // Spectrum visualizer toggle. Persisted backend-side (per-profile)
   // and pushed live to the decoder thread, so flipping it shows /
   // hides the bars on the next emitted frame.
-  const [visualizer, setVisualizer] = useState(false);
-  // Set as soon as the user flips the switch, so a read that was
-  // already in flight cannot land on top of their choice — the same
-  // guard the audio settings above use, in its one-value form.
+  // Tagged with the profile it describes, so the switch reads as "not
+  // answered yet" for the new profile without a reset in the effect
+  // body — and stays disabled until then, because its handler derives
+  // the value it writes from what is on screen: a click during
+  // hydration would persist the previous profile's state into the new
+  // profile (#698).
+  const [visualizerState, setVisualizerState] = useState<{
+    profileId: number | undefined;
+    on: boolean;
+  } | null>(null);
+  const visualizerHydrated =
+    visualizerState !== null && visualizerState.profileId === activeProfile?.id;
+  const visualizer = visualizerHydrated && visualizerState.on;
+  // Once it has answered, a read that was already in flight must not
+  // land on top of a switch the user just flipped — the same guard the
+  // audio settings above use, in its one-value form.
   const visualizerTouched = useRef(false);
 
   // Re-read when the active profile changes, like the audio settings
@@ -1855,12 +1917,19 @@ export function SettingsView({
   // just left.
   useEffect(() => {
     let stale = false;
+    const profileId = activeProfile?.id;
     visualizerTouched.current = false;
     getVisualizerEnabled()
       .then((on) => {
-        if (!stale && !visualizerTouched.current) setVisualizer(on);
+        if (stale || visualizerTouched.current) return;
+        setVisualizerState({ profileId, on });
       })
-      .catch((err) => console.error("[SettingsView] get visualizer", err));
+      .catch((err) => {
+        console.error("[SettingsView] get visualizer", err);
+        // A failed read must not leave the switch disabled forever:
+        // show the default rather than an inert control.
+        if (!stale) setVisualizerState({ profileId, on: false });
+      });
     return () => {
       stale = true;
     };
@@ -1868,13 +1937,19 @@ export function SettingsView({
 
   const handleToggleVisualizer = useCallback(() => {
     const next = !visualizer;
+    const profileId = activeProfile?.id;
     visualizerTouched.current = true;
-    setVisualizer(next);
+    setVisualizerState({ profileId, on: next });
     setVisualizerEnabled(next).catch((err) => {
       console.error("[SettingsView] set visualizer failed", err);
-      setVisualizer(!next);
+      // Only roll back while we are still on the profile the click
+      // belonged to: a rollback tagged with a profile we have left
+      // would read as "not answered yet" and leave the switch inert.
+      if (activeProfileIdRef.current === profileId) {
+        setVisualizerState({ profileId, on: !next });
+      }
     });
-  }, [visualizer]);
+  }, [visualizer, activeProfile?.id]);
 
   const handleToggleGapless = useCallback(() => {
     const next = !gapless;
@@ -2431,6 +2506,7 @@ export function SettingsView({
                     <ToggleSwitch
                       enabled={smartCrossfade}
                       onToggle={handleToggleSmartCrossfade}
+                      disabled={!smartCrossfadeHydrated}
                       label={t("settings.smartCrossfade.title")}
                     />
                   </div>
@@ -2453,6 +2529,7 @@ export function SettingsView({
                     <ToggleSwitch
                       enabled={dynamicCrossfade}
                       onToggle={handleToggleDynamicCrossfade}
+                      disabled={!dynamicCrossfadeHydrated}
                       label={t("settings.dynamicCrossfade.title")}
                     />
                   </div>
@@ -3013,6 +3090,7 @@ export function SettingsView({
                   <ToggleSwitch
                     enabled={visualizer}
                     onToggle={handleToggleVisualizer}
+                    disabled={!visualizerHydrated}
                     label={t("settings.visualizer.title")}
                   />
                 </div>

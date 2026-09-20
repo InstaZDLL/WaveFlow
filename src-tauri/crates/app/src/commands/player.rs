@@ -607,10 +607,10 @@ pub(crate) async fn emit_options_changed(app: &AppHandle, pool: &sqlx::SqlitePoo
 /// Read a boolean `profile_setting`, resolving to `default` when the
 /// row is missing, unreadable or holds anything other than `"true"`.
 ///
-/// Exists so the restore block in [`player_get_state`] can store every
-/// toggle unconditionally: that block re-runs on a profile *switch*,
-/// and a setting only written when its row exists keeps the previous
-/// profile's value on a profile that never touched it (#698).
+/// Exists so [`restore_profile_audio_settings`] can store every toggle
+/// unconditionally: it runs again on a profile *switch*, and a setting
+/// only written when its row exists keeps the previous profile's value
+/// on a profile that never touched it (#698).
 async fn read_bool_setting(pool: &sqlx::SqlitePool, key: &str, default: bool) -> bool {
     sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
         .bind(key)
@@ -618,8 +618,262 @@ async fn read_bool_setting(pool: &sqlx::SqlitePool, key: &str, default: bool) ->
         .await
         .ok()
         .flatten()
-        .map(|v| v == "true")
+        .and_then(|v| match v.as_str() {
+            // `"1"` / `"0"` are the older spelling, still on disk in
+            // libraries that predate the current writers and still
+            // accepted everywhere else that reads a boolean setting
+            // (`plugins.rs`, `canvas.rs`, `profile_io.rs`, …). Reading
+            // `"1"` as false would silently turn a setting off.
+            "true" | "1" => Some(true),
+            "false" | "0" => Some(false),
+            // Anything else is not an answer: keep the default rather
+            // than read a typo as "off".
+            _ => None,
+        })
         .unwrap_or(default)
+}
+
+/// Restore the active profile's audio settings into the engine's
+/// process-wide atomics.
+///
+/// Every setting resolves to the engine's own boot default when its
+/// row is missing or unparseable, and is stored either way. That is
+/// the whole point: this runs again on a profile *switch*, and a
+/// value only written when its row exists keeps the previous
+/// profile's setting on a profile that never chose one (#698).
+///
+/// Called from [`switch_profile`] as the pool is swapped — rather
+/// than left to whichever `player_get_state` the frontend makes
+/// next — because every getter reads these atomics and nothing
+/// orders those reads against that call.
+pub(crate) async fn restore_profile_audio_settings(pool: &sqlx::SqlitePool, engine: &AudioEngine) {
+    // Restore audio settings (normalize, mono, crossfade). Each
+    // one resolves to its boot default when the row is missing
+    // or unparseable and is stored either way — see the block
+    // comment on `audio.dsd_dop` below for why a conditional
+    // store leaks across a profile switch (#698).
+    {
+        let normalize = read_bool_setting(pool, "audio.normalize", false).await;
+        engine
+            .shared()
+            .normalize_enabled
+            .store(normalize, std::sync::atomic::Ordering::Release);
+
+        let mono = read_bool_setting(pool, "audio.mono", false).await;
+        engine
+            .shared()
+            .mono_enabled
+            .store(mono, std::sync::atomic::Ordering::Release);
+
+        let crossfade_ms = sqlx::query_scalar::<_, String>(
+            "SELECT value FROM profile_setting WHERE key = 'audio.crossfade_ms'",
+        )
+        .fetch_optional(pool)
+        .await
+        .ok()
+        .flatten()
+        .and_then(|v| v.parse::<u32>().ok())
+        .unwrap_or(0);
+        engine
+            .shared()
+            .crossfade_ms
+            .store(crossfade_ms, std::sync::atomic::Ordering::Release);
+    }
+    // DSD converter precision. `player_get_state` re-runs on
+    // every hydration (incl. after a profile switch), so resolve
+    // to a definite value every time: a missing / corrupt / out-
+    // of-set row must reset the atomic to 256 rather than leak
+    // the previous profile's choice.
+    let dsd_taps = sqlx::query_scalar::<_, String>(
+        "SELECT value FROM profile_setting WHERE key = 'audio.dsd_precision'",
+    )
+    .fetch_optional(pool)
+    .await
+    .ok()
+    .flatten()
+    .and_then(|v| v.parse::<u32>().ok())
+    .filter(|t| DSD_TAPS_ALLOWED.contains(t))
+    .unwrap_or(256);
+    engine
+        .shared()
+        .dsd_taps
+        .store(dsd_taps, std::sync::atomic::Ordering::Release);
+    // Native DSD via DoP defaults OFF (#495) — only override the
+    // boot-time default when an explicit `true` row is found, and
+    // reset to false otherwise so a profile switch can't leak the
+    // previous profile's opt-in.
+    {
+        let dop = read_bool_setting(pool, "audio.dsd_dop", false).await;
+        engine
+            .shared()
+            .dsd_dop_enabled
+            .store(dop, std::sync::atomic::Ordering::Release);
+    }
+    // Per-track rate matching (#600), same shape and same
+    // reasoning as `dsd_dop` above: stored either way, so a
+    // profile switch cannot leak the previous profile's opt-in.
+    {
+        let match_rate = read_bool_setting(pool, "audio.match_source_rate", false).await;
+        engine
+            .shared()
+            .match_source_rate
+            .store(match_rate, std::sync::atomic::Ordering::Release);
+    }
+    // Pause on device loss (#617). It lives on the engine rather
+    // than in `SharedPlayback`, but it is profile-scoped like the
+    // two above, and this block is the one that runs on a profile
+    // *switch* — the boot read in `lib.rs` only covers the first
+    // profile of the session, so without this the second profile
+    // kept the first one's answer. Absent means on.
+    {
+        let pause_on_loss = read_bool_setting(pool, "audio.pause_on_device_loss", true).await;
+        engine.set_pause_on_device_loss(pause_on_loss);
+    }
+    // Every ReplayGain setting resolves to its default when the
+    // row is missing or unparseable, and is stored either way —
+    // the `dsd_dop` pattern above, for the same reason: this
+    // block also runs on a profile *switch*, so a value left
+    // conditional would keep the previous profile's setting on
+    // a profile that never set one.
+    {
+        let shared = engine.shared();
+        let enabled = read_bool_setting(pool, "audio.replaygain", false).await;
+        shared
+            .replaygain_enabled
+            .store(enabled, std::sync::atomic::Ordering::Release);
+
+        // The two dB knobs default to 0.0 and are clamped on the
+        // way in for the same reason playback speed is: a
+        // hand-edited row must not reach the mixer intact.
+        for (key, target) in [
+            ("audio.replaygain_preamp", &shared.replaygain_preamp_db_bits),
+            (
+                "audio.replaygain_fallback",
+                &shared.replaygain_fallback_db_bits,
+            ),
+        ] {
+            let value =
+                sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
+                    .bind(key)
+                    .fetch_optional(pool)
+                    .await
+                    .ok()
+                    .flatten()
+                    .and_then(|v| v.parse::<f32>().ok())
+                    .map(clamp_replaygain_adjust)
+                    .unwrap_or(0.0);
+            target.store(value.to_bits(), std::sync::atomic::Ordering::Release);
+        }
+
+        // Clipping prevention defaults to ON, so only an
+        // explicit `false` row turns it off.
+        let prevent_clipping =
+            read_bool_setting(pool, "audio.replaygain_prevent_clipping", true).await;
+        shared
+            .replaygain_prevent_clipping
+            .store(prevent_clipping, std::sync::atomic::Ordering::Release);
+
+        // Which of a file's two gains to apply. Defaults to
+        // `Auto`, and an unparseable row reads as the default
+        // rather than as an error — same rule as the knobs
+        // above, and the reason this is stored unconditionally.
+        let mode = sqlx::query_scalar::<_, String>(
+            "SELECT value FROM profile_setting WHERE key = 'audio.replaygain_mode'",
+        )
+        .fetch_optional(pool)
+        .await
+        .ok()
+        .flatten()
+        .map(|v| GainMode::from_setting(&v))
+        .unwrap_or_default();
+        shared
+            .replaygain_mode_bits
+            .store(mode.as_bits(), std::sync::atomic::Ordering::Release);
+    }
+    // Gapless defaults to ON, so an absent row reads as `true`.
+    let gapless = read_bool_setting(pool, "audio.gapless", true).await;
+    engine
+        .shared()
+        .gapless_enabled
+        .store(gapless, std::sync::atomic::Ordering::Release);
+    // Playback speed defaults to 1.0. Out-of-range values are
+    // re-clamped on the way in so a hand-edited DB can't
+    // resurrect the rubato instability range, and an absent or
+    // unparseable row resolves to 1.0 rather than leaving the
+    // previous profile's speed in place.
+    {
+        let speed = sqlx::query_scalar::<_, String>(
+            "SELECT value FROM profile_setting WHERE key = 'audio.playback_speed'",
+        )
+        .fetch_optional(pool)
+        .await
+        .ok()
+        .flatten()
+        .and_then(|v| v.parse::<f32>().ok())
+        .filter(|s| s.is_finite())
+        .map(|s| s.clamp(0.5, 2.0))
+        .unwrap_or(1.0);
+        // Use the raw atomic store here instead of
+        // `set_playback_speed` — the latter would also
+        // rebase `samples_played` / `base_offset_ms`
+        // against a position we haven't loaded yet,
+        // moving the resume point off the persisted
+        // value. `speed_dirty` stays false because no
+        // stream is decoding yet; the first track's
+        // lazy resampler init picks up the speed via
+        // `stream.playback_speed = shared.playback_speed()`.
+        engine
+            .shared()
+            .playback_speed_bits
+            .store(speed.to_bits(), std::sync::atomic::Ordering::Release);
+    }
+    // Equalizer settings. Both halves are restored
+    // unconditionally: a profile with no curve of its own must
+    // hear a flat one, not the curve the previous profile left
+    // in the filters.
+    {
+        let eq_enabled = read_bool_setting(pool, "audio.eq_enabled", false).await;
+        engine.shared().eq.set_enabled(eq_enabled);
+
+        // `set_all_bands_db` only writes the bands the slice
+        // covers, so a short (or missing, or malformed) row is
+        // padded to a full flat curve first — otherwise the
+        // bands it doesn't reach keep their previous values.
+        let mut bands = [0.0_f32; crate::audio::eq::BAND_COUNT];
+        if let Some(stored) = sqlx::query_scalar::<_, String>(
+            "SELECT value FROM profile_setting WHERE key = 'audio.eq_bands'",
+        )
+        .fetch_optional(pool)
+        .await
+        .ok()
+        .flatten()
+        .and_then(|v| serde_json::from_str::<Vec<f32>>(&v).ok())
+        {
+            for (slot, g) in bands.iter_mut().zip(stored) {
+                *slot = g;
+            }
+        }
+        engine.shared().eq.set_all_bands_db(&bands);
+    }
+    // Both crossfade refinements default OFF.
+    let smart_crossfade = read_bool_setting(pool, "audio.smart_crossfade", false).await;
+    engine
+        .shared()
+        .smart_crossfade_enabled
+        .store(smart_crossfade, std::sync::atomic::Ordering::Release);
+    let dynamic_crossfade = read_bool_setting(pool, "audio.dynamic_crossfade", false).await;
+    engine
+        .shared()
+        .dynamic_crossfade_enabled
+        .store(dynamic_crossfade, std::sync::atomic::Ordering::Release);
+    // Visualizer toggle. Default OFF — the FFT cost is tiny
+    // but the cpal-side telemetry isn't free, and most users
+    // won't have the panel open.
+    let visualizer = read_bool_setting(pool, "ui.visualizer", false).await;
+    engine
+        .shared()
+        .visualizer_enabled
+        .store(visualizer, std::sync::atomic::Ordering::Release);
 }
 
 /// Return the current player snapshot. Also resolves the "resume
@@ -646,158 +900,7 @@ pub async fn player_get_state(
             if let Some(persisted) = queue::read_player_volume(&pool).await {
                 engine.shared().set_volume(persisted);
             }
-            // Restore audio settings (normalize, mono, crossfade). Each
-            // one resolves to its boot default when the row is missing
-            // or unparseable and is stored either way — see the block
-            // comment on `audio.dsd_dop` below for why a conditional
-            // store leaks across a profile switch (#698).
-            {
-                let normalize = read_bool_setting(&pool, "audio.normalize", false).await;
-                engine
-                    .shared()
-                    .normalize_enabled
-                    .store(normalize, std::sync::atomic::Ordering::Release);
-
-                let mono = read_bool_setting(&pool, "audio.mono", false).await;
-                engine
-                    .shared()
-                    .mono_enabled
-                    .store(mono, std::sync::atomic::Ordering::Release);
-
-                let crossfade_ms = sqlx::query_scalar::<_, String>(
-                    "SELECT value FROM profile_setting WHERE key = 'audio.crossfade_ms'",
-                )
-                .fetch_optional(&*pool)
-                .await
-                .ok()
-                .flatten()
-                .and_then(|v| v.parse::<u32>().ok())
-                .unwrap_or(0);
-                engine
-                    .shared()
-                    .crossfade_ms
-                    .store(crossfade_ms, std::sync::atomic::Ordering::Release);
-            }
-            // DSD converter precision. `player_get_state` re-runs on
-            // every hydration (incl. after a profile switch), so resolve
-            // to a definite value every time: a missing / corrupt / out-
-            // of-set row must reset the atomic to 256 rather than leak
-            // the previous profile's choice.
-            let dsd_taps = sqlx::query_scalar::<_, String>(
-                "SELECT value FROM profile_setting WHERE key = 'audio.dsd_precision'",
-            )
-            .fetch_optional(&*pool)
-            .await
-            .ok()
-            .flatten()
-            .and_then(|v| v.parse::<u32>().ok())
-            .filter(|t| DSD_TAPS_ALLOWED.contains(t))
-            .unwrap_or(256);
-            engine
-                .shared()
-                .dsd_taps
-                .store(dsd_taps, std::sync::atomic::Ordering::Release);
-            // Native DSD via DoP defaults OFF (#495) — only override the
-            // boot-time default when an explicit `true` row is found, and
-            // reset to false otherwise so a profile switch can't leak the
-            // previous profile's opt-in.
-            {
-                let dop = read_bool_setting(&pool, "audio.dsd_dop", false).await;
-                engine
-                    .shared()
-                    .dsd_dop_enabled
-                    .store(dop, std::sync::atomic::Ordering::Release);
-            }
-            // Per-track rate matching (#600), same shape and same
-            // reasoning as `dsd_dop` above: stored either way, so a
-            // profile switch cannot leak the previous profile's opt-in.
-            {
-                let match_rate = read_bool_setting(&pool, "audio.match_source_rate", false).await;
-                engine
-                    .shared()
-                    .match_source_rate
-                    .store(match_rate, std::sync::atomic::Ordering::Release);
-            }
-            // Pause on device loss (#617). It lives on the engine rather
-            // than in `SharedPlayback`, but it is profile-scoped like the
-            // two above, and this block is the one that runs on a profile
-            // *switch* — the boot read in `lib.rs` only covers the first
-            // profile of the session, so without this the second profile
-            // kept the first one's answer. Absent means on.
-            {
-                let pause_on_loss = sqlx::query_scalar::<_, String>(
-                    "SELECT value FROM profile_setting WHERE key = 'audio.pause_on_device_loss'",
-                )
-                .fetch_optional(&*pool)
-                .await
-                .ok()
-                .flatten()
-                .map(|v| v == "1" || v == "true")
-                .unwrap_or(true);
-                engine.set_pause_on_device_loss(pause_on_loss);
-            }
-            // Every ReplayGain setting resolves to its default when the
-            // row is missing or unparseable, and is stored either way —
-            // the `dsd_dop` pattern above, for the same reason: this
-            // block also runs on a profile *switch*, so a value left
-            // conditional would keep the previous profile's setting on
-            // a profile that never set one.
-            {
-                let shared = engine.shared();
-                let enabled = read_bool_setting(&pool, "audio.replaygain", false).await;
-                shared
-                    .replaygain_enabled
-                    .store(enabled, std::sync::atomic::Ordering::Release);
-
-                // The two dB knobs default to 0.0 and are clamped on the
-                // way in for the same reason playback speed is: a
-                // hand-edited row must not reach the mixer intact.
-                for (key, target) in [
-                    ("audio.replaygain_preamp", &shared.replaygain_preamp_db_bits),
-                    (
-                        "audio.replaygain_fallback",
-                        &shared.replaygain_fallback_db_bits,
-                    ),
-                ] {
-                    let value = sqlx::query_scalar::<_, String>(
-                        "SELECT value FROM profile_setting WHERE key = ?",
-                    )
-                    .bind(key)
-                    .fetch_optional(&*pool)
-                    .await
-                    .ok()
-                    .flatten()
-                    .and_then(|v| v.parse::<f32>().ok())
-                    .map(clamp_replaygain_adjust)
-                    .unwrap_or(0.0);
-                    target.store(value.to_bits(), std::sync::atomic::Ordering::Release);
-                }
-
-                // Clipping prevention defaults to ON, so only an
-                // explicit `false` row turns it off.
-                let prevent_clipping =
-                    read_bool_setting(&pool, "audio.replaygain_prevent_clipping", true).await;
-                shared
-                    .replaygain_prevent_clipping
-                    .store(prevent_clipping, std::sync::atomic::Ordering::Release);
-
-                // Which of a file's two gains to apply. Defaults to
-                // `Auto`, and an unparseable row reads as the default
-                // rather than as an error — same rule as the knobs
-                // above, and the reason this is stored unconditionally.
-                let mode = sqlx::query_scalar::<_, String>(
-                    "SELECT value FROM profile_setting WHERE key = 'audio.replaygain_mode'",
-                )
-                .fetch_optional(&*pool)
-                .await
-                .ok()
-                .flatten()
-                .map(|v| GainMode::from_setting(&v))
-                .unwrap_or_default();
-                shared
-                    .replaygain_mode_bits
-                    .store(mode.as_bits(), std::sync::atomic::Ordering::Release);
-            }
+            restore_profile_audio_settings(&pool, &engine).await;
             // Album grouping is persisted per profile like everything
             // above, and the decoder reads it to tell a record playing
             // through from a shuffled playlist (#587). Mirrored here
@@ -815,91 +918,6 @@ pub async fn player_get_state(
             // album gain across it, and the decoder cannot read the
             // setting itself (#647).
             publish_album_ordering(&engine, queue::read_album_ordered(&pool).await);
-            // Gapless defaults to ON, so an absent row reads as `true`.
-            let gapless = read_bool_setting(&pool, "audio.gapless", true).await;
-            engine
-                .shared()
-                .gapless_enabled
-                .store(gapless, std::sync::atomic::Ordering::Release);
-            // Playback speed defaults to 1.0. Out-of-range values are
-            // re-clamped on the way in so a hand-edited DB can't
-            // resurrect the rubato instability range, and an absent or
-            // unparseable row resolves to 1.0 rather than leaving the
-            // previous profile's speed in place.
-            {
-                let speed = sqlx::query_scalar::<_, String>(
-                    "SELECT value FROM profile_setting WHERE key = 'audio.playback_speed'",
-                )
-                .fetch_optional(&*pool)
-                .await
-                .ok()
-                .flatten()
-                .and_then(|v| v.parse::<f32>().ok())
-                .filter(|s| s.is_finite())
-                .map(|s| s.clamp(0.5, 2.0))
-                .unwrap_or(1.0);
-                // Use the raw atomic store here instead of
-                // `set_playback_speed` — the latter would also
-                // rebase `samples_played` / `base_offset_ms`
-                // against a position we haven't loaded yet,
-                // moving the resume point off the persisted
-                // value. `speed_dirty` stays false because no
-                // stream is decoding yet; the first track's
-                // lazy resampler init picks up the speed via
-                // `stream.playback_speed = shared.playback_speed()`.
-                engine
-                    .shared()
-                    .playback_speed_bits
-                    .store(speed.to_bits(), std::sync::atomic::Ordering::Release);
-            }
-            // Equalizer settings. Both halves are restored
-            // unconditionally: a profile with no curve of its own must
-            // hear a flat one, not the curve the previous profile left
-            // in the filters.
-            {
-                let eq_enabled = read_bool_setting(&pool, "audio.eq_enabled", false).await;
-                engine.shared().eq.set_enabled(eq_enabled);
-
-                // `set_all_bands_db` only writes the bands the slice
-                // covers, so a short (or missing, or malformed) row is
-                // padded to a full flat curve first — otherwise the
-                // bands it doesn't reach keep their previous values.
-                let mut bands = [0.0_f32; crate::audio::eq::BAND_COUNT];
-                if let Some(stored) = sqlx::query_scalar::<_, String>(
-                    "SELECT value FROM profile_setting WHERE key = 'audio.eq_bands'",
-                )
-                .fetch_optional(&*pool)
-                .await
-                .ok()
-                .flatten()
-                .and_then(|v| serde_json::from_str::<Vec<f32>>(&v).ok())
-                {
-                    for (slot, g) in bands.iter_mut().zip(stored) {
-                        *slot = g;
-                    }
-                }
-                engine.shared().eq.set_all_bands_db(&bands);
-            }
-            // Both crossfade refinements default OFF.
-            let smart_crossfade = read_bool_setting(&pool, "audio.smart_crossfade", false).await;
-            engine
-                .shared()
-                .smart_crossfade_enabled
-                .store(smart_crossfade, std::sync::atomic::Ordering::Release);
-            let dynamic_crossfade =
-                read_bool_setting(&pool, "audio.dynamic_crossfade", false).await;
-            engine
-                .shared()
-                .dynamic_crossfade_enabled
-                .store(dynamic_crossfade, std::sync::atomic::Ordering::Release);
-            // Visualizer toggle. Default OFF — the FFT cost is tiny
-            // but the cpal-side telemetry isn't free, and most users
-            // won't have the panel open.
-            let visualizer = read_bool_setting(&pool, "ui.visualizer", false).await;
-            engine
-                .shared()
-                .visualizer_enabled
-                .store(visualizer, std::sync::atomic::Ordering::Release);
             // Prefer the actively-playing track (non-zero track_id in
             // SharedPlayback), fall back to the persisted resume point
             // at startup when the engine is still Idle.
@@ -1746,23 +1764,11 @@ pub async fn player_set_visualizer(
 }
 
 #[tauri::command]
-pub async fn player_get_visualizer(
-    state: tauri::State<'_, AppState>,
-    engine: tauri::State<'_, Arc<AudioEngine>>,
-) -> AppResult<bool> {
-    // The active profile's row is the authority, not the atomic: the
-    // atomic is only refreshed by `player_get_state`, and nothing
-    // orders that call against a view re-reading this one after a
-    // profile switch. Reading the row makes the answer right whichever
-    // of the two runs first (#698). The atomic is the fallback for the
-    // window where no profile pool is leased yet.
-    match state.require_profile_pool().await {
-        Ok(pool) => Ok(read_bool_setting(&pool, "ui.visualizer", false).await),
-        Err(_) => Ok(engine
-            .shared()
-            .visualizer_enabled
-            .load(std::sync::atomic::Ordering::Relaxed)),
-    }
+pub async fn player_get_visualizer(engine: tauri::State<'_, Arc<AudioEngine>>) -> AppResult<bool> {
+    Ok(engine
+        .shared()
+        .visualizer_enabled
+        .load(std::sync::atomic::Ordering::Relaxed))
 }
 
 /// Update the playback speed multiplier. Pushes the new value live
@@ -3033,11 +3039,23 @@ mod album_ordering_tests {
             "a setting whose default is on stays on while nothing says otherwise"
         );
 
-        sqlx::query("INSERT INTO profile_setting (key, value) VALUES ('ui.visualizer', 'true')")
+        sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('ui.visualizer', 'true', 'bool', 0)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        assert!(read_bool_setting(&pool, "ui.visualizer", false).await);
+
+        sqlx::query("UPDATE profile_setting SET value = '1' WHERE key = 'ui.visualizer'")
             .execute(&pool)
             .await
             .unwrap();
-        assert!(read_bool_setting(&pool, "ui.visualizer", false).await);
+        assert!(
+            read_bool_setting(&pool, "ui.visualizer", false).await,
+            "the older 1 / 0 spelling still reads as a boolean"
+        );
 
         sqlx::query("UPDATE profile_setting SET value = 'yes' WHERE key = 'ui.visualizer'")
             .execute(&pool)
@@ -3045,7 +3063,15 @@ mod album_ordering_tests {
             .unwrap();
         assert!(
             !read_bool_setting(&pool, "ui.visualizer", false).await,
-            "only the exact string the writer stores counts as on"
+            "and a value that is not a boolean at all reads as the default"
+        );
+        sqlx::query("UPDATE profile_setting SET value = 'yes' WHERE key = 'ui.visualizer'")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert!(
+            read_bool_setting(&pool, "ui.visualizer", true).await,
+            "which means the default, not false"
         );
     }
 }

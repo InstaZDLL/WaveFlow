@@ -194,8 +194,19 @@ pub async fn switch_profile(
         }
     }
 
-    // Re-arm watchers from the new profile's library_folder rows.
-    if let Ok(pool) = state.require_profile_pool().await {
+    // Re-arm watchers from the new profile's library_folder rows, and
+    // restore the new profile's audio settings into the engine's
+    // process-wide atomics. The restore belongs here rather than in
+    // whichever `player_get_state` the frontend makes next: every
+    // getter (`player_get_smart_crossfade`, `player_get_speed`,
+    // `player_get_audio_settings`, …) reads those atomics, and nothing
+    // orders those reads against that call — a view that re-read first
+    // showed the profile we just left (#698).
+    // Pinned to the profile this call is switching to (#485): two
+    // switches in quick succession must not let the first one's restore
+    // land after the second one's, which is the very leak this fixes.
+    if let Ok(pool) = state.require_profile_pool_for(Some(profile_id)).await {
+        crate::commands::player::restore_profile_audio_settings(&pool, &engine).await;
         if let Err(err) = watcher.restore_from_db(&pool).await {
             tracing::warn!(%err, "watcher restore after profile switch failed");
         }

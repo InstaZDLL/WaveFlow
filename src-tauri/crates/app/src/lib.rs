@@ -355,6 +355,19 @@ pub fn run() {
             // what a *future* device loss does, so nothing has to be
             // opened differently for it.
             engine.set_pause_on_device_loss(persisted_pause_on_loss);
+            // And the rest of the profile's audio settings — normalize,
+            // ReplayGain, the EQ curve, speed, the crossfades, the
+            // visualizer. Restored here rather than left to the
+            // frontend's first `player_get_state`: every getter reads
+            // these atomics, and a view that asked first was answered
+            // with the boot default instead of the profile's own
+            // choice (#698). The same call runs on a profile switch.
+            tauri::async_runtime::block_on(async {
+                let state = app.state::<AppState>();
+                if let Ok(pool) = state.require_profile_pool().await {
+                    commands::player::restore_profile_audio_settings(&pool, &engine).await;
+                }
+            });
             app.manage(engine);
 
             // Follow the system's default output while nothing is pinned
