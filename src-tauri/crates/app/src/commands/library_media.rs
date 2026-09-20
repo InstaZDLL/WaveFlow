@@ -158,6 +158,26 @@ pub fn existing_media_file(candidates: &[PathBuf], hash: &str, format: &str) -> 
         .find(|path| path.exists())
 }
 
+/// [`existing_media_file`], off the async runtime.
+///
+/// A `stat` is a syscall, and one of these candidates can be a network
+/// share or a drive that has spun down — where it costs hundreds of
+/// milliseconds of a runtime worker, on a path that runs at every track
+/// change. A join failure answers `None`, which is the same answer as a
+/// clip that is not there: the surface falls back to the static cover.
+pub async fn find_media_file(
+    candidates: Vec<PathBuf>,
+    hash: String,
+    format: String,
+) -> Option<PathBuf> {
+    tokio::task::spawn_blocking(move || existing_media_file(&candidates, &hash, &format))
+        .await
+        .unwrap_or_else(|err| {
+            tracing::warn!(?err, "media lookup task failed");
+            None
+        })
+}
+
 /// Let the webview load files from `dir`.
 ///
 /// The asset-protocol scope in `tauri.conf.json` is static and names the
@@ -198,7 +218,7 @@ pub async fn write_dir_for(
     } else {
         None
     };
-    prepare_or_fall_back(candidate, profile_dir)
+    prepare_or_fall_back(candidate, profile_dir).await
 }
 
 /// Same, for an album's animated cover: the first of its folders, since
@@ -218,21 +238,35 @@ pub async fn album_write_dir_for(
     } else {
         None
     };
-    prepare_or_fall_back(candidate, profile_dir)
+    prepare_or_fall_back(candidate, profile_dir).await
 }
 
-fn prepare_or_fall_back(candidate: Option<PathBuf>, profile_dir: PathBuf) -> PathBuf {
+/// Creating a directory is a syscall too, and the directory in question
+/// can be on the far end of a mount that is no longer there — where it
+/// does not fail quickly. A task that could not run at all is treated
+/// like a folder that refused: the clip goes to the app directory, which
+/// is the whole point of the fallback.
+async fn prepare_or_fall_back(candidate: Option<PathBuf>, profile_dir: PathBuf) -> PathBuf {
     let Some(dir) = candidate else {
         return profile_dir;
     };
-    match std::fs::create_dir_all(&dir) {
-        Ok(()) => dir,
-        Err(err) => {
+    let created = tokio::task::spawn_blocking({
+        let dir = dir.clone();
+        move || std::fs::create_dir_all(&dir)
+    })
+    .await;
+    match created {
+        Ok(Ok(())) => dir,
+        Ok(Err(err)) => {
             tracing::warn!(
                 ?err,
                 dir = %dir.display(),
                 "library folder refused the media directory; keeping the clip in the app folder"
             );
+            profile_dir
+        }
+        Err(err) => {
+            tracing::warn!(?err, "media directory task failed");
             profile_dir
         }
     }

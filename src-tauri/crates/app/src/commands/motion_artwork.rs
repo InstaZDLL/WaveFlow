@@ -295,7 +295,7 @@ async fn manual_motion_artwork(
         library_media::album_media_dirs(&pool, album_id, library_media::MediaKind::Motion).await;
     candidates.push(profile_dir.clone());
 
-    let Some(path) = library_media::existing_media_file(&candidates, &hash, &format) else {
+    let Some(path) = library_media::find_media_file(candidates, hash, format.clone()).await else {
         // The row outlived its file; the album falls back to its static
         // cover, as it would for one that never had a motion cover.
         return Ok(None);

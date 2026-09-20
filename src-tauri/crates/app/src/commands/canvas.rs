@@ -82,7 +82,7 @@ pub async fn get_track_canvas(
     }
     candidates.push(profile_dir.clone());
 
-    let Some(path) = library_media::existing_media_file(&candidates, &hash, &format) else {
+    let Some(path) = library_media::find_media_file(candidates, hash, format.clone()).await else {
         // The row outlived its file -- a library folder that went away, a
         // clip deleted by hand. The now-playing view falls back to the
         // cover, which is what it does for a track that never had one.
