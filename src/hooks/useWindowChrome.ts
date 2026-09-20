@@ -7,14 +7,66 @@ import {
   type WindowChromeState,
 } from "../lib/tauri/preferences";
 
-/** Until the stored choice is read, assume the desktop's own frame: it is
- *  what the window was created with, so assuming it draws nothing that has
- *  to be taken back a moment later. */
-const INITIAL: WindowChromeState = {
+const FALLBACK: WindowChromeState = {
   chrome: "system",
   draw: "none",
   supported: false,
 };
+
+/**
+ * First-paint cache, the same bargain the theme, skin and contrast
+ * bootstraps make: the database row is the source of truth, this only
+ * decides what the very first render draws.
+ *
+ * It matters because the backend takes the frame off **before** the window
+ * is revealed, while this hook's first answer is an IPC round-trip away.
+ * Without the cache, a Linux user who chose `app` gets a window revealed
+ * with no frame of its own and no title bar yet — a bare rectangle for a
+ * few frames. With it, only the very first launch after the choice can
+ * show that, and the round-trip corrects anything stale a moment later.
+ */
+const CACHE_KEY = "waveflow.windowChrome";
+
+function readCached(): WindowChromeState {
+  if (typeof window === "undefined") return FALLBACK;
+  try {
+    const raw = window.localStorage.getItem(CACHE_KEY);
+    if (!raw) return FALLBACK;
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      "draw" in parsed &&
+      "chrome" in parsed &&
+      "supported" in parsed
+    ) {
+      const state = parsed as WindowChromeState;
+      // Validate rather than trust: this is page-writable storage, and a
+      // bad `draw` would mean drawing a title bar over a framed window.
+      const drawOk =
+        state.draw === "none" ||
+        state.draw === "titlebar" ||
+        state.draw === "overlay";
+      const chromeOk = state.chrome === "system" || state.chrome === "app";
+      if (drawOk && chromeOk && typeof state.supported === "boolean") {
+        return state;
+      }
+    }
+  } catch {
+    // Unavailable (private mode, quota) or unparseable. The round-trip
+    // below still lands; only the first paint is degraded.
+  }
+  return FALLBACK;
+}
+
+function writeCached(state: WindowChromeState) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(CACHE_KEY, JSON.stringify(state));
+  } catch {
+    // Same bargain as above.
+  }
+}
 
 export interface WindowChromePreference extends WindowChromeState {
   /** `false` until the stored choice has been read. */
@@ -40,7 +92,7 @@ export interface WindowChromePreference extends WindowChromeState {
  * top bar, `"none"` means the desktop already drew it.
  */
 export function useWindowChrome(): WindowChromePreference {
-  const [state, setState] = useState<WindowChromeState>(INITIAL);
+  const [state, setState] = useState<WindowChromeState>(readCached);
   const [ready, setReady] = useState(false);
   // One write at a time. Two fast clicks would otherwise race, and the
   // answer that lands last decides the state and the broadcast -- which
@@ -55,6 +107,7 @@ export function useWindowChrome(): WindowChromePreference {
       .then((next) => {
         if (cancelled) return;
         setState(next);
+        writeCached(next);
         setReady(true);
       })
       .catch((err) => {
@@ -89,6 +142,7 @@ export function useWindowChrome(): WindowChromePreference {
     try {
       const applied = await setWindowChrome(next);
       setState(applied);
+      writeCached(applied);
       window.dispatchEvent(
         new CustomEvent<WindowChromeState>(WINDOW_CHROME_EVENT, {
           detail: applied,
