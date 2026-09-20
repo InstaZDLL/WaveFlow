@@ -176,6 +176,7 @@ import { CoverSlideshowCard } from "./settings/CoverSlideshowCard";
 import { ArtistHeroCard } from "./settings/ArtistHeroCard";
 import { ScrollTitlesCard } from "./settings/ScrollTitlesCard";
 import { WindowBoundsCard } from "./settings/WindowBoundsCard";
+import { WindowChromeCard } from "./settings/WindowChromeCard";
 import { LyricsDestinationCard } from "./settings/LyricsDestinationCard";
 import { UpdateChannelCard } from "./settings/UpdateChannelCard";
 import { ArtistBioSourceCard } from "./settings/ArtistBioSourceCard";
@@ -2942,6 +2943,7 @@ export function SettingsView({
                 <HiResBadgeCard />
                 <ScrollTitlesCard />
                 <WindowBoundsCard />
+                <WindowChromeCard />
               </SettingsGroup>
               <SettingsGroup
                 id="immersive"

@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Dove salvare i testi?",
-      "description": "Quando modifichi i testi, dove devono andare? Modificabile in Impostazioni → Immagini e testi.",
+      "description": "Dove devono andare i testi, quelli che modifichi e quelli che WaveFlow trova per te? Modificabile in Impostazioni → Immagini e testi.",
       "hint": "Scegli «File sidecar» per non toccare i file audio — come fanno foobar2000 e simili."
     }
   },
@@ -1322,6 +1322,11 @@
       "empty": "Nessun testo per questo brano"
     }
   },
+  "window": {
+    "minimize": "Riduci a icona",
+    "maximize": "Ingrandisci",
+    "restore": "Ripristina"
+  },
   "sleepTimer": {
     "title": "Timer di spegnimento",
     "endOfTrack": "Al termine del brano corrente",
@@ -2205,7 +2210,7 @@
     },
     "lyricsDestination": {
       "title": "Destinazione dei testi salvati",
-      "subtitle": "Dove vanno i testi scritti nell'editor. Puoi sovrascrivere a ogni modifica."
+      "subtitle": "Dove finiscono i testi sul disco: quelli che scrivi e quelli che WaveFlow scarica. Puoi sovrascrivere a ogni modifica."
     },
     "updateChannel": {
       "title": "Canale beta",
@@ -2306,6 +2311,20 @@
       "reset": "Reimposta",
       "done": "Reimpostato",
       "error": "Reimpostazione non riuscita. Riprova."
+    },
+    "windowChrome": {
+      "title": "Cornice della finestra",
+      "subtitle": "Chi disegna la barra in cima alla finestra: il tuo desktop o WaveFlow.",
+      "options": {
+        "system": {
+          "label": "Sistema",
+          "hint": "La cornice che il tuo desktop disegna per ogni app."
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "La disegna WaveFlow, e i pulsanti della finestra stanno nella sua barra."
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "Salva i Canvas in locale",

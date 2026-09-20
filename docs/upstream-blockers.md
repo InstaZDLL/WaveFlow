@@ -14,7 +14,7 @@ The lazy take "let's fork the whole stack" is almost always the wrong answer —
 - **Impact**: Linux window decorations + native dialogs render in GTK3 style, which looks dated next to libadwaita apps on GNOME 49+. Affects every distribution channel (AUR / COPR / Flatpak / .deb / .rpm / AppImage), not Flatpak-specific.
 - **Severity**: Cosmetic. The app is functional; only the chrome looks off.
 - **Why it's stuck**: wry's Linux backend hard-binds against the GTK3 variant of WebKitGTK. The `webkit2gtk-rs` crate now exposes both 4.1 and 6.0 APIs behind features, so the missing piece is a wry refactor that conditionally compiles against either binding (~500–1500 lines). No PR has landed yet.
-- **What we can do today**: ship a custom titlebar (`decorations: false` in `tauri.conf.json` + draw it ourselves) — Spotify / VS Code / Apple Music pattern. Cross-platform side benefit. Tracked under follow-ups in PR #164.
+- **What we can do today**: ✅ **done, as a choice rather than a default** (#696). **Settings → Appearance → Player and window → Window frame** switches between the desktop's frame and one WaveFlow draws (`set_decorations(false)` + [`AppTitleBar`](../src/components/layout/AppTitleBar.tsx)) — the Spotify / VS Code / Apple Music pattern. A choice, because the GTK3 frame is the *right* answer on a GTK desktop and only looks dated next to libadwaita; and the same switch gives macOS the overlay title bar. See [`ui.md`](features/ui.md#window-frame).
 - **What a real fix looks like**: write the wry PR ourselves or sponsor it. Triage: when one of us has a focused two-week slot.
 
 ### B2 — AppImage sidecars

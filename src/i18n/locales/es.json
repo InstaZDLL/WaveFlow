@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "¿Dónde guardar las letras?",
-      "description": "Cuando editas letras, ¿dónde quieres que se guarden? Podrás cambiarlo en Configuración → Imágenes y letras.",
+      "description": "¿Dónde quieres que se guarden las letras, tanto las que editas como las que WaveFlow encuentra? Podrás cambiarlo en Configuración → Imágenes y letras.",
       "hint": "Elige \"Archivo auxiliar\" para mantener tus archivos de audio intactos (lo que hacen foobar2000 y compañía)."
     }
   },
@@ -1322,6 +1322,11 @@
       "empty": "No hay letra para esta pista"
     }
   },
+  "window": {
+    "minimize": "Minimizar",
+    "maximize": "Maximizar",
+    "restore": "Restaurar"
+  },
   "sleepTimer": {
     "title": "Temporizador",
     "endOfTrack": "Al final de la pista actual",
@@ -2205,7 +2210,7 @@
     },
     "lyricsDestination": {
       "title": "Destino de las letras guardadas",
-      "subtitle": "Dónde se guardan las letras que escribes en el editor. Puedes anularlo en cada edición."
+      "subtitle": "Dónde se guardan las letras en el disco: las que escribes y las que WaveFlow descarga. Puedes anularlo en cada edición."
     },
     "updateChannel": {
       "title": "Canal beta",
@@ -2306,6 +2311,20 @@
       "reset": "Restablecer",
       "done": "Restablecido",
       "error": "No se pudo restablecer. Inténtalo de nuevo."
+    },
+    "windowChrome": {
+      "title": "Marco de la ventana",
+      "subtitle": "Quién dibuja la barra superior de la ventana: tu escritorio o WaveFlow.",
+      "options": {
+        "system": {
+          "label": "Sistema",
+          "hint": "El marco que tu escritorio dibuja para todas las aplicaciones."
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "Lo dibuja WaveFlow, y los botones de la ventana se sitúan en su propia barra."
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "Guardar los Canvas localmente",

@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Wo sollen Liedtexte landen?",
-      "description": "Wenn du Liedtexte bearbeitest, wo sollen sie hin? Du kannst dies jederzeit unter Einstellungen → Bilder und Liedtexte ändern.",
+      "description": "Wo sollen Liedtexte hin — die, die du bearbeitest, und die, die WaveFlow für dich findet? Du kannst dies jederzeit unter Einstellungen → Bilder und Liedtexte ändern.",
       "hint": "Wähle „Sidecar-Datei“, um Audiodateien unberührt zu lassen — wie foobar2000 & Co."
     }
   },
@@ -1321,6 +1321,11 @@
       "empty": "Kein Songtext für diesen Titel"
     }
   },
+  "window": {
+    "minimize": "Minimieren",
+    "maximize": "Maximieren",
+    "restore": "Wiederherstellen"
+  },
   "sleepTimer": {
     "title": "Sleep-Timer",
     "endOfTrack": "Am Ende des aktuellen Titels",
@@ -2201,8 +2206,8 @@
       "subtitle": "Sucht Songtexte zuerst online; greift auf die in der Datei gespeicherten zurück, wenn keine gefunden werden"
     },
     "lyricsDestination": {
-      "title": "Speicherort für bearbeitete Liedtexte",
-      "subtitle": "Wo Liedtexte aus dem Editor landen. Bei jeder Bearbeitung überschreibbar."
+      "title": "Speicherort für Liedtexte",
+      "subtitle": "Wo Liedtexte auf der Festplatte landen — die, die du schreibst, und die, die WaveFlow abruft. Den Speicherort kannst du bei jeder Bearbeitung einzeln festlegen."
     },
     "updateChannel": {
       "title": "Beta-Kanal",
@@ -2303,6 +2308,20 @@
       "reset": "Zurücksetzen",
       "done": "Zurückgesetzt",
       "error": "Zurücksetzen fehlgeschlagen. Bitte erneut versuchen."
+    },
+    "windowChrome": {
+      "title": "Fensterrahmen",
+      "subtitle": "Wer die Leiste oben am Fenster zeichnet: dein Desktop oder WaveFlow.",
+      "options": {
+        "system": {
+          "label": "System",
+          "hint": "Der Rahmen, den dein Desktop für jede App zeichnet."
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "WaveFlow zeichnet ihn, und die Fensterknöpfe sitzen in seiner eigenen Leiste."
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "Canvas lokal speichern",

@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Waar moeten songteksten heen?",
-      "description": "Waar moeten songteksten heen die je bewerkt? Aanpasbaar via Instellingen → Afbeeldingen en songteksten.",
+      "description": "Waar moeten songteksten heen, zowel die je bewerkt als die WaveFlow voor je vindt? Aanpasbaar via Instellingen → Afbeeldingen en songteksten.",
       "hint": "Kies \"Sidecar-bestand\" om je audiobestanden ongemoeid te laten — zoals foobar2000 & co."
     }
   },
@@ -1321,6 +1321,11 @@
       "empty": "Geen songtekst voor dit nummer"
     }
   },
+  "window": {
+    "minimize": "Minimaliseren",
+    "maximize": "Maximaliseren",
+    "restore": "Herstellen"
+  },
   "sleepTimer": {
     "title": "Slaaptimer",
     "endOfTrack": "Aan het einde van het huidige nummer",
@@ -2202,7 +2207,7 @@
     },
     "lyricsDestination": {
       "title": "Bestemming voor opgeslagen songteksten",
-      "subtitle": "Waar songteksten uit de editor heen gaan. Per bewerking te overschrijven."
+      "subtitle": "Waar songteksten op schijf terechtkomen — die je zelf schrijft en die WaveFlow ophaalt. Per bewerking te overschrijven."
     },
     "updateChannel": {
       "title": "Bètakanaal",
@@ -2303,6 +2308,20 @@
       "reset": "Herstellen",
       "done": "Hersteld",
       "error": "Herstellen mislukt. Probeer het opnieuw."
+    },
+    "windowChrome": {
+      "title": "Vensterrand",
+      "subtitle": "Wie de balk bovenaan het venster tekent: je bureaublad of WaveFlow.",
+      "options": {
+        "system": {
+          "label": "Systeem",
+          "hint": "De rand die je bureaublad voor elke app tekent."
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "WaveFlow tekent hem, en de vensterknoppen zitten in zijn eigen balk."
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "Canvas lokaal opslaan",

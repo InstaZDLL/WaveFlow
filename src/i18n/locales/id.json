@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Di mana menyimpan lirik?",
-      "description": "Saat kamu mengedit lirik, di mana liriknya harus disimpan? Kamu dapat mengubahnya kapan saja di Pengaturan → Gambar dan lirik.",
+      "description": "Di mana lirik harus disimpan — yang kamu edit maupun yang ditemukan WaveFlow? Kamu dapat mengubahnya kapan saja di Pengaturan → Gambar dan lirik.",
       "hint": "Pilih \"Berkas pendamping\" agar berkas audio kamu tetap utuh — seperti yang dilakukan foobar2000 dkk."
     }
   },
@@ -1321,6 +1321,11 @@
       "empty": "Tidak ada lirik untuk lagu ini"
     }
   },
+  "window": {
+    "minimize": "Minimalkan",
+    "maximize": "Maksimalkan",
+    "restore": "Pulihkan"
+  },
   "sleepTimer": {
     "title": "Pengatur waktu tidur",
     "endOfTrack": "Di akhir lagu saat ini",
@@ -2202,7 +2207,7 @@
     },
     "lyricsDestination": {
       "title": "Tujuan lirik tersimpan",
-      "subtitle": "Tempat lirik dari editor disimpan. Dapat di-override per pengeditan."
+      "subtitle": "Tempat lirik disimpan di disk: yang kamu tulis dan yang diambil WaveFlow. Dapat di-override per pengeditan."
     },
     "updateChannel": {
       "title": "Saluran beta",
@@ -2303,6 +2308,20 @@
       "reset": "Atur ulang",
       "done": "Diatur ulang",
       "error": "Gagal mengatur ulang. Silakan coba lagi."
+    },
+    "windowChrome": {
+      "title": "Bingkai jendela",
+      "subtitle": "Siapa yang menggambar bilah di atas jendela: desktop kamu atau WaveFlow.",
+      "options": {
+        "system": {
+          "label": "Sistem",
+          "hint": "Bingkai yang digambar desktop kamu untuk semua aplikasi."
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "WaveFlow yang menggambarnya, dan tombol jendela berada di bilahnya sendiri."
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "Simpan Canvas secara lokal",

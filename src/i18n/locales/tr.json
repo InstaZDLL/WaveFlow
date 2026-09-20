@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Şarkı sözleri nereye gitsin?",
-      "description": "Şarkı sözlerini düzenlediğinde nereye gitsinler? Ayarlar → Görseller ve şarkı sözleri'nden değiştirebilirsin.",
+      "description": "Şarkı sözleri nereye gitsin — hem düzenlediklerin hem de WaveFlow'un senin için buldukları? Ayarlar → Görseller ve şarkı sözleri'nden değiştirebilirsin.",
       "hint": "Ses dosyalarını bozulmadan tutmak için \"Yan dosya\" seç — foobar2000 ve benzerleri böyle yapar."
     }
   },
@@ -1321,6 +1321,11 @@
       "empty": "Bu parça için şarkı sözü yok"
     }
   },
+  "window": {
+    "minimize": "Simge durumuna küçült",
+    "maximize": "Ekranı kapla",
+    "restore": "Geri yükle"
+  },
   "sleepTimer": {
     "title": "Uyku zamanlayıcısı",
     "endOfTrack": "Geçerli parçanın sonunda",
@@ -2202,7 +2207,7 @@
     },
     "lyricsDestination": {
       "title": "Kayıtlı şarkı sözü hedefi",
-      "subtitle": "Düzenleyiciye yazdığın şarkı sözlerinin kaydedileceği yer. Bunu her düzenlemede değiştirebilirsin."
+      "subtitle": "Şarkı sözlerinin diskte nereye kaydedileceği: hem senin yazdıkların hem de WaveFlow'un indirdikleri. Bunu her düzenlemede değiştirebilirsin."
     },
     "updateChannel": {
       "title": "Beta kanalı",
@@ -2303,6 +2308,20 @@
       "reset": "Sıfırla",
       "done": "Sıfırlandı",
       "error": "Sıfırlama başarısız. Lütfen tekrar dene."
+    },
+    "windowChrome": {
+      "title": "Pencere çerçevesi",
+      "subtitle": "Pencerenin üstündeki çubuğu kim çizsin: masaüstün mü, WaveFlow mu.",
+      "options": {
+        "system": {
+          "label": "Sistem",
+          "hint": "Masaüstünün her uygulama için çizdiği çerçeve."
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "Onu WaveFlow çizer ve pencere düğmeleri kendi çubuğunda yer alır."
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "Canvas videolarını yerel olarak kaydet",

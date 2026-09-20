@@ -18,6 +18,8 @@ import { SkinMotionWrapper } from "./SkinMotionWrapper";
 import { useDragDropImport } from "../../hooks/useDragDropImport";
 import { useGlobalShortcuts } from "../../hooks/useGlobalShortcuts";
 import { useUiZoom } from "../../hooks/useUiZoom";
+import { useWindowChrome } from "../../hooks/useWindowChrome";
+import { AppTitleBar } from "./AppTitleBar";
 import { useMainWindowBounds } from "../../hooks/useMainWindowBounds";
 import { useTranslation } from "react-i18next";
 import { Loader2, Upload } from "lucide-react";
@@ -167,6 +169,10 @@ export function AppLayout() {
   // Tauri's WebView `setZoom`, and listen for Ctrl+= / Ctrl+- /
   // Ctrl+0 so users can tune density without diving into Settings.
   useUiZoom();
+  // Who draws the frame around the window (#696). The backend resolved the
+  // stored choice for this platform already, so there is one instruction to
+  // follow here rather than a platform test.
+  const windowChrome = useWindowChrome();
   // Main-window size + position persistence. Saves on every move/resize
   // (debounced 300 ms); restoration is done by the Rust boot path before
   // the window is revealed so there is no visible jump.
@@ -372,9 +378,7 @@ export function AppLayout() {
   const activePluginId =
     currentEntry.id === "plugin-ui" ? currentEntry.pluginId : null;
   const activePluginPath =
-    currentEntry.id === "plugin-ui"
-      ? (currentEntry.initialPath ?? "/")
-      : "/";
+    currentEntry.id === "plugin-ui" ? (currentEntry.initialPath ?? "/") : "/";
   const activePluginIcon =
     currentEntry.id === "plugin-ui" ? (currentEntry.icon ?? null) : null;
 
@@ -650,6 +654,17 @@ export function AppLayout() {
       <SkinPlayingState />
       <div className="flex flex-col h-screen font-sans">
         <div className="flex flex-col h-screen bg-app-ambient text-zinc-600 dark:text-zinc-300 relative">
+          {/* Linux with the decorations turned off: the strip that
+              replaces them. */}
+          {windowChrome.draw === "titlebar" && <AppTitleBar />}
+          {/* macOS with the overlay title bar: the frame is still the
+              system's, just transparent over our content, so all this
+              needs to be is the room the traffic lights sit in -- and a
+              drag region, which an overlay title bar does not provide by
+              itself (the window would have nothing to move it by). */}
+          {windowChrome.draw === "overlay" && (
+            <div data-tauri-drag-region className="h-7 shrink-0" />
+          )}
           {/* Drag-and-drop overlay — fades in while the user is dragging
             files over the window, and shows an "importing…" state while
             the backend scan runs. Pointer-events disabled so the drop

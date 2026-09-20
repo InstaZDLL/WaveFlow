@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Onde salvar as letras?",
-      "description": "Quando você edita letras, para onde elas devem ir? Pode mudar em Configurações → Imagens e letras.",
+      "description": "Para onde devem ir as letras, tanto as que você edita quanto as que o WaveFlow encontra? Pode mudar em Configurações → Imagens e letras.",
       "hint": "Escolha \"Arquivo sidecar\" para manter seus arquivos de áudio intactos — como faz o foobar2000."
     }
   },
@@ -1322,6 +1322,11 @@
       "empty": "Sem letra para esta faixa"
     }
   },
+  "window": {
+    "minimize": "Minimizar",
+    "maximize": "Maximizar",
+    "restore": "Restaurar"
+  },
   "sleepTimer": {
     "title": "Temporizador para dormir",
     "endOfTrack": "No fim da faixa atual",
@@ -2205,7 +2210,7 @@
     },
     "lyricsDestination": {
       "title": "Destino das letras salvas",
-      "subtitle": "Para onde vão as letras digitadas no editor. Você pode substituir isso em cada edição no rodapé do editor."
+      "subtitle": "Para onde vão as letras no disco: as que você digita e as que o WaveFlow baixa. Você pode substituir isso em cada edição no rodapé do editor."
     },
     "updateChannel": {
       "title": "Canal beta",
@@ -2306,6 +2311,20 @@
       "reset": "Redefinir",
       "done": "Redefinido",
       "error": "Falha ao redefinir. Tente novamente."
+    },
+    "windowChrome": {
+      "title": "Moldura da janela",
+      "subtitle": "Quem desenha a barra no topo da janela: seu ambiente de trabalho ou o WaveFlow.",
+      "options": {
+        "system": {
+          "label": "Sistema",
+          "hint": "A moldura que seu ambiente de trabalho desenha para todos os aplicativos."
+        },
+        "app": {
+          "label": "WaveFlow",
+          "hint": "É o WaveFlow que a desenha, e os botões da janela ficam na barra dele."
+        }
+      }
     },
     "canvasCache": {
       "cacheLabel": "Salvar os Canvas localmente",
