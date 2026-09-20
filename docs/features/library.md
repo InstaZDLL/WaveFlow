@@ -261,11 +261,15 @@ For libraries scanned before the feature shipped, [`commands/scan.rs::rescan_loc
 
 The pencil overlay on the artist photo in [`ArtistDetailView`](../../src/components/views/ArtistDetailView.tsx) opens [`ArtistImagePickerModal`](../../src/components/common/ArtistImagePickerModal.tsx), which exposes three actions backed by [`commands/deezer.rs`](../../src-tauri/crates/app/src/commands/deezer.rs):
 
-- **Search Deezer** → `search_artists_deezer` + `set_artist_artwork_from_deezer` (downloads the chosen picture into the profile artwork cache, marks source `"deezer"`).
+- **Search Deezer** → `search_artists_deezer` + `set_artist_artwork_from_deezer` (downloads the chosen picture into the profile artwork cache, marks source `"deezer"`, **and writes `artist.deezer_id`**).
 - **Pick a local file** → `set_artist_artwork_from_file` (same magic-byte validation as the album cover picker: jpg / png / webp).
 - **Remove image** → `clear_artist_artwork` sets `artist.artwork_id = NULL` so the next render falls back through the resolution chain (Deezer cache → live fetch).
 
 Both `set_artist_artwork_from_*` overwrite `artwork_id` unconditionally — an explicit user pick beats any automatic resolution.
+
+**The Deezer pick re-links the artist, not just the photo** (issue #692). The picker lists every Deezer artist matching the name with its fan count, so it is the one place a user can say *which* artist this is — and `artist.deezer_id` is what every other surface resolves through: the fan count, the bio, the [wide fanart](#wide-artist-fanart-hero) and [similar artists](integrations.md#similar-artists) all join `app.metadata_artist` on it. Writing only the picture left the page showing one artist's photo above another artist's numbers. The id and the artwork are written in one statement, and the hand-picked id then sticks: the automatic link in `enrich_artist_deezer_inner` only fills the column when it is `NULL`, so no later enrichment pass can undo the choice. Picking a **local file** deliberately does not re-link — a file on disk says nothing about which Deezer artist this is.
+
+All three commands emit **`artist:updated`** with the artist id. Without it only the page the picker was opened from refreshed: the now-playing panel and the [cover slideshow](ui.md#cover-slideshow) resolve a photo once per artist id and, while the same track keeps playing, had no reason to look again. [`useArtistUpdated`](../../src/hooks/useArtistUpdated.ts) is the listener side, the sibling of `useTrackUpdated`.
 
 ### Wide artist fanart (hero)
 

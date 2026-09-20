@@ -305,6 +305,20 @@ pub struct DeezerArtistEnrichment {
     /// artist hero; `None` means the artist has no wide image and the
     /// frontend falls back to blurring the square photo.
     pub background_path: Option<String>,
+    /// The artist's **own** image — an `artist.jpg` sidecar the scanner
+    /// linked, or a picture the user set by hand — resolved from
+    /// `artist.artwork_id` in the profile artwork dir.
+    ///
+    /// It outranks `picture_path`, and every surface that shows an
+    /// artist photo has to prefer it: the artist page and the library
+    /// grid already did, through `get_artist_detail` /
+    /// `list_library_artists`, while everything reached through this
+    /// enrichment (the now-playing panel, the cover slideshow) showed
+    /// Deezer's picture instead — a curated image ignored when Deezer
+    /// had one, and no image at all when Deezer had none (#701).
+    pub artwork_path: Option<String>,
+    pub artwork_path_1x: Option<String>,
+    pub artwork_path_2x: Option<String>,
 }
 
 impl DeezerArtistEnrichment {
@@ -320,6 +334,9 @@ impl DeezerArtistEnrichment {
             bio_full: None,
             background_url: None,
             background_path: None,
+            artwork_path: None,
+            artwork_path_1x: None,
+            artwork_path_2x: None,
         }
     }
 }
@@ -329,8 +346,12 @@ pub async fn enrich_artist_deezer(
     state: tauri::State<'_, AppState>,
     artist_id: i64,
 ) -> AppResult<DeezerArtistEnrichment> {
-    let pool = state.require_profile_pool().await?;
-    enrich_artist_deezer_with_pool(state, &pool, artist_id).await
+    // One snapshot rather than two awaits: pairing a pool with an id
+    // read after a `switch_profile` would point the artwork dir at the
+    // other profile.
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    enrich_artist_deezer_with_pool(state, &pool, &artwork_dir, artist_id).await
 }
 
 /// Enrich an artist by **name**, for a remote artist (RFC-005) that has no
@@ -388,6 +409,7 @@ pub async fn enrich_artist_by_name(
 async fn enrich_artist_deezer_with_pool(
     state: tauri::State<'_, AppState>,
     pool: &sqlx::SqlitePool,
+    artwork_dir: &std::path::Path,
     artist_id: i64,
 ) -> AppResult<DeezerArtistEnrichment> {
     // Per-profile bio override (issue #323) wins over any fetched bio
@@ -409,7 +431,8 @@ async fn enrich_artist_deezer_with_pool(
     // enrichment stay scoped to one profile — re-resolving inside could
     // straddle a switch_profile and apply one profile's override to
     // another's artist.
-    let mut enrichment = enrich_artist_deezer_inner(state, pool.clone(), artist_id).await?;
+    let mut enrichment =
+        enrich_artist_deezer_inner(state, pool.clone(), artwork_dir, artist_id).await?;
     if let Some(bio) = custom_bio {
         // Synthesize a truncated lead-in the same way the online sources
         // do (issue #343) — without it bio_short == bio_full verbatim and
@@ -423,21 +446,44 @@ async fn enrich_artist_deezer_with_pool(
 async fn enrich_artist_deezer_inner(
     state: tauri::State<'_, AppState>,
     pool: sqlx::SqlitePool,
+    artwork_dir: &std::path::Path,
     artist_id: i64,
 ) -> AppResult<DeezerArtistEnrichment> {
-    // 1. Read local artist.
-    let local: Option<(String, Option<i64>)> =
-        sqlx::query_as("SELECT name, deezer_id FROM artist WHERE id = ?")
-            .bind(artist_id)
-            .fetch_optional(&pool)
-            .await?;
+    // 1. Read local artist, with the image it owns: an `artist.jpg`
+    //    sidecar the scanner linked, or one the user set by hand.
+    let local: Option<(String, Option<i64>, Option<String>, Option<String>)> = sqlx::query_as(
+        "SELECT ar.name, ar.deezer_id, aw.hash, aw.format
+           FROM artist ar
+           LEFT JOIN artwork aw ON aw.id = ar.artwork_id
+          WHERE ar.id = ?",
+    )
+    .bind(artist_id)
+    .fetch_optional(&pool)
+    .await?;
 
-    let Some((artist_name, existing_deezer_id)) = local else {
+    let Some((artist_name, existing_deezer_id, artwork_hash, artwork_format)) = local else {
         return Ok(DeezerArtistEnrichment::empty());
     };
 
-    let enrichment =
+    // The dir is handed down rather than re-derived from the active
+    // profile, for the reason the pool is: a `switch_profile` mid-batch
+    // would otherwise point the remaining artists at the new profile's
+    // artwork dir while they are read from the old profile's database.
+    let (artwork_path, artwork_path_1x, artwork_path_2x) =
+        match (artwork_hash.as_deref(), artwork_format.as_deref()) {
+            (Some(hash), Some(fmt)) => {
+                let full = artwork_dir.join(format!("{hash}.{fmt}"));
+                let (p1, p2) = crate::thumbnails::thumbnail_paths_for(artwork_dir, hash);
+                (Some(full.to_string_lossy().to_string()), p1, p2)
+            }
+            _ => (None, None, None),
+        };
+
+    let mut enrichment =
         enrich_artist_named(state, pool.clone(), artist_name, existing_deezer_id).await?;
+    enrichment.artwork_path = artwork_path;
+    enrichment.artwork_path_1x = artwork_path_1x;
+    enrichment.artwork_path_2x = artwork_path_2x;
 
     // 8. Link the discovered deezer_id back onto the local artist, so the
     //    next pass hits the cache by id instead of re-searching by name.
@@ -563,6 +609,11 @@ async fn enrich_artist_named(
                     bio_full,
                     background_url,
                     background_path,
+                    // Filled by the by-id path, which is the only one
+                    // with a local row to read an image from.
+                    artwork_path: None,
+                    artwork_path_1x: None,
+                    artwork_path_2x: None,
                 });
             }
         }
@@ -748,6 +799,9 @@ async fn enrich_artist_named(
         bio_full,
         background_url,
         background_path,
+        artwork_path: None,
+        artwork_path_1x: None,
+        artwork_path_2x: None,
     })
 }
 
@@ -962,12 +1016,28 @@ pub async fn search_artists_deezer(query: String) -> AppResult<Vec<DeezerArtistL
         .collect())
 }
 
-/// Link a specific Deezer artist photo (by Deezer ID) to a local
-/// `artist` row. Downloads the picture into the profile artwork cache
-/// and overwrites `artist.artwork_id` unconditionally — explicit user
-/// pick, so we override any existing image (local sidecar, prior fetch).
+/// Link a specific Deezer artist to a local `artist` row: its photo
+/// **and its identity**. Downloads the picture into the profile artwork
+/// cache and overwrites `artist.artwork_id` unconditionally — explicit
+/// user pick, so we override any existing image (local sidecar, prior
+/// fetch).
+///
+/// It also writes `artist.deezer_id` (#692). The picker is the one place
+/// where a user sees the candidates side by side with their fan counts,
+/// so picking one is an answer to "which artist is this?", not only
+/// "which photo?". Everything else resolves through that column — fan
+/// count, bio, TheAudioDB hero fanart, similar artists — so writing the
+/// photo alone left the page showing one artist's picture above another
+/// artist's numbers.
+///
+/// Nothing overwrites a non-NULL `deezer_id` afterwards: the automatic
+/// link in `enrich_artist_deezer_inner` only fills the column when it is
+/// empty, so the hand-picked id survives every later enrichment pass.
+/// `set_artist_artwork_from_file` deliberately does *not* do this — a
+/// local file says nothing about which Deezer artist this is.
 #[tauri::command]
 pub async fn set_artist_artwork_from_deezer(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     artist_id: i64,
     deezer_artist_id: i64,
@@ -1004,8 +1074,11 @@ pub async fn set_artist_artwork_from_deezer(
     // rolls the artwork insert back rather than orphaning it.
     let mut tx = pool.begin().await?;
     let artwork_id = upsert_artwork(&mut tx, &hash, format, "deezer").await?;
-    let res = sqlx::query("UPDATE artist SET artwork_id = ? WHERE id = ?")
+    // Photo and identity in one statement: a row that ends up with the
+    // new picture and the old id is the split this fixes.
+    let res = sqlx::query("UPDATE artist SET artwork_id = ?, deezer_id = ? WHERE id = ?")
         .bind(artwork_id)
+        .bind(deezer_artist_id)
         .bind(artist_id)
         .execute(&mut *tx)
         .await?;
@@ -1014,6 +1087,13 @@ pub async fn set_artist_artwork_from_deezer(
     }
     tx.commit().await?;
 
+    // The enrichment cache is keyed by deezer_id, so the row cached
+    // under the previous id is simply no longer reached — nothing to
+    // invalidate. What does need telling is every view holding a
+    // resolved photo for this artist; they cache per artist id and have
+    // no other reason to look again.
+    let _ = app.emit("artist:updated", artist_id);
+
     Ok(())
 }
 
@@ -1021,6 +1101,7 @@ pub async fn set_artist_artwork_from_deezer(
 /// validation as `set_album_artwork_from_file` (jpg / png / webp).
 #[tauri::command]
 pub async fn set_artist_artwork_from_file(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     artist_id: i64,
     file_path: String,
@@ -1056,6 +1137,7 @@ pub async fn set_artist_artwork_from_file(
         return Err(AppError::Other(format!("artist {artist_id} not found")));
     }
     tx.commit().await?;
+    let _ = app.emit("artist:updated", artist_id);
 
     Ok(())
 }
@@ -1065,6 +1147,7 @@ pub async fn set_artist_artwork_from_file(
 /// longer referenced) is left in place — a future GC pass can sweep it.
 #[tauri::command]
 pub async fn clear_artist_artwork(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     artist_id: i64,
 ) -> AppResult<()> {
@@ -1076,6 +1159,7 @@ pub async fn clear_artist_artwork(
     if res.rows_affected() == 0 {
         return Err(AppError::Other(format!("artist {artist_id} not found")));
     }
+    let _ = app.emit("artist:updated", artist_id);
     Ok(())
 }
 
@@ -1092,7 +1176,11 @@ pub async fn batch_fetch_missing_artist_pictures(
     if crate::offline::is_offline() {
         return Ok(0);
     }
-    let pool = state.require_profile_pool().await?;
+    // One snapshot, held for the whole loop: the pool and the artwork
+    // dir have to describe the same profile from the first artist to
+    // the last.
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     let now = now_ms();
 
     // Pending = artists whose cached row is missing OR expired. The
@@ -1124,7 +1212,7 @@ pub async fn batch_fetch_missing_artist_pictures(
         );
         // Same pool the artist list was read from — see
         // `enrich_artist_deezer_with_pool`.
-        match enrich_artist_deezer_with_pool(state.clone(), &pool, artist_id).await {
+        match enrich_artist_deezer_with_pool(state.clone(), &pool, &artwork_dir, artist_id).await {
             Ok(e) => {
                 if e.picture_path.is_some() {
                     success += 1;
