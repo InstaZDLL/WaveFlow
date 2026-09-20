@@ -132,6 +132,12 @@ export function SpectrumVisualizer({
     ro.observe(canvas);
     fitCanvas();
 
+    // `roundRect` is recent enough (Chrome 99, Safari 16.4, WebKitGTK 2.40)
+    // that an older Linux webview would throw here -- once per bar, sixty
+    // times a second, from inside the animation loop. Asked once, squared
+    // caps when the answer is no.
+    const canRound = typeof ctx.roundRect === "function";
+
     // ── Paints, rebuilt only when their inputs change ─────────────────
     let paintKey = "";
     let strokePaint: string | CanvasGradient = fill;
@@ -286,9 +292,13 @@ export function SpectrumVisualizer({
             if (barHeight <= 0) continue;
             const x = i * (barWidth + gap);
             const y = h - barHeight;
-            ctx.beginPath();
-            ctx.roundRect(x, y, barWidth, barHeight, [radius, radius, 0, 0]);
-            ctx.fill();
+            if (canRound) {
+              ctx.beginPath();
+              ctx.roundRect(x, y, barWidth, barHeight, [radius, radius, 0, 0]);
+              ctx.fill();
+            } else {
+              ctx.fillRect(x, y, barWidth, barHeight);
+            }
           }
         } else {
           const dx = n > 1 ? w / (n - 1) : w;
