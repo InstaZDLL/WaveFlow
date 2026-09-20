@@ -579,6 +579,13 @@ pub fn apply_window_chrome(app: &tauri::AppHandle, chrome: WindowChrome) -> AppR
     #[cfg(target_os = "windows")]
     let _ = (&window, chrome);
 
+    // Here, not at the caller that persists: the startup path RETRIES (ten
+    // attempts, `restore_bounds_and_reveal`), so a first attempt that
+    // failed and a second that worked would otherwise leave the flag
+    // armed -- and the interface would stop drawing a title bar for a
+    // window that really has no frame, which is the first defect with its
+    // sign flipped.
+    WINDOW_CHROME_UNAPPLIED.store(false, Ordering::Relaxed);
     Ok(())
 }
 
@@ -611,10 +618,9 @@ pub async fn set_window_chrome(
             "set_window_chrome: unsupported value '{chrome}' (expected system, app)"
         ))
     })?;
+    // Clears WINDOW_CHROME_UNAPPLIED on success, so a startup failure stops
+    // describing a window that has since been changed.
     apply_window_chrome(&app, parsed)?;
-    // It landed, so whatever failed at startup no longer describes this
-    // window.
-    WINDOW_CHROME_UNAPPLIED.store(false, Ordering::Relaxed);
     sqlx::query(
         "INSERT INTO app_setting (key, value, value_type, updated_at)
          VALUES (?, ?, 'string', ?)
