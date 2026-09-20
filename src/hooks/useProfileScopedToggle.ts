@@ -22,11 +22,12 @@ import { useProfile } from "./useProfile";
  *   the new profile.
  * - **A read already in flight never lands on a click.** `touched`
  *   drops the answer once the user has decided.
- * - **A failed write rolls back only if its value is still the one on
- *   screen.** A later click, or a profile switch, has already decided
- *   something else; reverting then would overwrite that decision, or
- *   re-tag the value with a profile we left and leave the control
- *   inert.
+ * - **A failed write rolls back only while it is still the last
+ *   decision.** Each click and each profile change bumps a revision;
+ *   a failure from an older one is dropped, because a later click has
+ *   already decided something else — and comparing values instead
+ *   would miss the case where three clicks bring the switch back to
+ *   what the failed write was setting.
  *
  * A failed read resolves to `fallback` rather than leaving the control
  * disabled forever.
@@ -44,6 +45,9 @@ export function useProfileScopedToggle(
     on: boolean;
   } | null>(null);
   const touched = useRef(false);
+  // Bumped by every click and by every profile change. A write that
+  // fails belongs to one revision; anything newer has already decided.
+  const revision = useRef(0);
   // The read effect is keyed on the profile alone, so the commands are
   // reached through refs: a caller passing an inline arrow would
   // otherwise re-issue the read on every render. Kept in sync from an
@@ -60,6 +64,7 @@ export function useProfileScopedToggle(
     let stale = false;
     const profileId = activeProfileId;
     touched.current = false;
+    revision.current += 1;
     readRef
       .current()
       .then((on) => {
@@ -86,15 +91,20 @@ export function useProfileScopedToggle(
     const next = !enabled;
     const profileId = activeProfileId;
     touched.current = true;
+    revision.current += 1;
+    const writeRevision = revision.current;
     setState({ profileId, on: next });
     writeRef.current(next).catch((err) => {
       console.error(`[${label}] write failed`, err);
-      // Undo this write only if it is still the one on screen: a later
-      // click, or a profile switch, has already decided something else,
-      // and a late rollback would overwrite that decision — or re-tag
-      // the value with a profile we left and leave the control inert.
+      // Undo this write only while it is still the last decision made.
+      // Comparing the value instead would not be enough: three clicks
+      // bring the switch back to what this write was setting, and the
+      // rollback would then undo the click the user actually ended on.
+      // A profile change bumps the revision too, so a late failure
+      // cannot re-tag the value with a profile we have left.
+      if (revision.current !== writeRevision) return;
       setState((cur) =>
-        cur !== null && cur.profileId === profileId && cur.on === next
+        cur !== null && cur.profileId === profileId
           ? { profileId, on: !next }
           : cur,
       );
