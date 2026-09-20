@@ -272,6 +272,43 @@ async fn prepare_or_fall_back(candidate: Option<PathBuf>, profile_dir: PathBuf) 
     }
 }
 
+/// Store a clip, falling back to the app's own directory when the
+/// library folder will not take it.
+///
+/// Creating the directory succeeding says nothing about the write: a full
+/// drive, a share that drops in between, a folder that allows `mkdir` and
+/// refuses a file. Without this the user's pick would simply not take,
+/// which is the outcome the fallback exists to prevent — and the doc
+/// comment on [`write_dir_for`] promised otherwise.
+///
+/// **A source-side failure is attempted twice**, deliberately: the helper
+/// reports "could not read it", "not an mp4" and "too big" the same way it
+/// reports a failed write, and telling them apart would mean a richer
+/// error type for one caller. Retrying costs a second read of a file that
+/// is about to be refused anyway, and the second error is the one that
+/// surfaces — the same message either way.
+pub async fn store_mp4_with_fallback(
+    primary_dir: &Path,
+    profile_dir: &Path,
+    file_path: &str,
+    max_bytes: u64,
+) -> AppResult<String> {
+    let first =
+        super::media_file::store_hash_addressed_mp4(primary_dir, file_path, max_bytes).await;
+    match first {
+        Ok(hash) => Ok(hash),
+        Err(err) if primary_dir != profile_dir => {
+            tracing::warn!(
+                ?err,
+                dir = %primary_dir.display(),
+                "library folder would not take the clip; keeping it in the app folder"
+            );
+            super::media_file::store_hash_addressed_mp4(profile_dir, file_path, max_bytes).await
+        }
+        Err(err) => Err(err),
+    }
+}
+
 /// Read the preference for the interface.
 #[tauri::command]
 pub async fn get_clips_in_library(state: tauri::State<'_, AppState>) -> AppResult<bool> {

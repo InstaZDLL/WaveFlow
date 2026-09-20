@@ -334,18 +334,23 @@ pub async fn set_album_motion_artwork_from_file(
     let (pool, profile_id) = state.require_profile_snapshot().await?;
     // Next to the music when the user asked for that and the folder
     // accepts it, in the app's own directory otherwise (#695).
+    let profile_motion_dir = state.paths.profile_motion_dir(profile_id);
     let motion_dir = library_media::album_write_dir_for(
         &state,
         &pool,
-        state.paths.profile_motion_dir(profile_id),
+        profile_motion_dir.clone(),
         album_id,
         library_media::MediaKind::Motion,
     )
     .await;
 
-    let hash =
-        super::media_file::store_hash_addressed_mp4(&motion_dir, &file_path, MAX_MANUAL_MP4_BYTES)
-            .await?;
+    let hash = library_media::store_mp4_with_fallback(
+        &motion_dir,
+        &profile_motion_dir,
+        &file_path,
+        MAX_MANUAL_MP4_BYTES,
+    )
+    .await?;
 
     sqlx::query(
         "INSERT INTO album_motion_artwork (album_id, hash, format, created_at)

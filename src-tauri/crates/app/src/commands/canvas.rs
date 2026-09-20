@@ -113,18 +113,23 @@ pub async fn set_track_canvas_from_file(
     let (pool, profile_id) = state.require_profile_snapshot().await?;
     // Next to the music when the user asked for that and the folder
     // accepts it, in the app's own directory otherwise (#695).
+    let profile_canvas_dir = state.paths.profile_canvas_dir(profile_id);
     let canvas_dir = library_media::write_dir_for(
         &state,
         &pool,
-        state.paths.profile_canvas_dir(profile_id),
+        profile_canvas_dir.clone(),
         track_id,
         library_media::MediaKind::Canvas,
     )
     .await;
 
-    let hash =
-        super::media_file::store_hash_addressed_mp4(&canvas_dir, &file_path, MAX_CANVAS_MP4_BYTES)
-            .await?;
+    let hash = library_media::store_mp4_with_fallback(
+        &canvas_dir,
+        &profile_canvas_dir,
+        &file_path,
+        MAX_CANVAS_MP4_BYTES,
+    )
+    .await?;
 
     sqlx::query(
         "INSERT INTO track_canvas (track_id, hash, format, created_at)
