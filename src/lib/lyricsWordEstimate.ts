@@ -35,7 +35,7 @@ const MIN_SPAN_MS = 400;
 /** Assumed span when the line's end is unknown (the last line). */
 const FALLBACK_MS_PER_SYLLABLE = 300;
 
-const PAUSE_SHORT = 0.5; // , ; : — in syllables
+const PAUSE_SHORT = 0.5; // , ; : and dashes, in syllables
 const PAUSE_LONG = 0.9; // . ! ? …
 
 const HAN_OR_KANA =
@@ -66,7 +66,7 @@ export function syllables(unit: string): number {
 /** Silence after a unit, in syllables, from its trailing punctuation. */
 function pauseAfter(unit: string): number {
   if (/[.!?…。！？]["'’”)\]]*$/u.test(unit)) return PAUSE_LONG;
-  if (/[,;:、，；：]["'’”)\]]*$/u.test(unit)) return PAUSE_SHORT;
+  if (/[,;:—–、，；：]["'’”)\]]*$/u.test(unit)) return PAUSE_SHORT;
   return 0;
 }
 
