@@ -33,8 +33,9 @@ const CANVAS_CACHE_ENABLED_KEY: &str = "canvas.cache_enabled";
 /// Hard cap on a user-supplied Canvas clip, mirroring
 /// [`super::motion_artwork`]'s manual-cover cap: a deliberately-chosen file
 /// deserves a generous ceiling, but still needs *a* limit since this
-/// directory is never evicted.
-const MAX_CANVAS_MP4_BYTES: u64 = 64 * 1024 * 1024;
+/// directory is never evicted. Raised with that one — a 4K clip a user
+/// picks by hand did not fit under the old 64 MiB.
+const MAX_CANVAS_MP4_BYTES: u64 = 256 * 1024 * 1024;
 
 /// A track's Canvas clip, resolved to a local absolute path the webview
 /// renders through `convertFileSrc`.

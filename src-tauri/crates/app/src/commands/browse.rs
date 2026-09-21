@@ -1790,9 +1790,17 @@ pub async fn set_genre_artwork_from_file(
             .take(crate::commands::deezer::MAX_IMAGE_BYTES as u64 + 1)
             .read_to_end(&mut bytes)?;
         if bytes.len() > crate::commands::deezer::MAX_IMAGE_BYTES {
+            // Same reasoning as `media_file::store_hash_addressed_mp4`:
+            // the capped read knows only "over", so stat for the number
+            // worth printing.
+            let actual = std::fs::metadata(&file_path)
+                .map(|m| format!("{} ", crate::commands::media_file::human_bytes(m.len())))
+                .unwrap_or_default();
             return Err(AppError::Other(format!(
-                "file too large (max {} bytes)",
-                crate::commands::deezer::MAX_IMAGE_BYTES
+                "file too large: {actual}(max {})",
+                crate::commands::media_file::human_bytes(
+                    crate::commands::deezer::MAX_IMAGE_BYTES as u64
+                )
             )));
         }
         let format = crate::commands::deezer::detect_image_format(&bytes).ok_or_else(|| {

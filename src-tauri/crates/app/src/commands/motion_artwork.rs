@@ -261,12 +261,16 @@ pub async fn fetch_album_motion_artwork(
 
 // ----- manual motion cover (issue #408) ------------------------------------
 
-/// Hard cap on a user-supplied motion cover, independent of
-/// [`motion_cache::MAX_MP4_BYTES`] (the plugin-download cap) — a
-/// deliberately-chosen file deserves a more generous limit than an
-/// automated fetch, but still needs *a* ceiling since this directory is
-/// never evicted.
-const MAX_MANUAL_MP4_BYTES: u64 = 64 * 1024 * 1024;
+/// Hard cap on a user-supplied motion cover — a deliberately-chosen
+/// file deserves a more generous limit than an automated fetch, but
+/// still needs *a* ceiling since this directory is never evicted.
+///
+/// That sentence was here from the start and was not true: this and the
+/// plugin-download cap were both 64 MiB, a number chosen for "Apple's
+/// 1080 H.264 renditions are a few MB". A 4K cover a user picks by hand
+/// is comfortably past it, so the feature refused the files it exists
+/// to accept. 256 MiB is the intent, finally written down as a number.
+const MAX_MANUAL_MP4_BYTES: u64 = 256 * 1024 * 1024;
 
 /// Look up `album_id`'s manual motion cover, if one was set via
 /// [`set_album_motion_artwork_from_file`]. `plugin_id` is the sentinel

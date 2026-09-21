@@ -14,7 +14,7 @@ import {
   type ShuffleMode,
 } from "../hooks/usePlayer";
 import { useProfile } from "../hooks/useProfile";
-import type { Track } from "../lib/tauri/track";
+import { getTrack, type Track } from "../lib/tauri/track";
 import { queuePayloadToTrack } from "../lib/queueTrack";
 import {
   playerCycleRepeat,
@@ -48,7 +48,11 @@ import {
 import type { PluginFavorite } from "../lib/tauri/plugins";
 import { enrichArtistDeezer } from "../lib/tauri/detail";
 import { remoteArtwork } from "../lib/tauri/remoteServer";
-import { isRadioTrack, isRemoteTrack } from "../lib/playerSources";
+import {
+  isRadioTrack,
+  isRemoteTrack,
+  isStreamTrack,
+} from "../lib/playerSources";
 
 /**
  * Build the stable station identity (favorite shape, id `url:<stream>`)
@@ -225,6 +229,80 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // radio song. Each new ICY title (or a fresh hydration) bumps it so a
   // slow fetch that resolves after the song already changed is dropped.
   const radioArtworkTokenRef = useRef(0);
+  // The library-refresh listener below is mounted once and has to read
+  // the track playing *now*, not the one captured when it subscribed.
+  const currentTrackRef = useRef<Track | null>(null);
+  // Generation counter for that refresh, the same shape as
+  // `radioArtworkTokenRef`: two rescans in quick succession put two
+  // reads of the same row in flight, and the older one must not be the
+  // one that lands.
+  const trackRefreshTokenRef = useRef(0);
+
+  // Keep that ref in step with the state it mirrors.
+  useEffect(() => {
+    currentTrackRef.current = currentTrack;
+  }, [currentTrack]);
+
+  // Re-read the playing track when the library changes underneath it.
+  //
+  // `currentTrack` is otherwise only ever assigned from
+  // `player:track-changed`, so every library edit to the track that is
+  // playing left this copy stale — invisibly for a title, glaringly for
+  // `split_artist`, which repoints `track.primary_artist` and then
+  // deletes the artist row it used to point at. The Now Playing panel's
+  // enrichment is keyed on `currentTrack.artist_id`, so it went on
+  // asking about an id that no longer existed and rendered "no
+  // biography available" until the window was reloaded — and a release
+  // build has no reload (issue #713).
+  //
+  // This also delivers what `edit.rs` has claimed since it was written:
+  // that emitting `player:queue-changed` makes the player bar show the
+  // new title / artist / album at once. Nothing refreshed
+  // `currentTrack`, so it did not.
+  useEffect(() => {
+    let unlisten: UnlistenFn | null = null;
+    let cancelled = false;
+    const refresh = () => {
+      const playing = currentTrackRef.current;
+      // Radio and remote-queue tracks carry a negative sentinel id and
+      // have no library row to re-read.
+      if (!playing || isStreamTrack(playing)) return;
+      const token = ++trackRefreshTokenRef.current;
+      getTrack(playing.id)
+        .then((fresh) => {
+          // No row means the track left the library while it plays.
+          // Keeping the copy we have is the honest answer: it is still
+          // what the engine is decoding.
+          if (!fresh) return;
+          // A later refresh already answered, or a profile switch made
+          // this id mean a different track.
+          if (token !== trackRefreshTokenRef.current) return;
+          // Object identity, not just the id: a `player:track-changed`
+          // landing in between carries engine-side fields fresher than
+          // this row, and must not be rolled back by it.
+          setCurrentTrack((prev) => (prev === playing ? fresh : prev));
+        })
+        .catch((err) => {
+          console.error("[PlayerContext] current-track refresh failed", err);
+        });
+    };
+    void (async () => {
+      try {
+        const off = await listen("library:rescanned", refresh);
+        if (cancelled) {
+          off();
+        } else {
+          unlisten = off;
+        }
+      } catch (err) {
+        console.error("[PlayerContext] listen library:rescanned failed", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, []);
 
   // Resolve album art for a now-playing radio song (ICY gives only the
   // "Artist - Title" text) and swap it into `currentTrack` once it

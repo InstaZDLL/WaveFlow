@@ -33,6 +33,32 @@ fn is_mp4(bytes: &[u8]) -> bool {
 /// huge) file is never fully buffered into memory before the size check
 /// below rejects it — reading one extra byte still lets the check see "over
 /// the limit". `dir` is created if missing.
+/// Bytes the way the interface spells them, so a refusal reads like
+/// the sizes shown everywhere else in the app.
+///
+/// Mirrors `src/lib/format.ts`: binary steps, decimal labels, one
+/// decimal below 100 and none above. Deliberately not localised — it
+/// lands in an error string that already carries untranslated
+/// technical detail, and a number the reader can compare against their
+/// file manager is worth more than a translated unit.
+pub(crate) fn human_bytes(bytes: u64) -> String {
+    const UNITS: [&str; 4] = ["KB", "MB", "GB", "TB"];
+    if bytes < 1024 {
+        return format!("{bytes} B");
+    }
+    let mut value = bytes as f64 / 1024.0;
+    let mut unit = 0;
+    while value >= 1024.0 && unit < UNITS.len() - 1 {
+        value /= 1024.0;
+        unit += 1;
+    }
+    if value < 100.0 {
+        format!("{value:.1} {}", UNITS[unit])
+    } else {
+        format!("{value:.0} {}", UNITS[unit])
+    }
+}
+
 pub async fn store_hash_addressed_mp4(
     dir: &Path,
     file_path: &str,
@@ -44,8 +70,19 @@ pub async fn store_hash_addressed_mp4(
     let mut bytes = Vec::new();
     file.take(max_bytes + 1).read_to_end(&mut bytes).await?;
     if bytes.len() as u64 > max_bytes {
+        // The read was capped at `max_bytes + 1`, so `bytes.len()` says
+        // "over the limit" and nothing about how far over. Stat the file
+        // for the real number — one syscall, on the path that is already
+        // failing — because "85.2 MB (max 256 MB)" tells the user whether
+        // to re-encode or give up, and "max 67108864 bytes" tells them
+        // to go and do the arithmetic.
+        let actual = tokio::fs::metadata(file_path)
+            .await
+            .map(|m| format!("{} ", human_bytes(m.len())))
+            .unwrap_or_default();
         return Err(AppError::Other(format!(
-            "file too large (max {max_bytes} bytes)"
+            "file too large: {actual}(max {})",
+            human_bytes(max_bytes)
         )));
     }
     if !is_mp4(&bytes) {
@@ -75,4 +112,30 @@ pub async fn store_hash_addressed_mp4(
         }
     }
     Ok(hash)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::human_bytes;
+
+    /// The sizes that actually reach a user: the cap, and a file just
+    /// over it. Both have to read like the numbers the rest of the app
+    /// shows, or the refusal is arithmetic homework.
+    #[test]
+    fn reads_like_the_rest_of_the_interface() {
+        assert_eq!(human_bytes(256 * 1024 * 1024), "256 MB");
+        assert_eq!(human_bytes(89_128_960), "85.0 MB");
+        assert_eq!(human_bytes(64 * 1024 * 1024), "64.0 MB");
+    }
+
+    /// Below a kilobyte there is nothing to scale, and the loop must
+    /// stop at the last unit rather than running off the end of the
+    /// table on an absurd value.
+    #[test]
+    fn holds_at_both_ends() {
+        assert_eq!(human_bytes(0), "0 B");
+        assert_eq!(human_bytes(1023), "1023 B");
+        assert_eq!(human_bytes(1024), "1.0 KB");
+        assert_eq!(human_bytes(9_007_199_254_740_992), "8192 TB");
+    }
 }

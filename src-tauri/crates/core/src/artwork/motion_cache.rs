@@ -14,8 +14,16 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime};
 
 /// Per-file cap on a downloaded motion mp4 — refuses a hostile/oversized body
-/// before it reaches disk. Apple's 1080 H.264 renditions are a few MB.
-const MAX_MP4_BYTES: u64 = 64 * 1024 * 1024;
+/// before it reaches disk.
+///
+/// Sized for "Apple's 1080 H.264 renditions are a few MB", which stopped
+/// being the whole story once plugins started offering 4K. Going over it is
+/// not a visible failure — the caller degrades to streaming the remote URL —
+/// so a 4K cover played fine and simply could never be cached, however many
+/// times the user re-opened the album, with a `warn!` as the only trace.
+/// Raised with the manual caps so "save motion covers locally" means what it
+/// says for the covers people actually want saved.
+const MAX_MP4_BYTES: u64 = 256 * 1024 * 1024;
 
 /// Default ceiling on the whole cache (LRU-evicted down to this).
 pub const DEFAULT_MAX_CACHE_BYTES: u64 = 1024 * 1024 * 1024;
