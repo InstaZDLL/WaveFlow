@@ -240,7 +240,11 @@ pub async fn fetch_album_motion_artwork(
                 // Reached the plugin, no motion for this album — keep going.
             }
             Ok(Ok(Err(e))) => {
-                tracing::warn!(plugin_id, %e, "metadata album-info failed; skipping");
+                tracing::warn!(
+                    plugin_id,
+                    err = %e.detail(),
+                    "metadata album-info failed; skipping"
+                );
             }
             Ok(Err(e)) => {
                 tracing::warn!(plugin_id, %e, "metadata lookup task panicked; skipping");

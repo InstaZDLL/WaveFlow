@@ -1932,8 +1932,20 @@ async fn try_plugin_lyrics(
             Ok(Ok(Ok(Some(bundle)))) => bundle,
             // The plugin answered and has nothing for this track.
             Ok(Ok(Ok(None))) => continue,
+            Ok(Ok(Err(err))) if err.is_load_failure() => {
+                tracing::warn!(
+                    plugin = %plugin_id,
+                    err = %err.detail(),
+                    "plugin lyrics: the plugin could not be loaded"
+                );
+                continue;
+            }
             Ok(Ok(Err(err))) => {
-                tracing::debug!(plugin = %plugin_id, ?err, "plugin lyrics lookup failed");
+                tracing::debug!(
+                    plugin = %plugin_id,
+                    err = %err.detail(),
+                    "plugin lyrics lookup failed"
+                );
                 continue;
             }
             Ok(Err(e)) => {

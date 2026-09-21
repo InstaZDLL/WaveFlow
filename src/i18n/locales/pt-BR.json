@@ -1626,6 +1626,14 @@
       "byAuthor": "Por {{author}}",
       "enabled": "Ativado",
       "disabled": "Desativado",
+      "broken": {
+        "badge": "Não funciona",
+        "notAComponent": "Este plugin não está no formato esperado, então o WaveFlow não consegue carregá-lo. O autor precisa publicá-lo novamente.",
+        "unreadable": "O arquivo deste plugin não foi encontrado ou não pode ser lido. Reinstale-o.",
+        "tooLarge": "O arquivo deste plugin excede o tamanho permitido.",
+        "manifest": "A descrição deste plugin é inválida ou não corresponde à sua pasta.",
+        "loadFailed": "O WaveFlow não conseguiu iniciar este plugin."
+      },
       "toggleAria": "Ativar ou desativar {{name}}",
       "uninstall": "Desinstalar",
       "uninstallAria": "Desinstalar {{name}}",

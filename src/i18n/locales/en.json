@@ -1623,6 +1623,14 @@
       "byAuthor": "By {{author}}",
       "enabled": "Enabled",
       "disabled": "Disabled",
+      "broken": {
+        "badge": "Not working",
+        "notAComponent": "This plugin is not in the expected format, so WaveFlow cannot load it. Its author needs to publish it again.",
+        "unreadable": "This plugin's file is missing or cannot be read. Reinstall it.",
+        "tooLarge": "This plugin's file is larger than allowed.",
+        "manifest": "This plugin's description is invalid or does not match its folder.",
+        "loadFailed": "WaveFlow could not start this plugin."
+      },
       "toggleAria": "Enable or disable {{name}}",
       "uninstall": "Uninstall",
       "uninstallAria": "Uninstall {{name}}",

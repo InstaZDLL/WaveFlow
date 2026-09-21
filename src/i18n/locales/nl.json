@@ -1623,6 +1623,14 @@
       "byAuthor": "Door {{author}}",
       "enabled": "Ingeschakeld",
       "disabled": "Uitgeschakeld",
+      "broken": {
+        "badge": "Werkt niet",
+        "notAComponent": "Deze plug-in heeft niet de verwachte indeling, waardoor WaveFlow hem niet kan laden. De maker moet hem opnieuw publiceren.",
+        "unreadable": "Het bestand van deze plug-in ontbreekt of kan niet worden gelezen. Installeer hem opnieuw.",
+        "tooLarge": "Het bestand van deze plug-in is groter dan toegestaan.",
+        "manifest": "De beschrijving van deze plug-in is ongeldig of komt niet overeen met de map.",
+        "loadFailed": "WaveFlow kon deze plug-in niet starten."
+      },
       "toggleAria": "{{name}} in- of uitschakelen",
       "uninstall": "Verwijderen",
       "uninstallAria": "{{name}} verwijderen",

@@ -364,7 +364,12 @@ fn sum_state_dir_bytes(
 ///
 /// The chain is depth-capped: `source()` is author-controlled and
 /// nothing forbids a cyclic or absurdly deep implementation.
-fn describe_error(err: &dyn std::error::Error) -> String {
+///
+/// Shared with [`RuntimeError::detail`](crate::plugin::runtime::RuntimeError::detail),
+/// which has the same problem one layer out: a load failure read
+/// through plain `Display` loses the sentence that says what went
+/// wrong. One walker, so a fix to the dedup or the cap reaches both.
+pub(crate) fn describe_error(err: &dyn std::error::Error) -> String {
     const MAX_DEPTH: usize = 8;
     let mut out = err.to_string();
     // The last message actually appended, tracked separately from

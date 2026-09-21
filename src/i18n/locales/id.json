@@ -1623,6 +1623,14 @@
       "byAuthor": "Oleh {{author}}",
       "enabled": "Aktif",
       "disabled": "Nonaktif",
+      "broken": {
+        "badge": "Tidak berfungsi",
+        "notAComponent": "Plugin ini tidak dalam format yang diharapkan sehingga WaveFlow tidak dapat memuatnya. Pembuatnya harus menerbitkannya ulang.",
+        "unreadable": "Berkas plugin ini tidak ditemukan atau tidak dapat dibaca. Pasang ulang plugin ini.",
+        "tooLarge": "Berkas plugin ini melebihi ukuran yang diizinkan.",
+        "manifest": "Deskripsi plugin ini tidak valid atau tidak cocok dengan foldernya.",
+        "loadFailed": "WaveFlow tidak dapat menjalankan plugin ini."
+      },
       "toggleAria": "Aktifkan atau nonaktifkan {{name}}",
       "uninstall": "Hapus",
       "uninstallAria": "Hapus {{name}}",

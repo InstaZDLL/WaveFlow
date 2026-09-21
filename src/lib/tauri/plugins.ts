@@ -36,6 +36,25 @@ export interface PluginInfo {
   /** `true` when the manifest declares `[[options]]` — the ⚙️ gear +
    *  options panel are shown for these. */
   hasOptions: boolean;
+  /** Set when the plugin cannot run. Until this existed a plugin that
+   *  failed to load looked exactly like a working one, and the only
+   *  trace was a line in a log file. */
+  failure: PluginFailure | null;
+}
+
+/**
+ * Why a plugin will not run.
+ *
+ * `code` is a stable backend token — `not-a-component`, `unreadable`,
+ * `too-large`, `manifest`, `load-failed` — mapped to the
+ * `settings.plugins.broken.*` strings. `detail` is the technical line
+ * and is deliberately NOT translated: it is what gets pasted into a
+ * bug report, and a message the plugin's author can search for is
+ * worth more than one in the reader's language.
+ */
+export interface PluginFailure {
+  code: string;
+  detail: string;
 }
 
 export interface PluginPermissionsInfo {

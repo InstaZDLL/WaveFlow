@@ -22,6 +22,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 use waveflow_core::artwork::motion_cache::is_safe_motion_url;
+use waveflow_core::plugin::binfmt::{classify_wasm_binary, WasmBinaryKind};
 use waveflow_core::plugin::is_bundled_plugin;
 use waveflow_core::plugin::manifest::{LocalizedString, Manifest};
 use waveflow_core::plugin::PluginPaths;
@@ -273,9 +274,9 @@ fn read_zip_file<R: Read + Seek>(
 }
 
 /// Verify + unpack a downloaded plugin zip into the sideload root. Runs on
-/// a blocking thread (inflate + fs ops). Order matters: hash + manifest
-/// gates fire BEFORE anything touches disk, then a stage-then-swap keeps a
-/// crashed install from leaving a half-written plugin dir.
+/// a blocking thread (inflate + fs ops). Order matters: hash + manifest +
+/// format gates fire BEFORE anything touches disk, then a stage-then-swap
+/// keeps a crashed install from leaving a half-written plugin dir.
 fn install_from_zip_bytes(
     paths: &PluginPaths,
     plugin_id: &str,
@@ -328,7 +329,24 @@ fn install_from_zip_bytes(
         )));
     }
 
-    // 3. Stage into a temp dir under the sideload root, then swap.
+    // 3. Format gate — the host runs components, and a core module is
+    //    valid wasm that it can never load. Nothing upstream catches
+    //    this: blake3 pins the bytes the registry published, and the
+    //    manifest describes intent, not the binary. Without this gate
+    //    the install reports success and the plugin is simply silent
+    //    from then on, which is how apple-artwork and release-radar
+    //    shipped broken — `cargo build` where `cargo component build`
+    //    was meant. Refuse here, while the only cost is a download,
+    //    and say which mistake it was.
+    let kind = classify_wasm_binary(&wasm);
+    if kind != WasmBinaryKind::Component {
+        return Err(AppError::Other(format!(
+            "{plugin_id} {expected_version}: plugin.wasm is {kind}, refusing to install — {}",
+            kind.load_hint()
+        )));
+    }
+
+    // 4. Stage into a temp dir under the sideload root, then swap.
     let install_dir = paths
         .plugin_dir(plugin_id)
         .map_err(|e| AppError::Other(format!("invalid plugin id: {e}")))?;
@@ -592,6 +610,7 @@ pub async fn install_plugin_from_registry(
     .await
     .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;
 
+    state.plugins.forget_load_failure(&plugin_id);
     tracing::info!(plugin_id, version = %entry.version, "plugin installed from registry");
     Ok(())
 }
