@@ -27,11 +27,33 @@ use tauri::{AppHandle, Emitter};
 
 use super::state::SharedPlayback;
 
-/// Number of frames analysed per FFT pass. 2048 @ 44.1 kHz gives
-/// ~46 ms of context per frame — enough resolution to show the
-/// fundamental of bass notes (sub-25 Hz bin spacing) without smearing
-/// transients on attacks.
-const FFT_SIZE: usize = 2048;
+/// Number of frames analysed per FFT pass. 4096 @ 44.1 kHz is a
+/// 10.8 Hz bin — at 2048 (21.5 Hz) the twelve bass bands between 30 and
+/// 144 Hz were fed by six distinct bins, so they moved in identical
+/// pairs (#715). The window is ~93 ms long, but it slides by [`HOP`], so
+/// a new frame is still ready every ~23 ms.
+const FFT_SIZE: usize = 4096;
+
+/// How far the window slides between two frames. Fixed rather than
+/// `FFT_SIZE / 2`: doubling the window must not halve the update rate.
+const HOP: usize = 1024;
+
+/// How fast the level reference follows the music, up and down. It rises
+/// within a fraction of a second so a loud passage does not pin every bar
+/// to the top, and sinks over seconds so a quiet bar in a loud song stays
+/// quiet instead of being inflated between two beats.
+const LEVEL_ATTACK: Duration = Duration::from_millis(250);
+const LEVEL_RELEASE: Duration = Duration::from_secs(3);
+
+/// The level reference never drops below this magnitude. Without a floor
+/// a fade-out or a silent gap would be scaled up until its noise filled
+/// the display; with it, a quietly mastered track gets about 6x the gain
+/// the old fixed reference gave it, and no more.
+const MIN_LEVEL: f32 = 40.0;
+
+/// Room above the reference: the bars reach the top on the peaks of the
+/// music, not on its average.
+const HEADROOM: f32 = 1.15;
 
 /// Number of output bands (log-spaced bars sent to the UI).
 pub const BAND_COUNT: usize = 48;
@@ -66,6 +88,10 @@ pub struct SpectrumAnalyzer {
     scratch: Vec<Complex<f32>>,
     /// Output band magnitudes (length = BAND_COUNT).
     bands: Vec<f32>,
+    /// Raw (unnormalised) band magnitudes of the current frame.
+    raw: Vec<f32>,
+    /// Running level reference the bands are scaled against (#715).
+    level: f32,
     last_emit: Instant,
 }
 
@@ -84,6 +110,8 @@ impl SpectrumAnalyzer {
             window,
             scratch,
             bands: vec![0.0; BAND_COUNT],
+            raw: vec![0.0; BAND_COUNT],
+            level: MIN_LEVEL,
             // Start "long ago" so the first window emits immediately.
             last_emit: Instant::now()
                 .checked_sub(EMIT_INTERVAL)
@@ -96,6 +124,10 @@ impl SpectrumAnalyzer {
     /// frame of the new track.
     pub fn reset(&mut self) {
         self.pending.clear();
+        // A new track starts from the floor, not from the last one's
+        // loudness: a quiet track after a loud one would otherwise stay
+        // dim for seconds.
+        self.level = MIN_LEVEL;
     }
 
     /// Feed interleaved samples produced by the decoder. No-ops fast
@@ -141,26 +173,28 @@ impl SpectrumAnalyzer {
             let now = Instant::now();
             let due = now.duration_since(self.last_emit) >= EMIT_INTERVAL;
             if due {
-                self.run_one_frame(sample_rate);
+                let elapsed = now
+                    .duration_since(self.last_emit)
+                    .min(Duration::from_secs(1));
+                self.run_one_frame(sample_rate, elapsed);
                 let payload = SpectrumPayload {
                     bands: self.bands.clone(),
                 };
                 let _ = app.emit(EVENT_NAME, payload);
                 self.last_emit = now;
             }
-            // Slide the window: drop FFT_SIZE / 2 so the next pass
-            // shares half its data with the previous one. Keeps the
-            // visualizer feeling continuous rather than strobing.
-            let drop = FFT_SIZE / 2;
-            if self.pending.len() > drop {
-                self.pending.drain(..drop);
+            // Slide the window by HOP, so consecutive passes overlap by
+            // three quarters. Keeps the visualizer feeling continuous
+            // rather than strobing.
+            if self.pending.len() > HOP {
+                self.pending.drain(..HOP);
             } else {
                 self.pending.clear();
             }
         }
     }
 
-    fn run_one_frame(&mut self, sample_rate: f32) {
+    fn run_one_frame(&mut self, sample_rate: f32, elapsed: Duration) {
         // Apply the Hann window into the FFT input buffer.
         for (i, dst) in self.input.iter_mut().enumerate() {
             *dst = self.pending[i] * self.window[i];
@@ -177,7 +211,10 @@ impl SpectrumAnalyzer {
             return;
         }
 
-        compute_bands(&self.spectrum, sample_rate, &mut self.bands);
+        band_magnitudes(&self.spectrum, sample_rate, &mut self.raw);
+        let frame_peak = self.raw.iter().copied().fold(0.0f32, f32::max);
+        self.level = follow_level(self.level, frame_peak, elapsed);
+        scale_bands(&self.raw, self.level, &mut self.bands);
     }
 }
 
@@ -194,63 +231,87 @@ fn hann_window(n: usize) -> Vec<f32> {
         .collect()
 }
 
-/// Map FFT bins to log-spaced bands and squash into roughly 0..1.
+/// Move the level reference toward this frame's loudest band: quickly
+/// when it is louder, slowly when it is quieter, never below
+/// [`MIN_LEVEL`]. One-pole smoothing, with the coefficient derived from
+/// the real time since the previous frame so the feel does not depend on
+/// the sample rate or on how the decoder happens to chunk its output.
+fn follow_level(level: f32, frame_peak: f32, elapsed: Duration) -> f32 {
+    let tau = if frame_peak > level {
+        LEVEL_ATTACK
+    } else {
+        LEVEL_RELEASE
+    };
+    let alpha = 1.0 - (-elapsed.as_secs_f32() / tau.as_secs_f32()).exp();
+    (level + (frame_peak - level) * alpha).max(MIN_LEVEL)
+}
+
+/// Magnitude of each log-spaced band: the peak bin inside it, or, for a
+/// band narrower than a bin, the spectrum read at the band's centre
+/// frequency by linear interpolation between the two nearest bins.
 ///
-/// Normalization is the tricky bit: the raw `realfft` output is
-/// **unnormalised** so a full-scale sine through a Hann window peaks
-/// at `FFT_SIZE / 4`. We divide each band's RMS-like magnitude by
-/// that factor so the result lives in 0..1, then apply a perceptual
-/// `sqrt` curve + a small floor cut so quiet ambient still shows
-/// a hint of motion without typical pop / rock pegging at the top.
-///
-/// The earlier dB-based formula had no FFT normalisation and ended
-/// up clipping every band to 1.0 on most music — see commit history.
-fn compute_bands(spectrum: &[Complex<f32>], sample_rate: f32, bands: &mut [f32]) {
+/// The peak rather than the mean: averaging across 20+ bins crushes the
+/// very transients that make a visualizer feel alive. The interpolation
+/// is what keeps two adjacent narrow bands from reporting the same bin —
+/// they read the slope between bins at two different points instead.
+fn band_magnitudes(spectrum: &[Complex<f32>], sample_rate: f32, bands: &mut [f32]) {
     let bin_count = spectrum.len();
     if bin_count == 0 {
         bands.fill(0.0);
         return;
     }
     let bin_hz = sample_rate / (FFT_SIZE as f32);
-    // Empirical reference for "loud bin magnitude": for typical
-    // post-Hann music FFT a single dominant bin sits in the 50-300
-    // range. We scale so ~250 maps to 1.0, leaving headroom for
-    // very loud transients to peg without clipping the visual
-    // weeks-of-the-music. (The full theoretical peak is FFT_SIZE/4
-    // for a unit sine, but real music never concentrates that
-    // much energy in a single bin.)
-    let norm_peak = 250.0_f32;
-    // Quiet floor: anything below this is treated as silence so the
-    // renderer shows zero instead of a constant low-amplitude haze
-    // from quantisation / decoder rounding.
-    const FLOOR: f32 = 0.02;
-
     let log_min = MIN_HZ.ln();
     let log_max = MAX_HZ.ln();
     let band_count = bands.len();
 
-    for (b, band) in bands.iter_mut().enumerate().take(band_count) {
+    for (b, band) in bands.iter_mut().enumerate() {
         let lo_hz = (log_min + (log_max - log_min) * b as f32 / band_count as f32).exp();
         let hi_hz = (log_min + (log_max - log_min) * (b + 1) as f32 / band_count as f32).exp();
-        let lo_bin = (lo_hz / bin_hz).floor() as usize;
-        let hi_bin = ((hi_hz / bin_hz).ceil() as usize).max(lo_bin + 1);
+        let lo = lo_hz / bin_hz;
+        let hi = hi_hz / bin_hz;
 
-        // Use the per-band peak rather than the mean — averaging
-        // across 20+ bins crushes the very transients that make a
-        // visualizer feel alive. A single strong bin should still
-        // drive its band bar to full height.
-        let mut peak_sq = 0.0f32;
-        for bin_val in spectrum.iter().take(hi_bin.min(bin_count)).skip(lo_bin) {
-            let m = bin_val.norm_sqr();
-            if m > peak_sq {
-                peak_sq = m;
-            }
+        if hi - lo < 1.0 {
+            // Narrower than a bin: read the spectrum at the geometric
+            // centre of the band.
+            let centre = (lo * hi).sqrt();
+            let i = (centre.floor() as usize).min(bin_count - 1);
+            let j = (i + 1).min(bin_count - 1);
+            let t = centre - i as f32;
+            *band = spectrum[i].norm() * (1.0 - t) + spectrum[j].norm() * t;
+            continue;
         }
-        let mag = peak_sq.sqrt();
-        let normalised = (mag / norm_peak).clamp(0.0, 1.0);
+
+        // Every bin whose centre falls inside the band. At least one
+        // does, since the band is a bin wide or more.
+        let lo_bin = lo.ceil() as usize;
+        let hi_bin = (hi.floor() as usize + 1).max(lo_bin + 1).min(bin_count);
+        let mut peak_sq = 0.0f32;
+        for bin_val in spectrum.iter().take(hi_bin).skip(lo_bin) {
+            peak_sq = peak_sq.max(bin_val.norm_sqr());
+        }
+        *band = peak_sq.sqrt();
+    }
+}
+
+/// Squash raw band magnitudes into 0..1 against the level reference.
+///
+/// The reference used to be a fixed `250.0`, "a loud bin on typical
+/// music", so a quietly mastered track — or one that spreads its energy
+/// rather than concentrating it — never came near the top. Scaling
+/// against the track's own recent level (with [`HEADROOM`] above it)
+/// makes the peaks of the music reach the top whatever the master.
+///
+/// A small floor then treats the bottom as silence, so quantisation and
+/// decoder rounding show as zero rather than a constant haze, and a
+/// `sqrt` curve expands the low end, where the ear is most sensitive to
+/// loudness changes.
+fn scale_bands(raw: &[f32], level: f32, bands: &mut [f32]) {
+    const FLOOR: f32 = 0.02;
+    let reference = level.max(MIN_LEVEL) * HEADROOM;
+    for (band, &mag) in bands.iter_mut().zip(raw) {
+        let normalised = (mag / reference).clamp(0.0, 1.0);
         let cut = (normalised - FLOOR).max(0.0) / (1.0 - FLOOR);
-        // Perceptual curve — sqrt expands the low end where the
-        // human ear is most sensitive to loudness changes.
         *band = cut.sqrt();
     }
 }
@@ -277,8 +338,57 @@ mod tests {
     #[test]
     fn empty_spectrum_produces_zero_bands() {
         let mut bands = vec![1.0; BAND_COUNT];
-        compute_bands(&[], 44_100.0, &mut bands);
+        band_magnitudes(&[], 44_100.0, &mut bands);
         assert!(bands.iter().all(|&v| v == 0.0));
+    }
+
+    /// The #715 defect: adjacent bass bands reading the very same bin.
+    /// A sloped spectrum must give every band its own value.
+    #[test]
+    fn no_two_bass_bands_read_the_same_value() {
+        let spectrum: Vec<Complex<f32>> = (0..=FFT_SIZE / 2)
+            .map(|i| Complex::new(1000.0 / (1.0 + i as f32), 0.0))
+            .collect();
+        let mut bands = vec![0.0; BAND_COUNT];
+        band_magnitudes(&spectrum, 44_100.0, &mut bands);
+        for pair in bands[..12].windows(2) {
+            assert!(
+                (pair[0] - pair[1]).abs() > 1e-3,
+                "adjacent bass bands must differ: {pair:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_quiet_master_still_reaches_the_top() {
+        // A frame peak far below the old fixed reference of 250.
+        let mut level = MIN_LEVEL;
+        for _ in 0..60 {
+            level = follow_level(level, 60.0, EMIT_INTERVAL);
+        }
+        let mut bands = [0.0; 1];
+        scale_bands(&[60.0], level, &mut bands);
+        assert!(bands[0] > 0.9, "got {}", bands[0]);
+    }
+
+    #[test]
+    fn silence_is_not_amplified_into_noise() {
+        let mut level = 400.0;
+        for _ in 0..600 {
+            level = follow_level(level, 0.5, EMIT_INTERVAL);
+        }
+        assert!(level >= MIN_LEVEL);
+        let mut bands = [1.0; 1];
+        scale_bands(&[0.5], level, &mut bands);
+        assert_eq!(bands[0], 0.0);
+    }
+
+    #[test]
+    fn a_single_beat_does_not_reset_the_scale() {
+        // Rising takes a fraction of a second: one loud frame moves the
+        // reference only part of the way, so the beat itself pegs.
+        let level = follow_level(100.0, 1000.0, EMIT_INTERVAL);
+        assert!(level < 300.0, "got {level}");
     }
 
     #[test]
