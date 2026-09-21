@@ -29,6 +29,9 @@ reviews:
     - "!bun.lock"
     - "!src-tauri/Cargo.lock"
     - "!*.lock"
+    # Translations are reviewed by native speakers, not here: a review is
+    # billed per file, and a new key touches all 17 locales at once.
+    - "!src/i18n/locales/**"
   path_instructions:
     - path: "src/**"
       instructions: >-
@@ -117,10 +120,6 @@ reviews:
         pas être modifiées après release; demander une nouvelle migration
         timestampée si le schéma change. Vérifie la compatibilité avec les
         profils existants.
-    - path: "src/i18n/locales/**"
-      instructions: >-
-        Fichiers de traduction. Vérifie surtout les clés manquantes, les clés
-        divergentes entre locales, et les placeholders i18next incohérents.
     - path: ".github/workflows/**"
       instructions: >-
         Workflows GitHub Actions de release, packaging et sécurité. Vérifie
