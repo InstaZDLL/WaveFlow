@@ -1640,7 +1640,8 @@
       "worlds": {
         "source": "स्रोत",
         "metadata": "मेटाडेटा",
-        "ui": "UI"
+        "ui": "UI",
+        "canvas": "Canvas"
       },
       "permissions": {
         "http": "HTTP ({{count}})",

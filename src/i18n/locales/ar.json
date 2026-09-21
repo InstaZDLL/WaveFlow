@@ -1805,7 +1805,8 @@
       "worlds": {
         "source": "مصدر",
         "metadata": "بيانات وصفية",
-        "ui": "واجهة"
+        "ui": "واجهة",
+        "canvas": "Canvas"
       },
       "permissions": {
         "http": "HTTP ({{count}})",

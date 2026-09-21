@@ -1643,7 +1643,8 @@
       "worlds": {
         "source": "Source",
         "metadata": "Métadonnées",
-        "ui": "Interface"
+        "ui": "Interface",
+        "canvas": "Canvas"
       },
       "permissions": {
         "http": "HTTP ({{count}})",
@@ -1944,7 +1945,7 @@
     },
     "clipsInLibrary": {
       "title": "Garder les clips avec la musique",
-      "subtitle": "Les Canvas et pochettes animées que vous choisissez vous-même vont dans un dossier caché de votre bibliothèque, et voyagent donc avec les fichiers. Ce que les greffons récupèrent reste dans les caches ci-dessus."
+      "subtitle": "Les Canvas et pochettes animées que vous choisissez vous-même vont dans un dossier caché de votre bibliothèque, et voyagent donc avec les fichiers. Ce que les plugins récupèrent reste dans les caches ci-dessus."
     },
     "dataFolder": {
       "title": "Dossier de données",

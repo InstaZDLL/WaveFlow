@@ -1640,7 +1640,8 @@
       "worlds": {
         "source": "소스",
         "metadata": "메타데이터",
-        "ui": "UI"
+        "ui": "UI",
+        "canvas": "Canvas"
       },
       "permissions": {
         "http": "HTTP ({{count}})",
