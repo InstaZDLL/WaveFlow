@@ -20,6 +20,7 @@
 
 use serde::Serialize;
 use sqlx::SqlitePool;
+use tauri::{AppHandle, Emitter};
 
 use waveflow_core::scanner::upsert_artist;
 
@@ -56,11 +57,27 @@ pub struct SplitArtistResult {
 /// phantom itself.
 #[tauri::command]
 pub async fn split_artist(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     artist_id: i64,
 ) -> AppResult<SplitArtistResult> {
     let pool = state.require_profile_pool().await?;
-    split_artist_inner(&pool, artist_id).await
+    let result = split_artist_inner(&pool, artist_id).await?;
+
+    // Announce it, like every other command that rewrites library rows
+    // (`edit`, `duplicates`, `library`, the filesystem watcher). This
+    // one used to emit nothing at all, so a split landed in the
+    // database and nowhere else: the open window kept the artist it
+    // had, and the only way out was to reload it — which a release
+    // build does not offer (issue #713).
+    //
+    // `library:rescanned` is the broad one the LibraryContext already
+    // listens to. A split relinks many tracks at once, so the
+    // per-track `track:updated` does not fit; `player:queue-changed`
+    // is what makes the queue surfaces re-read the credits they show.
+    let _ = app.emit("library:rescanned", ());
+    let _ = app.emit("player:queue-changed", ());
+    Ok(result)
 }
 
 /// DB-only core of [`split_artist`], split out so integration tests can
