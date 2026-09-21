@@ -6,6 +6,13 @@ import { ChevronDown } from "lucide-react";
 export interface SuggestionGroup {
   label: string;
   values: readonly string[];
+  /**
+   * Already matched against the input by whoever supplied them (a search
+   * on the backend), so shown as they come. Filtering them again here
+   * would drop some: the backend compares a normalised form in which
+   * "ac dc" finds "AC/DC", and this list would not.
+   */
+  matched?: boolean;
 }
 
 interface TagComboboxProps {
@@ -85,7 +92,7 @@ export function TagCombobox({
       for (const v of g.values) {
         const f = fold(v);
         if (taken.has(f)) continue;
-        if (query === "" || f.startsWith(query)) starts.push(v);
+        if (g.matched || query === "" || f.startsWith(query)) starts.push(v);
         else if (f.includes(query)) contains.push(v);
       }
       for (const v of g.values) taken.add(fold(v));
