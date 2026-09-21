@@ -58,7 +58,7 @@ A `text` option saves on Enter and on leaving the field, and shows **Saved** onc
 
 ### Credentials: `sensitive = true`
 
-A cookie or a token a plugin signs in with is declared `sensitive = true` on its `text` option. The field becomes a password field that is **saved the moment something is pasted into it**, and the stored value **never travels back to the webview**: `get_plugin_options` sends `value: null` and `isSet`, so the panel can say a credential is stored — and offer to clear it — without holding it. It is still written in cleartext in `.plugin-config.json`, like every option; the flag is about the screen and the IPC, not the disk.
+A cookie or a token a plugin signs in with is declared `sensitive = true` on its `text` option. The field becomes a password field that is **saved the moment something is pasted into it**, and the stored value **never travels back to the webview**: `get_plugin_options` sends `value: null` and `isSet`, so the panel can say a credential is stored — and offer to clear it — without holding it. The field itself stays empty, so the **Saved** mark stays next to it for as long as a credential is stored, not only for the moment after a paste. It is still written in cleartext in `.plugin-config.json`, like every option; the flag is about the screen and the IPC, not the disk.
 
 A flag rather than a fourth type on purpose: an older host ignores an unknown field and shows the option as plain text, where it would reject an unknown `type` and mark the plugin broken.
 

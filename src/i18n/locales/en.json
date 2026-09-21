@@ -1668,7 +1668,7 @@
       "optionsAria": "Options for {{name}}",
       "options": {
         "saved": "Saved",
-        "secretStored": "Saved — paste to replace",
+        "secretStored": "Paste to replace",
         "secretClear": "Clear"
       },
       "attention": {

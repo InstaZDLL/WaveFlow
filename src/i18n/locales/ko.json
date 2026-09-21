@@ -1668,7 +1668,7 @@
       "optionsAria": "{{name}} 옵션",
       "options": {
         "saved": "저장됨",
-        "secretStored": "저장됨 — 붙여넣어 교체",
+        "secretStored": "붙여넣어 교체",
         "secretClear": "지우기"
       },
       "attention": {

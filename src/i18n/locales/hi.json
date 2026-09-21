@@ -1668,7 +1668,7 @@
       "optionsAria": "{{name}} के विकल्प",
       "options": {
         "saved": "सहेजा गया",
-        "secretStored": "सहेजा गया — बदलने के लिए पेस्ट करें",
+        "secretStored": "बदलने के लिए पेस्ट करें",
         "secretClear": "हटाएँ"
       },
       "attention": {

@@ -1668,7 +1668,7 @@
       "optionsAria": "Opsi untuk {{name}}",
       "options": {
         "saved": "Tersimpan",
-        "secretStored": "Tersimpan — tempel untuk mengganti",
+        "secretStored": "Tempel untuk mengganti",
         "secretClear": "Hapus"
       },
       "attention": {

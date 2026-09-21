@@ -1671,7 +1671,7 @@
       "optionsAria": "Opciones de {{name}}",
       "options": {
         "saved": "Guardado",
-        "secretStored": "Guardado — pega para reemplazar",
+        "secretStored": "Pega para reemplazar",
         "secretClear": "Borrar"
       },
       "attention": {

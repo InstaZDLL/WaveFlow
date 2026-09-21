@@ -1672,7 +1672,7 @@
       "optionsAria": "Opções de {{name}}",
       "options": {
         "saved": "Guardado",
-        "secretStored": "Guardado — cole para substituir",
+        "secretStored": "Cole para substituir",
         "secretClear": "Limpar"
       },
       "attention": {

@@ -1668,7 +1668,7 @@
       "optionsAria": "Opties voor {{name}}",
       "options": {
         "saved": "Opgeslagen",
-        "secretStored": "Opgeslagen — plak om te vervangen",
+        "secretStored": "Plak om te vervangen",
         "secretClear": "Wissen"
       },
       "attention": {

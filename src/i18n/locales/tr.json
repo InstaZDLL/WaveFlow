@@ -1668,7 +1668,7 @@
       "optionsAria": "{{name}} seçenekleri",
       "options": {
         "saved": "Kaydedildi",
-        "secretStored": "Kaydedildi — değiştirmek için yapıştırın",
+        "secretStored": "Değiştirmek için yapıştırın",
         "secretClear": "Temizle"
       },
       "attention": {

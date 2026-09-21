@@ -1837,7 +1837,7 @@
       "optionsAria": "خيارات {{name}}",
       "options": {
         "saved": "تم الحفظ",
-        "secretStored": "محفوظ — الصق للاستبدال",
+        "secretStored": "الصق للاستبدال",
         "secretClear": "مسح"
       },
       "attention": {

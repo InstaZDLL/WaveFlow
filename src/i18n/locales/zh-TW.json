@@ -1668,7 +1668,7 @@
       "optionsAria": "{{name}} 的選項",
       "options": {
         "saved": "已儲存",
-        "secretStored": "已儲存 — 貼上以取代",
+        "secretStored": "貼上以取代",
         "secretClear": "清除"
       },
       "attention": {

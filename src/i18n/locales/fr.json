@@ -1671,7 +1671,7 @@
       "optionsAria": "Options de {{name}}",
       "options": {
         "saved": "Enregistré",
-        "secretStored": "Enregistré — collez pour remplacer",
+        "secretStored": "Collez pour remplacer",
         "secretClear": "Effacer"
       },
       "attention": {

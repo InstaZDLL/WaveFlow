@@ -1668,7 +1668,7 @@
       "optionsAria": "{{name}} のオプション",
       "options": {
         "saved": "保存しました",
-        "secretStored": "保存済み — 貼り付けて置き換え",
+        "secretStored": "貼り付けて置き換え",
         "secretClear": "消去"
       },
       "attention": {

@@ -266,7 +266,9 @@ function TextOption({
 
   return (
     <div className="shrink-0 flex items-center gap-2">
-      {saved && (
+      {/* A stored credential keeps the mark: the field itself stays empty,
+          so it is the only sign on screen that one is set. */}
+      {(saved || (sensitive && option.isSet)) && (
         <span
           role="status"
           className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400"

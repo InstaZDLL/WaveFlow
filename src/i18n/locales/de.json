@@ -1668,7 +1668,7 @@
       "optionsAria": "Optionen für {{name}}",
       "options": {
         "saved": "Gespeichert",
-        "secretStored": "Gespeichert — zum Ersetzen einfügen",
+        "secretStored": "Zum Ersetzen einfügen",
         "secretClear": "Löschen"
       },
       "attention": {
