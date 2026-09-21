@@ -24,6 +24,9 @@ import {
   type TrackEdit,
 } from "../../lib/tauri/track";
 import { StarRating } from "./StarRating";
+import { TagCombobox, type SuggestionGroup } from "./TagCombobox";
+import { listAlbums, listArtists, listGenres } from "../../lib/tauri/browse";
+import { GENRE_PRESETS } from "../../lib/genrePresets";
 import { pickFile } from "../../lib/tauri/dialog";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useModalA11y } from "../../hooks/useModalA11y";
@@ -157,6 +160,54 @@ export function TrackPropertiesModal({
       cancelled = true;
     };
   }, [track]);
+
+  // What the library already holds, offered while editing so a value is
+  // picked rather than retyped — a typo in an artist name makes a second
+  // artist. Loaded the first time the form opens, not with the dialog:
+  // most openings only look. A failed list only means fewer suggestions.
+  const [known, setKnown] = useState<{
+    genres: string[];
+    artists: string[];
+    albums: string[];
+  } | null>(null);
+  const wantsSuggestions = editing && known == null;
+  useEffect(() => {
+    if (!wantsSuggestions) return;
+    let cancelled = false;
+    const names = <T,>(p: Promise<T[]>, pick: (row: T) => string) =>
+      p
+        .then((rows) =>
+          [...new Set(rows.map(pick).filter((n) => n.trim() !== ""))].sort(
+            (a, b) => a.localeCompare(b),
+          ),
+        )
+        .catch((err) => {
+          console.error("[TrackProperties] suggestions failed", err);
+          return [] as string[];
+        });
+    void Promise.all([
+      names(listGenres(null), (g) => g.name),
+      names(listArtists(null), (a) => a.name),
+      names(listAlbums(null), (a) => a.title),
+    ]).then(([genres, artists, albums]) => {
+      if (!cancelled) setKnown({ genres, artists, albums });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [wantsSuggestions]);
+
+  const inLibrary = t("trackProperties.suggestions.library");
+  const genreGroups: SuggestionGroup[] = [
+    { label: inLibrary, values: known?.genres ?? [] },
+    { label: t("trackProperties.suggestions.presets"), values: GENRE_PRESETS },
+  ];
+  const artistGroups: SuggestionGroup[] = [
+    { label: inLibrary, values: known?.artists ?? [] },
+  ];
+  const albumGroups: SuggestionGroup[] = [
+    { label: inLibrary, values: known?.albums ?? [] },
+  ];
 
   // The genre isn't on the `Track` row (it lives in `track_genre`), so
   // it takes its own fetch. A failure leaves `genres` null, which keeps
@@ -322,11 +373,15 @@ export function TrackPropertiesModal({
   const addedAt = track.added_at
     ? new Date(track.added_at).toLocaleString(i18n.language)
     : "—";
+  // Two rows rather than one "disc / track": "1 / 37" read as track 1 of
+  // 37 when it meant disc 1, track 37.
   const trackNumber =
-    track.track_number != null
-      ? track.disc_number != null && track.disc_number > 0
-        ? `${track.disc_number} / ${track.track_number}`
-        : String(track.track_number)
+    track.track_number != null && track.track_number > 0
+      ? String(track.track_number)
+      : "—";
+  const discNumber =
+    track.disc_number != null && track.disc_number > 0
+      ? String(track.disc_number)
       : "—";
 
   return (
@@ -356,6 +411,20 @@ export function TrackPropertiesModal({
         >
           <X size={18} />
         </button>
+        {/* Up here rather than in the footer: the footer sits below every
+            section, a scroll away, and editing is what the dialog is
+            opened for as often as reading. */}
+        {!editing && (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            aria-label={t("trackProperties.edit")}
+            title={t("trackProperties.edit")}
+            className="absolute top-4 right-14 p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+          >
+            <Pencil size={18} />
+          </button>
+        )}
 
         {/* Header — cover + title block */}
         <div className="flex items-start gap-4 p-6 border-b border-zinc-100 dark:border-zinc-800">
@@ -383,7 +452,7 @@ export function TrackPropertiesModal({
               </button>
             )}
           </div>
-          <div className="flex-1 min-w-0 pr-10">
+          <div className="flex-1 min-w-0 pr-20">
             <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
               {t("trackProperties.title")}
             </div>
@@ -398,23 +467,21 @@ export function TrackPropertiesModal({
                   placeholder={t("trackProperties.fields.title")}
                   className="w-full text-lg font-semibold px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
                 />
-                <input
-                  type="text"
+                <TagCombobox
                   value={form.artist}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, artist: e.target.value }))
-                  }
+                  onChange={(v) => setForm((p) => ({ ...p, artist: v }))}
+                  groups={artistGroups}
                   placeholder={t("trackProperties.fields.artist")}
-                  className="w-full text-sm px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200"
+                  ariaLabel={t("trackProperties.fields.artist")}
+                  inputClassName="w-full text-sm px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200"
                 />
-                <input
-                  type="text"
+                <TagCombobox
                   value={form.album}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, album: e.target.value }))
-                  }
+                  onChange={(v) => setForm((p) => ({ ...p, album: v }))}
+                  groups={albumGroups}
                   placeholder={t("trackProperties.fields.album")}
-                  className="w-full text-sm px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200"
+                  ariaLabel={t("trackProperties.fields.album")}
+                  inputClassName="w-full text-sm px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200"
                 />
               </div>
             ) : (
@@ -469,18 +536,28 @@ export function TrackPropertiesModal({
                   onChange={(v) => setForm((p) => ({ ...p, disc_number: v }))}
                   placeholder="1"
                 />
-                <EditRow
-                  label={t("trackProperties.fields.genre")}
-                  type="text"
-                  value={form.genre}
-                  onChange={(v) => setForm((p) => ({ ...p, genre: v }))}
-                  placeholder={t("trackProperties.fields.genrePlaceholder")}
-                  // Locked until we know what the track already carries.
-                  // An editable-but-empty box would take a value the save
-                  // then drops on the floor, since a genre we can't
-                  // compare against is a genre we won't send.
-                  disabled={genres == null}
-                />
+                <div className="flex items-center gap-4 px-3 py-2 text-sm">
+                  <span className="w-32 shrink-0 text-zinc-500 dark:text-zinc-400">
+                    {t("trackProperties.fields.genre")}
+                  </span>
+                  <TagCombobox
+                    value={form.genre}
+                    onChange={(v) => setForm((p) => ({ ...p, genre: v }))}
+                    // One value, not a list to complete: the save stores
+                    // the string as a single genre (see handleSave), so
+                    // helping to type "Rock; Pop" would make a genre of
+                    // that name.
+                    groups={genreGroups}
+                    placeholder={t("trackProperties.fields.genrePlaceholder")}
+                    ariaLabel={t("trackProperties.fields.genre")}
+                    // Locked until we know what the track already carries.
+                    // An editable-but-empty box would take a value the save
+                    // then drops on the floor, since a genre we can't
+                    // compare against is a genre we won't send.
+                    disabled={genres == null}
+                    inputClassName="w-full px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  />
+                </div>
                 <Row
                   label={t("trackProperties.duration")}
                   value={formatDuration(track.duration_ms)}
@@ -493,8 +570,20 @@ export function TrackPropertiesModal({
                   value={track.year ?? "—"}
                 />
                 <Row
-                  label={t("trackProperties.trackNumber")}
+                  label={t("trackProperties.fields.trackNumber")}
                   value={trackNumber}
+                />
+                <Row
+                  label={t("trackProperties.fields.discNumber")}
+                  value={discNumber}
+                />
+                <Row
+                  label={t("trackProperties.fields.genre")}
+                  value={
+                    genres == null || genres.length === 0
+                      ? "—"
+                      : genres.join("; ")
+                  }
                 />
                 <Row
                   label={t("trackProperties.duration")}
@@ -642,14 +731,6 @@ export function TrackPropertiesModal({
               >
                 <ExternalLink size={14} />
                 <span>{t("trackProperties.showInExplorer")}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditing(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
-              >
-                <Pencil size={14} />
-                <span>{t("trackProperties.edit")}</span>
               </button>
               <button
                 type="button"

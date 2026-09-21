@@ -1194,7 +1194,6 @@
     "reanalyze": "Проанализировать снова",
     "analyzing": "Анализ…",
     "year": "Год",
-    "trackNumber": "Номер трека",
     "duration": "Длительность",
     "codec": "Кодек",
     "bitDepth": "Разрядность",
@@ -1221,7 +1220,11 @@
       "genre": "Жанр",
       "genrePlaceholder": "Pop, Rock, Jazz…"
     },
-    "changeCover": "Сменить обложку"
+    "changeCover": "Сменить обложку",
+    "suggestions": {
+      "library": "В вашей медиатеке",
+      "presets": "Распространённые жанры"
+    }
   },
   "selection": {
     "toolbarLabel": "Действия с выбранным",

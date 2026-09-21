@@ -1114,7 +1114,6 @@
     "reanalyze": "Analisis ulang",
     "analyzing": "Menganalisis…",
     "year": "Tahun",
-    "trackNumber": "Nomor lagu",
     "duration": "Durasi",
     "codec": "Codec",
     "bitDepth": "Kedalaman bit",
@@ -1141,7 +1140,11 @@
       "genre": "Genre",
       "genrePlaceholder": "Pop, Rock, Jazz…"
     },
-    "changeCover": "Ganti sampul"
+    "changeCover": "Ganti sampul",
+    "suggestions": {
+      "library": "Di pustaka Anda",
+      "presets": "Genre umum"
+    }
   },
   "selection": {
     "toolbarLabel": "Aksi pemilihan",

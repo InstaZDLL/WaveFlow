@@ -198,6 +198,19 @@ export function SpectrumVisualizer({
       return passBaseline + passSign * clamped * passAmp;
     };
 
+    // A Catmull-Rom curve overshoots its points: between two tall bands
+    // its control points sit above both, and the curve went out through
+    // the top of the canvas and was cut flat there. A Bézier segment
+    // never leaves the hull of its four control points, so holding the
+    // control points inside the pass's band keeps the whole curve inside
+    // it — the overshoot is trimmed at the curve, not by the canvas edge.
+    const clampY = (y: number) => {
+      const edge = passBaseline + passSign * passAmp;
+      const lo = edge < passBaseline ? edge : passBaseline;
+      const hi = edge < passBaseline ? passBaseline : edge;
+      return y < lo ? lo : y > hi ? hi : y;
+    };
+
     const emitCurve = (n: number, dx: number, from: number, to: number) => {
       const step = to > from ? 1 : -1;
       const last = n - 1;
@@ -216,9 +229,9 @@ export function SpectrumVisualizer({
         const y3 = yAt(next);
         ctx.bezierCurveTo(
           x1 + (x2 - x0) / 6,
-          y1 + (y2 - y0) / 6,
+          clampY(y1 + (y2 - y0) / 6),
           x2 - (x3 - x1) / 6,
-          y2 - (y3 - y1) / 6,
+          clampY(y2 - (y3 - y1) / 6),
           x2,
           y2,
         );
