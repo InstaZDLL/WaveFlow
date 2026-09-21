@@ -2591,6 +2591,25 @@ pub async fn prefetch_library_lyrics(
     result
 }
 
+/// The prefetch's cached miss: [`cache_lyrics_miss`] without the payload
+/// it builds for the panel, which nobody reads here.
+async fn cache_prefetch_miss(
+    pool: &sqlx::SqlitePool,
+    file_hash: &str,
+    partial: bool,
+) -> AppResult<()> {
+    upsert_lyrics_until(
+        pool,
+        file_hash,
+        "",
+        &LyricsFormat::Plain,
+        &LyricsSource::Api,
+        None,
+        miss_retry_after(partial),
+    )
+    .await
+}
+
 /// One track the prefetch may look up: id, path, file hash, title,
 /// artist, album, duration (ms), and its genres joined on U+001F.
 type PendingRow = (
@@ -2887,16 +2906,7 @@ async fn run_prefetch(
                                 }
                             }
                             Ok(SearchOutcome::Miss { partial }) => {
-                                let _ = upsert_lyrics_until(
-                                    &pool,
-                                    &file_hash,
-                                    "",
-                                    &LyricsFormat::Plain,
-                                    &LyricsSource::Api,
-                                    None,
-                                    miss_retry_after(partial),
-                                )
-                                .await;
+                                let _ = cache_prefetch_miss(&pool, &file_hash, partial).await;
                                 misses += 1;
                             }
                             // Nothing was queried — don't record a negative
@@ -2931,16 +2941,7 @@ async fn run_prefetch(
                         // of the prefetch and re-opens of the lyrics panel
                         // skip this track. User can force a re-search
                         // per-track via the "Refetch" button.
-                        let _ = upsert_lyrics_until(
-                            &pool,
-                            &file_hash,
-                            "",
-                            &LyricsFormat::Plain,
-                            &LyricsSource::Api,
-                            None,
-                            miss_retry_after(partial),
-                        )
-                        .await;
+                        let _ = cache_prefetch_miss(&pool, &file_hash, partial).await;
                         misses += 1;
                     }
                     // Nothing was queried — don't record a negative for a
