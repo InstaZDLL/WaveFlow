@@ -385,9 +385,10 @@ export function HistoryView({
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={async (data) => {
           try {
-            await createFromModal(data);
+            return await createFromModal(data);
           } catch (err) {
             console.error("[HistoryView] create playlist failed", err);
+            throw err;
           }
         }}
       />

@@ -25,6 +25,8 @@ pub struct Playlist {
     pub name: String,
     pub description: Option<String>,
     pub color_id: String,
+    #[cfg_attr(any(feature = "sqlite", feature = "postgres"), sqlx(default))]
+    pub color_mode: String,
     pub icon_id: String,
     pub is_smart: i64,
     /// Blake3 hash of the cover image stored in the shared
@@ -61,6 +63,7 @@ pub struct CreatePlaylistInput {
     pub name: String,
     pub description: Option<String>,
     pub color_id: Option<String>,
+    pub color_mode: Option<String>,
     pub icon_id: Option<String>,
 }
 
@@ -71,5 +74,6 @@ pub struct UpdatePlaylistInput {
     pub name: Option<String>,
     pub description: Option<String>,
     pub color_id: Option<String>,
+    pub color_mode: Option<String>,
     pub icon_id: Option<String>,
 }

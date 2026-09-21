@@ -1004,7 +1004,25 @@
     "submit": "Create a library",
     "submitEdit": "Save"
   },
+  "playlistDuration": {
+    "zero": "0 min",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "hours_one": "{{count}} hr",
+    "hours_other": "{{count}} hr",
+    "hoursMinutes": "{{hours}} hr {{minutes}} min"
+  },
   "playlistModal": {
+    "colorModeLabel": "Header colour",
+    "colorAuto": "From cover",
+    "colorManual": "Choose a colour",
+    "addCover": "Add a cover",
+    "coverUploadError": "The playlist was created, but its cover could not be saved. Try again or finish without it.",
+    "coverSaveError": "The cover could not be saved. Please try another image.",
+    "retryCover": "Retry cover",
+    "finishWithoutCover": "Finish without cover",
+    "createError": "Could not create the playlist. Please try again.",
+    "editError": "Could not save the playlist. Please try again.",
     "title": "New playlist",
     "editTitle": "Edit the playlist",
     "previewDefault": "New playlist",

@@ -1509,6 +1509,7 @@ where
                 name: preview.source_name.clone(),
                 description: Some("Materialized from WaveFlow Server".into()),
                 color_id: "violet".into(),
+                color_mode: "auto".into(),
                 icon_id: "music".into(),
                 now_ms: now,
             };

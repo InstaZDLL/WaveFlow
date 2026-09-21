@@ -37,13 +37,14 @@ pub async fn insert_custom_conn(
 ) -> CoreResult<i64> {
     let insert = sqlx::query(
         "INSERT INTO playlist
-             (name, description, color_id, icon_id, is_smart, position,
+             (name, description, color_id, color_mode, icon_id, is_smart, position,
               created_at, updated_at)
-         VALUES (?, ?, ?, ?, 0, 0, ?, ?)",
+         VALUES (?, ?, ?, ?, ?, 0, 0, ?, ?)",
     )
     .bind(&draft.name)
     .bind(draft.description.as_deref())
     .bind(&draft.color_id)
+    .bind(&draft.color_mode)
     .bind(&draft.icon_id)
     .bind(draft.now_ms)
     .bind(draft.now_ms)
@@ -71,6 +72,7 @@ pub async fn update_conn(
             SET name        = COALESCE(?, name),
                 description = COALESCE(?, description),
                 color_id    = COALESCE(?, color_id),
+                color_mode  = COALESCE(?, color_mode),
                 icon_id     = COALESCE(?, icon_id),
                 updated_at  = ?
           WHERE id = ?",
@@ -78,6 +80,7 @@ pub async fn update_conn(
     .bind(patch.name.as_deref())
     .bind(patch.description.as_deref())
     .bind(patch.color_id.as_deref())
+    .bind(patch.color_mode.as_deref())
     .bind(patch.icon_id.as_deref())
     .bind(now_ms)
     .bind(id)
@@ -309,7 +312,7 @@ impl SqlitePlaylistRepository {
 /// `SELECT … FROM playlist p LEFT JOIN (counts)` — kept as a const so
 /// the same projection backs both list + single-row fetches.
 const SELECT_WITH_COUNTS: &str = r#"
-SELECT p.id, p.name, p.description, p.color_id, p.icon_id,
+SELECT p.id, p.name, p.description, p.color_id, p.color_mode, p.icon_id,
        p.is_smart, p.cover_hash, NULL AS cover_path,
        p.cover_is_auto,
        p.position, p.created_at, p.updated_at,
@@ -459,13 +462,14 @@ impl PlaylistRepository for SqlitePlaylistRepository {
         let mut tx = self.pool.begin().await?;
         let insert = sqlx::query(
             "INSERT INTO playlist
-                 (name, description, color_id, icon_id, is_smart, position,
+                 (name, description, color_id, color_mode, icon_id, is_smart, position,
                   created_at, updated_at)
-             VALUES (?, ?, ?, ?, 0, 0, ?, ?)",
+             VALUES (?, ?, ?, ?, ?, 0, 0, ?, ?)",
         )
         .bind(&draft.name)
         .bind(draft.description.as_deref())
         .bind(&draft.color_id)
+        .bind(&draft.color_mode)
         .bind(&draft.icon_id)
         .bind(draft.now_ms)
         .bind(draft.now_ms)

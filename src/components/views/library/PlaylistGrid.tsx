@@ -10,7 +10,7 @@ import {
   resolvePlaylistColor,
 } from "../../../lib/playlistVisuals";
 import { resolveRemoteImage } from "../../../lib/tauri/artwork";
-import { formatDuration } from "../../../lib/tauri/track";
+import { formatPlaylistDuration } from "../../../lib/playlistDuration";
 import type { SortState } from "../../../hooks/useSortMemory";
 import type { LibraryPlaylistRow } from "../../../hooks/useLibraryPlaylists";
 import { EmptyState } from "../../common/EmptyState";
@@ -281,7 +281,7 @@ function PlaylistCard({
         <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
           {t("library.playlistsGrid.meta", {
             count: playlist.track_count,
-            duration: formatDuration(playlist.total_duration_ms),
+            duration: formatPlaylistDuration(playlist.total_duration_ms, t),
           })}
         </div>
       </div>

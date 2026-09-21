@@ -10,6 +10,18 @@ import {
   Leaf,
   Gift,
   Headphones,
+  Disc3,
+  Radio,
+  Guitar,
+  Mic2,
+  Piano,
+  Waves,
+  Sparkles,
+  Zap,
+  Mountain,
+  Plane,
+  Gamepad2,
+  Flower2,
   type LucideProps,
 } from "lucide-react";
 
@@ -50,6 +62,30 @@ export function PlaylistIcon({
       return <Gift {...props} />;
     case "headphones":
       return <Headphones {...props} />;
+    case "disc":
+      return <Disc3 {...props} />;
+    case "radio":
+      return <Radio {...props} />;
+    case "guitar":
+      return <Guitar {...props} />;
+    case "mic":
+      return <Mic2 {...props} />;
+    case "piano":
+      return <Piano {...props} />;
+    case "waves":
+      return <Waves {...props} />;
+    case "sparkles":
+      return <Sparkles {...props} />;
+    case "zap":
+      return <Zap {...props} />;
+    case "mountain":
+      return <Mountain {...props} />;
+    case "plane":
+      return <Plane {...props} />;
+    case "gamepad":
+      return <Gamepad2 {...props} />;
+    case "flower":
+      return <Flower2 {...props} />;
     default:
       return <Music2 {...props} />;
   }

@@ -15,6 +15,8 @@
 //! Smart playlists (`is_smart = 1`) are excluded from every code path here:
 //! their covers are owned by the smart-playlist regen flow.
 
+use base64::Engine;
+use std::io::Read;
 use std::path::PathBuf;
 
 use sqlx::{FromRow, SqlitePool};
@@ -50,6 +52,43 @@ fn detect_image_format(bytes: &[u8]) -> Option<&'static str> {
 /// pulling the whole desktop into RAM.
 const MAX_UPLOAD_BYTES: usize = 8 * 1024 * 1024;
 
+fn read_cover_bytes(file_path: &str) -> AppResult<Vec<u8>> {
+    let file = std::fs::File::open(file_path)
+        .map_err(|e| AppError::Other(format!("open cover image: {e}")))?;
+    let mut bytes = Vec::new();
+    file.take((MAX_UPLOAD_BYTES + 1) as u64)
+        .read_to_end(&mut bytes)
+        .map_err(|e| AppError::Other(format!("read cover image: {e}")))?;
+    if bytes.len() > MAX_UPLOAD_BYTES {
+        return Err(AppError::Other(format!(
+            "image too large: max {MAX_UPLOAD_BYTES} bytes"
+        )));
+    }
+    Ok(bytes)
+}
+
+/// Return a small, validated in-memory preview for a file selected before
+/// the playlist exists. The asset protocol cannot serve arbitrary paths
+/// outside app data, so the UI must not pass a picker path to convertFileSrc.
+#[tauri::command]
+pub async fn preview_playlist_cover_from_file(file_path: String) -> AppResult<String> {
+    let bytes = read_cover_bytes(&file_path)?;
+    if detect_image_format(&bytes).is_none() {
+        return Err(AppError::Other("invalid playlist cover image".into()));
+    }
+    let source = image::load_from_memory(&bytes)
+        .map_err(|e| AppError::Other(format!("decode cover preview: {e}")))?;
+    let preview = source.resize_to_fill(320, 320, image::imageops::FilterType::Triangle);
+    let mut encoded = Vec::new();
+    image::codecs::jpeg::JpegEncoder::new_with_quality(&mut encoded, 80)
+        .encode_image(&preview)
+        .map_err(|e| AppError::Other(format!("encode cover preview: {e}")))?;
+    Ok(format!(
+        "data:image/jpeg;base64,{}",
+        base64::engine::general_purpose::STANDARD.encode(encoded)
+    ))
+}
+
 /// Number of tiles in the auto-cover grid. Mirrors the 2×2 layout in
 /// [`cover::build_composite_cover`] — anything below 4 falls through to a
 /// strips layout, which still looks fine but isn't the Spotify look.
@@ -73,15 +112,7 @@ pub async fn set_playlist_cover_from_file(
     let pool = state.require_profile_pool().await?;
     ensure_user_playlist(&pool, playlist_id).await?;
 
-    let bytes =
-        std::fs::read(&file_path).map_err(|e| AppError::Other(format!("read upload: {e}")))?;
-    if bytes.len() > MAX_UPLOAD_BYTES {
-        return Err(AppError::Other(format!(
-            "image too large: {} bytes (max {})",
-            bytes.len(),
-            MAX_UPLOAD_BYTES
-        )));
-    }
+    let bytes = read_cover_bytes(&file_path)?;
     let Some(ext) = detect_image_format(&bytes) else {
         return Err(AppError::Other(
             "unsupported image format (expected jpg/png/webp)".into(),

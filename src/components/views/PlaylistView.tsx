@@ -109,6 +109,12 @@ import { isRemoteTrack } from "../../lib/playerSources";
 import { notifyRemoteChanged } from "../../hooks/useRemoteSource";
 import { useSortMemory } from "../../hooks/useSortMemory";
 import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
+import { useRemoteArtworkSrc } from "../../hooks/useRemoteArtworkSrc";
+import {
+  playlistGradient,
+  usePlaylistAccent,
+} from "../../hooks/usePlaylistAccent";
+import { formatPlaylistDuration } from "../../lib/playlistDuration";
 
 /**
  * Sort modes for the playlist track list. "custom" preserves the
@@ -242,6 +248,7 @@ function toPlaylist(
     // A server playlist carries no colour, so it is derived from the id —
     // the same hash always landing on the same swatch.
     color_id: colorForPlaylistId(remoteId).id,
+    color_mode: "auto",
     icon_id: "music",
     is_smart: 0,
     cover_hash: null,
@@ -953,6 +960,15 @@ export function PlaylistView({
     }
     return out;
   }, [remote, tracks]);
+  const { src: remoteAccentArtwork } = useRemoteArtworkSrc(
+    remoteCoverHashes[0] ?? null,
+  );
+  const localAccentArtwork = resolveRemoteImage(playlist?.cover_path, null);
+  const accent = usePlaylistAccent(
+    remote ? remoteAccentArtwork : localAccentArtwork,
+    playlist?.color_id ?? "violet",
+    playlist?.color_mode === "manual" ? "manual" : "auto",
+  );
 
   if (playlistId == null && remotePlaylistId == null) {
     return (
@@ -1046,6 +1062,7 @@ export function PlaylistView({
     name: string;
     description: string;
     colorId: string;
+    colorMode: "auto" | "manual";
     iconId: string;
   }) => {
     if (playlistId == null) return;
@@ -1054,10 +1071,12 @@ export function PlaylistView({
         name: data.name,
         description: data.description || null,
         color_id: data.colorId,
+        color_mode: data.colorMode,
         icon_id: data.iconId,
       });
     } catch (err) {
       console.error("[PlaylistView] update failed", err);
+      throw err;
     }
   };
 
@@ -1102,11 +1121,15 @@ export function PlaylistView({
     }
   };
 
-  const totalDurationLabel =
-    totalDurationMs > 0 ? formatDuration(totalDurationMs) : "—";
+  const totalDurationLabel = formatPlaylistDuration(totalDurationMs, t);
 
   return (
-    <div className="space-y-8 animate-fade-in pb-20">
+    <div className="relative isolate space-y-8 animate-fade-in pb-20">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[440px]"
+        style={{ background: playlistGradient(accent) }}
+      />
       {/* Header. Smart playlists (Daily Mix, …) ship a generated cover
           image — render it as a 96×96 tile with a "DAILY MIX" overlay
           label. User-curated playlists fall back to the icon + color
@@ -1117,12 +1140,10 @@ export function PlaylistView({
           : null;
         const isSmart = (playlist?.is_smart ?? 0) === 1;
         return (
-          <div
-            className={`flex items-start justify-between p-6 rounded-2xl ${color.previewBg}`}
-          >
-            <div className="flex items-center space-x-6 min-w-0">
+          <div className="flex flex-col gap-6 px-6 pt-10 pb-5 sm:px-8 lg:flex-row lg:items-end lg:justify-between lg:min-h-64">
+            <div className="flex min-w-0 flex-col items-start gap-6 sm:flex-row sm:items-end">
               {remote && remoteCoverHashes.length >= 4 ? (
-                <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-sm shrink-0 grid grid-cols-2">
+                <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-xl overflow-hidden shadow-xl shrink-0 grid grid-cols-2">
                   {remoteCoverHashes.map((hash) => (
                     <RemoteArtwork
                       key={hash}
@@ -1135,12 +1156,12 @@ export function PlaylistView({
               ) : remote && remoteCoverHashes.length >= 1 ? (
                 <RemoteArtwork
                   hash={remoteCoverHashes[0]}
-                  className="w-24 h-24 rounded-2xl shadow-sm shrink-0"
+                  className="w-40 h-40 sm:w-48 sm:h-48 rounded-xl shadow-xl shrink-0"
                   iconSize={40}
                 />
               ) : (
                 <div
-                  className={`relative w-24 h-24 rounded-2xl overflow-hidden shadow-sm shrink-0 flex items-center justify-center ${
+                  className={`relative w-40 h-40 sm:w-48 sm:h-48 rounded-xl overflow-hidden shadow-xl shrink-0 flex items-center justify-center ${
                     coverUrl ? "" : `${color.tileBg} ${color.tileText}`
                   }`}
                 >
@@ -1162,14 +1183,14 @@ export function PlaylistView({
                       )}
                     </>
                   ) : remote ? (
-                    <ListMusic size={48} />
+                    <ListMusic size={72} />
                   ) : (
-                    <PlaylistIcon iconId={playlist.icon_id} size={48} />
+                    <PlaylistIcon iconId={playlist.icon_id} size={72} />
                   )}
                 </div>
               )}
-              <div className="min-w-0">
-                <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
+              <div className="min-w-0 pb-1">
+                <div className="text-[10px] font-bold tracking-widest text-zinc-700 dark:text-zinc-200 uppercase mb-1">
                   {t(remote ? "remote.playlist.label" : "playlistView.badge")}
                 </div>
                 {remote && isRenaming ? (
@@ -1191,17 +1212,17 @@ export function PlaylistView({
                     className="w-full mb-2 px-2 py-1 text-3xl font-bold rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900"
                   />
                 ) : (
-                  <h1 className="text-4xl font-bold mb-2 truncate text-zinc-900 dark:text-white">
+                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-3 break-words text-zinc-900 dark:text-white">
                     {playlist.name}
                   </h1>
                 )}
                 {playlist.description && (
-                  <p className="text-sm text-zinc-500 mb-2 line-clamp-2">
+                  <p className="text-sm text-zinc-700 dark:text-zinc-200 mb-2 line-clamp-2">
                     {playlist.description}
                   </p>
                 )}
                 {!remote && <SmartRuleSummary playlist={playlist} />}
-                <div className="flex items-center text-sm text-zinc-500 space-x-2">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-700 dark:text-zinc-200">
                   <Music2 size={16} />
                   <span>
                     {t("playlistView.trackCount", {
@@ -1241,7 +1262,7 @@ export function PlaylistView({
               </div>
             </div>
 
-            <div className="flex items-center space-x-3 shrink-0">
+            <div className="flex flex-wrap items-center gap-3 shrink-0 pb-1">
               <button
                 type="button"
                 onClick={handlePlayAll}
@@ -1560,9 +1581,10 @@ export function PlaylistView({
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={async (data) => {
           try {
-            await createFromModal(data);
+            return await createFromModal(data);
           } catch (err) {
             console.error("[PlaylistView] create playlist failed", err);
+            throw err;
           }
         }}
       />

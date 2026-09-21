@@ -1796,14 +1796,29 @@ export function LibraryView({
             const created = await createFromModal(data);
             const pending = pendingSourceForCreate;
             if (pending && created?.id != null) {
-              if (pending.kind === "tracks") {
-                await addTracksToPlaylist(created.id, pending.ids);
-              } else {
-                await addSourceToPlaylist(created.id, pending.kind, pending.id);
+              try {
+                if (pending.kind === "tracks") {
+                  await addTracksToPlaylist(created.id, pending.ids);
+                } else {
+                  await addSourceToPlaylist(
+                    created.id,
+                    pending.kind,
+                    pending.id,
+                  );
+                }
+              } catch (err) {
+                // The playlist already exists. Return its id so the modal
+                // does not offer a retry that would create a duplicate.
+                console.error(
+                  "[LibraryView] add tracks to new playlist failed",
+                  err,
+                );
               }
             }
+            return created;
           } catch (err) {
             console.error("[LibraryView] create playlist failed", err);
+            throw err;
           } finally {
             setPendingSourceForCreate(null);
           }

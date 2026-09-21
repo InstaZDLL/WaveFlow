@@ -605,9 +605,10 @@ export function AlbumDetailView({
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={async (data) => {
           try {
-            await createFromModal(data);
+            return await createFromModal(data);
           } catch (err) {
             console.error("[AlbumDetailView] create playlist failed", err);
+            throw err;
           }
         }}
       />

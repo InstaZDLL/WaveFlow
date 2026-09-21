@@ -19,6 +19,7 @@ pub struct PlaylistDraft {
     pub name: String,
     pub description: Option<String>,
     pub color_id: String,
+    pub color_mode: String,
     pub icon_id: String,
     pub now_ms: i64,
 }
@@ -31,6 +32,7 @@ pub struct PlaylistUpdate {
     pub name: Option<String>,
     pub description: Option<String>,
     pub color_id: Option<String>,
+    pub color_mode: Option<String>,
     pub icon_id: Option<String>,
 }
 

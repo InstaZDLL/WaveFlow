@@ -28,6 +28,8 @@
 //! resolves it from `cover_hash` against the per-profile artwork
 //! dir, which the server doesn't own. Matches the desktop's own
 //! SELECT pattern (`NULL AS cover_path`).
+//! The server has no playlist colour-mode column: its playlists use
+//! automatic colour. Project that value explicitly for the shared DTO.
 
 use sqlx::PgPool;
 
@@ -64,6 +66,7 @@ impl PostgresPlaylistRepository {
                     pl.name,
                     pl.description,
                     pl.color_id,
+                    'auto'::text AS color_mode,
                     pl.icon_id,
                     pl.is_smart,
                     pl.cover_hash,
@@ -108,6 +111,7 @@ impl PostgresPlaylistRepository {
                     pl.name,
                     pl.description,
                     pl.color_id,
+                    'auto'::text AS color_mode,
                     pl.icon_id,
                     pl.is_smart,
                     pl.cover_hash,
@@ -175,6 +179,7 @@ impl PostgresPlaylistRepository {
                    name,
                    description,
                    color_id,
+                   'auto'::text AS color_mode,
                    icon_id,
                    is_smart,
                    cover_hash,
@@ -232,6 +237,7 @@ impl PostgresPlaylistRepository {
                     name,
                     description,
                     color_id,
+                    'auto'::text AS color_mode,
                     icon_id,
                     is_smart,
                     cover_hash,

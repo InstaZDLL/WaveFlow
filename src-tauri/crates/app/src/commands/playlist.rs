@@ -98,6 +98,10 @@ pub async fn create_playlist(
         return Err(AppError::Other("playlist name cannot be empty".into()));
     }
     let color_id = input.color_id.unwrap_or_else(|| "violet".to_string());
+    let color_mode = input.color_mode.unwrap_or_else(|| "auto".to_string());
+    if color_mode != "auto" && color_mode != "manual" {
+        return Err(AppError::Other("invalid playlist color mode".into()));
+    }
     let icon_id = input.icon_id.unwrap_or_else(|| "music".to_string());
     let now = now_millis();
 
@@ -105,6 +109,7 @@ pub async fn create_playlist(
         name: name.clone(),
         description: input.description.clone(),
         color_id: color_id.clone(),
+        color_mode: color_mode.clone(),
         icon_id: icon_id.clone(),
         now_ms: now,
     };
@@ -133,6 +138,7 @@ pub async fn create_playlist(
                 "name": name,
                 "description": input.description,
                 "color_id": color_id,
+                "color_mode": color_mode,
                 "icon_id": icon_id,
             })),
         },
@@ -162,6 +168,7 @@ pub async fn create_playlist(
         name,
         description: input.description,
         color_id,
+        color_mode,
         icon_id,
         is_smart: 0,
         cover_hash: None,
@@ -184,6 +191,13 @@ pub async fn update_playlist(
     input: UpdatePlaylistInput,
 ) -> AppResult<()> {
     let trimmed_name = input.name.as_ref().map(|s| s.trim().to_string());
+    if input
+        .color_mode
+        .as_deref()
+        .is_some_and(|mode| mode != "auto" && mode != "manual")
+    {
+        return Err(AppError::Other("invalid playlist color mode".into()));
+    }
     if let Some(name) = &trimmed_name {
         if name.is_empty() {
             return Err(AppError::Other("playlist name cannot be empty".into()));
@@ -194,6 +208,7 @@ pub async fn update_playlist(
         name: trimmed_name.clone(),
         description: input.description.clone(),
         color_id: input.color_id.clone(),
+        color_mode: input.color_mode.clone(),
         icon_id: input.icon_id.clone(),
     };
 
@@ -229,6 +244,10 @@ pub async fn update_playlist(
             input.description.map(serde_json::Value::String),
         ),
         ("color_id", input.color_id.map(serde_json::Value::String)),
+        (
+            "color_mode",
+            input.color_mode.map(serde_json::Value::String),
+        ),
         ("icon_id", input.icon_id.map(serde_json::Value::String)),
     ] {
         if let Some(value) = value {
@@ -917,6 +936,7 @@ pub async fn import_playlist_m3u(
         name,
         description: None,
         color_id: "violet".to_string(),
+        color_mode: "auto".to_string(),
         icon_id: "music".to_string(),
         now_ms: now,
     };
