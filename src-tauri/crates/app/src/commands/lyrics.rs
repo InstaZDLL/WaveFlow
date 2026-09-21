@@ -1691,8 +1691,9 @@ async fn read_cached(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option
 
     // A partial miss past its date reads as "not cached", so the caller
     // runs the waterfall again (#720). Left in place rather than deleted:
-    // whatever that lookup concludes overwrites it, and if the lookup
-    // cannot run (offline) the stale row costs nothing meanwhile.
+    // the next lookup that reaches a verdict overwrites it. Offline, that
+    // lookup finds nothing to ask and the panel shows no lyrics — what the
+    // row would have shown anyway.
     let row = row.and_then(
         |(content, format, source, provider, retry_after)| match retry_after {
             Some(due) if due <= now_ms() => None,
@@ -3852,7 +3853,14 @@ pub async fn fetch_remote_lyrics(
         album_title: None,
         duration_ms,
     };
-    let pool = state.require_profile_pool().await?;
+    // The chain reads this profile's provider switches. A profile that
+    // went away while the remote queue was playing leaves nothing to show,
+    // exactly as before the chain needed a pool.
+    let pool = match state.require_profile_pool().await {
+        Ok(pool) => pool,
+        Err(AppError::NoActiveProfile) => return Ok(None),
+        Err(err) => return Err(err),
+    };
     match search_fallback_chain(&pool, &meta, false).await {
         Ok(SearchOutcome::Found(r)) => {
             let format = external_format_to_app(r.format);

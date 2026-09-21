@@ -31,10 +31,14 @@ impl Error {
     /// Whether the provider itself could not be reached or refused us —
     /// a connect timeout, a 403, a 5xx — as opposed to a response that
     /// arrived but could not be read. Only the first kind says anything
-    /// about the provider's health; a page that fails to parse is about
-    /// that one query.
+    /// about the provider's health; a page that fails to parse, or a body
+    /// that breaks off after the status line, is about that one query.
     pub fn is_transport(&self) -> bool {
-        matches!(self, Error::Http(_) | Error::Transport(_))
+        match self {
+            Error::Http(err) => !err.is_decode() && !err.is_body(),
+            Error::Transport(_) => true,
+            _ => false,
+        }
     }
 
     /// The same error with the request URL dropped. `reqwest::Error`
