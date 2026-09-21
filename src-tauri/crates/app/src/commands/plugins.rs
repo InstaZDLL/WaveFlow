@@ -1009,20 +1009,27 @@ pub async fn get_plugin_options(
         Ok(manifest
             .options
             .into_iter()
-            .map(|o| PluginOption {
-                is_set: values.get(&o.key).is_some_and(|v| !v.is_empty()),
-                value: if o.sensitive {
-                    None
-                } else {
-                    values.get(&o.key).cloned()
-                },
-                sensitive: o.sensitive,
-                key: o.key,
-                option_type: o.option_type,
-                label: o.label,
-                default: o.default,
-                choices: o.choices,
-                description: o.description,
+            .map(|o| {
+                // Only a text option is a credential. A `bool` or `enum`
+                // flagged sensitive by mistake keeps its value, or the
+                // panel would show the default instead of the setting.
+                let sensitive = o.sensitive
+                    && o.option_type == waveflow_core::plugin::manifest::option_types::TEXT;
+                PluginOption {
+                    is_set: values.get(&o.key).is_some_and(|v| !v.is_empty()),
+                    value: if sensitive {
+                        None
+                    } else {
+                        values.get(&o.key).cloned()
+                    },
+                    sensitive,
+                    key: o.key,
+                    option_type: o.option_type,
+                    label: o.label,
+                    default: o.default,
+                    choices: o.choices,
+                    description: o.description,
+                }
             })
             .collect())
     })

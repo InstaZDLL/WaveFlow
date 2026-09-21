@@ -28,6 +28,11 @@ const EVENT: &str = "plugin:attention";
 
 static APP: OnceLock<AppHandle> = OnceLock::new();
 static ANNOUNCED: Mutex<Option<HashSet<String>>> = Mutex::new(None);
+/// The same notices, in order, for a window that starts listening after
+/// they were emitted. Announced once per launch means an event nobody
+/// heard is never sent again, and the first lookup at startup can race
+/// the listener's registration.
+static HISTORY: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -63,6 +68,9 @@ pub fn inspect(plugin_id: &str, err: &SourceError) -> bool {
             .insert(plugin_id.to_string())
     };
     if first {
+        if let Ok(mut history) = HISTORY.lock() {
+            history.push(plugin_id.to_string());
+        }
         tracing::warn!(
             plugin_id,
             err = %err.detail(),
@@ -81,6 +89,14 @@ pub fn inspect(plugin_id: &str, err: &SourceError) -> bool {
         tracing::debug!(plugin_id, "plugin credential still refused");
     }
     true
+}
+
+/// The plugins whose credential was refused in this launch, in the order
+/// they were announced. The notice reads this once it is listening, and
+/// shows whichever it has not shown yet.
+#[tauri::command]
+pub fn plugin_attention_history() -> Vec<String> {
+    HISTORY.lock().map(|h| h.clone()).unwrap_or_default()
 }
 
 #[cfg(test)]

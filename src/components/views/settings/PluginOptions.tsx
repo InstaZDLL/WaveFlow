@@ -293,7 +293,12 @@ function TextOption({
           const pasted = e.clipboardData.getData("text");
           if (!pasted) return;
           e.preventDefault();
-          commit(pasted);
+          // What the field would hold after the paste, selection included:
+          // normally the whole (empty) field, but not always.
+          const input = e.currentTarget;
+          const start = input.selectionStart ?? draft.length;
+          const end = input.selectionEnd ?? draft.length;
+          commit(draft.slice(0, start) + pasted + draft.slice(end));
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter") commit(draft);

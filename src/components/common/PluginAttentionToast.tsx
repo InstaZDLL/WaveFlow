@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { KeyRound, X } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
 import { listInstalledPlugins } from "../../lib/tauri/plugins";
@@ -38,9 +39,12 @@ export function PluginAttentionToast() {
   useEffect(() => {
     let cancelled = false;
     let unlisten: (() => void) | undefined;
-    listen<AttentionPayload>("plugin:attention", (event) => {
-      if (event.payload.kind !== "auth-required") return;
-      const { pluginId } = event.payload;
+    // Each plugin once: a notice can arrive both as an event and in the
+    // catch-up read below.
+    const shown = new Set<string>();
+    const announce = (pluginId: string) => {
+      if (shown.has(pluginId)) return;
+      shown.add(pluginId);
       // The display name is the plugin's own; the id is the fallback so
       // the toast never waits on a lookup that failed.
       listInstalledPlugins()
@@ -49,10 +53,22 @@ export function PluginAttentionToast() {
         .then((name) => {
           if (!cancelled) setQueue((prev) => [...prev, name ?? pluginId]);
         });
+    };
+    listen<AttentionPayload>("plugin:attention", (event) => {
+      if (event.payload.kind !== "auth-required") return;
+      announce(event.payload.pluginId);
     })
       .then((off) => {
-        if (cancelled) off();
-        else unlisten = off;
+        if (cancelled) {
+          off();
+          return;
+        }
+        unlisten = off;
+        // Anything announced before this listener existed: the backend
+        // sends each notice once, so a missed event would never return.
+        return invoke<string[]>("plugin_attention_history").then((ids) => {
+          if (!cancelled) ids.forEach(announce);
+        });
       })
       .catch((err) => {
         console.error("[PluginAttentionToast] listen failed", err);
@@ -65,14 +81,17 @@ export function PluginAttentionToast() {
 
   // Keyed on the queue itself, so each notice gets its full time once it
   // reaches the head, however long it waited behind another.
+  // Keyed on the head alone: a notice queued behind the one on screen must
+  // not restart its countdown.
+  const head = queue[0];
   useEffect(() => {
-    if (queue.length === 0) return;
+    if (head == null) return;
     const timer = window.setTimeout(
       () => setQueue((prev) => prev.slice(1)),
       AUTO_HIDE_MS,
     );
     return () => window.clearTimeout(timer);
-  }, [queue]);
+  }, [head]);
 
   if (notice == null) return null;
 

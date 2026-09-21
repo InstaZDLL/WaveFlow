@@ -1154,6 +1154,7 @@ pub fn run() {
             commands::player::player_set_match_source_rate,
             commands::inventory::inventory_summary,
             commands::inventory::inventory_tracks,
+            plugin_attention::plugin_attention_history,
             commands::inventory::inventory_phantom_artists,
             commands::tag_fetch::search_album_tag_sources,
             commands::tag_fetch::fetch_album_tag_proposals,
