@@ -589,7 +589,7 @@
       "phantoms": {
         "split": "Separar",
         "confirm": "Confirmar",
-        "dismiss": "No es un dúo",
+        "dismiss": "No separar",
         "known": "Ya está en la biblioteca"
       }
     },

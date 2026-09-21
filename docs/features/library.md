@@ -225,7 +225,7 @@ Five things the implementation has to get right:
 **Artists to split (#719) is the one category made of artists, not tracks.** A comma-joined credit (`Ice Spice, Central Cee`) is one phantom credited on many tracks, all needing the same single fix, so it is listed once per artist, with the names the split would produce and the [split](#multi-artist) inline — a second click confirms it, since it relinks every track. The list uses the split's own `split_fragments`, so it never offers what the split would not do. Two decisions, both measured:
 
 - **Every comma name is listed**, not only those whose fragments already exist as artists. That stronger signal was the obvious one, and a real library ruled it out: 18 of its 39 comma names had no fragment in the library at all, and every one was a genuine duo. Fragments that do exist are marked (they are the rows the split reuses) and sort a name up — evidence, not a gate.
-- **A comma is still only a hint** (`Tyler, The Creator`), so each row offers "not a split", stored per profile in `profile_setting['inventory.dismissed_phantoms']` by canonical name, so a rescan that recreates the row does not bring it back.
+- **A comma is still only a hint** (`Tyler, The Creator`), so each row offers "don't split", stored per profile in `profile_setting['inventory.dismissed_phantoms']` by canonical name, so a rescan that recreates the row does not bring it back.
 
 This is **not** the same question as [duplicate detection](#duplicate-detection) below, which hashes content and finds byte-identical copies. Probable duplicates are for the re-rips and re-encodes content hashing can never group; the two are complementary.
 

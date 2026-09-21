@@ -41,7 +41,7 @@ interface PhantomArtistListProps {
  * page.
  *
  * A comma is only a hint (`Tyler, The Creator`), so every row also offers
- * "not a split", remembered per profile. The fragments already in the
+ * "don't split", remembered per profile. The fragments already in the
  * library are marked: they are the evidence, and the rows the split will
  * reuse.
  *

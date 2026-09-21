@@ -588,7 +588,7 @@
       "phantoms": {
         "split": "분리",
         "confirm": "확인",
-        "dismiss": "듀오 아님",
+        "dismiss": "분리하지 않음",
         "known": "이미 보관함에 있음"
       }
     },

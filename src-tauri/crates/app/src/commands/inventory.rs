@@ -217,7 +217,7 @@ const PROBABLE: &str = "probable_duplicate";
 const PHANTOM: &str = "phantom_artist";
 
 /// `profile_setting` key: JSON array of the canonical names the user said
-/// are one artist ("not a split"), so the list stops asking about them.
+/// are one artist ("don't split"), so the list stops asking about them.
 pub const DISMISSED_PHANTOMS_KEY: &str = "inventory.dismissed_phantoms";
 
 /// One name a phantom would split into.
@@ -234,7 +234,7 @@ pub struct PhantomFragment {
 pub struct PhantomArtist {
     pub id: i64,
     pub name: String,
-    /// What `not a split` stores, so it matches what this list reads.
+    /// What `don't split` stores, so it matches what this list reads.
     pub canonical_name: String,
     pub track_count: i64,
     pub fragments: Vec<PhantomFragment>,
@@ -251,7 +251,7 @@ pub struct PhantomArtist {
 /// are shown and sort a name up, as evidence rather than as a gate.
 ///
 /// A comma is still only a hint (`Tyler, The Creator`), so the user can
-/// say "not a split" once; that is remembered per profile, by canonical
+/// say "don't split" once; that is remembered per profile, by canonical
 /// name so a rescan that recreates the row does not bring it back.
 ///
 /// Only artists credited on an available track: a phantom nothing plays

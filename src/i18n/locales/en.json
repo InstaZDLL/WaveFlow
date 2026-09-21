@@ -588,7 +588,7 @@
       "phantoms": {
         "split": "Split",
         "confirm": "Confirm",
-        "dismiss": "Not a split",
+        "dismiss": "Don't split",
         "known": "Already in the library"
       }
     },

@@ -588,7 +588,7 @@
       "phantoms": {
         "split": "拆分",
         "confirm": "確認",
-        "dismiss": "不是組合",
+        "dismiss": "不拆分",
         "known": "已在資料庫中"
       }
     },

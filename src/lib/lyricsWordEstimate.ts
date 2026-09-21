@@ -30,7 +30,7 @@ import type { LyricsLine, LyricsWord } from "./tauri/lyrics";
 
 /** Seconds a syllable takes at most, before the span is capped. */
 const MAX_MS_PER_SYLLABLE = 550;
-/** Floor for the span, so a one-word line still animates visibly. */
+/** Floor for a guessed span, so a one-word last line still animates. */
 const MIN_SPAN_MS = 400;
 /** Assumed span when the line's end is unknown (the last line). */
 const FALLBACK_MS_PER_SYLLABLE = 300;
@@ -98,7 +98,10 @@ export function estimateLineWords(
     knownEnd != null
       ? Math.min(knownEnd - line.timeMs, total * MAX_MS_PER_SYLLABLE)
       : total * FALLBACK_MS_PER_SYLLABLE;
-  const perUnit = Math.max(span, MIN_SPAN_MS) / total;
+  // The floor only where the end is a guess: with a known end, a short
+  // line is short, and stretching it would run into the next one.
+  const perUnit =
+    (knownEnd != null ? span : Math.max(span, MIN_SPAN_MS)) / total;
 
   const words: LyricsWord[] = [];
   let cursor = line.timeMs;

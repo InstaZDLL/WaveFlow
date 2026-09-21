@@ -588,7 +588,7 @@
       "phantoms": {
         "split": "Aufteilen",
         "confirm": "Bestätigen",
-        "dismiss": "Kein Duo",
+        "dismiss": "Nicht aufteilen",
         "known": "Bereits in der Mediathek"
       }
     },

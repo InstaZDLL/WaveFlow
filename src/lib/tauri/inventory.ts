@@ -59,7 +59,7 @@ export interface PhantomFragment {
 export interface PhantomArtist {
   id: number;
   name: string;
-  /** What "not a split" stores, so it matches what the backend reads. */
+  /** What "don't split" stores, so it matches what the backend reads. */
   canonical_name: string;
   track_count: number;
   fragments: PhantomFragment[];

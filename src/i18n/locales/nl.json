@@ -588,7 +588,7 @@
       "phantoms": {
         "split": "Splitsen",
         "confirm": "Bevestigen",
-        "dismiss": "Geen duo",
+        "dismiss": "Niet splitsen",
         "known": "Al in de bibliotheek"
       }
     },
