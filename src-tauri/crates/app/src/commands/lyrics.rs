@@ -1690,10 +1690,8 @@ async fn read_cached(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option
     .await?;
 
     // A partial miss past its date reads as "not cached", so the caller
-    // runs the waterfall again (#720). Left in place rather than deleted:
-    // the next lookup that reaches a verdict overwrites it. Offline, that
-    // lookup finds nothing to ask and the panel shows no lyrics — what the
-    // row would have shown anyway.
+    // runs the waterfall again (#720). Kept rather than deleted: a later
+    // online lookup or the prefetch overwrites it once it has a verdict.
     let row = row.and_then(
         |(content, format, source, provider, retry_after)| match retry_after {
             Some(due) if due <= now_ms() => None,
