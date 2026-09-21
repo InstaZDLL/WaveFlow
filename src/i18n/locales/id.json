@@ -2218,6 +2218,21 @@
       "title": "Utamakan LRCLIB daripada lirik tertanam",
       "subtitle": "Mencari lirik online dulu; kembali ke lirik file jika tidak ada yang ditemukan"
     },
+    "lyricsProviders": {
+      "title": "Penyedia lirik daring",
+      "subtitle": "Penyedia yang tidak dicentang tidak lagi ditanya secara otomatis. Lirik yang sudah diberikannya tetap tersimpan di cache: “Cari ulang” di panel lirik menggantinya.",
+      "alwaysOn": "selalu aktif",
+      "geniusNote": "tanpa stempel waktu, dan jarang menjawab tanpa cookie sesi"
+    },
+    "lyricsExcludedGenres": {
+      "title": "Genre yang dikecualikan dari pencarian daring",
+      "subtitle": "Lagu dalam genre ini tidak dicari secara daring; lirik di dalam file atau di .lrc di sebelahnya tetap dibaca, dan “Cari ulang” tetap mencari. Setiap genre mencakup variannya (Lo-fi mencakup Lofi dan lo-fi hip hop).",
+      "empty": "Tidak ada genre yang dikecualikan: setiap lagu dicari secara daring.",
+      "remove": "Hapus {{genre}}",
+      "placeholder": "Tambahkan genre…",
+      "add": "Tambah",
+      "reset": "Pulihkan genre bawaan"
+    },
     "lyricsDestination": {
       "title": "Tujuan lirik tersimpan",
       "subtitle": "Tempat lirik disimpan di disk: yang kamu tulis dan yang diambil WaveFlow. Dapat di-override per pengeditan."

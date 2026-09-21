@@ -2218,6 +2218,21 @@
       "title": "Prefer LRCLIB over embedded lyrics",
       "subtitle": "Look up lyrics online first; fall back to the file's own lyrics when none are found"
     },
+    "lyricsProviders": {
+      "title": "Online lyrics providers",
+      "subtitle": "An unchecked provider is no longer asked automatically. Lyrics it already supplied stay cached: “Search again” in the lyrics panel replaces them.",
+      "alwaysOn": "always on",
+      "geniusNote": "no timestamps, and rarely answers without a session cookie"
+    },
+    "lyricsExcludedGenres": {
+      "title": "Genres left out of the online search",
+      "subtitle": "Tracks in these genres are not looked up online; lyrics in the file or in a .lrc next to it are still read, and “Search again” still searches. Each genre covers its variants (Lo-fi covers Lofi and lo-fi hip hop).",
+      "empty": "No genre left out: every track is looked up online.",
+      "remove": "Remove {{genre}}",
+      "placeholder": "Add a genre…",
+      "add": "Add",
+      "reset": "Restore the default genres"
+    },
     "lyricsDestination": {
       "title": "Saved-lyrics destination",
       "subtitle": "Where lyrics land on disk — the ones you write and the ones WaveFlow fetches. You can still override this per-edit from the editor footer."

@@ -55,7 +55,7 @@ The startup order matters and is easy to get backwards: `app.db` lives at the *d
 - `profile` — profile list (one row per profile).
 - `app_setting` — typed key/value: `app.last_profile_id`, `lastfm_api_key`, `lastfm_session_key`, `app.theme`, `integrations.discord_rpc`, …
 - `deezer_artist` / `deezer_album` — shared metadata cache (Deezer enrichment + Last.fm bios), 30-day TTL via `expires_at`.
-- `lyrics` — shared LRCLIB cache (no TTL).
+- `lyrics` — shared lyrics cache, kept for good except a partial miss, which carries a `retry_after` date ([integrations](../features/integrations.md#which-providers-are-asked-for-which-tracks)).
 
 Migrations: [`src-tauri/migrations/app/`](../../src-tauri/migrations/app).
 

@@ -2218,6 +2218,21 @@
       "title": "LRCLIB verkiezen boven ingesloten songteksten",
       "subtitle": "Zoekt songteksten eerst online; valt terug op die van het bestand als er geen worden gevonden"
     },
+    "lyricsProviders": {
+      "title": "Online songtekstbronnen",
+      "subtitle": "Een uitgevinkte bron wordt niet meer automatisch geraadpleegd. Songteksten die ze al leverde blijven in de cache: ‘Opnieuw zoeken’ in het songtekstpaneel vervangt ze.",
+      "alwaysOn": "altijd aan",
+      "geniusNote": "zonder tijdcodes, en antwoordt zelden zonder sessiecookie"
+    },
+    "lyricsExcludedGenres": {
+      "title": "Genres uitgesloten van online zoeken",
+      "subtitle": "Nummers in deze genres worden niet online opgezocht; songteksten in het bestand of in een .lrc ernaast worden nog steeds gelezen, en ‘Opnieuw zoeken’ zoekt toch. Elk genre dekt zijn varianten (Lo-fi dekt Lofi en lo-fi hip hop).",
+      "empty": "Geen genre uitgesloten: elk nummer wordt online opgezocht.",
+      "remove": "{{genre}} verwijderen",
+      "placeholder": "Genre toevoegen…",
+      "add": "Toevoegen",
+      "reset": "Standaardgenres herstellen"
+    },
     "lyricsDestination": {
       "title": "Bestemming voor opgeslagen songteksten",
       "subtitle": "Waar songteksten op schijf terechtkomen — die je zelf schrijft en die WaveFlow ophaalt. Per bewerking te overschrijven."

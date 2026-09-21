@@ -25,10 +25,22 @@
 //! tracks nobody had opened yet.
 //!
 //! Because of that cache-first rule, **only a confirmed negative may be
-//! cached** (#391). A provider outage is `Unavailable`, not a miss: it
-//! persists nothing, so the next panel open retries. Caching it would
-//! freeze a one-off network blip into a permanent "no lyrics" that only a
-//! manual refetch could clear.
+//! cached for good** (#391). A lookup where nobody answered is
+//! `Unavailable`, not a miss: it persists nothing, so the next panel open
+//! retries. Caching it would freeze a one-off network blip into a
+//! permanent "no lyrics" that only a manual refetch could clear.
+//!
+//! Between the two sits the **partial miss** (#720): some providers
+//! answered "nothing", others failed or were left out. It is cached with
+//! a `retry_after` stamp — served as a miss until then, looked up again
+//! after. It used to be treated as `Unavailable`, so a single provider
+//! that was down for good (a host refusing connections, an endpoint that
+//! wants a cookie) kept every lyrics-less track from ever being cached,
+//! and each open replayed the whole chain.
+//!
+//! Which providers are asked, and for which tracks, is
+//! [`super::lyrics_providers`]: the user's per-provider switches (#722),
+//! the excluded genres (#721), and the cooldown of a failing provider.
 //!
 //! **Prefer-LRCLIB toggle** (`profile_setting['lyrics.prefer_lrclib']`,
 //! issue #378): when on, [`fetch_lyrics`] flips tiers 2–4 (the local
@@ -66,6 +78,8 @@ use crate::{
     error::{AppError, AppResult},
     state::AppState,
 };
+
+use super::lyrics_providers;
 
 /// Guards against two concurrent prefetch runs and exposes a
 /// cancellation flag the user can flip from the UI. Module-local — the
@@ -367,38 +381,6 @@ fn external_query(title: &str, artist_name: Option<&str>) -> String {
     }
 }
 
-/// Provider order for the query-based fallback chain that runs after
-/// LRCLIB's exact-metadata match has missed.
-///
-/// **Musixmatch is intentionally absent.** Both [`fetch_lyrics`] and
-/// [`run_prefetch`] already invoke Musixmatch on its own dedicated tier
-/// (the enhanced word-level lookup, gated on `MUSIXMATCH_ENABLED`). If
-/// we listed it here too, every cache miss that fell through the
-/// dedicated tier would issue a second Musixmatch request — same
-/// endpoint, same query, same token — for a result we already knew
-/// wasn't word-level. The fallback chain stays Musixmatch-free; the
-/// dedicated tier owns it.
-fn external_fallback_providers() -> Vec<Provider> {
-    // LRCLIB leads even though tier 5 already asked it, because the two
-    // ask *differently*: tier 5 hits `/api/get`, which matches on artist
-    // + track + album + duration and 404s when any of them disagrees
-    // with the file's tags (a remaster, a "Deluxe" album name, a rip a
-    // few seconds off). This chain goes through the provider's
-    // `/api/search`, which is fuzzy.
-    //
-    // Without it, that 404 dropped straight to providers that answer for
-    // almost anything — so a track LRCLIB *does* carry came back from
-    // Genius, and picking LRCLIB by hand in the panel (fuzzy search)
-    // found it immediately. That contradiction is what issue #463
-    // reported.
-    vec![
-        Provider::Lrclib,
-        Provider::NetEase,
-        Provider::Megalobiz,
-        Provider::Genius,
-    ]
-}
-
 /// Process-wide shared `SyncedLyricsClient`. Standing one up per call
 /// re-initialises rustls + builds a fresh reqwest connection pool every
 /// time `external_lyrics_search` runs — wasted work, especially during
@@ -434,10 +416,15 @@ fn shared_external_client() -> AppResult<&'static SyncedLyricsClient> {
 /// caches a permanent "no lyrics".
 enum SearchOutcome {
     Found(ExternalLyricsResult),
-    /// Providers were queried and none had lyrics. A real negative.
-    Miss,
-    /// Nothing was queried at all — offline mode, or the provider list was
-    /// empty once the Musixmatch opt-in filter ran. Never a negative.
+    /// At least one provider answered and none had lyrics. A real
+    /// negative — complete when every provider asked answered, `partial`
+    /// when some failed or were left out (#720).
+    Miss {
+        partial: bool,
+    },
+    /// Nobody answered — nothing was queried at all (offline mode, an
+    /// empty provider list once the Musixmatch opt-in filter ran, every
+    /// provider cooling down). Never a negative.
     Unavailable,
 }
 
@@ -475,9 +462,7 @@ async fn external_lyrics_search(
     };
     let query = external_query(&meta.title, meta.artist_name.as_deref());
     let client = shared_external_client()?;
-    // A transient provider error surfaces as Err here (never as a miss) so
-    // callers don't cache an empty row on a network blip.
-    let found = client
+    let mut report = client
         .search(SearchOptions {
             query,
             mode,
@@ -487,12 +472,69 @@ async fn external_lyrics_search(
             genius_cookie: std::env::var("SYNCEDLYRICS_GENIUS_COOKIE").ok(),
             netease_cookie: std::env::var("SYNCEDLYRICS_NETEASE_COOKIE").ok(),
         })
-        .await
-        .map_err(|err| AppError::Other(format!("external lyrics search failed: {err}")))?;
-    // We got here only by actually querying, so `None` is a real negative.
-    Ok(match found {
-        Some(result) => SearchOutcome::Found(result),
-        None => SearchOutcome::Miss,
+        .await;
+    for provider in &report.answered {
+        lyrics_providers::record_answer(*provider);
+    }
+    for failure in &report.failures {
+        lyrics_providers::record_failure(failure.provider, &failure.error);
+    }
+    if let Some(result) = report.result.take() {
+        return Ok(SearchOutcome::Found(result));
+    }
+    if report.has_verdict() {
+        return Ok(SearchOutcome::Miss {
+            partial: !report.failures.is_empty(),
+        });
+    }
+    // Nobody answered. An error rather than `Unavailable` when something
+    // was asked and failed, so a user who picked one provider by name is
+    // told it failed instead of being shown nothing.
+    match report.failures.pop() {
+        Some(failure) => Err(AppError::Other(format!(
+            "external lyrics search failed: {}: {}",
+            failure.provider.as_str(),
+            failure.error
+        ))),
+        None => Ok(SearchOutcome::Unavailable),
+    }
+}
+
+/// Ask the query-based chain, as this profile has configured it.
+///
+/// Every automatic lookup that walks the chain comes through here —
+/// the panel, the bulk prefetch, radio, remote tracks — so the user's
+/// switches (#722) and the provider cooldown (#720) apply everywhere
+/// without each caller spelling them. A provider named in the panel's
+/// picker does not: that is a request about that one provider.
+///
+/// A provider left out for its cooldown makes a miss partial, exactly
+/// as if it had been asked and failed: it was not heard. A provider the
+/// user switched off does not — they decided not to ask it.
+async fn search_fallback_chain(
+    pool: &sqlx::SqlitePool,
+    meta: &TrackMeta,
+    enhanced: bool,
+) -> AppResult<SearchOutcome> {
+    let (cooling, live): (Vec<Provider>, Vec<Provider>) = lyrics_providers::enabled_chain(pool)
+        .await?
+        .into_iter()
+        .partition(|p| lyrics_providers::is_cooling_down(*p));
+    let outcome = external_lyrics_search(
+        meta,
+        live,
+        SearchMode::PreferSynced,
+        enhanced,
+        // The chain excludes Musixmatch, so `external_lyrics_search`
+        // would drop a language anyway.
+        None,
+    )
+    .await?;
+    Ok(match outcome {
+        SearchOutcome::Miss { partial } => SearchOutcome::Miss {
+            partial: partial || !cooling.is_empty(),
+        },
+        other => other,
     })
 }
 
@@ -558,6 +600,10 @@ const PLUGIN_PROVIDER_PREFIX: &str = "plugin:";
 /// `language` is what the SOURCE said, not a user preference: only the
 /// v2 plugin world reports one today, and every other tier passes `None`
 /// exactly as this row has always been written.
+///
+/// `retry_after` is written on every call, `NULL` included, so a row that
+/// replaces a partial miss never inherits its expiry — lyrics found after
+/// one must not be thrown away a week later.
 #[allow(clippy::too_many_arguments)]
 async fn write_primary_lyrics(
     conn: &mut sqlx::SqliteConnection,
@@ -568,17 +614,20 @@ async fn write_primary_lyrics(
     provider: Option<&str>,
     language: Option<&str>,
     fetched_at: i64,
+    retry_after: Option<i64>,
 ) -> AppResult<()> {
     sqlx::query(
-        "INSERT INTO app.lyrics (file_hash, content, format, source, provider, language, fetched_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
+        "INSERT INTO app.lyrics
+            (file_hash, content, format, source, provider, language, fetched_at, retry_after)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(file_hash) DO UPDATE SET
             content = excluded.content,
             format = excluded.format,
             source = excluded.source,
             provider = excluded.provider,
             language = excluded.language,
-            fetched_at = excluded.fetched_at",
+            fetched_at = excluded.fetched_at,
+            retry_after = excluded.retry_after",
     )
     .bind(file_hash)
     .bind(content)
@@ -587,6 +636,7 @@ async fn write_primary_lyrics(
     .bind(provider)
     .bind(language)
     .bind(fetched_at)
+    .bind(retry_after)
     .execute(&mut *conn)
     .await?;
     Ok(())
@@ -728,6 +778,7 @@ async fn cache_lyrics_bundle(
         Some(&provider_id),
         bundle.primary.language.as_deref(),
         now,
+        None,
     )
     .await?;
 
@@ -817,50 +868,52 @@ async fn read_associated(
 enum FallbackOutcome {
     /// A provider had lyrics — already cached.
     Found(LyricsPayload),
-    /// Every provider answered and none had lyrics. A real negative, safe
-    /// to remember so the panel stops re-hitting the network on each open.
-    Miss,
-    /// The chain could not be consulted at all. NOT a negative — nothing
-    /// may be cached, so the next attempt retries.
+    /// Providers answered and none had lyrics. A real negative, safe to
+    /// remember so the panel stops re-hitting the network on each open —
+    /// for good when complete, until [`PARTIAL_MISS_RETRY`] when `partial`.
+    Miss { partial: bool },
+    /// Nobody in the chain answered. NOT a negative — nothing may be
+    /// cached, so the next attempt retries.
     Unavailable,
 }
 
-/// Walk the post-LRCLIB fallback chain (NetEase / Megalobiz / Genius) and
-/// persist the first hit.
+/// How long a partial miss (#720) is served before the track is looked up
+/// again. Long enough that a provider down for good costs one lookup per
+/// track per week instead of one per panel open; short enough that a
+/// provider which was only briefly down gets its chance.
+const PARTIAL_MISS_RETRY: Duration = Duration::from_secs(7 * 24 * 60 * 60);
+
+/// Walk the post-LRCLIB fallback chain and persist the first hit.
 ///
 /// A provider `Err` stays non-fatal for the waterfall — LRCLIB has already
 /// given its verdict and this chain is best-effort enrichment, so we don't
-/// fail the whole lookup. But it now surfaces as [`FallbackOutcome::Unavailable`]
-/// rather than masquerading as a miss, so the caller knows not to persist
-/// anything.
+/// fail the whole lookup. When nobody in the chain answered it surfaces as
+/// [`FallbackOutcome::Unavailable`] rather than masquerading as a miss, so
+/// the caller knows not to persist anything.
 async fn try_external_fallback(
     pool: &sqlx::SqlitePool,
     track_id: i64,
     meta: &TrackMeta,
 ) -> AppResult<FallbackOutcome> {
-    match external_lyrics_search(
-        meta,
-        external_fallback_providers(),
-        SearchMode::PreferSynced,
-        true,
-        // Fallback chain excludes Musixmatch — `external_lyrics_search`
-        // would drop the lang anyway. Keep it `None` to flag intent.
-        None,
-    )
-    .await
-    {
+    match search_fallback_chain(pool, meta, true).await {
         Ok(SearchOutcome::Found(result)) => Ok(FallbackOutcome::Found(
             cache_external_lyrics(pool, track_id, &meta.file_hash, result).await?,
         )),
         // Propagated straight through: only the search itself knows whether
         // a request was issued, so nothing here re-derives it.
-        Ok(SearchOutcome::Miss) => Ok(FallbackOutcome::Miss),
+        Ok(SearchOutcome::Miss { partial }) => Ok(FallbackOutcome::Miss { partial }),
         Ok(SearchOutcome::Unavailable) => Ok(FallbackOutcome::Unavailable),
         Err(err) => {
             tracing::debug!(?err, "external fallback chain failed; not caching a miss");
             Ok(FallbackOutcome::Unavailable)
         }
     }
+}
+
+/// When a miss written now should be looked up again: never for a
+/// complete one, after [`PARTIAL_MISS_RETRY`] for a partial one.
+fn miss_retry_after(partial: bool) -> Option<i64> {
+    partial.then(|| now_ms() + PARTIAL_MISS_RETRY.as_millis() as i64)
 }
 
 /// Cache an empty "miss" row so the panel doesn't re-hit the network on
@@ -872,15 +925,17 @@ async fn cache_lyrics_miss(
     pool: &sqlx::SqlitePool,
     track_id: i64,
     meta: &TrackMeta,
+    partial: bool,
 ) -> AppResult<LyricsPayload> {
     let empty = String::new();
-    upsert_lyrics(
+    upsert_lyrics_until(
         pool,
         &meta.file_hash,
         &empty,
         &LyricsFormat::Plain,
         &LyricsSource::Api,
         None,
+        miss_retry_after(partial),
     )
     .await?;
     Ok(LyricsPayload {
@@ -927,7 +982,9 @@ async fn resolve_after_lrclib_miss(
     }
 
     match outcome {
-        FallbackOutcome::Miss => cache_lyrics_miss(pool, track_id, meta).await.map(Some),
+        FallbackOutcome::Miss { partial } => cache_lyrics_miss(pool, track_id, meta, partial)
+            .await
+            .map(Some),
         // Transient: persist nothing so the next attempt can retry.
         FallbackOutcome::Unavailable => Ok(None),
         // Handled above.
@@ -1425,6 +1482,20 @@ async fn upsert_lyrics(
     source: &LyricsSource,
     provider: Option<&str>,
 ) -> AppResult<()> {
+    upsert_lyrics_until(pool, file_hash, content, format, source, provider, None).await
+}
+
+/// [`upsert_lyrics`] for a row that is only good until `retry_after`
+/// (epoch ms) — a partial miss (#720). `None` is a row kept for good.
+async fn upsert_lyrics_until(
+    pool: &sqlx::SqlitePool,
+    file_hash: &str,
+    content: &str,
+    format: &LyricsFormat,
+    source: &LyricsSource,
+    provider: Option<&str>,
+    retry_after: Option<i64>,
+) -> AppResult<()> {
     let mut tx = pool.begin().await?;
     write_primary_lyrics(
         &mut tx,
@@ -1435,6 +1506,7 @@ async fn upsert_lyrics(
         provider,
         None,
         now_ms(),
+        retry_after,
     )
     .await?;
     // Replacing the primary document ends the bundle it belonged to.
@@ -1589,8 +1661,8 @@ async fn export_fetched_sidecar(
 /// numeric `track_id` so we look up the file hash first, then key into the
 /// shared `app.lyrics` cache.
 async fn read_cached(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option<LyricsPayload>> {
-    let row: Option<(String, String, String, Option<String>)> = sqlx::query_as(
-        "SELECT l.content, l.format, l.source, l.provider
+    let row: Option<(String, String, String, Option<String>, Option<i64>)> = sqlx::query_as(
+        "SELECT l.content, l.format, l.source, l.provider, l.retry_after
            FROM track t
            JOIN app.lyrics l ON l.file_hash = t.file_hash
           WHERE t.id = ?",
@@ -1598,6 +1670,17 @@ async fn read_cached(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option
     .bind(track_id)
     .fetch_optional(pool)
     .await?;
+
+    // A partial miss past its date reads as "not cached", so the caller
+    // runs the waterfall again (#720). Left in place rather than deleted:
+    // whatever that lookup concludes overwrites it, and if the lookup
+    // cannot run (offline) the stale row costs nothing meanwhile.
+    let row = row.and_then(
+        |(content, format, source, provider, retry_after)| match retry_after {
+            Some(due) if due <= now_ms() => None,
+            _ => Some((content, format, source, provider)),
+        },
+    );
 
     // A cached row that is a distribution service's credit rather than
     // lyrics is dropped and re-resolved, rather than served forever.
@@ -1979,6 +2062,23 @@ pub async fn fetch_lyrics(
     state: tauri::State<'_, AppState>,
     track_id: i64,
 ) -> AppResult<Option<LyricsPayload>> {
+    fetch_lyrics_honouring(state, track_id, GenreRule::Apply).await
+}
+
+/// Whether a lookup honours the excluded genres (#721).
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum GenreRule {
+    Apply,
+    /// A manual Refetch: an explicit request about one track, which a
+    /// genre filter would make look broken.
+    Ignore,
+}
+
+async fn fetch_lyrics_honouring(
+    state: tauri::State<'_, AppState>,
+    track_id: i64,
+    genres: GenreRule,
+) -> AppResult<Option<LyricsPayload>> {
     let pool = state.require_profile_pool().await?;
 
     // 1. Cache.
@@ -2003,6 +2103,19 @@ pub async fn fetch_lyrics(
         if let Some(payload) = try_local_lyrics(&pool, track_id, &meta).await? {
             return Ok(Some(payload));
         }
+    }
+
+    // An excluded genre (#721) stops here, after the local tiers and
+    // before every network one, plugins included. Nothing is cached: the
+    // track is not known to be lyric-less, only not worth asking about,
+    // so taking the genre off the list must bring the lookup back —
+    // an empty row would outlive the setting.
+    if genres == GenreRule::Apply && lyrics_providers::track_is_excluded(&pool, track_id).await? {
+        return if prefer_lrclib {
+            try_local_lyrics(&pool, track_id, &meta).await
+        } else {
+            Ok(None)
+        };
     }
 
     // 4. Plugins declaring `waveflow:metadata/v2`. Ahead of every
@@ -2279,11 +2392,12 @@ pub async fn refetch_lyrics(
         .execute(&*pool)
         .await?;
 
-    // No provider pinned → identical to a fresh `fetch_lyrics` call,
-    // since the cache row is gone and the waterfall starts at the
-    // embedded tier.
+    // No provider pinned → a fresh `fetch_lyrics` call, since the cache
+    // row is gone and the waterfall starts at the embedded tier — minus
+    // the excluded genres (#721): a Refetch is a request about this one
+    // track, and a genre filter would make the button look broken.
     let Some(provider_str) = provider.as_deref() else {
-        return fetch_lyrics(state, track_id).await;
+        return fetch_lyrics_honouring(state, track_id, GenreRule::Ignore).await;
     };
 
     // A pinned plugin is not a `Provider`: the two namespaces share the
@@ -2346,7 +2460,7 @@ pub async fn refetch_lyrics(
         // would blame a provider that never answered, so persist nothing
         // and let the next attempt through.
         Ok(SearchOutcome::Unavailable) => Ok(None),
-        Ok(SearchOutcome::Miss) => {
+        Ok(SearchOutcome::Miss { .. }) => {
             // Pinned provider returned nothing. Cache an empty miss
             // attributed to it so the badge reflects what the user
             // just tried — they can pick a different provider and
@@ -2467,6 +2581,19 @@ pub async fn prefetch_library_lyrics(
     result
 }
 
+/// One track the prefetch may look up: id, path, file hash, title,
+/// artist, album, duration (ms), and its genres joined on U+001F.
+type PendingRow = (
+    i64,
+    String,
+    String,
+    String,
+    Option<String>,
+    Option<String>,
+    i64,
+    Option<String>,
+);
+
 async fn run_prefetch(
     app: &AppHandle,
     state: &tauri::State<'_, AppState>,
@@ -2487,33 +2614,59 @@ async fn run_prefetch(
         }),
     );
 
-    // Pending = available tracks without a cached lyric row, deduped by
-    // `file_hash` (the cache key). We pick the lowest `track.id` per
-    // hash to get a stable representative.
-    let pending: Vec<(
-        i64,
-        String,
-        String,
-        String,
-        Option<String>,
-        Option<String>,
-        i64,
-    )> = sqlx::query_as(
+    // Pending = available tracks without a cached lyric row, or whose
+    // row is a partial miss past its date (#720), deduped by `file_hash`
+    // (the cache key). We pick the lowest `track.id` per hash to get a
+    // stable representative.
+    //
+    // Genres come along, joined on the unit separator (a character no
+    // tag editor puts in a genre), so the excluded ones (#721) can be
+    // dropped here — before the total is counted, so the progress never
+    // shows them as failures.
+    let rows: Vec<PendingRow> = sqlx::query_as(
         "SELECT t.id, t.file_path, t.file_hash, t.title,
                     ar.name AS artist_name,
                     al.title AS album_title,
-                    t.duration_ms
+                    t.duration_ms,
+                    (SELECT GROUP_CONCAT(g.name, char(31))
+                       FROM track_genre tg
+                       JOIN genre g ON g.id = tg.genre_id
+                      WHERE tg.track_id = t.id) AS genres
                FROM track t
                LEFT JOIN artist ar ON ar.id = t.primary_artist
                LEFT JOIN album  al ON al.id = t.album_id
                LEFT JOIN app.lyrics l ON l.file_hash = t.file_hash
               WHERE t.is_available = 1
-                AND l.file_hash IS NULL
+                AND (l.file_hash IS NULL OR l.retry_after <= ?)
               GROUP BY t.file_hash
               ORDER BY t.id",
     )
+    .bind(now_ms())
     .fetch_all(&*pool)
     .await?;
+
+    // Skipped outright, local tiers included: the prefetch fills gaps
+    // ahead of time, and an excluded track's local lyrics are read the
+    // moment its panel opens anyway.
+    let excluded_genres = lyrics_providers::excluded_genres(&pool).await?;
+    let before = rows.len();
+    let pending: Vec<_> = rows
+        .into_iter()
+        .filter(|row| {
+            !row.7.as_deref().is_some_and(|genres| {
+                lyrics_providers::any_genre_excluded(genres.split('\u{1f}'), &excluded_genres)
+            })
+        })
+        .map(|(id, path, hash, title, artist, album, duration, _)| {
+            (id, path, hash, title, artist, album, duration)
+        })
+        .collect();
+    if pending.len() < before {
+        tracing::info!(
+            skipped = before - pending.len(),
+            "lyrics prefetch skips tracks in an excluded genre"
+        );
+    }
 
     let total = pending.len() as u32;
     let mut processed = 0u32;
@@ -2719,15 +2872,7 @@ async fn run_prefetch(
                         // Row exists but neither synced nor plain
                         // lyrics. Try query-based providers before
                         // caching this as a miss.
-                        match external_lyrics_search(
-                            &meta,
-                            external_fallback_providers(),
-                            SearchMode::PreferSynced,
-                            true,
-                            None,
-                        )
-                        .await
-                        {
+                        match search_fallback_chain(&pool, &meta, true).await {
                             Ok(SearchOutcome::Found(result)) => {
                                 if let Err(e) =
                                     cache_external_lyrics(&pool, track_id, &file_hash, result).await
@@ -2738,14 +2883,15 @@ async fn run_prefetch(
                                     hits += 1;
                                 }
                             }
-                            Ok(SearchOutcome::Miss) => {
-                                let _ = upsert_lyrics(
+                            Ok(SearchOutcome::Miss { partial }) => {
+                                let _ = upsert_lyrics_until(
                                     &pool,
                                     &file_hash,
                                     "",
                                     &LyricsFormat::Plain,
                                     &LyricsSource::Api,
                                     None,
+                                    miss_retry_after(partial),
                                 )
                                 .await;
                                 misses += 1;
@@ -2766,15 +2912,7 @@ async fn run_prefetch(
             Ok(None) => {
                 // LRCLIB 404. Try query-based providers before caching
                 // as empty.
-                match external_lyrics_search(
-                    &meta,
-                    external_fallback_providers(),
-                    SearchMode::PreferSynced,
-                    true,
-                    None,
-                )
-                .await
-                {
+                match search_fallback_chain(&pool, &meta, true).await {
                     Ok(SearchOutcome::Found(result)) => {
                         if let Err(e) =
                             cache_external_lyrics(&pool, track_id, &file_hash, result).await
@@ -2785,18 +2923,19 @@ async fn run_prefetch(
                             hits += 1;
                         }
                     }
-                    Ok(SearchOutcome::Miss) => {
+                    Ok(SearchOutcome::Miss { partial }) => {
                         // No provider had lyrics. Cache as empty so re-runs
                         // of the prefetch and re-opens of the lyrics panel
                         // skip this track. User can force a re-search
                         // per-track via the "Refetch" button.
-                        let _ = upsert_lyrics(
+                        let _ = upsert_lyrics_until(
                             &pool,
                             &file_hash,
                             "",
                             &LyricsFormat::Plain,
                             &LyricsSource::Api,
                             None,
+                            miss_retry_after(partial),
                         )
                         .await;
                         misses += 1;
@@ -3598,24 +3737,16 @@ pub async fn fetch_radio_lyrics(
         album_title: None,
         duration_ms: 0,
     };
-    // LRCLIB first (best-curated, often synced), then the query-based
-    // fallback chain. No album / duration context, so this goes through
-    // the query search rather than LRCLIB's exact-match `get`.
-    let providers = vec![
-        Provider::Lrclib,
-        Provider::NetEase,
-        Provider::Megalobiz,
-        Provider::Genius,
-    ];
-    let result =
-        match external_lyrics_search(&meta, providers, SearchMode::PreferSynced, false, None).await
-        {
-            Ok(r) => r,
-            Err(err) => {
-                tracing::warn!(?err, "radio lyrics external search failed");
-                return Ok(None);
-            }
-        };
+    // The query-based chain, LRCLIB first (best-curated, often synced).
+    // No album / duration context, so this goes through the query search
+    // rather than LRCLIB's exact-match `get`.
+    let result = match search_fallback_chain(&pool, &meta, false).await {
+        Ok(r) => r,
+        Err(err) => {
+            tracing::warn!(?err, "radio lyrics external search failed");
+            return Ok(None);
+        }
+    };
 
     match result {
         SearchOutcome::Found(r) => {
@@ -3642,12 +3773,16 @@ pub async fn fetch_radio_lyrics(
                 associated: Vec::new(),
             }))
         }
-        SearchOutcome::Miss => {
+        SearchOutcome::Miss { partial: false } => {
             // Cache the miss (empty content) so a recurring song on the
             // station's rotation doesn't re-hit the network every time.
             upsert_radio_lyrics(&pool, &key, artist, title, "", &LyricsFormat::Plain, None).await?;
             Ok(None)
         }
+        // Not every provider was heard, and the radio cache has no expiry
+        // to put on a partial verdict. Left uncached: the providers that
+        // failed are cooling down, so the next spin costs little.
+        SearchOutcome::Miss { partial: true } => Ok(None),
         // Nothing was queried, so there is no verdict to remember — leave
         // the cache untouched and let the next spin of this song retry.
         SearchOutcome::Unavailable => Ok(None),
@@ -3713,13 +3848,8 @@ pub async fn fetch_remote_lyrics(
         album_title: None,
         duration_ms,
     };
-    let providers = vec![
-        Provider::Lrclib,
-        Provider::NetEase,
-        Provider::Megalobiz,
-        Provider::Genius,
-    ];
-    match external_lyrics_search(&meta, providers, SearchMode::PreferSynced, false, None).await {
+    let pool = state.require_profile_pool().await?;
+    match search_fallback_chain(&pool, &meta, false).await {
         Ok(SearchOutcome::Found(r)) => {
             let format = external_format_to_app(r.format);
             let provider = r.provider.as_str().to_string();
@@ -4348,6 +4478,96 @@ mod tests {
         assert!(!dir.path().join("Song.txt").exists());
     }
 
+    async fn retry_after_of(pool: &sqlx::SqlitePool, file_hash: &str) -> Option<i64> {
+        sqlx::query_scalar("SELECT retry_after FROM app.lyrics WHERE file_hash = ?")
+            .bind(file_hash)
+            .fetch_one(pool)
+            .await
+            .unwrap()
+    }
+
+    fn meta_for(file_hash: &str) -> TrackMeta {
+        TrackMeta {
+            file_path: String::new(),
+            file_hash: file_hash.to_string(),
+            title: "T".into(),
+            artist_name: None,
+            album_title: None,
+            duration_ms: 300_000,
+        }
+    }
+
+    /// #720: a miss where a provider was not heard is cached, so the next
+    /// open does not replay the chain — but only until its date, after
+    /// which the track reads as uncached and is looked up again.
+    #[tokio::test]
+    async fn a_partial_miss_is_served_until_its_date_then_looked_up_again() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        seed_track(&pool, &dir.path().join("Song.flac"), "h1").await;
+
+        cache_lyrics_miss(&pool, 1, &meta_for("h1"), true)
+            .await
+            .unwrap();
+        let due = retry_after_of(&pool, "h1")
+            .await
+            .expect("a partial miss expires");
+        assert!(due > now_ms());
+        let served = read_cached(&pool, 1)
+            .await
+            .unwrap()
+            .expect("served as a miss");
+        assert!(served.content.is_empty());
+
+        sqlx::query("UPDATE app.lyrics SET retry_after = ? WHERE file_hash = 'h1'")
+            .bind(now_ms() - 1)
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert!(
+            read_cached(&pool, 1).await.unwrap().is_none(),
+            "a partial miss past its date must read as not cached"
+        );
+    }
+
+    /// A complete miss keeps the behaviour it always had: cached for good.
+    #[tokio::test]
+    async fn a_complete_miss_never_expires() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        seed_track(&pool, &dir.path().join("Song.flac"), "h1").await;
+
+        cache_lyrics_miss(&pool, 1, &meta_for("h1"), false)
+            .await
+            .unwrap();
+        assert_eq!(retry_after_of(&pool, "h1").await, None);
+        assert!(read_cached(&pool, 1).await.unwrap().is_some());
+    }
+
+    /// Lyrics found after a partial miss replace it for good. Were the
+    /// expiry carried over, they would be thrown away a week later.
+    #[tokio::test]
+    async fn lyrics_that_replace_a_partial_miss_do_not_inherit_its_expiry() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        seed_track(&pool, &dir.path().join("Song.flac"), "h1").await;
+
+        cache_lyrics_miss(&pool, 1, &meta_for("h1"), true)
+            .await
+            .unwrap();
+        upsert_lyrics(
+            &pool,
+            "h1",
+            "[00:01.00]Found",
+            &LyricsFormat::Lrc,
+            &LyricsSource::Api,
+            Some("lrclib"),
+        )
+        .await
+        .unwrap();
+        assert_eq!(retry_after_of(&pool, "h1").await, None);
+    }
+
     async fn associated_count(pool: &sqlx::SqlitePool, file_hash: &str) -> i64 {
         sqlx::query_scalar("SELECT COUNT(*) FROM app.lyrics_associated WHERE file_hash = ?")
             .bind(file_hash)
@@ -4532,7 +4752,7 @@ mod tests {
     /// (issue #463).
     #[test]
     fn fallback_chain_asks_lrclib_before_the_catch_all_providers() {
-        let chain = external_fallback_providers();
+        let chain = lyrics_providers::CHAIN;
         let pos = |p: Provider| chain.iter().position(|c| *c == p);
 
         let lrclib = pos(Provider::Lrclib).expect("lrclib is in the chain");
