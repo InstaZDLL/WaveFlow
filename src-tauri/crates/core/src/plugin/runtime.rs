@@ -27,7 +27,10 @@ use wasmtime::{Config, Engine, OptLevel, Store, StoreLimits, StoreLimitsBuilder}
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView};
 
 use crate::plugin::assets::AssetResolver;
-use crate::plugin::host_impl::{HostError, HostPermissions, StateStore, STATE_QUOTA_BYTES};
+use crate::plugin::binfmt::{classify_wasm_binary, WasmBinaryKind};
+use crate::plugin::host_impl::{
+    describe_error, HostError, HostPermissions, StateStore, STATE_QUOTA_BYTES,
+};
 use crate::plugin::manifest::{Manifest, ManifestError};
 use crate::plugin::{InvalidPluginId, PluginPaths};
 
@@ -117,10 +120,71 @@ pub enum RuntimeError {
     WasmTooLarge { size: u64, max: u64 },
     #[error("plugin.wasm is not a regular file")]
     WasmNotRegularFile,
+    #[error("plugin.wasm is {kind} — {}", .kind.load_hint())]
+    NotAComponent { kind: WasmBinaryKind },
     #[error("host: {0}")]
     Host(#[from] HostError),
     #[error("http client init: {0}")]
     HttpClient(#[from] reqwest::Error),
+}
+
+impl RuntimeError {
+    /// The failure with the layers plain `Display` leaves out.
+    ///
+    /// [`RuntimeError::Wasmtime`] wraps a wasmtime error that prints
+    /// only its outermost context, and for a wrong-format plugin that
+    /// context is the misleading half: "failed to parse WebAssembly
+    /// module", which reads as a corrupt file. The half that names the
+    /// cause — "attempted to parse a wasm module with a component
+    /// parser" — sits one layer down, where `%err` in a log line never
+    /// reaches it.
+    ///
+    /// Two different walks because wasmtime's error type deliberately
+    /// does **not** implement `std::error::Error` (it is anyhow-shaped,
+    /// so a blanket `From` would conflict): its own alternate form is
+    /// the only way into its chain. Everything else goes through
+    /// [`describe_error`], the walker this module already had for the
+    /// same problem on the guest side — `HttpClient(reqwest::Error)`
+    /// is the very case it was written for.
+    pub fn detail(&self) -> String {
+        match self {
+            Self::Wasmtime(err) => format!("wasmtime: {err:#}"),
+            other => describe_error(other),
+        }
+    }
+
+    /// Stable, non-localised token for the interface to map onto its
+    /// own wording. Grouped by what the person can *do* about it
+    /// rather than by variant: a file that is too large and one that
+    /// is not a regular file both mean "this file is not usable",
+    /// while the wrong build command has an answer of its own.
+    pub fn code(&self) -> &'static str {
+        match self {
+            Self::NotAComponent { .. } => "not-a-component",
+            Self::WasmTooLarge { .. } => "too-large",
+            Self::Io(_) | Self::WasmNotRegularFile => "unreadable",
+            Self::Manifest(_) | Self::PluginIdMismatch { .. } | Self::InvalidId(_) => "manifest",
+            _ => "load-failed",
+        }
+    }
+}
+
+/// Why a plugin would not load, in the two parts a host needs to show
+/// it: a stable token to translate and the full technical line to put
+/// underneath.
+///
+/// Only *load* failures are kept. A guest that returns an error or
+/// traps has run — it may simply have had no network that minute, and
+/// pinning a lasting state on that would cry wolf. A load failure is
+/// structural: it repeats identically on every call until the file
+/// itself changes, which is exactly the state the plugin list had no
+/// way to show.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LoadFailure {
+    /// [`RuntimeError::code`].
+    pub code: &'static str,
+    /// [`RuntimeError::detail`].
+    pub detail: String,
 }
 
 /// Process-wide plugin runtime. Owns the [`Engine`] (`Send + Sync`
@@ -153,6 +217,20 @@ struct RuntimeInner {
     /// on the next plugin instantiation without rebuilding the
     /// runtime.
     offline_probe: OfflineProbe,
+    /// Last load outcome per plugin id, written by [`PluginRuntime::load_plugin`].
+    ///
+    /// Recording here rather than at each call site is deliberate:
+    /// every world (`source`, `metadata`, `ui`, `canvas`) reaches wasm
+    /// through `load_plugin`, so one write covers all of them and a
+    /// world added later is covered on the day it is written. It also
+    /// means a successful load *clears* the entry without anyone
+    /// remembering to, which is the half that usually rots.
+    ///
+    /// A `std::sync::Mutex` because every holder is a couple of map
+    /// operations with no await in between, on a path that is already
+    /// about to pay for a Cranelift compile. Bounded by the number of
+    /// distinct plugin ids the session touches.
+    load_failures: std::sync::Mutex<std::collections::HashMap<String, LoadFailure>>,
 }
 
 impl PluginRuntime {
@@ -213,6 +291,7 @@ impl PluginRuntime {
                 config,
                 http_client,
                 offline_probe,
+                load_failures: std::sync::Mutex::new(std::collections::HashMap::new()),
             }),
         })
     }
@@ -248,6 +327,60 @@ impl PluginRuntime {
     /// actually exports the declared interfaces — that check needs
     /// the bindgen-generated types and lands in Phase 2b.
     pub fn load_plugin(
+        &self,
+        paths: &PluginPaths,
+        plugin_id: &str,
+    ) -> Result<LoadedPlugin, RuntimeError> {
+        let loaded = self.load_plugin_inner(paths, plugin_id);
+        let mut failures = self
+            .inner
+            .load_failures
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        match &loaded {
+            Ok(_) => {
+                failures.remove(plugin_id);
+            }
+            Err(err) => {
+                failures.insert(
+                    plugin_id.to_string(),
+                    LoadFailure {
+                        code: err.code(),
+                        detail: err.detail(),
+                    },
+                );
+            }
+        }
+        loaded
+    }
+
+    /// Why the last [`Self::load_plugin`] for this id failed, if it
+    /// did. `None` covers both "loaded fine" and "never tried" — the
+    /// host pairs this with a look at the file on disk so a plugin
+    /// that has not been called yet this session is not reported as
+    /// healthy just because nothing has asked it to run.
+    pub fn load_failure(&self, plugin_id: &str) -> Option<LoadFailure> {
+        self.inner
+            .load_failures
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .get(plugin_id)
+            .cloned()
+    }
+
+    /// Drop what we remember about `plugin_id`. The host calls this
+    /// when the file behind the id changes — an install, an update or
+    /// an uninstall — so a fixed plugin is not still branded broken by
+    /// the failure of the version it replaced.
+    pub fn forget_load_failure(&self, plugin_id: &str) {
+        self.inner
+            .load_failures
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .remove(plugin_id);
+    }
+
+    fn load_plugin_inner(
         &self,
         paths: &PluginPaths,
         plugin_id: &str,
@@ -292,6 +425,15 @@ impl PluginRuntime {
                 size: read,
                 max: MAX_WASM_SIZE,
             });
+        }
+        // Tell the format apart BEFORE handing the bytes over. Eight
+        // bytes separate a component from a core module, and answering
+        // here costs one comparison while buying a message the plugin
+        // author can act on — see [`crate::plugin::binfmt`] for why
+        // wasmtime's own refusal cannot say this.
+        let kind = classify_wasm_binary(&bytes);
+        if kind != WasmBinaryKind::Component {
+            return Err(RuntimeError::NotAComponent { kind });
         }
         let component = Component::from_binary(&self.inner.engine, &bytes)?;
         Ok(LoadedPlugin {
@@ -442,6 +584,28 @@ pub enum SourceError {
     Trap(String),
     #[error("plugin: {0}")]
     Plugin(String),
+}
+
+impl SourceError {
+    /// `true` when the plugin never started. A guest that returns an
+    /// error or traps has run, and may simply have had nothing for
+    /// this track; a load failure repeats on every call until the
+    /// file changes, and deserves to be said louder.
+    pub fn is_load_failure(&self) -> bool {
+        matches!(self, Self::Runtime(_))
+    }
+
+    /// Same contract as [`RuntimeError::detail`]: the whole cause
+    /// chain, not just the layer nearest the caller. A log line that
+    /// prints this error with `%err` stops at "runtime: wasmtime:
+    /// failed to parse WebAssembly module" and drops the sentence that
+    /// says what to do about it.
+    pub fn detail(&self) -> String {
+        match self {
+            Self::Runtime(err) => format!("runtime: {}", err.detail()),
+            other => other.to_string(),
+        }
+    }
 }
 
 /// Generate `fn <name>(runtime, paths, plugin_id) -> Result<(Store, <Plugin>),
@@ -777,6 +941,16 @@ pub enum UiError {
     Trap(String),
     #[error("plugin: {0}")]
     Plugin(String),
+}
+
+impl UiError {
+    /// See [`SourceError::detail`].
+    pub fn detail(&self) -> String {
+        match self {
+            Self::Runtime(err) => format!("runtime: {}", err.detail()),
+            other => other.to_string(),
+        }
+    }
 }
 
 fn instantiate_ui(

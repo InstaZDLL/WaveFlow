@@ -19,6 +19,7 @@
 
 pub mod assets;
 pub mod bindings;
+pub mod binfmt;
 pub mod host_impl;
 pub mod manifest;
 pub mod plugin_config;

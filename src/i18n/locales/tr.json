@@ -1623,6 +1623,14 @@
       "byAuthor": "Geliştiren: {{author}}",
       "enabled": "Etkin",
       "disabled": "Devre dışı",
+      "broken": {
+        "badge": "Çalışmıyor",
+        "notAComponent": "Bu eklenti beklenen biçimde değil, bu yüzden WaveFlow onu yükleyemiyor. Geliştiricisinin yeniden yayımlaması gerekiyor.",
+        "unreadable": "Bu eklentinin dosyası bulunamıyor veya okunamıyor. Eklentiyi yeniden kur.",
+        "tooLarge": "Bu eklentinin dosyası izin verilen boyutu aşıyor.",
+        "manifest": "Bu eklentinin tanımı geçersiz veya klasörüyle uyuşmuyor.",
+        "loadFailed": "WaveFlow bu eklentiyi başlatamadı."
+      },
       "toggleAria": "{{name}} etkinleştir veya devre dışı bırak",
       "uninstall": "Kaldır",
       "uninstallAria": "{{name}} kaldır",

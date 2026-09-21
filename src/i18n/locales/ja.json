@@ -1623,6 +1623,14 @@
       "byAuthor": "作者: {{author}}",
       "enabled": "有効",
       "disabled": "無効",
+      "broken": {
+        "badge": "動作していません",
+        "notAComponent": "このプラグインは想定された形式ではないため、WaveFlow は読み込めません。作者による再公開が必要です。",
+        "unreadable": "このプラグインのファイルが見つからないか、読み取れません。インストールし直してください。",
+        "tooLarge": "このプラグインのファイルは許容サイズを超えています。",
+        "manifest": "このプラグインの説明が不正か、フォルダと一致していません。",
+        "loadFailed": "WaveFlow はこのプラグインを起動できませんでした。"
+      },
       "toggleAria": "{{name}} を有効または無効にする",
       "uninstall": "アンインストール",
       "uninstallAria": "{{name}} をアンインストール",

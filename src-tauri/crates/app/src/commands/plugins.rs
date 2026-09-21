@@ -12,17 +12,21 @@
 //! warm across the session.
 
 use std::fs;
+use std::io::Read;
+use std::path::Path;
 use std::sync::atomic::Ordering as AtomicOrdering;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use tauri::State;
 use tokio::sync::{Mutex, OwnedMutexGuard};
+use waveflow_core::plugin::binfmt::{classify_wasm_binary, WasmBinaryKind};
 use waveflow_core::plugin::manifest::{LocalizedString, Manifest, ManifestError};
 use waveflow_core::plugin::runtime::{
     source_list_entries, source_resolve, source_stream_url, ui_event, ui_manifest, ui_render,
-    LibraryArtist,
+    LibraryArtist, LoadFailure, RuntimeError,
 };
+use waveflow_core::plugin::PluginPaths;
 
 use crate::audio::{AudioCmd, AudioEngine};
 use crate::error::{AppError, AppResult};
@@ -92,6 +96,78 @@ pub struct PluginInfo {
     /// `true` when the manifest declares any `[[options]]` — the UI shows
     /// the ⚙️ gear + loads the options panel on demand for these.
     pub has_options: bool,
+    /// `Some` when this plugin cannot run. Until this existed, a plugin
+    /// that failed to load was more silent than one that was not
+    /// installed at all: the row looked identical to a working one, the
+    /// only trace was a `warn!` in a log file nobody opens, and the
+    /// feature simply did nothing. See [`plugin_failure`].
+    pub failure: Option<PluginFailure>,
+}
+
+/// Why a plugin will not run, in the two parts the interface needs.
+///
+/// `code` is a stable token the UI maps onto its own wording;
+/// `detail` is the technical line printed underneath and is
+/// deliberately NOT translated — it is what gets pasted into a bug
+/// report, and a message the plugin's author can search for is worth
+/// more than one in the reader's language.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginFailure {
+    pub code: String,
+    pub detail: String,
+}
+
+impl From<&RuntimeError> for PluginFailure {
+    fn from(err: &RuntimeError) -> Self {
+        Self {
+            code: err.code().to_string(),
+            detail: err.detail(),
+        }
+    }
+}
+
+impl From<LoadFailure> for PluginFailure {
+    fn from(failure: LoadFailure) -> Self {
+        Self {
+            code: failure.code.to_string(),
+            detail: failure.detail,
+        }
+    }
+}
+
+/// Read the first bytes of a plugin's `plugin.wasm` and report a file
+/// the host could never load.
+///
+/// This exists because the runtime's recorded failure only appears
+/// once something has actually asked the plugin to run. Someone who
+/// opens Settings straight after launch would otherwise see a row that
+/// looks perfectly healthy — which is precisely the situation this
+/// whole change is about. Eight bytes settle the commonest case (a
+/// core module where a component was meant) without paying for the
+/// Cranelift compile a real load costs.
+///
+/// A `plugin.wasm` that cannot be read at all is reported too: a
+/// plugin whose `manifest.toml` parsed but whose binary is missing is
+/// broken in the same invisible way.
+fn probe_wasm_format(paths: &PluginPaths, plugin_id: &str) -> Option<PluginFailure> {
+    let path = paths.wasm_path(plugin_id).ok()?;
+    let err = match read_wasm_preamble(&path) {
+        Ok(head) => match classify_wasm_binary(&head) {
+            WasmBinaryKind::Component => return None,
+            kind => RuntimeError::NotAComponent { kind },
+        },
+        Err(err) => RuntimeError::Io(err),
+    };
+    Some(PluginFailure::from(&err))
+}
+
+/// Up to eight bytes — fewer when the file is shorter, which the
+/// classifier already answers correctly rather than erroring on.
+fn read_wasm_preamble(path: &Path) -> std::io::Result<Vec<u8>> {
+    let mut head = Vec::with_capacity(8);
+    fs::File::open(path)?.take(8).read_to_end(&mut head)?;
+    Ok(head)
 }
 
 #[derive(Debug, Serialize)]
@@ -112,7 +188,11 @@ pub struct PluginAssetInfo {
     pub description: Option<String>,
 }
 
-fn manifest_to_info(manifest: Manifest, enabled: bool) -> PluginInfo {
+fn manifest_to_info(
+    manifest: Manifest,
+    enabled: bool,
+    failure: Option<PluginFailure>,
+) -> PluginInfo {
     let bundled = is_bundled_plugin(&manifest.plugin.id);
     let has_options = !manifest.options.is_empty();
     PluginInfo {
@@ -141,6 +221,7 @@ fn manifest_to_info(manifest: Manifest, enabled: bool) -> PluginInfo {
         enabled,
         bundled,
         has_options,
+        failure,
     }
 }
 
@@ -357,42 +438,55 @@ fn walk_install_root(root: &std::path::Path) -> AppResult<Vec<(String, Manifest)
 #[tauri::command]
 pub async fn list_installed_plugins(state: State<'_, AppState>) -> AppResult<Vec<PluginInfo>> {
     let paths = state.paths.plugin_paths();
-    let manifests = tokio::task::spawn_blocking(move || -> AppResult<Vec<(String, Manifest)>> {
-        let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
-        let mut out = Vec::new();
+    let manifests = tokio::task::spawn_blocking(
+        move || -> AppResult<Vec<(String, Manifest, Option<PluginFailure>)>> {
+            let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+            let mut out = Vec::new();
 
-        // Bundled tree FIRST so its ids own the slot on any collision
-        // with a stray sideloaded entry. `bundled_root` is optional
-        // because dev builds without a bundle still need to list
-        // sideloaded plugins.
-        if let Some(bundled_root) = paths.bundled_root.as_deref() {
-            for (id, manifest) in walk_install_root(bundled_root)? {
-                seen.insert(id.clone());
-                out.push((id, manifest));
+            // Bundled tree FIRST so its ids own the slot on any collision
+            // with a stray sideloaded entry. `bundled_root` is optional
+            // because dev builds without a bundle still need to list
+            // sideloaded plugins.
+            if let Some(bundled_root) = paths.bundled_root.as_deref() {
+                for (id, manifest) in walk_install_root(bundled_root)? {
+                    seen.insert(id.clone());
+                    let probe = probe_wasm_format(&paths, &id);
+                    out.push((id, manifest, probe));
+                }
             }
-        }
 
-        // Sideloaded tree second; skip any id the bundled walk
-        // already claimed.
-        for (id, manifest) in walk_install_root(&paths.plugins_root)? {
-            if seen.contains(&id) {
-                tracing::warn!(
-                    plugin_id = %id,
-                    "sideloaded plugin shadows a bundled id; skipping the sideloaded copy"
-                );
-                continue;
+            // Sideloaded tree second; skip any id the bundled walk
+            // already claimed.
+            for (id, manifest) in walk_install_root(&paths.plugins_root)? {
+                if seen.contains(&id) {
+                    tracing::warn!(
+                        plugin_id = %id,
+                        "sideloaded plugin shadows a bundled id; skipping the sideloaded copy"
+                    );
+                    continue;
+                }
+                let probe = probe_wasm_format(&paths, &id);
+                out.push((id, manifest, probe));
             }
-            out.push((id, manifest));
-        }
-        Ok(out)
-    })
+            Ok(out)
+        },
+    )
     .await
     .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;
 
     let mut out = Vec::with_capacity(manifests.len());
-    for (plugin_id, manifest) in manifests {
+    for (plugin_id, manifest, probe) in manifests {
         let enabled = read_enabled(&state.app_db, &plugin_id).await?;
-        out.push(manifest_to_info(manifest, enabled));
+        // What actually happened beats what the file looks like: a
+        // component that compiles on one host and not on this one is
+        // invisible to the probe, and the recorded failure carries the
+        // message wasmtime gave.
+        let failure = state
+            .plugins
+            .load_failure(&plugin_id)
+            .map(PluginFailure::from)
+            .or(probe);
+        out.push(manifest_to_info(manifest, enabled, failure));
     }
 
     // Stable order so the frontend gets the same list across calls
@@ -455,17 +549,26 @@ pub async fn get_plugin_info(
         Err(_) => return Ok(None), // id failed sanitisation → no such plugin
     };
     let id_for_blocking = plugin_id.clone();
-    let manifest_opt = tokio::task::spawn_blocking(move || -> Option<Manifest> {
-        Manifest::load_from_path(&manifest_path)
-            .ok()
-            .filter(|m| m.plugin.id == id_for_blocking)
-    })
-    .await
-    .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?;
-    match manifest_opt {
-        Some(manifest) => {
+    let probe_id = plugin_id.clone();
+    let found =
+        tokio::task::spawn_blocking(move || -> Option<(Manifest, Option<PluginFailure>)> {
+            let manifest = Manifest::load_from_path(&manifest_path)
+                .ok()
+                .filter(|m| m.plugin.id == id_for_blocking)?;
+            let probe = probe_wasm_format(&paths, &probe_id);
+            Some((manifest, probe))
+        })
+        .await
+        .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?;
+    match found {
+        Some((manifest, probe)) => {
             let enabled = read_enabled(&state.app_db, &plugin_id).await?;
-            Ok(Some(manifest_to_info(manifest, enabled)))
+            let failure = state
+                .plugins
+                .load_failure(&plugin_id)
+                .map(PluginFailure::from)
+                .or(probe);
+            Ok(Some(manifest_to_info(manifest, enabled, failure)))
         }
         None => Ok(None),
     }
@@ -701,6 +804,7 @@ pub async fn uninstall_plugin(
         .execute(&state.app_db)
         .await?;
 
+    state.plugins.forget_load_failure(&plugin_id);
     tracing::info!(plugin_id, "plugin uninstalled");
     Ok(())
 }
@@ -765,7 +869,7 @@ pub async fn plugin_list_entries(
     let id_owned = plugin_id.clone();
     let entries = tokio::task::spawn_blocking(move || {
         source_list_entries(&runtime, &paths, &id_owned)
-            .map_err(|e| AppError::Other(format!("plugin {plugin_id}: {e}")))
+            .map_err(|e| AppError::Other(format!("plugin {plugin_id}: {}", e.detail())))
     })
     .await
     .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;
@@ -793,7 +897,7 @@ pub async fn plugin_resolve(
     let id_owned = plugin_id.clone();
     let tracks = tokio::task::spawn_blocking(move || {
         source_resolve(&runtime, &paths, &id_owned, &query)
-            .map_err(|e| AppError::Other(format!("plugin {plugin_id}: {e}")))
+            .map_err(|e| AppError::Other(format!("plugin {plugin_id}: {}", e.detail())))
     })
     .await
     .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;
@@ -826,7 +930,7 @@ pub async fn plugin_stream_url(
     let id_owned = plugin_id.clone();
     let url = tokio::task::spawn_blocking(move || {
         source_stream_url(&runtime, &paths, &id_owned, &track_id)
-            .map_err(|e| AppError::Other(format!("plugin {plugin_id}: {e}")))
+            .map_err(|e| AppError::Other(format!("plugin {plugin_id}: {}", e.detail())))
     })
     .await
     .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;
@@ -1129,7 +1233,11 @@ pub async fn list_ui_plugins(state: State<'_, AppState>) -> AppResult<Vec<Plugin
                 },
             }),
             Err(err) => {
-                tracing::warn!(plugin_id, %err, "ui plugin manifest() failed; skipping sidebar entry");
+                tracing::warn!(
+                    plugin_id,
+                    err = %err.detail(),
+                    "ui plugin manifest() failed; skipping sidebar entry"
+                );
             }
         }
     }
@@ -1157,7 +1265,7 @@ pub async fn plugin_ui_render(
     let err_id = plugin_id.clone();
     let descriptor = tokio::task::spawn_blocking(move || {
         ui_render(&runtime, &paths, &id_owned, &path, snapshot)
-            .map_err(|e| AppError::Other(format!("plugin {err_id}: {e}")))
+            .map_err(|e| AppError::Other(format!("plugin {err_id}: {}", e.detail())))
     })
     .await
     .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;
@@ -1188,7 +1296,7 @@ pub async fn plugin_ui_event(
     let err_id = plugin_id.clone();
     let descriptor = tokio::task::spawn_blocking(move || {
         ui_event(&runtime, &paths, &id_owned, &event, &payload, snapshot)
-            .map_err(|e| AppError::Other(format!("plugin {err_id}: {e}")))
+            .map_err(|e| AppError::Other(format!("plugin {err_id}: {}", e.detail())))
     })
     .await
     .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;

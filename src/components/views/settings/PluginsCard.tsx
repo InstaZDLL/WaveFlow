@@ -10,6 +10,7 @@ import {
   Settings2,
   Users,
   FolderOpen,
+  AlertTriangle,
 } from "lucide-react";
 
 import {
@@ -18,6 +19,7 @@ import {
   uninstallPlugin,
   openPluginsFolder,
   type PluginInfo,
+  type PluginFailure,
 } from "../../../lib/tauri/plugins";
 import { PLUGIN_AVAILABILITY_EVENT } from "../../../hooks/usePluginAvailability";
 import { useLocalizedText } from "../../../hooks/useLocalizedText";
@@ -205,6 +207,7 @@ export function PluginsCard() {
                         v{plugin.version}
                       </span>
                       <WorldBadge world={plugin.world} />
+                      {plugin.failure && <BrokenBadge />}
                     </div>
                     <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
                       {t("settings.plugins.byAuthor", {
@@ -215,6 +218,9 @@ export function PluginsCard() {
                       <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 leading-relaxed">
                         {description}
                       </p>
+                    )}
+                    {plugin.failure && (
+                      <BrokenReason failure={plugin.failure} />
                     )}
                     <PermissionsRow
                       permissions={plugin.permissions}
@@ -343,6 +349,50 @@ function WorldBadge({ world }: { world: string }) {
     <span className="text-[10px] uppercase tracking-wide font-medium px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
       {label}
     </span>
+  );
+}
+
+function BrokenBadge() {
+  const { t } = useTranslation();
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+      <AlertTriangle size={10} aria-hidden="true" />
+      {t("settings.plugins.broken.badge")}
+    </span>
+  );
+}
+
+/** Backend failure code → the `settings.plugins.broken.*` key that
+ *  explains it. A code missing here falls back to the generic string
+ *  rather than rendering a raw token: a backend that learns a new
+ *  failure kind before the translations catch up must still produce a
+ *  row that reads as a sentence. */
+const REASON_KEYS: Record<string, string> = {
+  "not-a-component": "notAComponent",
+  unreadable: "unreadable",
+  "too-large": "tooLarge",
+  manifest: "manifest",
+};
+
+/**
+ * The reason a plugin will not run, in two registers: a sentence the
+ * reader can act on, then the backend's own line underneath.
+ *
+ * The technical line is shown rather than hidden behind a tooltip
+ * because it is the part that travels — into an issue, into a message
+ * to the plugin's author — and a tooltip cannot be copied.
+ */
+function BrokenReason({ failure }: { failure: PluginFailure }) {
+  const { t } = useTranslation();
+  const key = REASON_KEYS[failure.code] ?? "loadFailed";
+  const reason = t(`settings.plugins.broken.${key}`);
+  return (
+    <p className="mt-1 text-xs leading-relaxed text-amber-700 dark:text-amber-400">
+      {reason}{" "}
+      <span className="text-zinc-500 dark:text-zinc-400 break-all">
+        {failure.detail}
+      </span>
+    </p>
   );
 }
 

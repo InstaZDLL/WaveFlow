@@ -303,7 +303,9 @@ pub async fn fetch_track_canvas(
                 return Ok(Some(PluginCanvas { url, plugin_id }));
             }
             Ok(Ok(Ok(None))) => { /* this plugin has no Canvas for the track */ }
-            Ok(Ok(Err(e))) => tracing::warn!(plugin_id, %e, "canvas plugin failed; skipping"),
+            Ok(Ok(Err(e))) => {
+                tracing::warn!(plugin_id, err = %e.detail(), "canvas plugin failed; skipping")
+            }
             Ok(Err(e)) => tracing::warn!(plugin_id, %e, "canvas task panicked; skipping"),
             Err(_) => tracing::warn!(plugin_id, "canvas plugin timed out; skipping"),
         }

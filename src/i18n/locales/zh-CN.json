@@ -1623,6 +1623,14 @@
       "byAuthor": "作者：{{author}}",
       "enabled": "已启用",
       "disabled": "已禁用",
+      "broken": {
+        "badge": "无法运行",
+        "notAComponent": "此插件的格式不正确，WaveFlow 无法加载。需要作者重新发布。",
+        "unreadable": "找不到此插件的文件，或无法读取。请重新安装。",
+        "tooLarge": "此插件的文件超出允许的大小。",
+        "manifest": "此插件的描述无效，或与所在文件夹不符。",
+        "loadFailed": "WaveFlow 无法启动此插件。"
+      },
       "toggleAria": "启用或禁用 {{name}}",
       "uninstall": "卸载",
       "uninstallAria": "卸载 {{name}}",

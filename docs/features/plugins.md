@@ -25,11 +25,26 @@ Installing an entry downloads that plugin's **pinned GitHub release**, then:
 
 - **verifies `plugin.wasm`'s blake3 against the registry entry** — the _registry_ is the trusted pin, not the release, so a compromised release fails the hash and is rejected;
 - sanity-checks the manifest (`id` / `version` / `world`);
+- **checks that `plugin.wasm` is actually a component** (see below) — neither of the gates above can: blake3 pins the bytes the registry published, and the manifest describes intent rather than the binary;
 - **stage-swaps** the verified artifact into the sideload root (so a failed download never corrupts an installed plugin).
 
 Every registry fetch honours [`offline::is_offline()`](../../src-tauri/crates/app/src/offline.rs) and short-circuits when offline. Because the catalogue and each plugin live in **separate repos** ([`InstaZDLL/waveflow-plugins`](https://github.com/InstaZDLL/waveflow-plugins) + per-plugin repos), a grey-area plugin carries no liability for the signed core and a takedown is one registry commit.
 
 UI: [`PluginStoreCard`](../../src/components/views/settings/PluginStoreCard.tsx) sits above [`PluginsCard`](../../src/components/views/settings/PluginsCard.tsx) under **Settings → Extensions**; i18n keys under `settings.pluginStore.*`. With nothing installed, `PluginsCard` offers an **Open folder** button (`open_plugins_folder`) that creates the sideload root if it is missing and reveals it in the file manager — the path is never spelled out in the copy, because it differs per platform and a user cannot type `<app-data>` (issue #679).
+
+## When a plugin cannot run
+
+A plugin that fails to load used to be **more silent than one that was not installed at all**: its row in Settings looked exactly like a working plugin's, the feature it provided simply did nothing, and the only trace was a `warn!` line in a log file. Two published plugins shipped that way for a release cycle.
+
+The cause was mundane. The host runs WebAssembly **components**; `cargo build` produces a core **module**, which is valid wasm in the wrong format. The two share the same four magic bytes and differ at bytes 4..8 — `01 00 00 00` for a module, `0d 00 01 00` for a component ([`plugin::binfmt`](../../src-tauri/crates/core/src/plugin/binfmt.rs)). Build a plugin with the wrong command and everything up to the moment of loading succeeds.
+
+Three things now stop that being invisible:
+
+- **The store refuses it at install time**, with a message naming the build command, so the mistake is caught while the only cost is a download.
+- **The runtime remembers why a load failed**, keyed by plugin id, cleared by the next successful load. Recording sits inside `load_plugin` rather than at each call site, so every world is covered by one write — including worlds added later.
+- **The plugin list shows it.** `PluginInfo.failure` carries a stable code the UI translates (`settings.plugins.broken.*`) plus the untranslated technical line, which is what travels into a bug report. Because the recorded failure only exists once something has asked the plugin to run, the list also reads the first eight bytes of each `plugin.wasm` — someone opening Settings straight after launch gets the answer without waiting for the feature to be used, and without paying for a Cranelift compile per row.
+
+One more thing wasmtime cannot tell you itself: its refusal is `failed to parse WebAssembly module`, which reads like a corrupt file. The sentence that names the real problem — `attempted to parse a wasm module with a component parser` — is one layer down the cause chain, and a log line written with `%err` never reaches it. `RuntimeError::detail()` (and its `SourceError` / `UiError` counterparts) print the chain instead of the outermost layer; every log line and every error toast on these paths goes through it.
 
 ## Per-plugin options
 
@@ -172,6 +187,6 @@ A discovery view of recent releases from the artists in your library — the fir
 
 - **Sandboxed** — WASM component in wasmtime, no ambient authority.
 - **Permission-gated** — HTTP is allowlisted per manifest; storage is a bounded per-plugin scratch quota; no filesystem.
-- **Verified installs** — `plugin.wasm` blake3 is pinned by the trusted registry, checked before a stage-swap; a tampered release fails.
+- **Verified installs** — `plugin.wasm` blake3 is pinned by the trusted registry, checked before a stage-swap; a tampered release fails. The binary must also *be* a component, or the install is refused rather than landing a plugin that can never load.
 - **Offline-aware** — every registry / plugin fetch respects process-wide offline mode.
 - **Isolated liability** — plugin code lives in separate repos; nothing grey-area ships inside the signed core.

@@ -1623,6 +1623,14 @@
       "byAuthor": "作者：{{author}}",
       "enabled": "已啟用",
       "disabled": "已停用",
+      "broken": {
+        "badge": "無法運作",
+        "notAComponent": "此外掛的格式不正確，WaveFlow 無法載入。需要作者重新發布。",
+        "unreadable": "找不到此外掛的檔案，或無法讀取。請重新安裝。",
+        "tooLarge": "此外掛的檔案超出允許的大小。",
+        "manifest": "此外掛的描述無效，或與所在資料夾不符。",
+        "loadFailed": "WaveFlow 無法啟動此外掛。"
+      },
       "toggleAria": "啟用或停用 {{name}}",
       "uninstall": "解除安裝",
       "uninstallAria": "解除安裝 {{name}}",

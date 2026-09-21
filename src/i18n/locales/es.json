@@ -1626,6 +1626,14 @@
       "byAuthor": "Por {{author}}",
       "enabled": "Activado",
       "disabled": "Desactivado",
+      "broken": {
+        "badge": "No funciona",
+        "notAComponent": "Este complemento no tiene el formato esperado, así que WaveFlow no puede cargarlo. Su autor debe volver a publicarlo.",
+        "unreadable": "No se encuentra el archivo de este complemento o no se puede leer. Vuelve a instalarlo.",
+        "tooLarge": "El archivo de este complemento supera el tamaño permitido.",
+        "manifest": "La descripción de este complemento no es válida o no coincide con su carpeta.",
+        "loadFailed": "WaveFlow no ha podido iniciar este complemento."
+      },
       "toggleAria": "Activar o desactivar {{name}}",
       "uninstall": "Desinstalar",
       "uninstallAria": "Desinstalar {{name}}",
