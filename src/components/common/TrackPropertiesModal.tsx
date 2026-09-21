@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
@@ -24,6 +24,13 @@ import {
   type TrackEdit,
 } from "../../lib/tauri/track";
 import { StarRating } from "./StarRating";
+import { TagCombobox, type SuggestionGroup } from "./TagCombobox";
+import {
+  listGenres,
+  searchAlbums,
+  searchArtists,
+} from "../../lib/tauri/browse";
+import { GENRE_PRESETS } from "../../lib/genrePresets";
 import { pickFile } from "../../lib/tauri/dialog";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useModalA11y } from "../../hooks/useModalA11y";
@@ -157,6 +164,60 @@ export function TrackPropertiesModal({
       cancelled = true;
     };
   }, [track]);
+
+  // What the library already holds, offered while editing so a value is
+  // picked rather than retyped — a typo in an artist name makes a second
+  // artist. A failed lookup only means fewer suggestions.
+  //
+  // Genres are few, so the whole list is loaded the first time the form
+  // opens (not with the dialog: most openings only look). Artists and
+  // albums can run to thousands, so they are searched on the backend as
+  // the user types — the same bounded, prefix-first search the top bar
+  // uses — rather than all loaded to be filtered here.
+  const [knownGenres, setKnownGenres] = useState<string[] | null>(null);
+  const wantsGenres = editing && knownGenres == null;
+  useEffect(() => {
+    if (!wantsGenres) return;
+    let cancelled = false;
+    listGenres(null)
+      .then((rows) => {
+        if (cancelled) return;
+        const names = new Set(
+          rows.map((g) => g.name).filter((n) => n.trim() !== ""),
+        );
+        setKnownGenres([...names].sort((a, b) => a.localeCompare(b)));
+      })
+      .catch((err) => {
+        console.error("[TrackProperties] list_genres failed", err);
+        if (!cancelled) setKnownGenres([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [wantsGenres]);
+
+  const artistHits = useSearchHits(
+    editing ? form.artist : "",
+    (q) => searchArtists(q, null, SUGGESTION_LIMIT),
+    (a) => a.name,
+  );
+  const albumHits = useSearchHits(
+    editing ? form.album : "",
+    (q) => searchAlbums(q, null, SUGGESTION_LIMIT),
+    (a) => a.title,
+  );
+
+  const inLibrary = t("trackProperties.suggestions.library");
+  const genreGroups: SuggestionGroup[] = [
+    { label: inLibrary, values: knownGenres ?? [] },
+    { label: t("trackProperties.suggestions.presets"), values: GENRE_PRESETS },
+  ];
+  const artistGroups: SuggestionGroup[] = [
+    { label: inLibrary, values: artistHits, matched: true },
+  ];
+  const albumGroups: SuggestionGroup[] = [
+    { label: inLibrary, values: albumHits, matched: true },
+  ];
 
   // The genre isn't on the `Track` row (it lives in `track_genre`), so
   // it takes its own fetch. A failure leaves `genres` null, which keeps
@@ -322,11 +383,15 @@ export function TrackPropertiesModal({
   const addedAt = track.added_at
     ? new Date(track.added_at).toLocaleString(i18n.language)
     : "—";
+  // Two rows rather than one "disc / track": "1 / 37" read as track 1 of
+  // 37 when it meant disc 1, track 37.
   const trackNumber =
-    track.track_number != null
-      ? track.disc_number != null && track.disc_number > 0
-        ? `${track.disc_number} / ${track.track_number}`
-        : String(track.track_number)
+    track.track_number != null && track.track_number > 0
+      ? String(track.track_number)
+      : "—";
+  const discNumber =
+    track.disc_number != null && track.disc_number > 0
+      ? String(track.disc_number)
       : "—";
 
   return (
@@ -356,6 +421,20 @@ export function TrackPropertiesModal({
         >
           <X size={18} />
         </button>
+        {/* Up here rather than in the footer: the footer sits below every
+            section, a scroll away, and editing is what the dialog is
+            opened for as often as reading. */}
+        {!editing && (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            aria-label={t("trackProperties.edit")}
+            title={t("trackProperties.edit")}
+            className="absolute top-4 right-14 p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+          >
+            <Pencil size={18} />
+          </button>
+        )}
 
         {/* Header — cover + title block */}
         <div className="flex items-start gap-4 p-6 border-b border-zinc-100 dark:border-zinc-800">
@@ -383,7 +462,7 @@ export function TrackPropertiesModal({
               </button>
             )}
           </div>
-          <div className="flex-1 min-w-0 pr-10">
+          <div className="flex-1 min-w-0 pr-20">
             <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
               {t("trackProperties.title")}
             </div>
@@ -398,23 +477,21 @@ export function TrackPropertiesModal({
                   placeholder={t("trackProperties.fields.title")}
                   className="w-full text-lg font-semibold px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
                 />
-                <input
-                  type="text"
+                <TagCombobox
                   value={form.artist}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, artist: e.target.value }))
-                  }
+                  onChange={(v) => setForm((p) => ({ ...p, artist: v }))}
+                  groups={artistGroups}
                   placeholder={t("trackProperties.fields.artist")}
-                  className="w-full text-sm px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200"
+                  ariaLabel={t("trackProperties.fields.artist")}
+                  inputClassName="w-full text-sm px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200"
                 />
-                <input
-                  type="text"
+                <TagCombobox
                   value={form.album}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, album: e.target.value }))
-                  }
+                  onChange={(v) => setForm((p) => ({ ...p, album: v }))}
+                  groups={albumGroups}
                   placeholder={t("trackProperties.fields.album")}
-                  className="w-full text-sm px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200"
+                  ariaLabel={t("trackProperties.fields.album")}
+                  inputClassName="w-full text-sm px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200"
                 />
               </div>
             ) : (
@@ -469,18 +546,28 @@ export function TrackPropertiesModal({
                   onChange={(v) => setForm((p) => ({ ...p, disc_number: v }))}
                   placeholder="1"
                 />
-                <EditRow
-                  label={t("trackProperties.fields.genre")}
-                  type="text"
-                  value={form.genre}
-                  onChange={(v) => setForm((p) => ({ ...p, genre: v }))}
-                  placeholder={t("trackProperties.fields.genrePlaceholder")}
-                  // Locked until we know what the track already carries.
-                  // An editable-but-empty box would take a value the save
-                  // then drops on the floor, since a genre we can't
-                  // compare against is a genre we won't send.
-                  disabled={genres == null}
-                />
+                <div className="flex items-center gap-4 px-3 py-2 text-sm">
+                  <span className="w-32 shrink-0 text-zinc-500 dark:text-zinc-400">
+                    {t("trackProperties.fields.genre")}
+                  </span>
+                  <TagCombobox
+                    value={form.genre}
+                    onChange={(v) => setForm((p) => ({ ...p, genre: v }))}
+                    // One value, not a list to complete: the save stores
+                    // the string as a single genre (see handleSave), so
+                    // helping to type "Rock; Pop" would make a genre of
+                    // that name.
+                    groups={genreGroups}
+                    placeholder={t("trackProperties.fields.genrePlaceholder")}
+                    ariaLabel={t("trackProperties.fields.genre")}
+                    // Locked until we know what the track already carries.
+                    // An editable-but-empty box would take a value the save
+                    // then drops on the floor, since a genre we can't
+                    // compare against is a genre we won't send.
+                    disabled={genres == null}
+                    inputClassName="w-full px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  />
+                </div>
                 <Row
                   label={t("trackProperties.duration")}
                   value={formatDuration(track.duration_ms)}
@@ -493,8 +580,20 @@ export function TrackPropertiesModal({
                   value={track.year ?? "—"}
                 />
                 <Row
-                  label={t("trackProperties.trackNumber")}
+                  label={t("trackProperties.fields.trackNumber")}
                   value={trackNumber}
+                />
+                <Row
+                  label={t("trackProperties.fields.discNumber")}
+                  value={discNumber}
+                />
+                <Row
+                  label={t("trackProperties.fields.genre")}
+                  value={
+                    genres == null || genres.length === 0
+                      ? "—"
+                      : genres.join("; ")
+                  }
                 />
                 <Row
                   label={t("trackProperties.duration")}
@@ -645,14 +744,6 @@ export function TrackPropertiesModal({
               </button>
               <button
                 type="button"
-                onClick={() => setEditing(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
-              >
-                <Pencil size={14} />
-                <span>{t("trackProperties.edit")}</span>
-              </button>
-              <button
-                type="button"
                 onClick={onClose}
                 className="px-4 py-2 rounded-xl text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
               >
@@ -664,6 +755,85 @@ export function TrackPropertiesModal({
       </motion.div>
     </motion.div>
   );
+}
+
+/** Suggestions asked of a backend search: its own cap is 50. */
+const SUGGESTION_LIMIT = 50;
+/** Wait for a pause in the typing before searching. */
+const SEARCH_DEBOUNCE_MS = 150;
+
+/**
+ * Names matching `query`, searched on the backend after a pause in the
+ * typing. Answers are cached per query for the life of the dialog, so
+ * typing back over a prefix does not ask again; an empty query asks
+ * nothing. A reply that arrives after the query moved on is dropped.
+ *
+ * Until the answer for the new query lands, the previous names stay up —
+ * but only those that still contain what is typed, so the list narrows
+ * instead of blinking empty on every keystroke, and never offers a name
+ * the input no longer matches (Enter would take it).
+ */
+function useSearchHits<T>(
+  query: string,
+  search: (q: string) => Promise<T[]>,
+  name: (row: T) => string,
+): string[] {
+  const [hits, setHits] = useState<{ query: string; names: string[] }>({
+    query: "",
+    names: [],
+  });
+  const cache = useRef(new Map<string, string[]>());
+  // Latest callbacks, read by the effect without re-running it: callers
+  // pass inline lambdas.
+  const searchRef = useRef(search);
+  const nameRef = useRef(name);
+  useEffect(() => {
+    searchRef.current = search;
+    nameRef.current = name;
+  });
+
+  const q = query.trim();
+  useEffect(() => {
+    if (q === "") return;
+    let cancelled = false;
+    const cached = cache.current.get(q);
+    const timer = window.setTimeout(
+      () => {
+        if (cached) {
+          setHits({ query: q, names: cached });
+          return;
+        }
+        searchRef
+          .current(q)
+          .then((rows) => {
+            const names = [
+              ...new Set(
+                rows
+                  .map((r) => nameRef.current(r))
+                  .filter((n) => n.trim() !== ""),
+              ),
+            ];
+            cache.current.set(q, names);
+            if (!cancelled) setHits({ query: q, names });
+          })
+          .catch((err) => {
+            console.error("[TrackProperties] suggestion search failed", err);
+            // The names on screen answer an older query.
+            if (!cancelled) setHits({ query: q, names: [] });
+          });
+      },
+      cached ? 0 : SEARCH_DEBOUNCE_MS,
+    );
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [q]);
+
+  if (q === "") return [];
+  if (hits.query === q) return hits.names;
+  const typed = q.toLocaleLowerCase();
+  return hits.names.filter((n) => n.toLocaleLowerCase().includes(typed));
 }
 
 function Section({

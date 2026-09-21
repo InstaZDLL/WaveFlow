@@ -305,6 +305,13 @@ fn band_magnitudes(spectrum: &[Complex<f32>], sample_rate: f32, bands: &mut [f32
 /// against the track's own recent level (with [`HEADROOM`] above it)
 /// makes the peaks of the music reach the top whatever the master.
 ///
+/// Above [`KNEE`] the scale bends instead of stopping: a transient
+/// louder than the reference — the reference takes a fraction of a
+/// second to catch up with it — used to be clipped to 1, so every band
+/// of the hit landed on the same flat plateau at the top of the display.
+/// Compressed, they approach the top without reaching it, and the loudest
+/// of them still stands above its neighbours.
+///
 /// A small floor then treats the bottom as silence, so quantisation and
 /// decoder rounding show as zero rather than a constant haze, and a
 /// `sqrt` curve expands the low end, where the ear is most sensitive to
@@ -313,10 +320,31 @@ fn scale_bands(raw: &[f32], level: f32, bands: &mut [f32]) {
     const FLOOR: f32 = 0.02;
     let reference = level.max(MIN_LEVEL) * HEADROOM;
     for (band, &mag) in bands.iter_mut().zip(raw) {
-        let normalised = (mag / reference).clamp(0.0, 1.0);
+        let normalised = soft_limit((mag / reference).max(0.0));
         let cut = (normalised - FLOOR).max(0.0) / (1.0 - FLOOR);
         *band = cut.sqrt();
     }
+}
+
+/// Where the scale starts to bend. Below it a band is linear in its
+/// magnitude, as before.
+const KNEE: f32 = 0.8;
+
+/// Identity up to [`KNEE`], then a hyperbolic approach to 1: continuous
+/// and with the same slope at the knee, so nothing jumps where the
+/// compression begins, and never reaching 1 however loud the band is.
+///
+/// Hyperbolic rather than exponential: an exponential is within `f32`
+/// rounding of 1 by a few times the reference, which is exactly the
+/// transient this is for, and two bands would land on the same value
+/// again.
+fn soft_limit(x: f32) -> f32 {
+    if x <= KNEE {
+        return x;
+    }
+    let room = 1.0 - KNEE;
+    let over = (x - KNEE) / room;
+    KNEE + room * over / (1.0 + over)
 }
 
 #[cfg(test)]
@@ -389,9 +417,30 @@ mod tests {
     #[test]
     fn a_single_beat_does_not_reset_the_scale() {
         // Rising takes a fraction of a second: one loud frame moves the
-        // reference only part of the way, so the beat itself pegs.
+        // reference only part of the way, so the beat itself reaches the
+        // top of the scale.
         let level = follow_level(100.0, 1000.0, EMIT_INTERVAL);
         assert!(level < 300.0, "got {level}");
+    }
+
+    /// A hit several times louder than the reference used to clip every
+    /// band of it to 1 — a flat plateau at the top of the display. The
+    /// louder band now still stands above the other, and neither reaches
+    /// the top.
+    #[test]
+    fn bands_louder_than_the_reference_stay_apart() {
+        let mut bands = [0.0; 2];
+        scale_bands(&[200.0, 400.0], MIN_LEVEL, &mut bands);
+        assert!(bands[0] < bands[1], "got {bands:?}");
+        assert!(bands[1] < 1.0, "got {bands:?}");
+        assert!(bands[0] > 0.9, "got {bands:?}");
+    }
+
+    #[test]
+    fn the_soft_limit_is_continuous_at_the_knee() {
+        assert_eq!(soft_limit(KNEE), KNEE);
+        assert!((soft_limit(KNEE + 1e-3) - (KNEE + 1e-3)).abs() < 1e-5);
+        assert_eq!(soft_limit(0.3), 0.3);
     }
 
     #[test]

@@ -1116,7 +1116,6 @@
     "reanalyze": "Reanalisar",
     "analyzing": "A analisar…",
     "year": "Ano",
-    "trackNumber": "Número da faixa",
     "duration": "Duração",
     "codec": "Códec",
     "bitDepth": "Profundidade de bits",
@@ -1143,7 +1142,11 @@
       "genre": "Género",
       "genrePlaceholder": "Pop, Rock, Jazz…"
     },
-    "changeCover": "Alterar capa"
+    "changeCover": "Alterar capa",
+    "suggestions": {
+      "library": "Na sua biblioteca",
+      "presets": "Géneros comuns"
+    }
   },
   "selection": {
     "toolbarLabel": "Ações de seleção",

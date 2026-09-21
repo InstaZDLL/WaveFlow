@@ -1114,7 +1114,6 @@
     "reanalyze": "Opnieuw analyseren",
     "analyzing": "Bezig met analyseren…",
     "year": "Jaar",
-    "trackNumber": "Tracknummer",
     "duration": "Duur",
     "codec": "Codec",
     "bitDepth": "Bitdiepte",
@@ -1141,7 +1140,11 @@
       "genre": "Genre",
       "genrePlaceholder": "Pop, Rock, Jazz…"
     },
-    "changeCover": "Albumhoes wijzigen"
+    "changeCover": "Albumhoes wijzigen",
+    "suggestions": {
+      "library": "In je bibliotheek",
+      "presets": "Gangbare genres"
+    }
   },
   "selection": {
     "toolbarLabel": "Selectieacties",

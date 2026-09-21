@@ -1114,7 +1114,6 @@
     "reanalyze": "Yeniden analiz et",
     "analyzing": "Analiz ediliyor…",
     "year": "Yıl",
-    "trackNumber": "Parça numarası",
     "duration": "Süre",
     "codec": "Kodek",
     "bitDepth": "Bit derinliği",
@@ -1141,7 +1140,11 @@
       "genre": "Tür",
       "genrePlaceholder": "Pop, Rock, Jazz…"
     },
-    "changeCover": "Kapağı değiştir"
+    "changeCover": "Kapağı değiştir",
+    "suggestions": {
+      "library": "Kitaplığınızda",
+      "presets": "Yaygın türler"
+    }
   },
   "selection": {
     "toolbarLabel": "Seçim eylemleri",

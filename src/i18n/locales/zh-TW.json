@@ -1114,7 +1114,6 @@
     "reanalyze": "重新分析",
     "analyzing": "分析…",
     "year": "年份",
-    "trackNumber": "曲目編號",
     "duration": "時長",
     "codec": "編解碼器",
     "bitDepth": "位元深度",
@@ -1141,7 +1140,11 @@
       "genre": "曲風",
       "genrePlaceholder": "流行、搖滾、爵士…"
     },
-    "changeCover": "更換封面"
+    "changeCover": "更換封面",
+    "suggestions": {
+      "library": "音樂庫中",
+      "presets": "常用曲風"
+    }
   },
   "selection": {
     "toolbarLabel": "選取操作",

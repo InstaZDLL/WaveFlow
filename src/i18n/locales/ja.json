@@ -1114,7 +1114,6 @@
     "reanalyze": "再分析する",
     "analyzing": "分析…",
     "year": "年",
-    "trackNumber": "トラック番号",
     "duration": "再生時間",
     "codec": "コーデック",
     "bitDepth": "ビット深度",
@@ -1141,7 +1140,11 @@
       "genre": "ジャンル",
       "genrePlaceholder": "ポップ、ロック、ジャズ…"
     },
-    "changeCover": "ジャケットを変更"
+    "changeCover": "ジャケットを変更",
+    "suggestions": {
+      "library": "ライブラリ内",
+      "presets": "一般的なジャンル"
+    }
   },
   "selection": {
     "toolbarLabel": "選択中の操作",

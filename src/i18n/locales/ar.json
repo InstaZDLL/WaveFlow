@@ -1243,7 +1243,6 @@
     "reanalyze": "إعادة التحليل",
     "analyzing": "جارٍ التحليل…",
     "year": "السنة",
-    "trackNumber": "رقم المقطع",
     "duration": "المدة",
     "codec": "برنامج الترميز",
     "bitDepth": "عمق البت",
@@ -1270,7 +1269,11 @@
       "genre": "النوع",
       "genrePlaceholder": "بوب، روك، جاز…"
     },
-    "changeCover": "تغيير الغلاف"
+    "changeCover": "تغيير الغلاف",
+    "suggestions": {
+      "library": "في مكتبتك",
+      "presets": "أنواع شائعة"
+    }
   },
   "selection": {
     "toolbarLabel": "إجراءات التحديد",

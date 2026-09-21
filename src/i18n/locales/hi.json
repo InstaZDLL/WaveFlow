@@ -1114,7 +1114,6 @@
     "reanalyze": "पुनः विश्लेषण",
     "analyzing": "विश्लेषण…",
     "year": "वर्ष",
-    "trackNumber": "ट्रैक संख्या",
     "duration": "अवधि",
     "codec": "कोडेक",
     "bitDepth": "बिट गहराई",
@@ -1141,7 +1140,11 @@
       "genre": "शैली",
       "genrePlaceholder": "पॉप, रॉक, जैज़…"
     },
-    "changeCover": "कवर बदलें"
+    "changeCover": "कवर बदलें",
+    "suggestions": {
+      "library": "आपकी लाइब्रेरी में",
+      "presets": "आम शैलियाँ"
+    }
   },
   "selection": {
     "toolbarLabel": "चयन क्रियाएँ",

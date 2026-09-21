@@ -1114,7 +1114,6 @@
     "reanalyze": "重新分析",
     "analyzing": "分析中…",
     "year": "年份",
-    "trackNumber": "曲目编号",
     "duration": "时长",
     "codec": "编解码器",
     "bitDepth": "位深度",
@@ -1141,7 +1140,11 @@
       "genre": "流派",
       "genrePlaceholder": "流行、摇滚、爵士…"
     },
-    "changeCover": "更换封面"
+    "changeCover": "更换封面",
+    "suggestions": {
+      "library": "音乐库中",
+      "presets": "常用流派"
+    }
   },
   "selection": {
     "toolbarLabel": "选择操作",

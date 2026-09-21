@@ -1115,7 +1115,6 @@
     "reanalyze": "Rianalizza",
     "analyzing": "Analisi in corso…",
     "year": "Anno",
-    "trackNumber": "Numero del brano",
     "duration": "Durata",
     "codec": "Codec",
     "bitDepth": "Profondità in bit",
@@ -1142,7 +1141,11 @@
       "genre": "Genere",
       "genrePlaceholder": "Pop, Rock, Jazz…"
     },
-    "changeCover": "Cambia copertina"
+    "changeCover": "Cambia copertina",
+    "suggestions": {
+      "library": "Nella tua libreria",
+      "presets": "Generi comuni"
+    }
   },
   "selection": {
     "toolbarLabel": "Azioni di selezione",

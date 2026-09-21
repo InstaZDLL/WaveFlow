@@ -1114,7 +1114,6 @@
     "reanalyze": "재분석",
     "analyzing": "분석 중…",
     "year": "연도",
-    "trackNumber": "트랙 번호",
     "duration": "재생 시간",
     "codec": "코덱",
     "bitDepth": "비트 심도",
@@ -1141,7 +1140,11 @@
       "genre": "장르",
       "genrePlaceholder": "팝, 록, 재즈…"
     },
-    "changeCover": "커버 변경"
+    "changeCover": "커버 변경",
+    "suggestions": {
+      "library": "라이브러리에 있음",
+      "presets": "일반 장르"
+    }
   },
   "selection": {
     "toolbarLabel": "선택 작업",
