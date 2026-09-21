@@ -1366,7 +1366,8 @@
       "clear": "Cancella i testi",
       "fullscreen": "Schermo intero",
       "edit": "Modifica i testi",
-      "cycleLocalization": "Cambia la lettura aggiuntiva"
+      "cycleLocalization": "Cambia la lettura aggiuntiva",
+      "searchAnyway": "Cerca comunque"
     },
     "localization": {
       "off": "Nessuna lettura aggiuntiva",
@@ -1396,7 +1397,8 @@
     "toast": {
       "tagWriteSkipped": "TTML mantenuto solo nella cache (non scritto nel tag audio)",
       "sidecarWriteSkipped": "Testi salvati nel database, ma il formato TTML non è supportato nei file sidecar .lrc/.txt."
-    }
+    },
+    "excludedGenre": "I testi non vengono cercati online per il genere {{genre}} (Impostazioni → Immagini e testi). Puoi importare un file .lrc o cercare comunque."
   },
   "duplicates": {
     "title": "Duplicati rilevati",

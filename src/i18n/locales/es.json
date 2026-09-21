@@ -1366,7 +1366,8 @@
       "clear": "Borrar letras",
       "fullscreen": "Pantalla completa",
       "edit": "Editar letras",
-      "cycleLocalization": "Cambiar la lectura adicional"
+      "cycleLocalization": "Cambiar la lectura adicional",
+      "searchAnyway": "Buscar de todos modos"
     },
     "localization": {
       "off": "Sin lectura adicional",
@@ -1396,7 +1397,8 @@
     "toast": {
       "tagWriteSkipped": "TTML guardado solo en caché (no se escribe en la etiqueta de audio)",
       "sidecarWriteSkipped": "Letras guardadas en la base de datos, pero el formato TTML no es compatible con archivos auxiliares .lrc/.txt."
-    }
+    },
+    "excludedGenre": "Las letras no se buscan en línea para el género {{genre}} (Configuración → Imágenes y letras). Puedes importar un archivo .lrc o buscar de todos modos."
   },
   "duplicates": {
     "title": "Duplicados detectados",

@@ -21,6 +21,9 @@ interface ImmersiveLyricsColumnProps {
   activeWordIndex: number;
   isFetching: boolean;
   error: string | null;
+  /** Genre that kept the track out of the online search, when that is
+   *  why there are no lyrics (see `useTrackLyrics`). */
+  excludedGenre?: string | null;
   /** Radio: timestamp-stripped static text (overrides `payload.content`
    *  in the non-synced branch). `null` falls back to the raw content. */
   staticText: string | null;
@@ -60,6 +63,7 @@ export function ImmersiveLyricsColumn({
   activeWordIndex,
   isFetching,
   error,
+  excludedGenre = null,
   staticText,
   isRadio,
   onSeek,
@@ -157,7 +161,11 @@ export function ImmersiveLyricsColumn({
           ) : !payload || payload.content.trim() === "" ? (
             <CenteredMessage
               icon={<Music2 size={56} />}
-              text={t("lyrics.notFound")}
+              text={
+                excludedGenre
+                  ? t("lyrics.excludedGenre", { genre: excludedGenre })
+                  : t("lyrics.notFound")
+              }
               // Discreet recovery CTA — hidden for radio (no library row
               // to import-to / refetch-for).
               actions={
@@ -182,7 +190,11 @@ export function ImmersiveLyricsColumn({
                       ) : (
                         <RefreshCcw size={15} />
                       )}
-                      {t("lyrics.actions.refetch")}
+                      {/* A refetch ignores the excluded genres, so here
+                          it is the way to search anyway. */}
+                      {excludedGenre
+                        ? t("lyrics.actions.searchAnyway")
+                        : t("lyrics.actions.refetch")}
                     </button>
                   </div>
                 )

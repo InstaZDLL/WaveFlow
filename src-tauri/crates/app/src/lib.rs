@@ -1084,6 +1084,7 @@ pub fn run() {
             commands::preferences::set_desktop_lyrics_bounds,
             commands::lyrics::get_lyrics,
             commands::lyrics::fetch_lyrics,
+            commands::lyrics::lyrics_excluded_genre,
             commands::lyrics::fetch_radio_lyrics,
             commands::lyrics::refetch_lyrics,
             commands::lyrics::import_lrc_file,

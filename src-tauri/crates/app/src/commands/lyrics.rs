@@ -2084,6 +2084,37 @@ pub async fn fetch_lyrics(
     fetch_lyrics_honouring(state, track_id, GenreRule::Apply).await
 }
 
+/// The genre that keeps this track out of the online lyrics search
+/// (#721), or `None`. Asked by the lyrics panel after a lookup came back
+/// empty: `fetch_lyrics` answers `None` both for "searched, nothing
+/// found" and for "not searched, excluded genre", and the panel said the
+/// first when it meant the second.
+///
+/// A track with a cache row was searched — a Search anyway (a refetch,
+/// which ignores the genres) stores its miss — so it answers `None`
+/// whatever its genre: the panel must not call a searched track
+/// unsearched the next time it plays.
+#[tauri::command]
+pub async fn lyrics_excluded_genre(
+    state: tauri::State<'_, AppState>,
+    track_id: i64,
+) -> AppResult<Option<String>> {
+    let pool = state.require_profile_pool().await?;
+    let searched: Option<i64> = sqlx::query_scalar(
+        "SELECT 1
+           FROM track t
+           JOIN app.lyrics l ON l.file_hash = t.file_hash
+          WHERE t.id = ?",
+    )
+    .bind(track_id)
+    .fetch_optional(&*pool)
+    .await?;
+    if searched.is_some() {
+        return Ok(None);
+    }
+    lyrics_providers::excluded_genre_of(&pool, track_id).await
+}
+
 /// Whether a lookup honours the excluded genres (#721).
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum GenreRule {

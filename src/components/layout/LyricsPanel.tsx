@@ -66,6 +66,7 @@ export function LyricsPanel() {
     activeWordIndex,
     importLyrics,
     refetch,
+    excludedGenre,
     clear,
     seekToLine,
     applyPayload,
@@ -280,7 +281,11 @@ export function LyricsPanel() {
           ) : !payload || payload.content.trim() === "" ? (
             <EmptyState
               icon={<Music2 size={40} />}
-              text={t("lyrics.notFound")}
+              text={
+                excludedGenre
+                  ? t("lyrics.excludedGenre", { genre: excludedGenre })
+                  : t("lyrics.notFound")
+              }
             />
           ) : isSynced ? (
             <ul className="space-y-3 py-32">

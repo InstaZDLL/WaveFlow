@@ -1365,7 +1365,8 @@
       "clear": "歌詞を消去する",
       "fullscreen": "フルスクリーン",
       "edit": "歌詞を編集",
-      "cycleLocalization": "追加表示を切り替え"
+      "cycleLocalization": "追加表示を切り替え",
+      "searchAnyway": "それでも検索"
     },
     "localization": {
       "off": "追加表示なし",
@@ -1395,7 +1396,8 @@
     "toast": {
       "tagWriteSkipped": "TTML はキャッシュにのみ保存されました（音声タグには書き込まれていません）",
       "sidecarWriteSkipped": "データベースには保存されましたが、TTMLは .lrc/.txt サイドカーファイルに書き込めません。"
-    }
+    },
+    "excludedGenre": "ジャンル「{{genre}}」の歌詞はオンラインで検索されません（設定 → 画像と歌詞）。.lrcファイルをインポートするか、このまま検索できます。"
   },
   "duplicates": {
     "title": "重複が見つかりました",

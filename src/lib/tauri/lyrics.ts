@@ -120,6 +120,15 @@ export function getLyrics(trackId: number): Promise<LyricsPayload | null> {
  * Three-tier lookup: cache → embedded tag → LRCLIB.
  * Caches the first hit. Returns null if every tier failed.
  */
+/**
+ * The genre that keeps this track out of the online lyrics search (#721),
+ * or `null`. `fetchLyrics` answers `null` both when nothing was found and
+ * when nothing was searched; this tells the two apart for the panel.
+ */
+export function lyricsExcludedGenre(trackId: number): Promise<string | null> {
+  return invoke<string | null>("lyrics_excluded_genre", { trackId });
+}
+
 export function fetchLyrics(trackId: number): Promise<LyricsPayload | null> {
   return invoke<LyricsPayload | null>("fetch_lyrics", { trackId }).then(
     showableLyrics,

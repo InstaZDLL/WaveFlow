@@ -1365,7 +1365,8 @@
       "clear": "Hapus lirik",
       "fullscreen": "Layar penuh",
       "edit": "Sunting lirik",
-      "cycleLocalization": "Ganti baris tambahan"
+      "cycleLocalization": "Ganti baris tambahan",
+      "searchAnyway": "Tetap cari"
     },
     "localization": {
       "off": "Tanpa baris tambahan",
@@ -1395,7 +1396,8 @@
     "toast": {
       "tagWriteSkipped": "TTML disimpan di cache saja (tidak ditulis ke tag audio)",
       "sidecarWriteSkipped": "Lirik disimpan ke database, tetapi TTML tidak dapat disimpan dalam berkas sidecar .lrc/.txt."
-    }
+    },
+    "excludedGenre": "Lirik tidak dicari secara online untuk genre {{genre}} (Pengaturan → Gambar dan lirik). Kamu bisa mengimpor berkas .lrc atau tetap mencari."
   },
   "duplicates": {
     "title": "Duplikat terdeteksi",

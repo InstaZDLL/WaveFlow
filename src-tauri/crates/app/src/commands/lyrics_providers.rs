@@ -188,11 +188,32 @@ pub fn any_genre_excluded<'a>(
         .any(|g| patterns.iter().any(|p| genre_matches(g, p)))
 }
 
+/// The first of `genres` that matches one of `patterns`, as the track
+/// spells it — what the lyrics panel names when it explains why nothing
+/// was searched.
+pub fn first_excluded_genre<'a>(
+    genres: impl IntoIterator<Item = &'a str>,
+    patterns: &[String],
+) -> Option<&'a str> {
+    genres
+        .into_iter()
+        .find(|g| patterns.iter().any(|p| genre_matches(g, p)))
+}
+
 /// Whether this track's online lyrics search is skipped for its genre.
 pub async fn track_is_excluded(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<bool> {
+    Ok(excluded_genre_of(pool, track_id).await?.is_some())
+}
+
+/// The genre that keeps this track out of the online lyrics search, if
+/// one does.
+pub async fn excluded_genre_of(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+) -> AppResult<Option<String>> {
     let patterns = excluded_genres(pool).await?;
     if patterns.is_empty() {
-        return Ok(false);
+        return Ok(None);
     }
     let genres: Vec<String> = sqlx::query_scalar(
         "SELECT g.name
@@ -203,10 +224,7 @@ pub async fn track_is_excluded(pool: &sqlx::SqlitePool, track_id: i64) -> AppRes
     .bind(track_id)
     .fetch_all(pool)
     .await?;
-    Ok(any_genre_excluded(
-        genres.iter().map(String::as_str),
-        &patterns,
-    ))
+    Ok(first_excluded_genre(genres.iter().map(String::as_str), &patterns).map(str::to_owned))
 }
 
 /// How long a provider that could not be reached is left out of the
@@ -290,6 +308,18 @@ pub fn is_cooling_down(provider: Provider) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The panel names the genre the way the track carries it, not the
+    /// pattern it matched: "Lo-Fi Hip Hop", not "lo-fi".
+    #[test]
+    fn the_excluded_genre_is_named_as_tagged() {
+        let defaults: Vec<String> = excluded_from(None);
+        assert_eq!(
+            first_excluded_genre(["Jazz", "Lo-Fi Hip Hop"], &defaults),
+            Some("Lo-Fi Hip Hop")
+        );
+        assert_eq!(first_excluded_genre(["Jazz", "Trap"], &defaults), None);
+    }
 
     #[test]
     fn the_default_genres_catch_their_variants() {

@@ -14,6 +14,7 @@ import {
   findActiveLineIndex,
   findActiveWordIndex,
   importLrcFile,
+  lyricsExcludedGenre,
   parseLyrics,
   refetchLyrics,
   type LyricsLine,
@@ -45,6 +46,10 @@ export interface TrackLyrics {
   payload: LyricsPayload | null;
   isFetching: boolean;
   error: string | null;
+  /** When the lookup came back empty because the track's genre is
+   *  excluded from the online search (#721): that genre, as tagged. The
+   *  panels then say nothing was searched, not that nothing was found. */
+  excludedGenre: string | null;
   /** Parsed lines (empty when plain / no payload). */
   lrcLines: LyricsLine[];
   /** True only for non-radio synced LRC — drives the karaoke highlight. */
@@ -83,6 +88,13 @@ export function useTrackLyrics(): TrackLyrics {
   const [payload, setPayload] = useState<LyricsPayload | null>(null);
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [excludedGenre, setExcludedGenre] = useState<string | null>(null);
+  // Bumped by a refetch. The automatic fetch reads it when it starts and
+  // drops its answer if a refetch began in the meantime: otherwise a
+  // fetch that started first but finished last would overwrite the
+  // refetch's lyrics, or put back an excluded-genre message the refetch
+  // has just made untrue. `cancelled` only covers a track change.
+  const fetchGenerationRef = useRef(0);
 
   const trackId = currentTrack?.id ?? null;
 
@@ -130,6 +142,7 @@ export function useTrackLyrics(): TrackLyrics {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setPayload(null);
       setError(null);
+      setExcludedGenre(null);
       // Clear the spinner too — without this a fetch in flight when the
       // track drops to null leaves `isFetching` stuck true.
       setIsFetching(false);
@@ -152,6 +165,9 @@ export function useTrackLyrics(): TrackLyrics {
     }
     setIsFetching(true);
     setError(null);
+    setExcludedGenre(null);
+    const generation = fetchGenerationRef.current;
+    const stale = () => cancelled || generation !== fetchGenerationRef.current;
     // Radio: query by artist + title (no library row). A radio session
     // with no parsed song yet (favicon-only, pre-ICY) has nothing to
     // search — resolve to null so the consumer shows "not found" instead
@@ -181,16 +197,29 @@ export function useTrackLyrics(): TrackLyrics {
         : fetchLyrics(trackId);
     request
       .then((p) => {
-        if (cancelled) return;
+        if (stale()) return;
         setPayload(p);
+        // An empty answer for a library track may mean "not searched":
+        // ask why before the panel says "not found". A failure here only
+        // leaves the generic message.
+        if (!isStream && (p == null || p.content.trim() === "")) {
+          lyricsExcludedGenre(trackId)
+            .then((genre) => {
+              if (!stale()) setExcludedGenre(genre);
+            })
+            .catch((err) =>
+              console.error("[useTrackLyrics] excluded genre failed", err),
+            );
+        }
       })
       .catch((err) => {
-        if (cancelled) return;
+        if (stale()) return;
         console.error("[useTrackLyrics] fetch failed", err);
         setError(String(err));
       })
       .finally(() => {
-        if (!cancelled) setIsFetching(false);
+        // A refetch that started meanwhile owns the spinner now.
+        if (!stale()) setIsFetching(false);
       });
     return () => {
       cancelled = true;
@@ -321,10 +350,14 @@ export function useTrackLyrics(): TrackLyrics {
         // — the path the user takes when the auto-fetch cached a
         // low-quality hit and they want a different source (issue #284).
         setIsFetching(true);
+        fetchGenerationRef.current += 1;
         const next = await refetchLyrics(requestedTrackId, provider);
         if (requestedTrackId !== trackIdRef.current) return;
         setPayload(next);
         setError(null);
+        // A refetch searches whatever the genre, so an empty answer now
+        // really is "not found".
+        setExcludedGenre(null);
       } catch (err) {
         console.error("[useTrackLyrics] refetch failed", err);
         // Don't surface an error for a track the user no longer cares
@@ -378,6 +411,7 @@ export function useTrackLyrics(): TrackLyrics {
     payload,
     isFetching,
     error,
+    excludedGenre,
     lrcLines,
     isSynced,
     radioPlainText,

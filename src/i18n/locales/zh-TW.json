@@ -1365,7 +1365,8 @@
       "clear": "刪除歌詞",
       "fullscreen": "全螢幕",
       "edit": "編輯歌詞",
-      "cycleLocalization": "切換附加行"
+      "cycleLocalization": "切換附加行",
+      "searchAnyway": "仍然搜尋"
     },
     "localization": {
       "off": "不顯示附加行",
@@ -1395,7 +1396,8 @@
     "toast": {
       "tagWriteSkipped": "TTML 僅保留在快取中（未寫入音訊標籤）",
       "sidecarWriteSkipped": "歌詞已儲存至資料庫，但 TTML 無法寫入 .lrc/.txt 外部檔案。"
-    }
+    },
+    "excludedGenre": "不會在線上搜尋 {{genre}} 曲風的歌詞（設定 → 圖片與歌詞）。你可以匯入 .lrc 檔案，或仍然搜尋。"
   },
   "duplicates": {
     "title": "偵測到重複檔案",
