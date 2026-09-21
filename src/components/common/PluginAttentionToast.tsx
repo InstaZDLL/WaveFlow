@@ -32,8 +32,8 @@ export function PluginAttentionToast() {
   // A queue, not a slot: two plugins can be refused at once (a cookie and
   // a token expiring the same week), and each is announced only once per
   // launch — a second notice overwriting the first would lose it for good.
-  const [queue, setQueue] = useState<string[]>([]);
-  const notice = queue.length > 0 ? { name: queue[0] } : null;
+  const [queue, setQueue] = useState<{ pluginId: string; name: string }[]>([]);
+  const notice = queue.length > 0 ? queue[0] : null;
   const dismiss = () => setQueue((prev) => prev.slice(1));
 
   useEffect(() => {
@@ -51,7 +51,8 @@ export function PluginAttentionToast() {
         .then((plugins) => plugins.find((p) => p.id === pluginId)?.name)
         .catch(() => undefined)
         .then((name) => {
-          if (!cancelled) setQueue((prev) => [...prev, name ?? pluginId]);
+          if (!cancelled)
+            setQueue((prev) => [...prev, { pluginId, name: name ?? pluginId }]);
         });
     };
     listen<AttentionPayload>("plugin:attention", (event) => {
@@ -83,7 +84,9 @@ export function PluginAttentionToast() {
   // reaches the head, however long it waited behind another.
   // Keyed on the head alone: a notice queued behind the one on screen must
   // not restart its countdown.
-  const head = queue[0];
+  // By id, not name: two plugins can share a display name, and a head
+  // that compares equal would never get a timer of its own.
+  const head = queue[0]?.pluginId;
   useEffect(() => {
     if (head == null) return;
     const timer = window.setTimeout(
