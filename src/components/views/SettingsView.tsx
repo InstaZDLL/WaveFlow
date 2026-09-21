@@ -172,6 +172,8 @@ import { CacheLocationCard } from "./settings/CacheLocationCard";
 import { ClipsInLibraryCard } from "./settings/ClipsInLibraryCard";
 import { MediaCachesCard } from "./settings/MediaCachesCard";
 import { FullscreenLyricsCenteringCard } from "./settings/FullscreenLyricsCenteringCard";
+import { LyricsProvidersCard } from "./settings/LyricsProvidersCard";
+import { LyricsExcludedGenresCard } from "./settings/LyricsExcludedGenresCard";
 import { ImmersiveViewCard } from "./settings/ImmersiveViewCard";
 import { CoverSlideshowCard } from "./settings/CoverSlideshowCard";
 import { ArtistHeroCard } from "./settings/ArtistHeroCard";
@@ -3288,6 +3290,8 @@ export function SettingsView({
                     label={t("settings.lyricsPreferLrclib.title")}
                   />
                 </div>
+                <LyricsProvidersCard />
+                <LyricsExcludedGenresCard />
                 <FullscreenLyricsCenteringCard />
               </SettingsGroup>
             </section>

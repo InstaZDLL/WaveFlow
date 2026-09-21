@@ -27,6 +27,7 @@ pub mod library_media;
 #[cfg(feature = "sync_v2")]
 pub mod loopback;
 pub mod lyrics;
+pub mod lyrics_providers;
 pub mod maintenance;
 pub mod media_file;
 pub mod mood_radio;

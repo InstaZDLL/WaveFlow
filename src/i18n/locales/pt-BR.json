@@ -2221,6 +2221,21 @@
       "title": "Preferir o LRCLIB às letras incorporadas",
       "subtitle": "Busca as letras online primeiro; recorre às do arquivo se não encontrar nenhuma"
     },
+    "lyricsProviders": {
+      "title": "Provedores de letras online",
+      "subtitle": "Um provedor desmarcado deixa de ser consultado automaticamente. As letras que ele já forneceu continuam em cache: “Buscar novamente” no painel de letras as substitui.",
+      "alwaysOn": "sempre ativo",
+      "geniusNote": "sem marcações de tempo, e raramente responde sem um cookie de sessão"
+    },
+    "lyricsExcludedGenres": {
+      "title": "Gêneros excluídos da busca online",
+      "subtitle": "As faixas desses gêneros não são buscadas online; as letras no arquivo ou em um .lrc ao lado continuam sendo lidas, e “Buscar novamente” busca mesmo assim. Cada gênero cobre suas variantes (Lo-fi cobre Lofi e lo-fi hip hop).",
+      "empty": "Nenhum gênero excluído: todas as faixas são buscadas online.",
+      "remove": "Remover {{genre}}",
+      "placeholder": "Adicionar um gênero…",
+      "add": "Adicionar",
+      "reset": "Restaurar os gêneros padrão"
+    },
     "lyricsDestination": {
       "title": "Destino das letras salvas",
       "subtitle": "Para onde vão as letras no disco: as que você digita e as que o WaveFlow baixa. Você pode substituir isso em cada edição no rodapé do editor."

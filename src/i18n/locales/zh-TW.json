@@ -2218,6 +2218,21 @@
       "title": "優先使用 LRCLIB 而非內嵌歌詞",
       "subtitle": "先在線上查找歌詞；若找不到則改用檔案內建的歌詞"
     },
+    "lyricsProviders": {
+      "title": "線上歌詞來源",
+      "subtitle": "取消勾選的來源將不再被自動查詢。它已提供的歌詞仍保留在快取中：歌詞面板中的「重新搜尋」可取代它們。",
+      "alwaysOn": "永遠開啟",
+      "geniusNote": "沒有時間軸，且沒有工作階段 Cookie 時很少回應"
+    },
+    "lyricsExcludedGenres": {
+      "title": "不參與線上搜尋的曲風",
+      "subtitle": "這些曲風的曲目不會線上搜尋；檔案內或旁邊 .lrc 中的歌詞仍會讀取，「重新搜尋」也仍會搜尋。每個曲風涵蓋其變體寫法（Lo-fi 涵蓋 Lofi 與 lo-fi hip hop）。",
+      "empty": "沒有排除的曲風：每首曲目都會線上搜尋。",
+      "remove": "移除 {{genre}}",
+      "placeholder": "新增曲風…",
+      "add": "新增",
+      "reset": "還原預設曲風"
+    },
     "lyricsDestination": {
       "title": "已儲存歌詞的位置",
       "subtitle": "歌詞儲存到磁碟的位置：你輸入的歌詞和 WaveFlow 取得的歌詞都適用。你可以在編輯器底部針對每次編輯覆寫此設定。"

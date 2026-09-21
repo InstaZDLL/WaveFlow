@@ -2218,6 +2218,21 @@
       "title": "Gömülü sözler yerine LRCLIB'i tercih et",
       "subtitle": "Sözleri önce çevrimiçi arar; bulunamazsa dosyadaki sözlere geri döner"
     },
+    "lyricsProviders": {
+      "title": "Çevrimiçi şarkı sözü sağlayıcıları",
+      "subtitle": "İşareti kaldırılan bir sağlayıcıya artık otomatik olarak sorulmaz. Daha önce sağladığı şarkı sözleri önbellekte kalır: şarkı sözü panelindeki “Tekrar ara” bunları değiştirir.",
+      "alwaysOn": "her zaman açık",
+      "geniusNote": "zaman damgası yok ve oturum çerezi olmadan nadiren yanıt verir"
+    },
+    "lyricsExcludedGenres": {
+      "title": "Çevrimiçi aramadan çıkarılan türler",
+      "subtitle": "Bu türlerdeki parçalar çevrimiçi aranmaz; dosyadaki veya yanındaki bir .lrc dosyasındaki sözler yine okunur ve “Tekrar ara” yine de arar. Her tür kendi varyantlarını kapsar (Lo-fi, Lofi ve lo-fi hip hop'u kapsar).",
+      "empty": "Hiçbir tür çıkarılmadı: her parça çevrimiçi aranır.",
+      "remove": "{{genre}} türünü kaldır",
+      "placeholder": "Tür ekle…",
+      "add": "Ekle",
+      "reset": "Varsayılan türleri geri yükle"
+    },
     "lyricsDestination": {
       "title": "Kayıtlı şarkı sözü hedefi",
       "subtitle": "Şarkı sözlerinin diskte nereye kaydedileceği: hem senin yazdıkların hem de WaveFlow'un indirdikleri. Bunu her düzenlemede değiştirebilirsin."

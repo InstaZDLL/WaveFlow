@@ -19,6 +19,38 @@ pub enum Error {
     Json(#[from] serde_json::Error),
     #[error("provider failed: {0}")]
     Provider(String),
+    /// A request that could not reach the provider or was refused by it,
+    /// already reduced to a message that carries no credential. What
+    /// `Http` is for a provider whose URLs hold a token and so cannot
+    /// keep the `reqwest::Error` itself.
+    #[error("provider unreachable: {0}")]
+    Transport(String),
+}
+
+impl Error {
+    /// Whether the provider itself could not be reached or refused us —
+    /// a connect timeout, a 403, a 5xx — as opposed to a response that
+    /// arrived but could not be read. Only the first kind says anything
+    /// about the provider's health; a page that fails to parse, or a body
+    /// that breaks off after the status line, is about that one query.
+    pub fn is_transport(&self) -> bool {
+        match self {
+            Error::Http(err) => !err.is_decode() && !err.is_body(),
+            Error::Transport(_) => true,
+            _ => false,
+        }
+    }
+
+    /// The same error with the request URL dropped. `reqwest::Error`
+    /// echoes the URL in both `Display` and `Debug`, and Musixmatch URLs
+    /// carry `usertoken=` as a query parameter, so an error that is ever
+    /// handed back to a caller who may log it goes through here first.
+    fn redacted(self) -> Self {
+        match self {
+            Error::Http(err) => Error::Http(err.without_url()),
+            other => other,
+        }
+    }
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -60,6 +92,48 @@ pub struct LyricsResult {
     pub content: String,
     pub format: LyricsFormat,
     pub provider: Provider,
+}
+
+/// A provider that failed to answer, and why.
+#[derive(Debug)]
+pub struct ProviderFailure {
+    pub provider: Provider,
+    /// Already stripped of the request URL — safe to log.
+    pub error: Error,
+}
+
+/// Everything one [`SyncedLyricsClient::search`] learned.
+///
+/// A search is not a yes/no question once several providers are asked:
+/// some may answer and others fail. The three cases callers have to tell
+/// apart are all readable from here:
+///
+/// - **found** — `result` is `Some`;
+/// - **miss** — `result` is `None` and at least one provider answered.
+///   When `failures` is empty everyone answered and the miss is complete;
+///   otherwise it is *partial*: the providers that answered had nothing,
+///   and the failed ones were never heard;
+/// - **no verdict** — nobody answered at all, only failures (or nothing
+///   was asked).
+///
+/// One failing provider used to turn the whole search into an error,
+/// discarding the answers of every other one. With a provider that is down
+/// for good — a host that no longer accepts connections, an endpoint that
+/// needs a cookie no install has — that meant the search could never
+/// conclude for any track the others did not know.
+#[derive(Debug, Default)]
+pub struct SearchReport {
+    pub result: Option<LyricsResult>,
+    /// Providers that returned a response, with or without lyrics.
+    pub answered: Vec<Provider>,
+    pub failures: Vec<ProviderFailure>,
+}
+
+impl SearchReport {
+    /// At least one provider answered, so a `None` result is a real miss.
+    pub fn has_verdict(&self) -> bool {
+        self.result.is_some() || !self.answered.is_empty()
+    }
 }
 
 #[derive(Default)]
@@ -122,10 +196,10 @@ impl SyncedLyricsClient {
         Ok(Self { http })
     }
 
-    pub async fn search(&self, options: SearchOptions) -> Result<Option<LyricsResult>> {
+    pub async fn search(&self, options: SearchOptions) -> SearchReport {
         let mut aggregate = Candidate::default();
         let mut last_provider = None;
-        let mut last_error = None;
+        let mut report = SearchReport::default();
 
         for provider in options.providers.iter().copied() {
             if options.lang.is_some() && provider != Provider::Musixmatch {
@@ -157,19 +231,19 @@ impl SyncedLyricsClient {
             };
 
             let Some(candidate) = (match candidate {
-                Ok(value) => value,
+                Ok(value) => {
+                    report.answered.push(provider);
+                    value
+                }
                 Err(err) => {
-                    // Sanitize the error message before tracing —
-                    // `reqwest::Error`'s Debug impl echoes the request
-                    // URL, and Musixmatch URLs carry `usertoken=` as a
-                    // query parameter. Without this, a failed
-                    // Musixmatch request would leak the token into the
-                    // rolling log file. We log a static message and
-                    // the provider variant; the underlying error
-                    // chain is preserved through `last_error` for the
-                    // structured return path.
+                    // Redacted before it leaves this function: the
+                    // request URL is dropped, because Musixmatch URLs
+                    // carry `usertoken=` and the caller logs failures.
                     tracing::debug!(?provider, "lyrics provider failed");
-                    last_error = Some(err);
+                    report.failures.push(ProviderFailure {
+                        provider,
+                        error: err.redacted(),
+                    });
                     None
                 }
             }) else {
@@ -191,23 +265,44 @@ impl SyncedLyricsClient {
             }
         }
 
-        if !aggregate.acceptable(options.mode) {
-            // Distinguish "every provider genuinely had nothing" (Ok(None),
-            // safe to cache as a miss) from "we never reached a verdict
-            // because a provider errored" (propagate so the caller doesn't
-            // poison the cache with an empty entry on a transient failure).
-            return match last_error {
-                Some(err) => Err(err),
-                None => Ok(None),
-            };
+        if aggregate.acceptable(options.mode) {
+            report.result =
+                aggregate.into_result(options.mode, last_provider.unwrap_or(Provider::Lrclib));
         }
-        Ok(aggregate.into_result(options.mode, last_provider.unwrap_or(Provider::Lrclib)))
+        report
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_an_unreachable_provider_counts_as_transport() {
+        assert!(Error::Transport("connect timeout".into()).is_transport());
+        assert!(!Error::Provider("stub page".into()).is_transport());
+        let json = serde_json::from_str::<serde_json::Value>("{").unwrap_err();
+        assert!(!Error::Json(json).is_transport());
+    }
+
+    #[test]
+    fn a_miss_is_a_verdict_only_when_someone_answered() {
+        let nobody = SearchReport {
+            failures: vec![ProviderFailure {
+                provider: Provider::Megalobiz,
+                error: Error::Transport("connect timeout".into()),
+            }],
+            ..SearchReport::default()
+        };
+        assert!(!nobody.has_verdict());
+
+        let partial = SearchReport {
+            answered: vec![Provider::Lrclib],
+            ..nobody
+        };
+        assert!(partial.has_verdict());
+        assert!(!partial.failures.is_empty());
+    }
 
     #[test]
     fn detects_enhanced_lrc() {

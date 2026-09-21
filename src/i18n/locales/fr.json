@@ -1971,6 +1971,21 @@
       "title": "Privilégier LRCLIB aux paroles intégrées",
       "subtitle": "Cherche les paroles en ligne d'abord ; se rabat sur celles du fichier si aucune n'est trouvée"
     },
+    "lyricsProviders": {
+      "title": "Fournisseurs de paroles en ligne",
+      "subtitle": "Un fournisseur décoché n'est plus interrogé automatiquement. Les paroles qu'il a déjà fournies restent en cache : « Relancer la recherche » dans le panneau des paroles les remplace.",
+      "alwaysOn": "toujours actif",
+      "geniusNote": "sans horodatage, et répond rarement sans cookie de session"
+    },
+    "lyricsExcludedGenres": {
+      "title": "Genres exclus de la recherche en ligne",
+      "subtitle": "Les morceaux de ces genres ne sont pas recherchés en ligne ; les paroles du fichier ou d'un .lrc voisin restent lues, et « Relancer la recherche » cherche quand même. Chaque genre couvre ses variantes (Lo-fi couvre Lofi et lo-fi hip hop).",
+      "empty": "Aucun genre exclu : chaque morceau est recherché en ligne.",
+      "remove": "Retirer {{genre}}",
+      "placeholder": "Ajouter un genre…",
+      "add": "Ajouter",
+      "reset": "Rétablir les genres par défaut"
+    },
     "regenerateThumbnails": "Régénérer les vignettes",
     "regenerateThumbnailsSubtitle": "Reconstruire les variantes 1x/2x manquantes pour toutes les pochettes",
     "regenerateThumbnailsAction": "Régénérer",

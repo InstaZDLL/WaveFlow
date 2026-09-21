@@ -2218,6 +2218,21 @@
       "title": "LRCLIB gegenüber eingebetteten Texten bevorzugen",
       "subtitle": "Sucht Songtexte zuerst online; greift auf die in der Datei gespeicherten zurück, wenn keine gefunden werden"
     },
+    "lyricsProviders": {
+      "title": "Online-Songtextanbieter",
+      "subtitle": "Ein abgewählter Anbieter wird nicht mehr automatisch abgefragt. Bereits gelieferte Songtexte bleiben im Cache: „Erneut suchen“ im Songtextbereich ersetzt sie.",
+      "alwaysOn": "immer aktiv",
+      "geniusNote": "ohne Zeitstempel, und antwortet ohne Sitzungs-Cookie selten"
+    },
+    "lyricsExcludedGenres": {
+      "title": "Von der Online-Suche ausgeschlossene Genres",
+      "subtitle": "Titel dieser Genres werden nicht online gesucht; Songtexte in der Datei oder in einer .lrc daneben werden weiterhin gelesen, und „Erneut suchen“ sucht trotzdem. Jedes Genre deckt seine Varianten ab (Lo-fi deckt Lofi und lo-fi hip hop ab).",
+      "empty": "Kein Genre ausgeschlossen: Jeder Titel wird online gesucht.",
+      "remove": "{{genre}} entfernen",
+      "placeholder": "Genre hinzufügen…",
+      "add": "Hinzufügen",
+      "reset": "Standardgenres wiederherstellen"
+    },
     "lyricsDestination": {
       "title": "Speicherort für Liedtexte",
       "subtitle": "Wo Liedtexte auf der Festplatte landen — die, die du schreibst, und die, die WaveFlow abruft. Den Speicherort kannst du bei jeder Bearbeitung einzeln festlegen."

@@ -2218,6 +2218,21 @@
       "title": "优先使用 LRCLIB 而非内嵌歌词",
       "subtitle": "先在线查找歌词；若未找到则回退到文件自带的歌词"
     },
+    "lyricsProviders": {
+      "title": "在线歌词来源",
+      "subtitle": "取消勾选的来源将不再被自动查询。它已提供的歌词仍保留在缓存中：歌词面板中的“重新开始搜索”可替换它们。",
+      "alwaysOn": "始终开启",
+      "geniusNote": "没有时间轴，且没有会话 Cookie 时很少响应"
+    },
+    "lyricsExcludedGenres": {
+      "title": "不参与在线搜索的流派",
+      "subtitle": "这些流派的曲目不会在线搜索；文件内或旁边 .lrc 中的歌词仍会读取，“重新开始搜索”也仍会搜索。每个流派涵盖其变体写法（Lo-fi 涵盖 Lofi 和 lo-fi hip hop）。",
+      "empty": "没有排除的流派：每首曲目都会在线搜索。",
+      "remove": "移除 {{genre}}",
+      "placeholder": "添加流派…",
+      "add": "添加",
+      "reset": "恢复默认流派"
+    },
     "lyricsDestination": {
       "title": "已保存歌词的位置",
       "subtitle": "歌词保存到磁盘的位置：你输入的歌词和 WaveFlow 获取的歌词都适用。可以在每次编辑时覆盖。"

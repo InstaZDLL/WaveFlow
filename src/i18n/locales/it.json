@@ -2221,6 +2221,21 @@
       "title": "Preferisci LRCLIB ai testi incorporati",
       "subtitle": "Cerca prima i testi online; usa quelli del file se non ne trova nessuno"
     },
+    "lyricsProviders": {
+      "title": "Fornitori di testi online",
+      "subtitle": "Un fornitore deselezionato non viene più interrogato automaticamente. I testi che ha già fornito restano in cache: «Cerca di nuovo» nel pannello dei testi li sostituisce.",
+      "alwaysOn": "sempre attivo",
+      "geniusNote": "senza marcature temporali, e raramente risponde senza un cookie di sessione"
+    },
+    "lyricsExcludedGenres": {
+      "title": "Generi esclusi dalla ricerca online",
+      "subtitle": "I brani di questi generi non vengono cercati online; i testi nel file o in un .lrc accanto vengono comunque letti, e «Cerca di nuovo» cerca comunque. Ogni genere copre le sue varianti (Lo-fi copre Lofi e lo-fi hip hop).",
+      "empty": "Nessun genere escluso: ogni brano viene cercato online.",
+      "remove": "Rimuovi {{genre}}",
+      "placeholder": "Aggiungi un genere…",
+      "add": "Aggiungi",
+      "reset": "Ripristina i generi predefiniti"
+    },
     "lyricsDestination": {
       "title": "Destinazione dei testi salvati",
       "subtitle": "Dove finiscono i testi sul disco: quelli che scrivi e quelli che WaveFlow scarica. Puoi sovrascrivere a ogni modifica."
