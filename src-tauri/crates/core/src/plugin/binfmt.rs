@@ -4,10 +4,18 @@
 //! different formats that share the same four magic bytes, so a core
 //! module looks like a plugin right up until wasmtime refuses it —
 //! and what it says then ("failed to parse WebAssembly module") reads
-//! like a corrupt file rather than the wrong format. That happens for
-//! one mundane reason: `cargo build` where `cargo component build`
-//! was meant. It happened to two published WaveFlow plugins, and
-//! nothing in the app said so.
+//! like a corrupt file rather than the wrong format.
+//!
+//! It happened to two published WaveFlow plugins, and the reason is
+//! worth recording because it is not the obvious one. Their release
+//! workflow ran `cargo component build` correctly and then packaged
+//! the wrong output: `cargo component` leaves rustc's intermediate
+//! core modules in the same `target/<triple>/release/` tree as the
+//! component it produces, all with the same extension, and the
+//! packaging step picked one with `find … | head -n1`. A compiler
+//! bump reshuffled the filenames in `deps/` and the pick changed. So
+//! the mistake to look for is **what was published**, not how it was
+//! built.
 //!
 //! Eight bytes are enough to tell them apart, which means the answer
 //! is available at install time, before anything is written to disk,
@@ -39,17 +47,22 @@ pub enum WasmBinaryKind {
 impl WasmBinaryKind {
     /// What the person holding this file can actually do about it.
     ///
-    /// Only a core module is a build-command mistake. Telling someone
-    /// whose download landed as an HTML error page to rebuild with
+    /// The advice has to fit the mistake. Telling someone whose
+    /// download landed as an HTML error page to rebuild with
     /// `cargo component build` sends them to look at something that
-    /// was never wrong — one wrong-format story does not explain
-    /// every wrong format.
+    /// was never wrong — and so does telling that to someone whose
+    /// build was fine and whose packaging step picked the wrong file,
+    /// which is what actually happened to the two plugins this module
+    /// exists for. So the core-module hint leads with the artifact and
+    /// keeps the command only as the thing that produces the right
+    /// one — a plain `cargo build` is still a way to get here.
     pub fn load_hint(self) -> &'static str {
         match self {
             Self::Component => "the host loads this format",
             Self::CoreModule => {
-                "a plugin must be built with `cargo component build`; a plain `cargo build` \
-                 produces a core module the host cannot load"
+                "what was published is not the component `cargo component build` writes: \
+                 check the packaging step, since rustc's intermediate modules under \
+                 `target/<triple>/release/deps/` share the extension and are easy to pick up by mistake"
             }
             Self::UnknownEncoding { .. } => {
                 "the host cannot load this encoding; the plugin may need a newer WaveFlow, \

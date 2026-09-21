@@ -36,7 +36,9 @@ UI: [`PluginStoreCard`](../../src/components/views/settings/PluginStoreCard.tsx)
 
 A plugin that fails to load used to be **more silent than one that was not installed at all**: its row in Settings looked exactly like a working plugin's, the feature it provided simply did nothing, and the only trace was a `warn!` line in a log file. Two published plugins shipped that way for a release cycle.
 
-The cause was mundane. The host runs WebAssembly **components**; `cargo build` produces a core **module**, which is valid wasm in the wrong format. The two share the same four magic bytes and differ at bytes 4..8 — `01 00 00 00` for a module, `0d 00 01 00` for a component ([`plugin::binfmt`](../../src-tauri/crates/core/src/plugin/binfmt.rs)). Build a plugin with the wrong command and everything up to the moment of loading succeeds.
+The host runs WebAssembly **components**; a core **module** is valid wasm in the wrong format. The two share the same four magic bytes and differ at bytes 4..8 — `01 00 00 00` for a module, `0d 00 01 00` for a component ([`plugin::binfmt`](../../src-tauri/crates/core/src/plugin/binfmt.rs)). Ship the module and everything up to the moment of loading succeeds.
+
+The cause is worth recording, because it is not the obvious one. Those plugins' release workflow ran `cargo component build` correctly and then packaged the wrong output: `cargo component` leaves rustc's intermediate core modules in the same `target/<triple>/release/` tree as the component, all with the same extension, and the packaging step chose between them with `find … | head -n1`. A compiler bump reshuffled the filenames under `deps/` and the pick changed — with no commit in the plugin to point at. **The mistake to look for is what was published, not how it was built**, which is why the message asks what was published before it mentions the build command.
 
 Three things now stop that being invisible:
 
