@@ -28,7 +28,12 @@ interface AttentionPayload {
  */
 export function PluginAttentionToast() {
   const { t } = useTranslation();
-  const [notice, setNotice] = useState<{ name: string } | null>(null);
+  // A queue, not a slot: two plugins can be refused at once (a cookie and
+  // a token expiring the same week), and each is announced only once per
+  // launch — a second notice overwriting the first would lose it for good.
+  const [queue, setQueue] = useState<string[]>([]);
+  const notice = queue.length > 0 ? { name: queue[0] } : null;
+  const dismiss = () => setQueue((prev) => prev.slice(1));
 
   useEffect(() => {
     let cancelled = false;
@@ -42,7 +47,7 @@ export function PluginAttentionToast() {
         .then((plugins) => plugins.find((p) => p.id === pluginId)?.name)
         .catch(() => undefined)
         .then((name) => {
-          if (!cancelled) setNotice({ name: name ?? pluginId });
+          if (!cancelled) setQueue((prev) => [...prev, name ?? pluginId]);
         });
     })
       .then((off) => {
@@ -58,11 +63,16 @@ export function PluginAttentionToast() {
     };
   }, []);
 
+  // Keyed on the queue itself, so each notice gets its full time once it
+  // reaches the head, however long it waited behind another.
   useEffect(() => {
-    if (notice == null) return;
-    const timer = window.setTimeout(() => setNotice(null), AUTO_HIDE_MS);
+    if (queue.length === 0) return;
+    const timer = window.setTimeout(
+      () => setQueue((prev) => prev.slice(1)),
+      AUTO_HIDE_MS,
+    );
     return () => window.clearTimeout(timer);
-  }, [notice]);
+  }, [queue]);
 
   if (notice == null) return null;
 
@@ -88,7 +98,7 @@ export function PluginAttentionToast() {
         </div>
         <button
           type="button"
-          onClick={() => setNotice(null)}
+          onClick={dismiss}
           aria-label={t("settings.plugins.attention.dismiss")}
           className="shrink-0 p-1 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition-colors"
         >
