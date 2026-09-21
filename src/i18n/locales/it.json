@@ -1643,7 +1643,8 @@
       "worlds": {
         "source": "Sorgente",
         "metadata": "Metadati",
-        "ui": "Interfaccia"
+        "ui": "Interfaccia",
+        "canvas": "Canvas"
       },
       "permissions": {
         "http": "HTTP ({{count}})",

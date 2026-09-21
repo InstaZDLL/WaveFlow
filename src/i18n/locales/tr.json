@@ -1640,7 +1640,8 @@
       "worlds": {
         "source": "Kaynak",
         "metadata": "Üst veri",
-        "ui": "Arayüz"
+        "ui": "Arayüz",
+        "canvas": "Canvas"
       },
       "permissions": {
         "http": "HTTP ({{count}})",

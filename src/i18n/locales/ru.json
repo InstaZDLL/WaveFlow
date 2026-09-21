@@ -1742,7 +1742,8 @@
       "worlds": {
         "source": "Источник",
         "metadata": "Метаданные",
-        "ui": "Интерфейс"
+        "ui": "Интерфейс",
+        "canvas": "Canvas"
       },
       "permissions": {
         "http": "HTTP ({{count}})",

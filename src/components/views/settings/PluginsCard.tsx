@@ -335,16 +335,22 @@ export function PluginsCard() {
   );
 }
 
+/** WIT world prefix → the `settings.plugins.worlds.*` key naming the
+ *  role it plays. The prefixes are disjoint, so order does not matter.
+ *  A world with no entry falls back to its raw WIT label — which is
+ *  how `waveflow:canvas/v1` reached the screen as `WAVEFLOW:CANVAS/V1`
+ *  for as long as the Canvas world has existed. */
+const WORLD_LABEL_KEYS: [string, string][] = [
+  ["waveflow:source", "source"],
+  ["waveflow:metadata", "metadata"],
+  ["waveflow:ui", "ui"],
+  ["waveflow:canvas", "canvas"],
+];
+
 function WorldBadge({ world }: { world: string }) {
   const { t } = useTranslation();
-  // Map the WIT world label to a short user-facing role.
-  const label = world.startsWith("waveflow:source")
-    ? t("settings.plugins.worlds.source")
-    : world.startsWith("waveflow:metadata")
-      ? t("settings.plugins.worlds.metadata")
-      : world.startsWith("waveflow:ui")
-        ? t("settings.plugins.worlds.ui")
-        : world;
+  const entry = WORLD_LABEL_KEYS.find(([prefix]) => world.startsWith(prefix));
+  const label = entry ? t(`settings.plugins.worlds.${entry[1]}`) : world;
   return (
     <span className="text-[10px] uppercase tracking-wide font-medium px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
       {label}
@@ -389,7 +395,7 @@ function BrokenReason({ failure }: { failure: PluginFailure }) {
   return (
     <p className="mt-1 text-xs leading-relaxed text-amber-700 dark:text-amber-400">
       {reason}{" "}
-      <span className="text-zinc-500 dark:text-zinc-400 break-all">
+      <span className="text-zinc-500 dark:text-zinc-400 break-words">
         {failure.detail}
       </span>
     </p>
