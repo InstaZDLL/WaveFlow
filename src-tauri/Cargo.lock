@@ -7914,6 +7914,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "waveflow-native"
+version = "1.7.0"
+dependencies = [
+ "alsa",
+ "blake3",
+ "chrono",
+ "cpal",
+ "crossbeam-channel",
+ "dirs 7.0.0",
+ "image",
+ "libc",
+ "realfft",
+ "reqwest 0.12.28",
+ "rtrb",
+ "rubato",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "sqlx",
+ "symphonia",
+ "tempfile",
+ "thiserror 2.0.20",
+ "tiny_http",
+ "tokio",
+ "tracing",
+ "url",
+ "uuid 1.26.1",
+ "waveflow-core",
+ "zbus",
+]
+
+[[package]]
 name = "waveflow-plugin-sdk"
 version = "0.1.0"
 dependencies = [

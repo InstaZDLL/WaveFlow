@@ -17,10 +17,10 @@ use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
+use crate::host::{AppHandle, Emitter, Manager};
 use crossbeam_channel::{Receiver, TryRecvError};
 use rtrb::{chunks::ChunkError, CopyToUninit, Producer};
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, Manager};
 
 use tokio::sync::mpsc::UnboundedSender;
 use waveflow_core::audio_format::dsd::parser::{parse_dff, parse_dsf};
@@ -206,12 +206,7 @@ pub(super) fn transition_state(
     // transient that would render as `Stopped` on the overlay and
     // flash the controls off for ~50 ms before Playing arrives.
     if !matches!(state, PlayerState::Loading) {
-        if let Some(controls) = app.try_state::<crate::media_controls::MediaControlsHandle>() {
-            controls.update_playback(state, shared.current_position_ms());
-        }
-        if let Some(presence) = app.try_state::<crate::discord_presence::DiscordPresenceHandle>() {
-            presence.update_playback(state, shared.current_position_ms());
-        }
+        crate::host::update_playback(app, state, shared.current_position_ms(), true);
     }
 }
 

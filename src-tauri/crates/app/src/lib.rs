@@ -33,14 +33,21 @@ mod remote_playback;
 // the RFC-005 cutover — and v2 does not synchronize local-entity CRUD at
 // all, so the ~70 emit call sites keep resolving to the stub and this
 // tree never touches them.
+mod host;
+mod playback_gain;
+mod profile_access;
+mod profile_pool;
+mod profile_selection;
 #[cfg(feature = "sync_v2")]
 mod remote;
+mod scrobble_queue;
 mod scrobbler;
 mod smart_playlists;
 mod state;
 #[cfg(target_os = "windows")]
 mod taskbar_buttons;
 mod tasks;
+mod tauri_paths;
 // Multi-device sync v1 (Phase 1.f, RFC-003) was retired in the RFC-005
 // cutover — the server no longer speaks its protocol. `mod sync` is now
 // permanently `sync_stub.rs`, a no-op surface matching the old public

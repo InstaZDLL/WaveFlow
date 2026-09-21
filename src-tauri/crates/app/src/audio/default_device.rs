@@ -33,7 +33,7 @@
 //! caring which device the system prefers, and a shutdown that tore the
 //! listener down would still race the notification already in flight.
 
-use tauri::AppHandle;
+use crate::host::AppHandle;
 
 /// Subscribe to OS default-output changes. Called once from `setup`,
 /// after the engine is registered in Tauri state — a notification that
@@ -63,7 +63,7 @@ pub fn spawn(app: AppHandle) {
 
 #[cfg(target_os = "windows")]
 mod windows_impl {
-    use tauri::AppHandle;
+    use crate::host::AppHandle;
     use windows::core::{implement, Result as WinResult, PCWSTR};
     use windows::Win32::Foundation::PROPERTYKEY;
     use windows::Win32::Media::Audio::{
@@ -201,12 +201,12 @@ mod macos_impl {
     use std::panic::{catch_unwind, AssertUnwindSafe};
     use std::ptr::NonNull;
 
+    use crate::host::AppHandle;
     use objc2_core_audio::{
         kAudioHardwarePropertyDefaultOutputDevice, kAudioObjectPropertyElementMain,
         kAudioObjectPropertyScopeGlobal, kAudioObjectSystemObject, AudioObjectAddPropertyListener,
         AudioObjectID, AudioObjectPropertyAddress,
     };
-    use tauri::AppHandle;
 
     pub(super) fn spawn(app: AppHandle) {
         let address = AudioObjectPropertyAddress {

@@ -46,11 +46,11 @@ use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
+use crate::host::AppHandle;
 use alsa::pcm::{Access, Format, Frames, HwParams, State, IO, PCM};
 use alsa::{Direction, ValueOr};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use rtrb::{Consumer, Producer, RingBuffer};
-use tauri::AppHandle;
 
 use super::output::{DopFormat, OutputHandle, RequestedFormat, RING_CAPACITY};
 use super::state::SharedPlayback;

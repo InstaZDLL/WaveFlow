@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-WaveFlow is a local music player desktop app built with **Tauri 2 + React 19 + TypeScript + Vite** and a **bun** toolchain. Spotify / Apple Music-inspired UI on top of a Rust audio engine.
+WaveFlow is a local music player desktop app built with a shared Rust audio/backend layer, a **Tauri 2 + React 19 + TypeScript + Vite** desktop UI, and a Linux-native **GTK4 + libadwaita-rs** UI. The web frontend uses a **bun** toolchain.
 
 This file is an **index, not a manual**. It carries the map plus the one-line form of each invariant. The reasoning, algorithms, schema and flow diagrams live under [`docs/`](docs/README.md) — that's the source of truth, and new detail belongs there, not here.
 
@@ -32,6 +32,10 @@ bun run build                # tsc + Vite prod build
 cargo fmt   --manifest-path src-tauri/Cargo.toml --all -- --check
 cargo check --manifest-path src-tauri/Cargo.toml --workspace --all-targets
 cargo test  --manifest-path src-tauri/Cargo.toml --workspace
+
+# Linux-native GTK frontend (separate workspace; see crates.md)
+cargo check --manifest-path src-tauri/crates/gtk-app/Cargo.toml --all-targets --locked
+cargo run   --manifest-path src-tauri/crates/gtk-app/Cargo.toml --locked
 ```
 
 The PR checklist is `typecheck` / `lint` / `cargo fmt --check` / `cargo check`. **`cargo fmt` is not optional** — CI runs it as the first step of the Rust job, so an unformatted file fails the whole job before a single test runs, and neither `cargo check` nor `clippy` will have warned you.
@@ -48,10 +52,12 @@ React 19 + TypeScript. Entry: `src/main.tsx` → `src/App.tsx`.
 - **Views**: `HomeView`, `LibraryView`, `PlaylistView`, `AlbumDetailView`, `ArtistDetailView`, `LikedView`, `HistoryView`, `StatisticsView`, `WrappedView`, `SettingsView`, …
 - **Layout**: Apple-Music-style sidebar, TopBar with search, PlayerBar at the bottom, right-edge panels (`NowPlayingPanel` / `QueuePanel` / `LyricsPanel`) mutex'd via `PlayerContext`. A second `WebviewWindow` (label `mini`, `?mini=1`) ships the always-on-top mini-player — [`docs/features/ui.md`](docs/features/ui.md#mini-player) — and a third (label `lyrics`, `?lyrics=1`, created by the backend) the transparent desktop lyrics overlay — [`#desktop-lyrics`](docs/features/ui.md#desktop-lyrics).
 
-### Backend (`src-tauri/`) — Cargo workspace, two members
+### Backend (`src-tauri/`) — shared Rust crates and desktop hosts
 
 - **`crates/core/` (`waveflow-core`)** — portable business logic, reusable from `waveflow-server`. Domain DTOs, repository traits + SQLite **and** Postgres impls (Cargo features: desktop = `sqlite`, server = `postgres`), scanner helpers + upserts, smart-playlist engine, audio analysis, DSD→PCM, HTTP clients (Deezer / Last.fm / LRCLIB / TheAudioDB), artwork pipeline, the wasmtime plugin host. **Zero Tauri / `cpal`.** Split rules + feature matrix: [`docs/architecture/crates.md`](docs/architecture/crates.md).
 - **`crates/app/` (`waveflow`)** — the Tauri 2 app. Entry `crates/app/src/main.rs` → `lib.rs`. `#[tauri::command]` handlers (thin wrappers over core's repositories), the real-time `cpal` + `rtrb` audio engine, DLNA / MPD / OS media controls / Discord RPC, the fs watcher, the tray, the profile pool wiring.
+- **`crates/native/` (`waveflow-native`)** — Linux-native host adapter over the same audio engine, profile lifecycle, SQLite migrations and `player_actions`, without Tauri or a webview.
+- **`crates/gtk-app/` (`waveflow-gtk`)** — GTK4/libadwaita Linux presentation plus its background worker. It is a separate Cargo workspace because the existing Tauri Linux shell and gtk4-rs resolve incompatible `glib-sys` generations.
 
 Inside `crates/app/src/`:
 

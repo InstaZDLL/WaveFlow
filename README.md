@@ -5,7 +5,7 @@
 <h1 align="center">WaveFlow</h1>
 
 <p align="center">
-  <strong>Local music player for desktop — built with Tauri 2, React 19 & Rust</strong>
+  <strong>Local music player for desktop — Rust backend, Tauri/React and native GTK4</strong>
 </p>
 
 <p align="center">
@@ -83,6 +83,7 @@ WaveFlow is a desktop music player for the audio files you already own. It scans
 | Layer                     | Technologies                                                                                                                                                                                                                                                   |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Desktop shell**         | Tauri 2.11 (tray icon, opener, dialog, updater, notification, single-instance plugins)                                                                                                                                                                         |
+| **Native Linux UI**       | gtk4-rs + libadwaita-rs, backed directly by the shared Rust services (no webview)                                                                                                                                                                              |
 | **OS media controls**     | souvlaki 0.8 (SMTC / MPRIS / MediaRemote bridge)                                                                                                                                                                                                               |
 | **Discord Rich Presence** | discord-rich-presence 1.1 (local IPC named pipe, no auth)                                                                                                                                                                                                      |
 | **Frontend**              | React 19, TypeScript, Vite 8, Tailwind CSS 4, framer-motion 12, Lucide icons, `@dnd-kit` (drag-and-drop), `@tanstack/react-virtual` (virtualization), `@fontsource` (bundled woff2 for skin typography — local-first, no Google Fonts at runtime)              |
@@ -122,6 +123,10 @@ bun run format       # Prettier
 # Rust backend
 cargo check --manifest-path src-tauri/Cargo.toml --all-targets
 cargo test  --manifest-path src-tauri/Cargo.toml
+
+# Native Linux GTK frontend
+cargo check --manifest-path src-tauri/crates/gtk-app/Cargo.toml --all-targets --locked
+cargo run   --manifest-path src-tauri/crates/gtk-app/Cargo.toml --locked
 ```
 
 ## Documentation

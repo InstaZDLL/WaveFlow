@@ -1,9 +1,5 @@
 use std::path::PathBuf;
 
-use tauri::path::BaseDirectory;
-use tauri::{AppHandle, Manager};
-use waveflow_core::plugin::PluginPaths;
-
 use crate::error::{AppError, AppResult};
 
 /// Resolved filesystem paths for the application.
@@ -77,62 +73,16 @@ pub struct AppPaths {
 }
 
 impl AppPaths {
-    /// Resolve all paths from a Tauri [`AppHandle`].
-    ///
-    /// Does **not** create any directories on disk. Call [`Self::ensure_dirs`]
-    /// after construction to materialize the layout.
-    ///
-    /// Caches resolve under the same root; [`Self::with_cache_root`]
-    /// moves them afterwards, once `app.db` has been opened and the
-    /// stored choice read.
-    pub fn from_handle(handle: &AppHandle) -> AppResult<Self> {
-        let data_dir = handle
-            .path()
-            .app_data_dir()
-            .map_err(|_| AppError::MissingAppDataDir)?;
-
-        // Bundled plugin resources live next to the binary, resolved
-        // via Tauri's `BaseDirectory::Resource`. A failure here isn't
-        // fatal — `PluginPaths::install_root_for` falls back to the
-        // writable app-data tree when `bundled_root` is `None`, so
-        // the only consequence in dev builds or broken installs is
-        // that bundled plugins resolve under `<app-data>/plugins/`
-        // (matching pre-1.5.1 behaviour). We log the failure so a
-        // mispackaged installer surfaces visibly in tracing.
-        let bundled_plugins_dir = match handle.path().resolve("plugins", BaseDirectory::Resource) {
-            Ok(path) if path.exists() && path.is_dir() => Some(path),
-            Ok(path) => {
-                tracing::warn!(
-                    path = %path.display(),
-                    "bundled plugins resource dir not found; bundled plugins will fall back to app-data tree",
-                );
-                None
-            }
-            Err(e) => {
-                tracing::warn!(
-                    %e,
-                    "bundled plugins resource dir not resolvable; bundled plugins will fall back to app-data tree",
-                );
-                None
-            }
-        };
-
-        Ok(Self::from_root(
-            data_dir.join("waveflow"),
-            bundled_plugins_dir,
-        ))
-    }
-
     /// Same layout, resolved from the app-data root alone.
     ///
-    /// [`Self::from_handle`] is this plus the `BaseDirectory::Resource`
-    /// lookup, which needs a live app. The startup pre-flight
+    /// The Tauri host adapter adds the `BaseDirectory::Resource` lookup,
+    /// which needs a live app. The startup pre-flight
     /// ([`crate::db::schema_guard::preflight`]) runs *before* the Tauri
     /// event loop exists — there is no `AppHandle` to resolve against
     /// yet — and it only ever reads databases, so it takes this
     /// constructor and leaves `bundled_plugins_dir` at `None`.
     ///
-    /// Creates nothing on disk, same as [`Self::from_handle`].
+    /// Creates nothing on disk, like the Tauri host adapter.
     pub fn from_root(root: PathBuf, bundled_plugins_dir: Option<PathBuf>) -> Self {
         Self {
             app_db: root.join("app.db"),
@@ -183,7 +133,7 @@ impl AppPaths {
     ///
     /// Mirrors what Tauri's own resolver does — `app_data_dir()` is
     /// `dirs::data_dir()/<identifier>` (see `tauri::path::PathResolver`)
-    /// — plus the `waveflow/` subdirectory [`Self::from_handle`] appends.
+    /// — plus the `waveflow/` subdirectory the Tauri host adapter appends.
     /// The identifier is read from the generated context at the call
     /// site rather than hardcoded, so `tauri.conf.json` stays the single
     /// source of truth.
@@ -208,8 +158,7 @@ impl AppPaths {
         std::fs::create_dir_all(&self.motion_cache_dir)?;
         std::fs::create_dir_all(&self.canvas_cache_dir)?;
         std::fs::create_dir_all(&self.profiles_dir)?;
-        let plugin_paths = self.plugin_paths();
-        std::fs::create_dir_all(&plugin_paths.plugins_root)?;
+        std::fs::create_dir_all(self.root.join("plugins"))?;
         Ok(())
     }
 
@@ -310,24 +259,5 @@ impl AppPaths {
     /// stays portable if the app data root moves.
     pub fn profile_rel_dir(profile_id: i64) -> String {
         format!("profiles/{}", profile_id)
-    }
-
-    /// Plugin install + scratch roots, in [`PluginPaths`] form so the
-    /// runtime can pass it straight into `PluginRuntime::load_plugin`
-    /// and `new_store_for_plugin`. Layout:
-    ///
-    /// ```text
-    /// <resource_dir>/plugins/<id>/      (bundled install dir, read-only — when resolvable)
-    /// <root>/plugins/<plugin-id>/       (sideloaded install dir, writable)
-    /// <root>/plugin-data/<plugin-id>/   (per-user scratch, written by host imports)
-    /// ```
-    ///
-    /// Bundled ids resolve under `<resource_dir>/plugins/` (the
-    /// installer's read-only payload), sideloaded ids under
-    /// `<root>/plugins/` (writable app-data). State writes always
-    /// land in `<root>/plugin-data/` regardless of where the .wasm
-    /// lives — bundled plugins still need a writable scratch dir.
-    pub fn plugin_paths(&self) -> PluginPaths {
-        PluginPaths::from_app_data(&self.root).with_bundled_root(self.bundled_plugins_dir.clone())
     }
 }

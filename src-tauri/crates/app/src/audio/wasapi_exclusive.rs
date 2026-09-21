@@ -35,9 +35,9 @@ use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
+use crate::host::AppHandle;
 use crossbeam_channel::{bounded, Receiver, Sender};
 use rtrb::{Consumer, Producer, RingBuffer};
-use tauri::AppHandle;
 use wasapi::{
     AudioClient, AudioRenderClient, Device, DeviceEnumerator, Direction, Handle, SampleType,
     StreamMode, WaveFormat,

@@ -40,9 +40,9 @@ use std::io::{self, BufReader, Read, Seek, SeekFrom};
 use std::sync::Mutex;
 use std::time::Duration;
 
+use crate::host::AppHandle;
 use reqwest::blocking::{Client, Response};
 use symphonia::core::io::MediaSource;
-use tauri::AppHandle;
 
 use super::events::{emit_radio_metadata, RadioMetadataPayload};
 

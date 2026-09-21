@@ -26,10 +26,7 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 
-use crate::{
-    commands::player::PlayerStateSnapshot,
-    error::{AppError, AppResult},
-};
+use crate::error::{AppError, AppResult};
 
 /// Minimum track shape needed to hand off to the decoder thread. Kept
 /// narrower than [`crate::commands::track::Track`] because playback
@@ -359,6 +356,19 @@ pub async fn apply_shuffle_mode(pool: &SqlitePool, mode: ShuffleMode) -> AppResu
         ShuffleMode::Tracks => shuffle(pool).await,
         ShuffleMode::Albums => shuffle_by_album(pool).await,
     }
+}
+
+/// Read the persisted player volume for hosts that initialize the shared
+/// audio engine without going through the Tauri player command module.
+///
+/// Tauri restores all profile-scoped audio settings through
+/// `restore_profile_audio_settings`; the native host currently needs this
+/// smaller bootstrap helper until that service is extracted in full.
+pub async fn read_player_volume(pool: &SqlitePool) -> Option<f32> {
+    let raw = read_setting_string(pool, "player.volume").await.ok()??;
+    raw.parse::<i64>()
+        .ok()
+        .map(|value| (value.clamp(0, 100) as f32) / 100.0)
 }
 
 /// Whether the persisted queue is whole records in their own order
@@ -1686,13 +1696,6 @@ fn fisher_yates<T>(slice: &mut [T]) {
         let j = (seed % (i as u64 + 1)) as usize;
         slice.swap(i, j);
     }
-}
-
-// Re-export the player state snapshot type here so the analytics task
-// can keep its imports minimal. Not a real runtime dependency.
-#[allow(dead_code)]
-fn _type_check() -> Option<PlayerStateSnapshot> {
-    None
 }
 
 #[cfg(test)]

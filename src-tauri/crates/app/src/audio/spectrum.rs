@@ -21,9 +21,9 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use crate::host::{AppHandle, Emitter};
 use realfft::num_complex::Complex;
 use realfft::{RealFftPlanner, RealToComplex};
-use tauri::{AppHandle, Emitter};
 
 use super::state::SharedPlayback;
 

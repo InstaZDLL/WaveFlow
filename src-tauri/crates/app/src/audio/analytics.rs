@@ -14,8 +14,8 @@
 //! Keeping this logic in a tokio task (rather than the decoder thread
 //! itself) means the real-time audio path never blocks on SQLite.
 
+use crate::host::{AppHandle, Manager};
 use crossbeam_channel::Sender as CrossbeamSender;
-use tauri::{AppHandle, Manager};
 use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::{
@@ -119,10 +119,13 @@ async fn handle_message(
     // needs no profile pool. Handle it before acquiring the pool so a
     // missing or momentarily-unavailable profile can't strand remote
     // auto-advance (a plain radio stream ending here is a no-op).
-    if let AnalyticsMsg::RemoteTrackEnded { intent, .. } = msg {
+    if let AnalyticsMsg::RemoteTrackEnded {
+        intent: _intent, ..
+    } = msg
+    {
         #[cfg(feature = "sync_v2")]
         if state.remote_playback.is_active() {
-            if let Err(err) = crate::remote::playback::advance(app, Direction::Next, *intent).await
+            if let Err(err) = crate::remote::playback::advance(app, Direction::Next, *_intent).await
             {
                 tracing::warn!(%err, "remote auto-advance failed");
             }

@@ -37,6 +37,7 @@ use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
+use crate::host::AppHandle;
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::macos_helpers::{
     audio_unit_from_device_id_uninitialized, find_matching_physical_format, get_default_device_id,
@@ -53,7 +54,6 @@ use objc2_core_audio::{
 };
 use objc2_core_audio_types::AudioStreamBasicDescription;
 use rtrb::{Consumer, Producer, RingBuffer};
-use tauri::AppHandle;
 
 use super::output::{DopFormat, OutputHandle, RequestedFormat, RING_CAPACITY};
 use super::state::SharedPlayback;
