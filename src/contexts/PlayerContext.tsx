@@ -238,13 +238,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // one that lands.
   const trackRefreshTokenRef = useRef(0);
 
-  // Resolve album art for a now-playing radio song (ICY gives only the
-  // "Artist - Title" text) and swap it into `currentTrack` once it
-  // lands. The station favicon shows until the cover resolves; this is a
-  // no-op when title/artist are missing or the fetch fails / returns
-  // nothing. The `isRadioTrack` guard means a library track that started
-  // playing in the meantime is never clobbered with a stale radio cover,
-  // and the token guard drops a fetch superseded by a newer ICY title.
+  // Keep that ref in step with the state it mirrors.
   useEffect(() => {
     currentTrackRef.current = currentTrack;
   }, [currentTrack]);
@@ -310,6 +304,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Resolve album art for a now-playing radio song (ICY gives only the
+  // "Artist - Title" text) and swap it into `currentTrack` once it
+  // lands. The station favicon shows until the cover resolves; this is a
+  // no-op when title/artist are missing or the fetch fails / returns
+  // nothing. The `isRadioTrack` guard means a library track that started
+  // playing in the meantime is never clobbered with a stale radio cover,
+  // and the token guard drops a fetch superseded by a newer ICY title.
   const fetchRadioArtworkInto = useCallback(
     (title: string | null, artist: string | null) => {
       if (!title || !artist) return;
