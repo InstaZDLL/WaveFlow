@@ -2787,7 +2787,11 @@ async fn run_prefetch(
         //    Prefetch path deliberately stays translation-free
         //    (`lang = None`) — bulk runs would hammer Musixmatch's
         //    rate limit with one extra hop per track.
-        match search_musixmatch_tier(&meta, None).await {
+        let musixmatch = search_musixmatch_tier(&meta, None).await;
+        // `Unavailable` is the one outcome that sent no request: the
+        // opt-in is off, offline, or Musixmatch is cooling down.
+        let musixmatch_asked = !matches!(musixmatch, Ok(SearchOutcome::Unavailable));
+        match musixmatch {
             Ok(SearchOutcome::Found(result))
                 if matches!(result.format, ExternalLyricsFormat::EnhancedLrc) =>
             {
@@ -2810,11 +2814,8 @@ async fn run_prefetch(
         // distinct backends back-to-back per track for any
         // Musixmatch-attempted slot, doubling the effective request
         // rate on the user's network. Only sleep when Musixmatch was
-        // actually attempted — when the toggle is off,
-        // `filter_providers` returns an empty list and
-        // `external_lyrics_search` short-circuits to Ok(None) without
-        // touching the network.
-        if musixmatch_enabled() {
+        // actually asked.
+        if musixmatch_asked {
             tokio::time::sleep(LRCLIB_THROTTLE).await;
         }
 
