@@ -88,12 +88,13 @@ export function estimateLineWords(
   const total =
     weights.reduce((a, b) => a + b, 0) + pauses.reduce((a, b) => a + b, 0);
 
-  const knownEnd =
-    line.endMs > line.timeMs
-      ? line.endMs
-      : nextStartMs != null && nextStartMs > line.timeMs
-        ? nextStartMs
-        : null;
+  // The earlier of the two ends the line can have: its own, and the next
+  // line's start. A line whose stamped end overlaps the next must still
+  // hand over on time.
+  const ends = [line.endMs, nextStartMs].filter(
+    (end): end is number => end != null && end > line.timeMs,
+  );
+  const knownEnd = ends.length > 0 ? Math.min(...ends) : null;
   const span =
     knownEnd != null
       ? Math.min(knownEnd - line.timeMs, total * MAX_MS_PER_SYLLABLE)

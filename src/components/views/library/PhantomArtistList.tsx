@@ -100,6 +100,15 @@ export function PhantomArtistList({
     };
   }, [refreshKey, dismissed.value, profileId]);
 
+  // A confirmation armed in one profile must not carry into the next,
+  // where the same id can be another artist, nor an error with it.
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setArmed(null);
+    setError(null);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [profileId]);
+
   // An armed "confirm" disarms itself, so a stray click minutes later
   // cannot split an artist the user has long stopped looking at.
   useEffect(() => {
