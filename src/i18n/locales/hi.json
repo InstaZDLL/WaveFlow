@@ -528,7 +528,9 @@
       "summary_one": "{{count}} बात सुधारने को",
       "summary_other": "{{count}} बातें सुधारने को",
       "trackCount_one": "{{count}} ट्रैक",
+      "artistCount_one": "{{count}} कलाकार",
       "trackCount_other": "{{count}} ट्रैक",
+      "artistCount_other": "{{count}} कलाकार",
       "categories": {
         "missing_title": {
           "label": "शीर्षक नहीं",
@@ -577,7 +579,17 @@
         "probable_duplicate": {
           "label": "संभावित डुप्लिकेट",
           "help": "वही शीर्षक, वही कलाकार, लगभग वही अवधि।"
+        },
+        "phantom_artist": {
+          "label": "अलग करने लायक कलाकार",
+          "help": "ऐसे नाम जो कॉमा से जुड़े कई कलाकारों जैसे दिखते हैं।"
         }
+      },
+      "phantoms": {
+        "split": "अलग करें",
+        "confirm": "पुष्टि करें",
+        "dismiss": "अलग न करें",
+        "known": "लाइब्रेरी में पहले से है"
       }
     },
     "columns": {
@@ -2208,6 +2220,10 @@
     "fullscreenLyricsCentering": {
       "title": "फ़ुल स्क्रीन में सिंक किए गए बोल को केंद्र में रखें",
       "subtitle": "फ़ुल स्क्रीन ओवरले में टाइम-कोडेड बोल को सादे टेक्स्ट दृश्य की तरह केंद्र में संरेखित करता है।"
+    },
+    "lyricsEstimateWords": {
+      "title": "अनुमानित शब्द-दर-शब्द कराओके",
+      "subtitle": "पंक्ति-दर-पंक्ति सिंक किए गए लिरिक्स में, हर शब्द की अवधि के अनुमान से शब्दों को हाइलाइट करता है। केवल दिखाने के लिए: कुछ भी सहेजा नहीं जाता।"
     },
     "lyricsTranslation": {
       "title": "गीत अनुवाद (Musixmatch)",

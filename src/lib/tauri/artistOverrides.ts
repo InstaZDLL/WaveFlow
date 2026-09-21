@@ -42,8 +42,16 @@ export interface SplitArtistResult {
  * enriched rows by canonical name. No file is re-tagged; the scanner has
  * a matching guard so an unchanged-file rescan won't undo the split.
  */
-export function splitArtist(artistId: number): Promise<SplitArtistResult> {
-  return invoke<SplitArtistResult>("split_artist", { artistId });
+export function splitArtist(
+  artistId: number,
+  /** The profile `artistId` was read from; the backend refuses the split
+   *  if another one is active by then. Omit for the active profile. */
+  expectedProfileId?: number | null,
+): Promise<SplitArtistResult> {
+  return invoke<SplitArtistResult>("split_artist", {
+    artistId,
+    expectedProfileId: expectedProfileId ?? null,
+  });
 }
 
 /**

@@ -173,6 +173,7 @@ import { ClipsInLibraryCard } from "./settings/ClipsInLibraryCard";
 import { MediaCachesCard } from "./settings/MediaCachesCard";
 import { FullscreenLyricsCenteringCard } from "./settings/FullscreenLyricsCenteringCard";
 import { LyricsProvidersCard } from "./settings/LyricsProvidersCard";
+import { EstimatedKaraokeCard } from "./settings/EstimatedKaraokeCard";
 import { LyricsExcludedGenresCard } from "./settings/LyricsExcludedGenresCard";
 import { ImmersiveViewCard } from "./settings/ImmersiveViewCard";
 import { CoverSlideshowCard } from "./settings/CoverSlideshowCard";
@@ -3293,6 +3294,7 @@ export function SettingsView({
                 <LyricsProvidersCard />
                 <LyricsExcludedGenresCard />
                 <FullscreenLyricsCenteringCard />
+                <EstimatedKaraokeCard />
               </SettingsGroup>
             </section>
           )}

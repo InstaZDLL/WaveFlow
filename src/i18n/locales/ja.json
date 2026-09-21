@@ -528,7 +528,9 @@
       "summary_one": "要確認 {{count}}件",
       "summary_other": "要確認 {{count}}件",
       "trackCount_one": "{{count}}曲",
+      "artistCount_one": "{{count}} 組のアーティスト",
       "trackCount_other": "{{count}}曲",
+      "artistCount_other": "{{count}} 組のアーティスト",
       "categories": {
         "missing_title": {
           "label": "タイトルなし",
@@ -577,7 +579,17 @@
         "probable_duplicate": {
           "label": "重複の疑い",
           "help": "同じ曲名、同じアーティスト、ほぼ同じ長さ。"
+        },
+        "phantom_artist": {
+          "label": "分割するアーティスト",
+          "help": "複数のアーティストがカンマで連結されているように見える名前です。"
         }
+      },
+      "phantoms": {
+        "split": "分割",
+        "confirm": "確認",
+        "dismiss": "分割しない",
+        "known": "ライブラリに登録済み"
       }
     },
     "columns": {
@@ -2208,6 +2220,10 @@
     "fullscreenLyricsCentering": {
       "title": "フルスクリーンで同期歌詞を中央揃え",
       "subtitle": "フルスクリーン表示でタイムコード付き歌詞をプレーンテキスト表示と同じく中央に揃えます。"
+    },
+    "lyricsEstimateWords": {
+      "title": "推定の単語ごとカラオケ",
+      "subtitle": "行単位で同期された歌詞で、各単語の長さの推定に基づいてハイライトします。表示のみで、何も保存されません。"
     },
     "lyricsTranslation": {
       "title": "歌詞の翻訳 (Musixmatch)",

@@ -528,7 +528,9 @@
       "summary_one": "{{count}} hal untuk diperbaiki",
       "summary_other": "{{count}} hal untuk diperbaiki",
       "trackCount_one": "{{count}} lagu",
+      "artistCount_one": "{{count}} artis",
       "trackCount_other": "{{count}} lagu",
+      "artistCount_other": "{{count}} artis",
       "categories": {
         "missing_title": {
           "label": "Tanpa judul",
@@ -577,7 +579,17 @@
         "probable_duplicate": {
           "label": "Kemungkinan duplikat",
           "help": "Judul sama, artis sama, durasi hampir sama."
+        },
+        "phantom_artist": {
+          "label": "Artis untuk dipisah",
+          "help": "Nama yang tampak seperti beberapa artis yang digabung dengan koma."
         }
+      },
+      "phantoms": {
+        "split": "Pisahkan",
+        "confirm": "Konfirmasi",
+        "dismiss": "Jangan pisahkan",
+        "known": "Sudah ada di pustaka"
       }
     },
     "columns": {
@@ -2208,6 +2220,10 @@
     "fullscreenLyricsCentering": {
       "title": "Pusatkan lirik tersinkron di layar penuh",
       "subtitle": "Menyelaraskan lirik tersinkron di tengah tampilan layar penuh, sama seperti teks polos."
+    },
+    "lyricsEstimateWords": {
+      "title": "Karaoke kata per kata perkiraan",
+      "subtitle": "Pada lirik yang disinkronkan per baris, menyorot kata berdasarkan perkiraan durasinya. Hanya tampilan: tidak ada yang disimpan."
     },
     "lyricsTranslation": {
       "title": "Terjemahan lirik (Musixmatch)",

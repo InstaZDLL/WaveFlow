@@ -528,7 +528,9 @@
       "summary_one": "{{count}} punt te verbeteren",
       "summary_other": "{{count}} punten te verbeteren",
       "trackCount_one": "{{count}} nummer",
+      "artistCount_one": "{{count}} artiest",
       "trackCount_other": "{{count}} nummers",
+      "artistCount_other": "{{count}} artiesten",
       "categories": {
         "missing_title": {
           "label": "Zonder titel",
@@ -577,7 +579,17 @@
         "probable_duplicate": {
           "label": "Waarschijnlijke duplicaten",
           "help": "Zelfde titel, zelfde artiest, bijna zelfde lengte."
+        },
+        "phantom_artist": {
+          "label": "Artiesten om te splitsen",
+          "help": "Namen die eruitzien als meerdere artiesten, gescheiden door komma's."
         }
+      },
+      "phantoms": {
+        "split": "Splitsen",
+        "confirm": "Bevestigen",
+        "dismiss": "Niet splitsen",
+        "known": "Al in de bibliotheek"
       }
     },
     "columns": {
@@ -2208,6 +2220,10 @@
     "fullscreenLyricsCentering": {
       "title": "Gesynchroniseerde songtekst centreren in volledig scherm",
       "subtitle": "Plaatst de gesynchroniseerde songtekst in het midden van de volledige weergave, zoals de gewone tekst."
+    },
+    "lyricsEstimateWords": {
+      "title": "Geschatte woord-voor-woord-karaoke",
+      "subtitle": "Markeert bij regel-gesynchroniseerde songteksten de woorden op basis van een schatting van hun duur. Alleen weergave: er wordt niets opgeslagen."
     },
     "lyricsTranslation": {
       "title": "Songtekstvertaling (Musixmatch)",

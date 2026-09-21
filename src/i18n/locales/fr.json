@@ -529,7 +529,9 @@
       "summary_one": "{{count}} point à corriger",
       "summary_other": "{{count}} points à corriger",
       "trackCount_one": "{{count}} titre",
+      "artistCount_one": "{{count}} artiste",
       "trackCount_other": "{{count}} titres",
+      "artistCount_other": "{{count}} artistes",
       "categories": {
         "missing_title": {
           "label": "Sans titre",
@@ -578,7 +580,17 @@
         "probable_duplicate": {
           "label": "Doublons probables",
           "help": "Même titre, même artiste, durée quasi identique."
+        },
+        "phantom_artist": {
+          "label": "Artistes à scinder",
+          "help": "Des noms qui ressemblent à plusieurs artistes joints par des virgules."
         }
+      },
+      "phantoms": {
+        "split": "Scinder",
+        "confirm": "Confirmer",
+        "dismiss": "Ne pas scinder",
+        "known": "Déjà dans la bibliothèque"
       }
     },
     "columns": {
@@ -2235,6 +2247,10 @@
     "fullscreenLyricsCentering": {
       "title": "Centrer les paroles synchronisées en plein écran",
       "subtitle": "Aligne les paroles synchronisées au centre de l'aperçu plein écran, comme l'affichage du texte brut."
+    },
+    "lyricsEstimateWords": {
+      "title": "Karaoké mot à mot estimé",
+      "subtitle": "Sur les paroles synchronisées ligne par ligne, surligne les mots selon une estimation de leur durée. Purement visuel : rien n'est enregistré."
     },
     "lyricsDestination": {
       "title": "Destination des paroles",

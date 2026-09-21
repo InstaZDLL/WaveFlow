@@ -528,7 +528,9 @@
       "summary_one": "{{count}} Punkt zu korrigieren",
       "summary_other": "{{count}} Punkte zu korrigieren",
       "trackCount_one": "{{count}} Titel",
+      "artistCount_one": "{{count}} Künstler",
       "trackCount_other": "{{count}} Titel",
+      "artistCount_other": "{{count}} Künstler",
       "categories": {
         "missing_title": {
           "label": "Ohne Titel",
@@ -577,7 +579,17 @@
         "probable_duplicate": {
           "label": "Wahrscheinliche Duplikate",
           "help": "Gleicher Titel, gleicher Interpret, fast gleiche Länge."
+        },
+        "phantom_artist": {
+          "label": "Aufzuteilende Künstler",
+          "help": "Namen, die wie mehrere durch Kommas verbundene Künstler aussehen."
         }
+      },
+      "phantoms": {
+        "split": "Aufteilen",
+        "confirm": "Bestätigen",
+        "dismiss": "Nicht aufteilen",
+        "known": "Bereits in der Mediathek"
       }
     },
     "columns": {
@@ -2208,6 +2220,10 @@
     "fullscreenLyricsCentering": {
       "title": "Synchronisierten Liedtext im Vollbild zentrieren",
       "subtitle": "Richtet zeitgesteuerten Liedtext in der Vollbildansicht zentriert aus, passend zur reinen Textansicht."
+    },
+    "lyricsEstimateWords": {
+      "title": "Geschätztes Wort-für-Wort-Karaoke",
+      "subtitle": "Hebt bei zeilenweise synchronisierten Songtexten die Wörter nach einer geschätzten Dauer hervor. Nur Anzeige: Es wird nichts gespeichert."
     },
     "lyricsTranslation": {
       "title": "Liedtextübersetzung (Musixmatch)",

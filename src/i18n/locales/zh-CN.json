@@ -528,7 +528,9 @@
       "summary_one": "{{count}} 处待修正",
       "summary_other": "{{count}} 处待修正",
       "trackCount_one": "{{count}} 首",
+      "artistCount_one": "{{count}} 位艺人",
       "trackCount_other": "{{count}} 首",
+      "artistCount_other": "{{count}} 位艺人",
       "categories": {
         "missing_title": {
           "label": "没有标题",
@@ -577,7 +579,17 @@
         "probable_duplicate": {
           "label": "疑似重复",
           "help": "标题相同、艺人相同、时长几乎一致。"
+        },
+        "phantom_artist": {
+          "label": "待拆分的艺人",
+          "help": "看起来像是用逗号连接的多位艺人的名称。"
         }
+      },
+      "phantoms": {
+        "split": "拆分",
+        "confirm": "确认",
+        "dismiss": "不拆分",
+        "known": "已在音乐库中"
       }
     },
     "columns": {
@@ -2208,6 +2220,10 @@
     "fullscreenLyricsCentering": {
       "title": "全屏中将同步歌词居中",
       "subtitle": "在全屏视图中将带时间戳的歌词居中对齐，与纯文本视图保持一致。"
+    },
+    "lyricsEstimateWords": {
+      "title": "估算的逐词卡拉 OK",
+      "subtitle": "在按行同步的歌词上，根据估算的时长逐词高亮。仅用于显示：不会保存任何内容。"
     },
     "lyricsTranslation": {
       "title": "歌词翻译 (Musixmatch)",

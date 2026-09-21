@@ -528,7 +528,9 @@
       "summary_one": "확인할 항목 {{count}}개",
       "summary_other": "확인할 항목 {{count}}개",
       "trackCount_one": "{{count}}곡",
+      "artistCount_one": "아티스트 {{count}}명",
       "trackCount_other": "{{count}}곡",
+      "artistCount_other": "아티스트 {{count}}명",
       "categories": {
         "missing_title": {
           "label": "제목 없음",
@@ -577,7 +579,17 @@
         "probable_duplicate": {
           "label": "중복 가능성",
           "help": "같은 제목, 같은 아티스트, 거의 같은 길이."
+        },
+        "phantom_artist": {
+          "label": "분리할 아티스트",
+          "help": "여러 아티스트가 쉼표로 이어진 것처럼 보이는 이름입니다."
         }
+      },
+      "phantoms": {
+        "split": "분리",
+        "confirm": "확인",
+        "dismiss": "분리하지 않음",
+        "known": "이미 보관함에 있음"
       }
     },
     "columns": {
@@ -2208,6 +2220,10 @@
     "fullscreenLyricsCentering": {
       "title": "전체 화면에서 동기화된 가사를 가운데 정렬",
       "subtitle": "전체 화면 보기에서 시간 동기화된 가사를 일반 텍스트처럼 가운데에 정렬합니다."
+    },
+    "lyricsEstimateWords": {
+      "title": "추정 단어별 가라오케",
+      "subtitle": "줄 단위로 동기화된 가사에서 각 단어의 길이를 추정해 강조합니다. 표시 전용이며 아무것도 저장되지 않습니다."
     },
     "lyricsTranslation": {
       "title": "가사 번역(Musixmatch)",

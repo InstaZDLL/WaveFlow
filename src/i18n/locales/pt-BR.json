@@ -529,7 +529,10 @@
       "summary_one": "{{count}} ponto a corrigir",
       "summary_other": "{{count}} pontos a corrigir",
       "trackCount_one": "{{count}} faixa",
+      "artistCount_zero": "0 artistas",
+      "artistCount_one": "{{count}} artista",
       "trackCount_other": "{{count}} faixas",
+      "artistCount_other": "{{count}} artistas",
       "categories": {
         "missing_title": {
           "label": "Sem título",
@@ -578,7 +581,17 @@
         "probable_duplicate": {
           "label": "Duplicatas prováveis",
           "help": "Mesmo título, mesmo artista, duração quase igual."
+        },
+        "phantom_artist": {
+          "label": "Artistas para separar",
+          "help": "Nomes que parecem vários artistas unidos por vírgulas."
         }
+      },
+      "phantoms": {
+        "split": "Separar",
+        "confirm": "Confirmar",
+        "dismiss": "Não separar",
+        "known": "Já está na biblioteca"
       }
     },
     "columns": {
@@ -2211,6 +2224,10 @@
     "fullscreenLyricsCentering": {
       "title": "Centralizar a letra sincronizada em tela cheia",
       "subtitle": "Alinha a letra sincronizada ao centro da tela cheia, como na visualização de texto simples."
+    },
+    "lyricsEstimateWords": {
+      "title": "Karaokê palavra por palavra estimado",
+      "subtitle": "Nas letras sincronizadas por linha, destaca as palavras segundo uma estimativa da duração de cada uma. Apenas visual: nada é salvo."
     },
     "lyricsTranslation": {
       "title": "Tradução de letras (Musixmatch)",

@@ -47,3 +47,33 @@ export async function inventoryTracks(
   });
   return expandLibraryTrackRows(resp);
 }
+
+/** One name a comma-joined artist would split into (#719). */
+export interface PhantomFragment {
+  name: string;
+  /** The artist already in the library under that name, if any. */
+  artist_id: number | null;
+}
+
+/** An artist whose name looks like several joined by commas (#719). */
+export interface PhantomArtist {
+  id: number;
+  name: string;
+  /** What "don't split" stores, so it matches what the backend reads. */
+  canonical_name: string;
+  track_count: number;
+  fragments: PhantomFragment[];
+}
+
+/**
+ * The "artists to split" category — the one inventory category made of
+ * artists rather than tracks, so it has its own list instead of going
+ * through `inventoryTracks`. Most likely phantoms first.
+ */
+export function inventoryPhantomArtists(
+  expectedProfileId: number | null,
+): Promise<PhantomArtist[]> {
+  return invoke<PhantomArtist[]>("inventory_phantom_artists", {
+    expectedProfileId,
+  });
+}

@@ -8,6 +8,7 @@ import {
   ImageOff,
   ListX,
   Mic2Icon,
+  Split,
   TextCursorInput,
   Users,
 } from "lucide-react";
@@ -45,7 +46,11 @@ const ICONS: Record<string, typeof AlertTriangle> = {
   duplicate_track_number: ListX,
   track_number_gap: ListX,
   probable_duplicate: CopyCheck,
+  phantom_artist: Split,
 };
+
+/** Categories that count artists rather than tracks (#719). */
+const ARTIST_CATEGORIES = new Set(["phantom_artist"]);
 
 /** See the note in `TrackTableHeader`. */
 type Translator = (key: string, options?: Record<string, unknown>) => string;
@@ -126,7 +131,13 @@ export function InventoryCategories({
                   })}
                 </span>
                 <span className="block text-xs font-semibold text-zinc-700 dark:text-zinc-200 mt-1 tabular-nums">
-                  {t("library.inventory.trackCount", { count: category.count })}
+                  {ARTIST_CATEGORIES.has(category.key)
+                    ? t("library.inventory.artistCount", {
+                        count: category.count,
+                      })
+                    : t("library.inventory.trackCount", {
+                        count: category.count,
+                      })}
                 </span>
               </span>
             </button>

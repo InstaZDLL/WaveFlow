@@ -55,13 +55,20 @@ pub struct SplitArtistResult {
 /// Fails with a clear message when the name has no comma-separated parts
 /// (nothing to split) or when every part canonicalises back to the
 /// phantom itself.
+///
+/// `expected_profile_id` pins the split to the profile the caller read
+/// `artist_id` from: artist ids are per-profile, so a split sent just as
+/// the profile switched would otherwise land on whichever artist holds
+/// that id in the new one. `None` keeps the old behaviour (the artist
+/// page, whose id is the active profile's by construction).
 #[tauri::command]
 pub async fn split_artist(
     app: AppHandle,
     state: tauri::State<'_, AppState>,
     artist_id: i64,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<SplitArtistResult> {
-    let pool = state.require_profile_pool().await?;
+    let pool = state.require_profile_pool_for(expected_profile_id).await?;
     let result = split_artist_inner(&pool, artist_id).await?;
 
     // Announce it, like every other command that rewrites library rows
@@ -83,6 +90,21 @@ pub async fn split_artist(
 /// DB-only core of [`split_artist`], split out so integration tests can
 /// drive it against a migrated in-memory profile DB without a Tauri
 /// `AppState`.
+/// The names a split of `name` would produce, in tag order.
+///
+/// Comma-split — the deliberate opposite of the scanner's `"; "`-only
+/// policy, gated behind an explicit user action so a real name like
+/// "Tyler, The Creator" is never fragmented without intent. Shared with
+/// the inventory's list of artists to split (#719), so what that list
+/// offers is exactly what the split then does.
+pub(crate) fn split_fragments(name: &str) -> Vec<String> {
+    name.split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
 pub(crate) async fn split_artist_inner(
     pool: &SqlitePool,
     artist_id: i64,
@@ -93,15 +115,7 @@ pub(crate) async fn split_artist_inner(
         .await?
         .ok_or_else(|| AppError::Other(format!("artist {artist_id} not found")))?;
 
-    // Comma-split — the deliberate opposite of the scanner's `"; "`-only
-    // policy, gated behind this explicit user action so a real name like
-    // "Tyler, The Creator" is never fragmented without intent.
-    let parts: Vec<String> = name
-        .split(',')
-        .map(|s| s.trim())
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
-        .collect();
+    let parts = split_fragments(&name);
     if parts.len() < 2 {
         return Err(AppError::Other(
             "this artist name has no comma-separated parts to split".into(),

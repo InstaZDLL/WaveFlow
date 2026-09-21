@@ -528,7 +528,9 @@
       "summary_one": "{{count}} sorun",
       "summary_other": "{{count}} sorun",
       "trackCount_one": "{{count}} parça",
+      "artistCount_one": "{{count}} sanatçı",
       "trackCount_other": "{{count}} parça",
+      "artistCount_other": "{{count}} sanatçı",
       "categories": {
         "missing_title": {
           "label": "Başlıksız",
@@ -577,7 +579,17 @@
         "probable_duplicate": {
           "label": "Olası kopyalar",
           "help": "Aynı başlık, aynı sanatçı, neredeyse aynı süre."
+        },
+        "phantom_artist": {
+          "label": "Ayrılacak sanatçılar",
+          "help": "Virgülle birleştirilmiş birkaç sanatçıya benzeyen adlar."
         }
+      },
+      "phantoms": {
+        "split": "Ayır",
+        "confirm": "Onayla",
+        "dismiss": "Ayırma",
+        "known": "Zaten kitaplıkta"
       }
     },
     "columns": {
@@ -2208,6 +2220,10 @@
     "fullscreenLyricsCentering": {
       "title": "Tam ekranda senkronize sözleri ortala",
       "subtitle": "Tam ekran görünümünde senkronize sözleri düz metin gibi ortaya hizalar."
+    },
+    "lyricsEstimateWords": {
+      "title": "Tahmini kelime kelime karaoke",
+      "subtitle": "Satır bazında senkronize sözlerde, kelimeleri tahmini sürelerine göre vurgular. Yalnızca görsel: hiçbir şey kaydedilmez."
     },
     "lyricsTranslation": {
       "title": "Şarkı sözü çevirisi (Musixmatch)",

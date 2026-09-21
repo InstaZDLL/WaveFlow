@@ -46,6 +46,11 @@ import {
 } from "../../lib/playerSources";
 import { Artwork } from "../common/Artwork";
 import { CoverSlideshow } from "../player/CoverSlideshow";
+import { CanvasStage } from "../player/CanvasStage";
+import { MotionCoverOverlay } from "../player/MotionCoverOverlay";
+import { useTrackCanvas } from "../../hooks/useTrackCanvas";
+import { useCanvasEnabled } from "../../hooks/useCanvasEnabled";
+import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
 import { resolveArtwork } from "../../lib/tauri/artwork";
 import { dominantColor, darken, rgb } from "../../lib/dominantColor";
 import { formatDuration } from "../../lib/tauri/track";
@@ -251,20 +256,39 @@ export function MiniPlayer() {
     [isRemoteSession],
   );
 
+  // ── Canvas and motion cover (issue #717) ──────────────
+  // The same chain as the Now Playing panel and the immersive view:
+  // Canvas > motion cover > slideshow > still cover. This window used to
+  // stop at the slideshow, which made the gap more visible, not less.
+  //
+  // It is a second video decode while the main window may be playing the
+  // same clip — the cost of showing it here at all. The Show Canvas
+  // toggle and reduced motion gate it exactly as they do elsewhere, and
+  // the clip is cropped into the square slot: at this size a tall frame
+  // would push the controls out of the window.
+  const canvasEnabled = useCanvasEnabled();
+  const reducedMotion = usePrefersReducedMotion();
+  const canvasPath = useTrackCanvas(currentTrack);
+  const canvasActive = canvasEnabled && !reducedMotion && !!canvasPath;
+  const motionCover = useAlbumMotionArtwork(
+    currentTrack?.artist_name,
+    currentTrack?.album_title,
+    currentTrack?.album_id,
+  );
+
   // ── Cover ↔ artist slideshow (issue #702) ──────────────
   // The window people leave on screen while doing something else is
   // arguably where a slowly alternating cover is nicest — a beta
-  // tester asked for it (#700). Nothing outranks it here: this window
-  // renders no Canvas and no motion cover, so the precedence chain the
-  // other two surfaces pass in (Canvas > motion > slideshow > cover) has
-  // nothing to say, and `blocked` stays at its default.
+  // tester asked for it (#700). One rung below the clips above.
   //
   // The photo is resolved from this webview, which means a second
   // `enrich_artist_deezer` for the same artist while the main window
   // shows one too — a cache hit against `app.metadata_artist`, not a
   // second network fetch. It costs one IPC round-trip per artist
   // change, and only for a profile that turned the slideshow on.
-  const slideshow = useSlideshowLayer(currentTrack);
+  const slideshow = useSlideshowLayer(currentTrack, {
+    blocked: canvasActive || !!motionCover,
+  });
 
   // ── Cover-derived background gradient ───────────────────────────
   const artworkUrl = useMemo(() => {
@@ -594,9 +618,23 @@ export function MiniPlayer() {
                       className="w-full h-full object-cover"
                       rounded="xl"
                     />
-                    {/* Sibling of the cover inside the slot's own
-                        `relative` box, so the crossfade lands under the
-                        hover controls rather than over them. */}
+                    {/* Siblings of the cover inside the slot's own
+                        `relative` box, so the clips and the crossfade
+                        land under the hover controls rather than over
+                        them. */}
+                    {!canvasActive && (
+                      <MotionCoverOverlay
+                        artist={currentTrack.artist_name}
+                        album={currentTrack.album_title}
+                        albumId={currentTrack.album_id}
+                        rounded="xl"
+                      />
+                    )}
+                    <CanvasStage
+                      path={canvasPath}
+                      enabled={canvasEnabled && !reducedMotion}
+                      rounded="xl"
+                    />
                     <CoverSlideshow
                       artistSrc={slideshow.artistSrc}
                       enabled={slideshow.active}
