@@ -49,7 +49,11 @@ import { CoverSlideshow } from "../player/CoverSlideshow";
 import { CanvasStage } from "../player/CanvasStage";
 import { MotionCoverOverlay } from "../player/MotionCoverOverlay";
 import { useTrackCanvas } from "../../hooks/useTrackCanvas";
-import { useCanvasEnabled } from "../../hooks/useCanvasEnabled";
+import {
+  setCanvasEnabled,
+  useCanvasEnabled,
+} from "../../hooks/useCanvasEnabled";
+import { CanvasToggleButton } from "../player/CanvasToggleButton";
 import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
 import { resolveArtwork } from "../../lib/tauri/artwork";
 import { dominantColor, darken, rgb } from "../../lib/dominantColor";
@@ -519,6 +523,22 @@ export function MiniPlayer() {
           ))}
         </div>
         <div className="flex items-center gap-0.5">
+          {/* The same Show Canvas toggle as the Now Playing panel, shown
+              under the same condition: only when the track has a clip and
+              motion is not reduced, so it is never a dead control. The
+              preference is shared, so it flips in the main window too. */}
+          {canvasPath && !reducedMotion && (
+            <CanvasToggleButton
+              enabled={canvasEnabled}
+              onToggle={() => setCanvasEnabled(!canvasEnabled)}
+              size={12}
+              className={`p-1 rounded-full transition-colors ${
+                canvasEnabled
+                  ? "text-emerald-400 hover:bg-white/10"
+                  : "text-white/60 hover:text-white hover:bg-white/10"
+              }`}
+            />
+          )}
           <button
             type="button"
             onClick={() =>
