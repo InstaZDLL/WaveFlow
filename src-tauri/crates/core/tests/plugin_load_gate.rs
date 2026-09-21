@@ -65,7 +65,7 @@ fn runtime() -> PluginRuntime {
     PluginRuntime::new(RuntimeConfig::default()).expect("runtime")
 }
 
-/// The refusal has to name the build command. "Failed to parse
+/// The refusal has to point at the artifact. "Failed to parse
 /// WebAssembly module" — what wasmtime says on its own — sends the
 /// reader looking for a corrupt download, which is not what happened
 /// and not what fixes it.
@@ -88,6 +88,11 @@ fn a_core_module_is_refused_by_name() {
     assert!(
         message.contains("cargo component build"),
         "the message must say what to do about it: {message}"
+    );
+    assert!(
+        message.contains("published"),
+        "and must point at the artifact, not only at the build command — the two \
+         plugins this gate exists for were built correctly and packaged wrong: {message}"
     );
     assert_eq!(err.code(), "not-a-component");
 }
@@ -139,8 +144,8 @@ fn a_real_component_still_loads() {
 
 /// A file that is not wasm at all — an HTML error page saved under the
 /// asset's name is the realistic version — must not be reported as a
-/// wrong build command, which would send the plugin's author chasing
-/// something that is not wrong.
+/// packaging or build mistake, which would send the plugin's author
+/// chasing something that is not wrong.
 #[test]
 fn a_non_wasm_file_is_refused_as_such() {
     let (_tmp, paths) = stage(b"<!DOCTYPE html><title>404</title>");
