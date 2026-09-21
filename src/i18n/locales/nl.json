@@ -1665,7 +1665,19 @@
       },
       "bundled": "Ingebouwd",
       "bundledHint": "Meegeleverd met WaveFlow — schakel het uit om het te verbergen.",
-      "optionsAria": "Opties voor {{name}}"
+      "optionsAria": "Opties voor {{name}}",
+      "options": {
+        "saved": "Opgeslagen",
+        "secretStored": "Opgeslagen — plak om te vervangen",
+        "secretClear": "Wissen"
+      },
+      "attention": {
+        "authRequired": {
+          "title": "{{name}}: aanmelding geweigerd",
+          "body": "De opgeslagen cookie of token is verlopen of ingetrokken. Plak een nieuwe in Instellingen → Extensies."
+        },
+        "dismiss": "Sluiten"
+      }
     },
     "shortcuts": {
       "subtitle": "Klik op een sneltoets en druk vervolgens op de gewenste toetscombinatie. Backspace om te wissen, Esc om te annuleren.",

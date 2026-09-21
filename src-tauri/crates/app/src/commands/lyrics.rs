@@ -2041,11 +2041,13 @@ async fn try_plugin_lyrics(
                 continue;
             }
             Ok(Ok(Err(err))) => {
-                tracing::debug!(
-                    plugin = %plugin_id,
-                    err = %err.detail(),
-                    "plugin lyrics lookup failed"
-                );
+                if !crate::plugin_attention::inspect(&plugin_id, &err) {
+                    tracing::debug!(
+                        plugin = %plugin_id,
+                        err = %err.detail(),
+                        "plugin lyrics lookup failed"
+                    );
+                }
                 continue;
             }
             Ok(Err(e)) => {

@@ -1665,7 +1665,19 @@
       },
       "bundled": "내장",
       "bundledHint": "WaveFlow에 포함되어 있습니다 — 숨기려면 비활성화하세요.",
-      "optionsAria": "{{name}} 옵션"
+      "optionsAria": "{{name}} 옵션",
+      "options": {
+        "saved": "저장됨",
+        "secretStored": "저장됨 — 붙여넣어 교체",
+        "secretClear": "지우기"
+      },
+      "attention": {
+        "authRequired": {
+          "title": "{{name}}: 로그인이 거부됨",
+          "body": "저장된 쿠키 또는 토큰이 만료되었거나 취소되었습니다. 설정 → 확장 기능에서 새 값을 붙여넣으세요."
+        },
+        "dismiss": "닫기"
+      }
     },
     "shortcuts": {
       "subtitle": "단축키를 클릭한 후 원하는 키 조합을 누르세요. 지우려면 Backspace, 취소하려면 Escape를 누르세요.",

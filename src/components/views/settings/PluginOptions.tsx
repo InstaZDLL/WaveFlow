@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Check } from "lucide-react";
 
 import {
   getPluginOptions,
@@ -43,7 +45,17 @@ function ManifestOptions({ pluginId }: { pluginId: string }) {
   const [options, setOptions] = useState<PluginOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  // The option just written, for the "Saved" confirmation. A text field
+  // gave no sign of having been saved at all, so people pasted a token
+  // and did not know whether to press Enter.
+  const [savedKey, setSavedKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (savedKey == null) return;
+    const timer = window.setTimeout(() => setSavedKey(null), 2500);
+    return () => window.clearTimeout(timer);
+  }, [savedKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,12 +80,23 @@ function ManifestOptions({ pluginId }: { pluginId: string }) {
     async (key: string, value: string | null) => {
       if (savingKey) return;
       setSavingKey(key);
+      setSavedKey(null);
       setError(null);
       setOptions((prev) =>
-        prev.map((o) => (o.key === key ? { ...o, value } : o)),
+        prev.map((o) =>
+          o.key === key
+            ? {
+                ...o,
+                // A sensitive value is never held here, only whether one is.
+                value: o.sensitive ? null : value,
+                isSet: value != null && value !== "",
+              }
+            : o,
+        ),
       ); // optimistic
       try {
         await setPluginOption(pluginId, key, value);
+        setSavedKey(key);
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
         // Revert to the persisted truth.
@@ -103,6 +126,7 @@ function ManifestOptions({ pluginId }: { pluginId: string }) {
           key={option.key}
           option={option}
           disabled={savingKey !== null}
+          saved={savedKey === option.key}
           onChange={(v) => onChange(option.key, v)}
         />
       ))}
@@ -113,12 +137,15 @@ function ManifestOptions({ pluginId }: { pluginId: string }) {
 function OptionControl({
   option,
   disabled,
+  saved,
   onChange,
 }: {
   option: PluginOption;
   disabled: boolean;
+  saved: boolean;
   onChange: (value: string | null) => void;
 }) {
+  const { t } = useTranslation();
   const localized = useLocalizedText();
   // Effective value = user override, else the manifest default.
   const effective = option.value ?? option.default ?? "";
@@ -172,16 +199,117 @@ function OptionControl({
           ))}
         </select>
       ) : (
-        <input
-          type="text"
-          defaultValue={effective}
+        <TextOption
+          // Remounted whenever the stored value moves — a revert after a
+          // failed save must show — which also leaves a sensitive field
+          // blank again after each write.
+          key={`${effective}:${option.isSet}`}
+          option={option}
+          effective={effective}
+          label={label}
           disabled={disabled}
-          aria-label={label}
-          onBlur={(e) => {
-            if (e.target.value !== effective) onChange(e.target.value);
-          }}
-          className="shrink-0 w-40 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 px-2 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50"
+          saved={saved}
+          onChange={onChange}
+          savedLabel={t("settings.plugins.options.saved")}
+          storedPlaceholder={t("settings.plugins.options.secretStored")}
+          clearLabel={t("settings.plugins.options.secretClear")}
         />
+      )}
+    </div>
+  );
+}
+
+/**
+ * A `text` option. Saves on Enter and on leaving the field — a credential
+ * also the moment it is pasted — and says so: it used to save on blur
+ * alone, silently.
+ *
+ * A sensitive option (a cookie, a token) is a password field that starts
+ * empty: the host never sends the stored value back, only whether there
+ * is one, which the placeholder says. Pasting replaces it; the clear
+ * button removes it.
+ */
+function TextOption({
+  option,
+  effective,
+  label,
+  disabled,
+  saved,
+  onChange,
+  savedLabel,
+  storedPlaceholder,
+  clearLabel,
+}: {
+  option: PluginOption;
+  effective: string;
+  label: string;
+  disabled: boolean;
+  saved: boolean;
+  onChange: (value: string | null) => void;
+  savedLabel: string;
+  storedPlaceholder: string;
+  clearLabel: string;
+}) {
+  const sensitive = option.sensitive;
+  const [draft, setDraft] = useState(sensitive ? "" : effective);
+
+  const commit = (value: string) => {
+    const next = value.trim();
+    if (sensitive) {
+      if (next === "") return;
+      onChange(next);
+      setDraft("");
+      return;
+    }
+    if (next !== effective) onChange(next);
+  };
+
+  return (
+    <div className="shrink-0 flex items-center gap-2">
+      {saved && (
+        <span
+          role="status"
+          className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400"
+        >
+          <Check size={12} aria-hidden="true" />
+          {savedLabel}
+        </span>
+      )}
+      <input
+        type={sensitive ? "password" : "text"}
+        value={draft}
+        disabled={disabled}
+        aria-label={label}
+        autoComplete="off"
+        spellCheck={false}
+        placeholder={sensitive && option.isSet ? storedPlaceholder : undefined}
+        onChange={(e) => setDraft(e.target.value)}
+        onPaste={(e) => {
+          // A credential is saved the moment it is pasted: pasting it is
+          // the whole gesture, and nothing on screen said Enter was
+          // needed. A plain text option keeps ordinary editing — a paste
+          // may land in the middle of what is there.
+          if (!sensitive) return;
+          const pasted = e.clipboardData.getData("text");
+          if (!pasted) return;
+          e.preventDefault();
+          commit(pasted);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit(draft);
+        }}
+        onBlur={() => commit(draft)}
+        className="w-40 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 px-2 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50"
+      />
+      {sensitive && option.isSet && (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange(null)}
+          className="text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-white underline-offset-2 hover:underline disabled:opacity-50"
+        >
+          {clearLabel}
+        </button>
       )}
     </div>
   );

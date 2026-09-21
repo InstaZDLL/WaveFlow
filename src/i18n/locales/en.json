@@ -1665,7 +1665,19 @@
       },
       "bundled": "Built-in",
       "bundledHint": "Ships with WaveFlow — disable it to hide it.",
-      "optionsAria": "Options for {{name}}"
+      "optionsAria": "Options for {{name}}",
+      "options": {
+        "saved": "Saved",
+        "secretStored": "Saved — paste to replace",
+        "secretClear": "Clear"
+      },
+      "attention": {
+        "authRequired": {
+          "title": "{{name}}: sign-in refused",
+          "body": "The saved cookie or token has expired or been revoked. Paste a new one in Settings → Extensions."
+        },
+        "dismiss": "Dismiss"
+      }
     },
     "shortcuts": {
       "subtitle": "Click a shortcut then press the key combination you want. Backspace to clear, Escape to cancel.",

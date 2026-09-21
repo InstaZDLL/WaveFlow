@@ -381,8 +381,13 @@ export interface PluginOption {
   choices: string[];
   /** Manifest-authored: a plain string, or a `{ lang: text }` map. */
   description: LocalizedText | null;
-  /** Current stored value; `null` = unset (the plugin uses `default`). */
+  /** Current stored value; `null` = unset (the plugin uses `default`).
+   *  Always `null` for a sensitive option — see `isSet`. */
   value: string | null;
+  /** A credential (cookie, token): masked, its value never sent here. */
+  sensitive: boolean;
+  /** Whether a value is stored — all the panel knows of a sensitive one. */
+  isSet: boolean;
 }
 
 /** List a plugin's declared options merged with the user's current values. */

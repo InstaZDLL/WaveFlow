@@ -954,7 +954,13 @@ pub struct PluginOption {
     /// Plain string or `{ lang -> text }`, resolved frontend-side.
     pub description: Option<LocalizedString>,
     /// Current stored value; `None` = unset (the plugin uses `default`).
+    /// Always `None` for a sensitive option: see [`Self::is_set`].
     pub value: Option<String>,
+    /// A credential: masked in the panel, its value never sent here.
+    pub sensitive: bool,
+    /// Whether a value is stored. The one thing the panel learns about a
+    /// sensitive option, so it can say "saved" without holding the token.
+    pub is_set: bool,
 }
 
 /// Validate a proposed option `value` against its manifest declaration.
@@ -1004,7 +1010,13 @@ pub async fn get_plugin_options(
             .options
             .into_iter()
             .map(|o| PluginOption {
-                value: values.get(&o.key).cloned(),
+                is_set: values.get(&o.key).is_some_and(|v| !v.is_empty()),
+                value: if o.sensitive {
+                    None
+                } else {
+                    values.get(&o.key).cloned()
+                },
+                sensitive: o.sensitive,
                 key: o.key,
                 option_type: o.option_type,
                 label: o.label,

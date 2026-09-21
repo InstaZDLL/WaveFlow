@@ -307,6 +307,16 @@ pub struct OptionDecl {
     /// into it at parse time.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description_i18n: Option<BTreeMap<String, String>>,
+    /// A credential — a cookie, a token. The settings panel masks it,
+    /// and the host never sends its stored value back to the webview:
+    /// only whether one is set. Meaningful on `text` only.
+    ///
+    /// A flag rather than a new type on purpose: an older host ignores a
+    /// field it does not know and reads the option as plain text, where
+    /// it would reject an unknown type and mark the plugin broken. A
+    /// plugin can set it without dropping support for older hosts.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub sensitive: bool,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -579,6 +589,30 @@ storage_read = true
         assert_eq!(m.options[0].option_type, "enum");
         assert_eq!(m.options[0].choices, vec!["720", "1080"]);
         assert_eq!(m.options[1].option_type, "bool");
+    }
+
+    /// A credential is flagged on a plain `text` option, and an option
+    /// that does not say so is not one.
+    #[test]
+    fn a_sensitive_option_is_a_flag_on_text() {
+        let raw = format!(
+            "{}
+[[options]]
+key = \"token\"
+type = \"text\"
+label = \"Token\"
+sensitive = true
+
+[[options]]
+key = \"lang\"
+type = \"text\"
+label = \"Language\"
+",
+            fixture(worlds::SOURCE_V1, &[])
+        );
+        let m = Manifest::parse(&raw).expect("valid options");
+        assert!(m.options[0].sensitive);
+        assert!(!m.options[1].sensitive);
     }
 
     #[test]

@@ -1665,7 +1665,19 @@
       },
       "bundled": "内置",
       "bundledHint": "随 WaveFlow 提供——禁用以隐藏。",
-      "optionsAria": "{{name}} 的选项"
+      "optionsAria": "{{name}} 的选项",
+      "options": {
+        "saved": "已保存",
+        "secretStored": "已保存 — 粘贴以替换",
+        "secretClear": "清除"
+      },
+      "attention": {
+        "authRequired": {
+          "title": "{{name}}：登录被拒绝",
+          "body": "已保存的 Cookie 或令牌已过期或被撤销。请在 设置 → 扩展 中粘贴新的值。"
+        },
+        "dismiss": "关闭"
+      }
     },
     "integrations": {
       "lastfm": {

@@ -21,6 +21,7 @@ mod notifications;
 mod offline;
 mod paths;
 mod player_actions;
+mod plugin_attention;
 mod queue;
 mod render_mode;
 // Remote play queue (RFC-005). Plain in-memory data — compiled
@@ -178,6 +179,9 @@ pub fn run() {
             let setup_guard = render_mode::SetupGuard::new();
             let init_handle = app.handle().clone();
             let engine_handle = app.handle().clone();
+            // Before any plugin runs, so a credential refused on the very
+            // first lookup still reaches the user.
+            plugin_attention::init(app.handle().clone());
 
             // Block on the async init — this runs once at startup before any
             // command can be dispatched, so blocking here is acceptable.

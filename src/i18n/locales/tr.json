@@ -1665,7 +1665,19 @@
       },
       "bundled": "Yerleşik",
       "bundledHint": "WaveFlow ile birlikte gelir — gizlemek için devre dışı bırak.",
-      "optionsAria": "{{name}} seçenekleri"
+      "optionsAria": "{{name}} seçenekleri",
+      "options": {
+        "saved": "Kaydedildi",
+        "secretStored": "Kaydedildi — değiştirmek için yapıştırın",
+        "secretClear": "Temizle"
+      },
+      "attention": {
+        "authRequired": {
+          "title": "{{name}}: oturum reddedildi",
+          "body": "Kaydedilen çerez veya belirtecin süresi doldu ya da iptal edildi. Ayarlar → Eklentiler bölümüne yenisini yapıştırın."
+        },
+        "dismiss": "Kapat"
+      }
     },
     "shortcuts": {
       "subtitle": "Bir kısayola tıkla ve ardından istediğin tuş kombinasyonuna bas. Silmek için Backspace, iptal için Esc.",

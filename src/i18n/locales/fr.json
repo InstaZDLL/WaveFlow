@@ -1668,7 +1668,19 @@
       },
       "bundled": "Inclus",
       "bundledHint": "Livré avec WaveFlow — désactivez-le pour le masquer.",
-      "optionsAria": "Options de {{name}}"
+      "optionsAria": "Options de {{name}}",
+      "options": {
+        "saved": "Enregistré",
+        "secretStored": "Enregistré — collez pour remplacer",
+        "secretClear": "Effacer"
+      },
+      "attention": {
+        "authRequired": {
+          "title": "{{name}} : identifiant refusé",
+          "body": "Le cookie ou le jeton enregistré a expiré ou a été révoqué. Collez-en un nouveau dans Paramètres → Extensions."
+        },
+        "dismiss": "Fermer"
+      }
     },
     "categoryNavLabel": "Catégories des paramètres",
     "appearance": {

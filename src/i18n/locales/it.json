@@ -1668,7 +1668,19 @@
       },
       "bundled": "Integrato",
       "bundledHint": "Incluso in WaveFlow — disattivalo per nasconderlo.",
-      "optionsAria": "Opzioni di {{name}}"
+      "optionsAria": "Opzioni di {{name}}",
+      "options": {
+        "saved": "Salvato",
+        "secretStored": "Salvato — incolla per sostituire",
+        "secretClear": "Cancella"
+      },
+      "attention": {
+        "authRequired": {
+          "title": "{{name}}: accesso rifiutato",
+          "body": "Il cookie o il token salvato è scaduto o è stato revocato. Incollane uno nuovo in Impostazioni → Estensioni."
+        },
+        "dismiss": "Chiudi"
+      }
     },
     "shortcuts": {
       "subtitle": "Clicca su una scorciatoia e premi la combinazione di tasti desiderata. Backspace per cancellare, Esc per annullare.",
