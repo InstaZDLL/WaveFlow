@@ -578,7 +578,9 @@
       "summary_one": "{{count}} замечание",
       "summary_other": "{{count}} замечаний",
       "trackCount_one": "{{count}} трек",
+      "artistCount_one": "{{count}} исполнитель",
       "trackCount_other": "{{count}} треков",
+      "artistCount_other": "{{count}} исполнителя",
       "categories": {
         "missing_title": {
           "label": "Без названия",
@@ -627,12 +629,24 @@
         "probable_duplicate": {
           "label": "Вероятные дубликаты",
           "help": "То же название, тот же исполнитель, почти та же длительность."
+        },
+        "phantom_artist": {
+          "label": "Исполнители для разделения",
+          "help": "Имена, похожие на нескольких исполнителей через запятую."
         }
       },
       "summary_few": "{{count}} замечания",
       "summary_many": "{{count}} замечаний",
       "trackCount_few": "{{count}} трека",
-      "trackCount_many": "{{count}} треков"
+      "artistCount_few": "{{count}} исполнителя",
+      "trackCount_many": "{{count}} треков",
+      "artistCount_many": "{{count}} исполнителей",
+      "phantoms": {
+        "split": "Разделить",
+        "confirm": "Подтвердить",
+        "dismiss": "Это не дуэт",
+        "known": "Уже в медиатеке"
+      }
     },
     "columns": {
       "choose": "Столбцы",

@@ -83,6 +83,21 @@ pub async fn split_artist(
 /// DB-only core of [`split_artist`], split out so integration tests can
 /// drive it against a migrated in-memory profile DB without a Tauri
 /// `AppState`.
+/// The names a split of `name` would produce, in tag order.
+///
+/// Comma-split — the deliberate opposite of the scanner's `"; "`-only
+/// policy, gated behind an explicit user action so a real name like
+/// "Tyler, The Creator" is never fragmented without intent. Shared with
+/// the inventory's list of artists to split (#719), so what that list
+/// offers is exactly what the split then does.
+pub(crate) fn split_fragments(name: &str) -> Vec<String> {
+    name.split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
 pub(crate) async fn split_artist_inner(
     pool: &SqlitePool,
     artist_id: i64,
@@ -93,15 +108,7 @@ pub(crate) async fn split_artist_inner(
         .await?
         .ok_or_else(|| AppError::Other(format!("artist {artist_id} not found")))?;
 
-    // Comma-split — the deliberate opposite of the scanner's `"; "`-only
-    // policy, gated behind this explicit user action so a real name like
-    // "Tyler, The Creator" is never fragmented without intent.
-    let parts: Vec<String> = name
-        .split(',')
-        .map(|s| s.trim())
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
-        .collect();
+    let parts = split_fragments(&name);
     if parts.len() < 2 {
         return Err(AppError::Other(
             "this artist name has no comma-separated parts to split".into(),

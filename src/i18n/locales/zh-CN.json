@@ -528,7 +528,9 @@
       "summary_one": "{{count}} 处待修正",
       "summary_other": "{{count}} 处待修正",
       "trackCount_one": "{{count}} 首",
+      "artistCount_one": "{{count}} 位艺人",
       "trackCount_other": "{{count}} 首",
+      "artistCount_other": "{{count}} 位艺人",
       "categories": {
         "missing_title": {
           "label": "没有标题",
@@ -577,7 +579,17 @@
         "probable_duplicate": {
           "label": "疑似重复",
           "help": "标题相同、艺人相同、时长几乎一致。"
+        },
+        "phantom_artist": {
+          "label": "待拆分的艺人",
+          "help": "看起来像是用逗号连接的多位艺人的名称。"
         }
+      },
+      "phantoms": {
+        "split": "拆分",
+        "confirm": "确认",
+        "dismiss": "不是组合",
+        "known": "已在资料库中"
       }
     },
     "columns": {

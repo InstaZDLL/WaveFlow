@@ -528,7 +528,9 @@
       "summary_one": "{{count}} Punkt zu korrigieren",
       "summary_other": "{{count}} Punkte zu korrigieren",
       "trackCount_one": "{{count}} Titel",
+      "artistCount_one": "{{count}} Künstler",
       "trackCount_other": "{{count}} Titel",
+      "artistCount_other": "{{count}} Künstler",
       "categories": {
         "missing_title": {
           "label": "Ohne Titel",
@@ -577,7 +579,17 @@
         "probable_duplicate": {
           "label": "Wahrscheinliche Duplikate",
           "help": "Gleicher Titel, gleicher Interpret, fast gleiche Länge."
+        },
+        "phantom_artist": {
+          "label": "Aufzuteilende Künstler",
+          "help": "Namen, die wie mehrere durch Kommas verbundene Künstler aussehen."
         }
+      },
+      "phantoms": {
+        "split": "Aufteilen",
+        "confirm": "Bestätigen",
+        "dismiss": "Kein Duo",
+        "known": "Bereits in der Mediathek"
       }
     },
     "columns": {

@@ -43,6 +43,9 @@ use sqlx::Row;
 use waveflow_core::inventory::{chain_by_duration, DURATION_TOLERANCE_MS};
 use waveflow_core::metadata::name_match::normalize_name;
 
+use waveflow_core::scanner::canonical_name;
+
+use super::artist_split::split_fragments;
 use super::browse::{
     expand_library_track_rows, library_track_order_clause, library_tracks_sql_where,
     LibraryTrackRawRow, ListLibraryTracksResponse,
@@ -202,10 +205,142 @@ const CATEGORIES: &[&str] = &[
     "duplicate_track_number",
     "track_number_gap",
     "probable_duplicate",
+    PHANTOM,
 ];
 
 /// The key whose members are computed in Rust rather than in SQL.
 const PROBABLE: &str = "probable_duplicate";
+
+/// The one category made of artists rather than tracks (#719): names that
+/// look like several artists joined by commas. Listed by
+/// [`inventory_phantom_artists`]; [`inventory_tracks`] has nothing for it.
+const PHANTOM: &str = "phantom_artist";
+
+/// `profile_setting` key: JSON array of the canonical names the user said
+/// are one artist ("not a split"), so the list stops asking about them.
+pub const DISMISSED_PHANTOMS_KEY: &str = "inventory.dismissed_phantoms";
+
+/// One name a phantom would split into.
+#[derive(Debug, Clone, Serialize)]
+pub struct PhantomFragment {
+    pub name: String,
+    /// The artist already in the library under that name, if any — the
+    /// row the split will reuse.
+    pub artist_id: Option<i64>,
+}
+
+/// An artist whose name looks like several joined by commas.
+#[derive(Debug, Clone, Serialize)]
+pub struct PhantomArtist {
+    pub id: i64,
+    pub name: String,
+    /// What `not a split` stores, so it matches what this list reads.
+    pub canonical_name: String,
+    pub track_count: i64,
+    pub fragments: Vec<PhantomFragment>,
+}
+
+/// Artists whose name is several names joined by commas, most likely
+/// phantoms first.
+///
+/// **Every comma-joined name is listed**, not only those whose fragments
+/// already exist as artists — which is what the issue proposed, and what
+/// measuring against real libraries ruled out: in one of them, 18 of 39
+/// comma names had no fragment in the library at all, and every one of
+/// them was a real duo (`Drake, Lil Durk`). The fragments that do exist
+/// are shown and sort a name up, as evidence rather than as a gate.
+///
+/// A comma is still only a hint (`Tyler, The Creator`), so the user can
+/// say "not a split" once; that is remembered per profile, by canonical
+/// name so a rescan that recreates the row does not bring it back.
+///
+/// Only artists credited on an available track: a phantom nothing plays
+/// is not worth an entry.
+async fn phantom_artists(pool: &sqlx::SqlitePool) -> AppResult<Vec<PhantomArtist>> {
+    let candidates: Vec<(i64, String, String, i64)> = sqlx::query_as(
+        "SELECT a.id, a.name, a.canonical_name, COUNT(DISTINCT t.id)
+           FROM artist a
+           JOIN track_artist ta ON ta.artist_id = a.id
+           JOIN track t ON t.id = ta.track_id AND t.is_available = 1
+          WHERE instr(a.name, ',') > 0
+          GROUP BY a.id",
+    )
+    .fetch_all(pool)
+    .await?;
+    if candidates.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let dismissed: Vec<String> =
+        sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
+            .bind(DISMISSED_PHANTOMS_KEY)
+            .fetch_optional(pool)
+            .await?
+            .and_then(|raw| serde_json::from_str(&raw).ok())
+            .unwrap_or_default();
+
+    let known: std::collections::HashMap<String, i64> =
+        sqlx::query_as::<_, (String, i64)>("SELECT canonical_name, id FROM artist")
+            .fetch_all(pool)
+            .await?
+            .into_iter()
+            .collect();
+
+    let mut out = Vec::new();
+    for (id, name, canonical, track_count) in candidates {
+        if dismissed.contains(&canonical) {
+            continue;
+        }
+        let fragments: Vec<PhantomFragment> = split_fragments(&name)
+            .into_iter()
+            .map(|fragment| {
+                let artist_id = known
+                    .get(&canonical_name(&fragment))
+                    .copied()
+                    .filter(|found| *found != id);
+                PhantomFragment {
+                    name: fragment,
+                    artist_id,
+                }
+            })
+            .collect();
+        // The same test the split applies: at least two distinct names,
+        // none of them the artist itself.
+        let mut distinct: Vec<String> = fragments.iter().map(|f| canonical_name(&f.name)).collect();
+        distinct.sort();
+        distinct.dedup();
+        distinct.retain(|c| !c.is_empty() && *c != canonical);
+        if distinct.len() < 2 {
+            continue;
+        }
+        out.push(PhantomArtist {
+            id,
+            name,
+            canonical_name: canonical,
+            track_count,
+            fragments,
+        });
+    }
+
+    let known_count =
+        |p: &PhantomArtist| p.fragments.iter().filter(|f| f.artist_id.is_some()).count();
+    out.sort_by(|a, b| {
+        known_count(b)
+            .cmp(&known_count(a))
+            .then(b.track_count.cmp(&a.track_count))
+            .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+    });
+    Ok(out)
+}
+
+/// The artists the "artists to split" category holds (#719).
+#[tauri::command]
+pub async fn inventory_phantom_artists(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Vec<PhantomArtist>> {
+    let pool = state.require_profile_pool().await?;
+    phantom_artists(&pool).await
+}
 
 /// Track ids that are probably the same recording as some other track.
 ///
@@ -290,6 +425,8 @@ pub async fn inventory_summary(
     for key in CATEGORIES {
         let count = if *key == PROBABLE {
             probable_duplicate_ids(&pool).await?.len() as i64
+        } else if *key == PHANTOM {
+            phantom_artists(&pool).await?.len() as i64
         } else {
             let Some(clause) = where_for(key) else {
                 continue;
@@ -620,5 +757,76 @@ mod tests {
         // discs 1 and 3 each hold a track numbered differently but would
         // collide if the check grouped by album alone.
         assert_eq!(ids_for(&pool, "duplicate_track_number").await, vec![9, 10]);
+    }
+
+    /// #719, against the real migrations. Four comma names:
+    ///
+    /// - `Ice Spice, Central Cee`, one fragment already an artist: listed
+    ///   first, with that fragment linked;
+    /// - `Drake, Lil Durk`, no fragment in the library: still listed —
+    ///   measured on a real library, that is what most real duos look like;
+    /// - `Tyler, The Creator`, dismissed by the user: not listed;
+    /// - `Solo,` which splits into one name only: not a split at all.
+    ///
+    /// And `Unplayed, Duo`, credited on no available track: not listed.
+    #[tokio::test]
+    async fn comma_names_are_listed_unless_dismissed_or_unsplittable() {
+        let pool = pool().await;
+        sqlx::raw_sql(
+            r#"INSERT INTO library (id, name, color_id, icon_id, created_at, updated_at,
+                                  hlc_wall, hlc_logical)
+             VALUES (1, 'L', 1, 1, 0, 0, 0, 0);
+             INSERT INTO artist (id, name, canonical_name) VALUES
+                 (1, 'Ice Spice, Central Cee', 'ice spice central cee'),
+                 (2, 'Ice Spice', 'ice spice'),
+                 (3, 'Drake, Lil Durk', 'drake lil durk'),
+                 (4, 'Tyler, The Creator', 'tyler the creator'),
+                 (5, 'Solo,', 'solo'),
+                 (6, 'Unplayed, Duo', 'unplayed duo');
+             INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('inventory.dismissed_phantoms', '["tyler the creator"]', 'json', 0);"#,
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        for (id, artist, available) in [
+            (1i64, 1i64, 1i64),
+            (2, 1, 1),
+            (3, 3, 1),
+            (4, 4, 1),
+            (5, 5, 1),
+            (6, 6, 0),
+        ] {
+            sqlx::query(
+                "INSERT INTO track (id, library_id, file_path, file_hash, file_size,
+                                    file_modified, title, primary_artist, duration_ms,
+                                    added_at, is_available, hlc_wall, hlc_logical,
+                                    rating_hlc_wall, rating_hlc_logical)
+                 VALUES (?, 1, ?, ?, 1, 0, 'T', ?, 300000, 0, ?, 0, 0, 0, 0)",
+            )
+            .bind(id)
+            .bind(format!("/p/{id}.flac"))
+            .bind(format!("p{id}"))
+            .bind(artist)
+            .bind(available)
+            .execute(&pool)
+            .await
+            .unwrap();
+            sqlx::query(
+                "INSERT INTO track_artist (track_id, artist_id, position) VALUES (?, ?, 0)",
+            )
+            .bind(id)
+            .bind(artist)
+            .execute(&pool)
+            .await
+            .unwrap();
+        }
+
+        let listed = phantom_artists(&pool).await.unwrap();
+        let names: Vec<&str> = listed.iter().map(|p| p.name.as_str()).collect();
+        assert_eq!(names, vec!["Ice Spice, Central Cee", "Drake, Lil Durk"]);
+        assert_eq!(listed[0].track_count, 2);
+        assert_eq!(listed[0].fragments[0].artist_id, Some(2));
+        assert_eq!(listed[0].fragments[1].artist_id, None);
     }
 }

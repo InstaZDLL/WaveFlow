@@ -529,7 +529,9 @@
       "summary_one": "{{count}} point à corriger",
       "summary_other": "{{count}} points à corriger",
       "trackCount_one": "{{count}} titre",
+      "artistCount_one": "{{count}} artiste",
       "trackCount_other": "{{count}} titres",
+      "artistCount_other": "{{count}} artistes",
       "categories": {
         "missing_title": {
           "label": "Sans titre",
@@ -578,7 +580,17 @@
         "probable_duplicate": {
           "label": "Doublons probables",
           "help": "Même titre, même artiste, durée quasi identique."
+        },
+        "phantom_artist": {
+          "label": "Artistes à scinder",
+          "help": "Des noms qui ressemblent à plusieurs artistes joints par des virgules."
         }
+      },
+      "phantoms": {
+        "split": "Scinder",
+        "confirm": "Confirmer",
+        "dismiss": "Pas un duo",
+        "known": "Déjà dans la bibliothèque"
       }
     },
     "columns": {

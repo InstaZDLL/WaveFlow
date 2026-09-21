@@ -528,7 +528,9 @@
       "summary_one": "확인할 항목 {{count}}개",
       "summary_other": "확인할 항목 {{count}}개",
       "trackCount_one": "{{count}}곡",
+      "artistCount_one": "아티스트 {{count}}명",
       "trackCount_other": "{{count}}곡",
+      "artistCount_other": "아티스트 {{count}}명",
       "categories": {
         "missing_title": {
           "label": "제목 없음",
@@ -577,7 +579,17 @@
         "probable_duplicate": {
           "label": "중복 가능성",
           "help": "같은 제목, 같은 아티스트, 거의 같은 길이."
+        },
+        "phantom_artist": {
+          "label": "분리할 아티스트",
+          "help": "여러 아티스트가 쉼표로 이어진 것처럼 보이는 이름입니다."
         }
+      },
+      "phantoms": {
+        "split": "분리",
+        "confirm": "확인",
+        "dismiss": "듀오 아님",
+        "known": "이미 보관함에 있음"
       }
     },
     "columns": {

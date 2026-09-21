@@ -607,7 +607,9 @@
       "summary_one": "{{count}} نقطة للتصحيح",
       "summary_other": "{{count}} نقطة للتصحيح",
       "trackCount_one": "مقطع واحد",
+      "artistCount_one": "فنان واحد",
       "trackCount_other": "{{count}} مقطع",
+      "artistCount_other": "{{count}} فنان",
       "categories": {
         "missing_title": {
           "label": "بلا عنوان",
@@ -656,6 +658,10 @@
         "probable_duplicate": {
           "label": "تكرار مرجّح",
           "help": "العنوان نفسه والفنان نفسه ومدة شبه متطابقة."
+        },
+        "phantom_artist": {
+          "label": "فنانون للتقسيم",
+          "help": "أسماء تبدو كعدة فنانين مفصولين بفواصل."
         }
       },
       "summary_zero": "لا نقاط للتصحيح",
@@ -663,9 +669,19 @@
       "summary_few": "{{count}} نقاط للتصحيح",
       "summary_many": "{{count}} نقطة للتصحيح",
       "trackCount_zero": "لا مقاطع",
+      "artistCount_zero": "لا فنانين",
       "trackCount_two": "مقطعان",
+      "artistCount_two": "فنانان",
       "trackCount_few": "{{count}} مقاطع",
-      "trackCount_many": "{{count}} مقطعًا"
+      "artistCount_few": "{{count}} فنانين",
+      "trackCount_many": "{{count}} مقطعًا",
+      "artistCount_many": "{{count}} فنانًا",
+      "phantoms": {
+        "split": "تقسيم",
+        "confirm": "تأكيد",
+        "dismiss": "ليس ثنائيًا",
+        "known": "موجود في المكتبة"
+      }
     },
     "columns": {
       "choose": "الأعمدة",

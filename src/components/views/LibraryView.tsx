@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
 
 import { PlaylistGrid } from "./library/PlaylistGrid";
 import { InventoryCategories } from "./library/InventoryCategories";
+import { PhantomArtistList } from "./library/PhantomArtistList";
 import { TrackTableHeader } from "./library/TrackTableHeader";
 import { ColumnPicker } from "./library/ColumnPicker";
 import { useTrackColumns } from "../../hooks/useTrackColumns";
@@ -635,6 +636,8 @@ export function LibraryView({
   // category the user has left must not paint.
   useEffect(() => {
     if (activeTab !== "needs-attention" || inventoryCategory == null) return;
+    // The one category made of artists lists itself (#719).
+    if (inventoryCategory === "phantom_artist") return;
     // Same gate the other lists use: firing before the stored sort has
     // been read loads the whole category once in the default order and
     // again in the right one.
@@ -1671,7 +1674,15 @@ export function LibraryView({
                   point and not a report: same columns, same sort, same
                   context menu, same properties modal -- which is what
                   makes fixing a track from here possible at all. */}
+              {inventoryCategory === "phantom_artist" && (
+                <PhantomArtistList
+                  refreshKey={editRefetch}
+                  onChanged={() => setEditRefetch((k) => k + 1)}
+                  t={t}
+                />
+              )}
               {inventoryCategory != null &&
+                inventoryCategory !== "phantom_artist" &&
                 renderTrackTable(inventoryRows, inventoryBusy, (index) => {
                   void playTracks(inventoryRows.map(toLocalTrack), index, {
                     type: "library",

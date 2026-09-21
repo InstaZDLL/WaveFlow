@@ -529,7 +529,9 @@
       "summary_one": "{{count}} punto da correggere",
       "summary_other": "{{count}} punti da correggere",
       "trackCount_one": "{{count}} brano",
+      "artistCount_one": "{{count}} artista",
       "trackCount_other": "{{count}} brani",
+      "artistCount_other": "{{count}} artisti",
       "categories": {
         "missing_title": {
           "label": "Senza titolo",
@@ -578,7 +580,17 @@
         "probable_duplicate": {
           "label": "Probabili duplicati",
           "help": "Stesso titolo, stesso artista, durata quasi identica."
+        },
+        "phantom_artist": {
+          "label": "Artisti da separare",
+          "help": "Nomi che sembrano più artisti uniti da virgole."
         }
+      },
+      "phantoms": {
+        "split": "Separa",
+        "confirm": "Conferma",
+        "dismiss": "Non è un duo",
+        "known": "Già nella libreria"
       }
     },
     "columns": {

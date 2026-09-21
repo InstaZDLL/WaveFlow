@@ -528,7 +528,9 @@
       "summary_one": "{{count}} बात सुधारने को",
       "summary_other": "{{count}} बातें सुधारने को",
       "trackCount_one": "{{count}} ट्रैक",
+      "artistCount_one": "{{count}} कलाकार",
       "trackCount_other": "{{count}} ट्रैक",
+      "artistCount_other": "{{count}} कलाकार",
       "categories": {
         "missing_title": {
           "label": "शीर्षक नहीं",
@@ -577,7 +579,17 @@
         "probable_duplicate": {
           "label": "संभावित डुप्लिकेट",
           "help": "वही शीर्षक, वही कलाकार, लगभग वही अवधि।"
+        },
+        "phantom_artist": {
+          "label": "अलग करने लायक कलाकार",
+          "help": "ऐसे नाम जो कॉमा से जुड़े कई कलाकारों जैसे दिखते हैं।"
         }
+      },
+      "phantoms": {
+        "split": "अलग करें",
+        "confirm": "पुष्टि करें",
+        "dismiss": "जोड़ी नहीं है",
+        "known": "लाइब्रेरी में पहले से है"
       }
     },
     "columns": {

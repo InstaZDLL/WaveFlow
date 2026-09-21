@@ -210,7 +210,7 @@ An id of the form `tag:<key>` shows a frame from the user's files. Keys are offe
 
 ## "Needs attention" inventory
 
-[`commands/inventory.rs`](../../src-tauri/crates/app/src/commands/inventory.rs), surfaced as the library's last tab (#589). Twelve counted categories you click into — six "missing field" checks, one for formats we cannot write tags into, four album-level inconsistencies, and probable duplicates.
+[`commands/inventory.rs`](../../src-tauri/crates/app/src/commands/inventory.rs), surfaced as the library's last tab (#589). Thirteen counted categories you click into — six "missing field" checks, one for formats we cannot write tags into, four album-level inconsistencies, probable duplicates, and artists to split.
 
 **It is an entry point, not a report.** Every category is an extra `WHERE` on `browse::library_tracks_sql_where`, the same query the Tracks tab and the folder browser render, so clicking one loads those tracks into the library's own table — same columns, same sort, same context menu, same properties modal. Fixing a track from the inventory is therefore the ordinary edit flow, not a second one.
 
@@ -221,6 +221,11 @@ Five things the implementation has to get right:
 - **Album identity is `(canonical_title, album_artist_id)`.** The album-level checks group on `album.id`, which *is* that pair. Note the column holding the album artist is **`album.artist_id`** — there is no `album_artist_id` on the table, and the `album.album_artist` beside it is free text rather than the link.
 - **"Gap in the numbering" measures holes inside the observed range**, `MAX - MIN + 1 > COUNT(DISTINCT)`. The obvious spelling, `MAX > COUNT(DISTINCT)`, assumes every disc starts at 1 and reports a box set's third disc numbered 20-22 as missing nineteen tracks. The cost is that a missing *first* or *last* track is invisible — numbering alone cannot see it — which needs `album.total_tracks` and is left out rather than half-implemented.
 - **Probable duplicates chain, they do not compare pairs.** SQL groups by exact normalized title + credit list; [`waveflow_core::inventory::chain_by_duration`](../../src-tauri/crates/core/src/inventory.rs) then chains sorted durations in Rust. 180 s, 181.5 s and 183 s are one recording, but the outer pair is 3 s apart, so a pairwise tolerance splits them — and *which* two it splits into depends on iteration order, so the same library answers differently between runs. Chaining is transitive by construction, which is the right trade for a list a human reviews.
+
+**Artists to split (#719) is the one category made of artists, not tracks.** A comma-joined credit (`Ice Spice, Central Cee`) is one phantom credited on many tracks, all needing the same single fix, so it is listed once per artist, with the names the split would produce and the [split](#multi-artist) inline — a second click confirms it, since it relinks every track. The list uses the split's own `split_fragments`, so it never offers what the split would not do. Two decisions, both measured:
+
+- **Every comma name is listed**, not only those whose fragments already exist as artists. That stronger signal was the obvious one, and a real library ruled it out: 18 of its 39 comma names had no fragment in the library at all, and every one was a genuine duo. Fragments that do exist are marked (they are the rows the split reuses) and sort a name up — evidence, not a gate.
+- **A comma is still only a hint** (`Tyler, The Creator`), so each row offers "not a split", stored per profile in `profile_setting['inventory.dismissed_phantoms']` by canonical name, so a rescan that recreates the row does not bring it back.
 
 This is **not** the same question as [duplicate detection](#duplicate-detection) below, which hashes content and finds byte-identical copies. Probable duplicates are for the re-rips and re-encodes content hashing can never group; the two are complementary.
 
