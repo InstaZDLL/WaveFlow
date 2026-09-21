@@ -273,7 +273,32 @@ export function MiniPlayer() {
   const canvasEnabled = useCanvasEnabled();
   const reducedMotion = usePrefersReducedMotion();
   const canvasPath = useTrackCanvas(currentTrack);
-  const canvasActive = canvasEnabled && !reducedMotion && !!canvasPath;
+  // A closed mini-player is only hidden (see the close handler), so its
+  // clips are taken down while it is parked instead of decoding for a
+  // window nobody sees, and come back when it is shown and focused.
+  const [parked, setParked] = useState(false);
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    void getCurrentWindow()
+      .onFocusChanged(({ payload: focused }) => {
+        if (focused) setParked(false);
+      })
+      .then((off) => {
+        if (cancelled) off();
+        else unlisten = off;
+      })
+      .catch((err) => {
+        console.error("[MiniPlayer] focus listener failed", err);
+      });
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, []);
+  const clipsOn = !parked;
+  const canvasActive =
+    clipsOn && canvasEnabled && !reducedMotion && !!canvasPath;
   const motionCover = useAlbumMotionArtwork(
     currentTrack?.artist_name,
     currentTrack?.album_title,
@@ -398,6 +423,10 @@ export function MiniPlayer() {
     }
   };
 
+  // Both hide this window rather than close it: `openMiniPlayer` shows
+  // the same one again. A mini-player destroyed and re-created under the
+  // same label received its first replies on the old webview's dead
+  // handle, and opened on "No track playing" after a track change.
   const handleMaximize = async () => {
     try {
       const main = await TauriWindow.getByLabel("main");
@@ -406,7 +435,8 @@ export function MiniPlayer() {
         await main.unminimize();
         await main.setFocus();
       }
-      await getCurrentWindow().close();
+      setParked(true);
+      await getCurrentWindow().hide();
     } catch (err) {
       console.error("[MiniPlayer] maximize failed", err);
     }
@@ -416,7 +446,8 @@ export function MiniPlayer() {
     try {
       const main = await TauriWindow.getByLabel("main");
       if (main) await main.show();
-      await getCurrentWindow().close();
+      setParked(true);
+      await getCurrentWindow().hide();
     } catch (err) {
       console.error("[MiniPlayer] close failed", err);
     }
@@ -642,7 +673,7 @@ export function MiniPlayer() {
                         `relative` box, so the clips and the crossfade
                         land under the hover controls rather than over
                         them. */}
-                    {!canvasActive && (
+                    {clipsOn && !canvasActive && (
                       <MotionCoverOverlay
                         artist={currentTrack.artist_name}
                         album={currentTrack.album_title}
@@ -652,7 +683,7 @@ export function MiniPlayer() {
                     )}
                     <CanvasStage
                       path={canvasPath}
-                      enabled={canvasEnabled && !reducedMotion}
+                      enabled={clipsOn && canvasEnabled && !reducedMotion}
                       rounded="xl"
                     />
                     <CoverSlideshow
