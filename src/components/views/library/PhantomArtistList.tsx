@@ -126,9 +126,16 @@ export function PhantomArtistList({
     setArmed(null);
     setBusy(artist.id);
     setError(null);
+    // Captured before the await: by the time the split lands, another
+    // profile's rows may be showing, and the same id there is someone else.
+    const splitFor = loaded.profileId;
     try {
-      await splitArtist(artist.id, loaded.profileId);
-      setRows((prev) => prev.filter((r) => r.id !== artist.id));
+      await splitArtist(artist.id, splitFor);
+      setLoaded((prev) =>
+        prev.profileId === splitFor
+          ? { ...prev, rows: prev.rows.filter((r) => r.id !== artist.id) }
+          : prev,
+      );
       onChanged();
     } catch (err) {
       console.error("[PhantomArtistList] split failed", err);
