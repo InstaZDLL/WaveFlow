@@ -2224,6 +2224,10 @@
       "title": "Centra i testi sincronizzati a schermo intero",
       "subtitle": "Allinea i testi sincronizzati al centro della vista a schermo intero, come la versione testuale."
     },
+    "lyricsEstimateWords": {
+      "title": "Karaoke parola per parola stimato",
+      "subtitle": "Sui testi sincronizzati per riga, evidenzia le parole in base a una stima della loro durata. Solo visivo: non viene salvato nulla."
+    },
     "lyricsTranslation": {
       "title": "Traduzione dei testi (Musixmatch)",
       "subtitle": "Mostra una traduzione sotto ogni riga LRC quando Musixmatch ne fornisce una",

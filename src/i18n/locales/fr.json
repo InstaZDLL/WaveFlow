@@ -2248,6 +2248,10 @@
       "title": "Centrer les paroles synchronisées en plein écran",
       "subtitle": "Aligne les paroles synchronisées au centre de l'aperçu plein écran, comme l'affichage du texte brut."
     },
+    "lyricsEstimateWords": {
+      "title": "Karaoké mot à mot estimé",
+      "subtitle": "Sur les paroles synchronisées ligne par ligne, surligne les mots selon une estimation de leur durée. Purement visuel : rien n'est enregistré."
+    },
     "lyricsDestination": {
       "title": "Destination des paroles",
       "subtitle": "Où les paroles atterrissent sur le disque : celles que vous saisissez et celles que WaveFlow récupère. Vous pouvez toujours surcharger ce choix à chaque édition."

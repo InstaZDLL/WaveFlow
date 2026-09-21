@@ -2221,6 +2221,10 @@
       "title": "Pusatkan lirik tersinkron di layar penuh",
       "subtitle": "Menyelaraskan lirik tersinkron di tengah tampilan layar penuh, sama seperti teks polos."
     },
+    "lyricsEstimateWords": {
+      "title": "Karaoke kata per kata perkiraan",
+      "subtitle": "Pada lirik yang disinkronkan per baris, menyorot kata berdasarkan perkiraan durasinya. Hanya tampilan: tidak ada yang disimpan."
+    },
     "lyricsTranslation": {
       "title": "Terjemahan lirik (Musixmatch)",
       "subtitle": "Menampilkan terjemahan di bawah setiap baris LRC saat Musixmatch menyediakannya",

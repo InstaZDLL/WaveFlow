@@ -2221,6 +2221,10 @@
       "title": "Tam ekranda senkronize sözleri ortala",
       "subtitle": "Tam ekran görünümünde senkronize sözleri düz metin gibi ortaya hizalar."
     },
+    "lyricsEstimateWords": {
+      "title": "Tahmini kelime kelime karaoke",
+      "subtitle": "Satır bazında senkronize sözlerde, kelimeleri tahmini sürelerine göre vurgular. Yalnızca görsel: hiçbir şey kaydedilmez."
+    },
     "lyricsTranslation": {
       "title": "Şarkı sözü çevirisi (Musixmatch)",
       "subtitle": "Musixmatch çevirisi varsa her LRC satırının altında çeviriyi gösterir",

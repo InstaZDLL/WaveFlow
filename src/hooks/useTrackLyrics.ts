@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePlayer } from "./usePlayer";
+import { useEstimatedKaraoke } from "./useEstimatedKaraoke";
+import { estimateLineWords } from "../lib/lyricsWordEstimate";
 import { isRadioTrack, isRemoteTrack } from "../lib/playerSources";
 import { pickFile } from "../lib/tauri/dialog";
 import { remoteGetPlayQueue } from "../lib/tauri/remoteServer";
@@ -206,7 +208,7 @@ export function useTrackLyrics(): TrackLyrics {
   ]);
 
   // ── Parse lyrics once per content change ─────────────────────────
-  const lrcLines = useMemo<LyricsLine[]>(() => {
+  const parsedLines = useMemo<LyricsLine[]>(() => {
     if (!payload) return [];
     return parseLyrics(payload.content, payload.format);
   }, [payload]);
@@ -215,16 +217,17 @@ export function useTrackLyrics(): TrackLyrics {
   // the fetched content is synced LRC — the stream position is "seconds
   // since I tuned in", not "seconds into the song", so a highlight would
   // be wrong.
-  const isSynced = !isRadio && lrcLines.length > 0;
+  const isSynced = !isRadio && parsedLines.length > 0;
 
   // For radio, strip the LRC timestamps for a clean static read: reuse
   // the parsed lines' text, or fall back to the raw content when it was
   // already plain.
   const radioPlainText = useMemo<string | null>(() => {
     if (!isRadio || !payload) return null;
-    if (lrcLines.length > 0) return lrcLines.map((l) => l.text).join("\n");
+    if (parsedLines.length > 0)
+      return parsedLines.map((l) => l.text).join("\n");
     return payload.content;
-  }, [isRadio, payload, lrcLines]);
+  }, [isRadio, payload, parsedLines]);
 
   // ── Active-line tracking (auto-scroll lives in each consumer) ─────
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -235,14 +238,31 @@ export function useTrackLyrics(): TrackLyrics {
       return;
     }
     const idx = findActiveLineIndex(
-      lrcLines,
+      parsedLines,
       positionMs,
       Math.max(activeIndex, 0),
     );
     if (idx !== activeIndex) {
       setActiveIndex(idx);
     }
-  }, [positionMs, lrcLines, isSynced, activeIndex]);
+  }, [positionMs, parsedLines, isSynced, activeIndex]);
+
+  // Estimated word timing for line-synced lyrics (#716), opt-in. Only
+  // the active line gets words, re-derived each time a line becomes
+  // active and never stored, so a lyric the user reads plainly costs
+  // nothing and switching the setting off leaves no trace. A line that
+  // already carries real word timing is left exactly as it is.
+  const estimateWords = useEstimatedKaraoke();
+  const lrcLines = useMemo<LyricsLine[]>(() => {
+    if (!estimateWords || !isSynced || activeIndex < 0) return parsedLines;
+    const line = parsedLines[activeIndex];
+    if (!line || (line.words?.length ?? 0) > 0) return parsedLines;
+    const words = estimateLineWords(line, parsedLines[activeIndex + 1]?.timeMs);
+    if (words.length === 0) return parsedLines;
+    const next = parsedLines.slice();
+    next[activeIndex] = { ...line, words };
+    return next;
+  }, [estimateWords, isSynced, activeIndex, parsedLines]);
 
   // Active word inside the active line — only computed when the line
   // carries `words[]` so plain LRC stays cheap.

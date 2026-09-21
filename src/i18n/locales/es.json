@@ -2224,6 +2224,10 @@
       "title": "Centrar las letras sincronizadas en pantalla completa",
       "subtitle": "Alinea las letras sincronizadas al centro de la vista a pantalla completa, igual que el texto plano."
     },
+    "lyricsEstimateWords": {
+      "title": "Karaoke palabra por palabra estimado",
+      "subtitle": "En letras sincronizadas por línea, resalta las palabras según una estimación de su duración. Solo visual: no se guarda nada."
+    },
     "lyricsTranslation": {
       "title": "Traducción de letras (Musixmatch)",
       "subtitle": "Muestra una traducción bajo cada línea LRC cuando Musixmatch la tiene",

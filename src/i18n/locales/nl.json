@@ -2221,6 +2221,10 @@
       "title": "Gesynchroniseerde songtekst centreren in volledig scherm",
       "subtitle": "Plaatst de gesynchroniseerde songtekst in het midden van de volledige weergave, zoals de gewone tekst."
     },
+    "lyricsEstimateWords": {
+      "title": "Geschatte woord-voor-woord-karaoke",
+      "subtitle": "Markeert bij regel-gesynchroniseerde songteksten de woorden op basis van een schatting van hun duur. Alleen weergave: er wordt niets opgeslagen."
+    },
     "lyricsTranslation": {
       "title": "Songtekstvertaling (Musixmatch)",
       "subtitle": "Toont onder elke LRC-regel een vertaling wanneer Musixmatch er een aanbiedt",

@@ -2221,6 +2221,10 @@
       "title": "Center synced lyrics in fullscreen",
       "subtitle": "Align time-coded lyrics to the center of the fullscreen overlay, matching the plain text view."
     },
+    "lyricsEstimateWords": {
+      "title": "Estimated word-by-word karaoke",
+      "subtitle": "On line-synced lyrics, highlights the words from an estimate of how long each is sung. Display only: nothing is saved."
+    },
     "lyricsTranslation": {
       "title": "Lyrics translation (Musixmatch)",
       "subtitle": "Displays a translation under each LRC line when Musixmatch has one",

@@ -2221,6 +2221,10 @@
       "title": "全螢幕中將同步歌詞置中",
       "subtitle": "在全螢幕檢視中將帶時間戳的歌詞置中對齊，與純文字檢視保持一致。"
     },
+    "lyricsEstimateWords": {
+      "title": "估算的逐字卡拉 OK",
+      "subtitle": "在逐行同步的歌詞上，依估算的長度逐字醒目提示。僅供顯示：不會儲存任何內容。"
+    },
     "lyricsTranslation": {
       "title": "歌詞翻譯（Musixmatch）",
       "subtitle": "當 Musixmatch 有翻譯時，在每行 LRC 下方顯示翻譯",

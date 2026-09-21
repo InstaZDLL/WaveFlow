@@ -2221,6 +2221,10 @@
       "title": "フルスクリーンで同期歌詞を中央揃え",
       "subtitle": "フルスクリーン表示でタイムコード付き歌詞をプレーンテキスト表示と同じく中央に揃えます。"
     },
+    "lyricsEstimateWords": {
+      "title": "推定の単語ごとカラオケ",
+      "subtitle": "行単位で同期された歌詞で、各単語の長さの推定に基づいてハイライトします。表示のみで、何も保存されません。"
+    },
     "lyricsTranslation": {
       "title": "歌詞の翻訳 (Musixmatch)",
       "subtitle": "Musixmatch に翻訳がある場合、各 LRC 行の下に翻訳を表示します",

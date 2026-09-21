@@ -2221,6 +2221,10 @@
       "title": "全屏中将同步歌词居中",
       "subtitle": "在全屏视图中将带时间戳的歌词居中对齐，与纯文本视图保持一致。"
     },
+    "lyricsEstimateWords": {
+      "title": "估算的逐词卡拉 OK",
+      "subtitle": "在按行同步的歌词上，根据估算的时长逐词高亮。仅用于显示：不会保存任何内容。"
+    },
     "lyricsTranslation": {
       "title": "歌词翻译 (Musixmatch)",
       "subtitle": "当 Musixmatch 提供翻译时，在每行 LRC 下方显示翻译",
