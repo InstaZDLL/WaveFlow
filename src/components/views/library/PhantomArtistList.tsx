@@ -6,6 +6,7 @@ import {
 } from "../../../lib/tauri/inventory";
 import { splitArtist } from "../../../lib/tauri/artistOverrides";
 import { useProfileSetting } from "../../../hooks/useProfileSetting";
+import { useProfile } from "../../../hooks/useProfile";
 
 /** See the note in `TrackTableHeader`. */
 type Translator = (key: string, options?: Record<string, unknown>) => string;
@@ -53,7 +54,19 @@ export function PhantomArtistList({
   onChanged,
   t,
 }: PhantomArtistListProps) {
-  const [rows, setRows] = useState<PhantomArtist[]>([]);
+  // Artist ids belong to one profile's database. The rows carry the
+  // profile they were read from, and neither action runs against another:
+  // after a switch, a split on a stale row would split whichever artist
+  // holds that id in the new profile.
+  const profileId = useProfile().activeProfile?.id ?? null;
+  const [loaded, setLoaded] = useState<{
+    profileId: number | null;
+    rows: PhantomArtist[];
+  }>({ profileId: null, rows: [] });
+  const current = loaded.profileId === profileId;
+  const rows = current ? loaded.rows : [];
+  const setRows = (update: (prev: PhantomArtist[]) => PhantomArtist[]) =>
+    setLoaded((prev) => ({ ...prev, rows: update(prev.rows) }));
   const [loading, setLoading] = useState(true);
   const [armed, setArmed] = useState<number | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
@@ -74,7 +87,7 @@ export function PhantomArtistList({
     setLoading(true);
     inventoryPhantomArtists()
       .then((list) => {
-        if (!cancelled) setRows(list);
+        if (!cancelled) setLoaded({ profileId, rows: list });
       })
       .catch((err) => {
         if (!cancelled) console.error("[PhantomArtistList] load failed", err);
@@ -85,7 +98,7 @@ export function PhantomArtistList({
     return () => {
       cancelled = true;
     };
-  }, [refreshKey, dismissed.value]);
+  }, [refreshKey, dismissed.value, profileId]);
 
   // An armed "confirm" disarms itself, so a stray click minutes later
   // cannot split an artist the user has long stopped looking at.
@@ -96,6 +109,7 @@ export function PhantomArtistList({
   }, [armed]);
 
   const split = async (artist: PhantomArtist) => {
+    if (!current) return;
     if (armed !== artist.id) {
       setArmed(artist.id);
       return;
@@ -116,6 +130,7 @@ export function PhantomArtistList({
   };
 
   const dismiss = (artist: PhantomArtist) => {
+    if (!current) return;
     setRows((prev) => prev.filter((r) => r.id !== artist.id));
     void dismissed
       .setValue((prev) =>

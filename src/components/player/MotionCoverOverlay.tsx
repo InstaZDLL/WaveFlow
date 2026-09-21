@@ -3,6 +3,7 @@ import { useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
 import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
+import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 
 const ROUND: Record<"md" | "lg" | "xl" | "2xl", string> = {
   md: "rounded-md",
@@ -21,6 +22,10 @@ const ROUND: Record<"md" | "lg" | "xl" | "2xl", string> = {
  *
  * The video is decorative (`aria-hidden`) — the accessible name lives on
  * the `<Artwork>` it sits over.
+ *
+ * Nothing renders under `prefers-reduced-motion`, as for a Canvas: the
+ * gate lives here rather than at each call site, where the Now Playing
+ * panel, the immersive view and the mini-player had each left it out.
  */
 export function MotionCoverOverlay({
   artist,
@@ -38,7 +43,8 @@ export function MotionCoverOverlay({
   className?: string;
 }) {
   const motion = useAlbumMotionArtwork(artist, album, albumId);
-  if (!motion) return null;
+  const reducedMotion = usePrefersReducedMotion();
+  if (!motion || reducedMotion) return null;
   // Key on the URL so switching album remounts the video and resets the
   // ready/failed state below.
   return (

@@ -147,6 +147,9 @@ impl SpectrumAnalyzer {
             if !self.pending.is_empty() {
                 self.pending.clear();
             }
+            // Same reason for the level: re-enabled mid-track, the old
+            // reference would dim the bars for seconds while it decays.
+            self.level = MIN_LEVEL;
             return;
         }
         if channels == 0 || sample_rate <= 0.0 {
