@@ -58,8 +58,20 @@ async function boundsAreVisible(bounds: MiniPlayerBounds): Promise<boolean> {
 
 /**
  * Open the always-on-top mini-player window. If it already exists,
- * just bring it to the front instead of creating a duplicate. Hides
- * the main window so the user gets a clean swap.
+ * just bring it to the front instead of creating a duplicate.
+ *
+ * It usually does: closing the mini-player hides it rather than
+ * destroying it (see `MiniPlayer`'s close handler). Re-creating a window
+ * under the same `mini` label left the new webview's first replies
+ * delivered to the old one's dead handle, so a mini-player opened after
+ * a track change sat on "No track playing" while the engine was playing
+ * (`PostMessage failed … Invalid window handle` in the log). Reused, it
+ * also opens instantly and is already up to date.
+ *
+ * The main window stays where it is. This used to try to hide it, but
+ * the capability never granted `window.hide`, so the call always failed
+ * and the main window has always stayed visible; that is the behaviour
+ * people know, so it is now the stated one.
  *
  * The mini-player loads the same bundle with `?mini=1` so
  * [`main.tsx`] can boot into a stripped-down provider tree.
@@ -149,9 +161,4 @@ export async function openMiniPlayer(): Promise<void> {
       win.once("tauri://error", (e) => reject(e.payload));
     });
   }
-
-  // Hide the main window so we don't have two players visible at
-  // once — the mini-player has a Maximize button to restore it.
-  const main = await TauriWindow.getByLabel("main");
-  if (main) await main.hide();
 }
