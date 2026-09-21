@@ -28,6 +28,21 @@ function subscribe(cb: () => void): () => void {
   return () => listeners.delete(cb);
 }
 
+// The mini-player is a second webview on the same origin, so it shares
+// this `localStorage` but not the in-memory copy above: without this, a
+// toggle in the main window would not reach an open mini-player until it
+// was reopened (#717). `storage` fires in every OTHER window of the origin,
+// never in the one that wrote, so this cannot loop.
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (event) => {
+    if (event.key !== STORAGE_KEY) return;
+    const next = event.newValue === "true";
+    if (next === enabled) return;
+    enabled = next;
+    for (const cb of listeners) cb();
+  });
+}
+
 function getSnapshot(): boolean {
   return enabled;
 }
