@@ -80,7 +80,7 @@ export function PluginAttentionToast() {
     <div
       role="alert"
       aria-live="assertive"
-      className="fixed bottom-44 left-6 z-100 w-80 rounded-2xl border border-amber-300 dark:border-amber-500/40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur shadow-xl p-4 animate-fade-in"
+      className="fixed bottom-44 left-6 z-100 w-80 rounded-2xl border border-amber-300 dark:border-amber-500/40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur shadow-xl p-4 motion-safe:animate-fade-in"
     >
       <div className="flex items-start gap-3">
         <div className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-amber-500/15 text-amber-500">
