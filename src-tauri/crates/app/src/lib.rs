@@ -21,6 +21,7 @@ mod notifications;
 mod offline;
 mod paths;
 mod player_actions;
+mod plugin_attention;
 mod queue;
 mod render_mode;
 // Remote play queue (RFC-005). Plain in-memory data — compiled
@@ -178,6 +179,9 @@ pub fn run() {
             let setup_guard = render_mode::SetupGuard::new();
             let init_handle = app.handle().clone();
             let engine_handle = app.handle().clone();
+            // Before any plugin runs, so a credential refused on the very
+            // first lookup still reaches the user.
+            plugin_attention::init(app.handle().clone());
 
             // Block on the async init — this runs once at startup before any
             // command can be dispatched, so blocking here is acceptable.
@@ -1150,6 +1154,7 @@ pub fn run() {
             commands::player::player_set_match_source_rate,
             commands::inventory::inventory_summary,
             commands::inventory::inventory_tracks,
+            plugin_attention::plugin_attention_history,
             commands::inventory::inventory_phantom_artists,
             commands::tag_fetch::search_album_tag_sources,
             commands::tag_fetch::fetch_album_tag_proposals,

@@ -1665,7 +1665,19 @@
       },
       "bundled": "組み込み",
       "bundledHint": "WaveFlow に同梱されています — 非表示にするには無効にしてください。",
-      "optionsAria": "{{name}} のオプション"
+      "optionsAria": "{{name}} のオプション",
+      "options": {
+        "saved": "保存しました",
+        "secretStored": "保存済み — 貼り付けて置き換え",
+        "secretClear": "消去"
+      },
+      "attention": {
+        "authRequired": {
+          "title": "{{name}}: ログインが拒否されました",
+          "body": "保存されている Cookie またはトークンの有効期限が切れたか、取り消されました。設定 → 拡張機能で新しいものを貼り付けてください。"
+        },
+        "dismiss": "閉じる"
+      }
     },
     "integrations": {
       "lastfm": {

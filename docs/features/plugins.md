@@ -54,6 +54,18 @@ A plugin can declare `[[options]]` in its `manifest.toml` (`key` / `type` = `boo
 
 Values persist in `<state_dir>/.plugin-config.json` ([`plugin_config`](../../src-tauri/crates/core/src/plugin/plugin_config.rs)) — the single source of truth, with no `app_setting` row and excluded from the scratch quota. They reach the guest through the read-only `waveflow:host/config.get-option` import, pinned at instantiate time. The import is additive: a plugin built before it still instantiates.
 
+A `text` option saves on Enter and on leaving the field, and shows **Saved** once written — it used to save on blur alone, with no sign that it had.
+
+### Credentials: `sensitive = true`
+
+A cookie or a token a plugin signs in with is declared `sensitive = true` on its `text` option. The field becomes a password field that is **saved the moment something is pasted into it**, and the stored value **never travels back to the webview**: `get_plugin_options` sends `value: null` and `isSet`, so the panel can say a credential is stored — and offer to clear it — without holding it. It is still written in cleartext in `.plugin-config.json`, like every option; the flag is about the screen and the IPC, not the disk.
+
+A flag rather than a fourth type on purpose: an older host ignores an unknown field and shows the option as plain text, where it would reject an unknown `type` and mark the plugin broken.
+
+### Telling the user a credential was refused
+
+A plugin whose credential was refused (an expired cookie, a revoked token) returns an error starting with **`auth-required:`**. [`plugin_attention`](../../src-tauri/crates/app/src/plugin_attention.rs) turns it into one toast ([`PluginAttentionToast`](../../src/components/common/PluginAttentionToast.tsx)) naming the plugin and pointing to Settings → Extensions — **once per launch and per plugin**, since the failure repeats on every track. Wired for the `canvas` and lyrics (`metadata/v2`) fan-outs. Every other error keeps its meaning (logged, skipped), and an older host logs the prefixed one the same way, so a plugin can adopt it without breaking there. Everything else a plugin cannot do is still `Ok(None)`: only "the user must act" is an error.
+
 ## Localized manifest strings
 
 Plugin descriptions and option labels are authored in each plugin's `manifest.toml` (store descriptions in `registry.json`), outside the app's i18next files — so `t()` can never reach them. Instead the **format itself carries the translations**, for `plugin.description`, each option's `label` / `description`, and a registry entry's `description`.

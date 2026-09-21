@@ -1665,7 +1665,19 @@
       },
       "bundled": "Mitgeliefert",
       "bundledHint": "Mit WaveFlow ausgeliefert — deaktivieren, um es auszublenden.",
-      "optionsAria": "Optionen für {{name}}"
+      "optionsAria": "Optionen für {{name}}",
+      "options": {
+        "saved": "Gespeichert",
+        "secretStored": "Gespeichert — zum Ersetzen einfügen",
+        "secretClear": "Löschen"
+      },
+      "attention": {
+        "authRequired": {
+          "title": "{{name}}: Anmeldung abgelehnt",
+          "body": "Das gespeicherte Cookie oder Token ist abgelaufen oder wurde widerrufen. Füge in Einstellungen → Erweiterungen ein neues ein."
+        },
+        "dismiss": "Schließen"
+      }
     },
     "shortcuts": {
       "subtitle": "Klicke auf ein Tastenkürzel und drücke dann die gewünschte Tastenkombination. Rücktaste zum Löschen, Esc zum Abbrechen.",

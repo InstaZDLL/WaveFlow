@@ -954,7 +954,13 @@ pub struct PluginOption {
     /// Plain string or `{ lang -> text }`, resolved frontend-side.
     pub description: Option<LocalizedString>,
     /// Current stored value; `None` = unset (the plugin uses `default`).
+    /// Always `None` for a sensitive option: see [`Self::is_set`].
     pub value: Option<String>,
+    /// A credential: masked in the panel, its value never sent here.
+    pub sensitive: bool,
+    /// Whether a value is stored. The one thing the panel learns about a
+    /// sensitive option, so it can say "saved" without holding the token.
+    pub is_set: bool,
 }
 
 /// Validate a proposed option `value` against its manifest declaration.
@@ -1003,19 +1009,42 @@ pub async fn get_plugin_options(
         Ok(manifest
             .options
             .into_iter()
-            .map(|o| PluginOption {
-                value: values.get(&o.key).cloned(),
-                key: o.key,
-                option_type: o.option_type,
-                label: o.label,
-                default: o.default,
-                choices: o.choices,
-                description: o.description,
-            })
+            .map(|o| to_plugin_option(o, &values))
             .collect())
     })
     .await
     .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?
+}
+
+/// One manifest option, as the panel is allowed to see it.
+///
+/// A sensitive `text` option leaves its stored value behind: the panel
+/// learns only whether one is set (`is_set`). That is the point of the
+/// flag — a credential shown nowhere and never sent to the webview. Only a
+/// text option is a credential: a `bool` or `enum` flagged sensitive by
+/// mistake keeps its value, or the panel would show the default instead of
+/// the setting.
+fn to_plugin_option(
+    o: waveflow_core::plugin::manifest::OptionDecl,
+    values: &std::collections::HashMap<String, String>,
+) -> PluginOption {
+    let sensitive =
+        o.sensitive && o.option_type == waveflow_core::plugin::manifest::option_types::TEXT;
+    PluginOption {
+        is_set: values.get(&o.key).is_some_and(|v| !v.is_empty()),
+        value: if sensitive {
+            None
+        } else {
+            values.get(&o.key).cloned()
+        },
+        sensitive,
+        key: o.key,
+        option_type: o.option_type,
+        label: o.label,
+        default: o.default,
+        choices: o.choices,
+        description: o.description,
+    }
 }
 
 /// Set (or reset, when `value` is `None`) one plugin option. Validates the
@@ -1330,4 +1359,58 @@ pub async fn open_plugins_folder(state: State<'_, AppState>) -> AppResult<()> {
     tauri_plugin_opener::open_path(root, None::<&str>)
         .map_err(|e| AppError::Other(format!("open_path: {e}")))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod option_masking_tests {
+    use super::*;
+    use std::collections::HashMap;
+    use waveflow_core::plugin::manifest::OptionDecl;
+
+    fn decl(key: &str, option_type: &str, sensitive: bool) -> OptionDecl {
+        OptionDecl {
+            key: key.into(),
+            option_type: option_type.into(),
+            label: LocalizedString::Plain(key.into()),
+            label_i18n: None,
+            default: None,
+            choices: vec!["a".into(), "b".into()],
+            description: None,
+            description_i18n: None,
+            sensitive,
+        }
+    }
+
+    fn stored(key: &str, value: &str) -> HashMap<String, String> {
+        HashMap::from([(key.to_string(), value.to_string())])
+    }
+
+    /// The property the flag exists for: a stored credential does not
+    /// travel to the webview, only the fact that there is one.
+    #[test]
+    fn a_stored_credential_never_leaves_the_backend() {
+        let opt = to_plugin_option(decl("sp_dc", "text", true), &stored("sp_dc", "secret"));
+        assert_eq!(opt.value, None);
+        assert!(opt.is_set);
+        assert!(opt.sensitive);
+    }
+
+    #[test]
+    fn an_empty_credential_is_not_set() {
+        let opt = to_plugin_option(decl("sp_dc", "text", true), &stored("sp_dc", ""));
+        assert!(!opt.is_set);
+    }
+
+    #[test]
+    fn a_plain_text_option_still_shows_its_value() {
+        let opt = to_plugin_option(decl("lang", "text", false), &stored("lang", "fr"));
+        assert_eq!(opt.value.as_deref(), Some("fr"));
+    }
+
+    #[test]
+    fn only_a_text_option_can_be_masked() {
+        let opt = to_plugin_option(decl("mode", "enum", true), &stored("mode", "b"));
+        assert_eq!(opt.value.as_deref(), Some("b"));
+        assert!(!opt.sensitive);
+    }
 }

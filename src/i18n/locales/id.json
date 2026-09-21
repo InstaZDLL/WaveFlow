@@ -1665,7 +1665,19 @@
       },
       "bundled": "Bawaan",
       "bundledHint": "Disertakan dengan WaveFlow — nonaktifkan untuk menyembunyikannya.",
-      "optionsAria": "Opsi untuk {{name}}"
+      "optionsAria": "Opsi untuk {{name}}",
+      "options": {
+        "saved": "Tersimpan",
+        "secretStored": "Tersimpan — tempel untuk mengganti",
+        "secretClear": "Hapus"
+      },
+      "attention": {
+        "authRequired": {
+          "title": "{{name}}: masuk ditolak",
+          "body": "Cookie atau token yang tersimpan telah kedaluwarsa atau dicabut. Tempel yang baru di Pengaturan → Ekstensi."
+        },
+        "dismiss": "Tutup"
+      }
     },
     "shortcuts": {
       "subtitle": "Klik sebuah pintasan lalu tekan kombinasi tombol yang kamu inginkan. Backspace untuk menghapus, Esc untuk membatalkan.",

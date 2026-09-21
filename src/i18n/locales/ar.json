@@ -1834,7 +1834,19 @@
       },
       "bundled": "مدمج",
       "bundledHint": "يأتي مع WaveFlow — قم بتعطيله لإخفائه.",
-      "optionsAria": "خيارات {{name}}"
+      "optionsAria": "خيارات {{name}}",
+      "options": {
+        "saved": "تم الحفظ",
+        "secretStored": "محفوظ — الصق للاستبدال",
+        "secretClear": "مسح"
+      },
+      "attention": {
+        "authRequired": {
+          "title": "{{name}}: رُفض تسجيل الدخول",
+          "body": "انتهت صلاحية ملف تعريف الارتباط أو الرمز المحفوظ أو أُلغي. الصق رمزًا جديدًا في الإعدادات ← الإضافات."
+        },
+        "dismiss": "إغلاق"
+      }
     },
     "shortcuts": {
       "subtitle": "انقر على اختصار ثم اضغط على تركيبة المفاتيح المطلوبة. Backspace للمسح، Esc للإلغاء.",

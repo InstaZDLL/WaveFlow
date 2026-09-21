@@ -1668,7 +1668,19 @@
       },
       "bundled": "Integrado",
       "bundledHint": "Incluido con WaveFlow — desactívalo para ocultarlo.",
-      "optionsAria": "Opciones de {{name}}"
+      "optionsAria": "Opciones de {{name}}",
+      "options": {
+        "saved": "Guardado",
+        "secretStored": "Guardado — pega para reemplazar",
+        "secretClear": "Borrar"
+      },
+      "attention": {
+        "authRequired": {
+          "title": "{{name}}: acceso rechazado",
+          "body": "La cookie o el token guardado ha caducado o ha sido revocado. Pega uno nuevo en Configuración → Extensiones."
+        },
+        "dismiss": "Cerrar"
+      }
     },
     "shortcuts": {
       "subtitle": "Haz clic en un atajo y pulsa la combinación de teclas que quieras. Retroceso para borrar, Esc para cancelar.",

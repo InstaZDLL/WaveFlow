@@ -38,6 +38,7 @@ import { UpdateBanner } from "../common/UpdateBanner";
 import { ScanProgressToast } from "../common/ScanProgressToast";
 import { TaskStatusBar } from "./TaskStatusBar";
 import { PlaybackAlertToast } from "../common/PlaybackAlertToast";
+import { PluginAttentionToast } from "../common/PluginAttentionToast";
 import { OnboardingModal } from "../common/OnboardingModal";
 import { ViewSuspenseFallback } from "../common/ViewSuspenseFallback";
 import { PageScrollContext } from "../../contexts/PageScrollContext";
@@ -839,6 +840,7 @@ export function AppLayout() {
         <UpdateBanner />
         <ScanProgressToast />
         <PlaybackAlertToast />
+        <PluginAttentionToast />
         {showOnboarding && <OnboardingModal onSkip={dismissOnboarding} />}
       </div>
     </SkinMotionWrapper>
