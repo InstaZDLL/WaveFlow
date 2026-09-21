@@ -55,13 +55,20 @@ pub struct SplitArtistResult {
 /// Fails with a clear message when the name has no comma-separated parts
 /// (nothing to split) or when every part canonicalises back to the
 /// phantom itself.
+///
+/// `expected_profile_id` pins the split to the profile the caller read
+/// `artist_id` from: artist ids are per-profile, so a split sent just as
+/// the profile switched would otherwise land on whichever artist holds
+/// that id in the new one. `None` keeps the old behaviour (the artist
+/// page, whose id is the active profile's by construction).
 #[tauri::command]
 pub async fn split_artist(
     app: AppHandle,
     state: tauri::State<'_, AppState>,
     artist_id: i64,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<SplitArtistResult> {
-    let pool = state.require_profile_pool().await?;
+    let pool = state.require_profile_pool_for(expected_profile_id).await?;
     let result = split_artist_inner(&pool, artist_id).await?;
 
     // Announce it, like every other command that rewrites library rows

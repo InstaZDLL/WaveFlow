@@ -85,7 +85,7 @@ export function PhantomArtistList({
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
-    inventoryPhantomArtists()
+    inventoryPhantomArtists(profileId)
       .then((list) => {
         if (!cancelled) setLoaded({ profileId, rows: list });
       })
@@ -127,7 +127,7 @@ export function PhantomArtistList({
     setBusy(artist.id);
     setError(null);
     try {
-      await splitArtist(artist.id);
+      await splitArtist(artist.id, loaded.profileId);
       setRows((prev) => prev.filter((r) => r.id !== artist.id));
       onChanged();
     } catch (err) {

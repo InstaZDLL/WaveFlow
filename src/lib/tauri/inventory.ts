@@ -70,6 +70,10 @@ export interface PhantomArtist {
  * artists rather than tracks, so it has its own list instead of going
  * through `inventoryTracks`. Most likely phantoms first.
  */
-export function inventoryPhantomArtists(): Promise<PhantomArtist[]> {
-  return invoke<PhantomArtist[]>("inventory_phantom_artists");
+export function inventoryPhantomArtists(
+  expectedProfileId: number | null,
+): Promise<PhantomArtist[]> {
+  return invoke<PhantomArtist[]>("inventory_phantom_artists", {
+    expectedProfileId,
+  });
 }

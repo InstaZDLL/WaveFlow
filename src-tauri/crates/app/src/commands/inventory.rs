@@ -335,10 +335,15 @@ async fn phantom_artists(pool: &sqlx::SqlitePool) -> AppResult<Vec<PhantomArtist
 
 /// The artists the "artists to split" category holds (#719).
 #[tauri::command]
+///
+/// `expected_profile_id` is the profile the caller will label the rows
+/// with, so they can never be read from one profile and acted on as
+/// another's — see [`super::artist_split::split_artist`].
 pub async fn inventory_phantom_artists(
     state: tauri::State<'_, AppState>,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<Vec<PhantomArtist>> {
-    let pool = state.require_profile_pool().await?;
+    let pool = state.require_profile_pool_for(expected_profile_id).await?;
     phantom_artists(&pool).await
 }
 
