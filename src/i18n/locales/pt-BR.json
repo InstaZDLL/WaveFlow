@@ -529,6 +529,7 @@
       "summary_one": "{{count}} ponto a corrigir",
       "summary_other": "{{count}} pontos a corrigir",
       "trackCount_one": "{{count}} faixa",
+      "artistCount_zero": "0 artistas",
       "artistCount_one": "{{count}} artista",
       "trackCount_other": "{{count}} faixas",
       "artistCount_other": "{{count}} artistas",
