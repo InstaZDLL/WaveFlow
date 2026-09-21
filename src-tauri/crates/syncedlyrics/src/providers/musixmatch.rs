@@ -26,8 +26,9 @@ const ROOT: &str = "https://apic-desktop.musixmatch.com/ws/1.1";
 /// 2. Calls [`reqwest::Error::without_url`] on any failure so the
 ///    inner error's `Display` drops the URL field entirely.
 /// 3. Re-attaches the REDACTED URL as context in the new
-///    [`Error::Provider`] message so the operator still gets the
-///    `host + path` for diagnostics, just without the credential.
+///    [`Error::Transport`] message so the operator still gets the
+///    `host + path` for diagnostics, just without the credential —
+///    and the host still learns the provider could not be reached.
 async fn redacted_get(
     http: &reqwest::Client,
     url: String,
@@ -45,14 +46,14 @@ async fn redacted_get(
     };
 
     let response = request.send().await.map_err(|err| {
-        Error::Provider(format!(
+        Error::Transport(format!(
             "{context} request failed at {redacted}: {}",
             err.without_url(),
         ))
     })?;
 
     response.error_for_status().map_err(|err| {
-        Error::Provider(format!(
+        Error::Transport(format!(
             "{context} returned non-2xx at {redacted}: {}",
             err.without_url(),
         ))

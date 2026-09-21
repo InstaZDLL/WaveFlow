@@ -19,6 +19,12 @@ pub enum Error {
     Json(#[from] serde_json::Error),
     #[error("provider failed: {0}")]
     Provider(String),
+    /// A request that could not reach the provider or was refused by it,
+    /// already reduced to a message that carries no credential. What
+    /// `Http` is for a provider whose URLs hold a token and so cannot
+    /// keep the `reqwest::Error` itself.
+    #[error("provider unreachable: {0}")]
+    Transport(String),
 }
 
 impl Error {
@@ -28,7 +34,7 @@ impl Error {
     /// about the provider's health; a page that fails to parse is about
     /// that one query.
     pub fn is_transport(&self) -> bool {
-        matches!(self, Error::Http(_))
+        matches!(self, Error::Http(_) | Error::Transport(_))
     }
 
     /// The same error with the request URL dropped. `reqwest::Error`

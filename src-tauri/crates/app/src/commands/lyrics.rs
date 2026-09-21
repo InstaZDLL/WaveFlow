@@ -500,6 +500,24 @@ async fn external_lyrics_search(
     }
 }
 
+/// Tier 5, the Musixmatch word-level lookup, as an automatic lookup asks
+/// it: skipped while Musixmatch sits out a cooldown (#720), exactly as the
+/// chain skips its own providers. Picking Musixmatch by name in the panel
+/// goes through [`external_lyrics_search`] directly and is not skipped.
+async fn search_musixmatch_tier(meta: &TrackMeta, lang: Option<&str>) -> AppResult<SearchOutcome> {
+    if lyrics_providers::is_cooling_down(Provider::Musixmatch) {
+        return Ok(SearchOutcome::Unavailable);
+    }
+    external_lyrics_search(
+        meta,
+        vec![Provider::Musixmatch],
+        SearchMode::SyncedOnly,
+        true,
+        lang,
+    )
+    .await
+}
+
 /// Ask the query-based chain, as this profile has configured it.
 ///
 /// Every automatic lookup that walks the chain comes through here —
@@ -2200,15 +2218,7 @@ async fn fetch_after_plugins(
         });
         // A Musixmatch failure here is non-fatal: fall through to LRCLIB
         // rather than aborting the whole lookup or caching a miss.
-        match external_lyrics_search(
-            meta,
-            vec![Provider::Musixmatch],
-            SearchMode::SyncedOnly,
-            true,
-            translation_lang.as_deref(),
-        )
-        .await
-        {
+        match search_musixmatch_tier(meta, translation_lang.as_deref()).await {
             Ok(SearchOutcome::Found(result))
                 if matches!(result.format, ExternalLyricsFormat::EnhancedLrc) =>
             {
@@ -2777,15 +2787,7 @@ async fn run_prefetch(
         //    Prefetch path deliberately stays translation-free
         //    (`lang = None`) — bulk runs would hammer Musixmatch's
         //    rate limit with one extra hop per track.
-        match external_lyrics_search(
-            &meta,
-            vec![Provider::Musixmatch],
-            SearchMode::SyncedOnly,
-            true,
-            None,
-        )
-        .await
-        {
+        match search_musixmatch_tier(&meta, None).await {
             Ok(SearchOutcome::Found(result))
                 if matches!(result.format, ExternalLyricsFormat::EnhancedLrc) =>
             {
