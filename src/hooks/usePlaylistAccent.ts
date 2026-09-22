@@ -36,41 +36,92 @@ export function usePlaylistAccent(
   return { r: fallback[0], g: fallback[1], b: fallback[2] };
 }
 
-/** Keep white header text readable even when the cover has a pale accent. */
-function headerColor(accent: Color): Color {
-  const luminance = (factor: number) => {
-    const channel = (value: number) => {
-      const srgb = (value * factor) / 255;
-      return srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4;
+/** A pastel top and a richer shade behind the white title share the artwork's hue. */
+function headerColors(accent: Color): { pastel: Color; deep: Color } {
+  const channels = [accent.r, accent.g, accent.b].map(
+    (channel) => channel / 255,
+  );
+  const max = Math.max(...channels);
+  const min = Math.min(...channels);
+  const delta = max - min;
+  let hue = 0;
+  if (delta > 0) {
+    if (max === channels[0]) hue = ((channels[1] - channels[2]) / delta) % 6;
+    else if (max === channels[1]) hue = (channels[2] - channels[0]) / delta + 2;
+    else hue = (channels[0] - channels[1]) / delta + 4;
+    hue = (hue * 60 + 360) % 360;
+  }
+
+  const makeColor = (saturation: number, lightness: number): Color => {
+    const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+    const sector = hue / 60;
+    const secondary = chroma * (1 - Math.abs((sector % 2) - 1));
+    const [red, green, blue] =
+      sector < 1
+        ? [chroma, secondary, 0]
+        : sector < 2
+          ? [secondary, chroma, 0]
+          : sector < 3
+            ? [0, chroma, secondary]
+            : sector < 4
+              ? [0, secondary, chroma]
+              : sector < 5
+                ? [secondary, 0, chroma]
+                : [chroma, 0, secondary];
+    const offset = lightness - chroma / 2;
+    return {
+      r: Math.round((red + offset) * 255),
+      g: Math.round((green + offset) * 255),
+      b: Math.round((blue + offset) * 255),
     };
-    return (
-      0.2126 * channel(accent.r) +
-      0.7152 * channel(accent.g) +
-      0.0722 * channel(accent.b)
-    );
   };
 
-  if (luminance(1) <= 0.13) return accent;
-  let low = 0;
-  let high = 1;
-  for (let i = 0; i < 12; i += 1) {
-    const middle = (low + high) / 2;
-    if (luminance(middle) <= 0.13) low = middle;
-    else high = middle;
-  }
-  return {
-    r: Math.round(accent.r * low),
-    g: Math.round(accent.g * low),
-    b: Math.round(accent.b * low),
+  const saturation = delta < 0.02 ? 0 : 0.72;
+  const pastel = makeColor(saturation === 0 ? 0 : 0.6, 0.66);
+  let deep = makeColor(saturation, 0.27);
+  const luminance = ({ r, g, b }: Color) =>
+    [r, g, b]
+      .map((channel) => {
+        const srgb = channel / 255;
+        return srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4;
+      })
+      .reduce(
+        (sum, channel, index) =>
+          sum + channel * [0.2126, 0.7152, 0.0722][index],
+        0,
+      );
+  const labelContrast = (background: Color) => {
+    const label = {
+      r: background.r * 0.15 + 255 * 0.85,
+      g: background.g * 0.15 + 255 * 0.85,
+      b: background.b * 0.15 + 255 * 0.85,
+    };
+    return (luminance(label) + 0.05) / (luminance(background) + 0.05);
   };
+  if (labelContrast(deep) < 4.5) {
+    let low = 0;
+    let high = 0.27;
+    for (let i = 0; i < 12; i += 1) {
+      const middle = (low + high) / 2;
+      const candidate = makeColor(saturation, middle);
+      if (labelContrast(candidate) >= 4.5) low = middle;
+      else high = middle;
+    }
+    deep = makeColor(saturation, low);
+  }
+  return { pastel, deep };
+}
+
+function rgb({ r, g, b }: Color): string {
+  return `rgb(${r},${g},${b})`;
 }
 
 export function playlistGradient(accent: Color): string {
-  const { r, g, b } = headerColor(accent);
-  return `linear-gradient(180deg, rgb(${r},${g},${b}) 0%, rgb(${r},${g},${b}) 56%, rgba(${r},${g},${b},0.78) 62%, rgba(${r},${g},${b},0.24) 80%, rgba(${r},${g},${b},0) 100%)`;
+  const { pastel, deep } = headerColors(accent);
+  return `linear-gradient(180deg, ${rgb(pastel)} 0%, ${rgb(pastel)} 8%, ${rgb(deep)} 30%, ${rgb(deep)} 68%, rgba(${deep.r},${deep.g},${deep.b},0.55) 79%, rgba(${deep.r},${deep.g},${deep.b},0) 100%)`;
 }
 
 export function playlistPreviewGradient(accent: Color): string {
-  const { r, g, b } = headerColor(accent);
-  return `linear-gradient(135deg, rgb(${r},${g},${b}), rgb(${Math.round(r * 0.75)},${Math.round(g * 0.75)},${Math.round(b * 0.75)}))`;
+  const { pastel, deep } = headerColors(accent);
+  return `linear-gradient(135deg, ${rgb(pastel)}, ${rgb(deep)} 70%)`;
 }

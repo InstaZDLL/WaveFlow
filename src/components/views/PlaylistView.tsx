@@ -1127,7 +1127,7 @@ export function PlaylistView({
     <div className="relative isolate -mx-8 -mt-8 px-8 pt-8 space-y-8 motion-safe:animate-fade-in pb-20">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[900px] sm:h-[700px] lg:h-[540px]"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[640px] sm:h-[500px] lg:h-[370px]"
         style={{ background: playlistGradient(accent) }}
       />
       {/* Header. Smart playlists (Daily Mix, …) ship a generated cover
@@ -1779,7 +1779,7 @@ function PlaylistTrackTable({
     // The column header keeps its bottom border for the visual separator.
     <div>
       <div
-        className={`grid ${gridCols} gap-4 px-5 py-3 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-200 dark:border-zinc-800`}
+        className={`grid ${gridCols} gap-4 px-5 py-3 text-[10px] font-bold tracking-widest text-zinc-600 dark:text-zinc-300 uppercase border-b border-zinc-200 dark:border-zinc-800`}
       >
         <span aria-hidden="true" />
         <span className="text-right">{headerLabels.number}</span>
