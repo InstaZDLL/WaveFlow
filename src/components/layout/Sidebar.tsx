@@ -116,7 +116,14 @@ export function Sidebar({
   // Right-click on a playlist row. The same menu the library's cards
   // open, so the two surfaces cannot drift apart (#737).
   const playlistMenu = usePlaylistContextMenu({
-    onAfterDelete: () => void refreshPlaylists(),
+    onAfterDelete: (playlistId) => {
+      // The context refreshes the list itself, so the only thing left
+      // is to step off the deleted playlist when it is the one on
+      // screen — otherwise the view stays on a row that is gone.
+      if (activeView === "playlist" && activePlaylistId === playlistId) {
+        setActiveView("home");
+      }
+    },
     onOpenRemote: navigateToRemotePlaylist,
   });
   // Seq-guarded stats fetch
