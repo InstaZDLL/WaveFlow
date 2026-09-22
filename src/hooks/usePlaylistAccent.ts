@@ -36,12 +36,30 @@ export function usePlaylistAccent(
   return { r: fallback[0], g: fallback[1], b: fallback[2] };
 }
 
+/** Which way the header is painted: the two themes are not each other's
+ *  inverse, they are two designs. */
+export type HeaderScheme = "dark" | "light";
+
+/** The ink each theme writes over the header, as the view writes it:
+ *  `text-white` in the dark one, `text-neutral-900` in the light one.
+ *  The guard below measures the palette against these exact values. */
+const INK: Record<HeaderScheme, Color> = {
+  dark: { r: 255, g: 255, b: 255 },
+  light: { r: 23, g: 23, b: 23 },
+};
+
 /**
- * The two stops of the header, in the artwork's hue: `top`, the colour
- * about as light as the artwork, and `deep`, well darker at the header's
- * foot, so the header visibly darkens from one to the other.
+ * The two stops of the header, in the artwork's hue.
+ *
+ * Dark theme: `top` is about as light as the artwork and `deep` is well
+ * darker at the header's foot, so the header visibly darkens downward.
+ * Light theme: the reverse — a pale tint at the top fading paler still,
+ * arriving at the page rather than stopping on an edge above it.
  */
-function headerColors(accent: Color): { top: Color; deep: Color } {
+function headerColors(
+  accent: Color,
+  scheme: HeaderScheme,
+): { top: Color; deep: Color } {
   const channels = [accent.r, accent.g, accent.b].map(
     (channel) => channel / 255,
   );
@@ -100,14 +118,21 @@ function headerColors(accent: Color): { top: Color; deep: Color } {
           sum + channel * [0.2126, 0.7152, 0.0722][index],
         0,
       );
-  const labelContrast = (background: Color, opacity: number) => {
+  // The ink is lighter than its ground in the dark theme and darker in the
+  // light one, so the ratio is taken between the brighter and the dimmer of
+  // the two rather than in a fixed order.
+  const labelContrast = (background: Color, ink: Color, opacity: number) => {
     const ground = 1 - opacity;
     const label = {
-      r: background.r * ground + 255 * opacity,
-      g: background.g * ground + 255 * opacity,
-      b: background.b * ground + 255 * opacity,
+      r: background.r * ground + ink.r * opacity,
+      g: background.g * ground + ink.g * opacity,
+      b: background.b * ground + ink.b * opacity,
     };
-    return (luminance(label) + 0.05) / (luminance(background) + 0.05);
+    const written = luminance(label);
+    const behind = luminance(background);
+    return (
+      (Math.max(written, behind) + 0.05) / (Math.min(written, behind) + 0.05)
+    );
   };
   const mix = (a: Color, b: Color, t: number): Color => ({
     r: Math.round(a.r + (b.r - a.r) * t),
@@ -115,25 +140,69 @@ function headerColors(accent: Color): { top: Color; deep: Color } {
     b: Math.round(a.b + (b.b - a.b) * t),
   });
 
-  // A real span between the stops — the header darkens by 28 points of
-  // lightness, which is what makes the gradient show at all. The contrast
-  // is checked where the text starts (the label sits a little under half
-  // way down the header, higher when it stacks on a narrow window), not at
-  // the top, where there is nothing to read: requiring it there is what
-  // flattened the header into one dark tone.
+  // The contrast is checked where the text starts (the label sits a little
+  // under half way down the header, higher when it stacks on a narrow
+  // window), not at the top, where there is nothing to read: requiring it
+  // there is what once flattened the header into one dark tone.
   //
-  // 3:1, the large-text level: at 4.5:1 the whole palette was pulled
-  // down to near black. The title is large and bold; the small label and
-  // counts over it carry a soft shadow in the view to make up for it.
-  //
-  // The check has to stand for the *faintest* white on the header, or it
+  // The check also has to stand for the *faintest* ink on the header, or it
   // clears a palette some of the text never passes on. Nothing over the
-  // gradient may go below `text-white/85` — PlaylistView's label, summary
-  // and counts, and the modal's preview lines, all sit exactly there.
-  const SPAN = 0.28;
+  // gradient may go below 85 % opacity — PlaylistView's label, summary and
+  // counts, and the modal's preview lines, all sit exactly there.
   const TEXT_AT = 0.4;
-  const MIN_CONTRAST = 3;
   const LABEL_OPACITY = 0.85;
+
+  if (scheme === "light") {
+    // A pale wash of the artwork's hue, with dark text over it — a light
+    // theme that is actually light, rather than a dark header dropped onto
+    // a white page. That collision is what made the old light header
+    // unusable: a saturated block, then a 120 px scramble down to white,
+    // which read as a dirty band and let the Liquid skin's aurora bleed
+    // through the tail in a hue unrelated to the cover.
+    //
+    // The lightness comes from the theme, not the cover: a near-black
+    // sleeve must still give a light header, so only the hue and a lifted
+    // saturation carry the artwork's identity. Pale colours need the lift
+    // or they collapse to grey.
+    //
+    // The colour also runs the other way — strongest at the top, palest at
+    // the foot — so it arrives at the page's own ground instead of leaving
+    // an edge above it.
+    const tint =
+      saturation === 0 ? 0 : Math.min(0.85, Math.max(0.5, saturation));
+    const FOOT = 0.93;
+    let topLightness = 0.72;
+    const stops = () => ({
+      top: makeColor(tint, topLightness),
+      deep: makeColor(tint, Math.max(topLightness + 0.05, FOOT)),
+    });
+    let { top, deep } = stops();
+    // Dark ink on a pale ground reaches the full 4.5:1 without being
+    // dragged anywhere near black, so the light theme holds the stricter
+    // level the dark one cannot — and it is measured against `top`, the
+    // palette's darkest point, rather than where the text happens to
+    // land. The dark theme cannot afford that (requiring it at the top is
+    // what once flattened it), but here the worst hue still clears 5:1,
+    // so the guard may as well cover the whole header.
+    for (
+      let i = 0;
+      i < 40 && labelContrast(top, INK.light, LABEL_OPACITY) < 4.5;
+      i += 1
+    ) {
+      topLightness += 0.01;
+      ({ top, deep } = stops());
+    }
+    return { top, deep };
+  }
+
+  // Dark theme. A real span between the stops — the header darkens by 28
+  // points of lightness, which is what makes the gradient show at all.
+  //
+  // 3:1, the large-text level: at 4.5:1 the whole palette was pulled down
+  // to near black. The title is large and bold; the small label and counts
+  // over it carry a soft shadow in the view to make up for it.
+  const SPAN = 0.28;
+  const MIN_CONTRAST = 3;
   let topLightness = Math.min(0.72, Math.max(0.55, artLightness));
   const stops = () => {
     const deepLightness = Math.max(0.08, topLightness - SPAN);
@@ -146,7 +215,8 @@ function headerColors(accent: Color): { top: Color; deep: Color } {
   for (
     let i = 0;
     i < 40 &&
-    labelContrast(mix(top, deep, TEXT_AT), LABEL_OPACITY) < MIN_CONTRAST;
+    labelContrast(mix(top, deep, TEXT_AT), INK.dark, LABEL_OPACITY) <
+      MIN_CONTRAST;
     i += 1
   ) {
     topLightness -= 0.01;
@@ -164,19 +234,23 @@ function rgb({ r, g, b }: Color, alpha = 1): string {
 const PLAYLIST_HEADER_VAR = "--playlist-header";
 
 /**
- * The page backdrop, the way Spotify paints a playlist: the colour at full
- * strength at the top, darkening down to the end of the header, then
- * fading out over `fadePx` below it.
+ * The page backdrop: the colour at full strength at the top, travelling to
+ * its second stop at the end of the header — darker in the dark theme,
+ * paler in the light one — then fading out over `fadePx` below it.
  *
  * The stops are placed against the header's real height (the CSS variable
- * above) rather than a share of the backdrop, so the darkest point lands
+ * above) rather than a share of the backdrop, so that second point lands
  * under the title at every breakpoint. The fade eases out over several
  * stops — two would read as a band — and runs to the same hue at zero
  * alpha rather than to a page colour: fading to a colour mixes through
  * grey, while transparent lets the page's own ground show through.
  */
-export function playlistGradient(accent: Color, fadePx: number): string {
-  const { top, deep } = headerColors(accent);
+export function playlistGradient(
+  accent: Color,
+  fadePx: number,
+  scheme: HeaderScheme,
+): string {
+  const { top, deep } = headerColors(accent, scheme);
   const header = `var(${PLAYLIST_HEADER_VAR})`;
   const at = (share: number) =>
     `calc(${header} + ${Math.round(fadePx * share)}px)`;
@@ -184,7 +258,10 @@ export function playlistGradient(accent: Color, fadePx: number): string {
 }
 
 /** The header alone, for the small preview in the editor: no fade. */
-export function playlistPreviewGradient(accent: Color): string {
-  const { top, deep } = headerColors(accent);
+export function playlistPreviewGradient(
+  accent: Color,
+  scheme: HeaderScheme,
+): string {
+  const { top, deep } = headerColors(accent, scheme);
   return `linear-gradient(to bottom, ${rgb(top)} 0%, ${rgb(deep)} 100%)`;
 }

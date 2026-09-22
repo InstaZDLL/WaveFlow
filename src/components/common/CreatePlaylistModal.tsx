@@ -25,8 +25,10 @@ import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
 import {
   playlistPreviewGradient,
   usePlaylistAccent,
+  type HeaderScheme,
 } from "../../hooks/usePlaylistAccent";
 import { usePlaylist } from "../../hooks/usePlaylist";
+import { useTheme } from "../../hooks/useTheme";
 
 interface CreatePlaylistModalProps {
   isOpen: boolean;
@@ -220,6 +222,17 @@ export function CreatePlaylistModal({
     selectedColorId,
     colorMode,
   );
+  // The preview paints its ground inline, so unlike the view it cannot
+  // leave the choice of palette to a `dark:` class — it has to read the
+  // active theme itself.
+  const { isDark } = useTheme();
+  const previewScheme: HeaderScheme = isDark ? "dark" : "light";
+  const previewBackground = playlistPreviewGradient(
+    previewAccent,
+    previewScheme,
+  );
+  const previewInk = isDark ? "text-white" : "text-neutral-900";
+  const previewInkSoft = isDark ? "text-white/85" : "text-neutral-900/85";
 
   const finishCover = async (playlistId: number) => {
     if (!pendingCoverPath) {
@@ -310,7 +323,7 @@ export function CreatePlaylistModal({
             return (
               <div
                 className="flex items-stretch gap-4 p-3 rounded-xl mb-6 transition-colors duration-300"
-                style={{ background: playlistPreviewGradient(previewAccent) }}
+                style={{ background: previewBackground }}
               >
                 {/* Outer container is `group` (drives the hover state) but
                   has NO `overflow-hidden` so the dropdown menu can extend
@@ -414,10 +427,10 @@ export function CreatePlaylistModal({
                   </div>
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  <div className="text-sm font-medium text-white truncate">
+                  <div className={`text-sm font-medium truncate ${previewInk}`}>
                     {displayName}
                   </div>
-                  <div className="text-xs text-white/85 mt-1">
+                  <div className={`text-xs mt-1 ${previewInkSoft}`}>
                     {existing.cover_is_auto === 1
                       ? t(
                           "playlistModal.coverAutoHint",
@@ -438,7 +451,7 @@ export function CreatePlaylistModal({
         {!isEdit && (
           <div
             className="flex items-end gap-4 p-4 rounded-xl mb-3 min-h-40 transition-colors duration-300"
-            style={{ background: playlistPreviewGradient(previewAccent) }}
+            style={{ background: previewBackground }}
           >
             <div
               className={`w-28 h-28 rounded-lg overflow-hidden shadow-lg flex items-center justify-center shrink-0 transition-colors duration-300 ${currentColor.tileBg} ${currentColor.tileText}`}
@@ -454,10 +467,10 @@ export function CreatePlaylistModal({
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-2xl font-bold text-white break-words">
+              <div className={`text-2xl font-bold break-words ${previewInk}`}>
                 {displayName}
               </div>
-              <div className="text-xs text-white/85">
+              <div className={`text-xs ${previewInkSoft}`}>
                 {t("playlistModal.previewSubtitle")}
               </div>
             </div>

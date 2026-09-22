@@ -1019,6 +1019,18 @@ export function PlaylistView({
   const color = resolvePlaylistColor(playlist.color_id);
   const totalDurationMs = playlist.total_duration_ms;
 
+  // The header's controls take the header's ink, not the page's greys.
+  // They cannot count on their own ground: the Liquid skin repaints every
+  // `rounded-*` box inside `main` as translucent glass, so under it these
+  // sit straight on the accent, and a zinc grey on a saturated red is not
+  // readable. Tying them to the ink makes them legible whatever colour
+  // the artwork produced, on every skin.
+  // 85 %, the floor the palette is measured against (see
+  // usePlaylistAccent) — not a fainter rest state, which would put these
+  // below the contrast the header guarantees. Hover takes them to full.
+  const headerControl =
+    "text-neutral-900/85 hover:text-neutral-900 hover:bg-neutral-900/10 dark:text-white/85 dark:hover:text-white dark:hover:bg-white/15";
+
   const handlePlayAll = async () => {
     if (displayTracks.length === 0) return;
     if (remote) {
@@ -1125,26 +1137,28 @@ export function PlaylistView({
 
   return (
     <div className="relative isolate -mx-8 -mt-8 px-8 pt-8 space-y-8 motion-safe:animate-fade-in pb-20">
-      {/* The backdrop, one per theme. Dark: the colour carries on under
-          the head of the list before it is gone, as on Spotify — its rows
-          are light on dark, so they read over it. Light: the rows are dark
-          grey on white, and over the colour they could not be read, so the
-          fade ends in the sort row, before the table. The header's height
-          is a variable per breakpoint: the header stacks when narrow. */}
+      {/* The backdrop, one per theme — the CSS picks, so neither needs to
+          know which is on. Both let the colour carry on under the head of
+          the list: the dark theme's rows are light on dark and the light
+          theme's are dark on a pale tint, so both read over it. The light
+          fade is the longer of the two because it has to arrive at the
+          page rather than stop on it — a short one read as a dirty band.
+          The header's height is a variable per breakpoint: the header
+          stacks when narrow. */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 hidden dark:block [--playlist-header:640px] sm:[--playlist-header:500px] lg:[--playlist-header:370px]"
         style={{
           height: "calc(var(--playlist-header) + 300px)",
-          background: playlistGradient(accent, 300),
+          background: playlistGradient(accent, 300, "dark"),
         }}
       />
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 dark:hidden [--playlist-header:560px] sm:[--playlist-header:420px] lg:[--playlist-header:290px]"
         style={{
-          height: "calc(var(--playlist-header) + 120px)",
-          background: playlistGradient(accent, 120),
+          height: "calc(var(--playlist-header) + 260px)",
+          background: playlistGradient(accent, 260, "light"),
         }}
       />
       {/* Header. Smart playlists (Daily Mix, …) ship a generated cover
@@ -1206,11 +1220,15 @@ export function PlaylistView({
                   )}
                 </div>
               )}
-              {/* The header colour only guarantees 3:1 behind this block
-                  (see usePlaylistAccent): the shadow is what carries the
-                  small label and counts. */}
-              <div className="min-w-0 pb-1 [text-shadow:0_1px_3px_rgb(0_0_0/0.35)]">
-                <div className="text-[10px] font-bold tracking-widest text-white/85 uppercase mb-1">
+              {/* Dark ink in the light theme, white in the dark one — the
+                  two palettes are not inverses of each other (see
+                  usePlaylistAccent). The dark header only guarantees 3:1
+                  behind this block, and the shadow is what carries the
+                  small label and counts; the light one reaches 4.5:1 on
+                  its own, where a shadow under dark text would only look
+                  smudged. */}
+              <div className="min-w-0 pb-1 dark:[text-shadow:0_1px_3px_rgb(0_0_0/0.35)]">
+                <div className="text-[10px] font-bold tracking-widest text-neutral-900/85 dark:text-white/85 uppercase mb-1">
                   {t(remote ? "remote.playlist.label" : "playlistView.badge")}
                 </div>
                 {remote && isRenaming ? (
@@ -1232,17 +1250,17 @@ export function PlaylistView({
                     className="w-full mb-2 px-2 py-1 text-3xl font-bold rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900"
                   />
                 ) : (
-                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-3 break-words text-white">
+                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-3 break-words text-neutral-900 dark:text-white">
                     {playlist.name}
                   </h1>
                 )}
                 {playlist.description && (
-                  <p className="text-sm text-white/85 mb-2 line-clamp-2">
+                  <p className="text-sm text-neutral-900/85 dark:text-white/85 mb-2 line-clamp-2">
                     {playlist.description}
                   </p>
                 )}
                 {!remote && <SmartRuleSummary playlist={playlist} />}
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/85">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-neutral-900/85 dark:text-white/85">
                   <Music2 size={16} />
                   <span>
                     {t("playlistView.trackCount", {
@@ -1283,17 +1301,25 @@ export function PlaylistView({
             </div>
 
             <div className="flex flex-wrap items-center gap-3 shrink-0 pb-1">
+              {/* `rounded-full`, not `rounded-xl`: the Liquid skin repaints
+                  every `rounded-xl`/`2xl`/`3xl` box inside `main` as
+                  translucent glass, which stripped this button of its own
+                  colour and left white text sitting on the header — fine
+                  over a dark one, unreadable once the light header became
+                  a pale tint. A full round is outside that rule, so the
+                  button keeps its ground on every skin, and it is the
+                  shape Liquid was forcing on it anyway. */}
               <button
                 type="button"
                 onClick={handlePlayAll}
                 disabled={tracks.length === 0 || remoteBusy}
-                className={`text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm ${color.button} disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`text-white px-4 py-2.5 rounded-full text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm ${color.button} disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <Play size={16} className="fill-current" />
                 <span>{t("playlistView.actions.play")}</span>
               </button>
 
-              <div className="flex items-center space-x-1 p-1 rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/50">
+              <div className="flex items-center space-x-1 p-1 rounded-xl border border-neutral-900/15 bg-white shadow-sm dark:border-white/20 dark:bg-zinc-800/50">
                 {/* Shuffle is a mode of the local queue; the remote one has
                     none. Hidden rather than disabled — a control that can
                     never be enabled reads as a broken page. */}
@@ -1304,7 +1330,7 @@ export function PlaylistView({
                       onClick={handleShufflePlay}
                       disabled={tracks.length === 0}
                       aria-label={t("playlistView.actions.shuffle")}
-                      className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={`p-2 rounded-lg transition-colors ${headerControl} disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       <Shuffle size={18} />
                     </button>
@@ -1325,7 +1351,7 @@ export function PlaylistView({
                       className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                         isAdding
                           ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
-                          : "hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white"
+                          : headerControl
                       }`}
                     >
                       <ListPlus size={18} />
@@ -1344,7 +1370,7 @@ export function PlaylistView({
                       onClick={() => void keepOffline()}
                       disabled={remoteBusy || keeping !== null}
                       aria-label={t("remote.playlist.keepOffline")}
-                      className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={`p-2 rounded-lg transition-colors ${headerControl} disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       {keeping ? (
                         <Loader2 size={18} className="animate-spin" />
@@ -1368,7 +1394,7 @@ export function PlaylistView({
                       }}
                       disabled={remoteBusy}
                       aria-label={t("remote.playlist.rename")}
-                      className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={`p-2 rounded-lg transition-colors ${headerControl} disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       <Pencil size={18} />
                     </button>
@@ -1379,7 +1405,7 @@ export function PlaylistView({
                       type="button"
                       onClick={() => setIsEditOpen(true)}
                       aria-label={t("playlistView.actions.edit")}
-                      className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white"
+                      className={`p-2 rounded-lg transition-colors ${headerControl}`}
                     >
                       <Edit2 size={18} />
                     </button>
@@ -1394,7 +1420,7 @@ export function PlaylistView({
                       onClick={handleExportM3u}
                       disabled={tracks.length === 0}
                       aria-label={t("playlistView.actions.exportM3u")}
-                      className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={`p-2 rounded-lg transition-colors ${headerControl} disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       <Download size={18} />
                     </button>
@@ -1416,7 +1442,7 @@ export function PlaylistView({
                     className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                       confirmDelete
                         ? "bg-red-500 text-white hover:bg-red-600"
-                        : "text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"
+                        : `${headerControl} hover:text-red-600 dark:hover:text-red-400`
                     }`}
                   >
                     <Trash2 size={18} />
