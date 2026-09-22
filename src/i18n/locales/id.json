@@ -2512,7 +2512,8 @@
       "highlightColor": "Warna yang dinyanyikan",
       "outline": "Garis tepi",
       "showTranslation": "Tampilkan terjemahan",
-      "reset": "Setel ulang tampilan"
+      "reset": "Setel ulang tampilan",
+      "showNextLine": "Tampilkan baris berikutnya"
     }
   },
   "scanProgress": {

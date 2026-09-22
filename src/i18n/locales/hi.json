@@ -2512,7 +2512,8 @@
       "highlightColor": "गाए गए हिस्से का रंग",
       "outline": "आउटलाइन",
       "showTranslation": "अनुवाद दिखाएँ",
-      "reset": "रूप रीसेट करें"
+      "reset": "रूप रीसेट करें",
+      "showNextLine": "अगली पंक्ति दिखाएँ"
     }
   },
   "scanProgress": {

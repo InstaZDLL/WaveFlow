@@ -23,6 +23,9 @@ export interface DesktopLyricsStyle {
   backgroundOpacity: number;
   /** Show a line's translation under it, when the lyrics carry one. */
   showTranslation: boolean;
+  /** Show the next line under the current one, when there is no
+   *  translation to show there. Off, the window is a single line (#735). */
+  showNextLine: boolean;
 }
 
 export const FONT_SIZE_MIN = 20;
@@ -36,6 +39,7 @@ export const DEFAULT_DESKTOP_LYRICS_STYLE: DesktopLyricsStyle = {
   outline: true,
   backgroundOpacity: 0,
   showTranslation: true,
+  showNextLine: true,
 };
 
 const KEY = "ui.desktop_lyrics_style";
@@ -112,6 +116,10 @@ function parseStyle(raw: string | null): DesktopLyricsStyle {
       typeof parsed.showTranslation === "boolean"
         ? parsed.showTranslation
         : d.showTranslation,
+    showNextLine:
+      typeof parsed.showNextLine === "boolean"
+        ? parsed.showNextLine
+        : d.showNextLine,
   };
 }
 

@@ -2512,7 +2512,8 @@
       "highlightColor": "Gezongen kleur",
       "outline": "Omlijning",
       "showTranslation": "Vertaling tonen",
-      "reset": "Weergave herstellen"
+      "reset": "Weergave herstellen",
+      "showNextLine": "Volgende regel tonen"
     }
   },
   "scanProgress": {

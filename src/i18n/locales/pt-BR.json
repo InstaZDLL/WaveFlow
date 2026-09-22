@@ -2516,7 +2516,8 @@
       "highlightColor": "Cor do trecho cantado",
       "outline": "Contorno",
       "showTranslation": "Mostrar tradução",
-      "reset": "Redefinir aparência"
+      "reset": "Redefinir aparência",
+      "showNextLine": "Mostrar a próxima linha"
     }
   },
   "scanProgress": {

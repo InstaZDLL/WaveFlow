@@ -2515,7 +2515,8 @@
       "highlightColor": "Couleur chantée",
       "outline": "Contour",
       "showTranslation": "Afficher la traduction",
-      "reset": "Réinitialiser l'apparence"
+      "reset": "Réinitialiser l'apparence",
+      "showNextLine": "Afficher la ligne suivante"
     }
   },
   "scanProgress": {

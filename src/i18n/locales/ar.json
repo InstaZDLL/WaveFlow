@@ -2709,7 +2709,8 @@
       "highlightColor": "لون الجزء المُغنّى",
       "outline": "إطار",
       "showTranslation": "عرض الترجمة",
-      "reset": "إعادة تعيين المظهر"
+      "reset": "إعادة تعيين المظهر",
+      "showNextLine": "إظهار السطر التالي"
     }
   },
   "scanProgress": {
