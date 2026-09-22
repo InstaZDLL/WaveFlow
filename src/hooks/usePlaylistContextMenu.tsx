@@ -84,6 +84,9 @@ export function usePlaylistContextMenu({
   /** The playlist being edited, once its full row has been fetched —
    *  the menu only carries the summary the lists render. */
   const [editing, setEditing] = useState<Playlist | null>(null);
+  /** Delete is two-step. Cleared whenever the menu closes, so the next
+   *  one never opens already armed. */
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const open = useCallback(
     (event: ReactMouseEvent, playlist: ContextPlaylist) => {
@@ -112,7 +115,10 @@ export function usePlaylistContextMenu({
     [],
   );
 
-  const close = useCallback(() => setState(null), []);
+  const close = useCallback(() => {
+    setState(null);
+    setConfirmDelete(false);
+  }, []);
 
   const render = useCallback(() => {
     const menu = (() => {
@@ -201,21 +207,31 @@ export function usePlaylistContextMenu({
             })}
           />
           <ContextMenuSeparator />
+          {/* Asks twice, the same way the header's button does — and
+              reusing its second label. Deleting a playlist cannot be
+              undone, and this item sits directly under Export, so a
+              single click here is one slip away from losing one. The
+              first click only arms it, leaving the menu open. */}
           <ContextMenuItem
             icon={<Trash2 size={16} aria-hidden="true" />}
-            label={t("playlistView.actions.delete")}
+            label={
+              confirmDelete
+                ? t("playlistView.actions.deleteConfirm")
+                : t("playlistView.actions.delete")
+            }
             danger
-            onSelect={act(() => {
-              // The header's button asks twice before deleting; a
-              // menu item is already a deliberate second gesture,
-              // and the entry it acted on stays visible until the
-              // list refreshes, so the outcome is never a surprise.
+            onSelect={() => {
+              if (!confirmDelete) {
+                setConfirmDelete(true);
+                return;
+              }
               deletePlaylist(localId)
                 .then(() => onAfterDelete?.(localId))
                 .catch((err: unknown) =>
                   console.error("[usePlaylistContextMenu] delete failed", err),
                 );
-            })}
+              close();
+            }}
           />
         </ContextMenu>
       );
@@ -242,7 +258,19 @@ export function usePlaylistContextMenu({
               await refresh();
               setEditing(null);
             }}
-            onCoverChanged={() => void refresh()}
+            onCoverChanged={() => {
+              // The modal renders from `existing`, so refreshing only
+              // the list would leave its own preview on the old cover.
+              void refresh();
+              getPlaylist(editing.id)
+                .then(setEditing)
+                .catch((err: unknown) =>
+                  console.error(
+                    "[usePlaylistContextMenu] reload after cover failed",
+                    err,
+                  ),
+                );
+            }}
           />
         )}
       </>
@@ -256,6 +284,7 @@ export function usePlaylistContextMenu({
     refresh,
     onAfterDelete,
     onOpenRemote,
+    confirmDelete,
   ]);
 
   return { open, openFromKeyboard, close, render };
