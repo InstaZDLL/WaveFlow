@@ -19,7 +19,7 @@ Every playlist action used to live only as an icon button in [`PlaylistView`](..
 
 [`usePlaylistContextMenu`](../../src/hooks/usePlaylistContextMenu.tsx) is the one menu both surfaces open, modelled on [`useRemoteTrackContextMenu`](../../src/hooks/useRemoteTrackContextMenu.tsx) and returning the same `{ open, openFromKeyboard, close, render }`. It offers Play / Play next / Add to queue, then Edit, Export as M3U and Delete. It owns the edit modal itself rather than leaving each caller to mount one, so the sidebar and the grid cannot drift apart on what Edit opens.
 
-A **server** playlist gets the first three items only: rename, export and delete all go through commands that take a local rowid, which it does not have.
+A **server** playlist gets one item, Open. Every other action takes a local rowid it does not have, and its playback runs through the view's own remote path rather than `player_play_tracks` — so the alternative was a menu with every item greyed out, which is worse than the inert right-click this replaced.
 
 The grid is virtualized, so the menu state lives in [`PlaylistGrid`](../../src/components/views/library/PlaylistGrid.tsx) rather than in a card — a card can unmount under an open menu. `ContextMenu` portals to `body` and closes on scroll, so that unmount is harmless.
 

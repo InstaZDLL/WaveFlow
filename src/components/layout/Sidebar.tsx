@@ -117,6 +117,7 @@ export function Sidebar({
   // open, so the two surfaces cannot drift apart (#737).
   const playlistMenu = usePlaylistContextMenu({
     onAfterDelete: () => void refreshPlaylists(),
+    onOpenRemote: navigateToRemotePlaylist,
   });
   // Seq-guarded stats fetch
   const statsSeqRef = useRef(0);

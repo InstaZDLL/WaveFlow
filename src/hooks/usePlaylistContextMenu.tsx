@@ -7,6 +7,7 @@ import {
 import { useTranslation } from "react-i18next";
 import {
   FileDown,
+  FolderOpen,
   ListEnd,
   ListPlus,
   Pencil,
@@ -49,6 +50,9 @@ export interface ContextPlaylist {
 interface UsePlaylistContextMenuArgs {
   /** Called after a delete, so the caller can leave the page it was on. */
   onAfterDelete?: (playlistId: number) => void;
+  /** Navigate to a server playlist. It is the only thing this menu can
+   *  offer one — see the note on the remote branch below. */
+  onOpenRemote?: (remotePlaylistId: string) => void;
 }
 
 /**
@@ -60,12 +64,16 @@ interface UsePlaylistContextMenuArgs {
  * Right-clicking one did nothing: inert in a release build, and in a dev
  * build the webview's own menu came through instead (#737).
  *
- * A server playlist gets Play / Play next / Add to queue and nothing
- * more — rename, export and delete all go through commands that take a
- * local rowid.
+ * A server playlist gets one item, Open. Every other action here takes a
+ * local rowid it does not have, and its playback runs through the view's
+ * own remote path rather than `player_play_tracks`. Offering the same
+ * list greyed out would be a menu where nothing can be chosen, which is
+ * worse than the inert right-click this replaces — so it offers the one
+ * thing that does work and leads to where the rest already live.
  */
 export function usePlaylistContextMenu({
   onAfterDelete,
+  onOpenRemote,
 }: UsePlaylistContextMenuArgs = {}) {
   const { t } = useTranslation();
   const { deletePlaylist, refresh } = usePlaylist();
@@ -116,8 +124,22 @@ export function usePlaylistContextMenu({
         close();
       };
 
+      // Everything past here needs a local rowid, so the remote case is
+      // its own short menu rather than the same one with every item
+      // switched off.
+      if (localId == null) {
+        return (
+          <ContextMenu point={state.point} onClose={close}>
+            <ContextMenuItem
+              icon={<FolderOpen size={16} aria-hidden="true" />}
+              label={t("common.open")}
+              onSelect={act(() => onOpenRemote?.(playlist.id))}
+            />
+          </ContextMenu>
+        );
+      }
+
       const withTracks = (use: (ids: number[]) => Promise<void>) => () => {
-        if (localId == null) return;
         listPlaylistTracks(localId)
           .then((tracks) => {
             const ids = tracks.map((track) => track.id);
@@ -134,7 +156,6 @@ export function usePlaylistContextMenu({
           <ContextMenuItem
             icon={<Play size={16} aria-hidden="true" />}
             label={t("playlistView.actions.play")}
-            disabled={localId == null}
             onSelect={act(
               withTracks((ids) =>
                 playerPlayTracks("playlist", localId, ids, 0),
@@ -144,70 +165,58 @@ export function usePlaylistContextMenu({
           <ContextMenuItem
             icon={<ListEnd size={16} aria-hidden="true" />}
             label={t("trackActions.playNext")}
-            disabled={localId == null}
             onSelect={act(withTracks(playerPlayNext))}
           />
           <ContextMenuItem
             icon={<ListPlus size={16} aria-hidden="true" />}
             label={t("trackActions.addToQueue")}
-            disabled={localId == null}
             onSelect={act(withTracks(playerAddToQueue))}
           />
-          {localId != null && (
-            <>
-              <ContextMenuSeparator />
-              <ContextMenuItem
-                icon={<Pencil size={16} aria-hidden="true" />}
-                label={t("playlistView.actions.edit")}
-                onSelect={act(() => {
-                  getPlaylist(localId)
-                    .then(setEditing)
-                    .catch((err: unknown) =>
-                      console.error(
-                        "[usePlaylistContextMenu] load for edit failed",
-                        err,
-                      ),
-                    );
-                })}
-              />
-              <ContextMenuItem
-                icon={<FileDown size={16} aria-hidden="true" />}
-                label={t("playlistView.actions.exportM3u")}
-                onSelect={act(() => {
-                  pickSaveFile(`${playlist.name}.m3u8`, ["m3u8", "m3u"])
-                    .then((dest) =>
-                      dest ? exportPlaylistM3u(localId, dest) : undefined,
-                    )
-                    .catch((err: unknown) =>
-                      console.error(
-                        "[usePlaylistContextMenu] export failed",
-                        err,
-                      ),
-                    );
-                })}
-              />
-              <ContextMenuSeparator />
-              <ContextMenuItem
-                icon={<Trash2 size={16} aria-hidden="true" />}
-                label={t("playlistView.actions.delete")}
-                danger
-                onSelect={act(() => {
-                  // The header's button asks twice before deleting; a
-                  // menu item is already a deliberate second gesture,
-                  // and the entry it acted on stays visible until the
-                  // list refreshes, so the outcome is never a surprise.
-                  deletePlaylist(localId)
-                    .then(() => onAfterDelete?.(localId))
-                    .catch((err: unknown) =>
-                      console.error(
-                        "[usePlaylistContextMenu] delete failed",
-                        err,
-                      ),
-                    );
-                })}
-              />
-            </>
-          )}
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            icon={<Pencil size={16} aria-hidden="true" />}
+            label={t("playlistView.actions.edit")}
+            onSelect={act(() => {
+              getPlaylist(localId)
+                .then(setEditing)
+                .catch((err: unknown) =>
+                  console.error(
+                    "[usePlaylistContextMenu] load for edit failed",
+                    err,
+                  ),
+                );
+            })}
+          />
+          <ContextMenuItem
+            icon={<FileDown size={16} aria-hidden="true" />}
+            label={t("playlistView.actions.exportM3u")}
+            onSelect={act(() => {
+              pickSaveFile(`${playlist.name}.m3u8`, ["m3u8", "m3u"])
+                .then((dest) =>
+                  dest ? exportPlaylistM3u(localId, dest) : undefined,
+                )
+                .catch((err: unknown) =>
+                  console.error("[usePlaylistContextMenu] export failed", err),
+                );
+            })}
+          />
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            icon={<Trash2 size={16} aria-hidden="true" />}
+            label={t("playlistView.actions.delete")}
+            danger
+            onSelect={act(() => {
+              // The header's button asks twice before deleting; a
+              // menu item is already a deliberate second gesture,
+              // and the entry it acted on stays visible until the
+              // list refreshes, so the outcome is never a surprise.
+              deletePlaylist(localId)
+                .then(() => onAfterDelete?.(localId))
+                .catch((err: unknown) =>
+                  console.error("[usePlaylistContextMenu] delete failed", err),
+                );
+            })}
+          />
         </ContextMenu>
       );
     })();
@@ -238,7 +247,16 @@ export function usePlaylistContextMenu({
         )}
       </>
     );
-  }, [state, close, editing, t, deletePlaylist, refresh, onAfterDelete]);
+  }, [
+    state,
+    close,
+    editing,
+    t,
+    deletePlaylist,
+    refresh,
+    onAfterDelete,
+    onOpenRemote,
+  ]);
 
   return { open, openFromKeyboard, close, render };
 }

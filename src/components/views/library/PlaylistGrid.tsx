@@ -65,7 +65,7 @@ export function PlaylistGrid({
 }: PlaylistGridProps) {
   const { t, i18n } = useTranslation();
   // The same menu the sidebar rows open (#737).
-  const menu = usePlaylistContextMenu();
+  const menu = usePlaylistContextMenu({ onOpenRemote });
 
   const sorted = useMemo(() => {
     // Locale-aware compare: a byte comparison sorts "Été" after "Zoo".
