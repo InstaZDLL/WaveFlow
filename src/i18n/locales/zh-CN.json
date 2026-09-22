@@ -1365,7 +1365,8 @@
       "clear": "清除歌词",
       "fullscreen": "全屏",
       "edit": "编辑歌词",
-      "cycleLocalization": "切换附加行"
+      "cycleLocalization": "切换附加行",
+      "searchAnyway": "仍然搜索"
     },
     "localization": {
       "off": "不显示附加行",
@@ -1395,7 +1396,8 @@
     "toast": {
       "tagWriteSkipped": "TTML 仅保留在缓存中（未写入音频标签）",
       "sidecarWriteSkipped": "歌词已保存到数据库，但 TTML 格式无法保存为 .lrc/.txt 外挂文件。"
-    }
+    },
+    "excludedGenre": "不会在线搜索 {{genre}} 流派的歌词（设置 → 图片与歌词）。你可以导入 .lrc 文件，或仍然搜索。"
   },
   "duplicates": {
     "title": "检测到重复文件",

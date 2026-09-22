@@ -1367,7 +1367,8 @@
       "clear": "Apagar a letra",
       "fullscreen": "Ecrã inteiro",
       "edit": "Editar a letra",
-      "cycleLocalization": "Mudar a leitura adicional"
+      "cycleLocalization": "Mudar a leitura adicional",
+      "searchAnyway": "Procurar na mesma"
     },
     "localization": {
       "off": "Sem leitura adicional",
@@ -1397,7 +1398,8 @@
     "toast": {
       "tagWriteSkipped": "TTML mantido apenas em cache (não escrito nos metadados de áudio)",
       "sidecarWriteSkipped": "Letras guardadas na base de dados, mas o TTML não pode ser guardado num ficheiro auxiliar .lrc/.txt."
-    }
+    },
+    "excludedGenre": "As letras não são procuradas online para o género {{genre}} (Definições → Imagens e letras). Podes importar um ficheiro .lrc ou procurar na mesma."
   },
   "duplicates": {
     "title": "Duplicados detetados",

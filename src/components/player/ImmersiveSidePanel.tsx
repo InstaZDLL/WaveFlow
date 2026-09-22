@@ -77,6 +77,7 @@ export function ImmersiveSidePanel({
           activeWordIndex={lyrics.activeWordIndex}
           isFetching={lyrics.isFetching}
           error={lyrics.error}
+          excludedGenre={lyrics.excludedGenre}
           staticText={lyrics.radioPlainText}
           // Hides the import / refetch CTA — neither applies without a
           // library row, which a remote-source stream also lacks.

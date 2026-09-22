@@ -1365,7 +1365,8 @@
       "clear": "Clear lyrics",
       "fullscreen": "Fullscreen",
       "edit": "Edit lyrics",
-      "cycleLocalization": "Change the extra reading"
+      "cycleLocalization": "Change the extra reading",
+      "searchAnyway": "Search anyway"
     },
     "localization": {
       "off": "No extra reading",
@@ -1395,7 +1396,8 @@
     "toast": {
       "tagWriteSkipped": "TTML kept in cache only (not written to the audio tag)",
       "sidecarWriteSkipped": "Lyrics saved to the database, but TTML can't ride a .lrc/.txt sidecar."
-    }
+    },
+    "excludedGenre": "Lyrics aren't searched online for the {{genre}} genre (Settings → Images and lyrics). You can import a .lrc file or search anyway."
   },
   "duplicates": {
     "title": "Duplicates detected",

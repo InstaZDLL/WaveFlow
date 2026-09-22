@@ -1365,7 +1365,8 @@
       "clear": "Songtekst wissen",
       "fullscreen": "Volledig scherm",
       "edit": "Songtekst bewerken",
-      "cycleLocalization": "Extra regel wisselen"
+      "cycleLocalization": "Extra regel wisselen",
+      "searchAnyway": "Toch zoeken"
     },
     "localization": {
       "off": "Geen extra regel",
@@ -1395,7 +1396,8 @@
     "toast": {
       "tagWriteSkipped": "TTML alleen in de cache bewaard (niet naar de audiotag geschreven)",
       "sidecarWriteSkipped": "Songtekst opgeslagen in de database, maar TTML kan niet worden opgeslagen als .lrc/.txt-sidecar."
-    }
+    },
+    "excludedGenre": "Voor het genre {{genre}} worden songteksten niet online gezocht (Instellingen → Afbeeldingen en songteksten). Je kunt een .lrc-bestand importeren of toch zoeken."
   },
   "duplicates": {
     "title": "Duplicaten gevonden",

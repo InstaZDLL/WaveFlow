@@ -1365,7 +1365,8 @@
       "clear": "Songtext löschen",
       "fullscreen": "Vollbild",
       "edit": "Songtext bearbeiten",
-      "cycleLocalization": "Zusatzzeile wechseln"
+      "cycleLocalization": "Zusatzzeile wechseln",
+      "searchAnyway": "Trotzdem suchen"
     },
     "localization": {
       "off": "Keine Zusatzzeile",
@@ -1395,7 +1396,8 @@
     "toast": {
       "tagWriteSkipped": "TTML nur im Cache behalten (nicht in den Audio-Tag geschrieben)",
       "sidecarWriteSkipped": "Songtext in der Datenbank gespeichert, aber TTML kann nicht in eine .lrc/.txt-Sidecar-Datei geschrieben werden."
-    }
+    },
+    "excludedGenre": "Für das Genre {{genre}} werden keine Songtexte online gesucht (Einstellungen → Bilder und Liedtexte). Du kannst eine .lrc-Datei importieren oder trotzdem suchen."
   },
   "duplicates": {
     "title": "Duplikate erkannt",

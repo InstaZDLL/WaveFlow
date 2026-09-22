@@ -381,6 +381,7 @@ export function ImmersiveView({
                 activeWordIndex={lyrics.activeWordIndex}
                 isFetching={lyrics.isFetching}
                 error={lyrics.error}
+                excludedGenre={lyrics.excludedGenre}
                 staticText={lyrics.radioPlainText}
                 isRadio={lyrics.isRadio}
                 onSeek={lyrics.seekToLine}

@@ -1366,7 +1366,8 @@
       "clear": "Effacer les paroles",
       "fullscreen": "Plein écran",
       "edit": "Éditer les paroles",
-      "cycleLocalization": "Changer le texte affiché"
+      "cycleLocalization": "Changer le texte affiché",
+      "searchAnyway": "Chercher quand même"
     },
     "localization": {
       "off": "Aucun texte supplémentaire",
@@ -1396,7 +1397,8 @@
     "toast": {
       "tagWriteSkipped": "TTML conservé en base (non écrit dans le tag audio)",
       "sidecarWriteSkipped": "Paroles enregistrées dans la base, mais le format TTML ne tient pas dans un fichier .lrc/.txt."
-    }
+    },
+    "excludedGenre": "Les paroles ne sont pas cherchées en ligne pour le genre {{genre}} (Paramètres → Images et paroles). Vous pouvez importer un fichier .lrc ou chercher quand même."
   },
   "smartPlaylistEditor": {
     "createTitle": "Nouvelle playlist intelligente",

@@ -1365,7 +1365,8 @@
       "clear": "Sözleri temizle",
       "fullscreen": "Tam ekran",
       "edit": "Sözleri düzenle",
-      "cycleLocalization": "Ek okumayı değiştir"
+      "cycleLocalization": "Ek okumayı değiştir",
+      "searchAnyway": "Yine de ara"
     },
     "localization": {
       "off": "Ek okuma yok",
@@ -1395,7 +1396,8 @@
     "toast": {
       "tagWriteSkipped": "TTML yalnızca önbellekte tutuldu (ses etiketine yazılmadı)",
       "sidecarWriteSkipped": "Şarkı sözleri veritabanına kaydedildi, ancak TTML bir .lrc/.txt yan dosyasına yazılamaz."
-    }
+    },
+    "excludedGenre": "{{genre}} türü için şarkı sözleri çevrimiçi aranmıyor (Ayarlar → Görseller ve şarkı sözleri). Bir .lrc dosyası içe aktarabilir ya da yine de arayabilirsin."
   },
   "duplicates": {
     "title": "Yinelenenler algılandı",
