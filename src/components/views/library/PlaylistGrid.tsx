@@ -1,5 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import {
+  usePlaylistContextMenu,
+  type ContextPlaylist,
+} from "../../../hooks/usePlaylistContextMenu";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ListMusic } from "lucide-react";
 
@@ -42,6 +46,16 @@ interface PlaylistGridProps {
  * nesting its own `overflow-y-auto`, which is what keeps the app on a
  * single Spotify-style scrollbar.
  */
+/** What the menu needs from a row: the local half keeps its rowid as
+ *  text, the remote half carries the server's id instead. */
+function subjectOf(playlist: LibraryPlaylistRow): ContextPlaylist {
+  return {
+    id: playlist.id,
+    name: playlist.name,
+    isRemote: playlist.source === "remote",
+  };
+}
+
 export function PlaylistGrid({
   playlists,
   sort,
@@ -50,6 +64,8 @@ export function PlaylistGrid({
   sourceFiltered,
 }: PlaylistGridProps) {
   const { t, i18n } = useTranslation();
+  // The same menu the sidebar rows open (#737).
+  const menu = usePlaylistContextMenu();
 
   const sorted = useMemo(() => {
     // Locale-aware compare: a byte comparison sorts "Été" after "Zoo".
@@ -211,12 +227,17 @@ export function PlaylistGrid({
                   playlist={playlist}
                   onOpen={onOpen}
                   onOpenRemote={onOpenRemote}
+                  onContextMenu={(e) => menu.open(e, subjectOf(playlist))}
+                  onKeyDown={(e) =>
+                    void menu.openFromKeyboard(e, subjectOf(playlist))
+                  }
                 />
               ))}
             </div>
           );
         })}
       </div>
+      {menu.render()}
     </div>
   );
 }
@@ -225,10 +246,16 @@ function PlaylistCard({
   playlist,
   onOpen,
   onOpenRemote,
+  onContextMenu,
+  onKeyDown,
 }: {
   playlist: LibraryPlaylistRow;
   onOpen: (playlistId: number) => void;
   onOpenRemote: (remotePlaylistId: string) => void;
+  /** The menu lives in the grid, not the card: the grid is virtualized,
+   *  so a card can unmount while its menu is open. */
+  onContextMenu: (event: React.MouseEvent) => void;
+  onKeyDown: (event: React.KeyboardEvent) => void;
 }) {
   const { t } = useTranslation();
   const remote = playlist.source === "remote";
@@ -248,6 +275,8 @@ function PlaylistCard({
       onClick={() =>
         remote ? onOpenRemote(playlist.id) : onOpen(Number(playlist.id))
       }
+      onContextMenu={onContextMenu}
+      onKeyDown={onKeyDown}
       className="group flex flex-col space-y-2 text-left cursor-pointer rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
     >
       {coverUrl ? (

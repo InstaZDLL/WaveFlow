@@ -30,6 +30,7 @@ import {
   type CreatePlaylistModalData,
 } from "../../hooks/useCreatePlaylistFromModal";
 import { useLibraryPlaylists } from "../../hooks/useLibraryPlaylists";
+import { usePlaylistContextMenu } from "../../hooks/usePlaylistContextMenu";
 import { resolvePluginIcon } from "../../lib/pluginIcons";
 import { getProfileColor, profileInitial } from "../../lib/profileColors";
 import { pickFile, pickFolder } from "../../lib/tauri/dialog";
@@ -112,6 +113,11 @@ export function Sidebar({
   // The sidebar is navigation, not a filtered view: it always shows both
   // halves, whatever the library tab is currently narrowed to.
   const libraryPlaylists = useLibraryPlaylists(playlists, "all");
+  // Right-click on a playlist row. The same menu the library's cards
+  // open, so the two surfaces cannot drift apart (#737).
+  const playlistMenu = usePlaylistContextMenu({
+    onAfterDelete: () => void refreshPlaylists(),
+  });
   // Seq-guarded stats fetch
   const statsSeqRef = useRef(0);
   const refreshStats = useCallback(() => {
@@ -452,11 +458,27 @@ export function Sidebar({
                         count: pl.track_count,
                       })
                 }
+                onContextMenu={(e) =>
+                  playlistMenu.open(e, {
+                    id: pl.id,
+                    name: pl.name,
+                    isRemote: pl.source === "remote",
+                  })
+                }
+                onKeyDown={(e) =>
+                  void playlistMenu.openFromKeyboard(e, {
+                    id: pl.id,
+                    name: pl.name,
+                    isRemote: pl.source === "remote",
+                  })
+                }
               />
             ))}
           </div>
         </div>
       </div>
+
+      {playlistMenu.render()}
 
       <CreatePlaylistModal
         isOpen={isCreatePlaylistModalOpen}
@@ -483,17 +505,25 @@ function SidebarRow({
   subtext,
   active,
   onClick,
+  onContextMenu,
+  onKeyDown,
 }: {
   icon: React.ReactNode;
   label: string;
   subtext?: string;
   active?: boolean;
   onClick?: () => void;
+  /** Only the playlist rows pass these. The pinned Liked / Recently
+   *  played rows have no menu, leave them out, and behave as before. */
+  onContextMenu?: (event: React.MouseEvent) => void;
+  onKeyDown?: (event: React.KeyboardEvent) => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      onContextMenu={onContextMenu}
+      onKeyDown={onKeyDown}
       className={`w-full flex items-center space-x-3 p-2 rounded-xl text-left transition-colors ${
         active
           ? "bg-emerald-50 dark:bg-emerald-900/20"
@@ -524,11 +554,15 @@ function PlaylistSidebarRow({
   active,
   onClick,
   subtext,
+  onContextMenu,
+  onKeyDown,
 }: {
   playlist: LibraryPlaylistRow;
   active?: boolean;
   onClick?: () => void;
   subtext: string;
+  onContextMenu?: (event: React.MouseEvent) => void;
+  onKeyDown?: (event: React.KeyboardEvent) => void;
 }) {
   const remote = playlist.source === "remote";
   // A server playlist carries no colour of its own; derived from its
@@ -560,6 +594,8 @@ function PlaylistSidebarRow({
       subtext={subtext}
       active={active}
       onClick={onClick}
+      onContextMenu={onContextMenu}
+      onKeyDown={onKeyDown}
     />
   );
 }
