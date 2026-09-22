@@ -82,8 +82,8 @@ export function SmartRuleSummary({ playlist }: { playlist: Playlist }) {
     return null;
   }
   return (
-    <p className="flex items-start gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-      <Sparkles size={13} className="mt-0.5 shrink-0 text-violet-500" />
+    <p className="flex items-start gap-1.5 text-xs text-white/85 mb-2">
+      <Sparkles size={13} className="mt-0.5 shrink-0 text-white/85" />
       <span className="line-clamp-2">{summary.text}</span>
     </p>
   );

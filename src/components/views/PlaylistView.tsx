@@ -115,7 +115,6 @@ import {
   usePlaylistAccent,
 } from "../../hooks/usePlaylistAccent";
 import { formatPlaylistDuration } from "../../lib/playlistDuration";
-import { useTheme } from "../../hooks/useTheme";
 
 /**
  * Sort modes for the playlist track list. "custom" preserves the
@@ -312,7 +311,6 @@ export function PlaylistView({
   onNavigateToRemoteArtist,
 }: PlaylistViewProps) {
   const { t } = useTranslation();
-  const { isDark } = useTheme();
   const createFromModal = useCreatePlaylistFromModal();
   // Which catalogue this playlist came from. Everything that touches a
   // local rowid, a file or the local user data is gated on it.
@@ -1129,8 +1127,8 @@ export function PlaylistView({
     <div className="relative isolate -mx-8 -mt-8 px-8 pt-8 space-y-8 motion-safe:animate-fade-in pb-20">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[540px]"
-        style={{ background: playlistGradient(accent, isDark) }}
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[900px] sm:h-[700px] lg:h-[540px]"
+        style={{ background: playlistGradient(accent) }}
       />
       {/* Header. Smart playlists (Daily Mix, …) ship a generated cover
           image — render it as a 96×96 tile with a "DAILY MIX" overlay
@@ -1192,7 +1190,7 @@ export function PlaylistView({
                 </div>
               )}
               <div className="min-w-0 pb-1">
-                <div className="text-[10px] font-bold tracking-widest text-zinc-700 dark:text-zinc-200 uppercase mb-1">
+                <div className="text-[10px] font-bold tracking-widest text-white/85 uppercase mb-1">
                   {t(remote ? "remote.playlist.label" : "playlistView.badge")}
                 </div>
                 {remote && isRenaming ? (
@@ -1214,17 +1212,17 @@ export function PlaylistView({
                     className="w-full mb-2 px-2 py-1 text-3xl font-bold rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900"
                   />
                 ) : (
-                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-3 break-words text-zinc-900 dark:text-white">
+                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-3 break-words text-white">
                     {playlist.name}
                   </h1>
                 )}
                 {playlist.description && (
-                  <p className="text-sm text-zinc-700 dark:text-zinc-200 mb-2 line-clamp-2">
+                  <p className="text-sm text-white/85 mb-2 line-clamp-2">
                     {playlist.description}
                   </p>
                 )}
                 {!remote && <SmartRuleSummary playlist={playlist} />}
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-700 dark:text-zinc-200">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/85">
                   <Music2 size={16} />
                   <span>
                     {t("playlistView.trackCount", {
