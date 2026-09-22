@@ -194,6 +194,16 @@ export function DesktopLyricsCard() {
             className="w-4 h-4 accent-emerald-500 cursor-pointer"
           />
         </label>
+
+        <label className="flex items-center justify-between gap-3 text-sm text-zinc-700 dark:text-zinc-200 cursor-pointer">
+          {t("settings.desktopLyrics.showNextLine")}
+          <input
+            type="checkbox"
+            checked={style.showNextLine}
+            onChange={(e) => update({ showNextLine: e.target.checked })}
+            className="w-4 h-4 accent-emerald-500 cursor-pointer"
+          />
+        </label>
       </fieldset>
 
       <button

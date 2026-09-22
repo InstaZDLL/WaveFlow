@@ -2512,7 +2512,8 @@
       "highlightColor": "Sung colour",
       "outline": "Outline",
       "showTranslation": "Show translation",
-      "reset": "Reset appearance"
+      "reset": "Reset appearance",
+      "showNextLine": "Show next line"
     }
   },
   "scanProgress": {

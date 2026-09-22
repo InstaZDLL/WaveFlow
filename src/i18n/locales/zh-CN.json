@@ -2512,7 +2512,8 @@
       "highlightColor": "已唱颜色",
       "outline": "描边",
       "showTranslation": "显示翻译",
-      "reset": "重置外观"
+      "reset": "重置外观",
+      "showNextLine": "显示下一行"
     }
   },
   "scanProgress": {

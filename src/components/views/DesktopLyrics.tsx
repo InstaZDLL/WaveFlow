@@ -22,6 +22,52 @@ import {
 } from "../../lib/tauri/desktopLyrics";
 import type { LyricsLine } from "../../lib/tauri/lyrics";
 
+/** The API declares this type but does not export it. */
+type ResizeDirection = Parameters<
+  ReturnType<typeof getCurrentWindow>["startResizeDragging"]
+>[0];
+
+/** How close to the window's edge, in px, a press resizes rather than
+ *  moves it. */
+const RESIZE_EDGE = 8;
+
+/**
+ * The window edge — or corner — under a point, or `null` inside.
+ *
+ * The overlay is undecorated and every press on it starts a window drag,
+ * so nothing was left to grab the sides with: the window could not be
+ * widened, and a long line was cut (#735). A press this close to an edge
+ * resizes instead, and the cursor says so first.
+ */
+function edgeAt(x: number, y: number): ResizeDirection | null {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const north = y < RESIZE_EDGE;
+  const south = y >= h - RESIZE_EDGE;
+  const west = x < RESIZE_EDGE;
+  const east = x >= w - RESIZE_EDGE;
+  if (north && west) return "NorthWest";
+  if (north && east) return "NorthEast";
+  if (south && west) return "SouthWest";
+  if (south && east) return "SouthEast";
+  if (north) return "North";
+  if (south) return "South";
+  if (west) return "West";
+  if (east) return "East";
+  return null;
+}
+
+const EDGE_CURSOR: Record<ResizeDirection, string> = {
+  North: "ns-resize",
+  South: "ns-resize",
+  East: "ew-resize",
+  West: "ew-resize",
+  NorthEast: "nesw-resize",
+  SouthWest: "nesw-resize",
+  NorthWest: "nwse-resize",
+  SouthEast: "nwse-resize",
+};
+
 /** Size of the second line relative to the first. */
 const SECOND_LINE_SCALE = 0.62;
 
@@ -90,6 +136,7 @@ export function DesktopLyrics() {
   const { status, setLocked } = useDesktopLyricsStatus();
   const [hovered, setHovered] = useState(false);
   const [focusedWithin, setFocusedWithin] = useState(false);
+  const [edge, setEdge] = useState<ResizeDirection | null>(null);
 
   usePersistBounds();
 
@@ -104,15 +151,20 @@ export function DesktopLyrics() {
   let first: ReactNode;
   if (activeLine) {
     first = renderLine(activeLine, activeWordIndex, wordFillRef);
+    // The row under the line: its translation, or — unless that preview
+    // is turned off (#735) — the next line.
     second =
       style.showTranslation && activeLine.translation
         ? activeLine.translation
-        : (lrcLines[activeIndex + 1]?.text ?? null);
+        : style.showNextLine
+          ? (lrcLines[activeIndex + 1]?.text ?? null)
+          : null;
   } else if (currentTrack) {
     first = currentTrack.title;
-    second = isSynced
-      ? (lrcLines[0]?.text ?? null)
-      : (currentTrack.artist_name ?? null);
+    second =
+      isSynced && style.showNextLine
+        ? (lrcLines[0]?.text ?? null)
+        : (currentTrack.artist_name ?? null);
   } else {
     first = "WaveFlow";
   }
@@ -139,9 +191,21 @@ export function DesktopLyrics() {
           ? "cursor-move ring-1 ring-inset ring-white/25"
           : "cursor-default"
       }`}
-      style={rootStyle}
+      style={
+        showChrome && edge
+          ? { ...rootStyle, cursor: EDGE_CURSOR[edge] }
+          : rootStyle
+      }
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseLeave={() => {
+        setHovered(false);
+        setEdge(null);
+      }}
+      onMouseMove={(e) => {
+        if (status.locked) return;
+        const next = edgeAt(e.clientX, e.clientY);
+        if (next !== edge) setEdge(next);
+      }}
       onFocus={() => setFocusedWithin(true)}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
@@ -151,6 +215,15 @@ export function DesktopLyrics() {
       onMouseDown={(e) => {
         if (e.button !== 0 || status.locked) return;
         if ((e.target as HTMLElement).closest("button")) return;
+        const direction = edgeAt(e.clientX, e.clientY);
+        if (direction) {
+          getCurrentWindow()
+            .startResizeDragging(direction)
+            .catch((err) =>
+              console.error("[DesktopLyrics] startResizeDragging failed", err),
+            );
+          return;
+        }
         getCurrentWindow()
           .startDragging()
           .catch((err) =>

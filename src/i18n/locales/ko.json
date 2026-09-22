@@ -2512,7 +2512,8 @@
       "highlightColor": "부른 부분 색",
       "outline": "외곽선",
       "showTranslation": "번역 표시",
-      "reset": "모양 초기화"
+      "reset": "모양 초기화",
+      "showNextLine": "다음 줄 표시"
     }
   },
   "scanProgress": {

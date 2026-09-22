@@ -2512,7 +2512,8 @@
       "highlightColor": "Gesungene Farbe",
       "outline": "Kontur",
       "showTranslation": "Übersetzung anzeigen",
-      "reset": "Darstellung zurücksetzen"
+      "reset": "Darstellung zurücksetzen",
+      "showNextLine": "Nächste Zeile anzeigen"
     }
   },
   "scanProgress": {

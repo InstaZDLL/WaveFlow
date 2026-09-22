@@ -229,6 +229,7 @@ export const SETTINGS_CATEGORIES = [
           "settings.desktopLyrics.outline",
           "settings.desktopLyrics.background",
           "settings.desktopLyrics.showTranslation",
+          "settings.desktopLyrics.showNextLine",
         ],
       },
       {

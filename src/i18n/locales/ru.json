@@ -2630,7 +2630,8 @@
       "highlightColor": "Цвет пропетого",
       "outline": "Обводка",
       "showTranslation": "Показывать перевод",
-      "reset": "Сбросить оформление"
+      "reset": "Сбросить оформление",
+      "showNextLine": "Показывать следующую строку"
     }
   },
   "scanProgress": {
