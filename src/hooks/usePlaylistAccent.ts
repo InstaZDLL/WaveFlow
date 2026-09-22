@@ -37,9 +37,9 @@ export function usePlaylistAccent(
 }
 
 /**
- * The two stops of the header, in the artwork's hue: `top`, the colour at
- * its full strength, and `deep`, darker, behind the title — dark enough
- * for the white label over it (4.5:1).
+ * The two stops of the header, in the artwork's hue: `top`, the colour
+ * about as light as the artwork, and `deep`, well darker at the header's
+ * foot, so the header visibly darkens from one to the other.
  */
 function headerColors(accent: Color): { top: Color; deep: Color } {
   const channels = [accent.r, accent.g, accent.b].map(
@@ -80,9 +80,15 @@ function headerColors(accent: Color): { top: Color; deep: Color } {
     };
   };
 
-  const saturation = delta < 0.02 ? 0 : 0.72;
-  let deepLightness = 0.27;
-  let deep = makeColor(saturation, deepLightness);
+  // The artwork's own saturation and lightness, held to a range that
+  // stays a colour: a washed-out cover still gets some tint, a garish one
+  // is calmed, and a grey one stays grey.
+  const artLightness = (max + min) / 2;
+  const artSaturation =
+    delta === 0 ? 0 : delta / (1 - Math.abs(2 * artLightness - 1));
+  const saturation =
+    delta < 0.02 ? 0 : Math.min(0.8, Math.max(0.35, artSaturation));
+
   const luminance = ({ r, g, b }: Color) =>
     [r, g, b]
       .map((channel) => {
@@ -102,33 +108,37 @@ function headerColors(accent: Color): { top: Color; deep: Color } {
     };
     return (luminance(label) + 0.05) / (luminance(background) + 0.05);
   };
-  // The lightest shade at or under `ceiling` that still carries the white
-  // label at 4.5:1. Contrast falls as lightness rises, so a bisection
-  // finds it.
-  const lightestReadable = (ceiling: number): number => {
-    if (labelContrast(makeColor(saturation, ceiling)) >= 4.5) return ceiling;
-    let low = 0;
-    let high = ceiling;
-    for (let i = 0; i < 12; i += 1) {
-      const middle = (low + high) / 2;
-      if (labelContrast(makeColor(saturation, middle)) >= 4.5) low = middle;
-      else high = middle;
-    }
-    return low;
+  const mix = (a: Color, b: Color, t: number): Color => ({
+    r: Math.round(a.r + (b.r - a.r) * t),
+    g: Math.round(a.g + (b.g - a.g) * t),
+    b: Math.round(a.b + (b.b - a.b) * t),
+  });
+
+  // A real span between the stops — the header darkens by 30 points of
+  // lightness, which is what makes the gradient show at all. The contrast
+  // is checked where the text starts (the label sits a little under half
+  // way down the header, higher when it stacks on a narrow window), not at
+  // the top, where there is nothing to read: requiring it there is what
+  // flattened the header into one dark tone.
+  const SPAN = 0.3;
+  const TEXT_AT = 0.4;
+  let topLightness = Math.min(0.6, Math.max(0.42, artLightness));
+  const stops = () => {
+    const deepLightness = Math.max(0.08, topLightness - SPAN);
+    return {
+      top: makeColor(saturation, topLightness),
+      deep: makeColor(saturation, deepLightness),
+    };
   };
-  if (labelContrast(deep) < 4.5) {
-    deepLightness = lightestReadable(0.27);
-    deep = makeColor(saturation, deepLightness);
+  let { top, deep } = stops();
+  for (
+    let i = 0;
+    i < 40 && labelContrast(mix(top, deep, TEXT_AT)) < 4.5;
+    i += 1
+  ) {
+    topLightness -= 0.01;
+    ({ top, deep } = stops());
   }
-  // Brighter than `deep` by a fixed step, so the header darkens by about
-  // the same amount whatever the artwork — but held to the same contrast:
-  // on a narrow window the header stacks and the title sits in the upper
-  // half. A light hue (yellow) can then barely brighten at all, and its
-  // header is close to flat; the fade below still carries the colour.
-  const top = makeColor(
-    saturation,
-    lightestReadable(Math.min(0.5, deepLightness + 0.2)),
-  );
   return { top, deep };
 }
 

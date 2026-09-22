@@ -1141,10 +1141,10 @@ export function PlaylistView({
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 dark:hidden [--playlist-header:600px] sm:[--playlist-header:460px] lg:[--playlist-header:330px]"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 dark:hidden [--playlist-header:560px] sm:[--playlist-header:420px] lg:[--playlist-header:290px]"
         style={{
-          height: "calc(var(--playlist-header) + 70px)",
-          background: playlistGradient(accent, 70),
+          height: "calc(var(--playlist-header) + 120px)",
+          background: playlistGradient(accent, 120),
         }}
       />
       {/* Header. Smart playlists (Daily Mix, …) ship a generated cover
