@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
@@ -12,6 +13,7 @@ import {
   ListPlus,
   Pencil,
   Play,
+  Shuffle,
   Trash2,
 } from "lucide-react";
 import {
@@ -36,6 +38,7 @@ import {
   playerPlayTracks,
 } from "../lib/tauri/player";
 import { usePlaylist } from "./usePlaylist";
+import { usePlayer } from "./usePlayer";
 
 /** The entry the menu acts on. Both surfaces that open it hold a
  *  `LibraryPlaylistRow`, whose `id` is text and may be a server id. */
@@ -77,6 +80,7 @@ export function usePlaylistContextMenu({
 }: UsePlaylistContextMenuArgs = {}) {
   const { t } = useTranslation();
   const { deletePlaylist, refresh } = usePlaylist();
+  const { isShuffled, toggleShuffle } = usePlayer();
   const [state, setState] = useState<{
     point: ContextMenuPoint;
     playlist: ContextPlaylist;
@@ -84,6 +88,13 @@ export function usePlaylistContextMenu({
   /** The playlist being edited, once its full row has been fetched —
    *  the menu only carries the summary the lists render. */
   const [editing, setEditing] = useState<Playlist | null>(null);
+  /** Rises on every fetch and on every close, so a slow response that
+   *  lands after the modal was dismissed cannot reopen it. */
+  const editLoadRef = useRef(0);
+  const closeEditing = useCallback(() => {
+    editLoadRef.current += 1;
+    setEditing(null);
+  }, []);
   /** Delete is two-step. Cleared whenever the menu closes, so the next
    *  one never opens already armed. */
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -168,6 +179,19 @@ export function usePlaylistContextMenu({
               ),
             )}
           />
+          {/* Only turns shuffle on. `player_toggle_shuffle` really
+              toggles, so firing it unconditionally would switch it OFF
+              for anyone who already had it on. */}
+          <ContextMenuItem
+            icon={<Shuffle size={16} aria-hidden="true" />}
+            label={t("playlistView.actions.shuffle")}
+            onSelect={act(
+              withTracks(async (ids) => {
+                await playerPlayTracks("playlist", localId, ids, 0);
+                if (!isShuffled) await toggleShuffle();
+              }),
+            )}
+          />
           <ContextMenuItem
             icon={<ListEnd size={16} aria-hidden="true" />}
             label={t("trackActions.playNext")}
@@ -183,8 +207,11 @@ export function usePlaylistContextMenu({
             icon={<Pencil size={16} aria-hidden="true" />}
             label={t("playlistView.actions.edit")}
             onSelect={act(() => {
+              const load = ++editLoadRef.current;
               getPlaylist(localId)
-                .then(setEditing)
+                .then((row) => {
+                  if (load === editLoadRef.current) setEditing(row);
+                })
                 .catch((err: unknown) =>
                   console.error(
                     "[usePlaylistContextMenu] load for edit failed",
@@ -246,7 +273,7 @@ export function usePlaylistContextMenu({
           <CreatePlaylistModal
             isOpen
             existing={editing}
-            onClose={() => setEditing(null)}
+            onClose={closeEditing}
             onCreate={async (data) => {
               await updatePlaylist(editing.id, {
                 name: data.name,
@@ -256,14 +283,17 @@ export function usePlaylistContextMenu({
                 icon_id: data.iconId,
               });
               await refresh();
-              setEditing(null);
+              closeEditing();
             }}
             onCoverChanged={() => {
               // The modal renders from `existing`, so refreshing only
               // the list would leave its own preview on the old cover.
               void refresh();
+              const load = ++editLoadRef.current;
               getPlaylist(editing.id)
-                .then(setEditing)
+                .then((row) => {
+                  if (load === editLoadRef.current) setEditing(row);
+                })
                 .catch((err: unknown) =>
                   console.error(
                     "[usePlaylistContextMenu] reload after cover failed",
@@ -285,6 +315,9 @@ export function usePlaylistContextMenu({
     onAfterDelete,
     onOpenRemote,
     confirmDelete,
+    closeEditing,
+    isShuffled,
+    toggleShuffle,
   ]);
 
   return { open, openFromKeyboard, close, render };

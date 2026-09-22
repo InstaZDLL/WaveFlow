@@ -315,7 +315,8 @@ export function PlaylistView({
   // Which catalogue this playlist came from. Everything that touches a
   // local rowid, a file or the local user data is gated on it.
   const remote = remotePlaylistId != null;
-  const { playTracks, currentTrack, toggleShuffle, isPlaying } = usePlayer();
+  const { playTracks, currentTrack, toggleShuffle, isShuffled, isPlaying } =
+    usePlayer();
   const {
     updatePlaylist,
     deletePlaylist,
@@ -1044,9 +1045,11 @@ export function PlaylistView({
   const handleShufflePlay = async () => {
     if (displayTracks.length === 0 || playlistId == null) return;
     await playTracks(displayTracks, 0, { type: "playlist", id: playlistId });
-    // Toggle shuffle on if it isn't already; the backend handles the
-    // case where it's already shuffled gracefully.
-    await toggleShuffle();
+    // Only when it is off. `player_toggle_shuffle` really toggles — it
+    // reads the current mode and returns the opposite — so calling it
+    // unconditionally turned shuffle OFF for anyone who already had it
+    // on, and played the playlist in order instead.
+    if (!isShuffled) await toggleShuffle();
   };
 
   /** Remote only: commit the inline rename in the header. */
