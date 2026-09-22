@@ -1004,7 +1004,25 @@
     "submit": "新建音乐库",
     "submitEdit": "保存"
   },
+  "playlistDuration": {
+    "zero": "0 分钟",
+    "minutes_one": "{{count}} 分钟",
+    "minutes_other": "{{count}} 分钟",
+    "hours_one": "{{count}} 小时",
+    "hours_other": "{{count}} 小时",
+    "hoursMinutes": "{{hours}} 小时 {{minutes}} 分钟"
+  },
   "playlistModal": {
+    "colorModeLabel": "顶部颜色",
+    "colorAuto": "取自封面",
+    "colorManual": "选择颜色",
+    "addCover": "添加封面",
+    "coverUploadError": "播放列表已创建，但封面未能保存。请重试，或不设封面直接完成。",
+    "coverSaveError": "封面未能保存。请换一张图片。",
+    "retryCover": "重试封面",
+    "finishWithoutCover": "不设封面并完成",
+    "createError": "无法创建播放列表。请重试。",
+    "editError": "无法保存播放列表。请重试。",
     "title": "新建播放列表",
     "editTitle": "编辑播放列表",
     "previewDefault": "新建播放列表",

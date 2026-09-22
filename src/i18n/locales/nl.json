@@ -1004,7 +1004,25 @@
     "submit": "Bibliotheek maken",
     "submitEdit": "Opslaan"
   },
+  "playlistDuration": {
+    "zero": "0 min",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "hours_one": "{{count}} u",
+    "hours_other": "{{count}} u",
+    "hoursMinutes": "{{hours}} u {{minutes}} min"
+  },
   "playlistModal": {
+    "colorModeLabel": "Kleur van de kop",
+    "colorAuto": "Van de hoes",
+    "colorManual": "Kies een kleur",
+    "addCover": "Hoes toevoegen",
+    "coverUploadError": "De afspeellijst is aangemaakt, maar de hoes kon niet worden opgeslagen. Probeer het opnieuw of rond af zonder hoes.",
+    "coverSaveError": "De hoes kon niet worden opgeslagen. Probeer een andere afbeelding.",
+    "retryCover": "Hoes opnieuw proberen",
+    "finishWithoutCover": "Afronden zonder hoes",
+    "createError": "De afspeellijst kon niet worden aangemaakt. Probeer het opnieuw.",
+    "editError": "De afspeellijst kon niet worden opgeslagen. Probeer het opnieuw.",
     "title": "Nieuwe afspeellijst",
     "editTitle": "Afspeellijst bewerken",
     "previewDefault": "Nieuwe afspeellijst",

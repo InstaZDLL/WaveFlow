@@ -1004,7 +1004,25 @@
     "submit": "Buat pustaka",
     "submitEdit": "Simpan"
   },
+  "playlistDuration": {
+    "zero": "0 mnt",
+    "minutes_one": "{{count}} mnt",
+    "minutes_other": "{{count}} mnt",
+    "hours_one": "{{count}} jam",
+    "hours_other": "{{count}} jam",
+    "hoursMinutes": "{{hours}} jam {{minutes}} mnt"
+  },
   "playlistModal": {
+    "colorModeLabel": "Warna header",
+    "colorAuto": "Dari sampul",
+    "colorManual": "Pilih warna",
+    "addCover": "Tambahkan sampul",
+    "coverUploadError": "Daftar putar dibuat, tetapi sampulnya tidak dapat disimpan. Coba lagi atau selesaikan tanpa sampul.",
+    "coverSaveError": "Sampul tidak dapat disimpan. Coba gambar lain.",
+    "retryCover": "Coba sampul lagi",
+    "finishWithoutCover": "Selesaikan tanpa sampul",
+    "createError": "Daftar putar tidak dapat dibuat. Coba lagi.",
+    "editError": "Daftar putar tidak dapat disimpan. Coba lagi.",
     "title": "Daftar putar baru",
     "editTitle": "Sunting daftar putar",
     "previewDefault": "Daftar putar baru",

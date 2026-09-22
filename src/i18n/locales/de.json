@@ -1004,7 +1004,25 @@
     "submit": "Bibliothek erstellen",
     "submitEdit": "Speichern"
   },
+  "playlistDuration": {
+    "zero": "0 Min.",
+    "minutes_one": "{{count}} Min.",
+    "minutes_other": "{{count}} Min.",
+    "hours_one": "{{count}} Std.",
+    "hours_other": "{{count}} Std.",
+    "hoursMinutes": "{{hours}} Std. {{minutes}} Min."
+  },
   "playlistModal": {
+    "colorModeLabel": "Farbe des Kopfbereichs",
+    "colorAuto": "Vom Cover",
+    "colorManual": "Farbe wählen",
+    "addCover": "Cover hinzufügen",
+    "coverUploadError": "Die Playlist wurde erstellt, aber ihr Cover konnte nicht gespeichert werden. Versuche es erneut oder schließe ohne Cover ab.",
+    "coverSaveError": "Das Cover konnte nicht gespeichert werden. Versuche bitte ein anderes Bild.",
+    "retryCover": "Cover erneut versuchen",
+    "finishWithoutCover": "Ohne Cover abschließen",
+    "createError": "Die Playlist konnte nicht erstellt werden. Versuche es bitte erneut.",
+    "editError": "Die Playlist konnte nicht gespeichert werden. Versuche es bitte erneut.",
     "title": "Neue Playlist",
     "editTitle": "Playlist bearbeiten",
     "previewDefault": "Neue Playlist",

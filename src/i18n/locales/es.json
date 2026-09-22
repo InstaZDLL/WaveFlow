@@ -1005,7 +1005,25 @@
     "submit": "Crear una biblioteca",
     "submitEdit": "Guardar"
   },
+  "playlistDuration": {
+    "zero": "0 min",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "hours_one": "{{count}} h",
+    "hours_other": "{{count}} h",
+    "hoursMinutes": "{{hours}} h {{minutes}} min"
+  },
   "playlistModal": {
+    "colorModeLabel": "Color de la cabecera",
+    "colorAuto": "Según la portada",
+    "colorManual": "Elegir un color",
+    "addCover": "Añadir una portada",
+    "coverUploadError": "La lista de reproducción se creó, pero no se pudo guardar su portada. Inténtalo de nuevo o termina sin ella.",
+    "coverSaveError": "No se pudo guardar la portada. Prueba con otra imagen.",
+    "retryCover": "Reintentar la portada",
+    "finishWithoutCover": "Terminar sin portada",
+    "createError": "No se pudo crear la lista de reproducción. Inténtalo de nuevo.",
+    "editError": "No se pudo guardar la lista de reproducción. Inténtalo de nuevo.",
     "title": "Nueva lista de reproducción",
     "editTitle": "Editar la lista de reproducción",
     "previewDefault": "Nueva lista de reproducción",

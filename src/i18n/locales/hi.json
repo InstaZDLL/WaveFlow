@@ -1004,7 +1004,25 @@
     "submit": "एक लाइब्रेरी बनाएँ",
     "submitEdit": "सहेजें"
   },
+  "playlistDuration": {
+    "zero": "0 मिनट",
+    "minutes_one": "{{count}} मिनट",
+    "minutes_other": "{{count}} मिनट",
+    "hours_one": "{{count}} घंटा",
+    "hours_other": "{{count}} घंटे",
+    "hoursMinutes": "{{hours}} घंटे {{minutes}} मिनट"
+  },
   "playlistModal": {
+    "colorModeLabel": "हेडर का रंग",
+    "colorAuto": "कवर से",
+    "colorManual": "रंग चुनें",
+    "addCover": "कवर जोड़ें",
+    "coverUploadError": "प्लेलिस्ट बन गई, लेकिन उसका कवर सहेजा नहीं जा सका। फिर से कोशिश करें या कवर के बिना पूरा करें।",
+    "coverSaveError": "कवर सहेजा नहीं जा सका। कृपया कोई दूसरी छवि आज़माएँ।",
+    "retryCover": "कवर फिर से आज़माएँ",
+    "finishWithoutCover": "कवर के बिना पूरा करें",
+    "createError": "प्लेलिस्ट नहीं बनाई जा सकी। कृपया फिर से कोशिश करें।",
+    "editError": "प्लेलिस्ट सहेजी नहीं जा सकी। कृपया फिर से कोशिश करें।",
     "title": "नई प्लेलिस्ट",
     "editTitle": "प्लेलिस्ट संपादित करें",
     "previewDefault": "नई प्लेलिस्ट",

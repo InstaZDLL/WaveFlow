@@ -1006,7 +1006,25 @@
     "submit": "Criar uma biblioteca",
     "submitEdit": "Salvar"
   },
+  "playlistDuration": {
+    "zero": "0 min",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "hours_one": "{{count}} h",
+    "hours_other": "{{count}} h",
+    "hoursMinutes": "{{hours}} h {{minutes}} min"
+  },
   "playlistModal": {
+    "colorModeLabel": "Cor do cabeçalho",
+    "colorAuto": "A partir da capa",
+    "colorManual": "Escolher uma cor",
+    "addCover": "Adicionar uma capa",
+    "coverUploadError": "A playlist foi criada, mas não foi possível salvar a capa. Tente de novo ou conclua sem ela.",
+    "coverSaveError": "Não foi possível salvar a capa. Tente outra imagem.",
+    "retryCover": "Tentar a capa de novo",
+    "finishWithoutCover": "Concluir sem capa",
+    "createError": "Não foi possível criar a playlist. Tente de novo.",
+    "editError": "Não foi possível salvar a playlist. Tente de novo.",
     "title": "Nova playlist",
     "editTitle": "Editar a playlist",
     "previewDefault": "Nova playlist",

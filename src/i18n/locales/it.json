@@ -1005,7 +1005,25 @@
     "submit": "Crea una libreria",
     "submitEdit": "Salva"
   },
+  "playlistDuration": {
+    "zero": "0 min",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "hours_one": "{{count}} h",
+    "hours_other": "{{count}} h",
+    "hoursMinutes": "{{hours}} h {{minutes}} min"
+  },
   "playlistModal": {
+    "colorModeLabel": "Colore dell’intestazione",
+    "colorAuto": "Dalla copertina",
+    "colorManual": "Scegli un colore",
+    "addCover": "Aggiungi una copertina",
+    "coverUploadError": "La playlist è stata creata, ma non è stato possibile salvarne la copertina. Riprova oppure concludi senza.",
+    "coverSaveError": "Non è stato possibile salvare la copertina. Prova con un’altra immagine.",
+    "retryCover": "Riprova la copertina",
+    "finishWithoutCover": "Concludi senza copertina",
+    "createError": "Non è stato possibile creare la playlist. Riprova.",
+    "editError": "Non è stato possibile salvare la playlist. Riprova.",
     "title": "Nuova playlist",
     "editTitle": "Modifica la playlist",
     "previewDefault": "Nuova playlist",

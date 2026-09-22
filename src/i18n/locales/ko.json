@@ -1004,7 +1004,25 @@
     "submit": "라이브러리 만들기",
     "submitEdit": "저장"
   },
+  "playlistDuration": {
+    "zero": "0분",
+    "minutes_one": "{{count}}분",
+    "minutes_other": "{{count}}분",
+    "hours_one": "{{count}}시간",
+    "hours_other": "{{count}}시간",
+    "hoursMinutes": "{{hours}}시간 {{minutes}}분"
+  },
   "playlistModal": {
+    "colorModeLabel": "헤더 색상",
+    "colorAuto": "커버에서 가져오기",
+    "colorManual": "색상 선택",
+    "addCover": "커버 추가",
+    "coverUploadError": "재생 목록은 만들었지만 커버를 저장하지 못했습니다. 다시 시도하거나 커버 없이 완료하세요.",
+    "coverSaveError": "커버를 저장하지 못했습니다. 다른 이미지를 사용해 보세요.",
+    "retryCover": "커버 다시 시도",
+    "finishWithoutCover": "커버 없이 완료",
+    "createError": "재생 목록을 만들지 못했습니다. 다시 시도해 주세요.",
+    "editError": "재생 목록을 저장하지 못했습니다. 다시 시도해 주세요.",
     "title": "새 재생 목록",
     "editTitle": "재생 목록 수정",
     "previewDefault": "새 재생 목록",

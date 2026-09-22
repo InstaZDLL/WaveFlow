@@ -1004,7 +1004,25 @@
     "submit": "Kütüphane oluştur",
     "submitEdit": "Kaydet"
   },
+  "playlistDuration": {
+    "zero": "0 dk",
+    "minutes_one": "{{count}} dk",
+    "minutes_other": "{{count}} dk",
+    "hours_one": "{{count}} sa",
+    "hours_other": "{{count}} sa",
+    "hoursMinutes": "{{hours}} sa {{minutes}} dk"
+  },
   "playlistModal": {
+    "colorModeLabel": "Başlık rengi",
+    "colorAuto": "Kapaktan",
+    "colorManual": "Bir renk seç",
+    "addCover": "Kapak ekle",
+    "coverUploadError": "Çalma listesi oluşturuldu ama kapağı kaydedilemedi. Yeniden dene ya da kapaksız tamamla.",
+    "coverSaveError": "Kapak kaydedilemedi. Lütfen başka bir görsel dene.",
+    "retryCover": "Kapağı yeniden dene",
+    "finishWithoutCover": "Kapaksız tamamla",
+    "createError": "Çalma listesi oluşturulamadı. Lütfen yeniden dene.",
+    "editError": "Çalma listesi kaydedilemedi. Lütfen yeniden dene.",
     "title": "Yeni çalma listesi",
     "editTitle": "Çalma listesini düzenle",
     "previewDefault": "Yeni çalma listesi",
