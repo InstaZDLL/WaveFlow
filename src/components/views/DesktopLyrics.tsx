@@ -185,17 +185,15 @@ export function DesktopLyrics() {
   } as CSSProperties;
 
   return (
+    // Two layers. This outer one is square and fills the window: it takes
+    // the pointer, so the resize corners are inside it — a rounded box is
+    // hit-tested along its curve, and a press in a corner would miss it.
+    // The inner one carries the rounded panel and the text.
     <div
-      className={`group relative flex h-screen w-screen select-none flex-col items-center justify-center overflow-hidden rounded-2xl px-6 transition-colors ${
-        showChrome
-          ? "cursor-move ring-1 ring-inset ring-white/25"
-          : "cursor-default"
+      className={`h-screen w-screen select-none ${
+        showChrome ? "cursor-move" : "cursor-default"
       }`}
-      style={
-        showChrome && edge
-          ? { ...rootStyle, cursor: EDGE_CURSOR[edge] }
-          : rootStyle
-      }
+      style={showChrome && edge ? { cursor: EDGE_CURSOR[edge] } : undefined}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => {
         setHovered(false);
@@ -231,68 +229,75 @@ export function DesktopLyrics() {
           );
       }}
     >
-      {/* Mounted whenever unlocked, not only while shown, so the buttons
-          stay in the tab order; locked, the window takes no input at all. */}
-      {!status.locked && (
-        <div
-          className={`absolute right-2 top-2 flex items-center gap-1 transition-opacity ${
-            showChrome ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          <button
-            type="button"
-            onClick={() => setLocked(true)}
-            aria-label={t("desktopLyrics.lock")}
-            title={t("desktopLyrics.lockHint")}
-            className="rounded-full p-1.5 text-white/80 hover:bg-white/15 hover:text-white"
-          >
-            <Lock size={14} />
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              closeDesktopLyrics().catch((err) =>
-                console.error("[DesktopLyrics] close failed", err),
-              );
-            }}
-            aria-label={t("common.close")}
-            title={t("common.close")}
-            className="rounded-full p-1.5 text-white/80 hover:bg-white/15 hover:text-white"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
-      <FitLine
-        size={style.fontSize}
-        fitKey={`${currentTrack?.id ?? ""}:${activeIndex}:${activeLine?.text ?? currentTrack?.title ?? ""}`}
-        className={`${LINE_CLASS} font-bold`}
-        style={{
-          color: activeLine?.words?.length
-            ? "var(--dl-text)"
-            : activeLine
-              ? "var(--dl-highlight)"
-              : "var(--dl-text)",
-          textShadow: shadow,
-        }}
+      <div
+        className={`group relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-2xl px-6 transition-colors ${
+          showChrome ? "ring-1 ring-inset ring-white/25" : ""
+        }`}
+        style={rootStyle}
       >
-        {first}
-      </FitLine>
-      {second && (
+        {/* Mounted whenever unlocked, not only while shown, so the buttons
+          stay in the tab order; locked, the window takes no input at all. */}
+        {!status.locked && (
+          <div
+            className={`absolute right-2 top-2 flex items-center gap-1 transition-opacity ${
+              showChrome ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => setLocked(true)}
+              aria-label={t("desktopLyrics.lock")}
+              title={t("desktopLyrics.lockHint")}
+              className="rounded-full p-1.5 text-white/80 hover:bg-white/15 hover:text-white"
+            >
+              <Lock size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                closeDesktopLyrics().catch((err) =>
+                  console.error("[DesktopLyrics] close failed", err),
+                );
+              }}
+              aria-label={t("common.close")}
+              title={t("common.close")}
+              className="rounded-full p-1.5 text-white/80 hover:bg-white/15 hover:text-white"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
         <FitLine
-          size={Math.round(style.fontSize * SECOND_LINE_SCALE)}
-          fitKey={second}
-          className={`${LINE_CLASS} font-semibold`}
+          size={style.fontSize}
+          fitKey={`${currentTrack?.id ?? ""}:${activeIndex}:${activeLine?.text ?? currentTrack?.title ?? ""}`}
+          className={`${LINE_CLASS} font-bold`}
           style={{
-            color: "var(--dl-text)",
-            opacity: 0.85,
+            color: activeLine?.words?.length
+              ? "var(--dl-text)"
+              : activeLine
+                ? "var(--dl-highlight)"
+                : "var(--dl-text)",
             textShadow: shadow,
           }}
         >
-          {second}
+          {first}
         </FitLine>
-      )}
+        {second && (
+          <FitLine
+            size={Math.round(style.fontSize * SECOND_LINE_SCALE)}
+            fitKey={second}
+            className={`${LINE_CLASS} font-semibold`}
+            style={{
+              color: "var(--dl-text)",
+              opacity: 0.85,
+              textShadow: shadow,
+            }}
+          >
+            {second}
+          </FitLine>
+        )}
+      </div>
     </div>
   );
 }
