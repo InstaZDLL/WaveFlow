@@ -1,4 +1,5 @@
 use chrono::Utc;
+use tauri::Emitter;
 
 use std::sync::Arc;
 
@@ -414,6 +415,22 @@ pub async fn get_profile_setting(
     Ok(value.map(|(v,)| v))
 }
 
+/// Announced after a `profile_setting` write so the *other* windows
+/// re-read it. See [`set_profile_setting`].
+#[derive(Clone, serde::Serialize)]
+pub struct ProfileSettingChanged {
+    /// The `profile_setting` key that was written.
+    pub key: String,
+    /// Label of the window that wrote it, so that window can ignore its
+    /// own echo: it has already painted the value optimistically and
+    /// told its own consumers through a `window` event.
+    pub source: String,
+}
+
+/// The event [`set_profile_setting`] emits. The frontend bridge turns it
+/// into the `window` event every preference hook already listens on.
+pub const PROFILE_SETTING_CHANGED: &str = "profile-setting:changed";
+
 /// Upsert a `profile_setting` row. `value_type` is the typed marker
 /// stored alongside the raw string ("bool", "int", "json", ...).
 ///
@@ -424,8 +441,18 @@ pub async fn get_profile_setting(
 /// await — every preference hook does, to serialize them — must pass it:
 /// their own JS-side guard runs before the IPC hop and cannot cover the
 /// gap. Omit it for a fresh user action against whatever is active.
+///
+/// The write then announces itself (issue #741). A preference used to be
+/// broadcast with `window.dispatchEvent`, which is per **document**: the
+/// mini-player and the desktop-lyrics overlay are separate webviews, so
+/// a setting changed in the main window never reached them until they
+/// were reopened. The payload carries no profile id on purpose — the
+/// read each hook runs in response pins its own `expected_profile_id`,
+/// so a switch racing the event is refused one layer down.
 #[tauri::command]
 pub async fn set_profile_setting(
+    app: tauri::AppHandle,
+    window: tauri::Window,
     state: tauri::State<'_, AppState>,
     key: String,
     value: String,
@@ -448,5 +475,15 @@ pub async fn set_profile_setting(
     .bind(&value_type)
     .execute(&*pool)
     .await?;
+    // Best-effort, like every other emit here: a preference that landed
+    // in the database must not be reported as a failed write because a
+    // webview could not be told about it.
+    let _ = app.emit(
+        PROFILE_SETTING_CHANGED,
+        ProfileSettingChanged {
+            key,
+            source: window.label().to_string(),
+        },
+    );
     Ok(())
 }

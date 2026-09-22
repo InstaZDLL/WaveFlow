@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Loader2, Pencil, Save, X } from "lucide-react";
@@ -119,7 +120,15 @@ export function BatchTagEditModal({
 
   if (!isOpen || trackIds == null) return null;
 
-  return (
+  // Portalled to <body>, not merely given z-100. `position: fixed` escapes
+  // layout flow but not its containing block, and ANY ancestor carrying
+  // `transform`, `filter` or `backdrop-filter` becomes that block — which
+  // the Liquid skin hands to every rounded card inside `main`, and dnd-kit
+  // to a dragged row. Rendered in place, the overlay then anchored to
+  // whatever it happened to sit under instead of the viewport: the scrim
+  // covered part of the page and the dialog sat off-centre. See
+  // docs/architecture/invariants.md#overlays-must-be-portalled.
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -260,6 +269,7 @@ export function BatchTagEditModal({
           </button>
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 }

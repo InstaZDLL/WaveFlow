@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getProfileSetting, setProfileSetting } from "../lib/tauri/profile";
 import { useProfile } from "./useProfile";
+import {
+  PROFILE_SETTING_CHANGED,
+  profileSettingBridgeReady,
+  startProfileSettingBridge,
+} from "../lib/profileSettingBridge";
 
 /**
  * One implementation of the per-profile preference pattern, shared by
@@ -254,9 +259,29 @@ export function useProfileSetting<T>(
     };
     void refresh();
     window.addEventListener(event, refresh);
+
+    // The same re-read, asked for by another webview. `event` is a
+    // `window` event and `window` is per document, so without this the
+    // mini-player and the lyrics overlay never hear about a preference
+    // changed in the main window (issue #741). The bridge is idempotent.
+    const onOtherWindow = (e: Event) => {
+      const detail = (e as CustomEvent<{ key?: string }>).detail;
+      if (detail?.key === key) void refresh();
+    };
+    window.addEventListener(PROFILE_SETTING_CHANGED, onOtherWindow);
+    // Registering the listener is itself asynchronous, so a write that
+    // lands while a window is still opening would be missed. Read once
+    // more when it goes live — only the mounts that raced it pay for it,
+    // and the first read above is not delayed behind it.
+    const wasReady = profileSettingBridgeReady();
+    void startProfileSettingBridge().then(() => {
+      if (!wasReady && !cancelled) void refresh();
+    });
+
     return () => {
       cancelled = true;
       window.removeEventListener(event, refresh);
+      window.removeEventListener(PROFILE_SETTING_CHANGED, onOtherWindow);
     };
   }, [activeProfileId, key, event, commit]);
 
