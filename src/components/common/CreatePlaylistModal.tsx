@@ -240,7 +240,17 @@ export function CreatePlaylistModal({
   };
 
   const handleCreate = async () => {
-    if (!canSubmit || isSubmitting || coverBusy || !onCreate) return;
+    // `createdPlaylistId` set means the playlist exists and only its cover
+    // failed. The button already says so; Enter in the name field reaches
+    // here directly, and would create a second playlist.
+    if (
+      !canSubmit ||
+      isSubmitting ||
+      coverBusy ||
+      !onCreate ||
+      createdPlaylistId != null
+    )
+      return;
     setIsSubmitting(true);
     setSubmitError(null);
     try {
