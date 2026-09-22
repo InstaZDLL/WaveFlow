@@ -2604,7 +2604,9 @@
     "refresh": "Actualiser",
     "error": "Impossible de charger cette vue",
     "retry": "Réessayer",
-    "empty": "Rien à afficher"
+    "empty": "Rien à afficher",
+    "rateLimited": "Le service consulté par cette extension limite les requêtes ou n'est pas joignable (le mode hors ligne est peut-être activé). Réessayez dans un moment.",
+    "statusError": "L'extension a rencontré une erreur. {{detail}}"
   },
   "remote": {
     "common": {

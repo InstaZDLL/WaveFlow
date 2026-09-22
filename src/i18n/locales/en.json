@@ -2601,7 +2601,9 @@
     "refresh": "Refresh",
     "error": "Couldn't load this view",
     "retry": "Retry",
-    "empty": "Nothing to show"
+    "empty": "Nothing to show",
+    "rateLimited": "The service this extension uses is limiting requests or can't be reached (offline mode may be on). Try again in a moment.",
+    "statusError": "The extension ran into an error. {{detail}}"
   },
   "remote": {
     "common": {

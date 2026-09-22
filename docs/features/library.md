@@ -145,7 +145,7 @@ The top-bar dropdown shows **sectioned results — Artists / Albums / Titles** (
 
 ## Folder browsing
 
-The Folders tab lists the configured **roots**, and used to stop there — which is folder *management*, not folder *browsing*. Someone who organises their music as `Artist/Album/` on disk lost that structure entirely once the library was scanned: reachable by album, artist, genre or playlist, but not by where the files actually live (#578). Clicking a root now descends into it.
+The Folders tab lists the configured **roots**, and used to stop there — which is folder *management*, not folder *browsing*. Someone who organises their music as `Artist/Album/` on disk lost that structure entirely once the library was scanned: reachable by album, artist, genre or playlist, but not by where the files actually live (#578). Clicking a root now descends into it. **The whole root row opens it, with a chevron at its end** (#733): at first only the path text did, with an underline on hover as its only sign, and a tester never found the browser at all. A click that starts on one of the row's own controls, or in its playlist popover, stays theirs; the path remains a button for the keyboard.
 
 **The tree is derived at query time from `track.file_path`.** Nothing is materialised, and no migration was needed. Three commands in [`browse.rs`](../../src-tauri/crates/app/src/commands/browse.rs):
 

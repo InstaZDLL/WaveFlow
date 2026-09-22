@@ -35,9 +35,14 @@ export function ImmersiveSidePanel({
   ];
 
   return (
-    <div className="h-full flex flex-col text-white">
-      {/* Segmented tab header */}
-      <div className="shrink-0 px-6 pt-8 pb-4">
+    <div className="@container h-full flex flex-col text-white">
+      {/* Segmented tab header. The view's buttons (panel, Canvas, ⋯, share,
+          close) float over the top right of this panel, and with the Canvas
+          ones they take about 330px: in a panel narrower than 48rem — a
+          1080p window that is not maximised — the tabs ran under them
+          (#733). Measured on the panel, not the screen, since the panel is
+          a share of the window; there the tabs drop below the buttons. */}
+      <div className="shrink-0 px-6 pt-8 @max-3xl:pt-24 pb-4">
         <div
           role="tablist"
           aria-label={t("immersive.panelTabs")}

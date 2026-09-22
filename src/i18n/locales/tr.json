@@ -2601,7 +2601,9 @@
     "refresh": "Yenile",
     "error": "Bu görünüm yüklenemedi",
     "retry": "Yeniden dene",
-    "empty": "Gösterilecek bir şey yok"
+    "empty": "Gösterilecek bir şey yok",
+    "rateLimited": "Bu eklentinin kullandığı hizmet istekleri sınırlıyor ya da erişilemiyor (çevrimdışı mod açık olabilir). Birazdan yeniden deneyin.",
+    "statusError": "Eklenti bir hatayla karşılaştı. {{detail}}"
   },
   "remote": {
     "common": {
