@@ -1127,12 +1127,11 @@ export function PlaylistView({
     <div className="relative isolate -mx-8 -mt-8 px-8 pt-8 space-y-8 motion-safe:animate-fade-in pb-20">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[640px] sm:h-[500px] lg:h-[370px]"
-        style={{
-          background: playlistGradient(accent),
-          maskImage:
-            "linear-gradient(to bottom, black 0%, black 75%, transparent 100%)",
-        }}
+        // The header plus as much again below it: the colour carries on
+        // under the action bar and the first rows before it is gone, as on
+        // Spotify, instead of stopping in a band at the header's edge.
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[1060px] sm:h-[830px] lg:h-[620px]"
+        style={{ background: playlistGradient(accent) }}
       />
       {/* Header. Smart playlists (Daily Mix, …) ship a generated cover
           image — render it as a 96×96 tile with a "DAILY MIX" overlay

@@ -36,8 +36,12 @@ export function usePlaylistAccent(
   return { r: fallback[0], g: fallback[1], b: fallback[2] };
 }
 
-/** A light upper-right corner and a deeper lower-left corner share the artwork's hue. */
-function headerColors(accent: Color): { pastel: Color; deep: Color } {
+/**
+ * The two stops of the header, in the artwork's hue: `top`, the colour at
+ * its full strength, and `deep`, darker, behind the title — dark enough
+ * for the white label over it (4.5:1).
+ */
+function headerColors(accent: Color): { top: Color; deep: Color } {
   const channels = [accent.r, accent.g, accent.b].map(
     (channel) => channel / 255,
   );
@@ -77,8 +81,8 @@ function headerColors(accent: Color): { pastel: Color; deep: Color } {
   };
 
   const saturation = delta < 0.02 ? 0 : 0.72;
-  const pastel = makeColor(saturation === 0 ? 0 : 0.6, 0.66);
-  let deep = makeColor(saturation, 0.27);
+  let deepLightness = 0.27;
+  let deep = makeColor(saturation, deepLightness);
   const luminance = ({ r, g, b }: Color) =>
     [r, g, b]
       .map((channel) => {
@@ -98,30 +102,58 @@ function headerColors(accent: Color): { pastel: Color; deep: Color } {
     };
     return (luminance(label) + 0.05) / (luminance(background) + 0.05);
   };
-  if (labelContrast(deep) < 4.5) {
+  // The lightest shade at or under `ceiling` that still carries the white
+  // label at 4.5:1. Contrast falls as lightness rises, so a bisection
+  // finds it.
+  const lightestReadable = (ceiling: number): number => {
+    if (labelContrast(makeColor(saturation, ceiling)) >= 4.5) return ceiling;
     let low = 0;
-    let high = 0.27;
+    let high = ceiling;
     for (let i = 0; i < 12; i += 1) {
       const middle = (low + high) / 2;
-      const candidate = makeColor(saturation, middle);
-      if (labelContrast(candidate) >= 4.5) low = middle;
+      if (labelContrast(makeColor(saturation, middle)) >= 4.5) low = middle;
       else high = middle;
     }
-    deep = makeColor(saturation, low);
+    return low;
+  };
+  if (labelContrast(deep) < 4.5) {
+    deepLightness = lightestReadable(0.27);
+    deep = makeColor(saturation, deepLightness);
   }
-  return { pastel, deep };
+  // Brighter than `deep` by a fixed step, so the header darkens by about
+  // the same amount whatever the artwork — but held to the same contrast:
+  // on a narrow window the header stacks and the title sits in the upper
+  // half. A light hue (yellow) can then barely brighten at all, and its
+  // header is close to flat; the fade below still carries the colour.
+  const top = makeColor(
+    saturation,
+    lightestReadable(Math.min(0.5, deepLightness + 0.2)),
+  );
+  return { top, deep };
 }
 
-function rgb({ r, g, b }: Color): string {
-  return `rgb(${r},${g},${b})`;
+function rgb({ r, g, b }: Color, alpha = 1): string {
+  return `rgba(${r},${g},${b},${alpha})`;
 }
 
-export function playlistGradient(accent: Color): string {
-  const { pastel, deep } = headerColors(accent);
-  return `linear-gradient(to top right, ${rgb(deep)} 0%, ${rgb(deep)} 62%, ${rgb(pastel)} 100%)`;
+/**
+ * The page backdrop, the way Spotify paints a playlist: the colour at full
+ * strength at the top, darkening down to the title, then fading out over
+ * the action bar and the head of the list.
+ *
+ * `headerStop` is where the header ends, as a share of the backdrop's
+ * height. The fade runs to the same hue at zero alpha rather than to a
+ * page colour: fading to a colour mixes through grey, and to transparent
+ * lets the page's own ground — light or dark — show through as it goes.
+ */
+export function playlistGradient(accent: Color, headerStop = 0.6): string {
+  const { top, deep } = headerColors(accent);
+  const stop = Math.round(headerStop * 100);
+  return `linear-gradient(to bottom, ${rgb(top)} 0%, ${rgb(deep)} ${stop}%, ${rgb(deep, 0.55)} ${Math.round(stop + (100 - stop) * 0.45)}%, ${rgb(deep, 0)} 100%)`;
 }
 
+/** The header alone, for the small preview in the editor: no fade. */
 export function playlistPreviewGradient(accent: Color): string {
-  const { pastel, deep } = headerColors(accent);
-  return `linear-gradient(to top right, ${rgb(deep)} 0%, ${rgb(deep)} 55%, ${rgb(pastel)} 100%)`;
+  const { top, deep } = headerColors(accent);
+  return `linear-gradient(to bottom, ${rgb(top)} 0%, ${rgb(deep)} 100%)`;
 }
