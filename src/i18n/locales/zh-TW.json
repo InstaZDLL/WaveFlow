@@ -2512,7 +2512,8 @@
       "highlightColor": "已唱歌詞顏色",
       "outline": "描邊",
       "showTranslation": "顯示翻譯",
-      "reset": "重設外觀"
+      "reset": "重設外觀",
+      "showNextLine": "顯示下一行"
     }
   },
   "scanProgress": {
@@ -2601,7 +2602,9 @@
     "refresh": "重新整理",
     "error": "無法載入此檢視",
     "retry": "重試",
-    "empty": "暫無內容"
+    "empty": "暫無內容",
+    "rateLimited": "此擴充功能使用的服務正在限制請求或無法連線（可能開啟了離線模式）。請稍後再試。",
+    "statusError": "擴充功能發生錯誤。{{detail}}"
   },
   "remote": {
     "common": {

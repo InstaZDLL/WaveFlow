@@ -11,9 +11,10 @@
 //! - `audio::decoder::transition_state` pushes Playing / Paused
 //!   transitions so the elapsed/remaining timestamps refresh.
 //!
-//! Opt-in: a missing `app_setting['integrations.discord_rpc']` row
-//! means "off" — the thread sits idle, never connecting to Discord.
-//! The Settings toggle flips the flag and tells this module to either
+//! On by default: a missing `app_setting['integrations.discord_rpc']`
+//! row reads as "on" (see [`read_enabled`]), and only a stored `"false"`
+//! keeps the thread idle, never connecting to Discord. The Settings
+//! toggle writes the flag and tells this module to either
 //! connect-and-publish or disconnect-and-clear.
 
 use std::time::{SystemTime, UNIX_EPOCH};

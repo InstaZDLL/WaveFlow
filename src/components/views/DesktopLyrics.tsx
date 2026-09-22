@@ -22,6 +22,52 @@ import {
 } from "../../lib/tauri/desktopLyrics";
 import type { LyricsLine } from "../../lib/tauri/lyrics";
 
+/** The API declares this type but does not export it. */
+type ResizeDirection = Parameters<
+  ReturnType<typeof getCurrentWindow>["startResizeDragging"]
+>[0];
+
+/** How close to the window's edge, in px, a press resizes rather than
+ *  moves it. */
+const RESIZE_EDGE = 8;
+
+/**
+ * The window edge — or corner — under a point, or `null` inside.
+ *
+ * The overlay is undecorated and every press on it starts a window drag,
+ * so nothing was left to grab the sides with: the window could not be
+ * widened, and a long line was cut (#735). A press this close to an edge
+ * resizes instead, and the cursor says so first.
+ */
+function edgeAt(x: number, y: number): ResizeDirection | null {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const north = y < RESIZE_EDGE;
+  const south = y >= h - RESIZE_EDGE;
+  const west = x < RESIZE_EDGE;
+  const east = x >= w - RESIZE_EDGE;
+  if (north && west) return "NorthWest";
+  if (north && east) return "NorthEast";
+  if (south && west) return "SouthWest";
+  if (south && east) return "SouthEast";
+  if (north) return "North";
+  if (south) return "South";
+  if (west) return "West";
+  if (east) return "East";
+  return null;
+}
+
+const EDGE_CURSOR: Record<ResizeDirection, string> = {
+  North: "ns-resize",
+  South: "ns-resize",
+  East: "ew-resize",
+  West: "ew-resize",
+  NorthEast: "nesw-resize",
+  SouthWest: "nesw-resize",
+  NorthWest: "nwse-resize",
+  SouthEast: "nwse-resize",
+};
+
 /** Size of the second line relative to the first. */
 const SECOND_LINE_SCALE = 0.62;
 
@@ -90,6 +136,7 @@ export function DesktopLyrics() {
   const { status, setLocked } = useDesktopLyricsStatus();
   const [hovered, setHovered] = useState(false);
   const [focusedWithin, setFocusedWithin] = useState(false);
+  const [edge, setEdge] = useState<ResizeDirection | null>(null);
 
   usePersistBounds();
 
@@ -104,15 +151,20 @@ export function DesktopLyrics() {
   let first: ReactNode;
   if (activeLine) {
     first = renderLine(activeLine, activeWordIndex, wordFillRef);
+    // The row under the line: its translation, or — unless that preview
+    // is turned off (#735) — the next line.
     second =
       style.showTranslation && activeLine.translation
         ? activeLine.translation
-        : (lrcLines[activeIndex + 1]?.text ?? null);
+        : style.showNextLine
+          ? (lrcLines[activeIndex + 1]?.text ?? null)
+          : null;
   } else if (currentTrack) {
     first = currentTrack.title;
-    second = isSynced
-      ? (lrcLines[0]?.text ?? null)
-      : (currentTrack.artist_name ?? null);
+    second =
+      isSynced && style.showNextLine
+        ? (lrcLines[0]?.text ?? null)
+        : (currentTrack.artist_name ?? null);
   } else {
     first = "WaveFlow";
   }
@@ -133,15 +185,25 @@ export function DesktopLyrics() {
   } as CSSProperties;
 
   return (
+    // Two layers. This outer one is square and fills the window: it takes
+    // the pointer, so the resize corners are inside it — a rounded box is
+    // hit-tested along its curve, and a press in a corner would miss it.
+    // The inner one carries the rounded panel and the text.
     <div
-      className={`group relative flex h-screen w-screen select-none flex-col items-center justify-center overflow-hidden rounded-2xl px-6 transition-colors ${
-        showChrome
-          ? "cursor-move ring-1 ring-inset ring-white/25"
-          : "cursor-default"
+      className={`h-screen w-screen select-none ${
+        showChrome ? "cursor-move" : "cursor-default"
       }`}
-      style={rootStyle}
+      style={showChrome && edge ? { cursor: EDGE_CURSOR[edge] } : undefined}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseLeave={() => {
+        setHovered(false);
+        setEdge(null);
+      }}
+      onMouseMove={(e) => {
+        if (status.locked) return;
+        const next = edgeAt(e.clientX, e.clientY);
+        if (next !== edge) setEdge(next);
+      }}
       onFocus={() => setFocusedWithin(true)}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
@@ -151,6 +213,15 @@ export function DesktopLyrics() {
       onMouseDown={(e) => {
         if (e.button !== 0 || status.locked) return;
         if ((e.target as HTMLElement).closest("button")) return;
+        const direction = edgeAt(e.clientX, e.clientY);
+        if (direction) {
+          getCurrentWindow()
+            .startResizeDragging(direction)
+            .catch((err) =>
+              console.error("[DesktopLyrics] startResizeDragging failed", err),
+            );
+          return;
+        }
         getCurrentWindow()
           .startDragging()
           .catch((err) =>
@@ -158,68 +229,75 @@ export function DesktopLyrics() {
           );
       }}
     >
-      {/* Mounted whenever unlocked, not only while shown, so the buttons
-          stay in the tab order; locked, the window takes no input at all. */}
-      {!status.locked && (
-        <div
-          className={`absolute right-2 top-2 flex items-center gap-1 transition-opacity ${
-            showChrome ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          <button
-            type="button"
-            onClick={() => setLocked(true)}
-            aria-label={t("desktopLyrics.lock")}
-            title={t("desktopLyrics.lockHint")}
-            className="rounded-full p-1.5 text-white/80 hover:bg-white/15 hover:text-white"
-          >
-            <Lock size={14} />
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              closeDesktopLyrics().catch((err) =>
-                console.error("[DesktopLyrics] close failed", err),
-              );
-            }}
-            aria-label={t("common.close")}
-            title={t("common.close")}
-            className="rounded-full p-1.5 text-white/80 hover:bg-white/15 hover:text-white"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
-      <FitLine
-        size={style.fontSize}
-        fitKey={`${currentTrack?.id ?? ""}:${activeIndex}:${activeLine?.text ?? currentTrack?.title ?? ""}`}
-        className={`${LINE_CLASS} font-bold`}
-        style={{
-          color: activeLine?.words?.length
-            ? "var(--dl-text)"
-            : activeLine
-              ? "var(--dl-highlight)"
-              : "var(--dl-text)",
-          textShadow: shadow,
-        }}
+      <div
+        className={`group relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-2xl px-6 transition-colors ${
+          showChrome ? "ring-1 ring-inset ring-white/25" : ""
+        }`}
+        style={rootStyle}
       >
-        {first}
-      </FitLine>
-      {second && (
+        {/* Mounted whenever unlocked, not only while shown, so the buttons
+          stay in the tab order; locked, the window takes no input at all. */}
+        {!status.locked && (
+          <div
+            className={`absolute right-2 top-2 flex items-center gap-1 transition-opacity ${
+              showChrome ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => setLocked(true)}
+              aria-label={t("desktopLyrics.lock")}
+              title={t("desktopLyrics.lockHint")}
+              className="rounded-full p-1.5 text-white/80 hover:bg-white/15 hover:text-white"
+            >
+              <Lock size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                closeDesktopLyrics().catch((err) =>
+                  console.error("[DesktopLyrics] close failed", err),
+                );
+              }}
+              aria-label={t("common.close")}
+              title={t("common.close")}
+              className="rounded-full p-1.5 text-white/80 hover:bg-white/15 hover:text-white"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
         <FitLine
-          size={Math.round(style.fontSize * SECOND_LINE_SCALE)}
-          fitKey={second}
-          className={`${LINE_CLASS} font-semibold`}
+          size={style.fontSize}
+          fitKey={`${currentTrack?.id ?? ""}:${activeIndex}:${activeLine?.text ?? currentTrack?.title ?? ""}`}
+          className={`${LINE_CLASS} font-bold`}
           style={{
-            color: "var(--dl-text)",
-            opacity: 0.85,
+            color: activeLine?.words?.length
+              ? "var(--dl-text)"
+              : activeLine
+                ? "var(--dl-highlight)"
+                : "var(--dl-text)",
             textShadow: shadow,
           }}
         >
-          {second}
+          {first}
         </FitLine>
-      )}
+        {second && (
+          <FitLine
+            size={Math.round(style.fontSize * SECOND_LINE_SCALE)}
+            fitKey={second}
+            className={`${LINE_CLASS} font-semibold`}
+            style={{
+              color: "var(--dl-text)",
+              opacity: 0.85,
+              textShadow: shadow,
+            }}
+          >
+            {second}
+          </FitLine>
+        )}
+      </div>
     </div>
   );
 }

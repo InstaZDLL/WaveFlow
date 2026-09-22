@@ -2512,7 +2512,8 @@
       "highlightColor": "Gesungene Farbe",
       "outline": "Kontur",
       "showTranslation": "Übersetzung anzeigen",
-      "reset": "Darstellung zurücksetzen"
+      "reset": "Darstellung zurücksetzen",
+      "showNextLine": "Nächste Zeile anzeigen"
     }
   },
   "scanProgress": {
@@ -2601,7 +2602,9 @@
     "refresh": "Aktualisieren",
     "error": "Diese Ansicht konnte nicht geladen werden",
     "retry": "Erneut versuchen",
-    "empty": "Nichts anzuzeigen"
+    "empty": "Nichts anzuzeigen",
+    "rateLimited": "Der Dienst dieser Erweiterung begrenzt die Anfragen oder ist nicht erreichbar (vielleicht ist der Offline-Modus aktiv). Versuche es gleich noch einmal.",
+    "statusError": "Bei der Erweiterung ist ein Fehler aufgetreten. {{detail}}"
   },
   "remote": {
     "common": {

@@ -4017,7 +4017,23 @@ function FolderList({
         return (
           <div
             key={folder.id}
-            className="group flex items-center space-x-4 p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors relative"
+            // The whole row opens the folder (#733): only the path text
+            // did, with nothing but an underline on hover to say so, and a
+            // tester on 1.8.0-beta.1 never found the folder browser. A
+            // click that starts on one of the row's own controls — or in
+            // the playlist popover rendered inside it — is theirs, not the
+            // row's. The path stays a button, for the keyboard.
+            onClick={(e) => {
+              const target = e.target as HTMLElement;
+              if (
+                target.closest(
+                  "button, a, input, [role='menu'], [role='dialog']",
+                )
+              )
+                return;
+              onOpen(folder.path);
+            }}
+            className="group flex items-center space-x-4 p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors relative cursor-pointer"
           >
             <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 flex items-center justify-center shrink-0">
               <Folder size={20} />
@@ -4166,6 +4182,11 @@ function FolderList({
                 />
               )}
             </div>
+            <ChevronRight
+              size={18}
+              aria-hidden="true"
+              className="shrink-0 text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-200 transition-colors"
+            />
           </div>
         );
       })}

@@ -199,6 +199,25 @@ export function PluginUIView({ pluginId, initialPath, icon }: PluginUIViewProps)
   const sections = descriptor?.sections ?? [];
   const hasItems = sections.some((s) => s.items.length > 0);
 
+  // The descriptor's `status` is freeform, but two values mean the view is
+  // not what the user asked for, and were never shown: a plugin that hit
+  // an error or a rate limit (MusicBrainz's 503, or offline mode, which
+  // answers every request with one) just rendered an empty view, and a
+  // tester read it as "nothing is fetched" (#733). `error: <detail>`
+  // carries the plugin's own reason. The parser does not check `status`
+  // (it was never read, and rejecting a whole view over it would break a
+  // plugin that sends something else), so a non-string reads as none.
+  const rawStatus: unknown = descriptor?.status;
+  const status = typeof rawStatus === "string" ? rawStatus.trim() : "";
+  const statusNotice =
+    status === "rate-limited"
+      ? t("pluginView.rateLimited")
+      : status === "error" || status.startsWith("error:")
+        ? t("pluginView.statusError", {
+            detail: status.slice("error".length).replace(/^:\s*/, ""),
+          })
+        : null;
+
   return (
     <div className="mx-auto flex w-full flex-col gap-6 p-6">
       {/* Header */}
@@ -255,6 +274,16 @@ export function PluginUIView({ pluginId, initialPath, icon }: PluginUIViewProps)
             {isLoading && <Loader2 size={13} className="animate-spin" />}
             {t("pluginView.retry")}
           </button>
+        </div>
+      )}
+
+      {statusNotice && !error && (
+        <div
+          role="status"
+          className="flex items-start gap-2 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 p-3 text-sm text-amber-800 dark:text-amber-200"
+        >
+          <AlertCircle size={16} className="mt-0.5 shrink-0" />
+          <p className="flex-1">{statusNotice}</p>
         </div>
       )}
 

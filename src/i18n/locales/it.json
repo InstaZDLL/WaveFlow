@@ -2515,7 +2515,8 @@
       "highlightColor": "Colore cantato",
       "outline": "Contorno",
       "showTranslation": "Mostra traduzione",
-      "reset": "Ripristina aspetto"
+      "reset": "Ripristina aspetto",
+      "showNextLine": "Mostra la riga successiva"
     }
   },
   "scanProgress": {
@@ -2604,7 +2605,9 @@
     "refresh": "Aggiorna",
     "error": "Impossibile caricare questa vista",
     "retry": "Riprova",
-    "empty": "Niente da mostrare"
+    "empty": "Niente da mostrare",
+    "rateLimited": "Il servizio usato da questa estensione sta limitando le richieste o non è raggiungibile (forse è attiva la modalità offline). Riprova tra poco.",
+    "statusError": "L'estensione ha riscontrato un errore. {{detail}}"
   },
   "remote": {
     "common": {

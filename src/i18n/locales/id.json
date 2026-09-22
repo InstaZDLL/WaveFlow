@@ -2512,7 +2512,8 @@
       "highlightColor": "Warna yang dinyanyikan",
       "outline": "Garis tepi",
       "showTranslation": "Tampilkan terjemahan",
-      "reset": "Setel ulang tampilan"
+      "reset": "Setel ulang tampilan",
+      "showNextLine": "Tampilkan baris berikutnya"
     }
   },
   "scanProgress": {
@@ -2601,7 +2602,9 @@
     "refresh": "Segarkan",
     "error": "Tidak dapat memuat tampilan ini",
     "retry": "Coba lagi",
-    "empty": "Tidak ada yang ditampilkan"
+    "empty": "Tidak ada yang ditampilkan",
+    "rateLimited": "Layanan yang dipakai ekstensi ini sedang membatasi permintaan atau tidak dapat dijangkau (mungkin mode offline aktif). Coba lagi sebentar lagi.",
+    "statusError": "Ekstensi mengalami kesalahan. {{detail}}"
   },
   "remote": {
     "common": {
