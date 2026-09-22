@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Mic2 } from "lucide-react";
 import { useEstimatedKaraokeSetting } from "../../../hooks/useEstimatedKaraoke";
+import { ToggleSwitch } from "../../common/ToggleSwitch";
 
 /**
  * Settings → Lyrics row for the estimated word-by-word highlight on
@@ -17,7 +18,7 @@ export function EstimatedKaraokeCard() {
       aria-label={t("settings.lyricsEstimateWords.title")}
       className="px-4 py-3"
     >
-      <label className="flex items-start justify-between gap-3 cursor-pointer">
+      <div className="flex items-center justify-between gap-3">
         <span className="flex items-start gap-3 min-w-0">
           <Mic2
             size={20}
@@ -33,17 +34,15 @@ export function EstimatedKaraokeCard() {
             </span>
           </span>
         </span>
-        <input
-          type="checkbox"
-          checked={value}
-          disabled={!ready}
-          onChange={(e) => {
-            void setValue(e.target.checked);
+        <ToggleSwitch
+          enabled={value}
+          onToggle={() => {
+            void setValue(!value);
           }}
-          className="mt-1.5 w-4 h-4 accent-emerald-500 cursor-pointer shrink-0 disabled:cursor-not-allowed"
-          aria-label={t("settings.lyricsEstimateWords.title")}
+          label={t("settings.lyricsEstimateWords.title")}
+          disabled={!ready}
         />
-      </label>
+      </div>
     </section>
   );
 }

@@ -24,6 +24,7 @@ import {
 import { PLUGIN_AVAILABILITY_EVENT } from "../../../hooks/usePluginAvailability";
 import { useLocalizedText } from "../../../hooks/useLocalizedText";
 import { PluginOptions } from "./PluginOptions";
+import { ToggleSwitch } from "../../common/ToggleSwitch";
 
 /// Fire the cross-component "plugin availability changed" bus so
 /// Sidebar + WebRadioView refresh their conditional rendering.
@@ -250,25 +251,26 @@ export function PluginsCard() {
                           <Settings2 size={16} aria-hidden="true" />
                         </button>
                       )}
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      {/* The word stays: the switch says on or off, but
+                          only the text names which of the two this is
+                          without relying on colour. */}
+                      <div className="flex items-center gap-2">
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">
                           {plugin.enabled
                             ? t("settings.plugins.enabled")
                             : t("settings.plugins.disabled")}
                         </span>
-                        <input
-                          type="checkbox"
-                          checked={plugin.enabled}
-                          disabled={isBusy}
-                          onChange={() => {
+                        <ToggleSwitch
+                          enabled={plugin.enabled}
+                          onToggle={() => {
                             void onToggle(plugin);
                           }}
-                          className="w-4 h-4 accent-emerald-500 cursor-pointer disabled:opacity-50"
-                          aria-label={t("settings.plugins.toggleAria", {
+                          disabled={isBusy}
+                          label={t("settings.plugins.toggleAria", {
                             name: plugin.name,
                           })}
                         />
-                      </label>
+                      </div>
                     </div>
                     {plugin.bundled ? (
                       // Bundled plugins re-seed at every boot, so an

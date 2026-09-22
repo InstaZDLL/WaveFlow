@@ -7,6 +7,7 @@ import {
   useImmersivePrefs,
 } from "../../../hooks/useImmersivePrefs";
 import { setProfileSetting } from "../../../lib/tauri/profile";
+import { ToggleSwitch } from "../../common/ToggleSwitch";
 
 /** The two writable toggles (excludes the derived `loaded` flag). */
 type ImmersiveToggleKey = keyof typeof IMMERSIVE_PREF_KEYS;
@@ -76,9 +77,9 @@ export function ImmersiveViewCard() {
         {rows.map(({ prop, icon: Icon, title, subtitle }) => {
           const key = IMMERSIVE_PREF_KEYS[prop];
           return (
-            <label
+            <div
               key={prop}
-              className="flex items-start justify-between gap-3 cursor-pointer py-1"
+              className="flex items-center justify-between gap-3 py-1"
             >
               <span className="flex items-start gap-3 min-w-0">
                 <Icon
@@ -90,20 +91,18 @@ export function ImmersiveViewCard() {
                   <span className="block text-sm text-zinc-900 dark:text-white">
                     {title}
                   </span>
-                  <span className="block text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed mt-0.5">
+                  <span className="block text-xs mt-0.5 settings-description">
                     {subtitle}
                   </span>
                 </span>
               </span>
-              <input
-                type="checkbox"
-                checked={prefs[prop]}
+              <ToggleSwitch
+                enabled={prefs[prop]}
+                onToggle={() => void writeBool(prop, !prefs[prop])}
+                label={title}
                 disabled={busyKey === key}
-                onChange={(e) => void writeBool(prop, e.target.checked)}
-                className="mt-1.5 w-4 h-4 accent-emerald-500 cursor-pointer shrink-0 disabled:opacity-50"
-                aria-label={title}
               />
-            </label>
+            </div>
           );
         })}
       </div>

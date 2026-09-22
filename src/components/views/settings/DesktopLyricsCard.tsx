@@ -175,35 +175,35 @@ export function DesktopLyricsCard() {
           />
         </label>
 
-        <label className="flex items-center justify-between gap-3 text-sm text-zinc-700 dark:text-zinc-200 cursor-pointer">
-          {t("settings.desktopLyrics.outline")}
-          <input
-            type="checkbox"
-            checked={style.outline}
-            onChange={(e) => update({ outline: e.target.checked })}
-            className="w-4 h-4 accent-emerald-500 cursor-pointer"
+        <div className="flex items-center justify-between gap-3 text-sm text-zinc-700 dark:text-zinc-200">
+          <span>{t("settings.desktopLyrics.outline")}</span>
+          <ToggleSwitch
+            enabled={style.outline}
+            onToggle={() => update({ outline: !style.outline })}
+            label={t("settings.desktopLyrics.outline")}
+            disabled={!ready}
           />
-        </label>
+        </div>
 
-        <label className="flex items-center justify-between gap-3 text-sm text-zinc-700 dark:text-zinc-200 cursor-pointer">
-          {t("settings.desktopLyrics.showTranslation")}
-          <input
-            type="checkbox"
-            checked={style.showTranslation}
-            onChange={(e) => update({ showTranslation: e.target.checked })}
-            className="w-4 h-4 accent-emerald-500 cursor-pointer"
+        <div className="flex items-center justify-between gap-3 text-sm text-zinc-700 dark:text-zinc-200">
+          <span>{t("settings.desktopLyrics.showTranslation")}</span>
+          <ToggleSwitch
+            enabled={style.showTranslation}
+            onToggle={() => update({ showTranslation: !style.showTranslation })}
+            label={t("settings.desktopLyrics.showTranslation")}
+            disabled={!ready}
           />
-        </label>
+        </div>
 
-        <label className="flex items-center justify-between gap-3 text-sm text-zinc-700 dark:text-zinc-200 cursor-pointer">
-          {t("settings.desktopLyrics.showNextLine")}
-          <input
-            type="checkbox"
-            checked={style.showNextLine}
-            onChange={(e) => update({ showNextLine: e.target.checked })}
-            className="w-4 h-4 accent-emerald-500 cursor-pointer"
+        <div className="flex items-center justify-between gap-3 text-sm text-zinc-700 dark:text-zinc-200">
+          <span>{t("settings.desktopLyrics.showNextLine")}</span>
+          <ToggleSwitch
+            enabled={style.showNextLine}
+            onToggle={() => update({ showNextLine: !style.showNextLine })}
+            label={t("settings.desktopLyrics.showNextLine")}
+            disabled={!ready}
           />
-        </label>
+        </div>
       </fieldset>
 
       <button

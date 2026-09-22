@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { FlaskConical } from "lucide-react";
 import { useUpdateChannel } from "../../../hooks/useUpdateChannel";
 import { UPDATER_RECHECK_EVENT } from "../../../lib/tauri/updater";
+import { ToggleSwitch } from "../../common/ToggleSwitch";
 
 /**
  * Settings → Diagnostics row opting the in-app updater into pre-release
@@ -33,7 +34,7 @@ export function UpdateChannelCard() {
       aria-label={t("settings.updateChannel.title")}
       className="px-4 py-3"
     >
-      <label className="flex items-start justify-between gap-3 cursor-pointer">
+      <div className="flex items-center justify-between gap-3">
         <span className="flex items-start gap-3 min-w-0">
           <FlaskConical
             size={20}
@@ -49,17 +50,17 @@ export function UpdateChannelCard() {
             </span>
           </span>
         </span>
-        <input
-          type="checkbox"
-          checked={channel === "beta"}
-          disabled={!loaded}
-          onChange={(e) => {
-            void onToggle(e.target.checked);
+        {/* A boolean face on a `stable` / `beta` string, so the flip is
+            against the channel rather than a checkbox event. */}
+        <ToggleSwitch
+          enabled={channel === "beta"}
+          onToggle={() => {
+            void onToggle(channel !== "beta");
           }}
-          className="mt-1.5 w-4 h-4 accent-emerald-500 cursor-pointer shrink-0 disabled:opacity-50"
-          aria-label={t("settings.updateChannel.title")}
+          label={t("settings.updateChannel.title")}
+          disabled={!loaded}
         />
-      </label>
+      </div>
     </section>
   );
 }

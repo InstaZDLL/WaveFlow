@@ -1,9 +1,10 @@
 import { useTranslation } from "react-i18next";
-import { Globe } from "lucide-react";
+import { Globe, Lock } from "lucide-react";
 import {
   SWITCHABLE_LYRICS_PROVIDERS,
   useDisabledLyricsProviders,
 } from "../../../hooks/useLyricsLookupSettings";
+import { ToggleSwitch } from "../../common/ToggleSwitch";
 
 /**
  * Settings → Lyrics card switching the online providers of the lookup
@@ -43,49 +44,57 @@ export function LyricsProvidersCard() {
           {t("settings.lyricsProviders.title")}
         </legend>
         <div className="space-y-1">
-          <label className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-not-allowed">
-            <input
-              type="checkbox"
-              checked
-              disabled
-              className="w-4 h-4 accent-emerald-500 cursor-not-allowed"
+          {/* LRCLIB cannot be turned off, so it gets no control at all.
+              A switch that is permanently on invites the click it will
+              refuse; the note beside the name says why instead. */}
+          <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg">
+            <span className="flex items-center gap-3 min-w-0">
+              <span className="text-sm text-zinc-800 dark:text-zinc-200">
+                {t("lyrics.provider.lrclib")}
+              </span>
+              <span className="text-xs settings-description">
+                {t("settings.lyricsProviders.alwaysOn")}
+              </span>
+            </span>
+            <Lock
+              size={16}
+              className="shrink-0 text-zinc-400 dark:text-zinc-500"
+              aria-hidden="true"
             />
-            <span className="text-sm text-zinc-800 dark:text-zinc-200">
-              {t("lyrics.provider.lrclib")}
-            </span>
-            <span className="text-xs settings-description">
-              {t("settings.lyricsProviders.alwaysOn")}
-            </span>
-          </label>
+          </div>
           {SWITCHABLE_LYRICS_PROVIDERS.map((provider) => (
-            <label
+            <div
               key={provider}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+              className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-colors ${
                 ready
-                  ? "cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/30"
-                  : "cursor-not-allowed opacity-50"
+                  ? "hover:bg-zinc-50 dark:hover:bg-zinc-800/30"
+                  : "opacity-50"
               }`}
             >
-              <input
-                type="checkbox"
-                checked={!disabled.includes(provider)}
+              <span className="flex items-center gap-3 min-w-0">
+                <span className="text-sm text-zinc-800 dark:text-zinc-200">
+                  {t(`lyrics.provider.${provider}`)}
+                </span>
+                {provider === "genius" && (
+                  <span className="text-xs settings-description">
+                    {t("settings.lyricsProviders.geniusNote")}
+                  </span>
+                )}
+              </span>
+              {/* The stored value is the list of the *disabled* ones, so
+                  the flip is easy to get backwards: switching on means
+                  removing from that list. */}
+              <ToggleSwitch
+                enabled={!disabled.includes(provider)}
                 // Until the profile's value lands, `disabled` is the
                 // default, and a click would persist the wrong list.
                 disabled={!ready}
-                onChange={(e) => {
-                  setEnabled(provider, e.target.checked);
+                onToggle={() => {
+                  setEnabled(provider, disabled.includes(provider));
                 }}
-                className="w-4 h-4 accent-emerald-500 cursor-pointer disabled:cursor-not-allowed"
+                label={t(`lyrics.provider.${provider}`)}
               />
-              <span className="text-sm text-zinc-800 dark:text-zinc-200">
-                {t(`lyrics.provider.${provider}`)}
-              </span>
-              {provider === "genius" && (
-                <span className="text-xs settings-description">
-                  {t("settings.lyricsProviders.geniusNote")}
-                </span>
-              )}
-            </label>
+            </div>
           ))}
         </div>
       </fieldset>

@@ -21,6 +21,7 @@ import {
   type PlayerBarLayout,
 } from "../../../hooks/usePlayerBarLayout";
 import { setProfileSetting } from "../../../lib/tauri/profile";
+import { ToggleSwitch } from "../../common/ToggleSwitch";
 
 /**
  * Unified Settings → Playback section that replaces the per-feature
@@ -216,8 +217,8 @@ export function PlayerBarLayoutCard() {
           const isBusy = busyKey === settingKey;
           return (
             <li key={prop}>
-              <label
-                className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors ${
+              <div
+                className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors ${
                   isBusy ? "opacity-60" : ""
                 }`}
               >
@@ -231,14 +232,13 @@ export function PlayerBarLayoutCard() {
                     {t(labelKey)}
                   </span>
                 </span>
-                <input
-                  type="checkbox"
-                  checked={checked}
+                <ToggleSwitch
+                  enabled={checked}
+                  onToggle={() => writeBool(settingKey, !checked)}
+                  label={t(labelKey)}
                   disabled={isBusy}
-                  onChange={(e) => writeBool(settingKey, e.target.checked)}
-                  className="w-4 h-4 accent-emerald-500 cursor-pointer disabled:cursor-not-allowed"
                 />
-              </label>
+              </div>
             </li>
           );
         })}

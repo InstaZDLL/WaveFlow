@@ -232,27 +232,27 @@ export function BackupCard({ language }: BackupCardProps) {
           </div>
 
           {/* Include shared Deezer artwork cache */}
-          <div className="flex items-start justify-between gap-4">
-            <label
-              htmlFor="backup-include-meta"
-              className="text-sm text-zinc-600 dark:text-zinc-300 cursor-pointer select-none flex-1"
-            >
+          <div className="flex items-center justify-between gap-4">
+            {/* No `htmlFor` any more: the switch is a button, which a
+                label does not activate. Its own `label` prop carries the
+                accessible name instead. */}
+            <div className="text-sm text-zinc-600 dark:text-zinc-300 select-none flex-1">
               <span className="block">
                 {t("settings.backup.includeMetadataArtworkLabel")}
               </span>
               <span className="block text-xs mt-0.5 settings-description">
                 {t("settings.backup.includeMetadataArtworkHint")}
               </span>
-            </label>
-            <input
-              id="backup-include-meta"
-              type="checkbox"
-              checked={config.include_metadata_artwork}
-              onChange={(e) =>
-                persist({ include_metadata_artwork: e.target.checked })
+            </div>
+            <ToggleSwitch
+              enabled={config.include_metadata_artwork}
+              onToggle={() =>
+                persist({
+                  include_metadata_artwork: !config.include_metadata_artwork,
+                })
               }
+              label={t("settings.backup.includeMetadataArtworkLabel")}
               disabled={saving}
-              className="mt-1 h-4 w-4 accent-emerald-500 cursor-pointer disabled:opacity-50"
             />
           </div>
 
