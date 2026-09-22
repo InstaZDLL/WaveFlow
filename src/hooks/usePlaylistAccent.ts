@@ -18,7 +18,7 @@ export function usePlaylistAccent(
   useEffect(() => {
     if (mode !== "auto" || !artworkUrl) return;
     let active = true;
-    dominantColor(artworkUrl)
+    dominantColor(artworkUrl, "vibrant")
       .then((color) => {
         if (active) setSample({ url: artworkUrl, color });
       })
@@ -36,6 +36,8 @@ export function usePlaylistAccent(
   return { r: fallback[0], g: fallback[1], b: fallback[2] };
 }
 
-export function playlistGradient({ r, g, b }: Color): string {
-  return `linear-gradient(180deg, rgba(${r},${g},${b},0.34) 0%, rgba(${r},${g},${b},0.20) 42%, rgba(${r},${g},${b},0.07) 75%, transparent 100%)`;
+export function playlistGradient({ r, g, b }: Color, isDark: boolean): string {
+  const top = isDark ? 0.42 : 0.62;
+  const middle = isDark ? 0.23 : 0.32;
+  return `linear-gradient(180deg, rgba(${r},${g},${b},${top}) 0%, rgba(${r},${g},${b},${middle}) 48%, transparent 100%)`;
 }

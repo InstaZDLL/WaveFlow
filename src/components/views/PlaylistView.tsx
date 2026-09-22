@@ -115,6 +115,7 @@ import {
   usePlaylistAccent,
 } from "../../hooks/usePlaylistAccent";
 import { formatPlaylistDuration } from "../../lib/playlistDuration";
+import { useTheme } from "../../hooks/useTheme";
 
 /**
  * Sort modes for the playlist track list. "custom" preserves the
@@ -311,6 +312,7 @@ export function PlaylistView({
   onNavigateToRemoteArtist,
 }: PlaylistViewProps) {
   const { t } = useTranslation();
+  const { isDark } = useTheme();
   const createFromModal = useCreatePlaylistFromModal();
   // Which catalogue this playlist came from. Everything that touches a
   // local rowid, a file or the local user data is gated on it.
@@ -1124,11 +1126,11 @@ export function PlaylistView({
   const totalDurationLabel = formatPlaylistDuration(totalDurationMs, t);
 
   return (
-    <div className="relative isolate space-y-8 animate-fade-in pb-20">
+    <div className="relative isolate -mx-8 -mt-8 px-8 pt-8 space-y-8 motion-safe:animate-fade-in pb-20">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[440px]"
-        style={{ background: playlistGradient(accent) }}
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[540px]"
+        style={{ background: playlistGradient(accent, isDark) }}
       />
       {/* Header. Smart playlists (Daily Mix, …) ship a generated cover
           image — render it as a 96×96 tile with a "DAILY MIX" overlay

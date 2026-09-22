@@ -27,6 +27,7 @@ import {
   usePlaylistAccent,
 } from "../../hooks/usePlaylistAccent";
 import { usePlaylist } from "../../hooks/usePlaylist";
+import { useTheme } from "../../hooks/useTheme";
 
 interface CreatePlaylistModalProps {
   isOpen: boolean;
@@ -70,6 +71,7 @@ export function CreatePlaylistModal({
   onCoverChanged,
 }: CreatePlaylistModalProps) {
   const { t } = useTranslation();
+  const { isDark } = useTheme();
   const isEdit = existing != null;
   const [name, setName] = useState(existing?.name ?? "");
   const [description, setDescription] = useState(existing?.description ?? "");
@@ -300,7 +302,7 @@ export function CreatePlaylistModal({
             return (
               <div
                 className="flex items-stretch gap-4 p-3 rounded-xl mb-6 transition-colors duration-300"
-                style={{ background: playlistGradient(previewAccent) }}
+                style={{ background: playlistGradient(previewAccent, isDark) }}
               >
                 {/* Outer container is `group` (drives the hover state) but
                   has NO `overflow-hidden` so the dropdown menu can extend
@@ -428,7 +430,7 @@ export function CreatePlaylistModal({
         {!isEdit && (
           <div
             className="flex items-end gap-4 p-4 rounded-xl mb-3 min-h-40 transition-colors duration-300"
-            style={{ background: playlistGradient(previewAccent) }}
+            style={{ background: playlistGradient(previewAccent, isDark) }}
           >
             <div
               className={`w-28 h-28 rounded-lg overflow-hidden shadow-lg flex items-center justify-center shrink-0 transition-colors duration-300 ${currentColor.tileBg} ${currentColor.tileText}`}
