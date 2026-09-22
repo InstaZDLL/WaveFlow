@@ -2601,7 +2601,9 @@
     "refresh": "刷新",
     "error": "无法加载此视图",
     "retry": "重试",
-    "empty": "暂无内容"
+    "empty": "暂无内容",
+    "rateLimited": "此扩展使用的服务正在限制请求或无法访问（可能开启了离线模式）。请稍后再试。",
+    "statusError": "扩展遇到错误。{{detail}}"
   },
   "remote": {
     "common": {

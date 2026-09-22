@@ -2601,7 +2601,9 @@
     "refresh": "Vernieuwen",
     "error": "Kan deze weergave niet laden",
     "retry": "Opnieuw",
-    "empty": "Niets om te tonen"
+    "empty": "Niets om te tonen",
+    "rateLimited": "De dienst van deze extensie beperkt de verzoeken of is niet bereikbaar (misschien staat de offlinemodus aan). Probeer het zo opnieuw.",
+    "statusError": "De extensie is op een fout gestuit. {{detail}}"
   },
   "remote": {
     "common": {

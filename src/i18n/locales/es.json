@@ -2604,7 +2604,9 @@
     "refresh": "Actualizar",
     "error": "No se pudo cargar esta vista",
     "retry": "Reintentar",
-    "empty": "Nada que mostrar"
+    "empty": "Nada que mostrar",
+    "rateLimited": "El servicio que usa esta extensión está limitando las solicitudes o no está disponible (quizá el modo sin conexión esté activado). Inténtalo de nuevo en un momento.",
+    "statusError": "La extensión ha encontrado un error. {{detail}}"
   },
   "remote": {
     "common": {

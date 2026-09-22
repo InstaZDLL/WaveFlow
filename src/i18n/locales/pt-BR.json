@@ -2605,7 +2605,9 @@
     "refresh": "Atualizar",
     "error": "Não foi possível carregar esta visualização",
     "retry": "Tentar novamente",
-    "empty": "Nada para mostrar"
+    "empty": "Nada para mostrar",
+    "rateLimited": "O serviço usado por esta extensão está limitando as solicitações ou não está acessível (o modo offline pode estar ativado). Tente novamente em instantes.",
+    "statusError": "A extensão encontrou um erro. {{detail}}"
   },
   "remote": {
     "common": {

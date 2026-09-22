@@ -133,11 +133,15 @@ The exported interface `extension` is three functions ([`wit/ui/plugin.wit`](../
 - **`render(path) -> result<string, string>`** — returns the current view as a JSON descriptor string for an internal `path`.
 - **`on-event(event, payload) -> result<string, string>`** — a user action (a descriptor `event` button's opaque `event` + `payload`) round-trips here, and the plugin returns the **next full descriptor** that replaces the view. There is no diff/patch protocol — every action re-renders. An `open-url` action, by contrast, is handled entirely host-side and never reaches the guest.
 
+**Descriptor `status`.** It is freeform, but the view shows two values (#733): `rate-limited` (the service throttled the plugin, or offline mode answered every request with a `503`) and `error` / `error: <detail>`, as an amber notice above the body. Before that, both rendered as a plain empty view, which a tester read as "nothing is fetched".
+
+**The plugin cannot know the UI language.** Neither `render` nor `on-event` carries a locale, so a descriptor's strings are whatever the plugin hard-codes; only the host's own chrome (Refresh, the error banner) is translated. Passing the locale is a WIT change, not done yet.
+
 The host side is thin: [`bindings::ui`](../../src-tauri/crates/core/src/plugin/bindings.rs) binds the world (reusing `source`'s host types via `with:`), [`runtime::{ui_manifest, ui_render, ui_event}`](../../src-tauri/crates/core/src/plugin/runtime.rs) instantiate + call it, and the Tauri commands [`list_ui_plugins` / `plugin_ui_render` / `plugin_ui_event`](../../src-tauri/crates/app/src/commands/plugins.rs) drive the frontend. Sidebar entries + routing are built dynamically off `manifest()` (keyed on plugin id), not hardcoded per plugin — a plugin whose `manifest()` traps is skipped + logged rather than blanking the nav.
 
 ### The redacted `library.read_artists` capability
 
-A UI plugin often needs to know which artists the user follows (Release Radar keys new releases off them). The `library` host import ([`wit/ui/deps/host/host.wit`](../../src-tauri/crates/plugin-sdk/wit/ui/deps/host/host.wit)) grants a **redacted** read only:
+A UI plugin often needs to know which artists are in the user's library (Release Radar keys new releases off them — the library's artists by track count, not a follow list). The `library` host import ([`wit/ui/deps/host/host.wit`](../../src-tauri/crates/plugin-sdk/wit/ui/deps/host/host.wit)) grants a **redacted** read only:
 
 ```wit
 list-artists: func(limit: u32) -> result<list<artist>, string>;

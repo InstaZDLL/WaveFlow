@@ -580,6 +580,10 @@ pub enum SourceError {
     Runtime(#[from] RuntimeError),
     #[error("instantiate: {0}")]
     Instantiate(String),
+    /// The whole cause chain (`{e:#}`), not `to_string()`: the latter is
+    /// only wasmtime's "error while executing at wasm backtrace" header,
+    /// which dropped the reason — fuel, a guest panic, an epoch interrupt
+    /// — and left a trap in a tester's log unexplained (#733).
     #[error("trap: {0}")]
     Trap(String),
     #[error("plugin: {0}")]
@@ -644,7 +648,7 @@ pub fn source_list_entries(
     let result = plugin
         .waveflow_source_provider()
         .call_list_entries(&mut store)
-        .map_err(|e| SourceError::Trap(e.to_string()))?;
+        .map_err(|e| SourceError::Trap(format!("{e:#}")))?;
     match result {
         Ok(entries) => Ok(entries
             .into_iter()
@@ -669,7 +673,7 @@ pub fn source_resolve(
     let result = plugin
         .waveflow_source_provider()
         .call_resolve(&mut store, query)
-        .map_err(|e| SourceError::Trap(e.to_string()))?;
+        .map_err(|e| SourceError::Trap(format!("{e:#}")))?;
     match result {
         Ok(tracks) => Ok(tracks
             .into_iter()
@@ -698,7 +702,7 @@ pub fn source_stream_url(
     let result = plugin
         .waveflow_source_provider()
         .call_stream_url(&mut store, track_id)
-        .map_err(|e| SourceError::Trap(e.to_string()))?;
+        .map_err(|e| SourceError::Trap(format!("{e:#}")))?;
     result.map_err(SourceError::Plugin)
 }
 
@@ -740,7 +744,7 @@ pub fn metadata_album_info(
     let result = plugin
         .waveflow_metadata_enricher()
         .call_album_info(&mut store, artist, title)
-        .map_err(|e| SourceError::Trap(e.to_string()))?;
+        .map_err(|e| SourceError::Trap(format!("{e:#}")))?;
     match result {
         Ok(info) => Ok(AlbumInfo {
             description: info.description,
@@ -826,7 +830,7 @@ pub fn metadata_v2_album_info(
     let result = plugin
         .waveflow_metadata_enricher()
         .call_album_info(&mut store, artist, title)
-        .map_err(|e| SourceError::Trap(e.to_string()))?;
+        .map_err(|e| SourceError::Trap(format!("{e:#}")))?;
     match result {
         Ok(info) => Ok(AlbumInfo {
             description: info.description,
@@ -874,7 +878,7 @@ pub fn metadata_v2_lyrics(
     let result = plugin
         .waveflow_metadata_enricher()
         .call_lyrics(&mut store, artist, title)
-        .map_err(|e| SourceError::Trap(e.to_string()))?;
+        .map_err(|e| SourceError::Trap(format!("{e:#}")))?;
     match result {
         Ok(None) => Ok(None),
         Ok(Some(bundle)) => Ok(Some(LyricsBundle {
@@ -979,7 +983,7 @@ pub fn ui_manifest(
     let mp = plugin
         .waveflow_ui_extension()
         .call_manifest(&mut store)
-        .map_err(|e| UiError::Trap(e.to_string()))?;
+        .map_err(|e| UiError::Trap(format!("{e:#}")))?;
     Ok(UiMountPoint {
         sidebar_label: mp.sidebar_label,
         sidebar_icon: mp.sidebar_icon,
@@ -1001,7 +1005,7 @@ pub fn ui_render(
     plugin
         .waveflow_ui_extension()
         .call_render(&mut store, path)
-        .map_err(|e| UiError::Trap(e.to_string()))?
+        .map_err(|e| UiError::Trap(format!("{e:#}")))?
         .map_err(UiError::Plugin)
 }
 
@@ -1019,7 +1023,7 @@ pub fn ui_event(
     plugin
         .waveflow_ui_extension()
         .call_on_event(&mut store, event, payload)
-        .map_err(|e| UiError::Trap(e.to_string()))?
+        .map_err(|e| UiError::Trap(format!("{e:#}")))?
         .map_err(UiError::Plugin)
 }
 
@@ -1061,7 +1065,7 @@ pub fn canvas_track_canvas(
     let result = plugin
         .waveflow_canvas_provider()
         .call_track_canvas(&mut store, artist, title, album, duration_ms)
-        .map_err(|e| SourceError::Trap(e.to_string()))?;
+        .map_err(|e| SourceError::Trap(format!("{e:#}")))?;
     match result {
         Ok(Some(c)) => Ok(Some(ProviderCanvas {
             url: c.url,
