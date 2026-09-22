@@ -115,12 +115,23 @@ export function Sidebar({
   const libraryPlaylists = useLibraryPlaylists(playlists, "all");
   // Right-click on a playlist row. The same menu the library's cards
   // open, so the two surfaces cannot drift apart (#737).
+  // Read through a ref, not the closure: the delete resolves a round-trip
+  // after the click, and a route captured back then could send the user
+  // home from a page they have since navigated to.
+  const routeRef = useRef({ activeView, activePlaylistId });
+  useEffect(() => {
+    routeRef.current = { activeView, activePlaylistId };
+  }, [activeView, activePlaylistId]);
   const playlistMenu = usePlaylistContextMenu({
     onAfterDelete: (playlistId) => {
       // The context refreshes the list itself, so the only thing left
-      // is to step off the deleted playlist when it is the one on
+      // is to step off the deleted playlist when it is still the one on
       // screen — otherwise the view stays on a row that is gone.
-      if (activeView === "playlist" && activePlaylistId === playlistId) {
+      const route = routeRef.current;
+      if (
+        route.activeView === "playlist" &&
+        route.activePlaylistId === playlistId
+      ) {
         setActiveView("home");
       }
     },
