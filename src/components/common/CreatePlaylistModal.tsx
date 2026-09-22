@@ -417,7 +417,7 @@ export function CreatePlaylistModal({
                   <div className="text-sm font-medium text-white truncate">
                     {displayName}
                   </div>
-                  <div className="text-xs text-white/80 mt-1">
+                  <div className="text-xs text-white/85 mt-1">
                     {existing.cover_is_auto === 1
                       ? t(
                           "playlistModal.coverAutoHint",
@@ -457,7 +457,7 @@ export function CreatePlaylistModal({
               <div className="text-2xl font-bold text-white break-words">
                 {displayName}
               </div>
-              <div className="text-xs text-white/80">
+              <div className="text-xs text-white/85">
                 {t("playlistModal.previewSubtitle")}
               </div>
             </div>

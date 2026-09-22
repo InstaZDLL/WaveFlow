@@ -100,11 +100,12 @@ function headerColors(accent: Color): { top: Color; deep: Color } {
           sum + channel * [0.2126, 0.7152, 0.0722][index],
         0,
       );
-  const labelContrast = (background: Color) => {
+  const labelContrast = (background: Color, opacity: number) => {
+    const ground = 1 - opacity;
     const label = {
-      r: background.r * 0.15 + 255 * 0.85,
-      g: background.g * 0.15 + 255 * 0.85,
-      b: background.b * 0.15 + 255 * 0.85,
+      r: background.r * ground + 255 * opacity,
+      g: background.g * ground + 255 * opacity,
+      b: background.b * ground + 255 * opacity,
     };
     return (luminance(label) + 0.05) / (luminance(background) + 0.05);
   };
@@ -124,9 +125,15 @@ function headerColors(accent: Color): { top: Color; deep: Color } {
   // 3:1, the large-text level: at 4.5:1 the whole palette was pulled
   // down to near black. The title is large and bold; the small label and
   // counts over it carry a soft shadow in the view to make up for it.
+  //
+  // The check has to stand for the *faintest* white on the header, or it
+  // clears a palette some of the text never passes on. Nothing over the
+  // gradient may go below `text-white/85` — PlaylistView's label, summary
+  // and counts, and the modal's preview lines, all sit exactly there.
   const SPAN = 0.28;
   const TEXT_AT = 0.4;
   const MIN_CONTRAST = 3;
+  const LABEL_OPACITY = 0.85;
   let topLightness = Math.min(0.72, Math.max(0.55, artLightness));
   const stops = () => {
     const deepLightness = Math.max(0.08, topLightness - SPAN);
@@ -138,7 +145,8 @@ function headerColors(accent: Color): { top: Color; deep: Color } {
   let { top, deep } = stops();
   for (
     let i = 0;
-    i < 40 && labelContrast(mix(top, deep, TEXT_AT)) < MIN_CONTRAST;
+    i < 40 &&
+    labelContrast(mix(top, deep, TEXT_AT), LABEL_OPACITY) < MIN_CONTRAST;
     i += 1
   ) {
     topLightness -= 0.01;
