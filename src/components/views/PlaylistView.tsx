@@ -1125,13 +1125,27 @@ export function PlaylistView({
 
   return (
     <div className="relative isolate -mx-8 -mt-8 px-8 pt-8 space-y-8 motion-safe:animate-fade-in pb-20">
+      {/* The backdrop, one per theme. Dark: the colour carries on under
+          the head of the list before it is gone, as on Spotify — its rows
+          are light on dark, so they read over it. Light: the rows are dark
+          grey on white, and over the colour they could not be read, so the
+          fade ends in the sort row, before the table. The header's height
+          is a variable per breakpoint: the header stacks when narrow. */}
       <div
         aria-hidden="true"
-        // The header plus as much again below it: the colour carries on
-        // under the action bar and the first rows before it is gone, as on
-        // Spotify, instead of stopping in a band at the header's edge.
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[1060px] sm:h-[830px] lg:h-[620px]"
-        style={{ background: playlistGradient(accent) }}
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 hidden dark:block [--playlist-header:640px] sm:[--playlist-header:500px] lg:[--playlist-header:370px]"
+        style={{
+          height: "calc(var(--playlist-header) + 300px)",
+          background: playlistGradient(accent, 300),
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 dark:hidden [--playlist-header:600px] sm:[--playlist-header:460px] lg:[--playlist-header:330px]"
+        style={{
+          height: "calc(var(--playlist-header) + 70px)",
+          background: playlistGradient(accent, 70),
+        }}
       />
       {/* Header. Smart playlists (Daily Mix, …) ship a generated cover
           image — render it as a 96×96 tile with a "DAILY MIX" overlay

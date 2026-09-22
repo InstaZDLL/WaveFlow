@@ -136,20 +136,28 @@ function rgb({ r, g, b }: Color, alpha = 1): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+/** CSS variable holding the header's height, set per breakpoint by the
+ *  view (`[--playlist-header:…]` in its classes). */
+const PLAYLIST_HEADER_VAR = "--playlist-header";
+
 /**
  * The page backdrop, the way Spotify paints a playlist: the colour at full
- * strength at the top, darkening down to the title, then fading out over
- * the action bar and the head of the list.
+ * strength at the top, darkening down to the end of the header, then
+ * fading out over `fadePx` below it.
  *
- * `headerStop` is where the header ends, as a share of the backdrop's
- * height. The fade runs to the same hue at zero alpha rather than to a
- * page colour: fading to a colour mixes through grey, and to transparent
- * lets the page's own ground — light or dark — show through as it goes.
+ * The stops are placed against the header's real height (the CSS variable
+ * above) rather than a share of the backdrop, so the darkest point lands
+ * under the title at every breakpoint. The fade eases out over several
+ * stops — two would read as a band — and runs to the same hue at zero
+ * alpha rather than to a page colour: fading to a colour mixes through
+ * grey, while transparent lets the page's own ground show through.
  */
-export function playlistGradient(accent: Color, headerStop = 0.6): string {
+export function playlistGradient(accent: Color, fadePx: number): string {
   const { top, deep } = headerColors(accent);
-  const stop = Math.round(headerStop * 100);
-  return `linear-gradient(to bottom, ${rgb(top)} 0%, ${rgb(deep)} ${stop}%, ${rgb(deep, 0.55)} ${Math.round(stop + (100 - stop) * 0.45)}%, ${rgb(deep, 0)} 100%)`;
+  const header = `var(${PLAYLIST_HEADER_VAR})`;
+  const at = (share: number) =>
+    `calc(${header} + ${Math.round(fadePx * share)}px)`;
+  return `linear-gradient(to bottom, ${rgb(top)} 0, ${rgb(deep)} ${header}, ${rgb(deep, 0.72)} ${at(0.25)}, ${rgb(deep, 0.4)} ${at(0.5)}, ${rgb(deep, 0.14)} ${at(0.75)}, ${rgb(deep, 0)} ${at(1)})`;
 }
 
 /** The header alone, for the small preview in the editor: no fade. */
