@@ -36,7 +36,7 @@ export function usePlaylistAccent(
   return { r: fallback[0], g: fallback[1], b: fallback[2] };
 }
 
-/** A pastel top and a richer shade behind the white title share the artwork's hue. */
+/** A light upper-right corner and a deeper lower-left corner share the artwork's hue. */
 function headerColors(accent: Color): { pastel: Color; deep: Color } {
   const channels = [accent.r, accent.g, accent.b].map(
     (channel) => channel / 255,
@@ -118,10 +118,10 @@ function rgb({ r, g, b }: Color): string {
 
 export function playlistGradient(accent: Color): string {
   const { pastel, deep } = headerColors(accent);
-  return `linear-gradient(180deg, ${rgb(pastel)} 0%, ${rgb(pastel)} 8%, ${rgb(deep)} 30%, ${rgb(deep)} 68%, rgba(${deep.r},${deep.g},${deep.b},0.55) 79%, rgba(${deep.r},${deep.g},${deep.b},0) 100%)`;
+  return `linear-gradient(to top right, ${rgb(deep)} 0%, ${rgb(deep)} 62%, ${rgb(pastel)} 100%)`;
 }
 
 export function playlistPreviewGradient(accent: Color): string {
   const { pastel, deep } = headerColors(accent);
-  return `linear-gradient(135deg, ${rgb(pastel)}, ${rgb(deep)} 70%)`;
+  return `linear-gradient(to top right, ${rgb(deep)} 0%, ${rgb(deep)} 55%, ${rgb(pastel)} 100%)`;
 }

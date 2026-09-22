@@ -1128,7 +1128,11 @@ export function PlaylistView({
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[640px] sm:h-[500px] lg:h-[370px]"
-        style={{ background: playlistGradient(accent) }}
+        style={{
+          background: playlistGradient(accent),
+          maskImage:
+            "linear-gradient(to bottom, black 0%, black 75%, transparent 100%)",
+        }}
       />
       {/* Header. Smart playlists (Daily Mix, …) ship a generated cover
           image — render it as a 96×96 tile with a "DAILY MIX" overlay
