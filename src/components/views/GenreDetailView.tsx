@@ -248,9 +248,10 @@ export function GenreDetailView({
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={async (data) => {
           try {
-            await createFromModal(data);
+            return await createFromModal(data);
           } catch (err) {
             console.error("[GenreDetailView] create playlist failed", err);
+            throw err;
           }
         }}
       />

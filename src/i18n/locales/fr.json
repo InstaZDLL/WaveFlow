@@ -1005,7 +1005,25 @@
     "submit": "Créer une bibliothèque",
     "submitEdit": "Enregistrer"
   },
+  "playlistDuration": {
+    "zero": "0 min",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "hours_one": "{{count}} h",
+    "hours_other": "{{count}} h",
+    "hoursMinutes": "{{hours}} h {{minutes}} min"
+  },
   "playlistModal": {
+    "colorModeLabel": "Couleur de l’en-tête",
+    "colorAuto": "Selon la pochette",
+    "colorManual": "Choisir une couleur",
+    "addCover": "Ajouter une pochette",
+    "coverUploadError": "La playlist a été créée, mais la pochette n’a pas pu être enregistrée. Réessayez ou terminez sans elle.",
+    "coverSaveError": "Impossible d’enregistrer la pochette. Essayez une autre image.",
+    "retryCover": "Réessayer la pochette",
+    "finishWithoutCover": "Terminer sans pochette",
+    "createError": "Impossible de créer la playlist. Réessayez.",
+    "editError": "Impossible d’enregistrer la playlist. Réessayez.",
     "title": "Nouvelle playlist",
     "editTitle": "Modifier la playlist",
     "previewDefault": "Nouvelle playlist",

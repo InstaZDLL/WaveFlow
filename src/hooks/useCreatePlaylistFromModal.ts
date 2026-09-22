@@ -9,6 +9,7 @@ export interface CreatePlaylistModalData {
   name: string;
   description: string;
   colorId: string;
+  colorMode: "auto" | "manual";
   iconId: string;
   /** "Also create on <server>" — only ever true when a server is linked. */
   alsoOnServer: boolean;
@@ -41,6 +42,7 @@ export function useCreatePlaylistFromModal() {
         name: data.name,
         description: data.description || null,
         color_id: data.colorId,
+        color_mode: data.colorMode,
         icon_id: data.iconId,
       });
       if (data.alsoOnServer) {

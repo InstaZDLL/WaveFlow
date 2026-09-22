@@ -1004,7 +1004,25 @@
     "submit": "建立音樂庫",
     "submitEdit": "儲存"
   },
+  "playlistDuration": {
+    "zero": "0 分鐘",
+    "minutes_one": "{{count}} 分鐘",
+    "minutes_other": "{{count}} 分鐘",
+    "hours_one": "{{count}} 小時",
+    "hours_other": "{{count}} 小時",
+    "hoursMinutes": "{{hours}} 小時 {{minutes}} 分鐘"
+  },
   "playlistModal": {
+    "colorModeLabel": "頂部顏色",
+    "colorAuto": "取自封面",
+    "colorManual": "選擇顏色",
+    "addCover": "新增封面",
+    "coverUploadError": "播放清單已建立，但封面無法儲存。請重試，或不設封面直接完成。",
+    "coverSaveError": "封面無法儲存。請換一張圖片。",
+    "retryCover": "重試封面",
+    "finishWithoutCover": "不設封面並完成",
+    "createError": "無法建立播放清單。請重試。",
+    "editError": "無法儲存播放清單。請重試。",
     "title": "新播放清單",
     "editTitle": "編輯播放清單",
     "previewDefault": "新播放清單",

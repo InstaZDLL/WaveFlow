@@ -1006,7 +1006,25 @@
     "submit": "Criar uma biblioteca",
     "submitEdit": "Guardar"
   },
+  "playlistDuration": {
+    "zero": "0 min",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "hours_one": "{{count}} h",
+    "hours_other": "{{count}} h",
+    "hoursMinutes": "{{hours}} h {{minutes}} min"
+  },
   "playlistModal": {
+    "colorModeLabel": "Cor do cabeçalho",
+    "colorAuto": "A partir da capa",
+    "colorManual": "Escolher uma cor",
+    "addCover": "Adicionar uma capa",
+    "coverUploadError": "A lista de reprodução foi criada, mas não foi possível guardar a capa. Tenta novamente ou termina sem ela.",
+    "coverSaveError": "Não foi possível guardar a capa. Experimenta outra imagem.",
+    "retryCover": "Tentar a capa novamente",
+    "finishWithoutCover": "Terminar sem capa",
+    "createError": "Não foi possível criar a lista de reprodução. Tenta novamente.",
+    "editError": "Não foi possível guardar a lista de reprodução. Tenta novamente.",
     "title": "Nova lista de reprodução",
     "editTitle": "Editar a lista de reprodução",
     "previewDefault": "Nova lista de reprodução",

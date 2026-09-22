@@ -86,10 +86,7 @@ export function Sidebar({
     createLibrary,
     importFolder,
   } = useLibrary();
-  const {
-    playlists,
-    refresh: refreshPlaylists,
-  } = usePlaylist();
+  const { playlists, refresh: refreshPlaylists } = usePlaylist();
   const profileColor = getProfileColor(activeProfile?.color_id);
   const [isSmartEditorOpen, setIsSmartEditorOpen] = useState(false);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
@@ -171,17 +168,17 @@ export function Sidebar({
     }
   };
 
-  const handleCreatePlaylistSubmit = async (
-    data: CreatePlaylistModalData,
-  ) => {
+  const handleCreatePlaylistSubmit = async (data: CreatePlaylistModalData) => {
     try {
       // Local create + best-effort server mirror, both in one place so the
       // other eight mounts of the modal cannot honour the checkbox by
       // halves. See `createPlaylistFromModal`.
       const created = await createFromModal(data);
       navigateToPlaylist(created.id);
+      return created;
     } catch (err) {
       console.error("[Sidebar] failed to create playlist", err);
+      throw err;
     }
   };
 
@@ -459,7 +456,6 @@ export function Sidebar({
             ))}
           </div>
         </div>
-
       </div>
 
       <CreatePlaylistModal

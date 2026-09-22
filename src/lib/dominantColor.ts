@@ -11,6 +11,7 @@
  */
 export async function dominantColor(
   url: string,
+  strategy: "average" | "vibrant" = "average",
 ): Promise<{ r: number; g: number; b: number }> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -27,6 +28,16 @@ export async function dominantColor(
       }
       ctx.drawImage(img, 0, 0, SIZE, SIZE);
       const { data } = ctx.getImageData(0, 0, SIZE, SIZE);
+
+      if (strategy === "vibrant") {
+        const vibrant = vibrantColorFromPixels(data);
+        if (vibrant) {
+          resolve(vibrant);
+        } else {
+          reject(new Error("No colourful pixels in artwork"));
+        }
+        return;
+      }
 
       let r = 0;
       let g = 0;
@@ -62,6 +73,53 @@ export async function dominantColor(
     img.onerror = (e) => reject(e);
     img.src = url;
   });
+}
+
+/** Select a prominent hue instead of averaging a multicolour collage to grey. */
+export function vibrantColorFromPixels(
+  data: ArrayLike<number>,
+): { r: number; g: number; b: number } | null {
+  const buckets = Array.from({ length: 8 }, () => ({
+    score: 0,
+    r: 0,
+    g: 0,
+    b: 0,
+  }));
+
+  for (let i = 0; i < data.length; i += 16) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    if (data[i + 3] < 128) continue;
+
+    const max = Math.max(r, g, b);
+    const chroma = max - Math.min(r, g, b);
+    if (chroma < 40 || max < 64) continue;
+
+    const sector =
+      max === r
+        ? (g - b) / chroma
+        : max === g
+          ? (b - r) / chroma + 2
+          : (r - g) / chroma + 4;
+    const hue = (((sector * 60) % 360) + 360) % 360;
+    const bucket = buckets[Math.floor(((hue + 22.5) % 360) / 45)];
+    const weight = chroma * (max / 255);
+    bucket.score += weight;
+    bucket.r += r * weight;
+    bucket.g += g * weight;
+    bucket.b += b * weight;
+  }
+
+  const best = buckets.reduce((winner, bucket) =>
+    bucket.score > winner.score ? bucket : winner,
+  );
+  if (best.score === 0) return null;
+  return {
+    r: Math.round(best.r / best.score),
+    g: Math.round(best.g / best.score),
+    b: Math.round(best.b / best.score),
+  };
 }
 
 /**

@@ -15,6 +15,7 @@ export interface Playlist {
   name: string;
   description: string | null;
   color_id: string;
+  color_mode: "auto" | "manual";
   icon_id: string;
   is_smart: number;
   /** Blake3 hash of the cover image. Always paired with `cover_path`
@@ -77,6 +78,7 @@ export interface CreatePlaylistInput {
   name: string;
   description?: string | null;
   color_id?: string;
+  color_mode?: "auto" | "manual";
   icon_id?: string;
 }
 
@@ -85,6 +87,7 @@ export interface UpdatePlaylistInput {
   name?: string;
   description?: string | null;
   color_id?: string;
+  color_mode?: "auto" | "manual";
   icon_id?: string;
 }
 
@@ -217,6 +220,13 @@ export function setPlaylistCoverFromFile(
   filePath: string,
 ): Promise<void> {
   return invoke<void>("set_playlist_cover_from_file", { playlistId, filePath });
+}
+
+/** Safe, downscaled preview for a picked image outside the asset scope. */
+export function previewPlaylistCoverFromFile(
+  filePath: string,
+): Promise<string> {
+  return invoke<string>("preview_playlist_cover_from_file", { filePath });
 }
 
 /**

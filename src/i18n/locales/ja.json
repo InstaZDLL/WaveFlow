@@ -1004,7 +1004,25 @@
     "submit": "ライブラリを作成する",
     "submitEdit": "保存"
   },
+  "playlistDuration": {
+    "zero": "0分",
+    "minutes_one": "{{count}}分",
+    "minutes_other": "{{count}}分",
+    "hours_one": "{{count}}時間",
+    "hours_other": "{{count}}時間",
+    "hoursMinutes": "{{hours}}時間{{minutes}}分"
+  },
   "playlistModal": {
+    "colorModeLabel": "ヘッダーの色",
+    "colorAuto": "カバー画像から",
+    "colorManual": "色を選ぶ",
+    "addCover": "カバー画像を追加",
+    "coverUploadError": "プレイリストは作成しましたが、カバー画像を保存できませんでした。もう一度試すか、カバー画像なしで完了してください。",
+    "coverSaveError": "カバー画像を保存できませんでした。別の画像でお試しください。",
+    "retryCover": "カバー画像を再試行",
+    "finishWithoutCover": "カバー画像なしで完了",
+    "createError": "プレイリストを作成できませんでした。もう一度お試しください。",
+    "editError": "プレイリストを保存できませんでした。もう一度お試しください。",
     "title": "新しいプレイリスト",
     "editTitle": "プレイリストを編集する",
     "previewDefault": "新しいプレイリスト",

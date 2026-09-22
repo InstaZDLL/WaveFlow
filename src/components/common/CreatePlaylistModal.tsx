@@ -12,6 +12,7 @@ import {
 import { PLAYLIST_COLORS, PLAYLIST_ICONS } from "../../lib/playlistVisuals";
 import {
   clearPlaylistCover,
+  previewPlaylistCoverFromFile,
   setPlaylistCoverFromFile,
   type Playlist,
 } from "../../lib/tauri/playlist";
@@ -21,6 +22,13 @@ import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { useRemoteSource } from "../../hooks/useRemoteSource";
 import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
+import {
+  playlistPreviewGradient,
+  usePlaylistAccent,
+  type HeaderScheme,
+} from "../../hooks/usePlaylistAccent";
+import { usePlaylist } from "../../hooks/usePlaylist";
+import { useTheme } from "../../hooks/useTheme";
 
 interface CreatePlaylistModalProps {
   isOpen: boolean;
@@ -35,11 +43,12 @@ interface CreatePlaylistModalProps {
     name: string;
     description: string;
     colorId: string;
+    colorMode: "auto" | "manual";
     iconId: string;
     /** Also create a matching playlist on the bound remote server. Only
      *  ever true in a `sync_v2` build with a server connected. */
     alsoOnServer: boolean;
-  }) => void;
+  }) => Promise<Playlist | void> | void;
   /**
    * When provided, the modal switches to edit mode: title + button label
    * change, fields pre-fill from this playlist, and the submit action is
@@ -69,6 +78,19 @@ export function CreatePlaylistModal({
   const [selectedColorId, setSelectedColorId] = useState(
     existing?.color_id ?? PLAYLIST_COLORS[0].id,
   );
+  const [colorMode, setColorMode] = useState<"auto" | "manual">(
+    existing?.color_mode === "manual" ? "manual" : "auto",
+  );
+  const [pendingCoverPath, setPendingCoverPath] = useState<string | null>(null);
+  const [pendingCoverPreviewUrl, setPendingCoverPreviewUrl] = useState<
+    string | null
+  >(null);
+  const [createdPlaylistId, setCreatedPlaylistId] = useState<number | null>(
+    null,
+  );
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { refresh: refreshPlaylists } = usePlaylist();
   const [selectedIconId, setSelectedIconId] = useState(
     existing?.icon_id ?? PLAYLIST_ICONS[0].id,
   );
@@ -93,7 +115,12 @@ export function CreatePlaylistModal({
       setName(existing?.name ?? "");
       setDescription(existing?.description ?? "");
       setSelectedColorId(existing?.color_id ?? PLAYLIST_COLORS[0].id);
+      setColorMode(existing?.color_mode === "manual" ? "manual" : "auto");
       setSelectedIconId(existing?.icon_id ?? PLAYLIST_ICONS[0].id);
+      setPendingCoverPath(null);
+      setPendingCoverPreviewUrl(null);
+      setCreatedPlaylistId(null);
+      setSubmitError(null);
       setAlsoOnServer(false);
       // Also collapse the cover "..." menu — call sites mount this
       // component unconditionally (parent owns the `isOpen` prop, not
@@ -127,20 +154,39 @@ export function CreatePlaylistModal({
   }, [coverMenuOpen]);
 
   const handlePickCover = useCallback(async () => {
-    if (!existing || coverBusy) return;
+    if (coverBusy) return;
     setCoverMenuOpen(false);
     const path = await pickFile(["jpg", "jpeg", "png", "webp"]);
     if (!path) return;
+    if (!existing) {
+      setCoverBusy(true);
+      try {
+        const previewUrl = await previewPlaylistCoverFromFile(path);
+        setPendingCoverPath(path);
+        setPendingCoverPreviewUrl(previewUrl);
+        setSubmitError(null);
+      } catch (err) {
+        console.error("[CreatePlaylistModal] preview cover failed", err);
+        setPendingCoverPath(null);
+        setPendingCoverPreviewUrl(null);
+        setSubmitError(t("playlistModal.coverSaveError"));
+      } finally {
+        setCoverBusy(false);
+      }
+      return;
+    }
     setCoverBusy(true);
     try {
       await setPlaylistCoverFromFile(existing.id, path);
+      setSubmitError(null);
       onCoverChanged?.();
     } catch (err) {
       console.error("[CreatePlaylistModal] set cover failed", err);
+      setSubmitError(t("playlistModal.coverSaveError"));
     } finally {
       setCoverBusy(false);
     }
-  }, [existing, coverBusy, onCoverChanged]);
+  }, [existing, coverBusy, onCoverChanged, t]);
 
   const handleRemoveCover = useCallback(async () => {
     if (!existing || coverBusy) return;
@@ -151,13 +197,15 @@ export function CreatePlaylistModal({
       // + immediately re-runs the auto-cover so the user gets instant
       // visual feedback instead of an empty tile.
       await clearPlaylistCover(existing.id);
+      setSubmitError(null);
       onCoverChanged?.();
     } catch (err) {
       console.error("[CreatePlaylistModal] clear cover failed", err);
+      setSubmitError(t("playlistModal.coverSaveError"));
     } finally {
       setCoverBusy(false);
     }
-  }, [existing, coverBusy, onCoverChanged]);
+  }, [existing, coverBusy, onCoverChanged, t]);
 
   const currentColor =
     PLAYLIST_COLORS.find((c) => c.id === selectedColorId) ?? PLAYLIST_COLORS[0];
@@ -167,17 +215,82 @@ export function CreatePlaylistModal({
 
   const canSubmit = name.trim().length > 0;
   const displayName = name.trim() || t("playlistModal.previewDefault");
+  const previewCoverUrl =
+    pendingCoverPreviewUrl ?? resolveRemoteImage(existing?.cover_path, null);
+  const previewAccent = usePlaylistAccent(
+    previewCoverUrl,
+    selectedColorId,
+    colorMode,
+  );
+  // The preview paints its ground inline, so unlike the view it cannot
+  // leave the choice of palette to a `dark:` class — it has to read the
+  // active theme itself.
+  const { isDark } = useTheme();
+  const previewScheme: HeaderScheme = isDark ? "dark" : "light";
+  const previewBackground = playlistPreviewGradient(
+    previewAccent,
+    previewScheme,
+  );
+  const previewInk = isDark ? "text-white" : "text-neutral-900";
+  const previewInkSoft = isDark ? "text-white/85" : "text-neutral-900/85";
 
-  const handleCreate = () => {
-    if (!canSubmit) return;
-    onCreate?.({
-      name: name.trim(),
-      description: description.trim(),
-      colorId: selectedColorId,
-      iconId: selectedIconId,
-      alsoOnServer: !isEdit && remote.available && alsoOnServer,
-    });
-    onClose();
+  const finishCover = async (playlistId: number) => {
+    if (!pendingCoverPath) {
+      onClose();
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await setPlaylistCoverFromFile(playlistId, pendingCoverPath);
+      await refreshPlaylists();
+      onClose();
+    } catch (err) {
+      console.error("[CreatePlaylistModal] initial cover failed", err);
+      setSubmitError(t("playlistModal.coverUploadError"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCreate = async () => {
+    // `createdPlaylistId` set means the playlist exists and only its cover
+    // failed. The button already says so; Enter in the name field reaches
+    // here directly, and would create a second playlist.
+    if (
+      !canSubmit ||
+      isSubmitting ||
+      coverBusy ||
+      !onCreate ||
+      createdPlaylistId != null
+    )
+      return;
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const created = await onCreate({
+        name: name.trim(),
+        description: description.trim(),
+        colorId: selectedColorId,
+        colorMode,
+        iconId: selectedIconId,
+        alsoOnServer: !isEdit && remote.available && alsoOnServer,
+      });
+      if (isEdit || !pendingCoverPath) {
+        onClose();
+      } else if (created?.id != null) {
+        setCreatedPlaylistId(created.id);
+        await finishCover(created.id);
+      } else {
+        setSubmitError(t("playlistModal.createError"));
+      }
+    } catch (err) {
+      console.error("[CreatePlaylistModal] submit failed", err);
+      setSubmitError(
+        t(isEdit ? "playlistModal.editError" : "playlistModal.createError"),
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -209,7 +322,8 @@ export function CreatePlaylistModal({
             const coverUrl = resolveRemoteImage(existing.cover_path, null);
             return (
               <div
-                className={`flex items-stretch gap-4 p-3 rounded-xl mb-6 transition-colors duration-300 ${currentColor.previewBg}`}
+                className="flex items-stretch gap-4 p-3 rounded-xl mb-6 transition-colors duration-300"
+                style={{ background: previewBackground }}
               >
                 {/* Outer container is `group` (drives the hover state) but
                   has NO `overflow-hidden` so the dropdown menu can extend
@@ -313,10 +427,10 @@ export function CreatePlaylistModal({
                   </div>
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                  <div className={`text-sm font-medium truncate ${previewInk}`}>
                     {displayName}
                   </div>
-                  <div className="text-xs text-zinc-500 mt-1">
+                  <div className={`text-xs mt-1 ${previewInkSoft}`}>
                     {existing.cover_is_auto === 1
                       ? t(
                           "playlistModal.coverAutoHint",
@@ -336,22 +450,48 @@ export function CreatePlaylistModal({
             the cover editor block above). */}
         {!isEdit && (
           <div
-            className={`flex items-center space-x-3 p-3 rounded-xl mb-6 transition-colors duration-300 ${currentColor.previewBg}`}
+            className="flex items-end gap-4 p-4 rounded-xl mb-3 min-h-40 transition-colors duration-300"
+            style={{ background: previewBackground }}
           >
             <div
-              className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-300 ${currentColor.tileBg} ${currentColor.tileText}`}
+              className={`w-28 h-28 rounded-lg overflow-hidden shadow-lg flex items-center justify-center shrink-0 transition-colors duration-300 ${currentColor.tileBg} ${currentColor.tileText}`}
             >
-              <CurrentIconComponent size={20} />
+              {previewCoverUrl ? (
+                <img
+                  src={previewCoverUrl}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <CurrentIconComponent size={42} />
+              )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
+              <div className={`text-2xl font-bold break-words ${previewInk}`}>
                 {displayName}
               </div>
-              <div className="text-xs text-zinc-500">
+              <div className={`text-xs ${previewInkSoft}`}>
                 {t("playlistModal.previewSubtitle")}
               </div>
             </div>
           </div>
+        )}
+        {!isEdit && (
+          <button
+            type="button"
+            onClick={() => void handlePickCover()}
+            disabled={isSubmitting || coverBusy}
+            className="mb-5 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          >
+            {coverBusy ? (
+              <Loader2 size={17} className="animate-spin" />
+            ) : (
+              <ImageIcon size={17} />
+            )}
+            {pendingCoverPath
+              ? t("playlistModal.coverChange")
+              : t("playlistModal.addCover")}
+          </button>
         )}
 
         <div className="border-t border-zinc-100 dark:border-zinc-800 mb-4" />
@@ -403,27 +543,53 @@ export function CreatePlaylistModal({
         {/* Color picker */}
         <div className="mb-4">
           <div className="block text-[10px] font-bold tracking-widest text-zinc-500 uppercase mb-3">
-            {t("playlistModal.colorLabel")}
+            {t("playlistModal.colorModeLabel")}
           </div>
           <div className="flex flex-wrap gap-2">
-            {PLAYLIST_COLORS.map((color) => {
-              const isSelected = color.id === selectedColorId;
-              return (
-                <button
-                  key={color.id}
-                  type="button"
-                  onClick={() => setSelectedColorId(color.id)}
-                  aria-label={t("playlistModal.colorAria", { color: color.id })}
-                  aria-pressed={isSelected}
-                  className={`w-8 h-8 rounded-full ${color.swatch} transition-transform hover:scale-110 ${
-                    isSelected
-                      ? `ring-2 ring-offset-2 ring-offset-white dark:ring-offset-surface-dark-elevated ${color.ring}`
-                      : ""
-                  }`}
-                />
-              );
-            })}
+            {(["auto", "manual"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setColorMode(mode)}
+                aria-pressed={colorMode === mode}
+                className={`px-3 py-2 rounded-lg text-sm border transition-colors ${colorMode === mode ? "border-emerald-500 bg-emerald-50 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200" : "border-zinc-200 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"}`}
+              >
+                {t(
+                  mode === "auto"
+                    ? "playlistModal.colorAuto"
+                    : "playlistModal.colorManual",
+                )}
+              </button>
+            ))}
           </div>
+          {colorMode === "manual" && (
+            <div className="mt-4">
+              <div className="block text-[10px] font-bold tracking-widest text-zinc-500 uppercase mb-3">
+                {t("playlistModal.colorLabel")}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {PLAYLIST_COLORS.map((color) => {
+                  const isSelected = color.id === selectedColorId;
+                  return (
+                    <button
+                      key={color.id}
+                      type="button"
+                      onClick={() => setSelectedColorId(color.id)}
+                      aria-label={t("playlistModal.colorAria", {
+                        color: color.id,
+                      })}
+                      aria-pressed={isSelected}
+                      className={`w-8 h-8 rounded-full ${color.swatch} transition-transform hover:scale-110 ${
+                        isSelected
+                          ? `ring-2 ring-offset-2 ring-offset-white dark:ring-offset-surface-dark-elevated ${color.ring}`
+                          : ""
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Icon picker */}
@@ -476,14 +642,40 @@ export function CreatePlaylistModal({
             <span>
               {t("playlistModal.alsoOnServer", {
                 server:
-                  remote.serverName ??
-                  t("playlistModal.alsoOnServerFallback"),
+                  remote.serverName ?? t("playlistModal.alsoOnServerFallback"),
               })}
             </span>
           </label>
         )}
 
         {/* Footer actions */}
+        {submitError && (
+          <div
+            role="alert"
+            className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300"
+          >
+            <p>{submitError}</p>
+            {createdPlaylistId != null && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void finishCover(createdPlaylistId)}
+                  disabled={isSubmitting}
+                  className="font-semibold underline disabled:opacity-50"
+                >
+                  {t("playlistModal.retryCover")}
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="font-semibold underline"
+                >
+                  {t("playlistModal.finishWithoutCover")}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
         <div className="flex items-center justify-end space-x-3">
           <button
             type="button"
@@ -494,8 +686,13 @@ export function CreatePlaylistModal({
           </button>
           <button
             type="button"
-            onClick={handleCreate}
-            disabled={!canSubmit}
+            onClick={() => void handleCreate()}
+            disabled={
+              !canSubmit ||
+              isSubmitting ||
+              coverBusy ||
+              createdPlaylistId != null
+            }
             className={`px-5 py-2 rounded-xl text-sm font-semibold text-white flex items-center space-x-2 shadow-lg transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none ${currentColor.button}`}
           >
             {isEdit ? <Check size={16} /> : <Plus size={16} />}
