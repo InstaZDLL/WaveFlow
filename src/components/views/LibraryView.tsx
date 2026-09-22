@@ -4365,38 +4365,45 @@ function FolderBrowser({
             </button>
           </Tooltip>
 
-          <div
-            role="group"
-            aria-label={t("library.folderBrowser.density")}
-            className="flex items-center gap-1"
-          >
-            <button
-              type="button"
-              onClick={() => onDensity("grid")}
-              aria-pressed={density === "grid"}
-              aria-label={t("library.folderBrowser.densityGrid")}
-              className={`p-1.5 rounded-md transition-colors ${
-                density === "grid"
-                  ? "bg-zinc-200 text-zinc-800 dark:bg-zinc-700 dark:text-white"
-                  : "text-zinc-400 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:bg-zinc-800"
-              }`}
+          {/* Only where it governs something. This pair lays out the
+              subfolders, and a leaf folder has none — the track table
+              below belongs to LibraryView and has its own density. Left
+              on screen there, both buttons take the pressed state and
+              nothing moves, which reads as a broken page (#739). */}
+          {(listing?.folders.length ?? 0) > 0 && (
+            <div
+              role="group"
+              aria-label={t("library.folderBrowser.density")}
+              className="flex items-center gap-1"
             >
-              <LayoutGrid size={18} />
-            </button>
-            <button
-              type="button"
-              onClick={() => onDensity("list")}
-              aria-pressed={density === "list"}
-              aria-label={t("library.folderBrowser.densityList")}
-              className={`p-1.5 rounded-md transition-colors ${
-                density === "list"
-                  ? "bg-zinc-200 text-zinc-800 dark:bg-zinc-700 dark:text-white"
-                  : "text-zinc-400 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:bg-zinc-800"
-              }`}
-            >
-              <LayoutList size={18} />
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => onDensity("grid")}
+                aria-pressed={density === "grid"}
+                aria-label={t("library.folderBrowser.densityGrid")}
+                className={`p-1.5 rounded-md transition-colors ${
+                  density === "grid"
+                    ? "bg-zinc-200 text-zinc-800 dark:bg-zinc-700 dark:text-white"
+                    : "text-zinc-400 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:bg-zinc-800"
+                }`}
+              >
+                <LayoutGrid size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onDensity("list")}
+                aria-pressed={density === "list"}
+                aria-label={t("library.folderBrowser.densityList")}
+                className={`p-1.5 rounded-md transition-colors ${
+                  density === "list"
+                    ? "bg-zinc-200 text-zinc-800 dark:bg-zinc-700 dark:text-white"
+                    : "text-zinc-400 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:bg-zinc-800"
+                }`}
+              >
+                <LayoutList size={18} />
+              </button>
+            </div>
+          )}
 
           {/* The actions the album and artist views already offer, on the
               folder being viewed and everything under it. */}

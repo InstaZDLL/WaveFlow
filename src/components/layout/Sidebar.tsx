@@ -30,6 +30,7 @@ import {
   type CreatePlaylistModalData,
 } from "../../hooks/useCreatePlaylistFromModal";
 import { useLibraryPlaylists } from "../../hooks/useLibraryPlaylists";
+import { usePlaylistContextMenu } from "../../hooks/usePlaylistContextMenu";
 import { resolvePluginIcon } from "../../lib/pluginIcons";
 import { getProfileColor, profileInitial } from "../../lib/profileColors";
 import { pickFile, pickFolder } from "../../lib/tauri/dialog";
@@ -112,6 +113,30 @@ export function Sidebar({
   // The sidebar is navigation, not a filtered view: it always shows both
   // halves, whatever the library tab is currently narrowed to.
   const libraryPlaylists = useLibraryPlaylists(playlists, "all");
+  // Right-click on a playlist row. The same menu the library's cards
+  // open, so the two surfaces cannot drift apart (#737).
+  // Read through a ref, not the closure: the delete resolves a round-trip
+  // after the click, and a route captured back then could send the user
+  // home from a page they have since navigated to.
+  const routeRef = useRef({ activeView, activePlaylistId });
+  useEffect(() => {
+    routeRef.current = { activeView, activePlaylistId };
+  }, [activeView, activePlaylistId]);
+  const playlistMenu = usePlaylistContextMenu({
+    onAfterDelete: (playlistId) => {
+      // The context refreshes the list itself, so the only thing left
+      // is to step off the deleted playlist when it is still the one on
+      // screen — otherwise the view stays on a row that is gone.
+      const route = routeRef.current;
+      if (
+        route.activeView === "playlist" &&
+        route.activePlaylistId === playlistId
+      ) {
+        setActiveView("home");
+      }
+    },
+    onOpenRemote: navigateToRemotePlaylist,
+  });
   // Seq-guarded stats fetch
   const statsSeqRef = useRef(0);
   const refreshStats = useCallback(() => {
@@ -452,11 +477,27 @@ export function Sidebar({
                         count: pl.track_count,
                       })
                 }
+                onContextMenu={(e) =>
+                  playlistMenu.open(e, {
+                    id: pl.id,
+                    name: pl.name,
+                    isRemote: pl.source === "remote",
+                  })
+                }
+                onKeyDown={(e) =>
+                  void playlistMenu.openFromKeyboard(e, {
+                    id: pl.id,
+                    name: pl.name,
+                    isRemote: pl.source === "remote",
+                  })
+                }
               />
             ))}
           </div>
         </div>
       </div>
+
+      {playlistMenu.render()}
 
       <CreatePlaylistModal
         isOpen={isCreatePlaylistModalOpen}
@@ -483,17 +524,25 @@ function SidebarRow({
   subtext,
   active,
   onClick,
+  onContextMenu,
+  onKeyDown,
 }: {
   icon: React.ReactNode;
   label: string;
   subtext?: string;
   active?: boolean;
   onClick?: () => void;
+  /** Only the playlist rows pass these. The pinned Liked / Recently
+   *  played rows have no menu, leave them out, and behave as before. */
+  onContextMenu?: (event: React.MouseEvent) => void;
+  onKeyDown?: (event: React.KeyboardEvent) => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      onContextMenu={onContextMenu}
+      onKeyDown={onKeyDown}
       className={`w-full flex items-center space-x-3 p-2 rounded-xl text-left transition-colors ${
         active
           ? "bg-emerald-50 dark:bg-emerald-900/20"
@@ -524,11 +573,15 @@ function PlaylistSidebarRow({
   active,
   onClick,
   subtext,
+  onContextMenu,
+  onKeyDown,
 }: {
   playlist: LibraryPlaylistRow;
   active?: boolean;
   onClick?: () => void;
   subtext: string;
+  onContextMenu?: (event: React.MouseEvent) => void;
+  onKeyDown?: (event: React.KeyboardEvent) => void;
 }) {
   const remote = playlist.source === "remote";
   // A server playlist carries no colour of its own; derived from its
@@ -560,6 +613,8 @@ function PlaylistSidebarRow({
       subtext={subtext}
       active={active}
       onClick={onClick}
+      onContextMenu={onContextMenu}
+      onKeyDown={onKeyDown}
     />
   );
 }

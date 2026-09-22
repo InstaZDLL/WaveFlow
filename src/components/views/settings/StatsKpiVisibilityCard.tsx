@@ -5,6 +5,7 @@ import {
   useHiddenKpis,
   type StatsKpiId,
 } from "../../../hooks/useHiddenKpis";
+import { ToggleSwitch } from "../../common/ToggleSwitch";
 
 /** Maps each KPI id to the same i18n label the Statistics view uses. */
 const KPI_LABEL_KEYS: Record<StatsKpiId, string> = {
@@ -49,30 +50,32 @@ export function StatsKpiVisibilityCard() {
           {STATS_KPI_IDS.map((id) => {
             const checked = !isHidden(id);
             return (
-              <label
+              // Label first, control last — the switch is wide, and on
+              // the left it would push every label out of line with the
+              // rest of Settings.
+              <div
                 key={id}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-colors ${
                   ready
-                    ? "cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/30"
-                    : "cursor-not-allowed opacity-50"
+                    ? "hover:bg-zinc-50 dark:hover:bg-zinc-800/30"
+                    : "opacity-50"
                 }`}
               >
-                <input
-                  type="checkbox"
-                  checked={checked}
+                <span className="text-sm text-zinc-800 dark:text-zinc-200">
+                  {t(KPI_LABEL_KEYS[id])}
+                </span>
+                <ToggleSwitch
+                  enabled={checked}
                   // Block toggles until the per-profile preference has
                   // loaded — `hidden` is momentarily empty during the
                   // read, so a click here would persist a wrong state.
                   disabled={!ready}
-                  onChange={() => {
+                  onToggle={() => {
                     toggle(id);
                   }}
-                  className="w-4 h-4 accent-emerald-500 cursor-pointer disabled:cursor-not-allowed"
+                  label={t(KPI_LABEL_KEYS[id])}
                 />
-                <span className="text-sm text-zinc-800 dark:text-zinc-200">
-                  {t(KPI_LABEL_KEYS[id])}
-                </span>
-              </label>
+              </div>
             );
           })}
         </div>

@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Sparkles } from "lucide-react";
 import { useHiResBadgeVisibility } from "../../../hooks/useHiResBadgeVisibility";
+import { ToggleSwitch } from "../../common/ToggleSwitch";
 
 /**
  * Settings → Appearance row toggling the Hi-Res / DSD pill that
@@ -15,7 +16,7 @@ export function HiResBadgeCard() {
 
   return (
     <section aria-label={t("settings.hiResBadge.title")} className="px-4 py-3">
-      <label className="flex items-start justify-between gap-3 cursor-pointer">
+      <div className="flex items-center justify-between gap-3">
         <span className="flex items-start gap-3 min-w-0">
           <Sparkles
             size={20}
@@ -31,16 +32,14 @@ export function HiResBadgeCard() {
             </span>
           </span>
         </span>
-        <input
-          type="checkbox"
-          checked={visible}
-          onChange={(e) => {
-            void setVisible(e.target.checked);
+        <ToggleSwitch
+          enabled={visible}
+          onToggle={() => {
+            void setVisible(!visible);
           }}
-          className="mt-1.5 w-4 h-4 accent-emerald-500 cursor-pointer shrink-0"
-          aria-label={t("settings.hiResBadge.title")}
+          label={t("settings.hiResBadge.title")}
         />
-      </label>
+      </div>
     </section>
   );
 }
