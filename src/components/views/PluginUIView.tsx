@@ -204,8 +204,11 @@ export function PluginUIView({ pluginId, initialPath, icon }: PluginUIViewProps)
   // an error or a rate limit (MusicBrainz's 503, or offline mode, which
   // answers every request with one) just rendered an empty view, and a
   // tester read it as "nothing is fetched" (#733). `error: <detail>`
-  // carries the plugin's own reason.
-  const status = descriptor?.status?.trim() ?? "";
+  // carries the plugin's own reason. The parser does not check `status`
+  // (it was never read, and rejecting a whole view over it would break a
+  // plugin that sends something else), so a non-string reads as none.
+  const rawStatus: unknown = descriptor?.status;
+  const status = typeof rawStatus === "string" ? rawStatus.trim() : "";
   const statusNotice =
     status === "rate-limited"
       ? t("pluginView.rateLimited")
