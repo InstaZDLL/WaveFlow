@@ -1206,7 +1206,10 @@ export function PlaylistView({
                   )}
                 </div>
               )}
-              <div className="min-w-0 pb-1">
+              {/* The header colour only guarantees 3:1 behind this block
+                  (see usePlaylistAccent): the shadow is what carries the
+                  small label and counts. */}
+              <div className="min-w-0 pb-1 [text-shadow:0_1px_3px_rgb(0_0_0/0.35)]">
                 <div className="text-[10px] font-bold tracking-widest text-white/85 uppercase mb-1">
                   {t(remote ? "remote.playlist.label" : "playlistView.badge")}
                 </div>

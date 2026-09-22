@@ -114,15 +114,20 @@ function headerColors(accent: Color): { top: Color; deep: Color } {
     b: Math.round(a.b + (b.b - a.b) * t),
   });
 
-  // A real span between the stops — the header darkens by 30 points of
+  // A real span between the stops — the header darkens by 28 points of
   // lightness, which is what makes the gradient show at all. The contrast
   // is checked where the text starts (the label sits a little under half
   // way down the header, higher when it stacks on a narrow window), not at
   // the top, where there is nothing to read: requiring it there is what
   // flattened the header into one dark tone.
-  const SPAN = 0.3;
+  //
+  // 3:1, the large-text level: at 4.5:1 the whole palette was pulled
+  // down to near black. The title is large and bold; the small label and
+  // counts over it carry a soft shadow in the view to make up for it.
+  const SPAN = 0.28;
   const TEXT_AT = 0.4;
-  let topLightness = Math.min(0.6, Math.max(0.42, artLightness));
+  const MIN_CONTRAST = 3;
+  let topLightness = Math.min(0.72, Math.max(0.55, artLightness));
   const stops = () => {
     const deepLightness = Math.max(0.08, topLightness - SPAN);
     return {
@@ -133,7 +138,7 @@ function headerColors(accent: Color): { top: Color; deep: Color } {
   let { top, deep } = stops();
   for (
     let i = 0;
-    i < 40 && labelContrast(mix(top, deep, TEXT_AT)) < 4.5;
+    i < 40 && labelContrast(mix(top, deep, TEXT_AT)) < MIN_CONTRAST;
     i += 1
   ) {
     topLightness -= 0.01;
