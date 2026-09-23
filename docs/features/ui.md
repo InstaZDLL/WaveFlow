@@ -102,7 +102,7 @@ Once open, [`ContextMenu`](../../src/components/common/ContextMenu.tsx) focuses 
 Two surfaces needed more than a key handler: history rows had no `tabIndex` at all (unreachable by keyboard, menu or not) and are now focusable with Enter/Space playing the row, and the immersive title takes `tabIndex` + `aria-haspopup="menu"` only while a menu is available — deliberately not `role="button"`, since it opens a menu but remains the heading.
 
 - [`LyricsPanel`](../../src/components/layout/LyricsPanel.tsx) — synced or static lyrics with auto-scroll.
-- [`NowPlayingChevronTab`](../../src/components/layout/NowPlayingChevronTab.tsx) — right-edge floating tab visible only when no panel is open.
+- [`NowPlayingChevronTab`](../../src/components/layout/NowPlayingChevronTab.tsx) — right-edge floating tab that opens `NowPlayingPanel`, and switches to it from `LyricsPanel` / `QueuePanel`. Hidden only when Now Playing is itself the open panel.
 
 ## Long-running tasks
 
