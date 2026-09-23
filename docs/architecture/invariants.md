@@ -36,13 +36,14 @@ Per-profile settings live in `profile_setting` (typed key-value); app-wide setti
 - read/write cross-invalidation,
 - rollback to the last backend-confirmed value,
 - the `ready` gate,
-- the profile-switch reset.
+- the profile-switch reset,
+- **cross-window propagation** — the write is re-broadcast to every other webview as `profile-setting:changed` and turned back into the window event by [`profileSettingBridge`](../../src/lib/profileSettingBridge.ts), and a hook that mounted before that listener went live re-reads once. `listen()` is asynchronous, so a window is deaf between its first mount and the promise resolving, which is exactly when a window opens (issue #741).
 
 The hand-rolled copies had drifted apart, each carrying a different subset of those guarantees.
 
-Converted so far: `useScrollLongTitles`, `useArtistBioCollapsed`, `useHiddenKpis`, `useCoverSlideshow`, `useVisualizerColor`, `useArtistHero`, `useWrappedBannerVisibility` (two keys ⇒ two instances, each on its **own** broadcast channel — sharing one would make a write to either key re-read the other and clobber its in-flight optimistic value).
+Converted so far — a sample, not a roster, and deliberately not kept exhaustive: `useVisualizerStyle`, `useEstimatedKaraoke`, `useLyricsLookupSettings`, `useDesktopLyricsStyle`, `useContrastMode`, `useTrackColumns`, `useScrollLongTitles`, `useArtistBioCollapsed`, `useHiddenKpis`, `useCoverSlideshow`, `useVisualizerColor`, `useArtistHero`, `useWrappedBannerVisibility` (two keys ⇒ two instances, each on its **own** broadcast channel — sharing one would make a write to either key re-read the other and clobber its in-flight optimistic value).
 
-Still standalone, by shape rather than by oversight: `useWebRadioFavorites` (persists through the plugin-favorites commands, not `profile_setting`), `useHiResBadgeVisibility` (module-level store + subscription so a non-React consumer can read it), `useSortMemory` (many dynamic keys), and the direct `setProfileSetting` calls in `ThemeContext` / `SkinContext` / `shortcuts.ts` / a few Settings cards.
+Still standalone, by shape rather than by oversight: `useWebRadioFavorites` (persists through the plugin-favorites commands, not `profile_setting`), `useHiResBadgeVisibility` (module-level store + subscription so a non-React consumer can read it), `useSortMemory` (many dynamic keys), [`useProfileScopedToggle`](../../src/hooks/useProfileScopedToggle.ts) (the engine toggles push their value to the audio threads on the way in, so they own their own commands rather than going through `profile_setting`), and the direct `setProfileSetting` calls in `ThemeContext` / `SkinContext` / `shortcuts.ts` / a few Settings cards.
 
 The hook also passes the captured profile id to [`set_profile_setting` / `get_profile_setting`](../../src-tauri/crates/app/src/commands/profile.rs), which validate it through [`AppState::require_profile_pool_for`](../../src-tauri/crates/app/src/state.rs) **under the same lock `switch_profile` takes**. A JS-side "is this still my profile?" check runs before the IPC hop, so only the backend can stop a queued write from landing in the profile the user just switched to. Passing `None` opts out and targets whatever is active — correct for a fresh user action, wrong for anything that awaited first.
 
@@ -50,7 +51,7 @@ The hook also passes the captured profile id to [`set_profile_setting` / `get_pr
 
 The backend emits Tauri events; the frontend listens via `listen()` from `@tauri-apps/api/event`:
 
-`player:state` · `player:position` · `player:track-changed` · `player:queue-changed` · `player:options-changed` · `player:volume-changed` · `player:error` · `player:ab-loop` · `player:spectrum` · `track:updated` · `track:liked-changed` · `artist:updated` · `library:rescanned` · `scan:progress` · `lyrics:updated` · …
+`player:state` · `player:position` · `player:track-changed` · `player:queue-changed` · `player:options-changed` · `player:volume-changed` · `player:error` · `player:ab-loop` · `player:spectrum` · `track:updated` · `track:liked-changed` · `artist:updated` · `profile-setting:changed` · `library:rescanned` · `scan:progress` · `lyrics:updated` · …
 
 **Shared state needs an event, because there is more than one window.** The mini-player is a second webview with its own provider tree, so anything a user can change from both places has to be broadcast or the two copies drift — the engine stays right, the two UIs disagree, and the user "fixes" the one that looks wrong and breaks the one that was. `player:options-changed` (repeat + shuffle), `player:volume-changed` and `track:liked-changed` all exist for that reason, and are emitted by the in-app commands too, not only by external surfaces like MPD (#523).
 
@@ -249,7 +250,7 @@ Every modal calls [`useModalA11y(isOpen, onClose)`](../../src/hooks/useModalA11y
 
 Issue #390. A `z-index` is only compared inside its stacking context, and `position: fixed` escapes layout flow but NOT that context. WaveFlow's chrome is glassy — the TopBar carries `backdrop-blur-md`, and the Pulse / Liquid skins add `backdrop-filter` to the PlayerBar and other containers — and **any** `backdrop-filter` / `transform` / `opacity < 1` / `filter` / `will-change` ancestor creates a context that silently caps everything inside it. So a context menu at `z-100` nested under such an ancestor still paints _under_ the PlayerBar.
 
-Anything at z-100+ (context menus, dropdown popovers) renders through `createPortal(…, document.body)` — see [`ContextMenu`](../../src/components/common/ContextMenu.tsx) and [`AnimatedModalShell`](../../src/components/common/AnimatedModalShell.tsx). Portalling is safe for skins because every skin rule is rooted at `:root[data-skin="…"] :where(…)` and `body` stays a descendant of `:root`.
+Anything at z-100+ — context menus, dropdown popovers, **and any dialog that paints its own `fixed inset-0` scrim instead of going through `AnimatedModalShell`** — renders through `createPortal(…, document.body)` — see [`ContextMenu`](../../src/components/common/ContextMenu.tsx) and [`AnimatedModalShell`](../../src/components/common/AnimatedModalShell.tsx). Portalling is safe for skins because every skin rule is rooted at `:root[data-skin="…"] :where(…)` and `body` stays a descendant of `:root`.
 
 The documented layer scale (in-panel sticky `z-10` → content sticky headers `z-20` → TopBar `z-30` → PlayerBar `z-50` → overlays `z-100`/`z-101`) lives at the top of [`src/app.css`](../../src/app.css) — extend it there, don't invent a bigger number locally.
 

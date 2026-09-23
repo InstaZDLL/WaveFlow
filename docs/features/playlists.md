@@ -61,6 +61,20 @@ Smart playlists (`is_smart = 1`) are excluded from every code path here — they
 
 The frontend exposes the controls in the **edit modal** ([`CreatePlaylistModal.tsx`](../../src/components/common/CreatePlaylistModal.tsx)) Spotify-style: large preview tile on the left, hover overlay with a pencil icon ("Choose photo"), and a `...` menu top-right with "Change photo" / "Remove photo". The remove option is conditional on `cover_hash != null`. After every cover mutation the modal calls `onCoverChanged`, which the parent ([`PlaylistView`](../../src/components/views/PlaylistView.tsx)) implements by re-fetching the current playlist _and_ invoking [`PlaylistContext.refresh()`](../../src/contexts/PlaylistContext.tsx) — that second call is what makes the sidebar tile re-render (the sidebar reads from the context, not from `PlaylistView`'s local state).
 
+See [The header colour](#the-header-colour) for where the header's gradient comes from — the cover feeds it when `color_mode` is `auto`.
+
+## The header colour
+
+The playlist header is a two-stop gradient rather than a flat surface, and where its colour comes from is a per-playlist choice stored in the `playlist.color_mode` column (migration `20260921120000_playlist_color_mode.sql`, `TEXT NOT NULL DEFAULT 'auto'` with a `CHECK (color_mode IN ('auto','manual'))`). The default is deliberate: an existing playlist with artwork adopts the image-derived colour, and the stored palette colour stays available for whenever no artwork can be loaded.
+
+The control is the auto / manual segmented pair in [`CreatePlaylistModal`](../../src/components/common/CreatePlaylistModal.tsx) — the palette picker only appears in `manual`, because in `auto` it would be a control with no effect.
+
+**Auto samples the cover, but not by averaging it.** [`vibrantColorFromPixels`](../../src/lib/dominantColor.ts) buckets pixels into 8 hues and weights by chroma, because the plain dominant-colour path turns a multicolour collage into grey — the one case where a cover has the most colour to offer. [`usePlaylistAccent`](../../src/hooks/usePlaylistAccent.ts) then derives the two stops from that hue.
+
+**The two schemes are different designs, not inverses** (`HeaderScheme = "dark" | "light"`). The dark header is a saturated ground carrying white text; the light one is a pale tint carrying near-black ink, because a light header that fades toward transparent sits on the Liquid skin's aurora and stops being a header at all.
+
+**A contrast guard runs on the generated colour, and it measures the faintest ink on the header, not the boldest.** The header's secondary labels render at 85 % opacity over the gradient (`LABEL_OPACITY = 0.85`), sampled at the point where the text sits (`TEXT_AT = 0.4` between the stops), and the guard darkens or lightens until that composite clears its floor. The floors differ by scheme and that is a decision, not an oversight: **3:1** on the dark header (large text, and holding 4.5 there would wash every accent toward grey) and **4.5:1** on the light one, where dark ink on a pale ground makes the stricter ratio affordable. The light branch measures at `top`, its darkest stop.
+
 ## Recently played
 
-[`browse.rs::list_recent_plays`](../../src-tauri/crates/app/src/commands/browse.rs) projects the last 50 distinct tracks from `play_event`, deduplicated by track id (you only see a given track once even if you played it three times in a row). Drives both the "Récents" sidebar entry and the home carousel.
+[`browse.rs::list_recent_plays`](../../src-tauri/crates/app/src/commands/browse.rs) projects the most-recently-played distinct tracks from `play_event`, deduplicated by track id (you only see a given track once even if you played it three times in a row). **The row count is the caller's** — the command takes a `limit`, the home carousel asks for 12 and the playlist context menu for 300. The "Récents" sidebar entry does **not** go through it: it opens `HistoryView`, which renders the raw log via `list_play_history` and therefore keeps the repeats.
