@@ -58,9 +58,14 @@ export interface ContextPlaylist {
   virtual?: "liked" | "recent";
 }
 
-/** How many recent plays a "play recently played" gathers. The list is
- *  a log with repeats; this reads the last few hundred entries and keeps
- *  each track once, in the order it was last heard. */
+/** How many tracks a "play recently played" gathers.
+ *
+ *  `list_recent_plays` is already one row per track — it groups
+ *  `play_event` by track, takes `MAX(played_at)` and orders by it — so
+ *  this is a count of distinct tracks, not of plays, and the caller has
+ *  nothing to collapse. The raw log with its repeats is a different
+ *  command, `list_play_history`, which is what the Recently played view
+ *  itself renders. */
 const RECENT_LIMIT = 300;
 
 interface UsePlaylistContextMenuArgs {
@@ -157,15 +162,13 @@ export function usePlaylistContextMenu({
 
       // The sidebar's pinned rows. They carry the playable half of the
       // menu and stop there: a query has no row behind it to rename,
-      // export or delete. Recently played is a log, so it is collapsed
-      // to one entry per track — a queue holding the same song five
-      // times is not what "play what I have been listening to" means.
+      // export or delete.
       if (playlist.virtual) {
         const kind = playlist.virtual;
         const ids = async () => {
           if (kind === "liked") return listLikedTrackIds();
           const plays = await listRecentPlays(null, RECENT_LIMIT);
-          return [...new Set(plays.map((play) => play.track_id))];
+          return plays.map((play) => play.track_id);
         };
         const withVirtual =
           (use: (trackIds: number[]) => Promise<void>) => () => {
