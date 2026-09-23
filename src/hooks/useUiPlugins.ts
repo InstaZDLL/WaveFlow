@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import {
-  listUiPlugins,
-  type PluginUiRegistration,
-} from "../lib/tauri/plugins";
+import { listUiPlugins, type PluginUiRegistration } from "../lib/tauri/plugins";
 import { PLUGIN_AVAILABILITY_EVENT } from "./usePluginAvailability";
 
 /**

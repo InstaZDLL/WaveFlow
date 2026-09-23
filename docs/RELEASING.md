@@ -91,14 +91,14 @@ sealed bundle and the stable `app.waveflow` identifier — see
 why that matters — but not enough for Gatekeeper. Setting them switches
 the job to a real Developer ID signature plus notarization.
 
-| Secret                       | What it is                                                                                                             |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `APPLE_CERTIFICATE`          | `base64 -i cert.p12` of the **Developer ID Application** certificate exported from Keychain Access (private key included) |
-| `APPLE_CERTIFICATE_PASSWORD` | passphrase used at `.p12` export time                                                                                  |
+| Secret                       | What it is                                                                                                                             |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `APPLE_CERTIFICATE`          | `base64 -i cert.p12` of the **Developer ID Application** certificate exported from Keychain Access (private key included)              |
+| `APPLE_CERTIFICATE_PASSWORD` | passphrase used at `.p12` export time                                                                                                  |
 | `APPLE_SIGNING_IDENTITY`     | full identity string, e.g. `Developer ID Application: Jane Doe (A1B2C3D4E5)` — read it from `security find-identity -v -p codesigning` |
-| `APPLE_ID`                   | Apple ID email of the developer account                                                                                |
-| `APPLE_PASSWORD`             | **app-specific** password generated at <https://appleid.apple.com> — not the account password                           |
-| `APPLE_TEAM_ID`              | 10-character team identifier from <https://developer.apple.com/account>                                                |
+| `APPLE_ID`                   | Apple ID email of the developer account                                                                                                |
+| `APPLE_PASSWORD`             | **app-specific** password generated at <https://appleid.apple.com> — not the account password                                          |
+| `APPLE_TEAM_ID`              | 10-character team identifier from <https://developer.apple.com/account>                                                                |
 
 The first three are what enables signing; the last three add
 notarization on top. Providing only part of either group fails the build
@@ -287,7 +287,7 @@ Both `release.yml` and `test-appimage.yml` run it right after `tauri build`. **I
 
 ## AppImage delta updates: three steps in one order
 
-The AppImage runtime reserves a 1024-byte `.upd_info` section for a single string saying where updates come from. `appimagetool -u` fills it; Tauri builds the AppImage itself and exposes no equivalent, so it shipped zeroed and every ecosystem tool — AppImageUpdate, AppImageLauncher, AM, AppManager — reported *no update information available* ([#527](https://github.com/InstaZDLL/WaveFlow/issues/527)).
+The AppImage runtime reserves a 1024-byte `.upd_info` section for a single string saying where updates come from. `appimagetool -u` fills it; Tauri builds the AppImage itself and exposes no equivalent, so it shipped zeroed and every ecosystem tool — AppImageUpdate, AppImageLauncher, AM, AppManager — reported _no update information available_ ([#527](https://github.com/InstaZDLL/WaveFlow/issues/527)).
 
 [`scripts/appimage-update-info.sh`](../scripts/appimage-update-info.sh) writes it:
 
@@ -297,7 +297,7 @@ gh-releases-zsync|InstaZDLL|WaveFlow|latest|WaveFlow_*_linux-x86_64.AppImage.zsy
 
 `latest` is a literal the transport resolves through the GitHub API on every check, so the string stays correct for all future versions. Paired with the `.zsync` control file `zsyncmake` emits, a client reuses what it already has and fetches only the changed blocks — measured on a synthetic release: **3 080 192 bytes reused locally, 65 774 fetched**, reconstructed file identical to the published one.
 
-The section is written with `dd conv=notrunc` at the offset `readelf` reports, never `objcopy --update-section`. This file is an ELF *with a squashfs appended* that the runtime locates by a fixed offset; rebuilding the container would move that boundary and produce an image that no longer mounts. The script asserts the file size and the `--appimage-offset` are unchanged afterwards, so that mistake cannot ship quietly.
+The section is written with `dd conv=notrunc` at the offset `readelf` reports, never `objcopy --update-section`. This file is an ELF _with a squashfs appended_ that the runtime locates by a fixed offset; rebuilding the container would move that boundary and produce an image that no longer mounts. The script asserts the file size and the `--appimage-offset` are unchanged afterwards, so that mistake cannot ship quietly.
 
 **The order is load-bearing, and all three steps mutate or describe the same bytes:**
 
@@ -305,11 +305,11 @@ The section is written with `dd conv=notrunc` at the offset `readelf` reports, n
 2. `appimage-update-info.sh` — writes `.upd_info`, then re-signs, because the `.sig` covers the bytes it just changed
 3. `zsyncmake` — runs **last**, on the renamed `dist-release/` copy
 
-Step 3's placement matters twice. Its checksums describe the payload byte for byte, so any later rewrite would silently invalidate it. And the control file names its target, which clients resolve *relative to the URL they fetched the `.zsync` from* — both are assets of the same release, so the bare renamed filename lands on the right image, while the bundler's own name would send every client to a 404.
+Step 3's placement matters twice. Its checksums describe the payload byte for byte, so any later rewrite would silently invalidate it. And the control file names its target, which clients resolve _relative to the URL they fetched the `.zsync` from_ — both are assets of the same release, so the bare renamed filename lands on the right image, while the bundler's own name would send every client to a 404.
 
 **If you rename the Linux release assets, the embedded pattern has to move with them.** `WaveFlow_*_linux-x86_64.AppImage.zsync` lives in the script, the asset name lives in `release.yml`, and they are two halves of one contract: rename one and clients ask for a `.zsync` that was never published — visible to users, invisible in CI. Step 3 therefore reads the string back out of the image it is about to ship and fails the release when the two disagree. That check fires on a tag, which is a poor moment to discover it, so treat it as a backstop and change both together.
 
-> **Stable only.** The update information points at the repository's latest release, and GitHub excludes pre-releases from "latest" — a beta carrying that string would walk its user *back* to the newest stable. Beta builds keep an empty section, so those clients honestly report no update information and the [in-app beta channel](#beta-channel) stays the only path.
+> **Stable only.** The update information points at the repository's latest release, and GitHub excludes pre-releases from "latest" — a beta carrying that string would walk its user _back_ to the newest stable. Beta builds keep an empty section, so those clients honestly report no update information and the [in-app beta channel](#beta-channel) stays the only path.
 
 ## Flatpak sources are generated, and they go stale silently
 
@@ -327,7 +327,7 @@ It deliberately does **not** regenerate-and-diff: the generator runs `npm instal
 
 Signing the macOS bundle is not only about Gatekeeper. It is what stops macOS from asking for folder permission **on every single launch**.
 
-macOS records a TCC grant — the "WaveFlow would like to access files in your Downloads folder" consent — against the app's *designated requirement*, i.e. its code-signing identity. Before this was wired up, the shipped bundle carried only the ad-hoc signature the linker adds automatically on Apple Silicon:
+macOS records a TCC grant — the "WaveFlow would like to access files in your Downloads folder" consent — against the app's _designated requirement_, i.e. its code-signing identity. Before this was wired up, the shipped bundle carried only the ad-hoc signature the linker adds automatically on Apple Silicon:
 
 ```
 Identifier=waveflow-36c95c4d36c8f6a6      ← generated, not app.waveflow
@@ -339,7 +339,7 @@ Sealed Resources=none
 
 There is no `Contents/_CodeSignature` in that state: the `.app` was never passed to `codesign`, only its Mach-O binary was. With no sealed bundle and no stable identifier, there is nothing to anchor the grant to, so it never persists. Any user whose library lives under `~/Downloads`, `~/Desktop`, `~/Documents`, an external drive or a network share re-consents at every launch.
 
-Signing the bundle fixes it, and **ad-hoc is enough for this specific problem** — `codesign -s -` still produces sealed resources, a bound `Info.plist` and the `app.waveflow` identifier from the bundle. What ad-hoc does *not* do is survive an update (each build is a different identity, so the grant resets on upgrade) or satisfy Gatekeeper. A Developer ID identity is stable across versions and does both.
+Signing the bundle fixes it, and **ad-hoc is enough for this specific problem** — `codesign -s -` still produces sealed resources, a bound `Info.plist` and the `app.waveflow` identifier from the bundle. What ad-hoc does _not_ do is survive an update (each build is a different identity, so the grant resets on upgrade) or satisfy Gatekeeper. A Developer ID identity is stable across versions and does both.
 
 Three pieces make this work, and they have to stay together:
 
@@ -347,7 +347,7 @@ Three pieces make this work, and they have to stay together:
 - [`waveflow.entitlements`](../src-tauri/crates/app/waveflow.entitlements) — signing turns **on** hardened runtime, which the old linker-signed bundle never had, so signing introduces a failure mode rather than only removing one. The wasmtime plugin host executes Cranelift output from anonymous `mmap` + `mprotect` pages, not `MAP_JIT`, so it needs `com.apple.security.cs.allow-unsigned-executable-memory`; `com.apple.security.cs.allow-jit` alone is **not** enough and the process is SIGKILL'd (`Namespace CODESIGNING, Code 2, Invalid Page`) the moment a plugin instantiates. Web Radio ships in the bundle, so that path runs for every user. Verified against the pinned source, not assumed: wasmtime 47.0.3 contains no `MAP_JIT` at all and `Mmap::make_executable` goes through plain `mprotect`, so no narrower grant exists — re-evaluate only if the plugin host changes how it maps executable memory. The companion `allow-jit` is **not** redundant: JavaScriptCore runs in-process for the WKWebView and JITs via `MAP_JIT`. The two entitlements serve two different consumers, so neither can be pruned as dead weight.
 - The `Resolve macOS signing mode` + `Verify macOS signature` steps in [`release.yml`](../.github/workflows/release.yml).
 
-Signing happens **inside** `tauri build`, driven by `APPLE_SIGNING_IDENTITY`, not as a post-build `codesign` pass. That ordering is not cosmetic: the bundler builds the DMG and the `.app.tar.gz` updater payload *from* the `.app`, so signing afterwards would leave both wrapping an unsigned copy.
+Signing happens **inside** `tauri build`, driven by `APPLE_SIGNING_IDENTITY`, not as a post-build `codesign` pass. That ordering is not cosmetic: the bundler builds the DMG and the `.app.tar.gz` updater payload _from_ the `.app`, so signing afterwards would leave both wrapping an unsigned copy.
 
 The verify step asserts the sealed-resources / `app.waveflow` / designated-requirement triple, because a silent signing failure would look like a clean release and quietly bring the per-launch prompt back.
 

@@ -332,7 +332,9 @@ export function DeviceMenu() {
                     type="button"
                     onClick={() => handleSelect(device)}
                     disabled={switching != null}
-                    title={device.is_active ? t("deviceMenu.reopen") : undefined}
+                    title={
+                      device.is_active ? t("deviceMenu.reopen") : undefined
+                    }
                     className="px-4 py-2 text-sm cursor-pointer flex items-center space-x-3 text-left disabled:opacity-60 disabled:cursor-wait flex-1 min-w-0"
                   >
                     <Speaker size={16} className="opacity-70 shrink-0" />

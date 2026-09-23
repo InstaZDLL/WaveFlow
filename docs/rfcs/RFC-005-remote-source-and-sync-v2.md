@@ -36,7 +36,7 @@ library, the second makes sync look broken. The projection therefore lands in
 its **own tables** (`remote_*`) and is reconstructible: dropping it and
 re-fetching a snapshot is always a valid recovery.
 
-It was also, at first, presented as a distinct *place* — its own sidebar
+It was also, at first, presented as a distinct _place_ — its own sidebar
 section, its own views. That reading has since been dropped: the tables stay
 separate because the entities are, but the navigation does not have to repeat
 the split, and one library with the source as a filter is what the sections
@@ -48,7 +48,7 @@ RFC. When it comes, the only automatic link allowed is an exact, unique
 content-hash match; a MusicBrainz identifier is a suggestion the user confirms;
 matching by title/artist/duration is explicitly forbidden.
 
-*Since accepted:* that layer was built directly, without a separate RFC — it is
+_Since accepted:_ that layer was built directly, without a separate RFC — it is
 `remote::reconciliation` and the `remote_track_link` table, and it holds to
 every constraint the paragraph above sets. The RFC this paragraph anticipated
 never covered matching;
@@ -92,7 +92,7 @@ pagination with typed projections.
 That field — not the extension list — decides whether `SyncProvider` is
 available.
 
-> **Verified trap.** `getOpenSubsonicExtensions` returns an *empty* container
+> **Verified trap.** `getOpenSubsonicExtensions` returns an _empty_ container
 > today. A client that probed capabilities that way would conclude the server
 > offers nothing, while it in fact offers the entire v2 API.
 
@@ -137,14 +137,14 @@ provider; only the protocol changes.
 Three details, all measured against a live server rather than inferred:
 
 > **A code is spent on first presentation**, whatever the outcome. Redeeming
-> with a wrong verifier burns it — presenting the *correct* verifier afterwards
+> with a wrong verifier burns it — presenting the _correct_ verifier afterwards
 > still answers 401. Retrying a code is not a recovery path; the flow restarts
 > from the beginning.
 
 > **The redirect URI is compared as a string at redemption.** Shape validation
 > ignores the port, as RFC 8252 §7.3 asks, but the token endpoint compares the
 > grant's URI with the presented one byte for byte — changing only the port
-> answers 401. Binding the loopback listener *first* and building the URI once
+> answers 401. Binding the loopback listener _first_ and building the URI once
 > from the port obtained makes the two identical by construction.
 
 > **The refresh token rotates and the device survives it.** A refresh returns a
@@ -166,8 +166,8 @@ instead. That is a second authentication shape to carry, not a degraded first.
 `GET /api/v2/tracks/{id}/stream` with `Authorization: Bearer`, accepting
 `format`, `bitrate` and `offset_ms`, answering 206/416 on ranges. Sealed tickets
 exist for consumers that cannot set a header — a browser `<audio src>` — which
-is not our case. `MusicServer` therefore exposes a stream URL *and the header to
-attach*, never a hard-coded route.
+is not our case. `MusicServer` therefore exposes a stream URL _and the header to
+attach_, never a hard-coded route.
 
 ## Decision 7 — the queue holds replayable business mutations
 
@@ -187,7 +187,7 @@ perfectly ordinary situations:
 
 - **A queued entry is immutable.** The server stores a canonical fingerprint of
   the action, target and normalized payload. Reusing an `operation_id` with a
-  different fingerprint is *rejected as a conflict*, not treated as a replay. So
+  different fingerprint is _rejected as a conflict_, not treated as a replay. So
   if the user corrects a gesture before the queue drains — renaming an
   already-queued playlist — we emit a second mutation with a **new**
   `operation_id`, or merge the two before enqueueing and regenerate the
@@ -270,7 +270,7 @@ which was **not in `default`** — already absent from shipped binaries, with
 `sync_stub.rs` keeping the ~70 CRUD emit call sites compiling.
 
 v2 landed as a new tree, `crate::remote`, behind a new `sync_v2` feature (also
-off by default), built *beside* v1 rather than on top so v1 stayed available as
+off by default), built _beside_ v1 rather than on top so v1 stayed available as
 the only recovery path while the snapshot bootstrap was unproven.
 
 **Cutover (2026-08-15).** Once the bootstrap was validated end-to-end against a
@@ -324,7 +324,7 @@ file and the setting to change that did not exist. It does now, per profile and
 **off by default** — transcoding trades fidelity for bandwidth, which is not a
 trade to opt someone into silently, and it is **remote-only**: a local file is
 already on the machine, so re-encoding it would cost quality and buy nothing.
-Because the parameters belong to the *request* and not to the ticket, the
+Because the parameters belong to the _request_ and not to the ticket, the
 preference resolves at that one seam and the rest of the playback path is
 untouched — it receives a URL either way.
 
@@ -332,7 +332,7 @@ The interesting decision is what to do about a `429`, which the server returns
 when the transcode concurrency ceiling is reached. It cannot be handled where it
 arrives: the refusal lands when the **decoder** opens the URL, on the audio
 thread, where there is no sensible thing to retry with and no layer that knows
-what a fallback would even be. So it is not handled — it is *avoided*. The
+what a fallback would even be. So it is not handled — it is _avoided_. The
 desktop reads `GET /api/v2/transcode/status` first (`available`, `active`,
 `global_limit`, `per_user_limit`, all announced for exactly this purpose) and
 falls back to the original bytes before asking, rather than discovering the
@@ -367,10 +367,10 @@ artists no longer have views of their own either: the three twins are absorbed,
 each into the local view of the same thing.
 
 A server **artist** has none either. The absorption is smaller than the
-album's because the two sides already agreed on the hard part: the *descriptive*
+album's because the two sides already agreed on the hard part: the _descriptive_
 metadata the server carries for an artist is a name, a portrait and a list of
 albums, and nothing beyond that — no biography, no fan count, no background —
-which is exactly what a *local* artist carries too. (It carries an identifier
+which is exactly what a _local_ artist carries too. (It carries an identifier
 as well, of course; that is what the page is fetched by.) Both have always filled the rest from the same by-name
 enrichment; the only difference is the key. A local artist resolves a cached
 Deezer id through its own row, which is also what a curated override hangs off;
@@ -411,7 +411,7 @@ surface nobody can reach, which makes it worth re-reading every time the reason
 it cannot be reached changes.
 
 A server **playlist** was the last of the three, and the only one where the
-twin was the *richer* view. It had an inline rename, a remove button on every
+twin was the _richer_ view. It had an inline rename, a remove button on every
 row and an add-tracks panel backed by a live catalogue search — three
 affordances the local playlist has no equivalent for, because a local playlist
 renames through a modal that also sets a colour, an icon and a cover, and adds
@@ -425,7 +425,7 @@ rowid. The sort menu drops `added_at` and `filename` rather than showing them
 inert: a server track carries neither field.
 
 The one place the two sides do not merely differ in what they offer but in what
-they *write* is the drag handle. Locally a playlist entry is named by its
+they _write_ is the drag handle. Locally a playlist entry is named by its
 track's rowid — a track is in a playlist zero or one times — so a move travels
 as (track, destination). The server keys entries by position and may hold the
 same track twice, so there is no id to name one by and the move travels as
@@ -470,7 +470,7 @@ chosen, lands in a managed folder the scanner never sees, and disappears only
 when its owner says so. It is deliberately **not** a local library track: no
 `track` row is created for it, so `remote_track_link` cannot describe it either
 — that table keys on `local_track_id REFERENCES track(id)` — and a download is
-recorded as what it is, a *remote* track that happens to be on this disk.
+recorded as what it is, a _remote_ track that happens to be on this disk.
 
 Downloads are always the **original** bytes, whatever the transcode preference
 says. That preference exists to spend less bandwidth on a stream heard once;
@@ -481,15 +481,15 @@ reconciliation proof real. The server's own `full_hash` — not the library's
 `file_hash`, which covers a file the server has never seen — is known **the
 moment the write completes**, with no re-read and without needing a `track`
 row to exist: it is stored on `remote_track_download` there and then. What
-waits for a `track` row is only the *link*, which is a different object and a
+waits for a `track` row is only the _link_, which is a different object and a
 later step. It is also checked against the catalogue's own digest before the
 file is published, so a truncated or substituted body never becomes a proof.
 
 **And a track can be brought in, which is a third thing again.** A download is
-kept for offline playback and stays a *remote* track. An **import** copies the
+kept for offline playback and stays a _remote_ track. An **import** copies the
 same bytes into a folder the user already scans, where the scanner indexes them
 and a `track` row exists: the file becomes theirs — playable offline, editable,
-counted in every local view — and the server's track is *linked* to it rather
+counted in every local view — and the server's track is _linked_ to it rather
 than shadowed by it. The two are separate features rather than one with a flag
 because they answer different questions: "keep this for the plane" versus "this
 belongs in my library".
@@ -510,7 +510,7 @@ The working file carries no audio extension and sits in the destination
 directory itself. Both halves are structural rather than remembered: the same
 directory makes the publishing rename a rename and not a cross-device copy with
 a window where a truncated file exists, and no audio extension makes a
-half-written file unindexable *by construction*, since the scanner filters on
+half-written file unindexable _by construction_, since the scanner filters on
 extension. The server settled the identical question in the same two clauses
 for files arriving the other way (server RFC-008, decision 6).
 
@@ -530,7 +530,7 @@ cheap — a `present`, a closed library, an unsupported container or an exhauste
 quota costs one question there and a whole transfer anywhere later. But **most
 of the deduplication never reaches the server at all**: the catalogue mirror
 already holds every server track's `full_hash`, so a local file whose digest is
-in that table is answered with a *link*, written offline, with no request. The
+in that table is answered with a _link_, written offline, with no request. The
 server's RFC expects exactly this and sizes its negotiation route for the
 leftovers rather than for the volume.
 
@@ -567,7 +567,7 @@ stream, the network.
 resolved — `preferred_local_playback` plays the local file when there is one —
 but local-to-server did not, so a library track whose file had been moved or
 deleted simply failed with `file not found`. When such a track carries a
-*confirmed* link, it now plays from the server instead. Only confirmed: a stale
+_confirmed_ link, it now plays from the server instead. Only confirmed: a stale
 link is a guess, and guessing which recording to substitute is worse than
 saying the file is missing.
 
@@ -596,20 +596,20 @@ Nothing is deferred: the remote source is managed end to end like a local one.
 
 Per-profile, since the binding is per-profile:
 
-| Table | Role |
-| --- | --- |
-| `remote_binding` | server flavour, `account_id`, `device_id`, cursor, `active_library_id` |
-| `remote_playlist` + `remote_playlist_track` | projected playlists, ordered |
-| `remote_favorite` | `(entity_type, entity_id)` |
-| `remote_rating` | `(entity_type, entity_id, rating)` |
-| `remote_history` | scrobbles, append-only |
-| `remote_queue` | single row, the server's saved queue |
-| `remote_share` | non-secret share fields; **never** token from the journal |
-| `remote_track` | cached song metadata, derived and droppable |
-| `remote_album` | the server's albums, from the catalogue walk |
-| `remote_artist` | the server's artists, walked for the one thing grouping cannot derive: their picture |
-| `remote_library` | the libraries this account can see, and when each was last swept |
-| `remote_mutation` | outbound queue, typed, keyed by `operation_id` |
+| Table                                       | Role                                                                                 |
+| ------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `remote_binding`                            | server flavour, `account_id`, `device_id`, cursor, `active_library_id`               |
+| `remote_playlist` + `remote_playlist_track` | projected playlists, ordered                                                         |
+| `remote_favorite`                           | `(entity_type, entity_id)`                                                           |
+| `remote_rating`                             | `(entity_type, entity_id, rating)`                                                   |
+| `remote_history`                            | scrobbles, append-only                                                               |
+| `remote_queue`                              | single row, the server's saved queue                                                 |
+| `remote_share`                              | non-secret share fields; **never** token from the journal                            |
+| `remote_track`                              | cached song metadata, derived and droppable                                          |
+| `remote_album`                              | the server's albums, from the catalogue walk                                         |
+| `remote_artist`                             | the server's artists, walked for the one thing grouping cannot derive: their picture |
+| `remote_library`                            | the libraries this account can see, and when each was last swept                     |
+| `remote_mutation`                           | outbound queue, typed, keyed by `operation_id`                                       |
 
 `remote_track` exists because the two feeds are asymmetric: a snapshot
 returns playlists and the queue with **whole song objects**, while a change
@@ -682,7 +682,7 @@ would leave every one of them for the next walk.
 Three things are load-bearing:
 
 - **A track upsert carries `full_hash`, and that is the point.** Nothing else
-  tells a client that a file was retagged *outside* the API: the track keeps its
+  tells a client that a file was retagged _outside_ the API: the track keeps its
   identifier while its bytes move, so an `exact_full_hash` link built on the old
   bytes stays `confirmed` while being wrong. Reading the feed is what marks it
   `stale`. This is the consumer RFC-006 said the desktop was missing.
@@ -693,7 +693,7 @@ Three things are load-bearing:
   the failure mode is "no faster than before", never "wrong". Two details
   decide whether that actually happens: the walk decides freshness **per
   album** (`remote_album.mirrored_at` against `song_count`), so invalidating
-  the *library's* sweep date changes nothing — and the missed events are
+  the _library's_ sweep date changes nothing — and the missed events are
   corrections, which leave `song_count` alone, so the walk would skip exactly
   the albums that needed re-reading. And because the server exposes **no
   watermark**, there is no cursor to adopt after the re-walk: a feed merely
@@ -747,7 +747,7 @@ so with a 404, which resolves to `None` and falls through to the plugin rung of
 the backdrop precedence.
 
 **What is new: the identifier had to be made to travel.** Nothing downstream
-could name a playing remote track *to the server* — the negative sentinel is
+could name a playing remote track _to the server_ — the negative sentinel is
 meaningful only inside this process. So `RemoteStreamMeta` carries the server
 id out of the queue entry under the same lock as the duration and the artwork
 hash, `player:radio-metadata` carries it to the frontend, and the projected
@@ -786,7 +786,7 @@ cached path has since been evicted and ask for it again.
 Two properties hold it together:
 
 - **Only hash-addressed covers are cached.** The same server route also accepts
-  a track, album or artist identifier and resolves that entity's *current*
+  a track, album or artist identifier and resolves that entity's _current_
   cover, which a rescan can move; the server marks only the hash form immutable
   and keeps the aliases revalidatable. Caching an alias forever would freeze a
   replaced cover, so anything that is not plain hexadecimal is refused. The
@@ -795,6 +795,7 @@ Two properties hold it together:
 - **Eviction is by modification time, and a hit touches the file.** The cover of
   an album played weekly keeps its place while a one-off browse ages out.
   Dropping a file costs one download, never a wrong picture.
+
 ### One library, two sources, never merged
 
 With the catalogue mirrored, `list_library_albums` returns both halves as one
@@ -820,7 +821,7 @@ comparable rather than merely concatenated:
   mirrored before those columns existed falls back to its display title, and
   one walk fills it in.
 - **A local library filter excludes the remote half.** The picker chooses among
-  *local* libraries, and a server album belongs to none of them; leaving the
+  _local_ libraries, and a server album belongs to none of them; leaving the
   remote rows visible while the user has narrowed to one library reads as the
   filter having failed.
 
@@ -830,7 +831,7 @@ detail view rather than the local one. The artists, tracks and playlists tabs
 work the same way, on the same filter.
 
 The sidebar merges them too, and for the same reason it stopped having a
-section of its own: a "Remote source" heading beside the playlist list *was*
+section of its own: a "Remote source" heading beside the playlist list _was_
 the redundancy this lot was aimed at. Server playlists now sit in the one
 playlist list with a chip, and the filter deliberately does not reach there —
 the sidebar is navigation, not a filtered view, so narrowing a tab must not
@@ -870,7 +871,7 @@ would produce the names and the counts perfectly well; what it cannot produce
 is the **picture**, which lives on the server's artist row. A grid built that
 way would show letters where the local half shows photographs — which is the
 defect issue #350 was about, arriving by another route. Their counts, on the
-other hand, *are* derived from the albums and tracks already mirrored: a stored
+other hand, _are_ derived from the albums and tracks already mirrored: a stored
 count is a second truth that goes stale the moment an album is walked.
 
 Tokens keep using `auth_credential` under the existing `waveflow_server`
@@ -922,14 +923,14 @@ feeds have to agree, or the result would depend on which one happened to run.
 `PATCH /api/v2/tracks/{id}` inverts the rule above, and the inversion is
 deliberate on the server's side rather than an oversight: its body is the
 **complete set of corrections the track should carry afterwards**. A field left
-out is not a field left alone — it is a correction *withdrawn*, and the track
+out is not a field left alone — it is a correction _withdrawn_, and the track
 falls back to whatever its file's tag says.
 
 That shape is right for a tag editor, which submits a whole form and needs
 "clear this" to be expressible without a magic null. It is wrong for everything
 else in the queue, so `Mutation::UpdateTrackMetadata` is the one mutation with
 no `clear_*` flags, and callers may never send a diff. Sending only the fields
-that changed — which is what the *local* tag editor does — would silently drop
+that changed — which is what the _local_ tag editor does — would silently drop
 every correction it failed to mention.
 
 Two consequences, both invisible until they bite:
@@ -940,7 +941,7 @@ Two consequences, both invisible until they bite:
   clearing it. That is sound **only while this application is the sole writer of
   `track_override`** — which it is today, the server's own web client sending no
   such patch. The day a second writer appears this quietly erases their
-  corrections, and the fix is a server route returning the *raw* overrides.
+  corrections, and the fix is a server route returning the _raw_ overrides.
   `GET /tracks/{id}` cannot stand in for it: it answers the merged values, in
   which a correction is indistinguishable from what the file said.
 - **The reply is the only place the underlying tag can be learnt.** Withdrawing
@@ -964,7 +965,7 @@ keeping them would carry complexity the protocol no longer asks for.
   reused operation identifier with a different fingerprint is rejected, and a
   client that cannot apply a known event takes a fresh snapshot.
 - **Compaction and `410 Gone`** — replaced, not dropped. The v2.0 journal is
-  append-only, so no cursor is too old *yet*: a cursor beyond the last event
+  append-only, so no cursor is too old _yet_: a cursor beyond the last event
   returns an empty page rather than an error. But the contract for when
   compaction lands is now defined — `/sync/changes` answers `409` with
   `code: "cursor_expired"` for a cursor below the oldest retained event — and

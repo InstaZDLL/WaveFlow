@@ -33,7 +33,11 @@ interface PluginUIViewProps {
  * makes no assumptions about a specific plugin's semantics (no baked-in
  * icon-per-action-kind beyond the neutral open-url external-link glyph).
  */
-export function PluginUIView({ pluginId, initialPath, icon }: PluginUIViewProps) {
+export function PluginUIView({
+  pluginId,
+  initialPath,
+  icon,
+}: PluginUIViewProps) {
   const { t } = useTranslation();
   const [descriptor, setDescriptor] = useState<PluginUiDescriptor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -222,7 +226,9 @@ export function PluginUIView({ pluginId, initialPath, icon }: PluginUIViewProps)
     <div className="mx-auto flex w-full flex-col gap-6 p-6">
       {/* Header */}
       <header className="flex items-start gap-3">
-        <span className="mt-1 text-emerald-500">{resolvePluginIcon(icon, 24)}</span>
+        <span className="mt-1 text-emerald-500">
+          {resolvePluginIcon(icon, 24)}
+        </span>
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-2xl font-bold text-zinc-900 dark:text-zinc-100">
             {descriptor?.title ?? ""}
@@ -293,11 +299,9 @@ export function PluginUIView({ pluginId, initialPath, icon }: PluginUIViewProps)
           <Loader2 size={18} className="animate-spin" />
           {t("common.loading")}
         </div>
-      ) : !descriptor ? (
-        // A failed initial load left no descriptor — the error banner
-        // above is the visible state; don't show the misleading empty view.
-        null
-      ) : !hasItems ? (
+      ) : !descriptor ? // A failed initial load left no descriptor — the error banner
+      // above is the visible state; don't show the misleading empty view.
+      null : !hasItems ? (
         <div className="flex flex-col items-center gap-2 py-16 text-center text-zinc-400">
           <span>{resolvePluginIcon(icon, 32)}</span>
           <p className="font-medium text-zinc-600 dark:text-zinc-300">

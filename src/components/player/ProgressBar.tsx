@@ -21,13 +21,8 @@ import { playerGetAbLoop, type AbLoopSnapshot } from "../../lib/tauri/player";
  */
 export function ProgressBar() {
   const { t } = useTranslation();
-  const {
-    positionMs,
-    durationMs,
-    seek,
-    setSeeking,
-    currentTrack,
-  } = usePlayer();
+  const { positionMs, durationMs, seek, setSeeking, currentTrack } =
+    usePlayer();
   const [dragMs, setDragMs] = useState<number | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
 
@@ -204,14 +199,14 @@ export function ProgressBar() {
           />
         )}
         {hasTrack && abLoop.a_ms != null && abLoop.b_ms != null && (
-            <div
-              className="absolute top-0 h-full bg-rose-500/15 dark:bg-rose-500/25 pointer-events-none"
-              style={{
-                left: `${(abLoop.a_ms / durationMs) * 100}%`,
-                width: `${((abLoop.b_ms - abLoop.a_ms) / durationMs) * 100}%`,
-              }}
-            />
-          )}
+          <div
+            className="absolute top-0 h-full bg-rose-500/15 dark:bg-rose-500/25 pointer-events-none"
+            style={{
+              left: `${(abLoop.a_ms / durationMs) * 100}%`,
+              width: `${((abLoop.b_ms - abLoop.a_ms) / durationMs) * 100}%`,
+            }}
+          />
+        )}
         {seekable && (
           <div
             className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow border border-zinc-200 opacity-0 group-hover:opacity-100 transition-opacity"

@@ -180,23 +180,23 @@ enum RuleNode {
 
 JSON shape uses an internal `type` tag (`{"type":"all","children":[…]}`). The `Predicate` enum carries the leaf's `kind` + `value`:
 
-| Predicate kind                                          | Notes                                                                            |
-| ------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `title_contains` / `artist_contains` / `album_contains` | Case-insensitive `LIKE '%…%'`.                                                   |
-| `genre_is`                                              | Single genre ID — multi-genre OR is expressed as `Any` of these.                 |
-| `year_min` / `year_max`                                 | Inclusive bounds, `NULL` years filtered out.                                     |
-| `bpm_min` / `bpm_max`                                   | Reads `track_analysis.bpm`.                                                      |
-| `duration_min_ms` / `duration_max_ms`                   | Inclusive on `track.duration_ms`.                                                |
-| `format`                                                | Single file extension — multi-format OR is expressed as `Any` of these.          |
-| `hi_res` (unit)                                         | `sample_rate >= 88200 OR bit_depth >= 24`.                                       |
-| `liked` (unit)                                          | `EXISTS (SELECT 1 FROM liked_track …)`.                                          |
-| `rating_min`                                            | POPM 0-255 threshold. Editor's star picker writes `Math.round(stars / 5 * 255)`. |
-| `play_count_min` / `play_count_max`                     | `COUNT(*)` over `play_event` — one row is one play, the same number Statistics shows. `play_count_max: 0` is how a rule says *never played*. |
+| Predicate kind                                          | Notes                                                                                                                                                                                                                                                                                               |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title_contains` / `artist_contains` / `album_contains` | Case-insensitive `LIKE '%…%'`.                                                                                                                                                                                                                                                                      |
+| `genre_is`                                              | Single genre ID — multi-genre OR is expressed as `Any` of these.                                                                                                                                                                                                                                    |
+| `year_min` / `year_max`                                 | Inclusive bounds, `NULL` years filtered out.                                                                                                                                                                                                                                                        |
+| `bpm_min` / `bpm_max`                                   | Reads `track_analysis.bpm`.                                                                                                                                                                                                                                                                         |
+| `duration_min_ms` / `duration_max_ms`                   | Inclusive on `track.duration_ms`.                                                                                                                                                                                                                                                                   |
+| `format`                                                | Single file extension — multi-format OR is expressed as `Any` of these.                                                                                                                                                                                                                             |
+| `hi_res` (unit)                                         | `sample_rate >= 88200 OR bit_depth >= 24`.                                                                                                                                                                                                                                                          |
+| `liked` (unit)                                          | `EXISTS (SELECT 1 FROM liked_track …)`.                                                                                                                                                                                                                                                             |
+| `rating_min`                                            | POPM 0-255 threshold. Editor's star picker writes `Math.round(stars / 5 * 255)`.                                                                                                                                                                                                                    |
+| `play_count_min` / `play_count_max`                     | `COUNT(*)` over `play_event` — one row is one play, the same number Statistics shows. `play_count_max: 0` is how a rule says _never played_.                                                                                                                                                        |
 | `played_in_last_days` / `added_in_last_days`            | Relative windows, resolved to an absolute epoch-ms cut-off at build time. Not dates: a stored rule is re-evaluated for years, and a pinned date drifts into meaning something its author never wrote. "Not played since" is the first one under a `Not`, which also takes in what was never played. |
-| `sample_rate_min` / `bit_depth_min`                     | The two halves of `hi_res` said separately — it is the OR of two fixed thresholds and cannot express "88.2 kHz but 16-bit". |
-| `disc_number_is`                                        | One disc of a multi-disc set.                                                    |
-| `path_contains`                                         | Both sides folded to `/`, so one rule reads the same whichever separator the scanning OS wrote. The "everything under this folder" rule. |
-| `tag_present` / `tag_contains`                          | A custom tag out of `track_tag` (#588) — a rip source, a catalogue number, a mood. The **key is a bind**, not interpolated; `track_tag.key` is `COLLATE NOCASE`, so the comparison stays case-insensitive *and* index-backed. |
+| `sample_rate_min` / `bit_depth_min`                     | The two halves of `hi_res` said separately — it is the OR of two fixed thresholds and cannot express "88.2 kHz but 16-bit".                                                                                                                                                                         |
+| `disc_number_is`                                        | One disc of a multi-disc set.                                                                                                                                                                                                                                                                       |
+| `path_contains`                                         | Both sides folded to `/`, so one rule reads the same whichever separator the scanning OS wrote. The "everything under this folder" rule.                                                                                                                                                            |
+| `tag_present` / `tag_contains`                          | A custom tag out of `track_tag` (#588) — a rip source, a catalogue number, a mood. The **key is a bind**, not interpolated; `track_tag.key` is `COLLATE NOCASE`, so the comparison stays case-insensitive _and_ index-backed.                                                                       |
 
 ### SQL builder
 
@@ -245,13 +245,13 @@ The gate decides what may be considered; everything inside it is ranked
 by how well it fits, and the forty tracks that play are the best of the
 pool rather than the first forty drawn out of it (#616).
 
-| Mood | Tempo gate | Centre | Loudness |
-| --- | --- | --- | --- |
-| Focus | 72–108 | 88 | prefers ≤ −14 LUFS |
-| Chill | 65–95 | 78 | prefers ≤ −10 LUFS |
-| Workout | 128–180 | 150 | prefers ≥ −12 LUFS |
-| Party | 110–132 | 122 | prefers ≥ −12 LUFS |
-| Sleep | ≤ 68 | 52 | prefers ≤ −18 LUFS |
+| Mood    | Tempo gate | Centre | Loudness           |
+| ------- | ---------- | ------ | ------------------ |
+| Focus   | 72–108     | 88     | prefers ≤ −14 LUFS |
+| Chill   | 65–95      | 78     | prefers ≤ −10 LUFS |
+| Workout | 128–180    | 150    | prefers ≥ −12 LUFS |
+| Party   | 110–132    | 122    | prefers ≥ −12 LUFS |
+| Sleep   | ≤ 68       | 52     | prefers ≤ −18 LUFS |
 
 The pool of 400 is drawn **measured readings first**, shuffled within
 each group, and the ranking then decides which forty of it play. The
@@ -309,7 +309,7 @@ the genre words.
 
 `mood_radio_counts` returns the per-mood counts **and** how much of the
 library carries a tempo at all, because a thin radio has a reason the
-counts cannot show: they look small without saying small *of what*. The
+counts cannot show: they look small without saying small _of what_. The
 grid shows the coverage line only while the two numbers differ. The
 subtitle now says what the radio does — it promised "tempo and energy"
 while energy was a loudness ceiling on two of the five moods.

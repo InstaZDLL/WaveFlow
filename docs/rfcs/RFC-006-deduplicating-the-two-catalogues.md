@@ -63,8 +63,8 @@ most libraries, today, with no new table.
 
 It would also be exactly what RFC-005 forbids one level down. Matching tracks by
 title, artist and duration is "explicitly forbidden" there; the reasons do not
-weaken as the entity grows, they compound. *Greatest Hits* is not one album.
-*John Williams* is not one artist — the film composer and the classical
+weaken as the entity grows, they compound. _Greatest Hits_ is not one album.
+_John Williams_ is not one artist — the film composer and the classical
 guitarist share a canonical name, and a library holding both would fold them
 into one page with no way for its owner to say otherwise.
 
@@ -75,10 +75,10 @@ whole of it:
 > and they may feed a suggestion a person confirms.**
 
 Symmetry would be a mistake here. Evidence that two things are the same must be
-content; evidence that they are *not* can be anything, because refusing to merge
+content; evidence that they are _not_ can be anything, because refusing to merge
 costs nothing that Decision 5 is not already prepared to pay. A future revision
 may well want to say "these two releases share two files but one is called
-*Greatest Hits* and the other is not, so do not fold them silently" — a veto,
+_Greatest Hits_ and the other is not, so do not fold them silently" — a veto,
 not a proof. Nothing in this RFC uses such a veto yet, and nothing in it
 forecloses one.
 
@@ -94,7 +94,7 @@ comparing sets, and anything less than the set is not an answer.
 **An artist is an open grouping.** Nobody's discography is ever complete on
 either side, and demanding that it be would mean never pairing an artist at all.
 The question "is this the same artist?" is answerable from a sample, because the
-sample is evidence about the *person*, not about the extent of their work.
+sample is evidence about the _person_, not about the extent of their work.
 
 ### Albums: a complete bijection over examined sets
 
@@ -117,7 +117,7 @@ agree.
 That second case is a real record — a standard edition and its deluxe — and
 refusing it is a deliberate cost. It is refused because a rule loose enough to
 accept it also accepts things that are not records at all, and because
-presenting them together is a *different claim* than saying they are the same
+presenting them together is a _different claim_ than saying they are the same
 release. See [What stays out of scope](#what-stays-out-of-scope): the grouping
 of editions is a concept this RFC declines to invent in passing.
 
@@ -128,7 +128,7 @@ there are **at least two**.
 
 Unanimity because a contradiction is the only reliable signal that something is
 not what it looks like — and because it disposes of the hardest case for free. A
-local *Various Artists* compilation has tracks linked to a dozen different
+local _Various Artists_ compilation has tracks linked to a dozen different
 server artists; a "majority of links" rule would have to be taught about
 compilations to avoid folding VA into whichever artist won the count. Unanimity
 never gets there: the second disagreeing link ends the question. No special
@@ -155,10 +155,10 @@ Local: "Greatest Hits"          Remote: "Album X"
 ```
 
 Two links. Unanimous. No contradiction. The withdrawn rule concludes that
-*Greatest Hits* **is** *Album X*, and hides one of them.
+_Greatest Hits_ **is** _Album X_, and hides one of them.
 
 Two links prove that two releases share two recordings. Sharing recordings is
-what compilations, singles, soundtracks and reissues are *for*. The withdrawn
+what compilations, singles, soundtracks and reissues are _for_. The withdrawn
 rule mistook evidence about tracks for evidence about the set that contains
 them — which is exactly the confusion Decision 1 is meant to prevent, committed
 one level up instead of by name.
@@ -193,12 +193,12 @@ remote_track_link             = no row
 Both files are hashed. Both digests are equal. No link exists, because nothing
 has yet compared them — the upload survey fills the cache, and reconciliation
 still hashes on its own rather than reading it. A frontier built on "both sides
-hashed" reads that absence as *different bytes*, about two files that are
+hashed" reads that absence as _different bytes_, about two files that are
 identical.
 
 Digests are an input to reconciliation, not a record that it ran. **Eligibility
 requires a completed reconciliation over the exact sets being evaluated**, and
-recording *that* — a per-entity generation, in the sense below — is still to be
+recording _that_ — a per-entity generation, in the sense below — is still to be
 built.
 
 What is implemented is the part of the frontier the schema can already answer,
@@ -220,7 +220,7 @@ that surfaced a distinction the frontier depends on. A reconciliation sweep does
 two jobs at once. It **discovers** pairs among unlinked tracks, which is what
 the cache is for. It also **re-verifies** the tracks that already carry a link,
 which is how a link whose bytes have changed becomes `stale` — and that job must
-read the file. `track.file_modified` moves when a *scan* re-reads a file, not
+read the file. `track.file_modified` moves when a _scan_ re-reads a file, not
 when the file changes, so a track edited outside WaveFlow keeps its
 `(size, mtime)` and with them a cached digest describing bytes that are gone. A
 re-verification served from that would never catch the stale link it exists to
@@ -260,23 +260,23 @@ album B   generation  9   reconciled  8   → ineligible, and only B
 reachability never advance it — that distinction is the whole point of having
 two frontiers rather than one:
 
-| Change | Album | Artist | Why |
-| --- | --- | --- | --- |
-| Track added or removed | invalidates | invalidates | different corpus |
-| `full_hash` changed (file replaced or retagged upstream) | invalidates | invalidates | different content proof |
-| Track moved to another album | both albums | — | different set |
-| `primary_artist` changed | — | both artists | different grouping |
-| A link becomes `stale`, or is rejected | invalidates | invalidates | the proof is gone |
-| A new `confirmed` link | invalidates | invalidates | the result may differ |
-| Album or track title, year, artwork | no | no | presentation |
-| `disc_number` / `track_number` | no | no | order only |
-| Star, rating, play count | no | no | user state |
-| Server unreachable, offline mode | no | no | reachability, not identity |
-| Local `is_available` flips | no | no | Decision 5 picks which representation shows |
-| Signed out, permission withdrawn | no | no | reachability, not a new proof |
+| Change                                                   | Album       | Artist       | Why                                         |
+| -------------------------------------------------------- | ----------- | ------------ | ------------------------------------------- |
+| Track added or removed                                   | invalidates | invalidates  | different corpus                            |
+| `full_hash` changed (file replaced or retagged upstream) | invalidates | invalidates  | different content proof                     |
+| Track moved to another album                             | both albums | —            | different set                               |
+| `primary_artist` changed                                 | —           | both artists | different grouping                          |
+| A link becomes `stale`, or is rejected                   | invalidates | invalidates  | the proof is gone                           |
+| A new `confirmed` link                                   | invalidates | invalidates  | the result may differ                       |
+| Album or track title, year, artwork                      | no          | no           | presentation                                |
+| `disc_number` / `track_number`                           | no          | no           | order only                                  |
+| Star, rating, play count                                 | no          | no           | user state                                  |
+| Server unreachable, offline mode                         | no          | no           | reachability, not identity                  |
+| Local `is_available` flips                               | no          | no           | Decision 5 picks which representation shows |
+| Signed out, permission withdrawn                         | no          | no           | reachability, not a new proof               |
 
 The last three rows matter as much as the first six. A pair whose local file has
-gone is still a *proven* pair; what changes is which half can be rendered, which
+gone is still a _proven_ pair; what changes is which half can be rendered, which
 is Decision 5's business and requires no reconciliation at all.
 
 ### The server cursor is a watermark, not a generation
@@ -287,7 +287,7 @@ cursor against the server's latest would invalidate the whole library every time
 anything anywhere changed, including the star in the table above.
 
 The cursor answers "how far have I observed the server?". The generation answers
-"which version of *this entity's* identity inputs have I examined?". So an event
+"which version of _this entity's_ identity inputs have I examined?". So an event
 is received, the entities it affects are marked, and only those are reconciled
 again.
 
@@ -374,7 +374,7 @@ instead; that fallback does not exist today and is proposed here, not described.
 
 The added-at date is the local one for the same reason, and one more: an album
 the server has held for three years and this machine acquired today belongs at
-the top of *recently added*, not buried three years back. A remote-only entry
+the top of _recently added_, not buried three years back. A remote-only entry
 naturally keeps the server's date; there is no pair to reconcile.
 
 **One pair, one row — and the row is the local one.** With Decision 2's
@@ -387,7 +387,7 @@ can list a track twice.
 **Playback is not decided by the row.** It follows
 `remote_track_link.playback_preference` — `local_first` by default,
 `server_first` when the user says so — which exists precisely so that which
-copy plays is a property of the *pair* rather than of whichever half a listing
+copy plays is a property of the _pair_ rather than of whichever half a listing
 happened to render.
 
 **When the local file is gone, the row is the server's.** The pair is still
@@ -395,16 +395,16 @@ proven — a missing file is not a disproof — so the entry stays one entry and
 takes its identity from the surviving half. Three cases, and none of them
 removes the album from the library:
 
-| Local file | Server | The row |
-| --- | --- | --- |
-| present | either | local, plays per the pair's preference |
-| missing | reachable | server, plays from the server |
-| missing | unreachable right now | server, and it does not play |
+| Local file | Server                | The row                                |
+| ---------- | --------------------- | -------------------------------------- |
+| present    | either                | local, plays per the pair's preference |
+| missing    | reachable             | server, plays from the server          |
+| missing    | unreachable right now | server, and it does not play           |
 
 The last is the case worth stating out loud, because the two rules could be read
 as fighting: Decision 5 keeps the pair collapsed through a transient outage, and
-the local half has filtered itself out. The entry is therefore *shown and not
-playable*, which is correct — the music is still in the user's library, and
+the local half has filtered itself out. The entry is therefore _shown and not
+playable_, which is correct — the music is still in the user's library, and
 saying so while failing to play is far better than making the album disappear
 because a server did not answer.
 
@@ -420,7 +420,7 @@ they clicked, and they should not have to.
   reads as starred when either is. Un-starring clears both. The server half
   travels through the outbound mutation queue like any other remote write, so
   this works offline and lands when the queue drains — and the entry reads from
-  the projection, which `remote::write` updates in the *same transaction* as it
+  the projection, which `remote::write` updates in the _same transaction_ as it
   queues the mutation. That is what keeps an offline un-star from looking like
   a button that did nothing until the network returns.
 - **Rating and the cover picker write to local rows only.** They have no server
@@ -459,7 +459,7 @@ local row, which is the right check for the case it faces and too narrow as a
 principle: a server track deleted upstream, an account signed out and a
 permission withdrawn all end a representation without touching that flag.
 
-*Exists* — not *plays*. Requiring the survivor to be playable would contradict
+_Exists_ — not _plays_. Requiring the survivor to be playable would contradict
 the two rules on either side of this one: Decision 4 keeps the entry shown when
 the local file is gone and the server is briefly unreachable, and the table
 below keeps the pair collapsed through an outage. Both would be impossible if
@@ -479,13 +479,13 @@ But "only actual deletion counts" is too narrow in the other direction, because
 some failures are durable without being deletions. The line is whether the
 representation can be expected to come back **for this user**:
 
-| Condition | Still hidden? |
-| --- | --- |
-| Network down, server asleep, offline mode on | Yes — it will answer again |
-| Local file missing (`is_available = 0`) | No — the local half already filtered itself out |
-| Server track deleted upstream | No |
-| Signed out, or the binding forgotten | No |
-| Membership or permission withdrawn upstream | No |
+| Condition                                    | Still hidden?                                   |
+| -------------------------------------------- | ----------------------------------------------- |
+| Network down, server asleep, offline mode on | Yes — it will answer again                      |
+| Local file missing (`is_available = 0`)      | No — the local half already filtered itself out |
+| Server track deleted upstream                | No                                              |
+| Signed out, or the binding forgotten         | No                                              |
+| Membership or permission withdrawn upstream  | No                                              |
 
 The last three are not outages: nothing about waiting fixes them. Treating them
 as transient would leave a user looking at a library that quietly lost entries
@@ -506,7 +506,7 @@ the starting point.** Conversion already exists: `remote::reconciliation`
 exposes `preview_playlist_conversion` and `convert_playlist`, both registered as
 commands, and they already hold the all-or-nothing invariant this RFC would
 otherwise have introduced — only `confirmed` links convert, while stale, missing
-and ambiguous entries stay visible in place and *block* the conversion. The
+and ambiguous entries stay visible in place and _block_ the conversion. The
 local side is even validated positively rather than trusted:
 `playlist_link_freshness` re-reads and re-hashes each local file, so a link
 whose bytes have changed since it was written does not convert.
@@ -520,7 +520,7 @@ do not travel as thirty-seven: a list missing three songs is worse than a list
 that did not sync, because it looks complete. The three are named, and the offer
 is to upload them — the lot 5 operation whose commit hands back the track id and
 digest that write the missing links. Then the playlist travels whole. The
-uploads themselves are resumable and partial; it is the playlist's *visibility*
+uploads themselves are resumable and partial; it is the playlist's _visibility_
 that is transactional.
 
 **What is missing is the symmetric check on the server side.** The local half is
@@ -529,7 +529,7 @@ facts have to be established positively about the target, and none of them can
 be inferred from a flag:
 
 - **it still exists.** `in_catalogue` does not answer this — it records what the
-  last walk saw, and a track deleted upstream is not flagged but *removed*, by
+  last walk saw, and a track deleted upstream is not flagged but _removed_, by
   `mirror::drop_vanished`. Since `remote_track_link.remote_track_id` carries no
   foreign key, a link can outlive the row it names and still read as
   `confirmed`. Conversion does not consult `in_catalogue` today, and consulting
@@ -541,7 +541,7 @@ be inferred from a flag:
   generation, in the sense of Decision 3: whatever invalidates the identity
   frontier invalidates this too. It is not a fact with a lifetime of its own.
 
-**A failure to reach the server is *unknown*, not *invalid*.** The distinction
+**A failure to reach the server is _unknown_, not _invalid_.** The distinction
 Decision 5 draws applies here unchanged: a server that is not answering has told
 us nothing about whether these tracks exist. Publication does not proceed on an
 unknown — nothing is published while the server is unreachable anyway — but
@@ -600,16 +600,16 @@ it will read as the feature not working. It should be visible in the interface �
   second profile, are not in this design.
 - **Genres, moods, years.** They are labels, not entities.
 - **A user-facing merge tool.** The reconciliation surface already lets a person
-  confirm or reject a *track* pair, and everything here derives from those. If a
+  confirm or reject a _track_ pair, and everything here derives from those. If a
   pair is wrong, the right gesture is on the track it disagrees about.
-- **MusicBrainz as a second proof.** RFC-005 allows it as *a suggestion the user
-  confirms* for tracks. Nothing here extends it to albums or artists.
+- **MusicBrainz as a second proof.** RFC-005 allows it as _a suggestion the user
+  confirms_ for tracks. Nothing here extends it to albums or artists.
 
 ## Open questions
 
 - **Whether an ineligible pair should say so.** The cost section argues it
   should; where that surfaces without cluttering a library view is unresolved.
-- **How an entity is marked dirty from an event.** Decision 3 enumerates *what*
+- **How an entity is marked dirty from an event.** Decision 3 enumerates _what_
   advances a generation; mapping each library event onto the albums and artists
   **whose identity inputs it changes** is an implementation shape this document
   does not fix. An album move dirties the old and the new album and leaves the

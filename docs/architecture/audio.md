@@ -13,12 +13,12 @@
 
 ## Threads
 
-| Thread                            | Owner                                                    | Responsibilities                                                                                                                                                                                                                                 |
-| --------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Tokio runtime**                 | Tauri                                                    | Command dispatch. `player_*` commands send `AudioCmd` enum variants over a `crossbeam::Sender` to the decoder.                                                                                                                                   |
-| **`waveflow-audio-decoder`**      | `audio::decoder::spawn_decoder_thread`                   | Owns the `rtrb::Producer<f32>` and the active `ActiveStream` (symphonia + rubato). Polls commands between packets so pause / stop / seek feel responsive.                                                                                        |
-| **`waveflow-audio-output`**       | `audio::output::spawn_output_thread`                     | Owns the `cpal::Stream` (which is `!Send` on Windows because WASAPI / COM handles can't cross threads). Parks on a shutdown channel for the engine's lifetime.                                                                                   |
-| **cpal callback**                 | cpal-managed (WASAPI / ALSA / CoreAudio worker)          | Pops samples from `rtrb::Consumer`, applies volume / normalization / mono downmix, writes to the device buffer.                                                                                                                                  |
+| Thread                                             | Owner                                                             | Responsibilities                                                                                                                                                                                                                                              |
+| -------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tokio runtime**                                  | Tauri                                                             | Command dispatch. `player_*` commands send `AudioCmd` enum variants over a `crossbeam::Sender` to the decoder.                                                                                                                                                |
+| **`waveflow-audio-decoder`**                       | `audio::decoder::spawn_decoder_thread`                            | Owns the `rtrb::Producer<f32>` and the active `ActiveStream` (symphonia + rubato). Polls commands between packets so pause / stop / seek feel responsive.                                                                                                     |
+| **`waveflow-audio-output`**                        | `audio::output::spawn_output_thread`                              | Owns the `cpal::Stream` (which is `!Send` on Windows because WASAPI / COM handles can't cross threads). Parks on a shutdown channel for the engine's lifetime.                                                                                                |
+| **cpal callback**                                  | cpal-managed (WASAPI / ALSA / CoreAudio worker)                   | Pops samples from `rtrb::Consumer`, applies volume / normalization / mono downmix, writes to the device buffer.                                                                                                                                               |
 | **`waveflow-{wasapi,alsa,coreaudio}-exclusive`** ¹ | `audio::{wasapi,alsa,coreaudio}_exclusive::spawn_*_output_thread` | The per-OS alternate output backend (opt-in). Owns the device outright — the WASAPI `IAudioClient` + event handle, the raw ALSA `hw:` PCM, or the hogged CoreAudio `AudioUnit`. Drives the same `rtrb::Consumer<f32>` as the cpal thread does in shared mode. |
 
 ¹ Mutually exclusive with the cpal output thread **and with each other** — exactly one output thread runs at a time, picked by `output::spawn_output_with_mode` from the persisted `audio.exclusive_output` setting (plus whether the track needs DoP).
@@ -27,16 +27,16 @@
 
 [`SharedPlayback`](../../src-tauri/crates/app/src/audio/state.rs) — an `Arc<...>` of atomics plus the rtrb consumer half. Read on the hot path; mutated by the decoder and the command layer. No locks anywhere in the pipeline.
 
-| Atomic                                        | Owner writes                                 | Hot-path reads             |
-| --------------------------------------------- | -------------------------------------------- | -------------------------- |
-| `samples_played`                              | cpal callback                                | UI for position display    |
-| `base_offset_ms`                              | decoder (on seek / new track / speed change) | UI                         |
-| `volume`, `normalize_enabled`, `mono_enabled` | command layer                                | cpal callback              |
-| `paused_output`, `drain_silent`               | command layer / decoder                      | cpal callback              |
-| `crossfade_ms`, `replaygain_enabled`          | command layer                                | decoder                    |
+| Atomic                                        | Owner writes                                 | Hot-path reads               |
+| --------------------------------------------- | -------------------------------------------- | ---------------------------- |
+| `samples_played`                              | cpal callback                                | UI for position display      |
+| `base_offset_ms`                              | decoder (on seek / new track / speed change) | UI                           |
+| `volume`, `normalize_enabled`, `mono_enabled` | command layer                                | cpal callback                |
+| `paused_output`, `drain_silent`               | command layer / decoder                      | cpal callback                |
+| `crossfade_ms`, `replaygain_enabled`          | command layer                                | decoder                      |
 | ReplayGain pre-amp / fallback / clipping      | command layer                                | decoder (re-read per buffer) |
-| `playback_speed_bits`, `speed_dirty`          | command layer / decoder                      | decoder + UI position math |
-| `current_track_id`, `seek_generation`         | decoder                                      | UI                         |
+| `playback_speed_bits`, `speed_dirty`          | command layer / decoder                      | decoder + UI position math   |
+| `current_track_id`, `seek_generation`         | decoder                                      | UI                           |
 
 `playback_speed_bits` is read on every position computation (UI 4 Hz + analytics) — see [`current_position_ms`](../../src-tauri/crates/app/src/audio/state.rs) and [playback / Playback speed](../features/playback.md#playback-speed-05--2). `speed_dirty` is a one-shot flag the decoder consumes once per `'pkt` loop iteration to trigger a resampler rebuild.
 
@@ -44,17 +44,17 @@
 
 Each OS has a parallel output backend to the cpal shared-mode default, engaged by the **one** `audio.exclusive_output` profile setting (toggle in Settings → Playback and audio → Advanced audio settings):
 
-| OS      | Backend                                                                                              | How the device is taken                                                     |
-| ------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Windows | [`wasapi_exclusive.rs`](../../src-tauri/crates/app/src/audio/wasapi_exclusive.rs)                     | WASAPI event-driven exclusive mode via the [`wasapi` crate](https://crates.io/crates/wasapi) |
-| Linux   | [`alsa_exclusive.rs`](../../src-tauri/crates/app/src/audio/alsa_exclusive.rs)                         | a raw `hw:` PCM, after asking the sound server for the card                  |
-| macOS   | [`coreaudio_exclusive.rs`](../../src-tauri/crates/app/src/audio/coreaudio_exclusive.rs)               | CoreAudio **hog mode**                                                      |
+| OS      | Backend                                                                                 | How the device is taken                                                                      |
+| ------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Windows | [`wasapi_exclusive.rs`](../../src-tauri/crates/app/src/audio/wasapi_exclusive.rs)       | WASAPI event-driven exclusive mode via the [`wasapi` crate](https://crates.io/crates/wasapi) |
+| Linux   | [`alsa_exclusive.rs`](../../src-tauri/crates/app/src/audio/alsa_exclusive.rs)           | a raw `hw:` PCM, after asking the sound server for the card                                  |
+| macOS   | [`coreaudio_exclusive.rs`](../../src-tauri/crates/app/src/audio/coreaudio_exclusive.rs) | CoreAudio **hog mode**                                                                       |
 
 The shape is the same everywhere: `output::spawn_output_with_mode` tries the exclusive backend first, and **every** failure (device busy, no format we can write, no driver support, COM apartment conflict) logs a warning and falls back transparently to the cpal shared backend, so the user keeps hearing audio. The one exception is DoP, which is a demand rather than a preference — see [playback / Decoding & output](../features/playback.md#decoding--output).
 
 The setting is stored under `audio.exclusive_output`; the boot read in [`lib.rs`](../../src-tauri/crates/app/src/lib.rs) also accepts the legacy `audio.wasapi_exclusive` row (the name from when only Windows had a backend), with the current key winning when both exist.
 
-**What it is and isn't.** Exclusive output means the system mixer is out of the path — nothing else is mixed in, resampled or DSP'd on top of us. It does **not** mean the source rate is honoured end to end: except on the DoP path, all three backends open at a rate the *device* offers and the decoder's rubato resampler meets it. Making the rate follow the source needs the device re-opened per track, which is a separate phase — which is why the UI copy no longer says "bit-perfect" here (the audio-pipeline pill still can, but only when it has also checked that source rate == output rate; see [ui / Bit-perfect conditions](../features/ui.md#bit-perfect-conditions)).
+**What it is and isn't.** Exclusive output means the system mixer is out of the path — nothing else is mixed in, resampled or DSP'd on top of us. It does **not** mean the source rate is honoured end to end: except on the DoP path, all three backends open at a rate the _device_ offers and the decoder's rubato resampler meets it. Making the rate follow the source needs the device re-opened per track, which is a separate phase — which is why the UI copy no longer says "bit-perfect" here (the audio-pipeline pill still can, but only when it has also checked that source rate == output rate; see [ui / Bit-perfect conditions](../features/ui.md#bit-perfect-conditions)).
 
 ### Windows: format negotiation (two axes)
 

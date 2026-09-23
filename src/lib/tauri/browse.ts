@@ -396,11 +396,10 @@ export interface LibraryTrackRow {
   rating: number | null;
 }
 
-interface LibraryTrackRowSlim
-  extends Omit<
-    LibraryTrackRow,
-    "artwork_path" | "artwork_path_1x" | "artwork_path_2x" | "artwork_hash"
-  > {
+interface LibraryTrackRowSlim extends Omit<
+  LibraryTrackRow,
+  "artwork_path" | "artwork_path_1x" | "artwork_path_2x" | "artwork_hash"
+> {
   artwork_hash: string | null;
   artwork_format: string | null;
   artwork_has_1x: boolean;
@@ -487,11 +486,10 @@ export interface FolderNode {
   artwork_path_2x: string | null;
 }
 
-interface FolderNodeSlim
-  extends Omit<
-    FolderNode,
-    "artwork_path" | "artwork_path_1x" | "artwork_path_2x"
-  > {
+interface FolderNodeSlim extends Omit<
+  FolderNode,
+  "artwork_path" | "artwork_path_1x" | "artwork_path_2x"
+> {
   artwork_hash: string | null;
   artwork_format: string | null;
   artwork_has_1x: boolean;
@@ -511,8 +509,7 @@ export interface FolderListing {
   folders: FolderNode[];
 }
 
-interface FolderListingResponse
-  extends Omit<FolderListing, "folders"> {
+interface FolderListingResponse extends Omit<FolderListing, "folders"> {
   artwork_base: string;
   folders: FolderNodeSlim[];
 }
@@ -642,12 +639,15 @@ export async function listLibraryArtists(
   source: LibrarySource | null,
   options?: { orderBy?: string; direction?: "asc" | "desc" },
 ): Promise<LibraryArtistRow[]> {
-  const resp = await invoke<ListLibraryArtistsResponse>("list_library_artists", {
-    libraryId,
-    source,
-    orderBy: options?.orderBy ?? null,
-    direction: options?.direction ?? null,
-  });
+  const resp = await invoke<ListLibraryArtistsResponse>(
+    "list_library_artists",
+    {
+      libraryId,
+      source,
+      orderBy: options?.orderBy ?? null,
+      direction: options?.direction ?? null,
+    },
+  );
   const artSep = pathSep(resp.artwork_base);
   const metaSep = pathSep(resp.metadata_artwork_base);
   return resp.items.map((item) => {

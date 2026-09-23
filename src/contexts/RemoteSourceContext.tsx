@@ -6,7 +6,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { remoteGetStatus, remoteListPlaylists } from "../lib/tauri/remoteServer";
+import {
+  remoteGetStatus,
+  remoteListPlaylists,
+} from "../lib/tauri/remoteServer";
 import {
   RemoteSourceContext,
   type RemoteSourceState,
@@ -26,7 +29,9 @@ import {
 export function RemoteSourceProvider({ children }: { children: ReactNode }) {
   const [available, setAvailable] = useState(false);
   const [serverName, setServerName] = useState<string | null>(null);
-  const [playlists, setPlaylists] = useState<RemoteSourceState["playlists"]>([]);
+  const [playlists, setPlaylists] = useState<RemoteSourceState["playlists"]>(
+    [],
+  );
   // Monotonic token so a slow pass can't overwrite a newer one: bursts of
   // `waveflow:remote-changed` fire overlapping refreshes, and without this
   // an older status/list response landing last would clobber fresher data.

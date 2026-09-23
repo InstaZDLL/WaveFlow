@@ -58,8 +58,7 @@ import { isRemoteTrack } from "../../lib/playerSources";
  */
 export function QueuePanel() {
   const { t } = useTranslation();
-  const { isQueueOpen, toggleQueue, playbackState, currentTrack } =
-    usePlayer();
+  const { isQueueOpen, toggleQueue, playbackState, currentTrack } = usePlayer();
   // A remote play session has its own in-memory queue, shown by a
   // dedicated view — the local `player_get_queue` path (and its jump /
   // reorder) act on the library queue, which isn't what's playing here.
@@ -239,7 +238,7 @@ export function QueuePanel() {
 
         {isRemote ? (
           <RemoteQueueView />
-                ) : total === 0 ? (
+        ) : total === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center">
             <div className="w-24 h-24 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mb-6 shadow-inner">
               <ListMusic

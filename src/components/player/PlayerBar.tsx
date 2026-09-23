@@ -96,8 +96,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
   // the mini-player's own copy through `track:liked-changed` (#523).
   const { likedIds, toggleLike } = useLikedTracks(currentTrack?.id);
 
-  const isLiked =
-    currentTrack != null && likedIds.has(currentTrack.id);
+  const isLiked = currentTrack != null && likedIds.has(currentTrack.id);
   const stationFavorited =
     currentRadioStation != null &&
     radioFavorites.isFavorite(currentRadioStation.id);
@@ -380,9 +379,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
           </div>
         </div>
         {layout.showAudioQualityFooter && (
-          <AudioQualityFooter
-            track={currentTrack ?? null}
-          />
+          <AudioQualityFooter track={currentTrack ?? null} />
         )}
       </footer>
       {immersiveOpen && (

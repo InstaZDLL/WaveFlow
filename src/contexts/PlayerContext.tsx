@@ -112,9 +112,7 @@ function radioMetadataToTrack(payload: RadioMetadata): Track {
     rating: null,
     // Absent for radio, which has no server track — and absent is what
     // "local" reads as everywhere this field appears.
-    ...(payload.remote_track_id
-      ? { remote_id: payload.remote_track_id }
-      : {}),
+    ...(payload.remote_track_id ? { remote_id: payload.remote_track_id } : {}),
   };
 }
 
@@ -504,7 +502,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           // authority for a moment and ignores what comes back.
           await listen<{ volume: number }>("player:volume-changed", (e) => {
             if (Date.now() - lastLocalVolumeWriteRef.current < 500) return;
-            const next = Math.max(0, Math.min(100, Math.round(e.payload.volume * 100)));
+            const next = Math.max(
+              0,
+              Math.min(100, Math.round(e.payload.volume * 100)),
+            );
             setVolumeState(next);
             if (next > 0) previousVolumeRef.current = next;
           }),
@@ -558,9 +559,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             // Remote-queue tracks aren't favouritable stations (expiring
             // ticket URL, not a stable stream) — leave the station null.
             setCurrentRadioStation(
-              e.payload.is_remote
-                ? null
-                : radioStationFromMetadata(e.payload),
+              e.payload.is_remote ? null : radioStationFromMetadata(e.payload),
             );
             setDurationMs(e.payload.duration_ms ?? 0);
             setPositionMs(0);
@@ -592,7 +591,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                 setDeviceChannels(snap.channels > 0 ? snap.channels : null);
                 setOutputMode(snap.output_mode);
               } catch (err) {
-                console.error("[PlayerContext] refresh output mode failed", err);
+                console.error(
+                  "[PlayerContext] refresh output mode failed",
+                  err,
+                );
               }
             })();
           }),
@@ -636,25 +638,22 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [fetchRadioArtworkInto, fetchRemoteArtworkInto]);
 
   // --- Volume debounce ---
-  const setVolume = useCallback(
-    (value: number) => {
-      const clamped = Math.max(0, Math.min(100, Math.round(value)));
-      setVolumeState(clamped);
-      lastLocalVolumeWriteRef.current = Date.now();
-      if (clamped > 0) previousVolumeRef.current = clamped;
+  const setVolume = useCallback((value: number) => {
+    const clamped = Math.max(0, Math.min(100, Math.round(value)));
+    setVolumeState(clamped);
+    lastLocalVolumeWriteRef.current = Date.now();
+    if (clamped > 0) previousVolumeRef.current = clamped;
 
-      if (volumeDebounceRef.current != null) {
-        window.clearTimeout(volumeDebounceRef.current);
-      }
-      volumeDebounceRef.current = window.setTimeout(() => {
-        playerSetVolume(clamped / 100).catch((err) =>
-          console.error("[PlayerContext] set volume failed", err),
-        );
-        volumeDebounceRef.current = null;
-      }, 60);
-    },
-    [],
-  );
+    if (volumeDebounceRef.current != null) {
+      window.clearTimeout(volumeDebounceRef.current);
+    }
+    volumeDebounceRef.current = window.setTimeout(() => {
+      playerSetVolume(clamped / 100).catch((err) =>
+        console.error("[PlayerContext] set volume failed", err),
+      );
+      volumeDebounceRef.current = null;
+    }, 60);
+  }, []);
 
   const setPlaybackSpeed = useCallback((value: number) => {
     const clamped = Math.max(0.5, Math.min(2.0, value));
@@ -757,19 +756,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const seek = useCallback(
-    async (ms: number) => {
-      // Optimistic: update the UI position immediately; the backend
-      // will also emit player:position after the seek lands.
-      setPositionMs(ms);
-      try {
-        await playerSeek(ms);
-      } catch (err) {
-        console.error("[PlayerContext] seek failed", err);
-      }
-    },
-    [],
-  );
+  const seek = useCallback(async (ms: number) => {
+    // Optimistic: update the UI position immediately; the backend
+    // will also emit player:position after the seek lands.
+    setPositionMs(ms);
+    try {
+      await playerSeek(ms);
+    } catch (err) {
+      console.error("[PlayerContext] seek failed", err);
+    }
+  }, []);
 
   const setSeeking = useCallback((value: boolean) => {
     isSeekingRef.current = value;

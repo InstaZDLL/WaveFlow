@@ -61,9 +61,7 @@ export function ImmersiveNowPlaying({
   // actions can act on, so require a real `file_path`.
   const trackMenu = usePlayerTrackContextMenu();
   const menuTrack =
-    currentTrack &&
-    !isRadioTrack(currentTrack) &&
-    !!currentTrack.file_path
+    currentTrack && !isRadioTrack(currentTrack) && !!currentTrack.file_path
       ? currentTrack
       : null;
   // Live radio: favorite the STATION (★) instead of liking a track (♥) —

@@ -6,7 +6,10 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { useTrackLyrics } from "../../hooks/useTrackLyrics";
 import { useImmersivePrefs } from "../../hooks/useImmersivePrefs";
 import { useTrackCanvas } from "../../hooks/useTrackCanvas";
-import { useCanvasEnabled, setCanvasEnabled } from "../../hooks/useCanvasEnabled";
+import {
+  useCanvasEnabled,
+  setCanvasEnabled,
+} from "../../hooks/useCanvasEnabled";
 import { isRemoteCanvasUrl } from "../../lib/tauri/canvas";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { isRadioTrack } from "../../lib/playerSources";

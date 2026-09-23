@@ -96,11 +96,7 @@ export interface PlayerNoticePayload {
  * What the output really is right now (#597) — computed by the engine so
  * the badge, the notice and the Settings card cannot disagree.
  */
-export type OutputMode =
-  | "shared"
-  | "exclusive"
-  | "dop"
-  | "exclusive-refused";
+export type OutputMode = "shared" | "exclusive" | "dop" | "exclusive-refused";
 
 /** `queue_item.source_type` values the backend accepts. */
 export type QueueSource =
@@ -349,9 +345,7 @@ export const SHUFFLE_MODES: readonly ShuffleMode[] = [
 ];
 
 /** Returns the mode in force. */
-export function playerSetShuffleMode(
-  mode: ShuffleMode,
-): Promise<ShuffleMode> {
+export function playerSetShuffleMode(mode: ShuffleMode): Promise<ShuffleMode> {
   return invoke<ShuffleMode>("player_set_shuffle_mode", { mode });
 }
 
@@ -515,9 +509,7 @@ export const REPLAYGAIN_MODES: readonly ReplayGainMode[] = [
   "album",
 ];
 
-export function playerSetReplayGainMode(
-  mode: ReplayGainMode,
-): Promise<void> {
+export function playerSetReplayGainMode(mode: ReplayGainMode): Promise<void> {
   return invoke<void>("player_set_replaygain_mode", { mode });
 }
 
@@ -594,10 +586,7 @@ export interface OutputDevice {
  * path can advertise rates it reaches by resampling.
  */
 export type CapabilitySource =
-  | "wasapi-exclusive"
-  | "alsa-hardware"
-  | "coreaudio"
-  | "unavailable";
+  "wasapi-exclusive" | "alsa-hardware" | "coreaudio" | "unavailable";
 
 export interface DeviceFormat {
   /** The backend's own spelling: `S24_3LE`, `F32`, … */

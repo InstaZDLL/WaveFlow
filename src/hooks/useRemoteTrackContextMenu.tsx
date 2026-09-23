@@ -105,7 +105,9 @@ export function useRemoteTrackContextMenu({
       <ContextMenu point={state.point} onClose={close}>
         <ContextMenuItem
           icon={<Download size={16} aria-hidden="true" />}
-          label={isDownloaded ? t("remote.download.kept") : t("remote.download.keep")}
+          label={
+            isDownloaded ? t("remote.download.kept") : t("remote.download.keep")
+          }
           disabled={isDownloading || isDownloaded}
           onSelect={act(() => onDownload(track.remoteId))}
         />
@@ -123,7 +125,16 @@ export function useRemoteTrackContextMenu({
         />
       </ContextMenu>
     );
-  }, [state, close, downloading, downloaded, onDownload, onImport, onEditTags, t]);
+  }, [
+    state,
+    close,
+    downloading,
+    downloaded,
+    onDownload,
+    onImport,
+    onEditTags,
+    t,
+  ]);
 
   return { open, openFromKeyboard, close, render };
 }

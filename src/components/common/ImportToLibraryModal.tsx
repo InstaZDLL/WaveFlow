@@ -66,10 +66,8 @@ export function ImportToLibraryModal({
   const [progress, setProgress] = useState<ImportProgress | null>(null);
   const [outcome, setOutcome] = useState<ImportOutcome | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const {
-    value: rememberedFolderId,
-    setValue: rememberFolderId,
-  } = useProfileSetting<number | null>(SETTING);
+  const { value: rememberedFolderId, setValue: rememberFolderId } =
+    useProfileSetting<number | null>(SETTING);
   const [picked, setPicked] = useState<number | null>(null);
   // Latest-value ref so the progress listener below can be registered once
   // per open rather than re-subscribing on every byte that moves the bar.
@@ -105,9 +103,12 @@ export function ImportToLibraryModal({
 
   useEffect(() => {
     if (!isOpen || !running) return;
-    const unlisten = listen<ImportProgress>("remote:import-progress", (event) => {
-      if (mountedRef.current) setProgress(event.payload);
-    });
+    const unlisten = listen<ImportProgress>(
+      "remote:import-progress",
+      (event) => {
+        if (mountedRef.current) setProgress(event.payload);
+      },
+    );
     return () => {
       void unlisten.then((off) => off());
     };
@@ -173,7 +174,9 @@ export function ImportToLibraryModal({
               {t("remote.import.destination")}
             </div>
             {folders === null ? (
-              <p className="text-sm text-zinc-500 py-4">{t("common.loading")}</p>
+              <p className="text-sm text-zinc-500 py-4">
+                {t("common.loading")}
+              </p>
             ) : usable.length === 0 ? (
               <p className="text-sm text-zinc-500 py-4">
                 {t("remote.import.noFolder")}
