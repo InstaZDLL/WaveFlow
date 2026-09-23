@@ -48,7 +48,9 @@ interface SidebarProps {
   activeView: ViewId;
   setActiveView: (view: ViewId) => void;
   libraryTab: LibraryTab;
-  setLibraryTab: (tab: LibraryTab) => void;
+  /** Go to the library on this tab. Pushes one history entry that
+   *  remembers it, instead of setting a tab and navigating separately. */
+  navigateToLibraryTab: (tab: LibraryTab) => void;
   activePlaylistId: number | null;
   navigateToPlaylist: (id: number) => void;
   /** Server id of the open remote playlist, or `null`. Drives the active
@@ -69,7 +71,7 @@ export function Sidebar({
   activeView,
   setActiveView,
   libraryTab,
-  setLibraryTab,
+  navigateToLibraryTab,
   activePlaylistId,
   navigateToPlaylist,
   activeRemotePlaylistId,
@@ -369,8 +371,7 @@ export function Sidebar({
             label={t("sidebar.myMusic.tracks")}
             active={activeView === "library" && libraryTab === "tracks"}
             onClick={() => {
-              setLibraryTab("tracks");
-              setActiveView("library");
+              navigateToLibraryTab("tracks");
             }}
           />
           <NavItem
@@ -378,8 +379,7 @@ export function Sidebar({
             label={t("sidebar.myMusic.albums")}
             active={activeView === "library" && libraryTab === "albums"}
             onClick={() => {
-              setLibraryTab("albums");
-              setActiveView("library");
+              navigateToLibraryTab("albums");
             }}
           />
           <NavItem
@@ -387,8 +387,7 @@ export function Sidebar({
             label={t("sidebar.myMusic.artists")}
             active={activeView === "library" && libraryTab === "artists"}
             onClick={() => {
-              setLibraryTab("artists");
-              setActiveView("library");
+              navigateToLibraryTab("artists");
             }}
           />
           <NavItem
@@ -396,8 +395,7 @@ export function Sidebar({
             label={t("sidebar.myMusic.genres")}
             active={activeView === "library" && libraryTab === "genres"}
             onClick={() => {
-              setLibraryTab("genres");
-              setActiveView("library");
+              navigateToLibraryTab("genres");
             }}
           />
           <NavItem
@@ -405,8 +403,7 @@ export function Sidebar({
             label={t("sidebar.myMusic.folders")}
             active={activeView === "library" && libraryTab === "folders"}
             onClick={() => {
-              setLibraryTab("folders");
-              setActiveView("library");
+              navigateToLibraryTab("folders");
             }}
           />
         </div>

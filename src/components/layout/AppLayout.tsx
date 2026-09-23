@@ -128,7 +128,11 @@ const GenreDetailView = lazy(() =>
 // stay valid.
 type HistoryEntry =
   | { id: "home" }
-  | { id: "library" }
+  // Same reasoning as `settingsCategory` below: the tab travels on the
+  // entry, so Back and Forward restore the one that was open instead of
+  // whatever the tab bar happens to hold now (#745). Optional, so a
+  // plain visit lands on the last tab the user chose.
+  | { id: "library"; tab?: LibraryTab }
   // `settingsCategory` is for the surfaces that send someone to one
   // card in particular. Carried on the entry rather than in a piece of
   // state beside it, so it expires the way every other payload here
@@ -196,7 +200,10 @@ export function AppLayout() {
   const viewHistory = navState.history;
   const historyIndex = navState.index;
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [libraryTab, setLibraryTab] = useState<LibraryTab>("tracks");
+  // What a library entry WITHOUT a tab falls back to: the last one the
+  // user picked. The rendered tab is derived below — the entry wins
+  // whenever it names one.
+  const [lastLibraryTab, setLastLibraryTab] = useState<LibraryTab>("tracks");
 
   // Sidebar visibility toggle (#167). Hidden state is persisted in
   // localStorage rather than `profile_setting` because it's a UI
@@ -382,6 +389,10 @@ export function AppLayout() {
     currentEntry.id === "plugin-ui" ? (currentEntry.initialPath ?? "/") : "/";
   const activePluginIcon =
     currentEntry.id === "plugin-ui" ? (currentEntry.icon ?? null) : null;
+  const libraryTab: LibraryTab =
+    currentEntry.id === "library"
+      ? (currentEntry.tab ?? lastLibraryTab)
+      : lastLibraryTab;
 
   const pushEntry = useCallback((entry: HistoryEntry) => {
     setNavState(({ history, index }) => ({
@@ -409,6 +420,29 @@ export function AppLayout() {
       pushEntry({ id: view } as HistoryEntry);
     },
     [pushEntry],
+  );
+
+  /** Go to the library, on `tab`. Every entry point that names a tab —
+   *  the sidebar's five, Home's Playlists card — goes through here, so
+   *  they all push an entry that remembers which one. */
+  const navigateToLibraryTab = useCallback(
+    (tab: LibraryTab) => {
+      setLastLibraryTab(tab);
+      pushEntry({ id: "library", tab });
+    },
+    [pushEntry],
+  );
+
+  /** The tab bar inside the library. It REPLACES the current entry
+   *  rather than pushing one: a tab is a filter on the page you are
+   *  already on, and pushing would turn every tab click into a step
+   *  Back has to undo. */
+  const selectLibraryTab = useCallback(
+    (tab: LibraryTab) => {
+      setLastLibraryTab(tab);
+      replaceEntry({ id: "library", tab });
+    },
+    [replaceEntry],
   );
 
   const openSettingsAt = useCallback(
@@ -504,10 +538,7 @@ export function AppLayout() {
         return (
           <HomeView
             onNavigate={setActiveView}
-            onNavigateToPlaylists={() => {
-              setLibraryTab("playlists");
-              setActiveView("library");
-            }}
+            onNavigateToPlaylists={() => navigateToLibraryTab("playlists")}
             onNavigateToAlbum={navigateToAlbum}
             onNavigateToArtist={navigateToArtist}
             onNavigateToPlaylist={navigateToPlaylist}
@@ -527,7 +558,7 @@ export function AppLayout() {
         return (
           <LibraryView
             activeTab={libraryTab}
-            setActiveTab={setLibraryTab}
+            setActiveTab={selectLibraryTab}
             onNavigateToAlbum={navigateToAlbum}
             onNavigateToRemoteAlbum={navigateToRemoteAlbum}
             onNavigateToArtist={navigateToArtist}
@@ -734,7 +765,7 @@ export function AppLayout() {
                 activeView={activeView}
                 setActiveView={setActiveView}
                 libraryTab={libraryTab}
-                setLibraryTab={setLibraryTab}
+                navigateToLibraryTab={navigateToLibraryTab}
                 activePlaylistId={activePlaylistId}
                 navigateToPlaylist={navigateToPlaylist}
                 activeRemotePlaylistId={activeRemotePlaylistId}
