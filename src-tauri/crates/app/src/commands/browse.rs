@@ -1857,8 +1857,13 @@ pub async fn clear_genre_artwork(
 
 /// List the most-recently-played tracks for a library, deduplicated
 /// to one entry per track (taking the max `played_at` across all
-/// `play_event` rows for that track). Used by the "Récemment joués"
-/// view in the sidebar.
+/// `play_event` rows for that track). How many rows come back is the
+/// caller's `limit`: the home carousel asks for 12, the playlist
+/// context menu for 300.
+///
+/// Not what the sidebar's "Récemment joués" entry renders — that opens
+/// `HistoryView`, which goes through `list_play_history` and keeps the
+/// repeats this command folds away.
 #[tauri::command]
 pub async fn list_recent_plays(
     state: tauri::State<'_, AppState>,
