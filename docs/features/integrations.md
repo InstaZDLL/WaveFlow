@@ -78,6 +78,8 @@ Write commands: [`set_artist_bio_override`](../../src-tauri/crates/app/src/comma
 
 [`discord_presence.rs`](../../src-tauri/crates/app/src/discord_presence.rs) — speaks Discord's local IPC named pipe via the [`discord-rich-presence`](https://crates.io/crates/discord-rich-presence) crate (no network, no auth, no token). Architecture mirrors [`media_controls.rs`](../../src-tauri/crates/app/src/media_controls.rs): a dedicated thread owns the `DiscordIpcClient` (which is `!Send` on Windows because it wraps a Win32 pipe handle), with a `crossbeam-channel` carrying update messages from the player code.
 
+**Connecting.** On by default, but it never sits waiting for Discord: the thread connects when it has something to show — a track change, play, pause or seek — and a failed connect leaves it disconnected so the next of those retries, since Discord may have been opened in the meantime. Discord not running is the ordinary case, so only the **first** failure of a run is logged as a warning and the rest go to debug; a warning on every track read as a fault to anyone going through their logs (#750). A successful connect resets that, so Discord closing later is reported again, once.
+
 ### Activity layout
 
 Spotify-style card under "Listening to WaveFlow":

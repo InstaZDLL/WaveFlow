@@ -134,6 +134,8 @@ pub fn init(initial_enabled: bool) -> Option<DiscordPresenceHandle> {
         .spawn(move || {
             let mut enabled = initial_enabled;
             let mut client: Option<DiscordIpcClient> = None;
+            // Whether the current run of failed connects has been reported.
+            let mut connect_failure_reported = false;
             let mut cached: Option<CachedMetadata> = None;
             let mut last_state = PlayerState::Idle;
 
@@ -148,14 +150,14 @@ pub fn init(initial_enabled: bool) -> Option<DiscordPresenceHandle> {
                             // user sees presence immediately after
                             // flipping the toggle on (instead of
                             // having to skip a track).
-                            ensure_connected(&mut client);
+                            ensure_connected(&mut client, &mut connect_failure_reported);
                             push_activity(&mut client, &meta, last_state);
                         }
                     }
                     Msg::Metadata(meta) => {
                         cached = Some(meta.clone());
                         if enabled {
-                            ensure_connected(&mut client);
+                            ensure_connected(&mut client, &mut connect_failure_reported);
                             push_activity(&mut client, &meta, last_state);
                         }
                     }
@@ -184,7 +186,7 @@ pub fn init(initial_enabled: bool) -> Option<DiscordPresenceHandle> {
                                 .unwrap_or(0);
                             meta.started_position_ms = position_ms;
                             if enabled {
-                                ensure_connected(&mut client);
+                                ensure_connected(&mut client, &mut connect_failure_reported);
                                 push_activity(&mut client, meta, state);
                             }
                         }
@@ -211,16 +213,33 @@ pub fn init(initial_enabled: bool) -> Option<DiscordPresenceHandle> {
 /// Connect to the Discord IPC if we don't already have a live
 /// client. A connection failure leaves `client = None` so the next
 /// push retries — Discord may have just been opened.
-fn ensure_connected(client: &mut Option<DiscordIpcClient>) {
+///
+/// That retry runs on every track change, play, pause and seek, and
+/// Discord not running is the ordinary case for most users. So only the
+/// first failure of a run is a warning; the rest are debug. A warning on
+/// every track read like a fault to someone going through their logs
+/// (#750), and it drowned the lines that are one. `failure_reported`
+/// clears on a successful connect, so Discord closing later is reported
+/// again, once.
+fn ensure_connected(client: &mut Option<DiscordIpcClient>, failure_reported: &mut bool) {
     if client.is_some() {
         return;
     }
     let mut new_client = DiscordIpcClient::new(DISCORD_CLIENT_ID);
     if let Err(err) = new_client.connect() {
-        tracing::warn!(%err, "discord_presence: IPC connect failed (Discord not running?)");
+        if *failure_reported {
+            tracing::debug!(%err, "discord_presence: IPC connect failed again");
+        } else {
+            tracing::warn!(
+                %err,
+                "discord_presence: IPC connect failed (Discord not running?), retrying quietly"
+            );
+            *failure_reported = true;
+        }
         return;
     }
     tracing::info!("discord_presence: connected");
+    *failure_reported = false;
     *client = Some(new_client);
 }
 
