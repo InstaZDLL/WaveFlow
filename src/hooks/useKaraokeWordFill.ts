@@ -85,7 +85,9 @@ export function useKaraokeWordFill(word: LyricsWord | null | undefined) {
   }, [positionMs, isPlaying, playbackSpeed]);
 
   const start = word?.timeMs ?? -1;
-  const end = word?.endMs ?? -1;
+  // `fillEndMs` first: an estimated last word stays active until the line
+  // hands over but finishes its fill earlier (see `LyricsWord`).
+  const end = word?.fillEndMs ?? word?.endMs ?? -1;
   // A word needs a real, forward-going, *finite* span to sweep across.
   // `endMs` is normally filled in by `fillLineAndWordEnds`, but the last
   // word of the last line can stay -1, a sloppy source can stamp two

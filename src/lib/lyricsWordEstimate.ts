@@ -42,8 +42,10 @@ const FALLBACK_MS_PER_SYLLABLE = 300;
  * a line faster than the gap to the next one, then holds the last vowel or
  * breathes: spreading the words over the whole gap put every word after
  * the first a little further behind the voice — 0.2 to 0.4 s by mid-line
- * on the tracks reported (#750). The last word holds to the end of the
- * span, so the line still hands over on time. Not applied to a guessed
+ * on the tracks reported (#750). The last word stays active to the end of
+ * the span, so the line still hands over on time, but its fill finishes
+ * with the delivery (`fillEndMs`): a sweep crawling through the rest would
+ * trail a singer who stopped to breathe. Not applied to a guessed
  * span, which is already paced per syllable rather than stretched to fit.
  */
 const DELIVERY_SHARE = 0.8;
@@ -122,11 +124,17 @@ export function estimateLineWords(
   let cursor = line.timeMs;
   units.forEach((text, i) => {
     const last = i === units.length - 1;
-    // The last word is held through the rest of the span.
-    const end = last
-      ? line.timeMs + fullSpan
-      : cursor + weights[i] * perUnit;
-    words.push({ timeMs: Math.round(cursor), endMs: Math.round(end), text });
+    const sungEnd = cursor + weights[i] * perUnit;
+    // The last word stays active through the rest of the span, but its
+    // fill completes where its delivery does.
+    const end = last ? line.timeMs + fullSpan : sungEnd;
+    const word: LyricsWord = {
+      timeMs: Math.round(cursor),
+      endMs: Math.round(end),
+      text,
+    };
+    if (last && sungEnd < end) word.fillEndMs = Math.round(sungEnd);
+    words.push(word);
     cursor = end + pauses[i] * perUnit;
   });
   return words;

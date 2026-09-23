@@ -431,6 +431,15 @@ export function cancelLyricsPrefetch(): Promise<boolean> {
 export interface LyricsWord {
   timeMs: number;
   endMs: number;
+  /**
+   * Where the progressive fill completes, when that is earlier than
+   * `endMs`. Only estimated word timing sets it (#750): the last word of
+   * an estimated line stays active until the line hands over, but its
+   * fill finishes with the delivery, so a singer who stops to breathe is
+   * not trailed by a sweep still crawling through the rest. Absent, the
+   * fill runs to `endMs`, as it does for real word timing.
+   */
+  fillEndMs?: number;
   text: string;
 }
 
