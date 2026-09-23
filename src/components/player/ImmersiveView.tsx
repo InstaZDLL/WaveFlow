@@ -160,6 +160,9 @@ export function ImmersiveView({
     setClassicSide((s) => (s === "lyrics" ? "nowPlaying" : "lyrics"));
 
   // ── Native fullscreen (reversible) ───────────────────────────────
+  // The floating top-right buttons, which the side panel measures.
+  const buttonBarRef = useRef<HTMLDivElement>(null);
+
   // Enter on mount, restore the prior window state on unmount. Refs so
   // the cleanup restores exactly what we changed even if mount/unmount
   // race a very fast open→close.
@@ -273,8 +276,12 @@ export function ImmersiveView({
       {/* Foreground */}
       <div className="relative h-full flex flex-col text-white animate-fade-in">
         {/* Shared top bar — panel toggle + share + close. Absolute so
-            the columns own the full height underneath. */}
-        <div className="absolute top-0 right-0 z-10 flex items-center justify-end gap-3 px-8 py-6">
+            the columns own the full height underneath. The side panel
+            measures it to know how much of its own top line is free. */}
+        <div
+          ref={buttonBarRef}
+          className="absolute top-0 right-0 z-10 flex items-center justify-end gap-3 px-8 py-6"
+        >
           {currentTrack &&
             (dual ? (
               <button
@@ -369,6 +376,7 @@ export function ImmersiveView({
                 lyrics={lyrics}
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
+                buttonBarRef={buttonBarRef}
               />
             </div>
           )}
