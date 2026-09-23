@@ -2260,6 +2260,11 @@
       "title": "Tahmini kelime kelime karaoke",
       "subtitle": "Satır bazında senkronize sözlerde, kelimeleri tahmini sürelerine göre vurgular. Yalnızca görsel: hiçbir şey kaydedilmez."
     },
+    "lyricsHighlightColor": {
+      "title": "Söylenen satırın rengi",
+      "subtitle": "Tam ekran sözler ve mini oynatıcı için. Siz bir renk seçene kadar beyazdır; yüzen sözler penceresi kendi renklerini korur.",
+      "reset": "Sıfırla"
+    },
     "lyricsTranslation": {
       "title": "Şarkı sözü çevirisi (Musixmatch)",
       "subtitle": "Musixmatch çevirisi varsa her LRC satırının altında çeviriyi gösterir",

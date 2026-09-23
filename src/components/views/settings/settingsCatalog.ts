@@ -299,6 +299,8 @@ export const SETTINGS_CATEGORIES = [
           "settings.fullscreenLyricsCentering.subtitle",
           "settings.lyricsEstimateWords.title",
           "settings.lyricsEstimateWords.subtitle",
+          "settings.lyricsHighlightColor.title",
+          "settings.lyricsHighlightColor.subtitle",
         ],
       },
     ],

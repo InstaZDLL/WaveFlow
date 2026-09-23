@@ -2260,6 +2260,11 @@
       "title": "Geschatte woord-voor-woord-karaoke",
       "subtitle": "Markeert bij regel-gesynchroniseerde songteksten de woorden op basis van een schatting van hun duur. Alleen weergave: er wordt niets opgeslagen."
     },
+    "lyricsHighlightColor": {
+      "title": "Kleur van de gezongen regel",
+      "subtitle": "Voor songtekst in volledig scherm en de mini-speler. Wit tot je er een kiest; het zwevende songtekstvenster houdt zijn eigen kleuren.",
+      "reset": "Herstellen"
+    },
     "lyricsTranslation": {
       "title": "Songtekstvertaling (Musixmatch)",
       "subtitle": "Toont onder elke LRC-regel een vertaling wanneer Musixmatch er een aanbiedt",

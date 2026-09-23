@@ -2260,6 +2260,11 @@
       "title": "Karaoke kata per kata perkiraan",
       "subtitle": "Pada lirik yang disinkronkan per baris, menyorot kata berdasarkan perkiraan durasinya. Hanya tampilan: tidak ada yang disimpan."
     },
+    "lyricsHighlightColor": {
+      "title": "Warna baris yang dinyanyikan",
+      "subtitle": "Untuk lirik layar penuh dan mini-pemutar. Putih sampai kamu memilih warna; jendela lirik mengambang tetap memakai warnanya sendiri.",
+      "reset": "Setel ulang"
+    },
     "lyricsTranslation": {
       "title": "Terjemahan lirik (Musixmatch)",
       "subtitle": "Menampilkan terjemahan di bawah setiap baris LRC saat Musixmatch menyediakannya",

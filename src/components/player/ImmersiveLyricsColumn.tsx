@@ -6,6 +6,7 @@ import type { Track } from "../../lib/tauri/track";
 import type { LyricsLine, LyricsPayload } from "../../lib/tauri/lyrics";
 import { useFullscreenLyricsCentering } from "../../hooks/useFullscreenLyricsCentering";
 import { useKaraokeWordFill } from "../../hooks/useKaraokeWordFill";
+import { useLyricsHighlightColor } from "../../hooks/useLyricsHighlightColor";
 import { useLyricsLocalization } from "../../hooks/useLyricsLocalization";
 import {
   availableLocalizations,
@@ -83,6 +84,10 @@ export function ImmersiveLyricsColumn({
     storedLocalization,
     availableLocalizations(lrcLines),
   );
+  // The user's colour for the line being sung, if they chose one (#751).
+  // It sets `color`, which the karaoke fill inherits, so one value covers a
+  // whole line and a word-by-word sweep alike.
+  const { color: highlightColor } = useLyricsHighlightColor();
   const lineRefs = useRef<Array<HTMLLIElement | null>>([]);
   // Ref for the word currently being sung — attached to that word only,
   // so moving it is what tells the hook to sweep the next one (issue #491).
@@ -231,7 +236,12 @@ export function ImmersiveLyricsColumn({
                           : isPast
                             ? "text-white/40"
                             : "text-white/70 hover:text-white"
-                      }`}
+                      } ${isActive && highlightColor ? "wf-lyrics-highlight" : ""}`}
+                      style={
+                        isActive && highlightColor
+                          ? { color: highlightColor }
+                          : undefined
+                      }
                     >
                       {hasWords ? (
                         <span>

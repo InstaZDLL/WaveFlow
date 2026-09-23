@@ -2287,6 +2287,11 @@
       "title": "Karaoké mot à mot estimé",
       "subtitle": "Sur les paroles synchronisées ligne par ligne, surligne les mots selon une estimation de leur durée. Purement visuel : rien n'est enregistré."
     },
+    "lyricsHighlightColor": {
+      "title": "Couleur de la ligne chantée",
+      "subtitle": "Pour les paroles en plein écran et le mini-lecteur. Blanc tant que vous n'en choisissez pas ; la fenêtre flottante des paroles garde ses propres couleurs.",
+      "reset": "Réinitialiser"
+    },
     "lyricsDestination": {
       "title": "Destination des paroles",
       "subtitle": "Où les paroles atterrissent sur le disque : celles que vous saisissez et celles que WaveFlow récupère. Vous pouvez toujours surcharger ce choix à chaque édition."

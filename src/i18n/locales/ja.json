@@ -2260,6 +2260,11 @@
       "title": "推定の単語ごとカラオケ",
       "subtitle": "行単位で同期された歌詞で、各単語の長さの推定に基づいてハイライトします。表示のみで、何も保存されません。"
     },
+    "lyricsHighlightColor": {
+      "title": "歌唱中の行の色",
+      "subtitle": "フルスクリーンの歌詞とミニプレーヤーに適用されます。色を選ぶまでは白です。フローティング歌詞ウィンドウは独自の色を使います。",
+      "reset": "リセット"
+    },
     "lyricsTranslation": {
       "title": "歌詞の翻訳 (Musixmatch)",
       "subtitle": "Musixmatch に翻訳がある場合、各 LRC 行の下に翻訳を表示します",

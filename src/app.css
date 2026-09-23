@@ -195,6 +195,15 @@
   outline-offset: 2px;
 }
 
+/* A lyrics colour the user picked (#751) was picked for looks, not for
+   legibility: a dark blue sung line on the dark immersive view would
+   fail the very floor this mode exists to hold. Both surfaces that take
+   the colour are dark, so the sung line goes back to their white.
+   `!important` because the colour arrives as an inline style. */
+:root[data-contrast="high"] .wf-lyrics-highlight {
+  color: #fff !important;
+}
+
 /* Controls that rely on subtlety get redrawn. The switch reads as
    "filled versus not filled", which is a colour-only distinction: here
    it gains an edge in both states and a mark in the on state, so the

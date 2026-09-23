@@ -2260,6 +2260,11 @@
       "title": "估算的逐字卡拉 OK",
       "subtitle": "在逐行同步的歌詞上，依估算的長度逐字醒目提示。僅供顯示：不會儲存任何內容。"
     },
+    "lyricsHighlightColor": {
+      "title": "正在演唱的歌詞行顏色",
+      "subtitle": "用於全螢幕歌詞與迷你播放器。未選擇時為白色；懸浮歌詞視窗保留其自己的顏色。",
+      "reset": "重設"
+    },
     "lyricsTranslation": {
       "title": "歌詞翻譯（Musixmatch）",
       "subtitle": "當 Musixmatch 有翻譯時，在每行 LRC 下方顯示翻譯",

@@ -2264,6 +2264,11 @@
       "title": "Karaokê palavra por palavra estimado",
       "subtitle": "Nas letras sincronizadas por linha, destaca as palavras segundo uma estimativa da duração de cada uma. Apenas visual: nada é salvo."
     },
+    "lyricsHighlightColor": {
+      "title": "Cor da linha cantada",
+      "subtitle": "Para a letra em tela cheia e o mini-player. Branco até você escolher uma; a janela flutuante de letra mantém as próprias cores.",
+      "reset": "Redefinir"
+    },
     "lyricsTranslation": {
       "title": "Tradução de letras (Musixmatch)",
       "subtitle": "Mostra uma tradução abaixo de cada linha LRC quando o Musixmatch oferece uma",
