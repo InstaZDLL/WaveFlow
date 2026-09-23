@@ -19,6 +19,8 @@ Every playlist action used to live only as an icon button in [`PlaylistView`](..
 
 [`usePlaylistContextMenu`](../../src/hooks/usePlaylistContextMenu.tsx) is the one menu both surfaces open, modelled on [`useRemoteTrackContextMenu`](../../src/hooks/useRemoteTrackContextMenu.tsx) and returning the same `{ open, openFromKeyboard, close, render }`. It offers Play / Shuffle / Play next / Add to queue, then Edit, Export as M3U and Delete. Shuffle only ever turns shuffle **on**: `player_toggle_shuffle` really toggles, so firing it unconditionally — which the header's button did — switched it off for anyone who already had it on, and played the playlist in order. It owns the edit modal itself rather than leaving each caller to mount one, so the sidebar and the grid cannot drift apart on what Edit opens.
 
+The sidebar's two pinned rows — Liked tracks and Recently played — open the same menu with the playable half only: Play, Shuffle, Play next, Add to queue. They are queries, not stored rows, so there is nothing to rename, export or delete. Recently played is a log with repeats, so it is collapsed to one entry per track before it reaches the queue.
+
 A **server** playlist gets one item, Open. Every other action takes a local rowid it does not have, and its playback runs through the view's own remote path rather than `player_play_tracks` — so the alternative was a menu with every item greyed out, which is worse than the inert right-click this replaced.
 
 The grid is virtualized, so the menu state lives in [`PlaylistGrid`](../../src/components/views/library/PlaylistGrid.tsx) rather than in a card — a card can unmount under an open menu. `ContextMenu` portals to `body` and closes on scroll, so that unmount is harmless.

@@ -1,6 +1,4 @@
-import { useCallback, useEffect } from "react";
-import { emit, listen } from "@tauri-apps/api/event";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useCallback } from "react";
 
 import { useProfileSetting } from "./useProfileSetting";
 
@@ -46,37 +44,6 @@ const KEY = "ui.desktop_lyrics_style";
 
 /** Window event `useProfileSetting` re-reads on, within one webview. */
 const WINDOW_EVENT = "waveflow:desktop-lyrics-style-changed";
-
-/**
- * The same notice across webviews. `useProfileSetting` broadcasts with a
- * window event, which never leaves the document that fired it — and the
- * point of this setting is to be edited in the main window while it is
- * read in the overlay. A write here re-emits it as a Tauri event, and
- * every other window turns that back into the window event.
- *
- * The payload names the window that wrote. Tauri delivers an event to its
- * sender too, and the writer must not re-read on it: while a slider is
- * dragged, the next write is already queued behind this one, and a read
- * landing in between would put the older stored value back on screen.
- */
-const TAURI_EVENT = "desktop-lyrics:style-changed";
-
-interface StyleChanged {
-  source: string;
-}
-
-function ownLabel(): string {
-  try {
-    return getCurrentWindow().label;
-  } catch {
-    return "";
-  }
-}
-
-function notifyOtherWindows(): void {
-  const payload: StyleChanged = { source: ownLabel() };
-  emit(TAURI_EVENT, payload).catch(() => {});
-}
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -125,9 +92,9 @@ function parseStyle(raw: string | null): DesktopLyricsStyle {
 
 /**
  * Per-profile desktop lyrics style, `profile_setting['ui.desktop_lyrics_style']`.
- * Concurrency, rollback and profile isolation come from
- * [`useProfileSetting`](./useProfileSetting.ts); this adds the
- * cross-window notice described at {@link TAURI_EVENT}.
+ * Concurrency, rollback, profile isolation and the cross-window notice
+ * all come from [`useProfileSetting`](./useProfileSetting.ts). This hook
+ * carried its own copy of that notice until #741 made it general (#743).
  */
 export function useDesktopLyricsStyle() {
   const { value, ready, setValue } = useProfileSetting<DesktopLyricsStyle>({
@@ -140,41 +107,15 @@ export function useDesktopLyricsStyle() {
     label: "useDesktopLyricsStyle",
   });
 
-  useEffect(() => {
-    let cancelled = false;
-    let unlisten: (() => void) | null = null;
-    const self = ownLabel();
-    listen<StyleChanged>(TAURI_EVENT, (event) => {
-      if (event.payload?.source === self) return;
-      window.dispatchEvent(new CustomEvent(WINDOW_EVENT));
-    })
-      .then((off) => {
-        if (cancelled) off();
-        else unlisten = off;
-      })
-      .catch((err) => {
-        console.warn("[useDesktopLyricsStyle] cross-window listen failed", err);
-      });
-    return () => {
-      cancelled = true;
-      unlisten?.();
-    };
-  }, []);
-
   const update = useCallback(
     (patch: Partial<DesktopLyricsStyle>) => {
-      // Emitted after the write settles, whichever way: the other windows
-      // re-read the database, so they land on what was actually stored
-      // even when this write rolled back.
-      void setValue((previous) => ({ ...previous, ...patch })).then(
-        notifyOtherWindows,
-      );
+      void setValue((previous) => ({ ...previous, ...patch }));
     },
     [setValue],
   );
 
   const reset = useCallback(() => {
-    void setValue(DEFAULT_DESKTOP_LYRICS_STYLE).then(notifyOtherWindows);
+    void setValue(DEFAULT_DESKTOP_LYRICS_STYLE);
   }, [setValue]);
 
   return { style: value, ready, update, reset };

@@ -39,16 +39,29 @@ import {
 } from "../lib/tauri/player";
 import { usePlaylist } from "./usePlaylist";
 import { usePlayer } from "./usePlayer";
+import { listLikedTrackIds } from "../lib/tauri/track";
+import { listRecentPlays } from "../lib/tauri/browse";
 
-/** The entry the menu acts on. Both surfaces that open it hold a
- *  `LibraryPlaylistRow`, whose `id` is text and may be a server id. */
+/** The entry the menu acts on. The lists that open it hold a
+ *  `LibraryPlaylistRow`, whose `id` is text and may be a server id; the
+ *  sidebar's two pinned rows are not playlists at all. */
 export interface ContextPlaylist {
-  /** Local rowid as text, or the server's identifier. */
+  /** Local rowid as text, the server's identifier, or unused for the
+   *  pinned rows, which are queries rather than stored playlists. */
   id: string;
   name: string;
   /** A server playlist has no local rowid, so it gets the short menu. */
   isRemote: boolean;
+  /** Liked tracks / Recently played: a query, not a row. It can be
+   *  played and queued, and nothing else — there is no row to rename,
+   *  export or delete. */
+  virtual?: "liked" | "recent";
 }
+
+/** How many recent plays a "play recently played" gathers. The list is
+ *  a log with repeats; this reads the last few hundred entries and keeps
+ *  each track once, in the order it was last heard. */
+const RECENT_LIMIT = 300;
 
 interface UsePlaylistContextMenuArgs {
   /** Called after a delete, so the caller can leave the page it was on. */
@@ -135,11 +148,77 @@ export function usePlaylistContextMenu({
     const menu = (() => {
       if (!state) return null;
       const { playlist } = state;
-      const localId = playlist.isRemote ? null : Number(playlist.id);
+      const localId =
+        playlist.isRemote || playlist.virtual ? null : Number(playlist.id);
       const act = (run: () => void) => () => {
         run();
         close();
       };
+
+      // The sidebar's pinned rows. They carry the playable half of the
+      // menu and stop there: a query has no row behind it to rename,
+      // export or delete. Recently played is a log, so it is collapsed
+      // to one entry per track — a queue holding the same song five
+      // times is not what "play what I have been listening to" means.
+      if (playlist.virtual) {
+        const kind = playlist.virtual;
+        const ids = async () => {
+          if (kind === "liked") return listLikedTrackIds();
+          const plays = await listRecentPlays(null, RECENT_LIMIT);
+          return [...new Set(plays.map((play) => play.track_id))];
+        };
+        const withVirtual =
+          (use: (trackIds: number[]) => Promise<void>) => () => {
+            ids()
+              .then((list) => (list.length === 0 ? undefined : use(list)))
+              .catch((err: unknown) =>
+                console.error("[usePlaylistContextMenu] queue failed", err),
+              );
+          };
+        return (
+          <ContextMenu point={state.point} onClose={close}>
+            <ContextMenuItem
+              icon={<Play size={16} aria-hidden="true" />}
+              label={t("playlistView.actions.play")}
+              onSelect={act(
+                withVirtual((list) =>
+                  playerPlayTracks(
+                    kind === "liked" ? "liked" : "manual",
+                    null,
+                    list,
+                    0,
+                  ),
+                ),
+              )}
+            />
+            <ContextMenuItem
+              icon={<Shuffle size={16} aria-hidden="true" />}
+              label={t("playlistView.actions.shuffle")}
+              onSelect={act(
+                withVirtual(async (list) => {
+                  await playerPlayTracks(
+                    kind === "liked" ? "liked" : "manual",
+                    null,
+                    list,
+                    0,
+                  );
+                  if (!isShuffled) await toggleShuffle();
+                }),
+              )}
+            />
+            <ContextMenuItem
+              icon={<ListEnd size={16} aria-hidden="true" />}
+              label={t("trackActions.playNext")}
+              onSelect={act(withVirtual(playerPlayNext))}
+            />
+            <ContextMenuItem
+              icon={<ListPlus size={16} aria-hidden="true" />}
+              label={t("trackActions.addToQueue")}
+              onSelect={act(withVirtual(playerAddToQueue))}
+            />
+          </ContextMenu>
+        );
+      }
 
       // Everything past here needs a local rowid, so the remote case is
       // its own short menu rather than the same one with every item
