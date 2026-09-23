@@ -4,16 +4,25 @@ import { usePlayer } from "../../hooks/usePlayer";
 
 /**
  * Spotify-style floating tab on the right edge that opens the Now Playing
- * panel. Shown only when no right-edge panel is currently open — once any
- * panel slides in, the in-panel close button takes over.
+ * panel — and, while another right-edge panel is showing, switches to it.
+ *
+ * It hides only when Now Playing is itself the open panel, because this
+ * tab is that panel's only reliable entry point: the player bar carries a
+ * Lyrics and a Queue button but none for Now Playing, and the cover
+ * thumbnail opens it only when `layout.coverAction` is set to
+ * `now_playing` (it defaults to the immersive view). Hiding the tab for
+ * *any* open panel therefore left no way back — reaching the artwork from
+ * the lyrics meant closing the panel and reopening it from here.
+ *
+ * Every other direction already worked, through the player bar's own
+ * toggles: each sets its own panel rather than closing the current one,
+ * so Now Playing → Lyrics and Lyrics → Queue switch in a single click.
  */
 export function NowPlayingChevronTab() {
   const { t } = useTranslation();
-  const { isQueueOpen, isNowPlayingOpen, isLyricsOpen, toggleNowPlaying } =
-    usePlayer();
+  const { isNowPlayingOpen, toggleNowPlaying } = usePlayer();
 
-  const anyOpen = isQueueOpen || isNowPlayingOpen || isLyricsOpen;
-  if (anyOpen) return null;
+  if (isNowPlayingOpen) return null;
 
   return (
     <button
