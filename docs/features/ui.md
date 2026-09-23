@@ -30,6 +30,26 @@ Every full-page view (Home, Library, Liked, History, Playlist, Album/Artist/Genr
 
 Per-view data fetches initialise their `isLoading` state to `true` (not `false`) so the first render paints a skeleton matching the view's shape rather than flashing the empty-state for the frame between mount and the first effect tick. Detail pages (Album/Artist/Genre) share [`DetailViewSkeleton`](../../src/components/common/DetailViewSkeleton.tsx); list-shaped pages use inline `<…Skeleton>` components colocated with their view file.
 
+## Back and forward
+
+`AppLayout` keeps a `HistoryEntry[]` with an index; Back and Forward move the
+index rather than re-deriving a view. What a page needs to be *restored* travels
+on its own entry, not in state beside it — `playlistId`, `albumId`, the settings
+category, and the library tab. Anything kept outside would survive the
+navigation and be handed to whichever entry came back, which is exactly the bug
+#745 fixed: Back returned to the library and landed on whatever tab the bar
+happened to hold.
+
+The library tab is optional on the entry. The six places that name one (the
+sidebar's five rows and Home's Playlists card) go through `navigateToLibraryTab`
+and push an entry carrying it; a plain visit pushes one without, and falls back
+to the last tab the user chose — the same way a plain visit to Settings lands on
+the card they last had open.
+
+The tab bar inside the library **replaces** the current entry instead of pushing
+one. A tab is a filter on the page you are already on, so pushing would turn
+every tab click into a step Back has to undo.
+
 ## Settings navigation
 
 Settings uses a persistent category list on wide containers and a compact
