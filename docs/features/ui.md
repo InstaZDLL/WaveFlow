@@ -24,6 +24,8 @@ Three-column flex row:
 
 The right panel is **a flex sibling** of the center column, not an overlay — opening it shrinks the content area Spotify-style. The center column has `min-w-0` so wide tables collapse instead of pushing the panel off-screen. Only one of the three right-panels is mounted at a time (mutex via `PlayerContext`).
 
+**Switching between the three** never goes through the close button. The player bar's Lyrics and Queue toggles each *set* their panel rather than closing the current one, so any of those two is one click from the other or from Now Playing. Now Playing has no player-bar button of its own — the right-edge [`NowPlayingChevronTab`](../../src/components/layout/NowPlayingChevronTab.tsx) is its entry point, and it stays mounted while Lyrics or Queue is open (it hides only when Now Playing is itself the open panel) so that direction works like the others. It sits inside the center column, so with a panel open it lands on the seam between content and panel.
+
 ### View loading & code-splitting
 
 Every full-page view (Home, Library, Liked, History, Playlist, Album/Artist/Genre detail, Statistics, Wrapped, Settings) is `React.lazy()`-loaded. The Suspense fallback in [`AppLayout`](../../src/components/layout/AppLayout.tsx) is [`ViewSuspenseFallback`](../../src/components/common/ViewSuspenseFallback.tsx) — a layout-shaped skeleton (`role="status"` / `aria-busy="true"`) instead of a spinner that read as a blank screen. To make the fallback rarely fire at all, AppLayout schedules a `requestIdleCallback` after first mount that warm-imports every lazy view module; once those imports resolve they're cached in the module registry, so a sidebar click usually skips Suspense entirely.

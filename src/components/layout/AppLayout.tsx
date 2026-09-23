@@ -827,10 +827,13 @@ export function AppLayout() {
 
               {/* Floating overlays anchored to the center column.
                 DeviceMenu = popup from the player bar's speaker icon;
-                NowPlayingChevronTab = right-edge handle shown only when
-                no right panel is open. Both must stay inside the center
+                NowPlayingChevronTab = right-edge handle, hidden only when
+                Now Playing is itself the open panel so it can switch to
+                it from Lyrics or Queue. Both must stay inside the center
                 container so their `right-0` anchors to the content edge,
-                not to the right panel when one is mounted as a sibling. */}
+                not to the right panel when one is mounted as a sibling —
+                which is also what lands the handle on the seam between
+                the content and an open panel rather than under it. */}
               <DeviceMenu />
               <NowPlayingChevronTab />
             </div>
