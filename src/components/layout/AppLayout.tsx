@@ -504,6 +504,10 @@ export function AppLayout() {
         return (
           <HomeView
             onNavigate={setActiveView}
+            onNavigateToPlaylists={() => {
+              setLibraryTab("playlists");
+              setActiveView("library");
+            }}
             onNavigateToAlbum={navigateToAlbum}
             onNavigateToArtist={navigateToArtist}
             onNavigateToPlaylist={navigateToPlaylist}

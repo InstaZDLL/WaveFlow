@@ -48,6 +48,9 @@ import { EditorialMasthead } from "./home/EditorialMasthead";
 
 interface HomeViewProps {
   onNavigate: (view: ViewId) => void;
+  /** The library, already on its Playlists tab. `onNavigate` only picks
+   *  a view, and this card has to pick a tab within one. */
+  onNavigateToPlaylists: () => void;
   onNavigateToAlbum: (albumId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
   onNavigateToPlaylist: (playlistId: number) => void;
@@ -110,6 +113,7 @@ function recentPlayToTrack(rp: RecentPlay): Track {
 
 export function HomeView({
   onNavigate,
+  onNavigateToPlaylists,
   onNavigateToAlbum,
   onNavigateToArtist,
   onNavigateToPlaylist,
@@ -140,6 +144,15 @@ export function HomeView({
   // sidebar list.
   const smartPlaylists = useMemo(
     () => playlists.filter((p) => p.is_smart === 1),
+    [playlists],
+  );
+
+  // The other half, and what the Playlists card counts. It links to the
+  // library's Playlists tab, which shows the user's own only — the smart
+  // ones live in "Made for you" above — so counting all of them made the
+  // card promise a number the page it opens does not show.
+  const userPlaylists = useMemo(
+    () => playlists.filter((p) => p.is_smart === 0),
     [playlists],
   );
 
@@ -461,8 +474,9 @@ export function HomeView({
           <StatCard
             icon={<ListMusic />}
             accent="purple"
-            count={playlists.length.toString()}
+            count={userPlaylists.length.toString()}
             label={t("home.stats.playlists")}
+            onClick={onNavigateToPlaylists}
           />
         </div>
       </div>

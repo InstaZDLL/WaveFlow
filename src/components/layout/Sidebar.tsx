@@ -236,7 +236,17 @@ export function Sidebar({
     activeView === "playlist" && activePlaylistId === id;
 
   // Memoized pinned rows (liked + recent)
-  const pinnedRows = useMemo(
+  const pinnedRows = useMemo<
+    Array<{
+      // Literal, not `string`: it doubles as the menu's subject kind.
+      key: "liked" | "recent";
+      label: string;
+      subtext: string;
+      active: boolean;
+      onClick: () => void;
+      icon: React.ReactNode;
+    }>
+  >(
     () => [
       {
         key: "liked",
@@ -437,16 +447,30 @@ export function Sidebar({
 
           <div className="space-y-1">
             {/* Pinned: Liked + Recent */}
-            {pinnedRows.map((row) => (
-              <SidebarRow
-                key={row.key}
-                icon={row.icon}
-                label={row.label}
-                subtext={row.subtext}
-                active={row.active}
-                onClick={row.onClick}
-              />
-            ))}
+            {pinnedRows.map((row) => {
+              // They are queries, not stored playlists, so the menu
+              // carries only what can act on a set of tracks.
+              const subject = {
+                id: row.key,
+                name: row.label,
+                isRemote: false,
+                virtual: row.key,
+              } as const;
+              return (
+                <SidebarRow
+                  key={row.key}
+                  icon={row.icon}
+                  label={row.label}
+                  subtext={row.subtext}
+                  active={row.active}
+                  onClick={row.onClick}
+                  onContextMenu={(e) => playlistMenu.open(e, subject)}
+                  onKeyDown={(e) =>
+                    void playlistMenu.openFromKeyboard(e, subject)
+                  }
+                />
+              );
+            })}
 
             {/* Real playlists, from the device and from the bound server.
                 One list: the server had its own section here, which is the

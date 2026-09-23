@@ -55,7 +55,10 @@ export interface StatCardProps {
   accent: StatCardAccent;
   count: string;
   label: string;
-  onClick?: () => void;
+  /** Required: each card is a shortcut. It was optional, and the
+   *  Playlists card shipped without one — a card that lifted on hover
+   *  and did nothing. */
+  onClick: () => void;
 }
 
 export interface TabProps {
