@@ -274,6 +274,45 @@ pub struct ExtractedFile {
     pub extra_tags: Option<Vec<(String, String)>>,
 }
 
+/// Where an `artwork` row came from.
+///
+/// The variants are exactly the values `artwork.source`'s `CHECK`
+/// constraint accepts (initial profile migration), and nothing else.
+/// That constraint is only enforced when a row is written, so a free
+/// `&str` let a caller pass a value the database refuses — the artist
+/// banner picker wrote `"theaudiodb"` and failed on every suggestion
+/// (#750) while every test stayed green. Typed, a new source is a
+/// compile error until the constraint grows the matching value.
+///
+/// The constraint cannot simply be widened: `artwork` is the parent of
+/// several foreign keys, and SQLite only changes a `CHECK` by rebuilding
+/// the table, which `foreign_keys = ON` turns into a cascading delete.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ArtworkSource {
+    /// Lifted from the audio file's own tag.
+    Embedded,
+    /// A sidecar image next to the audio file (`cover.jpg`, `folder.png`…).
+    Folder,
+    /// Fetched from Deezer.
+    Deezer,
+    /// Chosen by the user — a file they picked, or a suggestion from any
+    /// provider they picked it from.
+    Manual,
+}
+
+impl ArtworkSource {
+    /// The value stored in `artwork.source` (and mirrored into
+    /// `album.artwork_source`, which has no constraint of its own).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Embedded => "embedded",
+            Self::Folder => "folder",
+            Self::Deezer => "deezer",
+            Self::Manual => "manual",
+        }
+    }
+}
+
 pub struct ExtractedCover {
     /// Hex-encoded blake3 hash of the picture bytes — used as the filename
     /// stem so identical artwork embedded in 20 tracks of an album yields a
@@ -281,10 +320,10 @@ pub struct ExtractedCover {
     pub hash: String,
     /// File extension matching the picture's MIME type (jpg/png/webp/...).
     pub format: String,
-    /// Provenance label written to `artwork.source`. Either `"embedded"`
-    /// (lifted from the tag) or `"folder"` (sidecar cover.jpg / folder.png
-    /// / front.webp etc. next to the audio file).
-    pub source: &'static str,
+    /// Provenance written to `artwork.source`: [`ArtworkSource::Embedded`]
+    /// (lifted from the tag) or [`ArtworkSource::Folder`] (sidecar
+    /// cover.jpg / folder.png / front.webp etc. next to the audio file).
+    pub source: ArtworkSource,
 }
 
 /// Map lofty's `FileType` enum to a short uppercase label suitable
@@ -353,7 +392,7 @@ pub fn extract_cover(tag: &Tag, artwork_dir: &Path) -> Option<ExtractedCover> {
     Some(ExtractedCover {
         hash,
         format,
-        source: "embedded",
+        source: ArtworkSource::Embedded,
     })
 }
 
@@ -444,7 +483,7 @@ pub fn extract_folder_cover(track_path: &Path, artwork_dir: &Path) -> Option<Ext
     Some(ExtractedCover {
         hash,
         format,
-        source: "folder",
+        source: ArtworkSource::Folder,
     })
 }
 
@@ -647,7 +686,7 @@ pub fn write_artist_image(picked: &Path, artwork_dir: &Path) -> Option<Extracted
     Some(ExtractedCover {
         hash,
         format,
-        source: "folder",
+        source: ArtworkSource::Folder,
     })
 }
 
@@ -1075,7 +1114,7 @@ mod tests {
             cover.format, "png",
             "cover.png should win over albumart.jpg"
         );
-        assert_eq!(cover.source, "folder");
+        assert_eq!(cover.source, ArtworkSource::Folder);
     }
 
     #[test]
@@ -1128,7 +1167,7 @@ mod tests {
 
         let cover = extract_artist_image(&track, &canonical_name("Daft Punk"), &artwork_dir)
             .expect("artist image found two levels up");
-        assert_eq!(cover.source, "folder");
+        assert_eq!(cover.source, ArtworkSource::Folder);
         assert_eq!(cover.format, "jpg");
     }
 
@@ -1256,5 +1295,55 @@ mod tests {
         data[1_500_000] = 99; // > 1 MiB (head end), < 2 MiB (tail start)
         write_bytes(&path, &data);
         assert_eq!(base, hash_file(&path).unwrap());
+    }
+}
+
+#[cfg(test)]
+mod artwork_source_tests {
+    use super::ArtworkSource::{self, Deezer, Embedded, Folder, Manual};
+
+    /// The migration that created `artwork`, read from the real file
+    /// rather than copied: a copy is what let "theaudiodb" through (#750),
+    /// since every fixture in this crate re-typed the constraint by hand.
+    const INITIAL_PROFILE_MIGRATION: &str =
+        include_str!("../../../../migrations/profile/20260411120000_initial.sql");
+
+    fn every_variant() -> Vec<ArtworkSource> {
+        // A new variant makes this match non-exhaustive, so it cannot be
+        // added without passing through here.
+        let _ = |s: ArtworkSource| match s {
+            Embedded | Folder | Deezer | Manual => (),
+        };
+        vec![Embedded, Folder, Deezer, Manual]
+    }
+
+    /// The values the `artwork.source` CHECK accepts, parsed out of the
+    /// `CREATE TABLE artwork` statement.
+    fn allowed_by_the_constraint() -> Vec<String> {
+        let table = INITIAL_PROFILE_MIGRATION
+            .split("CREATE TABLE artwork")
+            .nth(1)
+            .expect("the initial migration creates the artwork table");
+        let list = table
+            .split("source IN (")
+            .nth(1)
+            .and_then(|rest| rest.split(')').next())
+            .expect("artwork.source carries a CHECK (source IN (...))");
+        list.split(',')
+            .map(|v| v.trim().trim_matches('\'').to_string())
+            .collect()
+    }
+
+    #[test]
+    fn every_source_is_one_the_database_accepts() {
+        let allowed = allowed_by_the_constraint();
+        for source in every_variant() {
+            assert!(
+                allowed.iter().any(|a| a == source.as_str()),
+                "{:?} writes {:?}, which artwork.source's CHECK refuses (allowed: {allowed:?})",
+                source,
+                source.as_str(),
+            );
+        }
     }
 }

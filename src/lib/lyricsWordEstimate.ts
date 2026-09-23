@@ -26,6 +26,9 @@ import type { LyricsLine, LyricsWord } from "./tauri/lyrics";
  * - **The sung span is capped.** A line followed by a long instrumental
  *   is not sung across the whole gap until the next line; the estimate
  *   ends where a plausible delivery would.
+ * - **The words finish early, and the last one is held.** Even within
+ *   the span, a singer is through the words before the next line starts;
+ *   see `DELIVERY_SHARE`.
  */
 
 /** Seconds a syllable takes at most, before the span is capped. */
@@ -34,6 +37,16 @@ const MAX_MS_PER_SYLLABLE = 550;
 const MIN_SPAN_MS = 400;
 /** Assumed span when the line's end is unknown (the last line). */
 const FALLBACK_MS_PER_SYLLABLE = 300;
+/**
+ * Share of a known span the words are delivered in. A singer gets through
+ * a line faster than the gap to the next one, then holds the last vowel or
+ * breathes: spreading the words over the whole gap put every word after
+ * the first a little further behind the voice — 0.2 to 0.4 s by mid-line
+ * on the tracks reported (#750). The last word holds to the end of the
+ * span, so the line still hands over on time. Not applied to a guessed
+ * span, which is already paced per syllable rather than stretched to fit.
+ */
+const DELIVERY_SHARE = 0.8;
 
 const PAUSE_SHORT = 0.5; // , ; : and dashes, in syllables
 const PAUSE_LONG = 0.9; // . ! ? …
@@ -101,13 +114,18 @@ export function estimateLineWords(
       : total * FALLBACK_MS_PER_SYLLABLE;
   // The floor only where the end is a guess: with a known end, a short
   // line is short, and stretching it would run into the next one.
-  const perUnit =
-    (knownEnd != null ? span : Math.max(span, MIN_SPAN_MS)) / total;
+  const fullSpan = knownEnd != null ? span : Math.max(span, MIN_SPAN_MS);
+  const delivered = knownEnd != null ? fullSpan * DELIVERY_SHARE : fullSpan;
+  const perUnit = delivered / total;
 
   const words: LyricsWord[] = [];
   let cursor = line.timeMs;
   units.forEach((text, i) => {
-    const end = cursor + weights[i] * perUnit;
+    const last = i === units.length - 1;
+    // The last word is held through the rest of the span.
+    const end = last
+      ? line.timeMs + fullSpan
+      : cursor + weights[i] * perUnit;
     words.push({ timeMs: Math.round(cursor), endMs: Math.round(end), text });
     cursor = end + pauses[i] * perUnit;
   });

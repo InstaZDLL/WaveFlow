@@ -113,7 +113,8 @@ export function Artwork({
     <FadeInImage
       src={src}
       alt={alt ?? ""}
-      wrapperClassName={`${className} ${radiusClass} ${placeholderBg} shrink-0`}
+      wrapperClassName={`${className} ${radiusClass} shrink-0`}
+      placeholderClassName={placeholderBg}
       placeholder={discIcon}
     />
   );

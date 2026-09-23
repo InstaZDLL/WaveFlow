@@ -135,6 +135,7 @@ pub fn now_millis() -> i64 {
 // from the always-compiled `extract` module. Re-exported here for
 // backwards source compatibility with existing imports.
 pub use super::canonical::canonical_name;
+use super::extract::ArtworkSource;
 
 /// Split a raw artist string into individual names. Only `"; "` is
 /// honoured as a separator — the convention used by MusicBrainz Picard,
@@ -161,14 +162,14 @@ pub fn split_artist_name(raw: &str) -> Vec<String> {
 }
 
 /// Upsert an artwork row keyed on its content hash. Existing rows are
-/// returned as-is; new rows are inserted with the caller-supplied source
-/// label (`embedded`, `folder`, `deezer`, `user`...) so a future cleanup
-/// job can distinguish scanner-extracted art from remote/manual files.
+/// returned as-is; new rows are inserted with the caller's
+/// [`ArtworkSource`] so a future cleanup job can tell scanner-extracted
+/// art from remote/manual files.
 pub async fn upsert_artwork(
     conn: &mut sqlx::SqliteConnection,
     hash: &str,
     format: &str,
-    source: &str,
+    source: ArtworkSource,
 ) -> CoreResult<i64> {
     let existing: Option<i64> = sqlx::query_scalar("SELECT id FROM artwork WHERE hash = ?")
         .bind(hash)
@@ -183,7 +184,7 @@ pub async fn upsert_artwork(
         sqlx::query("INSERT INTO artwork (hash, format, source, created_at) VALUES (?, ?, ?, ?)")
             .bind(hash)
             .bind(format)
-            .bind(source)
+            .bind(source.as_str())
             .bind(now)
             .execute(&mut *conn)
             .await?;
@@ -856,7 +857,7 @@ pub async fn refresh_folder_covers(
         }
 
         let album_id = candidate.album_id;
-        let artwork_id = upsert_artwork(&mut tx, &hash, &format, "folder").await?;
+        let artwork_id = upsert_artwork(&mut tx, &hash, &format, ArtworkSource::Folder).await?;
         if !link_folder_cover_if_eligible(
             &mut tx,
             album_id,

@@ -29,7 +29,7 @@ pub use extract::{
     extension_for_mime, extract_artist_image, extract_compilation_flag, extract_cover,
     extract_folder_cover, extract_musical_key, extract_rating, file_type_label,
     find_artist_image_in_dir, hash_file, hash_file_full, is_scannable_audio, undecodable_stream,
-    write_artist_image, ExtractedCover, ExtractedFile, AUDIO_EXTENSIONS,
+    write_artist_image, ArtworkSource, ExtractedCover, ExtractedFile, AUDIO_EXTENSIONS,
 };
 pub use replay_gain::{extract_replay_gain, ReplayGainTags};
 pub use reserved::{is_in_reserved_dir, is_reserved_dir_name, RESERVED_DIR_NAME};
