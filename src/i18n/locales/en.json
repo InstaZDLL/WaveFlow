@@ -2260,6 +2260,11 @@
       "title": "Estimated word-by-word karaoke",
       "subtitle": "On line-synced lyrics, highlights the words from an estimate of how long each is sung. Display only: nothing is saved."
     },
+    "lyricsHighlightColor": {
+      "title": "Sung line colour",
+      "subtitle": "For full-screen lyrics and the mini-player. White until you pick one; the floating lyrics window keeps its own colours.",
+      "reset": "Reset"
+    },
     "lyricsTranslation": {
       "title": "Lyrics translation (Musixmatch)",
       "subtitle": "Displays a translation under each LRC line when Musixmatch has one",

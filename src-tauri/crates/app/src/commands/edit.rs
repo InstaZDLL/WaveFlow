@@ -37,6 +37,7 @@ use tauri::{AppHandle, Emitter};
 
 use waveflow_core::scanner::{
     canonical_name, split_artist_name, upsert_album, upsert_artist, upsert_artwork, upsert_genre,
+    ArtworkSource,
 };
 
 use crate::{
@@ -1451,7 +1452,7 @@ pub async fn update_track_cover(
     // row and the album link belong together, and the previous shape
     // could leave the row behind if the update failed.
     let mut tx = pool.begin().await?;
-    let artwork_id = upsert_artwork(&mut tx, &hash, ext, "manual").await?;
+    let artwork_id = upsert_artwork(&mut tx, &hash, ext, ArtworkSource::Manual).await?;
     // Only guarded when a track actually belongs to an album: `album_id`
     // is legitimately `None` for a loose track, and that case must still
     // commit — the cover has already been written into the audio file

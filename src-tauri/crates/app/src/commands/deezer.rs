@@ -30,7 +30,7 @@ use waveflow_core::metadata::{
 // the transaction (see CLAUDE.md, "Single writer to SQLite"). This
 // module used to carry a pool-taking copy of it, which is what kept
 // these paths non-transactional.
-use waveflow_core::scanner::upsert_artwork;
+use waveflow_core::scanner::{upsert_artwork, ArtworkSource};
 
 use crate::{
     commands::integration::{read_bio_language, read_bio_source, read_lastfm_api_key, BioSource},
@@ -940,7 +940,7 @@ pub async fn set_album_artwork_from_deezer(
     // One transaction so the artwork row and the album link land
     // together — see `upsert_artwork`'s contract in CLAUDE.md.
     let mut tx = pool.begin().await?;
-    let artwork_id = upsert_artwork(&mut tx, &hash, format, "deezer").await?;
+    let artwork_id = upsert_artwork(&mut tx, &hash, format, ArtworkSource::Deezer).await?;
     let res =
         sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'deezer' WHERE id = ?")
             .bind(artwork_id)
@@ -985,7 +985,7 @@ pub async fn set_album_artwork_from_file(
     // One transaction so the artwork row and the album link land
     // together — see `upsert_artwork`'s contract in CLAUDE.md.
     let mut tx = pool.begin().await?;
-    let artwork_id = upsert_artwork(&mut tx, &hash, format, "manual").await?;
+    let artwork_id = upsert_artwork(&mut tx, &hash, format, ArtworkSource::Manual).await?;
     let res =
         sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'manual' WHERE id = ?")
             .bind(artwork_id)
@@ -1135,7 +1135,7 @@ pub async fn set_artist_artwork_from_deezer(
     // early return below leaves `tx` un-committed, so a missing artist
     // rolls the artwork insert back rather than orphaning it.
     let mut tx = pool.begin().await?;
-    let artwork_id = upsert_artwork(&mut tx, &hash, format, "deezer").await?;
+    let artwork_id = upsert_artwork(&mut tx, &hash, format, ArtworkSource::Deezer).await?;
     // Photo and identity in one statement: a row that ends up with the
     // new picture and the old id is the split this fixes.
     let res = sqlx::query("UPDATE artist SET artwork_id = ?, deezer_id = ? WHERE id = ?")
@@ -1189,7 +1189,7 @@ pub async fn set_artist_artwork_from_file(
     // early return below leaves `tx` un-committed, so a missing artist
     // rolls the artwork insert back rather than orphaning it.
     let mut tx = pool.begin().await?;
-    let artwork_id = upsert_artwork(&mut tx, &hash, format, "manual").await?;
+    let artwork_id = upsert_artwork(&mut tx, &hash, format, ArtworkSource::Manual).await?;
     let res = sqlx::query("UPDATE artist SET artwork_id = ? WHERE id = ?")
         .bind(artwork_id)
         .bind(artist_id)
@@ -1339,7 +1339,10 @@ pub async fn set_artist_background_from_url(
         std::fs::write(&target, &bytes)?;
     }
 
-    set_artist_background_artwork(&pool, artist_id, &hash, format, "theaudiodb").await?;
+    // A suggestion the user picked is a manual pick, whichever provider
+    // offered it. This wrote "theaudiodb", a value `artwork.source`'s
+    // CHECK constraint refuses, so every suggestion failed (#750).
+    set_artist_background_artwork(&pool, artist_id, &hash, format, ArtworkSource::Manual).await?;
     let _ = app.emit("artist:updated", artist_id);
     Ok(())
 }
@@ -1377,7 +1380,7 @@ pub async fn set_artist_background_from_file(
         std::fs::write(&target, &bytes)?;
     }
 
-    set_artist_background_artwork(&pool, artist_id, &hash, format, "manual").await?;
+    set_artist_background_artwork(&pool, artist_id, &hash, format, ArtworkSource::Manual).await?;
     let _ = app.emit("artist:updated", artist_id);
     Ok(())
 }
@@ -1411,7 +1414,7 @@ async fn set_artist_background_artwork(
     artist_id: i64,
     hash: &str,
     format: &str,
-    source: &str,
+    source: ArtworkSource,
 ) -> AppResult<()> {
     let mut tx = pool.begin().await?;
     let artwork_id = upsert_artwork(&mut tx, hash, format, source).await?;

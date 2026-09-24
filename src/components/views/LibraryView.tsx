@@ -3581,9 +3581,13 @@ function ArtistAvatar({ artist }: { artist: LibraryArtistRow }) {
       alt={artist.name}
       // No violet border here on purpose — `rounded-full` + a 1 px violet
       // border draws around the image clip, which reads as a visible halo on
-      // dark portraits (#106). The placeholder bg gradient is fine because
-      // `object-cover` fully covers it once the image decodes.
-      wrapperClassName="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 shadow-sm group-hover:shadow-md transition-shadow"
+      // dark portraits (#106). The gradient is not safe on the wrapper
+      // either: `object-cover` covers it everywhere except the rounded
+      // edge, where the image's anti-aliased pixels let it through as the
+      // same halo, only fainter (#750). It rides the placeholder layer,
+      // which fades out once the image is up.
+      wrapperClassName="w-full aspect-square rounded-full shadow-sm group-hover:shadow-md transition-shadow"
+      placeholderClassName="bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30"
       onError={onError}
       onLoad={onLoad}
       placeholder={

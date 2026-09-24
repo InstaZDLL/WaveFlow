@@ -174,6 +174,7 @@ import { MediaCachesCard } from "./settings/MediaCachesCard";
 import { FullscreenLyricsCenteringCard } from "./settings/FullscreenLyricsCenteringCard";
 import { LyricsProvidersCard } from "./settings/LyricsProvidersCard";
 import { EstimatedKaraokeCard } from "./settings/EstimatedKaraokeCard";
+import { LyricsHighlightColorCard } from "./settings/LyricsHighlightColorCard";
 import { LyricsExcludedGenresCard } from "./settings/LyricsExcludedGenresCard";
 import { ImmersiveViewCard } from "./settings/ImmersiveViewCard";
 import { CoverSlideshowCard } from "./settings/CoverSlideshowCard";
@@ -3295,6 +3296,7 @@ export function SettingsView({
                 <LyricsExcludedGenresCard />
                 <FullscreenLyricsCenteringCard />
                 <EstimatedKaraokeCard />
+                <LyricsHighlightColorCard />
               </SettingsGroup>
             </section>
           )}

@@ -85,6 +85,8 @@ Two rules that are easy to get wrong: the check is **rooted** (a library that it
 
 The profile pool opens with `foreign_keys = ON` and SQLite's `DROP TABLE` fires an implicit `DELETE`, so `ON DELETE SET NULL` / `CASCADE` on children run — dropping `artwork` blanks every `album.artwork_id`, dropping `artist` empties `track_artist`. `PRAGMA foreign_keys` is a no-op inside the transaction sqlx wraps migrations in, so it cannot be turned off there. Use `ALTER TABLE … ADD COLUMN` (issue #401 took this route for exactly this reason).
 
+A consequence that is easy to miss: a `CHECK` constraint on a parent table is **frozen**. SQLite changes a constraint only by rebuilding the table, which is this `DROP TABLE`. `artwork.source` is one — `IN ('embedded','folder','deezer','manual')` since the initial migration — so its values live in code as the [`ArtworkSource`](../../src-tauri/crates/core/src/scanner/extract.rs) enum, and a test reads the constraint out of the real migration file to hold the two together. A free string there once wrote `'theaudiodb'`, which the database refused on every write while every test, run against hand-typed fixtures, stayed green (#750).
+
 ### Migrations are immutable once merged
 
 sqlx records a SHA-384 checksum in `_sqlx_migrations.checksum` at apply time, so editing a merged migration crashes every existing install at boot with `"migration <id> was previously applied but has been modified"`. For any schema evolution, **create a new dated migration** `YYYYMMDDhhmmss_<slug>.sql`. Same rule for `migrations/app/`.

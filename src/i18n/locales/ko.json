@@ -2260,6 +2260,11 @@
       "title": "추정 단어별 가라오케",
       "subtitle": "줄 단위로 동기화된 가사에서 각 단어의 길이를 추정해 강조합니다. 표시 전용이며 아무것도 저장되지 않습니다."
     },
+    "lyricsHighlightColor": {
+      "title": "부르는 줄의 색",
+      "subtitle": "전체 화면 가사와 미니 플레이어에 적용됩니다. 색을 고르기 전까지는 흰색이며, 떠 있는 가사 창은 자체 색을 유지합니다.",
+      "reset": "초기화"
+    },
     "lyricsTranslation": {
       "title": "가사 번역(Musixmatch)",
       "subtitle": "Musixmatch에 번역이 있을 때 각 LRC 줄 아래에 번역을 표시합니다",

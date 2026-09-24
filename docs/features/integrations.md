@@ -78,6 +78,8 @@ Write commands: [`set_artist_bio_override`](../../src-tauri/crates/app/src/comma
 
 [`discord_presence.rs`](../../src-tauri/crates/app/src/discord_presence.rs) — speaks Discord's local IPC named pipe via the [`discord-rich-presence`](https://crates.io/crates/discord-rich-presence) crate (no network, no auth, no token). Architecture mirrors [`media_controls.rs`](../../src-tauri/crates/app/src/media_controls.rs): a dedicated thread owns the `DiscordIpcClient` (which is `!Send` on Windows because it wraps a Win32 pipe handle), with a `crossbeam-channel` carrying update messages from the player code.
 
+**Connecting.** On by default, but it never sits waiting for Discord: the thread connects when it has something to show — a track change, play, pause or seek — and a failed connect leaves it disconnected so the next of those retries, since Discord may have been opened in the meantime. Discord not running is the ordinary case, so only the **first** failure of a run is logged as a warning and the rest go to debug; a warning on every track read as a fault to anyone going through their logs (#750). A successful connect resets that, so Discord closing later is reported again, once.
+
 ### Activity layout
 
 Spotify-style card under "Listening to WaveFlow":
@@ -257,6 +259,7 @@ Fallbacks, all landing on the plain discrete highlight: `prefers-reduced-motion`
 - **Weighted by syllables** — vowel groups for alphabetic scripts, one per block for Hangul, one per character for Han and kana.
 - **Pauses after punctuation** — a comma is half a syllable of silence, a full stop nearly one, spent between the two words rather than held by either.
 - **A capped span** — at most 550 ms a syllable, so a line followed by an instrumental break is not stretched across the whole gap; 300 ms a syllable when the end is unknown (the last line).
+- **The words finish early, and the last one is held** — within a known span the words are delivered in the first 80 % (`DELIVERY_SHARE`) and the last word stays active to the end, so the line still hands over on time — but its fill finishes with the delivery (`LyricsWord.fillEndMs`), so a singer who stops to breathe is not trailed by a sweep crawling through the rest. A singer is through a line before the next one starts, then holds the last vowel or breathes; spreading the words over the whole gap put each one a little further behind the voice, 0.2 to 0.4 s by mid-line on the tracks reported (#750). A guessed span is left as it is, since it is already paced per syllable.
 - **Chinese and Japanese step by phrase, not by character.** Every view puts a space between two words, so a per-character split would write spaces into the line.
 
 **Romanization and translation (issue #584).** An Apple TTML document can carry two further readings of every line, tucked in `<head>` rather than beside the lines: `<translations><translation xml:lang="…"><text for="…">` and `<transliterations><transliteration xml:lang="…"><text for="…"><span begin="…" end="…">`. Each entry points back at its line through the line's `itunes:key`, and Apple returns both from a single localized request — asking for a translation language is what brings the transliteration with it.

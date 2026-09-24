@@ -4,9 +4,17 @@ interface FadeInImageProps {
   /** Resolved `asset://` (or http) URL. */
   src: string;
   alt: string;
-  /** Tailwind classes for the wrapper that hosts the placeholder
-   *  gradient and clips the image. */
+  /** Tailwind classes for the wrapper that sizes and clips the image.
+   *  Give it no background — see `placeholderClassName`. */
   wrapperClassName: string;
+  /** Tailwind classes for the placeholder layer, which is where a
+   *  placeholder background belongs. The wrapper stays behind the image
+   *  once it has loaded, and at a rounded edge the image's anti-aliased
+   *  pixels are partly transparent: a light background on the wrapper
+   *  shows through them as a pale halo around dark artwork (#750). This
+   *  layer fades out with the placeholder, so nothing sits under the
+   *  edge once the image is up. */
+  placeholderClassName?: string;
   /** Tailwind classes for the `<img>` itself. Should NOT carry sizing
    *  — the wrapper handles that. */
   imgClassName?: string;
@@ -38,6 +46,7 @@ export function FadeInImage({
   wrapperClassName,
   imgClassName = "",
   placeholder,
+  placeholderClassName = "",
   onError,
   onLoad,
 }: FadeInImageProps) {
@@ -56,10 +65,10 @@ export function FadeInImage({
 
   return (
     <div className={`relative overflow-hidden ${wrapperClassName}`}>
-      {placeholder ? (
+      {placeholder || placeholderClassName ? (
         <div
           aria-hidden
-          className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${
+          className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${placeholderClassName} ${
             loaded ? "opacity-0" : "opacity-100"
           }`}
         >

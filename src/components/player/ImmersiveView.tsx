@@ -160,6 +160,9 @@ export function ImmersiveView({
     setClassicSide((s) => (s === "lyrics" ? "nowPlaying" : "lyrics"));
 
   // ── Native fullscreen (reversible) ───────────────────────────────
+  // The floating top-right buttons, which the side panel measures.
+  const buttonBarRef = useRef<HTMLDivElement>(null);
+
   // Enter on mount, restore the prior window state on unmount. Refs so
   // the cleanup restores exactly what we changed even if mount/unmount
   // race a very fast open→close.
@@ -273,8 +276,19 @@ export function ImmersiveView({
       {/* Foreground */}
       <div className="relative h-full flex flex-col text-white animate-fade-in">
         {/* Shared top bar — panel toggle + share + close. Absolute so
-            the columns own the full height underneath. */}
-        <div className="absolute top-0 right-0 z-10 flex items-center justify-end gap-3 px-8 py-6">
+            the columns own the full height underneath. The side panel
+            measures it to know how much of its own top line is free.
+
+            Its padding is click-through: only the buttons take the
+            pointer. The bar sits above the columns (`z-10`), so its
+            transparent 32px left padding and 24px above and below the
+            buttons swallowed clicks meant for what is underneath — the
+            end of the side panel's tabs when they fit with little to
+            spare (#752 review), and a strip of the lyrics or queue. */}
+        <div
+          ref={buttonBarRef}
+          className="absolute top-0 right-0 z-10 flex items-center justify-end gap-3 px-8 py-6 pointer-events-none *:pointer-events-auto"
+        >
           {currentTrack &&
             (dual ? (
               <button
@@ -369,6 +383,7 @@ export function ImmersiveView({
                 lyrics={lyrics}
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
+                buttonBarRef={buttonBarRef}
               />
             </div>
           )}

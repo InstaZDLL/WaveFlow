@@ -1145,7 +1145,7 @@ pub(crate) async fn scan_folder_inner(
                             "UPDATE album SET artwork_id = ?, artwork_source = ? WHERE id = ?",
                         )
                         .bind(artwork_id)
-                        .bind(cover.source)
+                        .bind(cover.source.as_str())
                         .bind(aid)
                         .execute(&mut *tx)
                         .await?;
@@ -1341,19 +1341,6 @@ pub(crate) async fn scan_folder_inner(
                     Some(g) => upsert_cache.genre(&mut tx, g).await?,
                     None => None,
                 };
-                if let (Some(cover), Some(aid)) = (&extracted.cover_art, album_id) {
-                    let artwork_id =
-                        upsert_artwork(&mut tx, &cover.hash, &cover.format, cover.source).await?;
-                    sqlx::query(
-                        "UPDATE album SET artwork_id = ?, artwork_source = ?
-                          WHERE id = ? AND artwork_id IS NULL",
-                    )
-                    .bind(artwork_id)
-                    .bind(cover.source)
-                    .bind(aid)
-                    .execute(&mut *tx)
-                    .await?;
-                }
 
                 let t_link = Instant::now();
                 maybe_link_artist_images(
@@ -1416,6 +1403,55 @@ pub(crate) async fn scan_folder_inner(
                 .bind(existing_track_id)
                 .execute(&mut *tx)
                 .await?;
+
+                if let (Some(cover), Some(aid)) = (&extracted.cover_art, album_id) {
+                    let artwork_id =
+                        upsert_artwork(&mut tx, &cover.hash, &cover.format, cover.source).await?;
+                    // A changed file may carry a new embedded picture, and
+                    // `artwork_id IS NULL` alone meant it never reached the
+                    // album: the new image landed in the artwork dir and the
+                    // album kept pointing at the old one (#750).
+                    //
+                    // Lifting the guard outright is not safe either. The tag
+                    // editor stores a whole-file hash where the scanner keeps
+                    // a head-and-tail one, so every rating or tag WaveFlow
+                    // writes sends that file down this branch on the next
+                    // scan — and on an album whose tracks carry different
+                    // pictures, rating track 7 would hand the album track 7's.
+                    //
+                    // So an embedded album cover follows one track only: the
+                    // album's first (lowest disc, then track number). A
+                    // picture changed across the whole album reaches it
+                    // through that track; one changed on track 7 does not.
+                    // A cover chosen by hand, fetched from Deezer or found in
+                    // the folder is never replaced from here.
+                    //
+                    // After the track row, not before: the first-track choice
+                    // reads this track's album, disc and track number and
+                    // availability, and a retagged file may have just changed
+                    // any of them.
+                    sqlx::query(
+                        "UPDATE album SET artwork_id = ?, artwork_source = ?
+                          WHERE id = ?
+                            AND (artwork_id IS NULL
+                                 OR (artwork_source = 'embedded'
+                                     AND ? = 'embedded'
+                                     AND ? = (SELECT t.id FROM track t
+                                               WHERE t.album_id = ? AND t.is_available = 1
+                                               ORDER BY COALESCE(t.disc_number, 1),
+                                                        COALESCE(t.track_number, 2147483647),
+                                                        t.file_path
+                                               LIMIT 1)))",
+                    )
+                    .bind(artwork_id)
+                    .bind(cover.source.as_str())
+                    .bind(aid)
+                    .bind(cover.source.as_str())
+                    .bind(existing_track_id)
+                    .bind(aid)
+                    .execute(&mut *tx)
+                    .await?;
+                }
 
                 write_extra_tags(&mut tx, existing_track_id, extracted.extra_tags.as_ref()).await?;
 
@@ -1499,7 +1535,7 @@ pub(crate) async fn scan_folder_inner(
                       WHERE id = ? AND artwork_id IS NULL",
                 )
                 .bind(artwork_id)
-                .bind(cover.source)
+                .bind(cover.source.as_str())
                 .bind(aid)
                 .execute(&mut *tx)
                 .await?;
