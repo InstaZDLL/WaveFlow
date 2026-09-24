@@ -23,6 +23,19 @@
 //! launch would try the GPU path again — the loop repeating forever
 //! while the mechanism appears not to work.
 //!
+//! ## Two launches at once
+//!
+//! A marker still armed does not always mean a launch died: it can
+//! belong to one that is **still starting**, beside this one. Opening the
+//! app twice within a few milliseconds — a double click is enough —
+//! runs two processes through this module before the single-instance
+//! plugin sorts them out, and the second read the first's marker as a
+//! launch that never painted (#755). When the second is the one that
+//! stays, it started in software for nothing and, having painted there,
+//! remembered it. So the marker carries the process that armed it, and
+//! one armed by a WaveFlow launch that is still running is not evidence
+//! of anything.
+//!
 //! ## Why the fallback sticks
 //!
 //! A one-shot fallback would be worse than none: the software launch
@@ -172,6 +185,23 @@ struct RenderState {
     /// paints. Still here on the next launch means it never did.
     #[serde(skip_serializing_if = "Option::is_none")]
     armed: Option<RenderMode>,
+    /// The process that armed it, so a launch can tell a marker left by
+    /// one that died without painting from one that is still starting
+    /// up beside it (#755). Absent from a file written before this
+    /// existed, which reads as the former — what every marker meant then.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    armed_by: Option<u32>,
+}
+
+impl RenderState {
+    /// A state this process writes: any marker in it is this process's.
+    fn written_here(remembered: Option<RenderMode>, armed: Option<RenderMode>) -> Self {
+        Self {
+            remembered,
+            armed,
+            armed_by: armed.map(|_| std::process::id()),
+        }
+    }
 }
 
 /// Where the state lives and what was decided, for the two callers that
@@ -353,6 +383,125 @@ fn override_from_env() -> (Option<RenderMode>, Option<String>) {
     }
 }
 
+/// Set aside a marker armed by a launch that is **still running**.
+///
+/// Two launches a few milliseconds apart both run [`decide`] before the
+/// single-instance plugin turns one of them away, and the second finds
+/// the first's marker armed — not because that launch failed to paint,
+/// but because it has not had the time to (#755). Read as a failure, it
+/// sent the second into software rendering; and when the second was the
+/// one that stayed, it painted there and remembered it, for every launch
+/// after.
+///
+/// `is_running` is the probe, passed in so the rule is testable without
+/// spawning a process. A marker with no process recorded — written
+/// before this existed — keeps its old meaning. Returns the note the log
+/// is owed, since this runs before the log exists.
+fn without_live_marker(
+    previous: RenderState,
+    is_running: impl Fn(u32) -> bool,
+) -> (RenderState, Option<String>) {
+    match previous.armed_by {
+        Some(pid) if previous.armed.is_some() && pid != std::process::id() && is_running(pid) => (
+            RenderState {
+                armed: None,
+                armed_by: None,
+                ..previous
+            },
+            Some(format!(
+                "the renderer marker belongs to another launch that is still starting (pid {pid}), not to one that failed to paint"
+            )),
+        ),
+        _ => (previous, None),
+    }
+}
+
+/// Whether `pid` is a WaveFlow launch that is still running.
+///
+/// The executable is compared, not only the process's existence: a pid
+/// is handed out again once its process is gone, and the marker of a
+/// launch that really died would otherwise be excused by whatever
+/// program inherited its number. By file name rather than full path,
+/// because an AppImage mounts itself somewhere new on every launch.
+///
+/// macOS answers `false`, which is what every marker meant before this
+/// existed: it has no software path, so the question never changes its
+/// decision there.
+fn launch_in_progress(pid: u32) -> bool {
+    let (Some(theirs), Ok(ours)) = (executable_of(pid), std::env::current_exe()) else {
+        return false;
+    };
+    same_executable(&theirs, &ours)
+}
+
+fn same_executable(a: &Path, b: &Path) -> bool {
+    // A binary replaced by an update while it runs reads back from
+    // `/proc` with this suffix.
+    let name = |path: &Path| {
+        path.file_name().map(|name| {
+            name.to_string_lossy()
+                .trim_end_matches(" (deleted)")
+                .to_lowercase()
+        })
+    };
+    matches!((name(a), name(b)), (Some(x), Some(y)) if x == y)
+}
+
+/// The executable of a running process, or `None` when it has exited or
+/// cannot be inspected.
+#[cfg(target_os = "linux")]
+fn executable_of(pid: u32) -> Option<PathBuf> {
+    // Unreadable for a zombie — exited, not yet reaped — which is the
+    // answer wanted: it will never paint.
+    std::fs::read_link(format!("/proc/{pid}/exe")).ok()
+}
+
+#[cfg(target_os = "windows")]
+fn executable_of(pid: u32) -> Option<PathBuf> {
+    use windows::core::PWSTR;
+    use windows::Win32::Foundation::{CloseHandle, STILL_ACTIVE};
+    use windows::Win32::System::Threading::{
+        GetExitCodeProcess, OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
+        PROCESS_QUERY_LIMITED_INFORMATION,
+    };
+
+    // SAFETY: the handle is opened here, used only by the calls below
+    // and closed before returning; the buffer outlives the call that
+    // fills it, and `len` carries its capacity in and the written
+    // length out, as the API documents.
+    unsafe {
+        let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
+        let path = (|| {
+            // A handle can still be opened on a process that has exited
+            // while something holds a reference to it.
+            let mut code = 0u32;
+            GetExitCodeProcess(handle, &mut code).ok()?;
+            if code as i32 != STILL_ACTIVE.0 {
+                return None;
+            }
+            let mut buf = [0u16; 1024];
+            let mut len = buf.len() as u32;
+            QueryFullProcessImageNameW(
+                handle,
+                PROCESS_NAME_WIN32,
+                PWSTR(buf.as_mut_ptr()),
+                &mut len,
+            )
+            .ok()?;
+            Some(PathBuf::from(String::from_utf16_lossy(
+                &buf[..len as usize],
+            )))
+        })();
+        let _ = CloseHandle(handle);
+        path
+    }
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "windows")))]
+fn executable_of(_pid: u32) -> Option<PathBuf> {
+    None
+}
+
 /// Work out what the previous launch implies, with no side effects, so
 /// the table above is testable without a filesystem or a process
 /// environment.
@@ -471,9 +620,13 @@ fn apply(mode: RenderMode) {
 pub fn decide(root: PathBuf) -> RenderDecision {
     let path = state_path(&root);
     let (previous, state_note) = read_state(&path);
+    let (previous, concurrent_note) = without_live_marker(previous, launch_in_progress);
     let (forced, env_note) = override_from_env();
     let decision = decide_from(&previous, forced, SOFTWARE_AVAILABLE);
-    let mut notes: Vec<String> = [env_note, state_note].into_iter().flatten().collect();
+    let mut notes: Vec<String> = [env_note, state_note, concurrent_note]
+        .into_iter()
+        .flatten()
+        .collect();
 
     // What this launch is attempting, written before the window can
     // fail to paint. The remembered mode is carried through: a launch
@@ -493,10 +646,7 @@ pub fn decide(root: PathBuf) -> RenderDecision {
     // only place that could ever say so.
     if let Err(err) = write_state(
         &path,
-        &RenderState {
-            remembered,
-            armed: Some(decision.mode),
-        },
+        &RenderState::written_here(remembered, Some(decision.mode)),
     ) {
         notes.push(format!(
             "could not arm the renderer marker, so this launch is not covered by the fallback: {err}"
@@ -556,10 +706,7 @@ pub fn mark_painted() {
     locked(|| {
         write_state_best_effort(
             &active.path,
-            &RenderState {
-                remembered: remembered_after_paint(active),
-                armed: None,
-            },
+            &RenderState::written_here(remembered_after_paint(active), None),
         );
     });
 }
@@ -606,13 +753,15 @@ fn remembered_after_paint(active: &Active) -> Option<RenderMode> {
 /// is staying**, and writes what that instance knows to be true: it has
 /// painted, or it is still the one attempting its own mode.
 ///
-/// No process identity is stamped into the marker, and none is needed.
 /// The duplicate cannot paint — the plugin is registered first and
 /// exits it before any window is shown — so it never reaches
 /// [`mark_painted`], and its own write is always followed by this one:
 /// its decision happens before it reaches `Builder`, and this runs
 /// because it reached `Builder`. What it wrote in between is
-/// overwritten by the instance that is still here.
+/// overwritten by the instance that is still here. The process stamped
+/// into the marker plays no part in that; it answers the other
+/// direction — the second launch *deciding* from the first one's marker
+/// (#755), see [`without_live_marker`].
 pub fn restore_after_duplicate_launch() {
     let Some(active) = ACTIVE.get() else {
         return;
@@ -623,14 +772,14 @@ pub fn restore_after_duplicate_launch() {
         let painted = PAINTED.load(std::sync::atomic::Ordering::Acquire);
         write_state_best_effort(
             &active.path,
-            &RenderState {
-                remembered: if painted {
+            &RenderState::written_here(
+                if painted {
                     remembered_after_paint(active)
                 } else {
                     active.remembered
                 },
-                armed: (!painted).then_some(active.decision.mode),
-            },
+                (!painted).then_some(active.decision.mode),
+            ),
         );
         painted
     });
@@ -655,10 +804,7 @@ pub fn disarm_for_deliberate_exit() {
     locked(|| {
         write_state_best_effort(
             &active.path,
-            &RenderState {
-                remembered: active.remembered,
-                armed: None,
-            },
+            &RenderState::written_here(active.remembered, None),
         );
     });
 }
@@ -724,13 +870,7 @@ pub fn retry_gpu() -> std::io::Result<()> {
         // duplicate launch may have written its guess over it.
         let armed =
             (!PAINTED.load(std::sync::atomic::Ordering::Acquire)).then_some(active.decision.mode);
-        write_state(
-            &active.path,
-            &RenderState {
-                remembered: None,
-                armed,
-            },
-        )?;
+        write_state(&active.path, &RenderState::written_here(None, armed))?;
         // Inside the lock, and only once the write landed. Raised
         // before the write, a retry reported as failed would still stop
         // a later paint from restoring the fallback — quietly doing
@@ -749,7 +889,11 @@ mod tests {
     use super::*;
 
     fn state(remembered: Option<RenderMode>, armed: Option<RenderMode>) -> RenderState {
-        RenderState { remembered, armed }
+        RenderState {
+            remembered,
+            armed,
+            armed_by: None,
+        }
     }
 
     #[test]
@@ -814,6 +958,7 @@ mod tests {
             &RenderState {
                 remembered: Some(RenderMode::Software),
                 armed: Some(RenderMode::Gpu),
+                armed_by: None,
             },
         )
         .expect("write");
@@ -829,6 +974,7 @@ mod tests {
             &RenderState {
                 remembered: None,
                 armed: None,
+                armed_by: None,
             },
         )
         .expect("clear");
@@ -839,6 +985,7 @@ mod tests {
             &RenderState {
                 remembered: None,
                 armed: None,
+                armed_by: None,
             },
         )
         .expect("clear again");
@@ -858,6 +1005,7 @@ mod tests {
                 &RenderState {
                     remembered: Some(RenderMode::Software),
                     armed,
+                    armed_by: None,
                 },
             )
             .expect("write");
@@ -940,5 +1088,95 @@ mod tests {
         let decision = decide_from(&state(None, None), Some(RenderMode::Gpu), false);
         assert_eq!(decision.mode, RenderMode::Gpu);
         assert_eq!(decision.reason, RenderReason::Forced);
+    }
+
+    fn armed_by(pid: u32) -> RenderState {
+        RenderState {
+            remembered: None,
+            armed: Some(RenderMode::Gpu),
+            armed_by: Some(pid),
+        }
+    }
+
+    /// #755: two launches a few milliseconds apart. The second finds the
+    /// first's marker armed because the first has not painted *yet* —
+    /// and must not take that for a launch that failed.
+    #[test]
+    fn a_marker_armed_by_a_launch_still_running_is_not_a_failure() {
+        let other = std::process::id().wrapping_add(1);
+        let (state, note) = without_live_marker(armed_by(other), |pid| pid == other);
+        assert!(state.armed.is_none() && state.armed_by.is_none());
+        assert!(note.is_some(), "the log says why the marker was set aside");
+        let decision = decide_from(&state, None, true);
+        assert_eq!(decision.mode, RenderMode::Gpu);
+        assert_eq!(decision.reason, RenderReason::Default);
+    }
+
+    /// The case the fallback exists for is untouched: the launch that
+    /// armed the marker is gone.
+    #[test]
+    fn a_marker_armed_by_a_launch_that_is_gone_still_falls_back() {
+        let other = std::process::id().wrapping_add(1);
+        let (state, note) = without_live_marker(armed_by(other), |_| false);
+        assert!(note.is_none());
+        let decision = decide_from(&state, None, true);
+        assert_eq!(decision.reason, RenderReason::PreviousLaunchNeverPainted);
+    }
+
+    /// A file written before the process was recorded keeps the meaning
+    /// every marker had then, whatever the probe would say.
+    #[test]
+    fn a_marker_with_no_process_keeps_its_old_meaning() {
+        let (state, note) = without_live_marker(state(None, Some(RenderMode::Gpu)), |_| true);
+        assert_eq!(state.armed, Some(RenderMode::Gpu));
+        assert!(note.is_none());
+    }
+
+    /// What a marker records about its process has to survive the file.
+    #[test]
+    fn the_arming_process_is_written_and_read_back() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("renderer.json");
+        write_state(
+            &path,
+            &RenderState::written_here(None, Some(RenderMode::Gpu)),
+        )
+        .expect("write");
+        let (state, _) = read_state(&path);
+        assert_eq!(state.armed_by, Some(std::process::id()));
+
+        // Disarmed, it names nobody.
+        let cleared = RenderState::written_here(Some(RenderMode::Software), None);
+        assert!(cleared.armed_by.is_none());
+    }
+
+    /// The probe itself, on the two platforms that have one: this
+    /// process is a running launch of this executable, and a pid no
+    /// system hands out is not.
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
+    #[test]
+    fn the_probe_recognises_a_running_launch() {
+        assert!(launch_in_progress(std::process::id()));
+        assert!(!launch_in_progress(u32::MAX - 1));
+    }
+
+    #[test]
+    fn executables_are_compared_by_name() {
+        assert!(same_executable(
+            Path::new("/tmp/.mount_a/usr/bin/waveflow"),
+            Path::new("/tmp/.mount_b/usr/bin/waveflow"),
+        ));
+        assert!(same_executable(
+            Path::new("/usr/bin/waveflow (deleted)"),
+            Path::new("/usr/bin/waveflow"),
+        ));
+        assert!(same_executable(
+            Path::new("C:/Program Files/WaveFlow/WaveFlow.exe"),
+            Path::new("C:/Program Files/WaveFlow/waveflow.exe"),
+        ));
+        assert!(!same_executable(
+            Path::new("/usr/bin/firefox"),
+            Path::new("/usr/bin/waveflow"),
+        ));
     }
 }
