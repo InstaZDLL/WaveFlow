@@ -24,7 +24,10 @@ import { dominantColor } from "./dominantColor";
 export interface NowPlayingCardOptions {
   labels: {
     nowPlaying: string;
-    on: string; // "on WaveFlow" or equivalent
+    /** The whole footer line, app name included ("on WaveFlow",
+     *  "WaveFlow에서"): languages that put the particle after the name
+     *  cannot be served by a prefix glued to a fixed "WaveFlow". */
+    footer: string;
   };
 }
 
@@ -182,7 +185,7 @@ export async function renderNowPlayingCard(
   ctx.font =
     "600 24px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(`${opts.labels.on} · WaveFlow`, SIZE / 2, SIZE - 36);
+  ctx.fillText(opts.labels.footer, SIZE / 2, SIZE - 36);
 
   return await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(

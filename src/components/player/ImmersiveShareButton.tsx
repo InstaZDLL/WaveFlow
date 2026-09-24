@@ -41,7 +41,7 @@ export function ImmersiveShareButton({ track }: ImmersiveShareButtonProps) {
     renderNowPlayingCard(track, {
       labels: {
         nowPlaying: t("nowPlaying.share.eyebrow"),
-        on: t("nowPlaying.share.on"),
+        footer: t("nowPlaying.share.footer", { app: "WaveFlow" }),
       },
     });
 

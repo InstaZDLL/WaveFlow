@@ -48,7 +48,7 @@
       "later": "稍后"
     },
     "downloading": {
-      "title": "正在下载更新……"
+      "title": "正在下载更新…"
     },
     "installed": {
       "title": "已安装更新",
@@ -68,7 +68,7 @@
       "title": "重要：仅限本地音乐",
       "description": "WaveFlow 不是流媒体服务，它播放你设备上已有的文件。",
       "calloutTitle": "你需要知道",
-      "bulletOwn": "自带音乐库(MP3、FLAC、ALAC、OGG、DSD…)",
+      "bulletOwn": "自带音乐库（MP3、FLAC、ALAC、OGG、DSD…）",
       "bulletImport": "导入文件夹或拖放文件",
       "bulletScrobble": "连接 Last.fm，在后台 Scrobble 你的播放记录"
     },
@@ -126,9 +126,9 @@
       "title": "全部就绪！",
       "description": "你的音乐库已扫描完毕，准备好播放。",
       "nextSteps": "下一步：",
-      "bulletExplore": "通过音乐库、专辑和艺人标签页浏览你的收藏",
+      "bulletExplore": "通过音乐库、专辑和艺人标签页浏览你的音乐",
       "bulletQueue": "点击曲目创建你的第一个播放队列",
-      "bulletSettings": "在侧边栏精细调节设置（外观、集成…）",
+      "bulletSettings": "在侧边栏精细调节设置（外观、连接…）",
       "tipImmersiveTitle": "提示：沉浸式视图",
       "tipImmersiveBody": "点击播放器封面，打开封面与歌词并排的全屏视图。"
     },
@@ -161,7 +161,7 @@
     "lyrics": {
       "title": "歌词保存在哪里？",
       "description": "歌词应该保存到何处？你编辑的歌词和 WaveFlow 为你找到的歌词都适用。可在 设置 → 图片与歌词 中随时更改。",
-      "hint": "选择「外挂歌词文件」可让音频文件保持不变——foobar2000 等播放器就是这样做的。"
+      "hint": "选择“外挂歌词文件”可让音频文件保持不变——foobar2000 等播放器就是这样做的。"
     }
   },
   "sidebar": {
@@ -210,7 +210,7 @@
       "importM3uAria": "导入 M3U 播放列表",
       "importDialogTitle": "导入 M3U 播放列表",
       "liked": "已喜欢的曲目",
-      "recent": "最近播放的",
+      "recent": "最近播放",
       "emptySubtext_zero": "0 首曲目",
       "emptySubtext_one": "{{count}} 首曲目",
       "emptySubtext_other": "{{count}} 首曲目",
@@ -239,10 +239,10 @@
   },
   "topbar": {
     "search": {
-      "placeholder": "搜索歌曲、歌手、专辑……",
+      "placeholder": "搜索曲目、艺人、专辑…",
       "results_zero": "没有结果",
-      "results_one": "{{count}} 结果",
-      "results_other": "{{count}} 结果",
+      "results_one": "{{count}} 个结果",
+      "results_other": "{{count}} 个结果",
       "empty": "没有匹配的搜索结果",
       "filters": {
         "toggle": "高级筛选",
@@ -250,7 +250,7 @@
         "close": "关闭",
         "reset": "重置",
         "hiRes": "Hi-Res",
-        "likedOnly": "仅显示喜欢",
+        "likedOnly": "仅显示已喜欢",
         "year": "年份（从 → 到）",
         "bpm": "BPM（从 → 到）",
         "durationMin": "时长（分钟）（从 → 到）",
@@ -259,7 +259,7 @@
       },
       "artists": "艺人",
       "albums": "专辑",
-      "titles": "歌曲"
+      "titles": "曲目"
     },
     "theme": {
       "enableLight": "启用浅色模式",
@@ -280,6 +280,7 @@
   "home": {
     "greeting": {
       "morning": "早上好",
+      "afternoon": "下午好",
       "evening": "晚上好",
       "night": "晚安"
     },
@@ -329,7 +330,7 @@
       "coverage_other": "已分析 {{count}} 首中的 {{analysed}} 首"
     },
     "recentlyPlayed": {
-      "title": "最近播放的",
+      "title": "最近播放",
       "emptyTitle": "尚未收听任何歌曲",
       "emptyDescription": "播放一首曲目后它会出现在这里。随着你不断探索，收听记录会逐渐累积。"
     },
@@ -441,7 +442,7 @@
     "searchDeezer": "搜索 Deezer",
     "localFile": "本地文件",
     "fetchMissingCovers": "获取所有缺失的封面",
-    "fetchingCovers": "正在获取封面…({{current}} / {{total}})",
+    "fetchingCovers": "正在获取封面…（{{current}} / {{total}}）",
     "fetchCoversResult_one": "已获取 {{count}} 张封面",
     "fetchCoversResult_other": "已获取 {{count}} 张封面",
     "fetchCoversFailed": "获取封面失败",
@@ -626,8 +627,8 @@
     "count_zero": "0 首曲目",
     "count_one": "{{count}} 首曲目",
     "count_other": "{{count}} 首曲目",
-    "emptyTitle": "没有收藏的曲目",
-    "emptyDescription": "你喜欢的歌曲将显示在这里。浏览你的音乐库，将喜欢的曲目加入收藏。",
+    "emptyTitle": "没有已喜欢的曲目",
+    "emptyDescription": "你喜欢的歌曲将显示在这里。浏览你的音乐库，把喜欢的曲目加入“已喜欢”。",
     "playAll": "全部播放",
     "unlike": "取消喜欢",
     "like": "加入已喜欢"
@@ -656,7 +657,7 @@
   },
   "recent": {
     "badge": "历史",
-    "title": "最近播放的",
+    "title": "最近播放",
     "count_zero": "0 首曲目",
     "count_one": "{{count}} 首曲目",
     "count_other": "{{count}} 首曲目",
@@ -823,7 +824,7 @@
     "sections": {
       "frameworkDesktop": "桌面框架",
       "frontend": "前端",
-      "backend": "后端(Rust)",
+      "backend": "后端（Rust）",
       "audio": "音频",
       "shortcuts": "键盘快捷键",
       "credits": "鸣谢",
@@ -883,7 +884,7 @@
       "unmute": "取消静音"
     },
     "speed": {
-      "label": "播放速度 ({{value}})",
+      "label": "播放速度（{{value}}）",
       "title": "播放速度",
       "slider": "速度滑块",
       "custom": "自定义速度",
@@ -923,12 +924,12 @@
     "upNext_other": "接下来 · {{count}} 首",
     "radio": {
       "label": "电台",
-      "basedOn": "基于「{{title}}」"
+      "basedOn": "基于“{{title}}”"
     }
   },
   "deviceMenu": {
     "activeLabel": "当前输出设备",
-    "loading": "正在搜索设备……",
+    "loading": "正在搜索设备…",
     "empty": "没有可用的输出设备",
     "systemDefault": "系统默认",
     "pinnedUnavailable": "已固定，不可用",
@@ -985,7 +986,7 @@
       "deleteAria": "删除个人资料 {{name}}"
     },
     "delete": {
-      "title": "删除 {{name}}?",
+      "title": "删除 {{name}}？",
       "subtitle": "此个人资料将被永久删除。",
       "warning": "此个人资料的所有音乐库、播放列表和播放记录都会丢失。此操作无法撤销。",
       "submit": "删除个人资料",
@@ -998,9 +999,9 @@
     "previewDefault": "新建音乐库",
     "previewSubtitle": "0 首曲目 · 音乐库",
     "nameLabel": "音乐库名称",
-    "namePlaceholder": "例如：摇滚、爵士、古典……",
+    "namePlaceholder": "例如：摇滚、爵士、古典…",
     "descriptionLabel": "描述",
-    "descriptionPlaceholder": "简要介绍……",
+    "descriptionPlaceholder": "简要介绍…",
     "submit": "新建音乐库",
     "submitEdit": "保存"
   },
@@ -1030,7 +1031,7 @@
     "nameLabel": "名称",
     "namePlaceholder": "例如：Chill Vibes、Workout Mix…",
     "descriptionLabel": "描述",
-    "descriptionPlaceholder": "简要介绍……",
+    "descriptionPlaceholder": "简要介绍…",
     "colorLabel": "颜色",
     "colorAria": "颜色{{color}}",
     "iconLabel": "图标",
@@ -1091,8 +1092,8 @@
     "rating": "评分",
     "ratingNone": "无评分",
     "batchEdit": "编辑 {{count}} 首曲目的标签…",
-    "addToPlaylistNamed": "添加到「{{name}}」",
-    "removeFromPlaylistNamed": "从「{{name}}」中移除"
+    "addToPlaylistNamed": "添加到“{{name}}”",
+    "removeFromPlaylistNamed": "从“{{name}}”中移除"
   },
   "batchTagEdit": {
     "title": "批量编辑标签",
@@ -1153,7 +1154,7 @@
       "title": "标题",
       "artist": "艺人",
       "album": "专辑",
-      "trackNumber": "曲目号",
+      "trackNumber": "音轨号",
       "discNumber": "碟片号",
       "genre": "流派",
       "genrePlaceholder": "流行、摇滚、爵士…"
@@ -1187,8 +1188,8 @@
     "releaseDate": "发行日期",
     "emptyTitle": "找不到该专辑",
     "emptyDescription": "此专辑已不在当前的个人资料中。",
-    "emptyTracksTitle": "没有歌曲",
-    "emptyTracksDescription": "该专辑中没有可播放的歌曲。",
+    "emptyTracksTitle": "没有曲目",
+    "emptyTracksDescription": "该专辑中没有可用的曲目。",
     "setMotionCover": "动态封面",
     "fetchTags": "获取标签"
   },
@@ -1256,7 +1257,7 @@
   },
   "genreDetail": {
     "badge": "流派",
-    "playAll": "播放全部",
+    "playAll": "全部播放",
     "shuffle": "随机播放",
     "trackCount_zero": "0 首",
     "trackCount_one": "{{count}} 首",
@@ -1279,7 +1280,7 @@
     "aboutArtist": "关于艺人",
     "readMore": "阅读更多",
     "readLess": "收起",
-    "noBio": "没有传记信息。请在设置中尝试其他简介来源。",
+    "noBio": "暂无艺人简介。请在设置中尝试其他简介来源。",
     "nextInQueue": "队列中的下一首",
     "openQueue": "打开队列",
     "lyrics": {
@@ -1292,7 +1293,7 @@
       "save": "保存为 PNG",
       "copy": "复制图片",
       "eyebrow": "正在播放",
-      "on": "收录于"
+      "footer": "来自 {{app}}"
     }
   },
   "playerBar": {
@@ -1300,8 +1301,8 @@
     "nowPlaying": "显示正在播放",
     "queue": "队列",
     "miniPlayer": "迷你播放器（始终置顶）",
-    "previous": "上一曲",
-    "next": "下一曲",
+    "previous": "上一首",
+    "next": "下一首",
     "devices": "输出设备",
     "moreActions": "更多操作",
     "abLoop": "A-B 循环",
@@ -1327,7 +1328,7 @@
         "downmix": "下混",
         "eq": "均衡器",
         "replayGain": "ReplayGain",
-        "normalize": "归一化",
+        "normalize": "音量标准化",
         "mono": "单声道",
         "speed": "速度 {{value}}×",
         "dopNative": "原生 DSD"
@@ -1347,7 +1348,7 @@
     "close": "关闭迷你播放器",
     "upNext": {
       "toggle": "播放队列",
-      "title": "即将播放 · {{count}}",
+      "title": "接下来 · {{count}}",
       "empty": "队列中没有其他内容"
     },
     "lyrics": {
@@ -1372,7 +1373,7 @@
   },
   "lyrics": {
     "title": "歌词",
-    "loading": "搜索歌词……",
+    "loading": "正在搜索歌词…",
     "noTrack": "没有正在播放的曲目",
     "notFound": "未找到此曲目的歌词。你可以导入 .lrc 文件。",
     "fetchError": "无法连接歌词服务，请稍后重试。",
@@ -1436,8 +1437,8 @@
   },
   "abLoop": {
     "setA": "A-B 循环：在当前位置设置 A 点",
-    "setB": "A-B 循环：设置 B 点 (A = {{a}})",
-    "armed": "A-B 循环已启用：{{a}} → {{b}} （点击清除）"
+    "setB": "A-B 循环：设置 B 点（A = {{a}}）",
+    "armed": "A-B 循环已启用：{{a}} → {{b}}（点击清除）"
   },
   "smartPlaylistEditor": {
     "createTitle": "新建智能播放列表",
@@ -1477,13 +1478,13 @@
       "addedAsc": "最早添加",
       "yearDesc": "年份（降序）",
       "yearAsc": "年份（升序）",
-      "titleAsc": "标题(A → Z)",
-      "artistAsc": "艺人(A → Z)",
+      "titleAsc": "标题（A → Z）",
+      "artistAsc": "艺人（A → Z）",
       "random": "随机"
     },
     "tree": {
       "sectionTitle": "规则",
-      "sectionHint": "用「与」/「或」/「非」组合条件。点击「与」或「或」来切换分组逻辑符。",
+      "sectionHint": "用“与”/“或”/“非”组合条件。点击“与”或“或”来切换分组逻辑符。",
       "and": "与",
       "or": "或",
       "not": "非",
@@ -1496,8 +1497,8 @@
       "notHint": "排除与子节点匹配的所有内容",
       "deleteNode": "删除",
       "addCondition": "条件",
-      "addGroupAnd": "与 分组",
-      "addGroupOr": "或 分组",
+      "addGroupAnd": "“与”分组",
+      "addGroupOr": "“或”分组",
       "addNot": "非",
       "contains": "包含…",
       "pickGenre": "选择流派…",
@@ -1516,8 +1517,8 @@
       "yearMax": "年份 ≤",
       "bpmMin": "BPM ≥",
       "bpmMax": "BPM ≤",
-      "durationMinMs": "时长 （毫秒） ≥",
-      "durationMaxMs": "时长 （毫秒） ≤",
+      "durationMinMs": "时长（毫秒）≥",
+      "durationMaxMs": "时长（毫秒）≤",
       "format": "格式 =",
       "hiRes": "Hi-Res",
       "liked": "已喜欢",
@@ -1534,13 +1535,13 @@
       "tagContains": "标签包含"
     },
     "counting": "正在统计…",
-    "matchCountLimited": "{{total}} 首中的 {{kept}} 首",
+    "matchCountLimited": "符合 {{total}} 首，保留 {{kept}} 首",
     "templates": {
       "label": "模板",
       "placeholder": "从模板开始…",
       "recentlyAdded": "最近添加",
       "neverPlayed": "从未播放",
-      "favourites": "收藏",
+      "favourites": "已喜欢",
       "forgotten": "久未收听",
       "hiRes": "Hi-Res",
       "upTempo": "快节奏"
@@ -1571,7 +1572,7 @@
     "insertBelow": "在下方插入一行",
     "removeLine": "删除行",
     "lines": "行已标记",
-    "writeToFile": "同时写入音频文件 (USLT/LYRICS)",
+    "writeToFile": "同时写入音频文件（USLT/LYRICS）",
     "offset": {
       "label": "整体偏移",
       "help": "将所有已标记时间行整体偏移相同的时长——适用于导入的 LRC 文件整体提前或滞后的情况",
@@ -1626,7 +1627,7 @@
     "masthead": {
       "edition": "晨刊",
       "price": "价格：已包含",
-      "subtitle": "「值得印刷的所有音乐。」— 你每日的专属精选。"
+      "subtitle": "“值得印刷的所有音乐。”——你每日的专属精选。"
     },
     "lead": {
       "caption": "图 1.——摘自《{{album}}》，{{artist}}。",
@@ -1682,7 +1683,7 @@
         "http": "HTTP ({{count}})",
         "storageState": "用户存储",
         "storageRead": "读取存储",
-        "assets": "资源 ({{count}})",
+        "assets": "资源（{{count}}）",
         "none": "未请求任何权限",
         "libraryReadArtists": "读取你的艺人"
       },
@@ -1705,7 +1706,7 @@
     "integrations": {
       "lastfm": {
         "title": "Last.fm",
-        "subtitle": "艺人简介和播放追踪。在 last.fm/api/account/create 创建密钥",
+        "subtitle": "艺人简介和 Scrobbling。在 last.fm/api/account/create 创建密钥",
         "placeholder": "API 密钥",
         "secretPlaceholder": "共享密钥",
         "save": "保存",
@@ -1714,11 +1715,11 @@
         "hide": "隐藏",
         "connectedAs": "登录身份为",
         "disconnect": "退出登录",
-        "loginPrompt": "登录以记录你的收听记录：",
+        "loginPrompt": "登录以 Scrobble 你的收听记录：",
         "usernamePlaceholder": "用户名",
         "passwordPlaceholder": "密码",
         "connect": "登录",
-        "connecting": "正在登录……"
+        "connecting": "正在登录…"
       },
       "discord": {
         "title": "Discord Rich Presence",
@@ -1743,7 +1744,7 @@
         "passwordPlaceholder": "无",
         "passwordHint": "可选。在共享网络中建议设置——MPD 协议以明文传输密码。",
         "lanWarning": "整个局域网均可访问：网络中的任何人都能控制播放。",
-        "lanWarningAuth": "可从整个本地网络访问，但播放控制需要你设置的密码。",
+        "lanWarningAuth": "可从整个局域网访问，但播放控制需要你设置的密码。",
         "statusRunning": "运行中",
         "statusStopped": "已停止",
         "copyAddress": "复制地址"
@@ -1755,7 +1756,7 @@
     },
     "crossfade": {
       "title": "交叉淡化",
-      "subtitle": "歌曲之间将实现无缝过渡（即将推出）"
+      "subtitle": "歌曲之间无缝过渡"
     },
     "dynamicCrossfade": {
       "title": "动态交叉淡化",
@@ -1834,15 +1835,15 @@
     },
     "showSleepTimer": {
       "title": "将睡眠定时器固定到播放栏",
-      "subtitle": "关闭后仍可从「…」菜单访问定时器"
+      "subtitle": "关闭后仍可从“…”菜单访问定时器"
     },
     "showAbLoop": {
       "title": "将 A-B 循环固定到播放栏",
-      "subtitle": "关闭后仍可从「…」菜单访问 A-B 循环"
+      "subtitle": "关闭后仍可从“…”菜单访问 A-B 循环"
     },
     "duplicates": {
       "title": "检测重复文件",
-      "subtitle": "在音乐库中查找字节相同的文件 （blake3 哈希相同）",
+      "subtitle": "在音乐库中查找字节相同的文件（blake3 哈希相同）",
       "action": "搜索"
     },
     "rescan": {
@@ -1874,7 +1875,7 @@
     },
     "clipsInLibrary": {
       "title": "将短片与音乐放在一起",
-      "subtitle": "你自己设置的 Canvas 短片和动态封面会放入音乐库内的隐藏文件夹，因此会跟着文件一起走。扩展获取的内容仍留在上方的缓存中。"
+      "subtitle": "你自己设置的 Canvas 短片和动态封面会放入音乐库内的隐藏文件夹，因此会跟着文件一起走。插件获取的内容仍留在上方的缓存中。"
     },
     "dataFolder": {
       "title": "数据文件夹",
@@ -1887,7 +1888,7 @@
       "subtitle": "为整个音乐库下载歌词以供离线使用",
       "result": "已同步 {{hits}}，未找到 {{misses}}，失败 {{failed}}",
       "offline": "已启用离线模式",
-      "failed": "预加载失败",
+      "failed": "预取失败",
       "action": "预取",
       "progress": "已处理 {{current}}/{{total}} · 找到 {{hits}}"
     },
@@ -1934,7 +1935,7 @@
       "inSync": "已同步",
       "outOfSync": "存在差异",
       "error": "错误：{{message}}",
-      "reasonGeneric": "已跳过({{reason}})",
+      "reasonGeneric": "已跳过（{{reason}}）",
       "reason": {
         "offline": "离线模式已启用",
         "sync_mode_local": "个人资料处于本地模式",
@@ -1942,7 +1943,7 @@
         "profile_canonical_id_missing": "等待首次同步"
       },
       "backfillAlreadyRunning": "已有同步在运行",
-      "backfillSkipped": "已跳过同步({{reason}})",
+      "backfillSkipped": "已跳过同步（{{reason}}）",
       "backfillSummary": "{{pushed}} 已发送 · {{pulled}} 已接收 · {{lww}} 已合并 · {{failed}} 失败",
       "col": {
         "entity": "实体",
@@ -1974,7 +1975,7 @@
         "error": "错误：{{message}}",
         "empty": "无详细信息",
         "missingLocally": "本地缺失",
-        "missingRemotely": "远端缺失",
+        "missingRemotely": "远程缺失",
         "divergent": "不一致",
         "moreNotShown": "另有 {{count}} 项未显示"
       }
@@ -2022,7 +2023,7 @@
       "retentionKeep_one": "每个个人资料 {{count}} 个",
       "retentionKeep_other": "每个个人资料 {{count}} 个",
       "includeMetadataArtworkLabel": "包含 Deezer 封面缓存",
-      "includeMetadataArtworkHint": "备份更大，可完全离线还原。取消勾选可获得精简归档（缓存将按需重新下载）。",
+      "includeMetadataArtworkHint": "备份更大，可完全离线还原。取消勾选可获得精简存档（缓存将按需重新下载）。",
       "changeFolder": "更改文件夹",
       "pickFolderTitle": "选择备份文件夹",
       "lastRun": "上次备份：{{when}}",
@@ -2039,13 +2040,13 @@
     },
     "uiZoom": {
       "title": "界面缩放",
-      "subtitle": "缩放整个界面 （Ctrl+= / Ctrl+- / Ctrl+0 同样生效）",
+      "subtitle": "缩放整个界面（Ctrl+= / Ctrl+- / Ctrl+0 同样生效）",
       "decreaseAria": "缩小",
       "increaseAria": "放大",
-      "resetAria": "重置缩放为 100 %"
+      "resetAria": "重置缩放为 100%"
     },
     "showAudioQualityFooter": {
-      "title": "显示音频质量条",
+      "title": "显示音质信息条",
       "subtitle": "在播放栏下方显示技术详情（kHz、kbps、编解码器、位深）。为保持播放栏轻巧，默认关闭。"
     },
     "categoryNavLabel": "设置分类",
@@ -2059,7 +2060,7 @@
         "dark": "深色"
       },
       "themes": {
-        "default": "祖母绿 浅色",
+        "default": "祖母绿浅色",
         "defaultDark": "祖母绿",
         "oled": "OLED",
         "midnight": "午夜",
@@ -2138,7 +2139,7 @@
       "import": {
         "action": "导入",
         "dialogTitle": "导入 WaveFlow 个人资料",
-        "done": "个人资料已导入 (ID {{id}})。请从个人资料菜单切换到它。",
+        "done": "个人资料已导入（ID {{id}}）。请从个人资料菜单切换到它。",
         "failed": "导入失败。文件可能已损坏或不兼容。"
       }
     },
@@ -2220,7 +2221,7 @@
     },
     "hiResBadge": {
       "title": "Hi-Res / DSD 标识",
-      "subtitle": "在符合条件的曲目旁以及播放栏的艺人姓名下方显示「Hi-Res 24-bit」或「DSD128」标识。默认开启。"
+      "subtitle": "在符合条件的曲目旁以及播放栏的艺人姓名下方显示“Hi-Res 24-bit”或“DSD128”标识。默认开启。"
     },
     "serverAccount": {
       "title": "WaveFlow 服务器账户",
@@ -2257,7 +2258,7 @@
       "subtitle": "在全屏视图中将带时间戳的歌词居中对齐，与纯文本视图保持一致。"
     },
     "lyricsEstimateWords": {
-      "title": "估算的逐词卡拉 OK",
+      "title": "估算的逐词卡拉OK",
       "subtitle": "在按行同步的歌词上，根据估算的时长逐词高亮。仅用于显示：不会保存任何内容。"
     },
     "lyricsHighlightColor": {
@@ -2277,7 +2278,7 @@
       }
     },
     "lyricsTranslation": {
-      "title": "歌词翻译 (Musixmatch)",
+      "title": "歌词翻译（Musixmatch）",
       "subtitle": "当 Musixmatch 提供翻译时，在每行 LRC 下方显示翻译",
       "off": "关闭"
     },
@@ -2344,7 +2345,7 @@
     },
     "statsKpis": {
       "title": "统计指标",
-      "subtitle": "选择在统计页面显示哪些指标。取消勾选你不想看到的指标——例如完整播放率。",
+      "subtitle": "选择在统计页面显示哪些指标。取消勾选你不想看到的指标——例如完整收听率。",
       "legend": "统计指标可见性"
     },
     "immersiveView": {
@@ -2463,12 +2464,12 @@
     },
     "cacheLocation": {
       "title": "缓存位置",
-      "subtitle": "封面、动态封面和 Canvas 片段。这些都可以重新获取，移动不会丢失任何内容。数据库和你手动选择的文件仍留在原处。",
+      "subtitle": "封面、动态封面和 Canvas 短片。这些都可以重新获取，移动不会丢失任何内容。数据库和你手动选择的文件仍留在原处。",
       "pickTitle": "选择缓存文件夹",
       "choose": "移动…",
       "reset": "恢复默认",
       "size": "已用 {{size}}",
-      "copying": "正在复制…… 原文件要到下次启动才会删除。",
+      "copying": "正在复制…原文件要到下次启动才会删除。",
       "fellBack": "设定的位置无法访问（{{path}}），本次运行改用默认位置。你的选择已保留。",
       "restartNeeded": "复制完成。重启后使用新位置。",
       "restartNow": "重启"
@@ -2587,7 +2588,7 @@
   },
   "webRadio": {
     "title": "网络电台",
-    "subtitle": "通过 radio-browser.info 收听 30 000 多个在线电台。",
+    "subtitle": "通过 radio-browser.info 收听 30,000 多个在线电台。",
     "loading": "加载分类中…",
     "resolving": "查找电台中…",
     "emptyResults": "未找到电台。",
@@ -2595,8 +2596,8 @@
     "backToCategories": "返回分类",
     "live": "直播",
     "nowPlaying": "正在播放",
-    "unavailableTitle": "Web Radio 已禁用",
-    "unavailableHint": "在 设置 → 插件 中启用 Web Radio 插件以浏览超过 30,000 个电台。",
+    "unavailableTitle": "网络电台已禁用",
+    "unavailableHint": "在 设置 → 扩展 中启用 Web Radio 插件以浏览超过 30,000 个电台。",
     "favorites": "收藏",
     "favoritesEmpty": "还没有收藏的电台。点击电台的星标即可保存。",
     "addFavorite": "添加到收藏",
@@ -2688,7 +2689,7 @@
     "queue": {
       "empty": "队列为空。",
       "nowPlaying": "正在播放",
-      "upNext": "即将播放"
+      "upNext": "接下来"
     },
     "playlist": {
       "label": "远程播放列表",
@@ -2696,11 +2697,11 @@
       "notSent": "尚未发送到服务器",
       "addTracks": "添加曲目",
       "rename": "重命名",
-      "searchPlaceholder": "搜索服务器音乐库…",
+      "searchPlaceholder": "搜索服务器曲库…",
       "noMatches": "无匹配结果。",
       "addTrack": "添加 {{title}}",
       "addToPlaylist": "添加到播放列表",
-      "emptyDescription": "点击「添加曲目」，在服务器的曲库中搜索。",
+      "emptyDescription": "点击“添加曲目”，在服务器的曲库中搜索。",
       "notFoundDescription": "该播放列表在已连接的服务器上已不存在。",
       "keepOffline": "离线保存",
       "keepingProgress": "已保存 {{done}}/{{total}}",
@@ -2792,17 +2793,17 @@
       "reportRemoved": "移除 {{removed}} 首",
       "reportCancelled": "已停止",
       "neverMirrored": "从未复制。",
-      "mirroredAt": "上次完整复制：{{date}}",
+      "mirroredAt": "上次完整复制：{{date}}。",
       "clearCovers": "清空",
       "coversCached_zero": "没有缓存的封面。",
-      "coversCached_one": "已缓存 {{count}} 张封面（{{size}} MB）",
-      "coversCached_other": "已缓存 {{count}} 张封面（{{size}} MB）",
-      "streamsCached_one": "已缓存 {{count}} 首曲目（{{size}} MB）",
-      "streamsCached_other": "已缓存 {{count}} 首曲目（{{size}} MB）",
+      "coversCached_one": "已缓存 {{count}} 张封面（{{size}} MB）。",
+      "coversCached_other": "已缓存 {{count}} 张封面（{{size}} MB）。",
+      "streamsCached_one": "已缓存 {{count}} 首曲目（{{size}} MB）。",
+      "streamsCached_other": "已缓存 {{count}} 首曲目（{{size}} MB）。",
       "streamsCached_zero": "没有缓存的曲目。",
       "clearStreams": "清空",
-      "downloadsKept_one": "已离线保存 {{count}} 首曲目（{{size}} MB）",
-      "downloadsKept_other": "已离线保存 {{count}} 首曲目（{{size}} MB）",
+      "downloadsKept_one": "已离线保存 {{count}} 首曲目（{{size}} MB）。",
+      "downloadsKept_other": "已离线保存 {{count}} 首曲目（{{size}} MB）。",
       "downloadsKept_zero": "没有离线保存的曲目。",
       "clearDownloads": "清空",
       "reportFeed": "服务器修正：{{applied}} 项"
@@ -2821,7 +2822,7 @@
       "refusal": {
         "already_linked": "已与本地曲目关联：{{count}}",
         "already_held": "音乐库中已有，已建立关联：{{count}}",
-        "unknown_track": "目录中找不到：{{count}}",
+        "unknown_track": "曲库中找不到：{{count}}",
         "unsupported_format": "不支持的格式：{{count}}",
         "hash_mismatch": "内容与预期不符：{{count}}",
         "not_indexed": "复制后未被索引：{{count}}",
@@ -2862,10 +2863,10 @@
       "title": "服务器元数据",
       "subtitle": "修正保存在服务器上，而不是文件中。",
       "help": "这些修正不会被服务器的扫描覆盖，音乐库的所有成员都能看到。清空某个字段即撤销该项修正，文件本身的值会重新显示。",
-      "missing": "该曲目尚未收录到服务器副本中。请先复制目录，然后重试。",
+      "missing": "该曲目尚未收录到服务器副本中。请先复制曲库，然后重试。",
       "invalidNumber": "年份、音轨号和碟片号必须为整数。"
     },
-    "needsMirror": "请先复制上方的服务器目录：本节将你的文件与本地副本比对，而副本目前仍为空。"
+    "needsMirror": "请先复制上方的服务器曲库：本节将你的文件与本地副本比对，而副本目前仍为空。"
   },
   "tasks": {
     "barLabel": "正在进行的任务",
@@ -2878,7 +2879,7 @@
       "library_scan": "扫描音乐库",
       "analysis": "音频分析",
       "lyrics_prefetch": "预取歌词",
-      "catalogue_mirror": "复制目录",
+      "catalogue_mirror": "复制曲库",
       "reconcile": "比对",
       "upload": "上传",
       "backup": "备份",
@@ -2910,7 +2911,7 @@
       "yearMin": "年份 ≥ {{value}}",
       "yearMax": "年份 ≤ {{value}}",
       "discNumberIs": "碟片 {{value}}",
-      "liked": "已收藏",
+      "liked": "已喜欢",
       "ratingMin": "评分 ≥ {{value}}",
       "format": "格式 {{value}}",
       "hiRes": "Hi-Res",

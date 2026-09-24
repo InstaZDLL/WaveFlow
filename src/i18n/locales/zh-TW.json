@@ -12,7 +12,7 @@
   },
   "lastfmReauth": {
     "title": "Last.fm 工作階段已過期",
-    "message": "你的播放記錄已停止傳送。請重新登入以繼續。",
+    "message": "你的播放紀錄已停止傳送。請重新登入以繼續。",
     "action": "開啟設定"
   },
   "rendering": {
@@ -42,7 +42,7 @@
   },
   "updater": {
     "available": {
-      "title": "有更新可用（版本{{version}}）",
+      "title": "有更新可用（版本 {{version}}）",
       "message": "WaveFlow 的新版本已準備就緒，可供安裝。",
       "action": "立即安裝",
       "later": "稍後"
@@ -91,12 +91,12 @@
       "quickSettings": "快速設定",
       "autoAnalyze": {
         "title": "自動分析曲目",
-        "description": "掃描時偵測 BPM 和調性——為 Radio 與 Mood Radio 提供支援。"
+        "description": "掃描時偵測 BPM 和調性——為電台與心情電台提供支援。"
       }
     },
     "lastfm": {
       "title": "連接 Last.fm",
-      "description": "Scrobbling 會將播放紀錄傳送到你的 Last.fm 個人檔案。同時，你也能在應用程式內取得藝人簡介和相似藝人推薦。",
+      "description": "播放記錄追蹤（Scrobbling）會將播放紀錄傳送到你的 Last.fm 個人檔案。同時，你也能在應用程式內取得藝人簡介和相似藝人推薦。",
       "recommendedBadge": "推薦",
       "keyHint": "在 Last.fm 上建立 API 金鑰",
       "keyLabel": "API 金鑰",
@@ -128,7 +128,7 @@
       "nextSteps": "下一步：",
       "bulletExplore": "透過音樂庫、專輯、藝人分頁探索你的音樂庫",
       "bulletQueue": "點擊曲目以建立你的第一個播放佇列",
-      "bulletSettings": "在側邊欄微調設定（外觀、整合…）",
+      "bulletSettings": "在側邊欄微調設定（外觀、連線…）",
       "tipImmersiveTitle": "提示：沉浸式檢視",
       "tipImmersiveBody": "點擊播放器封面，開啟封面與歌詞並排的全螢幕檢視。"
     },
@@ -241,8 +241,8 @@
     "search": {
       "placeholder": "搜尋歌曲名稱、藝人、專輯…",
       "results_zero": "沒有結果",
-      "results_one": "{{count}} 結果",
-      "results_other": "{{count}} 結果",
+      "results_one": "{{count}} 個結果",
+      "results_other": "{{count}} 個結果",
       "empty": "沒有符合的搜尋結果",
       "filters": {
         "toggle": "進階篩選",
@@ -250,7 +250,7 @@
         "close": "關閉",
         "reset": "重設",
         "hiRes": "高解析度",
-        "likedOnly": "僅顯示喜歡",
+        "likedOnly": "僅顯示收藏",
         "year": "年份（從 → 至）",
         "bpm": "BPM（從 → 至）",
         "durationMin": "時長（分鐘）（從 → 至）",
@@ -280,6 +280,7 @@
   "home": {
     "greeting": {
       "morning": "早安",
+      "afternoon": "午安",
       "evening": "晚上好",
       "night": "晚安"
     },
@@ -362,7 +363,7 @@
     "header": {
       "addFolder": "新增資料夾",
       "subtext": {
-        "tracks_zero": "0 首歌曲",
+        "tracks_zero": "0 首曲目",
         "tracks_one": "{{count}} 首曲目",
         "tracks_other": "{{count}} 首曲目",
         "albums_zero": "0 張專輯",
@@ -371,7 +372,7 @@
         "artists_zero": "0 位藝人",
         "artists_one": "{{count}} 位藝人",
         "artists_other": "{{count}} 位藝人",
-        "genres_zero": "0 曲風",
+        "genres_zero": "0 種曲風",
         "genres_one": "{{count}} 種曲風",
         "genres_other": "{{count}} 種曲風",
         "folders_zero": "0 個資料夾",
@@ -416,7 +417,7 @@
         "description": "從操作列匯入一個資料夾，以便在此處瀏覽。"
       },
       "sourceFiltered": {
-        "description": "該來源沒有內容。請在上方切換來源，或在設定中複製伺服器音樂庫。"
+        "description": "該來源沒有內容。請在上方切換來源，或在設定中複製伺服器目錄。"
       },
       "needs-attention": {
         "title": "沒有需要修正的地方",
@@ -490,8 +491,8 @@
       "deepRescan": "深度重新掃描（重新讀取所有檔案，速度較慢）",
       "remove": "從音樂庫中移除資料夾",
       "removeConfirm": "再次點擊確認",
-      "removeConfirmWithPlays_one": "再次點擊以確認。{{count}} 筆播放記錄將被保留，並在下次掃描時重新關聯。",
-      "removeConfirmWithPlays_other": "再次點擊以確認。{{count}} 筆播放記錄將被保留，並在下次掃描時重新關聯。"
+      "removeConfirmWithPlays_one": "再次點擊以確認。{{count}} 筆播放紀錄將被保留，並在下次掃描時重新關聯。",
+      "removeConfirmWithPlays_other": "再次點擊以確認。{{count}} 筆播放紀錄將被保留，並在下次掃描時重新關聯。"
     },
     "folderBrowser": {
       "open": "瀏覽此資料夾",
@@ -611,7 +612,7 @@
       "sampleRate": "取樣率",
       "bitDepth": "位元深度",
       "channels": "聲道",
-      "codec": "編碼",
+      "codec": "編解碼器",
       "musicalKey": "調性",
       "fileSize": "大小",
       "addedAt": "加入時間",
@@ -669,10 +670,10 @@
     "emptyDescription": "請播放音樂，你的收聽統計資料就會開始顯示在此處。",
     "range": {
       "label": "期間",
-      "7d": "7天",
-      "30d": "30天",
-      "90d": "90天",
-      "1y": "1年",
+      "7d": "7 天",
+      "30d": "30 天",
+      "90d": "90 天",
+      "1y": "1 年",
       "all": "全部"
     },
     "kpi": {
@@ -773,7 +774,7 @@
     "mood": {
       "eyebrow": "你的平均節奏",
       "subtitle": "陪伴你一年的節奏",
-      "loudness": "平均響度: {{lufs}} LUFS",
+      "loudness": "平均響度：{{lufs}} LUFS",
       "energy": {
         "chill": "舒緩",
         "warm": "溫暖",
@@ -783,7 +784,7 @@
       }
     },
     "clock": {
-      "eyebrow": "你的聆聽時段",
+      "eyebrow": "你的聆聽高峰時段",
       "subtitle": "一天中的高峰"
     },
     "streak": {
@@ -836,7 +837,7 @@
       "volume": "音量",
       "mute": "靜音",
       "keys": {
-        "space": "空格"
+        "space": "空白鍵"
       }
     },
     "credits": {
@@ -939,7 +940,7 @@
       "details": "裝置詳細資料",
       "summary": "{{bits}} 位元 · {{rate}} kHz",
       "channels": "聲道：{{value}}",
-      "minPeriod": "最小週期：{{value}} 影格",
+      "minPeriod": "最小週期：{{value}} 幀",
       "formats": "格式",
       "rates": "取樣率",
       "caveat": "驅動聲稱支援什麼，和它在獨佔模式下實際接受什麼，是兩個不同的問題。",
@@ -985,7 +986,7 @@
       "deleteAria": "刪除個人檔案 {{name}}"
     },
     "delete": {
-      "title": "刪除 {{name}}?",
+      "title": "刪除 {{name}}？",
       "subtitle": "此個人檔案將被永久刪除。",
       "warning": "此個人檔案的所有音樂庫、播放清單與聆聽紀錄都會遺失。此操作無法復原。",
       "submit": "刪除個人檔案",
@@ -1087,7 +1088,7 @@
     "showInExplorer": "在檔案總管中顯示",
     "copyPath": "複製檔案路徑",
     "properties": "屬性",
-    "startRadio": "開始電台",
+    "startRadio": "開始播放電台",
     "rating": "評分",
     "ratingNone": "無評分",
     "batchEdit": "編輯 {{count}} 首曲目的標籤…",
@@ -1130,7 +1131,7 @@
     "peak": "峰值",
     "analyze": "分析",
     "reanalyze": "重新分析",
-    "analyzing": "分析…",
+    "analyzing": "分析中…",
     "year": "年份",
     "duration": "時長",
     "codec": "編解碼器",
@@ -1153,8 +1154,8 @@
       "title": "標題",
       "artist": "藝人",
       "album": "專輯",
-      "trackNumber": "曲目號",
-      "discNumber": "碟片號",
+      "trackNumber": "曲目編號",
+      "discNumber": "碟片編號",
       "genre": "曲風",
       "genrePlaceholder": "流行、搖滾、爵士…"
     },
@@ -1210,7 +1211,7 @@
     "emptyTitle": "找不到該藝人",
     "emptyDescription": "該藝人已不在目前的個人檔案中。",
     "bio": {
-      "title": "傳記",
+      "title": "簡介",
       "show": "顯示",
       "hide": "隱藏"
     },
@@ -1256,7 +1257,7 @@
   },
   "genreDetail": {
     "badge": "曲風",
-    "playAll": "播放全部",
+    "playAll": "全部播放",
     "shuffle": "隨機播放",
     "trackCount_zero": "0 首",
     "trackCount_one": "{{count}} 首",
@@ -1279,20 +1280,20 @@
     "aboutArtist": "關於藝人",
     "readMore": "閱讀更多",
     "readLess": "收合",
-    "noBio": "沒有傳記資料。請在設定中嘗試其他簡介來源。",
+    "noBio": "沒有簡介資料。請在設定中嘗試其他簡介來源。",
     "nextInQueue": "佇列中的下一首",
     "openQueue": "開啟佇列",
     "lyrics": {
       "title": "歌詞",
       "comingSoon": "即將推出"
     },
-    "startRadio": "開始電台",
+    "startRadio": "開始播放電台",
     "share": {
       "open": "分享",
       "save": "儲存為 PNG",
       "copy": "複製圖片",
       "eyebrow": "正在播放",
-      "on": "收錄於"
+      "footer": "來自 {{app}}"
     }
   },
   "playerBar": {
@@ -1310,7 +1311,7 @@
     "eq": {
       "bypass": "啟用 EQ"
     },
-    "toggleNowPlayingPanel": "顯示 / 隱藏目前播放",
+    "toggleNowPlayingPanel": "顯示 / 隱藏正在播放",
     "pipeline": {
       "title": "音訊管線",
       "openHint": "查看音訊管線詳情",
@@ -1342,7 +1343,7 @@
   "miniPlayer": {
     "idle": "沒有播放中的曲目",
     "maximize": "還原主視窗",
-    "like": "喜歡",
+    "like": "收藏",
     "pin": "永遠在最前",
     "close": "關閉迷你播放器",
     "upNext": {
@@ -1372,7 +1373,7 @@
   },
   "lyrics": {
     "title": "歌詞",
-    "loading": "搜尋歌詞…",
+    "loading": "正在搜尋歌詞…",
     "noTrack": "目前沒有正在播放的曲目",
     "notFound": "找不到此曲目的歌詞。你可以匯入 .lrc 檔案。",
     "fetchError": "無法連線到歌詞服務，請稍後再試。",
@@ -1412,7 +1413,7 @@
       "plain": "未同步"
     },
     "toast": {
-      "tagWriteSkipped": "TTML 僅保留在快取中（未寫入音訊標籤）",
+      "tagWriteSkipped": "TTML 僅保留在資料庫中（未寫入音訊標籤）",
       "sidecarWriteSkipped": "歌詞已儲存至資料庫，但 TTML 無法寫入 .lrc/.txt 外部檔案。"
     },
     "excludedGenre": "不會在線上搜尋 {{genre}} 曲風的歌詞（設定 → 圖片與歌詞）。你可以匯入 .lrc 檔案，或仍然搜尋。"
@@ -1487,7 +1488,7 @@
       "and": "且",
       "or": "或",
       "not": "非",
-      "toggleOpHint": "且 ↔ 或",
+      "toggleOpHint": "切換 且 ↔ 或",
       "matchAllEmpty": "（整個音樂庫）",
       "matchNoneEmpty": "（無曲目）",
       "childCount_zero": "空",
@@ -1496,8 +1497,8 @@
       "notHint": "排除與子節點相符的所有項目",
       "deleteNode": "刪除",
       "addCondition": "條件",
-      "addGroupAnd": "且 群組",
-      "addGroupOr": "或 群組",
+      "addGroupAnd": "「且」群組",
+      "addGroupOr": "「或」群組",
       "addNot": "非",
       "contains": "包含…",
       "pickGenre": "選擇曲風…",
@@ -1534,7 +1535,7 @@
       "tagContains": "標籤包含"
     },
     "counting": "正在統計…",
-    "matchCountLimited": "{{total}} 首中的 {{kept}} 首",
+    "matchCountLimited": "符合 {{total}} 首，保留 {{kept}} 首",
     "templates": {
       "label": "範本",
       "placeholder": "從範本開始…",
@@ -1582,7 +1583,7 @@
       "line": "逐行",
       "word": "逐字"
     },
-    "captureHintWord": "空格鍵 = 下一個字 · Enter = 下一行 · Backspace = 取消最後一個字",
+    "captureHintWord": "空白鍵 = 下一個字 · Enter = 下一行 · Backspace = 取消最後一個字",
     "notCaptured": "未擷取",
     "exportToFile": "儲存到檔案…",
     "exportToFileHint": "將歌詞匯出為 .lrc 或 .txt 檔案至你選擇的位置，不會更動音訊檔案",
@@ -1718,7 +1719,7 @@
         "usernamePlaceholder": "使用者名稱",
         "passwordPlaceholder": "密碼",
         "connect": "登入",
-        "connecting": "正在連線…"
+        "connecting": "正在登入…"
       },
       "discord": {
         "title": "Discord Rich Presence",
@@ -1755,14 +1756,14 @@
     },
     "crossfade": {
       "title": "交叉淡入淡出",
-      "subtitle": "歌曲間的無縫銜接（即將推出）"
+      "subtitle": "歌曲間的無縫銜接"
     },
     "dynamicCrossfade": {
       "title": "動態交叉淡化",
       "subtitle": "依曲目間的速度差調整淡化時長（BPM 未知時改用固定交叉淡化）"
     },
     "normalize": {
-      "title": "將音量調整至標準值",
+      "title": "音量正規化",
       "subtitle": "將音量過大的曲目調低，以保持整體音量一致"
     },
     "replayGain": {
@@ -1874,24 +1875,24 @@
     },
     "clipsInLibrary": {
       "title": "將短片與音樂放在一起",
-      "subtitle": "你自己設定的 Canvas 短片和動態封面會放入音樂庫內的隱藏資料夾，因此會跟著檔案一起走。擴充功能取得的內容仍留在上方的快取中。"
+      "subtitle": "你自己設定的 Canvas 短片和動態封面會放入音樂庫內的隱藏資料夾，因此會跟著檔案一起走。外掛取得的內容仍留在上方的快取中。"
     },
     "dataFolder": {
       "title": "資料儲存資料夾",
       "subtitle": "開啟包含資料庫和封面圖檔的資料夾",
       "action": "開啟"
     },
-    "openDataFolder": "開啟資料夾",
+    "openDataFolder": "開啟資料儲存資料夾",
     "lyricsPrefetch": {
       "title": "預先擷取歌詞",
       "subtitle": "為整個音樂庫下載歌詞以供離線使用",
       "result": "已同步 {{hits}}，找不到 {{misses}}，失敗 {{failed}}",
       "offline": "已啟用離線模式",
-      "failed": "預先載入失敗",
+      "failed": "預先擷取失敗",
       "action": "預先擷取",
       "progress": "已處理 {{current}}/{{total}} · 找到 {{hits}}"
     },
-    "regenerateThumbnails": "重新生成縮圖",
+    "regenerateThumbnails": "重新產生縮圖",
     "regenerateThumbnailsSubtitle": "為所有封面重建缺失的 1x/2x 版本",
     "regenerateThumbnailsAction": "重新產生",
     "regenerateThumbnailsDone_one": "已重新產生 {{count}} 張縮圖",
@@ -1985,8 +1986,8 @@
     },
     "equalizer": {
       "title": "等化器",
-      "subtitle": "六段峰值，±12 dB。拖曳圓點調整曲線。",
-      "presets": "預設",
+      "subtitle": "六個峰值型頻段，±12 dB。拖曳圓點調整曲線。",
+      "presets": "預設集",
       "reset": "重設",
       "preset": {
         "custom": "自訂",
@@ -2042,11 +2043,11 @@
       "subtitle": "縮放整個介面（Ctrl+= / Ctrl+- / Ctrl+0 同樣生效）",
       "decreaseAria": "縮小",
       "increaseAria": "放大",
-      "resetAria": "重設縮放為 100 %"
+      "resetAria": "重設縮放為 100%"
     },
     "showAudioQualityFooter": {
       "title": "顯示音訊品質列",
-      "subtitle": "在播放列下方顯示技術詳情（kHz、kbps、編解碼、位元深度）。為保持播放列輕巧，預設關閉。"
+      "subtitle": "在播放列下方顯示技術詳情（kHz、kbps、編解碼器、位元深度）。為保持播放列輕巧，預設關閉。"
     },
     "categoryNavLabel": "設定分類",
     "appearance": {
@@ -2059,7 +2060,7 @@
         "dark": "深色"
       },
       "themes": {
-        "default": "祖母綠 淺色",
+        "default": "祖母綠淺色",
         "defaultDark": "祖母綠",
         "oled": "OLED",
         "midnight": "午夜",
@@ -2117,9 +2118,9 @@
         "toggleShuffle": "隨機播放",
         "cycleRepeat": "循環模式",
         "toggleQueue": "顯示 / 隱藏佇列",
-        "toggleNowPlaying": "顯示 / 隱藏目前播放",
+        "toggleNowPlaying": "顯示 / 隱藏正在播放",
         "toggleLyrics": "顯示 / 隱藏歌詞",
-        "toggleLike": "喜歡 / 取消喜歡"
+        "toggleLike": "收藏 / 取消收藏"
       }
     },
     "offlineMode": {
@@ -2173,7 +2174,7 @@
       "buttons": {
         "abLoop": "A-B 循環",
         "sleepTimer": "睡眠計時器",
-        "eqPreset": "等化器（預設）",
+        "eqPreset": "等化器（預設集）",
         "lyrics": "歌詞",
         "queue": "佇列",
         "device": "音訊輸出",
@@ -2185,10 +2186,10 @@
         "title": "點擊封面時",
         "immersive": {
           "label": "開啟沉浸式檢視",
-          "description": "預設——開啟全螢幕的目前播放畫面，封面會放大顯示。"
+          "description": "預設——開啟全螢幕的正在播放畫面，封面會放大顯示。"
         },
         "nowPlaying": {
-          "label": "顯示目前播放面板",
+          "label": "顯示正在播放面板",
           "description": "Spotify 風格——顯示或隱藏含封面與歌詞的右側面板。"
         },
         "none": {
@@ -2202,7 +2203,7 @@
       "subtitle": "首頁上的年度回顧橫幅。自動模式僅在 Wrapped 季（12 月 1 日 → 1 月 31 日）期間顯示。",
       "legend": "Wrapped 橫幅可見性",
       "seasonActive": "Wrapped 季進行中——橫幅已顯示。",
-      "seasonIdle": "非季節期間——橫幅將於 12 月 1 日自動回歸。",
+      "seasonIdle": "非 Wrapped 季期間——橫幅將於 12 月 1 日自動回歸。",
       "modes": {
         "auto": {
           "label": "自動",
@@ -2344,7 +2345,7 @@
     },
     "statsKpis": {
       "title": "統計指標",
-      "subtitle": "選擇要在統計頁面顯示哪些指標。取消勾選你不想看到的指標——例如完整播放率。",
+      "subtitle": "選擇要在統計頁面顯示哪些指標。取消勾選你不想看到的指標——例如完整收聽率。",
       "legend": "統計指標顯示"
     },
     "immersiveView": {
@@ -2355,7 +2356,7 @@
       },
       "nativeFullscreen": {
         "title": "原生全螢幕",
-        "subtitle": "開啟時占滿整個螢幕，關閉時還原視窗。關閉後保留視窗內覆蓋層（多螢幕時實用）。"
+        "subtitle": "開啟時佔滿整個螢幕，關閉時還原視窗。關閉後保留視窗內覆蓋層（多螢幕時實用）。"
       }
     },
     "scrollTitles": {
@@ -2364,7 +2365,7 @@
     },
     "coverSlideshow": {
       "title": "封面 / 藝人幻燈片",
-      "subtitle": "在播放時於背景將專輯封面與藝人相片柔和地交叉淡入淡出（沉浸檢視 + 正在播放面板）。"
+      "subtitle": "在播放時於背景將專輯封面與藝人相片柔和地交叉淡入淡出（沉浸式檢視 + 正在播放面板）。"
     },
     "artistHero": {
       "title": "藝人橫幅",
@@ -2457,13 +2458,13 @@
         },
         "high": {
           "label": "高",
-          "description": "無論佈景主題與外觀為何，都加強對比。"
+          "description": "無論主題與介面風格為何，都加強對比。"
         }
       }
     },
     "cacheLocation": {
       "title": "快取位置",
-      "subtitle": "封面、動態封面與 Canvas 片段。這些都能重新取得，移動不會遺失任何內容。資料庫與你手動挑選的檔案仍留在原處。",
+      "subtitle": "封面、動態封面與 Canvas 短片。這些都能重新取得，移動不會遺失任何內容。資料庫與你手動挑選的檔案仍留在原處。",
       "pickTitle": "選擇快取資料夾",
       "choose": "移動…",
       "reset": "回復預設",
@@ -2587,7 +2588,7 @@
   },
   "webRadio": {
     "title": "網路電台",
-    "subtitle": "透過 radio-browser.info 收聽超過 30 000 個線上電台。",
+    "subtitle": "透過 radio-browser.info 收聽超過 30,000 個線上電台。",
     "loading": "正在載入分類…",
     "resolving": "正在尋找電台…",
     "emptyResults": "找不到電台。",
@@ -2596,7 +2597,7 @@
     "live": "直播",
     "nowPlaying": "正在播放",
     "unavailableTitle": "Web Radio 已停用",
-    "unavailableHint": "在 設定 → 外掛 中啟用 Web Radio 外掛以瀏覽超過 30,000 個電台。",
+    "unavailableHint": "在「設定 → 擴充功能」中啟用 Web Radio 外掛以瀏覽超過 30,000 個電台。",
     "favorites": "收藏",
     "favoritesEmpty": "還沒有收藏的電台。點擊電台的星號即可儲存。",
     "addFavorite": "加入收藏",
@@ -2700,7 +2701,7 @@
       "noMatches": "沒有符合的結果。",
       "addTrack": "新增 {{title}}",
       "addToPlaylist": "加入播放清單",
-      "emptyDescription": "點選「新增曲目」，在伺服器的音樂庫中搜尋。",
+      "emptyDescription": "點選「新增曲目」，在伺服器的目錄中搜尋。",
       "notFoundDescription": "此播放清單在已連線的伺服器上已不存在。",
       "keepOffline": "離線保存",
       "keepingProgress": "已保存 {{done}}/{{total}}",
@@ -2774,8 +2775,8 @@
       "conversionSuccessLocal_other": "已複製 {{count}} 首曲目至本機音樂庫。"
     },
     "catalogue": {
-      "title": "伺服器音樂庫",
-      "subtitle": "把伺服器的音樂庫複製到本機，以便在你的音樂庫中瀏覽。不複製時，只會辨識播放清單已用到的曲目。",
+      "title": "伺服器目錄",
+      "subtitle": "把伺服器的目錄複製到本機，以便在你的音樂庫中瀏覽。不複製時，只會辨識播放清單已用到的曲目。",
       "mirror": "複製",
       "cancel": "停止",
       "clear": "清空副本",
@@ -2792,17 +2793,17 @@
       "reportRemoved": "移除 {{removed}} 首",
       "reportCancelled": "已停止",
       "neverMirrored": "從未複製。",
-      "mirroredAt": "上次完整複製：{{date}}",
+      "mirroredAt": "上次完整複製：{{date}}。",
       "clearCovers": "清空",
       "coversCached_zero": "沒有快取的封面。",
-      "coversCached_one": "已快取 {{count}} 張封面（{{size}} MB）",
-      "coversCached_other": "已快取 {{count}} 張封面（{{size}} MB）",
-      "streamsCached_one": "已快取 {{count}} 首曲目（{{size}} MB）",
-      "streamsCached_other": "已快取 {{count}} 首曲目（{{size}} MB）",
+      "coversCached_one": "已快取 {{count}} 張封面（{{size}} MB）。",
+      "coversCached_other": "已快取 {{count}} 張封面（{{size}} MB）。",
+      "streamsCached_one": "已快取 {{count}} 首曲目（{{size}} MB）。",
+      "streamsCached_other": "已快取 {{count}} 首曲目（{{size}} MB）。",
       "streamsCached_zero": "沒有快取的曲目。",
       "clearStreams": "清空",
-      "downloadsKept_one": "已離線保存 {{count}} 首曲目（{{size}} MB）",
-      "downloadsKept_other": "已離線保存 {{count}} 首曲目（{{size}} MB）",
+      "downloadsKept_one": "已離線保存 {{count}} 首曲目（{{size}} MB）。",
+      "downloadsKept_other": "已離線保存 {{count}} 首曲目（{{size}} MB）。",
       "downloadsKept_zero": "沒有離線保存的曲目。",
       "clearDownloads": "清空",
       "reportFeed": "伺服器修正：{{applied}} 項"
@@ -2863,7 +2864,7 @@
       "subtitle": "修正會儲存在伺服器上，而不是檔案中。",
       "help": "這些修正不會被伺服器的掃描覆蓋，音樂庫的所有成員都看得到。清空某個欄位即撤銷該項修正，檔案本身的值會重新顯示。",
       "missing": "此曲目尚未收錄到伺服器副本中。請先複製目錄，然後再試一次。",
-      "invalidNumber": "年份、曲目編號與光碟編號必須是整數。"
+      "invalidNumber": "年份、曲目編號與碟片編號必須是整數。"
     },
     "needsMirror": "請先複製上方的伺服器目錄：本節會將你的檔案與本機副本比對，而副本目前仍是空的。"
   },

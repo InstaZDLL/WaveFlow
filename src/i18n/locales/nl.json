@@ -62,7 +62,7 @@
     "defaultLibraryName": "Muziek",
     "welcome": {
       "title": "Welkom bij WaveFlow",
-      "description": "Jouw persoonlijke local-first muziekspeler. Geniet van je hele bibliotheek zonder streaming-abonnement."
+      "description": "Jouw persoonlijke lokale muziekspeler. Geniet van je hele bibliotheek zonder streaming-abonnement."
     },
     "localOnly": {
       "title": "Belangrijk: alleen lokale muziek",
@@ -74,7 +74,7 @@
     },
     "appearance": {
       "title": "Kies je look",
-      "description": "Selecteer een kleurthema en een interfacestijl. Je kunt ze altijd wijzigen via Instellingen → Uiterlijk.",
+      "description": "Selecteer een kleurthema en een interfacestijl. Je kunt ze altijd wijzigen via Instellingen → Weergave.",
       "theme": {
         "title": "Kleurthema"
       },
@@ -91,7 +91,7 @@
       "quickSettings": "Snelle instellingen",
       "autoAnalyze": {
         "title": "Nummers automatisch analyseren",
-        "description": "Detecteert BPM en toonsoort tijdens het scannen — wordt gebruikt voor Radio en Mood Radio."
+        "description": "Detecteert BPM en toonsoort tijdens het scannen — wordt gebruikt voor Radio en Stemmingsradio."
       }
     },
     "lastfm": {
@@ -110,7 +110,7 @@
       "toggleSecret": "Geheim tonen/verbergen",
       "togglePassword": "Wachtwoord tonen/verbergen",
       "connect": "Last.fm koppelen",
-      "missingFields": "Vul API-sleutel, Gedeeld geheim, gebruikersnaam en wachtwoord in.",
+      "missingFields": "Vul de API-sleutel, het gedeelde geheim, de gebruikersnaam en het wachtwoord in.",
       "connectedTitle": "Verbonden als {{user}}",
       "connectedSubtitle": "Scrobblen start automatisch zodra je een nummer afspeelt."
     },
@@ -128,9 +128,9 @@
       "nextSteps": "Volgende stappen:",
       "bulletExplore": "Verken je bibliotheek via de tabs Bibliotheek, Albums en Artiesten",
       "bulletQueue": "Maak je eerste wachtrij door op een nummer te klikken",
-      "bulletSettings": "Verfijn alles via de zijbalk (Weergave, Integraties…)",
+      "bulletSettings": "Verfijn alles via de zijbalk (Weergave, Verbindingen…)",
       "tipImmersiveTitle": "Tip: meeslepende weergave",
-      "tipImmersiveBody": "Klik op de hoes in de speler om de volledig-schermweergave te openen met hoes en songtekst naast elkaar."
+      "tipImmersiveBody": "Klik op de hoes in de speler om de volledigschermweergave te openen met hoes en songtekst naast elkaar."
     },
     "actions": {
       "skipSetup": "Configuratie overslaan",
@@ -153,7 +153,7 @@
       "title": "Geef je profiel een naam",
       "description": "WaveFlow gebruikt profielen om bibliotheken te scheiden. Kies een naam die je later herkent.",
       "nameLabel": "Profielnaam",
-      "namePlaceholder": "Bijv. Daisy",
+      "namePlaceholder": "Bv. Daisy",
       "hint": "Je kunt later extra profielen aanmaken als dat nodig is.",
       "required": "Profielnaam is vereist.",
       "unavailable": "Profiel niet beschikbaar — probeer het over een ogenblik opnieuw."
@@ -161,7 +161,7 @@
     "lyrics": {
       "title": "Waar moeten songteksten heen?",
       "description": "Waar moeten songteksten heen, zowel die je bewerkt als die WaveFlow voor je vindt? Aanpasbaar via Instellingen → Afbeeldingen en songteksten.",
-      "hint": "Kies \"Sidecar-bestand\" om je audiobestanden ongemoeid te laten — zoals foobar2000 & co."
+      "hint": "Kies ‘Sidecarbestand’ om je audiobestanden ongemoeid te laten — zoals foobar2000 & co."
     }
   },
   "sidebar": {
@@ -280,6 +280,7 @@
   "home": {
     "greeting": {
       "morning": "Goedemorgen",
+      "afternoon": "Goedemiddag",
       "evening": "Goedenavond",
       "night": "Goedenacht"
     },
@@ -299,7 +300,7 @@
       "playlists": "Afspeellijsten"
     },
     "moodRadio": {
-      "title": "Mood Radio",
+      "title": "Stemmingsradio",
       "subtitle": "Gerangschikt op tempo, luidheid en genre",
       "trackCount_one": "{{count}} nummer",
       "trackCount_other": "{{count}} nummers",
@@ -341,7 +342,7 @@
       "regenerate": "Opnieuw genereren",
       "regenerating": "Genereren…",
       "emptyTitle": "Nog geen Daily Mix",
-      "emptyDescription": "Luister naar wat nummers en klik dan op «Opnieuw genereren» om je persoonlijke mixes te maken.",
+      "emptyDescription": "Luister naar wat nummers en klik dan op ‘Opnieuw genereren’ om je persoonlijke mixes te maken.",
       "label": "Daily Mix",
       "trackCount_one": "{{count}} nummer",
       "trackCount_other": "{{count}} nummers"
@@ -569,12 +570,12 @@
           "help": "Een verzamelalbum zonder ingestelde albumartiest."
         },
         "duplicate_track_number": {
-          "label": "Dubbele nummers",
+          "label": "Dubbele tracknummers",
           "help": "Twee nummers claimen dezelfde plek."
         },
         "track_number_gap": {
           "label": "Gat in de nummering",
-          "help": "Tussen eerste en laatste ontbreekt een nummer."
+          "help": "Tussen het eerste en laatste tracknummer van de schijf ontbreekt er een."
         },
         "probable_duplicate": {
           "label": "Waarschijnlijke duplicaten",
@@ -694,19 +695,19 @@
       "tooltip": "{{hour}} uur — {{plays}} keer afgespeeld"
     },
     "topTracks": {
-      "title": "Top-nummers",
+      "title": "Topnummers",
       "empty": "Geen nummers afgespeeld."
     },
     "topArtists": {
-      "title": "Top-artiesten",
+      "title": "Topartiesten",
       "empty": "Geen artiesten afgespeeld."
     },
     "topAlbums": {
-      "title": "Top-albums",
+      "title": "Topalbums",
       "empty": "Geen albums afgespeeld."
     },
     "heatmap": {
-      "title": "Activiteit per jaar",
+      "title": "Jaaractiviteit",
       "empty": "Nog niets beluisterd in de afgelopen 12 maanden.",
       "summary": "{{time}} beluisterd dit jaar — {{plays}} keer afgespeeld",
       "less": "Minder",
@@ -758,13 +759,13 @@
       "artists": "Artiesten"
     },
     "topTracks": {
-      "title": "Je top-nummers"
+      "title": "Je topnummers"
     },
     "topArtists": {
-      "title": "Je top-artiesten"
+      "title": "Je topartiesten"
     },
     "topAlbums": {
-      "title": "Je top-albums"
+      "title": "Je topalbums"
     },
     "activeDay": {
       "eyebrow": "Je drukste dag",
@@ -808,7 +809,7 @@
       "title": "Maand voor maand"
     },
     "outro": {
-      "title": "Bedankt dat je naar WaveFlow luistert",
+      "title": "Bedankt dat je met WaveFlow luistert",
       "subtitle": "Blijf ontdekken — je Wrapped wordt in realtime bijgewerkt.",
       "cta": "Terug naar start"
     }
@@ -821,7 +822,7 @@
       "developedBy": "Ontwikkeld door"
     },
     "sections": {
-      "frameworkDesktop": "Desktop-framework",
+      "frameworkDesktop": "Desktopframework",
       "frontend": "Frontend",
       "backend": "Backend (Rust)",
       "audio": "Audio",
@@ -842,7 +843,7 @@
     "changelog": {
       "loading": "Laden…",
       "empty": "Geen vermeldingen beschikbaar",
-      "expand": "Toon {{count}} extra vermeldingen",
+      "expand": "{{count}} extra vermeldingen tonen",
       "collapse": "Minder tonen",
       "breaking": "Ingrijpend"
     },
@@ -923,7 +924,7 @@
     "upNext_other": "Volgende · {{count}} nummers",
     "radio": {
       "label": "Radio",
-      "basedOn": "Gebaseerd op «{{title}}»"
+      "basedOn": "Gebaseerd op ‘{{title}}’"
     }
   },
   "deviceMenu": {
@@ -1038,10 +1039,10 @@
     "submit": "Maken",
     "editSubmit": "Opslaan",
     "coverChoose": "Foto kiezen",
-    "coverMenu": "Albumhoesopties",
+    "coverMenu": "Hoesopties",
     "coverChange": "Foto wijzigen",
     "coverRemove": "Foto verwijderen",
-    "coverAutoHint": "Automatische albumhoes — past zich aan de inhoud aan",
+    "coverAutoHint": "Automatische hoes — past zich aan de inhoud aan",
     "coverManualHint": "Aangepaste afbeelding",
     "alsoOnServer": "Ook aanmaken op {{server}}",
     "alsoOnServerFallback": "de externe server"
@@ -1091,8 +1092,8 @@
     "rating": "Beoordeling",
     "ratingNone": "Geen beoordeling",
     "batchEdit": "Tags van {{count}} nummers bewerken…",
-    "addToPlaylistNamed": "Toevoegen aan «{{name}}»",
-    "removeFromPlaylistNamed": "Verwijderen uit «{{name}}»"
+    "addToPlaylistNamed": "Toevoegen aan ‘{{name}}’",
+    "removeFromPlaylistNamed": "Verwijderen uit ‘{{name}}’"
   },
   "batchTagEdit": {
     "title": "Tags batchgewijs bewerken",
@@ -1234,7 +1235,7 @@
     "suggestionLabel": "Bannersuggestie {{index}}",
     "noneFound": "Geen brede afbeelding gevonden voor deze artiest. Kies in plaats daarvan een lokaal bestand.",
     "offline": "Schakel de offlinemodus uit om de suggesties te zien.",
-    "fileHint": "Een brede afbeelding werkt het best: hij wordt bijgesneden tot een banner.",
+    "fileHint": "Een brede afbeelding werkt het best: ze wordt bijgesneden tot een banner.",
     "removeAction": "Automatische banner gebruiken"
   },
   "motionCoverPicker": {
@@ -1249,7 +1250,7 @@
     "setTitle": "Canvas instellen"
   },
   "canvasPicker": {
-    "title": "Nummer-canvas",
+    "title": "Canvas van het nummer",
     "subtitle": "Kies een korte lokale MP4-video. Die speelt in een lus achter het afspelen, in plaats van de hoes.",
     "pickFile": "MP4-bestand kiezen",
     "removeAction": "Canvas verwijderen"
@@ -1292,12 +1293,12 @@
       "save": "Opslaan als PNG",
       "copy": "Afbeelding kopiëren",
       "eyebrow": "Speelt nu",
-      "on": "op"
+      "footer": "op {{app}}"
     }
   },
   "playerBar": {
     "lyrics": "Songtekst",
-    "nowPlaying": "Toon wat er nu speelt",
+    "nowPlaying": "Speelt nu tonen",
     "queue": "Wachtrij",
     "miniPlayer": "Mini-speler (altijd boven)",
     "previous": "Vorig nummer",
@@ -1310,10 +1311,10 @@
     "eq": {
       "bypass": "EQ inschakelen"
     },
-    "toggleNowPlayingPanel": "Toon / verberg Speelt nu",
+    "toggleNowPlayingPanel": "Speelt nu tonen / verbergen",
     "pipeline": {
-      "title": "Audio-pipeline",
-      "openHint": "Toon de audio-pipeline",
+      "title": "Audiopipeline",
+      "openHint": "Volledige audiopipeline tonen",
       "source": "Bron",
       "processing": "Verwerking",
       "output": "Uitvoer",
@@ -1375,7 +1376,7 @@
     "loading": "Songtekst zoeken…",
     "noTrack": "Geen nummer wordt afgespeeld",
     "notFound": "Geen songtekst gevonden voor dit nummer. Je kunt een .lrc-bestand importeren.",
-    "fetchError": "Kan de tekstaanbieders niet bereiken. Probeer het later opnieuw.",
+    "fetchError": "Kan de songtekstbronnen niet bereiken. Probeer het later opnieuw.",
     "importTitle": "Een .lrc-bestand importeren",
     "actions": {
       "import": "Een .lrc-bestand importeren",
@@ -1534,7 +1535,7 @@
       "tagContains": "Tag bevat"
     },
     "counting": "Bezig met tellen…",
-    "matchCountLimited": "{{kept}} van {{total}} treffers",
+    "matchCountLimited": "{{kept}} van {{total}} treffers behouden",
     "templates": {
       "label": "Sjabloon",
       "placeholder": "Begin met een sjabloon…",
@@ -1564,7 +1565,7 @@
     "plainPlaceholder": "Typ de songtekst regel per regel…",
     "linePlaceholder": "Regeltekst",
     "capture": "Vastleggen",
-    "captureHint": "Start het afspelen en druk dan op Spatie (of «Vastleggen») om de huidige regel te koppelen aan de afspeelpositie",
+    "captureHint": "Start het afspelen en druk dan op Spatie (of ‘Vastleggen’) om de huidige regel te koppelen aan de afspeelpositie",
     "captureNow": "Nu vastleggen",
     "recapture": "Opnieuw koppelen aan huidige positie",
     "seekToLine": "Naar deze regel springen",
@@ -1594,7 +1595,7 @@
         "hint": "Schrijft USLT/©lyr in het audiobestand (compatibel met foobar2000, iTunes…)."
       },
       "sidecar": {
-        "label": "Sidecar-bestand",
+        "label": "Sidecarbestand",
         "hint": "Schrijft een .lrc / .txt naast het audiobestand. Tags blijven onaangeroerd."
       },
       "db_only": {
@@ -1626,10 +1627,10 @@
     "masthead": {
       "edition": "Ochtendeditie",
       "price": "Prijs: Inbegrepen",
-      "subtitle": "„Alle muziek die het verdient om gedrukt te worden.” — Jouw dagelijkse selectie, op maat."
+      "subtitle": "‘Alle muziek die het verdient om gedrukt te worden.’ — Jouw dagelijkse selectie, op maat."
     },
     "lead": {
-      "caption": "Fig 1. — Uit „{{album}}” door {{artist}}.",
+      "caption": "Fig 1. — Uit ‘{{album}}’ door {{artist}}.",
       "captionArtistOnly": "Fig 1. — Een creatie van {{artist}}.",
       "captionFallback": "Fig 1. — De selectie van vandaag."
     }
@@ -1687,7 +1688,7 @@
         "libraryReadArtists": "Leest je artiesten"
       },
       "bundled": "Ingebouwd",
-      "bundledHint": "Meegeleverd met WaveFlow — schakel het uit om het te verbergen.",
+      "bundledHint": "Meegeleverd met WaveFlow — schakel hem uit om hem te verbergen.",
       "optionsAria": "Opties voor {{name}}",
       "options": {
         "saved": "Opgeslagen",
@@ -1718,7 +1719,7 @@
         "toggleShuffle": "Willekeurig",
         "cycleRepeat": "Herhaalmodus doorlopen",
         "toggleQueue": "Wachtrijpaneel in-/uitschakelen",
-        "toggleNowPlaying": "Paneel «Speelt nu» in-/uitschakelen",
+        "toggleNowPlaying": "Paneel ‘Speelt nu’ in-/uitschakelen",
         "toggleLyrics": "Songtekstpaneel in-/uitschakelen",
         "toggleLike": "Huidig nummer favoriet maken / verwijderen"
       }
@@ -1780,7 +1781,7 @@
     },
     "crossfade": {
       "title": "Crossfade",
-      "subtitle": "Naadloze overgangen tussen nummers (binnenkort)"
+      "subtitle": "Naadloze overgangen tussen nummers"
     },
     "normalize": {
       "title": "Volume normaliseren",
@@ -1823,7 +1824,7 @@
     },
     "matchSourceRate": {
       "title": "Samplefrequentie van elk nummer volgen",
-      "subtitle": "Bij exclusieve uitvoer wordt het apparaat opnieuw geopend op de frequentie van elk nummer: voorkomt herbemonstering als het apparaat die accepteert, maar met een onderbreking bij elke wisseling"
+      "subtitle": "Bij exclusieve uitvoer wordt het apparaat opnieuw geopend op de frequentie van elk nummer: voorkomt hersamplen als het apparaat die accepteert, maar met een onderbreking bij elke wisseling"
     },
     "mono": {
       "title": "Mono-audio",
@@ -1855,11 +1856,11 @@
     },
     "showSleepTimer": {
       "title": "Slaaptimer vastpinnen in de balk",
-      "subtitle": "Als dit uitstaat blijft de timer beschikbaar via het menu «…»"
+      "subtitle": "Als dit uitstaat blijft de timer beschikbaar via het menu ‘…’"
     },
     "showAbLoop": {
       "title": "A-B-loop vastpinnen in de balk",
-      "subtitle": "Als dit uitstaat blijft A-B-loop beschikbaar via het menu «…»"
+      "subtitle": "Als dit uitstaat blijft A-B-loop beschikbaar via het menu ‘…’"
     },
     "duplicates": {
       "title": "Duplicaten detecteren",
@@ -1894,7 +1895,7 @@
       "done": "{{linked}} van {{considered}} artiesten gekoppeld aan een lokale afbeelding"
     },
     "profileIo": {
-      "title": "Profiel-back-up",
+      "title": "Profielback-up",
       "subtitle": "Exporteer of importeer een volledig profiel (afspeellijsten, favorieten, statistieken, EQ, sneltoetsen) als één .waveflow-bestand.",
       "export": {
         "action": "Exporteren",
@@ -1911,7 +1912,7 @@
     },
     "clipsInLibrary": {
       "title": "Clips bij de muziek bewaren",
-      "subtitle": "Canvas-clips en geanimeerde hoezen die je zelf instelt komen in een verborgen map in je bibliotheek, zodat ze met de bestanden meereizen. Wat extensies ophalen blijft in de caches hierboven."
+      "subtitle": "Canvas-clips en geanimeerde hoezen die je zelf instelt komen in een verborgen map in je bibliotheek, zodat ze met de bestanden meereizen. Wat plug-ins ophalen blijft in de caches hierboven."
     },
     "dataFolder": {
       "title": "Gegevensmap",
@@ -1973,7 +1974,7 @@
       "error": "Fout: {{message}}",
       "reasonGeneric": "Overgeslagen ({{reason}})",
       "reason": {
-        "offline": "Offline-modus actief",
+        "offline": "Offlinemodus actief",
         "sync_mode_local": "Profiel in lokale modus",
         "not_configured": "Server niet geconfigureerd",
         "profile_canonical_id_missing": "Initiële synchronisatie in afwachting"
@@ -1990,7 +1991,7 @@
       },
       "backfillError": "Mislukt: {{message}}",
       "autoToggleTitle": "Automatische sync",
-      "autoToggleSubtitle": "Voert een pass uit bij het opstarten en bij overschakeling naar Hybride",
+      "autoToggleSubtitle": "Voert een synchronisatieronde uit bij het opstarten en bij overschakeling naar Hybride",
       "cadenceTitle": "Achtergrondfrequentie",
       "cadenceSubtitle": "Tijd tussen automatische synchronisaties",
       "cadence": {
@@ -2017,8 +2018,8 @@
       }
     },
     "visualizer": {
-      "title": "Audio-visualizer",
-      "subtitle": "Toont een real-time spectrum in de meeslepende weergave (lichte FFT op de decoderthread)",
+      "title": "Audiovisualizer",
+      "subtitle": "Toont een realtime spectrum in de meeslepende weergave (lichte FFT op de decoderthread)",
       "cycleColor": "Visualizerkleur: {{color}}",
       "cycleStyle": "Visualizerstijl: {{style}}",
       "colors": {
@@ -2045,12 +2046,12 @@
     },
     "gapless": {
       "title": "Gapless afspelen",
-      "subtitle": "Koppelt opeenvolgende nummers zonder micro-stiltes (ideaal voor live- en conceptalbums)"
+      "subtitle": "Koppelt opeenvolgende nummers zonder microstiltes (ideaal voor live- en conceptalbums)"
     },
     "equalizer": {
       "title": "Equalizer",
       "subtitle": "Zes peaking-banden, ±12 dB. Sleep de punten om de curve te vormen.",
-      "presets": "Presets",
+      "presets": "Voorinstellingen",
       "reset": "Resetten",
       "preset": {
         "custom": "Aangepast",
@@ -2073,7 +2074,7 @@
         "rock": "Rock",
         "small_speakers": "Kleine luidsprekers",
         "spoken_word": "Gesproken woord",
-        "treble_booster": "Treble-booster"
+        "treble_booster": "Hogetonenversterker"
       }
     },
     "backup": {
@@ -2110,7 +2111,7 @@
     },
     "showAudioQualityFooter": {
       "title": "Audiokwaliteitsbalk tonen",
-      "subtitle": "Technische details (kHz, kbps, codec, bitdiepte) onder de spelerbalk. Standaard uit voor een smallere balk."
+      "subtitle": "Technische details (kHz, kbps, codec, bitdiepte) onder de afspeelbalk. Standaard uit voor een smallere balk."
     },
     "categoryNavLabel": "Instellingscategorieën",
     "appearance": {
@@ -2157,7 +2158,7 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Neonclub — OLED-basis, gekleurde halo's rond actieve items, mono-capsules, veerkrachtige animaties."
+          "description": "Neonclub — OLED-basis, gekleurde halo's rond actieve items, monochrome capsules, veerkrachtige animaties."
         },
         "liquid": {
           "label": "Liquid",
@@ -2171,24 +2172,24 @@
       "preview": "Voorbeeld",
       "previewEmpty": "Geen knoppen — de balk toont alleen de hoes en de afspeelknoppen.",
       "buttons": {
-        "abLoop": "A-B-lus",
+        "abLoop": "A-B-loop",
         "sleepTimer": "Slaaptimer",
         "eqPreset": "Equalizer (voorinstellingen)",
-        "lyrics": "Songteksten",
+        "lyrics": "Songtekst",
         "queue": "Wachtrij",
         "device": "Audio-uitvoer",
         "miniPlayer": "Mini-speler",
         "immersive": "Meeslepende weergave",
-        "audioQualityFooter": "Audio-kwaliteitsbalk"
+        "audioQualityFooter": "Audiokwaliteitsbalk"
       },
       "coverAction": {
         "title": "Bij klik op de hoes",
         "immersive": {
-          "label": "Open meeslepende weergave",
+          "label": "Meeslepende weergave openen",
           "description": "Standaard — opent de schermvullende Speelt nu-weergave met de albumhoes groot weergegeven."
         },
         "nowPlaying": {
-          "label": "Toon paneel Speelt nu",
+          "label": "Paneel Speelt nu tonen",
           "description": "Spotify-stijl — toont of verbergt het rechterpaneel met hoes en songteksten."
         },
         "none": {
@@ -2199,7 +2200,7 @@
     },
     "wrappedBanner": {
       "title": "WaveFlow Wrapped-banner",
-      "subtitle": "De jaaroverzicht-banner op het startscherm. De automatische modus toont hem tijdens het Wrapped-seizoen (1 december → 31 januari).",
+      "subtitle": "De jaaroverzichtbanner op het startscherm. De automatische modus toont hem tijdens het Wrapped-seizoen (1 december → 31 januari).",
       "legend": "Zichtbaarheid van Wrapped-banner",
       "seasonActive": "Wrapped-seizoen loopt — de banner is zichtbaar.",
       "seasonIdle": "Buiten het seizoen — de banner komt automatisch terug op 1 december.",
@@ -2220,7 +2221,7 @@
     },
     "hiResBadge": {
       "title": "Hi-Res / DSD-badge",
-      "subtitle": "Toon de “Hi-Res 24-bit”- of “DSD128”-pil naast nummers die ervoor in aanmerking komen en onder de artiestennaam in de afspeelbalk. Standaard aan."
+      "subtitle": "Toon de ‘Hi-Res 24-bit’- of ‘DSD128’-pil naast nummers die ervoor in aanmerking komen en onder de artiestennaam in de afspeelbalk. Standaard aan."
     },
     "serverAccount": {
       "title": "WaveFlow-serveraccount",
@@ -2240,7 +2241,7 @@
       "signInWithBrowser": "Aanmelden via browser",
       "signInWithBrowserHint": "Opent WaveFlow Web in je browser; je meldt je daar aan en de app vangt het JWT automatisch op via een lokale handshake.",
       "loginInProgress": "Wachten op de browser…",
-      "modeLabel": "Sync-modus",
+      "modeLabel": "Syncmodus",
       "modes": {
         "hybrid": {
           "label": "Hybride (standaard)",
@@ -2317,7 +2318,7 @@
     },
     "radioCatalogue": {
       "title": "Offline zenderscatalogus",
-      "subtitle": "Download de radio-browser-directory om zenders zonder verbinding te doorzoeken.",
+      "subtitle": "Download de zendergids van radio-browser om zenders zonder verbinding te doorzoeken.",
       "stored_one": "{{count}} zender · bijgewerkt op {{date}}",
       "stored_other": "{{count}} zenders · bijgewerkt op {{date}}",
       "download": "Downloaden",
@@ -2328,7 +2329,7 @@
       "neverSynced": "nooit",
       "localFirst": "Lokale catalogus verkiezen",
       "localFirstHint": "Zoek en blader lokaal, ook online (direct, geen netwerk).",
-      "offlineHint": "Schakel de offline modus uit om de catalogus te downloaden.",
+      "offlineHint": "Schakel de offlinemodus uit om de catalogus te downloaden.",
       "errors": {
         "loadFailed": "Kan catalogusstatus niet laden.",
         "downloadFailed": "Kan de catalogus niet downloaden.",
@@ -2343,14 +2344,14 @@
       "max": "Maximaal"
     },
     "statsKpis": {
-      "title": "Statistiek-indicatoren",
-      "subtitle": "Kies welke indicatoren op de pagina Statistieken verschijnen. Vink de indicatoren uit die je liever verbergt, zoals het volledig-beluisterd-percentage.",
-      "legend": "Zichtbaarheid van statistiek-indicatoren"
+      "title": "Statistiekindicatoren",
+      "subtitle": "Kies welke indicatoren op de pagina Statistieken verschijnen. Vink de indicatoren uit die je liever verbergt, zoals het percentage volledig beluisterd.",
+      "legend": "Zichtbaarheid van statistiekindicatoren"
     },
     "immersiveView": {
       "title": "Meeslepende weergave",
       "mergedLyrics": {
-        "title": "Songtekst naast cover",
+        "title": "Songtekst naast hoes",
         "subtitle": "Toont de songtekst naast de hoes zodat je nummers kunt wisselen terwijl je leest. Valt terug op één kolom bij smalle vensters."
       },
       "nativeFullscreen": {
@@ -2360,19 +2361,19 @@
     },
     "scrollTitles": {
       "title": "Lange titels laten scrollen",
-      "subtitle": "Lange titels scrollen in plaats van afgekapt te worden (spelerbalk + meeslepende weergave)."
+      "subtitle": "Lange titels scrollen in plaats van afgekapt te worden (afspeelbalk + meeslepende weergave)."
     },
     "coverSlideshow": {
       "title": "Diavoorstelling hoes / artiest",
-      "subtitle": "Wisselt met een overvloeier tussen de albumhoes en de artiestenfoto in de meeslepende weergave en het paneel «Speelt nu»."
+      "subtitle": "Wisselt met een overvloeier tussen de albumhoes en de artiestenfoto in de meeslepende weergave en het paneel ‘Speelt nu’."
     },
     "artistHero": {
       "title": "Artiestbanner",
       "subtitle": "Toont een brede achtergrondafbeelding achter de kop van de artiestpagina (TheAudioDB-fanart, anders de vervaagde foto)."
     },
     "pluginStore": {
-      "title": "Plug-in-winkel",
-      "subtitle": "Blader en installeer plug-ins in een sandbox uit het WaveFlow-register.",
+      "title": "Plug-inwinkel",
+      "subtitle": "Blader door plug-ins in een sandbox uit het WaveFlow-register en installeer ze.",
       "loading": "Winkel laden…",
       "emptyTitle": "Nog geen plug-ins beschikbaar",
       "emptyHint": "Het register is voorlopig leeg — kom binnenkort terug.",
@@ -2391,7 +2392,7 @@
     },
     "motionArtwork": {
       "title": "Bewegende hoezen",
-      "subtitle": "Bewegende hoezen van metadata-plug-ins (bijv. Apple Motion Artwork) spelen achter de weergave van wat er nu speelt.",
+      "subtitle": "Bewegende hoezen van metadata-plug-ins (bv. Apple Motion Artwork) spelen achter de weergave van wat er nu speelt.",
       "cacheLabel": "Bewegende hoezen lokaal opslaan",
       "usage": "{{size}} gebruikt · {{files}} hoezen in cache",
       "clear": "Cache wissen",
@@ -2463,7 +2464,7 @@
     },
     "cacheLocation": {
       "title": "Cachelocatie",
-      "subtitle": "Hoesafbeeldingen, bewegende covers en Canvas-clips. Alles is opnieuw op te bouwen, dus verplaatsen kost niets. Databases en zelf gekozen bestanden blijven waar ze zijn.",
+      "subtitle": "Hoesafbeeldingen, bewegende hoezen en Canvas-clips. Alles is opnieuw op te bouwen, dus verplaatsen kost niets. Databases en zelf gekozen bestanden blijven waar ze zijn.",
       "pickTitle": "Cachemap kiezen",
       "choose": "Verplaatsen…",
       "reset": "Terug naar standaard",
@@ -2500,7 +2501,7 @@
         "plugins": "Ontdek extensies en beheer hun instellingen.",
         "shortcuts": "Kies sneltoetsen voor dagelijkse acties.",
         "data": "Beheer opgeslagen profielen, mappen en gecachte media.",
-        "diagnostics": "Updates, probleemoplossing en de toepassing herstellen."
+        "diagnostics": "Updates, probleemoplossing en de app resetten."
       },
       "groups": {
         "language": "Taal",
@@ -2515,8 +2516,8 @@
         "output": "Geavanceerde audio-instellingen",
         "theme": "Thema en leesbaarheid",
         "player": "Speler en venster",
-        "immersive": "Immersieve weergave",
-        "pages": "Bibliotheekpagina’s",
+        "immersive": "Meeslepende weergave",
+        "pages": "Bibliotheekpagina's",
         "artwork": "Hoezen en artiestafbeeldingen",
         "biographies": "Artiestbiografieën",
         "lyrics": "Songteksten",
@@ -2531,7 +2532,7 @@
         "cleanup": "Afbeeldingsonderhoud",
         "updates": "Updates",
         "diagnostics": "Diagnostiek",
-        "reset": "Toepassing herstellen",
+        "reset": "App resetten",
         "desktopLyrics": "Songtekst op bureaublad"
       }
     },
@@ -2556,7 +2557,7 @@
     "doneTitle": "Scan voltooid",
     "cancelledTitle": "Scan gestopt",
     "doneSubtitle": "{{added}} toegevoegd · {{updated}} bijgewerkt · {{skipped}} overgeslagen",
-    "scanningIn": "Bezig met {{dir}}",
+    "scanningIn": "{{dir}} scannen…",
     "doneErrors_one": "{{count}} bestand mislukt",
     "doneErrors_other": "{{count}} bestanden mislukt"
   },
@@ -2573,7 +2574,7 @@
   },
   "share": {
     "title": "Afspeellijst delen",
-    "subtitle": "Genereer een openbare link voor “{{name}}”. Iedereen kan deze in een browser openen.",
+    "subtitle": "Genereer een openbare link voor ‘{{name}}’. Iedereen kan deze in een browser openen.",
     "idleHint": "De link blijft actief totdat je hem intrekt. Je kunt hem op elk moment via dit venster uitschakelen.",
     "mint": "Link genereren",
     "activeHint": "Link is actief op al je apparaten.",
@@ -2589,16 +2590,16 @@
     "title": "Web Radio",
     "subtitle": "Meer dan 30.000 online radiostations via radio-browser.info.",
     "loading": "Categorieën laden…",
-    "resolving": "Stations zoeken…",
-    "emptyResults": "Geen stations gevonden.",
-    "searchPlaceholder": "Zoek een station…",
+    "resolving": "Zenders zoeken…",
+    "emptyResults": "Geen zenders gevonden.",
+    "searchPlaceholder": "Zoek een zender…",
     "backToCategories": "Terug naar categorieën",
     "live": "LIVE",
     "nowPlaying": "Speelt nu",
     "unavailableTitle": "Web Radio is uitgeschakeld",
-    "unavailableHint": "Schakel de Web Radio-plug-in in via Instellingen → Plug-ins om meer dan 30.000 stations te doorzoeken.",
+    "unavailableHint": "Schakel de Web Radio-plug-in in via Instellingen → Extensies om meer dan 30.000 zenders te doorzoeken.",
     "favorites": "Favorieten",
-    "favoritesEmpty": "Nog geen favoriete zenders. Tik op de ster van een zender om hem op te slaan.",
+    "favoritesEmpty": "Nog geen favoriete zenders. Klik op de ster van een zender om hem op te slaan.",
     "addFavorite": "Aan favorieten toevoegen",
     "removeFavorite": "Uit favorieten verwijderen",
     "localStations": "Lokale zenders",
@@ -2687,7 +2688,7 @@
     },
     "queue": {
       "empty": "Niets in de wachtrij.",
-      "nowPlaying": "Nu aan het afspelen",
+      "nowPlaying": "Speelt nu",
       "upNext": "Volgende"
     },
     "playlist": {
@@ -2729,7 +2730,7 @@
       "serverFirst": "Server eerst",
       "playbackPreference": "Afspeelvoorkeur voor {{title}}",
       "unlink": "{{title}} ontkoppelen",
-      "conversionTitle": "Expliciete afspeellijst-kopie",
+      "conversionTitle": "Expliciete afspeellijstkopie",
       "conversionSubtitle": "Een voorbeeld moet elke identiteitskoppeling bevestigen. Er wordt niets stilzwijgend samengevoegd of weggelaten.",
       "conversionDirection": "Kopieerrichting afspeellijst",
       "conversionLocalToServer": "Lokaal → server",
@@ -2760,8 +2761,8 @@
       "summaryStale_other": " · {{count}} verouderd",
       "summaryUnreadable_one": " · {{count}} onleesbaar",
       "summaryUnreadable_other": " · {{count}} onleesbaar",
-      "history_one": "Geschiedenis: {{local}} lokaal + {{remote}} server = {{combined}} weergave",
-      "history_other": "Geschiedenis: {{local}} lokaal + {{remote}} server = {{combined}} weergaven",
+      "history_one": "Geschiedenis: {{local}} lokaal + {{remote}} server = {{combined}} luisterbeurt",
+      "history_other": "Geschiedenis: {{local}} lokaal + {{remote}} server = {{combined}} luisterbeurten",
       "conversionSourceOption_one": "{{name}} · {{count}} nummer",
       "conversionSourceOption_other": "{{name}} · {{count}} nummers",
       "conversionPreviewSummary_one": "{{name}}: {{convertible}}/{{total}} nummer heeft een bevestigde koppeling",
@@ -2862,10 +2863,10 @@
       "title": "Servermetadata",
       "subtitle": "De correctie wordt op de server opgeslagen, niet in het bestand.",
       "help": "Deze correcties overleven de scans van de server en zijn zichtbaar voor elk lid van de bibliotheek. Een veld leegmaken verwijdert de correctie: de waarde uit het bestand komt terug.",
-      "missing": "Dit nummer staat nog niet in de spiegel van de server. Voer een catalogusronde uit en probeer het opnieuw.",
+      "missing": "Dit nummer staat nog niet in de kopie van de servercatalogus. Kopieer de catalogus en probeer het opnieuw.",
       "invalidNumber": "Het jaar en de track- en schijfnummers moeten hele getallen zijn."
     },
-    "needsMirror": "Kopieer eerst de catalogus van de server hierboven: dit onderdeel vergelijkt je bestanden met de lokale spiegel, die nog leeg is."
+    "needsMirror": "Kopieer eerst de catalogus van de server hierboven: dit onderdeel vergelijkt je bestanden met de lokale kopie, die nog leeg is."
   },
   "tasks": {
     "barLabel": "Lopende taken",
@@ -2878,7 +2879,7 @@
       "library_scan": "Bibliotheekscan",
       "analysis": "Audioanalyse",
       "lyrics_prefetch": "Songteksten ophalen",
-      "catalogue_mirror": "Catalogusspiegel",
+      "catalogue_mirror": "Catalogus kopiëren",
       "reconcile": "Afstemming",
       "upload": "Uploaden",
       "backup": "Back-up",
@@ -2894,7 +2895,7 @@
     "limit": "maximaal {{value}}",
     "sort": {
       "addedDesc": "laatst toegevoegd eerst",
-      "addedAsc": "eerst toegevoegd eerst",
+      "addedAsc": "oudste toevoegingen eerst",
       "yearDesc": "nieuwste eerst",
       "yearAsc": "oudste eerst",
       "titleAsc": "op titel",
@@ -2902,10 +2903,10 @@
       "random": "willekeurig"
     },
     "predicates": {
-      "titleContains": "titel bevat “{{value}}”",
-      "artistContains": "artiest bevat “{{value}}”",
-      "albumContains": "album bevat “{{value}}”",
-      "pathContains": "pad bevat “{{value}}”",
+      "titleContains": "titel bevat ‘{{value}}’",
+      "artistContains": "artiest bevat ‘{{value}}’",
+      "albumContains": "album bevat ‘{{value}}’",
+      "pathContains": "pad bevat ‘{{value}}’",
       "genreIs": "genre {{value}}",
       "yearMin": "jaar ≥ {{value}}",
       "yearMax": "jaar ≤ {{value}}",
@@ -2922,7 +2923,7 @@
       "durationMaxMs": "duur ≤ {{value}}",
       "neverPlayed": "nooit afgespeeld",
       "tagPresent": "heeft de tag {{key}}",
-      "tagContains": "tag {{key}} bevat “{{value}}”",
+      "tagContains": "tag {{key}} bevat ‘{{value}}’",
       "playCountMin_one": "minstens {{count}} keer afgespeeld",
       "playCountMin_other": "minstens {{count}} keer afgespeeld",
       "playCountMax_one": "hoogstens {{count}} keer afgespeeld",

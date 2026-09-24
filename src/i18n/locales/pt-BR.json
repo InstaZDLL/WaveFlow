@@ -91,12 +91,12 @@
       "quickSettings": "Configurações rápidas",
       "autoAnalyze": {
         "title": "Auto-analisar faixas",
-        "description": "Detecta BPM e tonalidade durante o escaneamento — alimenta o Rádio e o Rádio por Humor."
+        "description": "Detecta BPM e tonalidade durante o escaneamento — alimenta o rádio e o rádio por humor."
       }
     },
     "lastfm": {
       "title": "Conecte o Last.fm",
-      "description": "O scrobbling envia suas reproduções para seu perfil Last.fm. Em troca você recebe biografias de artistas e sugestões de artistas similares no app.",
+      "description": "O scrobbling envia suas reproduções para seu perfil Last.fm. Em troca você recebe biografias de artistas e sugestões de artistas semelhantes no app.",
       "recommendedBadge": "Recomendado",
       "keyHint": "Crie uma chave de API no Last.fm",
       "keyLabel": "Chave de API",
@@ -128,7 +128,7 @@
       "nextSteps": "Próximos passos:",
       "bulletExplore": "Explore sua biblioteca pelas abas Biblioteca, Álbuns e Artistas",
       "bulletQueue": "Monte sua primeira fila clicando em uma faixa",
-      "bulletSettings": "Ajuste as configurações pela barra lateral (Aparência, Integrações…)",
+      "bulletSettings": "Ajuste as configurações pela barra lateral (Aparência, Conexões…)",
       "tipImmersiveTitle": "Dica: visualização imersiva",
       "tipImmersiveBody": "Clique na capa do player para abrir a visualização em tela cheia com a capa e a letra lado a lado."
     },
@@ -161,7 +161,7 @@
     "lyrics": {
       "title": "Onde salvar as letras?",
       "description": "Para onde devem ir as letras, tanto as que você edita quanto as que o WaveFlow encontra? Pode mudar em Configurações → Imagens e letras.",
-      "hint": "Escolha \"Arquivo sidecar\" para manter seus arquivos de áudio intactos — como faz o foobar2000."
+      "hint": "Escolha “Arquivo sidecar” para manter seus arquivos de áudio intactos — como faz o foobar2000."
     }
   },
   "sidebar": {
@@ -182,6 +182,7 @@
       "tracksCount_zero": "0 faixas",
       "tracksCount_one": "{{count}} faixa",
       "tracksCount_other": "{{count}} faixas",
+      "tracksCount_many": "{{count}} faixas",
       "createLibraryAria": "Criar uma nova biblioteca",
       "none": "Nenhuma biblioteca",
       "popover": {
@@ -191,9 +192,11 @@
         "tracks_zero": "0 faixas",
         "tracks_one": "{{count}} faixa",
         "tracks_other": "{{count}} faixas",
+        "tracks_many": "{{count}} faixas",
         "albums_zero": "0 álbuns",
         "albums_one": "{{count}} álbum",
         "albums_other": "{{count}} álbuns",
+        "albums_many": "{{count}} álbuns",
         "see": "Ver",
         "new": "Nova"
       },
@@ -214,6 +217,7 @@
       "emptySubtext_zero": "0 faixas",
       "emptySubtext_one": "{{count}} faixa",
       "emptySubtext_other": "{{count}} faixas",
+      "emptySubtext_many": "{{count}} faixas",
       "createSmartAria": "Criar uma playlist inteligente"
     },
     "myMusic": {
@@ -232,17 +236,20 @@
       "playlistSubtext_zero": "0 faixas",
       "playlistSubtext_one": "{{count}} faixa",
       "playlistSubtext_other": "{{count}} faixas",
+      "playlistSubtext_many": "{{count}} faixas",
       "playlistSubtextPending_zero": "0 faixas · ainda não enviada",
       "playlistSubtextPending_one": "{{count}} faixa · ainda não enviada",
-      "playlistSubtextPending_other": "{{count}} faixas · ainda não enviada"
+      "playlistSubtextPending_other": "{{count}} faixas · ainda não enviada",
+      "playlistSubtextPending_many": "{{count}} faixas · ainda não enviada"
     }
   },
   "topbar": {
     "search": {
-      "placeholder": "Pesquisar uma música, um artista, um álbum...",
+      "placeholder": "Buscar uma faixa, um artista, um álbum...",
       "results_zero": "Nenhum resultado",
       "results_one": "{{count}} resultado",
       "results_other": "{{count}} resultados",
+      "results_many": "{{count}} resultados",
       "empty": "Nenhum resultado corresponde à sua busca",
       "filters": {
         "toggle": "Filtros avançados",
@@ -280,6 +287,7 @@
   "home": {
     "greeting": {
       "morning": "Bom dia",
+      "afternoon": "Boa tarde",
       "evening": "Boa noite",
       "night": "Boa noite"
     },
@@ -303,6 +311,7 @@
       "subtitle": "Ordenado por andamento, volume e gênero",
       "trackCount_one": "{{count}} faixa",
       "trackCount_other": "{{count}} faixas",
+      "trackCount_many": "{{count}} faixas",
       "empty": "Não há faixas analisadas suficientes",
       "loading": "Iniciando…",
       "focus": {
@@ -331,8 +340,8 @@
     },
     "recentlyPlayed": {
       "title": "Reproduzidas recentemente",
-      "emptyTitle": "Nenhuma música foi ouvida",
-      "emptyDescription": "Reproduza uma música para que ela apareça aqui. Seu histórico de reprodução é criado à medida que você descobre novas músicas."
+      "emptyTitle": "Nenhuma faixa foi ouvida",
+      "emptyDescription": "Reproduza uma faixa para que ela apareça aqui. Seu histórico de reprodução é criado à medida que você descobre novas músicas."
     },
     "recentlyAdded": {
       "title": "Adicionadas recentemente"
@@ -345,7 +354,8 @@
       "emptyDescription": "Ouça algumas faixas e depois clique em Regenerar para criar suas mixagens personalizadas.",
       "label": "Daily Mix",
       "trackCount_one": "{{count}} faixa",
-      "trackCount_other": "{{count}} faixas"
+      "trackCount_other": "{{count}} faixas",
+      "trackCount_many": "{{count}} faixas"
     },
     "onRepeat": {
       "label": "On Repeat"
@@ -366,24 +376,31 @@
         "tracks_zero": "0 faixas",
         "tracks_one": "{{count}} faixa",
         "tracks_other": "{{count}} faixas",
+        "tracks_many": "{{count}} faixas",
         "albums_zero": "0 álbuns",
         "albums_one": "{{count}} álbum",
         "albums_other": "{{count}} álbuns",
+        "albums_many": "{{count}} álbuns",
         "artists_zero": "0 artistas",
         "artists_one": "{{count}} artista",
         "artists_other": "{{count}} artistas",
+        "artists_many": "{{count}} artistas",
         "genres_zero": "0 gêneros",
         "genres_one": "{{count}} gênero",
         "genres_other": "{{count}} gêneros",
+        "genres_many": "{{count}} gêneros",
         "folders_zero": "0 pastas",
         "folders_one": "{{count}} pasta",
         "folders_other": "{{count}} pastas",
+        "folders_many": "{{count}} pastas",
         "playlists_zero": "0 playlists",
         "playlists_one": "{{count}} playlist",
         "playlists_other": "{{count}} playlists",
+        "playlists_many": "{{count}} playlists",
         "needs-attention_zero": "Nada a relatar: a biblioteca está completa.",
         "needs-attention_one": "{{count}} ponto a corrigir",
-        "needs-attention_other": "{{count}} pontos a corrigir"
+        "needs-attention_other": "{{count}} pontos a corrigir",
+        "needs-attention_many": "{{count}} pontos a corrigir"
       }
     },
     "tabs": {
@@ -439,12 +456,13 @@
       "deepRescanning": "Reescaneamento profundo em andamento…"
     },
     "changeCover": "Alterar capa",
-    "searchDeezer": "Pesquisar no Deezer",
+    "searchDeezer": "Buscar no Deezer",
     "localFile": "Arquivo local",
     "fetchMissingCovers": "Recuperar todas as capas que faltam",
     "fetchingCovers": "Baixando capas... ({{current}} / {{total}})",
     "fetchCoversResult_one": "{{count}} capa obtida",
     "fetchCoversResult_other": "{{count}} capas obtidas",
+    "fetchCoversResult_many": "{{count}} capas obtidas",
     "fetchCoversFailed": "Falha ao obter capas",
     "table": {
       "number": "#",
@@ -464,25 +482,30 @@
     "albumGrid": {
       "trackCount_zero": "0 faixas",
       "trackCount_one": "{{count}} faixa",
-      "trackCount_other": "{{count}} faixas"
+      "trackCount_other": "{{count}} faixas",
+      "trackCount_many": "{{count}} faixas"
     },
     "artistList": {
       "trackCount_zero": "0 faixas",
       "trackCount_one": "{{count}} faixa",
       "trackCount_other": "{{count}} faixas",
+      "trackCount_many": "{{count}} faixas",
       "albumCount_zero": "0 álbuns",
       "albumCount_one": "{{count}} álbum",
-      "albumCount_other": "{{count}} álbuns"
+      "albumCount_other": "{{count}} álbuns",
+      "albumCount_many": "{{count}} álbuns"
     },
     "genreList": {
       "trackCount_zero": "0 faixas",
       "trackCount_one": "{{count}} faixa",
-      "trackCount_other": "{{count}} faixas"
+      "trackCount_other": "{{count}} faixas",
+      "trackCount_many": "{{count}} faixas"
     },
     "folderList": {
       "trackCount_zero": "0 faixas",
       "trackCount_one": "{{count}} faixa",
       "trackCount_other": "{{count}} faixas",
+      "trackCount_many": "{{count}} faixas",
       "lastScanned": "Último escaneamento: {{date}}",
       "neverScanned": "nunca",
       "watched": "Monitorada",
@@ -491,8 +514,9 @@
       "deepRescan": "Reescaneamento profundo (relê todos os arquivos, mais lento)",
       "remove": "Remover pasta da biblioteca",
       "removeConfirm": "Clique novamente para confirmar",
-      "removeConfirmWithPlays_one": "Clique novamente para confirmar. {{count}} reprodução será mantida e reassociada na próxima varredura.",
-      "removeConfirmWithPlays_other": "Clique novamente para confirmar. {{count}} reproduções serão mantidas e reassociadas na próxima varredura."
+      "removeConfirmWithPlays_one": "Clique novamente para confirmar. {{count}} reprodução será mantida e reassociada no próximo escaneamento.",
+      "removeConfirmWithPlays_other": "Clique novamente para confirmar. {{count}} reproduções serão mantidas e reassociadas no próximo escaneamento.",
+      "removeConfirmWithPlays_many": "Clique novamente para confirmar. {{count}} reproduções serão mantidas e reassociadas no próximo escaneamento."
     },
     "folderBrowser": {
       "open": "Explorar esta pasta",
@@ -515,7 +539,8 @@
       "emptyHint": "As playlists que você criar aparecem aqui em grade.",
       "meta_zero": "0 faixas · {{duration}}",
       "meta_one": "{{count}} faixa · {{duration}}",
-      "meta_other": "{{count}} faixas · {{duration}}"
+      "meta_other": "{{count}} faixas · {{duration}}",
+      "meta_many": "{{count}} faixas · {{duration}}"
     },
     "source": {
       "label": "Origem",
@@ -528,11 +553,14 @@
       "allClear": "Nada a relatar: a biblioteca está completa.",
       "summary_one": "{{count}} ponto a corrigir",
       "summary_other": "{{count}} pontos a corrigir",
+      "summary_many": "{{count}} pontos a corrigir",
       "trackCount_one": "{{count}} faixa",
       "artistCount_zero": "0 artistas",
       "artistCount_one": "{{count}} artista",
       "trackCount_other": "{{count}} faixas",
+      "trackCount_many": "{{count}} faixas",
       "artistCount_other": "{{count}} artistas",
+      "artistCount_many": "{{count}} artistas",
       "categories": {
         "missing_title": {
           "label": "Sem título",
@@ -628,8 +656,9 @@
     "count_zero": "0 faixas",
     "count_one": "{{count}} faixa",
     "count_other": "{{count}} faixas",
-    "emptyTitle": "Nenhuma faixa curtida",
-    "emptyDescription": "As músicas que você curte aparecerão aqui. Explore sua biblioteca e curta suas músicas favoritas.",
+    "count_many": "{{count}} faixas",
+    "emptyTitle": "Nenhuma música curtida",
+    "emptyDescription": "As faixas que você curte aparecerão aqui. Explore sua biblioteca e curta suas faixas favoritas.",
     "playAll": "Reproduzir tudo",
     "unlike": "Remover das curtidas",
     "like": "Adicionar às curtidas"
@@ -646,8 +675,10 @@
     "emptyDescription": "Reproduza uma faixa — aparecerá aqui assim que contar.",
     "shownCount_one": "{{count}} reprodução exibida",
     "shownCount_other": "{{count}} reproduções exibidas",
+    "shownCount_many": "{{count}} reproduções exibidas",
     "plays_one": "{{count}} reprodução",
     "plays_other": "{{count}} reproduções",
+    "plays_many": "{{count}} reproduções",
     "range": {
       "all": "Tudo",
       "7d": "7 dias",
@@ -662,8 +693,9 @@
     "count_zero": "0 faixas",
     "count_one": "{{count}} faixa",
     "count_other": "{{count}} faixas",
+    "count_many": "{{count}} faixas",
     "emptyTitle": "Nenhuma faixa recente",
-    "emptyDescription": "As músicas que você estiver ouvindo aparecerão aqui automaticamente."
+    "emptyDescription": "As faixas que você estiver ouvindo aparecerão aqui automaticamente."
   },
   "statistics": {
     "title": "Estatísticas",
@@ -684,6 +716,7 @@
       "uniqueArtists_zero": "0 artistas",
       "uniqueArtists_one": "{{count}} artista",
       "uniqueArtists_other": "{{count}} artistas",
+      "uniqueArtists_many": "{{count}} artistas",
       "completionRate": "Taxa de audição completa"
     },
     "byDay": {
@@ -717,6 +750,7 @@
     "plays_zero": "0 reproduções",
     "plays_one": "{{count}} reprodução",
     "plays_other": "{{count}} reproduções",
+    "plays_many": "{{count}} reproduções",
     "export": {
       "label": "Exportar estatísticas",
       "action": "Exportar",
@@ -740,6 +774,7 @@
     "playsShort_zero": "0 reproduções",
     "playsShort_one": "{{count}} reprodução",
     "playsShort_other": "{{count}} reproduções",
+    "playsShort_many": "{{count}} reproduções",
     "empty": {
       "title": "Ainda sem histórico",
       "subtitle": "Toque algumas faixas e volte depois — seu Wrapped se constrói enquanto você ouve."
@@ -752,7 +787,8 @@
       "eyebrow": "Você escutou",
       "subtitle_zero": "0 minutos de música",
       "subtitle_one": "{{count}} minuto de música",
-      "subtitle_other": "{{count}} minutos de música"
+      "subtitle_other": "{{count}} minutos de música",
+      "subtitle_many": "{{count}} minutos de música"
     },
     "stats": {
       "plays": "Reproduções",
@@ -770,7 +806,7 @@
     },
     "activeDay": {
       "eyebrow": "Seu dia recorde",
-      "subtitle": "{{duration}} de escuta, {{count}} faixas"
+      "subtitle": "{{duration}} de audição, {{count}} faixas"
     },
     "mood": {
       "eyebrow": "Seu BPM médio",
@@ -781,7 +817,7 @@
         "warm": "Quente",
         "groove": "Groove",
         "energetic": "Energético",
-        "fire": "Fogo"
+        "fire": "Intenso"
       }
     },
     "clock": {
@@ -793,6 +829,7 @@
       "daysLabel_zero": "0 dias seguidos",
       "daysLabel_one": "{{count}} dia seguido",
       "daysLabel_other": "{{count}} dias seguidos",
+      "daysLabel_many": "{{count}} dias seguidos",
       "range": "De {{start}} a {{end}}",
       "daysShort": "dias seguidos"
     },
@@ -818,7 +855,7 @@
   "about": {
     "title": "Sobre",
     "hero": {
-      "subtitle": "Reprodutor de música HD multiplataforma",
+      "subtitle": "Player de música HD multiplataforma",
       "checkUpdates": "Verificar se há atualizações",
       "developedBy": "Desenvolvido por"
     },
@@ -917,15 +954,17 @@
     "count_zero": "0 faixas",
     "count_one": "{{count}} faixa",
     "count_other": "{{count}} faixas",
+    "count_many": "{{count}} faixas",
     "emptyTitle": "Nada para ouvir",
-    "emptyDescription": "Reproduza uma música da sua biblioteca para preencher a fila.",
+    "emptyDescription": "Reproduza uma faixa da sua biblioteca para preencher a fila.",
     "nowPlaying": "Tocando agora",
     "upNext_zero": "A seguir",
     "upNext_one": "A seguir · {{count}} faixa",
     "upNext_other": "A seguir · {{count}} faixas",
+    "upNext_many": "A seguir · {{count}} faixas",
     "radio": {
       "label": "Rádio",
-      "basedOn": "Baseada em “{{title}}”"
+      "basedOn": "Baseado em “{{title}}”"
     }
   },
   "deviceMenu": {
@@ -1010,8 +1049,10 @@
     "zero": "0 min",
     "minutes_one": "{{count}} min",
     "minutes_other": "{{count}} min",
+    "minutes_many": "{{count}} min",
     "hours_one": "{{count}} h",
     "hours_other": "{{count}} h",
+    "hours_many": "{{count}} h",
     "hoursMinutes": "{{hours}} h {{minutes}} min"
   },
   "playlistModal": {
@@ -1053,6 +1094,7 @@
     "trackCount_zero": "0 faixas",
     "trackCount_one": "{{count}} faixa",
     "trackCount_other": "{{count}} faixas",
+    "trackCount_many": "{{count}} faixas",
     "actions": {
       "play": "Reproduzir",
       "shuffle": "Reprodução aleatória",
@@ -1068,7 +1110,7 @@
       "dialogTitle": "Exportar a playlist como M3U"
     },
     "emptyTitle": "Esta playlist está vazia",
-    "emptyDescription": "Adicione músicas das suas bibliotecas usando o botão + em cada linha.",
+    "emptyDescription": "Adicione faixas das suas bibliotecas usando o botão + em cada linha.",
     "noneTitle": "Nenhuma playlist selecionada",
     "noneDescription": "Escolha uma playlist na barra lateral para visualizá-la aqui.",
     "notFoundTitle": "Playlist não encontrada",
@@ -1093,8 +1135,8 @@
     "rating": "Avaliação",
     "ratingNone": "Sem avaliação",
     "batchEdit": "Editar tags de {{count}} faixas…",
-    "addToPlaylistNamed": "Adicionar a \"{{name}}\"",
-    "removeFromPlaylistNamed": "Remover de \"{{name}}\""
+    "addToPlaylistNamed": "Adicionar a “{{name}}”",
+    "removeFromPlaylistNamed": "Remover de “{{name}}”"
   },
   "batchTagEdit": {
     "title": "Editar tags em lote",
@@ -1171,6 +1213,7 @@
     "count_zero": "0 selecionados",
     "count_one": "{{count}} selecionado",
     "count_other": "{{count}} selecionados",
+    "count_many": "{{count}} selecionados",
     "play": "Reproduzir",
     "addToQueue": "Adicionar à fila",
     "playNext": "Reproduzir a seguir",
@@ -1185,6 +1228,7 @@
     "trackCount_zero": "0 faixas",
     "trackCount_one": "{{count}} faixa",
     "trackCount_other": "{{count}} faixas",
+    "trackCount_many": "{{count}} faixas",
     "discHeader": "Disco {{number}}",
     "releaseDate": "Data de lançamento",
     "emptyTitle": "Álbum não encontrado",
@@ -1203,12 +1247,15 @@
     "trackCount_zero": "0 faixas",
     "trackCount_one": "{{count}} faixa",
     "trackCount_other": "{{count}} faixas",
+    "trackCount_many": "{{count}} faixas",
     "albumCount_zero": "0 álbuns",
     "albumCount_one": "{{count}} álbum",
     "albumCount_other": "{{count}} álbuns",
+    "albumCount_many": "{{count}} álbuns",
     "albumTrackCount_zero": "0 faixas",
     "albumTrackCount_one": "{{count}} faixa",
     "albumTrackCount_other": "{{count}} faixas",
+    "albumTrackCount_many": "{{count}} faixas",
     "emptyTitle": "Artista não encontrado",
     "emptyDescription": "Esse artista não consta mais no perfil ativo.",
     "bio": {
@@ -1228,7 +1275,8 @@
     "editAria": "Alterar foto do artista",
     "removeAction": "Remover imagem",
     "fansCount_one": "{{display}} fã",
-    "fansCount_other": "{{display}} fãs"
+    "fansCount_other": "{{display}} fãs",
+    "fansCount_many": "{{display}} fãs"
   },
   "artistBackdropPicker": {
     "title": "Alterar o banner do artista",
@@ -1241,7 +1289,7 @@
   },
   "motionCoverPicker": {
     "title": "Capa animada manual",
-    "subtitle": "Escolha um arquivo MP4 local. Ela substitui a capa animada fornecida pelo plugin e nunca é sobrescrita por uma atualização.",
+    "subtitle": "Escolha um arquivo MP4 local. Ele substitui a capa animada fornecida pelo plugin e nunca é sobrescrito por uma atualização.",
     "pickFile": "Escolher um arquivo MP4",
     "removeAction": "Remover capa animada"
   },
@@ -1263,6 +1311,7 @@
     "trackCount_zero": "0 faixas",
     "trackCount_one": "{{count}} faixa",
     "trackCount_other": "{{count}} faixas",
+    "trackCount_many": "{{count}} faixas",
     "emptyTitle": "Gênero não encontrado",
     "emptyDescription": "Este gênero não existe mais no perfil ativo.",
     "emptyTracksTitle": "Sem faixas",
@@ -1294,7 +1343,7 @@
       "save": "Salvar como PNG",
       "copy": "Copiar imagem",
       "eyebrow": "Tocando agora",
-      "on": "em"
+      "footer": "no {{app}}"
     }
   },
   "playerBar": {
@@ -1370,7 +1419,8 @@
     "customPlaceholder": "Min.",
     "customAriaLabel": "Duração personalizada em minutos",
     "minutes_one": "{{count}} min",
-    "minutes_other": "{{count}} min"
+    "minutes_other": "{{count}} min",
+    "minutes_many": "{{count}} min"
   },
   "lyrics": {
     "title": "Letra",
@@ -1429,6 +1479,7 @@
     "deleteOthers_zero": "Nada para excluir",
     "deleteOthers_one": "Excluir {{count}} duplicata",
     "deleteOthers_other": "Excluir {{count}} duplicatas",
+    "deleteOthers_many": "Excluir {{count}} duplicatas",
     "keepAria": "Manter {{title}}"
   },
   "dragDrop": {
@@ -1456,7 +1507,7 @@
       "bpm": "BPM",
       "durationMin": "Duração em minutos",
       "hiRes": "Apenas Hi-Res",
-      "liked": "Apenas faixas curtidas",
+      "liked": "Apenas músicas curtidas",
       "formats": "Formatos",
       "genres": "Gêneros",
       "sort": "Ordenar por",
@@ -1489,12 +1540,13 @@
       "and": "E",
       "or": "OU",
       "not": "NÃO",
-      "toggleOpHint": "E ↔ OU",
+      "toggleOpHint": "Alternar E ↔ OU",
       "matchAllEmpty": "(toda a biblioteca)",
       "matchNoneEmpty": "(nenhuma faixa)",
       "childCount_zero": "vazio",
       "childCount_one": "{{count}} condição",
       "childCount_other": "{{count}} condições",
+      "childCount_many": "{{count}} condições",
       "notHint": "Exclui tudo que corresponda à sub-regra",
       "deleteNode": "Excluir",
       "addCondition": "Condição",
@@ -1603,7 +1655,7 @@
       },
       "db_only": {
         "label": "Apenas banco WaveFlow",
-        "hint": "Fica no cache do app. Nenhum arquivo ou tag é tocado."
+        "hint": "Fica no cache do app. Nenhum arquivo ou tag é alterado."
       }
     }
   },
@@ -1628,7 +1680,7 @@
   },
   "editorial": {
     "masthead": {
-      "edition": "Edição da Manhã",
+      "edition": "Edição da manhã",
       "price": "Preço: Incluído",
       "subtitle": "“Toda a música que merece ser impressa.” — Sua seleção diária, sob medida."
     },
@@ -1751,11 +1803,11 @@
       },
       "discord": {
         "title": "Discord Rich Presence",
-        "subtitle": "Mostrar a faixa que está tocando no seu perfil do Discord"
+        "subtitle": "Mostra a faixa que está tocando no seu perfil do Discord"
       },
       "dlna": {
         "title": "Servidor DLNA / UPnP",
-        "subtitle": "Transmita sua biblioteca para amplificadores e dispositivos compatíveis na rede local",
+        "subtitle": "Transmite sua biblioteca para amplificadores e dispositivos compatíveis na rede local",
         "serverName": "Nome",
         "port": "Porta",
         "portHint": "0 = porta automática",
@@ -1765,7 +1817,7 @@
       },
       "mpd": {
         "title": "Servidor MPD",
-        "subtitle": "Controle o WaveFlow de qualquer cliente MPD: controle remoto no celular, terminal, barra de status",
+        "subtitle": "Controla o WaveFlow de qualquer cliente MPD: controle remoto no celular, terminal, barra de status",
         "port": "Porta",
         "portHint": "6600 por padrão",
         "password": "Senha",
@@ -1773,7 +1825,7 @@
         "passwordHint": "Opcional. Recomendada em uma rede compartilhada — o protocolo MPD a envia em texto puro.",
         "lanWarning": "Acessível de toda a sua rede local: qualquer pessoa nela pode controlar a reprodução.",
         "lanWarningAuth": "Acessível a partir de toda a sua rede local, mas o controle da reprodução exige a senha que você definiu.",
-        "statusRunning": "Ativo",
+        "statusRunning": "Em execução",
         "statusStopped": "Parado",
         "copyAddress": "Copiar endereço"
       },
@@ -1784,7 +1836,7 @@
     },
     "crossfade": {
       "title": "Crossfade",
-      "subtitle": "Transição suave entre as faixas (em breve)"
+      "subtitle": "Transição suave entre as faixas"
     },
     "smartCrossfade": {
       "title": "Crossfade inteligente",
@@ -1811,7 +1863,7 @@
       },
       "preventClipping": {
         "title": "Evitar distorção",
-        "subtitle": "Limitar o ganho à margem deixada pelo pico da faixa"
+        "subtitle": "Limita o ganho à margem deixada pelo pico da faixa"
       },
       "mode": {
         "title": "Ganho a aplicar",
@@ -1910,7 +1962,8 @@
       "autoTitle": "Análise automática",
       "autoSubtitle": "Executa uma análise em segundo plano após cada escaneamento que adicione novas faixas",
       "failed_one": "{{count}} falha",
-      "failed_other": "{{count}} falhas"
+      "failed_other": "{{count}} falhas",
+      "failed_many": "{{count}} falhas"
     },
     "artistImages": {
       "title": "Imagens de artistas",
@@ -1931,7 +1984,7 @@
         "action": "Exportar",
         "dialogTitle": "Exportar perfil WaveFlow",
         "done": "Perfil exportado com sucesso.",
-        "failed": "Falha na exportação. Consulte os logs para mais detalhes."
+        "failed": "Falha na exportação. Consulte os registros para mais detalhes."
       },
       "import": {
         "action": "Importar",
@@ -1946,29 +1999,31 @@
     },
     "dataFolder": {
       "title": "Pasta de dados",
-      "subtitle": "Abrir a pasta que contém o banco de dados e as capas",
+      "subtitle": "Abre a pasta que contém o banco de dados e as capas",
       "action": "Abrir"
     },
     "openDataFolder": "Abrir a pasta de dados",
     "lyricsPrefetch": {
       "title": "Pré-carregar letras",
-      "subtitle": "Baixar as letras de toda a biblioteca para uso offline",
+      "subtitle": "Baixa as letras de toda a biblioteca para uso offline",
       "result": "{{hits}} sincronizadas, {{misses}} não encontradas, {{failed}} falharam",
       "offline": "Modo offline ativado",
       "failed": "Pré-carregamento falhou",
       "action": "Pré-carregar",
       "progress": "{{current}}/{{total}} processadas · {{hits}} encontradas"
     },
-    "regenerateThumbnails": "Atualizar as miniaturas",
-    "regenerateThumbnailsSubtitle": "Recriar as variantes 1x/2x que faltam para todas as capas",
+    "regenerateThumbnails": "Regenerar as miniaturas",
+    "regenerateThumbnailsSubtitle": "Recria as variantes 1x/2x que faltam para todas as capas",
     "regenerateThumbnailsAction": "Regenerar",
-    "regenerateThumbnailsDone_one": "{{count}} miniatura atualizada",
-    "regenerateThumbnailsDone_other": "{{count}} miniaturas atualizadas",
+    "regenerateThumbnailsDone_one": "{{count}} miniatura regenerada",
+    "regenerateThumbnailsDone_other": "{{count}} miniaturas regeneradas",
+    "regenerateThumbnailsDone_many": "{{count}} miniaturas regeneradas",
     "pruneAlbumCovers": "Remover capas de álbum do Deezer não usadas",
     "pruneAlbumCoversSubtitle": "Exclui as capas do Deezer em cache de álbuns que já têm a própria capa (nunca exibidas)",
     "pruneAlbumCoversAction": "Remover",
     "pruneAlbumCoversDone_one": "{{count}} arquivo excluído · {{mb}} MB liberados",
     "pruneAlbumCoversDone_other": "{{count}} arquivos excluídos · {{mb}} MB liberados",
+    "pruneAlbumCoversDone_many": "{{count}} arquivos excluídos · {{mb}} MB liberados",
     "pruneAlbumCoversFailed": "Falha ao remover as capas",
     "reset": {
       "title": "Redefinir o aplicativo",
@@ -2086,9 +2141,11 @@
       "intervalLabel": "Frequência",
       "intervalDays_one": "Todo dia",
       "intervalDays_other": "A cada {{count}} dias",
+      "intervalDays_many": "A cada {{count}} dias",
       "retentionLabel": "Backups mantidos",
       "retentionKeep_one": "{{count}} arquivo por perfil",
       "retentionKeep_other": "{{count}} arquivos por perfil",
+      "retentionKeep_many": "{{count}} arquivos por perfil",
       "includeMetadataArtworkLabel": "Incluir cache de imagens Deezer",
       "includeMetadataArtworkHint": "Backup maior, restauração totalmente offline. Desmarque para arquivos leves (o cache será baixado novamente sob demanda).",
       "changeFolder": "Alterar pasta",
@@ -2098,11 +2155,12 @@
       "runNow": "Fazer backup agora",
       "runOk_one": "{{count}} arquivo gravado.",
       "runOk_other": "{{count}} arquivos gravados.",
-      "runPartial": "Criados: {{created}}, com falha: {{failed}}. Confira os logs.",
+      "runOk_many": "{{count}} arquivos gravados.",
+      "runPartial": "Criados: {{created}}, com falha: {{failed}}. Confira os registros.",
       "errors": {
         "loadFailed": "Não foi possível carregar a configuração.",
         "saveFailed": "Falha ao salvar. Tente novamente.",
-        "runFailed": "Falha no backup. Consulte os logs."
+        "runFailed": "Falha no backup. Consulte os registros."
       }
     },
     "uiZoom": {
@@ -2137,7 +2195,7 @@
         "ocean": "Oceano",
         "neon": "Néon",
         "midnightLight": "Meia-noite Claro",
-        "sunsetLight": "Pôr do Sol Claro",
+        "sunsetLight": "Pôr do sol Claro",
         "lavenderLight": "Lavanda Claro",
         "crimsonLight": "Carmesim Claro",
         "oceanLight": "Oceano Claro"
@@ -2170,7 +2228,7 @@
       }
     },
     "playerBarLayout": {
-      "title": "Layout da barra de reprodução",
+      "title": "Layout da barra do player",
       "subtitle": "Escolha quais botões aparecem na barra e o que acontece ao clicar na capa. A pré-visualização atualiza ao vivo.",
       "preview": "Prévia",
       "previewEmpty": "Sem botões — a barra mostrará só a capa e os controles de reprodução.",
@@ -2203,14 +2261,14 @@
     },
     "wrappedBanner": {
       "title": "Banner WaveFlow Wrapped",
-      "subtitle": "O banner de retrospectiva anual na tela inicial. O modo Automático o exibe durante a temporada Wrapped (1 de dezembro → 31 de janeiro).",
+      "subtitle": "O banner de retrospectiva anual na tela inicial. O modo Automático o exibe durante a temporada Wrapped (1º de dezembro → 31 de janeiro).",
       "legend": "Visibilidade do banner Wrapped",
       "seasonActive": "Temporada Wrapped em andamento — o banner está visível.",
-      "seasonIdle": "Fora da temporada — o banner volta automaticamente em 1 de dezembro.",
+      "seasonIdle": "Fora da temporada — o banner volta automaticamente em 1º de dezembro.",
       "modes": {
         "auto": {
           "label": "Automático",
-          "description": "Visível apenas de 1 de dezembro a 31 de janeiro — como o Spotify Wrapped."
+          "description": "Visível apenas de 1º de dezembro a 31 de janeiro — como o Spotify Wrapped."
         },
         "always": {
           "label": "Sempre mostrar",
@@ -2218,13 +2276,13 @@
         },
         "never": {
           "label": "Ocultar",
-          "description": "Nunca mostrar o banner na tela inicial. A visão Wrapped continua acessível."
+          "description": "Nunca mostrar o banner na tela inicial. A tela Wrapped continua acessível."
         }
       }
     },
     "hiResBadge": {
       "title": "Selo Hi-Res / DSD",
-      "subtitle": "Mostra o selo “Hi-Res 24-bit” ou “DSD128” ao lado das faixas elegíveis e abaixo do nome do artista na barra do reprodutor. Ativado por padrão."
+      "subtitle": "Mostra o selo “Hi-Res 24-bit” ou “DSD128” ao lado das faixas elegíveis e abaixo do nome do artista na barra do player. Ativado por padrão."
     },
     "serverAccount": {
       "title": "Conta do servidor WaveFlow",
@@ -2321,9 +2379,10 @@
     },
     "radioCatalogue": {
       "title": "Catálogo de estações offline",
-      "subtitle": "Baixe o diretório radio-browser para navegar e pesquisar estações sem conexão.",
+      "subtitle": "Baixe o diretório radio-browser para navegar e buscar estações sem conexão.",
       "stored_one": "{{count}} estação · atualizado em {{date}}",
       "stored_other": "{{count}} estações · atualizado em {{date}}",
+      "stored_many": "{{count}} estações · atualizado em {{date}}",
       "download": "Baixar",
       "refresh": "Atualizar",
       "downloading": "Baixando…",
@@ -2331,7 +2390,7 @@
       "clear": "Excluir catálogo",
       "neverSynced": "nunca",
       "localFirst": "Preferir catálogo local",
-      "localFirstHint": "Pesquise e navegue localmente mesmo online (instantâneo, sem rede).",
+      "localFirstHint": "Busca e navega localmente mesmo online (instantâneo, sem rede).",
       "offlineHint": "Desative o modo offline para baixar o catálogo.",
       "errors": {
         "loadFailed": "Falha ao carregar o status do catálogo.",
@@ -2348,7 +2407,7 @@
     },
     "statsKpis": {
       "title": "Indicadores de estatísticas",
-      "subtitle": "Escolha quais indicadores aparecem na página de Estatísticas. Desmarque os que prefere ocultar, como a taxa de escuta completa.",
+      "subtitle": "Escolha quais indicadores aparecem na página de Estatísticas. Desmarque os que prefere ocultar, como a taxa de audição completa.",
       "legend": "Visibilidade dos indicadores de estatísticas"
     },
     "immersiveView": {
@@ -2410,11 +2469,11 @@
     },
     "windowChrome": {
       "title": "Moldura da janela",
-      "subtitle": "Quem desenha a barra no topo da janela: seu ambiente de trabalho ou o WaveFlow.",
+      "subtitle": "Quem desenha a barra no topo da janela: seu sistema ou o WaveFlow.",
       "options": {
         "system": {
           "label": "Sistema",
-          "hint": "A moldura que seu ambiente de trabalho desenha para todos os aplicativos."
+          "hint": "A moldura que o seu sistema desenha para todos os aplicativos."
         },
         "app": {
           "label": "WaveFlow",
@@ -2435,7 +2494,7 @@
     },
     "remoteTranscode": {
       "title": "Transcodificar a fonte remota",
-      "subtitle": "Peça ao servidor para recodificar as faixas antes de enviá-las. Economiza banda, mas reduz a qualidade de áudio.",
+      "subtitle": "Pede ao servidor para recodificar as faixas antes de enviá-las. Economiza banda, mas reduz a qualidade de áudio.",
       "off": "Original",
       "offHint": "O arquivo como está no servidor. Sem perdas.",
       "opus": "Opus",
@@ -2461,7 +2520,7 @@
         },
         "high": {
           "label": "Alto",
-          "description": "Contraste reforçado, qualquer que seja o tema ou a aparência."
+          "description": "Contraste reforçado, qualquer que seja o tema ou o estilo."
         }
       }
     },
@@ -2509,7 +2568,7 @@
       "groups": {
         "language": "Idioma",
         "startup": "Inicialização e notificações",
-        "scanning": "Importação e varredura",
+        "scanning": "Importação e escaneamento",
         "analysis": "Análise musical",
         "radio": "Catálogo de rádio",
         "transitions": "Transições entre faixas",
@@ -2518,7 +2577,7 @@
         "equalizer": "Equalizador",
         "output": "Configurações avançadas de áudio",
         "theme": "Tema e legibilidade",
-        "player": "Reprodutor e janela",
+        "player": "Player e janela",
         "immersive": "Visualização imersiva",
         "pages": "Páginas da biblioteca",
         "artwork": "Capas e imagens de artistas",
@@ -2562,7 +2621,8 @@
     "doneSubtitle": "{{added}} adicionados · {{updated}} atualizados · {{skipped}} ignorados",
     "scanningIn": "Escaneando {{dir}}",
     "doneErrors_one": "{{count}} arquivo falhou",
-    "doneErrors_other": "{{count}} arquivos falharam"
+    "doneErrors_other": "{{count}} arquivos falharam",
+    "doneErrors_many": "{{count}} arquivos falharam"
   },
   "system": {
     "tray": {
@@ -2591,16 +2651,16 @@
   },
   "webRadio": {
     "title": "Rádio Web",
-    "subtitle": "Mais de 30 000 estações de rádio online via radio-browser.info.",
+    "subtitle": "Mais de 30.000 estações de rádio online via radio-browser.info.",
     "loading": "Carregando categorias…",
     "resolving": "Procurando estações…",
     "emptyResults": "Nenhuma estação encontrada.",
-    "searchPlaceholder": "Pesquisar uma estação…",
+    "searchPlaceholder": "Buscar uma estação…",
     "backToCategories": "Voltar para categorias",
     "live": "AO VIVO",
     "nowPlaying": "Tocando agora",
     "unavailableTitle": "A Rádio Web está desativada",
-    "unavailableHint": "Ative o plugin Rádio Web em Configurações → Plugins para explorar mais de 30 000 estações.",
+    "unavailableHint": "Ative o plugin Rádio Web em Configurações → Extensões para explorar mais de 30.000 estações.",
     "favorites": "Favoritos",
     "favoritesEmpty": "Ainda não há estações favoritas. Toque na estrela de uma estação para salvá-la.",
     "addFavorite": "Adicionar aos favoritos",
@@ -2608,7 +2668,7 @@
     "localStations": "Estações locais",
     "browseByCountry": "Explorar por país",
     "localCatalogue": "Catálogo local",
-    "localCatalogueHint": "Navegando e pesquisando no catálogo baixado."
+    "localCatalogueHint": "Navegando e buscando no catálogo baixado."
   },
   "artistMetadataEditor": {
     "title": "Editar metadados",
@@ -2621,7 +2681,7 @@
     },
     "similar": {
       "label": "Artistas semelhantes personalizados",
-      "placeholder": "Pesquisar um artista da sua biblioteca…",
+      "placeholder": "Buscar um artista da sua biblioteca…",
       "remove": "Remover {{name}}",
       "help": "Escolha artistas da sua biblioteca. Vazio = lista online.",
       "limitReached": "Limite atingido ({{max}} artistas)."
@@ -2668,25 +2728,35 @@
       "counts": {
         "playlists_one": "playlist",
         "playlists_other": "playlists",
+        "playlists_many": "playlists",
         "favorites_one": "favorito",
         "favorites_other": "favoritos",
+        "favorites_many": "favoritos",
         "ratings_one": "avaliação",
         "ratings_other": "avaliações",
+        "ratings_many": "avaliações",
         "history_one": "reprodução",
         "history_other": "reproduções",
+        "history_many": "reproduções",
         "shares_one": "compartilhamento",
         "shares_other": "compartilhamentos",
+        "shares_many": "compartilhamentos",
         "queue_one": "faixa na fila",
         "queue_other": "faixas na fila",
+        "queue_many": "faixas na fila",
         "cachedTracks_one": "faixa em cache",
-        "cachedTracks_other": "faixas em cache"
+        "cachedTracks_other": "faixas em cache",
+        "cachedTracks_many": "faixas em cache"
       },
       "awaitingMetadata_one": "{{count}} faixa aguardando metadados — será resolvida na próxima sincronização.",
       "awaitingMetadata_other": "{{count}} faixas aguardando metadados — serão resolvidas na próxima sincronização.",
+      "awaitingMetadata_many": "{{count}} faixas aguardando metadados — serão resolvidas na próxima sincronização.",
       "pendingChanges_one": "{{count}} alteração local aguardando envio.",
       "pendingChanges_other": "{{count}} alterações locais aguardando envio.",
+      "pendingChanges_many": "{{count}} alterações locais aguardando envio.",
       "failedChanges_one": "{{count}} alteração local foi recusada e não será tentada de novo.",
       "failedChanges_other": "{{count}} alterações locais foram recusadas e não serão tentadas de novo.",
+      "failedChanges_many": "{{count}} alterações locais foram recusadas e não serão tentadas de novo.",
       "failedChangesDismiss": "Ignorar"
     },
     "queue": {
@@ -2710,6 +2780,7 @@
       "keepingProgress": "{{done}}/{{total}} mantidas",
       "keptOffline_one": "{{count}} faixa disponível offline",
       "keptOffline_other": "{{count}} faixas disponíveis offline",
+      "keptOffline_many": "{{count}} faixas disponíveis offline",
       "keptOffline_zero": "nenhuma faixa disponível offline"
     },
     "reconciliation": {
@@ -2756,26 +2827,37 @@
       "candidateRejectPair": "Rejeitar par",
       "summaryVerified_one": "{{count}} candidato local verificado",
       "summaryVerified_other": "{{count}} candidatos locais verificados",
+      "summaryVerified_many": "{{count}} candidatos locais verificados",
       "summaryLinked_one": "{{count}} vínculo criado automaticamente",
       "summaryLinked_other": "{{count}} vínculos criados automaticamente",
+      "summaryLinked_many": "{{count}} vínculos criados automaticamente",
       "summaryGroups_one": "{{count}} grupo precisa de decisão",
       "summaryGroups_other": "{{count}} grupos precisam de decisão",
+      "summaryGroups_many": "{{count}} grupos precisam de decisão",
       "summaryStale_one": " · {{count}} desatualizado",
       "summaryStale_other": " · {{count}} desatualizados",
+      "summaryStale_many": " · {{count}} desatualizados",
       "summaryUnreadable_one": " · {{count}} ilegível",
       "summaryUnreadable_other": " · {{count}} ilegíveis",
+      "summaryUnreadable_many": " · {{count}} ilegíveis",
       "history_one": "Histórico: {{local}} local + {{remote}} servidor = {{combined}} reprodução",
       "history_other": "Histórico: {{local}} local + {{remote}} servidor = {{combined}} reproduções",
+      "history_many": "Histórico: {{local}} local + {{remote}} servidor = {{combined}} reproduções",
       "conversionSourceOption_one": "{{name}} · {{count}} faixa",
       "conversionSourceOption_other": "{{name}} · {{count}} faixas",
+      "conversionSourceOption_many": "{{name}} · {{count}} faixas",
       "conversionPreviewSummary_one": "{{name}}: {{convertible}}/{{total}} faixa tem vínculo confirmado",
       "conversionPreviewSummary_other": "{{name}}: {{convertible}}/{{total}} faixas têm vínculos confirmados",
+      "conversionPreviewSummary_many": "{{name}}: {{convertible}}/{{total}} faixas têm vínculos confirmados",
       "conversionBlocked_one": " · {{count}} bloqueada",
       "conversionBlocked_other": " · {{count}} bloqueadas",
+      "conversionBlocked_many": " · {{count}} bloqueadas",
       "conversionSuccessServer_one": "{{count}} faixa copiada para o servidor.",
       "conversionSuccessServer_other": "{{count}} faixas copiadas para o servidor.",
+      "conversionSuccessServer_many": "{{count}} faixas copiadas para o servidor.",
       "conversionSuccessLocal_one": "{{count}} faixa copiada para a biblioteca local.",
-      "conversionSuccessLocal_other": "{{count}} faixas copiadas para a biblioteca local."
+      "conversionSuccessLocal_other": "{{count}} faixas copiadas para a biblioteca local.",
+      "conversionSuccessLocal_many": "{{count}} faixas copiadas para a biblioteca local."
     },
     "catalogue": {
       "title": "Catálogo do servidor",
@@ -2801,12 +2883,15 @@
       "coversCached_zero": "Nenhuma capa em cache.",
       "coversCached_one": "{{count}} capa em cache ({{size}} MB).",
       "coversCached_other": "{{count}} capas em cache ({{size}} MB).",
+      "coversCached_many": "{{count}} capas em cache ({{size}} MB).",
       "streamsCached_one": "{{count}} faixa em cache ({{size}} MB).",
       "streamsCached_other": "{{count}} faixas em cache ({{size}} MB).",
+      "streamsCached_many": "{{count}} faixas em cache ({{size}} MB).",
       "streamsCached_zero": "Nenhuma faixa em cache.",
       "clearStreams": "Limpar",
       "downloadsKept_one": "{{count}} faixa mantida offline ({{size}} MB).",
       "downloadsKept_other": "{{count}} faixas mantidas offline ({{size}} MB).",
+      "downloadsKept_many": "{{count}} faixas mantidas offline ({{size}} MB).",
       "downloadsKept_zero": "Nada mantido offline.",
       "clearDownloads": "Limpar",
       "reportFeed": "correções do servidor: {{applied}}"
@@ -2865,7 +2950,7 @@
       "action": "Corrigir os metadados",
       "title": "Metadados do servidor",
       "subtitle": "A correção é salva no servidor, não no arquivo.",
-      "help": "Essas correções sobrevivem às varreduras do servidor e são visíveis para todos os membros da biblioteca. Esvaziar um campo remove a correção: o valor do arquivo reaparece.",
+      "help": "Essas correções sobrevivem aos escaneamentos do servidor e são visíveis para todos os membros da biblioteca. Esvaziar um campo remove a correção: o valor do arquivo reaparece.",
       "missing": "Esta faixa ainda não está na cópia local do servidor. Copie o catálogo e tente novamente.",
       "invalidNumber": "O ano e os números de faixa e de disco precisam ser números inteiros."
     },
@@ -2878,8 +2963,9 @@
     "collapse": "Recolher",
     "more_one": "Mais {{count}} tarefa",
     "more_other": "Mais {{count}} tarefas",
+    "more_many": "Mais {{count}} tarefas",
     "kinds": {
-      "library_scan": "Varredura da biblioteca",
+      "library_scan": "Escaneamento da biblioteca",
       "analysis": "Análise de áudio",
       "lyrics_prefetch": "Busca de letras",
       "catalogue_mirror": "Cópia do catálogo",
