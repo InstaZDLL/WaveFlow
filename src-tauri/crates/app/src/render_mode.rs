@@ -459,10 +459,10 @@ fn executable_of(pid: u32) -> Option<PathBuf> {
 #[cfg(target_os = "windows")]
 fn executable_of(pid: u32) -> Option<PathBuf> {
     use windows::core::PWSTR;
-    use windows::Win32::Foundation::{CloseHandle, STILL_ACTIVE};
+    use windows::Win32::Foundation::{CloseHandle, WAIT_TIMEOUT};
     use windows::Win32::System::Threading::{
-        GetExitCodeProcess, OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
-        PROCESS_QUERY_LIMITED_INFORMATION,
+        OpenProcess, QueryFullProcessImageNameW, WaitForSingleObject, PROCESS_NAME_WIN32,
+        PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SYNCHRONIZE,
     };
 
     // SAFETY: the handle is opened here, used only by the calls below
@@ -470,13 +470,21 @@ fn executable_of(pid: u32) -> Option<PathBuf> {
     // fills it, and `len` carries its capacity in and the written
     // length out, as the API documents.
     unsafe {
-        let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
+        let handle = OpenProcess(
+            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SYNCHRONIZE,
+            false,
+            pid,
+        )
+        .ok()?;
         let path = (|| {
             // A handle can still be opened on a process that has exited
-            // while something holds a reference to it.
-            let mut code = 0u32;
-            GetExitCodeProcess(handle, &mut code).ok()?;
-            if code as i32 != STILL_ACTIVE.0 {
+            // while something holds a reference to it. A process object
+            // is signalled once it exits, so a zero wait that times out
+            // is "still running". Not `GetExitCodeProcess`: its
+            // `STILL_ACTIVE` is 259, which is also an exit code a process
+            // can return, and a launch that died with it would read as
+            // running — excusing the very marker the fallback needs.
+            if WaitForSingleObject(handle, 0) != WAIT_TIMEOUT {
                 return None;
             }
             let mut buf = [0u16; 1024];
