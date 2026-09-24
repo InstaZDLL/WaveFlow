@@ -1923,7 +1923,7 @@
     "lyricsPrefetch": {
       "title": "Şarkı sözlerini önceden indir",
       "subtitle": "Çevrimdışı kullanım için kütüphanendeki tüm parçaların şarkı sözlerini indirir",
-      "result": "{{hits}} senkronize, {{misses}} bulunamadı, {{failed}} başarısız",
+      "result": "{{hits}} bulundu, {{misses}} bulunamadı, {{failed}} başarısız",
       "offline": "Çevrimdışı mod etkin",
       "failed": "Şarkı sözleri önceden indirilemedi",
       "action": "Önceden indir",

@@ -1978,7 +1978,7 @@
     "lyricsPrefetch": {
       "title": "Precargar letras",
       "subtitle": "Descarga las letras de toda la biblioteca para usarlas sin conexión",
-      "result": "{{hits}} sincronizadas, {{misses}} no encontradas, {{failed}} fallidas",
+      "result": "{{hits}} encontradas, {{misses}} no encontradas, {{failed}} fallidas",
       "offline": "El modo sin conexión está activado",
       "failed": "La precarga ha fallado",
       "action": "Precargar",

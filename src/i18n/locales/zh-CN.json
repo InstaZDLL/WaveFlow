@@ -1886,7 +1886,7 @@
     "lyricsPrefetch": {
       "title": "预取歌词",
       "subtitle": "为整个音乐库下载歌词以供离线使用",
-      "result": "已同步 {{hits}}，未找到 {{misses}}，失败 {{failed}}",
+      "result": "找到 {{hits}}，未找到 {{misses}}，失败 {{failed}}",
       "offline": "已启用离线模式",
       "failed": "预取失败",
       "action": "预取",

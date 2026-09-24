@@ -1923,7 +1923,7 @@
     "lyricsPrefetch": {
       "title": "Prefetch lyrics",
       "subtitle": "Download lyrics for the entire library for offline use",
-      "result": "{{hits}} synced, {{misses}} not found, {{failed}} failed",
+      "result": "{{hits}} found, {{misses}} not found, {{failed}} failed",
       "offline": "Offline mode is enabled",
       "failed": "Prefetch failed",
       "action": "Prefetch",

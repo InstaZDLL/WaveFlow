@@ -1923,7 +1923,7 @@
     "lyricsPrefetch": {
       "title": "Songteksten vooraf laden",
       "subtitle": "Download songteksten voor de hele bibliotheek voor offline gebruik",
-      "result": "{{hits}} gesynchroniseerd, {{misses}} niet gevonden, {{failed}} mislukt",
+      "result": "{{hits}} gevonden, {{misses}} niet gevonden, {{failed}} mislukt",
       "offline": "Offlinemodus staat aan",
       "failed": "Vooraf laden mislukt",
       "action": "Vooraf laden",

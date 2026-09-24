@@ -1923,7 +1923,7 @@
     "lyricsPrefetch": {
       "title": "Pra-ambil lirik",
       "subtitle": "Unduh lirik untuk seluruh pustaka agar bisa digunakan secara luring",
-      "result": "{{hits}} tersinkron, {{misses}} tidak ditemukan, {{failed}} gagal",
+      "result": "{{hits}} ditemukan, {{misses}} tidak ditemukan, {{failed}} gagal",
       "offline": "Mode luring aktif",
       "failed": "Pra-ambilan gagal",
       "action": "Pra-ambil",

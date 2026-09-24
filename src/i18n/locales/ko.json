@@ -1950,7 +1950,7 @@
     "lyricsPrefetch": {
       "title": "가사 미리 가져오기",
       "subtitle": "오프라인 사용을 위해 전체 라이브러리의 가사를 다운로드합니다",
-      "result": "{{hits}}곡 동기화, {{misses}}곡 없음, {{failed}}곡 실패",
+      "result": "{{hits}}곡 찾음, {{misses}}곡 없음, {{failed}}곡 실패",
       "offline": "오프라인 모드가 활성화됨",
       "failed": "미리 가져오기 실패",
       "action": "미리 가져오기",

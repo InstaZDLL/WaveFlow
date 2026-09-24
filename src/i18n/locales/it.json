@@ -1978,7 +1978,7 @@
     "lyricsPrefetch": {
       "title": "Precarica i testi",
       "subtitle": "Scarica i testi per l'intera libreria da usare offline",
-      "result": "{{hits}} sincronizzati, {{misses}} non trovati, {{failed}} falliti",
+      "result": "{{hits}} trovati, {{misses}} non trovati, {{failed}} falliti",
       "offline": "La modalità offline è attiva",
       "failed": "Precaricamento non riuscito",
       "action": "Precarica",
