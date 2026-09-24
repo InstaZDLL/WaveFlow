@@ -353,7 +353,7 @@
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Dein Jahresrückblick {{year}}",
-      "subtitle": "Deine Künstler, deine Minuten, dein Jahr — erzählt in ein paar Slides.",
+      "subtitle": "Deine Künstler, deine Minuten, dein Jahr — erzählt in ein paar Folien.",
       "cta": "Öffnen",
       "dismiss": "Wrapped-Banner ausblenden"
     },
@@ -435,7 +435,7 @@
       "delete": "Bibliothek löschen",
       "deleteConfirm": "Zur Bestätigung erneut klicken",
       "importing": "Wird importiert…",
-      "deepRescan": "Tiefenscan (liest jede Datei neu, langsamer)",
+      "deepRescan": "Tiefenscan (liest jede Datei neu ein, langsamer)",
       "deepRescanning": "Tiefenscan läuft…"
     },
     "changeCover": "Cover ändern",
@@ -732,8 +732,8 @@
     "close": "Schließen",
     "pause": "Pause",
     "resume": "Fortsetzen",
-    "prev": "Vorheriger Slide",
-    "next": "Nächster Slide",
+    "prev": "Vorherige Folie",
+    "next": "Nächste Folie",
     "yearPicker": "Jahr auswählen",
     "backToHome": "Zurück zur Startseite",
     "playsShort_zero": "0 Wiedergaben",
@@ -809,7 +809,7 @@
       "title": "Monat für Monat"
     },
     "outro": {
-      "title": "Danke, dass du mit WaveFlow hörst",
+      "title": "Danke, dass du mit WaveFlow Musik hörst",
       "subtitle": "Erkunde weiter — dein Wrapped aktualisiert sich in Echtzeit.",
       "cta": "Zurück zur Startseite"
     }
@@ -935,8 +935,8 @@
     "pinnedUnavailable": "Angeheftet, nicht verfügbar",
     "reopen": "Gerät erneut öffnen",
     "capabilities": {
-      "probing": "Fähigkeiten werden gelesen…",
-      "unavailable": "Fähigkeiten nicht verfügbar",
+      "probing": "Gerätefunktionen werden ermittelt…",
+      "unavailable": "Gerätefunktionen nicht verfügbar",
       "details": "Gerätedetails",
       "summary": "{{bits}} Bit · {{rate}} kHz",
       "channels": "Kanäle: {{value}}",
@@ -945,7 +945,7 @@
       "rates": "Abtastraten",
       "caveat": "Was ein Treiber angibt und was er im Exklusivmodus akzeptiert, sind zwei völlig verschiedene Dinge.",
       "source": {
-        "wasapiExclusive": "Im Exklusivmodus beim Treiber abgefragt.",
+        "wasapiExclusive": "Am Treiber im Exklusivmodus getestet.",
         "alsaHardware": "ALSA-Hardwareparameter, ohne Konvertierungsschicht.",
         "coreAudio": "Was das Gerät dem System meldet.",
         "unavailable": "Gerät belegt oder nicht vorhanden: Nichts konnte gelesen werden."
@@ -1630,9 +1630,9 @@
       "subtitle": "„Alle Musik, die gedruckt zu werden verdient.“ — Deine tägliche Auswahl, maßgeschneidert."
     },
     "lead": {
-      "caption": "Abb. 1. — Aus „{{album}}“ von {{artist}}.",
-      "captionArtistOnly": "Abb. 1. — Eine Kreation von {{artist}}.",
-      "captionFallback": "Abb. 1. — Die heutige Auswahl."
+      "caption": "Abb. 1 — Aus „{{album}}“ von {{artist}}.",
+      "captionArtistOnly": "Abb. 1 — Eine Kreation von {{artist}}.",
+      "captionFallback": "Abb. 1 — Die heutige Auswahl."
     }
   },
   "settings": {
@@ -1642,7 +1642,7 @@
       "library": "Bibliothek",
       "playback": "Wiedergabe",
       "integrations": "Integrationen",
-      "appearance": "Aussehen",
+      "appearance": "Darstellung",
       "storage": "Speicher & Daten",
       "data": "Daten",
       "plugins": "Plugins",
@@ -1688,7 +1688,7 @@
         "libraryReadArtists": "Liest deine Künstler"
       },
       "bundled": "Mitgeliefert",
-      "bundledHint": "Mit WaveFlow ausgeliefert — deaktivieren, um es auszublenden.",
+      "bundledHint": "Mit WaveFlow ausgeliefert — deaktiviere es, um es auszublenden.",
       "optionsAria": "Optionen für {{name}}",
       "options": {
         "saved": "Gespeichert",
@@ -1776,7 +1776,7 @@
       },
       "notifications": {
         "title": "Benachrichtigungen beim Titelwechsel",
-        "subtitle": "Zeigt eine System-Benachrichtigung am Anfang jedes Titels (Titel + Künstler). Standardmäßig deaktiviert."
+        "subtitle": "Zeigt eine Systembenachrichtigung am Anfang jedes Titels (Titel + Künstler). Standardmäßig deaktiviert."
       }
     },
     "crossfade": {
@@ -1815,7 +1815,7 @@
     },
     "generatorAlbumMode": {
       "title": "Sessions aus ganzen Alben",
-      "subtitle": "Mood-Radio und Daily Mix wählen Alben und spielen sie der Reihe nach, statt einzelner Titel"
+      "subtitle": "Mood-Radio und Daily Mix wählen Alben und spielen sie der Reihe nach, anstatt einzelne Titel verstreut abzuspielen"
     },
     "exclusive": {
       "title": "Exklusive Ausgabe",
@@ -1824,7 +1824,7 @@
     },
     "matchSourceRate": {
       "title": "Abtastrate jedes Titels übernehmen",
-      "subtitle": "Bei exklusiver Ausgabe wird das Gerät mit der Rate jedes Titels neu geöffnet: vermeidet Resampling, wenn es sie annimmt, dafür eine Lücke bei jedem Ratenwechsel"
+      "subtitle": "Bei exklusiver Ausgabe wird das Gerät mit der Abtastrate jedes Titels neu geöffnet: Das vermeidet Resampling, wenn das Gerät sie unterstützt, verursacht aber bei jedem Ratenwechsel eine Lücke."
     },
     "mono": {
       "title": "Mono-Audio",
@@ -1946,7 +1946,7 @@
       "action": "Zurücksetzen",
       "confirm": {
         "title": "Die gesamte App zurücksetzen?",
-        "warning": "Dies löscht jedes Profil, jede Bibliothek, Playlist, Bewertung, jeden Hörverlauf und den Cover-Cache. Die App startet neu in die Ersteinrichtung. Dies kann nicht rückgängig gemacht werden.",
+        "warning": "Dies löscht jedes Profil, jede Bibliothek, jede Playlist, jede Bewertung, jeden Hörverlauf und den Cover-Cache. Die App startet neu in die Ersteinrichtung. Dies kann nicht rückgängig gemacht werden.",
         "typeToConfirm": "Gib RESET ein, um zu bestätigen",
         "error": "Zurücksetzen fehlgeschlagen. Schließe ein externes Programm, das eine WaveFlow-Datei blockiert (geöffneter Musikplayer, Datei-Explorer im Datenordner), und versuche es erneut.",
         "cancel": "Abbrechen",
@@ -1986,13 +1986,13 @@
         "entity": "Entität",
         "state": "Status",
         "missingLocally": "Lokal fehlend",
-        "missingRemotely": "Remote fehlend",
+        "missingRemotely": "Auf dem Server fehlend",
         "divergent": "Abweichend"
       },
       "backfillError": "Fehlgeschlagen: {{message}}",
       "autoToggleTitle": "Auto-Sync",
       "autoToggleSubtitle": "Führt beim Start und beim Wechsel in den Hybrid-Modus eine Synchronisation durch",
-      "cadenceTitle": "Hintergrund-Kadenz",
+      "cadenceTitle": "Synchronisierungsintervall",
       "cadenceSubtitle": "Zeit zwischen automatischen Synchronisierungen",
       "cadence": {
         "every15Min": "Alle 15 Minuten",
@@ -2012,7 +2012,7 @@
         "error": "Fehler: {{message}}",
         "empty": "Keine Details verfügbar",
         "missingLocally": "Lokal fehlend",
-        "missingRemotely": "Remote fehlend",
+        "missingRemotely": "Auf dem Server fehlend",
         "divergent": "Abweichend",
         "moreNotShown": "+ {{count}} weitere nicht angezeigt"
       }
@@ -2111,7 +2111,7 @@
     },
     "showAudioQualityFooter": {
       "title": "Audioqualitäts-Streifen anzeigen",
-      "subtitle": "Technische Details (kHz, kbps, Codec, Bittiefe) unter der Player-Leiste. Standardmäßig aus für eine schlankere Leiste."
+      "subtitle": "Technische Details (kHz, kbps, Codec, Bittiefe) unter der Player-Leiste. Standardmäßig ausgeblendet, damit die Leiste schlanker bleibt."
     },
     "categoryNavLabel": "Einstellungskategorien",
     "appearance": {
@@ -2140,7 +2140,7 @@
         "oceanLight": "Ozean Hell"
       },
       "skin": {
-        "title": "Skin",
+        "title": "Oberflächenstil",
         "subtitle": "Verändert Dichte, Oberflächenmaterialien, Typografie und Animation — nicht nur Farben."
       },
       "skins": {
@@ -2221,11 +2221,11 @@
     },
     "hiResBadge": {
       "title": "Hi-Res-/DSD-Badge",
-      "subtitle": "Zeigt das Badge „Hi-Res 24-bit“ oder „DSD128“ neben qualifizierenden Titeln und unter dem Künstlernamen in der Wiedergabeleiste. Standardmäßig aktiviert."
+      "subtitle": "Zeigt das Badge „Hi-Res 24-bit“ oder „DSD128“ neben entsprechenden Titeln und unter dem Künstlernamen in der Wiedergabeleiste. Standardmäßig aktiviert."
     },
     "serverAccount": {
       "title": "WaveFlow-Server-Konto",
-      "subtitle": "Verknüpfe dieses Profil mit deiner waveflow-server-Instanz, um Multi-Gerät-Sync und Browser-Wiedergabe zu aktivieren.",
+      "subtitle": "Verknüpfe dieses Profil mit deiner waveflow-server-Instanz, um die Synchronisierung zwischen Geräten und die Browser-Wiedergabe zu aktivieren.",
       "signedIn": "Angemeldet",
       "urlLabel": "Server-URL",
       "urlPlaceholder": "https://api.waveflow.app",
@@ -2290,12 +2290,12 @@
       "title": "Online-Songtextanbieter",
       "subtitle": "Ein abgewählter Anbieter wird nicht mehr automatisch abgefragt. Bereits gelieferte Songtexte bleiben gespeichert: „Erneut suchen“ im Songtextbereich ersetzt sie.",
       "alwaysOn": "immer aktiv",
-      "geniusNote": "ohne Zeitstempel, und antwortet ohne Sitzungs-Cookie selten"
+      "geniusNote": "ohne Zeitstempel und antwortet ohne Sitzungs-Cookie nur selten"
     },
     "lyricsExcludedGenres": {
       "title": "Von der Online-Suche ausgeschlossene Genres",
       "subtitle": "Titel dieser Genres werden nicht online gesucht; Songtexte in der Datei oder in einer .lrc daneben werden weiterhin gelesen, und „Erneut suchen“ sucht trotzdem. Jedes Genre deckt seine Varianten ab (Lo-fi deckt Lofi und lo-fi hip hop ab).",
-      "empty": "Kein Genre ausgeschlossen: Jeder Titel wird online gesucht.",
+      "empty": "Kein Genre ausgeschlossen: Für jeden Titel wird online nach Songtext gesucht.",
       "remove": "{{genre}} entfernen",
       "placeholder": "Genre hinzufügen…",
       "add": "Hinzufügen",
@@ -2345,7 +2345,7 @@
     },
     "statsKpis": {
       "title": "Statistik-Kennzahlen",
-      "subtitle": "Wähle, welche Kennzahlen auf der Statistikseite erscheinen. Deaktiviere jene, die du lieber ausblendest — etwa die Vollständig-gehört-Rate.",
+      "subtitle": "Wähle, welche Kennzahlen auf der Statistikseite erscheinen. Deaktiviere jene, die du lieber ausblendest — etwa die Quote vollständig gehörter Titel.",
       "legend": "Sichtbarkeit der Statistik-Kennzahlen"
     },
     "immersiveView": {
@@ -2374,7 +2374,7 @@
     "pluginStore": {
       "title": "Plugin-Store",
       "subtitle": "Durchsuche und installiere isolierte Plugins aus dem WaveFlow-Verzeichnis.",
-      "loading": "Store wird geladen…",
+      "loading": "Plugin-Store wird geladen…",
       "emptyTitle": "Noch keine Plugins verfügbar",
       "emptyHint": "Das Verzeichnis ist derzeit leer — schau bald wieder vorbei.",
       "refresh": "Store aktualisieren",
@@ -2441,7 +2441,7 @@
       "mp3Hint": "Größer bei gleicher Qualität. Maximale Kompatibilität.",
       "bitrateLabel": "Bitrate",
       "kbps": "{{rate}} kbit/s",
-      "activeNotice": "Externe Titel werden neu kodiert und werden daher unterhalb ihrer ursprünglichen Qualität wiedergegeben. Lokale Dateien werden nie transkodiert.",
+      "activeNotice": "Externe Titel werden neu kodiert und daher in geringerer als der ursprünglichen Qualität wiedergegeben. Lokale Dateien werden nie transkodiert.",
       "unsupported": "Dieser Server wurde ohne FFmpeg gebaut und kann nicht transkodieren. Externe Titel kommen immer im Originalformat an."
     },
     "contrast": {
@@ -2458,7 +2458,7 @@
         },
         "high": {
           "label": "Hoch",
-          "description": "Verstärkter Kontrast, unabhängig von Design und Skin."
+          "description": "Verstärkter Kontrast, unabhängig von Design und Oberflächenstil."
         }
       }
     },
@@ -2469,13 +2469,13 @@
       "choose": "Verschieben…",
       "reset": "Auf Standard zurücksetzen",
       "size": "{{size}} belegt",
-      "copying": "Wird kopiert… das Original wird erst beim nächsten Start entfernt.",
-      "fellBack": "Der eingestellte Ort ist nicht erreichbar ({{path}}), daher nutzt der Cache in dieser Sitzung den Standardort. Deine Auswahl bleibt erhalten.",
+      "copying": "Wird kopiert… Das Original wird erst beim nächsten Start entfernt.",
+      "fellBack": "Der eingestellte Ort ist nicht erreichbar ({{path}}), daher nutzen die Caches in dieser Sitzung den Standardort. Deine Auswahl bleibt erhalten.",
       "restartNeeded": "Kopie abgeschlossen. Zum Verwenden des neuen Orts neu starten.",
       "restartNow": "Neu starten"
     },
     "organization": {
-      "search": "Einstellung suchen…",
+      "search": "Einstellungen durchsuchen…",
       "clear": "Suche löschen",
       "noResults": "Keine Einstellungen gefunden. Versuche einen anderen Begriff.",
       "searchResults": "Suchergebnisse",
@@ -2588,7 +2588,7 @@
   },
   "webRadio": {
     "title": "Web-Radio",
-    "subtitle": "Über 30.000 Online-Radiosender via radio-browser.info.",
+    "subtitle": "Über 30.000 Online-Radiosender über radio-browser.info.",
     "loading": "Kategorien werden geladen…",
     "resolving": "Sender werden gesucht…",
     "emptyResults": "Keine Sender gefunden.",
@@ -2643,7 +2643,7 @@
   },
   "remote": {
     "common": {
-      "awaitingMetadata": "Warte auf Metadaten…",
+      "awaitingMetadata": "Warten auf Metadaten…",
       "untitled": "Ohne Titel",
       "trackFallback": "Titel"
     },
@@ -2655,7 +2655,7 @@
       "unknownType": "unbekannt",
       "probeNative": "nativ, Anmeldung über den Browser",
       "probeSubsonic": "Nur Subsonic-Protokoll; hier bisher kein Journal und keine Anmeldung",
-      "signInBrowser": "Über Browser anmelden",
+      "signInBrowser": "Über den Browser anmelden",
       "signedInFallback": "angemeldet",
       "syncNow": "Jetzt synchronisieren",
       "signOut": "Abmelden",
@@ -2679,12 +2679,12 @@
         "cachedTracks_other": "zwischengespeicherte Titel"
       },
       "awaitingMetadata_one": "{{count}} Titel wartet auf Metadaten — wird beim nächsten Durchlauf aufgelöst.",
-      "awaitingMetadata_other": "{{count}} Titel warten auf Metadaten — wird beim nächsten Durchlauf aufgelöst.",
-      "pendingChanges_one": "{{count}} lokale Änderung wartet auf das Senden.",
-      "pendingChanges_other": "{{count}} lokale Änderungen warten auf das Senden.",
+      "awaitingMetadata_other": "{{count}} Titel warten auf Metadaten — werden beim nächsten Durchlauf aufgelöst.",
+      "pendingChanges_one": "{{count}} lokale Änderung wartet darauf, gesendet zu werden.",
+      "pendingChanges_other": "{{count}} lokale Änderungen warten darauf, gesendet zu werden.",
       "failedChanges_one": "{{count}} lokale Änderung wurde abgelehnt und wird nicht erneut versucht.",
       "failedChanges_other": "{{count}} lokale Änderungen wurden abgelehnt und werden nicht erneut versucht.",
-      "failedChangesDismiss": "Verwerfen"
+      "failedChangesDismiss": "Schließen"
     },
     "queue": {
       "empty": "Warteschlange leer.",
@@ -2720,10 +2720,10 @@
       "favoritesRatings": "Favoriten: lokal {{localFav}} · Server {{remoteFav}} · Bewertungen: lokal {{localRating}} · Server {{remoteRating}}/5",
       "yes": "ja",
       "no": "nein",
-      "copyFavoriteLocalToServer": "Favorit lokal → Server",
-      "copyFavoriteServerToLocal": "Favorit Server → lokal",
-      "copyRatingLocalToServer": "Bewertung lokal → Server",
-      "copyRatingServerToLocal": "Bewertung Server → lokal",
+      "copyFavoriteLocalToServer": "Lokaler Favorit → Server",
+      "copyFavoriteServerToLocal": "Server-Favorit → lokal",
+      "copyRatingLocalToServer": "Lokale Bewertung → Server",
+      "copyRatingServerToLocal": "Server-Bewertung → lokal",
       "statusConfirmed": "bestätigt",
       "statusStale": "veraltet",
       "localFirst": "Lokal zuerst",
