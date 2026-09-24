@@ -320,7 +320,7 @@
       },
       "party": {
         "title": "Parti",
-        "subtitle": "Dans edilebilir tempo, yüksek enerji"
+        "subtitle": "Dans ettiren tempolar, yüksek enerji"
       },
       "sleep": {
         "title": "Uyku",
@@ -982,7 +982,7 @@
       "title": "Profilleri yönet",
       "subtitle": "Kaldırmak istediğin profili seç. Etkin profil buradan silinemez.",
       "activeLocked": "Etkin profil",
-      "deleteHint": "Silmek için dokun",
+      "deleteHint": "Silmek için tıkla",
       "deleteAria": "{{name}} profilini sil"
     },
     "delete": {
@@ -1413,7 +1413,7 @@
       "plain": "Senkronize değil"
     },
     "toast": {
-      "tagWriteSkipped": "TTML yalnızca önbellekte tutuldu (ses etiketine yazılmadı)",
+      "tagWriteSkipped": "TTML yalnızca veritabanına kaydedildi (ses etiketine yazılmadı)",
       "sidecarWriteSkipped": "Şarkı sözleri veritabanına kaydedildi, ancak TTML bir .lrc/.txt yan dosyasına yazılamaz."
     },
     "excludedGenre": "{{genre}} türü için şarkı sözleri çevrimiçi aranmıyor (Ayarlar → Görseller ve şarkı sözleri). Bir .lrc dosyası içe aktarabilir ya da yine de arayabilirsin."
@@ -1600,7 +1600,7 @@
       },
       "db_only": {
         "label": "Yalnızca WaveFlow veritabanı",
-        "hint": "Uygulama önbelleğinde kalır. Hiçbir dosya veya etikete dokunulmaz."
+        "hint": "Yalnızca WaveFlow veritabanında kalır. Hiçbir dosyaya veya etikete dokunulmaz."
       }
     }
   },
@@ -2117,7 +2117,7 @@
     "appearance": {
       "theme": {
         "title": "Tema",
-        "subtitle": "Bir tarz seç — temayı değiştirmek uygulamayı anında yeniden renklendirir."
+        "subtitle": "Sana uyan havayı seç: tema değiştiğinde tüm uygulama anında yeniden renklenir."
       },
       "mode": {
         "light": "Açık",
@@ -2154,7 +2154,7 @@
         },
         "lounge": {
           "label": "Lounge",
-          "description": "Premium cam — albüm kapağı arka plan olur, yarı saydam paneller, yumuşak geçişler."
+          "description": "Premium cam: arka planda albüm kapağı, yarı saydam paneller, yumuşak geçişler."
         },
         "pulse": {
           "label": "Pulse",
@@ -2303,7 +2303,7 @@
     },
     "lyricsDestination": {
       "title": "Kayıtlı şarkı sözü hedefi",
-      "subtitle": "Şarkı sözlerinin diskte nereye kaydedileceği: hem senin yazdıkların hem de WaveFlow'un indirdikleri. Bunu her düzenlemede değiştirebilirsin."
+      "subtitle": "Şarkı sözlerinin diskte nereye kaydedileceği: hem senin yazdıkların hem de WaveFlow'un indirdikleri. Her düzenlemede, düzenleyicinin alt kısmından yine de farklı bir seçim yapabilirsin."
     },
     "updateChannel": {
       "title": "Beta kanalı",
@@ -2407,7 +2407,7 @@
     },
     "windowChrome": {
       "title": "Pencere çerçevesi",
-      "subtitle": "Pencerenin üstündeki çubuğu kim çizsin: masaüstün mü, WaveFlow mu.",
+      "subtitle": "Pencerenin üstündeki çubuğu kimin çizeceğini seç: masaüstün ya da WaveFlow.",
       "options": {
         "system": {
           "label": "Sistem",
@@ -2599,7 +2599,7 @@
     "unavailableTitle": "Web Radyo devre dışı",
     "unavailableHint": "30.000'den fazla istasyona göz atmak için Ayarlar → Eklentiler bölümünden Web Radyo eklentisini etkinleştir.",
     "favorites": "Favoriler",
-    "favoritesEmpty": "Henüz favori istasyon yok. Kaydetmek için bir istasyonun yıldızına dokun.",
+    "favoritesEmpty": "Henüz favori istasyon yok. Kaydetmek için bir istasyonun yıldızına tıkla.",
     "addFavorite": "Favorilere ekle",
     "removeFavorite": "Favorilerden çıkar",
     "localStations": "Yerel istasyonlar",
@@ -2651,7 +2651,7 @@
       "title": "Uzak sunucu",
       "subtitle": "Bu profili bir WaveFlow sunucusuna bağla. Çalma listeleri kenar çubuğunda görünür.",
       "urlLabel": "Sunucu URL'si",
-      "identify": "Türü belirle",
+      "identify": "Sunucuyu kontrol et",
       "unknownType": "bilinmiyor",
       "probeNative": "WaveFlow'a özgü, tarayıcı üzerinden giriş yapılır",
       "probeSubsonic": "Yalnızca Subsonic protokolü; henüz günlük veya giriş akışı yok",
@@ -2704,10 +2704,10 @@
       "emptyDescription": "Sunucunun kataloğunda arama yapmak için “Parça ekle” düğmesini kullan.",
       "notFoundDescription": "Bu çalma listesi bağlı sunucuda artık yok.",
       "keepOffline": "Çevrimdışı sakla",
-      "keepingProgress": "{{done}}/{{total}} saklanıyor",
-      "keptOffline_one": "{{count}} parça çevrimdışı saklandı",
-      "keptOffline_other": "{{count}} parça çevrimdışı saklandı",
-      "keptOffline_zero": "çevrimdışı yok"
+      "keepingProgress": "Çevrimdışı için indiriliyor… {{done}}/{{total}}",
+      "keptOffline_one": "{{count}} parça çevrimdışı kullanılabilir",
+      "keptOffline_other": "{{count}} parça çevrimdışı kullanılabilir",
+      "keptOffline_zero": "çevrimdışı kullanılabilir parça yok"
     },
     "reconciliation": {
       "title": "Yerel ↔ sunucu eşleştirmesi",
@@ -2767,8 +2767,8 @@
       "conversionSourceOption_other": "{{name}} · {{count}} parça",
       "conversionPreviewSummary_one": "{{name}}: {{convertible}}/{{total}} parçanın onaylanmış bağlantısı var",
       "conversionPreviewSummary_other": "{{name}}: {{convertible}}/{{total}} parçanın onaylanmış bağlantısı var",
-      "conversionBlocked_one": " · {{count}} engellendi",
-      "conversionBlocked_other": " · {{count}} engellendi",
+      "conversionBlocked_one": " · {{count}} parçanın onaylanmış bağlantısı yok",
+      "conversionBlocked_other": " · {{count}} parçanın onaylanmış bağlantısı yok",
       "conversionSuccessServer_one": "{{count}} parça sunucuya kopyalandı.",
       "conversionSuccessServer_other": "{{count}} parça sunucuya kopyalandı.",
       "conversionSuccessLocal_one": "{{count}} parça yerel kütüphaneye kopyalandı.",
@@ -2854,7 +2854,7 @@
         "quota_exceeded": "Sunucuda yer kalmadı: {{count}}",
         "library_closed": "Kütüphane yüklemeye kapalı: {{count}}",
         "too_many_sessions": "Aynı anda çok fazla yükleme: {{count}}",
-        "unknown_verdict": "Bu sürümün bilmediği yanıt: {{count}}",
+        "unknown_verdict": "Tanınmayan sunucu yanıtı: {{count}}",
         "failed": "Başarısız: {{count}}"
       }
     },

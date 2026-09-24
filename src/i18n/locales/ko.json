@@ -320,7 +320,7 @@
       },
       "party": {
         "title": "파티",
-        "subtitle": "춤추기 좋은 템포, 높은 에너지"
+        "subtitle": "춤추기 좋은 신나는 템포"
       },
       "sleep": {
         "title": "수면",
@@ -982,7 +982,7 @@
       "title": "프로필 관리",
       "subtitle": "삭제할 프로필을 선택하세요. 활성 프로필은 여기서 삭제할 수 없습니다.",
       "activeLocked": "활성 프로필",
-      "deleteHint": "탭하여 삭제",
+      "deleteHint": "클릭하여 삭제",
       "deleteAria": "{{name}} 프로필 삭제"
     },
     "delete": {
@@ -1413,7 +1413,7 @@
       "plain": "동기화 안 됨"
     },
     "toast": {
-      "tagWriteSkipped": "TTML은 캐시에만 저장되었습니다(오디오 태그에는 기록되지 않음)",
+      "tagWriteSkipped": "TTML은 데이터베이스에만 저장되었습니다(오디오 태그에는 기록되지 않음)",
       "sidecarWriteSkipped": "가사는 데이터베이스에 저장되었으나, TTML은 .lrc/.txt 사이드카 파일로 내보낼 수 없습니다."
     },
     "excludedGenre": "{{genre}} 장르는 온라인에서 가사를 검색하지 않습니다(설정 → 이미지 및 가사). .lrc 파일을 가져오거나 그래도 검색할 수 있습니다."
@@ -1600,7 +1600,7 @@
       },
       "db_only": {
         "label": "WaveFlow 데이터베이스만",
-        "hint": "앱 캐시에 남습니다. 파일이나 태그를 건드리지 않습니다."
+        "hint": "WaveFlow 데이터베이스에만 남습니다. 파일이나 태그를 건드리지 않습니다."
       }
     }
   },
@@ -1717,7 +1717,7 @@
         "volumeDown": "볼륨 내리기",
         "toggleMute": "음소거 / 해제",
         "toggleShuffle": "셔플",
-        "cycleRepeat": "반복 모드",
+        "cycleRepeat": "반복 모드 전환",
         "toggleQueue": "재생 대기열 표시 / 숨기기",
         "toggleNowPlaying": "현재 재생 표시 / 숨기기",
         "toggleLyrics": "가사 표시 / 숨기기",
@@ -1740,7 +1740,7 @@
         "hide": "숨기기",
         "connectedAs": "다음 계정으로 로그인됨",
         "disconnect": "로그아웃",
-        "loginPrompt": "로그인하여 청취 기록을 스크로블링하세요:",
+        "loginPrompt": "로그인하여 재생 기록을 Last.fm에 스크로블하세요:",
         "usernamePlaceholder": "사용자 이름",
         "passwordPlaceholder": "비밀번호",
         "connect": "로그인",
@@ -2117,7 +2117,7 @@
     "appearance": {
       "theme": {
         "title": "테마",
-        "subtitle": "분위기를 선택하세요 — 테마를 바꾸면 앱 전체의 색상이 즉시 변경됩니다."
+        "subtitle": "원하는 분위기를 고르세요. 테마를 바꾸면 앱 전체의 색상이 즉시 바뀝니다."
       },
       "mode": {
         "light": "라이트",
@@ -2154,7 +2154,7 @@
         },
         "lounge": {
           "label": "Lounge",
-          "description": "프리미엄 글래스 — 앨범 커버가 배경이 되고, 반투명 패널, 부드러운 전환."
+          "description": "프리미엄 글래스 — 앨범 커버 배경, 반투명 패널, 느린 전환."
         },
         "pulse": {
           "label": "Pulse",
@@ -2311,7 +2311,7 @@
     },
     "artistBio": {
       "title": "소개 출처",
-      "subtitle": "아티스트 소개를 제공하는 서비스입니다.",
+      "subtitle": "아티스트 소개를 제공할 서비스를 선택하세요.",
       "lastfmHint": "영어로 된 소개를 제공합니다. Last.fm API 키가 필요합니다.",
       "theaudiodbHint": "커뮤니티가 여러 언어로 작성한 소개를 제공합니다. 키는 필요하지 않습니다.",
       "languageLabel": "소개 언어"
@@ -2328,7 +2328,7 @@
       "clear": "카탈로그 삭제",
       "neverSynced": "업데이트한 적 없음",
       "localFirst": "로컬 카탈로그 우선",
-      "localFirstHint": "온라인 상태에서도 로컬에서 검색하고 탐색합니다(즉시, 네트워크 불필요).",
+      "localFirstHint": "온라인 상태에서도 다운로드한 카탈로그를 로컬에서 검색하고 탐색합니다(즉시, 네트워크 요청 없음).",
       "offlineHint": "카탈로그를 다운로드하려면 오프라인 모드를 끄세요.",
       "errors": {
         "loadFailed": "카탈로그 상태를 불러오지 못했습니다.",
@@ -2407,7 +2407,7 @@
     },
     "windowChrome": {
       "title": "창 테두리",
-      "subtitle": "창 상단의 막대를 누가 그릴지 정합니다. 데스크톱 또는 WaveFlow.",
+      "subtitle": "창 상단의 막대를 데스크톱과 WaveFlow 중 어느 쪽이 그릴지 선택하세요.",
       "options": {
         "system": {
           "label": "시스템",
@@ -2704,10 +2704,10 @@
       "emptyDescription": "‘곡 추가’를 눌러 서버 카탈로그에서 검색하세요.",
       "notFoundDescription": "이 재생 목록은 연결된 서버에 더 이상 존재하지 않습니다.",
       "keepOffline": "오프라인 보관",
-      "keepingProgress": "오프라인 보관 중 {{done}}/{{total}}",
-      "keptOffline_one": "{{count}}개 오프라인 보관",
-      "keptOffline_other": "{{count}}개 오프라인 보관",
-      "keptOffline_zero": "오프라인 보관 없음"
+      "keepingProgress": "오프라인용으로 다운로드 중… {{done}}/{{total}}",
+      "keptOffline_one": "{{count}}곡 오프라인 재생 가능",
+      "keptOffline_other": "{{count}}곡 오프라인 재생 가능",
+      "keptOffline_zero": "오프라인 재생 가능한 곡 없음"
     },
     "reconciliation": {
       "title": "로컬 ↔ 서버 일치 확인",
@@ -2767,8 +2767,8 @@
       "conversionSourceOption_other": "{{name}} · {{count}}곡",
       "conversionPreviewSummary_one": "{{name}}: {{total}}곡 중 {{convertible}}곡에 확인된 연결이 있습니다",
       "conversionPreviewSummary_other": "{{name}}: {{total}}곡 중 {{convertible}}곡에 확인된 연결이 있습니다",
-      "conversionBlocked_one": " · {{count}}개 차단됨",
-      "conversionBlocked_other": " · {{count}}개 차단됨",
+      "conversionBlocked_one": " · {{count}}곡은 확인된 연결 없음",
+      "conversionBlocked_other": " · {{count}}곡은 확인된 연결 없음",
       "conversionSuccessServer_one": "{{count}}곡을 서버에 복사했습니다.",
       "conversionSuccessServer_other": "{{count}}곡을 서버에 복사했습니다.",
       "conversionSuccessLocal_one": "{{count}}곡을 로컬 라이브러리에 복사했습니다.",
@@ -2854,7 +2854,7 @@
         "quota_exceeded": "서버 공간 부족: {{count}}",
         "library_closed": "라이브러리가 업로드를 받지 않음: {{count}}",
         "too_many_sessions": "동시 업로드가 너무 많음: {{count}}",
-        "unknown_verdict": "이 버전에서 알 수 없는 응답: {{count}}",
+        "unknown_verdict": "인식할 수 없는 서버 응답: {{count}}",
         "failed": "실패: {{count}}"
       }
     },

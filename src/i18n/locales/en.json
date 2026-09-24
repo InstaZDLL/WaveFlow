@@ -1600,7 +1600,7 @@
       },
       "db_only": {
         "label": "WaveFlow database only",
-        "hint": "Stays in the app cache. No files or tags are touched."
+        "hint": "Stays in WaveFlow's database. No files or tags are touched."
       }
     }
   },
@@ -2288,7 +2288,7 @@
     },
     "lyricsProviders": {
       "title": "Online lyrics providers",
-      "subtitle": "An unchecked provider is no longer asked automatically. Lyrics it already supplied stay cached: “Search again” in the lyrics panel replaces them.",
+      "subtitle": "An unchecked provider is no longer asked automatically. Lyrics it already supplied are kept: “Search again” in the lyrics panel replaces them.",
       "alwaysOn": "always on",
       "geniusNote": "no timestamps, and rarely answers without a session cookie"
     },
@@ -2303,7 +2303,7 @@
     },
     "lyricsDestination": {
       "title": "Saved-lyrics destination",
-      "subtitle": "Where lyrics land on disk — the ones you write and the ones WaveFlow fetches. You can still override this per-edit from the editor footer."
+      "subtitle": "Where lyrics land on disk — the ones you write and the ones WaveFlow fetches. You can still choose differently for each edit, from the editor's footer."
     },
     "updateChannel": {
       "title": "Beta channel",
@@ -2311,7 +2311,7 @@
     },
     "artistBio": {
       "title": "Biography source",
-      "subtitle": "Which service provides artist biographies.",
+      "subtitle": "Choose which service provides artist biographies.",
       "lastfmHint": "English biographies. Requires your Last.fm API key.",
       "theaudiodbHint": "Community biographies in several languages. No key required.",
       "languageLabel": "Biography language"
@@ -2407,7 +2407,7 @@
     },
     "windowChrome": {
       "title": "Window frame",
-      "subtitle": "Who draws the bar at the top of the window — your desktop, or WaveFlow.",
+      "subtitle": "Choose who draws the bar at the top of the window: your desktop or WaveFlow.",
       "options": {
         "system": {
           "label": "System",
@@ -2651,7 +2651,7 @@
       "title": "Remote server",
       "subtitle": "Bind this profile to a WaveFlow server. Playlists appear in the sidebar.",
       "urlLabel": "Server URL",
-      "identify": "Identify",
+      "identify": "Check server",
       "unknownType": "unknown",
       "probeNative": "native, signs in through the browser",
       "probeSubsonic": "Subsonic protocol only; no journal, and no sign-in flow here yet",
@@ -2704,9 +2704,9 @@
       "emptyDescription": "Use Add tracks to search the server's catalogue.",
       "notFoundDescription": "This playlist is no longer on the bound server.",
       "keepOffline": "Keep offline",
-      "keepingProgress": "keeping {{done}}/{{total}}",
-      "keptOffline_one": "{{count}} kept offline",
-      "keptOffline_other": "{{count}} kept offline",
+      "keepingProgress": "Downloading for offline… {{done}}/{{total}}",
+      "keptOffline_one": "{{count}} available offline",
+      "keptOffline_other": "{{count}} available offline",
       "keptOffline_zero": "none kept offline"
     },
     "reconciliation": {
@@ -2767,8 +2767,8 @@
       "conversionSourceOption_other": "{{name}} · {{count}} tracks",
       "conversionPreviewSummary_one": "{{name}}: {{convertible}}/{{total}} track has a confirmed link",
       "conversionPreviewSummary_other": "{{name}}: {{convertible}}/{{total}} tracks have confirmed links",
-      "conversionBlocked_one": " · {{count}} blocked",
-      "conversionBlocked_other": " · {{count}} blocked",
+      "conversionBlocked_one": " · {{count}} without a confirmed link",
+      "conversionBlocked_other": " · {{count}} without a confirmed link",
       "conversionSuccessServer_one": "{{count}} track copied to the server.",
       "conversionSuccessServer_other": "{{count}} tracks copied to the server.",
       "conversionSuccessLocal_one": "{{count}} track copied to the local library.",
@@ -2854,7 +2854,7 @@
         "quota_exceeded": "No room left on the server: {{count}}",
         "library_closed": "Library closed to uploads: {{count}}",
         "too_many_sessions": "Too many uploads at once: {{count}}",
-        "unknown_verdict": "Answer this build does not know: {{count}}",
+        "unknown_verdict": "Unrecognised server answer: {{count}}",
         "failed": "Failed: {{count}}"
       }
     },

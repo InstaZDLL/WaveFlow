@@ -320,7 +320,7 @@
       },
       "party": {
         "title": "派對",
-        "subtitle": "適合舞動的節奏與高能量"
+        "subtitle": "適合跳舞的節奏，活力滿滿"
       },
       "sleep": {
         "title": "睡眠",
@@ -417,7 +417,7 @@
         "description": "從操作列匯入一個資料夾，以便在此處瀏覽。"
       },
       "sourceFiltered": {
-        "description": "該來源沒有內容。請在上方切換來源，或在設定中複製伺服器目錄。"
+        "description": "該來源沒有內容。請在上方切換來源，或在設定中將伺服器目錄複製到本機。"
       },
       "needs-attention": {
         "title": "沒有需要修正的地方",
@@ -982,7 +982,7 @@
       "title": "管理個人檔案",
       "subtitle": "選擇要刪除的個人檔案。無法從此處刪除目前使用的個人檔案。",
       "activeLocked": "目前個人檔案",
-      "deleteHint": "輕觸以刪除",
+      "deleteHint": "點擊以刪除",
       "deleteAria": "刪除個人檔案 {{name}}"
     },
     "delete": {
@@ -1098,7 +1098,7 @@
   "batchTagEdit": {
     "title": "批次編輯標籤",
     "subtitle": "已選 {{count}} 首",
-    "help": "勾選要套用到整個選取的欄位。未勾選的欄位保持每首曲目原值。",
+    "help": "勾選要套用到所有已選曲目的欄位。未勾選的欄位會保留每首曲目原有的值。",
     "submit": "套用（{{count}} 個欄位）",
     "fields": {
       "artist": "藝人",
@@ -1600,7 +1600,7 @@
       },
       "db_only": {
         "label": "僅 WaveFlow 資料庫",
-        "hint": "留在應用程式快取中。不會碰任何檔案或標籤。"
+        "hint": "僅保留在 WaveFlow 資料庫中。不會更動任何檔案或標籤。"
       }
     }
   },
@@ -1715,7 +1715,7 @@
         "hide": "隱藏",
         "connectedAs": "已登入為",
         "disconnect": "登出",
-        "loginPrompt": "請登入以記錄你的聆聽紀錄：",
+        "loginPrompt": "請登入以向 Last.fm 傳送你的聆聽紀錄：",
         "usernamePlaceholder": "使用者名稱",
         "passwordPlaceholder": "密碼",
         "connect": "登入",
@@ -2090,7 +2090,7 @@
         },
         "lounge": {
           "label": "Lounge",
-          "description": "質感玻璃——專輯封面成為背景，半透明面板，緩慢過渡。"
+          "description": "質感玻璃——以專輯封面為背景，搭配半透明面板與舒緩的過渡效果。"
         },
         "pulse": {
           "label": "Pulse",
@@ -2116,7 +2116,7 @@
         "volumeDown": "降低音量",
         "toggleMute": "靜音/取消靜音",
         "toggleShuffle": "隨機播放",
-        "cycleRepeat": "循環模式",
+        "cycleRepeat": "切換循環模式",
         "toggleQueue": "顯示 / 隱藏佇列",
         "toggleNowPlaying": "顯示 / 隱藏正在播放",
         "toggleLyrics": "顯示 / 隱藏歌詞",
@@ -2303,7 +2303,7 @@
     },
     "lyricsDestination": {
       "title": "已儲存歌詞的位置",
-      "subtitle": "歌詞儲存到磁碟的位置：你輸入的歌詞和 WaveFlow 取得的歌詞都適用。你可以在編輯器底部針對每次編輯覆寫此設定。"
+      "subtitle": "歌詞儲存到磁碟的位置：你輸入的歌詞和 WaveFlow 取得的歌詞都適用。每次編輯時仍可在編輯器底部另行選擇。"
     },
     "updateChannel": {
       "title": "測試版通道",
@@ -2311,7 +2311,7 @@
     },
     "artistBio": {
       "title": "簡介來源",
-      "subtitle": "由哪個服務提供藝人簡介。",
+      "subtitle": "選擇提供藝人簡介的服務。",
       "lastfmHint": "英文簡介。需要你的 Last.fm API 金鑰。",
       "theaudiodbHint": "多語言社群簡介。無需金鑰。",
       "languageLabel": "簡介語言"
@@ -2328,7 +2328,7 @@
       "clear": "刪除目錄",
       "neverSynced": "從未",
       "localFirst": "優先使用本機目錄",
-      "localFirstHint": "即使在線上也在本機搜尋和瀏覽（即時，無需網路）。",
+      "localFirstHint": "即使已連線，也優先在已下載的本機目錄中搜尋和瀏覽（即時，不發出網路請求）。",
       "offlineHint": "請關閉離線模式以下載目錄。",
       "errors": {
         "loadFailed": "無法載入目錄狀態。",
@@ -2407,7 +2407,7 @@
     },
     "windowChrome": {
       "title": "視窗外框",
-      "subtitle": "視窗頂部的橫列由誰繪製：你的桌面，還是 WaveFlow。",
+      "subtitle": "選擇由你的桌面還是 WaveFlow 繪製視窗頂部的橫列。",
       "options": {
         "system": {
           "label": "系統",
@@ -2651,7 +2651,7 @@
       "title": "遠端伺服器",
       "subtitle": "將此個人檔案綁定至 WaveFlow 伺服器。播放清單會顯示在側邊欄。",
       "urlLabel": "伺服器網址",
-      "identify": "識別",
+      "identify": "檢查伺服器",
       "unknownType": "未知",
       "probeNative": "原生，透過瀏覽器登入",
       "probeSubsonic": "僅支援 Subsonic 協定；無變更記錄，此處也還沒有登入流程",
@@ -2704,9 +2704,9 @@
       "emptyDescription": "點選「新增曲目」，在伺服器的目錄中搜尋。",
       "notFoundDescription": "此播放清單在已連線的伺服器上已不存在。",
       "keepOffline": "離線保存",
-      "keepingProgress": "已保存 {{done}}/{{total}}",
-      "keptOffline_one": "已離線保存 {{count}} 首",
-      "keptOffline_other": "已離線保存 {{count}} 首",
+      "keepingProgress": "正在下載以供離線播放… {{done}}/{{total}}",
+      "keptOffline_one": "{{count}} 首可離線播放",
+      "keptOffline_other": "{{count}} 首可離線播放",
       "keptOffline_zero": "無離線曲目"
     },
     "reconciliation": {
@@ -2767,8 +2767,8 @@
       "conversionSourceOption_other": "{{name}} · {{count}} 首曲目",
       "conversionPreviewSummary_one": "{{name}}：{{convertible}}/{{total}} 首曲目已有確認的連結",
       "conversionPreviewSummary_other": "{{name}}：{{convertible}}/{{total}} 首曲目已有確認的連結",
-      "conversionBlocked_one": " · {{count}} 個受阻",
-      "conversionBlocked_other": " · {{count}} 個受阻",
+      "conversionBlocked_one": " · {{count}} 首沒有確認的連結",
+      "conversionBlocked_other": " · {{count}} 首沒有確認的連結",
       "conversionSuccessServer_one": "已複製 {{count}} 首曲目至伺服器。",
       "conversionSuccessServer_other": "已複製 {{count}} 首曲目至伺服器。",
       "conversionSuccessLocal_one": "已複製 {{count}} 首曲目至本機音樂庫。",
@@ -2854,7 +2854,7 @@
         "quota_exceeded": "伺服器空間不足：{{count}}",
         "library_closed": "音樂庫不接受上傳：{{count}}",
         "too_many_sessions": "同時上傳過多：{{count}}",
-        "unknown_verdict": "此版本無法辨識的回覆：{{count}}",
+        "unknown_verdict": "無法辨識的伺服器回覆：{{count}}",
         "failed": "失敗：{{count}}"
       }
     },

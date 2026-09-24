@@ -1021,7 +1021,7 @@
       "title": "Gestionar perfiles",
       "subtitle": "Selecciona un perfil para eliminarlo. El perfil activo no se puede eliminar desde aquí.",
       "activeLocked": "Perfil activo",
-      "deleteHint": "Toca para eliminar",
+      "deleteHint": "Haz clic para eliminar",
       "deleteAria": "Eliminar perfil {{name}}"
     },
     "delete": {
@@ -1140,7 +1140,7 @@
   "batchTagEdit": {
     "title": "Editar etiquetas en lote",
     "subtitle": "{{count}} pistas seleccionadas",
-    "help": "Marca los campos que quieres aplicar a todas las pistas. Los campos sin marcar quedan intactos por pista.",
+    "help": "Marca los campos que quieres aplicar a todas las pistas seleccionadas. Los campos sin marcar conservan el valor propio de cada pista.",
     "submit": "Aplicar ({{count}} campo(s))",
     "fields": {
       "artist": "Artista",
@@ -1463,7 +1463,7 @@
       "plain": "Sin sincronizar"
     },
     "toast": {
-      "tagWriteSkipped": "TTML guardado solo en caché (no se escribe en la etiqueta de audio)",
+      "tagWriteSkipped": "TTML guardado solo en la base de datos (no se escribe en la etiqueta de audio)",
       "sidecarWriteSkipped": "Letras guardadas en la base de datos, pero el formato TTML no es compatible con archivos auxiliares .lrc/.txt."
     },
     "excludedGenre": "Las letras no se buscan en línea para el género {{genre}} (Configuración → Imágenes y letras). Puedes importar un archivo .lrc o buscar de todos modos."
@@ -1654,7 +1654,7 @@
       },
       "db_only": {
         "label": "Solo base de datos de WaveFlow",
-        "hint": "Se queda en la caché de la app. No se tocan archivos ni etiquetas."
+        "hint": "Se queda en la base de datos de la app. No se tocan archivos ni etiquetas."
       }
     }
   },
@@ -2177,7 +2177,7 @@
     "appearance": {
       "theme": {
         "title": "Tema",
-        "subtitle": "Elige un ambiente — cambiar el tema cambia el tono de toda la app al instante."
+        "subtitle": "Elige el ambiente que más te guste: el tema cambia los colores de toda la app al instante."
       },
       "mode": {
         "light": "Claro",
@@ -2348,7 +2348,7 @@
     },
     "lyricsProviders": {
       "title": "Proveedores de letras en línea",
-      "subtitle": "Un proveedor desmarcado ya no se consulta automáticamente. Las letras que ya proporcionó siguen en caché: «Volver a buscar» en el panel de letras las reemplaza.",
+      "subtitle": "Un proveedor desmarcado ya no se consulta automáticamente. Las letras que ya proporcionó siguen guardadas en la base de datos: «Volver a buscar» en el panel de letras las reemplaza.",
       "alwaysOn": "siempre activo",
       "geniusNote": "sin marcas de tiempo, y rara vez responde sin una cookie de sesión"
     },
@@ -2363,7 +2363,7 @@
     },
     "lyricsDestination": {
       "title": "Destino de las letras guardadas",
-      "subtitle": "Dónde se guardan las letras en el disco: las que escribes y las que WaveFlow descarga. Puedes anularlo en cada edición."
+      "subtitle": "Dónde se guardan las letras en el disco: las que escribes y las que WaveFlow descarga. Aun así, puedes elegir otro destino en cada edición, desde la parte inferior del editor."
     },
     "updateChannel": {
       "title": "Canal beta",
@@ -2371,7 +2371,7 @@
     },
     "artistBio": {
       "title": "Fuente de la biografía",
-      "subtitle": "Qué servicio proporciona las biografías de artistas.",
+      "subtitle": "Elige qué servicio proporciona las biografías de artistas.",
       "lastfmHint": "Biografías en inglés. Requiere tu clave API de Last.fm.",
       "theaudiodbHint": "Biografías comunitarias en varios idiomas. No requiere clave.",
       "languageLabel": "Idioma de la biografía"
@@ -2468,7 +2468,7 @@
     },
     "windowChrome": {
       "title": "Marco de la ventana",
-      "subtitle": "Quién dibuja la barra superior de la ventana: tu escritorio o WaveFlow.",
+      "subtitle": "Elige quién dibuja la barra superior de la ventana: tu escritorio o WaveFlow.",
       "options": {
         "system": {
           "label": "Sistema",
@@ -2661,7 +2661,7 @@
     "unavailableTitle": "Radio Web está desactivada",
     "unavailableHint": "Activa el complemento de Radio Web en Configuración → Extensiones para explorar más de 30 000 emisoras.",
     "favorites": "Favoritos",
-    "favoritesEmpty": "Aún no hay emisoras favoritas. Toca la estrella de una emisora para guardarla.",
+    "favoritesEmpty": "Aún no hay emisoras favoritas. Haz clic en la estrella de una emisora para guardarla.",
     "addFavorite": "Añadir a favoritos",
     "removeFavorite": "Quitar de favoritos",
     "localStations": "Emisoras locales",
@@ -2713,7 +2713,7 @@
       "title": "Servidor remoto",
       "subtitle": "Vincula este perfil a un servidor WaveFlow. Las listas de reproducción aparecen en la barra lateral.",
       "urlLabel": "URL del servidor",
-      "identify": "Identificar",
+      "identify": "Comprobar servidor",
       "unknownType": "desconocido",
       "probeNative": "nativo, inicia sesión en el navegador",
       "probeSubsonic": "Solo protocolo Subsonic; aún no hay registro ni inicio de sesión aquí",
@@ -2722,7 +2722,7 @@
       "syncNow": "Sincronizar",
       "signOut": "Cerrar sesión",
       "forget": "Olvidar servidor",
-      "forgetTitle": "Descarta la biblioteca en caché y cualquier cambio hecho sin conexión que nunca llegó al servidor",
+      "forgetTitle": "Descarta la copia local de la biblioteca y cualquier cambio hecho sin conexión que nunca llegó al servidor",
       "neverSynced": "Nunca sincronizado — la primera pasada descarga una instantánea completa.",
       "counts": {
         "playlists_one": "lista de reproducción",
@@ -2776,11 +2776,11 @@
       "emptyDescription": "Usa «Añadir pistas» para buscar en el catálogo del servidor.",
       "notFoundDescription": "Esta lista ya no existe en el servidor vinculado.",
       "keepOffline": "Guardar sin conexión",
-      "keepingProgress": "{{done}}/{{total}} guardadas",
-      "keptOffline_one": "{{count}} sin conexión",
-      "keptOffline_other": "{{count}} sin conexión",
-      "keptOffline_many": "{{count}} sin conexión",
-      "keptOffline_zero": "ninguna sin conexión"
+      "keepingProgress": "Descargando para uso sin conexión… {{done}}/{{total}}",
+      "keptOffline_one": "{{count}} disponible sin conexión",
+      "keptOffline_other": "{{count}} disponibles sin conexión",
+      "keptOffline_many": "{{count}} disponibles sin conexión",
+      "keptOffline_zero": "ninguna disponible sin conexión"
     },
     "reconciliation": {
       "title": "Correspondencia local ↔ servidor",
@@ -2848,9 +2848,9 @@
       "conversionPreviewSummary_one": "{{name}}: {{convertible}}/{{total}} pista tiene un enlace confirmado",
       "conversionPreviewSummary_other": "{{name}}: {{convertible}}/{{total}} pistas tienen enlaces confirmados",
       "conversionPreviewSummary_many": "{{name}}: {{convertible}}/{{total}} pistas tienen enlaces confirmados",
-      "conversionBlocked_one": " · {{count}} bloqueado",
-      "conversionBlocked_other": " · {{count}} bloqueados",
-      "conversionBlocked_many": " · {{count}} bloqueados",
+      "conversionBlocked_one": " · {{count}} sin enlace confirmado",
+      "conversionBlocked_other": " · {{count}} sin enlace confirmado",
+      "conversionBlocked_many": " · {{count}} sin enlace confirmado",
       "conversionSuccessServer_one": "{{count}} pista copiada al servidor.",
       "conversionSuccessServer_other": "{{count}} pistas copiadas al servidor.",
       "conversionSuccessServer_many": "{{count}} pistas copiadas al servidor.",
@@ -2941,7 +2941,7 @@
         "quota_exceeded": "Sin espacio en el servidor: {{count}}",
         "library_closed": "Biblioteca cerrada a las subidas: {{count}}",
         "too_many_sessions": "Demasiadas subidas a la vez: {{count}}",
-        "unknown_verdict": "Respuesta desconocida de esta versión: {{count}}",
+        "unknown_verdict": "Respuesta del servidor no reconocida: {{count}}",
         "failed": "Fallidas: {{count}}"
       }
     },

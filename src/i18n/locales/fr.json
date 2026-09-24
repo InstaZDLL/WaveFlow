@@ -1654,7 +1654,7 @@
       },
       "db_only": {
         "label": "Base WaveFlow uniquement",
-        "hint": "Reste dans le cache de l'app. Aucun fichier ni tag touché."
+        "hint": "Reste dans la base de WaveFlow. Aucun fichier ni tag touché."
       }
     }
   },
@@ -1824,7 +1824,7 @@
         "volumeDown": "Baisser le volume",
         "toggleMute": "Couper / Rétablir le son",
         "toggleShuffle": "Lecture aléatoire",
-        "cycleRepeat": "Mode de répétition",
+        "cycleRepeat": "Changer le mode de répétition",
         "toggleQueue": "Afficher / Masquer la file",
         "toggleNowPlaying": "Afficher / Masquer la lecture en cours",
         "toggleLyrics": "Afficher / Masquer les paroles",
@@ -2076,7 +2076,7 @@
     },
     "lyricsProviders": {
       "title": "Fournisseurs de paroles en ligne",
-      "subtitle": "Un fournisseur décoché n'est plus interrogé automatiquement. Les paroles qu'il a déjà fournies restent en cache : « Relancer la recherche » dans le panneau des paroles les remplace.",
+      "subtitle": "Un fournisseur décoché n'est plus interrogé automatiquement. Les paroles qu'il a déjà fournies restent enregistrées : « Relancer la recherche » dans le panneau des paroles les remplace.",
       "alwaysOn": "toujours actif",
       "geniusNote": "sans horodatage, et répond rarement sans cookie de session"
     },
@@ -2363,7 +2363,7 @@
     },
     "lyricsDestination": {
       "title": "Destination des paroles",
-      "subtitle": "Où les paroles atterrissent sur le disque : celles que vous saisissez et celles que WaveFlow récupère. Vous pouvez toujours modifier ce choix à chaque édition."
+      "subtitle": "Où les paroles atterrissent sur le disque : celles que vous saisissez et celles que WaveFlow récupère. Vous pouvez toujours changer ce choix à chaque édition, depuis le bas de l'éditeur."
     },
     "updateChannel": {
       "title": "Canal bêta",
@@ -2371,7 +2371,7 @@
     },
     "artistBio": {
       "title": "Source de la biographie",
-      "subtitle": "Quel service fournit la biographie des artistes.",
+      "subtitle": "Choisissez le service qui fournit la biographie des artistes.",
       "lastfmHint": "Biographies en anglais. Nécessite votre clé API Last.fm.",
       "theaudiodbHint": "Biographies communautaires en plusieurs langues. Aucune clé requise.",
       "languageLabel": "Langue de la biographie"
@@ -2468,7 +2468,7 @@
     },
     "windowChrome": {
       "title": "Cadre de la fenêtre",
-      "subtitle": "Qui dessine la barre en haut de la fenêtre : votre bureau, ou WaveFlow.",
+      "subtitle": "Choisissez qui dessine la barre en haut de la fenêtre : votre bureau ou WaveFlow.",
       "options": {
         "system": {
           "label": "Système",
@@ -2713,7 +2713,7 @@
       "title": "Serveur distant",
       "subtitle": "Reliez ce profil à un serveur WaveFlow. Les playlists apparaissent dans la barre latérale.",
       "urlLabel": "URL du serveur",
-      "identify": "Identifier",
+      "identify": "Vérifier le serveur",
       "unknownType": "inconnu",
       "probeNative": "natif, connexion via le navigateur",
       "probeSubsonic": "Protocole Subsonic uniquement ; pas de journal ni de connexion ici pour l'instant",
@@ -2776,10 +2776,10 @@
       "emptyDescription": "Utilisez « Ajouter des titres » pour chercher dans le catalogue du serveur.",
       "notFoundDescription": "Cette playlist n'existe plus sur le serveur associé.",
       "keepOffline": "Garder hors ligne",
-      "keepingProgress": "{{done}}/{{total}} gardés",
-      "keptOffline_one": "{{count}} hors ligne",
-      "keptOffline_other": "{{count}} hors ligne",
-      "keptOffline_many": "{{count}} hors ligne",
+      "keepingProgress": "Téléchargement hors ligne… {{done}}/{{total}}",
+      "keptOffline_one": "{{count}} disponible hors ligne",
+      "keptOffline_other": "{{count}} disponibles hors ligne",
+      "keptOffline_many": "{{count}} disponibles hors ligne",
       "keptOffline_zero": "aucun hors ligne"
     },
     "reconciliation": {
@@ -2848,9 +2848,9 @@
       "conversionPreviewSummary_one": "{{name}} : {{convertible}}/{{total}} titre a un lien confirmé",
       "conversionPreviewSummary_other": "{{name}} : {{convertible}}/{{total}} titres ont des liens confirmés",
       "conversionPreviewSummary_many": "{{name}} : {{convertible}}/{{total}} titres ont des liens confirmés",
-      "conversionBlocked_one": " · {{count}} bloqué",
-      "conversionBlocked_other": " · {{count}} bloqués",
-      "conversionBlocked_many": " · {{count}} bloqués",
+      "conversionBlocked_one": " · {{count}} sans lien confirmé",
+      "conversionBlocked_other": " · {{count}} sans lien confirmé",
+      "conversionBlocked_many": " · {{count}} sans lien confirmé",
       "conversionSuccessServer_one": "{{count}} titre copié vers le serveur.",
       "conversionSuccessServer_other": "{{count}} titres copiés vers le serveur.",
       "conversionSuccessServer_many": "{{count}} titres copiés vers le serveur.",
@@ -2941,7 +2941,7 @@
         "quota_exceeded": "Plus de place sur le serveur : {{count}}",
         "library_closed": "Bibliothèque fermée aux envois : {{count}}",
         "too_many_sessions": "Trop d'envois simultanés : {{count}}",
-        "unknown_verdict": "Réponse inconnue de cette version : {{count}}",
+        "unknown_verdict": "Réponse du serveur non reconnue : {{count}}",
         "failed": "Échecs : {{count}}"
       }
     },
