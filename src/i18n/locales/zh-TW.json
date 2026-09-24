@@ -2263,7 +2263,18 @@
     "lyricsHighlightColor": {
       "title": "正在演唱的歌詞行顏色",
       "subtitle": "用於全螢幕歌詞與迷你播放器。未選擇時為白色；懸浮歌詞視窗保留其自己的顏色。",
-      "reset": "重設"
+      "colors": {
+        "default": "白色（預設）",
+        "rose": "玫瑰粉",
+        "peach": "蜜桃色",
+        "vanilla": "香草色",
+        "mint": "薄荷綠",
+        "aqua": "水藍色",
+        "sky": "天藍色",
+        "lavender": "薰衣草紫",
+        "lilac": "丁香紫",
+        "rainbow": "彩虹（每行一種顏色）"
+      }
     },
     "lyricsTranslation": {
       "title": "歌詞翻譯（Musixmatch）",

@@ -2266,7 +2266,18 @@
     "lyricsHighlightColor": {
       "title": "Colore della riga cantata",
       "subtitle": "Per i testi a schermo intero e il mini-player. Bianco finché non ne scegli uno; la finestra mobile dei testi mantiene i propri colori.",
-      "reset": "Ripristina"
+      "colors": {
+        "default": "Bianco (predefinito)",
+        "rose": "Rosa",
+        "peach": "Pesca",
+        "vanilla": "Vaniglia",
+        "mint": "Menta",
+        "aqua": "Acqua",
+        "sky": "Cielo",
+        "lavender": "Lavanda",
+        "lilac": "Lilla",
+        "rainbow": "Arcobaleno, un colore per riga"
+      }
     },
     "lyricsTranslation": {
       "title": "Traduzione dei testi (Musixmatch)",

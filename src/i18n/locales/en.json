@@ -2263,7 +2263,18 @@
     "lyricsHighlightColor": {
       "title": "Sung line colour",
       "subtitle": "For full-screen lyrics and the mini-player. White until you pick one; the floating lyrics window keeps its own colours.",
-      "reset": "Reset"
+      "colors": {
+        "default": "White (default)",
+        "rose": "Rose",
+        "peach": "Peach",
+        "vanilla": "Vanilla",
+        "mint": "Mint",
+        "aqua": "Aqua",
+        "sky": "Sky",
+        "lavender": "Lavender",
+        "lilac": "Lilac",
+        "rainbow": "Rainbow, one colour per line"
+      }
     },
     "lyricsTranslation": {
       "title": "Lyrics translation (Musixmatch)",

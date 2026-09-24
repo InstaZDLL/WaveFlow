@@ -36,7 +36,10 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { useLikedTracks } from "../../hooks/useLikedTracks";
 import { useTrackLyrics } from "../../hooks/useTrackLyrics";
 import { useKaraokeWordFill } from "../../hooks/useKaraokeWordFill";
-import { useLyricsHighlightColor } from "../../hooks/useLyricsHighlightColor";
+import {
+  lyricsHighlightColor,
+  useLyricsHighlightColor,
+} from "../../hooks/useLyricsHighlightColor";
 import { useSlideshowLayer } from "../../hooks/useSlideshowLayer";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
@@ -962,7 +965,8 @@ function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
   // The colour for the line being sung, chosen in the main window's
   // Settings (#751) — the cross-window bridge (#741) brings a change here
   // without reopening the mini-player.
-  const { color: highlightColor } = useLyricsHighlightColor();
+  const { id: highlightId } = useLyricsHighlightColor();
+  const highlightColor = lyricsHighlightColor(highlightId, activeIndex);
 
   // Auto-scroll is view-local by the hook's contract: it owns
   // `activeIndex`, each consumer scrolls its own nodes. This one has its

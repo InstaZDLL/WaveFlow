@@ -2263,7 +2263,18 @@
     "lyricsHighlightColor": {
       "title": "부르는 줄의 색",
       "subtitle": "전체 화면 가사와 미니 플레이어에 적용됩니다. 색을 고르기 전까지는 흰색이며, 떠 있는 가사 창은 자체 색을 유지합니다.",
-      "reset": "초기화"
+      "colors": {
+        "default": "화이트(기본)",
+        "rose": "로즈",
+        "peach": "피치",
+        "vanilla": "바닐라",
+        "mint": "민트",
+        "aqua": "아쿠아",
+        "sky": "스카이",
+        "lavender": "라벤더",
+        "lilac": "라일락",
+        "rainbow": "무지개(줄마다 다른 색)"
+      }
     },
     "lyricsTranslation": {
       "title": "가사 번역(Musixmatch)",

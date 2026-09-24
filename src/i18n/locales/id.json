@@ -2263,7 +2263,18 @@
     "lyricsHighlightColor": {
       "title": "Warna baris yang dinyanyikan",
       "subtitle": "Untuk lirik layar penuh dan mini-pemutar. Putih sampai kamu memilih warna; jendela lirik mengambang tetap memakai warnanya sendiri.",
-      "reset": "Setel ulang"
+      "colors": {
+        "default": "Putih (default)",
+        "rose": "Merah muda",
+        "peach": "Persik",
+        "vanilla": "Vanila",
+        "mint": "Mint",
+        "aqua": "Akua",
+        "sky": "Langit",
+        "lavender": "Lavender",
+        "lilac": "Lila",
+        "rainbow": "Pelangi, satu warna per baris"
+      }
     },
     "lyricsTranslation": {
       "title": "Terjemahan lirik (Musixmatch)",
