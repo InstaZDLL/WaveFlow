@@ -301,6 +301,7 @@ export const SETTINGS_CATEGORIES = [
           "settings.lyricsEstimateWords.subtitle",
           "settings.lyricsHighlightColor.title",
           "settings.lyricsHighlightColor.subtitle",
+          "settings.lyricsHighlightColor.colors.rainbow",
         ],
       },
     ],

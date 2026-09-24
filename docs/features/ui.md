@@ -145,9 +145,11 @@ It merges what used to be two mutually-exclusive overlays (`FullscreenNowPlaying
 
 ### Sung line colour
 
-The line being sung takes a colour of the user's choosing in the immersive lyrics — the merged view and the lyrics-only one share [`ImmersiveLyricsColumn`](../../src/components/player/ImmersiveLyricsColumn.tsx) — and in the mini-player (#751). Settings → Lyrics, per profile, in [`useLyricsHighlightColor`](../../src/hooks/useLyricsHighlightColor.ts) (`ui.lyrics_highlight_color`, a `#rrggbb` or nothing).
+The line being sung takes a colour of the user's choosing in the immersive lyrics — the merged view and the lyrics-only one share [`ImmersiveLyricsColumn`](../../src/components/player/ImmersiveLyricsColumn.tsx) — and in the mini-player (#751). Settings → Lyrics, per profile, in [`useLyricsHighlightColor`](../../src/hooks/useLyricsHighlightColor.ts) (`ui.lyrics_highlight_color`, a palette id or nothing).
 
-- **Unset is not white written down.** Nothing stored leaves each view on its own colour, so a later change to a view's default reaches everyone who never chose; the Settings row offers a reset only once a colour is set.
+- **A palette, not a picker.** Eight pastels (`LYRICS_PASTELS`) and `rainbow`, as a row of swatches over native radios. The first version took any `#rrggbb`, and both surfaces are dark: a dark blue or a saturated red was one click away and unreadable there. Every pastel reads on either surface. A `#rrggbb` left by that version — it never reached a release — parses as unset.
+- **`rainbow` walks the palette line by line.** Each sung line takes the next pastel, keyed on the line's index rather than on time, so the immersive view and the mini-player — separate webviews — paint the same line the same colour. Not a gradient across the line: that takes `background-clip: text` over transparent text, and a karaoke line is transformed word boxes under an absolutely positioned fill layer — three webview engines to trust with composing that, where a `color` is simply inherited by all of it.
+- **Unset is not white written down.** Nothing stored leaves each view on its own colour, so a later change to a view's default reaches everyone who never chose; the white swatch writes nothing.
 - **One property.** It sets `color` on the active line, and the karaoke fill inherits it, so a line-synced line and a word-by-word sweep take the same value without a second code path.
 - **It reaches the mini-player live**, through the cross-window bridge every `useProfileSetting` hook now has (#741).
 - **High contrast wins.** `:root[data-contrast="high"] .wf-lyrics-highlight` puts both surfaces back to white with `!important`, since the colour arrives inline: a colour picked for looks is not one picked for legibility.

@@ -2263,7 +2263,18 @@
     "lyricsHighlightColor": {
       "title": "歌唱中の行の色",
       "subtitle": "フルスクリーンの歌詞とミニプレーヤーに適用されます。色を選ぶまでは白です。フローティング歌詞ウィンドウは独自の色を使います。",
-      "reset": "リセット"
+      "colors": {
+        "default": "ホワイト（既定）",
+        "rose": "ローズ",
+        "peach": "ピーチ",
+        "vanilla": "バニラ",
+        "mint": "ミント",
+        "aqua": "アクア",
+        "sky": "スカイ",
+        "lavender": "ラベンダー",
+        "lilac": "ライラック",
+        "rainbow": "レインボー（行ごとに色が変わります）"
+      }
     },
     "lyricsTranslation": {
       "title": "歌詞の翻訳 (Musixmatch)",

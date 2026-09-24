@@ -2290,7 +2290,18 @@
     "lyricsHighlightColor": {
       "title": "Couleur de la ligne chantée",
       "subtitle": "Pour les paroles en plein écran et le mini-lecteur. Blanc tant que vous n'en choisissez pas ; la fenêtre flottante des paroles garde ses propres couleurs.",
-      "reset": "Réinitialiser"
+      "colors": {
+        "default": "Blanc (par défaut)",
+        "rose": "Rose",
+        "peach": "Pêche",
+        "vanilla": "Vanille",
+        "mint": "Menthe",
+        "aqua": "Aqua",
+        "sky": "Ciel",
+        "lavender": "Lavande",
+        "lilac": "Lilas",
+        "rainbow": "Arc-en-ciel, une couleur par ligne"
+      }
     },
     "lyricsDestination": {
       "title": "Destination des paroles",

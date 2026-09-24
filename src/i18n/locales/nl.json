@@ -2263,7 +2263,18 @@
     "lyricsHighlightColor": {
       "title": "Kleur van de gezongen regel",
       "subtitle": "Voor songtekst in volledig scherm en de mini-speler. Wit tot je er een kiest; het zwevende songtekstvenster houdt zijn eigen kleuren.",
-      "reset": "Herstellen"
+      "colors": {
+        "default": "Wit (standaard)",
+        "rose": "Roze",
+        "peach": "Perzik",
+        "vanilla": "Vanille",
+        "mint": "Mint",
+        "aqua": "Aqua",
+        "sky": "Hemelsblauw",
+        "lavender": "Lavendel",
+        "lilac": "Lila",
+        "rainbow": "Regenboog, één kleur per regel"
+      }
     },
     "lyricsTranslation": {
       "title": "Songtekstvertaling (Musixmatch)",

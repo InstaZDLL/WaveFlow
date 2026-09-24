@@ -2266,7 +2266,18 @@
     "lyricsHighlightColor": {
       "title": "Color de la línea cantada",
       "subtitle": "Para las letras en pantalla completa y el mini-reproductor. Blanco hasta que elijas uno; la ventana flotante de letras conserva sus propios colores.",
-      "reset": "Restablecer"
+      "colors": {
+        "default": "Blanco (predeterminado)",
+        "rose": "Rosa",
+        "peach": "Melocotón",
+        "vanilla": "Vainilla",
+        "mint": "Menta",
+        "aqua": "Aguamarina",
+        "sky": "Cielo",
+        "lavender": "Lavanda",
+        "lilac": "Lila",
+        "rainbow": "Arcoíris, un color por línea"
+      }
     },
     "lyricsTranslation": {
       "title": "Traducción de letras (Musixmatch)",

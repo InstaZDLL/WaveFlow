@@ -2263,7 +2263,18 @@
     "lyricsHighlightColor": {
       "title": "Söylenen satırın rengi",
       "subtitle": "Tam ekran sözler ve mini oynatıcı için. Siz bir renk seçene kadar beyazdır; yüzen sözler penceresi kendi renklerini korur.",
-      "reset": "Sıfırla"
+      "colors": {
+        "default": "Beyaz (varsayılan)",
+        "rose": "Pembe",
+        "peach": "Şeftali",
+        "vanilla": "Vanilya",
+        "mint": "Nane",
+        "aqua": "Camgöbeği",
+        "sky": "Gök mavisi",
+        "lavender": "Lavanta",
+        "lilac": "Leylak",
+        "rainbow": "Gökkuşağı, her satıra bir renk"
+      }
     },
     "lyricsTranslation": {
       "title": "Şarkı sözü çevirisi (Musixmatch)",

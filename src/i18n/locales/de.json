@@ -2263,7 +2263,18 @@
     "lyricsHighlightColor": {
       "title": "Farbe der gesungenen Zeile",
       "subtitle": "Für den Liedtext im Vollbild und den Mini-Player. Weiß, bis du eine Farbe wählst; das schwebende Liedtext-Fenster behält seine eigenen Farben.",
-      "reset": "Zurücksetzen"
+      "colors": {
+        "default": "Weiß (Standard)",
+        "rose": "Rosa",
+        "peach": "Pfirsich",
+        "vanilla": "Vanille",
+        "mint": "Minze",
+        "aqua": "Aqua",
+        "sky": "Himmelblau",
+        "lavender": "Lavendel",
+        "lilac": "Flieder",
+        "rainbow": "Regenbogen, eine Farbe pro Zeile"
+      }
     },
     "lyricsTranslation": {
       "title": "Liedtextübersetzung (Musixmatch)",
