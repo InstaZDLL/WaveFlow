@@ -128,7 +128,7 @@
       "nextSteps": "Next steps:",
       "bulletExplore": "Explore your library via the Library, Albums and Artists tabs",
       "bulletQueue": "Build your first queue by clicking on a track",
-      "bulletSettings": "Fine-tune things from the sidebar (Appearance, Integrations…)",
+      "bulletSettings": "Fine-tune things from the sidebar (Appearance, Connections…)",
       "tipImmersiveTitle": "Tip: immersive view",
       "tipImmersiveBody": "Click the player cover to open the fullscreen view with the cover and lyrics side by side."
     },
@@ -161,7 +161,7 @@
     "lyrics": {
       "title": "Where should lyrics live?",
       "description": "Where should lyrics go — the ones you write and the ones WaveFlow finds for you? You can change this anytime from Settings → Images and lyrics.",
-      "hint": "Pick \"Sidecar file\" to keep your audio files untouched — what foobar2000 and friends do."
+      "hint": "Pick “Sidecar file” to keep your audio files untouched — what foobar2000 and friends do."
     }
   },
   "sidebar": {
@@ -239,7 +239,7 @@
   },
   "topbar": {
     "search": {
-      "placeholder": "Search for a track, an artist, an album...",
+      "placeholder": "Search for a track, an artist, an album…",
       "results_zero": "No results",
       "results_one": "{{count}} result",
       "results_other": "{{count}} results",
@@ -280,6 +280,7 @@
   "home": {
     "greeting": {
       "morning": "Good morning",
+      "afternoon": "Good afternoon",
       "evening": "Good evening",
       "night": "Good night"
     },
@@ -441,7 +442,7 @@
     "searchDeezer": "Search Deezer",
     "localFile": "Local file",
     "fetchMissingCovers": "Retrieve all missing covers",
-    "fetchingCovers": "Fetching covers... ({{current}} / {{total}})",
+    "fetchingCovers": "Fetching covers… ({{current}} / {{total}})",
     "fetchCoversResult_one": "{{count}} cover retrieved",
     "fetchCoversResult_other": "{{count}} covers retrieved",
     "fetchCoversFailed": "Failed to retrieve covers",
@@ -970,7 +971,7 @@
       "title": "New profile",
       "subtitle": "Create a profile to personalise your experience",
       "nameLabel": "Profile name",
-      "namePlaceholder": "Enter a name...",
+      "namePlaceholder": "Enter a name…",
       "colorLabel": "Profile colour",
       "colorAria": "Colour {{color}}",
       "submit": "Create profile"
@@ -981,7 +982,7 @@
       "title": "Manage profiles",
       "subtitle": "Select a profile to remove. The active profile cannot be deleted from here.",
       "activeLocked": "Active profile",
-      "deleteHint": "Tap to delete",
+      "deleteHint": "Click to delete",
       "deleteAria": "Delete profile {{name}}"
     },
     "delete": {
@@ -998,9 +999,9 @@
     "previewDefault": "Create a library",
     "previewSubtitle": "0 tracks · Library",
     "nameLabel": "Library name",
-    "namePlaceholder": "e.g. Rock, Jazz, Classical...",
+    "namePlaceholder": "e.g. Rock, Jazz, Classical…",
     "descriptionLabel": "Description",
-    "descriptionPlaceholder": "A short description...",
+    "descriptionPlaceholder": "A short description…",
     "submit": "Create a library",
     "submitEdit": "Save"
   },
@@ -1028,9 +1029,9 @@
     "previewDefault": "New playlist",
     "previewSubtitle": "0 tracks · Playlist",
     "nameLabel": "Name",
-    "namePlaceholder": "e.g. Chill Vibes, Workout Mix...",
+    "namePlaceholder": "e.g. Chill Vibes, Workout Mix…",
     "descriptionLabel": "Description",
-    "descriptionPlaceholder": "A short description...",
+    "descriptionPlaceholder": "A short description…",
     "colorLabel": "Colour",
     "colorAria": "Colour {{color}}",
     "iconLabel": "Icon",
@@ -1091,13 +1092,13 @@
     "rating": "Rating",
     "ratingNone": "No rating",
     "batchEdit": "Edit tags for {{count}} tracks…",
-    "addToPlaylistNamed": "Add to \"{{name}}\"",
-    "removeFromPlaylistNamed": "Remove from \"{{name}}\""
+    "addToPlaylistNamed": "Add to “{{name}}”",
+    "removeFromPlaylistNamed": "Remove from “{{name}}”"
   },
   "batchTagEdit": {
     "title": "Batch edit tags",
     "subtitle": "{{count}} tracks selected",
-    "help": "Tick the fields you want propagated to every track. Unticked fields stay per-track untouched.",
+    "help": "Tick the fields you want propagated to every track. Unticked fields keep each track's own value.",
     "submit": "Apply ({{count}} field(s))",
     "fields": {
       "artist": "Artist",
@@ -1292,7 +1293,7 @@
       "save": "Save as PNG",
       "copy": "Copy image",
       "eyebrow": "Now playing",
-      "on": "on"
+      "footer": "on {{app}}"
     }
   },
   "playerBar": {
@@ -1327,7 +1328,7 @@
         "downmix": "Downmix",
         "eq": "EQ",
         "replayGain": "ReplayGain",
-        "normalize": "Normalize",
+        "normalize": "Normalise",
         "mono": "Mono",
         "speed": "Speed {{value}}×",
         "dopNative": "Native DSD"
@@ -1355,8 +1356,8 @@
     }
   },
   "window": {
-    "minimize": "Minimize",
-    "maximize": "Maximize",
+    "minimize": "Minimise",
+    "maximize": "Maximise",
     "restore": "Restore"
   },
   "sleepTimer": {
@@ -1388,7 +1389,7 @@
     },
     "localization": {
       "off": "No extra reading",
-      "romanization": "Showing romanization",
+      "romanization": "Showing romanisation",
       "translation": "Showing translation"
     },
     "source": {
@@ -1412,7 +1413,7 @@
       "plain": "Unsynchronised"
     },
     "toast": {
-      "tagWriteSkipped": "TTML kept in cache only (not written to the audio tag)",
+      "tagWriteSkipped": "TTML kept in the database only (not written to the audio tag)",
       "sidecarWriteSkipped": "Lyrics saved to the database, but TTML can't ride a .lrc/.txt sidecar."
     },
     "excludedGenre": "Lyrics aren't searched online for the {{genre}} genre (Settings → Images and lyrics). You can import a .lrc file or search anyway."
@@ -1626,12 +1627,12 @@
     "masthead": {
       "edition": "Morning Edition",
       "price": "Price: Included",
-      "subtitle": "\"All the music that deserves to be printed.\" — Your daily selection, made for you."
+      "subtitle": "“All the music that deserves to be printed.” — Your daily selection, made for you."
     },
     "lead": {
-      "caption": "Fig 1. — From \"{{album}}\" by {{artist}}.",
-      "captionArtistOnly": "Fig 1. — A creation of {{artist}}.",
-      "captionFallback": "Fig 1. — Today's selection."
+      "caption": "Fig. 1 — From “{{album}}” by {{artist}}.",
+      "captionArtistOnly": "Fig. 1 — A creation of {{artist}}.",
+      "captionFallback": "Fig. 1 — Today's selection."
     }
   },
   "settings": {
@@ -1780,7 +1781,7 @@
     },
     "crossfade": {
       "title": "Crossfade",
-      "subtitle": "Seamless transitions between tracks (coming soon)"
+      "subtitle": "Seamless transitions between tracks"
     },
     "normalize": {
       "title": "Normalise volume",
@@ -1855,11 +1856,11 @@
     },
     "showSleepTimer": {
       "title": "Pin sleep timer in the bar",
-      "subtitle": "When off, the timer stays available from the « … » menu"
+      "subtitle": "When off, the timer stays available from the “…” menu"
     },
     "showAbLoop": {
       "title": "Pin A-B loop in the bar",
-      "subtitle": "When off, A-B loop stays available from the « … » menu"
+      "subtitle": "When off, A-B loop stays available from the “…” menu"
     },
     "duplicates": {
       "title": "Detect duplicates",
@@ -2017,10 +2018,10 @@
       }
     },
     "visualizer": {
-      "title": "Audio visualizer",
+      "title": "Audio visualiser",
       "subtitle": "Show a real-time spectrum in the immersive view (lightweight FFT on the decoder thread)",
-      "cycleColor": "Visualizer color: {{color}}",
-      "cycleStyle": "Visualizer style: {{style}}",
+      "cycleColor": "Visualiser colour: {{color}}",
+      "cycleStyle": "Visualiser style: {{style}}",
       "colors": {
         "white": "White",
         "emerald": "Emerald",
@@ -2048,7 +2049,7 @@
       "subtitle": "Chain consecutive tracks with no micro-silence (great for live and concept albums)"
     },
     "equalizer": {
-      "title": "Equalizer",
+      "title": "Equaliser",
       "subtitle": "Six peaking bands, ±12 dB. Drag the dots to shape the curve.",
       "presets": "Presets",
       "reset": "Reset",
@@ -2140,7 +2141,7 @@
       },
       "skin": {
         "title": "Skin",
-        "subtitle": "Changes density, surface materials, typography and motion — not just colors."
+        "subtitle": "Changes density, surface materials, typography and motion — not just colours."
       },
       "skins": {
         "studio": {
@@ -2157,7 +2158,7 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Neon club — OLED base, colored halos around active items, monochrome pills, springy motion."
+          "description": "Neon club — OLED base, coloured halos around active items, monochrome pills, springy motion."
         },
         "liquid": {
           "label": "Liquid",
@@ -2253,8 +2254,8 @@
       }
     },
     "fullscreenLyricsCentering": {
-      "title": "Center synced lyrics in fullscreen",
-      "subtitle": "Align time-coded lyrics to the center of the fullscreen overlay, matching the plain text view."
+      "title": "Centre synced lyrics in fullscreen",
+      "subtitle": "Align time-coded lyrics to the centre of the fullscreen overlay, matching the plain text view."
     },
     "lyricsEstimateWords": {
       "title": "Estimated word-by-word karaoke",
@@ -2491,10 +2492,10 @@
         "diagnostics": "Maintenance"
       },
       "descriptions": {
-        "general": "Language, startup and application behavior.",
-        "library": "Keep your music library organized and up to date.",
+        "general": "Language, startup and application behaviour.",
+        "library": "Keep your music library organised and up to date.",
         "playback": "Track transitions, volume and audio output.",
-        "appearance": "Customize the interface and your listening views.",
+        "appearance": "Customise the interface and your listening views.",
         "media": "Artwork, artist information and lyrics sources.",
         "integrations": "Connect your services, server and network devices.",
         "plugins": "Discover extensions and manage their settings.",
@@ -2509,9 +2510,9 @@
         "analysis": "Music analysis",
         "radio": "Radio catalogue",
         "transitions": "Track transitions",
-        "listening": "Listening behavior",
+        "listening": "Listening behaviour",
         "volume": "Volume",
-        "equalizer": "Equalizer",
+        "equalizer": "Equaliser",
         "output": "Advanced audio settings",
         "theme": "Theme and readability",
         "player": "Player and window",
@@ -2596,11 +2597,11 @@
     "live": "LIVE",
     "nowPlaying": "Now playing",
     "unavailableTitle": "Web Radio is disabled",
-    "unavailableHint": "Enable the Web Radio plugin in Settings → Plugins to browse 30,000+ stations.",
-    "favorites": "Favorites",
-    "favoritesEmpty": "No favorite stations yet. Tap a station's star to save it.",
-    "addFavorite": "Add to favorites",
-    "removeFavorite": "Remove from favorites",
+    "unavailableHint": "Enable the Web Radio plugin in Settings → Extensions to browse 30,000+ stations.",
+    "favorites": "Favourites",
+    "favoritesEmpty": "No favourite stations yet. Click a station's star to save it.",
+    "addFavorite": "Add to favourites",
+    "removeFavorite": "Remove from favourites",
     "localStations": "Local stations",
     "browseByCountry": "Browse by country",
     "localCatalogue": "Local catalogue",
@@ -2660,7 +2661,7 @@
       "signOut": "Sign out",
       "forget": "Forget server",
       "forgetTitle": "Discards the cached library and any change made offline that never reached the server",
-      "neverSynced": "Never synchronized yet — the first pass downloads a full snapshot.",
+      "neverSynced": "Never synchronised yet — the first pass downloads a full snapshot.",
       "counts": {
         "playlists_one": "playlist",
         "playlists_other": "playlists",
@@ -2716,11 +2717,11 @@
       "hashing": "Hashing {{processed}} / {{total}} local files…",
       "cancelledSummary": "Scan cancelled — nothing was linked.",
       "confirmedLinks": "Confirmed links",
-      "favoritesRatings": "Favorites: local {{localFav}} · server {{remoteFav}} · Ratings: local {{localRating}} · server {{remoteRating}}/5",
+      "favoritesRatings": "Favourites: local {{localFav}} · server {{remoteFav}} · Ratings: local {{localRating}} · server {{remoteRating}}/5",
       "yes": "yes",
       "no": "no",
-      "copyFavoriteLocalToServer": "Favorite local → server",
-      "copyFavoriteServerToLocal": "Favorite server → local",
+      "copyFavoriteLocalToServer": "Favourite local → server",
+      "copyFavoriteServerToLocal": "Favourite server → local",
       "copyRatingLocalToServer": "Rating local → server",
       "copyRatingServerToLocal": "Rating server → local",
       "statusConfirmed": "confirmed",

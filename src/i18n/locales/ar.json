@@ -12,7 +12,7 @@
   },
   "lastfmReauth": {
     "title": "انتهت جلسة Last.fm",
-    "message": "لم تعد عمليات السكروبل تُرسل. سجّل الدخول مجددًا للمتابعة.",
+    "message": "لم تعد عمليات تسجيل الاستماع (Scrobbling) تُرسل. سجّل الدخول مجددًا للمتابعة.",
     "action": "فتح الإعدادات"
   },
   "rendering": {
@@ -74,7 +74,7 @@
     },
     "appearance": {
       "title": "اختر مظهرك",
-      "description": "اختر سمة لونية ونمط واجهة. يمكنك تغييرهما في أي وقت من الإعدادات → المظهر.",
+      "description": "اختر سمة لونية ونمط واجهة. يمكنك تغييرهما في أي وقت من الإعدادات ← المظهر.",
       "theme": {
         "title": "السمة اللونية"
       },
@@ -112,7 +112,7 @@
       "connect": "ربط Last.fm",
       "missingFields": "يرجى إدخال مفتاح API والسر واسم المستخدم وكلمة المرور.",
       "connectedTitle": "متصل باسم {{user}}",
-      "connectedSubtitle": "يبدأ السكروبلينج تلقائيًا بمجرد تشغيل مقطع."
+      "connectedSubtitle": "يبدأ تسجيل الاستماع تلقائيًا بمجرد تشغيل مقطع."
     },
     "scan": {
       "title": "فحص المكتبة",
@@ -128,7 +128,7 @@
       "nextSteps": "الخطوات التالية:",
       "bulletExplore": "استكشف مكتبتك عبر علامات التبويب «المكتبة» و«الألبومات» و«الفنانون»",
       "bulletQueue": "أنشئ أول قائمة انتظار لك بالنقر على مقطع",
-      "bulletSettings": "اضبط التفاصيل من الشريط الجانبي (المظهر، التكاملات…)",
+      "bulletSettings": "اضبط التفاصيل من الشريط الجانبي (المظهر، الاتصالات…)",
       "tipImmersiveTitle": "نصيحة: العرض الغامر",
       "tipImmersiveBody": "انقر على غلاف المشغّل لفتح عرض ملء الشاشة مع الغلاف وكلمات الأغنية جنبًا إلى جنب."
     },
@@ -140,7 +140,7 @@
       "understood": "فهمت",
       "skipForNow": "تخطي الآن",
       "scanLater": "الفحص لاحقًا",
-      "scanNow": "افحص الآن",
+      "scanNow": "الفحص الآن",
       "startListening": "ابدأ الاستماع"
     },
     "language": {
@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "أين تُحفظ الكلمات؟",
-      "description": "أين يجب أن تُحفظ الكلمات — التي تعدّلها والتي يجدها WaveFlow لك؟ يمكن تغيير ذلك من الإعدادات → الصور وكلمات الأغاني.",
+      "description": "أين يجب أن تُحفظ الكلمات — التي تعدّلها والتي يجدها WaveFlow لك؟ يمكن تغيير ذلك من الإعدادات ← الصور وكلمات الأغاني.",
       "hint": "اختر «ملف مرافق» للحفاظ على ملفاتك الصوتية كما هي — هذا ما يفعله foobar2000 وأمثاله."
     }
   },
@@ -269,9 +269,9 @@
         "reset": "إعادة تعيين",
         "hiRes": "دقة عالية (Hi-Res)",
         "likedOnly": "المفضلة فقط",
-        "year": "السنة (من → إلى)",
-        "bpm": "BPM (من → إلى)",
-        "durationMin": "المدة بالدقائق (من → إلى)",
+        "year": "السنة (من ← إلى)",
+        "bpm": "BPM (من ← إلى)",
+        "durationMin": "المدة بالدقائق (من ← إلى)",
         "format": "الصيغة",
         "genres": "الأنواع"
       },
@@ -301,6 +301,7 @@
   "home": {
     "greeting": {
       "morning": "صباح الخير",
+      "afternoon": "مساء الخير",
       "evening": "مساء الخير",
       "night": "تصبح على خير"
     },
@@ -387,7 +388,7 @@
       "title": "ملخصك لعام {{year}}",
       "subtitle": "فنانوك، ودقائقك، وسنتك — في عدة شرائح.",
       "cta": "فتح",
-      "dismiss": "إخفاء شعار Wrapped"
+      "dismiss": "إخفاء لافتة Wrapped"
     },
     "seeAll": "عرض الكل"
   },
@@ -432,7 +433,7 @@
         "playlists_many": "{{count}} قائمة تشغيل",
         "playlists_other": "{{count}} قائمة تشغيل",
         "needs-attention_zero": "لا شيء يُذكر: المكتبة مكتملة.",
-        "needs-attention_one": "{{count}} نقطة للتصحيح",
+        "needs-attention_one": "نقطة واحدة للتصحيح",
         "needs-attention_other": "{{count}} نقطة للتصحيح",
         "needs-attention_two": "نقطتان للتصحيح",
         "needs-attention_few": "{{count}} نقاط للتصحيح",
@@ -563,11 +564,12 @@
       "trackCount_two": "مقطعان",
       "trackCount_few": "{{count}} مقاطع",
       "trackCount_many": "{{count}} مقطعًا",
-      "removeConfirmWithPlays_one": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ باستماع واحد وإعادة ربطه في الفحص التالي.",
-      "removeConfirmWithPlays_two": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ باستماعين وإعادة ربطهما في الفحص التالي.",
-      "removeConfirmWithPlays_few": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ بـ {{count}} استماعات وإعادة ربطها في الفحص التالي.",
-      "removeConfirmWithPlays_many": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ بـ {{count}} استماعًا وإعادة ربطها في الفحص التالي.",
-      "removeConfirmWithPlays_other": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ بـ {{count}} استماع وإعادة ربطها في الفحص التالي."
+      "removeConfirmWithPlays_zero": "انقر مرة أخرى للتأكيد. لا يوجد أي تشغيل للاحتفاظ به.",
+      "removeConfirmWithPlays_one": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ بتشغيل واحد وإعادة ربطه في الفحص التالي.",
+      "removeConfirmWithPlays_two": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ بتشغيلين وإعادة ربطهما في الفحص التالي.",
+      "removeConfirmWithPlays_few": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ بـ {{count}} تشغيلات وإعادة ربطها في الفحص التالي.",
+      "removeConfirmWithPlays_many": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ بـ {{count}} تشغيلًا وإعادة ربطها في الفحص التالي.",
+      "removeConfirmWithPlays_other": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ بـ {{count}} تشغيل وإعادة ربطها في الفحص التالي."
     },
     "folderBrowser": {
       "open": "استعراض هذا المجلد",
@@ -604,7 +606,7 @@
     "open": "فتح {{name}}",
     "inventory": {
       "allClear": "لا شيء يُذكر: المكتبة مكتملة.",
-      "summary_one": "{{count}} نقطة للتصحيح",
+      "summary_one": "نقطة واحدة للتصحيح",
       "summary_other": "{{count}} نقطة للتصحيح",
       "trackCount_one": "مقطع واحد",
       "artistCount_one": "فنان واحد",
@@ -649,7 +651,7 @@
         },
         "duplicate_track_number": {
           "label": "أرقام مكرّرة",
-          "help": "مقطوعتان تدّعيان الموضع نفسه."
+          "help": "مقطعان يدّعيان الموضع نفسه على القرص."
         },
         "track_number_gap": {
           "label": "ثغرة في الترقيم",
@@ -679,7 +681,7 @@
       "phantoms": {
         "split": "تقسيم",
         "confirm": "تأكيد",
-        "dismiss": "لا تقسّم",
+        "dismiss": "عدم التقسيم",
         "known": "موجود في المكتبة"
       }
     },
@@ -859,8 +861,8 @@
     },
     "minutes": {
       "eyebrow": "استمعت إلى",
-      "subtitle_zero": "لم تستمع إلى أي موسيقى",
-      "subtitle_one": "{{count}} دقيقة من الموسيقى",
+      "subtitle_zero": "0 دقيقة من الموسيقى",
+      "subtitle_one": "دقيقة واحدة من الموسيقى",
       "subtitle_other": "{{count}} دقيقة من الموسيقى",
       "subtitle_two": "دقيقتان من الموسيقى",
       "subtitle_few": "{{count}} دقائق من الموسيقى",
@@ -967,7 +969,7 @@
       "breaking": "تغيير جذري"
     },
     "credits": {
-      "text": "صُمم وطوّر بشغف. مبني باستخدام تقنيات مفتوحة المصدر.",
+      "text": "صُمِّم وطُوِّر بشغف. مبني باستخدام تقنيات مفتوحة المصدر.",
       "icons": "الأيقونات من Lucide و Phosphor و Mynaui و Iconify."
     }
   },
@@ -1067,7 +1069,7 @@
       "channels": "القنوات: {{value}}",
       "minPeriod": "أصغر فترة: {{value}} إطارًا",
       "formats": "الصيغ",
-      "rates": "معدلات العينة",
+      "rates": "معدلات أخذ العينات",
       "caveat": "ما يعلنه برنامج التشغيل وما يقبله فعليًا في الوضع الحصري أمران مختلفان.",
       "source": {
         "wasapiExclusive": "تم اختباره مع برنامج التشغيل في الوضع الحصري.",
@@ -1078,7 +1080,7 @@
       "tier": {
         "cd": "جودة CD",
         "hiRes": "Hi-Res",
-        "studio": "Studio",
+        "studio": "استوديو",
         "ultra": "Ultra Hi-Res"
       }
     }
@@ -1132,11 +1134,13 @@
   },
   "playlistDuration": {
     "zero": "0 دقيقة",
+    "minutes_zero": "0 دقيقة",
     "minutes_one": "دقيقة واحدة",
     "minutes_two": "دقيقتان",
     "minutes_few": "{{count}} دقائق",
     "minutes_many": "{{count}} دقيقة",
     "minutes_other": "{{count}} دقيقة",
+    "hours_zero": "0 ساعة",
     "hours_one": "ساعة واحدة",
     "hours_two": "ساعتان",
     "hours_few": "{{count}} ساعات",
@@ -1302,7 +1306,7 @@
   "selection": {
     "toolbarLabel": "إجراءات التحديد",
     "count_zero": "لا شيء محدد",
-    "count_one": "{{count}} عنصر محدد",
+    "count_one": "عنصر واحد محدد",
     "count_other": "{{count}} عنصر محدد",
     "play": "تشغيل",
     "addToQueue": "إضافة إلى قائمة الانتظار",
@@ -1376,7 +1380,7 @@
     "editAria": "تغيير صورة الفنان",
     "removeAction": "إزالة الصورة",
     "fansCount_zero": "لا يوجد معجبون",
-    "fansCount_one": "{{display}} معجب",
+    "fansCount_one": "معجب واحد",
     "fansCount_two": "معجبان",
     "fansCount_few": "{{display}} معجبين",
     "fansCount_many": "{{display}} معجبًا",
@@ -1404,7 +1408,7 @@
   },
   "canvasPicker": {
     "title": "Canvas المقطع",
-    "subtitle": "اختر مقطع MP4 محليًا قصيرًا. يُشغَّل بشكل متكرر خلف التشغيل بدلًا من الغلاف.",
+    "subtitle": "اختر فيديو MP4 محليًا قصيرًا. يُشغَّل بشكل متكرر خلف التشغيل بدلًا من الغلاف.",
     "pickFile": "اختيار ملف MP4",
     "removeAction": "إزالة Canvas"
   },
@@ -1437,8 +1441,8 @@
     "readMore": "اقرأ المزيد",
     "readLess": "عرض أقل",
     "noBio": "لا توجد سيرة متاحة. جرّب مصدرًا آخر للسيرة الذاتية في الإعدادات.",
-    "nextInQueue": "التالي في القائمة",
-    "openQueue": "فتح القائمة",
+    "nextInQueue": "التالي في قائمة الانتظار",
+    "openQueue": "فتح قائمة الانتظار",
     "lyrics": {
       "title": "الكلمات",
       "comingSoon": "قريبًا"
@@ -1449,7 +1453,7 @@
       "save": "حفظ كصورة PNG",
       "copy": "نسخ الصورة",
       "eyebrow": "قيد التشغيل",
-      "on": "على"
+      "footer": "على {{app}}"
     }
   },
   "playerBar": {
@@ -1601,7 +1605,7 @@
   "abLoop": {
     "setA": "تكرار A-B: تعيين النقطة A عند الموضع الحالي",
     "setB": "تكرار A-B: تعيين النقطة B (A = {{a}})",
-    "armed": "تكرار A-B نشط: {{a}} → {{b}} (انقر للمسح)"
+    "armed": "تكرار A-B نشط: {{a}} ← {{b}} (انقر للمسح)"
   },
   "smartPlaylistEditor": {
     "createTitle": "قائمة تشغيل ذكية جديدة",
@@ -1641,8 +1645,8 @@
       "addedAsc": "الأقدم إضافة",
       "yearDesc": "السنة (تنازليًا)",
       "yearAsc": "السنة (تصاعديًا)",
-      "titleAsc": "العنوان (أ → ي)",
-      "artistAsc": "الفنان (أ → ي)",
+      "titleAsc": "العنوان (أ ← ي)",
+      "artistAsc": "الفنان (أ ← ي)",
       "random": "عشوائي"
     },
     "tree": {
@@ -1825,7 +1829,7 @@
     },
     "plugins": {
       "title": "الإضافات المثبتة",
-      "subtitle": "أدر الامتدادات التي تضيف مصادر أو بيانات وصفية أو طرق عرض إلى WaveFlow.",
+      "subtitle": "أدر الإضافات التي تضيف مصادر أو بيانات وصفية أو طرق عرض إلى WaveFlow.",
       "loading": "جارٍ التحميل…",
       "emptyTitle": "لا توجد إضافات مثبتة",
       "emptyHint": "ثبّت واحدة من المتجر أعلاه، أو ضَع مجلدًا في مجلد الإضافات.",
@@ -1862,7 +1866,7 @@
         "libraryReadArtists": "قراءة فنانيك"
       },
       "bundled": "مدمج",
-      "bundledHint": "يأتي مع WaveFlow — قم بتعطيله لإخفائه.",
+      "bundledHint": "يأتي مع WaveFlow — عطّلها لإخفائها.",
       "optionsAria": "خيارات {{name}}",
       "options": {
         "saved": "تم الحفظ",
@@ -1892,7 +1896,7 @@
         "toggleMute": "كتم / إلغاء كتم الصوت",
         "toggleShuffle": "تشغيل عشوائي",
         "cycleRepeat": "تبديل وضع التكرار",
-        "toggleQueue": "إظهار/إخفاء لوحة القائمة",
+        "toggleQueue": "إظهار/إخفاء لوحة قائمة الانتظار",
         "toggleNowPlaying": "إظهار/إخفاء لوحة «قيد التشغيل»",
         "toggleLyrics": "إظهار/إخفاء لوحة الكلمات",
         "toggleLike": "إضافة/إزالة المقطع الحالي من المفضلة"
@@ -1914,7 +1918,7 @@
         "hide": "إخفاء",
         "connectedAs": "متصل باسم",
         "disconnect": "تسجيل الخروج",
-        "loginPrompt": "سجّل الدخول لإرسال السكروبل لاستماعك:",
+        "loginPrompt": "سجّل الدخول لتسجيل استماعك (Scrobbling):",
         "usernamePlaceholder": "اسم المستخدم",
         "passwordPlaceholder": "كلمة المرور",
         "connect": "تسجيل الدخول",
@@ -1926,7 +1930,7 @@
       },
       "dlna": {
         "title": "خادم DLNA / UPnP",
-        "subtitle": "بث مكتبتك إلى مكبرات الصوت والأجهزة المتوافقة في الشبكة المحلية",
+        "subtitle": "بث مكتبتك إلى مضخّمات الصوت والأجهزة المتوافقة في الشبكة المحلية",
         "serverName": "الاسم",
         "port": "المنفذ",
         "portHint": "0 = منفذ تلقائي",
@@ -1955,7 +1959,7 @@
     },
     "crossfade": {
       "title": "المزج المتقاطع",
-      "subtitle": "انتقالات سلسة بين المقاطع (قريبًا)"
+      "subtitle": "انتقالات سلسة بين المقاطع"
     },
     "normalize": {
       "title": "تطبيع مستوى الصوت",
@@ -1989,7 +1993,7 @@
     },
     "generatorAlbumMode": {
       "title": "بناء الجلسات من ألبومات كاملة",
-      "subtitle": "تختار إذاعة المزاج و Daily Mix ألبومات وتشغّلها بالترتيب، بدلًا من مقاطع متفرقة"
+      "subtitle": "يختار راديو المزاج و Daily Mix ألبومات ويشغّلها بالترتيب، بدلًا من مقاطع متفرقة"
     },
     "exclusive": {
       "title": "إخراج حصري",
@@ -1998,7 +2002,7 @@
     },
     "matchSourceRate": {
       "title": "مطابقة معدل أخذ العينات لكل مقطع",
-      "subtitle": "في الإخراج الحصري، يُعاد فتح الجهاز بمعدل كل مقطع: يتفادى إعادة العينة إذا قبِل الجهاز المعدل، مع انقطاع عند كل تغيّر فيه"
+      "subtitle": "في الإخراج الحصري، يُعاد فتح الجهاز بمعدل كل مقطع: يتفادى إعادة أخذ العينات إذا قبِل الجهاز المعدل، مع انقطاع عند كل تغيّر فيه"
     },
     "mono": {
       "title": "صوت أحادي",
@@ -2064,13 +2068,13 @@
       "title": "صور الفنانين",
       "subtitle": "تنزيل صور الفنانين من Deezer",
       "action": "جلب",
-      "progress": "{{current}}/{{total}} معالجة"
+      "progress": "تمت معالجة {{current}}/{{total}}"
     },
     "localArtistImages": {
       "title": "صور الفنانين المحلية",
       "subtitle": "البحث عن artist.jpg (أو ملف .jpg يحمل اسم الفنان) بجانب موسيقاك واستخدامه صورةً للفنان.",
       "action": "فحص",
-      "done": "{{linked}} من {{considered}} فنان مرتبطين بصورة محلية"
+      "done": "الفنانون المرتبطون بصورة محلية: {{linked}} من أصل {{considered}}"
     },
     "profileIo": {
       "title": "نسخة احتياطية للملف الشخصي",
@@ -2089,7 +2093,7 @@
       }
     },
     "clipsInLibrary": {
-      "title": "احفظ المقاطع مع الموسيقى",
+      "title": "الاحتفاظ بمقاطع الفيديو مع الموسيقى",
       "subtitle": "مقاطع Canvas والأغلفة المتحركة التي تضبطها بنفسك تذهب إلى مجلد مخفي داخل مكتبتك، فتنتقل مع الملفات. أما ما تجلبه الإضافات فيبقى في الذاكرة المؤقتة أعلاه."
     },
     "dataFolder": {
@@ -2105,7 +2109,7 @@
       "offline": "وضع عدم الاتصال نشط",
       "failed": "فشل الجلب المسبق",
       "action": "جلب مسبق",
-      "progress": "{{current}}/{{total}} معالجة · {{hits}} موجود"
+      "progress": "تمت معالجة {{current}}/{{total}} · عُثر على {{hits}}"
     },
     "regenerateThumbnails": "إعادة توليد الصور المصغرة",
     "regenerateThumbnailsSubtitle": "إعادة بناء نسخ 1x/2x المفقودة لجميع الأغلفة",
@@ -2141,7 +2145,7 @@
     },
     "diagnostics": {
       "title": "سجل التطبيق",
-      "subtitle": "للإبلاغ عن خلل، افتح مجلد السجلات أو انسخ السجلات الحديثة وألصقها في تذكرة.",
+      "subtitle": "للإبلاغ عن خلل، افتح مجلد السجلات أو انسخ السجلات الحديثة والصقها في تذكرة.",
       "openFolder": "فتح المجلد",
       "copyLogs": "نسخ السجلات",
       "copied": "تم نسخ السجلات",
@@ -2204,10 +2208,10 @@
       }
     },
     "visualizer": {
-      "title": "المُصوِّر الصوتي",
-      "subtitle": "يعرض طيفًا في الوقت الفعلي في العرض الغامر (FFT خفيف على خيط فك التشفير)",
-      "cycleColor": "لون المُصوّر: {{color}}",
-      "cycleStyle": "نمط المُصوّر: {{style}}",
+      "title": "العارض المرئي للصوت",
+      "subtitle": "يعرض طيفًا في الوقت الفعلي في العرض الغامر (FFT خفيف على خيط فك الترميز)",
+      "cycleColor": "لون العارض المرئي: {{color}}",
+      "cycleStyle": "نمط العارض المرئي: {{style}}",
       "colors": {
         "white": "أبيض",
         "emerald": "زمردي",
@@ -2242,16 +2246,16 @@
       "preset": {
         "custom": "مخصص",
         "flat": "مسطح",
-        "acoustic": "صوتي",
+        "acoustic": "أكوستيك",
         "bass_booster": "تعزيز الجهير",
         "bass_reducer": "تخفيف الجهير",
         "classical": "كلاسيكي",
         "dance": "رقص",
         "deep": "عميق",
         "electronic": "إلكتروني",
-        "hip_hop": "Hip-Hop",
-        "jazz": "Jazz",
-        "latin": "Latin",
+        "hip_hop": "هيب هوب",
+        "jazz": "جاز",
+        "latin": "لاتيني",
         "loudness": "تعزيز الجهارة",
         "lounge": "استرخاء",
         "piano": "بيانو",
@@ -2397,11 +2401,11 @@
       }
     },
     "wrappedBanner": {
-      "title": "شعار WaveFlow Wrapped",
-      "subtitle": "شعار الملخص السنوي في الشاشة الرئيسية. يعرضه الوضع التلقائي خلال موسم Wrapped (1 ديسمبر → 31 يناير).",
-      "legend": "ظهور شعار Wrapped",
-      "seasonActive": "موسم Wrapped جارٍ — الشعار ظاهر.",
-      "seasonIdle": "خارج الموسم — سيعود الشعار تلقائيًا في 1 ديسمبر.",
+      "title": "لافتة WaveFlow Wrapped",
+      "subtitle": "لافتة الملخص السنوي في الشاشة الرئيسية. يعرضها الوضع التلقائي خلال موسم Wrapped (1 ديسمبر ← 31 يناير).",
+      "legend": "ظهور لافتة Wrapped",
+      "seasonActive": "موسم Wrapped جارٍ — اللافتة ظاهرة.",
+      "seasonIdle": "خارج الموسم — ستعود اللافتة تلقائيًا في 1 ديسمبر.",
       "modes": {
         "auto": {
           "label": "تلقائي",
@@ -2409,11 +2413,11 @@
         },
         "always": {
           "label": "إظهار دائمًا",
-          "description": "احتفظ بالشعار ظاهرًا في الشاشة الرئيسية طوال العام."
+          "description": "تبقى اللافتة ظاهرة في الشاشة الرئيسية طوال العام."
         },
         "never": {
           "label": "إخفاء",
-          "description": "لا تُظهر الشعار في الشاشة الرئيسية أبدًا. تظل صفحة Wrapped متاحة."
+          "description": "لا تظهر اللافتة في الشاشة الرئيسية أبدًا. تظل صفحة Wrapped متاحة."
         }
       }
     },
@@ -2430,7 +2434,7 @@
       "urlSave": "حفظ",
       "tokenLabel": "رمز JWT",
       "tokenHint": "سجّل الدخول إلى الخادم من متصفحك، انسخ رمز JWT الذي يصدره Better Auth ثم الصقه هنا.",
-      "tokenPlaceholder": "ألصق رمز JWT (ثلاثة مقاطع مفصولة بنقاط)",
+      "tokenPlaceholder": "الصق رمز JWT (ثلاثة مقاطع مفصولة بنقاط)",
       "tokenSave": "حفظ",
       "openLogin": "فتح تسجيل الدخول",
       "signOut": "تسجيل الخروج",
@@ -2470,7 +2474,7 @@
         "mint": "نعناعي",
         "aqua": "فيروزي",
         "sky": "سماوي",
-        "lavender": "لافندر",
+        "lavender": "خزامى",
         "lilac": "ليلكي",
         "rainbow": "قوس قزح، لون لكل سطر"
       }
@@ -2644,7 +2648,7 @@
       "bitrateLabel": "معدل البت",
       "kbps": "{{rate}} كيلوبت/ث",
       "activeNotice": "يُعاد ترميز المقاطع البعيدة، فتُشغَّل بجودة أقل من الأصل. أما الملفات المحلية فلا يُعاد ترميزها أبدًا.",
-      "unsupported": "بُني هذا الخادم دون FFmpeg ولا يمكنه إعادة الترميز. تصل المقاطع البعيدة دائمًا بتنسيقها الأصلي."
+      "unsupported": "بُني هذا الخادم دون FFmpeg ولا يمكنه إعادة الترميز. تصل المقاطع البعيدة دائمًا بصيغتها الأصلية."
     },
     "contrast": {
       "title": "التباين",
@@ -2660,7 +2664,7 @@
         },
         "high": {
           "label": "عالٍ",
-          "description": "تباين مُعزَّز مهما كانت السمة والمظهر."
+          "description": "تباين مُعزَّز مهما كانت السمة والنمط."
         }
       }
     },
@@ -2710,7 +2714,7 @@
         "startup": "بدء التشغيل والإشعارات",
         "scanning": "الاستيراد والفحص",
         "analysis": "تحليل الموسيقى",
-        "radio": "دليل المحطات",
+        "radio": "كتالوج المحطات",
         "transitions": "الانتقال بين المقاطع",
         "listening": "سلوك الاستماع",
         "volume": "مستوى الصوت",
@@ -2747,7 +2751,7 @@
       "background": "الخلفية",
       "textColor": "لون النص",
       "highlightColor": "لون الجزء المُغنّى",
-      "outline": "إطار",
+      "outline": "حدود النص",
       "showTranslation": "عرض الترجمة",
       "reset": "إعادة تعيين المظهر",
       "showNextLine": "إظهار السطر التالي"
@@ -2803,7 +2807,7 @@
     "live": "مباشر",
     "nowPlaying": "قيد التشغيل الآن",
     "unavailableTitle": "راديو الويب معطّل",
-    "unavailableHint": "فعّل إضافة «راديو الويب» من الإعدادات → الإضافات لتصفح أكثر من 30,000 محطة.",
+    "unavailableHint": "فعّل إضافة «راديو الويب» من الإعدادات ← الإضافات لتصفح أكثر من 30,000 محطة.",
     "favorites": "المفضلة",
     "favoritesEmpty": "لا توجد محطات مفضلة بعد. اضغط على نجمة المحطة لحفظها.",
     "addFavorite": "إضافة إلى المفضلة",
@@ -2871,43 +2875,43 @@
       "counts": {
         "playlists_zero": "قوائم تشغيل",
         "playlists_one": "قائمة تشغيل",
-        "playlists_two": "قائمة تشغيل",
+        "playlists_two": "قائمتا تشغيل",
         "playlists_few": "قوائم تشغيل",
         "playlists_many": "قائمة تشغيل",
         "playlists_other": "قائمة تشغيل",
         "favorites_zero": "مفضّلات",
         "favorites_one": "مفضّلة",
-        "favorites_two": "مفضّلة",
+        "favorites_two": "مفضّلتان",
         "favorites_few": "مفضّلات",
         "favorites_many": "مفضّلة",
         "favorites_other": "مفضّلة",
         "ratings_zero": "تقييمات",
         "ratings_one": "تقييم",
-        "ratings_two": "تقييم",
+        "ratings_two": "تقييمان",
         "ratings_few": "تقييمات",
         "ratings_many": "تقييمًا",
         "ratings_other": "تقييم",
-        "history_zero": "مرات استماع",
-        "history_one": "مرة استماع",
-        "history_two": "مرة استماع",
-        "history_few": "مرات استماع",
-        "history_many": "مرة استماع",
-        "history_other": "مرة استماع",
+        "history_zero": "تشغيل",
+        "history_one": "تشغيل",
+        "history_two": "تشغيلان",
+        "history_few": "تشغيلات",
+        "history_many": "تشغيلًا",
+        "history_other": "تشغيل",
         "shares_zero": "مشاركات",
         "shares_one": "مشاركة",
-        "shares_two": "مشاركة",
+        "shares_two": "مشاركتان",
         "shares_few": "مشاركات",
         "shares_many": "مشاركة",
         "shares_other": "مشاركة",
         "queue_zero": "مقاطع في قائمة الانتظار",
         "queue_one": "مقطع في قائمة الانتظار",
-        "queue_two": "مقطع في قائمة الانتظار",
+        "queue_two": "مقطعان في قائمة الانتظار",
         "queue_few": "مقاطع في قائمة الانتظار",
         "queue_many": "مقطعًا في قائمة الانتظار",
         "queue_other": "مقطع في قائمة الانتظار",
         "cachedTracks_zero": "مقاطع مخزّنة مؤقتًا",
         "cachedTracks_one": "مقطع مخزّن مؤقتًا",
-        "cachedTracks_two": "مقطع مخزّن مؤقتًا",
+        "cachedTracks_two": "مقطعان مخزّنان مؤقتًا",
         "cachedTracks_few": "مقاطع مخزّنة مؤقتًا",
         "cachedTracks_many": "مقطعًا مخزّنًا مؤقتًا",
         "cachedTracks_other": "مقطع مخزّن مؤقتًا"
@@ -2943,11 +2947,11 @@
       "notSent": "لم تُرسَل إلى الخادم بعد",
       "addTracks": "إضافة مقاطع",
       "rename": "إعادة تسمية",
-      "searchPlaceholder": "ابحث في كتالوج الخادم…",
+      "searchPlaceholder": "ابحث في فهرس الخادم…",
       "noMatches": "لا توجد نتائج.",
       "addTrack": "إضافة {{title}}",
       "addToPlaylist": "إضافة إلى قائمة التشغيل",
-      "emptyDescription": "استخدم «إضافة مقاطع» للبحث في كتالوج الخادم.",
+      "emptyDescription": "استخدم «إضافة مقاطع» للبحث في فهرس الخادم.",
       "notFoundDescription": "لم تعد قائمة التشغيل هذه موجودة على الخادم المرتبط.",
       "keepOffline": "الحفظ للاستخدام دون اتصال",
       "keepingProgress": "جارٍ الحفظ {{done}}/{{total}}…",
@@ -2969,10 +2973,10 @@
       "favoritesRatings": "المفضلة: محلي {{localFav}} · خادم {{remoteFav}} · التقييمات: محلي {{localRating}} · خادم {{remoteRating}}/5",
       "yes": "نعم",
       "no": "لا",
-      "copyFavoriteLocalToServer": "المفضلة المحلية → الخادم",
-      "copyFavoriteServerToLocal": "المفضلة من الخادم → المحلي",
-      "copyRatingLocalToServer": "التقييم المحلي → الخادم",
-      "copyRatingServerToLocal": "التقييم من الخادم → المحلي",
+      "copyFavoriteLocalToServer": "المفضلة المحلية ← الخادم",
+      "copyFavoriteServerToLocal": "المفضلة من الخادم ← المحلي",
+      "copyRatingLocalToServer": "التقييم المحلي ← الخادم",
+      "copyRatingServerToLocal": "التقييم من الخادم ← المحلي",
       "statusConfirmed": "مؤكد",
       "statusStale": "متقادم",
       "localFirst": "المحلي أولًا",
@@ -2982,8 +2986,8 @@
       "conversionTitle": "نسخ صريح لقائمة التشغيل",
       "conversionSubtitle": "يجب أن تؤكد المعاينة كل رابط هوية. لا يُدمج أو يُحذف أي شيء بصمت.",
       "conversionDirection": "اتجاه نسخ قائمة التشغيل",
-      "conversionLocalToServer": "المحلي → الخادم",
-      "conversionServerToLocal": "الخادم → المحلي",
+      "conversionLocalToServer": "المحلي ← الخادم",
+      "conversionServerToLocal": "الخادم ← المحلي",
       "conversionSource": "قائمة التشغيل المصدر",
       "conversionNoPlaylists": "لا توجد قوائم تشغيل",
       "conversionPreview": "معاينة",
@@ -3030,12 +3034,12 @@
       "summaryUnreadable_few": " · {{count}} ملفات غير قابلة للقراءة",
       "summaryUnreadable_many": " · {{count}} ملفًا غير قابل للقراءة",
       "summaryUnreadable_other": " · {{count}} ملف غير قابل للقراءة",
-      "history_zero": "السجل: {{local}} محلي + {{remote}} خادم = {{combined}} مرات استماع",
-      "history_one": "السجل: {{local}} محلي + {{remote}} خادم = {{combined}} مرة استماع",
-      "history_two": "السجل: {{local}} محلي + {{remote}} خادم = {{combined}} مرتا استماع",
-      "history_few": "السجل: {{local}} محلي + {{remote}} خادم = {{combined}} مرات استماع",
-      "history_many": "السجل: {{local}} محلي + {{remote}} خادم = {{combined}} مرة استماع",
-      "history_other": "السجل: {{local}} محلي + {{remote}} خادم = {{combined}} مرة استماع",
+      "history_zero": "السجل: {{local}} محلي + {{remote}} خادم = {{combined}} تشغيل",
+      "history_one": "السجل: {{local}} محلي + {{remote}} خادم = {{combined}} تشغيل",
+      "history_two": "السجل: {{local}} محلي + {{remote}} خادم = {{combined}} تشغيلان",
+      "history_few": "السجل: {{local}} محلي + {{remote}} خادم = {{combined}} تشغيلات",
+      "history_many": "السجل: {{local}} محلي + {{remote}} خادم = {{combined}} تشغيلًا",
+      "history_other": "السجل: {{local}} محلي + {{remote}} خادم = {{combined}} تشغيل",
       "conversionSourceOption_zero": "{{name}} · لا مقاطع",
       "conversionSourceOption_one": "{{name}} · مقطع واحد",
       "conversionSourceOption_two": "{{name}} · مقطعان",
@@ -3175,8 +3179,8 @@
     "cancel": "إيقاف {{task}}",
     "stopping": "جارٍ الإيقاف…",
     "collapse": "طيّ",
-    "more_one": "مهمة {{count}} أخرى",
-    "more_other": "{{count}} مهام أخرى",
+    "more_one": "مهمة أخرى",
+    "more_other": "{{count}} مهمة أخرى",
     "kinds": {
       "library_scan": "فحص المكتبة",
       "analysis": "تحليل الصوت",

@@ -74,7 +74,7 @@
     },
     "appearance": {
       "title": "Wähle deinen Look",
-      "description": "Wähle ein Farbschema und einen Oberflächenstil. Du kannst beides jederzeit unter Einstellungen → Erscheinungsbild ändern.",
+      "description": "Wähle ein Farbschema und einen Oberflächenstil. Du kannst beides jederzeit unter Einstellungen → Darstellung ändern.",
       "theme": {
         "title": "Farbschema"
       },
@@ -128,8 +128,8 @@
       "nextSteps": "Nächste Schritte:",
       "bulletExplore": "Erkunde deine Bibliothek über die Tabs „Titel“, „Alben“ und „Künstler“",
       "bulletQueue": "Erstelle deine erste Warteschlange, indem du auf einen Titel klickst",
-      "bulletSettings": "Justiere alles über die Seitenleiste (Aussehen, Integrationen…)",
-      "tipImmersiveTitle": "Tipp: Immersive Ansicht",
+      "bulletSettings": "Justiere alles über die Seitenleiste (Darstellung, Verbindungen…)",
+      "tipImmersiveTitle": "Tipp: immersive Ansicht",
       "tipImmersiveBody": "Klicke auf das Cover im Player, um die Vollbildansicht mit Cover und Songtext nebeneinander zu öffnen."
     },
     "actions": {
@@ -159,8 +159,8 @@
       "unavailable": "Profil nicht verfügbar — bitte gleich erneut versuchen."
     },
     "lyrics": {
-      "title": "Wo sollen Liedtexte landen?",
-      "description": "Wo sollen Liedtexte hin — die, die du bearbeitest, und die, die WaveFlow für dich findet? Du kannst dies jederzeit unter Einstellungen → Bilder und Liedtexte ändern.",
+      "title": "Wo sollen Songtexte landen?",
+      "description": "Wo sollen Songtexte hin — die, die du bearbeitest, und die, die WaveFlow für dich findet? Du kannst dies jederzeit unter Einstellungen → Bilder und Songtexte ändern.",
       "hint": "Wähle „Sidecar-Datei“, um Audiodateien unberührt zu lassen — wie foobar2000 & Co."
     }
   },
@@ -280,6 +280,7 @@
   "home": {
     "greeting": {
       "morning": "Guten Morgen",
+      "afternoon": "Guten Tag",
       "evening": "Guten Abend",
       "night": "Gute Nacht"
     },
@@ -380,7 +381,7 @@
         "playlists_zero": "0 Playlists",
         "playlists_one": "{{count}} Playlist",
         "playlists_other": "{{count}} Playlists",
-        "needs-attention_zero": "Nichts zu melden: die Bibliothek ist vollständig.",
+        "needs-attention_zero": "Nichts zu melden: Die Bibliothek ist vollständig.",
         "needs-attention_one": "{{count}} Punkt zu korrigieren",
         "needs-attention_other": "{{count}} Punkte zu korrigieren"
       }
@@ -434,8 +435,8 @@
       "delete": "Bibliothek löschen",
       "deleteConfirm": "Zur Bestätigung erneut klicken",
       "importing": "Wird importiert…",
-      "deepRescan": "Tiefen-Scan (liest jede Datei neu, langsamer)",
-      "deepRescanning": "Tiefen-Scan läuft…"
+      "deepRescan": "Tiefenscan (liest jede Datei neu, langsamer)",
+      "deepRescanning": "Tiefenscan läuft…"
     },
     "changeCover": "Cover ändern",
     "searchDeezer": "Auf Deezer suchen",
@@ -524,7 +525,7 @@
     },
     "open": "{{name}} öffnen",
     "inventory": {
-      "allClear": "Nichts zu melden: die Bibliothek ist vollständig.",
+      "allClear": "Nichts zu melden: Die Bibliothek ist vollständig.",
       "summary_one": "{{count}} Punkt zu korrigieren",
       "summary_other": "{{count}} Punkte zu korrigieren",
       "trackCount_one": "{{count}} Titel",
@@ -537,7 +538,7 @@
           "help": "Die Datei trägt überhaupt keinen Titel."
         },
         "missing_artist": {
-          "label": "Ohne Interpret",
+          "label": "Ohne Künstler",
           "help": "Es ist niemand angegeben."
         },
         "missing_album": {
@@ -546,7 +547,7 @@
         },
         "missing_year": {
           "label": "Ohne Jahr",
-          "help": "Kein Jahr, oder ein Jahr von null."
+          "help": "Kein Jahr oder das Jahr 0."
         },
         "missing_track_number": {
           "label": "Ohne Titelnummer",
@@ -565,8 +566,8 @@
           "help": "Titel eines Albums nennen unterschiedliche Jahre."
         },
         "compilation_no_album_artist": {
-          "label": "Sampler ohne Album-Interpret",
-          "help": "Eine Kompilation ohne gesetzten Album-Interpreten."
+          "label": "Kompilation ohne Albumkünstler",
+          "help": "Eine Kompilation ohne gesetzten Albumkünstler."
         },
         "duplicate_track_number": {
           "label": "Doppelte Titelnummern",
@@ -578,7 +579,7 @@
         },
         "probable_duplicate": {
           "label": "Wahrscheinliche Duplikate",
-          "help": "Gleicher Titel, gleicher Interpret, fast gleiche Länge."
+          "help": "Gleicher Titel, gleicher Künstler, fast gleiche Länge."
         },
         "phantom_artist": {
           "label": "Aufzuteilende Künstler",
@@ -589,7 +590,7 @@
         "split": "Aufteilen",
         "confirm": "Bestätigen",
         "dismiss": "Nicht aufteilen",
-        "known": "Bereits in der Mediathek"
+        "known": "Bereits in der Bibliothek"
       }
     },
     "columns": {
@@ -600,7 +601,7 @@
       "resetWidths": "Breiten zurücksetzen",
       "resize": "Spalte {{column}} anpassen",
       "title": "Titel",
-      "artist": "Interpret",
+      "artist": "Künstler",
       "album": "Album",
       "year": "Jahr",
       "trackNumber": "Titelnr.",
@@ -678,7 +679,7 @@
     "kpi": {
       "totalPlays": "Wiedergaben",
       "totalTime": "Hörzeit",
-      "uniqueTracks": "Eindeutige Titel",
+      "uniqueTracks": "Verschiedene Titel",
       "uniqueArtists_zero": "0 Künstler",
       "uniqueArtists_one": "{{count}} Künstler",
       "uniqueArtists_other": "{{count}} Künstler",
@@ -901,7 +902,7 @@
         "unknown": "Die Wiedergabe ist fehlgeschlagen"
       },
       "notice": {
-        "exclusive-refused": "Dieses Gerät verweigert den Exklusivmodus: Wiedergabe im geteilten Modus",
+        "exclusive-refused": "Dieses Gerät verweigert den Exklusivmodus: Wiedergabe im gemeinsamen Modus",
         "dop-refused": "Dieser DAC verweigert natives DSD: Umwandlung in PCM",
         "paused-device-lost": "Gerät getrennt: Wiedergabe pausiert",
         "unknown": "Die Audioausgabe hat sich geändert"
@@ -947,7 +948,7 @@
         "wasapiExclusive": "Im Exklusivmodus beim Treiber abgefragt.",
         "alsaHardware": "ALSA-Hardwareparameter, ohne Konvertierungsschicht.",
         "coreAudio": "Was das Gerät dem System meldet.",
-        "unavailable": "Gerät belegt oder nicht vorhanden: nichts konnte gelesen werden."
+        "unavailable": "Gerät belegt oder nicht vorhanden: Nichts konnte gelesen werden."
       },
       "tier": {
         "cd": "CD-Qualität",
@@ -981,7 +982,7 @@
       "title": "Profile verwalten",
       "subtitle": "Wähle ein Profil zum Entfernen. Das aktive Profil kann hier nicht gelöscht werden.",
       "activeLocked": "Aktives Profil",
-      "deleteHint": "Zum Löschen tippen",
+      "deleteHint": "Zum Löschen klicken",
       "deleteAria": "Profil {{name}} löschen"
     },
     "delete": {
@@ -989,7 +990,7 @@
       "subtitle": "Dieses Profil wird endgültig entfernt.",
       "warning": "Sämtliche Bibliotheken, Playlists und der Hörverlauf dieses Profils gehen verloren. Diese Aktion kann nicht rückgängig gemacht werden.",
       "submit": "Profil löschen",
-      "submitting": "Wird gelöscht …"
+      "submitting": "Wird gelöscht…"
     }
   },
   "libraryModal": {
@@ -1292,7 +1293,7 @@
       "save": "Als PNG speichern",
       "copy": "Bild kopieren",
       "eyebrow": "Wird gespielt",
-      "on": "auf"
+      "footer": "auf {{app}}"
     }
   },
   "playerBar": {
@@ -1320,7 +1321,7 @@
       "noProcessing": "Keine Verarbeitung aktiv",
       "bitPerfect": "Bit-perfect",
       "sharedOutput": "Gemeinsame Ausgabe (System-Mixer)",
-      "loading": "Laden…",
+      "loading": "Wird geladen…",
       "chip": {
         "dsdToPcm": "DSD → PCM",
         "resample": "Resampling",
@@ -1375,7 +1376,7 @@
     "loading": "Songtext wird gesucht…",
     "noTrack": "Kein Titel wird gespielt",
     "notFound": "Kein Songtext für diesen Titel gefunden. Du kannst eine .lrc-Datei importieren.",
-    "fetchError": "Lyrics-Anbieter nicht erreichbar. Bitte später erneut versuchen.",
+    "fetchError": "Songtext-Anbieter nicht erreichbar. Bitte später erneut versuchen.",
     "importTitle": ".lrc-Datei importieren",
     "actions": {
       "import": ".lrc-Datei importieren",
@@ -1415,7 +1416,7 @@
       "tagWriteSkipped": "TTML nur im Cache behalten (nicht in den Audio-Tag geschrieben)",
       "sidecarWriteSkipped": "Songtext in der Datenbank gespeichert, aber TTML kann nicht in eine .lrc/.txt-Sidecar-Datei geschrieben werden."
     },
-    "excludedGenre": "Für das Genre {{genre}} werden keine Songtexte online gesucht (Einstellungen → Bilder und Liedtexte). Du kannst eine .lrc-Datei importieren oder trotzdem suchen."
+    "excludedGenre": "Für das Genre {{genre}} werden keine Songtexte online gesucht (Einstellungen → Bilder und Songtexte). Du kannst eine .lrc-Datei importieren oder trotzdem suchen."
   },
   "duplicates": {
     "title": "Duplikate erkannt",
@@ -1523,7 +1524,7 @@
       "liked": "Favoriten",
       "ratingMin": "Bewertung ≥",
       "pathContains": "Pfad enthält",
-      "discNumberIs": "CD =",
+      "discNumberIs": "Disc =",
       "addedInLastDays": "Hinzugefügt in den letzten",
       "sampleRateMin": "Abtastrate ≥",
       "bitDepthMin": "Bittiefe ≥",
@@ -1534,11 +1535,11 @@
       "tagContains": "Tag enthält"
     },
     "counting": "Wird gezählt…",
-    "matchCountLimited": "{{kept}} von {{total}} Treffern",
+    "matchCountLimited": "{{kept}} von {{total}} Treffern übernommen",
     "templates": {
       "label": "Vorlage",
       "placeholder": "Mit einer Vorlage beginnen…",
-      "recentlyAdded": "Zuletzt hinzugefügt",
+      "recentlyAdded": "Kürzlich hinzugefügt",
       "neverPlayed": "Nie gespielt",
       "favourites": "Favoriten",
       "forgotten": "Vergessen",
@@ -1558,7 +1559,7 @@
   "lyricsEditor": {
     "title": "Songtext-Editor",
     "tabs": {
-      "plain": "Einfach",
+      "plain": "Nur Text",
       "synced": "Synchronisiert"
     },
     "plainPlaceholder": "Tippe den Songtext Zeile für Zeile…",
@@ -1651,7 +1652,7 @@
     "plugins": {
       "title": "Installierte Plugins",
       "subtitle": "Verwalte Erweiterungen, die WaveFlow Quellen, Metadaten oder Ansichten hinzufügen.",
-      "loading": "Lädt…",
+      "loading": "Wird geladen…",
       "emptyTitle": "Keine Plugins installiert",
       "emptyHint": "Installiere eines aus dem Store oben oder lege einen Ordner in den Plugin-Ordner.",
       "openFolder": "Ordner öffnen",
@@ -1706,7 +1707,7 @@
       "subtitle": "Klicke auf ein Tastenkürzel und drücke dann die gewünschte Tastenkombination. Rücktaste zum Löschen, Esc zum Abbrechen.",
       "captureHint": "Drücke eine Taste…",
       "reset": "Alle zurücksetzen",
-      "unbind": "Entkoppeln",
+      "unbind": "Zuweisung aufheben",
       "unbound": "Keine",
       "actions": {
         "togglePlayback": "Wiedergabe / Pause",
@@ -1747,11 +1748,11 @@
       },
       "discord": {
         "title": "Discord Rich Presence",
-        "subtitle": "Zeige den aktuell gespielten Titel in deinem Discord-Profil an"
+        "subtitle": "Zeigt den aktuell gespielten Titel in deinem Discord-Profil an"
       },
       "dlna": {
         "title": "DLNA-/UPnP-Server",
-        "subtitle": "Streame deine Bibliothek an LAN-kompatible Verstärker und Geräte",
+        "subtitle": "Streamt deine Bibliothek an LAN-kompatible Verstärker und Geräte",
         "serverName": "Name",
         "port": "Port",
         "portHint": "0 = automatischer Port",
@@ -1780,7 +1781,7 @@
     },
     "crossfade": {
       "title": "Crossfade",
-      "subtitle": "Nahtlose Übergänge zwischen Titeln (bald verfügbar)"
+      "subtitle": "Nahtlose Übergänge zwischen Titeln"
     },
     "normalize": {
       "title": "Lautstärke normalisieren",
@@ -1802,13 +1803,13 @@
         "subtitle": "Den Gain auf den Spielraum begrenzen, den der Spitzenpegel des Titels lässt"
       },
       "mode": {
-        "title": "Anzuwendende Verstärkung",
+        "title": "Anzuwendender Gain",
         "auto": "Automatisch",
         "track": "Pro Titel",
         "album": "Pro Album",
-        "autoHint": "Album-Verstärkung, solange ein Album durchläuft, sonst die des Titels",
+        "autoHint": "Album-Gain, solange ein Album durchläuft, sonst der des Titels",
         "trackHint": "Gleicht jeden Titel gegenüber allen anderen an",
-        "albumHint": "Eine Verstärkung pro Album, die dessen interne Lautstärkeverhältnisse erhält"
+        "albumHint": "Ein Gain pro Album, der dessen interne Lautstärkeverhältnisse erhält"
       },
       "decibels": "{{value}} dB"
     },
@@ -1819,7 +1820,7 @@
     "exclusive": {
       "title": "Exklusive Ausgabe",
       "subtitle": "Übernimmt das Gerät allein für diese App, statt es mit dem System-Mixer zu teilen. Fällt auf den gemeinsamen Modus zurück, wenn das Gerät ablehnt.",
-      "fallback": "Das Gerät akzeptiert den Exklusivmodus nicht. Es wird auf den Shared-Modus ausgewichen."
+      "fallback": "Das Gerät akzeptiert den Exklusivmodus nicht. Es wird auf den gemeinsamen Modus ausgewichen."
     },
     "matchSourceRate": {
       "title": "Abtastrate jedes Titels übernehmen",
@@ -1851,7 +1852,7 @@
     },
     "singleClickPlay": {
       "title": "Wiedergabe per Einfachklick",
-      "subtitle": "Klicke einen Titel an, um die Wiedergabe zu starten (sonst Doppelklick)"
+      "subtitle": "Ein Klick auf einen Titel startet die Wiedergabe (sonst Doppelklick)"
     },
     "showSleepTimer": {
       "title": "Sleep-Timer in der Leiste anheften",
@@ -1895,7 +1896,7 @@
     },
     "profileIo": {
       "title": "Profil-Sicherung",
-      "subtitle": "Exportiere oder importiere ein komplettes Profil (Playlists, Favoriten, Statistiken, EQ, Tastenkürzel) als einzelne .waveflow-Datei.",
+      "subtitle": "Exportiert oder importiert ein komplettes Profil (Playlists, Favoriten, Statistiken, EQ, Tastenkürzel) als einzelne .waveflow-Datei.",
       "export": {
         "action": "Exportieren",
         "dialogTitle": "WaveFlow-Profil exportieren",
@@ -1915,13 +1916,13 @@
     },
     "dataFolder": {
       "title": "Datenordner",
-      "subtitle": "Öffne den Ordner mit der Datenbank und den Covern",
+      "subtitle": "Öffnet den Ordner mit der Datenbank und den Covern",
       "action": "Öffnen"
     },
     "openDataFolder": "Datenordner öffnen",
     "lyricsPrefetch": {
       "title": "Songtexte vorab laden",
-      "subtitle": "Lade Songtexte für die gesamte Bibliothek für die Offline-Nutzung herunter",
+      "subtitle": "Lädt Songtexte für die gesamte Bibliothek für die Offline-Nutzung herunter",
       "result": "{{hits}} abgerufen, {{misses}} nicht gefunden, {{failed}} fehlgeschlagen",
       "offline": "Offline-Modus ist aktiviert",
       "failed": "Vorabladen fehlgeschlagen",
@@ -1945,7 +1946,7 @@
       "action": "Zurücksetzen",
       "confirm": {
         "title": "Die gesamte App zurücksetzen?",
-        "warning": "Dies löscht jedes Profil, jede Bibliothek, Playlist, Bewertung, jeden Wiedergabeverlauf und den Cover-Cache. Die App startet neu in die Ersteinrichtung. Dies kann nicht rückgängig gemacht werden.",
+        "warning": "Dies löscht jedes Profil, jede Bibliothek, Playlist, Bewertung, jeden Hörverlauf und den Cover-Cache. Die App startet neu in die Ersteinrichtung. Dies kann nicht rückgängig gemacht werden.",
         "typeToConfirm": "Gib RESET ein, um zu bestätigen",
         "error": "Zurücksetzen fehlgeschlagen. Schließe ein externes Programm, das eine WaveFlow-Datei blockiert (geöffneter Musikplayer, Datei-Explorer im Datenordner), und versuche es erneut.",
         "cancel": "Abbrechen",
@@ -2041,7 +2042,7 @@
     },
     "dynamicCrossfade": {
       "title": "Dynamisches Crossfade",
-      "subtitle": "Skaliert die Crossfade-Dauer mit der Tempodifferenz zwischen den Titeln (fällt auf das feste Crossfade zurück, wenn die BPM unbekannt ist)"
+      "subtitle": "Skaliert die Crossfade-Dauer mit der Tempodifferenz zwischen den Titeln (fällt auf das feste Crossfade zurück, wenn der BPM-Wert unbekannt ist)"
     },
     "gapless": {
       "title": "Gapless-Wiedergabe",
@@ -2055,13 +2056,13 @@
       "preset": {
         "custom": "Benutzerdefiniert",
         "flat": "Neutral",
-        "acoustic": "Acoustic",
+        "acoustic": "Akustik",
         "bass_booster": "Bass-Booster",
         "bass_reducer": "Bass-Reduzierer",
         "classical": "Klassik",
         "dance": "Dance",
         "deep": "Tief",
-        "electronic": "Electronic",
+        "electronic": "Elektronisch",
         "hip_hop": "Hip-Hop",
         "jazz": "Jazz",
         "latin": "Latin",
@@ -2072,7 +2073,7 @@
         "rnb": "R&B",
         "rock": "Rock",
         "small_speakers": "Kleine Lautsprecher",
-        "spoken_word": "Sprache",
+        "spoken_word": "Gesprochenes Wort",
         "treble_booster": "Höhen-Booster"
       }
     },
@@ -2103,7 +2104,7 @@
     },
     "uiZoom": {
       "title": "UI-Zoom",
-      "subtitle": "Skaliere die gesamte Oberfläche (Strg+= / Strg+- / Strg+0 funktionieren ebenfalls)",
+      "subtitle": "Skaliert die gesamte Oberfläche (Strg+= / Strg+- / Strg+0 funktionieren ebenfalls)",
       "decreaseAria": "Verkleinern",
       "increaseAria": "Vergrößern",
       "resetAria": "Zoom auf 100 % zurücksetzen"
@@ -2115,8 +2116,8 @@
     "categoryNavLabel": "Einstellungskategorien",
     "appearance": {
       "theme": {
-        "title": "Thema",
-        "subtitle": "Wähle eine Stimmung – das Wechseln färbt die gesamte App neu ein."
+        "title": "Design",
+        "subtitle": "Wähle eine Stimmung — das Wechseln färbt die gesamte App neu ein."
       },
       "mode": {
         "light": "Hell",
@@ -2173,7 +2174,7 @@
       "buttons": {
         "abLoop": "A-B-Schleife",
         "sleepTimer": "Sleep-Timer",
-        "eqPreset": "Equalizer (Voreinstellungen)",
+        "eqPreset": "Equalizer (Presets)",
         "lyrics": "Songtext",
         "queue": "Warteschlange",
         "device": "Audioausgabe",
@@ -2198,7 +2199,7 @@
       }
     },
     "wrappedBanner": {
-      "title": "WaveFlow Wrapped-Banner",
+      "title": "WaveFlow-Wrapped-Banner",
       "subtitle": "Das Jahresrückblick-Banner auf dem Startbildschirm. Der Automatik-Modus zeigt es während der Wrapped-Saison (1. Dezember → 31. Januar).",
       "legend": "Sichtbarkeit des Wrapped-Banners",
       "seasonActive": "Wrapped-Saison läuft — das Banner wird angezeigt.",
@@ -2219,7 +2220,7 @@
       }
     },
     "hiResBadge": {
-      "title": "Hi-Res / DSD-Badge",
+      "title": "Hi-Res-/DSD-Badge",
       "subtitle": "Zeigt das Badge „Hi-Res 24-bit“ oder „DSD128“ neben qualifizierenden Titeln und unter dem Künstlernamen in der Wiedergabeleiste. Standardmäßig aktiviert."
     },
     "serverAccount": {
@@ -2253,8 +2254,8 @@
       }
     },
     "fullscreenLyricsCentering": {
-      "title": "Synchronisierten Liedtext im Vollbild zentrieren",
-      "subtitle": "Richtet zeitgesteuerten Liedtext in der Vollbildansicht zentriert aus, passend zur reinen Textansicht."
+      "title": "Synchronisierten Songtext im Vollbild zentrieren",
+      "subtitle": "Richtet zeitgesteuerten Songtext in der Vollbildansicht zentriert aus, passend zur reinen Textansicht."
     },
     "lyricsEstimateWords": {
       "title": "Geschätztes Wort-für-Wort-Karaoke",
@@ -2262,7 +2263,7 @@
     },
     "lyricsHighlightColor": {
       "title": "Farbe der gesungenen Zeile",
-      "subtitle": "Für den Liedtext im Vollbild und den Mini-Player. Weiß, bis du eine Farbe wählst; das schwebende Liedtext-Fenster behält seine eigenen Farben.",
+      "subtitle": "Für den Songtext im Vollbild und den Mini-Player. Weiß, bis du eine Farbe wählst; das schwebende Songtext-Fenster behält seine eigenen Farben.",
       "colors": {
         "default": "Weiß (Standard)",
         "rose": "Rosa",
@@ -2277,7 +2278,7 @@
       }
     },
     "lyricsTranslation": {
-      "title": "Liedtextübersetzung (Musixmatch)",
+      "title": "Songtextübersetzung (Musixmatch)",
       "subtitle": "Zeigt unter jeder LRC-Zeile eine Übersetzung an, sofern Musixmatch eine bereitstellt",
       "off": "Aus"
     },
@@ -2301,8 +2302,8 @@
       "reset": "Standardgenres wiederherstellen"
     },
     "lyricsDestination": {
-      "title": "Speicherort für Liedtexte",
-      "subtitle": "Wo Liedtexte auf der Festplatte landen — die, die du schreibst, und die, die WaveFlow abruft. Den Speicherort kannst du bei jeder Bearbeitung einzeln festlegen."
+      "title": "Speicherort für Songtexte",
+      "subtitle": "Wo Songtexte auf der Festplatte landen — die, die du schreibst, und die, die WaveFlow abruft. Den Speicherort kannst du bei jeder Bearbeitung einzeln festlegen."
     },
     "updateChannel": {
       "title": "Beta-Kanal",
@@ -2344,7 +2345,7 @@
     },
     "statsKpis": {
       "title": "Statistik-Kennzahlen",
-      "subtitle": "Wähle, welche Kennzahlen auf der Statistikseite erscheinen. Deaktiviere jene, die du lieber ausblendest – etwa die Vollständig-gehört-Rate.",
+      "subtitle": "Wähle, welche Kennzahlen auf der Statistikseite erscheinen. Deaktiviere jene, die du lieber ausblendest — etwa die Vollständig-gehört-Rate.",
       "legend": "Sichtbarkeit der Statistik-Kennzahlen"
     },
     "immersiveView": {
@@ -2360,7 +2361,7 @@
     },
     "scrollTitles": {
       "title": "Lange Titel scrollen",
-      "subtitle": "Lange Titel laufen durch, statt abgeschnitten zu werden (Player-Leiste + Immersive Ansicht)."
+      "subtitle": "Lange Titel laufen durch, statt abgeschnitten zu werden (Player-Leiste + immersive Ansicht)."
     },
     "coverSlideshow": {
       "title": "Cover-/Künstler-Diashow",
@@ -2375,7 +2376,7 @@
       "subtitle": "Durchsuche und installiere isolierte Plugins aus dem WaveFlow-Verzeichnis.",
       "loading": "Store wird geladen…",
       "emptyTitle": "Noch keine Plugins verfügbar",
-      "emptyHint": "Das Verzeichnis ist derzeit leer – schau bald wieder vorbei.",
+      "emptyHint": "Das Verzeichnis ist derzeit leer — schau bald wieder vorbei.",
       "refresh": "Store aktualisieren",
       "retry": "Erneut versuchen",
       "install": "Installieren",
@@ -2420,7 +2421,7 @@
     },
     "canvasCache": {
       "cacheLabel": "Canvas lokal speichern",
-      "subtitle": "Lädt das Canvas jedes Titels von Canvas-Plugins herunter, damit es offline und ohne erneutes Streaming abspielt.",
+      "subtitle": "Lädt das Canvas jedes Titels von Canvas-Plugins herunter, damit es offline und ohne erneutes Streaming abgespielt wird.",
       "usage": "{{size}} belegt · {{files}} Canvas im Cache",
       "clear": "Cache leeren",
       "clearConfirm": "Bestätigen?"
@@ -2440,7 +2441,7 @@
       "mp3Hint": "Größer bei gleicher Qualität. Maximale Kompatibilität.",
       "bitrateLabel": "Bitrate",
       "kbps": "{{rate}} kbit/s",
-      "activeNotice": "Externe Titel werden neu kodiert und spielen daher unterhalb ihrer ursprünglichen Qualität. Lokale Dateien werden nie transkodiert.",
+      "activeNotice": "Externe Titel werden neu kodiert und werden daher unterhalb ihrer ursprünglichen Qualität wiedergegeben. Lokale Dateien werden nie transkodiert.",
       "unsupported": "Dieser Server wurde ohne FFmpeg gebaut und kann nicht transkodieren. Externe Titel kommen immer im Originalformat an."
     },
     "contrast": {
@@ -2463,7 +2464,7 @@
     },
     "cacheLocation": {
       "title": "Speicherort des Caches",
-      "subtitle": "Cover, animierte Cover und Canvas-Clips. Alles davon lässt sich neu aufbauen, ein Verschieben verliert also nichts. Datenbanken und selbst ausgewählte Dateien bleiben, wo sie sind.",
+      "subtitle": "Cover, animierte Cover und Canvas-Clips. Alles davon lässt sich neu aufbauen, beim Verschieben geht also nichts verloren. Datenbanken und selbst ausgewählte Dateien bleiben, wo sie sind.",
       "pickTitle": "Cache-Ordner wählen",
       "choose": "Verschieben…",
       "reset": "Auf Standard zurücksetzen",
@@ -2483,7 +2484,7 @@
         "library": "Bibliothek",
         "playback": "Wiedergabe und Audio",
         "appearance": "Darstellung",
-        "media": "Bilder und Liedtexte",
+        "media": "Bilder und Songtexte",
         "integrations": "Verbindungen",
         "plugins": "Erweiterungen",
         "shortcuts": "Tastenkürzel",
@@ -2495,7 +2496,7 @@
         "library": "Organisiere und aktualisiere deine Musikbibliothek.",
         "playback": "Titelübergänge, Lautstärke und Audioausgabe.",
         "appearance": "Passe die Oberfläche und deine Wiedergabeansichten an.",
-        "media": "Cover, Künstlerinformationen und Liedtextquellen.",
+        "media": "Cover, Künstlerinformationen und Songtextquellen.",
         "integrations": "Verbinde deine Dienste, Server und Netzwerkgeräte.",
         "plugins": "Entdecke Erweiterungen und verwalte ihre Einstellungen.",
         "shortcuts": "Wähle Tastenkürzel für alltägliche Aktionen.",
@@ -2519,7 +2520,7 @@
         "pages": "Bibliotheksseiten",
         "artwork": "Cover und Künstlerbilder",
         "biographies": "Künstlerbiografien",
-        "lyrics": "Liedtexte",
+        "lyrics": "Songtexte",
         "connectivity": "Verbindung",
         "services": "Verbundene Dienste",
         "remote": "Remote-Server",
@@ -2543,7 +2544,7 @@
       "fontSize": "Textgröße",
       "background": "Hintergrund",
       "textColor": "Textfarbe",
-      "highlightColor": "Gesungene Farbe",
+      "highlightColor": "Farbe der gesungenen Zeile",
       "outline": "Kontur",
       "showTranslation": "Übersetzung anzeigen",
       "reset": "Darstellung zurücksetzen",
@@ -2556,7 +2557,7 @@
     "doneTitle": "Scan abgeschlossen",
     "cancelledTitle": "Scan gestoppt",
     "doneSubtitle": "{{added}} hinzugefügt · {{updated}} aktualisiert · {{skipped}} übersprungen",
-    "scanningIn": "Durchsuche {{dir}}",
+    "scanningIn": "{{dir}} wird gescannt…",
     "doneErrors_one": "{{count}} Datei fehlgeschlagen",
     "doneErrors_other": "{{count}} Dateien fehlgeschlagen"
   },
@@ -2587,7 +2588,7 @@
   },
   "webRadio": {
     "title": "Web-Radio",
-    "subtitle": "Über 30 000 Online-Radiosender via radio-browser.info.",
+    "subtitle": "Über 30.000 Online-Radiosender via radio-browser.info.",
     "loading": "Kategorien werden geladen…",
     "resolving": "Sender werden gesucht…",
     "emptyResults": "Keine Sender gefunden.",
@@ -2596,9 +2597,9 @@
     "live": "LIVE",
     "nowPlaying": "Läuft gerade",
     "unavailableTitle": "Web-Radio ist deaktiviert",
-    "unavailableHint": "Aktiviere das Web-Radio-Plugin in Einstellungen → Plugins, um über 30.000 Sender zu durchsuchen.",
+    "unavailableHint": "Aktiviere das Web-Radio-Plugin in Einstellungen → Erweiterungen, um über 30.000 Sender zu durchsuchen.",
     "favorites": "Favoriten",
-    "favoritesEmpty": "Noch keine Lieblingssender. Tippe auf den Stern eines Senders, um ihn zu speichern.",
+    "favoritesEmpty": "Noch keine Lieblingssender. Klicke auf den Stern eines Senders, um ihn zu speichern.",
     "addFavorite": "Zu Favoriten hinzufügen",
     "removeFavorite": "Aus Favoriten entfernen",
     "localStations": "Lokale Sender",
@@ -2611,7 +2612,7 @@
     "subtitle": "Eigene Bio und ähnliche Künstler für {{name}}.",
     "bio": {
       "label": "Eigene Biografie",
-      "reset": "Auf Online zurücksetzen",
+      "reset": "Online-Bio wiederherstellen",
       "placeholder": "Bio eingeben. Leer lassen, um die online geladene zu verwenden.",
       "help": "Ersetzt die Last.fm-/TheAudioDB-Bio. Funktioniert offline."
     },
@@ -2713,7 +2714,7 @@
       "subtitle": "Nur exakte Übereinstimmungen ganzer Dateien. Dateien gleicher Größe werden per BLAKE3 überprüft; Metadaten erzeugen nie eine Verknüpfung.",
       "cancel": "Abbrechen",
       "findMatches": "Übereinstimmungen finden",
-      "hashing": "Hashe {{processed}} / {{total}} lokale Dateien…",
+      "hashing": "{{processed}} / {{total}} lokale Dateien werden gehasht…",
       "cancelledSummary": "Analyse abgebrochen — nichts wurde verknüpft.",
       "confirmedLinks": "Bestätigte Verknüpfungen",
       "favoritesRatings": "Favoriten: lokal {{localFav}} · Server {{remoteFav}} · Bewertungen: lokal {{localRating}} · Server {{remoteRating}}/5",
@@ -2810,11 +2811,11 @@
     "import": {
       "action": "In meine Bibliothek importieren",
       "title": "In meine Bibliothek importieren",
-      "subtitle": "{{name}} wird in einen durchsuchten Ordner kopiert und damit zu einem Titel deiner eigenen Bibliothek.",
+      "subtitle": "{{name}} wird in einen gescannten Ordner kopiert und damit zu einem Titel deiner eigenen Bibliothek.",
       "destination": "Zielordner",
-      "noFolder": "Kein durchsuchter Ordner erreichbar. Füge einen unter Einstellungen → Bibliothek hinzu.",
+      "noFolder": "Kein gescannter Ordner erreichbar. Füge einen unter Einstellungen → Bibliothek hinzu.",
       "unreachable": "Nicht erreichbar",
-      "explainer": "Die Datei wird unverändert kopiert und dann mit dem Titel des Servers verknüpft: die Wiedergabe bevorzugt deine lokale Kopie.",
+      "explainer": "Die Datei wird unverändert kopiert und dann mit dem Titel des Servers verknüpft: Die Wiedergabe bevorzugt deine lokale Kopie.",
       "submit": "Importieren",
       "running": "Import läuft…",
       "done": "Importiert: {{count}}",
@@ -2862,10 +2863,10 @@
       "title": "Server-Metadaten",
       "subtitle": "Die Korrektur wird auf dem Server gespeichert, nicht in der Datei.",
       "help": "Diese Korrekturen überstehen die Scans des Servers und sind für alle Mitglieder der Bibliothek sichtbar. Ein leeres Feld entfernt die Korrektur: Der Wert aus der Datei erscheint wieder.",
-      "missing": "Dieser Titel ist noch nicht im Spiegel des Servers. Führe einen Katalogdurchlauf aus und versuche es erneut.",
-      "invalidNumber": "Jahr sowie Titel- und CD-Nummer müssen ganze Zahlen sein."
+      "missing": "Dieser Titel ist noch nicht in der Kopie des Servers. Kopiere den Katalog und versuche es erneut.",
+      "invalidNumber": "Jahr sowie Titel- und Disc-Nummer müssen ganze Zahlen sein."
     },
-    "needsMirror": "Kopiere zuerst den Serverkatalog oben: Dieser Abschnitt vergleicht deine Dateien mit dem lokalen Spiegel, der noch leer ist."
+    "needsMirror": "Kopiere zuerst den Serverkatalog oben: Dieser Abschnitt vergleicht deine Dateien mit der lokalen Kopie, die noch leer ist."
   },
   "tasks": {
     "barLabel": "Laufende Aufgaben",
@@ -2877,12 +2878,12 @@
     "kinds": {
       "library_scan": "Bibliotheksscan",
       "analysis": "Audioanalyse",
-      "lyrics_prefetch": "Liedtexte laden",
-      "catalogue_mirror": "Katalogspiegel",
+      "lyrics_prefetch": "Songtexte laden",
+      "catalogue_mirror": "Katalogkopie",
       "reconcile": "Abgleich",
       "upload": "Hochladen",
       "backup": "Sicherung",
-      "thumbnails": "Miniaturen"
+      "thumbnails": "Vorschaubilder"
     }
   },
   "smartRuleSummary": {
@@ -2894,22 +2895,22 @@
     "limit": "höchstens {{value}}",
     "sort": {
       "addedDesc": "zuletzt hinzugefügt zuerst",
-      "addedAsc": "zuerst hinzugefügt zuerst",
+      "addedAsc": "älteste Hinzufügungen zuerst",
       "yearDesc": "neueste zuerst",
       "yearAsc": "älteste zuerst",
       "titleAsc": "nach Titel",
-      "artistAsc": "nach Interpret",
+      "artistAsc": "nach Künstler",
       "random": "zufällig"
     },
     "predicates": {
       "titleContains": "Titel enthält „{{value}}“",
-      "artistContains": "Interpret enthält „{{value}}“",
+      "artistContains": "Künstler enthält „{{value}}“",
       "albumContains": "Album enthält „{{value}}“",
       "pathContains": "Pfad enthält „{{value}}“",
       "genreIs": "Genre {{value}}",
       "yearMin": "Jahr ≥ {{value}}",
       "yearMax": "Jahr ≤ {{value}}",
-      "discNumberIs": "CD {{value}}",
+      "discNumberIs": "Disc {{value}}",
       "liked": "Favorit",
       "ratingMin": "Bewertung ≥ {{value}}",
       "format": "Format {{value}}",
@@ -2955,7 +2956,7 @@
     },
     "fields": {
       "title": "Titel",
-      "artist": "Interpret",
+      "artist": "Künstler",
       "album": "Album",
       "year": "Jahr",
       "track_number": "Titelnr."

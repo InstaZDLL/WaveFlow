@@ -84,7 +84,7 @@
       "hint": "이 선택은 프로필별로 저장됩니다 — 각 프로필은 고유한 외관을 가질 수 있습니다."
     },
     "folder": {
-      "title": "음악 폴더를 선택하세요",
+      "title": "음악 폴더 선택",
       "description": "WaveFlow에게 음악 위치를 알려주세요. 스캐너가 라이브러리를 자동으로 정리합니다.",
       "placeholder": "음악 폴더를 선택하려면 클릭하세요",
       "changeHint": "폴더를 변경하려면 클릭하세요",
@@ -116,7 +116,7 @@
     },
     "scan": {
       "title": "라이브러리 스캔",
-      "description": "폴더를 분석하고 곡을 발견할 준비가 되셨나요?",
+      "description": "폴더를 분석하고 곡을 발견할 준비가 되셨습니까?",
       "noFolder": "선택된 폴더 없음",
       "readyHint": "폴더가 설정되었습니다. 준비되면 스캔을 시작하세요.",
       "scanning": "라이브러리 스캔 중…",
@@ -128,7 +128,7 @@
       "nextSteps": "다음 단계:",
       "bulletExplore": "라이브러리, 앨범, 아티스트 탭에서 라이브러리를 탐색하세요",
       "bulletQueue": "곡을 클릭하여 첫 대기열을 만드세요",
-      "bulletSettings": "사이드바에서 세부 설정을 조정하세요(외관, 통합…)",
+      "bulletSettings": "사이드바에서 세부 설정을 조정하세요(외관, 연결…)",
       "tipImmersiveTitle": "팁: 몰입형 보기",
       "tipImmersiveBody": "플레이어의 커버를 클릭하면 커버와 가사가 나란히 있는 전체 화면 보기가 열립니다."
     },
@@ -145,7 +145,7 @@
     },
     "language": {
       "title": "언어 선택",
-      "description": "WaveFlow는 17개 언어를 지원합니다. 시스템 언어로 자동 설정되었습니다. 필요시 아래에서 변경해 주세요.",
+      "description": "WaveFlow는 17개 언어를 지원합니다. 시스템 언어로 자동 설정되었습니다. 필요하면 아래에서 변경해 주세요.",
       "detected": "시스템에서 감지됨",
       "fallback": "시스템 언어를 감지하지 못해 영어로 기본 설정했습니다. 아래에서 선택하세요."
     },
@@ -159,9 +159,9 @@
       "unavailable": "사용할 수 없는 프로필입니다. 잠시 후 다시 시도해 주세요."
     },
     "lyrics": {
-      "title": "가사를 어디에 저장할까요?",
+      "title": "가사 저장 위치 선택",
       "description": "가사를 어디에 저장하시겠습니까? 직접 편집한 가사와 WaveFlow가 찾아온 가사 모두에 적용됩니다. 설정 → 이미지 및 가사에서 언제든 변경할 수 있습니다.",
-      "hint": "오디오 파일을 그대로 유지하려면 \"사이드카 파일\"을 선택하세요 — foobar2000 등이 하는 방식입니다."
+      "hint": "오디오 파일을 그대로 유지하려면 “사이드카 파일”을 선택하세요 — foobar2000 등이 하는 방식입니다."
     }
   },
   "sidebar": {
@@ -280,8 +280,9 @@
   "home": {
     "greeting": {
       "morning": "좋은 아침입니다",
+      "afternoon": "좋은 오후입니다",
       "evening": "좋은 저녁입니다",
-      "night": "좋은 밤입니다"
+      "night": "편안한 밤 보내세요"
     },
     "banner": {
       "badge": "감상 준비 완료",
@@ -589,7 +590,7 @@
         "split": "분리",
         "confirm": "확인",
         "dismiss": "분리하지 않음",
-        "known": "이미 보관함에 있음"
+        "known": "이미 라이브러리에 있음"
       }
     },
     "columns": {
@@ -677,7 +678,7 @@
     },
     "kpi": {
       "totalPlays": "총 재생 횟수",
-      "totalTime": "재생 시간",
+      "totalTime": "청취 시간",
       "uniqueTracks": "고유 곡 수",
       "uniqueArtists_zero": "아티스트 0명",
       "uniqueArtists_one": "아티스트 {{count}}명",
@@ -855,7 +856,7 @@
     "title": "피드백",
     "hero": {
       "title": "WaveFlow를 개선하는 데 도움을 주세요",
-      "description": "버그를 발견하셨거나, 개선할 점이 있거나, 단순히 의견을 주시고 싶으신가요? 저희는 모든 메시지를 꼼꼼히 읽고 여러분의 제안을 적극 반영하고 있습니다."
+      "description": "버그를 발견하셨거나, 개선할 점이 있거나, 단순히 의견을 보내고 싶으십니까? 저희는 모든 메시지를 꼼꼼히 읽고 여러분의 제안을 적극 반영하고 있습니다."
     },
     "contact": {
       "section": "문의하기",
@@ -985,7 +986,7 @@
       "deleteAria": "{{name}} 프로필 삭제"
     },
     "delete": {
-      "title": "‘{{name}}’ 프로필을 삭제할까요?",
+      "title": "‘{{name}}’ 프로필을 삭제하시겠습니까?",
       "subtitle": "이 프로필은 영구적으로 삭제됩니다.",
       "warning": "이 프로필의 모든 라이브러리, 재생 목록, 재생 기록이 사라집니다. 이 작업은 되돌릴 수 없습니다.",
       "submit": "프로필 삭제",
@@ -1091,8 +1092,8 @@
     "rating": "평점",
     "ratingNone": "평점 없음",
     "batchEdit": "{{count}}곡의 태그 편집…",
-    "addToPlaylistNamed": "\"{{name}}\"에 추가",
-    "removeFromPlaylistNamed": "\"{{name}}\"에서 제거"
+    "addToPlaylistNamed": "“{{name}}”에 추가",
+    "removeFromPlaylistNamed": "“{{name}}”에서 제거"
   },
   "batchTagEdit": {
     "title": "태그 일괄 편집",
@@ -1292,7 +1293,7 @@
       "save": "PNG로 저장",
       "copy": "이미지 복사",
       "eyebrow": "지금 재생 중",
-      "on": "에서"
+      "footer": "{{app}}에서"
     }
   },
   "playerBar": {
@@ -1767,7 +1768,7 @@
         "password": "비밀번호",
         "passwordPlaceholder": "없음",
         "passwordHint": "선택 사항. 공유 네트워크에서는 권장합니다 — MPD 프로토콜은 평문으로 전송됩니다.",
-        "lanWarning": "로컬 네트워크 전체에서 접근할 수 있습니다: 네트워크의 누구나 재생을 제어할 수 있습니다.",
+        "lanWarning": "로컬 네트워크 전체에서 접근할 수 있습니다. 네트워크의 누구나 재생을 제어할 수 있습니다.",
         "lanWarningAuth": "로컬 네트워크 전체에서 접근할 수 있지만 재생 제어에는 설정한 비밀번호가 필요합니다.",
         "statusRunning": "실행 중",
         "statusStopped": "중지됨",
@@ -1780,7 +1781,7 @@
     },
     "crossfade": {
       "title": "크로스페이드",
-      "subtitle": "곡 간의 부드러운 전환(곧 제공 예정)"
+      "subtitle": "곡 간의 부드러운 전환"
     },
     "smartCrossfade": {
       "title": "스마트 크로스페이드",
@@ -1938,7 +1939,7 @@
     },
     "clipsInLibrary": {
       "title": "클립을 음악과 함께 보관",
-      "subtitle": "직접 설정한 Canvas 클립과 움직이는 커버는 라이브러리 안의 숨김 폴더에 저장되어 파일과 함께 이동합니다. 확장 기능이 가져온 것은 위의 캐시에 남습니다."
+      "subtitle": "직접 설정한 Canvas 클립과 모션 커버는 라이브러리 안의 숨김 폴더에 저장되어 파일과 함께 이동합니다. 확장 기능이 가져온 것은 위의 캐시에 남습니다."
     },
     "dataFolder": {
       "title": "데이터 폴더",
@@ -1972,7 +1973,7 @@
       "action": "초기화",
       "confirm": {
         "title": "전체 앱을 초기화하시겠습니까?",
-        "warning": "이 작업은 모든 프로필, 라이브러리, 재생 목록, 평점, 청취 기록 및 캐시된 커버를 삭제합니다. 앱이 초기 설정 상태로 다시 시작됩니다. 이 작업은 되돌릴 수 없습니다.",
+        "warning": "이 작업은 모든 프로필, 라이브러리, 재생 목록, 평점, 재생 기록 및 캐시된 커버를 삭제합니다. 앱이 초기 설정 상태로 다시 시작됩니다. 이 작업은 되돌릴 수 없습니다.",
         "typeToConfirm": "확인하려면 RESET을 입력하세요",
         "error": "초기화에 실패했습니다. WaveFlow 파일을 점유하고 있는 외부 프로그램(열려 있는 음악 플레이어, 데이터 폴더의 파일 탐색기)을 닫고 다시 시도하세요.",
         "cancel": "취소",
@@ -2169,7 +2170,7 @@
       "title": "플레이어 바 레이아웃",
       "subtitle": "플레이어 바에 표시할 버튼과 커버를 클릭했을 때의 동작을 고르세요. 미리 보기는 실시간으로 갱신됩니다.",
       "preview": "미리 보기",
-      "previewEmpty": "버튼 없음 — 막대에는 커버와 재생 컨트롤만 나타납니다.",
+      "previewEmpty": "버튼 없음 — 바에는 커버와 재생 컨트롤만 나타납니다.",
       "buttons": {
         "abLoop": "A-B 루프",
         "sleepTimer": "수면 타이머",
@@ -2179,13 +2180,13 @@
         "device": "오디오 출력",
         "miniPlayer": "미니 플레이어",
         "immersive": "몰입형 보기",
-        "audioQualityFooter": "오디오 품질 표시줄"
+        "audioQualityFooter": "오디오 품질 바"
       },
       "coverAction": {
         "title": "커버를 클릭했을 때",
         "immersive": {
           "label": "몰입형 보기 열기",
-          "description": "기본값 — 커버를 크게 보여 주는 전체 화면 '지금 재생 중' 화면을 엽니다."
+          "description": "기본값 — 커버를 크게 보여 주는 전체 화면 ‘지금 재생 중’ 화면을 엽니다."
         },
         "nowPlaying": {
           "label": "재생 중 패널 표시",
@@ -2198,7 +2199,7 @@
       }
     },
     "wrappedBanner": {
-      "title": "WaveFlow 결산 배너",
+      "title": "WaveFlow Wrapped 배너",
       "subtitle": "홈 화면의 연간 결산 배너입니다. 자동 모드에서는 Wrapped 시즌(12월 1일 → 1월 31일) 동안만 표시됩니다.",
       "legend": "Wrapped 배너 표시",
       "seasonActive": "Wrapped 시즌이 진행 중입니다 — 배너가 표시됩니다.",
@@ -2390,12 +2391,12 @@
       "updateAria": "{{name}} 업데이트"
     },
     "motionArtwork": {
-      "title": "애니메이션 아트워크",
-      "subtitle": "메타데이터 플러그인(예: Apple Motion Artwork)의 움직이는 커버가 ‘지금 재생 중’ 화면의 배경에서 재생됩니다.",
-      "cacheLabel": "애니메이션 아트워크를 로컬에 저장",
+      "title": "모션 커버",
+      "subtitle": "메타데이터 플러그인(예: Apple Motion Artwork)의 모션 커버가 ‘지금 재생 중’ 화면의 배경에서 재생됩니다.",
+      "cacheLabel": "모션 커버를 로컬에 저장",
       "usage": "{{size}} 사용 중 · 커버 {{files}}개 캐시됨",
       "clear": "캐시 지우기",
-      "clearConfirm": "확인할까요?"
+      "clearConfirm": "지우시겠습니까?"
     },
     "windowBounds": {
       "title": "창 위치",
@@ -2423,7 +2424,7 @@
       "subtitle": "Canvas 플러그인에서 각 곡의 Canvas를 내려받아 오프라인에서 다시 스트리밍하지 않고 재생합니다.",
       "usage": "{{size}} 사용 · {{files}}개 Canvas 캐시됨",
       "clear": "캐시 지우기",
-      "clearConfirm": "확인할까요?"
+      "clearConfirm": "지우시겠습니까?"
     },
     "dsdDop": {
       "title": "네이티브 DSD(DoP)",
@@ -2463,7 +2464,7 @@
     },
     "cacheLocation": {
       "title": "캐시 위치",
-      "subtitle": "아트워크, 움직이는 커버, Canvas 클립. 모두 다시 만들 수 있으므로 옮겨도 잃는 것이 없습니다. 데이터베이스와 직접 고른 파일은 그대로 남습니다.",
+      "subtitle": "커버, 모션 커버, Canvas 클립. 모두 다시 만들 수 있으므로 옮겨도 잃는 것이 없습니다. 데이터베이스와 직접 고른 파일은 그대로 남습니다.",
       "pickTitle": "캐시 폴더 선택",
       "choose": "옮기기…",
       "reset": "기본값으로",
@@ -2596,7 +2597,7 @@
     "live": "라이브",
     "nowPlaying": "재생 중",
     "unavailableTitle": "웹 라디오가 비활성화됨",
-    "unavailableHint": "30,000개 이상의 방송국을 탐색하려면 설정 → 플러그인에서 웹 라디오 플러그인을 활성화하세요.",
+    "unavailableHint": "30,000개 이상의 방송국을 탐색하려면 설정 → 확장 기능에서 웹 라디오 플러그인을 활성화하세요.",
     "favorites": "즐겨찾기",
     "favoritesEmpty": "즐겨찾는 방송국이 아직 없습니다. 방송국의 별을 눌러 저장하세요.",
     "addFavorite": "즐겨찾기에 추가",
@@ -2756,8 +2757,8 @@
       "summaryLinked_other": "{{count}}개 자동 연결됨",
       "summaryGroups_one": "{{count}}개 그룹 결정 필요",
       "summaryGroups_other": "{{count}}개 그룹 결정 필요",
-      "summaryStale_one": " · {{count}}개 무효",
-      "summaryStale_other": " · {{count}}개 무효",
+      "summaryStale_one": " · {{count}}개 유효하지 않음",
+      "summaryStale_other": " · {{count}}개 유효하지 않음",
       "summaryUnreadable_one": " · {{count}}개 읽을 수 없음",
       "summaryUnreadable_other": " · {{count}}개 읽을 수 없음",
       "history_one": "기록: 로컬 {{local}} + 서버 {{remote}} = 재생 {{combined}}회",

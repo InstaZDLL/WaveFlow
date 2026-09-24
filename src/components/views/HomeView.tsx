@@ -71,9 +71,10 @@ const WAVEFORM_HEIGHTS = Array.from({ length: WAVEFORM_BAR_COUNT }, (_, i) => {
   return Math.max(0.1, Math.abs(wave) * envelope * 0.95 + envelope * 0.15);
 });
 
-function getGreetingKey(): "morning" | "evening" | "night" {
+function getGreetingKey(): "morning" | "afternoon" | "evening" | "night" {
   const hour = new Date().getHours();
-  if (hour >= 5 && hour < 18) return "morning";
+  if (hour >= 5 && hour < 12) return "morning";
+  if (hour >= 12 && hour < 18) return "afternoon";
   if (hour >= 18 && hour < 23) return "evening";
   return "night";
 }
