@@ -81,7 +81,10 @@ export function ImmersiveSidePanel({
       const headerBox = header.getBoundingClientRect();
       const style = getComputedStyle(header);
       const start = headerBox.left + parseFloat(style.paddingLeft);
-      // The bar is padded; its leftmost button is where the room ends.
+      // The room ends at the bar's leftmost button, not at the bar's own
+      // edge: the bar's padding is click-through (see `ImmersiveView`), so
+      // a tab under it still takes its clicks. Measuring to the bar's edge
+      // would cost 32px, enough to lose the pill on a 1080p panel.
       const firstButton = bar?.firstElementChild;
       const end = firstButton
         ? firstButton.getBoundingClientRect().left
