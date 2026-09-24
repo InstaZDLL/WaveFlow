@@ -1600,7 +1600,7 @@
       },
       "db_only": {
         "label": "WaveFlow のデータベースのみ",
-        "hint": "アプリのキャッシュに残ります。ファイルもタグも変更しません。"
+        "hint": "WaveFlow のデータベースにのみ残ります。ファイルもタグも変更しません。"
       }
     }
   },
@@ -2651,7 +2651,7 @@
       "title": "リモートサーバー",
       "subtitle": "このプロフィールを WaveFlow サーバーに接続します。プレイリストはサイドバーに表示されます。",
       "urlLabel": "サーバーの URL",
-      "identify": "種類を確認",
+      "identify": "サーバーを確認",
       "unknownType": "不明",
       "probeNative": "ネイティブ（ブラウザでサインイン）",
       "probeSubsonic": "Subsonic プロトコルのみ。ここでは同期履歴もサインインもまだできません",
@@ -2704,7 +2704,7 @@
       "emptyDescription": "「曲を追加」から、サーバーのカタログを検索してください。",
       "notFoundDescription": "このプレイリストは、接続中のサーバーにはもう存在しません。",
       "keepOffline": "オフラインで保存",
-      "keepingProgress": "{{done}}/{{total}}曲を保存済み",
+      "keepingProgress": "オフライン用にダウンロード中… {{done}}/{{total}}曲",
       "keptOffline_one": "{{count}}曲をオフライン保存",
       "keptOffline_other": "{{count}}曲をオフライン保存",
       "keptOffline_zero": "オフライン保存なし"
@@ -2767,8 +2767,8 @@
       "conversionSourceOption_other": "{{name}} · {{count}}曲",
       "conversionPreviewSummary_one": "{{name}}：{{convertible}}/{{total}}曲に確認済みのリンクがあります",
       "conversionPreviewSummary_other": "{{name}}：{{convertible}}/{{total}}曲に確認済みのリンクがあります",
-      "conversionBlocked_one": " · {{count}}件はコピー不可",
-      "conversionBlocked_other": " · {{count}}件はコピー不可",
+      "conversionBlocked_one": " · {{count}}件は確認済みのリンクなし",
+      "conversionBlocked_other": " · {{count}}件は確認済みのリンクなし",
       "conversionSuccessServer_one": "{{count}}曲をサーバーにコピーしました。",
       "conversionSuccessServer_other": "{{count}}曲をサーバーにコピーしました。",
       "conversionSuccessLocal_one": "{{count}}曲をローカルライブラリにコピーしました。",

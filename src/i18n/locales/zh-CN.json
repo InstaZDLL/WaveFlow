@@ -1600,7 +1600,7 @@
       },
       "db_only": {
         "label": "仅 WaveFlow 数据库",
-        "hint": "保留在应用缓存中。不会触碰任何文件或标签。"
+        "hint": "仅保留在 WaveFlow 数据库中。不会触碰任何文件或标签。"
       }
     }
   },
@@ -2767,8 +2767,8 @@
       "conversionSourceOption_other": "{{name}} · {{count}} 首曲目",
       "conversionPreviewSummary_one": "{{name}}：{{convertible}}/{{total}} 首曲目已有确认关联",
       "conversionPreviewSummary_other": "{{name}}：{{convertible}}/{{total}} 首曲目已有确认关联",
-      "conversionBlocked_one": " · {{count}} 首无法复制",
-      "conversionBlocked_other": " · {{count}} 首无法复制",
+      "conversionBlocked_one": " · {{count}} 首尚无确认关联",
+      "conversionBlocked_other": " · {{count}} 首尚无确认关联",
       "conversionSuccessServer_one": "已将 {{count}} 首曲目复制到服务器。",
       "conversionSuccessServer_other": "已将 {{count}} 首曲目复制到服务器。",
       "conversionSuccessLocal_one": "已将 {{count}} 首曲目复制到本地音乐库。",

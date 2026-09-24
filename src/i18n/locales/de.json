@@ -1098,7 +1098,7 @@
   "batchTagEdit": {
     "title": "Tags stapelweise bearbeiten",
     "subtitle": "{{count}} Titel ausgewählt",
-    "help": "Markiere die Felder, die auf alle Titel angewendet werden sollen. Nicht markierte Felder bleiben pro Titel unberührt.",
+    "help": "Markiere die Felder, die auf alle ausgewählten Titel angewendet werden sollen. Nicht markierte Felder behalten den eigenen Wert jedes Titels.",
     "submit": "Anwenden ({{count}} Feld(er))",
     "fields": {
       "artist": "Künstler",
@@ -1413,7 +1413,7 @@
       "plain": "Nicht synchronisiert"
     },
     "toast": {
-      "tagWriteSkipped": "TTML nur im Cache behalten (nicht in den Audio-Tag geschrieben)",
+      "tagWriteSkipped": "TTML nur in der Datenbank gespeichert (nicht in den Audio-Tag geschrieben)",
       "sidecarWriteSkipped": "Songtext in der Datenbank gespeichert, aber TTML kann nicht in eine .lrc/.txt-Sidecar-Datei geschrieben werden."
     },
     "excludedGenre": "Für das Genre {{genre}} werden keine Songtexte online gesucht (Einstellungen → Bilder und Songtexte). Du kannst eine .lrc-Datei importieren oder trotzdem suchen."
@@ -1600,7 +1600,7 @@
       },
       "db_only": {
         "label": "Nur WaveFlow-Datenbank",
-        "hint": "Bleibt im App-Cache. Keine Dateien oder Tags werden verändert."
+        "hint": "Bleibt in der WaveFlow-Datenbank. Keine Dateien oder Tags werden verändert."
       }
     }
   },
@@ -2117,7 +2117,7 @@
     "appearance": {
       "theme": {
         "title": "Design",
-        "subtitle": "Wähle eine Stimmung — das Wechseln färbt die gesamte App neu ein."
+        "subtitle": "Wähle deinen Look — ein Wechsel färbt die gesamte App sofort neu ein."
       },
       "mode": {
         "light": "Hell",
@@ -2288,7 +2288,7 @@
     },
     "lyricsProviders": {
       "title": "Online-Songtextanbieter",
-      "subtitle": "Ein abgewählter Anbieter wird nicht mehr automatisch abgefragt. Bereits gelieferte Songtexte bleiben im Cache: „Erneut suchen“ im Songtextbereich ersetzt sie.",
+      "subtitle": "Ein abgewählter Anbieter wird nicht mehr automatisch abgefragt. Bereits gelieferte Songtexte bleiben gespeichert: „Erneut suchen“ im Songtextbereich ersetzt sie.",
       "alwaysOn": "immer aktiv",
       "geniusNote": "ohne Zeitstempel, und antwortet ohne Sitzungs-Cookie selten"
     },
@@ -2303,7 +2303,7 @@
     },
     "lyricsDestination": {
       "title": "Speicherort für Songtexte",
-      "subtitle": "Wo Songtexte auf der Festplatte landen — die, die du schreibst, und die, die WaveFlow abruft. Den Speicherort kannst du bei jeder Bearbeitung einzeln festlegen."
+      "subtitle": "Wo Songtexte auf der Festplatte landen — die, die du schreibst, und die, die WaveFlow abruft. Bei jeder Bearbeitung kannst du unten im Editor trotzdem anders wählen."
     },
     "updateChannel": {
       "title": "Beta-Kanal",
@@ -2311,7 +2311,7 @@
     },
     "artistBio": {
       "title": "Biografiequelle",
-      "subtitle": "Welcher Dienst die Künstlerbiografien liefert.",
+      "subtitle": "Wähle, welcher Dienst die Künstlerbiografien liefert.",
       "lastfmHint": "Englische Biografien. Benötigt deinen Last.fm-API-Schlüssel.",
       "theaudiodbHint": "Community-Biografien in mehreren Sprachen. Kein Schlüssel nötig.",
       "languageLabel": "Sprache der Biografie"
@@ -2328,7 +2328,7 @@
       "clear": "Katalog löschen",
       "neverSynced": "nie",
       "localFirst": "Lokalen Katalog bevorzugen",
-      "localFirstHint": "Auch online lokal suchen und stöbern (sofort, kein Netzwerk).",
+      "localFirstHint": "Auch online im heruntergeladenen Katalog suchen und stöbern (sofort, ohne Netzwerkanfrage).",
       "offlineHint": "Deaktiviere den Offline-Modus, um den Katalog herunterzuladen.",
       "errors": {
         "loadFailed": "Katalogstatus konnte nicht geladen werden.",
@@ -2407,7 +2407,7 @@
     },
     "windowChrome": {
       "title": "Fensterrahmen",
-      "subtitle": "Wer die Leiste oben am Fenster zeichnet: dein Desktop oder WaveFlow.",
+      "subtitle": "Wähle, wer die Leiste oben am Fenster zeichnet: dein Desktop oder WaveFlow.",
       "options": {
         "system": {
           "label": "System",
@@ -2651,7 +2651,7 @@
       "title": "Remote-Server",
       "subtitle": "Verbinde dieses Profil mit einem WaveFlow-Server. Playlists erscheinen in der Seitenleiste.",
       "urlLabel": "Server-URL",
-      "identify": "Identifizieren",
+      "identify": "Server prüfen",
       "unknownType": "unbekannt",
       "probeNative": "nativ, Anmeldung über den Browser",
       "probeSubsonic": "Nur Subsonic-Protokoll; hier bisher kein Journal und keine Anmeldung",
@@ -2704,10 +2704,10 @@
       "emptyDescription": "Nutze „Titel hinzufügen“, um den Katalog des Servers zu durchsuchen.",
       "notFoundDescription": "Diese Playlist existiert auf dem verbundenen Server nicht mehr.",
       "keepOffline": "Offline behalten",
-      "keepingProgress": "{{done}}/{{total}} behalten",
-      "keptOffline_one": "{{count}} offline",
-      "keptOffline_other": "{{count}} offline",
-      "keptOffline_zero": "nichts offline"
+      "keepingProgress": "Wird für Offline-Nutzung geladen… {{done}}/{{total}}",
+      "keptOffline_one": "{{count}} offline verfügbar",
+      "keptOffline_other": "{{count}} offline verfügbar",
+      "keptOffline_zero": "nichts offline verfügbar"
     },
     "reconciliation": {
       "title": "Abgleich lokal ↔ Server",
@@ -2767,8 +2767,8 @@
       "conversionSourceOption_other": "{{name}} · {{count}} Titel",
       "conversionPreviewSummary_one": "{{name}}: {{convertible}}/{{total}} Titel hat eine bestätigte Verknüpfung",
       "conversionPreviewSummary_other": "{{name}}: {{convertible}}/{{total}} Titel haben bestätigte Verknüpfungen",
-      "conversionBlocked_one": " · {{count}} blockiert",
-      "conversionBlocked_other": " · {{count}} blockiert",
+      "conversionBlocked_one": " · {{count}} ohne bestätigte Verknüpfung",
+      "conversionBlocked_other": " · {{count}} ohne bestätigte Verknüpfung",
       "conversionSuccessServer_one": "{{count}} Titel auf den Server kopiert.",
       "conversionSuccessServer_other": "{{count}} Titel auf den Server kopiert.",
       "conversionSuccessLocal_one": "{{count}} Titel in die lokale Bibliothek kopiert.",
@@ -2854,7 +2854,7 @@
         "quota_exceeded": "Kein Platz mehr auf dem Server: {{count}}",
         "library_closed": "Bibliothek nimmt keine Dateien an: {{count}}",
         "too_many_sessions": "Zu viele Uploads gleichzeitig: {{count}}",
-        "unknown_verdict": "Antwort, die dieser Build nicht kennt: {{count}}",
+        "unknown_verdict": "Unbekannte Serverantwort: {{count}}",
         "failed": "Fehlgeschlagen: {{count}}"
       }
     },

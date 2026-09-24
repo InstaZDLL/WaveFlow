@@ -982,7 +982,7 @@
       "title": "Kelola profil",
       "subtitle": "Pilih profil untuk dihapus. Profil aktif tidak dapat dihapus dari sini.",
       "activeLocked": "Profil aktif",
-      "deleteHint": "Ketuk untuk menghapus",
+      "deleteHint": "Klik untuk menghapus",
       "deleteAria": "Hapus profil {{name}}"
     },
     "delete": {
@@ -1098,7 +1098,7 @@
   "batchTagEdit": {
     "title": "Sunting tag massal",
     "subtitle": "{{count}} lagu dipilih",
-    "help": "Centang kolom yang ingin diterapkan ke semua lagu. Kolom yang tidak dicentang tetap utuh per lagu.",
+    "help": "Centang kolom yang ingin diterapkan ke semua lagu. Kolom yang tidak dicentang mempertahankan nilai masing-masing lagu.",
     "submit": "Terapkan ({{count}} kolom)",
     "fields": {
       "artist": "Artis",
@@ -1413,7 +1413,7 @@
       "plain": "Tidak tersinkronisasi"
     },
     "toast": {
-      "tagWriteSkipped": "TTML disimpan di cache saja (tidak ditulis ke tag audio)",
+      "tagWriteSkipped": "TTML disimpan di database saja (tidak ditulis ke tag audio)",
       "sidecarWriteSkipped": "Lirik disimpan ke database, tetapi TTML tidak dapat disimpan dalam berkas pendamping .lrc/.txt."
     },
     "excludedGenre": "Lirik tidak dicari secara daring untuk genre {{genre}} (Pengaturan → Gambar dan lirik). Kamu bisa mengimpor berkas .lrc atau tetap mencari."
@@ -1600,7 +1600,7 @@
       },
       "db_only": {
         "label": "Hanya database WaveFlow",
-        "hint": "Tetap di cache app. Tidak ada berkas atau tag yang disentuh."
+        "hint": "Tetap di database WaveFlow. Tidak ada berkas atau tag yang disentuh."
       }
     }
   },
@@ -2117,7 +2117,7 @@
     "appearance": {
       "theme": {
         "title": "Tema",
-        "subtitle": "Pilih suasana — mengganti tema mewarnai ulang seluruh aplikasi seketika."
+        "subtitle": "Pilih nuansa yang cocok untukmu — warna seluruh aplikasi langsung berubah."
       },
       "mode": {
         "light": "Terang",
@@ -2303,7 +2303,7 @@
     },
     "lyricsDestination": {
       "title": "Tujuan lirik tersimpan",
-      "subtitle": "Tempat lirik disimpan di disk: yang kamu tulis dan yang diambil WaveFlow. Kamu tetap bisa menggantinya per suntingan dari bagian bawah editor."
+      "subtitle": "Tempat lirik disimpan di disk: yang kamu tulis dan yang diambil WaveFlow. Kamu tetap bisa memilih tujuan lain untuk setiap suntingan, dari bagian bawah editor."
     },
     "updateChannel": {
       "title": "Saluran beta",
@@ -2311,7 +2311,7 @@
     },
     "artistBio": {
       "title": "Sumber biografi",
-      "subtitle": "Layanan mana yang menyediakan biografi artis.",
+      "subtitle": "Pilih layanan yang menyediakan biografi artis.",
       "lastfmHint": "Biografi berbahasa Inggris. Memerlukan kunci API Last.fm kamu.",
       "theaudiodbHint": "Biografi komunitas dalam beberapa bahasa. Tanpa kunci.",
       "languageLabel": "Bahasa biografi"
@@ -2407,7 +2407,7 @@
     },
     "windowChrome": {
       "title": "Bingkai jendela",
-      "subtitle": "Siapa yang menggambar bilah di atas jendela: desktop kamu atau WaveFlow.",
+      "subtitle": "Pilih siapa yang menggambar bilah di atas jendela: desktop kamu atau WaveFlow.",
       "options": {
         "system": {
           "label": "Sistem",
@@ -2599,7 +2599,7 @@
     "unavailableTitle": "Radio Web dinonaktifkan",
     "unavailableHint": "Aktifkan plugin Web Radio di Pengaturan → Ekstensi untuk menjelajahi lebih dari 30.000 stasiun.",
     "favorites": "Favorit",
-    "favoritesEmpty": "Belum ada stasiun favorit. Ketuk bintang stasiun untuk menyimpannya.",
+    "favoritesEmpty": "Belum ada stasiun favorit. Klik bintang stasiun untuk menyimpannya.",
     "addFavorite": "Tambahkan ke favorit",
     "removeFavorite": "Hapus dari favorit",
     "localStations": "Stasiun lokal",
@@ -2651,7 +2651,7 @@
       "title": "Server jarak jauh",
       "subtitle": "Tautkan profil ini ke server WaveFlow. Daftar putar muncul di bilah samping.",
       "urlLabel": "URL server",
-      "identify": "Identifikasi",
+      "identify": "Periksa server",
       "unknownType": "tidak diketahui",
       "probeNative": "native, masuk melalui peramban",
       "probeSubsonic": "Protokol Subsonic saja; belum ada jurnal atau alur masuk di sini",
@@ -2704,10 +2704,10 @@
       "emptyDescription": "Gunakan \"Tambah lagu\" untuk mencari di katalog server.",
       "notFoundDescription": "Daftar putar ini sudah tidak ada di server yang terhubung.",
       "keepOffline": "Simpan luring",
-      "keepingProgress": "{{done}}/{{total}} disimpan",
-      "keptOffline_one": "{{count}} luring",
-      "keptOffline_other": "{{count}} luring",
-      "keptOffline_zero": "tidak ada luring"
+      "keepingProgress": "Mengunduh untuk diputar luring… {{done}}/{{total}}",
+      "keptOffline_one": "{{count}} tersedia luring",
+      "keptOffline_other": "{{count}} tersedia luring",
+      "keptOffline_zero": "tidak ada yang tersedia luring"
     },
     "reconciliation": {
       "title": "Pencocokan lokal ↔ server",
@@ -2767,8 +2767,8 @@
       "conversionSourceOption_other": "{{name}} · {{count}} lagu",
       "conversionPreviewSummary_one": "{{name}}: {{convertible}}/{{total}} lagu punya tautan terkonfirmasi",
       "conversionPreviewSummary_other": "{{name}}: {{convertible}}/{{total}} lagu punya tautan terkonfirmasi",
-      "conversionBlocked_one": " · {{count}} terblokir",
-      "conversionBlocked_other": " · {{count}} terblokir",
+      "conversionBlocked_one": " · {{count}} tanpa tautan terkonfirmasi",
+      "conversionBlocked_other": " · {{count}} tanpa tautan terkonfirmasi",
       "conversionSuccessServer_one": "{{count}} lagu disalin ke server.",
       "conversionSuccessServer_other": "{{count}} lagu disalin ke server.",
       "conversionSuccessLocal_one": "{{count}} lagu disalin ke pustaka lokal.",
@@ -2854,7 +2854,7 @@
         "quota_exceeded": "Ruang server habis: {{count}}",
         "library_closed": "Pustaka menolak unggahan: {{count}}",
         "too_many_sessions": "Terlalu banyak unggahan sekaligus: {{count}}",
-        "unknown_verdict": "Jawaban yang tak dikenal versi ini: {{count}}",
+        "unknown_verdict": "Jawaban server tidak dikenali: {{count}}",
         "failed": "Gagal: {{count}}"
       }
     },

@@ -1022,7 +1022,7 @@
       "title": "Gerir perfis",
       "subtitle": "Seleciona um perfil para remover. O perfil ativo não pode ser eliminado a partir daqui.",
       "activeLocked": "Perfil ativo",
-      "deleteHint": "Toca para eliminar",
+      "deleteHint": "Clica para eliminar",
       "deleteAria": "Eliminar perfil {{name}}"
     },
     "delete": {
@@ -1141,7 +1141,7 @@
   "batchTagEdit": {
     "title": "Editar etiquetas em lote",
     "subtitle": "{{count}} faixas selecionadas",
-    "help": "Marca os campos a propagar a toda a seleção. Campos não marcados ficam intactos por faixa.",
+    "help": "Marca os campos a aplicar a todas as faixas selecionadas. Os campos não marcados mantêm o valor próprio de cada faixa.",
     "submit": "Aplicar ({{count}} campo(s))",
     "fields": {
       "artist": "Artista",
@@ -1464,7 +1464,7 @@
       "plain": "Não sincronizado"
     },
     "toast": {
-      "tagWriteSkipped": "TTML mantido apenas em cache (não escrito nos metadados de áudio)",
+      "tagWriteSkipped": "TTML guardado apenas na base de dados (não escrito nas etiquetas do ficheiro de áudio)",
       "sidecarWriteSkipped": "Letras guardadas na base de dados, mas o TTML não pode ser guardado num ficheiro auxiliar .lrc/.txt."
     },
     "excludedGenre": "As letras não são procuradas online para o género {{genre}} (Definições → Imagens e letras). Podes importar um ficheiro .lrc ou procurar na mesma."
@@ -1655,7 +1655,7 @@
       },
       "db_only": {
         "label": "Apenas base de dados WaveFlow",
-        "hint": "Permanece na cache da app. Nenhum ficheiro nem etiqueta são tocados."
+        "hint": "Permanece na base de dados da app. Nenhum ficheiro nem etiqueta são tocados."
       }
     }
   },
@@ -1772,7 +1772,7 @@
         "volumeDown": "Diminuir volume",
         "toggleMute": "Silenciar / Ativar o som",
         "toggleShuffle": "Modo aleatório",
-        "cycleRepeat": "Modo de repetição",
+        "cycleRepeat": "Mudar o modo de repetição",
         "toggleQueue": "Mostrar / Ocultar fila",
         "toggleNowPlaying": "Mostrar / Ocultar painel A reproduzir",
         "toggleLyrics": "Mostrar / Ocultar letra",
@@ -1795,7 +1795,7 @@
         "hide": "Ocultar",
         "connectedAs": "Sessão iniciada como",
         "disconnect": "Sair",
-        "loginPrompt": "Inicia sessão para fazer scrobble do teu histórico de audição:",
+        "loginPrompt": "Inicia sessão para fazer scrobble das tuas reproduções:",
         "usernamePlaceholder": "Nome de utilizador",
         "passwordPlaceholder": "Palavra-passe",
         "connect": "Iniciar sessão",
@@ -2364,7 +2364,7 @@
     },
     "lyricsDestination": {
       "title": "Destino das letras guardadas",
-      "subtitle": "Para onde vão as letras no disco: as que escreves e as que o WaveFlow obtém. Podes alterar o destino em cada edição."
+      "subtitle": "Para onde vão as letras no disco: as que escreves e as que o WaveFlow obtém. Podes sempre escolher outro destino em cada edição, a partir do rodapé do editor."
     },
     "updateChannel": {
       "title": "Canal beta",
@@ -2372,7 +2372,7 @@
     },
     "artistBio": {
       "title": "Fonte da biografia",
-      "subtitle": "Que serviço fornece as biografias dos artistas.",
+      "subtitle": "Escolhe o serviço que fornece as biografias dos artistas.",
       "lastfmHint": "Biografias em inglês. Requer a tua chave de API do Last.fm.",
       "theaudiodbHint": "Biografias da comunidade em vários idiomas. Não requer chave.",
       "languageLabel": "Idioma da biografia"
@@ -2390,7 +2390,7 @@
       "clear": "Eliminar catálogo",
       "neverSynced": "nunca",
       "localFirst": "Preferir catálogo local",
-      "localFirstHint": "Pesquisa e explora localmente mesmo online (instantâneo, sem rede).",
+      "localFirstHint": "Pesquisa e explora o catálogo descarregado mesmo quando estás online (instantâneo, sem pedidos à rede).",
       "offlineHint": "Desativa o modo offline para descarregar o catálogo.",
       "errors": {
         "loadFailed": "Falha ao carregar o estado do catálogo.",
@@ -2469,7 +2469,7 @@
     },
     "windowChrome": {
       "title": "Moldura da janela",
-      "subtitle": "Quem desenha a barra no topo da janela: o teu ambiente de trabalho ou o WaveFlow.",
+      "subtitle": "Escolhe quem desenha a barra no topo da janela: o teu ambiente de trabalho ou o WaveFlow.",
       "options": {
         "system": {
           "label": "Sistema",
@@ -2662,7 +2662,7 @@
     "unavailableTitle": "A Rádio Web está desativada",
     "unavailableHint": "Ativa o plugin Web Radio em Definições → Extensões para explorar mais de 30 000 estações.",
     "favorites": "Favoritos",
-    "favoritesEmpty": "Ainda não há estações favoritas. Toca na estrela de uma estação para a guardar.",
+    "favoritesEmpty": "Ainda não há estações favoritas. Clica na estrela de uma estação para a guardar.",
     "addFavorite": "Adicionar aos favoritos",
     "removeFavorite": "Remover dos favoritos",
     "localStations": "Estações locais",
@@ -2714,7 +2714,7 @@
       "title": "Servidor remoto",
       "subtitle": "Associa este perfil a um servidor WaveFlow. As listas de reprodução aparecem na barra lateral.",
       "urlLabel": "URL do servidor",
-      "identify": "Identificar",
+      "identify": "Verificar servidor",
       "unknownType": "desconhecido",
       "probeNative": "nativo, inicia sessão através do navegador",
       "probeSubsonic": "Apenas o protocolo Subsonic; sem registo nem início de sessão aqui por agora",
@@ -2723,7 +2723,7 @@
       "syncNow": "Sincronizar",
       "signOut": "Terminar sessão",
       "forget": "Esquecer servidor",
-      "forgetTitle": "Descarta a biblioteca em cache e qualquer alteração feita offline que nunca chegou ao servidor",
+      "forgetTitle": "Descarta a cópia local da biblioteca do servidor e qualquer alteração feita offline que nunca chegou ao servidor",
       "neverSynced": "Ainda nunca sincronizado — a primeira passagem descarrega um instantâneo completo.",
       "counts": {
         "playlists_one": "lista",
@@ -2777,11 +2777,11 @@
       "emptyDescription": "Usa «Adicionar faixas» para procurar no catálogo do servidor.",
       "notFoundDescription": "Esta lista já não existe no servidor associado.",
       "keepOffline": "Manter offline",
-      "keepingProgress": "a manter {{done}}/{{total}} offline",
-      "keptOffline_one": "{{count}} mantida offline",
-      "keptOffline_other": "{{count}} mantidas offline",
-      "keptOffline_many": "{{count}} mantidas offline",
-      "keptOffline_zero": "nenhuma mantida offline"
+      "keepingProgress": "A descarregar para ouvir offline… {{done}}/{{total}}",
+      "keptOffline_one": "{{count}} disponível offline",
+      "keptOffline_other": "{{count}} disponíveis offline",
+      "keptOffline_many": "{{count}} disponíveis offline",
+      "keptOffline_zero": "nenhuma disponível offline"
     },
     "reconciliation": {
       "title": "Correspondência local ↔ servidor",
@@ -2849,9 +2849,9 @@
       "conversionPreviewSummary_one": "{{name}}: {{convertible}}/{{total}} faixa tem uma ligação confirmada",
       "conversionPreviewSummary_other": "{{name}}: {{convertible}}/{{total}} faixas têm ligações confirmadas",
       "conversionPreviewSummary_many": "{{name}}: {{convertible}}/{{total}} faixas têm ligações confirmadas",
-      "conversionBlocked_one": " · {{count}} bloqueada",
-      "conversionBlocked_other": " · {{count}} bloqueadas",
-      "conversionBlocked_many": " · {{count}} bloqueadas",
+      "conversionBlocked_one": " · {{count}} sem ligação confirmada",
+      "conversionBlocked_other": " · {{count}} sem ligação confirmada",
+      "conversionBlocked_many": " · {{count}} sem ligação confirmada",
       "conversionSuccessServer_one": "{{count}} faixa copiada para o servidor.",
       "conversionSuccessServer_other": "{{count}} faixas copiadas para o servidor.",
       "conversionSuccessServer_many": "{{count}} faixas copiadas para o servidor.",
@@ -2942,7 +2942,7 @@
         "quota_exceeded": "Sem espaço no servidor: {{count}}",
         "library_closed": "Biblioteca fechada a envios: {{count}}",
         "too_many_sessions": "Envios simultâneos a mais: {{count}}",
-        "unknown_verdict": "Resposta desconhecida desta versão: {{count}}",
+        "unknown_verdict": "Resposta do servidor não reconhecida: {{count}}",
         "failed": "Falharam: {{count}}"
       }
     },

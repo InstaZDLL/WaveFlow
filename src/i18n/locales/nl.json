@@ -320,7 +320,7 @@
       },
       "party": {
         "title": "Feest",
-        "subtitle": "Dansbare tempo's, hoge energie"
+        "subtitle": "Dansbare tempo's, vol energie"
       },
       "sleep": {
         "title": "Slapen",
@@ -982,7 +982,7 @@
       "title": "Profielen beheren",
       "subtitle": "Selecteer een profiel om te verwijderen. Het actieve profiel kan hier niet worden verwijderd.",
       "activeLocked": "Actief profiel",
-      "deleteHint": "Tik om te verwijderen",
+      "deleteHint": "Klik om te verwijderen",
       "deleteAria": "Profiel {{name}} verwijderen"
     },
     "delete": {
@@ -1098,7 +1098,7 @@
   "batchTagEdit": {
     "title": "Tags batchgewijs bewerken",
     "subtitle": "{{count}} nummers geselecteerd",
-    "help": "Vink de velden aan die je op alle nummers wilt toepassen. Niet-aangevinkte velden blijven per nummer onaangeroerd.",
+    "help": "Vink de velden aan die je op alle geselecteerde nummers wilt toepassen. Niet-aangevinkte velden behouden de eigen waarde van elk nummer.",
     "submit": "Toepassen ({{count}} veld(en))",
     "fields": {
       "artist": "Artiest",
@@ -1413,7 +1413,7 @@
       "plain": "Niet gesynchroniseerd"
     },
     "toast": {
-      "tagWriteSkipped": "TTML alleen in de cache bewaard (niet naar de audiotag geschreven)",
+      "tagWriteSkipped": "TTML alleen in de database bewaard (niet naar de audiotag geschreven)",
       "sidecarWriteSkipped": "Songtekst opgeslagen in de database, maar TTML kan niet worden opgeslagen als .lrc/.txt-sidecar."
     },
     "excludedGenre": "Voor het genre {{genre}} worden songteksten niet online gezocht (Instellingen → Afbeeldingen en songteksten). Je kunt een .lrc-bestand importeren of toch zoeken."
@@ -1600,7 +1600,7 @@
       },
       "db_only": {
         "label": "Alleen WaveFlow-database",
-        "hint": "Blijft in de cache van de app. Geen bestanden of tags worden aangeraakt."
+        "hint": "Blijft in de database van WaveFlow. Geen bestanden of tags worden aangeraakt."
       }
     }
   },
@@ -1717,7 +1717,7 @@
         "volumeDown": "Volume omlaag",
         "toggleMute": "Dempen / Dempen opheffen",
         "toggleShuffle": "Willekeurig",
-        "cycleRepeat": "Herhaalmodus doorlopen",
+        "cycleRepeat": "Herhaalmodus wisselen",
         "toggleQueue": "Wachtrijpaneel in-/uitschakelen",
         "toggleNowPlaying": "Paneel ‘Speelt nu’ in-/uitschakelen",
         "toggleLyrics": "Songtekstpaneel in-/uitschakelen",
@@ -2117,7 +2117,7 @@
     "appearance": {
       "theme": {
         "title": "Thema",
-        "subtitle": "Kies een sfeer — themawisseling verft de hele app direct opnieuw."
+        "subtitle": "Kies een sfeer: een ander thema kleurt de hele app meteen anders in."
       },
       "mode": {
         "light": "Licht",
@@ -2154,7 +2154,7 @@
         },
         "lounge": {
           "label": "Lounge",
-          "description": "Premium glas — de albumhoes wordt de achtergrond, doorschijnende panelen, zachte overgangen."
+          "description": "Premium glaseffect — de albumhoes als achtergrond, doorschijnende panelen, rustige overgangen."
         },
         "pulse": {
           "label": "Pulse",
@@ -2288,7 +2288,7 @@
     },
     "lyricsProviders": {
       "title": "Online songtekstbronnen",
-      "subtitle": "Een uitgevinkte bron wordt niet meer automatisch geraadpleegd. Songteksten die ze al leverde blijven in de cache: ‘Opnieuw zoeken’ in het songtekstpaneel vervangt ze.",
+      "subtitle": "Een uitgevinkte bron wordt niet meer automatisch geraadpleegd. Songteksten die ze al leverde blijven bewaard: ‘Opnieuw zoeken’ in het songtekstpaneel vervangt ze.",
       "alwaysOn": "altijd aan",
       "geniusNote": "zonder tijdcodes, en antwoordt zelden zonder sessiecookie"
     },
@@ -2303,7 +2303,7 @@
     },
     "lyricsDestination": {
       "title": "Bestemming voor opgeslagen songteksten",
-      "subtitle": "Waar songteksten op schijf terechtkomen — die je zelf schrijft en die WaveFlow ophaalt. Per bewerking te overschrijven."
+      "subtitle": "Waar songteksten op schijf terechtkomen — die je zelf schrijft en die WaveFlow ophaalt. Per bewerking kun je nog anders kiezen, onderaan de songtekstbewerker."
     },
     "updateChannel": {
       "title": "Bètakanaal",
@@ -2311,7 +2311,7 @@
     },
     "artistBio": {
       "title": "Biografiebron",
-      "subtitle": "Welke dienst de artiestbiografieën levert.",
+      "subtitle": "Kies welke dienst de artiestbiografieën levert.",
       "lastfmHint": "Engelse biografieën. Vereist je Last.fm-API-sleutel.",
       "theaudiodbHint": "Community-biografieën in meerdere talen. Geen sleutel nodig.",
       "languageLabel": "Taal van de biografie"
@@ -2328,7 +2328,7 @@
       "clear": "Catalogus verwijderen",
       "neverSynced": "nooit",
       "localFirst": "Lokale catalogus verkiezen",
-      "localFirstHint": "Zoek en blader lokaal, ook online (direct, geen netwerk).",
+      "localFirstHint": "Doorzoek en doorblader de gedownloade catalogus lokaal, ook als je online bent (direct, zonder netwerk).",
       "offlineHint": "Schakel de offlinemodus uit om de catalogus te downloaden.",
       "errors": {
         "loadFailed": "Kan catalogusstatus niet laden.",
@@ -2407,7 +2407,7 @@
     },
     "windowChrome": {
       "title": "Vensterrand",
-      "subtitle": "Wie de balk bovenaan het venster tekent: je bureaublad of WaveFlow.",
+      "subtitle": "Kies wie de balk bovenaan het venster tekent: je bureaublad of WaveFlow.",
       "options": {
         "system": {
           "label": "Systeem",
@@ -2651,7 +2651,7 @@
       "title": "Externe server",
       "subtitle": "Koppel dit profiel aan een WaveFlow-server. Afspeellijsten verschijnen in de zijbalk.",
       "urlLabel": "Server-URL",
-      "identify": "Identificeren",
+      "identify": "Server controleren",
       "unknownType": "onbekend",
       "probeNative": "native, aanmelden via de browser",
       "probeSubsonic": "Alleen Subsonic-protocol; nog geen logboek of aanmelding hier",
@@ -2704,10 +2704,10 @@
       "emptyDescription": "Gebruik ‘Nummers toevoegen’ om de catalogus van de server te doorzoeken.",
       "notFoundDescription": "Deze afspeellijst staat niet meer op de gekoppelde server.",
       "keepOffline": "Offline bewaren",
-      "keepingProgress": "{{done}}/{{total}} bewaard",
-      "keptOffline_one": "{{count}} offline",
-      "keptOffline_other": "{{count}} offline",
-      "keptOffline_zero": "niets offline"
+      "keepingProgress": "Downloaden voor offline gebruik… {{done}}/{{total}}",
+      "keptOffline_one": "{{count}} offline beschikbaar",
+      "keptOffline_other": "{{count}} offline beschikbaar",
+      "keptOffline_zero": "niets offline beschikbaar"
     },
     "reconciliation": {
       "title": "Lokaal ↔ server-koppeling",
@@ -2767,8 +2767,8 @@
       "conversionSourceOption_other": "{{name}} · {{count}} nummers",
       "conversionPreviewSummary_one": "{{name}}: {{convertible}}/{{total}} nummer heeft een bevestigde koppeling",
       "conversionPreviewSummary_other": "{{name}}: {{convertible}}/{{total}} nummers hebben bevestigde koppelingen",
-      "conversionBlocked_one": " · {{count}} geblokkeerd",
-      "conversionBlocked_other": " · {{count}} geblokkeerd",
+      "conversionBlocked_one": " · {{count}} zonder bevestigde koppeling",
+      "conversionBlocked_other": " · {{count}} zonder bevestigde koppeling",
       "conversionSuccessServer_one": "{{count}} nummer naar de server gekopieerd.",
       "conversionSuccessServer_other": "{{count}} nummers naar de server gekopieerd.",
       "conversionSuccessLocal_one": "{{count}} nummer naar de lokale bibliotheek gekopieerd.",
@@ -2854,7 +2854,7 @@
         "quota_exceeded": "Geen ruimte meer op de server: {{count}}",
         "library_closed": "Bibliotheek accepteert geen uploads: {{count}}",
         "too_many_sessions": "Te veel uploads tegelijk: {{count}}",
-        "unknown_verdict": "Antwoord dat deze versie niet kent: {{count}}",
+        "unknown_verdict": "Onbekend antwoord van de server: {{count}}",
         "failed": "Mislukt: {{count}}"
       }
     },

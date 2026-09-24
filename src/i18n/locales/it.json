@@ -1021,7 +1021,7 @@
       "title": "Gestisci profili",
       "subtitle": "Seleziona un profilo da rimuovere. Il profilo attivo non può essere eliminato da qui.",
       "activeLocked": "Profilo attivo",
-      "deleteHint": "Tocca per eliminare",
+      "deleteHint": "Clicca per eliminare",
       "deleteAria": "Elimina il profilo {{name}}"
     },
     "delete": {
@@ -1140,7 +1140,7 @@
   "batchTagEdit": {
     "title": "Modifica i tag in batch",
     "subtitle": "{{count}} brani selezionati",
-    "help": "Seleziona i campi da applicare a tutti i brani. I campi non selezionati restano intatti per ciascun brano.",
+    "help": "Seleziona i campi da applicare a tutti i brani. I campi non selezionati mantengono il valore proprio di ciascun brano.",
     "submit": "Applica ({{count}} campi)",
     "fields": {
       "artist": "Artista",
@@ -1463,7 +1463,7 @@
       "plain": "Non sincronizzati"
     },
     "toast": {
-      "tagWriteSkipped": "TTML mantenuto solo nella cache (non scritto nel tag audio)",
+      "tagWriteSkipped": "TTML salvato solo nel database (non scritto nel tag audio)",
       "sidecarWriteSkipped": "Testi salvati nel database, ma il formato TTML non è supportato nei file sidecar .lrc/.txt."
     },
     "excludedGenre": "I testi non vengono cercati online per il genere {{genre}} (Impostazioni → Immagini e testi). Puoi importare un file .lrc o cercare comunque."
@@ -1654,7 +1654,7 @@
       },
       "db_only": {
         "label": "Solo database WaveFlow",
-        "hint": "Rimane nella cache dell'app. Nessun file o tag toccato."
+        "hint": "Rimane nel database di WaveFlow. Nessun file o tag toccato."
       }
     }
   },
@@ -2177,7 +2177,7 @@
     "appearance": {
       "theme": {
         "title": "Tema",
-        "subtitle": "Scegli un'atmosfera — cambiare tema ritinge l'intera app istantaneamente."
+        "subtitle": "Scegli l'atmosfera che preferisci: il cambio di tema ricolora subito tutta l'app."
       },
       "mode": {
         "light": "Chiaro",
@@ -2371,7 +2371,7 @@
     },
     "artistBio": {
       "title": "Fonte della biografia",
-      "subtitle": "Quale servizio fornisce le biografie degli artisti.",
+      "subtitle": "Scegli quale servizio fornisce le biografie degli artisti.",
       "lastfmHint": "Biografie in inglese. Richiede la tua chiave API Last.fm.",
       "theaudiodbHint": "Biografie della community in più lingue. Nessuna chiave richiesta.",
       "languageLabel": "Lingua della biografia"
@@ -2468,7 +2468,7 @@
     },
     "windowChrome": {
       "title": "Cornice della finestra",
-      "subtitle": "Chi disegna la barra in cima alla finestra: il tuo desktop o WaveFlow.",
+      "subtitle": "Scegli chi disegna la barra in cima alla finestra: il tuo desktop o WaveFlow.",
       "options": {
         "system": {
           "label": "Sistema",
@@ -2661,7 +2661,7 @@
     "unavailableTitle": "Web Radio è disattivata",
     "unavailableHint": "Attiva il plugin Web Radio in Impostazioni → Estensioni per sfogliare oltre 30.000 stazioni.",
     "favorites": "Preferiti",
-    "favoritesEmpty": "Nessuna stazione preferita. Tocca la stella di una stazione per salvarla.",
+    "favoritesEmpty": "Nessuna stazione preferita. Clicca sulla stella di una stazione per salvarla.",
     "addFavorite": "Aggiungi ai preferiti",
     "removeFavorite": "Rimuovi dai preferiti",
     "localStations": "Stazioni locali",
@@ -2713,7 +2713,7 @@
       "title": "Server remoto",
       "subtitle": "Collega questo profilo a un server WaveFlow. Le playlist compaiono nella barra laterale.",
       "urlLabel": "URL del server",
-      "identify": "Identifica",
+      "identify": "Verifica il server",
       "unknownType": "sconosciuto",
       "probeNative": "nativo, accesso tramite browser",
       "probeSubsonic": "solo protocollo Subsonic; per ora nessun registro delle modifiche né accesso da qui",
@@ -2776,11 +2776,11 @@
       "emptyDescription": "Usa «Aggiungi brani» per cercare nel catalogo del server.",
       "notFoundDescription": "Questa playlist non esiste più sul server collegato.",
       "keepOffline": "Tieni offline",
-      "keepingProgress": "{{done}}/{{total}} tenuti",
-      "keptOffline_one": "{{count}} offline",
-      "keptOffline_other": "{{count}} offline",
-      "keptOffline_many": "{{count}} offline",
-      "keptOffline_zero": "nessuno offline"
+      "keepingProgress": "Download offline in corso… {{done}}/{{total}}",
+      "keptOffline_one": "{{count}} disponibile offline",
+      "keptOffline_other": "{{count}} disponibili offline",
+      "keptOffline_many": "{{count}} disponibili offline",
+      "keptOffline_zero": "nessuno disponibile offline"
     },
     "reconciliation": {
       "title": "Corrispondenza locale ↔ server",
@@ -2848,9 +2848,9 @@
       "conversionPreviewSummary_one": "{{name}}: {{convertible}}/{{total}} brano ha un collegamento confermato",
       "conversionPreviewSummary_other": "{{name}}: {{convertible}}/{{total}} brani hanno collegamenti confermati",
       "conversionPreviewSummary_many": "{{name}}: {{convertible}}/{{total}} brani hanno collegamenti confermati",
-      "conversionBlocked_one": " · {{count}} bloccato",
-      "conversionBlocked_other": " · {{count}} bloccati",
-      "conversionBlocked_many": " · {{count}} bloccati",
+      "conversionBlocked_one": " · {{count}} senza collegamento confermato",
+      "conversionBlocked_other": " · {{count}} senza collegamento confermato",
+      "conversionBlocked_many": " · {{count}} senza collegamento confermato",
       "conversionSuccessServer_one": "{{count}} brano copiato sul server.",
       "conversionSuccessServer_other": "{{count}} brani copiati sul server.",
       "conversionSuccessServer_many": "{{count}} brani copiati sul server.",
@@ -2941,7 +2941,7 @@
         "quota_exceeded": "Spazio esaurito sul server: {{count}}",
         "library_closed": "Libreria chiusa ai caricamenti: {{count}}",
         "too_many_sessions": "Troppi caricamenti insieme: {{count}}",
-        "unknown_verdict": "Risposta che questa versione non riconosce: {{count}}",
+        "unknown_verdict": "Risposta del server non riconosciuta: {{count}}",
         "failed": "Non riusciti: {{count}}"
       }
     },
