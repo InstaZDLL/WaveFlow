@@ -18,7 +18,7 @@
   "rendering": {
     "banner": {
       "title": "Rendu logiciel activé",
-      "message": "Le démarrage précédent n'a jamais affiché l'interface. WaveFlow a désactivé l'accélération matérielle pour repartir ; l'affichage peut être plus lent.",
+      "message": "Le démarrage précédent n'a jamais affiché l'interface. WaveFlow a désactivé l'accélération matérielle pour repartir ; l'affichage peut être plus lent.",
       "action": "Voir les détails"
     },
     "card": {
@@ -65,7 +65,7 @@
       "description": "Votre lecteur de musique 100% local. Profitez de toute votre bibliothèque sans abonnement streaming."
     },
     "localOnly": {
-      "title": "Important : musique locale uniquement",
+      "title": "Important : musique locale uniquement",
       "description": "WaveFlow n'est PAS un service de streaming. Il lit les fichiers déjà présents sur votre appareil.",
       "calloutTitle": "Ce que vous devez savoir",
       "bulletOwn": "Utilisez votre propre bibliothèque (MP3, FLAC, ALAC, OGG, DSD…)",
@@ -116,20 +116,20 @@
     },
     "scan": {
       "title": "Scannez votre bibliothèque",
-      "description": "Prêt à scanner votre dossier et découvrir vos titres ?",
+      "description": "Prêt à scanner votre dossier et découvrir vos titres ?",
       "noFolder": "Aucun dossier sélectionné",
       "readyHint": "Votre dossier est configuré. Lancez le scan dès que vous êtes prêt.",
       "scanning": "Scan de votre bibliothèque…",
       "errorTitle": "Le scan a échoué"
     },
     "done": {
-      "title": "C'est prêt !",
+      "title": "C'est prêt !",
       "description": "Votre bibliothèque est scannée et prête à jouer.",
-      "nextSteps": "Pour aller plus loin :",
+      "nextSteps": "Pour aller plus loin :",
       "bulletExplore": "Explorez votre bibliothèque via les onglets Bibliothèque, Albums et Artistes",
       "bulletQueue": "Créez votre première file d'attente en cliquant sur un titre",
       "bulletSettings": "Affinez les réglages dans la barre latérale (Apparence, Connexions…)",
-      "tipImmersiveTitle": "Astuce : vue immersive",
+      "tipImmersiveTitle": "Astuce : vue immersive",
       "tipImmersiveBody": "Cliquez sur la pochette du lecteur pour ouvrir la vue plein écran avec la pochette et les paroles côte à côte."
     },
     "actions": {
@@ -159,9 +159,9 @@
       "unavailable": "Profil indisponible — réessayez dans un instant."
     },
     "lyrics": {
-      "title": "Où ranger les paroles ?",
-      "description": "Où voulez-vous que les paroles atterrissent — celles que vous éditez comme celles que WaveFlow trouve pour vous ? Vous pourrez changer plus tard dans Paramètres → Images et paroles.",
-      "hint": "Choisissez « Fichier sidecar » pour garder vos fichiers audio inchangés (ce que font foobar2000 et compagnie)."
+      "title": "Où ranger les paroles ?",
+      "description": "Où voulez-vous que les paroles atterrissent — celles que vous éditez comme celles que WaveFlow trouve pour vous ? Vous pourrez changer plus tard dans Paramètres → Images et paroles.",
+      "hint": "Choisissez « Fichier sidecar » pour garder vos fichiers audio inchangés (ce que font foobar2000 et compagnie)."
     }
   },
   "sidebar": {
@@ -397,7 +397,7 @@
         "playlists_one": "{{count}} playlist",
         "playlists_other": "{{count}} playlists",
         "playlists_many": "{{count}} playlists",
-        "needs-attention_zero": "Rien à signaler : la bibliothèque est complète.",
+        "needs-attention_zero": "Rien à signaler : la bibliothèque est complète.",
         "needs-attention_one": "{{count}} point à corriger",
         "needs-attention_other": "{{count}} points à corriger",
         "needs-attention_many": "{{count}} points à corriger"
@@ -506,7 +506,7 @@
       "trackCount_one": "{{count}} titre",
       "trackCount_other": "{{count}} titres",
       "trackCount_many": "{{count}} titres",
-      "lastScanned": "Scanné : {{date}}",
+      "lastScanned": "Scanné : {{date}}",
       "neverScanned": "jamais",
       "watched": "Surveillé",
       "watchOn": "Surveiller automatiquement les changements",
@@ -550,7 +550,7 @@
     },
     "open": "Ouvrir {{name}}",
     "inventory": {
-      "allClear": "Rien à signaler : la bibliothèque est complète.",
+      "allClear": "Rien à signaler : la bibliothèque est complète.",
       "summary_one": "{{count}} point à corriger",
       "summary_other": "{{count}} points à corriger",
       "summary_many": "{{count}} points à corriger",
@@ -810,7 +810,7 @@
     "mood": {
       "eyebrow": "Votre tempo moyen",
       "subtitle": "Le rythme qui a porté votre année",
-      "loudness": "Loudness moyen : {{lufs}} LUFS",
+      "loudness": "Loudness moyen : {{lufs}} LUFS",
       "energy": {
         "chill": "Chill",
         "warm": "Chaleureux",
@@ -893,7 +893,7 @@
     "title": "Feedback",
     "hero": {
       "title": "Aidez-nous à améliorer WaveFlow",
-      "description": "Vous avez repéré un bug, une idée d'amélioration ou simplement un retour à nous faire ? Nous lisons chaque message et prenons en compte vos suggestions."
+      "description": "Vous avez repéré un bug, une idée d'amélioration ou simplement un retour à nous faire ? Nous lisons chaque message et prenons en compte vos suggestions."
     },
     "contact": {
       "section": "Nous contacter",
@@ -939,9 +939,9 @@
         "unknown": "La lecture a échoué"
       },
       "notice": {
-        "exclusive-refused": "Ce périphérique refuse le mode exclusif : lecture en mode partagé",
-        "dop-refused": "Ce DAC refuse le DSD natif : conversion en PCM",
-        "paused-device-lost": "Périphérique déconnecté : lecture mise en pause",
+        "exclusive-refused": "Ce périphérique refuse le mode exclusif : lecture en mode partagé",
+        "dop-refused": "Ce DAC refuse le DSD natif : conversion en PCM",
+        "paused-device-lost": "Périphérique déconnecté : lecture mise en pause",
         "unknown": "La sortie audio a changé"
       },
       "dismiss": "Fermer"
@@ -963,7 +963,7 @@
     "upNext_many": "À suivre · {{count}} titres",
     "radio": {
       "label": "Radio",
-      "basedOn": "Basée sur « {{title}} »"
+      "basedOn": "Basée sur « {{title}} »"
     }
   },
   "deviceMenu": {
@@ -978,8 +978,8 @@
       "unavailable": "Capacités indisponibles",
       "details": "Détails du périphérique",
       "summary": "{{bits}} bit · {{rate}} kHz",
-      "channels": "Canaux : {{value}}",
-      "minPeriod": "Période minimale : {{value}} trames",
+      "channels": "Canaux : {{value}}",
+      "minPeriod": "Période minimale : {{value}} trames",
       "formats": "Formats",
       "rates": "Fréquences d'échantillonnage",
       "caveat": "Ce qu'un pilote déclare et ce qu'il accepte en mode exclusif sont deux questions différentes.",
@@ -987,7 +987,7 @@
         "wasapiExclusive": "Testé auprès du pilote en mode exclusif.",
         "alsaHardware": "Paramètres du matériel ALSA, sans couche de conversion.",
         "coreAudio": "Ce que le périphérique déclare au système.",
-        "unavailable": "Périphérique occupé ou absent : rien n'a pu être lu."
+        "unavailable": "Périphérique occupé ou absent : rien n'a pu être lu."
       },
       "tier": {
         "cd": "Qualité CD",
@@ -999,7 +999,7 @@
   },
   "profiles": {
     "select": {
-      "title": "Qui écoute ?",
+      "title": "Qui écoute ?",
       "subtitle": "Sélectionnez votre profil pour retrouver vos bibliothèques et playlists",
       "add": "Ajouter",
       "edit": "Modifier",
@@ -1025,7 +1025,7 @@
       "deleteAria": "Supprimer le profil {{name}}"
     },
     "delete": {
-      "title": "Supprimer {{name}} ?",
+      "title": "Supprimer {{name}} ?",
       "subtitle": "Le profil sera définitivement retiré.",
       "warning": "Toutes les bibliothèques, playlists et l'historique d'écoute de ce profil seront perdus. Cette action est irréversible.",
       "submit": "Supprimer le profil",
@@ -1134,8 +1134,8 @@
     "rating": "Note",
     "ratingNone": "Aucune note",
     "batchEdit": "Modifier les tags de {{count}} titres…",
-    "addToPlaylistNamed": "Ajouter à « {{name}} »",
-    "removeFromPlaylistNamed": "Retirer de « {{name}} »"
+    "addToPlaylistNamed": "Ajouter à « {{name}} »",
+    "removeFromPlaylistNamed": "Retirer de « {{name}} »"
   },
   "batchTagEdit": {
     "title": "Modifier les tags en lot",
@@ -1156,7 +1156,7 @@
     },
     "result": {
       "updated": "{{count}} titre(s) mis à jour",
-      "failed": "{{count}} échec(s) :"
+      "failed": "{{count}} échec(s) :"
     }
   },
   "trackProperties": {
@@ -1191,7 +1191,7 @@
     "edit": "Modifier",
     "save": "Enregistrer",
     "saving": "Enregistrement…",
-    "saveFailed": "Échec de l'enregistrement : {{reason}}",
+    "saveFailed": "Échec de l'enregistrement : {{reason}}",
     "fields": {
       "title": "Titre",
       "artist": "Artiste(s)",
@@ -1283,7 +1283,7 @@
     "suggestionLabel": "Proposition de bannière {{index}}",
     "noneFound": "Aucune image large trouvée pour cet artiste. Choisissez plutôt un fichier local.",
     "offline": "Désactivez le mode hors ligne pour voir les propositions.",
-    "fileHint": "Une image large convient le mieux : elle est recadrée en bannière.",
+    "fileHint": "Une image large convient le mieux : elle est recadrée en bannière.",
     "removeAction": "Revenir à la bannière automatique"
   },
   "motionCoverPicker": {
@@ -1565,7 +1565,7 @@
       "tagContains": "Tag contient"
     },
     "counting": "Calcul en cours…",
-    "matchCountLimited": "Retenus : {{kept}} sur {{total}} correspondants",
+    "matchCountLimited": "Retenus : {{kept}} sur {{total}} correspondants",
     "templates": {
       "label": "Modèle",
       "placeholder": "Partir d'un modèle…",
@@ -1606,9 +1606,9 @@
     "subtitle": "Dossiers ou fichiers audio acceptés"
   },
   "abLoop": {
-    "setA": "Boucle A-B : définir le point A à la position actuelle",
-    "setB": "Boucle A-B : définir le point B (A = {{a}})",
-    "armed": "Boucle A-B active : {{a}} → {{b}} (cliquez pour effacer)"
+    "setA": "Boucle A-B : définir le point A à la position actuelle",
+    "setB": "Boucle A-B : définir le point B (A = {{a}})",
+    "armed": "Boucle A-B active : {{a}} → {{b}} (cliquez pour effacer)"
   },
   "lyricsEditor": {
     "title": "Éditeur de paroles",
@@ -1636,7 +1636,7 @@
       "reset": "Réinitialiser le décalage"
     },
     "granularity": {
-      "label": "Granularité :",
+      "label": "Granularité :",
       "line": "Ligne par ligne",
       "word": "Mot par mot"
     },
@@ -1680,11 +1680,11 @@
   "editorial": {
     "masthead": {
       "edition": "Édition du matin",
-      "price": "Prix : inclus",
-      "subtitle": "« Toute la musique qui mérite d'être imprimée » — Votre sélection quotidienne, sur mesure."
+      "price": "Prix : inclus",
+      "subtitle": "« Toute la musique qui mérite d'être imprimée » — Votre sélection quotidienne, sur mesure."
     },
     "lead": {
-      "caption": "Fig. 1 — Tiré de « {{album}} » par {{artist}}.",
+      "caption": "Fig. 1 — Tiré de « {{album}} » par {{artist}}.",
       "captionArtistOnly": "Fig. 1 — Une création de {{artist}}.",
       "captionFallback": "Fig. 1 — Sélection du jour."
     }
@@ -1751,7 +1751,7 @@
       },
       "attention": {
         "authRequired": {
-          "title": "{{name}} : identifiant refusé",
+          "title": "{{name}} : identifiant refusé",
           "body": "Le cookie ou le jeton enregistré a expiré ou a été révoqué. Collez-en un nouveau dans Paramètres → Extensions."
         },
         "dismiss": "Fermer"
@@ -1847,7 +1847,7 @@
         "hide": "Masquer",
         "connectedAs": "Connecté en tant que",
         "disconnect": "Se déconnecter",
-        "loginPrompt": "Connectez-vous pour scrobbler vos écoutes :",
+        "loginPrompt": "Connectez-vous pour scrobbler vos écoutes :",
         "usernamePlaceholder": "Nom d'utilisateur",
         "passwordPlaceholder": "Mot de passe",
         "connect": "Se connecter",
@@ -1869,13 +1869,13 @@
       },
       "mpd": {
         "title": "Serveur MPD",
-        "subtitle": "Piloter WaveFlow depuis n'importe quel client MPD : télécommande sur téléphone, terminal, barre de statut",
+        "subtitle": "Piloter WaveFlow depuis n'importe quel client MPD : télécommande sur téléphone, terminal, barre de statut",
         "port": "Port",
         "portHint": "6600 par défaut",
         "password": "Mot de passe",
         "passwordPlaceholder": "Aucun",
         "passwordHint": "Facultatif. Recommandé sur un réseau partagé — le protocole MPD le transmet en clair.",
-        "lanWarning": "Accessible depuis tout le réseau local : n'importe qui peut piloter la lecture.",
+        "lanWarning": "Accessible depuis tout le réseau local : n'importe qui peut piloter la lecture.",
         "lanWarningAuth": "Joignable depuis tout votre réseau local, mais le contrôle de la lecture nécessite le mot de passe que vous avez défini.",
         "statusRunning": "Actif",
         "statusStopped": "Arrêté",
@@ -1931,7 +1931,7 @@
     },
     "matchSourceRate": {
       "title": "Suivre la fréquence d'échantillonnage des titres",
-      "subtitle": "En sortie exclusive, rouvre le périphérique à la fréquence de chaque titre : évite le rééchantillonnage quand il l'accepte, au prix d'une coupure à chaque changement de fréquence"
+      "subtitle": "En sortie exclusive, rouvre le périphérique à la fréquence de chaque titre : évite le rééchantillonnage quand il l'accepte, au prix d'une coupure à chaque changement de fréquence"
     },
     "mono": {
       "title": "Audio mono",
@@ -1963,11 +1963,11 @@
     },
     "showSleepTimer": {
       "title": "Épingler le minuteur dans la barre",
-      "subtitle": "Désactivé, le minuteur reste accessible depuis le menu « … »"
+      "subtitle": "Désactivé, le minuteur reste accessible depuis le menu « … »"
     },
     "showAbLoop": {
       "title": "Épingler la boucle A-B dans la barre",
-      "subtitle": "Désactivé, la boucle A-B reste accessible depuis le menu « … »"
+      "subtitle": "Désactivé, la boucle A-B reste accessible depuis le menu « … »"
     },
     "duplicates": {
       "title": "Détecter les doublons",
@@ -2033,13 +2033,13 @@
       "includeMetadataArtworkHint": "Sauvegarde plus volumineuse, restauration entièrement hors ligne. Décochez pour des archives légères (le cache sera retéléchargé à la demande).",
       "changeFolder": "Changer de dossier",
       "pickFolderTitle": "Choisir le dossier de sauvegarde",
-      "lastRun": "Dernière sauvegarde : {{when}}",
+      "lastRun": "Dernière sauvegarde : {{when}}",
       "neverRun": "jamais",
       "runNow": "Sauvegarder maintenant",
       "runOk_one": "{{count}} archive écrite.",
       "runOk_other": "{{count}} archives écrites.",
       "runOk_many": "{{count}} archives écrites.",
-      "runPartial": "Écrites : {{created}}, échecs : {{failed}}. Voir les journaux.",
+      "runPartial": "Écrites : {{created}}, échecs : {{failed}}. Voir les journaux.",
       "errors": {
         "loadFailed": "Impossible de lire la configuration de sauvegarde.",
         "saveFailed": "Échec de l'enregistrement. Réessayez.",
@@ -2072,18 +2072,18 @@
     },
     "lyricsPreferLrclib": {
       "title": "Privilégier LRCLIB aux paroles intégrées",
-      "subtitle": "Cherche les paroles en ligne d'abord ; se rabat sur celles du fichier si aucune n'est trouvée"
+      "subtitle": "Cherche les paroles en ligne d'abord ; se rabat sur celles du fichier si aucune n'est trouvée"
     },
     "lyricsProviders": {
       "title": "Fournisseurs de paroles en ligne",
-      "subtitle": "Un fournisseur décoché n'est plus interrogé automatiquement. Les paroles qu'il a déjà fournies restent en cache : « Relancer la recherche » dans le panneau des paroles les remplace.",
+      "subtitle": "Un fournisseur décoché n'est plus interrogé automatiquement. Les paroles qu'il a déjà fournies restent en cache : « Relancer la recherche » dans le panneau des paroles les remplace.",
       "alwaysOn": "toujours actif",
       "geniusNote": "sans horodatage, et répond rarement sans cookie de session"
     },
     "lyricsExcludedGenres": {
       "title": "Genres exclus de la recherche en ligne",
-      "subtitle": "Les titres de ces genres ne sont pas recherchés en ligne ; les paroles du fichier ou d'un .lrc voisin restent lues, et « Relancer la recherche » cherche quand même. Chaque genre couvre ses variantes (Lo-fi couvre Lofi et lo-fi hip hop).",
-      "empty": "Aucun genre exclu : chaque titre est recherché en ligne.",
+      "subtitle": "Les titres de ces genres ne sont pas recherchés en ligne ; les paroles du fichier ou d'un .lrc voisin restent lues, et « Relancer la recherche » cherche quand même. Chaque genre couvre ses variantes (Lo-fi couvre Lofi et lo-fi hip hop).",
+      "empty": "Aucun genre exclu : chaque titre est recherché en ligne.",
       "remove": "Retirer {{genre}}",
       "placeholder": "Ajouter un genre…",
       "add": "Ajouter",
@@ -2107,7 +2107,7 @@
       "subtitle": "Supprimer toutes les données et revenir à l'état initial",
       "action": "Réinitialiser",
       "confirm": {
-        "title": "Réinitialiser l'application ?",
+        "title": "Réinitialiser l'application ?",
         "warning": "Cela supprime tous les profils, bibliothèques, playlists, notes, l'historique d'écoute et les pochettes en cache. L'application redémarrera sur une configuration initiale propre. Cette action est irréversible.",
         "typeToConfirm": "Tapez RESET pour confirmer",
         "error": "Échec de la réinitialisation. Fermez tout programme externe qui retient un fichier WaveFlow (lecteur de musique ouvert, explorateur de fichiers dans le dossier de données) puis réessayez.",
@@ -2133,7 +2133,7 @@
       "resyncNow": "Resynchroniser",
       "inSync": "Synchronisé",
       "outOfSync": "Divergent",
-      "error": "Erreur : {{message}}",
+      "error": "Erreur : {{message}}",
       "reasonGeneric": "Ignoré ({{reason}})",
       "reason": {
         "offline": "Mode hors ligne actif",
@@ -2151,7 +2151,7 @@
         "missingRemotely": "Manquant à distance",
         "divergent": "Divergent"
       },
-      "backfillError": "Échec : {{message}}",
+      "backfillError": "Échec : {{message}}",
       "autoToggleTitle": "Synchronisation automatique",
       "autoToggleSubtitle": "Lance un passage au démarrage et lors du passage en mode Hybride",
       "cadenceTitle": "Cadence en arrière-plan",
@@ -2171,7 +2171,7 @@
       "lastSyncDaysAgo": "Il y a {{count}} j",
       "drilldown": {
         "loading": "Chargement des détails…",
-        "error": "Erreur : {{message}}",
+        "error": "Erreur : {{message}}",
         "empty": "Aucun détail à afficher",
         "missingLocally": "Manquant localement",
         "missingRemotely": "Manquant à distance",
@@ -2182,8 +2182,8 @@
     "visualizer": {
       "title": "Visualiseur audio",
       "subtitle": "Affiche un spectre temps réel dans la vue immersive (analyse FFT légère sur le décodeur)",
-      "cycleColor": "Couleur du visualiseur : {{color}}",
-      "cycleStyle": "Style du visualiseur : {{style}}",
+      "cycleColor": "Couleur du visualiseur : {{color}}",
+      "cycleStyle": "Style du visualiseur : {{style}}",
       "colors": {
         "white": "Blanc",
         "emerald": "Émeraude",
@@ -2244,7 +2244,7 @@
       "subtitle": "Mettre l'app à l'échelle (Ctrl+= / Ctrl+- / Ctrl+0 fonctionnent aussi)",
       "decreaseAria": "Dézoomer l'interface",
       "increaseAria": "Zoomer l'interface",
-      "resetAria": "Réinitialiser le zoom à 100 %"
+      "resetAria": "Réinitialiser le zoom à 100 %"
     },
     "showAudioQualityFooter": {
       "title": "Afficher la qualité audio sous la barre",
@@ -2305,7 +2305,7 @@
     },
     "hiResBadge": {
       "title": "Badge Hi-Res / DSD",
-      "subtitle": "Affiche la pastille « Hi-Res 24-bit » ou « DSD128 » à côté des titres concernés et sous l'artiste dans la barre de lecture. Activé par défaut."
+      "subtitle": "Affiche la pastille « Hi-Res 24-bit » ou « DSD128 » à côté des titres concernés et sous l'artiste dans la barre de lecture. Activé par défaut."
     },
     "serverAccount": {
       "title": "Compte serveur WaveFlow",
@@ -2343,11 +2343,11 @@
     },
     "lyricsEstimateWords": {
       "title": "Karaoké mot à mot estimé",
-      "subtitle": "Sur les paroles synchronisées ligne par ligne, surligne les mots selon une estimation de leur durée. Purement visuel : rien n'est enregistré."
+      "subtitle": "Sur les paroles synchronisées ligne par ligne, surligne les mots selon une estimation de leur durée. Purement visuel : rien n'est enregistré."
     },
     "lyricsHighlightColor": {
       "title": "Couleur de la ligne chantée",
-      "subtitle": "Pour les paroles en plein écran et le mini-lecteur. Blanc tant que vous n'en choisissez pas ; la fenêtre flottante des paroles garde ses propres couleurs.",
+      "subtitle": "Pour les paroles en plein écran et le mini-lecteur. Blanc tant que vous n'en choisissez pas ; la fenêtre flottante des paroles garde ses propres couleurs.",
       "colors": {
         "default": "Blanc (par défaut)",
         "rose": "Rose",
@@ -2363,7 +2363,7 @@
     },
     "lyricsDestination": {
       "title": "Destination des paroles",
-      "subtitle": "Où les paroles atterrissent sur le disque : celles que vous saisissez et celles que WaveFlow récupère. Vous pouvez toujours modifier ce choix à chaque édition."
+      "subtitle": "Où les paroles atterrissent sur le disque : celles que vous saisissez et celles que WaveFlow récupère. Vous pouvez toujours modifier ce choix à chaque édition."
     },
     "updateChannel": {
       "title": "Canal bêta",
@@ -2385,7 +2385,7 @@
       "download": "Télécharger",
       "refresh": "Mettre à jour",
       "downloading": "Téléchargement…",
-      "downloadingPct": "Import… {{pct}} %",
+      "downloadingPct": "Import… {{pct}} %",
       "clear": "Supprimer le catalogue",
       "neverSynced": "jamais",
       "localFirst": "Privilégier le catalogue local",
@@ -2399,7 +2399,7 @@
     },
     "dsdPrecision": {
       "title": "Précision DSD",
-      "subtitle": "Finesse du filtre de conversion DSD → PCM. N'affecte que les fichiers DSD (.dsf / .dff) ; davantage de coefficients = bande de transition plus nette, coût CPU plus élevé.",
+      "subtitle": "Finesse du filtre de conversion DSD → PCM. N'affecte que les fichiers DSD (.dsf / .dff) ; davantage de coefficients = bande de transition plus nette, coût CPU plus élevé.",
       "standard": "Standard",
       "high": "Haute",
       "max": "Maximale"
@@ -2447,7 +2447,7 @@
       "incompatible": "Mise à jour requise",
       "incompatibleHint": "Nécessite une version plus récente de WaveFlow",
       "official": "Officiel",
-      "canReach": "Peut accéder à :",
+      "canReach": "Peut accéder à :",
       "installAria": "Installer {{name}}",
       "updateAria": "Mettre à jour {{name}}"
     },
@@ -2457,7 +2457,7 @@
       "cacheLabel": "Sauvegarder les pochettes animées en local",
       "usage": "{{size}} utilisés · {{files}} pochettes en cache",
       "clear": "Vider le cache",
-      "clearConfirm": "Confirmer ?"
+      "clearConfirm": "Confirmer ?"
     },
     "windowBounds": {
       "title": "Position de la fenêtre",
@@ -2468,7 +2468,7 @@
     },
     "windowChrome": {
       "title": "Cadre de la fenêtre",
-      "subtitle": "Qui dessine la barre en haut de la fenêtre : votre bureau, ou WaveFlow.",
+      "subtitle": "Qui dessine la barre en haut de la fenêtre : votre bureau, ou WaveFlow.",
       "options": {
         "system": {
           "label": "Système",
@@ -2485,11 +2485,11 @@
       "subtitle": "Télécharge le Canvas de chaque titre depuis les plugins Canvas pour une lecture hors ligne, sans re-streaming.",
       "usage": "{{size}} utilisés · {{files}} Canvas en cache",
       "clear": "Vider le cache",
-      "clearConfirm": "Confirmer ?"
+      "clearConfirm": "Confirmer ?"
     },
     "dsdDop": {
       "title": "DSD natif (DoP)",
-      "subtitle": "Envoie le flux DSD tel quel au DAC via DoP (DSD over PCM) au lieu de le convertir en PCM — décodage natif bit-perfect. Nécessite une sortie exclusive (WASAPI sur Windows, ALSA hardware sur Linux, CoreAudio hog mode sur macOS) et un DAC compatible DoP ; repli automatique vers DSD → PCM sinon."
+      "subtitle": "Envoie le flux DSD tel quel au DAC via DoP (DSD over PCM) au lieu de le convertir en PCM — décodage natif bit-perfect. Nécessite une sortie exclusive (WASAPI sur Windows, ALSA hardware sur Linux, CoreAudio hog mode sur macOS) et un DAC compatible DoP ; repli automatique vers DSD → PCM sinon."
     },
     "remoteTranscode": {
       "title": "Transcoder la source distante",
@@ -2502,12 +2502,12 @@
       "mp3Hint": "Plus lourd à qualité égale. Compatibilité maximale.",
       "bitrateLabel": "Débit",
       "kbps": "{{rate}} kbit/s",
-      "activeNotice": "Les titres distants sont réencodés : ils sont lus en dessous de leur qualité d'origine. Les fichiers locaux ne sont jamais transcodés.",
+      "activeNotice": "Les titres distants sont réencodés : ils sont lus en dessous de leur qualité d'origine. Les fichiers locaux ne sont jamais transcodés.",
       "unsupported": "Ce serveur a été construit sans FFmpeg et ne peut pas transcoder. Les titres distants arrivent toujours dans leur format d'origine."
     },
     "contrast": {
       "title": "Contraste",
-      "subtitle": "Relève le contraste de toute l'interface d'un coup : texte secondaire lisible, arrière-plans sans flou, focus clavier bien visible.",
+      "subtitle": "Relève le contraste de toute l'interface d'un coup : texte secondaire lisible, arrière-plans sans flou, focus clavier bien visible.",
       "modes": {
         "auto": {
           "label": "Automatique",
@@ -2525,13 +2525,13 @@
     },
     "cacheLocation": {
       "title": "Emplacement des caches",
-      "subtitle": "Pochettes, pochettes animées et clips Canvas. Contenu reconstructible : le déplacer ne perd rien. Les bases de données et vos fichiers choisis à la main restent en place.",
+      "subtitle": "Pochettes, pochettes animées et clips Canvas. Contenu reconstructible : le déplacer ne perd rien. Les bases de données et vos fichiers choisis à la main restent en place.",
       "pickTitle": "Choisir le dossier des caches",
       "choose": "Déplacer…",
       "reset": "Revenir à l'emplacement par défaut",
       "size": "{{size}} utilisés",
       "copying": "Copie en cours… l'original n'est supprimé qu'au prochain démarrage.",
-      "fellBack": "Emplacement configuré inaccessible ({{path}}) : les caches repartent de l'emplacement par défaut pour cette session. Le choix est conservé.",
+      "fellBack": "Emplacement configuré inaccessible ({{path}}) : les caches repartent de l'emplacement par défaut pour cette session. Le choix est conservé.",
       "restartNeeded": "Copie terminée. Redémarrez pour utiliser le nouvel emplacement.",
       "restartNow": "Redémarrer"
     },
@@ -2636,7 +2636,7 @@
   },
   "share": {
     "title": "Partager la playlist",
-    "subtitle": "Générez un lien public pour « {{name}} ». Tout le monde pourra le consulter dans un navigateur.",
+    "subtitle": "Générez un lien public pour « {{name}} ». Tout le monde pourra le consulter dans un navigateur.",
     "idleHint": "Le lien sera actif jusqu'à ce que vous le révoquiez. Vous pourrez toujours le désactiver depuis cette fenêtre.",
     "mint": "Générer le lien",
     "activeHint": "Lien actif sur tous vos appareils.",
@@ -2716,7 +2716,7 @@
       "identify": "Identifier",
       "unknownType": "inconnu",
       "probeNative": "natif, connexion via le navigateur",
-      "probeSubsonic": "Protocole Subsonic uniquement ; pas de journal ni de connexion ici pour l'instant",
+      "probeSubsonic": "Protocole Subsonic uniquement ; pas de journal ni de connexion ici pour l'instant",
       "signInBrowser": "Se connecter via le navigateur",
       "signedInFallback": "connecté",
       "syncNow": "Synchroniser",
@@ -2773,7 +2773,7 @@
       "noMatches": "Aucun résultat.",
       "addTrack": "Ajouter {{title}}",
       "addToPlaylist": "Ajouter à la playlist",
-      "emptyDescription": "Utilisez « Ajouter des titres » pour chercher dans le catalogue du serveur.",
+      "emptyDescription": "Utilisez « Ajouter des titres » pour chercher dans le catalogue du serveur.",
       "notFoundDescription": "Cette playlist n'existe plus sur le serveur associé.",
       "keepOffline": "Garder hors ligne",
       "keepingProgress": "{{done}}/{{total}} gardés",
@@ -2784,13 +2784,13 @@
     },
     "reconciliation": {
       "title": "Correspondance local ↔ serveur",
-      "subtitle": "Uniquement les correspondances exactes de fichier entier. Les fichiers de même taille sont vérifiés par BLAKE3 ; les métadonnées ne créent jamais de lien.",
+      "subtitle": "Uniquement les correspondances exactes de fichier entier. Les fichiers de même taille sont vérifiés par BLAKE3 ; les métadonnées ne créent jamais de lien.",
       "cancel": "Annuler",
       "findMatches": "Trouver les correspondances",
       "hashing": "Hachage de {{processed}} / {{total}} fichiers locaux…",
       "cancelledSummary": "Analyse annulée — rien n'a été lié.",
       "confirmedLinks": "Liens confirmés",
-      "favoritesRatings": "Favoris : local {{localFav}} · serveur {{remoteFav}} · Notes : local {{localRating}} · serveur {{remoteRating}}/5",
+      "favoritesRatings": "Favoris : local {{localFav}} · serveur {{remoteFav}} · Notes : local {{localRating}} · serveur {{remoteRating}}/5",
       "yes": "oui",
       "no": "non",
       "copyFavoriteLocalToServer": "Favori local → serveur",
@@ -2819,9 +2819,9 @@
       "candidateHeading": "Des copies identiques nécessitent une confirmation",
       "candidateLocalTrack": "Titre local",
       "candidateServerTrack": "Titre serveur",
-      "candidateLocalOption": "Local : {{title}} — {{path}}",
-      "candidateServerOption": "Serveur : {{title}}",
-      "candidateServerOptionArtist": "Serveur : {{title}} — {{artist}}",
+      "candidateLocalOption": "Local : {{title}} — {{path}}",
+      "candidateServerOption": "Serveur : {{title}}",
+      "candidateServerOptionArtist": "Serveur : {{title}} — {{artist}}",
       "candidateConfirmPair": "Confirmer la paire",
       "candidateRejectPair": "Rejeter la paire",
       "summaryVerified_one": "{{count}} candidat local vérifié",
@@ -2839,15 +2839,15 @@
       "summaryUnreadable_one": " · {{count}} illisible",
       "summaryUnreadable_other": " · {{count}} illisibles",
       "summaryUnreadable_many": " · {{count}} illisibles",
-      "history_one": "Historique : {{local}} local + {{remote}} serveur = {{combined}} écoute",
-      "history_other": "Historique : {{local}} local + {{remote}} serveur = {{combined}} écoutes",
-      "history_many": "Historique : {{local}} local + {{remote}} serveur = {{combined}} écoutes",
+      "history_one": "Historique : {{local}} local + {{remote}} serveur = {{combined}} écoute",
+      "history_other": "Historique : {{local}} local + {{remote}} serveur = {{combined}} écoutes",
+      "history_many": "Historique : {{local}} local + {{remote}} serveur = {{combined}} écoutes",
       "conversionSourceOption_one": "{{name}} · {{count}} titre",
       "conversionSourceOption_other": "{{name}} · {{count}} titres",
       "conversionSourceOption_many": "{{name}} · {{count}} titres",
-      "conversionPreviewSummary_one": "{{name}} : {{convertible}}/{{total}} titre a un lien confirmé",
-      "conversionPreviewSummary_other": "{{name}} : {{convertible}}/{{total}} titres ont des liens confirmés",
-      "conversionPreviewSummary_many": "{{name}} : {{convertible}}/{{total}} titres ont des liens confirmés",
+      "conversionPreviewSummary_one": "{{name}} : {{convertible}}/{{total}} titre a un lien confirmé",
+      "conversionPreviewSummary_other": "{{name}} : {{convertible}}/{{total}} titres ont des liens confirmés",
+      "conversionPreviewSummary_many": "{{name}} : {{convertible}}/{{total}} titres ont des liens confirmés",
       "conversionBlocked_one": " · {{count}} bloqué",
       "conversionBlocked_other": " · {{count}} bloqués",
       "conversionBlocked_many": " · {{count}} bloqués",
@@ -2877,7 +2877,7 @@
       "reportRemoved": "{{removed}} retirés",
       "reportCancelled": "arrêté",
       "neverMirrored": "Jamais recopié.",
-      "mirroredAt": "Dernière copie complète : {{date}}.",
+      "mirroredAt": "Dernière copie complète : {{date}}.",
       "clearCovers": "Vider",
       "coversCached_zero": "Aucune pochette en cache.",
       "coversCached_one": "{{count}} pochette en cache ({{size}} Mo).",
@@ -2893,7 +2893,7 @@
       "downloadsKept_many": "{{count}} titres gardés hors ligne ({{size}} Mo).",
       "downloadsKept_zero": "Rien gardé hors ligne.",
       "clearDownloads": "Vider",
-      "reportFeed": "corrections du serveur : {{applied}}"
+      "reportFeed": "corrections du serveur : {{applied}}"
     },
     "import": {
       "action": "Importer dans ma bibliothèque",
@@ -2902,18 +2902,18 @@
       "destination": "Dossier de destination",
       "noFolder": "Aucun dossier scanné n'est accessible. Ajoutez-en un dans Paramètres → Bibliothèque.",
       "unreachable": "Introuvable",
-      "explainer": "Le fichier est copié tel quel, puis relié au titre du serveur : la lecture préférera votre copie locale.",
+      "explainer": "Le fichier est copié tel quel, puis relié au titre du serveur : la lecture préférera votre copie locale.",
       "submit": "Importer",
       "running": "Import en cours…",
-      "done": "Importés : {{count}}",
+      "done": "Importés : {{count}}",
       "refusal": {
-        "already_linked": "Déjà reliés à un titre local : {{count}}",
-        "already_held": "Déjà dans votre bibliothèque, reliés : {{count}}",
-        "unknown_track": "Inconnus du catalogue : {{count}}",
-        "unsupported_format": "Format non pris en charge : {{count}}",
-        "hash_mismatch": "Contenu inattendu : {{count}}",
-        "not_indexed": "Non indexés après copie : {{count}}",
-        "failed": "Échecs : {{count}}"
+        "already_linked": "Déjà reliés à un titre local : {{count}}",
+        "already_held": "Déjà dans votre bibliothèque, reliés : {{count}}",
+        "unknown_track": "Inconnus du catalogue : {{count}}",
+        "unsupported_format": "Format non pris en charge : {{count}}",
+        "hash_mismatch": "Contenu inattendu : {{count}}",
+        "not_indexed": "Non indexés après copie : {{count}}",
+        "failed": "Échecs : {{count}}"
       }
     },
     "download": {
@@ -2932,28 +2932,28 @@
       "statUnreadable": "Illisibles",
       "destination": "Bibliothèque",
       "send": "Téléverser ({{count}})",
-      "sent": "Téléversés : {{count}}",
+      "sent": "Téléversés : {{count}}",
       "stopped": "arrêté",
       "refusal": {
-        "present": "Déjà sur le serveur, reliés : {{count}}",
-        "unsupported_format": "Format refusé par le serveur : {{count}}",
-        "too_large": "Trop volumineux : {{count}}",
-        "quota_exceeded": "Plus de place sur le serveur : {{count}}",
-        "library_closed": "Bibliothèque fermée aux envois : {{count}}",
-        "too_many_sessions": "Trop d'envois simultanés : {{count}}",
-        "unknown_verdict": "Réponse inconnue de cette version : {{count}}",
-        "failed": "Échecs : {{count}}"
+        "present": "Déjà sur le serveur, reliés : {{count}}",
+        "unsupported_format": "Format refusé par le serveur : {{count}}",
+        "too_large": "Trop volumineux : {{count}}",
+        "quota_exceeded": "Plus de place sur le serveur : {{count}}",
+        "library_closed": "Bibliothèque fermée aux envois : {{count}}",
+        "too_many_sessions": "Trop d'envois simultanés : {{count}}",
+        "unknown_verdict": "Réponse inconnue de cette version : {{count}}",
+        "failed": "Échecs : {{count}}"
       }
     },
     "tags": {
       "action": "Corriger les métadonnées",
       "title": "Métadonnées du serveur",
       "subtitle": "La correction est enregistrée sur le serveur, pas dans le fichier.",
-      "help": "Ces corrections survivent aux analyses du serveur et sont visibles par tous les membres de la bibliothèque. Vider un champ retire la correction : la valeur du fichier réapparaît.",
+      "help": "Ces corrections survivent aux analyses du serveur et sont visibles par tous les membres de la bibliothèque. Vider un champ retire la correction : la valeur du fichier réapparaît.",
       "missing": "Ce titre n'est pas encore dans la copie du serveur. Recopiez le catalogue, puis réessayez.",
       "invalidNumber": "L'année et les numéros de piste et de disque doivent être des nombres entiers."
     },
-    "needsMirror": "Recopiez d'abord le catalogue du serveur, ci-dessus : cette section compare vos fichiers à la copie locale, qui est encore vide."
+    "needsMirror": "Recopiez d'abord le catalogue du serveur, ci-dessus : cette section compare vos fichiers à la copie locale, qui est encore vide."
   },
   "tasks": {
     "barLabel": "Tâches en cours",
@@ -2991,10 +2991,10 @@
       "random": "au hasard"
     },
     "predicates": {
-      "titleContains": "titre contient « {{value}} »",
-      "artistContains": "artiste contient « {{value}} »",
-      "albumContains": "album contient « {{value}} »",
-      "pathContains": "chemin contient « {{value}} »",
+      "titleContains": "titre contient « {{value}} »",
+      "artistContains": "artiste contient « {{value}} »",
+      "albumContains": "album contient « {{value}} »",
+      "pathContains": "chemin contient « {{value}} »",
       "genreIs": "genre {{value}}",
       "yearMin": "année ≥ {{value}}",
       "yearMax": "année ≤ {{value}}",
@@ -3011,7 +3011,7 @@
       "durationMaxMs": "durée ≤ {{value}}",
       "neverPlayed": "jamais écouté",
       "tagPresent": "possède le tag {{key}}",
-      "tagContains": "tag {{key}} contient « {{value}} »",
+      "tagContains": "tag {{key}} contient « {{value}} »",
       "playCountMin_one": "écouté au moins {{count}} fois",
       "playCountMin_other": "écouté au moins {{count}} fois",
       "playCountMax_one": "écouté au plus {{count}} fois",
@@ -3034,13 +3034,13 @@
     "sourcesHint": "Un même album existe souvent en plusieurs éditions, avec des listes de titres différentes. Choisissez la vôtre.",
     "back": "Changer d'édition",
     "hint": "Rien n'est écrit tant que vous n'appliquez pas.",
-    "acceptColumn": "Tout ce champ :",
+    "acceptColumn": "Tout ce champ :",
     "acceptTrack": "Tout ce titre",
     "nothingToChange": "Cette édition dit exactement la même chose que vos fichiers.",
     "trackUnchanged": "Rien à changer sur ce titre.",
     "noMatch": "Aucune correspondance pour {{file}}.",
     "emptyValue": "(vide)",
-    "unmatchedRemote": "Dans cette édition mais pas dans votre bibliothèque : {{titles}}",
+    "unmatchedRemote": "Dans cette édition mais pas dans votre bibliothèque : {{titles}}",
     "apply": "Appliquer",
     "confidence": {
       "confident": "Sûr",
