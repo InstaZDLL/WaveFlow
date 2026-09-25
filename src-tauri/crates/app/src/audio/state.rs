@@ -75,6 +75,12 @@ impl PlayerState {
 /// - `base_offset_ms` holds the playback position at the last seek target or
 ///   track load start, so `current_position_ms()` can add it to the delta
 ///   derived from `samples_played`.
+/// - `clock_lead_in` is how many of the samples still queued in the ring
+///   when the clock restarted belong *before* `base_offset_ms`. A load or a
+///   seek empties the ring first, so it is 0 there; a track change that
+///   does not (a crossfade or gapless hand-off) leaves the ring full of
+///   audio the new clock must not count as its own. Every reset of the
+///   three goes through [`SharedPlayback::restart_clock`].
 pub struct SharedPlayback {
     pub state: AtomicU8,
     pub samples_played: AtomicU64,
@@ -127,6 +133,13 @@ pub struct SharedPlayback {
     /// callback must never read it.
     last_load: Mutex<Option<LastLoad>>,
     pub base_offset_ms: AtomicU64,
+    /// Samples queued in the ring at the last clock restart that play
+    /// before `base_offset_ms` is reached — see the layout note.
+    pub clock_lead_in: AtomicU64,
+    /// Whether those queued samples are the previous track's tail (a
+    /// gapless hand-off), which the new track's listening time must not
+    /// count, rather than the end of a fade it is already playing in.
+    pub lead_in_is_previous_track: AtomicBool,
     /// ID of the track currently loaded in the decoder (0 = none).
     /// Written by the decoder thread at `LoadAndPlay` time, read by
     /// the shutdown hook so it can persist the resume point.
@@ -328,6 +341,8 @@ impl SharedPlayback {
             newest_load_intent: AtomicU64::new(0),
             last_load: Mutex::new(None),
             base_offset_ms: AtomicU64::new(0),
+            clock_lead_in: AtomicU64::new(0),
+            lead_in_is_previous_track: AtomicBool::new(false),
             current_track_id: AtomicI64::new(0),
             paused_output: AtomicBool::new(false),
             drain_silent: AtomicBool::new(false),
@@ -378,8 +393,7 @@ impl SharedPlayback {
     pub fn set_playback_speed(&self, speed: f32) {
         let clamped = speed.clamp(0.5, 2.0);
         let pos = self.current_position_ms();
-        self.samples_played.store(0, Ordering::Relaxed);
-        self.base_offset_ms.store(pos, Ordering::Release);
+        self.restart_clock(pos, 0, false);
         self.seek_generation.fetch_add(1, Ordering::Release);
         self.playback_speed_bits
             .store(clamped.to_bits(), Ordering::Release);
@@ -559,14 +573,47 @@ impl SharedPlayback {
     /// represents `speed` source samples of audio. We scale the
     /// callback-derived delta by `speed` so the progress bar advances
     /// in track-time, not wall-clock-time.
+    ///
+    /// Until the ring has played the `clock_lead_in` samples queued at the
+    /// last restart, the delta is negative: that audio is still the part
+    /// of the track (or of the previous one) before `base_offset_ms`.
     pub fn current_position_ms(&self) -> u64 {
-        let sr = self.sample_rate.load(Ordering::Relaxed).max(1) as u64;
-        let ch = self.channels.load(Ordering::Relaxed).max(1) as u64;
-        let played = self.samples_played.load(Ordering::Relaxed);
-        let wall_delta_ms = (played * 1000) / (sr * ch);
+        let sr = self.sample_rate.load(Ordering::Relaxed).max(1) as i64;
+        let ch = self.channels.load(Ordering::Relaxed).max(1) as i64;
+        let played = self.samples_played.load(Ordering::Relaxed) as i64;
+        let lead_in = self.clock_lead_in.load(Ordering::Relaxed) as i64;
+        let wall_delta_ms = ((played - lead_in) * 1000) / (sr * ch);
         let speed = self.playback_speed();
-        let track_delta_ms = (wall_delta_ms as f32 * speed) as u64;
-        self.base_offset_ms.load(Ordering::Relaxed) + track_delta_ms
+        let track_delta_ms = (wall_delta_ms as f32 * speed) as i64;
+        let base = self.base_offset_ms.load(Ordering::Relaxed) as i64;
+        (base + track_delta_ms).max(0) as u64
+    }
+
+    /// Restart the position clock at `base_ms`, with `lead_in_samples`
+    /// still queued in the ring ahead of that point. `lead_in_is_previous_track`
+    /// says whose audio those samples are: the finished track's tail after
+    /// a gapless hand-off (not part of this track's listening time), or the
+    /// end of a fade the new track already plays in (part of it).
+    ///
+    /// A load or a seek has emptied the ring, so it passes 0. A track
+    /// change that keeps the ring running passes what is still queued:
+    /// the output plays those samples *after* this call, and counting them
+    /// as the new track's is what left the clock one fade behind the audio
+    /// after every crossfade, and one ring's worth ahead after a gapless
+    /// hand-off.
+    ///
+    /// Callers bump `seek_generation` themselves where they did before.
+    pub fn restart_clock(
+        &self,
+        base_ms: u64,
+        lead_in_samples: u64,
+        lead_in_is_previous_track: bool,
+    ) {
+        self.samples_played.store(0, Ordering::Relaxed);
+        self.clock_lead_in.store(lead_in_samples, Ordering::Relaxed);
+        self.lead_in_is_previous_track
+            .store(lead_in_is_previous_track, Ordering::Relaxed);
+        self.base_offset_ms.store(base_ms, Ordering::Release);
     }
 
     /// Number of ms actually heard **in the current session** — i.e.
@@ -585,7 +632,12 @@ impl SharedPlayback {
         let sr = self.sample_rate.load(Ordering::Relaxed).max(1) as u64;
         let ch = self.channels.load(Ordering::Relaxed).max(1) as u64;
         let played = self.samples_played.load(Ordering::Relaxed);
-        let wall_ms = (played * 1000) / (sr * ch);
+        let heard = if self.lead_in_is_previous_track.load(Ordering::Relaxed) {
+            played.saturating_sub(self.clock_lead_in.load(Ordering::Relaxed))
+        } else {
+            played
+        };
+        let wall_ms = (heard * 1000) / (sr * ch);
         let speed = self.playback_speed();
         (wall_ms as f32 * speed) as u64
     }
@@ -730,6 +782,75 @@ mod tests {
         assert_eq!(s.current_position_ms(), 6_000);
         // session counter ignores the base offset on purpose.
         assert_eq!(s.session_listened_ms(), 1_000);
+    }
+
+    #[test]
+    fn crossfade_restart_counts_the_fade_and_not_the_queued_tail() {
+        // A 5 s crossfade ends with 0.25 s of the mix still in the ring.
+        // The new track is already 4.75 s in as heard, and reaches 5 s
+        // once the output has played that tail. Restarting at 0 is what
+        // left lyrics and the seek bar a fade behind the audio.
+        let s = SharedPlayback::new();
+        s.sample_rate.store(44_100, Ordering::Relaxed);
+        s.channels.store(2, Ordering::Relaxed);
+        let queued = 11_025 * 2; // 250 ms of interleaved stereo
+        s.restart_clock(5_000, queued, false);
+        assert_eq!(s.current_position_ms(), 4_750);
+        assert_eq!(s.session_listened_ms(), 0);
+
+        // That tail is the new track, heard: it counts as listening.
+        s.samples_played.store(queued, Ordering::Relaxed);
+        assert_eq!(s.current_position_ms(), 5_000);
+        assert_eq!(s.session_listened_ms(), 250);
+
+        s.samples_played
+            .store(queued + 44_100 * 2, Ordering::Relaxed);
+        assert_eq!(s.current_position_ms(), 6_000);
+        assert_eq!(s.session_listened_ms(), 1_250);
+    }
+
+    #[test]
+    fn gapless_restart_holds_at_zero_while_the_previous_tail_plays() {
+        // A gapless hand-off leaves the end of the finished track in the
+        // ring: the new one must read 0 until that has been played, not
+        // run ahead of the audio by the ring's length.
+        let s = SharedPlayback::new();
+        s.sample_rate.store(48_000, Ordering::Relaxed);
+        s.channels.store(8, Ordering::Relaxed);
+        let queued = 12_000 * 8; // 250 ms at 48 kHz, 8 channels
+        s.restart_clock(0, queued, true);
+        s.samples_played.store(queued / 2, Ordering::Relaxed);
+        assert_eq!(s.current_position_ms(), 0);
+        assert_eq!(s.session_listened_ms(), 0);
+
+        s.samples_played
+            .store(queued + 48_000 * 8, Ordering::Relaxed);
+        assert_eq!(s.current_position_ms(), 1_000);
+        assert_eq!(s.session_listened_ms(), 1_000);
+    }
+
+    #[test]
+    fn a_seek_after_a_hand_off_clears_the_lead_in() {
+        // A seek empties the ring, so nothing queued may be subtracted
+        // from the position it restarts at.
+        let s = SharedPlayback::new();
+        s.sample_rate.store(44_100, Ordering::Relaxed);
+        s.channels.store(2, Ordering::Relaxed);
+        s.restart_clock(5_000, 44_100, false);
+        s.restart_clock(30_000, 0, false);
+        assert_eq!(s.current_position_ms(), 30_000);
+    }
+
+    #[test]
+    fn speed_change_during_the_lead_in_keeps_the_position() {
+        // The speed rebase snapshots the position with the lead-in
+        // already applied, so it must not subtract it a second time.
+        let s = SharedPlayback::new();
+        s.sample_rate.store(44_100, Ordering::Relaxed);
+        s.channels.store(2, Ordering::Relaxed);
+        s.restart_clock(5_000, 11_025 * 2, false);
+        s.set_playback_speed(1.5);
+        assert_eq!(s.current_position_ms(), 4_750);
     }
 
     #[test]

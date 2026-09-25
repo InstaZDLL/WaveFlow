@@ -381,8 +381,7 @@ fn decoder_loop(
                 }
                 // Reset position counters so the UI clock starts from 0
                 // (or from start_ms on a mid-track resume).
-                shared.samples_played.store(0, Ordering::Relaxed);
-                shared.base_offset_ms.store(start_ms, Ordering::Relaxed);
+                shared.restart_clock(start_ms, 0, false);
                 shared.current_track_id.store(track_id, Ordering::Release);
 
                 // Native DSD via DoP (#495): before opening the stream,
@@ -507,8 +506,7 @@ fn decoder_loop(
                 } else {
                     shared.paused_output.store(false, Ordering::Release);
                 }
-                shared.samples_played.store(0, Ordering::Relaxed);
-                shared.base_offset_ms.store(start_ms, Ordering::Relaxed);
+                shared.restart_clock(start_ms, 0, false);
                 shared.current_track_id.store(track_id, Ordering::Release);
                 if let Err(err) = restore_pcm_output(&app, producer) {
                     tracing::warn!(%err, "no output for this remote track");
@@ -681,8 +679,7 @@ fn decoder_loop(
                 } else {
                     shared.paused_output.store(false, Ordering::Release);
                 }
-                shared.samples_played.store(0, Ordering::Relaxed);
-                shared.base_offset_ms.store(0, Ordering::Relaxed);
+                shared.restart_clock(0, 0, false);
                 shared.current_track_id.store(track_id, Ordering::Release);
                 if let Err(err) = restore_pcm_output(&app, producer) {
                     tracing::warn!(%err, "no output for this stream");
@@ -1389,6 +1386,10 @@ fn play_track(
     let mut mix_active = false;
     let mut mix_frames_written: u64 = 0;
     let mut mix_frames_total: u64 = 0;
+    // Track time of the incoming stream the fade has played so far,
+    // summed chunk by chunk at the speed each chunk was mixed at — a
+    // speed change during the fade would otherwise re-scale all of it.
+    let mut faded_track_ms: f64 = 0.0;
     // EOF flags persist across iterations so we don't keep poking
     // an exhausted stream — flipped back to false on a track swap.
     let mut primary_at_eof = false;
@@ -1574,6 +1575,7 @@ fn play_track(
                 if !smart_skip && pending_next.is_some() && remaining <= effective_ms {
                     mix_active = true;
                     mix_frames_written = 0;
+                    faded_track_ms = 0.0;
                     mix_frames_total = (effective_ms * dst_sample_rate as u64) / 1000;
                     // One-shot — consume the dynamic override so the
                     // next prefetch starts from a clean slate.
@@ -1670,6 +1672,8 @@ fn play_track(
                 let primary_consumed = mix_frames.min(primary_frames);
                 primary_resampled.drain(..primary_consumed * dst_channels);
                 secondary_resampled.drain(..mix_frames * dst_channels);
+                faded_track_ms += mix_frames as f64 * 1000.0 / f64::from(dst_sample_rate.max(1))
+                    * f64::from(shared.playback_speed());
 
                 eq_processor.process(
                     &mut mix_scratch,
@@ -1759,6 +1763,10 @@ fn play_track(
                     finished_source_id: stream.source_id,
                 });
 
+                // The new track has been playing under the fade for
+                // `faded_track_ms`; taken before the reset below.
+                let faded_ms = faded_track_ms as u64;
+                faded_track_ms = 0.0;
                 stream = pending_next.take().expect("pending_next set during mix");
                 // Move the secondary's leftover decoded samples into
                 // the primary buffer so they aren't re-decoded /
@@ -1772,14 +1780,22 @@ fn play_track(
                 mix_frames_written = 0;
                 mix_frames_total = 0;
 
-                shared.samples_played.store(0, Ordering::Relaxed);
-                shared.base_offset_ms.store(0, Ordering::Relaxed);
+                // The fade is already `faded_ms` into the new track, but
+                // the end of it is still in the ring: the clock starts
+                // there and reaches `faded_ms` once the output has played
+                // what is queued.
+                shared.restart_clock(faded_ms, queued_samples(producer), false);
                 shared
                     .current_track_id
                     .store(stream.track_id, Ordering::Release);
                 shared.seek_generation.fetch_add(1, Ordering::Release);
 
-                let _ = app.emit(EVENT_POSITION, PositionPayload { ms: 0 });
+                let _ = app.emit(
+                    EVENT_POSITION,
+                    PositionPayload {
+                        ms: shared.current_position_ms(),
+                    },
+                );
                 last_position_emit = Instant::now();
                 continue;
             }
@@ -1834,8 +1850,10 @@ fn play_track(
                     mix_frames_written = 0;
                     mix_frames_total = 0;
 
-                    shared.samples_played.store(0, Ordering::Relaxed);
-                    shared.base_offset_ms.store(0, Ordering::Relaxed);
+                    // What is still in the ring is the end of the track
+                    // that just finished: the new one starts at 0 only
+                    // once the output has played it.
+                    shared.restart_clock(0, queued_samples(producer), true);
                     shared
                         .current_track_id
                         .store(stream.track_id, Ordering::Release);
@@ -2007,9 +2025,13 @@ fn reset_resampler_for_seek(
 /// called after `format.seek()` to keep `SharedPlayback::current_position_ms`
 /// in sync.
 fn reset_clock(shared: &SharedPlayback, ms: u64) {
-    shared.samples_played.store(0, Ordering::Relaxed);
-    shared.base_offset_ms.store(ms, Ordering::Release);
+    shared.restart_clock(ms, 0, false);
     shared.seek_generation.fetch_add(1, Ordering::Release);
+}
+
+/// Samples written to the ring that the output has not played yet.
+fn queued_samples(producer: &Producer<f32>) -> u64 {
+    (producer.buffer().capacity() - producer.slots()) as u64
 }
 
 enum ControlFlow {
