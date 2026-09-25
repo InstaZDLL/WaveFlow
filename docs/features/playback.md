@@ -28,6 +28,8 @@ Real-time FFT curves surfaced in the immersive Now Playing overlay. Implementati
 
 Real dual-decoder mix in [`crossfade.rs`](../../src-tauri/crates/app/src/audio/crossfade.rs). When the user enables crossfade, the decoder maintains two `ActiveStream`s during the fade window and feeds an equal-power gain pair (`cos(t·π/2)` / `sin(t·π/2)`) into each so the summed RMS stays flat — no mid-fade dip. The window is clamped to `min(user_ms, duration / 2)` so 30 s clips with a 12 s setting don't start mixing at the 18 s mark.
 
+**The position clock at the hand-off.** The new track is already playing under the fade, and the end of the mix is still queued in the ring when the decoder swaps streams. The swap therefore restarts the clock at the track time the fade covered, with the queued samples as a lead-in ([`SharedPlayback::restart_clock`](../../src-tauri/crates/app/src/audio/state.rs)): the position reads fade − queue at the swap and reaches the fade length once the output has played the queue. The gapless swap does the same with a base of 0, since what is queued there is the finished track's tail. Restarting at 0 used to leave the seek bar, the lyrics, the resume point and every external surface a fade behind the audio (≈ 4.7 s with a 5 s fade) until the next seek.
+
 ### Smart crossfade (album-aware skip)
 
 A separate `SharedPlayback::smart_crossfade_enabled` toggle (default OFF — opt-in because it's an opinionated behaviour change, persisted in `profile_setting['audio.smart_crossfade']`) suppresses the fade for two consecutive tracks belonging to the same album — concept records / live sets hand off naturally instead of getting smeared. Mechanism:
