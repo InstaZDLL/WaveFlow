@@ -43,6 +43,14 @@ pub async fn run(pool: &SqlitePool) -> usize {
     for (table, column) in TABLES {
         match fill_table(pool, table, column).await {
             Ok(count) => written += count,
+            // The profile was closed under the pass — the app quitting, or
+            // a switch to another profile. That is the pass being told to
+            // stop, not failing: the next time this profile opens, it
+            // resumes on the rows still `NULL` (#763).
+            Err(sqlx::Error::PoolClosed) => {
+                tracing::debug!(table, "pinyin backfill stopped: profile closed");
+                break;
+            }
             Err(err) => {
                 // Not fatal, and not worth a user-facing error: search
                 // still works on the text, and the next launch resumes

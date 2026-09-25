@@ -12,7 +12,7 @@ import {
 } from "../../hooks/useCanvasEnabled";
 import { isRemoteCanvasUrl } from "../../lib/tauri/canvas";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
-import { isRadioTrack } from "../../lib/playerSources";
+import { isRadioTrack, isStreamTrack } from "../../lib/playerSources";
 import { Artwork } from "../common/Artwork";
 import { ImmersiveNowPlaying } from "./ImmersiveNowPlaying";
 import { ImmersiveSidePanel, type ImmersiveTab } from "./ImmersiveSidePanel";
@@ -141,10 +141,19 @@ export function ImmersiveView({
   const dual = mergedLyrics && !narrow;
 
   // Static source for the blurred backdrop: a pre-resized variant or
-  // nothing. Never `artwork_path`, which can be the animated file the
-  // cover picker accepts — see the background comment below (#615).
+  // nothing. Never a library track's `artwork_path`, which can be the
+  // animated file the cover picker accepts — see the background comment
+  // below (#615). A stream (radio, remote queue) has no variants and no
+  // cover picker: its `artwork_path` is a cover fetched for the song or
+  // the station's logo, both still images, and without it a radio played
+  // on plain black while the mini-player took its colours (#763).
+  const streamBackdrop = isStreamTrack(currentTrack)
+    ? (currentTrack?.artwork_path ?? null)
+    : null;
   const staticBackdrop =
-    currentTrack?.artwork_path_2x ?? currentTrack?.artwork_path_1x ?? null;
+    currentTrack?.artwork_path_2x ??
+    currentTrack?.artwork_path_1x ??
+    streamBackdrop;
 
   // Dual: which tab the control panel shows + whether it's open.
   const [activeTab, setActiveTab] = useState<ImmersiveTab>("lyrics");
@@ -250,16 +259,17 @@ export function ImmersiveView({
           screen, which is the stutter reported in #615.
 
           Hence the branch on `staticBackdrop` rather than on
-          `artwork_path`, and no `path` passed at all: `size="2x"` falls
-          back to the full source when neither thumbnail exists, which
-          would have put the animated file right back here on an album the
-          thumbnail worker has not caught up with. No static variant means
-          the gradient, not the animation. It still plays, once, on the
-          foreground cover. */}
+          `artwork_path`, and no `path` passed for a library track:
+          `size="2x"` falls back to the full source when neither thumbnail
+          exists, which would have put the animated file right back here on
+          an album the thumbnail worker has not caught up with. No static
+          variant means the gradient, not the animation. It still plays,
+          once, on the foreground cover. A stream's `path` is the one
+          exception — see `streamBackdrop`. */}
       <div className="absolute inset-0 overflow-hidden animate-fade-in">
         {staticBackdrop ? (
           <Artwork
-            path={null}
+            path={streamBackdrop}
             path1x={currentTrack?.artwork_path_1x}
             path2x={currentTrack?.artwork_path_2x}
             size="2x"
