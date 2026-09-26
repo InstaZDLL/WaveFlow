@@ -11,7 +11,7 @@ import { ToggleSwitch } from "../../common/ToggleSwitch";
  */
 export function MotionCoversCard() {
   const { t } = useTranslation();
-  const { enabled, setEnabled } = useMotionCovers();
+  const { enabled, ready, setEnabled } = useMotionCovers();
 
   return (
     <section
@@ -36,6 +36,9 @@ export function MotionCoversCard() {
         </span>
         <ToggleSwitch
           enabled={enabled}
+          // Until the profile's value is read the switch shows the default;
+          // a click then would flip that, not what is stored.
+          disabled={!ready}
           onToggle={() => {
             void setEnabled(!enabled);
           }}
