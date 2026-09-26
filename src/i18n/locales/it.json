@@ -1956,12 +1956,14 @@
         "action": "Esporta",
         "dialogTitle": "Esporta profilo WaveFlow",
         "done": "Profilo esportato con successo.",
+        "busy": "Esportazione in corso… Una libreria grande può richiedere qualche minuto.",
         "failed": "Esportazione non riuscita. Consulta i log per i dettagli."
       },
       "import": {
         "action": "Importa",
         "dialogTitle": "Importa profilo WaveFlow",
-        "done": "Profilo importato (id {{id}}). Selezionalo dal selettore dei profili.",
+        "done": "Profilo importato come «{{name}}». Selezionalo dal selettore dei profili.",
+        "busy": "Importazione in corso… Una libreria grande può richiedere qualche minuto.",
         "failed": "Importazione non riuscita. Il file potrebbe essere corrotto o incompatibile."
       }
     },

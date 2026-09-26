@@ -590,7 +590,7 @@ export function SettingsView({
       }
     })();
   }, [autoAnalyze]);
-  const { activeProfile } = useProfile();
+  const { activeProfile, refresh: refreshProfiles } = useProfile();
   const [isRescanning, setIsRescanning] = useState(false);
   const [autoStart, setAutoStart] = useState(false);
   const [minimizeToTray, setMinimizeToTray] = useState(true);
@@ -1320,10 +1320,28 @@ export function SettingsView({
     message: string;
   } | null>(null);
 
-  const flashStatus = useCallback((kind: "ok" | "fail", message: string) => {
-    setProfileIoStatus({ kind, message });
-    window.setTimeout(() => setProfileIoStatus(null), 4000);
+  // One timer at a time: a result's pending clear must neither wipe the
+  // next result early nor hide the "running" line of the next operation.
+  const profileIoStatusTimer = useRef<number | null>(null);
+  const clearProfileIoStatus = useCallback(() => {
+    if (profileIoStatusTimer.current != null) {
+      window.clearTimeout(profileIoStatusTimer.current);
+      profileIoStatusTimer.current = null;
+    }
+    setProfileIoStatus(null);
   }, []);
+  const flashStatus = useCallback(
+    (kind: "ok" | "fail", message: string) => {
+      clearProfileIoStatus();
+      setProfileIoStatus({ kind, message });
+      profileIoStatusTimer.current = window.setTimeout(() => {
+        profileIoStatusTimer.current = null;
+        setProfileIoStatus(null);
+      }, 4000);
+    },
+    [clearProfileIoStatus],
+  );
+  useEffect(() => clearProfileIoStatus, [clearProfileIoStatus]);
 
   const handleExportProfile = useCallback(async () => {
     if (profileIoBusy) return;
@@ -1335,6 +1353,7 @@ export function SettingsView({
       t("settings.profileIo.export.dialogTitle") ?? undefined,
     );
     if (!target) return;
+    clearProfileIoStatus();
     setProfileIoBusy("export");
     try {
       await exportProfile(target, activeProfile.id);
@@ -1345,7 +1364,7 @@ export function SettingsView({
     } finally {
       setProfileIoBusy(null);
     }
-  }, [activeProfile, flashStatus, profileIoBusy, t]);
+  }, [activeProfile, clearProfileIoStatus, flashStatus, profileIoBusy, t]);
 
   const handleImportProfile = useCallback(async () => {
     if (profileIoBusy) return;
@@ -1354,17 +1373,24 @@ export function SettingsView({
       t("settings.profileIo.import.dialogTitle") ?? undefined,
     );
     if (!source) return;
+    clearProfileIoStatus();
     setProfileIoBusy("import");
     try {
-      const newId = await importProfile(source, null);
-      flashStatus("ok", t("settings.profileIo.import.done", { id: newId }));
+      const imported = await importProfile(source, null);
+      // The selector lists what the context last fetched; without this
+      // the message points at a profile the selector does not show.
+      await refreshProfiles();
+      flashStatus(
+        "ok",
+        t("settings.profileIo.import.done", { name: imported.name }),
+      );
     } catch (err) {
       console.error("[SettingsView] import profile failed", err);
       flashStatus("fail", t("settings.profileIo.import.failed"));
     } finally {
       setProfileIoBusy(null);
     }
-  }, [flashStatus, profileIoBusy, t]);
+  }, [clearProfileIoStatus, flashStatus, profileIoBusy, refreshProfiles, t]);
 
   // DLNA / UPnP MediaServer. `dlnaConfig` carries the persisted
   // settings (name, port, enabled flag); `dlnaStatus` is the live
@@ -3962,6 +3988,17 @@ export function SettingsView({
                       </button>
                     </div>
                   </div>
+                  {profileIoBusy && !profileIoStatus && (
+                    // An archive carries the artwork cache too, so a large
+                    // library takes minutes; greyed buttons alone read as
+                    // a hang.
+                    <div
+                      role="status"
+                      className="mt-2 ml-9 text-xs text-zinc-500 dark:text-zinc-400"
+                    >
+                      {t(`settings.profileIo.${profileIoBusy}.busy`)}
+                    </div>
+                  )}
                   {profileIoStatus && (
                     <div
                       className={`mt-2 ml-9 text-xs ${

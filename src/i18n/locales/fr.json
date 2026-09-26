@@ -2009,12 +2009,14 @@
         "action": "Exporter",
         "dialogTitle": "Exporter le profil WaveFlow",
         "done": "Profil exporté avec succès.",
+        "busy": "Export en cours… Une grande bibliothèque peut prendre quelques minutes.",
         "failed": "Échec de l'export. Voir les journaux."
       },
       "import": {
         "action": "Importer",
         "dialogTitle": "Importer un profil WaveFlow",
-        "done": "Profil importé (ID {{id}}). Sélectionnez-le dans le sélecteur de profil.",
+        "done": "Profil importé sous le nom « {{name}} ». Sélectionnez-le dans le sélecteur de profil.",
+        "busy": "Import en cours… Une grande bibliothèque peut prendre quelques minutes.",
         "failed": "Échec de l'import. Le fichier est peut-être corrompu ou incompatible."
       }
     },

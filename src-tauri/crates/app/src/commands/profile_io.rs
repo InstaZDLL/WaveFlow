@@ -65,12 +65,34 @@ pub(crate) struct ArchiveManifest {
     pub exported_at: String,
 }
 
+/// What a successful import hands back: the new profile's id and the
+/// name it was filed under, which is the archive's own unless another
+/// profile already held it (#767).
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportedProfile {
+    pub id: i64,
+    pub name: String,
+}
+
 /// Export the active profile (or `profile_id` if provided) into a
 /// `.waveflow` archive at `target_path`. Overwrites if the file
 /// already exists.
 #[tauri::command]
 pub async fn export_profile(
     state: tauri::State<'_, AppState>,
+    profile_id: Option<i64>,
+    target_path: String,
+) -> AppResult<()> {
+    // The UI can only say "export failed"; the reason goes to the log,
+    // where the message points the user.
+    export_profile_inner(&state, profile_id, target_path)
+        .await
+        .inspect_err(|e| tracing::warn!(error = %e, "profile export failed"))
+}
+
+async fn export_profile_inner(
+    state: &AppState,
     profile_id: Option<i64>,
     target_path: String,
 ) -> AppResult<()> {
@@ -152,13 +174,25 @@ pub(crate) async fn read_include_metadata_artwork(app_db: &SqlitePool) -> AppRes
 /// Import a `.waveflow` archive as a brand-new profile. The new
 /// profile is **not** activated automatically — the caller can switch
 /// to it via `switch_profile` once the user picks it from the
-/// selector. Returns the new profile id.
+/// selector. Returns the new profile's id and name.
 #[tauri::command]
 pub async fn import_profile(
     state: tauri::State<'_, AppState>,
     source_path: String,
     name: Option<String>,
-) -> AppResult<i64> {
+) -> AppResult<ImportedProfile> {
+    // Same as the export: the UI has one generic sentence, the log has
+    // the cause. #767 took a user report to find a UNIQUE violation.
+    import_profile_inner(&state, source_path, name)
+        .await
+        .inspect_err(|e| tracing::warn!(error = %e, "profile import failed"))
+}
+
+async fn import_profile_inner(
+    state: &AppState,
+    source_path: String,
+    name: Option<String>,
+) -> AppResult<ImportedProfile> {
     // 1. Inspect the archive on a blocking thread (file I/O + zip
     //    decompression). Manifest parsing happens here so we fail fast
     //    on a truly broken file before touching the DB.
@@ -185,18 +219,8 @@ pub async fn import_profile(
         .filter(|n| !n.is_empty())
         .unwrap_or(manifest.profile_name.clone());
 
-    let now = Utc::now().timestamp_millis();
-    let insert = sqlx::query(
-        "INSERT INTO profile (name, color_id, avatar_hash, data_dir, created_at, last_used_at)
-         VALUES (?, 'emerald', NULL, '', ?, ?)",
-    )
-    .bind(&profile_name)
-    .bind(now)
-    .bind(now)
-    .execute(&state.app_db)
-    .await?;
-
-    let new_profile_id = insert.last_insert_rowid();
+    let (new_profile_id, profile_name) =
+        insert_with_free_name(&state.app_db, &profile_name).await?;
     let rel_dir = AppPaths::profile_rel_dir(new_profile_id);
     sqlx::query("UPDATE profile SET data_dir = ? WHERE id = ?")
         .bind(&rel_dir)
@@ -227,7 +251,7 @@ pub async fn import_profile(
     .map_err(|e| AppError::Other(format!("import extract join: {e}")))?;
 
     if let Err(err) = extract_result {
-        cleanup_partial_profile(&state, new_profile_id).await;
+        cleanup_partial_profile(state, new_profile_id).await;
         return Err(err);
     }
 
@@ -242,7 +266,7 @@ pub async fn import_profile(
     //    "migration X was previously applied but has been modified".
     //    See `.gitattributes` for the forward fix.
     if let Err(err) = normalise_migration_checksums(&state.paths.profile_db(new_profile_id)).await {
-        cleanup_partial_profile(&state, new_profile_id).await;
+        cleanup_partial_profile(state, new_profile_id).await;
         return Err(err);
     }
 
@@ -256,13 +280,57 @@ pub async fn import_profile(
         {
             Ok(pool) => pool,
             Err(err) => {
-                cleanup_partial_profile(&state, new_profile_id).await;
+                cleanup_partial_profile(state, new_profile_id).await;
                 return Err(err);
             }
         };
     pool.close().await;
 
-    Ok(new_profile_id)
+    Ok(ImportedProfile {
+        id: new_profile_id,
+        name: profile_name,
+    })
+}
+
+/// The most "(n)" suffixes an import tries before giving up. A person
+/// with a thousand profiles of one name has a problem this won't solve.
+const MAX_NAME_SUFFIX: u32 = 1000;
+
+/// Insert the imported profile's row under `base`, or under `base (2)`,
+/// `base (3)`… when that name is taken (#767).
+///
+/// `profile.name` is UNIQUE, and restoring a backup of a profile that
+/// still exists is the ordinary case, not the odd one: the archive's name
+/// is taken by construction. The user never chose that name, so the app
+/// finds a free one rather than refusing. Retrying on the violation
+/// itself, instead of checking first, leaves no window for a profile
+/// created meanwhile to take the name between the check and the insert.
+async fn insert_with_free_name(app_db: &SqlitePool, base: &str) -> AppResult<(i64, String)> {
+    let now = Utc::now().timestamp_millis();
+    for n in 1..=MAX_NAME_SUFFIX {
+        let candidate = if n == 1 {
+            base.to_string()
+        } else {
+            format!("{base} ({n})")
+        };
+        let inserted = sqlx::query(
+            "INSERT INTO profile (name, color_id, avatar_hash, data_dir, created_at, last_used_at)
+             VALUES (?, 'emerald', NULL, '', ?, ?)",
+        )
+        .bind(&candidate)
+        .bind(now)
+        .bind(now)
+        .execute(app_db)
+        .await;
+        match inserted {
+            Ok(done) => return Ok((done.last_insert_rowid(), candidate)),
+            Err(sqlx::Error::Database(e)) if e.is_unique_violation() => continue,
+            Err(e) => return Err(e.into()),
+        }
+    }
+    Err(AppError::Other(format!(
+        "no free profile name left for \"{base}\" after {MAX_NAME_SUFFIX} tries"
+    )))
 }
 
 /// Roll back a half-imported profile: remove the on-disk directory and

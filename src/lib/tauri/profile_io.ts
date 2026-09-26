@@ -14,16 +14,24 @@ export function exportProfile(
   });
 }
 
+/** The profile an import created. `name` is the archive's own unless
+ * another profile already held it, in which case it gains a " (2)"-style
+ * suffix (#767). */
+export interface ImportedProfile {
+  id: number;
+  name: string;
+}
+
 /**
  * Import a `.waveflow` archive as a brand-new profile. Returns the
- * new profile id. The new profile is **not** auto-activated — the
- * caller decides when to switch.
+ * new profile's id and name. The new profile is **not** auto-activated
+ * — the caller decides when to switch.
  */
 export function importProfile(
   sourcePath: string,
   name?: string | null,
-): Promise<number> {
-  return invoke<number>("import_profile", {
+): Promise<ImportedProfile> {
+  return invoke<ImportedProfile>("import_profile", {
     sourcePath,
     name: name ?? null,
   });

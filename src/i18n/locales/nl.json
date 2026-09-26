@@ -1901,12 +1901,14 @@
         "action": "Exporteren",
         "dialogTitle": "WaveFlow-profiel exporteren",
         "done": "Profiel succesvol geëxporteerd.",
+        "busy": "Bezig met exporteren… Een grote bibliotheek kan een paar minuten duren.",
         "failed": "Export mislukt. Raadpleeg de logs voor details."
       },
       "import": {
         "action": "Importeren",
         "dialogTitle": "WaveFlow-profiel importeren",
-        "done": "Profiel geïmporteerd (id {{id}}). Wissel ernaartoe via de profielkiezer.",
+        "done": "Profiel geïmporteerd als ‘{{name}}’. Wissel ernaartoe via de profielkiezer.",
+        "busy": "Bezig met importeren… Een grote bibliotheek kan een paar minuten duren.",
         "failed": "Import mislukt. Het bestand is mogelijk beschadigd of incompatibel."
       }
     },

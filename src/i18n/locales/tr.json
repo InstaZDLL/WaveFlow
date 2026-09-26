@@ -1901,12 +1901,14 @@
         "action": "Dışa aktar",
         "dialogTitle": "WaveFlow profilini dışa aktar",
         "done": "Profil başarıyla dışa aktarıldı.",
+        "busy": "Dışa aktarılıyor… Büyük bir kütüphane birkaç dakika sürebilir.",
         "failed": "Dışa aktarma başarısız oldu. Ayrıntılar için günlükleri kontrol et."
       },
       "import": {
         "action": "İçe aktar",
         "dialogTitle": "WaveFlow profilini içe aktar",
-        "done": "Profil içe aktarıldı (kimlik {{id}}). Profil seçiciden ona geç.",
+        "done": "Profil “{{name}}” adıyla içe aktarıldı. Profil seçiciden ona geç.",
+        "busy": "İçe aktarılıyor… Büyük bir kütüphane birkaç dakika sürebilir.",
         "failed": "İçe aktarma başarısız oldu. Dosya bozuk veya uyumsuz olabilir."
       }
     },
