@@ -1901,12 +1901,14 @@
         "action": "Export",
         "dialogTitle": "Export WaveFlow profile",
         "done": "Profile exported successfully.",
+        "busy": "Exporting… A large library can take a few minutes.",
         "failed": "Export failed. See the logs for details."
       },
       "import": {
         "action": "Import",
         "dialogTitle": "Import WaveFlow profile",
-        "done": "Profile imported (id {{id}}). Switch to it from the profile selector.",
+        "done": "Profile imported as “{{name}}”. Switch to it from the profile selector.",
+        "busy": "Importing… A large library can take a few minutes.",
         "failed": "Import failed. The file may be corrupt or incompatible."
       }
     },

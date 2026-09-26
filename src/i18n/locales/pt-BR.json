@@ -1984,12 +1984,14 @@
         "action": "Exportar",
         "dialogTitle": "Exportar perfil WaveFlow",
         "done": "Perfil exportado com sucesso.",
+        "busy": "Exportando… Uma biblioteca grande pode levar alguns minutos.",
         "failed": "Falha na exportação. Consulte os registros para mais detalhes."
       },
       "import": {
         "action": "Importar",
         "dialogTitle": "Importar perfil WaveFlow",
-        "done": "Perfil importado (id {{id}}). Alterne para ele no seletor de perfis.",
+        "done": "Perfil importado como “{{name}}”. Alterne para ele no seletor de perfis.",
+        "busy": "Importando… Uma biblioteca grande pode levar alguns minutos.",
         "failed": "Falha na importação. O arquivo pode estar corrompido ou ser incompatível."
       }
     },

@@ -1901,12 +1901,14 @@
         "action": "Ekspor",
         "dialogTitle": "Ekspor profil WaveFlow",
         "done": "Profil berhasil diekspor.",
+        "busy": "Mengekspor… Pustaka besar bisa memakan waktu beberapa menit.",
         "failed": "Ekspor gagal. Lihat log untuk detail."
       },
       "import": {
         "action": "Impor",
         "dialogTitle": "Impor profil WaveFlow",
-        "done": "Profil diimpor (id {{id}}). Beralih ke sana dari pemilih profil.",
+        "done": "Profil diimpor sebagai “{{name}}”. Beralih ke sana dari pemilih profil.",
+        "busy": "Mengimpor… Pustaka besar bisa memakan waktu beberapa menit.",
         "failed": "Impor gagal. Berkas mungkin rusak atau tidak kompatibel."
       }
     },

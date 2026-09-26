@@ -590,7 +590,7 @@ export function SettingsView({
       }
     })();
   }, [autoAnalyze]);
-  const { activeProfile } = useProfile();
+  const { activeProfile, refresh: refreshProfiles } = useProfile();
   const [isRescanning, setIsRescanning] = useState(false);
   const [autoStart, setAutoStart] = useState(false);
   const [minimizeToTray, setMinimizeToTray] = useState(true);
@@ -1356,15 +1356,21 @@ export function SettingsView({
     if (!source) return;
     setProfileIoBusy("import");
     try {
-      const newId = await importProfile(source, null);
-      flashStatus("ok", t("settings.profileIo.import.done", { id: newId }));
+      const imported = await importProfile(source, null);
+      // The selector lists what the context last fetched; without this
+      // the message points at a profile the selector does not show.
+      await refreshProfiles();
+      flashStatus(
+        "ok",
+        t("settings.profileIo.import.done", { name: imported.name }),
+      );
     } catch (err) {
       console.error("[SettingsView] import profile failed", err);
       flashStatus("fail", t("settings.profileIo.import.failed"));
     } finally {
       setProfileIoBusy(null);
     }
-  }, [flashStatus, profileIoBusy, t]);
+  }, [flashStatus, profileIoBusy, refreshProfiles, t]);
 
   // DLNA / UPnP MediaServer. `dlnaConfig` carries the persisted
   // settings (name, port, enabled flag); `dlnaStatus` is the live
@@ -3962,6 +3968,17 @@ export function SettingsView({
                       </button>
                     </div>
                   </div>
+                  {profileIoBusy && !profileIoStatus && (
+                    // An archive carries the artwork cache too, so a large
+                    // library takes minutes; greyed buttons alone read as
+                    // a hang.
+                    <div
+                      role="status"
+                      className="mt-2 ml-9 text-xs text-zinc-500 dark:text-zinc-400"
+                    >
+                      {t(`settings.profileIo.${profileIoBusy}.busy`)}
+                    </div>
+                  )}
                   {profileIoStatus && (
                     <div
                       className={`mt-2 ml-9 text-xs ${
