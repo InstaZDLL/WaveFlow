@@ -168,6 +168,9 @@ pub struct QueueTrackPayload {
     pub artist_name: Option<String>,
     pub artist_ids: Option<String>,
     pub album_title: Option<String>,
+    /// See [`QueueTrack::album_id`]: the manual motion cover and the
+    /// album link are keyed by it (#766).
+    pub album_id: Option<i64>,
     pub duration_ms: i64,
     pub file_path: String,
     pub artwork_path: Option<String>,
@@ -253,6 +256,7 @@ fn queue_track_to_payload_with_paths(
         artist_name: track.artist_name,
         artist_ids: track.artist_ids,
         album_title: track.album_title,
+        album_id: track.album_id,
         duration_ms: track.duration_ms,
         file_path: track.file_path,
         bitrate: track.bitrate,

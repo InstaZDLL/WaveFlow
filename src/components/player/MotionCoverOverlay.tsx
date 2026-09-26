@@ -85,7 +85,13 @@ function MotionVideo({
       playsInline
       aria-hidden="true"
       onCanPlay={() => setReady(true)}
-      onError={() => setFailed(true)}
+      onError={() => {
+        // The static cover shows instead, which reads as "nothing was
+        // set": say why, since the codec (HEVC on WebView2) or a
+        // missing file is otherwise invisible (#766).
+        console.warn("[MotionCoverOverlay] motion cover failed to load", src);
+        setFailed(true);
+      }}
       className={`pointer-events-none absolute inset-0 w-full h-full object-cover ${ROUND[rounded]} transition-opacity duration-700 ${ready ? "opacity-100" : "opacity-0"} ${className ?? ""}`}
     />
   );

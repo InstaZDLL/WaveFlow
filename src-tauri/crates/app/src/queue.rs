@@ -45,6 +45,11 @@ pub struct QueueTrack {
     pub artist_name: Option<String>,
     pub artist_ids: Option<String>,
     pub album_title: Option<String>,
+    /// The album row, not just its title. Every per-album choice the
+    /// user makes (a hand-set motion cover, "go to album") is keyed by
+    /// id; with only the title on the playing track, the now-playing
+    /// surfaces could not reach any of them (#766).
+    pub album_id: Option<i64>,
     pub artwork_hash: Option<String>,
     pub artwork_format: Option<String>,
     /// Audio quality fields, surfaced on the PlayerBar footer and on
@@ -940,6 +945,7 @@ pub async fn list_queue(pool: &SqlitePool) -> AppResult<Vec<QueueTrack>> {
                   ORDER BY ta2.position
                )) AS artist_ids,
                al.title AS album_title,
+               t.album_id,
                aw.hash  AS artwork_hash,
                aw.format AS artwork_format,
                t.bitrate, t.sample_rate, t.channels,
@@ -979,6 +985,7 @@ async fn track_at_position(pool: &SqlitePool, position: i64) -> AppResult<Option
                   ORDER BY ta2.position
                )) AS artist_ids,
                al.title AS album_title,
+               t.album_id,
                aw.hash  AS artwork_hash,
                aw.format AS artwork_format,
                t.bitrate, t.sample_rate, t.channels,
@@ -1170,6 +1177,7 @@ pub async fn restore_state(pool: &SqlitePool) -> AppResult<Option<(QueueTrack, u
                           ORDER BY ta2.position
                        )) AS artist_ids,
                        al.title AS album_title,
+                       t.album_id,
                        aw.hash AS artwork_hash,
                        aw.format AS artwork_format,
                        t.bitrate, t.sample_rate, t.channels,

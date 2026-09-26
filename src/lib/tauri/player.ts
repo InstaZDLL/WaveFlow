@@ -11,6 +11,8 @@ export interface QueueTrackPayload {
   artist_name: string | null;
   artist_ids: string | null;
   album_title: string | null;
+  /** Keys the album's manual motion cover and the go-to-album link (#766). */
+  album_id: number | null;
   duration_ms: number;
   file_path: string;
   artwork_path: string | null;
