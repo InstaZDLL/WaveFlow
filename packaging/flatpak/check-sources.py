@@ -12,7 +12,7 @@ dependencies` (23be643) bumped `Cargo.lock` and left 53 crates with no
 source entry, wasmtime 46.0.1 declared against 47.0.3 in the lock.
 
 What this checks is **coverage, not freshness**: every registry crate in
-`Cargo.lock` has a source entry, and every registry package in the
+the Tauri and GTK `Cargo.lock` files has a source entry, and every registry package in the
 Flatpak `package-lock.json` has a tarball. Deliberately *not* "regenerate
 and diff the tree" — `generate-sources.sh` runs `npm install
 --package-lock-only`, which resolves `^` ranges against the registry as
@@ -36,6 +36,8 @@ GEN_DIR = REPO_ROOT / "packaging" / "flatpak" / "generated"
 PACKAGE_JSON = REPO_ROOT / "package.json"
 CARGO_LOCK = REPO_ROOT / "src-tauri" / "Cargo.lock"
 CARGO_SOURCES = GEN_DIR / "cargo-sources.json"
+GTK_CARGO_LOCK = REPO_ROOT / "src-tauri" / "crates" / "gtk-app" / "Cargo.lock"
+GTK_CARGO_SOURCES = GEN_DIR / "gtk-cargo-sources.json"
 NODE_SOURCES = GEN_DIR / "node-sources.json"
 NPM_LOCK = GEN_DIR / "package-lock.json"
 
@@ -52,14 +54,14 @@ def load_json(path: Path):
         sys.exit(f"::error::{path.relative_to(REPO_ROOT)} is not valid JSON: {err}")
 
 
-def expected_crates() -> set[str]:
+def expected_crates(lockfile: Path) -> set[str]:
     """`<name>-<version>.crate` for every crates.io package in the lock.
 
     Git and path dependencies are skipped: the generator emits those as
     `git` sources / the vendor dir reaches the sandbox through a `dir`
     source, so neither maps to a `.crate` tarball.
     """
-    text = CARGO_LOCK.read_text(encoding="utf-8")
+    text = lockfile.read_text(encoding="utf-8")
     wanted = set()
     for block in text.split("[[package]]"):
         name = re.search(r'^name = "(.+)"$', block, re.M)
@@ -79,19 +81,25 @@ def declared_crates(doc) -> set[str]:
 
 
 def check_cargo() -> list[str]:
-    wanted = expected_crates()
-    if not wanted:
-        return ["Cargo.lock parsed to zero registry crates — parser or lock format changed"]
-    have = declared_crates(load_json(CARGO_SOURCES))
-    missing = sorted(wanted - have)
-    print(f"cargo: {len(wanted)} crates in Cargo.lock, {len(have)} declared as sources")
-    if not missing:
-        return []
-    report = [f"{len(missing)} crate(s) in Cargo.lock have no source entry"]
-    report += [f"    {name}" for name in missing[:MAX_REPORTED]]
-    if len(missing) > MAX_REPORTED:
-        report.append(f"    … and {len(missing) - MAX_REPORTED} more")
-    return report
+    problems = []
+    for label, lockfile, sources in (
+        ("cargo", CARGO_LOCK, CARGO_SOURCES),
+        ("gtk cargo", GTK_CARGO_LOCK, GTK_CARGO_SOURCES),
+    ):
+        wanted = expected_crates(lockfile)
+        if not wanted:
+            problems.append(f"{lockfile.name} parsed to zero registry crates — parser or lock format changed")
+            continue
+        have = declared_crates(load_json(sources))
+        missing = sorted(wanted - have)
+        print(f"{label}: {len(wanted)} crates in {lockfile.name}, {len(have)} declared as sources")
+        if not missing:
+            continue
+        problems.append(f"{len(missing)} crate(s) in {lockfile.relative_to(REPO_ROOT)} have no source entry")
+        problems += [f"    {name}" for name in missing[:MAX_REPORTED]]
+        if len(missing) > MAX_REPORTED:
+            problems.append(f"    … and {len(missing) - MAX_REPORTED} more")
+    return problems
 
 
 def check_node() -> list[str]:
@@ -317,10 +325,11 @@ def main() -> int:
         print(
             "\nThe generated Flatpak manifests are out of sync with the lockfiles.\n"
             "Regenerate them and commit the result:\n"
-            "    bash packaging/flatpak/generate-sources.sh"
+            "    bash packaging/flatpak/generate-sources.sh\n"
+            "    bash packaging/flatpak/generate-gtk-sources.sh"
         )
         return 1
-    print("\n✓ Flatpak sources cover both lockfiles.")
+    print("\n✓ Flatpak sources cover all dependency lockfiles.")
     return 0
 
 

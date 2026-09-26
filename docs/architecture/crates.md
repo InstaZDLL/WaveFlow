@@ -1,6 +1,6 @@
 # Crate layout
 
-`src-tauri/` is a Cargo workspace with four members:
+`src-tauri/` is a Cargo workspace with five members, plus a separate Linux GTK workspace:
 
 ```text
 src-tauri/
@@ -32,6 +32,8 @@ src-tauri/
     │   └── src/
     │       ├── lib.rs                 (RuntimeConfig, manifest parsing, world ids)
     │       └── ...                    (WIT worlds + bindings live in wit/ next door)
+    ├── native/        (waveflow-native — Rust host adapter, no Tauri or webview)
+    ├── gtk-app/       (waveflow-gtk — separate GTK4/libadwaita Linux workspace)
     └── app/           (waveflow — Tauri 2 application)
         ├── Cargo.toml                 (produces the `waveflow` binary)
         ├── tauri.conf.json
@@ -52,6 +54,15 @@ src-tauri/
 ```
 
 The full workspace builds with `cargo check --workspace --all-targets --manifest-path src-tauri/Cargo.toml`. CI runs the same command (`.github/workflows/ci.yml`).
+
+The native Linux frontend is intentionally excluded from that workspace. Tauri's Linux shell still resolves GTK3-era `glib-sys`, while gtk4-rs resolves the GTK4 generation; Cargo forbids two crates with the same native `links` value in one dependency graph. It is therefore checked separately:
+
+```bash
+cargo check --manifest-path src-tauri/crates/gtk-app/Cargo.toml --all-targets
+cargo run --manifest-path src-tauri/crates/gtk-app/Cargo.toml
+```
+
+`waveflow-native` is a member of the main workspace and a path dependency of `gtk-app`. It compiles shared audio, queue, profile-pool, migration and player-action source through a small Rust host boundary. The Tauri host emits through `AppHandle`; the native host emits through a Tokio broadcast channel. Both paths use the same `AudioEngine`, `SharedPlayback`, load-intent ordering, SQLite migrations and `player_actions` sequences.
 
 ## What goes in `waveflow-core`
 
@@ -75,12 +86,24 @@ Lyrics providers that are query-based rather than exact metadata clients. The cr
 - **Search policy** — `SearchMode` controls plaintext vs synced-only vs synced-preferred results; `enhanced` asks Musixmatch for word-level karaoke before falling back to regular synced lyrics.
 - **Format/scoring helpers** — LRC / Enhanced LRC detection, timestamp formatting, rough token-set scoring, and small HTML text decoding helpers.
 
+## Native Linux frontend
+
+`crates/native/` owns the UI-independent desktop service API. It opens the same application/profile databases, selects the last-used profile (or creates the existing default profile on first launch), leases the active profile pool, exposes real library/search/playlist/history reads, and drives the existing audio engine. Long operations run on its Tokio runtime; owned updates cross to GTK through a bounded channel.
+
+`crates/gtk-app/` contains only GTK4/libadwaita presentation and the worker bridge. GTK objects stay on the main thread. The first increment provides native navigation, library search, favorites/history/playlists, activation-to-playback, cover/title state, seek, volume, previous/next and system light/dark preference. It does not use `invoke()`, React, WebKitGTK, Vala, a C shim, or a separate database.
+
+The Flatpak builds this binary directly and uses `packaging/flatpak/generated/gtk-cargo-sources.json` for offline Cargo resolution. Regenerate it only after `crates/gtk-app/Cargo.lock` changes:
+
+```bash
+bash packaging/flatpak/generate-gtk-sources.sh
+```
+
 ## What stays in `waveflow` (`crates/app/`)
 
 Anything tied to the Tauri runtime, the real-time audio engine, or the desktop OS:
 
 - **Every `#[tauri::command]`** — even when the body is a thin call into a core function. The IPC bridge contract is desktop-specific.
-- **Real-time audio engine** — `audio/{decoder,output,engine,crossfade,eq,resampler,spectrum,state,analytics}.rs` plus the per-OS exclusive backends `audio/{wasapi,alsa,coreaudio}_exclusive.rs`. The `cpal` callback and the exclusive output threads must not allocate / log / lock; the surrounding decoder + state machinery only makes sense alongside them.
+- **Tauri host integration for the real-time engine** — OS integrations and Tauri event publication stay here. The engine source under `audio/` is also compiled by `waveflow-native`; its `cpal` callback and exclusive output threads keep the allocation-free, lock-free and log-free invariants.
 - **OS media controls** — souvlaki (`media_controls.rs`), Discord Rich Presence named-pipe client (`discord_presence.rs`), system notification plugin bridge (`notifications.rs`).
 - **DLNA / UPnP MediaServer** — `dlna/` is integrated as a worker thread driven by the Tauri runtime.
 - **Filesystem watcher** — `watcher.rs` wires `notify` events into `library:rescanned` Tauri events.

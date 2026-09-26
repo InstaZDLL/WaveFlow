@@ -14,7 +14,7 @@
 //!
 //! Everything is `async` and awaits rather than spawning: callers on a
 //! sync callback thread (souvlaki, the tray) wrap these in
-//! `tauri::async_runtime::spawn` themselves, and callers already inside
+//! `crate::host::spawn` themselves, and callers already inside
 //! a task (MPD) just await, which lets them report success back to
 //! their client. [`play`] and [`toggle_play_pause`] are the exceptions:
 //! a menu item, a window message or an OS-overlay callback calls them,
@@ -22,7 +22,7 @@
 
 use std::sync::Arc;
 
-use tauri::{AppHandle, Manager};
+use crate::host::{AppHandle, Manager};
 
 use crate::{
     audio::{
@@ -41,6 +41,30 @@ use crate::{
 /// instead of stepping back one — the rule Spotify, Apple Music and
 /// every hardware transport share, so muscle memory carries over.
 const PREVIOUS_RESTART_THRESHOLD_MS: u64 = 3000;
+
+/// Start a native library selection using the same publication and queue path
+/// as every other playback surface. All SQLite work stays on the host runtime.
+#[allow(dead_code)] // Used by waveflow-native through this shared source file.
+pub async fn replace_queue_and_play(
+    app: &AppHandle,
+    track_ids: &[i64],
+    start_index: usize,
+) -> AppResult<()> {
+    let engine = app.state::<Arc<AudioEngine>>();
+    let intent = engine.next_load_intent();
+    let state = app.state::<AppState>();
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
+    let _publish = engine.lock_publish().await;
+    if !engine.claim_dispatch(intent) {
+        return Ok(());
+    }
+    queue::fill_queue(&pool, "manual", None, track_ids, start_index, false).await?;
+    let track = queue::current_track(&pool)
+        .await?
+        .ok_or_else(|| AppError::Other("selected track is no longer available".into()))?;
+    load_and_play(app, &pool, track, Some(profile_id), intent).await;
+    Ok(())
+}
 
 /// Outcome of a queue-moving action, so callers that must answer a
 /// client (MPD) can tell "done" from "there was nothing to do".
@@ -72,7 +96,7 @@ pub enum Moved {
 pub fn play(app: &AppHandle, label: &str) {
     let app = app.clone();
     let label = label.to_owned();
-    tauri::async_runtime::spawn(async move {
+    crate::host::spawn(app.clone(), async move {
         if let Err(err) = play_and_wait(&app).await {
             tracing::warn!(%err, "{label} play: failed");
         }
@@ -119,7 +143,7 @@ pub fn toggle_play_pause(app: &AppHandle, label: &str) {
         PlayerState::Idle | PlayerState::Ended => {
             let app = app.clone();
             let label = label.to_owned();
-            tauri::async_runtime::spawn(async move {
+            crate::host::spawn(app.clone(), async move {
                 if let Err(err) = resume_last(&app).await {
                     tracing::warn!(%err, "{label} play_pause: resume failed");
                 }

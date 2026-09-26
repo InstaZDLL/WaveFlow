@@ -10,9 +10,9 @@ use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
+use crate::host::{AppHandle, Emitter};
 use crossbeam_channel::{unbounded, Sender};
 use rtrb::Producer;
-use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc::unbounded_channel;
 
 use crate::error::{AppError, AppResult};
@@ -1111,7 +1111,10 @@ impl AudioEngine {
         };
 
         // Spawn the analytics task inside Tauri's runtime.
-        tauri::async_runtime::spawn(analytics_task(analytics_rx, cmd_tx.clone(), app.clone()));
+        crate::host::spawn(
+            app.clone(),
+            analytics_task(analytics_rx, cmd_tx.clone(), app.clone()),
+        );
 
         Arc::new(Self {
             cmd_tx,
@@ -1536,7 +1539,7 @@ impl AudioEngine {
         // waiting: this runs on a blocking thread, and a lock it cannot
         // take means a switch is under way. That profile must not receive
         // this track's resume point, so the write is skipped (#485).
-        use tauri::Manager as _;
+        use crate::host::Manager as _;
         let profile_id = self
             .app
             .state::<crate::state::AppState>()
@@ -1549,7 +1552,7 @@ impl AudioEngine {
         };
         let app = self.app.clone();
         let position_ms = live.position_ms;
-        tauri::async_runtime::spawn(async move {
+        crate::host::spawn(app.clone(), async move {
             let state = app.state::<crate::state::AppState>();
             let saved = match state.require_profile_pool_for(Some(profile_id)).await {
                 Ok(pool) => crate::queue::persist_resume_point(&pool, track_id, position_ms).await,

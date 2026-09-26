@@ -21,13 +21,13 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
+use crate::host::{AppHandle, Emitter, Manager};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{SampleFormat, Stream, StreamConfig};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use rtrb::{Consumer, Producer, RingBuffer};
 use serde::Serialize;
 use serde_json::json;
-use tauri::{AppHandle, Emitter, Manager};
 
 use crate::error::{AppError, AppResult};
 
@@ -646,9 +646,12 @@ pub(super) fn notify_device_lost(app: &AppHandle, shared: &Arc<SharedPlayback>, 
         "player:error",
         json!({ "message": message, "kind": "device-lost" }),
     );
-    if let Some(controls) = app.try_state::<crate::media_controls::MediaControlsHandle>() {
-        controls.update_playback(PlayerState::Paused, shared.current_position_ms());
-    }
+    crate::host::update_playback(
+        app,
+        PlayerState::Paused,
+        shared.current_position_ms(),
+        false,
+    );
 }
 
 /// Which device a scheduled rebuild should reopen.
@@ -686,7 +689,7 @@ pub(super) enum RebuildTarget {
 /// would silently drop the recovery for that window.
 pub(super) fn schedule_device_rebuild(app: &AppHandle, target: RebuildTarget) {
     let app = app.clone();
-    tauri::async_runtime::spawn(async move {
+    crate::host::spawn(app.clone(), async move {
         tokio::time::sleep(std::time::Duration::from_millis(300)).await;
         let Some(engine) = app.try_state::<std::sync::Arc<super::AudioEngine>>() else {
             return;
@@ -714,7 +717,7 @@ pub(super) fn schedule_device_rebuild(app: &AppHandle, target: RebuildTarget) {
         // negotiation ladder). Running that directly on a tokio
         // worker would park the worker for the whole duration, so
         // hand it to the blocking pool.
-        let engine = engine.inner().clone();
+        let engine = std::sync::Arc::clone(&engine);
         let _ = tokio::task::spawn_blocking(move || {
             if let Err(err) = engine.try_rebuild_after_device_error(target) {
                 tracing::warn!(%err, "auto-rebuild after device loss failed");
@@ -789,7 +792,7 @@ const FOLLOW_RETRY_MARGIN: std::time::Duration = std::time::Duration::from_milli
 /// converges on the current state rather than replaying a stale one.
 pub(super) fn schedule_default_device_follow(app: &AppHandle) {
     let app = app.clone();
-    tauri::async_runtime::spawn(async move {
+    crate::host::spawn(app.clone(), async move {
         tokio::time::sleep(std::time::Duration::from_millis(300)).await;
         let Some(engine) = app.try_state::<std::sync::Arc<super::AudioEngine>>() else {
             // A notification during boot, before the engine reached
@@ -808,7 +811,7 @@ pub(super) fn schedule_default_device_follow(app: &AppHandle) {
         // Synchronous and genuinely slow — it joins the old output
         // thread and opens the device inline — so it goes to the
         // blocking pool rather than parking a tokio worker.
-        let engine = engine.inner().clone();
+        let engine = std::sync::Arc::clone(&engine);
         for attempt in 1..=FOLLOW_DEFAULT_ATTEMPTS {
             let engine = engine.clone();
             let joined =

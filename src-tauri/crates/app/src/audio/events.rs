@@ -11,8 +11,8 @@
 
 use std::sync::Mutex;
 
+use crate::host::{AppHandle, Emitter};
 use serde::Serialize;
-use tauri::{AppHandle, Emitter};
 
 /// Tauri event name for live-stream "now playing" updates.
 pub const EVENT_RADIO_METADATA: &str = "player:radio-metadata";
