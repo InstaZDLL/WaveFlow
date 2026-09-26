@@ -1320,10 +1320,28 @@ export function SettingsView({
     message: string;
   } | null>(null);
 
-  const flashStatus = useCallback((kind: "ok" | "fail", message: string) => {
-    setProfileIoStatus({ kind, message });
-    window.setTimeout(() => setProfileIoStatus(null), 4000);
+  // One timer at a time: a result's pending clear must neither wipe the
+  // next result early nor hide the "running" line of the next operation.
+  const profileIoStatusTimer = useRef<number | null>(null);
+  const clearProfileIoStatus = useCallback(() => {
+    if (profileIoStatusTimer.current != null) {
+      window.clearTimeout(profileIoStatusTimer.current);
+      profileIoStatusTimer.current = null;
+    }
+    setProfileIoStatus(null);
   }, []);
+  const flashStatus = useCallback(
+    (kind: "ok" | "fail", message: string) => {
+      clearProfileIoStatus();
+      setProfileIoStatus({ kind, message });
+      profileIoStatusTimer.current = window.setTimeout(() => {
+        profileIoStatusTimer.current = null;
+        setProfileIoStatus(null);
+      }, 4000);
+    },
+    [clearProfileIoStatus],
+  );
+  useEffect(() => clearProfileIoStatus, [clearProfileIoStatus]);
 
   const handleExportProfile = useCallback(async () => {
     if (profileIoBusy) return;
@@ -1335,6 +1353,7 @@ export function SettingsView({
       t("settings.profileIo.export.dialogTitle") ?? undefined,
     );
     if (!target) return;
+    clearProfileIoStatus();
     setProfileIoBusy("export");
     try {
       await exportProfile(target, activeProfile.id);
@@ -1345,7 +1364,7 @@ export function SettingsView({
     } finally {
       setProfileIoBusy(null);
     }
-  }, [activeProfile, flashStatus, profileIoBusy, t]);
+  }, [activeProfile, clearProfileIoStatus, flashStatus, profileIoBusy, t]);
 
   const handleImportProfile = useCallback(async () => {
     if (profileIoBusy) return;
@@ -1354,6 +1373,7 @@ export function SettingsView({
       t("settings.profileIo.import.dialogTitle") ?? undefined,
     );
     if (!source) return;
+    clearProfileIoStatus();
     setProfileIoBusy("import");
     try {
       const imported = await importProfile(source, null);
@@ -1370,7 +1390,7 @@ export function SettingsView({
     } finally {
       setProfileIoBusy(null);
     }
-  }, [flashStatus, profileIoBusy, refreshProfiles, t]);
+  }, [clearProfileIoStatus, flashStatus, profileIoBusy, refreshProfiles, t]);
 
   // DLNA / UPnP MediaServer. `dlnaConfig` carries the persisted
   // settings (name, port, enabled flag); `dlnaStatus` is the live
