@@ -20,84 +20,120 @@
 
 ---
 
-WaveFlow is a desktop music player for the audio files you already own. It scans your folders, organizes everything by album, artist and genre, and plays it back through a fast, high-fidelity audio engine, all in a clean, Spotify-inspired interface. No streaming, no cloud, no account: your music stays on your machine.
+WaveFlow is a desktop music player for the audio files you already own. It scans your folders, organizes everything by album, artist and genre, and plays it back through a fast, high-fidelity audio engine. No subscription, no streaming service, no account: your music stays on your machine.
 
 **Install** — grab the bundle for your OS on the [latest release](https://github.com/InstaZDLL/WaveFlow/releases/latest); every release page lists the per-distro one-liner (AUR / COPR / apt / winget) and the standalone installers.
 
 ## Screenshots
 
 <!-- markdownlint-disable MD033 -->
-<!-- HTML table because there's no clean Markdown way to render a
-     two-column image grid with captions; GitHub renders this fine. -->
+<p align="center">
+  <img src="docs/screenshots/immersive.gif" width="100%" alt="The immersive view: a track's Canvas clip looping beside lyrics synced word by word, with a romanization under each line" />
+  <br />
+  <sub><b>Immersive view</b> · Canvas clip, lyrics synced word by word, romanization under each line</sub>
+</p>
+
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/home.png" alt="Home view with profile-aware greeting, mood radio and recently played" /></td>
-    <td width="50%"><img src="docs/screenshots/library-albums.png" alt="Virtualised library albums grid" /></td>
+    <td width="50%"><img src="docs/screenshots/home.png" alt="Home view with a greeting, mood radio and recently played" /></td>
+    <td width="50%"><img src="docs/screenshots/playlist-header.png" alt="A playlist page whose header takes its colour from the album artwork" /></td>
   </tr>
   <tr>
-    <td align="center"><sub><b>Home</b> · profile-aware greeting, mood radio, Daily Mix carousel</sub></td>
-    <td align="center"><sub><b>Library</b> · virtualised album grid with Hi-Res badges and A-Z jump</sub></td>
+    <td align="center"><sub><b>Home</b> · mood radio, Daily Mix, recently played</sub></td>
+    <td align="center"><sub><b>Playlists</b> · the header takes its colour from the cover</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/screenshots/album-detail.png" alt="Album detail view with multi-disc grouping and side now-playing panel" /></td>
-    <td width="50%"><img src="docs/screenshots/immersive-view.png" alt="Fullscreen Now Playing view with real-time spectrum visualizer" /></td>
+    <td width="50%"><img src="docs/screenshots/album-detail.png" alt="Album detail view with multi-disc grouping and the side Now Playing panel" /></td>
+    <td width="50%"><img src="docs/screenshots/plugin-store.png" alt="The in-app plugin store listing the official plugins" /></td>
   </tr>
   <tr>
-    <td align="center"><sub><b>Album detail</b> · multi-disc grouping, side Now Playing panel with artist bio</sub></td>
-    <td align="center"><sub><b>Immersive Now Playing</b> · full-bleed artwork with real-time spectrum visualizer</sub></td>
+    <td align="center"><sub><b>Album</b> · multi-disc grouping, Now Playing panel with artist bio</sub></td>
+    <td align="center"><sub><b>Plugin store</b> · verified installs, one click</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/screenshots/karaoke-lyrics.png" alt="Apple Music style fullscreen karaoke lyrics" /></td>
-    <td width="50%" align="center"><img src="docs/screenshots/wrapped.png" alt="WaveFlow Wrapped year-in-review with top tracks, average tempo and longest streak" height="380" /></td>
+    <td width="50%" align="center"><img src="docs/screenshots/mini-player-lyrics.gif" height="380" alt="The mini-player showing the current track with its lyrics highlighted word by word" /></td>
+    <td width="50%" align="center"><img src="docs/screenshots/now-playing-canvas.gif" height="380" alt="The Now Playing side panel with the track's Canvas clip looping in place of the cover" /></td>
   </tr>
   <tr>
-    <td align="center"><sub><b>Karaoke lyrics</b> · Apple-Music-style word-level highlight with click-to-seek</sub></td>
-    <td align="center"><sub><b>Wrapped</b> · year-in-review with top tracks, average tempo, longest streak — local & private</sub></td>
+    <td align="center"><sub><b>Mini-player</b> · always on top, lyrics word by word</sub></td>
+    <td align="center"><sub><b>Now Playing panel</b> · the Canvas clip loops in place of the cover</sub></td>
   </tr>
 </table>
 
-<p align="center"><sub><i>Cover art shown in the screenshots above remains the property of its respective rights holders. WaveFlow is a local-file player — no music content is bundled, and you must legally own the files in your library.</i></sub></p>
+<br />
+
+<p align="center">
+  <img src="docs/screenshots/desktop-lyrics.png" width="538" alt="The floating desktop lyrics window over a desktop, showing the current line" />
+  <br />
+  <sub><b>Desktop lyrics</b> · a floating line above every window</sub>
+</p>
+
+<p align="center"><sub><i>Album artwork shown in the screenshots belongs to its respective rights holders. WaveFlow does not bundle or distribute any music.</i></sub></p>
 <!-- markdownlint-enable MD033 -->
 
 ## Features
 
-<!-- markdownlint-disable MD060 -->
+### 🎧 Playback · [docs](docs/features/playback.md)
 
-| Area                | Highlights                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Deep dive                                                                     |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| **Playback**        | Symphonia + cpal, lock-free 3-thread engine, MP3 / FLAC / WAV / AIFF / Ogg Vorbis / **Opus** (libopus) / AAC / ALAC / DSD, real dual-decoder crossfade, gapless, ReplayGain (file tags or BS.1770 analysis, with pre-amp and clipping prevention), 6-band EQ (20 presets), **exclusive output** (opt-in, transparent cpal fallback — WASAPI Exclusive on Windows, a raw ALSA `hw:` device on Linux, CoreAudio hog mode on macOS), DSD → PCM plus opt-in **native DSD over PCM (DoP)** on all three platforms, variable playback speed (0.5×–2×), spectrum visualizer, sleep timer, seed + mood radio, A-B repeat, output-device picker, OS media controls (SMTC / MPRIS / MediaRemote), persistent queue with shuffle / repeat / auto-advance | [docs](docs/features/playback.md)                                             |
-| **Library**         | Folder scanning + filesystem watcher, on-demand audio analysis (peak, BS.1770 loudness, ReplayGain, BPM), Hi-Res badges, multi-artist split, POPM 5-star ratings, A-Z navigator, multi-select action bar                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | [docs](docs/features/library.md)                                              |
-| **Playlists**       | Drag-and-drop reorder (virtualised), bulk add from any source, M3U import / export with basename-fallback matching, likes, recently-played                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | [docs](docs/features/playlists.md)                                            |
-| **Smart playlists** | Auto-generated **Daily Mix** family bucketed by tempo, with composite artist-photo covers rendered from your Deezer cache                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | [docs](docs/features/smart-playlists.md)                                      |
-| **Integrations**    | Deezer (artwork + labels), Last.fm (bios + scrobbling with retry queue) with a **TheAudioDB** bio-source option, LRCLIB + Musixmatch (with translation language picker) / NetEase / Megalobiz / Genius lyrics, Discord Rich Presence ("Listening to WaveFlow" with cover + progress bar), native OS track-change notifications, built-in **DLNA / UPnP** media server and an **MPD** control surface for existing MPD clients — all cached locally for offline use                                                                                                                                                                                                                                                                            | [docs](docs/features/integrations.md)                                         |
-| **Sync & sharing**  | Opt-in **multi-device sync** against a self-hosted [waveflow-server](https://github.com/InstaZDLL/waveflow-server) (playlists, library, likes, ratings — HLC + payload-hash digest, last-write-wins, OAuth-loopback browser handshake), **public playlist share** links, optional account-bound mode per profile                                                                                                                                                                                                                                                                                                                                                                                                                              | [RFC-003](docs/rfcs/RFC-003-sync-architecture.md)                             |
-| **Plugins**         | RFC-002 **plugin SDK** — wasmtime sandbox with permission gates, manifest-declared host APIs + per-plugin settings; in-app **plugin store** with a curated catalogue and blake3-verified installs; three official plugins — **Web Radio** (30 000+ radio-browser.info stations through the cpal engine, live ICY "now playing", per-profile favorites + country browsing, offline catalogue snapshot) **Apple Motion Artwork** (animated album covers behind the now-playing view) and **Release Radar** (recent releases from the artists in your library, via MusicBrainz + Cover Art Archive)                                                                                                                                              | [docs](docs/features/plugins.md) · [RFC-002](docs/rfcs/RFC-002-plugin-sdk.md) |
-| **UI & UX**         | Spotify-style 3-panel layout with **5 skins** (Studio / Editorial broadsheet / Lounge listening-room / Pulse OLED-neon / Liquid Apple Vibrancy) × 14 OKLCH theme presets, Framer Motion micro-interactions, **immersive fullscreen** now-playing with word-level **karaoke lyrics**, per-track **Canvas** clips, a transparent **desktop lyrics** overlay, always-on-top **mini-player**, customizable player-bar layout, system tray, statistics dashboard with JSON export, **WaveFlow Wrapped** year-in-review, virtual scroll for 6000+ tracks, dark mode (View Transitions API), 17 locales (RTL-aware), per-profile isolated DB with scheduled auto-backup, signed auto-updater                                                         | [docs](docs/features/ui.md)                                                   |
+- MP3, FLAC, WAV, AIFF, Ogg Vorbis, **Opus**, AAC, ALAC and **DSD**
+- Gapless playback and a real two-decoder crossfade
+- **Exclusive output** on Windows, Linux and macOS, and **DSD over PCM (DoP)**, which sends DSD untouched to a compatible DAC (opt-in)
+- ReplayGain, 6-band EQ with presets, speed 0.5×–2×, A-B repeat, sleep timer
+- Seed and mood radio, album shuffle, OS media controls, a queue that survives a restart
 
-<!-- markdownlint-enable MD060 -->
+### 🎤 Lyrics · [docs](docs/features/integrations.md)
+
+- Synced lyrics from LRCLIB, Musixmatch, NetEase, Megalobiz and Genius — or from a plugin
+- Word-by-word karaoke, with the word timing estimated when a provider only has lines
+- Romanization for Japanese, Korean and Chinese, and translations beside the original
+- In the lyrics panel, the immersive view, the mini-player and a floating desktop window
+
+### 📚 Library · [docs](docs/features/library.md)
+
+- Folder scan with a live watcher; browse by album, artist, genre or folder
+- Search and filters, with pinyin for Chinese titles
+- A tag editor that keeps every tag it does not edit, and 5-star ratings written back to your files
+- Duplicates, a "Needs attention" tab, multi-artist split
+- Hi-Res badges, loudness and BPM analysis
+
+### 🎶 Playlists · [docs](docs/features/playlists.md) · [smart playlists](docs/features/smart-playlists.md)
+
+- Drag-and-drop, M3U import and export, a header coloured from the cover
+- Smart playlists built from rules, with a live count
+- **Daily Mix** and **On Repeat**, generated from what you play
+
+### 🎨 Interface · [docs](docs/features/ui.md)
+
+- 5 skins × 14 themes, dark mode, a high-contrast mode
+- Immersive now-playing with Canvas clips, animated covers and a cover slideshow
+- Always-on-top mini-player, system tray, Windows taskbar buttons
+- Statistics and **WaveFlow Wrapped**, all computed locally
+- 17 languages including right-to-left, a separate library per profile, automatic backups
+
+### 🔌 Connections · [docs](docs/features/integrations.md)
+
+- Deezer artwork, Last.fm bios and scrobbling, TheAudioDB, Discord Rich Presence
+- Optional [DLNA / UPnP server](docs/features/dlna.md) and [MPD server](docs/features/mpd.md), so the clients you already use can play from or control WaveFlow
+- Your own [waveflow-server](https://github.com/InstaZDLL/waveflow-server): its catalogue joins your library, and favourites, ratings and playlists follow you across devices ([RFC-005](docs/rfcs/RFC-005-remote-source-and-sync-v2.md))
+- Everything fetched is cached locally, and an offline mode cuts all network access
+
+### 🧩 Plugins · [docs](docs/features/plugins.md) · [RFC-002](docs/rfcs/RFC-002-plugin-sdk.md)
+
+- Sandboxed WebAssembly plugins with permissions, from an in-app store with verified installs
+- Official plugins: **Web Radio** (30 000+ stations), **Apple Motion Artwork** (animated covers) and **Release Radar** (new releases from your artists)
 
 ## Tech Stack
 
-<!-- markdownlint-disable MD060 -->
-
-| Layer                     | Technologies                                                                                                                                                                                                                                                   |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Desktop shell**         | Tauri 2.11 (tray icon, opener, dialog, updater, notification, single-instance plugins)                                                                                                                                                                         |
-| **OS media controls**     | souvlaki 0.8 (SMTC / MPRIS / MediaRemote bridge)                                                                                                                                                                                                               |
-| **Discord Rich Presence** | discord-rich-presence 1.1 (local IPC named pipe, no auth)                                                                                                                                                                                                      |
-| **Frontend**              | React 19, TypeScript, Vite 8, Tailwind CSS 4, framer-motion 13, Lucide icons, `@dnd-kit` (drag-and-drop), `@tanstack/react-virtual` (virtualization), `@fontsource` (bundled woff2 for skin typography — local-first, no Google Fonts at runtime)              |
-| **Backend**               | Rust, SQLite (sqlx 0.9), FTS5 contentless full-text search, BLAKE3 hashing, tokio                                                                                                                                                                              |
-| **Audio**                 | symphonia 0.6 (decode) + libopus (Opus), cpal 0.17 (output), rubato 5.0 (resample), rtrb 0.4 (SPSC ring)                                                                                                                                                       |
-| **Metadata extraction**   | lofty 0.25 (tags, embedded art, POPM, INITIALKEY)                                                                                                                                                                                                              |
-| **Imaging**               | image 0.25 + fast_image_resize 6 (SIMD thumbnails) + resvg/usvg/tiny-skia (smart-playlist composite covers)                                                                                                                                                    |
-| **Filesystem watcher**    | notify 8 (debounced rescans of watched folders)                                                                                                                                                                                                                |
-| **Plugin runtime**        | wasmtime + WASI p2 (RFC-002 plugin sandbox with permission gates)                                                                                                                                                                                              |
-| **External APIs**         | Deezer public API (no auth) + Last.fm (read + signed methods via md-5 + reqwest 0.12 with rustls) + LRCLIB / Musixmatch / NetEase / Megalobiz / Genius lyrics + optional [waveflow-server](https://github.com/InstaZDLL/waveflow-server) for multi-device sync |
-| **Package manager**       | Bun                                                                                                                                                                                                                                                            |
-
-<!-- markdownlint-enable MD060 -->
+- **App** — Tauri 2 · Rust · SQLite (sqlx, FTS5) · tokio
+- **Frontend** — React 19 · TypeScript · Vite · Tailwind CSS 4 · Framer Motion
+- **Audio** — symphonia + libopus (decoding) · cpal (output) · rubato (resampling) · rtrb (lock-free ring buffer)
+- **Metadata & images** — lofty · image + fast_image_resize · resvg
+- **Plugins** — wasmtime + WASI p2
+- **Toolchain** — Bun
 
 ## Getting Started
+
+Requires Bun, Rust and the platform dependencies listed in [CONTRIBUTING.md](docs/CONTRIBUTING.md#requirements).
 
 ```bash
 # Install dependencies
