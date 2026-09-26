@@ -2428,6 +2428,10 @@
       "title": "Pase de diapositivas: portada / artista",
       "subtitle": "Alterna con un fundido la portada del álbum y la foto del artista detrás de la reproducción (vista inmersiva + panel Reproduciendo)."
     },
+    "motionCovers": {
+      "title": "Mostrar portadas animadas",
+      "subtitle": "Portadas animadas detrás de la reproducción actual, tanto las de un plugin como las que elegiste tú. Desactivado, no se consulta a ningún plugin."
+    },
     "artistHero": {
       "title": "Banner de artista",
       "subtitle": "Muestra una imagen panorámica detrás de la cabecera de la página del artista (fanart de TheAudioDB o, en su defecto, la foto desenfocada)."

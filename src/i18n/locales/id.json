@@ -2367,6 +2367,10 @@
       "title": "Salindia sampul / artis",
       "subtitle": "Berganti perlahan antara sampul album dan foto artis dengan efek pudar di belakang pemutaran (tampilan imersif + panel Sedang diputar)."
     },
+    "motionCovers": {
+      "title": "Tampilkan sampul animasi",
+      "subtitle": "Sampul album animasi di balik tampilan yang sedang diputar, baik dari plugin maupun yang kamu pilih sendiri. Jika nonaktif, tidak ada plugin yang ditanya."
+    },
     "artistHero": {
       "title": "Banner artis",
       "subtitle": "Menampilkan gambar lebar di belakang header halaman artis (fanart TheAudioDB, atau foto yang diburamkan)."

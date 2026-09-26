@@ -2367,6 +2367,10 @@
       "title": "Diavoorstelling hoes / artiest",
       "subtitle": "Wisselt met een overvloeier tussen de albumhoes en de artiestenfoto in de meeslepende weergave en het paneel ‘Speelt nu’."
     },
+    "motionCovers": {
+      "title": "Bewegende hoezen tonen",
+      "subtitle": "Bewegende albumhoezen achter wat er nu speelt, of een plug-in ze levert of je ze zelf hebt gekozen. Uitgeschakeld wordt geen enkele plug-in erom gevraagd."
+    },
     "artistHero": {
       "title": "Artiestbanner",
       "subtitle": "Toont een brede achtergrondafbeelding achter de kop van de artiestpagina (TheAudioDB-fanart, anders de vervaagde foto)."

@@ -213,6 +213,8 @@ export const SETTINGS_CATEGORIES = [
           "settings.immersiveView.title",
           "settings.coverSlideshow.title",
           "settings.coverSlideshow.subtitle",
+          "settings.motionCovers.title",
+          "settings.motionCovers.subtitle",
         ],
       },
       {

@@ -4,6 +4,7 @@ import {
   fetchAlbumMotionArtwork,
   type MotionArtwork,
 } from "../lib/tauri/plugins";
+import { useMotionCovers } from "./useMotionCovers";
 import { PLUGIN_AVAILABILITY_EVENT } from "./usePluginAvailability";
 
 /**
@@ -191,6 +192,12 @@ export function useAlbumMotionArtwork(
     motion: MotionArtwork | null;
   } | null>(null);
   const cacheGeneration = useSyncExternalStore(subscribe, getGeneration);
+  // Settings → "Show animated covers" (#766). Off means no cover at all,
+  // hand-set ones included, and no plugin asked for one. Until the
+  // profile's value is read it is treated as off, so a profile that
+  // turned them off never starts a fan-out it would then throw away.
+  const motionCovers = useMotionCovers();
+  const wanted = motionCovers.ready && motionCovers.enabled;
 
   useEffect(() => {
     let cancelled = false;
@@ -207,7 +214,7 @@ export function useAlbumMotionArtwork(
     // `react-hooks/set-state-in-effect`, and runs before any fetch
     // resolves, so the new artwork only ever replaces `null`.
     Promise.resolve<MotionArtwork | null>(null).then(apply);
-    if (artist && album) {
+    if (wanted && artist && album) {
       lookup(artist, album, albumId).then(apply, () => apply(null));
     }
     return () => {
@@ -215,7 +222,9 @@ export function useAlbumMotionArtwork(
     };
     // `cacheGeneration` is a dependency rather than a value this effect
     // reads: it is what makes an invalidation re-run the lookup.
-  }, [artist, album, albumId, cacheGeneration]);
+  }, [artist, album, albumId, cacheGeneration, wanted]);
 
-  return state && state.generation === cacheGeneration ? state.motion : null;
+  return wanted && state && state.generation === cacheGeneration
+    ? state.motion
+    : null;
 }

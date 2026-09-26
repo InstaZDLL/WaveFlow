@@ -2429,6 +2429,10 @@
       "title": "Apresentação capa / artista",
       "subtitle": "Alterna suavemente a capa do álbum com a foto do artista por trás da reprodução (vista imersiva + painel A reproduzir)."
     },
+    "motionCovers": {
+      "title": "Mostrar capas animadas",
+      "subtitle": "Capas animadas por trás da reprodução atual, fornecidas por um plugin ou escolhidas por ti. Desativado, nenhum plugin é consultado."
+    },
     "artistHero": {
       "title": "Banner do artista",
       "subtitle": "Mostra uma imagem panorâmica por trás do cabeçalho da página do artista (fanart do TheAudioDB ou, na sua falta, a fotografia desfocada)."

@@ -2367,6 +2367,10 @@
       "title": "Cover-/Künstler-Diashow",
       "subtitle": "Blendet sanft zwischen dem Albumcover und dem Künstlerfoto hinter der Wiedergabe über (immersive Ansicht + „Aktuelle Wiedergabe“-Panel)."
     },
+    "motionCovers": {
+      "title": "Animierte Cover anzeigen",
+      "subtitle": "Animierte Albumcover hinter der aktuellen Wiedergabe, ob von einem Plugin geliefert oder von dir selbst gewählt. Ausgeschaltet werden keine Plugins dafür angefragt."
+    },
     "artistHero": {
       "title": "Künstler-Banner",
       "subtitle": "Zeigt ein breites Hintergrundbild hinter dem Kopfbereich der Künstlerseite (TheAudioDB-Fanart, sonst das unscharfe Foto)."
