@@ -23,7 +23,7 @@
     },
     "card": {
       "title": "Rendering dell'interfaccia",
-      "retryGpu": "Riprova la GPU",
+      "retryGpu": "Riprova con la GPU",
       "restartToApply": "Al prossimo avvio",
       "retryFailed": "Salvataggio non riuscito. Riprova."
     },
@@ -62,7 +62,7 @@
     "defaultLibraryName": "Musica",
     "welcome": {
       "title": "Benvenuto in WaveFlow",
-      "description": "Il tuo lettore musicale local-first. Goditi tutta la tua libreria senza abbonamenti streaming."
+      "description": "Il tuo lettore musicale personale, progettato per l'uso locale. Goditi tutta la tua libreria senza abbonamenti streaming."
     },
     "localOnly": {
       "title": "Importante: solo musica locale",
@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Dove salvare i testi?",
-      "description": "Dove devono andare i testi, quelli che modifichi e quelli che WaveFlow trova per te? Modificabile in Impostazioni → Immagini e testi.",
+      "description": "Dove devono andare i testi, quelli che scrivi e quelli che WaveFlow trova per te? Puoi cambiare questa scelta in qualsiasi momento da Impostazioni → Immagini e testi.",
       "hint": "Scegli «File sidecar» per non toccare i file audio — come fanno foobar2000 e simili."
     }
   },
@@ -308,11 +308,11 @@
     },
     "moodRadio": {
       "title": "Mood Radio",
-      "subtitle": "Ordinata per tempo, loudness e genere",
+      "subtitle": "Ordinata per tempo, intensità sonora e genere",
       "trackCount_one": "{{count}} brano",
       "trackCount_other": "{{count}} brani",
       "trackCount_many": "{{count}} brani",
-      "empty": "Brani analizzati insufficienti",
+      "empty": "Non ci sono abbastanza brani analizzati",
       "loading": "Avvio…",
       "focus": {
         "title": "Concentrazione",
@@ -363,7 +363,7 @@
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Il tuo riepilogo {{year}}",
-      "subtitle": "I tuoi artisti, i tuoi minuti, il tuo anno — raccontato in poche slide.",
+      "subtitle": "I tuoi artisti, i tuoi minuti, il tuo anno — raccontati in poche slide.",
       "cta": "Apri",
       "dismiss": "Nascondi il banner Wrapped"
     },
@@ -528,9 +528,9 @@
       "actions": "Azioni della cartella",
       "play": "Riproduci la cartella",
       "queue": "Aggiungi alla coda",
-      "playNext": "Riproduci dopo",
+      "playNext": "Riproduci subito dopo",
       "newPlaylist": "Nuova playlist",
-      "batchTag": "Modifica i tag in batch",
+      "batchTag": "Modifica i tag in blocco",
       "densityList": "Elenco"
     },
     "skeletonAriaLabel": "Caricamento {{name}}…",
@@ -637,8 +637,8 @@
       "duration": "Durata",
       "rating": "Valutazione",
       "bitrate": "Bitrate",
-      "sampleRate": "Campionamento",
-      "bitDepth": "Profondità",
+      "sampleRate": "Frequenza di campionamento",
+      "bitDepth": "Profondità in bit",
       "channels": "Canali",
       "codec": "Codec",
       "musicalKey": "Tonalità",
@@ -810,7 +810,7 @@
     "mood": {
       "eyebrow": "Il tuo tempo medio",
       "subtitle": "Il ritmo che ha guidato il tuo anno",
-      "loudness": "Loudness media: {{lufs}} LUFS",
+      "loudness": "Intensità sonora media: {{lufs}} LUFS",
       "energy": {
         "chill": "Chill",
         "warm": "Caldo",
@@ -982,7 +982,7 @@
       "minPeriod": "Periodo minimo: {{value}} frame",
       "formats": "Formati",
       "rates": "Frequenze di campionamento",
-      "caveat": "Ciò che un driver dichiara e ciò che accetta in modalità esclusiva sono due domande diverse.",
+      "caveat": "Ciò che un driver dichiara e ciò che accetta in modalità esclusiva possono essere due cose diverse.",
       "source": {
         "wasapiExclusive": "Verificato con il driver in modalità esclusiva.",
         "alsaHardware": "Parametri hardware ALSA, senza livello di conversione.",
@@ -1120,7 +1120,7 @@
     "addToPlaylist": "Aggiungi a una playlist",
     "noPlaylists": "Nessuna playlist. Creane una sotto.",
     "createPlaylist": "Nuova playlist",
-    "playNext": "Riproduci dopo",
+    "playNext": "Riproduci subito dopo",
     "addToQueue": "Aggiungi alla coda",
     "like": "Aggiungi ai preferiti",
     "unlike": "Rimuovi dai preferiti",
@@ -1138,7 +1138,7 @@
     "removeFromPlaylistNamed": "Rimuovi da «{{name}}»"
   },
   "batchTagEdit": {
-    "title": "Modifica i tag in batch",
+    "title": "Modifica i tag in blocco",
     "subtitle": "{{count}} brani selezionati",
     "help": "Seleziona i campi da applicare a tutti i brani. I campi non selezionati mantengono il valore proprio di ciascun brano.",
     "submit": "Applica ({{count}} campi)",
@@ -1155,8 +1155,8 @@
       "genre": "es. Electronic"
     },
     "result": {
-      "updated": "{{count}} brano/i aggiornato/i",
-      "failed": "{{count}} errore/i:"
+      "updated": "Brani aggiornati: {{count}}",
+      "failed": "Errori ({{count}}):"
     }
   },
   "trackProperties": {
@@ -1168,7 +1168,7 @@
       "file": "File"
     },
     "bpm": "BPM",
-    "loudness": "Loudness",
+    "loudness": "Intensità sonora",
     "replayGain": "ReplayGain",
     "peak": "Picco",
     "analyze": "Analizza",
@@ -1215,7 +1215,7 @@
     "count_many": "{{count}} selezionati",
     "play": "Riproduci",
     "addToQueue": "Aggiungi alla coda",
-    "playNext": "Riproduci dopo",
+    "playNext": "Riproduci subito dopo",
     "addToPlaylist": "Aggiungi a una playlist",
     "removeFromPlaylist": "Rimuovi dalla playlist",
     "clear": "Deseleziona"
@@ -1579,7 +1579,7 @@
       "pathContains": "Percorso contiene",
       "discNumberIs": "Disco =",
       "addedInLastDays": "Aggiunto negli ultimi",
-      "sampleRateMin": "Campionamento ≥",
+      "sampleRateMin": "Frequenza di campionamento ≥",
       "bitDepthMin": "Profondità ≥",
       "playCountMin": "Ascolti ≥",
       "playCountMax": "Ascolti ≤",
@@ -1928,7 +1928,7 @@
     },
     "analyze": {
       "title": "Analizza la libreria",
-      "subtitle": "Calcola BPM, loudness e picco per i brani non ancora analizzati",
+      "subtitle": "Calcola BPM, intensità sonora e picco per i brani non ancora analizzati",
       "action": "Analizza",
       "cancel": "Interrompi analisi",
       "autoTitle": "Analisi automatica",
@@ -2099,7 +2099,7 @@
     },
     "dynamicCrossfade": {
       "title": "Crossfade dinamico",
-      "subtitle": "Adatta la durata del crossfade in base alla differenza di tempo tra i brani (ricade sul crossfade fisso se il BPM è sconosciuto)"
+      "subtitle": "Adatta la durata del crossfade in base alla differenza di tempo tra i brani (usa il crossfade fisso se il BPM è sconosciuto)"
     },
     "gapless": {
       "title": "Riproduzione gapless",
@@ -2184,7 +2184,7 @@
         "dark": "Scuro"
       },
       "themes": {
-        "default": "Smeraldo Chiaro",
+        "default": "Smeraldo chiaro",
         "defaultDark": "Smeraldo",
         "oled": "OLED",
         "midnight": "Mezzanotte",
@@ -2193,11 +2193,11 @@
         "crimson": "Cremisi",
         "ocean": "Oceano",
         "neon": "Neon",
-        "midnightLight": "Mezzanotte Chiaro",
-        "sunsetLight": "Tramonto Chiaro",
-        "lavenderLight": "Lavanda Chiaro",
-        "crimsonLight": "Cremisi Chiaro",
-        "oceanLight": "Oceano Chiaro"
+        "midnightLight": "Mezzanotte chiara",
+        "sunsetLight": "Tramonto chiaro",
+        "lavenderLight": "Lavanda chiara",
+        "crimsonLight": "Cremisi chiaro",
+        "oceanLight": "Oceano chiaro"
       },
       "skin": {
         "title": "Skin",
@@ -2218,7 +2218,7 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Club neon — base OLED, aloni colorati attorno agli elementi attivi, capsule mono, animazioni elastiche."
+          "description": "Club neon — base OLED, aloni colorati attorno agli elementi attivi, capsule monocromatiche, animazioni elastiche."
         },
         "liquid": {
           "label": "Liquid",
@@ -2284,7 +2284,7 @@
       "subtitle": "Mostra l'etichetta «Hi-Res 24-bit» o «DSD128» accanto ai brani idonei e sotto il nome dell'artista nella barra di riproduzione. Attivo per impostazione predefinita."
     },
     "serverAccount": {
-      "title": "Account server WaveFlow",
+      "title": "Account del server WaveFlow",
       "subtitle": "Collega questo profilo alla tua istanza waveflow-server per abilitare la sincronizzazione multi-dispositivo e la riproduzione nel browser.",
       "signedIn": "Accesso effettuato",
       "urlLabel": "URL del server",
@@ -2294,7 +2294,7 @@
       "tokenHint": "Accedi al server dal tuo browser, copia il JWT rilasciato da Better Auth e incollalo qui.",
       "tokenPlaceholder": "Incolla il JWT (tre segmenti separati da punti)",
       "tokenSave": "Salva",
-      "openLogin": "Apri accesso",
+      "openLogin": "Apri la pagina di accesso",
       "signOut": "Disconnetti",
       "webUrlLabel": "URL di WaveFlow Web",
       "webUrlPlaceholder": "https://waveflow.app",
@@ -2304,7 +2304,7 @@
       "modeLabel": "Modalità di sincronizzazione",
       "modes": {
         "hybrid": {
-          "label": "Ibrido (predefinito)",
+          "label": "Ibrida (predefinita)",
           "description": "Le tue modifiche restano locali ma vengono anche accodate per essere inviate al server."
         },
         "local": {
@@ -2493,7 +2493,7 @@
     },
     "remoteTranscode": {
       "title": "Transcodifica la sorgente remota",
-      "subtitle": "Chiedi al server di ricodificare i suoi brani prima di inviarli. Risparmia banda, costa qualità audio.",
+      "subtitle": "Chiedi al server di ricodificare i suoi brani prima di inviarli. Risparmia banda, a scapito della qualità audio.",
       "off": "Originale",
       "offHint": "Il file com'è sul server. Nessuna perdita.",
       "opus": "Opus",
@@ -2525,7 +2525,7 @@
     },
     "cacheLocation": {
       "title": "Posizione della cache",
-      "subtitle": "Copertine, copertine animate e clip Canvas. È tutto ricostruibile, quindi spostarlo non perde nulla. I database e i file scelti a mano restano dove sono.",
+      "subtitle": "Copertine, copertine animate e clip Canvas. Questi dati sono tutti ricostruibili, quindi spostarli non comporta alcuna perdita. I database e i file scelti a mano restano dove sono.",
       "pickTitle": "Scegli la cartella della cache",
       "choose": "Sposta…",
       "reset": "Torna al valore predefinito",
@@ -2619,9 +2619,9 @@
     "cancelledTitle": "Scansione interrotta",
     "doneSubtitle": "{{added}} aggiunti · {{updated}} aggiornati · {{skipped}} saltati",
     "scanningIn": "Scansione di {{dir}}",
-    "doneErrors_one": "{{count}} file non riuscito",
-    "doneErrors_other": "{{count}} file non riusciti",
-    "doneErrors_many": "{{count}} file non riusciti"
+    "doneErrors_one": "Impossibile elaborare {{count}} file",
+    "doneErrors_other": "Impossibile elaborare {{count}} file",
+    "doneErrors_many": "Impossibile elaborare {{count}} file"
   },
   "system": {
     "tray": {
@@ -2787,7 +2787,7 @@
       "subtitle": "Solo corrispondenze esatte di file interi. I file di uguale dimensione vengono verificati con BLAKE3; i metadati non creano mai un collegamento.",
       "cancel": "Annulla",
       "findMatches": "Trova corrispondenze",
-      "hashing": "Hashing di {{processed}} / {{total}} file locali…",
+      "hashing": "Calcolo dell'hash di {{processed}} / {{total}} file locali…",
       "cancelledSummary": "Analisi annullata — nessun collegamento creato.",
       "confirmedLinks": "Collegamenti confermati",
       "favoritesRatings": "Preferiti: locale {{localFav}} · server {{remoteFav}} · Valutazioni: locale {{localRating}} · server {{remoteRating}}/5",
@@ -2799,8 +2799,8 @@
       "copyRatingServerToLocal": "Valutazione server → locale",
       "statusConfirmed": "confermato",
       "statusStale": "obsoleto",
-      "localFirst": "Prima locale",
-      "serverFirst": "Prima server",
+      "localFirst": "Preferisci la copia locale",
+      "serverFirst": "Preferisci la copia sul server",
       "playbackPreference": "Preferenza di riproduzione per {{title}}",
       "unlink": "Scollega {{title}}",
       "conversionTitle": "Copia esplicita della playlist",
@@ -2830,9 +2830,9 @@
       "summaryLinked_one": "{{count}} collegato automaticamente",
       "summaryLinked_other": "{{count}} collegati automaticamente",
       "summaryLinked_many": "{{count}} collegati automaticamente",
-      "summaryGroups_one": "{{count}} gruppo da decidere",
-      "summaryGroups_other": "{{count}} gruppi da decidere",
-      "summaryGroups_many": "{{count}} gruppi da decidere",
+      "summaryGroups_one": "{{count}} gruppo da esaminare",
+      "summaryGroups_other": "{{count}} gruppi da esaminare",
+      "summaryGroups_many": "{{count}} gruppi da esaminare",
       "summaryStale_one": " · {{count}} obsoleto",
       "summaryStale_other": " · {{count}} obsoleti",
       "summaryStale_many": " · {{count}} obsoleti",
@@ -2870,10 +2870,10 @@
       "statTracks": "Brani",
       "statArtists": "Artisti",
       "statLibraries": "Librerie",
-      "progressAlbums": "{{done}} album percorsi…",
+      "progressAlbums": "{{done}} album esaminati…",
       "progressSweep": "{{done}} brani rilevati…",
       "reportUnchanged": "Non era cambiato nulla.",
-      "reportWalked": "{{albums}} album percorsi, {{tracks}} brani copiati.",
+      "reportWalked": "{{albums}} album esaminati, {{tracks}} brani copiati.",
       "reportRemoved": "{{removed}} rimossi",
       "reportCancelled": "interrotto",
       "neverMirrored": "Mai copiato.",
@@ -3036,7 +3036,7 @@
     "hint": "Non viene scritto nulla finché non applichi.",
     "acceptColumn": "Tutto il campo:",
     "acceptTrack": "Tutto il brano",
-    "nothingToChange": "Questa edizione dice esattamente quello che dicono già i tuoi file.",
+    "nothingToChange": "I metadati di questa edizione coincidono già con quelli dei tuoi file.",
     "trackUnchanged": "Niente da cambiare in questo brano.",
     "noMatch": "Nessuna corrispondenza per {{file}}.",
     "emptyValue": "(vuoto)",

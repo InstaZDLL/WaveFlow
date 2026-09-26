@@ -12,7 +12,7 @@
   },
   "lastfmReauth": {
     "title": "Sesi Last.fm kedaluwarsa",
-    "message": "Scrobble kamu tidak lagi terkirim. Masuk kembali untuk melanjutkan.",
+    "message": "Scrobble-mu tidak lagi terkirim. Masuk kembali untuk melanjutkan.",
     "action": "Buka pengaturan"
   },
   "rendering": {
@@ -62,7 +62,7 @@
     "defaultLibraryName": "Musik",
     "welcome": {
       "title": "Selamat datang di WaveFlow",
-      "description": "Pemutar musik local-first milikmu. Nikmati seluruh pustakamu tanpa langganan streaming."
+      "description": "Pemutar musik pribadimu yang mengutamakan koleksi lokal. Nikmati seluruh pustakamu tanpa langganan streaming."
     },
     "localOnly": {
       "title": "Penting: hanya musik lokal",
@@ -102,7 +102,7 @@
       "keyLabel": "Kunci API",
       "keyPlaceholder": "Kunci API Last.fm-mu",
       "secretLabel": "Rahasia bersama",
-      "secretPlaceholder": "Rahasia bersama kamu",
+      "secretPlaceholder": "Rahasia bersamamu",
       "userLabel": "Nama pengguna Last.fm",
       "userPlaceholder": "nama-kamu",
       "passwordLabel": "Kata sandi",
@@ -147,10 +147,10 @@
       "title": "Pilih bahasamu",
       "description": "WaveFlow tersedia dalam 17 bahasa. Kami sudah memilih bahasa sistemmu — ubah jika salah.",
       "detected": "Terdeteksi dari sistemmu",
-      "fallback": "Kami tidak bisa mendeteksi bahasa sistemmu, jadi default-nya bahasa Inggris. Pilih bahasamu di bawah."
+      "fallback": "Kami tidak dapat mencocokkan bahasa sistemmu, jadi bahasa Inggris dipilih sebagai bawaan. Pilih bahasamu di bawah."
     },
     "profile": {
-      "title": "Beri nama profil kamu",
+      "title": "Beri nama profilmu",
       "description": "WaveFlow memakai profil untuk memisahkan pustaka. Pilih nama yang mudah kamu kenali nanti.",
       "nameLabel": "Nama profil",
       "namePlaceholder": "Mis. Daisy",
@@ -161,7 +161,7 @@
     "lyrics": {
       "title": "Di mana menyimpan lirik?",
       "description": "Di mana lirik harus disimpan — yang kamu edit maupun yang ditemukan WaveFlow? Kamu dapat mengubahnya kapan saja di Pengaturan → Gambar dan lirik.",
-      "hint": "Pilih \"Berkas pendamping\" agar berkas audio kamu tetap utuh — seperti yang dilakukan foobar2000 dkk."
+      "hint": "Pilih \"Berkas pendamping\" agar berkas audiomu tetap utuh — seperti yang dilakukan foobar2000 dkk."
     }
   },
   "sidebar": {
@@ -291,7 +291,7 @@
       "openFolder": "Buka folder",
       "importFiles": "Impor berkas",
       "importFolder": "Impor folder",
-      "browseLibrary": "Jelajahi pustakamu"
+      "browseLibrary": "Jelajahi pustakaku"
     },
     "stats": {
       "library": "Pustaka",
@@ -332,7 +332,7 @@
     "recentlyPlayed": {
       "title": "Baru saja diputar",
       "emptyTitle": "Belum ada yang diputar",
-      "emptyDescription": "Putar sebuah lagu agar muncul di sini. Riwayat dengarmu akan terbangun seiring kamu mengeksplorasi musik baru."
+      "emptyDescription": "Putar sebuah lagu agar muncul di sini. Riwayat dengarmu akan terbentuk seiring kamu menjelajahi musik baru."
     },
     "recentlyAdded": {
       "title": "Baru ditambahkan"
@@ -352,7 +352,7 @@
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
-      "title": "Rangkuman {{year}} kamu",
+      "title": "Rangkumanmu untuk {{year}}",
       "subtitle": "Artismu, menitmu, tahunmu — diceritakan dalam beberapa slide.",
       "cta": "Buka",
       "dismiss": "Sembunyikan banner Wrapped"
@@ -574,7 +574,7 @@
           "help": "Dua lagu menempati posisi yang sama."
         },
         "track_number_gap": {
-          "label": "Penomoran berlubang",
+          "label": "Celah dalam penomoran",
           "help": "Ada nomor yang hilang antara yang pertama dan terakhir."
         },
         "probable_duplicate": {
@@ -661,7 +661,7 @@
     "count_zero": "0 lagu",
     "count_one": "{{count}} lagu",
     "count_other": "{{count}} lagu",
-    "emptyTitle": "Belum ada lagu terbaru",
+    "emptyTitle": "Belum ada lagu yang baru diputar",
     "emptyDescription": "Lagu yang kamu dengarkan akan muncul di sini secara otomatis."
   },
   "statistics": {
@@ -709,7 +709,7 @@
     "heatmap": {
       "title": "Aktivitas tahunan",
       "empty": "Belum ada pemutaran dalam 12 bulan terakhir.",
-      "summary": "{{time}} didengarkan sepanjang tahun — {{plays}} pemutaran",
+      "summary": "Mendengarkan selama {{time}} sepanjang tahun — {{plays}} pemutaran",
       "less": "Kurang",
       "more": "Lebih"
     },
@@ -741,7 +741,7 @@
     "playsShort_other": "{{count}} pemutaran",
     "empty": {
       "title": "Belum ada riwayat mendengarkan",
-      "subtitle": "Putar beberapa lagu dan kembali nanti — Wrapped-mu terbangun seiring kamu mendengarkan."
+      "subtitle": "Putar beberapa lagu dan kembali nanti — Wrapped-mu akan terbentuk seiring kamu mendengarkan."
     },
     "intro": {
       "eyebrow": "WaveFlow Wrapped",
@@ -810,7 +810,7 @@
     },
     "outro": {
       "title": "Terima kasih sudah mendengarkan dengan WaveFlow",
-      "subtitle": "Terus eksplorasi — Wrapped-mu diperbarui secara waktu nyata.",
+      "subtitle": "Terus jelajahi musik — Wrapped-mu diperbarui secara langsung.",
       "cta": "Kembali ke beranda"
     }
   },
@@ -822,7 +822,7 @@
       "developedBy": "Dikembangkan oleh"
     },
     "sections": {
-      "frameworkDesktop": "Framework desktop",
+      "frameworkDesktop": "Kerangka kerja desktop",
       "frontend": "Frontend",
       "backend": "Backend (Rust)",
       "audio": "Audio",
@@ -871,10 +871,10 @@
       "pause": "Jeda",
       "previous": "Sebelumnya",
       "next": "Berikutnya",
-      "shuffleOff": "Acak mati",
+      "shuffleOff": "Mode acak nonaktif",
       "shuffleTracks": "Lagu diacak",
       "shuffleAlbums": "Album diacak",
-      "repeatOff": "Pengulangan mati",
+      "repeatOff": "Mode ulang nonaktif",
       "repeatAll": "Ulang semua",
       "repeatOne": "Ulang satu lagu"
     },
@@ -888,7 +888,7 @@
       "title": "Kecepatan pemutaran",
       "slider": "Penggeser kecepatan",
       "custom": "Kecepatan kustom",
-      "pitchHint": "Pitch mengikuti kecepatan (tanpa time-stretching)."
+      "pitchHint": "Nada mengikuti kecepatan (tanpa peregangan waktu)."
     },
     "seek": "Geser posisi",
     "alert": {
@@ -931,7 +931,7 @@
     "activeLabel": "Keluaran aktif",
     "loading": "Mencari perangkat…",
     "empty": "Tidak ada perangkat keluaran yang tersedia",
-    "systemDefault": "Default sistem",
+    "systemDefault": "Bawaan sistem",
     "pinnedUnavailable": "Disematkan, tidak tersedia",
     "reopen": "Buka ulang perangkat ini",
     "capabilities": {
@@ -1307,7 +1307,7 @@
     "devices": "Perangkat keluaran",
     "moreActions": "Aksi lainnya",
     "abLoop": "Loop A-B",
-    "eqPreset": "Equalizer",
+    "eqPreset": "Ekualiser",
     "eq": {
       "bypass": "Aktifkan EQ"
     },
@@ -1588,7 +1588,7 @@
     "exportToFile": "Simpan ke berkas…",
     "exportToFileHint": "Ekspor lirik ke berkas .lrc atau .txt di lokasi pilihanmu, tanpa menyentuh berkas audio",
     "exportedToFile": "Diekspor ke {{path}}",
-    "destinationLabel": "Tujuan default lirik",
+    "destinationLabel": "Tujuan bawaan lirik",
     "destination": {
       "tag": {
         "label": "Tag tertanam",
@@ -1752,7 +1752,7 @@
       },
       "dlna": {
         "title": "Server DLNA / UPnP",
-        "subtitle": "Streaming pustakamu ke amplifier dan perangkat kompatibel di jaringan lokal",
+        "subtitle": "Alirkan pustakamu ke amplifier dan perangkat yang kompatibel di jaringan lokal",
         "serverName": "Nama",
         "port": "Port",
         "portHint": "0 = port otomatis",
@@ -1776,7 +1776,7 @@
       },
       "notifications": {
         "title": "Notifikasi pergantian lagu",
-        "subtitle": "Tampilkan notifikasi sistem di awal setiap lagu (judul + artis). Mati secara default."
+        "subtitle": "Tampilkan notifikasi sistem di awal setiap lagu (judul + artis). Nonaktif secara bawaan."
       }
     },
     "crossfade": {
@@ -1839,8 +1839,8 @@
       "subtitle": "Bahasa antarmuka"
     },
     "autoStart": {
-      "title": "Mulai saat startup",
-      "subtitle": "Mulai WaveFlow otomatis saat sistem menyala"
+      "title": "Jalankan saat sistem dimulai",
+      "subtitle": "Jalankan WaveFlow secara otomatis saat sistem menyala"
     },
     "minimizeToTray": {
       "title": "Minimalkan ke baki sistem",
@@ -1929,11 +1929,11 @@
       "action": "Pra-ambil",
       "progress": "{{current}}/{{total}} diproses · {{hits}} ditemukan"
     },
-    "regenerateThumbnails": "Buat ulang thumbnail",
+    "regenerateThumbnails": "Buat ulang gambar mini",
     "regenerateThumbnailsSubtitle": "Bangun ulang varian 1x/2x yang hilang untuk semua sampul",
     "regenerateThumbnailsAction": "Buat ulang",
-    "regenerateThumbnailsDone_one": "{{count}} thumbnail dibuat ulang",
-    "regenerateThumbnailsDone_other": "{{count}} thumbnail dibuat ulang",
+    "regenerateThumbnailsDone_one": "{{count}} gambar mini dibuat ulang",
+    "regenerateThumbnailsDone_other": "{{count}} gambar mini dibuat ulang",
     "pruneAlbumCovers": "Bersihkan sampul album Deezer yang tidak terpakai",
     "pruneAlbumCoversSubtitle": "Menghapus sampul album Deezer yang tersimpan untuk album yang sudah punya sampul sendiri (tidak pernah ditampilkan)",
     "pruneAlbumCoversAction": "Bersihkan",
@@ -1946,7 +1946,7 @@
       "action": "Atur ulang",
       "confirm": {
         "title": "Atur ulang seluruh aplikasi?",
-        "warning": "Tindakan ini akan menghapus semua profil, pustaka, daftar putar, penilaian, riwayat pemutaran, dan sampul yang di-cache. Aplikasi akan memulai ulang ke onboarding bersih. Tindakan ini tidak dapat dibatalkan.",
+        "warning": "Tindakan ini akan menghapus semua profil, pustaka, daftar putar, penilaian, riwayat pemutaran, dan sampul dalam cache. Aplikasi akan dimulai ulang ke proses penyiapan awal yang baru. Tindakan ini tidak dapat dibatalkan.",
         "typeToConfirm": "Ketik RESET untuk konfirmasi",
         "error": "Gagal mengatur ulang. Tutup program eksternal apa pun yang menahan berkas WaveFlow (pemutar musik yang terbuka, penjelajah berkas di folder data) dan coba lagi.",
         "cancel": "Batal",
@@ -2006,7 +2006,7 @@
       "lastSyncJustNow": "Baru saja",
       "lastSyncMinutesAgo": "{{count}} mnt lalu",
       "lastSyncHoursAgo": "{{count}} j lalu",
-      "lastSyncDaysAgo": "{{count}} h lalu",
+      "lastSyncDaysAgo": "{{count}} hari lalu",
       "drilldown": {
         "loading": "Memuat detail…",
         "error": "Kesalahan: {{message}}",
@@ -2018,10 +2018,10 @@
       }
     },
     "visualizer": {
-      "title": "Visualizer audio",
-      "subtitle": "Tampilkan spektrum waktu nyata di tampilan imersif (FFT ringan di thread decoder)",
-      "cycleColor": "Warna visualizer: {{color}}",
-      "cycleStyle": "Gaya visualizer: {{style}}",
+      "title": "Visualisasi audio",
+      "subtitle": "Tampilkan spektrum secara langsung di tampilan imersif (FFT ringan pada utas dekoder)",
+      "cycleColor": "Warna visualisasi: {{color}}",
+      "cycleStyle": "Gaya visualisasi: {{style}}",
       "colors": {
         "white": "Putih",
         "emerald": "Zamrud",
@@ -2032,7 +2032,7 @@
       },
       "styles": {
         "wave": "Gelombang",
-        "mirror": "Cermin",
+        "mirror": "Dicerminkan",
         "bars": "Batang"
       }
     },
@@ -2049,7 +2049,7 @@
       "subtitle": "Rangkai lagu berturutan tanpa hening mikro (cocok untuk album live dan konsep)"
     },
     "equalizer": {
-      "title": "Equalizer",
+      "title": "Ekualiser",
       "subtitle": "Enam pita peaking, ±12 dB. Seret titik untuk membentuk kurva.",
       "presets": "Preset",
       "reset": "Atur ulang",
@@ -2111,7 +2111,7 @@
     },
     "showAudioQualityFooter": {
       "title": "Tampilkan strip kualitas audio",
-      "subtitle": "Detail teknis (kHz, kbps, codec, kedalaman bit) di bawah bilah pemutar. Nonaktif secara default agar bilah lebih ramping."
+      "subtitle": "Detail teknis (kHz, kbps, kodek, kedalaman bit) di bawah bilah pemutar. Nonaktif secara bawaan agar bilah lebih ramping."
     },
     "categoryNavLabel": "Kategori pengaturan",
     "appearance": {
@@ -2140,7 +2140,7 @@
         "oceanLight": "Samudra Terang"
       },
       "skin": {
-        "title": "Skin",
+        "title": "Gaya antarmuka",
         "subtitle": "Mengubah kerapatan, material permukaan, tipografi, dan animasi — bukan hanya warna."
       },
       "skins": {
@@ -2174,7 +2174,7 @@
       "buttons": {
         "abLoop": "Loop A-B",
         "sleepTimer": "Pengatur waktu tidur",
-        "eqPreset": "Equalizer (preset)",
+        "eqPreset": "Ekualiser (preset)",
         "lyrics": "Lirik",
         "queue": "Antrean",
         "device": "Keluaran audio",
@@ -2186,7 +2186,7 @@
         "title": "Saat sampul diklik",
         "immersive": {
           "label": "Buka tampilan imersif",
-          "description": "Default — membuka layar penuh Sedang diputar dengan sampul diperbesar."
+          "description": "Bawaan — membuka layar penuh Sedang diputar dengan sampul diperbesar."
         },
         "nowPlaying": {
           "label": "Tampilkan panel Sedang diputar",
@@ -2221,17 +2221,17 @@
     },
     "hiResBadge": {
       "title": "Lencana Hi-Res / DSD",
-      "subtitle": "Tampilkan lencana \"Hi-Res 24-bit\" atau \"DSD128\" di samping lagu yang memenuhi syarat dan di bawah nama artis di bilah pemutar. Aktif secara default."
+      "subtitle": "Tampilkan lencana \"Hi-Res 24-bit\" atau \"DSD128\" di samping lagu yang memenuhi syarat dan di bawah nama artis di bilah pemutar. Aktif secara bawaan."
     },
     "serverAccount": {
       "title": "Akun server WaveFlow",
-      "subtitle": "Hubungkan profil ini ke instans waveflow-server kamu untuk mengaktifkan sinkronisasi multi-perangkat dan pemutaran di peramban.",
+      "subtitle": "Hubungkan profil ini ke instans waveflow-server milikmu untuk mengaktifkan sinkronisasi multi-perangkat dan pemutaran di peramban.",
       "signedIn": "Sudah masuk",
       "urlLabel": "URL server",
       "urlPlaceholder": "https://api.waveflow.app",
       "urlSave": "Simpan",
       "tokenLabel": "Token JWT",
-      "tokenHint": "Masuk ke server di peramban kamu, salin JWT yang dikeluarkan Better Auth, lalu tempel di sini.",
+      "tokenHint": "Masuk ke server melalui perambanmu, salin JWT yang dikeluarkan Better Auth, lalu tempel di sini.",
       "tokenPlaceholder": "Tempel JWT (tiga segmen dipisahkan titik)",
       "tokenSave": "Simpan",
       "openLogin": "Buka login",
@@ -2239,13 +2239,13 @@
       "webUrlLabel": "URL WaveFlow Web",
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "Masuk lewat peramban",
-      "signInWithBrowserHint": "Membuka WaveFlow Web di peramban kamu; kamu masuk di sana dan aplikasi menangkap JWT secara otomatis lewat pertukaran lokal.",
+      "signInWithBrowserHint": "Membuka WaveFlow Web di perambanmu; kamu masuk di sana dan aplikasi menangkap JWT secara otomatis lewat pertukaran lokal.",
       "loginInProgress": "Menunggu peramban…",
       "modeLabel": "Mode sinkronisasi",
       "modes": {
         "hybrid": {
-          "label": "Hibrida (default)",
-          "description": "Perubahan kamu tetap lokal tetapi juga diantrekan untuk dikirim ke server."
+          "label": "Hibrida (bawaan)",
+          "description": "Perubahanmu tetap lokal tetapi juga diantrekan untuk dikirim ke server."
         },
         "local": {
           "label": "Hanya lokal",
@@ -2265,7 +2265,7 @@
       "title": "Warna baris yang dinyanyikan",
       "subtitle": "Untuk lirik layar penuh dan mini-pemutar. Putih sampai kamu memilih warna; jendela lirik mengambang tetap memakai warnanya sendiri.",
       "colors": {
-        "default": "Putih (default)",
+        "default": "Putih (bawaan)",
         "rose": "Merah muda",
         "peach": "Persik",
         "vanilla": "Vanila",
@@ -2312,7 +2312,7 @@
     "artistBio": {
       "title": "Sumber biografi",
       "subtitle": "Pilih layanan yang menyediakan biografi artis.",
-      "lastfmHint": "Biografi berbahasa Inggris. Memerlukan kunci API Last.fm kamu.",
+      "lastfmHint": "Biografi berbahasa Inggris. Memerlukan kunci API Last.fm-mu.",
       "theaudiodbHint": "Biografi komunitas dalam beberapa bahasa. Tanpa kunci.",
       "languageLabel": "Bahasa biografi"
     },
@@ -2355,7 +2355,7 @@
         "subtitle": "Menampilkan lirik di samping sampul agar kamu bisa ganti lagu sambil membaca. Kembali ke satu kolom pada jendela sempit."
       },
       "nativeFullscreen": {
-        "title": "Layar penuh native",
+        "title": "Layar penuh sistem",
         "subtitle": "Memenuhi seluruh layar saat dibuka dan memulihkan jendela saat ditutup. Matikan untuk mempertahankan lapisan dalam jendela (berguna pada banyak monitor)."
       }
     },
@@ -2373,7 +2373,7 @@
     },
     "pluginStore": {
       "title": "Toko plugin",
-      "subtitle": "Jelajahi dan pasang plugin tersandbox dari registri WaveFlow.",
+      "subtitle": "Jelajahi dan pasang plugin yang berjalan dalam sandbox dari registri WaveFlow.",
       "loading": "Memuat toko…",
       "emptyTitle": "Belum ada plugin tersedia",
       "emptyHint": "Registri masih kosong — periksa lagi nanti.",
@@ -2394,7 +2394,7 @@
       "title": "Sampul animasi",
       "subtitle": "Sampul animasi dari plugin metadata (mis. Apple Motion Artwork) diputar di belakang tampilan yang sedang diputar.",
       "cacheLabel": "Simpan sampul animasi secara lokal",
-      "usage": "{{size}} terpakai · {{files}} sampul di cache",
+      "usage": "{{size}} terpakai · {{files}} sampul tersimpan di cache",
       "clear": "Bersihkan cache",
       "clearConfirm": "Konfirmasi?"
     },
@@ -2407,11 +2407,11 @@
     },
     "windowChrome": {
       "title": "Bingkai jendela",
-      "subtitle": "Pilih siapa yang menggambar bilah di atas jendela: desktop kamu atau WaveFlow.",
+      "subtitle": "Pilih siapa yang menggambar bilah di atas jendela: desktopmu atau WaveFlow.",
       "options": {
         "system": {
           "label": "Sistem",
-          "hint": "Bingkai yang digambar desktop kamu untuk semua aplikasi."
+          "hint": "Bingkai yang digambar desktopmu untuk semua aplikasi."
         },
         "app": {
           "label": "WaveFlow",
@@ -2422,7 +2422,7 @@
     "canvasCache": {
       "cacheLabel": "Simpan Canvas secara lokal",
       "subtitle": "Mengunduh Canvas tiap lagu dari plugin Canvas agar bisa diputar luring tanpa streaming ulang.",
-      "usage": "{{size}} terpakai · {{files}} Canvas di cache",
+      "usage": "{{size}} terpakai · {{files}} Canvas tersimpan di cache",
       "clear": "Bersihkan cache",
       "clearConfirm": "Konfirmasi?"
     },
@@ -2458,7 +2458,7 @@
         },
         "high": {
           "label": "Tinggi",
-          "description": "Kontras diperkuat, apa pun tema dan skin-nya."
+          "description": "Kontras diperkuat, apa pun tema dan gaya antarmukanya."
         }
       }
     },
@@ -2493,11 +2493,11 @@
       },
       "descriptions": {
         "general": "Bahasa, proses mulai, dan perilaku aplikasi.",
-        "library": "Atur dan perbarui pustaka musik kamu.",
+        "library": "Atur dan perbarui pustaka musikmu.",
         "playback": "Transisi lagu, volume, dan keluaran audio.",
         "appearance": "Sesuaikan antarmuka dan tampilan saat mendengarkan.",
         "media": "Sampul, informasi artis, dan sumber lirik.",
-        "integrations": "Hubungkan layanan, server, dan perangkat jaringan kamu.",
+        "integrations": "Hubungkan layanan, server, dan perangkat jaringanmu.",
         "plugins": "Temukan ekstensi dan kelola pengaturannya.",
         "shortcuts": "Pilih pintasan keyboard untuk tindakan sehari-hari.",
         "data": "Kelola profil tersimpan, folder, dan media dalam cache.",
@@ -2512,7 +2512,7 @@
         "transitions": "Transisi lagu",
         "listening": "Perilaku pemutaran",
         "volume": "Volume",
-        "equalizer": "Equalizer",
+        "equalizer": "Ekualiser",
         "output": "Pengaturan audio lanjutan",
         "theme": "Tema dan keterbacaan",
         "player": "Pemutar dan jendela",
@@ -2577,18 +2577,18 @@
     "subtitle": "Buat tautan publik untuk “{{name}}”. Siapa pun dapat membukanya di peramban.",
     "idleHint": "Tautan tetap aktif sampai kamu mencabutnya. Kamu dapat menonaktifkannya kapan saja dari jendela ini.",
     "mint": "Buat tautan",
-    "activeHint": "Tautan aktif di semua perangkat kamu.",
+    "activeHint": "Tautan aktif di semua perangkatmu.",
     "revoke": "Nonaktifkan",
     "qrAlt": "Kode QR untuk tautan yang dibagikan",
     "urlLabel": "URL publik",
     "copy": "Salin",
     "copied": "Tersalin",
     "close": "Tutup",
-    "errorClipboard": "Tidak dapat mengakses papan klip. Pilih URL untuk menyalinnya secara manual."
+    "errorClipboard": "Tidak dapat mengakses papan klip. Pilih URL di atas untuk menyalinnya secara manual."
   },
   "webRadio": {
     "title": "Radio Web",
-    "subtitle": "Lebih dari 30.000 stasiun radio daring via radio-browser.info.",
+    "subtitle": "Lebih dari 30.000 stasiun radio daring melalui radio-browser.info.",
     "loading": "Memuat kategori…",
     "resolving": "Mencari stasiun…",
     "emptyResults": "Tidak ada stasiun ditemukan.",
@@ -2618,9 +2618,9 @@
     },
     "similar": {
       "label": "Artis serupa kustom",
-      "placeholder": "Cari artis dari pustaka kamu…",
+      "placeholder": "Cari artis dari pustakamu…",
       "remove": "Hapus {{name}}",
-      "help": "Pilih artis dari pustaka kamu. Kosong = daftar daring.",
+      "help": "Pilih artis dari pustakamu. Kosong = daftar daring.",
       "limitReached": "Batas tercapai ({{max}} artis)."
     },
     "split": {
@@ -2675,8 +2675,8 @@
         "shares_other": "tautan berbagi",
         "queue_one": "lagu di antrean",
         "queue_other": "lagu di antrean",
-        "cachedTracks_one": "lagu di cache",
-        "cachedTracks_other": "lagu di cache"
+        "cachedTracks_one": "lagu tersimpan di cache",
+        "cachedTracks_other": "lagu tersimpan di cache"
       },
       "awaitingMetadata_one": "{{count}} lagu menunggu metadata — beres pada sinkronisasi berikutnya.",
       "awaitingMetadata_other": "{{count}} lagu menunggu metadata — beres pada sinkronisasi berikutnya.",
@@ -2714,7 +2714,7 @@
       "subtitle": "Hanya kecocokan berkas utuh yang persis. Berkas berukuran sama diverifikasi dengan BLAKE3; metadata tidak pernah membuat tautan.",
       "cancel": "Batal",
       "findMatches": "Cari kecocokan",
-      "hashing": "Meng-hash {{processed}} / {{total}} berkas lokal…",
+      "hashing": "Menghitung hash {{processed}} / {{total}} berkas lokal…",
       "cancelledSummary": "Pemindaian dibatalkan — tidak ada yang ditautkan.",
       "confirmedLinks": "Tautan terkonfirmasi",
       "favoritesRatings": "Favorit: lokal {{localFav}} · server {{remoteFav}} · Penilaian: lokal {{localRating}} · server {{remoteRating}}/5",
@@ -2795,12 +2795,12 @@
       "neverMirrored": "Belum pernah disalin.",
       "mirroredAt": "Salinan lengkap terakhir: {{date}}.",
       "clearCovers": "Kosongkan",
-      "coversCached_zero": "Tidak ada sampul di cache.",
-      "coversCached_one": "{{count}} sampul di cache ({{size}} MB).",
-      "coversCached_other": "{{count}} sampul di cache ({{size}} MB).",
-      "streamsCached_one": "{{count}} lagu di cache ({{size}} MB).",
-      "streamsCached_other": "{{count}} lagu di cache ({{size}} MB).",
-      "streamsCached_zero": "Tidak ada lagu di cache.",
+      "coversCached_zero": "Tidak ada sampul dalam cache.",
+      "coversCached_one": "{{count}} sampul tersimpan di cache ({{size}} MB).",
+      "coversCached_other": "{{count}} sampul tersimpan di cache ({{size}} MB).",
+      "streamsCached_one": "{{count}} lagu tersimpan di cache ({{size}} MB).",
+      "streamsCached_other": "{{count}} lagu tersimpan di cache ({{size}} MB).",
+      "streamsCached_zero": "Tidak ada lagu dalam cache.",
       "clearStreams": "Kosongkan",
       "downloadsKept_one": "{{count}} lagu disimpan luring ({{size}} MB).",
       "downloadsKept_other": "{{count}} lagu disimpan luring ({{size}} MB).",
@@ -2883,7 +2883,7 @@
       "reconcile": "Rekonsiliasi",
       "upload": "Unggah",
       "backup": "Cadangan",
-      "thumbnails": "Thumbnail"
+      "thumbnails": "Gambar mini"
     }
   },
   "smartRuleSummary": {

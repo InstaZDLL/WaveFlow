@@ -259,7 +259,7 @@
       },
       "artists": "कलाकार",
       "albums": "एल्बम",
-      "titles": "ट्रैक"
+      "titles": "शीर्षक"
     },
     "theme": {
       "enableLight": "लाइट मोड चालू करें",
@@ -1130,8 +1130,8 @@
     "replayGain": "ReplayGain",
     "peak": "पीक",
     "analyze": "विश्लेषण करें",
-    "reanalyze": "पुनः विश्लेषण",
-    "analyzing": "विश्लेषण…",
+    "reanalyze": "दोबारा विश्लेषण करें",
+    "analyzing": "विश्लेषण हो रहा है…",
     "year": "वर्ष",
     "duration": "अवधि",
     "codec": "कोडेक",
@@ -1535,7 +1535,7 @@
       "tagContains": "टैग में शामिल"
     },
     "counting": "गिना जा रहा है…",
-    "matchCountLimited": "{{total}} में से {{kept}}",
+    "matchCountLimited": "मेल खाने वाले {{total}} ट्रैक में से {{kept}} रखे गए",
     "templates": {
       "label": "टेम्पलेट",
       "placeholder": "टेम्पलेट से शुरू करें…",
@@ -1683,7 +1683,7 @@
         "http": "HTTP ({{count}})",
         "storageState": "उपयोगकर्ता संग्रहण",
         "storageRead": "संग्रहण पढ़ना",
-        "assets": "संपत्तियाँ ({{count}})",
+        "assets": "एसेट ({{count}})",
         "none": "कोई अनुमति अनुरोधित नहीं",
         "libraryReadArtists": "आपके कलाकारों को पढ़ता है"
       },
@@ -1885,7 +1885,7 @@
       },
       "styles": {
         "wave": "तरंग",
-        "mirror": "दर्पण",
+        "mirror": "प्रतिबिंबित",
         "bars": "बार"
       }
     },
@@ -1912,7 +1912,7 @@
     "artistImages": {
       "title": "कलाकारों की छवियाँ",
       "subtitle": "Deezer से कलाकारों की छवियाँ डाउनलोड करें।",
-      "action": "पुनःप्राप्त करें",
+      "action": "लाएँ",
       "progress": "{{current}}/{{total}} संसाधित"
     },
     "localArtistImages": {
@@ -2019,7 +2019,7 @@
       "backfillError": "विफल: {{message}}",
       "autoToggleTitle": "स्वचालित सिंक",
       "autoToggleSubtitle": "बूट पर और हाइब्रिड मोड में स्विच करने पर एक पास चलाता है",
-      "cadenceTitle": "पृष्ठभूमि लय",
+      "cadenceTitle": "पृष्ठभूमि सिंक अंतराल",
       "cadenceSubtitle": "स्वचालित सिंक के बीच का अंतराल",
       "cadence": {
         "every15Min": "हर 15 मिनट",
@@ -2235,7 +2235,7 @@
       "tokenPlaceholder": "JWT पेस्ट करें (बिंदु से अलग किए गए तीन खंड)",
       "tokenSave": "सहेजें",
       "openLogin": "लॉगिन खोलें",
-      "signOut": "साइन आउट",
+      "signOut": "साइन आउट करें",
       "webUrlLabel": "WaveFlow Web URL",
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "ब्राउज़र से साइन इन करें",
@@ -2787,13 +2787,13 @@
       "statArtists": "कलाकार",
       "statLibraries": "लाइब्रेरी",
       "progressAlbums": "{{done}} एल्बम देखे गए…",
-      "progressSweep": "{{done}} ट्रैक गिने गए…",
+      "progressSweep": "{{done}} ट्रैक सूचीबद्ध हुए…",
       "reportUnchanged": "कुछ नहीं बदला था।",
       "reportWalked": "{{albums}} एल्बम देखे गए, {{tracks}} ट्रैक कॉपी हुए।",
       "reportRemoved": "{{removed}} हटाए गए",
       "reportCancelled": "रोका गया",
       "neverMirrored": "कभी कॉपी नहीं हुआ।",
-      "mirroredAt": "अंतिम पूर्ण कॉपी: {{date}}",
+      "mirroredAt": "अंतिम पूर्ण कॉपी: {{date}}।",
       "clearCovers": "हटाएँ",
       "coversCached_zero": "कैश में कोई कवर नहीं।",
       "coversCached_one": "{{count}} कवर कैश में ({{size}} MB)।",

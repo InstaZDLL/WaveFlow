@@ -298,7 +298,7 @@
       "openFolder": "Abrir una carpeta",
       "importFiles": "Importar archivos",
       "importFolder": "Importar carpeta",
-      "browseLibrary": "Explorar tu biblioteca"
+      "browseLibrary": "Explorar mi biblioteca"
     },
     "stats": {
       "library": "Biblioteca",
@@ -351,7 +351,7 @@
       "regenerate": "Regenerar",
       "regenerating": "Generando…",
       "emptyTitle": "Aún no hay Daily Mix",
-      "emptyDescription": "Escucha unas pistas y luego pulsa «Regenerar» para crear tus mixes personalizados.",
+      "emptyDescription": "Escucha unas pistas y luego pulsa «Regenerar» para crear tus mezclas personalizadas.",
       "label": "Daily Mix",
       "trackCount_one": "{{count}} pista",
       "trackCount_other": "{{count}} pistas",
@@ -706,7 +706,7 @@
       "30d": "30 días",
       "90d": "90 días",
       "1y": "1 año",
-      "all": "Todo el tiempo"
+      "all": "Todo el historial"
     },
     "kpi": {
       "totalPlays": "Reproducciones",
@@ -757,11 +757,11 @@
     },
     "topGenres": {
       "title": "Géneros principales",
-      "empty": "Ningún género escuchado."
+      "empty": "No se ha escuchado ningún género en este periodo."
     }
   },
   "wrapped": {
-    "loading": "Construyendo tu año…",
+    "loading": "Preparando tu año…",
     "errorTitle": "No se ha podido cargar tu Wrapped",
     "close": "Cerrar",
     "pause": "Pausar",
@@ -1273,9 +1273,9 @@
     "title": "Cambiar imagen del artista",
     "editAria": "Cambiar foto del artista",
     "removeAction": "Quitar imagen",
-    "fansCount_one": "{{display}} fan",
-    "fansCount_other": "{{display}} fans",
-    "fansCount_many": "{{display}} fans"
+    "fansCount_one": "{{display}} seguidor",
+    "fansCount_other": "{{display}} seguidores",
+    "fansCount_many": "{{display}} seguidores"
   },
   "artistBackdropPicker": {
     "title": "Cambiar el banner de artista",
@@ -1360,7 +1360,7 @@
     "eq": {
       "bypass": "Activar EQ"
     },
-    "toggleNowPlayingPanel": "Mostrar / ocultar Reproduciendo",
+    "toggleNowPlayingPanel": "Mostrar / ocultar Reproduciendo ahora",
     "pipeline": {
       "title": "Cadena de audio",
       "openHint": "Ver la cadena de audio en detalle",
@@ -1394,7 +1394,7 @@
     "maximize": "Restaurar ventana principal",
     "like": "Me gusta",
     "pin": "Siempre en primer plano",
-    "close": "Cerrar mini reproductor",
+    "close": "Cerrar mini-reproductor",
     "upNext": {
       "toggle": "Cola de reproducción",
       "title": "A continuación · {{count}}",
@@ -1645,12 +1645,12 @@
     "destinationLabel": "Destino predeterminado de las letras",
     "destination": {
       "tag": {
-        "label": "Etiqueta integrada",
+        "label": "Etiqueta incrustada",
         "hint": "Escribe en USLT/©lyr del archivo de audio (compatible con foobar2000, iTunes…)."
       },
       "sidecar": {
         "label": "Archivo auxiliar",
-        "hint": "Escribe un .lrc / .txt junto al archivo de audio. Etiquetas intactas."
+        "hint": "Escribe un .lrc / .txt junto al archivo de audio. Las etiquetas no se modifican."
       },
       "db_only": {
         "label": "Solo base de datos de WaveFlow",
@@ -2012,7 +2012,7 @@
     },
     "diagnostics": {
       "title": "Registro de la aplicación",
-      "subtitle": "Para reportar un fallo, abre la carpeta de registros o copia los registros recientes y pégalos en un ticket.",
+      "subtitle": "Para informar de un fallo, abre la carpeta de registros o copia los registros recientes y pégalos en una incidencia.",
       "openFolder": "Abrir carpeta",
       "copyLogs": "Copiar registros",
       "copied": "Registros copiados",
@@ -2060,7 +2060,7 @@
         "every24Hours": "Una vez al día"
       },
       "lastSyncNever": "Nunca sincronizado",
-      "lastSyncJustNow": "Justo ahora",
+      "lastSyncJustNow": "Ahora mismo",
       "lastSyncMinutesAgo": "Hace {{count}} min",
       "lastSyncHoursAgo": "Hace {{count}} h",
       "lastSyncDaysAgo": "Hace {{count}} d",
@@ -2200,13 +2200,13 @@
         "oceanLight": "Océano Claro"
       },
       "skin": {
-        "title": "Skin",
+        "title": "Estilo",
         "subtitle": "Cambia la densidad, los materiales de superficie, la tipografía y la animación, no solo los colores."
       },
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Estilo Apple Music — interfaz densa, sombras suaves, sans-serif limpio."
+          "description": "Estilo Apple Music — interfaz densa, sombras suaves y tipografía sans serif limpia."
         },
         "editorial": {
           "label": "Editorial",
@@ -2379,9 +2379,9 @@
     "radioCatalogue": {
       "title": "Catálogo de emisoras sin conexión",
       "subtitle": "Descarga el directorio de radio-browser para explorar y buscar emisoras sin conexión.",
-      "stored_one": "{{count}} emisora · actualizado el {{date}}",
-      "stored_other": "{{count}} emisoras · actualizado el {{date}}",
-      "stored_many": "{{count}} emisoras · actualizado el {{date}}",
+      "stored_one": "{{count}} emisora · actualizada el {{date}}",
+      "stored_other": "{{count}} emisoras · actualizadas el {{date}}",
+      "stored_many": "{{count}} emisoras · actualizadas el {{date}}",
       "download": "Descargar",
       "refresh": "Actualizar",
       "downloading": "Descargando…",
@@ -2455,7 +2455,7 @@
       "title": "Portadas animadas",
       "subtitle": "Las portadas animadas de los complementos de metadatos (p. ej. Apple Motion Artwork) se muestran detrás de la reproducción actual.",
       "cacheLabel": "Guardar las portadas animadas localmente",
-      "usage": "{{size}} usados · {{files}} portadas en caché",
+      "usage": "{{size}} en uso · {{files}} portadas en caché",
       "clear": "Vaciar caché",
       "clearConfirm": "¿Confirmar?"
     },
@@ -2483,7 +2483,7 @@
     "canvasCache": {
       "cacheLabel": "Guardar los Canvas localmente",
       "subtitle": "Descarga el Canvas de cada pista desde los complementos de Canvas para reproducirlo sin conexión y sin volver a transmitirlo.",
-      "usage": "{{size}} usados · {{files}} Canvas en caché",
+      "usage": "{{size}} en uso · {{files}} Canvas en caché",
       "clear": "Vaciar caché",
       "clearConfirm": "¿Confirmar?"
     },
@@ -2493,7 +2493,7 @@
     },
     "remoteTranscode": {
       "title": "Transcodificar la fuente remota",
-      "subtitle": "Pide al servidor que recodifique sus pistas antes de enviarlas. Ahorra ancho de banda, cuesta calidad de audio.",
+      "subtitle": "Pide al servidor que recodifique sus pistas antes de enviarlas. Ahorra ancho de banda a costa de la calidad de audio.",
       "off": "Original",
       "offHint": "El archivo tal cual está en el servidor. Sin pérdida.",
       "opus": "Opus",
@@ -2753,9 +2753,9 @@
       "pendingChanges_one": "{{count}} cambio local pendiente de enviar.",
       "pendingChanges_other": "{{count}} cambios locales pendientes de enviar.",
       "pendingChanges_many": "{{count}} cambios locales pendientes de enviar.",
-      "failedChanges_one": "{{count}} cambio local fue rechazado y no se reintentará.",
-      "failedChanges_other": "{{count}} cambios locales fueron rechazados y no se reintentarán.",
-      "failedChanges_many": "{{count}} cambios locales fueron rechazados y no se reintentarán.",
+      "failedChanges_one": "Se rechazó {{count}} cambio local y no se reintentará.",
+      "failedChanges_other": "Se rechazaron {{count}} cambios locales y no se reintentarán.",
+      "failedChanges_many": "Se rechazaron {{count}} cambios locales y no se reintentarán.",
       "failedChangesDismiss": "Descartar"
     },
     "queue": {
@@ -3033,7 +3033,7 @@
     "noSources": "No se encontró ninguna edición de este álbum.",
     "sourcesHint": "Un mismo álbum suele existir en varias ediciones, con listas de pistas distintas. Elige la tuya.",
     "back": "Elegir otra edición",
-    "hint": "No se escribe nada hasta que apliques.",
+    "hint": "No se escribe nada hasta que pulses «Aplicar».",
     "acceptColumn": "Todo el campo:",
     "acceptTrack": "Toda la pista",
     "nothingToChange": "Esta edición dice exactamente lo mismo que tus archivos.",

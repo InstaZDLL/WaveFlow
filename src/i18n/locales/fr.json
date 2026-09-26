@@ -62,7 +62,7 @@
     "defaultLibraryName": "Musique",
     "welcome": {
       "title": "Bienvenue dans WaveFlow",
-      "description": "Votre lecteur de musique 100% local. Profitez de toute votre bibliothèque sans abonnement streaming."
+      "description": "Votre lecteur de musique 100 % local. Profitez de toute votre bibliothèque sans abonnement à un service de streaming."
     },
     "localOnly": {
       "title": "Important : musique locale uniquement",
@@ -96,7 +96,7 @@
     },
     "lastfm": {
       "title": "Connectez-vous à Last.fm",
-      "description": "Le scrobbling envoie vos écoutes à votre profil Last.fm. Vous recevez en retour des bios d'artistes et des suggestions d'artistes similaires directement dans l'app.",
+      "description": "Le scrobbling envoie vos écoutes à votre profil Last.fm. Vous recevez en retour des biographies et des suggestions d'artistes similaires directement dans l'application.",
       "recommendedBadge": "Recommandé",
       "keyHint": "Créez une clé API sur Last.fm",
       "keyLabel": "Clé API",
@@ -124,7 +124,7 @@
     },
     "done": {
       "title": "C'est prêt !",
-      "description": "Votre bibliothèque est scannée et prête à jouer.",
+      "description": "Votre bibliothèque a été scannée et est prête à l'emploi.",
       "nextSteps": "Pour aller plus loin :",
       "bulletExplore": "Explorez votre bibliothèque via les onglets Bibliothèque, Albums et Artistes",
       "bulletQueue": "Créez votre première file d'attente en cliquant sur un titre",
@@ -160,7 +160,7 @@
     },
     "lyrics": {
       "title": "Où ranger les paroles ?",
-      "description": "Où voulez-vous que les paroles atterrissent — celles que vous éditez comme celles que WaveFlow trouve pour vous ? Vous pourrez changer plus tard dans Paramètres → Images et paroles.",
+      "description": "Où voulez-vous enregistrer les paroles — celles que vous éditez comme celles que WaveFlow trouve pour vous ? Vous pourrez modifier ce choix plus tard dans Paramètres → Images et paroles.",
       "hint": "Choisissez « Fichier sidecar » pour garder vos fichiers audio inchangés (ce que font foobar2000 et compagnie)."
     }
   },
@@ -214,7 +214,7 @@
       "importM3uAria": "Importer une playlist M3U",
       "importDialogTitle": "Importer une playlist M3U",
       "liked": "Coups de cœur",
-      "recent": "Récemment joués",
+      "recent": "Écoutés récemment",
       "emptySubtext_zero": "0 titres",
       "emptySubtext_one": "{{count}} titre",
       "emptySubtext_other": "{{count}} titres",
@@ -298,12 +298,12 @@
       "openFolder": "Ouvrir un dossier",
       "importFiles": "Importer des fichiers",
       "importFolder": "Importer un dossier",
-      "browseLibrary": "Parcourir votre bibliothèque"
+      "browseLibrary": "Parcourir ma bibliothèque"
     },
     "stats": {
       "library": "Bibliothèque",
       "liked": "Coups de cœur",
-      "recent": "Récemment joués",
+      "recent": "Écoutés récemment",
       "playlists": "Playlists"
     },
     "moodRadio": {
@@ -315,15 +315,15 @@
       "empty": "Pas assez de titres analysés",
       "loading": "Démarrage…",
       "focus": {
-        "title": "Focus",
+        "title": "Concentration",
         "subtitle": "Tempos calmes pour rester concentré"
       },
       "chill": {
-        "title": "Chill",
+        "title": "Détente",
         "subtitle": "Ambiance posée, fins de journée"
       },
       "workout": {
-        "title": "Workout",
+        "title": "Entraînement",
         "subtitle": "Cadence soutenue pour bouger"
       },
       "party": {
@@ -363,7 +363,7 @@
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Votre rétro {{year}}",
-      "subtitle": "Vos artistes, vos minutes, votre année — racontée en quelques slides.",
+      "subtitle": "Vos artistes, vos minutes, votre année — racontée en quelques diapositives.",
       "cta": "Découvrir",
       "dismiss": "Masquer le bandeau Wrapped"
     },
@@ -456,14 +456,14 @@
       "deepRescanning": "Rescan approfondi en cours…"
     },
     "changeCover": "Changer la pochette",
-    "searchDeezer": "Recherche Deezer",
+    "searchDeezer": "Rechercher sur Deezer",
     "localFile": "Fichier local",
     "fetchMissingCovers": "Récupérer toutes les pochettes manquantes",
     "fetchingCovers": "Récupération des pochettes… ({{current}}/{{total}})",
     "fetchCoversResult_one": "{{count}} pochette récupérée",
     "fetchCoversResult_other": "{{count}} pochettes récupérées",
     "fetchCoversResult_many": "{{count}} pochettes récupérées",
-    "fetchCoversFailed": "Échec de la récupération",
+    "fetchCoversFailed": "Échec de la récupération des pochettes",
     "table": {
       "number": "#",
       "title": "Titre",
@@ -602,7 +602,7 @@
           "help": "Deux titres revendiquent la même place sur le disque."
         },
         "track_number_gap": {
-          "label": "Numérotation trouée",
+          "label": "Numérotation incomplète",
           "help": "Il manque un numéro entre le premier et le dernier du disque."
         },
         "probable_duplicate": {
@@ -656,7 +656,7 @@
     "count_one": "{{count}} titre",
     "count_other": "{{count}} titres",
     "count_many": "{{count}} titres",
-    "emptyTitle": "Aucun titre aimé",
+    "emptyTitle": "Aucun coup de cœur",
     "emptyDescription": "Les titres que vous aimez apparaîtront ici. Explorez votre bibliothèque et ajoutez-les à vos coups de cœur.",
     "playAll": "Tout lire",
     "unlike": "Retirer des coups de cœur",
@@ -688,7 +688,7 @@
   },
   "recent": {
     "badge": "Historique",
-    "title": "Récemment joués",
+    "title": "Écoutés récemment",
     "count_zero": "0 titres",
     "count_one": "{{count}} titre",
     "count_other": "{{count}} titres",
@@ -699,7 +699,7 @@
   "statistics": {
     "title": "Statistiques",
     "emptyTitle": "Aucune statistique disponible",
-    "emptyDescription": "Écoutez de la musique pour commencer à voir vos statistiques d'écoute apparaître ici.",
+    "emptyDescription": "Écoutez de la musique pour faire apparaître vos statistiques d'écoute ici.",
     "range": {
       "label": "Période",
       "7d": "7 jours",
@@ -733,15 +733,15 @@
       "tooltip": "{{hour}} h — {{plays}} écoutes"
     },
     "topTracks": {
-      "title": "Top titres",
+      "title": "Titres les plus écoutés",
       "empty": "Aucun titre écouté."
     },
     "topArtists": {
-      "title": "Top artistes",
+      "title": "Artistes les plus écoutés",
       "empty": "Aucun artiste écouté."
     },
     "topAlbums": {
-      "title": "Top albums",
+      "title": "Albums les plus écoutés",
       "empty": "Aucun album écouté."
     },
     "heatmap": {
@@ -756,7 +756,7 @@
     "plays_other": "{{count}} écoutes",
     "plays_many": "{{count}} écoutes",
     "topGenres": {
-      "title": "Top genres",
+      "title": "Genres les plus écoutés",
       "empty": "Aucun genre écouté."
     }
   },
@@ -766,8 +766,8 @@
     "close": "Fermer",
     "pause": "Pause",
     "resume": "Reprendre",
-    "prev": "Slide précédente",
-    "next": "Slide suivante",
+    "prev": "Diapositive précédente",
+    "next": "Diapositive suivante",
     "yearPicker": "Choisir une année",
     "backToHome": "Retour à l'accueil",
     "playsShort_zero": "0 écoutes",
@@ -810,9 +810,9 @@
     "mood": {
       "eyebrow": "Votre tempo moyen",
       "subtitle": "Le rythme qui a porté votre année",
-      "loudness": "Loudness moyen : {{lufs}} LUFS",
+      "loudness": "Volume sonore moyen : {{lufs}} LUFS",
       "energy": {
-        "chill": "Chill",
+        "chill": "Détente",
         "warm": "Chaleureux",
         "groove": "Groove",
         "energetic": "Énergique",
@@ -854,7 +854,7 @@
   "about": {
     "title": "À propos",
     "hero": {
-      "subtitle": "Lecteur de musique HD multi-plateforme",
+      "subtitle": "Lecteur de musique HD multiplateforme",
       "checkUpdates": "Vérifier les mises à jour",
       "developedBy": "Développé par"
     },
@@ -890,7 +890,7 @@
     }
   },
   "feedback": {
-    "title": "Feedback",
+    "title": "Commentaires",
     "hero": {
       "title": "Aidez-nous à améliorer WaveFlow",
       "description": "Vous avez repéré un bug, une idée d'amélioration ou simplement un retour à nous faire ? Nous lisons chaque message et prenons en compte vos suggestions."
@@ -904,7 +904,7 @@
     "noTrack": "Aucun titre",
     "inactive": "Inactif",
     "controls": {
-      "play": "Lecture",
+      "play": "Lire",
       "pause": "Pause",
       "previous": "Précédent",
       "next": "Suivant",
@@ -977,7 +977,7 @@
       "probing": "Lecture des capacités…",
       "unavailable": "Capacités indisponibles",
       "details": "Détails du périphérique",
-      "summary": "{{bits}} bit · {{rate}} kHz",
+      "summary": "{{bits}} bits · {{rate}} kHz",
       "channels": "Canaux : {{value}}",
       "minPeriod": "Période minimale : {{value}} trames",
       "formats": "Formats",
@@ -1095,7 +1095,7 @@
     "trackCount_other": "{{count}} titres",
     "trackCount_many": "{{count}} titres",
     "actions": {
-      "play": "Lecture",
+      "play": "Lire",
       "shuffle": "Lecture aléatoire",
       "edit": "Modifier la playlist",
       "exportM3u": "Exporter en M3U",
@@ -1152,7 +1152,7 @@
       "artist": "ex. Daft Punk, Justice",
       "album": "Nom de l'album",
       "year": "ex. 2026",
-      "genre": "ex. Electronic"
+      "genre": "ex. Électronique"
     },
     "result": {
       "updated": "{{count}} titre(s) mis à jour",
@@ -1213,7 +1213,7 @@
     "count_one": "{{count}} sélectionné",
     "count_other": "{{count}} sélectionnés",
     "count_many": "{{count}} sélectionnés",
-    "play": "Lecture",
+    "play": "Lire",
     "addToQueue": "Ajouter à la file",
     "playNext": "Lire ensuite",
     "addToPlaylist": "Ajouter à une playlist",
@@ -1329,7 +1329,7 @@
     "aboutArtist": "À propos de l'artiste",
     "readMore": "Lire la suite",
     "readLess": "Réduire",
-    "noBio": "Aucune biographie disponible. Essayez une autre source de la biographie dans les paramètres.",
+    "noBio": "Aucune biographie disponible. Essayez une autre source de biographies dans les paramètres.",
     "nextInQueue": "Suivant dans la file",
     "openQueue": "Ouvrir la file",
     "lyrics": {
@@ -1497,7 +1497,7 @@
     },
     "sections": {
       "match": "Correspondance",
-      "ranges": "Plages",
+      "ranges": "Intervalles",
       "attributes": "Attributs",
       "output": "Tri & limite"
     },
@@ -1751,7 +1751,7 @@
       },
       "attention": {
         "authRequired": {
-          "title": "{{name}} : identifiant refusé",
+          "title": "{{name}} : connexion refusée",
           "body": "Le cookie ou le jeton enregistré a expiré ou a été révoqué. Collez-en un nouveau dans Paramètres → Extensions."
         },
         "dismiss": "Fermer"
@@ -1764,7 +1764,7 @@
         "subtitle": "Choisissez l'ambiance qui vous correspond. Le changement recolore instantanément toute l'application."
       },
       "skin": {
-        "title": "Skin",
+        "title": "Habillage",
         "subtitle": "Modifie la densité, les matériaux, la typographie et les animations — pas seulement les couleurs."
       },
       "skins": {
@@ -1773,12 +1773,12 @@
           "description": "Ambiance Apple Music — interface dense, ombres douces, typographie sans empattement épurée."
         },
         "editorial": {
-          "label": "Editorial",
+          "label": "Éditorial",
           "description": "Magazine papier — typographie avec empattement, fines lignes de séparation, grain doux, espace généreux."
         },
         "lounge": {
           "label": "Lounge",
-          "description": "Glass premium — la pochette de l'album devient l'arrière-plan, panneaux translucides, transitions douces."
+          "description": "Verre haut de gamme — la pochette de l'album devient l'arrière-plan, panneaux translucides, transitions douces."
         },
         "pulse": {
           "label": "Pulse",
@@ -1786,7 +1786,7 @@
         },
         "liquid": {
           "label": "Liquid",
-          "description": "Verre liquide façon Apple — matière translucide multi-couches, fond aurora, capsules, transitions calmes."
+          "description": "Verre liquide façon Apple — matière translucide multicouche, fond aurore, capsules, transitions calmes."
         }
       },
       "mode": {
@@ -1825,9 +1825,9 @@
         "toggleMute": "Couper / Rétablir le son",
         "toggleShuffle": "Lecture aléatoire",
         "cycleRepeat": "Changer le mode de répétition",
-        "toggleQueue": "Afficher / Masquer la file",
-        "toggleNowPlaying": "Afficher / Masquer la lecture en cours",
-        "toggleLyrics": "Afficher / Masquer les paroles",
+        "toggleQueue": "Afficher / masquer la file",
+        "toggleNowPlaying": "Afficher / masquer la lecture en cours",
+        "toggleLyrics": "Afficher / masquer les paroles",
         "toggleLike": "Ajouter / Retirer des coups de cœur"
       }
     },
@@ -1883,7 +1883,7 @@
       },
       "notifications": {
         "title": "Notifications de changement de titre",
-        "subtitle": "Affiche une notification système au début de chaque titre (nom et artiste). Désactivé par défaut."
+        "subtitle": "Affiche une notification système au début de chaque titre (titre et artiste). Désactivé par défaut."
       }
     },
     "crossfade": {
@@ -1896,7 +1896,7 @@
     },
     "replayGain": {
       "title": "Appliquer ReplayGain",
-      "subtitle": "Utiliser le gain ReplayGain du fichier, ou celui analysé, pour égaliser la perception de volume",
+      "subtitle": "Utiliser le gain ReplayGain du fichier, ou celui calculé, pour égaliser le volume perçu",
       "preamp": {
         "title": "Pré-amplification",
         "subtitle": "Ajoutée au gain de chaque titre — la référence ReplayGain est plus basse que la plupart des systèmes"
@@ -1926,7 +1926,7 @@
     },
     "exclusive": {
       "title": "Sortie exclusive",
-      "subtitle": "Prend le périphérique pour cette application seule au lieu de le partager avec le mixeur du système. Revient au mode partagé si le périphérique refuse.",
+      "subtitle": "Réserve le périphérique à cette application au lieu de le partager avec le mixeur du système. Revient au mode partagé si le périphérique refuse.",
       "fallback": "Le périphérique n'accepte pas le mode exclusif. Retour en mode partagé."
     },
     "matchSourceRate": {
@@ -1938,7 +1938,7 @@
       "subtitle": "Mélange les canaux gauche et droit en un signal unique"
     },
     "pauseOnDeviceLoss": {
-      "title": "Pause si le périphérique est déconnecté",
+      "title": "Mettre en pause si le périphérique est déconnecté",
       "subtitle": "Quand la sortie audio disparaît, la lecture est mise en pause au lieu de passer sur un autre périphérique"
     },
     "language": {
@@ -1971,7 +1971,7 @@
     },
     "duplicates": {
       "title": "Détecter les doublons",
-      "subtitle": "Trouvez les fichiers identiques (même blake3) dans votre bibliothèque",
+      "subtitle": "Recherche les fichiers identiques (même BLAKE3) dans votre bibliothèque",
       "action": "Rechercher"
     },
     "rescan": {
@@ -1981,7 +1981,7 @@
     },
     "analyze": {
       "title": "Analyser la bibliothèque",
-      "subtitle": "Calculer le BPM, le Loudness et la crête pour les titres non analysés",
+      "subtitle": "Calculer le BPM, le volume sonore et la crête pour les titres non analysés",
       "action": "Analyser",
       "cancel": "Arrêter l'analyse",
       "autoTitle": "Analyse automatique",
@@ -2014,7 +2014,7 @@
       "import": {
         "action": "Importer",
         "dialogTitle": "Importer un profil WaveFlow",
-        "done": "Profil importé (id {{id}}). Basculez-y depuis le sélecteur de profil.",
+        "done": "Profil importé (ID {{id}}). Sélectionnez-le dans le sélecteur de profil.",
         "failed": "Échec de l'import. Le fichier est peut-être corrompu ou incompatible."
       }
     },
@@ -2110,7 +2110,7 @@
         "title": "Réinitialiser l'application ?",
         "warning": "Cela supprime tous les profils, bibliothèques, playlists, notes, l'historique d'écoute et les pochettes en cache. L'application redémarrera sur une configuration initiale propre. Cette action est irréversible.",
         "typeToConfirm": "Tapez RESET pour confirmer",
-        "error": "Échec de la réinitialisation. Fermez tout programme externe qui retient un fichier WaveFlow (lecteur de musique ouvert, explorateur de fichiers dans le dossier de données) puis réessayez.",
+        "error": "Échec de la réinitialisation. Fermez tout programme externe qui utilise un fichier WaveFlow (lecteur de musique ouvert ou explorateur de fichiers affichant le dossier de données), puis réessayez.",
         "cancel": "Annuler",
         "confirmButton": "Réinitialiser et redémarrer"
       }
@@ -2153,7 +2153,7 @@
       },
       "backfillError": "Échec : {{message}}",
       "autoToggleTitle": "Synchronisation automatique",
-      "autoToggleSubtitle": "Lance un passage au démarrage et lors du passage en mode Hybride",
+      "autoToggleSubtitle": "Lance une synchronisation au démarrage et lors du passage en mode hybride",
       "cadenceTitle": "Cadence en arrière-plan",
       "cadenceSubtitle": "Intervalle entre deux synchronisations automatiques",
       "cadence": {
@@ -2176,7 +2176,7 @@
         "missingLocally": "Manquant localement",
         "missingRemotely": "Manquant à distance",
         "divergent": "Divergent",
-        "moreNotShown": "+ {{count}} de plus non affichés"
+        "moreNotShown": "+ {{count}} éléments supplémentaires non affichés"
       }
     },
     "visualizer": {
@@ -2219,8 +2219,8 @@
         "custom": "Personnalisé",
         "flat": "Plat",
         "acoustic": "Acoustique",
-        "bass_booster": "Boost graves",
-        "bass_reducer": "Réduction graves",
+        "bass_booster": "Amplification des graves",
+        "bass_reducer": "Réduction des graves",
         "classical": "Classique",
         "dance": "Dance",
         "deep": "Profond",
@@ -2228,7 +2228,7 @@
         "hip_hop": "Hip-Hop",
         "jazz": "Jazz",
         "latin": "Latin",
-        "loudness": "Loudness",
+        "loudness": "Intensité sonore",
         "lounge": "Lounge",
         "piano": "Piano",
         "pop": "Pop",
@@ -2236,12 +2236,12 @@
         "rock": "Rock",
         "small_speakers": "Petits haut-parleurs",
         "spoken_word": "Voix parlée",
-        "treble_booster": "Boost aigus"
+        "treble_booster": "Amplification des aigus"
       }
     },
     "uiZoom": {
       "title": "Zoom de l'interface",
-      "subtitle": "Mettre l'app à l'échelle (Ctrl+= / Ctrl+- / Ctrl+0 fonctionnent aussi)",
+      "subtitle": "Mettre l'application à l'échelle (Ctrl+= / Ctrl+- / Ctrl+0 fonctionnent aussi)",
       "decreaseAria": "Dézoomer l'interface",
       "increaseAria": "Zoomer l'interface",
       "resetAria": "Réinitialiser le zoom à 100 %"
@@ -2309,14 +2309,14 @@
     },
     "serverAccount": {
       "title": "Compte serveur WaveFlow",
-      "subtitle": "Reliez ce profil à votre instance waveflow-server pour activer la sync multi-appareils et la lecture sur navigateur.",
+      "subtitle": "Reliez ce profil à votre instance waveflow-server pour activer la synchronisation sur plusieurs appareils et la lecture dans le navigateur.",
       "signedIn": "Connecté",
       "urlLabel": "URL du serveur",
       "urlPlaceholder": "https://api.waveflow.app",
       "urlSave": "Enregistrer",
       "tokenLabel": "Jeton JWT",
       "tokenHint": "Connectez-vous sur le serveur dans votre navigateur, copiez le JWT que Better Auth vous délivre puis collez-le ici.",
-      "tokenPlaceholder": "Collez le JWT (3 segments séparés par des points)",
+      "tokenPlaceholder": "Collez le JWT (trois segments séparés par des points)",
       "tokenSave": "Enregistrer",
       "openLogin": "Ouvrir la connexion",
       "signOut": "Se déconnecter",
@@ -2482,7 +2482,7 @@
     },
     "canvasCache": {
       "cacheLabel": "Enregistrer les Canvas en local",
-      "subtitle": "Télécharge le Canvas de chaque titre depuis les plugins Canvas pour une lecture hors ligne, sans re-streaming.",
+      "subtitle": "Télécharge le Canvas de chaque titre depuis les plugins Canvas pour le lire hors ligne sans retélécharger le flux.",
       "usage": "{{size}} utilisés · {{files}} Canvas en cache",
       "clear": "Vider le cache",
       "clearConfirm": "Confirmer ?"
@@ -2493,7 +2493,7 @@
     },
     "remoteTranscode": {
       "title": "Transcoder la source distante",
-      "subtitle": "Demander au serveur de réencoder ses titres avant de les envoyer. Économise de la bande passante, coûte de la qualité audio.",
+      "subtitle": "Demander au serveur de réencoder ses titres avant de les envoyer. Économise de la bande passante au prix d'une qualité audio moindre.",
       "off": "Original",
       "offHint": "Le fichier tel qu'il est sur le serveur. Aucune perte.",
       "opus": "Opus",
@@ -2507,7 +2507,7 @@
     },
     "contrast": {
       "title": "Contraste",
-      "subtitle": "Relève le contraste de toute l'interface d'un coup : texte secondaire lisible, arrière-plans sans flou, focus clavier bien visible.",
+      "subtitle": "Relève le contraste de toute l'interface d'un coup : texte secondaire lisible, arrière-plans sans flou et élément actif au clavier bien visible.",
       "modes": {
         "auto": {
           "label": "Automatique",
@@ -2529,7 +2529,7 @@
       "pickTitle": "Choisir le dossier des caches",
       "choose": "Déplacer…",
       "reset": "Revenir à l'emplacement par défaut",
-      "size": "{{size}} utilisés",
+      "size": "Espace utilisé : {{size}}",
       "copying": "Copie en cours… l'original n'est supprimé qu'au prochain démarrage.",
       "fellBack": "Emplacement configuré inaccessible ({{path}}) : les caches repartent de l'emplacement par défaut pour cette session. Le choix est conservé.",
       "restartNeeded": "Copie terminée. Redémarrez pour utiliser le nouvel emplacement.",
@@ -2650,13 +2650,13 @@
   },
   "webRadio": {
     "title": "Web Radio",
-    "subtitle": "Plus de 30 000 stations radio en ligne via radio-browser.info.",
+    "subtitle": "Plus de 30 000 stations de radio en ligne via radio-browser.info.",
     "loading": "Chargement des catégories…",
     "resolving": "Recherche des stations…",
     "emptyResults": "Aucune station trouvée.",
     "searchPlaceholder": "Rechercher une station…",
     "backToCategories": "Retour aux catégories",
-    "live": "LIVE",
+    "live": "EN DIRECT",
     "nowPlaying": "Lecture en cours",
     "unavailableTitle": "Web Radio désactivée",
     "unavailableHint": "Activez le plugin Web Radio dans Paramètres → Extensions pour parcourir plus de 30 000 stations.",
@@ -2748,8 +2748,8 @@
         "cachedTracks_many": "titres en cache"
       },
       "awaitingMetadata_one": "{{count}} titre en attente de métadonnées — résolu à la prochaine passe.",
-      "awaitingMetadata_other": "{{count}} titres en attente de métadonnées — résolu à la prochaine passe.",
-      "awaitingMetadata_many": "{{count}} titres en attente de métadonnées — résolu à la prochaine passe.",
+      "awaitingMetadata_other": "{{count}} titres en attente de métadonnées — résolus à la prochaine passe.",
+      "awaitingMetadata_many": "{{count}} titres en attente de métadonnées — résolus à la prochaine passe.",
       "pendingChanges_one": "{{count}} modification locale en attente d'envoi.",
       "pendingChanges_other": "{{count}} modifications locales en attente d'envoi.",
       "pendingChanges_many": "{{count}} modifications locales en attente d'envoi.",
@@ -2777,10 +2777,10 @@
       "notFoundDescription": "Cette playlist n'existe plus sur le serveur associé.",
       "keepOffline": "Garder hors ligne",
       "keepingProgress": "Téléchargement hors ligne… {{done}}/{{total}}",
-      "keptOffline_one": "{{count}} disponible hors ligne",
-      "keptOffline_other": "{{count}} disponibles hors ligne",
-      "keptOffline_many": "{{count}} disponibles hors ligne",
-      "keptOffline_zero": "aucun hors ligne"
+      "keptOffline_one": "{{count}} titre disponible hors ligne",
+      "keptOffline_other": "{{count}} titres disponibles hors ligne",
+      "keptOffline_many": "{{count}} titres disponibles hors ligne",
+      "keptOffline_zero": "aucun titre hors ligne"
     },
     "reconciliation": {
       "title": "Correspondance local ↔ serveur",
@@ -2790,7 +2790,7 @@
       "hashing": "Hachage de {{processed}} / {{total}} fichiers locaux…",
       "cancelledSummary": "Analyse annulée — rien n'a été lié.",
       "confirmedLinks": "Liens confirmés",
-      "favoritesRatings": "Favoris : local {{localFav}} · serveur {{remoteFav}} · Notes : local {{localRating}} · serveur {{remoteRating}}/5",
+      "favoritesRatings": "Favoris : local {{localFav}} · serveur {{remoteFav}} · notes : local {{localRating}} · serveur {{remoteRating}}/5",
       "yes": "oui",
       "no": "non",
       "copyFavoriteLocalToServer": "Favori local → serveur",
@@ -2830,9 +2830,9 @@
       "summaryLinked_one": "{{count}} lié automatiquement",
       "summaryLinked_other": "{{count}} liés automatiquement",
       "summaryLinked_many": "{{count}} liés automatiquement",
-      "summaryGroups_one": "{{count}} groupe à décider",
-      "summaryGroups_other": "{{count}} groupes à décider",
-      "summaryGroups_many": "{{count}} groupes à décider",
+      "summaryGroups_one": "{{count}} groupe nécessitant une décision",
+      "summaryGroups_other": "{{count}} groupes nécessitant une décision",
+      "summaryGroups_many": "{{count}} groupes nécessitant une décision",
       "summaryStale_one": " · {{count}} obsolète",
       "summaryStale_other": " · {{count}} obsolètes",
       "summaryStale_many": " · {{count}} obsolètes",

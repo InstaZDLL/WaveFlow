@@ -96,7 +96,7 @@
     },
     "lastfm": {
       "title": "Liga o Last.fm",
-      "description": "O scrobbling envia as tuas reproduções para o teu perfil Last.fm. Recebes em troca biografias de artistas e sugestões de artistas semelhantes na app.",
+      "description": "O scrobbling envia as tuas reproduções para o teu perfil Last.fm. Recebes em troca biografias de artistas e sugestões de artistas semelhantes na aplicação.",
       "recommendedBadge": "Recomendado",
       "keyHint": "Cria uma chave API em Last.fm",
       "keyLabel": "Chave API",
@@ -245,7 +245,7 @@
   },
   "topbar": {
     "search": {
-      "placeholder": "Pesquisar um título, um artista, um álbum...",
+      "placeholder": "Pesquisar um título, um artista, um álbum…",
       "results_zero": "Nenhum resultado",
       "results_one": "{{count}} resultado",
       "results_other": "{{count}} resultados",
@@ -458,8 +458,8 @@
     "changeCover": "Mudar a capa",
     "searchDeezer": "Pesquisar no Deezer",
     "localFile": "Ficheiro local",
-    "fetchMissingCovers": "Recuperar todas as capas em falta",
-    "fetchingCovers": "A descarregar as capas... ({{current}} / {{total}})",
+    "fetchMissingCovers": "Obter todas as capas em falta",
+    "fetchingCovers": "A obter as capas… ({{current}} / {{total}})",
     "fetchCoversResult_one": "{{count}} capa obtida",
     "fetchCoversResult_other": "{{count}} capas obtidas",
     "fetchCoversResult_many": "{{count}} capas obtidas",
@@ -1011,7 +1011,7 @@
       "title": "Novo perfil",
       "subtitle": "Cria um perfil para personalizar a tua experiência",
       "nameLabel": "Nome do perfil",
-      "namePlaceholder": "Introduz um nome...",
+      "namePlaceholder": "Introduz um nome…",
       "colorLabel": "Cor do perfil",
       "colorAria": "Cor {{color}}",
       "submit": "Criar o perfil"
@@ -1039,9 +1039,9 @@
     "previewDefault": "Criar uma biblioteca",
     "previewSubtitle": "0 faixas · Biblioteca",
     "nameLabel": "Nome da biblioteca",
-    "namePlaceholder": "Ex.: Rock, Jazz, Música Clássica...",
+    "namePlaceholder": "Ex.: Rock, Jazz, Música Clássica…",
     "descriptionLabel": "Descrição",
-    "descriptionPlaceholder": "Uma breve descrição...",
+    "descriptionPlaceholder": "Uma breve descrição…",
     "submit": "Criar uma biblioteca",
     "submitEdit": "Guardar"
   },
@@ -1071,9 +1071,9 @@
     "previewDefault": "Nova lista de reprodução",
     "previewSubtitle": "0 faixas · Lista de reprodução",
     "nameLabel": "Nome",
-    "namePlaceholder": "Ex.: Chill Vibes, Workout Mix...",
+    "namePlaceholder": "Ex.: Chill Vibes, Workout Mix…",
     "descriptionLabel": "Descrição",
-    "descriptionPlaceholder": "Uma breve descrição...",
+    "descriptionPlaceholder": "Uma breve descrição…",
     "colorLabel": "Cor",
     "colorAria": "Cor {{color}}",
     "iconLabel": "Ícone",
@@ -1655,7 +1655,7 @@
       },
       "db_only": {
         "label": "Apenas base de dados WaveFlow",
-        "hint": "Permanece na base de dados da app. Nenhum ficheiro nem etiqueta são tocados."
+        "hint": "Permanece na base de dados do WaveFlow. Nenhum ficheiro nem etiqueta é alterado."
       }
     }
   },
@@ -1844,7 +1844,7 @@
     },
     "dynamicCrossfade": {
       "title": "Crossfade dinâmico",
-      "subtitle": "Ajusta a duração da transição à diferença de tempo entre faixas (volta ao crossfade fixo se o BPM for desconhecido)"
+      "subtitle": "Ajusta a duração da transição à diferença de andamento entre faixas (volta ao crossfade fixo se o BPM for desconhecido)"
     },
     "normalize": {
       "title": "Normalizar o volume",
@@ -1927,7 +1927,7 @@
     },
     "visualizer": {
       "title": "Visualizador de áudio",
-      "subtitle": "Mostra um espetro em tempo real na vista imersiva (FFT leve na thread de descodificação)",
+      "subtitle": "Mostra um espetro em tempo real na vista imersiva (FFT leve no processo de descodificação)",
       "cycleColor": "Cor do visualizador: {{color}}",
       "cycleStyle": "Estilo do visualizador: {{style}}",
       "colors": {
@@ -1968,7 +1968,7 @@
     "artistImages": {
       "title": "Imagens de artistas",
       "subtitle": "Descarregar as imagens dos artistas a partir do Deezer",
-      "action": "Recuperar",
+      "action": "Obter",
       "progress": "{{current}}/{{total}} processados"
     },
     "localArtistImages": {
@@ -1994,7 +1994,7 @@
       }
     },
     "clipsInLibrary": {
-      "title": "Manter os clips junto à música",
+      "title": "Manter os clipes junto à música",
       "subtitle": "Os Canvas e as capas animadas que escolhes ficam numa pasta oculta dentro da tua biblioteca e acompanham os ficheiros. O que as extensões obtêm fica nas caches acima."
     },
     "dataFolder": {
@@ -2137,15 +2137,15 @@
     },
     "backup": {
       "title": "Cópia de segurança automática",
-      "subtitle": "Cria periodicamente um arquivo .waveflow de cada perfil na pasta escolhida.",
+      "subtitle": "Cria periodicamente um ficheiro .waveflow de cada perfil na pasta escolhida.",
       "intervalLabel": "Frequência",
       "intervalDays_one": "Todos os dias",
       "intervalDays_other": "A cada {{count}} dias",
       "intervalDays_many": "A cada {{count}} dias",
       "retentionLabel": "Cópias mantidas",
-      "retentionKeep_one": "{{count}} arquivo por perfil",
-      "retentionKeep_other": "{{count}} arquivos por perfil",
-      "retentionKeep_many": "{{count}} arquivos por perfil",
+      "retentionKeep_one": "{{count}} ficheiro por perfil",
+      "retentionKeep_other": "{{count}} ficheiros por perfil",
+      "retentionKeep_many": "{{count}} ficheiros por perfil",
       "includeMetadataArtworkLabel": "Incluir cache de imagens Deezer",
       "includeMetadataArtworkHint": "Cópia de segurança maior, restauro totalmente offline. Desmarca para cópias leves (a cache será obtida novamente sob pedido).",
       "changeFolder": "Alterar pasta",
@@ -2153,9 +2153,9 @@
       "lastRun": "Última cópia: {{when}}",
       "neverRun": "nunca",
       "runNow": "Fazer cópia agora",
-      "runOk_one": "{{count}} arquivo escrito.",
-      "runOk_other": "{{count}} arquivos escritos.",
-      "runOk_many": "{{count}} arquivos escritos.",
+      "runOk_one": "{{count}} ficheiro escrito.",
+      "runOk_other": "{{count}} ficheiros escritos.",
+      "runOk_many": "{{count}} ficheiros escritos.",
       "runPartial": "Cópias criadas: {{created}}; com falha: {{failed}}. Consulta os registos.",
       "errors": {
         "loadFailed": "Não foi possível ler a configuração de cópias.",
@@ -2178,7 +2178,7 @@
     "appearance": {
       "theme": {
         "title": "Tema",
-        "subtitle": "Escolhe um ambiente — mudar de tema altera as cores de toda a app instantaneamente."
+        "subtitle": "Escolhe um ambiente — mudar de tema altera instantaneamente as cores de toda a aplicação."
       },
       "mode": {
         "light": "Claro",
@@ -2229,7 +2229,7 @@
     },
     "playerBarLayout": {
       "title": "Disposição da barra do leitor",
-      "subtitle": "Escolhe que botões aparecem na barra e o que acontece ao clicar na capa. A pré-visualização atualiza-se ao vivo.",
+      "subtitle": "Escolhe que botões aparecem na barra e o que acontece ao clicar na capa. A pré-visualização atualiza-se em tempo real.",
       "preview": "Pré-visualização",
       "previewEmpty": "Sem botões — a barra mostra apenas a capa e os controlos de reprodução.",
       "buttons": {
@@ -2300,7 +2300,7 @@
       "webUrlLabel": "URL do WaveFlow Web",
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "Iniciar sessão no navegador",
-      "signInWithBrowserHint": "Abre o WaveFlow Web no teu navegador; inicia sessão aí e a app capta o JWT automaticamente através de uma troca local.",
+      "signInWithBrowserHint": "Abre o WaveFlow Web no teu navegador; inicia sessão aí e a aplicação capta o JWT automaticamente através de uma troca local.",
       "loginInProgress": "À espera do navegador…",
       "modeLabel": "Modo de sincronização",
       "modes": {
@@ -2379,7 +2379,7 @@
     },
     "radioCatalogue": {
       "title": "Catálogo de estações offline",
-      "subtitle": "Transfere o diretório radio-browser para explorar e pesquisar estações sem ligação.",
+      "subtitle": "Transfere o catálogo do radio-browser para explorar e pesquisar estações sem ligação.",
       "stored_one": "{{count}} estação · atualizado a {{date}}",
       "stored_other": "{{count}} estações · atualizado a {{date}}",
       "stored_many": "{{count}} estações · atualizado a {{date}}",
@@ -2657,7 +2657,7 @@
     "emptyResults": "Nenhuma estação encontrada.",
     "searchPlaceholder": "Pesquisar uma estação…",
     "backToCategories": "Voltar às categorias",
-    "live": "AO VIVO",
+    "live": "EM DIRETO",
     "nowPlaying": "A reproduzir",
     "unavailableTitle": "A Rádio Web está desativada",
     "unavailableHint": "Ativa o plugin Web Radio em Definições → Extensões para explorar mais de 30 000 estações.",
@@ -2677,7 +2677,7 @@
       "label": "Biografia personalizada",
       "reset": "Repor online",
       "placeholder": "Escreve uma biografia. Deixa vazio para usar a obtida online.",
-      "help": "Substitui a bio do Last.fm / TheAudioDB. Funciona offline."
+      "help": "Substitui a biografia do Last.fm / TheAudioDB. Funciona offline."
     },
     "similar": {
       "label": "Artistas semelhantes personalizados",

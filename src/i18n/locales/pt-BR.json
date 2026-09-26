@@ -62,7 +62,7 @@
     "defaultLibraryName": "Música",
     "welcome": {
       "title": "Bem-vindo ao WaveFlow",
-      "description": "Seu player de música local-first. Aproveite toda sua biblioteca sem assinatura de streaming."
+      "description": "Seu player de música pessoal que prioriza arquivos locais. Aproveite toda a sua biblioteca sem assinatura de streaming."
     },
     "localOnly": {
       "title": "Importante: somente música local",
@@ -90,8 +90,8 @@
       "changeHint": "Clique para mudar a pasta",
       "quickSettings": "Configurações rápidas",
       "autoAnalyze": {
-        "title": "Auto-analisar faixas",
-        "description": "Detecta BPM e tonalidade durante o escaneamento — alimenta o rádio e o rádio por humor."
+        "title": "Analisar faixas automaticamente",
+        "description": "Detecta BPM e tonalidade durante o escaneamento para alimentar o Rádio e o Rádio por humor."
       }
     },
     "lastfm": {
@@ -245,7 +245,7 @@
   },
   "topbar": {
     "search": {
-      "placeholder": "Buscar uma faixa, um artista, um álbum...",
+      "placeholder": "Buscar uma faixa, um artista, um álbum…",
       "results_zero": "Nenhum resultado",
       "results_one": "{{count}} resultado",
       "results_other": "{{count}} resultados",
@@ -340,7 +340,7 @@
     },
     "recentlyPlayed": {
       "title": "Reproduzidas recentemente",
-      "emptyTitle": "Nenhuma faixa foi ouvida",
+      "emptyTitle": "Nada foi reproduzido ainda",
       "emptyDescription": "Reproduza uma faixa para que ela apareça aqui. Seu histórico de reprodução é criado à medida que você descobre novas músicas."
     },
     "recentlyAdded": {
@@ -351,7 +351,7 @@
       "regenerate": "Regenerar",
       "regenerating": "Gerando…",
       "emptyTitle": "Nenhum Daily Mix ainda",
-      "emptyDescription": "Ouça algumas faixas e depois clique em Regenerar para criar suas mixagens personalizadas.",
+      "emptyDescription": "Ouça algumas faixas e depois clique em Regenerar para criar seus mixes personalizados.",
       "label": "Daily Mix",
       "trackCount_one": "{{count}} faixa",
       "trackCount_other": "{{count}} faixas",
@@ -459,7 +459,7 @@
     "searchDeezer": "Buscar no Deezer",
     "localFile": "Arquivo local",
     "fetchMissingCovers": "Recuperar todas as capas que faltam",
-    "fetchingCovers": "Baixando capas... ({{current}} / {{total}})",
+    "fetchingCovers": "Baixando capas… ({{current}} / {{total}})",
     "fetchCoversResult_one": "{{count}} capa obtida",
     "fetchCoversResult_other": "{{count}} capas obtidas",
     "fetchCoversResult_many": "{{count}} capas obtidas",
@@ -672,7 +672,7 @@
     "loadingMore": "Carregando…",
     "endReached": "Início do histórico",
     "emptyTitle": "Sem reproduções",
-    "emptyDescription": "Reproduza uma faixa — aparecerá aqui assim que contar.",
+    "emptyDescription": "Reproduza uma faixa — ela aparecerá aqui assim que a reprodução for contabilizada.",
     "shownCount_one": "{{count}} reprodução exibida",
     "shownCount_other": "{{count}} reproduções exibidas",
     "shownCount_many": "{{count}} reproduções exibidas",
@@ -700,7 +700,7 @@
   "statistics": {
     "title": "Estatísticas",
     "emptyTitle": "Não há estatísticas disponíveis",
-    "emptyDescription": "Ouça música para começar a ver suas estatísticas de reprodução aparecerem aqui.",
+    "emptyDescription": "Ouça música para começar a ver suas estatísticas de reprodução aqui.",
     "range": {
       "label": "Período",
       "7d": "7 dias",
@@ -894,7 +894,7 @@
     "title": "Feedback",
     "hero": {
       "title": "Ajude-nos a melhorar o WaveFlow",
-      "description": "Você encontrou um bug, tem uma sugestão de melhoria ou simplesmente quer nos dar um feedback? Nós lemos todas as mensagens e levamos em consideração suas sugestões."
+      "description": "Encontrou um bug, tem uma ideia de melhoria ou simplesmente quer compartilhar sua opinião? Lemos todas as mensagens e levamos suas sugestões em consideração."
     },
     "contact": {
       "section": "Entre em contato conosco",
@@ -983,7 +983,7 @@
       "minPeriod": "Período mínimo: {{value}} quadros",
       "formats": "Formatos",
       "rates": "Taxas de amostragem",
-      "caveat": "O que um driver declara e o que ele aceita em modo exclusivo são duas perguntas diferentes.",
+      "caveat": "O que um driver declara nem sempre corresponde ao que ele aceita no modo exclusivo.",
       "source": {
         "wasapiExclusive": "Testado com o driver em modo exclusivo.",
         "alsaHardware": "Parâmetros do hardware ALSA, sem camada de conversão.",
@@ -1011,7 +1011,7 @@
       "title": "Novo perfil",
       "subtitle": "Crie um perfil para personalizar sua experiência",
       "nameLabel": "Nome do perfil",
-      "namePlaceholder": "Digite um nome...",
+      "namePlaceholder": "Digite um nome…",
       "colorLabel": "Cor do perfil",
       "colorAria": "Cor {{color}}",
       "submit": "Criar o perfil"
@@ -1039,9 +1039,9 @@
     "previewDefault": "Criar uma biblioteca",
     "previewSubtitle": "0 faixas · Biblioteca",
     "nameLabel": "Nome da biblioteca",
-    "namePlaceholder": "Ex.: Rock, Jazz, Música Clássica...",
+    "namePlaceholder": "Ex.: Rock, Jazz, Música Clássica…",
     "descriptionLabel": "Descrição",
-    "descriptionPlaceholder": "Uma breve descrição...",
+    "descriptionPlaceholder": "Uma breve descrição…",
     "submit": "Criar uma biblioteca",
     "submitEdit": "Salvar"
   },
@@ -1071,9 +1071,9 @@
     "previewDefault": "Nova playlist",
     "previewSubtitle": "0 faixas · Playlist",
     "nameLabel": "Nome",
-    "namePlaceholder": "Ex.: Chill Vibes, Workout Mix...",
+    "namePlaceholder": "Ex.: Vibes relaxantes, Mix de treino…",
     "descriptionLabel": "Descrição",
-    "descriptionPlaceholder": "Uma breve descrição...",
+    "descriptionPlaceholder": "Uma breve descrição…",
     "colorLabel": "Cor",
     "colorAria": "Cor {{color}}",
     "iconLabel": "Ícone",
@@ -1142,7 +1142,7 @@
     "title": "Editar tags em lote",
     "subtitle": "{{count}} faixas selecionadas",
     "help": "Marque os campos a aplicar a todas as faixas selecionadas. Os campos não marcados mantêm o valor próprio de cada faixa.",
-    "submit": "Aplicar ({{count}} campo(s))",
+    "submit": "Aplicar ({{count}})",
     "fields": {
       "artist": "Artista",
       "album": "Álbum",
@@ -1156,8 +1156,8 @@
       "genre": "Ex.: Eletrônica"
     },
     "result": {
-      "updated": "{{count}} faixa(s) atualizada(s)",
-      "failed": "{{count}} falha(s):"
+      "updated": "Faixas atualizadas: {{count}}",
+      "failed": "Falhas ({{count}}):"
     }
   },
   "trackProperties": {
@@ -1284,7 +1284,7 @@
     "suggestionLabel": "Sugestão de banner {{index}}",
     "noneFound": "Nenhuma imagem panorâmica encontrada para este artista. Escolha um arquivo local.",
     "offline": "Desative o modo offline para ver as sugestões.",
-    "fileHint": "Uma imagem panorâmica funciona melhor: ela é recortada em banner.",
+    "fileHint": "Uma imagem panorâmica funciona melhor: ela será recortada para caber no banner.",
     "removeAction": "Voltar ao banner automático"
   },
   "motionCoverPicker": {
@@ -1589,7 +1589,7 @@
       "tagContains": "A tag contém"
     },
     "counting": "Contando…",
-    "matchCountLimited": "{{kept}} mantidas de {{total}} correspondentes",
+    "matchCountLimited": "{{kept}} de {{total}} faixas correspondentes mantidas",
     "templates": {
       "label": "Modelo",
       "placeholder": "Começar com um modelo…",
@@ -1753,7 +1753,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}: acesso recusado",
-          "body": "O cookie ou o token salvo expirou ou foi revogado. Cole um novo em Configurações → Extensões."
+          "body": "O cookie ou token salvo expirou ou foi revogado. Cole um novo em Configurações → Extensões."
         },
         "dismiss": "Fechar"
       }
@@ -2194,11 +2194,11 @@
         "crimson": "Carmesim",
         "ocean": "Oceano",
         "neon": "Néon",
-        "midnightLight": "Meia-noite Claro",
-        "sunsetLight": "Pôr do sol Claro",
-        "lavenderLight": "Lavanda Claro",
-        "crimsonLight": "Carmesim Claro",
-        "oceanLight": "Oceano Claro"
+        "midnightLight": "Meia-noite (claro)",
+        "sunsetLight": "Pôr do sol (claro)",
+        "lavenderLight": "Lavanda (claro)",
+        "crimsonLight": "Carmesim (claro)",
+        "oceanLight": "Oceano (claro)"
       },
       "skin": {
         "title": "Estilo",
@@ -2306,7 +2306,7 @@
       "modes": {
         "hybrid": {
           "label": "Híbrido (padrão)",
-          "description": "Suas alterações ficam locais mas também são enfileiradas para envio ao servidor."
+          "description": "Suas alterações ficam locais, mas também entram na fila de envio ao servidor."
         },
         "local": {
           "label": "Somente local",
@@ -2390,7 +2390,7 @@
       "clear": "Excluir catálogo",
       "neverSynced": "nunca",
       "localFirst": "Preferir catálogo local",
-      "localFirstHint": "Busca e navega localmente mesmo online (instantâneo, sem rede).",
+      "localFirstHint": "Busca e navegação locais, mesmo online (instantâneas e sem acesso à rede).",
       "offlineHint": "Desative o modo offline para baixar o catálogo.",
       "errors": {
         "loadFailed": "Falha ao carregar o status do catálogo.",
@@ -2620,9 +2620,9 @@
     "cancelledTitle": "Escaneamento interrompido",
     "doneSubtitle": "{{added}} adicionados · {{updated}} atualizados · {{skipped}} ignorados",
     "scanningIn": "Escaneando {{dir}}",
-    "doneErrors_one": "{{count}} arquivo falhou",
-    "doneErrors_other": "{{count}} arquivos falharam",
-    "doneErrors_many": "{{count}} arquivos falharam"
+    "doneErrors_one": "{{count}} arquivo apresentou falha",
+    "doneErrors_other": "{{count}} arquivos apresentaram falha",
+    "doneErrors_many": "{{count}} arquivos apresentaram falha"
   },
   "system": {
     "tray": {
@@ -2716,7 +2716,7 @@
       "urlLabel": "URL do servidor",
       "identify": "Verificar servidor",
       "unknownType": "desconhecido",
-      "probeNative": "nativo, faz login pelo navegador",
+      "probeNative": "nativo; login pelo navegador",
       "probeSubsonic": "Somente protocolo Subsonic; sem registro de alterações e, por enquanto, sem fluxo de login aqui",
       "signInBrowser": "Entrar pelo navegador",
       "signedInFallback": "conectado",
@@ -2754,9 +2754,9 @@
       "pendingChanges_one": "{{count}} alteração local aguardando envio.",
       "pendingChanges_other": "{{count}} alterações locais aguardando envio.",
       "pendingChanges_many": "{{count}} alterações locais aguardando envio.",
-      "failedChanges_one": "{{count}} alteração local foi recusada e não será tentada de novo.",
-      "failedChanges_other": "{{count}} alterações locais foram recusadas e não serão tentadas de novo.",
-      "failedChanges_many": "{{count}} alterações locais foram recusadas e não serão tentadas de novo.",
+      "failedChanges_one": "{{count}} alteração local foi recusada e não terá nova tentativa.",
+      "failedChanges_other": "{{count}} alterações locais foram recusadas e não terão nova tentativa.",
+      "failedChanges_many": "{{count}} alterações locais foram recusadas e não terão nova tentativa.",
       "failedChangesDismiss": "Ignorar"
     },
     "queue": {
@@ -3035,16 +3035,16 @@
     "sourcesHint": "O mesmo álbum costuma existir em várias edições, com listas de faixas diferentes. Escolha a sua.",
     "back": "Escolher outra edição",
     "hint": "Nada será gravado até você aplicar as alterações.",
-    "acceptColumn": "Todo o campo:",
+    "acceptColumn": "Campo inteiro:",
     "acceptTrack": "Toda a faixa",
     "nothingToChange": "Esta edição diz exatamente o que os seus arquivos já dizem.",
     "trackUnchanged": "Nada a alterar nesta faixa.",
     "noMatch": "Sem correspondência para {{file}}.",
     "emptyValue": "(vazio)",
-    "unmatchedRemote": "Nesta edição mas não na sua biblioteca: {{titles}}",
+    "unmatchedRemote": "Nesta edição, mas não na sua biblioteca: {{titles}}",
     "apply": "Aplicar",
     "confidence": {
-      "confident": "Seguro",
+      "confident": "Confiável",
       "doubtful": "Verificar"
     },
     "fields": {

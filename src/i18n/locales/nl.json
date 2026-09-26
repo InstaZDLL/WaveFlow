@@ -23,7 +23,7 @@
     },
     "card": {
       "title": "Weergave van de interface",
-      "retryGpu": "Gpu opnieuw proberen",
+      "retryGpu": "GPU opnieuw proberen",
       "restartToApply": "Bij de volgende start",
       "retryFailed": "Opslaan is mislukt. Probeer het opnieuw."
     },
@@ -291,7 +291,7 @@
       "openFolder": "Map openen",
       "importFiles": "Bestanden importeren",
       "importFolder": "Map importeren",
-      "browseLibrary": "Door je bibliotheek bladeren"
+      "browseLibrary": "Door mijn bibliotheek bladeren"
     },
     "stats": {
       "library": "Bibliotheek",
@@ -305,7 +305,7 @@
       "trackCount_one": "{{count}} nummer",
       "trackCount_other": "{{count}} nummers",
       "empty": "Niet genoeg geanalyseerde nummers",
-      "loading": "Starten…",
+      "loading": "Wordt gestart…",
       "focus": {
         "title": "Focus",
         "subtitle": "Rustige tempo's om je te concentreren"
@@ -945,7 +945,7 @@
       "rates": "Samplefrequenties",
       "caveat": "Wat een stuurprogramma opgeeft en wat het in exclusieve modus accepteert, zijn twee verschillende vragen.",
       "source": {
-        "wasapiExclusive": "Getest bij het stuurprogramma in exclusieve modus.",
+        "wasapiExclusive": "Getest met het stuurprogramma in exclusieve modus.",
         "alsaHardware": "ALSA-hardwareparameters, zonder conversielaag.",
         "coreAudio": "Wat het apparaat aan het systeem meldt.",
         "unavailable": "Apparaat bezet of afwezig: er kon niets worden gelezen."
@@ -1839,7 +1839,7 @@
       "subtitle": "Interfacetaal"
     },
     "autoStart": {
-      "title": "Starten bij opstart",
+      "title": "Starten bij het opstarten",
       "subtitle": "Start WaveFlow automatisch wanneer het systeem opstart"
     },
     "minimizeToTray": {
@@ -1852,7 +1852,7 @@
     },
     "singleClickPlay": {
       "title": "Afspelen met één klik",
-      "subtitle": "Klik op een nummer om het af te spelen (anders dubbelklik)"
+      "subtitle": "Klik op een nummer om het af te spelen (gebruik anders een dubbelklik)"
     },
     "showSleepTimer": {
       "title": "Slaaptimer vastpinnen in de balk",
@@ -1864,7 +1864,7 @@
     },
     "duplicates": {
       "title": "Duplicaten detecteren",
-      "subtitle": "Zoekt bestanden die byte-voor-byte identiek zijn (dezelfde blake3) in je bibliotheek",
+      "subtitle": "Zoekt bestanden die byte-voor-byte identiek zijn (dezelfde BLAKE3-hash) in je bibliotheek",
       "action": "Zoeken"
     },
     "rescan": {
@@ -1963,7 +1963,7 @@
     },
     "syncStatus": {
       "title": "Synchronisatiestatus",
-      "loading": "Controle…",
+      "loading": "Controleren…",
       "subtitleEmpty": "Geen entiteiten om te vergelijken",
       "subtitleAllInSync": "Alles is gesynchroniseerd",
       "subtitleOutOfSync": "{{outOfSync}} van {{total}} niet synchroon",
@@ -2045,7 +2045,7 @@
       "subtitle": "Schaalt de crossfade-duur met het tempoverschil tussen nummers (valt terug op de vaste crossfade als BPM onbekend is)"
     },
     "gapless": {
-      "title": "Gapless afspelen",
+      "title": "Naadloos afspelen",
       "subtitle": "Koppelt opeenvolgende nummers zonder microstiltes (ideaal voor live- en conceptalbums)"
     },
     "equalizer": {
@@ -2225,7 +2225,7 @@
     },
     "serverAccount": {
       "title": "WaveFlow-serveraccount",
-      "subtitle": "Koppel dit profiel aan je waveflow-server-instantie om multi-apparaatsync en weergave in de browser in te schakelen.",
+      "subtitle": "Koppel dit profiel aan je waveflow-server-instantie om synchronisatie tussen meerdere apparaten en afspelen in de browser in te schakelen.",
       "signedIn": "Aangemeld",
       "urlLabel": "Server-URL",
       "urlPlaceholder": "https://api.waveflow.app",
@@ -2239,7 +2239,7 @@
       "webUrlLabel": "WaveFlow-web-URL",
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "Aanmelden via browser",
-      "signInWithBrowserHint": "Opent WaveFlow Web in je browser; je meldt je daar aan en de app vangt het JWT automatisch op via een lokale handshake.",
+      "signInWithBrowserHint": "Opent WaveFlow Web in je browser; je meldt je daar aan en de app ontvangt het JWT automatisch via een lokale handshake.",
       "loginInProgress": "Wachten op de browser…",
       "modeLabel": "Syncmodus",
       "modes": {
@@ -2317,7 +2317,7 @@
       "languageLabel": "Taal van de biografie"
     },
     "radioCatalogue": {
-      "title": "Offline zenderscatalogus",
+      "title": "Offline zendercatalogus",
       "subtitle": "Download de zendergids van radio-browser om zenders zonder verbinding te doorzoeken.",
       "stored_one": "{{count}} zender · bijgewerkt op {{date}}",
       "stored_other": "{{count}} zenders · bijgewerkt op {{date}}",
@@ -2441,7 +2441,7 @@
       "mp3Hint": "Groter bij gelijke kwaliteit. Maximale compatibiliteit.",
       "bitrateLabel": "Bitrate",
       "kbps": "{{rate}} kbit/s",
-      "activeNotice": "Externe nummers worden opnieuw gecodeerd en klinken dus onder hun oorspronkelijke kwaliteit. Lokale bestanden worden nooit getranscodeerd.",
+      "activeNotice": "Externe nummers worden opnieuw gecodeerd en dus met een lagere kwaliteit afgespeeld. Lokale bestanden worden nooit getranscodeerd.",
       "unsupported": "Deze server is gebouwd zonder FFmpeg en kan niet transcoderen. Externe nummers komen altijd in hun originele formaat aan."
     },
     "contrast": {
@@ -2475,7 +2475,7 @@
       "restartNow": "Opnieuw starten"
     },
     "organization": {
-      "search": "Instelling zoeken…",
+      "search": "Instellingen doorzoeken…",
       "clear": "Zoekopdracht wissen",
       "noResults": "Geen instellingen gevonden. Probeer een andere term.",
       "searchResults": "Zoekresultaten",
@@ -2557,7 +2557,7 @@
     "doneTitle": "Scan voltooid",
     "cancelledTitle": "Scan gestopt",
     "doneSubtitle": "{{added}} toegevoegd · {{updated}} bijgewerkt · {{skipped}} overgeslagen",
-    "scanningIn": "{{dir}} scannen…",
+    "scanningIn": "{{dir}} wordt gescand…",
     "doneErrors_one": "{{count}} bestand mislukt",
     "doneErrors_other": "{{count}} bestanden mislukt"
   },
@@ -2638,7 +2638,7 @@
     "error": "Kan deze weergave niet laden",
     "retry": "Opnieuw",
     "empty": "Niets om te tonen",
-    "rateLimited": "De dienst van deze extensie beperkt de verzoeken of is niet bereikbaar (misschien staat de offlinemodus aan). Probeer het zo opnieuw.",
+    "rateLimited": "De dienst van deze extensie beperkt het aantal verzoeken of is niet bereikbaar (misschien staat de offlinemodus aan). Probeer het over een ogenblik opnieuw.",
     "statusError": "De extensie is op een fout gestuit. {{detail}}"
   },
   "remote": {
@@ -2711,7 +2711,7 @@
     },
     "reconciliation": {
       "title": "Lokaal ↔ server-koppeling",
-      "subtitle": "Alleen exacte volledige-bestandsovereenkomsten. Bestanden van gelijke grootte worden geverifieerd met BLAKE3; metadata maakt nooit een koppeling.",
+      "subtitle": "Alleen exacte overeenkomsten van volledige bestanden. Bestanden van gelijke grootte worden geverifieerd met BLAKE3; metadata maakt nooit een koppeling.",
       "cancel": "Annuleren",
       "findMatches": "Overeenkomsten zoeken",
       "hashing": "{{processed}} / {{total}} lokale bestanden hashen…",
@@ -2787,7 +2787,7 @@
       "statArtists": "Artiesten",
       "statLibraries": "Bibliotheken",
       "progressAlbums": "{{done}} albums doorlopen…",
-      "progressSweep": "{{done}} nummers geteld…",
+      "progressSweep": "{{done}} nummers verwerkt…",
       "reportUnchanged": "Er was niets veranderd.",
       "reportWalked": "{{albums}} albums doorlopen, {{tracks}} nummers gekopieerd.",
       "reportRemoved": "{{removed}} verwijderd",
@@ -2941,7 +2941,7 @@
     "noSources": "Geen uitgave gevonden voor dit album.",
     "sourcesHint": "Hetzelfde album bestaat vaak in meerdere uitgaven, met verschillende tracklijsten. Kies de jouwe.",
     "back": "Andere uitgave kiezen",
-    "hint": "Er wordt niets weggeschreven tot je toepast.",
+    "hint": "Er wordt niets weggeschreven totdat je de wijzigingen toepast.",
     "acceptColumn": "Hele veld:",
     "acceptTrack": "Hele nummer",
     "nothingToChange": "Deze uitgave zegt precies wat je bestanden al zeggen.",

@@ -259,7 +259,7 @@
       },
       "artists": "Sanatçılar",
       "albums": "Albümler",
-      "titles": "Parçalar"
+      "titles": "Başlıklar"
     },
     "theme": {
       "enableLight": "Aydınlık modu aç",
@@ -570,8 +570,8 @@
           "help": "Albüm sanatçısı ayarlanmamış bir derleme."
         },
         "duplicate_track_number": {
-          "label": "Yinelenen numara",
-          "help": "İki parça aynı yeri istiyor."
+          "label": "Yinelenen parça numarası",
+          "help": "İki parça diskte aynı sıra numarasını kullanıyor."
         },
         "track_number_gap": {
           "label": "Numaralamada boşluk",
@@ -872,8 +872,8 @@
       "previous": "Önceki",
       "next": "Sonraki",
       "shuffleOff": "Karışık çalma kapalı",
-      "shuffleTracks": "Parçalar karışık",
-      "shuffleAlbums": "Albümler karışık",
+      "shuffleTracks": "Parçaları karışık çal",
+      "shuffleAlbums": "Albümleri karışık çal",
       "repeatOff": "Tekrar kapalı",
       "repeatAll": "Tümünü tekrarla",
       "repeatOne": "Bir parçayı tekrarla"
@@ -935,8 +935,8 @@
     "pinnedUnavailable": "Sabitlendi, kullanılamıyor",
     "reopen": "Bu aygıtı yeniden aç",
     "capabilities": {
-      "probing": "Yetenekler okunuyor…",
-      "unavailable": "Yetenekler kullanılamıyor",
+      "probing": "Desteklenen özellikler okunuyor…",
+      "unavailable": "Desteklenen özellikler okunamadı",
       "details": "Aygıt ayrıntıları",
       "summary": "{{bits}} bit · {{rate}} kHz",
       "channels": "Kanallar: {{value}}",
@@ -1557,7 +1557,7 @@
     "matchCount_other": "{{count}} parça eşleşiyor"
   },
   "lyricsEditor": {
-    "title": "Söz düzenleyici",
+    "title": "Şarkı sözü düzenleyicisi",
     "tabs": {
       "plain": "Düz",
       "synced": "Senkron"
@@ -1630,9 +1630,9 @@
       "subtitle": "“Basılmayı hak eden tüm müzik.” — Sana özel günlük seçki."
     },
     "lead": {
-      "caption": "Şek 1. — “{{album}}” albümünden, {{artist}} tarafından.",
-      "captionArtistOnly": "Şek 1. — {{artist}} eseri.",
-      "captionFallback": "Şek 1. — Günün seçkisi."
+      "caption": "Şek. 1 — “{{album}}” albümünden, {{artist}} tarafından.",
+      "captionArtistOnly": "Şek. 1 — {{artist}} eseri.",
+      "captionFallback": "Şek. 1 — Günün seçkisi."
     }
   },
   "settings": {
@@ -1970,7 +1970,7 @@
       "refresh": "Yenile",
       "resyncNow": "Şimdi senkronize et",
       "inSync": "Senkronize",
-      "outOfSync": "Farklı",
+      "outOfSync": "Senkronize değil",
       "error": "Hata: {{message}}",
       "reasonGeneric": "Atlandı ({{reason}})",
       "reason": {
@@ -1987,7 +1987,7 @@
         "state": "Durum",
         "missingLocally": "Yerelde eksik",
         "missingRemotely": "Sunucuda eksik",
-        "divergent": "Farklı"
+        "divergent": "Uyuşmuyor"
       },
       "backfillError": "Başarısız: {{message}}",
       "autoToggleTitle": "Otomatik senkronizasyon",
@@ -2013,7 +2013,7 @@
         "empty": "Ayrıntı yok",
         "missingLocally": "Yerelde eksik",
         "missingRemotely": "Sunucuda eksik",
-        "divergent": "Farklı",
+        "divergent": "Uyuşmuyor",
         "moreNotShown": "+ {{count}} daha gösterilmiyor"
       }
     },
@@ -2392,7 +2392,7 @@
     },
     "motionArtwork": {
       "title": "Animasyonlu kapaklar",
-      "subtitle": "Üst veri eklentilerinden (ör. Apple Motion Artwork) gelen animasyonlu kapaklar, çalan içeriğin arkasında oynatılır.",
+      "subtitle": "Üst veri eklentilerinden (ör. Apple Motion Artwork) gelen animasyonlu kapaklar, Şimdi Çalıyor görünümünün arkasında oynatılır.",
       "cacheLabel": "Animasyonlu kapakları yerel olarak kaydet",
       "usage": "{{size}} kullanıldı · önbellekte {{files}} kapak",
       "clear": "Önbelleği temizle",
@@ -2558,8 +2558,8 @@
     "cancelledTitle": "Tarama durduruldu",
     "doneSubtitle": "{{added}} eklendi · {{updated}} güncellendi · {{skipped}} atlandı",
     "scanningIn": "Taranıyor: {{dir}}",
-    "doneErrors_one": "{{count}} dosya başarısız",
-    "doneErrors_other": "{{count}} dosya başarısız"
+    "doneErrors_one": "{{count}} dosya işlenemedi",
+    "doneErrors_other": "{{count}} dosya işlenemedi"
   },
   "system": {
     "tray": {
@@ -2575,9 +2575,9 @@
   "share": {
     "title": "Çalma listesini paylaş",
     "subtitle": "“{{name}}” için herkese açık bir bağlantı oluştur. Herkes tarayıcıda açabilir.",
-    "idleHint": "Bağlantı, iptal edene kadar aktif kalır. Bu pencereden istediğin zaman devre dışı bırakabilirsin.",
+    "idleHint": "Bağlantı, iptal edene kadar etkin kalır. Bu pencereden istediğin zaman devre dışı bırakabilirsin.",
     "mint": "Bağlantı oluştur",
-    "activeHint": "Bağlantı tüm cihazlarında aktif.",
+    "activeHint": "Bağlantı tüm cihazlarında etkin.",
     "revoke": "Devre dışı bırak",
     "qrAlt": "Paylaşılan bağlantının QR kodu",
     "urlLabel": "Herkese açık URL",
@@ -2638,7 +2638,7 @@
     "error": "Bu görünüm yüklenemedi",
     "retry": "Yeniden dene",
     "empty": "Gösterilecek bir şey yok",
-    "rateLimited": "Bu eklentinin kullandığı hizmet istekleri sınırlıyor ya da erişilemiyor (çevrimdışı mod açık olabilir). Birazdan yeniden dene.",
+    "rateLimited": "Bu eklentinin kullandığı hizmet istekleri sınırlıyor veya hizmete erişilemiyor (çevrimdışı mod açık olabilir). Birazdan yeniden dene.",
     "statusError": "Eklenti bir hatayla karşılaştı. {{detail}}"
   },
   "remote": {
@@ -2654,7 +2654,7 @@
       "identify": "Sunucuyu kontrol et",
       "unknownType": "bilinmiyor",
       "probeNative": "WaveFlow'a özgü, tarayıcı üzerinden giriş yapılır",
-      "probeSubsonic": "Yalnızca Subsonic protokolü; henüz günlük veya giriş akışı yok",
+      "probeSubsonic": "Yalnızca Subsonic protokolü; işlem günlüğü ve giriş akışı henüz yok",
       "signInBrowser": "Tarayıcıyla giriş yap",
       "signedInFallback": "giriş yapıldı",
       "syncNow": "Şimdi senkronize et",
@@ -2730,8 +2730,8 @@
       "serverFirst": "Önce sunucu",
       "playbackPreference": "{{title}} için çalma tercihi",
       "unlink": "{{title}} bağlantısını kaldır",
-      "conversionTitle": "Açık çalma listesi kopyalama",
-      "conversionSubtitle": "Bir önizleme her kimlik bağlantısını onaylamalıdır. Hiçbir şey sessizce birleştirilmez veya atlanmaz.",
+      "conversionTitle": "Onaylı çalma listesi kopyalama",
+      "conversionSubtitle": "Önizlemede her parça eşleşmesi onaylanmalıdır. Hiçbir şey sessizce birleştirilmez veya atlanmaz.",
       "conversionDirection": "Çalma listesi kopyalama yönü",
       "conversionLocalToServer": "Yerel → sunucu",
       "conversionServerToLocal": "Sunucu → yerel",
@@ -2869,7 +2869,7 @@
     "needsMirror": "Önce yukarıdaki sunucu kataloğunu kopyala: bu bölüm dosyalarını henüz boş olan yerel kopyayla karşılaştırır."
   },
   "tasks": {
-    "barLabel": "Süren görevler",
+    "barLabel": "Devam eden görevler",
     "cancel": "Durdur: {{task}}",
     "stopping": "Durduruluyor…",
     "collapse": "Daralt",
@@ -2942,8 +2942,8 @@
     "sourcesHint": "Aynı albüm çoğu zaman farklı parça listeleriyle birden çok sürümde bulunur. Kendininkini seç.",
     "back": "Başka sürüm seç",
     "hint": "Uygulayana kadar hiçbir şey yazılmaz.",
-    "acceptColumn": "Tüm alan:",
-    "acceptTrack": "Tüm parça",
+    "acceptColumn": "Alanın tamamı:",
+    "acceptTrack": "Parçanın tamamı",
     "nothingToChange": "Bu sürümdeki bilgiler dosyalarındakilerle tamamen aynı.",
     "trackUnchanged": "Bu parçada değiştirilecek bir şey yok.",
     "noMatch": "{{file}} için eşleşme yok.",
