@@ -2369,6 +2369,10 @@
       "title": "Cover / artist slideshow",
       "subtitle": "Gently crossfades the album cover with the artist photo behind playback (immersive view + Now Playing panel)."
     },
+    "motionCovers": {
+      "title": "Show animated covers",
+      "subtitle": "Animated album covers behind the now-playing view, whether a plugin supplied them or you set them by hand. When off, the plugins are not asked for one."
+    },
     "artistHero": {
       "title": "Artist banner",
       "subtitle": "Shows a wide image behind the artist page header (TheAudioDB fanart, otherwise the blurred photo)."

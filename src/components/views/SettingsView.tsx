@@ -178,6 +178,7 @@ import { LyricsHighlightColorCard } from "./settings/LyricsHighlightColorCard";
 import { LyricsExcludedGenresCard } from "./settings/LyricsExcludedGenresCard";
 import { ImmersiveViewCard } from "./settings/ImmersiveViewCard";
 import { CoverSlideshowCard } from "./settings/CoverSlideshowCard";
+import { MotionCoversCard } from "./settings/MotionCoversCard";
 import { ArtistHeroCard } from "./settings/ArtistHeroCard";
 import { ScrollTitlesCard } from "./settings/ScrollTitlesCard";
 import { WindowBoundsCard } from "./settings/WindowBoundsCard";
@@ -2983,6 +2984,7 @@ export function SettingsView({
               >
                 <ImmersiveViewCard />
                 <CoverSlideshowCard />
+                <MotionCoversCard />
                 <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
                   <div className="flex items-center space-x-4">
                     <Activity
