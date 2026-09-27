@@ -293,15 +293,15 @@ export function PluginUIView({
         </div>
       )}
 
-      {/* Body */}
+      {/* Body. A failed initial load leaves no descriptor: the error banner
+          above is the visible state, so render nothing rather than the
+          misleading empty view. */}
       {isLoading && !descriptor ? (
         <div className="flex items-center justify-center gap-2 py-16 text-zinc-400">
           <Loader2 size={18} className="animate-spin" />
           {t("common.loading")}
         </div>
-      ) : !descriptor ? // A failed initial load left no descriptor — the error banner
-      // above is the visible state; don't show the misleading empty view.
-      null : !hasItems ? (
+      ) : !descriptor ? null : !hasItems ? (
         <div className="flex flex-col items-center gap-2 py-16 text-center text-zinc-400">
           <span>{resolvePluginIcon(icon, 32)}</span>
           <p className="font-medium text-zinc-600 dark:text-zinc-300">
