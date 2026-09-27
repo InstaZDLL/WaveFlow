@@ -1,8 +1,10 @@
 import { LogicalPosition, LogicalSize } from "@tauri-apps/api/dpi";
 import {
+  type Monitor,
   Window as TauriWindow,
   availableMonitors,
   currentMonitor,
+  monitorFromPoint,
 } from "@tauri-apps/api/window";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import {
@@ -60,19 +62,21 @@ async function boundsAreVisible(bounds: MiniPlayerBounds): Promise<boolean> {
 
 /**
  * Where a `width` × `height` mini-player goes by default: the
- * bottom-right corner of the current monitor (Spotify-style), or `null`
- * when the monitor cannot be read. `monitor.position` is the logical
- * origin of the monitor in the virtual desktop space — non-zero on
- * secondary monitors and negative when a monitor is placed to the left of
- * (or above) the primary — so it is added to land on the right monitor
- * instead of snapping to the primary's bottom-right corner.
+ * bottom-right corner of `on`, or of the calling window's monitor when
+ * `on` is not given (Spotify-style), or `null` when no monitor can be
+ * read. `monitor.position` is the logical origin of the monitor in the
+ * virtual desktop space — non-zero on secondary monitors and negative when
+ * a monitor is placed to the left of (or above) the primary — so it is
+ * added to land on the right monitor instead of snapping to the primary's
+ * bottom-right corner.
  */
 async function defaultCorner(
   width: number,
   height: number,
+  on?: Monitor | null,
 ): Promise<{ x: number; y: number } | null> {
   try {
-    const monitor = await currentMonitor();
+    const monitor = on ?? (await currentMonitor());
     if (!monitor) return null;
     const scale = monitor.scaleFactor || 1;
     const logicalX = monitor.position.x / scale;
@@ -90,20 +94,45 @@ async function defaultCorner(
 }
 
 /**
+ * The monitor holding the centre of `win`, or `null` when that point is
+ * on no monitor (a window left off-screen). The centre rather than a
+ * corner, so a window straddling two screens counts as on the one it
+ * mostly covers. Positions are physical, as `monitorFromPoint` takes them.
+ */
+async function monitorOf(win: TauriWindow): Promise<Monitor | null> {
+  try {
+    const position = await win.outerPosition();
+    const size = await win.outerSize();
+    return await monitorFromPoint(
+      position.x + size.width / 2,
+      position.y + size.height / 2,
+    );
+  } catch (err) {
+    console.warn("[miniPlayer] mini-player monitor query failed", err);
+    return null;
+  }
+}
+
+/**
  * Put the mini-player back to its default size, in the default corner —
  * from the Settings action or a double-click on its drag handle. The saved
  * bounds are forgotten, so a closed mini-player opens there next time; an
  * open or hidden one is moved at once (and un-maximised first), after
- * which its own move listener saves the default like any other move. The
- * corner is taken from the monitor of the window calling this.
+ * which its own move listener saves the default like any other move.
+ *
+ * The corner is that of the monitor the mini-player is on, read before it
+ * is resized, so a reset from the main window on another screen leaves it
+ * where it was. Only a mini-player on no monitor at all — the off-screen
+ * case a reset is for — goes to the calling window's monitor.
  */
 export async function resetMiniPlayerBounds(): Promise<void> {
   await clearMiniPlayerBounds();
   const win = await TauriWindow.getByLabel(MINI_LABEL);
   if (!win) return;
+  const monitor = await monitorOf(win);
   if (await win.isMaximized()) await win.unmaximize();
   await win.setSize(new LogicalSize(DEFAULT_WIDTH, DEFAULT_HEIGHT));
-  const corner = await defaultCorner(DEFAULT_WIDTH, DEFAULT_HEIGHT);
+  const corner = await defaultCorner(DEFAULT_WIDTH, DEFAULT_HEIGHT, monitor);
   if (corner) await win.setPosition(new LogicalPosition(corner.x, corner.y));
 }
 
