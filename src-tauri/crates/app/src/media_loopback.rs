@@ -8,7 +8,7 @@
 //! only video files the asset scope already lets the webview read. A
 //! **fragmented** MP4 (Apple's motion covers) stalls over HTTP after a
 //! couple of seconds, so the first request for one rewrites it as an
-//! ordinary MP4 before serving it ([`make_playable`]). Windows and macOS
+//! ordinary MP4 before serving it ([`playable`]). Windows and macOS
 //! play the asset URL directly and never start this.
 //!
 //! Started on first use and kept for the life of the process. A failure to
@@ -25,11 +25,12 @@ use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::Router;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 use tokio::sync::OnceCell;
-use waveflow_core::artwork::mp4_defrag;
+use waveflow_core::artwork::{motion_cache, mp4_defrag};
 
 use crate::dlna::http::{build_range_body, parse_range};
+use crate::state::AppState;
 
 static BASE_URL: OnceCell<Option<String>> = OnceCell::const_new();
 
@@ -100,13 +101,20 @@ async fn serve(State(ctx): State<Ctx>, RawQuery(query): RawQuery, headers: Heade
     };
     // The same check the asset protocol makes, so this serves exactly what
     // the webview could already read — no wider, and no narrower either.
-    if !tauri::Manager::asset_protocol_scope(&ctx.app).is_allowed(&path) {
+    if !ctx.app.asset_protocol_scope().is_allowed(&path) {
         return StatusCode::FORBIDDEN.into_response();
     }
 
-    make_playable(&path).await;
-
-    let file = match tokio::fs::File::open(&path).await {
+    let mut served = playable(&ctx.app, &path).await;
+    let mut opened = tokio::fs::File::open(&served).await;
+    if opened.is_err() && served != path {
+        // A converted copy evicted between the lookup and the open: the
+        // lookup now sees it gone and makes it again.
+        served = playable(&ctx.app, &path).await;
+        opened = tokio::fs::File::open(&served).await;
+    }
+    let path = served;
+    let file = match opened {
         Ok(file) => file,
         Err(_) => return StatusCode::NOT_FOUND.into_response(),
     };
@@ -147,90 +155,172 @@ async fn serve(State(ctx): State<Ctx>, RawQuery(query): RawQuery, headers: Heade
 /// How much of a file is read to tell whether it is fragmented.
 const HEAD_BYTES: u64 = 1024 * 1024;
 
-/// Files already checked, with the length and mtime they had then: a file
-/// that changes is checked again, one that does not is never re-read.
-static CHECKED: LazyLock<Mutex<HashMap<PathBuf, (u64, SystemTime)>>> =
+/// Where converted copies of clips WaveFlow does not own go, under the
+/// cache root, and how large that folder may grow (oldest evicted first).
+const COPIES_DIR: &str = "linux_video";
+const COPIES_MAX_BYTES: u64 = 512 * 1024 * 1024;
+
+/// The file's length and mtime.
+type Stamp = (u64, SystemTime);
+
+/// What each file resolved to — itself, or its converted copy — with the
+/// stamp it had then: a file that changes is looked at again, one that
+/// does not is never re-read.
+static RESOLVED: LazyLock<Mutex<HashMap<PathBuf, (Stamp, PathBuf)>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// One conversion at a time. The requests that arrive during one wait for
-/// it, then find the file checked.
+/// it, then find the file resolved.
 static CONVERTING: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
-async fn stamp(path: &Path) -> Option<(u64, SystemTime)> {
+async fn stamp(path: &Path) -> Option<Stamp> {
     let meta = tokio::fs::metadata(path).await.ok()?;
     Some((meta.len(), meta.modified().ok()?))
 }
 
-fn is_checked(path: &Path, stamp: Option<(u64, SystemTime)>) -> bool {
-    stamp.is_some()
-        && CHECKED
-            .lock()
-            .is_ok_and(|seen| seen.get(path) == stamp.as_ref())
+fn resolved(path: &Path, stamp: Option<Stamp>) -> Option<PathBuf> {
+    let stamp = stamp?;
+    let seen = RESOLVED.lock().ok()?;
+    seen.get(path)
+        // A copy the eviction has since removed is made again.
+        .filter(|(then, served)| *then == stamp && served.is_file())
+        .map(|(_, served)| served.clone())
 }
 
-/// Rewrite `path` in place as an ordinary MP4 if it is a fragmented one.
+/// The file to serve for `path`: itself, or an ordinary MP4 made from it
+/// when it is a fragmented one.
 ///
 /// WebKitGTK stops a fragmented MP4 served over HTTP a couple of seconds
 /// in, for good; the same frames indexed up front play
-/// ([`waveflow_core::artwork::mp4_defrag`]). The rewrite goes through a
-/// temporary file renamed over the original, so a reader never sees half
-/// a file. Every file this server hands out is one WaveFlow wrote (a
-/// downloaded or chosen cover, a clip), so rewriting it is the app
-/// reorganising its own copy. A file that cannot be rewritten — a
-/// read-only folder — is served as it is and logged.
-async fn make_playable(path: &Path) {
-    if is_checked(path, stamp(path).await) {
-        return;
+/// ([`waveflow_core::artwork::mp4_defrag`]). Who owns the file decides
+/// where the conversion goes. One under WaveFlow's own data or cache
+/// directories — a downloaded or chosen cover, a clip the app copied
+/// there — is rewritten in place, through a temporary file renamed over
+/// it. Anything else, a clip in the user's music folder, is never
+/// modified: the converted copy goes to [`COPIES_DIR`], keyed by the
+/// file's path, length and mtime, and is served instead. A file that
+/// cannot be converted is served as it is and logged.
+async fn playable(app: &AppHandle, path: &Path) -> PathBuf {
+    if let Some(served) = resolved(path, stamp(path).await) {
+        return served;
     }
     let _converting = CONVERTING.lock().await;
-    let before = stamp(path).await;
-    if before.is_none() || is_checked(path, before) {
-        return;
+    let Some(before) = stamp(path).await else {
+        return path.to_path_buf();
+    };
+    if let Some(served) = resolved(path, Some(before)) {
+        return served;
     }
-    let owned = path.to_path_buf();
-    match tokio::task::spawn_blocking(move || defragment_in_place(&owned)).await {
-        Ok(Ok(true)) => {
-            tracing::info!(path = %path.display(), "media loopback: rewrote a fragmented mp4")
+
+    let paths = &app.state::<AppState>().paths;
+    let owned = path.starts_with(&paths.root) || path.starts_with(&paths.cache_root);
+    let copy = (!owned).then(|| copy_path(&paths.cache_root, path, before));
+    let source = path.to_path_buf();
+    let served = match tokio::task::spawn_blocking(move || convert(&source, copy.as_deref())).await
+    {
+        Ok(Ok(Some(converted))) => {
+            tracing::info!(
+                path = %path.display(),
+                served = %converted.display(),
+                "media loopback: converted a fragmented mp4"
+            );
+            converted
         }
-        Ok(Ok(false)) => {}
+        Ok(Ok(None)) => path.to_path_buf(),
         Ok(Err(err)) => {
-            tracing::warn!(%err, path = %path.display(), "media loopback: could not rewrite a fragmented mp4")
+            tracing::warn!(%err, path = %path.display(), "media loopback: could not convert a fragmented mp4");
+            path.to_path_buf()
         }
-        Err(err) => tracing::warn!(%err, "media loopback: rewrite task failed"),
+        Err(err) => {
+            tracing::warn!(%err, "media loopback: conversion task failed");
+            path.to_path_buf()
+        }
+    };
+    // An in-place rewrite changed the file, so it is recorded under the
+    // stamp it has now. A copy is recorded under the stamp of the content
+    // it was made from: were the file edited meanwhile, the next request
+    // sees the difference and converts it again. A file that failed is
+    // recorded too, so it is not re-read on every range request.
+    let key = if owned {
+        stamp(path).await
+    } else {
+        Some(before)
+    };
+    if let (Some(key), Ok(mut seen)) = (key, RESOLVED.lock()) {
+        seen.insert(path.to_path_buf(), (key, served.clone()));
     }
-    // Recorded even after a failure, so a file that cannot be rewritten is
-    // not re-read on every range request; a change to it is seen again.
-    if let (Some(now), Ok(mut seen)) = (stamp(path).await, CHECKED.lock()) {
-        seen.insert(path.to_path_buf(), now);
-    }
+    served
 }
 
-/// `Ok(true)` when the file was fragmented and has been rewritten.
-fn defragment_in_place(path: &Path) -> std::io::Result<bool> {
+/// Where the converted copy of a file WaveFlow does not own goes: named
+/// after its path, length and mtime, so an edited file gets a new copy.
+fn copy_path(cache_root: &Path, path: &Path, (len, mtime): Stamp) -> PathBuf {
+    use std::os::unix::ffi::OsStrExt;
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(path.as_os_str().as_bytes());
+    hasher.update(&len.to_le_bytes());
+    let nanos = mtime
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    hasher.update(&nanos.to_le_bytes());
+    cache_root
+        .join(COPIES_DIR)
+        .join(format!("{}.mp4", hasher.finalize().to_hex()))
+}
+
+/// `Ok(Some(path to serve))` when the file is fragmented and has been
+/// converted — into `copy` when given, in place otherwise.
+fn convert(path: &Path, copy: Option<&Path>) -> std::io::Result<Option<PathBuf>> {
     use std::io::Read;
+    if let Some(copy) = copy.filter(|c| c.is_file()) {
+        // Made on an earlier launch; the bump keeps it off the eviction end.
+        let _ = std::fs::OpenOptions::new()
+            .write(true)
+            .open(copy)
+            .and_then(|f| f.set_modified(SystemTime::now()));
+        return Ok(Some(copy.to_path_buf()));
+    }
     let mut head = Vec::new();
     std::fs::File::open(path)?
         .take(HEAD_BYTES)
         .read_to_end(&mut head)?;
     if !mp4_defrag::looks_fragmented(&head) {
-        return Ok(false);
+        return Ok(None);
     }
     let input = std::fs::read(path)?;
     let Some(output) = mp4_defrag::defragment(&input).map_err(std::io::Error::other)? else {
-        return Ok(false);
+        return Ok(None);
     };
-    let name = path
+    let target = copy.unwrap_or(path);
+    let dir = target.parent().unwrap_or(Path::new("/"));
+    std::fs::create_dir_all(dir)?;
+    let name = target
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_default();
-    // `.part`, so a crash mid-write leaves an orphan the motion cache's
-    // eviction already knows to prune.
-    let staged = path.with_file_name(format!(".{name}.{}.part", std::process::id()));
-    let written = std::fs::write(&staged, &output).and_then(|()| std::fs::rename(&staged, path));
-    if written.is_err() {
-        let _ = std::fs::remove_file(&staged);
+    // Room is made before the copy lands, so the eviction can never take
+    // the file about to be served. A copy larger than the whole folder is
+    // not made at all (no clip or cover comes near it): the original is
+    // served instead, and the failure logged.
+    if copy.is_some() {
+        if output.len() as u64 > COPIES_MAX_BYTES {
+            return Err(std::io::Error::other(
+                "converted copy larger than the folder it would go to",
+            ));
+        }
+        let room = COPIES_MAX_BYTES.saturating_sub(output.len() as u64);
+        motion_cache::evict_lru(dir, room);
     }
-    written.map(|()| true)
+    // `.part`, so a crash mid-write leaves an orphan the eviction, like the
+    // motion cache's, knows to prune.
+    let staged = dir.join(format!(".{name}.{}.part", std::process::id()));
+    let written = std::fs::write(&staged, &output).and_then(|()| std::fs::rename(&staged, target));
+    if let Err(err) = written {
+        let _ = std::fs::remove_file(&staged);
+        return Err(err);
+    }
+    Ok(Some(target.to_path_buf()))
 }
 
 /// Absolute, and no `..`: a scope pattern like `profiles/**` is matched as

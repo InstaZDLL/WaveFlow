@@ -313,8 +313,9 @@ fn mp4_entries(dir: &Path) -> Vec<(PathBuf, u64, SystemTime)> {
 
 /// Evict oldest complete `.mp4`s (by mtime) until at/under `cap`, and prune any
 /// stale `.part` orphan (a crashed download; an in-flight one is younger than
-/// [`STALE_PART_AGE`] so it's never touched). Best-effort throughout.
-fn evict_lru(dir: &Path, cap: u64) {
+/// [`STALE_PART_AGE`] so it's never touched). Best-effort throughout. Also
+/// keeps the desktop's own folder of converted clips in bounds.
+pub fn evict_lru(dir: &Path, cap: u64) {
     // Prune crashed-download orphans first so they don't inflate the total.
     if let Ok(rd) = std::fs::read_dir(dir) {
         let now = SystemTime::now();
