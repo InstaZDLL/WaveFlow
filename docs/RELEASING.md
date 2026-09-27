@@ -299,11 +299,12 @@ The web process then waits on a pipeline that was never built, and the whole int
 
 `bundle.linux.appimage.bundleMediaFramework` in `tauri.conf.json` fixes it: the bundler copies the build machine's GStreamer plugins into the AppDir and points the runtime at them. **It bundles what the runner has installed**, so `release.yml` and `test-appimage.yml` install the plugin sets the webview needs:
 
-| Package                     | Why                                                                |
-| --------------------------- | ------------------------------------------------------------------ |
-| `gstreamer1.0-plugins-base` | `appsink`, `playbin`, `decodebin`, the converters WebKit builds on |
-| `gstreamer1.0-plugins-good` | `qtdemux` (the `.mp4` container), `autoaudiosink`                  |
-| `gstreamer1.0-libav`        | the H.264 and HEVC decoders the clips and covers are encoded with  |
+| Package                     | Why                                                                                                                                                                   |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gstreamer1.0-plugins-base` | `appsink`, `playbin`, `decodebin`, the converters WebKit builds on                                                                                                    |
+| `gstreamer1.0-plugins-good` | `qtdemux` (the `.mp4` container), `autoaudiosink`                                                                                                                     |
+| `gstreamer1.0-plugins-bad`  | `h264parse` / `h265parse`, which WebKit's MediaSource path needs to take a fragmented MP4 in (the Linux motion covers go through it); also the `va` hardware decoders |
+| `gstreamer1.0-libav`        | the H.264 and HEVC decoders the clips and covers are encoded with                                                                                                     |
 
 Two more pieces make video actually play, and neither is packaging. The bundled GStreamer would otherwise share the host's registry cache (`~/.cache/gstreamer-1.0/registry.<arch>.bin`) with a different GStreamer version, so `preflight_appimage_gstreamer` in [`lib.rs`](../src-tauri/crates/app/src/lib.rs) points `GST_REGISTRY_1_0` at a file of its own when `APPIMAGE` is set. And WebKitGTK cannot play the asset protocol at all, on any Linux package: local clips go through MediaSource or a loopback HTTP server — see [ui.md](features/ui.md#track-canvas).
 
