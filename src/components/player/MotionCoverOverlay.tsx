@@ -81,8 +81,8 @@ function MotionVideo({
 
   if (failed || video.failed) return null;
 
-  // No `src` attribute: `usePlayableVideo` sets it, and on Linux it may be
-  // a MediaSource rather than a URL.
+  // No `src` attribute: `usePlayableVideo` sets it once it knows the URL,
+  // which on Linux means asking the backend for the loopback server first.
   return (
     <>
       {HOLDS_LOOP_FRAME && (

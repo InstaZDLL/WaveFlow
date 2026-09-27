@@ -1,31 +1,26 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { type RefObject, useEffect, useState } from "react";
 
-import { hasSoundTrack, isFragmentedMp4, mp4VideoMime } from "../lib/mp4Boxes";
 import { getLocalVideoBaseUrl } from "../lib/tauri/canvas";
 
 /**
  * WebKitGTK plays `<video>` through GStreamer, and neither of the obvious
- * ways to reach a local file works there for every clip:
+ * ways to reach a local file works there:
  *
  * - the asset protocol has no GStreamer source at all ("no URI handler
  *   implemented for asset");
- * - over HTTP — the loopback server in `media_loopback.rs`, or Apple's own
- *   CDN — an ordinary MP4 plays, but a **fragmented** one (Apple's motion
- *   covers: `moof`/`mdat` pairs) stops after a couple of seconds, WebKit
- *   suspending the download and never resuming it;
- * - a `blob:` URL corrupts a fragmented MP4 outright.
+ * - a `blob:` URL corrupts a fragmented MP4 and errors on a large one;
+ * - MediaSource never finishes appending one.
  *
- * A fragmented MP4 is exactly what MediaSource consumes, so on Linux a
- * fragmented local file is read whole through the asset protocol and
- * appended to a `SourceBuffer`; an ordinary one streams from the loopback
- * server. WebView2 and WKWebView play the asset URL directly.
+ * So on Linux a local clip streams from the loopback server in
+ * `media_loopback.rs`, which also rewrites a **fragmented** MP4 (Apple's
+ * motion covers: `moof`/`mdat` pairs) as an ordinary one the first time it
+ * is asked for it: over HTTP WebKit stops a fragmented file a couple of
+ * seconds in and never resumes. WebView2 and WKWebView play the asset URL
+ * directly.
  */
 const LINUX =
   /linux/i.test(navigator.userAgent) && !/android/i.test(navigator.userAgent);
-
-/** Enough of the file to hold its `moov` box. */
-const HEAD_BYTES = 256 * 1024;
 
 /** Asked once per launch: the server's port and token do not change. */
 let loopbackBase: Promise<string | null> | null = null;
@@ -37,41 +32,13 @@ function loopbackBaseUrl(): Promise<string | null> {
   return loopbackBase;
 }
 
-function once(target: EventTarget, type: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const onError = () => reject(new Error(`${type}: error event`));
-    target.addEventListener(
-      type,
-      () => {
-        target.removeEventListener("error", onError);
-        resolve();
-      },
-      { once: true },
-    );
-    target.addEventListener("error", onError, { once: true });
-  });
-}
-
-async function readBytes(
-  url: string,
-  signal: AbortSignal,
-  range?: string,
-): Promise<ArrayBuffer> {
-  const response = await fetch(url, {
-    signal,
-    headers: range ? { Range: range } : undefined,
-  });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return response.arrayBuffer();
-}
-
 /**
  * Point `ref`'s `<video>` at a Canvas clip or a motion cover. `remote` URLs
  * (a plugin's, a server's ticketed one, an uncached motion cover) load as
  * they are; a local path goes through the asset protocol, or on Linux
- * through MediaSource or the loopback server as described above. Returns
- * whether the clip could not be set up — the caller shows the static cover.
- * The element's own `onError` still covers a clip that fails to decode.
+ * through the loopback server as described above. Returns whether the clip
+ * could not be set up — the caller shows the static cover. The element's
+ * own `onError` still covers a clip that fails to decode.
  */
 export function usePlayableVideo(
   ref: RefObject<HTMLVideoElement | null>,
@@ -88,49 +55,20 @@ export function usePlayableVideo(
       return;
     }
 
-    const controller = new AbortController();
-    let objectUrl: string | null = null;
-    const asset = convertFileSrc(source);
-
-    const attach = async () => {
-      const head = new Uint8Array(
-        await readBytes(asset, controller.signal, `bytes=0-${HEAD_BYTES - 1}`),
-      );
-      const mime =
-        isFragmentedMp4(head) && !hasSoundTrack(head)
-          ? mp4VideoMime(head)
-          : null;
-      if (!mime || !MediaSource.isTypeSupported(mime)) {
-        const base = await loopbackBaseUrl();
-        if (!base) throw new Error("no loopback server");
-        if (controller.signal.aborted) return;
-        video.src = `${base}&path=${encodeURIComponent(source)}`;
+    let cancelled = false;
+    void loopbackBaseUrl().then((base) => {
+      if (cancelled) return;
+      if (!base) {
+        setFailed(true);
         return;
       }
-      const bytes = await readBytes(asset, controller.signal);
-      if (controller.signal.aborted) return;
-      const mediaSource = new MediaSource();
-      objectUrl = URL.createObjectURL(mediaSource);
-      video.src = objectUrl;
-      await once(mediaSource, "sourceopen");
-      const buffer = mediaSource.addSourceBuffer(mime);
-      const appended = once(buffer, "updateend");
-      buffer.appendBuffer(bytes);
-      await appended;
-      if (mediaSource.readyState === "open") mediaSource.endOfStream();
-    };
-
-    attach().catch((err: unknown) => {
-      if (controller.signal.aborted) return;
-      console.warn("[usePlayableVideo] could not set up the clip", source, err);
-      setFailed(true);
+      video.src = `${base}&path=${encodeURIComponent(source)}`;
     });
 
     return () => {
-      controller.abort();
+      cancelled = true;
       video.removeAttribute("src");
       video.load();
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [ref, source, remote]);
 
@@ -140,17 +78,23 @@ export function usePlayableVideo(
 /** Whether looping clips need `useLoopFrameHold` (WebKitGTK only). */
 export const HOLDS_LOOP_FRAME = LINUX;
 
-/** How close to the end the last frame starts being kept, in seconds. */
-const HOLD_WINDOW = 0.6;
+/** How far into the new pass the held frame is dropped, in seconds. */
+const RELEASE_AFTER = 0.5;
 
 /**
  * Keep the last frame on screen while a looping `<video>` jumps back to
  * its start. WebKitGTK clears the picture during that seek and fetches the
  * start of the file again, so for a moment the element is transparent and
- * the static cover underneath flashes through. Near the end, the current
- * frame is copied into `canvasRef` (drawn under the video, over the
- * cover); the seek shows it, and the first frame after it hides it again.
- * Does nothing where the webview keeps the frame itself.
+ * the static cover underneath flashes through. Each `timeupdate` (about
+ * four a second) copies the current frame into `canvasRef`, drawn under
+ * the video and over the cover; the seek shows it, and a moment into the
+ * new pass it is hidden again. Being under the video, it hides nothing
+ * once the video paints, so releasing it late costs nothing.
+ *
+ * The copy is not timed against `duration`: WebKitGTK reports the file's
+ * full length but can loop well before it, where the download it paused
+ * runs out (a fragmented MP4 over HTTP). Does nothing where the webview
+ * keeps the frame itself.
  */
 export function useLoopFrameHold(
   videoRef: RefObject<HTMLVideoElement | null>,
@@ -160,6 +104,7 @@ export function useLoopFrameHold(
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!LINUX || !video || !canvas) return;
+    let captured = false;
     let holding = false;
 
     const capture = () => {
@@ -169,23 +114,18 @@ export function useLoopFrameHold(
         canvas.height = video.videoHeight;
       }
       canvas.getContext("2d")?.drawImage(video, 0, 0);
+      captured = true;
     };
     const onTimeUpdate = () => {
-      const { currentTime, duration } = video;
-      // Back in the first half after the jump: the video has a frame again,
-      // however late this event came.
-      if (holding && currentTime > 0 && currentTime < duration / 2) {
+      if (!holding) {
+        capture();
+      } else if (!video.seeking && video.currentTime >= RELEASE_AFTER) {
         holding = false;
         canvas.style.opacity = "0";
-      } else if (
-        Number.isFinite(duration) &&
-        duration - currentTime < HOLD_WINDOW
-      ) {
-        capture();
       }
     };
     const onSeeking = () => {
-      if (!video.loop || canvas.width === 0) return;
+      if (!video.loop || !captured) return;
       holding = true;
       canvas.style.opacity = "1";
     };

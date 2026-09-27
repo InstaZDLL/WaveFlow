@@ -7,15 +7,18 @@
 //! `127.0.0.1` instead: an ephemeral port, a token minted per launch, and
 //! only video files the asset scope already lets the webview read. A
 //! **fragmented** MP4 (Apple's motion covers) stalls over HTTP after a
-//! couple of seconds, so the frontend hands those to MediaSource and never
-//! asks this server for them (`usePlayableVideo.ts`). Windows and macOS
+//! couple of seconds, so the first request for one rewrites it as an
+//! ordinary MP4 before serving it ([`make_playable`]). Windows and macOS
 //! play the asset URL directly and never start this.
 //!
 //! Started on first use and kept for the life of the process. A failure to
 //! bind is logged and reported as `None`; the caller shows the static cover.
 
+use std::collections::HashMap;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::path::{Component, Path, PathBuf};
+use std::sync::{LazyLock, Mutex};
+use std::time::SystemTime;
 
 use axum::extract::{RawQuery, State};
 use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
@@ -24,6 +27,7 @@ use axum::routing::get;
 use axum::Router;
 use tauri::AppHandle;
 use tokio::sync::OnceCell;
+use waveflow_core::artwork::mp4_defrag;
 
 use crate::dlna::http::{build_range_body, parse_range};
 
@@ -100,6 +104,8 @@ async fn serve(State(ctx): State<Ctx>, RawQuery(query): RawQuery, headers: Heade
         return StatusCode::FORBIDDEN.into_response();
     }
 
+    make_playable(&path).await;
+
     let file = match tokio::fs::File::open(&path).await {
         Ok(file) => file,
         Err(_) => return StatusCode::NOT_FOUND.into_response(),
@@ -136,6 +142,95 @@ async fn serve(State(ctx): State<Ctx>, RawQuery(query): RawQuery, headers: Heade
         }
     }
     (status, out, body).into_response()
+}
+
+/// How much of a file is read to tell whether it is fragmented.
+const HEAD_BYTES: u64 = 1024 * 1024;
+
+/// Files already checked, with the length and mtime they had then: a file
+/// that changes is checked again, one that does not is never re-read.
+static CHECKED: LazyLock<Mutex<HashMap<PathBuf, (u64, SystemTime)>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+/// One conversion at a time. The requests that arrive during one wait for
+/// it, then find the file checked.
+static CONVERTING: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
+async fn stamp(path: &Path) -> Option<(u64, SystemTime)> {
+    let meta = tokio::fs::metadata(path).await.ok()?;
+    Some((meta.len(), meta.modified().ok()?))
+}
+
+fn is_checked(path: &Path, stamp: Option<(u64, SystemTime)>) -> bool {
+    stamp.is_some()
+        && CHECKED
+            .lock()
+            .is_ok_and(|seen| seen.get(path) == stamp.as_ref())
+}
+
+/// Rewrite `path` in place as an ordinary MP4 if it is a fragmented one.
+///
+/// WebKitGTK stops a fragmented MP4 served over HTTP a couple of seconds
+/// in, for good; the same frames indexed up front play
+/// ([`waveflow_core::artwork::mp4_defrag`]). The rewrite goes through a
+/// temporary file renamed over the original, so a reader never sees half
+/// a file. Every file this server hands out is one WaveFlow wrote (a
+/// downloaded or chosen cover, a clip), so rewriting it is the app
+/// reorganising its own copy. A file that cannot be rewritten — a
+/// read-only folder — is served as it is and logged.
+async fn make_playable(path: &Path) {
+    if is_checked(path, stamp(path).await) {
+        return;
+    }
+    let _converting = CONVERTING.lock().await;
+    let before = stamp(path).await;
+    if before.is_none() || is_checked(path, before) {
+        return;
+    }
+    let owned = path.to_path_buf();
+    match tokio::task::spawn_blocking(move || defragment_in_place(&owned)).await {
+        Ok(Ok(true)) => {
+            tracing::info!(path = %path.display(), "media loopback: rewrote a fragmented mp4")
+        }
+        Ok(Ok(false)) => {}
+        Ok(Err(err)) => {
+            tracing::warn!(%err, path = %path.display(), "media loopback: could not rewrite a fragmented mp4")
+        }
+        Err(err) => tracing::warn!(%err, "media loopback: rewrite task failed"),
+    }
+    // Recorded even after a failure, so a file that cannot be rewritten is
+    // not re-read on every range request; a change to it is seen again.
+    if let (Some(now), Ok(mut seen)) = (stamp(path).await, CHECKED.lock()) {
+        seen.insert(path.to_path_buf(), now);
+    }
+}
+
+/// `Ok(true)` when the file was fragmented and has been rewritten.
+fn defragment_in_place(path: &Path) -> std::io::Result<bool> {
+    use std::io::Read;
+    let mut head = Vec::new();
+    std::fs::File::open(path)?
+        .take(HEAD_BYTES)
+        .read_to_end(&mut head)?;
+    if !mp4_defrag::looks_fragmented(&head) {
+        return Ok(false);
+    }
+    let input = std::fs::read(path)?;
+    let Some(output) = mp4_defrag::defragment(&input).map_err(std::io::Error::other)? else {
+        return Ok(false);
+    };
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    // `.part`, so a crash mid-write leaves an orphan the motion cache's
+    // eviction already knows to prune.
+    let staged = path.with_file_name(format!(".{name}.{}.part", std::process::id()));
+    let written = std::fs::write(&staged, &output).and_then(|()| std::fs::rename(&staged, path));
+    if written.is_err() {
+        let _ = std::fs::remove_file(&staged);
+    }
+    written.map(|()| true)
 }
 
 /// Absolute, and no `..`: a scope pattern like `profiles/**` is matched as
