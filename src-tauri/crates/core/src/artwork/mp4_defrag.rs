@@ -16,6 +16,8 @@
 //! show as ten seconds of nothing — and an edit list is written only where
 //! composition offsets delay the first frame.
 
+use std::io::{Read, Seek, SeekFrom};
+
 use thiserror::Error;
 
 /// Why a file could not be rewritten.
@@ -29,45 +31,65 @@ pub enum DefragError {
 
 type Result<T> = std::result::Result<T, DefragError>;
 
-/// Whether the start of a file shows it to be fragmented: `mvex` in a
-/// `moov` that fits in `head`, or a `moof` before the head runs out. A
-/// `moov` too large for `head` reads as not fragmented; a fragmented
-/// file's `moov` is a few hundred bytes, since it indexes nothing.
-pub fn looks_fragmented(head: &[u8]) -> bool {
-    let mut pos = 0usize;
-    while pos + 8 <= head.len() {
-        let mut c = Cursor::new(&head[pos..]);
-        let Ok(size32) = c.u32() else { return false };
-        let kind = &head[pos + 4..pos + 8];
-        let (size, header) = match size32 {
-            1 => match c.take(4).and_then(|_| c.u64()) {
-                Ok(n) => (n, 16u64),
-                Err(_) => return false,
-            },
-            0 => return kind == b"moof",
-            n => (u64::from(n), 8u64),
-        };
-        if size < header {
-            return false;
-        }
-        match kind {
-            b"moof" => return true,
+/// Whether a file is fragmented: a `moof` at the top level, or `mvex` in
+/// its `moov` — the same test [`defragment`] makes. Reads box headers
+/// only, seeking over every body, so the answer costs a few small reads
+/// however large the file is and wherever in it the index sits. A header
+/// that runs past the end stops the walk, as not fragmented.
+pub fn is_fragmented<R: Read + Seek>(file: &mut R) -> std::io::Result<bool> {
+    let end = file.seek(SeekFrom::End(0))?;
+    let mut pos = 0;
+    while let Some((kind, body, next)) = next_header(file, pos, end)? {
+        match &kind {
+            b"moof" => return Ok(true),
             b"moov" => {
-                let end = pos as u64 + size;
-                if end > head.len() as u64 {
-                    return false;
+                let mut at = body;
+                while let Some((kind, _, child_end)) = next_header(file, at, next)? {
+                    if &kind == b"mvex" {
+                        return Ok(true);
+                    }
+                    at = child_end;
                 }
-                let body = &head[pos + header as usize..end as usize];
-                return parse_boxes(body, 0).is_ok_and(|kids| child(&kids, b"mvex").is_some());
             }
             _ => {}
         }
-        match usize::try_from(pos as u64 + size) {
-            Ok(next) => pos = next,
-            Err(_) => return false,
-        }
+        pos = next;
     }
-    false
+    Ok(false)
+}
+
+/// The box at `pos`: its type, where its body starts and where it ends,
+/// or `None` when no whole header fits before `end` or the box claims to
+/// run past it.
+fn next_header<R: Read + Seek>(
+    file: &mut R,
+    pos: u64,
+    end: u64,
+) -> std::io::Result<Option<([u8; 4], u64, u64)>> {
+    if end.saturating_sub(pos) < 8 {
+        return Ok(None);
+    }
+    file.seek(SeekFrom::Start(pos))?;
+    let mut header = [0u8; 8];
+    file.read_exact(&mut header)?;
+    let kind = [header[4], header[5], header[6], header[7]];
+    let (size, header_len) = match u32::from_be_bytes([header[0], header[1], header[2], header[3]])
+    {
+        0 => (end - pos, 8),
+        1 => {
+            if end - pos < 16 {
+                return Ok(None);
+            }
+            let mut large = [0u8; 8];
+            file.read_exact(&mut large)?;
+            (u64::from_be_bytes(large), 16)
+        }
+        n => (u64::from(n), 8),
+    };
+    if size < header_len || size > end - pos {
+        return Ok(None);
+    }
+    Ok(Some((kind, pos + header_len, pos + size)))
 }
 
 /// `Ok(None)` when `input` is not fragmented (nothing to do), otherwise
@@ -1070,6 +1092,24 @@ mod tests {
             bx(b"mdat", &[1, 2, 3]),
         ]);
         assert!(defragment(&file).unwrap().is_none());
+        assert!(!is_fragmented(&mut std::io::Cursor::new(&file)).unwrap());
+    }
+
+    #[test]
+    fn a_large_box_before_the_index_does_not_hide_it() {
+        // Two megabytes of `free` ahead of `moov`: the walk seeks over it.
+        let file = cat(&[
+            bx(b"ftyp", b"iso6\0\0\0\0"),
+            bx(b"free", &vec![0; 2 * 1024 * 1024]),
+            moov(true),
+            fragment(1, 0, &[5, 3], 0x10),
+        ]);
+        assert!(is_fragmented(&mut std::io::Cursor::new(&file)).unwrap());
+        // A moof after a moov without mvex still counts, as in defragment.
+        let loose = cat(&[moov(false), fragment(1, 0, &[5], 0x10)]);
+        assert!(is_fragmented(&mut std::io::Cursor::new(&loose)).unwrap());
+        // A truncated header is an answer too, not an error.
+        assert!(!is_fragmented(&mut std::io::Cursor::new(&file[..12])).unwrap());
     }
 
     #[test]
@@ -1081,9 +1121,9 @@ mod tests {
             fragment(1, 10_000, &[5, 3, 4], 0x10),
             fragment(2, 10_120, &[6, 2], 0x20),
         ]);
-        assert!(looks_fragmented(&file));
+        assert!(is_fragmented(&mut std::io::Cursor::new(&file)).unwrap());
         let out = defragment(&file).unwrap().expect("fragmented input");
-        assert!(!looks_fragmented(&out));
+        assert!(!is_fragmented(&mut std::io::Cursor::new(&out)).unwrap());
         assert!(defragment(&out).unwrap().is_none());
 
         let top = parse_boxes(&out, 0).unwrap();

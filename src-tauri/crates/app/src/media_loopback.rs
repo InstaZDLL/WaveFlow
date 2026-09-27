@@ -152,9 +152,6 @@ async fn serve(State(ctx): State<Ctx>, RawQuery(query): RawQuery, headers: Heade
     (status, out, body).into_response()
 }
 
-/// How much of a file is read to tell whether it is fragmented.
-const HEAD_BYTES: u64 = 1024 * 1024;
-
 /// Where converted copies of clips WaveFlow does not own go, under the
 /// cache root, and how large that folder may grow (oldest evicted first).
 const COPIES_DIR: &str = "linux_video";
@@ -272,7 +269,6 @@ fn copy_path(cache_root: &Path, path: &Path, (len, mtime): Stamp) -> PathBuf {
 /// `Ok(Some(path to serve))` when the file is fragmented and has been
 /// converted — into `copy` when given, in place otherwise.
 fn convert(path: &Path, copy: Option<&Path>) -> std::io::Result<Option<PathBuf>> {
-    use std::io::Read;
     if let Some(copy) = copy.filter(|c| c.is_file()) {
         // Made on an earlier launch; the bump keeps it off the eviction end.
         let _ = std::fs::OpenOptions::new()
@@ -281,11 +277,8 @@ fn convert(path: &Path, copy: Option<&Path>) -> std::io::Result<Option<PathBuf>>
             .and_then(|f| f.set_modified(SystemTime::now()));
         return Ok(Some(copy.to_path_buf()));
     }
-    let mut head = Vec::new();
-    std::fs::File::open(path)?
-        .take(HEAD_BYTES)
-        .read_to_end(&mut head)?;
-    if !mp4_defrag::looks_fragmented(&head) {
+    // Headers only: an ordinary clip, however large, is never read whole.
+    if !mp4_defrag::is_fragmented(&mut std::io::BufReader::new(std::fs::File::open(path)?))? {
         return Ok(None);
     }
     let input = std::fs::read(path)?;
