@@ -142,7 +142,10 @@ jobs:
             squashfs-tools \
             zsync \
             libasound2-dev \
-            cmake
+            cmake \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            gstreamer1.0-libav
 
       # libopus is built from source by `opusic-sys`, so cmake has to
       # exist before `tauri build`. The Linux job installs it with the
