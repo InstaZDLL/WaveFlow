@@ -281,7 +281,7 @@ We build on Ubuntu. On any host with a newer Mesa — Fedora 44 ships Mesa 26 an
 Could not create default EGL display: EGL_BAD_PARAMETER. Aborting...
 ```
 
-The Rust side is unaffected: the app starts, creates its profile, opens its audio device, and shows an empty window. That asymmetry is why this was misread for months as a WebKitGTK 2.52 incompatibility, with users told to install a native package instead. It is not a WebKit problem, and it is not unfixable — [`scripts/fix-appimage.sh`](../scripts/fix-appimage.sh) removes the one file, repacks the squashfs with the compressor the bundler used, verifies the result re-extracts, and re-signs when an updater `.sig` is present.
+The Rust side is unaffected: the app starts, creates its profile, opens its audio device, and shows an empty window. That asymmetry is why this was misread for months as a WebKitGTK 2.52 incompatibility, with users told to install a native package instead. It is not a WebKit problem, and it is not unfixable — [`scripts/fix-appimage.sh`](../scripts/fix-appimage.sh) removes the file (and `libva`, see [the GStreamer section](#the-appimage-carries-its-own-gstreamer)), repacks the squashfs with the compressor the bundler used, verifies the result re-extracts, and re-signs when an updater `.sig` is present.
 
 Both `release.yml` and `test-appimage.yml` run it right after `tauri build`. **If you ever restructure the Linux build, that step has to survive** — dropping it silently produces a release that installs fine and never opens, on exactly the distributions least likely to be in your test matrix. The script no-ops (and says so) if a future Tauri stops bundling the library, so it's safe to leave in place.
 
@@ -307,6 +307,8 @@ The web process then waits on a pipeline that was never built, and the whole int
 | `gstreamer1.0-libav`        | the H.264 and HEVC decoders the clips and covers are encoded with                                                                                                     |
 
 Two more pieces make video actually play, and neither is packaging. The bundled GStreamer would otherwise share the host's registry cache (`~/.cache/gstreamer-1.0/registry.<arch>.bin`) with a different GStreamer version, so `preflight_appimage_gstreamer` in [`lib.rs`](../src-tauri/crates/app/src/lib.rs) points `GST_REGISTRY_1_0` at a file of its own when `APPIMAGE` is set. And WebKitGTK cannot play the asset protocol at all, on any Linux package: local clips go through MediaSource or a loopback HTTP server — see [ui.md](features/ui.md#track-canvas).
+
+**`libva` is not bundled.** `fix-appimage.sh` removes it after the build, like `libwayland-client`: it loads the host's VA driver at run time, and the runner's older copy failed against Fedora's `iHD` driver (`vaInitialize: unknown libva error`), so every video fell back to software decoding — ~65 % of a core for a 1080p cover on an i7-1165G7. WebKit itself links `libdrm`, not `libva`, so the app starts either way; a host without `libva` only loses the decoders that need it.
 
 Leave `gstreamer1.0-plugins-ugly` out: Tauri's own guidance warns that its licences make it hard to redistribute. Tauri also documents the flag as fully supported only on Ubuntu build systems, which is what the release runs on — a local AppImage built on another distribution is not a valid test of it. Use `test-appimage.yml`.
 
