@@ -45,9 +45,12 @@ export function usePlayableVideoSrc(
 
   useEffect(() => {
     if (!viaBlob) return;
+    // Aborting stops the read of an obsolete clip, which can be tens of
+    // megabytes for a 4K motion cover; the flag covers the steps after it.
+    const controller = new AbortController();
     let cancelled = false;
     let objectUrl: string | null = null;
-    fetch(direct)
+    fetch(direct, { signal: controller.signal })
       .then((response) => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return response.blob();
@@ -68,6 +71,7 @@ export function usePlayableVideoSrc(
       });
     return () => {
       cancelled = true;
+      controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [direct, viaBlob]);
