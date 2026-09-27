@@ -136,3 +136,63 @@ export function usePlayableVideo(
 
   return { failed };
 }
+
+/** Whether looping clips need `useLoopFrameHold` (WebKitGTK only). */
+export const HOLDS_LOOP_FRAME = LINUX;
+
+/** How close to the end the last frame starts being kept, in seconds. */
+const HOLD_WINDOW = 0.6;
+
+/**
+ * Keep the last frame on screen while a looping `<video>` jumps back to
+ * its start. WebKitGTK clears the picture during that seek and fetches the
+ * start of the file again, so for a moment the element is transparent and
+ * the static cover underneath flashes through. Near the end, the current
+ * frame is copied into `canvasRef` (drawn under the video, over the
+ * cover); the seek shows it, and the first frame after it hides it again.
+ * Does nothing where the webview keeps the frame itself.
+ */
+export function useLoopFrameHold(
+  videoRef: RefObject<HTMLVideoElement | null>,
+  canvasRef: RefObject<HTMLCanvasElement | null>,
+): void {
+  useEffect(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!LINUX || !video || !canvas) return;
+    let holding = false;
+
+    const capture = () => {
+      if (!video.videoWidth || !video.videoHeight) return;
+      if (canvas.width !== video.videoWidth) canvas.width = video.videoWidth;
+      if (canvas.height !== video.videoHeight) {
+        canvas.height = video.videoHeight;
+      }
+      canvas.getContext("2d")?.drawImage(video, 0, 0);
+    };
+    const onTimeUpdate = () => {
+      const { currentTime, duration } = video;
+      if (holding && currentTime > 0 && currentTime < HOLD_WINDOW) {
+        holding = false;
+        canvas.style.opacity = "0";
+      } else if (
+        Number.isFinite(duration) &&
+        duration - currentTime < HOLD_WINDOW
+      ) {
+        capture();
+      }
+    };
+    const onSeeking = () => {
+      if (!video.loop || canvas.width === 0) return;
+      holding = true;
+      canvas.style.opacity = "1";
+    };
+
+    video.addEventListener("timeupdate", onTimeUpdate);
+    video.addEventListener("seeking", onSeeking);
+    return () => {
+      video.removeEventListener("timeupdate", onTimeUpdate);
+      video.removeEventListener("seeking", onSeeking);
+    };
+  }, [videoRef, canvasRef]);
+}

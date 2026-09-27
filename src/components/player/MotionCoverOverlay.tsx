@@ -1,7 +1,11 @@
 import { useRef, useState } from "react";
 
 import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
-import { usePlayableVideo } from "../../hooks/usePlayableVideo";
+import {
+  HOLDS_LOOP_FRAME,
+  usePlayableVideo,
+  useLoopFrameHold,
+} from "../../hooks/usePlayableVideo";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 
 const ROUND: Record<"md" | "lg" | "xl" | "2xl", string> = {
@@ -72,28 +76,40 @@ function MotionVideo({
   // protocol. `MotionArtwork.squareUrl` is one or the other.
   const ref = useRef<HTMLVideoElement>(null);
   const video = usePlayableVideo(ref, url, /^https?:\/\//i.test(url));
+  const holdRef = useRef<HTMLCanvasElement>(null);
+  useLoopFrameHold(ref, holdRef);
 
   if (failed || video.failed) return null;
 
   // No `src` attribute: `usePlayableVideo` sets it, and on Linux it may be
   // a MediaSource rather than a URL.
   return (
-    <video
-      ref={ref}
-      autoPlay
-      loop
-      muted
-      playsInline
-      aria-hidden="true"
-      onCanPlay={() => setReady(true)}
-      onError={() => {
-        // The static cover shows instead, which reads as "nothing was
-        // set": say why, since the codec (HEVC on WebView2) or a
-        // missing file is otherwise invisible (#766).
-        console.warn("[MotionCoverOverlay] motion cover failed to load", url);
-        setFailed(true);
-      }}
-      className={`pointer-events-none absolute inset-0 w-full h-full object-cover ${ROUND[rounded]} transition-opacity duration-700 ${ready ? "opacity-100" : "opacity-0"} ${className ?? ""}`}
-    />
+    <>
+      {HOLDS_LOOP_FRAME && (
+        <canvas
+          ref={holdRef}
+          aria-hidden="true"
+          style={{ opacity: 0 }}
+          className={`pointer-events-none absolute inset-0 w-full h-full object-cover ${ROUND[rounded]} ${className ?? ""}`}
+        />
+      )}
+      <video
+        ref={ref}
+        autoPlay
+        loop
+        muted
+        playsInline
+        aria-hidden="true"
+        onCanPlay={() => setReady(true)}
+        onError={() => {
+          // The static cover shows instead, which reads as "nothing was
+          // set": say why, since the codec (HEVC on WebView2) or a
+          // missing file is otherwise invisible (#766).
+          console.warn("[MotionCoverOverlay] motion cover failed to load", url);
+          setFailed(true);
+        }}
+        className={`pointer-events-none absolute inset-0 w-full h-full object-cover ${ROUND[rounded]} transition-opacity duration-700 ${ready ? "opacity-100" : "opacity-0"} ${className ?? ""}`}
+      />
+    </>
   );
 }

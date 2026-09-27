@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 
-import { usePlayableVideo } from "../../hooks/usePlayableVideo";
+import {
+  HOLDS_LOOP_FRAME,
+  usePlayableVideo,
+  useLoopFrameHold,
+} from "../../hooks/usePlayableVideo";
 import { isRemoteCanvasUrl } from "../../lib/tauri/canvas";
 
 const ROUND: Record<"md" | "lg" | "xl" | "2xl", string> = {
@@ -89,6 +93,8 @@ function CanvasVideo({
   // MotionCoverOverlay.
   const ref = useRef<HTMLVideoElement>(null);
   const video = usePlayableVideo(ref, path, isRemoteCanvasUrl(path));
+  const holdRef = useRef<HTMLCanvasElement>(null);
+  useLoopFrameHold(ref, holdRef);
 
   // A local clip that could not be set up never reaches `onError`, so report
   // the missing aspect from here.
@@ -101,26 +107,36 @@ function CanvasVideo({
   // No `src` attribute: `usePlayableVideo` sets it, and on Linux it may be
   // a MediaSource rather than a URL.
   return (
-    <video
-      ref={ref}
-      autoPlay
-      loop
-      muted
-      playsInline
-      aria-hidden="true"
-      onCanPlay={(e) => {
-        setReady(true);
-        const el = e.currentTarget;
-        onAspect?.(
-          path,
-          el.videoHeight > 0 ? el.videoWidth / el.videoHeight : null,
-        );
-      }}
-      onError={() => {
-        setFailed(true);
-        onAspect?.(path, null);
-      }}
-      className={`pointer-events-none absolute inset-0 w-full h-full object-cover ${ROUND[rounded]} transition-opacity duration-700 ${ready ? "opacity-100" : "opacity-0"} ${className ?? ""}`}
-    />
+    <>
+      {HOLDS_LOOP_FRAME && (
+        <canvas
+          ref={holdRef}
+          aria-hidden="true"
+          style={{ opacity: 0 }}
+          className={`pointer-events-none absolute inset-0 w-full h-full object-cover ${ROUND[rounded]} ${className ?? ""}`}
+        />
+      )}
+      <video
+        ref={ref}
+        autoPlay
+        loop
+        muted
+        playsInline
+        aria-hidden="true"
+        onCanPlay={(e) => {
+          setReady(true);
+          const el = e.currentTarget;
+          onAspect?.(
+            path,
+            el.videoHeight > 0 ? el.videoWidth / el.videoHeight : null,
+          );
+        }}
+        onError={() => {
+          setFailed(true);
+          onAspect?.(path, null);
+        }}
+        className={`pointer-events-none absolute inset-0 w-full h-full object-cover ${ROUND[rounded]} transition-opacity duration-700 ${ready ? "opacity-100" : "opacity-0"} ${className ?? ""}`}
+      />
+    </>
   );
 }
