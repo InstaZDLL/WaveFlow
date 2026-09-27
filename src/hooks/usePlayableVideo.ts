@@ -1,7 +1,7 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { type RefObject, useEffect, useState } from "react";
 
-import { isFragmentedMp4, mp4VideoMime } from "../lib/mp4Boxes";
+import { hasSoundTrack, isFragmentedMp4, mp4VideoMime } from "../lib/mp4Boxes";
 import { getLocalVideoBaseUrl } from "../lib/tauri/canvas";
 
 /**
@@ -96,7 +96,10 @@ export function usePlayableVideo(
       const head = new Uint8Array(
         await readBytes(asset, controller.signal, `bytes=0-${HEAD_BYTES - 1}`),
       );
-      const mime = isFragmentedMp4(head) ? mp4VideoMime(head) : null;
+      const mime =
+        isFragmentedMp4(head) && !hasSoundTrack(head)
+          ? mp4VideoMime(head)
+          : null;
       if (!mime || !MediaSource.isTypeSupported(mime)) {
         const base = await loopbackBaseUrl();
         if (!base) throw new Error("no loopback server");

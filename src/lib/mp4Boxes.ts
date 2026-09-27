@@ -77,6 +77,23 @@ export function isFragmentedMp4(head: Uint8Array): boolean {
 }
 
 /**
+ * Whether the file carries a sound track (`hdlr` of type `soun`). The MIME
+ * type below names the video codec only, and MediaSource rejects an init
+ * segment with a track its type did not declare, so such a file is not
+ * handed to it.
+ */
+export function hasSoundTrack(head: Uint8Array): boolean {
+  const moov = moovOf(head) ?? head;
+  for (let at = find(moov, "hdlr"); at >= 0; at = find(moov, "hdlr", at + 4)) {
+    // hdlr: type(4) version+flags(4) pre_defined(4) handler_type(4)
+    if (at + 16 <= moov.length && fourcc(moov, at + 12) === "soun") {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * `video/mp4; codecs="…"` for the video track, or `null` when the file's
  * codec is neither H.264 nor HEVC. The HEVC string follows ISO/IEC
  * 14496-15 Annex E — the same `hvc1.2.4.L150.B0` WebKit derives itself.
