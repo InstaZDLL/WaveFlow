@@ -172,7 +172,9 @@ export function useLoopFrameHold(
     };
     const onTimeUpdate = () => {
       const { currentTime, duration } = video;
-      if (holding && currentTime > 0 && currentTime < HOLD_WINDOW) {
+      // Back in the first half after the jump: the video has a frame again,
+      // however late this event came.
+      if (holding && currentTime > 0 && currentTime < duration / 2) {
         holding = false;
         canvas.style.opacity = "0";
       } else if (
