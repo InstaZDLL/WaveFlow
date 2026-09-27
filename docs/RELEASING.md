@@ -305,7 +305,7 @@ The web process then waits on a pipeline that was never built, and the whole int
 | `gstreamer1.0-plugins-good` | `qtdemux` (the `.mp4` container), `autoaudiosink`                  |
 | `gstreamer1.0-libav`        | the H.264 and HEVC decoders the clips and covers are encoded with  |
 
-Two more pieces make video actually play, and neither is packaging. The bundled GStreamer would otherwise share the host's registry cache (`~/.cache/gstreamer-1.0/registry.<arch>.bin`) with a different GStreamer version, so `preflight_appimage_gstreamer` in [`lib.rs`](../src-tauri/crates/app/src/lib.rs) points `GST_REGISTRY_1_0` at a file of its own when `APPIMAGE` is set. And WebKitGTK cannot play the asset protocol at all, on any Linux package: local clips go through a loopback HTTP server — see [ui.md](features/ui.md#track-canvas).
+Two more pieces make video actually play, and neither is packaging. The bundled GStreamer would otherwise share the host's registry cache (`~/.cache/gstreamer-1.0/registry.<arch>.bin`) with a different GStreamer version, so `preflight_appimage_gstreamer` in [`lib.rs`](../src-tauri/crates/app/src/lib.rs) points `GST_REGISTRY_1_0` at a file of its own when `APPIMAGE` is set. And WebKitGTK cannot play the asset protocol at all, on any Linux package: local clips go through MediaSource or a loopback HTTP server — see [ui.md](features/ui.md#track-canvas).
 
 Leave `gstreamer1.0-plugins-ugly` out: Tauri's own guidance warns that its licences make it hard to redistribute. Tauri also documents the flag as fully supported only on Ubuntu build systems, which is what the release runs on — a local AppImage built on another distribution is not a valid test of it. Use `test-appimage.yml`.
 

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
-import { usePlayableVideoSrc } from "../../hooks/usePlayableVideoSrc";
+import { usePlayableVideo } from "../../hooks/usePlayableVideo";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 
 const ROUND: Record<"md" | "lg" | "xl" | "2xl", string> = {
@@ -70,14 +70,16 @@ function MotionVideo({
   // A remote mp4 (cache off) loads by URL as-is; a locally-cached mp4 (cache
   // on) is an absolute file path the webview can only reach through the asset
   // protocol. `MotionArtwork.squareUrl` is one or the other.
-  const video = usePlayableVideoSrc(url, /^https?:\/\//i.test(url));
+  const ref = useRef<HTMLVideoElement>(null);
+  const video = usePlayableVideo(ref, url, /^https?:\/\//i.test(url));
 
-  if (failed || video.failed || !video.src) return null;
-  const src = video.src;
+  if (failed || video.failed) return null;
 
+  // No `src` attribute: `usePlayableVideo` sets it, and on Linux it may be
+  // a MediaSource rather than a URL.
   return (
     <video
-      src={src}
+      ref={ref}
       autoPlay
       loop
       muted
@@ -88,7 +90,7 @@ function MotionVideo({
         // The static cover shows instead, which reads as "nothing was
         // set": say why, since the codec (HEVC on WebView2) or a
         // missing file is otherwise invisible (#766).
-        console.warn("[MotionCoverOverlay] motion cover failed to load", src);
+        console.warn("[MotionCoverOverlay] motion cover failed to load", url);
         setFailed(true);
       }}
       className={`pointer-events-none absolute inset-0 w-full h-full object-cover ${ROUND[rounded]} transition-opacity duration-700 ${ready ? "opacity-100" : "opacity-0"} ${className ?? ""}`}

@@ -2,12 +2,13 @@
 //!
 //! WebKitGTK plays `<video>` through GStreamer, and GStreamer has no
 //! source for Tauri's asset protocol: every local Canvas clip and cached
-//! motion cover was refused ("no URI handler implemented for asset"). A
-//! `blob:` URL gets past that for an ordinary MP4 but corrupts a
-//! fragmented one — the form Apple's motion covers come in. WebKit's HTTP
-//! source handles both, so local clips are served from `127.0.0.1`
-//! instead: an ephemeral port, a token minted per launch, and only video
-//! files the asset scope already lets the webview read. Windows and macOS
+//! motion cover was refused ("no URI handler implemented for asset").
+//! WebKit's HTTP source plays an ordinary MP4, so those are served from
+//! `127.0.0.1` instead: an ephemeral port, a token minted per launch, and
+//! only video files the asset scope already lets the webview read. A
+//! **fragmented** MP4 (Apple's motion covers) stalls over HTTP after a
+//! couple of seconds, so the frontend hands those to MediaSource and never
+//! asks this server for them (`usePlayableVideo.ts`). Windows and macOS
 //! play the asset URL directly and never start this.
 //!
 //! Started on first use and kept for the life of the process. A failure to

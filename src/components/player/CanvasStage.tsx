@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { usePlayableVideoSrc } from "../../hooks/usePlayableVideoSrc";
+import { usePlayableVideo } from "../../hooks/usePlayableVideo";
 import { isRemoteCanvasUrl } from "../../lib/tauri/canvas";
 
 const ROUND: Record<"md" | "lg" | "xl" | "2xl", string> = {
@@ -87,20 +87,22 @@ function CanvasVideo({
   // asset protocol; a plugin's (issue #473) and a server track's ticketed one
   // are already URLs the `<video>` loads directly — same split as
   // MotionCoverOverlay.
-  const video = usePlayableVideoSrc(path, isRemoteCanvasUrl(path));
+  const ref = useRef<HTMLVideoElement>(null);
+  const video = usePlayableVideo(ref, path, isRemoteCanvasUrl(path));
 
-  // A local clip that could not be read never reaches `onError`, so report
+  // A local clip that could not be set up never reaches `onError`, so report
   // the missing aspect from here.
   useEffect(() => {
     if (video.failed) onAspect?.(path, null);
   }, [video.failed, onAspect, path]);
 
-  if (failed || video.failed || !video.src) return null;
-  const src = video.src;
+  if (failed || video.failed) return null;
 
+  // No `src` attribute: `usePlayableVideo` sets it, and on Linux it may be
+  // a MediaSource rather than a URL.
   return (
     <video
-      src={src}
+      ref={ref}
       autoPlay
       loop
       muted

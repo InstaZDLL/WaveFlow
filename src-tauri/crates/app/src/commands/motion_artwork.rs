@@ -39,8 +39,9 @@ const PLUGIN_TIMEOUT: Duration = Duration::from_secs(20);
 pub struct MotionArtwork {
     /// Square animated cover — a directly-playable `.mp4`, not always a
     /// progressive one: Apple's renditions are fragmented (`moof`/`mdat`),
-    /// which is why Linux plays a cached copy over loopback HTTP rather
-    /// than a `blob:` URL ([`crate::media_loopback`]). The host renders it
+    /// which is why Linux plays a cached copy through MediaSource
+    /// (`usePlayableVideo.ts`) — over HTTP WebKitGTK stalls on them after a
+    /// couple of seconds, and an uncached one does. The host renders it
     /// in a native `<video>` with no HLS.js, so a plugin with an HLS source
     /// resolves it to an mp4 rendition before returning (a bare `.m3u8`
     /// won't play on WebView2).
