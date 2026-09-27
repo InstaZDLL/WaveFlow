@@ -5,4 +5,5 @@
 
 pub mod metadata;
 pub mod motion_cache;
+pub mod mp4_defrag;
 pub mod thumbnails;
