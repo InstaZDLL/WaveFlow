@@ -1353,7 +1353,8 @@
     },
     "lyrics": {
       "empty": "Geen songtekst voor dit nummer"
-    }
+    },
+    "dragHandle": "Slepen om te verplaatsen · Dubbelklik om formaat en positie te herstellen"
   },
   "window": {
     "minimize": "Minimaliseren",
@@ -2410,6 +2411,10 @@
       "reset": "Herstellen",
       "done": "Hersteld",
       "error": "Herstellen mislukt. Probeer het opnieuw."
+    },
+    "miniPlayerBounds": {
+      "title": "Positie van de mini-speler",
+      "subtitle": "Zet de mini-speler terug op zijn oorspronkelijke formaat, rechtsonder in het scherm. Werkt meteen; dubbelklikken op de greep doet hetzelfde."
     },
     "windowChrome": {
       "title": "Vensterrand",

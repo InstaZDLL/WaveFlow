@@ -1353,7 +1353,8 @@
     },
     "lyrics": {
       "empty": "Bu parça için şarkı sözü yok"
-    }
+    },
+    "dragHandle": "Taşımak için sürükle · Boyutu ve konumu geri yüklemek için çift tıkla"
   },
   "window": {
     "minimize": "Simge durumuna küçült",
@@ -2410,6 +2411,10 @@
       "reset": "Sıfırla",
       "done": "Sıfırlandı",
       "error": "Sıfırlama başarısız. Lütfen tekrar dene."
+    },
+    "miniPlayerBounds": {
+      "title": "Mini oynatıcı konumu",
+      "subtitle": "Mini oynatıcıyı ekranın sağ alt köşesinde, özgün boyutuna döndür. Hemen uygulanır; tutamacına çift tıklamak da aynı işi yapar."
     },
     "windowChrome": {
       "title": "Pencere çerçevesi",

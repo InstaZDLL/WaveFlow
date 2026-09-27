@@ -182,6 +182,7 @@ import { MotionCoversCard } from "./settings/MotionCoversCard";
 import { ArtistHeroCard } from "./settings/ArtistHeroCard";
 import { ScrollTitlesCard } from "./settings/ScrollTitlesCard";
 import { WindowBoundsCard } from "./settings/WindowBoundsCard";
+import { MiniPlayerBoundsCard } from "./settings/MiniPlayerBoundsCard";
 import { WindowChromeCard } from "./settings/WindowChromeCard";
 import { LyricsDestinationCard } from "./settings/LyricsDestinationCard";
 import { UpdateChannelCard } from "./settings/UpdateChannelCard";
@@ -2975,6 +2976,7 @@ export function SettingsView({
                 <HiResBadgeCard />
                 <ScrollTitlesCard />
                 <WindowBoundsCard />
+                <MiniPlayerBoundsCard />
                 <WindowChromeCard />
               </SettingsGroup>
               <SettingsGroup

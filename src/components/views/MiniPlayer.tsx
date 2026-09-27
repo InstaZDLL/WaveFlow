@@ -63,6 +63,7 @@ import { resolveArtwork } from "../../lib/tauri/artwork";
 import { dominantColor, darken, rgb } from "../../lib/dominantColor";
 import { formatDuration } from "../../lib/tauri/track";
 import { setMiniPlayerBounds } from "../../lib/tauri/preferences";
+import { resetMiniPlayerBounds } from "../../lib/miniPlayer";
 import {
   playerGetQueue,
   playerJumpToIndex,
@@ -533,15 +534,24 @@ export function MiniPlayer() {
           <Pin size={12} className={pinned ? "fill-current" : ""} />
         </button>
         <div
-          data-tauri-drag-region
+          title={t("miniPlayer.dragHandle")}
           onMouseDown={(e) => {
-            // Belt-and-suspenders: data-tauri-drag-region only fires
-            // when the EXACT mousedown target carries the attribute,
-            // and pointer-events-none on children isn't enough on
-            // every platform (notably Windows, where it can race
-            // the OS hit-test). Calling startDragging explicitly
-            // makes the gesture deterministic regardless.
+            // The drag is started here rather than through
+            // data-tauri-drag-region: that attribute only fires when
+            // the EXACT mousedown target carries it, and
+            // pointer-events-none on children isn't enough on every
+            // platform (notably Windows, where it can race the OS
+            // hit-test). It would also turn a double-click into a
+            // maximise, which on a 280-pixel widget only ever meant a
+            // player blown up to full screen; a double-click puts it
+            // back to its default size and corner instead.
             if (e.button !== 0) return;
+            if (e.detail === 2) {
+              resetMiniPlayerBounds().catch((err) =>
+                console.error("[MiniPlayer] reset bounds failed", err),
+              );
+              return;
+            }
             getCurrentWindow()
               .startDragging()
               .catch((err) =>

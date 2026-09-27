@@ -88,6 +88,15 @@ export function setMiniPlayerBounds(bounds: MiniPlayerBounds): Promise<void> {
   return invoke<void>("set_mini_player_bounds", { bounds });
 }
 
+/**
+ * Forget the persisted mini-player size + position, so it next opens in
+ * the default corner. `resetMiniPlayerBounds` wraps it with the move of an
+ * open window.
+ */
+export function clearMiniPlayerBounds(): Promise<void> {
+  return invoke<void>("clear_mini_player_bounds");
+}
+
 export function getMainWindowBounds(): Promise<MiniPlayerBounds | null> {
   return invoke<MiniPlayerBounds | null>("get_main_window_bounds");
 }

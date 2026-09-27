@@ -1,3 +1,4 @@
+import { LogicalPosition, LogicalSize } from "@tauri-apps/api/dpi";
 import {
   Window as TauriWindow,
   availableMonitors,
@@ -5,6 +6,7 @@ import {
 } from "@tauri-apps/api/window";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import {
+  clearMiniPlayerBounds,
   getMiniPlayerBounds,
   type MiniPlayerBounds,
 } from "./tauri/preferences";
@@ -54,6 +56,55 @@ async function boundsAreVisible(bounds: MiniPlayerBounds): Promise<boolean> {
     console.warn("[miniPlayer] availableMonitors query failed", err);
   }
   return false;
+}
+
+/**
+ * Where a `width` × `height` mini-player goes by default: the
+ * bottom-right corner of the current monitor (Spotify-style), or `null`
+ * when the monitor cannot be read. `monitor.position` is the logical
+ * origin of the monitor in the virtual desktop space — non-zero on
+ * secondary monitors and negative when a monitor is placed to the left of
+ * (or above) the primary — so it is added to land on the right monitor
+ * instead of snapping to the primary's bottom-right corner.
+ */
+async function defaultCorner(
+  width: number,
+  height: number,
+): Promise<{ x: number; y: number } | null> {
+  try {
+    const monitor = await currentMonitor();
+    if (!monitor) return null;
+    const scale = monitor.scaleFactor || 1;
+    const logicalX = monitor.position.x / scale;
+    const logicalY = monitor.position.y / scale;
+    const logicalW = monitor.size.width / scale;
+    const logicalH = monitor.size.height / scale;
+    return {
+      x: Math.round(logicalX + logicalW - width - EDGE_MARGIN),
+      y: Math.round(logicalY + logicalH - height - EDGE_MARGIN),
+    };
+  } catch (err) {
+    console.warn("[miniPlayer] monitor query failed", err);
+    return null;
+  }
+}
+
+/**
+ * Put the mini-player back to its default size, in the default corner —
+ * from the Settings action or a double-click on its drag handle. The saved
+ * bounds are forgotten, so a closed mini-player opens there next time; an
+ * open or hidden one is moved at once (and un-maximised first), after
+ * which its own move listener saves the default like any other move. The
+ * corner is taken from the monitor of the window calling this.
+ */
+export async function resetMiniPlayerBounds(): Promise<void> {
+  await clearMiniPlayerBounds();
+  const win = await TauriWindow.getByLabel(MINI_LABEL);
+  if (!win) return;
+  if (await win.isMaximized()) await win.unmaximize();
+  await win.setSize(new LogicalSize(DEFAULT_WIDTH, DEFAULT_HEIGHT));
+  const corner = await defaultCorner(DEFAULT_WIDTH, DEFAULT_HEIGHT);
+  if (corner) await win.setPosition(new LogicalPosition(corner.x, corner.y));
 }
 
 /**
@@ -108,31 +159,11 @@ export async function openMiniPlayer(): Promise<void> {
       console.warn("[miniPlayer] restore bounds failed", err);
     }
 
-    // 2) No usable saved position → anchor to the bottom-right of the
-    //    current monitor (Spotify-style default). `monitor.position`
-    //    is the logical origin of the monitor in the virtual desktop
-    //    space — non-zero on secondary monitors and negative when a
-    //    monitor is placed to the left of (or above) the primary — so
-    //    we must add it to land on the right monitor instead of
-    //    snapping to the primary's bottom-right corner.
+    // 2) No usable saved position → the default corner.
     if (x == null || y == null) {
-      try {
-        const monitor = await currentMonitor();
-        if (monitor) {
-          const scale = monitor.scaleFactor || 1;
-          const logicalX = monitor.position.x / scale;
-          const logicalY = monitor.position.y / scale;
-          const logicalW = monitor.size.width / scale;
-          const logicalH = monitor.size.height / scale;
-          x = Math.round(logicalX + logicalW - width - EDGE_MARGIN);
-          y = Math.round(logicalY + logicalH - height - EDGE_MARGIN);
-        }
-      } catch (err) {
-        console.warn(
-          "[miniPlayer] monitor query failed, falling back to centered",
-          err,
-        );
-      }
+      const corner = await defaultCorner(width, height);
+      x = corner?.x;
+      y = corner?.y;
     }
 
     const win = new WebviewWindow(MINI_LABEL, {

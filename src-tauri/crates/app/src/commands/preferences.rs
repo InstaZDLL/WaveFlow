@@ -285,6 +285,19 @@ pub async fn clear_main_window_bounds(state: tauri::State<'_, AppState>) -> AppR
     Ok(())
 }
 
+/// Forget the persisted mini-player size + position, so the next open
+/// anchors it in the default corner again. The frontend's reset also moves
+/// a mini-player that is already open (`resetMiniPlayerBounds`), whose own
+/// move listener then saves the default like any other move.
+#[tauri::command]
+pub async fn clear_mini_player_bounds(state: tauri::State<'_, AppState>) -> AppResult<()> {
+    sqlx::query("DELETE FROM app_setting WHERE key = ?")
+        .bind(KEY_MINI_PLAYER_BOUNDS)
+        .execute(&state.app_db)
+        .await?;
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn get_mini_player_bounds(
     state: tauri::State<'_, AppState>,
