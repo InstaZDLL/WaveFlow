@@ -53,7 +53,7 @@ interface ImmersiveViewProps {
  *    a Mic2 button flipping to a lyrics-only fullscreen — the pre-#328
  *    behaviour, deliberately left intact (no panel, no queue).
  *
- * Native fullscreen (`immersive.use_native_fullscreen`, default ON)
+ * Native fullscreen (`immersive.use_native_fullscreen`, default OFF)
  * drives the OS window into real fullscreen on open and restores the
  * prior window state on close. Escape closes the view; exiting OS
  * fullscreen another way (F11) is deliberately decoupled — it leaves the

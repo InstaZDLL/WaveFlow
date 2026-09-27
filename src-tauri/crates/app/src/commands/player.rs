@@ -872,10 +872,10 @@ pub(crate) async fn restore_profile_audio_settings(pool: &sqlx::SqlitePool, engi
         .shared()
         .dynamic_crossfade_enabled
         .store(dynamic_crossfade, std::sync::atomic::Ordering::Release);
-    // Visualizer toggle. Default OFF — the FFT cost is tiny
-    // but the cpal-side telemetry isn't free, and most users
-    // won't have the panel open.
-    let visualizer = read_bool_setting(pool, "ui.visualizer", false).await;
+    // Visualizer toggle. Default ON so the spectrum is found without a
+    // trip to Settings; the analysis runs on the decoder thread and costs
+    // a few FFTs a second, and turning it off short-circuits it entirely.
+    let visualizer = read_bool_setting(pool, "ui.visualizer", true).await;
     engine
         .shared()
         .visualizer_enabled
