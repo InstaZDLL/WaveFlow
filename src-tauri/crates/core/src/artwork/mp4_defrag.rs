@@ -86,8 +86,12 @@ pub fn defragment(input: &[u8]) -> Result<Option<Vec<u8>>> {
     }
 
     let mut tracks = read_tracks(&moov_children)?;
+    let mut budget = Budget {
+        samples: input.len(),
+        bytes: input.len(),
+    };
     for moof in top.iter().filter(|b| &b.kind == b"moof") {
-        read_moof(input, moof, &mut tracks)?;
+        read_moof(input, moof, &mut tracks, &mut budget)?;
     }
     if tracks.iter().all(|t| t.samples.is_empty()) {
         return Err(DefragError::Malformed("no samples in any fragment"));
@@ -177,6 +181,16 @@ impl<'a> Cursor<'a> {
     fn rest(&self) -> &'a [u8] {
         &self.data[self.pos..]
     }
+}
+
+/// What the runs of the whole file may add up to. A legitimate file
+/// indexes each byte of its media once, so its samples number fewer than
+/// its bytes and their data fits in it. Runs pointed at the same bytes
+/// over and over would each pass a per-run check, while their total
+/// grew the sample table and the output far beyond the input.
+struct Budget {
+    samples: usize,
+    bytes: usize,
 }
 
 #[derive(Clone, Copy, Default)]
@@ -293,7 +307,7 @@ fn first_edit_start(edts: &[BoxRef]) -> Result<Option<i64>> {
     Ok(None)
 }
 
-fn read_moof(input: &[u8], moof: &BoxRef, tracks: &mut [Track]) -> Result<()> {
+fn read_moof(input: &[u8], moof: &BoxRef, tracks: &mut [Track], budget: &mut Budget) -> Result<()> {
     // Without an explicit base, a traf's data follows the previous one's.
     let mut previous_end = moof.start;
     for (index, traf) in children(moof)?
@@ -361,7 +375,7 @@ fn read_moof(input: &[u8], moof: &BoxRef, tracks: &mut [Track]) -> Result<()> {
 
         let mut data_pos = base;
         for trun in kids.iter().filter(|b| &b.kind == b"trun") {
-            data_pos = read_trun(input, trun, base, data_pos, d, track)?;
+            data_pos = read_trun(input, trun, base, data_pos, d, track, budget)?;
         }
         previous_end = data_pos;
     }
@@ -376,6 +390,7 @@ fn read_trun(
     data_pos: usize,
     d: Defaults,
     track: &mut Track,
+    budget: &mut Budget,
 ) -> Result<usize> {
     let mut c = Cursor::new(trun.body);
     let head = c.u32()?;
@@ -394,18 +409,19 @@ fn read_trun(
         None
     };
     // A count the file cannot back is rejected before anything is reserved
-    // for it: each per-sample field takes 4 bytes of this box, and each
-    // sample at least a byte of the file (a size of zero is refused).
+    // for it: each per-sample field takes 4 bytes of this box, and the
+    // samples of all runs together are bounded by the file (see [`Budget`]).
     let per_sample = [0x100, 0x200, 0x400, 0x800]
         .iter()
         .filter(|&&f| flags & f != 0)
         .count()
         * 4;
     let fits_box = per_sample == 0 || c.rest().len() / per_sample >= count as usize;
-    let fits_file = input.len().saturating_sub(start) >= count as usize;
+    let fits_file = budget.samples >= count as usize;
     if !fits_box || !fits_file || (flags & 0x200 == 0 && d.size == 0 && count > 0) {
         return Err(DefragError::Malformed("trun sample count"));
     }
+    budget.samples -= count as usize;
     track.samples.reserve(count as usize);
 
     let mut len = 0usize;
@@ -451,6 +467,10 @@ fn read_trun(
         .ok_or(DefragError::Malformed(
             "samples run past the end of the file",
         ))?;
+    budget.bytes = budget
+        .bytes
+        .checked_sub(len)
+        .ok_or(DefragError::Malformed("runs share their data"))?;
     if count > 0 {
         track.chunks.push(Chunk {
             src: start,
@@ -1118,6 +1138,24 @@ mod tests {
         let traf = bx(b"traf", &cat(&[tfhd, trun]));
         let moof = bx(b"moof", &cat(&[full(b"mfhd", 0, &words(&[1])), traf]));
         let file = cat(&[bx(b"ftyp", b"iso6\0\0\0\0"), moov(true), moof]);
+        assert!(defragment(&file).is_err());
+    }
+
+    #[test]
+    fn runs_sharing_their_data_are_refused() {
+        // Each run fits in the file on its own; three of them over the same
+        // bytes would index far more samples than the file holds.
+        let tfhd = full(b"tfhd", 0x02_0000 | 0x10, &words(&[1, 1]));
+        let run = || full(b"trun", 0x01, &words(&[2000, 0]));
+        let traf = bx(b"traf", &cat(&[tfhd, run(), run(), run()]));
+        let moof = bx(b"moof", &cat(&[full(b"mfhd", 0, &words(&[1])), traf]));
+        let file = cat(&[
+            bx(b"ftyp", b"iso6\0\0\0\0"),
+            moov(true),
+            moof,
+            bx(b"mdat", &[0; 2400]),
+        ]);
+        assert!(file.len() < 2 * 2000);
         assert!(defragment(&file).is_err());
     }
 
