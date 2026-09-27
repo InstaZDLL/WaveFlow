@@ -37,10 +37,13 @@ const PLUGIN_TIMEOUT: Duration = Duration::from_secs(20);
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MotionArtwork {
-    /// Square animated cover — a directly-playable progressive `.mp4`.
-    /// The host renders it in a native `<video>` with no HLS.js, so a
-    /// plugin with an HLS source resolves it to an mp4 rendition before
-    /// returning (a bare `.m3u8` won't play on WebView2).
+    /// Square animated cover — a directly-playable `.mp4`, not always a
+    /// progressive one: Apple's renditions are fragmented (`moof`/`mdat`),
+    /// which is why Linux plays a cached copy over loopback HTTP rather
+    /// than a `blob:` URL ([`crate::media_loopback`]). The host renders it
+    /// in a native `<video>` with no HLS.js, so a plugin with an HLS source
+    /// resolves it to an mp4 rendition before returning (a bare `.m3u8`
+    /// won't play on WebView2).
     pub square_url: String,
     /// Taller lock-screen variant, when the plugin offers one.
     pub tall_url: Option<String>,

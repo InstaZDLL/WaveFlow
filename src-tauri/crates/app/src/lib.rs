@@ -15,6 +15,8 @@ mod dlna;
 mod error;
 mod logging;
 mod media_controls;
+#[cfg(target_os = "linux")]
+mod media_loopback;
 mod metadata_artwork;
 mod mpd;
 mod notifications;
@@ -1070,6 +1072,7 @@ pub fn run() {
             commands::preferences::set_window_chrome,
             commands::library_media::get_clips_in_library,
             commands::library_media::set_clips_in_library,
+            commands::library_media::get_local_video_base_url,
             commands::preferences::get_mini_player_bounds,
             commands::preferences::set_mini_player_bounds,
             commands::preferences::get_main_window_bounds,

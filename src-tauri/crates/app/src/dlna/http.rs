@@ -180,7 +180,7 @@ async fn serve_stream(
 /// Build a streaming body that reads the requested byte range in 64
 /// KiB chunks. `take(length)` caps the reader so we never overshoot
 /// the Range window even if the controller closes early.
-async fn build_range_body(
+pub(crate) async fn build_range_body(
     mut file: tokio::fs::File,
     start: u64,
     length: u64,
@@ -191,7 +191,7 @@ async fn build_range_body(
     Ok(Body::from_stream(stream))
 }
 
-fn parse_range(raw: &str, total: u64) -> Option<(u64, u64)> {
+pub(crate) fn parse_range(raw: &str, total: u64) -> Option<(u64, u64)> {
     let raw = raw.strip_prefix("bytes=")?.trim();
     let (start_s, end_s) = raw.split_once('-')?;
     let start: u64 = start_s.trim().parse().ok()?;

@@ -112,3 +112,12 @@ export function clearCanvasCache(): Promise<void> {
 export function isRemoteCanvasUrl(source: string): boolean {
   return /^https?:\/\//i.test(source);
 }
+
+/**
+ * Loopback base URL a local clip plays through on Linux, where WebKitGTK
+ * cannot play the asset protocol; `null` on Windows and macOS, or when the
+ * server could not start. Append `&path=<encoded absolute path>`.
+ */
+export function getLocalVideoBaseUrl(): Promise<string | null> {
+  return invoke<string | null>("get_local_video_base_url");
+}

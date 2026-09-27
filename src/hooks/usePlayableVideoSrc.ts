@@ -1,31 +1,33 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 
+import { getLocalVideoBaseUrl } from "../lib/tauri/canvas";
+
 /**
- * WebKitGTK plays `<video>` through GStreamer, and GStreamer reads only the
- * schemes it has a source element for — `http(s)`, `file`, `blob:`. Tauri's
- * asset protocol is none of them: WebKit refuses it outright ("Requested
- * protocol: asset (allowed: no)"), and allowing it through
- * `WEBKIT_GST_ALLOWED_URI_PROTOCOLS` only moves the failure to "no URI
- * handler implemented for asset". So on Linux a local clip is fetched
- * through the asset protocol — the network stack does serve it — and handed
- * to the `<video>` as a `blob:` URL instead. WebView2 and WKWebView play the
- * asset URL directly.
+ * WebKitGTK plays `<video>` through GStreamer, which has no source for
+ * Tauri's asset protocol ("no URI handler implemented for asset"), and a
+ * `blob:` URL corrupts a fragmented MP4 — the form Apple's motion covers
+ * come in. Its HTTP source handles both, so on Linux a local clip plays
+ * through the loopback server in `media_loopback.rs`. WebView2 and
+ * WKWebView play the asset URL directly.
  */
-const NEEDS_BLOB =
+const VIA_LOOPBACK =
   /linux/i.test(navigator.userAgent) && !/android/i.test(navigator.userAgent);
 
-export interface PlayableVideoSrc {
-  /** What to put in `<video src>`; `null` while a blob is being read. */
-  src: string | null;
-  /** The local file could not be read — show the static cover instead. */
-  failed: boolean;
+/** Asked once per launch: the server's port and token do not change. */
+let loopbackBase: Promise<string | null> | null = null;
+function loopbackBaseUrl(): Promise<string | null> {
+  loopbackBase ??= getLocalVideoBaseUrl().catch((err: unknown) => {
+    console.warn("[usePlayableVideoSrc] no loopback server", err);
+    return null;
+  });
+  return loopbackBase;
 }
 
-interface BlobState {
-  /** The asset URL this state was produced for. */
-  from: string;
-  url: string | null;
+export interface PlayableVideoSrc {
+  /** What to put in `<video src>`; `null` while the base URL resolves. */
+  src: string | null;
+  /** No way to play this local clip — show the static cover instead. */
   failed: boolean;
 }
 
@@ -33,51 +35,30 @@ interface BlobState {
  * Resolve a Canvas clip or a motion cover to a URL the webview's video
  * element can play. `remote` URLs (a plugin's, a server's ticketed one, an
  * uncached motion cover) load as they are; a local path goes through the
- * asset protocol, and on Linux through a `blob:` URL revoked on unmount.
+ * asset protocol, or on Linux through the loopback server.
  */
 export function usePlayableVideoSrc(
   source: string,
   remote: boolean,
 ): PlayableVideoSrc {
-  const direct = remote ? source : convertFileSrc(source);
-  const viaBlob = !remote && NEEDS_BLOB;
-  const [blob, setBlob] = useState<BlobState | null>(null);
+  const viaLoopback = !remote && VIA_LOOPBACK;
+  // `undefined` until the base URL has resolved, `null` if there is none.
+  const [base, setBase] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
-    if (!viaBlob) return;
-    // Aborting stops the read of an obsolete clip, which can be tens of
-    // megabytes for a 4K motion cover; the flag covers the steps after it.
-    const controller = new AbortController();
+    if (!viaLoopback) return;
     let cancelled = false;
-    let objectUrl: string | null = null;
-    fetch(direct, { signal: controller.signal })
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.blob();
-      })
-      .then((data) => {
-        if (cancelled) return;
-        objectUrl = URL.createObjectURL(data);
-        setBlob({ from: direct, url: objectUrl, failed: false });
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        console.warn(
-          "[usePlayableVideoSrc] could not read the clip",
-          direct,
-          err,
-        );
-        setBlob({ from: direct, url: null, failed: true });
-      });
+    void loopbackBaseUrl().then((url) => {
+      if (!cancelled) setBase(url);
+    });
     return () => {
       cancelled = true;
-      controller.abort();
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [direct, viaBlob]);
+  }, [viaLoopback]);
 
-  if (!viaBlob) return { src: direct, failed: false };
-  // A state left over from a previous source is not this one's answer.
-  if (!blob || blob.from !== direct) return { src: null, failed: false };
-  return { src: blob.url, failed: blob.failed };
+  if (remote) return { src: source, failed: false };
+  if (!viaLoopback) return { src: convertFileSrc(source), failed: false };
+  if (base === undefined) return { src: null, failed: false };
+  if (base === null) return { src: null, failed: true };
+  return { src: `${base}&path=${encodeURIComponent(source)}`, failed: false };
 }

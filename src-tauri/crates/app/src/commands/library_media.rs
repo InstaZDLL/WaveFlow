@@ -342,6 +342,23 @@ pub async fn set_clips_in_library(
     Ok(())
 }
 
+/// Base URL for playing a local clip over loopback HTTP — Linux only, see
+/// [`crate::media_loopback`]. `None` on Windows and macOS, whose webviews
+/// play the asset URL themselves, and on Linux when the server could not
+/// start (the caller then shows the static cover).
+#[tauri::command]
+pub async fn get_local_video_base_url(app: tauri::AppHandle) -> Option<String> {
+    #[cfg(target_os = "linux")]
+    {
+        crate::media_loopback::base_url(&app).await
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = app;
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
