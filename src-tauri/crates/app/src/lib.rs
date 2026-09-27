@@ -1070,6 +1070,7 @@ pub fn run() {
             commands::library_media::set_clips_in_library,
             commands::preferences::get_mini_player_bounds,
             commands::preferences::set_mini_player_bounds,
+            commands::preferences::clear_mini_player_bounds,
             commands::preferences::get_main_window_bounds,
             commands::preferences::set_main_window_bounds,
             commands::preferences::clear_main_window_bounds,

@@ -1402,7 +1402,8 @@
     },
     "lyrics": {
       "empty": "No hay letra para esta pista"
-    }
+    },
+    "dragHandle": "Arrastrar para mover · Doble clic para restablecer tamaño y posición"
   },
   "window": {
     "minimize": "Minimizar",
@@ -2471,6 +2472,10 @@
       "reset": "Restablecer",
       "done": "Restablecido",
       "error": "No se pudo restablecer. Inténtalo de nuevo."
+    },
+    "miniPlayerBounds": {
+      "title": "Posición del mini-reproductor",
+      "subtitle": "Devolver el mini-reproductor a su tamaño original, en la esquina inferior derecha de la pantalla. Se aplica al instante; hacer doble clic en su asa hace lo mismo."
     },
     "windowChrome": {
       "title": "Marco de la ventana",

@@ -1403,7 +1403,8 @@
     },
     "lyrics": {
       "empty": "Sem letra para esta faixa"
-    }
+    },
+    "dragHandle": "Arrastar para mover · Duplo clique para repor o tamanho e a posição"
   },
   "window": {
     "minimize": "Minimizar",
@@ -2472,6 +2473,10 @@
       "reset": "Repor",
       "done": "Reposto",
       "error": "Falha ao repor. Tenta novamente."
+    },
+    "miniPlayerBounds": {
+      "title": "Posição do mini-leitor",
+      "subtitle": "Repor o mini-leitor no tamanho original, no canto inferior direito do ecrã. Aplica-se de imediato; um duplo clique na pega faz o mesmo."
     },
     "windowChrome": {
       "title": "Moldura da janela",

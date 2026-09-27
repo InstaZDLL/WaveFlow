@@ -1403,7 +1403,8 @@
     },
     "lyrics": {
       "empty": "Sem letra para esta faixa"
-    }
+    },
+    "dragHandle": "Arraste para mover · Clique duplo para restaurar tamanho e posição"
   },
   "window": {
     "minimize": "Minimizar",
@@ -2472,6 +2473,10 @@
       "reset": "Redefinir",
       "done": "Redefinido",
       "error": "Falha ao redefinir. Tente novamente."
+    },
+    "miniPlayerBounds": {
+      "title": "Posição do mini-player",
+      "subtitle": "Volta o mini-player ao tamanho original, no canto inferior direito da tela. Vale na hora; um clique duplo na alça faz o mesmo."
     },
     "windowChrome": {
       "title": "Moldura da janela",

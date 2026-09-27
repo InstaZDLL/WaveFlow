@@ -1353,7 +1353,8 @@
     },
     "lyrics": {
       "empty": "此曲目没有歌词"
-    }
+    },
+    "dragHandle": "拖动以移动 · 双击恢复大小和位置"
   },
   "window": {
     "minimize": "最小化",
@@ -2410,6 +2411,10 @@
       "reset": "重置",
       "done": "已重置",
       "error": "重置失败，请重试。"
+    },
+    "miniPlayerBounds": {
+      "title": "迷你播放器位置",
+      "subtitle": "将迷你播放器恢复为原始大小，并放回屏幕右下角。立即生效；双击其拖动条效果相同。"
     },
     "windowChrome": {
       "title": "窗口边框",

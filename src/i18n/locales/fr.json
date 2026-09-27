@@ -1402,7 +1402,8 @@
     },
     "lyrics": {
       "empty": "Aucune parole pour ce titre"
-    }
+    },
+    "dragHandle": "Glisser pour déplacer · Double-clic pour rétablir la taille et la position"
   },
   "window": {
     "minimize": "Réduire",
@@ -2471,6 +2472,10 @@
       "reset": "Réinitialiser",
       "done": "Réinitialisé",
       "error": "La réinitialisation a échoué. Réessayez."
+    },
+    "miniPlayerBounds": {
+      "title": "Position du mini-lecteur",
+      "subtitle": "Remettre le mini-lecteur à sa taille d'origine, en bas à droite de l'écran. S'applique tout de suite ; un double-clic sur sa poignée fait de même."
     },
     "windowChrome": {
       "title": "Cadre de la fenêtre",

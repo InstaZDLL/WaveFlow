@@ -1353,7 +1353,8 @@
     },
     "lyrics": {
       "empty": "No lyrics for this track"
-    }
+    },
+    "dragHandle": "Drag to move · Double-click to restore size and position"
   },
   "window": {
     "minimize": "Minimise",
@@ -2410,6 +2411,10 @@
       "reset": "Reset",
       "done": "Reset done",
       "error": "Reset failed. Please try again."
+    },
+    "miniPlayerBounds": {
+      "title": "Mini-player position",
+      "subtitle": "Put the mini-player back to its original size, in the bottom-right corner of the screen. Applies right away; double-clicking its handle does the same."
     },
     "windowChrome": {
       "title": "Window frame",

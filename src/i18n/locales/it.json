@@ -1402,7 +1402,8 @@
     },
     "lyrics": {
       "empty": "Nessun testo per questo brano"
-    }
+    },
+    "dragHandle": "Trascina per spostare · Doppio clic per ripristinare dimensioni e posizione"
   },
   "window": {
     "minimize": "Riduci a icona",
@@ -2471,6 +2472,10 @@
       "reset": "Reimposta",
       "done": "Reimpostato",
       "error": "Reimpostazione non riuscita. Riprova."
+    },
+    "miniPlayerBounds": {
+      "title": "Posizione del mini-player",
+      "subtitle": "Riporta il mini-player alle dimensioni originali, nell'angolo in basso a destra dello schermo. Si applica subito; un doppio clic sulla sua maniglia fa lo stesso."
     },
     "windowChrome": {
       "title": "Cornice della finestra",

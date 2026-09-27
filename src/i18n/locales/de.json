@@ -1353,7 +1353,8 @@
     },
     "lyrics": {
       "empty": "Kein Songtext für diesen Titel"
-    }
+    },
+    "dragHandle": "Ziehen zum Verschieben · Doppelklick setzt Größe und Position zurück"
   },
   "window": {
     "minimize": "Minimieren",
@@ -2410,6 +2411,10 @@
       "reset": "Zurücksetzen",
       "done": "Zurückgesetzt",
       "error": "Zurücksetzen fehlgeschlagen. Bitte erneut versuchen."
+    },
+    "miniPlayerBounds": {
+      "title": "Position des Mini-Players",
+      "subtitle": "Den Mini-Player auf seine ursprüngliche Größe unten rechts auf dem Bildschirm zurücksetzen. Wirkt sofort; ein Doppelklick auf seinen Griff tut dasselbe."
     },
     "windowChrome": {
       "title": "Fensterrahmen",

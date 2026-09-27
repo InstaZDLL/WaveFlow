@@ -1353,7 +1353,8 @@
     },
     "lyrics": {
       "empty": "Tidak ada lirik untuk lagu ini"
-    }
+    },
+    "dragHandle": "Seret untuk memindahkan · Klik dua kali untuk memulihkan ukuran dan posisi"
   },
   "window": {
     "minimize": "Minimalkan",
@@ -2410,6 +2411,10 @@
       "reset": "Atur ulang",
       "done": "Diatur ulang",
       "error": "Gagal mengatur ulang. Silakan coba lagi."
+    },
+    "miniPlayerBounds": {
+      "title": "Posisi mini-pemutar",
+      "subtitle": "Kembalikan mini-pemutar ke ukuran semula, di pojok kanan bawah layar. Langsung berlaku; klik dua kali pada pegangannya juga melakukan hal yang sama."
     },
     "windowChrome": {
       "title": "Bingkai jendela",
