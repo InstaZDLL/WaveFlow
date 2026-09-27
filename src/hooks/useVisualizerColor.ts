@@ -8,9 +8,9 @@ const KEY = "ui.visualizer_color";
 export const VISUALIZER_COLOR_EVENT = "waveflow:visualizer-color";
 
 /**
- * The selectable spectrum-visualizer colours (issue #468). `white` is the
- * default and reproduces the pre-existing look; `rainbow` tints each bar by a
- * per-index hue instead of a solid fill. The button cycles through them in
+ * The selectable spectrum-visualizer colours (issue #468). `rainbow` is the
+ * default and tints each bar by a per-index hue instead of a solid fill;
+ * `white` is the look the visualizer had before a colour could be chosen. The button cycles through them in
  * this order and loops back to `white`.
  */
 export type VisualizerColorId =
@@ -28,8 +28,7 @@ export const VISUALIZER_COLOR_ORDER: VisualizerColorId[] = [
 
 /**
  * Resolved CSS fill per solid colour. `white` keeps the historical
- * `rgba(255,255,255,0.85)` so existing users see zero change on first run;
- * `rainbow` has no entry here — it's drawn per-bar by the visualizer.
+ * `rgba(255,255,255,0.85)`; `rainbow` has no entry here — it's drawn per-bar by the visualizer.
  */
 export const VISUALIZER_COLOR_CSS: Record<
   Exclude<VisualizerColorId, "rainbow">,
@@ -42,7 +41,7 @@ export const VISUALIZER_COLOR_CSS: Record<
   magenta: "#d946ef",
 };
 
-const DEFAULT_COLOR: VisualizerColorId = "white";
+const DEFAULT_COLOR: VisualizerColorId = "rainbow";
 
 function parseColorId(raw: string | null): VisualizerColorId {
   if (raw != null && (VISUALIZER_COLOR_ORDER as string[]).includes(raw)) {

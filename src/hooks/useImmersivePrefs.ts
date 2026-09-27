@@ -6,9 +6,8 @@ import { useProfile } from "./useProfile";
  * Per-profile preferences for the immersive view (issue #328).
  *
  * - `mergedLyrics` — show the lyrics as a side column next to the
- *   now-playing cover/transport (Spotify / Apple-Music-TV style) so the
- *   user can switch tracks while reading. OFF falls back to the legacy
- *   single-view-with-toggle behaviour. (The merged layout also collapses
+ *   now-playing cover/transport so the user can switch tracks while
+ *   reading. OFF falls back to the single view with a lyrics toggle. (The merged layout also collapses
  *   to single-column automatically on narrow windows regardless of this
  *   flag — see `ImmersiveView`.)
  * - `useNativeFullscreen` — drive the OS window into real fullscreen
@@ -32,12 +31,11 @@ export interface ImmersivePrefs {
 }
 
 const DEFAULTS: ImmersivePrefs = {
-  // Both OFF by default → the immersive view stays exactly the
-  // pre-#328 experience out of the box (classic single-view with a Mic2
-  // toggle to lyrics, in-window overlay). Both are opt-in via Settings →
-  // Appearance: `mergedLyrics` = the two-column control panel,
-  // `useNativeFullscreen` = real OS fullscreen.
-  mergedLyrics: false,
+  // `mergedLyrics` ON: the lyrics column is shown to everyone rather than
+  // left for the few who find the setting; the classic single view is one
+  // switch away in Settings. `useNativeFullscreen` stays opt-in so the
+  // view keeps to its window and a second monitor stays usable.
+  mergedLyrics: true,
   useNativeFullscreen: false,
   loaded: false,
 };
