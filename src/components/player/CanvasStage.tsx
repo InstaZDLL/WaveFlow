@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { convertFileSrc } from "@tauri-apps/api/core";
-
+import { usePlayableVideoSrc } from "../../hooks/usePlayableVideoSrc";
 import { isRemoteCanvasUrl } from "../../lib/tauri/canvas";
 
 const ROUND: Record<"md" | "lg" | "xl" | "2xl", string> = {
@@ -84,14 +83,20 @@ function CanvasVideo({
 }) {
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
-
-  if (failed) return null;
-
   // A manual Canvas is a local file the webview can only reach through the
   // asset protocol; a plugin's (issue #473) and a server track's ticketed one
   // are already URLs the `<video>` loads directly — same split as
   // MotionCoverOverlay.
-  const src = isRemoteCanvasUrl(path) ? path : convertFileSrc(path);
+  const video = usePlayableVideoSrc(path, isRemoteCanvasUrl(path));
+
+  // A local clip that could not be read never reaches `onError`, so report
+  // the missing aspect from here.
+  useEffect(() => {
+    if (video.failed) onAspect?.(path, null);
+  }, [video.failed, onAspect, path]);
+
+  if (failed || video.failed || !video.src) return null;
+  const src = video.src;
 
   return (
     <video

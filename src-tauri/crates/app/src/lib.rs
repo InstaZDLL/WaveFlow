@@ -98,6 +98,8 @@ pub fn run() {
     // this can simply avoid by going first. Nothing here logs; what it
     // decided is reported a few lines down.
     preflight_render_mode(&context.config().identifier);
+    #[cfg(target_os = "linux")]
+    preflight_appimage_gstreamer(&context.config().identifier);
 
     let _log_guard = logging::init_tracing();
     render_mode::log_decision();
@@ -1408,17 +1410,6 @@ async fn restore_bounds_and_reveal(app: AppHandle) -> bool {
     reveal_main_close_splash(&app)
 }
 
-/// Vet the databases startup is about to open, and stop with an
-/// explanation if one of them came from a newer build.
-///
-/// Runs from [`run`] before `tauri::Builder` is even constructed, so a
-/// refusal costs the user a dialog instead of a mystery. The detection
-/// itself stays in [`db::schema_guard`], which the real opens call
-/// again downstream; this is the early, best-effort pass whose only
-/// privilege is being able to talk to the user.
-///
-/// Anything short of a verdict — no app-data dir, no database yet, a
-/// file it can't read — proceeds to normal startup.
 /// Decide how the interface will be drawn, before anything can draw it.
 ///
 /// Runs before the webview exists, because the environment variables it
@@ -1444,6 +1435,42 @@ fn preflight_render_mode(identifier: &str) {
     }
 }
 
+/// Give the AppImage's bundled GStreamer a plugin registry of its own.
+///
+/// The AppImage ships its own `libgstreamer` and plugins
+/// (`bundleMediaFramework`), but without `GST_REGISTRY` it caches what it
+/// found in the host's `~/.cache/gstreamer-1.0/registry.<arch>.bin` — the
+/// very file the system's GStreamer uses. The two are different versions
+/// with different plugin sets, so each keeps rewriting the other's cache.
+/// Same timing constraint as the renderer: the web process reads the
+/// environment when it starts, so this has to run before any window
+/// exists and before the logger's thread does. A user-set registry wins.
+#[cfg(target_os = "linux")]
+fn preflight_appimage_gstreamer(identifier: &str) {
+    const KEY: &str = "GST_REGISTRY_1_0";
+    if std::env::var_os("APPIMAGE").is_none()
+        || std::env::var_os(KEY).is_some()
+        || std::env::var_os("GST_REGISTRY").is_some()
+    {
+        return;
+    }
+    if let Some(cache) = dirs::cache_dir() {
+        let path = cache.join(identifier).join("gstreamer-registry.bin");
+        std::env::set_var(KEY, path);
+    }
+}
+
+/// Vet the databases startup is about to open, and stop with an
+/// explanation if one of them came from a newer build.
+///
+/// Runs from [`run`] before `tauri::Builder` is even constructed, so a
+/// refusal costs the user a dialog instead of a mystery. The detection
+/// itself stays in [`db::schema_guard`], which the real opens call
+/// again downstream; this is the early, best-effort pass whose only
+/// privilege is being able to talk to the user.
+///
+/// Anything short of a verdict — no app-data dir, no database yet, a
+/// file it can't read — proceeds to normal startup.
 fn preflight_schema_guard(identifier: &str) {
     let root = match paths::AppPaths::root_for_identifier(identifier) {
         Ok(root) => root,

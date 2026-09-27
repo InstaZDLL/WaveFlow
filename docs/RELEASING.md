@@ -285,6 +285,30 @@ The Rust side is unaffected: the app starts, creates its profile, opens its audi
 
 Both `release.yml` and `test-appimage.yml` run it right after `tauri build`. **If you ever restructure the Linux build, that step has to survive** — dropping it silently produces a release that installs fine and never opens, on exactly the distributions least likely to be in your test matrix. The script no-ops (and says so) if a future Tauri stops bundling the library, so it's safe to leave in place.
 
+## The AppImage carries its own GStreamer
+
+WebKitGTK plays every `<video>` in the interface — Canvas clips, animated album covers — through GStreamer. The AppImage bundles `libgstreamer-1.0.so.0` as part of the webview's dependency closure, and that library is **relocatable**: it looks for its plugins next to itself, in `usr/lib/gstreamer-1.0/` inside the AppDir, not in the host's plugin directory. Until 1.8.0 that directory did not exist, so the bundled GStreamer found no plugins at all, even on a host that had them installed:
+
+```text
+GStreamer element appsink not found. Please install it.
+GStreamer element autoaudiosink not found. Please install it
+(WebKitWebProcess): GLib-GObject-CRITICAL: g_signal_connect_data: assertion 'G_TYPE_CHECK_INSTANCE (instance)' failed
+```
+
+The web process then waits on a pipeline that was never built, and the whole interface freezes the first time a video is shown. Because the player resumes the last track on launch, a track with an animated cover froze the app again at every start. The released 1.7.0 AppImage had the same defect (it bundles Ubuntu's relocatable GStreamer 1.24). The native packages, the AUR, COPR and Flatpak builds were never affected: they use the system GStreamer.
+
+`bundle.linux.appimage.bundleMediaFramework` in `tauri.conf.json` fixes it: the bundler copies the build machine's GStreamer plugins into the AppDir and points the runtime at them. **It bundles what the runner has installed**, so `release.yml` and `test-appimage.yml` install the plugin sets the webview needs:
+
+| Package                     | Why                                                                |
+| --------------------------- | ------------------------------------------------------------------ |
+| `gstreamer1.0-plugins-base` | `appsink`, `playbin`, `decodebin`, the converters WebKit builds on |
+| `gstreamer1.0-plugins-good` | `qtdemux` (the `.mp4` container), `autoaudiosink`                  |
+| `gstreamer1.0-libav`        | the H.264 and HEVC decoders the clips and covers are encoded with  |
+
+Two more pieces make video actually play, and neither is packaging. The bundled GStreamer would otherwise share the host's registry cache (`~/.cache/gstreamer-1.0/registry.<arch>.bin`) with a different GStreamer version, so `preflight_appimage_gstreamer` in [`lib.rs`](../src-tauri/crates/app/src/lib.rs) points `GST_REGISTRY_1_0` at a file of its own when `APPIMAGE` is set. And WebKitGTK cannot play the asset protocol at all, on any Linux package: local clips go through a `blob:` URL — see [ui.md](features/ui.md#track-canvas).
+
+Leave `gstreamer1.0-plugins-ugly` out: Tauri's own guidance warns that its licences make it hard to redistribute. Tauri also documents the flag as fully supported only on Ubuntu build systems, which is what the release runs on — a local AppImage built on another distribution is not a valid test of it. Use `test-appimage.yml`.
+
 ## AppImage delta updates: three steps in one order
 
 The AppImage runtime reserves a 1024-byte `.upd_info` section for a single string saying where updates come from. `appimagetool -u` fills it; Tauri builds the AppImage itself and exposes no equivalent, so it shipped zeroed and every ecosystem tool — AppImageUpdate, AppImageLauncher, AM, AppManager — reported _no update information available_ ([#527](https://github.com/InstaZDLL/WaveFlow/issues/527)).

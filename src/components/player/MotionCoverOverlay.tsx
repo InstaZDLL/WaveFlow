@@ -1,8 +1,7 @@
 import { useState } from "react";
 
-import { convertFileSrc } from "@tauri-apps/api/core";
-
 import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
+import { usePlayableVideoSrc } from "../../hooks/usePlayableVideoSrc";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 
 const ROUND: Record<"md" | "lg" | "xl" | "2xl", string> = {
@@ -68,13 +67,13 @@ function MotionVideo({
 }) {
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
-
-  if (failed) return null;
-
   // A remote mp4 (cache off) loads by URL as-is; a locally-cached mp4 (cache
   // on) is an absolute file path the webview can only reach through the asset
-  // protocol, so convert it. `MotionArtwork.squareUrl` is one or the other.
-  const src = /^https?:\/\//i.test(url) ? url : convertFileSrc(url);
+  // protocol. `MotionArtwork.squareUrl` is one or the other.
+  const video = usePlayableVideoSrc(url, /^https?:\/\//i.test(url));
+
+  if (failed || video.failed || !video.src) return null;
+  const src = video.src;
 
   return (
     <video
