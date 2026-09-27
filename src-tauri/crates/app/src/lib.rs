@@ -1448,6 +1448,14 @@ fn preflight_render_mode(identifier: &str) {
 /// Same timing constraint as the renderer: the web process reads the
 /// environment when it starts, so this has to run before any window
 /// exists and before the logger's thread does. A user-set registry wins.
+///
+/// The plugins are also reached through a fixed symlink. The AppImage is
+/// mounted under a new `/tmp/.mount_*` directory at every launch, and the
+/// registry is keyed by plugin path: pointed at the mount itself, it went
+/// stale each time and GStreamer rescanned every plugin the first time a
+/// video was shown, freezing the web process for several seconds per
+/// launch. Through the link the paths never change, so only an update of
+/// the AppImage, whose plugin files are new, costs a rescan.
 #[cfg(target_os = "linux")]
 fn preflight_appimage_gstreamer(identifier: &str) {
     const KEY: &str = "GST_REGISTRY_1_0";
@@ -1457,10 +1465,54 @@ fn preflight_appimage_gstreamer(identifier: &str) {
     {
         return;
     }
-    if let Some(cache) = dirs::cache_dir() {
-        let path = cache.join(identifier).join("gstreamer-registry.bin");
-        std::env::set_var(KEY, path);
+    let Some(dir) = dirs::cache_dir().map(|cache| cache.join(identifier)) else {
+        return;
+    };
+    std::env::set_var(KEY, dir.join("gstreamer-registry.bin"));
+    if let Err(err) = link_appimage_gstreamer_plugins(&dir) {
+        // Logging is not up yet. Without the link, video still plays; the
+        // first one of each launch is just slow to start.
+        eprintln!("waveflow: no stable gstreamer plugin path ({err})");
     }
+}
+
+/// Point `<dir>/gstreamer-plugins` at the mounted AppImage's plugin
+/// directory and rewrite the plugin-path variables the AppImage set to go
+/// through it.
+#[cfg(target_os = "linux")]
+fn link_appimage_gstreamer_plugins(dir: &std::path::Path) -> std::io::Result<()> {
+    let Some(appdir) = std::env::var_os("APPDIR") else {
+        return Ok(());
+    };
+    let plugins = std::path::Path::new(&appdir).join("usr/lib/gstreamer-1.0");
+    let Some(plugins_str) = plugins.to_str().filter(|_| plugins.is_dir()) else {
+        return Ok(());
+    };
+    std::fs::create_dir_all(dir)?;
+    let link = dir.join("gstreamer-plugins");
+    // A link into another mount that still exists belongs to an instance
+    // that is running: this one may be about to lose the single-instance
+    // check, and re-aiming the link would pull the plugins out from under
+    // the survivor once this mount goes. Such a launch keeps its own paths.
+    if let Ok(target) = std::fs::read_link(&link) {
+        if target != plugins && target.is_dir() {
+            return Ok(());
+        }
+    }
+    // Staged and renamed over the old link, so a half-made one never shows.
+    let staged = dir.join(format!(".gstreamer-plugins.{}", std::process::id()));
+    let _ = std::fs::remove_file(&staged);
+    std::os::unix::fs::symlink(&plugins, &staged)?;
+    std::fs::rename(&staged, &link)?;
+    let Some(link_str) = link.to_str() else {
+        return Ok(());
+    };
+    for key in ["GST_PLUGIN_SYSTEM_PATH_1_0", "GST_PLUGIN_PATH_1_0"] {
+        if let Some(value) = std::env::var(key).ok().filter(|v| v.contains(plugins_str)) {
+            std::env::set_var(key, value.replace(plugins_str, link_str));
+        }
+    }
+    Ok(())
 }
 
 /// Vet the databases startup is about to open, and stop with an
