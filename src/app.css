@@ -424,6 +424,60 @@ html.mini-player-window #root {
   pointer-events: none;
 }
 
+/* Held note (`HeldNoteText`): the word's letters lift and swell in turn,
+   and on the sung layer they glow, as much as `--held` (0-1, how long the
+   note is held) earns. The clip gets room above, below and
+   before the word so the glow and the lift are not cut at the line box;
+   its right edge is still the fill's. */
+.karaoke-word__fill--held {
+  clip-path: inset(-0.6em calc(100% - var(--kw-fill, 0%)) -0.6em -0.6em);
+}
+
+.wf-held-letter {
+  display: inline-block;
+  transform-origin: 50% 85%;
+  animation-name: wf-held-swell;
+  animation-timing-function: ease-in-out;
+  /* Before its turn a letter is at rest, and it comes back to rest. */
+  animation-fill-mode: both;
+}
+
+.wf-held-letter--glow {
+  animation-name: wf-held-glow;
+}
+
+@keyframes wf-held-swell {
+  0%,
+  100% {
+    transform: none;
+  }
+  35% {
+    transform: translateY(calc(-0.04em - 0.06em * var(--held, 0.5)))
+      scale(calc(1.06 + 0.1 * var(--held, 0.5)));
+  }
+}
+
+@keyframes wf-held-glow {
+  0%,
+  100% {
+    transform: none;
+    text-shadow: 0 0 0 transparent;
+  }
+  35% {
+    transform: translateY(calc(-0.04em - 0.06em * var(--held, 0.5)))
+      scale(calc(1.06 + 0.1 * var(--held, 0.5)));
+    text-shadow:
+      0 0 calc(0.12em + 0.2em * var(--held, 0.5)) currentColor,
+      0 0 calc(0.3em + 0.6em * var(--held, 0.5)) currentColor;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wf-held-letter {
+    animation: none;
+  }
+}
+
 /* Instrumental interlude: three dots in `currentColor`, sized from the
    font so the same markup fits the immersive column and the mini-player.
    The fill is inline (`InterludeDots`); the breathing is here. */
