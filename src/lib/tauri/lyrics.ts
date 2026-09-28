@@ -977,24 +977,78 @@ function showableLyrics<T extends LyricsPayload | null>(payload: T): T {
   return { ...payload, format: "plain", content: text };
 }
 
-/** `el`'s text without `exclude`'s, whitespace collapsed. */
-function textOutside(el: Element, exclude: Element | undefined): string {
+/** `el`'s text without that of the `exclude`d children, whitespace collapsed. */
+function textOutside(el: Element, exclude: Element[]): string {
   let text = "";
   for (const node of Array.from(el.childNodes)) {
-    if (node !== exclude) text += node.textContent ?? "";
+    if (!exclude.includes(node as Element)) text += node.textContent ?? "";
   }
   return text.replace(/\s+/g, " ").trim();
 }
 
-/** The background vocals a `<span ttm:role="x-bg">` holds, if any. */
-function ttmlBackground(span: Element): LyricsReading | undefined {
-  const words = ttmlWords(span);
-  const text = words
-    ? words
-        .map((word) => word.text)
-        .join("")
-        .trim()
-    : (span.textContent ?? "").replace(/\s+/g, " ").trim();
+/**
+ * The background vocals a line's `<span ttm:role="x-bg">`s hold, if any,
+ * as one reading: a line can carry several — one before the lead and one
+ * after it — and they are drawn together under it, in the order sung.
+ * Words are kept only when every span has them, so a highlight never
+ * skips a part that has no timing.
+ */
+function ttmlBackground(spans: Element[]): LyricsReading | undefined {
+  // Put the spans in the order sung once, and build the text and the
+  // words from that same order: a highlight walking one order over a
+  // text written in another would light the wrong part. Only the timed
+  // spans are reordered, among the places timed spans held; a span with
+  // no timing keeps its place in the document.
+  const inDocument = spans.map((span) => {
+    const words = ttmlWords(span);
+    const begin =
+      words?.[0]?.timeMs ?? parseTtmlTime(span.getAttribute("begin"));
+    return { span, words, begin };
+  });
+  const bySung = inDocument
+    .filter((part) => part.begin >= 0)
+    .sort((a, b) => a.begin - b.begin);
+  let next = 0;
+  const parts = inDocument.map((part) =>
+    part.begin >= 0 ? bySung[next++] : part,
+  );
+  const timed = parts.every((part) => part.words !== undefined);
+  let words: LyricsWord[] | undefined;
+  let text: string;
+  if (timed) {
+    // Every word timed: they are sorted themselves, since two spans can
+    // overlap, and the active-word lookup walks them in time order. The
+    // text is written from that same list, with a space where one span
+    // hands over to another.
+    const tagged = parts
+      .flatMap((part, span) => part.words!.map((word) => ({ word, span })))
+      .sort((a, b) => a.word.timeMs - b.word.timeMs);
+    words = tagged.map((entry) => entry.word);
+    text = tagged
+      .map((entry, i) => {
+        const previous = tagged[i - 1];
+        const joins =
+          previous &&
+          previous.span !== entry.span &&
+          !/\s$/.test(previous.word.text);
+        return (joins ? " " : "") + entry.word.text;
+      })
+      .join("")
+      .replace(/\s+/g, " ")
+      .trim();
+  } else {
+    text = parts
+      .map((part) =>
+        part.words
+          ? part.words
+              .map((word) => word.text)
+              .join("")
+              .trim()
+          : (part.span.textContent ?? "").replace(/\s+/g, " ").trim(),
+      )
+      .filter(Boolean)
+      .join(" ");
+  }
   if (!text) return undefined;
   // A background word that states no end runs to the next one, and the
   // last to the end of the last stated one: they are highlighted from
@@ -1109,17 +1163,16 @@ export function parseTtml(content: string): LyricsLine[] {
     const lineEnd = parseTtmlTime(p.getAttribute("end"));
 
     const words = ttmlWords(p);
-    const backgroundSpan = Array.from(p.children).find(isBackgroundSpan);
+    const backgroundSpans = Array.from(p.children).filter(isBackgroundSpan);
     const text =
       words !== undefined
         ? words
             .map((w) => w.text)
             .join("")
             .trim()
-        : textOutside(p, backgroundSpan);
-    const background = backgroundSpan
-      ? ttmlBackground(backgroundSpan)
-      : undefined;
+        : textOutside(p, backgroundSpans);
+    const background =
+      backgroundSpans.length > 0 ? ttmlBackground(backgroundSpans) : undefined;
 
     if (!text && (!words || words.length === 0) && !background) continue;
 
@@ -1131,7 +1184,9 @@ export function parseTtml(content: string): LyricsLine[] {
       lineBegin,
       ...[
         ...(words ?? []).map((word) => word.timeMs),
-        parseTtmlTime(backgroundSpan?.getAttribute("begin") ?? null),
+        ...backgroundSpans.map((span) =>
+          parseTtmlTime(span.getAttribute("begin")),
+        ),
         ...(background?.words ?? []).map((word) => word.timeMs),
       ].filter((ms) => ms >= 0),
     );
