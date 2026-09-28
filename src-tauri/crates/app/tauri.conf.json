@@ -80,6 +80,11 @@
     ],
     "macOS": {
       "entitlements": "waveflow.entitlements"
+    },
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": true
+      }
     }
   },
   "plugins": {

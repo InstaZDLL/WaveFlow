@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { convertFileSrc } from "@tauri-apps/api/core";
-
+import {
+  HOLDS_LOOP_FRAME,
+  usePlayableVideo,
+  useLoopFrameHold,
+} from "../../hooks/usePlayableVideo";
 import { isRemoteCanvasUrl } from "../../lib/tauri/canvas";
 
 const ROUND: Record<"md" | "lg" | "xl" | "2xl", string> = {
@@ -84,36 +87,56 @@ function CanvasVideo({
 }) {
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
-
-  if (failed) return null;
-
   // A manual Canvas is a local file the webview can only reach through the
   // asset protocol; a plugin's (issue #473) and a server track's ticketed one
   // are already URLs the `<video>` loads directly — same split as
   // MotionCoverOverlay.
-  const src = isRemoteCanvasUrl(path) ? path : convertFileSrc(path);
+  const ref = useRef<HTMLVideoElement>(null);
+  const video = usePlayableVideo(ref, path, isRemoteCanvasUrl(path));
+  const holdRef = useRef<HTMLCanvasElement>(null);
+  useLoopFrameHold(ref, holdRef);
 
+  // A local clip that could not be set up never reaches `onError`, so report
+  // the missing aspect from here.
+  useEffect(() => {
+    if (video.failed) onAspect?.(path, null);
+  }, [video.failed, onAspect, path]);
+
+  if (failed || video.failed) return null;
+
+  // No `src` attribute: `usePlayableVideo` sets it once it knows the URL,
+  // which on Linux means asking the backend for the loopback server first.
   return (
-    <video
-      src={src}
-      autoPlay
-      loop
-      muted
-      playsInline
-      aria-hidden="true"
-      onCanPlay={(e) => {
-        setReady(true);
-        const el = e.currentTarget;
-        onAspect?.(
-          path,
-          el.videoHeight > 0 ? el.videoWidth / el.videoHeight : null,
-        );
-      }}
-      onError={() => {
-        setFailed(true);
-        onAspect?.(path, null);
-      }}
-      className={`pointer-events-none absolute inset-0 w-full h-full object-cover ${ROUND[rounded]} transition-opacity duration-700 ${ready ? "opacity-100" : "opacity-0"} ${className ?? ""}`}
-    />
+    <>
+      {HOLDS_LOOP_FRAME && (
+        <canvas
+          ref={holdRef}
+          aria-hidden="true"
+          style={{ opacity: 0 }}
+          className={`pointer-events-none absolute inset-0 w-full h-full object-cover ${ROUND[rounded]} ${className ?? ""}`}
+        />
+      )}
+      <video
+        ref={ref}
+        autoPlay
+        loop
+        muted
+        playsInline
+        aria-hidden="true"
+        onCanPlay={(e) => {
+          setReady(true);
+          const el = e.currentTarget;
+          onAspect?.(
+            path,
+            el.videoHeight > 0 ? el.videoWidth / el.videoHeight : null,
+          );
+        }}
+        onError={() => {
+          setFailed(true);
+          onAspect?.(path, null);
+        }}
+        className={`pointer-events-none absolute inset-0 w-full h-full object-cover ${ROUND[rounded]} transition-opacity duration-700 ${ready ? "opacity-100" : "opacity-0"} ${className ?? ""}`}
+      />
+    </>
   );
 }

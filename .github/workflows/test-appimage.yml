@@ -47,7 +47,11 @@ jobs:
             libfuse2 \
             squashfs-tools \
             libasound2-dev \
-            cmake
+            cmake \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-bad \
+            gstreamer1.0-libav
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # stable

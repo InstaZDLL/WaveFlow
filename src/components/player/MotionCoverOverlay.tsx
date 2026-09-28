@@ -1,8 +1,11 @@
-import { useState } from "react";
-
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { useRef, useState } from "react";
 
 import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
+import {
+  HOLDS_LOOP_FRAME,
+  usePlayableVideo,
+  useLoopFrameHold,
+} from "../../hooks/usePlayableVideo";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 
 const ROUND: Record<"md" | "lg" | "xl" | "2xl", string> = {
@@ -68,31 +71,45 @@ function MotionVideo({
 }) {
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
-
-  if (failed) return null;
-
   // A remote mp4 (cache off) loads by URL as-is; a locally-cached mp4 (cache
   // on) is an absolute file path the webview can only reach through the asset
-  // protocol, so convert it. `MotionArtwork.squareUrl` is one or the other.
-  const src = /^https?:\/\//i.test(url) ? url : convertFileSrc(url);
+  // protocol. `MotionArtwork.squareUrl` is one or the other.
+  const ref = useRef<HTMLVideoElement>(null);
+  const video = usePlayableVideo(ref, url, /^https?:\/\//i.test(url));
+  const holdRef = useRef<HTMLCanvasElement>(null);
+  useLoopFrameHold(ref, holdRef);
 
+  if (failed || video.failed) return null;
+
+  // No `src` attribute: `usePlayableVideo` sets it once it knows the URL,
+  // which on Linux means asking the backend for the loopback server first.
   return (
-    <video
-      src={src}
-      autoPlay
-      loop
-      muted
-      playsInline
-      aria-hidden="true"
-      onCanPlay={() => setReady(true)}
-      onError={() => {
-        // The static cover shows instead, which reads as "nothing was
-        // set": say why, since the codec (HEVC on WebView2) or a
-        // missing file is otherwise invisible (#766).
-        console.warn("[MotionCoverOverlay] motion cover failed to load", src);
-        setFailed(true);
-      }}
-      className={`pointer-events-none absolute inset-0 w-full h-full object-cover ${ROUND[rounded]} transition-opacity duration-700 ${ready ? "opacity-100" : "opacity-0"} ${className ?? ""}`}
-    />
+    <>
+      {HOLDS_LOOP_FRAME && (
+        <canvas
+          ref={holdRef}
+          aria-hidden="true"
+          style={{ opacity: 0 }}
+          className={`pointer-events-none absolute inset-0 w-full h-full object-cover ${ROUND[rounded]} ${className ?? ""}`}
+        />
+      )}
+      <video
+        ref={ref}
+        autoPlay
+        loop
+        muted
+        playsInline
+        aria-hidden="true"
+        onCanPlay={() => setReady(true)}
+        onError={() => {
+          // The static cover shows instead, which reads as "nothing was
+          // set": say why, since the codec (HEVC on WebView2) or a
+          // missing file is otherwise invisible (#766).
+          console.warn("[MotionCoverOverlay] motion cover failed to load", url);
+          setFailed(true);
+        }}
+        className={`pointer-events-none absolute inset-0 w-full h-full object-cover ${ROUND[rounded]} transition-opacity duration-700 ${ready ? "opacity-100" : "opacity-0"} ${className ?? ""}`}
+      />
+    </>
   );
 }

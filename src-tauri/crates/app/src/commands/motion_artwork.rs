@@ -24,6 +24,17 @@ use crate::state::AppState;
 /// `app_setting` key for the opt-in local motion-artwork cache (default off).
 const CACHE_ENABLED_KEY: &str = "motion_artwork.cache_enabled";
 
+/// Ceiling on the covers Linux downloads with the cache off, about a dozen
+/// of Apple's: enough to come back to recent albums without re-fetching.
+const PLAYBACK_MAX_BYTES: u64 = 256 * 1024 * 1024;
+
+/// Where those go: inside the cache directory, so they move with it
+/// (#619), but a folder of their own, which the cache's LRU, tally and
+/// file count — all of them top-level only — never see.
+fn playback_dir(motion_cache_dir: &std::path::Path) -> std::path::PathBuf {
+    motion_cache_dir.join("linux-playback")
+}
+
 /// Per-plugin wall-clock bound on one `album-info` lookup. A cold Apple
 /// resolve is a handful of sequential host HTTP GETs (each already capped
 /// at 15 s by the host client); this caps the whole chain so one slow or
@@ -37,10 +48,15 @@ const PLUGIN_TIMEOUT: Duration = Duration::from_secs(20);
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MotionArtwork {
-    /// Square animated cover — a directly-playable progressive `.mp4`.
-    /// The host renders it in a native `<video>` with no HLS.js, so a
-    /// plugin with an HLS source resolves it to an mp4 rendition before
-    /// returning (a bare `.m3u8` won't play on WebView2).
+    /// Square animated cover — a directly-playable `.mp4`, not always a
+    /// progressive one: Apple's renditions are fragmented (`moof`/`mdat`),
+    /// on which WebKitGTK stalls after a couple of seconds. That is why
+    /// Linux always gets a local file here, cache setting or not, which the
+    /// loopback server rewrites as an ordinary MP4 on first play
+    /// (`media_loopback.rs`). The host renders it
+    /// in a native `<video>` with no HLS.js, so a plugin with an HLS source
+    /// resolves it to an mp4 rendition before returning (a bare `.m3u8`
+    /// won't play on WebView2).
     pub square_url: String,
     /// Taller lock-screen variant, when the plugin offers one.
     pub tall_url: Option<String>,
@@ -90,8 +106,24 @@ pub async fn fetch_album_motion_artwork(
     // Read the opt-in local-cache flag once up front. When on, the resolved
     // remote mp4 is downloaded into the shared LRU cache and the overlay is
     // pointed at the local file (offline + no re-download on the next play).
-    let cache_locally = motion_cache_enabled(&state).await;
-    let cache_dir = state.paths.motion_cache_dir.clone();
+    // Linux downloads it either way: WebKitGTK cannot stream a fragmented
+    // cover, only play a local one once rewritten (see `MotionArtwork`).
+    // With the cache off, the copy goes to a small LRU of its own that the
+    // Settings tally leaves out.
+    let cache_enabled = motion_cache_enabled(&state).await;
+    let (cache_locally, cache_dir, cache_cap) = if cache_enabled {
+        (
+            true,
+            state.paths.motion_cache_dir.clone(),
+            motion_cache::DEFAULT_MAX_CACHE_BYTES,
+        )
+    } else {
+        (
+            cfg!(target_os = "linux"),
+            playback_dir(&state.paths.motion_cache_dir),
+            PLAYBACK_MAX_BYTES,
+        )
+    };
 
     // Both metadata worlds: v2 exports `album-info` exactly as v1 does,
     // and enumerating v1 alone would drop animated covers the moment a
@@ -190,13 +222,7 @@ pub async fn fetch_album_motion_artwork(
                     // When the local cache is on, download the mp4 and point the
                     // overlay at the on-disk copy.
                     let square_url = if cache_locally {
-                        match motion_cache::cache_mp4(
-                            &cache_dir,
-                            &remote_square,
-                            motion_cache::DEFAULT_MAX_CACHE_BYTES,
-                        )
-                        .await
-                        {
+                        match motion_cache::cache_mp4(&cache_dir, &remote_square, cache_cap).await {
                             Ok(path) => path.to_string_lossy().into_owned(),
                             // Security rejection (unsafe initial url or unsafe
                             // redirect hop): must NOT degrade to streaming the
@@ -450,12 +476,16 @@ pub async fn set_motion_cache_enabled(state: State<'_, AppState>, enabled: bool)
     Ok(())
 }
 
-/// Delete every cached motion mp4 (and any leftover `.part` temporaries).
+/// Delete every cached motion mp4 (and any leftover `.part` temporaries),
+/// the Linux playback copies included.
 #[tauri::command]
 pub async fn clear_motion_cache(state: State<'_, AppState>) -> AppResult<()> {
     let dir = state.paths.motion_cache_dir.clone();
-    tokio::task::spawn_blocking(move || motion_cache::clear(&dir))
-        .await
-        .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?;
+    tokio::task::spawn_blocking(move || {
+        motion_cache::clear(&dir);
+        motion_cache::clear(&playback_dir(&dir));
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?;
     Ok(())
 }

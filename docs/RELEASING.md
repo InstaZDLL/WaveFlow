@@ -281,9 +281,36 @@ We build on Ubuntu. On any host with a newer Mesa — Fedora 44 ships Mesa 26 an
 Could not create default EGL display: EGL_BAD_PARAMETER. Aborting...
 ```
 
-The Rust side is unaffected: the app starts, creates its profile, opens its audio device, and shows an empty window. That asymmetry is why this was misread for months as a WebKitGTK 2.52 incompatibility, with users told to install a native package instead. It is not a WebKit problem, and it is not unfixable — [`scripts/fix-appimage.sh`](../scripts/fix-appimage.sh) removes the one file, repacks the squashfs with the compressor the bundler used, verifies the result re-extracts, and re-signs when an updater `.sig` is present.
+The Rust side is unaffected: the app starts, creates its profile, opens its audio device, and shows an empty window. That asymmetry is why this was misread for months as a WebKitGTK 2.52 incompatibility, with users told to install a native package instead. It is not a WebKit problem, and it is not unfixable — [`scripts/fix-appimage.sh`](../scripts/fix-appimage.sh) removes the file (and `libva`, see [the GStreamer section](#the-appimage-carries-its-own-gstreamer)), repacks the squashfs with the compressor the bundler used, verifies the result re-extracts, and re-signs when an updater `.sig` is present.
 
 Both `release.yml` and `test-appimage.yml` run it right after `tauri build`. **If you ever restructure the Linux build, that step has to survive** — dropping it silently produces a release that installs fine and never opens, on exactly the distributions least likely to be in your test matrix. The script no-ops (and says so) if a future Tauri stops bundling the library, so it's safe to leave in place.
+
+## The AppImage carries its own GStreamer
+
+WebKitGTK plays every `<video>` in the interface — Canvas clips, animated album covers — through GStreamer. The AppImage bundles `libgstreamer-1.0.so.0` as part of the webview's dependency closure, and that library is **relocatable**: it looks for its plugins next to itself, in `usr/lib/gstreamer-1.0/` inside the AppDir, not in the host's plugin directory. Until 1.8.0 that directory did not exist, so the bundled GStreamer found no plugins at all, even on a host that had them installed:
+
+```text
+GStreamer element appsink not found. Please install it.
+GStreamer element autoaudiosink not found. Please install it
+(WebKitWebProcess): GLib-GObject-CRITICAL: g_signal_connect_data: assertion 'G_TYPE_CHECK_INSTANCE (instance)' failed
+```
+
+The web process then waits on a pipeline that was never built, and the whole interface freezes the first time a video is shown. Because the player resumes the last track on launch, a track with an animated cover froze the app again at every start. The released 1.7.0 AppImage had the same defect (it bundles Ubuntu's relocatable GStreamer 1.24). The native packages, the AUR, COPR and Flatpak builds were never affected: they use the system GStreamer.
+
+`bundle.linux.appimage.bundleMediaFramework` in `tauri.conf.json` fixes it: the bundler copies the build machine's GStreamer plugins into the AppDir and points the runtime at them. **It bundles what the runner has installed**, so `release.yml` and `test-appimage.yml` install the plugin sets the webview needs:
+
+| Package                     | Why                                                                                  |
+| --------------------------- | ------------------------------------------------------------------------------------ |
+| `gstreamer1.0-plugins-base` | `appsink`, `playbin`, `decodebin`, the converters WebKit builds on                   |
+| `gstreamer1.0-plugins-good` | `qtdemux` (the `.mp4` container), `autoaudiosink`                                    |
+| `gstreamer1.0-plugins-bad`  | the `va` hardware decoders (VA-API), used where the host driver decodes H.264 / HEVC |
+| `gstreamer1.0-libav`        | the H.264 and HEVC decoders the clips and covers are encoded with                    |
+
+Two more pieces make video actually play, and neither is packaging. The bundled GStreamer would otherwise share the host's registry cache (`~/.cache/gstreamer-1.0/registry.<arch>.bin`) with a different GStreamer version, so `preflight_appimage_gstreamer` in [`lib.rs`](../src-tauri/crates/app/src/lib.rs) points `GST_REGISTRY_1_0` at a file of its own when `APPIMAGE` is set. The same function points the plugin path at a fixed symlink, `~/.cache/app.waveflow/gstreamer-plugins`, re-aimed at the current mount on every launch (and left alone while it still leads into the mount of another instance that is running): the AppImage mounts under a new `/tmp/.mount_*` each time, and a registry keyed by those paths went stale at every launch, so GStreamer rescanned all its plugins the first time a video was shown and froze the interface for 3 to 10 seconds. Through the link, only an update of the AppImage costs a rescan. And WebKitGTK cannot play the asset protocol at all, on any Linux package: local clips go through a loopback HTTP server — see [ui.md](features/ui.md#track-canvas).
+
+**`libva` is not bundled.** `fix-appimage.sh` removes it after the build, like `libwayland-client`: it loads the host's VA driver at run time, and the runner's older copy failed against Fedora's `iHD` driver (`vaInitialize: unknown libva error`, then `msdkcontext: Couldn't create a VA DRM display`). WebKit itself links `libdrm`, not `libva`, so the app starts either way; a host without `libva` only loses the decoders that need it. Whether a video is then decoded in hardware is the host driver's call: Fedora's own `libva-intel-media-driver` has no H.264 or HEVC (only `vavp9dec` registers), so on that machine a 1080p cover decodes in software, about half a core of an i7-1165G7, as it would in a native package.
+
+Leave `gstreamer1.0-plugins-ugly` out: Tauri's own guidance warns that its licences make it hard to redistribute. Tauri also documents the flag as fully supported only on Ubuntu build systems, which is what the release runs on — a local AppImage built on another distribution is not a valid test of it. Use `test-appimage.yml`.
 
 ## AppImage delta updates: three steps in one order
 

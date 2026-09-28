@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Drop the bundled `libwayland-client.so.0` from a freshly built AppImage.
+# Drop libraries that must come from the host from a freshly built AppImage:
+# `libwayland-client.so.0`, and `libva` (see below).
 #
 # Why this exists
 # ---------------
@@ -29,6 +30,13 @@
 # runner images don't all carry libfuse2), and the result is verified by
 # re-extracting it before it replaces the original.
 #
+# `libva` goes for the same reason Mesa does: it loads the host's VA
+# driver (`iHD`, `radeonsi`, …) at run time, and a copy built against the
+# runner's older libva fails against a newer driver ("vaInitialize:
+# unknown libva error"), which silently turned every video into software
+# decoding. Nothing needs it to start — WebKit links `libdrm`, not
+# `libva` — so a host without it only loses the VA decoders.
+#
 # Usage: scripts/fix-appimage.sh [path/to/App.AppImage]
 #   With no argument, finds the single AppImage under
 #   src-tauri/target/release/bundle/appimage/.
@@ -42,7 +50,7 @@
 set -euo pipefail
 
 BUNDLE_DIR="src-tauri/target/release/bundle/appimage"
-EXCLUDED_LIB="libwayland-client.so.0"
+EXCLUDED_LIBS=("libwayland-client.so.0" "libva.so.2" "libva-drm.so.2" "libva-x11.so.2" "libva-wayland.so.2")
 
 log() { printf '[fix-appimage] %s\n' "$*"; }
 die() { printf '[fix-appimage] error: %s\n' "$*" >&2; exit 1; }
@@ -71,17 +79,19 @@ log "unpacking $(basename "$img")"
 appdir="$work/squashfs-root"
 [ -d "$appdir" ] || die "extraction produced no squashfs-root"
 
-# `usr/lib/libwayland-client.so.0` is the one that matters; the glob also
-# catches a versioned sibling should the bundler ever emit one.
+# The glob also catches a versioned sibling (`libva.so.2.2000.0`) should
+# the bundler ever emit one.
 found=0
-while IFS= read -r -d '' lib; do
-  log "removing ${lib#$appdir/}"
-  rm -f "$lib"
-  found=1
-done < <(find "$appdir" -name "${EXCLUDED_LIB}*" -print0)
+for excluded in "${EXCLUDED_LIBS[@]}"; do
+  while IFS= read -r -d '' lib; do
+    log "removing ${lib#$appdir/}"
+    rm -f "$lib"
+    found=1
+  done < <(find "$appdir" -name "${excluded}*" -print0)
+done
 
 if [ "$found" -eq 0 ]; then
-  log "$EXCLUDED_LIB is not bundled — nothing to do (did the bundler stop shipping it?)"
+  log "none of ${EXCLUDED_LIBS[*]} is bundled — nothing to do (did the bundler stop shipping them?)"
   exit 0
 fi
 
@@ -113,9 +123,11 @@ log "verifying the repacked image"
 mkdir -p "$work/verify"
 ( cd "$work/verify" && "$work/out.AppImage" --appimage-extract >/dev/null ) \
   || die "the repacked AppImage does not extract"
-if find "$work/verify/squashfs-root" -name "${EXCLUDED_LIB}*" | grep -q .; then
-  die "$EXCLUDED_LIB survived the repack"
-fi
+for excluded in "${EXCLUDED_LIBS[@]}"; do
+  if find "$work/verify/squashfs-root" -name "${excluded}*" | grep -q .; then
+    die "$excluded survived the repack"
+  fi
+done
 [ -x "$work/verify/squashfs-root/AppRun" ] || die "the repacked AppImage has no AppRun"
 
 mv "$work/out.AppImage" "$img"
