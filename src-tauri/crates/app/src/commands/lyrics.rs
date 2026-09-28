@@ -1946,8 +1946,39 @@ fn ttml_time_ms(value: &str) -> Option<f64> {
     number(s).map(|v| v * 1000.0)
 }
 
-/// Ask every enabled `waveflow:metadata/v2` plugin for this track, and
-/// cache the first bundle that survives validation.
+/// Which lyrics world a plugin declared: they are called differently.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum LyricsWorld {
+    /// `waveflow:metadata/v2` — `lyrics(artist, title)`.
+    V2,
+    /// `waveflow:metadata/v3` — `lyrics(track)`, with album, length and ISRC.
+    V3,
+}
+
+/// The ISRC the track's file is tagged with, if any. The scanner keeps it
+/// among the tags WaveFlow has no column for (`track_tag`, key `ISRC`
+/// whatever the container). A read error is a missing ISRC: the lookup
+/// still has the name to go on.
+async fn track_isrc(pool: &sqlx::SqlitePool, track_id: i64) -> Option<String> {
+    match sqlx::query_scalar::<_, String>(
+        "SELECT value FROM track_tag WHERE track_id = ? AND key = 'ISRC'",
+    )
+    .bind(track_id)
+    .fetch_optional(pool)
+    .await
+    {
+        Ok(isrc) => isrc
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty()),
+        Err(err) => {
+            tracing::debug!(%err, track_id, "could not read the track's ISRC");
+            None
+        }
+    }
+}
+
+/// Ask every enabled `waveflow:metadata/v2` and `/v3` plugin for this
+/// track, and cache the first bundle that survives validation.
 ///
 /// Fan-out rather than a chain: plugins are independent, so they are all
 /// asked at once and the first usable answer wins. A plugin that traps,
@@ -1968,28 +1999,44 @@ async fn try_plugin_lyrics(
     meta: &TrackMeta,
     only: Option<&str>,
 ) -> AppResult<Option<PluginAnswer>> {
-    let mut plugin_ids = super::plugins::enabled_plugin_ids_for_world(
-        state,
-        waveflow_core::plugin::worlds::METADATA_V2,
-    )
-    .await?;
+    // Both lyrics worlds, each plugin carried with the one it declared: a
+    // v2 plugin is asked about the track's name, a v3 one about the track.
+    let mut plugins: Vec<(String, LyricsWorld)> = Vec::new();
+    for (world, label) in [
+        (LyricsWorld::V2, waveflow_core::plugin::worlds::METADATA_V2),
+        (LyricsWorld::V3, waveflow_core::plugin::worlds::METADATA_V3),
+    ] {
+        for id in super::plugins::enabled_plugin_ids_for_world(state, label).await? {
+            plugins.push((id, world));
+        }
+    }
     // `refetch_lyrics` pins the plugin that answered last time. Filtering
     // the enumeration rather than taking the id on trust means a plugin
     // that has since been disabled or uninstalled simply drops out, and
     // the caller gets the same "nothing found" it would get for any other
     // silent provider — no separate not-installed path to keep correct.
     if let Some(wanted) = only {
-        plugin_ids.retain(|id| id == wanted);
+        plugins.retain(|(id, _)| id == wanted);
     }
-    if plugin_ids.is_empty() {
+    if plugins.is_empty() {
         return Ok(None);
     }
 
-    let artist = meta.artist_name.clone().unwrap_or_default();
-    let title = meta.title.clone();
+    let query = waveflow_core::plugin::runtime::TrackQuery {
+        artist: meta.artist_name.clone().unwrap_or_default(),
+        title: meta.title.clone(),
+        album: meta.album_title.clone().filter(|a| !a.trim().is_empty()),
+        duration_ms: u32::try_from(meta.duration_ms).ok().filter(|ms| *ms > 0),
+        // Read only when a v3 plugin will see it.
+        isrc: if plugins.iter().any(|(_, world)| *world == LyricsWorld::V3) {
+            track_isrc(pool, track_id).await
+        } else {
+            None
+        },
+    };
 
     let mut set = tokio::task::JoinSet::new();
-    for plugin_id in plugin_ids {
+    for (plugin_id, world) in plugins {
         // Take the lock HANDLE here (a fast map op) and acquire the guard
         // inside the blocking closure, so it spans the real work: the
         // guest call is uncancellable, and an early drop on timeout would
@@ -1998,21 +2045,25 @@ async fn try_plugin_lyrics(
         let runtime = state.plugins.clone();
         let paths = state.paths.plugin_paths();
         let id_owned = plugin_id.clone();
-        let artist_owned = artist.clone();
-        let title_owned = title.clone();
+        let query = query.clone();
 
         set.spawn(async move {
             let outcome = tokio::time::timeout(
                 LYRICS_PLUGIN_TIMEOUT,
                 tokio::task::spawn_blocking(move || {
                     let _guard = lock_arc.blocking_lock_owned();
-                    waveflow_core::plugin::runtime::metadata_v2_lyrics(
-                        &runtime,
-                        &paths,
-                        &id_owned,
-                        &artist_owned,
-                        &title_owned,
-                    )
+                    match world {
+                        LyricsWorld::V2 => waveflow_core::plugin::runtime::metadata_v2_lyrics(
+                            &runtime,
+                            &paths,
+                            &id_owned,
+                            &query.artist,
+                            &query.title,
+                        ),
+                        LyricsWorld::V3 => waveflow_core::plugin::runtime::metadata_v3_lyrics(
+                            &runtime, &paths, &id_owned, &query,
+                        ),
+                    }
                 }),
             )
             .await;
@@ -4323,6 +4374,40 @@ mod tests {
         .execute(pool)
         .await
         .unwrap();
+    }
+
+    /// The ISRC a v3 plugin receives comes from the scanner's `track_tag`
+    /// rows: trimmed, found whatever case the key was stored in, and
+    /// absent rather than empty when the file has none.
+    #[tokio::test]
+    async fn the_isrc_comes_from_the_track_tags() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        let audio = dir.path().join("Song.flac");
+        seed_track(&pool, &audio, "h1").await;
+        let track_id: i64 = sqlx::query_scalar("SELECT id FROM track WHERE file_hash = 'h1'")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+
+        assert_eq!(track_isrc(&pool, track_id).await, None);
+
+        sqlx::query("INSERT INTO track_tag (track_id, key, value) VALUES (?, 'isrc', '  ')")
+            .bind(track_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert_eq!(track_isrc(&pool, track_id).await, None);
+
+        sqlx::query("UPDATE track_tag SET value = ' USUM72409273 ' WHERE track_id = ?")
+            .bind(track_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert_eq!(
+            track_isrc(&pool, track_id).await.as_deref(),
+            Some("USUM72409273")
+        );
     }
 
     /// Lyrics fetched from a provider land next to the music when that is

@@ -99,6 +99,26 @@ pub mod metadata_v2 {
     });
 }
 
+/// `waveflow:metadata/plugin@3.0.0` — the v3 enricher world.
+///
+/// [`metadata_v2`] with `lyrics` taking a `track-query` (artist, title,
+/// album, length, ISRC) instead of two strings, so a provider can match
+/// the recording rather than the name. Bound beside v2, which keeps its
+/// published consumer working; same shared `waveflow:host/*` imports.
+pub mod metadata_v3 {
+    wasmtime::component::bindgen!({
+        world: "waveflow:metadata/plugin",
+        path: "../plugin-sdk/wit/metadata-v3",
+        imports: { default: trappable },
+        with: {
+            "waveflow:host/http": crate::plugin::bindings::source::waveflow::host::http,
+            "waveflow:host/log": crate::plugin::bindings::source::waveflow::host::log,
+            "waveflow:host/storage": crate::plugin::bindings::source::waveflow::host::storage,
+            "waveflow:host/config": crate::plugin::bindings::source::waveflow::host::config,
+        },
+    });
+}
+
 /// `waveflow:ui/plugin@1.0.0` — the world UI-extension plugins export
 /// (Release Radar and any future custom-view plugin). Exported
 /// interface `extension` with `manifest` / `render` / `on-event`;

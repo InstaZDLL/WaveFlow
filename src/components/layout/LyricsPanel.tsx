@@ -18,7 +18,7 @@ import {
 import { usePlayer } from "../../hooks/usePlayer";
 import { useTrackLyrics } from "../../hooks/useTrackLyrics";
 import { useLyricsLocalization } from "../../hooks/useLyricsLocalization";
-import { usePluginNames } from "../../hooks/usePluginNames";
+import { useLyricsPlugins, usePluginNames } from "../../hooks/usePluginNames";
 import {
   availableLocalizations,
   cycleLocalizationMode,
@@ -30,6 +30,7 @@ import {
   type LyricsPayload,
   type LyricsProvider,
   PLUGIN_PROVIDER_PREFIX,
+  type PluginLyricsProvider,
 } from "../../lib/tauri/lyrics";
 import { LyricsEditorModal } from "../common/LyricsEditorModal";
 import { BackgroundVocals, InterludeDots } from "../player/LyricsVoiceParts";
@@ -90,6 +91,7 @@ export function LyricsPanel() {
   // so a plugin-sourced badge reads as a name rather than as the
   // filesystem-safe id.
   const pluginNames = usePluginNames();
+  const lyricsPlugins = useLyricsPlugins();
 
   const [isEditing, setIsEditing] = useState(false);
   // Provider picker dropdown — opens on click of the source label so the
@@ -128,7 +130,9 @@ export function LyricsPanel() {
   }, [activeIndex, isLyricsOpen, isSynced]);
 
   // Provider picker closes itself, then the shared refetch runs.
-  const handleRefetch = async (provider?: LyricsProvider) => {
+  const handleRefetch = async (
+    provider?: LyricsProvider | PluginLyricsProvider,
+  ) => {
     setPickerOpen(false);
     await refetch(provider);
   };
@@ -446,14 +450,15 @@ export function LyricsPanel() {
         {currentTrack != null && (
           <div className="flex items-center justify-between p-4 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400">
             <span className="flex items-center gap-2 min-w-0">
-              {/* Source label is a chip-button when API-sourced + an
-                  enabled track id is in scope, so the user can pop the
-                  provider picker and re-query a different source.
-                  Embedded / sidecar / manual rows render as static text
-                  — the picker would have nothing meaningful to do for
-                  a tag-embedded lyric. */}
+              {/* Source label is a chip-button whenever the track has a
+                  library row, so the user can pop the provider picker and
+                  ask one source about it — whatever answered before, if
+                  anything did: embedded or sidecar lyrics may be worse
+                  than what a plugin has, and a miss is exactly when one
+                  wants to try another source. Radio and remote streams
+                  have no row to cache against, so their label is text. */}
               <span ref={pickerRef} className="relative inline-flex">
-                {payload && payload.source === "api" && !noLibraryRow ? (
+                {!noLibraryRow ? (
                   <button
                     type="button"
                     onClick={() => setPickerOpen((v) => !v)}
@@ -464,7 +469,9 @@ export function LyricsPanel() {
                     className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 truncate"
                   >
                     <span className="truncate">
-                      {sourceLabel(payload, t, pluginNames)}
+                      {payload
+                        ? sourceLabel(payload, t, pluginNames)
+                        : t("lyrics.source.pickerHint")}
                     </span>
                     <ChevronDown size={11} className="shrink-0" />
                   </button>
@@ -492,18 +499,40 @@ export function LyricsPanel() {
                     }}
                     className="absolute left-0 bottom-full mb-1 z-20 min-w-44 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg p-1"
                   >
-                    {LYRICS_PROVIDERS.map((p) => {
-                      const isActive = payload?.provider === p;
+                    {[
+                      ...LYRICS_PROVIDERS.map((p) => ({
+                        value: p as LyricsProvider | PluginLyricsProvider,
+                        label: t(`lyrics.provider.${p}`),
+                        plugin: false,
+                      })),
+                      // The enabled lyrics plugins, after the built-in
+                      // providers: picked here, one is asked about this
+                      // track alone, which is also how to tell whether it
+                      // answers at all.
+                      ...lyricsPlugins.map((plugin) => ({
+                        value:
+                          `${PLUGIN_PROVIDER_PREFIX}${plugin.id}` as PluginLyricsProvider,
+                        label: plugin.name,
+                        plugin: true,
+                      })),
+                    ].map((option, index, all) => {
+                      const isActive = payload?.provider === option.value;
+                      const firstPlugin =
+                        option.plugin && !all[index - 1]?.plugin;
                       return (
                         <button
-                          key={p}
+                          key={option.value}
                           type="button"
                           role="menuitemradio"
                           aria-checked={isActive}
-                          onClick={() => handleRefetch(p)}
-                          className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200"
+                          onClick={() => handleRefetch(option.value)}
+                          className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200 ${
+                            firstPlugin
+                              ? "mt-1 border-t border-zinc-200 dark:border-zinc-700 rounded-t-none"
+                              : ""
+                          }`}
                         >
-                          <span>{t(`lyrics.provider.${p}`)}</span>
+                          <span>{option.label}</span>
                           {isActive && (
                             <Check
                               size={12}

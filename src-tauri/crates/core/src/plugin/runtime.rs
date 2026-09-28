@@ -899,6 +899,114 @@ pub fn metadata_v2_lyrics(
     }
 }
 
+// ----- metadata-v3 invocation helpers -------------------------------------
+//
+// v3 asks `lyrics` about a track rather than two strings. Its records are
+// otherwise v2's, so the answers map onto the same owned mirrors above.
+
+/// Owned mirror of `track-query` (3.0.0): what the host knows about the
+/// track lyrics are asked for. Everything past `title` is what the file
+/// says, and `None` when it says nothing.
+#[derive(Debug, Clone, Default)]
+pub struct TrackQuery {
+    pub artist: String,
+    pub title: String,
+    pub album: Option<String>,
+    pub duration_ms: Option<u32>,
+    pub isrc: Option<String>,
+}
+
+define_instantiate!(
+    instantiate_metadata_v3,
+    crate::plugin::bindings::metadata_v3::Plugin
+);
+
+/// Call a v3 guest's `album-info(artist, title)` — unchanged from v2, and
+/// asked for the same reason: animated covers come from any metadata world.
+pub fn metadata_v3_album_info(
+    runtime: &PluginRuntime,
+    paths: &PluginPaths,
+    plugin_id: &str,
+    artist: &str,
+    title: &str,
+) -> Result<AlbumInfo, SourceError> {
+    let (mut store, plugin) = instantiate_metadata_v3(runtime, paths, plugin_id)?;
+    let result = plugin
+        .waveflow_metadata_enricher()
+        .call_album_info(&mut store, artist, title)
+        .map_err(|e| SourceError::Trap(format!("{e:#}")))?;
+    match result {
+        Ok(info) => Ok(AlbumInfo {
+            description: info.description,
+            cover_url: info.cover_url,
+            track_count: info.track_count,
+            motion_cover_url: info.motion_cover_url,
+            motion_cover_tall_url: info.motion_cover_tall_url,
+        }),
+        Err(msg) => Err(SourceError::Plugin(msg)),
+    }
+}
+
+/// Call a v3 guest's `lyrics(track)`. Same contract as
+/// [`metadata_v2_lyrics`]: `Ok(None)` is a real "nothing for this track",
+/// `Err` means the lookup could not be made.
+pub fn metadata_v3_lyrics(
+    runtime: &PluginRuntime,
+    paths: &PluginPaths,
+    plugin_id: &str,
+    track: &TrackQuery,
+) -> Result<Option<LyricsBundle>, SourceError> {
+    use crate::plugin::bindings::metadata_v3::exports::waveflow::metadata::enricher as guest;
+
+    fn map_format(f: guest::LyricsFormat) -> LyricsDocFormat {
+        match f {
+            guest::LyricsFormat::Plain => LyricsDocFormat::Plain,
+            guest::LyricsFormat::Lrc => LyricsDocFormat::Lrc,
+            guest::LyricsFormat::EnhancedLrc => LyricsDocFormat::EnhancedLrc,
+            guest::LyricsFormat::Ttml => LyricsDocFormat::Ttml,
+        }
+    }
+
+    fn map_doc(d: guest::LyricsDocument) -> LyricsDocument {
+        LyricsDocument {
+            content: d.content,
+            format: map_format(d.format),
+            language: d.language,
+        }
+    }
+
+    let query = guest::TrackQuery {
+        artist: track.artist.clone(),
+        title: track.title.clone(),
+        album: track.album.clone(),
+        duration_ms: track.duration_ms,
+        isrc: track.isrc.clone(),
+    };
+    let (mut store, plugin) = instantiate_metadata_v3(runtime, paths, plugin_id)?;
+    let result = plugin
+        .waveflow_metadata_enricher()
+        .call_lyrics(&mut store, &query)
+        .map_err(|e| SourceError::Trap(format!("{e:#}")))?;
+    match result {
+        Ok(None) => Ok(None),
+        Ok(Some(bundle)) => Ok(Some(LyricsBundle {
+            primary: map_doc(bundle.primary),
+            associated: bundle
+                .associated
+                .into_iter()
+                .map(|a| AssociatedDocument {
+                    kind: match a.kind {
+                        guest::AssociatedKind::Translation => AssociatedKind::Translation,
+                        guest::AssociatedKind::Pronunciation => AssociatedKind::Pronunciation,
+                    },
+                    document: map_doc(a.document),
+                })
+                .collect(),
+        })),
+        Err(msg) => Err(SourceError::Plugin(msg)),
+    }
+}
+
 // ----- ui-v1 invocation helpers -------------------------------------------
 //
 // Instantiates + calls the `waveflow:ui/extension` exports. A UI

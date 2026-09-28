@@ -43,6 +43,15 @@ fn playback_dir(motion_cache_dir: &std::path::Path) -> std::path::PathBuf {
 /// resolved result is cached plugin-side after the first hit.
 const PLUGIN_TIMEOUT: Duration = Duration::from_secs(20);
 
+/// Which metadata world a plugin declared. All three export the same
+/// `album-info`, but each through its own bindings.
+#[derive(Debug, Clone, Copy)]
+enum MetadataWorld {
+    V1,
+    V2,
+    V3,
+}
+
 /// Resolved motion artwork for an album — the looping video URL(s) plus
 /// which plugin produced them (attribution / diagnostics).
 #[derive(Debug, Serialize)]
@@ -125,20 +134,30 @@ pub async fn fetch_album_motion_artwork(
         )
     };
 
-    // Both metadata worlds: v2 exports `album-info` exactly as v1 does,
-    // and enumerating v1 alone would drop animated covers the moment a
-    // plugin migrated — silently, since a plugin that is never asked
+    // Every metadata world: v2 and v3 export `album-info` exactly as v1
+    // does, and enumerating v1 alone would drop animated covers the moment
+    // a plugin migrated — silently, since a plugin that is never asked
     // cannot report that it was not asked. Each id is carried with the
-    // world it declared, because the two are not interchangeable at the
+    // world it declared, because they are not interchangeable at the
     // binding: instantiating a v2 component against v1 bindings is the
     // one outcome a version label exists to prevent.
-    let mut plugins: Vec<(String, bool)> = Vec::new();
-    for (world, is_v2) in [
-        (waveflow_core::plugin::worlds::METADATA_V1, false),
-        (waveflow_core::plugin::worlds::METADATA_V2, true),
+    let mut plugins: Vec<(String, MetadataWorld)> = Vec::new();
+    for (world, label) in [
+        (
+            MetadataWorld::V1,
+            waveflow_core::plugin::worlds::METADATA_V1,
+        ),
+        (
+            MetadataWorld::V2,
+            waveflow_core::plugin::worlds::METADATA_V2,
+        ),
+        (
+            MetadataWorld::V3,
+            waveflow_core::plugin::worlds::METADATA_V3,
+        ),
     ] {
-        for id in super::plugins::enabled_plugin_ids_for_world(&state, world).await? {
-            plugins.push((id, is_v2));
+        for id in super::plugins::enabled_plugin_ids_for_world(&state, label).await? {
+            plugins.push((id, world));
         }
     }
     let plugin_ids = plugins;
@@ -152,7 +171,7 @@ pub async fn fetch_album_motion_artwork(
     );
 
     let mut set = tokio::task::JoinSet::new();
-    for (plugin_id, is_v2) in plugin_ids {
+    for (plugin_id, world) in plugin_ids {
         // Grab the per-plugin lock HANDLE only (fast map op) — the loop must
         // not block on a contended plugin. The guard is acquired inside the
         // blocking task below so it spans the real work.
@@ -174,23 +193,12 @@ pub async fn fetch_album_motion_artwork(
                     // async timeout already fired — so an enable/uninstall
                     // can't race an in-flight lookup after an early drop.
                     let _guard = lock_arc.blocking_lock_owned();
-                    if is_v2 {
-                        waveflow_core::plugin::runtime::metadata_v2_album_info(
-                            &runtime,
-                            &paths,
-                            &id_owned,
-                            &artist_owned,
-                            &album_owned,
-                        )
-                    } else {
-                        waveflow_core::plugin::runtime::metadata_album_info(
-                            &runtime,
-                            &paths,
-                            &id_owned,
-                            &artist_owned,
-                            &album_owned,
-                        )
-                    }
+                    let call = match world {
+                        MetadataWorld::V1 => waveflow_core::plugin::runtime::metadata_album_info,
+                        MetadataWorld::V2 => waveflow_core::plugin::runtime::metadata_v2_album_info,
+                        MetadataWorld::V3 => waveflow_core::plugin::runtime::metadata_v3_album_info,
+                    };
+                    call(&runtime, &paths, &id_owned, &artist_owned, &album_owned)
                 }),
             )
             .await;

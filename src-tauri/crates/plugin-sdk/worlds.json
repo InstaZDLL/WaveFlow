@@ -5,6 +5,7 @@
     "waveflow:source/v1",
     "waveflow:metadata/v1",
     "waveflow:metadata/v2",
+    "waveflow:metadata/v3",
     "waveflow:ui/v1",
     "waveflow:canvas/v1"
   ]
