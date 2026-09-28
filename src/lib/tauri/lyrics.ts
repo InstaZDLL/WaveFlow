@@ -1038,10 +1038,15 @@ function lineAgent(p: Element): string | null {
  * Apple Music lays a duet out; lines sung together (a `group` agent) and
  * unattributed ones stay on the usual side. A document with a single
  * singer — the common case — is left untouched.
+ *
+ * "Heard first" is measured on each `<p>`'s own `begin` (`beginOf`), not
+ * on the line's start: background vocals can move that earlier, and
+ * they may belong to the other voice.
  */
 function assignDuetSides(
   lines: LyricsLine[],
   agentOf: Array<string | null>,
+  beginOf: number[],
   persons: Set<string>,
 ): void {
   const singing = new Set(
@@ -1050,10 +1055,10 @@ function assignDuetSides(
   if (singing.size < 2) return;
   let first: string | null = null;
   let earliest = Infinity;
-  lines.forEach((line, i) => {
+  lines.forEach((_line, i) => {
     const agent = agentOf[i];
-    if (agent && persons.has(agent) && line.timeMs < earliest) {
-      earliest = line.timeMs;
+    if (agent && persons.has(agent) && beginOf[i] < earliest) {
+      earliest = beginOf[i];
       first = agent;
     }
   });
@@ -1088,8 +1093,10 @@ export function parseTtml(content: string): LyricsLine[] {
   const localizations = readTtmlLocalizations(doc);
   const personAgents = ttmlPersonAgents(doc);
   const out: LyricsLine[] = [];
-  // Parallel to `out`, until the sides are known: who sings each line.
+  // Parallel to `out`, until the sides are known: who sings each line,
+  // and when its `<p>` says it begins.
   const agentOf: Array<string | null> = [];
+  const beginOf: number[] = [];
   // By local name like everything else here. A document that prefixes
   // its TTML elements parsed to nothing before, so this loses no
   // behaviour — but a parser that understood prefixes for the
@@ -1116,6 +1123,19 @@ export function parseTtml(content: string): LyricsLine[] {
 
     if (!text && (!words || words.length === 0) && !background) continue;
 
+    // The line starts with whatever is sung first, its own words or its
+    // background vocals. Those can lead the line, and a `<p begin>` that
+    // misses them would activate it late — after its first words had gone
+    // by.
+    const lineStart = Math.min(
+      lineBegin,
+      ...[
+        ...(words ?? []).map((word) => word.timeMs),
+        parseTtmlTime(backgroundSpan?.getAttribute("begin") ?? null),
+        ...(background?.words ?? []).map((word) => word.timeMs),
+      ].filter((ms) => ms >= 0),
+    );
+
     // Apple keys every line so its localizations can point back at it.
     // Joining on that key rather than on position is the whole reason
     // this is safe: a localized document may omit a line, and matching
@@ -1130,7 +1150,7 @@ export function parseTtml(content: string): LyricsLine[] {
       : undefined;
 
     out.push({
-      timeMs: lineBegin,
+      timeMs: lineStart,
       endMs: lineEnd >= 0 ? lineEnd : -1,
       text,
       words,
@@ -1142,9 +1162,10 @@ export function parseTtml(content: string): LyricsLine[] {
       background,
     });
     agentOf.push(lineAgent(p));
+    beginOf.push(lineBegin);
   }
 
-  assignDuetSides(out, agentOf, personAgents);
+  assignDuetSides(out, agentOf, beginOf, personAgents);
   out.sort((a, b) => a.timeMs - b.timeMs);
   fillEndTimestamps(out);
 
