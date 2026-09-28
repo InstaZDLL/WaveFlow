@@ -453,17 +453,19 @@ export interface LyricsWord {
  * keep working without per-call casts.
  */
 /**
- * A second reading of a line — today a romanization — which may or may
- * not be broken into timed words.
+ * A second text attached to a line — a romanization, or the background
+ * vocals sung over it — which may or may not be broken into timed words.
  *
- * `text` is always usable; `words` is the bonus. When present it is
- * measured to match the line word for word, sharing each word's
+ * `text` is always usable; `words` is the bonus. For a romanization they
+ * are measured to match the line word for word, sharing each word's
  * `timeMs` / `endMs` exactly: across a full Apple document there is one
  * transliterated span per original span with identical bounds. That is
  * why the karaoke fill needs no second timing pass — a romanized word
  * is driven by the clock of the word it reads out. Nothing upstream
  * promises that, though, so a line whose counts disagree keeps its
- * text and loses only the word split.
+ * text and loses only the word split. Background vocals are the
+ * exception: their words keep their own bounds (see
+ * {@link LyricsLine.background}).
  */
 export interface LyricsReading {
   text: string;
@@ -496,6 +498,74 @@ export interface LyricsLine {
    * read on screen, one block under the line.
    */
   translation?: string;
+  /**
+   * Background vocals sung over this line: a TTML `<span
+   * ttm:role="x-bg">`. Timed on their own — they often start before the
+   * lead — so their words carry their own bounds and are highlighted
+   * from the playback position rather than from `activeWordIndex`.
+   */
+  background?: LyricsReading;
+  /**
+   * `"end"` for a line sung by the second voice of a duet, which the
+   * surfaces align to the other side. Set only when the document names at
+   * least two singers (`ttm:agent` of type `person`); the first one to
+   * sing, and any group, keep the usual side.
+   */
+  side?: "end";
+}
+
+/**
+ * A stretch with nothing to sing: before the first line, or between two
+ * lines that the document says end and begin that far apart.
+ */
+export interface LyricsInterlude {
+  /** The line the interlude follows; `-1` for the intro. */
+  afterIndex: number;
+  startMs: number;
+  endMs: number;
+}
+
+/** How long a silence must last to be shown as an interlude. */
+export const INTERLUDE_MIN_MS = 4000;
+
+/**
+ * The interludes of a synced lyric. A gap between two lines counts only
+ * when the document gives the first line's end: a format without ends
+ * (plain LRC) has each line run until the next once parsed, so it shows
+ * no gap between lines — only its intro, which every synced format
+ * measures.
+ */
+export function findInterludes(
+  lines: LyricsLine[],
+  minMs = INTERLUDE_MIN_MS,
+): LyricsInterlude[] {
+  const out: LyricsInterlude[] = [];
+  if (lines.length === 0) return out;
+  if (lines[0].timeMs >= minMs) {
+    out.push({ afterIndex: -1, startMs: 0, endMs: lines[0].timeMs });
+  }
+  // Duet lines overlap, so an earlier line can still be sounding when a
+  // later one has ended: measure from the latest end so far.
+  let reach = -1;
+  for (let i = 0; i + 1 < lines.length; i += 1) {
+    const end = lineEndMs(lines[i]);
+    if (end < 0) continue;
+    reach = Math.max(reach, end);
+    const next = lines[i + 1].timeMs;
+    if (next - reach >= minMs) {
+      out.push({ afterIndex: i, startMs: reach, endMs: next });
+    }
+  }
+  return out;
+}
+
+/** The last moment anything in the line is sung, its background included. */
+function lineEndMs(line: LyricsLine): number {
+  let end = line.endMs;
+  for (const word of line.background?.words ?? []) {
+    end = Math.max(end, word.endMs);
+  }
+  return end;
 }
 
 /** Backwards-compatible alias used across the panel + fullscreen views. */
@@ -654,7 +724,16 @@ function matchedStampLength(body: string, at: number): number {
  * case-sensitive, and TTML spells these lowercase.
  */
 function localNameOf(el: Element): string {
-  return (el.localName || el.tagName).toLowerCase();
+  return withoutPrefix(el.localName || el.tagName);
+}
+
+/**
+ * `name` lowercased, without any `prefix:`. A browser's XML parser
+ * already strips the prefix from `localName`; not every DOM does, and
+ * one that keeps it would make every prefixed name look unknown.
+ */
+function withoutPrefix(name: string): string {
+  return name.slice(name.lastIndexOf(":") + 1).toLowerCase();
 }
 
 /** Every descendant with this local name, prefix or not. */
@@ -664,8 +743,30 @@ function byLocalName(root: Element | Document, local: string): Element[] {
   );
 }
 
-/** Apple's private TTML namespace, where line keys and timing live. */
-const ITUNES_NS = "http://music.apple.com/lyric-ttml-internal";
+/**
+ * The value of `el`'s attribute with this local name, whatever its
+ * prefix, or `null`.
+ *
+ * Line keys and timing sit in a private namespace that depends on who
+ * wrote the document: Apple's own is `itunes:key`, while a document
+ * relayed from elsewhere declares its own (`lrc:key`). Reading by
+ * namespace URI or by one prefix silently loses every localization of
+ * the second kind — the lines still parse, only the romanization never
+ * attaches.
+ */
+function attrByLocalName(el: Element, local: string): string | null {
+  for (const attr of Array.from(el.attributes)) {
+    if (withoutPrefix(attr.localName || attr.name) === local) {
+      return attr.value;
+    }
+  }
+  return null;
+}
+
+/** A `<span ttm:role="x-bg">`: background vocals, not a word of the lead. */
+function isBackgroundSpan(el: Element): boolean {
+  return localNameOf(el) === "span" && attrByLocalName(el, "role") === "x-bg";
+}
 
 /**
  * The direct `<span>` children of `el` as karaoke words, or `undefined`
@@ -673,13 +774,15 @@ const ITUNES_NS = "http://music.apple.com/lyric-ttml-internal";
  *
  * Nested spans are folded into their parent's text — TTML allows
  * `<span>` inside `<span>` for char-level timing, which we don't
- * animate. Shared by the lines themselves and by their transliterated
- * twins, which Apple gives the same shape.
+ * animate. Shared by the lines themselves, their transliterated twins,
+ * which Apple gives the same shape, and their background vocals. A
+ * background span is never a word of the line holding it: it is read
+ * on its own ({@link LyricsLine.background}).
  */
 function ttmlWords(el: Element): LyricsWord[] | undefined {
   const words: LyricsWord[] = [];
   for (const child of Array.from(el.children)) {
-    if (localNameOf(child) !== "span") continue;
+    if (localNameOf(child) !== "span" || isBackgroundSpan(child)) continue;
     const begin = parseTtmlTime(child.getAttribute("begin"));
     if (begin < 0) continue;
     const end = parseTtmlTime(child.getAttribute("end"));
@@ -874,6 +977,151 @@ function showableLyrics<T extends LyricsPayload | null>(payload: T): T {
   return { ...payload, format: "plain", content: text };
 }
 
+/** `el`'s text without that of the `exclude`d children, whitespace collapsed. */
+function textOutside(el: Element, exclude: Element[]): string {
+  let text = "";
+  for (const node of Array.from(el.childNodes)) {
+    if (!exclude.includes(node as Element)) text += node.textContent ?? "";
+  }
+  return text.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * The background vocals a line's `<span ttm:role="x-bg">`s hold, if any,
+ * as one reading: a line can carry several — one before the lead and one
+ * after it — and they are drawn together under it, in the order sung.
+ * Words are kept only when every span has them, so a highlight never
+ * skips a part that has no timing.
+ */
+function ttmlBackground(spans: Element[]): LyricsReading | undefined {
+  // Put the spans in the order sung once, and build the text and the
+  // words from that same order: a highlight walking one order over a
+  // text written in another would light the wrong part. Only the timed
+  // spans are reordered, among the places timed spans held; a span with
+  // no timing keeps its place in the document.
+  const inDocument = spans.map((span) => {
+    const words = ttmlWords(span);
+    const begin =
+      words?.[0]?.timeMs ?? parseTtmlTime(span.getAttribute("begin"));
+    return { span, words, begin };
+  });
+  const bySung = inDocument
+    .filter((part) => part.begin >= 0)
+    .sort((a, b) => a.begin - b.begin);
+  let next = 0;
+  const parts = inDocument.map((part) =>
+    part.begin >= 0 ? bySung[next++] : part,
+  );
+  const timed = parts.every((part) => part.words !== undefined);
+  let words: LyricsWord[] | undefined;
+  let text: string;
+  if (timed) {
+    // Every word timed: they are sorted themselves, since two spans can
+    // overlap, and the active-word lookup walks them in time order. The
+    // text is written from that same list, with a space where one span
+    // hands over to another.
+    const tagged = parts
+      .flatMap((part, span) => part.words!.map((word) => ({ word, span })))
+      .sort((a, b) => a.word.timeMs - b.word.timeMs);
+    words = tagged.map((entry) => entry.word);
+    text = tagged
+      .map((entry, i) => {
+        const previous = tagged[i - 1];
+        const joins =
+          previous &&
+          previous.span !== entry.span &&
+          !/\s$/.test(previous.word.text);
+        return (joins ? " " : "") + entry.word.text;
+      })
+      .join("")
+      .replace(/\s+/g, " ")
+      .trim();
+  } else {
+    text = parts
+      .map((part) =>
+        part.words
+          ? part.words
+              .map((word) => word.text)
+              .join("")
+              .trim()
+          : (part.span.textContent ?? "").replace(/\s+/g, " ").trim(),
+      )
+      .filter(Boolean)
+      .join(" ");
+  }
+  if (!text) return undefined;
+  // A background word that states no end runs to the next one, and the
+  // last to the end of the last stated one: they are highlighted from
+  // the clock, and a `-1` would keep a word lit for the rest of the line.
+  if (words) {
+    for (let i = 0; i < words.length; i += 1) {
+      if (words[i].endMs >= 0) continue;
+      words[i].endMs =
+        i + 1 < words.length ? words[i + 1].timeMs : words[i].timeMs;
+    }
+  }
+  return { text, words };
+}
+
+/**
+ * The ids of the singers the document declares (`<ttm:agent
+ * type="person" xml:id="v1"/>` in its head). A `group` agent — "all
+ * together" — is not one.
+ */
+function ttmlPersonAgents(doc: Document): Set<string> {
+  const ids = new Set<string>();
+  for (const agent of byLocalName(doc, "agent")) {
+    const id = attrByLocalName(agent, "id");
+    if (id && attrByLocalName(agent, "type") === "person") ids.add(id);
+  }
+  return ids;
+}
+
+/** Who sings `p`: its own `ttm:agent`, or the nearest ancestor's. */
+function lineAgent(p: Element): string | null {
+  for (let el: Element | null = p; el; el = el.parentElement) {
+    const agent = attrByLocalName(el, "agent");
+    if (agent) return agent;
+  }
+  return null;
+}
+
+/**
+ * Mark the lines of the second voice of a duet. The singer heard first
+ * keeps the usual side and every other singer takes the other one, as
+ * Apple Music lays a duet out; lines sung together (a `group` agent) and
+ * unattributed ones stay on the usual side. A document with a single
+ * singer — the common case — is left untouched.
+ *
+ * "Heard first" is measured on each `<p>`'s own `begin` (`beginOf`), not
+ * on the line's start: background vocals can move that earlier, and
+ * they may belong to the other voice.
+ */
+function assignDuetSides(
+  lines: LyricsLine[],
+  agentOf: Array<string | null>,
+  beginOf: number[],
+  persons: Set<string>,
+): void {
+  const singing = new Set(
+    agentOf.filter((agent): agent is string => !!agent && persons.has(agent)),
+  );
+  if (singing.size < 2) return;
+  let first: string | null = null;
+  let earliest = Infinity;
+  lines.forEach((_line, i) => {
+    const agent = agentOf[i];
+    if (agent && persons.has(agent) && beginOf[i] < earliest) {
+      earliest = beginOf[i];
+      first = agent;
+    }
+  });
+  lines.forEach((line, i) => {
+    const agent = agentOf[i];
+    if (agent && persons.has(agent) && agent !== first) line.side = "end";
+  });
+}
+
 /**
  * Parse Apple-Music-style TTML. Walks `<p>` for lines and `<span>` for
  * words. `begin`/`end` accept `HH:MM:SS.mmm`, `MM:SS.mmm`, plain
@@ -882,6 +1130,10 @@ function showableLyrics<T extends LyricsPayload | null>(payload: T): T {
  * Char-level spans (TTML lets `<span>` nest inside `<span>`) are
  * collapsed into the outer word — we don't animate character-by-char
  * in v1.
+ *
+ * A `<span ttm:role="x-bg">` becomes the line's `background`, not one of
+ * its words, and a document naming two singers marks the second one's
+ * lines with `side: "end"`.
  *
  * Returns an empty array if the document has no parseable lines.
  */
@@ -893,7 +1145,12 @@ export function parseTtml(content: string): LyricsLine[] {
   if (doc.querySelector("parsererror")) return [];
 
   const localizations = readTtmlLocalizations(doc);
+  const personAgents = ttmlPersonAgents(doc);
   const out: LyricsLine[] = [];
+  // Parallel to `out`, until the sides are known: who sings each line,
+  // and when its `<p>` says it begins.
+  const agentOf: Array<string | null> = [];
+  const beginOf: number[] = [];
   // By local name like everything else here. A document that prefixes
   // its TTML elements parsed to nothing before, so this loses no
   // behaviour — but a parser that understood prefixes for the
@@ -906,23 +1163,62 @@ export function parseTtml(content: string): LyricsLine[] {
     const lineEnd = parseTtmlTime(p.getAttribute("end"));
 
     const words = ttmlWords(p);
+    const backgroundSpans = Array.from(p.children).filter(isBackgroundSpan);
     const text =
       words !== undefined
         ? words
             .map((w) => w.text)
             .join("")
             .trim()
-        : (p.textContent ?? "").replace(/\s+/g, " ").trim();
+        : textOutside(p, backgroundSpans);
+    const background =
+      backgroundSpans.length > 0 ? ttmlBackground(backgroundSpans) : undefined;
 
-    if (!text && (!words || words.length === 0)) continue;
+    if (!text && (!words || words.length === 0) && !background) continue;
+
+    // The line starts with whatever is sung first, its own words or its
+    // background vocals. Those can lead the line, and a `<p begin>` that
+    // misses them would activate it late — after its first words had gone
+    // by.
+    const lineStart = Math.min(
+      lineBegin,
+      ...[
+        ...(words ?? []).map((word) => word.timeMs),
+        ...backgroundSpans.map((span) =>
+          parseTtmlTime(span.getAttribute("begin")),
+        ),
+        ...(background?.words ?? []).map((word) => word.timeMs),
+      ].filter((ms) => ms >= 0),
+    );
+    // And it ends with whatever is sung last. A background part can
+    // outlast the `<p end>`; kept, that end lets an interlude after the
+    // line start where the voices actually stop. Only a stated `<p end>`
+    // is extended: without one the line runs to the next, and a
+    // background end alone says nothing about when the lead stops.
+    const lineStop =
+      lineEnd < 0
+        ? -1
+        : Math.max(
+            lineEnd,
+            ...backgroundSpans
+              .filter((span) => (span.textContent ?? "").trim() !== "")
+              .map((span) => parseTtmlTime(span.getAttribute("end"))),
+            ...(background?.words ?? []).map((word) => word.endMs),
+          );
+    // The lead's own last word still stops at `<p end>`: left open, it
+    // would be closed at the line's end, and so stay lit while only the
+    // background sings on.
+    const lastWord = words?.[words.length - 1];
+    if (lastWord && lastWord.endMs < 0 && lineEnd >= 0) {
+      lastWord.endMs = lineEnd;
+    }
 
     // Apple keys every line so its localizations can point back at it.
     // Joining on that key rather than on position is the whole reason
     // this is safe: a localized document may omit a line, and matching
     // by index would then shift every following translation onto the
     // wrong line without anything looking broken.
-    const key =
-      p.getAttributeNS(ITUNES_NS, "key") ?? p.getAttribute("itunes:key");
+    const key = attrByLocalName(p, "key");
     const romanized = key
       ? localizations.romanizationByKey.get(key)
       : undefined;
@@ -931,8 +1227,8 @@ export function parseTtml(content: string): LyricsLine[] {
       : undefined;
 
     out.push({
-      timeMs: lineBegin,
-      endMs: lineEnd >= 0 ? lineEnd : -1,
+      timeMs: lineStart,
+      endMs: lineStop,
       text,
       words,
       romanization: usableRomanization(romanized, words, text),
@@ -940,9 +1236,13 @@ export function parseTtml(content: string): LyricsLine[] {
         translated && !saysTheSameThing(translated, text)
           ? translated
           : undefined,
+      background,
     });
+    agentOf.push(lineAgent(p));
+    beginOf.push(lineBegin);
   }
 
+  assignDuetSides(out, agentOf, beginOf, personAgents);
   out.sort((a, b) => a.timeMs - b.timeMs);
   fillEndTimestamps(out);
 

@@ -5,6 +5,8 @@ import { Artwork } from "../common/Artwork";
 import type { Track } from "../../lib/tauri/track";
 import type { LyricsLine, LyricsPayload } from "../../lib/tauri/lyrics";
 import { useFullscreenLyricsCentering } from "../../hooks/useFullscreenLyricsCentering";
+import type { ActiveInterlude } from "../../hooks/useTrackLyrics";
+import { BackgroundVocals, InterludeDots } from "./LyricsVoiceParts";
 import { useKaraokeWordFill } from "../../hooks/useKaraokeWordFill";
 import {
   lyricsHighlightColor,
@@ -23,6 +25,10 @@ interface ImmersiveLyricsColumnProps {
   isSynced: boolean;
   activeIndex: number;
   activeWordIndex: number;
+  /** Active word of the active line's background vocals. */
+  activeBackgroundWordIndex: number;
+  /** The instrumental stretch being played through, if any. */
+  activeInterlude: ActiveInterlude | null;
   isFetching: boolean;
   error: string | null;
   /** Genre that kept the track out of the online search, when that is
@@ -65,6 +71,8 @@ export function ImmersiveLyricsColumn({
   isSynced,
   activeIndex,
   activeWordIndex,
+  activeBackgroundWordIndex,
+  activeInterlude,
   isFetching,
   error,
   excludedGenre = null,
@@ -211,10 +219,26 @@ export function ImmersiveLyricsColumn({
             />
           ) : isSynced ? (
             <ul className="py-[40vh] space-y-6">
+              {activeInterlude?.afterIndex === -1 && (
+                <InterludeRow
+                  progress={activeInterlude.progress}
+                  align={syncCentered ? "text-center" : "text-left"}
+                />
+              )}
               {lrcLines.map((line, index) => {
                 const distance = Math.abs(index - activeIndex);
-                const isActive = index === activeIndex;
-                const isPast = index < activeIndex;
+                // Through the interlude after it, a line is sung and done:
+                // dimmed like the past, while the dots below take over.
+                const beforeInterlude = activeInterlude?.afterIndex === index;
+                const isActive = index === activeIndex && !beforeInterlude;
+                const isPast = index < activeIndex || beforeInterlude;
+                // A duet answers from the other side, unless the user
+                // centred the lyrics, which then holds for every voice.
+                const align = syncCentered
+                  ? "text-center"
+                  : line.side === "end"
+                    ? "text-right"
+                    : "text-left";
                 // Smooth fade based on distance from the active line —
                 // feels like Apple Music's lyrics view.
                 const opacity = isActive
@@ -222,154 +246,171 @@ export function ImmersiveLyricsColumn({
                   : Math.max(0.18, 0.7 - distance * 0.08);
                 const hasWords = isActive && (line.words?.length ?? 0) > 0;
                 return (
-                  <li
-                    key={`${line.timeMs}-${index}`}
-                    ref={(el) => {
-                      lineRefs.current[index] = el;
-                    }}
-                    style={{ opacity }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => onSeek(line)}
-                      className={`block w-full text-3xl md:text-4xl font-bold leading-snug cursor-pointer transition-all select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded ${
-                        syncCentered ? "text-center" : "text-left"
-                      } ${
-                        isActive
-                          ? "text-white scale-[1.04]"
-                          : isPast
-                            ? "text-white/40"
-                            : "text-white/70 hover:text-white"
-                      } ${isActive && highlightColor ? "wf-lyrics-highlight" : ""}`}
-                      style={
-                        isActive && highlightColor
-                          ? { color: highlightColor }
-                          : undefined
-                      }
+                  <Fragment key={`${line.timeMs}-${index}`}>
+                    <li
+                      ref={(el) => {
+                        lineRefs.current[index] = el;
+                      }}
+                      style={{ opacity }}
                     >
-                      {hasWords ? (
-                        <span>
-                          {line.words!.map((word, wi) => {
-                            const wState =
-                              wi === activeWordIndex
-                                ? "active"
-                                : wi < activeWordIndex
-                                  ? "past"
-                                  : "future";
-                            const isActiveWord = wState === "active";
-                            // Render a literal space between adjacent word
-                            // boxes — `inline-block` strips the JSX
-                            // whitespace and many Enhanced LRC sources omit
-                            // spaces between word stamps.
-                            return (
-                              <Fragment key={wi}>
-                                <span
-                                  className="karaoke-word"
-                                  style={{
-                                    // Opacity lives on the layers, not
-                                    // here: a parent's opacity applies to
-                                    // its whole subtree, so dimming the
-                                    // box would dim the sung overlay with
-                                    // it and no fill would ever read as
-                                    // brighter than the unsung text.
-                                    transform: isActiveWord
-                                      ? "scale(1.04)"
-                                      : "scale(1)",
-                                    transition: "transform 150ms ease",
-                                  }}
-                                >
+                      <button
+                        type="button"
+                        onClick={() => onSeek(line)}
+                        className={`block w-full text-3xl md:text-4xl font-bold leading-snug cursor-pointer transition-all select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded ${
+                          align
+                        } ${
+                          isActive
+                            ? "text-white scale-[1.04]"
+                            : isPast
+                              ? "text-white/40"
+                              : "text-white/70 hover:text-white"
+                        } ${isActive && highlightColor ? "wf-lyrics-highlight" : ""}`}
+                        style={
+                          isActive && highlightColor
+                            ? { color: highlightColor }
+                            : undefined
+                        }
+                      >
+                        {hasWords ? (
+                          <span>
+                            {line.words!.map((word, wi) => {
+                              const wState =
+                                wi === activeWordIndex
+                                  ? "active"
+                                  : wi < activeWordIndex
+                                    ? "past"
+                                    : "future";
+                              const isActiveWord = wState === "active";
+                              // Render a literal space between adjacent word
+                              // boxes — `inline-block` strips the JSX
+                              // whitespace and many Enhanced LRC sources omit
+                              // spaces between word stamps.
+                              return (
+                                <Fragment key={wi}>
                                   <span
+                                    className="karaoke-word"
                                     style={{
-                                      opacity:
-                                        wState === "past"
-                                          ? 0.8
-                                          : isActiveWord
-                                            ? 0.5
-                                            : 0.45,
-                                      transition: "opacity 150ms ease",
+                                      // Opacity lives on the layers, not
+                                      // here: a parent's opacity applies to
+                                      // its whole subtree, so dimming the
+                                      // box would dim the sung overlay with
+                                      // it and no fill would ever read as
+                                      // brighter than the unsung text.
+                                      transform: isActiveWord
+                                        ? "scale(1.04)"
+                                        : "scale(1)",
+                                      transition: "transform 150ms ease",
                                     }}
                                   >
-                                    {word.text}
-                                  </span>
-                                  {isActiveWord && (
-                                    // Sung overlay, clipped to the fill
-                                    // fraction. `aria-hidden` because the
-                                    // base layer above already carries the
-                                    // text for assistive tech — without it
-                                    // a screen reader would read the word
-                                    // twice.
                                     <span
-                                      ref={wordFillRef}
-                                      aria-hidden="true"
-                                      className="karaoke-word__fill"
+                                      style={{
+                                        opacity:
+                                          wState === "past"
+                                            ? 0.8
+                                            : isActiveWord
+                                              ? 0.5
+                                              : 0.45,
+                                        transition: "opacity 150ms ease",
+                                      }}
                                     >
                                       {word.text}
                                     </span>
-                                  )}
+                                    {isActiveWord && (
+                                      // Sung overlay, clipped to the fill
+                                      // fraction. `aria-hidden` because the
+                                      // base layer above already carries the
+                                      // text for assistive tech — without it
+                                      // a screen reader would read the word
+                                      // twice.
+                                      <span
+                                        ref={wordFillRef}
+                                        aria-hidden="true"
+                                        className="karaoke-word__fill"
+                                      >
+                                        {word.text}
+                                      </span>
+                                    )}
+                                  </span>
+                                  {wi < line.words!.length - 1 && " "}
+                                </Fragment>
+                              );
+                            })}
+                          </span>
+                        ) : (
+                          line.text || " "
+                        )}
+                        {line.background && (
+                          <BackgroundVocals
+                            reading={line.background}
+                            active={isActive}
+                            activeWordIndex={activeBackgroundWordIndex}
+                            className={`mt-1 text-xl md:text-2xl font-semibold ${align}`}
+                          />
+                        )}
+                        {localization === "romanization" &&
+                          line.romanization && (
+                            <span
+                              className={`block mt-1 text-xl md:text-2xl font-semibold ${
+                                align
+                              }`}
+                            >
+                              {line.romanization.words ? (
+                                // Word for word with the line above it,
+                                // sharing its bounds, so `activeWordIndex`
+                                // addresses both.
+                                //
+                                // No progressive fill here, deliberately:
+                                // `useKaraokeWordFill` returns one ref
+                                // callback for one element, and the sweep
+                                // belongs on the line the eye is following.
+                                // The romanization takes the discrete
+                                // highlight, which still marks the word
+                                // being sung.
+                                line.romanization.words.map((word, wi) => (
+                                  <Fragment key={wi}>
+                                    <span
+                                      style={{
+                                        opacity:
+                                          isActive && wi === activeWordIndex
+                                            ? 1
+                                            : isActive && wi < activeWordIndex
+                                              ? 0.7
+                                              : 0.45,
+                                        transition: "opacity 150ms ease",
+                                      }}
+                                    >
+                                      {word.text}
+                                    </span>
+                                    {wi <
+                                      line.romanization!.words!.length - 1 &&
+                                      " "}
+                                  </Fragment>
+                                ))
+                              ) : (
+                                <span style={{ opacity: isActive ? 0.9 : 0.5 }}>
+                                  {line.romanization.text}
                                 </span>
-                                {wi < line.words!.length - 1 && " "}
-                              </Fragment>
-                            );
-                          })}
-                        </span>
-                      ) : (
-                        line.text || " "
-                      )}
-                      {localization === "romanization" && line.romanization && (
-                        <span
-                          className={`block mt-1 text-xl md:text-2xl font-semibold ${
-                            syncCentered ? "text-center" : "text-left"
-                          }`}
-                        >
-                          {line.romanization.words ? (
-                            // Word for word with the line above it,
-                            // sharing its bounds, so `activeWordIndex`
-                            // addresses both.
-                            //
-                            // No progressive fill here, deliberately:
-                            // `useKaraokeWordFill` returns one ref
-                            // callback for one element, and the sweep
-                            // belongs on the line the eye is following.
-                            // The romanization takes the discrete
-                            // highlight, which still marks the word
-                            // being sung.
-                            line.romanization.words.map((word, wi) => (
-                              <Fragment key={wi}>
-                                <span
-                                  style={{
-                                    opacity:
-                                      isActive && wi === activeWordIndex
-                                        ? 1
-                                        : isActive && wi < activeWordIndex
-                                          ? 0.7
-                                          : 0.45,
-                                    transition: "opacity 150ms ease",
-                                  }}
-                                >
-                                  {word.text}
-                                </span>
-                                {wi < line.romanization!.words!.length - 1 &&
-                                  " "}
-                              </Fragment>
-                            ))
-                          ) : (
-                            <span style={{ opacity: isActive ? 0.9 : 0.5 }}>
-                              {line.romanization.text}
+                              )}
                             </span>
                           )}
-                        </span>
-                      )}
-                      {localization === "translation" && line.translation && (
-                        <span
-                          className={`block mt-1 text-lg md:text-xl font-normal italic text-white/60 ${
-                            syncCentered ? "text-center" : "text-left"
-                          }`}
-                        >
-                          {line.translation}
-                        </span>
-                      )}
-                    </button>
-                  </li>
+                        {localization === "translation" && line.translation && (
+                          <span
+                            className={`block mt-1 text-lg md:text-xl font-normal italic text-white/60 ${
+                              align
+                            }`}
+                          >
+                            {line.translation}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                    {beforeInterlude && (
+                      <InterludeRow
+                        progress={activeInterlude.progress}
+                        align={align}
+                      />
+                    )}
+                  </Fragment>
                 );
               })}
             </ul>
@@ -381,6 +422,21 @@ export function ImmersiveLyricsColumn({
         </div>
       </div>
     </div>
+  );
+}
+
+/** The interlude dots, sized and aligned like the lines around them. */
+function InterludeRow({
+  progress,
+  align,
+}: {
+  progress: number;
+  align: string;
+}) {
+  return (
+    <li className={`text-3xl md:text-4xl text-white ${align}`}>
+      <InterludeDots progress={progress} />
+    </li>
   );
 }
 

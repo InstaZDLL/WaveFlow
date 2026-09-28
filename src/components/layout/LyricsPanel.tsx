@@ -32,6 +32,7 @@ import {
   PLUGIN_PROVIDER_PREFIX,
 } from "../../lib/tauri/lyrics";
 import { LyricsEditorModal } from "../common/LyricsEditorModal";
+import { BackgroundVocals, InterludeDots } from "../player/LyricsVoiceParts";
 
 /**
  * Spotify-style right-edge panel showing the currently-playing track's
@@ -64,6 +65,8 @@ export function LyricsPanel() {
     isRemote,
     activeIndex,
     activeWordIndex,
+    activeBackgroundWordIndex,
+    activeInterlude,
     importLyrics,
     refetch,
     excludedGenre,
@@ -289,111 +292,135 @@ export function LyricsPanel() {
             />
           ) : isSynced ? (
             <ul className="space-y-3 py-32">
+              {activeInterlude?.afterIndex === -1 && (
+                <PanelInterlude progress={activeInterlude.progress} />
+              )}
               {lrcLines.map((line, index) => {
-                const isActive = index === activeIndex;
-                const isPast = index < activeIndex;
+                // Through the interlude after it, a line is sung and done.
+                const beforeInterlude = activeInterlude?.afterIndex === index;
+                const isActive = index === activeIndex && !beforeInterlude;
+                const isPast = index < activeIndex || beforeInterlude;
                 const hasWords = isActive && (line.words?.length ?? 0) > 0;
+                // A duet's second voice answers from the other side.
+                const align = line.side === "end" ? "text-right" : "text-left";
                 return (
-                  <li
-                    key={`${line.timeMs}-${index}`}
-                    ref={(el) => {
-                      lineRefs.current[index] = el;
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleSeekToLine(line)}
-                      className={`block w-full text-left text-base leading-relaxed cursor-pointer transition-all select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded ${
-                        isActive
-                          ? "text-zinc-900 dark:text-white font-semibold scale-[1.02]"
-                          : isPast
-                            ? "text-zinc-300 dark:text-zinc-600"
-                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                      }`}
+                  <Fragment key={`${line.timeMs}-${index}`}>
+                    <li
+                      ref={(el) => {
+                        lineRefs.current[index] = el;
+                      }}
                     >
-                      {hasWords ? (
-                        <span>
-                          {line.words!.map((word, wi) => (
-                            // See FullscreenLyrics for the rationale:
-                            // `inline-block` strips the JSX whitespace
-                            // that would normally separate inline
-                            // siblings, and many Enhanced LRC sources
-                            // omit spaces between word stamps. A literal
-                            // `" "` text node restores the gap; if the
-                            // source did carry trailing whitespace in
-                            // `word.text`, `white-space: normal`
-                            // collapses the pair to one.
-                            <Fragment key={wi}>
-                              <span
-                                className={
-                                  wi === activeWordIndex
-                                    ? "text-pink-500 dark:text-pink-400"
-                                    : wi < activeWordIndex
-                                      ? ""
-                                      : "opacity-60"
-                                }
-                                style={{
-                                  display: "inline-block",
-                                  transform:
-                                    wi === activeWordIndex
-                                      ? "scale(1.04)"
-                                      : "scale(1)",
-                                  transition:
-                                    "color 150ms ease, opacity 150ms ease, transform 150ms ease",
-                                }}
-                              >
-                                {word.text}
-                              </span>
-                              {wi < line.words!.length - 1 && " "}
-                            </Fragment>
-                          ))}
-                        </span>
-                      ) : (
-                        line.text || " "
-                      )}
-                      {localization === "romanization" && line.romanization && (
-                        <span className="block mt-0.5 text-sm font-normal">
-                          {line.romanization.words ? (
-                            // Word for word with the line above, sharing
-                            // its bounds, so `activeWordIndex` addresses
-                            // both: a romanized word lights up with the
-                            // word it reads out.
-                            line.romanization.words.map((word, wi) => (
+                      <button
+                        type="button"
+                        onClick={() => handleSeekToLine(line)}
+                        className={`block w-full ${align} text-base leading-relaxed cursor-pointer transition-all select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded ${
+                          isActive
+                            ? "text-zinc-900 dark:text-white font-semibold scale-[1.02]"
+                            : isPast
+                              ? "text-zinc-300 dark:text-zinc-600"
+                              : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                        }`}
+                      >
+                        {hasWords ? (
+                          <span>
+                            {line.words!.map((word, wi) => (
+                              // See FullscreenLyrics for the rationale:
+                              // `inline-block` strips the JSX whitespace
+                              // that would normally separate inline
+                              // siblings, and many Enhanced LRC sources
+                              // omit spaces between word stamps. A literal
+                              // `" "` text node restores the gap; if the
+                              // source did carry trailing whitespace in
+                              // `word.text`, `white-space: normal`
+                              // collapses the pair to one.
                               <Fragment key={wi}>
                                 <span
                                   className={
-                                    isActive && wi === activeWordIndex
+                                    wi === activeWordIndex
                                       ? "text-pink-500 dark:text-pink-400"
-                                      : isActive && wi < activeWordIndex
+                                      : wi < activeWordIndex
                                         ? ""
                                         : "opacity-60"
                                   }
-                                  style={{ display: "inline-block" }}
+                                  style={{
+                                    display: "inline-block",
+                                    transform:
+                                      wi === activeWordIndex
+                                        ? "scale(1.04)"
+                                        : "scale(1)",
+                                    transition:
+                                      "color 150ms ease, opacity 150ms ease, transform 150ms ease",
+                                  }}
                                 >
                                   {word.text}
                                 </span>
-                                {wi < line.romanization!.words!.length - 1 &&
-                                  " "}
+                                {wi < line.words!.length - 1 && " "}
                               </Fragment>
-                            ))
-                          ) : (
-                            // A line-timed document romanizes the line
-                            // and stops there. Nothing to highlight
-                            // inside it — which is just as true of the
-                            // line above.
-                            <span className="opacity-70">
-                              {line.romanization.text}
+                            ))}
+                          </span>
+                        ) : (
+                          line.text || " "
+                        )}
+                        {line.background && (
+                          <BackgroundVocals
+                            reading={line.background}
+                            active={isActive}
+                            activeWordIndex={activeBackgroundWordIndex}
+                            className="mt-0.5 text-sm font-normal"
+                          />
+                        )}
+                        {localization === "romanization" &&
+                          line.romanization && (
+                            <span className="block mt-0.5 text-sm font-normal">
+                              {line.romanization.words ? (
+                                // Word for word with the line above, sharing
+                                // its bounds, so `activeWordIndex` addresses
+                                // both: a romanized word lights up with the
+                                // word it reads out.
+                                line.romanization.words.map((word, wi) => (
+                                  <Fragment key={wi}>
+                                    <span
+                                      className={
+                                        isActive && wi === activeWordIndex
+                                          ? "text-pink-500 dark:text-pink-400"
+                                          : isActive && wi < activeWordIndex
+                                            ? ""
+                                            : "opacity-60"
+                                      }
+                                      style={{ display: "inline-block" }}
+                                    >
+                                      {word.text}
+                                    </span>
+                                    {wi <
+                                      line.romanization!.words!.length - 1 &&
+                                      " "}
+                                  </Fragment>
+                                ))
+                              ) : (
+                                // A line-timed document romanizes the line
+                                // and stops there. Nothing to highlight
+                                // inside it — which is just as true of the
+                                // line above.
+                                <span className="opacity-70">
+                                  {line.romanization.text}
+                                </span>
+                              )}
                             </span>
                           )}
-                        </span>
-                      )}
-                      {localization === "translation" && line.translation && (
-                        <span className="block mt-0.5 text-sm font-normal italic opacity-70">
-                          {line.translation}
-                        </span>
-                      )}
-                    </button>
-                  </li>
+                        {localization === "translation" && line.translation && (
+                          <span className="block mt-0.5 text-sm font-normal italic opacity-70">
+                            {line.translation}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                    {beforeInterlude && (
+                      <PanelInterlude
+                        progress={activeInterlude.progress}
+                        align={align}
+                      />
+                    )}
+                  </Fragment>
                 );
               })}
             </ul>
@@ -549,6 +576,21 @@ export function LyricsPanel() {
         )}
       </div>
     </motion.aside>
+  );
+}
+
+/** The interlude dots, in the panel's line size. */
+function PanelInterlude({
+  progress,
+  align = "text-left",
+}: {
+  progress: number;
+  align?: string;
+}) {
+  return (
+    <li className={`text-base text-zinc-500 dark:text-zinc-400 ${align}`}>
+      <InterludeDots progress={progress} />
+    </li>
   );
 }
 

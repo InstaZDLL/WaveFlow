@@ -424,6 +424,37 @@ html.mini-player-window #root {
   pointer-events: none;
 }
 
+/* Instrumental interlude: three dots in `currentColor`, sized from the
+   font so the same markup fits the immersive column and the mini-player.
+   The fill is inline (`InterludeDots`); the breathing is here. */
+.wf-interlude {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  animation: wf-interlude-breathe 2.4s ease-in-out infinite;
+}
+.wf-interlude__dot {
+  width: 0.45em;
+  height: 0.45em;
+  border-radius: 9999px;
+  background: currentColor;
+  transition: opacity 250ms ease;
+}
+@keyframes wf-interlude-breathe {
+  0%,
+  100% {
+    transform: scale(0.9);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wf-interlude {
+    animation: none;
+  }
+}
+
 /* Artist hero backdrop cross-fade (issue #482) — opacity only, so a
    fanart swapping in over the blurred-photo fallback dissolves instead
    of popping. Skipped entirely under `prefers-reduced-motion`. */

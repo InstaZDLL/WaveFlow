@@ -203,6 +203,8 @@ export function ImmersiveSidePanel({
           isSynced={lyrics.isSynced}
           activeIndex={lyrics.activeIndex}
           activeWordIndex={lyrics.activeWordIndex}
+          activeBackgroundWordIndex={lyrics.activeBackgroundWordIndex}
+          activeInterlude={lyrics.activeInterlude}
           isFetching={lyrics.isFetching}
           error={lyrics.error}
           excludedGenre={lyrics.excludedGenre}

@@ -13,10 +13,12 @@ import {
   fetchRemoteLyrics,
   findActiveLineIndex,
   findActiveWordIndex,
+  findInterludes,
   importLrcFile,
   lyricsExcludedGenre,
   parseLyrics,
   refetchLyrics,
+  type LyricsInterlude,
   type LyricsLine,
   type LyricsPayload,
   type LyricsProvider,
@@ -42,6 +44,11 @@ import {
  * the immersive scroller scroll independently), driven off the shared
  * `activeIndex` this hook exposes.
  */
+/** An interlude being played through, with how far into it (0 to 1). */
+export interface ActiveInterlude extends LyricsInterlude {
+  progress: number;
+}
+
 export interface TrackLyrics {
   payload: LyricsPayload | null;
   isFetching: boolean;
@@ -68,6 +75,15 @@ export interface TrackLyrics {
   activeWordIndex: number;
   /** The active line object, or `undefined`. */
   activeLine: LyricsLine | undefined;
+  /** Active word of the active line's background vocals (`-1` when none
+   *  has started, or the line has none). */
+  activeBackgroundWordIndex: number;
+  /** Every interlude of the synced lyric (empty when not synced). */
+  interludes: LyricsInterlude[];
+  /** The interlude the position is in, if any. `activeIndex` keeps
+   *  pointing at the line before it (`-1` for the intro), so a surface
+   *  that shows the interlude also dims that line. */
+  activeInterlude: ActiveInterlude | null;
   /** Pick a sidecar lyrics file and attach it to the current track. */
   importLyrics: () => Promise<void>;
   /** Re-query lyrics (full waterfall when `provider` omitted, else that
@@ -301,6 +317,30 @@ export function useTrackLyrics(): TrackLyrics {
     return findActiveWordIndex(activeLine.words, positionMs);
   }, [activeLine, positionMs]);
 
+  // Background vocals keep their own clock — they often start before
+  // the lead — so their word is found from the position, not borrowed
+  // from the lead's index.
+  const activeBackgroundWordIndex = useMemo(() => {
+    const words = activeLine?.background?.words;
+    if (!words || words.length === 0) return -1;
+    return findActiveWordIndex(words, positionMs);
+  }, [activeLine, positionMs]);
+
+  const interludes = useMemo(
+    () => (isSynced ? findInterludes(parsedLines) : []),
+    [isSynced, parsedLines],
+  );
+  const activeInterlude = useMemo<ActiveInterlude | null>(() => {
+    const gap = interludes.find(
+      (g) => positionMs >= g.startMs && positionMs < g.endMs,
+    );
+    if (!gap) return null;
+    return {
+      ...gap,
+      progress: (positionMs - gap.startMs) / (gap.endMs - gap.startMs),
+    };
+  }, [interludes, positionMs]);
+
   // ── Actions ──────────────────────────────────────────────────────
   const importLyrics = useCallback(async () => {
     if (trackId == null) return;
@@ -420,6 +460,9 @@ export function useTrackLyrics(): TrackLyrics {
     activeIndex,
     activeWordIndex,
     activeLine,
+    activeBackgroundWordIndex,
+    interludes,
+    activeInterlude,
     importLyrics,
     refetch,
     clear,
