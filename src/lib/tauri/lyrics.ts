@@ -476,6 +476,12 @@ export interface LyricsLine {
   timeMs: number;
   /** End of this line in ms. -1 if unknown (e.g. last line). */
   endMs: number;
+  /**
+   * Where the lead voice stops, when its background vocals carry the
+   * line on past it — `endMs` then includes them. Absent otherwise: the
+   * lead ends with the line.
+   */
+  leadEndMs?: number;
   /** Plain text — for word-timed lines, this is the joined word text. */
   text: string;
   /** Per-word timestamps when the source format provides them. */
@@ -1229,6 +1235,7 @@ export function parseTtml(content: string): LyricsLine[] {
     out.push({
       timeMs: lineStart,
       endMs: lineStop,
+      leadEndMs: lineStop > lineEnd ? lineEnd : undefined,
       text,
       words,
       romanization: usableRomanization(romanized, words, text),

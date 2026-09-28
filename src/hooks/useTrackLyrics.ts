@@ -21,6 +21,7 @@ import {
   refetchLyrics,
   type LyricsInterlude,
   type LyricsLine,
+  type LyricsWord,
   type LyricsPayload,
   type LyricsProvider,
   type PluginLyricsProvider,
@@ -351,15 +352,14 @@ export function useTrackLyrics(): TrackLyrics {
   }, [activeLine, positionMs]);
 
   const overlapLine = overlapIndex >= 0 ? lrcLines[overlapIndex] : undefined;
-  const overlapWordIndex = useMemo(() => {
-    if (!overlapLine?.words || overlapLine.words.length === 0) return -1;
-    return findActiveWordIndex(overlapLine.words, positionMs);
-  }, [overlapLine, positionMs]);
-  const overlapBackgroundWordIndex = useMemo(() => {
-    const words = overlapLine?.background?.words;
-    if (!words || words.length === 0) return -1;
-    return findActiveWordIndex(words, positionMs);
-  }, [overlapLine, positionMs]);
+  const overlapWordIndex = useMemo(
+    () => overlapWordAt(overlapLine?.words, positionMs),
+    [overlapLine, positionMs],
+  );
+  const overlapBackgroundWordIndex = useMemo(
+    () => overlapWordAt(overlapLine?.background?.words, positionMs),
+    [overlapLine, positionMs],
+  );
 
   const interludes = useMemo(
     () => (isSynced ? findInterludes(parsedLines) : []),
@@ -517,6 +517,26 @@ export function useTrackLyrics(): TrackLyrics {
  */
 function estimateBound(lines: LyricsLine[], index: number): number | undefined {
   const next = lines[index + 1]?.timeMs;
-  const end = lines[index].endMs;
+  // The lead's own end: the line's may include background vocals that
+  // outlast it, and those are not the words being estimated.
+  const end = lines[index].leadEndMs ?? lines[index].endMs;
   return next !== undefined && end > next ? end : next;
+}
+
+/**
+ * The word being sung in the overlapping line, or `words.length` once its
+ * last word has ended: such a line stays lit while its background vocals
+ * carry on, and its own words are then all sung. The active line keeps
+ * `findActiveWordIndex`'s rule — its last word is held until the next
+ * line takes over — which is what the estimated fill relies on.
+ */
+function overlapWordAt(
+  words: LyricsWord[] | undefined,
+  positionMs: number,
+): number {
+  if (!words || words.length === 0) return -1;
+  const last = words[words.length - 1];
+  const end = last.fillEndMs ?? last.endMs;
+  if (end >= 0 && positionMs >= end) return words.length;
+  return findActiveWordIndex(words, positionMs);
 }
