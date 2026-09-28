@@ -535,8 +535,9 @@ function overlapWordAt(
   positionMs: number,
 ): number {
   if (!words || words.length === 0) return -1;
-  const last = words[words.length - 1];
-  const end = last.fillEndMs ?? last.endMs;
+  // `endMs`, not `fillEndMs`: the fill may finish early, but the word is
+  // still the one being sung until its own end.
+  const end = words[words.length - 1].endMs;
   if (end >= 0 && positionMs >= end) return words.length;
   return findActiveWordIndex(words, positionMs);
 }
