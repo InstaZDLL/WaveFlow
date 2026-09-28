@@ -219,6 +219,32 @@ pub struct PluginMetadata {
     pub description_i18n: Option<BTreeMap<String, String>>,
     pub homepage: Option<String>,
     pub license: Option<String>,
+    /// The world functions this plugin actually answers — for a metadata
+    /// plugin, `"artist-info"`, `"album-info"`, `"lyrics"`. A world is a
+    /// set of exports every plugin of it must have, so a lyrics plugin
+    /// still exports `album-info` and an animated-cover one `lyrics`;
+    /// without this the host could not tell a real answer from a stub,
+    /// and it asked both kinds for both (and listed a cover plugin among
+    /// the lyrics sources). Empty — every manifest written before it —
+    /// means every function, which is what the host assumed until then.
+    /// Names the host does not know are kept and ignored, so a manifest
+    /// can name a function of a newer world.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub provides: Vec<String>,
+}
+
+impl PluginMetadata {
+    /// Whether this plugin answers `function` (see [`Self::provides`]).
+    pub fn provides(&self, function: &str) -> bool {
+        self.provides.is_empty() || self.provides.iter().any(|f| f == function)
+    }
+}
+
+/// World function names [`PluginMetadata::provides`] is matched against.
+pub mod functions {
+    pub const ARTIST_INFO: &str = "artist-info";
+    pub const ALBUM_INFO: &str = "album-info";
+    pub const LYRICS: &str = "lyrics";
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -568,6 +594,26 @@ storage_read = true
         assert_eq!(m.plugin.world, worlds::SOURCE_V1);
         assert_eq!(m.permissions.http.len(), 1);
         assert!(m.permissions.storage_read);
+    }
+
+    #[test]
+    fn a_plugin_without_provides_answers_everything() {
+        let m = Manifest::parse(&fixture(worlds::METADATA_V3, &[])).expect("valid manifest");
+        assert!(m.plugin.provides.is_empty());
+        assert!(m.plugin.provides(functions::LYRICS));
+        assert!(m.plugin.provides(functions::ALBUM_INFO));
+    }
+
+    #[test]
+    fn provides_narrows_to_the_functions_named() {
+        let raw = fixture(worlds::METADATA_V3, &[]).replace(
+            "world = \"waveflow:metadata/v3\"\n",
+            "world = \"waveflow:metadata/v3\"\nprovides = [\"album-info\", \"a-newer-function\"]\n",
+        );
+        let m = Manifest::parse(&raw).expect("an unknown function name is not an error");
+        assert!(m.plugin.provides(functions::ALBUM_INFO));
+        assert!(!m.plugin.provides(functions::LYRICS));
+        assert!(!m.plugin.provides(functions::ARTIST_INFO));
     }
 
     #[test]

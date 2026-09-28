@@ -157,6 +157,7 @@ mod tests {
                 description_i18n: None,
                 homepage: None,
                 license: None,
+                provides: Vec::new(),
             },
             permissions: Default::default(),
             assets,

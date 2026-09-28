@@ -2006,7 +2006,13 @@ async fn try_plugin_lyrics(
         (LyricsWorld::V2, waveflow_core::plugin::worlds::METADATA_V2),
         (LyricsWorld::V3, waveflow_core::plugin::worlds::METADATA_V3),
     ] {
-        for id in super::plugins::enabled_plugin_ids_for_world(state, label).await? {
+        for id in super::plugins::enabled_plugin_ids_providing(
+            state,
+            label,
+            waveflow_core::plugin::manifest::functions::LYRICS,
+        )
+        .await?
+        {
             plugins.push((id, world));
         }
     }

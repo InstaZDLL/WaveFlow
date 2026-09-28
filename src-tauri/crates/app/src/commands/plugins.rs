@@ -80,6 +80,9 @@ pub struct PluginInfo {
     pub description: Option<LocalizedString>,
     pub homepage: Option<String>,
     pub license: Option<String>,
+    /// The world functions the manifest says it answers; empty = all of
+    /// them (see `PluginMetadata::provides`).
+    pub provides: Vec<String>,
     pub permissions: PluginPermissionsInfo,
     pub assets: Vec<PluginAssetInfo>,
     /// `true` when the host should instantiate this plugin. Driven
@@ -204,6 +207,7 @@ fn manifest_to_info(
         description: manifest.plugin.description,
         homepage: manifest.plugin.homepage,
         license: manifest.plugin.license,
+        provides: manifest.plugin.provides,
         permissions: PluginPermissionsInfo {
             http: manifest.permissions.http,
             storage_read: manifest.permissions.storage_read,
@@ -504,20 +508,43 @@ pub(crate) async fn enabled_plugin_ids_for_world(
     state: &AppState,
     world: &str,
 ) -> AppResult<Vec<String>> {
+    enabled_plugin_ids_matching(state, world, None).await
+}
+
+/// [`enabled_plugin_ids_for_world`], narrowed to the plugins whose
+/// manifest says they answer `function` — so a lyrics lookup does not
+/// instantiate an animated-cover plugin to hear it has nothing, and the
+/// other way round. A manifest that names no function answers them all.
+pub(crate) async fn enabled_plugin_ids_providing(
+    state: &AppState,
+    world: &str,
+    function: &'static str,
+) -> AppResult<Vec<String>> {
+    enabled_plugin_ids_matching(state, world, Some(function)).await
+}
+
+async fn enabled_plugin_ids_matching(
+    state: &AppState,
+    world: &str,
+    function: Option<&'static str>,
+) -> AppResult<Vec<String>> {
     let paths = state.paths.plugin_paths();
     let wanted = world.to_string();
+    let matches = move |m: &Manifest| {
+        m.plugin.world == wanted && function.map_or(true, |f| m.plugin.provides(f))
+    };
     let ids = tokio::task::spawn_blocking(move || -> AppResult<Vec<String>> {
         let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
         let mut out = Vec::new();
         if let Some(bundled_root) = paths.bundled_root.as_deref() {
             for (id, m) in walk_install_root(bundled_root)? {
-                if seen.insert(id.clone()) && m.plugin.world == wanted {
+                if seen.insert(id.clone()) && matches(&m) {
                     out.push(id);
                 }
             }
         }
         for (id, m) in walk_install_root(&paths.plugins_root)? {
-            if !seen.contains(&id) && m.plugin.world == wanted {
+            if !seen.contains(&id) && matches(&m) {
                 out.push(id);
             }
         }
