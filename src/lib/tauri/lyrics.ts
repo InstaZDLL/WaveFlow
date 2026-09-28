@@ -1190,6 +1190,21 @@ export function parseTtml(content: string): LyricsLine[] {
         ...(background?.words ?? []).map((word) => word.timeMs),
       ].filter((ms) => ms >= 0),
     );
+    // And it ends with whatever is sung last. A background part can
+    // outlast the `<p end>`; kept, that end lets an interlude after the
+    // line start where the voices actually stop. Only a stated `<p end>`
+    // is extended: without one the line runs to the next, and a
+    // background end alone says nothing about when the lead stops.
+    const lineStop =
+      lineEnd < 0
+        ? -1
+        : Math.max(
+            lineEnd,
+            ...backgroundSpans
+              .filter((span) => (span.textContent ?? "").trim() !== "")
+              .map((span) => parseTtmlTime(span.getAttribute("end"))),
+            ...(background?.words ?? []).map((word) => word.endMs),
+          );
 
     // Apple keys every line so its localizations can point back at it.
     // Joining on that key rather than on position is the whole reason
@@ -1206,7 +1221,7 @@ export function parseTtml(content: string): LyricsLine[] {
 
     out.push({
       timeMs: lineStart,
-      endMs: lineEnd >= 0 ? lineEnd : -1,
+      endMs: lineStop,
       text,
       words,
       romanization: usableRomanization(romanized, words, text),
