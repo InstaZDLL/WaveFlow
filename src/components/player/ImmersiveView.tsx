@@ -408,6 +408,9 @@ export function ImmersiveView({
                 activeIndex={lyrics.activeIndex}
                 activeWordIndex={lyrics.activeWordIndex}
                 activeBackgroundWordIndex={lyrics.activeBackgroundWordIndex}
+                overlapIndex={lyrics.overlapIndex}
+                overlapWordIndex={lyrics.overlapWordIndex}
+                overlapBackgroundWordIndex={lyrics.overlapBackgroundWordIndex}
                 activeInterlude={lyrics.activeInterlude}
                 isFetching={lyrics.isFetching}
                 error={lyrics.error}

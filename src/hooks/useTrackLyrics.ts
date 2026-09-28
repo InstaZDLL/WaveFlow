@@ -13,6 +13,7 @@ import {
   fetchRemoteLyrics,
   findActiveLineIndex,
   findActiveWordIndex,
+  findOverlappingLineIndex,
   findInterludes,
   importLrcFile,
   lyricsExcludedGenre,
@@ -79,6 +80,14 @@ export interface TrackLyrics {
   /** Active word of the active line's background vocals (`-1` when none
    *  has started, or the line has none). */
   activeBackgroundWordIndex: number;
+  /** A line before the active one still being sung — the other voice
+   *  of a duet holding its end — or `-1`. Drawn active beside it; the
+   *  scroll keeps following `activeIndex`. */
+  overlapIndex: number;
+  /** Active word inside the overlapping line (`-1` when none). */
+  overlapWordIndex: number;
+  /** Active word of the overlapping line's background vocals. */
+  overlapBackgroundWordIndex: number;
   /** Every interlude of the synced lyric (empty when not synced). */
   interludes: LyricsInterlude[];
   /** The interlude the position is in, if any. `activeIndex` keeps
@@ -299,16 +308,30 @@ export function useTrackLyrics(): TrackLyrics {
   // nothing and switching the setting off leaves no trace. A line that
   // already carries real word timing is left exactly as it is.
   const estimateWords = useEstimatedKaraoke();
+  // The other voice of a duet, while it holds the end of its line. Found
+  // on the parsed lines: estimating words never moves a line's bounds.
+  const overlapIndex = useMemo(
+    () =>
+      isSynced && activeIndex >= 0
+        ? findOverlappingLineIndex(parsedLines, activeIndex, positionMs)
+        : -1,
+    [isSynced, parsedLines, activeIndex, positionMs],
+  );
   const lrcLines = useMemo<LyricsLine[]>(() => {
     if (!estimateWords || !isSynced || activeIndex < 0) return parsedLines;
-    const line = parsedLines[activeIndex];
-    if (!line || (line.words?.length ?? 0) > 0) return parsedLines;
-    const words = estimateLineWords(line, parsedLines[activeIndex + 1]?.timeMs);
-    if (words.length === 0) return parsedLines;
-    const next = parsedLines.slice();
-    next[activeIndex] = { ...line, words };
-    return next;
-  }, [estimateWords, isSynced, activeIndex, parsedLines]);
+    let next: LyricsLine[] | null = null;
+    // The overlapping line keeps words too, estimated exactly as when it
+    // was active, so handing over does not reshape them mid-sweep.
+    for (const index of [activeIndex, overlapIndex]) {
+      const line = parsedLines[index];
+      if (!line || (line.words?.length ?? 0) > 0) continue;
+      const words = estimateLineWords(line, estimateBound(parsedLines, index));
+      if (words.length === 0) continue;
+      next ??= parsedLines.slice();
+      next[index] = { ...line, words };
+    }
+    return next ?? parsedLines;
+  }, [estimateWords, isSynced, activeIndex, overlapIndex, parsedLines]);
 
   // Active word inside the active line — only computed when the line
   // carries `words[]` so plain LRC stays cheap.
@@ -326,6 +349,17 @@ export function useTrackLyrics(): TrackLyrics {
     if (!words || words.length === 0) return -1;
     return findActiveWordIndex(words, positionMs);
   }, [activeLine, positionMs]);
+
+  const overlapLine = overlapIndex >= 0 ? lrcLines[overlapIndex] : undefined;
+  const overlapWordIndex = useMemo(() => {
+    if (!overlapLine?.words || overlapLine.words.length === 0) return -1;
+    return findActiveWordIndex(overlapLine.words, positionMs);
+  }, [overlapLine, positionMs]);
+  const overlapBackgroundWordIndex = useMemo(() => {
+    const words = overlapLine?.background?.words;
+    if (!words || words.length === 0) return -1;
+    return findActiveWordIndex(words, positionMs);
+  }, [overlapLine, positionMs]);
 
   const interludes = useMemo(
     () => (isSynced ? findInterludes(parsedLines) : []),
@@ -462,6 +496,9 @@ export function useTrackLyrics(): TrackLyrics {
     activeWordIndex,
     activeLine,
     activeBackgroundWordIndex,
+    overlapIndex,
+    overlapWordIndex,
+    overlapBackgroundWordIndex,
     interludes,
     activeInterlude,
     importLyrics,
@@ -470,4 +507,16 @@ export function useTrackLyrics(): TrackLyrics {
     seekToLine,
     applyPayload,
   };
+}
+
+/**
+ * Where a line's estimated words have to fit: the next line's start, or
+ * the line's own stated end when it runs past it — the one voice of a
+ * duet holding its end while the other starts. Undefined for the last
+ * line, as before.
+ */
+function estimateBound(lines: LyricsLine[], index: number): number | undefined {
+  const next = lines[index + 1]?.timeMs;
+  const end = lines[index].endMs;
+  return next !== undefined && end > next ? end : next;
 }

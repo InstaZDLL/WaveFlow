@@ -67,6 +67,9 @@ export function LyricsPanel() {
     activeIndex,
     activeWordIndex,
     activeBackgroundWordIndex,
+    overlapIndex,
+    overlapWordIndex,
+    overlapBackgroundWordIndex,
     activeInterlude,
     importLyrics,
     refetch,
@@ -302,8 +305,19 @@ export function LyricsPanel() {
               {lrcLines.map((line, index) => {
                 // Through the interlude after it, a line is sung and done.
                 const beforeInterlude = activeInterlude?.afterIndex === index;
-                const isActive = index === activeIndex && !beforeInterlude;
-                const isPast = index < activeIndex || beforeInterlude;
+                // The other voice of a duet, still holding its line, stays lit
+                // beside the active one.
+                const isOverlap = index === overlapIndex;
+                const isActive =
+                  (index === activeIndex && !beforeInterlude) || isOverlap;
+                const isPast =
+                  (index < activeIndex && !isOverlap) || beforeInterlude;
+                const lineWordIndex = isOverlap
+                  ? overlapWordIndex
+                  : activeWordIndex;
+                const lineBackgroundWordIndex = isOverlap
+                  ? overlapBackgroundWordIndex
+                  : activeBackgroundWordIndex;
                 const hasWords = isActive && (line.words?.length ?? 0) > 0;
                 // A duet's second voice answers from the other side.
                 const align = line.side === "end" ? "text-right" : "text-left";
@@ -340,16 +354,16 @@ export function LyricsPanel() {
                               <Fragment key={wi}>
                                 <span
                                   className={
-                                    wi === activeWordIndex
+                                    wi === lineWordIndex
                                       ? "text-pink-500 dark:text-pink-400"
-                                      : wi < activeWordIndex
+                                      : wi < lineWordIndex
                                         ? ""
                                         : "opacity-60"
                                   }
                                   style={{
                                     display: "inline-block",
                                     transform:
-                                      wi === activeWordIndex
+                                      wi === lineWordIndex
                                         ? "scale(1.04)"
                                         : "scale(1)",
                                     transition:
@@ -369,7 +383,7 @@ export function LyricsPanel() {
                           <BackgroundVocals
                             reading={line.background}
                             active={isActive}
-                            activeWordIndex={activeBackgroundWordIndex}
+                            activeWordIndex={lineBackgroundWordIndex}
                             className="mt-0.5 text-sm font-normal"
                           />
                         )}
@@ -378,16 +392,16 @@ export function LyricsPanel() {
                             <span className="block mt-0.5 text-sm font-normal">
                               {line.romanization.words ? (
                                 // Word for word with the line above, sharing
-                                // its bounds, so `activeWordIndex` addresses
+                                // its bounds, so `lineWordIndex` addresses
                                 // both: a romanized word lights up with the
                                 // word it reads out.
                                 line.romanization.words.map((word, wi) => (
                                   <Fragment key={wi}>
                                     <span
                                       className={
-                                        isActive && wi === activeWordIndex
+                                        isActive && wi === lineWordIndex
                                           ? "text-pink-500 dark:text-pink-400"
-                                          : isActive && wi < activeWordIndex
+                                          : isActive && wi < lineWordIndex
                                             ? ""
                                             : "opacity-60"
                                       }

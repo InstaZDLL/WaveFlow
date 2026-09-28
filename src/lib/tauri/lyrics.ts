@@ -1433,6 +1433,46 @@ export function findActiveLineIndex(
   return i;
 }
 
+/** How far back a line still being sung is looked for. */
+const OVERLAP_LOOKBACK = 3;
+
+/**
+ * How long a line has to run past the start of the next for both to be
+ * lit. Measured on Apple documents, most overlaps are a word's tail
+ * running over by 5 to 200 ms, which lit twice would only flicker; the
+ * two voices really singing at once ran 0.7 to 4 s.
+ */
+const OVERLAP_MIN_MS = 400;
+
+/**
+ * The line before the active one that is still being sung, or `-1`.
+ *
+ * In a duet the voices overlap: one singer holds the end of a line while
+ * the other starts the next. `findActiveLineIndex` names the latest line
+ * only, which switched the first off while it was still being sung. A
+ * line counts here only when the document says it runs well past the
+ * start of the active one — a stated end, as TTML gives — so a format that
+ * has each line run until the next never has one. The most recent such line
+ * wins: two voices are drawn, not a crowd.
+ */
+export function findOverlappingLineIndex(
+  lines: LyricsLine[],
+  activeIndex: number,
+  positionMs: number,
+): number {
+  const active = lines[activeIndex];
+  if (!active) return -1;
+  for (
+    let i = activeIndex - 1;
+    i >= Math.max(0, activeIndex - OVERLAP_LOOKBACK);
+    i -= 1
+  ) {
+    const end = lines[i].endMs;
+    if (end > positionMs && end - active.timeMs >= OVERLAP_MIN_MS) return i;
+  }
+  return -1;
+}
+
 /**
  * Find the index of the active word within a line's `words` array
  * given a playback position. Returns `-1` when the position is before
