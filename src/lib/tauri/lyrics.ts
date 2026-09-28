@@ -1205,6 +1205,13 @@ export function parseTtml(content: string): LyricsLine[] {
               .map((span) => parseTtmlTime(span.getAttribute("end"))),
             ...(background?.words ?? []).map((word) => word.endMs),
           );
+    // The lead's own last word still stops at `<p end>`: left open, it
+    // would be closed at the line's end, and so stay lit while only the
+    // background sings on.
+    const lastWord = words?.[words.length - 1];
+    if (lastWord && lastWord.endMs < 0 && lineEnd >= 0) {
+      lastWord.endMs = lineEnd;
+    }
 
     // Apple keys every line so its localizations can point back at it.
     // Joining on that key rather than on position is the whole reason
