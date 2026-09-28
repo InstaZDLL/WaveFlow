@@ -36,6 +36,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { useLikedTracks } from "../../hooks/useLikedTracks";
 import { useTrackLyrics } from "../../hooks/useTrackLyrics";
 import { useKaraokeWordFill } from "../../hooks/useKaraokeWordFill";
+import { BackgroundVocals, InterludeDots } from "../player/LyricsVoiceParts";
 import {
   lyricsHighlightColor,
   useLyricsHighlightColor,
@@ -925,6 +926,15 @@ export function MiniPlayer() {
 type MiniOverlay = "none" | "queue" | "lyrics";
 
 /** Fades the first and last lines out instead of slicing them in half. */
+/** The interlude dots, at the mini-player's active-line size. */
+function MiniInterlude({ progress }: { progress: number }) {
+  return (
+    <li className="text-center text-[15px] text-white">
+      <InterludeDots progress={progress} />
+    </li>
+  );
+}
+
 const LYRICS_MASK =
   "linear-gradient(to bottom, transparent 0%, #000 20%, #000 80%, transparent 100%)";
 
@@ -970,6 +980,8 @@ function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
     radioPlainText,
     activeIndex,
     activeWordIndex,
+    activeBackgroundWordIndex,
+    activeInterlude,
     seekToLine,
   } = useTrackLyrics();
   // The colour for the line being sung, chosen in the main window's
@@ -1044,84 +1056,104 @@ function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
               centre like any other. A fixed padding would be a guess about
               a window height the user can drag. */}
             <li aria-hidden="true" className="pointer-events-none h-1/2" />
+            {activeInterlude?.afterIndex === -1 && (
+              <MiniInterlude progress={activeInterlude.progress} />
+            )}
             {lrcLines.map((line, index) => {
-              const isActive = index === activeIndex;
-              const isPast = activeIndex >= 0 && index < activeIndex;
+              // Through the interlude after it, a line is sung and done.
+              // Lines stay centred for a duet too: a 280-pixel window has
+              // no room for two sides.
+              const beforeInterlude = activeInterlude?.afterIndex === index;
+              const isActive = index === activeIndex && !beforeInterlude;
+              const isPast =
+                (activeIndex >= 0 && index < activeIndex) || beforeInterlude;
               const hasWords = isActive && (line.words?.length ?? 0) > 0;
               return (
-                <li
-                  key={`${line.timeMs}-${index}`}
-                  ref={(el) => {
-                    lineRefs.current[index] = el;
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => seekToLine(line)}
-                    className={`block w-full rounded text-center leading-snug transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/70 ${
-                      isActive
-                        ? "text-[15px] font-semibold text-white"
-                        : isPast
-                          ? "text-[11px] text-white/30"
-                          : "text-[11px] text-white/55 hover:text-white/85"
-                    } ${isActive && highlightColor ? "wf-lyrics-highlight" : ""}`}
-                    style={
-                      isActive && highlightColor
-                        ? { color: highlightColor }
-                        : undefined
-                    }
+                <Fragment key={`${line.timeMs}-${index}`}>
+                  <li
+                    ref={(el) => {
+                      lineRefs.current[index] = el;
+                    }}
                   >
-                    {hasWords ? (
-                      <span>
-                        {line.words!.map((word, wi) => {
-                          const isActiveWord = wi === activeWordIndex;
-                          // A literal space between boxes: `inline-block`
-                          // strips the JSX whitespace, and many Enhanced
-                          // LRC sources omit spaces between word stamps.
-                          return (
-                            <Fragment key={wi}>
-                              <span className="karaoke-word">
-                                {/* Opacity lives on the layers, never on
+                    <button
+                      type="button"
+                      onClick={() => seekToLine(line)}
+                      className={`block w-full rounded text-center leading-snug transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/70 ${
+                        isActive
+                          ? "text-[15px] font-semibold text-white"
+                          : isPast
+                            ? "text-[11px] text-white/30"
+                            : "text-[11px] text-white/55 hover:text-white/85"
+                      } ${isActive && highlightColor ? "wf-lyrics-highlight" : ""}`}
+                      style={
+                        isActive && highlightColor
+                          ? { color: highlightColor }
+                          : undefined
+                      }
+                    >
+                      {hasWords ? (
+                        <span>
+                          {line.words!.map((word, wi) => {
+                            const isActiveWord = wi === activeWordIndex;
+                            // A literal space between boxes: `inline-block`
+                            // strips the JSX whitespace, and many Enhanced
+                            // LRC sources omit spaces between word stamps.
+                            return (
+                              <Fragment key={wi}>
+                                <span className="karaoke-word">
+                                  {/* Opacity lives on the layers, never on
                                   the box — a parent's opacity applies to
                                   its whole subtree, so dimming the box
                                   would dim the sung overlay with it and
                                   no fill could ever read as brighter. */}
-                                <span
-                                  style={{
-                                    opacity:
-                                      wi < activeWordIndex
-                                        ? 0.8
-                                        : isActiveWord
-                                          ? 0.5
-                                          : 0.45,
-                                    transition: "opacity 150ms ease",
-                                  }}
-                                >
-                                  {word.text}
-                                </span>
-                                {isActiveWord && (
-                                  // `aria-hidden` because the base layer
-                                  // already carries the text — without it
-                                  // a screen reader reads the word twice.
                                   <span
-                                    ref={wordFillRef}
-                                    aria-hidden="true"
-                                    className="karaoke-word__fill"
+                                    style={{
+                                      opacity:
+                                        wi < activeWordIndex
+                                          ? 0.8
+                                          : isActiveWord
+                                            ? 0.5
+                                            : 0.45,
+                                      transition: "opacity 150ms ease",
+                                    }}
                                   >
                                     {word.text}
                                   </span>
-                                )}
-                              </span>
-                              {wi < line.words!.length - 1 && " "}
-                            </Fragment>
-                          );
-                        })}
-                      </span>
-                    ) : (
-                      line.text || " "
-                    )}
-                  </button>
-                </li>
+                                  {isActiveWord && (
+                                    // `aria-hidden` because the base layer
+                                    // already carries the text — without it
+                                    // a screen reader reads the word twice.
+                                    <span
+                                      ref={wordFillRef}
+                                      aria-hidden="true"
+                                      className="karaoke-word__fill"
+                                    >
+                                      {word.text}
+                                    </span>
+                                  )}
+                                </span>
+                                {wi < line.words!.length - 1 && " "}
+                              </Fragment>
+                            );
+                          })}
+                        </span>
+                      ) : (
+                        line.text || " "
+                      )}
+                      {line.background && (
+                        <BackgroundVocals
+                          reading={line.background}
+                          active={isActive}
+                          activeWordIndex={activeBackgroundWordIndex}
+                          className="text-[10px] font-normal"
+                        />
+                      )}
+                    </button>
+                  </li>
+                  {beforeInterlude && (
+                    <MiniInterlude progress={activeInterlude.progress} />
+                  )}
+                </Fragment>
               );
             })}
             <li aria-hidden="true" className="pointer-events-none h-1/2" />
