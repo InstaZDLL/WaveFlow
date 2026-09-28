@@ -68,6 +68,16 @@ pub mod worlds {
     /// the next breaking release; do not write new plugins against it.
     pub const METADATA_V2: &str = "waveflow:metadata/v2";
 
+    /// `waveflow:metadata/v3` — same exports as [`METADATA_V2`], with
+    /// `lyrics` asked about a track (artist, title, album, length, ISRC)
+    /// rather than two strings, so a provider can find the right
+    /// recording and not just the right name. See `wit/metadata-v3/`.
+    ///
+    /// **[`METADATA_V2`] is deprecated from v3's first day**, on the
+    /// same terms it set for v1: kept loadable while its consumer
+    /// migrates, removed at the next breaking release.
+    pub const METADATA_V3: &str = "waveflow:metadata/v3";
+
     /// `waveflow:ui/v1` — UI extensions (custom views, panels). Return
     /// view descriptors the host renders. See `wit/waveflow-ui.wit`.
     pub const UI_V1: &str = "waveflow:ui/v1";
@@ -99,7 +109,14 @@ pub mod worlds {
     /// from the published schema, so a Canvas plugin would have been
     /// rejected at publication by a registry that the host would have
     /// loaded happily.
-    pub const ALL: &[&str] = &[SOURCE_V1, METADATA_V1, METADATA_V2, UI_V1, CANVAS_V1];
+    pub const ALL: &[&str] = &[
+        SOURCE_V1,
+        METADATA_V1,
+        METADATA_V2,
+        METADATA_V3,
+        UI_V1,
+        CANVAS_V1,
+    ];
 }
 
 /// Host permission identifiers (manifest `[permissions]` table).
@@ -162,6 +179,7 @@ mod tests {
         assert!(worlds::is_known(worlds::SOURCE_V1));
         assert!(worlds::is_known(worlds::METADATA_V1));
         assert!(worlds::is_known(worlds::METADATA_V2));
+        assert!(worlds::is_known(worlds::METADATA_V3));
         assert!(worlds::is_known(worlds::UI_V1));
         assert!(worlds::is_known(worlds::CANVAS_V1));
         assert!(!worlds::is_known("waveflow:bogus/v1"));
