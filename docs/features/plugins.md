@@ -13,6 +13,14 @@ A plugin declares a **world** (`source`, `metadata`, `ui` or `canvas`, as a mani
 
 `metadata` has three versions, bound side by side ([`bindings.rs`](../../src-tauri/crates/core/src/plugin/bindings.rs)) because each changed a function's type: **v1** (bios, albums, animated covers), **v2** (`lyrics(artist, title)` returning the provider's document verbatim, with its translations and pronunciation), and **v3** (`lyrics(track)`, where `track-query` adds the album, the file's length and its ISRC). Every version answers `album-info` for animated covers; v1 and v2 are deprecated and removed at the next breaking release. Write new plugins against v3.
 
+**What a plugin answers: `provides`.** A world is a set of exports every plugin of it must implement, so a lyrics plugin still exports `album-info` and an animated-cover plugin still exports `lyrics`, each returning nothing. The host could not tell a stub from a real answer: it instantiated every enabled `metadata` plugin for every lyrics lookup and every animated-cover lookup, and the lyrics panel's source picker listed an animated-cover plugin as a lyrics source. The optional `provides` list under `[plugin]` names the functions the plugin really answers (`"artist-info"`, `"album-info"`, `"lyrics"`); the lyrics waterfall, the source picker and the animated-cover fan-out then skip the others (`enabled_plugin_ids_providing`). A manifest without it answers every function, which is what the host assumed before, and a host older than the field ignores it, since the manifest parser keeps no list of known keys. A name the host does not know is kept and ignored, so a plugin can name a function of a newer world.
+
+```toml
+[plugin]
+world = "waveflow:metadata/v3"
+provides = ["album-info"]   # an animated-cover plugin: never asked for lyrics
+```
+
 Host imports currently exposed to guests: `http` (permissioned fetch), `storage` (scratch read/write state), `log`, `config` (read-only access to the user's plugin options — see below), and `library` (the `ui` world's redacted artist read — see [The UI world](#the-ui-world-waveflowuiv1)). The `metadata` **and** `ui` worlds reuse `source`'s `waveflow:host/*` types via bindgen `with:`, so there is one set of host implementations behind all three — the `ui` world adds only the fresh `library` import on top.
 
 ## The plugin store

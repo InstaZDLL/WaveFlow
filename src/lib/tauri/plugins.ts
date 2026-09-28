@@ -23,6 +23,9 @@ export interface PluginInfo {
   description: LocalizedText | null;
   homepage: string | null;
   license: string | null;
+  /** World functions the manifest says it answers (`"lyrics"`,
+   *  `"album-info"`, …). Empty = every function of its world. */
+  provides: string[];
   permissions: PluginPermissionsInfo;
   assets: PluginAssetInfo[];
   /** Resolved from `app_setting['plugin.<id>.enabled']`. Defaults

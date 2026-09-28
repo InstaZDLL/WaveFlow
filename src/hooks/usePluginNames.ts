@@ -83,17 +83,25 @@ const LYRICS_WORLDS = new Set(["waveflow:metadata/v2", "waveflow:metadata/v3"]);
  * the automatic waterfall, and a user had no way to ask it about one
  * track — or to tell whether it answers at all.
  *
- * Keyed on the world, the same test the backend enumerates with, so the
- * picker offers exactly the plugins `refetch_lyrics` will run. A plugin
- * of those worlds that serves only animated covers is offered too and
- * simply finds nothing, which is what picking it then says.
+ * Keyed on the world and on what the manifest says the plugin answers,
+ * the same two tests the backend enumerates with, so the picker offers
+ * exactly the plugins `refetch_lyrics` will run. A plugin of those worlds
+ * that serves only animated covers declares `provides = ["album-info"]`
+ * and stays out; one that declares nothing is taken to answer everything,
+ * as the backend takes it.
  */
 export function useLyricsPlugins(): Array<{ id: string; name: string }> {
   const plugins = useInstalledPlugins();
   return useMemo(
     () =>
       plugins
-        .filter((plugin) => plugin.enabled && LYRICS_WORLDS.has(plugin.world))
+        .filter(
+          (plugin) =>
+            plugin.enabled &&
+            LYRICS_WORLDS.has(plugin.world) &&
+            (plugin.provides.length === 0 ||
+              plugin.provides.includes("lyrics")),
+        )
         .map((plugin) => ({
           id: plugin.id,
           name: plugin.name?.trim() || plugin.id,

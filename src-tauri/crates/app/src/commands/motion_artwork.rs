@@ -156,7 +156,13 @@ pub async fn fetch_album_motion_artwork(
             waveflow_core::plugin::worlds::METADATA_V3,
         ),
     ] {
-        for id in super::plugins::enabled_plugin_ids_for_world(&state, label).await? {
+        for id in super::plugins::enabled_plugin_ids_providing(
+            &state,
+            label,
+            waveflow_core::plugin::manifest::functions::ALBUM_INFO,
+        )
+        .await?
+        {
             plugins.push((id, world));
         }
     }
