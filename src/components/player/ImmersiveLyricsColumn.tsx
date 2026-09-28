@@ -27,6 +27,11 @@ interface ImmersiveLyricsColumnProps {
   activeWordIndex: number;
   /** Active word of the active line's background vocals. */
   activeBackgroundWordIndex: number;
+  /** The other voice of a duet, still holding an earlier line, or `-1`
+   *  (see `useTrackLyrics`). */
+  overlapIndex: number;
+  overlapWordIndex: number;
+  overlapBackgroundWordIndex: number;
   /** The instrumental stretch being played through, if any. */
   activeInterlude: ActiveInterlude | null;
   isFetching: boolean;
@@ -72,6 +77,9 @@ export function ImmersiveLyricsColumn({
   activeIndex,
   activeWordIndex,
   activeBackgroundWordIndex,
+  overlapIndex,
+  overlapWordIndex,
+  overlapBackgroundWordIndex,
   activeInterlude,
   isFetching,
   error,
@@ -100,11 +108,16 @@ export function ImmersiveLyricsColumn({
   // whole line and a word-by-word sweep alike.
   const { id: highlightId } = useLyricsHighlightColor();
   const highlightColor = lyricsHighlightColor(highlightId, activeIndex);
+  const overlapColor = lyricsHighlightColor(highlightId, overlapIndex);
   const lineRefs = useRef<Array<HTMLLIElement | null>>([]);
   // Ref for the word currently being sung — attached to that word only,
   // so moving it is what tells the hook to sweep the next one (issue #491).
   const wordFillRef = useKaraokeWordFill(
     isSynced ? lrcLines[activeIndex]?.words?.[activeWordIndex] : undefined,
+  );
+  // The overlapping line sweeps on its own clock.
+  const overlapFillRef = useKaraokeWordFill(
+    isSynced ? lrcLines[overlapIndex]?.words?.[overlapWordIndex] : undefined,
   );
 
   // Keep the active line vertically centered. Own ref array so this
@@ -230,8 +243,21 @@ export function ImmersiveLyricsColumn({
                 // Through the interlude after it, a line is sung and done:
                 // dimmed like the past, while the dots below take over.
                 const beforeInterlude = activeInterlude?.afterIndex === index;
-                const isActive = index === activeIndex && !beforeInterlude;
-                const isPast = index < activeIndex || beforeInterlude;
+                // The other voice of a duet, still holding its line, stays lit
+                // beside the active one.
+                const isOverlap = index === overlapIndex;
+                const isActive =
+                  (index === activeIndex && !beforeInterlude) || isOverlap;
+                const isPast =
+                  (index < activeIndex && !isOverlap) || beforeInterlude;
+                const lineWordIndex = isOverlap
+                  ? overlapWordIndex
+                  : activeWordIndex;
+                const lineBackgroundWordIndex = isOverlap
+                  ? overlapBackgroundWordIndex
+                  : activeBackgroundWordIndex;
+                const lineFillRef = isOverlap ? overlapFillRef : wordFillRef;
+                const lineColor = isOverlap ? overlapColor : highlightColor;
                 // A duet answers from the other side, unless the user
                 // centred the lyrics, which then holds for every voice.
                 const align = syncCentered
@@ -264,10 +290,10 @@ export function ImmersiveLyricsColumn({
                             : isPast
                               ? "text-white/40"
                               : "text-white/70 hover:text-white"
-                        } ${isActive && highlightColor ? "wf-lyrics-highlight" : ""}`}
+                        } ${isActive && lineColor ? "wf-lyrics-highlight" : ""}`}
                         style={
-                          isActive && highlightColor
-                            ? { color: highlightColor }
+                          isActive && lineColor
+                            ? { color: lineColor }
                             : undefined
                         }
                       >
@@ -275,9 +301,9 @@ export function ImmersiveLyricsColumn({
                           <span>
                             {line.words!.map((word, wi) => {
                               const wState =
-                                wi === activeWordIndex
+                                wi === lineWordIndex
                                   ? "active"
-                                  : wi < activeWordIndex
+                                  : wi < lineWordIndex
                                     ? "past"
                                     : "future";
                               const isActiveWord = wState === "active";
@@ -323,7 +349,7 @@ export function ImmersiveLyricsColumn({
                                       // a screen reader would read the word
                                       // twice.
                                       <span
-                                        ref={wordFillRef}
+                                        ref={lineFillRef}
                                         aria-hidden="true"
                                         className="karaoke-word__fill"
                                       >
@@ -343,7 +369,7 @@ export function ImmersiveLyricsColumn({
                           <BackgroundVocals
                             reading={line.background}
                             active={isActive}
-                            activeWordIndex={activeBackgroundWordIndex}
+                            activeWordIndex={lineBackgroundWordIndex}
                             className={`mt-1 text-xl md:text-2xl font-semibold ${align}`}
                           />
                         )}
@@ -356,7 +382,7 @@ export function ImmersiveLyricsColumn({
                             >
                               {line.romanization.words ? (
                                 // Word for word with the line above it,
-                                // sharing its bounds, so `activeWordIndex`
+                                // sharing its bounds, so `lineWordIndex`
                                 // addresses both.
                                 //
                                 // No progressive fill here, deliberately:
@@ -371,9 +397,9 @@ export function ImmersiveLyricsColumn({
                                     <span
                                       style={{
                                         opacity:
-                                          isActive && wi === activeWordIndex
+                                          isActive && wi === lineWordIndex
                                             ? 1
-                                            : isActive && wi < activeWordIndex
+                                            : isActive && wi < lineWordIndex
                                               ? 0.7
                                               : 0.45,
                                         transition: "opacity 150ms ease",

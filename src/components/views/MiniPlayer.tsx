@@ -981,6 +981,9 @@ function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
     activeIndex,
     activeWordIndex,
     activeBackgroundWordIndex,
+    overlapIndex,
+    overlapWordIndex,
+    overlapBackgroundWordIndex,
     activeInterlude,
     seekToLine,
   } = useTrackLyrics();
@@ -989,6 +992,7 @@ function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
   // without reopening the mini-player.
   const { id: highlightId } = useLyricsHighlightColor();
   const highlightColor = lyricsHighlightColor(highlightId, activeIndex);
+  const overlapColor = lyricsHighlightColor(highlightId, overlapIndex);
 
   // Auto-scroll is view-local by the hook's contract: it owns
   // `activeIndex`, each consumer scrolls its own nodes. This one has its
@@ -1008,6 +1012,10 @@ function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
   // 4 Hz `player:position` events instead of stepping every 250 ms.
   const wordFillRef = useKaraokeWordFill(
     isSynced ? lrcLines[activeIndex]?.words?.[activeWordIndex] : undefined,
+  );
+  // The overlapping line of a duet sweeps on its own clock.
+  const overlapFillRef = useKaraokeWordFill(
+    isSynced ? lrcLines[overlapIndex]?.words?.[overlapWordIndex] : undefined,
   );
 
   // Plain text covers three cases that all render the same way: an
@@ -1064,9 +1072,22 @@ function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
               // Lines stay centred for a duet too: a 280-pixel window has
               // no room for two sides.
               const beforeInterlude = activeInterlude?.afterIndex === index;
-              const isActive = index === activeIndex && !beforeInterlude;
+              // The other voice of a duet, still holding its line, stays lit
+              // beside the active one.
+              const isOverlap = index === overlapIndex;
+              const isActive =
+                (index === activeIndex && !beforeInterlude) || isOverlap;
               const isPast =
-                (activeIndex >= 0 && index < activeIndex) || beforeInterlude;
+                (activeIndex >= 0 && index < activeIndex && !isOverlap) ||
+                beforeInterlude;
+              const lineWordIndex = isOverlap
+                ? overlapWordIndex
+                : activeWordIndex;
+              const lineBackgroundWordIndex = isOverlap
+                ? overlapBackgroundWordIndex
+                : activeBackgroundWordIndex;
+              const lineFillRef = isOverlap ? overlapFillRef : wordFillRef;
+              const lineColor = isOverlap ? overlapColor : highlightColor;
               const hasWords = isActive && (line.words?.length ?? 0) > 0;
               return (
                 <Fragment key={`${line.timeMs}-${index}`}>
@@ -1084,17 +1105,15 @@ function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
                           : isPast
                             ? "text-[11px] text-white/30"
                             : "text-[11px] text-white/55 hover:text-white/85"
-                      } ${isActive && highlightColor ? "wf-lyrics-highlight" : ""}`}
+                      } ${isActive && lineColor ? "wf-lyrics-highlight" : ""}`}
                       style={
-                        isActive && highlightColor
-                          ? { color: highlightColor }
-                          : undefined
+                        isActive && lineColor ? { color: lineColor } : undefined
                       }
                     >
                       {hasWords ? (
                         <span>
                           {line.words!.map((word, wi) => {
-                            const isActiveWord = wi === activeWordIndex;
+                            const isActiveWord = wi === lineWordIndex;
                             // A literal space between boxes: `inline-block`
                             // strips the JSX whitespace, and many Enhanced
                             // LRC sources omit spaces between word stamps.
@@ -1109,7 +1128,7 @@ function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
                                   <span
                                     style={{
                                       opacity:
-                                        wi < activeWordIndex
+                                        wi < lineWordIndex
                                           ? 0.8
                                           : isActiveWord
                                             ? 0.5
@@ -1124,7 +1143,7 @@ function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
                                     // already carries the text — without it
                                     // a screen reader reads the word twice.
                                     <span
-                                      ref={wordFillRef}
+                                      ref={lineFillRef}
                                       aria-hidden="true"
                                       className="karaoke-word__fill"
                                     >
@@ -1144,7 +1163,7 @@ function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
                         <BackgroundVocals
                           reading={line.background}
                           active={isActive}
-                          activeWordIndex={activeBackgroundWordIndex}
+                          activeWordIndex={lineBackgroundWordIndex}
                           className="text-[10px] font-normal"
                         />
                       )}
