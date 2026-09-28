@@ -2264,6 +2264,10 @@
       "title": "Karaoke kata per kata (perkiraan)",
       "subtitle": "Pada lirik yang disinkronkan per baris, menyorot kata berdasarkan perkiraan durasinya. Hanya tampilan: tidak ada yang disimpan."
     },
+    "lyricsHeldNotes": {
+      "title": "Animasikan nada panjang",
+      "subtitle": "Di tampilan imersif, kata yang ditahan lama menyala huruf demi huruf selama dinyanyikan."
+    },
     "lyricsHighlightColor": {
       "title": "Warna baris yang dinyanyikan",
       "subtitle": "Untuk lirik layar penuh dan mini-pemutar. Putih sampai kamu memilih warna; jendela lirik mengambang tetap memakai warnanya sendiri.",

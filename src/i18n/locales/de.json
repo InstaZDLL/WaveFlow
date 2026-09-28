@@ -2264,6 +2264,10 @@
       "title": "Geschätztes Wort-für-Wort-Karaoke",
       "subtitle": "Hebt bei zeilenweise synchronisierten Songtexten die Wörter nach einer geschätzten Dauer hervor. Nur Anzeige: Es wird nichts gespeichert."
     },
+    "lyricsHeldNotes": {
+      "title": "Gehaltene Töne animieren",
+      "subtitle": "In der immersiven Ansicht leuchtet ein lange gehaltenes Wort Buchstabe für Buchstabe auf, solange es gesungen wird."
+    },
     "lyricsHighlightColor": {
       "title": "Farbe der gesungenen Zeile",
       "subtitle": "Für den Songtext im Vollbild und den Mini-Player. Weiß, bis du eine Farbe wählst; das schwebende Songtext-Fenster behält seine eigenen Farben.",

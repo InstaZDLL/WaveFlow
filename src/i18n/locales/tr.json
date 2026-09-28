@@ -2264,6 +2264,10 @@
       "title": "Tahmini kelime kelime karaoke",
       "subtitle": "Satır bazında senkronize sözlerde, kelimeleri tahmini sürelerine göre vurgular. Yalnızca görsel: hiçbir şey kaydedilmez."
     },
+    "lyricsHeldNotes": {
+      "title": "Uzatılan notaları canlandır",
+      "subtitle": "Sürükleyici görünümde uzun süre uzatılan bir kelime, söylenirken harf harf parlar."
+    },
     "lyricsHighlightColor": {
       "title": "Söylenen satırın rengi",
       "subtitle": "Tam ekran sözler ve mini oynatıcı için. Bir renk seçene kadar beyazdır; yüzen sözler penceresi kendi renklerini korur.",

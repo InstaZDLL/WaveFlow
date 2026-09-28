@@ -2264,6 +2264,10 @@
       "title": "Estimated word-by-word karaoke",
       "subtitle": "On line-synced lyrics, highlights the words from an estimate of how long each is sung. Display only: nothing is saved."
     },
+    "lyricsHeldNotes": {
+      "title": "Animate held notes",
+      "subtitle": "In the immersive view, a word held for a long time lights up letter by letter while it is sung."
+    },
     "lyricsHighlightColor": {
       "title": "Sung line colour",
       "subtitle": "For full-screen lyrics and the mini-player. White until you pick one; the floating lyrics window keeps its own colours.",

@@ -424,13 +424,14 @@ html.mini-player-window #root {
   pointer-events: none;
 }
 
-/* Held note (`HeldNoteText`): the word's letters lift and swell in turn,
-   and on the sung layer they glow, as much as `--held` (0-1, how long the
-   note is held) earns. The clip gets room above, below and
-   before the word so the glow and the lift are not cut at the line box;
-   its right edge is still the fill's. */
+/* Held note (`HeldNoteText`): each letter lifts and swells as the fill
+   reaches it, holds while the note does, and settles with the others as
+   it ends; how far, and how bright the glow, is what `--held` (0-1, how
+   long the note is held) earns. The glow is on the base layer, which is
+   not clipped: on the fill layer it would be cut at the fill's edge. The
+   fill's clip only gets room above and below, for the lift. */
 .karaoke-word__fill--held {
-  clip-path: inset(-0.6em calc(100% - var(--kw-fill, 0%)) -0.6em -0.6em);
+  clip-path: inset(-0.6em calc(100% - var(--kw-fill, 0%)) -0.6em 0);
 }
 
 .wf-held-letter {
@@ -451,24 +452,39 @@ html.mini-player-window #root {
   100% {
     transform: none;
   }
-  35% {
+  25% {
     transform: translateY(calc(-0.04em - 0.06em * var(--held, 0.5)))
       scale(calc(1.06 + 0.1 * var(--held, 0.5)));
   }
+  70% {
+    transform: translateY(calc(-0.03em - 0.05em * var(--held, 0.5)))
+      scale(calc(1.05 + 0.08 * var(--held, 0.5)));
+  }
 }
 
+/* The base layer sits at half opacity under the fill, hence the doubled
+   halo: it is what shows around the sung letters. */
 @keyframes wf-held-glow {
   0%,
   100% {
     transform: none;
     text-shadow: 0 0 0 transparent;
   }
-  35% {
+  25% {
     transform: translateY(calc(-0.04em - 0.06em * var(--held, 0.5)))
       scale(calc(1.06 + 0.1 * var(--held, 0.5)));
     text-shadow:
-      0 0 calc(0.12em + 0.2em * var(--held, 0.5)) currentColor,
-      0 0 calc(0.3em + 0.6em * var(--held, 0.5)) currentColor;
+      0 0 calc(0.15em + 0.2em * var(--held, 0.5)) currentColor,
+      0 0 calc(0.4em + 0.6em * var(--held, 0.5)) currentColor,
+      0 0 calc(0.4em + 0.6em * var(--held, 0.5)) currentColor;
+  }
+  70% {
+    transform: translateY(calc(-0.03em - 0.05em * var(--held, 0.5)))
+      scale(calc(1.05 + 0.08 * var(--held, 0.5)));
+    text-shadow:
+      0 0 calc(0.12em + 0.15em * var(--held, 0.5)) currentColor,
+      0 0 calc(0.3em + 0.45em * var(--held, 0.5)) currentColor,
+      0 0 calc(0.3em + 0.45em * var(--held, 0.5)) currentColor;
   }
 }
 

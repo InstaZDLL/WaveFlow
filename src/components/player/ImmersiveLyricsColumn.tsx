@@ -10,6 +10,7 @@ import { BackgroundVocals, InterludeDots } from "./LyricsVoiceParts";
 import { useKaraokeWordFill } from "../../hooks/useKaraokeWordFill";
 import { isHeldNote } from "../../lib/heldNote";
 import { HeldNoteText } from "./HeldNote";
+import { useHeldNoteGlow } from "../../hooks/useHeldNoteGlow";
 import {
   lyricsHighlightColor,
   useLyricsHighlightColor,
@@ -109,6 +110,8 @@ export function ImmersiveLyricsColumn({
   // It sets `color`, which the karaoke fill inherits, so one value covers a
   // whole line and a word-by-word sweep alike.
   const { id: highlightId } = useLyricsHighlightColor();
+  // Held notes ripple unless the user turned it off (Settings → Lyrics).
+  const heldNotes = useHeldNoteGlow();
   const highlightColor = lyricsHighlightColor(highlightId, activeIndex);
   const overlapColor = lyricsHighlightColor(highlightId, overlapIndex);
   const lineRefs = useRef<Array<HTMLLIElement | null>>([]);
@@ -311,7 +314,8 @@ export function ImmersiveLyricsColumn({
                               const isActiveWord = wState === "active";
                               // A note held long enough for its length
                               // gets a wave through its letters.
-                              const isHeld = isActiveWord && isHeldNote(word);
+                              const isHeld =
+                                heldNotes && isActiveWord && isHeldNote(word);
                               // Render a literal space between adjacent word
                               // boxes — `inline-block` strips the JSX
                               // whitespace and many Enhanced LRC sources omit
@@ -345,7 +349,7 @@ export function ImmersiveLyricsColumn({
                                       }}
                                     >
                                       {isHeld ? (
-                                        <HeldNoteText word={word} />
+                                        <HeldNoteText word={word} glow />
                                       ) : (
                                         word.text
                                       )}
@@ -367,7 +371,7 @@ export function ImmersiveLyricsColumn({
                                         }`}
                                       >
                                         {isHeld ? (
-                                          <HeldNoteText word={word} glow />
+                                          <HeldNoteText word={word} />
                                         ) : (
                                           word.text
                                         )}
