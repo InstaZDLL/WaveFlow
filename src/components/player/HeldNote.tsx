@@ -2,12 +2,24 @@ import { useState, type CSSProperties } from "react";
 
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
+import { heldNoteLetters } from "../../lib/heldNote";
 import type { LyricsWord } from "../../lib/tauri/lyrics";
 
 /** How long a letter takes to come back to rest once the note ends. */
 const RELEASE_MS = 350;
 /** The shortest a letter's whole rise-hold-release may last. */
 const MIN_LETTER_MS = 450;
+/**
+ * How far a position event may land from where playback should have got
+ * to before it counts as a seek. Events arrive every 250 ms, so ordinary
+ * jitter stays well under it.
+ */
+const SEEK_DRIFT_MS = 400;
+
+/** Monotonic clock, guarded for non-browser hosts (tests). */
+function now(): number {
+  return typeof performance !== "undefined" ? performance.now() : 0;
+}
 
 /**
  * A held word, a letter at a time: each letter lifts, swells and glows as
@@ -34,12 +46,36 @@ export function HeldNoteText({
   word: LyricsWord;
   glow?: boolean;
 }) {
-  const { positionMs, isPlaying } = usePlayer();
+  const { positionMs, isPlaying, playbackSpeed } = usePlayer();
   const reduceMotion = usePrefersReducedMotion();
-  // Fixed at mount: the component lives exactly as long as the word is
-  // the one being sung, and re-reading the position every render would
-  // shift the running animations by a quarter second at a time.
-  const [elapsedMs] = useState(() => Math.max(0, positionMs - word.timeMs));
+  // Fixed when the word comes on screen: re-reading the position every
+  // render would shift the running animations by a quarter second at a
+  // time. A seek inside the word is the one thing that moves it — and
+  // restarts the letters (`epoch` keys them) from the new position.
+  const [sync, setSync] = useState(() => ({
+    elapsedMs: Math.max(0, positionMs - word.timeMs),
+    epoch: 0,
+  }));
+  // Where playback was at the last event, and when: a new event far from
+  // where playback should have got to since is a seek — backward or
+  // forward, from the bar, a media key or MPD alike, at any speed.
+  const [last, setLast] = useState(() => ({
+    positionMs,
+    at: now(),
+    playing: isPlaying,
+  }));
+  if (positionMs !== last.positionMs) {
+    const at = now();
+    const expected =
+      last.positionMs + (last.playing ? (at - last.at) * playbackSpeed : 0);
+    setLast({ positionMs, at, playing: isPlaying });
+    if (Math.abs(positionMs - expected) > SEEK_DRIFT_MS) {
+      setSync({
+        elapsedMs: Math.max(0, positionMs - word.timeMs),
+        epoch: sync.epoch + 1,
+      });
+    }
+  }
 
   const leading = word.text.match(/^\s*/)?.[0] ?? "";
   const trailing = word.text.match(/\s*$/)?.[0] ?? "";
@@ -49,7 +85,7 @@ export function HeldNoteText({
   );
   if (reduceMotion || core.length === 0) return <>{word.text}</>;
 
-  const letters = Array.from(core);
+  const letters = heldNoteLetters(core);
   const heldMs = word.endMs - word.timeMs;
   // How much of the effect the note earns: a note barely long enough
   // stays subtle, one held three seconds and more gets all of it.
@@ -69,12 +105,12 @@ export function HeldNoteText({
         );
         return (
           <span
-            key={i}
+            key={`${sync.epoch}-${i}`}
             className={`wf-held-letter${glow ? " wf-held-letter--glow" : ""}`}
             style={
               {
                 animationDuration: `${durationMs}ms`,
-                animationDelay: `${startMs - elapsedMs}ms`,
+                animationDelay: `${startMs - sync.elapsedMs}ms`,
                 animationPlayState: isPlaying ? "running" : "paused",
                 "--held": strength.toFixed(2),
               } as CSSProperties
