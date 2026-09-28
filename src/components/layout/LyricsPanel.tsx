@@ -450,14 +450,15 @@ export function LyricsPanel() {
         {currentTrack != null && (
           <div className="flex items-center justify-between p-4 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400">
             <span className="flex items-center gap-2 min-w-0">
-              {/* Source label is a chip-button when API-sourced + an
-                  enabled track id is in scope, so the user can pop the
-                  provider picker and re-query a different source.
-                  Embedded / sidecar / manual rows render as static text
-                  — the picker would have nothing meaningful to do for
-                  a tag-embedded lyric. */}
+              {/* Source label is a chip-button whenever the track has a
+                  library row, so the user can pop the provider picker and
+                  ask one source about it — whatever answered before, if
+                  anything did: embedded or sidecar lyrics may be worse
+                  than what a plugin has, and a miss is exactly when one
+                  wants to try another source. Radio and remote streams
+                  have no row to cache against, so their label is text. */}
               <span ref={pickerRef} className="relative inline-flex">
-                {payload && payload.source === "api" && !noLibraryRow ? (
+                {!noLibraryRow ? (
                   <button
                     type="button"
                     onClick={() => setPickerOpen((v) => !v)}
@@ -468,7 +469,9 @@ export function LyricsPanel() {
                     className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 truncate"
                   >
                     <span className="truncate">
-                      {sourceLabel(payload, t, pluginNames)}
+                      {payload
+                        ? sourceLabel(payload, t, pluginNames)
+                        : t("lyrics.source.pickerHint")}
                     </span>
                     <ChevronDown size={11} className="shrink-0" />
                   </button>
