@@ -22,6 +22,7 @@ import {
   type LyricsLine,
   type LyricsPayload,
   type LyricsProvider,
+  type PluginLyricsProvider,
 } from "../lib/tauri/lyrics";
 
 /**
@@ -88,7 +89,7 @@ export interface TrackLyrics {
   importLyrics: () => Promise<void>;
   /** Re-query lyrics (full waterfall when `provider` omitted, else that
    *  source only). */
-  refetch: (provider?: LyricsProvider) => Promise<void>;
+  refetch: (provider?: LyricsProvider | PluginLyricsProvider) => Promise<void>;
   /** Drop the cached lyrics row for the current track. */
   clear: () => Promise<void>;
   /** Seek playback to a synced line's timestamp. */
@@ -376,7 +377,7 @@ export function useTrackLyrics(): TrackLyrics {
   }, [trackId, t]);
 
   const refetch = useCallback(
-    async (provider?: LyricsProvider) => {
+    async (provider?: LyricsProvider | PluginLyricsProvider) => {
       if (trackId == null) return;
       // Capture the requested track so we can detect a mid-flight switch
       // by comparing against the live `trackIdRef` when the await

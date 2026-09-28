@@ -18,7 +18,7 @@ import {
 import { usePlayer } from "../../hooks/usePlayer";
 import { useTrackLyrics } from "../../hooks/useTrackLyrics";
 import { useLyricsLocalization } from "../../hooks/useLyricsLocalization";
-import { usePluginNames } from "../../hooks/usePluginNames";
+import { useLyricsPlugins, usePluginNames } from "../../hooks/usePluginNames";
 import {
   availableLocalizations,
   cycleLocalizationMode,
@@ -30,6 +30,7 @@ import {
   type LyricsPayload,
   type LyricsProvider,
   PLUGIN_PROVIDER_PREFIX,
+  type PluginLyricsProvider,
 } from "../../lib/tauri/lyrics";
 import { LyricsEditorModal } from "../common/LyricsEditorModal";
 import { BackgroundVocals, InterludeDots } from "../player/LyricsVoiceParts";
@@ -90,6 +91,7 @@ export function LyricsPanel() {
   // so a plugin-sourced badge reads as a name rather than as the
   // filesystem-safe id.
   const pluginNames = usePluginNames();
+  const lyricsPlugins = useLyricsPlugins();
 
   const [isEditing, setIsEditing] = useState(false);
   // Provider picker dropdown — opens on click of the source label so the
@@ -128,7 +130,9 @@ export function LyricsPanel() {
   }, [activeIndex, isLyricsOpen, isSynced]);
 
   // Provider picker closes itself, then the shared refetch runs.
-  const handleRefetch = async (provider?: LyricsProvider) => {
+  const handleRefetch = async (
+    provider?: LyricsProvider | PluginLyricsProvider,
+  ) => {
     setPickerOpen(false);
     await refetch(provider);
   };
@@ -492,18 +496,40 @@ export function LyricsPanel() {
                     }}
                     className="absolute left-0 bottom-full mb-1 z-20 min-w-44 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg p-1"
                   >
-                    {LYRICS_PROVIDERS.map((p) => {
-                      const isActive = payload?.provider === p;
+                    {[
+                      ...LYRICS_PROVIDERS.map((p) => ({
+                        value: p as LyricsProvider | PluginLyricsProvider,
+                        label: t(`lyrics.provider.${p}`),
+                        plugin: false,
+                      })),
+                      // The enabled lyrics plugins, after the built-in
+                      // providers: picked here, one is asked about this
+                      // track alone, which is also how to tell whether it
+                      // answers at all.
+                      ...lyricsPlugins.map((plugin) => ({
+                        value:
+                          `${PLUGIN_PROVIDER_PREFIX}${plugin.id}` as PluginLyricsProvider,
+                        label: plugin.name,
+                        plugin: true,
+                      })),
+                    ].map((option, index, all) => {
+                      const isActive = payload?.provider === option.value;
+                      const firstPlugin =
+                        option.plugin && !all[index - 1]?.plugin;
                       return (
                         <button
-                          key={p}
+                          key={option.value}
                           type="button"
                           role="menuitemradio"
                           aria-checked={isActive}
-                          onClick={() => handleRefetch(p)}
-                          className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200"
+                          onClick={() => handleRefetch(option.value)}
+                          className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200 ${
+                            firstPlugin
+                              ? "mt-1 border-t border-zinc-200 dark:border-zinc-700 rounded-t-none"
+                              : ""
+                          }`}
                         >
-                          <span>{t(`lyrics.provider.${p}`)}</span>
+                          <span>{option.label}</span>
                           {isActive && (
                             <Check
                               size={12}

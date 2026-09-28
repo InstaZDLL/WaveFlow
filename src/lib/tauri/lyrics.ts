@@ -202,7 +202,7 @@ export function fetchRemoteLyrics(
  */
 export function refetchLyrics(
   trackId: number,
-  provider?: LyricsProvider,
+  provider?: LyricsProvider | PluginLyricsProvider,
 ): Promise<LyricsPayload | null> {
   return invoke<LyricsPayload | null>("refetch_lyrics", {
     trackId,
