@@ -68,6 +68,12 @@ pub struct TrackListFilter {
     /// `Some` restricts to a single library; `None` returns tracks
     /// across **every** library — the "Ma musique" mode.
     pub library_id: Option<i64>,
+    /// `Some` restricts to one artist's tracks: every track that credits
+    /// them, in any position, plus every track of an album they are the
+    /// album artist of — so a Various Artists page lists its
+    /// compilations. Matched by row id through `track_artist`, never by
+    /// splitting the display string, which a comma inside a name breaks.
+    pub artist_id: Option<i64>,
 }
 
 /// Sort column for [`TrackRepository::list`]. Mapped to a whitelisted

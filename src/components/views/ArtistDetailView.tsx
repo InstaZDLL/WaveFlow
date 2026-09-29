@@ -43,7 +43,7 @@ import { resolveArtwork, resolveRemoteImage } from "../../lib/tauri/artwork";
 import { getSimilarArtists, type SimilarArtist } from "../../lib/tauri/similar";
 import {
   formatDuration,
-  listTracks,
+  listArtistTracks,
   listLikedTrackIds,
   toggleLikeTrack,
   type Track,
@@ -226,12 +226,12 @@ export function ArtistDetailView({
       try {
         // A server artist has no track list to intersect: its payload lists
         // albums only, so the top-track section is absent rather than empty.
-        const [detail, allTracks] =
+        const [detail, artistTracks] =
           remoteArtistId != null
             ? [toArtistDetail(await remoteGetArtist(remoteArtistId)), []]
             : await Promise.all([
                 getArtistDetail(artistId as number),
-                listTracks(null),
+                listArtistTracks(artistId as number),
               ]);
         if (cancelled) return;
         setArtist(detail);
@@ -256,13 +256,6 @@ export function ArtistDetailView({
         if (detail.fans_count != null) setFansCount(detail.fans_count);
         if (detail.bio_short) setBioShort(detail.bio_short);
         if (detail.bio_full) setBioFull(detail.bio_full);
-        // Match any track where this artist appears in the multi-artist
-        // string (split on ", ") — covers both primary and feature
-        // credits from the same list_tracks payload.
-        const artistTracks = allTracks.filter((t) => {
-          const names = (t.artist_name ?? "").split(", ").map((s) => s.trim());
-          return names.includes(detail.name);
-        });
         setTracks(artistTracks);
       } catch (err) {
         console.error("[ArtistDetailView] load failed", err);

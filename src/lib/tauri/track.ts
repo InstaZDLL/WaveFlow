@@ -174,6 +174,21 @@ export async function listTracks(
   return expandTrackResponse(resp);
 }
 
+/**
+ * Every track of one artist: those that credit them, in any position, and
+ * those of an album they are the album artist of. Matched by row id on the
+ * backend, so a comma inside a name ("Earth, Wind & Fire") cannot split it.
+ */
+export async function listArtistTracks(artistId: number): Promise<Track[]> {
+  const resp = await invoke<ListTracksResponse>("list_tracks", {
+    libraryId: null,
+    orderBy: null,
+    direction: null,
+    artistId,
+  });
+  return expandTrackResponse(resp);
+}
+
 /** Full-text search across title, album and artist. Returns up to 50 results. */
 export function searchTracks(query: string): Promise<Track[]> {
   return invoke<Track[]>("search_tracks", { query });

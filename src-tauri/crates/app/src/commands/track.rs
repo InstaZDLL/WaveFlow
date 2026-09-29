@@ -138,12 +138,16 @@ fn parse_sort(order_by: Option<&str>, direction: Option<&str>) -> TrackSort {
 ///
 /// `order_by` and `direction` map to a whitelisted `ORDER BY` clause via
 /// [`parse_sort`] + `repository::sqlite::track::order_clause`.
+///
+/// `artist_id` restricts to one artist's tracks, matched by row id (see
+/// `TrackListFilter::artist_id`) — the artist page's list.
 #[tauri::command]
 pub async fn list_tracks(
     state: tauri::State<'_, AppState>,
     library_id: Option<i64>,
     order_by: Option<String>,
     direction: Option<String>,
+    artist_id: Option<i64>,
 ) -> AppResult<ListTracksResponse> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
@@ -151,7 +155,13 @@ pub async fn list_tracks(
 
     let sort = parse_sort(order_by.as_deref(), direction.as_deref());
     let rows = SqliteTrackRepository::new((*pool).clone())
-        .list(TrackListFilter { library_id }, sort)
+        .list(
+            TrackListFilter {
+                library_id,
+                artist_id,
+            },
+            sort,
+        )
         .await?;
 
     // Each row triggers 2 synchronous `Path::exists` probes for the

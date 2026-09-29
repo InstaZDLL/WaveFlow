@@ -2726,9 +2726,13 @@ pub async fn get_artist_detail(
           LEFT JOIN artwork aw ON aw.id = ar.artwork_id
           LEFT JOIN artwork bg ON bg.id = ar.background_artwork_id
           LEFT JOIN app.metadata_artist da ON da.deezer_id = ar.deezer_id
-          JOIN track_artist ta ON ta.artist_id = ar.id
-          JOIN track t ON t.id = ta.track_id AND t.is_available = 1
-         WHERE ar.id = ?
+          -- Credited on the track, or album artist of its album: an
+          -- artist who is only ever an album artist ("Various Artists")
+          -- has a page too, instead of "artist not found".
+          JOIN track t ON t.is_available = 1
+                      AND (t.id IN (SELECT track_id FROM track_artist WHERE artist_id = ?1)
+                           OR t.album_id IN (SELECT id FROM album WHERE artist_id = ?1))
+         WHERE ar.id = ?1
          GROUP BY ar.id
         "#,
     )
@@ -2760,9 +2764,9 @@ pub async fn get_artist_detail(
                aw.hash AS artwork_hash, aw.format AS artwork_format
           FROM album al
           JOIN track t ON t.album_id = al.id AND t.is_available = 1
-          JOIN track_artist ta ON ta.track_id = t.id
           LEFT JOIN artwork aw ON aw.id = al.artwork_id
-         WHERE ta.artist_id = ?
+         WHERE al.artist_id = ?1
+            OR t.id IN (SELECT track_id FROM track_artist WHERE artist_id = ?1)
          GROUP BY al.id
          ORDER BY al.year DESC, al.canonical_title COLLATE NOCASE
         "#,
