@@ -37,8 +37,9 @@ pub use reserved::{is_in_reserved_dir, is_reserved_dir_name, RESERVED_DIR_NAME};
 pub use upserts::{
     link_local_artist_image, link_va_artist_image, maybe_link_artist_images,
     merge_implicit_compilations, now_millis, reattach_orphaned_play_events, refresh_folder_covers,
-    resolve_album_artist, split_artist_name, upsert_album, upsert_artist, upsert_artist_list,
-    upsert_artwork, upsert_genre, ArtistImageScanCache, UpsertCache, VARIOUS_ARTISTS_LABEL,
+    repoint_fallback_album_artist, resolve_album_artist, split_artist_name, upsert_album,
+    upsert_artist, upsert_artist_list, upsert_artwork, upsert_genre, ArtistImageScanCache,
+    UpsertCache, VARIOUS_ARTISTS_LABEL,
 };
 
 /// Helper used inside the audio file extractors. Pulled out into the

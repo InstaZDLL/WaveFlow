@@ -18,9 +18,9 @@ use waveflow_core::scanner::{
     extract_folder_cover, extract_musical_key, extract_rating, extract_replay_gain,
     file_type_label, hash_file, is_scannable_audio, link_local_artist_image, link_va_artist_image,
     maybe_link_artist_images, merge_implicit_compilations, now_millis,
-    reattach_orphaned_play_events, refresh_folder_covers, split_artist_name, upsert_album,
-    upsert_artist, upsert_artwork, ArtistImageScanCache, ExtractedFile, ReplayGainTags,
-    UpsertCache, VARIOUS_ARTISTS_LABEL,
+    reattach_orphaned_play_events, refresh_folder_covers, repoint_fallback_album_artist,
+    split_artist_name, upsert_album, upsert_artist, upsert_artwork, ArtistImageScanCache,
+    ExtractedFile, ReplayGainTags, UpsertCache, VARIOUS_ARTISTS_LABEL,
 };
 
 use crate::{
@@ -1239,21 +1239,23 @@ pub(crate) async fn scan_folder_inner(
                             .execute(&mut *tx)
                             .await?;
                         }
+                        let previous_primary: Option<i64> =
+                            sqlx::query_scalar("SELECT primary_artist FROM track WHERE id = ?")
+                                .bind(existing_track_id)
+                                .fetch_one(&mut *tx)
+                                .await?;
                         sqlx::query("UPDATE track SET primary_artist = ? WHERE id = ?")
                             .bind(ids.first().copied())
                             .bind(existing_track_id)
                             .execute(&mut *tx)
                             .await?;
                         if let Some(first_id) = ids.first().copied() {
-                            sqlx::query(
-                                "UPDATE album SET artist_id = ?
-                                 WHERE id = (SELECT album_id FROM track WHERE id = ?)
-                                   AND artist_id != ?",
+                            repoint_fallback_album_artist(
+                                &mut tx,
+                                existing_track_id,
+                                previous_primary,
+                                first_id,
                             )
-                            .bind(first_id)
-                            .bind(existing_track_id)
-                            .bind(first_id)
-                            .execute(&mut *tx)
                             .await?;
                         }
                     }
