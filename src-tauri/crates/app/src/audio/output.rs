@@ -1247,14 +1247,17 @@ impl StreamErrorStorm {
                 rebuild: device_gone,
             };
         }
-        if device_gone && !self.device_loss_handled {
+        let due = self
+            .last_rebuild
+            .map_or(true, |last| now.duration_since(last) >= Self::RETRY);
+        // A device loss needs no storm to be worth a rebuild: the first
+        // one gets it at once, and a later one again once the retry delay
+        // has passed — the gate may have turned the previous request down.
+        if device_gone && (!self.device_loss_handled || due) {
             self.device_loss_handled = true;
             self.last_rebuild = Some(now);
             return StormAction::Rebuild { errors: self.total };
         }
-        let due = self
-            .last_rebuild
-            .map_or(true, |last| now.duration_since(last) >= Self::RETRY);
         if due && self.in_window >= Self::THRESHOLD {
             self.last_rebuild = Some(now);
             return StormAction::Rebuild { errors: self.total };
@@ -1491,6 +1494,26 @@ mod storm_tests {
         assert_eq!(
             storm.on_error(t + Duration::from_millis(9), true),
             StormAction::Quiet
+        );
+    }
+
+    #[test]
+    fn a_device_loss_is_asked_again_once_the_retry_delay_has_passed() {
+        // The gate may have turned the first request down; a later loss on
+        // the same stream must not stay quiet for good, storm or no storm.
+        let mut storm = StreamErrorStorm::default();
+        let t = Instant::now();
+        assert_eq!(
+            storm.on_error(t, true),
+            StormAction::Report { rebuild: true }
+        );
+        assert_eq!(
+            storm.on_error(t + Duration::from_millis(500), true),
+            StormAction::Quiet
+        );
+        assert_eq!(
+            storm.on_error(t + StreamErrorStorm::RETRY, true),
+            StormAction::Rebuild { errors: 3 }
         );
     }
 
