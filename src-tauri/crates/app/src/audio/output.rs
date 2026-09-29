@@ -8,7 +8,9 @@
 //! 1. creates the cpal device + stream locally (so the `!Send` value
 //!    never leaves its origin thread),
 //! 2. calls `stream.play()`,
-//! 3. parks on a shutdown channel until the engine tears down.
+//! 3. parks on a shutdown channel until the engine tears down — or
+//!    until the stream reports itself stuck, in which case the thread
+//!    drops it and asks for a rebuild on a backoff.
 //!
 //! The decoder-side `Producer<f32>` is `Send` and is handed back to the
 //! caller along with the shutdown sender and the thread's join handle.
@@ -17,7 +19,7 @@
 //! it only reads from `rtrb::Consumer` and mutates atomics in
 //! [`SharedPlayback`].
 
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
@@ -1057,14 +1059,22 @@ fn output_thread_main(
     app: AppHandle,
     device_name: Option<String>,
 ) {
-    let (stream, opened_device) =
-        match build_stream(shared.clone(), consumer, app.clone(), device_name) {
-            Ok(pair) => pair,
-            Err(err) => {
-                let _ = init_tx.send(Err(err));
-                return;
-            }
-        };
+    // Kept here as well as in the error callback so the receiver never
+    // disconnects while the thread waits on it.
+    let (stall_tx, stall_rx) = bounded::<()>(1);
+    let (stream, opened_device) = match build_stream(
+        shared.clone(),
+        consumer,
+        app.clone(),
+        device_name,
+        stall_tx.clone(),
+    ) {
+        Ok(pair) => pair,
+        Err(err) => {
+            let _ = init_tx.send(Err(err));
+            return;
+        }
+    };
 
     if let Err(err) = stream
         .play()
@@ -1081,9 +1091,87 @@ fn output_thread_main(
     // Park until the engine says shutdown. The Stream runs its callback
     // on its own (WASAPI-managed) thread on Windows, so we just need to
     // keep the Stream alive here.
-    let _ = shutdown_rx.recv();
+    let opened_at = std::time::Instant::now();
+    let stalled = crossbeam_channel::select! {
+        recv(shutdown_rx) -> _ => false,
+        recv(stall_rx) -> _ => true,
+    };
     drop(stream);
+    drop(stall_tx);
+    if stalled {
+        retry_stalled_output(&app, &shutdown_rx, opened_at.elapsed());
+    } else if opened_at.elapsed() >= STALL_HOLD {
+        // A stream that worked and was then replaced ends the streak too,
+        // or the next device to stall would inherit its backoff.
+        STALL_STREAK.store(0, Ordering::Relaxed);
+    }
     tracing::debug!("audio output thread exiting");
+}
+
+/// Consecutive streams that got stuck soon after they opened. Process
+/// wide because each rebuild spawns a new output thread, and the backoff
+/// has to outlive them.
+static STALL_STREAK: AtomicU32 = AtomicU32::new(0);
+
+/// A stream that ran this long before getting stuck counts as having
+/// worked: its stall starts the backoff over.
+const STALL_HOLD: std::time::Duration = std::time::Duration::from_secs(10);
+/// Longer than the rebuild gate's settle window plus the 300 ms delay in
+/// [`schedule_device_rebuild`], so a retry is not turned down for the
+/// same reason as the request before it.
+const STALL_RETRY_MIN: std::time::Duration =
+    super::engine::REBUILD_SETTLE_WINDOW.saturating_add(std::time::Duration::from_secs(1));
+const STALL_RETRY_MAX: std::time::Duration = std::time::Duration::from_secs(60);
+
+/// How long to wait before the first rebuild after the `streak`-th stall
+/// in a row: at once for a stream that had been working, then doubling
+/// from [`STALL_RETRY_MIN`] up to [`STALL_RETRY_MAX`].
+fn stall_retry_delay(streak: u32) -> std::time::Duration {
+    match streak {
+        0 => std::time::Duration::ZERO,
+        n => STALL_RETRY_MIN
+            .saturating_mul(1u32 << (n - 1).min(8))
+            .min(STALL_RETRY_MAX),
+    }
+}
+
+/// The wait after a rebuild request that did not replace this output —
+/// the gate turned it down, or the rebuild failed.
+fn next_stall_retry(delay: std::time::Duration) -> std::time::Duration {
+    delay
+        .saturating_mul(2)
+        .clamp(STALL_RETRY_MIN, STALL_RETRY_MAX)
+}
+
+/// Runs on the output thread once its stream is dropped for being stuck.
+///
+/// The stream had to go: cpal's ALSA loop answers a device that keeps
+/// raising `POLLERR` by polling it again at once, and a VM's sound device
+/// kept that thread at 77 % of a core with every error silenced. Dropping
+/// the stream stops the loop, but also the errors that used to carry the
+/// retries, so the retries live here: ask for a rebuild, and ask again
+/// until one replaces this output, which stops it through `shutdown_rx`.
+///
+/// A device that fails again right after each rebuild is retried less and
+/// less often, up to once a minute; one that had been playing gets its
+/// rebuild at once.
+fn retry_stalled_output(app: &AppHandle, shutdown_rx: &Receiver<()>, lived: std::time::Duration) {
+    let streak = if lived >= STALL_HOLD {
+        STALL_STREAK.store(1, Ordering::Relaxed);
+        0
+    } else {
+        STALL_STREAK.fetch_add(1, Ordering::Relaxed)
+    };
+    let mut delay = stall_retry_delay(streak);
+    loop {
+        match shutdown_rx.recv_timeout(delay) {
+            Err(crossbeam_channel::RecvTimeoutError::Timeout) => {}
+            _ => return,
+        }
+        tracing::info!(streak, "rebuilding a stuck audio output");
+        schedule_device_rebuild(app, RebuildTarget::Resolve);
+        delay = next_stall_retry(delay);
+    }
 }
 
 /// Build the cpal `Stream`. Called only from inside the output thread.
@@ -1097,8 +1185,9 @@ fn build_stream(
     consumer: Consumer<f32>,
     app: AppHandle,
     device_name: Option<String>,
+    stall_tx: Sender<()>,
 ) -> AppResult<(Stream, Option<String>)> {
-    silence_alsa_stderr(|| build_stream_inner(shared, consumer, app, device_name))
+    silence_alsa_stderr(|| build_stream_inner(shared, consumer, app, device_name, stall_tx))
 }
 
 fn build_stream_inner(
@@ -1106,6 +1195,7 @@ fn build_stream_inner(
     consumer: Consumer<f32>,
     app: AppHandle,
     device_name: Option<String>,
+    stall_tx: Sender<()>,
 ) -> AppResult<(Stream, Option<String>)> {
     let host = cpal::default_host();
     // If a specific device was requested, look it up by name. If the
@@ -1167,9 +1257,9 @@ fn build_stream_inner(
     );
 
     let stream = match sample_format {
-        SampleFormat::F32 => open_stream::<f32>(&device, &config, consumer, shared, app),
-        SampleFormat::I16 => open_stream::<i16>(&device, &config, consumer, shared, app),
-        SampleFormat::U16 => open_stream::<u16>(&device, &config, consumer, shared, app),
+        SampleFormat::F32 => open_stream::<f32>(&device, &config, consumer, shared, app, stall_tx),
+        SampleFormat::I16 => open_stream::<i16>(&device, &config, consumer, shared, app, stall_tx),
+        SampleFormat::U16 => open_stream::<u16>(&device, &config, consumer, shared, app, stall_tx),
         other => Err(AppError::Audio(format!(
             "unsupported sample format: {other:?}"
         ))),
@@ -1196,11 +1286,12 @@ enum StormAction {
 /// fresh one, so a device that fails again after a rebuild is reported
 /// again — at the rebuild gate's pace, not the error loop's.
 ///
-/// The rebuild is asked for again every [`Self::RETRY`] while the storm
-/// lasts, not once: the rebuild gate turns a request down while another
-/// rebuild is armed or settling, and a stream that storms right after the
-/// rebuild that created it lands exactly there. Asked for once, it would
-/// have spun quietly for good.
+/// A storm's rebuild is carried out by the output thread, which drops the
+/// stream and keeps retrying on its own ([`retry_stalled_output`]): the
+/// errors that would otherwise re-ask stop with the stream. A device loss
+/// is still re-asked every [`Self::RETRY`] while the stream lives — the
+/// rebuild gate turns a request down while another rebuild is armed or
+/// settling.
 #[derive(Debug, Default)]
 struct StreamErrorStorm {
     reported: bool,
@@ -1275,6 +1366,7 @@ fn open_stream<T>(
     mut consumer: Consumer<f32>,
     shared: Arc<SharedPlayback>,
     app: AppHandle,
+    stall_tx: Sender<()>,
 ) -> AppResult<Stream>
 where
     T: cpal::SizedSample + cpal::FromSample<f32> + Send + 'static,
@@ -1296,7 +1388,9 @@ where
     // million of them in an evening, each one logged and each one sent
     // to the webview as two events. The log grew by gigabytes and the
     // app sat at half a core. [`StreamErrorStorm`] keeps the first report
-    // and turns a storm into one rebuild instead.
+    // and turns a storm into a stall signal: the output thread drops the
+    // stream — which stops the loop, where silencing it alone did not —
+    // and rebuilds on a backoff ([`retry_stalled_output`]).
     let err_shared = shared.clone();
     let err_app = app.clone();
     let mut storm = StreamErrorStorm::default();
@@ -1316,9 +1410,10 @@ where
                 tracing::warn!(
                     ?err,
                     errors,
-                    "cpal stream keeps failing; rebuilding the output"
+                    "cpal stream keeps failing; dropping it and rebuilding the output"
                 );
-                schedule_device_rebuild(&err_app, RebuildTarget::Resolve);
+                // Full means the output thread was already told.
+                let _ = stall_tx.try_send(());
             }
             StormAction::Quiet => {}
         }
@@ -1426,8 +1521,33 @@ where
 
 #[cfg(test)]
 mod storm_tests {
-    use super::{StormAction, StreamErrorStorm};
+    use super::{
+        next_stall_retry, stall_retry_delay, StormAction, StreamErrorStorm, STALL_RETRY_MAX,
+        STALL_RETRY_MIN,
+    };
     use std::time::{Duration, Instant};
+
+    #[test]
+    fn a_stream_that_had_been_working_is_rebuilt_at_once() {
+        assert_eq!(stall_retry_delay(0), Duration::ZERO);
+    }
+
+    #[test]
+    fn repeated_stalls_back_off_to_once_a_minute() {
+        assert_eq!(stall_retry_delay(1), STALL_RETRY_MIN);
+        assert_eq!(stall_retry_delay(2), STALL_RETRY_MIN * 2);
+        assert_eq!(stall_retry_delay(3), STALL_RETRY_MIN * 4);
+        assert_eq!(stall_retry_delay(40), STALL_RETRY_MAX);
+        assert_eq!(stall_retry_delay(u32::MAX), STALL_RETRY_MAX);
+    }
+
+    #[test]
+    fn a_retry_waits_out_the_gate_and_never_passes_the_cap() {
+        assert_eq!(next_stall_retry(Duration::ZERO), STALL_RETRY_MIN);
+        assert_eq!(next_stall_retry(STALL_RETRY_MIN), STALL_RETRY_MIN * 2);
+        assert_eq!(next_stall_retry(STALL_RETRY_MAX), STALL_RETRY_MAX);
+        assert!(STALL_RETRY_MIN > crate::audio::engine::REBUILD_SETTLE_WINDOW);
+    }
 
     #[test]
     fn the_first_error_is_reported_and_the_next_ones_are_not() {
