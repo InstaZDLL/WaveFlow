@@ -1177,6 +1177,92 @@ fn build_stream_inner(
     Ok((stream, opened_device))
 }
 
+/// What to do with one error from a cpal stream. See [`StreamErrorStorm`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum StormAction {
+    /// The stream's first error: log it, tell the UI, and rebuild if the
+    /// device is gone.
+    Report { rebuild: bool },
+    /// Errors are arriving too fast to be anything but a stuck stream:
+    /// rebuild the output.
+    Rebuild { errors: u32 },
+    /// Already reported, and a rebuild already asked for recently.
+    Quiet,
+}
+
+/// Errors from one cpal stream, so that a backend stuck in an error loop
+/// costs one report and a rebuild rather than a log line and two UI
+/// events per error. Lives as long as the stream: a rebuilt output gets a
+/// fresh one, so a device that fails again after a rebuild is reported
+/// again — at the rebuild gate's pace, not the error loop's.
+///
+/// The rebuild is asked for again every [`Self::RETRY`] while the storm
+/// lasts, not once: the rebuild gate turns a request down while another
+/// rebuild is armed or settling, and a stream that storms right after the
+/// rebuild that created it lands exactly there. Asked for once, it would
+/// have spun quietly for good.
+#[derive(Debug, Default)]
+struct StreamErrorStorm {
+    reported: bool,
+    /// A `DeviceNotAvailable` already answered with a rebuild. Kept apart
+    /// from the storm: the device can go away after other errors were
+    /// already reported, and its rebuild must not be swallowed with them.
+    device_loss_handled: bool,
+    last_rebuild: Option<std::time::Instant>,
+    window_start: Option<std::time::Instant>,
+    in_window: u32,
+    total: u32,
+}
+
+impl StreamErrorStorm {
+    /// Errors within [`Self::WINDOW`] that make a storm. A real device
+    /// error arrives once, or a handful of times while it goes away; a
+    /// stuck backend reports thousands a second.
+    const THRESHOLD: u32 = 50;
+    const WINDOW: std::time::Duration = std::time::Duration::from_secs(1);
+    /// Longer than the rebuild gate's settle window, so a retry is not
+    /// turned down for the same reason as the request before it.
+    const RETRY: std::time::Duration =
+        super::engine::REBUILD_SETTLE_WINDOW.saturating_add(std::time::Duration::from_secs(1));
+
+    /// `device_gone`: the error is `DeviceNotAvailable`.
+    fn on_error(&mut self, now: std::time::Instant, device_gone: bool) -> StormAction {
+        self.total = self.total.saturating_add(1);
+        match self.window_start {
+            Some(start) if now.duration_since(start) < Self::WINDOW => {
+                self.in_window = self.in_window.saturating_add(1);
+            }
+            _ => {
+                self.window_start = Some(now);
+                self.in_window = 1;
+            }
+        }
+        if !self.reported {
+            self.reported = true;
+            self.device_loss_handled = device_gone;
+            if device_gone {
+                self.last_rebuild = Some(now);
+            }
+            return StormAction::Report {
+                rebuild: device_gone,
+            };
+        }
+        if device_gone && !self.device_loss_handled {
+            self.device_loss_handled = true;
+            self.last_rebuild = Some(now);
+            return StormAction::Rebuild { errors: self.total };
+        }
+        let due = self
+            .last_rebuild
+            .map_or(true, |last| now.duration_since(last) >= Self::RETRY);
+        if due && self.in_window >= Self::THRESHOLD {
+            self.last_rebuild = Some(now);
+            return StormAction::Rebuild { errors: self.total };
+        }
+        StormAction::Quiet
+    }
+}
+
 /// Generic stream builder parameterized by the device's native sample
 /// format. We always decode into `f32` internally and let cpal convert
 /// to whatever the device wants at the last second via `FromSample`.
@@ -1200,16 +1286,38 @@ where
     // auto-rebuild — see [`schedule_device_rebuild`]. The engine's
     // debounce guard coalesces a quick double-flap into a single
     // rebuild attempt.
+    //
+    // A stream reports each error once and moves on — except when the
+    // backend is stuck: cpal's ALSA loop answers a `POLLERR` by calling
+    // this again straight away, and a VM's sound device produced 3.7
+    // million of them in an evening, each one logged and each one sent
+    // to the webview as two events. The log grew by gigabytes and the
+    // app sat at half a core. [`StreamErrorStorm`] keeps the first report
+    // and turns a storm into one rebuild instead.
     let err_shared = shared.clone();
     let err_app = app.clone();
+    let mut storm = StreamErrorStorm::default();
     let err_fn = move |err: cpal::StreamError| {
-        tracing::warn!(?err, "cpal stream error");
-        notify_device_lost(&err_app, &err_shared, format!("audio device error: {err}"));
-
-        if matches!(err, cpal::StreamError::DeviceNotAvailable) {
-            // The erroring handle is still parked in the engine's
-            // `self.output`, so the rebuild can self-resolve its device.
-            schedule_device_rebuild(&err_app, RebuildTarget::Resolve);
+        let device_gone = matches!(err, cpal::StreamError::DeviceNotAvailable);
+        match storm.on_error(std::time::Instant::now(), device_gone) {
+            StormAction::Report { rebuild } => {
+                tracing::warn!(?err, "cpal stream error");
+                notify_device_lost(&err_app, &err_shared, format!("audio device error: {err}"));
+                if rebuild {
+                    // The erroring handle is still parked in the engine's
+                    // `self.output`, so the rebuild can self-resolve its device.
+                    schedule_device_rebuild(&err_app, RebuildTarget::Resolve);
+                }
+            }
+            StormAction::Rebuild { errors } => {
+                tracing::warn!(
+                    ?err,
+                    errors,
+                    "cpal stream keeps failing; rebuilding the output"
+                );
+                schedule_device_rebuild(&err_app, RebuildTarget::Resolve);
+            }
+            StormAction::Quiet => {}
         }
     };
 
@@ -1311,6 +1419,99 @@ where
         .map_err(|e| AppError::Audio(format!("build_output_stream: {e}")))?;
 
     Ok(stream)
+}
+
+#[cfg(test)]
+mod storm_tests {
+    use super::{StormAction, StreamErrorStorm};
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn the_first_error_is_reported_and_the_next_ones_are_not() {
+        let mut storm = StreamErrorStorm::default();
+        let t = Instant::now();
+        assert_eq!(
+            storm.on_error(t, false),
+            StormAction::Report { rebuild: false }
+        );
+        assert_eq!(
+            storm.on_error(t + Duration::from_millis(400), false),
+            StormAction::Quiet
+        );
+    }
+
+    #[test]
+    fn a_storm_rebuilds_once() {
+        let mut storm = StreamErrorStorm::default();
+        let t = Instant::now();
+        let actions: Vec<StormAction> = (0..1000)
+            .map(|i| storm.on_error(t + Duration::from_micros(i * 10), false))
+            .collect();
+        assert_eq!(actions[0], StormAction::Report { rebuild: false });
+        let rebuilds: Vec<usize> = actions
+            .iter()
+            .enumerate()
+            .filter(|(_, a)| matches!(a, StormAction::Rebuild { .. }))
+            .map(|(i, _)| i)
+            .collect();
+        assert_eq!(rebuilds, vec![StreamErrorStorm::THRESHOLD as usize - 1]);
+    }
+
+    #[test]
+    fn a_storm_that_outlasts_the_rebuild_asks_again() {
+        let mut storm = StreamErrorStorm::default();
+        let t = Instant::now();
+        // Ten seconds of errors every millisecond: the first request may
+        // be turned down by the rebuild gate, so it is repeated — at the
+        // retry pace, never at the error loop's.
+        let rebuilds = (0..10_000)
+            .filter(|i| {
+                matches!(
+                    storm.on_error(t + Duration::from_millis(*i), false),
+                    StormAction::Rebuild { .. }
+                )
+            })
+            .count();
+        let most = (10_000 / StreamErrorStorm::RETRY.as_millis()) as usize + 1;
+        assert!((2..=most).contains(&rebuilds), "{rebuilds} rebuilds");
+    }
+
+    #[test]
+    fn a_device_lost_after_other_errors_still_rebuilds() {
+        let mut storm = StreamErrorStorm::default();
+        let t = Instant::now();
+        assert_eq!(
+            storm.on_error(t, false),
+            StormAction::Report { rebuild: false }
+        );
+        assert_eq!(
+            storm.on_error(t + Duration::from_millis(5), true),
+            StormAction::Rebuild { errors: 2 }
+        );
+        assert_eq!(
+            storm.on_error(t + Duration::from_millis(9), true),
+            StormAction::Quiet
+        );
+    }
+
+    #[test]
+    fn a_device_lost_first_is_reported_with_its_rebuild() {
+        let mut storm = StreamErrorStorm::default();
+        assert_eq!(
+            storm.on_error(Instant::now(), true),
+            StormAction::Report { rebuild: true }
+        );
+    }
+
+    #[test]
+    fn scattered_errors_never_make_a_storm() {
+        let mut storm = StreamErrorStorm::default();
+        let t = Instant::now();
+        for i in 0..200 {
+            let action = storm.on_error(t + Duration::from_millis(i * 100), false);
+            assert!(!matches!(action, StormAction::Rebuild { .. }), "error {i}");
+        }
+    }
 }
 
 #[cfg(test)]
