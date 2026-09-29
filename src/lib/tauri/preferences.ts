@@ -97,6 +97,15 @@ export function clearMiniPlayerBounds(): Promise<void> {
   return invoke<void>("clear_mini_player_bounds");
 }
 
+/**
+ * Let a window shown or hidden from the frontend give its memory back, or
+ * take it again (Windows only; a no-op elsewhere). Call after the
+ * `show()` / `hide()` it follows.
+ */
+export function syncWebviewMemory(): Promise<void> {
+  return invoke<void>("sync_webview_memory");
+}
+
 export function getMainWindowBounds(): Promise<MiniPlayerBounds | null> {
   return invoke<MiniPlayerBounds | null>("get_main_window_bounds");
 }

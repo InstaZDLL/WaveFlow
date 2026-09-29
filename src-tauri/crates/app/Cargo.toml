@@ -338,6 +338,11 @@ windows = { version = "0.62", features = [
 # (`.github/dependabot.yml`): moving either line on its own is never valid,
 # so the pair is bumped by hand when windows-rs realigns them.
 windows-core = "0.62"
+# `ICoreWebView2_19::SetMemoryUsageTargetLevel`, so a minimized or hidden
+# window's WebView2 gives memory back (`webview_memory.rs`). The very
+# version wry already pulls in through Tauri, so this adds a name, not a
+# crate; it moves with Tauri, never on its own.
+webview2-com = "0.39"
 
 # macOS-only: opt-in bit-perfect native DSD via DoP (#495 / #497).
 # `coreaudio-rs` (lib name `coreaudio`) wraps Apple's CoreAudio HAL. We
