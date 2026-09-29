@@ -63,7 +63,10 @@ import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
 import { resolveArtwork } from "../../lib/tauri/artwork";
 import { dominantColor, darken, rgb } from "../../lib/dominantColor";
 import { formatDuration } from "../../lib/tauri/track";
-import { setMiniPlayerBounds } from "../../lib/tauri/preferences";
+import {
+  setMiniPlayerBounds,
+  syncWebviewMemory,
+} from "../../lib/tauri/preferences";
 import { resetMiniPlayerBounds } from "../../lib/miniPlayer";
 import {
   playerGetQueue,
@@ -443,6 +446,7 @@ export function MiniPlayer() {
       }
       setParked(true);
       await getCurrentWindow().hide();
+      void syncWebviewMemory().catch(() => {});
     } catch (err) {
       console.error("[MiniPlayer] maximize failed", err);
     }
@@ -454,6 +458,7 @@ export function MiniPlayer() {
       if (main) await main.show();
       setParked(true);
       await getCurrentWindow().hide();
+      void syncWebviewMemory().catch(() => {});
     } catch (err) {
       console.error("[MiniPlayer] close failed", err);
     }

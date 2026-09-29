@@ -9,6 +9,7 @@ import {
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import {
   clearMiniPlayerBounds,
+  syncWebviewMemory,
   getMiniPlayerBounds,
   type MiniPlayerBounds,
 } from "./tauri/preferences";
@@ -167,6 +168,7 @@ export async function openMiniPlayer(): Promise<void> {
     await existing.show();
     await existing.unminimize();
     await existing.setFocus();
+    void syncWebviewMemory().catch(() => {});
   } else {
     let x: number | undefined;
     let y: number | undefined;

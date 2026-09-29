@@ -90,6 +90,14 @@ updates:
         update-types:
           - "version-update:semver-major"
           - "version-update:semver-minor"
+      # `webview2-com` is the same kind of name: `webview_memory.rs` calls
+      # methods on the controller Tauri hands out, typed by the copy wry
+      # depends on. Another version is a different type and does not
+      # compile, so it moves when Tauri moves wry, never on its own.
+      - dependency-name: "webview2-com"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
 
   - package-ecosystem: github-actions
     directory: "/"

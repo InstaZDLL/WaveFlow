@@ -54,6 +54,7 @@ mod tasks;
 mod sync;
 mod thumbnails;
 mod watcher;
+mod webview_memory;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -138,6 +139,7 @@ pub fn run() {
                 let _ = window.show();
                 let _ = window.unminimize();
                 let _ = window.set_focus();
+                webview_memory::sync(&window);
             }
         }))
         // Autostart wiring. Pass `--minimized` so the OS-launched
@@ -1076,6 +1078,7 @@ pub fn run() {
             commands::preferences::get_mini_player_bounds,
             commands::preferences::set_mini_player_bounds,
             commands::preferences::clear_mini_player_bounds,
+            commands::preferences::sync_webview_memory,
             commands::preferences::get_main_window_bounds,
             commands::preferences::set_main_window_bounds,
             commands::preferences::clear_main_window_bounds,
@@ -1223,6 +1226,9 @@ pub fn run() {
                 if minimize_to_tray {
                     api.prevent_close();
                     let _ = window.hide();
+                    if let Some(main) = app.get_webview_window("main") {
+                        webview_memory::sync(&main);
+                    }
                 } else {
                     // Arm the quit gate so the impending Destroyed
                     // event runs the normal shutdown path (persist
@@ -1268,6 +1274,16 @@ pub fn run() {
                     let _ = engine.send(AudioCmd::Shutdown);
                     Ok::<_, error::AppError>(())
                 });
+            }
+            // Minimize / restore fire `Resized`, and a hide or show moves
+            // focus: re-read the window's state and let an unseen WebView2
+            // give memory back. See `webview_memory`.
+            WindowEvent::Resized(_) | WindowEvent::Focused(_)
+                if webview_memory::LABELS.contains(&window.label()) =>
+            {
+                if let Some(webview) = window.app_handle().get_webview_window(window.label()) {
+                    webview_memory::sync(&webview);
+                }
             }
             _ => {}
         })
@@ -1693,6 +1709,7 @@ fn show_main_window(app: &AppHandle) {
         let _ = window.show();
         let _ = window.unminimize();
         let _ = window.set_focus();
+        webview_memory::sync(&window);
     }
 }
 
@@ -1722,6 +1739,7 @@ fn reveal_main_close_splash(app: &AppHandle) -> bool {
         return false;
     }
     let _ = main.set_focus();
+    webview_memory::sync(&main);
     if let Some(splash) = app.get_webview_window("splashscreen") {
         if let Err(err) = splash.close() {
             tracing::warn!(?err, "splash handoff: splash.close failed");

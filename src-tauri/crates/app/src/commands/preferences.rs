@@ -298,6 +298,21 @@ pub async fn clear_mini_player_bounds(state: tauri::State<'_, AppState>) -> AppR
     Ok(())
 }
 
+/// Re-evaluate the WebView2 memory target of every window it applies to
+/// (see `webview_memory`). For the frontend's own `show()` / `hide()`
+/// calls, which emit nothing on the Rust side that says so: a window that
+/// loses focus *before* it is hidden — the mini-player's Maximize — would
+/// otherwise stay at `Normal` while out of sight.
+#[tauri::command]
+pub fn sync_webview_memory(app: tauri::AppHandle) {
+    use tauri::Manager;
+    for label in crate::webview_memory::LABELS {
+        if let Some(window) = app.get_webview_window(label) {
+            crate::webview_memory::sync(&window);
+        }
+    }
+}
+
 #[tauri::command]
 pub async fn get_mini_player_bounds(
     state: tauri::State<'_, AppState>,
