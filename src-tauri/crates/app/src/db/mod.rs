@@ -8,6 +8,7 @@
 pub mod app_db;
 pub mod migration_heal;
 pub mod pinyin_backfill;
+pub mod pre_migration_backup;
 pub mod profile_db;
 pub mod profile_meta;
 pub mod schema_guard;

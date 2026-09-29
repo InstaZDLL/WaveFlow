@@ -126,6 +126,8 @@ Queries rebuild the display string via `GROUP_CONCAT` over `track_artist` ordere
 
 [`scan.rs::upsert_album`](../../src-tauri/crates/app/src/commands/scan.rs) keys on the album artist (Album Artist tag → `is_compilation` → primary artist fallback). `album.is_compilation` is sticky, and `merge_implicit_compilations` collapses ≥ 3 distinct-artist same-title rows into "Various Artists" after every scan. `edit.rs` re-runs `upsert_album` with the OLD album's Album Artist / compilation flags so renames don't re-split.
 
+The tag decides, and a track never overrides it. When a rescan re-splits a track's credits, [`repoint_fallback_album_artist`](../../src-tauri/crates/core/src/scanner/upserts.rs) moves the album to the new lead artist only if the album took its artist from _that_ track by fallback: no Album Artist, no compilation flag, and `artist_id` still the track's old lead. When another album already holds the target `(canonical_title, artist_id)` — a `UNIQUE` pair, so re-keying would abort the whole scan transaction — the track joins that album instead, where a fresh scan would have put it. The unguarded version used to re-key a Various Artists record or an explicit Album Artist on the first track to be rescanned.
+
 Deep dive: [library § album grouping](../features/library.md#album-grouping).
 
 ### File-write safety on Windows

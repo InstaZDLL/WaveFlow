@@ -59,6 +59,9 @@ pub async fn open(path: &Path) -> AppResult<SqlitePool> {
     // panic at every subsequent boot once the file is restored to LF.
     // See [`crate::db::migration_heal`] for the full backstory.
     super::migration_heal::heal_line_ending_drift(&pool, &migrator).await?;
+    // A copy to go back to if what follows goes wrong. After the
+    // guards, so a database this build refuses is never copied.
+    super::pre_migration_backup::snapshot_if_pending(&pool, &migrator, path).await;
     migrator.run(&pool).await?;
 
     // Phase 1.g.3 — UUIDs every pre-existing `profile.canonical_id`

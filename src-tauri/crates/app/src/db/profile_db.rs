@@ -80,6 +80,9 @@ pub async fn open(path: &Path, app_db_path: &Path) -> AppResult<SqlitePool> {
     // in the working tree gets reconciled before sqlx's strict
     // checksum check fires. Details in [`crate::db::migration_heal`].
     super::migration_heal::heal_line_ending_drift(&pool, &migrator).await?;
+    // A copy to go back to if what follows goes wrong. After the
+    // guards, so a database this build refuses is never copied.
+    super::pre_migration_backup::snapshot_if_pending(&pool, &migrator, path).await;
     migrator.run(&pool).await?;
 
     // Pinyin for the rows that predate the column (#579). Detached, and
