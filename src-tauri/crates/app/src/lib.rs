@@ -1160,6 +1160,7 @@ pub fn run() {
             commands::player::player_reopen_output_device,
             commands::player::player_set_exclusive_output,
             commands::player::player_get_exclusive_output,
+            commands::player::player_get_exclusive_output_state,
             commands::player::player_set_pause_on_device_loss,
             commands::player::player_probe_output_device,
             commands::player::player_set_match_source_rate,

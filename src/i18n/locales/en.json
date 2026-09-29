@@ -1821,7 +1821,8 @@
     "exclusive": {
       "title": "Exclusive output",
       "subtitle": "Takes the device for this app alone instead of sharing it with the system mixer. Falls back to shared mode if the device refuses.",
-      "fallback": "The device doesn't accept exclusive mode. Falling back to shared mode."
+      "fallback": "The device doesn't accept exclusive mode. Falling back to shared mode.",
+      "hardwareVolume": "The system volume no longer applies: the device plays at its own hardware level. If it's too quiet, raise that level in the system mixer."
     },
     "matchSourceRate": {
       "title": "Match each track's sample rate",

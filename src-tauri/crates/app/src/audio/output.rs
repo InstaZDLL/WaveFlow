@@ -65,6 +65,30 @@ fn device_display_name(device: &cpal::Device) -> Option<String> {
     Some(desc.name().to_string())
 }
 
+/// The name a device is known by everywhere the app compares devices: the
+/// persisted pin, the listing's `id`, the OS default and the device that
+/// actually opened.
+///
+/// On Linux that is the ALSA PCM id (`pipewire`, `hw:CARD=PCH,DEV=0`),
+/// which cpal 0.17 carries as the description's `driver`. The menu there
+/// is built from ALSA's hint database and keys its rows on that id, so a
+/// pin is an id — while [`device_display_name`] answers with the hint's
+/// description ("PipeWire Sound Server"). Comparing the two meant a
+/// pinned device was never found when the output opened, fell back to
+/// the default every time, and the menu reported the pin unavailable;
+/// the OS default was never marked either. Elsewhere the listing keys on
+/// the display name, so that is the key.
+fn device_key(device: &cpal::Device) -> Option<String> {
+    #[cfg(target_os = "linux")]
+    {
+        let desc = device.description().ok()?;
+        if let Some(id) = desc.driver() {
+            return Some(id.to_string());
+        }
+    }
+    device_display_name(device)
+}
+
 /// Enumerate every output device available on the default audio host.
 /// The OS default is flagged so the UI can highlight it.
 ///
@@ -320,7 +344,7 @@ fn list_output_devices_alsa_hints() -> AppResult<Vec<OutputDeviceInfo>> {
     let default_name = silence_alsa_stderr(|| {
         cpal::default_host()
             .default_output_device()
-            .and_then(|d| device_display_name(&d))
+            .and_then(|d| device_key(&d))
     });
 
     let pcm = CString::new("pcm").map_err(|e| AppError::Audio(format!("CString: {e}")))?;
@@ -740,7 +764,7 @@ pub(super) fn os_default_output_name() -> Option<String> {
         silence_alsa_stderr(|| {
             cpal::default_host()
                 .default_output_device()
-                .and_then(|d| device_display_name(&d))
+                .and_then(|d| device_key(&d))
         })
     }
     #[cfg(not(target_os = "linux"))]
@@ -1093,7 +1117,7 @@ fn build_stream_inner(
             let mut found = None;
             if let Ok(iter) = host.output_devices() {
                 for d in iter {
-                    if device_display_name(&d).as_deref() == Some(name) {
+                    if device_key(&d).as_deref() == Some(name) {
                         found = Some(d);
                         break;
                     }
@@ -1119,7 +1143,7 @@ fn build_stream_inner(
     // Read the name off the device we ended up with, not the one we
     // asked for. These differ exactly when the fallback above fired,
     // which is the case the picker used to misreport (#612).
-    let opened_device = device_display_name(&device);
+    let opened_device = device_key(&device);
 
     let default_cfg = device
         .default_output_config()

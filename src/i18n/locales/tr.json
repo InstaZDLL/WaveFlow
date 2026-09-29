@@ -1821,7 +1821,8 @@
     "exclusive": {
       "title": "Özel çıkış",
       "subtitle": "Aygıtı sistem karıştırıcısıyla paylaşmak yerine yalnızca bu uygulama için alır. Aygıt reddederse paylaşımlı moda döner.",
-      "fallback": "Aygıt özel modu kabul etmiyor. Paylaşımlı moda geri dönülüyor."
+      "fallback": "Aygıt özel modu kabul etmiyor. Paylaşımlı moda geri dönülüyor.",
+      "hardwareVolume": "Sistem ses düzeyi artık uygulanmaz: aygıt kendi donanım düzeyinde çalar. Ses çok kısıksa bu düzeyi sistem karıştırıcısından yükseltin."
     },
     "matchSourceRate": {
       "title": "Her parçanın örnekleme hızını kullan",

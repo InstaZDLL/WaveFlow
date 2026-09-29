@@ -1821,7 +1821,8 @@
     "exclusive": {
       "title": "Keluaran eksklusif",
       "subtitle": "Mengambil perangkat hanya untuk aplikasi ini alih-alih membaginya dengan mixer sistem. Kembali ke mode bersama jika perangkat menolak.",
-      "fallback": "Perangkat tidak menerima mode eksklusif. Kembali ke mode bersama."
+      "fallback": "Perangkat tidak menerima mode eksklusif. Kembali ke mode bersama.",
+      "hardwareVolume": "Volume sistem tidak lagi berlaku: perangkat memutar pada level perangkat kerasnya sendiri. Jika terlalu pelan, naikkan level itu di mixer sistem."
     },
     "matchSourceRate": {
       "title": "Ikuti laju sampel tiap lagu",

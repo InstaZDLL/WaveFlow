@@ -4,8 +4,9 @@ import { Lock } from "lucide-react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import {
-  playerGetExclusiveOutput,
+  playerGetExclusiveOutputState,
   playerSetExclusiveOutput,
+  type ExclusiveOutputState,
 } from "../../../lib/tauri/player";
 import { ToggleSwitch } from "../../common/ToggleSwitch";
 
@@ -21,31 +22,37 @@ import { ToggleSwitch } from "../../common/ToggleSwitch";
  * The toggle calls the backend which:
  *   1. Persists the preference in `profile_setting`.
  *   2. Re-opens the audio output stream in exclusive event-driven mode.
- *   3. Falls back to cpal shared mode if exclusive init fails — the
- *      `getWasapiExclusive` read after the toggle reflects what's
- *      actually engaged so the UI never lies about the mode.
+ *   3. Falls back to cpal shared mode if exclusive init fails.
+ *
+ * The switch shows the **preference**, and a note says when it did not
+ * engage. It used to show only what engaged, so after a refusal it read
+ * "off" while exclusive stayed requested — every rebuild tried the device
+ * again, and switching it "on" changed nothing, the preference being on
+ * already. While it is engaged, a second note says the system volume no
+ * longer applies: the device plays at its own hardware level, which is
+ * wherever the sound server last left it and can be close to silent.
  */
 export function ExclusiveModeCard() {
   const { t } = useTranslation();
-  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [state, setState] = useState<ExclusiveOutputState | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    playerGetExclusiveOutput()
-      .then(setEnabled)
+    playerGetExclusiveOutputState()
+      .then(setState)
       .catch((err) => {
         console.error("[ExclusiveModeCard] get failed", err);
-        setEnabled(false);
+        setState({ requested: false, engaged: false });
       });
   }, []);
 
   // The engine can rebuild the output stream on its own — a device
   // flap (issue #405), a device switch from the output-device picker —
   // without the user ever touching this toggle. Without this listener
-  // `enabled` only ever reflected the mount-time read or the last
-  // manual click, so it could show "on" while a fallback had silently
-  // dropped the engine to shared mode. `player:audio-mode-changed`
+  // the card only ever reflected the mount-time read or the last manual
+  // click, and missed a fallback that silently dropped the engine to
+  // shared mode. `player:audio-mode-changed`
   // carries no payload; a re-fetch here mirrors the one `toggle()`
   // already does after a manual click.
   useEffect(() => {
@@ -59,8 +66,8 @@ export function ExclusiveModeCard() {
     (async () => {
       try {
         const stop = await listen("player:audio-mode-changed", () => {
-          playerGetExclusiveOutput()
-            .then(setEnabled)
+          playerGetExclusiveOutputState()
+            .then(setState)
             .catch((err) => {
               console.error(
                 "[ExclusiveModeCard] refresh after rebuild failed",
@@ -88,13 +95,9 @@ export function ExclusiveModeCard() {
     setError(null);
     try {
       await playerSetExclusiveOutput(next);
-      // Re-read so the displayed state reflects the engine's actual
-      // mode after fallback.
-      const actual = await playerGetExclusiveOutput();
-      setEnabled(actual);
-      if (next && !actual) {
-        setError(t("settings.exclusive.fallback"));
-      }
+      // Re-read: whether it engaged is only known once the output has
+      // been rebuilt, and the note below says so when it did not.
+      setState(await playerGetExclusiveOutputState());
     } catch (err) {
       console.error("[ExclusiveModeCard] toggle failed", err);
       setError(String(err));
@@ -104,7 +107,7 @@ export function ExclusiveModeCard() {
       // otherwise the switch keeps showing the mode the user just tried
       // to leave and looks stuck.
       try {
-        setEnabled(await playerGetExclusiveOutput());
+        setState(await playerGetExclusiveOutputState());
       } catch (refreshErr) {
         console.error(
           "[ExclusiveModeCard] refresh after failed toggle",
@@ -135,19 +138,27 @@ export function ExclusiveModeCard() {
           </div>
         </div>
         <ToggleSwitch
-          enabled={enabled === true}
+          enabled={state?.requested === true}
           onToggle={() => {
-            if (busy || enabled === null) return;
-            void toggle(!enabled);
+            if (busy || state === null) return;
+            void toggle(!state.requested);
           }}
           label={t("settings.exclusive.title")}
         />
       </div>
-      {error && (
+      {error ? (
         <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 ml-9">
           {error}
         </p>
-      )}
+      ) : state?.requested && !state.engaged ? (
+        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 ml-9">
+          {t("settings.exclusive.fallback")}
+        </p>
+      ) : state?.engaged ? (
+        <p className="text-xs settings-description mt-2 ml-9">
+          {t("settings.exclusive.hardwareVolume")}
+        </p>
+      ) : null}
     </div>
   );
 }
