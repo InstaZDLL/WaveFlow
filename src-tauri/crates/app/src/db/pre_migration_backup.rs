@@ -49,21 +49,19 @@ pub async fn snapshot_if_pending(
         }
     };
     let target = snapshot_path(path, first_pending)?;
-    // A copy already there was taken before this same migration on an
-    // earlier launch that did not get through it. It is the good one:
-    // nothing has written to the database since, the app never opened.
-    if target.exists() {
-        return Some(target);
-    }
+    // A copy already at `target` is from an earlier launch that stopped
+    // at the same migration. It is retaken rather than trusted: the user
+    // may have gone back to the previous build and kept listening since,
+    // and the schema being the same says nothing about the data.
+    //
     // `VACUUM INTO` writes a consistent, compacted copy — WAL included —
     // through SQLite itself, rather than copying files that may be
-    // mid-checkpoint.
-    //
-    // Written under a temporary name and renamed once complete: a copy
-    // cut short by a crash or a full disk must never sit at `target`,
-    // where the check above would take it for a good one next launch.
-    // `VACUUM INTO` also refuses an existing file, so a leftover from
-    // such a crash goes first.
+    // mid-checkpoint. It goes to a temporary name and replaces `target`
+    // by rename only once complete, so a copy cut short by a crash or a
+    // full disk never stands in for a good one, and a rename that fails
+    // leaves the previous copy where it was. `std::fs::rename` replaces
+    // an existing file on Windows as on Unix. `VACUUM INTO` refuses an
+    // existing file, so a leftover partial goes first.
     let partial = target.with_extension("bak.partial");
     let _ = std::fs::remove_file(&partial);
     tracing::info!(
@@ -231,21 +229,46 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_copy_left_by_a_failed_launch_is_kept() {
+    async fn a_copy_left_by_an_earlier_launch_is_retaken() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("data.db");
         let (pool, newest) = one_behind(&path).await;
         let earlier = dir.path().join(format!("data.db.pre-{newest}.bak"));
-        std::fs::write(&earlier, b"the copy from the launch that failed").unwrap();
+        std::fs::write(&earlier, b"a copy from before weeks of listening").unwrap();
+        sqlx::raw_sql("CREATE TABLE kept (v TEXT); INSERT INTO kept VALUES ('since')")
+            .execute(&pool)
+            .await
+            .unwrap();
 
         assert_eq!(
             snapshot_if_pending(&pool, &migrator(), &path).await,
             Some(earlier.clone())
         );
-        assert_eq!(
-            std::fs::read(&earlier).unwrap(),
-            b"the copy from the launch that failed"
-        );
+        let restored = file_pool(&earlier).await;
+        let kept: String = sqlx::query_scalar("SELECT v FROM kept")
+            .fetch_one(&restored)
+            .await
+            .unwrap();
+        assert_eq!(kept, "since");
+    }
+
+    #[tokio::test]
+    async fn a_replacement_that_fails_leaves_the_earlier_copy() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("data.db");
+        let (pool, newest) = one_behind(&path).await;
+        // A directory at the target: the copy is written, the rename over
+        // it fails on every platform, and what was there must survive.
+        let target = dir.path().join(format!("data.db.pre-{newest}.bak"));
+        std::fs::create_dir(&target).unwrap();
+        std::fs::write(target.join("inside"), b"untouched").unwrap();
+
+        assert_eq!(snapshot_if_pending(&pool, &migrator(), &path).await, None);
+        assert_eq!(std::fs::read(target.join("inside")).unwrap(), b"untouched");
+        assert!(!dir
+            .path()
+            .join(format!("data.db.pre-{newest}.bak.partial"))
+            .exists());
     }
 
     #[tokio::test]
