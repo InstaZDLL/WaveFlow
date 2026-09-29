@@ -116,11 +116,15 @@ impl TrackRepository for SqliteTrackRepository {
         let order = order_clause(sort);
         let sql = format!(
             "{SELECT_TRACK_ROW}{FROM_TRACK_BASE} \
-             WHERE (? IS NULL OR t.library_id = ?) AND t.is_available = 1\n{order}"
+             WHERE (?1 IS NULL OR t.library_id = ?1) \
+               AND (?2 IS NULL \
+                    OR al.artist_id = ?2 \
+                    OR t.id IN (SELECT track_id FROM track_artist WHERE artist_id = ?2)) \
+               AND t.is_available = 1\n{order}"
         );
         let rows = sqlx::query_as::<_, TrackRow>(sqlx::AssertSqlSafe(sql))
             .bind(filter.library_id)
-            .bind(filter.library_id)
+            .bind(filter.artist_id)
             .fetch_all(&self.pool)
             .await?;
         Ok(rows)
@@ -319,11 +323,13 @@ mod tests {
              CREATE TABLE artist (
                  id INTEGER PRIMARY KEY,
                  name TEXT NOT NULL,
+                 canonical_name TEXT,
                  pinyin TEXT
              );
              CREATE TABLE album (
                  id INTEGER PRIMARY KEY,
                  title TEXT NOT NULL,
+                 canonical_title TEXT,
                  artist_id INTEGER REFERENCES artist(id),
                  artwork_id INTEGER REFERENCES artwork(id),
                  pinyin TEXT
@@ -390,6 +396,61 @@ mod tests {
         .execute(pool)
         .await
         .unwrap();
+    }
+
+    async fn listed_for_artist(pool: &SqlitePool, artist_id: i64) -> Vec<i64> {
+        let repo = SqliteTrackRepository::new(pool.clone());
+        let filter = TrackListFilter {
+            library_id: None,
+            artist_id: Some(artist_id),
+        };
+        let mut ids: Vec<i64> = repo
+            .list(filter, TrackSort::default())
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|r| r.id)
+            .collect();
+        ids.sort();
+        ids
+    }
+
+    /// A comma inside an artist's name, a featured credit, and an album
+    /// artist credited on no track: all three found by row id.
+    #[tokio::test]
+    async fn an_artist_filter_matches_credits_and_album_artists_by_id() {
+        let pool = fixture_pool().await;
+        sqlx::raw_sql(
+            "INSERT INTO artist (id, name) VALUES
+                 (1, 'Earth, Wind & Fire'), (2, 'Guest'), (3, 'Various Artists'), (4, 'Other');
+             INSERT INTO album (id, title, artist_id) VALUES (1, 'Hits', 1), (2, 'Comp', 3);
+             INSERT INTO track (id, library_id, title, album_id, primary_artist, file_path)
+             VALUES (1, 1, 'September', 1, 1, '/1'),
+                    (2, 1, 'Duet', 1, 1, '/2'),
+                    (3, 1, 'On a compilation', 2, 4, '/3'),
+                    (4, 1, 'Unrelated', NULL, 4, '/4');
+             INSERT INTO track (id, library_id, title, album_id, primary_artist, file_path,
+                                is_available)
+             VALUES (5, 1, 'Gone', 1, 1, '/5', 0);
+             INSERT INTO track_artist (track_id, artist_id, position) VALUES
+                 (1, 1, 0), (2, 1, 0), (2, 2, 1), (3, 4, 0), (4, 4, 0), (5, 1, 0);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        assert_eq!(listed_for_artist(&pool, 1).await, vec![1, 2]);
+        assert_eq!(
+            listed_for_artist(&pool, 2).await,
+            vec![2],
+            "a featured credit"
+        );
+        assert_eq!(
+            listed_for_artist(&pool, 3).await,
+            vec![3],
+            "album artist only"
+        );
+        assert_eq!(listed_for_artist(&pool, 4).await, vec![3, 4]);
     }
 
     async fn ids_for(pool: &SqlitePool, query: &str) -> Vec<i64> {
