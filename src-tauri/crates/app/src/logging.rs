@@ -205,11 +205,6 @@ impl DailyBudget {
         self.written += len;
         Admit::Write
     }
-
-    /// Give back the bytes of a write that did not reach the file.
-    fn refund(&mut self, len: u64) {
-        self.written = self.written.saturating_sub(len);
-    }
 }
 
 /// The daily file appender, stopped at [`LOG_BYTES_PER_DAY`] for the rest
@@ -238,15 +233,10 @@ impl<W: std::io::Write> std::io::Write for CappedWriter<W> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let today = chrono::Utc::now().date_naive();
         match self.budget.admit(today, buf.len() as u64) {
-            // Whole or not at all, so the budget counts what is really
-            // in the file: a failed write gives its bytes back.
-            Admit::Write => match self.inner.write_all(buf) {
-                Ok(()) => Ok(buf.len()),
-                Err(err) => {
-                    self.budget.refund(buf.len() as u64);
-                    Err(err)
-                }
-            },
+            // A failed write keeps its place in the budget: part of it may
+            // already be in the file, and counting too much only ever
+            // errs on the side of the limit.
+            Admit::Write => self.inner.write_all(buf).map(|()| buf.len()),
             Admit::Notice => {
                 let _ = self.inner.write_all(
                     format!(
@@ -295,14 +285,6 @@ mod tests {
         let mut budget = DailyBudget::new(day(29), 0, 100);
         assert_eq!(budget.admit(day(29), 200), Admit::Notice);
         assert_eq!(budget.admit(day(30), 50), Admit::Write);
-    }
-
-    #[test]
-    fn a_failed_write_is_given_back() {
-        let mut budget = DailyBudget::new(day(29), 0, 100);
-        assert_eq!(budget.admit(day(29), 100), Admit::Write);
-        budget.refund(100);
-        assert_eq!(budget.admit(day(29), 100), Admit::Write);
     }
 
     #[test]
