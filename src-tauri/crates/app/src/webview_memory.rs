@@ -31,16 +31,20 @@
 /// The desktop lyrics overlay is destroyed when closed.
 pub const LABELS: [&str; 2] = ["main", "mini"];
 
-/// Last level sent per window label, so a burst of `Resized` events
-/// during a drag-resize does not queue a COM call each. An entry is
-/// dropped again when the call fails, so the next event retries; with no
-/// entry, the window counts as never shown and is not lowered.
+/// Per window label: present once the window has been on screen, holding
+/// the last level sent (`Some(idle)`), or `None` when the last call failed
+/// and the level is unknown. The level spares a burst of `Resized` events
+/// during a drag-resize a COM call each; forgetting only the level on a
+/// failure lets the next event retry either way, while the window still
+/// counts as shown.
 // The bookkeeping is platform-free so its tests run on the Linux CI job,
 // the only one that runs this crate's tests; only Windows calls it.
 #[cfg_attr(not(windows), allow(dead_code))]
-static APPLIED: std::sync::Mutex<Option<std::collections::HashMap<String, bool>>> =
+static APPLIED: std::sync::Mutex<Option<std::collections::HashMap<String, Option<bool>>>> =
     std::sync::Mutex::new(None);
 
+/// Record `idle` as about to be sent for `label`, and say whether it needs
+/// sending. `None` records that the last call failed.
 #[cfg_attr(not(windows), allow(dead_code))]
 fn remember(label: &str, idle: Option<bool>) -> bool {
     let mut applied = APPLIED.lock().unwrap_or_else(|e| e.into_inner());
@@ -50,9 +54,11 @@ fn remember(label: &str, idle: Option<bool>) -> bool {
         // window is created hidden behind the splash, and a page loading
         // at `Low` would pay for it in a slower launch.
         Some(true) if !applied.contains_key(label) => false,
-        Some(idle) => applied.insert(label.to_string(), idle) != Some(idle),
+        Some(idle) => applied.insert(label.to_string(), Some(idle)) != Some(Some(idle)),
         None => {
-            applied.remove(label);
+            if let Some(level) = applied.get_mut(label) {
+                *level = None;
+            }
             true
         }
     }
@@ -132,5 +138,16 @@ mod tests {
         assert!(remember("t-retry", Some(false)));
         remember("t-retry", None);
         assert!(remember("t-retry", Some(false)));
+    }
+
+    #[test]
+    fn a_failed_lowering_is_retried_on_the_next_hide() {
+        assert!(remember("t-retry-low", Some(false)));
+        assert!(remember("t-retry-low", Some(true)));
+        remember("t-retry-low", None);
+        assert!(
+            remember("t-retry-low", Some(true)),
+            "a failure must not make the window count as never shown"
+        );
     }
 }
