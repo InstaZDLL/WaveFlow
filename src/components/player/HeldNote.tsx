@@ -54,6 +54,7 @@ export function HeldNoteText({
   // restarts the letters (`epoch` keys them) from the new position.
   const [sync, setSync] = useState(() => ({
     elapsedMs: Math.max(0, positionMs - word.timeMs),
+    speed: playbackSpeed,
     epoch: 0,
   }));
   // Where playback was at the last event, and when: a new event far from
@@ -72,9 +73,19 @@ export function HeldNoteText({
     if (Math.abs(positionMs - expected) > SEEK_DRIFT_MS) {
       setSync({
         elapsedMs: Math.max(0, positionMs - word.timeMs),
+        speed: playbackSpeed,
         epoch: sync.epoch + 1,
       });
     }
+  }
+  // The letters run on the wall clock and the note on the song's, so a
+  // new speed re-times the rest of the wave from where the song is.
+  if (playbackSpeed !== sync.speed) {
+    setSync({
+      elapsedMs: Math.max(0, positionMs - word.timeMs),
+      speed: playbackSpeed,
+      epoch: sync.epoch + 1,
+    });
   }
 
   const leading = word.text.match(/^\s*/)?.[0] ?? "";
@@ -99,9 +110,12 @@ export function HeldNoteText({
         // is linear over the word — and holds until the note ends, so
         // every letter's animation finishes at the same moment.
         const startMs = (heldMs * (i + 0.5)) / letters.length;
+        // Song time to the wall clock the animations run on, so the wave
+        // keeps pace with the fill at 0.5x or 2x as at 1x.
+        const speed = sync.speed > 0 ? sync.speed : 1;
         const durationMs = Math.max(
           MIN_LETTER_MS,
-          heldMs - startMs + RELEASE_MS,
+          (heldMs - startMs) / speed + RELEASE_MS,
         );
         return (
           <span
@@ -110,7 +124,7 @@ export function HeldNoteText({
             style={
               {
                 animationDuration: `${durationMs}ms`,
-                animationDelay: `${startMs - sync.elapsedMs}ms`,
+                animationDelay: `${(startMs - sync.elapsedMs) / speed}ms`,
                 animationPlayState: isPlaying ? "running" : "paused",
                 "--held": strength.toFixed(2),
               } as CSSProperties
