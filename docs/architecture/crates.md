@@ -39,7 +39,7 @@ src-tauri/
         └── src/
             ├── audio/                 (real-time cpal + rtrb pipeline, EQ, exclusive backends)
             ├── commands/              (#[tauri::command] handlers, thin over core)
-            ├── db/                    (per-profile pool wiring + migration_heal)
+            ├── db/                    (per-profile pool wiring + migration_heal + pre_migration_backup)
             ├── dlna/                  (MediaServer worker thread)
             ├── discord_presence.rs    (Rich Presence named-pipe client)
             ├── media_controls.rs      (souvlaki bridge → SMTC / MPRIS)
@@ -84,7 +84,7 @@ Anything tied to the Tauri runtime, the real-time audio engine, or the desktop O
 - **OS media controls** — souvlaki (`media_controls.rs`), Discord Rich Presence named-pipe client (`discord_presence.rs`), system notification plugin bridge (`notifications.rs`).
 - **DLNA / UPnP MediaServer** — `dlna/` is integrated as a worker thread driven by the Tauri runtime.
 - **Filesystem watcher** — `watcher.rs` wires `notify` events into `library:rescanned` Tauri events.
-- **DB pool wiring** — `db/{app_db,profile_db,migration_heal}.rs`. Migrations themselves live at `src-tauri/migrations/` and are compiled in by `sqlx::migrate!(...)` from app; moving migrations into core is a later cleanup once nothing app-side needs to point at them with a relative path.
+- **DB pool wiring** — `db/{app_db,profile_db,migration_heal,pre_migration_backup}.rs`. Migrations themselves live at `src-tauri/migrations/` and are compiled in by `sqlx::migrate!(...)` from app; moving migrations into core is a later cleanup once nothing app-side needs to point at them with a relative path.
 - **Paths** — `paths.rs::AppPaths` derives the on-disk layout from `tauri::AppHandle` + `dirs::data_dir()`. The server will have its own path resolver.
 - **Tray, single-instance, updater, mini-player WebviewWindow** — all platform-specific Tauri wiring.
 

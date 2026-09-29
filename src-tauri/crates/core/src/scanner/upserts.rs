@@ -651,6 +651,74 @@ pub async fn merge_implicit_compilations(pool: &SqlitePool) -> CoreResult<()> {
     Ok(())
 }
 
+/// Follow a track's re-split artist credits onto its album, when the album
+/// took its artist from that track in the first place.
+///
+/// An album with no Album Artist tag and no compilation flag is keyed on
+/// its first track's primary artist (see [`resolve_album_artist`]). When a
+/// rescan splits that track's credits anew, the album should follow the
+/// new lead artist — but only then:
+///
+/// - `album_artist IS NULL AND is_compilation = 0`: an explicit album
+///   artist or a Various Artists record is the tag's decision, and a
+///   track's credits must never override it.
+/// - `artist_id IS previous_primary`: the album was keyed on *this*
+///   track's old lead. An album keyed on another track's artist is not
+///   this track's to move. `IS`, not `=`, so a NULL on both sides matches.
+///
+/// When another album already holds `(canonical_title, new_primary)` the
+/// album cannot take that key — the pair is `UNIQUE`, and the collision
+/// would abort the whole scan transaction. The track joins that album
+/// instead, which is where a fresh scan would have put it; the album it
+/// leaves drops out of the lists once its last track has followed.
+///
+/// Returns whether the track ended up under the new artist.
+pub async fn repoint_fallback_album_artist(
+    conn: &mut sqlx::SqliteConnection,
+    track_id: i64,
+    previous_primary: Option<i64>,
+    new_primary: i64,
+) -> CoreResult<bool> {
+    let eligible: Option<(i64, Option<i64>)> = sqlx::query_as(
+        "SELECT cur.id,
+                (SELECT other.id FROM album other
+                  WHERE other.canonical_title = cur.canonical_title
+                    AND other.artist_id = ?1
+                  LIMIT 1)
+           FROM album cur
+          WHERE cur.id = (SELECT album_id FROM track WHERE id = ?2)
+            AND cur.album_artist IS NULL
+            AND cur.is_compilation = 0
+            AND cur.artist_id IS ?3
+            AND cur.artist_id IS NOT ?1",
+    )
+    .bind(new_primary)
+    .bind(track_id)
+    .bind(previous_primary)
+    .fetch_optional(&mut *conn)
+    .await?;
+    let Some((album_id, existing)) = eligible else {
+        return Ok(false);
+    };
+    match existing {
+        Some(target) => {
+            sqlx::query("UPDATE track SET album_id = ? WHERE id = ?")
+                .bind(target)
+                .bind(track_id)
+                .execute(&mut *conn)
+                .await?;
+        }
+        None => {
+            sqlx::query("UPDATE album SET artist_id = ? WHERE id = ?")
+                .bind(new_primary)
+                .bind(album_id)
+                .execute(&mut *conn)
+                .await?;
+        }
+    }
+    Ok(true)
+}
+
 /// One album due for a cover refresh, as observed before the filesystem
 /// walk. `observed_artwork_id` / `observed_hash` are what the album
 /// pointed at when the candidate list was built, and are re-checked at
@@ -1807,5 +1875,115 @@ mod play_event_tests {
             vec![Some(2)],
             "must not be re-pointed at the lower-id duplicate",
         );
+    }
+}
+
+#[cfg(test)]
+mod album_artist_repoint_tests {
+    use super::*;
+    use sqlx::SqlitePool;
+
+    /// The `album` columns the rule reads, with the real
+    /// `UNIQUE (canonical_title, artist_id)` — without it the collision
+    /// case would pass against a schema that cannot fail.
+    async fn fixture_pool() -> SqlitePool {
+        let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+        sqlx::raw_sql(
+            "CREATE TABLE album (
+                 id INTEGER PRIMARY KEY,
+                 canonical_title TEXT NOT NULL,
+                 artist_id INTEGER,
+                 album_artist TEXT,
+                 is_compilation INTEGER NOT NULL DEFAULT 0,
+                 UNIQUE (canonical_title, artist_id)
+             );
+             CREATE TABLE track (
+                 id INTEGER PRIMARY KEY,
+                 album_id INTEGER
+             );",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        pool
+    }
+
+    async fn seed(pool: &SqlitePool, album_artist: Option<&str>, is_compilation: bool) {
+        sqlx::query(
+            "INSERT INTO album (id, canonical_title, artist_id, album_artist, is_compilation)
+             VALUES (1, 'record', 10, ?, ?)",
+        )
+        .bind(album_artist)
+        .bind(is_compilation as i64)
+        .execute(pool)
+        .await
+        .unwrap();
+        sqlx::query("INSERT INTO track (id, album_id) VALUES (1, 1)")
+            .execute(pool)
+            .await
+            .unwrap();
+    }
+
+    async fn album_artist_id(pool: &SqlitePool) -> Option<i64> {
+        sqlx::query_scalar("SELECT artist_id FROM album WHERE id = 1")
+            .fetch_one(pool)
+            .await
+            .unwrap()
+    }
+
+    async fn repoint(pool: &SqlitePool, previous: Option<i64>, new: i64) -> bool {
+        let mut conn = pool.acquire().await.unwrap();
+        repoint_fallback_album_artist(&mut conn, 1, previous, new)
+            .await
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn follows_the_track_that_keyed_the_album() {
+        let pool = fixture_pool().await;
+        seed(&pool, None, false).await;
+        assert!(repoint(&pool, Some(10), 20).await);
+        assert_eq!(album_artist_id(&pool).await, Some(20));
+    }
+
+    #[tokio::test]
+    async fn keeps_an_explicit_album_artist() {
+        let pool = fixture_pool().await;
+        seed(&pool, Some("The Band"), false).await;
+        assert!(!repoint(&pool, Some(10), 20).await);
+        assert_eq!(album_artist_id(&pool).await, Some(10));
+    }
+
+    #[tokio::test]
+    async fn keeps_a_compilation() {
+        let pool = fixture_pool().await;
+        seed(&pool, None, true).await;
+        assert!(!repoint(&pool, Some(10), 20).await);
+        assert_eq!(album_artist_id(&pool).await, Some(10));
+    }
+
+    #[tokio::test]
+    async fn leaves_an_album_keyed_on_another_track() {
+        let pool = fixture_pool().await;
+        seed(&pool, None, false).await;
+        assert!(!repoint(&pool, Some(30), 20).await);
+        assert_eq!(album_artist_id(&pool).await, Some(10));
+    }
+
+    #[tokio::test]
+    async fn joins_the_album_that_already_holds_the_new_key() {
+        let pool = fixture_pool().await;
+        seed(&pool, None, false).await;
+        sqlx::query("INSERT INTO album (id, canonical_title, artist_id) VALUES (2, 'record', 20)")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert!(repoint(&pool, Some(10), 20).await);
+        assert_eq!(album_artist_id(&pool).await, Some(10));
+        let album_id: Option<i64> = sqlx::query_scalar("SELECT album_id FROM track WHERE id = 1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(album_id, Some(2));
     }
 }
