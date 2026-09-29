@@ -1821,7 +1821,8 @@
     "exclusive": {
       "title": "Exclusieve uitvoer",
       "subtitle": "Neemt het apparaat alleen voor deze app in plaats van het te delen met de systeemmixer. Valt terug op de gedeelde modus als het apparaat weigert.",
-      "fallback": "Het apparaat accepteert geen exclusieve modus. Terugvallen op gedeelde modus."
+      "fallback": "Het apparaat accepteert geen exclusieve modus. Terugvallen op gedeelde modus.",
+      "hardwareVolume": "Het systeemvolume geldt niet meer: het apparaat speelt op zijn eigen hardwareniveau. Is het te zacht, verhoog dat niveau dan in de mixer van het systeem."
     },
     "matchSourceRate": {
       "title": "Samplefrequentie van elk nummer volgen",

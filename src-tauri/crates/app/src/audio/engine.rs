@@ -2873,6 +2873,13 @@ impl AudioEngine {
         self.exclusive_output_active
             .load(std::sync::atomic::Ordering::Acquire)
     }
+
+    /// Whether the user asked for exclusive output — the persisted
+    /// preference, whatever the current stream managed to engage.
+    pub fn exclusive_output_requested(&self) -> bool {
+        self.exclusive_output
+            .load(std::sync::atomic::Ordering::Relaxed)
+    }
 }
 
 /// Releases the slot [`AudioEngine::begin_resume`] took, when dropped.

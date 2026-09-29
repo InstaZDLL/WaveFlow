@@ -197,6 +197,10 @@ The chosen device's name is persisted in `profile_setting['audio.output_device']
 
 On Linux, enumeration uses ALSA's hint database (`snd_device_name_hint("pcm")`) instead of cpal's `output_devices()` to avoid a 1-2 s freeze + `pcm_dmix` / `pcm_route` stderr spam from probing every PCM card.
 
+**One key per device.** Everything that compares devices — the pin, each listed row's `id`, the OS default and the device that actually opened — goes through `output::device_key`. On Linux that is the ALSA PCM id (`pipewire`, `hw:CARD=PCH,DEV=0`), which cpal 0.17 carries as the description's `driver`; elsewhere it is the display name the listing keys on. The hint rows are keyed on the PCM id, so a pin is one, while cpal's lookup and the "opened" / "default" reports used the hint's description ("PipeWire Sound Server"). Nothing ever matched: a pinned device was not found when the output opened and fell back to the default every time, the menu called the pin unavailable, and the OS default was never marked.
+
+**A sound-server route is the default card to the exclusive backend.** `default`, `pipewire` and `pulse` are routes into the system's mixer, not cards; `alsa_exclusive::is_system_route` names them, and a pinned route opens `hw:0,0` exclusively — the same reading as no pin — instead of being refused. Only `default` used to be recognised, so a pinned "PipeWire Sound Server" failed back to shared mode on every rebuild while the launch, reading no pin, opened the card: the output flapped between the two.
+
 ### What the Linux list shows, and what it hides
 
 The hint database answers with ALSA's whole namespace, and most of it is not a device. One sound card came back as six lines — `hw:`, `plughw:`, `dmix:`, `dsnoop:`, `surround40:`, `front:` — under names that mean nothing to the person choosing, and three of those route through the software mixer, so picking one **silently defeats the exclusive output the user has just turned on** (#594).
@@ -288,6 +292,8 @@ Four things about it are load-bearing:
 ## Output-stream lifecycle & recovery
 
 Three paths replace the output stream, and they must all end in the same place: `exclusive_output_active` updated and a `player:audio-mode-changed` event emitted, because that event is the only thing that keeps Settings' Exclusive-output toggle honest ([`ExclusiveModeCard`](../../src/components/views/settings/ExclusiveModeCard.tsx) re-reads on it).
+
+The toggle shows the **preference** and says when it did not engage, from `player_get_exclusive_output_state` (`requested` + `engaged`). It used to show only what engaged, so after a refusal it read "off" while exclusive stayed requested: every rebuild tried the device again, and switching it "on" changed nothing, `set_exclusive_output` returning early on an unchanged preference. While exclusive is engaged the card also says the system volume no longer applies — the device plays at its own hardware level, wherever the sound server last left it. On a PipeWire laptop that was `Master` at −44 dB: an exclusive stream that played, and could not be heard.
 
 | Path                   | Trigger                                 | Order                                                                                                       |
 | ---------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------- |

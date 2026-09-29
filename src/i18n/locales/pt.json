@@ -1884,7 +1884,8 @@
     "exclusive": {
       "title": "Saída exclusiva",
       "subtitle": "Assume o dispositivo só para esta aplicação em vez de o partilhar com o misturador do sistema. Volta ao modo partilhado se o dispositivo recusar.",
-      "fallback": "O dispositivo não aceita o modo exclusivo. A voltar ao modo partilhado."
+      "fallback": "O dispositivo não aceita o modo exclusivo. A voltar ao modo partilhado.",
+      "hardwareVolume": "O volume do sistema deixa de se aplicar: o dispositivo toca ao seu próprio nível de hardware. Se estiver demasiado baixo, suba esse nível no misturador do sistema."
     },
     "matchSourceRate": {
       "title": "Seguir a taxa de amostragem de cada faixa",

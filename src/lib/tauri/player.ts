@@ -678,3 +678,20 @@ export function playerSetExclusiveOutput(enabled: boolean): Promise<void> {
 export function playerGetExclusiveOutput(): Promise<boolean> {
   return invoke<boolean>("player_get_exclusive_output");
 }
+
+/** The exclusive-output preference and whether it engaged. */
+export interface ExclusiveOutputState {
+  /** What the user asked for — the persisted preference. */
+  requested: boolean;
+  /** Whether the current stream really owns its device. */
+  engaged: boolean;
+}
+
+/**
+ * Both halves at once, for the Settings toggle: it shows `requested`,
+ * and says so when `engaged` falls short. Showing only what engaged put
+ * the switch at "off" after a refusal while exclusive stayed requested.
+ */
+export function playerGetExclusiveOutputState(): Promise<ExclusiveOutputState> {
+  return invoke<ExclusiveOutputState>("player_get_exclusive_output_state");
+}

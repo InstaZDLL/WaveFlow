@@ -2302,6 +2302,31 @@ pub fn player_get_exclusive_output(engine: tauri::State<'_, Arc<AudioEngine>>) -
     engine.inner().exclusive_output()
 }
 
+/// The exclusive-output preference and what it achieved, together.
+#[derive(Debug, Clone, Copy, Serialize)]
+pub struct ExclusiveOutputState {
+    /// What the user asked for (`profile_setting['audio.exclusive_output']`).
+    pub requested: bool,
+    /// Whether the current stream really owns its device.
+    pub engaged: bool,
+}
+
+/// For the Settings toggle, which has to show the preference: showing only
+/// what engaged ([`player_get_exclusive_output`]) put the switch at "off"
+/// after a refusal while exclusive stayed requested — every rebuild tried
+/// the device again, and flipping the switch "on" changed nothing. The
+/// card shows `requested` and says so when `engaged` falls short.
+#[tauri::command]
+pub fn player_get_exclusive_output_state(
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+) -> ExclusiveOutputState {
+    let engine = engine.inner();
+    ExclusiveOutputState {
+        requested: engine.exclusive_output_requested(),
+        engaged: engine.exclusive_output(),
+    }
+}
+
 /// Open the output at each track's own rate instead of taking whatever
 /// the device offers (#600).
 ///

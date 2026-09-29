@@ -1928,7 +1928,8 @@
     "exclusive": {
       "title": "Sortie exclusive",
       "subtitle": "Réserve le périphérique à cette application au lieu de le partager avec le mixeur du système. Revient au mode partagé si le périphérique refuse.",
-      "fallback": "Le périphérique n'accepte pas le mode exclusif. Retour en mode partagé."
+      "fallback": "Le périphérique n'accepte pas le mode exclusif. Retour en mode partagé.",
+      "hardwareVolume": "Le volume du système ne s'applique plus : le périphérique joue à son propre niveau matériel. Si le son est trop faible, montez ce niveau dans le mixeur du système."
     },
     "matchSourceRate": {
       "title": "Suivre la fréquence d'échantillonnage des titres",
