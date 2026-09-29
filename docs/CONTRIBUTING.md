@@ -13,7 +13,7 @@ WaveFlow is a Tauri 2 desktop app with a React/Vite frontend and a Rust backend.
 | Requirement               | Notes                                |
 | ------------------------- | ------------------------------------ |
 | Bun                       | Package manager and frontend scripts |
-| Rust stable               | `rustc` + `cargo`, through rustup    |
+| Rust 1.98.0               | Pinned in `rust-toolchain.toml`; rustup installs it |
 | Tauri system dependencies | Required to build the desktop app    |
 
 On Linux, also install the native dependencies used by Tauri, WebKitGTK, and
@@ -83,7 +83,7 @@ The first Rust build can take several minutes.
 | --------------------------------------------- | ----------------------------------------------------------- |
 | `src/`                                        | React frontend, components, hooks, Tauri wrappers           |
 | `src/i18n/locales/`                           | App translation JSON files                                  |
-| `src-tauri/src/`                              | Rust backend, Tauri commands, audio, scanning, integrations |
+| `src-tauri/crates/`                           | Rust backend, Tauri commands, audio, scanning, integrations |
 | `src-tauri/migrations/`                       | Global and per-profile SQLite migrations                    |
 | `docs/`                                       | Project documentation                                       |
 | `dist/`, `node_modules/`, `src-tauri/target/` | Generated outputs that should not be edited                 |
@@ -114,7 +114,7 @@ The first Rust build can take several minutes.
 
 App strings live in `src/i18n/locales/`. WaveFlow ships 17 locales — `fr`
 (source of truth), `en`, `es`, `de`, `it`, `nl`, `pt`, `pt-BR`, `ru`, `tr`,
-`id`, `ja`, `kr`, `zh-CN`, `zh-TW`, `ar`, `hi`. There is no per-key fallback,
+`id`, `ja`, `ko`, `zh-CN`, `zh-TW`, `ar`, `hi`. There is no per-key fallback,
 so every locale must include every key.
 
 To add a language:
