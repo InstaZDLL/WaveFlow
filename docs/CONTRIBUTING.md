@@ -114,8 +114,10 @@ The first Rust build can take several minutes.
 
 App strings live in `src/i18n/locales/`. WaveFlow ships 17 locales — `fr`
 (source of truth), `en`, `es`, `de`, `it`, `nl`, `pt`, `pt-BR`, `ru`, `tr`,
-`id`, `ja`, `ko`, `zh-CN`, `zh-TW`, `ar`, `hi`. There is no per-key fallback,
-so every locale must include every key.
+`id`, `ja`, `ko`, `zh-CN`, `zh-TW`, `ar`, `hi`. A missing key falls back to
+English (`fallbackLng: "en"`), so a gap never breaks the UI; it shows English
+in the middle of another language instead. Every locale must therefore
+include every key.
 
 To add a language:
 
