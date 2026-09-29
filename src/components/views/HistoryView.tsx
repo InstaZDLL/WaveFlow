@@ -75,6 +75,26 @@ function rowToTrack(row: PlayHistoryRow): Track {
   };
 }
 
+/**
+ * The queue a click on `row` starts: that play, then every later row of
+ * the loaded history, one entry per track. Only what is loaded so far —
+ * the pages below the scroll position are not fetched for it.
+ */
+function historyQueueFrom(
+  rows: PlayHistoryRow[],
+  row: PlayHistoryRow,
+): Track[] {
+  const start = rows.findIndex((r) => r.event_id === row.event_id);
+  const seen = new Set<number>();
+  const queue: Track[] = [];
+  for (const r of start >= 0 ? rows.slice(start) : [row]) {
+    if (seen.has(r.track_id)) continue;
+    seen.add(r.track_id);
+    queue.push(rowToTrack(r));
+  }
+  return queue;
+}
+
 /** "YYYY-MM-DD" in local time — day-grouping key. */
 function dayKey(ts: number): string {
   const d = new Date(ts);
@@ -332,11 +352,14 @@ export function HistoryView({
                   trackContextMenu.openFromKeyboard(e, rowToTrack(row))
                 }
                 onPlay={(row) =>
-                  // Single-track play — uses the row's track_id and a
-                  // synthetic queue of just this track. Source type is
+                  // The clicked play, then the rest of the history as it
+                  // is listed — further back in time — so playback carries
+                  // on instead of stopping after one track. Each track
+                  // once: a song played ten times is one entry in the
+                  // queue, at its first place from here. Source type is
                   // "manual" because the user clicked from a chronological
                   // list, not a playlist or radio.
-                  playTracks([rowToTrack(row)], 0, {
+                  playTracks(historyQueueFrom(rows, row), 0, {
                     type: "manual",
                     id: null,
                   })
