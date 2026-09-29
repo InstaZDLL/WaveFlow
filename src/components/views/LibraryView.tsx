@@ -1297,6 +1297,10 @@ export function LibraryView({
           return;
         }
         if (singleClickPlay) {
+          // The second click of a double-click: the first one already
+          // started the track, and the row's `dblclick` stands down in
+          // this mode — one gesture, one play, not three.
+          if (e.detail > 1) return;
           const idx = rows.findIndex(
             (row) => row.source === "local" && Number(row.id) === track.id,
           );
@@ -2539,6 +2543,7 @@ function TrackTable({
                 // selection here to extend.
                 if (
                   singleClickPlay &&
+                  e.detail === 1 &&
                   !e.shiftKey &&
                   !e.ctrlKey &&
                   !e.metaKey
@@ -2546,7 +2551,11 @@ function TrackTable({
                   onPlayTrack(index);
                 }
               }}
-              onDoubleClick={() => onPlayTrack(index)}
+              // With single-click play the first click has already started
+              // the track; playing again here would restart it twice more.
+              onDoubleClick={() => {
+                if (!singleClickPlay) onPlayTrack(index);
+              }}
               onKeyDown={(e) => {
                 // Only play when the row itself is focused. Without
                 // this guard, hitting Enter/Space on a nested button
