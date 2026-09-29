@@ -1,8 +1,8 @@
-import { useState, type CSSProperties } from "react";
+import { Fragment, useState, type CSSProperties } from "react";
 
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
-import { heldNoteLetters } from "../../lib/heldNote";
+import { heldNoteLetters, isLetterSegment } from "../../lib/heldNote";
 import type { LyricsWord } from "../../lib/tauri/lyrics";
 
 /** How long a letter takes to come back to rest once the note ends. */
@@ -96,20 +96,35 @@ export function HeldNoteText({
   );
   if (reduceMotion || core.length === 0) return <>{word.text}</>;
 
-  const letters = heldNoteLetters(core);
+  const segments = heldNoteLetters(core);
+  // Punctuation keeps its place but takes no part in the wave: it is not
+  // sung, and counting it would slow the letters that are.
+  const letterTotal = segments.filter(isLetterSegment).length;
+  if (letterTotal === 0) return <>{word.text}</>;
   const heldMs = word.endMs - word.timeMs;
   // How much of the effect the note earns: a note barely long enough
   // stays subtle, one held three seconds and more gets all of it.
   const strength = Math.min(1, Math.max(0, (heldMs - 800) / 2700));
 
+  // Each segment's place among the sung letters, -1 for punctuation.
+  const letterIndexes: number[] = [];
+  let sung = 0;
+  for (const segment of segments) {
+    letterIndexes.push(isLetterSegment(segment) ? sung++ : -1);
+  }
+
   return (
     <>
       {leading}
-      {letters.map((letter, i) => {
+      {segments.map((letter, si) => {
+        const i = letterIndexes[si];
+        if (i < 0) {
+          return <Fragment key={`${sync.epoch}-${si}`}>{letter}</Fragment>;
+        }
         // A letter rises when the fill is halfway across it — the sweep
         // is linear over the word — and holds until the note ends, so
         // every letter's animation finishes at the same moment.
-        const startMs = (heldMs * (i + 0.5)) / letters.length;
+        const startMs = (heldMs * (i + 0.5)) / letterTotal;
         // Song time to the wall clock the animations run on, so the wave
         // keeps pace with the fill at 0.5x or 2x as at 1x.
         const speed = sync.speed > 0 ? sync.speed : 1;
@@ -119,7 +134,7 @@ export function HeldNoteText({
         );
         return (
           <span
-            key={`${sync.epoch}-${i}`}
+            key={`${sync.epoch}-${si}`}
             className={`wf-held-letter${glow ? " wf-held-letter--glow" : ""}`}
             style={
               {

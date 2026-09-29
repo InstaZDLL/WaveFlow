@@ -69,5 +69,16 @@ function letterCount(text: string): number {
     .replace(/️/gu, "")
     // A flag is two regional indicators.
     .replace(/\p{Regional_Indicator}{2}/gu, "F");
-  return folded.match(LETTER)?.length ?? 0;
+  return (folded.match(LETTER) ?? []).filter(isLetterSegment).length;
 }
+
+/**
+ * Whether a segment of `heldNoteLetters` is sung — a letter, a digit, an
+ * emoji — rather than punctuation, which keeps its place in the word but
+ * neither counts toward the hold nor moves.
+ */
+export function isLetterSegment(segment: string): boolean {
+  return SUNG.test(segment);
+}
+
+const SUNG = /[\p{L}\p{N}\p{Extended_Pictographic}\p{Regional_Indicator}]/u;
