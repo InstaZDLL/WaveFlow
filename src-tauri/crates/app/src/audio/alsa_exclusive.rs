@@ -321,16 +321,31 @@ fn resolve_hw_device(name: &Option<String>) -> AppResult<String> {
     if let Some(idx) = n.find("CARD=") {
         return Ok(format!("hw:{}", &n[idx..]));
     }
-    // No selector: a friendly name, or one of the system aliases.
+    // No selector: one of the system's routes, which is "the default
+    // output" by another name — the same reading as no selection — or a
+    // card's friendly name.
+    if is_system_route(n) {
+        return Ok("hw:0,0".to_string());
+    }
     if let Some(index) = find_card_index(n) {
         return Ok(format!("hw:{index},0"));
     }
-    if n.eq_ignore_ascii_case("default") {
-        return Ok("hw:0,0".to_string());
-    }
     Err(AppError::Audio(format!(
-        "alsa: no card matches the selected output '{n}' — can't open it exclusively for DoP"
+        "alsa: no card matches the selected output '{n}' — can't open it exclusively"
     )))
+}
+
+/// Whether `name` is one of the routes into the system's sound server
+/// rather than a card: `default`, and the `pipewire` / `pulse` devices
+/// PipeWire and PulseAudio register in ALSA. cpal lists them next to the
+/// cards, so they can be pinned like one — "PipeWire Sound Server" is
+/// what a PipeWire desktop offers first. Treating only `default` as a
+/// route refused a pinned `pipewire` outright: every rebuild then failed
+/// back to shared mode while the launch, reading no pin, opened the card.
+fn is_system_route(name: &str) -> bool {
+    ["default", "pipewire", "pulse"]
+        .iter()
+        .any(|route| name.eq_ignore_ascii_case(route))
 }
 
 /// Find the ALSA card index whose short or long name matches `name`.
@@ -387,10 +402,10 @@ pub(super) fn probe_capabilities(
     let describes_hardware = requested
         .as_deref()
         .filter(|n| !n.is_empty())
-        .is_some_and(|n| !n.eq_ignore_ascii_case("default"));
+        .is_some_and(|n| !is_system_route(n));
     if !describes_hardware {
         return Err(AppError::Audio(
-            "no pinned ALSA card to describe — \"default\" is routed, not hardware".to_string(),
+            "no pinned ALSA card to describe — a system route is not hardware".to_string(),
         ));
     }
     let hw = resolve_hw_device(&requested)?;
@@ -1140,6 +1155,20 @@ fn pcm_output_thread_main(
 #[cfg(test)]
 mod tests {
     use super::hw_card_index;
+    use super::{is_system_route, resolve_hw_device};
+
+    #[test]
+    fn a_pinned_sound_server_route_opens_the_default_card() {
+        for route in ["pipewire", "PipeWire", "pulse", "default"] {
+            assert!(is_system_route(route), "{route}");
+            assert_eq!(
+                resolve_hw_device(&Some(route.to_string())).unwrap(),
+                "hw:0,0",
+                "{route}"
+            );
+        }
+        assert!(!is_system_route("PCH"));
+    }
 
     use super::{pack_samples, AlsaSampleFormat};
 
