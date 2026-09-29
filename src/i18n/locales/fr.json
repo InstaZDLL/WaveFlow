@@ -2348,6 +2348,10 @@
       "title": "Karaoké mot à mot estimé",
       "subtitle": "Sur les paroles synchronisées ligne par ligne, surligne les mots selon une estimation de leur durée. Purement visuel : rien n'est enregistré."
     },
+    "lyricsHeldNotes": {
+      "title": "Faire vibrer les notes tenues",
+      "subtitle": "Dans la vue immersive, un mot chanté longtemps s'illumine lettre par lettre pendant qu'il est tenu."
+    },
     "lyricsHighlightColor": {
       "title": "Couleur de la ligne chantée",
       "subtitle": "Pour les paroles en plein écran et le mini-lecteur. Blanc tant que vous n'en choisissez pas ; la fenêtre flottante des paroles garde ses propres couleurs.",

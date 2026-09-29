@@ -2325,6 +2325,10 @@
       "title": "Karaoke palavra a palavra estimado",
       "subtitle": "Nas letras sincronizadas por linha, destaca as palavras segundo uma estimativa da sua duração. Apenas visual: nada é guardado."
     },
+    "lyricsHeldNotes": {
+      "title": "Animar notas sustentadas",
+      "subtitle": "Na vista imersiva, uma palavra sustentada durante muito tempo ilumina-se letra a letra enquanto é cantada."
+    },
     "lyricsHighlightColor": {
       "title": "Cor da linha cantada",
       "subtitle": "Para as letras em ecrã inteiro e o mini-leitor. Branco até escolheres uma; a janela flutuante das letras mantém as suas próprias cores.",

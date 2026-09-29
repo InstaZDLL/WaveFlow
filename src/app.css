@@ -424,6 +424,76 @@ html.mini-player-window #root {
   pointer-events: none;
 }
 
+/* Held note (`HeldNoteText`): each letter lifts and swells as the fill
+   reaches it, holds while the note does, and settles with the others as
+   it ends; how far, and how bright the glow, is what `--held` (0-1, how
+   long the note is held) earns. The glow is on the base layer, which is
+   not clipped: on the fill layer it would be cut at the fill's edge. The
+   fill's clip only gets room above and below, for the lift. */
+.karaoke-word__fill--held {
+  clip-path: inset(-0.6em calc(100% - var(--kw-fill, 0%)) -0.6em 0);
+}
+
+.wf-held-letter {
+  display: inline-block;
+  transform-origin: 50% 85%;
+  animation-name: wf-held-swell;
+  animation-timing-function: ease-in-out;
+  /* Before its turn a letter is at rest, and it comes back to rest. */
+  animation-fill-mode: both;
+}
+
+.wf-held-letter--glow {
+  animation-name: wf-held-glow;
+}
+
+@keyframes wf-held-swell {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateY(calc(-0.04em - 0.06em * var(--held, 0.5)))
+      scale(calc(1.06 + 0.1 * var(--held, 0.5)));
+  }
+  70% {
+    transform: translateY(calc(-0.03em - 0.05em * var(--held, 0.5)))
+      scale(calc(1.05 + 0.08 * var(--held, 0.5)));
+  }
+}
+
+/* The base layer sits at half opacity under the fill, hence the doubled
+   halo: it is what shows around the sung letters. */
+@keyframes wf-held-glow {
+  0%,
+  100% {
+    transform: none;
+    text-shadow: 0 0 0 transparent;
+  }
+  25% {
+    transform: translateY(calc(-0.04em - 0.06em * var(--held, 0.5)))
+      scale(calc(1.06 + 0.1 * var(--held, 0.5)));
+    text-shadow:
+      0 0 calc(0.15em + 0.2em * var(--held, 0.5)) currentColor,
+      0 0 calc(0.4em + 0.6em * var(--held, 0.5)) currentColor,
+      0 0 calc(0.4em + 0.6em * var(--held, 0.5)) currentColor;
+  }
+  70% {
+    transform: translateY(calc(-0.03em - 0.05em * var(--held, 0.5)))
+      scale(calc(1.05 + 0.08 * var(--held, 0.5)));
+    text-shadow:
+      0 0 calc(0.12em + 0.15em * var(--held, 0.5)) currentColor,
+      0 0 calc(0.3em + 0.45em * var(--held, 0.5)) currentColor,
+      0 0 calc(0.3em + 0.45em * var(--held, 0.5)) currentColor;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wf-held-letter {
+    animation: none;
+  }
+}
+
 /* Instrumental interlude: three dots in `currentColor`, sized from the
    font so the same markup fits the immersive column and the mini-player.
    The fill is inline (`InterludeDots`); the breathing is here. */

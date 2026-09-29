@@ -2324,6 +2324,10 @@
       "title": "Karaoke parola per parola stimato",
       "subtitle": "Sui testi sincronizzati per riga, evidenzia le parole in base a una stima della loro durata. Solo visivo: non viene salvato nulla."
     },
+    "lyricsHeldNotes": {
+      "title": "Anima le note tenute",
+      "subtitle": "Nella vista immersiva, una parola tenuta a lungo si illumina lettera per lettera mentre viene cantata."
+    },
     "lyricsHighlightColor": {
       "title": "Colore della riga cantata",
       "subtitle": "Per i testi a schermo intero e il mini-player. Bianco finché non ne scegli uno; la finestra mobile dei testi mantiene i propri colori.",
