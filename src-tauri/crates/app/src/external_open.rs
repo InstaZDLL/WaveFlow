@@ -101,53 +101,86 @@ mod appimage {
         Some(spawn_first(target, appdir))
     }
 
-    /// The opener plugin's own order: the first launcher that starts wins.
+    /// `xdg-open` first, then `gio open` — the opener plugin's order —
+    /// both with the host's environment.
+    ///
+    /// `gio open` takes over when `xdg-open` cannot be started, and also
+    /// when it starts but reports that it found no tool (3) or that the
+    /// open failed (4). It is not retried on a bad argument (1) or a
+    /// missing file (2), which `gio` would refuse too. The exit status is
+    /// read off-thread: `xdg-open` can stay in the foreground for as long
+    /// as the browser it started, so the caller only learns whether a
+    /// launcher could be started at all.
     fn spawn_first(target: &OsStr, appdir: &str) -> AppResult<()> {
-        let launchers: [&[&str]; 2] = [&["xdg-open"], &["gio", "open"]];
         let set_for_image = super::SET_FOR_APPIMAGE
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .clone();
-        let mut last_err = None;
-        for launcher in launchers {
-            let mut cmd = Command::new(launcher[0]);
-            cmd.args(&launcher[1..])
-                .arg(target)
-                .stdin(Stdio::null())
-                .stdout(Stdio::null())
-                .stderr(Stdio::null());
-            for (key, value) in std::env::vars_os() {
-                let Some(value) = value.to_str() else {
-                    continue;
-                };
-                let ours = key.to_str().is_some_and(|key| set_for_image.contains(&key));
-                match super::host_value(value, appdir, ours) {
-                    Some(host) if host == value => {}
-                    Some(host) => {
-                        cmd.env(&key, host);
+        let mut xdg = host_command(&["xdg-open"], target, appdir, &set_for_image);
+        let mut gio = host_command(&["gio", "open"], target, appdir, &set_for_image);
+        match xdg.spawn() {
+            Ok(mut child) => {
+                std::thread::spawn(move || {
+                    let code = child.wait().ok().and_then(|status| status.code());
+                    if !matches!(code, Some(3 | 4)) {
+                        return;
                     }
-                    None => {
-                        cmd.env_remove(&key);
+                    match gio.spawn() {
+                        Ok(mut child) => {
+                            let _ = child.wait();
+                        }
+                        Err(err) => {
+                            tracing::warn!(%err, ?code, "xdg-open failed and gio could not start");
+                        }
                     }
-                }
+                });
+                Ok(())
             }
-            match cmd.spawn() {
+            Err(xdg_err) => match gio.spawn() {
                 Ok(mut child) => {
-                    // Reaped off-thread: `xdg-open` can stay in the
-                    // foreground for as long as the browser it started.
                     std::thread::spawn(move || {
                         let _ = child.wait();
                     });
-                    return Ok(());
+                    Ok(())
                 }
-                Err(err) => last_err = Some(err),
+                Err(gio_err) => Err(AppError::Other(format!(
+                    "no launcher could open {}: xdg-open: {xdg_err}; gio: {gio_err}",
+                    target.to_string_lossy()
+                ))),
+            },
+        }
+    }
+
+    /// `launcher` opening `target`, with the environment a host program
+    /// needs: see [`super::host_value`].
+    fn host_command(
+        launcher: &[&str],
+        target: &OsStr,
+        appdir: &str,
+        set_for_image: &[&str],
+    ) -> Command {
+        let mut cmd = Command::new(launcher[0]);
+        cmd.args(&launcher[1..])
+            .arg(target)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        for (key, value) in std::env::vars_os() {
+            let Some(value) = value.to_str() else {
+                continue;
+            };
+            let ours = key.to_str().is_some_and(|key| set_for_image.contains(&key));
+            match super::host_value(value, appdir, ours) {
+                Some(host) if host == value => {}
+                Some(host) => {
+                    cmd.env(&key, host);
+                }
+                None => {
+                    cmd.env_remove(&key);
+                }
             }
         }
-        Err(AppError::Other(format!(
-            "no launcher could open {}: {}",
-            target.to_string_lossy(),
-            last_err.map_or_else(|| "none found".to_string(), |err| err.to_string())
-        )))
+        cmd
     }
 }
 
