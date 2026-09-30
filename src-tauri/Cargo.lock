@@ -7673,7 +7673,7 @@ dependencies = [
 
 [[package]]
 name = "waveflow"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "alsa",
  "anyhow",
@@ -7751,7 +7751,7 @@ dependencies = [
 
 [[package]]
 name = "waveflow-core"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "anyhow",
  "async-trait",
