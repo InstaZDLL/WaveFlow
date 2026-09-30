@@ -46,12 +46,36 @@ pub fn is_openable_url(url: &str) -> bool {
     url::Url::parse(url).is_ok_and(|parsed| matches!(parsed.scheme(), "http" | "https" | "mailto"))
 }
 
+/// Variables the app itself set at startup for the image's own benefit:
+/// the GStreamer registry and plugin paths, which go through a link in
+/// the cache directory and so never name the mount. A host program handed
+/// them would load the image's plugins — or share a registry written by
+/// another GStreamer — as surely as through `LD_LIBRARY_PATH`.
+#[cfg(target_os = "linux")]
+static SET_FOR_APPIMAGE: std::sync::Mutex<Vec<&'static str>> = std::sync::Mutex::new(Vec::new());
+
+/// Record a variable set for the image, to be withheld from programs it
+/// starts. Called by the startup preflight, before any thread exists.
+#[cfg(target_os = "linux")]
+pub fn note_appimage_variable(key: &'static str) {
+    let mut keys = SET_FOR_APPIMAGE
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    if !keys.contains(&key) {
+        keys.push(key);
+    }
+}
+
 /// The value a variable should carry for a program started from inside
 /// the image mounted at `appdir`: its entries under `appdir` dropped,
-/// `None` when nothing is left. Values that never mention the image come
-/// back unchanged.
+/// `None` when nothing is left, and `None` outright for a variable the
+/// app set for the image (`set_for_image`). Values that never mention the
+/// image come back unchanged.
 #[cfg(any(target_os = "linux", test))]
-fn host_value(value: &str, appdir: &str) -> Option<String> {
+fn host_value(value: &str, appdir: &str, set_for_image: bool) -> Option<String> {
+    if set_for_image {
+        return None;
+    }
     if !value.contains(appdir) {
         return Some(value.to_string());
     }
@@ -80,6 +104,10 @@ mod appimage {
     /// The opener plugin's own order: the first launcher that starts wins.
     fn spawn_first(target: &OsStr, appdir: &str) -> AppResult<()> {
         let launchers: [&[&str]; 2] = [&["xdg-open"], &["gio", "open"]];
+        let set_for_image = super::SET_FOR_APPIMAGE
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone();
         let mut last_err = None;
         for launcher in launchers {
             let mut cmd = Command::new(launcher[0]);
@@ -92,7 +120,8 @@ mod appimage {
                 let Some(value) = value.to_str() else {
                     continue;
                 };
-                match super::host_value(value, appdir) {
+                let ours = key.to_str().is_some_and(|key| set_for_image.contains(&key));
+                match super::host_value(value, appdir, ours) {
                     Some(host) if host == value => {}
                     Some(host) => {
                         cmd.env(&key, host);
@@ -132,7 +161,7 @@ mod tests {
     fn entries_inside_the_image_are_dropped_and_the_host_ones_kept() {
         let path = "/tmp/.mount_WaveFlkLdcgI/usr/bin/:/usr/local/bin:/usr/bin";
         assert_eq!(
-            host_value(path, APPDIR).as_deref(),
+            host_value(path, APPDIR, false).as_deref(),
             Some("/usr/local/bin:/usr/bin")
         );
     }
@@ -141,22 +170,36 @@ mod tests {
     fn a_variable_that_only_points_into_the_image_is_removed() {
         // The launcher writes some of them with a doubled slash.
         assert_eq!(
-            host_value("/tmp/.mount_WaveFlkLdcgI//usr/lib/gio/modules", APPDIR),
+            host_value(
+                "/tmp/.mount_WaveFlkLdcgI//usr/lib/gio/modules",
+                APPDIR,
+                false
+            ),
             None
         );
         assert_eq!(
             host_value(
                 "/tmp/.mount_WaveFlkLdcgI/usr/lib/:/tmp/.mount_WaveFlkLdcgI/usr/lib32/",
-                APPDIR
+                APPDIR,
+                false
             ),
             None
         );
     }
 
     #[test]
+    fn a_path_the_app_aimed_at_the_image_through_a_link_is_removed() {
+        // The link lives in the cache directory, so nothing in the value
+        // names the mount: only knowing the app set it gives it away.
+        let link = "/home/nayeon/.cache/app.waveflow/gstreamer-plugins";
+        assert_eq!(host_value(link, APPDIR, true), None);
+        assert_eq!(host_value(link, APPDIR, false).as_deref(), Some(link));
+    }
+
+    #[test]
     fn values_that_never_mention_the_image_are_left_alone() {
-        assert_eq!(host_value("GNOME", APPDIR).as_deref(), Some("GNOME"));
-        assert_eq!(host_value("", APPDIR).as_deref(), Some(""));
+        assert_eq!(host_value("GNOME", APPDIR, false).as_deref(), Some("GNOME"));
+        assert_eq!(host_value("", APPDIR, false).as_deref(), Some(""));
     }
 
     #[test]

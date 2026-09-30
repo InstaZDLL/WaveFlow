@@ -1489,6 +1489,7 @@ fn preflight_appimage_gstreamer(identifier: &str) {
         return;
     };
     std::env::set_var(KEY, dir.join("gstreamer-registry.bin"));
+    external_open::note_appimage_variable(KEY);
     if let Err(err) = link_appimage_gstreamer_plugins(&dir) {
         // Logging is not up yet. Without the link, video still plays; the
         // first one of each launch is just slow to start.
@@ -1530,6 +1531,7 @@ fn link_appimage_gstreamer_plugins(dir: &std::path::Path) -> std::io::Result<()>
     for key in ["GST_PLUGIN_SYSTEM_PATH_1_0", "GST_PLUGIN_PATH_1_0"] {
         if let Some(value) = std::env::var(key).ok().filter(|v| v.contains(plugins_str)) {
             std::env::set_var(key, value.replace(plugins_str, link_str));
+            external_open::note_appimage_variable(key);
         }
     }
     Ok(())
