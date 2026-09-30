@@ -594,6 +594,16 @@ fn set_unless_present(key: &str, value: &str) {
 
 /// Turn the decision into the environment the web engine will read.
 fn apply(mode: RenderMode) {
+    // Every mode, GPU included: WebKitGTK's DMA-BUF video sink hands the
+    // page frames as GL textures it cannot map back. Copying one into a
+    // `<canvas>`, which `useLoopFrameHold` does four times a second to
+    // hide a looping clip's jump back, then fails with `Cannot map
+    // External OES textures`, and the held frame stays empty. The GL sink
+    // WebKit uses instead keeps the compositor's own DMA-BUF path, so
+    // nothing slows down: `WEBKIT_DISABLE_DMABUF_RENDERER`, which software
+    // mode sets below, is the switch that costs.
+    #[cfg(target_os = "linux")]
+    set_unless_present("WEBKIT_GST_DMABUF_SINK_DISABLED", "1");
     if mode == RenderMode::Gpu {
         return;
     }

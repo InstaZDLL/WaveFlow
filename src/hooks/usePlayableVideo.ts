@@ -19,7 +19,7 @@ import { getLocalVideoBaseUrl } from "../lib/tauri/canvas";
  * seconds in and never resumes. WebView2 and WKWebView play the asset URL
  * directly.
  */
-const LINUX =
+export const LINUX =
   /linux/i.test(navigator.userAgent) && !/android/i.test(navigator.userAgent);
 
 /** Asked once per launch: the server's port and token do not change. */
