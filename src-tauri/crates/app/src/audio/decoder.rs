@@ -369,6 +369,7 @@ fn decoder_loop(
                     shared.drain_silent.store(true, Ordering::Release);
                     let start = std::time::Instant::now();
                     while producer.slots() < super::output::RING_CAPACITY
+                        && !producer.is_abandoned()
                         && start.elapsed() < Duration::from_millis(500)
                     {
                         std::thread::sleep(Duration::from_millis(1));
@@ -498,6 +499,7 @@ fn decoder_loop(
                     shared.drain_silent.store(true, Ordering::Release);
                     let start = std::time::Instant::now();
                     while producer.slots() < super::output::RING_CAPACITY
+                        && !producer.is_abandoned()
                         && start.elapsed() < Duration::from_millis(500)
                     {
                         std::thread::sleep(Duration::from_millis(1));
@@ -671,6 +673,7 @@ fn decoder_loop(
                     shared.drain_silent.store(true, Ordering::Release);
                     let start = std::time::Instant::now();
                     while producer.slots() < super::output::RING_CAPACITY
+                        && !producer.is_abandoned()
                         && start.elapsed() < Duration::from_millis(500)
                     {
                         std::thread::sleep(Duration::from_millis(1));
@@ -1978,6 +1981,11 @@ fn finished_from(stream: &ActiveStream) -> FinishedTrack {
 /// its own purpose. The `drain_silent` branch already writes silence
 /// AND pops the ring, so it's sufficient to cover the user-facing
 /// "no pre-seek leak" guarantee on its own.
+///
+/// A ring whose consumer is gone never drains — the output thread drops
+/// a stuck stream and waits for the rebuild's `SwapProducer` — so this
+/// wait, and the three inline ones in `decoder_loop`, end there rather
+/// than at the timeout.
 fn drain_ring_silent(producer: &Producer<f32>, shared: &SharedPlayback) {
     if producer.slots() == super::output::RING_CAPACITY {
         return;
@@ -1985,6 +1993,7 @@ fn drain_ring_silent(producer: &Producer<f32>, shared: &SharedPlayback) {
     shared.drain_silent.store(true, Ordering::Release);
     let start = Instant::now();
     while producer.slots() < super::output::RING_CAPACITY
+        && !producer.is_abandoned()
         && start.elapsed() < Duration::from_millis(500)
     {
         std::thread::sleep(Duration::from_millis(1));
