@@ -312,6 +312,12 @@ Two more pieces make video actually play, and neither is packaging. The bundled 
 
 Leave `gstreamer1.0-plugins-ugly` out: Tauri's own guidance warns that its licences make it hard to redistribute. Tauri also documents the flag as fully supported only on Ubuntu build systems, which is what the release runs on — a local AppImage built on another distribution is not a valid test of it. Use `test-appimage.yml`.
 
+## Programs started from the AppImage get the host's environment back
+
+The AppImage's launcher points `LD_LIBRARY_PATH`, `GIO_MODULE_DIR`, `GTK_PATH`, `GSETTINGS_SCHEMA_DIR`, `PATH`, `XDG_DATA_DIRS` and a few more into the mount, so that the bundled WebKitGTK finds its own libraries. Every program the app starts inherits them. The opener plugin's `xdg-open` then ran the host's `gio`, file manager and browser against the image's Ubuntu libraries, and they died on the first missing symbol. On Fedora, `gio` stopped at `undefined symbol: g_unix_mount_entry_get_options` and Firefox at `version NSS_3.126 not found`, so "Open log folder" did nothing. The native packages never set those variables.
+
+[`external_open`](../src-tauri/crates/app/src/external_open.rs) is the one way the app opens a folder or a link. When `APPIMAGE` is set, it starts `xdg-open` (then `gio open`) with every entry under `$APPDIR` removed from the environment. Elsewhere it hands over to the plugin unchanged. The frontend's links go through its `open_external_url` command, which accepts `http`, `https` and `mailto` only, because plugins pass their own links there. Revealing a track in its folder stays on the plugin: it asks the file manager over D-Bus, which starts it with its own environment.
+
 ## AppImage delta updates: three steps in one order
 
 The AppImage runtime reserves a 1024-byte `.upd_info` section for a single string saying where updates come from. `appimagetool -u` fills it; Tauri builds the AppImage itself and exposes no equivalent, so it shipped zeroed and every ecosystem tool — AppImageUpdate, AppImageLauncher, AM, AppManager — reported _no update information available_ ([#527](https://github.com/InstaZDLL/WaveFlow/issues/527)).

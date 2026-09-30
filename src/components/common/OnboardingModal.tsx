@@ -29,7 +29,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openUrl } from "../../lib/tauri/external";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";

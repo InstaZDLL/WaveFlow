@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openUrl } from "../../lib/tauri/external";
 import { AlertCircle, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 
 import {

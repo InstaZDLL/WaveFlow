@@ -13,6 +13,7 @@ mod desktop_lyrics;
 mod discord_presence;
 mod dlna;
 mod error;
+mod external_open;
 mod logging;
 mod media_controls;
 #[cfg(target_os = "linux")]
@@ -747,6 +748,7 @@ pub fn run() {
             commands::renderer::renderer_retry_gpu,
             commands::app_info::get_app_info,
             commands::app_info::open_data_folder,
+            commands::app_info::open_external_url,
             commands::changelog::get_changelog,
             commands::diagnostics::get_log_dir,
             commands::diagnostics::open_log_folder,
