@@ -20,11 +20,21 @@ import { ImmersiveLyricsColumn } from "./ImmersiveLyricsColumn";
 import { ImmersiveShareButton } from "./ImmersiveShareButton";
 import { CanvasToggleButton } from "./CanvasToggleButton";
 import { CanvasPickerModal } from "../common/CanvasPickerModal";
+import { LINUX } from "../../hooks/usePlayableVideo";
 
 /** Below this width the dual-column layout collapses to a single column
  *  with a now-playing ⇄ panel toggle — two columns only make sense at
  *  desktop widths. */
 const NARROW_BREAKPOINT = 900;
+
+/**
+ * The view fades in everywhere but Linux. WebKitGTK 2.54 rebuilds its
+ * layers each time a video appears inside a full-window layer that is
+ * still animating, and a motion cover or Canvas mounting during the fade
+ * blacked the whole window out three times before it settled. Without the
+ * fade one short flash is left: WebKit creating the video layer itself.
+ */
+const FADE_IN = LINUX ? "" : " animate-fade-in";
 
 interface ImmersiveViewProps {
   /** Which entry point opened the view — only used to pick the first
@@ -247,8 +257,9 @@ export function ImmersiveView({
       className="dark fixed inset-0 z-100 bg-zinc-950"
     >
       {/* Blurred artwork background — flat dark gradient fallback. Same
-          recipe as the old overlays. `animate-fade-in` lives here so the
-          opaque `bg-zinc-950` above paints solid from frame 1.
+          recipe as the old overlays. The fade-in (`FADE_IN`, none on
+          Linux) lives here so the opaque `bg-zinc-950` above paints solid
+          from frame 1.
 
           Deliberately a pre-resized variant, and **only** one: behind
           `blur-3xl` at 150% scale a 128 px source is indistinguishable,
@@ -266,7 +277,7 @@ export function ImmersiveView({
           variant means the gradient, not the animation. It still plays,
           once, on the foreground cover. A stream's `path` is the one
           exception — see `streamBackdrop`. */}
-      <div className="absolute inset-0 overflow-hidden animate-fade-in">
+      <div className={`absolute inset-0 overflow-hidden${FADE_IN}`}>
         {staticBackdrop ? (
           <Artwork
             path={streamBackdrop}
@@ -284,7 +295,7 @@ export function ImmersiveView({
       </div>
 
       {/* Foreground */}
-      <div className="relative h-full flex flex-col text-white animate-fade-in">
+      <div className={`relative h-full flex flex-col text-white${FADE_IN}`}>
         {/* Shared top bar — panel toggle + share + close. Absolute so
             the columns own the full height underneath. The side panel
             measures it to know how much of its own top line is free.
