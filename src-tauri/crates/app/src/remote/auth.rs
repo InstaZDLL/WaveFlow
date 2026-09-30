@@ -165,7 +165,7 @@ pub async fn begin_login(state: &AppState, server_url: &str) -> AppResult<Remote
     let callback =
         tauri::async_runtime::spawn_blocking(move || wait_for_code(server, &expected_state));
 
-    tauri_plugin_opener::open_url(authorize_url, None::<&str>)
+    crate::external_open::open_url(&authorize_url)
         .map_err(|err| AppError::Other(format!("could not open the browser: {err}")))?;
 
     let code = callback

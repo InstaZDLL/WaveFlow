@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, MessageSquare, Mail, ArrowRight } from "lucide-react";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openUrl } from "../../lib/tauri/external";
 import type { ViewId } from "../../types";
 
 const FEEDBACK_EMAIL = "contact@waveflow.app";

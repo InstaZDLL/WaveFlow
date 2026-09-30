@@ -13,6 +13,7 @@ mod desktop_lyrics;
 mod discord_presence;
 mod dlna;
 mod error;
+mod external_open;
 mod logging;
 mod media_controls;
 #[cfg(target_os = "linux")]
@@ -747,6 +748,7 @@ pub fn run() {
             commands::renderer::renderer_retry_gpu,
             commands::app_info::get_app_info,
             commands::app_info::open_data_folder,
+            commands::app_info::open_external_url,
             commands::changelog::get_changelog,
             commands::diagnostics::get_log_dir,
             commands::diagnostics::open_log_folder,
@@ -1487,6 +1489,7 @@ fn preflight_appimage_gstreamer(identifier: &str) {
         return;
     };
     std::env::set_var(KEY, dir.join("gstreamer-registry.bin"));
+    external_open::note_appimage_variable(KEY);
     if let Err(err) = link_appimage_gstreamer_plugins(&dir) {
         // Logging is not up yet. Without the link, video still plays; the
         // first one of each launch is just slow to start.
@@ -1528,6 +1531,7 @@ fn link_appimage_gstreamer_plugins(dir: &std::path::Path) -> std::io::Result<()>
     for key in ["GST_PLUGIN_SYSTEM_PATH_1_0", "GST_PLUGIN_PATH_1_0"] {
         if let Some(value) = std::env::var(key).ok().filter(|v| v.contains(plugins_str)) {
             std::env::set_var(key, value.replace(plugins_str, link_str));
+            external_open::note_appimage_variable(key);
         }
     }
     Ok(())

@@ -1383,9 +1383,7 @@ pub async fn open_plugins_folder(state: State<'_, AppState>) -> AppResult<()> {
     })
     .await
     .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;
-    tauri_plugin_opener::open_path(root, None::<&str>)
-        .map_err(|e| AppError::Other(format!("open_path: {e}")))?;
-    Ok(())
+    crate::external_open::open_path(root)
 }
 
 #[cfg(test)]

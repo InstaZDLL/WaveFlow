@@ -19,8 +19,7 @@ pub fn get_log_dir() -> AppResult<Option<String>> {
 pub fn open_log_folder() -> AppResult<()> {
     let dir = logging::log_dir()
         .ok_or_else(|| AppError::Other("log directory not initialised".into()))?;
-    tauri_plugin_opener::open_path(dir, None::<&str>)
-        .map_err(|err| AppError::Other(format!("open_path: {err}")))
+    crate::external_open::open_path(dir)
 }
 
 /// Concatenate the most recent rolling log files and return their tail
