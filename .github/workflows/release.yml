@@ -929,6 +929,12 @@ jobs:
         # release, which the opt-in beta endpoint pins by tag (GitHub has
         # no "latest pre-release" alias). The version release still holds
         # the per-platform installers the manifest URLs point at.
+        #
+        # A stable release also goes to the beta channel when it is newer
+        # than the beta published there (#793): a tester on 1.8.0-beta.3
+        # reads only latest-beta.json, and never saw 1.8.0. A stable that
+        # is older — a 1.8.1 fix while 1.9.0-beta.1 is out — leaves the
+        # channel alone, or every tester would be pointed back down.
         run: |
           if [ "$IS_PRERELEASE" = "true" ]; then
             cp dist-release/latest.json dist-release/latest-beta.json
@@ -941,6 +947,45 @@ jobs:
             gh release upload beta-channel dist-release/latest-beta.json --clobber
           else
             gh release upload "$TAG_NAME" dist-release/latest.json --clobber
+            # No beta channel yet means no tester to bring along. Anything
+            # else that stops the read is reported, not taken for absence;
+            # the release itself is already out, so it does not fail here.
+            if ! BETA_ASSETS=$(gh release view beta-channel --json assets --jq '.assets[].name' 2>&1); then
+              if grep -qi "release not found" <<<"$BETA_ASSETS"; then
+                echo "No beta channel release: nothing to update."
+              else
+                echo "::warning::Could not read the beta channel ($BETA_ASSETS). Upload latest.json there as latest-beta.json by hand if $TAG_NAME is newer."
+              fi
+            elif ! grep -qx "latest-beta.json" <<<"$BETA_ASSETS"; then
+              echo "No beta channel manifest: nothing to update."
+            elif ! gh release download beta-channel -p latest-beta.json -O current-beta.json --clobber; then
+              echo "::warning::Could not download the beta channel manifest. Upload latest.json there as latest-beta.json by hand if $TAG_NAME is newer."
+            elif ! BETA_VERSION=$(python3 -c 'import json; print(json.load(open("current-beta.json"))["version"])'); then
+              echo "::warning::The beta channel manifest has no readable version. Upload latest.json there as latest-beta.json by hand if $TAG_NAME is newer."
+            elif python3 - "${TAG_NAME#v}" "$BETA_VERSION" <<'PY'
+          import sys
+
+          def key(version):
+              core, _, pre = version.partition("-")
+              numbers = tuple(int(part) for part in core.split("."))
+              # A release sorts after every pre-release of the same core;
+              # pre-release identifiers compare numerically where they can.
+              parts = tuple(
+                  (0, int(p), "") if p.isdigit() else (1, 0, p)
+                  for p in pre.split(".")
+              ) if pre else ()
+              return numbers, (1,) if not pre else (0,) + parts
+
+          stable, beta = sys.argv[1], sys.argv[2]
+          sys.exit(0 if key(stable) > key(beta) else 1)
+          PY
+            then
+              echo "Stable $TAG_NAME is newer than the beta channel's $BETA_VERSION: publishing it there too."
+              cp dist-release/latest.json dist-release/latest-beta.json
+              gh release upload beta-channel dist-release/latest-beta.json --clobber
+            else
+              echo "Beta channel keeps $BETA_VERSION, not older than $TAG_NAME."
+            fi
           fi
 
       - name: Trigger downstream distribution workflows
