@@ -14,7 +14,10 @@
 //!     same repo.
 //!   - **beta** → `releases/download/beta-channel/latest-beta.json`, a
 //!     rolling manifest re-uploaded onto the fixed `beta-channel`
-//!     release by `release.yml` on every pre-release tag.
+//!     release by `release.yml` on every pre-release tag, **and** the
+//!     stable manifest, the newer of the two winning. A tester on
+//!     1.8.0-beta.3 used to read the beta manifest alone and never saw
+//!     1.8.0 (#793).
 //!
 //! The actual updater calls are compiled only into release builds with
 //! the `updater` feature (same gate as the plugin registration in
@@ -72,12 +75,33 @@ impl UpdateChannel {
         }
     }
 
+    /// The manifests to read, in order. A beta tester follows stable
+    /// releases too: one that is newer than the last beta is an update
+    /// for them, and `release.yml` only copies it onto the beta channel
+    /// from now on, which a build without this list never learns of.
     #[allow(dead_code)] // used only by the release-gated `imp` module
-    fn endpoint(self) -> &'static str {
+    fn endpoints(self) -> &'static [&'static str] {
         match self {
-            UpdateChannel::Stable => STABLE_ENDPOINT,
-            UpdateChannel::Beta => BETA_ENDPOINT,
+            UpdateChannel::Stable => &[STABLE_ENDPOINT],
+            UpdateChannel::Beta => &[BETA_ENDPOINT, STABLE_ENDPOINT],
         }
+    }
+}
+
+/// Whether `candidate` is a newer version than `current`, by semver
+/// (a release outranks its own pre-releases). A version that does not
+/// parse never wins, so a malformed manifest cannot displace a good one.
+#[allow(dead_code)] // used only by the release-gated `imp` module
+fn is_newer(candidate: &str, current: &str) -> bool {
+    match (
+        semver::Version::parse(candidate),
+        semver::Version::parse(current),
+    ) {
+        // Precedence, not `>`: build metadata (`+…`) does not make a
+        // version newer.
+        (Ok(candidate), Ok(current)) => candidate.cmp_precedence(&current).is_gt(),
+        (Ok(_), Err(_)) => true,
+        _ => false,
     }
 }
 
@@ -152,17 +176,51 @@ mod imp {
         AppError::Other(format!("updater: {e}"))
     }
 
-    pub async fn check(app: &AppHandle, channel: UpdateChannel) -> AppResult<Option<UpdateInfo>> {
-        let endpoint = tauri::Url::parse(channel.endpoint()).map_err(updater_err)?;
+    async fn check_endpoint(app: &AppHandle, endpoint: &str) -> AppResult<Option<Update>> {
+        let endpoint = tauri::Url::parse(endpoint).map_err(updater_err)?;
         let updater = app
             .updater_builder()
             .endpoints(vec![endpoint])
             .map_err(updater_err)?
             .build()
             .map_err(updater_err)?;
+        updater.check().await.map_err(updater_err)
+    }
+
+    pub async fn check(app: &AppHandle, channel: UpdateChannel) -> AppResult<Option<UpdateInfo>> {
+        // Each manifest only answers with a version newer than this build,
+        // so the newest answer is the update. One manifest failing does not
+        // hide what another found; only all of them failing is an error.
+        let mut newest: Option<Update> = None;
+        let mut first_err = None;
+        let mut any_ok = false;
+        for endpoint in channel.endpoints() {
+            match check_endpoint(app, endpoint).await {
+                Ok(found) => {
+                    any_ok = true;
+                    if let Some(update) = found {
+                        if newest
+                            .as_ref()
+                            .map_or(true, |best| is_newer(&update.version, &best.version))
+                        {
+                            newest = Some(update);
+                        }
+                    }
+                }
+                Err(err) => {
+                    tracing::warn!(%err, endpoint, "update check failed for one manifest");
+                    first_err.get_or_insert(err);
+                }
+            }
+        }
+        if !any_ok {
+            if let Some(err) = first_err {
+                return Err(err);
+            }
+        }
 
         let pending = app.state::<PendingUpdate>();
-        match updater.check().await.map_err(updater_err)? {
+        match newest {
             Some(update) => {
                 let info = UpdateInfo {
                     version: update.version.clone(),
@@ -231,6 +289,45 @@ pub async fn check_for_update(
         // report "nothing available" so the UI stays quiet.
         let _ = (&app, channel);
         Ok(None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{is_newer, UpdateChannel, BETA_ENDPOINT, STABLE_ENDPOINT};
+
+    #[test]
+    fn a_release_outranks_its_own_betas() {
+        assert!(is_newer("1.8.0", "1.8.0-beta.3"));
+        assert!(!is_newer("1.8.0-beta.3", "1.8.0"));
+        assert!(is_newer("1.8.0-beta.10", "1.8.0-beta.3"));
+    }
+
+    #[test]
+    fn an_older_release_does_not_displace_a_newer_beta() {
+        assert!(!is_newer("1.8.1", "1.9.0-beta.1"));
+        assert!(is_newer("1.9.0-beta.1", "1.8.1"));
+    }
+
+    #[test]
+    fn build_metadata_does_not_make_a_version_newer() {
+        assert!(!is_newer("1.8.0+z", "1.8.0+a"));
+        assert!(!is_newer("1.8.0+a", "1.8.0+z"));
+    }
+
+    #[test]
+    fn a_version_that_does_not_parse_never_wins() {
+        assert!(!is_newer("not-a-version", "1.8.0"));
+        assert!(is_newer("1.8.0", "not-a-version"));
+    }
+
+    #[test]
+    fn the_beta_channel_reads_the_stable_manifest_too() {
+        assert_eq!(UpdateChannel::Stable.endpoints(), [STABLE_ENDPOINT]);
+        assert_eq!(
+            UpdateChannel::Beta.endpoints(),
+            [BETA_ENDPOINT, STABLE_ENDPOINT]
+        );
     }
 }
 

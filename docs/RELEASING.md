@@ -244,6 +244,13 @@ Toggling **off** returns the user to stable on the next check: a
 released `1.5.2` is semver-greater than their `1.5.2-beta.N`, so the
 stable endpoint serves it as an update.
 
+**Staying on the beta channel follows stable releases too** (#793). Until 1.8.0 a tester read `latest-beta.json` alone, which only a pre-release tag ever rewrote, so someone on `1.8.0-beta.3` never saw `1.8.0`. Two changes close that, one per side:
+
+- the updater reads **both** manifests on the beta channel and keeps the newer answer ([`updater.rs`](../src-tauri/crates/app/src/commands/updater.rs), `is_newer`, by semver). One manifest failing does not hide what the other found;
+- `release.yml` also copies a stable manifest onto `beta-channel` when that stable is newer than the beta published there. That is what reaches builds that predate the first change. A stable that is older — a `1.8.1` fix while `1.9.0-beta.1` is out — leaves the channel alone.
+
+For 1.8.0 itself, the stable manifest was uploaded onto `beta-channel` by hand on 2026-10-02.
+
 ### Cutting a beta
 
 Run the **Cut beta** workflow

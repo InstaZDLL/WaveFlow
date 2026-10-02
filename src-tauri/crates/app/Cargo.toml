@@ -228,6 +228,10 @@ souvlaki = "0.8"
 # `url` is already in our transitive tree via reqwest.
 url = "2"
 
+# Compare the stable and beta updater manifests' versions (#793).
+# Already in our transitive tree via tauri-plugin-updater.
+semver = "1"
+
 # Tiny synchronous HTTP server bound to 127.0.0.1:0 — used solely to
 # serve cover-art bytes to Windows SMTC, which only accepts http(s)
 # URIs in `RandomAccessStreamReference::CreateFromUri` (file:// is
