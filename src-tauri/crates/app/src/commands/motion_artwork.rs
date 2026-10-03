@@ -104,6 +104,15 @@ pub async fn fetch_album_motion_artwork(
 ) -> AppResult<Option<MotionArtwork>> {
     if let Some(id) = album_id {
         if let Some(manual) = manual_motion_artwork(&app, &state, id).await? {
+            // Without this line a manual cover is invisible in the logs:
+            // the "resolving motion artwork" line below never runs, so the
+            // plugins look like the source of a cover they never saw.
+            tracing::debug!(
+                %artist,
+                %album,
+                album_id = id,
+                "manual motion cover wins; plugins skipped"
+            );
             return Ok(Some(manual));
         }
     }
@@ -346,6 +355,7 @@ async fn manual_motion_artwork(
     let Some(path) = library_media::find_media_file(candidates, hash, format.clone()).await else {
         // The row outlived its file; the album falls back to its static
         // cover, as it would for one that never had a motion cover.
+        tracing::debug!(album_id, "manual motion cover file missing; ignoring it");
         return Ok(None);
     };
     if let Some(parent) = path.parent() {
