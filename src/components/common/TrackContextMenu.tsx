@@ -139,7 +139,9 @@ export function TrackContextMenu({
         icon={<Plus size={14} />}
         label={t("trackActions.addToPlaylist")}
       >
-        <div className="max-h-64 overflow-y-auto">
+        {/* `overscroll-contain`: reaching the end of the list must not
+            scroll the page behind it, which closes the menu. */}
+        <div className="max-h-64 overflow-y-auto overscroll-contain">
           {playlists.length === 0 ? (
             <div className="px-3 py-2 text-xs text-zinc-400">
               {t("trackActions.noPlaylists")}

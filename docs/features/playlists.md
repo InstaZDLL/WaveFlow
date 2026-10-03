@@ -23,7 +23,7 @@ The sidebar's two pinned rows — Liked tracks and Recently played — open the 
 
 A **server** playlist gets one item, Open. Every other action takes a local rowid it does not have, and its playback runs through the view's own remote path rather than `player_play_tracks` — so the alternative was a menu with every item greyed out, which is worse than the inert right-click this replaced.
 
-The grid is virtualized, so the menu state lives in [`PlaylistGrid`](../../src/components/views/library/PlaylistGrid.tsx) rather than in a card — a card can unmount under an open menu. `ContextMenu` portals to `body` and closes on scroll, so that unmount is harmless.
+The grid is virtualized, so the menu state lives in [`PlaylistGrid`](../../src/components/views/library/PlaylistGrid.tsx) rather than in a card — a card can unmount under an open menu. `ContextMenu` portals to `body` and closes when the page scrolls, so that unmount is harmless. A scroll inside the menu itself — the playlist list of "Add to a playlist" — leaves it open.
 
 ## Reordering
 
