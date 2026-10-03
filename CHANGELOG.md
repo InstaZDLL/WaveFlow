@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.8.1](https://github.com/InstaZDLL/WaveFlow/compare/v1.8.0...v1.8.1) (2026-10-03)
+
+
+### Bug Fixes
+
+* **artwork:** log when a manual motion cover wins over the plugins ([689e021](https://github.com/InstaZDLL/WaveFlow/commit/689e0214b85fda5e9f17c1cc8b4f3cc78f412a9a))
+* **artwork:** log when a manual motion cover wins over the plugins ([32d8f80](https://github.com/InstaZDLL/WaveFlow/commit/32d8f80be8bbfd4b4df59ffcebef8b49cba6a5e4))
+* **ui:** keep a context menu open while its own list scrolls ([1740008](https://github.com/InstaZDLL/WaveFlow/commit/17400089be6bdbda7b0d7f738a51715d19422aa0))
+* **ui:** keep a context menu open while its own list scrolls ([0bf928d](https://github.com/InstaZDLL/WaveFlow/commit/0bf928d6365ea0dc35b5e60a2f54ae1c6e056ae9))
+
 ## [1.8.0](https://github.com/InstaZDLL/WaveFlow/compare/v1.7.0...v1.8.0) (2026-09-30)
 
 
