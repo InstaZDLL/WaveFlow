@@ -178,18 +178,27 @@ export function ContextMenu({
       if (target?.closest("[data-context-menu]")) return;
       onClose();
     };
+    // Close when the page scrolls — keeps the menu glued to its anchor
+    // without chasing the page. Not when the scroll is inside the menu
+    // itself: the listener captures every scroll, and the playlist
+    // submenu's own list closed the menu the moment it moved.
+    const onScroll = (e: Event) => {
+      const target = e.target;
+      if (target instanceof Element && target.closest("[data-context-menu]")) {
+        return;
+      }
+      onClose();
+    };
     // `mousedown` instead of `click` so dragging doesn't accidentally
     // dismiss before the user releases.
     window.addEventListener("keydown", onKey);
     window.addEventListener("mousedown", onMouseDown);
-    // Close on scroll — keeps the menu glued to its anchor without
-    // chasing the page.
-    window.addEventListener("scroll", onClose, true);
+    window.addEventListener("scroll", onScroll, true);
     window.addEventListener("resize", onClose);
     return () => {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("mousedown", onMouseDown);
-      window.removeEventListener("scroll", onClose, true);
+      window.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("resize", onClose);
     };
   }, [onClose, menuItems]);
