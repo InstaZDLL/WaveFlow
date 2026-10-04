@@ -62,8 +62,8 @@
     "publisher": "InstaZDLL",
     "copyright": "Copyright © 2026 InstaZDLL. Licensed under GPL-3.0-only.",
     "category": "Music",
-    "shortDescription": "Local-first music player with a Spotify-inspired UI.",
-    "longDescription": "WaveFlow is a local music player desktop app built with Tauri 2 and React 19. It scans your local audio folders, organizes tracks by album/artist/genre, and plays them with a real-time audio engine — no streaming, no cloud, your music stays on your machine.",
+    "shortDescription": "Local-first music player with Hi-Res audio and synced lyrics.",
+    "longDescription": "WaveFlow is a local-first music player. It scans your audio folders, organizes tracks by album, artist and genre, and plays them with its own real-time audio engine: no streaming, no cloud, your music stays on your machine. Exclusive output plays Hi-Res files bit-perfect, synced lyrics are highlighted word by word, and smart playlists, plugins, DLNA, MPD and your own WaveFlow server connect it to the rest of your setup.",
     "homepage": "https://waveflow.app",
     "licenseFile": "../../../LICENSE",
     "resources": {

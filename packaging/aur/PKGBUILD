@@ -2,7 +2,7 @@
 pkgname=waveflow-bin
 pkgver=0.1.0
 pkgrel=1
-pkgdesc='Spotify for your local files - bit-perfect Hi-Res music player'
+pkgdesc='Local-first music player with Hi-Res audio, exclusive output, word-by-word synced lyrics, smart playlists and plugins'
 arch=('x86_64')
 url='https://github.com/InstaZDLL/WaveFlow'
 license=('GPL-3.0-only')

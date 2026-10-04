@@ -10,7 +10,7 @@
 Name:           waveflow
 Version:        1.0.0
 Release:        1%{?dist}
-Summary:        Local-first music player with a Spotify-inspired UI
+Summary:        Local-first music player with Hi-Res audio and synced lyrics
 
 License:        GPL-3.0-only
 URL:            https://waveflow.app
@@ -32,15 +32,17 @@ Requires:       librsvg2
 Requires:       alsa-lib
 
 %description
-WaveFlow is a local music player desktop app built with Tauri 2 and
-React 19. It scans your local audio folders, organizes tracks by
-album / artist / genre, and plays them with a real-time audio
-engine — no streaming, no cloud, your music stays on your machine.
+WaveFlow is a local-first music player. It scans your audio folders,
+organizes tracks by album, artist and genre, and plays them with its
+own real-time audio engine: no streaming, no cloud, your music stays
+on your machine.
 
-Features include smart playlists, BPM analysis, LRCLIB lyrics fetch,
-Last.fm scrobbling, Discord Rich Presence, DLNA streaming, a 6-band
-equalizer, A-B loop, sleep timer, mood radio, year-in-review
-"Wrapped" stats, and more.
+Exclusive output plays Hi-Res files bit-perfect. Synced lyrics are
+highlighted word by word, in the app or in a floating desktop window.
+Smart playlists, Daily Mix and mood radio build sessions from your
+library. WaveFlow also talks to the rest of your setup: Last.fm
+scrobbling, Discord, a DLNA server, MPD clients and your own WaveFlow
+server. Plugins add lyrics sources, motion artwork and web radio.
 
 %prep
 # Source0 is a binary RPM, not a tarball — nothing to extract here.

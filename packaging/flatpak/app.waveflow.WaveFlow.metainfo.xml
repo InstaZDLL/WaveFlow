@@ -3,8 +3,8 @@
   <id>app.waveflow.WaveFlow</id>
 
   <name>WaveFlow</name>
-  <summary>Local-first music player with a Spotify-inspired UI</summary>
-  <summary xml:lang="fr">Lecteur de musique local avec une interface inspirée de Spotify</summary>
+  <summary>Local-first Hi-Res music player</summary>
+  <summary xml:lang="fr">Lecteur de musique local Hi-Res</summary>
 
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-only</project_license>
@@ -15,10 +15,9 @@
 
   <description>
     <p>
-      WaveFlow is a local music player desktop app with a Spotify-inspired three-panel UI.
-      It scans your local audio folders, organizes tracks by album, artist and genre, and
-      plays them with a real-time audio engine — no streaming, no cloud, your music stays
-      on your machine.
+      WaveFlow is a local-first music player. It scans your audio folders, organizes
+      tracks by album, artist and genre, and plays them with its own real-time audio
+      engine: no streaming, no cloud, your music stays on your machine.
     </p>
     <p>Features:</p>
     <ul>
